@@ -1,0 +1,1006 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: node
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+    app.kubernetes.io/version: 0.5.0
+  name: nix-builders
+  namespace: nixkube
+spec:
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: ssh
+    port: 22
+    protocol: TCP
+    targetPort: 22
+  selector:
+    app.kubernetes.io/component: node
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: cache
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+    app.kubernetes.io/version: 0.5.0
+  name: nix-cache
+  namespace: nixkube
+spec:
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: ssh
+    port: 22
+    protocol: TCP
+    targetPort: ssh
+  selector:
+    app.kubernetes.io/component: cache
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: cache
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+    app.kubernetes.io/version: 0.5.0
+  name: nix-cache-lb
+  namespace: nixkube
+spec:
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: ssh
+    port: 2222
+    protocol: TCP
+    targetPort: ssh
+  selector:
+    app.kubernetes.io/component: cache
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: builder
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+    app.kubernetes.io/version: 0.5.0
+  name: nix-proxy
+  namespace: nixkube
+spec:
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: ssh
+    port: 2223
+    protocol: TCP
+    targetPort: ssh
+  selector:
+    app.kubernetes.io/component: builder
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+    nix.csi/proxy: 'true'
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: builder
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+    app.kubernetes.io/version: 0.5.0
+  name: nixkube-builders
+  namespace: nixkube
+spec:
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: ssh
+    port: 22
+    protocol: TCP
+    targetPort: 22
+  selector:
+    app.kubernetes.io/component: builder
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  annotations:
+    deprecated.daemonset.template.generation: '7'
+    nixkube/discard: 'true'
+  labels:
+    app.kubernetes.io/component: node
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+    app.kubernetes.io/version: 0.5.0
+  name: nix-node
+  namespace: nixkube
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: node
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+  template:
+    metadata:
+      annotations:
+        configHash: 3bf565608119b3ee7d9efa797b20f24b
+        kubectl.kubernetes.io/default-container: nix-node
+        kubectl.kubernetes.io/restartedAt: '2026-04-13T02:19:59-05:00'
+      labels:
+        app.kubernetes.io/component: node
+        app.kubernetes.io/managed-by: nix
+        app.kubernetes.io/name: nixkube
+        app.kubernetes.io/part-of: nixkube
+        app.kubernetes.io/version: 0.5.0
+    spec:
+      containers:
+      - args:
+        - --v=5
+        - --csi-address=/csi/nix.csi.store/csi.sock
+        - --kubelet-registration-path=/var/lib/kubelet/plugins/nix.csi.store/csi.sock
+        env:
+        - name: KUBE_NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+        imagePullPolicy: IfNotPresent
+        name: csi-node-driver-registrar-nix-csi
+        resources:
+          requests:
+            cpu: 10m
+            memory: 10Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /csi
+          name: csi-socket
+        - mountPath: /var/lib/kubelet
+          name: kubelet
+        - mountPath: /registration
+          name: registration
+      - args:
+        - --v=5
+        - --csi-address=/csi/nixkube/csi.sock
+        - --kubelet-registration-path=/var/lib/kubelet/plugins/nixkube/csi.sock
+        env:
+        - name: KUBE_NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+        imagePullPolicy: IfNotPresent
+        name: csi-node-driver-registrar-nixkube
+        resources:
+          requests:
+            cpu: 10m
+            memory: 10Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /csi
+          name: csi-socket
+        - mountPath: /var/lib/kubelet
+          name: kubelet
+        - mountPath: /registration
+          name: registration
+      - args:
+        - --csi-address=/csi/nix.csi.store/csi.sock
+        - --health-port=9809
+        image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+        imagePullPolicy: IfNotPresent
+        name: livenessprobe-nix-csi
+        resources:
+          requests:
+            cpu: 10m
+            memory: 10Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /csi
+          name: csi-socket
+        - mountPath: /registration
+          name: registration
+      - args:
+        - --csi-address=/csi/nixkube/csi.sock
+        - --health-port=9808
+        image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+        imagePullPolicy: IfNotPresent
+        name: livenessprobe-nixkube
+        resources:
+          requests:
+            cpu: 10m
+            memory: 10Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /csi
+          name: csi-socket
+        - mountPath: /registration
+          name: registration
+      - command:
+        - tini
+        - --
+        - nixkube
+        env:
+        - name: BUILDERS_ENABLED
+          value: 'true'
+        - name: CACHE_ENABLED
+          value: 'true'
+        - name: ENABLE_COMPAT_DRIVER
+          value: 'true'
+        - name: HOME
+          value: /nix/var/nix-csi/root
+        - name: HOST_MOUNT_PATH
+          value: /var/lib/nix-csi
+        - name: KUBE_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: KUBE_NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        - name: KUBE_POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: KUBE_POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: KUBE_POD_UID
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.uid
+        - name: NIXPKGS_ALLOW_UNFREE
+          value: '1'
+        - name: NIX_BUILD_TIMEOUT
+          value: '300'
+        - name: NRI_ENABLED
+          value: 'true'
+        - name: USER
+          value: root
+        - name: VERIFY_STORE_PATHS
+          value: 'true'
+        image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+        imagePullPolicy: IfNotPresent
+        name: nix-node
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          privileged: true
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /csi
+          name: csi-socket
+        - mountPath: /host
+          name: host-root
+        - mountPath: /var/lib/kubelet
+          mountPropagation: Bidirectional
+          name: kubelet
+        - mountPath: /etc/nix
+          name: nix-config
+        - mountPath: /etc/nix-key
+          name: nix-key
+        - mountPath: /nix
+          mountPropagation: Bidirectional
+          name: nix-store
+          subPath: nix
+        - mountPath: /var/run/nri
+          name: nri-socket
+        - mountPath: /registration
+          name: registration
+        - mountPath: /etc/ssh
+          name: ssh-config
+        - mountPath: /etc/ssh-dynauth
+          name: ssh-dynauth
+        - mountPath: /etc/ssh-key
+          name: ssh-key
+      dnsPolicy: ClusterFirst
+      initContainers:
+      - env:
+        - name: NODE_ENV
+          value: '{"aarch64-linux":"/nix/store/zns8sb4468gfrf5hcpxzvx4wmr6nfsw1-nodeEnv","x86_64-linux":"/nix/store/i48pjr2yj7lr5wral06f9afal361ja6y-nodeEnv"}'
+        image: ghcr.io/lillecarl/nix-csi/lix:2.94.0-0.5.0
+        imagePullPolicy: Always
+        name: initcopy
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          privileged: true
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/nix
+          name: nix-config
+        - mountPath: /nix-volume
+          name: nix-store
+        - mountPath: /etc/ssh
+          name: ssh-config
+        - mountPath: /etc/ssh-dynauth
+          name: ssh-dynauth
+        - mountPath: /etc/ssh-key
+          name: ssh-key
+      priorityClassName: system-node-critical
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: nixkube
+      serviceAccountName: nixkube
+      subdomain: nix-builders
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+        operator: Exists
+      - effect: NoSchedule
+        key: workstation
+        operator: Equal
+        value: 'true'
+      - effect: NoExecute
+        key: interactive
+        operator: Equal
+        value: 'true'
+      - effect: NoSchedule
+        key: ram-constrained
+        operator: Equal
+        value: 'true'
+      volumes:
+      - hostPath:
+          path: /var/lib/kubelet/plugins/
+          type: DirectoryOrCreate
+        name: csi-socket
+      - hostPath:
+          path: /
+          type: Directory
+        name: host-root
+      - hostPath:
+          path: /var/lib/kubelet
+          type: Directory
+        name: kubelet
+      - configMap:
+          defaultMode: 420
+          name: nix-node
+        name: nix-config
+      - name: nix-key
+        secret:
+          defaultMode: 256
+          secretName: nix-key
+      - hostPath:
+          path: /var/lib/nix-csi
+          type: DirectoryOrCreate
+        name: nix-store
+      - hostPath:
+          path: /var/run/nri
+          type: DirectoryOrCreate
+        name: nri-socket
+      - hostPath:
+          path: /var/lib/kubelet/plugins_registry
+          type: ''
+        name: registration
+      - configMap:
+          defaultMode: 292
+          name: ssh-config
+        name: ssh-config
+      - configMap:
+          defaultMode: 292
+          name: ssh-dynauth
+        name: ssh-dynauth
+      - name: ssh-key
+        secret:
+          defaultMode: 256
+          secretName: ssh-key
+  updateStrategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: '2'
+    nixkube/discard: 'true'
+  labels:
+    app.kubernetes.io/component: proxy
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+    app.kubernetes.io/version: 0.5.0
+  name: proxy
+  namespace: nixkube
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: proxy
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: proxy
+      labels:
+        app.kubernetes.io/component: proxy
+        app.kubernetes.io/managed-by: nix
+        app.kubernetes.io/name: nixkube
+        app.kubernetes.io/part-of: nixkube
+        app.kubernetes.io/version: 0.5.0
+    spec:
+      containers:
+      - command:
+        - dinit
+        - --log-file
+        - /var/log/dinit.log
+        - --quiet
+        - proxy
+        image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+        imagePullPolicy: Always
+        name: proxy
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /nix
+          name: nix-store
+          subPath: nix
+        - mountPath: /etc/ssh
+          name: ssh-config
+        - mountPath: /etc/ssh-dynauth
+          name: ssh-dynauth
+        - mountPath: /etc/ssh-key
+          name: ssh-key
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        kubernetes.io/hostname: nexus
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - csi:
+          driver: nixkube
+          readOnly: true
+          volumeAttributes:
+            aarch64-linux: /nix/store/bwvr7i80nrik9dgm5w8klmzq2crcpiza-proxyEnv
+            x86_64-linux: /nix/store/58gdd950xql7nk29pnx1xhkgpg42hvbw-proxyEnv
+        name: nix-store
+      - configMap:
+          defaultMode: 292
+          name: ssh-config
+        name: ssh-config
+      - configMap:
+          defaultMode: 292
+          name: ssh-dynauth
+        name: ssh-dynauth
+      - name: ssh-key
+        secret:
+          defaultMode: 256
+          secretName: ssh-key
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    nixkube/discard: 'true'
+  labels:
+    app.kubernetes.io/component: cache
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+    app.kubernetes.io/version: 0.5.0
+  name: nix-cache
+  namespace: nixkube
+spec:
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: cache
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+  serviceName: nix-cache
+  template:
+    metadata:
+      annotations:
+        configHash: 1024a5d715be304dc701863cdd16e77d
+        kubectl.kubernetes.io/default-container: nix-cache
+        kubectl.kubernetes.io/restartedAt: '2026-04-13T02:16:56-05:00'
+      labels:
+        app.kubernetes.io/component: cache
+        app.kubernetes.io/managed-by: nix
+        app.kubernetes.io/name: nixkube
+        app.kubernetes.io/part-of: nixkube
+        app.kubernetes.io/version: 0.5.0
+    spec:
+      containers:
+      - command:
+        - dinit
+        - --log-file
+        - /var/log/dinit.log
+        - --quiet
+        - cache
+        env:
+        - name: BUILDERS_ENABLED
+          value: 'true'
+        - name: CACHE_ENABLED
+          value: 'true'
+        - name: GC_KEEP_SECONDS
+          value: '86400'
+        - name: HOME
+          value: /nix/var/nix-csi/root
+        - name: IS_CACHE
+          value: 'true'
+        - name: KUBE_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+        imagePullPolicy: IfNotPresent
+        name: nix-cache
+        ports:
+        - containerPort: 22
+          name: ssh
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/nix
+          name: nix-config
+        - mountPath: /etc/nix-key
+          name: nix-key
+        - mountPath: /nix
+          name: nix-store
+          subPath: nix
+        - mountPath: /etc/ssh
+          name: ssh-config
+        - mountPath: /etc/ssh-dynauth
+          name: ssh-dynauth
+        - mountPath: /etc/ssh-key
+          name: ssh-key
+      dnsPolicy: ClusterFirst
+      initContainers:
+      - command:
+        - initCopy
+        image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+        imagePullPolicy: Always
+        name: initcopy
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          capabilities:
+            add:
+            - SYS_CHROOT
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /nix
+          name: init-store
+          readOnly: true
+          subPath: nix
+        - mountPath: /etc/nix
+          name: nix-config
+        - mountPath: /nix-volume
+          name: nix-store
+        - mountPath: /etc/ssh
+          name: ssh-config
+        - mountPath: /etc/ssh-dynauth
+          name: ssh-dynauth
+        - mountPath: /etc/ssh-key
+          name: ssh-key
+      priorityClassName: system-cluster-critical
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: nixkube
+      serviceAccountName: nixkube
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - csi:
+          driver: nixkube
+          readOnly: true
+          volumeAttributes:
+            aarch64-linux: /nix/store/jz92rjrd92hi4jnz42w9448vgpy5y66l-cache-init-env
+            x86_64-linux: /nix/store/j0jrykzw37q0vkhmc4xz6dyzkndl3ln6-cache-init-env
+        name: init-store
+      - configMap:
+          defaultMode: 420
+          name: nix-cache
+        name: nix-config
+      - name: nix-key
+        secret:
+          defaultMode: 420
+          secretName: nix-key
+      - configMap:
+          defaultMode: 292
+          name: ssh-config
+        name: ssh-config
+      - configMap:
+          defaultMode: 292
+          name: ssh-dynauth
+        name: ssh-dynauth
+      - name: ssh-key
+        secret:
+          defaultMode: 256
+          secretName: ssh-key
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: nix-store
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Gi
+      volumeMode: Filesystem
+    status:
+      phase: Pending
+---
+apiVersion: v1
+data:
+  init-secrets: "set -x\nmkdir -p /tmp/{ssh-key,nix-key,ssh-auth}\nif ! kubectl get secret ssh-key &>/dev/null || ! kubectl get configmap ssh-dynauth &>/dev/null; then\n  # Create ssh secret\n  ssh-keygen\
+    \ -t ed25519 -C \"\" -N \"\" -f /tmp/ssh-key/id_ed25519\n  kubectl delete --ignore-not-found secret ssh-key\n  kubectl create secret generic ssh-key --from-file=/tmp/ssh-key\n\n  # Create pubkey configmap\n\
+    \  cp /tmp/ssh-key/id_ed25519.pub /tmp/ssh-auth/authorized_keys\n  echo \"* $(cat /tmp/ssh-key/id_ed25519.pub)\" > /tmp/ssh-auth/ssh_known_hosts\n  kubectl delete --ignore-not-found configmap ssh-dynauth\n\
+    \  kubectl create configmap ssh-dynauth --from-file=/tmp/ssh-auth\nfi\n\nif ! kubectl get secret nix-key &>/dev/null; then\n  # create nix binary cache key\n  nix-store --generate-binary-cache-key \\\
+    \n    nix-cache-1 \\\n    /tmp/nix-key/nix_ed25519 \\\n    /tmp/nix-key/nix_ed25519.pub\n  kubectl delete --ignore-not-found secret nix-key\n  kubectl create secret generic nix-key --from-file=/tmp/nix-key\n\
+    fi\n"
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+    app.kubernetes.io/version: 0.5.0
+  name: init-scripts
+  namespace: nixkube
+---
+apiVersion: v1
+data:
+  logging.json: '{"loggers":{"httpx":{"level":"WARNING"},"nixkube":{"level":"INFO"},"nixkube.nix_daemon":{"level":"WARNING"}},"renderer":"json","root":{"level":"WARNING"}}'
+  nix.conf: '# WARNING: this file is generated from the nix.* options in
+
+    # your NixOS configuration, typically
+
+    # /etc/nixos/configuration.nix.  Do not edit it!
+
+    allowed-users = *
+
+    builders-use-substitutes = true
+
+    experimental-features = nix-command flakes read-only-local-store
+
+    max-jobs = auto
+
+    narinfo-cache-negative-ttl = 0
+
+    narinfo-cache-positive-ttl = 0
+
+    sandbox = true
+
+    store = daemon
+
+    substituters = https://cache.nixos.org https://nix-csi.cachix.org
+
+    system-features = nixos-test benchmark big-parallel
+
+    trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-csi.cachix.org-1:i4w33gR4efO67jpz8U7g/MdvRQ6mQ3LEF9fB8tES60g=
+
+    trusted-users = root nix root
+
+    warn-dirty = false
+
+
+
+    '
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+    app.kubernetes.io/version: 0.5.0
+  name: nix-builder
+  namespace: nixkube
+---
+apiVersion: v1
+data:
+  logging.json: '{"loggers":{"httpx":{"level":"WARNING"},"nixkube":{"level":"INFO"},"nixkube.nix_daemon":{"level":"WARNING"}},"renderer":"json","root":{"level":"WARNING"}}'
+  nix.conf: '# WARNING: this file is generated from the nix.* options in
+
+    # your NixOS configuration, typically
+
+    # /etc/nixos/configuration.nix.  Do not edit it!
+
+    allowed-users = *
+
+    builders-use-substitutes = true
+
+    experimental-features = nix-command flakes read-only-local-store
+
+    max-jobs = 0
+
+    narinfo-cache-negative-ttl = 0
+
+    narinfo-cache-positive-ttl = 0
+
+    store = daemon
+
+    substituters = https://cache.nixos.org https://nix-csi.cachix.org
+
+    system-features = nixos-test benchmark big-parallel
+
+    trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-csi.cachix.org-1:i4w33gR4efO67jpz8U7g/MdvRQ6mQ3LEF9fB8tES60g=
+
+    trusted-users = root nix root
+
+    warn-dirty = false
+
+
+
+    '
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+    app.kubernetes.io/version: 0.5.0
+  name: nix-cache
+  namespace: nixkube
+---
+apiVersion: v1
+data:
+  logging.json: '{"loggers":{"httpx":{"level":"WARNING"},"nixkube":{"level":"INFO"},"nixkube.nix_daemon":{"level":"WARNING"}},"renderer":"json","root":{"level":"WARNING"}}'
+  nix.conf: '# WARNING: this file is generated from the nix.* options in
+
+    # your NixOS configuration, typically
+
+    # /etc/nixos/configuration.nix.  Do not edit it!
+
+    allowed-users = *
+
+    builders-use-substitutes = true
+
+    experimental-features = nix-command flakes read-only-local-store
+
+    keep-outputs = true
+
+    narinfo-cache-negative-ttl = 0
+
+    narinfo-cache-positive-ttl = 0
+
+    store = daemon
+
+    substituters = https://cache.nixos.org https://nix-csi.cachix.org
+
+    system-features = nixos-test benchmark big-parallel
+
+    trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-csi.cachix.org-1:i4w33gR4efO67jpz8U7g/MdvRQ6mQ3LEF9fB8tES60g=
+
+    trusted-users = root nix root
+
+    warn-dirty = false
+
+
+
+    '
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+    app.kubernetes.io/version: 0.5.0
+  name: nix-node
+  namespace: nixkube
+---
+apiVersion: v1
+data:
+  authorized_keys: ''
+  ssh_config: "GlobalKnownHostsFile /etc/ssh/ssh_known_hosts /etc/ssh-dynauth/ssh_known_hosts\n\nHost nix-cache\n    User nix\n    IdentityFile /etc/ssh-key/id_ed25519\n    IdentitiesOnly yes\n    StrictHostKeyChecking\
+    \ yes\n\nHost nix-builder\n    User nix\n    IdentityFile /etc/ssh-key/id_ed25519\n    IdentitiesOnly yes\n    StrictHostKeyChecking yes\n\nHost *\n    User nix\n    IdentityFile /etc/ssh-key/id_ed25519\n\
+    \    IdentitiesOnly yes\n    StrictHostKeyChecking yes\n"
+  ssh_known_hosts: ''
+  sshd_config: "Port 22\nAddressFamily Any\nHostKey /etc/ssh-key/id_ed25519\nSyslogFacility DAEMON\nSetEnv PATH=/nix/var/result/bin\nPermitRootLogin no\nPubkeyAuthentication yes\nPasswordAuthentication\
+    \ no\nKbdInteractiveAuthentication no\nUsePAM no\nAuthorizedKeysFile /dev/null\nStrictModes no\nSubsystem sftp internal-sftp\n\nMatch User nix\n    AuthorizedKeysFile /etc/ssh/authorized_keys /etc/ssh-dynauth/authorized_keys\n"
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+    app.kubernetes.io/version: 0.5.0
+  name: ssh-config
+  namespace: nixkube
+---
+apiVersion: v1
+data:
+  authorized_keys: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKzs1ga7sVLWW8sEQcEmfjfUUic6SEtkO03uFf8CH9eJ \n"
+  ssh_known_hosts: "* ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKzs1ga7sVLWW8sEQcEmfjfUUic6SEtkO03uFf8CH9eJ \n"
+kind: ConfigMap
+metadata:
+  name: ssh-dynauth
+  namespace: nixkube
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: default
+  namespace: nixkube
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+    app.kubernetes.io/version: 0.5.0
+  name: nixkube
+  namespace: nixkube
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+    app.kubernetes.io/version: 0.5.0
+  name: nixkube
+  namespace: nixkube
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  - configmaps
+  verbs:
+  - get
+  - list
+  - create
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+    app.kubernetes.io/version: 0.5.0
+  name: nixkube
+  namespace: nixkube
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nixkube
+subjects:
+- kind: ServiceAccount
+  name: nixkube
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    pv.kubernetes.io/bind-completed: 'yes'
+    pv.kubernetes.io/bound-by-controller: 'yes'
+    volume.beta.kubernetes.io/storage-provisioner: rancher.io/local-path
+    volume.kubernetes.io/selected-node: sentry
+    volume.kubernetes.io/storage-provisioner: rancher.io/local-path
+  finalizers:
+  - kubernetes.io/pvc-protection
+  labels:
+    app.kubernetes.io/component: cache
+    app.kubernetes.io/managed-by: nix
+    app.kubernetes.io/name: nixkube
+    app.kubernetes.io/part-of: nixkube
+    app.kubernetes.io/version: 0.5.0
+  name: nix-store-nix-cache-0
+  namespace: nixkube
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: local-path
+  volumeMode: Filesystem
+  volumeName: pvc-fa192155-0f38-4e86-9eb3-014511023a1c
