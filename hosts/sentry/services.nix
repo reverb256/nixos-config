@@ -1,6 +1,6 @@
 # Sentry Service Configuration
 # K3s control plane, monitoring stack (Loki), nginx, mining,
-# NFS client, Syncthing, llamafile (disabled)
+# NFS client, Syncthing, Gemma 4 E2B vision model (ROCm)
 { pkgs, lib, ... }:
 {
   services = {
@@ -132,7 +132,25 @@
     garage-cluster.enable = false;
 
     # Llamafile - LLM inference (TEMPORARILY DISABLED)
-    llamafile.enable = false;
+    # Gemma 4 E2B with vision on AMD RX 5600 XT (ROCm)
+    llamafile = {
+      enable = true;
+      modelPath = /home/j_kro/.lmstudio/models/unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-IQ4_NL.gguf;
+      mmprojPath = /home/j_kro/.lmstudio/models/unsloth/gemma-4-E2B-it-GGUF/mmproj-F32.gguf;
+      modelName = "gemma4-e2b";
+      host = "0.0.0.0";
+      port = 8888;
+      gpu = "amd";
+      gpuLayers = 99;
+      ctxSize = 32768;
+      threads = 4;
+      flashAttention = true;
+      cacheTypeK = "q4_0";
+      cacheTypeV = "q4_0";
+      temperature = 1.0;
+      topK = 64;
+      topP = 0.95;
+    };
 
     # Unbound DNS
     unbound-common.enable = true;
