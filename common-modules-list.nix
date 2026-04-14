@@ -31,6 +31,10 @@
   # Provides: programs.niri NixOS module (enable, settings, package)
   inputs.niri.nixosModules.niri
 
+  # Stylix - Declarative theming framework
+  # Provides: stylix.* options for unified color scheme, fonts, wallpaper
+  inputs.stylix.nixosModules.stylix
+
   # INTERNAL MODULES
 
   # Auto-imports all subdirectories (profiles, system, services, etc.)

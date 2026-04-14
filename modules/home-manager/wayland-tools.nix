@@ -50,6 +50,38 @@ let
         ;;
     esac
   '';
+
+  # Smart app switcher: focus existing window or spawn new instance
+  # Inspired by Omarchy's omarchy-launch-or-focus
+  # Usage: launch-or-focus <window-title-pattern> <launch-command> [args...]
+  launch-or-focus = pkgs.writeShellScriptBin "launch-or-focus" ''
+    set -euo pipefail
+
+    if [ $# -lt 1 ]; then
+      echo "Usage: launch-or-focus <window-pattern> [launch-command] [args...]" >&2
+      echo "  If a window matching the pattern exists, focus it." >&2
+      echo "  Otherwise, launch the command (defaults to the pattern)." >&2
+      exit 1
+    fi
+
+    PATTERN="$1"
+    shift || true
+    LAUNCH_CMD="''${@:-$PATTERN}"
+
+    # Try to find an existing window matching the pattern (case-insensitive)
+    WINDOW_ID=$(niri msg windows --json 2>/dev/null \
+      | ''${pkgs.jq}/bin/jq -r \
+        ".[] | select(.title | test(\"$PATTERN\"; \"i\")) | .id" \
+      | head -1 || true)
+
+    if [ -n "$WINDOW_ID" ]; then
+      # Focus the existing window
+      niri msg action focus-window --window-id "$WINDOW_ID" 2>/dev/null || true
+    else
+      # No matching window — launch new instance
+      exec $LAUNCH_CMD
+    fi
+  '';
 in
 {
   home.packages = with pkgs; [
@@ -58,6 +90,7 @@ in
     slurp # Region selection for Wayland
     ddcutil # Monitor brightness control via DDC/CI (I2C)
     brightness-all # Unified brightness (DDC + niri SDR)
+    launch-or-focus # Smart app switcher (focus existing or spawn new)
     # bitwarden-desktop  # TEMP: Disabled - Electron 39.8.2 patch failure (2026-03-16)
   ];
 

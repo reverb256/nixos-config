@@ -231,65 +231,76 @@ in
 
       # ==========================================================================
       # KEY BINDINGS (using niri action helpers)
+      # Omarchy-inspired layout with full Noctalia shell integration
       # ==========================================================================
       binds = with acts; {
         # =========================================================================
-        # APPLICATIONS
+        # APPLICATIONS (launch-or-focus prevents duplicate windows)
         # =========================================================================
-        "Mod+Return".action = spawn "ghostty";
+        "Mod+Return".action = spawn "launch-or-focus" "Ghostty" "ghostty";
         "Mod+Shift+Return".action = spawn "zen-twilight";
-        "Mod+B".action = spawn "zen-twilight";
-        "Mod+E".action = spawn "${pkgs.kdePackages.dolphin}/bin/dolphin";
-        "Mod+Shift+N".action = spawn "${pkgs.vscode}/bin/code";
+        "Mod+B".action = spawn "launch-or-focus" "Zen" "zen-twilight";
+        "Mod+E".action = spawn "launch-or-focus" "Dolphin" "${pkgs.kdePackages.dolphin}/bin/dolphin";
+        "Mod+Shift+N".action = spawn "launch-or-focus" "Visual Studio Code" "${pkgs.vscode}/bin/code";
 
         # =========================================================================
-        # NOCTALIA SHELL (IPC)
+        # NOCTALIA SHELL — Launcher modes
+        # All modes use the same launcher with different search prefixes
         # =========================================================================
         "Mod+Space".action = spawn "noctalia-shell" "ipc" "call" "launcher toggle";
+        "Mod+Ctrl+V".action = spawn "noctalia-shell" "ipc" "call" "launcher clipboard";
+        "Mod+Ctrl+E".action = spawn "noctalia-shell" "ipc" "call" "launcher emoji";
+        "Mod+Ctrl+Slash".action = spawn "noctalia-shell" "ipc" "call" "launcher command";
+        "Mod+Shift+Slash".action = spawn "noctalia-shell" "ipc" "call" "launcher windows";
+
+        # =========================================================================
+        # NOCTALIA SHELL — Panels & toggles
+        # =========================================================================
         "Mod+S".action = spawn "noctalia-shell" "ipc" "call" "controlCenter toggle";
         "Mod+Comma".action = spawn "noctalia-shell" "ipc" "call" "settings toggle";
-
-        # =========================================================================
-        # NOTIFICATIONS (Omarchy-inspired)
-        # =========================================================================
-        "Mod+Alt+Comma".action = spawn "noctalia-shell" "ipc" "call" "notifications dismissOldest";
-        "Mod+Shift+Comma".action = spawn "noctalia-shell" "ipc" "call" "notifications dismissAll";
-        "Mod+Ctrl+Comma".action = spawn "noctalia-shell" "ipc" "call" "notifications toggleDND";
-
-        # =========================================================================
-        # CONTROL PANELS
-        # =========================================================================
+        "Mod+Shift+Space".action = spawn "noctalia-shell" "ipc" "call" "bar toggle";
         "Mod+Ctrl+A".action = spawn "noctalia-shell" "ipc" "call" "volume togglePanel";
         "Mod+Ctrl+W".action = spawn "noctalia-shell" "ipc" "call" "network togglePanel";
         "Mod+Ctrl+B".action = spawn "noctalia-shell" "ipc" "call" "bluetooth togglePanel";
-
-        # =========================================================================
-        # SYSTEM TOGGLES
-        # =========================================================================
-        "Mod+Shift+Space".action = spawn "noctalia-shell" "ipc" "call" "bar toggle";
         "Mod+Ctrl+I".action = spawn "noctalia-shell" "ipc" "call" "idleInhibitor toggle";
         "Mod+Ctrl+N".action = spawn "noctalia-shell" "ipc" "call" "nightLight toggle";
         "Mod+Ctrl+D".action = spawn "noctalia-shell" "ipc" "call" "darkMode toggle";
         "Mod+Ctrl+T".action = spawn "noctalia-shell" "ipc" "call" "systemMonitor toggle";
+        "Mod+Ctrl+Shift+W".action = spawn "noctalia-shell" "ipc" "call" "wallpaper random";
+
+        # =========================================================================
+        # NOTIFICATIONS (Omarchy hierarchy)
+        # Super+Comma = settings (above), so notification binds use shift/ctrl/alt
+        # =========================================================================
+        "Mod+Alt+Comma".action = spawn "noctalia-shell" "ipc" "call" "notifications toggleHistory";
+        "Mod+Shift+Comma".action = spawn "noctalia-shell" "ipc" "call" "notifications dismissAll";
+        "Mod+Ctrl+Comma".action = spawn "noctalia-shell" "ipc" "call" "notifications toggleDND";
+        "Mod+Alt+Shift+Comma".action = spawn "noctalia-shell" "ipc" "call" "notifications invokeDefault";
 
         # =========================================================================
         # WEB APPS
-        # Note: Zen is Firefox-based — no native --app mode (SSB/PWA).
+        # Zen is Firefox-based — no native --app mode (SSB/PWA).
         # Uses --new-window for dedicated window. For true standalone apps,
         # install the "PWAs for Firefox" extension.
         # =========================================================================
         "Mod+Shift+A".action = spawn "zen-twilight" "--new-window" "https://chatgpt.com";
 
         # =========================================================================
-        # SCREENSHOTS
+        # SCREENSHOTS & CAPTURE
+        # grim+slurp for region/fullscreen → clipboard
+        # niri built-in for screen/window capture UI
         # =========================================================================
-        "Mod+Print".action = spawn "${pkgs.grim}/bin/grim" "-g" "$(${pkgs.slurp}/bin/slurp)";
-        "Mod+Shift+Print".action = spawn "${pkgs.grim}/bin/grim";
+        "Print".action = spawn-sh "${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" - | ${pkgs.wl-clipboard}/bin/wl-copy";
+        "Mod+Print".action = spawn-sh "${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" - | ${pkgs.wl-clipboard}/bin/wl-copy";
+        "Mod+Shift+Print".action = spawn-sh "${pkgs.grim}/bin/grim - | ${pkgs.wl-clipboard}/bin/wl-copy";
+        "Mod+Alt+Print".action = spawn "niri" "msg" "action" "screenshot-window";
+        "Mod+Ctrl+Shift+Print".action = spawn "niri" "msg" "action" "screenshot-screen";
 
         # =========================================================================
         # WINDOW MANAGEMENT (arrow-only, no hjkl)
         # =========================================================================
         "Mod+Q".action = close-window;
+        "Alt+Tab".action = focus-window-previous;
         "Mod+Left".action = focus-column-left;
         "Mod+Right".action = focus-column-right;
         "Mod+Up".action = focus-window-up;
@@ -316,6 +327,7 @@ in
         # WINDOW STATE
         # =========================================================================
         "Mod+F".action = fullscreen-window;
+        "Mod+Shift+F".action = maximize-column;
         "Mod+V".action = toggle-window-floating;
         "Mod+Shift+V".action = switch-focus-between-floating-and-tiling;
 
@@ -348,9 +360,16 @@ in
         "Mod+Shift+Page_Up".action = move-column-to-workspace-up;
         "Mod+Tab".action = focus-workspace-down;
         "Mod+Shift+Tab".action = focus-workspace-up;
+        "Mod+Ctrl+Tab".action = focus-workspace-previous;
 
         # =========================================================================
-        # MONITOR/OUTPUT MANAGEMENT (arrow-only)
+        # OVERVIEW (Expose-like — shows all windows across workspaces)
+        # =========================================================================
+        "Mod+O".action = toggle-overview;
+
+        # =========================================================================
+        # MONITOR/OUTPUT MANAGEMENT
+        # Focus monitor / move column / move entire workspace
         # =========================================================================
         "Mod+Ctrl+Left".action = focus-monitor-left;
         "Mod+Ctrl+Right".action = focus-monitor-right;
@@ -360,11 +379,10 @@ in
         "Mod+Ctrl+Shift+Right".action = move-column-to-monitor-right;
         "Mod+Ctrl+Shift+Up".action = move-column-to-monitor-up;
         "Mod+Ctrl+Shift+Down".action = move-column-to-monitor-down;
-
-        # =========================================================================
-        # CLIPBOARD
-        # =========================================================================
-        "Mod+Ctrl+V".action = spawn "noctalia-shell" "ipc" "call" "launcher clipboard";
+        "Mod+Shift+Alt+Left".action = move-workspace-to-monitor-left;
+        "Mod+Shift+Alt+Right".action = move-workspace-to-monitor-right;
+        "Mod+Shift+Alt+Up".action = move-workspace-to-monitor-up;
+        "Mod+Shift+Alt+Down".action = move-workspace-to-monitor-down;
 
         # =========================================================================
         # MEDIA KEYS (Noctalia IPC — gives OSD, panel sync, bar updates)
