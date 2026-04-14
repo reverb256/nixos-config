@@ -39,7 +39,7 @@ in
     # Applies local patch to niri-flake package via override
     (mkIf niriEnabled {
       programs.niri.package = lib.mkForce (
-        inputs.niri.packages.${pkgs.system}.niri-unstable.overrideAttrs (old: {
+        inputs.niri.packages.${pkgs.stdenv.hostPlatform.system}.niri-unstable.overrideAttrs (old: {
           patches = (old.patches or []) ++ [
             ./patches/niri-hdr-sdr-brightness.patch
           ];

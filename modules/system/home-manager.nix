@@ -42,6 +42,14 @@ in
           ../../modules/home-manager/opencode.nix
         ];
 
+        # Stylix HM target fixes
+        stylix.targets = {
+          # Zen browser: declare profile name for theme injection
+          zen-browser.profileNames = ["default"];
+          # Qt: override plasma6 auto-detection (only qtct supported)
+          qt.platform = "qtct";
+        };
+
         # Enable vesktop and caprine only on Zephyr
         nixcord-config.enable = lib.mkForce (hostName == "zephyr");
         caprine.enable = lib.mkForce (hostName == "zephyr");
