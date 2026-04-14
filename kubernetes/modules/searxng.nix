@@ -96,6 +96,8 @@
                 env = {
                   _namedlist = true;
                   SEARXNG_SECRET.value = "REDACTED_SEARXNG_SECRET_KEY";
+                  SEARXNG_PORT.value = "8080";
+                  SEARXNG_BASE_URL.value = "https://search.cluster.local/";
                 };
                 ports = [
                   {
@@ -145,6 +147,24 @@
                   settings = {
                     mountPath = "/etc/searxng";
                   };
+                };
+              };
+            };
+            initContainers = {
+              _namedlist = true;
+              patch-settings = {
+                image = "searxng/searxng:latest";
+                command = ["/bin/sh" "-c" ''
+                  cd /etc/searxng
+                  sed -i 's/^    - html$/    - html\n    - csv\n    - json\n    - rss/' settings.yml
+                  cat > limiter.toml << 'EOF'
+                  [botdetection.ip_limit]
+                  link_token = false
+                  EOF
+                ''];
+                volumeMounts = {
+                  _namedlist = true;
+                  settings.mountPath = "/etc/searxng";
                 };
               };
             };
