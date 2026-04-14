@@ -181,6 +181,7 @@
     egl-wayland
     wayland-utils
     # yt-dlp  # MOVED to home.nix - user media tool
+    localsend # Local network file sharing (AirDrop alternative)
 
     # NOTE: nvidia-smi and nvidia-settings are provided by the NVIDIA driver package
     # which is configured per-host in hosts/<hostname>/configuration.nix

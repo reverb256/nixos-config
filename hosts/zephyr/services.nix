@@ -1,8 +1,13 @@
 # Zephyr Service Configuration
 # Kubernetes control plane, VIP failover, AI inference, mining,
 # backup, monitoring agents, and application services
-{ config, pkgs, lib, inputs, ... }:
 {
+  config,
+  pkgs,
+  lib,
+  inputs,
+  ...
+}: {
   # ============================================================================
   # SERVICES - All service configurations
   # ============================================================================
@@ -429,7 +434,7 @@
           nix-rebuild = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
               "/etc/nixos/skills/nix-rebuild-mcp/server.py"
             ];
             environment.NIX_HOST = "zephyr";
@@ -439,15 +444,15 @@
           add-service = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
               "/etc/nixos/skills/add-service-mcp/server.py"
             ];
-            environment = { };
+            environment = {};
             enabled = true;
           };
           context7 = {
             type = "local";
-            command = [ "/run/current-system/sw/bin/mcp-context7" ];
+            command = ["/run/current-system/sw/bin/mcp-context7"];
             environment.CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
             enabled = true;
           };
@@ -717,8 +722,8 @@
   # Text + Vision via --mmproj, Q4_K_M quant, ~80 tok/s
   services.llamafile = {
     enable = true;
-    modelPath = /home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E4B-it-GGUF/gemma-4-E4B-it-Q4_K_M.gguf;
-    mmprojPath = /home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E4B-it-GGUF/mmproj-gemma-4-E4B-it-BF16.gguf;
+    modelPath = "/home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E4B-it-GGUF/gemma-4-E4B-it-Q4_K_M.gguf";
+    mmprojPath = "/home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E4B-it-GGUF/mmproj-gemma-4-E4B-it-BF16.gguf";
     modelName = "gemma4-e4b-vision";
     host = "0.0.0.0";
     port = 8888;
@@ -785,7 +790,7 @@
 
   # Override specific secret permissions
   age = {
-    identityPaths = [ "/home/j_kro/.age/key.txt" ];
+    identityPaths = ["/home/j_kro/.age/key.txt"];
     secrets.cloudflared-token = lib.mkForce {
       file = "${inputs.self}/secrets/cloudflared-token.age";
       mode = "400";
