@@ -125,5 +125,11 @@
     bc
     calc
     units
+
+    # DEV DIAGRAMS & DOCS
+    # ============================================================================
+    graphviz # Graphviz (dot) diagrams
+    mermaid-cli # Mermaid → SVG/PNG
+    gitea # Gitea CLI (tea)
   ];
 }

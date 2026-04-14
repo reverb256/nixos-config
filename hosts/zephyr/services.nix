@@ -712,49 +712,31 @@
   };
 
   # ============================================================================
-  # LLAMA.CPP SERVER - Multimodal model on 3060 Ti
+  # LLAMAFILE - Gemma 4 E4B vision model on 3060 Ti (llama.cpp b8781)
   # ============================================================================
-  # Gemma 4 E4B Q4_K_M + mmproj (vision-capable) on 3060 Ti (8GB VRAM)
-  # DISABLED: Replaced by Ollama (backported Gemma 4 CUDA kernels)
-  services.llama-cpp-server = {
-    enable = false;
-    model = "/home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E4B-it-GGUF/gemma-4-E4B-it-Q4_K_M.gguf";
-    alias = "gemma-4-e4b-it";
+  # Text + Vision via --mmproj, Q4_K_M quant, ~80 tok/s
+  services.llamafile = {
+    enable = true;
+    modelPath = /home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E4B-it-GGUF/gemma-4-E4B-it-Q4_K_M.gguf;
+    mmprojPath = /home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E4B-it-GGUF/mmproj-gemma-4-E4B-it-BF16.gguf;
+    modelName = "gemma4-e4b-vision";
     host = "0.0.0.0";
-    port = 1235;
-    contextLength = 131072;
-    gpuDevice = 1; # 3060 Ti (CUDA device 1)
-    cacheType = "q4_0";
-    parallel = 1;
-    overrideTensor = false;
-    user = "j_kro";
-    extraArgs = [
-      "--mmproj"
-      "/home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E4B-it-GGUF/mmproj-gemma-4-E4B-it-BF16.gguf"
-    ];
+    port = 8888;
+    gpu = "nvidia";
+    gpuLayers = 99;
+    gpuDevice = 1; # 3060 Ti is CUDA device 1 (3090 is device 0)
+    ctxSize = 32768;
+    threads = 4;
+    flashAttention = true;
+    cacheTypeK = "q4_0";
+    cacheTypeV = "q4_0";
+    temperature = 1.0;
+    topK = 64;
+    topP = 0.95;
+    enableThinking = false; # Disable thinking for vision tasks
   };
 
-  # ============================================================================
-  # Ollama — replaces llama.cpp for local inference
-  # Has backported Gemma 4 CUDA kernels (DKQ=512 flash attention)
-  services.ollama = {
-    enable = true;
-    package = pkgs.ollama-cuda;
-    host = "0.0.0.0";
-    port = 11434;
-    # Don't set user/group — use DynamicUser to avoid conflicting with j_kro
-    home = "/var/lib/ollama";
-    models = "/var/lib/ollama/models";
-    environmentVariables = {
-      # Force Ollama to use only the 3060 Ti (nvidia-smi index 0)
-      CUDA_VISIBLE_DEVICES = "0";
-      # Enable new native engine for better Gemma 4 support
-      OLLAMA_NEW_ENGINE = "1";
-    };
-    loadModels = [
-      "gemma3:4b"
-    ];
-  };
+  # Ollama removed — llama.cpp with vision (--mmproj) replaces it
 
   # ============================================================================
   # PROGRAMS - Service-linked programs

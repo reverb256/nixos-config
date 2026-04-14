@@ -150,6 +150,13 @@ in {
       description = "Path to multimodal projector GGUF file (mmproj) for vision/audio support";
     };
 
+    # GPU device selection
+    gpuDevice = mkOption {
+      type = types.int;
+      default = 0;
+      description = "CUDA/ROCm device index (use nvidia-smi ordering, not CUDA enumeration)";
+    };
+
     cacheRam = mkOption {
       type = types.int;
       default = 0; # Disable prompt cache in RAM (force GPU-only)
@@ -233,7 +240,7 @@ in {
 
         # Environment to prioritize bundled libraries
         # Force use of GPU 0 (RTX 3060 Ti) to avoid conflict with mining on GPU 1 (RTX 3090)
-        Environment = "LD_LIBRARY_PATH=${llamaPkg}/lib:CUDA_VISIBLE_DEVICES=0";
+        Environment = "LD_LIBRARY_PATH=${llamaPkg}/lib:CUDA_VISIBLE_DEVICES=${toString cfg.gpuDevice}";
 
         # Security settings
         NoNewPrivileges = false; # Needed for GPU access

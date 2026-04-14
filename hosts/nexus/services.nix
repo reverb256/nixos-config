@@ -173,7 +173,7 @@
   # PACKAGES
   # ============================================================================
   environment.systemPackages = with pkgs; [
-    opencode
+    # opencode now via home-manager
     llama-cpp
   ];
 

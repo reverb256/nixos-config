@@ -173,7 +173,7 @@
   environment.systemPackages = with pkgs; [
     rocmPackages.rocm-smi
     clinfo # For debugging OpenCL
-    opencode # AI coding agent (migrated from nix profile)
+    # opencode now via home-manager
   ];
 
   # ============================================================================
