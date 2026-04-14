@@ -1,5 +1,5 @@
-# Forge Desktop Configuration
-# Wayland via niri + SDDM + UWSM + auto-login
+# Sentry Desktop Configuration
+# Niri Wayland compositor + SDDM + UWSM auto-login
 
 { ... }:
 

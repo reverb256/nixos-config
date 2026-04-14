@@ -32,7 +32,7 @@
     # ANALYTICS & TELEMETRY BLOCKLIST
     # Block VRChat, Unity, and HoYoverse analytics/telemetry for privacy
     # Source: https://github.com/louisa-uno/VRChatAnalyticsBlocklist
-    extraHosts = ''
+    extraHosts = lib.mkOptionDefault ''
       # VRChat Analytics Blocklist
       # https://github.com/louisa-uno/VRChatAnalyticsBlocklist
 

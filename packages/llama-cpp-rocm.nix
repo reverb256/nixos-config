@@ -35,16 +35,22 @@ stdenv.mkDerivation rec {
     "-DGGML_HIPBLAS=ON"
     "-DGGML_HIP_UMA=OFF"
     "-DCMAKE_BUILD_TYPE=Release"
+    "-DCMAKE_SKIP_BUILD_RPATH=TRUE"
   ];
   postInstall = ''
     # Install binaries
     install -Dm755 bin/llama-server $out/bin/llama-server
     install -Dm755 bin/llama-cli $out/bin/llama-cli
     install -Dm755 bin/llama-perplexity $out/bin/llama-perplexity
-    # Install all GGML libraries (including ROCm backend if built)
-    find . -name "*.so*" -type f -exec install -Dm644 {} $out/lib/ \; || true
     # Create symlink for backward compatibility
     ln -sf $out/bin/llama-cli $out/bin/llama
+  '';
+
+  # Shrink RPATH to remove /build/ refs from cmake
+  preFixup = ''
+    for f in $(find $out -type f -executable 2>/dev/null); do
+      ${stdenv.cc.bintools.targetPrefix}patchelf --shrink-rpath "$f" 2>/dev/null || true
+    done
   '';
   meta = {
     description = "Inference of Meta's LLaMA model (and others) in pure C/C++ with ROCm support";

@@ -41,7 +41,7 @@ let
     name = "toggle-3090-miner";
     comment = "Pause/resume lolMiner on RTX 3090";
     exec = "${toggleScript}/bin/toggle-3090-miner";
-    icon = "video-display";
+    icon = "nvidia-settings";
     terminal = false;
     type = "Application";
     categories = [

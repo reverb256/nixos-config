@@ -707,11 +707,11 @@
     mmprojPath = "/home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E4B-it-GGUF/mmproj-gemma-4-E4B-it-BF16.gguf";
     modelName = "gemma4-e4b-vision";
     host = "0.0.0.0";
-    port = 8888;
+    port = 1235;
     gpu = "nvidia";
     gpuLayers = 99;
     gpuDevice = 1; # 3060 Ti is CUDA device 1 (3090 is device 0)
-    ctxSize = 32768;
+    ctxSize = 131072;
     threads = 4;
     flashAttention = true;
     cacheTypeK = "q4_0";
