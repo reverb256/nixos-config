@@ -54,6 +54,8 @@ let
   # Smart app switcher: focus existing window or spawn new instance
   # Inspired by Omarchy's omarchy-launch-or-focus
   # Usage: launch-or-focus <window-title-pattern> <launch-command> [args...]
+  # Matches against both window title AND app-id (case-insensitive)
+  # Supports both JSON (new niri) and text (older compositor) output
   launch-or-focus = pkgs.writeShellScriptBin "launch-or-focus" ''
     set -euo pipefail
 
@@ -68,15 +70,42 @@ let
     shift || true
     LAUNCH_CMD="''${@:-$PATTERN}"
 
-    # Try to find an existing window matching the pattern (case-insensitive)
-    WINDOW_ID=$(niri msg windows --json 2>/dev/null \
-      | ${lib.getExe pkgs.jq} -r \
-        ".[] | select(.title | test(\"$PATTERN\"; \"i\")) | .id" \
-      | head -1 || true)
+    # Find window by title or app-id (case-insensitive)
+    find_window_id() {
+      local pat_lower
+      pat_lower=$(echo "$PATTERN" | tr '[:upper:]' '[:lower:]')
+
+      # Try JSON first (niri >= 0.1.9)
+      local json_out
+      json_out=$(niri msg windows --json 2>/dev/null) || true
+      if [ -n "$json_out" ] && echo "$json_out" | ${lib.getExe pkgs.jq} -e '.[0].id' >/dev/null 2>&1; then
+        echo "$json_out" | ${lib.getExe pkgs.jq} -r ".[] | select(
+          (.title // \"\") | test(\"$PATTERN\"; \"i\")
+          or (.\"app-id\" // \"\") | test(\"$PATTERN\"; \"i\")
+        ) | .id" | head -1
+        return
+      fi
+
+      # Fallback: parse text output (older compositor 25.11)
+      niri msg windows 2>/dev/null | awk -v pat="$pat_lower" '
+        /^Window ID/ { current_id = \$3; gsub(/:/, "", current_id); title=""; appid="" }
+        /^\s+Title:/ {
+          val = \$0; sub(/^\s+Title:\s*"/, "", val); sub(/"$/, "", val); title = val
+        }
+        /^\s+App ID:/ {
+          val = \$0; sub(/^\s+App ID:\s*"/, "", val); sub(/"$/, "", val); appid = val
+          if (tolower(title) ~ pat || tolower(appid) ~ pat) {
+            print current_id; exit
+          }
+        }
+      '
+    }
+
+    WINDOW_ID=$(find_window_id) || true
 
     if [ -n "$WINDOW_ID" ]; then
       # Focus the existing window
-      niri msg action focus-window --window-id "$WINDOW_ID" 2>/dev/null || true
+      niri msg action focus-window --id "$WINDOW_ID" 2>/dev/null || true
     else
       # No matching window — launch new instance
       exec $LAUNCH_CMD
