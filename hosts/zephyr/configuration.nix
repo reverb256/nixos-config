@@ -247,6 +247,7 @@
     127.0.0.1 search.lan search.cluster.local
     127.0.0.1 ai.lan ai.cluster.local
     127.0.0.1 openwebui.lan openwebui.cluster.local
+    127.0.0.1 haven.lan haven.cluster.local
     10.1.1.100 civicintel.lan civicintel.cluster.local
   '';
 
