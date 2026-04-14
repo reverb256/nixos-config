@@ -323,25 +323,6 @@
       '';
     };
 
-    # Spacebot AI agent (integrated with AI Gateway)
-    spacebot = {
-      enable = true;
-      useGateway = true;
-      gatewayUrl = "http://127.0.0.1:8081"; # K8s gateway (hostNetwork, port 8081)
-      host = "127.0.0.1";
-      port = 19898;
-      memory = "4G";
-      cpu = "2";
-      hideUpdateNotification = true;
-      providerKeys = {
-        ZAI_CODING_PLAN_KEY = "/run/agenix/zai-api-key";
-        KILO_API_KEY = "/run/agenix/kilo-api-key";
-      };
-      discord.enable = false;
-      telegram.enable = true;
-      telegram.tokenFile = "/run/agenix/spacebot-telegram-token";
-    };
-
     # Redis - For gateway rate limiting and caching
     redis.servers."".enable = true;
 

@@ -34,7 +34,6 @@ let
       ./modules/ai-inference.nix
       ./modules/nixkube.nix
       ./modules/searxng.nix
-      ./modules/spacebot.nix
       ./modules/haven.nix
     ];
   };

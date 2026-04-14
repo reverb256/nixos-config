@@ -119,8 +119,6 @@
     ./services/stability-matrix.nix
     ./services/ai-inference/default.nix
     ./services/nixos-share.nix
-    ./services/spacebot.nix
-    ./services/spacebot/default.nix
     ./services/podman-auto-update.nix
     ./services/caddy.nix
     ./services/caddy-common.nix
