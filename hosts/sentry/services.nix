@@ -86,8 +86,6 @@
       };
     };
 
-    services.xserver.videoDrivers = [ "amdgpu" ];
-
     # MINING (CPU only - K8s deployment scaled to 0/0)
     mining = {
       xmrig = {
@@ -146,6 +144,9 @@
       kubernetes = true;
     };
   };
+
+  # Display driver
+  services.xserver.videoDrivers = [ "amdgpu" ];
 
   # ============================================================================
   # NIX-LD - For mining software compatibility
