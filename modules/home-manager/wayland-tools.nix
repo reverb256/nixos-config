@@ -70,7 +70,7 @@ let
 
     # Try to find an existing window matching the pattern (case-insensitive)
     WINDOW_ID=$(niri msg windows --json 2>/dev/null \
-      | ''${pkgs.jq}/bin/jq -r \
+      | ${lib.getExe pkgs.jq} -r \
         ".[] | select(.title | test(\"$PATTERN\"; \"i\")) | .id" \
       | head -1 || true)
 
