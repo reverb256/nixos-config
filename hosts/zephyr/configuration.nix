@@ -93,6 +93,12 @@
     "net.ipv4.conf.all.rp_filter" = 1; # Reverse path filtering for BGP
   };
 
+  # Stylix theme — Nord (cool, calm — control plane + gaming)
+  stylix = {
+    base16Scheme = "${pkgs.base16-schemes}/share/themes/nord.yaml";
+    image = ../../modules/desktop/wallpapers/nord-bg.png;
+  };
+
   networking = {
     cluster-hosts = {
       enable = true;

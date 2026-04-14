@@ -3,6 +3,7 @@
 {
   pkgs,
   lib,
+  config,
   ...
 }:
 let
@@ -107,8 +108,8 @@ in
       sddm.settings.General.DisplayServer = "wayland";
     };
 
-    # KDE PLASMA 6 (Pure Wayland with XWayland fallback for legacy apps)
-    desktopManager.plasma6.enable = true;
+    # KDE PLASMA 6 — enable per-host via desktop.plasma6.enable = true
+    # (moved from unconditional to opt-in)
 
     # PIPEWIRE AUDIO - Modern audio server for Wayland
     pipewire = {
@@ -153,9 +154,8 @@ in
     blueman.enable = true;
   };
 
-  # KDE portal — scoped to Plasma via xdg.portal.config.kde
-  # Only active when XDG_CURRENT_DESKTOP=KDE (Plasma session)
-  xdg.portal = {
+  # KDE portal — only when Plasma is enabled
+  xdg.portal = lib.mkIf config.services.desktopManager.plasma6.enable {
     extraPortals = with pkgs; [ pkgs.kdePackages.xdg-desktop-portal-kde ];
     config.kde.default = [ "kde" ];
   };
@@ -191,8 +191,8 @@ in
       }
     ];
 
-    # KDE WALLET
-    pam.services.sddm.enableKwallet = true;
+    # KDE WALLET — only when Plasma is enabled
+    pam.services.sddm.enableKwallet = lib.mkIf config.services.desktopManager.plasma6.enable true;
   };
 
   # ============================================================================
@@ -223,40 +223,42 @@ in
       # plasma6.nix handles KWIN_DRM_DEVICES correctly.
     };
 
-    systemPackages = with pkgs.kdePackages; [
-      # Core Plasma Desktop
-      plasma-workspace
-      plasma-desktop
-      plasma-systemmonitor
+    systemPackages = lib.mkIf config.services.desktopManager.plasma6.enable (
+      with pkgs.kdePackages; [
+        # Core Plasma Desktop
+        plasma-workspace
+        plasma-desktop
+        plasma-systemmonitor
 
-      # Full Plasma Applications Suite
-      discover
-      dolphin
-      dolphin-plugins
-      konsole
-      kate
-      ark
-      gwenview
-      okular
-      kde-gtk-config
-      plasma-pa
-      plasma-nm
-      bluedevil
-      spectacle
-      kdeplasma-addons
-      filelight
-      kde-cli-tools
-      kde-inotify-survey
+        # Full Plasma Applications Suite
+        discover
+        dolphin
+        dolphin-plugins
+        konsole
+        kate
+        ark
+        gwenview
+        okular
+        kde-gtk-config
+        plasma-pa
+        plasma-nm
+        bluedevil
+        spectacle
+        kdeplasma-addons
+        filelight
+        kde-cli-tools
+        kde-inotify-survey
 
-      # Monitor setup scripts
-      monitorSetupScript
-      pkgs.libnotify
+        # Monitor setup scripts
+        monitorSetupScript
+        pkgs.libnotify
 
-      # DDC/CI brightness control for external monitors
-      pkgs.ddcutil
-    ];
+        # DDC/CI brightness control for external monitors
+        pkgs.ddcutil
+      ]
+    );
 
-    etc = {
+    etc = lib.mkIf config.services.desktopManager.plasma6.enable {
       "xdg/kscreenlockerrc".text = ''
         [Daemon]
         Autolock=false
@@ -367,5 +369,7 @@ in
   # ============================================================================
   # All systemd user services (gpu-ready, boot-monitor-setup, plasma-monitor-setup,
   # tv-monitor-daemon) defined in plasma6.nix — removed duplicates here
-  systemd.user.services."kscreen_backend_launcher".enable = false;
+  # Disable KScreen backend when Plasma is not active
+  systemd.user.services."kscreen_backend_launcher".enable =
+    lib.mkIf (!config.services.desktopManager.plasma6.enable) false;
 }

@@ -65,6 +65,12 @@
   systemd.timers.flake-lock-sync.enable = false;
 
   # Populate /etc/hosts from central cluster configuration
+  # Stylix theme — Catppuccin Mocha (warm, rich hub — storage + GPU compute)
+  stylix = {
+    base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+    image = ../../modules/desktop/wallpapers/catppuccin-mocha-bg.jpg;
+  };
+
   networking.cluster-hosts = {
     enable = true;
     populateLocal = true;

@@ -206,6 +206,10 @@ let
   '';
 in
 {
+  options.desktop.plasma6.enable = lib.mkEnableOption "KDE Plasma 6 desktop environment";
+
+  config = lib.mkIf config.desktop.plasma6.enable (lib.mkMerge [
+  {
   # Add KDE xdg-desktop-portal when Plasma is enabled
   xdg.portal.extraPortals = with pkgs; [ pkgs.kdePackages.xdg-desktop-portal-kde ];
   services = {
@@ -634,4 +638,6 @@ in
       };
     };
   };
+  }
+  ]);
 }

@@ -198,8 +198,8 @@
 
     # ============================================================================
     # WEB BROWSER SUPPORT
-    # firefoxpwa does not exist in current nixpkgs.
-    # For PWA support with Zen Browser, use the "PWAs for Firefox" extension.
+    # firefoxpwa in nixpkgs (2.18.0) - PWAs as standalone apps
+    # See modules/home-manager/firefox-pwa-apps.nix for declarative config
     # ============================================================================
     wl-clipboard # For screenshot-to-clipboard pipeline
 

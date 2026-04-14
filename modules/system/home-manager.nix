@@ -40,6 +40,9 @@ in
           ../../modules/home-manager/niri-config.nix
           ../../modules/home-manager/obsidian.nix
           ../../modules/home-manager/opencode.nix
+          ../../modules/home-manager/firefox-pwa-apps.nix
+          ../../modules/home-manager/ghostty.nix
+          ../../modules/home-manager/icon-theme.nix
         ];
 
         # Disable stylix opencode target — programs.opencode.tui doesn't exist

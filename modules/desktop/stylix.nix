@@ -1,19 +1,21 @@
 { config, pkgs, lib, ... }:
 {
   # Stylix — Declarative theming for NixOS
-  # Applies unified Nord color scheme, fonts, and wallpaper across apps.
+  # Per-host color scheme set in hosts/<name>/configuration.nix.
+  # Shared settings: fonts, opacity, polarity, auto-enable.
   # Auto-detected targets: noctalia-shell, ghostty, fish, bat, fzf, tmux,
   #   helix, neovim, lazygit, starship, btop, chromium, obsidian, etc.
 
   stylix = {
     enable = true;
 
-    # Nord color scheme
-    base16Scheme = "${pkgs.base16-schemes}/share/themes/nord.yaml";
+    # Default theme — overridden per-host in hosts/<name>/configuration.nix
+    # Zephyr: nord | Nexus: catppuccin-mocha | Forge: gruvbox-dark-medium | Sentry: dracula
+    base16Scheme = lib.mkDefault "${pkgs.base16-schemes}/share/themes/nord.yaml";
     polarity = "dark";
 
-    # Wallpaper — used by noctalia-shell, login screens, etc.
-    image = ./wallpapers/nord-bg.png;
+    # Default wallpaper — overridden per-host
+    image = lib.mkDefault ./wallpapers/nord-bg.png;
 
     # Fonts
     fonts = {

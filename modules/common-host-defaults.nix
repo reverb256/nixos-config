@@ -92,7 +92,8 @@
         enable = lib.mkDefault true;
         wayland.enable = lib.mkDefault true;
       };
-      defaultSession = lib.mkDefault "plasma";
+      # defaultSession must be set per-host — no cluster-wide default
+      # because headless hosts (sentry) have no desktop sessions
       autoLogin = {
         enable = lib.mkDefault true;
         user = lib.mkDefault "j_kro";

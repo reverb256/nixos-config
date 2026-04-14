@@ -14,7 +14,6 @@
   # dconf is what GTK apps actually read at runtime
   dconf.settings."org/gnome/desktop/interface" = {
     icon-theme = "Papirus-Dark";
-    gtk-theme = "Adwaita-dark";
     cursor-theme = "Adwaita";
     cursor-size = 24;
     color-scheme = "prefer-dark";
