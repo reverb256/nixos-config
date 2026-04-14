@@ -21,10 +21,10 @@
     };
 
     # Log aggregation - DISABLED (promtail EOL, needs migration to grafana-alloy)
-    monitoring.promtail = {
-      enable = false;
-      lokiUrl = "http://10.1.1.140:3100/loki/api/v1/push";
-    };
+    #     monitoring.promtail = {
+    #       enable = false;
+    #       lokiUrl = "http://10.1.1.140:3100/loki/api/v1/push";
+    #     };
 
     # XMRig CPU miner metrics -> node-exporter textfile collector
     xmrig-metrics = {

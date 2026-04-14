@@ -34,8 +34,9 @@
       smart-exporter.enable = true;
 
       # Log aggregation (local Loki)
-      promtail.enable = true;
-      promtail.lokiUrl = "http://127.0.0.1:3100/loki/api/v1/push";
+      # promtail EOL — needs migration to grafana-alloy
+      # promtail.enable = false;
+      # promtail.lokiUrl = "http://127.0.0.1:3100/loki/api/v1/push";
     };
 
     # Note: Sentry has no GPUs, no GPU exporters needed

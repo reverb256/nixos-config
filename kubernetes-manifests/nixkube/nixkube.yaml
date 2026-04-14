@@ -1,0 +1,4473 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      configHash: 1024a5d715be304dc701863cdd16e77d
+      kubectl.kubernetes.io/default-container: nix-cache
+      kubectl.kubernetes.io/restartedAt: "2026-04-13T02:16:56-05:00"
+    creationTimestamp: "2026-04-13T07:20:14Z"
+    generateName: nix-cache-
+    generation: 1
+    labels:
+      app.kubernetes.io/component: cache
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+      apps.kubernetes.io/pod-index: "0"
+      controller-revision-hash: nix-cache-598fb9f577
+      statefulset.kubernetes.io/pod-name: nix-cache-0
+    name: nix-cache-0
+    namespace: nixkube
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: StatefulSet
+      name: nix-cache
+      uid: f8c0c7d4-6711-4712-bb32-120d60e4adef
+    resourceVersion: "5316451"
+    uid: 2027b108-750b-4d71-8263-241e3e633594
+  spec:
+    containers:
+    - command:
+      - dinit
+      - --log-file
+      - /var/log/dinit.log
+      - --quiet
+      - cache
+      env:
+      - name: BUILDERS_ENABLED
+        value: "true"
+      - name: CACHE_ENABLED
+        value: "true"
+      - name: GC_KEEP_SECONDS
+        value: "86400"
+      - name: HOME
+        value: /nix/var/nix-csi/root
+      - name: IS_CACHE
+        value: "true"
+      - name: KUBE_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+      imagePullPolicy: IfNotPresent
+      name: nix-cache
+      ports:
+      - containerPort: 22
+        name: ssh
+        protocol: TCP
+      resources:
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /etc/nix-key
+        name: nix-key
+      - mountPath: /nix
+        name: nix-store
+        subPath: nix
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-gnfx4
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    hostname: nix-cache-0
+    initContainers:
+    - command:
+      - initCopy
+      image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+      imagePullPolicy: Always
+      name: initcopy
+      resources:
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      securityContext:
+        capabilities:
+          add:
+          - SYS_CHROOT
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /nix
+        name: init-store
+        readOnly: true
+        subPath: nix
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /nix-volume
+        name: nix-store
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-gnfx4
+        readOnly: true
+    nodeName: sentry
+    preemptionPolicy: PreemptLowerPriority
+    priority: 2000000000
+    priorityClassName: system-cluster-critical
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: nixkube
+    serviceAccountName: nixkube
+    subdomain: nix-cache
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: nix-store
+      persistentVolumeClaim:
+        claimName: nix-store-nix-cache-0
+    - csi:
+        driver: nixkube
+        readOnly: true
+        volumeAttributes:
+          aarch64-linux: /nix/store/jz92rjrd92hi4jnz42w9448vgpy5y66l-cache-init-env
+          x86_64-linux: /nix/store/j0jrykzw37q0vkhmc4xz6dyzkndl3ln6-cache-init-env
+      name: init-store
+    - configMap:
+        defaultMode: 420
+        name: nix-cache
+      name: nix-config
+    - name: nix-key
+      secret:
+        defaultMode: 420
+        secretName: nix-key
+    - configMap:
+        defaultMode: 292
+        name: ssh-config
+      name: ssh-config
+    - configMap:
+        defaultMode: 292
+        name: ssh-dynauth
+      name: ssh-dynauth
+    - name: ssh-key
+      secret:
+        defaultMode: 256
+        secretName: ssh-key
+    - name: kube-api-access-gnfx4
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:56Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:57Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:58Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:58Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:14Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 64Mi
+      containerID: containerd://ac80fc33d0f75411d92e023dc564a6dfcd54bc6264197e6e88e84a198695d095
+      image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+      imageID: ghcr.io/lillecarl/nix-csi/scratch@sha256:1e18f768215787db6022af8a9929da54d601dceeb5b5ac960fb18abd8df46e51
+      lastState: {}
+      name: nix-cache
+      ready: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:58Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /etc/nix-key
+        name: nix-key
+      - mountPath: /nix
+        name: nix-store
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-gnfx4
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.1.1.140
+    hostIPs:
+    - ip: 10.1.1.140
+    initContainerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 64Mi
+      containerID: containerd://8c893defdc0624641e57d9aefc6dd9104d357c09d942d66cecbc5b1861e21ad9
+      image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+      imageID: ghcr.io/lillecarl/nix-csi/scratch@sha256:1e18f768215787db6022af8a9929da54d601dceeb5b5ac960fb18abd8df46e51
+      lastState: {}
+      name: initcopy
+      ready: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      restartCount: 0
+      started: false
+      state:
+        terminated:
+          containerID: containerd://8c893defdc0624641e57d9aefc6dd9104d357c09d942d66cecbc5b1861e21ad9
+          exitCode: 0
+          finishedAt: "2026-04-13T07:20:56Z"
+          reason: Completed
+          startedAt: "2026-04-13T07:20:56Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /nix
+        name: init-store
+        readOnly: true
+        recursiveReadOnly: Disabled
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /nix-volume
+        name: nix-store
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-gnfx4
+        readOnly: true
+        recursiveReadOnly: Disabled
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.3.6
+    podIPs:
+    - ip: 10.244.3.6
+    qosClass: Burstable
+    startTime: "2026-04-13T07:20:14Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      configHash: 3bf565608119b3ee7d9efa797b20f24b
+      kubectl.kubernetes.io/default-container: nix-node
+      kubectl.kubernetes.io/restartedAt: "2026-04-13T02:19:59-05:00"
+    creationTimestamp: "2026-04-13T07:20:30Z"
+    generateName: nix-node-
+    generation: 1
+    labels:
+      app.kubernetes.io/component: node
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+      controller-revision-hash: 5b74669c99
+      pod-template-generation: "7"
+    name: nix-node-4zvld
+    namespace: nixkube
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: DaemonSet
+      name: nix-node
+      uid: d6dc8460-6b99-4cdb-8d26-8540b9e816ce
+    resourceVersion: "5316229"
+    uid: e89490a0-db9f-4e23-9c6f-4ffa3d3de15f
+  spec:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchFields:
+            - key: metadata.name
+              operator: In
+              values:
+              - nexus
+    containers:
+    - args:
+      - --v=5
+      - --csi-address=/csi/nix.csi.store/csi.sock
+      - --kubelet-registration-path=/var/lib/kubelet/plugins/nix.csi.store/csi.sock
+      env:
+      - name: KUBE_NODE_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: spec.nodeName
+      image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+      imagePullPolicy: IfNotPresent
+      name: csi-node-driver-registrar-nix-csi
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5rtrl
+        readOnly: true
+    - args:
+      - --v=5
+      - --csi-address=/csi/nixkube/csi.sock
+      - --kubelet-registration-path=/var/lib/kubelet/plugins/nixkube/csi.sock
+      env:
+      - name: KUBE_NODE_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: spec.nodeName
+      image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+      imagePullPolicy: IfNotPresent
+      name: csi-node-driver-registrar-nixkube
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5rtrl
+        readOnly: true
+    - args:
+      - --csi-address=/csi/nix.csi.store/csi.sock
+      - --health-port=9809
+      image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+      imagePullPolicy: IfNotPresent
+      name: livenessprobe-nix-csi
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5rtrl
+        readOnly: true
+    - args:
+      - --csi-address=/csi/nixkube/csi.sock
+      - --health-port=9808
+      image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+      imagePullPolicy: IfNotPresent
+      name: livenessprobe-nixkube
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5rtrl
+        readOnly: true
+    - command:
+      - tini
+      - --
+      - nixkube
+      env:
+      - name: BUILDERS_ENABLED
+        value: "true"
+      - name: CACHE_ENABLED
+        value: "true"
+      - name: ENABLE_COMPAT_DRIVER
+        value: "true"
+      - name: HOME
+        value: /nix/var/nix-csi/root
+      - name: HOST_MOUNT_PATH
+        value: /var/lib/nix-csi
+      - name: KUBE_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: KUBE_NODE_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: spec.nodeName
+      - name: KUBE_POD_IP
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: status.podIP
+      - name: KUBE_POD_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.name
+      - name: KUBE_POD_UID
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.uid
+      - name: NIXPKGS_ALLOW_UNFREE
+        value: "1"
+      - name: NIX_BUILD_TIMEOUT
+        value: "300"
+      - name: NRI_ENABLED
+        value: "true"
+      - name: USER
+        value: root
+      - name: VERIFY_STORE_PATHS
+        value: "true"
+      image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+      imagePullPolicy: IfNotPresent
+      name: nix-node
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        privileged: true
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /host
+        name: host-root
+      - mountPath: /var/lib/kubelet
+        mountPropagation: Bidirectional
+        name: kubelet
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /etc/nix-key
+        name: nix-key
+      - mountPath: /nix
+        mountPropagation: Bidirectional
+        name: nix-store
+        subPath: nix
+      - mountPath: /var/run/nri
+        name: nri-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5rtrl
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    initContainers:
+    - env:
+      - name: NODE_ENV
+        value: '{"aarch64-linux":"/nix/store/zns8sb4468gfrf5hcpxzvx4wmr6nfsw1-nodeEnv","x86_64-linux":"/nix/store/i48pjr2yj7lr5wral06f9afal361ja6y-nodeEnv"}'
+      image: ghcr.io/lillecarl/nix-csi/lix:2.94.0-0.5.0
+      imagePullPolicy: Always
+      name: initcopy
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        privileged: true
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /nix-volume
+        name: nix-store
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5rtrl
+        readOnly: true
+    nodeName: nexus
+    preemptionPolicy: PreemptLowerPriority
+    priority: 2000001000
+    priorityClassName: system-node-critical
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: nixkube
+    serviceAccountName: nixkube
+    subdomain: nix-builders
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/control-plane
+      operator: Exists
+    - effect: NoSchedule
+      key: workstation
+      operator: Equal
+      value: "true"
+    - effect: NoExecute
+      key: interactive
+      operator: Equal
+      value: "true"
+    - effect: NoSchedule
+      key: ram-constrained
+      operator: Equal
+      value: "true"
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+    - effect: NoSchedule
+      key: node.kubernetes.io/disk-pressure
+      operator: Exists
+    - effect: NoSchedule
+      key: node.kubernetes.io/memory-pressure
+      operator: Exists
+    - effect: NoSchedule
+      key: node.kubernetes.io/pid-pressure
+      operator: Exists
+    - effect: NoSchedule
+      key: node.kubernetes.io/unschedulable
+      operator: Exists
+    volumes:
+    - hostPath:
+        path: /var/lib/kubelet/plugins/
+        type: DirectoryOrCreate
+      name: csi-socket
+    - hostPath:
+        path: /
+        type: Directory
+      name: host-root
+    - hostPath:
+        path: /var/lib/kubelet
+        type: Directory
+      name: kubelet
+    - configMap:
+        defaultMode: 420
+        name: nix-node
+      name: nix-config
+    - name: nix-key
+      secret:
+        defaultMode: 256
+        secretName: nix-key
+    - hostPath:
+        path: /var/lib/nix-csi
+        type: DirectoryOrCreate
+      name: nix-store
+    - hostPath:
+        path: /var/run/nri
+        type: DirectoryOrCreate
+      name: nri-socket
+    - hostPath:
+        path: /var/lib/kubelet/plugins_registry
+        type: ""
+      name: registration
+    - configMap:
+        defaultMode: 292
+        name: ssh-config
+      name: ssh-config
+    - configMap:
+        defaultMode: 292
+        name: ssh-dynauth
+      name: ssh-dynauth
+    - name: ssh-key
+      secret:
+        defaultMode: 256
+        secretName: ssh-key
+    - name: kube-api-access-5rtrl
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:32Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:33Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:34Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:34Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:30Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 10m
+        memory: 10Mi
+      containerID: containerd://bf62c951395fc6849abf9fa67461eb60a07389e99fa1ab68ee5352e3e0c17346
+      image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+      imageID: registry.k8s.io/sig-storage/csi-node-driver-registrar@sha256:ab482308a4921e28a6df09a16ab99a457e9af9641ff44fb1be1a690d07ce8b70
+      lastState: {}
+      name: csi-node-driver-registrar-nix-csi
+      ready: true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:34Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5rtrl
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - allocatedResources:
+        cpu: 10m
+        memory: 10Mi
+      containerID: containerd://579618c1bc39656c36a593f5b02c78149e8d7c31c909bf4f8e233b701fc6fcf2
+      image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+      imageID: registry.k8s.io/sig-storage/csi-node-driver-registrar@sha256:ab482308a4921e28a6df09a16ab99a457e9af9641ff44fb1be1a690d07ce8b70
+      lastState: {}
+      name: csi-node-driver-registrar-nixkube
+      ready: true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:34Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5rtrl
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - allocatedResources:
+        cpu: 10m
+        memory: 10Mi
+      containerID: containerd://320f3ec170ed76d7ded0a6845a8304cdb51c4363b67c42f90c3f596890064ca6
+      image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+      imageID: registry.k8s.io/sig-storage/livenessprobe@sha256:c4cc074199c045dd73ab85f28897e2a32f4d6f38ffdba4f3b13b8007ccbd3570
+      lastState: {}
+      name: livenessprobe-nix-csi
+      ready: true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:34Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5rtrl
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - allocatedResources:
+        cpu: 10m
+        memory: 10Mi
+      containerID: containerd://5d3f730b2265f8569912f980cba76b5a6a20a640015eb74ab4da5a685cc0fca6
+      image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+      imageID: registry.k8s.io/sig-storage/livenessprobe@sha256:c4cc074199c045dd73ab85f28897e2a32f4d6f38ffdba4f3b13b8007ccbd3570
+      lastState: {}
+      name: livenessprobe-nixkube
+      ready: true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:34Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5rtrl
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - allocatedResources:
+        cpu: 100m
+        memory: 128Mi
+      containerID: containerd://9faee88cfdd114058d629e4d68198f3af234243c68ef6ff3f8e571ea157a70a2
+      image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+      imageID: ghcr.io/lillecarl/nix-csi/scratch@sha256:1e18f768215787db6022af8a9929da54d601dceeb5b5ac960fb18abd8df46e51
+      lastState: {}
+      name: nix-node
+      ready: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:34Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /host
+        name: host-root
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /etc/nix-key
+        name: nix-key
+      - mountPath: /nix
+        name: nix-store
+      - mountPath: /var/run/nri
+        name: nri-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5rtrl
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.1.1.120
+    hostIPs:
+    - ip: 10.1.1.120
+    initContainerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 128Mi
+      containerID: containerd://e3384cd348ca96d33d15e3dcfe4820d6085dcb761ff6c2b91c5b5f2512a9becb
+      image: ghcr.io/lillecarl/nix-csi/lix:2.94.0-0.5.0
+      imageID: ghcr.io/lillecarl/nix-csi/lix@sha256:b9291acc0f2a2b84b12bc80513a660b9647c982f9b64bb53ee1385392b222b5d
+      lastState: {}
+      name: initcopy
+      ready: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      restartCount: 0
+      started: false
+      state:
+        terminated:
+          containerID: containerd://e3384cd348ca96d33d15e3dcfe4820d6085dcb761ff6c2b91c5b5f2512a9becb
+          exitCode: 0
+          finishedAt: "2026-04-13T07:20:33Z"
+          reason: Completed
+          startedAt: "2026-04-13T07:20:32Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /nix-volume
+        name: nix-store
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5rtrl
+        readOnly: true
+        recursiveReadOnly: Disabled
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.1.61
+    podIPs:
+    - ip: 10.244.1.61
+    qosClass: Burstable
+    startTime: "2026-04-13T07:20:30Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      configHash: 3bf565608119b3ee7d9efa797b20f24b
+      kubectl.kubernetes.io/default-container: nix-node
+      kubectl.kubernetes.io/restartedAt: "2026-04-13T02:19:59-05:00"
+    creationTimestamp: "2026-04-13T07:20:04Z"
+    generateName: nix-node-
+    generation: 1
+    labels:
+      app.kubernetes.io/component: node
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+      controller-revision-hash: 5b74669c99
+      pod-template-generation: "7"
+    name: nix-node-5tzq6
+    namespace: nixkube
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: DaemonSet
+      name: nix-node
+      uid: d6dc8460-6b99-4cdb-8d26-8540b9e816ce
+    resourceVersion: "5316151"
+    uid: b57e6694-3d9a-4af9-8595-093fbab88bcd
+  spec:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchFields:
+            - key: metadata.name
+              operator: In
+              values:
+              - sentry
+    containers:
+    - args:
+      - --v=5
+      - --csi-address=/csi/nix.csi.store/csi.sock
+      - --kubelet-registration-path=/var/lib/kubelet/plugins/nix.csi.store/csi.sock
+      env:
+      - name: KUBE_NODE_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: spec.nodeName
+      image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+      imagePullPolicy: IfNotPresent
+      name: csi-node-driver-registrar-nix-csi
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-b7qft
+        readOnly: true
+    - args:
+      - --v=5
+      - --csi-address=/csi/nixkube/csi.sock
+      - --kubelet-registration-path=/var/lib/kubelet/plugins/nixkube/csi.sock
+      env:
+      - name: KUBE_NODE_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: spec.nodeName
+      image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+      imagePullPolicy: IfNotPresent
+      name: csi-node-driver-registrar-nixkube
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-b7qft
+        readOnly: true
+    - args:
+      - --csi-address=/csi/nix.csi.store/csi.sock
+      - --health-port=9809
+      image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+      imagePullPolicy: IfNotPresent
+      name: livenessprobe-nix-csi
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-b7qft
+        readOnly: true
+    - args:
+      - --csi-address=/csi/nixkube/csi.sock
+      - --health-port=9808
+      image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+      imagePullPolicy: IfNotPresent
+      name: livenessprobe-nixkube
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-b7qft
+        readOnly: true
+    - command:
+      - tini
+      - --
+      - nixkube
+      env:
+      - name: BUILDERS_ENABLED
+        value: "true"
+      - name: CACHE_ENABLED
+        value: "true"
+      - name: ENABLE_COMPAT_DRIVER
+        value: "true"
+      - name: HOME
+        value: /nix/var/nix-csi/root
+      - name: HOST_MOUNT_PATH
+        value: /var/lib/nix-csi
+      - name: KUBE_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: KUBE_NODE_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: spec.nodeName
+      - name: KUBE_POD_IP
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: status.podIP
+      - name: KUBE_POD_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.name
+      - name: KUBE_POD_UID
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.uid
+      - name: NIXPKGS_ALLOW_UNFREE
+        value: "1"
+      - name: NIX_BUILD_TIMEOUT
+        value: "300"
+      - name: NRI_ENABLED
+        value: "true"
+      - name: USER
+        value: root
+      - name: VERIFY_STORE_PATHS
+        value: "true"
+      image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+      imagePullPolicy: IfNotPresent
+      name: nix-node
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        privileged: true
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /host
+        name: host-root
+      - mountPath: /var/lib/kubelet
+        mountPropagation: Bidirectional
+        name: kubelet
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /etc/nix-key
+        name: nix-key
+      - mountPath: /nix
+        mountPropagation: Bidirectional
+        name: nix-store
+        subPath: nix
+      - mountPath: /var/run/nri
+        name: nri-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-b7qft
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    initContainers:
+    - env:
+      - name: NODE_ENV
+        value: '{"aarch64-linux":"/nix/store/zns8sb4468gfrf5hcpxzvx4wmr6nfsw1-nodeEnv","x86_64-linux":"/nix/store/i48pjr2yj7lr5wral06f9afal361ja6y-nodeEnv"}'
+      image: ghcr.io/lillecarl/nix-csi/lix:2.94.0-0.5.0
+      imagePullPolicy: Always
+      name: initcopy
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        privileged: true
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /nix-volume
+        name: nix-store
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-b7qft
+        readOnly: true
+    nodeName: sentry
+    preemptionPolicy: PreemptLowerPriority
+    priority: 2000001000
+    priorityClassName: system-node-critical
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: nixkube
+    serviceAccountName: nixkube
+    subdomain: nix-builders
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/control-plane
+      operator: Exists
+    - effect: NoSchedule
+      key: workstation
+      operator: Equal
+      value: "true"
+    - effect: NoExecute
+      key: interactive
+      operator: Equal
+      value: "true"
+    - effect: NoSchedule
+      key: ram-constrained
+      operator: Equal
+      value: "true"
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+    - effect: NoSchedule
+      key: node.kubernetes.io/disk-pressure
+      operator: Exists
+    - effect: NoSchedule
+      key: node.kubernetes.io/memory-pressure
+      operator: Exists
+    - effect: NoSchedule
+      key: node.kubernetes.io/pid-pressure
+      operator: Exists
+    - effect: NoSchedule
+      key: node.kubernetes.io/unschedulable
+      operator: Exists
+    volumes:
+    - hostPath:
+        path: /var/lib/kubelet/plugins/
+        type: DirectoryOrCreate
+      name: csi-socket
+    - hostPath:
+        path: /
+        type: Directory
+      name: host-root
+    - hostPath:
+        path: /var/lib/kubelet
+        type: Directory
+      name: kubelet
+    - configMap:
+        defaultMode: 420
+        name: nix-node
+      name: nix-config
+    - name: nix-key
+      secret:
+        defaultMode: 256
+        secretName: nix-key
+    - hostPath:
+        path: /var/lib/nix-csi
+        type: DirectoryOrCreate
+      name: nix-store
+    - hostPath:
+        path: /var/run/nri
+        type: DirectoryOrCreate
+      name: nri-socket
+    - hostPath:
+        path: /var/lib/kubelet/plugins_registry
+        type: ""
+      name: registration
+    - configMap:
+        defaultMode: 292
+        name: ssh-config
+      name: ssh-config
+    - configMap:
+        defaultMode: 292
+        name: ssh-dynauth
+      name: ssh-dynauth
+    - name: ssh-key
+      secret:
+        defaultMode: 256
+        secretName: ssh-key
+    - name: kube-api-access-b7qft
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:22Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:25Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:30Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:30Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:04Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 10m
+        memory: 10Mi
+      containerID: containerd://a7430c7a7df2429dc79837934aba993f67e1cf0fe96cf988ced19d7e81a7cda1
+      image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+      imageID: registry.k8s.io/sig-storage/csi-node-driver-registrar@sha256:ab482308a4921e28a6df09a16ab99a457e9af9641ff44fb1be1a690d07ce8b70
+      lastState: {}
+      name: csi-node-driver-registrar-nix-csi
+      ready: true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:26Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-b7qft
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - allocatedResources:
+        cpu: 10m
+        memory: 10Mi
+      containerID: containerd://b5fca7573ad251b68fc5365f2155c263de661a6e2241fc9188b49a2708a4d80d
+      image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+      imageID: registry.k8s.io/sig-storage/csi-node-driver-registrar@sha256:ab482308a4921e28a6df09a16ab99a457e9af9641ff44fb1be1a690d07ce8b70
+      lastState: {}
+      name: csi-node-driver-registrar-nixkube
+      ready: true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:27Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-b7qft
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - allocatedResources:
+        cpu: 10m
+        memory: 10Mi
+      containerID: containerd://7c541c19a5f087643488c038ad8b0aa236107f9f916e465e71207bae9a33d248
+      image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+      imageID: registry.k8s.io/sig-storage/livenessprobe@sha256:c4cc074199c045dd73ab85f28897e2a32f4d6f38ffdba4f3b13b8007ccbd3570
+      lastState: {}
+      name: livenessprobe-nix-csi
+      ready: true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:28Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-b7qft
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - allocatedResources:
+        cpu: 10m
+        memory: 10Mi
+      containerID: containerd://a1d634248a815b6444bd46eccc15ee3c73a6ea02c9b705730445f289aa52b336
+      image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+      imageID: registry.k8s.io/sig-storage/livenessprobe@sha256:c4cc074199c045dd73ab85f28897e2a32f4d6f38ffdba4f3b13b8007ccbd3570
+      lastState: {}
+      name: livenessprobe-nixkube
+      ready: true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:29Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-b7qft
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - allocatedResources:
+        cpu: 100m
+        memory: 128Mi
+      containerID: containerd://addf8f744f83aa8ed83f9f489558a26e62582a330ebf1e8d445991f7637f82e4
+      image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+      imageID: ghcr.io/lillecarl/nix-csi/scratch@sha256:1e18f768215787db6022af8a9929da54d601dceeb5b5ac960fb18abd8df46e51
+      lastState: {}
+      name: nix-node
+      ready: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:29Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /host
+        name: host-root
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /etc/nix-key
+        name: nix-key
+      - mountPath: /nix
+        name: nix-store
+      - mountPath: /var/run/nri
+        name: nri-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-b7qft
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.1.1.140
+    hostIPs:
+    - ip: 10.1.1.140
+    initContainerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 128Mi
+      containerID: containerd://45527f3f123b5bbdbfafe1e0bb2c2778b629d879b1f89af94d8ab0c05682a6e8
+      image: ghcr.io/lillecarl/nix-csi/lix:2.94.0-0.5.0
+      imageID: ghcr.io/lillecarl/nix-csi/lix@sha256:b9291acc0f2a2b84b12bc80513a660b9647c982f9b64bb53ee1385392b222b5d
+      lastState: {}
+      name: initcopy
+      ready: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      restartCount: 0
+      started: false
+      state:
+        terminated:
+          containerID: containerd://45527f3f123b5bbdbfafe1e0bb2c2778b629d879b1f89af94d8ab0c05682a6e8
+          exitCode: 0
+          finishedAt: "2026-04-13T07:20:25Z"
+          reason: Completed
+          startedAt: "2026-04-13T07:20:22Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /nix-volume
+        name: nix-store
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-b7qft
+        readOnly: true
+        recursiveReadOnly: Disabled
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.3.5
+    podIPs:
+    - ip: 10.244.3.5
+    qosClass: Burstable
+    startTime: "2026-04-13T07:20:04Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      configHash: 3bf565608119b3ee7d9efa797b20f24b
+      kubectl.kubernetes.io/default-container: nix-node
+      kubectl.kubernetes.io/restartedAt: "2026-04-13T02:19:59-05:00"
+    creationTimestamp: "2026-04-13T07:19:59Z"
+    generateName: nix-node-
+    generation: 1
+    labels:
+      app.kubernetes.io/component: node
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+      controller-revision-hash: 5b74669c99
+      pod-template-generation: "7"
+    name: nix-node-hwmjq
+    namespace: nixkube
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: DaemonSet
+      name: nix-node
+      uid: d6dc8460-6b99-4cdb-8d26-8540b9e816ce
+    resourceVersion: "5315921"
+    uid: de6219d1-5bf8-4e80-9a53-26c812beb42b
+  spec:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchFields:
+            - key: metadata.name
+              operator: In
+              values:
+              - forge
+    containers:
+    - args:
+      - --v=5
+      - --csi-address=/csi/nix.csi.store/csi.sock
+      - --kubelet-registration-path=/var/lib/kubelet/plugins/nix.csi.store/csi.sock
+      env:
+      - name: KUBE_NODE_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: spec.nodeName
+      image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+      imagePullPolicy: IfNotPresent
+      name: csi-node-driver-registrar-nix-csi
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-w6rt8
+        readOnly: true
+    - args:
+      - --v=5
+      - --csi-address=/csi/nixkube/csi.sock
+      - --kubelet-registration-path=/var/lib/kubelet/plugins/nixkube/csi.sock
+      env:
+      - name: KUBE_NODE_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: spec.nodeName
+      image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+      imagePullPolicy: IfNotPresent
+      name: csi-node-driver-registrar-nixkube
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-w6rt8
+        readOnly: true
+    - args:
+      - --csi-address=/csi/nix.csi.store/csi.sock
+      - --health-port=9809
+      image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+      imagePullPolicy: IfNotPresent
+      name: livenessprobe-nix-csi
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-w6rt8
+        readOnly: true
+    - args:
+      - --csi-address=/csi/nixkube/csi.sock
+      - --health-port=9808
+      image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+      imagePullPolicy: IfNotPresent
+      name: livenessprobe-nixkube
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-w6rt8
+        readOnly: true
+    - command:
+      - tini
+      - --
+      - nixkube
+      env:
+      - name: BUILDERS_ENABLED
+        value: "true"
+      - name: CACHE_ENABLED
+        value: "true"
+      - name: ENABLE_COMPAT_DRIVER
+        value: "true"
+      - name: HOME
+        value: /nix/var/nix-csi/root
+      - name: HOST_MOUNT_PATH
+        value: /var/lib/nix-csi
+      - name: KUBE_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: KUBE_NODE_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: spec.nodeName
+      - name: KUBE_POD_IP
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: status.podIP
+      - name: KUBE_POD_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.name
+      - name: KUBE_POD_UID
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.uid
+      - name: NIXPKGS_ALLOW_UNFREE
+        value: "1"
+      - name: NIX_BUILD_TIMEOUT
+        value: "300"
+      - name: NRI_ENABLED
+        value: "true"
+      - name: USER
+        value: root
+      - name: VERIFY_STORE_PATHS
+        value: "true"
+      image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+      imagePullPolicy: IfNotPresent
+      name: nix-node
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        privileged: true
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /host
+        name: host-root
+      - mountPath: /var/lib/kubelet
+        mountPropagation: Bidirectional
+        name: kubelet
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /etc/nix-key
+        name: nix-key
+      - mountPath: /nix
+        mountPropagation: Bidirectional
+        name: nix-store
+        subPath: nix
+      - mountPath: /var/run/nri
+        name: nri-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-w6rt8
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    initContainers:
+    - env:
+      - name: NODE_ENV
+        value: '{"aarch64-linux":"/nix/store/zns8sb4468gfrf5hcpxzvx4wmr6nfsw1-nodeEnv","x86_64-linux":"/nix/store/i48pjr2yj7lr5wral06f9afal361ja6y-nodeEnv"}'
+      image: ghcr.io/lillecarl/nix-csi/lix:2.94.0-0.5.0
+      imagePullPolicy: Always
+      name: initcopy
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        privileged: true
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /nix-volume
+        name: nix-store
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-w6rt8
+        readOnly: true
+    nodeName: forge
+    preemptionPolicy: PreemptLowerPriority
+    priority: 2000001000
+    priorityClassName: system-node-critical
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: nixkube
+    serviceAccountName: nixkube
+    subdomain: nix-builders
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/control-plane
+      operator: Exists
+    - effect: NoSchedule
+      key: workstation
+      operator: Equal
+      value: "true"
+    - effect: NoExecute
+      key: interactive
+      operator: Equal
+      value: "true"
+    - effect: NoSchedule
+      key: ram-constrained
+      operator: Equal
+      value: "true"
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+    - effect: NoSchedule
+      key: node.kubernetes.io/disk-pressure
+      operator: Exists
+    - effect: NoSchedule
+      key: node.kubernetes.io/memory-pressure
+      operator: Exists
+    - effect: NoSchedule
+      key: node.kubernetes.io/pid-pressure
+      operator: Exists
+    - effect: NoSchedule
+      key: node.kubernetes.io/unschedulable
+      operator: Exists
+    volumes:
+    - hostPath:
+        path: /var/lib/kubelet/plugins/
+        type: DirectoryOrCreate
+      name: csi-socket
+    - hostPath:
+        path: /
+        type: Directory
+      name: host-root
+    - hostPath:
+        path: /var/lib/kubelet
+        type: Directory
+      name: kubelet
+    - configMap:
+        defaultMode: 420
+        name: nix-node
+      name: nix-config
+    - name: nix-key
+      secret:
+        defaultMode: 256
+        secretName: nix-key
+    - hostPath:
+        path: /var/lib/nix-csi
+        type: DirectoryOrCreate
+      name: nix-store
+    - hostPath:
+        path: /var/run/nri
+        type: DirectoryOrCreate
+      name: nri-socket
+    - hostPath:
+        path: /var/lib/kubelet/plugins_registry
+        type: ""
+      name: registration
+    - configMap:
+        defaultMode: 292
+        name: ssh-config
+      name: ssh-config
+    - configMap:
+        defaultMode: 292
+        name: ssh-dynauth
+      name: ssh-dynauth
+    - name: ssh-key
+      secret:
+        defaultMode: 256
+        secretName: ssh-key
+    - name: kube-api-access-w6rt8
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:01Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:03Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:04Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:04Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:19:59Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 10m
+        memory: 10Mi
+      containerID: containerd://59931381b6a4a06f7c46479974b970c49d403dcdf8702a5615db935c92ec9510
+      image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+      imageID: registry.k8s.io/sig-storage/csi-node-driver-registrar@sha256:ab482308a4921e28a6df09a16ab99a457e9af9641ff44fb1be1a690d07ce8b70
+      lastState: {}
+      name: csi-node-driver-registrar-nix-csi
+      ready: true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:03Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-w6rt8
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - allocatedResources:
+        cpu: 10m
+        memory: 10Mi
+      containerID: containerd://3585219b19c7dadd377212199d4b2b5e3d2f440409e2fc1683c3355c6f3a46bf
+      image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+      imageID: registry.k8s.io/sig-storage/csi-node-driver-registrar@sha256:ab482308a4921e28a6df09a16ab99a457e9af9641ff44fb1be1a690d07ce8b70
+      lastState: {}
+      name: csi-node-driver-registrar-nixkube
+      ready: true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:03Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-w6rt8
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - allocatedResources:
+        cpu: 10m
+        memory: 10Mi
+      containerID: containerd://6acb69033384ec856664e2a8538118b27ac83bfab3e0b8f2e03745aca0974b17
+      image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+      imageID: registry.k8s.io/sig-storage/livenessprobe@sha256:c4cc074199c045dd73ab85f28897e2a32f4d6f38ffdba4f3b13b8007ccbd3570
+      lastState: {}
+      name: livenessprobe-nix-csi
+      ready: true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:03Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-w6rt8
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - allocatedResources:
+        cpu: 10m
+        memory: 10Mi
+      containerID: containerd://4781f0896306026894be1ecb2674abe2d91f703b7a0c6e83cd36c97af3d6984c
+      image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+      imageID: registry.k8s.io/sig-storage/livenessprobe@sha256:c4cc074199c045dd73ab85f28897e2a32f4d6f38ffdba4f3b13b8007ccbd3570
+      lastState: {}
+      name: livenessprobe-nixkube
+      ready: true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:03Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-w6rt8
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - allocatedResources:
+        cpu: 100m
+        memory: 128Mi
+      containerID: containerd://4c1ec2019d514cb0ec51761ce10b4e4cdc4070477343fca9218f0475eb27c7d3
+      image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+      imageID: ghcr.io/lillecarl/nix-csi/scratch@sha256:1e18f768215787db6022af8a9929da54d601dceeb5b5ac960fb18abd8df46e51
+      lastState: {}
+      name: nix-node
+      ready: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:03Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /host
+        name: host-root
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /etc/nix-key
+        name: nix-key
+      - mountPath: /nix
+        name: nix-store
+      - mountPath: /var/run/nri
+        name: nri-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-w6rt8
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.1.1.130
+    hostIPs:
+    - ip: 10.1.1.130
+    initContainerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 128Mi
+      containerID: containerd://0d8219df76bd90d787a765be8b5e5d5a11cfabcd2b6cd31e7dab281aae00222f
+      image: ghcr.io/lillecarl/nix-csi/lix:2.94.0-0.5.0
+      imageID: ghcr.io/lillecarl/nix-csi/lix@sha256:b9291acc0f2a2b84b12bc80513a660b9647c982f9b64bb53ee1385392b222b5d
+      lastState: {}
+      name: initcopy
+      ready: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      restartCount: 0
+      started: false
+      state:
+        terminated:
+          containerID: containerd://0d8219df76bd90d787a765be8b5e5d5a11cfabcd2b6cd31e7dab281aae00222f
+          exitCode: 0
+          finishedAt: "2026-04-13T07:20:02Z"
+          reason: Completed
+          startedAt: "2026-04-13T07:20:00Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /nix-volume
+        name: nix-store
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-w6rt8
+        readOnly: true
+        recursiveReadOnly: Disabled
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.5.3
+    podIPs:
+    - ip: 10.244.5.3
+    qosClass: Burstable
+    startTime: "2026-04-13T07:19:59Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      configHash: 3bf565608119b3ee7d9efa797b20f24b
+      kubectl.kubernetes.io/default-container: nix-node
+      kubectl.kubernetes.io/restartedAt: "2026-04-13T02:19:59-05:00"
+    creationTimestamp: "2026-04-13T07:20:35Z"
+    generateName: nix-node-
+    generation: 1
+    labels:
+      app.kubernetes.io/component: node
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+      controller-revision-hash: 5b74669c99
+      pod-template-generation: "7"
+    name: nix-node-n2kww
+    namespace: nixkube
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: DaemonSet
+      name: nix-node
+      uid: d6dc8460-6b99-4cdb-8d26-8540b9e816ce
+    resourceVersion: "5316323"
+    uid: 6a051b22-adcb-4c1c-a371-61e312f16b04
+  spec:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchFields:
+            - key: metadata.name
+              operator: In
+              values:
+              - zephyr
+    containers:
+    - args:
+      - --v=5
+      - --csi-address=/csi/nix.csi.store/csi.sock
+      - --kubelet-registration-path=/var/lib/kubelet/plugins/nix.csi.store/csi.sock
+      env:
+      - name: KUBE_NODE_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: spec.nodeName
+      image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+      imagePullPolicy: IfNotPresent
+      name: csi-node-driver-registrar-nix-csi
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5qjbq
+        readOnly: true
+    - args:
+      - --v=5
+      - --csi-address=/csi/nixkube/csi.sock
+      - --kubelet-registration-path=/var/lib/kubelet/plugins/nixkube/csi.sock
+      env:
+      - name: KUBE_NODE_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: spec.nodeName
+      image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+      imagePullPolicy: IfNotPresent
+      name: csi-node-driver-registrar-nixkube
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5qjbq
+        readOnly: true
+    - args:
+      - --csi-address=/csi/nix.csi.store/csi.sock
+      - --health-port=9809
+      image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+      imagePullPolicy: IfNotPresent
+      name: livenessprobe-nix-csi
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5qjbq
+        readOnly: true
+    - args:
+      - --csi-address=/csi/nixkube/csi.sock
+      - --health-port=9808
+      image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+      imagePullPolicy: IfNotPresent
+      name: livenessprobe-nixkube
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5qjbq
+        readOnly: true
+    - command:
+      - tini
+      - --
+      - nixkube
+      env:
+      - name: BUILDERS_ENABLED
+        value: "true"
+      - name: CACHE_ENABLED
+        value: "true"
+      - name: ENABLE_COMPAT_DRIVER
+        value: "true"
+      - name: HOME
+        value: /nix/var/nix-csi/root
+      - name: HOST_MOUNT_PATH
+        value: /var/lib/nix-csi
+      - name: KUBE_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: KUBE_NODE_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: spec.nodeName
+      - name: KUBE_POD_IP
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: status.podIP
+      - name: KUBE_POD_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.name
+      - name: KUBE_POD_UID
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.uid
+      - name: NIXPKGS_ALLOW_UNFREE
+        value: "1"
+      - name: NIX_BUILD_TIMEOUT
+        value: "300"
+      - name: NRI_ENABLED
+        value: "true"
+      - name: USER
+        value: root
+      - name: VERIFY_STORE_PATHS
+        value: "true"
+      image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+      imagePullPolicy: IfNotPresent
+      name: nix-node
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        privileged: true
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /host
+        name: host-root
+      - mountPath: /var/lib/kubelet
+        mountPropagation: Bidirectional
+        name: kubelet
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /etc/nix-key
+        name: nix-key
+      - mountPath: /nix
+        mountPropagation: Bidirectional
+        name: nix-store
+        subPath: nix
+      - mountPath: /var/run/nri
+        name: nri-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5qjbq
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    initContainers:
+    - env:
+      - name: NODE_ENV
+        value: '{"aarch64-linux":"/nix/store/zns8sb4468gfrf5hcpxzvx4wmr6nfsw1-nodeEnv","x86_64-linux":"/nix/store/i48pjr2yj7lr5wral06f9afal361ja6y-nodeEnv"}'
+      image: ghcr.io/lillecarl/nix-csi/lix:2.94.0-0.5.0
+      imagePullPolicy: Always
+      name: initcopy
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      securityContext:
+        privileged: true
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /nix-volume
+        name: nix-store
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5qjbq
+        readOnly: true
+    nodeName: zephyr
+    preemptionPolicy: PreemptLowerPriority
+    priority: 2000001000
+    priorityClassName: system-node-critical
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: nixkube
+    serviceAccountName: nixkube
+    subdomain: nix-builders
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/control-plane
+      operator: Exists
+    - effect: NoSchedule
+      key: workstation
+      operator: Equal
+      value: "true"
+    - effect: NoExecute
+      key: interactive
+      operator: Equal
+      value: "true"
+    - effect: NoSchedule
+      key: ram-constrained
+      operator: Equal
+      value: "true"
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+    - effect: NoSchedule
+      key: node.kubernetes.io/disk-pressure
+      operator: Exists
+    - effect: NoSchedule
+      key: node.kubernetes.io/memory-pressure
+      operator: Exists
+    - effect: NoSchedule
+      key: node.kubernetes.io/pid-pressure
+      operator: Exists
+    - effect: NoSchedule
+      key: node.kubernetes.io/unschedulable
+      operator: Exists
+    volumes:
+    - hostPath:
+        path: /var/lib/kubelet/plugins/
+        type: DirectoryOrCreate
+      name: csi-socket
+    - hostPath:
+        path: /
+        type: Directory
+      name: host-root
+    - hostPath:
+        path: /var/lib/kubelet
+        type: Directory
+      name: kubelet
+    - configMap:
+        defaultMode: 420
+        name: nix-node
+      name: nix-config
+    - name: nix-key
+      secret:
+        defaultMode: 256
+        secretName: nix-key
+    - hostPath:
+        path: /var/lib/nix-csi
+        type: DirectoryOrCreate
+      name: nix-store
+    - hostPath:
+        path: /var/run/nri
+        type: DirectoryOrCreate
+      name: nri-socket
+    - hostPath:
+        path: /var/lib/kubelet/plugins_registry
+        type: ""
+      name: registration
+    - configMap:
+        defaultMode: 292
+        name: ssh-config
+      name: ssh-config
+    - configMap:
+        defaultMode: 292
+        name: ssh-dynauth
+      name: ssh-dynauth
+    - name: ssh-key
+      secret:
+        defaultMode: 256
+        secretName: ssh-key
+    - name: kube-api-access-5qjbq
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:38Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:40Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:41Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:41Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-13T07:20:35Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - allocatedResources:
+        cpu: 10m
+        memory: 10Mi
+      containerID: containerd://0c8397b6bfe2d1533ac00b5c235135458c40882ddf36d96e13039e8297ca7485
+      image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+      imageID: registry.k8s.io/sig-storage/csi-node-driver-registrar@sha256:ab482308a4921e28a6df09a16ab99a457e9af9641ff44fb1be1a690d07ce8b70
+      lastState: {}
+      name: csi-node-driver-registrar-nix-csi
+      ready: true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:40Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5qjbq
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - allocatedResources:
+        cpu: 10m
+        memory: 10Mi
+      containerID: containerd://b13915bb07aeb426b5d4e3a72be0e74edd890d7c3db778dbe90fb60585717bd3
+      image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+      imageID: registry.k8s.io/sig-storage/csi-node-driver-registrar@sha256:ab482308a4921e28a6df09a16ab99a457e9af9641ff44fb1be1a690d07ce8b70
+      lastState: {}
+      name: csi-node-driver-registrar-nixkube
+      ready: true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:40Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5qjbq
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - allocatedResources:
+        cpu: 10m
+        memory: 10Mi
+      containerID: containerd://983b13ad3e1623d04d1e12e749a2c296e9f84c0b8e130857978a227cec4a1db0
+      image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+      imageID: registry.k8s.io/sig-storage/livenessprobe@sha256:c4cc074199c045dd73ab85f28897e2a32f4d6f38ffdba4f3b13b8007ccbd3570
+      lastState: {}
+      name: livenessprobe-nix-csi
+      ready: true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:40Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5qjbq
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - allocatedResources:
+        cpu: 10m
+        memory: 10Mi
+      containerID: containerd://6a396f1f2a9a0e106ca5c43aac2dd8bcd7aa12c60c58ee8a8e2f690e0a9797a0
+      image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+      imageID: registry.k8s.io/sig-storage/livenessprobe@sha256:c4cc074199c045dd73ab85f28897e2a32f4d6f38ffdba4f3b13b8007ccbd3570
+      lastState: {}
+      name: livenessprobe-nixkube
+      ready: true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:40Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5qjbq
+        readOnly: true
+        recursiveReadOnly: Disabled
+    - allocatedResources:
+        cpu: 100m
+        memory: 128Mi
+      containerID: containerd://4d8f07e5d9faa02f4d559e9314f2313fa5757af9384ca406da03bc57034d2767
+      image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+      imageID: ghcr.io/lillecarl/nix-csi/scratch@sha256:1e18f768215787db6022af8a9929da54d601dceeb5b5ac960fb18abd8df46e51
+      lastState: {}
+      name: nix-node
+      ready: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-13T07:20:41Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /csi
+        name: csi-socket
+      - mountPath: /host
+        name: host-root
+      - mountPath: /var/lib/kubelet
+        name: kubelet
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /etc/nix-key
+        name: nix-key
+      - mountPath: /nix
+        name: nix-store
+      - mountPath: /var/run/nri
+        name: nri-socket
+      - mountPath: /registration
+        name: registration
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5qjbq
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.1.1.110
+    hostIPs:
+    - ip: 10.1.1.110
+    initContainerStatuses:
+    - allocatedResources:
+        cpu: 100m
+        memory: 128Mi
+      containerID: containerd://e4776118d5634d921bd4b7f24c0d983c80f25a950a3a3f92e5900f603590a0bd
+      image: ghcr.io/lillecarl/nix-csi/lix:2.94.0-0.5.0
+      imageID: ghcr.io/lillecarl/nix-csi/lix@sha256:b9291acc0f2a2b84b12bc80513a660b9647c982f9b64bb53ee1385392b222b5d
+      lastState: {}
+      name: initcopy
+      ready: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+      restartCount: 0
+      started: false
+      state:
+        terminated:
+          containerID: containerd://e4776118d5634d921bd4b7f24c0d983c80f25a950a3a3f92e5900f603590a0bd
+          exitCode: 0
+          finishedAt: "2026-04-13T07:20:39Z"
+          reason: Completed
+          startedAt: "2026-04-13T07:20:38Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /etc/nix
+        name: nix-config
+      - mountPath: /nix-volume
+        name: nix-store
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-5qjbq
+        readOnly: true
+        recursiveReadOnly: Disabled
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.0.5
+    podIPs:
+    - ip: 10.244.0.5
+    qosClass: Burstable
+    startTime: "2026-04-13T07:20:35Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/default-container: proxy
+    creationTimestamp: "2026-04-10T22:16:25Z"
+    generateName: proxy-5fbd74c994-
+    generation: 1
+    labels:
+      app.kubernetes.io/component: proxy
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+      pod-template-hash: 5fbd74c994
+    name: proxy-5fbd74c994-lcwfm
+    namespace: nixkube
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: proxy-5fbd74c994
+      uid: 7d551daa-a7b1-4982-952a-739fbb8518b4
+    resourceVersion: "4174969"
+    uid: 6c91131a-7db1-4bf8-a7ec-c776e3dee808
+  spec:
+    containers:
+    - command:
+      - dinit
+      - --log-file
+      - /var/log/dinit.log
+      - --quiet
+      - proxy
+      image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+      imagePullPolicy: Always
+      name: proxy
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /nix
+        name: nix-store
+        subPath: nix
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-wrm79
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: nexus
+    nodeSelector:
+      kubernetes.io/hostname: nexus
+    preemptionPolicy: PreemptLowerPriority
+    priority: 200000000
+    priorityClassName: best-effort-workload
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: default
+    serviceAccountName: default
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - csi:
+        driver: nixkube
+        readOnly: true
+        volumeAttributes:
+          aarch64-linux: /nix/store/bwvr7i80nrik9dgm5w8klmzq2crcpiza-proxyEnv
+          x86_64-linux: /nix/store/58gdd950xql7nk29pnx1xhkgpg42hvbw-proxyEnv
+      name: nix-store
+    - configMap:
+        defaultMode: 292
+        name: ssh-config
+      name: ssh-config
+    - configMap:
+        defaultMode: 292
+        name: ssh-dynauth
+      name: ssh-dynauth
+    - name: ssh-key
+      secret:
+        defaultMode: 256
+        secretName: ssh-key
+    - name: kube-api-access-wrm79
+      projected:
+        defaultMode: 420
+        sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            items:
+            - key: ca.crt
+              path: ca.crt
+            name: kube-root-ca.crt
+        - downwardAPI:
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-10T22:16:36Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodReadyToStartContainers
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-10T22:16:25Z"
+      observedGeneration: 1
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-10T22:16:36Z"
+      observedGeneration: 1
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-10T22:16:36Z"
+      observedGeneration: 1
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2026-04-10T22:16:25Z"
+      observedGeneration: 1
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: containerd://418e2ab4010764a2497707d11dcf0dd62b4f94ede0723b3f0a3069bb5167ea4e
+      image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+      imageID: ghcr.io/lillecarl/nix-csi/scratch@sha256:1e18f768215787db6022af8a9929da54d601dceeb5b5ac960fb18abd8df46e51
+      lastState: {}
+      name: proxy
+      ready: true
+      resources: {}
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2026-04-10T22:16:36Z"
+      user:
+        linux:
+          gid: 0
+          supplementalGroups:
+          - 0
+          uid: 0
+      volumeMounts:
+      - mountPath: /nix
+        name: nix-store
+      - mountPath: /etc/ssh
+        name: ssh-config
+      - mountPath: /etc/ssh-dynauth
+        name: ssh-dynauth
+      - mountPath: /etc/ssh-key
+        name: ssh-key
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: kube-api-access-wrm79
+        readOnly: true
+        recursiveReadOnly: Disabled
+    hostIP: 10.1.1.120
+    hostIPs:
+    - ip: 10.1.1.120
+    observedGeneration: 1
+    phase: Running
+    podIP: 10.244.1.23
+    podIPs:
+    - ip: 10.244.1.23
+    qosClass: BestEffort
+    startTime: "2026-04-10T22:16:25Z"
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app.kubernetes.io/component":"node","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"},"name":"nix-builders","namespace":"nixkube"},"spec":{"clusterIP":"None","ports":[{"name":"ssh","port":22}],"selector":{"app.kubernetes.io/component":"node","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube"}}}
+    creationTimestamp: "2026-04-06T21:28:18Z"
+    labels:
+      app.kubernetes.io/component: node
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+    name: nix-builders
+    namespace: nixkube
+    resourceVersion: "838046"
+    uid: 8ee4c6da-3ad1-437b-822a-c2f3d401af15
+  spec:
+    clusterIP: None
+    clusterIPs:
+    - None
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - name: ssh
+      port: 22
+      protocol: TCP
+      targetPort: 22
+    selector:
+      app.kubernetes.io/component: node
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app.kubernetes.io/component":"cache","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"},"name":"nix-cache","namespace":"nixkube"},"spec":{"ports":[{"name":"ssh","port":22,"targetPort":"ssh"}],"selector":{"app.kubernetes.io/component":"cache","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube"},"type":"ClusterIP"}}
+    creationTimestamp: "2026-04-06T21:28:19Z"
+    labels:
+      app.kubernetes.io/component: cache
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+    name: nix-cache
+    namespace: nixkube
+    resourceVersion: "838050"
+    uid: 53094491-900b-4d5d-ada7-1c8d5dab4903
+  spec:
+    clusterIP: 10.10.121.44
+    clusterIPs:
+    - 10.10.121.44
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - name: ssh
+      port: 22
+      protocol: TCP
+      targetPort: ssh
+    selector:
+      app.kubernetes.io/component: cache
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app.kubernetes.io/component":"cache","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"},"name":"nix-cache-lb","namespace":"nixkube"},"spec":{"ports":[{"name":"ssh","port":2222,"targetPort":"ssh"}],"selector":{"app.kubernetes.io/component":"cache","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube"},"type":"LoadBalancer"}}
+    creationTimestamp: "2026-04-06T21:28:19Z"
+    labels:
+      app.kubernetes.io/component: cache
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+    name: nix-cache-lb
+    namespace: nixkube
+    resourceVersion: "4275259"
+    uid: bf05ddfb-f3e5-4532-ad2e-46a01dd34e83
+  spec:
+    clusterIP: 10.7.131.156
+    clusterIPs:
+    - 10.7.131.156
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - name: ssh
+      port: 2222
+      protocol: TCP
+      targetPort: ssh
+    selector:
+      app.kubernetes.io/component: cache
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app.kubernetes.io/component":"builder","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"},"name":"nix-proxy","namespace":"nixkube"},"spec":{"ports":[{"name":"ssh","port":2223,"targetPort":"ssh"}],"selector":{"app.kubernetes.io/component":"builder","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","nix.csi/proxy":"true"},"type":"LoadBalancer"}}
+    creationTimestamp: "2026-04-06T21:28:19Z"
+    labels:
+      app.kubernetes.io/component: builder
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+    name: nix-proxy
+    namespace: nixkube
+    resourceVersion: "4275264"
+    uid: 21245993-5e34-4059-93db-7ce89c2e82cd
+  spec:
+    clusterIP: 10.5.53.199
+    clusterIPs:
+    - 10.5.53.199
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - name: ssh
+      port: 2223
+      protocol: TCP
+      targetPort: ssh
+    selector:
+      app.kubernetes.io/component: builder
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      nix.csi/proxy: "true"
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app.kubernetes.io/component":"builder","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"},"name":"nixkube-builders","namespace":"nixkube"},"spec":{"clusterIP":"None","ports":[{"name":"ssh","port":22}],"selector":{"app.kubernetes.io/component":"builder","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube"}}}
+    creationTimestamp: "2026-04-06T21:28:19Z"
+    labels:
+      app.kubernetes.io/component: builder
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+    name: nixkube-builders
+    namespace: nixkube
+    resourceVersion: "838066"
+    uid: 0e25b527-f5ae-460b-9a6e-2028d6aaa684
+  spec:
+    clusterIP: None
+    clusterIPs:
+    - None
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - name: ssh
+      port: 22
+      protocol: TCP
+      targetPort: 22
+    selector:
+      app.kubernetes.io/component: builder
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: apps/v1
+  kind: DaemonSet
+  metadata:
+    annotations:
+      deprecated.daemonset.template.generation: "7"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"DaemonSet","metadata":{"annotations":{"nixkube/discard":"true"},"labels":{"app.kubernetes.io/component":"node","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"},"name":"nix-node","namespace":"nixkube"},"spec":{"selector":{"matchLabels":{"app.kubernetes.io/component":"node","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube"}},"template":{"metadata":{"annotations":{"configHash":"3bf565608119b3ee7d9efa797b20f24b","kubectl.kubernetes.io/default-container":"nix-node"},"labels":{"app.kubernetes.io/component":"node","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"}},"spec":{"containers":[{"args":["--v=5","--csi-address=/csi/nix.csi.store/csi.sock","--kubelet-registration-path=/var/lib/kubelet/plugins/nix.csi.store/csi.sock"],"env":[{"name":"KUBE_NODE_NAME","valueFrom":{"fieldRef":{"fieldPath":"spec.nodeName"}}}],"image":"registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0","name":"csi-node-driver-registrar-nix-csi","resources":{"requests":{"cpu":"10m","memory":"10Mi"}},"volumeMounts":[{"mountPath":"/csi","name":"csi-socket"},{"mountPath":"/var/lib/kubelet","name":"kubelet"},{"mountPath":"/registration","name":"registration"}]},{"args":["--v=5","--csi-address=/csi/nixkube/csi.sock","--kubelet-registration-path=/var/lib/kubelet/plugins/nixkube/csi.sock"],"env":[{"name":"KUBE_NODE_NAME","valueFrom":{"fieldRef":{"fieldPath":"spec.nodeName"}}}],"image":"registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0","name":"csi-node-driver-registrar-nixkube","resources":{"requests":{"cpu":"10m","memory":"10Mi"}},"volumeMounts":[{"mountPath":"/csi","name":"csi-socket"},{"mountPath":"/var/lib/kubelet","name":"kubelet"},{"mountPath":"/registration","name":"registration"}]},{"args":["--csi-address=/csi/nix.csi.store/csi.sock","--health-port=9809"],"image":"registry.k8s.io/sig-storage/livenessprobe:v2.18.0","name":"livenessprobe-nix-csi","resources":{"requests":{"cpu":"10m","memory":"10Mi"}},"volumeMounts":[{"mountPath":"/csi","name":"csi-socket"},{"mountPath":"/registration","name":"registration"}]},{"args":["--csi-address=/csi/nixkube/csi.sock","--health-port=9808"],"image":"registry.k8s.io/sig-storage/livenessprobe:v2.18.0","name":"livenessprobe-nixkube","resources":{"requests":{"cpu":"10m","memory":"10Mi"}},"volumeMounts":[{"mountPath":"/csi","name":"csi-socket"},{"mountPath":"/registration","name":"registration"}]},{"command":["tini","--","nixkube"],"env":[{"name":"BUILDERS_ENABLED","value":"true"},{"name":"CACHE_ENABLED","value":"true"},{"name":"ENABLE_COMPAT_DRIVER","value":"true"},{"name":"HOME","value":"/nix/var/nix-csi/root"},{"name":"HOST_MOUNT_PATH","value":"/var/lib/nix-csi"},{"name":"KUBE_NAMESPACE","valueFrom":{"fieldRef":{"fieldPath":"metadata.namespace"}}},{"name":"KUBE_NODE_NAME","valueFrom":{"fieldRef":{"fieldPath":"spec.nodeName"}}},{"name":"KUBE_POD_IP","valueFrom":{"fieldRef":{"fieldPath":"status.podIP"}}},{"name":"KUBE_POD_NAME","valueFrom":{"fieldRef":{"fieldPath":"metadata.name"}}},{"name":"KUBE_POD_UID","valueFrom":{"fieldRef":{"fieldPath":"metadata.uid"}}},{"name":"NIXPKGS_ALLOW_UNFREE","value":"1"},{"name":"NIX_BUILD_TIMEOUT","value":"300"},{"name":"NRI_ENABLED","value":"true"},{"name":"USER","value":"root"},{"name":"VERIFY_STORE_PATHS","value":"true"}],"image":"ghcr.io/lillecarl/nix-csi/scratch:1.0.1","name":"nix-node","resources":{"requests":{"cpu":"100m","memory":"128Mi"}},"securityContext":{"privileged":true},"volumeMounts":[{"mountPath":"/csi","name":"csi-socket"},{"mountPath":"/host","name":"host-root"},{"mountPath":"/var/lib/kubelet","mountPropagation":"Bidirectional","name":"kubelet"},{"mountPath":"/etc/nix","name":"nix-config"},{"mountPath":"/etc/nix-key","name":"nix-key"},{"mountPath":"/nix","mountPropagation":"Bidirectional","name":"nix-store","subPath":"nix"},{"mountPath":"/var/run/nri","name":"nri-socket"},{"mountPath":"/registration","name":"registration"},{"mountPath":"/etc/ssh","name":"ssh-config"},{"mountPath":"/etc/ssh-dynauth","name":"ssh-dynauth"},{"mountPath":"/etc/ssh-key","name":"ssh-key"}]}],"initContainers":[{"env":[{"name":"NODE_ENV","value":"{\"aarch64-linux\":\"/nix/store/zns8sb4468gfrf5hcpxzvx4wmr6nfsw1-nodeEnv\",\"x86_64-linux\":\"/nix/store/i48pjr2yj7lr5wral06f9afal361ja6y-nodeEnv\"}"}],"image":"ghcr.io/lillecarl/nix-csi/lix:2.94.0-0.5.0","imagePullPolicy":"Always","name":"initcopy","resources":{"requests":{"cpu":"100m","memory":"128Mi"}},"securityContext":{"privileged":true},"volumeMounts":[{"mountPath":"/etc/nix","name":"nix-config"},{"mountPath":"/nix-volume","name":"nix-store"},{"mountPath":"/etc/ssh","name":"ssh-config"},{"mountPath":"/etc/ssh-dynauth","name":"ssh-dynauth"},{"mountPath":"/etc/ssh-key","name":"ssh-key"}]}],"priorityClassName":"system-node-critical","serviceAccountName":"nixkube","subdomain":"nix-builders","tolerations":[{"effect":"NoSchedule","key":"node-role.kubernetes.io/control-plane","operator":"Exists"}],"volumes":[{"hostPath":{"path":"/var/lib/kubelet/plugins/","type":"DirectoryOrCreate"},"name":"csi-socket"},{"hostPath":{"path":"/","type":"Directory"},"name":"host-root"},{"hostPath":{"path":"/var/lib/kubelet","type":"Directory"},"name":"kubelet"},{"configMap":{"name":"nix-node"},"name":"nix-config"},{"name":"nix-key","secret":{"defaultMode":256,"secretName":"nix-key"}},{"hostPath":{"path":"/var/lib/nix-csi","type":"DirectoryOrCreate"},"name":"nix-store"},{"hostPath":{"path":"/var/run/nri","type":"DirectoryOrCreate"},"name":"nri-socket"},{"hostPath":{"path":"/var/lib/kubelet/plugins_registry"},"name":"registration"},{"configMap":{"defaultMode":292,"name":"ssh-config"},"name":"ssh-config"},{"configMap":{"defaultMode":292,"name":"ssh-dynauth"},"name":"ssh-dynauth"},{"name":"ssh-key","secret":{"defaultMode":256,"secretName":"ssh-key"}}]}},"updateStrategy":{"rollingUpdate":{"maxUnavailable":1},"type":"RollingUpdate"}}}
+      nixkube/discard: "true"
+    creationTimestamp: "2026-04-06T21:28:19Z"
+    generation: 7
+    labels:
+      app.kubernetes.io/component: node
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+    name: nix-node
+    namespace: nixkube
+    resourceVersion: "5316326"
+    uid: d6dc8460-6b99-4cdb-8d26-8540b9e816ce
+  spec:
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app.kubernetes.io/component: node
+        app.kubernetes.io/managed-by: nix
+        app.kubernetes.io/name: nixkube
+        app.kubernetes.io/part-of: nixkube
+    template:
+      metadata:
+        annotations:
+          configHash: 3bf565608119b3ee7d9efa797b20f24b
+          kubectl.kubernetes.io/default-container: nix-node
+          kubectl.kubernetes.io/restartedAt: "2026-04-13T02:19:59-05:00"
+        labels:
+          app.kubernetes.io/component: node
+          app.kubernetes.io/managed-by: nix
+          app.kubernetes.io/name: nixkube
+          app.kubernetes.io/part-of: nixkube
+          app.kubernetes.io/version: 0.5.0
+      spec:
+        containers:
+        - args:
+          - --v=5
+          - --csi-address=/csi/nix.csi.store/csi.sock
+          - --kubelet-registration-path=/var/lib/kubelet/plugins/nix.csi.store/csi.sock
+          env:
+          - name: KUBE_NODE_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: spec.nodeName
+          image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+          imagePullPolicy: IfNotPresent
+          name: csi-node-driver-registrar-nix-csi
+          resources:
+            requests:
+              cpu: 10m
+              memory: 10Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /csi
+            name: csi-socket
+          - mountPath: /var/lib/kubelet
+            name: kubelet
+          - mountPath: /registration
+            name: registration
+        - args:
+          - --v=5
+          - --csi-address=/csi/nixkube/csi.sock
+          - --kubelet-registration-path=/var/lib/kubelet/plugins/nixkube/csi.sock
+          env:
+          - name: KUBE_NODE_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: spec.nodeName
+          image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.16.0
+          imagePullPolicy: IfNotPresent
+          name: csi-node-driver-registrar-nixkube
+          resources:
+            requests:
+              cpu: 10m
+              memory: 10Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /csi
+            name: csi-socket
+          - mountPath: /var/lib/kubelet
+            name: kubelet
+          - mountPath: /registration
+            name: registration
+        - args:
+          - --csi-address=/csi/nix.csi.store/csi.sock
+          - --health-port=9809
+          image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+          imagePullPolicy: IfNotPresent
+          name: livenessprobe-nix-csi
+          resources:
+            requests:
+              cpu: 10m
+              memory: 10Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /csi
+            name: csi-socket
+          - mountPath: /registration
+            name: registration
+        - args:
+          - --csi-address=/csi/nixkube/csi.sock
+          - --health-port=9808
+          image: registry.k8s.io/sig-storage/livenessprobe:v2.18.0
+          imagePullPolicy: IfNotPresent
+          name: livenessprobe-nixkube
+          resources:
+            requests:
+              cpu: 10m
+              memory: 10Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /csi
+            name: csi-socket
+          - mountPath: /registration
+            name: registration
+        - command:
+          - tini
+          - --
+          - nixkube
+          env:
+          - name: BUILDERS_ENABLED
+            value: "true"
+          - name: CACHE_ENABLED
+            value: "true"
+          - name: ENABLE_COMPAT_DRIVER
+            value: "true"
+          - name: HOME
+            value: /nix/var/nix-csi/root
+          - name: HOST_MOUNT_PATH
+            value: /var/lib/nix-csi
+          - name: KUBE_NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          - name: KUBE_NODE_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: spec.nodeName
+          - name: KUBE_POD_IP
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: status.podIP
+          - name: KUBE_POD_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          - name: KUBE_POD_UID
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.uid
+          - name: NIXPKGS_ALLOW_UNFREE
+            value: "1"
+          - name: NIX_BUILD_TIMEOUT
+            value: "300"
+          - name: NRI_ENABLED
+            value: "true"
+          - name: USER
+            value: root
+          - name: VERIFY_STORE_PATHS
+            value: "true"
+          image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+          imagePullPolicy: IfNotPresent
+          name: nix-node
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            privileged: true
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /csi
+            name: csi-socket
+          - mountPath: /host
+            name: host-root
+          - mountPath: /var/lib/kubelet
+            mountPropagation: Bidirectional
+            name: kubelet
+          - mountPath: /etc/nix
+            name: nix-config
+          - mountPath: /etc/nix-key
+            name: nix-key
+          - mountPath: /nix
+            mountPropagation: Bidirectional
+            name: nix-store
+            subPath: nix
+          - mountPath: /var/run/nri
+            name: nri-socket
+          - mountPath: /registration
+            name: registration
+          - mountPath: /etc/ssh
+            name: ssh-config
+          - mountPath: /etc/ssh-dynauth
+            name: ssh-dynauth
+          - mountPath: /etc/ssh-key
+            name: ssh-key
+        dnsPolicy: ClusterFirst
+        initContainers:
+        - env:
+          - name: NODE_ENV
+            value: '{"aarch64-linux":"/nix/store/zns8sb4468gfrf5hcpxzvx4wmr6nfsw1-nodeEnv","x86_64-linux":"/nix/store/i48pjr2yj7lr5wral06f9afal361ja6y-nodeEnv"}'
+          image: ghcr.io/lillecarl/nix-csi/lix:2.94.0-0.5.0
+          imagePullPolicy: Always
+          name: initcopy
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            privileged: true
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/nix
+            name: nix-config
+          - mountPath: /nix-volume
+            name: nix-store
+          - mountPath: /etc/ssh
+            name: ssh-config
+          - mountPath: /etc/ssh-dynauth
+            name: ssh-dynauth
+          - mountPath: /etc/ssh-key
+            name: ssh-key
+        priorityClassName: system-node-critical
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        serviceAccount: nixkube
+        serviceAccountName: nixkube
+        subdomain: nix-builders
+        terminationGracePeriodSeconds: 30
+        tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+          operator: Exists
+        - effect: NoSchedule
+          key: workstation
+          operator: Equal
+          value: "true"
+        - effect: NoExecute
+          key: interactive
+          operator: Equal
+          value: "true"
+        - effect: NoSchedule
+          key: ram-constrained
+          operator: Equal
+          value: "true"
+        volumes:
+        - hostPath:
+            path: /var/lib/kubelet/plugins/
+            type: DirectoryOrCreate
+          name: csi-socket
+        - hostPath:
+            path: /
+            type: Directory
+          name: host-root
+        - hostPath:
+            path: /var/lib/kubelet
+            type: Directory
+          name: kubelet
+        - configMap:
+            defaultMode: 420
+            name: nix-node
+          name: nix-config
+        - name: nix-key
+          secret:
+            defaultMode: 256
+            secretName: nix-key
+        - hostPath:
+            path: /var/lib/nix-csi
+            type: DirectoryOrCreate
+          name: nix-store
+        - hostPath:
+            path: /var/run/nri
+            type: DirectoryOrCreate
+          name: nri-socket
+        - hostPath:
+            path: /var/lib/kubelet/plugins_registry
+            type: ""
+          name: registration
+        - configMap:
+            defaultMode: 292
+            name: ssh-config
+          name: ssh-config
+        - configMap:
+            defaultMode: 292
+            name: ssh-dynauth
+          name: ssh-dynauth
+        - name: ssh-key
+          secret:
+            defaultMode: 256
+            secretName: ssh-key
+    updateStrategy:
+      rollingUpdate:
+        maxSurge: 0
+        maxUnavailable: 1
+      type: RollingUpdate
+  status:
+    currentNumberScheduled: 4
+    desiredNumberScheduled: 4
+    numberAvailable: 4
+    numberMisscheduled: 0
+    numberReady: 4
+    observedGeneration: 7
+    updatedNumberScheduled: 4
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "2"
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{"nixkube/discard":"true"},"labels":{"app.kubernetes.io/component":"proxy","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"},"name":"proxy","namespace":"nixkube"},"spec":{"replicas":1,"selector":{"matchLabels":{"app.kubernetes.io/component":"proxy","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"}},"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/default-container":"proxy"},"labels":{"app.kubernetes.io/component":"proxy","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"}},"spec":{"containers":[{"command":["dinit","--log-file","/var/log/dinit.log","--quiet","proxy"],"image":"ghcr.io/lillecarl/nix-csi/scratch:1.0.1","imagePullPolicy":"Always","name":"proxy","volumeMounts":[{"mountPath":"/nix","name":"nix-store","subPath":"nix"},{"mountPath":"/etc/ssh","name":"ssh-config"},{"mountPath":"/etc/ssh-dynauth","name":"ssh-dynauth"},{"mountPath":"/etc/ssh-key","name":"ssh-key"}]}],"volumes":[{"csi":{"driver":"nixkube","readOnly":true,"volumeAttributes":{"aarch64-linux":"/nix/store/bwvr7i80nrik9dgm5w8klmzq2crcpiza-proxyEnv","x86_64-linux":"/nix/store/58gdd950xql7nk29pnx1xhkgpg42hvbw-proxyEnv"}},"name":"nix-store"},{"configMap":{"defaultMode":292,"name":"ssh-config"},"name":"ssh-config"},{"configMap":{"defaultMode":292,"name":"ssh-dynauth"},"name":"ssh-dynauth"},{"name":"ssh-key","secret":{"defaultMode":256,"secretName":"ssh-key"}}]}}}}
+      nixkube/discard: "true"
+    creationTimestamp: "2026-04-06T21:28:19Z"
+    generation: 2
+    labels:
+      app.kubernetes.io/component: proxy
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+    name: proxy
+    namespace: nixkube
+    resourceVersion: "4174996"
+    uid: 75151f60-95e8-4bb9-a49b-efd959157f09
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app.kubernetes.io/component: proxy
+        app.kubernetes.io/managed-by: nix
+        app.kubernetes.io/name: nixkube
+        app.kubernetes.io/part-of: nixkube
+        app.kubernetes.io/version: 0.5.0
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/default-container: proxy
+        labels:
+          app.kubernetes.io/component: proxy
+          app.kubernetes.io/managed-by: nix
+          app.kubernetes.io/name: nixkube
+          app.kubernetes.io/part-of: nixkube
+          app.kubernetes.io/version: 0.5.0
+      spec:
+        containers:
+        - command:
+          - dinit
+          - --log-file
+          - /var/log/dinit.log
+          - --quiet
+          - proxy
+          image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+          imagePullPolicy: Always
+          name: proxy
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /nix
+            name: nix-store
+            subPath: nix
+          - mountPath: /etc/ssh
+            name: ssh-config
+          - mountPath: /etc/ssh-dynauth
+            name: ssh-dynauth
+          - mountPath: /etc/ssh-key
+            name: ssh-key
+        dnsPolicy: ClusterFirst
+        nodeSelector:
+          kubernetes.io/hostname: nexus
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - csi:
+            driver: nixkube
+            readOnly: true
+            volumeAttributes:
+              aarch64-linux: /nix/store/bwvr7i80nrik9dgm5w8klmzq2crcpiza-proxyEnv
+              x86_64-linux: /nix/store/58gdd950xql7nk29pnx1xhkgpg42hvbw-proxyEnv
+          name: nix-store
+        - configMap:
+            defaultMode: 292
+            name: ssh-config
+          name: ssh-config
+        - configMap:
+            defaultMode: 292
+            name: ssh-dynauth
+          name: ssh-dynauth
+        - name: ssh-key
+          secret:
+            defaultMode: 256
+            secretName: ssh-key
+  status:
+    availableReplicas: 1
+    conditions:
+    - lastTransitionTime: "2026-04-10T21:07:47Z"
+      lastUpdateTime: "2026-04-10T21:07:47Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2026-04-06T21:38:55Z"
+      lastUpdateTime: "2026-04-10T22:16:37Z"
+      message: ReplicaSet "proxy-5fbd74c994" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+    observedGeneration: 2
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "2"
+      nixkube/discard: "true"
+    creationTimestamp: "2026-04-10T22:16:25Z"
+    generation: 1
+    labels:
+      app.kubernetes.io/component: proxy
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+      pod-template-hash: 5fbd74c994
+    name: proxy-5fbd74c994
+    namespace: nixkube
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: proxy
+      uid: 75151f60-95e8-4bb9-a49b-efd959157f09
+    resourceVersion: "4174976"
+    uid: 7d551daa-a7b1-4982-952a-739fbb8518b4
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app.kubernetes.io/component: proxy
+        app.kubernetes.io/managed-by: nix
+        app.kubernetes.io/name: nixkube
+        app.kubernetes.io/part-of: nixkube
+        app.kubernetes.io/version: 0.5.0
+        pod-template-hash: 5fbd74c994
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/default-container: proxy
+        labels:
+          app.kubernetes.io/component: proxy
+          app.kubernetes.io/managed-by: nix
+          app.kubernetes.io/name: nixkube
+          app.kubernetes.io/part-of: nixkube
+          app.kubernetes.io/version: 0.5.0
+          pod-template-hash: 5fbd74c994
+      spec:
+        containers:
+        - command:
+          - dinit
+          - --log-file
+          - /var/log/dinit.log
+          - --quiet
+          - proxy
+          image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+          imagePullPolicy: Always
+          name: proxy
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /nix
+            name: nix-store
+            subPath: nix
+          - mountPath: /etc/ssh
+            name: ssh-config
+          - mountPath: /etc/ssh-dynauth
+            name: ssh-dynauth
+          - mountPath: /etc/ssh-key
+            name: ssh-key
+        dnsPolicy: ClusterFirst
+        nodeSelector:
+          kubernetes.io/hostname: nexus
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - csi:
+            driver: nixkube
+            readOnly: true
+            volumeAttributes:
+              aarch64-linux: /nix/store/bwvr7i80nrik9dgm5w8klmzq2crcpiza-proxyEnv
+              x86_64-linux: /nix/store/58gdd950xql7nk29pnx1xhkgpg42hvbw-proxyEnv
+          name: nix-store
+        - configMap:
+            defaultMode: 292
+            name: ssh-config
+          name: ssh-config
+        - configMap:
+            defaultMode: 292
+            name: ssh-dynauth
+          name: ssh-dynauth
+        - name: ssh-key
+          secret:
+            defaultMode: 256
+            secretName: ssh-key
+  status:
+    availableReplicas: 1
+    fullyLabeledReplicas: 1
+    observedGeneration: 1
+    readyReplicas: 1
+    replicas: 1
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    annotations:
+      deployment.kubernetes.io/desired-replicas: "1"
+      deployment.kubernetes.io/max-replicas: "2"
+      deployment.kubernetes.io/revision: "1"
+      nixkube/discard: "true"
+    creationTimestamp: "2026-04-06T21:28:19Z"
+    generation: 2
+    labels:
+      app.kubernetes.io/component: proxy
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+      pod-template-hash: 74c5bc5d7d
+    name: proxy-74c5bc5d7d
+    namespace: nixkube
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: proxy
+      uid: 75151f60-95e8-4bb9-a49b-efd959157f09
+    resourceVersion: "4174995"
+    uid: b0335f9f-7be4-43df-9934-46bc00b011ec
+  spec:
+    replicas: 0
+    selector:
+      matchLabels:
+        app.kubernetes.io/component: proxy
+        app.kubernetes.io/managed-by: nix
+        app.kubernetes.io/name: nixkube
+        app.kubernetes.io/part-of: nixkube
+        app.kubernetes.io/version: 0.5.0
+        pod-template-hash: 74c5bc5d7d
+    template:
+      metadata:
+        annotations:
+          kubectl.kubernetes.io/default-container: proxy
+        labels:
+          app.kubernetes.io/component: proxy
+          app.kubernetes.io/managed-by: nix
+          app.kubernetes.io/name: nixkube
+          app.kubernetes.io/part-of: nixkube
+          app.kubernetes.io/version: 0.5.0
+          pod-template-hash: 74c5bc5d7d
+      spec:
+        containers:
+        - command:
+          - dinit
+          - --log-file
+          - /var/log/dinit.log
+          - --quiet
+          - proxy
+          image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+          imagePullPolicy: Always
+          name: proxy
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /nix
+            name: nix-store
+            subPath: nix
+          - mountPath: /etc/ssh
+            name: ssh-config
+          - mountPath: /etc/ssh-dynauth
+            name: ssh-dynauth
+          - mountPath: /etc/ssh-key
+            name: ssh-key
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - csi:
+            driver: nixkube
+            readOnly: true
+            volumeAttributes:
+              aarch64-linux: /nix/store/bwvr7i80nrik9dgm5w8klmzq2crcpiza-proxyEnv
+              x86_64-linux: /nix/store/58gdd950xql7nk29pnx1xhkgpg42hvbw-proxyEnv
+          name: nix-store
+        - configMap:
+            defaultMode: 292
+            name: ssh-config
+          name: ssh-config
+        - configMap:
+            defaultMode: 292
+            name: ssh-dynauth
+          name: ssh-dynauth
+        - name: ssh-key
+          secret:
+            defaultMode: 256
+            secretName: ssh-key
+  status:
+    observedGeneration: 2
+    replicas: 0
+- apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"apps/v1","kind":"StatefulSet","metadata":{"annotations":{"nixkube/discard":"true"},"labels":{"app.kubernetes.io/component":"cache","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"},"name":"nix-cache","namespace":"nixkube"},"spec":{"replicas":1,"selector":{"matchLabels":{"app.kubernetes.io/component":"cache","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"}},"serviceName":"nix-cache","template":{"metadata":{"annotations":{"configHash":"1024a5d715be304dc701863cdd16e77d","kubectl.kubernetes.io/default-container":"nix-cache"},"labels":{"app.kubernetes.io/component":"cache","app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"}},"spec":{"containers":[{"command":["dinit","--log-file","/var/log/dinit.log","--quiet","cache"],"env":[{"name":"BUILDERS_ENABLED","value":"true"},{"name":"CACHE_ENABLED","value":"true"},{"name":"GC_KEEP_SECONDS","value":"86400"},{"name":"HOME","value":"/nix/var/nix-csi/root"},{"name":"IS_CACHE","value":"true"},{"name":"KUBE_NAMESPACE","valueFrom":{"fieldRef":{"fieldPath":"metadata.namespace"}}}],"image":"ghcr.io/lillecarl/nix-csi/scratch:1.0.1","name":"nix-cache","ports":[{"containerPort":22,"name":"ssh"}],"resources":{"requests":{"cpu":"100m","memory":"64Mi"}},"volumeMounts":[{"mountPath":"/etc/nix","name":"nix-config"},{"mountPath":"/etc/nix-key","name":"nix-key"},{"mountPath":"/nix","name":"nix-store","subPath":"nix"},{"mountPath":"/etc/ssh","name":"ssh-config"},{"mountPath":"/etc/ssh-dynauth","name":"ssh-dynauth"},{"mountPath":"/etc/ssh-key","name":"ssh-key"}]}],"initContainers":[{"command":["initCopy"],"image":"ghcr.io/lillecarl/nix-csi/scratch:1.0.1","imagePullPolicy":"Always","name":"initcopy","resources":{"requests":{"cpu":"100m","memory":"64Mi"}},"securityContext":{"capabilities":{"add":["SYS_CHROOT"]}},"volumeMounts":[{"mountPath":"/nix","name":"init-store","readOnly":true,"subPath":"nix"},{"mountPath":"/etc/nix","name":"nix-config"},{"mountPath":"/nix-volume","name":"nix-store"},{"mountPath":"/etc/ssh","name":"ssh-config"},{"mountPath":"/etc/ssh-dynauth","name":"ssh-dynauth"},{"mountPath":"/etc/ssh-key","name":"ssh-key"}]}],"priorityClassName":"system-cluster-critical","serviceAccountName":"nixkube","volumes":[{"csi":{"driver":"nixkube","readOnly":true,"volumeAttributes":{"aarch64-linux":"/nix/store/jz92rjrd92hi4jnz42w9448vgpy5y66l-cache-init-env","x86_64-linux":"/nix/store/j0jrykzw37q0vkhmc4xz6dyzkndl3ln6-cache-init-env"}},"name":"init-store"},{"configMap":{"name":"nix-cache"},"name":"nix-config"},{"name":"nix-key","secret":{"secretName":"nix-key"}},{"configMap":{"defaultMode":292,"name":"ssh-config"},"name":"ssh-config"},{"configMap":{"defaultMode":292,"name":"ssh-dynauth"},"name":"ssh-dynauth"},{"name":"ssh-key","secret":{"defaultMode":256,"secretName":"ssh-key"}}]}},"volumeClaimTemplates":[{"metadata":{"name":"nix-store"},"spec":{"accessModes":["ReadWriteOnce"],"resources":{"requests":{"storage":"10Gi"}},"storageClassName":null}}]}}
+      nixkube/discard: "true"
+    creationTimestamp: "2026-04-06T21:28:19Z"
+    generation: 2
+    labels:
+      app.kubernetes.io/component: cache
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+    name: nix-cache
+    namespace: nixkube
+    resourceVersion: "5316456"
+    uid: f8c0c7d4-6711-4712-bb32-120d60e4adef
+  spec:
+    persistentVolumeClaimRetentionPolicy:
+      whenDeleted: Retain
+      whenScaled: Retain
+    podManagementPolicy: OrderedReady
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app.kubernetes.io/component: cache
+        app.kubernetes.io/managed-by: nix
+        app.kubernetes.io/name: nixkube
+        app.kubernetes.io/part-of: nixkube
+        app.kubernetes.io/version: 0.5.0
+    serviceName: nix-cache
+    template:
+      metadata:
+        annotations:
+          configHash: 1024a5d715be304dc701863cdd16e77d
+          kubectl.kubernetes.io/default-container: nix-cache
+          kubectl.kubernetes.io/restartedAt: "2026-04-13T02:16:56-05:00"
+        labels:
+          app.kubernetes.io/component: cache
+          app.kubernetes.io/managed-by: nix
+          app.kubernetes.io/name: nixkube
+          app.kubernetes.io/part-of: nixkube
+          app.kubernetes.io/version: 0.5.0
+      spec:
+        containers:
+        - command:
+          - dinit
+          - --log-file
+          - /var/log/dinit.log
+          - --quiet
+          - cache
+          env:
+          - name: BUILDERS_ENABLED
+            value: "true"
+          - name: CACHE_ENABLED
+            value: "true"
+          - name: GC_KEEP_SECONDS
+            value: "86400"
+          - name: HOME
+            value: /nix/var/nix-csi/root
+          - name: IS_CACHE
+            value: "true"
+          - name: KUBE_NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+          imagePullPolicy: IfNotPresent
+          name: nix-cache
+          ports:
+          - containerPort: 22
+            name: ssh
+            protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/nix
+            name: nix-config
+          - mountPath: /etc/nix-key
+            name: nix-key
+          - mountPath: /nix
+            name: nix-store
+            subPath: nix
+          - mountPath: /etc/ssh
+            name: ssh-config
+          - mountPath: /etc/ssh-dynauth
+            name: ssh-dynauth
+          - mountPath: /etc/ssh-key
+            name: ssh-key
+        dnsPolicy: ClusterFirst
+        initContainers:
+        - command:
+          - initCopy
+          image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+          imagePullPolicy: Always
+          name: initcopy
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+          securityContext:
+            capabilities:
+              add:
+              - SYS_CHROOT
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /nix
+            name: init-store
+            readOnly: true
+            subPath: nix
+          - mountPath: /etc/nix
+            name: nix-config
+          - mountPath: /nix-volume
+            name: nix-store
+          - mountPath: /etc/ssh
+            name: ssh-config
+          - mountPath: /etc/ssh-dynauth
+            name: ssh-dynauth
+          - mountPath: /etc/ssh-key
+            name: ssh-key
+        priorityClassName: system-cluster-critical
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        serviceAccount: nixkube
+        serviceAccountName: nixkube
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - csi:
+            driver: nixkube
+            readOnly: true
+            volumeAttributes:
+              aarch64-linux: /nix/store/jz92rjrd92hi4jnz42w9448vgpy5y66l-cache-init-env
+              x86_64-linux: /nix/store/j0jrykzw37q0vkhmc4xz6dyzkndl3ln6-cache-init-env
+          name: init-store
+        - configMap:
+            defaultMode: 420
+            name: nix-cache
+          name: nix-config
+        - name: nix-key
+          secret:
+            defaultMode: 420
+            secretName: nix-key
+        - configMap:
+            defaultMode: 292
+            name: ssh-config
+          name: ssh-config
+        - configMap:
+            defaultMode: 292
+            name: ssh-dynauth
+          name: ssh-dynauth
+        - name: ssh-key
+          secret:
+            defaultMode: 256
+            secretName: ssh-key
+    updateStrategy:
+      rollingUpdate:
+        partition: 0
+      type: RollingUpdate
+    volumeClaimTemplates:
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: nix-store
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+        volumeMode: Filesystem
+      status:
+        phase: Pending
+  status:
+    availableReplicas: 1
+    collisionCount: 0
+    currentReplicas: 1
+    currentRevision: nix-cache-598fb9f577
+    observedGeneration: 2
+    readyReplicas: 1
+    replicas: 1
+    updateRevision: nix-cache-598fb9f577
+    updatedReplicas: 1
+- apiVersion: v1
+  data:
+    init-secrets: |
+      set -x
+      mkdir -p /tmp/{ssh-key,nix-key,ssh-auth}
+      if ! kubectl get secret ssh-key &>/dev/null || ! kubectl get configmap ssh-dynauth &>/dev/null; then
+        # Create ssh secret
+        ssh-keygen -t ed25519 -C "" -N "" -f /tmp/ssh-key/id_ed25519
+        kubectl delete --ignore-not-found secret ssh-key
+        kubectl create secret generic ssh-key --from-file=/tmp/ssh-key
+
+        # Create pubkey configmap
+        cp /tmp/ssh-key/id_ed25519.pub /tmp/ssh-auth/authorized_keys
+        echo "* $(cat /tmp/ssh-key/id_ed25519.pub)" > /tmp/ssh-auth/ssh_known_hosts
+        kubectl delete --ignore-not-found configmap ssh-dynauth
+        kubectl create configmap ssh-dynauth --from-file=/tmp/ssh-auth
+      fi
+
+      if ! kubectl get secret nix-key &>/dev/null; then
+        # create nix binary cache key
+        nix-store --generate-binary-cache-key \
+          nix-cache-1 \
+          /tmp/nix-key/nix_ed25519 \
+          /tmp/nix-key/nix_ed25519.pub
+        kubectl delete --ignore-not-found secret nix-key
+        kubectl create secret generic nix-key --from-file=/tmp/nix-key
+      fi
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"init-secrets":"set -x\nmkdir -p /tmp/{ssh-key,nix-key,ssh-auth}\nif ! kubectl get secret ssh-key \u0026\u003e/dev/null || ! kubectl get configmap ssh-dynauth \u0026\u003e/dev/null; then\n  # Create ssh secret\n  ssh-keygen -t ed25519 -C \"\" -N \"\" -f /tmp/ssh-key/id_ed25519\n  kubectl delete --ignore-not-found secret ssh-key\n  kubectl create secret generic ssh-key --from-file=/tmp/ssh-key\n\n  # Create pubkey configmap\n  cp /tmp/ssh-key/id_ed25519.pub /tmp/ssh-auth/authorized_keys\n  echo \"* $(cat /tmp/ssh-key/id_ed25519.pub)\" \u003e /tmp/ssh-auth/ssh_known_hosts\n  kubectl delete --ignore-not-found configmap ssh-dynauth\n  kubectl create configmap ssh-dynauth --from-file=/tmp/ssh-auth\nfi\n\nif ! kubectl get secret nix-key \u0026\u003e/dev/null; then\n  # create nix binary cache key\n  nix-store --generate-binary-cache-key \\\n    nix-cache-1 \\\n    /tmp/nix-key/nix_ed25519 \\\n    /tmp/nix-key/nix_ed25519.pub\n  kubectl delete --ignore-not-found secret nix-key\n  kubectl create secret generic nix-key --from-file=/tmp/nix-key\nfi\n"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"},"name":"init-scripts","namespace":"nixkube"}}
+    creationTimestamp: "2026-04-06T21:28:18Z"
+    labels:
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+    name: init-scripts
+    namespace: nixkube
+    resourceVersion: "838037"
+    uid: edefcbd1-22e0-4b01-a662-74525395687a
+- apiVersion: v1
+  data:
+    ca.crt: |
+      -----BEGIN CERTIFICATE-----
+      MIIBdjCCAR2gAwIBAgIBADAKBggqhkjOPQQDAjAjMSEwHwYDVQQDDBhrM3Mtc2Vy
+      dmVyLWNhQDE3NzUzMDg0NjEwHhcNMjYwNDA0MTMxNDIxWhcNMzYwNDAxMTMxNDIx
+      WjAjMSEwHwYDVQQDDBhrM3Mtc2VydmVyLWNhQDE3NzUzMDg0NjEwWTATBgcqhkjO
+      PQIBBggqhkjOPQMBBwNCAATqWvcs9ibNJbamGRgb0JAErkWscsPLEk8OG5fobbdy
+      2zHAftTSlldq/SqA7+l8LiZj0Kuws7M6e4XPqwRifSq2o0IwQDAOBgNVHQ8BAf8E
+      BAMCAqQwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUZyq3OCMVgCY8pMn8Q3IC
+      KUdhXeEwCgYIKoZIzj0EAwIDRwAwRAIgXhf6VIdrfm2gQZ9ZimyI8BxEwl4cBdbD
+      mQYFOf160bkCIFVyy7E1OOQUMwN2ps8aIqaDYn9xmHIoAHmASbYbvW5b
+      -----END CERTIFICATE-----
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubernetes.io/description: Contains a CA bundle that can be used to verify the
+        kube-apiserver when using internal endpoints such as the internal service
+        IP or kubernetes.default.svc. No other usage is guaranteed across distributions
+        of Kubernetes clusters.
+    creationTimestamp: "2026-04-06T21:28:18Z"
+    name: kube-root-ca.crt
+    namespace: nixkube
+    resourceVersion: "838034"
+    uid: 7bc2a0ad-8dec-4f71-a5d0-d46a81c4ce8b
+- apiVersion: v1
+  data:
+    logging.json: '{"loggers":{"httpx":{"level":"WARNING"},"nixkube":{"level":"INFO"},"nixkube.nix_daemon":{"level":"WARNING"}},"renderer":"json","root":{"level":"WARNING"}}'
+    nix.conf: |+
+      # WARNING: this file is generated from the nix.* options in
+      # your NixOS configuration, typically
+      # /etc/nixos/configuration.nix.  Do not edit it!
+      allowed-users = *
+      builders-use-substitutes = true
+      experimental-features = nix-command flakes read-only-local-store
+      max-jobs = auto
+      narinfo-cache-negative-ttl = 0
+      narinfo-cache-positive-ttl = 0
+      sandbox = true
+      store = daemon
+      substituters = https://cache.nixos.org https://nix-csi.cachix.org
+      system-features = nixos-test benchmark big-parallel
+      trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-csi.cachix.org-1:i4w33gR4efO67jpz8U7g/MdvRQ6mQ3LEF9fB8tES60g=
+      trusted-users = root nix root
+      warn-dirty = false
+
+
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"logging.json":"{\"loggers\":{\"httpx\":{\"level\":\"WARNING\"},\"nixkube\":{\"level\":\"INFO\"},\"nixkube.nix_daemon\":{\"level\":\"WARNING\"}},\"renderer\":\"json\",\"root\":{\"level\":\"WARNING\"}}","nix.conf":"# WARNING: this file is generated from the nix.* options in\n# your NixOS configuration, typically\n# /etc/nixos/configuration.nix.  Do not edit it!\nallowed-users = *\nbuilders-use-substitutes = true\nexperimental-features = nix-command flakes read-only-local-store\nmax-jobs = auto\nnarinfo-cache-negative-ttl = 0\nnarinfo-cache-positive-ttl = 0\nsandbox = true\nstore = daemon\nsubstituters = https://cache.nixos.org https://nix-csi.cachix.org\nsystem-features = nixos-test benchmark big-parallel\ntrusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-csi.cachix.org-1:i4w33gR4efO67jpz8U7g/MdvRQ6mQ3LEF9fB8tES60g=\ntrusted-users = root nix root\nwarn-dirty = false\n\n\n"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"},"name":"nix-builder","namespace":"nixkube"}}
+    creationTimestamp: "2026-04-06T21:28:18Z"
+    labels:
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+    name: nix-builder
+    namespace: nixkube
+    resourceVersion: "838038"
+    uid: fa4960fd-a5aa-4362-a9da-3b5e238dd5b9
+- apiVersion: v1
+  data:
+    logging.json: '{"loggers":{"httpx":{"level":"WARNING"},"nixkube":{"level":"INFO"},"nixkube.nix_daemon":{"level":"WARNING"}},"renderer":"json","root":{"level":"WARNING"}}'
+    nix.conf: |+
+      # WARNING: this file is generated from the nix.* options in
+      # your NixOS configuration, typically
+      # /etc/nixos/configuration.nix.  Do not edit it!
+      allowed-users = *
+      builders-use-substitutes = true
+      experimental-features = nix-command flakes read-only-local-store
+      max-jobs = 0
+      narinfo-cache-negative-ttl = 0
+      narinfo-cache-positive-ttl = 0
+      store = daemon
+      substituters = https://cache.nixos.org https://nix-csi.cachix.org
+      system-features = nixos-test benchmark big-parallel
+      trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-csi.cachix.org-1:i4w33gR4efO67jpz8U7g/MdvRQ6mQ3LEF9fB8tES60g=
+      trusted-users = root nix root
+      warn-dirty = false
+
+
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"logging.json":"{\"loggers\":{\"httpx\":{\"level\":\"WARNING\"},\"nixkube\":{\"level\":\"INFO\"},\"nixkube.nix_daemon\":{\"level\":\"WARNING\"}},\"renderer\":\"json\",\"root\":{\"level\":\"WARNING\"}}","nix.conf":"# WARNING: this file is generated from the nix.* options in\n# your NixOS configuration, typically\n# /etc/nixos/configuration.nix.  Do not edit it!\nallowed-users = *\nbuilders-use-substitutes = true\nexperimental-features = nix-command flakes read-only-local-store\nmax-jobs = 0\nnarinfo-cache-negative-ttl = 0\nnarinfo-cache-positive-ttl = 0\nstore = daemon\nsubstituters = https://cache.nixos.org https://nix-csi.cachix.org\nsystem-features = nixos-test benchmark big-parallel\ntrusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-csi.cachix.org-1:i4w33gR4efO67jpz8U7g/MdvRQ6mQ3LEF9fB8tES60g=\ntrusted-users = root nix root\nwarn-dirty = false\n\n\n"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"},"name":"nix-cache","namespace":"nixkube"}}
+    creationTimestamp: "2026-04-06T21:28:18Z"
+    labels:
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+    name: nix-cache
+    namespace: nixkube
+    resourceVersion: "838039"
+    uid: 0f5a4f49-8bc2-4f58-bd30-9fb29f3bfe4d
+- apiVersion: v1
+  data:
+    logging.json: '{"loggers":{"httpx":{"level":"WARNING"},"nixkube":{"level":"INFO"},"nixkube.nix_daemon":{"level":"WARNING"}},"renderer":"json","root":{"level":"WARNING"}}'
+    nix.conf: |+
+      # WARNING: this file is generated from the nix.* options in
+      # your NixOS configuration, typically
+      # /etc/nixos/configuration.nix.  Do not edit it!
+      allowed-users = *
+      builders-use-substitutes = true
+      experimental-features = nix-command flakes read-only-local-store
+      keep-outputs = true
+      narinfo-cache-negative-ttl = 0
+      narinfo-cache-positive-ttl = 0
+      store = daemon
+      substituters = https://cache.nixos.org https://nix-csi.cachix.org
+      system-features = nixos-test benchmark big-parallel
+      trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-csi.cachix.org-1:i4w33gR4efO67jpz8U7g/MdvRQ6mQ3LEF9fB8tES60g=
+      trusted-users = root nix root
+      warn-dirty = false
+
+
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"logging.json":"{\"loggers\":{\"httpx\":{\"level\":\"WARNING\"},\"nixkube\":{\"level\":\"INFO\"},\"nixkube.nix_daemon\":{\"level\":\"WARNING\"}},\"renderer\":\"json\",\"root\":{\"level\":\"WARNING\"}}","nix.conf":"# WARNING: this file is generated from the nix.* options in\n# your NixOS configuration, typically\n# /etc/nixos/configuration.nix.  Do not edit it!\nallowed-users = *\nbuilders-use-substitutes = true\nexperimental-features = nix-command flakes read-only-local-store\nkeep-outputs = true\nnarinfo-cache-negative-ttl = 0\nnarinfo-cache-positive-ttl = 0\nstore = daemon\nsubstituters = https://cache.nixos.org https://nix-csi.cachix.org\nsystem-features = nixos-test benchmark big-parallel\ntrusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-csi.cachix.org-1:i4w33gR4efO67jpz8U7g/MdvRQ6mQ3LEF9fB8tES60g=\ntrusted-users = root nix root\nwarn-dirty = false\n\n\n"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"},"name":"nix-node","namespace":"nixkube"}}
+    creationTimestamp: "2026-04-06T21:28:18Z"
+    labels:
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+    name: nix-node
+    namespace: nixkube
+    resourceVersion: "838040"
+    uid: 231fc6a9-ebe6-4743-923f-1986865e7bbc
+- apiVersion: v1
+  data:
+    authorized_keys: ""
+    ssh_config: |
+      GlobalKnownHostsFile /etc/ssh/ssh_known_hosts /etc/ssh-dynauth/ssh_known_hosts
+
+      Host nix-cache
+          User nix
+          IdentityFile /etc/ssh-key/id_ed25519
+          IdentitiesOnly yes
+          StrictHostKeyChecking yes
+
+      Host nix-builder
+          User nix
+          IdentityFile /etc/ssh-key/id_ed25519
+          IdentitiesOnly yes
+          StrictHostKeyChecking yes
+
+      Host *
+          User nix
+          IdentityFile /etc/ssh-key/id_ed25519
+          IdentitiesOnly yes
+          StrictHostKeyChecking yes
+    ssh_known_hosts: ""
+    sshd_config: |
+      Port 22
+      AddressFamily Any
+      HostKey /etc/ssh-key/id_ed25519
+      SyslogFacility DAEMON
+      SetEnv PATH=/nix/var/result/bin
+      PermitRootLogin no
+      PubkeyAuthentication yes
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      UsePAM no
+      AuthorizedKeysFile /dev/null
+      StrictModes no
+      Subsystem sftp internal-sftp
+
+      Match User nix
+          AuthorizedKeysFile /etc/ssh/authorized_keys /etc/ssh-dynauth/authorized_keys
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"authorized_keys":"","ssh_config":"GlobalKnownHostsFile /etc/ssh/ssh_known_hosts /etc/ssh-dynauth/ssh_known_hosts\n\nHost nix-cache\n    User nix\n    IdentityFile /etc/ssh-key/id_ed25519\n    IdentitiesOnly yes\n    StrictHostKeyChecking yes\n\nHost nix-builder\n    User nix\n    IdentityFile /etc/ssh-key/id_ed25519\n    IdentitiesOnly yes\n    StrictHostKeyChecking yes\n\nHost *\n    User nix\n    IdentityFile /etc/ssh-key/id_ed25519\n    IdentitiesOnly yes\n    StrictHostKeyChecking yes\n","ssh_known_hosts":"","sshd_config":"Port 22\nAddressFamily Any\nHostKey /etc/ssh-key/id_ed25519\nSyslogFacility DAEMON\nSetEnv PATH=/nix/var/result/bin\nPermitRootLogin no\nPubkeyAuthentication yes\nPasswordAuthentication no\nKbdInteractiveAuthentication no\nUsePAM no\nAuthorizedKeysFile /dev/null\nStrictModes no\nSubsystem sftp internal-sftp\n\nMatch User nix\n    AuthorizedKeysFile /etc/ssh/authorized_keys /etc/ssh-dynauth/authorized_keys\n"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"},"name":"ssh-config","namespace":"nixkube"}}
+    creationTimestamp: "2026-04-06T21:28:18Z"
+    labels:
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+    name: ssh-config
+    namespace: nixkube
+    resourceVersion: "838041"
+    uid: 2e4b5cf8-da3a-4b80-a976-1db30b639b7d
+- apiVersion: v1
+  data:
+    authorized_keys: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKzs1ga7sVLWW8sEQcEmfjfUUic6SEtkO03uFf8CH9eJ
+      \n"
+    ssh_known_hosts: "* ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKzs1ga7sVLWW8sEQcEmfjfUUic6SEtkO03uFf8CH9eJ
+      \n"
+  kind: ConfigMap
+  metadata:
+    creationTimestamp: "2026-04-06T21:33:06Z"
+    name: ssh-dynauth
+    namespace: nixkube
+    resourceVersion: "839313"
+    uid: cb45ffb3-29e1-4e51-b18d-5974ecf2ad35
+- apiVersion: v1
+  data:
+    nix_ed25519: bml4LWNhY2hlLTE6UklSNHFpdHFmRWRKZnVrVG9IQmtOS2dacUJFUFUyMlFvSU01ODdhamxIcGJXVjgxT1BzbmRnSHE3MjFtMjF2UWlYT0Urb290d3FSMHpQN29IZ1k5cnc9PQ==
+    nix_ed25519.pub: bml4LWNhY2hlLTE6VzFsZk5UajdKM1lCNnU5dFp0dGIwSWx6aFBxS0xjS2tkTXorNkI0R1BhOD0=
+  kind: Secret
+  metadata:
+    creationTimestamp: "2026-04-06T21:40:10Z"
+    name: nix-key
+    namespace: nixkube
+    resourceVersion: "841011"
+    uid: 50212877-0e7e-40d9-a978-cb01aa83eac2
+  type: Opaque
+- apiVersion: v1
+  data:
+    id_ed25519: LS0tLS1CRUdJTiBPUEVOU1NIIFBSSVZBVEUgS0VZLS0tLS0KYjNCbGJuTnphQzFyWlhrdGRqRUFBQUFBQkc1dmJtVUFBQUFFYm05dVpRQUFBQUFBQUFBQkFBQUFNd0FBQUF0emMyZ3RaVwpReU5UVXhPUUFBQUNDczdOWUd1N0ZTMWx2TEJFSEJKbjQzMUZJbk9raExaRHRON2hYL0FoL1hpUUFBQUlqRTFoQll4TllRCldBQUFBQXR6YzJndFpXUXlOVFV4T1FBQUFDQ3M3TllHdTdGUzFsdkxCRUhCSm40MzFGSW5Pa2hMWkR0TjdoWC9BaC9YaVEKQUFBRUFjUytzcDhPbVBiQVFQeUdKbjFicnRQWEJTUWljQUYyWFBXQ3BMT2xjY3A2enMxZ2E3c1ZMV1c4c0VRY0VtZmpmVQpVaWM2U0V0a08wM3VGZjhDSDllSkFBQUFBQUVDQXdRRgotLS0tLUVORCBPUEVOU1NIIFBSSVZBVEUgS0VZLS0tLS0K
+    id_ed25519.pub: c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSUt6czFnYTdzVkxXVzhzRVFjRW1mamZVVWljNlNFdGtPMDN1RmY4Q0g5ZUogCg==
+  kind: Secret
+  metadata:
+    creationTimestamp: "2026-04-06T21:33:04Z"
+    name: ssh-key
+    namespace: nixkube
+    resourceVersion: "839304"
+    uid: 61df4f97-866c-481f-b5b0-6e7e6f3bc89e
+  type: Opaque
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    creationTimestamp: "2026-04-06T21:28:18Z"
+    name: default
+    namespace: nixkube
+    resourceVersion: "838033"
+    uid: 1f741652-39b7-4ea6-958d-86ef21ca0eca
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"ServiceAccount","metadata":{"annotations":{},"labels":{"app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"},"name":"nixkube","namespace":"nixkube"}}
+    creationTimestamp: "2026-04-06T21:28:18Z"
+    labels:
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+    name: nixkube
+    namespace: nixkube
+    resourceVersion: "838035"
+    uid: 7567a1a5-d554-4eb7-8779-fdecf4822c30
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"rbac.authorization.k8s.io/v1","kind":"Role","metadata":{"annotations":{},"labels":{"app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"},"name":"nixkube","namespace":"nixkube"},"rules":[{"apiGroups":[""],"resources":["pods"],"verbs":["get","list","watch"]},{"apiGroups":[""],"resources":["secrets","configmaps"],"verbs":["get","list","create","patch","delete"]}]}
+    creationTimestamp: "2026-04-06T21:28:18Z"
+    labels:
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+    name: nixkube
+    namespace: nixkube
+    resourceVersion: "838044"
+    uid: 835c9afe-8bab-4f7c-b62e-67d23a062f97
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - pods
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    resources:
+    - secrets
+    - configmaps
+    verbs:
+    - get
+    - list
+    - create
+    - patch
+    - delete
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"rbac.authorization.k8s.io/v1","kind":"RoleBinding","metadata":{"annotations":{},"labels":{"app.kubernetes.io/managed-by":"nix","app.kubernetes.io/name":"nixkube","app.kubernetes.io/part-of":"nixkube","app.kubernetes.io/version":"0.5.0"},"name":"nixkube","namespace":"nixkube"},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"Role","name":"nixkube"},"subjects":[{"kind":"ServiceAccount","name":"nixkube"}]}
+    creationTimestamp: "2026-04-06T21:28:18Z"
+    labels:
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+    name: nixkube
+    namespace: nixkube
+    resourceVersion: "838045"
+    uid: 455a966d-63b0-4757-aa3c-9b5364667eaf
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: nixkube
+  subjects:
+  - kind: ServiceAccount
+    name: nixkube
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    annotations:
+      pv.kubernetes.io/bind-completed: "yes"
+      pv.kubernetes.io/bound-by-controller: "yes"
+      volume.beta.kubernetes.io/storage-provisioner: rancher.io/local-path
+      volume.kubernetes.io/selected-node: sentry
+      volume.kubernetes.io/storage-provisioner: rancher.io/local-path
+    creationTimestamp: "2026-04-06T21:28:19Z"
+    finalizers:
+    - kubernetes.io/pvc-protection
+    labels:
+      app.kubernetes.io/component: cache
+      app.kubernetes.io/managed-by: nix
+      app.kubernetes.io/name: nixkube
+      app.kubernetes.io/part-of: nixkube
+      app.kubernetes.io/version: 0.5.0
+    name: nix-store-nix-cache-0
+    namespace: nixkube
+    resourceVersion: "838242"
+    uid: fa192155-0f38-4e86-9eb3-014511023a1c
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
+    storageClassName: local-path
+    volumeMode: Filesystem
+    volumeName: pvc-fa192155-0f38-4e86-9eb3-014511023a1c
+  status:
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+      storage: 10Gi
+    phase: Bound
+kind: List
+metadata:
+  resourceVersion: ""

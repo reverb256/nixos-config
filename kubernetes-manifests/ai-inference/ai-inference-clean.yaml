@@ -1,0 +1,479 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: '1'
+  labels:
+    app: grafana
+  name: grafana
+  namespace: ai-inference
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: grafana
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/restartedAt: '2026-04-10T15:08:09-05:00'
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - env:
+        - name: GF_SECURITY_ADMIN_USER
+          value: admin
+        - name: GF_USERS_ALLOW_SIGN_UP
+          value: 'false'
+        - name: GF_INSTALL_PLUGINS
+        - name: GF_SERVER_ROOT_URL
+          value: http://localhost:3000
+        image: grafana/grafana:11.1.0
+        imagePullPolicy: IfNotPresent
+        name: grafana
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        kubernetes.io/hostname: nexus
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: '1'
+  labels:
+    app: open-webui
+  name: open-webui
+  namespace: ai-inference
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: open-webui
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: open-webui
+    spec:
+      containers:
+      - env:
+        - name: OLLAMA_BASE_URLS
+          value: http://10.1.1.110:8080/v1
+        - name: ENABLE_OLLAMA
+          value: 'true'
+        - name: ENABLE_OPENAI_API
+          value: 'false'
+        - name: ENABLE_LLM
+          value: 'true'
+        - name: ENABLE_SIGNUP
+          value: 'true'
+        - name: ENABLE_LDAP_LOGIN
+          value: 'false'
+        image: ghcr.io/open-webui/open-webui:0.6.5
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 10
+        name: open-webui
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: '2'
+            memory: 4Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /app/backend/data
+          name: webui-data
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        kubernetes.io/hostname: nexus
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: open-webui
+      serviceAccountName: open-webui
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - hostPath:
+          path: /mnt/open-webui-data
+          type: DirectoryOrCreate
+        name: webui-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: grafana
+  name: grafana
+  namespace: ai-inference
+spec:
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: http
+    port: 3000
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app: grafana
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: open-webui
+  name: open-webui
+  namespace: ai-inference
+spec:
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: open-webui
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    caddy.ingress.kubernetes.io/disable-ssl-redirect: 'true'
+  labels:
+    app.kubernetes.io/name: llama-server
+  name: llama-server
+  namespace: ai-inference
+spec:
+  ingressClassName: caddy
+  rules:
+  - host: ai.lan
+    http:
+      paths:
+      - backend:
+          service:
+            name: llama-server
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix
+  - host: ai.cluster.local
+    http:
+      paths:
+      - backend:
+          service:
+            name: llama-server
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    caddy.ingress.kubernetes.io/disable-ssl-redirect: 'true'
+  labels:
+    app.kubernetes.io/name: openwebui
+  name: openwebui
+  namespace: ai-inference
+spec:
+  ingressClassName: caddy
+  rules:
+  - host: openwebui.lan
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-webui
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix
+  - host: openwebui.cluster.local
+    http:
+      paths:
+      - backend:
+          service:
+            name: open-webui
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix
+---
+apiVersion: v1
+data:
+  AUTH_MODE: none
+  AUTO_RAG_ENABLED: 'true'
+  BACKEND_TYPE: llama-cpp
+  BACKEND_URL: http://llama-cpp-qwen.ai-inference.svc.cluster.local:8080
+  BM25_WEIGHT: '0.300000'
+  CHUNK_OVERLAP: '50'
+  CHUNK_SIZE: '512'
+  DEFAULT_MODEL: qwen3.5-4b
+  EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
+  HYBRID_SEARCH_ENABLED: 'true'
+  MCP_ENABLED: 'false'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_MAX_RESULTS: '5'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED: 'true'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED: 'true'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED: 'true'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K: '5'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K: '60'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED: 'true'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS: '5'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL: http://searxng:7777
+  MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_MAX_RESULTS: '5'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_SEARCH_ENABLED: 'true'
+  QDRANT_URL: http://qdrant:6333
+  RAG_ENABLED: 'true'
+  RAG_TOP_K: '5'
+kind: ConfigMap
+metadata:
+  name: ai-gateway-config
+  namespace: ai-inference
+---
+apiVersion: v1
+data:
+  AUTH_MODE: api-key
+  AUTO_RAG_ENABLED: 'true'
+  BACKEND_FALLBACK_URLS: https://api.z.ai/api/coding/paas/v4
+  BACKEND_TYPE: llama-cpp
+  BACKEND_URL: http://zephyr.lan:8081
+  BM25_WEIGHT: '0.3'
+  CHUNK_OVERLAP: '50'
+  CHUNK_SIZE: '512'
+  DEFAULT_MODEL: qwen3.5-35b-a3b
+  EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
+  GATEWAY_HOST: 0.0.0.0
+  HF_HOME: /var/cache/ai-inference
+  HYBRID_SEARCH_ENABLED: 'true'
+  MAX_REQUEST_SIZE: '10485760'
+  MCP_ENABLED: 'true'
+  MCP_SERVERS: '{ "searxng": { "command": ["python", "-m", "ai_inference_gateway.mcp_servers.searxng_server"], "environment": { "SEARXNG_URL": "http://searxng.search.svc.cluster.local:8080", "SEARXNG_CACHE_TTL":
+    "300" }, "enabled": true, "type": "local" } }'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_MAX_RESULTS: '10'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED: 'true'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS: '["/etc/nixos","/home/j_kro"]'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED: 'false'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED: 'true'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K: '10'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K: '60'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED: 'true'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS: '10'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL: http://searxng.search.svc.cluster.local:8080
+  MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_MAX_RESULTS: '10'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_SEARCH_ENABLED: 'true'
+  PORT: '8080'
+  PYTHONUNBUFFERED: '1'
+  QDRANT_URL: http://qdrant.ai-inference.svc.cluster.local:6333
+  RAG_ENABLED: 'false'
+  RAG_TOP_K: '10'
+  RATE_LIMIT_ENABLED: 'true'
+  RATE_LIMIT_RPM: '120'
+  ROUTING_ENABLED: 'true'
+  SECURITY_PROXY_ENABLED: 'false'
+  SENTRY_ENABLED: 'false'
+  SYSTEM_PROMPTS_AGENTIC: You are an autonomous agent capable of multi-step planning and execution. Use available tools to complete complex tasks.
+  SYSTEM_PROMPTS_ANALYSIS: You are an expert analysis assistant. Provide thorough and structured analysis using multiple sources.
+  SYSTEM_PROMPTS_DEFAULT: You are a helpful AI assistant with access to comprehensive knowledge sources.
+  SYSTEM_PROMPTS_ENABLED: 'true'
+  SYSTEM_PROMPTS_FAST: You are a fast and efficient assistant. Provide concise, direct answers.
+  SYSTEM_PROMPTS_REASONING: You are an expert reasoning assistant. Think step-by-step and provide clear explanations backed by retrieved information.
+  TOKEN_SCOPED_COLLECTIONS: 'true'
+  TRANSFORMERS_CACHE: /var/cache/ai-inference
+  VECTOR_WEIGHT: '0.7'
+kind: ConfigMap
+metadata:
+  name: ai-inference-gateway-config
+  namespace: ai-inference
+---
+apiVersion: v1
+data:
+  prometheus.yml: "global:\n  scrape_interval: 15s\n  evaluation_interval: 15s\n  external_labels:\n    cluster: 'nixos-k8s'\n    environment: 'production'\n\nscrape_configs:\n# Kubernetes API Server\n\
+    - job_name: 'kubernetes-apiservers'\n  kubernetes_defaults:\n    role: endpoints\n  scheme: https\n  tls_config:\n    ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\n  bearer_token_file:\
+    \ /var/run/secrets/kubernetes.io/serviceaccount/token\n  relabel_configs:\n  - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]\n  \
+    \  regex: 'default;kubernetes;https'\n    action: keep\n\n# Kubernetes Nodes\n- job_name: 'kubernetes-nodes'\n  kubernetes_defaults:\n    role: endpoints\n  scheme: https\n  tls_config:\n    ca_file:\
+    \ /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\n  bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token\n  relabel_configs:\n  - source_labels: [__meta_kubernetes_role]\n  \
+    \  regex: 'node'\n    action: keep\n\n# AI Gateway\n- job_name: 'ai-gateway'\n  static_configs:\n  - targets: ['ai-gateway:8080']\n    labels:\n      app: 'ai-gateway'\n      component: 'gateway'\n\n\
+    # llama.cpp (via node exporter on Zephyr)\n- job_name: 'llamacpp'\n  static_configs:\n  - targets: ['zephyr:9400']\n    labels:\n      app: 'llamacpp'\n      component: 'inference'\n"
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: ai-inference
+---
+apiVersion: v1
+data:
+  SEARXNG_CACHE_TTL: '300'
+  SEARXNG_URL: http://searxng-refactored.search.svc.cluster.local:8080
+kind: ConfigMap
+metadata:
+  name: searxng-mcp-config
+  namespace: ai-inference
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ai-inference-gateway
+  namespace: ai-inference
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: default
+  namespace: ai-inference
+---
+apiVersion: v1
+automountServiceAccountToken: false
+kind: ServiceAccount
+metadata:
+  name: grafana-sa
+  namespace: ai-inference
+---
+apiVersion: v1
+automountServiceAccountToken: false
+kind: ServiceAccount
+metadata:
+  name: n8n-sa
+  namespace: ai-inference
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: open-webui
+  namespace: ai-inference
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: ai-inference
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: searxng-mcp
+  namespace: ai-inference
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: grafana-role
+  namespace: ai-inference
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: n8n-role
+  namespace: ai-inference
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  - secrets
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grafana-rolebinding
+  namespace: ai-inference
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: grafana-role
+subjects:
+- kind: ServiceAccount
+  name: grafana-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: n8n-rolebinding
+  namespace: ai-inference
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: n8n-role
+subjects:
+- kind: ServiceAccount
+  name: n8n-sa

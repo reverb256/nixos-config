@@ -13,7 +13,7 @@
     ./redis-exporter.nix
     ./smart-exporter.nix
     ./loki.nix
-    ./promtail.nix # Log aggregation to Loki
+    # ./promtail.nix  # promtail EOL, needs migration to grafana-alloy # Log aggregation to Loki
     ./system-tools.nix # CLI monitoring tools (htop, iotop, nethogs, sysstat)
     ./xmrig-metrics.nix # XMRig miner metrics -> node-exporter textfile collector
   ];

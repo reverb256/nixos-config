@@ -1,13 +1,13 @@
 # Deploys Kubernetes manifests from Nix-generated store path on boot.
 #
-# Replaces k8s-manifest-autoapply.nix — instead of applying 17 directories
-# of raw YAML files from /etc/nixos/kubernetes-manifests/, this applies
-# the single Nix-generated manifest file produced by `nix build .#k8s-manifests`.
-#
-# The manifest path is passed via `manifestPackage` option (defaults to
-# the flake's k8s-manifests output).
+# Applies the single Nix-generated manifest file produced by
+# `nix build .#k8s-manifests` which includes all easykubenix modules:
+# mining, gpu-miners, ai-inference, nixkube, searxng, haven, spacebot,
+# ingress, infrastructure.
 #
 # Runs on control-plane node only (zephyr) since K8s API is global.
+# Does NOT prune — existing resources not in the manifest are left alone.
+# To clean up orphaned resources, use: kubectl apply --prune -f <manifest>
 {
   config,
   lib,
@@ -32,6 +32,11 @@ in
       type = types.package;
       description = "Package containing the generated K8s manifest YAML file";
       default = k8sManifestPackage;
+    };
+    prune = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Remove resources not in the manifest (use with caution on first migration)";
     };
   };
 
@@ -62,7 +67,15 @@ in
           echo "[k8s-nix-deploy] K3s API ready."
 
           echo "[k8s-nix-deploy] Applying manifests from: $MANIFEST"
-          ${pkgs.kubectl}/bin/kubectl apply -f "$MANIFEST" 2>&1 || true
+          ${
+            if cfg.prune
+            then ''
+              ${pkgs.kubectl}/bin/kubectl apply --prune -l managed-by=easykubenix -f "$MANIFEST" 2>&1 || true
+            ''
+            else ''
+              ${pkgs.kubectl}/bin/kubectl apply -f "$MANIFEST" 2>&1 || true
+            ''
+          }
 
           echo "[k8s-nix-deploy] Done."
         '';
