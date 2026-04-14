@@ -1,4 +1,3 @@
-# AI Inference Gateway v2 - Advanced Router with Failover, Security, and Reranking
 {
   config,
   lib,
@@ -9,67 +8,45 @@ let
   cfg = config.services.ai-inference;
   inherit (lib) mkIf;
 
-  # Gateway source directory
   gatewaySrc = ./ai_inference_gateway;
 
-  # Qwen3-TTS: Self-hosted TTS via qwen-tts Python package (overlay)
-  # Source: https://github.com/QwenLM/Qwen3-TTS
-  # PyPI: https://pypi.org/project/qwen-tts/
-  # Models from HuggingFace: Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice, Qwen/Qwen3-TTS-Tokenizer-12Hz
-  # Pre-download: huggingface-cli download Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice --local-dir /var/cache/ai-inference/
 
-  # Gateway package (plain files, not a Python package yet)
-  # Used for --app-dir in uvicorn
-  # NOTE: We use symlinkJoin with source tracking to ensure changes are detected
   modularGatewayPkgBase =
     pkgs.runCommand "ai-inference-gateway-modular-pkg-base"
       {
         preferLocalBuild = true;
-        # Track source changes by including it in the name/hash
         src = gatewaySrc;
       }
       ''
         mkdir -p $out/ai_inference_gateway
-        # Copy the entire modular gateway package
         cp -r ${gatewaySrc}/. $out/ai_inference_gateway/
-        # Fix permissions
         chmod -R u+w $out/ai_inference_gateway
-        # Remove compiled Python files
         find $out -name "*.pyc" -delete
         find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
       '';
 
-  # Gateway as a proper Python package (installable in site-packages)
-  # This allows `import ai_inference_gateway` without --app-dir
   modularGatewayPkgPython =
     pkgs.runCommand "ai-inference-gateway-modular-pkg-python"
       {
         preferLocalBuild = true;
-        # Track source changes by including it in the name/hash
         src = gatewaySrc;
       }
       ''
-        # Create site-packages structure
         mkdir -p $out/lib/python3.13/site-packages
-        # Copy gateway package to site-packages
         cp -r ${gatewaySrc}/. $out/lib/python3.13/site-packages/ai_inference_gateway
-        # Fix permissions
         chmod -R u+w $out/lib/python3.13/site-packages/ai_inference_gateway
-        # Remove compiled Python files
         find $out -name "*.pyc" -delete
         find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
       '';
 
-  # Python environment with gateway dependencies AND the gateway package
-  # The gateway package is added as an extra package
   gatewayPython = pkgs.python3.withPackages (
     ps:
     [
       ps.fastapi
       ps.uvicorn
       ps.httpx
-      ps.openai # OpenAI SDK for proper API communication
-      ps.anthropic # Anthropic SDK for Claude API compatibility
+      ps.openai
+      ps.anthropic
       ps.prometheus-client
       ps.pyjwt
       ps.cryptography
@@ -82,57 +59,45 @@ let
       ps.sentence-transformers
       ps.rank-bm25
       ps.numpy
-      ps.beautifulsoup4 # For RAG URL ingestion (HTML parsing)
+      ps.beautifulsoup4
       ps.redis
       ps.pydantic
       ps.pydantic-settings
       ps.sentry-sdk
-      # MCP SDK for SearXNG MCP server integration
       ps.mcp
-      # HuggingFace CLI for model downloads
       ps.huggingface-hub
-      # TTS support: Qwen3-TTS (models loaded from HuggingFace)
       ps.qwen-tts
       ps.transformers
       ps.torch
       ps.torchaudio
       ps.accelerate
       ps.datasets
-      # Audio processing for TTS/STT format conversion
-      ps.pydub # For MP3 conversion (requires ffmpeg in systemPackages)
-      ps.soundfile # For FLAC/WAV handling
-      ps.librosa # Audio analysis for qwen-tts
-      ps.einops # Tensor manipulation for qwen-tts
-      # Vision support (Qwen3-VL via transformers)
-      ps.pillow # For image processing
-      ps.onnxruntime # For ONNX model support
-      # SearXNG deep integration dependencies
-      ps.scikit-learn # For result clustering (DBSCAN, TF-IDF)
-      ps.lxml # Fast HTML parsing for ingestion
-      ps.feedgen # For RSS/ATOM export generation
+      ps.pydub
+      ps.soundfile
+      ps.librosa
+      ps.einops
+      ps.pillow
+      ps.onnxruntime
+      ps.scikit-learn
+      ps.lxml
+      ps.feedgen
     ]
     ++ [ modularGatewayPkgPython ]
   );
 
-  # Combined package: gateway source + Python environment in one
-  # This allows both --app-dir usage and direct imports
   modularGatewayPkg = pkgs.symlinkJoin {
-    name = "ai-inference-gateway-modular-pkg-v15"; # Bump for self-improvement system integration
+    name = "ai-inference-gateway-modular-pkg-v15";
     paths = [
       modularGatewayPkgBase
       gatewayPython
     ];
   };
 
-  # Use modular gateway by default (set to false to use old monolithic version)
   gatewayPkg = modularGatewayPkg;
 
-  # Container image for Kubernetes deployment
-  # Runs as non-root user (UID 1000) for security
   gatewayContainerImage = pkgs.dockerTools.buildLayeredImage {
     name = "ai-inference-gateway";
     tag = "latest";
-    # Create home dir and cache dir with correct ownership for UID 1000
     extraCommands = ''
       mkdir -p home/ai-gateway
       chown 1000:1000 home/ai-gateway
@@ -180,8 +145,6 @@ let
     };
   };
 
-  # Wrapper script for OpenCode SearXNG MCP server
-  # Dynamically finds the gateway package to avoid hardcoded Nix store paths
   opencodeSearxngMcpWrapper = pkgs.writeShellApplication {
     name = "opencode-searxng-mcp";
     runtimeInputs = with pkgs; [
@@ -195,13 +158,10 @@ let
 in
 {
   config = mkIf (cfg.enable && cfg.gateway.enable) {
-    # Expose the gateway Python environment for use by MCP servers
     services.ai-inference.gateway.python = gatewayPython;
 
-    # Install the OpenCode MCP wrapper script to system path
     environment.systemPackages = [ opencodeSearxngMcpWrapper ];
 
-    # Systemd service for running the gateway on the host
     systemd.services.ai-inference-gateway = {
       description = "AI Inference Gateway";
       after = [ "network.target" ];
@@ -253,21 +213,18 @@ in
           in
           "${gatewayPython}/bin/python -m uvicorn ai_inference_gateway.main:app ${lib.concatStringsSep " " args}";
 
-        # Allow the gateway to read API keys
         ReadOnlyPaths =
           lib.optionals (cfg.backend.zai.apiKeyFile != null) [ cfg.backend.zai.apiKeyFile ]
           ++ lib.optionals (cfg.backend.pollinations.apiKeyFile != null) [
             cfg.backend.pollinations.apiKeyFile
           ];
 
-        # Runtime directories
         RuntimeDirectory = "ai-inference";
         RuntimeDirectoryMode = "0755";
         CacheDirectory = "ai-inference";
         CacheDirectoryMode = "0755";
         LogsDirectory = "ai-inference";
 
-        # Security hardening
         NoNewPrivileges = true;
         ProtectSystem = "strict";
         ProtectHome = "read-only";
@@ -277,16 +234,13 @@ in
           "/tmp"
         ];
 
-        # Resource limits
         Restart = "on-failure";
         RestartSec = 5;
         LimitNOFILE = 65536;
         TimeoutStartSec = "300";
 
-        # Need kubectl for GPU scheduler comms
         Environment = [ "PATH=${gatewayPython}/bin:/run/current-system/sw/bin:/usr/bin:/bin" ];
       };
     };
   };
 }
-# force rebuild 5

@@ -1,9 +1,6 @@
-# Forge Service Configuration
-# Kubernetes worker, GPU mining proxy, NFS client, mining config
 { pkgs, lib, ... }:
 {
   services = {
-    # KUBERNETES - k3s agent (worker only)
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
@@ -14,21 +11,16 @@
       nodeIP = "10.1.1.130";
     };
 
-    # Spotify with SpotX patch
     spotify-spotx.enable = true;
 
-    # OpenCode - AI coding assistant
     opencode.enable = true;
 
-    # Mount /etc/nixos from zephyr (single-source-of-truth)
     nixos-share = {
       enable = true;
       client.enable = true;
     };
 
-    # Mining configuration - lolminer for NVIDIA and AMD GPUs
     mining.lolminer = {
-      # NVIDIA GPUs (2x RTX 4060) - MIGRATED TO KUBERNETES
       nvidia = {
         enable = false;
         autostart = false;
@@ -37,7 +29,6 @@
         memoryClockLock = 8501;
         apiPort = 4068;
       };
-      # AMD GPUs (RX 5700 XT) - NOW MANAGED BY K3S
       amd = {
         enable = false;
         autostart = false;
@@ -63,7 +54,6 @@
       ];
     };
 
-    # C++ GPU Stratum Proxy for CR29
     gpu-proxy-cpp = {
       enable = true;
       listenPort = 3334;
@@ -103,7 +93,6 @@
       ];
     };
 
-    # NFS Client - Mount shared storage from nexus
     nfs-client = {
       enable = true;
       mountShared = true;
@@ -111,13 +100,11 @@
       mountMedia = true;
     };
 
-    # Syncthing P2P file sync
     syncthing-cluster = {
       enable = true;
       deviceId = "FORGE-PLACEHOLDER";
     };
 
-    # Host Dashboard
     host-dashboard = {
       enable = true;
       role = "compute + mining";
@@ -149,7 +136,6 @@
       ];
     };
 
-    # NIXOS AUTO-UPDATE
     nixos-auto-update = {
       enable = true;
       interval = "daily";
@@ -157,30 +143,20 @@
       extraFlags = [ "--upgrade" ];
     };
 
-    # Unbound DNS
     unbound-common.enable = true;
 
-    # Agenix secrets
     agenix-secrets-registry = {
       enable = true;
       kubernetes = true;
     };
   };
 
-  # ============================================================================
-  # PACKAGES
-  # ============================================================================
   environment.systemPackages = with pkgs; [
     rocmPackages.rocm-smi
-    clinfo # For debugging OpenCL
-    # opencode now via home-manager
+    clinfo
   ];
 
-  # ============================================================================
-  # NIX-LD - For mining software compatibility
-  # ============================================================================
   programs.nix-ld.libraries = with pkgs; [
-    # AMD/ROCm libraries
     rocmPackages.clr
     rocmPackages.clr.icd
     rocmPackages.rocminfo
@@ -192,17 +168,14 @@
     rocmPackages.rocfft
     rocmPackages.rocrand
     rocmPackages.rocthrust
-    # OpenCL
     ocl-icd
     opencl-headers
     clinfo
-    # NVIDIA libraries
     libGL
     libGLU
     libglvnd
     vulkan-loader
     nvidia-vaapi-driver
-    # System libraries
     zlib
     libpng
     libjpeg

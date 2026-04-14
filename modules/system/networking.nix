@@ -1,4 +1,3 @@
-# Networking Module - DNS, Firewall, Analytics Blocking, Avahi
 {
   lib,
   pkgs,
@@ -6,22 +5,13 @@
   ...
 }:
 {
-  # ============================================================================
-  # NETWORKING - NetworkManager, DHCP, hosts, DNS, firewall
-  # ============================================================================
   networking = {
-    # Use NetworkManager for interface management
-    # NetworkManager handles both wired and wireless connections
-    # (wpa_supplicant wireless is not used - it conflicts with NetworkManager)
-    # Use mkDefault so cluster-networking can override for systemd-networkd
     networkmanager = {
       enable = lib.mkDefault true;
-      # Prepend local unbound so .lan domains resolve first
       insertNameservers = [ "127.0.0.1" "::1" ];
     };
     useDHCP = false;
 
-    # CLUSTER HOSTS ENTRIES (Shared across all nodes)
     hosts = {
       "10.1.1.110" = [ "zephyr" ];
       "10.1.1.120" = [ "nexus" "haven.lan" "haven.cluster.local" ];
@@ -29,14 +19,8 @@
       "10.1.1.140" = [ "sentry" ];
     };
 
-    # ANALYTICS & TELEMETRY BLOCKLIST
-    # Block VRChat, Unity, and HoYoverse analytics/telemetry for privacy
-    # Source: https://github.com/louisa-uno/VRChatAnalyticsBlocklist
     extraHosts = lib.mkOptionDefault ''
-      # VRChat Analytics Blocklist
-      # https://github.com/louisa-uno/VRChatAnalyticsBlocklist
 
-      # VRChat Specific (Proven to use/have used)
       0.0.0.0 api.amplitude.com
       0.0.0.0 api2.amplitude.com
       0.0.0.0 api.lab.amplitude.com
@@ -51,7 +35,6 @@
       0.0.0.0 info.amplitude.com
       0.0.0.0 static.amplitude.com
 
-      # Unity Specific
       0.0.0.0 api.uca.cloud.unity3d.com
       0.0.0.0 config.uca.cloud.unity3d.com
       0.0.0.0 perf-events.cloud.unity3d.com
@@ -61,20 +44,16 @@
       0.0.0.0 ecommerce.iap.unity3d.com
     '';
 
-    # Use local unbound as DNS resolver
     nameservers = [
       "127.0.0.1"
       "::1"
     ];
 
-    # FIREWALL (Base config - ports can be extended per-host)
-    # Uses mkOptionDefault so nodes can extend these without replacing them
     firewall = {
       enable = true;
-      # Base allowed ports - all hosts get these
       allowedTCPPorts = lib.mkOptionDefault [
-        22 # SSH (essential for cluster management)
-        6443 # Kubernetes API server (critical for cluster communication)
+        22
+        6443
       ];
       allowedUDPPorts = lib.mkOptionDefault [
         60001
@@ -82,18 +61,11 @@
         60003
         60004
         60005
-      ]; # Mosh (UDP range start)
-      # Additional ports can be added per-host in hosts/*/default.nix
-      # Note: ICMP (ping), loopback, and DNS are handled by the nftables
-      # firewall backend automatically. No extraCommands needed.
+      ];
     };
   };
 
-  # ============================================================================
-  # SERVICES - Avahi, Unbound DNS, Timesyncd, Tailscale
-  # ============================================================================
   services = {
-    # AVAHI (Device discovery - required for WiVRn on zephyr)
     avahi = {
       enable = true;
       nssmdns4 = true;
@@ -101,18 +73,13 @@
         enable = true;
         addresses = true;
         workstation = true;
-        # Allow user services (like WiVRn) to publish via Avahi
         userServices = true;
       };
-      # Security hardening: restrict to wired interfaces only
-      # All cluster nodes use 'lan0' for primary ethernet (see interface-naming.nix)
-      # During transition, also support legacy interface names (enp*, eno*)
-      # Override per-host with allowInterfaces/denyInterfaces if needed
       allowInterfaces = [
         "lan0"
         "enp*"
         "eno*"
-      ]; # All cluster nodes' primary ethernet (transition-friendly)
+      ];
       denyInterfaces = [
         "tailscale0"
         "wlan*"
@@ -120,7 +87,6 @@
         "virbr*"
         "wg*"
       ];
-      # Extra config for security hardening
       extraConfig = ''
         [wide-area]
         enable-wide-area=no
@@ -130,60 +96,18 @@
       '';
     };
 
-    # Unbound DNS resolver with TLS
-    # Only enable when unbound-cluster is NOT enabled (to avoid duplicate forward-zone)
-    # DISABLED: Using unbound-common.nix instead (2026-03-27)
-    # This was causing duplicate ExecStart directives in systemd unit
-    # unbound = lib.mkIf (!config.services.unbound-cluster.enable or false) {
-    #   enable = true;
-    #   settings = {
-    #     server = {
-    #       interface = [
-    #         "127.0.0.1"
-    #         "::1"
-    #       ];
-    #       port = 53;
-    #       access-control = [
-    #         "127.0.0.0/8 allow"
-    #         "::1/128 allow"
-    #         "10.1.1.0/24 allow" # Local network access
-    #       ];
-    #       do-tcp = true;
-    #       do-udp = true;
-    #       prefetch = true;
-    #       cache-min-ttl = 300; # 5 minutes minimum
-    #       cache-max-ttl = 86400; # 24 hours maximum
-    #       harden-glue = true;
-    #       harden-dnssec-stripped = true;
-    #       use-caps-for-id = false;
-    #       edns-buffer-size = 1232;
-    #       hide-identity = true;
-    #       hide-version = true;
-    #     };
-    #     stub-zone = [
-    #       {
-    #         name = "tigris-ule.ts.net";
-    #         stub-addr = "100.100.100.100";
-    #       }
-    #     ];
-    #   };
-    # };
 
-    # SYSTEMD-TIMESYNGD - Modern NTP Client
     timesyncd = {
       enable = true;
       servers = [
-        "time.cloudflare.com" # Cloudflare NTP (Anycast)
-        "time.google.com" # Google NTP (Anycast)
+        "time.cloudflare.com"
+        "time.google.com"
       ];
     };
 
-    # TAILSCALE VPN
     tailscale.enable = true;
   };
 
-  # Ensure avahi runtime directory exists and clean stale PID on start
-  # This makes the service idempotent during nixos-rebuild switch
   systemd.tmpfiles.rules = [
     "d /run/avahi-daemon 755 avahi avahi -"
   ];
@@ -191,54 +115,21 @@
     "${pkgs.coreutils}/bin/rm -f /run/avahi-daemon/pid"
   ];
 
-  # Don't let systemd-networkd-wait-online block boot
-  # We use NetworkManager, not systemd-networkd for network management
-  # Don't let systemd-networkd-wait-online block boot
-  # We use NetworkManager, not systemd-networkd for network management
-  # The wait-online service expects systemd-networkd to manage interfaces
   systemd.services.systemd-networkd-wait-online = {
     serviceConfig = {
-      # Override to not fail activation if it times out
       RemainAfterExit = true;
     };
   };
-  # Don't require systemd-networkd-wait-online for network-online.target
   systemd.targets.network-online.wantedBy = lib.mkForce [ "network-online.target" ];
 
-  # ============================================================================
-  # DNS SELF-HEALING
-  # Configure Unbound with automatic restart on failure
-  # ============================================================================
-  # DISABLED: Using unbound-common.nix instead (2026-03-27)
-  # This was causing duplicate systemd unit configuration
-  # systemd.services.unbound = lib.mkIf config.services.unbound.enable {
-  #   serviceConfig = {
-  #     Restart = lib.mkOptionDefault "always";  # Override upstream "on-failure"
-  #     RestartSec = lib.mkOptionDefault "5s";
-  #   };
-  # };
 
-  # ============================================================================
-  # FAIL2BAN CONFIGURATION
-  # NOTE: Fail2ban configuration moved to modules/system/security.nix
-  # This centralizes all security-related configurations
-  # ============================================================================
 
-  # ============================================================================
-  # TCP CONGESTION CONTROL — Google BBR
-  # Better throughput and latency for gaming, streaming, and bulk transfers.
-  # Used by Bazzite, CachyOS. BBR v1 is stable in mainline since 5.9.
-  # ============================================================================
   boot.kernel.sysctl = {
     "net.ipv4.tcp_congestion_control" = "bbr";
     "net.core.default_qdisc" = "fq";
   };
 
-  # ============================================================================
-  # STATUS INDICATOR
-  # =============================================================================
 
-  # Mark that analytics blocklist is active
   environment.etc."analytics-blocklist-active".text = ''
     Analytics & Telemetry Blocklist is active.
     Blocked domains are redirected to 0.0.0.0 in /etc/hosts.

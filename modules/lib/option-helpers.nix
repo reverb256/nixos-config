@@ -1,5 +1,3 @@
-# NixOS option definition helpers
-# Reduces boilerplate for common option patterns
 {
   lib,
   types,
@@ -8,7 +6,6 @@
   /*
   Create a boolean enable option (standard pattern)
 
-  # Example
   mkEnableOption "My service"
   */
   inherit (lib) mkEnableOption;
@@ -16,8 +13,7 @@
   /*
   Create a port option with type checking
 
-  # Example
-  mkPortOption 8080  # Default port 8080
+  mkPortOption 8080
   */
   mkPortOption = default: {
     type = types.port;
@@ -27,7 +23,6 @@
   /*
   Create a string option with default value
 
-  # Example
   mkStringOption "default-value"
   */
   mkStringOption = default: {
@@ -38,7 +33,6 @@
   /*
   Create a path option with default value
 
-  # Example
   mkPathOption "/var/lib/my-service"
   */
   mkPathOption = default: {
@@ -49,7 +43,6 @@
   /*
   Create an optional string/path option (nullOr)
 
-  # Example
   mkOptionalStringOption
   mkOptionalPathOption
   */
@@ -66,7 +59,6 @@
   /*
   Create a list option with element type
 
-  # Example
   mkListOption types.str [ "item1" "item2" ]
   */
   mkListOption = elemType: default: {
@@ -77,7 +69,6 @@
   /*
   Create a submodule option (for nested configurations)
 
-  # Example
   mkSubmoduleOption (submodule: {
     options.foo = mkOptionOption "bar";
   })
@@ -89,7 +80,6 @@
   /*
   Create a package option
 
-  # Example
   mkPackageOption pkgs.hello
   */
   mkPackageOption = default: {
@@ -101,13 +91,11 @@
   Common port range definitions
   */
   portRanges = {
-    # ephemeral ports
     ephemeral = {
       min = 32768;
       max = 60999;
     };
 
-    # service ports
     service = {
       min = 1024;
       max = 49151;

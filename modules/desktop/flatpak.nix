@@ -1,5 +1,3 @@
-# Flatpak Support for KDE Plasma
-# Enables Flatpak with Discover integration and Flathub remote
 {
   config,
   lib,
@@ -34,24 +32,17 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # Enable the Flatpak service
     services.flatpak.enable = true;
 
-    # Install Discover with Flatpak backend
     environment.systemPackages = with pkgs; [
-      # Flatpak support
       flatpak
 
-      # KDE Discover (includes Flatpak backend when Flatpak is enabled)
       kdePackages.discover
 
-      # Portal backends for proper Flatpak integration
       xdg-desktop-portal
       xdg-desktop-portal-gtk
     ];
 
-    # Configure xdg-desktop-portal for KDE
-    # Note: KDE portal (xdg-desktop-portal-kde) is included in plasma6.nix
     xdg.portal = {
       enable = true;
       xdgOpenUsePortal = true;
@@ -60,14 +51,11 @@ in {
       ];
     };
 
-    # Add Flathub remote via activation script
     system.activationScripts.flatpak-setup = ''
       echo "Setting up Flatpak remotes..."
-      # Add Flathub if not already present
       ${pkgs.flatpak}/bin/flatpak remote-list --system | grep -q flathub || \
         ${pkgs.flatpak}/bin/flatpak remote-add --if-not-exists --system flathub https://flathub.org/repo/flathub.flatpakrepo
 
-      # Add extra remotes
       ${lib.concatMapStrings (remote: ''
           ${pkgs.flatpak}/bin/flatpak remote-list --system | grep -q ${remote.name} || \
             ${pkgs.flatpak}/bin/flatpak remote-add --if-not-exists --system ${remote.name} ${remote.location}
@@ -75,7 +63,6 @@ in {
         cfg.extraRemotes}
     '';
 
-    # Polkit rules for Flatpak system-wide operations
     environment.etc."polkit-1/rules.d/org.flathub.flatpak.rules".text = ''
       // Allow users to manage Flatpak installations without password
       polkit.addRule(function(action, subject) {
@@ -87,7 +74,6 @@ in {
       });
     '';
 
-    # Update Flatpak weekly
     systemd.timers.flatpak-update = mkIf cfg.autoUpdate {
       description = "Flatpak update timer";
       wantedBy = ["timers.target"];
@@ -107,8 +93,6 @@ in {
         ExecStart = lib.getExe pkgs.flatpak + " update --assumeyes";
         User = "root";
       };
-      # Trigger SpotX patching after Flatpak updates
-      # SpotX will run after flatpak-update completes (see spotx-patch.service After=)
     };
   };
 }

@@ -1,5 +1,3 @@
-# Service Health Check Module
-# Provides health check endpoints for critical services
 {
   config,
   lib,
@@ -57,10 +55,8 @@ in {
 
   config =
     lib.mkIf cfg.enable {
-      # Health check script for AI Gateway
       environment.etc."health-checks/ai-gateway.sh".text = ''
         #!/bin/sh
-        # Health check for AI Inference Gateway
         GATEWAY_URL="http://127.0.0.1:8080/health"
         TIMEOUT=5
 
@@ -73,10 +69,8 @@ in {
         fi
       '';
 
-      # Health check script for Mining Proxy
       environment.etc."health-checks/mining-proxy.sh".text = ''
         #!/bin/sh
-        # Health check for Mining Proxy
         PROXY_URL="http://127.0.0.1:3334/api/health"
         TIMEOUT=5
 
@@ -89,7 +83,6 @@ in {
         fi
       '';
 
-      # Create systemd service and timer for health checks
     }
     // (systemd-helpers.mkTimerService {
       name = "health-checker";
@@ -99,20 +92,18 @@ in {
         #!/bin/sh
         mkdir -p /var/lib/health-checks
 
-        # AI Gateway health check
         if ${pkgs.curl}/bin/curl -f -s --max-time 5 http://127.0.0.1:8080/health >/dev/null 2>&1; then
           echo "ai_gateway_health 1" > /var/lib/health-checks/ai-gateway.prom
         else
           echo "ai_gateway_health 0" > /var/lib/health-checks/ai-gateway.prom
         fi
 
-        # Mining Proxy health check
         if ${pkgs.curl}/bin/curl -f -s --max-time 5 http://127.0.0.1:3334/api/health >/dev/null 2>&1; then
           echo "mining_proxy_health 1" > /var/lib/health-checks/mining-proxy.prom
         else
           echo "mining_proxy_health 0" > /var/lib/health-checks/mining-proxy.prom
         fi
       '';
-      startAt = "*:*:0/5"; # Every 5 minutes
+      startAt = "*:*:0/5";
     });
 }

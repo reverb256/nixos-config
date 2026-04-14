@@ -1,8 +1,3 @@
-# Pi Coding Agent config generator
-# Generates: ~/.pi/agent/models.json and ~/.pi/agent/settings.json
-#
-# Pi uses its own provider schema (separate from OpenCode/Crush) with
-# detailed model metadata including context window and cost info.
 { cfg, pkgs }:
 let
   gatewayUrl = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080";
@@ -191,7 +186,6 @@ in
           }
         }
       }' > "/home/${cfg.user}/.pi/agent/models.json"
-    # Build settings.json with model config + declarative packages
     ${pkgs.jq}/bin/jq -n \
       --argjson packages '${builtins.toJSON cfg.tools.pi.packages}' \
       '{

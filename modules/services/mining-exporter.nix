@@ -1,5 +1,3 @@
-# Mining Metrics Exporter for Prometheus
-# Exports lolminer and xmrig metrics for cluster monitoring
 {
   config,
   lib,
@@ -16,7 +14,6 @@ let
 
   cfg = config.services.mining-exporter;
 
-  # Python HTTP server script for serving metrics with correct Content-Type
   httpServerScript = pkgs.writeText "mining-exporter-http-server.py" ''
     import http.server
     import socketserver
@@ -30,7 +27,6 @@ let
         def do_GET(self):
             if self.path == '/metrics':
                 self.send_response(200)
-                # Prometheus requires text/plain Content-Type
                 self.send_header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
                 self.end_headers()
                 if os.path.exists(METRICS_FILE):
@@ -41,16 +37,13 @@ let
                 self.end_headers()
 
         def log_message(self, format, *args):
-            # Suppress access logs to reduce journal spam
             pass
 
-    # Allow port reuse to avoid "Address already in use" on rapid restarts
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("", PORT), MetricsHandler) as httpd:
         httpd.serve_forever()
   '';
 
-  # Mining configuration per host
   hosts = {
     zephyr = {
       nvidia = true;
@@ -120,20 +113,17 @@ in
           METRICS_DIR="/run/prometheus-mining-exporter"
           cd "$METRICS_DIR"
 
-          # Helper to escape labels
           escape_label() {
             ${pkgs.gnused}/bin/sed 's/"/\\"/g; s/[^a-zA-Z0-9:_]/_/g'
           }
 
           HOST_LABEL="'$(echo "$HOSTNAME" | escape_label):${toString cfg.port}'"
 
-          # Temporary file for accumulating metrics
           METRICS_FILE="$METRICS_DIR/metrics.tmp"
 
-          # Fetch lolminer metrics (appends to METRICS_FILE)
           fetch_lolminer() {
             local port=$1
-            local gpu_type=$2  # nvidia or amd
+            local gpu_type=$2
 
             if ! ${pkgs.curl}/bin/curl -s http://localhost:"$port" > /tmp/lolminer_"$gpu_type".json 2>/dev/null; then
               return
@@ -176,7 +166,6 @@ in
             } >> "$METRICS_FILE"
           }
 
-          # Fetch xmrig metrics (appends to METRICS_FILE)
           fetch_xmrig() {
             local port=$1
 
@@ -208,8 +197,6 @@ in
             } >> "$METRICS_FILE"
           }
 
-          # Main polling loop
-          # Conditionally fetch metrics based on what's configured for this host
           ${lib.optionalString (hostConfig ? lolminerPort) ''
             fetch_lolminer ${toString (hostConfig.lolminerPort or 4068)} "nvidia" &
           ''}
@@ -221,10 +208,8 @@ in
           ''}
           wait
 
-            # Expose metrics via HTTP server
             ${pkgs.python3}/bin/python3 ${httpServerScript} ${toString cfg.port} "$METRICS_FILE"
 
-            # Sleep until next scrape
             sleep "$INTERVAL_SECONDS"
           done
         '';
@@ -235,7 +220,6 @@ in
           pkgs.gnused
           pkgs.coreutils
         ];
-        # Security hardening
         StandardError = "journal";
         NoNewPrivileges = true;
         PrivateTmp = true;
@@ -247,7 +231,6 @@ in
       };
     };
 
-    # Use firewall helper to open ports
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ cfg.port ];
     networking.firewall.interfaces."tailscale0".allowedTCPPorts = [ cfg.port ];
   };

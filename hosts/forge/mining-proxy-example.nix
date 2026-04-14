@@ -1,11 +1,7 @@
-# Example Mining Proxy Configuration
-# For multi-algorithm support (GPU + CPU)
 _: {
   services.mining-proxy = {
     enable = true;
 
-    # Pool failover configuration
-    # IMPORTANT: Replace URLs and configure your own pool credentials
     pools = [
       {
         name = "your-pool-primary";
@@ -21,8 +17,6 @@ _: {
       }
     ];
 
-    # GPU workers (Forge, Zephyr, Nexus)
-    # Configure worker IDs and passwords for your mining setup
     workers = [
       {
         id = "forge-nvidia-gpu0";
@@ -50,7 +44,7 @@ _: {
       }
     ];
 
-    listenPort = 3334; # Different from xmrig-proxy
+    listenPort = 3334;
     apiPort = 8082;
   };
 }

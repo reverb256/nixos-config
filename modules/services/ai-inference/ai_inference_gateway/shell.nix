@@ -1,4 +1,3 @@
-# Nix shell for Knowledge Fabric testing environment
 {pkgs ? import <nixpkgs> {}}:
 pkgs.mkShell {
   buildInputs = with pkgs.python313Packages; [

@@ -1,4 +1,3 @@
-# modules/profiles/hardware/implementations.nix --- Hardware profile implementations
 {
   config,
   lib,
@@ -48,9 +47,6 @@ in
         kernelModules = [ "amdgpu" ];
         initrd.kernelModules = [ "amdgpu" ];
       };
-      # Note: hardware.amdgpu.wayland option removed in newer nixpkgs
-      # Using direct amdgpu module configuration instead
-      # Enable ROCm OpenCL for compute workloads
       hardware.amdgpu.opencl.enable = true;
     })
 
@@ -63,8 +59,6 @@ in
           NCCL_IB_DISABLE = "1";
           NCCL_ALGO = "Tree";
         })
-        # AMDGPU Wayland-specific environment vars removed
-        # (hardware.amdgpu.wayland option no longer exists)
       ];
     })
 

@@ -1,10 +1,3 @@
-# AI Inference Service - Option Declarations
-#
-# This module defines all options for services.ai-inference.
-# The config implementation lives in default.nix.
-#
-# Separating options from config makes the module interface (options surface,
-# types, defaults, descriptions) easy to review without reading implementation.
 {
   config,
   lib,
@@ -20,7 +13,6 @@ let
     literalExpression
     ;
 
-  # Python package for the gateway (with RAG dependencies)
   gatewayEnv = pkgs.python3.withPackages (ps: [
     ps.fastapi
     ps.uvicorn
@@ -38,7 +30,6 @@ let
   ]);
 in
 {
-  # Import submodules at module level
   imports = [
     ./gateway.nix
     ./router.nix
@@ -51,7 +42,6 @@ in
   options.services.ai-inference = {
     enable = mkEnableOption "AI Inference Service (integrates with LM Studio)";
 
-    # Python package for the gateway
     package = mkOption {
       type = types.package;
       default = gatewayEnv;
@@ -60,7 +50,6 @@ in
       readOnly = true;
     };
 
-    # Backend configuration
     backend = {
       url = mkOption {
         type = types.str;
@@ -80,7 +69,6 @@ in
         description = "Backend inference engine type";
       };
 
-      # ZAI-specific configuration
       zai = {
         enable = mkOption {
           type = types.bool;
@@ -107,7 +95,6 @@ in
           description = "ZAI API base URL (matches OpenCode configuration)";
         };
 
-        # Advanced retry configuration
         maxRetries = mkOption {
           type = types.int;
           default = 3;
@@ -161,7 +148,6 @@ in
         };
       };
 
-      # NVIDIA NIM configuration
       nvidia-nim = {
         enable = mkOption {
           type = types.bool;
@@ -210,7 +196,6 @@ in
         };
       };
 
-      # Local llama-cpp backend
       local = {
         url = mkOption {
           type = types.str;
@@ -224,7 +209,6 @@ in
         };
       };
 
-      # Pollinations-specific configuration
       pollinations = {
         enable = mkOption {
           type = types.bool;
@@ -251,7 +235,6 @@ in
           description = "Pollinations API base URL";
         };
 
-        # Available models on Pollinations
         models = mkOption {
           type = types.attrs;
           default = {
@@ -276,14 +259,12 @@ in
       };
     };
 
-    # SearXNG integration
     searxngUrl = mkOption {
       type = types.str;
       default = "http://10.0.0.102:8080";
       description = "SearXNG URL for knowledge fabric integration";
     };
 
-    # API Gateway configuration
     gateway = {
       enable = mkOption {
         type = types.bool;
@@ -316,7 +297,6 @@ in
         internal = true;
       };
 
-      # Middleware configuration
       middleware = {
         redis = {
           enable = mkOption {
@@ -420,7 +400,6 @@ in
       };
     };
 
-    # Model routing configuration
     routing = {
       enable = mkOption {
         type = types.bool;
@@ -494,7 +473,6 @@ in
       };
     };
 
-    # Authentication configuration
     auth = {
       mode = mkOption {
         type = types.enum [
@@ -527,7 +505,6 @@ in
       };
     };
 
-    # Monitoring configuration
     monitoring = {
       enable = mkOption {
         type = types.bool;
@@ -542,7 +519,6 @@ in
       };
     };
 
-    # Rate limiting
     rateLimit = {
       enable = mkOption {
         type = types.bool;
@@ -557,7 +533,6 @@ in
       };
     };
 
-    # System Prompts Configuration
     systemPrompts = {
       enable = mkEnableOption "Custom system prompts for different request types";
 
@@ -610,7 +585,6 @@ in
       };
     };
 
-    # MCP Broker configuration
     mcp = {
       enable = mkEnableOption "MCP broker for aggregating tools from multiple MCP servers";
 
@@ -680,7 +654,6 @@ in
       };
     };
 
-    # Security options
     security = {
       maxRequestSize = mkOption {
         type = types.int;
@@ -695,7 +668,6 @@ in
       };
     };
 
-    # RAG configuration
     rag = {
       enable = mkEnableOption "RAG (Retrieval Augmented Generation) with hybrid search";
 
@@ -843,7 +815,6 @@ in
       };
     };
 
-    # Sentry error tracking
     sentry = {
       enable = mkOption {
         type = types.bool;

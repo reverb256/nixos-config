@@ -1,7 +1,3 @@
-# AI Inference Service - Configuration Assertions
-#
-# Validates that the AI inference configuration is consistent
-# before applying any config. Assertions fail with actionable messages.
 { config, lib, pkgs, ... }:
 let
   cfg = config.services.ai-inference;
@@ -18,8 +14,8 @@ in
             services.ai-inference.backend.url = "${cfg.backend.url}"
 
           Configure a backend URL in one of these ways:
-            services.ai-inference.backend.url = "http://127.0.0.1:1234";  # LM Studio
-            services.ai-inference.backend.url = "http://127.0.0.1:8080";  # Gateway
+            services.ai-inference.backend.url = "http://127.0.0.1:1234";
+            services.ai-inference.backend.url = "http://127.0.0.1:8080";
         '';
       }
       {
@@ -30,7 +26,6 @@ in
 
           When services.ai-inference.backend.zai.enable is true, you must configure:
             services.ai-inference.backend.zai.apiKey = "your-api-key";
-            # OR
             services.ai-inference.backend.zai.apiKeyFile = /run/agenix/zai-api-key;
 
           Current configuration:
@@ -49,7 +44,6 @@ in
 
           When using ZAI backend, configure an API key:
             services.ai-inference.backend.zai.apiKey = "your-zai-api-key";
-            # OR
             services.ai-inference.backend.zai.apiKeyFile = /run/agenix/zai-api-key;
 
           Current configuration:

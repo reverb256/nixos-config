@@ -1,20 +1,17 @@
-# Monitoring Infrastructure Modules
-# Prometheus, Grafana, and exporters for cluster observability
 { ... }:
 {
   imports = [
     ./prometheus.nix
     ./alertmanager.nix
-    ./alert-webhook.nix # Local webhook receiver (no auth required)
-    ./grafana-v2.nix # New modular dashboard system
-    ./alert-rules.nix # Cluster alert rules
+    ./alert-webhook.nix
+    ./grafana-v2.nix
+    ./alert-rules.nix
     ./node-exporter.nix
     ./nfs-exporter.nix
     ./redis-exporter.nix
     ./smart-exporter.nix
     ./loki.nix
-    # ./promtail.nix  # promtail EOL, needs migration to grafana-alloy # Log aggregation to Loki
-    ./system-tools.nix # CLI monitoring tools (htop, iotop, nethogs, sysstat)
-    ./xmrig-metrics.nix # XMRig miner metrics -> node-exporter textfile collector
+    ./system-tools.nix
+    ./xmrig-metrics.nix
   ];
 }

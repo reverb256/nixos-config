@@ -1,5 +1,3 @@
-# NetworkManager DNS Configuration Module
-# Configures NetworkManager to use local unbound DNS and sets interface priorities
 { config
 , lib
 , pkgs
@@ -37,9 +35,7 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # Configure NetworkManager DNS
     networking.networkmanager = {
-      # Ensure DNS doesn't get overridden by DHCP
       dns = "default";
     };
 

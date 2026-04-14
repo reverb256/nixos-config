@@ -1,20 +1,14 @@
-# Network Constants Module
-# Centralized network configuration for all cluster hosts
-# This eliminates hardcoded IPs scattered across host configurations
 {lib, ...}: {
   options.networking.cluster = lib.mkOption {
     type = lib.types.attrs;
     default = {
-      # Cluster network configuration
       subnet = "10.1.1.0/24";
       gateway = "10.1.1.1";
       dns = [
-        "127.0.0.1" # Local Unbound resolver (now with proper DoT)
+        "127.0.0.1"
         "::1"
       ];
 
-      # Host definitions with IPs and roles
-      # Note: Interfaces are auto-detected by NetworkManager (not hardcoded)
       hosts = {
         zephyr = {
           ip = "10.1.1.110";
@@ -28,7 +22,6 @@
             "build"
             "ai"
           ];
-          # Advertises subnet route on Tailscale (gateway for cluster)
           advertiseRoutes = ["10.1.1.0/24"];
         };
 
@@ -44,7 +37,6 @@
             "build"
             "storage"
           ];
-          # Does not advertise routes (zephyr handles that)
           advertiseRoutes = [];
         };
 
@@ -56,7 +48,6 @@
             "mining"
             "build"
           ];
-          # Advertises subnet route on Tailscale (backup gateway)
           advertiseRoutes = ["10.1.1.0/24"];
         };
 
@@ -68,29 +59,23 @@
             "monitoring"
             "build"
           ];
-          # Advertises subnet route on Tailscale (backup gateway)
           advertiseRoutes = ["10.1.1.0/24"];
         };
       };
 
-      # Tailscale network configuration
       tailscale = {
         domain = "tigris-ule.ts.net";
         dnsServer = "100.100.100.100";
       };
 
-      # Common ports used across the cluster
       ports = {
-        # WiVRn VR streaming
         wivrn-tcp = 9757;
         wivrn-udp-start = 9757;
         wivrn-udp-end = 9760;
 
-        # MCP/AI services (Tailscale only)
         mcp-api = 18789;
         mcp-storage = 18790;
 
-        # Steam
         steam-tcp = [
           27031
           27036
@@ -100,36 +85,29 @@
           27036
         ];
 
-        # mDNS
         mdns = 5353;
 
-        # LocalSend
         localsend = 53317;
 
-        # Mining API (localhost only)
         xmrig-api = 8081;
         lolminer-nvidia-api = 4068;
         lolminer-amd-api = 4069;
 
-        # Nix cache
         nix-cache = 8080;
 
-        # Monitoring
         prometheus = 9090;
         alertmanager = 9093;
         grafana = 3001;
         node-exporter = 9100;
         nvidia-exporter = 9400;
 
-        # Kubernetes Ingress (Caddy)
-        caddy-admin = 2019; # Admin API & metrics
+        caddy-admin = 2019;
         caddy-http = 80;
         caddy-https = 443;
         caddy-nodeport-http = 30080;
         caddy-nodeport-https = 30443;
       };
 
-      # Kubernetes HA Virtual IP (via Keepalived VRRP)
       kubernetes = {
         vip = "10.1.1.100";
         apiPort = 6443;
@@ -139,6 +117,4 @@
     readOnly = true;
   };
 
-  # Note: Access current host's config directly via config.networking.cluster.hosts.${config.networking.hostName}
-  # The currentHost convenience option was removed to prevent infinite recursion
 }

@@ -1,5 +1,3 @@
-# OpenCode Configuration Module
-# Provides dynamic model synchronization from AI Gateway
 {
   config,
   lib,
@@ -17,7 +15,6 @@
     optionalString
     ;
 
-  # Update script wrapper
   updateScript = pkgs.writeShellApplication {
     name = "opencode-model-update";
     runtimeInputs = with pkgs; [
@@ -29,7 +26,6 @@
     text = ''
       set -euo pipefail
 
-      # Configuration
       GATEWAY_URL="${cfg.gatewayUrl}"
       UPDATE_SCRIPT="${cfg.updateScriptPath}"
       USER="${cfg.user}"
@@ -38,7 +34,6 @@
       echo "Gateway: $GATEWAY_URL"
       echo "Started at: $(date)"
 
-      # Wait for gateway to be ready
       echo "Waiting for gateway..."
       for i in {1..30}; do
         if curl -sf "$GATEWAY_URL/health" >/dev/null 2>&1; then
@@ -52,7 +47,6 @@
         sleep 1
       done
 
-      # Run the Python update script
       echo "Fetching models from gateway..."
       if [ -f "$UPDATE_SCRIPT" ]; then
         if python3 "$UPDATE_SCRIPT" "$@" 2>&1; then
@@ -72,14 +66,12 @@ in {
   options.services.opencode = {
     enable = mkEnableOption "OpenCode with dynamic model synchronization from AI Gateway";
 
-    # User configuration
     user = mkOption {
       type = types.str;
       default = "j_kro";
       description = "User to run OpenCode as";
     };
 
-    # Gateway configuration
     gatewayUrl = mkOption {
       type = types.str;
       default = "http://127.0.0.1:8080";
@@ -98,7 +90,6 @@ in {
       description = "Gateway port for OpenCode provider config";
     };
 
-    # Model sync configuration
     autoSync = {
       enable = mkOption {
         type = types.bool;
@@ -119,14 +110,12 @@ in {
       };
     };
 
-    # Update script path
     updateScriptPath = mkOption {
       type = types.str;
       default = "/etc/nixos/scripts/update-opencode-models.py";
       description = "Path to the model update Python script";
     };
 
-    # Cluster sync configuration
     clusterSync = {
       enable = mkOption {
         type = types.bool;
@@ -147,7 +136,6 @@ in {
       };
     };
 
-    # Fallback ZAI provider (when gateway is unavailable)
     zai = {
       enable = mkOption {
         type = types.bool;
@@ -168,7 +156,6 @@ in {
       };
     };
 
-    # Pollinations provider (free alternative)
     pollinations = {
       enable = mkOption {
         type = types.bool;
@@ -183,7 +170,6 @@ in {
       };
     };
 
-    # Static category overrides (when dynamic sync isn't enough)
     categoryOverrides = mkOption {
       type = types.attrsOf types.str;
       default = {};
@@ -194,7 +180,6 @@ in {
       description = "Static model overrides for specific categories (overrides dynamic discovery)";
     };
 
-    # oh-my-opencode plugin configuration
     ohMyOpencode = {
       enable = mkOption {
         type = types.bool;
@@ -202,30 +187,19 @@ in {
         description = "Enable oh-my-opencode plugin for category-based model selection";
       };
 
-      # Default model selection priorities
       defaultPriorities = mkOption {
         type = types.attrsOf types.int;
         default = {
-          # 35B A3B Opus - highest priority
           "35b-a3b-opus" = 100;
-          # 27B Opus
           "27b-opus" = 95;
-          # 35B A3B
           "35b-a3b" = 90;
-          # 18B Reap/Coding
           "18b-reap" = 85;
           "18b-coding" = 84;
-          # 14B Opus
           "14b-opus" = 80;
-          # 9B Opus
           "9b-opus" = 75;
-          # 9B general
           "9b" = 60;
-          # 4B
           "4b" = 40;
-          # 0.8B - fastest
           "0.8b" = 30;
-          # 2B
           "2b" = 20;
         };
         description = "Priority scores for automatic default model selection";
@@ -244,28 +218,23 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # Environment variables for OpenCode
     environment.sessionVariables = {
       OPENCODE_MCP_SCHEMA_FIX = "1";
       OPENCODE_TOOL_STRUCTURED_OUTPUT = "1";
       OPENCODE_PATH_FIX = "1";
-      # Gateway URL for OpenCode provider
       OPENCODE_GATEWAY_URL = "${cfg.gatewayUrl}";
     };
 
-    # System packages for OpenCode management
     environment.systemPackages = with pkgs; [
       updateScript
       (pkgs.writeShellScriptBin "opencode-sync" ''
         #!/bin/bash
-        # Manual trigger for OpenCode model sync
         echo "=== OpenCode Model Sync ==="
         systemctl start opencode-model-update.service
         journalctl -u opencode-model-update.service -n 50 --no-pager
       '')
       (pkgs.writeShellScriptBin "opencode-status" ''
         #!/bin/bash
-        # Show OpenCode configuration status
         echo "=== OpenCode Status ==="
         echo ""
         echo "Gateway:"
@@ -288,7 +257,6 @@ in {
       '')
     ];
 
-    # Create config directories
     systemd.tmpfiles.rules = [
       "d /home/${cfg.user}/.config 0755 ${cfg.user} users -"
       "d /home/${cfg.user}/.config/opencode 0755 ${cfg.user} users -"
@@ -296,12 +264,9 @@ in {
       "d /root/.config/opencode 0755 root root -"
     ];
 
-    # Systemd service for one-time model update
-    # Note: Gateway runs in Kubernetes, not as systemd service
-    # This service may need to be updated to wait for the K8s gateway instead
     systemd.services.opencode-model-update = {
       description = "OpenCode Model Synchronization Service";
-      after = ["network.target"]; # Gateway moved to K8s
+      after = ["network.target"];
       wants = optional cfg.autoSync.onGatewayStart "network-online.target";
 
       serviceConfig = {
@@ -310,55 +275,46 @@ in {
         User = "root";
         Group = "root";
 
-        # Security
         NoNewPrivileges = true;
         PrivateTmp = true;
-        ProtectSystem = "yes"; # Allow read from /etc, /usr, /boot but not write
+        ProtectSystem = "yes";
         ProtectHome = "read-write";
         ReadWritePaths = [
           "/home/${cfg.user}/.config/opencode"
           "/root/.config/opencode"
         ];
-        # Allow reading the update script and agenix secrets (if they exist)
         ReadOnlyPaths = [
           "/etc/nixos/scripts"
-          "/run/agenix"  # Optional: only exists on nodes with agenix secrets
+          "/run/agenix"
         ];
 
-        # Make /run/agenix optional (don't fail if missing)
         BindPaths = lib.mkIf (config.age ? secrets) [
           "/run/agenix"
         ];
 
-        # Logging
         StandardOutput = "journal";
         StandardError = "journal";
 
-        # Timeouts
-        TimeoutStartSec = "120"; # 2 minutes for gateway + model fetch
+        TimeoutStartSec = "120";
       };
     };
 
-    # Systemd timer for periodic updates
     systemd.timers.opencode-model-update = mkIf cfg.autoSync.enable {
       description = "OpenCode Model Synchronization Timer";
       wantedBy = ["timers.target"];
       partOf = ["opencode-model-update.service"];
       timerConfig = {
-        OnBootSec = "30s"; # Run 30s after boot
+        OnBootSec = "30s";
         OnUnitActiveSec = cfg.autoSync.interval;
         AccuracySec = "1s";
         Persistent = true;
       };
     };
 
-    # Initial config generation (fallback if service fails)
     system.activationScripts.opencodeConfig = ''
-      # Ensure directories exist
       mkdir -p /home/${cfg.user}/.config/opencode
       mkdir -p /root/.config/opencode
 
-      # Check if config exists, if not create minimal fallback
       if [ ! -f /home/${cfg.user}/.config/opencode/opencode.json ]; then
         echo "Creating minimal OpenCode configuration..."
         cat > /home/${cfg.user}/.config/opencode/opencode.json <<EOF
@@ -388,10 +344,8 @@ in {
       }
       EOF
 
-        # Copy to root
         cp /home/${cfg.user}/.config/opencode/opencode.json /root/.config/opencode/opencode.json
 
-        # Set permissions
         chown -R ${cfg.user}:users /home/${cfg.user}/.config/opencode
         chmod 644 /home/${cfg.user}/.config/opencode/*.json
         chmod 644 /root/.config/opencode/*.json
@@ -401,14 +355,11 @@ in {
       fi
     '';
 
-    # Cluster sync (only on zephyr)
     system.activationScripts.opencodeSync = lib.mkAfter (
       optionalString cfg.clusterSync.enable ''
-        # Only run on zephyr (main node)
         if [ "$(/run/current-system/sw/bin/hostname)" = "zephyr" ]; then
           echo "Checking opencode configuration sync to cluster nodes..."
 
-          # Only sync if we have a valid config
           if [ -f /home/${cfg.user}/.config/opencode/opencode.json ]; then
             for node in ${lib.concatStringsSep " " cfg.clusterSync.nodes}; do
               if /run/current-system/sw/bin/ssh -o ConnectTimeout=5 ${cfg.clusterSync.sshUser}@$node "test -d /home/${cfg.clusterSync.sshUser}/.config" 2>/dev/null; then

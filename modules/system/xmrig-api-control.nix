@@ -1,5 +1,3 @@
-# XMRig HTTP API Control Module
-# Provides helper functions for pause/resume/thread control via HTTP API
 {
   config,
   lib,
@@ -7,14 +5,9 @@
   ...
 }: {
   config = lib.mkIf (config.services.mining-coordinator.enable or false) {
-    # Create a helper script for XMRig API control
     environment.systemPackages = [
       (pkgs.writeShellScriptBin "xmrig-api-control" ''
-        # XMRig HTTP API Control Helper
-        # Usage: xmrig-api-control {pause|resume|status|threads <count>} [instance]
-        #   instance: "always" (default) or "flexible"
 
-        # Default to always-on instance if not specified
         XMRIG_INSTANCE="''${1:-always}"
         shift 2>/dev/null || true
 
@@ -23,7 +16,6 @@
                 INSTANCE="$XMRIG_INSTANCE"
                 ;;
             pause|resume|status|threads)
-                # Old syntax: command first, then instance
                 INSTANCE="always"
                 set -- "$XMRIG_INSTANCE" ''${@}
                 ;;
@@ -34,7 +26,6 @@
                 ;;
         esac
 
-        # Configure based on instance
         case "$INSTANCE" in
             always)
                 XMRIG_API_PORT="8081"
@@ -54,7 +45,6 @@
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >&2
         }
 
-        # Call XMRig API with authentication
         xmrig_api() {
             local endpoint="$1"
             local data="$2"
@@ -91,7 +81,6 @@
             fi
         }
 
-        # Get current XMRig status (paused or running)
         xmrig_status() {
             if [ ! -r "$XMRIG_API_TOKEN_FILE" ]; then
                 echo "unknown"
@@ -118,14 +107,12 @@
             fi
         }
 
-        # Main command handling
         COMMAND="$1"
         shift 2>/dev/null || true
 
         case "$COMMAND" in
             pause)
                 if systemctl is-active --quiet "$XMRIG_SERVICE"; then
-                    # XMRig v2 API: use /2/control with pause command
                     xmrig_api "/2/control" "{\"command\":\"pause\"}" && echo "XMRig [$INSTANCE] paused" || echo "Failed to pause [$INSTANCE]"
                 else
                     echo "XMRig [$INSTANCE] not running"
@@ -133,7 +120,6 @@
                 ;;
             resume)
                 if systemctl is-active --quiet "$XMRIG_SERVICE"; then
-                    # XMRig v2 API: use /2/control with resume command
                     xmrig_api "/2/control" "{\"command\":\"resume\"}" && echo "XMRig [$INSTANCE] resumed" || echo "Failed to resume [$INSTANCE]"
                 else
                     echo "XMRig [$INSTANCE] not running, starting..."
@@ -149,7 +135,6 @@
                     exit 1
                 fi
                 if systemctl is-active --quiet "$XMRIG_SERVICE"; then
-                    # XMRig v1 API: use /1/threads to set thread count
                     xmrig_api "/1/threads" "{\"threads_count\": $1}" && echo "XMRig [$INSTANCE] threads set to $1" || echo "Failed to set threads [$INSTANCE]"
                 else
                     echo "XMRig [$INSTANCE] not running"
@@ -164,7 +149,6 @@
       '')
     ];
 
-    # Create runtime directory for API control
     systemd.tmpfiles.rules = [
       "d /run/xmrig-api 0755 root root - -"
     ];

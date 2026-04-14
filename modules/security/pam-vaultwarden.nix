@@ -1,5 +1,3 @@
-# Vaultwarden PAM Authentication Module
-# Allows system authentication using Vaultwarden credentials
 {
   config,
   lib,
@@ -34,7 +32,6 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # Install the authentication script
     environment.etc."pam-vaultwarden/auth.py".source = pkgs.writeScript "pam-vaultwarden-auth.py" ''
       #!${pkgs.python3}/bin/python3
       import sys
@@ -129,14 +126,11 @@ in {
           main()
     '';
 
-    # Configure PAM services
     security.pam.services = lib.listToAttrs (map (service: {
         name = service;
         value = {
           rules = lib.mkBefore [
             {
-              # Vaultwarden authentication (sufficient = success if it works)
-              # ${lib.optionalString cfg.fallbackToSystem "[success=ignore default=1]"} = {
               control =
                 if cfg.fallbackToSystem
                 then "[success=ignore default=1]"
@@ -145,14 +139,12 @@ in {
               settings = {
                 expose_authtok = true;
                 quiet = true;
-                # Set VAULTWARDEN_URL environment variable
                 env = [
                   {
                     name = "VAULTWARDEN_URL";
                     value = cfg.url;
                   }
                 ];
-                # The script to execute
                 command = "/etc/pam-vaultwarden/auth.py";
               };
             }

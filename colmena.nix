@@ -1,5 +1,3 @@
-# Colmena Cluster Deployment Configuration
-# Single-source-of-truth: Host definitions from flake.nix
 {
   inputs,
   self,
@@ -7,9 +5,7 @@
 }:
 let
 
-  # CPU TUNING - Base x86_64
 
-  # All cluster nodes use base x86_64 for binary cache compatibility
   tunedNixpkgs =
     system:
     import inputs.nixpkgs {
@@ -17,14 +13,11 @@ let
       config.allowUnfree = true;
     };
 
-  # COMMON MODULES - Shared across all hosts (matches flake.nix)
 
-  # Import from shared file to ensure flake.nix and colmena.nix stay in sync
   commonModules = import ./common-modules-list.nix {
     inherit inputs self;
   };
 
-  # HELPER FUNCTION - Add deployment metadata to host config
 
   mkHost =
     {
@@ -45,22 +38,17 @@ let
       };
     };
 
-  # DEPLOYMENT METADATA - Target host addresses
-  # Using local network IPs (10.1.1.x) for reliable SSH connectivity
-  # Tailscale IPs kept as reference comment in case needed
 
 in
 {
   meta = {
     nixpkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
-    # Per-node CPU microarchitecture tuning - unified x86_64
     nodeNixpkgs = {
       zephyr = tunedNixpkgs "x86_64-linux";
       nexus = tunedNixpkgs "x86_64-linux";
       forge = tunedNixpkgs "x86_64-linux";
       sentry = tunedNixpkgs "x86_64-linux";
     };
-    # Distributed builds
     machinesFile = ./machines;
     specialArgs = {
       inherit inputs self;
@@ -68,11 +56,10 @@ in
     };
   };
 
-  # GENERATE HOST CONFIGURATIONS
 
   zephyr = mkHost {
     hostName = "zephyr";
-    targetHost = null; # No SSH (local deployment)
+    targetHost = null;
     tags = [
       "control-plane"
       "k8s-master"

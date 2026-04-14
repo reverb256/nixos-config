@@ -38,8 +38,6 @@ in {
         User = "root";
         Group = "root";
         WorkingDirectory = "/etc/nixos";
-        # Only run on cluster nodes with kubectl
-        # Don't run if STATUS.md is being manually edited (check for .lock file)
         ConditionPathExists = [
           "/run/current-system/sw/bin/kubectl"
           "!/etc/nixos/STATUS.md.lock"
@@ -58,7 +56,6 @@ in {
       };
     };
 
-    # Ensure the script exists and is executable
     systemd.tmpfiles.rules = [
       "Z ${cfg.scriptPath} 0755 root root -"
     ];

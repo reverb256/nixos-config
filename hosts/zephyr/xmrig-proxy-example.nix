@@ -1,13 +1,8 @@
-# Example XMRig Proxy Configuration
-# For Zephyr - Centralized CPU mining proxy for cluster
 _: {
   services.xmrig-proxy = {
     enable = true;
 
-    # Configuration for the cluster
-    # IMPORTANT: Configure your own pool credentials below
     config = builtins.toJSON {
-      # Pools with failover priority
       pools = [
         {
           id = "your-pool-primary";
@@ -28,7 +23,6 @@ _: {
         }
       ];
 
-      # Workers (CPU miners)
       workers = [
         {
           id = "zephyr-cpu";
@@ -44,23 +38,20 @@ _: {
         }
       ];
 
-      # API for monitoring
       api = {
         port = 8081;
         restricted = true;
         token = "CHANGE_THIS_TO_SECURE_RANDOM_TOKEN";
       };
 
-      # Logging
       log = {
-        level = 5; # Info level
+        level = 5;
       };
     };
 
     listenPort = 3333;
     apiPort = 8081;
 
-    # Monitoring integration
     services.prometheus.exporters.xmrig-proxy.enable = true;
   };
 }

@@ -1,5 +1,3 @@
-# AMD GPU Wayland Module - Best Practices for AMD + Wayland + Plasma 6
-# Based on NixOS community best practices
 {
   config,
   lib,
@@ -34,26 +32,17 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # ============================================================================
-    # AMD GPU CONFIGURATION
-    # ============================================================================
     hardware.amdgpu = {
-      # Enable OpenCL if requested
       opencl.enable = cfg.opencl;
 
-      # Load AMD GPU driver
       initrd.enable = true;
     };
 
-    # ============================================================================
-    # GRAPHICS CONFIGURATION
-    # ============================================================================
     hardware.graphics = {
       enable = true;
       inherit (cfg) enable32Bit;
 
       extraPackages = with pkgs; [
-        # Mesa drivers (default, usually sufficient)
         mesa
       ];
 
@@ -62,40 +51,23 @@ in {
       ]);
     };
 
-    # ============================================================================
-    # DISPLAY MANAGER (SDDM with Wayland)
-    # ============================================================================
     services.displayManager.sddm.wayland.enable = lib.mkDefault cfg.sddmWayland;
 
-    # ============================================================================
-    # ENVIRONMENT VARIABLES (AMD + Wayland)
-    # ============================================================================
     environment.sessionVariables = {
-      # Force Wayland backend for Qt applications (Plasma 6)
-      # Use mkDefault to allow Plasma 6 module to override with "wayland;xcb" fallback
       QT_QPA_PLATFORM = lib.mkDefault "wayland";
 
-      # Enable Wayland for Ozone-based applications (Chrome, Electron, etc.)
       NIXOS_OZONE_WL = "1";
 
-      # Enable Wayland for Firefox
       MOZ_ENABLE_WAYLAND = "1";
 
-      # AMD-specific: Enable ROCm if using OpenCL
       ROC_ENABLE_PRE_VEGA = lib.mkIf cfg.opencl "1";
     };
 
-    # ============================================================================
-    # ADDITIONAL WAYLAND PACKAGES
-    # ============================================================================
     environment.systemPackages = with pkgs; [
-      # Wayland utilities
       wayland-utils
 
-      # Display management
       kanshi
 
-      # GPU monitoring (supports AMD, NVIDIA, Intel)
       nvtopPackages.full
     ];
   };

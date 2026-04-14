@@ -1,5 +1,3 @@
-# Auto-deploys Kubernetes manifests from /etc/nixos/kubernetes-manifests/ on boot
-# Runs after K3s is ready, applies all manifests, then exits.
 {
   config,
   lib,
@@ -17,7 +15,6 @@ let
 
   manifestDir = "/etc/nixos/kubernetes-manifests";
 
-  # Active manifest directories to apply (in order)
   manifestDirs = [
     "common"
     "rbac"
@@ -37,7 +34,6 @@ let
     "ingress"
     "monitoring"
     "health-checks"
-    #"calico"
   ];
 
   applyScript = pkgs.writeShellScript "k8s-apply-manifests" ''
@@ -56,14 +52,11 @@ let
     done
     echo "[k8s-manifests] API ready."
 
-    # Apply each directory in order
     for dir in ${lib.concatStringsSep " " manifestDirs}; do
       dir_path="${manifestDir}/$dir"
       if [ -d "$dir_path" ]; then
-        # Apply only .yaml files that don't start with test/old/draft prefixes
         for f in "$dir_path"/*.yaml; do
           basename=$(basename "$f")
-          # Skip test, debug, old, and alternative manifests
           case "$basename" in
             test-*|debug-*|old-*|*-debug-*|*-test-*|*-old-*|*-draft-*|*-yunikorn*|*-direct*|*-new*|*-simple*|*-per-gpu*|*README*|*.md|*.nix|*.txt|*-forge.yaml|*-forge-*)
               continue
@@ -94,9 +87,6 @@ in
         Environment = "KUBECONFIG=/etc/rancher/k3s/k3s.yaml";
         ExecStart = toString applyScript;
         RemainAfterExit = true;
-        # No restart — oneshot runs once on boot. If K3s isn't ready,
-        # systemd will try again on next boot.
-        # Restart=on-failure causes deadlock with switch-to-configuration.
       };
     };
   };

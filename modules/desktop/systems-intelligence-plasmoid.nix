@@ -1,6 +1,3 @@
-# Systems Intelligence Plasma Plasmoid
-# Cluster-wide monitoring widget for Plasma 6 desktop
-# Shows node health, resource usage, GPU stats, alerts, and mining status
 {
   lib,
   config,
@@ -9,7 +6,6 @@
 }: let
   cfg = config.programs.systems-intelligence-plasmoid;
 
-  # Plasmoid source location
   plasmoidName = "org.revervos.systems-intelligence";
   plasmoidSrc = ../../plasmoids/systems-intelligence;
 in {
@@ -42,7 +38,6 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Install plasmoid to user's local Plasma directory
     systemd.tmpfiles.settings."plasmoid-${cfg.user}" = {
       "/home/${cfg.user}/.local/share/plasma/plasmoids/${plasmoidName}" = {
         d = {
@@ -53,7 +48,6 @@ in {
       };
     };
 
-    # Script to install/update plasmoid files
     systemd.services."plasmoid-${cfg.user}" = {
       description = "Install Systems Intelligence Plasmoid for ${cfg.user}";
       wantedBy = ["multi-user.target"];
@@ -69,7 +63,6 @@ in {
       '';
     };
 
-    # Add helper script to manually reload plasmoid
     environment.systemPackages = [
       (pkgs.writeShellScriptBin "install-plasmoid" ''
         mkdir -p ~/.local/share/plasma/plasmoids/${plasmoidName}

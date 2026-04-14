@@ -1,4 +1,3 @@
-# modules/profiles/role/implementations.nix --- Role profile implementations
 {
   config,
   lib,
@@ -25,7 +24,6 @@ in {
 
     (lib.mkIf cfg.aiInference {
       services.ai-inference.enable = true;
-      # services.ai-inference.pre-download = true;  # Requires qwen3-tts-preload module
       services.opencode.enable = true;
     })
   ];

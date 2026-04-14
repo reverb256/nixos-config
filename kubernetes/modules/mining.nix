@@ -1,8 +1,3 @@
-# Mining namespace — CPU miners (xmrig) and GPU miners (lolMiner)
-# All deployments use nix-csi for /nix store access
-#
-# Converted from: kubernetes-manifests/mining/
-# Key improvement: store paths derived from pkgs, not hardcoded
 {
   pkgs,
   config,
@@ -10,12 +5,10 @@
   ...
 }:
 let
-  # Derive nix-csi scratch image from the cluster's deployed version
   nixCsiScratch = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
 in
 {
   config.kubernetes.objects = {
-    # ── Namespace ──────────────────────────────────────────────
     none.Namespace.mining = {
       metadata.labels = {
         name = "mining";
@@ -23,7 +16,6 @@ in
       };
     };
 
-    # ── ServiceAccount + RBAC ──────────────────────────────────
     mining.ServiceAccount.gpu-miner-sa = { };
     mining.Role.gpu-miner-role = {
       rules = [
@@ -52,12 +44,7 @@ in
       };
     };
 
-    # ── Resource Quota ─────────────────────────────────────────
-    # NOTE: ResourceQuota uses dotted keys (limits.cpu, requests.memory)
-    # which Nix attrsets can't represent as flat keys.
-    # Managed via kubernetes-manifests/mining/ raw YAML instead.
 
-    # ── Network Policies ───────────────────────────────────────
     mining.NetworkPolicy.default-deny-all = {
       spec = {
         podSelector = { };
@@ -221,9 +208,6 @@ in
       };
     };
 
-    # ── XMRig Deployments (nix-csi) ───────────────────────────
-    # Each miner connects to the xmrig-proxy on nexus (10.1.1.120:3333)
-    # Uses nix-csi to mount the xmrig binary from /nix/store
 
     mining.Deployment.xmrig-zephyr = {
       metadata = {
@@ -634,7 +618,6 @@ in
       };
     };
 
-    # ── XMRig Proxy (central stratum proxy on nexus) ────────────
     mining.ConfigMap.xmrig-proxy-config = {
       metadata.labels = {
         app = "xmrig-proxy";

@@ -1,5 +1,3 @@
-# Mining Operations Dashboard
-# Comprehensive mining performance monitoring across all hosts
 {lib, ...}: let
   inherit (lib.dashboard) panels template thresholds;
 in {
@@ -8,9 +6,7 @@ in {
     description = "Real-time mining performance, hashrates, and efficiency metrics";
     tags = ["mining" "gpu" "performance"];
     panels = [
-      # ========== ROW: OVERVIEW ==========
       (panels.row "📊 Mining Overview" false)
-      # Total Hashrate
       (panels.statPanel {
         title = "Total Hashrate";
         expr = "sum(mining_worker_hashrate)";
@@ -23,7 +19,6 @@ in {
         unit = "hertz";
         colorMode = "value";
       })
-      # Active Workers
       (panels.statPanel {
         title = "Active Workers";
         expr = "count(mining_worker_hashrate > 0)";
@@ -45,7 +40,6 @@ in {
         ];
         colorMode = "background";
       })
-      # Total Shares
       (panels.statPanel {
         title = "Shares (Last 5m)";
         expr = "sum(rate(mining_shares_accepted[5m]) * 300)";
@@ -57,7 +51,6 @@ in {
         };
         colorMode = "value";
       })
-      # Rejection Rate
       (panels.gauge {
         title = "Rejection Rate";
         expr = "sum(rate(mining_shares_rejected[5m])) / (sum(rate(mining_shares_rejected[5m])) + sum(rate(mining_shares_accepted[5m]))) * 100";
@@ -88,9 +81,7 @@ in {
         unit = "percent";
       })
 
-      # ========== ROW: PER-HOST HASHRATES ==========
       (panels.row "🖥️ Hashrate by Host" false)
-      # Host Hashrate Timeseries
       (panels.timeseries {
         title = "Hashrate by Host";
         expr = "sum by (host) (mining_worker_hashrate)";
@@ -103,7 +94,6 @@ in {
         unit = "hertz";
         legendFormat = "{{host}}";
       })
-      # Hashrate Distribution
       (panels.piechart {
         title = "Hashrate Distribution";
         expr = "sum(mining_worker_hashrate) by (host)";
@@ -115,9 +105,7 @@ in {
         };
       })
 
-      # ========== ROW: PER-GPU ANALYSIS ==========
       (panels.row "🎮 GPU Analysis" true)
-      # GPU Hashrates
       (panels.timeseries {
         title = "Hashrate by GPU";
         expr = "mining_worker_hashrate";
@@ -131,9 +119,7 @@ in {
         legendFormat = "{{host}} {{gpu_id}} ({{name}})";
       })
 
-      # ========== ROW: EFFICIENCY ==========
       (panels.row "⚡ Efficiency Metrics" true)
-      # Hashrate per Watt
       (panels.timeseries {
         title = "Hashrate per Watt";
         expr = "mining_worker_hashrate / nvidia_smi_power_draw_watts";
@@ -145,7 +131,6 @@ in {
         };
         legendFormat = "{{host}} {{gpu_id}}";
       })
-      # Power Consumption
       (panels.timeseries {
         title = "Power Consumption";
         expr = "sum by (host) (nvidia_smi_power_draw_watts)";
@@ -159,9 +144,7 @@ in {
         legendFormat = "{{host}}";
       })
 
-      # ========== ROW: TEMPERATURES ==========
       (panels.row "🌡️ GPU Temperatures" true)
-      # GPU Temperature
       (panels.timeseries {
         title = "GPU Temperatures";
         expr = "nvidia_smi_temperature_gpu";
@@ -176,9 +159,7 @@ in {
         legendFormat = "{{host}} {{gpu_id}}";
       })
 
-      # ========== ROW: PERFORMANCE HISTORY ==========
       (panels.row "📈 Performance History" true)
-      # Hashrate 24h Trend
       {
         datasource = lib.dashboard.prometheusDatasource;
         fieldConfig.defaults = {

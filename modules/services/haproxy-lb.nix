@@ -1,27 +1,3 @@
-# =============================================================================
-# HAProxy Load Balancer for Kubernetes HA
-# =============================================================================
-#
-# Purpose: Layer 4 load balancer for Kubernetes API server
-#
-# Architecture:
-#   - Distributes traffic across 3 API server instances
-#   - Health checks with automatic failover
-#   - Statistics endpoint for monitoring
-#   - Runs on all master nodes
-#
-# VIP Management:
-#   - Keepalived manages VIP (10.1.1.100)
-#   - Priority-based failover (Zephyr=110, Nexus=100, Sentry=90)
-#   - Active-passive configuration
-#
-# Usage:
-#   services.haproxy-kubernetes = {
-#     enable = true;
-#     priority = 110;  # Zephyr: 110, Nexus: 100, Sentry: 90
-#   };
-#
-# =============================================================================
 {
   config,
   lib,
@@ -31,7 +7,6 @@ with lib;
 let
   cfg = config.services.haproxy-kubernetes;
 
-  # HAProxy configuration template
   haproxyConfig = {
     defaults = {
       log = "global";
@@ -57,11 +32,10 @@ let
       };
       user = "haproxy";
       group = "haproxy";
-      daemon = false; # Managed by systemd
+      daemon = false;
       maxconn = 4000;
     };
 
-    # Statistics endpoint
     "stats stats" = {
       mode = "http";
       bind = "*:8404";
@@ -70,11 +44,10 @@ let
         hide-version = true;
         uri = "/";
         realm = "HAProxy Statistics";
-        auth = "admin:changeme"; # Change this!
+        auth = "admin:changeme";
       };
     };
 
-    # Kubernetes API frontend (VIP)
     "frontend kubernetes-api" = {
       bind = "${cfg.vip}:6443";
       mode = "tcp";
@@ -82,7 +55,6 @@ let
       defaultBackend = "kubernetes-api-backend";
     };
 
-    # Kubernetes API backend
     "backend kubernetes-api-backend" = {
       mode = "tcp";
       option = [
@@ -94,10 +66,8 @@ let
         connect = "5s";
         server = "5s";
       };
-      # Server definitions (added dynamically below)
     };
 
-    # Health check endpoint
     "frontend health" = {
       bind = "*:8080";
       mode = "http";
@@ -109,7 +79,6 @@ let
       "http-check expect" = "string OK";
     };
   };
-  # Generate backend servers from master nodes
 in
 {
   options.services.haproxy-kubernetes = {
@@ -172,19 +141,12 @@ in
   };
 
   config = mkIf cfg.enable {
-    # ============================================================================
-    # SERVICES - HAPROXY, KEEPALIVED, and PROMETHEUS
-    # ============================================================================
     services = {
-      # ========================================================================
-      # HAPROXY PACKAGE and CONFIG
-      # ========================================================================
       haproxy = {
         enable = true;
 
         config =
           let
-            # Convert Nix config to HAProxy format
             mkSection =
               name: settings:
               concatStringsSep "\n" (
@@ -228,9 +190,6 @@ in
           '';
       };
 
-      # ========================================================================
-      # KEEPALIVED - VIP MANAGEMENT
-      # ========================================================================
       keepalived = {
         enable = true;
 
@@ -264,36 +223,25 @@ in
         };
       };
 
-      # ========================================================================
-      # PROMETHEUS EXPORTER
-      # ========================================================================
       prometheus.exporters.haproxy = mkIf config.services.prometheus.enable {
         enable = true;
         telemetryEndpoint = "http://localhost:8404/stats;csv";
       };
     };
 
-    # ============================================================================
-    # FIREWALL
-    # ========================================================================
     networking.firewall = {
       allowedTCPPorts = lib.mkOptionDefault [
-        6443 # Kubernetes API (via HAProxy)
-        8404 # HAProxy statistics
-        8080 # Health check endpoint
+        6443
+        8404
+        8080
       ];
-      # VRRP for keepalived
       allowedUDPPorts = [ 112 ];
-      # Allow VRRP multicast (nftables syntax)
       extraInputRules = ''
         ip protocol vrrp accept
         ip daddr 224.0.0.0/24 accept
       '';
     };
 
-    # ========================================================================
-    # SYSTEMD TMPFILES
-    # ========================================================================
     systemd.tmpfiles.rules = [
       "d /var/lib/haproxy 0755 haproxy haproxy - -"
       "d /run/haproxy 0755 haproxy haproxy - -"

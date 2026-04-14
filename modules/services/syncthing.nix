@@ -1,5 +1,3 @@
-# Syncthing P2P file synchronization
-# Used for /etc/nixos config sync across cluster
 {
   config,
   lib,
@@ -20,7 +18,7 @@ in {
   config = lib.mkIf cfg.enable {
     services.syncthing = {
       enable = true;
-      user = "root"; # Need root for /etc/nixos
+      user = "root";
       dataDir = "/var/lib/syncthing";
       configDir = "/var/lib/syncthing/.config/syncthing";
 
@@ -38,10 +36,10 @@ in {
           "nixos-configs" = {
             path = "/etc/nixos";
             devices = ["zephyr" "nexus" "forge" "sentry"];
-            ignorePerms = false; # Preserve file permissions
+            ignorePerms = false;
             versioning = {
               type = "simple";
-              params = {keep = "10";}; # Keep 10 versions
+              params = {keep = "10";};
             };
           };
         };
@@ -49,7 +47,6 @@ in {
         gui = {
           address = "127.0.0.1:8384";
           user = "j_kro";
-          # Password will be set interactively via web UI
         };
 
         options = {
@@ -59,11 +56,9 @@ in {
       };
     };
 
-    # firewall - use mkOptionDefault to preserve existing ports
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22000 8384];
     networking.firewall.allowedUDPPorts = lib.mkOptionDefault [21027 22000];
 
-    # Ensure syncthing starts after network
     systemd.services.syncthing.after = ["network-online.target"];
     systemd.services.syncthing.wants = ["network-online.target"];
   };

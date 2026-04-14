@@ -1,24 +1,18 @@
-# Crash Watchdog Service
-# Tracks system crashes and logs diagnostic information
 {
   config,
   lib,
   ...
 }: let
-  # inherit (config.lib) systemd-helpers;
-  # TEMPORARILY DISABLED: Helper libraries being fixed (2026-03-23)
 in {
   options.services.crash-watchdog = {
     enable = lib.mkEnableOption "Crash detection and logging service";
   };
 
   config = lib.mkIf config.services.crash-watchdog.enable {
-    # Create log directory for crash information
     systemd.tmpfiles.rules = [
       "d /var/log/crash-watchdog 0755 root root -"
     ];
 
-    # Service that runs after boot to detect and log crashes
     systemd.services.crash-watchdog = {
       description = "Detect and log system crashes";
       after = ["network.target" "local-fs.target"];
@@ -32,22 +26,17 @@ in {
         CRASH_LOG="/var/log/crash-watchdog/crashes.log"
         STATE_FILE="/var/log/crash-watchdog/last_boot_id"
 
-        # Get current boot ID
         CURRENT_BOOT_ID=$(cat /proc/sys/kernel/random/boot_id)
 
-        # Create state file if it doesn't exist
         if [ ! -f "$STATE_FILE" ]; then
           echo "$CURRENT_BOOT_ID" > "$STATE_FILE"
           echo "$(date -Iseconds) - Initial boot: $CURRENT_BOOT_ID" >> "$CRASH_LOG"
           exit 0
         fi
 
-        # Read last boot ID
         LAST_BOOT_ID=$(cat "$STATE_FILE")
 
-        # Check if this is a new boot (potential crash)
         if [ "$CURRENT_BOOT_ID" != "$LAST_BOOT_ID" ]; then
-          # Log the crash with system state
           {
             echo "=========================================="
             echo "CRASH DETECTED: $(date -Iseconds)"
@@ -69,12 +58,10 @@ in {
             echo ""
           } >> "$CRASH_LOG"
 
-          # Update state file
           echo "$CURRENT_BOOT_ID" > "$STATE_FILE"
         fi
       '';
 
-      # Security hardening
       serviceConfig = {
         RemainAfterExit = true;
         NoNewPrivileges = true;

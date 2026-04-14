@@ -1,9 +1,3 @@
-# Claude Code Router - Proxy for routing Claude Code to different LLM providers
-# https://github.com/musistudio/claude-code-router
-#
-# This service acts as a proxy between Claude Code and various LLM providers.
-# It routes requests based on configuration, allowing you to use different
-# models for different tasks (default, thinking, long context, etc.)
 {
   config,
   lib,
@@ -20,7 +14,6 @@ let
     mkIf
     ;
 
-  # CLI wrapper script
   ccrScript = pkgs.writeShellScriptBin "ccr" ''
     #!${pkgs.bash}/bin/bash
     set -e
@@ -147,21 +140,17 @@ in
   };
 
   config = mkIf cfg.enable {
-    # Firewall configuration (localhost-only by default for security)
     networking.firewall.allowedTCPPorts = lib.mkIf cfg.openFirewall (lib.mkOptionDefault [ cfg.port ]);
 
-    # System packages - nodejs and CLI wrapper
     environment.systemPackages = [
       pkgs.nodejs_22
       ccrScript
     ];
 
-    # Create state directory
     systemd.tmpfiles.rules = [
       "d ${cfg.stateDir} 0755 root root -"
     ];
 
-    # Setup service - generates config.json at runtime with API key from secret file
     systemd.services.claude-code-router-setup = {
       description = "Setup Claude Code Router config";
       wantedBy = [ "multi-user.target" ];
@@ -203,7 +192,6 @@ in
       };
     };
 
-    # Main systemd service
     systemd.services.claude-code-router = {
       description = "Claude Code Router - LLM proxy service";
       after = [
@@ -234,20 +222,16 @@ in
         Group = "root";
         WorkingDirectory = cfg.stateDir;
 
-        # Restart policy
         Restart = "on-failure";
         RestartSec = "10s";
 
-        # Resource limits
         MemoryMax = "1G";
         MemoryHigh = "750M";
 
-        # Logging
         StandardOutput = "journal";
         StandardError = "journal";
         SyslogIdentifier = "claude-code-router";
 
-        # Security hardening (relaxed for npx which needs sh, npm cache)
         NoNewPrivileges = true;
         PrivateTmp = false;
         ProtectSystem = "strict";
@@ -257,7 +241,6 @@ in
       };
     };
 
-    # Health check timer + service
     systemd.timers.claude-code-router-health = {
       description = "Claude Code Router periodic health check";
       wantedBy = [ "timers.target" ];

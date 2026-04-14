@@ -1,5 +1,3 @@
-# Desktop icon for toggling the RTX 3090 lolMiner on Zephyr
-# Scales the gpu-miner-zephyr K8s deployment between 0 (paused) and 1 (running)
 {
   config,
   lib,
@@ -51,7 +49,6 @@ let
   };
 in
 {
-  # Only install on zephyr (the machine with the 3090)
   config = lib.mkIf (config.networking.hostName == "zephyr") {
     environment.systemPackages = [
       toggleScript
@@ -59,7 +56,6 @@ in
       desktopEntry
     ];
 
-    # Install desktop entry system-wide for all users
     environment.pathsToLink = [ "/share/applications" ];
   };
 }

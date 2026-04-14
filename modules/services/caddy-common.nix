@@ -1,13 +1,3 @@
-# Common Caddy configuration module for ingress and systemd services
-#
-# Usage:
-#   services.caddy-common = {
-#     enable = true;
-#     securityHeaders = true;  # Enable HSTS, CSP, X-Frame-Options, Referrer-Policy
-#     rateLimit = 100;         # Requests per minute (window: 1m)
-#     metricsPort = 2019;
-#     adminListenAddress = "0.0.0.0";  # K8s: 0.0.0.0, systemd: 127.0.0.1
-#   };
 { config, lib, pkgs, ... }:
 let
   cfg = config.services.caddy-common;
@@ -47,6 +37,7 @@ in {
         {
           admin ${cfg.adminListenAddress}:${toString cfg.metricsPort}
           default_sni cluster.local
+          local_certs
 
           ${lib.optionalString cfg.securityHeaders ''
           (security_headers) {
@@ -62,16 +53,6 @@ in {
           }
           ''}
 
-#          rate_limit {
-#            zone dynamic_zones {
-#              entry {
-#                zone = "cluster_local"
-#                key = "remote_ip"
-#                events = ${toString cfg.rateLimit}
-#                window = 1m
-#              }
-#            }
-#          }
         }
       '';
     };

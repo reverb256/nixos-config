@@ -1,5 +1,3 @@
-# Caddy Ingress Controller - Native easykubenix
-# Converted from importyaml caddy-ingress-controller.yaml
 { pkgs, ... }:
 let
   labels = {

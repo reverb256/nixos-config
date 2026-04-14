@@ -1,5 +1,3 @@
-# Caddy Ingress Local CA Certificate
-# Trusts the Caddy internal CA for cluster ingress services
 {
   config,
   lib,
@@ -20,15 +18,11 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # Add Caddy CA to system trust store
     security.pki.certificateFiles = [cfg.certificate];
 
-    # Ensure certificate is readable
     system.activationScripts.caddyCa = ''
-      # Add openssl to PATH for activation script
       export PATH="${pkgs.openssl}/bin:$PATH"
 
-      # Display certificate info for verification
       echo "✓ Caddy CA certificate installed and trusted"
       openssl x509 -in "${cfg.certificate}" -noout -subject -issuer -dates || echo "  (Certificate info unavailable)"
     '';

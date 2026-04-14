@@ -1,5 +1,3 @@
-# Systemd service helper functions
-# Reduces boilerplate for common systemd service patterns
 {
   lib,
   pkgs,
@@ -8,7 +6,6 @@
   /*
   Create a oneshot systemd service configuration
 
-  # Example
   mkOneshotService {
     description = "My one-shot service";
     after = [ "network.target" ];
@@ -46,7 +43,6 @@
   /*
   Create a simple systemd service configuration
 
-  # Example
   mkSimpleService {
     description = "My simple service";
     after = [ "network.target" ];
@@ -83,7 +79,6 @@
   /*
   Create a service with clean PATH construction using lib.makeBinPath
 
-  # Example
   mkPathService {
     description = "My service";
     execStart = "${pkgs.my-package}/bin/my-daemon";
@@ -119,7 +114,6 @@
   /*
   Create a service using lib.getExe for executable resolution
 
-  # Example
   mkExeService {
     description = "My service";
     package = pkgs.lm_sensors;
@@ -154,7 +148,6 @@
   /*
   Create a monitoring/exporter service with common patterns
 
-  # Example
   mkExporterService {
     name = "my-exporter";
     description = "My metrics exporter";
@@ -185,14 +178,12 @@
         // (lib.optionalAttrs (path != []) {inherit path;});
     };
 
-    # Open firewall for the exporter
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [port];
   };
 
   /*
   Create a timer-based service (cron alternative)
 
-  # Example
   mkTimerService {
     name = "my-timer";
     description = "My periodic task";
@@ -227,7 +218,6 @@
   Create a sanitized debug configuration string using lib.generators.toPretty
   Hides secrets (passwords, API keys, tokens) while showing other config
 
-  # Example
   mkDebugConfig {
     config = {
       database = {
@@ -245,10 +235,8 @@
     config,
     secretPatterns ? ["password" "Password" "PASSWORD" "apiKey" "api_key" "token" "Token" "TOKEN" "secret" "Secret" "SECRET"],
   }: let
-    # Convert config to pretty string
     prettyConfig = lib.generators.toPretty {} config;
 
-    # Sanitize secrets by replacing values with "***REDACTED***"
     sanitize = str:
       builtins.foldl'
         (acc: pattern: lib.replaceStrings ["${pattern} = \"[^\"]*\""] ["${pattern} = \"***REDACTED***\""] acc)
@@ -258,7 +246,6 @@
     /*
     Get sanitized debug output as a string
 
-    # Example
     debugOutput = mkDebugConfig {
       config = cfg;
     }.getOutput;
@@ -269,7 +256,6 @@
     Create ExecStartPre script that logs configuration to journal
     Returns a script string suitable for systemd's ExecStartPre
 
-    # Example
     serviceConfig.ExecStartPre = mkDebugConfig {
       config = cfg;
       serviceName = "my-service";
@@ -286,7 +272,6 @@
   Add debug logging to a service configuration
   Creates ExecStartPre that logs sanitized configuration
 
-  # Example
   mkServiceWithDebug {
     name = "my-service";
     description = "My service";

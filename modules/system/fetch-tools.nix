@@ -1,36 +1,27 @@
-# Info Fetchers Module
-# Extended system information tools from XNM1
 {pkgs, ...}: {
   environment.systemPackages = with pkgs; [
-    # Classic fetch tools
-    fastfetch # Modern replacement for neofetch
+    fastfetch
     onefetch
 
-    # Hardware-specific fetchers
-    ipfetch # IP information
-    cpufetch # CPU architecture and info
-    ramfetch # RAM information
-    starfetch # Minimalist fetch
-    octofetch # GitHub contribution info
+    ipfetch
+    cpufetch
+    ramfetch
+    starfetch
+    octofetch
 
-    # System monitors
     htop
-    bottom # Modern top replacement
-    btop # Even more feature-rich
-    zfxtop # ZFS monitoring (useful with your storage)
+    bottom
+    btop
+    zfxtop
 
-    # Kernel manager
-    kmon # Interactive Linux kernel manager
+    kmon
 
-    # Display utilities
-    wlr-randr # Wayland display control
-    gpu-viewer # GPU information viewer
+    wlr-randr
+    gpu-viewer
 
-    # Network utilities
-    dig # DNS lookup
-    speedtest-rs # Rust-based speedtest
+    dig
+    speedtest-rs
 
-    # Vulkan tools (for GPU debugging)
     vulkan-tools
   ];
 }

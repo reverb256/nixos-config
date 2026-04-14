@@ -1,19 +1,9 @@
-# tests/lib.nix - Shared test infrastructure
-#
-# Provides helpers for writing NixOS module tests.
-# Usage in test files:
-#   { pkgs, ... }:
-#   let
-#     inherit (import ./lib.nix { inherit pkgs; }) evalModule assertModule;
-#   in ...
-#
 {
   pkgs,
 }:
 let
   lib = pkgs.lib;
 
-  # Evaluate a NixOS module in isolation (no full system config)
   evalModule =
     {
       modulePath ? null,
@@ -34,7 +24,6 @@ let
       };
     };
 
-  # Assert that a module can be evaluated without errors
   assertModule =
     {
       name,
@@ -50,11 +39,9 @@ let
       success = result.success;
     };
 
-  # Collect all .nix files from a directory (recursive)
   collectNixFiles =
     dir: builtins.filter (f: lib.strings.hasSuffix ".nix" f) (lib.filesystem.listFilesRecursive dir);
 
-  # Filter out backup files
   isNotBackup =
     f:
     !(lib.strings.hasSuffix ".backup" f)

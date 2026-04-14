@@ -1,21 +1,9 @@
-# Shared MCP server definitions and JSON generation function
-# Used by all AI coding tool generators
-#
-# This module is NOT a NixOS module — it's a plain Nix function
-# that returns shared data and the mkMcpServersJson helper.
-#
-# Local stdio servers are derived from the shared registry at
-# modules/services/mcp-server-registry.nix to keep server definitions
-# in sync between coding tools (JSON generation) and service modules
-# (wrapper script generation).
 { lib }:
 let
-  # Import shared server registry (single source of truth)
   registry = import ../../services/mcp-server-registry.nix { inherit lib; };
 
   context7ApiKeyRef = "$CONTEXT7_API_KEY";
 
-  # Z.AI HTTP MCP servers (identical across all tools)
   zaiHttpServers = {
     web-search-prime = {
       type = "http";

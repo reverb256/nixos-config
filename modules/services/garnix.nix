@@ -6,7 +6,6 @@
 }: let
   cfg = config.services.garnix;
 
-  # Garnix credentials for cache.garnix.io
   garnixNetrc = pkgs.writeText "garnix-netrc" ''
     machine cache.garnix.io
       login reverb256
@@ -18,22 +17,17 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Nix settings for Garnix cache
     nix.settings = {
-      # Reduce TTL for presigned URLs that expire quickly
       narinfo-cache-positive-ttl = 3600;
-      # Add Garnix as a substituter (merged with distributed-builds.nix)
       substituters = lib.mkOptionDefault ["https://cache.garnix.io"];
       trusted-public-keys = lib.mkOptionDefault ["cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="];
     };
 
-    # Create netrc file for Garnix authentication
     environment.etc."nix/netrc" = {
       source = garnixNetrc;
       mode = "0600";
     };
 
-    # Ensure nix config directory exists
     systemd.tmpfiles.rules = [
       "d /etc/nix 0755 root root -"
     ];

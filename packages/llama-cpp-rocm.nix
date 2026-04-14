@@ -1,5 +1,3 @@
-# llama.cpp with ROCm support
-# Patterned after nixpkgs llama-cpp package
 {
   lib,
   fetchurl,
@@ -36,7 +34,6 @@ stdenv.mkDerivation rec {
     "-DLLAMA_BUILD_TESTS=OFF"
     "-DBUILD_SHARED_LIBS=ON"
     "-DLLAMA_OPENSSL=OFF"
-    # ROCm HIP backend
     "-DGGML_HIP=ON"
     "-DGGML_HIP_UMA=OFF"
     "-DCMAKE_HIP_COMPILER=${rocmPackages.clr.hipClangPath}/clang++"
@@ -46,11 +43,9 @@ stdenv.mkDerivation rec {
   ];
 
   postInstall = ''
-    # Symlink for backward compatibility
     ln -sf $out/bin/llama-cli $out/bin/llama
   '';
 
-  # Shrink RPATH to remove /build/ refs from cmake
   preFixup = ''
     for f in $(find $out -type f -executable 2>/dev/null); do
       ${stdenv.cc.bintools.targetPrefix}patchelf --shrink-rpath "$f" 2>/dev/null || true

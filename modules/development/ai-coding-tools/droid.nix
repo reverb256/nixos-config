@@ -1,15 +1,9 @@
-# Factory Droid config generators
-# Generates: ~/.factory/mcp.json and ~/.factory/settings.json
-#
-# Droid supports ${VAR} interpolation in config files, so we use
-# env var references instead of resolving keys at generation time.
 {
   cfg,
   pkgs,
   mkMcpServersJson,
 }:
 {
-  # ~/.factory/mcp.json
   mkDroidMcpJson = pkgs.writeShellScript "generate-droid-mcp" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
@@ -27,7 +21,6 @@
     echo "[ai-coding-tools] Droid MCP config generated with env var references"
   '';
 
-  # ~/.factory/settings.json
   mkDroidSettings = pkgs.writeShellScript "generate-droid-settings" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail

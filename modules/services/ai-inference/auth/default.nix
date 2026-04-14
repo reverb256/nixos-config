@@ -1,4 +1,3 @@
-# AI Inference Authentication Module
 {
   config,
   lib,
@@ -10,19 +9,13 @@
 in {
   imports = [
     ./tailscale.nix
-    # ./web3.nix  # Future: Web3 + passkey authentication
   ];
 
   config = mkIf config.services.ai-inference.enable {
-    # Authentication is handled in the gateway
-    # This module provides supporting configuration
 
-    # API key file validation (if configured)
-    # Gateway moved to Kubernetes - removed before dependency
     systemd.services.ai-inference-validate-keys = mkIf (cfg.mode == "api-key" && cfg.apiKeyFile != null) {
       description = "Validate AI inference API keys";
       wantedBy = ["multi-user.target"];
-      # Gateway runs in Kubernetes - no before dependency needed
 
       serviceConfig = {
         Type = "oneshot";

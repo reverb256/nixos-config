@@ -1,5 +1,3 @@
-# Dual XMRig Module - Always-on + Pause-able Instances
-# Two XMRig processes for flexible mining during gaming
 {
   config,
   lib,
@@ -12,7 +10,6 @@ let
   hostname = config.networking.hostName;
   defaultWallet = "krxXVNVMM7.${hostname}";
 
-  # XMRig wrapper script - reads API token and passes to xmrig
   mkXmrigWrapper =
     name: _port: tokenFile: threads:
     pkgs.writeShellScript "xmrig-wrapper-${name}" ''
@@ -20,7 +17,6 @@ let
       TOKEN_FILE="${tokenFile}"
       RUNTIME_CONFIG="/run/xmrig-${name}/config.json"
 
-      # Use runtime config with token if available, otherwise fallback to default config
       CONFIG="''${RUNTIME_CONFIG:-/etc/xmrig-${name}/config.json}"
 
       if [ -r "$CONFIG" ]; then
@@ -30,7 +26,6 @@ let
       fi
     '';
 
-  # Generate XMRig config for a specific instance
   mkXmrigConfig =
     name: port: pool: wallet: password: tls: threads:
     builtins.toJSON {
@@ -45,7 +40,6 @@ let
         restricted = false;
       };
       pools = [
-        # Primary pool
         {
           url = pool;
           user = wallet;
@@ -54,7 +48,6 @@ let
           keepalive = true;
           nicehash = false;
         }
-        # Fallback pools (automatically added for redundancy)
         {
           url =
             lib.replaceStrings [ "xtm-rx-us.kryptex.network:8038" ] [ "xtm-rx-eu.kryptex.network:8038" ]
@@ -97,7 +90,6 @@ let
       };
     };
 
-  # Helper to create ExecStartPre for token injection
   mkExecStartPre =
     name: tokenFile:
     pkgs.writeShellScript "xmrig-config-prep-${name}" ''
@@ -116,22 +108,21 @@ let
       chmod 640 "$CONFIG_DIR/config.json"
     '';
 
-  # Host-specific thread allocations
   getAlwaysOnThreads =
     host:
     {
-      zephyr = 4; # 12% of 32 cores
-      nexus = 4; # 17% of 24 cores
-      sentry = 4; # 25% of 16 cores
+      zephyr = 4;
+      nexus = 4;
+      sentry = 4;
     }
     .${host} or 4;
 
   getFlexibleThreads =
     host:
     {
-      zephyr = 12; # 38% of 32 cores (total 50% with always-on)
-      nexus = 8; # 33% of 24 cores (total 50% with always-on)
-      sentry = 4; # 25% of 16 cores (total 50% with always-on)
+      zephyr = 12;
+      nexus = 8;
+      sentry = 4;
     }
     .${host} or 8;
 in
@@ -187,7 +178,6 @@ in
       };
     };
 
-    # Common settings (shared by both instances)
     pool = mkOption {
       type = types.str;
       default = "xtm-rx-us.kryptex.network:8038";
@@ -207,16 +197,13 @@ in
   };
 
   config = mkIf cfg.enable {
-    # Ensure base mining module is enabled
     services.mining.enable = true;
 
-    # Runtime directories for both instances
     systemd.tmpfiles.rules = [
       "d /run/xmrig-always 0750 mining mining - -"
       "d /run/xmrig-flexible 0750 mining mining - -"
     ];
 
-    # Configuration files for both instances
     environment.etc = {
       "xmrig-always/config.json" = mkIf cfg.alwaysOn.enable {
         text =
@@ -230,13 +217,11 @@ in
       };
     };
 
-    # Firewall rules for API ports
     networking.firewall.interfaces.lo.allowedTCPPorts = [
       cfg.alwaysOn.httpPort
       cfg.flexible.httpPort
     ];
 
-    # Systemd services for both instances
     systemd.services = {
       xmrig-always = mkIf cfg.alwaysOn.enable {
         description = "XMRig CPU Mining - Always-on Instance";
@@ -315,21 +300,17 @@ in
       };
     };
 
-    # Huge pages for RandomX mining performance
     boot.kernelParams = mkIf cfg.enable [
       "hugepagesz=1G"
       "hugepages=3"
     ];
 
-    # Set permissions on MSR devices for mining user
     services.udev.extraRules = ''
       KERNEL=="msr", MODE="0660", GROUP="mining"
     '';
 
-    # Ensure msr kernel module is loaded
     boot.kernelModules = [ "msr" ];
 
-    # Update mining target to include both instances
     systemd.targets.mining.wants = mkMerge [
       (mkIf cfg.alwaysOn.enable [ "xmrig-always.service" ])
       (mkIf cfg.flexible.enable [ "xmrig-flexible.service" ])

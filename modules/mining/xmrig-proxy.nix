@@ -1,6 +1,3 @@
-# XMRig Proxy Module
-# Stratum proxy for Monero/RandomX CPU mining
-# https://github.com/xmrig/xmrig-proxy
 {
   config,
   pkgs,
@@ -69,7 +66,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Create user and group
     users.users.${cfg.user} = {
       inherit (cfg) group;
       isSystemUser = true;
@@ -78,34 +74,25 @@ in
 
     users.groups.${cfg.group} = { };
 
-    # Write config file (with token placeholder if using tokenFile)
     environment.etc."xmrig-proxy/config.json".text =
       if cfg.tokenFile == null then
         cfg.config
       else
         builtins.replaceStrings [ "\"token\"" ] [ "TOKEN_FROM_FILE" ] cfg.config;
 
-    # Firewall - open stratum port (listenPort) and API port for Prometheus scraping
-    # SECURITY: Ports restricted to cluster subnet only (not 0.0.0.0)
-    # cluster-firewall.nix handles the subnet restriction for port 3333/3334
     networking.firewall = lib.mkIf cfg.openFirewall {
       allowedTCPPorts = lib.mkOptionDefault [ cfg.apiPort ];
       allowedUDPPorts = [ cfg.listenPort ];
-      # Also allow API access via Tailscale for Prometheus scraping from sentry
       interfaces."tailscale0".allowedTCPPorts = [ cfg.apiPort ];
     };
 
-    # Note: API port (cfg.apiPort, default 8081) is opened for Prometheus scraping
-    # The proxy provides metrics at http://localhost:${toString cfg.apiPort}/1/summary
 
     systemd = {
-      # Create data and runtime directories
       tmpfiles.rules = [
         "d ${cfg.dataDir} 0750 ${cfg.user} ${cfg.group} -"
         "d /run/xmrig-proxy 0750 ${cfg.user} ${cfg.group} -"
       ];
 
-      # Systemd service
       services.xmrig-proxy = {
         description = "XMRig Stratum Proxy for CPU Mining";
         wantedBy = [ "multi-user.target" ];
@@ -127,8 +114,6 @@ in
           Restart = "on-failure";
           RestartSec = "10s";
 
-          # Hardening
-          # Note: PrivateTmp disabled when using /run/xmrig-proxy to avoid namespace conflicts
           PrivateTmp = lib.mkIf (cfg.tokenFile == null) true;
           ProtectSystem = "strict";
           ProtectHome = true;
@@ -137,20 +122,16 @@ in
             "/run/xmrig-proxy"
           ];
 
-          # Runtime directory (ensures /run/xmrig-proxy exists before mount namespace)
           RuntimeDirectory = "xmrig-proxy";
           RuntimeDirectoryMode = "0750";
 
-          # Resource limits
           MemoryLimit = "512M";
           CPUQuota = "200%";
         };
 
-        # Graceful shutdown
         serviceConfig.ExecStop = "${pkgs.coreutils}/bin/kill -SIGTERM $MAINPID";
       };
 
-      # Runtime token replacement (if using tokenFile)
       services.xmrig-proxy-preStart =
         lib.mkIf (cfg.tokenFile != null) {
           description = "Inject API token into xmrig-proxy config";
@@ -167,7 +148,6 @@ in
               CONFIG_FILE="/etc/xmrig-proxy/config.json"
               RUNTIME_CONFIG="/run/xmrig-proxy/config.json"
 
-              # Wait for token file to exist
               if [ ! -f "$TOKEN_FILE" ]; then
                 echo "[xmrig-proxy] Waiting for token file: $TOKEN_FILE"
                 for i in {1..30}; do
@@ -182,7 +162,6 @@ in
                 fi
               fi
 
-              # Read token and inject into config
               TOKEN=$(${pkgs.coreutils}/bin/cat "$TOKEN_FILE")
               mkdir -p /run/xmrig-proxy
               ${pkgs.jq}/bin/jq --arg token "$TOKEN" '.api.token = $token' "$CONFIG_FILE" > "$RUNTIME_CONFIG"

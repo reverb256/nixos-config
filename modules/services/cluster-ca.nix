@@ -27,7 +27,6 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # Create CA certificate and key
     systemd.services.cluster-ca-init = {
       description = "Generate internal CA certificate";
       wantedBy = [ "multi-user.target" ];
@@ -38,7 +37,6 @@ in {
         StateDirectoryMode = "0755";
       };
       script = ''
-        # Generate CA certificate if it doesn't exist
         if [ ! -f ${cfg.caCert} ]; then
           mkdir -p /etc/ssl/cluster-ca
           ${pkgs.openssl}/bin/openssl req -x509 -newkey rsa:4096 \
@@ -58,7 +56,6 @@ in {
       '';
     };
 
-    # Expose CA certificate for browsers
     systemd.services.cluster-ca-export = {
       description = "Export CA certificate to user home";
       wantedBy = [ "multi-user.target" ];
@@ -69,7 +66,6 @@ in {
         User = "j_kro";
       };
       script = ''
-        # Export CA cert to user's home directory for browser import
         mkdir -p /home/j_kro/.local/share/certificates
         cp ${cfg.caCert} /home/j_kro/.local/share/certificates/cluster-ca.crt
         chown j_kro:users /home/j_kro/.local/share/certificates/cluster-ca.crt

@@ -1,8 +1,3 @@
-# Container Image Vulnerability Scanning
-# Uses Trivy to scan all Podman images weekly for HIGH/CRITICAL CVEs
-#
-# Auto-enables on hosts with Podman configured for supply chain security.
-# Can be explicitly disabled with services.container-scanning.enable = false.
 {
   config,
   pkgs,

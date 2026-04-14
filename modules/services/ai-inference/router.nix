@@ -1,4 +1,3 @@
-# AI Inference Router - Intelligent request classification and routing
 {
   config,
   lib,
@@ -8,10 +7,7 @@
   cfg = config.services.ai-inference;
   inherit (lib) mkIf;
 
-  # Router logic (embedded in gateway, but config is here)
-  # The routing rules are applied in the gateway before forwarding to backend
 
-  # Token estimation utility - wrapped in symlinkJoin for proper package structure
   tokenEstimator = pkgs.symlinkJoin {
     name = "token-estimator";
     paths = [
@@ -35,13 +31,13 @@
 
         def recommend_model(token_count: int) -> str:
             """Recommend model based on estimated token count (Qwen3.5 supports 256K)."""
-            if token_count <= 16384:  # Up to 16K tokens
+            if token_count <= 16384:
                 return "qwen3.5-2b"
-            elif token_count <= 65536:  # Up to 64K tokens
+            elif token_count <= 65536:
                 return "qwen3.5-4b"
-            elif token_count <= 131072:  # Up to 128K tokens
+            elif token_count <= 131072:
                 return "qwen/qwen3.5-9b"
-            else:  # 128K+ tokens (up to 256K)
+            else:
                 return "magnum-opus-35b-a3b-i1"
 
         if len(sys.argv) > 1:
@@ -60,10 +56,7 @@
   };
 in {
   config = mkIf (cfg.enable && cfg.routing.enable) {
-    # Add routing utilities to system packages
     environment.systemPackages = [tokenEstimator];
 
-    # The routing logic is embedded in the gateway
-    # This module primarily provides configuration and utilities
   };
 }

@@ -1,12 +1,3 @@
-# HAProxy Ingress Load Balancer
-# Forwards VIP:80/443 to Caddy ingress nodes (nexus, forge, sentry)
-#
-# Usage:
-#   services.haproxy-ingress = {
-#     enable = true;
-#     vip = "10.1.1.100";
-#   };
-#
 {
   config,
   lib,
@@ -37,17 +28,14 @@ in
           timeout server 30s
           option tcplog
 
-        # HTTP frontend
         frontend http-in
           bind ${cfg.vip}:80
           default_backend caddy-http
 
-        # HTTPS frontend
         frontend https-in
           bind ${cfg.vip}:443
           default_backend caddy-https
 
-        # Caddy HTTP backends
         backend caddy-http
           balance roundrobin
           option httpchk GET / HTTP/1.1\r\nHost:\ health.local
@@ -55,7 +43,6 @@ in
           server forge 10.1.1.130:80 check
           server sentry 10.1.1.140:80 check
 
-        # Caddy HTTPS backends
         backend caddy-https
           balance roundrobin
           server nexus 10.1.1.120:443 check ssl verify none

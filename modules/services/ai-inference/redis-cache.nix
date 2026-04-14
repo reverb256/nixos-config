@@ -1,5 +1,3 @@
-# Redis/Valkey Configuration for SearXNG Caching
-# Provides persistent, distributed caching for multi-instance SearXNG deployment
 {
   config,
   lib,
@@ -40,54 +38,39 @@ in {
     services.redis.servers.searxng = {
       inherit (cfg) enable bind port maxmemory maxmemoryPolicy;
 
-      # Performance tuning for AI workloads
       databases = 1;
-      save = []; # Disable RDB snapshots for pure cache use
-      appendonly = false; # Disable AOF for cache (faster)
+      save = [];
+      appendonly = false;
 
-      # Security
-      requirePass = false; # No password for local use
+      requirePass = false;
       unixSocket = "/run/redis-searxng/redis.sock";
 
-      # Logging
       logLevel = "warning";
 
-      # Advanced settings
       settings = {
-        # Memory management
         maxmemory-policy = cfg.maxmemoryPolicy;
 
-        # Connection settings
         tcp-backlog = 511;
         timeout = 0;
         tcp-keepalive = 300;
 
-        # Performance
-        # Use more memory for hash tables
         hash-max-ziplist-entries = 512;
         hash-max-ziplist-value = 64;
 
-        # Disable persistence for pure caching
         save = "";
 
-        # Maximum clients
         maxclients = 10000;
 
-        # Slow log
-        slowlog-log-slower-than = 10000; # 10ms
+        slowlog-log-slower-than = 10000;
         slowlog-max-len = 128;
 
-        # Latency monitoring
-        latency-monitor-threshold = 100; # ms
+        latency-monitor-threshold = 100;
       };
     };
 
-    # systemd tmpfiles for Unix socket
     systemd.tmpfiles.rules = [
       "d /run/redis-searxng 0750 redis redis -"
     ];
 
-    # Ensure Redis starts before SearXNG (if using systemd)
-    # Note: Our SearXNG runs in Docker, so this is informational
   };
 }

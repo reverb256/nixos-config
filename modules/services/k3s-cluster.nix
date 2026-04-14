@@ -1,4 +1,3 @@
-# K3s Cluster Module
 {
   config,
   lib,
@@ -20,18 +19,16 @@ let
 
   isServer = cfg.role == "server";
 
-  # Shared CIDR ranges — MUST be identical across all servers
   clusterCIDR = "10.244.0.0/16";
   serviceCIDR = "10.0.0.0/12";
   clusterDNS = "10.0.0.10";
 
-  # TLS SANs — all server IPs and hostnames
   tlsSans = [
-    "10.1.1.100" # VIP
-    "10.1.1.110" # Zephyr
-    "10.1.1.120" # Nexus
-    "10.1.1.130" # Forge
-    "10.1.1.140" # Sentry
+    "10.1.1.100"
+    "10.1.1.110"
+    "10.1.1.120"
+    "10.1.1.130"
+    "10.1.1.140"
     "zephyr"
     "nexus"
     "forge"
@@ -45,11 +42,10 @@ let
     "127.0.0.1"
   ];
 
-  # Components to disable on all servers (identical list required)
   disabledComponents = [
-    "traefik" # We use Caddy ingress DaemonSet
-    "servicelb" # We use Caddy with hostPort
-    "metrics-server" # We deploy our own
+    "traefik"
+    "servicelb"
+    "metrics-server"
   ];
 
 in
@@ -126,18 +122,12 @@ in
 
       package = pkgs.k3s_1_34;
 
-      # HA cluster init (first server only)
       clusterInit = if isServer then cfg.clusterInit else false;
 
-      # Server address for agents and joining servers
-      # Ignored if etcd data exists on disk (k3s always rejoins existing cluster)
       serverAddr = if (!isServer || !cfg.clusterInit) then cfg.serverAddr else "";
 
-      # Token file for cluster join — only set when joining existing cluster
-      # When clusterInit=true, K3s generates its own token
       tokenFile = if cfg.clusterInit then null else cfg.tokenFile;
 
-      # Node IP advertisement
       nodeIP = if cfg.nodeIP != "" then cfg.nodeIP else null;
 
       disable =
@@ -148,7 +138,6 @@ in
           "kube-proxy"
         ];
 
-      # Extra flags — server role only
       extraFlags =
         lib.optionals isServer (
           [
@@ -160,12 +149,9 @@ in
           ++ map (san: "--tls-san=${san}") tlsSans
           ++ lib.optional cfg.calico.enable "--flannel-backend=none"
         )
-        # Node labels for GPU scheduling
         ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"
         ++ lib.optional (config.hardware.gpu-compute.rocm.enable or false) "--node-label=gpu=amd";
 
-      # NVIDIA containerd runtime configuration
-      # Must include {{ template "base" . }} to preserve k3s defaults
       containerdConfigTemplate = mkIf cfg.nvidia.enable ''
         {{ template "base" . }}
         [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia]
@@ -174,35 +160,32 @@ in
             BinaryName = "${pkgs.nvidia-container-toolkit.tools}/bin/nvidia-container-runtime"
       '';
 
-      # Extra kubelet configuration
       extraKubeletConfig = {
         failSwapOn = false;
       };
 
-      # Run workloads on servers too
       disableAgent = false;
     };
 
-    # FIREWALL RULES
     networking.firewall = mkMerge [
       {
         allowedTCPPorts = mkOptionDefault (
-          [ 10250 ] # Kubelet API
+          [ 10250 ]
           ++ lib.optionals isServer [
-            6443 # k3s API server
-            2379 # Embedded etcd client
-            2380 # Embedded etcd peer
+            6443
+            2379
+            2380
           ]
           ++ lib.optionals cfg.calico.enable [
-            179 # Calico BGP
-            5473 # Calico Typha
+            179
+            5473
           ]
         );
         allowedTCPPortRanges = [
           {
             from = 30000;
             to = 32767;
-          } # NodePort range
+          }
         ];
         allowedUDPPorts = mkOptionDefault (
           lib.optionals (!cfg.calico.enable) [
@@ -211,25 +194,23 @@ in
           ++ [
             4789
           ]
-        ); # Flannel VXLAN or Calico VXLAN
+        );
       }
     ];
 
-    # SYSTEM PACKAGES
     environment.systemPackages =
       with pkgs;
       [
-        kubernetes # kubectl and other tools
-        cri-tools # crictl for CRI debugging
+        kubernetes
+        cri-tools
         iptables
-        runc # nvidia-container-runtime needs runc in PATH
+        runc
       ]
       ++ lib.optionals cfg.nvidia.enable [
         nvidia-container-toolkit
         nvidia-container-toolkit.tools
       ];
 
-    # KUBERNETES CLI ALIASES
     programs.bash.shellAliases = {
       k = "kubectl";
       kgp = "kubectl get pods";
@@ -249,20 +230,13 @@ in
       kgn = "kubectl get nodes";
     };
 
-    # KUBECONFIG symlink for easy access
     systemd.tmpfiles.rules = [
       "d /root/.kube 0700 root root -"
       "L /root/.kube/config - - - - /etc/rancher/k3s/k3s.yaml"
     ];
 
-    # Disable NRI (Node Runtime Interface) to prevent nri-wait hook
-    # from blocking container creation with 30s timeout.
-    # The nri-wait hook expects a Nix build system to publish build
-    # status via ZeroMQ sockets at /nix/var/nixkube/.
-    # Since we don't use Nix builds for containers, disable NRI entirely.
     systemd.services.k3s.environment.CONTAINERD_NRI_DISABLED = "1";
 
-    # Ensure k3s containerd state directories exist
     system.activationScripts.k3s-dirs = ''
       mkdir -p /var/lib/rancher/k3s/agent/etc/containerd
     '';
@@ -292,4 +266,3 @@ in
     };
   };
 }
-# Force rebuild Tue 07 Apr 2026 03:12:49 AM CDT

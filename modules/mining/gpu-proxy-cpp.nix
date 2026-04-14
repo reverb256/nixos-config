@@ -1,5 +1,3 @@
-# C++ GPU Mining Proxy for CR29 (Tari/Kryptex)
-# High-performance stratum proxy with OpenSSL for Kryptex compatibility
 {
   config,
   pkgs,
@@ -8,7 +6,6 @@
 }: let
   cfg = config.services.gpu-proxy-cpp;
 
-  # The GPU proxy C++ package
   gpu-proxy-cpp-package = pkgs.stdenv.mkDerivation rec {
     pname = "gpu-proxy-cpp";
     version = "2.0.0";
@@ -20,7 +17,6 @@
 
     cmakeFlags = ["-DCMAKE_BUILD_TYPE=Release"];
 
-    # Fix include paths for NixOS
     preConfigure = ''
       export NIX_CFLAGS_COMPILE="-I${pkgs.nlohmann_json}/include/nlohmann $NIX_CFLAGS_COMPILE"
     '';
@@ -31,7 +27,6 @@
     '';
   };
 
-  # Format configuration as JSON
   configJson = pkgs.writeText "gpu-proxy-config.json" (
     builtins.toJSON {
       settings = {
@@ -134,24 +129,19 @@ in {
         Restart = "on-failure";
         RestartSec = "5s";
         DynamicUser = true;
-        # Read-only access to config
         ReadOnlyPaths = [configJson];
-        # No write access needed
         ReadWritePaths = [];
-        # Security hardening
         ProtectSystem = "strict";
         ProtectHome = true;
         PrivateTmp = true;
         NoNewPrivileges = true;
         RestrictRealtime = true;
         RestrictAddressFamilies = ["AF_INET" "AF_INET6"];
-        # Network access
         AmbientCapabilities = [];
         CapabilityBoundingSet = "";
       };
     };
 
-    # Open firewall port for miners
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.listenPort];
   };
 }

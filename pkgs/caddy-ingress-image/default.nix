@@ -1,20 +1,3 @@
-# Docker image for Caddy Ingress Controller
-#
-# This image packages the custom Caddy build with security, rate-limiting,
-# and caching modules into a container for Kubernetes deployment.
-#
-# Features:
-# - Includes caddy-with-modules binary (5 custom modules)
-# - busybox for basic utilities and debugging
-# - Exposes ports: 80 (HTTP), 443 (HTTPS), 2019 (Admin API)
-# - Volume mounts for config, data, logs, and cache
-# - Reproducible builds enabled (deterministic layer hashes)
-#
-# Usage: Load into Docker with: docker load < result
-#        Run with: docker run -p 80:80 -p 443:443 caddy-ingress
-#
-# Version: 1.0.0
-# Build: dockerTools.buildLayeredImage for efficient layering
 {
   caddy-with-modules,
   pkgs,
@@ -23,14 +6,11 @@
 pkgs.dockerTools.buildLayeredImage {
   name = "caddy-ingress";
   tag = "latest";
-  # Include Caddy binary and busybox for utilities
   contents = [
     caddy-with-modules
     pkgs.busybox
   ];
-  # Container configuration
   config = {
-    # OCI metadata labels for compliance
     Labels = {
       "org.opencontainers.image.title" = "Caddy Ingress Controller";
       "org.opencontainers.image.description" = "Caddy with security, rate-limiting, and caching modules for Kubernetes";
@@ -39,7 +19,6 @@ pkgs.dockerTools.buildLayeredImage {
       "org.opencontainers.image.authors" = "j_kro";
       "org.opencontainers.image.source" = "https://github.com/jkro-nixos/cluster";
     };
-    # Run Caddy with default config location
     Cmd = [
       "/bin/caddy-with-modules"
       "run"
@@ -48,23 +27,19 @@ pkgs.dockerTools.buildLayeredImage {
       "--config"
       "/etc/caddy/Caddyfile"
     ];
-    # Expose HTTP, HTTPS, and Admin API ports
     ExposedPorts = {
-      "80/tcp" = {}; # HTTP
-      "443/tcp" = {}; # HTTPS
-      "2019/tcp" = {}; # Admin API
+      "80/tcp" = {};
+      "443/tcp" = {};
+      "2019/tcp" = {};
     };
-    # Volume mounts for persistence and runtime data
     Volumes = {
-      "/etc/caddy" = {}; # Configuration files
-      "/data" = {}; # TLS certificates, Caddy storage
-      "/var/log/caddy" = {}; # Access logs
-      "/tmp/caddy-rate-limit" = {}; # Rate limiting cache
+      "/etc/caddy" = {};
+      "/data" = {};
+      "/var/log/caddy" = {};
+      "/tmp/caddy-rate-limit" = {};
     };
-    # Set working directory
     WorkingDir = "/data";
   };
-  # Meta information
   meta = with lib; {
     description = "Docker image for Caddy Ingress Controller with custom modules";
     longDescription = ''

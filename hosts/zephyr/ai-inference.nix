@@ -1,11 +1,7 @@
-# AI Inference Service Configuration for Zephyr
-# RTX 3090 (24GB) + RTX 3060 Ti (8GB)
-# Gateway runs in K8s on Zephyr (hostNetwork, port 8081) with ZAI backend
 {...}: {
   services.ai-inference = {
     enable = true;
 
-    # Backend: ZAI cloud API (local inference removed)
     backend = {
       type = "zai";
       zai = {
@@ -14,7 +10,6 @@
       };
     };
 
-    # Gateway runs in K8s (hostNetwork, port 8081), not systemd
     gateway = {
       enable = false;
       host = "127.0.0.1";
@@ -22,7 +17,6 @@
       workers = 4;
     };
 
-    # Routing: ZAI models by context/complexity
     routing = {
       enable = true;
       defaultModel = "glm-4.7";

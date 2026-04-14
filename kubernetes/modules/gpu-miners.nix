@@ -1,12 +1,3 @@
-# GPU miners (lolMiner) — swamp7/lolminer Docker image for all nodes
-#
-# The Nix-built image (docker.io/library/lolminer:1.98a-nixos) uses symlinks to
-# /nix/store paths that don't exist on other nodes (cross-node store mismatch).
-# swamp7/lolminer is self-contained with the binary baked in (1.1 GiB).
-#
-# Converted from: kubernetes-manifests/mining/csi/gpu-miner-forge-*.yaml
-#                 kubernetes-manifests/mining/gpu-miner-nexus.yaml
-#                 kubernetes-manifests/mining/gpu-miner-zephyr.yaml
 {
   pkgs,
   pkgsWithOverlay,
@@ -15,15 +6,10 @@
   ...
 }:
 let
-  # Self-contained lolminer image (1.1 GiB) — binary baked in, no Nix store deps
-  # Pin to specific tag for reproducibility (swamp7 only publishes :latest)
-  # Update by: crictl images | grep lolminer
   lolminerImage = "docker.io/swamp7/lolminer:latest";
 
-  # AMD OpenCL ICD vendors path — uses host CLR (ROCm) installation on forge
   openclIcd = "/nix/store/6yvx83sa6iwhr6xnjjlfjg56jnki5mdn-clr-7.2.0-icd/etc/OpenCL/vendors";
 
-  # NVIDIA volume mounts (GPU driver from host + Nix store for glibc)
   nvidiaVolumeMounts = {
     opengl-driver = {
       mountPath = "/run/opengl-driver/lib";
@@ -36,7 +22,6 @@ let
     };
   };
 
-  # NVIDIA volumes (host-side)
   nvidiaVolumes = {
     opengl-driver = {
       hostPath.path = "/run/opengl-driver/lib";
@@ -52,7 +37,6 @@ let
     };
   };
 
-  # AMD volume mounts (DRI/KFD/OpenCL + Nix store for glibc)
   amdVolumeMounts = {
     opengl-driver = {
       mountPath = "/run/opengl-driver/lib";
@@ -71,7 +55,6 @@ let
     };
   };
 
-  # AMD volumes (host-side)
   amdVolumes = {
     opengl-driver = {
       hostPath.path = "/run/opengl-driver/lib";
@@ -99,7 +82,6 @@ let
     };
   };
 
-  # Common env for NVIDIA miners
   nvidiaEnv = {
     _namedlist = true;
     LD_LIBRARY_PATH = {
@@ -108,7 +90,6 @@ let
     };
   };
 
-  # Common env for AMD miners
   amdEnv = {
     _namedlist = true;
     LD_LIBRARY_PATH = {
@@ -121,8 +102,6 @@ let
     };
   };
 
-  # Common lolMiner args for all miners
-  # --algo=CR29, dual pool (US+EU kryptex), TLS
   commonArgs = [
     "--algo=CR29"
     "--pool=xtm-c29-us.kryptex.network:8040"
@@ -134,7 +113,6 @@ in
 {
   config.kubernetes.objects = {
 
-    # ── Forge NVIDIA GPU 0 ─────────────────────────────────────
     mining.Deployment.gpu-miner-forge-nvidia-0 = {
       metadata.labels = {
         app = "gpu-miner-forge-nvidia-0";
@@ -224,7 +202,6 @@ in
       };
     };
 
-    # ── Forge NVIDIA GPU 1 ─────────────────────────────────────
     mining.Deployment.gpu-miner-forge-nvidia-1 = {
       metadata.labels = {
         app = "gpu-miner-forge-nvidia-1";
@@ -314,7 +291,6 @@ in
       };
     };
 
-    # ── Forge AMD GPU 0 ────────────────────────────────────────
     mining.Deployment.gpu-miner-forge-amd-0 = {
       metadata.labels.app = "gpu-miner-forge-amd-0";
       spec = {
@@ -389,7 +365,6 @@ in
       };
     };
 
-    # ── Forge AMD GPU 1 ────────────────────────────────────────
     mining.Deployment.gpu-miner-forge-amd-1 = {
       metadata.labels.app = "gpu-miner-forge-amd-1";
       spec = {
@@ -464,7 +439,6 @@ in
       };
     };
 
-    # ── Nexus NVIDIA GPU ───────────────────────────────────────
     mining.Deployment.gpu-miner-nexus = {
       metadata.labels = {
         app = "gpu-miner-nexus";
@@ -558,9 +532,6 @@ in
       };
     };
 
-    # ── Zephyr GPU ────────────────────────────────────────────
-    # RTX 3090 GPU 1 only — RTX 3060 Ti (GPU 0) reserved for AI/gaming
-    # Power limit 250W, mem offset +1300 (3090 mining sweet spot)
     mining.Deployment.gpu-miner-zephyr = {
       metadata = {
         labels = {

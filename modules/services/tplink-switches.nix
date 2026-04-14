@@ -1,6 +1,3 @@
-# TP-Link Smart Switch Management Service
-# Provides Playwright-based automation for TP-Link Easy Smart Switches
-# Switches at: 10.1.1.10, 10.1.1.11, 10.1.1.12, 10.1.1.13
 {
   config,
   lib,
@@ -14,7 +11,6 @@ in {
   options.services.tplinkSwitches = {
     enable = mkEnableOption "TP-Link Smart Switch management service";
 
-    # Switch configurations
     switches = mkOption {
       type = types.attrsOf (types.submodule {
         options = {
@@ -79,7 +75,6 @@ in {
       description = "Switch configurations";
     };
 
-    # VLAN definitions
     vlans = mkOption {
       type = types.listOf (types.submodule {
         options = {
@@ -126,23 +121,20 @@ in {
       description = "VLAN configurations to create on switches";
     };
 
-    # Monitoring settings
     monitoring = mkOption {
       type = types.submodule {
         options = {
           enable = mkEnableOption "Switch monitoring";
           interval = mkOption {
             type = types.int;
-            default = 300; # 5 minutes
+            default = 300;
             description = "Polling interval in seconds";
           };
-          #   prometheusExporter = mkEnableOption "Prometheus metrics exporter";
         };
       };
       default = {};
     };
 
-    # Automation settings
     automation = {
       enableAutomatedConfig = mkEnableOption "Automatic switch configuration";
       headless = mkOption {
@@ -154,11 +146,7 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # ============================================================================
-    # SYSTEM PACKAGES
-    # ============================================================================
     environment.systemPackages = with pkgs; [
-      # Core Python with Playwright
       (python3.withPackages (ps:
         with ps; [
           playwright
@@ -166,14 +154,10 @@ in {
           urllib3
         ]))
 
-      # Utility packages
       playwright
-      ffmpeg # Required for Playwright video recording
+      ffmpeg
     ];
 
-    # ============================================================================
-    # TPLINK SWITCH AUTOMATION WRAPPER SCRIPTS
-    # ============================================================================
     environment.etc."tplink-switches/automate.py" = {
       text = ''
         #!/usr/bin/env python3
@@ -195,12 +179,10 @@ in {
             print("ERROR: Playwright not installed")
             sys.exit(1)
 
-        # Configuration from NixOS
         SWITCHES = ${builtins.toJSON cfg.switches}
         VLANS = ${builtins.toJSON cfg.vlans}
         HEADLESS = ${lib.boolToString cfg.automation.headless}
 
-        # Read credentials from agenix-decrypted secret
         SECRET_PATH = "/run/agenix/switch-admin"
         try:
             with open(SECRET_PATH, "r") as f:
@@ -224,14 +206,12 @@ in {
                     await page.goto(self.base_url, timeout=15000)
                     await page.wait_for_load_state("domcontentloaded", timeout=5000)
 
-                    # Wait for login form
                     await page.wait_for_selector('input[name="username"]', timeout=5000)
                     await page.fill('input[name="username"]', self.username)
                     await page.fill('input[name="password"]', self.password)
                     await page.click('input[name="logon"]')
                     await page.wait_for_load_state("domcontentloaded", timeout=5000)
 
-                    # Check if login succeeded
                     current_url = page.url
                     if "/logon.cgi" not in current_url:
                         print(f"  ✓ Logged into {self.name or self.ip}")
@@ -249,7 +229,7 @@ in {
                     await asyncio.sleep(1)
 
                     ports = []
-                    for port_num in range(1, 6):  # 5-port switches
+                    for port_num in range(1, 6):
                         port_info = {"port": port_num, "enabled": False, "link": False}
                         ports.append(port_info)
 
@@ -265,7 +245,6 @@ in {
                     await page.wait_for_load_state("domcontentloaded", timeout=5000)
                     await asyncio.sleep(1)
 
-                    # Try to extract system info
                     info = {
                         "ip": self.ip,
                         "name": self.name,
@@ -316,7 +295,6 @@ in {
                     await page.wait_for_load_state("domcontentloaded", timeout=5000)
                     await asyncio.sleep(1)
 
-                    # Try to find and click Add button
                     add_selectors = [
                         'input:has-text("Add")',
                         'button:has-text("Add")',
@@ -333,7 +311,6 @@ in {
                         except Exception:
                             continue
 
-                    # Fill VLAN form
                     vlan_id_input = await page.query_selector('input[name*="vid"]')
                     vlan_name_input = await page.query_selector('input[name*="vname"]')
 
@@ -343,7 +320,6 @@ in {
                     if vlan_name_input:
                         await vlan_name_input.fill(vlan_name)
 
-                    # Save
                     save_selectors = [
                         'input:has-text("Apply")',
                         'button:has-text("Apply")',
@@ -377,7 +353,6 @@ in {
             """Configure a single switch"""
             ip = switch_config["ip"]
             name = switch_config.get("name", ip)
-            # Use default credentials from agenix secret
             username = "admin"
             password = DEFAULT_PASSWORD
 
@@ -391,7 +366,6 @@ in {
                 browser = await p.chromium.launch(headless=HEADLESS)
                 page = await browser.new_page()
 
-                # Login
                 if not await automator.login(page):
                     await automator.take_screenshot(page, f"{name.replace('.', '-')}-login-error")
                     await browser.close()
@@ -399,17 +373,14 @@ in {
 
                 await asyncio.sleep(1)
 
-                # Enable SNMP
                 print("Enabling SNMP...")
                 await automator.enable_snmp(page)
 
-                # Create VLANs
                 print("\nCreating VLANs...")
                 for vlan in VLANS:
                     print(f"  Creating VLAN {vlan['id']} ({vlan['name']})...")
                     await automator.create_vlan(page, vlan['id'], vlan['name'])
 
-                # Take final screenshot
                 await automator.take_screenshot(page, f"{name.replace('.', '-')}-complete")
 
                 await browser.close()
@@ -419,7 +390,6 @@ in {
             """Monitor switch status"""
             ip = switch_config["ip"]
             name = switch_config.get("name", ip)
-            # Use default credentials from agenix secret
             username = "admin"
             password = DEFAULT_PASSWORD
 
@@ -480,14 +450,12 @@ in {
                         await monitor_switch(key, config)
 
             elif command == "screenshot":
-                # Take screenshots of all switches
                 async with async_playwright() as p:
                     browser = await p.chromium.launch(headless=HEADLESS)
 
                     for key, switch_config in SWITCHES.items():
                         ip = switch_config["ip"]
                         name = switch_config.get("name", ip)
-                        # Use default credentials from agenix secret
                         username = "admin"
                         password = DEFAULT_PASSWORD
 
@@ -509,9 +477,6 @@ in {
       mode = "0755";
     };
 
-    # ============================================================================
-    # SYSTEMD SERVICE FOR MONITORING
-    # ============================================================================
     systemd = {
       tmpfiles.rules = [
         "d /var/cache/tplink-switches 0755 root root -"
@@ -529,7 +494,6 @@ in {
           Restart = "on-failure";
           RestartSec = "60s";
 
-          # Security hardening
           ProtectSystem = "strict";
           ProtectHome = true;
           PrivateTmp = true;
@@ -548,9 +512,6 @@ in {
       };
     };
 
-    # ============================================================================
-    # NETWORK CONSTANTS - Add switch IPs to cluster network
-    # ============================================================================
     networking.extraHosts = lib.optionalString cfg.enable ''
       ${lib.concatMapStringsSep "\n" (switch: "${switch.ip} ${switch.name}") (lib.attrValues cfg.switches)}
     '';

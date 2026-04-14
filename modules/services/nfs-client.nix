@@ -1,4 +1,3 @@
-# NFS Client for mounting shared storage from Nexus
 {
   config,
   lib,
@@ -24,33 +23,18 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # NFS client packages
     environment.systemPackages = with pkgs; [nfs-utils];
 
-    # NFS client settings
     services.rpcbind.enable = true;
 
-    # Create mount points for local directories only
-    # Note: Automount paths (/data/shared, /data/home, /data/media) don't need mkdir
-    # They will be created automatically by systemd when first accessed
     system.activationScripts.nfs-mounts = lib.stringAfter ["var"] ''
-      # Skip creating directories for automount paths - they don't exist until accessed
-      # The NFS mounts will create these directories automatically when needed
     '';
 
-    # Filesystem mounts
     fileSystems = lib.mkMerge [
       (lib.mkIf cfg.mountShared {
         "/data/shared" = {
           device = "${cfg.serverIp}:/data/shared";
           fsType = "nfs4";
-          # GRACEFUL FAILURE OPTIONS:
-          # - soft: Return errors after timeout instead of hanging indefinitely
-          # - timeo=50: 5 second timeout (in deciseconds)
-          # - retrans=2: Give up after 2 retries (total ~10 seconds)
-          # - x-systemd.automount: Mount on first access, not at boot
-          # - x-systemd.device-timeout=5s: Give up on device after 5s
-          # - nofail: Don't fail boot if NFS server is down
           options = [
             "soft"
             "timeo=50"
@@ -103,7 +87,6 @@ in {
       })
     ];
 
-    # Network dependency - don't try to mount until network is ready
     systemd.targets."remote-fs-pre".wants = ["network-online.target"];
   };
 }

@@ -1,8 +1,3 @@
-# OpenCode config generator
-# Generates: ~/.opencode/config.json (providers + MCP)
-#
-# OpenCode uses env var references for Z.AI keys and has its own
-# provider/model schema separate from Crush and Pi.
 {
   cfg,
   pkgs,

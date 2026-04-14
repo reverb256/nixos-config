@@ -1,17 +1,3 @@
-# ZRAM Swap and Kernel Network Tuning
-#
-# Reusable module for ZRAM compressed swap configuration and kernel sysctl
-# tuning for network buffers and reverse path filtering.
-#
-# Extracted from host-specific configs to allow consistent tuning across nodes.
-#
-# Usage:
-#   services.zram-tuning = {
-#     enable = true;
-#     zram.algorithm = "zstd";
-#     zram.memoryPercent = 25;
-#     network.enable = true;  # kernel network buffer tuning
-#   };
 {
   config,
   lib,
@@ -87,7 +73,6 @@ in
   };
 
   config = mkIf cfg.enable {
-    # ZRAM compressed swap — reduces SSD wear, faster than disk swap
     zramSwap = {
       enable = true;
       algorithm = cfg.zram.algorithm;
@@ -95,14 +80,12 @@ in
       priority = cfg.zram.priority;
     };
 
-    # Kernel network buffer tuning (frees unused socket buffers)
     boot.kernel.sysctl = mkIf cfg.network.enable {
       "net.core.rmem_default" = cfg.network.rmemDefault;
       "net.core.wmem_default" = cfg.network.wmemDefault;
       "net.core.rmem_max" = cfg.network.rmemMax;
       "net.core.wmem_max" = cfg.network.wmemMax;
 
-      # Reverse path filtering for BGP
       "net.ipv4.conf.all.rp_filter" = cfg.network.rpFilter;
     };
   };

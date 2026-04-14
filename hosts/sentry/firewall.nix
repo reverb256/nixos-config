@@ -1,5 +1,3 @@
-# Sentry Firewall Configuration
-# Monitoring server - SSH, Kubelet, Loki, Garage S3, Prometheus node-exporter
 { lib, ... }:
 {
   networking = {
@@ -7,10 +5,11 @@
       allowedTCPPorts = lib.mkOptionDefault [
         22
         10250
+        1235
         3100
         3900
         3901
-        9100 # Prometheus node-exporter
+        9100
       ];
       allowedTCPPortRanges = lib.mkOptionDefault [
         {
@@ -19,9 +18,8 @@
         }
       ];
       allowedUDPPorts = lib.mkOptionDefault [
-        8472 # VXLAN (Flannel or Calico)
+        8472
       ];
-      # Open Loki port on main interface for cluster access
       interfaces."enp7s0".allowedTCPPorts = [ 3100 ];
     };
   };
