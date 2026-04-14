@@ -143,6 +143,13 @@ in {
     };
 
     # GPU-only mode - disable system RAM caching
+    # Multimodal support
+    mmprojPath = mkOption {
+      type = types.nullOr types.path;
+      default = null;
+      description = "Path to multimodal projector GGUF file (mmproj) for vision/audio support";
+    };
+
     cacheRam = mkOption {
       type = types.int;
       default = 0; # Disable prompt cache in RAM (force GPU-only)
@@ -198,6 +205,7 @@ in {
         ExecStart = ''
           ${llamaPkg}/bin/llama-server \
             --model ${cfg.modelPath} \
+            ${lib.optionalString (cfg.mmprojPath != null) "--mmproj ${cfg.mmprojPath}"} \
             --host ${cfg.host} \
             --port ${toString cfg.port} \
             ${gpuLayersFlag} \
