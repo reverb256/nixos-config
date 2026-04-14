@@ -396,6 +396,26 @@ in
             default = 5;
             description = "Web search max results";
           };
+          brain_wiki_enabled = mkOption {
+            type = types.bool;
+            default = true;
+            description = "Enable brain wiki knowledge source";
+          };
+          brain_wiki_path = mkOption {
+            type = types.str;
+            default = "/home/j_kro/brain/wiki";
+            description = "Path to brain wiki directory";
+          };
+          brain_wiki_max_results = mkOption {
+            type = types.int;
+            default = 5;
+            description = "Brain wiki max results";
+          };
+          brain_wiki_max_chunk_chars = mkOption {
+            type = types.int;
+            default = 2000;
+            description = "Max chars per brain wiki chunk";
+          };
         };
       };
     };

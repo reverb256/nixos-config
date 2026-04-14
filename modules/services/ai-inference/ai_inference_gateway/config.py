@@ -12,6 +12,7 @@ This module provides production-grade configuration with:
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Optional, List, Dict
 from pydantic import BaseModel, Field, field_validator, model_validator, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -163,6 +164,20 @@ class KnowledgeFabricConfig(BaseSettings):
     )
     code_max_results: int = Field(
         default=5, ge=1, le=20, description="Code search max results"
+    )
+    brain_wiki_enabled: bool = Field(
+        default=True, description="Enable brain wiki source"
+    )
+    brain_wiki_path: str = Field(
+        default=str(Path.home() / "brain" / "wiki"),
+        description="Path to brain wiki directory",
+    )
+    brain_wiki_max_results: int = Field(
+        default=5, ge=1, le=20, description="Brain wiki max results"
+    )
+    brain_wiki_max_chunk_chars: int = Field(
+        default=2000, ge=100, le=10000,
+        description="Max chars per brain wiki chunk",
     )
 
 

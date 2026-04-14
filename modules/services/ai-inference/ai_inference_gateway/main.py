@@ -843,6 +843,10 @@ def build_middleware_pipeline(
             "web_max_results": config.middleware.knowledge_fabric.web_max_results,
             "searxng_max_results": config.middleware.knowledge_fabric.searxng_max_results,
             "code_max_results": config.middleware.knowledge_fabric.code_max_results,
+            "brain_wiki_enabled": config.middleware.knowledge_fabric.brain_wiki_enabled,
+            "brain_wiki_path": config.middleware.knowledge_fabric.brain_wiki_path,
+            "brain_wiki_max_results": config.middleware.knowledge_fabric.brain_wiki_max_results,
+            "brain_wiki_max_chunk_chars": config.middleware.knowledge_fabric.brain_wiki_max_chunk_chars,
         }
 
         fabric_middleware = create_knowledge_fabric(

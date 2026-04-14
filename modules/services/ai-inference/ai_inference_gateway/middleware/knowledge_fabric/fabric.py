@@ -17,25 +17,22 @@ from .core import (
     KnowledgeSource,
     FabricContext,
     KnowledgeResult,
-    SourceCapability,
 )
-from .routing import SemanticRouter, QueryIntent
+from .routing import SemanticRouter
 from .fusion import RRFFusion, ContextSynthesizer
 from .circuit_breaker import (
-    CircuitBreakerRegistry,
     execute_with_circuit_breaker,
     create_circuit_breaker_registry,
 )
 from .metrics import (
-    get_metrics,
     create_metrics,
-    KnowledgeFabricMetrics,
 )
 from .sources import (
     RAGKnowledgeSource,
     WebSearchKnowledgeSource,
     SearXNGKnowledgeSource,
     CodeSearchKnowledgeSource,
+    BrainWikiSource,
 )
 
 try:
@@ -100,7 +97,7 @@ class KnowledgeFabricMiddleware(Middleware):
 
         # Initialize Prometheus metrics with isolated registry
         # This prevents duplicate registration errors when multiple instances exist
-        if PROMETHEUS_AVAILABLE:
+        if PROMETHEUS_AVAILABLE and CollectorRegistry is not None:
             metrics_registry = CollectorRegistry()
             self.metrics = create_metrics(registry=metrics_registry)
         else:
@@ -137,7 +134,6 @@ class KnowledgeFabricMiddleware(Middleware):
         # RAG source (HIGH priority - internal knowledge base)
         if self.config.get("rag_enabled", False):
             # Import here to avoid circular imports
-            from ai_inference_gateway.rag.search import HybridSearchService
 
             # search_service will be injected via context during request
             rag_source = RAGKnowledgeSource(
@@ -166,6 +162,21 @@ class KnowledgeFabricMiddleware(Middleware):
         )
         sources.append(searxng)
         logger.info("Added SearXNGKnowledgeSource")
+
+        # Brain wiki source (HIGH priority - local wiki knowledge base)
+        # Keyword-overlap search over ~/brain/wiki/ markdown pages.
+        # No embeddings required — pure token matching with recency boost.
+        if self.config.get("brain_wiki_enabled", True):
+            brain_source = BrainWikiSource(
+                brain_wiki_path=self.config.get(
+                    "brain_wiki_path",
+                    str(__import__("pathlib").Path.home() / "brain" / "wiki"),
+                ),
+                max_results=self.config.get("brain_wiki_max_results", 5),
+                max_chunk_chars=self.config.get("brain_wiki_max_chunk_chars", 2000),
+            )
+            sources.append(brain_source)
+            logger.info("Added BrainWikiSource")
 
         # Web search source (MEDIUM priority - MCP web_search_prime)
         web_search = WebSearchKnowledgeSource(
@@ -230,6 +241,7 @@ class KnowledgeFabricMiddleware(Middleware):
             if len(query.strip()) < 10:
                 logger.debug(f"Query too short for knowledge retrieval: {query[:50]}")
                 self.metrics.record_query_skipped(reason="query_too_short")
+                query_timer.__exit__(None, None, None)
                 return True, None
 
             logger.info(f"Processing knowledge query: {query[:100]}")
@@ -269,23 +281,25 @@ class KnowledgeFabricMiddleware(Middleware):
 
             # Prepare retrieval tasks with circuit breaker protection
             retrieval_tasks = []
+            task_source_names: list[str] = []
             for source_name in selected_sources:
-                if source_name in self._sources_by_name:
-                    source = self._sources_by_name[source_name]
-                    # Inject search_service if needed (for RAG)
-                    if (
-                        hasattr(source, "search_service")
-                        and source.search_service is None
-                    ):
-                        # Try to get from state (injected by app)
-                        search_service = context.get("rag_search_service")
-                        if search_service:
-                            source.search_service = search_service
-                        else:
-                            logger.warning(
-                                f"RAG search service not available for {source_name}"
-                            )
-                            continue
+                if source_name not in self._sources_by_name:
+                    continue
+                source = self._sources_by_name[source_name]
+                # Inject search_service if needed (for RAG)
+                if (
+                    hasattr(source, "search_service")
+                    and getattr(source, "search_service", None) is None
+                ):
+                    # Try to get from state (injected by app)
+                    search_service = context.get("rag_search_service")
+                    if search_service:
+                        setattr(source, "search_service", search_service)
+                    else:
+                        logger.warning(
+                            f"RAG search service not available for {source_name}"
+                        )
+                        continue
 
                     # Wrap retrieve with circuit breaker protection
                     protected_retrieve = execute_with_circuit_breaker(
@@ -305,7 +319,7 @@ class KnowledgeFabricMiddleware(Middleware):
                 for i, result in enumerate(results):
                     if isinstance(result, Exception):
                         logger.error(
-                            f"Source {selected_sources[i]} retrieval failed: {result}"
+                            f"Source {task_source_names[i] if i < len(task_source_names) else 'unknown'} retrieval failed: {result}"
                         )
                         continue
 
@@ -323,12 +337,15 @@ class KnowledgeFabricMiddleware(Middleware):
                     result_list = list(fabric_context.results.values())
                     chunks_before = sum(len(r.chunks) for r in result_list)
 
-                    fused_chunks = self.fusion.fuse(result_list, fabric_context)
+                    fused_chunks = await self.fusion.fuse(result_list, fabric_context)
                     fabric_context.fused_chunks = fused_chunks
 
                     # Record fusion metrics
                     self.metrics.record_fusion_operation(
-                        chunks_before=chunks_before, chunks_after=len(fused_chunks)
+                        status="success",
+                        chunks_before=chunks_before,
+                        chunks_after=len(fused_chunks),
+                        latency_seconds=0.0,
                     )
 
                     logger.info(
@@ -345,7 +362,10 @@ class KnowledgeFabricMiddleware(Middleware):
                         context[KNOWLEDGE_CONTEXT_KEY] = knowledge_context
 
                         # Record context generation metrics
-                        self.metrics.system_context_chars.inc(len(knowledge_context))
+                        self.metrics.record_context_generation(
+                            char_count=len(knowledge_context),
+                            sources_used=len(fabric_context.sources_used),
+                        )
 
                         logger.info(
                             f"Injected {len(knowledge_context)} chars of knowledge context"
@@ -356,11 +376,6 @@ class KnowledgeFabricMiddleware(Middleware):
 
         except Exception as e:
             logger.exception(f"Error in knowledge fabric process_request: {e}")
-            # Close query timer on error
-            try:
-                query_timer.__exit__(type(e), e, None)
-            except Exception:
-                pass
             # Don't fail the request on knowledge errors
             # Log and continue
 
@@ -386,7 +401,7 @@ class KnowledgeFabricMiddleware(Middleware):
             return context["user_query"]
 
         # Import shared utility
-        from ai_inference_gateway.utils.message_utils import (
+        from ai_inference_gateway.utils.message_utils import (  # type: ignore[import-not-found]
             extract_user_query_from_request_body,
             parse_request_body_safely,
         )

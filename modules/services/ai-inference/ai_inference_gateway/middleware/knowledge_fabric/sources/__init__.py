@@ -16,6 +16,7 @@ from .searxng_source import (
     create_clustering_source,
 )
 from .code_search_source import CodeSearchKnowledgeSource, create_code_search_source
+from .brain_source import BrainWikiSource, create_brain_source
 
 __all__ = [
     "RAGKnowledgeSource",
@@ -30,4 +31,6 @@ __all__ = [
     "create_clustering_source",
     "CodeSearchKnowledgeSource",
     "create_code_search_source",
+    "BrainWikiSource",
+    "create_brain_source",
 ]
