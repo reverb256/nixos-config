@@ -225,8 +225,18 @@
   # ============================================================================
 
   # ============================================================================
-  # STATUS INDICATOR
+  # TCP CONGESTION CONTROL — Google BBR
+  # Better throughput and latency for gaming, streaming, and bulk transfers.
+  # Used by Bazzite, CachyOS. BBR v1 is stable in mainline since 5.9.
   # ============================================================================
+  boot.kernel.sysctl = {
+    "net.ipv4.tcp_congestion_control" = "bbr";
+    "net.core.default_qdisc" = "fq";
+  };
+
+  # ============================================================================
+  # STATUS INDICATOR
+  # =============================================================================
 
   # Mark that analytics blocklist is active
   environment.etc."analytics-blocklist-active".text = ''
