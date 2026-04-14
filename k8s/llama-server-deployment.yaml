@@ -1,0 +1,102 @@
+# llama.cpp Server - Gemma 4 E2B IT (ROCm) on sentry
+# 2.9GB IQ4_NL, 131K context, vision + text multimodal
+# Uses hostPath for model files and direct GPU device access
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llama-server
+  namespace: ai-inference
+  labels:
+    app: llama-server
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: llama-server
+  template:
+    metadata:
+      labels:
+        app: llama-server
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: sentry
+
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+
+      # Need privileged for /dev/dri GPU access
+      containers:
+      - name: llama-server
+        image: ghcr.io/ggml-org/llama.cpp:server-rocm
+        imagePullPolicy: IfNotPresent
+        args:
+          - "--model"
+          - "/models/gemma-4-E2B-it-IQ4_NL.gguf"
+          - "--mmproj"
+          - "/models/mmproj-F32.gguf"
+          - "--host"
+          - "0.0.0.0"
+          - "--port"
+          - "1235"
+          - "-ngl"
+          - "99"
+          - "--ctx-size"
+          - "131072"
+          - "--cache-type-k"
+          - "q4_0"
+          - "--cache-type-v"
+          - "q4_0"
+          - "--parallel"
+          - "1"
+          - "--cont-batching"
+          - "--metrics"
+          - "--alias"
+          - "gemma-4-e2b-it"
+        ports:
+        - name: http
+          containerPort: 1235
+          protocol: TCP
+        env:
+        - name: ROC_ENABLE_PRE_VEGA
+          value: "1"
+        volumeMounts:
+        - name: models
+          mountPath: /models
+          readOnly: true
+        - name: dri
+          mountPath: /dev/dri
+        securityContext:
+          privileged: true
+        resources:
+          requests:
+            cpu: "2"
+            memory: "2Gi"
+          limits:
+            cpu: "8"
+            memory: "8Gi"
+
+      volumes:
+      - name: models
+        hostPath:
+          path: /home/j_kro/.lmstudio/models/unsloth/gemma-4-E2B-it-GGUF
+          type: Directory
+      - name: dri
+        hostPath:
+          path: /dev/dri
+          type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llama-server
+  namespace: ai-inference
+spec:
+  type: ClusterIP
+  selector:
+    app: llama-server
+  ports:
+  - name: http
+    port: 1235
+    targetPort: 1235

@@ -1,0 +1,33 @@
+---
+# Network policy for metrics-server to scrape kubelets on all nodes
+# Without this, the kube-system default-deny egress blocks metrics-server
+# from reaching kubelet port 10250 on other nodes.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-metrics-server-kubelet
+  namespace: kube-system
+spec:
+  podSelector:
+    matchLabels:
+      k8s-app: metrics-server
+  policyTypes:
+  - Egress
+  egress:
+  # Allow metrics-server to reach kubelet on all nodes
+  - to:
+    - ipBlock:
+        cidr: 10.1.1.0/24
+    ports:
+    - protocol: TCP
+      port: 10250
+  # Allow DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
