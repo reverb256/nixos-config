@@ -7,6 +7,7 @@
 }:
 let
   lolminerImage = "docker.io/swamp7/lolminer:latest";
+  lolminerAmdImage = "docker.io/library/lolminer-amd:1.98a-nixos";
 
   openclIcd = "/nix/store/6yvx83sa6iwhr6xnjjlfjg56jnki5mdn-clr-7.2.0-icd/etc/OpenCL/vendors";
 
@@ -310,7 +311,8 @@ in
             containers = {
               _namedlist = true;
               lolminer = {
-                image = lolminerImage;
+                image = lolminerAmdImage;
+                imagePullPolicy = "Never";
                 args = commonArgs ++ [
                   "--user=krxXVNVMM7.forge-a0"
                   "--pass=x"
@@ -384,7 +386,8 @@ in
             containers = {
               _namedlist = true;
               lolminer = {
-                image = lolminerImage;
+                image = lolminerAmdImage;
+                imagePullPolicy = "Never";
                 args = commonArgs ++ [
                   "--user=krxXVNVMM7.forge-a1"
                   "--pass=x"

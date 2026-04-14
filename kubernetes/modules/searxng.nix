@@ -86,8 +86,8 @@
             containers = {
               _namedlist = true;
               searxng = {
-                image = "searxng/searxng:2026.4.5-474b0a55b";
-                imagePullPolicy = "IfNotPresent";
+                image = "searxng/searxng:latest";
+                imagePullPolicy = "Always";
                 securityContext = {
                   allowPrivilegeEscalation = false;
                   readOnlyRootFilesystem = true;
@@ -162,16 +162,26 @@
     search.Service.searxng = {
       metadata.labels.app = "searxng";
       spec = {
+        type = "NodePort";
         selector.app = "searxng";
         ports = [
           {
             name = "http";
             port = 7777;
             targetPort = 8080;
+            nodePort = 30888;
             protocol = "TCP";
           }
         ];
       };
+    };
+
+    search.Ingress.searxng = {
+      metadata = { labels.app = "searxng"; annotations."caddy.ingress.kubernetes.io/disable-ssl-redirect" = "true"; };
+      spec = { ingressClassName = "caddy"; rules = [
+        { host = "search.lan"; http.paths = [{ path = "/"; pathType = "Prefix"; backend.service = { name = "searxng"; port.number = 7777; }; }]; }
+        { host = "search.cluster.local"; http.paths = [{ path = "/"; pathType = "Prefix"; backend.service = { name = "searxng"; port.number = 7777; }; }]; }
+      ]; };
     };
 
     search.NetworkPolicy.allow-searxng-ingress = {

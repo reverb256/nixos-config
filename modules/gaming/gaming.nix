@@ -271,7 +271,7 @@ in
           (pkgs.writeShellScriptBin "launch-game" ''
             #!/usr/bin/env bash
             set -euo pipefail
-            if [ $
+            if [ ''$# -lt 1 ]; then
               echo "Usage: launch-game [command] [args...]" >&2
               echo "Launch a game in gaming.slice with GameMode integration" >&2
               echo "" >&2

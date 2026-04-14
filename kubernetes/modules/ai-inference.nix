@@ -128,8 +128,8 @@
     Ingress.llama-server = {
       metadata = { labels."app.kubernetes.io/name" = "llama-server"; annotations."caddy.ingress.kubernetes.io/disable-ssl-redirect" = "true"; };
       spec = { ingressClassName = "caddy"; rules = [
-        { host = "ai.lan"; http.paths = [{ path = "/"; pathType = "Prefix"; backend.service = { name = "llama-server"; port.number = 8080; }; }]; }
-        { host = "ai.cluster.local"; http.paths = [{ path = "/"; pathType = "Prefix"; backend.service = { name = "llama-server"; port.number = 8080; }; }]; }
+        { host = "ai.lan"; http.paths = [{ path = "/"; pathType = "Prefix"; backend.service = { name = "llama-server-zephyr"; port.number = 1235; }; }]; }
+        { host = "ai.cluster.local"; http.paths = [{ path = "/"; pathType = "Prefix"; backend.service = { name = "llama-server-zephyr"; port.number = 1235; }; }]; }
       ]; };
     };
 
