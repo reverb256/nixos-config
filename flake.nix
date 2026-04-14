@@ -47,8 +47,9 @@
     #   inputs.nixpkgs.follows = "nixpkgs";
     # };
     agenix = {
-      url = "github:ryantm/agenix/0.15.0";
+      url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
     };
     # Colmena - Multi-host deployment
     colmena = {
