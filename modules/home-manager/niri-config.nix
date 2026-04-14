@@ -153,7 +153,7 @@ in
           scale = 1.0;
         };
 
-        # HDMI-A-2: Samsung 4K HDR TV
+        # HDMI-A-2: Samsung 4K HDR TV (isolated — positioned far right, no mouse reach)
         "HDMI-A-2" = {
           mode = {
             width = 3840;
@@ -161,11 +161,29 @@ in
             refresh = 60.0;
           };
           position = {
-            x = 3520;
-            y = 1080;
+            x = 10000;
+            y = 0;
           };
           scale = 1.5;
         };
+      };
+
+      # ==========================================================================
+      # NAMED WORKSPACES (bound to specific monitors)
+      # 1-4: ZOWIE (DP-5) | 5-6: ASUS (DP-4) | 7-8: Acer (DP-6) | 9-10: Samsung (HDMI-A-2)
+      # ==========================================================================
+      workspaces = {
+        "zowie-1" = { open-on-output = "DP-5"; };
+        "zowie-2" = { open-on-output = "DP-5"; };
+        "zowie-3" = { open-on-output = "DP-5"; };
+        "zowie-4" = { open-on-output = "DP-5"; };
+        "asus-1" = { open-on-output = "DP-4"; };
+        "asus-2" = { open-on-output = "DP-4"; };
+        "acer-1" = { open-on-output = "DP-6"; };
+        "acer-2" = { open-on-output = "DP-6"; };
+        "samsung-1" = { open-on-output = "HDMI-A-2"; };
+        "samsung-2" = { open-on-output = "HDMI-A-2"; };
+        "scratch" = { open-on-output = "DP-5"; }; # Scratchpad workspace (Mod+S)
       };
 
       # ==========================================================================
@@ -235,14 +253,27 @@ in
       # ==========================================================================
       binds = with acts; {
         # =========================================================================
-        # APPLICATIONS (launch-or-focus prevents duplicate windows)
+        # APPLICATIONS (Omarchy-style: Mod+Letter = app)
+        # Terminal: always spawn new (no launch-or-focus)
+        # Other apps: launch-or-focus to prevent duplicates
         # =========================================================================
-        "Mod+Return".action = spawn "launch-or-focus" "Ghostty" "ghostty";
-        "Mod+Ctrl+Return".action = spawn "ghostty"; # Always spawn new terminal
-        "Mod+Shift+Return".action = spawn "zen-twilight";
+        "Mod+Return".action = spawn "ghostty"; # Always spawn new terminal
+        "Mod+Shift+Return".action = spawn "zen-twilight"; # Always spawn new browser
         "Mod+B".action = spawn "launch-or-focus" "Zen" "zen-twilight";
+        "Mod+Shift+B".action = spawn "zen-twilight" "--private-window";
         "Mod+E".action = spawn "launch-or-focus" "Dolphin" "${pkgs.kdePackages.dolphin}/bin/dolphin";
-        "Mod+Shift+N".action = spawn "launch-or-focus" "Visual Studio Code" "${pkgs.vscode}/bin/code";
+        "Mod+N".action = spawn "launch-or-focus" "KWrite" "${pkgs.kdePackages.kwrite}/bin/kwrite";
+        "Mod+Shift+N".action = spawn "launch-or-focus" "Kate" "${pkgs.kdePackages.kate}/bin/kate";
+        "Mod+O".action = spawn "launch-or-focus" "Obsidian" "obsidian";
+        "Mod+T".action = spawn "ghostty" "-e" "btop";
+        "Mod+D".action = spawn "ghostty" "-e" "lazydocker";
+        "Mod+G".action = spawn "launch-or-focus" "Vesktop" "vesktop";
+        "Mod+Shift+G".action = spawn "zen-twilight" "--new-window" "https://grok.com";
+        "Mod+A".action = spawn "launch-or-focus" "LM" "lm-studio";
+        "Mod+Shift+A".action = spawn "zen-twilight" "--new-window" "https://chatgpt.com";
+        "Mod+M".action = spawn "launch-or-focus" "Spotify" "flatpak" "run" "com.spotify.Client";
+        "Mod+Slash".action = spawn "launch-or-focus" "Bitwarden" "flatpak" "run" "com.bitwarden.desktop";
+        "Mod+K".action = show-hotkey-overlay;
 
         # =========================================================================
         # NOCTALIA SHELL — Launcher modes
@@ -257,8 +288,9 @@ in
         # =========================================================================
         # NOCTALIA SHELL — Panels & toggles
         # =========================================================================
-        "Mod+S".action = spawn "noctalia-shell" "ipc" "call" "controlCenter toggle";
-        "Mod+Comma".action = spawn "noctalia-shell" "ipc" "call" "settings toggle";
+        "Mod+S".action = spawn "scratchpad-toggle"; # Scratchpad workspace
+        "Mod+Comma".action = spawn "noctalia-shell" "ipc" "call" "notifications dismissLast";
+        "Mod+Alt+Space".action = spawn "noctalia-shell" "ipc" "call" "settings toggle"; # Settings panel
         "Mod+Shift+Space".action = spawn "noctalia-shell" "ipc" "call" "bar toggle";
         "Mod+Ctrl+A".action = spawn "noctalia-shell" "ipc" "call" "volume togglePanel";
         "Mod+Ctrl+W".action = spawn "noctalia-shell" "ipc" "call" "network togglePanel";
@@ -267,35 +299,30 @@ in
         "Mod+Ctrl+N".action = spawn "noctalia-shell" "ipc" "call" "nightLight toggle";
         "Mod+Ctrl+D".action = spawn "noctalia-shell" "ipc" "call" "darkMode toggle";
         "Mod+Ctrl+T".action = spawn "noctalia-shell" "ipc" "call" "systemMonitor toggle";
+        "Mod+Ctrl+S".action = spawn "noctalia-shell" "ipc" "call" "share toggle"; # Share (LocalSend)
+        "Mod+Ctrl+L".action = spawn "noctalia-shell" "ipc" "call" "lockScreen lock"; # Quick lock
+        "Mod+Ctrl+O".action = spawn "noctalia-shell" "ipc" "call" "controlCenter toggle"; # Control center (moved from Mod+S)
         "Mod+Ctrl+Shift+W".action = spawn "noctalia-shell" "ipc" "call" "wallpaper random";
 
         # =========================================================================
-        # NOTIFICATIONS (Omarchy hierarchy)
-        # Super+Comma = settings (above), so notification binds use shift/ctrl/alt
+        # NOTIFICATIONS (Omarchy hierarchy: Mod+Comma = dismiss, variants for more)
         # =========================================================================
-        "Mod+Alt+Comma".action = spawn "noctalia-shell" "ipc" "call" "notifications toggleHistory";
         "Mod+Shift+Comma".action = spawn "noctalia-shell" "ipc" "call" "notifications dismissAll";
         "Mod+Ctrl+Comma".action = spawn "noctalia-shell" "ipc" "call" "notifications toggleDND";
+        "Mod+Alt+Comma".action = spawn "noctalia-shell" "ipc" "call" "notifications toggleHistory";
         "Mod+Alt+Shift+Comma".action = spawn "noctalia-shell" "ipc" "call" "notifications invokeDefault";
-
-        # =========================================================================
-        # WEB APPS
-        # Zen is Firefox-based — no native --app mode (SSB/PWA).
-        # Uses --new-window for dedicated window. For true standalone apps,
-        # install the "PWAs for Firefox" extension.
-        # =========================================================================
-        "Mod+Shift+A".action = spawn "zen-twilight" "--new-window" "https://chatgpt.com";
 
         # =========================================================================
         # SCREENSHOTS & CAPTURE
         # grim+slurp for region/fullscreen → clipboard
         # niri built-in for screen/window capture UI
         # =========================================================================
-        "Print".action = spawn-sh "${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" - | ${pkgs.wl-clipboard}/bin/wl-copy";
-        "Mod+Print".action = spawn-sh "${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" - | ${pkgs.wl-clipboard}/bin/wl-copy";
+        "Print".action = spawn-sh ''FILE="$HOME/Pictures/Screenshots/screenshot-$(date +%Y-%m-%d_%H-%M-%S).png" && mkdir -p "$(dirname "$FILE")" && ${pkgs.grim}/bin/grim -g "$(${pkgs.slurp}/bin/slurp)" "$FILE" && ${pkgs.wl-clipboard}/bin/wl-copy < "$FILE" && ${pkgs.satty}/bin/satty --filename "$FILE" --output-filename "$FILE" --actions-on-enter save-to-clipboard --save-after-copy --copy-command 'wl-copy' &'';
+        "Mod+Print".action = spawn "niri" "msg" "action" "pick-color"; # Color picker
         "Mod+Shift+Print".action = spawn-sh "${pkgs.grim}/bin/grim - | ${pkgs.wl-clipboard}/bin/wl-copy";
         "Mod+Alt+Print".action = spawn "niri" "msg" "action" "screenshot-window";
         "Mod+Ctrl+Shift+Print".action = spawn "niri" "msg" "action" "screenshot-screen";
+        "Alt+Print".action = spawn "wf-recorder"; # Screen recording toggle
 
         # =========================================================================
         # WINDOW MANAGEMENT (arrow-only, no hjkl)
@@ -333,28 +360,29 @@ in
         "Mod+Shift+V".action = switch-focus-between-floating-and-tiling;
 
         # =========================================================================
-        # WORKSPACES
+        # WORKSPACES (named, bound to specific monitors)
+        # 1-4: ZOWIE (DP-5) | 5-6: ASUS (DP-4) | 7-8: Acer (DP-6) | 9-10: Samsung (HDMI-A-2)
         # =========================================================================
-        "Mod+1".action = focus-workspace 1;
-        "Mod+2".action = focus-workspace 2;
-        "Mod+3".action = focus-workspace 3;
-        "Mod+4".action = focus-workspace 4;
-        "Mod+5".action = focus-workspace 5;
-        "Mod+6".action = focus-workspace 6;
-        "Mod+7".action = focus-workspace 7;
-        "Mod+8".action = focus-workspace 8;
-        "Mod+9".action = focus-workspace 9;
-        "Mod+0".action = focus-workspace 10;
-        "Mod+Shift+1".action.move-window-to-workspace = 1;
-        "Mod+Shift+2".action.move-window-to-workspace = 2;
-        "Mod+Shift+3".action.move-window-to-workspace = 3;
-        "Mod+Shift+4".action.move-window-to-workspace = 4;
-        "Mod+Shift+5".action.move-window-to-workspace = 5;
-        "Mod+Shift+6".action.move-window-to-workspace = 6;
-        "Mod+Shift+7".action.move-window-to-workspace = 7;
-        "Mod+Shift+8".action.move-window-to-workspace = 8;
-        "Mod+Shift+9".action.move-window-to-workspace = 9;
-        "Mod+Shift+0".action.move-window-to-workspace = 10;
+        "Mod+1".action = focus-workspace "zowie-1";
+        "Mod+2".action = focus-workspace "zowie-2";
+        "Mod+3".action = focus-workspace "zowie-3";
+        "Mod+4".action = focus-workspace "zowie-4";
+        "Mod+5".action = focus-workspace "asus-1";
+        "Mod+6".action = focus-workspace "asus-2";
+        "Mod+7".action = focus-workspace "acer-1";
+        "Mod+8".action = focus-workspace "acer-2";
+        "Mod+9".action = focus-workspace "samsung-1";
+        "Mod+0".action = focus-workspace "samsung-2";
+        "Mod+Shift+1".action.move-window-to-workspace = "zowie-1";
+        "Mod+Shift+2".action.move-window-to-workspace = "zowie-2";
+        "Mod+Shift+3".action.move-window-to-workspace = "zowie-3";
+        "Mod+Shift+4".action.move-window-to-workspace = "zowie-4";
+        "Mod+Shift+5".action.move-window-to-workspace = "asus-1";
+        "Mod+Shift+6".action.move-window-to-workspace = "asus-2";
+        "Mod+Shift+7".action.move-window-to-workspace = "acer-1";
+        "Mod+Shift+8".action.move-window-to-workspace = "acer-2";
+        "Mod+Shift+9".action.move-window-to-workspace = "samsung-1";
+        "Mod+Shift+0".action.move-window-to-workspace = "samsung-2";
         "Mod+Page_Down".action = focus-workspace-down;
         "Mod+Page_Up".action = focus-workspace-up;
         "Mod+Shift+Page_Down".action = move-column-to-workspace-down;
@@ -364,9 +392,8 @@ in
         "Mod+Ctrl+Tab".action = focus-workspace-previous;
 
         # =========================================================================
-        # OVERVIEW (Expose-like — shows all windows across workspaces)
+        # SCRATCHPAD (workspace toggle via script)
         # =========================================================================
-        "Mod+O".action = toggle-overview;
 
         # =========================================================================
         # MONITOR/OUTPUT MANAGEMENT
@@ -402,12 +429,11 @@ in
         # =========================================================================
         # SYSTEM
         # =========================================================================
-        "Mod+Escape".action = spawn "noctalia-shell" "ipc" "call" "lockScreen lock";
-        "Mod+Shift+P".action = spawn "noctalia-shell" "ipc" "call" "sessionMenu toggle";
+        "Mod+Escape".action = spawn "noctalia-shell" "ipc" "call" "sessionMenu toggle"; # System menu (lock/suspend/reboot/shutdown)
         "Mod+Ctrl+Escape".action = spawn "systemctl" "suspend";
         "Mod+Shift+Escape".action = quit;
-        "Mod+Slash".action = show-hotkey-overlay;
         "Mod+Shift+C".action = spawn "niri" "msg" "action" "load-config-file";
+        "Ctrl+Alt+Delete".action = spawn-sh ''for wid in $(niri msg windows 2>/dev/null | grep -oP 'Window ID \\K[0-9]+'); do niri msg action close-window --id "$wid"; done''; # Close all windows
       };
 
       # ==========================================================================

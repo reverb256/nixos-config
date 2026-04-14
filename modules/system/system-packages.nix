@@ -130,7 +130,6 @@
     polychromatic # Graphical front-end for Razer devices
     razergenie # Qt application for configuring Razer devices
     razer-cli # Command-line interface for Razer devices
-    ckb-next # Driver and configuration tool for Corsair devices
     headsetcontrol # For Corsair VOID headsets
     liquidctl # AIO cooler, PSU, and RAM RGB control
 

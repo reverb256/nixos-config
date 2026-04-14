@@ -51,6 +51,54 @@ let
     esac
   '';
 
+  # Scratchpad toggle: move window to/from scratch workspace
+  # Simulates Hyprland/i3 scratchpad using niri workspace 99
+  # If focused workspace IS scratch → go back to previous workspace
+  # If window is on scratch workspace → bring it to current workspace
+  # Otherwise → move focused window to scratch workspace
+  scratchpad-toggle = pkgs.writeShellScriptBin "scratchpad-toggle" ''
+    set -euo pipefail
+
+    SCRATCH_WS="scratch"
+    STATE_FILE="''${XDG_RUNTIME_DIR:-/tmp}/niri-scratchpad-prev-ws"
+
+    # Get current workspace name
+    current_ws=$(niri msg workspaces 2>/dev/null | awk '/\*/ {print $2}' | head -1)
+    if [ -z "$current_ws" ]; then
+      current_ws=$(niri msg focused-output 2>/dev/null | awk '/Active workspace:/ {print $NF}')
+    fi
+
+    if [ "$current_ws" = "$SCRATCH_WS" ]; then
+      # We're on scratch workspace — go back to previous
+      prev=$(cat "$STATE_FILE" 2>/dev/null || echo "1")
+      niri msg action focus-workspace "$prev" 2>/dev/null || true
+    else
+      # Check if scratch workspace has windows
+      scratch_has_windows=false
+      # Try JSON first
+      json_out=$(niri msg windows --json 2>/dev/null) || true
+      if [ -n "$json_out" ] && echo "$json_out" | ${lib.getExe pkgs.jq} -e '.[0].id' >/dev/null 2>&1; then
+        count=$(echo "$json_out" | ${lib.getExe pkgs.jq} "[.[] | select(.workspace == \"$SCRATCH_WS\" or (.workspace // 0) == 99)] | length")
+        [ "${count:-0}" -gt 0 ] && scratch_has_windows=true
+      fi
+
+      # Save current workspace for returning later
+      echo "$current_ws" > "$STATE_FILE"
+
+      if $scratch_has_windows; then
+        # Bring scratch window to current workspace
+        # Focus scratch workspace first, move top window, come back
+        niri msg action focus-workspace "$SCRATCH_WS" 2>/dev/null || true
+        sleep 0.1
+        niri msg action move-column-to-workspace "$current_ws" 2>/dev/null || true
+        niri msg action focus-workspace "$current_ws" 2>/dev/null || true
+      else
+        # Move current window to scratch
+        niri msg action move-column-to-workspace "$SCRATCH_WS" 2>/dev/null || true
+      fi
+    fi
+  '';
+
   # Smart app switcher: focus existing window or spawn new instance
   # Inspired by Omarchy's omarchy-launch-or-focus
   # Usage: launch-or-focus <window-title-pattern> <launch-command> [args...]
@@ -120,6 +168,8 @@ in
     ddcutil # Monitor brightness control via DDC/CI (I2C)
     brightness-all # Unified brightness (DDC + niri SDR)
     launch-or-focus # Smart app switcher (focus existing or spawn new)
+    satty # Screenshot annotation editor (Omarchy-style screenshot flow)
+    scratchpad-toggle # Scratchpad workspace toggle for niri
     # bitwarden-desktop  # TEMP: Disabled - Electron 39.8.2 patch failure (2026-03-16)
   ];
 
@@ -162,5 +212,22 @@ in
     print('Created noctalia settings with DDC support enabled')
     "
         fi
+  '';
+
+
+  # Restart noctalia-shell if the binary path changed (version mismatch fix)
+  home.activation.noctalia-restart = dagEntryAfter [ "writeBoundary" ] ''
+    $VERBOSE_ECHO "Checking noctalia-shell version consistency"
+    RUNNING=$(pgrep -a quickshell 2>/dev/null | grep noctalia-shell | head -1)
+    if [ -n "$RUNNING" ]; then
+      RUNNING_PATH=$(echo "$RUNNING" | grep -oP '/nix/store/[^/]+-noctalia-shell-[^/]*/' | head -1)
+      CURRENT_PATH=$(readlink -f "$(which noctalia-shell 2>/dev/null)" 2>/dev/null | grep -oP '/nix/store/[^/]+-noctalia-shell-[^/]*/' | head -1)
+      if [ -n "$RUNNING_PATH" ] && [ -n "$CURRENT_PATH" ] && [ "$RUNNING_PATH" != "$CURRENT_PATH" ]; then
+        $VERBOSE_ECHO "Restarting noctalia-shell: $RUNNING_PATH -> $CURRENT_PATH"
+        pkill -f "quickshell.*noctalia-shell" 2>/dev/null || true
+        sleep 1
+        nohup noctalia-shell >/dev/null 2>&1 &
+      fi
+    fi
   '';
 }

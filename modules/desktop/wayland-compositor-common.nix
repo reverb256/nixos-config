@@ -28,9 +28,6 @@ in
       # Screen recording
       pkgs.wf-recorder
 
-      # Wallpaper backend for noctalia-shell
-      pkgs.swww
-
       # Cursor theme (matches Adwaita in compositor settings)
       pkgs.adwaita-icon-theme
     ];
