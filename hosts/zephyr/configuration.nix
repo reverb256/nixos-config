@@ -212,7 +212,7 @@
     dbus-broker
     slirp4netns # Required for Spacebot/Podman networking
     podman-compose # Docker Compose compatibility for Podman
-    localsend # Local network file sharing (AirDrop alternative)
+    # localsend moved to nix profile
 
     # Deployment
     inputs.colmena.packages.${pkgs.stdenv.hostPlatform.system}.colmena
@@ -329,7 +329,7 @@
     whisper-cpp
     pipx
     pkgs.python312Packages.huggingface-hub # HF CLI: hf download/upload/login
-    opencode # AI coding agent (terminal-based)
+    # opencode moved to nix profile
 
     # Mining (manual only, no auto-start)
     xmrig
@@ -337,14 +337,13 @@
 
     # Desktop
     inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.twilight
-    telegram-desktop
+    # telegram-desktop moved to nix profile
 
     # Network automation - for switch/modem configuration scripts
     python3Packages.playwright
 
     # Diagrams & data
-    mermaid-cli # Mermaid → SVG/PNG
-    graphviz # Graphviz (dot) diagrams
+    # mermaid-cli, graphviz moved to nix profile
     python312Packages.openpyxl # Excel read/write
   ];
 
