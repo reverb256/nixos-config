@@ -23,7 +23,7 @@
       serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = "10.1.1.110";
-      calico.enable = false; # Flannel + kube-proxy (nft segfaults on CachyOS 6.19.11)
+      calico.enable = false;
     };
 
     # Deploy K8s manifests from Nix store on boot (control-plane node)

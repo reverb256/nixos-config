@@ -102,7 +102,7 @@ in
       "net.core.rmem_max" = cfg.network.rmemMax;
       "net.core.wmem_max" = cfg.network.wmemMax;
 
-      # Reverse path filtering for BGP (Calico CNI requirement)
+      # Reverse path filtering for BGP
       "net.ipv4.conf.all.rp_filter" = cfg.network.rpFilter;
     };
   };

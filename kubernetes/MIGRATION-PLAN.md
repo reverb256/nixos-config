@@ -59,10 +59,13 @@
 - [ ] `ingress.nix` — convert caddy controller to native
 - [ ] `nixkube.nix` — convert DaemonSet + StatefulSet to native
 
-## Phase 2: Migrate systemd → K8s (P0-P1)
+## Phase 1.5: Decisions
 
-- [ ] `llamafile` (zephyr) → K8s Deployment with CUDA hostPath
-- [ ] `llama-server` (sentry) → K8s Deployment with ROCm hostPath
+- [x] `nixkube.nix` — keep as importyaml (1006 lines, CSI DaemonSet with 5 containers, low change frequency)
+- [x] `llamafile`/`llama-server` — keep as systemd for now (Nix-built binaries auto-track store paths; K8s would need a custom Docker image per rebuild)
+
+## Phase 2: Migrate systemd → K8s (P1)
+
 - [ ] `prometheus-node-exporter` (all) → K8s DaemonSet
 - [ ] `prometheus-mining-exporter` (nexus/forge/sentry) → K8s DaemonSet
 - [ ] `xmrig-proxy` (zephyr) → K8s Deployment

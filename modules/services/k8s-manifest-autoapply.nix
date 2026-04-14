@@ -37,7 +37,7 @@ let
     "ingress"
     "monitoring"
     "health-checks"
-    #"calico"  # Calico managed manually — DaemonSet patches + static nft binary
+    #"calico"
   ];
 
   applyScript = pkgs.writeShellScript "k8s-apply-manifests" ''

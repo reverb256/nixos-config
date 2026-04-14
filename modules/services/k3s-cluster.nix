@@ -1,23 +1,4 @@
 # K3s Cluster Module
-# Replaces: kubernetes.nix (729 lines), kubernetes-ha.nix (270 lines), etcd-cluster.nix (120 lines)
-#
-# K3s bundles into a single binary:
-#   kube-apiserver, kubelet, kube-scheduler, kube-controller-manager,
-#   kube-proxy, etcd (embedded), containerd, CoreDNS
-# Auto-TLS eliminates the entire PKI/certs infrastructure.
-#
-# Architecture:
-#   Zephyr: server + embedded etcd (clusterInit = true, bootstrap)
-#   Nexus:  server + embedded etcd (joins existing cluster)
-#   Sentry: server + embedded etcd (joins existing cluster)
-#   Forge:  agent (worker only)
-#
-# CNI: Flannel (default) or Calico (via calico.enable)
-# Ingress: Caddy DaemonSet (unchanged)
-# HA: Keepalived VIP (unchanged)
-#
-# IMPORTANT: All servers must share identical values for --cluster-cidr,
-# --service-cidr, --disable list, and --disable-network-policy.
 {
   config,
   lib,
@@ -125,7 +106,7 @@ in
       enable = mkOption {
         type = types.bool;
         default = false;
-        description = "Use Calico CNI instead of k3s default Flannel. Adds --flannel-backend=none and --disable-network-policy.";
+        description = "Use Calico CNI. Disables flannel, network-policy, and kube-proxy.";
       };
     };
 
@@ -159,15 +140,12 @@ in
       # Node IP advertisement
       nodeIP = if cfg.nodeIP != "" then cfg.nodeIP else null;
 
-      # Disable k3s bundled components (server role only)
-      # When calico.enable = true, also disable flannel and k3s network-policy
-      # (Calico provides its own network policy engine)
       disable =
         lib.optionals isServer disabledComponents
         ++ lib.optionals (isServer && cfg.calico.enable) [
           "flannel"
           "network-policy"
-          "kube-proxy" # Calico handles service proxy via kube-router
+          "kube-proxy"
         ];
 
       # Extra flags — server role only
@@ -243,7 +221,7 @@ in
       [
         kubernetes # kubectl and other tools
         cri-tools # crictl for CRI debugging
-        iptables # iptables-save/restore for Calico CNI compatibility
+        iptables
         runc # nvidia-container-runtime needs runc in PATH
       ]
       ++ lib.optionals cfg.nvidia.enable [
@@ -289,20 +267,15 @@ in
       mkdir -p /var/lib/rancher/k3s/agent/etc/containerd
     '';
 
-    # Workaround: k3s host-gw mode doesn't clear NetworkUnavailable condition
-    # The kubelet sets NetworkUnavailable=True on startup, but k3s's embedded
-    # cloud-controller-manager doesn't set it to False for host-gw backend.
-    # This timer patches the condition and removes the taint every 30s.
-    # See: k3s-io/k3s#2808
     systemd.services.k3s-network-taint-fix = lib.mkIf isServer {
-      description = "Fix NetworkUnavailable taint for host-gw flannel";
+      description = "Fix NetworkUnavailable taint";
       path = [ pkgs.kubectl ];
       serviceConfig.Type = "oneshot";
       serviceConfig.ExecStart = pkgs.writeShellScript "fix-network-taint" ''
         export KUBECONFIG="/etc/rancher/k3s/k3s.yaml"
         for node in $(kubectl get nodes -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
           kubectl patch node "$node" --type=merge \
-            -p '{"status":{"conditions":[{"type":"NetworkUnavailable","status":"False","reason":"FlannelHostGWIsUp","message":"Flannel host-gw routes active"}]}}' \
+            -p '{"status":{"conditions":[{"type":"NetworkUnavailable","status":"False","reason":"CNIIsUp","message":"CNI routes active"}]}}' \
             --subresource=status 2>/dev/null || true
           kubectl taint nodes "$node" node.kubernetes.io/network-unavailable:NoSchedule- 2>/dev/null || true
         done
