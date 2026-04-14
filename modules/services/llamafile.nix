@@ -115,8 +115,8 @@ in {
 
     parallelDecoding = mkOption {
       type = types.int;
-      default = 3;
-      description = "Parallel decoding slots for Qwen3.5";
+      default = 1;
+      description = "Parallel decoding slots crash GGML_SCHED_MAX_SPLIT_INPUTS on multi-GPU";
     };
 
     enableThinking = mkOption {
@@ -241,7 +241,10 @@ in {
 
         # Environment to prioritize bundled libraries
         # Force use of GPU 0 (RTX 3060 Ti) to avoid conflict with mining on GPU 1 (RTX 3090)
-        Environment = "LD_LIBRARY_PATH=${llamaPkg}/lib:CUDA_VISIBLE_DEVICES=${toString cfg.gpuDevice}";
+        Environment = [
+          "LD_LIBRARY_PATH=${llamaPkg}/lib"
+          "CUDA_VISIBLE_DEVICES=${toString cfg.gpuDevice}"
+        ];
 
         # Security settings
         NoNewPrivileges = false; # Needed for GPU access

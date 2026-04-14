@@ -42,6 +42,13 @@ in
           ../../modules/home-manager/opencode.nix
         ];
 
+        # Disable stylix opencode target — programs.opencode.tui doesn't exist
+        # in the HM opencode module we use, and stylix's mkTarget declares
+        # options for it unconditionally
+        disabledModules = [ "stylix/hm/opencode.nix" ];
+        # Alternative path format (stylix may use either)
+        stylix.targets.opencode.enable = false;
+
         # Stylix HM target fixes
         stylix.targets = {
           # Zen browser: declare profile name for theme injection
