@@ -391,6 +391,10 @@
           web_search_enabled = true;
           web_max_results = 10;
           rag_top_k = 10;
+          brain_wiki_enabled = true;
+          brain_wiki_path = "/home/j_kro/brain/wiki";
+          brain_wiki_max_results = 5;
+          brain_wiki_max_chunk_chars = 2000;
         };
       };
       routing = {
@@ -711,8 +715,9 @@
   # LLAMA.CPP SERVER - Multimodal model on 3060 Ti
   # ============================================================================
   # Gemma 4 E4B Q4_K_M + mmproj (vision-capable) on 3060 Ti (8GB VRAM)
+  # DISABLED: Replaced by Ollama (backported Gemma 4 CUDA kernels)
   services.llama-cpp-server = {
-    enable = true;
+    enable = false;
     model = "/home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E4B-it-GGUF/gemma-4-E4B-it-Q4_K_M.gguf";
     alias = "gemma-4-e4b-it";
     host = "0.0.0.0";
@@ -726,6 +731,28 @@
     extraArgs = [
       "--mmproj"
       "/home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E4B-it-GGUF/mmproj-gemma-4-E4B-it-BF16.gguf"
+    ];
+  };
+
+  # ============================================================================
+  # Ollama — replaces llama.cpp for local inference
+  # Has backported Gemma 4 CUDA kernels (DKQ=512 flash attention)
+  services.ollama = {
+    enable = true;
+    package = pkgs.ollama-cuda;
+    host = "0.0.0.0";
+    port = 11434;
+    # Don't set user/group — use DynamicUser to avoid conflicting with j_kro
+    home = "/var/lib/ollama";
+    models = "/var/lib/ollama/models";
+    environmentVariables = {
+      # Force Ollama to use only the 3060 Ti (nvidia-smi index 0)
+      CUDA_VISIBLE_DEVICES = "0";
+      # Enable new native engine for better Gemma 4 support
+      OLLAMA_NEW_ENGINE = "1";
+    };
+    loadModels = [
+      "gemma3:4b"
     ];
   };
 
