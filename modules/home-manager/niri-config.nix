@@ -308,16 +308,16 @@ in
         "Mod+Shift+Alt+Up".action = move-workspace-to-monitor-up;
         "Mod+Shift+Alt+Down".action = move-workspace-to-monitor-down;
 
-        "XF86AudioRaiseVolume".action = spawn "noctalia-shell" "ipc" "call" "volume increase";
-        "XF86AudioLowerVolume".action = spawn "noctalia-shell" "ipc" "call" "volume decrease";
-        "XF86AudioMute".action = spawn "noctalia-shell" "ipc" "call" "volume muteOutput";
-        "XF86AudioMicMute".action = spawn "noctalia-shell" "ipc" "call" "volume muteInput";
-        "XF86MonBrightnessUp".action = spawn "brightness-all" "up";
-        "XF86MonBrightnessDown".action = spawn "brightness-all" "down";
-        "XF86AudioPlay".action = spawn "noctalia-shell" "ipc" "call" "media playPause";
-        "XF86AudioNext".action = spawn "noctalia-shell" "ipc" "call" "media next";
-        "XF86AudioPrev".action = spawn "noctalia-shell" "ipc" "call" "media previous";
-        "XF86AudioStop".action = spawn "noctalia-shell" "ipc" "call" "media stop";
+        "XF86AudioRaiseVolume".action = spawn-sh "noctalia-shell ipc call volume increase";
+        "XF86AudioLowerVolume".action = spawn-sh "noctalia-shell ipc call volume decrease";
+        "XF86AudioMute".action = spawn-sh "noctalia-shell ipc call volume muteOutput";
+        "XF86AudioMicMute".action = spawn-sh "noctalia-shell ipc call volume muteInput";
+        "XF86MonBrightnessUp".action = spawn-sh "brightness-all up";
+        "XF86MonBrightnessDown".action = spawn-sh "brightness-all down";
+        "XF86AudioPlay".action = spawn-sh "noctalia-shell ipc call media playPause";
+        "XF86AudioNext".action = spawn-sh "noctalia-shell ipc call media next";
+        "XF86AudioPrev".action = spawn-sh "noctalia-shell ipc call media previous";
+        "XF86AudioStop".action = spawn-sh "noctalia-shell ipc call media stop";
 
         "Mod+Escape".action = spawn "noctalia-shell" "ipc" "call" "sessionMenu toggle";
         "Mod+Ctrl+Escape".action = spawn "systemctl" "suspend";
