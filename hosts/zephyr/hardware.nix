@@ -55,6 +55,12 @@
       autoStartRgb = false; # Don't auto-start (conflicts with liquidctl)
     };
 
+    # Corsair keyboard/mouse driver daemon
+    # Starts ckb-next-daemon (creates virtual uinput devices for media keys,
+    # per-key RGB, profiles, DPI). GUI connects to daemon for configuration.
+    # Without the daemon: no media keys, no RGB control, no profiles.
+    ckb-next.enable = true;
+
     # RGB control for peripherals and components
     rgb-control = {
       enable = true;
