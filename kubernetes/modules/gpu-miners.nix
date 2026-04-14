@@ -487,7 +487,6 @@ in
                   "--pass=x"
                   "--devices=0"
                   "--apiport=4068"
-                  "--cclk=1605 --moff=1500 --pl=120"
                 ];
                 env = nvidiaEnv;
                 ports = [
@@ -499,9 +498,9 @@ in
                 ];
                 livenessProbe = {
                   tcpSocket.port = 4068;
-                  initialDelaySeconds = 30;
-                  periodSeconds = 30;
-                  failureThreshold = 3;
+                  initialDelaySeconds = 120;
+                  periodSeconds = 60;
+                  failureThreshold = 5;
                 };
                 readinessProbe = {
                   tcpSocket.port = 4068;
@@ -511,12 +510,12 @@ in
                 };
                 resources = {
                   requests = {
-                    memory = "4Gi";
-                    cpu = "2";
+                    memory = "2Gi";
+                    cpu = "500m";
                   };
                   limits = {
-                    memory = "8Gi";
-                    cpu = "4";
+                    memory = "4Gi";
+                    cpu = "2";
                   };
                 };
                 securityContext.privileged = true;

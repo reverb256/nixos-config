@@ -244,15 +244,14 @@
   ];
 
   networking.extraHosts = lib.mkOptionDefault ''
-    10.1.1.100 search.lan search.cluster.local
-    10.1.1.100 ai.lan ai.cluster.local
-    10.1.1.100 openwebui.lan openwebui.cluster.local
+    127.0.0.1 search.lan search.cluster.local
+    127.0.0.1 ai.lan ai.cluster.local
+    127.0.0.1 openwebui.lan openwebui.cluster.local
     10.1.1.100 civicintel.lan civicintel.cluster.local
   '';
 
   boot.postBootCommands = ''
     ${pkgs.nftables}/bin/nft add rule ip nat PREROUTING ip daddr 10.1.1.100 tcp dport 80 dnat to 10.1.1.120:30888
-    ${pkgs.nftables}/bin/nft add rule ip nat OUTPUT ip daddr 10.1.1.100 tcp dport 80 dnat to 10.1.1.120:30888
   '';
 
   system.stateVersion = "26.05";

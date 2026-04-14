@@ -245,15 +245,15 @@
 
         https://search.lan, https://search.cluster.local {
           encode zstd gzip
-          reverse_proxy 10.1.1.120:30080
+          reverse_proxy 10.1.1.120:30888
         }
         https://ai.lan, https://ai.cluster.local {
           encode zstd gzip
-          reverse_proxy 10.1.1.120:30080
+          reverse_proxy 127.0.0.1:8080
         }
         https://openwebui.lan, https://openwebui.cluster.local {
           encode zstd gzip
-          reverse_proxy 10.1.1.120:30080
+          reverse_proxy 10.1.1.120:32749
         }
 
         http://civicintel.lan, http://10.1.1.100 {
