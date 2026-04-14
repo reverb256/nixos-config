@@ -1,18 +1,11 @@
 # Ghostty Terminal Configuration
 # Fast, native Wayland terminal designed for tiling window managers
-{ config, ... }:
+# Theme/fonts handled by Stylix (autoEnable = true)
 {
   programs.ghostty = {
     enable = true;
 
     settings = {
-      # Theme
-      theme = "tokyo-night";
-
-      # Font
-      font-family = "JetBrainsMono Nerd Font";
-      font-size = 12;
-
       # Window
       window-padding-x = 8;
       window-padding-y = 4;
@@ -32,8 +25,6 @@
       cursor-style = "block";
       cursor-style-blink = false;
 
-      # Performance
-      adaptive-square-shader = true;
     };
   };
 }

@@ -215,19 +215,23 @@ in
   '';
 
 
-  # Restart noctalia-shell if the binary path changed (version mismatch fix)
-  home.activation.noctalia-restart = dagEntryAfter [ "writeBoundary" ] ''
-    $VERBOSE_ECHO "Checking noctalia-shell version consistency" || true
+  # Noctalia version mismatch detection (no auto-restart during switch)
+  #
+  # Previously this block killed and restarted noctania-shell during HM
+  # activation, which caused session disruptions (flashing, lost state).
+  # Instead, we just log a warning. The user gets the new version on
+  # next login. If an immediate restart is needed, run:
+  #   pkill -f quickshell && uwsm app -- noctalia-shell
+  home.activation.noctalia-version-check = dagEntryAfter [ "writeBoundary" ] ''
     RUNNING=$(pgrep -a quickshell 2>/dev/null | grep noctalia-shell || true)
     if [ -n "''${RUNNING:-}" ]; then
       RUNNING_PATH=$(echo "$RUNNING" | grep -oP '/nix/store/[^/]+-noctalia-shell-[^/]*/' || true)
       CURRENT_PATH=$(readlink -f "$(which noctalia-shell 2>/dev/null)" 2>/dev/null | grep -oP '/nix/store/[^/]+-noctalia-shell-[^/]*/' || true)
       if [ -n "''${RUNNING_PATH:-}" ] && [ -n "''${CURRENT_PATH:-}" ] && [ "$RUNNING_PATH" != "$CURRENT_PATH" ]; then
-        $VERBOSE_ECHO "Restarting noctalia-shell: $RUNNING_PATH -> $CURRENT_PATH" || true
-        pkill -f "quickshell.*noctalia-shell" 2>/dev/null || true
-        sleep 1
-        nohup noctalia-shell >/dev/null 2>&1 & disown || true
+        echo "⚠ noctalia-shell needs restart: $RUNNING_PATH → $CURRENT_PATH"
+        echo "  Run: pkill -f quickshell && uwsm app -- noctalia-shell"
       fi
     fi
+    true
   '';
 }

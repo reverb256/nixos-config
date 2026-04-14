@@ -24,27 +24,27 @@ in
       # ==========================================================================
       # GENERAL SETTINGS
       # ==========================================================================
+      # spawn-at-startup: uwsm-managed session lifecycle
+      #
+      # [1] uwsm finalize — signals compositor readiness to systemd.
+      #     Exports WAYLAND_DISPLAY, DISPLAY, NIRI_SOCKET, XCURSOR_* to
+      #     activation environments. Without this, uwsm times out.
+      #     (uwsm quirks_niri_session plugin marks NIRI_SOCKET for export)
+      #
+      # [2+] uwsm app — -s session-graphical.slice for session services.
+      #     Each app gets its own systemd scope with full session env
+      #     (including GST_PLUGIN_PATH from /etc/uwsm/env-niri).
+      #     No more bash -c wrappers for environment variables.
       spawn-at-startup = [
-        { argv = [ "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1" ]; }
+        # Finalize uwsm session — MUST be first
+        { argv = [ "uwsm" "finalize" ]; }
+        # Polkit auth agent
+        { argv = [ "uwsm" "app" "-s" "s" "--" "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1" ]; }
         # Noctalia desktop shell (replaces waybar, mako, fuzzel, swww)
-        # GST_PLUGIN_PATH must be set inline because niri spawn-at-startup
-        # inherits env before uwsm sources env-niri, causing missing fakesink
-        {
-          argv = [
-            "${pkgs.bash}/bin/bash"
-            "-c"
-            "export GST_PLUGIN_PATH=${
-              lib.makeSearchPathOutput "lib/gstreamer-1.0" "lib/gstreamer-1.0" [
-                pkgs.gst_all_1.gstreamer
-                pkgs.gst_all_1.gst-plugins-base
-                pkgs.gst_all_1.gst-plugins-bad
-                pkgs.gst_all_1.gst-plugins-good
-              ]
-            } && exec noctalia-shell"
-          ];
-        }
-        { sh = "wl-paste --type text --watch ${pkgs.cliphist}/bin/cliphist store"; }
-        { sh = "wl-paste --type image --watch ${pkgs.cliphist}/bin/cliphist store"; }
+        { argv = [ "uwsm" "app" "-s" "s" "--" "noctalia-shell" ]; }
+        # Clipboard manager
+        { argv = [ "uwsm" "app" "-s" "b" "--" "${pkgs.wl-clipboard}/bin/wl-paste" "--type" "text" "--watch" "${pkgs.cliphist}/bin/cliphist" "store" ]; }
+        { argv = [ "uwsm" "app" "-s" "b" "--" "${pkgs.wl-clipboard}/bin/wl-paste" "--type" "image" "--watch" "${pkgs.cliphist}/bin/cliphist" "store" ]; }
       ];
 
       # Cursor configuration
@@ -58,6 +58,7 @@ in
       # Hot corner overlay (for exiting fullscreen)
       hotkey-overlay = {
         skip-at-startup = false;
+        hide-not-bound = true;
       };
 
       # Disable client-side decorations where possible
@@ -169,24 +170,6 @@ in
       };
 
       # ==========================================================================
-      # NAMED WORKSPACES (bound to specific monitors)
-      # 1-4: ZOWIE (DP-5) | 5-6: ASUS (DP-4) | 7-8: Acer (DP-6) | 9-10: Samsung (HDMI-A-2)
-      # ==========================================================================
-      workspaces = {
-        "zowie-1" = { open-on-output = "DP-5"; };
-        "zowie-2" = { open-on-output = "DP-5"; };
-        "zowie-3" = { open-on-output = "DP-5"; };
-        "zowie-4" = { open-on-output = "DP-5"; };
-        "asus-1" = { open-on-output = "DP-4"; };
-        "asus-2" = { open-on-output = "DP-4"; };
-        "acer-1" = { open-on-output = "DP-6"; };
-        "acer-2" = { open-on-output = "DP-6"; };
-        "samsung-1" = { open-on-output = "HDMI-A-2"; };
-        "samsung-2" = { open-on-output = "HDMI-A-2"; };
-        "scratch" = { open-on-output = "DP-5"; }; # Scratchpad workspace (Mod+S)
-      };
-
-      # ==========================================================================
       # INPUT DEVICE CONFIGURATION
       # ==========================================================================
       input = {
@@ -254,26 +237,27 @@ in
       binds = with acts; {
         # =========================================================================
         # APPLICATIONS (Omarchy-style: Mod+Letter = app)
+        # All GUI apps launched via uwsm app -- for proper session integration
         # Terminal: always spawn new (no launch-or-focus)
         # Other apps: launch-or-focus to prevent duplicates
         # =========================================================================
-        "Mod+Return".action = spawn "ghostty"; # Always spawn new terminal
-        "Mod+Shift+Return".action = spawn "zen-twilight"; # Always spawn new browser
-        "Mod+B".action = spawn "launch-or-focus" "Zen" "zen-twilight";
-        "Mod+Shift+B".action = spawn "zen-twilight" "--private-window";
-        "Mod+E".action = spawn "launch-or-focus" "Dolphin" "${pkgs.kdePackages.dolphin}/bin/dolphin";
-        "Mod+N".action = spawn "launch-or-focus" "Kate" "${pkgs.kdePackages.kate}/bin/kate";
-        "Mod+Shift+N".action = spawn "launch-or-focus" "VSCode" "${pkgs.vscode}/bin/code";
-        "Mod+O".action = spawn "launch-or-focus" "Obsidian" "obsidian";
-        "Mod+T".action = spawn "ghostty" "-e" "btop";
-        "Mod+D".action = spawn "ghostty" "-e" "lazydocker";
-        "Mod+G".action = spawn "launch-or-focus" "Vesktop" "vesktop";
-        "Mod+Shift+G".action = spawn "launch-or-focus" "Grok" "firefoxpwa" "site" "launch" "grok";
-        "Mod+A".action = spawn "launch-or-focus" "LM" "lm-studio";
-        "Mod+Shift+A".action = spawn "launch-or-focus" "ChatGPT" "firefoxpwa" "site" "launch" "chatgpt";
-        "Mod+M".action = spawn "launch-or-focus" "Spotify" "flatpak" "run" "com.spotify.Client";
-        "Mod+Slash".action = spawn "launch-or-focus" "Bitwarden" "flatpak" "run" "com.bitwarden.desktop";
-        "Mod+K".action = show-hotkey-overlay;
+        "Mod+Return".action = spawn "uwsm" "app" "--" "ghostty"; # Terminal (always new)
+        "Mod+B".action = spawn "launch-or-focus" "Zen" "uwsm" "app" "--" "zen-twilight";
+        "Mod+Shift+B".action = spawn "uwsm" "app" "--" "zen-twilight" "--private-window";
+        "Mod+E".action = spawn "launch-or-focus" "Dolphin" "uwsm" "app" "--" "${pkgs.kdePackages.dolphin}/bin/dolphin";
+        "Mod+N".action = spawn "launch-or-focus" "KWrite" "uwsm" "app" "--" "${pkgs.kdePackages.kate}/bin/kwrite";
+        "Mod+Shift+N".action = spawn "launch-or-focus" "Kate" "uwsm" "app" "--" "${pkgs.kdePackages.kate}/bin/kate";
+        "Mod+O".action = spawn "launch-or-focus" "Obsidian" "uwsm" "app" "--" "obsidian";
+        "Mod+T".action = spawn "uwsm" "app" "--" "ghostty" "-e" "btop";
+        "Mod+D".action = spawn "uwsm" "app" "--" "ghostty" "-e" "lazydocker";
+        "Mod+G".action = spawn "launch-or-focus" "Vesktop" "uwsm" "app" "--" "vesktop";
+        "Mod+Shift+G".action = spawn "launch-or-focus" "Grok" "uwsm" "app" "--" "firefoxpwa" "site" "launch" "grok";
+        "Mod+A".action = spawn "launch-or-focus" "LM" "uwsm" "app" "--" "lm-studio";
+        "Mod+Shift+A".action = spawn "launch-or-focus" "ChatGPT" "uwsm" "app" "--" "firefoxpwa" "site" "launch" "chatgpt";
+        "Mod+M".action = spawn "launch-or-focus" "Spotify" "uwsm" "app" "--" "flatpak" "run" "com.spotify.Client";
+        "Mod+Shift+M".action = spawn "launch-or-focus" "Caprine" "uwsm" "app" "--" "caprine";
+        "Mod+Slash".action = spawn "launch-or-focus" "Bitwarden" "uwsm" "app" "--" "flatpak" "run" "com.bitwarden.desktop";
+        "Mod+K".action = spawn "noctalia-shell" "ipc" "call" "settings toggle";
 
         # =========================================================================
         # NOCTALIA SHELL — Launcher modes
@@ -322,7 +306,7 @@ in
         "Mod+Shift+Print".action = spawn-sh "${pkgs.grim}/bin/grim - | ${pkgs.wl-clipboard}/bin/wl-copy";
         "Mod+Alt+Print".action = spawn "niri" "msg" "action" "screenshot-window";
         "Mod+Ctrl+Shift+Print".action = spawn "niri" "msg" "action" "screenshot-screen";
-        "Alt+Print".action = spawn "wf-recorder"; # Screen recording toggle
+        "Alt+Print".action = spawn "uwsm" "app" "--" "wf-recorder"; # Screen recording toggle
 
         # =========================================================================
         # WINDOW MANAGEMENT (arrow-only, no hjkl)
@@ -360,29 +344,31 @@ in
         "Mod+Shift+V".action = switch-focus-between-floating-and-tiling;
 
         # =========================================================================
-        # WORKSPACES (named, bound to specific monitors)
-        # 1-4: ZOWIE (DP-5) | 5-6: ASUS (DP-4) | 7-8: Acer (DP-6) | 9-10: Samsung (HDMI-A-2)
+        # WORKSPACES (dynamic, per-output)
+        # Mod+1-0: focus workspace on current output
+        # Mod+Ctrl+Arrow: switch between monitors
+        # Workspaces are dynamic - close when empty, created on demand
         # =========================================================================
-        "Mod+1".action = focus-workspace "zowie-1";
-        "Mod+2".action = focus-workspace "zowie-2";
-        "Mod+3".action = focus-workspace "zowie-3";
-        "Mod+4".action = focus-workspace "zowie-4";
-        "Mod+5".action = focus-workspace "asus-1";
-        "Mod+6".action = focus-workspace "asus-2";
-        "Mod+7".action = focus-workspace "acer-1";
-        "Mod+8".action = focus-workspace "acer-2";
-        "Mod+9".action = focus-workspace "samsung-1";
-        "Mod+0".action = focus-workspace "samsung-2";
-        "Mod+Shift+1".action.move-window-to-workspace = "zowie-1";
-        "Mod+Shift+2".action.move-window-to-workspace = "zowie-2";
-        "Mod+Shift+3".action.move-window-to-workspace = "zowie-3";
-        "Mod+Shift+4".action.move-window-to-workspace = "zowie-4";
-        "Mod+Shift+5".action.move-window-to-workspace = "asus-1";
-        "Mod+Shift+6".action.move-window-to-workspace = "asus-2";
-        "Mod+Shift+7".action.move-window-to-workspace = "acer-1";
-        "Mod+Shift+8".action.move-window-to-workspace = "acer-2";
-        "Mod+Shift+9".action.move-window-to-workspace = "samsung-1";
-        "Mod+Shift+0".action.move-window-to-workspace = "samsung-2";
+        "Mod+1".action = focus-workspace 1;
+        "Mod+2".action = focus-workspace 2;
+        "Mod+3".action = focus-workspace 3;
+        "Mod+4".action = focus-workspace 4;
+        "Mod+5".action = focus-workspace 5;
+        "Mod+6".action = focus-workspace 6;
+        "Mod+7".action = focus-workspace 7;
+        "Mod+8".action = focus-workspace 8;
+        "Mod+9".action = focus-workspace 9;
+        "Mod+0".action = focus-workspace 10;
+        "Mod+Shift+1".action.move-window-to-workspace = 1;
+        "Mod+Shift+2".action.move-window-to-workspace = 2;
+        "Mod+Shift+3".action.move-window-to-workspace = 3;
+        "Mod+Shift+4".action.move-window-to-workspace = 4;
+        "Mod+Shift+5".action.move-window-to-workspace = 5;
+        "Mod+Shift+6".action.move-window-to-workspace = 6;
+        "Mod+Shift+7".action.move-window-to-workspace = 7;
+        "Mod+Shift+8".action.move-window-to-workspace = 8;
+        "Mod+Shift+9".action.move-window-to-workspace = 9;
+        "Mod+Shift+0".action.move-window-to-workspace = 10;
         "Mod+Page_Down".action = focus-workspace-down;
         "Mod+Page_Up".action = focus-workspace-up;
         "Mod+Shift+Page_Down".action = move-column-to-workspace-down;

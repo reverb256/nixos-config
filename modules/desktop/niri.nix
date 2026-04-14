@@ -50,7 +50,30 @@ in
     # Companion config only when niri is ACTUALLY ENABLED
     (mkIf niriEnabled (
       lib.mkMerge [
-        # ── BINARY CACHES ──────────────────────────────────────────────
+        # ── UWSM SESSION MANAGEMENT ───────────────────────────────────
+        # Uses NixOS programs.uwsm to create a proper uwsm-wrapped desktop entry
+        # for SDDM. uwsm sources /etc/uwsm/env-niri before compositor start,
+        # manages systemd lifecycle (slices, scopes, clean shutdown), and provides
+        # `uwsm app --` for cgroup-isolated app launching.
+        #
+        # Flow: SDDM → uwsm start → sources env-niri → wayland-wm@niri.service
+        #       → niri-session → niri --session → spawn-at-startup
+        #       → uwsm finalize → uwsm app -- for each startup app
+        #
+        # Built-in uwsm plugins (niri.sh, niri_session.sh) handle:
+        #   - Appending "niri" to XDG_CURRENT_DESKTOP
+        #   - Marking NIRI_SOCKET, XCURSOR_* for finalize export
+        #   - Waiting for NIRI_SOCKET before finalizing
+        {
+          programs.uwsm = {
+            enable = true;
+            waylandCompositors.niri = {
+              prettyName = "Niri";
+              comment = "A scrollable-tiling Wayland compositor";
+              binPath = "/run/current-system/sw/bin/niri-session";
+            };
+          };
+        }
 
         {
           nix.settings = {
@@ -145,6 +168,8 @@ in
               }
             '';
           };
+
+
         }
 
         # ── SYSTEMD USER SERVICE DROP-INS ──────────────────────────────
@@ -171,6 +196,11 @@ in
             niri-flake-polkit = {
               after = [ "xdg-desktop-autostart.target" ];
             };
+
+            # When running under uwsm, niri runs as wayland-wm@niri.service
+            # (not niri.service). The uwsm quirks_niri_session plugin handles
+            # XDG_CURRENT_DESKTOP and NIRI_SOCKET export.
+            # Keep niri.service ordering fix for standalone (non-uwsm) sessions.
 
             polkit-gnome-authentication-agent-1 = {
               description = "Polkit Authentication Agent (Niri)";

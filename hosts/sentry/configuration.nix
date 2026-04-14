@@ -35,6 +35,15 @@
     ../../modules/services/keepalived-vip.nix
   ];
 
+  # Stylix theme — Dracula (dark, alert — monitoring + logging)
+  stylix = {
+    base16Scheme = "${pkgs.base16-schemes}/share/themes/dracula.yaml";
+    image = ../../modules/desktop/wallpapers/dracula-bg.png;
+  };
+
+  # Enable niri compositor with auto-login
+  programs.niri.enable = true;
+
   # ============================================================================
   # HOST IDENTIFICATION
   # ============================================================================

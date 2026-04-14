@@ -35,6 +35,12 @@
   ];
 
   # ============================================================================
+  # Stylix theme — Gruvbox Dark Medium (earthy, industrial — GPU compute + mining)
+  stylix = {
+    base16Scheme = "${pkgs.base16-schemes}/share/themes/gruvbox-dark-medium.yaml";
+    image = ../../modules/desktop/wallpapers/gruvbox-dark-bg.png;
+  };
+
   # HOST IDENTIFICATION
   # ============================================================================
   clusterNetworking = {
