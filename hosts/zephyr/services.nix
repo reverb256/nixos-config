@@ -253,7 +253,12 @@
         }
         https://openwebui.lan, https://openwebui.cluster.local {
           encode zstd gzip
-          reverse_proxy 10.1.1.120:32749
+          reverse_proxy 10.1.1.120:32080
+        }
+
+        https://haven.lan, https://haven.cluster.local {
+          encode zstd gzip
+          reverse_proxy 10.1.1.120:3000
         }
 
         http://civicintel.lan, http://10.1.1.100 {

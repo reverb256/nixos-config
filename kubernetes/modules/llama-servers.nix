@@ -1,26 +1,17 @@
-# LLM inference deployments — llama-server via nix-csi
+# LLM inference deployments — llama-server via hostPath /nix/store
 #
-# Runs GPU-accelerated LLM inference as K8s pods using nix-csi to mount
-# the Nix-built llama-server binary directly. No Docker image needed.
-#
-# Pattern: nix-csi scratch image + CSI ephemeral volume for Nix store
-# binary + hostPath for GPU driver + hostPath for model files
-#
-# nix-csi resolves the Nix store path at pod creation time, so the binary
-# auto-updates when the Nix config is rebuilt (no stale image problem).
+# Uses minimal scratch image with /nix/store bind-mounted from host.
+# The Nix-built llama-server binary runs directly — no Docker image build needed.
+# Binary auto-updates when NixOS is rebuilt (reads live /nix/store).
 { pkgs, pkgsWithOverlay, config, lib, ... }:
 let
-  # nix-csi scratch image — minimal container that nix-csi mounts /nix into
-  nixCsiScratch = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
-
+  scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
   managed = { "app.kubernetes.io/managed-by" = "easykubenix"; };
 in
 {
   config.kubernetes.objects.ai-inference = {
 
     # ── Zephyr llama-server (CUDA, RTX 3060 Ti, Gemma 4 E4B vision) ──
-    # Uses CUDA_VISIBLE_DEVICES=1 to target 3060 Ti (GPU 1 in CUDA ordering)
-    # 3090 (GPU 0) is reserved for lolMiner
     Deployment.llama-server-zephyr = {
       metadata.labels = managed // { app = "llama-server-zephyr"; host = "zephyr"; };
       spec = {
@@ -43,9 +34,9 @@ in
             containers = {
               _namedlist = true;
               llama-server = {
-                image = nixCsiScratch;
+                image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "/nix/bin/llama-server" ];
+                command = [ "${pkgsWithOverlay.llama-cpp}/bin/llama-server" ];
                 args = [
                   "--model" "/models/lmstudio-community/gemma-4-E4B-it-GGUF/gemma-4-E4B-it-Q4_K_M.gguf"
                   "--mmproj" "/models/lmstudio-community/gemma-4-E4B-it-GGUF/mmproj-gemma-4-E4B-it-BF16.gguf"
@@ -72,7 +63,7 @@ in
                 env = {
                   _namedlist = true;
                   CUDA_VISIBLE_DEVICES = { name = "CUDA_VISIBLE_DEVICES"; value = "1"; };
-                  LD_LIBRARY_PATH = { name = "LD_LIBRARY_PATH"; value = "/run/opengl-driver/lib:/nix/lib"; };
+                  LD_LIBRARY_PATH = { name = "LD_LIBRARY_PATH"; value = "/run/opengl-driver/lib:/nix/store"; };
                 };
                 ports = [{ containerPort = 1235; name = "http"; protocol = "TCP"; }];
                 livenessProbe = {
@@ -94,7 +85,7 @@ in
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  nix-store = { mountPath = "/nix"; };
+                  nix-store = { mountPath = "/nix/store"; readOnly = true; };
                   dev = { mountPath = "/dev"; };
                   nvidia-libs = { mountPath = "/run/opengl-driver/lib"; readOnly = true; };
                   models = { mountPath = "/models"; readOnly = true; };
@@ -103,13 +94,7 @@ in
             };
             volumes = {
               _namedlist = true;
-              # nix-csi ephemeral volume — mounts the Nix-built llama-cpp binary
-              nix-store = {
-                csi = {
-                  driver = "nix.csi.store";
-                  volumeAttributes.x86_64-linux = "${pkgsWithOverlay.llama-cpp}";
-                };
-              };
+              nix-store.hostPath.path = "/nix/store";
               dev.hostPath.path = "/dev";
               nvidia-libs.hostPath.path = "/run/opengl-driver/lib";
               models.hostPath.path = "/home/j_kro/.lmstudio/models";
@@ -130,7 +115,6 @@ in
 
     # ── Sentry llama-server (ROCm, RX 5600 XT, Gemma 4 E2B) ────
     # Disabled until sentry is redeployed with the fixed llama-cpp-rocm package.
-    # Enable by setting replicas = 1 after deploy.
     Deployment.llama-server-sentry = {
       metadata.labels = managed // { app = "llama-server-sentry"; host = "sentry"; };
       spec = {
@@ -147,9 +131,9 @@ in
             containers = {
               _namedlist = true;
               llama-server = {
-                image = nixCsiScratch;
+                image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "/nix/bin/llama-server" ];
+                command = [ "${pkgsWithOverlay.llama-cpp-rocm}/bin/llama-server" ];
                 args = [
                   "--model" "/models/unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-IQ4_NL.gguf"
                   "--mmproj" "/models/unsloth/gemma-4-E2B-it-GGUF/mmproj-F32.gguf"
@@ -173,7 +157,7 @@ in
                 env = {
                   _namedlist = true;
                   ROC_ENABLE_PRE_VEGA = { name = "ROC_ENABLE_PRE_VEGA"; value = "1"; };
-                  LD_LIBRARY_PATH = { name = "LD_LIBRARY_PATH"; value = "/run/opengl-driver/lib:/nix/lib"; };
+                  LD_LIBRARY_PATH = { name = "LD_LIBRARY_PATH"; value = "/run/opengl-driver/lib:/nix/store"; };
                 };
                 ports = [{ containerPort = 1235; name = "http"; protocol = "TCP"; }];
                 livenessProbe = {
@@ -195,7 +179,7 @@ in
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  nix-store = { mountPath = "/nix"; };
+                  nix-store = { mountPath = "/nix/store"; readOnly = true; };
                   dev-dri = { mountPath = "/dev/dri"; };
                   dev-kfd = { mountPath = "/dev/kfd"; };
                   models = { mountPath = "/models"; readOnly = true; };
@@ -205,13 +189,7 @@ in
             };
             volumes = {
               _namedlist = true;
-              # nix-csi ephemeral volume — mounts the Nix-built llama-cpp-rocm binary
-              nix-store = {
-                csi = {
-                  driver = "nix.csi.store";
-                  volumeAttributes.x86_64-linux = "${pkgsWithOverlay.llama-cpp-rocm}";
-                };
-              };
+              nix-store.hostPath.path = "/nix/store";
               dev-dri.hostPath = { path = "/dev/dri"; type = "Directory"; };
               dev-kfd.hostPath = { path = "/dev/kfd"; type = "CharDevice"; };
               models.hostPath.path = "/home/j_kro/.lmstudio/models";
