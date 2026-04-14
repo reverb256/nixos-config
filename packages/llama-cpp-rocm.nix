@@ -1,48 +1,52 @@
 # llama.cpp with ROCm support
-# Built from nixpkgs with AMD GPU acceleration enabled
+# Patterned after nixpkgs llama-cpp package
 {
   lib,
   fetchurl,
   rocmPackages,
   cmake,
   ninja,
-  git,
   stdenv,
+  autoAddDriverRunpath,
 }:
 stdenv.mkDerivation rec {
   pname = "llama-cpp-rocm";
-  version = "0-unstable-2025-03-19";
+  version = "0-unstable-2026-04-14";
   src = fetchurl {
-    url = "https://github.com/ggerganov/llama.cpp/archive/b739738dadf0b66a59546d7240c554d61c07c2f0.tar.gz";
-    hash = "sha256-NvbsxrRpb5wCYpZ9sXOFm8QPr21LqJlnn1DQ9tg2CRM=";
+    url = "https://github.com/ggerganov/llama.cpp/archive/6a6780a232b73fe44799b0c0d5f01c61612f1b79.tar.gz";
+    hash = "sha256-RQXDx//OHJLTRytABGIY7E8AVAMQOmWcJ3czTsHEkGc=";
   };
+
   nativeBuildInputs = [
     cmake
-    git
     ninja
-    rocmPackages.rocm-cmake
+    autoAddDriverRunpath
   ];
+
   buildInputs = with rocmPackages; [
     clr
-    clr.icd
     rocblas
     hipblas
-    hipsparse
-    rocfft
-    rocrand
   ];
+
   cmakeFlags = [
-    "-DGGML_HIPBLAS=ON"
+    "-DGGML_NATIVE=OFF"
+    "-DLLAMA_BUILD_EXAMPLES=OFF"
+    "-DLLAMA_BUILD_SERVER=ON"
+    "-DLLAMA_BUILD_TESTS=OFF"
+    "-DBUILD_SHARED_LIBS=ON"
+    "-DLLAMA_OPENSSL=OFF"
+    # ROCm HIP backend
+    "-DGGML_HIP=ON"
     "-DGGML_HIP_UMA=OFF"
+    "-DCMAKE_HIP_COMPILER=${rocmPackages.clr.hipClangPath}/clang++"
+    "-DCMAKE_HIP_ARCHITECTURES=gfx1010"
     "-DCMAKE_BUILD_TYPE=Release"
     "-DCMAKE_SKIP_BUILD_RPATH=TRUE"
   ];
+
   postInstall = ''
-    # Install binaries
-    install -Dm755 bin/llama-server $out/bin/llama-server
-    install -Dm755 bin/llama-cli $out/bin/llama-cli
-    install -Dm755 bin/llama-perplexity $out/bin/llama-perplexity
-    # Create symlink for backward compatibility
+    # Symlink for backward compatibility
     ln -sf $out/bin/llama-cli $out/bin/llama
   '';
 
@@ -52,6 +56,7 @@ stdenv.mkDerivation rec {
       ${stdenv.cc.bintools.targetPrefix}patchelf --shrink-rpath "$f" 2>/dev/null || true
     done
   '';
+
   meta = {
     description = "Inference of Meta's LLaMA model (and others) in pure C/C++ with ROCm support";
     homepage = "https://github.com/ggerganov/llama.cpp";

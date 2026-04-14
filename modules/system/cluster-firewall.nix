@@ -16,25 +16,10 @@ let
   clusterSubnet = "10.1.1.0/24";
   podCidr = "10.244.0.0/16";
 
-  # Workaround for CachyOS 6.19.11 nft segfault when listing Calico BPF maps.
-  # The nft binary dereferences a null pointer when enumerating maps
-  # attached to Calico chains, causing segfaults that can trigger watchdog
-  # reboots (softlockup_panic=1 nmi_watchdog=1 in kernel params).
-  # We deploy a wrapper script and create a symlink in /run/local/bin
-  # which is prepended to PATH via boot.postBootCommands.
-  #
-  # IMPORTANT: Only intercept "list" + "map|calico" queries (read-only).
-  # All other nft calls (add, delete, flush, create) MUST pass through
-  # to the real binary — intercepting them prevents Calico from
-  # initializing its dataplane (tables/chains), causing infinite retries
-  # and cascading nft segfaults.
+  # Workaround: CachyOS kernel nft segfault when listing BPF maps.
+  # Intercept only read-only list operations on calico/map tables.
+  # All other nft calls MUST pass through to the real binary.
   nft-wrapper-script = pkgs.writeShellScript "nft-wrapper" ''
-    # Only intercept list operations involving maps or calico tables.
-    # "list" may appear as $1 or after flags (e.g., "--json list maps ip"),
-    # so we grep across all args rather than checking $1 alone.
-    # All other nft calls (add, delete, flush, create) MUST pass through
-    # to the real binary — intercepting them prevents Calico from
-    # initializing its dataplane (tables/chains).
     if echo "$@" | grep -qE "(^|[[:space:]])(list)" && echo "$@" | grep -qE "(map|calico)"; then
       echo "{}"
       exit 0
@@ -42,13 +27,8 @@ let
     exec ${pkgs.nftables}/bin/nft "$@"
   '';
 
-  # Workaround for CachyOS 6.19.11 nft segfault triggered by kube-router.
-  # kube-router calls `iptables` which resolves to iptables-nft (xtables-nft-multi),
-  # which internally calls the `nft` binary. On CachyOS 6.19.11, `nft` segfaults
-  # on null pointer deref, generating coredumps that fill disk and freeze the node.
-  #
-  # Fix: redirect iptables/ip6tables to iptables-legacy which uses the kernel's
-  # legacy iptables code directly without touching nft.
+  # Workaround: CachyOS kernel nft segfault triggered by kube-router.
+  # Redirect iptables to iptables-legacy which avoids the nft codepath.
   iptables-legacy-wrapper = pkgs.writeShellScript "iptables-legacy-wrapper" ''
     exec ${pkgs.iptables}/bin/iptables-legacy "$@"
   '';
@@ -61,10 +41,8 @@ in
   # This causes networking.firewall.backend to auto-select "nftables".
   networking.nftables.enable = true;
 
-  # Disable br_netfilter — it intercepts bridge traffic through iptables,
-  # causing conflicts with both iptables-legacy and iptables-nft loaded.
-  # This breaks K8s pod networking (TCP/UDP forwarded traffic silently dropped).
-  # K3s/Calico handle their own packet filtering via iptables-nft.
+  # Disable br_netfilter — intercepts bridge traffic through iptables,
+  # causing conflicts with iptables-legacy and iptables-nft loaded simultaneously.
   boot.blacklistedKernelModules = [ "br_netfilter" ];
 
   # Deploy wrappers via systemd tmpfiles (persists across reboots).
@@ -73,19 +51,10 @@ in
     "L+ /run/local/bin/iptables - - - - ${iptables-legacy-wrapper}"
     "L+ /run/local/bin/ip6tables - - - - ${ip6tables-legacy-wrapper}"
   ];
-  # Prepend /run/local/bin to PATH so our wrapper shadows the real nft.
+  # Prepend /run/local/bin to PATH so wrappers shadow system binaries.
   environment.variables.PATH = [ "/run/local/bin" ];
 
-  # ============================================================================
-  # NFT COREDUMP CLEANUP
-  # ============================================================================
-  # CachyOS 6.19.11 kernel bug: nft segfaults (null pointer deref) when
-  # listing BPF maps inside Calico's container-internal /usr/sbin/nft.
-  # The Tigera operator prevents injecting a wrapper into the container,
-  # so segfaults cannot be fully stopped without a kernel update.
-  #
-  # Each coredump is ~345KB compressed at ~3-4/min. This timer cleans them
-  # every 10 minutes to prevent disk exhaustion.
+  # NFT COREDUMP CLEANUP — CachyOS kernel bug generates ~345KB coredumps at ~3-4/min.
   systemd.services.nft-coredump-cleanup = {
     description = "Clean nft coredumps (CachyOS kernel bug workaround)";
     script = ''
@@ -105,12 +74,7 @@ in
   # These rules restrict sensitive services to the cluster LAN and Tailscale.
   # Appended to the input-allow chain after default NixOS firewall rules.
   networking.firewall.extraInputRules = mkAfter ''
-    # --- K8s Pod CIDR: allow pods to reach host services ---
-    # Pods (10.244.0.0/16) need access to kubelet (10250),
-    # API server via localhost DNAT (6443), node ports, and DNS.
-    # Without this rule, the NixOS nftables INPUT chain (policy drop)
-    # blocks all pod-to-host traffic.
-    # This single rule covers all pod traffic (DNS, API server, etc.).
+  # Allow pod-to-host traffic (kubelet, API server, node ports, DNS).
     ip saddr { ${podCidr} } accept
 
     # --- K8s API Server (6443) ---
@@ -131,8 +95,7 @@ in
     # --- CNI VXLAN ---
     ip saddr { ${clusterSubnet} } udp dport { 8472, 4789 } accept
 
-    # --- Calico BGP + Typha ---
-    ip saddr { ${clusterSubnet} } tcp dport { 179, 5473 } accept
+    # --- BGP + Typha ---
 
     # --- Mining ports ---
     ip saddr { ${clusterSubnet} } tcp dport { 3333, 3334 } accept
