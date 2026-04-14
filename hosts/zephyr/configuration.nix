@@ -216,12 +216,6 @@
 
     # Deployment
     inputs.colmena.packages.${pkgs.stdenv.hostPlatform.system}.colmena
-    (pkgs.writeShellScriptBin "spacebot" ''
-      #!${pkgs.bash}/bin/bash
-      # Spacebot CLI wrapper - connects to local Spacebot service
-      exec ${pkgs.curl}/bin/curl --data-binary @- http://127.0.0.1:19898/api/run "$@"
-    '')
-
     # Hardware monitoring & fan control helpers
     ddcutil # DDC/CI monitor brightness control
     (pkgs.writeShellScriptBin "fan-set" ''

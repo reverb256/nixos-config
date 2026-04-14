@@ -13,7 +13,6 @@ services/
 ├── hermes-agent/       # Agent orchestration
 ├── kubernetes/         # K8s-related services
 ├── opencode-sync/      # Config sync
-├── spacebot/           # Discord bot
 └── *.nix               # Individual services (40+)
 ```
 

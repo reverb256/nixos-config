@@ -2,7 +2,7 @@
 #
 # Applies the single Nix-generated manifest file produced by
 # `nix build .#k8s-manifests` which includes all easykubenix modules:
-# mining, gpu-miners, ai-inference, nixkube, searxng, haven, spacebot,
+# mining, gpu-miners, ai-inference, nixkube, searxng, haven,
 # ingress, infrastructure.
 #
 # Runs on control-plane node only (zephyr) since K8s API is global.

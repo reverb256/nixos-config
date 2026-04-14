@@ -159,13 +159,7 @@ in
         #   owner = "j_kro";
         #   group = "users";
         # };
-        # Spacebot Telegram token - AI agent integration
-        spacebot-telegram-token = {
-          file = "${inputs.self}/secrets/spacebot-telegram-token.age";
-          mode = "440";
-          owner = "j_kro";
-          group = "users";
-        };
+
       })
       # Monitoring Secrets
       (lib.mkIf config.services.agenix-secrets-registry.monitoring {
