@@ -3,24 +3,15 @@
   # User packages belong in home.nix
   environment.systemPackages = with pkgs; [
     # ============================================================================
-    # SYSTEM UTILITIES
-    # Needed by system services, scripts, or all users
+    # SYSTEM UTILITIES (unique to this module)
+    # Duplicated packages live in development/tools.nix:
+    #   ripgrep, fd, htop, btop, eza, bat, fzf, wget, curl, jq, jo, yq,
+    #   git, just, bc, units, strace, ltrace, perf-tools, iotop, ncdu,
+    #   rclone, zip, unzip, p7zip, rar
     # ============================================================================
-    ripgrep
-    fd
     parallel
     parallel-full
-    htop
-    btop
-    eza
-    bat
-    fzf
     fastfetch
-    wget
-    curl
-    jq
-    jo # JSON output from shell (companion to jq)
-    yq # YAML processor (go-based)
     mosh
     nmap
     netcat
@@ -31,9 +22,6 @@
     xxd # Hex dump from Vim
     file # File type detection (enhanced)
     tree # Directory tree viewer
-    bc # Arbitrary precision calculator
-    units # Unit conversion tool
-    # websocat - REMOVED
 
     # ============================================================================
     # NETWORK MANAGEMENT
@@ -43,11 +31,9 @@
 
     # ============================================================================
     # VERSION CONTROL AND BUILD TOOLS
-    # Required for system operations
+    # git, just moved to development/tools.nix
     # ============================================================================
-    git
     vim
-    just
     hostname
 
     # ============================================================================
@@ -58,9 +44,9 @@
 
     # ============================================================================
     # FILE SYSTEM TOOLS
+    # rclone moved to development/tools.nix
     # ============================================================================
     btrfs-progs
-    rclone # For backup-to-garage S3 sync
     awscli2 # For S3 backup automation
 
     # ============================================================================
@@ -76,12 +62,8 @@
 
     # ============================================================================
     # DIAGNOSTIC AND DEBUGGING TOOLS
-    # System tracing, profiling, and debugging utilities
+    # strace, ltrace, perf-tools, iotop moved to development/tools.nix
     # ============================================================================
-    strace # System call tracer
-    ltrace # Library call tracer
-    perf-tools # Linux performance profiling tools
-    iotop # I/O monitoring
     perf # Kernel performance analysis
 
     # ============================================================================
@@ -101,19 +83,15 @@
     # ============================================================================
     parted # GPT partition management
     gptfdisk # GPT fdisk (for modern partitioning)
-    ncdu # Disk usage analyzer (ncurses-based)
+    # ncdu moved to development/tools.nix
     rsync # Fast file synchronization
     pv # Pipe viewer for monitoring data throughput
     progress # Coreutils progress viewer
 
     # ============================================================================
     # ARCHIVE AND COMPRESSION
-    # Additional formats beyond basic tar/gzip
+    # zip, unzip, p7zip, rar moved to development/tools.nix
     # ============================================================================
-    zip # ZIP archive support
-    unzip # ZIP extraction
-    p7zip # 7z archive support
-    rar # RAR archive support
 
     # ============================================================================
     # SCREEN AND SESSION MANAGEMENT
@@ -140,6 +118,8 @@
     dxvk
     wine
     winetricks
+    vkbasalt # Vulkan post-processing (CAS sharpening, FXAA)
+    obs-studio-plugins.obs-vkcapture # Zero-copy OBS game capture
 
     # ============================================================================
     # PERIPHERAL SUPPORT
@@ -218,9 +198,10 @@
 
     # ============================================================================
     # WEB BROWSER SUPPORT
-    # NOTE: firefoxpwa moved to home.nix to avoid Firefox compilation
+    # firefoxpwa does not exist in current nixpkgs.
+    # For PWA support with Zen Browser, use the "PWAs for Firefox" extension.
     # ============================================================================
-    # firefoxpwa  # MOVED to home.nix - requires Firefox which compiles from source
+    wl-clipboard # For screenshot-to-clipboard pipeline
 
     # ============================================================================
     # OPENCL SUPPORT

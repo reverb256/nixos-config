@@ -21,10 +21,9 @@
     python312Packages.mypy
     python312Packages.ruff
     # JavaScript/TypeScript
-    nodePackages.typescript
-    nodePackages.typescript-language-server
-    nodePackages.vscode-langservers-extracted
-    nodePackages."@tailwindcss/language-server"
+    typescript
+    typescript-language-server
+    vscode-langservers-extracted
     eslint
     prettier
     # Nix
@@ -35,18 +34,17 @@
     deadnix # Nix dead code finder
     nixfmt
     nixpkgs-fmt
-    # Lua
-    lua-language-server
+    # Lua (lua-language-server in programming-languages.nix)
     stylua
     # YAML
-    nodePackages.yaml-language-server
+    yaml-language-server
     yamllint
     # JSON
-    nodePackages.vscode-json-languageserver
+    vscode-json-languageserver
     # Markdown
     markdownlint-cli
     # Bash/Shell
-    nodePackages.bash-language-server
+    bash-language-server
     shellcheck
     shfmt
     # SQL
@@ -56,8 +54,7 @@
     cmake
     ninja
     gnumake
-    # Go
-    gopls
+    # Go (gopls in programming-languages.nix)
     go-tools
     gotools
     # Terraform
@@ -67,55 +64,20 @@
     dockerfile-language-server
     hadolint
 
-    # DEVELOPMENT TOOLS
+    # DEVELOPMENT TOOLS (unique to this module)
+    # Duplicated packages live in development/tools.nix:
+    #   git, git-lfs, lazygit, gh, ripgrep, fzf, fd, tealdeer, zoxide,
+    #   curl, wget, httpie, restic, jq, yq, bat, eza, duf, dust,
+    #   delta, man-pages, neovim, helix, gdb, hyperfine, sqlite,
+    #   strace, ltrace, perf-tools
 
-    # Version control
-    git
-    git-lfs
-    lazygit
-    gh
-    # Editing
-    neovim
-    helix
-    # Search & navigation
-    ripgrep
-    fzf
-    fd
-    tealdeer
-    zoxide
-    # Build tools
-    gnumake
-    cmake
+    # Build tools not in tools.nix
     meson
-    ninja
-    # Debugging
-    gdb
-    ltrace
-    strace
-    # Performance analysis
-    perf-tools
-    hyperfine
-    # Network tools
-    curl
-    wget
-    httpie
-    restic
-    # Database tools
-    sqlite
-    postgresql
     # Container tools
     dive # Docker image explorer
     lazydocker # Docker/Podman TUI
-    # Documentation
-    man-pages
-    # Misc tools
-    jq
-    yq
-    delta
-    bat
-    eza
-    duf
-    dust
+    # Database
+    postgresql
   ];
 
   # DEVELOPMENT ENVIRONMENT VARIABLES

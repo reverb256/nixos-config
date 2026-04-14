@@ -28,8 +28,8 @@
     # ============================================================================
     # JAVASCRIPT / TYPESCRIPT
     # ============================================================================
-    nodePackages_latest.nodejs
-    nodePackages_latest.pnpm
+    nodejs
+    pnpm
 
     # bun - Ultra-fast JavaScript runtime (Node.js alternative)
     bun
