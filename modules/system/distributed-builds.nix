@@ -1,5 +1,3 @@
-# Distributed Build Configuration
-# Enables building across nodes in the cluster
 {
   lib,
   config,
@@ -23,59 +21,48 @@ in
         "@wheel"
       ];
 
-      # Binary cache priority - Centralized for all hosts
-      # Local cache (Zephyr) has highest priority for cluster builds
       substituters = lib.mkForce (
         if currentHost == "zephyr" then
           [
-            # Zephyr: No local cache (it serves the cache)
             "https://cache.nixos.org"
             "https://nix-community.cachix.org"
             "https://cache.garnix.io"
             "https://reverb-os.cachix.org"
             "https://ezkea.cachix.org"
             "https://nix-gaming.cachix.org"
-            "https://attic.xuyh0120.win/lantian" # CachyOS kernel binary cache
-            # "https://cache.nixos-cuda.org" # Disabled - timeout issues
+            "https://attic.xuyh0120.win/lantian"
           ]
         else
           [
-            # Remote hosts: Use public caches (NOT zephyr's local cache - unreachable from remotes)
             "https://cache.nixos.org"
             "https://nix-community.cachix.org"
             "https://cache.garnix.io"
             "https://reverb-os.cachix.org"
             "https://ezkea.cachix.org"
             "https://nix-gaming.cachix.org"
-            "https://attic.xuyh0120.win/lantian" # CachyOS kernel binary cache
-            # "https://cache.nixos-cuda.org" # Disabled - timeout issues
+            "https://attic.xuyh0120.win/lantian"
           ]
       );
       trusted-public-keys = lib.mkForce (
         if currentHost == "zephyr" then
           [
-            # Zephyr: No local cache key (it serves the cache)
             "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
             "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
             "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
             "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
             "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
             "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
-            "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc=" # CachyOS kernel cache
-            # "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M=" # Disabled - timeout issues
+            "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc="
           ]
         else
           [
-            # Remote hosts: Trust Zephyr's local cache
-            # Key will be generated on first nix-serve start
             "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
             "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
             "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
             "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
             "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
             "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
-            "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc=" # CachyOS kernel cache
-            # "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M=" # Disabled - timeout issues
+            "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc="
           ]
       );
 
@@ -94,13 +81,13 @@ in
 
       max-jobs = lib.mkForce (
         if currentHost == "zephyr" then
-          2 # Zephyr: Reduced from 4 to prevent OOM during large builds
+          2
         else if currentHost == "nexus" then
           6
         else if currentHost == "sentry" then
           4
         else if currentHost == "forge" then
-          2 # Forge: Increased from 1 for kernel builds
+          2
         else
           2
       );
@@ -141,12 +128,6 @@ in
     '';
   };
 
-  # ============================================================================
-  # CCACHE - 20GB compiler cache for faster rebuilds
-  # ============================================================================
-  # Cache directory: /var/cache/ccache (persistent, not on tmpfs)
-  # Size: 20GB (~500K-1M cached compiler objects)
-  # Shared across: GCC, Clang, and any compiler supporting CCACHE_PATH
 
   environment = {
     etc = {
@@ -161,18 +142,14 @@ in
 
       "nix/machines".text =
         let
-          # All hosts can be builders (except forge which is compute-only)
-          # IMPORTANT: Builds with "kexec" feature (kernel modules) fall back to local
-          # Remote machines don't support "kexec" → kernel builds stay local
           allMachines = [
             {
               hostName = "zephyr";
               system = "x86_64-linux";
               sshUser = "j_kro";
               sshKey = "/etc/nixos/ssh/id_ed25519";
-              maxJobs = 0; # DISABLED as builder (only 31GB RAM, OOMs building large packages like gamescope)
+              maxJobs = 0;
               speedFactor = 4;
-              # NOTE: "kexec" NOT included → kernel modules won't be sent to zephyr
               supportedFeatures = [
                 "big-parallel"
                 "kvm"
@@ -186,7 +163,6 @@ in
               sshKey = "/etc/nixos/ssh/id_ed25519";
               maxJobs = 6;
               speedFactor = 5;
-              # NOTE: "kexec" NOT included → kernel modules won't be sent to nexus
               supportedFeatures = [
                 "big-parallel"
                 "kvm"
@@ -200,12 +176,10 @@ in
               sshKey = "/etc/nixos/ssh/id_ed25519";
               maxJobs = 4;
               speedFactor = 3;
-              # NOTE: "kexec" NOT included → kernel modules won't be sent to sentry
               supportedFeatures = [ "big-parallel" ];
               mandatoryFeatures = [ ];
             }
           ];
-          # Exclude current host from machines list (builds locally via nix-daemon instead)
           machines = builtins.filter (m: m.hostName != currentHost) allMachines;
           formatMachine = m: ''
             ssh-ng://${m.sshUser}@${m.hostName} ${m.system} ${
@@ -216,7 +190,6 @@ in
         lib.concatMapStrings formatMachine machines;
     };
 
-    # Set 20GB cache size and configure ccache behavior via environment
     variables = {
       CCACHE_DIR = "/var/cache/ccache";
       CCACHE_SIZE = "20G";
@@ -227,17 +200,13 @@ in
       CCACHE_LOGFILE = "/var/log/ccache.log";
     };
 
-    # Ensure ccache is in PATH for all users
     systemPackages = with pkgs; [ ccache ];
   };
 
-  # Consolidated tmpfiles rules (SSH keys + ccache directories)
   systemd.tmpfiles.rules = [
-    # SSH key directories for distributed builds
     "d /home/j_kro/.ssh 0700 j_kro users -"
     "d /root/.ssh 0700 root root -"
     "d /etc/nixos/ssh 0755 root root -"
-    # ccache cache directory and log file
     "d /var/cache/ccache 0755 root root -"
     "f /var/log/ccache.log 0644 root root -"
   ];

@@ -1,4 +1,3 @@
-# modules/profiles/network/default.nix --- Network profiles
 {
   config,
   lib,

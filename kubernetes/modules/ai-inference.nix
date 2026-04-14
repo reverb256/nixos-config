@@ -1,5 +1,3 @@
-# AI Inference namespace — grafana, open-webui, ingresses, ConfigMaps, RBAC
-# Converted from importyaml ai-inference-clean.yaml to native easykubenix.
 {
   pkgs, lib, ...
 }:

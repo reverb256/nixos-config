@@ -1,17 +1,3 @@
-# AI Coding Tools - Harmonized MCP Configuration
-# Generates unified MCP server configs for: Droid (Factory), Claude Code, Crush, OpenCode, Pi
-# All tools get the same MCP server set: Z.AI HTTP + local stdio servers
-#
-# API keys are read from agenix secrets at runtime (never hardcoded).
-# Required secrets: zai-api-key, context7-api-key
-#
-# Tool-specific generators are in ./ai-coding-tools/:
-#   mcp-defs.nix  - shared MCP server data + mkMcpServersJson
-#   droid.nix     - Factory Droid (mcp.json + settings.json)
-#   claude.nix    - Claude Code (mcp.json)
-#   crush.nix     - Crush (crush.json)
-#   opencode.nix  - OpenCode (config.json)
-#   pi.nix        - Pi Coding Agent (models.json + settings.json)
 {
   config,
   lib,
@@ -28,10 +14,8 @@ let
     optionalString
     ;
 
-  # Import shared MCP definitions
   mcpDefs = import ./ai-coding-tools/mcp-defs.nix { inherit lib; };
 
-  # Import tool-specific generators
   droidGen = import ./ai-coding-tools/droid.nix {
     inherit cfg pkgs;
     inherit (mcpDefs) mkMcpServersJson;
@@ -131,13 +115,11 @@ in
     };
   };
   config = mkIf cfg.enable {
-    # Ensure MCP servers module is enabled (provides mcp-* commands)
     services.mcp-servers = {
       enable = true;
       servers.playwright.enable = true;
       servers.context7.apiKeyFile = cfg.context7ApiKeyFile;
     };
-    # Ensure required directories exist
     systemd.tmpfiles.rules = [
       "d /home/${cfg.user}/.factory 0700 ${cfg.user} users -"
       "d /home/${cfg.user}/.config/claude 0755 ${cfg.user} users -"
@@ -147,12 +129,10 @@ in
       "d /home/${cfg.user}/.pi/agent 0700 ${cfg.user} users -"
       "d /home/${cfg.user}/.pi/agent/sessions 0700 ${cfg.user} users -"
     ];
-    # Shell environment variables (ZAI_API_KEY available to all tools)
     environment.sessionVariables = mkIf cfg.enableShellEnv {
       ZAI_API_KEY_FILE = cfg.zaiApiKeyFile;
       CONTEXT7_API_KEY_FILE = cfg.context7ApiKeyFile;
     };
-    # Systemd service to generate all configs after secrets are available
     systemd.services.ai-coding-tools-config = {
       description = "Generate harmonized MCP configs for AI coding tools";
       after = [
@@ -184,7 +164,6 @@ in
         ];
         ExecStart = pkgs.writeShellScript "ai-coding-tools-generate" ''
           set -euo pipefail
-          # Wait for secrets to be available
           for secret in ${cfg.zaiApiKeyFile} ${cfg.context7ApiKeyFile} ${cfg.nvidiaNimApiKeyFile}; do
             for i in {1..30}; do
               if [ -f "$secret" ] && [ -s "$secret" ]; then
@@ -229,9 +208,7 @@ in
         '';
       };
     };
-    # Fish shell integration (read secrets into env for interactive use)
     programs.fish.interactiveShellInit = mkIf cfg.enableShellEnv ''
-      # AI Coding Tools - Load API keys from agenix secrets
       if test -f ${cfg.zaiApiKeyFile}
         set -gx ZAI_API_KEY (cat ${cfg.zaiApiKeyFile})
       end
@@ -239,9 +216,7 @@ in
         set -gx CONTEXT7_API_KEY (cat ${cfg.context7ApiKeyFile})
       end
     '';
-    # Bash integration
     programs.bash.interactiveShellInit = mkIf cfg.enableShellEnv ''
-      # AI Coding Tools - Load API keys from agenix secrets
       if [ -f ${cfg.zaiApiKeyFile} ]; then
         ZAI_KEY_PATH="${cfg.zaiApiKeyFile}"
         export ZAI_API_KEY="$(cat $ZAI_KEY_PATH)"
@@ -251,7 +226,6 @@ in
         export CONTEXT7_API_KEY="$(cat $CTX7_KEY_PATH)"
       fi
     '';
-    # CLI helper for manual regeneration
     environment.systemPackages = [
       (pkgs.writeShellScriptBin "crush" ''
         export PATH="${pkgs.nodejs_22}/bin:$PATH"
@@ -320,13 +294,10 @@ in
         done
       '')
     ];
-    # Documentation
     environment.etc."ai-coding-tools/README.md".text = ''
-      # AI Coding Tools - Harmonized MCP Configuration
       Managed by: `services.ai-coding-tools` NixOS module
       Regenerate: `ai-tools-regenerate`
       Status:     `ai-tools-status`
-      ## Unified Provider Set
       | Provider | Endpoint | Key Source | Tools |
       |----------|----------|------------|-------|
       | Z.AI (Anthropic) | api.z.ai/api/anthropic | agenix | Droid |
@@ -335,7 +306,6 @@ in
       | NVIDIA NIM | integrate.api.nvidia.com/v1 | agenix | OpenCode, Crush, Pi, Droid |
       | LM Studio | 127.0.0.1:1234/v1 | None (local) | OpenCode, Crush, Pi |
       | llama.cpp | 127.0.0.1:1235/v1 | None (local) | OpenCode, Pi |
-      ## Unified MCP Server Set
       | Server | Type | Purpose | All Tools |
       |--------|------|---------|-----------|
       | zai-mcp-server | stdio | Z.AI image/video/analysis | Yes |
@@ -350,7 +320,6 @@ in
       | chrome-devtools | stdio | Chrome debugging | Yes |
       | gateway | stdio | AI Inference Gateway bridge | Yes |
       | nixos | stdio | NixOS helper (uvx) | Claude only |
-      ## Tool Config Locations
       | Tool | Config Path | Format |
       |------|------------|--------|
       | Droid (Factory) | ~/.factory/mcp.json | MCP servers only |
@@ -358,12 +327,10 @@ in
       | Crush | ~/.config/crush/crush.json | Provider + MCP |
       | OpenCode | ~/.opencode/config.json | Provider + MCP |
       | Pi Coding Agent | ~/.pi/agent/settings.json | Provider + models |
-      ## CLI Wrappers
       | Tool | Command | Source |
       |------|---------|--------|
       | Crush | `crush` | npx @charmland/crush@latest |
       | Pi | `pi` | npx @mariozechner/pi-coding-agent@latest |
-      ## API Keys
       All keys managed via agenix secrets:
       - zai-api-key → /run/agenix/zai-api-key
       - context7-api-key → /run/agenix/context7-api-key

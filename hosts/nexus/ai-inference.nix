@@ -1,12 +1,7 @@
-# AI Inference Service Configuration for Nexus
-# RTX 3060 Ti (8GB)
-# Storage and GPU compute node
-# Note: ai-inference module is already imported via ../../modules/default.nix
 { lib, ... }: {
   services.ai-inference = {
     enable = true;
 
-    # Backend: ZAI cloud API (local inference removed)
     backend = {
       type = "zai";
       zai = {
@@ -15,7 +10,6 @@
       };
     };
 
-    # Gateway runs in K8s on Zephyr (hostNetwork, port 8081), not systemd
     gateway = {
       enable = false;
       host = "10.1.1.120";
@@ -24,7 +18,6 @@
       middleware.redis.enable = false;
     };
 
-    # Routing: ZAI models by context/complexity
     routing = {
       enable = true;
       defaultModel = "glm-4.7";

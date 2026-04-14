@@ -1,7 +1,3 @@
-# Spotify with SpotX Patch - Flatpak version
-# Removes ads, enables DRM bypass, and unlocks premium features
-# Uses Flatpak Spotify for better SpotX-Bash compatibility
-# Version: 3.0 - Flatpak-based implementation
 {
   config,
   lib,
@@ -11,12 +7,8 @@
   cfg = config.services.spotify-spotx;
   inherit (lib) mkIf mkEnableOption mkOption types;
 
-  # Import Spotify common library for helper functions
   spotify-common = import ./lib/spotify-common.nix {inherit lib pkgs;};
 
-  # Flatpak Spotify locations
-  # The Spotify Flatpak installs to a versioned directory
-  # We detect it dynamically at runtime
   spotifyFlatpakId = "com.spotify.Client";
   spotifyStateDir = spotify-common.mkSpotifyStateDir "spotx";
   patchMarker = "${spotifyStateDir}/.spotx_patched";
@@ -56,29 +48,18 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # CLI tool for managing SpotX
     environment.systemPackages = [
       (spotify-common.mkSpotifyCliWrapper {
         name = "spotify-spotx";
         script = ''
           #!${pkgs.bash}/bin/bash
-          # SpotX management commands for Flatpak Spotify
-          # Commands:
-          #   spotify-spotx patch       - Apply SpotX patch
-          #   spotify-spotx status      - Check patch status
-          #   spotify-spotx clear-cache - Clear Spotify cache
-          #   spotify-spotx install     - Install Spotify Flatpak
-          #   spotify-spotx launch      - Launch patched Spotify
 
           set -euo pipefail
 
-          # Import logging functions
           ${spotify-common.mkSpotifyLogging}
 
-          # Import path detector
           ${spotify-common.mkSpotifyPaths}
 
-          # Import version detector
           ${spotify-common.mkSpotifyVersionDetector}
 
           SPOTIFY_ID="${spotifyFlatpakId}"
@@ -112,13 +93,11 @@ in {
               if [ -d "$home" ]; then
                 local username=$(basename "$home")
                 if [ "$username" != "lost+found" ]; then
-                  # Clear Flatpak Spotify cache
                   if [ -d "$home/.var/app/$SPOTIFY_ID/cache" ]; then
                     log "Clearing cache for user: $username"
                     rm -rf "$home/.var/app/$SPOTIFY_ID/cache"/*
                     cache_cleared=true
                   fi
-                  # Clear config storage
                   if [ -d "$home/.var/app/$SPOTIFY_ID/config/spotify/Storage" ]; then
                     rm -rf "$home/.var/app/$SPOTIFY_ID/config/spotify/Storage"/*
                   fi
@@ -134,18 +113,15 @@ in {
           }
 
           apply_patch() {
-            # Set up PATH with required tools (SpotX needs perl)
             export PATH="/run/current-system/sw/bin:${lib.makeBinPath [pkgs.bash pkgs.perl pkgs.curl]}:$PATH"
 
             log "Starting SpotX patching for Flatpak Spotify..."
 
-            # Check if Spotify is installed
             if ! check_spotify_installed; then
               error "Spotify Flatpak not installed. Run: spotify-spotx install"
               exit 1
             fi
 
-            # Get Spotify installation path
             SPOTIFY_PATH=$(get_spotify_path)
             if [ -z "$SPOTIFY_PATH" ]; then
               error "Could not determine Spotify installation path"
@@ -161,28 +137,23 @@ in {
             log "Spotify directory: $SPOTIFY_DIR"
             log "Spotify version: $(get_spotify_version)"
 
-            # Kill any running Spotify instances
             log "Stopping any running Spotify instances..."
             ${pkgs.flatpak}/bin/flatpak kill "$SPOTIFY_ID" 2>/dev/null || true
 
-            # Apply SpotX-Bash patch
             log "Applying SpotX-Bash patch..."
             if ${pkgs.bash}/bin/bash <(${pkgs.curl}/bin/curl -sSL https://raw.githubusercontent.com/SpotX-Official/SpotX-Bash/main/spotx.sh) -P "$SPOTIFY_DIR" -f; then
               log "✓ SpotX patch applied successfully!"
 
               ${lib.optionalString cfg.forceX11 ''
-            # Force X11 backend for Wayland CSD fix
             log "Forcing X11 backend to fix Wayland CSD issues..."
             ${pkgs.perl}/bin/perl -pi -e 's|--enable-features=UseOzonePlatform --ozone-platform=wayland|--enable-features=UseOzonePlatform --ozone-platform=x11|g' "$SPOTIFY_DIR/spotify"
             log "✓ X11 backend forced"
           ''}
 
-              # Create patch marker
               mkdir -p "$STATE_DIR"
               echo "$(get_spotify_version)" > "$PATCH_MARKER"
               log "✓ Patch marker created: $(get_spotify_version)"
 
-              # Clear cache if enabled
               ${lib.optionalString cfg.clearCacheOnPatch ''
             clear_cache
           ''}
@@ -224,7 +195,6 @@ in {
 
           case "''${1:-status}" in
             patch)
-              # Trigger systemd service which runs as root
               echo "Triggering SpotX patch service..."
               if ${pkgs.systemd}/bin/systemctl start spotx-patch.service; then
                 echo "✓ Patch service triggered"
@@ -262,14 +232,10 @@ in {
       })
     ];
 
-    # Systemd configuration
     systemd = {
-      # Create state directory
       tmpfiles.rules = spotify-common.mkSpotifyTmpfiles "spotx";
 
-      # Services and timers
       services = {
-        # Main patch service - runs after Flatpak updates
         spotx-patch = lib.mkIf cfg.autoPatch {
           description = "Spotify SpotX Patch Service (Flatpak)";
           wantedBy = ["multi-user.target"];
@@ -287,7 +253,6 @@ in {
       };
 
       timers = lib.mkIf cfg.autoPatch {
-        # Auto-patch timer
         spotx-patch = {
           description = "Spotify SpotX Auto-Patch Timer (Flatpak)";
           wantedBy = ["timers.target"];
@@ -301,11 +266,9 @@ in {
       };
     };
 
-    # Initial installation script (run once at activation)
     system.activationScripts.spotify-spotx-setup = lib.mkIf cfg.autoInstall ''
       echo "Setting up Spotify Flatpak with SpotX..."
 
-      # Check if Spotify Flatpak is installed
       if ! ${pkgs.flatpak}/bin/flatpak list | grep -q "${spotifyFlatpakId}"; then
         echo "Installing Spotify Flatpak from Flathub..."
         ${pkgs.flatpak}/bin/flatpak install --system flathub ${spotifyFlatpakId} -y || echo "Warning: Failed to install Spotify Flatpak"
@@ -314,11 +277,9 @@ in {
       fi
     '';
 
-    # Patch script for systemd service
     environment.etc."spotx/patch-service.sh".source = pkgs.writeShellScript "spotx-patch-service" ''
       set -euo pipefail
 
-      # Set up PATH with required tools (SpotX needs perl)
       export PATH="/run/current-system/sw/bin:${lib.makeBinPath [pkgs.bash pkgs.perl pkgs.curl]}:$PATH"
 
       ${spotify-common.mkSpotifyLogging}
@@ -326,20 +287,16 @@ in {
       SPOTIFY_ID="${spotifyFlatpakId}"
       PATCH_MARKER="${patchMarker}"
 
-      # Import path and version detectors
       ${spotify-common.mkSpotifyPaths}
       ${spotify-common.mkSpotifyVersionDetector}
 
-      # Check if Spotify is installed
       if ! ${pkgs.flatpak}/bin/flatpak list | grep -q "$SPOTIFY_ID"; then
         log "Spotify Flatpak not installed, skipping patch"
         exit 0
       fi
 
-      # Get current version
       CURRENT_VERSION=$(get_spotify_version)
 
-      # Check if we need to patch
       if [ -f "$PATCH_MARKER" ]; then
         PATCHED_VERSION=$(cat "$PATCH_MARKER")
         if [ "$PATCHED_VERSION" = "$CURRENT_VERSION" ]; then
@@ -351,7 +308,6 @@ in {
         log "First-time patching Spotify $CURRENT_VERSION..."
       fi
 
-      # Get Spotify directory
       if [ -z "$SPOTIFY_DIR" ]; then
         log "Detecting Spotify installation path..."
         SPOTIFY_PATH=$(${pkgs.flatpak}/bin/flatpak info "$SPOTIFY_ID" --show-location 2>/dev/null)
@@ -363,27 +319,22 @@ in {
         exit 1
       fi
 
-      # Kill running instances
       ${pkgs.flatpak}/bin/flatpak kill "$SPOTIFY_ID" 2>/dev/null || true
 
-      # Apply SpotX patch
       log "Applying SpotX-Bash patch to $SPOTIFY_DIR..."
       if ${pkgs.bash}/bin/bash <(${pkgs.curl}/bin/curl -sSL https://raw.githubusercontent.com/SpotX-Official/SpotX-Bash/main/spotx.sh) -P "$SPOTIFY_DIR" -f; then
         log "SpotX patch applied successfully"
 
         ${lib.optionalString cfg.forceX11 ''
-        # Force X11 backend
         log "Forcing X11 backend for Wayland CSD fix..."
         ${pkgs.perl}/bin/perl -pi -e 's|--enable-features=UseOzonePlatform --ozone-platform=wayland|--enable-features=UseOzonePlatform --ozone-platform=x11|g' "$SPOTIFY_DIR/spotify"
       ''}
 
-        # Update patch marker
         mkdir -p ${spotifyStateDir}
         echo "$CURRENT_VERSION" > "$PATCH_MARKER"
         log "Patch marker updated: $CURRENT_VERSION"
 
         ${lib.optionalString cfg.clearCacheOnPatch ''
-        # Clear cache
         log "Clearing Spotify cache..."
         for home in /home/* /root; do
           if [ -d "$home/.var/app/$SPOTIFY_ID/cache" ]; then
@@ -400,7 +351,5 @@ in {
       fi
     '';
 
-    # Integration: Trigger SpotX patch after Flatpak updates
-    # This is handled by the After= dependency in spotx-patch.service
   };
 }

@@ -1,5 +1,3 @@
-# Grafana Dashboard Server - Modular Version
-# Uses declarative dashboard system from ./dashboards/
 {
   config,
   lib,
@@ -9,13 +7,10 @@
   cfg = config.services.monitoring.grafana;
   inherit (config.networking) cluster;
 
-  # Import dashboard library
-  # Import dashboard registry
   dashboards = import ./dashboards/default.nix {inherit lib;};
 
   grafanaPasswordFile = "/var/lib/grafana/admin-password";
   dashboardsDir = "/var/lib/grafana/dashboards";
-  # Extend lib with dashboard helpers
 in {
   options.services.monitoring.grafana = {
     enable = lib.mkEnableOption "Grafana dashboard server";
@@ -32,7 +27,6 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Systemd tmpfiles configuration
     systemd.tmpfiles.settings = {
       "grafana-password" = {
         "${grafanaPasswordFile}" = {
@@ -145,9 +139,7 @@ in {
       groups.grafana = {};
     };
 
-    # Systemd services
     systemd.services = {
-      # Generate Grafana admin password and secret key
       grafana-init-secrets = {
         description = "Generate Grafana admin password and secret key";
         wantedBy = ["multi-user.target"];
@@ -159,13 +151,11 @@ in {
           User = "grafana";
         };
         script = ''
-          # Generate admin password if not exists
           if [ ! -f "${grafanaPasswordFile}" ]; then
             tr -dc A-Za-z0-9 < /dev/urandom | head -c 32 > "${grafanaPasswordFile}"
             echo "Generated Grafana admin password in ${grafanaPasswordFile}"
           fi
 
-          # Generate secret key if not exists
           if [ ! -f "${grafanaPasswordFile}.secret" ]; then
             tr -dc A-Za-z0-9 < /dev/urandom | head -c 64 > "${grafanaPasswordFile}.secret"
             echo "Generated Grafana secret key in ${grafanaPasswordFile}.secret"
@@ -175,7 +165,6 @@ in {
         '';
       };
 
-      # Provision dashboards declaratively
       grafana-dashboard-provision = {
         description = "Provision Grafana dashboards";
         wantedBy = ["multi-user.target"];
@@ -190,7 +179,6 @@ in {
       };
     };
 
-    # Open firewall
     networking.firewall.interfaces."tailscale0".allowedTCPPorts = [cluster.ports.grafana];
   };
 }

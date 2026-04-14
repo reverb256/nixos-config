@@ -1,4 +1,3 @@
-# LM Studio - Local LLM runner with NVIDIA GPU support only
 {
   config,
   lib,
@@ -20,7 +19,6 @@ in
       pkgs.lmstudio
       (pkgs.writeShellScriptBin "lm-studio" ''
         #!/bin/bash
-        # Stub CPU/Vulkan backends to prevent idle worker processes
         BACKENDS="$HOME/.lmstudio/extensions/backends"
         for d in "$BACKENDS"/llama.cpp-linux-x86_64-avx2-* \
                  "$BACKENDS"/llama.cpp-linux-x86_64-vulkan-*; do
@@ -30,7 +28,6 @@ in
           find "$d" -name '*.so' -delete 2>/dev/null
         done
 
-        # Remove old CUDA versions - keep only latest
         LATEST=""
         for d in "$BACKENDS"/llama.cpp-linux-x86_64-nvidia-cuda-*; do
           [ -d "$d" ] || continue
@@ -47,7 +44,6 @@ in
 
         cd "$HOME"
 
-        # Symlink NVIDIA NVML for GPU monitoring (use /run path, not nix store scan)
         NVIDIA_LIB_DIR="/run/opengl-driver/lib"
         CUDA_DIR="$BACKENDS/vendor/linux-llama-cuda12-vendor-v1"
         if [ -d "$CUDA_DIR" ]; then
@@ -56,8 +52,6 @@ in
           done
         fi
 
-        # Clear LD_LIBRARY_PATH to prevent host libggml from conflicting
-        # with the CUDA backend's bundled libraries inside the bwrap sandbox.
         unset LD_LIBRARY_PATH
         exec ${pkgs.lmstudio}/bin/lmstudio "$@"
       '')

@@ -1,5 +1,3 @@
-# Gamescope HDR configuration - separate module for hosts with HDR displays
-# Import this on zephyr only (not nexus - no HDR display)
 {
   config,
   lib,
@@ -25,7 +23,6 @@ in {
     mkEnableOption "Enable HDR support in Gamescope (zephyr needs this, nexus doesn't)";
 
   config = mkIf cfg.hdr.enable {
-    # Override gamescope args to add HDR support and SDL backend
     programs.gamescope.args = hdrArgs ++ baseArgs;
   };
 }

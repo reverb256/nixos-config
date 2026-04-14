@@ -13,7 +13,6 @@ let
     mkIf
     ;
 
-  # Python script that scrapes xmrig JSON API -> prometheus text format
   xmrigMetricsScript = pkgs.writeScript "xmrig-metrics" ''
     #!/usr/bin/env python3
     import json, sys, time, urllib.request
@@ -71,8 +70,6 @@ let
         print("\n".join(all_lines))
   '';
 
-  # Targets: scrape local xmrig pods (hostNetwork exposes ports on the host)
-  # Each node knows which ports its xmrig pods expose
   targetArgs = lib.concatStringsSep " " cfg.targets;
 
   textfileDir = "/var/lib/prometheus/node-exporter/textfile-collector";
@@ -110,11 +107,7 @@ in
         ExecStart = pkgs.writeShellScript "xmrig-metrics-scrape" ''
           OUT="${textfileDir}/xmrig.prom.tmp"
           ${lib.getExe' pkgs.python3 "python3"} ${xmrigMetricsScript} ${targetArgs} > "$OUT"
-          # Validate: only keep if all lines are valid prometheus format
-          # (no bare numbers, no JSON fragments)
           if ! grep -qP '^[^#].*[^ ]$' "$OUT" 2>/dev/null; then
-            # File has only comments or empty lines — miner might be down
-            # Write empty valid prom file
             echo "# xmrig metrics - no miners responding" > "$OUT"
           fi
           mv -f "$OUT" "${textfileDir}/xmrig.prom"
@@ -132,7 +125,6 @@ in
       };
     };
 
-    # Ensure textfile directory exists and node-exporter can write to it
     systemd.tmpfiles.rules = [
       "d ${textfileDir} 0755 node-exporter node-exporter -"
     ];

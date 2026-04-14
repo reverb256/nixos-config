@@ -1,5 +1,3 @@
-# Qwen3-TTS Model Pre-download Service
-# Downloads Qwen3-TTS models to HuggingFace cache on first boot
 {
   config,
   lib,
@@ -9,13 +7,11 @@
   cfg = config.services.ai-inference;
   inherit (lib) mkEnableOption mkIf;
 
-  # Pre-download script package
   preDownloadScript = pkgs.writeShellScriptBin "qwen3-tts-pre-download" ''
     #!/usr/bin/env bash
     set -euo pipefail
 
     CACHE_DIR="/var/cache/ai-inference"
-    # Models to download - Tokenizer + main generation models
     MODELS=(
       "Qwen/Qwen3-TTS-Tokenizer-12Hz"
       "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
@@ -26,10 +22,8 @@
     echo "Cache directory: $CACHE_DIR"
     echo ""
 
-    # Create cache directory structure
     mkdir -p "$CACHE_DIR"
 
-    # Set HF_HOME for huggingface-cli
     export HF_HOME="$CACHE_DIR"
     export TRANSFORMERS_CACHE="$CACHE_DIR"
     export HF_HUB_CACHE="$CACHE_DIR/hub"
@@ -42,7 +36,6 @@
         echo "✓ $model - already cached"
       else
         echo "⬇ $model - downloading..."
-        # Use huggingface-cli from gateway Python environment
         ${config.services.ai-inference.gateway.python}/bin/huggingface-cli download \
           "$model" \
           --local-dir "$CACHE_DIR/$model" \
@@ -60,10 +53,8 @@ in {
   options.services.ai-inference.pre-download = mkEnableOption "Qwen3-TTS model pre-download service";
 
   config = mkIf cfg.pre-download {
-    # Pre-download script using huggingface-cli
     environment.systemPackages = [preDownloadScript];
 
-    # Systemd service for one-shot pre-download
     systemd.services.qwen3-tts-pre-download = {
       description = "Pre-download Qwen3-TTS models for instant availability";
       wantedBy = ["multi-user.target"];
@@ -76,7 +67,6 @@ in {
         Group = "ai-inference";
         WorkingDirectory = "/var/cache/ai-inference";
         ExecStart = "${preDownloadScript}/bin/qwen3-tts-pre-download";
-        # Don't fail if pre-download fails (models will download on first use)
         RemainAfterExit = "no";
         StandardOutput = "journal";
         StandardError = "journal";
@@ -84,14 +74,13 @@ in {
       };
     };
 
-    # Timer to run pre-download after system is stable
     systemd.timers.qwen3-tts-pre-download = {
       description = "Trigger Qwen3-TTS pre-download after boot";
       wantedBy = ["timers.target"];
       timerConfig = {
-        OnActiveSec = "5min"; # Run 5 minutes after boot
-        AccuracySec = "1h"; # Retry within 1 hour if missed
-        Persistent = "true"; # Run even if previous run was missed
+        OnActiveSec = "5min";
+        AccuracySec = "1h";
+        Persistent = "true";
       };
     };
   };

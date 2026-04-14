@@ -1,14 +1,9 @@
-# Spotify Module Common Library
-# Shared utilities for Spotify-related modules (SpotX, Spicetify)
 {
   lib,
   pkgs,
 }: let
   inherit (lib) mkOption types;
 
-  # ============================================================================
-  # HELPER FUNCTIONS (defined in let for mutual reference)
-  # ============================================================================
 
   /**
   mkSpotifyStateDir
@@ -67,7 +62,6 @@
     bash
     */
     ''
-      # Get Spotify Flatpak installation path
       SPOTIFY_PATH="$(${pkgs.flatpak}/bin/flatpak info com.spotify.Client --show-location 2>/dev/null)"
       SPOTIFY_DIR="''${SPOTIFY_PATH}/files/extra/share/spotify"
     '';
@@ -173,9 +167,6 @@
   }:
     pkgs.writeShellScriptBin name script;
 
-  # ============================================================================
-  # MODULE OPTIONS
-  # ============================================================================
 
   /**
   spotifyAutoUpdateOptions

@@ -29,7 +29,6 @@
 
         while true; do
           if curl -s "http://$LLAMA_HOST:$LLAMA_PORT/metrics" 2>/dev/null | grep -q "llamacpp:tokens_predicted_total"; then
-            # Get tokens generated (indicates active inference)
             tokens_predicted=$(curl -s "http://$LLAMA_HOST:$LLAMA_PORT/metrics" 2>/dev/null | \
               grep "llamacpp:tokens_predicted_total" | awk '{print $2}')
 

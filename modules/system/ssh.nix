@@ -1,8 +1,5 @@
-# Common SSH Configuration
-# Uses network-constants.nix for host IPs
 { pkgs, ... }:
 let
-  # Hardcoded cluster IPs to prevent infinite recursion
   hosts = {
     zephyr = {
       ip = "10.1.1.110";
@@ -22,14 +19,12 @@ let
     };
   };
 
-  # j_kro's SSH public key for round-trip cluster access
   j_kroPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEvekxGk1YR/eF8llVmNk3C59BtgB+9DNvxLy2WjPEyb j_kro@zephyr";
 in
 {
   services.openssh = {
     enable = true;
     settings = {
-      # Authentication Settings - Key-based auth for j_kro (password disabled for security)
       PasswordAuthentication = false;
       KbdInteractiveAuthentication = false;
       PubkeyAuthentication = true;
@@ -37,7 +32,6 @@ in
       PermitEmptyPasswords = false;
       ChallengeResponseAuthentication = false;
 
-      # Modern Cryptographic Settings (Mozilla Modern recommendations)
       Ciphers = [
         "chacha20-poly1305@openssh.com"
         "aes256-gcm@openssh.com"
@@ -60,7 +54,6 @@ in
         "umac-128-etm@openssh.com"
       ];
 
-      # Security and Performance Settings
       UseDns = false;
       LogLevel = "VERBOSE";
       AllowUsers = [
@@ -76,17 +69,13 @@ in
       MaxAuthTries = 3;
       MaxSessions = 10;
 
-      # TCP forwarding needed for node tunnels via Tailscale
       AllowTcpForwarding = true;
 
-      # Disable other features we don't use
       AllowAgentForwarding = false;
       X11Forwarding = false;
     };
   };
 
-  # Declarative known hosts for cluster hosts
-  # Uses network constants instead of hardcoded IPs
   programs.ssh.knownHosts = {
     zephyr = {
       hostNames = [
@@ -122,14 +111,10 @@ in
     };
   };
 
-  # Round-trip SSH: Add j_kro's public key to authorized_keys on all nodes
   users.users.j_kro.openssh.authorizedKeys.keys = [ j_kroPublicKey ];
 
-  # SSH client configuration for cluster access
-  # Uses network constants for IPs
   environment.etc."ssh/config" = {
     source = pkgs.writeText "ssh-config" ''
-      # SSH client configuration for cluster access
       ControlMaster auto
       ControlPersist 600
       ServerAliveInterval 60
@@ -138,7 +123,6 @@ in
       TCPKeepAlive yes
       UserKnownHostsFile ~/.ssh/known_hosts
 
-      # Default settings for all hosts (j_kro user for manual access)
       Host *
         User j_kro
         IdentityFile ~/.ssh/id_ed25519
@@ -146,15 +130,12 @@ in
         StrictHostKeyChecking accept-new
         ConnectTimeout 5
 
-      # Zephyr - Master Workstation (local and remote)
       Host zephyr ${hosts.zephyr.ip} ${hosts.zephyr.tailscale}
         HostName ${hosts.zephyr.tailscale}
         User j_kro
         IdentityFile ~/.ssh/id_ed25519
         ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
-      # Build machines - use j_kro user for distributed builds
-      # Support both local IP and Tailscale IP for mosh compatibility
       Host nexus ${hosts.nexus.ip} ${hosts.nexus.tailscale}
         HostName ${hosts.nexus.tailscale}
         User j_kro
@@ -173,7 +154,6 @@ in
         IdentityFile ~/.ssh/id_ed25519
         ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
-      # GitHub - for CI/CD deploys
       Host github.com
         HostName github.com
         User git
@@ -182,28 +162,15 @@ in
     '';
   };
 
-  # SSH agent is enabled via programs.ssh.startAgent in distributed-builds.nix
 
-  # SSH keys are defined in modules/users.nix
-  # This prevents duplicate definition conflicts
 
-  # Ensure SSH sockets directory exists with proper permissions
   systemd.tmpfiles.rules = [
     "d /home/j_kro/.ssh/sockets 0700 j_kro users -"
   ];
 
-  # ============================================================================
-  # SSH Firewall — Restrict to cluster subnet + Tailscale only
-  # ============================================================================
-  # SSH must NOT listen on 0.0.0.0 (internet-facing). Only allow from:
-  #   1. Tailscale VPN interface (100.x.x.x)
-  #   2. Cluster LAN subnet (10.1.1.0/24)
-  #
-  # IMPORTANT: Do NOT add 22 to allowedTCPPorts — it must be interface-scoped
   networking.firewall.interfaces = {
     tailscale0.allowedTCPPorts = [ 22 ];
   };
-  # Allow SSH from cluster subnet (nftables syntax)
   networking.firewall.extraInputRules = ''
     ip saddr 10.1.1.0/24 tcp dport 22 accept
     iifname "lo" tcp dport 22 accept

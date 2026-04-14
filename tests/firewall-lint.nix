@@ -1,20 +1,9 @@
-# tests/firewall-lint.nix
-#
-# Lints all NixOS module files for unsafe firewall port list assignments.
-# Direct assignment (allowedTCPPorts = [ ... ]) silently replaces host-level
-# config instead of merging with it. Must use lib.mkOptionDefault.
-#
-# This is a critical safety rule: direct assignment can break SSH access.
-#
-# Run: nix-instantiate --parse tests/firewall-lint.nix
-#
 {
   pkgs ? import <nixpkgs> { },
 }:
 let
   lib = pkgs.lib;
 
-  # Directories to scan
   scanDirs = [
     ../modules/system
     ../modules/services
@@ -29,7 +18,6 @@ let
     ../modules/common
   ];
 
-  # Collect all .nix files from scan directories
   allNixFiles = lib.flatten (
     map (
       dir:
@@ -40,13 +28,10 @@ let
     ) scanDirs
   );
 
-  # Filter out backup files
   nixFiles = builtins.filter (
     f: !(lib.strings.hasSuffix ".backup" f) && !(lib.strings.hasInfix ".backup." f)
   ) allNixFiles;
 
-  # Unsafe patterns that indicate direct list assignment
-  # These patterns assign lists directly without mkOptionDefault
   unsafePatterns = [
     "allowedTCPPorts = ["
     "allowedUDPPorts = ["
@@ -54,24 +39,19 @@ let
     "allowedUDPPortRanges = ["
   ];
 
-  # Safe patterns that indicate proper merging
   safePattern = "mkOptionDefault";
 
-  # Check a single file for unsafe firewall assignments
   checkFile =
     file:
     let
       content = builtins.readFile file;
       lines = lib.splitString "\n" content;
 
-      # Find lines with unsafe patterns
       findUnsafe =
         line:
         let
           hasUnsafe = builtins.any (p: lib.strings.hasInfix p line) unsafePatterns;
-          # Skip if the line contains mkOptionDefault (safe assignment)
           hasSafe = lib.strings.hasInfix safePattern line;
-          # Skip comments
           isComment = lib.strings.hasPrefix "#" (lib.strings.trim line);
         in
         hasUnsafe && !hasSafe && !isComment;
@@ -79,7 +59,6 @@ let
       unsafeLines = builtins.filter findUnsafe lines;
       hasViolation = builtins.length unsafeLines > 0;
 
-      # Get relative path for cleaner output
       relPath = lib.strings.removePrefix (toString ../.. + "/") file;
 
     in
@@ -91,7 +70,6 @@ let
 
   results = map checkFile nixFiles;
 
-  # Only report files with violations
   violations = builtins.filter (r: r.hasViolation) results;
 
 in

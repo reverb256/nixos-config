@@ -1,6 +1,3 @@
-# Redis Exporter for Prometheus
-# Collects Redis metrics for monitoring cache performance
-# Useful for AI Gateway's Redis (rate limiting, semantic cache)
 {
   config,
   lib,
@@ -18,7 +15,6 @@ in {
       port = 9121;
     };
 
-    # Open firewall for Prometheus scraping
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [9121];
   };
 }

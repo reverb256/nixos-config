@@ -1,5 +1,3 @@
-# Alpine-based XMRig Proxy container image
-# Static binary on Alpine 3.21 — minimal relay for mining proxy
 {
   pkgs,
   lib,

@@ -1,5 +1,3 @@
-# Cluster Monitoring Configuration
-# Centralized monitoring setup for all cluster nodes
 {
   config,
   lib,
@@ -12,7 +10,7 @@ in {
 
     lokiUrl = mkOption {
       type = types.str;
-      default = "http://100.81.182.5:3100"; # Zephyr's Tailscale IP
+      default = "http://100.81.182.5:3100";
       description = "Loki server URL for Promtail logs";
     };
 
@@ -53,13 +51,10 @@ in {
 
   config = mkIf config.services.clusterMonitoring.enable {
     services.monitoring = {
-      # Node exporter for system metrics
       node-exporter.enable = config.services.clusterMonitoring.exporters.node;
 
-      # SMART exporter for disk health
       smart-exporter.enable = config.services.clusterMonitoring.exporters.smart;
 
-      # Promtail - ship logs to Loki
       promtail = mkIf config.services.clusterMonitoring.logging.promtail {
         enable = true;
         inherit (config.services.clusterMonitoring) lokiUrl;

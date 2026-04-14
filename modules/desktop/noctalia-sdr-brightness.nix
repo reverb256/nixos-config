@@ -1,5 +1,3 @@
-# Patch noctalia-shell BrightnessService.qml to support niri SDR brightness
-# for monitors without DDC/CI or backlight (e.g. Samsung HDMI TV)
 { config, lib, pkgs, ... }:
 {
   nixpkgs.overlays = [

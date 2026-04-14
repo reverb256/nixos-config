@@ -1,4 +1,3 @@
-# AI Inference Monitor - Prometheus metrics exporter
 {
   config,
   lib,
@@ -8,13 +7,11 @@
   cfg = config.services.ai-inference;
   inherit (lib) mkIf;
 
-  # Python environment for the monitor
   pythonEnv = pkgs.python3.withPackages (ps: [
     ps.prometheus-client
     ps.httpx
   ]);
 
-  # Monitor metrics exporter (standalone, in addition to gateway metrics)
   monitorPackage = pkgs.writeTextFile {
     name = "ai-inference-monitor.py";
     text = ''
@@ -35,22 +32,19 @@
 
       import logging
 
-      # Setup logging
       logging.basicConfig(
           level=logging.INFO,
           format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
       )
       logger = logging.getLogger("ai-inference-monitor")
 
-      # Configuration
       BACKEND_URL = os.getenv("BACKEND_URL", "${cfg.backend.url}")
       GATEWAY_URL = os.getenv("GATEWAY_URL", "http://${cfg.gateway.host}:${toString cfg.gateway.port}")
 
-      # Try multiple nvidia-smi locations
       NVIDIA_SMI_PATHS = [
-          "/run/opengl-driver/bin/nvidia-smi",  # Standard NixOS path
-          "/usr/bin/nvidia-smi",  # FHS path
-          "${pkgs.linuxPackages.nvidia_x11}/bin/nvidia-smi",  # Nix store path
+          "/run/opengl-driver/bin/nvidia-smi",
+          "/usr/bin/nvidia-smi",
+          "${pkgs.linuxPackages.nvidia_x11}/bin/nvidia-smi",
       ]
 
       NVIDIA_SMI = None
@@ -65,7 +59,6 @@
 
       GPU_IDS = os.getenv("GPU_IDS", "0,1").split(",")
 
-      # Metrics
       gpu_vram_used = Gauge('ai_inference_gpu_vram_used_mb', 'VRAM used per GPU', ['gpu_id'])
       gpu_vram_total = Gauge('ai_inference_gpu_vram_total_mb', 'Total VRAM per GPU', ['gpu_id'])
       gpu_utilization = Gauge('ai_inference_gpu_utilization_percent', 'GPU utilization', ['gpu_id'])
@@ -80,7 +73,7 @@
       def get_gpu_metrics():
           """Get GPU metrics from nvidia-smi"""
           if not NVIDIA_SMI:
-              return  # GPU monitoring disabled
+              return
 
           try:
               result = subprocess.run([
@@ -129,17 +122,13 @@
                   resp = client.get(f"{BACKEND_URL}/v1/models")
                   backend_healthy.set(1 if resp.status_code == 200 else 0)
 
-                  # Track loaded models
                   if resp.status_code == 200:
                       data = resp.json()
                       models = data.get("data", [])
-                      # Reset all models
                       for m in ["qwen3.5-2b", "qwen3.5-4b", "qwen3.5-35b-a3b"]:
                           model_loaded.labels(model=m).set(0)
-                      # Set loaded models
                       for m in models:
                           model_id = m.get("id", "")
-                          # Map to known models
                           for known in ["qwen3.5-2b", "qwen3.5-4b", "qwen3.5-35b-a3b"]:
                               if known in model_id:
                                   model_loaded.labels(model=known).set(1)
@@ -155,17 +144,14 @@
           logger.info(f"Backend: {BACKEND_URL}")
           logger.info(f"Gateway: {GATEWAY_URL}")
 
-          # Start HTTP server
           start_http_server(int(os.getenv("METRICS_PORT", "${toString cfg.monitoring.port}")))
 
-          # Initial collection
           get_gpu_metrics()
           check_backend_health()
 
-          # Collection loop
           logger.info("Starting metrics collection loop (15s interval)")
           while True:
-              time.sleep(15)  # Collect every 15 seconds
+              time.sleep(15)
               get_gpu_metrics()
               check_backend_health()
 
@@ -176,7 +162,6 @@
   };
 in {
   config = mkIf (cfg.enable && cfg.monitoring.enable) {
-    # Systemd service for the monitor
     systemd.services.ai-inference-monitor = {
       description = "AI Inference Metrics Monitor";
       after = ["network.target"];
@@ -186,7 +171,6 @@ in {
         BACKEND_URL = cfg.backend.url;
         GATEWAY_URL = "http://${cfg.gateway.host}:${toString cfg.gateway.port}";
         METRICS_PORT = toString cfg.monitoring.port;
-        # NVIDIA_SMI is now auto-detected in Python
       };
 
       serviceConfig = {
@@ -195,21 +179,17 @@ in {
         Restart = "on-failure";
         RestartSec = "10s";
 
-        # Security
-        User = "root";  # Changed from ai-inference to avoid user dependency issue
+        User = "root";
         Group = "root";
         NoNewPrivileges = true;
         PrivateTmp = true;
         ProtectHome = true;
 
-        # Logging
         StandardOutput = "journal";
         StandardError = "journal";
         SyslogIdentifier = "ai-monitor";
       };
     };
 
-    # Grafana dashboard provisioning is handled by services.monitoring.grafana
-    # which provisions ai-inference-gateway.json to /var/lib/grafana/dashboards/
   };
 }

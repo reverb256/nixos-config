@@ -1,124 +1,88 @@
-# Development Tools Module
-# General development tools and utilities (expanded from XNM1)
 {pkgs, ...}: {
-  # ============================================================================
-  # ENVIRONMENT MANAGEMENT
-  # ============================================================================
   programs.direnv.enable = true;
   programs.direnv.nix-direnv.enable = true;
 
   environment.systemPackages = with pkgs; [
-    # Version Control
     git
     git-lfs
     gh
     lazygit
     glab
 
-    # Git alternative and extras
-    jujutsu # Git-compatible VCS (jj)
-    jjui # Jujutsu UI
+    jujutsu
+    jjui
 
-    # Git security and helpers
-    gitleaks # Secret scanner
-    pass-git-helper # Git credential integration
-    license-generator # Generate license files
-    git-ignore # Generate .gitignore files
+    gitleaks
+    pass-git-helper
+    license-generator
+    git-ignore
 
-    # Command runner
-    just # Just command runner (like make)
+    just
 
-    # Search & Navigation
     ripgrep
     fzf
     fd
     broot
     zoxide
 
-    # File Management
     eza
     bat
     duf
     dust
     ncdu
 
-    # Process Monitoring
     btop
     iotop
     htop
 
-    # Network Tools
     curl
     wget
     httpie
     restic
-    rclone # Cloud storage sync (70+ providers)
-    chromium # Browser for Playwright MCP and web testing
+    rclone
+    chromium
 
-    # Diff Tools
     delta
     diff-so-fancy
     meld
 
-    # Documentation
     tealdeer
     tldr
     man-pages
     mandoc
 
-    # Compression
     zip
     unzip
     p7zip
     rar
 
-    # Archive tools
     atool
     lrzip
 
-    # ============================================================================
-    # BUILD TOOLS (from XNM1)
-    # ============================================================================
-    # Linkers and compilers
-    mold # Modern linker (faster than ld)
+    mold
     gcc
     clang
-    lld # LLVM linker
-    lldb # LLVM debugger
-    musl # C standard library
+    lld
+    lldb
+    musl
 
-    # Java
     jdk11
 
-    # ============================================================================
-    # DEVELOPMENT FRAMEWORKS
-    # ============================================================================
-    dioxus-cli # Rust GUI framework
-    trunk # Rust WASM bundler
+    dioxus-cli
+    trunk
 
-    # Development environments
-    devenv # Nix-based dev environments
+    devenv
 
-    # Version manager (asdf replacement)
     mise
 
-    # ============================================================================
-    # DATABASE TOOLS (from XNM1)
-    # ============================================================================
-    sqlx-cli # SQLx command line
-    surrealdb # Distributed database
+    sqlx-cli
+    surrealdb
     surrealdb-migrations
-    surrealist # SurrealDB GUI
+    surrealist
 
-    # ============================================================================
-    # NETWORK / API TOOLS (from XNM1)
-    # ============================================================================
-    hurl # HTTP testing tool
-    grex # Regex generator
+    hurl
+    grex
 
-    # ============================================================================
-    # MISC UTILITIES
-    # ============================================================================
     jq
     jo
     yq
@@ -126,10 +90,8 @@
     calc
     units
 
-    # DEV DIAGRAMS & DOCS
-    # ============================================================================
-    graphviz # Graphviz (dot) diagrams
-    mermaid-cli # Mermaid → SVG/PNG
-    gitea # Gitea CLI (tea)
+    graphviz
+    mermaid-cli
+    gitea
   ];
 }

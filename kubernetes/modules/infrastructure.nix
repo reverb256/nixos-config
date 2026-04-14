@@ -1,7 +1,3 @@
-# Cluster infrastructure — security baseline, storage, common resources
-#
-# Security policies, global network defaults, and the nix-csi driver.
-# The CSI driver YAML is imported directly (complex DaemonSet with sidecars).
 {
   pkgs,
   config,
@@ -16,7 +12,6 @@ let
   };
 in
 {
-  # ── Cluster-scoped PriorityClasses ───────────────────────────
   config.kubernetes.objects.none = {
     PriorityClass.high-priority-ai = {
       value = 1000;
@@ -30,16 +25,12 @@ in
     };
   };
 
-  # ── Namespace PSS labels (search + default) ─────────────────
-  # SearXNG namespace is already defined in searxng.nix, but the
-  # security-baseline applies PSS labels to additional namespaces.
   config.kubernetes.objects.default = {
     Namespace.default = {
       metadata.labels = pssLabels // {
         name = "default";
       };
     };
-    # Default deny all traffic
     NetworkPolicy.default-deny-all = {
       metadata.labels.policy = "default-deny";
       spec = {
@@ -50,7 +41,6 @@ in
         ];
       };
     };
-    # Allow DNS
     NetworkPolicy.allow-dns = {
       metadata.labels.policy = "allow-dns";
       spec = {
@@ -73,7 +63,6 @@ in
         ];
       };
     };
-    # Security context defaults ConfigMap
     ConfigMap.security-context-defaults = {
       data = {
         runAsUser = "1001";
@@ -87,11 +76,4 @@ in
     };
   };
 
-  # ── Import nix-csi driver YAML directly ─────────────────────
-  # The CSI DaemonSet is complex (3 containers, init containers, RBAC)
-  # and already tested — import rather than hand-convert.
-  # nix-csi DaemonSet removed — the nixkube namespace has a working nix-node
-  # DaemonSet (4/4 ready) that serves the nix.csi.store CSI driver.
-  # The kube-system DaemonSet was broken (missing nix binary, Lix incompatibility)
-  # and is redundant since nixkube handles all CSI provisioning.
 }

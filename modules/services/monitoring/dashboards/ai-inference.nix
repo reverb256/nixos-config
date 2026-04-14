@@ -1,5 +1,3 @@
-# AI Inference Gateway Dashboard
-# Monitoring for the AI inference gateway - latency, throughput, errors
 {lib, ...}: let
   inherit (lib.dashboard) panels template thresholds;
 in {
@@ -8,9 +6,7 @@ in {
     description = "Real-time AI inference metrics including latency, throughput, and error rates";
     tags = ["ai" "inference" "llm" "gateway"];
     panels = [
-      # ========== ROW: GATEWAY STATUS ==========
       (panels.row "🚪 Gateway Status" false)
-      # Backend Health
       (panels.statPanel {
         title = "Backend Health";
         expr = "ai_inference_backend_healthy";
@@ -23,7 +19,6 @@ in {
         thresholds = thresholds.binary;
         colorMode = "background";
       })
-      # Active Requests
       (panels.statPanel {
         title = "Active Requests";
         expr = "gateway_active_requests";
@@ -53,7 +48,6 @@ in {
         ];
         colorMode = "value";
       })
-      # Request Rate
       (panels.statPanel {
         title = "Request Rate";
         expr = "sum(rate(gateway_model_requests_total[5m])) * 60";
@@ -66,7 +60,6 @@ in {
         unit = "rpm";
         colorMode = "value";
       })
-      # Error Rate
       (panels.gauge {
         title = "Error Rate";
         expr = "sum(rate(gateway_model_requests_total{error!=\"none\"}[5m])) / sum(rate(gateway_model_requests_total[5m])) * 100";
@@ -80,9 +73,7 @@ in {
         unit = "percent";
       })
 
-      # ========== ROW: LATENCY ==========
       (panels.row "⏱️ Latency Analysis" false)
-      # Request Duration Percentiles
       (panels.timeseries {
         title = "Request Duration Percentiles";
         expr = [
@@ -108,7 +99,6 @@ in {
           spanNulls = true;
         };
       })
-      # Time to First Token
       (panels.timeseries {
         title = "Time to First Token";
         expr = "gateway_model_time_to_first_token_seconds";
@@ -122,9 +112,7 @@ in {
         legendFormat = "{{model}}";
       })
 
-      # ========== ROW: THROUGHPUT ==========
       (panels.row "📊 Throughput Metrics" true)
-      # Token Throughput
       (panels.timeseries {
         title = "Token Throughput (Tokens/Sec)";
         expr = "sum(rate(gateway_model_tokens_total[5m]))";
@@ -137,7 +125,6 @@ in {
         unit = "tps";
         legendFormat = "{{model}}";
       })
-      # Input/Output Token Rates
       (panels.timeseries {
         title = "Input vs Output Token Rates";
         expr = [
@@ -154,9 +141,7 @@ in {
         legendFormat = "{{__name__}}";
       })
 
-      # ========== ROW: MODEL USAGE ==========
       (panels.row "🎯 Model Usage" true)
-      # Requests by Model
       (panels.piechart {
         title = "Requests Distribution by Model";
         expr = "sum(gateway_model_requests_total) by (model)";
@@ -167,7 +152,6 @@ in {
           y = 23;
         };
       })
-      # Tokens by Model
       (panels.piechart {
         title = "Tokens Distribution by Model";
         expr = "sum(gateway_model_tokens_total) by (model)";
@@ -179,9 +163,7 @@ in {
         };
       })
 
-      # ========== ROW: ERRORS ==========
       (panels.row "⚠️ Error Analysis" true)
-      # Error Rate Over Time
       (panels.timeseries {
         title = "Error Rate Over Time";
         expr = "sum(rate(gateway_model_requests_total{error!=\"none\"}[5m])) / sum(rate(gateway_model_requests_total[5m])) * 100";
@@ -194,7 +176,6 @@ in {
         thresholds = thresholds.errorRate;
         unit = "percent";
       })
-      # Errors by Type
       (panels.piechart {
         title = "Errors by Type";
         expr = "sum(gateway_model_requests_total) by (error)";
@@ -206,9 +187,7 @@ in {
         };
       })
 
-      # ========== ROW: BACKEND PERFORMANCE ==========
       (panels.row "🔧 Backend Performance" true)
-      # Backend Request Duration
       (panels.timeseries {
         title = "Backend Request Duration";
         expr = "histogram_quantile(0.95, sum(rate(gateway_backend_latency_seconds_bucket[5m])) by (le))";
@@ -221,7 +200,6 @@ in {
         unit = "s";
         legendFormat = "{{backend}}";
       })
-      # Backend Request Rate
       (panels.timeseries {
         title = "Backend Request Rate";
         expr = "sum(rate(gateway_backend_requests_total[5m])) by (backend)";
@@ -234,9 +212,7 @@ in {
         legendFormat = "{{backend}}";
       })
 
-      # ========== ROW: CACHE PERFORMANCE ==========
       (panels.row "💾 Cache Performance (Redis)" true)
-      # Cache Hit Rate
       (panels.gauge {
         title = "Cache Hit Rate";
         expr = "redis_cache_hits / (redis_cache_hits + redis_cache_misses) * 100";
@@ -266,7 +242,6 @@ in {
         ];
         unit = "percent";
       })
-      # Cache Memory Usage
       (panels.gauge {
         title = "Cache Memory Used";
         expr = "redis_memory_used_bytes / redis_memory_max_bytes * 100";

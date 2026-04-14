@@ -1,5 +1,3 @@
-# Desktop Module - Pure Wayland with XWayland Fallback
-# Optimized for Steam and gaming with Wayland-first approach
 {
   pkgs,
   lib,
@@ -7,7 +5,6 @@
   ...
 }:
 let
-  # Monitor Setup Script - Auto-configures displays based on what's connected
   monitorSetupScript = pkgs.writeShellApplication {
     name = "plasma-monitor-setup";
     runtimeInputs = with pkgs; [
@@ -92,9 +89,6 @@ let
   };
 in
 {
-  # ============================================================================
-  # SERVICES - Plasma 6, PipeWire, Bluetooth, Display
-  # ============================================================================
   services = {
     xserver = {
       enable = true;
@@ -108,10 +102,7 @@ in
       sddm.settings.General.DisplayServer = "wayland";
     };
 
-    # KDE PLASMA 6 — enable per-host via desktop.plasma6.enable = true
-    # (moved from unconditional to opt-in)
 
-    # PIPEWIRE AUDIO - Modern audio server for Wayland
     pipewire = {
       enable = true;
       alsa.enable = true;
@@ -119,7 +110,6 @@ in
       pulse.enable = true;
       jack.enable = true;
 
-      # Low latency config - manual config with RTKit-safe rt.prio
       extraConfig = {
         pipewire."99-lowlatency" = {
           "context.properties" = {
@@ -147,35 +137,24 @@ in
       };
     };
 
-    # PulseAudio disabled - Use PipeWire's PulseAudio replacement
     pulseaudio.enable = false;
 
-    # BLUETOOTH SUPPORT
     blueman.enable = true;
   };
 
-  # KDE portal — only when Plasma is enabled
   xdg.portal = lib.mkIf config.services.desktopManager.plasma6.enable {
     extraPortals = with pkgs; [ pkgs.kdePackages.xdg-desktop-portal-kde ];
     config.kde.default = [ "kde" ];
   };
 
-  # ============================================================================
-  # HARDWARE - Bluetooth
-  # ============================================================================
   hardware.bluetooth = {
     enable = true;
     powerOnBoot = true;
   };
 
-  # ============================================================================
-  # SECURITY - RTKit for real-time audio, PAM limits, KDE wallet
-  # ============================================================================
   security = {
-    # Enable RTKit for real-time audio
     rtkit.enable = true;
 
-    # PAM limits for real-time audio (RTKit requires RLIMIT_RTPRIO >= rt.prio)
     pam.loginLimits = [
       {
         domain = "@users";
@@ -191,46 +170,30 @@ in
       }
     ];
 
-    # KDE WALLET — only when Plasma is enabled
     pam.services.sddm.enableKwallet = lib.mkIf config.services.desktopManager.plasma6.enable true;
   };
 
-  # ============================================================================
-  # ELECTRON/WAYLAND COMPATIBILITY
-  # ============================================================================
   environment = {
     sessionVariables = {
-      # Let Electron auto-detect best backend (Wayland or XWayland)
-      # Modern Electron versions work well with native Wayland
       ELECTRON_OZONE_PLATFORM_HINT = "auto";
 
-      # GTK apps should use portal for better KDE integration
       GTK_USE_PORTAL = "1";
 
-      # Qt6 Multimedia: Force PipeWire backend and fix library resolution
-      # Fixes "qt.multimedia.symbolsresolver: Couldn't load pipewire-0.3 library"
       QT_MEDIA_BACKEND = "pipewire";
       LD_LIBRARY_PATH = lib.mkBefore [ "/run/current-system/sw/lib/pipewire-0.3" ];
 
-      # Qt/Wayland settings (nvidia-wayland.nix may override QT_QPA_PLATFORM)
       QT_QPA_PLATFORM = lib.mkOptionDefault "wayland;xcb";
       QT_AUTO_SCREEN_SCALE_FACTOR = "1";
       QT_QPA_GL_VERSION = "2";
 
-      # KWin DRM settings for multi-GPU systems
-      # NOTE: Do NOT set KWIN_DRM_DEVICE (singular) — it overrides KWIN_DRM_DEVICES
-      # and card0 doesn't exist on this system (cards start at card1).
-      # plasma6.nix handles KWIN_DRM_DEVICES correctly.
     };
 
     systemPackages = lib.mkIf config.services.desktopManager.plasma6.enable (
       with pkgs.kdePackages; [
-        # Core Plasma Desktop
         plasma-workspace
         plasma-desktop
         plasma-systemmonitor
 
-        # Full Plasma Applications Suite
         discover
         dolphin
         dolphin-plugins
@@ -249,11 +212,9 @@ in
         kde-cli-tools
         kde-inotify-survey
 
-        # Monitor setup scripts
         monitorSetupScript
         pkgs.libnotify
 
-        # DDC/CI brightness control for external monitors
         pkgs.ddcutil
       ]
     );
@@ -266,8 +227,6 @@ in
         Timeout=0
       '';
 
-      # PowerDevil - Disable display power management, enable brightness control for all monitors
-      # Uses ddcutil for DDC/CI brightness control on external monitors
       "xdg/powerdevilrc".text = ''
         [AC][Display]
         DimDisplayIdleTimeoutSec=-1
@@ -289,42 +248,32 @@ in
         Enabled=true
       '';
 
-      # Power Management Profile - Manual brightness control for all monitors
       "xdg/powermanagementprofilesrc".text = ''
         [AC]
-        # Disable auto-dimming based on activity (prevents HDMI TV from dimming when idle)
         [AC][Display]
         DimScreen=false
-        # Turn off screen after long inactivity (not auto-dim)
         DisplayTurnOff=600
 
         [Battery][Display]
         DimScreen=false
         DisplayTurnOff=300
 
-        # Brightness Control - Enable manual slider, disable automatic adjustments
         [Battery][BrightnessControl]
         brightnessEnable=true
-        # Use profile-specific brightness means auto-adjust based on activity - DISABLE THIS
         useProfileSpecificDisplayBrightness=false
 
         [AC][BrightnessControl]
         brightnessEnable=true
         useProfileSpecificDisplayBrightness=false
 
-        # Global power management settings
         [General]
-        # Disable automatic brightness control based on ambient light
         useAutoBrightness=false
-        # Don't suspend automatically (user choice)
         autosuspendEnabled=false
 
-        # Display settings
         [Display][BrightnessControl]
         brightnessEnable=true
         useProfileSpecificDisplayBrightness=false
 
-        # Profile independent settings
         [Battery][Activities]
         [AC][Activities]
       '';
@@ -336,12 +285,10 @@ in
         AnimationSpeed=3
       '';
 
-      # Window rules for specific applications (Genshin Impact only - Spotify excluded)
       "xdg/kwinrulesrc".text = ''
         [General]
         count=1
 
-        # Genshin Impact - Always open on TV (HDMI-A-2)
         [1]
         Description=Genshin Impact - Always on TV (HDMI-A-2)
         wmclass=.*GenshinImpact.*
@@ -353,23 +300,14 @@ in
         types=1
       '';
 
-      # Disable KScreen KDED module (we handle monitors ourselves)
       "xdg/kdedrc".text = ''
         [Module-kscreen]
         Enabled=false
       '';
 
-      # autostart entries defined in plasma6.nix (plasma-monitor-setup.desktop,
-      # tv-monitor-daemon.desktop) — removed duplicates to avoid conflicts
     };
   };
 
-  # ============================================================================
-  # SYSTEMD SERVICES
-  # ============================================================================
-  # All systemd user services (gpu-ready, boot-monitor-setup, plasma-monitor-setup,
-  # tv-monitor-daemon) defined in plasma6.nix — removed duplicates here
-  # Disable KScreen backend when Plasma is not active
   systemd.user.services."kscreen_backend_launcher".enable =
     lib.mkIf (!config.services.desktopManager.plasma6.enable) false;
 }

@@ -1,8 +1,3 @@
-# SearXNG Privacy-Respecting Metasearch Engine
-# Migrated from kubernetes-manifests/searxng/ to easykubenix Nix module
-#
-# Converted from: kubernetes-manifests/searxng/
-# Resources: Namespace, Secret, ConfigMaps, Deployment, Service, NetworkPolicies
 {
   pkgs,
   config,
@@ -11,7 +6,6 @@
 }:
 {
   config.kubernetes.objects = {
-    # ── Namespace ──────────────────────────────────────────────
     none.Namespace.search = {
       metadata.labels = {
         name = "search";
@@ -21,7 +15,6 @@
       };
     };
 
-    # ── Secret ─────────────────────────────────────────────────
     search.Secret.searxng-secret = {
       type = "Opaque";
       stringData = {
@@ -29,7 +22,6 @@
       };
     };
 
-    # ── ConfigMaps ─────────────────────────────────────────────
     search.ConfigMap.searxng-config = {
       data."settings.yml" = ''
         server:
@@ -73,7 +65,6 @@
       '';
     };
 
-    # ── Deployment ─────────────────────────────────────────────
     search.Deployment.searxng = {
       metadata.labels.app = "searxng";
       spec = {
@@ -168,7 +159,6 @@
       };
     };
 
-    # ── Service ────────────────────────────────────────────────
     search.Service.searxng = {
       metadata.labels.app = "searxng";
       spec = {
@@ -184,7 +174,6 @@
       };
     };
 
-    # ── Network Policies ───────────────────────────────────────
     search.NetworkPolicy.allow-searxng-ingress = {
       metadata.labels = {
         app = "searxng";

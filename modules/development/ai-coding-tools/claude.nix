@@ -1,8 +1,3 @@
-# Claude Code config generator
-# Generates: ~/.config/claude/mcp.json
-#
-# Claude reads keys from agenix secret files at generation time.
-# Unique: adds nixos MCP server (uvx mcp-nixos).
 {
   cfg,
   pkgs,

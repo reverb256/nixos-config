@@ -1,13 +1,3 @@
-# Haven — Self-hosted Discord alternative
-# https://github.com/ancsemi/Haven
-#
-# Deploys on Nexus with persistent NFS storage for SQLite data.
-# Voice requires a TURN server (coturn) for NAT traversal — LAN-only
-# voice works without it.
-#
-# Image: ghcr.io/ancsemi/haven (multi-arch amd64/arm64)
-# Ports: 3000 (HTTPS), 3001 (HTTP→HTTPS redirect)
-# Data:  /data (SQLite DB, .env, SSL certs, uploads)
 {
   pkgs,
   config,
@@ -19,7 +9,6 @@ let
 in
 {
   config.kubernetes.objects = {
-    # ── Namespace ──────────────────────────────────────────────
     none.Namespace.haven = {
       metadata.labels = {
         name = "haven";
@@ -29,7 +18,6 @@ in
       };
     };
 
-    # ── PersistentVolume (cluster-scoped) ──────────────────────
     none.PersistentVolume.haven-data-nexus-pv = {
       spec = {
         capacity.storage = "5Gi";
@@ -51,7 +39,6 @@ in
       };
     };
 
-    # ── PersistentVolumeClaim ──────────────────────────────────
     haven.PersistentVolumeClaim.haven-data = {
       spec = {
         accessModes = [ "ReadWriteOnce" ];
@@ -60,7 +47,6 @@ in
       };
     };
 
-    # ── Deployment ─────────────────────────────────────────────
     haven.Deployment.haven = {
       metadata.labels.app = "haven";
       spec = {
@@ -109,7 +95,6 @@ in
                   HOST.value = "0.0.0.0";
                   HAVEN_DATA_DIR.value = "/data";
                   NODE_ENV.value = "production";
-                  # Disable built-in HTTPS — Caddy handles TLS termination
                   FORCE_HTTP.value = "true";
                 };
                 resources = {
@@ -161,7 +146,6 @@ in
       };
     };
 
-    # ── Service ────────────────────────────────────────────────
     haven.Service.haven = {
       metadata.labels.app = "haven";
       spec = {
@@ -178,7 +162,6 @@ in
       };
     };
 
-    # ── NetworkPolicy: allow ingress from Caddy ────────────────
     haven.NetworkPolicy.allow-haven-ingress = {
       metadata.labels = {
         app = "haven";
@@ -204,7 +187,6 @@ in
     };
 
     
-    # ── Ingress ────────────────────────────────────────────────
     haven.Ingress.haven = {
       metadata.annotations = {
         "ingress.caddy.lblt.net/scheme" = "http";
@@ -242,7 +224,6 @@ in
       };
     };
 
-    # ── NetworkPolicy: allow egress (DNS, outbound) ────────────
     haven.NetworkPolicy.allow-haven-egress = {
       metadata.labels = {
         app = "haven";
@@ -252,7 +233,6 @@ in
         podSelector.matchLabels.app = "haven";
         policyTypes = [ "Egress" ];
         egress = [
-          # DNS
           {
             to = [ { ipBlock.cidr = "0.0.0.0/0"; } ];
             ports = [

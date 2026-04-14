@@ -1,8 +1,3 @@
-# Niri Window Manager Configuration
-# Typed settings for sodiboo/niri-flake integration
-# Uses: programs.niri.settings (home-manager module auto-propagated by nixosModules.niri)
-#
-# Companion infrastructure (portal, tools, NVIDIA) is in modules/desktop/niri.nix
 {
   config,
   lib,
@@ -11,43 +6,22 @@
 }:
 let
   inherit (lib) mkDefault mkIf;
-  # Check if niri home-manager module is loaded (provides lib.niri.actions)
   niriHmAvailable = config.lib ? niri;
 in
 {
-  # Only configure niri settings when the HM module is actually available
   programs.niri.settings = mkIf niriHmAvailable (
     let
       acts = config.lib.niri.actions;
     in
     {
-      # ==========================================================================
-      # GENERAL SETTINGS
-      # ==========================================================================
-      # spawn-at-startup: uwsm-managed session lifecycle
-      #
-      # [1] uwsm finalize — signals compositor readiness to systemd.
-      #     Exports WAYLAND_DISPLAY, DISPLAY, NIRI_SOCKET, XCURSOR_* to
-      #     activation environments. Without this, uwsm times out.
-      #     (uwsm quirks_niri_session plugin marks NIRI_SOCKET for export)
-      #
-      # [2+] uwsm app — -s session-graphical.slice for session services.
-      #     Each app gets its own systemd scope with full session env
-      #     (including GST_PLUGIN_PATH from /etc/uwsm/env-niri).
-      #     No more bash -c wrappers for environment variables.
       spawn-at-startup = [
-        # Finalize uwsm session — MUST be first
         { argv = [ "uwsm" "finalize" ]; }
-        # Polkit auth agent
         { argv = [ "uwsm" "app" "-s" "s" "--" "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1" ]; }
-        # Noctalia desktop shell (replaces waybar, mako, fuzzel, swww)
         { argv = [ "uwsm" "app" "-s" "s" "--" "noctalia-shell" ]; }
-        # Clipboard manager
         { argv = [ "uwsm" "app" "-s" "b" "--" "${pkgs.wl-clipboard}/bin/wl-paste" "--type" "text" "--watch" "${pkgs.cliphist}/bin/cliphist" "store" ]; }
         { argv = [ "uwsm" "app" "-s" "b" "--" "${pkgs.wl-clipboard}/bin/wl-paste" "--type" "image" "--watch" "${pkgs.cliphist}/bin/cliphist" "store" ]; }
       ];
 
-      # Cursor configuration
       cursor = {
         theme = mkDefault "Adwaita";
         size = mkDefault 24;
@@ -55,28 +29,23 @@ in
         hide-after-inactive-ms = 3000;
       };
 
-      # Hot corner overlay (for exiting fullscreen)
       hotkey-overlay = {
         skip-at-startup = false;
         hide-not-bound = true;
       };
 
-      # Disable client-side decorations where possible
       prefer-no-csd = true;
 
-      # ==========================================================================
-      # LAYOUT (focus-ring, border, column widths)
-      # ==========================================================================
       layout = {
         focus-ring = {
           enable = true;
           width = 2;
           active = {
             color = "#7aa2f7";
-          }; # Tokyo Night blue
+          };
           inactive = {
             color = "#3b4261";
-          }; # Tokyo Night comment
+          };
         };
 
         border = {
@@ -90,29 +59,20 @@ in
           };
         };
 
-        # Default column width for new windows (50% of screen)
         default-column-width = {
           proportion = 0.5;
         };
 
-        # Center the focused column
         center-focused-column = "never";
 
-        # Gaps between windows
         gaps = 8;
       };
 
-      # ==========================================================================
-      # OUTPUT/MONITOR CONFIGURATION
-      # ==========================================================================
       outputs = {
-        # Default output configuration (applies to all monitors)
         "*" = {
           scale = 1.0;
         };
 
-        # Zephyr monitor layout (from plasma6.nix kscreen config)
-        # DP-5: ZOWIE primary gaming monitor (1920x1080)
         "DP-5" = {
           mode = {
             width = 1920;
@@ -126,7 +86,6 @@ in
           scale = 1.0;
         };
 
-        # DP-4: ASUS top monitor (1920x1080)
         "DP-4" = {
           mode = {
             width = 1920;
@@ -140,7 +99,6 @@ in
           scale = 1.0;
         };
 
-        # DP-6: Acer X203H bottom monitor (1600x900)
         "DP-6" = {
           mode = {
             width = 1600;
@@ -154,7 +112,6 @@ in
           scale = 1.0;
         };
 
-        # HDMI-A-2: Samsung 4K HDR TV (isolated — positioned far right, no mouse reach)
         "HDMI-A-2" = {
           mode = {
             width = 3840;
@@ -169,15 +126,12 @@ in
         };
       };
 
-      # ==========================================================================
-      # INPUT DEVICE CONFIGURATION
-      # ==========================================================================
       input = {
         keyboard = {
           xkb = {
             layout = "us";
             variant = "";
-            options = "caps:escape"; # Caps Lock as Escape
+            options = "caps:escape";
           };
           repeat-delay = 300;
           repeat-rate = 50;
@@ -230,18 +184,8 @@ in
         warp-mouse-to-focus.enable = true;
       };
 
-      # ==========================================================================
-      # KEY BINDINGS (using niri action helpers)
-      # Omarchy-inspired layout with full Noctalia shell integration
-      # ==========================================================================
       binds = with acts; {
-        # =========================================================================
-        # APPLICATIONS (Omarchy-style: Mod+Letter = app)
-        # All GUI apps launched via uwsm app -- for proper session integration
-        # Terminal: always spawn new (no launch-or-focus)
-        # Other apps: launch-or-focus to prevent duplicates
-        # =========================================================================
-        "Mod+Return".action = spawn "uwsm" "app" "--" "ghostty"; # Terminal (always new)
+        "Mod+Return".action = spawn "uwsm" "app" "--" "ghostty";
         "Mod+B".action = spawn "launch-or-focus" "Zen" "uwsm" "app" "--" "zen-twilight";
         "Mod+Shift+B".action = spawn "uwsm" "app" "--" "zen-twilight" "--private-window";
         "Mod+E".action = spawn "launch-or-focus" "Dolphin" "uwsm" "app" "--" "${pkgs.kdePackages.dolphin}/bin/dolphin";
@@ -259,22 +203,15 @@ in
         "Mod+Slash".action = spawn "launch-or-focus" "Bitwarden" "uwsm" "app" "--" "flatpak" "run" "com.bitwarden.desktop";
         "Mod+K".action = spawn "noctalia-shell" "ipc" "call" "settings toggle";
 
-        # =========================================================================
-        # NOCTALIA SHELL — Launcher modes
-        # All modes use the same launcher with different search prefixes
-        # =========================================================================
         "Mod+Space".action = spawn "noctalia-shell" "ipc" "call" "launcher toggle";
         "Mod+Ctrl+V".action = spawn "noctalia-shell" "ipc" "call" "launcher clipboard";
         "Mod+Ctrl+E".action = spawn "noctalia-shell" "ipc" "call" "launcher emoji";
         "Mod+Ctrl+Slash".action = spawn "noctalia-shell" "ipc" "call" "launcher command";
         "Mod+Shift+Slash".action = spawn "noctalia-shell" "ipc" "call" "launcher windows";
 
-        # =========================================================================
-        # NOCTALIA SHELL — Panels & toggles
-        # =========================================================================
-        "Mod+S".action = spawn "scratchpad-toggle"; # Scratchpad workspace
+        "Mod+S".action = spawn "scratchpad-toggle";
         "Mod+Comma".action = spawn "noctalia-shell" "ipc" "call" "notifications dismissLast";
-        "Mod+Alt+Space".action = spawn "noctalia-shell" "ipc" "call" "settings toggle"; # Settings panel
+        "Mod+Alt+Space".action = spawn "noctalia-shell" "ipc" "call" "settings toggle";
         "Mod+Shift+Space".action = spawn "noctalia-shell" "ipc" "call" "bar toggle";
         "Mod+Ctrl+A".action = spawn "noctalia-shell" "ipc" "call" "volume togglePanel";
         "Mod+Ctrl+W".action = spawn "noctalia-shell" "ipc" "call" "network togglePanel";
@@ -283,34 +220,23 @@ in
         "Mod+Ctrl+N".action = spawn "noctalia-shell" "ipc" "call" "nightLight toggle";
         "Mod+Ctrl+D".action = spawn "noctalia-shell" "ipc" "call" "darkMode toggle";
         "Mod+Ctrl+T".action = spawn "noctalia-shell" "ipc" "call" "systemMonitor toggle";
-        "Mod+Ctrl+S".action = spawn "noctalia-shell" "ipc" "call" "share toggle"; # Share (LocalSend)
-        "Mod+Ctrl+L".action = spawn "noctalia-shell" "ipc" "call" "lockScreen lock"; # Quick lock
-        "Mod+Ctrl+O".action = spawn "noctalia-shell" "ipc" "call" "controlCenter toggle"; # Control center (moved from Mod+S)
+        "Mod+Ctrl+S".action = spawn "noctalia-shell" "ipc" "call" "share toggle";
+        "Mod+Ctrl+L".action = spawn "noctalia-shell" "ipc" "call" "lockScreen lock";
+        "Mod+Ctrl+O".action = spawn "noctalia-shell" "ipc" "call" "controlCenter toggle";
         "Mod+Ctrl+Shift+W".action = spawn "noctalia-shell" "ipc" "call" "wallpaper random";
 
-        # =========================================================================
-        # NOTIFICATIONS (Omarchy hierarchy: Mod+Comma = dismiss, variants for more)
-        # =========================================================================
         "Mod+Shift+Comma".action = spawn "noctalia-shell" "ipc" "call" "notifications dismissAll";
         "Mod+Ctrl+Comma".action = spawn "noctalia-shell" "ipc" "call" "notifications toggleDND";
         "Mod+Alt+Comma".action = spawn "noctalia-shell" "ipc" "call" "notifications toggleHistory";
         "Mod+Alt+Shift+Comma".action = spawn "noctalia-shell" "ipc" "call" "notifications invokeDefault";
 
-        # =========================================================================
-        # SCREENSHOTS & CAPTURE
-        # grim+slurp for region/fullscreen → clipboard
-        # niri built-in for screen/window capture UI
-        # =========================================================================
         "Print".action = spawn-sh ''FILE="$HOME/Pictures/Screenshots/screenshot-$(date +%Y-%m-%d_%H-%M-%S).png" && mkdir -p "$(dirname "$FILE")" && ${pkgs.grim}/bin/grim -g "$(${pkgs.slurp}/bin/slurp)" "$FILE" && ${pkgs.wl-clipboard}/bin/wl-copy < "$FILE" && ${pkgs.satty}/bin/satty --filename "$FILE" --output-filename "$FILE" --actions-on-enter save-to-clipboard --save-after-copy --copy-command 'wl-copy' &'';
-        "Mod+Print".action = spawn "niri" "msg" "action" "pick-color"; # Color picker
+        "Mod+Print".action = spawn "niri" "msg" "action" "pick-color";
         "Mod+Shift+Print".action = spawn-sh "${pkgs.grim}/bin/grim - | ${pkgs.wl-clipboard}/bin/wl-copy";
         "Mod+Alt+Print".action = spawn "niri" "msg" "action" "screenshot-window";
         "Mod+Ctrl+Shift+Print".action = spawn "niri" "msg" "action" "screenshot-screen";
-        "Alt+Print".action = spawn "uwsm" "app" "--" "wf-recorder"; # Screen recording toggle
+        "Alt+Print".action = spawn "uwsm" "app" "--" "wf-recorder";
 
-        # =========================================================================
-        # WINDOW MANAGEMENT (arrow-only, no hjkl)
-        # =========================================================================
         "Mod+Q".action = close-window;
         "Alt+Tab".action = focus-window-previous;
         "Mod+Left".action = focus-column-left;
@@ -335,20 +261,11 @@ in
         "Mod+Shift+Home".action = move-column-to-first;
         "Mod+Shift+End".action = move-column-to-last;
 
-        # =========================================================================
-        # WINDOW STATE
-        # =========================================================================
         "Mod+F".action = fullscreen-window;
         "Mod+Shift+F".action = maximize-column;
         "Mod+V".action = toggle-window-floating;
         "Mod+Shift+V".action = switch-focus-between-floating-and-tiling;
 
-        # =========================================================================
-        # WORKSPACES (dynamic, per-output)
-        # Mod+1-0: focus workspace on current output
-        # Mod+Ctrl+Arrow: switch between monitors
-        # Workspaces are dynamic - close when empty, created on demand
-        # =========================================================================
         "Mod+1".action = focus-workspace 1;
         "Mod+2".action = focus-workspace 2;
         "Mod+3".action = focus-workspace 3;
@@ -377,14 +294,7 @@ in
         "Mod+Shift+Tab".action = focus-workspace-up;
         "Mod+Ctrl+Tab".action = focus-workspace-previous;
 
-        # =========================================================================
-        # SCRATCHPAD (workspace toggle via script)
-        # =========================================================================
 
-        # =========================================================================
-        # MONITOR/OUTPUT MANAGEMENT
-        # Focus monitor / move column / move entire workspace
-        # =========================================================================
         "Mod+Ctrl+Left".action = focus-monitor-left;
         "Mod+Ctrl+Right".action = focus-monitor-right;
         "Mod+Ctrl+Up".action = focus-monitor-up;
@@ -398,9 +308,6 @@ in
         "Mod+Shift+Alt+Up".action = move-workspace-to-monitor-up;
         "Mod+Shift+Alt+Down".action = move-workspace-to-monitor-down;
 
-        # =========================================================================
-        # MEDIA KEYS (Noctalia IPC — gives OSD, panel sync, bar updates)
-        # =========================================================================
         "XF86AudioRaiseVolume".action = spawn "noctalia-shell" "ipc" "call" "volume increase";
         "XF86AudioLowerVolume".action = spawn "noctalia-shell" "ipc" "call" "volume decrease";
         "XF86AudioMute".action = spawn "noctalia-shell" "ipc" "call" "volume muteOutput";
@@ -412,21 +319,14 @@ in
         "XF86AudioPrev".action = spawn "noctalia-shell" "ipc" "call" "media previous";
         "XF86AudioStop".action = spawn "noctalia-shell" "ipc" "call" "media stop";
 
-        # =========================================================================
-        # SYSTEM
-        # =========================================================================
-        "Mod+Escape".action = spawn "noctalia-shell" "ipc" "call" "sessionMenu toggle"; # System menu (lock/suspend/reboot/shutdown)
+        "Mod+Escape".action = spawn "noctalia-shell" "ipc" "call" "sessionMenu toggle";
         "Mod+Ctrl+Escape".action = spawn "systemctl" "suspend";
         "Mod+Shift+Escape".action = quit;
         "Mod+Shift+C".action = spawn "niri" "msg" "action" "load-config-file";
-        "Ctrl+Alt+Delete".action = spawn-sh ''for wid in $(niri msg windows 2>/dev/null | grep -oP 'Window ID \\K[0-9]+'); do niri msg action close-window --id "$wid"; done''; # Close all windows
+        "Ctrl+Alt+Delete".action = spawn-sh ''for wid in $(niri msg windows 2>/dev/null | grep -oP 'Window ID \\K[0-9]+'); do niri msg action close-window --id "$wid"; done'';
       };
 
-      # ==========================================================================
-      # WINDOW RULES
-      # ==========================================================================
       window-rules = [
-        # Float specific applications
         {
           matches = [
             { app-id = "pavucontrol"; }
@@ -443,7 +343,6 @@ in
           open-floating = true;
         }
 
-        # Picture-in-Picture windows
         {
           matches = [ { title = "Picture-in-Picture"; } ];
           open-floating = true;
@@ -460,7 +359,6 @@ in
           };
         }
 
-        # Full-width applications
         {
           matches = [
             { app-id = "firefox"; }
@@ -474,7 +372,6 @@ in
           };
         }
 
-        # Terminal default width
         {
           matches = [
             { app-id = "Alacritty"; }
@@ -488,7 +385,6 @@ in
           };
         }
 
-        # IDEs and editors
         {
           matches = [
             { app-id = "code"; }
@@ -501,7 +397,6 @@ in
           };
         }
 
-        # Games (usually want floating or fullscreen)
         {
           matches = [
             { app-id = "steam"; }
@@ -513,13 +408,11 @@ in
           open-floating = true;
         }
 
-        # Screen sharing prompts (always float, no border)
         {
           matches = [ { title = "Choose what to share"; } ];
           open-floating = true;
         }
 
-        # Block screen-sharing of sensitive windows
         {
           matches = [
             { app-id = "bitwarden"; }
@@ -531,7 +424,6 @@ in
           block-out-from = "screen-capture";
         }
 
-        # Genshin Impact — always fullscreen on TV (migrated from kwinrulesrc)
         {
           matches = [ { app-id = ".*GenshinImpact.*"; } ];
           open-on-output = "HDMI-A-2";
@@ -539,23 +431,17 @@ in
         }
       ];
 
-      # ==========================================================================
-      # LAYER RULES
-      # ==========================================================================
       layer-rules = [
-        # Noctalia desktop shell (bar, panels, notifications)
         {
           matches = [ { namespace = "noctalia.*"; } ];
           place-within-backdrop = false;
         }
 
-        # Quickshell layer shell (noctalia backend)
         {
           matches = [ { namespace = "quickshell.*"; } ];
           place-within-backdrop = false;
         }
 
-        # GTK layer shell apps
         {
           matches = [ { namespace = "gtk-layer-shell"; } ];
           place-within-backdrop = false;

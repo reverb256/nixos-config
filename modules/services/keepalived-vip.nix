@@ -1,6 +1,3 @@
-# Keepalived VIP Module for Kubernetes HA
-# Provides Virtual IP (VIP) failover using VRRP protocol
-# VIP floats to highest-priority healthy node
 {
   config,
   lib,
@@ -48,7 +45,6 @@ in {
       enable = true;
 
       vrrpInstances.kubernetes-api = {
-        # MASTER state if priority >= 110, otherwise BACKUP
         state =
           if cfg.priority >= 110
           then "MASTER"
@@ -64,28 +60,23 @@ in {
           }
         ];
 
-        # Enable health checks if configured (reduces priority when apiserver is unhealthy)
         trackScripts = lib.optional cfg.enableHealthCheck "check-kube-apiserver";
       };
 
-      # Health check script for kube-apiserver (enabled when enableHealthCheck = true)
       vrrpScripts = lib.optionalAttrs cfg.enableHealthCheck {
         check-kube-apiserver = {
           script = ''
             #!/bin/sh
-            # Check if kube-apiserver is responding
-            # Note: Kubernetes API server serves HTTPS on 6443, healthz endpoint may require --insecure-skip-tls-verify
             ${pkgs.curl}/bin/curl -f -s -o /dev/null --connect-timeout 3 --insecure https://127.0.0.1:6443/healthz
           '';
-          weight = -20; # Decrease priority by 20 if script fails (triggers failover)
-          interval = 2; # Check every 2 seconds
-          fall = 2; # Need 2 failures to fail
-          rise = 2; # Need 2 successes to recover
+          weight = -20;
+          interval = 2;
+          fall = 2;
+          rise = 2;
         };
       };
     };
 
-    # Firewall: allow VRRP protocol (UDP port 112 for VRRP)
     networking.firewall.allowedUDPPorts = lib.mkOptionDefault [112];
   };
 }

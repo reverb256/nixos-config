@@ -1,7 +1,3 @@
-# Crush config generator
-# Generates: ~/.config/crush/crush.json (providers + MCP)
-#
-# Crush uses a combined config with provider definitions and MCP servers.
 {
   cfg,
   pkgs,

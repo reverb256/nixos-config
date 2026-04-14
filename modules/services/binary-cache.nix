@@ -1,5 +1,3 @@
-# Nix Binary Cache Server
-# Serves pre-built Nix packages to the cluster
 {
   config,
   lib,
@@ -26,10 +24,8 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # Ensure openssl is available for key generation
     environment.systemPackages = with pkgs; [openssl];
 
-    # nix-serve service - serves binary cache via HTTP
     services.nix-serve = {
       enable = true;
       secretKeyFile = "/etc/nix/cache-priv.key";
@@ -37,7 +33,6 @@ in {
       inherit (cfg) bindAddress;
     };
 
-    # Override systemd service to add more workers and timeouts
     systemd.services.nix-serve.serviceConfig.ExecStart = lib.mkForce [
       (pkgs.writeShellScript "nix-serve-start" ''
         export NIX_SECRET_KEY_FILE="$CREDENTIALS_DIRECTORY/NIX_SECRET_KEY_FILE"
@@ -49,10 +44,8 @@ in {
       '')
     ];
 
-    # Open firewall for binary cache
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
 
-    # Generate cache signing keys if they don't exist
     systemd.services.generate-nix-cache-keys = {
       description = "Generate Nix cache signing keys";
       wantedBy = ["multi-user.target"];
@@ -60,12 +53,10 @@ in {
       serviceConfig.Type = "oneshot";
       script = ''
         if [ ! -f /etc/nix/cache-priv.key ]; then
-          # Generate binary cache signing keys using Nix CLI
           ${pkgs.nix}/bin/nix key generate-secret --key-name zephyr-cache-1 > /etc/nix/cache-priv.key.tmp
           mv /etc/nix/cache-priv.key.tmp /etc/nix/cache-priv.key
           chmod 640 /etc/nix/cache-priv.key
 
-          # Extract public key
           ${pkgs.nix}/bin/nix key convert-secret-to-public < /etc/nix/cache-priv.key > /etc/nix/cache-pub.key
           chmod 444 /etc/nix/cache-pub.key
 
@@ -76,7 +67,6 @@ in {
       '';
     };
 
-    # Display public key after generation for easy copy-paste
     systemd.services.display-cache-key = {
       description = "Display Nix binary cache public key";
       wantedBy = ["multi-user.target"];

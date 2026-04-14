@@ -1,5 +1,3 @@
-# Fix home directory permissions for Nix builds
-# Nix colmena deployments need read access to home directories
 { config, lib, pkgs, ... }:
 
 {

@@ -1,14 +1,3 @@
-# Pi agent model registry — declarative configuration
-# Writes ~/.pi/agent/models.json with accurate model specs for all providers
-#
-# Providers:
-#   zai        — Z.AI coding API (free tier)
-#   nvidia-nim — NVIDIA NIM hosted API (free tier, integrate.api.nvidia.com)
-#   ai-gateway — Local K8s inference gateway on nexus
-#   lmstudio   — Local LM Studio on zephyr
-#
-# API keys are injected from agenix-decrypted secrets via systemd service
-# that reads /run/agenix/* after agenix activation.
 {
   config,
   lib,
@@ -19,7 +8,6 @@
 let
   cfg = config.programs.pi-agent;
 
-  # Z.AI models — https://api.z.ai/api/coding/paas/v4
   zaiModels = [
     {
       id = "glm-5.1";
@@ -71,8 +59,6 @@ let
     }
   ];
 
-  # NVIDIA NIM hosted models — https://integrate.api.nvidia.com/v1
-  # All free tier. IDs must match NVIDIA's API exactly (no provider prefix).
   nvidiaModels = [
     {
       id = "deepseek-ai/deepseek-v3.1";
@@ -173,7 +159,6 @@ let
     }
   ];
 
-  # Local K8s inference gateway — runs on nexus
   aiGatewayModels = [
     {
       id = "qwen3.5-4b";
@@ -201,7 +186,6 @@ let
     }
   ];
 
-  # Local LM Studio — runs on zephyr
   lmStudioModels = [
     {
       id = "qwen3.5-4b";
@@ -213,7 +197,6 @@ let
     }
   ];
 
-  # Local llama.cpp — always-on on zephyr 3060 Ti
   llamaCppModels = [
     {
       id = "gemma-4-e4b-it";
@@ -228,7 +211,6 @@ let
     }
   ];
 
-  # Add zero-cost to each model
   withCost =
     models:
     map (
@@ -244,7 +226,6 @@ let
       }
     ) models;
 
-  # JSON with placeholder tokens for API keys
   modelsJsonTemplate = builtins.toJSON {
     providers = {
       zai = {
@@ -280,12 +261,10 @@ let
     };
   };
 
-  # User to own the models.json file
   user = "j_kro";
   modelsJsonDir = "/home/${user}/.pi/agent";
   modelsJsonPath = "${modelsJsonDir}/models.json";
 
-  # Script that reads decrypted secrets and writes final models.json
   writeModelsJson = pkgs.writeShellScript "write-pi-models-json" ''
     set -euo pipefail
 
@@ -293,7 +272,6 @@ let
     NVIDIA_KEY_FILE="/run/agenix/nvidia-api-key"
     OUTPUT="${modelsJsonPath}"
 
-    # Read API keys (strip trailing whitespace/newlines)
     if [ -f "$ZAI_KEY_FILE" ]; then
       ZAI_API_KEY=$(tr -d '\n\r ' < "$ZAI_KEY_FILE")
     else
@@ -308,10 +286,8 @@ let
       NVIDIA_API_KEY="MISSING_NVIDIA_KEY"
     fi
 
-    # Ensure output directory exists
     mkdir -p "$(dirname "$OUTPUT")"
 
-    # Substitute placeholders with actual keys
     sed -e "s|@ZAI_API_KEY@|$ZAI_API_KEY|g" \
         -e "s|@NVIDIA_API_KEY@|$NVIDIA_API_KEY|g" \
         "${pkgs.writeText "models.json.template" modelsJsonTemplate}" \
@@ -328,8 +304,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # One-shot systemd service that runs after agenix to inject secrets
-    # into the models.json template
     systemd.services.pi-models = {
       description = "Write pi agent models.json with API keys from agenix";
       wantedBy = [ "multi-user.target" ];

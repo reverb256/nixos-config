@@ -1,12 +1,3 @@
-# Mining Proxy Module (Python-based)
-# Universal stratum proxy with multi-pool failover
-# https://github.com/siv2k/mining-proxy
-#
-# STATUS: Incomplete/Reserved for future use
-# - Current GPU mining uses direct pool connections (lolMiner)
-# - CPU mining uses xmrig-proxy (C++ based, modules/mining/xmrig-proxy.nix)
-# - This module is kept for potential multi-algorithm GPU proxy scenarios
-# - To enable: Fix sha256 below and configure services.mining-proxy in host config
 {
   config,
   pkgs,
@@ -28,7 +19,7 @@ in {
           owner = "siv2k";
           repo = "mining-proxy";
           rev = "master";
-          sha256 = lib.fakeSha256; # Need to update with actual hash
+          sha256 = lib.fakeSha256;
         };
 
         propagatedBuildInputs = with pkgs.python3Packages; [
@@ -131,7 +122,6 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Create user and group
     users.users.${cfg.user} = {
       inherit (cfg) group;
       isSystemUser = true;
@@ -140,12 +130,10 @@ in {
 
     users.groups.${cfg.group} = {};
 
-    # Create data directory
     systemd.tmpfiles.rules = [
       "d ${cfg.dataDir} 0750 ${cfg.user} ${cfg.group} -"
     ];
 
-    # Generate config from pools and workers
     environment.etc."mining-proxy/config.json".text = builtins.toJSON {
       pools =
         builtins.map (pool: {
@@ -171,13 +159,11 @@ in {
       };
     };
 
-    # Firewall
     networking.firewall = lib.mkIf cfg.openFirewall {
       allowedTCPPorts = lib.mkOptionDefault [cfg.listenPort];
       allowedUDPPorts = lib.mkOptionDefault [cfg.listenPort];
     };
 
-    # Systemd service
     systemd.services.mining-proxy = {
       description = "Universal Mining Stratum Proxy with Failover";
       wantedBy = ["multi-user.target"];
@@ -191,19 +177,16 @@ in {
         WorkingDirectory = cfg.dataDir;
 
         ExecStart = "${cfg.package}/bin/mining-proxy --config /etc/mining-proxy/config.json";
-        # Graceful shutdown
         ExecStop = "${pkgs.coreutils}/bin/kill -SIGTERM $MAINPID";
 
         Restart = "on-failure";
         RestartSec = "10s";
 
-        # Hardening
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
         ReadWritePaths = [cfg.dataDir];
 
-        # Resource limits
         MemoryLimit = "1G";
         CPUQuota = "300%";
       };

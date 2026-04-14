@@ -37,7 +37,6 @@ stdenv.mkDerivation rec {
     mkdir -p $out/bin
     cp ./lolMiner $out/bin/
     chmod +x $out/bin/lolMiner
-    # Wrap with CUDA/OpenCL library paths for NixOS
     wrapProgram $out/bin/lolMiner \
       --prefix LD_LIBRARY_PATH : /run/opengl-driver/lib
     runHook postInstall

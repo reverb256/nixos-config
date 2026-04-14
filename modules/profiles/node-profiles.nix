@@ -1,15 +1,3 @@
-# Node Profile System
-# Centralized role-based profiles to eliminate DRY violations
-#
-# USAGE:
-#   profiles.node.zephyr-workstation.enable = true;
-#   profiles.node.kubernetes-worker.enable = true;
-#
-# This replaces manual profile declaration:
-#   OLD: profiles.role = { gaming = true; mining = true; };
-#   NEW: profiles.node.gaming-mining.enable = true;
-#
-# Networking config generation is delegated to networking.nix (mkNetworkingConfig).
 { config, lib, ... }:
 let
   inherit (lib)
@@ -20,40 +8,29 @@ let
     mkMerge
     ;
 
-  # Import the reusable networking config generator
   networkingHelper = import ./networking.nix { inherit lib; };
   mkNetworkingConfig = networkingHelper.mkNetworkingConfig;
 
-  # Helper function to create profile config
-  # Uses mkNetworkingConfig for networking and applies hardware/role profiles
   mkProfileConfig =
     _profileName: profileCfg:
     mkIf profileCfg.enable (
       (mkNetworkingConfig profileCfg)
       // {
-        # Kubernetes is configured per-host via services.k3s-cluster
-        # Node profiles no longer set kubernetes-module (replaced by k3s-cluster)
 
-        # Apply hardware profiles
         hardware.profiles = {
           nvidia.enable = profileCfg.nvidia.enable or false;
           nvidia.multiGpu = profileCfg.nvidia.multiGpu or false;
           amdgpu.enable = profileCfg.amdgpu.enable or false;
           amdgpu.wayland = profileCfg.amdgpu.wayland or false;
-          monitoring.enable = true; # All nodes get monitoring
+          monitoring.enable = true;
         };
 
-        # Apply network profiles
         profiles.network.tailscale.enable = true;
       }
     );
 in
 {
   options.profiles.node = {
-    # ============================================================================
-    # NODE-SPECIFIC PROFILES
-    # Each profile bundles role profiles + node-specific configuration
-    # ============================================================================
 
     zephyr-workstation = {
       enable = mkEnableOption "Zephyr workstation profile (control plane + gaming + VR + mining + AI)";
@@ -286,9 +263,6 @@ in
       };
     };
 
-    # ============================================================================
-    # GENERIC PROFILES (for custom nodes)
-    # ============================================================================
 
     kubernetes-control-plane = {
       enable = mkEnableOption "Kubernetes control plane node (legacy — use k3s-cluster instead)";
@@ -345,28 +319,15 @@ in
     };
   };
 
-  # ============================================================================
-  # PROFILE IMPLEMENTATION
-  # ============================================================================
   config = mkMerge [
-    # Zephyr workstation profile
     (mkProfileConfig "zephyr-workstation" config.profiles.node.zephyr-workstation)
-    # Nexus gaming profile
     (mkProfileConfig "nexus-gaming" config.profiles.node.nexus-gaming)
-    # Forge mining profile
     (mkProfileConfig "forge-mining" config.profiles.node.forge-mining)
-    # Sentry monitoring profile
     (mkProfileConfig "sentry-monitoring" config.profiles.node.sentry-monitoring)
-    # Generic Kubernetes control plane profile
     (mkProfileConfig "kubernetes-control-plane" config.profiles.node.kubernetes-control-plane)
-    # Generic Kubernetes worker profile
     (mkProfileConfig "kubernetes-worker" config.profiles.node.kubernetes-worker)
 
-    # ============================================================================
-    # ROLE PROFILE ASSIGNMENTS
-    # ============================================================================
 
-    # Zephyr workstation role profiles
     (mkIf config.profiles.node.zephyr-workstation.enable {
       profiles.role = {
         workstation = true;
@@ -377,7 +338,6 @@ in
       };
     })
 
-    # Nexus gaming role profiles
     (mkIf config.profiles.node.nexus-gaming.enable {
       profiles.role = {
         gaming = true;
@@ -387,14 +347,12 @@ in
       };
     })
 
-    # Forge mining role profiles
     (mkIf config.profiles.node.forge-mining.enable {
       profiles.role = {
         mining = true;
       };
     })
 
-    # Sentry monitoring role profiles
     (mkIf config.profiles.node.sentry-monitoring.enable {
       profiles.role = {
         mining = true;

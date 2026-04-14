@@ -1,5 +1,3 @@
-# llama.cpp with CUDA support
-# Built from latest GitHub master with GPU acceleration enabled
 {
   lib,
   autoAddDriverRunpath,
@@ -8,11 +6,9 @@
   cudaPackages,
   git,
   ninja,
-  # Accept but ignore extra parameters that nixpkgs llama-cpp might expect
   ...
 }:
 let
-  # Use CUDA-specific stdenv for compatibility
   effectiveStdenv = cudaPackages.backendStdenv;
   cmakeBool = option: value: "-D${option}=" + (if value then "ON" else "OFF");
   cmakeFeature = feature: value: "-D${feature}=${value}";
@@ -29,37 +25,30 @@ effectiveStdenv.mkDerivation rec {
     git
     cuda_nvcc
     ninja
-    autoAddDriverRunpath # CRITICAL: Makes CUDA libraries findable at runtime
+    autoAddDriverRunpath
   ];
   buildInputs = with cudaPackages; [
-    cuda_cccl # CUDA C++ Core Libraries - REQUIRED for GGML_CUDA
-    cuda_cudart # CUDA Runtime
-    libcublas # CUDA BLAS library
+    cuda_cccl
+    cuda_cudart
+    libcublas
   ];
   cmakeFlags = [
     (cmakeBool "GGML_CUDA" true)
     (cmakeBool "GGML_CUDA_F16" true)
-    (cmakeBool "GGML_NATIVE" false) # Don't use -march=native (non-deterministic)
+    (cmakeBool "GGML_NATIVE" false)
     (cmakeBool "BUILD_SHARED_LIBS" true)
-    # Only build for GPUs we have: sm_86 (RTX 3060 Ti), sm_89 (RTX 4090)
-    # Much faster than building for all 7 architectures
     (cmakeFeature "CMAKE_CUDA_ARCHITECTURES" "86;89")
     (cmakeFeature "CMAKE_BUILD_TYPE" "Release")
-    # Prevent CMake from adding /build/ to RPATH
     (cmakeBool "CMAKE_BUILD_RPATH_USE_ORIGIN" true)
     (cmakeBool "CMAKE_INSTALL_RPATH_USE_LINK_PATH" false)
   ];
   postInstall = ''
-    # Install binaries (CMake puts them in bin/ subdirectory)
     install -Dm755 bin/llama-server $out/bin/llama-server
     install -Dm755 bin/llama-cli $out/bin/llama-cli
     install -Dm755 bin/llama-perplexity $out/bin/llama-perplexity
-    # Install all GGML libraries (including CUDA backend if built)
     find . -name "*.so*" -type f -exec install -Dm644 {} $out/lib/ \; || true
-    # Create symlink for backward compatibility
     ln -sf $out/bin/llama-cli $out/bin/llama
   '';
-  # Fix RPATH to remove /build/ references that Nix forbids
   postFixup = ''
     find $out/bin -type f -exec patchelf --shrink-rpath {} \; || true
     find $out/lib -type f -name "*.so*" -exec patchelf --shrink-rpath {} \; || true
@@ -69,6 +58,6 @@ effectiveStdenv.mkDerivation rec {
     homepage = "https://github.com/ggerganov/llama.cpp";
     license = lib.licenses.mit;
     platforms = lib.platforms.linux;
-    badPlatforms = [ ]; # Works on x86_64-linux with NVIDIA GPUs
+    badPlatforms = [ ];
   };
 }

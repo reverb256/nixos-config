@@ -1,8 +1,3 @@
-# Mining Monitor Plasma Plasmoid
-# Multi-node GPU/CPU mining monitor for Plasma 6
-#
-# Fetches metrics from Prometheus (node-exporter + mining-exporter + xmrig-metrics)
-# and displays real-time hashrate, power draw, and temperature per GPU/CPU worker.
 {
   lib,
   config,
@@ -39,13 +34,11 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Install plasmoid system-wide so Plasma can discover it
     environment.systemPackages = [
       (pkgs.runCommand "mining-monitor-plasmoid" { } ''
         mkdir -p $out/share/plasma/plasmoids/${plasmoidName}/config
         cp -r ${plasmoidSrc}/* $out/share/plasma/plasmoids/${plasmoidName}/
 
-        # Write runtime config with user-supplied values
         cat > $out/share/plasma/plasmoids/${plasmoidName}/config/main.xml <<EOF
         <?xml version="1.0" encoding="UTF-8"?>
         <kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"

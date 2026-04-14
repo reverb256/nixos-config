@@ -1,6 +1,3 @@
-# Rclone Cloud Storage Sync Module
-# Supports 70+ cloud providers (S3, Google Drive, Dropbox, OneDrive, Box, Mega, B2, etc.)
-# Integrates with agenix for secure credential storage
 {
   config,
   lib,
@@ -9,22 +6,17 @@
 }: let
   cfg = config.services.rclone-sync;
 
-  # Helper function to generate rclone config section
 
-  # Generate rclone.conf from remotes
 
-  # Create sync script for a job
   syncScript = job:
     pkgs.writeShellScriptBin "rclone-${job.name}" ''
       set -euo pipefail
 
-      # Configuration
       SOURCE="''${SOURCE:-${job.source}}"
       DEST="''${DEST:-${job.destination}}"
       SYNC_MODE="''${SYNC_MODE:-${job.mode or "sync"}}"
       OPTIONS="''${OPTIONS:-${toString job.options or ""}}"
 
-      # Colors
       RED='\033[0;31m'
       GREEN='\033[0;32m'
       YELLOW='\033[1;33m'
@@ -41,7 +33,6 @@
       log_info "Destination: $DEST"
       log_info "Mode: $SYNC_MODE"
 
-      # Run rclone
       if ${pkgs.rclone}/bin/rclone "$SYNC_MODE" "$SOURCE" "$DEST" \
         --config "${cfg.configFile}" \
         --progress \
@@ -79,7 +70,6 @@ in {
   options.services.rclone-sync = {
     enable = lib.mkEnableOption "Rclone cloud storage synchronization";
 
-    # Global configuration
     configFile = lib.mkOption {
       type = lib.types.path;
       default = "/etc/rclone/rclone.conf";
@@ -98,7 +88,6 @@ in {
       description = "Group to run rclone services as";
     };
 
-    # Remote definitions
     remotes = lib.mkOption {
       type = lib.types.attrsOf (lib.types.submodule {
         options = {
@@ -137,7 +126,6 @@ in {
             default = true;
             description = "Force path-style S3 URLs";
           };
-          # Provider-specific options
           token = lib.mkOption {
             type = lib.types.nullOr lib.types.str;
             default = null;
@@ -188,17 +176,16 @@ in {
           provider = "Other";
           endpoint = "http://10.1.1.110:3900";
           accessKeyId = "GKac91d924fc76a30b9bcf6c3e";
-          secretAccessKey = ""; # Use agenix!
+          secretAccessKey = "";
           region = "garage";
         };
         onedrive = {
           type = "onedrive";
-          token = ""; # OAuth token from rclone config
+          token = "";
         };
       };
     };
 
-    # Sync jobs
     syncJobs = lib.mkOption {
       type = lib.types.listOf (lib.types.submodule {
         options = {
@@ -259,7 +246,6 @@ in {
             default = [];
             description = "Extra command-line flags (without -- prefix)";
           };
-          # Scheduling
           enableTimer = lib.mkOption {
             type = lib.types.bool;
             default = true;
@@ -287,10 +273,8 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Ensure rclone is installed
     environment.systemPackages = [pkgs.rclone];
 
-    # Generate rclone.conf from NixOS configuration
     environment.etc."rclone/rclone.conf".text = lib.concatStringsSep "\n" (
       lib.mapAttrsToList (name: remote: ''
         [${name}]
@@ -317,7 +301,6 @@ in {
       cfg.remotes
     );
 
-    # Create systemd services for each sync job
     systemd.services = lib.listToAttrs (map (job: {
         name = "rclone-${job.name}";
         value = {
@@ -335,7 +318,6 @@ in {
             ];
             PrivateTmp = true;
             NoNewPrivileges = true;
-            # Security hardening
             RestrictAddressFamilies = ["AF_INET" "AF_INET6" "AF_UNIX"];
             SystemCallFilter = ["@system-service" "~@privileged"];
           };
@@ -343,7 +325,6 @@ in {
       })
       cfg.syncJobs);
 
-    # Create systemd timers for each job
     systemd.timers = lib.listToAttrs (map (job: {
         name = "rclone-${job.name}";
         value =

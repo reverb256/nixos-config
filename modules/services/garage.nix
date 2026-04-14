@@ -1,5 +1,3 @@
-# Garage S3-compatible object storage
-# Distributed object storage for cluster
 {
   config,
   lib,
@@ -80,7 +78,6 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Garage package and service
     environment.systemPackages = [pkgs.garage];
 
     users.users.garage = {
@@ -91,7 +88,6 @@ in {
 
     users.groups.garage = {};
 
-    # Generate Garage config file - uses dataDir option
     environment.etc."garage.toml".text = ''
       replication_factor = ${toString cfg.replicationFactor}
       consistency_mode = "${cfg.consistencyMode}"
@@ -115,7 +111,6 @@ in {
       metrics_token = ${lib.optionalString cfg.enableMetrics "\"garage_metrics_token\""}
     '';
 
-    # Systemd services and timers
     systemd = {
       tmpfiles.rules =
         [
@@ -139,18 +134,15 @@ in {
             User = "garage";
             Group = "garage";
 
-            # Security hardening
             NoNewPrivileges = true;
             PrivateTmp = true;
             ProtectSystem = "strict";
             ProtectHome = true;
 
-            # Allow write access to custom data directory
             ReadWritePaths = ["${cfg.dataDir}"] ++ lib.optional cfg.enableBackup cfg.backupDir;
 
             ExecStart = "${pkgs.garage}/bin/garage -c /etc/garage.toml server";
 
-            # Hardening
             CapabilityBoundingSet = ["CAP_NET_BIND_SERVICE"];
             AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
             RestrictAddressFamilies = ["AF_INET" "AF_INET6" "AF_UNIX"];
@@ -163,7 +155,6 @@ in {
           };
         };
 
-        # Automated backup service
         garage-backup = lib.mkIf cfg.enableBackup {
           description = "Garage metadata backup";
           after = ["garage.service"];
@@ -194,10 +185,9 @@ in {
       };
     };
 
-    # Firewall - use mkOptionDefault to preserve existing ports
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
-      cfg.rpcPort # RPC for cluster communication
-      cfg.s3ApiPort # S3 API
+      cfg.rpcPort
+      cfg.s3ApiPort
     ];
   };
 }

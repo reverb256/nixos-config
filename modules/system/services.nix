@@ -1,107 +1,75 @@
-# System Services Module
-# Systemd services, desktop integration, and Wayland tools from XNM1
 {pkgs, ...}: {
-  # ============================================================================
-  # SYSTEMD PACKAGES
-  # ============================================================================
   systemd.packages = with pkgs; [
-    auto-cpufreq # CPU frequency scaling
+    auto-cpufreq
   ];
 
-  # ============================================================================
-  # SYSTEM SERVICES
-  # ============================================================================
   services = {
-    # Power management
     upower.enable = true;
 
-    # D-Bus (message bus)
     dbus = {
       enable = true;
       implementation = "broker";
       packages = with pkgs; [
-        xfconf # Xfce configuration system
-        gnome2.GConf # GNOME configuration system
+        xfconf
+        gnome2.GConf
       ];
     };
 
-    # Music Player Daemon
     mpd.enable = true;
 
-    # File manager services
-    tumbler.enable = true; # Thumbnail generation for Thunar
+    tumbler.enable = true;
 
-    # Firmware updates
     fwupd.enable = true;
 
-    # CPU frequency scaling
-    # auto-cpufreq.enable = true;  # CONFLICTS with power-profiles-daemon from Plasma
   };
 
   programs = {
-    dconf.enable = true; # Configuration system
+    dconf.enable = true;
     thunar.enable = true;
     xfconf.enable = true;
   };
 
-  # ============================================================================
-  # PACKAGES - Desktop & Wayland Tools
-  # ============================================================================
   environment.systemPackages = with pkgs; [
-    # Browsers
-    qutebrowser # Keyboard-driven browser
+    qutebrowser
 
-    # Document viewers
-    zathura # PDF viewer
+    zathura
 
-    # Media
-    mpv # Media player
-    imv # Image viewer
+    mpv
+    imv
 
-    # Accessibility
-    at-spi2-atk # ATK toolkit
+    at-spi2-atk
 
-    # Qt Wayland integration
     qt6.qtwayland
 
-    # Power and brightness
-    psi-notify # Power notifications
-    poweralertd # Power alerts
+    psi-notify
+    poweralertd
 
-    # Media control
-    playerctl # Media player control
+    playerctl
 
-    # Process utilities
-    psmisc # Process utilities
+    psmisc
 
-    # Screenshots & screen recording
-    grim # Screenshot utility
-    slurp # Screen region selection
-    imagemagick # Image manipulation
-    swappy # Screenshot annotation
-    ffmpeg_6-full # Video processing
-    wl-screenrec # Wayland screen recorder
+    grim
+    slurp
+    imagemagick
+    swappy
+    ffmpeg_6-full
+    wl-screenrec
 
-    # Clipboard
-    wl-clipboard # Wayland clipboard
-    wl-clip-persist # Persistent clipboard
-    cliphist # Clipboard history
+    wl-clipboard
+    wl-clip-persist
+    cliphist
 
-    # XDG / desktop integration
     xdg-utils
 
-    # Wayland input tools
-    wtype # Input emulation
-    wlrctl # Wayland control
+    wtype
+    wlrctl
 
-    # Wayland desktop tools
-    waybar # Status bar
-    rofi # Application launcher
-    dunst # Notification daemon
-    avizo # Volume/backlight OSD
-    wlogout # Logout menu
+    waybar
+    rofi
+    dunst
+    avizo
+    wlogout
 
-    # Graphics
-    gifsicle # GIF manipulation
+    gifsicle
   ];
 }

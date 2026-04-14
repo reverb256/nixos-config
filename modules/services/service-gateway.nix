@@ -1,5 +1,3 @@
-# Service Gateway - Simple human-friendly URLs for self-hosted services (Caddy)
-# Maps services like: ai.zephyr, cloud.zephyr → localhost:PORT
 {
   config,
   lib,
@@ -19,10 +17,8 @@ let
     concatMapStringsSep
     ;
 
-  # Get the current hostname for generating short service URLs
   hostname = config.networking.hostName or "localhost";
 
-  # Build Caddyfile entries for each service
   buildCaddyConfig =
     services:
     concatMapStringsSep "\n" (
@@ -32,7 +28,6 @@ let
         backendUrl = "http://${service.backend}:${toString service.port}";
       in
       ''
-        # ${service.description}
         ${fqdn}:${toString cfg.port} {
           ${lib.optionalString service.https "tls internal"}
 
@@ -43,14 +38,12 @@ let
             header_up X-Forwarded-Host {host}
             header_up X-Forwarded-Proto {scheme}
 
-            # WebSocket support
             ${lib.optionalString (service.websocket or false) ''
               header_up Connection {>Connection}
               header_up Upgrade {>Upgrade}
             ''}
           }
 
-          # Security headers
           header {
             X-Frame-Options "${service.frameOptions or "SAMEORIGIN"}"
             X-Content-Type-Options "nosniff"
@@ -61,7 +54,6 @@ let
         }
       ''
     ) (lib.attrValues services);
-  # Build DNS local-data entries for all services (short format: name.hostname)
 in
 {
   options.services.service-gateway = {
@@ -91,9 +83,6 @@ in
       description = "Allow access from outside the local machine";
     };
 
-    # ============================================================================
-    # SERVICE REGISTRY
-    # ============================================================================
     services = mkOption {
       type = types.attrsOf (
         types.submodule {
@@ -164,52 +153,35 @@ in
   };
 
   config = mkIf cfg.enable {
-    # ============================================================================
-    # CADDY REVERSE PROXY
-    # ============================================================================
     services.caddy = {
       enable = true;
 
-      # Global options
       globalConfig = ''
-        # Auto-HTTPS will be off for internal domains
         auto_https off
 
-        # Default SNI
         default_sni ${hostname}
 
-        # Logging
         {
           output file
           format json
         }
       '';
 
-      # Virtual hosts for each service
       virtualHosts = buildCaddyConfig cfg.services;
     };
 
-    # ============================================================================
-    # UNBOUND DNS INTEGRATION
-    # ============================================================================
     services.unbound.settings.server = mkIf config.services.unbound-cluster.enable {
-      # Add service hostnames to local zone
       local-zone = [ "${hostname} static" ];
 
-      # Add DNS records for each service (short format)
       local-data = mapAttrsToList (
         name: _service: "${name}.${hostname}. IN A ${cfg.listenAddress}"
       ) cfg.services;
     };
 
-    # Add to /etc/hosts for local resolution (fallback if DNS isn't running)
     networking.extraHosts = concatStringsSep "\n" (
       mapAttrsToList (name: _service: "${cfg.listenAddress} ${name}.${hostname}") cfg.services
     );
 
-    # ============================================================================
-    # FIREWALL
-    # ============================================================================
     networking.firewall = mkIf cfg.publicAccess {
       allowedTCPPorts = lib.mkOptionDefault [
         cfg.port
@@ -217,12 +189,8 @@ in
       ];
     };
 
-    # ============================================================================
-    # CLI TOOLS
-    # ============================================================================
     environment.systemPackages = with pkgs; [
       (pkgs.writeShellScriptBin "svc" ''
-        # Service Gateway CLI - short command
         set -euo pipefail
 
         echo "=== Services (${hostname}) ==="
@@ -247,11 +215,7 @@ in
       '')
     ];
 
-    # ============================================================================
-    # DOCUMENTATION
-    # ============================================================================
     environment.etc."service-gateway-readme.md".text = ''
-      # Service Gateway - Simple URLs
 
       Your services are accessible at short, memorable URLs:
 
@@ -263,21 +227,17 @@ in
         '') cfg.services
       )}
 
-      ## Even Shorter URLs
 
       Because `${hostname}` is configured as your DNS search domain,
       you can often omit it entirely on your local machine:
 
       ```bash
-      # Instead of:
       curl http://ai.${hostname}
 
-      # You can type:
       ping ai
       curl http://ai
       ```
 
-      ## Adding a New Service
 
       ```nix
       services.service-gateway.services.my-service = {
@@ -288,11 +248,10 @@ in
 
       This makes it available at: `http://my-service.${hostname}`
 
-      ## Caddy Management
 
       ```bash
-      systemctl reload caddy      # Apply config changes
-      journalctl -u caddy -f      # View logs
+      systemctl reload caddy
+      journalctl -u caddy -f
       ```
     '';
   };

@@ -1,5 +1,3 @@
-# Agenix Secrets Decryption - Fixes boot-time secret availability
-# Resolves critical issue where encrypted secrets aren't decrypted during boot
 {
   config,
   lib,
@@ -19,45 +17,28 @@ in
 
     identityFile = mkOption {
       type = types.path;
-      default = "/etc/nixos/.age/key.txt"; # Synced via Syncthing across cluster
+      default = "/etc/nixos/.age/key.txt";
       description = "Path to age identity key for decryption";
     };
   };
 
   config = mkIf config.services.agenix-fixes.enable {
-    # ============================================================================
-    # CRITICAL FIX: Automatic Secret Decryption Service
-    # ============================================================================
-    # The agenix module creates mount points but doesn't decrypt secrets
-    # This service decrypts all configured age.secrets at boot time
-    #
-    # Root Cause: agenix.nixosModules.default sets up infrastructure but
-    # requires manual 'agenix-rekey' or initrd integration to actually decrypt
-    #
-    # Solution: Create a systemd service that runs 'agenix-rekey' at boot
-    # ============================================================================
 
-    # Create agenix-rekey wrapper script
     environment.etc."agenix-rekey-wrapper.sh" = {
       mode = "0755";
       text = ''
         #!/run/current-system/sw/bin/bash
-        # Agenix automatic rekey service - Verify secrets are decrypted
 
         set -euo pipefail
 
-        # Try multiple identity file locations (prioritize Syncthing-synced location)
         IDENTITY_FILE="''${1:-/etc/nixos/.age/key.txt}"
         FALLBACK_IDENTITY="/etc/age/key.txt"
         HOME_IDENTITY="/home/j_kro/.age/key.txt"
         SECRETS_DIR="/etc/nixos/secrets"
-        # Agenix creates random subdirectories (e.g., /run/agenix.d/5/)
-        # We'll detect the actual directory instead of hardcoding "/1"
         AGENTX_BASE="/run/agenix.d"
 
         echo "[agenix-rekey] Verifying secret decryption..."
 
-        # Check if identity file exists, try fallback locations if not
         if [ ! -f "$IDENTITY_FILE" ]; then
           echo "[agenix-rekey] Primary identity file not found: $IDENTITY_FILE"
           if [ -f "$FALLBACK_IDENTITY" ]; then
@@ -73,28 +54,19 @@ in
           fi
         fi
 
-        # Check if secrets directory exists
         if [ ! -d "$SECRETS_DIR" ]; then
           echo "[agenix-rekey] ERROR: Secrets directory not found: $SECRETS_DIR"
           exit 1
         fi
 
-        # Determine the correct target directory for secrets
-        # The agenix module creates /run/agenix -> /run/agenix.d/1/ symlink
-        # Services access secrets via /run/agenix/<name>
-        # We need to write to the symlink target for services to find them
         if [ -L "/run/agenix" ]; then
-          # Use the symlink target (readlink gives us /run/agenix.d/1)
           AGENTX_DIR="$(readlink -f /run/agenix)"
-          # Ensure the target directory exists
           if [ ! -d "$AGENTX_DIR" ]; then
             mkdir -p "$AGENTX_DIR"
           fi
         else
-          # Fallback: find the actual agenix mount subdirectory
           AGENTX_DIR=''$(find "$AGENTX_BASE" -maxdepth 1 -type d ! -name "$AGENTX_BASE" -print0 2>/dev/null | head -z -n 1 | xargs -0 2>/dev/null || echo "")
           if [ -z "$AGENTX_DIR" ]; then
-            # Last resort: use the numbered subdirectory that agenix creates
             AGENTX_DIR="$AGENTX_BASE/1"
             mkdir -p "$AGENTX_DIR"
           fi
@@ -102,8 +74,6 @@ in
 
         echo "[agenix-rekey] Using agenix mount: $AGENTX_DIR"
 
-        # MIGRATION: Move secrets from wrong location to correct location
-        # If secrets exist in /run/agenix.d/ but not in /run/agenix.d/1/, move them
         if [ -d "$AGENTX_BASE" ] && [ "$AGENTX_DIR" != "$AGENTX_BASE" ]; then
           for secret_file in "$AGENTX_BASE"/*; do
             if [ -f "$secret_file" ]; then
@@ -116,8 +86,6 @@ in
           done
         fi
 
-        # Check if secrets are already decrypted (by agenix module)
-        # If yes, we're done. If no, decrypt them.
         ALREADY_DECRYPTED=true
         for secret_file in "$SECRETS_DIR"/*.age; do
           if [ -f "$secret_file" ]; then
@@ -137,14 +105,12 @@ in
           exit 0
         fi
 
-        # Decrypt any missing secrets to the mount point
         echo "[agenix-rekey] Decrypting missing secrets..."
         for secret_file in "$SECRETS_DIR"/*.age; do
           if [ -f "$secret_file" ]; then
             secret_name=''$(basename "$secret_file" .age)
             output_file="$AGENTX_DIR/$secret_name"
 
-            # Skip if already exists
             if [ -f "$output_file" ]; then
               echo "[agenix-rekey] ✓ Already exists: $secret_name"
               continue
@@ -160,7 +126,6 @@ in
               continue
             }
 
-            # Set correct permissions based on secret name
             case "$secret_name" in
               *-db-password)
                 chmod 0440 "$output_file"
@@ -187,7 +152,6 @@ in
       '';
     };
 
-    # Create systemd service for secret verification
     systemd.services.agenix-rekey = {
       description = "Agenix secret verification and decryption";
       wantedBy = [ "multi-user.target" ];
@@ -197,7 +161,6 @@ in
       ];
       requires = [ "run-agenix.d.mount" ];
       before = [
-        # Gateway runs in Kubernetes, not as systemd service
         "garage.service"
       ];
       environment.PATH = lib.mkForce (
@@ -211,43 +174,26 @@ in
         RemainAfterExit = true;
         ExecStart = "/etc/agenix-rekey-wrapper.sh ${config.services.agenix-fixes.identityFile}";
 
-        # Security - removed PrivateTmp to allow access to /run/agenix.d
         ProtectSystem = "strict";
         ProtectHome = true;
-        # Allow read/write access to the entire /run/agenix.d hierarchy
         ReadWritePaths = "/run/agenix.d";
-        # Don't create new mount namespace that isolates us from /run/agenix.d
         PrivateTmp = false;
 
-        # Logging
         StandardOutput = "journal";
         StandardError = "journal";
         SyslogIdentifier = "agenix-rekey";
       };
     };
 
-    # ============================================================================
-    # FIX: Add age CLI to system packages
-    # ============================================================================
     environment.systemPackages = with pkgs; [ age ];
 
-    # ============================================================================
-    # ACTIVATION SCRIPT: Sync identity file to all locations
-    # ============================================================================
-    # This ensures the identity file is available in multiple locations:
-    # 1. /etc/nixos/.age/key.txt - Synced via Syncthing across cluster (primary)
-    # 2. /etc/age/key.txt - System location for early boot access
-    # 3. /home/j_kro/.age/key.txt - Original location (Zephyr only)
     system.activationScripts.copy-age-key = lib.stringAfter [ "users" ] ''
-      # Create directories
       mkdir -p /etc/age /etc/nixos/.age
 
-      # Define key locations
       NIXOS_KEY="/etc/nixos/.age/key.txt"
       SYSTEM_KEY="/etc/age/key.txt"
       HOME_KEY="/home/j_kro/.age/key.txt"
 
-      # Find the first available key
       SOURCE_KEY=""
       for key in "$NIXOS_KEY" "$HOME_KEY" "$SYSTEM_KEY"; do
         if [ -f "$key" ]; then
@@ -264,7 +210,6 @@ in
 
       echo "[agenix] Using age key from: $SOURCE_KEY"
 
-      # Sync to /etc/nixos/.age/key.txt (if not already there)
       if [ "$SOURCE_KEY" != "$NIXOS_KEY" ]; then
         if [ ! -f "$NIXOS_KEY" ] || ! /run/current-system/sw/bin/cmp -s "$SOURCE_KEY" "$NIXOS_KEY"; then
           echo "[agenix] Syncing to /etc/nixos/.age/key.txt (Syncthing)..."
@@ -274,7 +219,6 @@ in
         fi
       fi
 
-      # Sync to /etc/age/key.txt (system location)
       if [ "$SOURCE_KEY" != "$SYSTEM_KEY" ]; then
         if [ ! -f "$SYSTEM_KEY" ] || ! /run/current-system/sw/bin/cmp -s "$SOURCE_KEY" "$SYSTEM_KEY"; then
           echo "[agenix] Syncing to /etc/age/key.txt (system)..."

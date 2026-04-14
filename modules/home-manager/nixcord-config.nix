@@ -1,5 +1,3 @@
-# Nixcord Configuration (Home Manager)
-# Declarative Discord/Vesktop configuration with Vencord plugins
 {pkgs, config, lib, ...}: {
   options.nixcord-config.enable = lib.mkEnableOption "Nixcord Vesktop configuration";
 
@@ -9,9 +7,7 @@
     discord.enable = false;
     vesktop.enable = true;
 
-    # Base Vencord/Vesktop settings (plugins, themes, etc.)
     vesktopConfig = {
-      # Disable Vencord-side tray settings (managed in writable ~/.config/vesktop/settings.json)
       tray = false;
       trayIcon = false;
       openHidden = false;
@@ -47,13 +43,8 @@
       };
     };
 
-    # Note: Tray settings (minimizeToTray, trayIcon, etc.) are managed in
-    # ~/.config/vesktop/settings.json (writable), not here. Only plugins
-    # and Vencord settings are managed declaratively via nixcord.
   };
 
-  # Autostart Vesktop on login
-  # Note: nixcord manages plugins and settings declaratively - no additional service needed
   systemd.user.services.vesktop-autostart = {
     Unit = {
       Description = "Vesktop autostart";
@@ -62,13 +53,11 @@
         "plasma-plasmashell.service"
       ];
       PartOf = ["graphical-session.target"];
-      Wants = ["plasma-plasmashell.service"]; # Ensure plasma tray is ready
+      Wants = ["plasma-plasmashell.service"];
     };
     Service = {
       Type = "simple";
       Environment = ["XDG_CURRENT_DESKTOP=KDE"];
-      # Global ELECTRON_OZONE_PLATFORM_HINT=auto handles backend selection
-      # --start-minimized: tray settings are in ~/.config/vesktop/settings.json (writable)
       ExecStart = lib.getExe pkgs.vesktop + " --start-minimized";
       Restart = "on-failure";
       RestartSec = 5;

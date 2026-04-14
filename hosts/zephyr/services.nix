@@ -1,6 +1,3 @@
-# Zephyr Service Configuration
-# Kubernetes control plane, VIP failover, AI inference, mining,
-# backup, monitoring agents, and application services
 {
   config,
   pkgs,
@@ -8,13 +5,7 @@
   inputs,
   ...
 }: {
-  # ============================================================================
-  # SERVICES - All service configurations
-  # ============================================================================
   services = {
-    # KUBERNETES - k3s control plane (joins existing cluster)
-    # Bootstrap node: nexus (clusterInit=true, oldest etcd data)
-    # All servers join via VIP for HA: https://10.1.1.100:6443
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
@@ -26,12 +17,7 @@
       calico.enable = false;
     };
 
-    # Deploy K8s manifests from Nix store on boot (control-plane node)
-    # DISABLED: easykubenix modules overwrite working mining deployments with
-    # broken nix-csi scratch images. Re-enable when easykubenix modules are fixed.
-    # k8s-nix-deploy.enable = true;
 
-    # Keepalived VIP for HA API server access
     keepalived-vip = {
       enable = true;
       vip = "10.1.1.100";
@@ -39,11 +25,7 @@
       priority = 110;
     };
 
-    # Crash watchdog - detect and log system crashes
-    # TEMPORARILY DISABLED: Module being fixed (2026-03-23)
-    # crash-watchdog.enable = true;
 
-    # Backup to Garage S3 - automated daily backups
     backup-to-garage = {
       enable = true;
       endpoint = "http://10.1.1.110:3900";
@@ -52,16 +34,9 @@
       accessKey = "GKac91d924fc76a30b9bcf6c3e";
       secretKeyFile = "/run/agenix/garage-s3-secret-key";
       retentionDays = 30;
-      startAt = "02:00"; # 2 AM daily
+      startAt = "02:00";
     };
 
-    # ============================================================================
-    # Modular Workload Monitoring
-    # ============================================================================
-    # Replaced old compute-workload-monitor monolith with:
-    # - gaming-detection: Pure sensor (GameMode + GPU fallback)
-    # - gpu-profile-manager: GPU power profile actuator (nvidia-smi)
-    # - mining-coordinator: PSI build detection + K8s Volcano preemption
     gaming-detection = {
       enable = true;
       checkInterval = 10;
@@ -75,52 +50,39 @@
     mining-coordinator = {
       enable = true;
       checkInterval = 10;
-      # Use conservative thresholds for memory-constrained system
       psiCpuBuildThreshold = "5.0";
       psiCpuIdleThreshold = "2.0";
     };
 
-    # AI CODING AGENT - OpenCode with Kubernetes gateway
     opencode.enable = true;
 
-    # NIX BINARY CACHE - Serve pre-built packages to cluster
-    # Eliminates redundant builds across nodes, speeds up deployments
-    # ENABLED: Required for distributed builds (2026-03-24)
-    # Remote nodes need this cache available during builds
     binary-cache = {
       enable = true;
       port = 50000;
       bindAddress = "10.1.1.110";
     };
 
-    # GPU Resource Marketplace - Unified auction engine for GPU allocation
-    # Coordinates between mining, Kubernetes, Akash, and gaming workloads
-    # DISABLED: Service broken, blocking rebuild (2026-03-21)
     compute-market = {
       enable = false;
-      auctionInterval = 30; # Run auction every 30 seconds
+      auctionInterval = 30;
 
-      # Bidders configuration
       bidders = {
-        # Mining bidder configuration
         mining = {
           enable = true;
-          hourlyRevenue = 0.10; # $0.10/hr per GPU (baseline bid)
+          hourlyRevenue = 0.10;
           services = [
             "lolminer-nvidia"
             "xmrig"
           ];
         };
 
-        # Kubernetes bidder configuration
         kubernetes = {
           enable = true;
-          baseBid = 2.50; # $2.50/hr base bid for K8s workloads
-          urgencyMultiplier = 2.0; # 2x multiplier for urgent jobs
+          baseBid = 2.50;
+          urgencyMultiplier = 2.0;
           namespace = "default";
         };
 
-        # Gaming override (always wins)
         gaming = {
           enable = true;
           processes = [
@@ -137,21 +99,17 @@
         };
       };
 
-      # Prometheus metrics
-      # MIGRATED TO KUBERNETES (2026-03-18)
       prometheus = {
         enable = false;
         port = 9200;
       };
     };
 
-    # XMRig Proxy - Centralized stratum proxy for CPU and GPU mining
     xmrig-proxy = {
       enable = true;
 
       config = builtins.toJSON {
         pools = [
-          # CPU Mining Pools (RandomX)
           {
             id = "kryptex-rx-primary";
             algo = "rx/0";
@@ -172,7 +130,6 @@
             keepalive = true;
             priority = 2;
           }
-          # GPU Mining Pools (Cuckaroo29/CR29)
           {
             id = "kryptex-cr29-us";
             algo = "cn/cc29";
@@ -196,7 +153,6 @@
         ];
 
         workers = [
-          # CPU Workers
           {
             id = "zephyr-cpu";
             password = "x";
@@ -209,7 +165,6 @@
             id = "sentry-cpu";
             password = "x";
           }
-          # GPU Workers
           {
             id = "zephyr-gpu";
             password = "x";
@@ -236,32 +191,27 @@
       };
     };
 
-    # Share /etc/nixos via NFS for remote hosts (single-source-of-truth)
     nixos-share = {
       enable = true;
       server.enable = true;
     };
 
-    # NFS Client - Mount shared storage from nexus
-    # TEMPORARILY DISABLED: NFS server on Nexus is down, causing hangs/crashes
     nfs-client = {
       enable = true;
-      mountShared = false; # DISABLED until Nexus NFS server is fixed
-      mountHome = false; # Zephyr has local home
-      mountMedia = false; # DISABLED until Nexus NFS server is fixed
+      mountShared = false;
+      mountHome = false;
+      mountMedia = false;
     };
 
-    # Caddy reverse proxy - Replace nginx for all services
     caddy = {
       enable = true;
       configFile = pkgs.writeText "Caddyfile" ''
-        # Global options
         {
           admin 127.0.0.1:2019
           default_sni cluster.local
+          local_certs
         }
 
-        # AI Inference Gateway (via Tailscale)
         ai.zephyr.tigris-ule.ts.net:9002 {
           header {
             Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
@@ -274,7 +224,6 @@
           reverse_proxy 127.0.0.1:8080
         }
 
-        # Host Dashboard (LAN access - no TLS)
         http://zephyr.lan {
           header {
             X-Content-Type-Options "nosniff"
@@ -294,9 +243,6 @@
           reverse_proxy 127.0.0.1:8090
         }
 
-        # Kubernetes Ingress (proxy to Caddy ingress controller on Nexus)
-        # Using IP directly — Caddy's Go resolver ignores /etc/hosts
-        # TLS via Caddy's internal CA (trusted by zen-browser)
         https://search.lan, https://search.cluster.local {
           encode zstd gzip
           reverse_proxy 10.1.1.120:30080
@@ -310,7 +256,6 @@
           reverse_proxy 10.1.1.120:30080
         }
 
-        # CivicIntel — Canadian Government Intelligence Dashboard
         http://civicintel.lan, http://10.1.1.100 {
           encode zstd gzip
           handle_path /CivicIntel/* {
@@ -323,10 +268,8 @@
       '';
     };
 
-    # Redis - For gateway rate limiting and caching
     redis.servers."".enable = true;
 
-    # AI Inference Service - Gateway with ALL FEATURES enabled
     ai-inference = {
       enable = true;
       backend = {
@@ -483,19 +426,17 @@
         };
       };
       security = {
-        maxRequestSize = 10485760; # 10MB
+        maxRequestSize = 10485760;
         enableProxy = false;
       };
     };
 
-    # MCP Servers for AI tools
     mcp-servers = {
       enable = true;
       servers.playwright.enable = true;
       servers.context7.apiKeyFile = "/run/agenix/context7-api-key";
     };
 
-    # AI Coding Tools - Harmonized MCP configs
     ai-coding-tools = {
       enable = true;
       zaiApiKeyFile = config.age.secrets.zai-api-key.path;
@@ -516,18 +457,14 @@
       ];
     };
 
-    # WEB TESTING - Playwright/Puppeteer system dependencies
     web-testing.enable = true;
 
-    # CI/CD - Self-hosted GitHub Actions runner
     ci-runner = {
       enable = false;
       repo = "username/nixos-config";
       autoStart = false;
     };
 
-    # MINING - GPU Mining (RTX 3090 + RTX 3060 Ti)
-    # Using centralized xmrig-proxy on nexus (10.1.1.120:3333)
     mining = {
       lolminer = {
         pool = "stratum+tcp://10.1.1.120:3333";
@@ -553,18 +490,16 @@
           }
         ];
       };
-      # NVIDIA GPU mining - MIGRATED TO KUBERNETES
       lolminer.nvidia = {
         enable = false;
         autostart = false;
-        devices = "1"; # Only mine on GPU 1 (RTX 3090)
+        devices = "1";
         perGpuPowerLimits = [
           0
           250
-        ]; # GPU0: RTX 3060 Ti no limit (AI/ML), GPU1: RTX 3090 @ 250W
+        ];
         apiPort = 4068;
       };
-      # CPU mining - Dual XMRig setup
       xmrigDual = {
         enable = true;
         alwaysOn = {
@@ -588,23 +523,19 @@
       };
     };
 
-    # Vaultwarden - Self-hosted password manager with FIDO2/WebAuthn
     vaultwarden-module = {
       enable = true;
       hostName = "vaultwarden.zephyr.tigris-ule.ts.net";
       dataDir = "/var/lib/vaultwarden";
     };
 
-    # Syncthing P2P file sync
     syncthing-cluster = {
       enable = true;
       deviceId = "ZEPHYR-PLACEHOLDER";
     };
 
-    # Garage S3 disabled - using nexus as primary storage node
     garage-cluster.enable = false;
 
-    # Host Dashboard
     host-dashboard = {
       enable = true;
       role = "control-plane + ai-workstation";
@@ -672,19 +603,14 @@
       ];
     };
 
-    # STATUS.md auto-update (hourly from kubectl)
     status-auto-update.enable = true;
 
-    # FIX: Systemd user unit reload timeout
     systemd-user-timeout.enable = true;
 
-    # Internal CA for cluster services
     cluster-ca.enable = true;
 
-    # Unbound DNS with DNS-over-TLS
     unbound-common.enable = true;
 
-    # Claude Code Router - Route Claude Code to Z.AI GLM models
     claude-code-router = {
       enable = true;
       port = 3456;
@@ -697,10 +623,6 @@
     };
   };
 
-  # ============================================================================
-  # LLAMAFILE - Gemma 4 E4B vision model on 3060 Ti (llama.cpp b8781)
-  # ============================================================================
-  # Text + Vision via --mmproj, Q4_K_M quant, ~80 tok/s
   services.llamafile = {
     enable = true;
     modelPath = "/home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E4B-it-GGUF/gemma-4-E4B-it-Q4_K_M.gguf";
@@ -710,7 +632,7 @@
     port = 1235;
     gpu = "nvidia";
     gpuLayers = 99;
-    gpuDevice = 1; # 3060 Ti is CUDA device 1 (3090 is device 0)
+    gpuDevice = 1;
     ctxSize = 131072;
     threads = 4;
     flashAttention = true;
@@ -719,16 +641,11 @@
     temperature = 1.0;
     topK = 64;
     topP = 0.95;
-    enableThinking = false; # Disable thinking for vision tasks
+    enableThinking = false;
   };
 
-  # Ollama removed — llama.cpp with vision (--mmproj) replaces it
 
-  # ============================================================================
-  # PROGRAMS - Service-linked programs
-  # ============================================================================
   programs = {
-    # Mining plasmoid for KDE Plasma
     mining-plasmoid = {
       enable = true;
       prometheusUrl = "http://127.0.0.1:9090";
@@ -736,7 +653,6 @@
       clusterNodes = "zephyr,nexus,forge,sentry";
     };
 
-    # Systems Intelligence Plasmoid - Cluster monitoring widget
     systems-intelligence-plasmoid = {
       enable = true;
       prometheusUrl = "http://127.0.0.1:9090";
@@ -744,20 +660,15 @@
       clusterNodes = "zephyr,nexus,forge,sentry";
     };
 
-    # LM Studio - Local LLM inference with GPU acceleration
     lm-studio.enable = true;
   };
 
-  # Podman container runtime (for Spacebot)
   virtualisation.podman = {
     enable = true;
     dockerCompat = true;
     dockerSocket.enable = true;
   };
 
-  # ============================================================================
-  # AGENIX SECRETS
-  # ============================================================================
   services.agenix-secrets-registry = {
     enable = true;
     aiServices = true;
@@ -769,7 +680,6 @@
     selfHosting = false;
   };
 
-  # Override specific secret permissions
   age = {
     identityPaths = ["/home/j_kro/.age/key.txt"];
     secrets.cloudflared-token = lib.mkForce {

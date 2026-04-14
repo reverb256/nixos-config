@@ -1,5 +1,3 @@
-# GPU Monitoring Dashboard
-# Detailed GPU metrics including temperature, power, memory, and utilization
 {lib, ...}: let
   inherit (lib.dashboard) panels template thresholds;
 in {
@@ -8,9 +6,7 @@ in {
     description = "Comprehensive GPU health and performance metrics";
     tags = ["gpu" "nvidia" "hardware"];
     panels = [
-      # ========== ROW: GPU OVERVIEW ==========
       (panels.row "🖥️ GPU Overview" false)
-      # Active GPUs
       (panels.statPanel {
         title = "Active GPUs";
         expr = "count(nvidia_smi_gpu_clocks_current_graphics_hz)";
@@ -22,7 +18,6 @@ in {
         };
         colorMode = "value";
       })
-      # Total Power Draw
       (panels.statPanel {
         title = "Total Power Draw";
         expr = "sum(nvidia_smi_power_draw_watts)";
@@ -35,7 +30,6 @@ in {
         unit = "watt";
         colorMode = "value";
       })
-      # Avg Temperature
       (panels.gauge {
         title = "Avg GPU Temperature";
         expr = "avg(nvidia_smi_temperature_gpu)";
@@ -48,7 +42,6 @@ in {
         thresholds = thresholds.temperature;
         unit = "celsius";
       })
-      # Total VRAM Used
       (panels.statPanel {
         title = "Total VRAM Used";
         expr = "sum(nvidia_smi_memory_used_bytes) / 1024 / 1024 / 1024";
@@ -62,9 +55,7 @@ in {
         colorMode = "value";
       })
 
-      # ========== ROW: UTILIZATION ==========
       (panels.row "📊 GPU Utilization" false)
-      # GPU Utilization Timeseries
       (panels.timeseries {
         title = "GPU Utilization";
         expr = "nvidia_smi_utilization_gpu_ratio * 100";
@@ -77,7 +68,6 @@ in {
         unit = "percent";
         legendFormat = "{{instance}}";
       })
-      # Memory Utilization
       (panels.timeseries {
         title = "Memory Utilization";
         expr = "nvidia_smi_utilization_memory_ratio * 100";
@@ -91,9 +81,7 @@ in {
         legendFormat = "{{instance}}";
       })
 
-      # ========== ROW: TEMPERATURES ==========
       (panels.row "🌡️ Temperature & Power" true)
-      # Temperature per GPU
       (panels.timeseries {
         title = "GPU Temperature";
         expr = "nvidia_smi_temperature_gpu";
@@ -106,7 +94,6 @@ in {
         unit = "celsius";
         legendFormat = "{{instance}}";
       })
-      # Power Draw per GPU
       (panels.timeseries {
         title = "Power Draw";
         expr = "nvidia_smi_power_draw_watts";
@@ -120,9 +107,7 @@ in {
         legendFormat = "{{instance}}";
       })
 
-      # ========== ROW: CLOCK SPEEDS ==========
       (panels.row "⚡ Clock Speeds" true)
-      # Graphics Clock
       (panels.timeseries {
         title = "Graphics Clock";
         expr = "nvidia_smi_clocks_current_graphics_hz";
@@ -135,7 +120,6 @@ in {
         unit = "hertz";
         legendFormat = "{{instance}}";
       })
-      # Memory Clock
       (panels.timeseries {
         title = "Memory Clock";
         expr = "nvidia_smi_clocks_current_memory_clock_hz";
@@ -148,7 +132,6 @@ in {
         unit = "hertz";
         legendFormat = "{{instance}}";
       })
-      # SM Clock
       (panels.timeseries {
         title = "SM Clock";
         expr = "nvidia_smi_clocks_current_sm_clock_hz";
@@ -162,9 +145,7 @@ in {
         legendFormat = "{{instance}}";
       })
 
-      # ========== ROW: VRAM USAGE ==========
       (panels.row "💾 VRAM Usage" true)
-      # VRAM Usage per GPU
       (panels.timeseries {
         title = "VRAM Usage";
         expr = "nvidia_smi_memory_used_bytes / nvidia_smi_memory_total_bytes * 100";
@@ -177,7 +158,6 @@ in {
         unit = "percent";
         legendFormat = "{{instance}}";
       })
-      # VRAM Absolute Values
       (panels.timeseries {
         title = "VRAM Used (GB)";
         expr = "nvidia_smi_memory_used_bytes / 1024 / 1024 / 1024";
@@ -191,9 +171,7 @@ in {
         legendFormat = "{{instance}}";
       })
 
-      # ========== ROW: PERFORMANCE STATES ==========
       (panels.row "📈 Performance States" true)
-      # Throttling Indicators
       {
         datasource = lib.dashboard.prometheusDatasource;
         fieldConfig.defaults = {
@@ -250,9 +228,7 @@ in {
         type = "stat";
       }
 
-      # ========== ROW: FAN & COOLING ==========
       (panels.row "❄️ Cooling" true)
-      # Fan Speed
       (panels.timeseries {
         title = "Fan Speed";
         expr = "nvidia_smi_fan_speed_ratio * 100";
@@ -265,7 +241,6 @@ in {
         unit = "percent";
         legendFormat = "{{instance}}";
       })
-      # Power Limit
       (panels.timeseries {
         title = "Power Limit vs Current Draw";
         expr = "nvidia_smi_power_draw_watts";

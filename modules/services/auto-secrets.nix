@@ -1,15 +1,3 @@
-# Auto-Secrets Module
-# Automatically generates secure random passwords on first boot
-# Passwords are stored in /var/lib/secrets/ and never committed to git
-#
-# Usage:
-#   services.auto-secrets.secrets.grafana-admin = {
-#     owner = "grafana";
-#     group = "grafana";
-#     length = 64;  # Optional, default 64 chars (256-bit entropy)
-#   };
-#
-# Then reference: /var/lib/secrets/grafana-admin
 {
   config,
   lib,
@@ -69,14 +57,10 @@ in {
   };
 
   config = lib.mkIf (cfg.enable && cfg.secrets != {}) {
-    # Ensure secrets directory exists with proper permissions
-    # 0700 restricts access to root only - prevents traversal by other users
-    # Individual secret files have 0400 owner-only permissions
     systemd.tmpfiles.rules = [
       "d ${secretsDir} 0700 root root -"
     ];
 
-    # Create a service for each secret
     systemd.services =
       lib.mapAttrs' (name: secretCfg: {
         name = "auto-secret-${name}";
@@ -89,7 +73,6 @@ in {
             Type = "oneshot";
             RemainAfterExit = true;
 
-            # Security hardening
             NoNewPrivileges = true;
             PrivateTmp = true;
             ProtectSystem = "strict";
@@ -97,14 +80,12 @@ in {
             ReadWritePaths = [secretsDir];
             UMask = "0077";
 
-            # Run as root initially, then chown
             ExecStart = pkgs.writeShellScript "generate-secret-${name}" ''
               set -euo pipefail
 
               SECRET_PATH="${secretsDir}/${name}"
               SECRET_LENGTH=${toString secretCfg.length}
 
-              # Check if secret already exists and we're not regenerating
               if [ -f "$SECRET_PATH" ] && [ "${
                 if secretCfg.regenerate
                 then "1"
@@ -114,17 +95,13 @@ in {
                 exit 0
               fi
 
-              # Generate cryptographically secure random password
               echo "Generating secret ${name} ($SECRET_LENGTH hex chars = $((SECRET_LENGTH * 4))-bit entropy)..."
               ${pkgs.openssl}/bin/openssl rand -hex $((SECRET_LENGTH / 2)) > "$SECRET_PATH.tmp"
 
-              # Set permissions before moving
               chmod ${secretCfg.mode} "$SECRET_PATH.tmp"
 
-              # Atomic move
               mv "$SECRET_PATH.tmp" "$SECRET_PATH"
 
-              # Set ownership (requires root)
               chown ${secretCfg.owner}:${secretCfg.group} "$SECRET_PATH"
 
               echo "Secret ${name} generated successfully at $SECRET_PATH"
@@ -134,7 +111,6 @@ in {
       })
       cfg.secrets;
 
-    # Helper script to show secret status
     environment.systemPackages = [
       (pkgs.writeShellScriptBin "secret-status" ''
         echo "Auto-generated secrets status:"

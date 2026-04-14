@@ -1,4 +1,3 @@
-# Qdrant Vector Database Service for RAG
 {
   config,
   lib,
@@ -9,7 +8,6 @@ let
   cfg = config.services.ai-inference.rag;
   inherit (lib) mkIf optional;
 
-  # Qdrant configuration file
   qdrantConfig = pkgs.writeText "qdrant-config.yaml" ''
     service:
       host: ${cfg.qdrant.host}
@@ -25,7 +23,6 @@ let
 in
 {
   config = mkIf (cfg.enable && cfg.qdrant.enable) {
-    # Qdrant service
     systemd.services.qdrant = {
       description = "Qdrant Vector Database";
       after = [ "network.target" ];
@@ -54,7 +51,6 @@ in
       };
     };
 
-    # Qdrant user
     users.users.qdrant = {
       isSystemUser = true;
       group = "qdrant";
@@ -62,12 +58,10 @@ in
     };
     users.groups.qdrant = { };
 
-    # Create storage directory
     systemd.tmpfiles.rules = [
       "d ${cfg.qdrant.storagePath} 0750 qdrant qdrant - -"
     ];
 
-    # Open firewall for Qdrant (optional, local only by default)
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault (
       lib.optional (cfg.qdrant.host != "127.0.0.1") cfg.qdrant.port
     );

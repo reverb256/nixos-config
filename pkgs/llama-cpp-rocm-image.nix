@@ -1,5 +1,3 @@
-# Minimal OCI image for llama.cpp server with ROCm
-# ~2GB vs ~20GB for upstream ghcr.io image
 { pkgs }:
 
 pkgs.dockerTools.buildLayeredImage {

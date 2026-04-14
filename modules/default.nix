@@ -1,21 +1,13 @@
-# Default module imports for all submodules
-# Modules are organized into logical subdirectories for better maintainability
 { ... }:
 {
   imports = [
-    # ============================================================================
-    # SHARED DEFAULTS
-    # ============================================================================
     ./common-host-defaults.nix
 
-    # Common shared modules
     ./common/environment-variables.nix
     ./common/firewall-ports.nix
 
-    # Network configuration
     ./network-constants.nix
 
-    # System-level configuration
     ./system/system-packages.nix
     ./system/nix-config.nix
     ./system/users.nix
@@ -39,7 +31,6 @@
     ./system/btrfs-compression.nix
     ./system/pi-models.nix
     ./system/btrfs-tuning.nix
-    # Modular workload monitoring
     ./system/gaming-detection.nix
     ./system/gpu-profile-manager.nix
     ./system/mining-coordinator.nix
@@ -50,12 +41,10 @@
     ./system/mining-inference-coordinator.nix
     ./system/status-auto-update.nix
 
-    # Security
     ./security/pam-vaultwarden.nix
     ./security/caddy-ca.nix
     ./kubernetes-security.nix
 
-    # Hardware modules
     ./hardware/corsair.nix
     ./hardware/gpu-compute.nix
     ./hardware/monitoring.nix
@@ -63,7 +52,6 @@
     ./hardware/nvidia-wayland.nix
     ./hardware/amdgpu-wayland.nix
 
-    # Desktop environment
     ./desktop/desktop.nix
     ./desktop/wayland-common.nix
     ./desktop/wayland-compositor-common.nix
@@ -76,13 +64,9 @@
     ./desktop/noctalia-sdr-brightness.nix
     ./desktop/stylix.nix
 
-    # Shell configuration
-    # Fish system-level (PATH, packages): ./shell/fish.nix
-    # Fish user-level (aliases, prompt): Home Manager (./system/home-manager.nix)
     ./shell/bash.nix
     ./shell/fish.nix
 
-    # Development
     ./development/tools.nix
     ./development/lsp.nix
     ./development/programming-languages.nix
@@ -90,12 +74,10 @@
     ./development/web-testing.nix
     ./development/ai-coding-tools.nix
 
-    # Gaming
     ./gaming/gaming.nix
     ./gaming/gaming-hdr.nix
     ./gaming/scopebuddy.nix
 
-    # Mining
     ./mining/mining.nix
     ./mining/mining-plasmoid.nix
     ./mining/mining-desktop-toggle.nix
@@ -104,10 +86,8 @@
     ./mining/mining-proxy.nix
     ./mining/gpu-proxy-cpp.nix
 
-    # GPU Resource Marketplace
     ./compute-market/default.nix
 
-    # Services
     ./services/mcp-servers.nix
     ./services/nfs-server.nix
     ./services/nfs-client.nix
@@ -141,35 +121,22 @@
     ./services/vaultwarden.nix
     ./services/self-healing-alerts.nix
 
-    # Monitoring
     ./services/monitoring/default.nix
-    # Exporters
     ./services/gpu-exporters.nix
     ./services/mining-exporter.nix
-    # Multimedia modules
     ./multimedia/gstreamer.nix
-    # Desktop modules (Spotify customization)
     ./desktop/spotify-spotx.nix
-    # Distributed builds
     ./system/distributed-builds.nix
-    # Flake lock sync (auto-enabled on remote hosts only)
     ./system/flake-lock-sync.nix
-    # Fallback cache for remote hosts (graceful NFS failure)
     ./system/nixos-fallback-cache.nix
-    # Profile system
     ./profiles/default.nix
     ./profiles/node-profiles.nix
 
-    # Network modules
     ./network/cluster-hosts.nix
     ./networking/cluster-networking.nix
-    # Claude Code Router
     ./services/claude-code-router.nix
-    # Supply chain security (7-day cooldown on npm/bun/uv packages)
     ./services/supply-chain-cooldowns.nix
-    # Container image security scanning
     ./services/container-scanning.nix
-    # Deploy K8s manifests from Nix store on boot
     ./services/k8s-nix-deploy.nix
   ];
 }

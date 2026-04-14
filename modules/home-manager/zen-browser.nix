@@ -1,10 +1,5 @@
-# Zen Browser Configuration (Home Manager)
-# Declarative browser configuration with extensions, containers, workspaces, and search engines
 { pkgs, ... }:
 {
-  # Mask Vesktop XDG autostart file to prevent SIGILL crash
-  # The XDG autostart uses the wrong Electron binary (unwrapped vs wrapped)
-  # We use systemd user service instead for proper autostart
   xdg.configFile."autostart/vesktop.desktop".text = ''
     [Desktop Entry]
     Hidden=true
@@ -12,8 +7,6 @@
     X-KDE-autostart-after-panel=false
   '';
 
-  # XDG MIME associations - make Zen the default browser for all web protocols
-  # NOTE: Desktop file is named zen-twilight.desktop (not zen-browser.desktop)
   xdg.mimeApps.enable = true;
   xdg.mimeApps.defaultApplications = {
     "text/html" = "zen-twilight.desktop";
@@ -30,10 +23,9 @@
     "x-scheme-handler/about" = "zen-twilight.desktop";
     "x-scheme-handler/unknown" = "zen-twilight.desktop";
     "x-scheme-handler/webcal" = "zen-twilight.desktop";
-    "x-scheme-handler/mailto" = "zen-twilight.desktop"; # For web email
-    "x-scheme-handler/irc" = "zen-twilight.desktop"; # For web IRC clients
+    "x-scheme-handler/mailto" = "zen-twilight.desktop";
+    "x-scheme-handler/irc" = "zen-twilight.desktop";
 
-    # File manager — required for "Open in File Explorer" / xdg-open on directories
     "inode/directory" = "org.kde.dolphin.desktop";
     "application/x-gnome-saved-search" = "org.kde.dolphin.desktop";
   };
@@ -41,9 +33,8 @@
   programs.zen-browser = {
     enable = true;
 
-    # Native Messaging Hosts - bridge browser to native apps
     nativeMessagingHosts = with pkgs; [
-      firefoxpwa # PWA support - install websites as apps
+      firefoxpwa
     ];
 
     policies = {
@@ -61,26 +52,18 @@
         Fingerprinting = true;
       };
 
-      # DNS-over-HTTPS - DISABLED for cluster compatibility
-      # Cloudflare/Google DoH can't resolve *.lan / *.cluster.local
-      # System DNS (unbound on 127.0.0.1) handles these correctly
       DNSOverHTTPS = {
         Enabled = false;
         Locked = true;
       };
 
-      # Install Caddy Local Authority certificate for cluster services
       Certificates = {
         Install = [
           "/home/j_kro/.local/share/certificates/caddy-local-ca.crt"
         ];
       };
 
-      # Extension Management via Policies
-      # - force_installed: Cannot be disabled by user (essential security)
-      # - normal_installed: User can configure per-site exceptions
       ExtensionSettings = {
-        # Essential Security (force-installed)
         "uBlock0@raymondhill.net" = {
           installation_mode = "force_installed";
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi";
@@ -98,13 +81,11 @@
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/darkreader/latest.xpi";
         };
 
-        # Knowledge Management
         "clipper@obsidian.md" = {
           installation_mode = "normal_installed";
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/web-clipper-obsidian/latest.xpi";
         };
 
-        # User-Configurable (allows per-site exceptions for sites like Outlook)
         "jid1-MnnxcxisBPnSXQ@jetpack" = {
           installation_mode = "normal_installed";
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/privacy-badger17/latest.xpi";
@@ -141,13 +122,10 @@
       name = "default";
       isDefault = true;
 
-      # Force declarative settings to override manual changes (idempotent)
-      # Setting to true ensures NixOS configuration is always applied
       containersForce = true;
       pinsForce = true;
       spacesForce = true;
 
-      # Custom about:config preferences
       extraConfig = ''
         // Zen-specific preferences
         user_pref("zen.theme.sidebar", "auto");
@@ -284,7 +262,6 @@
         // The Banking workspace (container 8) is designed for this purpose
       '';
 
-      # Declarative Containers (Multi-Account Containers)
       containers = {
         "Dev" = {
           color = "blue";
@@ -328,61 +305,58 @@
         };
       };
 
-      # Declarative Workspaces (Spaces)
       spaces = {
         "Dev" = {
           id = "dev-1f8a6f7c-3b59-4d65-9c1f-0a3e9a6f1b01";
           icon = "📦";
           position = 1000;
-          container = 1; # Dev container
+          container = 1;
         };
         "AI" = {
           id = "ai-2b9d4c41-6a8e-4c9b-9a44-6d1c7f2e8b02";
           icon = "🤖";
           position = 2000;
-          container = 5; # AI container
+          container = 5;
         };
         "Gaming" = {
           id = "game-3c7e2b6d-9f5a-4b41-8f77-1e9c5a4d2c03";
           icon = "🎮";
           position = 3000;
-          container = 4; # Gaming container
+          container = 4;
         };
         "Personal" = {
           id = "personal-4d8f3c7e-0a6b-5d52-9f88-2f0d6b5e3d14";
           icon = "🏠";
           position = 4000;
-          container = 2; # Personal container
+          container = 2;
         };
         "Banking" = {
           id = "banking-8h2j3k4l-5m6n-7o8p-9q0r-1s2t3u4v5w6x7";
           icon = "🏦";
           position = 4500;
-          container = 8; # Banking container
+          container = 8;
         };
         "Mining" = {
           id = "mining-5e9g4d8f-1b7c-6e63-0a99-3g1e7c6f4e25";
           icon = "⛏️";
           position = 5000;
-          container = 3; # Finance container
+          container = 3;
         };
         "Clients" = {
           id = "clients-7h1i2j3k-4l5m-6n7o-8p9q-0r1s2t3u4v5w6";
           icon = "💼";
           position = 5500;
-          container = 7; # Clients container
+          container = 7;
         };
         "System" = {
           id = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
           icon = "⚙️";
           position = 6000;
-          container = 2; # Personal container
+          container = 2;
         };
       };
 
-      # Sidebar Pins (Essential sites)
       pins = {
-        # Dev Space
         "GitHub" = {
           id = "pin-gh-001";
           url = "https://github.com";
@@ -405,7 +379,6 @@
           position = 115;
         };
 
-        # AI Space
         "Claude" = {
           id = "pin-ai-001";
           url = "https://claude.ai";
@@ -449,7 +422,6 @@
           position = 220;
         };
 
-        # Gaming Space
         "Discord" = {
           id = "pin-game-001";
           url = "https://discord.com";
@@ -465,7 +437,6 @@
           position = 310;
         };
 
-        # Clients Space
         "TrovesAndCoves" = {
           id = "pin-client-001";
           url = "https://trovesandcoves.ca";
@@ -502,7 +473,6 @@
           position = 370;
         };
 
-        # Personal Space
         "Gmail" = {
           id = "pin-per-001";
           url = "https://mail.google.com";
@@ -518,7 +488,6 @@
           position = 405;
         };
 
-        # Mining Space
         "Kryptex" = {
           id = "pin-min-001";
           url = "https://kryptex.com";
@@ -527,7 +496,6 @@
           position = 500;
         };
 
-        # Banking Space (relaxed privacy for financial institutions)
         "RBC Online Banking" = {
           id = "pin-bank-001";
           url = "https://www.rbcroyalbank.com";
@@ -543,7 +511,6 @@
           position = 455;
         };
 
-        # System Space
         "Tailscale" = {
           id = "pin-sys-001";
           url = "https://login.tailscale.com";
@@ -714,7 +681,6 @@
         };
       };
 
-      # Custom Search Engines with Aliases
       search = {
         force = true;
         default = "searxng";
@@ -869,6 +835,4 @@
     };
   };
 
-  # Note: Spaces and pins are configured via the zen-browser module's
-  # built-in `spaces` and `pins` options above. No additional JSON files needed.
 }

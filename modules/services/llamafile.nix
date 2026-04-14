@@ -1,6 +1,3 @@
-# Llamafile Service Module
-# Provides a standalone LLM fallback using llama.cpp (llama-server)
-# Runs a single GGUF model as an OpenAI-compatible API service
 {
   config,
   lib,
@@ -16,16 +13,14 @@
     types
     ;
 
-  # Auto-detect GPU backend from gpu-compute module or use explicit setting
   useCuda = config.hardware.gpu-compute.cuda.enable or false;
   useRocm = config.hardware.gpu-compute.rocm.enable or false;
 
-  # Select llama-cpp variant (prefer explicit GPU setting, then auto-detect)
   llamaPkg =
     if cfg.gpu == "amd" || cfg.gpu == "rocm"
     then pkgs.llama-cpp-rocm
     else if cfg.gpu == "nvidia"
-    then pkgs.llama-cpp # CUDA for NVIDIA (Flash Attention support)
+    then pkgs.llama-cpp
     else if cfg.gpu == null && useRocm
     then pkgs.llama-cpp-rocm
     else if cfg.gpu == null && useCuda
@@ -35,7 +30,6 @@ in {
   options.services.llamafile = {
     enable = mkEnableOption "llamafile - standalone LLM service using llama.cpp";
 
-    # Model configuration
     modelPath = mkOption {
       type = types.str;
       default = "/home/j_kro/.lmstudio/models/mradermacher/Qwen3.5-4B-Unredacted-MAX-i1-GGUF/Qwen3.5-4B-Unredacted-MAX.i1-Q4_K_S.gguf";
@@ -48,7 +42,6 @@ in {
       description = "Model name for API responses";
     };
 
-    # Server configuration
     host = mkOption {
       type = types.str;
       default = "127.0.0.1";
@@ -57,14 +50,13 @@ in {
 
     port = mkOption {
       type = types.port;
-      default = 8081; # Different from gateway's 8080
+      default = 8081;
       description = "Listen port for llamafile API server";
     };
 
-    # GPU configuration
     gpuLayers = mkOption {
       type = types.int;
-      default = 999; # Offload all possible layers to GPU
+      default = 999;
       description = "Number of layers to offload to GPU (999 = all)";
     };
 
@@ -76,37 +68,34 @@ in {
 
     ctxSize = mkOption {
       type = types.int;
-      default = 32768; # Qwen3.5 supports up to 262K native
+      default = 32768;
       description = "Context window size in tokens (32768 for Qwen3.5)";
     };
 
     threads = mkOption {
       type = types.int;
-      default = 12; # Better thread utilization for Qwen3.5
+      default = 12;
       description = "Number of CPU threads for inference";
     };
 
-    # User configuration
     user = mkOption {
       type = types.str;
       default = "j_kro";
       description = "User to run llamafile as";
     };
 
-    # Performance tuning (Qwen3.5-optimized defaults)
     batchSize = mkOption {
       type = types.int;
-      default = 64; # Lower latency for Qwen3.5
+      default = 64;
       description = "Batch size for prompt processing (64 for low TTFT on Qwen3.5)";
     };
 
     ubatchSize = mkOption {
       type = types.int;
-      default = 16; # Better micro-batch for Qwen3.5
+      default = 16;
       description = "User batch size (16 for optimal Qwen3.5 performance)";
     };
 
-    # Qwen3.5-specific optimizations
     flashAttention = mkOption {
       type = types.bool;
       default = true;
@@ -143,15 +132,12 @@ in {
       description = "KV cache type for values (bf16 recommended for Qwen3.5 to fix garbled output)";
     };
 
-    # GPU-only mode - disable system RAM caching
-    # Multimodal support
     mmprojPath = mkOption {
       type = types.nullOr types.str;
       default = null;
       description = "Path to multimodal projector GGUF file (mmproj) for vision/audio support";
     };
 
-    # GPU device selection
     gpuDevice = mkOption {
       type = types.int;
       default = 0;
@@ -160,11 +146,10 @@ in {
 
     cacheRam = mkOption {
       type = types.int;
-      default = 0; # Disable prompt cache in RAM (force GPU-only)
+      default = 0;
       description = "Prompt cache size in MB (0 = disable, use GPU only to save system RAM)";
     };
 
-    # Sampling parameters
     temperature = mkOption {
       type = types.float;
       default = 0.7;
@@ -191,25 +176,20 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # Systemd service
     systemd.services.llamafile = {
       description = "Llama.cpp LLM Service";
       after = ["network.target"];
       wantedBy = ["multi-user.target"];
 
-      # Build GPU-specific flags for llama-server
       serviceConfig = let
-        # llama-server uses different flag names than llamafile
         gpuLayersFlag = "-ngl ${toString cfg.gpuLayers}";
       in {
         Type = "simple";
         User = cfg.user;
         Group = "users";
 
-        # Working directory for the model
         WorkingDirectory = "/home/${cfg.user}";
 
-        # ExecStart with Qwen3.5-optimized llama-server flags
         ExecStart = ''
           ${llamaPkg}/bin/llama-server \
             --model ${cfg.modelPath} \
@@ -239,44 +219,32 @@ in {
             --metrics
         '';
 
-        # Environment to prioritize bundled libraries
-        # Force use of GPU 0 (RTX 3060 Ti) to avoid conflict with mining on GPU 1 (RTX 3090)
         Environment = [
           "LD_LIBRARY_PATH=${llamaPkg}/lib"
           "CUDA_VISIBLE_DEVICES=${toString cfg.gpuDevice}"
         ];
 
-        # Security settings
-        NoNewPrivileges = false; # Needed for GPU access
+        NoNewPrivileges = false;
         PrivateTmp = true;
 
-        # Resource limits
         LimitNOFILE = 65536;
 
-        # Restart policy
         Restart = "on-failure";
         RestartSec = "10s";
 
-        # Logging
         StandardOutput = "journal";
         StandardError = "journal";
 
-        # Watchdog disabled - llama-server doesn't implement sd_notify() heartbeat
-        # When idle, all threads wait in pthread_cond_wait, triggering false timeouts
-        # WatchdogSec = "60s";  # BUG: Causes SIGABRT on idle after 60 seconds
       };
     };
 
-    # Open firewall for the service
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
 
-    # Environment variables for llamafile
     environment.sessionVariables = {
       LLAMAFILE_URL = "http://${cfg.host}:${toString cfg.port}";
       LLAMAFILE_MODEL = cfg.modelName;
     };
 
-    # Convenience scripts
     environment.systemPackages = with pkgs; [
       (pkgs.writeShellScriptBin "llamafile-test" ''
         #!/bin/bash
@@ -286,7 +254,6 @@ in {
         echo "Model: $LLAMAFILE_MODEL"
         echo ""
 
-        # Check service status
         if systemctl is-active --quiet llamafile; then
           echo "✓ Service is running"
         else
@@ -322,7 +289,5 @@ in {
       '')
     ];
 
-    # Note: To integrate with AI gateway as fallback, add to gateway config:
-    # services.ai-inference.routing.fallbackChain = [ "lm-studio" "llamafile" "zai" ];
   };
 }

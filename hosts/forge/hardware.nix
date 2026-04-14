@@ -1,60 +1,42 @@
-# Forge Hardware Configuration
-# 2x RTX 4060 + 2x RX 5700 XT (hybrid AMD + NVIDIA)
-# GPU compute, ROCm setup, AMD/NVIDIA GPU management systemd services
 { pkgs, lib, ... }:
 {
-  # GPU COMPUTE - CUDA + ROCm + Vulkan support for AI inference
-  # Forge has BOTH AMD (5700XT) and NVIDIA GPUs (RTX 4060)
   hardware.gpu-compute = {
     enable = true;
-    cuda.enable = true; # CUDA for NVIDIA RTX 4060
-    rocm.enable = true; # ROCm for AMD 5700XT
-    vulkan.enable = true; # Universal backend (all GPUs)
+    cuda.enable = true;
+    rocm.enable = true;
+    vulkan.enable = true;
   };
 
-  # HARDWARE PROFILES
-  # Base profiles provided by node-profiles.forge-mining:
-  # - intel, nvidia.enable (multiGpu), amdgpu.enable, amdgpu.wayland, monitoring.enable
   hardware = {
-    # NVIDIA GPU support (base driver)
     nvidia-common.enable = true;
-    # BTRFS compression and deduplication
     btrfs-compression.enable = true;
-    # Hardware monitoring
     monitoring = {
       enable = true;
-      autoDetect = false; # Disabled: sensors-detect has bug with --auto flag
-      fanControl = false; # BIOS fan control for now
+      autoDetect = false;
+      fanControl = false;
     };
-    # RGB control for ASRock RX 5700 XT and motherboard
     rgb-control = {
       enable = true;
       openrgb.enable = true;
       temperatureReactive = {
         enable = true;
-        sensor = "gpu"; # Monitor GPU temps for mining
+        sensor = "gpu";
         thresholds = {
           cool = 60;
           warm = 70;
           hot = 75;
         };
-        interval = 10; # Poll every 10 seconds
+        interval = 10;
       };
     };
   };
 
-  # BOOT - Forge-specific kernel parameters
   boot = {
     kernelParams = [
-      # No overrides needed - using hardened defaults from kernel-hardening.nix
     ];
-    # GPU DRIVERS (Hybrid AMD + NVIDIA)
-    kernelModules = [ "tun" ]; # amdgpu added by profile, not duplicated here
+    kernelModules = [ "tun" ];
   };
 
-  # ============================================================================
-  # AMD GPU POWER MANAGEMENT (RX 5700 XT @ 110W)
-  # ============================================================================
   systemd.services = {
     amd-gpu-power-mgmt = {
       description = "AMD GPU Power Limit (110W for RX 5700 XT)";
@@ -67,11 +49,10 @@
         ExecStart = pkgs.writeShellScript "amd-power-limit" ''
           #!/usr/bin/env bash
           set -euo pipefail
-          POWER_LIMIT_MICROWATTS=110000000  # 110W in microwatts
+          POWER_LIMIT_MICROWATTS=110000000
           log() {
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
           }
-          # Wait for AMD GPUs to enumerate hwmon entries
           for i in $(seq 1 30); do
             cards=$(ls /sys/class/drm/card*/device/hwmon/hwmon*/power1_cap 2>/dev/null || true)
             if [[ -n "$cards" ]]; then
@@ -81,11 +62,9 @@
             log "Waiting for AMD GPU hwmon... ($i/30)"
             sleep 2
           done
-          # Set power limit for all AMD GPUs via sysfs
           for card in /sys/class/drm/card*/device/hwmon/hwmon*/power1_cap; do
             if [[ -w "$card" ]]; then
               card_name=$(basename $(dirname $(dirname $(dirname "$card"))))
-              # Validate the requested limit is within hwmon range
               cap_min=$(cat "$(dirname "$card")/power1_cap_min" 2>/dev/null || echo 0)
               cap_max=$(cat "$(dirname "$card")/power1_cap_max" 2>/dev/null || echo 0)
               if (( POWER_LIMIT_MICROWATTS < cap_min )); then
@@ -106,7 +85,6 @@
       };
     };
 
-    # NVIDIA COMPUTE MODE - EXCLUSIVE_PROCESS for mining only
     nvidia-compute-mode = {
       description = "NVIDIA GPU Compute-Only Mode (EXCLUSIVE_PROCESS)";
       wantedBy = [ "multi-user.target" ];
@@ -120,7 +98,6 @@
           log() {
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
           }
-          # Wait for NVIDIA driver to be ready
           for i in {1..30}; do
             if /run/current-system/sw/bin/nvidia-smi &>/dev/null; then
               log "NVIDIA driver ready"
@@ -129,7 +106,6 @@
             log "Waiting for NVIDIA driver... ($i/30)"
             sleep 2
           done
-          # Set compute mode for all NVIDIA GPUs
           /run/current-system/sw/bin/nvidia-smi -c 3
           /run/current-system/sw/bin/nvidia-smi --query-gpu=name,compute_mode --format=csv,noheader | while IFS=, read -r name mode; do
             log "NVIDIA GPU ''${name// /}: Compute mode = ''${mode// /}"
@@ -139,7 +115,6 @@
       };
     };
 
-    # AMD GPU DYNAMIC FAN CURVE
     amd-gpu-fan-curve = {
       description = "AMD GPU Dynamic Fan Curve Control";
       wantedBy = [ "multi-user.target" ];
@@ -271,7 +246,6 @@
       };
     };
 
-    # AMD GPU HEALTH CHECKS
     "amd-gpu-check" = {
       description = "AMD GPU Detection and Health Check";
       wantedBy = [ "multi-user.target" ];
@@ -283,7 +257,6 @@
       };
     };
 
-    # AMD GPU MAX FAN SPEED (DISABLED - using fan curve instead)
     "amd-gpu-max-fan" = {
       description = "AMD GPU Max Fan Speed (100%) - DISABLED, using fan curve instead";
       after = [
@@ -321,9 +294,6 @@
     };
   };
 
-  # ============================================================================
-  # MINING SLICE - Resource limits for mining services
-  # ============================================================================
   systemd.slices.mining = {
     description = "Mining Services Slice";
     sliceConfig = {
@@ -339,9 +309,6 @@
     };
   };
 
-  # ============================================================================
-  # ROCm SETUP - Libraries and symlinks for AMD GPU compute
-  # ============================================================================
   environment = {
     variables = {
       LD_LIBRARY_PATH = lib.mkForce "${pkgs.rocmPackages.clr}/lib:${pkgs.rocmPackages.clr.icd}/lib:${pkgs.mesa.opencl}/lib";
@@ -368,7 +335,6 @@
       "c /dev/net/tun 666 root root - - - -"
       "L+ /opt/rocm - - - - ${rocmEnv}"
       "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
-      # lolMiner workaround for OpenCL ICD path bug
       "L /etc/OpenCL/vendorsamdocl64.icd - - - - /etc/OpenCL/vendors/amdocl64.icd"
     ];
 }

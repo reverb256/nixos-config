@@ -1,5 +1,3 @@
-# Promtail log aggregation client
-# Sends journald logs to Loki on Sentry
 {
   config,
   lib,
@@ -26,7 +24,7 @@ in {
       wantedBy = ["multi-user.target"];
       after = ["network-online.target" "systemd-journald.service"];
       requires = ["systemd-journald.service"];
-      wants = ["network-online.target"]; # Fix ordering warning
+      wants = ["network-online.target"];
 
       serviceConfig = {
         ExecStart = ''
@@ -37,10 +35,8 @@ in {
         Restart = "always";
         RestartSec = "5s";
         DynamicUser = true;
-        # Add to systemd-journal group for journal access
         SupplementaryGroups = ["systemd-journal"];
 
-        # Security hardening
         NoNewPrivileges = true;
         PrivateTmp = true;
         ProtectSystem = "strict";
@@ -48,15 +44,12 @@ in {
         ReadOnlyPaths = "/";
         ReadWritePaths = ["/var/lib/promtail" "/var/log" "/var/cache/promtail"];
 
-        # Log access
         LogsDirectory = "promtail";
         StateDirectory = "promtail";
-        # CacheDirectory for positions file
         CacheDirectory = "promtail";
       };
     };
 
-    # Promtail configuration
     environment.etc."promtail/config.yml".text = ''
       server:
         http_listen_address: "127.0.0.1"

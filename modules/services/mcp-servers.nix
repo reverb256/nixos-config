@@ -1,11 +1,3 @@
-# MCP Servers - Data-Driven Factory
-#
-# Installs MCP server wrapper scripts based on the shared registry
-# at modules/services/mcp-server-registry.nix.
-#
-# The registry defines each server's type (npm/uvx/custom) and package.
-# This module generates wrapper scripts from those definitions and
-# adds per-server configuration options.
 {
   config,
   lib,
@@ -15,14 +7,9 @@
 let
   cfg = config.services.mcp-servers;
 
-  # Import shared registry
   registry = import ./mcp-server-registry.nix { inherit lib; };
 
-  # ---------------------------------------------------------------------------
-  # Factory functions for wrapper scripts
-  # ---------------------------------------------------------------------------
 
-  # Create MCP server wrapper via npm/npx
   mkNpmMcpServer =
     {
       name,
@@ -53,7 +40,6 @@ let
       exec ${pkgs.nodejs_22}/bin/npx -y ${package} ${lib.concatStringsSep " " args} "$@"
     '';
 
-  # Create MCP server wrapper via Python uvx
   mkUvxMcpServer =
     {
       name,
@@ -65,7 +51,6 @@ let
       exec ${pkgs.uv}/bin/uvx --from ${package} ${entrypoint} "$@"
     '';
 
-  # Generic factory: dispatches to the right builder based on type
   mkMcpServer =
     name: def:
     if def.type == "npm" then
@@ -81,10 +66,8 @@ let
         inherit (def) package entrypoint;
       }
     else
-      # "custom" type — no auto-generated wrapper, handled below
       null;
 
-  # Build all registry-based server packages (excluding custom/manual ones)
   registryPackages = lib.filter (p: p != null) (lib.mapAttrsToList mkMcpServer registry.servers);
 in
 {
@@ -336,18 +319,13 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Install MCP server wrapper packages
-    # - registryPackages: auto-generated from shared registry (npm/uvx types)
-    # - manual packages below: custom types and config-dependent wrappers
     environment.systemPackages =
       with pkgs;
       [
         nodejs_22
         (lib.optionalString (lib.hasAttr "uv" pkgs) uv)
       ]
-      # Auto-generated registry packages (npm/uvx types)
       ++ registryPackages
-      # Config-dependent wrappers (need access to cfg options)
       ++ lib.optionals cfg.servers.playwright.enable [
         playwright-mcp
         (pkgs.writeShellScriptBin "mcp-playwright" ''
@@ -382,7 +360,6 @@ in
           ) "args+=(--grant-permissions ${lib.concatStringsSep " " cfg.servers.playwright.grantPermissions})"}
           exec ${pkgs.playwright-mcp}/bin/mcp-server-playwright "''${args[@]}" "$@"
         '')
-        # Browser-specific convenience wrappers
         (pkgs.writeShellScriptBin "mcp-playwright-chrome" ''
           exec mcp-playwright --browser chrome "$@"
         '')
@@ -399,7 +376,6 @@ in
           exec mcp-playwright --caps vision "$@"
         '')
       ]
-      # Context7 with apiKeyFile from config option (overrides registry default)
       ++ [
         (mkNpmMcpServer {
           name = "context7";
@@ -409,7 +385,6 @@ in
           };
         })
       ]
-      # Brave search with optional API key from config
       ++ [
         (mkNpmMcpServer {
           name = "brave-search";
@@ -422,7 +397,6 @@ in
           );
         })
       ]
-      # GitHub with optional API key from config
       ++ [
         (mkNpmMcpServer {
           name = "github";
@@ -432,13 +406,11 @@ in
           };
         })
       ]
-      # MCP Gateway Bridge - custom wrapper (stdio to HTTP proxy)
       ++ [
         (pkgs.writeShellScriptBin "mcp-gateway-bridge" ''
           exec ${pkgs.python3}/bin/python3 /etc/nixos/scripts/mcp-gateway-bridge "$@"
         '')
       ]
-      # LightPanda - custom wrapper (static binary)
       ++ lib.optional cfg.servers.lightpanda.enable (
         pkgs.writeShellScriptBin "mcp-lightpanda" ''
           exec /opt/lightpanda/lightpanda mcp \
@@ -447,15 +419,10 @@ in
         ''
       );
 
-    # Note: playwright-mcp from nixpkgs is already wrapped with proper
-    # PLAYWRIGHT_BROWSERS_PATH and browser binaries from playwright-driver.browsers.
     programs.nix-ld.enable = lib.mkDefault true;
 
-    # Documentation
     environment.etc."mcp-servers/README.md".text = ''
-      # Unified MCP Servers for All AI Tools
       MCP servers configured for: OpenCode, Qwen, Kimi,
-      ## Available Servers
       | Server | Type | Purpose |
       |--------|------|---------|
       | filesystem | STDIO | Local filesystem access |
@@ -466,7 +433,6 @@ in
       | chrome-devtools | STDIO | Chrome debugging |
       | gateway | Bridge | HTTP→stdio proxy to AI Inference Gateway |
       | lightpanda | STDIO | Headless browser (9x faster than Chrome) |
-      ## Server Generation
       Servers are generated from the shared registry at
       modules/services/mcp-server-registry.nix. Adding a new server
       requires only adding an entry to the registry.

@@ -39,13 +39,11 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Create the auto-update script using lib.writeScript
     environment.etc."nixos-auto-update.sh".text = lib.mkIf cfg.enable ''
       #!/usr/bin/env bash
 
       set -euo pipefail
 
-      # Auto-detect flake path (NFS mount vs local)
       if [ -d /run/nixos-shared ] && [ -f /run/nixos-shared/flake.nix ]; then
         FLAKE_PATH=/run/nixos-shared
       elif [ -f /etc/nixos/flake.nix ]; then
@@ -57,14 +55,11 @@ in {
 
       LOG_FILE=/var/log/nixos-auto-update.log
 
-      # Set up PATH to include Nix - critical for systemd services
       export PATH=/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:$PATH
 
       exec >> "$LOG_FILE" 2>&1
       echo "$(date): Starting automatic update"
 
-      # Supply chain security: validate flake input age before updating
-      # Reject inputs newer than 7 days to prevent pulling unreviewed changes
       AGE_THRESHOLD_DAYS=7
       NOW=$(date +%s)
       LOCK_FILE="$FLAKE_PATH/flake.lock"
@@ -82,7 +77,6 @@ in {
         done
       fi
 
-      # Pull and update specified flake inputs
       UPDATE_ARGS=""
       for input_name in ${lib.concatStringsSep " " cfg.updateFlakeInputs}; do
           UPDATE_ARGS="$UPDATE_ARGS --update-input $input_name"
@@ -93,7 +87,6 @@ in {
           nix flake update $UPDATE_ARGS --flake "$FLAKE_PATH"
       fi
 
-      # Build and switch to the new configuration
       echo "$(date): Building and switching to new configuration"
       nixos-rebuild switch --flake "$FLAKE_PATH" --option refresh-template-caches true ${lib.concatStringsSep " " cfg.extraFlags}
 
@@ -127,7 +120,7 @@ in {
           then "weekly"
           else if cfg.interval == "monthly"
           then "monthly"
-          else cfg.interval; # Assume it's a custom calendar specification
+          else cfg.interval;
         Persistent = true;
       };
     };

@@ -1,50 +1,35 @@
-# Sentry Monitoring Configuration
 { ... }:
 {
   imports = [
     ../../modules/services/monitoring/default.nix
   ];
 
-  # SERVICES CONFIGURATION
   services = {
-    # System monitoring CLI tools
     monitoring.system-tools = {
       enable = true;
-      packageSet = "standard"; # htop, iotop, nethogs, iftop, perf
+      packageSet = "standard";
     };
 
-    # Monitoring stack
     monitoring = {
-      # Core monitoring services
       prometheus.enable = true;
       grafana.enable = true;
       alertmanager.enable = true;
-      # Local webhook notifications (no password required)
       alert-webhook.enable = true;
-      # Email disabled (requires SMTP password)
       alertmanager.email.enable = false;
       loki = {
         enable = true;
-        listenAddress = "0.0.0.0"; # Allow cluster-wide access
-        dataDir = "/storage/loki"; # Use persistent storage
+        listenAddress = "0.0.0.0";
+        dataDir = "/storage/loki";
       };
 
-      # Metrics exporters
       node-exporter.enable = true;
       smart-exporter.enable = true;
 
-      # Log aggregation (local Loki)
-      # promtail EOL — needs migration to grafana-alloy
-      # promtail.enable = false;
-      # promtail.lokiUrl = "http://127.0.0.1:3100/loki/api/v1/push";
     };
 
-    # Note: Sentry has no GPUs, no GPU exporters needed
 
-    # Mining exporter for CPU mining metrics
     mining-exporter.enable = true;
 
-    # Self-healing alerts via Plasma desktop notifications
     self-healing-alerts = {
       enable = true;
       monitoredServices = [
@@ -54,14 +39,13 @@
         "etcd"
         "keepalived"
       ];
-      enableCircuitBreakerAlerts = false; # No AI gateway on Sentry
+      enableCircuitBreakerAlerts = false;
       enableVIPFailoverAlerts = true;
       enableResourceAlerts = true;
       memoryThreshold = 90;
       diskThreshold = 90;
     };
 
-    # XMRig CPU miner metrics -> node-exporter textfile collector
     xmrig-metrics = {
       enable = true;
       targets = [
@@ -72,6 +56,5 @@
     };
   };
 
-  # Ensure node-exporter port is open for Prometheus scraping
   networking.firewall.allowedTCPPorts = [ 9100 ];
 }

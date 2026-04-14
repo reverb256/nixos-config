@@ -1,7 +1,3 @@
-# AI Inference Service - Backend Integration Config
-#
-# System packages, service integrations (Prometheus, Redis), and
-# the ai-inference-status helper CLI.
 {
   config,
   lib,
@@ -14,11 +10,10 @@ let
 in
 {
   config = lib.mkIf cfg.enable {
-    # System packages
     environment.systemPackages = with pkgs; [
       config.services.ai-inference.package
       inputs.claude-native.packages.x86_64-linux.claude
-      ffmpeg # Required for pydub MP3 conversion in TTS
+      ffmpeg
       (pkgs.writeShellScriptBin "ai-inference-status" ''
         #!/bin/bash
         echo "=== AI Inference Service Status ==="
@@ -33,9 +28,7 @@ in
       '')
     ];
 
-    # Services configuration
     services = {
-      # Prometheus scrape configuration — targets the K8s service
       prometheus.scrapeConfigs = lib.mkIf cfg.monitoring.enable [
         {
           job_name = "ai-inference-gateway";
@@ -51,8 +44,6 @@ in
         }
       ];
 
-      # Redis for gateway middleware (caching, rate limiting, circuit breaker)
-      # Using port 6380 to avoid conflict with fwupd-redis on 6379
       redis.servers.ai-gateway = {
         inherit (cfg.gateway.middleware.redis) enable;
         bind = "127.0.0.1";
