@@ -72,16 +72,8 @@ let
   ];
 
   # NVIDIA NIM hosted models — https://integrate.api.nvidia.com/v1
-  # All free tier. No Llama models.
+  # All free tier. IDs must match NVIDIA's API exactly (no provider prefix).
   nvidiaModels = [
-    {
-      id = "deepseek-ai/deepseek-r1";
-      name = "DeepSeek R1 (NVIDIA NIM)";
-      reasoning = true;
-      input = [ "text" ];
-      contextWindow = 131072;
-      maxTokens = 16384;
-    }
     {
       id = "deepseek-ai/deepseek-v3.1";
       name = "DeepSeek V3.1 (NVIDIA NIM)";
@@ -91,8 +83,16 @@ let
       maxTokens = 16384;
     }
     {
-      id = "qwen/qwen3.5-122b-a10b";
-      name = "Qwen 3.5 122B (NVIDIA NIM)";
+      id = "deepseek-ai/deepseek-v3.2";
+      name = "DeepSeek V3.2 (NVIDIA NIM)";
+      reasoning = true;
+      input = [ "text" ];
+      contextWindow = 131072;
+      maxTokens = 16384;
+    }
+    {
+      id = "qwen/qwen3-coder-480b-a35b-instruct";
+      name = "Qwen3 Coder 480B (NVIDIA NIM)";
       reasoning = true;
       input = [
         "text"
@@ -110,25 +110,10 @@ let
       maxTokens = 32768;
     }
     {
-      id = "google/gemma-4-31b-it";
-      name = "Gemma 4 31B IT (NVIDIA NIM)";
+      id = "moonshotai/kimi-k2-instruct";
+      name = "Kimi K2 (NVIDIA NIM)";
       reasoning = true;
-      input = [
-        "text"
-        "image"
-      ];
-      contextWindow = 262144;
-      maxTokens = 16384;
-    }
-    {
-      id = "moonshotai/kimi-k2.5";
-      name = "Kimi K2.5 (NVIDIA NIM)";
-      reasoning = true;
-      input = [
-        "text"
-        "image"
-        "video"
-      ];
+      input = [ "text" ];
       contextWindow = 262144;
       maxTokens = 16384;
     }
@@ -141,11 +126,49 @@ let
       maxTokens = 16384;
     }
     {
+      id = "moonshotai/kimi-k2.5";
+      name = "Kimi K2.5 (NVIDIA NIM)";
+      reasoning = true;
+      input = [
+        "text"
+        "image"
+      ];
+      contextWindow = 262144;
+      maxTokens = 16384;
+    }
+    {
+      id = "meta/llama-4-maverick-17b-128e-instruct";
+      name = "Llama 4 Maverick (NVIDIA NIM)";
+      reasoning = true;
+      input = [
+        "text"
+        "image"
+      ];
+      contextWindow = 131072;
+      maxTokens = 16384;
+    }
+    {
+      id = "bytedance/seed-oss-36b-instruct";
+      name = "Seed OSS 36B (NVIDIA NIM)";
+      reasoning = false;
+      input = [ "text" ];
+      contextWindow = 131072;
+      maxTokens = 16384;
+    }
+    {
       id = "minimaxai/minimax-m2.5";
       name = "MiniMax M2.5 (NVIDIA NIM)";
       reasoning = true;
       input = [ "text" ];
       contextWindow = 204800;
+      maxTokens = 16384;
+    }
+    {
+      id = "mistralai/mistral-large-3-675b-instruct-2512";
+      name = "Mistral Large 3 675B (NVIDIA NIM)";
+      reasoning = true;
+      input = [ "text" ];
+      contextWindow = 131072;
       maxTokens = 16384;
     }
   ];

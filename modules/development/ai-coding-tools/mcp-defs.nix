@@ -116,7 +116,7 @@ let
           isContext7 = name == "context7";
 
           envBlock =
-            if server.env != null then
+            if server ? env && server.env != null then
               let
                 envEntries = lib.mapAttrsToList (
                   k: v:
@@ -135,7 +135,7 @@ let
               "";
 
           argsBlock =
-            if server.args != null then
+            if server ? args && server.args != null then
               ''
                 , "args": [${lib.concatStringsSep ", " (map (a: "\"${a}\"") server.args)}]
               ''
@@ -143,7 +143,7 @@ let
               "";
 
           headersBlock =
-            if isHttp && server.headers != null then
+            if isHttp && server ? headers && server.headers != null then
               let
                 headerEntries = lib.mapAttrsToList (
                   k: v:
@@ -164,7 +164,7 @@ let
           '';
 
           commandBlock =
-            if server.command != null then
+            if server ? command && server.command != null then
               ''
                 , "command": "${server.command}"
               ''

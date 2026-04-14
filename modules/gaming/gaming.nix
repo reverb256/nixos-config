@@ -468,7 +468,6 @@ in
         wivrn = {
           enable = true;
           openFirewall = true;
-          defaultRuntime = true;
           autoStart = true;
         };
         # VR device udev rules
