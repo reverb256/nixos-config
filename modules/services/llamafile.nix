@@ -13,7 +13,8 @@
     mkEnableOption
     mkOption
     mkIf
-    types;
+    types
+    ;
 
   # Auto-detect GPU backend from gpu-compute module or use explicit setting
   useCuda = config.hardware.gpu-compute.cuda.enable or false;
@@ -36,8 +37,8 @@ in {
 
     # Model configuration
     modelPath = mkOption {
-      type = types.path;
-      default = /home/j_kro/.lmstudio/models/mradermacher/Qwen3.5-4B-Unredacted-MAX-i1-GGUF/Qwen3.5-4B-Unredacted-MAX.i1-Q4_K_S.gguf;
+      type = types.str;
+      default = "/home/j_kro/.lmstudio/models/mradermacher/Qwen3.5-4B-Unredacted-MAX-i1-GGUF/Qwen3.5-4B-Unredacted-MAX.i1-Q4_K_S.gguf";
       description = "Path to the GGUF model file";
     };
 
@@ -145,7 +146,7 @@ in {
     # GPU-only mode - disable system RAM caching
     # Multimodal support
     mmprojPath = mkOption {
-      type = types.nullOr types.path;
+      type = types.nullOr types.str;
       default = null;
       description = "Path to multimodal projector GGUF file (mmproj) for vision/audio support";
     };

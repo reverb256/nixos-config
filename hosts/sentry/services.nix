@@ -1,8 +1,7 @@
 # Sentry Service Configuration
 # K3s control plane, monitoring stack (Loki), nginx, mining,
 # NFS client, Syncthing, Gemma 4 E2B vision model (ROCm)
-{ pkgs, lib, ... }:
-{
+{pkgs, ...}: {
   services = {
     # KUBERNETES - k3s control plane (joins existing cluster)
     k3s-cluster = {
@@ -135,8 +134,8 @@
     # Gemma 4 E2B with vision on AMD RX 5600 XT (ROCm)
     llamafile = {
       enable = true;
-      modelPath = /home/j_kro/.lmstudio/models/unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-IQ4_NL.gguf;
-      mmprojPath = /home/j_kro/.lmstudio/models/unsloth/gemma-4-E2B-it-GGUF/mmproj-F32.gguf;
+      modelPath = "/home/j_kro/.lmstudio/models/unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-IQ4_NL.gguf";
+      mmprojPath = "/home/j_kro/.lmstudio/models/unsloth/gemma-4-E2B-it-GGUF/mmproj-F32.gguf";
       modelName = "gemma4-e2b";
       host = "0.0.0.0";
       port = 8888;
@@ -164,7 +163,7 @@
   };
 
   # Display driver
-  services.xserver.videoDrivers = [ "amdgpu" ];
+  services.xserver.videoDrivers = ["amdgpu"];
 
   # ============================================================================
   # NIX-LD - For mining software compatibility

@@ -9,15 +9,14 @@
 #
 # HM PR #9025 added programs.opencode.tui for opencode v1.2.15+
 # Stylix PR #2268 migrated to use programs.opencode.tui.theme
-{
-  pkgs,
-  ...
-}:
-{
+{pkgs, ...}: {
   programs.opencode = {
     enable = true;
     settings = {
-      plugin = [ "oh-my-opencode@latest" ];
+      plugin = ["oh-my-opencode@latest"];
     };
   };
+
+  # Telegram desktop — moved from nix profile
+  home.packages = [pkgs.telegram-desktop];
 }
