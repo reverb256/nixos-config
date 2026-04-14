@@ -262,8 +262,8 @@ in
         "Mod+B".action = spawn "launch-or-focus" "Zen" "zen-twilight";
         "Mod+Shift+B".action = spawn "zen-twilight" "--private-window";
         "Mod+E".action = spawn "launch-or-focus" "Dolphin" "${pkgs.kdePackages.dolphin}/bin/dolphin";
-        "Mod+N".action = spawn "launch-or-focus" "KWrite" "${pkgs.kdePackages.kwrite}/bin/kwrite";
-        "Mod+Shift+N".action = spawn "launch-or-focus" "Kate" "${pkgs.kdePackages.kate}/bin/kate";
+        "Mod+N".action = spawn "launch-or-focus" "Kate" "${pkgs.kdePackages.kate}/bin/kate";
+        "Mod+Shift+N".action = spawn "launch-or-focus" "VSCode" "${pkgs.vscode}/bin/code";
         "Mod+O".action = spawn "launch-or-focus" "Obsidian" "obsidian";
         "Mod+T".action = spawn "ghostty" "-e" "btop";
         "Mod+D".action = spawn "ghostty" "-e" "lazydocker";
