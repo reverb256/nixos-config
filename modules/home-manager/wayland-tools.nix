@@ -218,11 +218,11 @@ in
   # Restart noctalia-shell if the binary path changed (version mismatch fix)
   home.activation.noctalia-restart = dagEntryAfter [ "writeBoundary" ] ''
     $VERBOSE_ECHO "Checking noctalia-shell version consistency"
-    RUNNING=$(pgrep -a quickshell 2>/dev/null | grep noctalia-shell | head -1)
-    if [ -n "$RUNNING" ]; then
-      RUNNING_PATH=$(echo "$RUNNING" | grep -oP '/nix/store/[^/]+-noctalia-shell-[^/]*/' | head -1)
-      CURRENT_PATH=$(readlink -f "$(which noctalia-shell 2>/dev/null)" 2>/dev/null | grep -oP '/nix/store/[^/]+-noctalia-shell-[^/]*/' | head -1)
-      if [ -n "$RUNNING_PATH" ] && [ -n "$CURRENT_PATH" ] && [ "$RUNNING_PATH" != "$CURRENT_PATH" ]; then
+    RUNNING=$(pgrep -a quickshell 2>/dev/null | grep noctalia-shell || true)
+    if [ -n "${RUNNING:-}" ]; then
+      RUNNING_PATH=$(echo "$RUNNING" | grep -oP '/nix/store/[^/]+-noctalia-shell-[^/]*/' || echo '')
+      CURRENT_PATH=$(readlink -f "$(which noctalia-shell 2>/dev/null)" 2>/dev/null | grep -oP '/nix/store/[^/]+-noctalia-shell-[^/]*/' || echo '')
+      if [ -n "${RUNNING_PATH:-}" ] && [ -n "${CURRENT_PATH:-}" ] && [ "$RUNNING_PATH" != "$CURRENT_PATH" ]; then
         $VERBOSE_ECHO "Restarting noctalia-shell: $RUNNING_PATH -> $CURRENT_PATH"
         pkill -f "quickshell.*noctalia-shell" 2>/dev/null || true
         sleep 1
