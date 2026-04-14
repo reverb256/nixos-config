@@ -4,11 +4,13 @@
 # 2. The package is managed declaratively
 #
 # Config split:
-#   ~/.config/opencode/opencode.json — HM-managed (this file, minimal)
+#   ~/.config/opencode/opencode.json — HM-managed (plugins, theme)
 #   ~/.opencode/config.json — ai-coding-tools generator (providers, MCP, models)
+#
+# HM PR #9025 added programs.opencode.tui for opencode v1.2.15+
+# Stylix PR #2268 migrated to use programs.opencode.tui.theme
 {
   pkgs,
-  lib,
   ...
 }:
 {
@@ -18,9 +20,4 @@
       plugin = [ "oh-my-opencode@latest" ];
     };
   };
-
-  # Stylix's opencode HM module sets programs.opencode.tui.theme = "stylix"
-  # but the upstream HM opencode module doesn't declare a `tui` sub-option.
-  # Disable the stylix target to prevent the error.
-  stylix.targets.opencode.enable = false;
 }

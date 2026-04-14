@@ -39,6 +39,7 @@ in
           ../../modules/home-manager/caprine.nix
           ../../modules/home-manager/niri-config.nix
           ../../modules/home-manager/obsidian.nix
+          ../../modules/home-manager/opencode.nix
         ];
 
         # Enable vesktop and caprine only on Zephyr
