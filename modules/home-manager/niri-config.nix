@@ -268,9 +268,9 @@ in
         "Mod+T".action = spawn "ghostty" "-e" "btop";
         "Mod+D".action = spawn "ghostty" "-e" "lazydocker";
         "Mod+G".action = spawn "launch-or-focus" "Vesktop" "vesktop";
-        "Mod+Shift+G".action = spawn "zen-twilight" "--new-window" "https://grok.com";
+        "Mod+Shift+G".action = spawn "launch-or-focus" "Grok" "firefoxpwa" "site" "launch" "grok";
         "Mod+A".action = spawn "launch-or-focus" "LM" "lm-studio";
-        "Mod+Shift+A".action = spawn "zen-twilight" "--new-window" "https://chatgpt.com";
+        "Mod+Shift+A".action = spawn "launch-or-focus" "ChatGPT" "firefoxpwa" "site" "launch" "chatgpt";
         "Mod+M".action = spawn "launch-or-focus" "Spotify" "flatpak" "run" "com.spotify.Client";
         "Mod+Slash".action = spawn "launch-or-focus" "Bitwarden" "flatpak" "run" "com.bitwarden.desktop";
         "Mod+K".action = show-hotkey-overlay;
