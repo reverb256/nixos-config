@@ -122,7 +122,7 @@
 
     Service.open-webui = {
       metadata.labels.app = "open-webui";
-      spec = { type = "ClusterIP"; ports = [{ name = "http"; port = 8080; protocol = "TCP"; targetPort = 8080; }]; selector.app = "open-webui"; };
+      spec = { type = "NodePort"; ports = [{ name = "http"; port = 8080; protocol = "TCP"; targetPort = 8080; nodePort = 32080; }]; selector.app = "open-webui"; };
     };
 
     Ingress.llama-server = {
