@@ -351,11 +351,21 @@
   # DNS - Local records for K8s ingress hostnames
   # ============================================================================
   networking.extraHosts = lib.mkOptionDefault ''
-    10.1.1.100 search.lan search.cluster.local
-    10.1.1.100 ai.lan ai.cluster.local
-    10.1.1.100 openwebui.lan openwebui.cluster.local
-    10.1.1.100 civicintel.lan civicintel.cluster.local
+    10.1.1.100 search.cluster.local
+    10.1.1.100 ai.cluster.local
+    10.1.1.100 openwebui.cluster.local
+    10.1.1.100 civicintel.cluster.local
   '';
+
+  # DNAT VIP (10.1.1.100) → nexus NodePort for K8s services
+  # Cluster networking (kube-proxy + CNI) needs repair; this is a stopgap.
+  # TODO: Remove once kube-proxy is re-enabled and CNI is functional.
+  boot.postBootCommands = ''
+    ${pkgs.nftables}/bin/nft add rule ip nat PREROUTING ip daddr 10.1.1.100 tcp dport 80 dnat to 10.1.1.120:30888
+    ${pkgs.nftables}/bin/nft add rule ip nat OUTPUT ip daddr 10.1.1.100 tcp dport 80 dnat to 10.1.1.120:30888
+  '';
+  # NOTE: nft add is idempotent-ish but may fail if rule exists.
+  # For a proper fix, use networking.nftables.tables with include rules.
 
   # ============================================================================
   # SYSTEM STATE

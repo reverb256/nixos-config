@@ -15,6 +15,8 @@
     ./firewall.nix
     # Hardware (AMD GPU, ROCm, RGB, kernel params)
     ./hardware.nix
+    # Desktop (niri + SDDM)
+    ./desktop.nix
     # Services (K3s, nginx, mining, NFS, Syncthing, llamafile)
     ./services.nix
     # Hardware configuration (generated)
@@ -41,8 +43,7 @@
     image = ../../modules/desktop/wallpapers/dracula-bg.png;
   };
 
-  # Enable niri compositor with auto-login
-  programs.niri.enable = true;
+  # Enable niri compositor with auto-login (moved to desktop.nix)
 
   # ============================================================================
   # HOST IDENTIFICATION
