@@ -47,6 +47,13 @@ in
         selector = labels;
       };
     };
+    Service.caddy-ingress-controller-metrics = {
+      metadata.labels = labels;
+      spec = { type = "ClusterIP";
+        ports = [{ name = "metrics"; port = 9765; protocol = "TCP"; targetPort = "metrics"; }];
+        selector = labels;
+      };
+    };
   };
   config.kubernetes.objects.none = {
     ClusterRole.caddy-ingress-controller = {
