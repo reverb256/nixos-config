@@ -1,11 +1,10 @@
 # Nexus Desktop Configuration
-# Niri Wayland compositor + Plasma for gaming, Steam Gamescope session
+# Niri Wayland compositor + SDDM auto-login
 { ... }:
 {
-  # Enable workstation role for full Plasma desktop environment
-  profiles.role.workstation = true;
-
-  # Autologin into Niri on boot (instead of Plasma)
   programs.niri.enable = true;
+  desktop.uwsm-sessions.enable = true;
   services.displayManager.defaultSession = "niri";
+  services.displayManager.autoLogin.enable = true;
+  services.displayManager.autoLogin.user = "j_kro";
 }

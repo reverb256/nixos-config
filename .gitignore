@@ -49,3 +49,8 @@ Updated API key file
 # pi agent local state
 .pi/
 .pi-lens/
+.bug-hunter/
+.hive/
+.pipeline-guard-disable
+.sisyphus/
+territory_map.json
