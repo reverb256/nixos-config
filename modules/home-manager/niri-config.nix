@@ -238,6 +238,7 @@ in
         # APPLICATIONS (launch-or-focus prevents duplicate windows)
         # =========================================================================
         "Mod+Return".action = spawn "launch-or-focus" "Ghostty" "ghostty";
+        "Mod+Ctrl+Return".action = spawn "ghostty"; # Always spawn new terminal
         "Mod+Shift+Return".action = spawn "zen-twilight";
         "Mod+B".action = spawn "launch-or-focus" "Zen" "zen-twilight";
         "Mod+E".action = spawn "launch-or-focus" "Dolphin" "${pkgs.kdePackages.dolphin}/bin/dolphin";
