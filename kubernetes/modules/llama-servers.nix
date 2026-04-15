@@ -1,7 +1,7 @@
-# LLM inference deployments — llama-server via hostPath /nix/store
+# LLM inference deployments - llama-server via hostPath /nix/store
 #
 # Uses minimal scratch image with /nix/store bind-mounted from host.
-# The Nix-built llama-server binary runs directly — no Docker image build needed.
+# The Nix-built llama-server binary runs directly - no Docker image build needed.
 # Binary auto-updates when NixOS is rebuilt (reads live /nix/store).
 { pkgs, pkgsWithOverlay, config, lib, ... }:
 let
@@ -11,11 +11,12 @@ in
 {
   config.kubernetes.objects.ai-inference = {
 
-    # ── Zephyr llama-server (CUDA, RTX 3060 Ti, Gemma 4 E4B vision) ──
+    # Zephyr llama-server (CUDA, RTX 3060 Ti, Gemma 4 E4B vision)
+    # NOTE: replicas = 0 - systemd llamafile.service serves on zephyr instead
     Deployment.llama-server-zephyr = {
       metadata.labels = managed // { app = "llama-server-zephyr"; host = "zephyr"; };
       spec = {
-        replicas = 1;
+        replicas = 0;
         revisionHistoryLimit = 1;
         selector.matchLabels = { app = "llama-server-zephyr"; host = "zephyr"; };
         strategy.type = "Recreate";
@@ -113,12 +114,12 @@ in
       };
     };
 
-    # ── Sentry llama-server (ROCm, RX 5600 XT, Gemma 4 E2B) ────
-    # Disabled until sentry is redeployed with the fixed llama-cpp-rocm package.
+    # Sentry llama-server (ROCm, RX 5600 XT, Gemma 4 E2B)
+    # NOTE: replicas = 0 - waiting for ROCm package fix by another agent
     Deployment.llama-server-sentry = {
       metadata.labels = managed // { app = "llama-server-sentry"; host = "sentry"; };
       spec = {
-        replicas = 1;
+        replicas = 0;
         revisionHistoryLimit = 1;
         selector.matchLabels = { app = "llama-server-sentry"; host = "sentry"; };
         strategy.type = "Recreate";
