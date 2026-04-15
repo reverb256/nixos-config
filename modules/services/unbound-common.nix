@@ -63,6 +63,7 @@ in
           "haven.cluster.local. IN A 10.1.1.120"
           "hermes.lan. IN A 10.1.1.120"
           "hermes.cluster.local. IN A 10.1.1.120"
+          "api.hermes.lan. IN A 10.1.1.120"
         ];
 
     networking.firewall.allowedUDPPorts = lib.mkOptionDefault [ 53 ];

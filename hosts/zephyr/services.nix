@@ -244,6 +244,18 @@
           encode zstd gzip
           reverse_proxy 10.1.1.120:3000
         }
+
+        https://hermes.lan, https://hermes.cluster.local {
+          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
+          encode zstd gzip
+          reverse_proxy 10.1.1.120:9119
+        }
+
+        https://api.hermes.lan {
+          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
+          encode zstd gzip
+          reverse_proxy 10.1.1.120:8642
+        }
       '';
     };
 
