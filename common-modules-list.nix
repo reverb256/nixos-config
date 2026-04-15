@@ -12,6 +12,8 @@
   inputs.nixpkgs-xr.nixosModules.nixpkgs-xr
   inputs.niri.nixosModules.niri
 
+  inputs.hermes-agent.nixosModules.default
+
   inputs.stylix.nixosModules.stylix
 
 
