@@ -149,17 +149,11 @@
       };
     };
 
-    # Non-secret environment vars
-    environment = {
-      API_SERVER_ENABLED = "true";
-      API_SERVER_PORT = "8642";
-      API_SERVER_HOST = "0.0.0.0";  # accessible from LAN
-      # Z.AI provider (same as pi)
-      GLM_API_KEY_FILE = "/run/agenix/zai-api-key";
-      GLM_BASE_URL = "https://api.z.ai/api/coding/paas/v4";
-    };
+    # Non-secret environment vars — passed via systemd override below
+    # (the module's environment option doesn't reliably set systemd env vars)
+    environment = {};
 
-    # Secrets (via agenix)
+    # Secrets loaded via ExecStartPre + EnvironmentFile override below
     # environmentFiles = [ config.age.secrets.hermes-env.path ];
 
     # MCP servers
@@ -191,19 +185,25 @@
     openFirewall = true;
   };
 
-  # Load Z.AI API key into hermes-agent at service start
-  # The agenix secret contains the raw key; we wrap it in ZAI_API_KEY= format
+  # Load Z.AI API key and configure hermes-agent environment
+  # The official module's environment option doesn't reliably set systemd env vars,
+  # so we use a systemd override with ExecStartPre to generate an env file.
   systemd.services.hermes-agent = {
-    serviceConfig.ExecStartPre = pkgs.writeShellScript "hermes-load-api-key" ''
+    serviceConfig.ExecStartPre = pkgs.writeShellScript "hermes-load-env" ''
       mkdir -p /var/lib/hermes/.hermes
-      echo -n "ZAI_API_KEY=" > /var/lib/hermes/.hermes/provider-env
+      cat > /var/lib/hermes/.hermes/provider-env << 'ENVEOF'
+      API_SERVER_ENABLED=true
+      API_SERVER_HOST=0.0.0.0
+      API_SERVER_PORT=8642
+      API_SERVER_KEY=hermes-local-dev-b8b2275d6053fb335a9508048c54dc96
+      GLM_BASE_URL=https://api.z.ai/api/coding/paas/v4
+      ENVEOF
+      echo -n "ZAI_API_KEY=" >> /var/lib/hermes/.hermes/provider-env
       cat /run/agenix/zai-api-key >> /var/lib/hermes/.hermes/provider-env
       chmod 600 /var/lib/hermes/.hermes/provider-env
       chown hermes:hermes /var/lib/hermes/.hermes/provider-env
     '';
-    environment.ZAI_API_KEY_FILE = lib.mkForce "/var/lib/hermes/.hermes/provider-env";
     # Use "-" prefix so systemd doesn't fail if file doesn't exist yet
-    # ExecStartPre creates it before the main process starts
     serviceConfig.EnvironmentFile = "-/var/lib/hermes/.hermes/provider-env";
   };
 
