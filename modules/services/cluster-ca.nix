@@ -68,7 +68,7 @@ in {
             -subj "/CN=Cluster Ingress" \
             -addext "subjectAltName=DNS:search.lan,DNS:search.cluster.local,DNS:ai.lan,DNS:ai.cluster.local,DNS:openwebui.lan,DNS:openwebui.cluster.local,DNS:haven.lan,DNS:haven.cluster.local,DNS:hermes.lan,DNS:hermes.cluster.local,DNS:api.hermes.lan" 2>/dev/null
           ${pkgs.openssl}/bin/openssl x509 -req -in /tmp/leaf.csr -CA ${cfg.caCert} -CAkey ${cfg.caKey} \
-            -CAcreateserial -out $LEAF_CERT -days 365 2>/dev/null
+            -CAcreateserial -out $LEAF_CERT -days 365 -copy_extensions copyall 2>/dev/null
           rm -f /tmp/leaf.csr
           chmod 644 $LEAF_CERT
           chmod 640 $LEAF_KEY
