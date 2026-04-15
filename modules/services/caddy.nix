@@ -70,6 +70,8 @@
     networking.firewall.allowedUDPPorts = lib.mkOptionDefault [443];
 
     systemd.services.caddy = {
+      after = [ "cluster-ca-init.service" ];
+      wants = [ "cluster-ca-init.service" ];
       serviceConfig = {
         NoNewPrivileges = true;
         PrivateTmp = true;
@@ -78,6 +80,7 @@
         RestrictRealtime = true;
         RestrictAddressFamilies = ["AF_UNIX" "AF_INET" "AF_INET6" "AF_NETLINK"];
         AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
+        BindReadOnlyPaths = ["/etc/ssl/cluster-ca"];
       };
     };
   };

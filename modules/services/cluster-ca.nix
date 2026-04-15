@@ -30,6 +30,7 @@ in {
     systemd.services.cluster-ca-init = {
       description = "Generate internal CA certificate";
       wantedBy = [ "multi-user.target" ];
+      before = [ "caddy.service" ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -49,9 +50,32 @@ in {
 
           echo "Internal CA certificate generated at ${cfg.caCert}"
           chmod 644 ${cfg.caCert}
-          chmod 600 ${cfg.caKey}
+          chmod 640 ${cfg.caKey}
+          chown root:caddy ${cfg.caKey}
         else
           echo "CA certificate already exists at ${cfg.caCert}"
+          # Ensure permissions are correct on existing key
+          chmod 640 ${cfg.caKey}
+          chown root:caddy ${cfg.caKey} 2>/dev/null || true
+        fi
+
+        # Generate leaf certificate for Caddy (covers all .lan domains)
+        LEAF_CERT=/etc/ssl/cluster-ca/leaf.crt
+        LEAF_KEY=/etc/ssl/cluster-ca/leaf.key
+        if [ ! -f $LEAF_CERT ] || ! ${pkgs.openssl}/bin/openssl x509 -in $LEAF_CERT -noout -checkend 2592000 2>/dev/null; then
+          ${pkgs.openssl}/bin/openssl genrsa -out $LEAF_KEY 2048 2>/dev/null
+          ${pkgs.openssl}/bin/openssl req -new -key $LEAF_KEY -out /tmp/leaf.csr \
+            -subj "/CN=Cluster Ingress" \
+            -addext "subjectAltName=DNS:search.lan,DNS:search.cluster.local,DNS:ai.lan,DNS:ai.cluster.local,DNS:openwebui.lan,DNS:openwebui.cluster.local,DNS:haven.lan,DNS:haven.cluster.local" 2>/dev/null
+          ${pkgs.openssl}/bin/openssl x509 -req -in /tmp/leaf.csr -CA ${cfg.caCert} -CAkey ${cfg.caKey} \
+            -CAcreateserial -out $LEAF_CERT -days 365 2>/dev/null
+          rm -f /tmp/leaf.csr
+          chmod 644 $LEAF_CERT
+          chmod 640 $LEAF_KEY
+          chown root:caddy $LEAF_KEY
+          echo "Leaf certificate generated at $LEAF_CERT"
+        else
+          echo "Leaf certificate still valid"
         fi
       '';
     };
