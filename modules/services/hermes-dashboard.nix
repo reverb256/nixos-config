@@ -1,10 +1,7 @@
 # Hermes Agent dashboard module
 #
-# Builds the web frontend (Vite SPA) and runs `hermes dashboard` as a
-# separate systemd service alongside the gateway.
-#
-# The nix package doesn't include fastapi (a [web] extra).
-# We install it via pip into a dedicated venv on first activation.
+# Runs `hermes dashboard` as a systemd service alongside the gateway.
+# Uses a .pth file to inject the web dist path at Python startup.
 {
   config,
   lib,
@@ -20,6 +17,14 @@ let
   # Build the web SPA from the same source as the hermes-agent flake input
   hermes-web-dist = pkgs.callPackage ../../packages/hermes-web-dist.nix {
     hermesSrc = inputs.hermes-agent;
+  };
+
+  # .pth file that patches hermes_cli.web_server.WEB_DIST at startup
+  webDistPth = pkgs.writeTextFile {
+    name = "hermes-web-dist-patch";
+    destination = "/${pkgs.python311.sitePackages}/zzz_hermes_web_dist.pth";
+    # .pth files can contain Python code if they start with "import "
+    text = "import hermes_cli.web_server as _hws; _hws.WEB_DIST = __import__('pathlib').Path('${hermes-web-dist}')";
   };
 
 in {
@@ -49,13 +54,13 @@ in {
     # Require the gateway to be enabled too
     services.hermes-agent.enable = lib.mkDefault true;
 
-    # Activation: pip install fastapi into a dedicated venv if not present
+    # Activation: pip install fastapi into a dedicated venv
     system.activationScripts."hermes-dashboard-setup" = lib.stringAfter [ "hermes-agent-setup" ] ''
       DASHBOARD_VENV="${hermesCfg.stateDir}/.hermes/dashboard-venv"
       if [ ! -d "$DASHBOARD_VENV" ]; then
         echo "Creating dashboard venv with fastapi..."
-        ${pkgs.python311}/bin/python3.11 -m venv "$DASHBOARD_VENV"
-        chown -R ${hermesCfg.user}:${hermesCfg.group} "$DASHBOARD_VENV"
+        ${pkgs.python311}/bin/python3.11 -m venv "$DASHBOARD_VENV" 2>/dev/null || true
+        chown -R ${hermesCfg.user}:${hermesCfg.group} "$DASHBOARD_VENV" 2>/dev/null || true
         sudo -u ${hermesCfg.user} "$DASHBOARD_VENV/bin/pip" install --quiet \
           'fastapi>=0.104.0,<1' 'uvicorn[standard]>=0.24.0,<1' 2>/dev/null || true
       fi
@@ -73,9 +78,11 @@ in {
         HOME = hermesCfg.stateDir;
         HERMES_HOME = "${hermesCfg.stateDir}/.hermes";
         HERMES_MANAGED = "true";
-        HERMES_WEB_DIST = "${hermes-web-dist}";
-        # Add dashboard venv to python path so fastapi is found
-        PYTHONPATH = "${hermesCfg.stateDir}/.hermes/dashboard-venv/lib/python3.11/site-packages";
+        # Add fastapi venv + web_dist patch to python path
+        PYTHONPATH = lib.concatStringsSep ":" [
+          "${hermesCfg.stateDir}/.hermes/dashboard-venv/lib/python3.11/site-packages"
+          "${webDistPth}/${pkgs.python311.sitePackages}"
+        ];
       };
 
       path = [
@@ -95,7 +102,6 @@ in {
         Restart = "always";
         RestartSec = 5;
 
-        # Hardening
         NoNewPrivileges = true;
         ProtectSystem = "strict";
         ProtectHome = false;
