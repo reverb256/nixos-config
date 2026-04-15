@@ -59,7 +59,7 @@
 
       Certificates = {
         Install = [
-          "/home/j_kro/.local/share/certificates/caddy-local-ca.crt"
+          "/home/j_kro/.local/share/certificates/cluster-ca.crt"
         ];
       };
 
