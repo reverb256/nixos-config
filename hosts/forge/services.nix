@@ -140,7 +140,6 @@
       enable = true;
       interval = "daily";
       updateFlakeInputs = [ "nixpkgs" ];
-      extraFlags = [ "--upgrade" ];
     };
 
     unbound-common.enable = true;
