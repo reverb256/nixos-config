@@ -202,8 +202,9 @@
       chown hermes:hermes /var/lib/hermes/.hermes/provider-env
     '';
     environment.ZAI_API_KEY_FILE = lib.mkForce "/var/lib/hermes/.hermes/provider-env";
-    # Also override EnvironmentFile to load the key
-    serviceConfig.EnvironmentFile = "/var/lib/hermes/.hermes/provider-env";
+    # Use "-" prefix so systemd doesn't fail if file doesn't exist yet
+    # ExecStartPre creates it before the main process starts
+    serviceConfig.EnvironmentFile = "-/var/lib/hermes/.hermes/provider-env";
   };
 
   # Knowledge Base MCP server — RAG search over 38 ingested books
