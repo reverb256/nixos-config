@@ -1,17 +1,8 @@
 # Core Kubernetes Services - High Priority PDBs
 # These services are critical for cluster operation
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: coredns-pdb
-  namespace: kube-system
-spec:
-  minAvailable: 1
-  selector:
-    matchLabels:
-      k8s-app: kube-dns
----
+# NOTE: k3s auto-creates a coredns PDB - do not duplicate
+# ---
+
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -22,18 +13,9 @@ spec:
   selector:
     matchLabels:
       k8s-app: metrics-server
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: ingress-nginx-pdb
-  namespace: ingress-nginx
-spec:
-  minAvailable: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: ingress-nginx
----
+# NOTE: ingress-nginx namespace unused (using caddy via ingress-system)
+# ---
+
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
