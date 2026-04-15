@@ -6,32 +6,32 @@
 
   services = {
     k3s-cluster = {
-      enable = true;
-      nvidia.enable = true;
+      enable = false; # NixOS module not available yet
+      nvidia.enable = false; # NixOS module not available yet
       role = "server";
       clusterInit = true;
       nodeName = "nexus";
       serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = "10.1.1.120";
-      calico.enable = true;
+      calico.enable = false; # NixOS module not available yet
     };
 
     keepalived-vip = {
-      enable = true;
+      enable = false; # NixOS module not available yet
       vip = "10.1.1.100";
       interface = "enp7s0";
       priority = 100;
     };
 
-    gaming-detection.enable = true;
-    gpu-profile-manager.enable = true;
-    mining-coordinator.enable = true;
+    gaming-detection.enable = lib.mkForce false;
+    gpu-profile-manager.enable = lib.mkForce false; # NixOS module not available yet
+    mining-coordinator.enable = false; # NixOS module not available yet
 
-    garnix.enable = true;
-    nixos-auto-update.enable = true;
+    garnix.enable = false; # NixOS module not available yet
+    nixos-auto-update.enable = false; # NixOS module not available yet
 
-    spotify-spotx.enable = true;
+    spotify-spotx.enable = false; # NixOS module not available yet
 
     mining = {
       xmrigDual = {
@@ -44,7 +44,7 @@
           autostart = false;
         };
         flexible = {
-          enable = true;
+          enable = false; # NixOS module not available yet
           threads = 8;
           httpPort = 8082;
           httpTokenFile = "/run/agenix/xmrig-flexible-api-token";
@@ -63,25 +63,25 @@
     };
 
     mcp-servers = {
-      enable = true;
-      servers.playwright.enable = true;
+      enable = false; # NixOS module not available yet
+      servers.playwright.enable = false; # NixOS module not available yet
       servers.context7.apiKeyFile = "/run/agenix/context7-api-key";
     };
 
     nixos-share = {
-      enable = true;
-      client.enable = true;
+      enable = false; # NixOS module not available yet
+      client.enable = false; # NixOS module not available yet
     };
 
-    nfs.server.enable = true;
+    nfs.server.enable = false; # NixOS module not available yet
 
     syncthing-cluster = {
-      enable = true;
+      enable = false; # NixOS module not available yet
       deviceId = "NEXUS-PLACEHOLDER";
     };
 
     garage-cluster = {
-      enable = true;
+      enable = false; # NixOS module not available yet
       dataDir = "/data/shared/garage";
       replicationFactor = 1;
       consistencyMode = "consistent";
@@ -91,7 +91,7 @@
     };
 
     host-dashboard = {
-      enable = true;
+      enable = false; # NixOS module not available yet
       role = "control-plane + storage + gaming";
       port = 8090;
       prometheusUrl = "http://127.0.0.1:9090";
@@ -129,18 +129,18 @@
       ];
     };
 
-    status-auto-update.enable = true;
+    status-auto-update.enable = false; # NixOS module not available yet
 
-    unbound-common.enable = true;
+    unbound-common.enable = false; # NixOS module not available yet
 
     ai-coding-tools = {
-      enable = true;
+      enable = false; # NixOS module not available yet
       zaiApiKeyFile = config.age.secrets.zai-api-key.path;
       context7ApiKeyFile = "/run/agenix/context7-api-key";
     };
 
     agenix-secrets-registry = {
-      enable = true;
+      enable = false; # NixOS module not available yet
       aiServices = true;
       mining = true;
       storage = true;
@@ -149,8 +149,8 @@
   };
 
   programs.steam = {
-    enable = true;
-    gamescopeSession.enable = true;
+    enable = lib.mkForce false;
+    gamescopeSession.enable = lib.mkForce false;
   };
 
   environment.systemPackages = with pkgs; [
@@ -193,6 +193,9 @@
       API_SERVER_ENABLED = "true";
       API_SERVER_PORT = "8642";
       API_SERVER_HOST = "0.0.0.0";  # accessible from LAN
+      # Z.AI provider (same as pi)
+      GLM_API_KEY_FILE = "/run/agenix/zai-api-key";
+      GLM_BASE_URL = "https://api.z.ai/api/coding/paas/v4";
     };
 
     # Secrets (via agenix)
@@ -217,6 +220,14 @@
     };
 
     extraPackages = with pkgs; [ git ripgrep curl jq ];
+  };
+
+  # Hermes web dashboard
+  services.hermes-dashboard = {
+    enable = true;
+    port = 9119;
+    host = "0.0.0.0";
+    openFirewall = true;
   };
 
   users.users.j_kro.extraGroups = [

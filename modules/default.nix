@@ -107,6 +107,7 @@
     ./services/host-dashboard.nix
     ./services/ci-runner.nix
     ./services/garnix.nix
+    ./services/hermes-dashboard.nix
     ./services/auto-update.nix
     ./services/whisper-dictation.nix
     ./services/cloudflared.nix

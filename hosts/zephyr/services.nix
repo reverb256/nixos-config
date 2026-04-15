@@ -209,7 +209,6 @@
         {
           admin 127.0.0.1:2019
           default_sni cluster.local
-          local_certs
         }
 
         ai.zephyr.tigris-ule.ts.net:9002 {
@@ -244,19 +243,23 @@
         }
 
         https://search.lan, https://search.cluster.local {
+          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
           encode zstd gzip
           reverse_proxy 10.1.1.120:30888
         }
         https://ai.lan, https://ai.cluster.local {
+          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
           encode zstd gzip
-          reverse_proxy 127.0.0.1:8080
+          reverse_proxy 10.1.1.120:8080
         }
         https://openwebui.lan, https://openwebui.cluster.local {
+          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
           encode zstd gzip
           reverse_proxy 10.1.1.120:32080
         }
 
         https://haven.lan, https://haven.cluster.local {
+          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
           encode zstd gzip
           reverse_proxy 10.1.1.120:3000
         }
@@ -304,7 +307,7 @@
         };
       };
       gateway = {
-        enable = true;
+        enable = false;
         host = "0.0.0.0";
         port = 8080;
         workers = 1;
@@ -314,7 +317,7 @@
           rrf_k = 60;
           rag_enabled = true;
           searxng_enabled = true;
-          searxng_url = "http://10.1.1.120:30808";
+          searxng_url = "http://10.1.1.120:30888";
           searxng_max_results = 10;
           code_search_enabled = true;
           code_search_paths = [
@@ -358,7 +361,7 @@
         };
       };
       mcp = {
-        enable = true;
+        enable = false;
         servers = {
           nix-rebuild = {
             type = "local";
@@ -401,7 +404,7 @@
         };
       };
       rag = {
-        enable = true;
+        enable = false;
         qdrantUrl = "http://127.0.0.1:6333";
         embeddingModel = "sentence-transformers/all-MiniLM-L6-v2";
         chunkSize = 512;
@@ -629,7 +632,7 @@
   };
 
   services.llamafile = {
-    enable = true;
+    enable = false; # Migrated to k8s
     modelPath = "/home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E4B-it-GGUF/gemma-4-E4B-it-Q4_K_M.gguf";
     mmprojPath = "/home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E4B-it-GGUF/mmproj-gemma-4-E4B-it-BF16.gguf";
     modelName = "gemma4-e4b-vision";
