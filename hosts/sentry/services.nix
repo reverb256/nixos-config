@@ -116,7 +116,7 @@
     garage-cluster.enable = false;
 
     llamafile = {
-      enable = true;
+      enable = false; # Migrated to k8s deployment
       modelPath = "/home/j_kro/.lmstudio/models/unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-IQ4_NL.gguf";
       mmprojPath = "/home/j_kro/.lmstudio/models/unsloth/gemma-4-E2B-it-GGUF/mmproj-F32.gguf";
       modelName = "gemma4-e2b";

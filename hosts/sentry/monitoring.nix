@@ -1,10 +1,15 @@
-{ ... }:
+{ lib, ... }:
 {
   imports = [
     ../../modules/services/monitoring/default.nix
   ];
 
   services = {
+    gpu-exporters = {
+      enable = true;
+      amd.enable = true;
+    };
+
     monitoring.system-tools = {
       enable = true;
       packageSet = "standard";
@@ -56,5 +61,5 @@
     };
   };
 
-  networking.firewall.allowedTCPPorts = [ 9100 ];
+  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ 9100 ];
 }

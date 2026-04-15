@@ -39,33 +39,15 @@
       MAX_REQUEST_SIZE = "10485760";
     };
 
-    ConfigMap.prometheus-config.data."prometheus.yml" = ''
-    global:
-      scrape_interval: 15s
-      evaluation_interval: 15s
-      external_labels:
-        cluster: nixos-k8s
-        environment: production
+    ConfigMap.prometheus-config.data.prometheus.yml = builtins.toJSON {
+      global = { scrape_interval = "15s"; evaluation_interval = "15s"; external_labels = { cluster = "nixos-k8s"; environment = "production"; }; };
+      scrape_configs = [
+        { job_name = "ai-gateway"; static_configs = [{ targets = ["ai-gateway:8080"]; labels = { app = "ai-gateway"; component = "gateway"; }; }]; }
+        { job_name = "llamacpp"; static_configs = [{ targets = ["zephyr:9400"]; labels = { app = "llamacpp"; component = "inference"; }; }]; }
+      ];
+    };
 
-    scrape_configs:
-      - job_name: ai-gateway
-        static_configs:
-          - targets:
-              - ai-gateway:8080
-            labels:
-              app: ai-gateway
-              component: gateway
-
-      - job_name: llamacpp
-        static_configs:
-          - targets:
-              - zephyr:9400
-            labels:
-              app: llamacpp
-              component: inference
-  '';
-
-  ConfigMap.searxng-mcp-config.data = { SEARXNG_CACHE_TTL = "300"; SEARXNG_URL = "http://searxng-refactored.search.svc.cluster.local:8080"; };
+    ConfigMap.searxng-mcp-config.data = { SEARXNG_CACHE_TTL = "300"; SEARXNG_URL = "http://searxng-refactored.search.svc.cluster.local:8080"; };
 
     Deployment.grafana = {
       metadata.labels.app = "grafana";

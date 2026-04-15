@@ -118,7 +118,7 @@ in
     Deployment.llama-server-sentry = {
       metadata.labels = managed // { app = "llama-server-sentry"; host = "sentry"; };
       spec = {
-        replicas = 0;
+        replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels = { app = "llama-server-sentry"; host = "sentry"; };
         strategy.type = "Recreate";
