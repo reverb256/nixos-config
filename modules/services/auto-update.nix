@@ -3,126 +3,184 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.services.nixos-auto-update;
-in {
-  options = {
-    services.nixos-auto-update = {
-      enable = lib.mkEnableOption "Automatic NixOS updates";
+  inherit (lib)
+    mkEnableOption
+    mkIf
+    mkOption
+    types
+    mkDefault
+    ;
 
-      interval = lib.mkOption {
-        type = lib.types.str;
-        default = "weekly";
-        description = ''
-          Update interval for systemd timer. Options include:
-          - daily
-          - weekly
-          - monthly
-          Or use full systemd calendar syntax like "Sun 02:00"
-        '';
-      };
+  updateScript = pkgs.writeShellScript "nixos-auto-update" ''
+    set -euo pipefail
 
-      extraFlags = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [];
-        example = ["--upgrade-all"];
-        description = "Extra flags to pass to nixos-rebuild";
-      };
+    PATH=${lib.makeBinPath [
+      pkgs.coreutils
+      pkgs.gnutar
+      pkgs.gzip
+      pkgs.jq
+      pkgs.nix
+    ]}
 
-      updateFlakeInputs = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = ["nixpkgs"];
-        example = ["nixpkgs" "home-manager"];
-        description = "List of flake inputs to update automatically";
-      };
+    # Find flake path
+    if [ -d /run/nixos-shared ] && [ -f /run/nixos-shared/flake.nix ]; then
+      FLAKE_PATH=/run/nixos-shared
+    elif [ -f /etc/nixos/flake.nix ]; then
+      FLAKE_PATH=/etc/nixos
+    else
+      echo "ERROR: Cannot find flake.nix in /etc/nixos or /run/nixos-shared"
+      exit 1
+    fi
+
+    LOG_FILE=/var/log/nixos-auto-update.log
+    exec >> "$LOG_FILE" 2>&1
+
+    echo "$(date): Starting automatic update check"
+
+    # --- Age gate: skip if any input is too recent ---
+    AGE_THRESHOLD_DAYS=${toString cfg.cooldownDays}
+    NOW=$(date +%s)
+    LOCK_FILE="$FLAKE_PATH/flake.lock"
+    ALL_INPUTS_OLD=true
+
+    if [ -f "$LOCK_FILE" ]; then
+      for input_name in ${lib.concatStringsSep " " cfg.updateFlakeInputs}; do
+        INPUT_TS=$(
+          jq -r \
+            ".nodes | to_entries[] | select(.key == \"$input_name\") | .value.lastModified // empty" \
+            "$LOCK_FILE" 2>/dev/null || true
+        )
+        if [ -z "$INPUT_TS" ] || [ "$INPUT_TS" = "null" ]; then
+          echo "$(date): WARN: No lastModified for $input_name, skipping age check"
+          continue
+        fi
+        AGE_DAYS=$(( (NOW - INPUT_TS) / 86400 ))
+        if [ "$AGE_DAYS" -ge "$AGE_THRESHOLD_DAYS" ]; then
+          echo "$(date): OK: $input_name is $AGE_DAYS days old (threshold: $AGE_THRESHOLD_DAYS)"
+        else
+          echo "$(date): SKIP: $input_name is only $AGE_DAYS days old (threshold: $AGE_THRESHOLD_DAYS)"
+          ALL_INPUTS_OLD=false
+        fi
+      done
+
+      if [ "$ALL_INPUTS_OLD" = "false" ]; then
+        echo "$(date): Inputs not old enough, skipping update"
+        exit 0
+      fi
+    fi
+
+    # --- Update flake inputs ---
+    UPDATE_ARGS=""
+    for input_name in ${lib.concatStringsSep " " cfg.updateFlakeInputs}; do
+      UPDATE_ARGS="$UPDATE_ARGS --update-input $input_name"
+    done
+
+    if [ -n "$UPDATE_ARGS" ]; then
+      echo "$(date): Updating flake inputs: ${lib.concatStringsSep ", " cfg.updateFlakeInputs}"
+      nix flake update $UPDATE_ARGS --flake "$FLAKE_PATH"
+    fi
+
+    # --- Rebuild ---
+    echo "$(date): Running nixos-rebuild ${cfg.rebuildMode} --flake $FLAKE_PATH"
+    nixos-rebuild ${cfg.rebuildMode} --flake "$FLAKE_PATH"
+
+    # --- Optional reboot ---
+    if [ "${toString cfg.allowReboot}" = "true" ]; then
+      echo "$(date): Update applied, rebooting..."
+      reboot
+    fi
+
+    echo "$(date): Automatic update completed successfully"
+  '';
+in
+{
+  options.services.nixos-auto-update = {
+    enable = mkEnableOption "Automatic NixOS updates";
+
+    interval = mkOption {
+      type = types.str;
+      default = "weekly";
+      description = ''
+        systemd calendar expression for update schedule.
+        Examples: "daily", "weekly", "Mon 02:00", "*-*-01 03:00"
+      '';
+    };
+
+    updateFlakeInputs = mkOption {
+      type = types.listOf types.str;
+      default = [ "nixpkgs" ];
+      description = "List of flake inputs to update";
+    };
+
+    cooldownDays = mkOption {
+      type = types.int;
+      default = 7;
+      description = ''
+        Minimum age in days of a flake.lock entry before it will be updated.
+        All inputs must exceed this threshold for the update to proceed.
+      '';
+    };
+
+    rebuildMode = mkOption {
+      type = types.enum [ "switch" "boot" "test" "build" ];
+      default = "boot";
+      description = ''
+        How to apply the rebuild:
+        - "boot": stage update for next reboot (safest for unattended)
+        - "switch": apply immediately
+        - "test": apply but don't persist across reboots
+        - "build": only build, don't apply
+      '';
+    };
+
+    allowReboot = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Reboot after successful update (only useful with rebuildMode=boot)";
+    };
+
+    persistent = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Catch up on missed update runs after boot";
+    };
+
+    randomizedDelaySec = mkOption {
+      type = types.str;
+      default = "0";
+      description = "Randomize start time within this many seconds";
     };
   };
 
-  config = lib.mkIf cfg.enable {
-    environment.etc."nixos-auto-update.sh".text = lib.mkIf cfg.enable ''
-      #!/usr/bin/env bash
-
-      set -euo pipefail
-
-      if [ -d /run/nixos-shared ] && [ -f /run/nixos-shared/flake.nix ]; then
-        FLAKE_PATH=/run/nixos-shared
-      elif [ -f /etc/nixos/flake.nix ]; then
-        FLAKE_PATH=/etc/nixos
-      else
-        echo "ERROR: Cannot find flake.nix in /etc/nixos or /run/nixos-shared"
-        exit 1
-      fi
-
-      LOG_FILE=/var/log/nixos-auto-update.log
-
-      export PATH=/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:$PATH
-
-      exec >> "$LOG_FILE" 2>&1
-      echo "$(date): Starting automatic update"
-
-      AGE_THRESHOLD_DAYS=7
-      NOW=$(date +%s)
-      LOCK_FILE="$FLAKE_PATH/flake.lock"
-      if [ -f "$LOCK_FILE" ]; then
-        for input_name in ${lib.concatStringsSep " " cfg.updateFlakeInputs}; do
-          INPUT_TS=$(${pkgs.jq}/bin/jq -r ".nodes | to_entries[] | select(.key == \"$input_name\") | .value.lastModified // empty" "$LOCK_FILE" 2>/dev/null || true)
-          if [ -n "$INPUT_TS" ] && [ "$INPUT_TS" != "null" ]; then
-            AGE_DAYS=$(( (NOW - INPUT_TS) / 86400 ))
-            if [ "$AGE_DAYS" -lt "$AGE_THRESHOLD_DAYS" ]; then
-              echo "$(date): BLOCKED: $input_name is only $AGE_DAYS days old (threshold: $AGE_THRESHOLD_DAYS days). Skipping update."
-              continue
-            fi
-            echo "$(date): OK: $input_name is $AGE_DAYS days old"
-          fi
-        done
-      fi
-
-      UPDATE_ARGS=""
-      for input_name in ${lib.concatStringsSep " " cfg.updateFlakeInputs}; do
-          UPDATE_ARGS="$UPDATE_ARGS --update-input $input_name"
-      done
-
-      if [ -n "$UPDATE_ARGS" ]; then
-          echo "$(date): Updating flake inputs: ${lib.concatStringsSep ", " cfg.updateFlakeInputs}"
-          nix flake update $UPDATE_ARGS --flake "$FLAKE_PATH"
-      fi
-
-      echo "$(date): Building and switching to new configuration"
-      nixos-rebuild switch --flake "$FLAKE_PATH" --option refresh-template-caches true ${lib.concatStringsSep " " cfg.extraFlags}
-
-      echo "$(date): Automatic update completed successfully"
-    '';
-
+  config = mkIf cfg.enable {
     systemd.services.nixos-auto-update = {
-      description = "Automatic NixOS Update Service";
-      unitConfig = {
-        "Description" = "Automatic NixOS Update Service";
-        "After" = ["network.target"];
-      };
+      description = "Automatic NixOS Update";
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${lib.getBin pkgs.bash}/bin/bash /etc/nixos-auto-update.sh";
+        ExecStart = updateScript;
         User = "root";
-        StandardOutput = "journal";
-        StandardError = "journal";
       };
     };
 
     systemd.timers.nixos-auto-update = {
       description = "Timer for Automatic NixOS Updates";
-      wantedBy = ["timers.target"];
-
+      wantedBy = [ "timers.target" ];
       timerConfig = {
-        OnCalendar =
-          if cfg.interval == "daily"
-          then "daily"
-          else if cfg.interval == "weekly"
-          then "weekly"
-          else if cfg.interval == "monthly"
-          then "monthly"
-          else cfg.interval;
-        Persistent = true;
+        OnCalendar = cfg.interval;
+        Persistent = cfg.persistent;
+        RandomizedDelaySec = cfg.randomizedDelaySec;
       };
     };
+
+    # Ensure log file exists
+    system.activationScripts.nixos-auto-update-log = ''
+      touch /var/log/nixos-auto-update.log
+      chmod 640 /var/log/nixos-auto-update.log
+    '';
   };
 }
