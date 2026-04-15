@@ -131,7 +131,7 @@ in
           xkb = {
             layout = "us";
             variant = "";
-            options = "caps:escape";
+            
           };
           repeat-delay = 300;
           repeat-rate = 50;
