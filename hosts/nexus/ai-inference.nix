@@ -43,7 +43,8 @@
         searxng_url = "http://10.1.1.120:30888"; # SearXNG NodePort on this host
         searxng_max_results = 10;
         code_search_enabled = false;
-        brain_wiki_enabled = false;
+        brain_wiki_enabled = true;
+        brain_wiki_path = "/home/j_kro/brain/wiki";
         web_search_enabled = false;
         rag_top_k = 10;
       };
@@ -98,7 +99,7 @@
       };
       qdrant = {
         enable = true;
-        host = "127.0.0.1";
+        host = "0.0.0.0";
         port = 6333;
         grpcPort = 6334;
         storagePath = "/var/lib/qdrant";

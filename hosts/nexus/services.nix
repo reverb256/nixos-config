@@ -191,6 +191,52 @@
     openFirewall = true;
   };
 
+  # Knowledge Base MCP server — RAG search over 38 ingested books
+  systemd.services.kb-mcp-server = {
+    description = "Knowledge Base RAG MCP Server";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network.target" ];
+    path = with pkgs; [ python3 gcc.cc ];
+    environment = {
+      QDRANT_HOST = "127.0.0.1";
+      QDRANT_PORT = "6333";
+      KB_PORT = "8643";
+      KB_HOST = "0.0.0.0";
+      PYTHONPATH = "src";
+      LD_LIBRARY_PATH = "${pkgs.gcc.cc.lib}/lib";
+    };
+    serviceConfig = {
+      Type = "simple";
+      WorkingDirectory = "/data/projects/infra/knowledge-base";
+      ExecStart = "/data/projects/infra/knowledge-base/.venv/bin/python -m kb_mcp.server";
+      Restart = "on-failure";
+      RestartSec = 5;
+      User = "j_kro";
+    };
+  };
+
+  # Brain wiki sync from zephyr → nexus (for gateway knowledge fabric)
+  systemd.services.brain-wiki-sync = {
+    description = "Sync brain wiki from zephyr";
+    path = with pkgs; [ rsync openssh ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = pkgs.writeShellScript "brain-wiki-sync" ''
+        mkdir -p /home/j_kro/brain/wiki
+        ${pkgs.rsync}/bin/rsync -az --delete j_kro@10.1.1.110:/home/j_kro/brain/wiki/ /home/j_kro/brain/wiki/
+      '';
+      User = "j_kro";
+    };
+  };
+
+  systemd.timers.brain-wiki-sync = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "hourly";
+      Persistent = true;
+    };
+  };
+
   users.users.j_kro.extraGroups = [
     "plugdev"
     "audio"
