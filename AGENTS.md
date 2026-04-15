@@ -1,6 +1,6 @@
 # NixOS Cluster - Agent Guidelines
 
-**Generated:** 2026-04-05 | **Commit:** 04c30a80 | **Branch:** feature/x86-64-v3-migration
+**Generated:** 2026-04-15 | **Branch:** feature/brain-v2-embedding-first
 
 ## Quick Start
 
@@ -16,12 +16,15 @@ just rollback           # Rollback local host
 
 | Host | IP | Role |
 |------|-----|------|
-| Zephyr | 10.1.1.110 | Control plane, gaming, AI |
-| Nexus | 10.1.1.120 | Storage, GPU computing |
-| Forge | 10.1.1.130 | GPU computing, mining |
-| Sentry | 10.1.1.140 | Monitoring, logging |
+| Zephyr | 10.1.1.110 | Workstation, control plane, gaming, NFS |
+| Nexus | 10.1.1.120 | Primary server, Hermes Agent, monitoring, storage |
+| Forge | 10.1.1.130 | GPU computing, mining only |
+| Sentry | 10.1.1.140 | Inference (ROCm), monitoring backup |
 
 **Resources**: 78 cores, 123GB RAM, 7 GPUs, 8.4TB storage
+**K3s**: v1.34.5+k3s1 — All 4 nodes Ready, 34 pods, Flannel CNI
+
+> **See `INFRASTRUCTURE-AUDIT.md` for live cluster state and issues.**
 
 ## Project Structure
 
