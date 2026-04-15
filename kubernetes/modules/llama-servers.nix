@@ -11,17 +11,18 @@ in
 {
   config.kubernetes.objects.ai-inference = {
 
-    # Zephyr llama-server (CUDA, RTX 3060 Ti, Gemma 4 E4B vision)
-    # NOTE: replicas = 0 - systemd llamafile.service serves on zephyr instead
     Deployment.llama-server-zephyr = {
       metadata.labels = managed // { app = "llama-server-zephyr"; host = "zephyr"; };
       spec = {
-        replicas = 0;
+        replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels = { app = "llama-server-zephyr"; host = "zephyr"; };
         strategy.type = "Recreate";
         template = {
-          metadata.labels = managed // { app = "llama-server-zephyr"; host = "zephyr"; };
+          metadata = {
+            labels = managed // { app = "llama-server-zephyr"; host = "zephyr"; };
+            annotations."nix-csi/discard" = "true";
+          };
           spec = {
             nodeName = "zephyr";
             hostNetwork = true;
@@ -86,7 +87,7 @@ in
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  nix-store = { mountPath = "/nix/store"; readOnly = true; };
+                  nix = { mountPath = "/nix"; readOnly = true; };
                   dev = { mountPath = "/dev"; };
                   nvidia-libs = { mountPath = "/run/opengl-driver/lib"; readOnly = true; };
                   models = { mountPath = "/models"; readOnly = true; };
@@ -95,7 +96,7 @@ in
             };
             volumes = {
               _namedlist = true;
-              nix-store.hostPath.path = "/nix/store";
+              nix.hostPath = { path = "/nix"; type = "Directory"; };
               dev.hostPath.path = "/dev";
               nvidia-libs.hostPath.path = "/run/opengl-driver/lib";
               models.hostPath.path = "/home/j_kro/.lmstudio/models";
@@ -115,16 +116,18 @@ in
     };
 
     # Sentry llama-server (ROCm, RX 5600 XT, Gemma 4 E2B)
-    # NOTE: replicas = 0 - waiting for ROCm package fix by another agent
     Deployment.llama-server-sentry = {
       metadata.labels = managed // { app = "llama-server-sentry"; host = "sentry"; };
       spec = {
-        replicas = 0;
+        replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels = { app = "llama-server-sentry"; host = "sentry"; };
         strategy.type = "Recreate";
         template = {
-          metadata.labels = managed // { app = "llama-server-sentry"; host = "sentry"; };
+          metadata = {
+            labels = managed // { app = "llama-server-sentry"; host = "sentry"; };
+            annotations."nix-csi/discard" = "true";
+          };
           spec = {
             nodeName = "sentry";
             hostNetwork = true;
@@ -180,7 +183,7 @@ in
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  nix-store = { mountPath = "/nix/store"; readOnly = true; };
+                  nix = { mountPath = "/nix"; readOnly = true; };
                   dev-dri = { mountPath = "/dev/dri"; };
                   dev-kfd = { mountPath = "/dev/kfd"; };
                   models = { mountPath = "/models"; readOnly = true; };
@@ -190,7 +193,7 @@ in
             };
             volumes = {
               _namedlist = true;
-              nix-store.hostPath.path = "/nix/store";
+              nix.hostPath = { path = "/nix"; type = "Directory"; };
               dev-dri.hostPath = { path = "/dev/dri"; type = "Directory"; };
               dev-kfd.hostPath = { path = "/dev/kfd"; type = "CharDevice"; };
               models.hostPath.path = "/home/j_kro/.lmstudio/models";
