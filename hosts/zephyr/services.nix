@@ -223,6 +223,22 @@
           reverse_proxy 127.0.0.1:8080
         }
 
+        https://search.lan, https://search.cluster.local {
+          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
+          encode zstd gzip
+          reverse_proxy 10.1.1.120:30888
+        }
+        https://ai.lan, https://ai.cluster.local {
+          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
+          encode zstd gzip
+          reverse_proxy 10.1.1.120:8080
+        }
+        https://openwebui.lan, https://openwebui.cluster.local {
+          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
+          encode zstd gzip
+          reverse_proxy 10.1.1.120:32080
+        }
+
         https://haven.lan, https://haven.cluster.local {
           tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
           encode zstd gzip
