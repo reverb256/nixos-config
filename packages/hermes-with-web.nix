@@ -10,7 +10,14 @@
 let
   # The hermes package wraps a venv. Find it from the binary.
   hermesVenv = pkgs.runCommand "hermes-venv-path" {} ''
-    head -20 ${hermes-pkg}/bin/hermes | grep -oP '/nix/store/[a-z0-9]+-hermes-agent-env' > $out
+    # The hermes wrapper script references the venv binary
+    # Parse it from the bash wrapper
+    VENV_PATH=$(cat ${hermes-pkg}/bin/hermes | grep -oP '/nix/store/[a-z0-9]+-hermes-agent-env' | head -1)
+    if [ -z "$VENV_PATH" ]; then
+      echo "ERROR: Could not find hermes-agent-env in wrapper" >&2
+      exit 1
+    fi
+    echo -n "$VENV_PATH" > $out
   '';
 in
 pkgs.runCommand "hermes-agent-with-web-${hermes-pkg.version or "0.9.0"}" {
@@ -18,7 +25,7 @@ pkgs.runCommand "hermes-agent-with-web-${hermes-pkg.version or "0.9.0"}" {
 } ''
   mkdir -p $out/bin
 
-  VENV=$(cat ${hermesVenv} | tr -d '\n')
+  VENV=$(<${hermesVenv})
 
   # Copy the entire hermes_cli package from the venv and add web_dist
   HERMES_CLI="$VENV/lib/python3.11/site-packages/hermes_cli"
