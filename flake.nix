@@ -64,6 +64,10 @@
 
     easykubenix.url = "github:Lillecarl/easykubenix";
 
+    hermes-agent = {
+      url = "github:NousResearch/hermes-agent";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
   outputs =
     inputs@{
