@@ -3,8 +3,8 @@
 # Builds the web frontend (Vite SPA) and runs `hermes dashboard` as a
 # separate systemd service alongside the gateway.
 #
-# The gateway service (hermes-agent.service) is provided by the official
-# NixOS module. This module ONLY adds the web dashboard.
+# The nix package doesn't include fastapi (a [web] extra).
+# We install it via pip into a dedicated venv on first activation.
 {
   config,
   lib,
@@ -49,6 +49,18 @@ in {
     # Require the gateway to be enabled too
     services.hermes-agent.enable = lib.mkDefault true;
 
+    # Activation: pip install fastapi into a dedicated venv if not present
+    system.activationScripts."hermes-dashboard-setup" = lib.stringAfter [ "hermes-agent-setup" ] ''
+      DASHBOARD_VENV="${hermesCfg.stateDir}/.hermes/dashboard-venv"
+      if [ ! -d "$DASHBOARD_VENV" ]; then
+        echo "Creating dashboard venv with fastapi..."
+        ${pkgs.python311}/bin/python3.11 -m venv "$DASHBOARD_VENV"
+        chown -R ${hermesCfg.user}:${hermesCfg.group} "$DASHBOARD_VENV"
+        sudo -u ${hermesCfg.user} "$DASHBOARD_VENV/bin/pip" install --quiet \
+          'fastapi>=0.104.0,<1' 'uvicorn[standard]>=0.24.0,<1' 2>/dev/null || true
+      fi
+    '';
+
     # Dashboard systemd service
     systemd.services.hermes-dashboard = {
       description = "Hermes Agent Web Dashboard";
@@ -62,6 +74,8 @@ in {
         HERMES_HOME = "${hermesCfg.stateDir}/.hermes";
         HERMES_MANAGED = "true";
         HERMES_WEB_DIST = "${hermes-web-dist}";
+        # Add dashboard venv to python path so fastapi is found
+        PYTHONPATH = "${hermesCfg.stateDir}/.hermes/dashboard-venv/lib/python3.11/site-packages";
       };
 
       path = [
