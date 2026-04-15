@@ -1,7 +1,8 @@
 # Hermes Agent dashboard module
 #
 # Runs `hermes dashboard` as a systemd service alongside the gateway.
-# Uses a .pth file to inject the web dist path at Python startup.
+# Uses a wrapper package that injects the built web_dist into the hermes_cli
+# package directory via Python's namespace package mechanism.
 {
   config,
   lib,
@@ -19,12 +20,10 @@ let
     hermesSrc = inputs.hermes-agent;
   };
 
-  # .pth file that patches hermes_cli.web_server.WEB_DIST at startup
-  webDistPth = pkgs.writeTextFile {
-    name = "hermes-web-dist-patch";
-    destination = "/${pkgs.python311.sitePackages}/zzz_hermes_web_dist.pth";
-    # .pth files can contain Python code if they start with "import "
-    text = "import hermes_cli.web_server as _hws; _hws.WEB_DIST = __import__('pathlib').Path('${hermes-web-dist}')";
+  # Create a wrapper package with web_dist injected into hermes_cli
+  hermes-with-web = pkgs.callPackage ../../packages/hermes-with-web.nix {
+    hermes-pkg = hermesCfg.package;
+    web-dist = hermes-web-dist;
   };
 
 in {
@@ -78,15 +77,12 @@ in {
         HOME = hermesCfg.stateDir;
         HERMES_HOME = "${hermesCfg.stateDir}/.hermes";
         HERMES_MANAGED = "true";
-        # Add fastapi venv + web_dist patch to python path
-        PYTHONPATH = lib.concatStringsSep ":" [
-          "${hermesCfg.stateDir}/.hermes/dashboard-venv/lib/python3.11/site-packages"
-          "${webDistPth}/${pkgs.python311.sitePackages}"
-        ];
+        # Add dashboard venv for fastapi
+        PYTHONPATH = "${hermesCfg.stateDir}/.hermes/dashboard-venv/lib/python3.11/site-packages";
       };
 
       path = [
-        hermesCfg.package
+        hermes-with-web
         pkgs.nodejs_20
         pkgs.bash
         pkgs.coreutils
@@ -97,7 +93,8 @@ in {
         Group = hermesCfg.group;
         WorkingDirectory = hermesCfg.workingDirectory;
 
-        ExecStart = "${hermesCfg.package}/bin/hermes dashboard --host ${cfg.host} --port ${toString cfg.port} --insecure --no-open";
+        # Use the wrapper package which has web_dist injected
+        ExecStart = "${hermes-with-web}/bin/hermes dashboard --host ${cfg.host} --port ${toString cfg.port} --insecure --no-open";
 
         Restart = "always";
         RestartSec = 5;
