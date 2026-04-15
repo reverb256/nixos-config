@@ -75,34 +75,60 @@ nfs-status:
 #  DEPLOYMENT
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Deploy to all hosts or specific host
-# Note: No sync needed - all remote hosts use NFS mount /run/nixos-shared
-#
-# IMPORTANT: Zephyr has targetHost=null (local-only), so `colmena apply --on zephyr`
-# silently skips it. For zephyr, use `colmena apply-local --sudo` instead.
-# This recipe handles the routing automatically.
+# Deploy to all hosts or specific host via tmux session
+# Ctrl+B D to detach, 'just attach' to reattach
 deploy target *args:
     #!/usr/bin/env bash
     set -e
-    # Cleanup stale locks before attempting deployment
-    /etc/nixos/scripts/cleanup-stale-locks.sh
-    # Prevent concurrent colmena runs (lock timeout 5 seconds)
-    exec {LOCK_FD}>/tmp/colmena-deploy.lock || exit 1
-    flock -x -w 5 $LOCK_FD || { echo "⚠ Another deploy is already running"; exit 1; }
-    trap "flock -u $LOCK_FD" EXIT
+
+    SESSION="deploy"
+    if tmux has-session -t "$SESSION" 2>/dev/null; then
+        echo "▸ Deploy session already running — attaching (Ctrl+B D to detach)"
+        exec tmux attach -t "$SESSION"
+    fi
+
+    tmux new-session -d -s "$SESSION" -c {{FLAKE}} -x 200 -y 50
+
+    # Set up nice status bar
+    tmux set-option -t "$SESSION" status-style "bg=#1e1e2e fg=#cdd6f4"
+    tmux set-option -t "$SESSION" status-left-length 30
+    tmux set-option -t "$SESSION" status-right-length 60
+    tmux set-option -t "$SESSION" status-left " #[fg=#89b4fa]⬢ NixOS #[fg=#a6adc8]│ #[fg=#f9e2af]#{session_name} "
+    tmux set-option -t "$SESSION" status-right " #[fg=#a6adc8]#{pane_current_path} #[fg=#6c7086]│ #[fg=#a6e3a1]%H:%M "
+    tmux set-option -t "$SESSION" pane-border-style "fg=#45475a"
+    tmux set-option -t "$SESSION" message-style "bg=#89b4fa fg=#1e1e2e"
+    tmux set-option -t "$SESSION" window-status-current-format " #[fg=#cdd6f4]#I:#W "
+
+    # Send the deploy command
+    DEPLOY_CMD="/etc/nixos/scripts/cleanup-stale-locks.sh && \
+        exec {LOCK_FD}>/tmp/colmena-deploy.lock && \
+        flock -x -w 5 \$LOCK_FD || { echo '⚠ Another deploy is already running'; exit 1; }; \
+        trap 'flock -u \$LOCK_FD' EXIT"
 
     if [ "{{target}}" = "all" ] || [ -z "{{target}}" ]; then
-        echo "▸ Deploying to all hosts (NFS-based, no sync needed)..."
-        # Deploy remote hosts first, then local
-        cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry --verbose {{args}}
-        echo "▸ Deploying zephyr locally..."
-        cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply-local --sudo --verbose {{args}}
+        tmux send-keys -t "$SESSION" "echo '▸ Deploying to all hosts (Ctrl+B D to detach)...'" Enter
+        tmux send-keys -t "$SESSION" "$DEPLOY_CMD && cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry --verbose {{args}}" Enter
+        tmux send-keys -t "$SESSION" "cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply-local --sudo --verbose {{args}}" Enter
     elif [ "{{target}}" = "zephyr" ]; then
-        echo "▸ Deploying zephyr locally (apply-local)..."
-        cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply-local --sudo --verbose {{args}}
+        tmux send-keys -t "$SESSION" "echo '▸ Deploying zephyr locally (Ctrl+B D to detach)...'" Enter
+        tmux send-keys -t "$SESSION" "$DEPLOY_CMD && cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply-local --sudo --verbose {{args}}" Enter
     else
-        echo "▸ Deploying to {{target}} (uses NFS mount /run/nixos-shared)..."
-        cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on {{target}} --verbose {{args}}
+        tmux send-keys -t "$SESSION" "echo '▸ Deploying to {{target}} (Ctrl+B D to detach)...'" Enter
+        tmux send-keys -t "$SESSION" "$DEPLOY_CMD && cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on {{target}} --verbose {{args}}" Enter
+    fi
+
+    echo "▸ Deploy started in tmux session '$SESSION' — attaching now"
+    exec tmux attach -t "$SESSION"
+
+# Attach to running deploy session
+attach:
+    #!/usr/bin/env bash
+    SESSION="deploy"
+    if tmux has-session -t "$SESSION" 2>/dev/null; then
+        exec tmux attach -t "$SESSION"
+    else
+        echo "No active deploy session. Use 'just deploy' to start one."
+        exit 1
     fi
 
 # Convenience aliases
@@ -114,6 +140,8 @@ forge:
     just deploy forge
 sentry:
     just deploy sentry
+all:
+    just deploy all
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  VALIDATION
@@ -131,11 +159,22 @@ check:
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Apply to current host (uses colmena apply-local for correct HM integration)
+# Runs in tmux for visibility — Ctrl+B D to detach
 switch:
     #!/usr/bin/env bash
-    set -e
-    echo "▸ Switching $(hostname -s) via colmena apply-local..."
-    cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply-local --sudo --verbose
+    SESSION="deploy"
+    if tmux has-session -t "$SESSION" 2>/dev/null; then
+        echo "▸ Deploy session already running — attaching (Ctrl+B D to detach)"
+        exec tmux attach -t "$SESSION"
+    fi
+    tmux new-session -d -s "$SESSION" -c {{FLAKE}} -x 200 -y 50
+    tmux set-option -t "$SESSION" status-style "bg=#1e1e2e fg=#cdd6f4"
+    tmux set-option -t "$SESSION" status-left " #[fg=#89b4fa]⬢ NixOS #[fg=#a6adc8]│ #[fg=#f9e2af]#{session_name} "
+    tmux set-option -t "$SESSION" status-right " #[fg=#a6e3a1]%H:%M "
+    tmux send-keys -t "$SESSION" "echo '▸ Switching $(hostname -s) via colmena apply-local (Ctrl+B D to detach)...'" Enter
+    tmux send-keys -t "$SESSION" "cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply-local --sudo --verbose" Enter
+    echo "▸ Deploy started in tmux session — attaching now"
+    exec tmux attach -t "$SESSION"
 
 # Build without applying (local host only)
 build:
