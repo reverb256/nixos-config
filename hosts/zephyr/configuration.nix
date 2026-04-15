@@ -248,6 +248,8 @@
     127.0.0.1 ai.lan ai.cluster.local
     127.0.0.1 openwebui.lan openwebui.cluster.local
     127.0.0.1 haven.lan haven.cluster.local
+    127.0.0.1 hermes.lan hermes.cluster.local
+    127.0.0.1 api.hermes.lan
   '';
 
   boot.postBootCommands = ''
