@@ -1,6 +1,9 @@
 # NixOS Cluster Kubernetes Migration Roadmap
 
-**Status:** Migrated to K3s — Post-Migration Hardening (see [K3s Migration Audit](#k3s-migration-audit)) | **Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-04-07
+**Status:** ✅ K3s migration COMPLETE — All 4 nodes Ready, 34 pods running, post-migration hardening in progress
+**Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-04-15
+
+> **See `INFRASTRUCTURE-AUDIT.md` for current cluster state, issues, and next steps.**
 
 ## Executive Summary
 
