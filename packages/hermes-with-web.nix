@@ -38,16 +38,21 @@ pkgs.runCommand "hermes-agent-with-web-${hermes-pkg.version or "0.9.0"}" {
   echo "$VENV/lib/python3.11/site-packages" > "$OVERLAY/00-hermes-venv.pth"
 
   # Create the hermes_cli/web_dist directory with our built frontend
-  mkdir -p "$OVERLAY/hermes_cli/web_dist"
+  # NO __init__.py — we rely on the .pth file to make the venv's hermes_cli
+  # findable, and the web_dist dir just needs to exist at the right path.
+  # The WEB_DIST = Path(__file__).parent / "web_dist" check looks at
+  # the venv's hermes_cli/__init__.py's parent, not ours.
+  # So we need to put web_dist into the VENV's hermes_cli directory.
+  # But that's read-only. Instead, create a symlink farm.
+  mkdir -p "$OVERLAY/hermes_cli"
   cp -r ${web-dist}/* "$OVERLAY/hermes_cli/web_dist/"
-
-  # Create hermes_cli as a namespace package that takes precedence
-  # Python will find our hermes_cli/web_dist first, then fall through to venv for other modules
-  cat > "$OVERLAY/hermes_cli/__init__.py" << 'EOF'
-# Namespace package - extends the hermes_cli from the venv
-from pkgutil import extend_path
-__path__ = extend_path(__path__, __name__)
-EOF
+  # Symlink all other files from the venv's hermes_cli into our overlay
+  for f in $VENV/lib/python3.11/site-packages/hermes_cli/*; do
+    name=$(basename "$f")
+    if [ "$name" != "web_dist" ] && [ ! -e "$OVERLAY/hermes_cli/$name" ]; then
+      ln -s "$f" "$OVERLAY/hermes_cli/$name"
+    fi
+  done
 
   # Wrap hermes binaries with our overlay in PYTHONPATH (takes precedence)
   for bin in ${hermes-pkg}/bin/*; do
