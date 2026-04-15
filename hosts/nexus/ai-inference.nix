@@ -94,7 +94,7 @@
       };
       tokenScopedCollections = true;
       reranker = {
-        enable = true;
+        enable = false;  # nexus has no GPU, skip ~1.1GB reranker model
         model = "BAAI/bge-reranker-v2-base";
       };
       qdrant = {
