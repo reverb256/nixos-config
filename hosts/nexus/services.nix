@@ -191,6 +191,21 @@
     openFirewall = true;
   };
 
+  # Load Z.AI API key into hermes-agent at service start
+  # The agenix secret contains the raw key; we wrap it in ZAI_API_KEY= format
+  systemd.services.hermes-agent = {
+    serviceConfig.ExecStartPre = pkgs.writeShellScript "hermes-load-api-key" ''
+      mkdir -p /var/lib/hermes/.hermes
+      echo -n "ZAI_API_KEY=" > /var/lib/hermes/.hermes/provider-env
+      cat /run/agenix/zai-api-key >> /var/lib/hermes/.hermes/provider-env
+      chmod 600 /var/lib/hermes/.hermes/provider-env
+      chown hermes:hermes /var/lib/hermes/.hermes/provider-env
+    '';
+    environment.ZAI_API_KEY_FILE = lib.mkForce "/var/lib/hermes/.hermes/provider-env";
+    # Also override EnvironmentFile to load the key
+    serviceConfig.EnvironmentFile = "/var/lib/hermes/.hermes/provider-env";
+  };
+
   # Knowledge Base MCP server — RAG search over 38 ingested books
   systemd.services.kb-mcp-server = {
     description = "Knowledge Base RAG MCP Server";
