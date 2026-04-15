@@ -232,6 +232,8 @@
   };
 
   # Brain wiki sync from zephyr → nexus (for gateway knowledge fabric)
+  # DEPRECATED: Wiki pages are display-only. Qdrant is the retrieval path.
+  # Disabled — brain-wiki Qdrant collection is updated directly via embed endpoint.
   systemd.services.brain-wiki-sync = {
     description = "Sync brain wiki from zephyr";
     path = with pkgs; [ rsync openssh ];
@@ -251,6 +253,7 @@
       OnCalendar = "hourly";
       Persistent = true;
     };
+    enable = false;  # Disabled: wiki pages are display-only
   };
 
   users.users.j_kro.extraGroups = [

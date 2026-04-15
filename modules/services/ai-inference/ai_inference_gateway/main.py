@@ -1515,6 +1515,10 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             except Exception as gemma_error:
                 logger.warning(f"Failed to apply Gemma thinking control: {gemma_error}")
 
+        # llama-server doesn't support chat_template_kwargs — strip it
+        if route_decision.backend == "llama-cpp" and "chat_template_kwargs" in body:
+            del body["chat_template_kwargs"]
+
         # Track request start for smart load balancing
         import uuid
 
