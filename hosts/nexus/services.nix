@@ -6,15 +6,15 @@
 
   services = {
     k3s-cluster = {
-      enable = false; # NixOS module not available yet
-      nvidia.enable = false; # NixOS module not available yet
+      enable = true;
+      nvidia.enable = true;
       role = "server";
       clusterInit = true;
       nodeName = "nexus";
       serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = "10.1.1.120";
-      calico.enable = false; # NixOS module not available yet
+      calico.enable = false;
     };
 
     keepalived-vip = {
