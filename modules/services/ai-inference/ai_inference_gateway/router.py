@@ -583,8 +583,11 @@ class Router:
                 # Try the health endpoint or models endpoint
                 for endpoint in ["/v1/models", "/health"]:
                     try:
-                        # Use localhost for all backends (Gateway runs on host)
-                        backend_url = f"http://127.0.0.1:{port}"
+                        # Use configured BACKEND_URL from env (supports remote backends)
+                        import os
+                        backend_url = os.environ.get(
+                            "BACKEND_URL", f"http://127.0.0.1:{port}"
+                        )
 
                         response = await client.get(
                             f"{backend_url}{endpoint}",
