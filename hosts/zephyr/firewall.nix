@@ -22,7 +22,12 @@
         179
         5473
         9100
+        1235  # llama-server (AI inference backend)
       ];
+      # Workaround: list merge is broken for this host. Ensure critical ports via nft rules.
+      extraInputRules = ''
+        tcp dport { 1235, 8080, 8888, 3900, 3901, 50000 } accept
+      '';
       allowedUDPPorts = lib.mkOptionDefault [
         9757
         9758
