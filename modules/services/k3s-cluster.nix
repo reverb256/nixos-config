@@ -150,7 +150,9 @@ in
           ++ lib.optional cfg.calico.enable "--flannel-backend=none"
         )
         ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"
-        ++ lib.optional (config.hardware.gpu-compute.rocm.enable or false) "--node-label=gpu=amd";
+        ++ lib.optional (config.hardware.gpu-compute.rocm.enable or false) "--node-label=gpu=amd"
+        ++ lib.optional (cfg.nodeIP != "") "--node-external-ip=${cfg.nodeIP}"
+        ++ lib.optional (cfg.nodeIP != "") "--flannel-external-ip";
 
       containerdConfigTemplate = mkIf cfg.nvidia.enable ''
         {{ template "base" . }}
@@ -235,7 +237,11 @@ in
       "L /root/.kube/config - - - - /etc/rancher/k3s/k3s.yaml"
     ];
 
-    systemd.services.k3s.environment.CONTAINERD_NRI_DISABLED = "1";
+    systemd.services.k3s = {
+      environment.CONTAINERD_NRI_DISABLED = "1";
+      # Start before keepalived so flannel detects the real IP, not the VIP
+      before = lib.mkIf config.services.keepalived.enable [ "keepalived.service" ];
+    };
 
     system.activationScripts.k3s-dirs = ''
       mkdir -p /var/lib/rancher/k3s/agent/etc/containerd
