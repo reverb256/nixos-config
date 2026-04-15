@@ -131,8 +131,8 @@
 
     settings = {
       model = {
-        default = "gemma-4-e4b-it";  # matches our local model
-        base_url = "http://127.0.0.1:8080/v1";  # AI gateway on nexus
+        provider = "zai";
+        default = "glm-5.1";
       };
       toolsets = [ "all" ];
       terminal = {
