@@ -196,6 +196,19 @@ in
             toString cfg.backend.pollinations.apiKeyFile
           else
             "";
+      }
+      // lib.optionalAttrs cfg.gateway.middleware.knowledgeFabric.enable {
+        MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
+        MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K = toString cfg.gateway.middleware.knowledgeFabric.rrf_k;
+        MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED = if cfg.gateway.middleware.knowledgeFabric.rag_enabled then "true" else "false";
+        MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED = if cfg.gateway.middleware.knowledgeFabric.searxng_enabled then "true" else "false";
+        MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL = cfg.gateway.middleware.knowledgeFabric.searxng_url;
+        MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED = if cfg.gateway.middleware.knowledgeFabric.code_search_enabled then "true" else "false";
+        MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS = builtins.toJSON cfg.gateway.middleware.knowledgeFabric.code_search_paths;
+        MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_SEARCH_ENABLED = if cfg.gateway.middleware.knowledgeFabric.web_search_enabled then "true" else "false";
+        MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_MAX_RESULTS = toString cfg.gateway.middleware.knowledgeFabric.web_max_results;
+        MIDDLEWARE__KNOWLEDGE_FABRIC__BRAIN_WIKI_ENABLED = if cfg.gateway.middleware.knowledgeFabric.brain_wiki_enabled then "true" else "false";
+        MIDDLEWARE__KNOWLEDGE_FABRIC__BRAIN_WIKI_PATH = cfg.gateway.middleware.knowledgeFabric.brain_wiki_path;
       };
 
       serviceConfig = {
