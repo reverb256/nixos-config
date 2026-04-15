@@ -17,49 +17,6 @@
       priority = 90;
     };
 
-    host-dashboard = {
-      enable = true;
-      role = "control-plane + monitoring";
-      port = 8090;
-      prometheusUrl = "http://127.0.0.1:9090";
-      featuredServices = [
-        {
-          name = "Prometheus";
-          url = "http://127.0.0.1:9090";
-        }
-        {
-          name = "Grafana";
-          url = "http://127.0.0.1:3000";
-        }
-        {
-          name = "Loki";
-          url = "http://127.0.0.1:3100";
-        }
-      ];
-      services = [
-        {
-          name = "kubelet";
-          active = true;
-        }
-        {
-          name = "containerd";
-          active = true;
-        }
-        {
-          name = "cfssl";
-          active = true;
-        }
-        {
-          name = "keepalived";
-          active = true;
-        }
-        {
-          name = "xmrig";
-          active = true;
-        }
-      ];
-    };
-
     gaming-detection.enable = true;
     gpu-profile-manager.enable = true;
     mining-coordinator.enable = true;

@@ -105,37 +105,6 @@
       deviceId = "FORGE-PLACEHOLDER";
     };
 
-    host-dashboard = {
-      enable = true;
-      role = "compute + mining";
-      port = 8090;
-      prometheusUrl = "http://127.0.0.1:9090";
-      featuredServices = [
-        {
-          name = "GPU Proxy";
-          url = "http://127.0.0.1:8083";
-        }
-      ];
-      services = [
-        {
-          name = "kubelet";
-          active = true;
-        }
-        {
-          name = "containerd";
-          active = true;
-        }
-        {
-          name = "gpu-proxy-cpp";
-          active = true;
-        }
-        {
-          name = "lolminer";
-          active = true;
-        }
-      ];
-    };
-
     nixos-auto-update = {
       enable = true;
       interval = "daily";
