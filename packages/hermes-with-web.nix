@@ -22,6 +22,8 @@ let
 in
 pkgs.runCommand "hermes-agent-with-web-${hermes-pkg.version or "0.9.0"}" {
   nativeBuildInputs = [ pkgs.makeWrapper ];
+  # Ensure hermes-pkg is in the sandbox so we can read the wrapper script
+  buildInputs = [ hermes-pkg ];
 } ''
   mkdir -p $out/bin
 
@@ -44,7 +46,7 @@ pkgs.runCommand "hermes-agent-with-web-${hermes-pkg.version or "0.9.0"}" {
   # the venv's hermes_cli/__init__.py's parent, not ours.
   # So we need to put web_dist into the VENV's hermes_cli directory.
   # But that's read-only. Instead, create a symlink farm.
-  mkdir -p "$OVERLAY/hermes_cli"
+  mkdir -p "$OVERLAY/hermes_cli/web_dist"
   cp -r ${web-dist}/* "$OVERLAY/hermes_cli/web_dist/"
   # Symlink all other files from the venv's hermes_cli into our overlay
   for f in $VENV/lib/python3.11/site-packages/hermes_cli/*; do
