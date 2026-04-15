@@ -312,8 +312,6 @@ in
         "XF86AudioLowerVolume".action = spawn-sh "noctalia-shell ipc call volume decrease";
         "XF86AudioMute".action = spawn-sh "noctalia-shell ipc call volume muteOutput";
         "XF86AudioMicMute".action = spawn-sh "noctalia-shell ipc call volume muteInput";
-        "XF86MonBrightnessUp".action = spawn-sh "brightness-all up";
-        "XF86MonBrightnessDown".action = spawn-sh "brightness-all down";
         "XF86AudioPlay".action = spawn-sh "noctalia-shell ipc call media playPause";
         "XF86AudioNext".action = spawn-sh "noctalia-shell ipc call media next";
         "XF86AudioPrev".action = spawn-sh "noctalia-shell ipc call media previous";
