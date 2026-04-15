@@ -223,55 +223,10 @@
           reverse_proxy 127.0.0.1:8080
         }
 
-        http://zephyr.lan {
-          header {
-            X-Content-Type-Options "nosniff"
-            X-Frame-Options "SAMEORIGIN"
-            -Server
-          }
-          encode zstd gzip
-          reverse_proxy 127.0.0.1:8090
-        }
-        http://dashboard.zephyr.lan {
-          header {
-            X-Content-Type-Options "nosniff"
-            X-Frame-Options "SAMEORIGIN"
-            -Server
-          }
-          encode zstd gzip
-          reverse_proxy 127.0.0.1:8090
-        }
-
-        https://search.lan, https://search.cluster.local {
-          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
-          encode zstd gzip
-          reverse_proxy 10.1.1.120:30888
-        }
-        https://ai.lan, https://ai.cluster.local {
-          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
-          encode zstd gzip
-          reverse_proxy 10.1.1.120:8080
-        }
-        https://openwebui.lan, https://openwebui.cluster.local {
-          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
-          encode zstd gzip
-          reverse_proxy 10.1.1.120:32080
-        }
-
         https://haven.lan, https://haven.cluster.local {
           tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
           encode zstd gzip
           reverse_proxy 10.1.1.120:3000
-        }
-
-        http://civicintel.lan, http://10.1.1.100 {
-          encode zstd gzip
-          handle_path /CivicIntel/* {
-            reverse_proxy 10.1.1.120:30085
-          }
-          handle_path /CivicIntel {
-            redir /CivicIntel/ permanent
-          }
         }
       '';
     };
@@ -543,73 +498,6 @@
     };
 
     garage-cluster.enable = false;
-
-    host-dashboard = {
-      enable = true;
-      role = "control-plane + ai-workstation";
-      port = 8090;
-      prometheusUrl = "http://127.0.0.1:9090";
-      featuredServices = [
-        {
-          name = "AI Gateway";
-          url = "http://127.0.0.1:8080";
-        }
-        {
-          name = "Prometheus";
-          url = "http://127.0.0.1:9090";
-        }
-        {
-          name = "Grafana";
-          url = "http://127.0.0.1:3000";
-        }
-        {
-          name = "Home Assistant";
-          url = "http://127.0.0.1:8123";
-        }
-      ];
-      services = [
-        {
-          name = "AI Inference Gateway";
-          active = true;
-        }
-        {
-          name = "Prometheus";
-          active = true;
-        }
-        {
-          name = "Grafana";
-          active = true;
-        }
-        {
-          name = "Loki";
-          active = true;
-        }
-        {
-          name = "Home Assistant";
-          active = true;
-        }
-        {
-          name = "Vaultwarden";
-          active = true;
-        }
-        {
-          name = "GlitchTip";
-          active = true;
-        }
-        {
-          name = "Garage S3";
-          active = true;
-        }
-        {
-          name = "NFS Server";
-          active = true;
-        }
-        {
-          name = "XMRig Proxy";
-          active = true;
-        }
-      ];
-    };
 
     status-auto-update.enable = true;
 

@@ -90,45 +90,6 @@
       rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
     };
 
-    host-dashboard = {
-      enable = false; # NixOS module not available yet
-      role = "control-plane + storage + gaming";
-      port = 8090;
-      prometheusUrl = "http://127.0.0.1:9090";
-      featuredServices = [
-        {
-          name = "Prometheus";
-          url = "http://127.0.0.1:9090";
-        }
-        {
-          name = "Grafana";
-          url = "http://127.0.0.1:3000";
-        }
-      ];
-      services = [
-        {
-          name = "kubelet";
-          active = true;
-        }
-        {
-          name = "containerd";
-          active = true;
-        }
-        {
-          name = "cfssl";
-          active = true;
-        }
-        {
-          name = "keepalived";
-          active = true;
-        }
-        {
-          name = "NFS Server";
-          active = true;
-        }
-      ];
-    };
-
     status-auto-update.enable = false; # NixOS module not available yet
 
     unbound-common.enable = false; # NixOS module not available yet
