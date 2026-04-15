@@ -1,27 +1,19 @@
-{
-  pkgs,
-  hermesSrc,
-}:
-pkgs.stdenv.mkDerivation {
+{ pkgs, hermesSrc }:
+pkgs.buildNpmPackage {
   pname = "hermes-agent-web-dist";
   version = "0.9.0";
 
   src = hermesSrc;
-
   sourceRoot = "source/web";
 
-  nativeBuildInputs = with pkgs; [
-    nodejs_20
-  ];
+  npmDepsHash = "sha256-Y0pOzdFG8BLjfvCLmsvqYpjxFjAQabXp1i7X9W/cCU4=";
+
+  # Don't let buildNpmPackage run npm build - we do it ourselves
+  dontNpmBuild = true;
 
   buildPhase = ''
-    npm install --ignore-scripts
-    npm run build
+    npx vite build --outDir $out
   '';
 
-  installPhase = ''
-    mkdir -p $out
-    # The build outputs to ../hermes_cli/web_dist
-    cp -r ../hermes_cli/web_dist/* $out/
-  '';
+  installPhase = "echo ok";
 }
