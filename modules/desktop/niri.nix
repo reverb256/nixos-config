@@ -8,6 +8,7 @@
 let
   niriEnabled = config.programs.niri.enable or false;
   inherit (lib)
+    mkForce
     mkIf
     mkMerge
     mkOption
@@ -67,6 +68,11 @@ in
         {
           xdg.portal = {
             enable = mkDefault true;
+            # Bypass the portal for xdg-open — flatpak apps call the portal
+            # directly via D-Bus regardless, so this only affects native apps.
+            # Without this, the portal's built-in OpenURI handler shows an
+            # "Open With…" dialog instead of launching the default browser.
+            xdgOpenUsePortal = mkForce false;
             config.niri = {
               default = [
                 "gnome"
@@ -77,7 +83,10 @@ in
               "org.freedesktop.impl.portal.Notification" = "gtk";
               "org.freedesktop.impl.portal.Secret" = "gnome-keyring";
             };
-            extraPortals = mkDefault [ pkgs.xdg-desktop-portal-gnome ];
+            extraPortals = mkDefault [
+              pkgs.xdg-desktop-portal-gnome
+              pkgs.xdg-desktop-portal-gtk
+            ];
           };
         }
 
@@ -95,6 +104,7 @@ in
 
         {
           environment.sessionVariables = {
+            BROWSER = mkDefault "zen-twilight";
             ELECTRON_OZONE_PLATFORM_HINT = mkDefault "auto";
             NIXOS_OZONE_WL = mkDefault "1";
             MOZ_ENABLE_WAYLAND = mkDefault "1";
