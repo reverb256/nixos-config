@@ -1480,6 +1480,41 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 logger.warning(f"Failed to apply Qwen optimal params: {qwen_error}")
                 # Continue without Qwen params - not critical
 
+        # Gemma 4 thinking control — disable thinking for simple tasks
+        # Thinking is useful for code/debug/reasoning, wasteful for summarization/QA
+        if "gemma" in route_decision.model.lower():
+            try:
+                # Determine if thinking should be enabled based on task
+                messages_text = " ".join([m.get("content", "") for m in messages])
+                thinking_keywords = [
+                    "code", "debug", "fix", "implement", "refactor",
+                    "architecture", "algorithm", "logic", "reason",
+                    "diagnose", "troubleshoot", "analyze", "solve",
+                ]
+                no_thinking_keywords = [
+                    "summarize", "summary", "list", "what is", "status",
+                    "how many", "show me", "tell me about", "simple",
+                    "format", "extract", "paraphrase",
+                ]
+                text_lower = messages_text.lower()
+                has_thinking = any(kw in text_lower for kw in thinking_keywords)
+                has_no_thinking = any(kw in text_lower for kw in no_thinking_keywords)
+
+                # Default: thinking ON for code/debug, OFF for simple tasks
+                enable_thinking = has_thinking and not has_no_thinking
+
+                # Respect explicit user setting
+                if "chat_template_kwargs" not in body:
+                    body["chat_template_kwargs"] = {}
+                if "enable_thinking" not in body["chat_template_kwargs"]:
+                    body["chat_template_kwargs"]["enable_thinking"] = enable_thinking
+                    logger.debug(
+                        f"Gemma thinking control: enable_thinking={enable_thinking} "
+                        f"(model={route_decision.model})"
+                    )
+            except Exception as gemma_error:
+                logger.warning(f"Failed to apply Gemma thinking control: {gemma_error}")
+
         # Track request start for smart load balancing
         import uuid
 
