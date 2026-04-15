@@ -151,8 +151,9 @@ in
         )
         ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"
         ++ lib.optional (config.hardware.gpu-compute.rocm.enable or false) "--node-label=gpu=amd"
-        ++ lib.optional (cfg.nodeIP != "") "--node-external-ip=${cfg.nodeIP}"
-        ++ lib.optional (cfg.nodeIP != "") "--flannel-external-ip";
+        ++ lib.optional (cfg.nodeIP != "") "--node-external-ip=${cfg.nodeIP}";
+        # --flannel-external-ip removed in k3s 1.34+ (upstream PR)
+        # Flannel now auto-detects external IP from --node-external-ip
 
       containerdConfigTemplate = mkIf cfg.nvidia.enable ''
         {{ template "base" . }}
