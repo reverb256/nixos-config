@@ -51,8 +51,6 @@ in
                   "--ubatch-size" "16"
                   "--flash-attn" "on"
                   "--parallel" "1"
-                  "--chat-template-kwargs" ''{"enable_thinking":false}''
-                  "--reasoning-budget" "0"
                   "--cache-type-k" "q4_0"
                   "--cache-type-v" "q4_0"
                   "--cache-ram" "0"
@@ -144,8 +142,9 @@ in
                   "--host" "0.0.0.0"
                   "--port" "1235"
                   "-ngl" "99"
-                  "-c" "131072"
+                  "-c" "65536"
                   "-t" "4"
+                  "--fit" "off"
                   "--batch-size" "64"
                   "--ubatch-size" "16"
                   "--flash-attn" "on"
@@ -177,8 +176,8 @@ in
                   failureThreshold = 10;
                 };
                 resources = {
-                  requests = { memory = "2Gi"; cpu = "500m"; };
-                  limits = { memory = "6Gi"; cpu = "2"; };
+                  requests = { memory = "4Gi"; cpu = "500m"; };
+                  limits = { memory = "16Gi"; cpu = "2"; };
                 };
                 securityContext.privileged = true;
                 volumeMounts = {
@@ -188,6 +187,7 @@ in
                   dev-kfd = { mountPath = "/dev/kfd"; };
                   models = { mountPath = "/models"; readOnly = true; };
                   opengl = { mountPath = "/run/opengl-driver/lib"; readOnly = true; };
+                  tmp = { mountPath = "/tmp"; };
                 };
               };
             };
@@ -198,6 +198,7 @@ in
               dev-kfd.hostPath = { path = "/dev/kfd"; type = "CharDevice"; };
               models.hostPath.path = "/home/j_kro/.lmstudio/models";
               opengl.hostPath.path = "/run/opengl-driver/lib";
+              tmp.emptyDir = {};
             };
           };
         };
