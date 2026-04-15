@@ -189,7 +189,7 @@
   # The official module's environment option doesn't reliably set systemd env vars,
   # so we use a systemd override with ExecStartPre to generate an env file.
   systemd.services.hermes-agent = {
-    serviceConfig.ExecStartPre = pkgs.writeShellScript "hermes-load-env" ''
+    serviceConfig.ExecStartPre = "+" + (pkgs.writeShellScript "hermes-load-env" ''
       mkdir -p /var/lib/hermes/.hermes
       cat > /var/lib/hermes/.hermes/provider-env << 'ENVEOF'
       API_SERVER_ENABLED=true
@@ -202,7 +202,7 @@
       cat /run/agenix/zai-api-key >> /var/lib/hermes/.hermes/provider-env
       chmod 600 /var/lib/hermes/.hermes/provider-env
       chown hermes:hermes /var/lib/hermes/.hermes/provider-env
-    '';
+    '');
     # Use "-" prefix so systemd doesn't fail if file doesn't exist yet
     serviceConfig.EnvironmentFile = "-/var/lib/hermes/.hermes/provider-env";
   };
