@@ -1,0 +1,80 @@
+---
+name: Update Stability Matrix
+
+on:
+  schedule:
+    - cron: '0 4 * * 1'  # weekly, Monday
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-stability-matrix:
+    name: Check for new Stability Matrix release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@6004951b182f8860210c8d6f0d808ec5b1a33d28
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Get current version
+        id: current
+        run: |
+          VERSION=$(grep -oP 'version = "\K[^"]+' modules/services/stability-matrix.nix)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Current version: $VERSION"
+
+      - name: Get latest release
+        id: latest
+        run: |
+          RELEASE=$(gh release view --repo LykosAI/StabilityMatrix \
+            --json tagName,publishedAt --jq '.tagName')
+          VERSION="${RELEASE#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Latest version: $VERSION"
+
+      - name: Skip if already up to date
+        if: steps.current.outputs.version == steps.latest.outputs.version
+        run: |
+          echo "Already on ${{ steps.current.outputs.version }}, nothing to do"
+          exit 0
+
+      - name: Update version and hash
+        run: |
+          VERSION="${{ steps.latest.outputs.version }}"
+          sed -i "s/version = \".*\"/version = \"$VERSION\"/" \
+            modules/services/stability-matrix.nix
+
+          # Prefetch new archive to get the hash
+          URL="https://github.com/LykosAI/StabilityMatrix/releases/download/v${VERSION}/StabilityMatrix-linux-x64.zip"
+          HASH=$(nix-prefetch-url --type sha256 "$URL")
+          SRI_HASH=$(nix hash to-sri --type sha256 "$HASH")
+
+          sed -i "s|sha256 = \".*\"|sha256 = \"$SRI_HASH\"|" \
+            modules/services/stability-matrix.nix
+
+          echo "Updated to v$VERSION (hash: $SRI_HASH)"
+
+      - name: Verify build
+        run: nix flake check
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c
+        with:
+          title: "chore(stability-matrix): update to v${{ steps.latest.outputs.version }}"
+          body: |
+            Automated Stability Matrix update.
+
+            - **From:** v${{ steps.current.outputs.version }}
+            - **To:** v${{ steps.latest.outputs.version }}
+
+            Please review and merge.
+          branch: update/stability-matrix
+          commit-message: "chore(stability-matrix): update to v${{ steps.latest.outputs.version }}"
+          delete-branch: true
