@@ -54,6 +54,14 @@
       psiCpuIdleThreshold = "2.0";
     };
 
+    mining-inference-coordinator = {
+      enable = true;
+      llamaPort = 1235;
+      miningService = "lolminer-nvidia.service";
+      checkInterval = 3;
+      idleTimeout = 30;
+    };
+
     opencode.enable = true;
 
     binary-cache = {
@@ -482,12 +490,12 @@
         ];
       };
       lolminer.nvidia = {
-        enable = false;
-        autostart = false;
-        devices = "1";
+        enable = true;
+        autostart = true;
+        devices = "0,1"; # RTX 3090 + RTX 3060 Ti
         perGpuPowerLimits = [
-          0
-          250
+          200  # RTX 3060 Ti
+          250  # RTX 3090
         ];
         apiPort = 4068;
       };

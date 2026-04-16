@@ -18,6 +18,7 @@ let
       ./modules/nixkube.nix
       ./modules/searxng.nix
       ./modules/haven.nix
+      ./modules/monitoring.nix
     ];
   };
 in
