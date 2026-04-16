@@ -66,11 +66,7 @@
 
     opencode.enable = true;
 
-    binary-cache = {
-      enable = true;
-      port = 50000;
-      bindAddress = "10.1.1.110";
-    };
+    binary-cache.enable = false; # unused, was burning CPU on crash-loop
 
     compute-market = {
       enable = false;
