@@ -7,7 +7,7 @@
       serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = "10.1.1.140";
-      calico.enable = true;
+      calico.enable = false;
     };
 
     keepalived-vip = {
@@ -73,7 +73,7 @@
     garage-cluster.enable = false;
 
     llamafile = {
-      enable = true;
+      enable = false; # Using K8s llama-server pod instead
       modelPath = "/home/j_kro/.lmstudio/models/unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-IQ4_NL.gguf";
       mmprojPath = "/home/j_kro/.lmstudio/models/unsloth/gemma-4-E2B-it-GGUF/mmproj-F32.gguf";
       modelName = "gemma4-e2b";
