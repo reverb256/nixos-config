@@ -5,7 +5,7 @@
   ...
 }:
 let
-  havenImage = "ghcr.io/ancsemi/haven:2.9.7";
+  havenImage = "ghcr.io/ancsemi/haven:3.1.1";
 in
 {
   config.kubernetes.objects = {

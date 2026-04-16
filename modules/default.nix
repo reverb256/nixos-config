@@ -97,6 +97,7 @@
     ./services/lm-studio-headless.nix
     ./services/llamafile.nix
     ./services/stability-matrix.nix
+    ./services/haven-desktop.nix
     ./services/ai-inference/default.nix
     ./services/nixos-share.nix
     ./services/podman-auto-update.nix
