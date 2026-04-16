@@ -1,0 +1,866 @@
+{
+  pkgs,
+  config,
+  lib,
+  ...
+}:
+let
+  # Pin versions for supply chain security
+  lokiImage = "docker.io/grafana/loki:3.4.3";
+  mimirImage = "docker.io/grafana/mimir:2.15.2";
+  tempoImage = "docker.io/grafana/tempo:2.7.2";
+  grafanaImage = "docker.io/grafana/grafana:11.6.0";
+  alloyImage = "docker.io/grafana/alloy:1.8.3";
+  prometheusImage = "docker.io/prom/prometheus:v3.3.1";
+
+  storageClass = "slow-hdd";
+
+  # Sentry internal IP for node affinity
+  sentryIP = "10.1.1.140";
+
+  # Cluster DNS service IP
+  clusterDNS = "10.0.0.10";
+
+  # Loki config (monolithic mode, filesystem storage)
+  lokiConfig = {
+    auth_enabled = false;
+    server = {
+      http_listen_port = 3100;
+      grpc_listen_port = 9096;
+      log_level = "warn";
+    };
+    common = {
+      path_prefix = "/loki";
+      storage.filesystem = {
+        chunks_directory = "/loki/chunks";
+        rules_directory = "/loki/rules";
+      };
+      replication_factor = 1;
+      ring.kvstore.store = "inmemory";
+    };
+    schema_config = {
+      configs = [{
+        from = "2024-01-01";
+        store = "tsdb";
+        object_store = "filesystem";
+        schema = "v13";
+        index.prefix = "index_";
+        index.period = "24h";
+      }];
+    };
+    storage_config = {
+      filesystem.dir = "/loki/storage";
+      tsdb_shipper = {
+        active_index_directory = "/loki/tsdb-index";
+        cache_location = "/loki/tsdb-cache";
+      };
+    };
+    limits_config = {
+      retention_period = "30d";
+      allow_structured_metadata = true;
+      max_query_length = "721h";
+    };
+    compactor = {
+      working_directory = "/loki/compactor";
+      compaction_interval = "10m";
+      retention_enabled = true;
+      delete_request_store = "filesystem";
+    };
+    analytics.reporting_enabled = false;
+  };
+
+  # Mimir config (monolithic mode)
+  mimirConfig = {
+    target = "all";
+    multitenancy_enabled = false;
+    # activity_tracker.log_deactivated = false;
+    server = {
+      http_listen_port = 9009;
+      grpc_listen_port = 9095;
+      log_level = "warn";
+    };
+    common.storage.backend = "filesystem";
+    common.storage.filesystem.dir = "/mimir/storage";
+    blocks_storage = {
+      filesystem.dir = "/mimir/data/blocks";
+      tsdb.dir = "/mimir/data/tsdb";
+    };
+    compactor.data_dir = "/mimir/data/compactor";
+    alertmanager.storage.filesystem.dir = "/mimir/data/alertmanager";
+    ruler.storage.filesystem.dir = "/mimir/data/rules";
+    ruler.rule_path = "/mimir/data/rules-eval";
+    limits_config = {
+      max_query_length = "721h";
+      retention_period = "365d";
+    };
+    memberlist.bind_port = 7946;
+    analytics.reporting_enabled = false;
+  };
+
+  # Tempo config (monolithic mode)
+  tempoConfig = {
+    server = {
+      http_listen_port = 3200;
+      grpc_listen_port = 9095;
+      log_level = "warn";
+    };
+    storage = {
+      trace.backend = "local";
+      trace.local.path = "/tempo/traces";
+      trace.block.version = "vParquet";
+    };
+    metrics_generator = {
+      registry.external_labels.source = "tempo";
+      storage.path = "/tempo/generator/wal";
+    };
+    querier.max_concurrent_queries = 20;
+    retention = "720h"; # 30 days
+    compactor.compaction.block_retention = "720h";
+    overrides.defaults.metrics_generator.processors = [
+      "service-graphs"
+      "span-metrics"
+    ];
+  };
+
+  # Alloy config (collects logs + traces from all nodes)
+  alloyConfig = ''
+    // Discover Kubernetes pods and collect logs
+    discovery.kubernetes "pods" {
+      role = "pod"
+    }
+
+    // Collect container logs → Loki
+    loki.source.kubernetes "logs" {
+      targets    = discovery.kubernetes.pods.targets
+      forward_to = [loki.write.loki.receiver]
+    }
+
+    // Write logs to Loki
+    loki.write "loki" {
+      endpoint {
+        url = "http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push"
+      }
+    }
+
+    // Scrape kubelet metrics
+    discovery.kubernetes "nodes" {
+      role = "node"
+    }
+
+    // Scrape cadvisor metrics
+    prometheus.scrape "cadvisor" {
+      targets = [
+        {__address__ = "127.0.0.1:10250"},
+      ]
+      scheme               = "https"
+      tls_config.insecure_skip_verify = true
+      bearer_token_file    = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+      scrape_interval      = "15s"
+      forward_to           = [prometheus.remote_write.mimir.receiver]
+    }
+
+    // Remote write to Mimir
+    prometheus.remote_write "mimir" {
+      endpoint {
+        url = "http://mimir.monitoring.svc.cluster.local:9009/api/v1/push"
+      }
+    }
+
+    // Collect traces → Tempo
+    otlp.receiver "default" {
+      http {
+        endpoint = "0.0.0.0:4318"
+      }
+      output.traces = [tempo.write.tempo.receiver]
+    }
+
+    tempo.write "tempo" {
+      endpoint {
+        url = "http://tempo.monitoring.svc.cluster.local:4317"
+      }
+    }
+  '';
+
+  # Prometheus config (scrapes cluster targets, remote_writes to Mimir)
+  prometheusConfig = ''
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: nixos-k8s
+
+    scrape_configs:
+      - job_name: 'node-exporter'
+        kubernetes_sd_configs:
+          - role: endpoints
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            regex: 'node-exporter'
+            action: keep
+
+      - job_name: 'kubelet'
+        scheme: https
+        tls_config:
+          insecure_skip_verify: true
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_node_address_InternalIP]
+            target_label: __address__
+            replacement: "$1:10250"
+
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            target_label: __address__
+            regex: (.+)
+            replacement: "$1"
+
+    remote_write:
+      - url: 'http://mimir.monitoring.svc.cluster.local:9009/api/v1/push'
+  '';
+
+  # Grafana datasources provisioning
+  grafanaDatasources = {
+    apiVersion = 1;
+    datasources = [
+      {
+        name = "Mimir";
+        type = "prometheus";
+        url = "http://mimir.monitoring.svc.cluster.local:9009/prometheus";
+        isDefault = true;
+        editable = false;
+        uid = "mimir";
+      }
+      {
+        name = "Loki";
+        type = "loki";
+        url = "http://loki.monitoring.svc.cluster.local:3100";
+        editable = false;
+        uid = "loki";
+      }
+      {
+        name = "Tempo";
+        type = "tempo";
+        url = "http://tempo.monitoring.svc.cluster.local:3200";
+        editable = false;
+        uid = "tempo";
+      }
+    ];
+  };
+
+  # Common node selector for sentry
+  sentrySelector = { "kubernetes.io/hostname" = "sentry"; };
+
+  # Common security context
+  securityContext = {
+    runAsNonRoot = true;
+    runAsUser = 10001;
+    runAsGroup = 10001;
+    fsGroup = 10001;
+    seccompProfile.type = "RuntimeDefault";
+  };
+
+  # Common container security
+  containerSecurity = {
+    allowPrivilegeEscalation = false;
+    readOnlyRootFilesystem = true;
+    capabilities.drop = [ "ALL" ];
+  };
+
+  # Common probes helper
+  httpProbe = port: path: {
+    httpGet = { inherit port path; };
+    initialDelaySeconds = 30;
+    periodSeconds = 10;
+    timeoutSeconds = 5;
+    failureThreshold = 3;
+  };
+in
+{
+  config.kubernetes.objects = {
+    # ── Namespace ──────────────────────────────────────────────
+    none.Namespace.monitoring = {
+      metadata.labels = {
+        name = "monitoring";
+      };
+    };
+
+    # ── ServiceAccounts ────────────────────────────────────────
+    monitoring.ServiceAccount.loki-sa = { };
+    monitoring.ServiceAccount.mimir-sa = { };
+    monitoring.ServiceAccount.tempo-sa = { };
+    monitoring.ServiceAccount.grafana-sa = { };
+    monitoring.ServiceAccount.alloy-sa = { };
+    monitoring.ServiceAccount.prometheus-sa = { };
+
+    # ── ClusterRole for Alloy (needs wide cluster access) ──────
+    none.ClusterRole.alloy-cluster-role = {
+      rules = [
+        { apiGroups = [ "" ]; resources = [ "nodes" "nodes/metrics" "nodes/proxy" "pods" "services" "endpoints" "namespaces" ]; verbs = [ "get" "list" "watch" ]; }
+        { apiGroups = [ "extensions" "networking.k8s.io" ]; resources = [ "ingresses" ]; verbs = [ "get" "list" "watch" ]; }
+        { nonResourceURLs = [ "/metrics" "/metrics/cadvisor" ]; verbs = [ "get" ]; }
+      ];
+    };
+    none.ClusterRoleBinding.alloy-cluster-rolebinding = {
+      roleRef = { apiGroup = "rbac.authorization.k8s.io"; kind = "ClusterRole"; name = "alloy-cluster-role"; };
+      subjects = [{ kind = "ServiceAccount"; name = "alloy-sa"; namespace = "monitoring"; }];
+    };
+
+    # ── ClusterRole for Prometheus ─────────────────────────────
+    none.ClusterRole.prometheus-cluster-role = {
+      rules = [
+        { apiGroups = [ "" ]; resources = [ "nodes" "nodes/metrics" "nodes/proxy" "pods" "services" "endpoints" "namespaces" ]; verbs = [ "get" "list" "watch" ]; }
+        { nonResourceURLs = [ "/metrics" ]; verbs = [ "get" ]; }
+      ];
+    };
+    none.ClusterRoleBinding.prometheus-cluster-rolebinding = {
+      roleRef = { apiGroup = "rbac.authorization.k8s.io"; kind = "ClusterRole"; name = "prometheus-cluster-role"; };
+      subjects = [{ kind = "ServiceAccount"; name = "prometheus-sa"; namespace = "monitoring"; }];
+    };
+
+    # ── NetworkPolicies ────────────────────────────────────────
+    monitoring.NetworkPolicy.default-deny-ingress = {
+      spec = {
+        podSelector = { };
+        policyTypes = [ "Ingress" ];
+      };
+    };
+    monitoring.NetworkPolicy.allow-internal = {
+      spec = {
+        podSelector = { };
+        policyTypes = [ "Ingress" "Egress" ];
+        ingress = [{ from = [{ namespaceSelector.matchLabels.name = "monitoring"; }]; }];
+        egress = [
+          { to = [{ namespaceSelector.matchLabels.name = "monitoring"; }]; }
+          { to = [{ namespaceSelector = { }; podSelector.matchLabels."k8s-app" = "kube-dns"; }]; ports = [{ protocol = "UDP"; port = 53; } { protocol = "TCP"; port = 53; }]; }
+        ];
+      };
+    };
+    monitoring.NetworkPolicy.allow-caddy-to-grafana = {
+      spec = {
+        podSelector.matchLabels.app = "grafana";
+        policyTypes = [ "Ingress" ];
+        ingress = [{ from = [{ namespaceSelector.matchLabels.name = "ingress-system"; }]; ports = [{ protocol = "TCP"; port = 3000; }]; }];
+      };
+    };
+    monitoring.NetworkPolicy.allow-alloy-kubelet = {
+      spec = {
+        podSelector.matchLabels.app = "alloy";
+        policyTypes = [ "Egress" ];
+        egress = [{ to = [{ ipBlock.cidr = "10.1.1.0/24"; }]; ports = [{ protocol = "TCP"; port = 10250; }]; }];
+      };
+    };
+
+    # ── Loki ───────────────────────────────────────────────────
+    monitoring.ConfigMap.loki-config.data."loki.yaml" =
+      builtins.toJSON lokiConfig;
+
+    monitoring.StatefulSet.loki = {
+      metadata.labels.app = "loki";
+      spec = {
+        replicas = 1;
+        revisionHistoryLimit = 1;
+        serviceName = "loki-headless";
+        selector.matchLabels.app = "loki";
+        template = {
+          metadata.labels.app = "loki";
+          spec = {
+            nodeSelector = sentrySelector;
+            securityContext = securityContext;
+            serviceAccountName = "loki-sa";
+            containers = {
+              _namedlist = true;
+              loki = {
+                image = lokiImage;
+                imagePullPolicy = "IfNotPresent";
+                args = [ "-config.file=/etc/loki/loki.yaml" "-target=all" ];
+                ports = [
+                  { containerPort = 3100; name = "http"; protocol = "TCP"; }
+                  { containerPort = 9096; name = "grpc"; protocol = "TCP"; }
+                ];
+                resources = {
+                  requests = { cpu = "250m"; memory = "512Mi"; };
+                  limits = { cpu = "1"; memory = "1Gi"; };
+                };
+                livenessProbe = httpProbe 3100 "/ready";
+                readinessProbe = httpProbe 3100 "/ready";
+                securityContext = containerSecurity;
+                volumeMounts = {
+                  _namedlist = true;
+                  config = { mountPath = "/etc/loki"; readOnly = true; };
+                  data = { mountPath = "/loki"; };
+                };
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              config.configMap.name = "loki-config";
+            };
+          };
+        };
+        volumeClaimTemplates = [{
+          metadata.name = "data";
+          spec = {
+            accessModes = [ "ReadWriteOnce" ];
+            storageClassName = storageClass;
+            resources.requests.storage = "50Gi";
+          };
+        }];
+      };
+    };
+
+    monitoring.Service.loki = {
+      metadata.labels.app = "loki";
+      spec = {
+        type = "ClusterIP";
+        ports = [
+          { name = "http"; port = 3100; targetPort = 3100; protocol = "TCP"; }
+          { name = "grpc"; port = 9096; targetPort = 9096; protocol = "TCP"; }
+        ];
+        selector.app = "loki";
+      };
+    };
+    monitoring.Service.loki-headless = {
+      metadata.labels.app = "loki";
+      spec = {
+        type = "ClusterIP";
+        clusterIP = "None";
+        ports = [{ name = "http"; port = 3100; targetPort = 3100; protocol = "TCP"; }];
+        selector.app = "loki";
+      };
+    };
+
+    # ── Mimir ──────────────────────────────────────────────────
+    monitoring.ConfigMap.mimir-config.data."mimir.yaml" =
+      builtins.toJSON mimirConfig;
+
+    monitoring.StatefulSet.mimir = {
+      metadata.labels.app = "mimir";
+      spec = {
+        replicas = 1;
+        revisionHistoryLimit = 1;
+        serviceName = "mimir-headless";
+        selector.matchLabels.app = "mimir";
+        template = {
+          metadata.labels.app = "mimir";
+          spec = {
+            nodeSelector = sentrySelector;
+            securityContext = securityContext;
+            serviceAccountName = "mimir-sa";
+            containers = {
+              _namedlist = true;
+              mimir = {
+                image = mimirImage;
+                imagePullPolicy = "IfNotPresent";
+                args = [ "-config.file=/etc/mimir/mimir.yaml" "-target=all" ];
+                ports = [
+                  { containerPort = 9009; name = "http"; protocol = "TCP"; }
+                  { containerPort = 9095; name = "grpc"; protocol = "TCP"; }
+                  { containerPort = 7946; name = "memberlist"; protocol = "TCP"; }
+                ];
+                resources = {
+                  requests = { cpu = "500m"; memory = "1Gi"; };
+                  limits = { cpu = "2"; memory = "4Gi"; };
+                };
+                livenessProbe = httpProbe 9009 "/ready";
+                readinessProbe = httpProbe 9009 "/ready";
+                securityContext = containerSecurity;
+                volumeMounts = {
+                  _namedlist = true;
+                  config = { mountPath = "/etc/mimir"; readOnly = true; };
+                  data = { mountPath = "/mimir"; };
+                };
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              config.configMap.name = "mimir-config";
+            };
+          };
+        };
+        volumeClaimTemplates = [{
+          metadata.name = "data";
+          spec = {
+            accessModes = [ "ReadWriteOnce" ];
+            storageClassName = storageClass;
+            resources.requests.storage = "100Gi";
+          };
+        }];
+      };
+    };
+
+    monitoring.Service.mimir = {
+      metadata.labels.app = "mimir";
+      spec = {
+        type = "ClusterIP";
+        ports = [
+          { name = "http"; port = 9009; targetPort = 9009; protocol = "TCP"; }
+          { name = "grpc"; port = 9095; targetPort = 9095; protocol = "TCP"; }
+        ];
+        selector.app = "mimir";
+      };
+    };
+    monitoring.Service.mimir-headless = {
+      metadata.labels.app = "mimir";
+      spec = {
+        type = "ClusterIP";
+        clusterIP = "None";
+        ports = [{ name = "http"; port = 9009; targetPort = 9009; protocol = "TCP"; }];
+        selector.app = "mimir";
+      };
+    };
+
+    # ── Tempo ──────────────────────────────────────────────────
+    monitoring.ConfigMap.tempo-config.data."tempo.yaml" =
+      builtins.toJSON tempoConfig;
+
+    monitoring.StatefulSet.tempo = {
+      metadata.labels.app = "tempo";
+      spec = {
+        replicas = 1;
+        revisionHistoryLimit = 1;
+        serviceName = "tempo-headless";
+        selector.matchLabels.app = "tempo";
+        template = {
+          metadata.labels.app = "tempo";
+          spec = {
+            nodeSelector = sentrySelector;
+            securityContext = securityContext;
+            serviceAccountName = "tempo-sa";
+            containers = {
+              _namedlist = true;
+              tempo = {
+                image = tempoImage;
+                imagePullPolicy = "IfNotPresent";
+                args = [ "-config.file=/etc/tempo/tempo.yaml" ];
+                ports = [
+                  { containerPort = 3200; name = "http"; protocol = "TCP"; }
+                  { containerPort = 4317; name = "otlp-grpc"; protocol = "TCP"; }
+                  { containerPort = 4318; name = "otlp-http"; protocol = "TCP"; }
+                ];
+                resources = {
+                  requests = { cpu = "250m"; memory = "512Mi"; };
+                  limits = { cpu = "1"; memory = "2Gi"; };
+                };
+                livenessProbe = httpProbe 3200 "/ready";
+                readinessProbe = httpProbe 3200 "/ready";
+                securityContext = containerSecurity;
+                volumeMounts = {
+                  _namedlist = true;
+                  config = { mountPath = "/etc/tempo"; readOnly = true; };
+                  data = { mountPath = "/tempo"; };
+                };
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              config.configMap.name = "tempo-config";
+            };
+          };
+        };
+        volumeClaimTemplates = [{
+          metadata.name = "data";
+          spec = {
+            accessModes = [ "ReadWriteOnce" ];
+            storageClassName = storageClass;
+            resources.requests.storage = "50Gi";
+          };
+        }];
+      };
+    };
+
+    monitoring.Service.tempo = {
+      metadata.labels.app = "tempo";
+      spec = {
+        type = "ClusterIP";
+        ports = [
+          { name = "http"; port = 3200; targetPort = 3200; protocol = "TCP"; }
+          { name = "otlp-grpc"; port = 4317; targetPort = 4317; protocol = "TCP"; }
+          { name = "otlp-http"; port = 4318; targetPort = 4318; protocol = "TCP"; }
+        ];
+        selector.app = "tempo";
+      };
+    };
+    monitoring.Service.tempo-headless = {
+      metadata.labels.app = "tempo";
+      spec = {
+        type = "ClusterIP";
+        clusterIP = "None";
+        ports = [{ name = "http"; port = 3200; targetPort = 3200; protocol = "TCP"; }];
+        selector.app = "tempo";
+      };
+    };
+
+    # ── Grafana ────────────────────────────────────────────────
+    monitoring.ConfigMap.grafana-datasources.data."datasources.yaml" =
+      builtins.toJSON grafanaDatasources;
+
+    monitoring.Deployment.grafana = {
+      metadata.labels.app = "grafana";
+      spec = {
+        replicas = 1;
+        revisionHistoryLimit = 1;
+        selector.matchLabels.app = "grafana";
+        strategy = {
+          type = "RollingUpdate";
+          rollingUpdate = { maxSurge = 0; maxUnavailable = 1; };
+        };
+        template = {
+          metadata.labels.app = "grafana";
+          spec = {
+            nodeSelector = sentrySelector;
+            securityContext = {
+              runAsNonRoot = true;
+              runAsUser = 10001;
+              runAsGroup = 10001;
+              fsGroup = 10001;
+              seccompProfile.type = "RuntimeDefault";
+            };
+            serviceAccountName = "grafana-sa";
+            containers = {
+              _namedlist = true;
+              grafana = {
+                image = grafanaImage;
+                imagePullPolicy = "IfNotPresent";
+                env = {
+                  _namedlist = true;
+                  GF_SECURITY_ADMIN_USER.value = "admin";
+                  GF_SECURITY_ADMIN_PASSWORD.value = "admin";
+                  GF_USERS_ALLOW_SIGN_UP.value = "false";
+                  GF_AUTH_ANONYMOUS_ENABLED.value = "false";
+                  GF_LOG_MODE.value = "console";
+                  GF_LOG_LEVEL.value = "warn";
+                  GF_SERVER_ROOT_URL.value = "http://grafana.monitoring.svc.cluster.local:3000";
+                };
+                ports = [{ containerPort = 3000; name = "http"; protocol = "TCP"; }];
+                resources = {
+                  requests = { cpu = "100m"; memory = "128Mi"; };
+                  limits = { cpu = "500m"; memory = "512Mi"; };
+                };
+                livenessProbe = httpProbe 3000 "/api/health";
+                readinessProbe = httpProbe 3000 "/api/health";
+                securityContext = containerSecurity;
+                volumeMounts = {
+                  _namedlist = true;
+                  datasources = { mountPath = "/etc/grafana/provisioning/datasources"; readOnly = true; };
+                  data = { mountPath = "/var/lib/grafana"; };
+                };
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              datasources.configMap.name = "grafana-datasources";
+              data.persistentVolumeClaim.claimName = "grafana-data";
+            };
+          };
+        };
+      };
+    };
+
+    monitoring.PersistentVolumeClaim.grafana-data = {
+      spec = {
+        accessModes = [ "ReadWriteOnce" ];
+        storageClassName = storageClass;
+        resources.requests.storage = "10Gi";
+      };
+    };
+
+    monitoring.Service.grafana = {
+      metadata.labels.app = "grafana";
+      spec = {
+        type = "ClusterIP";
+        ports = [{ name = "http"; port = 3000; targetPort = 3000; protocol = "TCP"; }];
+        selector.app = "grafana";
+      };
+    };
+
+    monitoring.Ingress.grafana = {
+      metadata.annotations."caddy.ingress.kubernetes.io/disable-ssl-redirect" = "true";
+      spec = {
+        ingressClassName = "caddy";
+        rules = [
+          {
+            host = "grafana.lan";
+            http.paths = [{
+              path = "/";
+              pathType = "Prefix";
+              backend.service = { name = "grafana"; port.number = 3000; };
+            }];
+          }
+          {
+            host = "grafana.cluster.local";
+            http.paths = [{
+              path = "/";
+              pathType = "Prefix";
+              backend.service = { name = "grafana"; port.number = 3000; };
+            }];
+          }
+        ];
+      };
+    };
+
+    # ── Alloy (DaemonSet — one per node) ───────────────────────
+    monitoring.ConfigMap.alloy-config.data."config.alloy" = alloyConfig;
+
+    monitoring.DaemonSet.alloy = {
+      metadata.labels.app = "alloy";
+      spec = {
+        revisionHistoryLimit = 1;
+        selector.matchLabels.app = "alloy";
+        template = {
+          metadata.labels.app = "alloy";
+          spec = {
+            serviceAccountName = "alloy-sa";
+            hostNetwork = true;
+            dnsPolicy = "ClusterFirstWithHostNet";
+            tolerations = [
+              { key = "node-role.kubernetes.io/control-plane"; effect = "NoSchedule"; }
+              { key = "node-role.kubernetes.io/master"; effect = "NoSchedule"; }
+            ];
+            securityContext = {
+              runAsUser = 0;
+              runAsGroup = 0;
+              seccompProfile.type = "RuntimeDefault";
+            };
+            containers = {
+              _namedlist = true;
+              alloy = {
+                image = alloyImage;
+                imagePullPolicy = "IfNotPresent";
+                args = [
+                  "run"
+                  "/etc/alloy/config.alloy"
+                  "--storage.path=/var/lib/alloy"
+                  "--server.http.listen-addr=0.0.0.0:12345"
+                ];
+                env = {
+                  _namedlist = true;
+                  HOSTNAME.valueFrom.fieldRef.fieldPath = "spec.nodeName";
+                };
+                ports = [{ containerPort = 12345; name = "http"; protocol = "TCP"; }];
+                resources = {
+                  requests = { cpu = "100m"; memory = "256Mi"; };
+                  limits = { cpu = "500m"; memory = "512Mi"; };
+                };
+                securityContext = {
+                  allowPrivilegeEscalation = false;
+                  readOnlyRootFilesystem = true;
+                  capabilities.drop = [ "ALL" ];
+                };
+                volumeMounts = {
+                  _namedlist = true;
+                  config = { mountPath = "/etc/alloy"; readOnly = true; };
+                  data = { mountPath = "/var/lib/alloy"; };
+                  "var-log" = { mountPath = "/var/log"; readOnly = true; };
+                  "docker-containers" = { mountPath = "/var/lib/docker/containers"; readOnly = true; };
+                  "containerd-containers" = { mountPath = "/var/lib/containerd"; readOnly = true; };
+                };
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              config.configMap.name = "alloy-config";
+              data.emptyDir = { };
+              "var-log" = { hostPath.path = "/var/log"; hostPath.type = "DirectoryOrCreate"; };
+              "docker-containers" = { hostPath.path = "/var/lib/docker/containers"; hostPath.type = "DirectoryOrCreate"; };
+              "containerd-containers" = { hostPath.path = "/var/lib/containerd"; hostPath.type = "DirectoryOrCreate"; };
+            };
+          };
+        };
+      };
+    };
+
+    # ── Prometheus (scrapes targets, remote_writes to Mimir) ───
+    monitoring.ConfigMap.prometheus-config.data."prometheus.yml" = prometheusConfig;
+
+    monitoring.Deployment.prometheus = {
+      metadata.labels.app = "prometheus";
+      spec = {
+        replicas = 1;
+        revisionHistoryLimit = 1;
+        selector.matchLabels.app = "prometheus";
+        strategy = {
+          type = "RollingUpdate";
+          rollingUpdate = { maxSurge = 0; maxUnavailable = 1; };
+        };
+        template = {
+          metadata.labels.app = "prometheus";
+          spec = {
+            nodeSelector = sentrySelector;
+            securityContext = {
+              runAsUser = 10001;
+              runAsGroup = 10001;
+              fsGroup = 10001;
+              runAsNonRoot = true;
+              seccompProfile.type = "RuntimeDefault";
+            };
+            serviceAccountName = "prometheus-sa";
+            containers = {
+              _namedlist = true;
+              prometheus = {
+                image = prometheusImage;
+                imagePullPolicy = "IfNotPresent";
+                args = [
+                  "--config.file=/etc/prometheus/prometheus.yml"
+                  "--storage.tsdb.path=/prometheus"
+                  "--storage.tsdb.retention.time=2h"
+                  "--storage.tsdb.retention.size=1GB"
+                  "--web.enable-remote-write-receiver"
+                  "--web.listen-address=0.0.0.0:9090"
+                ];
+                ports = [{ containerPort = 9090; name = "http"; protocol = "TCP"; }];
+                resources = {
+                  requests = { cpu = "250m"; memory = "512Mi"; };
+                  limits = { cpu = "1"; memory = "2Gi"; };
+                };
+                livenessProbe = httpProbe 9090 "/-/healthy";
+                readinessProbe = httpProbe 9090 "/-/ready";
+                securityContext = containerSecurity;
+                volumeMounts = {
+                  _namedlist = true;
+                  config = { mountPath = "/etc/prometheus"; readOnly = true; };
+                  data = { mountPath = "/prometheus"; };
+                };
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              config.configMap.name = "prometheus-config";
+              data.emptyDir = { }; # Short retention — Mimir handles long-term
+            };
+          };
+        };
+      };
+    };
+
+    monitoring.Service.prometheus = {
+      metadata.labels.app = "prometheus";
+      spec = {
+        type = "ClusterIP";
+        ports = [{ name = "http"; port = 9090; targetPort = 9090; protocol = "TCP"; }];
+        selector.app = "prometheus";
+      };
+    };
+
+    # ── PDBs ───────────────────────────────────────────────────
+    monitoring.PodDisruptionBudget.loki-pdb = {
+      spec.minAvailable = 1;
+      spec.selector.matchLabels.app = "loki";
+    };
+    monitoring.PodDisruptionBudget.mimir-pdb = {
+      spec.minAvailable = 1;
+      spec.selector.matchLabels.app = "mimir";
+    };
+    monitoring.PodDisruptionBudget.grafana-pdb = {
+      spec.minAvailable = 1;
+      spec.selector.matchLabels.app = "grafana";
+    };
+  };
+}
