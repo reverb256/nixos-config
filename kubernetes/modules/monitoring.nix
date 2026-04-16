@@ -221,6 +221,22 @@ let
         }
       }
     }
+
+    // Collect Kubernetes events → Loki
+    loki.source.kubernetes_events "events" {
+      job_name   = "integrations/kubernetes/eventhandler"
+      log_format = "logfmt"
+      forward_to = [loki.write.loki.receiver]
+    }
+
+    // Self-monitoring: scrape Alloy metrics → Mimir
+    prometheus.scrape "alloy_self" {
+      targets = [
+        {__address__ = "127.0.0.1:12345"},
+      ]
+      scrape_interval = "15s"
+      forward_to      = [prometheus.remote_write.mimir.receiver]
+    }
   '';
 
   # Prometheus config (scrapes cluster targets, remote_writes to Mimir)
@@ -233,11 +249,52 @@ let
 
     scrape_configs:
       - job_name: 'node-exporter'
+        scrape_interval: 15s
+        static_configs:
+          - targets:
+              - '10.1.1.110:9100'
+              - '10.1.1.120:9100'
+              - '10.1.1.130:9100'
+              - '10.1.1.140:9100'
+
+      - job_name: 'nvidia-exporter'
+        scrape_interval: 15s
+        static_configs:
+          - targets:
+              - '10.1.1.110:9400'
+              - '10.1.1.120:9400'
+              - '10.1.1.130:9400'
+
+      - job_name: 'xmrig'
+        scrape_interval: 30s
+        static_configs:
+          - targets:
+              - '10.1.1.120:8081'
+              - '10.1.1.120:8082'
+              - '10.1.1.110:8082'
+              - '10.1.1.140:8081'
+
+      - job_name: 'lolminer'
+        scrape_interval: 30s
+        static_configs:
+          - targets:
+              - '10.1.1.130:4068'
+              - '10.1.1.130:4069'
+              - '10.1.1.120:4068'
+              - '10.1.1.110:4069'
+
+      - job_name: 'caddy'
+        scrape_interval: 15s
+        static_configs:
+          - targets:
+              - '10.1.1.110:2019'
+
+      - job_name: 'kube-state-metrics'
         kubernetes_sd_configs:
           - role: endpoints
         relabel_configs:
           - source_labels: [__meta_kubernetes_service_name]
-            regex: 'node-exporter'
+            regex: 'kube-state-metrics'
             action: keep
 
       - job_name: 'kubelet'
@@ -691,6 +748,8 @@ in
                 volumeMounts = {
                   _namedlist = true;
                   datasources = { mountPath = "/etc/grafana/provisioning/datasources"; readOnly = true; };
+                  dashboards-provider = { mountPath = "/etc/grafana/provisioning/dashboards"; readOnly = true; };
+                  dashboards = { mountPath = "/var/lib/grafana/dashboards"; readOnly = true; };
                   data = { mountPath = "/var/lib/grafana"; };
                 };
               };
@@ -698,6 +757,8 @@ in
             volumes = {
               _namedlist = true;
               datasources.configMap.name = "grafana-datasources";
+              dashboards-provider.configMap.name = "grafana-dashboards-provider";
+              dashboards.configMap.name = "grafana-dashboards";
               data.persistentVolumeClaim.claimName = "grafana-data";
             };
           };
@@ -887,6 +948,69 @@ in
         type = "ClusterIP";
         ports = [{ name = "http"; port = 9090; targetPort = 9090; protocol = "TCP"; }];
         selector.app = "prometheus";
+      };
+    };
+
+    # ── kube-state-metrics ─────────────────────────────────────
+    monitoring.ServiceAccount.kube-state-metrics-sa = { };
+    none.ClusterRole.kube-state-metrics-role = {
+      rules = [
+        { apiGroups = [ "" ]; resources = [ "configmaps" "secrets" "nodes" "pods" "limitranges" "replicationcontrollers" "resourcequotas" "services" ]; verbs = [ "list" "watch" ]; }
+        { apiGroups = [ "apps" ]; resources = [ "controllerrevisions" "daemonsets" "deployments" "replicasets" "statefulsets" ]; verbs = [ "list" "watch" ]; }
+        { apiGroups = [ "batch" ]; resources = [ "cronjobs" "jobs" ]; verbs = [ "list" "watch" ]; }
+        { apiGroups = [ "autoscaling" ]; resources = [ "horizontalpodautoscalers" ]; verbs = [ "list" "watch" ]; }
+        { apiGroups = [ "policy" ]; resources = [ "poddisruptionbudgets" ]; verbs = [ "list" "watch" ]; }
+        { apiGroups = [ "storage.k8s.io" ]; resources = [ "storageclasses" "volumeattachments" ]; verbs = [ "list" "watch" ]; }
+      ];
+    };
+    none.ClusterRoleBinding.kube-state-metrics-rolebinding = {
+      roleRef = { apiGroup = "rbac.authorization.k8s.io"; kind = "ClusterRole"; name = "kube-state-metrics-role"; };
+      subjects = [{ kind = "ServiceAccount"; name = "kube-state-metrics-sa"; namespace = "monitoring"; }];
+    };
+    monitoring.Deployment.kube-state-metrics = {
+      metadata.labels.app = "kube-state-metrics";
+      spec = {
+        replicas = 1;
+        revisionHistoryLimit = 1;
+        selector.matchLabels.app = "kube-state-metrics";
+        template = {
+          metadata.labels.app = "kube-state-metrics";
+          spec = {
+            nodeSelector = { "kubernetes.io/hostname" = "sentry"; };
+            serviceAccountName = "kube-state-metrics-sa";
+            securityContext = {
+              runAsNonRoot = true;
+              runAsUser = 10001;
+              runAsGroup = 10001;
+              fsGroup = 10001;
+              seccompProfile.type = "RuntimeDefault";
+            };
+            containers = {
+              _namedlist = true;
+              kube-state-metrics = {
+                image = "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0";
+                imagePullPolicy = "IfNotPresent";
+                args = [ "--port=8080" "--metric-labels-allowlist=nodes=[kubernetes.io/hostname]" ];
+                ports = [{ containerPort = 8080; name = "http"; protocol = "TCP"; }];
+                resources = {
+                  requests = { cpu = "100m"; memory = "128Mi"; };
+                  limits = { cpu = "500m"; memory = "512Mi"; };
+                };
+                livenessProbe = { httpGet = { path = "/healthz"; port = 8080; }; initialDelaySeconds = 5; periodSeconds = 10; };
+                readinessProbe = { httpGet = { path = "/"; port = 8080; }; initialDelaySeconds = 5; periodSeconds = 10; };
+                securityContext = { allowPrivilegeEscalation = false; readOnlyRootFilesystem = true; capabilities.drop = [ "ALL" ]; };
+              };
+            };
+          };
+        };
+      };
+    };
+    monitoring.Service.kube-state-metrics = {
+      metadata.labels.app = "kube-state-metrics";
+      spec = {
+        type = "ClusterIP";
+        ports = [{ name = "http"; port = 8080; targetPort = 8080; protocol = "TCP"; }];
+        selector.app = "kube-state-metrics";
       };
     };
 
