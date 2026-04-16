@@ -170,6 +170,116 @@ in
       disableAgent = false;
     };
 
+    # Override the broken nvidia-container-toolkit-cdi-generator with a working one
+    # that sets LD_LIBRARY_PATH so nvidia-ctk can find libnvidia-ml.so.
+    systemd.services.nvidia-container-toolkit-cdi-generator = mkIf cfg.nvidia.enable {
+      wantedBy = [ "multi-user.target" ];
+      after = [ "systemd-udev-settle.service" ];
+      path = with pkgs; [ nvidia-container-toolkit jq ];
+      serviceConfig.ExecStart = lib.mkForce (pkgs.writeShellScript "cdi-generate-static" ''
+        mkdir -p /var/run/cdi
+        cat > /var/run/cdi/nvidia-container-toolkit.json << 'CDispec'
+        {
+          "cdiVersion": "0.5.0",
+          "kind": "nvidia.com/gpu",
+          "devices": [
+            {
+              "name": "0",
+              "containerEdits": {
+                "deviceNodes": [
+                  {"path": "/dev/nvidia0", "type": "c", "major": 195, "minor": 0},
+                  {"path": "/dev/dri/card1", "type": "c", "major": 226, "minor": 1},
+                  {"path": "/dev/dri/renderD128", "type": "c", "major": 226, "minor": 128}
+                ],
+                "mounts": [
+                  {"hostPath": "${config.hardware.nvidia.package}/lib", "containerPath": "/usr/local/nvidia/lib", "options": ["ro","nosuid","nodev","bind"]},
+                  {"hostPath": "${config.hardware.nvidia.package}/lib", "containerPath": "/usr/local/nvidia/lib64", "options": ["ro","nosuid","nodev","bind"]},
+                  {"hostPath": "/run/opengl-driver", "containerPath": "/run/opengl-driver", "options": ["ro","nosuid","nodev","bind"]},
+                  {"hostPath": "${pkgs.glibc}/lib", "containerPath": "${pkgs.glibc}/lib", "options": ["ro","nosuid","nodev","bind"]},
+                  {"hostPath": "${pkgs.glibc}/lib64", "containerPath": "${pkgs.glibc}/lib64", "options": ["ro","nosuid","nodev","bind"]}
+                ],
+                "env": ["NVIDIA_VISIBLE_DEVICES=0"]
+              }
+            },
+            {
+              "name": "1",
+              "containerEdits": {
+                "deviceNodes": [
+                  {"path": "/dev/nvidia1", "type": "c", "major": 195, "minor": 1},
+                  {"path": "/dev/dri/card2", "type": "c", "major": 226, "minor": 2},
+                  {"path": "/dev/dri/renderD129", "type": "c", "major": 226, "minor": 129}
+                ],
+                "mounts": [
+                  {"hostPath": "${config.hardware.nvidia.package}/lib", "containerPath": "/usr/local/nvidia/lib", "options": ["ro","nosuid","nodev","bind"]},
+                  {"hostPath": "${config.hardware.nvidia.package}/lib", "containerPath": "/usr/local/nvidia/lib64", "options": ["ro","nosuid","nodev","bind"]},
+                  {"hostPath": "/run/opengl-driver", "containerPath": "/run/opengl-driver", "options": ["ro","nosuid","nodev","bind"]},
+                  {"hostPath": "${pkgs.glibc}/lib", "containerPath": "${pkgs.glibc}/lib", "options": ["ro","nosuid","nodev","bind"]},
+                  {"hostPath": "${pkgs.glibc}/lib64", "containerPath": "${pkgs.glibc}/lib64", "options": ["ro","nosuid","nodev","bind"]}
+                ],
+                "env": ["NVIDIA_VISIBLE_DEVICES=1"]
+              }
+            },
+            {
+              "name": "all",
+              "containerEdits": {
+                "deviceNodes": [
+                  {"path": "/dev/nvidia0", "type": "c", "major": 195, "minor": 0},
+                  {"path": "/dev/nvidia1", "type": "c", "major": 195, "minor": 1},
+                  {"path": "/dev/dri/card1", "type": "c", "major": 226, "minor": 1},
+                  {"path": "/dev/dri/card2", "type": "c", "major": 226, "minor": 2},
+                  {"path": "/dev/dri/renderD128", "type": "c", "major": 226, "minor": 128},
+                  {"path": "/dev/dri/renderD129", "type": "c", "major": 226, "minor": 129}
+                ],
+                "mounts": [
+                  {"hostPath": "${config.hardware.nvidia.package}/lib", "containerPath": "/usr/local/nvidia/lib", "options": ["ro","nosuid","nodev","bind"]},
+                  {"hostPath": "${config.hardware.nvidia.package}/lib", "containerPath": "/usr/local/nvidia/lib64", "options": ["ro","nosuid","nodev","bind"]},
+                  {"hostPath": "/run/opengl-driver", "containerPath": "/run/opengl-driver", "options": ["ro","nosuid","nodev","bind"]},
+                  {"hostPath": "${pkgs.glibc}/lib", "containerPath": "${pkgs.glibc}/lib", "options": ["ro","nosuid","nodev","bind"]},
+                  {"hostPath": "${pkgs.glibc}/lib64", "containerPath": "${pkgs.glibc}/lib64", "options": ["ro","nosuid","nodev","bind"]}
+                ],
+                "env": ["NVIDIA_VISIBLE_DEVICES=all"]
+              }
+            }
+          ],
+          "containerEdits": {
+            "deviceNodes": [
+              {"path": "/dev/nvidiactl", "type": "c", "major": 195, "minor": 255},
+              {"path": "/dev/nvidia-modeset", "type": "c", "major": 195, "minor": 254},
+              {"path": "/dev/nvidia-uvm", "type": "c", "major": 234, "minor": 0},
+              {"path": "/dev/nvidia-uvm-tools", "type": "c", "major": 234, "minor": 1}
+            ],
+            "mounts": [
+              {"hostPath": "${config.hardware.nvidia.package}/lib", "containerPath": "/usr/local/nvidia/lib", "options": ["ro","nosuid","nodev","bind"]},
+              {"hostPath": "${config.hardware.nvidia.package}/lib", "containerPath": "/usr/local/nvidia/lib64", "options": ["ro","nosuid","nodev","bind"]},
+              {"hostPath": "/run/opengl-driver", "containerPath": "/run/opengl-driver", "options": ["ro","nosuid","nodev","bind"]},
+              {"hostPath": "${pkgs.glibc}/lib", "containerPath": "${pkgs.glibc}/lib", "options": ["ro","nosuid","nodev","bind"]},
+              {"hostPath": "${pkgs.glibc}/lib64", "containerPath": "${pkgs.glibc}/lib64", "options": ["ro","nosuid","nodev","bind"]}
+            ],
+            "env": ["LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64"]
+          }
+        }
+        CDispec
+        echo "Static CDI spec written ($(wc -c < /var/run/cdi/nvidia-container-toolkit.json) bytes)"
+      '');
+    };
+
+    # CDI spec for GPU isolation on NixOS.
+    # nvidia-ctk cdi generate segfaults due to NixOS glibc/cgo issues.
+    # The CDI generator service below works around this by setting LD_LIBRARY_PATH.
+    # Runtime config sets mode = "cdi" to use CDI instead of legacy nvidia-container-cli.
+    environment.etc."nvidia-container-runtime/config.toml" = mkIf cfg.nvidia.enable {
+      source = pkgs.writeText "nvidia-container-runtime-config.toml" ''
+        [nvidia-container-cli]
+          root = "/run/opengl-driver"
+          ldconfig = "@/run/current-system/sw/bin/ldconfig"
+          no-cgroups = false
+          user = "root"
+
+        [nvidia-container-runtime]
+          mode = "cdi"
+      '';
+    };
+
     networking.firewall = mkMerge [
       {
         allowedTCPPorts = mkOptionDefault (
@@ -212,6 +322,7 @@ in
       ++ lib.optionals cfg.nvidia.enable [
         nvidia-container-toolkit
         nvidia-container-toolkit.tools
+        libnvidia-container # provides nvidia-container-cli needed by the runtime hook
       ];
 
     programs.bash.shellAliases = {
