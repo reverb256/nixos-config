@@ -57,7 +57,8 @@
     mining-inference-coordinator = {
       enable = true;
       llamaPort = 1235;
-      miningService = "lolminer-nvidia.service";
+      primaryMiner = "lolminer-nvidia.service";  # 3090, 250W
+      fallbackMiner = "lolminer-3060ti.service";   # 3060 Ti, 120W
       checkInterval = 3;
       idleTimeout = 30;
     };
@@ -492,9 +493,9 @@
       lolminer.nvidia = {
         enable = true;
         autostart = true;
-        devices = "0,1"; # RTX 3090 + RTX 3060 Ti
+        devices = "1"; # RTX 3090 only (3060 Ti idle for power envelope)
         perGpuPowerLimits = [
-          200  # RTX 3060 Ti
+          0    # unused
           250  # RTX 3090
         ];
         apiPort = 4068;
