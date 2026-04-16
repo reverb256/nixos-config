@@ -290,7 +290,7 @@
         };
       };
       gateway = {
-        enable = true;
+        enable = false; # Use nexus gateway instead (saves ~140MB RAM on zephyr)
         host = "0.0.0.0";
         port = 8080;
         workers = 1;
