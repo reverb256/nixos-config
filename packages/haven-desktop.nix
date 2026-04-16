@@ -2,9 +2,6 @@
   appimageTools,
   fetchurl,
   lib,
-  pipewire,
-  pulseaudio,
-  stdenv,
 }:
 let
   version = "1.2.0";
@@ -22,8 +19,28 @@ appimageTools.wrapType2 {
   inherit version src;
 
   extraPkgs = pkgs: [
+    # GPU rendering (Chromium/Electron needs these in the sandbox)
+    pkgs.mesa
+    pkgs.libGL
+    pkgs.libdrm
+    pkgs.libxkbcommon
+    pkgs.wayland
+    # Audio capture native addon (PulseAudio)
     pkgs.pipewire
     pkgs.pulseaudio
+    # X11 fallback
+    pkgs.xorg.libX11
+    pkgs.xorg.libXcomposite
+    pkgs.xorg.libXdamage
+    pkgs.xorg.libXext
+    pkgs.xorg.libXfixes
+    pkgs.xorg.libXrandr
+    pkgs.xorg.libxcb
+    pkgs.xorg.libxshmfence
+    # Font rendering
+    pkgs.fontconfig
+    pkgs.freetype
+    pkgs.stdenv.cc.cc.lib
   ];
 
   extraInstallCommands = ''
@@ -32,13 +49,13 @@ appimageTools.wrapType2 {
     cp ${appimageContents}/usr/share/icons/hicolor/512x512/apps/haven-desktop.png \
        $out/share/icons/hicolor/512x512/apps/haven-desktop.png
 
-    # Desktop entry
+    # Desktop entry with Wayland + GPU flags
     mkdir -p $out/share/applications
     cat > $out/share/applications/haven-desktop.desktop << 'DESKTOP'
     [Desktop Entry]
     Name=Haven
     Comment=Private chat, reimagined for your desktop
-    Exec=haven-desktop --no-sandbox %U
+    Exec=haven-desktop --no-sandbox --ozone-platform=wayland --enable-features=UseOzonePlatform,WaylandWindowDecorations %U
     Icon=haven-desktop
     Type=Application
     Categories=Network;Chat;InstantMessaging;
