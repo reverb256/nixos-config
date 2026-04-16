@@ -591,6 +591,7 @@
     };
 
     lm-studio.enable = true;
+    haven-desktop.enable = true;
   };
 
   virtualisation.podman = {

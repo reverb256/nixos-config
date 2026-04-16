@@ -3,6 +3,7 @@ _final: prev: {
   xmrig = prev.callPackage ./packages/xmrig.nix {};
   lmstudio = prev.callPackage ./packages/lmstudio.nix {};
   lm-studio = prev.callPackage ./packages/lmstudio.nix {};
+  haven-desktop = prev.callPackage ./packages/haven-desktop.nix {};
   wivrn = prev.wivrn.overrideAttrs (old: {
     cmakeFlags = old.cmakeFlags ++ ["-DWIVRN_FEATURE_STEAMVR_LIGHTHOUSE=ON"];
   });
