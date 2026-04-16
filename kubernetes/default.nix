@@ -19,6 +19,7 @@ let
       ./modules/searxng.nix
       ./modules/haven.nix
       ./modules/monitoring.nix
+      ./modules/monitoring-dashboards.nix
     ];
   };
 in
