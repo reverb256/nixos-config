@@ -40,13 +40,14 @@ in
                 imagePullPolicy = "IfNotPresent";
                 command = [ "${pkgsWithOverlay.llama-cpp}/bin/llama-server" ];
                 args = [
-                  "--model" "/models/lmstudio-community/gemma-4-E4B-it-GGUF/gemma-4-E4B-it-Q4_K_M.gguf"
-                  "--mmproj" "/models/lmstudio-community/gemma-4-E4B-it-GGUF/mmproj-gemma-4-E4B-it-BF16.gguf"
+                  "--model" "/models/unsloth/gemma-4-E4B-it-GGUF/gemma-4-E4B-it-IQ4_NL.gguf"
+                  "--mmproj" "/models/unsloth/gemma-4-E4B-it-GGUF/mmproj-F32.gguf"
                   "--host" "0.0.0.0"
                   "--port" "1235"
-                  "-ngl" "99"
+                  "-ngl" "-1"
                   "-c" "131072"
                   "-t" "4"
+                  "--fit" "on"
                   "--batch-size" "64"
                   "--ubatch-size" "16"
                   "--flash-attn" "on"
@@ -62,7 +63,7 @@ in
                 ];
                 env = {
                   _namedlist = true;
-                  CUDA_VISIBLE_DEVICES = { name = "CUDA_VISIBLE_DEVICES"; value = "1"; };
+                  NVIDIA_VISIBLE_DEVICES = { name = "NVIDIA_VISIBLE_DEVICES"; value = "1"; };
                   LD_LIBRARY_PATH = { name = "LD_LIBRARY_PATH"; value = "/run/opengl-driver/lib:/nix/store"; };
                 };
                 ports = [{ containerPort = 1235; name = "http"; protocol = "TCP"; }];
@@ -86,7 +87,6 @@ in
                 volumeMounts = {
                   _namedlist = true;
                   nix = { mountPath = "/nix"; readOnly = true; };
-                  dev = { mountPath = "/dev"; };
                   nvidia-libs = { mountPath = "/run/opengl-driver/lib"; readOnly = true; };
                   models = { mountPath = "/models"; readOnly = true; };
                 };
@@ -95,7 +95,6 @@ in
             volumes = {
               _namedlist = true;
               nix.hostPath = { path = "/nix"; type = "Directory"; };
-              dev.hostPath.path = "/dev";
               nvidia-libs.hostPath.path = "/run/opengl-driver/lib";
               models.hostPath.path = "/home/j_kro/.lmstudio/models";
             };

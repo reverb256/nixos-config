@@ -6,12 +6,12 @@
 }:
 let
   # Pin versions for supply chain security
-  lokiImage = "docker.io/grafana/loki:3.4.3";
-  mimirImage = "docker.io/grafana/mimir:2.15.2";
-  tempoImage = "docker.io/grafana/tempo:2.7.2";
-  grafanaImage = "docker.io/grafana/grafana:11.6.0";
-  alloyImage = "docker.io/grafana/alloy:1.8.3";
-  prometheusImage = "docker.io/prom/prometheus:v3.3.1";
+  lokiImage = "docker.io/grafana/loki:3.6.10";
+  mimirImage = "docker.io/grafana/mimir:2.17.9";
+  tempoImage = "docker.io/grafana/tempo:2.10.4";
+  grafanaImage = "docker.io/grafana/grafana:12.4.3";
+  alloyImage = "docker.io/grafana/alloy:v1.15.1";
+  prometheusImage = "docker.io/prom/prometheus:v3.11.2";
 
   storageClass = "slow-hdd";
 
@@ -22,105 +22,136 @@ let
   clusterDNS = "10.0.0.10";
 
   # Loki config (monolithic mode, filesystem storage)
-  lokiConfig = {
-    auth_enabled = false;
-    server = {
-      http_listen_port = 3100;
-      grpc_listen_port = 9096;
-      log_level = "warn";
-    };
-    common = {
-      path_prefix = "/loki";
-      storage.filesystem = {
-        chunks_directory = "/loki/chunks";
-        rules_directory = "/loki/rules";
-      };
-      replication_factor = 1;
-      ring.kvstore.store = "inmemory";
-    };
-    schema_config = {
-      configs = [{
-        from = "2024-01-01";
-        store = "tsdb";
-        object_store = "filesystem";
-        schema = "v13";
-        index.prefix = "index_";
-        index.period = "24h";
-      }];
-    };
-    storage_config = {
-      filesystem.dir = "/loki/storage";
-      tsdb_shipper = {
-        active_index_directory = "/loki/tsdb-index";
-        cache_location = "/loki/tsdb-cache";
-      };
-    };
-    limits_config = {
-      retention_period = "30d";
-      allow_structured_metadata = true;
-      max_query_length = "721h";
-    };
-    compactor = {
-      working_directory = "/loki/compactor";
-      compaction_interval = "10m";
-      retention_enabled = true;
-      delete_request_store = "filesystem";
-    };
-    analytics.reporting_enabled = false;
-  };
+  # Reference: https://grafana.com/docs/loki/latest/configure/examples/
+  lokiConfig = ''
+    auth_enabled: false
+    server:
+      http_listen_port: 3100
+      grpc_listen_port: 9096
+      log_level: warn
+    common:
+      path_prefix: /loki
+      storage:
+        filesystem:
+          chunks_directory: /loki/chunks
+          rules_directory: /loki/rules
+      replication_factor: 1
+      ring:
+        kvstore:
+          store: inmemory
+    schema_config:
+      configs:
+        - from: 2024-01-01
+          store: tsdb
+          object_store: filesystem
+          schema: v13
+          index:
+            prefix: index_
+            period: 24h
+    storage_config:
+      filesystem:
+        directory: /loki/storage
+      tsdb_shipper:
+        active_index_directory: /loki/tsdb-index
+        cache_location: /loki/tsdb-cache
+    limits_config:
+      retention_period: 30d
+      allow_structured_metadata: true
+      max_query_length: 721h
+    compactor:
+      working_directory: /loki/compactor
+      compaction_interval: 10m
+      retention_enabled: true
+      delete_request_store: filesystem
+    analytics:
+      reporting_enabled: false
+  '';
 
   # Mimir config (monolithic mode)
-  mimirConfig = {
-    target = "all";
-    multitenancy_enabled = false;
-    # activity_tracker.log_deactivated = false;
-    server = {
-      http_listen_port = 9009;
-      grpc_listen_port = 9095;
-      log_level = "warn";
-    };
-    common.storage.backend = "filesystem";
-    common.storage.filesystem.dir = "/mimir/storage";
-    blocks_storage = {
-      filesystem.dir = "/mimir/data/blocks";
-      tsdb.dir = "/mimir/data/tsdb";
-    };
-    compactor.data_dir = "/mimir/data/compactor";
-    alertmanager.storage.filesystem.dir = "/mimir/data/alertmanager";
-    ruler.storage.filesystem.dir = "/mimir/data/rules";
-    ruler.rule_path = "/mimir/data/rules-eval";
-    limits_config = {
-      max_query_length = "721h";
-      retention_period = "365d";
-    };
-    memberlist.bind_port = 7946;
-    analytics.reporting_enabled = false;
-  };
+  # Reference: https://github.com/grafana/mimir/blob/main/development/mimir-monolithic-mode/config/mimir.yaml
+  mimirConfig = ''
+    target: all
+    multitenancy_enabled: false
+    server:
+      http_listen_port: 9009
+      grpc_listen_port: 9095
+      log_level: warn
+    activity_tracker:
+      filepath: /mimir/activity/metrics-activity.log
+    common:
+      storage:
+        backend: filesystem
+        filesystem:
+          dir: /mimir/storage
+    blocks_storage:
+      backend: filesystem
+      filesystem:
+        dir: /mimir/data/blocks
+      tsdb:
+        dir: /mimir/data/tsdb
+      bucket_store:
+        sync_dir: /mimir/data/sync
+    compactor:
+      data_dir: /mimir/data/compactor
+    alertmanager:
+      data_dir: /mimir/data/alertmanager
+    ruler:
+      rule_path: /mimir/data/rules-eval
+    memberlist:
+      bind_port: 7946
+    distributor:
+      ring:
+        kvstore:
+          store: memberlist
+    ingester:
+      ring:
+        kvstore:
+          store: memberlist
+        replication_factor: 1
+        final_sleep: 0s
+    store_gateway:
+      sharding_ring:
+        replication_factor: 1
+        kvstore:
+          store: memberlist
+  '';
 
   # Tempo config (monolithic mode)
-  tempoConfig = {
-    server = {
-      http_listen_port = 3200;
-      grpc_listen_port = 9095;
-      log_level = "warn";
-    };
-    storage = {
-      trace.backend = "local";
-      trace.local.path = "/tempo/traces";
-      trace.block.version = "vParquet";
-    };
-    metrics_generator = {
-      registry.external_labels.source = "tempo";
-      storage.path = "/tempo/generator/wal";
-    };
-    querier.max_concurrent_queries = 20;
-    retention = "720h"; # 30 days
-    compactor.compaction.block_retention = "720h";
-    overrides.defaults.metrics_generator.processors = [
-      "service-graphs"
-      "span-metrics"
-    ];
-  };
+  # Tempo config (monolithic mode)
+  tempoConfig = ''
+    server:
+      http_listen_port: 3200
+      grpc_listen_port: 9095
+      log_level: warn
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            http:
+            grpc:
+    ingester:
+      max_block_duration: 5m
+    compactor:
+      compaction:
+        block_retention: 720h
+    metrics_generator:
+      registry:
+        external_labels:
+          source: tempo
+      storage:
+        path: /data/generator/wal
+    storage:
+      trace:
+        backend: local
+        wal:
+          path: /data/wal
+        local:
+          path: /data/blocks
+    overrides:
+      metrics_generator_processors:
+        - service-graphs
+        - span-metrics
+  '';
 
   # Alloy config (collects logs + traces from all nodes)
   alloyConfig = ''
@@ -153,7 +184,9 @@ let
         {__address__ = "127.0.0.1:10250"},
       ]
       scheme               = "https"
-      tls_config.insecure_skip_verify = true
+      tls_config {
+        insecure_skip_verify = true
+      }
       bearer_token_file    = "/var/run/secrets/kubernetes.io/serviceaccount/token"
       scrape_interval      = "15s"
       forward_to           = [prometheus.remote_write.mimir.receiver]
@@ -166,17 +199,26 @@ let
       }
     }
 
-    // Collect traces → Tempo
-    otlp.receiver "default" {
+    // Collect traces via OTLP
+    otelcol.receiver.otlp "default" {
+      grpc {
+        endpoint = "0.0.0.0:4317"
+      }
       http {
         endpoint = "0.0.0.0:4318"
       }
-      output.traces = [tempo.write.tempo.receiver]
+      output {
+        traces = [otelcol.exporter.otlp.tempo.input]
+      }
     }
 
-    tempo.write "tempo" {
-      endpoint {
-        url = "http://tempo.monitoring.svc.cluster.local:4317"
+    otelcol.exporter.otlp "tempo" {
+      client {
+        endpoint = "tempo.monitoring.svc.cluster.local:4317"
+        tls {
+          insecure = true
+          insecure_skip_verify = true
+        }
       }
     }
   '';
@@ -359,8 +401,7 @@ in
     };
 
     # ── Loki ───────────────────────────────────────────────────
-    monitoring.ConfigMap.loki-config.data."loki.yaml" =
-      builtins.toJSON lokiConfig;
+    monitoring.ConfigMap.loki-config.data."loki.yaml" = lokiConfig;
 
     monitoring.StatefulSet.loki = {
       metadata.labels.app = "loki";
@@ -438,8 +479,7 @@ in
     };
 
     # ── Mimir ──────────────────────────────────────────────────
-    monitoring.ConfigMap.mimir-config.data."mimir.yaml" =
-      builtins.toJSON mimirConfig;
+    monitoring.ConfigMap.mimir-config.data."mimir.yaml" = mimirConfig;
 
     monitoring.StatefulSet.mimir = {
       metadata.labels.app = "mimir";
@@ -476,12 +516,14 @@ in
                   _namedlist = true;
                   config = { mountPath = "/etc/mimir"; readOnly = true; };
                   data = { mountPath = "/mimir"; };
+                  activity = { mountPath = "/mimir/activity"; };
                 };
               };
             };
             volumes = {
               _namedlist = true;
               config.configMap.name = "mimir-config";
+              activity.emptyDir = { };
             };
           };
         };
@@ -518,8 +560,7 @@ in
     };
 
     # ── Tempo ──────────────────────────────────────────────────
-    monitoring.ConfigMap.tempo-config.data."tempo.yaml" =
-      builtins.toJSON tempoConfig;
+    monitoring.ConfigMap.tempo-config.data."tempo.yaml" = tempoConfig;
 
     monitoring.StatefulSet.tempo = {
       metadata.labels.app = "tempo";
@@ -555,7 +596,7 @@ in
                 volumeMounts = {
                   _namedlist = true;
                   config = { mountPath = "/etc/tempo"; readOnly = true; };
-                  data = { mountPath = "/tempo"; };
+                  data = { mountPath = "/data"; };
                 };
               };
             };
