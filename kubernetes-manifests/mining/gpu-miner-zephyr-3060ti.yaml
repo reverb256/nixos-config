@@ -1,0 +1,91 @@
+# GPU Miner Deployment for Zephyr (RTX 3060 Ti GPU 0)
+# - Fallback miner: only runs during inference on the 3090
+# - Mining-inference-coordinator scales this 0→1 during inference
+# - 120W power limit for power envelope
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-zephyr-3060ti
+  namespace: mining
+  labels:
+    app: gpu-miner-zephyr-3060ti
+    host: zephyr
+    workload: crypto-mining
+spec:
+  replicas: 0  # started on-demand by coordinator
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: gpu-miner-zephyr-3060ti
+      host: zephyr
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: gpu-miner-zephyr-3060ti
+        host: zephyr
+        workload: crypto-mining
+    spec:
+      nodeName: zephyr
+      serviceAccountName: gpu-miner-sa
+      automountServiceAccountToken: false
+      hostNetwork: true
+      priorityClassName: mining-low
+      tolerations:
+        - key: workstation
+          operator: Exists
+        - key: interactive
+          operator: Exists
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+      - name: lolminer
+        image: docker.io/swamp7/lolminer:latest
+        imagePullPolicy: IfNotPresent
+        args:
+          - "--algo=CR29"
+          - "--pool=xtm-c29-us.kryptex.network:8040"
+          - "--user=krxXVNVMM7.zephyr-3060ti"
+          - "--pass=x"
+          - "--tls=1"
+          - "--pool=xtm-c29-eu.kryptex.network:8040"
+          - "--user=krxXVNVMM7.zephyr-3060ti"
+          - "--pass=x"
+          - "--tls=1"
+          - "--devices=0"
+          - "--pl=120"
+          - "--apiport=4069"
+        securityContext:
+          privileged: true
+        env:
+        - name: LD_LIBRARY_PATH
+          value: "/run/opengl-driver/lib:/usr/local/cuda-12.1/compat"
+        volumeMounts:
+        - name: dev
+          mountPath: /dev
+        - name: nvidia-libs
+          mountPath: /run/opengl-driver/lib
+          readOnly: true
+        - name: nix-store
+          mountPath: /nix/store
+          readOnly: true
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "100m"
+          limits:
+            memory: "4Gi"
+            cpu: "500m"
+      volumes:
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: nvidia-libs
+        hostPath:
+          path: /run/opengl-driver/lib
+      - name: nix-store
+        hostPath:
+          path: /nix/store

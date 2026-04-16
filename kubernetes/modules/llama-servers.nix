@@ -44,17 +44,16 @@ in
                   "--mmproj" "/models/unsloth/gemma-4-E4B-it-GGUF/mmproj-F32.gguf"
                   "--host" "0.0.0.0"
                   "--port" "1235"
-                  "-ngl" "-1"
+                  "-ngl" "99"
                   "-c" "131072"
                   "-t" "4"
-                  "--fit" "on"
+                  "--fit" "off"
                   "--batch-size" "64"
                   "--ubatch-size" "16"
                   "--flash-attn" "on"
                   "--parallel" "1"
                   "--cache-type-k" "q4_0"
                   "--cache-type-v" "q4_0"
-                  "--cache-ram" "0"
                   "--temp" "1.0"
                   "--top-k" "64"
                   "--top-p" "0.95"
@@ -63,7 +62,8 @@ in
                 ];
                 env = {
                   _namedlist = true;
-                  NVIDIA_VISIBLE_DEVICES = { name = "NVIDIA_VISIBLE_DEVICES"; value = "1"; };
+                  NVIDIA_VISIBLE_DEVICES = { name = "NVIDIA_VISIBLE_DEVICES"; value = "0"; };
+                  CUDA_VISIBLE_DEVICES = { name = "CUDA_VISIBLE_DEVICES"; value = "0"; };
                   LD_LIBRARY_PATH = { name = "LD_LIBRARY_PATH"; value = "/run/opengl-driver/lib:/nix/store"; };
                 };
                 ports = [{ containerPort = 1235; name = "http"; protocol = "TCP"; }];
@@ -150,7 +150,6 @@ in
                   "--parallel" "1"
                   "--cache-type-k" "q4_0"
                   "--cache-type-v" "q4_0"
-                  "--cache-ram" "0"
                   "--temp" "1.0"
                   "--top-k" "64"
                   "--top-p" "0.95"

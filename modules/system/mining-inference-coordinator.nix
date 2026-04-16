@@ -15,14 +15,20 @@ in
 
     primaryMiner = lib.mkOption {
       type = lib.types.str;
-      default = "lolminer-nvidia.service";
-      description = "Main mining service (runs on the inference GPU, paused during inference)";
+      default = "deployment/gpu-miner-zephyr";
+      description = "K8s resource for the primary miner (3090)";
     };
 
     fallbackMiner = lib.mkOption {
       type = lib.types.str;
-      default = "lolminer-3060ti.service";
-      description = "Fallback mining service (started on secondary GPU during inference)";
+      default = "deployment/gpu-miner-zephyr-3060ti";
+      description = "K8s resource for the fallback miner (3060 Ti)";
+    };
+
+    namespace = lib.mkOption {
+      type = lib.types.str;
+      default = "mining";
+      description = "K8s namespace for mining resources";
     };
 
     checkInterval = lib.mkOption {
@@ -39,46 +45,12 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Fallback miner: 3060 Ti only, 120W, stopped by default
-    systemd.services.lolminer-3060ti = {
-      description = "lolMiner NVIDIA 3060 Ti Fallback Mining Service";
-      wantedBy = lib.mkForce []; # don't autostart
-      after = [ "network.target" "lolminer-3060ti-power-limit.service" ];
-      requires = [ "lolminer-3060ti-power-limit.service" ];
-      serviceConfig = {
-        Type = "simple";
-        User = "j_kro";
-        Group = "mining";
-        Slice = "mining.slice";
-        ExecStart = "${pkgs.lolminer}/bin/lolMiner --algo CR29 --pool stratum+tcp://10.1.1.120:3333 --user krxXVNVMM7.zephyr-gpu --pass x --tls off --devices 0 --apiport 4069 --mode b";
-        Restart = "on-failure";
-        RestartSec = "30s";
-        Environment = [
-          "GPU_MAX_HEAP_SIZE=100"
-          "GPU_MAX_ALLOC_PERCENT=100"
-        ];
-        LimitMEMLOCK = "4G";
-      };
-    };
-
-    # Set 3060 Ti power limit to 120W when mining
-    systemd.services.lolminer-3060ti-power-limit = {
-      description = "Set 3060 Ti power limit for mining";
-      after = [ "multi-user.target" ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStart = "nvidia-smi -i 0 --power-limit 120";
-        ExecStop = "nvidia-smi -i 0 --power-limit 0";
-      };
-    };
-
     systemd.services.mining-inference-coordinator = {
       description = "Mining-Inference Coordinator - Shifts mining to 3060 Ti during inference";
       after = [ "network.target" ];
       wantedBy = [ "multi-user.target" ];
 
-      path = with pkgs; [ curl gawk systemd ];
+      path = with pkgs; [ curl gawk kubectl ];
 
       serviceConfig = {
         Type = "simple";
@@ -86,8 +58,9 @@ in
           set -uo pipefail
 
           LLAMA_PORT="${toString cfg.llamaPort}"
-          PRIMARY_MINER="${cfg.primaryMiner}"
-          FALLBACK_MINER="${cfg.fallbackMiner}"
+          PRIMARY="${cfg.primaryMiner}"
+          FALLBACK="${cfg.fallbackMiner}"
+          NS="${cfg.namespace}"
           CHECK_INTERVAL="${toString cfg.checkInterval}"
           IDLE_TIMEOUT="${toString cfg.idleTimeout}"
 
@@ -97,6 +70,12 @@ in
 
           log() {
             echo "[$(date '+%H:%M:%S')] $*" >&2
+          }
+
+          scale() {
+            local resource="$1"
+            local replicas="$2"
+            kubectl scale "$resource" --replicas="$replicas" -n "$NS" 2>/dev/null || true
           }
 
           is_inference_active() {
@@ -129,23 +108,21 @@ in
           }
 
           shift_to_fallback() {
-            # Stop 3090 mining, start 3060 Ti mining
-            systemctl stop "$PRIMARY_MINER" 2>/dev/null || true
-            systemctl start "$FALLBACK_MINER" 2>/dev/null || true
+            scale "$PRIMARY" 0
+            scale "$FALLBACK" 1
             mining_shifted=true
-            log "SHIFTED: 3090 → inference | 3060 Ti → mining"
+            log "SHIFTED: 3090 -> inference | 3060 Ti -> mining"
           }
 
           shift_to_primary() {
-            # Stop 3060 Ti mining, start 3090 mining
-            systemctl stop "$FALLBACK_MINER" 2>/dev/null || true
-            systemctl start "$PRIMARY_MINER" 2>/dev/null || true
+            scale "$FALLBACK" 0
+            scale "$PRIMARY" 1
             mining_shifted=false
-            log "SHIFTED: 3090 → mining | 3060 Ti → idle"
+            log "SHIFTED: 3090 -> mining | 3060 Ti -> idle"
           }
 
-          log "Coordinator started — monitoring :$LLAMA_PORT"
-          log "Primary: $PRIMARY_MINER (3090) | Fallback: $FALLBACK_MINER (3060 Ti)"
+          log "Coordinator started - monitoring :$LLAMA_PORT"
+          log "Primary: $PRIMARY (3090) | Fallback: $FALLBACK (3060 Ti)"
           log "Check interval: ''${CHECK_INTERVAL}s, idle timeout: ''${IDLE_TIMEOUT}s"
 
           while true; do
@@ -162,7 +139,7 @@ in
                 idle_time=$((current_time - last_inference_time))
 
                 if [ "$idle_time" -ge "$IDLE_TIMEOUT" ]; then
-                  shift_to_primary "$idle_time"
+                  shift_to_primary
                 fi
               fi
             fi

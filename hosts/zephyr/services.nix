@@ -57,8 +57,9 @@
     mining-inference-coordinator = {
       enable = true;
       llamaPort = 1235;
-      primaryMiner = "lolminer-nvidia.service";  # 3090, 250W
-      fallbackMiner = "lolminer-3060ti.service";   # 3060 Ti, 120W
+      primaryMiner = "deployment/gpu-miner-zephyr";
+      fallbackMiner = "deployment/gpu-miner-zephyr-3060ti";
+      namespace = "mining";
       checkInterval = 3;
       idleTimeout = 30;
     };
