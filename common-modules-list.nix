@@ -4,22 +4,23 @@
 }:
 [
 
-
   inputs.home-manager.nixosModules.home-manager
   inputs.aagl.nixosModules.default
   inputs.nur.modules.nixos.default
   inputs.agenix.nixosModules.default
-  inputs.nixpkgs-xr.nixosModules.nixpkgs-xr
   inputs.niri.nixosModules.niri
   inputs.hermes-agent.nixosModules.default
 
   inputs.mcp-registry.nixosModules.default
 
+  inputs.caddy-ingress.nixosModules.caddy
+  inputs.caddy-ingress.nixosModules.caddy-common
+
+  inputs.ai-gateway.nixosModules.default
+
   inputs.stylix.nixosModules.stylix
 
-
   ./modules/default.nix
-
 
   {
     nixpkgs.overlays = [
@@ -28,7 +29,6 @@
       self.overlays.default
     ];
   }
-
 
   {
     age.identityPaths = [

@@ -230,8 +230,8 @@
         ]
       },
       "locked": {
-        "lastModified": 1776389618,
-        "narHash": "sha256-xnnNTkZxolpr+Ff6H2nqEl/CJMHeas9sFybZwe/lJhw=",
+        "lastModified": 1776392058,
+        "narHash": "sha256-rHan2wq+bIOdiz+gbvgPAzUWPEmwLFkHE+kTggTCfFA=",
         "path": "/data/projects/own/caddy-ingress",
         "type": "path"
       },
