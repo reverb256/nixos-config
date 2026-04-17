@@ -1,6 +1,10 @@
 { pkgs, lib, ... }:
 {
   services = {
+    hermes-cli = {
+      enable = true;
+      apiKey = "a304de1a9f0e46fb870d59d884b9616c.4Zeci63KC3W6FzuR";
+    };
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
