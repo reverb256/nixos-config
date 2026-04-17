@@ -7,7 +7,7 @@
       type = "llama-cpp";
       local = {
         url = "http://10.1.1.110:1235";
-        model = "gemma-4-e4b-it";
+        model = "qwen3.6-35b-a3b";
       };
       nvidia-nim = {
         enable = true;
@@ -34,7 +34,7 @@
       host = "0.0.0.0";
       port = 8080;
       workers = 1;
-      middleware.redis.enable = true;
+      middleware.redis.enable = false;  # K8s valkey in search ns replaces this
       middleware.knowledgeFabric = {
         enable = true;
         rrf_k = 60;
@@ -52,7 +52,7 @@
 
     routing = {
       enable = true;
-      defaultModel = "gemma-4-e4b-it";
+      defaultModel = "qwen3.6-35b-a3b";
       fallbackChain = ["zai" "pollinations"];
     };
 
