@@ -41,7 +41,8 @@ in
       description = "Agent personality (written to SOUL.md)";
     };
 
-    # For hosts with agenix, use the secret file. Otherwise, embed directly.
+    # Prefer apiKeyFile with agenix secrets. Fallback to apiKey for
+    # non-sensitive or development use only.
     apiKeyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
@@ -51,7 +52,7 @@ in
     apiKey = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
-      description = "Z.AI API key (if not using agenix)";
+      description = "Z.AI API key (plaintext, avoid in production — prefer apiKeyFile)";
     };
   };
 
@@ -71,43 +72,50 @@ in
 
       # Write config.yaml if it doesn't exist or is managed by us
       if [ ! -f "$HERMES_HOME/config.yaml" ] || grep -q "# Managed by NixOS" "$HERMES_HOME/config.yaml" 2>/dev/null; then
-        cat > "$HERMES_HOME/config.yaml" << 'EOF'
-      # Managed by NixOS - hermes-cli module
-      model:
-        provider: zai
-        base_url: https://api.z.ai/api/coding/paas/v4
-        default: ${cfg.model}
-        api_key: none
+        cat > "$HERMES_HOME/config.yaml" << YAML_EOF
+# Managed by NixOS - hermes-cli module
+model:
+  provider: zai
+  base_url: https://api.z.ai/api/coding/paas/v4
+  default: ${cfg.model}
+  api_key: none
 
-      terminal:
-        backend: local
-        timeout: 180
+terminal:
+  backend: local
+  timeout: 180
 
-      toolsets:
-        - all
+toolsets:
+  - all
 
-      memory:
-        memory_enabled: true
-        user_profile_enabled: true
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
 
-      compression:
-        enabled: true
-        threshold: 0.85
-      EOF
+compression:
+  enabled: true
+  threshold: 0.85
+YAML_EOF
         chmod 644 "$HERMES_HOME/config.yaml"
       fi
 
-      # Write .env with API key
-      cat > "$HERMES_HOME/.env" << EOF
-      ZAI_API_KEY=${lib.optionalString (cfg.apiKey != null) cfg.apiKey}
-      EOF
+      # Write .env with API key (prefer secret file over plaintext)
+      if [ -n "${lib.optionalString (cfg.apiKeyFile != null) cfg.apiKeyFile}" ] && [ -f "${lib.optionalString (cfg.apiKeyFile != null) cfg.apiKeyFile}" ]; then
+        ZAI_KEY=$(cat ${lib.optionalString (cfg.apiKeyFile != null) cfg.apiKeyFile})
+      elif [ -n "${lib.optionalString (cfg.apiKey != null) cfg.apiKey}" ]; then
+        ZAI_KEY="${lib.optionalString (cfg.apiKey != null) cfg.apiKey}"
+      else
+        ZAI_KEY=""
+      fi
+      cat > "$HERMES_HOME/.env" << ENV_EOF
+ZAI_API_KEY=$ZAI_KEY
+ENV_EOF
       chmod 600 "$HERMES_HOME/.env"
 
       # Write SOUL.md if it doesn't exist
       if [ ! -f "$HERMES_HOME/SOUL.md" ]; then
-        cat > "$HERMES_HOME/SOUL.md" << 'EOF'
-      ${cfg.personality}
-      EOF
+        cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
+${cfg.personality}
+SOUL_EOF
         chmod 644 "$HERMES_HOME/SOUL.md"
       fi
 
