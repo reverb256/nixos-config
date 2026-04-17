@@ -1,5 +1,4 @@
 # Consolidated Migration Plan
-
 **Date:** 2026-04-17
 **Goal:** Migrate all feasible workloads from systemd/zephyr to K8s/nexus using nix-csi + easykubenix
 
@@ -21,7 +20,6 @@ Move any non-GPU, non-desktop workloads from Zephyr (31GB, tight) to Nexus (46GB
 ## Priority Matrix
 
 ### P0 - Zephyr RAM Critical (Do Now)
-
 | Service | Zephyr Current | Target | Method | RAM Saved |
 |---------|---------------|--------|--------|-----------|
 | redis-ai-gateway | systemd port 6380 | DELETE (Valkey in K8s search ns) | disable svc | ~50MB |
@@ -29,28 +27,25 @@ Move any non-GPU, non-desktop workloads from Zephyr (31GB, tight) to Nexus (46GB
 | vaultwarden | systemd/podman | → K8s on nexus | easykubenix | ~100MB |
 
 ### P1 - Systemd → K8s Conversions
-
-| Service | Host | Current | Target | Module |
-|---------|------|---------|--------|--------|
-| redis | zephyr | systemd | → K8s infra | host-services.nix |
-| node-exporter | all 4 | systemd | → K8s DaemonSet | host-services.nix |
-| nvidia-gpu-exporter | zephyr/nexus/forge | systemd | → K8s DaemonSet | host-services.nix |
-| kb-mcp-server | nexus | systemd | DELETE (kf replaces) | — |
-| qdrant | nexus | systemd | → K8s search ns | host-services.nix |
-| knowledge-fabric | NEW | — | → K8s search ns | other agent |
+| Service | Host | Current | Target | Module | Notes |
+|---------|------|---------|--------|--------|-------|
+| redis | zephyr | systemd | → K8s infra | host-services.nix | |
+| node-exporter | all 4 | systemd | → K8s DaemonSet | host-services.nix | |
+| nvidia-gpu-exporter | zephyr/nexus/forge | **NOT RUNNING** | → K8s DaemonSet | host-services.nix | ⚠️ **Fresh deploy needed** - no active systemd service on any GPU node |
+| kb-mcp-server | nexus | systemd | DELETE (kf replaces) | — | |
+| qdrant | nexus | systemd | → K8s search ns | **NEW MODULE NEEDED** | ⚠️ **No K8s module defined yet** - needs creation |
+| knowledge-fabric | NEW | — | → K8s search ns | other agent | |
 
 ### P2 - Zephyr → Nexus Moves
-
 | Service | Zephyr Current | Nexus Target | Notes |
 |---------|---------------|-------------|-------|
-| ai-inference gateway | systemd :8080 | already there | gateway enable=false on zephyr |
+| ai-inference gateway | systemd :8080 | already there | gateway `enable=true` on zephyr (still active), migrate by disabling on zephyr |
 | hermes-agent | systemd | → K8s | needs workspace PVC |
 | hermes-dashboard | systemd | → K8s | simple web app |
 | claude-code-router | systemd :3456 | → K8s | easykubenix defined |
 | syncthing | systemd | keep systemd | host filesystem |
 
 ### P3 - Keep on Zephyr (Hardware/TDesktop Bound)
-
 - k3s-cluster (control plane)
 - keepalived-vip
 - gaming-detection, gpu-profile-manager
@@ -71,9 +66,9 @@ Phase 1: Quick Zephyr Relief (P0)
 
 Phase 2: Systemd → K8s (P1)
 ├── 2.1 Deploy node-exporter DaemonSet
-├── 2.2 Deploy nvidia-gpu-exporter DaemonSet  
+├── 2.2 Deploy nvidia-gpu-exporter DaemonSet (FRESH - no existing service)
 ├── 2.3 Deploy redis StatefulSet (infra ns)
-├── 2.4 Deploy qdrant (search ns)
+├── 2.4 Create qdrant K8s module + deploy (search ns)
 └── 2.5 Delete kb-mcp-server (nexus)
 
 Phase 3: Zephyr → Nexus (P2)
@@ -103,11 +98,62 @@ Contains easykubenix definitions for:
 - Caddy Local
 - Syncthing
 
+**Missing Modules (need creation):**
+- Qdrant (referenced in ai-inference.nix but no K8s module)
+
+---
+
+## Future Improvements
+
+### Migrate hostPath → nix-csi CSI Ephemeral Volumes
+
+**Current State:** K8s modules use `hostPath.path = "/nix"` pattern. The nix-csi CSI driver IS deployed:
+- `nix.csi.store` driver registered on all 4 nodes
+- `nixkube` DaemonSet running with CSI node driver registrar
+
+**Upstream Best Practice (Lillecarl):**
+Use CSI ephemeral volumes instead of hostPath for better isolation and reproducibility:
+
+```nix
+volumes.nix.csi = {
+  driver = "nix.csi.store";
+  volumeAttributes.${pkgs.system} = pkgs.myPackage;
+};
+```
+
+**Benefits:**
+- Per-pod Nix store isolation
+- Automatic garbage collection when pod terminates
+- No host filesystem pollution
+- True reproducible builds
+
+**Migration Path:**
+1. Update `nixVolume` in host-services.nix to use CSI ephemeral volumes
+2. Test on non-critical workloads first
+3. Roll out to all nix-csi scratch deployments
+
+---
+
+## Recurring Issues Log
+
+### wlx-overlay-s → wayvr Package Rename
+**Issue:** The `wlx-overlay-s` package was renamed to `wayvr` in nixpkgs upstream. This fix keeps getting reverted by another agent.
+
+**History (git log):**
+- `dd1fbf86` - fix: wlx-overlay-s → wayvr (nixpkgs upstream rename)
+- `c59ad7bf` - fix: wlx-overlay-s → wayvr + other agent host config updates  
+- `dc5a23a6` - fix(gaming): restore wlx-overlay-s (was incorrectly changed to wayvr)
+- `aab12a6b` - fix: replace wlx-overlay-s with wayvr (upstream nixpkgs rename)
+- `28e0f606` - refactor(gaming): replace dead VR config with upstream WiVRn module
+
+**Action:** When updating gaming.nix, use `wayvr` (not `wlx-overlay-s`). The upstream package name change is intentional and permanent.
+
 ---
 
 ## Next Steps
 
 1. **Commit host-services.nix** (already git added)
-2. **Fix flake eval** - currently failing on host-services.nix
+2. **Create qdrant K8s module** - no module exists in host-services.nix yet
 3. **Deploy via colmena** to activate K8s definitions
-4. **Disable systemd services** after K8s verification
+4. **Deploy nvidia-gpu-exporter fresh** - no existing systemd service to migrate
+5. **Disable systemd services** after K8s verification
