@@ -379,7 +379,6 @@
         };
       };
       packages.x86_64-linux.ai-inference-gateway-image = inputs.ai-gateway.packages.x86_64-linux.container; # migrated from local pkgs/
-          { };
       packages.x86_64-linux.opencode-image = pkgs.dockerTools.buildImage {
         name = "opencode";
         tag = "nixos";
