@@ -194,21 +194,21 @@
   # so we use a systemd override with ExecStartPre to generate an env file.
   systemd.services.hermes-agent = {
     serviceConfig.ExecStartPre = "+" + (pkgs.writeShellScript "hermes-load-env" ''
-      mkdir -p /var/lib/hermes/.hermes
-      cat > /var/lib/hermes/.hermes/provider-env << 'ENVEOF'
+      mkdir -p /data/hermes/.hermes
+      cat > /data/hermes/.hermes/provider-env << 'ENVEOF'
       API_SERVER_ENABLED=true
       API_SERVER_HOST=0.0.0.0
       API_SERVER_PORT=8642
       API_SERVER_KEY=hermes-local-dev-b8b2275d6053fb335a9508048c54dc96
       GLM_BASE_URL=https://api.z.ai/api/coding/paas/v4
       ENVEOF
-      echo -n "ZAI_API_KEY=" >> /var/lib/hermes/.hermes/provider-env
-      cat /run/agenix/zai-api-key >> /var/lib/hermes/.hermes/provider-env
-      chmod 600 /var/lib/hermes/.hermes/provider-env
-      chown hermes:hermes /var/lib/hermes/.hermes/provider-env
+      echo -n "ZAI_API_KEY=" >> /data/hermes/.hermes/provider-env
+      cat /run/agenix/zai-api-key >> /data/hermes/.hermes/provider-env
+      chmod 600 /data/hermes/.hermes/provider-env
+      chown hermes:hermes /data/hermes/.hermes/provider-env
     '');
     # Use "-" prefix so systemd doesn't fail if file doesn't exist yet
-    serviceConfig.EnvironmentFile = "-/var/lib/hermes/.hermes/provider-env";
+    serviceConfig.EnvironmentFile = "-/data/hermes/.hermes/provider-env";
   };
 
   # Knowledge Base MCP server — RAG search over 38 ingested books

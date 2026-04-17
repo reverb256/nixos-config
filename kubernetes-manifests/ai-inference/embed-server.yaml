@@ -1,0 +1,116 @@
+---
+# Embed Server — Sentence-transformers embedding endpoint
+# Uses HuggingFace TEI (Text Embeddings Inference) image
+# Replaces the dead nexus:8643 endpoint
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: embed-server
+  namespace: ai-inference
+  labels:
+    app: embed-server
+    component: embeddings
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: embed-server
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: embed-server
+        component: embeddings
+    spec:
+      nodeName: nexus
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: embed-server
+        image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.5
+        imagePullPolicy: IfNotPresent
+        args:
+          - --model-id
+          - nomic-ai/nomic-embed-text-v2-moe
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        env:
+        - name: HF_HOME
+          value: "/tmp/.cache/huggingface"
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /.cache
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: "1Gi"
+      - name: cache
+        emptyDir:
+          sizeLimit: "2Gi"
+      tolerations:
+      - key: workstation
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+      - key: interactive
+        operator: Equal
+        value: "true"
+        effect: NoExecute
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: embed-server
+  namespace: ai-inference
+  labels:
+    app: embed-server
+spec:
+  type: NodePort
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+      nodePort: 30880
+    protocol: TCP
+  selector:
+    app: embed-server

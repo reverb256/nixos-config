@@ -23,6 +23,12 @@ in
       /data/backups 10.1.1.0/24(ro,sync,no_subtree_check,crossmnt,fsid=103)
 
       /mnt/garage/hermes 10.1.1.0/24(rw,sync,no_subtree_check,no_root_squash,fsid=104)
+
+      /data/hermes 10.1.1.0/24(rw,sync,no_subtree_check,no_root_squash,fsid=105)
+
+      /data/pi 10.1.1.0/24(rw,sync,no_subtree_check,no_root_squash,fsid=106)
+
+      /data/qdrant 10.1.1.0/24(rw,sync,no_subtree_check,no_root_squash,fsid=107)
     '';
 
     services.nfs.settings = {

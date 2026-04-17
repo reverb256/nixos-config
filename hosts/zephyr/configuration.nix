@@ -103,6 +103,20 @@
     ];
   };
 
+  # Shared hermes state via NFS (nexus is canonical)
+  fileSystems."/home/j_kro/.hermes" = {
+    device = "nexus:/data/hermes";
+    fsType = "nfs4";
+    options = [ "noatime" "nodiratime" "_netdev" ];
+  };
+
+  # Shared pi agent config via NFS
+  fileSystems."/home/j_kro/.pi/agent" = {
+    device = "nexus:/data/pi";
+    fsType = "nfs4";
+    options = [ "noatime" "nodiratime" "_netdev" ];
+  };
+
   i18n.defaultLocale = "en_CA.UTF-8";
 
   boot.kernelPackages =
@@ -251,8 +265,6 @@
     127.0.0.1 ai.lan ai.cluster.local
     127.0.0.1 openwebui.lan openwebui.cluster.local
     127.0.0.1 haven.lan haven.cluster.local
-    127.0.0.1 hermes.lan hermes.cluster.local
-    127.0.0.1 api.hermes.lan
   '';
 
   boot.postBootCommands = ''

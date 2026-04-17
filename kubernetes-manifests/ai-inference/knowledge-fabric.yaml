@@ -1,0 +1,120 @@
+---
+# Knowledge Fabric API — Brain query endpoint
+# Placeholder deployment (nginx) — replace with real image later
+# Serves POST /brain/query on port 3000
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: knowledge-fabric-api
+  namespace: ai-inference
+  labels:
+    app: knowledge-fabric-api
+    component: brain
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: knowledge-fabric-api
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: knowledge-fabric-api
+        component: brain
+    spec:
+      nodeName: nexus
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: knowledge-fabric-api
+        image: nginx:alpine
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+      tolerations:
+      - key: workstation
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+      - key: interactive
+        operator: Equal
+        value: "true"
+        effect: NoExecute
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: knowledge-fabric-api
+  namespace: ai-inference
+  labels:
+    app: knowledge-fabric-api
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 3000
+    targetPort: 3000
+    protocol: TCP
+  selector:
+    app: knowledge-fabric-api
+---
+# Ingress for brain.lan via Caddy
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: knowledge-fabric-api
+  namespace: ai-inference
+  labels:
+    app.kubernetes.io/name: knowledge-fabric-api
+  annotations:
+    caddy.ingress.kubernetes.io/disable-ssl-redirect: "true"
+spec:
+  ingressClassName: caddy
+  rules:
+    - host: brain.lan
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: knowledge-fabric-api
+                port:
+                  number: 3000

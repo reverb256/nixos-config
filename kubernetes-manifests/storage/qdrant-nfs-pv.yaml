@@ -1,0 +1,39 @@
+---
+# Qdrant NFS-backed PersistentVolume and PersistentVolumeClaim
+# NFS export on nexus (10.1.1.120) at /data/qdrant
+# 20Gi with Retain reclaim policy
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: qdrant-nfs-pv
+  labels:
+    app: qdrant
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: large-nfs-storage
+  mountOptions:
+    - hard
+    - nfsvers=4.1
+  nfs:
+    server: 10.1.1.120
+    path: /data/qdrant
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qdrant-nfs-pvc
+  namespace: ai-inference
+  labels:
+    app: qdrant
+spec:
+  storageClassName: large-nfs-storage
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi
+  volumeName: qdrant-nfs-pv
