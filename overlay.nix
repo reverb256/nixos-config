@@ -1,6 +1,6 @@
 { inputs }: _final: prev: {
-  lolminer = prev.callPackage ./packages/lolminer.nix {};
-  xmrig = prev.callPackage ./packages/xmrig.nix {};
+  lolminer = inputs.compute-market.packages.x86_64-linux.lolminer;
+  xmrig = inputs.compute-market.packages.x86_64-linux.xmrig;
   lmstudio = prev.callPackage ./packages/lmstudio.nix {};
   lm-studio = prev.callPackage ./packages/lmstudio.nix {};
   haven-desktop = prev.callPackage ./packages/haven-desktop.nix {};
