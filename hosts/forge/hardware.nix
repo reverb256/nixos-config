@@ -120,7 +120,6 @@
       wantedBy = [ "multi-user.target" ];
       after = [
         "network.target"
-        "amd-gpu-power-mgmt.service"
       ];
       serviceConfig = {
         Type = "simple";
@@ -131,15 +130,18 @@
           set -euo pipefail
           PATH=/run/current-system/sw/bin:$PATH
           FAN_CURVE=(
+            "45:40"
             "50:50"
-            "55:60"
-            "60:70"
-            "65:80"
+            "55:55"
+            "60:65"
+            "65:75"
             "70:80"
-            "75:80"
+            "75:85"
+            "80:90"
           )
-          HYSTERESIS=3
-          MIN_ADJUST_INTERVAL=5
+          HYSTERESIS=2
+          MIN_ADJUST_INTERVAL=10
+          MAX_FAN_CHANGE=10
           declare -A LAST_TEMP
           declare -A LAST_FAN
           declare -A LAST_ADJUST_TIME
@@ -147,12 +149,12 @@
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
           }
           declare -A GPU_HWMON
-          GPU_HWMON[0]="/sys/class/drm/card0/device/hwmon/hwmon1"
-          GPU_HWMON[1]="/sys/class/drm/card1/device/hwmon/hwmon0"
+          GPU_HWMON[0]="/sys/class/drm/card1/device/hwmon/hwmon0"
+          GPU_HWMON[1]="/sys/class/drm/card2/device/hwmon/hwmon1"
           get_temp() {
             local gpu=$1
             local hwmon="''${GPU_HWMON[$gpu]}"
-            local temp_milli=$(cat "$hwmon/temp2_input" 2>/dev/null || echo "0")
+            local temp_milli=$(cat "$hwmon/temp1_input" 2>/dev/null || echo "0")
             echo "scale=1; $temp_milli / 1000" | bc
           }
           get_target_fan() {
@@ -172,10 +174,11 @@
             local gpu=$2
             local hwmon="''${GPU_HWMON[$gpu]}"
             local fan_value=$((fan_pct * 255 / 100))
-            if echo "1" > "$hwmon/pwm1_enable" 2>/dev/null && echo "$fan_value" > "$hwmon/pwm1" 2>/dev/null; then
-              log "GPU$gpu: Set pwm to $fan_value ($fan_pct%)"
+            if echo "0" > "$hwmon/pwm1_enable" 2>/dev/null && echo "$fan_value" > "$hwmon/pwm1" 2>/dev/null; then
+              log "GPU$gpu: Set fan to $fan_pct% (pwm=$fan_value)"
             else
-              log "GPU$gpu: Failed to set pwm!"
+              log "GPU$gpu: Failed to set fan (rocm-smi fallback)"
+              rocm-smi -d $gpu --setfan $fan_pct 2>/dev/null || true
             fi
           }
           calculate_fan() {
@@ -190,17 +193,16 @@
               return
             fi
             local fan_diff=$((target_fan - last_fan))
-            local max_change=25
             if (( fan_diff > 0 )); then
-              if (( fan_diff > max_change )); then
-                echo $((last_fan + max_change))
+              if (( fan_diff > MAX_FAN_CHANGE )); then
+                echo $((last_fan + MAX_FAN_CHANGE))
               else
                 echo "$target_fan"
               fi
             else
-              local neg_max_change=$((-max_change))
+              local neg_max_change=$((-MAX_FAN_CHANGE))
               if (( fan_diff < neg_max_change )); then
-                echo $((last_fan - max_change))
+                echo $((last_fan - MAX_FAN_CHANGE))
               else
                 echo "$target_fan"
               fi
@@ -240,7 +242,7 @@
                 set_fan "''${LAST_FAN[$gpu]}" $gpu
               fi
             done
-            sleep 2
+            sleep 5
           done
         '';
       };
