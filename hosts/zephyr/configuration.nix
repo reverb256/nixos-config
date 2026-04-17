@@ -70,6 +70,9 @@
 
   profiles.node.zephyr-workstation.enable = true;
 
+  # Proton VR games require 32-bit NVIDIA driver ICD
+  hardware.graphics.enable32Bit = lib.mkForce true;
+
   profiles.monitoring.enable = lib.mkForce false;
 
   security.clusterAudit = {
