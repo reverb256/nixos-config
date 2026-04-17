@@ -19,7 +19,7 @@
 # activity on the 3090 and shifts gpu-miner-zephyr to the 3060 Ti.
 #
 # Sentry:
-#   AMD RX 5700 XT (6GB, ROCm) → E2B model
+#   AMD RX 5600 XT (6GB, ROCm, gfx1010) → E2B model
 { pkgs, pkgsWithOverlay, config, lib, ... }:
 let
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
@@ -240,7 +240,7 @@ in
       };
     };
 
-    # ── Sentry AMD RX 5700 XT (ROCm) — E2B ─────────────────────────
+    # ── Sentry AMD RX 5600 XT (ROCm, gfx1010) — E2B ─────────────────────────
     Deployment.llama-server-sentry = {
       metadata.labels = managed // { app = "llama-server-sentry"; host = "sentry"; };
       spec = {
