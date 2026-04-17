@@ -22,6 +22,7 @@ let
       ./modules/haven.nix
       ./modules/monitoring.nix
       ./modules/monitoring-dashboards.nix
+      ./modules/host-services.nix
     ];
   };
 in
