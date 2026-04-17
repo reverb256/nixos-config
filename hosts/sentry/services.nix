@@ -101,6 +101,7 @@
       enable = true;
       mining = true;
       kubernetes = true;
+      aiServices = true;
     };
   };
 

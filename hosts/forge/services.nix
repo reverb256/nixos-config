@@ -120,6 +120,7 @@
     agenix-secrets-registry = {
       enable = true;
       kubernetes = true;
+      aiServices = true;
     };
   };
 
