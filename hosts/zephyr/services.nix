@@ -304,7 +304,7 @@
         host = "0.0.0.0";
         port = 8080;
         workers = 1;
-        middleware.redis.enable = true;
+        middleware.redis.enable = false; # K8s valkey replaces this
         middleware.knowledgeFabric = {
           enable = true;
           rrf_k = 60;

@@ -219,14 +219,63 @@
       }];
     };
 
-    # Qdrant runs as systemd on nexus (10.1.1.120:6333).
-    # Expose to K8s via ExternalName so gateway can reach it.
+    # Qdrant vector database — migrated from systemd to K8s StatefulSet
+    StatefulSet.qdrant = {
+      metadata.labels.app = "qdrant";
+      spec = {
+        serviceName = "qdrant";
+        replicas = 1;
+        selector.matchLabels.app = "qdrant";
+        template = {
+          metadata.labels.app = "qdrant";
+          spec = {
+            containers = [{
+              name = "qdrant";
+              image = "docker.io/qdrant/qdrant:v1.13.4";
+              ports = [
+                { containerPort = 6333; name = "http"; }
+                { containerPort = 6334; name = "grpc"; }
+              ];
+              volumeMounts = [{
+                name = "qdrant-data";
+                mountPath = "/qdrant/storage";
+              }];
+              resources = {
+                requests.memory = "256Mi";
+                limits.memory = "4Gi";
+              };
+              readinessProbe = {
+                httpGet = { path = "/healthz"; port = 6333; };
+                initialDelaySeconds = 5;
+                periodSeconds = 10;
+              };
+              livenessProbe = {
+                httpGet = { path = "/healthz"; port = 6333; };
+                initialDelaySeconds = 15;
+                periodSeconds = 20;
+              };
+            }];
+          };
+        };
+        volumeClaimTemplates = [{
+          metadata.name = "qdrant-data";
+          spec = {
+            accessModes = ["ReadWriteOnce"];
+            resources.requests.storage = "10Gi";
+          };
+        }];
+      };
+    };
+
     Service.qdrant = {
       metadata.labels.app = "qdrant";
       spec = {
-        type = "ExternalName";
-        externalName = "nexus.lan";
-        ports = [{ name = "http"; port = 6333; protocol = "TCP"; targetPort = 6333; }];
+        type = "ClusterIP";
+        selector.app = "qdrant";
+        ports = [
+          { name = "http"; port = 6333; protocol = "TCP"; targetPort = 6333; }
+          { name = "grpc"; port = 6334; protocol = "TCP"; targetPort = 6334; }
+        ];
       };
     };
   };

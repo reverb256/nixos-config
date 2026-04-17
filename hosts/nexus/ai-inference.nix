@@ -78,7 +78,7 @@
 
     rag = {
       enable = true;
-      qdrantUrl = "http://127.0.0.1:6333";
+      qdrantUrl = "http://127.0.0.1:6333";  # K8s qdrant with hostNetwork on nexus
       embeddingModel = "sentence-transformers/all-MiniLM-L6-v2";
       chunkSize = 512;
       chunkOverlap = 50;
@@ -98,7 +98,7 @@
         model = "BAAI/bge-reranker-v2-base";
       };
       qdrant = {
-        enable = true;
+        enable = true;  # Assertion requires this, but systemd service overridden below
         host = "0.0.0.0";
         port = 6333;
         grpcPort = 6334;

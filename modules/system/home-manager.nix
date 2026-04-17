@@ -13,7 +13,9 @@ in
 
     useUserPackages = true;
 
-    backupFileExtension = "backup";
+    # Use a unique backup extension that won't collide with previous backups
+    # This prevents the "existing backup would be clobbered" error
+    backupFileExtension = "hm-backup";
 
     users.j_kro =
       { pkgs, ... }:
