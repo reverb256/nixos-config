@@ -69,5 +69,19 @@
   boot.kernelPackages =
     inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
 
+
+  # Hermes state lives on local disk (nexus IS the NFS server)
+  fileSystems."/home/j_kro/.hermes" = {
+    device = "/data/hermes";
+    fsType = "none";
+    options = [ "bind" "noatime" ];
+  };
+
+  # Pi agent state lives on local disk (nexus IS the NFS server)
+  fileSystems."/home/j_kro/.pi/agent" = {
+    device = "/data/pi";
+    fsType = "none";
+    options = [ "bind" "noatime" ];
+  };
   system.stateVersion = "26.05";
 }

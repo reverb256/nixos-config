@@ -50,5 +50,19 @@
     inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
   boot.loader.timeout = lib.mkDefault 5;
 
+
+  # Shared hermes state via NFS (nexus is canonical)
+  fileSystems."/home/j_kro/.hermes" = {
+    device = "nexus:/data/hermes";
+    fsType = "nfs4";
+    options = [ "noatime" "nodiratime" "_netdev" ];
+  };
+
+  # Shared pi agent config via NFS
+  fileSystems."/home/j_kro/.pi/agent" = {
+    device = "nexus:/data/pi";
+    fsType = "nfs4";
+    options = [ "noatime" "nodiratime" "_netdev" ];
+  };
   system.stateVersion = "26.05";
 }
