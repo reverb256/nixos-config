@@ -261,6 +261,7 @@
   };
 
   users.users.j_kro.extraGroups = [
+ "hermes"
     "plugdev"
     "audio"
     "input"

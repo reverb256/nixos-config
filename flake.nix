@@ -27,8 +27,6 @@
       url = "github:ryoppippi/claude-code-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nixpkgs-xr = {
-      url = "github:nix-community/nixpkgs-xr";
     };
     scopebuddy = {
       url = "github:OpenGamingCollective/ScopeBuddy";
@@ -103,7 +101,6 @@
       url = "path:/data/projects/own/gpu-proxy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-  };
   outputs =
     inputs@{
       self,
@@ -114,7 +111,6 @@
       claude-native,
       agenix,
       colmena,
-      nixpkgs-xr,
       ...
     }:
     let
@@ -183,10 +179,8 @@
 
       packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
       packages.x86_64-linux.llama-cpp = pkgsWithOverlay.llama-cpp;
-      packages.x86_64-linux.caddy-with-modules = pkgsWithOverlay.caddy-with-modules;
-      packages.x86_64-linux.caddy-ingress-image = pkgs.callPackage ./pkgs/caddy-ingress-image {
-        inherit (pkgsWithOverlay) caddy-with-modules;
-      };
+      packages.x86_64-linux.caddy-with-modules = inputs.caddy-ingress.packages.x86_64-linux.caddy-with-modules;
+      packages.x86_64-linux.caddy-ingress-image = inputs.caddy-ingress.packages.x86_64-linux.caddy-ingress-image;
 
       packages.x86_64-linux.xmrig-proxy-image = pkgs.dockerTools.buildImage {
         name = "xmrig-proxy";

@@ -98,11 +98,11 @@
     ./services/llamafile.nix
     ./services/stability-matrix.nix
     ./services/haven-desktop.nix
-    ./services/ai-inference/default.nix
+    # ./services/ai-inference/default.nix  # migrated to inputs.ai-gateway
     ./services/nixos-share.nix
     ./services/podman-auto-update.nix
-    ./services/caddy.nix
-    ./services/caddy-common.nix
+    # ./services/caddy.nix  # migrated to inputs.caddy-ingress
+    # ./services/caddy-common.nix  # migrated to inputs.caddy-ingress
     ./services/nextcloud.nix
     ./services/service-gateway.nix
     ./services/host-dashboard.nix
