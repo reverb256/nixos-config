@@ -13,6 +13,8 @@
   inputs.niri.nixosModules.niri
   inputs.hermes-agent.nixosModules.default
 
+  inputs.mcp-registry.nixosModules.default
+
   inputs.stylix.nixosModules.stylix
 
 
