@@ -93,6 +93,8 @@ in
                   "--presence-penalty" "0.0"
                   "--repeat-penalty" "1.0"
                   "--metrics"
+                  "--reasoning-format" "deepseek"
+                  "--jinja"
                 ];
                 env = {
                   _namedlist = true;
