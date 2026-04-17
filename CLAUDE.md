@@ -34,6 +34,30 @@ NixOS flake-based 4-host Linux cluster (Zephyr, Nexus, Forge, Sentry) for AI inf
 
 ---
 
+## PROJECT ARCHITECTURE
+
+**Non-system projects** have been extracted to standalone flakes in `/data/projects/own/`:
+
+| Project | Purpose | Flake Input |
+|---------|---------|-------------|
+| ai-inference-gateway | AI gateway service | `ai-gateway` |
+| compute-market | GPU time-slicing | `compute-market` |
+| caddy-ingress | Custom Caddy build | `caddy-ingress` |
+| gpu-proxy | Stratum mining proxy | `gpu-proxy` |
+| knowledge-fabric | Knowledge base | `knowledge-fabric` |
+| llama-cpp-turboquant | TurboQuant llama.cpp | (wired via overlay) |
+| mcp-registry | MCP server management | `mcp-registry` |
+| searxng-cluster | Self-hosted search | (integrated into easykubenix) |
+
+Each project has its own `flake.nix` with:
+- `packages.*` - Nix packages
+- `nixosModules` - Host-level modules (for services that MUST run on host)
+- `kubernetesModules` - K8s manifests (easykubenix)
+
+See `/data/projects/AGENTS.md` for full project inventory and status.
+
+---
+
 ## ⚠️ CRITICAL SAFETY RULES
 
 ### NixOS Declarative Model (MANDATORY)

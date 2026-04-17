@@ -26,6 +26,23 @@ just rollback           # Rollback local host
 
 > **See `INFRASTRUCTURE-AUDIT.md` for live cluster state and issues.**
 
+## Extracted Projects
+
+**Non-system projects** have been migrated to `/data/projects/own/` as standalone flakes:
+
+| Project | Purpose | Status |
+|---------|---------|--------|
+| ai-inference-gateway | AI gateway service | ✅ Extracted |
+| compute-market | GPU time-slicing | ✅ Extracted |
+| caddy-ingress | Custom Caddy build | ✅ Extracted |
+| gpu-proxy | Stratum mining proxy | ✅ Extracted |
+| knowledge-fabric | Knowledge base | ✅ Extracted |
+| llama-cpp-turboquant | TurboQuant llama.cpp | ✅ Extracted |
+| mcp-registry | MCP server management | ✅ Extracted |
+| searxng-cluster | Self-hosted search | ✅ Extracted |
+
+Each project is a flake input in `flake.nix` with its own versioning.
+
 ## Project Structure
 
 ```
