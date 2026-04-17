@@ -171,27 +171,29 @@ in
               llama-server = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgsWithOverlay.llama-cpp}/bin/llama-server" ];
+                command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
                 args = [
                   "--model" "/models/unsloth/gemma-4-E4B-it-GGUF/gemma-4-E4B-it-IQ4_NL.gguf"
                   "--mmproj" "/models/unsloth/gemma-4-E4B-it-GGUF/mmproj-F32.gguf"
                   "--host" "0.0.0.0"
                   "--port" "1236"
                   "-ngl" "99"
-                  "-c" "8192"
+                  "-c" "131072"
                   "-t" "4"
                   "--fit" "off"
                   "--batch-size" "32"
                   "--ubatch-size" "8"
                   "--flash-attn" "on"
                   "--parallel" "1"
-                  "--cache-type-k" "q4_0"
-                  "--cache-type-v" "q4_0"
+                  "--cache-type-k" "turbo4"
+                  "--cache-type-v" "turbo4"
                   "--temp" "1.0"
                   "--top-k" "64"
                   "--top-p" "0.95"
                   "--min-p" "0.05"
                   "--metrics"
+            "--reasoning-format" "deepseek"
+            "--jinja"
                 ];
                 env = {
                   _namedlist = true;
