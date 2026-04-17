@@ -293,8 +293,8 @@
         ]
       },
       "locked": {
-        "lastModified": 1776407848,
-        "narHash": "sha256-z73DSPJt0cCu23QwKC8mqonID3HNE8m2IJS5WpyPzwk=",
+        "lastModified": 1776408287,
+        "narHash": "sha256-XqFyjU0A1nFr4YT704Iax2kyMTDTw2zxKyTT36W2T+M=",
         "path": "/data/projects/own/compute-market",
         "type": "path"
       },

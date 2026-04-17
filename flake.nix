@@ -331,10 +331,8 @@
           };
         };
       };
-      packages.x86_64-linux.xmrig-alpine-image = pkgs.callPackage ./pkgs/xmrig-alpine-image { };
-      packages.x86_64-linux.xmrig-proxy-alpine-image =
-        pkgs.callPackage ./pkgs/xmrig-proxy-alpine-image
-          { };
+      packages.x86_64-linux.xmrig-alpine-image = inputs.compute-market.packages.x86_64-linux.xmrig-alpine-image; # migrated
+      packages.x86_64-linux.xmrig-proxy-alpine-image = inputs.compute-market.packages.x86_64-linux.xmrig-proxy-alpine-image; # migrated
       packages.x86_64-linux.claude-code-image = pkgs.dockerTools.buildImage {
         name = "claude-code";
         tag = "nixos";
