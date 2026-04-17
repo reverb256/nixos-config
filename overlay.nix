@@ -1,4 +1,4 @@
-_final: prev: {
+{ inputs }: _final: prev: {
   lolminer = prev.callPackage ./packages/lolminer.nix {};
   xmrig = prev.callPackage ./packages/xmrig.nix {};
   lmstudio = prev.callPackage ./packages/lmstudio.nix {};
@@ -13,6 +13,7 @@ _final: prev: {
   llama-cpp = prev.callPackage ./packages/llama-cpp-cuda.nix {
     inherit (prev) config;
   };
+  llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant;
   llama-cpp-rocm = prev.callPackage ./packages/llama-cpp-rocm.nix {};
   caddy-with-modules = prev.callPackage ./pkgs/caddy-with-modules {};
   python3 = prev.python3.override {

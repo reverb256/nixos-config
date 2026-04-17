@@ -4,10 +4,12 @@
   inputs,
 }:
 let
+  llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant;
   easykubenix = import inputs.easykubenix {
     inherit pkgs;
     modules = [
       { _module.args.pkgsWithOverlay = pkgsWithOverlay; }
+      { _module.args.llama-cpp-turboquant = llama-cpp-turboquant; }
       ./modules/common.nix
       ./modules/infrastructure.nix
       ./modules/ingress.nix
