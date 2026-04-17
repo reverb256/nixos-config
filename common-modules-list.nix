@@ -18,6 +18,10 @@
 
   inputs.ai-gateway.nixosModules.default
 
+  inputs.compute-market.nixosModules.default
+
+  inputs.gpu-proxy.nixosModules.default
+
   inputs.stylix.nixosModules.stylix
 
   ./modules/default.nix

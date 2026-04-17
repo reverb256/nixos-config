@@ -12,6 +12,6 @@
     ./smart-exporter.nix
     ./loki.nix
     ./system-tools.nix
-    ./xmrig-metrics.nix
+    # ./xmrig-metrics.nix  # migrated to inputs.compute-market
   ];
 }

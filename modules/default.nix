@@ -78,15 +78,15 @@
     ./gaming/gaming-hdr.nix
     ./gaming/scopebuddy.nix
 
-    ./mining/mining.nix
+    # ./mining/mining.nix  # migrated to inputs.compute-market
     ./mining/mining-plasmoid.nix
-    ./mining/mining-desktop-toggle.nix
-    ./mining/dual-xmrig.nix
-    ./mining/xmrig-proxy.nix
-    ./mining/mining-proxy.nix
-    ./mining/gpu-proxy-cpp.nix
+    # ./mining/mining-desktop-toggle.nix  # migrated to inputs.compute-market
+    # ./mining/dual-xmrig.nix  # migrated to inputs.compute-market
+    # ./mining/xmrig-proxy.nix  # migrated to inputs.compute-market
+    # ./mining/mining-proxy.nix  # migrated to inputs.compute-market
+    # ./mining/gpu-proxy-cpp.nix  # migrated to inputs.gpu-proxy
 
-    ./compute-market/default.nix
+    # ./compute-market/default.nix  # migrated to inputs.compute-market
 
     # ./services/mcp-servers.nix  # migrated to inputs.mcp-registry
     ./services/nfs-server.nix
@@ -126,7 +126,7 @@
 
     ./services/monitoring/default.nix
     ./services/gpu-exporters.nix
-    ./services/mining-exporter.nix
+    # ./services/mining-exporter.nix  # migrated to inputs.compute-market
     ./multimedia/gstreamer.nix
     ./desktop/spotify-spotx.nix
     ./system/distributed-builds.nix
