@@ -128,14 +128,12 @@
         inherit system;
         config.allowUnfree = true;
         config.cudaSupport = true;
-        overlays = [ (import ./overlay.nix) ];
+        overlays = [ ((import ./overlay.nix) { inherit inputs; }) ];
       };
-
 
       commonModules = import ./common-modules-list.nix {
         inherit inputs self;
       };
-
 
       mkNixosSystem =
         {
@@ -145,7 +143,7 @@
         nixpkgs.lib.nixosSystem {
           specialArgs = {
             inherit inputs;
-            k8sManifestPackage = self.packages.x86_64-linux.k8s-manifests;
+            # k8sManifestPackage = self.packages.x86_64-linux.k8s-manifests;  # TODO: fix easykubenix --no-build issue
           };
           modules =
             commonModules
@@ -154,7 +152,6 @@
             ]
             ++ extraModules;
         };
-
 
       hosts = {
         zephyr = {
@@ -173,20 +170,16 @@
     in
     {
 
-
       nixosConfigurations = builtins.mapAttrs (
         _name: value: mkNixosSystem { inherit (value) hostName; }
       ) hosts;
-
 
       colmena = import ./colmena.nix {
         inherit inputs self;
         inherit hosts;
       };
 
-
       colmenaHive = colmena.lib.makeHive self.outputs.colmena;
-
 
       packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
       packages.x86_64-linux.llama-cpp = pkgsWithOverlay.llama-cpp;
@@ -194,7 +187,6 @@
       packages.x86_64-linux.caddy-ingress-image = pkgs.callPackage ./pkgs/caddy-ingress-image {
         inherit (pkgsWithOverlay) caddy-with-modules;
       };
-
 
       packages.x86_64-linux.xmrig-proxy-image = pkgs.dockerTools.buildImage {
         name = "xmrig-proxy";
@@ -434,16 +426,17 @@
           };
         };
       };
-      overlays.default = import ./overlay.nix;
+      overlays.default = (import ./overlay.nix) { inherit inputs; };
       pkgsWithOverlay = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
         config.cudaSupport = true;
-        overlays = [ self.overlays.default ];
+        overlays = [ ((import ./overlay.nix) { inherit inputs; }) ];
       };
       kubernetes = import ./kubernetes { inherit pkgs pkgsWithOverlay inputs; };
 
-      packages.x86_64-linux.k8s-manifests = self.kubernetes.manifestYAMLFile;
+      # TODO: easykubenix manifestYAMLFile uses builtins.readFile which breaks --no-build
+      # packages.x86_64-linux.k8s-manifests = self.kubernetes.manifestYAMLFile;
 
       apps.x86_64-linux.k8s-validate = {
         type = "app";
