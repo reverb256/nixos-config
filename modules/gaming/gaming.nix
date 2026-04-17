@@ -25,72 +25,13 @@ in
 {
   options.services.gaming = {
     enable = mkEnableOption "Gaming support (Steam, GameMode, Gamescope)";
-    vr = {
-      enable = mkEnableOption "VR support (WiVRn, SteamVR, OpenXR)";
-      encoder = mkOption {
-        type = types.enum [
-          "nvenc"
-          "x264"
-          "av1"
-        ];
-        default = "nvenc";
-        description = "Video encoder for WiVRn streaming";
-      };
-      refreshRate = mkOption {
-        type = types.int;
-        default = 90;
-        description = "Target refresh rate for VR headset";
-      };
-      resolution = mkOption {
-        type = types.str;
-        default = "2160x2160";
-        description = "Per-eye resolution for VR streaming";
-      };
-    };
+    vr.enable = mkEnableOption "VR support (WiVRn, SteamVR, OpenXR)";
   };
   config = mkMerge [
     (mkIf cfg.enable {
 
 
       assertions = [
-        {
-          assertion = cfg.vr.enable -> cfg.vr.refreshRate >= 60 && cfg.vr.refreshRate <= 144;
-          message = ''
-            Invalid VR refresh rate: ${toString cfg.vr.refreshRate}
-            Refresh rate must be between 60 and 144 Hz.
-            Recommended values:
-              - 72 Hz (entry-level VR)
-              - 90 Hz (balanced performance/quality)
-              - 120 Hz (high-end VR)
-              - 144 Hz (enthusiast-grade VR)
-          '';
-        }
-        {
-          assertion = cfg.vr.enable -> (builtins.match "^[0-9]+x[0-9]+$" cfg.vr.resolution) != null;
-          message = ''
-            Invalid VR resolution format: "${cfg.vr.resolution}"
-            Resolution must be in format WIDTHxHEIGHT (per-eye).
-            Valid examples:
-              - "2160x2160" (default, Quest 2)
-              - "2880x2880" (Quest 3)
-              - "4096x4096" (high-end)
-            Current value: ${cfg.vr.resolution}
-          '';
-        }
-        {
-          assertion = cfg.vr.enable -> cfg.vr.encoder == "nvenc" -> (config.hardware.nvidia.enabled or false);
-          message = ''
-            VR encoder is set to "nvenc" but NVIDIA support is not enabled.
-            When using nvenc encoder, ensure:
-              hardware.nvidia.enable = true;
-            Or switch to CPU encoders:
-              services.gaming.vr.encoder = "x264";
-              services.gaming.vr.encoder = "av1";
-            Current configuration:
-              vr.encoder = "${cfg.vr.encoder}"
-              hardware.nvidia.enable = ${toString (config.hardware.nvidia.enable or false)}
-          '';
-        }
       ];
 
 
@@ -108,17 +49,11 @@ in
             custom = {
               start = "${pkgs.writeShellScript "gamemode-start" ''
                 ${pkgs.libnotify}/bin/notify-send 'GameMode activated' 'Performance optimizations enabled'
-                /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GpuPowerMizerMode=1" 2>/dev/null || true
-                /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUGraphicsClockOffset[4]=100" 2>/dev/null || true
-                /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUMemoryTransferRateOffset[4]=400" 2>/dev/null || true
                 /etc/nixos/scripts/gpu-profiles/gaming.sh 2>/dev/null || true
                 /etc/nixos/scripts/gpu-profiles/k8s-mining-pause.sh start 2>/dev/null || true
               ''}";
               end = "${pkgs.writeShellScript "gamemode-end" ''
                 ${pkgs.libnotify}/bin/notify-send 'GameMode deactivated' 'Normal performance restored'
-                /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GpuPowerMizerMode=0" 2>/dev/null || true
-                /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUGraphicsClockOffset[4]=0" 2>/dev/null || true
-                /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUMemoryTransferRateOffset[4]=0" 2>/dev/null || true
                 /etc/nixos/scripts/gpu-profiles/ai-inference.sh 2>/dev/null || true
                 /etc/nixos/scripts/gpu-profiles/k8s-mining-pause.sh end 2>/dev/null || true
               ''}";
@@ -155,6 +90,13 @@ in
                 keyutils
                 libcap
                 SDL2
+                # 32-bit libs for Proton VR games
+                pkgsi686Linux.stdenv.cc.cc.lib
+                pkgsi686Linux.vulkan-loader
+                pkgsi686Linux.zlib
+                pkgsi686Linux.libpng
+                pkgsi686Linux.libjpeg
+                pkgsi686Linux.SDL2
               ];
             extraProfile = ''
               unset TZ
@@ -164,7 +106,6 @@ in
               export STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.local/share/Steam"
               export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata"
               export STEAM_EXTRA_COMPAT_TOOLS_PATHS="$HOME/.local/share/Steam/compatibilitytools.d"
-              export OPENVR_API_PATH="${pkgs.xrizer}/lib/xrizer"
             '';
           };
         };
@@ -318,89 +259,72 @@ in
 
     })
     (mkIf vrCfg.enable {
-
-
-      services = {
-        avahi = {
-          enable = true;
-          nssmdns4 = true;
-          openFirewall = true;
+      # WiVRn OpenXR streaming — upstream module handles runtime
+      # registration, avahi, firewall, and OpenComposite paths
+      services.wivrn = {
+        enable = true;
+        openFirewall = true;
+        autoStart = false;
+        highPriority = true;
+        steam.enable = true;
+        steam.importOXRRuntimes = true;
+        package = pkgs.wivrn.override {
+          cudaSupport = true;
         };
-        wivrn = {
-          enable = true;
-          openFirewall = true;
-          autoStart = true;
+        config.enable = true;
+        config.json = {
+          encoder = {
+            encoder = "nvenc";
+            codec = "h265";
+          };
+          bit-depth = 10;
+          use-steamvr-lh = true;
+          hid-forwarding = true;
         };
-        udev.extraRules = ''
-          SUBSYSTEM=="usb", ATTR{idVendor}=="2833", ATTR{idProduct}=="0181", MODE="0666", TAG+="uaccess"
-          SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2101", MODE="0666", TAG+="uaccess"
-          SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2102", MODE="0666", TAG+="uaccess"
-          SUBSYSTEM=="hidraw", ATTRS{idVendor}=="28de", ATTRS{idProduct}=="2102", MODE="0666", TAG+="uaccess"
-          SUBSYSTEM=="usb", ATTR{idVendor}=="0bb4", ATTR{idProduct}=="2c87", MODE="0666", TAG+="uaccess"
-        '';
+        monadoEnvironment = {
+          XRT_COMPOSITOR_COMPUTE = "1";
+        };
       };
-      networking.firewall = {
-        allowedTCPPorts = lib.mkOptionDefault [ 9757 ];
-        allowedUDPPorts = lib.mkOptionDefault [
-          9757
-          5353
-          9947
-          27036
-          27031
-        ];
-      };
+
+      # UDEV rules for Lighthouse/Valve/HTC/Meta devices
+      services.udev.extraRules = ''
+        SUBSYSTEM=="usb", ATTR{idVendor}=="2833", ATTR{idProduct}=="0181", MODE="0666", TAG+="uaccess"
+        SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2101", MODE="0666", TAG+="uaccess"
+        SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2102", MODE="0666", TAG+="uaccess"
+        SUBSYSTEM=="hidraw", ATTRS{idVendor}=="28de", ATTRS{idProduct}=="2102", MODE="0666", TAG+="uaccess"
+        SUBSYSTEM=="usb", ATTR{idVendor}=="0bb4", ATTR{idProduct}=="2c87", MODE="0666", TAG+="uaccess"
+      '';
+
+      # ntsync for Proton VR game compatibility (kernel 6.14+)
       boot.kernelModules = [
         "usbhid"
         "uvcvideo"
         "nvidia-uvm"
         "hid-sensor-hub"
         "uinput"
-      ];
-      hardware.graphics.extraPackages = with pkgs; [
-        freetype
-        fontconfig
-        libpng
-        libjpeg
-        libtiff
+        "ntsync"
       ];
 
-
-      environment = {
-        sessionVariables = {
-          OPENVR_API_PATH = "${pkgs.xrizer}/lib/xrizer";
-        };
-        systemPackages =
-          with pkgs;
-          (
-            [
-              wivrn
-              openxr-loader
-              opencomposite
-              openvr
-              xrizer
-              motoc
-              freetype
-              fontconfig
-              libpng
-              libjpeg
-              libtiff
-              ffmpeg
-            ]
-            ++ [
-              (pkgs.writeShellScriptBin "gpu-profile" ''
-                exec ${./scripts/gpu-profiles/switch-profile} "$@"
-              '')
-            ]
-          );
-      };
-
-
+      # GPU workload detection and profile management
       services.gaming-detection.enable = true;
       services.gpu-profile-manager.enable = true;
 
-
-
-
+      environment = {
+        systemPackages = with pkgs; [
+          xrizer
+          opencomposite
+          openxr-loader
+          openvr
+          motoc
+          wlx-overlay-s
+          android-tools
+          ffmpeg
+        ] ++ [
+          (pkgs.writeShellScriptBin "gpu-profile" ''
+            exec ${./scripts/gpu-profiles/switch-profile} "$@"
+          '')
+        ];
+      };
     })
   ];
 }
