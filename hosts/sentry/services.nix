@@ -1,4 +1,4 @@
-{pkgs, ...}: {
+{ config, pkgs, ... }: {
   services = {
     hermes-cli = {
       enable = true;
