@@ -312,7 +312,7 @@ in
           openxr-loader
           openvr
           motoc
-          wayvr
+          wlx-overlay-s
           android-tools
           ffmpeg
         ] ++ [
