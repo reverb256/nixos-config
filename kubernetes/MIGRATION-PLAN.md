@@ -1,10 +1,11 @@
 # K8s Migration Plan — systemd → easykubenix
 
-**Created:** 2026-04-14 | **Status:** Phase 0
+**Created:** 2026-04-14 | **Status:** Phase 1.7
 
 ## Current State
 
 ### Already in easykubenix (native)
+
 | Module | Resources | Status |
 |---|---|---|
 | `common.nix` | PriorityClasses | ✅ |
@@ -13,8 +14,10 @@
 | `mining.nix` | xmrig (zephyr, nexus, sentry, proxy) | ✅ |
 | `haven.nix` | haven deployment | ✅ |
 | `searxng.nix` | searxng (2 replicas) | ✅ |
+| `host-services.nix` | Host service definitions | ✅ `nix flake check` passes all 4 hosts |
 
 ### importyaml (needs conversion)
+
 | Module | Source | Resources |
 |---|---|---|
 | `ai-inference.nix` | `ai-inference-clean.yaml` (13KB) | grafana, open-webui, ingresses, SAs, RBAC, 6 ConfigMaps |
@@ -22,6 +25,7 @@
 | `ingress.nix` | `caddy-ingress-controller.yaml` (5KB) | caddy controller, SA, ClusterRole, ConfigMap |
 
 ### systemd services (candidates for migration)
+
 | Service | Nodes | Type | K8s Pattern | Priority |
 |---|---|---|---|---|
 | `llamafile` | zephyr | GPU inference (CUDA) | Deployment + hostPath | P0 |
@@ -38,12 +42,17 @@
 | `vaultwarden` | zephyr | Password manager (podman) | Deployment + PVC | P3 |
 | `host-dashboard` | all 4 | Host info dashboard | DaemonSet | P3 |
 
+> **Note:** `nvidia-gpu-exporter` systemd service is inactive on all hosts — this is a fresh deployment, not a migration from an existing service.
+
 ### Stay systemd (hardware/desktop bound)
+
 - display-manager, ckb-next, rgb-temperature-control, fail2ban
 - gaming-detection, mining-coordinator (need host process visibility)
 - keepalived (VIP failover), caddy (local proxy), claude-code-router
 - gpu-proxy-cpp (GPU scheduling), syncthing (filesystem)
 - redis, redis-ai-gateway, qdrant (stateful, low migration value)
+
+> **Note:** qdrant needs a new K8s module definition (not currently in any easykubenix module).
 
 ---
 
@@ -63,6 +72,42 @@
 
 - [x] `nixkube.nix` — keep as importyaml (1006 lines, CSI DaemonSet with 5 containers, low change frequency)
 - [x] `llamafile`/`llama-server` — keep as systemd for now (Nix-built binaries auto-track store paths; K8s would need a custom Docker image per rebuild)
+- [x] `wlx-overlay-s` renamed to `wayvr` in nixpkgs — `gaming.nix` updated to reflect this
+
+## Phase 1.6: nix-csi CSI Driver Deployed
+
+The nix-csi CSI driver is confirmed deployed and operational:
+
+- **Driver:** `nix.csi.store` available on all 4 nodes
+- **Namespace:** `nixkube` contains:
+  - `nix-node` DaemonSet (CSI node plugin)
+  - `nix-cache` StatefulSet (optional caching layer)
+- **Current modules** use `hostPath /nix` as a transitional pattern, not the final architecture
+
+## Phase 1.7: Migrate hostPath → nix-csi CSI volumes
+
+Convert the transitional hostPath pattern to the upstream-recommended CSI ephemeral volume pattern:
+
+```nix
+volumes.nix.csi = {
+  driver = "nix.csi.store";
+  volumeAttributes.${pkgs.system} = pkgs.myPackage;
+};
+```
+
+**Benefits:**
+- Shares inodes across pods on the same node (deduplication)
+- More RAM-efficient than hostPath (single copy in memory)
+- Native K8s lifecycle management (volume follows pod)
+- Consistent with upstream nix-csi recommendations
+
+**Migration Steps:**
+1. Audit all modules using `hostPath /nix` mounts
+2. Replace with `volumes.nix.csi` pattern
+3. Verify pod startup and package availability
+4. Remove hostPath volume definitions
+
+---
 
 ## Phase 2: Migrate systemd → K8s (P1)
 
@@ -79,9 +124,12 @@
 - [ ] `vaultwarden` → K8s Deployment + PVC
 - [ ] `host-dashboard` → K8s DaemonSet
 
+---
+
 ## Approach
 
 Each migration follows the same pattern:
+
 1. Read the systemd service config (ExecStart, Environment, volumes)
 2. Write easykubenix native module with same config
 3. Deploy to cluster

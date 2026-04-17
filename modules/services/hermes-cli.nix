@@ -4,7 +4,9 @@
 # Each host gets its own ~/.hermes/ state directory with unified config
 # pointing to the Z.AI provider (same model, tools, personality everywhere).
 #
-# Usage: services.hermes-cli.enable = true;
+# Usage:
+#   services.hermes-cli.enable = true;
+#   services.hermes-cli.apiKeyFile = config.age.secrets.zai-api-key.path;
 #
 # The gateway runs separately on nexus via services.hermes-agent.
 
@@ -41,18 +43,11 @@ in
       description = "Agent personality (written to SOUL.md)";
     };
 
-    # Prefer apiKeyFile with agenix secrets. Fallback to apiKey for
-    # non-sensitive or development use only.
     apiKeyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
-      description = "Path to file containing ZAI_API_KEY (agenix secret)";
-    };
-
-    apiKey = lib.mkOption {
-      type = lib.types.nullOr lib.types.str;
-      default = null;
-      description = "Z.AI API key (plaintext, avoid in production — prefer apiKeyFile)";
+      description = "Path to agenix secret file containing ZAI_API_KEY";
+      example = "config.age.secrets.zai-api-key.path";
     };
   };
 
@@ -64,7 +59,7 @@ in
     environment.variables.HERMES_HOME = "/home/${cfg.user}/.hermes";
 
     # Create hermes state directory with proper config
-    system.activationScripts.hermes-cli-setup = lib.stringAfter [ "users" ] ''
+    system.activationScripts.hermes-cli-setup = lib.stringAfter [ "users" "setupSecrets" ] ''
       HERMES_HOME="/home/${cfg.user}/.hermes"
 
       # Create directory structure
@@ -72,7 +67,7 @@ in
 
       # Write config.yaml if it doesn't exist or is managed by us
       if [ ! -f "$HERMES_HOME/config.yaml" ] || grep -q "# Managed by NixOS" "$HERMES_HOME/config.yaml" 2>/dev/null; then
-        cat > "$HERMES_HOME/config.yaml" << YAML_EOF
+        cat > "$HERMES_HOME/config.yaml" << 'YAML_EOF'
 # Managed by NixOS - hermes-cli module
 model:
   provider: zai
@@ -98,18 +93,15 @@ YAML_EOF
         chmod 644 "$HERMES_HOME/config.yaml"
       fi
 
-      # Write .env with API key (prefer secret file over plaintext)
-      if [ -n "${lib.optionalString (cfg.apiKeyFile != null) cfg.apiKeyFile}" ] && [ -f "${lib.optionalString (cfg.apiKeyFile != null) cfg.apiKeyFile}" ]; then
-        ZAI_KEY=$(cat ${lib.optionalString (cfg.apiKeyFile != null) cfg.apiKeyFile})
-      elif [ -n "${lib.optionalString (cfg.apiKey != null) cfg.apiKey}" ]; then
-        ZAI_KEY="${lib.optionalString (cfg.apiKey != null) cfg.apiKey}"
-      else
-        ZAI_KEY=""
-      fi
-      cat > "$HERMES_HOME/.env" << ENV_EOF
-ZAI_API_KEY=$ZAI_KEY
+      # Write .env with API key from agenix secret
+      ${lib.optionalString (cfg.apiKeyFile != null) ''
+        if [ -f "${cfg.apiKeyFile}" ]; then
+          cat > "$HERMES_HOME/.env" << ENV_EOF
+ZAI_API_KEY=$(cat ${cfg.apiKeyFile})
 ENV_EOF
-      chmod 600 "$HERMES_HOME/.env"
+          chmod 600 "$HERMES_HOME/.env"
+        fi
+      ''}
 
       # Write SOUL.md if it doesn't exist
       if [ ! -f "$HERMES_HOME/SOUL.md" ]; then
