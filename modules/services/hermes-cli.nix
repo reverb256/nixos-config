@@ -4,17 +4,22 @@
 # Each host gets its own ~/.hermes/ state directory with unified config
 # pointing to the Z.AI provider (same model, tools, personality everywhere).
 #
+# On hosts where services.hermes-agent is enabled, this module only installs
+# the package and fish completions - the hermes-agent module handles HERMES_HOME
+# and state directory setup.
+#
 # Usage:
 #   services.hermes-cli.enable = true;
 #   services.hermes-cli.apiKeyFile = config.age.secrets.zai-api-key.path;
-#
-# The gateway runs separately on nexus via services.hermes-agent.
 
 { config, lib, pkgs, inputs, ... }:
 
 let
   cfg = config.services.hermes-cli;
+  hermesAgentCfg = config.services.hermes-agent or {};
   hermesPkg = inputs.hermes-agent.packages.${pkgs.system}.default;
+  # If hermes-agent is enabled, use its state dir. Otherwise, use user home.
+  useAgentStateDir = hermesAgentCfg.enable or false;
 in
 {
   options.services.hermes-cli = {
@@ -55,11 +60,12 @@ in
     # Install hermes package system-wide
     environment.systemPackages = [ hermesPkg ];
 
-    # Set HERMES_HOME so all CLI instances use the same state dir
-    environment.variables.HERMES_HOME = "/home/${cfg.user}/.hermes";
+    # Only set HERMES_HOME if hermes-agent is NOT managing it
+    # The hermes-agent module sets addToSystemPackages which also sets HERMES_HOME
+    environment.variables.HERMES_HOME = lib.mkIf (!useAgentStateDir) "/home/${cfg.user}/.hermes";
 
-    # Create hermes state directory with proper config
-    system.activationScripts.hermes-cli-setup = lib.stringAfter [ "users" "setupSecrets" ] ''
+    # Create hermes state directory with proper config (only if not using agent state)
+    system.activationScripts.hermes-cli-setup = lib.mkIf (!useAgentStateDir) (lib.stringAfter [ "users" ] ''
       HERMES_HOME="/home/${cfg.user}/.hermes"
 
       # Create directory structure
@@ -114,7 +120,7 @@ SOUL_EOF
       # Set ownership
       chown -R ${cfg.user}:users "$HERMES_HOME"
       chmod 750 "$HERMES_HOME"
-    '';
+    '');
 
     # Fish completions
     programs.fish.interactiveShellInit = lib.mkAfter ''
