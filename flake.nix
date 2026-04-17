@@ -68,6 +68,41 @@
       url = "github:NousResearch/hermes-agent";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # ═══════════════════════════════════════════════════════════════════
+    # EXTRACTED PROJECTS — Migration in progress (see EXTRACTION-PLAN.md)
+    # Uncomment each input after verifying the project builds independently.
+    # When all verified, remove the original files from nixos-config.
+    # ═══════════════════════════════════════════════════════════════════
+
+    # ai-gateway = {
+    #   url = "path:/data/projects/own/ai-inference-gateway";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
+    # knowledge-fabric = {
+    #   url = "path:/data/projects/own/knowledge-fabric";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
+    # llama-turboquant = {
+    #   url = "path:/data/projects/own/llama-cpp-turboquant";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
+    # compute-market = {
+    #   url = "path:/data/projects/own/compute-market";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
+    # mcp-registry = {
+    #   url = "path:/data/projects/own/mcp-registry";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
+    # caddy-ingress = {
+    #   url = "path:/data/projects/own/caddy-ingress";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
+    # gpu-proxy = {
+    #   url = "path:/data/projects/own/gpu-proxy";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
   };
   outputs =
     inputs@{
