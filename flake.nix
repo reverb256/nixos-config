@@ -27,6 +27,7 @@
       url = "github:ryoppippi/claude-code-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    };
     scopebuddy = {
       url = "github:OpenGamingCollective/ScopeBuddy";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -100,7 +101,6 @@
       url = "path:/data/projects/own/gpu-proxy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-  };
   outputs =
     inputs@{
       self,
