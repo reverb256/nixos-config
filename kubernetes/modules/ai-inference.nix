@@ -188,74 +188,35 @@
     };
 
     # ── AI Inference Gateway ──────────────────────────────────────
-    # OpenAI/Anthropic/Ollama-compatible gateway with:
+    # Runs as systemd service on nexus (10.1.1.120:8080).
+    # Exposed to K8s via Endpoints so pods can reach it at:
+    #   ai-inference-gateway.ai-inference.svc.cluster.local:8080
+    #
+    # The gateway provides:
+    #   - OpenAI/Anthropic/Ollama-compatible API
     #   - Intelligent routing (model specialization, latency-aware)
-    #   - Circuit breaker + fallback to z.ai API
-    #   - RAG via Qdrant hybrid search
+    #   - Circuit breaker + fallback to Z.AI/Pollinations/NIM
+    #   - RAG via Qdrant hybrid search (vector + BM25)
     #   - MCP broker (SearXNG, etc.)
     #   - Security filter (rate limiting, PII redaction)
-    #
-    # Deploy: nix build .#packages.x86_64-linux.ai-inference-gateway-image
-    #         docker load < result
-    #         (on each node that runs the gateway)
-
-    Deployment.ai-inference-gateway = {
-      metadata.labels = { app = "ai-inference-gateway"; };
-      spec = {
-        replicas = 1;
-        revisionHistoryLimit = 2;
-        selector.matchLabels.app = "ai-inference-gateway";
-        strategy = { type = "RollingUpdate"; rollingUpdate = { maxSurge = 0; maxUnavailable = 1; }; };
-        template = {
-          metadata.labels.app = "ai-inference-gateway";
-          spec = {
-            serviceAccountName = "ai-inference-gateway";
-            nodeSelector."kubernetes.io/hostname" = "nexus";
-            containers = {
-              _namedlist = true;
-              gateway = {
-                image = "ai-inference-gateway:latest";
-                imagePullPolicy = "Never";
-                envFrom = [{ configMapRef.name = "ai-inference-gateway-config"; }];
-                ports = [{ containerPort = 8080; name = "http"; protocol = "TCP"; }];
-                livenessProbe = {
-                  httpGet = { path = "/health"; port = 8080; };
-                  initialDelaySeconds = 30;
-                  periodSeconds = 30;
-                  failureThreshold = 3;
-                };
-                readinessProbe = {
-                  httpGet = { path = "/health"; port = 8080; };
-                  initialDelaySeconds = 10;
-                  periodSeconds = 10;
-                  failureThreshold = 3;
-                };
-                resources = {
-                  requests = { cpu = "250m"; memory = "512Mi"; };
-                  limits = { cpu = "2"; memory = "2Gi"; };
-                };
-                volumeMounts = {
-                  _namedlist = true;
-                  hf-cache = { mountPath = "/var/cache/ai-inference"; };
-                };
-              };
-            };
-            volumes = {
-              _namedlist = true;
-              hf-cache.hostPath = { path = "/var/cache/ai-inference"; type = "DirectoryOrCreate"; };
-            };
-          };
-        };
-      };
-    };
+    #   - Knowledge Fabric middleware (SearXNG + RAG + brain wiki)
 
     Service.ai-inference-gateway = {
       metadata.labels.app = "ai-inference-gateway";
       spec = {
         type = "ClusterIP";
-        ports = [{ name = "http"; port = 8080; protocol = "TCP"; targetPort = 8080; }];
-        selector.app = "ai-inference-gateway";
+        clusterIP = "None";  # Headless, backed by Endpoints below
+        ports = [{ name = "http"; port = 8080; protocol = "TCP"; }];
       };
+    };
+
+    # Static endpoint pointing to systemd gateway on nexus
+    Endpoints.ai-inference-gateway = {
+      metadata.labels.app = "ai-inference-gateway";
+      subsets = [{
+        addresses = [{ ip = "10.1.1.120"; }];
+        ports = [{ name = "http"; port = 8080; protocol = "TCP"; }];
+      }];
     };
 
     # Qdrant runs as systemd on nexus (10.1.1.120:6333).
