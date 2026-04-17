@@ -41,9 +41,12 @@ in
   config.kubernetes.objects.ai-inference = {
 
     # ── Zephyr RTX 3090 (GPU 1) — Qwen3.6-35B-A3B MoE ──────────────
-    # 21GB UD-Q4_K_XL GGUF weights + 858MB mmproj + KV cache (turbo4 compressed).
+    # 16.6GB UD-Q3_K_M GGUF weights + KV cache (turbo4 compressed).
     # Only 3B active params per token = fast generation despite 35B total.
-    # 262K native context. Coordinator watches :1235.
+    # 262K native context, 64K configured. 5.7GB VRAM free for KV cache.
+    # Q3_K_M chosen over Q4_K_XL (21GB) to free VRAM for 2x context window.
+    # Decode speed: ~104 tok/s (within 2% of Q4_K_XL).
+    # mmproj disabled — crashes turboquant binary (SIGSEGV in clip_model_loader).
     Deployment.llama-server-zephyr = {
       metadata.labels = managed // { app = "llama-server-zephyr"; host = "zephyr"; gpu = "rtx3090"; };
       spec = {
@@ -69,7 +72,7 @@ in
                 imagePullPolicy = "IfNotPresent";
                 command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
                 args = [
-                  "--model" "/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf"
+                  "--model" "/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-Q3_K_M.gguf"
                   "--mmproj" "/models/unsloth/Qwen3.6-35B-A3B-GGUF/mmproj-F16.gguf"
                   "--host" "0.0.0.0"
                   "--port" "1235"
