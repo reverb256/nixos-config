@@ -94,7 +94,15 @@ memory:
 
 compression:
   enabled: true
-  threshold: 0.85
+  threshold: 0.9
+
+smart_model_routing:
+  enabled: true
+  max_simple_chars: 160
+  max_simple_words: 28
+  cheap_model:
+    provider: llama-cpp
+    model: gemma-4-e4b-it
 YAML_EOF
         chmod 644 "$HERMES_HOME/config.yaml"
       fi
