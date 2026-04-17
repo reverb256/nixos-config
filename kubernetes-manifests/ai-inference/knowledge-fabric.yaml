@@ -24,6 +24,7 @@ spec:
         component: brain
     spec:
       nodeName: nexus
+        priorityClassName: agent-critical
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
