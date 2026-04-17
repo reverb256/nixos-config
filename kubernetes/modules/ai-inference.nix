@@ -22,21 +22,37 @@
     };
 
     ConfigMap.ai-inference-gateway-config.data = {
-      AUTH_MODE = "api-key"; BACKEND_TYPE = "llama-cpp";
-      BACKEND_URL = "http://zephyr.lan:8081";
-      BACKEND_FALLBACK_URLS = "https://api.z.ai/api/coding/paas/v4";
-      DEFAULT_MODEL = "qwen3.5-35b-a3b"; GATEWAY_HOST = "0.0.0.0"; PORT = "8080";
-      PYTHONUNBUFFERED = "1"; ROUTING_ENABLED = "true";
-      RATE_LIMIT_ENABLED = "true"; RATE_LIMIT_RPM = "120";
-      SECURITY_PROXY_ENABLED = "false"; SENTRY_ENABLED = "false";
+      AUTH_MODE = "api-key";
+      BACKEND_TYPE = "llama-cpp";
+      # Primary: Qwen 35B MoE on zephyr 3090 (K8s service)
+      BACKEND_URL = "http://llama-server-zephyr.ai-inference.svc.cluster.local:1235";
+      # Fallback chain: 3060Ti → Sentry → Z.AI cloud API
+      BACKEND_FALLBACK_URLS = "http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236,http://llama-server-sentry.ai-inference.svc.cluster.local:1235,https://api.z.ai/api/coding/paas/v4";
+      DEFAULT_MODEL = "qwen3.6-35b-a3b";
+      GATEWAY_HOST = "0.0.0.0";
+      PORT = "8080";
+      PYTHONUNBUFFERED = "1";
+      ROUTING_ENABLED = "true";
+      RATE_LIMIT_ENABLED = "true";
+      RATE_LIMIT_RPM = "120";
+      SECURITY_PROXY_ENABLED = "false";
+      SENTRY_ENABLED = "false";
       QDRANT_URL = "http://qdrant.ai-inference.svc.cluster.local:6333";
-      RAG_ENABLED = "false"; RAG_TOP_K = "10"; HYBRID_SEARCH_ENABLED = "true";
+      RAG_ENABLED = "true";
+      RAG_TOP_K = "10";
+      HYBRID_SEARCH_ENABLED = "true";
       EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2";
-      BM25_WEIGHT = "0.3"; CHUNK_OVERLAP = "50"; CHUNK_SIZE = "512";
-      MCP_ENABLED = "true"; SYSTEM_PROMPTS_ENABLED = "true";
-      TOKEN_SCOPED_COLLECTIONS = "true"; VECTOR_WEIGHT = "0.7";
-      HF_HOME = "/var/cache/ai-inference"; TRANSFORMERS_CACHE = "/var/cache/ai-inference";
+      BM25_WEIGHT = "0.3";
+      CHUNK_OVERLAP = "50";
+      CHUNK_SIZE = "512";
+      MCP_ENABLED = "true";
+      SYSTEM_PROMPTS_ENABLED = "true";
+      TOKEN_SCOPED_COLLECTIONS = "true";
+      VECTOR_WEIGHT = "0.7";
+      HF_HOME = "/var/cache/ai-inference";
+      TRANSFORMERS_CACHE = "/var/cache/ai-inference";
       MAX_REQUEST_SIZE = "10485760";
+      CIRCUIT_BREAKER_ENABLED = "true";
     };
 
     ConfigMap.prometheus-config.data."prometheus.yml" = ''
@@ -169,6 +185,88 @@
     RoleBinding.n8n-rolebinding = {
       roleRef = { apiGroup = "rbac.authorization.k8s.io"; kind = "Role"; name = "n8n-role"; };
       subjects = [{ kind = "ServiceAccount"; name = "n8n-sa"; }];
+    };
+
+    # ── AI Inference Gateway ──────────────────────────────────────
+    # OpenAI/Anthropic/Ollama-compatible gateway with:
+    #   - Intelligent routing (model specialization, latency-aware)
+    #   - Circuit breaker + fallback to z.ai API
+    #   - RAG via Qdrant hybrid search
+    #   - MCP broker (SearXNG, etc.)
+    #   - Security filter (rate limiting, PII redaction)
+    #
+    # Deploy: nix build .#packages.x86_64-linux.ai-inference-gateway-image
+    #         docker load < result
+    #         (on each node that runs the gateway)
+
+    Deployment.ai-inference-gateway = {
+      metadata.labels = { app = "ai-inference-gateway"; };
+      spec = {
+        replicas = 1;
+        revisionHistoryLimit = 2;
+        selector.matchLabels.app = "ai-inference-gateway";
+        strategy = { type = "RollingUpdate"; rollingUpdate = { maxSurge = 0; maxUnavailable = 1; }; };
+        template = {
+          metadata.labels.app = "ai-inference-gateway";
+          spec = {
+            serviceAccountName = "ai-inference-gateway";
+            nodeSelector."kubernetes.io/hostname" = "nexus";
+            containers = {
+              _namedlist = true;
+              gateway = {
+                image = "ai-inference-gateway:latest";
+                imagePullPolicy = "Never";
+                envFrom = [{ configMapRef.name = "ai-inference-gateway-config"; }];
+                ports = [{ containerPort = 8080; name = "http"; protocol = "TCP"; }];
+                livenessProbe = {
+                  httpGet = { path = "/health"; port = 8080; };
+                  initialDelaySeconds = 30;
+                  periodSeconds = 30;
+                  failureThreshold = 3;
+                };
+                readinessProbe = {
+                  httpGet = { path = "/health"; port = 8080; };
+                  initialDelaySeconds = 10;
+                  periodSeconds = 10;
+                  failureThreshold = 3;
+                };
+                resources = {
+                  requests = { cpu = "250m"; memory = "512Mi"; };
+                  limits = { cpu = "2"; memory = "2Gi"; };
+                };
+                volumeMounts = {
+                  _namedlist = true;
+                  hf-cache = { mountPath = "/var/cache/ai-inference"; };
+                };
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              hf-cache.hostPath = { path = "/var/cache/ai-inference"; type = "DirectoryOrCreate"; };
+            };
+          };
+        };
+      };
+    };
+
+    Service.ai-inference-gateway = {
+      metadata.labels.app = "ai-inference-gateway";
+      spec = {
+        type = "ClusterIP";
+        ports = [{ name = "http"; port = 8080; protocol = "TCP"; targetPort = 8080; }];
+        selector.app = "ai-inference-gateway";
+      };
+    };
+
+    # Qdrant runs as systemd on nexus (10.1.1.120:6333).
+    # Expose to K8s via ExternalName so gateway can reach it.
+    Service.qdrant = {
+      metadata.labels.app = "qdrant";
+      spec = {
+        type = "ExternalName";
+        externalName = "nexus.lan";
+        ports = [{ name = "http"; port = 6333; protocol = "TCP"; targetPort = 6333; }];
+      };
     };
   };
 }
