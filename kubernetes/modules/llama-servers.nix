@@ -40,9 +40,10 @@ in
 {
   config.kubernetes.objects.ai-inference = {
 
-    # ── Zephyr RTX 3090 (GPU 1) — 26B-A4B MoE ──────────────────────
-    # 13GB GGUF weights + 2.2GB mmproj + KV cache.
-    # Coordinator watches :1235 and shifts mining to 3060 Ti during inference.
+    # ── Zephyr RTX 3090 (GPU 1) — Qwen3.6-35B-A3B MoE ──────────────
+    # 21GB UD-Q4_K_XL GGUF weights + 858MB mmproj + KV cache (turbo4 compressed).
+    # Only 3B active params per token = fast generation despite 35B total.
+    # 262K native context. Coordinator watches :1235.
     Deployment.llama-server-zephyr = {
       metadata.labels = managed // { app = "llama-server-zephyr"; host = "zephyr"; gpu = "rtx3090"; };
       spec = {
@@ -66,26 +67,28 @@ in
               llama-server = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgsWithOverlay.llama-cpp}/bin/llama-server" ];
+                command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
                 args = [
-                  "--model" "/models/unsloth/gemma-4-26B-A4B-it-GGUF/gemma-4-26B-A4B-it-UD-IQ4_NL.gguf"
-                  "--mmproj" "/models/unsloth/gemma-4-26B-A4B-it-GGUF/mmproj-F32.gguf"
+                  "--model" "/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf"
+                  "--mmproj" "/models/unsloth/Qwen3.6-35B-A3B-GGUF/mmproj-F16.gguf"
                   "--host" "0.0.0.0"
                   "--port" "1235"
                   "-ngl" "99"
                   "-c" "65536"
                   "-t" "4"
                   "--fit" "off"
-                  "--batch-size" "64"
-                  "--ubatch-size" "16"
+                  "--batch-size" "128"
+                  "--ubatch-size" "32"
                   "--flash-attn" "on"
                   "--parallel" "1"
-                  "--cache-type-k" "q4_0"
-                  "--cache-type-v" "q4_0"
-                  "--temp" "1.0"
-                  "--top-k" "64"
+                  "--cache-type-k" "turbo4"
+                  "--cache-type-v" "turbo4"
+                  "--temp" "0.6"
+                  "--top-k" "20"
                   "--top-p" "0.95"
-                  "--min-p" "0.05"
+                  "--min-p" "0.00"
+                  "--presence-penalty" "0.0"
+                  "--repeat-penalty" "1.0"
                   "--metrics"
                 ];
                 env = {
