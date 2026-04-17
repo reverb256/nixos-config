@@ -31,10 +31,6 @@ in
     (mkIf cfg.enable {
 
 
-      assertions = [
-      ];
-
-
       programs = {
         gamemode = {
           enable = true;
@@ -316,7 +312,7 @@ in
           openxr-loader
           openvr
           motoc
-          wlx-overlay-s
+          wayvr
           android-tools
           ffmpeg
         ] ++ [
