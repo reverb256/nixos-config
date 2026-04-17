@@ -130,18 +130,18 @@
           set -euo pipefail
           PATH=/run/current-system/sw/bin:$PATH
           FAN_CURVE=(
-            "45:40"
-            "50:50"
-            "55:55"
-            "60:65"
-            "65:75"
-            "70:80"
-            "75:85"
-            "80:90"
+            "45:100"
+            "50:120"
+            "55:140"
+            "60:160"
+            "65:180"
+            "70:200"
+            "75:220"
+            "80:240"
           )
           HYSTERESIS=2
           MIN_ADJUST_INTERVAL=10
-          MAX_FAN_CHANGE=10
+          MAX_FAN_CHANGE=20
           declare -A LAST_TEMP
           declare -A LAST_FAN
           declare -A LAST_ADJUST_TIME
@@ -170,15 +170,14 @@
             echo "$target_fan"
           }
           set_fan() {
-            local fan_pct=$1
+            local fan_level=$1
             local gpu=$2
             local hwmon="''${GPU_HWMON[$gpu]}"
-            local fan_value=$((fan_pct * 255 / 100))
-            if echo "0" > "$hwmon/pwm1_enable" 2>/dev/null && echo "$fan_value" > "$hwmon/pwm1" 2>/dev/null; then
-              log "GPU$gpu: Set fan to $fan_pct% (pwm=$fan_value)"
+            if echo "0" > "$hwmon/pwm1_enable" 2>/dev/null && echo "$fan_level" > "$hwmon/pwm1" 2>/dev/null; then
+              log "GPU$gpu: Set fan to level $fan_level/255"
             else
-              log "GPU$gpu: Failed to set fan (rocm-smi fallback)"
-              rocm-smi -d $gpu --setfan $fan_pct 2>/dev/null || true
+              log "GPU$gpu: Failed sysfs, rocm-smi fallback"
+              rocm-smi -d $gpu --setfan $fan_level 2>/dev/null || true
             fi
           }
           calculate_fan() {
@@ -231,7 +230,7 @@
               if (( time_since_last >= MIN_ADJUST_INTERVAL )); then
                 new_fan=$(calculate_fan "$temp" "''${LAST_TEMP[$gpu]}" "''${LAST_FAN[$gpu]}")
                 fan_change=$((new_fan - LAST_FAN[$gpu]))
-                if (( fan_change >= 5 || fan_change <= -5 )); then
+                if (( fan_change >= 10 || fan_change <= -10 )); then
                   log "GPU$gpu: ''${temp}°C (was ''${LAST_TEMP[$gpu]}°C) -> fan ''${new_fan}% (was ''${LAST_FAN[$gpu]}%)"
                   LAST_FAN[$gpu]=$new_fan
                   LAST_TEMP[$gpu]=$temp
