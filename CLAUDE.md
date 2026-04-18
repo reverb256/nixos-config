@@ -30,7 +30,7 @@ NixOS flake-based 4-host Linux cluster (Zephyr, Nexus, Forge, Sentry) for AI inf
 
 **Tech stack**: NixOS flakes, Kubernetes v1.35.0, Colmena, Just, Serena tools
 
-**Current Branch**: `feature/x86-64-v3-migration` (main: `main`)
+**Current Branch**: `feature/brain-v2-embedding-first` (main: `main`)
 
 ---
 
@@ -47,7 +47,7 @@ NixOS flake-based 4-host Linux cluster (Zephyr, Nexus, Forge, Sentry) for AI inf
 | knowledge-fabric | Knowledge base | `knowledge-fabric` |
 | llama-cpp-turboquant | TurboQuant llama.cpp | (wired via overlay) |
 | mcp-registry | MCP server management | `mcp-registry` |
-| searxng-cluster | Self-hosted search | (integrated into easykubenix) |
+| searxng-cluster | Self-hosted search | `searxng` (easykubenix, not extracted) |
 
 Each project has its own `flake.nix` with:
 - `packages.*` - Nix packages
@@ -286,10 +286,9 @@ just cluster-status                      # Host + K8s status combined
 │   ├── services/          # Background services (K8s, monitoring, etc.)
 │   └── compute-market/    # GPU resource marketplace
 ├── kubernetes-manifests/  # K8s manifests for migrated services
-├── docs/                  # Comprehensive documentation
 ├── AGENTS.md              # Universal patterns for ALL agents
-├── STATUS.md              # Real-time cluster health
-└── .claude/               # Claude-specific files (agents, skills, settings)
+├── CLAUDE.md              # This file
+└── skills/                # Agent skills
 ```
 
 **🔴 FORBIDDEN PATHS (Never Edit):**
@@ -421,7 +420,7 @@ useradd myuser
   - **ALWAYS check replica set count before deployment changes**
 
 - **CRITICAL: WORKLOAD SCHEDULING - ZEPHYR OOM PREVENTION**
-  - **ZEPHYR HAS CONSTANT OUM EXHAUSTION (31GB RAM, control plane + AI + gaming)**
+  - **ZEPHYR HAS CONSTANT OOM EXHAUSTION (31GB RAM, control plane + AI + gaming)**
   - **DEFAULT ALL NON-INFRASTRUCTURE, NON-MINING WORKLOADS TO NEXUS (46GB RAM)**
   - **Valid scheduling targets:**
     - **Nexus** (46GB RAM): Default for ALL workloads except:
@@ -433,7 +432,7 @@ useradd myuser
       - Mining: gpu-miner-zephyr, xmrig-zephyr (RTX 3090 GPU)
       - NO OTHER WORKLOADS
     - **Forge** (15GB RAM): GPU mining only (2x NVIDIA + 2x AMD)
-    - **Sentry** (31GB RAM): Monitoring, logging
+    - **Sentry** (8GB RAM): Monitoring, logging
   - **NEVER schedule stateless services, AI workloads, or applications to zephyr**
   - **Use nodeSelector or nodeAffinity to enforce nexus scheduling:**
     ```yaml
@@ -721,63 +720,26 @@ kubectl apply -f kubernetes-manifests/ai-inference/
 - Multi-host deployment patterns
 - Kubernetes workflows
 
-**@STATUS.md** — Real-time cluster health
-- Kubernetes control plane status (v1.35.0, 4 nodes)
-- Service inventory and migration progress
-- Known issues and recent changes
-- Quick commands for cluster management
+**@INFRASTRUCTURE-AUDIT.md** — Live cluster state
+- Current issues and recent changes
 
 ### Architecture & Decisions
-**@DECISION_LOG.md** — Architectural decisions (19 decisions recorded)
-- Control plane: Keepalived VIP vs HAProxy
-- Storage: Garage evolution (3-way → 2-way → single-node)
-- Networking: Caddy vs NGINX, CIDR migration
-- Compute: GPU marketplace, centralized proxy
-
-**@ROADMAP.md** — Kubernetes migration (9-week plan)
-- Current status: Phase 4-7 complete (95% overall)
-- 7 implementation phases
-- GPU passthrough strategy
-- Service migration patterns
+**@ROADMAP.md** — Kubernetes migration plan
+- Current status and phases
 
 ### Incident Documentation
-**docs/kubernetes/volcano-scheduler-incident-2026-03-22.md** — Complete incident report
-- Root cause: Volcano PodGroup authorization + GPU resource management
-- Impact: 2058 non-running pods, deployment failures cluster-wide
-- Resolution: Switched to default-scheduler, killed external GPU processes
-- Prevention: Scheduler selection guidelines, zombie pod prevention
+**kubernetes-manifests/PREVENT_POD_EXPLOSION.md** — Pod explosion prevention rules
+- Revision history limits, maxSurge settings, replica management
 
 ### Services & Features
-**docs/compute-market.md** — GPU Resource Marketplace
-- Unified auction engine for GPU allocation
-- Bidders: Mining, Kubernetes, Gaming
-- Prometheus metrics and Grafana dashboard
-- 6 automation features (DNS, cache, metrics, health)
-- Complete usage guide and security considerations
-- Time savings: ~200 hours/year for 10 active tenants
-
-**docs/CUDA_TROUBLESHOOTING.md** — CUDA setup and fixes
-- CUDA enablement on NVIDIA hosts
-- Common issues (cuda_compat, allowUnsupportedSystem)
-- Multi-GPU configuration
+**kubernetes-manifests/calico/archive/FINAL_INTEGRATION_TEST_REPORT.md** — Calico CNI integration
+**kubernetes-manifests/NVIDIA-DEVICE-PLUGIN-FIX-PLAN.md** — NVIDIA device plugin fixes
 
 ### Agent Configuration
-**.claude/agents/multi-host-validator.md** — Multi-host impact validation
-- Checklist for editing `modules/` directory
-- Prevents SSH breakage and multi-host incidents
-
-**.claude/skills/add-service/SKILL.md** — Service addition workflow
-- Step-by-step systemd service creation
-- Module structure and best practices
-
-**.claude/skills/nix-rebuild/SKILL.md** — Safe rebuild patterns
-- Troubleshooting build failures
-- Rollback procedures
+**skills/nixos-best-practices/AGENTS.md** — NixOS overlay/Home Manager patterns
 
 ### Documentation Index
-**@DOCUMENTATION_INDEX.md** — Complete documentation catalog
-- All documentation files organized by purpose
-- Quick reference for operations, architecture, integration
+All documentation files are in the repo root and `kubernetes-manifests/` subdirectories.
 
 ---
 
@@ -821,12 +783,12 @@ All CI workflows (`.github/workflows/`) pin actions to immutable commit SHAs ins
 | **Zephyr** | 10.1.1.110 | Control plane, AI workstation, gaming | 2× NVIDIA (RTX 3090, 3060 Ti) |
 | **Nexus** | 10.1.1.120 | Storage, GPU compute | 1× NVIDIA (RTX 3060 Ti) |
 | **Forge** | 10.1.1.130 | Multi-GPU mining, AI | 2× NVIDIA (RTX 4060) + 2× AMD (RX 5700 XT) |
-| **Sentry** | 10.1.1.140 | Monitoring, logging | 1× AMD (RX 5600 XT) |
+| **Sentry** | 10.1.1.140 | Monitoring, logging | 1× AMD (RX 5600 XT) — 8GB RAM |
 
 **Total Resources**: 78 cores, 123GB RAM, 7 GPUs, 8.4TB storage
 
 ### Kubernetes Status
-- **Version**: v1.35.0
+- **Version**: v1.34.x
 - **Nodes**: 4/4 Ready (Zephyr, Nexus, Forge, Sentry)
 - **Control Plane**: 3-node HA (Zephyr, Nexus, Sentry) with Keepalived VIP
 - **Migration Progress**: 95% complete (Phases 1-7)
@@ -860,12 +822,12 @@ All CI workflows (`.github/workflows/`) pin actions to immutable commit SHAs ins
 
 ---
 
-**Version**: 5.2 | **Updated**: 2026-04-01
+**Version**: 5.3 | **Updated:** 2026-04-17
 **Changes**:
-- Added supply chain security section (7-day cooldowns, image policy, Trivy, K8s admission policy, SHA pinning)
-- Container image policy: reject unsigned, allow specific registries
-- Pinned all container images to specific versions (no `:latest`)
-- Added `supply-chain-cooldowns` module for npm/bun/uv age gating
-- Activated Trivy container scanning with weekly timer
-- Added K8s `deny-latest-tag` ValidatingAdmissionPolicy
-- Pinned all GitHub Actions to immutable commit SHAs
+- Fixed branch name (feature/brain-v2-embedding-first)
+- Fixed K3s version (v1.34.x, not v1.35.0)
+- Fixed Sentry RAM (8GB, not 31GB)
+- Fixed searxng-cluster status (easykubenix, not extracted)
+- Removed references to non-existent docs (STATUS.md, DECISION_LOG.md, DOCUMENTATION_INDEX.md)
+- Removed references to non-existent .claude/ files and docs/ directory
+- Fixed typo: "OUM" → "OOM" in Zephyr exhaustion warning

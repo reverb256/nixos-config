@@ -35,6 +35,8 @@ in
           ../../modules/home-manager/firefox-pwa-apps.nix
           ../../modules/home-manager/ghostty.nix
           ../../modules/home-manager/icon-theme.nix
+          ../../modules/home-manager/dolphin.nix
+          ../../modules/home-manager/desktop-utilities.nix
         ];
 
         disabledModules = [ "stylix/hm/opencode.nix" ];

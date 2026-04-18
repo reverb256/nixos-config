@@ -50,10 +50,9 @@
       Description = "Vesktop autostart";
       After = [
         "graphical-session-pre.target"
-        "plasma-plasmashell.service"
+        "wayland-wm@niri-session.service"
       ];
       PartOf = ["graphical-session.target"];
-      Wants = ["plasma-plasmashell.service"];
     };
     Service = {
       Type = "simple";

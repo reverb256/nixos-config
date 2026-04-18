@@ -24,10 +24,8 @@ in
       description = "Additional packages to install alongside niri";
     };
   };
-
   config = mkMerge [
     { programs.niri.enable = lib.mkOptionDefault false; }
-
     (mkIf niriEnabled {
       programs.niri.package = lib.mkForce (
         inputs.niri.packages.${pkgs.stdenv.hostPlatform.system}.niri-unstable.overrideAttrs (old: {
@@ -37,7 +35,6 @@ in
         })
       );
     })
-
     (mkIf niriEnabled (
       lib.mkMerge [
         {
@@ -50,7 +47,6 @@ in
             };
           };
         }
-
         {
           nix.settings = {
             substituters = mkDefault [
@@ -63,8 +59,6 @@ in
             ];
           };
         }
-
-
         {
           xdg.portal = {
             enable = mkDefault true;
@@ -89,10 +83,12 @@ in
             ];
           };
         }
-
-
         {
-          environment.systemPackages = [
+          environment.systemPackages = with pkgs.kdePackages; [
+            dolphin
+            dolphin-plugins
+            ark
+          ] ++ [
             pkgs.swaylock
             pkgs.swayidle
             pkgs.polkit_gnome
@@ -100,8 +96,6 @@ in
           ]
           ++ config.desktop.niri.extraPackages;
         }
-
-
         {
           environment.sessionVariables = {
             BROWSER = mkDefault "zen-twilight";
@@ -112,13 +106,10 @@ in
             QT_AUTO_SCREEN_SCALE_FACTOR = mkDefault "1";
           };
         }
-
-
         {
           environment.etc."uwsm/env-niri" = {
             text = ''
               export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
-
               export GST_PLUGIN_PATH=${
                 lib.concatStringsSep ":" [
                   "${lib.getLib pkgs.gst_all_1.gstreamer}/lib/gstreamer-1.0"
@@ -129,11 +120,7 @@ in
               }
             '';
           };
-
-
         }
-
-
         {
           systemd.user.services = {
             xdg-desktop-portal = {
@@ -148,8 +135,6 @@ in
             niri-flake-polkit = {
               after = [ "xdg-desktop-autostart.target" ];
             };
-
-
             polkit-gnome-authentication-agent-1 = {
               description = "Polkit Authentication Agent (Niri)";
               wantedBy = [ "graphical-session.target" ];
@@ -164,7 +149,6 @@ in
                 Slice = "session-graphical.slice";
               };
             };
-
             niri-idle = lib.mkIf false {
               description = "Idle management for Niri (swayidle)";
               wantedBy = [ "graphical-session.target" ];
