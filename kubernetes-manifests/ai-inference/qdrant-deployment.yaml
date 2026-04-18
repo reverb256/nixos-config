@@ -42,7 +42,7 @@ spec:
         kubernetes.io/hostname: nexus
       containers:
       - name: qdrant
-        image: qdrant/qdrant:v1.12.0
+        image: qdrant/qdrant:v1.17.2
         ports:
         - containerPort: 6333
           name: http

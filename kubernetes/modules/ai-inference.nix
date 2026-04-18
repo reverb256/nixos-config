@@ -16,7 +16,8 @@
       DEFAULT_MODEL = "qwen3.5-4b"; RAG_ENABLED = "true"; RAG_TOP_K = "5";
       QDRANT_URL = "http://qdrant:6333"; HYBRID_SEARCH_ENABLED = "true";
       MCP_ENABLED = "false"; AUTO_RAG_ENABLED = "true";
-      EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2";
+      EMBEDDING_MODEL = "BAAI/bge-m3";
+      EMBEDDING_DEVICE = "cpu";  # nexus GPU occupied by lolMiner
       BM25_WEIGHT = "0.300000"; CHUNK_OVERLAP = "50"; CHUNK_SIZE = "512";
     };
 
@@ -40,7 +41,8 @@
       RAG_ENABLED = "true";
       RAG_TOP_K = "10";
       HYBRID_SEARCH_ENABLED = "true";
-      EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2";
+      EMBEDDING_MODEL = "BAAI/bge-m3";
+      EMBEDDING_DEVICE = "cpu";  # nexus GPU occupied by lolMiner
       BM25_WEIGHT = "0.3";
       CHUNK_OVERLAP = "50";
       CHUNK_SIZE = "512";

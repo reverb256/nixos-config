@@ -491,8 +491,8 @@
         ];
       };
       lolminer.nvidia = {
-        enable = true;
-        autostart = true;
+        enable = false;  # Use K8s deployment gpu-miner-zephyr instead (coordinated with gaming/inference)
+        autostart = false;
         devices = "1"; # RTX 3090 only (3060 Ti idle for power envelope)
         perGpuPowerLimits = [
           0    # unused

@@ -27,7 +27,7 @@ let
   };
 
   # Nix-managed Python with fastapi + uvicorn for the dashboard
-  dashboard-python = pkgs.python311.withPackages (p: [
+  dashboard-python = pkgs.python3.withPackages (p: [
     p.fastapi
     p.uvicorn
   ]);
