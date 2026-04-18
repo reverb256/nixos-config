@@ -95,7 +95,7 @@ in
           filter = "sshd";
           settings = {
             port = "22";
-            logpath = "/var/log/auth.log";
+            backend = "systemd";
             maxretry = 5;
             bantime = "1h";
             findtime = "1h";

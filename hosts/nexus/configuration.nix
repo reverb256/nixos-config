@@ -17,8 +17,6 @@
 
     ../../modules/default.nix
 
-    ../../modules/hardware/nvidia-common.nix
-    ../../modules/hardware/nvidia-wayland.nix
     ../../modules/hardware/rgb-control.nix
 
     ../../modules/security/aistor-secrets.nix
@@ -40,7 +38,18 @@
     unbound.listenAddress = "10.1.1.120";
   };
 
-  systemd.network.links = lib.mkForce { };
+  # Prevent hardware-configuration from overriding interface naming
+  # while preserving the cluster-networking keep-names policy
+  systemd.network.links = lib.mkForce {
+    "10-keep-names" = {
+      matchConfig = {
+        OriginalName = "*";
+      };
+      linkConfig = {
+        NamePolicy = "keep";
+      };
+    };
+  };
 
   services.flake-lock-sync.enable = lib.mkForce false;
   systemd.timers.flake-lock-sync.enable = false;

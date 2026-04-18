@@ -59,6 +59,11 @@ in {
         Restart = "always";
         RestartSec = "10s";
         ConditionPathExists = "${runnerHome}/run.sh";
+
+        ProtectSystem = "strict";
+        PrivateTmp = true;
+        NoNewPrivileges = true;
+        ReadWritePaths = [ runnerHome ];
       };
 
       wantedBy = ["multi-user.target"];

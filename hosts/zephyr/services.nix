@@ -35,7 +35,6 @@
       endpoint = "http://10.1.1.110:3900";
       region = "garage";
       bucket = "backups";
-      accessKey = "GKac91d924fc76a30b9bcf6c3e";
       secretKeyFile = "/run/agenix/garage-s3-secret-key";
       retentionDays = 30;
       startAt = "02:00";
@@ -599,7 +598,7 @@
     mining = true;
     cloud = true;
     kubernetes = true;
-    selfHosting = false;
+    selfHosting = true;
   };
 
   age = {

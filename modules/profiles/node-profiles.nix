@@ -210,7 +210,7 @@ in
     };
 
     sentry-monitoring = {
-      enable = mkEnableOption "Sentry monitoring profile (CPU mining + AI inference)";
+      enable = mkEnableOption "Sentry monitoring profile (monitoring + observability)";
 
       amdgpu = mkOption {
         type = types.attrs;
@@ -355,8 +355,7 @@ in
 
     (mkIf config.profiles.node.sentry-monitoring.enable {
       profiles.role = {
-        mining = true;
-        aiInference = true;
+        monitoring = true;
       };
     })
   ];

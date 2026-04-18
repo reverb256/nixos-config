@@ -114,7 +114,7 @@
         tunnel: ${cfg.tunnelId}
         credentials-file: ${cfg.credentialsFile}
 
-        metrics: 0.0.0.0:${toString cfg.metricsPort}
+        metrics: 127.0.0.1:${toString cfg.metricsPort}
 
         ${lib.optionalString cfg.quicEnabled "quic: true"}
 
@@ -161,8 +161,5 @@
         '';
       };
 
-      networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
-        config.services.cloudflared-tunnel.metricsPort
-      ];
     };
 }

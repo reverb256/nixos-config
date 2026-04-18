@@ -51,7 +51,7 @@ in
             elapsed=$((elapsed + 5))
             if [ $elapsed -ge 120 ]; then
               echo "[k8s-nix-deploy] Timed out waiting for K3s API"
-              exit 0
+              exit 1
             fi
           done
           echo "[k8s-nix-deploy] K3s API ready."
@@ -60,10 +60,10 @@ in
           ${
             if cfg.prune
             then ''
-              ${pkgs.kubectl}/bin/kubectl apply --prune -l managed-by=easykubenix -f "$MANIFEST" 2>&1 || true
+              ${pkgs.kubectl}/bin/kubectl apply --prune -l managed-by=easykubenix -f "$MANIFEST" 2>&1
             ''
             else ''
-              ${pkgs.kubectl}/bin/kubectl apply -f "$MANIFEST" 2>&1 || true
+              ${pkgs.kubectl}/bin/kubectl apply -f "$MANIFEST" 2>&1
             ''
           }
 

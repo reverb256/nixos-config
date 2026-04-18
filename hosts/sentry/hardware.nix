@@ -9,6 +9,7 @@
   hardware = {
     btrfs-compression.enable = true;
     monitoring = {
+      enable = true;
       autoDetect = false;
       fanControl = false;
     };

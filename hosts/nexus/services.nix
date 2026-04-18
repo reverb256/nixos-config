@@ -8,6 +8,7 @@
     hermes-cli = {
       enable = true;
       apiKeyFile = config.age.secrets.zai-api-key.path;
+      nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
     };
     k3s-cluster = {
       enable = true;
@@ -29,6 +30,14 @@
     };
 
     gaming-detection.enable = lib.mkForce false;
+
+    vane = {
+      enable = true;
+      port = 30900;
+      searxngUrl = "http://10.1.1.120:30888";
+      chatModelUrl = "http://10.1.1.140:1235/v1";
+      chatModelKey = "Qwen3.5-4B.Q4_K_M.gguf";
+    };
     gpu-profile-manager.enable = lib.mkForce false; # NixOS module not available yet
     mining-coordinator.enable = false; # NixOS module not available yet
 
@@ -73,11 +82,11 @@
     };
 
     nixos-share = {
-      enable = false; # NixOS module not available yet
-      client.enable = false; # NixOS module not available yet
+      enable = true;
+      client.enable = true;
     };
 
-    nfs.server.enable = false; # NixOS module not available yet
+    nfs.server.enable = true;
 
     syncthing-cluster = {
       enable = false; # NixOS module not available yet
@@ -91,7 +100,6 @@
       consistencyMode = "consistent";
       enableMetrics = true;
       enableBackup = false;
-      rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
     };
 
     status-auto-update.enable = false; # NixOS module not available yet
@@ -105,11 +113,14 @@
     };
 
     agenix-secrets-registry = {
-      enable = false; # NixOS module not available yet
+      enable = true;
       aiServices = true;
-      mining = true;
+      monitoring = false;
       storage = true;
+      mining = false;
+      cloud = false;
       kubernetes = true;
+      selfHosting = false;
     };
   };
 
@@ -134,9 +145,52 @@
     addToSystemPackages = true;
 
     settings = {
-      model = {
-        provider = "zai";
-        default = "glm-5.1";
+      providers = {
+        zai = {
+          base_url = "https://api.z.ai/api/coding/paas/v4";
+          api_key_env = "ZAI_API_KEY";
+          model = "glm-5.1";
+        };
+        nvidia-nim = {
+          base_url = "https://integrate.api.nvidia.com/v1";
+          api_key_env = "NVIDIA_API_KEY";
+          model = "deepseek-ai/deepseek-v3.1";
+        };
+        ai-gateway = {
+          base_url = "http://127.0.0.1:8080/v1";
+          api_key = "none";
+          model = "qwen3.5-4b";
+        };
+        lmstudio = {
+          base_url = "http://127.0.0.1:1234/v1";
+          api_key = "lmstudio";
+          model = "qwen3.5-4b";
+        };
+        llama-cpp-zephyr = {
+          base_url = "http://llama-server-zephyr.ai-inference.svc.cluster.local:1235/v1";
+          api_key = "unused";
+          model = "Qwen3.6-35B-A3B-UD-Q3_K_M.gguf";
+        };
+        llama-cpp-sentry = {
+          base_url = "http://llama-server-sentry.ai-inference.svc.cluster.local:1235/v1";
+          api_key = "unused";
+          model = "Qwen3.5-4B.Q4_K_M.gguf";
+        };
+      };
+      fallback_providers = [
+        "zai"
+        "nvidia-nim"
+        "llama-cpp-zephyr"
+        "llama-cpp-sentry"
+      ];
+      smart_model_routing = {
+        enabled = true;
+        max_simple_chars = 160;
+        max_simple_words = 28;
+        cheap_model = {
+          provider = "llama-cpp-sentry";
+          model = "Qwen3.5-4B.Q4_K_M.gguf";
+        };
       };
       toolsets = [ "all" ];
       terminal = {
@@ -189,7 +243,7 @@
     openFirewall = true;
   };
 
-  # Load Z.AI API key and configure hermes-agent environment
+  # Load Z.AI and NVIDIA API keys for hermes-agent
   # The official module's environment option doesn't reliably set systemd env vars,
   # so we use a systemd override with ExecStartPre to generate an env file.
   systemd.services.hermes-agent = {
@@ -201,9 +255,12 @@
       API_SERVER_PORT=8642
       API_SERVER_KEY=hermes-local-dev-b8b2275d6053fb335a9508048c54dc96
       GLM_BASE_URL=https://api.z.ai/api/coding/paas/v4
+      NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
       ENVEOF
       echo -n "ZAI_API_KEY=" >> /data/hermes/.hermes/provider-env
       cat /run/agenix/zai-api-key >> /data/hermes/.hermes/provider-env
+      echo -n "NVIDIA_API_KEY=" >> /data/hermes/.hermes/provider-env
+      cat /run/agenix/nvidia-api-key >> /data/hermes/.hermes/provider-env
       chmod 600 /data/hermes/.hermes/provider-env
       chown hermes:hermes /data/hermes/.hermes/provider-env
     '');

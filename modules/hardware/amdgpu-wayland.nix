@@ -65,10 +65,7 @@ in {
 
     environment.systemPackages = with pkgs; [
       wayland-utils
-
       kanshi
-
-      nvtopPackages.full
     ];
   };
 }
