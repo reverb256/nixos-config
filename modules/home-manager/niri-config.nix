@@ -316,15 +316,41 @@ in {
         ];
         default-column-width = { proportion = 0.7; };
       }
+      # Game launchers that should float
       {
         matches = [
-          { app-id = "steam"; }
           { app-id = "lutris"; }
           { app-id = "heroic"; }
           { app-id = "minecraft"; }
           { app-id = "prism-launcher"; }
         ];
         open-floating = true;
+      }
+      # Steam popup dialogs (settings, friends, properties, etc.)
+      {
+        matches = [
+          { app-id = "steam"; title = "Settings"; }
+          { app-id = "steam"; title = "Friends"; }
+          { app-id = "steam"; title = "Chat"; }
+          { app-id = "steam"; title = "Properties*"; }
+          { app-id = "steam"; title = "Steam Guard*"; }
+          { app-id = "steam"; title = "Screenshot*"; }
+          { app-id = "steam"; title = "Add a Game*"; }
+          { app-id = "steam"; title = "Install*"; }
+          { app-id = "steam"; title = "Uninstall*"; }
+          { app-id = "steam"; title = "Back Up*"; }
+          { app-id = "steam"; title = "Create or select*"; }
+          { app-id = "steam"; title = "Select*"; }
+        ];
+        open-floating = true;
+      }
+      # Steam notification toasts -- position top-right to match noctalia-shell
+      {
+        matches = [
+          { app-id = "steam"; title = "notificationtoasts_.*_desktop"; }
+        ];
+        open-floating = true;
+        default-floating-position = { x = 10; y = 10; relative-to = "top-right"; };
       }
       {
         matches = [ { title = "Choose what to share"; } ];
