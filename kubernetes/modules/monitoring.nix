@@ -1034,5 +1034,465 @@ in
       spec.maxUnavailable = 1;
       spec.selector.matchLabels.app = "grafana";
     };
+
+    # =======================================================================
+    # -- UNIQUE RESOURCES FROM YAML MANIFESTS (Phase 2 migration) ---------
+    # =======================================================================
+
+    # -- Alert Rules: API Server Health (ConfigMap) -----------------------
+    # Source: api-server-alerts.yaml
+    monitoring.ConfigMap.prometheus-api-server-rules.data."api-server-alerts.yml" = ''
+      groups:
+      - name: api-server-health
+        interval: 30s
+        rules:
+      - alert: APIServerDown
+        expr: up{job="kube-apiserver"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: control-plane
+        annotations:
+          summary: "API server is down on {{ $labels.instance }}"
+          description: "API server has been down for more than 1 minute"
+
+      - alert: APIServerHighErrorRate
+        expr: |
+          sum(rate(apiserver_request_total{job="kube-apiserver",code=~"5.."}[5m]))
+          /
+          sum(rate(apiserver_request_total{job="kube-apiserver"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: control-plane
+        annotations:
+          summary: "API server returning high error rate (5%+)"
+
+      - alert: APIServerHighLatency
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(apiserver_request_latencies_seconds_bucket{job="kube-apiserver"}[5m])) by (le)
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+          component: control-plane
+        annotations:
+          summary: "API server p99 latency exceeds 1 second"
+
+      - alert: EtcdHighRequestDuration
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(etcd_request_duration_seconds_bucket[5m])) by (le)
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          component: control-plane
+        annotations:
+          summary: "etcd requests experiencing high latency"
+
+      - alert: APIServerRestart
+        expr: |
+          time() - process_start_time_seconds{job="kube-apiserver"} < 300
+        for: 0m
+        labels:
+          severity: critical
+          component: control-plane
+        annotations:
+          summary: "API server restarted on {{ $labels.instance }}"
+          description: "API server restarted less than 5 minutes ago"
+
+      - alert: APIServerPodCountMismatch
+        expr: |
+          count(up{job="kube-apiserver"}) != 3
+        for: 5m
+        labels:
+          severity: critical
+          component: control-plane
+        annotations:
+          summary: "Expected 3 API server pods, found {{ $value }}"
+
+      - alert: ControlPlaneHighRestartRate
+        expr: |
+          increase(kube_pod_container_status_restarts_total{namespace="kube-system"}[1h]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: control-plane
+        annotations:
+          summary: "Control plane pod restarting frequently"
+
+      - name: api-server-capacity
+        interval: 1m
+        rules:
+      - alert: APIServerHighCPU
+        expr: |
+          sum(rate(container_cpu_usage_seconds_total{namespace="kube-system",container=~"kube-apiserver|etcd"}[5m]))
+          /
+          sum(machine_cpu_cores)
+          > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          component: control-plane
+        annotations:
+          summary: "Control plane using >50% of cluster CPU"
+
+      - alert: APIServerHighMemory
+        expr: |
+          sum(container_memory_working_set_bytes{namespace="kube-system",container=~"kube-apiserver|etcd"})
+          /
+          sum(machine_memory_bytes)
+          > 0.2
+        for: 10m
+        labels:
+          severity: warning
+          component: control-plane
+        annotations:
+          summary: "Control plane using >20% of cluster memory"
+    '';
+
+    monitoring.PersistentVolumeClaim.prometheus-api-server-alerts = {
+      spec = {
+        accessModes = [ "ReadWriteOnce" ];
+        storageClassName = "local-path";
+        resources.requests.storage = "1Gi";
+      };
+    };
+
+    # -- Alert Rules: Kube API Server (ConfigMap version) -----------------
+    # Source: prometheus-alert-rules-kube-apiserver.yaml
+    monitoring.ConfigMap.prometheus-alert-rules-kube-apiserver.data."kube-apiserver-rules.yml" = ''
+      groups:
+        - name: kube-apiserver
+          interval: 30s
+          rules:
+          - alert: KubeAPIServerDown
+            expr: up{job="kube-apiserver-static"} == 0
+            for: 1m
+            labels:
+              severity: critical
+              component: control-plane
+            annotations:
+              summary: "Kubernetes API server is down"
+              description: "Kubernetes API server on {{ $labels.instance }} has been down for more than 1 minute."
+
+          - alert: KubeAPIServerRestarted
+            expr: |
+              time() - process_start_time_seconds{job="kube-apiserver-static"} < 300
+            for: 0m
+            labels:
+              severity: warning
+              component: control-plane
+            annotations:
+              summary: "Kubernetes API server restarted"
+
+          - alert: KubeAPIServerLatencyHigh
+            expr: |
+              histogram_quantile(0.99, sum(rate(apiserver_request_duration_seconds_bucket{job="kube-apiserver-static"}[5m])) by (le, verb)) > 1
+            for: 10m
+            labels:
+              severity: warning
+              component: control-plane
+            annotations:
+              summary: "Kubernetes API server 99th percentile latency high"
+
+          - alert: KubeAPIServerErrorsHigh
+            expr: |
+              sum(rate(apiserver_request_total{job="kube-apiserver-static",code=~"5.."}[5m]))
+              /
+              sum(rate(apiserver_request_total{job="kube-apiserver-static"}[5m])) > 0.05
+            for: 10m
+            labels:
+              severity: warning
+              component: control-plane
+            annotations:
+              summary: "Kubernetes API server error rate high"
+
+          - alert: KubeAPIServerEtcdLatencyHigh
+            expr: |
+              histogram_quantile(0.99, sum(rate(apiserver_storage_db_request_duration_seconds_bucket{job="kube-apiserver-static"}[5m])) by (le, operation_name)) > 0.5
+            for: 10m
+            labels:
+              severity: warning
+              component: control-plane
+            annotations:
+              summary: "Kubernetes API server etcd latency high"
+    '';
+
+    # -- Memory Monitor (CronJob on zephyr) --------------------------------
+    # Source: memory-monitor-configmap.yaml, memory-monitor-cronjob.yaml
+    monitoring.ConfigMap.memory-monitor-script.data."check-memory.sh" = ''
+      #!/bin/bash
+      THRESHOLD=75
+      CURRENT=$(free | grep Mem | awk '{printf("%.0f", $3/$2 * 100)}')
+      if [ $CURRENT -gt $THRESHOLD ]; then
+        echo "WARNING: Zephyr memory usage is ''${CURRENT}%"
+        echo "Consider moving workloads or scaling up"
+        free -h
+        echo "Top memory consumers:"
+        ps aux --sort=-%mem | head -10
+      fi
+    '';
+
+    monitoring.CronJob.memory-monitor = {
+      metadata.labels.app = "memory-monitor";
+      spec = {
+        schedule = "*/5 * * * *";
+        concurrencyPolicy = "Allow";
+        successfulJobsHistoryLimit = 3;
+        failedJobsHistoryLimit = 1;
+        jobTemplate.spec.template = {
+          spec = {
+            nodeName = "zephyr";
+            restartPolicy = "OnFailure";
+            containers = {
+              _namedlist = true;
+              memory-check = {
+                image = "docker.io/library/busybox:1.36";
+                command = [ "/bin/sh" "/scripts/check-memory.sh" ];
+                resources = {
+                  requests = { cpu = "100m"; memory = "128Mi"; };
+                  limits = { cpu = "200m"; memory = "256Mi"; };
+                };
+                volumeMounts = {
+                  _namedlist = true;
+                  scripts = { mountPath = "/scripts"; };
+                };
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              scripts = {
+                configMap = {
+                  name = "memory-monitor-script";
+                  defaultMode = 493;
+                };
+              };
+            };
+          };
+        };
+      };
+    };
+
+    # -- Metrics Server APIService -----------------------------------------
+    # Source: metrics-server-apiservice.yaml
+    none.APIService.v1beta1-metrics-k8s-io = {
+      metadata.name = "v1beta1.metrics.k8s.io";
+      spec = {
+        service = {
+          name = "metrics-server";
+          namespace = "kube-system";
+          port = 443;
+        };
+        group = "metrics.k8s.io";
+        version = "v1beta1";
+        insecureSkipTLSVerify = true;
+        groupPriorityMinimum = 100;
+        versionPriority = 100;
+      };
+    };
+
+    # -- Metrics Server Network Policy -------------------------------------
+    # Source: metrics-server-network-policy.yaml
+    kube-system.NetworkPolicy.allow-metrics-server-kubelet = {
+      spec = {
+        podSelector.matchLabels."k8s-app" = "metrics-server";
+        policyTypes = [ "Egress" ];
+        egress = [
+          {
+            to = [{ ipBlock.cidr = "10.1.1.0/24"; }];
+            ports = [{ protocol = "TCP"; port = 10250; }];
+          }
+          {
+            to = [{ namespaceSelector.matchLabels.name = "kube-system"; }];
+            ports = [
+              { protocol = "UDP"; port = 53; }
+              { protocol = "TCP"; port = 53; }
+            ];
+          }
+        ];
+      };
+    };
+
+    # -- Prometheus Adapter (custom-metrics namespace) ---------------------
+    # Source: prometheus-adapter-namespace.yaml
+    none.Namespace.custom-metrics = {
+      metadata.labels.name = "custom-metrics";
+    };
+
+    # Source: prometheus-adapter-rbac.yaml
+    custom-metrics.ServiceAccount.prometheus-adapter = { };
+
+    none.ClusterRole.prometheus-adapter-server-resources = {
+      rules = [{
+        apiGroups = [ "" ];
+        resources = [ "namespaces" "pods" "nodes" ];
+        verbs = [ "get" "list" "watch" ];
+      }];
+    };
+
+    none.ClusterRoleBinding.prometheus-adapter-auth-delegator = {
+      metadata.name = "prometheus-adapter:system:auth-delegator";
+      roleRef = {
+        apiGroup = "rbac.authorization.k8s.io";
+        kind = "ClusterRole";
+        name = "system:auth-delegator";
+      };
+      subjects = [{
+        kind = "ServiceAccount";
+        name = "prometheus-adapter";
+        namespace = "custom-metrics";
+      }];
+    };
+
+    none.ClusterRoleBinding.prometheus-adapter-resource-reader = {
+      roleRef = {
+        apiGroup = "rbac.authorization.k8s.io";
+        kind = "ClusterRole";
+        name = "prometheus-adapter-server-resources";
+      };
+      subjects = [{
+        kind = "ServiceAccount";
+        name = "prometheus-adapter";
+        namespace = "custom-metrics";
+      }];
+    };
+
+    kube-system.RoleBinding.prometheus-adapter-auth-reader = {
+      metadata.name = "prometheus-adapter-auth-reader";
+      roleRef = {
+        apiGroup = "rbac.authorization.k8s.io";
+        kind = "Role";
+        name = "extension-apiserver-authentication-reader";
+      };
+      subjects = [{
+        kind = "ServiceAccount";
+        name = "prometheus-adapter";
+        namespace = "custom-metrics";
+      }];
+    };
+
+    # Source: prometheus-adapter-config.yaml
+    custom-metrics.ConfigMap.prometheus-adapter-config.data."config.yaml" = ''
+      resourceRules:
+        cpu:
+          container: true
+          containerQuery: |
+            sum by (container) (
+              rate(container_cpu_usage_seconds_total{container!="", container!="POD"}[5m])
+            )
+          nodeQuery: |
+            sum by (node) (
+              rate(node_cpu_seconds_total{mode!="idle"}[5m])
+            )
+          resources:
+            overrides:
+              node:
+                resource: cpu
+              namespace:
+                resource: cpu
+              pod:
+                resource: cpu
+        memory:
+          container: true
+          containerQuery: |
+            sum by (container) (
+              container_memory_working_set_bytes{container!="", container!="POD"}
+            )
+          nodeQuery: |
+            sum by (node) (
+              node_memory_MemAvailable_bytes
+            )
+          resources:
+            overrides:
+              node:
+                resource: memory
+              namespace:
+                resource: memory
+              pod:
+                resource: memory
+        window: 5m
+    '';
+
+    # Source: prometheus-adapter-deployment.yaml
+    custom-metrics.Deployment.prometheus-adapter = {
+      metadata.labels.name = "prometheus-adapter";
+      spec = {
+        replicas = 1;
+        selector.matchLabels.name = "prometheus-adapter";
+        template = {
+          metadata.labels.name = "prometheus-adapter";
+          spec = {
+            serviceAccountName = "prometheus-adapter";
+            containers = {
+              _namedlist = true;
+              prometheus-adapter = {
+                image = "registry.k8s.io/prometheus-adapter/prometheus-adapter:v0.12.0";
+                imagePullPolicy = "IfNotPresent";
+                args = [
+                  "--prometheus-url=http://prometheus.monitoring.svc:9090/"
+                  "--metrics-relist-interval=1m"
+                  "--v=4"
+                  "--config=/etc/adapter/config.yaml"
+                ];
+                ports = [{ containerPort = 443; name = "https"; protocol = "TCP"; }];
+                volumeMounts = {
+                  _namedlist = true;
+                  config = { mountPath = "/etc/adapter/"; readOnly = true; };
+                };
+                livenessProbe = {
+                  httpGet = { path = "/healthz"; port = "https"; scheme = "HTTPS"; };
+                  initialDelaySeconds = 30;
+                };
+                readinessProbe = {
+                  httpGet = { path = "/healthz"; port = "https"; scheme = "HTTPS"; };
+                  initialDelaySeconds = 30;
+                };
+                securityContext.runAsUser = 0;
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              config.configMap.name = "prometheus-adapter-config";
+            };
+          };
+        };
+      };
+    };
+
+    custom-metrics.Service.prometheus-adapter = {
+      metadata.labels.name = "prometheus-adapter";
+      spec = {
+        ports = [{ name = "https"; port = 443; targetPort = "https"; }];
+        selector.name = "prometheus-adapter";
+      };
+    };
+
+    # APIServices for prometheus-adapter
+    none.APIService.v1beta1-custom-metrics-k8s-io = {
+      metadata.name = "v1beta1.custom.metrics.k8s.io";
+      spec = {
+        service = { name = "prometheus-adapter"; namespace = "custom-metrics"; };
+        group = "custom.metrics.k8s.io";
+        version = "v1beta1";
+        insecureSkipTLSVerify = true;
+        groupPriorityMinimum = 100;
+        versionPriority = 100;
+      };
+    };
+
+    none.APIService.v1beta2-custom-metrics-k8s-io = {
+      metadata.name = "v1beta2.custom.metrics.k8s.io";
+      spec = {
+        service = { name = "prometheus-adapter"; namespace = "custom-metrics"; };
+        group = "custom.metrics.k8s.io";
+        version = "v1beta2";
+        insecureSkipTLSVerify = true;
+        groupPriorityMinimum = 100;
+        versionPriority = 100;
+      };
+    };
   };
 }

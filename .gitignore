@@ -54,3 +54,4 @@ Updated API key file
 .pipeline-guard-disable
 .sisyphus/
 territory_map.json
+/kubernetes/modules/monitoring.nix.bak
