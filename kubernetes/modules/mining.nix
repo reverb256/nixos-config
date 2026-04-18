@@ -745,5 +745,220 @@ in
         ];
       };
     };
+
+    # --- LimitRange for mining namespace ---
+    mining.LimitRange.mining-limits = {
+      metadata.labels.app = "gpu-scheduler";
+      spec.limits = [
+        {
+          default = {
+            cpu = "2";
+            memory = "4Gi";
+          };
+          defaultRequest = {
+            cpu = "100m";
+            memory = "100Mi";
+          };
+          max = {
+            cpu = "8";
+            memory = "16Gi";
+          };
+          type = "Container";
+        }
+      ];
+    };
+
+    # --- ResourceQuota for mining namespace ---
+    mining.ResourceQuota.mining-quota = {
+      metadata.labels.app = "mining";
+      spec.hard = {
+        "requests.cpu" = "25";
+        "limits.cpu" = "50";
+        "requests.memory" = "50Gi";
+        "limits.memory" = "100Gi";
+        "requests.nvidia.com/gpu" = "5";
+        "limits.nvidia.com/gpu" = "5";
+        "count/pods" = "50";
+        "count/deployments.apps" = "20";
+      };
+    };
+
+    # --- PriorityClasses for mining workloads ---
+    none.PriorityClass.mining-low = {
+      value = -10;
+      preemptionPolicy = "PreemptLowerPriority";
+      globalDefault = false;
+      description =
+        "Low priority for crypto mining workloads"
+        + " - preempted by AI inference and other higher-priority workloads";
+    };
+    none.PriorityClass.preemptible-mining = {
+      value = -20;
+      preemptionPolicy = "PreemptLowerPriority";
+      globalDefault = false;
+      description =
+        "Preemptible priority for mining"
+        + " - evicted by any higher priority workload";
+    };
+
+    # --- PodDisruptionBudget for xmrig-proxy ---
+    mining.PodDisruptionBudget.xmrig-proxy-pdb = {
+      metadata.labels.app = "xmrig-proxy";
+      spec = {
+        maxUnavailable = 1;
+        selector.matchLabels.app = "xmrig-proxy";
+      };
+    };
+
+    # --- OpenCL ICD ConfigMap for AMD GPUs ---
+    mining.ConfigMap.opencl-icd-vendors = {
+      data."amdocl64.icd" =
+        "/nix/store/2qfd7pvbwjhzx112x5w161q063z3qfyx-clr-7.2.0/lib/libamdocl64.so\n";
+    };
+
+    # --- XMRig CPU Miner - sentry (8 cores, 8 threads = 50%) ---
+    mining.Deployment.xmrig-sentry = {
+      metadata.labels = {
+        app = "xmrig-sentry";
+        host = "sentry";
+        workload = "crypto-mining";
+      };
+      spec = {
+        replicas = 1;
+        revisionHistoryLimit = 2;
+        selector.matchLabels.app = "xmrig-sentry";
+        strategy.type = "Recreate";
+        template = {
+          metadata = {
+            labels = {
+              app = "xmrig-sentry";
+              host = "sentry";
+              workload = "crypto-mining";
+            };
+            annotations = {
+              "prometheus.io/scrape" = "true";
+              "prometheus.io/port" = "8082";
+              "prometheus.io/path" = "/1/summary";
+            };
+          };
+          spec = {
+            nodeName = "sentry";
+            serviceAccountName = "gpu-miner-sa";
+            automountServiceAccountToken = false;
+            priorityClassName = "mining-low";
+            hostNetwork = true;
+            hostIPC = true;
+            hostPID = true;
+            dnsPolicy = "ClusterFirstWithHostNet";
+            tolerations = [
+              {
+                key = "node-role.kubernetes.io/control-plane";
+                operator = "Exists";
+                effect = "NoSchedule";
+              }
+            ];
+            containers = {
+              _namedlist = true;
+              xmrig = {
+                image = "docker.io/library/xmrig-alpine:6.25.0";
+                imagePullPolicy = "Never";
+                args = [
+                  "-o"
+                  "10.1.1.120:3333"
+                  "-u"
+                  "sentry-cpu"
+                  "--tls=false"
+                  "--threads=8"
+                  "--donate-level=1"
+                  "--http-enabled"
+                  "--http-host=0.0.0.0"
+                  "--http-port=8082"
+                ];
+                ports = [
+                  {
+                    containerPort = 8082;
+                    name = "api";
+                    protocol = "TCP";
+                  }
+                ];
+                resources = {
+                  requests = {
+                    memory = "2Gi";
+                    cpu = "4";
+                  };
+                  limits = {
+                    memory = "4Gi";
+                    cpu = "8";
+                  };
+                };
+                securityContext.privileged = true;
+                volumeMounts = {
+                  _namedlist = true;
+                  msr = {
+                    mountPath = "/dev/cpu";
+                    mountPropagation = "HostToContainer";
+                  };
+                  hugepages = {
+                    mountPath = "/dev/hugepages";
+                    mountPropagation = "HostToContainer";
+                  };
+                  sys-module-msr = {
+                    mountPath = "/sys/module/msr";
+                    mountPropagation = "HostToContainer";
+                  };
+                  tmp = {
+                    mountPath = "/tmp";
+                  };
+                };
+                livenessProbe = {
+                  httpGet = {
+                    path = "/1/summary";
+                    port = 8082;
+                  };
+                  initialDelaySeconds = 30;
+                  periodSeconds = 30;
+                  timeoutSeconds = 5;
+                  failureThreshold = 3;
+                };
+                readinessProbe = {
+                  httpGet = {
+                    path = "/1/summary";
+                    port = 8082;
+                  };
+                  initialDelaySeconds = 10;
+                  periodSeconds = 10;
+                  timeoutSeconds = 5;
+                  failureThreshold = 3;
+                };
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              msr = {
+                hostPath = {
+                  path = "/dev/cpu";
+                  type = "Directory";
+                };
+              };
+              hugepages = {
+                hostPath = {
+                  path = "/dev/hugepages";
+                  type = "Directory";
+                };
+              };
+              sys-module-msr = {
+                hostPath = {
+                  path = "/sys/module/msr";
+                  type = "Directory";
+                };
+              };
+              tmp = {
+                emptyDir = { };
+              };
+            };
+          };
+        };
+      };
+    };
   };
 }
