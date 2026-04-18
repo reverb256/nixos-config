@@ -12,6 +12,7 @@ in {
       { argv = [ "uwsm" "app" "-s" "s" "--" "noctalia-shell" ]; }
       { argv = [ "uwsm" "app" "-s" "b" "--" "${pkgs.wl-clipboard}/bin/wl-paste" "--type" "text" "--watch" "${pkgs.cliphist}/bin/cliphist" "store" ]; }
       { argv = [ "uwsm" "app" "-s" "b" "--" "${pkgs.wl-clipboard}/bin/wl-paste" "--type" "image" "--watch" "${pkgs.cliphist}/bin/cliphist" "store" ]; }
+      { argv = [ "uwsm" "app" "-s" "b" "--" "ckb-next" "-b" ]; }
     ];
 
     cursor = {
@@ -159,12 +160,17 @@ in {
       "Mod+Alt+Comma".action = spawn-sh "qs ipc -c noctalia-shell --any-display call notifications toggleHistory";
       "Mod+Alt+Shift+Comma".action = spawn-sh "qs ipc -c noctalia-shell --any-display call notifications invokeDefault";
 
-      "Print".action = spawn-sh ''FILE="$HOME/Pictures/Screenshots/screenshot-$(date +%Y-%m-%d_%H-%M-%S).png" && mkdir -p "$(dirname "$FILE")" && ${pkgs.grim}/bin/grim -g "$(${pkgs.slurp}/bin/slurp)" "$FILE" && ${pkgs.wl-clipboard}/bin/wl-copy < "$FILE" && ${pkgs.satty}/bin/satty --filename "$FILE" --output-filename "$FILE" --actions-on-enter save-to-clipboard --save-after-copy --copy-command 'wl-copy' &'';
-      "Mod+Print".action = spawn "niri" "msg" "action" "pick-color";
-      "Mod+Shift+Print".action = spawn-sh "${pkgs.grim}/bin/grim - | ${pkgs.wl-clipboard}/bin/wl-copy";
-      "Mod+Alt+Print".action = spawn "niri" "msg" "action" "screenshot-window";
+
+      # Screenshots (smart region, window, fullscreen, color)
+      "Print" = { action.spawn = [ "screenshot" "region" ]; };
+      "Mod+Print" = { action.spawn = [ "screenshot" "color" ]; };
+      "Mod+Shift+Print" = { action.spawn = [ "screenshot" "fullscreen" ]; };
+      "Mod+Alt+Print" = { action.spawn = [ "screenshot" "window" ]; };
       "Mod+Ctrl+Shift+Print".action = spawn "niri" "msg" "action" "screenshot-screen";
-      "Alt+Print".action = spawn "uwsm" "app" "--" "wf-recorder";
+
+      # Screen recording (toggle: run to start, run again to stop)
+      "Alt+Print" = { action.spawn = [ "screenrecord" ]; };
+      "Mod+Alt+Shift+Print" = { action.spawn = [ "screenrecord" "desktop" ]; };
 
       "Mod+Q".action = close-window;
       "Alt+Tab".action = focus-window-previous;
@@ -265,6 +271,9 @@ in {
     };
 
     window-rules = [
+      # ═══════════════════════════════════════════════════════════════
+      # FLOATING — system dialogs, auth, file pickers, overlays
+      # ═══════════════════════════════════════════════════════════════
       {
         matches = [
           { app-id = "pavucontrol"; }
@@ -272,21 +281,68 @@ in {
           { app-id = "blueman-manager"; }
           { app-id = "gnome-calculator"; }
           { app-id = "gnome-control-center"; }
+          { app-id = "org.kde.kinfocenter"; }
           { app-id = "file-roller"; }
-          { title = "File Transfer*"; }
-          { title = "Copy*"; }
-          { title = "Passwords.*"; }
+          { app-id = "org.kde.ark"; }
           { app-id = "pinentry-"; }
+          { title = "File Transfer*"; }
+          { title = "Authentication*"; }
         ];
         open-floating = true;
       }
+      # Polkit auth agent
+      {
+        matches = [
+          { app-id = "org.kde.polkit-kde-authentication-agent-1"; }
+          { title = ".*Authentication Required.*"; }
+        ];
+        open-floating = true;
+      }
+      # GTK/Qt file chooser dialogs from any app
+      {
+        matches = [
+          { title = "Open (.*Files?|Folder).*"; }
+          { title = "Save (.*Files?|As).*"; }
+          { title = "Select.*"; }
+          { title = "Choose.*"; }
+          { title = "Rename.*"; }
+          { title = "Properties.*"; }
+          { app-id = "org.kde.dolphin"; title = "Open.*"; }
+          { app-id = "org.kde.dolphin"; title = "Save.*"; }
+          { app-id = "org.kde.dolphin"; title = "Copy.*"; }
+          { app-id = "org.kde.dolphin"; title = "Move.*"; }
+          { app-id = "org.kde.dolphin"; title = "Delete.*"; }
+          { app-id = "org.gtk.FileChooserDialog"; }
+          { app-id = "xdg-desktop-portal-gtk"; }
+        ];
+        open-floating = true;
+        default-column-width = { fixed = 900; };
+        default-window-height = { fixed = 600; };
+      }
+      # Screen share picker
+      {
+        matches = [ { title = "Choose what to share"; } ];
+        open-floating = true;
+      }
+      # Picture-in-Picture overlays — float, pin top-left
       {
         matches = [ { title = "Picture-in-Picture"; } ];
         open-floating = true;
-        default-floating-position = { x = 0; y = 0; relative-to = "top-left"; };
+        default-floating-position = { x = 10; y = 10; relative-to = "top-left"; };
         default-column-width = { fixed = 400; };
         default-window-height = { fixed = 225; };
       }
+      # Steam notification toasts — position top-right
+      {
+        matches = [ { app-id = "steam"; title = "notificationtoasts_.*_desktop"; } ];
+        open-floating = true;
+        default-floating-position = { x = 10; y = 10; relative-to = "top-right"; };
+      }
+
+      # ═══════════════════════════════════════════════════════════════
+      # TILING WIDTHS — per-app column proportions
+      # ═══════════════════════════════════════════════════════════════
+      # Browsers — full width
       {
         matches = [
           { app-id = "firefox"; }
@@ -297,6 +353,7 @@ in {
         ];
         default-column-width = { proportion = 1.0; };
       }
+      # Terminals — half width
       {
         matches = [
           { app-id = "Alacritty"; }
@@ -307,26 +364,89 @@ in {
         ];
         default-column-width = { proportion = 0.5; };
       }
+      # IDEs and editors — 70%
       {
         matches = [
           { app-id = "code"; }
           { app-id = "code-url-handler"; }
           { app-id = "jetbrains-"; }
           { app-id = "emacs"; }
+          { app-id = "obsidian"; }
         ];
         default-column-width = { proportion = 0.7; };
       }
-      # Game launchers that should float
+      # Chat/messaging — 50% (compact, chat doesn't need width)
       {
         matches = [
+          { app-id = "vesktop"; }
+          { app-id = "caprine"; }
+          { app-id = "telegram.desktop"; }
+          { app-id = "org.telegram.desktop"; }
+          { app-id = "Signal"; }
+          { app-id = "discord"; }
+        ];
+        default-column-width = { proportion = 0.5; };
+      }
+      # Media players — 65%
+      {
+        matches = [
+          { app-id = "spotify"; }
+          { app-id = "mpv"; }
+          { app-id = "vlc"; }
+          { app-id = "org.kde.audiotube"; }
+        ];
+        default-column-width = { proportion = 0.65; };
+      }
+      # System monitors — 40% (narrow, data-dense)
+      {
+        matches = [
+          { app-id = "org.kde.systemmonitor"; }
+        ];
+        default-column-width = { proportion = 0.4; };
+      }
+
+      # ═══════════════════════════════════════════════════════════════
+      # PRIVACY — block screen capture for sensitive windows
+      # ═══════════════════════════════════════════════════════════════
+      {
+        matches = [
+          { app-id = "bitwarden"; }
+          { app-id = "Bitwarden"; }
+          { app-id = "keepassxc"; }
+          { app-id = "1password"; }
+          { title = ".*Password.*"; }
+          { title = ".*Secret.*"; }
+        ];
+        block-out-from = "screen-capture";
+      }
+
+      # ═══════════════════════════════════════════════════════════════
+      # GAMING — route to TV (HDMI-A-2), fullscreen
+      # ═══════════════════════════════════════════════════════════════
+      {
+        matches = [ { app-id = ".*GenshinImpact.*"; } ];
+        open-on-output = "HDMI-A-2";
+        open-fullscreen = true;
+      }
+      {
+        matches = [ { app-id = "steam"; title = "Steam$"; } ];
+        open-on-output = "HDMI-A-2";
+        open-fullscreen = true;
+      }
+      {
+        matches = [
+          { app-id = "moe.launcher.an-anime-game-launcher"; }
+          { app-id = "moe.launcher.the-honkers-railway-launcher"; }
           { app-id = "lutris"; }
           { app-id = "heroic"; }
           { app-id = "minecraft"; }
           { app-id = "prism-launcher"; }
+          { app-id = "com.libretro.RetroArch"; }
+          { app-id = "com.moonlight_stream.Moonlight"; }
         ];
-        open-floating = true;
+        open-on-output = "HDMI-A-2";
       }
-      # Steam popup dialogs (settings, friends, properties, etc.)
+      # Steam popup dialogs — tile normally on TV (settings, friends, etc.)
       {
         matches = [
           { app-id = "steam"; title = "Settings"; }
@@ -342,34 +462,7 @@ in {
           { app-id = "steam"; title = "Create or select*"; }
           { app-id = "steam"; title = "Select*"; }
         ];
-        open-floating = true;
-      }
-      # Steam notification toasts -- position top-right to match noctalia-shell
-      {
-        matches = [
-          { app-id = "steam"; title = "notificationtoasts_.*_desktop"; }
-        ];
-        open-floating = true;
-        default-floating-position = { x = 10; y = 10; relative-to = "top-right"; };
-      }
-      {
-        matches = [ { title = "Choose what to share"; } ];
-        open-floating = true;
-      }
-      {
-        matches = [
-          { app-id = "bitwarden"; }
-          { app-id = "keepassxc"; }
-          { app-id = "1password"; }
-          { title = ".*Password.*"; }
-          { title = ".*Secret.*"; }
-        ];
-        block-out-from = "screen-capture";
-      }
-      {
-        matches = [ { app-id = ".*GenshinImpact.*"; } ];
-        open-on-output = "HDMI-A-2";
-        open-fullscreen = true;
+        open-maximized = true;
       }
     ];
 

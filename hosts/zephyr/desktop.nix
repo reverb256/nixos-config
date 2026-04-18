@@ -1,6 +1,6 @@
 { pkgs, lib, ... }:
 {
-  desktop.plasma6.enable = false;
+  
 
   desktop.uwsm-sessions.enable = true;
   programs.niri.enable = true;

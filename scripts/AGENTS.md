@@ -1,6 +1,6 @@
 # Scripts - Agent Context
 
-**Parent:** `../AGENTS.md` | **Domain:** Utility scripts
+**Parent:** `../AGENTS.md` | **Domain:** Utility scripts (101 files)
 
 ## Overview
 Utility scripts for cluster operations, GPU management, and deployment workflows.
@@ -24,6 +24,8 @@ scripts/
 | Deploy helpers | `deployment/` |
 | System health | `maintenance/` |
 | Backup scripts | `backup/` |
+| Pre-deploy checks | `pre-deploy-check.sh` |
+| CI test wrapper | `test-ci-cd-wrapper.sh` |
 
 ## Anti-Patterns (THIS DIRECTORY)
 
@@ -53,11 +55,3 @@ log "Starting..."
 - Check dependencies early: `command -v jq >/dev/null || die "jq required"`
 - Use `trap 'cleanup' EXIT` for cleanup
 - Exit codes: 0=success, 1=error, 2=usage
-
-## GPU Scripts
-
-Located in `gpu-profiles/`:
-- Fan curves for different workloads
-- Power limit adjustments
-- Temperature monitoring
-- OC profiles for mining vs AI

@@ -580,19 +580,6 @@
 
 
   programs = {
-    mining-plasmoid = {
-      enable = true;
-      prometheusUrl = "http://127.0.0.1:9090";
-      refreshInterval = 10000;
-      clusterNodes = "zephyr,nexus,forge,sentry";
-    };
-
-    systems-intelligence-plasmoid = {
-      enable = true;
-      prometheusUrl = "http://127.0.0.1:9090";
-      refreshInterval = 5000;
-      clusterNodes = "zephyr,nexus,forge,sentry";
-    };
 
     lm-studio.enable = true;
     haven-desktop.enable = true;
