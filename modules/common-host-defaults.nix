@@ -32,11 +32,11 @@
 
     displayManager = {
       sddm = {
-        enable = lib.mkDefault true;
-        wayland.enable = lib.mkDefault true;
+        enable = lib.mkOverride 1499 false;
+        wayland.enable = lib.mkOverride 1499 false;
       };
       autoLogin = {
-        enable = lib.mkDefault true;
+        enable = lib.mkOverride 1499 false;
         user = lib.mkDefault "j_kro";
       };
     };
@@ -61,9 +61,9 @@
     mining-coordinator.enable = lib.mkDefault false;
   };
 
-  hardware.gpu-compute.enable = lib.mkDefault true;
-  hardware.gpu-compute.vulkan.enable = lib.mkDefault true;
-  hardware.gpu-compute.cuda.enable = lib.mkDefault true;
+  hardware.gpu-compute.enable = lib.mkDefault false;
+  hardware.gpu-compute.vulkan.enable = lib.mkDefault false;
+  hardware.gpu-compute.cuda.enable = lib.mkDefault false;
 
   nix.settings = {
     trusted-users = ["j_kro"];

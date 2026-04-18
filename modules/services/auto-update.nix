@@ -23,6 +23,7 @@ let
       pkgs.gzip
       pkgs.jq
       pkgs.nix
+      pkgs.kubectl
     ]}
 
     # Find flake path
@@ -89,7 +90,10 @@ let
 
     # --- Optional reboot ---
     if [ "${toString cfg.allowReboot}" = "true" ]; then
-      echo "$(date): Update applied, rebooting..."
+      echo "$(date): Update applied, draining k3s node before reboot..."
+      if command -v kubectl &>/dev/null; then
+        kubectl drain $(hostname -s) --ignore-daemonsets --delete-emptydir-data --timeout=60s 2>/dev/null || true
+      fi
       reboot
     fi
 

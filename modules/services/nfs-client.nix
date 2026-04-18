@@ -27,8 +27,6 @@ in {
 
     services.rpcbind.enable = true;
 
-    system.activationScripts.nfs-mounts = lib.stringAfter ["var"] ''
-    '';
 
     fileSystems = lib.mkMerge [
       (lib.mkIf cfg.mountShared {

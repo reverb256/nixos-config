@@ -3,16 +3,17 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.services.vaultwarden-module;
-  inherit
-    (lib)
+  inherit (lib)
     mkEnableOption
     mkOption
     types
     mkIf
     ;
-in {
+in
+{
   options.services.vaultwarden-module = {
     enable = mkEnableOption "Vaultwarden - Self-hosted password manager with FIDO2";
 
@@ -50,9 +51,15 @@ in {
 
     systemd.services.vaultwarden = {
       description = "Vaultwarden Password Manager";
-      after = ["network-online.target" "podman.service"];
-      wants = ["podman.service" "network-online.target"];
-      wantedBy = ["multi-user.target"];
+      after = [
+        "network-online.target"
+        "podman.service"
+      ];
+      wants = [
+        "podman.service"
+        "network-online.target"
+      ];
+      wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
         ExecStart = ''
@@ -61,6 +68,8 @@ in {
             -v ${cfg.dataDir}:/data:Z \
             -e WEBSOCKET_ENABLED=true \
             -e WEBSOCKET_ADDRESS=0.0.0.0 \
+            -e DOMAIN=https://${cfg.hostName} \
+            -e ADMIN_TOKEN_FILE=${config.age.secrets.vaultwarden-admin-token.path} \
             -e LOG_LEVEL=info \
             --replace \
             docker.io/vaultwarden/server:1.35.4
@@ -95,8 +104,8 @@ in {
       reverseProxy = "localhost:${toString cfg.port}";
     };
 
-    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [cfg.port];
+    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [ cfg.port ];
 
-    environment.systemPackages = with pkgs; [vaultwarden];
+    environment.systemPackages = with pkgs; [ vaultwarden ];
   };
 }

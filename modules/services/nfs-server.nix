@@ -14,21 +14,21 @@ in
     ];
 
     services.nfs.server.exports = ''
-      /data/shared 10.1.1.0/24(rw,sync,no_subtree_check,crossmnt,no_root_squash,fsid=100)
+      /data/shared 10.1.1.0/24(rw,sync,no_subtree_check,crossmnt,root_squash,anonuid=1000,anongid=100,fsid=100)
 
-      /data/home 10.1.1.0/24(rw,sync,no_subtree_check,crossmnt,no_root_squash,fsid=101)
+      /data/home 10.1.1.0/24(rw,sync,no_subtree_check,crossmnt,root_squash,anonuid=1000,anongid=100,fsid=101)
 
       /data/media 10.1.1.0/24(ro,sync,no_subtree_check,crossmnt,fsid=102)
 
       /data/backups 10.1.1.0/24(ro,sync,no_subtree_check,crossmnt,fsid=103)
 
-      /mnt/garage/hermes 10.1.1.0/24(rw,sync,no_subtree_check,no_root_squash,fsid=104)
+      /mnt/garage/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=104)
 
-      /data/hermes 10.1.1.0/24(rw,sync,no_subtree_check,no_root_squash,fsid=105)
+      /data/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=105)
 
-      /data/pi 10.1.1.0/24(rw,sync,no_subtree_check,no_root_squash,fsid=106)
+      /data/pi 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=106)
 
-      /data/qdrant 10.1.1.0/24(rw,sync,no_subtree_check,no_root_squash,fsid=107)
+      /data/qdrant 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=107)
     '';
 
     services.nfs.settings = {

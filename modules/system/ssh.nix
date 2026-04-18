@@ -127,7 +127,7 @@ in
         User j_kro
         IdentityFile ~/.ssh/id_ed25519
         IdentitiesOnly yes
-        StrictHostKeyChecking accept-new
+        StrictHostKeyChecking yes
         ConnectTimeout 5
 
       Host zephyr ${hosts.zephyr.ip} ${hosts.zephyr.tailscale}

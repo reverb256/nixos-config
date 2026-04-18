@@ -1,22 +1,20 @@
 {
   config,
   lib,
-  pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.k3s-cluster.enable or false;
 in
 {
-  systemd.services.k3s = lib.mkIf cfg {
-    serviceConfig.OOMPolicy = lib.mkForce "continue";
+  systemd.services = lib.mkIf cfg {
+    k3s.serviceConfig.OOMPolicy = lib.mkForce "continue";
+
+    sshd.serviceConfig.OOMPolicy = lib.mkForce "continue";
+
+    NetworkManager.serviceConfig.OOMPolicy = lib.mkForce "continue";
+
+    systemd-logind.serviceConfig.OOMPolicy = lib.mkForce "continue";
+
+    systemd-journald.serviceConfig.OOMPolicy = lib.mkForce "continue";
   };
-
-  systemd.services.sshd.serviceConfig.OOMPolicy = lib.mkForce "continue";
-
-  systemd.services.NetworkManager.serviceConfig.OOMPolicy = lib.mkForce "continue";
-
-  systemd.services.systemd-logind.serviceConfig.OOMPolicy = lib.mkForce "continue";
-
-  systemd.services.systemd-journald.serviceConfig.OOMPolicy = lib.mkForce "continue";
 }

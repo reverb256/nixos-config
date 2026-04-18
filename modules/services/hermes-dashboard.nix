@@ -26,7 +26,14 @@ let
     web-dist = hermes-web-dist;
   };
 
-in {
+  # Nix-managed Python with fastapi + uvicorn for the dashboard
+  dashboard-python = pkgs.python311.withPackages (p: [
+    p.fastapi
+    p.uvicorn
+  ]);
+
+in
+{
   options.services.hermes-dashboard = {
     enable = lib.mkEnableOption "Hermes Agent web dashboard";
 
@@ -38,13 +45,13 @@ in {
 
     host = lib.mkOption {
       type = lib.types.str;
-      default = "0.0.0.0";
+      default = "127.0.0.1";
       description = "Host to bind the dashboard to.";
     };
 
     openFirewall = lib.mkOption {
       type = lib.types.bool;
-      default = true;
+      default = false;
       description = "Open the dashboard port in the firewall.";
     };
   };
@@ -53,23 +60,14 @@ in {
     # Require the gateway to be enabled too
     services.hermes-agent.enable = lib.mkDefault true;
 
-    # Activation: pip install fastapi into a dedicated venv
-    system.activationScripts."hermes-dashboard-setup" = lib.stringAfter [ "hermes-agent-setup" ] ''
-      DASHBOARD_VENV="${hermesCfg.stateDir}/.hermes/dashboard-venv"
-      if [ ! -d "$DASHBOARD_VENV" ]; then
-        echo "Creating dashboard venv with fastapi..."
-        ${pkgs.python311}/bin/python3.11 -m venv "$DASHBOARD_VENV" 2>/dev/null || true
-        chown -R ${hermesCfg.user}:${hermesCfg.group} "$DASHBOARD_VENV" 2>/dev/null || true
-        sudo -u ${hermesCfg.user} "$DASHBOARD_VENV/bin/pip" install --quiet \
-          'fastapi>=0.104.0,<1' 'uvicorn[standard]>=0.24.0,<1' 2>/dev/null || true
-      fi
-    '';
-
     # Dashboard systemd service
     systemd.services.hermes-dashboard = {
       description = "Hermes Agent Web Dashboard";
       wantedBy = [ "multi-user.target" ];
-      after = [ "network-online.target" "hermes-agent.service" ];
+      after = [
+        "network-online.target"
+        "hermes-agent.service"
+      ];
       wants = [ "network-online.target" ];
       requires = [ "hermes-agent.service" ];
 
@@ -77,12 +75,13 @@ in {
         HOME = hermesCfg.stateDir;
         HERMES_HOME = "${hermesCfg.stateDir}/.hermes";
         HERMES_MANAGED = "true";
-        # Add dashboard venv for fastapi
-        PYTHONPATH = "${hermesCfg.stateDir}/.hermes/dashboard-venv/lib/python3.11/site-packages";
+        # Use Nix-managed Python packages
+        PYTHONPATH = "${dashboard-python}/${dashboard-python.sitePackages}";
       };
 
       path = [
         hermes-with-web
+        dashboard-python
         pkgs.nodejs_20
         pkgs.bash
         pkgs.coreutils
@@ -94,7 +93,7 @@ in {
         WorkingDirectory = hermesCfg.workingDirectory;
 
         # Use the wrapper package which has web_dist injected
-        ExecStart = "${hermes-with-web}/bin/hermes dashboard --host ${cfg.host} --port ${toString cfg.port} --insecure --no-open";
+        ExecStart = "${lib.getExe hermes-with-web} dashboard --host ${cfg.host} --port ${toString cfg.port} --insecure --no-open";
 
         Restart = "always";
         RestartSec = 5;

@@ -3,7 +3,8 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.services.backup-to-garage;
   backupScript = pkgs.writeShellScriptBin "backup-to-garage" ''
 
@@ -11,7 +12,6 @@
 
         GARAGE_ENDPOINT="''${GARAGE_ENDPOINT:-http://10.1.1.110:3900}"
         GARAGE_REGION="''${GARAGE_REGION:-garage}"
-        GARAGE_ACCESS_KEY="''${GARAGE_ACCESS_KEY:-GKac91d924fc76a30b9bcf6c3e}"
         GARAGE_SECRET_KEY="''${GARAGE_SECRET_KEY:-}"
         BACKUP_BUCKET="''${BACKUP_BUCKET:-backups}"
         BACKUP_DATE="$(date +%Y%m%d-%H%M%S)"
@@ -49,6 +49,8 @@
             exit 1
         fi
 
+        # Read access key from agenix secret
+        GARAGE_ACCESS_KEY="$(cat ${config.age.secrets.garage-s3-access-key-id.path})"
         export AWS_ACCESS_KEY_ID="$GARAGE_ACCESS_KEY"
         export AWS_SECRET_ACCESS_KEY="$GARAGE_SECRET_KEY"
         export AWS_DEFAULT_REGION="$GARAGE_REGION"
@@ -124,7 +126,8 @@
 
         log_success "Backup completed successfully"
   '';
-in {
+in
+{
   options.services.backup-to-garage = {
     enable = lib.mkEnableOption "Automated backups to Garage S3";
 
@@ -144,12 +147,6 @@ in {
       type = lib.types.str;
       default = "backups";
       description = "Garage S3 bucket for backups";
-    };
-
-    accessKey = lib.mkOption {
-      type = lib.types.str;
-      default = "GKac91d924fc76a30b9bcf6c3e";
-      description = "Garage S3 access key ID";
     };
 
     secretKeyFile = lib.mkOption {
@@ -172,7 +169,10 @@ in {
 
     backupPaths = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = ["/etc/nixos" "/data/shared"];
+      default = [
+        "/etc/nixos"
+        "/data/shared"
+      ];
       description = "Paths to include in backups";
     };
   };
@@ -184,39 +184,47 @@ in {
       backupScript
     ];
 
-    environment.etc."backup-to-garage/credentials".text = ''
-      GARAGE_ENDPOINT=${cfg.endpoint}
-      GARAGE_REGION=${cfg.region}
-      GARAGE_ACCESS_KEY=${cfg.accessKey}
-      BACKUP_BUCKET=${cfg.bucket}
-      RETENTION_DAYS=${toString cfg.retentionDays}
-    '';
+    # Credentials file for non-secret config values; access key and secret key
+    # are read from agenix secrets at runtime.
+    environment.etc."backup-to-garage/credentials" = {
+      text = ''
+        GARAGE_ENDPOINT=${cfg.endpoint}
+        GARAGE_REGION=${cfg.region}
+        BACKUP_BUCKET=${cfg.bucket}
+        RETENTION_DAYS=${toString cfg.retentionDays}
+      '';
+      mode = "0600";
+    };
 
     systemd.services.backup-to-garage = {
       description = "Backup to Garage S3";
-      after = ["network-online.target" "garage.service"];
-      wants = ["network-online.target"];
+      after = [
+        "network-online.target"
+        "garage.service"
+      ];
+      wants = [ "network-online.target" ];
 
       serviceConfig = {
         Type = "oneshot";
         Environment = "PATH=/run/current-system/sw/bin:/run/wrappers/bin";
         ExecStart =
-          if cfg.secretKeyFile != null
-          then "${pkgs.bash}/bin/bash -c 'source /etc/backup-to-garage/credentials && export GARAGE_SECRET_KEY=$(cat ${cfg.secretKeyFile}) && exec ${backupScript}/bin/backup-to-garage'"
-          else "${backupScript}/bin/backup-to-garage";
+          if cfg.secretKeyFile != null then
+            "${pkgs.bash}/bin/bash -c 'source /etc/backup-to-garage/credentials && export GARAGE_SECRET_KEY=$(cat ${cfg.secretKeyFile}) && exec ${backupScript}/bin/backup-to-garage'"
+          else
+            "${backupScript}/bin/backup-to-garage";
         EnvironmentFile = "/etc/backup-to-garage/credentials";
         User = "root";
         Group = "root";
         PrivateTmp = true;
         NoNewPrivileges = true;
         ReadOnlyPaths = cfg.backupPaths;
-        ReadWritePaths = ["/tmp"];
+        ReadWritePaths = [ "/tmp" ];
       };
     };
 
     systemd.timers.backup-to-garage = {
       description = "Daily backup to Garage S3";
-      wantedBy = ["timers.target"];
+      wantedBy = [ "timers.target" ];
       timerConfig = {
         OnCalendar = cfg.startAt;
         Persistent = true;

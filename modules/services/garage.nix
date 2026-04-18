@@ -3,10 +3,48 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.services.garage-cluster;
   hostIp = config.networking.cluster.hosts.${config.networking.hostName}.ip or "127.0.0.1";
-in {
+
+  # Template with placeholders that sed will replace at runtime
+  garageConfigTemplate = pkgs.writeText "garage.toml.tpl" ''
+    replication_factor = ${toString cfg.replicationFactor}
+    consistency_mode = "${cfg.consistencyMode}"
+
+    metadata_dir = "${cfg.dataDir}/meta"
+    data_dir = "${cfg.dataDir}/data"
+
+    db_engine = "lmdb"
+
+    rpc_bind_addr = "[::]:${toString cfg.rpcPort}"
+    rpc_public_addr = "${hostIp}:${toString cfg.rpcPort}"
+    rpc_secret = "@RPC_SECRET@"
+
+    [s3_api]
+    s3_region = "garage"
+    api_bind_addr = "[::]:${toString cfg.s3ApiPort}"
+    root_domain = ".s3.garage.cluster"
+
+    [admin]
+    api_bind_addr = "127.0.0.1:${toString cfg.webPort}"
+    metrics_token = "@METRICS_TOKEN@"
+  '';
+
+  # Script that generates the actual config by reading secrets
+  generateConfig = pkgs.writeShellScriptBin "garage-generate-config" ''
+    set -euo pipefail
+    rpc_secret="$(cat ${config.age.secrets.garage-rpc-secret.path})"
+    metrics_token="$(cat ${config.age.secrets.garage-metrics-token.path})"
+    sed \
+      -e "s|@RPC_SECRET@|$rpc_secret|g" \
+      -e "s|@METRICS_TOKEN@|$metrics_token|g" \
+      ${garageConfigTemplate} > /run/garage/garage.toml
+    chmod 600 /run/garage/garage.toml
+  '';
+in
+{
   options.services.garage-cluster = {
     enable = lib.mkEnableOption "Garage S3-compatible object storage";
 
@@ -23,7 +61,11 @@ in {
     };
 
     consistencyMode = lib.mkOption {
-      type = lib.types.enum ["consistent" "degraded" "dangerous"];
+      type = lib.types.enum [
+        "consistent"
+        "degraded"
+        "dangerous"
+      ];
       default = "consistent";
       description = "Consistency mode: consistent, degraded, or dangerous";
     };
@@ -44,12 +86,6 @@ in {
       type = lib.types.port;
       default = 3902;
       description = "Web interface port (also serves metrics)";
-    };
-
-    rpcSecret = lib.mkOption {
-      type = lib.types.str;
-      default = "";
-      description = "Shared RPC secret for cluster authentication (must be 32 hex chars)";
     };
 
     enableMetrics = lib.mkOption {
@@ -78,7 +114,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = [pkgs.garage];
+    environment.systemPackages = [ pkgs.garage ];
 
     users.users.garage = {
       group = "garage";
@@ -86,48 +122,28 @@ in {
       isSystemUser = true;
     };
 
-    users.groups.garage = {};
-
-    environment.etc."garage.toml".text = ''
-      replication_factor = ${toString cfg.replicationFactor}
-      consistency_mode = "${cfg.consistencyMode}"
-
-      metadata_dir = "${cfg.dataDir}/meta"
-      data_dir = "${cfg.dataDir}/data"
-
-      db_engine = "lmdb"
-
-      rpc_bind_addr = "[::]:${toString cfg.rpcPort}"
-      rpc_public_addr = "${hostIp}:${toString cfg.rpcPort}"
-      rpc_secret = "${cfg.rpcSecret}"
-
-      [s3_api]
-      s3_region = "garage"
-      api_bind_addr = "[::]:${toString cfg.s3ApiPort}"
-      root_domain = ".s3.garage.cluster"
-
-      [admin]
-      api_bind_addr = "127.0.0.1:${toString cfg.webPort}"
-      metrics_token = ${lib.optionalString cfg.enableMetrics "\"garage_metrics_token\""}
-    '';
+    users.groups.garage = { };
 
     systemd = {
-      tmpfiles.rules =
-        [
-          "d ${cfg.dataDir} 0750 garage garage -"
-          "d ${cfg.dataDir}/meta 0750 garage garage -"
-          "d ${cfg.dataDir}/data 0750 garage garage -"
-        ]
-        ++ lib.optional cfg.enableBackup ''
-          d ${cfg.backupDir} 0755 garage garage - -
-        '';
+      tmpfiles.rules = [
+        "d ${cfg.dataDir} 0750 garage garage -"
+        "d ${cfg.dataDir}/meta 0750 garage garage -"
+        "d ${cfg.dataDir}/data 0750 garage garage -"
+      ]
+      ++ lib.optional cfg.enableBackup ''
+        d ${cfg.backupDir} 0755 garage garage - -
+      '';
 
       services = {
         garage = {
           description = "Garage S3-compatible object storage";
-          after = ["network-online.target"];
-          wants = ["network-online.target"];
-          wantedBy = ["multi-user.target"];
+          after = [ "network-online.target" ];
+          wants = [ "network-online.target" ];
+          wantedBy = [ "multi-user.target" ];
+
+          # Generate config from template + agenix secrets before starting Garage.
+          # Secrets are read at service start, never stored in /etc.
+          preStart = "${lib.getExe generateConfig}";
 
           serviceConfig = {
             Type = "simple";
@@ -139,15 +155,34 @@ in {
             ProtectSystem = "strict";
             ProtectHome = true;
 
-            ReadWritePaths = ["${cfg.dataDir}"] ++ lib.optional cfg.enableBackup cfg.backupDir;
+            ReadWritePaths = [
+              "${cfg.dataDir}"
+              "/run/garage"
+            ]
+            ++ lib.optional cfg.enableBackup cfg.backupDir;
 
-            ExecStart = "${pkgs.garage}/bin/garage -c /etc/garage.toml server";
+            ExecStart = "${pkgs.garage}/bin/garage -c /run/garage/garage.toml server";
 
-            CapabilityBoundingSet = ["CAP_NET_BIND_SERVICE"];
-            AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
-            RestrictAddressFamilies = ["AF_INET" "AF_INET6" "AF_UNIX"];
+            # Access agenix secret files for config generation in preStart
+            ReadOnlyPaths = [
+              config.age.secrets.garage-rpc-secret.path
+              config.age.secrets.garage-metrics-token.path
+              "${garageConfigTemplate}"
+            ];
+
+            RuntimeDirectory = "garage";
+            CapabilityBoundingSet = [ "CAP_NET_BIND_SERVICE" ];
+            AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ];
+            RestrictAddressFamilies = [
+              "AF_INET"
+              "AF_INET6"
+              "AF_UNIX"
+            ];
             RestrictRealtime = true;
-            SystemCallFilter = ["@system-service" "~@privileged"];
+            SystemCallFilter = [
+              "@system-service"
+              "~@privileged"
+            ];
             MemoryDenyWriteExecute = true;
 
             Restart = "always";
@@ -157,26 +192,29 @@ in {
 
         garage-backup = lib.mkIf cfg.enableBackup {
           description = "Garage metadata backup";
-          after = ["garage.service"];
-          requires = ["garage.service"];
+          after = [ "garage.service" ];
+          requires = [ "garage.service" ];
 
           serviceConfig = {
             Type = "oneshot";
             User = "garage";
             Group = "garage";
-            ExecStart = "${pkgs.bash}/bin/bash -c '${pkgs.garage}/bin/garage -c /etc/garage.toml meta snapshot ${cfg.backupDir}/meta-$(date +%%Y-%%m-%%d_%%H-%%M-%%S).db && cp ${cfg.dataDir}/meta/db.lmdb ${cfg.backupDir}/db.lmdb-$(date +%%Y-%%m-%%d_%%H-%%M-%%S)'";
+            ExecStart = "${pkgs.bash}/bin/bash -c '${pkgs.garage}/bin/garage -c /run/garage/garage.toml meta snapshot ${cfg.backupDir}/meta-$(date +%%Y-%%m-%%d_%%H-%%M-%%S).db && cp ${cfg.dataDir}/meta/db.lmdb ${cfg.backupDir}/db.lmdb-$(date +%%Y-%%m-%%d_%%H-%%M-%%S)'";
             IOSchedulingClass = "idle";
             IOSchedulingPriority = "7";
             ProtectSystem = "strict";
             ProtectHome = true;
-            ReadWritePaths = [cfg.backupDir cfg.dataDir];
+            ReadWritePaths = [
+              cfg.backupDir
+              cfg.dataDir
+            ];
           };
         };
       };
 
       timers.garage-backup = lib.mkIf cfg.enableBackup {
         description = "Daily Garage metadata backup";
-        wantedBy = ["timers.target"];
+        wantedBy = [ "timers.target" ];
         timerConfig = {
           OnCalendar = cfg.backupInterval;
           Persistent = true;

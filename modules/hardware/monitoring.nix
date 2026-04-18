@@ -7,7 +7,11 @@
   cfg = config.hardware.monitoring;
 in {
   options.hardware.monitoring = {
-    enable = lib.mkEnableOption "Hardware monitoring (lm-sensors, fan control)";
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Hardware monitoring (lm-sensors, fan control)";
+    };
 
     autoDetect = lib.mkOption {
       type = lib.types.bool;
@@ -35,7 +39,21 @@ in {
     };
   };
 
-  config = lib.mkIf cfg.enable {
+
+  config = lib.mkMerge [
+    # Assertion fires regardless of enable state
+    {
+      assertions = [
+        {
+          assertion =
+            cfg.enable
+            || (cfg.autoDetect && !cfg.fanControl
+              && cfg.kernelModules == ["nct6775" "k10temp" "jc42"]);
+          message = "hardware.monitoring: sub-options customized but enable = false. Add `enable = true` or remove the sub-options.";
+        }
+      ];
+    }
+    (lib.mkIf cfg.enable {
     environment.systemPackages = with pkgs; [
       lm_sensors
       nvtopPackages.full
@@ -103,5 +121,6 @@ in {
     '';
 
     hardware.sensor.iio.enable = lib.mkDefault true;
-  };
+    })
+  ];
 }
