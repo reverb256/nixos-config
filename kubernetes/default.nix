@@ -11,6 +11,7 @@ let
       { _module.args.pkgsWithOverlay = pkgsWithOverlay; }
       { _module.args.llama-cpp-turboquant = llama-cpp-turboquant; }
       ./modules/common.nix
+      ./modules/nix-csi.nix
       ./modules/infrastructure.nix
       ./modules/ingress.nix
       ./modules/mining.nix
