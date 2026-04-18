@@ -44,6 +44,11 @@ in
       default = false;
       description = "Enable self-hosted service secrets (Nextcloud, Vaultwarden)";
     };
+    ci = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Enable CI/CD secrets (Garnix, etc)";
+    };
     kubernetes = mkOption {
       type = types.bool;
       default = false;
@@ -120,6 +125,20 @@ in
           owner = "root";
           group = "wheel";
         };
+        # TODO: Run `agenix -e secrets/garage-metrics-token.age` to create this file
+        garage-metrics-token = {
+          file = "${inputs.self}/secrets/garage-metrics-token.age";
+          mode = "440";
+          owner = "garage";
+          group = "garage";
+        };
+        # TODO: Run `agenix -e secrets/garage-s3-access-key-id.age` to create this file
+        garage-s3-access-key-id = {
+          file = "${inputs.self}/secrets/garage-s3-access-key-id.age";
+          mode = "440";
+          owner = "root";
+          group = "wheel";
+        };
       })
       (lib.mkIf config.services.agenix-secrets-registry.mining {
         xmrig-api-token = {
@@ -161,6 +180,15 @@ in
           group = "root";
         };
       })
+      (lib.mkIf config.services.agenix-secrets-registry.ci {
+        # TODO: Run `agenix -e secrets/garnix-password.age` to create this file
+        garnix-password = {
+          file = "${inputs.self}/secrets/garnix-password.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
+      })
       (lib.mkIf config.services.agenix-secrets-registry.selfHosting {
         nextcloud-admin = {
           file = "${inputs.self}/secrets/nextcloud-admin.age";
@@ -173,6 +201,13 @@ in
           mode = "440";
           owner = "vaultwarden";
           group = "vaultwarden";
+        };
+        # TODO: Run `agenix -e secrets/rclone-config.age` to create this file
+        rclone-config = {
+          file = "${inputs.self}/secrets/rclone-config.age";
+          mode = "400";
+          owner = "root";
+          group = "root";
         };
       })
       (lib.mkIf config.services.agenix-secrets-registry.kubernetes {

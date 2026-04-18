@@ -11,6 +11,7 @@ let
     import inputs.nixpkgs {
       inherit system;
       config.allowUnfree = true;
+      overlays = [ ((import ./overlay.nix) { inherit inputs; }) ];
     };
 
 
@@ -52,7 +53,6 @@ in
     machinesFile = ./machines;
     specialArgs = {
       inherit inputs self;
-      # k8sManifestPackage = self.packages.x86_64-linux.k8s-manifests;  # TODO: fix easykubenix
     };
   };
 

@@ -13,9 +13,6 @@
     ./services.nix
     ./hardware-configuration.nix
     ../../modules/default.nix
-    ../../modules/hardware/nvidia-common.nix
-    ../../modules/hardware/nvidia-wayland.nix
-    ../../modules/hardware/amdgpu-wayland.nix
     ../../modules/hardware/rgb-control.nix
     ../../modules/system/security.nix
     ../../modules/services/podman-support.nix

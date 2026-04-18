@@ -42,7 +42,7 @@ in
     services.nfs.server = lib.mkIf cfg.server.enable {
       enable = true;
       exports = lib.concatMapStringsSep "\n" (host: ''
-        /etc/nixos ${host}(ro,no_subtree_check,no_root_squash,async,nohide,insecure)
+        /etc/nixos ${host}(ro,no_subtree_check,async,nohide,insecure)
       '') cfg.server.allowedHosts;
     };
 

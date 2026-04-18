@@ -12,7 +12,7 @@ in
     none.Namespace.haven = {
       metadata.labels = {
         name = "haven";
-        "pod-security.kubernetes.io/enforce" = "privileged";
+        "pod-security.kubernetes.io/enforce" = "baseline";
         "pod-security.kubernetes.io/audit" = "restricted";
         "pod-security.kubernetes.io/warn" = "restricted";
       };
@@ -173,7 +173,7 @@ in
         ingress = [
           {
             from = [
-              { namespaceSelector.matchLabels.name = "ingress-nginx"; }
+              { namespaceSelector.matchLabels.name = "ingress-system"; }
             ];
             ports = [
               {

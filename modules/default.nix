@@ -42,6 +42,7 @@
     ./system/status-auto-update.nix
 
     ./security/pam-vaultwarden.nix
+    ./security/gpg.nix
     ./security/caddy-ca.nix
     ./kubernetes-security.nix
 
@@ -120,7 +121,6 @@
     ./services/backup-to-garage.nix
     ./services/binary-cache.nix
     ./services/rclone.nix
-    ./services/n8n.nix
     ./services/vaultwarden.nix
     ./services/self-healing-alerts.nix
 
@@ -140,6 +140,7 @@
     ./services/claude-code-router.nix
     ./services/supply-chain-cooldowns.nix
     ./services/container-scanning.nix
+    ./services/vane.nix
     ./services/k8s-nix-deploy.nix
   ];
 }

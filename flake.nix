@@ -52,7 +52,10 @@
       url = "github:numtide/llm-agents.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
+    nix-cachyos-kernel = {
+      url = "github:xddxdd/nix-cachyos-kernel/release";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     stylix = {
       url = "github:nix-community/stylix";
@@ -139,7 +142,6 @@
         nixpkgs.lib.nixosSystem {
           specialArgs = {
             inherit inputs;
-            # k8sManifestPackage = self.packages.x86_64-linux.k8s-manifests;  # TODO: fix easykubenix --no-build issue
           };
           modules =
             commonModules
@@ -182,16 +184,16 @@
       packages.x86_64-linux.caddy-with-modules = inputs.caddy-ingress.packages.x86_64-linux.caddy-with-modules;
       packages.x86_64-linux.caddy-ingress-image = inputs.caddy-ingress.packages.x86_64-linux.caddy-ingress-image;
 
-      packages.x86_64-linux.xmrig-proxy-image = pkgs.dockerTools.buildImage {
+      packages.x86_64-linux.xmrig-proxy-image = pkgsWithOverlay.dockerTools.buildImage {
         name = "xmrig-proxy";
         tag = "nixos-6.24.0";
-        copyToRoot = pkgs.buildEnv {
+        copyToRoot = pkgsWithOverlay.buildEnv {
           name = "xmrig-proxy-root";
           paths = [
-            pkgs.xmrig-proxy
-            pkgs.bash
-            pkgs.coreutils
-            pkgs.cacert
+            pkgsWithOverlay.xmrig-proxy
+            pkgsWithOverlay.bash
+            pkgsWithOverlay.coreutils
+            pkgsWithOverlay.cacert
           ];
           pathsToLink = [
             "/bin"
@@ -249,7 +251,7 @@
       };
       packages.x86_64-linux.lolminer-amd-image =
         let
-          glibc = pkgs.glibc;
+          glibc = pkgsWithOverlay.glibc;
           lolminerPkg = pkgsWithOverlay.lolminer;
           rootFs = pkgsWithOverlay.runCommand "lolminer-amd-root" { } ''
             mkdir -p $out/bin $out/etc $out/lib $out/lib64 $out/tmp $out/run/opengl-driver/lib $out/etc/OpenCL/vendors
@@ -268,26 +270,26 @@
                 done
               fi
               if [ -d "$pkg/lib" ]; then
-                cp -rL "$pkg/lib"/* $out/lib/ 2>/dev/null || true
+                cp -rL "$pkg/lib"/* $out/lib/ || echo "Warning: some libs from $pkg failed to copy"
               fi
             done
             mkdir -p $out/etc/ssl/certs
-            ln -sf ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt $out/etc/ssl/certs/
-            for pkg in ${pkgs.rocmPackages.clr} ${pkgs.rocmPackages.clr.icd} ${pkgs.mesa.opencl}; do
+            ln -sf ${pkgsWithOverlay.cacert}/etc/ssl/certs/ca-bundle.crt $out/etc/ssl/certs/
+            for pkg in ${pkgsWithOverlay.rocmPackages.clr} ${pkgsWithOverlay.rocmPackages.clr.icd} ${pkgsWithOverlay.mesa.opencl}; do
               if [ -d "$pkg/lib" ]; then
-                cp -rL "$pkg/lib"/* $out/lib/ 2>/dev/null || true
+                cp -rL "$pkg/lib"/* $out/lib/ || echo "Warning: some libs from $pkg failed to copy"
               fi
               if [ -d "$pkg/lib" ]; then
-                cp -rL "$pkg/lib"/* $out/run/opengl-driver/lib/ 2>/dev/null || true
+                cp -rL "$pkg/lib"/* $out/run/opengl-driver/lib/ || echo "Warning: some libs from $pkg failed to copy"
               fi
               if [ -d "$pkg/etc" ]; then
-                cp -r $pkg/etc/* $out/etc/ 2>/dev/null || true
+                cp -r $pkg/etc/* $out/etc/ || echo "Warning: some etc files from $pkg failed to copy"
               fi
             done
             rm -f $out/etc/OpenCL/vendors/rusticl.icd
-            cp -rL ${glibc}/lib/* $out/lib/ 2>/dev/null || true
+            cp -rL ${glibc}/lib/* $out/lib/ || echo "Warning: some glibc libs failed to copy"
             mkdir -p $out/lib64
-            cp -rL ${glibc}/lib/* $out/lib64/ 2>/dev/null || true
+            cp -rL ${glibc}/lib/* $out/lib64/ || echo "Warning: some glibc libs failed to copy to lib64"
             rm -f $out/etc/OpenCL/vendors/amdocl64.icd
             echo "/lib/libamdocl64.so" > $out/etc/OpenCL/vendors/amdocl64.icd
           '';
@@ -333,19 +335,19 @@
       };
       packages.x86_64-linux.xmrig-alpine-image = inputs.compute-market.packages.x86_64-linux.xmrig-alpine-image; # migrated
       packages.x86_64-linux.xmrig-proxy-alpine-image = inputs.compute-market.packages.x86_64-linux.xmrig-proxy-alpine-image; # migrated
-      packages.x86_64-linux.claude-code-image = pkgs.dockerTools.buildImage {
+      packages.x86_64-linux.claude-code-image = pkgsWithOverlay.dockerTools.buildImage {
         name = "claude-code";
         tag = "nixos";
-        copyToRoot = pkgs.buildEnv {
+        copyToRoot = pkgsWithOverlay.buildEnv {
           name = "claude-code-root";
           paths = [
-            pkgs.claude-code
-            pkgs.bash
-            pkgs.coreutils
-            pkgs.fish
-            pkgs.git
-            pkgs.gnugrep
-            pkgs.gnused
+            pkgsWithOverlay.claude-code
+            pkgsWithOverlay.bash
+            pkgsWithOverlay.coreutils
+            pkgsWithOverlay.fish
+            pkgsWithOverlay.git
+            pkgsWithOverlay.gnugrep
+            pkgsWithOverlay.gnused
           ];
           pathsToLink = [
             "/bin"
@@ -355,7 +357,7 @@
         };
         config = {
           Cmd = [
-            "${pkgs.bash}/bin/bash"
+            "${pkgsWithOverlay.bash}/bin/bash"
             "-c"
             "mkdir -p /home/j_kro/.claude && tail -f /dev/null"
           ];
@@ -417,16 +419,8 @@
         };
       };
       overlays.default = (import ./overlay.nix) { inherit inputs; };
-      pkgsWithOverlay = import nixpkgs {
-        inherit system;
-        config.allowUnfree = true;
-        config.cudaSupport = true;
-        overlays = [ ((import ./overlay.nix) { inherit inputs; }) ];
-      };
       kubernetes = import ./kubernetes { inherit pkgs pkgsWithOverlay inputs; };
 
-      # TODO: easykubenix manifestYAMLFile uses builtins.readFile which breaks --no-build
-      # packages.x86_64-linux.k8s-manifests = self.kubernetes.manifestYAMLFile;
 
       apps.x86_64-linux.k8s-validate = {
         type = "app";

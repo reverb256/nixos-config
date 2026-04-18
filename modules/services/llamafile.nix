@@ -224,7 +224,7 @@ in {
           "CUDA_VISIBLE_DEVICES=${toString cfg.gpuDevice}"
         ];
 
-        NoNewPrivileges = false;
+        NoNewPrivileges = true;
         PrivateTmp = true;
 
         LimitNOFILE = 65536;

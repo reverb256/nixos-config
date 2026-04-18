@@ -3,15 +3,11 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.services.garnix;
-
-  garnixNetrc = pkgs.writeText "garnix-netrc" ''
-    machine cache.garnix.io
-      login reverb256
-      password TvENbzJlSFCUqJhsP+l575OwKcTVFp32+8Fhzkk1
-  '';
-in {
+in
+{
   options.services.garnix = {
     enable = lib.mkEnableOption "Garnix CI/CD cache configuration";
   };
@@ -19,12 +15,19 @@ in {
   config = lib.mkIf cfg.enable {
     nix.settings = {
       narinfo-cache-positive-ttl = 3600;
-      substituters = lib.mkOptionDefault ["https://cache.garnix.io"];
-      trusted-public-keys = lib.mkOptionDefault ["cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="];
+      substituters = lib.mkOptionDefault [ "https://cache.garnix.io" ];
+      trusted-public-keys = lib.mkOptionDefault [
+        "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+      ];
     };
 
+    # TODO: Run `agenix -e secrets/garnix-password.age` to create the secret file.
+    # The file must contain netrc-format content:
+    #   machine cache.garnix.io
+    #     login reverb256
+    #     password <your-password>
     environment.etc."nix/netrc" = {
-      source = garnixNetrc;
+      source = config.age.secrets.garnix-password.path;
       mode = "0600";
     };
 

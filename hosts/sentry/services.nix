@@ -21,9 +21,9 @@
       priority = 90;
     };
 
-    gaming-detection.enable = true;
-    gpu-profile-manager.enable = true;
-    mining-coordinator.enable = true;
+    gaming-detection.enable = false;
+    gpu-profile-manager.enable = false;
+    mining-coordinator.enable = false;
 
     nginx = {
       enable = true;
@@ -46,7 +46,7 @@
         pool = "10.1.1.110:3333";
       };
       xmrigDual = {
-        enable = true;
+        enable = false;
         alwaysOn = {
           enable = false;
         };
@@ -99,7 +99,6 @@
 
     agenix-secrets-registry = {
       enable = true;
-      mining = true;
       kubernetes = true;
       aiServices = true;
     };

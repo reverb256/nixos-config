@@ -26,5 +26,11 @@ in {
       services.ai-inference.enable = true;
       services.opencode.enable = true;
     })
+
+    (lib.mkIf cfg.monitoring {
+      # Monitoring profile: exporters and observability
+      # are handled by individual service modules.
+      # This role flag is used for node-profiles role assignment only.
+    })
   ];
 }

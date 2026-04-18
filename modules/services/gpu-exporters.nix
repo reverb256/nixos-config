@@ -20,9 +20,9 @@ in
     nvidia = {
       enable = mkOption {
         type = types.bool;
-        default = false;
+        default = config.hardware.gpu-compute.cuda.enable;
         example = true;
-        description = "Enable NVIDIA GPU exporter";
+        description = "Enable NVIDIA GPU exporter (defaults from hardware.gpu-compute.cuda.enable)";
       };
 
       port = mkOption {
@@ -36,9 +36,9 @@ in
     amd = {
       enable = mkOption {
         type = types.bool;
-        default = false;
+        default = config.hardware.gpu-compute.rocm.enable;
         example = true;
-        description = "Enable AMD GPU exporter";
+        description = "Enable AMD GPU exporter (defaults from hardware.gpu-compute.rocm.enable)";
       };
 
       port = mkOption {
@@ -72,7 +72,7 @@ in
           DynamicUser = true;
           ExecStart =
             lib.getExe pkgs.prometheus-nvidia-gpu-exporter
-            + " --web.listen-address 0.0.0.0:${toString cfg.nvidia.port} --nvidia-smi-command ${lib.getExe config.hardware.nvidia.package.bin}";
+            + " --web.listen-address 127.0.0.1:${toString cfg.nvidia.port} --nvidia-smi-command ${lib.getExe config.hardware.nvidia.package.bin}";
 
           Restart = "always";
           RestartSec = "10s";
