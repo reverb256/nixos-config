@@ -651,5 +651,104 @@ in
         };
       };
     };
+
+    # --- GPU Miner for Zephyr 3060 Ti (on-demand by coordinator, replicas: 0) ---
+    mining.Deployment.gpu-miner-zephyr-3060ti = {
+      metadata.labels = {
+        app = "gpu-miner-zephyr-3060ti";
+        host = "zephyr";
+        workload = "crypto-mining";
+      };
+      spec = {
+        replicas = 0;
+        revisionHistoryLimit = 1;
+        selector.matchLabels = {
+          app = "gpu-miner-zephyr-3060ti";
+          host = "zephyr";
+        };
+        strategy.type = "Recreate";
+        template = {
+          metadata.labels = {
+            app = "gpu-miner-zephyr-3060ti";
+            host = "zephyr";
+            workload = "crypto-mining";
+          };
+          spec = {
+            nodeName = "zephyr";
+            serviceAccountName = "gpu-miner-sa";
+            automountServiceAccountToken = false;
+            hostNetwork = true;
+            priorityClassName = "mining-low";
+            tolerations = [
+              { key = "workstation"; operator = "Exists"; }
+              { key = "interactive"; operator = "Exists"; }
+              {
+                key = "node-role.kubernetes.io/control-plane";
+                operator = "Exists";
+                effect = "NoSchedule";
+              }
+            ];
+            containers = {
+              _namedlist = true;
+              lolminer = {
+                image = "docker.io/swamp7/lolminer:latest";
+                imagePullPolicy = "IfNotPresent";
+                args = [
+                  "--algo=CR29"
+                  "--pool=xtm-c29-us.kryptex.network:8040"
+                  "--user=krxXVNVMM7.zephyr-3060ti"
+                  "--pass=x"
+                  "--tls=1"
+                  "--pool=xtm-c29-eu.kryptex.network:8040"
+                  "--user=krxXVNVMM7.zephyr-3060ti"
+                  "--pass=x"
+                  "--tls=1"
+                  "--devices=0"
+                  "--pl=120"
+                  "--apiport=4069"
+                ];
+                env = {
+                  _namedlist = true;
+                  LD_LIBRARY_PATH = {
+                    name = "LD_LIBRARY_PATH";
+                    value =
+                      "/run/opengl-driver/lib:/usr/local/cuda-12.1/compat";
+                  };
+                };
+                securityContext.privileged = true;
+                volumeMounts = {
+                  _namedlist = true;
+                  dev = { mountPath = "/dev"; };
+                  nvidia-libs = {
+                    mountPath = "/run/opengl-driver/lib";
+                    readOnly = true;
+                  };
+                  nix-store = {
+                    mountPath = "/nix/store";
+                    readOnly = true;
+                  };
+                };
+                resources = {
+                  requests = {
+                    memory = "2Gi";
+                    cpu = "100m";
+                  };
+                  limits = {
+                    memory = "4Gi";
+                    cpu = "500m";
+                  };
+                };
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              dev = { hostPath.path = "/dev"; };
+              nvidia-libs = { hostPath.path = "/run/opengl-driver/lib"; };
+              nix-store = { hostPath.path = "/nix/store"; };
+            };
+          };
+        };
+      };
+    };
   };
 }
