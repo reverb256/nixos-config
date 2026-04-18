@@ -142,5 +142,6 @@
     ./services/container-scanning.nix
     ./services/vane.nix
     ./services/k8s-nix-deploy.nix
+    ./services/brain-research.nix
   ];
 }
