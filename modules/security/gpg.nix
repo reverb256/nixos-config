@@ -17,8 +17,15 @@ in {
     environment.systemPackages = with pkgs; [
       gnupg
       paperkey
-      pgp-tools
+      signing-party
+      yubikey-manager
+      yubikey-personalization
+      yubioath-flutter
     ];
+
+    # Smartcard udev rules for YubiKey
+    services.pcscd.enable = true;
+    hardware.gpgSmartcards.enable = true;
 
     # Harden GPG config
     environment.etc."gnupg/gpg.conf" = {
