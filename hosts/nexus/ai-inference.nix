@@ -34,7 +34,7 @@
       host = "0.0.0.0";
       port = 8080;
       workers = 1;
-      middleware.redis.enable = false;  # K8s valkey in search ns replaces this
+      middleware.redis.enable = true;  # Local Redis for gateway caching
       middleware.knowledgeFabric = {
         enable = true;
         rrf_k = 60;
