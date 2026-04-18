@@ -20,19 +20,40 @@
 #
 # Sentry:
 #   AMD RX 5600 XT (6GB, ROCm, gfx1010) → E2B model
-{ pkgs, pkgsWithOverlay, config, lib, ... }:
+{
+  pkgs,
+  pkgsWithOverlay,
+  config,
+  lib,
+  ...
+}:
 let
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
-  managed = { "app.kubernetes.io/managed-by" = "easykubenix"; };
+  managed = {
+    "app.kubernetes.io/managed-by" = "easykubenix";
+  };
 
   zephyrTolerations = [
-    { key = "workstation"; operator = "Exists"; }
-    { key = "interactive"; operator = "Exists"; }
-    { key = "node-role.kubernetes.io/control-plane"; operator = "Exists"; effect = "NoSchedule"; }
+    {
+      key = "workstation";
+      operator = "Exists";
+    }
+    {
+      key = "interactive";
+      operator = "Exists";
+    }
+    {
+      key = "node-role.kubernetes.io/control-plane";
+      operator = "Exists";
+      effect = "NoSchedule";
+    }
   ];
   zephyrVolumes = {
     _namedlist = true;
-    nix.hostPath = { path = "/nix"; type = "Directory"; };
+    nix.hostPath = {
+      path = "/nix";
+      type = "Directory";
+    };
     nvidia-libs.hostPath.path = "/run/opengl-driver/lib";
     models.hostPath.path = "/home/j_kro/.lmstudio/models";
   };
@@ -48,15 +69,26 @@ in
     # Decode speed: ~104 tok/s (within 2% of Q4_K_XL).
     # mmproj disabled — crashes turboquant binary (SIGSEGV in clip_model_loader).
     Deployment.llama-server-zephyr = {
-      metadata.labels = managed // { app = "llama-server-zephyr"; host = "zephyr"; gpu = "rtx3090"; };
+      metadata.labels = managed // {
+        app = "llama-server-zephyr";
+        host = "zephyr";
+        gpu = "rtx3090";
+      };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
-        selector.matchLabels = { app = "llama-server-zephyr"; host = "zephyr"; };
+        selector.matchLabels = {
+          app = "llama-server-zephyr";
+          host = "zephyr";
+        };
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels = managed // { app = "llama-server-zephyr"; host = "zephyr"; gpu = "rtx3090"; };
+            labels = managed // {
+              app = "llama-server-zephyr";
+              host = "zephyr";
+              gpu = "rtx3090";
+            };
             annotations."nix-csi/discard" = "true";
           };
           spec = {
@@ -72,38 +104,73 @@ in
                 imagePullPolicy = "IfNotPresent";
                 command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
                 args = [
-                  "--model" "/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-Q3_K_M.gguf"
-                  "--mmproj" "/models/unsloth/Qwen3.6-35B-A3B-GGUF/mmproj-F16.gguf"
-                  "--host" "0.0.0.0"
-                  "--port" "1235"
-                  "-ngl" "99"
-                  "-c" "262144"
-                  "-t" "4"
-                  "--fit" "off"
-                  "--batch-size" "128"
-                  "--ubatch-size" "32"
-                  "--flash-attn" "on"
-                  "--parallel" "1"
-                  "--cache-type-k" "turbo4"
-                  "--cache-type-v" "turbo4"
-                  "--temp" "0.6"
-                  "--top-k" "20"
-                  "--top-p" "0.95"
-                  "--presence-penalty" "0.0"
-                  "--repeat-penalty" "1.0"
+                  "--model"
+                  "/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-Q3_K_M.gguf"
+                  "--mmproj"
+                  "/models/unsloth/Qwen3.6-35B-A3B-GGUF/mmproj-F16.gguf"
+                  "--host"
+                  "0.0.0.0"
+                  "--port"
+                  "1235"
+                  "-ngl"
+                  "99"
+                  "-c"
+                  "262144"
+                  "-t"
+                  "4"
+                  "--fit"
+                  "off"
+                  "--batch-size"
+                  "128"
+                  "--ubatch-size"
+                  "32"
+                  "--flash-attn"
+                  "on"
+                  "--parallel"
+                  "1"
+                  "--cache-type-k"
+                  "turbo4"
+                  "--cache-type-v"
+                  "turbo4"
+                  "--temp"
+                  "0.6"
+                  "--top-k"
+                  "20"
+                  "--top-p"
+                  "0.95"
+                  "--presence-penalty"
+                  "0.0"
+                  "--repeat-penalty"
+                  "1.0"
                   "--metrics"
-                  "--reasoning-format" "deepseek"
+                  "--reasoning-format"
+                  "deepseek"
                   "--jinja"
                 ];
                 env = {
                   _namedlist = true;
                   # CUDA enumeration order differs from nvidia-smi:
                   # CUDA device 0 = RTX 3090, CUDA device 1 = RTX 3060 Ti
-                  NVIDIA_VISIBLE_DEVICES = { name = "NVIDIA_VISIBLE_DEVICES"; value = "1"; };
-                  CUDA_VISIBLE_DEVICES = { name = "CUDA_VISIBLE_DEVICES"; value = "0"; };
-                  LD_LIBRARY_PATH = { name = "LD_LIBRARY_PATH"; value = "/run/opengl-driver/lib:/nix/store"; };
+                  NVIDIA_VISIBLE_DEVICES = {
+                    name = "NVIDIA_VISIBLE_DEVICES";
+                    value = "1";
+                  };
+                  CUDA_VISIBLE_DEVICES = {
+                    name = "CUDA_VISIBLE_DEVICES";
+                    value = "0";
+                  };
+                  LD_LIBRARY_PATH = {
+                    name = "LD_LIBRARY_PATH";
+                    value = "/run/opengl-driver/lib:/nix/store";
+                  };
                 };
-                ports = [{ containerPort = 1235; name = "http"; protocol = "TCP"; }];
+                ports = [
+                  {
+                    containerPort = 1235;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
                 livenessProbe = {
                   tcpSocket.port = 1235;
                   initialDelaySeconds = 120;
@@ -117,15 +184,30 @@ in
                   failureThreshold = 10;
                 };
                 resources = {
-                  requests = { memory = "4Gi"; cpu = "500m"; };
-                  limits = { memory = "20Gi"; cpu = "4"; };
+                  requests = {
+                    memory = "4Gi";
+                    cpu = "500m";
+                  };
+                  limits = {
+                    memory = "20Gi";
+                    cpu = "4";
+                  };
                 };
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  nix = { mountPath = "/nix"; readOnly = true; };
-                  nvidia-libs = { mountPath = "/run/opengl-driver/lib"; readOnly = true; };
-                  models = { mountPath = "/models"; readOnly = true; };
+                  nix = {
+                    mountPath = "/nix";
+                    readOnly = true;
+                  };
+                  nvidia-libs = {
+                    mountPath = "/run/opengl-driver/lib";
+                    readOnly = true;
+                  };
+                  models = {
+                    mountPath = "/models";
+                    readOnly = true;
+                  };
                 };
               };
             };
@@ -136,27 +218,50 @@ in
     };
 
     Service.llama-server-zephyr = {
-      metadata.labels = managed // { app = "llama-server-zephyr"; };
+      metadata.labels = managed // {
+        app = "llama-server-zephyr";
+      };
       spec = {
         type = "ClusterIP";
-        ports = [{ name = "http"; port = 1235; protocol = "TCP"; targetPort = 1235; }];
-        selector = { app = "llama-server-zephyr"; host = "zephyr"; };
+        ports = [
+          {
+            name = "http";
+            port = 1235;
+            protocol = "TCP";
+            targetPort = 1235;
+          }
+        ];
+        selector = {
+          app = "llama-server-zephyr";
+          host = "zephyr";
+        };
       };
     };
 
     # ── Zephyr RTX 3060 Ti (GPU 0) — Qwen3.5-9B Opus-Distilled ───────────────────────────
     # Claude 4.6 Opus reasoning distilled into Qwen3.5-9B. 5.6GB Q4_K_M.
-    # 32K context, turbo4 KV cache. Reasoning model (no mmproj).
+    # 128K context (increased from 32K), turbo4 KV cache. Reasoning model (no mmproj).
     Deployment.llama-server-zephyr-3060ti = {
-      metadata.labels = managed // { app = "llama-server-zephyr-3060ti"; host = "zephyr"; gpu = "rtx3060ti"; };
+      metadata.labels = managed // {
+        app = "llama-server-zephyr-3060ti";
+        host = "zephyr";
+        gpu = "rtx3060ti";
+      };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
-        selector.matchLabels = { app = "llama-server-zephyr-3060ti"; host = "zephyr"; };
+        selector.matchLabels = {
+          app = "llama-server-zephyr-3060ti";
+          host = "zephyr";
+        };
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels = managed // { app = "llama-server-zephyr-3060ti"; host = "zephyr"; gpu = "rtx3060ti"; };
+            labels = managed // {
+              app = "llama-server-zephyr-3060ti";
+              host = "zephyr";
+              gpu = "rtx3060ti";
+            };
             annotations."nix-csi/discard" = "true";
           };
           spec = {
@@ -172,23 +277,40 @@ in
                 imagePullPolicy = "IfNotPresent";
                 command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
                 args = [
-                  "--model" "/models/Jackrong/Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-GGUF/Qwen3.5-9B.Q4_K_M.gguf"
-                  "--host" "0.0.0.0"
-                  "--port" "1236"
-                  "-ngl" "99"
-                  "-c" "32768"
-                  "-t" "4"
-                  "--fit" "off"
-                  "--batch-size" "32"
-                  "--ubatch-size" "16"
-                  "--flash-attn" "on"
-                  "--parallel" "1"
-                  "--cache-type-k" "turbo4"
-                  "--cache-type-v" "turbo4"
-                  "--temp" "0.6"
-                  "--top-k" "20"
-                  "--top-p" "0.95"
-                  "--reasoning-format" "deepseek"
+                  "--model"
+                  "/models/Jackrong/Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-GGUF/Qwen3.5-9B.Q4_K_M.gguf"
+                  "--host"
+                  "0.0.0.0"
+                  "--port"
+                  "1236"
+                  "-ngl"
+                  "99"
+                  "-c"
+                  "131072"
+                  "-t"
+                  "4"
+                  "--fit"
+                  "off"
+                  "--batch-size"
+                  "32"
+                  "--ubatch-size"
+                  "16"
+                  "--flash-attn"
+                  "on"
+                  "--parallel"
+                  "1"
+                  "--cache-type-k"
+                  "turbo4"
+                  "--cache-type-v"
+                  "turbo4"
+                  "--temp"
+                  "0.6"
+                  "--top-k"
+                  "20"
+                  "--top-p"
+                  "0.95"
+                  "--reasoning-format"
+                  "deepseek"
                   "--jinja"
                   "--metrics"
                 ];
@@ -196,11 +318,26 @@ in
                   _namedlist = true;
                   # CUDA enumeration order differs from nvidia-smi:
                   # CUDA device 0 = RTX 3090, CUDA device 1 = RTX 3060 Ti
-                  NVIDIA_VISIBLE_DEVICES = { name = "NVIDIA_VISIBLE_DEVICES"; value = "0"; };
-                  CUDA_VISIBLE_DEVICES = { name = "CUDA_VISIBLE_DEVICES"; value = "1"; };
-                  LD_LIBRARY_PATH = { name = "LD_LIBRARY_PATH"; value = "/run/opengl-driver/lib:/nix/store"; };
+                  NVIDIA_VISIBLE_DEVICES = {
+                    name = "NVIDIA_VISIBLE_DEVICES";
+                    value = "0";
+                  };
+                  CUDA_VISIBLE_DEVICES = {
+                    name = "CUDA_VISIBLE_DEVICES";
+                    value = "1";
+                  };
+                  LD_LIBRARY_PATH = {
+                    name = "LD_LIBRARY_PATH";
+                    value = "/run/opengl-driver/lib:/nix/store";
+                  };
                 };
-                ports = [{ containerPort = 1236; name = "http"; protocol = "TCP"; }];
+                ports = [
+                  {
+                    containerPort = 1236;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
                 livenessProbe = {
                   tcpSocket.port = 1236;
                   initialDelaySeconds = 120;
@@ -214,15 +351,30 @@ in
                   failureThreshold = 10;
                 };
                 resources = {
-                  requests = { memory = "4Gi"; cpu = "500m"; };
-                  limits = { memory = "8Gi"; cpu = "2"; };
+                  requests = {
+                    memory = "4Gi";
+                    cpu = "500m";
+                  };
+                  limits = {
+                    memory = "8Gi";
+                    cpu = "2";
+                  };
                 };
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  nix = { mountPath = "/nix"; readOnly = true; };
-                  nvidia-libs = { mountPath = "/run/opengl-driver/lib"; readOnly = true; };
-                  models = { mountPath = "/models"; readOnly = true; };
+                  nix = {
+                    mountPath = "/nix";
+                    readOnly = true;
+                  };
+                  nvidia-libs = {
+                    mountPath = "/run/opengl-driver/lib";
+                    readOnly = true;
+                  };
+                  models = {
+                    mountPath = "/models";
+                    readOnly = true;
+                  };
                 };
               };
             };
@@ -233,25 +385,47 @@ in
     };
 
     Service.llama-server-zephyr-3060ti = {
-      metadata.labels = managed // { app = "llama-server-zephyr-3060ti"; };
+      metadata.labels = managed // {
+        app = "llama-server-zephyr-3060ti";
+      };
       spec = {
         type = "ClusterIP";
-        ports = [{ name = "http"; port = 1236; protocol = "TCP"; targetPort = 1236; }];
-        selector = { app = "llama-server-zephyr-3060ti"; host = "zephyr"; };
+        ports = [
+          {
+            name = "http";
+            port = 1236;
+            protocol = "TCP";
+            targetPort = 1236;
+          }
+        ];
+        selector = {
+          app = "llama-server-zephyr-3060ti";
+          host = "zephyr";
+        };
       };
     };
 
     # ── Sentry AMD RX 5600 XT (ROCm, gfx1010) — Qwen3.5-4B Opus-Distilled ─────────────────────────
+    # 128K context (max), turbo4 KV cache.
     Deployment.llama-server-sentry = {
-      metadata.labels = managed // { app = "llama-server-sentry"; host = "sentry"; };
+      metadata.labels = managed // {
+        app = "llama-server-sentry";
+        host = "sentry";
+      };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
-        selector.matchLabels = { app = "llama-server-sentry"; host = "sentry"; };
+        selector.matchLabels = {
+          app = "llama-server-sentry";
+          host = "sentry";
+        };
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels = managed // { app = "llama-server-sentry"; host = "sentry"; };
+            labels = managed // {
+              app = "llama-server-sentry";
+              host = "sentry";
+            };
             annotations."nix-csi/discard" = "true";
           };
           spec = {
@@ -265,32 +439,61 @@ in
                 imagePullPolicy = "IfNotPresent";
                 command = [ "${pkgsWithOverlay.llama-cpp-rocm}/bin/llama-server" ];
                 args = [
-                  "--model" "/models/Jackrong/Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-GGUF/Qwen3.5-4B.Q4_K_M.gguf"
-                  "--host" "0.0.0.0"
-                  "--port" "1235"
-                  "-ngl" "99"
-                  "-c" "32768"
-                  "-t" "4"
-                  "--fit" "off"
-                  "--batch-size" "32"
-                  "--ubatch-size" "8"
-                  "--flash-attn" "on"
-                  "--parallel" "1"
-                  "--cache-type-k" "q4_0"
-                  "--cache-type-v" "q4_0"
-                  "--temp" "0.6"
-                  "--top-k" "20"
-                  "--top-p" "0.95"
-                  "--reasoning-format" "deepseek"
+                  "--model"
+                  "/models/Jackrong/Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-GGUF/Qwen3.5-4B.Q4_K_M.gguf"
+                  "--host"
+                  "0.0.0.0"
+                  "--port"
+                  "1235"
+                  "-ngl"
+                  "99"
+                  "-c"
+                  "131072"
+                  "-t"
+                  "4"
+                  "--fit"
+                  "off"
+                  "--batch-size"
+                  "32"
+                  "--ubatch-size"
+                  "8"
+                  "--flash-attn"
+                  "on"
+                  "--parallel"
+                  "1"
+                  "--cache-type-k"
+                  "q4_0"
+                  "--cache-type-v"
+                  "q4_0"
+                  "--temp"
+                  "0.6"
+                  "--top-k"
+                  "20"
+                  "--top-p"
+                  "0.95"
+                  "--reasoning-format"
+                  "deepseek"
                   "--jinja"
                   "--metrics"
                 ];
                 env = {
                   _namedlist = true;
-                  ROC_ENABLE_PRE_VEGA = { name = "ROC_ENABLE_PRE_VEGA"; value = "1"; };
-                  LD_LIBRARY_PATH = { name = "LD_LIBRARY_PATH"; value = "/run/opengl-driver/lib:/nix/store"; };
+                  ROC_ENABLE_PRE_VEGA = {
+                    name = "ROC_ENABLE_PRE_VEGA";
+                    value = "1";
+                  };
+                  LD_LIBRARY_PATH = {
+                    name = "LD_LIBRARY_PATH";
+                    value = "/run/opengl-driver/lib:/nix/store";
+                  };
                 };
-                ports = [{ containerPort = 1235; name = "http"; protocol = "TCP"; }];
+                ports = [
+                  {
+                    containerPort = 1235;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
                 livenessProbe = {
                   tcpSocket.port = 1235;
                   initialDelaySeconds = 120;
@@ -304,29 +507,59 @@ in
                   failureThreshold = 10;
                 };
                 resources = {
-                  requests = { memory = "4Gi"; cpu = "500m"; };
-                  limits = { memory = "8Gi"; cpu = "2"; };
+                  requests = {
+                    memory = "4Gi";
+                    cpu = "500m";
+                  };
+                  limits = {
+                    memory = "8Gi";
+                    cpu = "2";
+                  };
                 };
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  nix = { mountPath = "/nix"; readOnly = true; };
-                  dev-dri = { mountPath = "/dev/dri"; };
-                  dev-kfd = { mountPath = "/dev/kfd"; };
-                  models = { mountPath = "/models"; readOnly = true; };
-                  opengl = { mountPath = "/run/opengl-driver/lib"; readOnly = true; };
-                  tmp = { mountPath = "/tmp"; };
+                  nix = {
+                    mountPath = "/nix";
+                    readOnly = true;
+                  };
+                  dev-dri = {
+                    mountPath = "/dev/dri";
+                  };
+                  dev-kfd = {
+                    mountPath = "/dev/kfd";
+                  };
+                  models = {
+                    mountPath = "/models";
+                    readOnly = true;
+                  };
+                  opengl = {
+                    mountPath = "/run/opengl-driver/lib";
+                    readOnly = true;
+                  };
+                  tmp = {
+                    mountPath = "/tmp";
+                  };
                 };
               };
             };
             volumes = {
               _namedlist = true;
-              nix.hostPath = { path = "/nix"; type = "Directory"; };
-              dev-dri.hostPath = { path = "/dev/dri"; type = "Directory"; };
-              dev-kfd.hostPath = { path = "/dev/kfd"; type = "CharDevice"; };
+              nix.hostPath = {
+                path = "/nix";
+                type = "Directory";
+              };
+              dev-dri.hostPath = {
+                path = "/dev/dri";
+                type = "Directory";
+              };
+              dev-kfd.hostPath = {
+                path = "/dev/kfd";
+                type = "CharDevice";
+              };
               models.hostPath.path = "/home/j_kro/.lmstudio/models";
               opengl.hostPath.path = "/run/opengl-driver/lib";
-              tmp.emptyDir = {};
+              tmp.emptyDir = { };
             };
           };
         };
@@ -334,10 +567,19 @@ in
     };
 
     Service.llama-server-sentry = {
-      metadata.labels = managed // { app = "llama-server-sentry"; };
+      metadata.labels = managed // {
+        app = "llama-server-sentry";
+      };
       spec = {
         type = "ClusterIP";
-        ports = [{ name = "http"; port = 1235; protocol = "TCP"; targetPort = 1235; }];
+        ports = [
+          {
+            name = "http";
+            port = 1235;
+            protocol = "TCP";
+            targetPort = 1235;
+          }
+        ];
         selector.app = "llama-server-sentry";
       };
     };
