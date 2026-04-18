@@ -64,6 +64,13 @@
 
     easykubenix.url = "github:Lillecarl/easykubenix";
 
+    # Phase 3: nix-csi -- mount /nix into pods via CSI ephemeral volumes
+    # See kubernetes/modules/nix-csi-README.md for details
+    nix-csi = {
+      url = "github:Lillecarl/nix-csi";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     hermes-agent = {
       url = "github:NousResearch/hermes-agent";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -243,8 +250,8 @@
         };
       };
 
-      packages.x86_64-linux.lolminer-image = inputs.compute-market.packages.x86_64-linux.lolminer-image; # migrated
-      packages.x86_64-linux.lolminer-amd-image = inputs.compute-market.packages.x86_64-linux.lolminer-amd-image; # migrated
+      # packages.x86_64-linux.lolminer-image = inputs.compute-market.packages.x86_64-linux.lolminer-image; # migrated
+      # packages.x86_64-linux.lolminer-amd-image = inputs.compute-market.packages.x86_64-linux.lolminer-amd-image; # migrated
       packages.x86_64-linux.xmrig-nixos-image = inputs.compute-market.packages.x86_64-linux.xmrig-nixos-image; # migrated
       packages.x86_64-linux.xmrig-alpine-image = inputs.compute-market.packages.x86_64-linux.xmrig-alpine-image; # migrated
       packages.x86_64-linux.xmrig-proxy-alpine-image = inputs.compute-market.packages.x86_64-linux.xmrig-proxy-alpine-image; # migrated
