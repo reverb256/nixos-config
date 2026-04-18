@@ -100,4 +100,6 @@
       };
     };
   };
-}
+  claude-code-image = prev.callPackage ./packages/claude-code-image.nix {};
+  opencode-image = prev.callPackage ./packages/opencode-image.nix {};
+};
