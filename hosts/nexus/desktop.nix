@@ -2,8 +2,6 @@
 { ... }:
 
 {
-  desktop.plasma6.enable = false;
-
   programs.niri.enable = true;
   desktop.uwsm-sessions.enable = true;
 
