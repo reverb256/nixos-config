@@ -44,7 +44,21 @@
 
   profiles.node.sentry-monitoring.enable = true;
 
-  services.ai-inference.backend.type = "llama-cpp";
+  services.ai-inference = {
+    enable = true;
+    backend = {
+      type = "llama-cpp";
+      url = "http://127.0.0.1:1235";
+      local = {
+        model = "Qwen3.5-4B.Q4_K_M.gguf";
+        url = "http://127.0.0.1:1235";
+      };
+    };
+    gateway = {
+      host = "0.0.0.0";
+      port = 8080;
+    };
+  };
 
   boot.kernelPackages =
     inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
