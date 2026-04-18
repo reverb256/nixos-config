@@ -1,62 +1,84 @@
 # NixOS Cluster - Agent Guidelines
 
-**Generated:** 2026-04-15 | **Branch:** feature/brain-v2-embedding-first
+**Generated:** 2026-04-17 | **Commit:** 5c9153ea | **Branch:** feature/brain-v2-embedding-first
 
 ## Quick Start
 
 ```bash
 just check              # Quick flake validation (no build)
-just test               # Build all hosts (verify config)
-just switch             # Apply to local host
-just deploy [<host>]    # Deploy to all or specific host
+just switch             # Apply to local host (via tmux deploy session)
+just test-apply         # Test configuration without persisting
+just deploy [<host>]    # Deploy to all or specific host (Colmena + NFS)
 just rollback           # Rollback local host
+just status             # Cluster health overview
+just health             # Detailed health check
 ```
 
-## Project Overview
+> NOTE: `just test` does NOT exist. Use `just test-apply` or `just check`.
 
-| Host | IP | Role |
-|------|-----|------|
-| Zephyr | 10.1.1.110 | Workstation, control plane, gaming, NFS |
-| Nexus | 10.1.1.120 | Primary server, Hermes Agent, monitoring, storage |
-| Forge | 10.1.1.130 | GPU computing, mining only |
-| Sentry | 10.1.1.140 | Inference (ROCm), monitoring backup |
+## Cluster Overview
+
+| Host | IP | Role | RAM | GPUs |
+|------|-----|------|-----|------|
+| Zephyr | 10.1.1.110 | Workstation, control plane, gaming, NFS server | 31GB | 2x NVIDIA |
+| Nexus | 10.1.1.120 | Primary server, Hermes Agent, monitoring, storage | 46GB | 1x NVIDIA |
+| Forge | 10.1.1.130 | GPU computing, mining | 16GB | 2x NVIDIA + 2x AMD |
+| Sentry | 10.1.1.140 | Monitoring, logging | 8GB | 1x AMD |
 
 **Resources**: 78 cores, 123GB RAM, 7 GPUs, 8.4TB storage
-**K3s**: v1.34.5+k3s1 — All 4 nodes Ready, 34 pods, Flannel CNI
+**K3s**: v1.34.x — All 4 nodes Ready, **Calico CNI** (Flannel disabled)
 
-> **See `INFRASTRUCTURE-AUDIT.md` for live cluster state and issues.**
+## Deployment Model (Hybrid NFS + Colmena)
 
-## Extracted Projects
+1. **Zephyr** exports `/etc/nixos` via NFS (read-only) to remote hosts
+2. Remote hosts mount `/etc/nixos` from Zephyr — config is already there
+3. `just deploy` uses Colmena to orchestrate `nixos-rebuild switch` across hosts
+4. **Only Zephyr modifies config** — remotes mount read-only
 
-**Non-system projects** have been migrated to `/data/projects/own/` as standalone flakes:
+> See `modules/services/nixos-share.nix` for NFS server/client setup.
 
-| Project | Purpose | Status |
-|---------|---------|--------|
-| ai-inference-gateway | AI gateway service | ✅ Extracted |
-| compute-market | GPU time-slicing | ✅ Extracted |
-| caddy-ingress | Custom Caddy build | ✅ Extracted |
-| gpu-proxy | Stratum mining proxy | ✅ Extracted |
-| knowledge-fabric | Knowledge base | ✅ Extracted |
-| llama-cpp-turboquant | TurboQuant llama.cpp | ✅ Extracted |
-| mcp-registry | MCP server management | ✅ Extracted |
-| searxng-cluster | Self-hosted search | ✅ Extracted |
+## Extracted Projects (7)
 
-Each project is a flake input in `flake.nix` with its own versioning.
+Non-system projects live in `/data/projects/own/` as standalone flakes:
+
+| Project | Flake Input | Purpose |
+|---------|-------------|---------|
+| ai-inference-gateway | `ai-gateway` | AI gateway service |
+| compute-market | `compute-market` | GPU time-slicing |
+| caddy-ingress | `caddy-ingress` | Custom Caddy build |
+| gpu-proxy | `gpu-proxy` | Stratum mining proxy |
+| knowledge-fabric | `knowledge-fabric` | Knowledge base |
+| llama-cpp-turboquant | `llama-turboquant` | TurboQuant llama.cpp |
+| mcp-registry | `mcp-registry` | MCP server management |
+
+> NOTE: `searxng-cluster` is NOT extracted — not in flake.nix inputs. Lives in `kubernetes/modules/searxng.nix` via easykubenix.
 
 ## Project Structure
 
 ```
-/etc/nixos/
-├── flake.nix              # Main flake
-├── colmena.nix            # Multi-host deployment
-├── hosts/<hostname>/      # Host configs (never edit hardware-configuration.nix)
-├── modules/               # Reusable modules (default.nix imports all)
-│   ├── hardware/           # GPU, AMD, NVIDIA, monitoring, RGB
-│   ├── networking/         # Cluster networking
-│   ├── profiles/           # Hardware/role/network profiles
-│   ├── system/             # Core system modules (~40 files)
-│   └── services/           # Background services (~45 imported, 60+ on disk)
-└── secrets/               # Agenix encrypted secrets (32 .age files)
+/etc/nixos/                          # 273 .nix files, 38k lines
+├── flake.nix                        # Main flake + host definitions
+├── colmena.nix                      # Multi-host Colmena deployment
+├── justfile                         # Task runner (deploy, check, rollback)
+├── hosts/<hostname>/                # Per-host configs (8 files each)
+│   └── (never edit hardware-configuration.nix)
+├── modules/                         # Reusable modules
+│   ├── system/                      # Core system (43 files)
+│   ├── services/                    # Background daemons (73 files)
+│   ├── desktop/                     # Wayland compositors (14 files)
+│   ├── home-manager/                # HM modules (12 files)
+│   ├── profiles/                    # Composable hardware/role/network profiles
+│   ├── hardware/                    # GPU, AMD, NVIDIA, monitoring, RGB (7 files)
+│   ├── development/                 # Dev tools (6 files)
+│   ├── gaming/                      # Game launchers (3 files)
+│   └── network/                     # Networking (4 files)
+├── kubernetes/                      # K8s Nix modules via easykubenix (13 files)
+├── kubernetes-manifests/            # K8s YAML manifests (429 files)
+├── scripts/                         # Utility scripts (101 files)
+├── packages/                        # Custom packages (6 files)
+├── tests/                           # NixOS tests (8 files)
+├── secrets/                         # Agenix encrypted secrets (41 .age files)
+└── .github/workflows/               # CI/CD (5 workflows, SHA-pinned)
 ```
 
 ## ⚠️ Critical Safety Rules
@@ -82,45 +104,17 @@ networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22 53 6443];
 
 **Default ALL non-infrastructure, non-mining workloads to NEXUS (46GB RAM)**
 
-**Valid scheduling targets:**
-
 | Node | RAM | Purpose |
 |------|-----|---------|
-| **Nexus** | 46GB | ✅ DEFAULT for ALL workloads except: |
-| | | - Infrastructure (control plane, Calico, storage, monitoring) |
-| | | - Mining (must be on nodes with GPUs: forge, nexus, zephyr) |
-| **Zephyr** | 31GB | ⚠️ ONLY infrastructure + mining: |
-| | | - Control plane: kube-apiserver, etcd, kube-scheduler, kube-controller-manager |
-| | | - CNI: Calico components (calico-node, tigera-operator) |
-| | | - Mining: xmrig (CPU, via K8s — gpu-miner-zephyr disabled) |
-| | | - ❌ NO OTHER WORKLOADS |
+| **Nexus** | 46GB | ✅ DEFAULT for ALL workloads |
+| **Zephyr** | 31GB | ⚠️ Infrastructure + mining ONLY |
+| **Forge** | 16GB | Mining + GPU compute |
+| **Sentry** | 8GB | Monitoring only |
 
-**Enforce nexus scheduling in Kubernetes manifests:**
-
+**Enforce in K8s manifests:**
 ```yaml
-# Option 1: nodeName (simple, direct)
-spec:
-  template:
-    spec:
-      nodeName: nexus  # Force scheduling to nexus
-
-# Option 2: nodeAffinity (flexible, preferred)
-spec:
-  template:
-    spec:
-      affinity:
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              preference:
-                matchExpressions:
-                  - key: kubernetes.io/hostname
-                    operator: In
-                    values:
-                      - nexus
-
-# ❌ NEVER use nodeSelector without checking target node capacity FIRST
-# ALWAYS run: kubectl top nodes && kubectl describe node <target>
+spec.template.spec.nodeName: nexus  # Force scheduling
+# OR use nodeAffinity (see kubernetes-manifests/AGENTS.md)
 ```
 
 ### Stop Immediately If
@@ -134,132 +128,29 @@ spec:
 - **kebab-case** for files: `gpu-exporters.nix`
 - **Line length**: 80-100 chars
 
-### Lib Functions Best Practices
+### Lib Helpers
 
-**ExecStart Declarations**
-
-✅ **PREFERRED**: Use `lib.getExe` for single executables
 ```nix
+# ExecStart — use lib.getExe
 serviceConfig.ExecStart = lib.getExe pkgs.lm_sensors + " -s";
-```
 
-❌ **AVOID**: Direct path construction
-```nix
-serviceConfig.ExecStart = "${pkgs.lm_sensors}/bin/sensors -s";
-```
-
-**Complex Multi-Line Scripts**
-
-✅ **PREFERRED**: Use `writeShellScript` for clarity
-```nix
+# Multi-line scripts — use writeShellScript
 ExecStart = pkgs.writeShellScript "my-script" ''
-  # Multi-line shell logic
-  if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Config not found"
-    exit 1
-  fi
-  echo "Starting service..."
+  if [ ! -f "$CONFIG_FILE" ]; then echo "Not found"; exit 1; fi
 '';
-```
 
-❌ **AVOID**: Inline bash -c with complex logic
-```nix
-ExecStart = "${pkgs.bash}/bin/bash -c 'if [ ! -f $CONFIG_FILE ]; then echo \"Config not found\"; exit 1; fi';
-```
+# PATH — use lib.makeBinPath
+serviceConfig.Path = lib.makeBinPath [pkgs.bash pkgs.coreutils];
 
-**PATH Construction**
-
-✅ **PREFERRED**: Use `lib.makeBinPath` for clean PATH construction
-```nix
-serviceConfig.Path = lib.makeBinPath [pkgs.bash pkgs.coreutils pkgs.curl];
-```
-
-❌ **AVOID**: Manual PATH string concatenation
-```nix
-export PATH="${pkgs.bash}/bin:${pkgs.coreutils}/bin:${pkgs.curl}/bin:$PATH"
-```
-
-**Systemd Helpers**
-
-✅ **PREFERRED**: Use `writeShellScript` for complex multi-line scripts
-```nix
-ExecStart = pkgs.writeShellScript "my-script" ''
-  if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Config not found"; exit 1; fi
-  echo "Starting service...";
-'';
-```
-
-❌ **AVOID**: Inline `bash -c` with complex logic
-```nix
-ExecStart = "${pkgs.bash}/bin/bash -c 'if [ ! -f $CONFIG_FILE ]; then exit 1; fi';
-```
-
-**Functional Data Transformation (lib.pipe)**
-
-✅ **PREFERRED**: Use `lib.pipe` for multi-stage transformations
-```nix
-# Clean pipeline: data flows top-to-bottom
-uid = lib.pipe dashboardTitle [
-  (builtins.replaceStrings ["🏠"] [""])  # Remove emoji
-  (builtins.replaceStrings [" " "/"] ["-" "-"])  # Normalize spaces/slashes
-  lib.strings.trim  # Clean whitespace
-  lib.toLower  # Lowercase for UID
+# Data transforms — use lib.pipe
+uid = lib.pipe title [
+  (builtins.replaceStrings [" "] ["-"])
+  lib.strings.trim
+  lib.toLower
 ];
-```
 
-❌ **AVOID**: Nested function calls (hard to read)
-```nix
-uid = lib.toLower (lib.strings.trim (builtins.replaceStrings [" " "/"] ["-" "-"] (builtins.replaceStrings ["🏠"] [""] title)));
-```
-
-**Debug Output Infrastructure**
-
-✅ **PREFERRED**: Use ExecStartPre for sanitized configuration logging
-```nix
-serviceConfig.ExecStartPre = pkgs.writeShellScript "my-service-debug" ''
-  echo "[my-service] Configuration:" >&2
-  echo "[my-service]   Port: ${toString cfg.port}" >&2
-  echo "[my-service]   API Key: ${
-    if cfg.apiKey != null then "***REDACTED***" else "Not configured"
-  }" >&2
-'';
-```
-
-**Advanced Type System (types.either, types.oneOf)**
-
-✅ **PREFERRED**: Use `types.either` for flexible option types
-```nix
-# Accepts either port number (int) or service name (str)
-port = mkOption {
-  type = types.either types.int types.str;
-  default = 5432;
-  description = "Database port or service name (e.g., 5432 or \"postgresql\")";
-};
-
-# Accepts URL or Unix socket path using types.oneOf
-connection = mkOption {
-  type = types.oneOf [
-    (types.str // {description = "Database URL";})
-    (types.path // {description = "Unix socket path";})
-  ];
-  default = "postgresql:///db";
-  description = "Connection string or socket path";
-};
-```
-
-❌ **AVOID**: Manual type validation in assertions
-```nix
-# Don't do this - use types.either instead
-port = mkOption { type = types.int; };
-config = mkIf cfg.enable {
-  assertions = [
-    {
-      assertion = builtins.isString cfg.port || builtins.isInt cfg.port;
-      message = "Port must be string or int";
-    }
-  ];
-};
+# Types — use types.either for flexible options
+port = mkOption { type = types.either types.int types.str; default = 5432; };
 ```
 
 ### Module Template
@@ -278,7 +169,7 @@ in {
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ cfg.port ];
     systemd.services.my-service = {
       wantedBy = [ "multi-user.target" ];
-      serviceConfig.ExecStart = "${pkgs.my-package}/bin/my-service";
+      serviceConfig.ExecStart = lib.getExe pkgs.my-package;
     };
   };
 }
@@ -303,66 +194,28 @@ in {
 
 | File Changed | Test On |
 |--------------|---------|
-| `modules/networking/*` | zephyr AND nexus |
+| `modules/network/*` | zephyr AND nexus |
 | `modules/system/ssh.nix` | ALL 4 nodes |
 | `modules/system/users.nix` | ALL 4 nodes |
 | `modules/default.nix` | Entire cluster |
 
-## Profile System
-
-Profiles are composable — enable them per-host:
-```nix
-# Hardware profiles
-hardware.profiles = { nvidia.enable = true; amdgpu.wayland = true; };
-
-# Role profiles
-profiles.role = { mining = true; k3s-agent = true; };
-
-# Network profiles
-profiles.network.tailscale.enable = true;
-```
-
 ## Supply Chain Security
 
-All package managers enforce a 7-day cooling period. Container images are pinned to specific versions.
-
-### Package Manager Cooldowns
-
-| Tool | Config | Setting |
-|------|--------|---------|
-| npm | `~/.npmrc` | `min-release-age=7` |
-| bun | `~/.bunfig.toml` | `minimumReleaseAge = "7d"` |
-| uv | `~/.config/uv/uv.toml` | `exclude-newer = "7 days"` |
-| pnpm | Uses `~/.npmrc` | Same as npm |
-
-**Module**: `services.supply-chain-cooldowns` — enable on each host
-
-### Container Images
-
-- **NEVER use `:latest` tags** in NixOS modules or K8s manifests
-- Pin to specific versions: `docker.io/vaultwarden/server:1.35.4`, not `:latest`
-- Image policy rejects unknown registries (see `modules/services/podman.nix`)
-- K8s admission policy blocks `:latest` (see `kubernetes-manifests/security/deny-latest-tag.yaml`)
-- `container-scanning.nix` module exists but is **not currently imported** in `default.nix`
-
-### Flake Updates
-
-- Auto-update validates input age > 7 days before updating nixpkgs
-- Never run `nix flake update` without reviewing the diff first
-
-### CI/CD
-
-- All GitHub Actions pinned to commit SHAs (not version tags)
-- Prevents tag-hijacking supply chain attacks
+- All package managers: 7-day cooldown (npm, bun, uv, pnpm)
+- Container images: pinned versions, no `:latest` tags
+- K8s admission policy blocks `:latest` (see `kubernetes-manifests/security/`)
+- `container-scanning.nix` exists but **not imported** in `default.nix`
+- GitHub Actions pinned to commit SHAs
 
 ## Reference
 
 | Document | Purpose |
 |----------|---------|
+| `CLAUDE.md` | Full agent context (safety rules, K8s troubleshooting) |
+| `INFRASTRUCTURE-AUDIT.md` | Live cluster state and issues |
 | `ROADMAP.md` | Kubernetes migration plan |
 | `modules/README.md` | Module development guide |
-| `modules/services/AGENTS.md` | Services context for agents |
 
 ---
 
-**Version**: 3.5 | **Last Updated:** 2026-04-05
+**Version**: 4.0 | **Last Updated:** 2026-04-17

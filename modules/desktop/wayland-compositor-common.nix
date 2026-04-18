@@ -18,6 +18,8 @@ in
 
       pkgs.wf-recorder
 
+      pkgs.gpu-screen-recorder
+
       pkgs.adwaita-icon-theme
     ];
 

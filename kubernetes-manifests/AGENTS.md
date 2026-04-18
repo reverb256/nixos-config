@@ -1,9 +1,10 @@
 # Kubernetes Manifests - Agent Context
 
-**Parent:** `../AGENTS.md` | **Domain:** K8s deployment configs
+**Parent:** `../AGENTS.md` | **Domain:** K8s deployment configs (429 files, 64 dirs)
 
 ## Overview
 Kubernetes YAML manifests for cluster workloads. Organized by application domain.
+Uses Calico CNI (Flannel disabled). K8s Nix modules live in `../kubernetes/modules/` (easykubenix).
 
 ## Structure
 ```
@@ -16,6 +17,7 @@ kubernetes-manifests/
 ├── ingress/             # Ingress controllers (16 files)
 ├── spacebot/            # Discord bot (14 files)
 ├── pod-disruption-budgets/  # PDBs (18 files)
+├── security/            # Admission policies (deny-latest-tag, etc.)
 └── archive/             # Deprecated manifests
 ```
 
@@ -28,21 +30,24 @@ kubernetes-manifests/
 | Set up monitoring | `monitoring/` |
 | Configure CNI | `calico/` |
 | Add ingress rule | `ingress/` |
+| Block :latest tags | `security/deny-latest-tag.yaml` |
 
 ## Anti-Patterns (THIS DIRECTORY)
 
 | Pattern | Why | Fix |
 |---------|-----|-----|
-| `nodeSelector: kubernetes.io/hostname: zephyr` | OOM risk | Use `nodeName: nexus` for workloads |
 | Missing resource limits | Unbounded pods | Add `resources.requests/limits` |
 | No PDB for critical services | Downtime risk | Create PDB in `pod-disruption-budgets/` |
+| Using `:latest` tags | Blocked by admission policy | Pin to specific version |
+| `maxSurge: 1` (default) | Pod explosion during updates | Set `maxSurge: 0` |
+| `revisionHistoryLimit: 10` (default) | Replica set accumulation | Set to `2` |
 
 ## Node Scheduling Rules
 
 | Node | RAM | Workloads |
 |------|-----|-----------|
-| **nexus** | 46GB | ✅ DEFAULT for all workloads |
-| **zephyr** | 31GB | ⚠️ Infrastructure + mining ONLY |
+| **nexus** | 46GB | DEFAULT for all workloads |
+| **zephyr** | 31GB | Infrastructure + mining ONLY |
 | **forge** | 16GB | Mining + GPU compute |
 | **sentry** | 8GB | Monitoring only |
 
@@ -69,14 +74,12 @@ spec:
       nodeName: nexus
 ```
 
-## Common Patterns
-
-### Namespace Convention
+## Namespace Convention
 - `ai-inference` → AI workloads
 - `monitoring` → Prometheus stack
 - `mining` → GPU miners
 - `calico-system` → CNI components
 
-### Secret References
-- Agenix-encrypted secrets in `/etc/nixos/secrets/`
+## Secret References
+- Agenix-encrypted secrets in `/etc/nixos/secrets/` (41 .age files)
 - K8s secrets reference same values via env vars

@@ -19,7 +19,7 @@
 # activity on the 3090 and shifts gpu-miner-zephyr to the 3060 Ti.
 #
 # Sentry:
-#   AMD RX 5600 XT (6GB, ROCm, gfx1010) → E2B model
+#   AMD RX 5700 XT (6GB, ROCm, gfx1010) → 4B model
 {
   pkgs,
   pkgsWithOverlay,
@@ -240,7 +240,7 @@ in
 
     # ── Zephyr RTX 3060 Ti (GPU 0) — Qwen3.5-9B Opus-Distilled ───────────────────────────
     # Claude 4.6 Opus reasoning distilled into Qwen3.5-9B. 5.6GB Q4_K_M.
-    # 128K context (increased from 32K), turbo4 KV cache. Reasoning model (no mmproj).
+    # 256K context (max), iq4_nl KV cache. Reasoning model (no mmproj).
     Deployment.llama-server-zephyr-3060ti = {
       metadata.labels = managed // {
         app = "llama-server-zephyr-3060ti";
@@ -286,7 +286,7 @@ in
                   "-ngl"
                   "99"
                   "-c"
-                  "131072"
+                  "262144"
                   "-t"
                   "4"
                   "--fit"
@@ -300,9 +300,9 @@ in
                   "--parallel"
                   "1"
                   "--cache-type-k"
-                  "turbo4"
+                  "iq4_nl"
                   "--cache-type-v"
-                  "turbo4"
+                  "iq4_nl"
                   "--temp"
                   "0.6"
                   "--top-k"
@@ -406,7 +406,7 @@ in
     };
 
     # ── Sentry AMD RX 5600 XT (ROCm, gfx1010) — Qwen3.5-4B Opus-Distilled ─────────────────────────
-    # 128K context (max), turbo4 KV cache.
+    # 256K context (max), iq4_nl KV cache.
     Deployment.llama-server-sentry = {
       metadata.labels = managed // {
         app = "llama-server-sentry";
@@ -448,7 +448,7 @@ in
                   "-ngl"
                   "99"
                   "-c"
-                  "131072"
+                  "262144"
                   "-t"
                   "4"
                   "--fit"
@@ -462,9 +462,9 @@ in
                   "--parallel"
                   "1"
                   "--cache-type-k"
-                  "q4_0"
+                  "iq4_nl"
                   "--cache-type-v"
-                  "q4_0"
+                  "iq4_nl"
                   "--temp"
                   "0.6"
                   "--top-k"
