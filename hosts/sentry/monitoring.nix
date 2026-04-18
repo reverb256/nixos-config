@@ -5,10 +5,7 @@
   ];
 
   services = {
-    gpu-exporters = {
-      enable = true;
-      amd.enable = true;
-    };
+    gpu-exporters.enable = true;
 
     monitoring.system-tools = {
       enable = true;

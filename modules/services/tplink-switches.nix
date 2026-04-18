@@ -187,7 +187,8 @@ in {
         try:
             with open(SECRET_PATH, "r") as f:
                 DEFAULT_PASSWORD = f.read().strip()
-        except:
+        except (OSError, FileNotFoundError):
+            print("WARNING: Falling back to default credentials")
             DEFAULT_PASSWORD = "admin"
 
         class SwitchAutomator:

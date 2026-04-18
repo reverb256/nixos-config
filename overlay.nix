@@ -2,11 +2,11 @@
   lolminer = inputs.compute-market.packages.x86_64-linux.lolminer;
   xmrig = inputs.compute-market.packages.x86_64-linux.xmrig;
   lmstudio = prev.callPackage ./packages/lmstudio.nix {};
-  lm-studio = prev.callPackage ./packages/lmstudio.nix {};
   haven-desktop = prev.callPackage ./packages/haven-desktop.nix {};
   wivrn = prev.wivrn.overrideAttrs (old: {
     cmakeFlags = old.cmakeFlags ++ ["-DWIVRN_FEATURE_STEAMVR_LIGHTHOUSE=ON"];
   });
+  # assimp tests fail on musl; disable globally since nothing in this config needs them
   assimp = prev.assimp.overrideAttrs (_old: {
     doCheck = false;
   });

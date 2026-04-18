@@ -15,7 +15,6 @@ let
     "aagl"
     "nur"
     "claude-native"
-    "nixpkgs-xr"
     "scopebuddy"
     "nixcord"
     "agenix"
@@ -41,7 +40,6 @@ let
     "aagl"
     "nur"
     "agenix"
-    "nixpkgs-xr"
     "niri"
     "llm-agents"
   ];

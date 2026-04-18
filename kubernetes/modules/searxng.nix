@@ -18,7 +18,7 @@
     search.Secret.searxng-secret = {
       type = "Opaque";
       stringData = {
-        "secret-key" = "REDACTED_SEARXNG_SECRET_KEY";
+        "secret-key" = "a3J5cHRleF82NHJhbmRvbXNlY3JldGtleTEyMw==";
       };
     };
 
@@ -45,7 +45,7 @@
       data."settings.yml" = ''
         server:
           limiter: false
-          secret_key: "REDACTED_SEARXNG_SECRET_KEY"
+          secret_key: "@SEARXNG_SECRET_KEY@"
           methods: []
           port: 8888
           bind_address: "127.0.0.1"
@@ -86,8 +86,8 @@
             containers = {
               _namedlist = true;
               searxng = {
-                image = "searxng/searxng:latest";
-                imagePullPolicy = "Always";
+                image = "searxng/searxng:2024.7.0-480c5be7";
+                imagePullPolicy = "IfNotPresent";
                 securityContext = {
                   allowPrivilegeEscalation = false;
                   readOnlyRootFilesystem = true;
@@ -95,7 +95,7 @@
                 };
                 env = {
                   _namedlist = true;
-                  SEARXNG_SECRET.value = "REDACTED_SEARXNG_SECRET_KEY";
+                  SEARXNG_SECRET.valueFrom.secretKeyRef = { name = "searxng-secret"; key = "secret-key"; };
                   SEARXNG_PORT.value = "8080";
                   SEARXNG_BASE_URL.value = "https://search.cluster.local/";
                 };
@@ -153,7 +153,7 @@
             initContainers = {
               _namedlist = true;
               patch-settings = {
-                image = "searxng/searxng:latest";
+                image = "searxng/searxng:2024.7.0-480c5be7";
                 command = ["/bin/sh" "-c" ''
                   cd /etc/searxng
                   sed -i 's/^    - html$/    - html\n    - csv\n    - json\n    - rss/' settings.yml
@@ -215,7 +215,7 @@
         ingress = [
           {
             from = [
-              { namespaceSelector.matchLabels.name = "ingress-nginx"; }
+              { namespaceSelector.matchLabels.name = "ingress-system"; }
             ];
             ports = [
               {
@@ -246,6 +246,21 @@
         podSelector.matchLabels.app = "searxng";
         policyTypes = [ "Egress" ];
         egress = [
+          {
+            to = [
+              { ipBlock.cidr = "0.0.0.0/0"; }
+            ];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 80;
+              }
+              {
+                protocol = "TCP";
+                port = 443;
+              }
+            ];
+          }
           {
             to = [
               { namespaceSelector.matchLabels.name = "kube-system"; }

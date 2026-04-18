@@ -406,28 +406,21 @@ let
     </html>
   '';
 
-  httpServer = pkgs.stdenv.mkDerivation {
-    name = "host-dashboard-server";
-    buildCommand = ''
-        mkdir -p $out/bin
-        cat > $out/bin/host-dashboard-server << 'EOF'
-      #!${pkgs.bash}/bin/bash
-      set -euo pipefail
+  httpServer = pkgs.writeShellScriptBin "host-dashboard-server" ''
+    #!${pkgs.bash}/bin/bash
+    set -euo pipefail
 
-      PORT="''${1:-${toString cfg.port}}"
-      DATA_DIR="''${2:-${cfg.dataDir}}"
+    PORT="''${1:-${toString cfg.port}}"
+    DATA_DIR="''${2:-${cfg.dataDir}}"
 
-      echo "Starting host dashboard on port $PORT"
+    echo "Starting host dashboard on port $PORT"
+    mkdir -p "$DATA_DIR"
 
-      mkdir -p "$DATA_DIR"
-
-      exec ${pkgs.python3}/bin/python3 -m http.server "$PORT" \
-        --directory "$DATA_DIR" \
-        --bind 127.0.0.1
-      EOF
-        chmod +x $out/bin/host-dashboard-server
-    '';
-  };
+    exec ${pkgs.darkhttpd}/bin/darkhttpd "$DATA_DIR" \
+      --port "$PORT" \
+      --addr 127.0.0.1 \
+      --no-server-id
+  '';
 
   updateScript = pkgs.writeShellScriptBin "host-dashboard-update" ''
     set -euo pipefail

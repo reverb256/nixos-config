@@ -20,8 +20,6 @@
 
     ../../modules/default.nix
 
-    ../../modules/hardware/nvidia-common.nix
-    ../../modules/hardware/nvidia-wayland.nix
 
     ../../modules/hardware/rgb-control.nix
   ];
@@ -38,7 +36,18 @@
     unbound.listenAddress = "10.1.1.110";
   };
 
-  systemd.network.links = lib.mkForce { };
+  # Prevent hardware-configuration from overriding interface naming
+  # while preserving the cluster-networking keep-names policy
+  systemd.network.links = lib.mkForce {
+    "10-keep-names" = {
+      matchConfig = {
+        OriginalName = "*";
+      };
+      linkConfig = {
+        NamePolicy = "keep";
+      };
+    };
+  };
 
 
   zramSwap = {
@@ -85,6 +94,8 @@
   security.kubernetes.enable = true;
 
   security.caddyCa.enable = true;
+
+  security.gpg.enable = true;
 
   systemd.user.services.gamemoded = {
     wantedBy = [ "default.target" ];
@@ -267,9 +278,24 @@
     127.0.0.1 haven.lan haven.cluster.local
   '';
 
-  boot.postBootCommands = ''
-    ${pkgs.nftables}/bin/nft add rule ip nat PREROUTING ip daddr 10.1.1.100 tcp dport 80 dnat to 10.1.1.120:30888
-  '';
+  systemd.services.dnat-nfs = {
+    description = "DNAT rule for NFS redirect (10.1.1.100:80 -> 10.1.1.120:30888)";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = pkgs.writeShellScript "dnat-nfs" ''
+        if ! ${pkgs.nftables}/bin/nft list ruleset 2>/dev/null \
+          | grep -q 'dnat to 10.1.1.120:30888'; then
+          ${pkgs.nftables}/bin/nft add rule ip nat PREROUTING \
+            ip daddr 10.1.1.100 tcp dport 80 \
+            dnat to 10.1.1.120:30888
+        fi
+      '';
+    };
+  };
 
   system.stateVersion = "26.05";
 }

@@ -125,7 +125,7 @@ in {
 
           declare -A LAST_NOTIFIED
 
-          SERVICES="''${cfg.monitoredServices[@]}"
+          SERVICES="${lib.concatStringsSep " " cfg.monitoredServices}"
 
           monitor_services() {
             while true; do
@@ -182,7 +182,7 @@ in {
           declare -A RESTART_COUNT
           declare -A LAST_RESTART_TIME
 
-          SERVICES="''${cfg.monitoredServices[@]}"
+          SERVICES="${lib.concatStringsSep " " cfg.monitoredServices}"
 
           journalctl -f -n 0 --since now \
             --grep "Started.*\.service" \
@@ -292,7 +292,7 @@ in {
           check_memory() {
             MEM_PERCENT=$(free | awk '/Mem/{printf("%.0f"), ($3/$2)*100}')
             MEM_STATE="''${STATE_DIR}/memory"
-            THRESHOLD=''${cfg.memoryThreshold}
+            THRESHOLD=${toString cfg.memoryThreshold}
 
             if [ "''${MEM_PERCENT}" -ge "''${THRESHOLD}" ]; then
               if [ ! -f "''${MEM_STATE}" ] || [ "$(cat "''${MEM_STATE}")" != "alert" ]; then
@@ -307,7 +307,7 @@ in {
           }
 
           check_disk() {
-            THRESHOLD=''${cfg.diskThreshold}
+            THRESHOLD=${toString cfg.diskThreshold}
 
             df -H | grep -vE '^Filesystem|tmpfs|cdrom|devtmpfs' | while read -r line; do
               USAGE=$(echo "''${line}" | awk '{print $5}' | sed 's/%//')

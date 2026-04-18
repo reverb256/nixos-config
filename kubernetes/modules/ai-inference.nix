@@ -8,7 +8,6 @@
     ServiceAccount.open-webui = {};
     ServiceAccount.prometheus = {};
     ServiceAccount.searxng-mcp = {};
-    ServiceAccount.grafana-sa.automountServiceAccountToken = false;
     ServiceAccount.n8n-sa.automountServiceAccountToken = false;
 
     ConfigMap.ai-gateway-config.data = {
@@ -83,41 +82,6 @@
 
   ConfigMap.searxng-mcp-config.data = { SEARXNG_CACHE_TTL = "300"; SEARXNG_URL = "http://searxng-refactored.search.svc.cluster.local:8080"; };
 
-    Deployment.grafana = {
-      metadata.labels.app = "grafana";
-      spec = {
-        replicas = 1; revisionHistoryLimit = 0; selector.matchLabels.app = "grafana";
-        strategy = { type = "RollingUpdate"; rollingUpdate = { maxSurge = "25%"; maxUnavailable = "25%"; }; };
-        template = {
-          metadata.labels.app = "grafana";
-          spec = {
-            serviceAccountName = "grafana-sa";
-            nodeSelector."kubernetes.io/hostname" = "nexus";
-            containers = {
-              _namedlist = true;
-              grafana = {
-                image = "grafana/grafana:11.1.0"; imagePullPolicy = "IfNotPresent";
-                env = {
-                  _namedlist = true;
-                  GF_SECURITY_ADMIN_USER = { name = "GF_SECURITY_ADMIN_USER"; value = "admin"; };
-                  GF_USERS_ALLOW_SIGN_UP = { name = "GF_USERS_ALLOW_SIGN_UP"; value = "false"; };
-                  GF_INSTALL_PLUGINS = { name = "GF_INSTALL_PLUGINS"; value = ""; };
-                  GF_SERVER_ROOT_URL = { name = "GF_SERVER_ROOT_URL"; value = "http://localhost:3000"; };
-                };
-                ports = [{ containerPort = 3000; name = "http"; protocol = "TCP"; }];
-                resources = { requests = { cpu = "100m"; memory = "128Mi"; }; limits = { cpu = "500m"; memory = "512Mi"; }; };
-              };
-            };
-          };
-        };
-      };
-    };
-
-    Service.grafana = {
-      metadata.labels.app = "grafana";
-      spec = { type = "ClusterIP"; ports = [{ name = "http"; port = 3000; protocol = "TCP"; targetPort = 3000; }]; selector.app = "grafana"; };
-    };
-
     Deployment.open-webui = {
       metadata.labels.app = "open-webui";
       spec = {
@@ -175,13 +139,8 @@
       ]; };
     };
 
-    Role.grafana-role.rules = [{ apiGroups = [""]; resources = ["configmaps" "secrets"]; verbs = ["get" "list" "watch"]; }];
     Role.n8n-role.rules = [{ apiGroups = [""]; resources = ["configmaps" "secrets" "persistentvolumeclaims"]; verbs = ["get" "list" "watch" "create" "update"]; }];
 
-    RoleBinding.grafana-rolebinding = {
-      roleRef = { apiGroup = "rbac.authorization.k8s.io"; kind = "Role"; name = "grafana-role"; };
-      subjects = [{ kind = "ServiceAccount"; name = "grafana-sa"; }];
-    };
     RoleBinding.n8n-rolebinding = {
       roleRef = { apiGroup = "rbac.authorization.k8s.io"; kind = "Role"; name = "n8n-role"; };
       subjects = [{ kind = "ServiceAccount"; name = "n8n-sa"; }];
@@ -219,6 +178,25 @@
       }];
     };
 
+    # ── NetworkPolicies ────────────────────────────────────────
+    NetworkPolicy.default-deny = {
+      spec = {
+        podSelector = { };
+        policyTypes = [ "Ingress" "Egress" ];
+      };
+    };
+    NetworkPolicy.allow-internal = {
+      spec = {
+        podSelector = { };
+        policyTypes = [ "Ingress" "Egress" ];
+        ingress = [{ from = [{ namespaceSelector.matchLabels.name = "ai-inference"; }]; }];
+        egress = [
+          { to = [{ namespaceSelector.matchLabels.name = "ai-inference"; }]; }
+          { to = [{ namespaceSelector = { }; podSelector.matchLabels."k8s-app" = "kube-dns"; }]; ports = [{ protocol = "UDP"; port = 53; } { protocol = "TCP"; port = 53; }]; }
+        ];
+      };
+    };
+
     # Qdrant vector database — migrated from systemd to K8s StatefulSet
     StatefulSet.qdrant = {
       metadata.labels.app = "qdrant";
@@ -229,6 +207,7 @@
         template = {
           metadata.labels.app = "qdrant";
           spec = {
+            nodeName = "nexus";
             containers = [{
               name = "qdrant";
               image = "docker.io/qdrant/qdrant:v1.13.4";

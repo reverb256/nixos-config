@@ -564,7 +564,7 @@ in
                 ];
                 resources = {
                   requests = { cpu = "500m"; memory = "1Gi"; };
-                  limits = { cpu = "2"; memory = "4Gi"; };
+                  limits = { cpu = "2"; memory = "2Gi"; };
                 };
                 livenessProbe = httpProbe 9009 "/ready";
                 readinessProbe = httpProbe 9009 "/ready";
@@ -645,7 +645,7 @@ in
                 ];
                 resources = {
                   requests = { cpu = "250m"; memory = "512Mi"; };
-                  limits = { cpu = "1"; memory = "2Gi"; };
+                  limits = { cpu = "1"; memory = "1Gi"; };
                 };
                 livenessProbe = httpProbe 3200 "/ready";
                 readinessProbe = httpProbe 3200 "/ready";
@@ -696,6 +696,13 @@ in
       };
     };
 
+    # ── Grafana admin secret ──────────────────────────────────
+    monitoring.Secret.grafana-admin-secret = {
+      type = "Opaque";
+      # TODO: Run `agenix -e secrets/grafana-admin-password.age` to create the encrypted secret file
+      stringData."admin-password" = "CHANGE-ME-ON-DEPLOY";
+    };
+
     # ── Grafana ────────────────────────────────────────────────
     monitoring.ConfigMap.grafana-datasources.data."datasources.yaml" =
       builtins.toJSON grafanaDatasources;
@@ -730,7 +737,7 @@ in
                 env = {
                   _namedlist = true;
                   GF_SECURITY_ADMIN_USER.value = "admin";
-                  GF_SECURITY_ADMIN_PASSWORD.value = "admin";
+                  GF_SECURITY_ADMIN_PASSWORD.valueFrom.secretKeyRef = { name = "grafana-admin-secret"; key = "admin-password"; };
                   GF_USERS_ALLOW_SIGN_UP.value = "false";
                   GF_AUTH_ANONYMOUS_ENABLED.value = "false";
                   GF_LOG_MODE.value = "console";
@@ -920,7 +927,7 @@ in
                 ports = [{ containerPort = 9090; name = "http"; protocol = "TCP"; }];
                 resources = {
                   requests = { cpu = "250m"; memory = "512Mi"; };
-                  limits = { cpu = "1"; memory = "2Gi"; };
+                  limits = { cpu = "1"; memory = "1Gi"; };
                 };
                 livenessProbe = httpProbe 9090 "/-/healthy";
                 readinessProbe = httpProbe 9090 "/-/ready";
@@ -1016,15 +1023,15 @@ in
 
     # ── PDBs ───────────────────────────────────────────────────
     monitoring.PodDisruptionBudget.loki-pdb = {
-      spec.minAvailable = 1;
+      spec.maxUnavailable = 1;
       spec.selector.matchLabels.app = "loki";
     };
     monitoring.PodDisruptionBudget.mimir-pdb = {
-      spec.minAvailable = 1;
+      spec.maxUnavailable = 1;
       spec.selector.matchLabels.app = "mimir";
     };
     monitoring.PodDisruptionBudget.grafana-pdb = {
-      spec.minAvailable = 1;
+      spec.maxUnavailable = 1;
       spec.selector.matchLabels.app = "grafana";
     };
   };
