@@ -331,3 +331,55 @@ models-list:
 # Gateway models
 models-gateway:
     curl -s http://127.0.0.1:8080/v1/models 2>/dev/null | jq '.data[].id' 2>/dev/null || echo "Gateway not responding"
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  UNIFIED DEPLOYMENT PIPELINE (Phase 5)
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Unified deploy: validate + OS + copy closures + K8s (all hosts)
+unified-deploy target="all" *args:
+    #!/usr/bin/env bash
+    set -e
+    echo "▸ Running unified deployment pipeline..."
+    cd {{FLAKE}} && sudo bash scripts/deploy.sh {{target}} {{args}}
+
+# Unified rollback: OS + K8s
+unified-rollback *args:
+    #!/usr/bin/env bash
+    set -e
+    echo "▸ Running unified rollback..."
+    cd {{FLAKE}} && sudo bash scripts/rollback.sh {{args}}
+
+# Full validation suite (flake check + colmena build + K8s dry-run + connectivity)
+full-check *args:
+    #!/usr/bin/env bash
+    set -e
+    echo "▸ Running full validation suite..."
+    cd {{FLAKE}} && sudo bash scripts/check.sh {{args}}
+
+# Validate K8s manifests only (via k8s-validate app or nix build)
+validate-k8s:
+    #!/usr/bin/env bash
+    set -e
+    echo "▸ Validating Kubernetes manifests..."
+    cd {{FLAKE}}
+    if nix build .#kubernetesManifests 2>/dev/null; then
+        if [ -d result ]; then
+            echo "  ✓ Kubernetes manifests built successfully"
+            if command -v kubectl >/dev/null 2>&1; then
+                if kubectl apply --dry-run=client -f result/ --recursive; then
+                    echo "  ✓ Kubectl dry-run passed"
+                else
+                    echo "  ✗ Kubectl dry-run failed"
+                    exit 1
+                fi
+            else
+                echo "  ⚠ kubectl not found, skipping dry-run"
+            fi
+        else
+            echo "  ✓ K8s manifest built (single file)"
+        fi
+    else
+        echo "  ⚠ kubernetesManifests not available, trying k8s-validate..."
+        nix run .#k8s-validate
+    fi
