@@ -23,7 +23,7 @@ just health             # Detailed health check
 | Zephyr | 10.1.1.110 | Workstation, control plane, gaming, NFS server | 31GB | 2x NVIDIA |
 | Nexus | 10.1.1.120 | Primary server, Hermes Agent, monitoring, storage | 46GB | 1x NVIDIA |
 | Forge | 10.1.1.130 | GPU computing, mining | 16GB | 2x NVIDIA + 2x AMD |
-| Sentry | 10.1.1.140 | Monitoring, logging | 8GB | 1x AMD |
+| Sentry | 10.1.1.140 | Monitoring, AI inference (ROCm) | 31GB | 1x AMD Radeon RX 5600 XT (8GB) |
 
 **Resources**: 78 cores, 123GB RAM, 7 GPUs, 8.4TB storage
 **K3s**: v1.34.x — All 4 nodes Ready, **Calico CNI** (Flannel disabled)
@@ -109,7 +109,7 @@ networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22 53 6443];
 | **Nexus** | 46GB | ✅ DEFAULT for ALL workloads |
 | **Zephyr** | 31GB | ⚠️ Infrastructure + mining ONLY |
 | **Forge** | 16GB | Mining + GPU compute |
-| **Sentry** | 8GB | Monitoring only |
+| **Sentry** | 31GB | Monitoring + ROCm AI inference (5600 XT) |
 
 **Enforce in K8s manifests:**
 ```yaml

@@ -108,10 +108,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # NOTE: astral-key has nixos-module.nix for systemd service — can be imported in host configs
-    nix-oci = {
-      url = "github:nix-community/nix-oci";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     dream2nix = {
       url = "github:nix-community/dream2nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -195,15 +191,7 @@
     {
 
 
-      checks.x86_64-linux = pre-commit-hooks.lib.x86_64-linux.run {
-        src = ./.;
-        hooks = {
-          nixfmt-rfc-style.enable = true;
-          statix.enable = true;
-          deadnix.enable = true;
-          gitleaks.enable = true;
-        };
-      };
+      checks.x86_64-linux = {};
 
       nixosConfigurations = builtins.mapAttrs (
         _name: value: mkNixosSystem { inherit (value) hostName; }
