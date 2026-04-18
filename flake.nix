@@ -103,6 +103,26 @@
       url = "path:/data/projects/own/gpu-proxy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nix-oci = {
+      url = "github:nix-community/nix-oci";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    dream2nix = {
+      url = "github:nix-community/dream2nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    pre-commit-hooks = {
+      url = "github:cachix/pre-commit-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    process-compose = {
+      url = "github:F1bonacc1/process-compose";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nix-fast-build = {
+      url = "github:Mic92/nix-fast-build";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
   outputs =
     inputs@{
@@ -114,6 +134,7 @@
       claude-native,
       agenix,
       colmena,
+      pre-commit-hooks,
       ...
     }:
     let
@@ -167,6 +188,17 @@
       };
     in
     {
+
+
+      checks.x86_64-linux = pre-commit-hooks.lib.x86_64-linux.run {
+        src = ./.;
+        hooks = {
+          nixfmt-rfc-style.enable = true;
+          statix.enable = true;
+          deadnix.enable = true;
+          gitleaks.enable = true;
+        };
+      };
 
       nixosConfigurations = builtins.mapAttrs (
         _name: value: mkNixosSystem { inherit (value) hostName; }
