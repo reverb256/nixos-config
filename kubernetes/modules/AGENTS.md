@@ -1,6 +1,6 @@
 # Kubernetes Nix Modules - Agent Context
 
-**Parent:** `../../AGENTS.md` | **Domain:** K8s Nix modules via easykubenix (13 .nix files)
+**Parent:** `../../AGENTS.md` | **Domain:** K8s Nix modules via easykubenix (14 .nix files)
 
 ## Overview
 Nix-native Kubernetes resource definitions using the easykubenix library.
