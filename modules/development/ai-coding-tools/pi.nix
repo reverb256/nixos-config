@@ -168,17 +168,23 @@ in
               }
             ]
           },
-          "llama-cpp": {
-            "baseUrl": "http://127.0.0.1:1235/v1",
+                "contextWindow": 131072,
+                "maxTokens": 8192,
+                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
+              }
+            ]
+          },
+          "sentry-local": {
+            "baseUrl": "http://sentry:1235/v1",
             "api": "openai-completions",
             "apiKey": "unused",
             "models": [
               {
-                "id": "gemma-4-e4b-it",
-                "name": "Gemma 4 E4B IT (llama.cpp local)",
+                "id": "Qwen3.5-4B.Q4_K_M.gguf",
+                "name": "Qwen3.5-4B (Local Sentry - RX5600 6GB)",
                 "reasoning": false,
-                "input": ["text", "image"],
-                "contextWindow": 131072,
+                "input": ["text"],
+                "contextWindow": 262144,
                 "maxTokens": 8192,
                 "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
               }

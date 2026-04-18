@@ -35,9 +35,9 @@
       enable = true;
       port = 30900;
       searxngUrl = "http://10.1.1.120:30888";
-      chatModelUrl = "http://10.1.1.140:1235/v1";
-      chatModelKey = "Qwen3.5-4B.Q4_K_M.gguf";
+      openFirewall = true;
     };
+
     gpu-profile-manager.enable = lib.mkForce false; # NixOS module not available yet
     mining-coordinator.enable = false; # NixOS module not available yet
 
@@ -273,7 +273,7 @@
   # brain-wiki-sync: DELETED — wiki pages are display-only, Qdrant is the retrieval path
 
   users.users.j_kro.extraGroups = [
- "hermes"
+    "hermes"
     "plugdev"
     "audio"
     "input"
