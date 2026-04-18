@@ -54,6 +54,13 @@ in
       description = "Path to agenix secret file containing ZAI_API_KEY";
       example = "config.age.secrets.zai-api-key.path";
     };
+
+    nvidiaApiKeyFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to agenix secret file containing NVIDIA_API_KEY";
+      example = "config.age.secrets.nvidia-api-key.path";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -81,6 +88,47 @@ model:
   default: ${cfg.model}
   api_key: none
 
+providers:
+  zai:
+    base_url: https://api.z.ai/api/coding/paas/v4
+    api_key_env: ZAI_API_KEY
+    model: glm-5.1
+  nvidia-nim:
+    base_url: https://integrate.api.nvidia.com/v1
+    api_key_env: NVIDIA_API_KEY
+    model: deepseek-ai/deepseek-v3.1
+  ai-gateway:
+    base_url: http://127.0.0.1:8080/v1
+    api_key: none
+    model: qwen3.5-4b
+  lmstudio:
+    base_url: http://127.0.0.1:1234/v1
+    api_key: lmstudio
+    model: qwen3.5-4b
+  llama-cpp-zephyr:
+    base_url: http://llama-server-zephyr.ai-inference.svc.cluster.local:1235/v1
+    api_key: unused
+    model: Qwen3.6-35B-A3B-UD-Q3_K_M.gguf
+  llama-cpp-sentry:
+    base_url: http://llama-server-sentry.ai-inference.svc.cluster.local:1235/v1
+    api_key: unused
+    model: Qwen3.5-4B.Q4_K_M.gguf
+
+fallback_providers:
+  - zai
+  - nvidia-nim
+  - ai-gateway
+  - llama-cpp-zephyr
+  - llama-cpp-sentry
+
+smart_model_routing:
+  enabled: true
+  max_simple_chars: 160
+  max_simple_words: 28
+  cheap_model:
+    provider: llama-cpp-sentry
+    model: Qwen3.5-4B.Q4_K_M.gguf
+
 terminal:
   backend: local
   timeout: 180
@@ -95,26 +143,27 @@ memory:
 compression:
   enabled: true
   threshold: 0.9
-
-smart_model_routing:
-  enabled: true
-  max_simple_chars: 160
-  max_simple_words: 28
-  cheap_model:
-    provider: llama-cpp
-    model: gemma-4-e4b-it
 YAML_EOF
         chmod 644 "$HERMES_HOME/config.yaml"
       fi
 
-      # Write .env with API key from agenix secret
+      # Write .env with API keys from agenix secrets
       ${lib.optionalString (cfg.apiKeyFile != null) ''
+        echo -n "# Hermes environment variables" > "$HERMES_HOME/.env"
         if [ -f "${cfg.apiKeyFile}" ]; then
-          cat > "$HERMES_HOME/.env" << ENV_EOF
-ZAI_API_KEY=$(cat ${cfg.apiKeyFile})
-ENV_EOF
-          chmod 600 "$HERMES_HOME/.env"
+          echo -n "ZAI_API_KEY=" >> "$HERMES_HOME/.env"
+          cat "${cfg.apiKeyFile}" >> "$HERMES_HOME/.env"
+          echo "" >> "$HERMES_HOME/.env"
         fi
+        chmod 600 "$HERMES_HOME/.env"
+      ''}
+      ${lib.optionalString (cfg.nvidiaApiKeyFile != null) ''
+        echo -n "NVIDIA_API_KEY=" >> "$HERMES_HOME/.env"
+        if [ -f "${cfg.nvidiaApiKeyFile}" ]; then
+          cat "${cfg.nvidiaApiKeyFile}" >> "$HERMES_HOME/.env"
+          echo "" >> "$HERMES_HOME/.env"
+        fi
+        chmod 600 "$HERMES_HOME/.env"
       ''}
 
       # Write SOUL.md if it doesn't exist
