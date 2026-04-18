@@ -1,0 +1,6 @@
+# McpVanguard: Safe Zones
+# Define absolute paths and tool-specific constraints.
+- tool: read_file
+  allowed_prefixes:
+    - C:\Users\  # Adjust as needed
+  recursive: true
