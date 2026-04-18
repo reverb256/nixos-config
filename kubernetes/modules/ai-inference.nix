@@ -246,15 +246,458 @@
       };
     };
 
-    Service.qdrant = {
-      metadata.labels.app = "qdrant";
+
+    # ── LimitRange ───────────────────────────────────────────────
+    # Fixed version: does NOT auto-assign GPUs to all pods
+    # GPU workloads must explicitly request GPUs in their deployment specs
+    LimitRange.ai-inference-limits = {
+      metadata.labels.app = "gpu-scheduler";
+      spec.limits = [{
+        type = "Container";
+        default = { cpu = "2"; memory = "4Gi"; };
+        defaultRequest = { cpu = "500m"; memory = "1Gi"; };
+        max = { cpu = "8"; memory = "16Gi"; "nvidia.com/gpu" = "1"; };
+        min = { cpu = "100m"; memory = "128Mi"; };
+        maxLimitRequestRatio = { cpu = "10"; memory = "4"; };
+      }];
+    };
+
+    # ── Knowledge Fabric API ─────────────────────────────────────
+    Deployment.knowledge-fabric-api = {
+      metadata.labels = { app = "knowledge-fabric-api"; component = "brain"; };
+      spec = {
+        replicas = 1;
+        selector.matchLabels.app = "knowledge-fabric-api";
+        strategy.type = "Recreate";
+        template = {
+          metadata.labels = { app = "knowledge-fabric-api"; component = "brain"; };
+          spec = {
+            nodeName = "nexus";
+            automountServiceAccountToken = false;
+            securityContext = { runAsNonRoot = true; runAsUser = 1000; runAsGroup = 1000; fsGroup = 1000; seccompProfile.type = "RuntimeDefault"; };
+            containers = [{
+              name = "knowledge-fabric-api";
+              image = "nginx:alpine";
+              imagePullPolicy = "IfNotPresent";
+              securityContext = { allowPrivilegeEscalation = false; capabilities.drop = ["ALL"]; };
+              ports = [{ name = "http"; containerPort = 3000; protocol = "TCP"; }];
+              resources = { requests = { cpu = "100m"; memory = "128Mi"; }; limits = { cpu = "500m"; memory = "256Mi"; }; };
+              readinessProbe = { httpGet = { path = "/"; port = "http"; }; initialDelaySeconds = 5; periodSeconds = 10; timeoutSeconds = 5; failureThreshold = 6; };
+              livenessProbe = { httpGet = { path = "/"; port = "http"; }; initialDelaySeconds = 15; periodSeconds = 30; timeoutSeconds = 10; failureThreshold = 3; };
+            }];
+            tolerations = [
+              { key = "workstation"; operator = "Equal"; value = "true"; effect = "NoSchedule"; }
+              { key = "interactive"; operator = "Equal"; value = "true"; effect = "NoExecute"; }
+            ];
+          };
+        };
+      };
+    };
+
+    Service.knowledge-fabric-api = {
+      metadata.labels.app = "knowledge-fabric-api";
       spec = {
         type = "ClusterIP";
-        selector.app = "qdrant";
+        selector.app = "knowledge-fabric-api";
+        ports = [{ name = "http"; port = 3000; targetPort = 3000; protocol = "TCP"; }];
+      };
+    };
+
+    Ingress.knowledge-fabric-api = {
+      metadata = { labels."app.kubernetes.io/name" = "knowledge-fabric-api"; annotations."caddy.ingress.kubernetes.io/disable-ssl-redirect" = "true"; };
+      spec = { ingressClassName = "caddy"; rules = [
+        { host = "brain.lan"; http.paths = [{ path = "/"; pathType = "Prefix"; backend.service = { name = "knowledge-fabric-api"; port.number = 3000; }; }]; }
+      ]; };
+    };
+
+    # ── Embed Server (HuggingFace TEI) ───────────────────────────
+    Deployment.embed-server = {
+      metadata.labels = { app = "embed-server"; component = "embeddings"; };
+      spec = {
+        replicas = 1;
+        selector.matchLabels.app = "embed-server";
+        strategy.type = "Recreate";
+        template = {
+          metadata.labels = { app = "embed-server"; component = "embeddings"; };
+          spec = {
+            nodeName = "nexus";
+            automountServiceAccountToken = false;
+            securityContext = { runAsNonRoot = true; runAsUser = 1000; runAsGroup = 1000; fsGroup = 1000; seccompProfile.type = "RuntimeDefault"; };
+            containers = [{
+              name = "embed-server";
+              image = "ghcr.io/huggingface/text-embeddings-inference:cpu-1.5";
+              imagePullPolicy = "IfNotPresent";
+              args = ["--model-id" "nomic-ai/nomic-embed-text-v2-moe"];
+              securityContext = { allowPrivilegeEscalation = false; readOnlyRootFilesystem = true; capabilities.drop = ["ALL"]; };
+              ports = [{ name = "http"; containerPort = 80; protocol = "TCP"; }];
+              env = [{ name = "HF_HOME"; value = "/tmp/.cache/huggingface"; }];
+              resources = { requests = { cpu = "1"; memory = "1Gi"; }; limits = { cpu = "2"; memory = "2Gi"; }; };
+              readinessProbe = { httpGet = { path = "/health"; port = "http"; }; initialDelaySeconds = 30; periodSeconds = 10; timeoutSeconds = 5; failureThreshold = 6; };
+              livenessProbe = { httpGet = { path = "/health"; port = "http"; }; initialDelaySeconds = 60; periodSeconds = 30; timeoutSeconds = 10; failureThreshold = 3; };
+              volumeMounts = [{ name = "tmp"; mountPath = "/tmp"; } { name = "cache"; mountPath = "/.cache"; }];
+            }];
+            volumes = [
+              { name = "tmp"; emptyDir.sizeLimit = "1Gi"; }
+              { name = "cache"; emptyDir.sizeLimit = "2Gi"; }
+            ];
+            tolerations = [
+              { key = "workstation"; operator = "Equal"; value = "true"; effect = "NoSchedule"; }
+              { key = "interactive"; operator = "Equal"; value = "true"; effect = "NoExecute"; }
+            ];
+          };
+        };
+      };
+    };
+
+    Service.embed-server = {
+      metadata.labels.app = "embed-server";
+      spec = {
+        type = "NodePort";
+        selector.app = "embed-server";
+        ports = [{ name = "http"; port = 80; targetPort = 80; nodePort = 30880; protocol = "TCP"; }];
+      };
+    };
+
+    # ── llama-server (Qwen on Nexus) ─────────────────────────────
+    Deployment.llama-server = {
+      metadata.labels = { app = "llama-cpp"; purpose = "llm-inference"; };
+      spec = {
+        replicas = 1; revisionHistoryLimit = 2;
+        selector.matchLabels.app = "llama-cpp";
+        strategy = { type = "RollingUpdate"; rollingUpdate = { maxSurge = 0; maxUnavailable = 1; }; };
+        template = {
+          metadata.labels.app = "llama-cpp";
+          spec = {
+            nodeName = "nexus";
+            hostNetwork = true;
+            containers = [{
+              name = "llama-server";
+              image = "alpine:latest";
+              command = ["/run/current-system/sw/bin/llama-server"];
+              args = ["--model=/models/Qwen3.5-0.8B.Q8_0.gguf" "--host=0.0.0.0" "--port=8080" "--ctx-size=16384" "--threads=16" "--metrics"];
+              env = [{ name = "CUDA_VISIBLE_DEVICES"; value = ""; }];
+              ports = [{ name = "http"; containerPort = 8080; hostPort = 8080; protocol = "TCP"; }];
+              resources = { requests = { cpu = "2"; memory = "2Gi"; }; limits = { cpu = "8"; memory = "4Gi"; }; };
+              volumeMounts = [
+                { name = "models"; mountPath = "/models"; readOnly = true; }
+                { name = "nixos-bin"; mountPath = "/run/current-system/sw/bin"; readOnly = true; }
+                { name = "nixos-lib"; mountPath = "/run/current-system/sw/lib"; readOnly = true; }
+              ];
+              livenessProbe = { httpGet = { path = "/health"; port = 8080; }; initialDelaySeconds = 30; periodSeconds = 30; };
+              readinessProbe = { httpGet = { path = "/health"; port = 8080; }; initialDelaySeconds = 10; periodSeconds = 10; };
+            }];
+            volumes = [
+              { name = "models"; hostPath = { path = "/home/j_kro/.lmstudio/models/Jackrong/Qwen3.5-0.8B-Claude-4.6-Opus-Reasoning-Distilled-GGUF"; type = "Directory"; }; }
+              { name = "nixos-bin"; hostPath = { path = "/run/current-system/sw/bin"; type = "Directory"; }; }
+              { name = "nixos-lib"; hostPath = { path = "/run/current-system/sw/lib"; type = "Directory"; }; }
+            ];
+          };
+        };
+      };
+    };
+
+    Service.llama-server = {
+      metadata.labels.app = "llama-server";
+      spec = {
+        type = "ClusterIP";
+        selector.app = "llama-server";
+        ports = [{ port = 8080; targetPort = 8080; protocol = "TCP"; name = "http"; }];
+      };
+    };
+
+    # ── llama-cpp-qwen Service+Endpoints (Nexus hostNetwork) ─────
+    Service.llama-cpp-qwen = {
+      metadata.labels.app = "llama-cpp";
+      spec = {
+        type = "ClusterIP";
         ports = [
-          { name = "http"; port = 6333; protocol = "TCP"; targetPort = 6333; }
-          { name = "grpc"; port = 6334; protocol = "TCP"; targetPort = 6334; }
+          { port = 8080; targetPort = 8080; protocol = "TCP"; name = "http"; }
+          { port = 9090; targetPort = 9090; protocol = "TCP"; name = "metrics"; }
         ];
+      };
+    };
+
+    Endpoints.llama-cpp-qwen = {
+      metadata.labels.app = "llama-cpp";
+      subsets = [{
+        addresses = [{ ip = "10.1.1.120"; }];
+        ports = [
+          { port = 8080; name = "http"; protocol = "TCP"; }
+          { port = 9090; name = "metrics"; protocol = "TCP"; }
+        ];
+      }];
+    };
+
+    # ── MCP Gateway Proxy DaemonSet ──────────────────────────────
+    # Forwards localhost:8080 to AI Inference Gateway NodePort on each node
+    DaemonSet.mcp-gateway-proxy = {
+      metadata.labels.app = "mcp-gateway-proxy";
+      spec = {
+        selector.matchLabels.app = "mcp-gateway-proxy";
+        template = {
+          metadata.labels.app = "mcp-gateway-proxy";
+          spec = {
+            hostNetwork = true;
+            tolerations = [{ key = "CriticalAddonsOnly"; operator = "Exists"; }];
+            containers = [{
+              name = "socat";
+              image = "alpine/socat:latest";
+              command = ["socat" "TCP-LISTEN:8080,fork,reuseaddr,bind=127.0.0.1" "TCP:localhost:30880"];
+              resources = { limits = { memory = "128Mi"; cpu = "100m"; }; requests = { memory = "64Mi"; cpu = "50m"; }; };
+              securityContext = { allowPrivilegeEscalation = false; capabilities = { drop = ["ALL"]; add = ["NET_BIND_SERVICE" "NET_ADMIN"]; }; };
+            }];
+          };
+        };
+      };
+    };
+
+    # ── Redis for AI Gateway ─────────────────────────────────────
+    Deployment.redis = {
+      metadata.labels.app = "redis";
+      spec = {
+        replicas = 1;
+        selector.matchLabels.app = "redis";
+        template = {
+          metadata.labels.app = "redis";
+          spec = {
+            nodeSelector."kubernetes.io/hostname" = "nexus";
+            containers = [{
+              name = "redis";
+              image = "redis:7-alpine";
+              command = ["redis-server" "--save" "" "--appendonly" "no"];
+              args = ["--maxmemory" "256mb" "--maxmemory-policy" "allkeys-lru"];
+              ports = [{ containerPort = 6379; name = "redis"; }];
+              resources = { requests = { cpu = "100m"; memory = "128Mi"; }; limits = { cpu = "500m"; memory = "512Mi"; }; };
+              volumeMounts = [{ name = "redis-data"; mountPath = "/data"; }];
+            }];
+            volumes = [{ name = "redis-data"; emptyDir.sizeLimit = "512Mi"; }];
+          };
+        };
+      };
+    };
+
+    Service.redis-service = {
+      metadata.labels.app = "redis";
+      spec = {
+        type = "ClusterIP";
+        selector.app = "redis";
+        ports = [{ port = 6379; targetPort = 6379; name = "redis"; }];
+      };
+    };
+
+    # ── SearXNG MCP Server ───────────────────────────────────────
+    Deployment.searxng-mcp = {
+      metadata.labels.app = "searxng-mcp";
+      spec = {
+        replicas = 1;
+        selector.matchLabels.app = "searxng-mcp";
+        template = {
+          metadata.labels.app = "searxng-mcp";
+          spec = {
+            serviceAccountName = "searxng-mcp";
+            securityContext = { runAsNonRoot = true; runAsUser = 1000; fsGroup = 1000; };
+            containers = [{
+              name = "searxng-mcp";
+              image = "ghcr.io/reverb256/ai-inference-gateway:latest";
+              imagePullPolicy = "Always";
+              command = ["python" "-m" "ai_inference_gateway.mcp_servers.searxng_server"];
+              env = [
+                { name = "SEARXNG_URL"; valueFrom.configMapKeyRef = { name = "searxng-mcp-config"; key = "SEARXNG_URL"; }; }
+                { name = "SEARXNG_CACHE_TTL"; valueFrom.configMapKeyRef = { name = "searxng-mcp-config"; key = "SEARXNG_CACHE_TTL"; }; }
+                { name = "PYTHONPATH"; value = "/app"; }
+              ];
+              resources = { requests = { cpu = "100m"; memory = "128Mi"; }; limits = { cpu = "500m"; memory = "512Mi"; }; };
+              livenessProbe = { httpGet = { path = "/health"; port = 3000; }; initialDelaySeconds = 10; periodSeconds = 30; };
+              readinessProbe = { httpGet = { path = "/health"; port = 3000; }; initialDelaySeconds = 5; periodSeconds = 10; };
+              securityContext = { allowPrivilegeEscalation = false; capabilities.drop = ["ALL"]; readOnlyRootFilesystem = true; };
+            }];
+          };
+        };
+      };
+    };
+
+    Service.searxng-mcp = {
+      metadata.labels.app = "searxng-mcp";
+      spec = {
+        type = "ClusterIP";
+        selector.app = "searxng-mcp";
+        ports = [{ name = "mcp"; protocol = "TCP"; port = 3000; targetPort = 3000; }];
+      };
+    };
+
+    NetworkPolicy.searxng-mcp-egress = {
+      spec = {
+        podSelector.matchLabels.app = "searxng-mcp";
+        policyTypes = ["Egress"];
+        egress = [
+          { to = [{ namespaceSelector.matchLabels.name = "kube-system"; }]; ports = [{ protocol = "UDP"; port = 53; }]; }
+          { to = [{ namespaceSelector.matchLabels.name = "search"; }]; ports = [{ protocol = "TCP"; port = 8080; }]; }
+        ];
+      };
+    };
+
+    # ── Observability (Prometheus + Grafana) ─────────────────────
+    ServiceAccount.grafana-sa.automountServiceAccountToken = false;
+
+    ClusterRole.prometheus.rules = [
+      { apiGroups = [""]; resources = ["nodes" "nodes/proxy" "services" "endpoints" "pods"]; verbs = ["get" "list" "watch"]; }
+      { nonResourceURLs = ["/metrics"]; verbs = ["get"]; }
+    ];
+
+    ClusterRoleBinding.prometheus = {
+      roleRef = { apiGroup = "rbac.authorization.k8s.io"; kind = "ClusterRole"; name = "prometheus"; };
+      subjects = [{ kind = "ServiceAccount"; name = "prometheus"; namespace = "ai-inference"; }];
+    };
+
+    Deployment.prometheus = {
+      metadata.labels.app = "prometheus";
+      spec = {
+        replicas = 1;
+        selector.matchLabels.app = "prometheus";
+        template = {
+          metadata.labels.app = "prometheus";
+          spec = {
+            nodeSelector."kubernetes.io/hostname" = "nexus";
+            serviceAccountName = "prometheus";
+            containers = [{
+              name = "prometheus";
+              image = "prom/prometheus:v2.53.0";
+              args = ["--config.file=/etc/prometheus/prometheus.yml" "--storage.tsdb.path=/prometheus" "--web.console.libraries=/etc/prometheus/console_libraries" "--web.console.templates=/etc/prometheus/consoles" "--storage.tsdb.retention.time=30d" "--web.enable-lifecycle"];
+              ports = [{ containerPort = 9090; name = "http"; }];
+              env = [{ name = "POD_IP"; valueFrom.fieldRef.fieldPath = "status.podIP"; }];
+              volumeMounts = [{ name = "config"; mountPath = "/etc/prometheus"; } { name = "storage"; mountPath = "/prometheus"; }];
+              livenessProbe = { httpGet = { path = "/-/healthy"; port = 9090; }; initialDelaySeconds = 30; periodSeconds = 10; };
+              readinessProbe = { httpGet = { path = "/-/ready"; port = 9090; }; initialDelaySeconds = 30; periodSeconds = 5; };
+              resources = { requests = { cpu = "200m"; memory = "512Mi"; }; limits = { cpu = "1"; memory = "2Gi"; }; };
+            }];
+            volumes = [
+              { name = "config"; configMap.name = "prometheus-config"; }
+              { name = "storage"; emptyDir.sizeLimit = "4Gi"; }
+            ];
+          };
+        };
+      };
+    };
+
+    Service.prometheus = {
+      metadata.labels.app = "prometheus";
+      spec = {
+        type = "ClusterIP";
+        selector.app = "prometheus";
+        ports = [{ port = 9090; targetPort = 9090; name = "http"; }];
+      };
+    };
+
+    Deployment.grafana = {
+      metadata.labels.app = "grafana";
+      spec = {
+        replicas = 1;
+        selector.matchLabels.app = "grafana";
+        template = {
+          metadata.labels.app = "grafana";
+          spec = {
+            nodeSelector."kubernetes.io/hostname" = "nexus";
+            containers = [{
+              name = "grafana";
+              image = "grafana/grafana:11.1.0";
+              env = [
+                { name = "GF_SECURITY_ADMIN_USER"; value = "admin"; }
+                { name = "GF_SECURITY_ADMIN_PASSWORD"; value = "admin"; }
+                { name = "GF_USERS_ALLOW_SIGN_UP"; value = "false"; }
+                { name = "GF_INSTALL_PLUGINS"; value = ""; }
+                { name = "GF_SERVER_ROOT_URL"; value = "http://localhost:3000"; }
+              ];
+              ports = [{ containerPort = 3000; name = "http"; }];
+              resources = { requests = { cpu = "100m"; memory = "128Mi"; }; limits = { cpu = "500m"; memory = "512Mi"; }; };
+            }];
+          };
+        };
+      };
+    };
+
+    Service.grafana = {
+      metadata.labels.app = "grafana";
+      spec = {
+        type = "ClusterIP";
+        selector.app = "grafana";
+        ports = [{ port = 3000; targetPort = 3000; name = "http"; }];
+      };
+    };
+
+    Role.grafana-role.rules = [{ apiGroups = [""]; resources = ["configmaps" "secrets"]; verbs = ["get" "list" "watch"]; }];
+
+    RoleBinding.grafana-rolebinding = {
+      roleRef = { apiGroup = "rbac.authorization.k8s.io"; kind = "Role"; name = "grafana-role"; };
+      subjects = [{ kind = "ServiceAccount"; name = "grafana-sa"; }];
+    };
+
+    # ── Secrets ──────────────────────────────────────────────────
+    # Note: Secrets with sensitive data should ideally be managed via agenix
+    Secret.open-webui-secrets = {
+      type = "Opaque";
+      stringData.webui-secret-key = "";
+    };
+
+    Secret.ai-inference-gateway-secrets = {
+      type = "Opaque";
+      stringData = {
+        "zai-api-key" = "YOUR_ZAI_API_KEY_HERE";
+        "api-keys" = ''
+          default=sk-rep...-key
+        '';
+      };
+    };
+
+    # ── Additional NetworkPolicies ───────────────────────────────
+    # Allow SearXNG pods to reach AI Inference Gateway
+    NetworkPolicy.allow-search-to-gateway = {
+      spec = {
+        podSelector.matchLabels.app = "ai-inference-gateway";
+        policyTypes = ["Ingress"];
+        ingress = [{
+          from = [{ namespaceSelector.matchLabels.name = "search"; podSelector.matchLabels.app = "searxng"; }];
+          ports = [{ protocol = "TCP"; port = 8080; }];
+        }];
+      };
+    };
+
+    # Allow gateway ingress from ingress-system and intra-namespace
+    NetworkPolicy.allow-gateway-ingress = {
+      spec = {
+        podSelector.matchLabels.app = "ai-inference-gateway";
+        policyTypes = ["Ingress"];
+        ingress = [
+          { from = [{ namespaceSelector.matchLabels.name = "ingress-system"; }]; ports = [{ protocol = "TCP"; port = 8080; }]; }
+          { from = [{ podSelector = { }; }]; ports = [{ protocol = "TCP"; port = 8080; }]; }
+        ];
+      };
+    };
+
+    # Allow gateway egress to dependencies
+    NetworkPolicy.allow-gateway-egress = {
+      spec = {
+        podSelector.matchLabels.app = "ai-inference-gateway";
+        policyTypes = ["Egress"];
+        egress = [
+          { to = [{ namespaceSelector.matchLabels.name = "kube-system"; }]; ports = [{ protocol = "UDP"; port = 53; }]; }
+          { ports = [{ protocol = "TCP"; port = 443; }]; }
+          { to = [{ namespaceSelector.matchLabels.name = "search"; }]; ports = [{ protocol = "TCP"; port = 8080; }]; }
+          { to = [{ podSelector.matchLabels.app = "qdrant"; }]; ports = [{ protocol = "TCP"; port = 6333; }]; }
+          { to = [{ podSelector.matchLabels.app = "llama-cpp"; }]; ports = [{ protocol = "TCP"; port = 8083; }]; }
+        ];
+      };
+    };
+
+    # Open WebUI network policy
+    NetworkPolicy.open-webui = {
+      spec = {
+        podSelector.matchLabels.app = "open-webui";
+        policyTypes = ["Ingress" "Egress"];
+        ingress = [
+          { from = [{ namespaceSelector.matchLabels."kubernetes.io/metadata.name" = "ingress-system"; }]; ports = [{ port = 8080; protocol = "TCP"; }]; }
+          { from = [{ podSelector = { }; }]; }
+        ];
+        egress = [{ }];
       };
     };
   };
