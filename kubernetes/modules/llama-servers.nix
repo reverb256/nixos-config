@@ -89,7 +89,6 @@ in
                   "--temp" "0.6"
                   "--top-k" "20"
                   "--top-p" "0.95"
-                  "--min-p" "0.00"
                   "--presence-penalty" "0.0"
                   "--repeat-penalty" "1.0"
                   "--metrics"
@@ -145,9 +144,9 @@ in
       };
     };
 
-    # ── Zephyr RTX 3060 Ti (GPU 0) — E4B ───────────────────────────
-    # E4B model (4.6GB) + mmproj (1.8GB) = 6.4GB, fits in 8GB VRAM.
-    # Runs alongside the 3090 deployment. Both privileged, GPU selection via CUDA_VISIBLE_DEVICES.
+    # ── Zephyr RTX 3060 Ti (GPU 0) — Qwen3.5-9B Opus-Distilled ───────────────────────────
+    # Claude 4.6 Opus reasoning distilled into Qwen3.5-9B. 5.6GB Q4_K_M.
+    # 32K context, turbo4 KV cache. Reasoning model (no mmproj).
     Deployment.llama-server-zephyr-3060ti = {
       metadata.labels = managed // { app = "llama-server-zephyr-3060ti"; host = "zephyr"; gpu = "rtx3060ti"; };
       spec = {
@@ -173,27 +172,25 @@ in
                 imagePullPolicy = "IfNotPresent";
                 command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
                 args = [
-                  "--model" "/models/unsloth/gemma-4-E4B-it-GGUF/gemma-4-E4B-it-IQ4_NL.gguf"
-                  "--mmproj" "/models/unsloth/gemma-4-E4B-it-GGUF/mmproj-F32.gguf"
+                  "--model" "/models/Jackrong/Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-GGUF/Qwen3.5-9B.Q4_K_M.gguf"
                   "--host" "0.0.0.0"
                   "--port" "1236"
                   "-ngl" "99"
-                  "-c" "131072"
+                  "-c" "32768"
                   "-t" "4"
                   "--fit" "off"
                   "--batch-size" "32"
-                  "--ubatch-size" "8"
+                  "--ubatch-size" "16"
                   "--flash-attn" "on"
                   "--parallel" "1"
                   "--cache-type-k" "turbo4"
                   "--cache-type-v" "turbo4"
-                  "--temp" "1.0"
-                  "--top-k" "64"
+                  "--temp" "0.6"
+                  "--top-k" "20"
                   "--top-p" "0.95"
-                  "--min-p" "0.05"
+                  "--reasoning-format" "deepseek"
+                  "--jinja"
                   "--metrics"
-            "--reasoning-format" "deepseek"
-            "--jinja"
                 ];
                 env = {
                   _namedlist = true;
@@ -244,7 +241,7 @@ in
       };
     };
 
-    # ── Sentry AMD RX 5600 XT (ROCm, gfx1010) — E2B ─────────────────────────
+    # ── Sentry AMD RX 5600 XT (ROCm, gfx1010) — Qwen3.5-4B Opus-Distilled ─────────────────────────
     Deployment.llama-server-sentry = {
       metadata.labels = managed // { app = "llama-server-sentry"; host = "sentry"; };
       spec = {
@@ -268,24 +265,24 @@ in
                 imagePullPolicy = "IfNotPresent";
                 command = [ "${pkgsWithOverlay.llama-cpp-rocm}/bin/llama-server" ];
                 args = [
-                  "--model" "/models/unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-IQ4_NL.gguf"
-                  "--mmproj" "/models/unsloth/gemma-4-E2B-it-GGUF/mmproj-F32.gguf"
+                  "--model" "/models/Jackrong/Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-GGUF/Qwen3.5-4B.Q4_K_M.gguf"
                   "--host" "0.0.0.0"
                   "--port" "1235"
                   "-ngl" "99"
-                  "-c" "8192"
+                  "-c" "32768"
                   "-t" "4"
                   "--fit" "off"
                   "--batch-size" "32"
                   "--ubatch-size" "8"
-                  "--ubatch-size" "16"
                   "--flash-attn" "on"
                   "--parallel" "1"
                   "--cache-type-k" "q4_0"
                   "--cache-type-v" "q4_0"
-                  "--temp" "1.0"
-                  "--top-k" "64"
+                  "--temp" "0.6"
+                  "--top-k" "20"
                   "--top-p" "0.95"
+                  "--reasoning-format" "deepseek"
+                  "--jinja"
                   "--metrics"
                 ];
                 env = {
