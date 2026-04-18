@@ -700,5 +700,331 @@
         egress = [{ }];
       };
     };
+
+    # ── KB MCP Server (Knowledge Base RAG) ─────────────────────────
+    # Replaces: kubernetes-manifests/kb-mcp/deployment.yaml, service.yaml
+    # Provides vector search over technical eBooks via FastMCP protocol
+    Deployment.kb-mcp = {
+      metadata.labels = {
+        app = "kb-mcp";
+        component = "rag";
+      };
+      spec = {
+        replicas = 1;
+        revisionHistoryLimit = 2;
+        selector.matchLabels.app = "kb-mcp";
+        template = {
+          metadata.labels = {
+            app = "kb-mcp";
+            component = "rag";
+          };
+          spec = {
+            nodeName = "nexus";
+            containers = [{
+              name = "kb-mcp";
+              image = "localhost/kb-mcp:latest";
+              imagePullPolicy = "Never";
+              ports = [{ containerPort = 8080; name = "http"; protocol = "TCP"; }];
+              env = [
+                { name = "QDRANT_HOST"; value = "qdrant-service.ai-inference.svc.cluster.local"; }
+                { name = "QDRANT_PORT"; value = "6333"; }
+                { name = "KB_PORT"; value = "8080"; }
+                { name = "KB_HOST"; value = "0.0.0.0"; }
+                { name = "KB_COLLECTION"; value = "knowledge_base"; }
+                { name = "KB_MODEL"; value = "all-MiniLM-L6-v2"; }
+                { name = "PYTHONUNBUFFERED"; value = "1"; }
+                { name = "HOME"; value = "/tmp"; }
+                { name = "USER"; value = "kb-mcp"; }
+                { name = "HF_HOME"; value = "/tmp/huggingface"; }
+                { name = "TRANSFORMERS_CACHE"; value = "/tmp/huggingface/transformers"; }
+              ];
+              resources = {
+                requests = { cpu = "1"; memory = "2Gi"; };
+                limits = { cpu = "2"; memory = "4Gi"; };
+              };
+              readinessProbe = {
+                tcpSocket.port = 8080;
+                initialDelaySeconds = 15;
+                periodSeconds = 10;
+                timeoutSeconds = 5;
+                failureThreshold = 6;
+              };
+              livenessProbe = {
+                tcpSocket.port = 8080;
+                initialDelaySeconds = 30;
+                periodSeconds = 30;
+                timeoutSeconds = 10;
+                failureThreshold = 3;
+              };
+              volumeMounts = [{ name = "huggingface-cache"; mountPath = "/tmp/huggingface"; }];
+            }];
+            volumes = [{
+              name = "huggingface-cache";
+              emptyDir.sizeLimit = "1Gi";
+            }];
+            tolerations = [
+              { key = "workstation"; operator = "Equal"; value = "true"; effect = "NoSchedule"; }
+              { key = "interactive"; operator = "Equal"; value = "true"; effect = "NoExecute"; }
+            ];
+          };
+        };
+      };
+    };
+
+    Service.kb-mcp = {
+      metadata.labels = { app = "kb-mcp"; component = "rag"; };
+      spec = {
+        type = "ClusterIP";
+        ports = [{ port = 8080; targetPort = 8080; name = "http"; protocol = "TCP"; }];
+        selector.app = "kb-mcp";
+      };
+    };
+
+    # ── Claude Code (in ai-inference namespace) ───────────────────
+    # Replaces: kubernetes-manifests/claude/claude-deployment.yaml,
+    #           claude-hpa.yaml, claude-service.yaml, claude-metrics-exporter.yaml
+    #           kubernetes-manifests/ai-coding-tools/00-storage.yaml
+
+    PersistentVolume.ai-coding-tools-pv = {
+      spec = {
+        capacity.storage = "10Gi";
+        accessModes = [ "ReadWriteMany" ];
+        persistentVolumeReclaimPolicy = "Retain";
+        hostPath = { path = "/home/j_kro"; type = "Directory"; };
+      };
+    };
+
+    PersistentVolumeClaim.ai-coding-tools-config = {
+      spec = {
+        accessModes = [ "ReadWriteMany" ];
+        resources.requests.storage = "10Gi";
+        volumeName = "ai-coding-tools-pv";
+      };
+    };
+
+    Deployment.claude-code = {
+      metadata.labels = { app = "claude-code"; version = "v1"; };
+      spec = {
+        replicas = 1;
+        revisionHistoryLimit = 2;
+        selector.matchLabels.app = "claude-code";
+        strategy = {
+          type = "RollingUpdate";
+          rollingUpdate = { maxSurge = 0; maxUnavailable = 1; };
+        };
+        template = {
+          metadata = {
+            labels = { app = "claude-code"; version = "v1"; };
+            annotations = {
+              "prometheus.io/scrape" = "true";
+              "prometheus.io/port" = "9090";
+              "prometheus.io/path" = "/metrics";
+            };
+          };
+          spec = {
+            tolerations = [{ key = "nvidia.com/gpu"; operator = "Exists"; effect = "NoSchedule"; }];
+            priorityClassName = "production-workload-critical";
+            affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution = [{
+              weight = 100;
+              podAffinityTerm = {
+                labelSelector.matchExpressions = [{
+                  key = "app"; operator = "In"; values = [ "claude-code" ];
+                }];
+                topologyKey = "kubernetes.io/hostname";
+              };
+            }];
+            containers = [{
+              name = "claude-code";
+              image = "ghcr.io/anthropics/claude-code:latest";
+              imagePullPolicy = "Always";
+              ports = [
+                { containerPort = 8080; name = "http"; protocol = "TCP"; }
+                { containerPort = 9090; name = "metrics"; protocol = "TCP"; }
+              ];
+              env = [
+                { name = "AI_INFERENCE_GATEWAY_URL"; value = "http://10.1.1.110:8083"; }
+                { name = "DATABASE_URL"; valueFrom.secretKeyRef = { name = "claude-secrets"; key = "database-url"; }; }
+                { name = "ANTHROPIC_API_KEY"; valueFrom.secretKeyRef = { name = "claude-secrets"; key = "anthropic-api-key"; }; }
+                { name = "LOG_LEVEL"; value = "info"; }
+                { name = "MAX_CONVERSATIONS"; value = "50"; }
+              ];
+              resources = {
+                requests = { cpu = "500m"; memory = "512Mi"; };
+                limits = { cpu = "2000m"; memory = "2Gi"; };
+              };
+              livenessProbe = {
+                httpGet = { path = "/health"; port = "http"; };
+                initialDelaySeconds = 30; periodSeconds = 10; timeoutSeconds = 5; failureThreshold = 3;
+              };
+              readinessProbe = {
+                httpGet = { path = "/ready"; port = "http"; };
+                initialDelaySeconds = 10; periodSeconds = 5; timeoutSeconds = 3; failureThreshold = 2;
+              };
+              lifecycle.preStop.exec.command = [ "/bin/sh" "-c" "sleep 30" ];
+            }];
+            terminationGracePeriodSeconds = 60;
+            dnsPolicy = "ClusterFirst";
+          };
+        };
+      };
+    };
+
+    Service.claude-code = {
+      metadata = {
+        labels.app = "claude-code";
+        annotations = {
+          "prometheus.io/scrape" = "true";
+          "prometheus.io/port" = "9090";
+          "prometheus.io/path" = "/metrics";
+        };
+      };
+      spec = {
+        type = "ClusterIP";
+        selector.app = "claude-code";
+        ports = [
+          { name = "http"; port = 8080; targetPort = "http"; protocol = "TCP"; }
+          { name = "metrics"; port = 9090; targetPort = "metrics"; protocol = "TCP"; }
+        ];
+        sessionAffinity = "ClientIP";
+        sessionAffinityConfig.clientIP.timeoutSeconds = 3600;
+      };
+    };
+
+    HorizontalPodAutoscaler.claude-code-hpa = {
+      spec = {
+        scaleTargetRef = { apiVersion = "apps/v1"; kind = "Deployment"; name = "claude-code"; };
+        minReplicas = 1;
+        maxReplicas = 10;
+        metrics = [
+          { type = "Pods"; pods = { metric.name = "active_conversations"; target = { type = "AverageValue"; averageValue = "40"; }; }; }
+          { type = "Resource"; resource = { name = "cpu"; target = { type = "Utilization"; averageUtilization = 70; }; }; }
+          { type = "Resource"; resource = { name = "memory"; target = { type = "Utilization"; averageUtilization = 80; }; }; }
+        ];
+        behavior = {
+          scaleUp = {
+            stabilizationWindowSeconds = 30;
+            policies = [
+              { type = "Percent"; value = 100; periodSeconds = 30; }
+              { type = "Pods"; value = 2; periodSeconds = 30; }
+            ];
+            selectPolicy = "Max";
+          };
+          scaleDown = {
+            stabilizationWindowSeconds = 300;
+            policies = [
+              { type = "Percent"; value = 50; periodSeconds = 60; }
+              { type = "Pods"; value = 1; periodSeconds = 60; }
+            ];
+            selectPolicy = "Min";
+          };
+        };
+      };
+    };
+
+    # ── Claude Metrics Exporter ──────────────────────────────────
+    ConfigMap.claude-metrics-exporter-config.data."config.yaml" = ''
+      server:
+        port: 9090
+        path: /metrics
+      database:
+        host: postgres-n8n.ai-inference.svc.cluster.local
+        port: 5432
+        database: claude
+        user: claude
+        sslmode: disable
+      metrics:
+        active_conversations:
+          query: |
+            SELECT COUNT(DISTINCT session_id) FROM conversations WHERE created_at > NOW() - INTERVAL '1 hour' AND status = 'active'
+          interval: 10s
+        total_conversations:
+          query: |
+            SELECT COUNT(*) FROM conversations WHERE created_at > NOW() - INTERVAL '24 hours'
+          interval: 30s
+        avg_response_time:
+          query: |
+            SELECT AVG(response_time_ms) FROM conversation_metrics WHERE timestamp > NOW() - INTERVAL '5 minutes'
+          interval: 15s
+    '';
+
+    Deployment.claude-metrics-exporter = {
+      metadata.labels.app = "claude-metrics-exporter";
+      spec = {
+        replicas = 1;
+        revisionHistoryLimit = 2;
+        selector.matchLabels.app = "claude-metrics-exporter";
+        template = {
+          metadata = {
+            labels.app = "claude-metrics-exporter";
+            annotations = {
+              "prometheus.io/scrape" = "true";
+              "prometheus.io/port" = "9090";
+              "prometheus.io/path" = "/metrics";
+            };
+          };
+          spec = {
+            containers = [{
+              name = "exporter";
+              image = "python:3.11-slim";
+              command = [ "/bin/bash" "-c" ''
+                cat <<'SCRIPT' > /app/exporter.py
+                #!/usr/bin/env python3
+                import os, time, psycopg2
+                from prometheus_client import Counter, Gauge, start_http_server
+                ACTIVE = Gauge('claude_active_conversations', 'Active conversations')
+                TOTAL = Gauge('claude_total_conversations_24h', 'Total 24h conversations')
+                AVG_RT = Gauge('claude_avg_response_time_ms', 'Avg response time ms')
+                def get_db():
+                    return psycopg2.connect(
+                        host=os.getenv('DB_HOST','postgres-n8n.ai-inference.svc.cluster.local'),
+                        port=int(os.getenv('DB_PORT',5432)),
+                        database=os.getenv('DB_NAME','claude'),
+                        user=os.getenv('DB_USER','claude'),
+                        password=os.getenv('DB_PASSWORD'),
+                        connect_timeout=5)
+                def update():
+                    try:
+                        conn = get_db(); cur = conn.cursor()
+                        cur.execute("SELECT COUNT(DISTINCT session_id) FROM conversations WHERE created_at > NOW() - INTERVAL '1 hour' AND status = 'active'")
+                        ACTIVE.set(cur.fetchone()[0] or 0)
+                        cur.execute("SELECT COUNT(*) FROM conversations WHERE created_at > NOW() - INTERVAL '24 hours'")
+                        TOTAL.set(cur.fetchone()[0] or 0)
+                        cur.execute("SELECT AVG(response_time_ms) FROM conversation_metrics WHERE timestamp > NOW() - INTERVAL '5 minutes'")
+                        r = cur.fetchone()[0]
+                        if r: AVG_RT.set(r)
+                        cur.close(); conn.close()
+                    except Exception as e: print(f"Error: {e}")
+                if __name__ == '__main__':
+                    start_http_server(9090)
+                    while True: update(); time.sleep(15)
+                SCRIPT
+                pip install psycopg2-binary prometheus_client
+                python3 /app/exporter.py
+              ''];
+              env = [
+                { name = "DB_HOST"; value = "postgres-n8n.ai-inference.svc.cluster.local"; }
+                { name = "DB_PORT"; value = "5432"; }
+                { name = "DB_NAME"; value = "claude"; }
+                { name = "DB_USER"; valueFrom.secretKeyRef = { name = "claude-secrets"; key = "database-user"; }; }
+                { name = "DB_PASSWORD"; valueFrom.secretKeyRef = { name = "claude-secrets"; key = "database-password"; }; }
+              ];
+              ports = [{ containerPort = 9090; name = "metrics"; protocol = "TCP"; }];
+              resources = {
+                requests = { cpu = "50m"; memory = "64Mi"; };
+                limits = { cpu = "100m"; memory = "128Mi"; };
+              };
+              livenessProbe = {
+                httpGet = { path = "/metrics"; port = "metrics"; };
+                initialDelaySeconds = 10; periodSeconds = 30;
+              };
+              readinessProbe = {
+                httpGet = { path = "/metrics"; port = "metrics"; };
+                initialDelaySeconds = 5; periodSeconds = 10;
+              };
+            }];
+          };
+        };
+      };
+    };
   };
 }
