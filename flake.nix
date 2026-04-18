@@ -279,5 +279,31 @@
         program = "${colmena.packages.x86_64-linux.colmena}/bin/colmena";
         meta.description = "Colmena multi-host NixOS deployment";
       };
+
+      # ── Phase 5: Unified deployment pipeline apps ───────────────────────────
+
+      apps.x86_64-linux.deploy = {
+        type = "app";
+        program = toString (pkgs.writeShellScriptBin "deploy" ''
+          exec ${self}/scripts/deploy.sh "$@"
+        '');
+        meta.description = "Unified deployment: validate + colmena + nix copy + k8s apply";
+      };
+
+      apps.x86_64-linux.rollback = {
+        type = "app";
+        program = toString (pkgs.writeShellScriptBin "rollback" ''
+          exec ${self}/scripts/rollback.sh "$@"
+        '');
+        meta.description = "Unified rollback for OS and K8s";
+      };
+
+      apps.x86_64-linux.check = {
+        type = "app";
+        program = toString (pkgs.writeShellScriptBin "check" ''
+          exec ${self}/scripts/check.sh "$@"
+        '');
+        meta.description = "Run all validations: flake check, colmena build, k8s dry-run, connectivity";
+      };
     };
 }
