@@ -103,6 +103,11 @@
       url = "path:/data/projects/own/gpu-proxy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    astral-key = {
+      url = "path:/data/projects/own/astral-key";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # NOTE: astral-key has nixos-module.nix for systemd service — can be imported in host configs
     nix-oci = {
       url = "github:nix-community/nix-oci";
       inputs.nixpkgs.follows = "nixpkgs";
