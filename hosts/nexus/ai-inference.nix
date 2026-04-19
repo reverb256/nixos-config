@@ -78,7 +78,7 @@
 
     rag = {
       enable = true;
-      qdrantUrl = "http://127.0.0.1:6333";  # K8s qdrant with hostNetwork on nexus
+      qdrantUrl = "http://10.5.93.32:6333";  # K8s ClusterIP for Qdrant StatefulSet
       embeddingModel = "BAAI/bge-m3";  # 1024d, upgraded from MiniLM-L6-v2
       embeddingDevice = "cpu";  # nexus GPU occupied by lolMiner
       chunkSize = 512;
@@ -99,7 +99,7 @@
         model = "BAAI/bge-reranker-base";
       };
       qdrant = {
-        enable = true;  # Assertion requires this, but systemd service overridden below
+        enable = false;  # Qdrant runs as K8s StatefulSet, not local systemd
         host = "0.0.0.0";
         port = 6333;
         grpcPort = 6334;

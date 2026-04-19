@@ -5,13 +5,11 @@
 }:
 let
   llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant;
-  k8sLib = import ./modules/lib.nix { inherit pkgs; };
   easykubenix = import inputs.easykubenix {
     inherit pkgs;
     modules = [
       { _module.args.pkgsWithOverlay = pkgsWithOverlay; }
       { _module.args.llama-cpp-turboquant = llama-cpp-turboquant; }
-      { _module.args.k8sLib = k8sLib; }
       ./modules/common.nix
       ./modules/infrastructure.nix
       ./modules/ingress.nix
