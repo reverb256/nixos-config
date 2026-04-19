@@ -51,7 +51,10 @@ let
       csi = {
         driver = "nix.csi.store";
         readOnly = true;
-        volumeAttributes.x86_64-linux = pkgsWithOverlay.llama-cpp-turboquant;
+        volumeAttributes = {
+          x86_64-linux = pkgsWithOverlay.llama-cpp-turboquant;
+          "csi.storage.k8s.io/ephemeral" = "true";
+        };
       };
     };
     nvidia-libs.hostPath.path = "/run/opengl-driver/lib";
@@ -550,7 +553,10 @@ in
                 csi = {
                   driver = "nix.csi.store";
                   readOnly = true;
-                  volumeAttributes.x86_64-linux = pkgsWithOverlay.llama-cpp-rocm;
+                  volumeAttributes = {
+          x86_64-linux = pkgsWithOverlay.llama-cpp-rocm;
+          "csi.storage.k8s.io/ephemeral" = "true";
+        };
                 };
               };
               dev-dri.hostPath = {
