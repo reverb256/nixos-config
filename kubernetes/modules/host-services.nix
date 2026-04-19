@@ -153,7 +153,10 @@ in
                 csi = {
                   driver = "nix.csi.store";
                   readOnly = true;
-                  volumeAttributes.x86_64-linux = pkgs.redis;
+                  volumeAttributes = {
+          x86_64-linux = pkgs.redis;
+          "csi.storage.k8s.io/ephemeral" = "true";
+        };
                 };
               };
             };
@@ -275,7 +278,10 @@ in
                 csi = {
                   driver = "nix.csi.store";
                   readOnly = true;
-                  volumeAttributes.x86_64-linux = pkgs.redis;
+                  volumeAttributes = {
+          x86_64-linux = pkgs.redis;
+          "csi.storage.k8s.io/ephemeral" = "true";
+        };
                 };
               };
             };
@@ -403,7 +409,10 @@ in
                 csi = {
                   driver = "nix.csi.store";
                   readOnly = true;
-                  volumeAttributes.x86_64-linux = pkgs.prometheus-node-exporter;
+                  volumeAttributes = {
+          x86_64-linux = pkgs.prometheus-node-exporter;
+          "csi.storage.k8s.io/ephemeral" = "true";
+        };
                 };
               };
               root.hostPath = {
@@ -498,7 +507,10 @@ in
                 csi = {
                   driver = "nix.csi.store";
                   readOnly = true;
-                  volumeAttributes.x86_64-linux = pkgs.prometheus-nvidia-gpu-exporter;
+                  volumeAttributes = {
+          x86_64-linux = pkgs.prometheus-nvidia-gpu-exporter;
+          "csi.storage.k8s.io/ephemeral" = "true";
+        };
                 };
               };
               opengl.hostPath.path = "/run/opengl-driver/lib";
@@ -697,7 +709,10 @@ in
                 csi = {
                   driver = "nix.csi.store";
                   readOnly = true;
-                  volumeAttributes.x86_64-linux = pkgs.nodejs_22;
+                  volumeAttributes = {
+          x86_64-linux = pkgs.nodejs_22;
+          "csi.storage.k8s.io/ephemeral" = "true";
+        };
                 };
               };
               config = {
@@ -797,7 +812,10 @@ in
                 csi = {
                   driver = "nix.csi.store";
                   readOnly = true;
-                  volumeAttributes.x86_64-linux = aiMonitorScript;
+                  volumeAttributes = {
+          x86_64-linux = aiMonitorScript;
+          "csi.storage.k8s.io/ephemeral" = "true";
+        };
                 };
               };
               scripts = {
@@ -863,7 +881,10 @@ in
                 csi = {
                   driver = "nix.csi.store";
                   readOnly = true;
-                  volumeAttributes.x86_64-linux = gamingDetectScript;
+                  volumeAttributes = {
+          x86_64-linux = gamingDetectScript;
+          "csi.storage.k8s.io/ephemeral" = "true";
+        };
                 };
               };
               proc.hostPath = {
@@ -966,7 +987,10 @@ in
                 csi = {
                   driver = "nix.csi.store";
                   readOnly = true;
-                  volumeAttributes.x86_64-linux = miningCoordScript;
+                  volumeAttributes = {
+          x86_64-linux = miningCoordScript;
+          "csi.storage.k8s.io/ephemeral" = "true";
+        };
                 };
               };
             };
@@ -1044,7 +1068,10 @@ in
                 csi = {
                   driver = "nix.csi.store";
                   readOnly = true;
-                  volumeAttributes.x86_64-linux = miningInferCoordScript;
+                  volumeAttributes = {
+          x86_64-linux = miningInferCoordScript;
+          "csi.storage.k8s.io/ephemeral" = "true";
+        };
                 };
               };
               host-run.hostPath = {
@@ -1162,7 +1189,10 @@ in
                 csi = {
                   driver = "nix.csi.store";
                   readOnly = true;
-                  volumeAttributes.x86_64-linux = pkgsWithOverlay.lolminer;
+                  volumeAttributes = {
+          x86_64-linux = pkgsWithOverlay.lolminer;
+          "csi.storage.k8s.io/ephemeral" = "true";
+        };
                 };
               };
               opengl.hostPath.path = "/run/opengl-driver/lib";
@@ -1269,7 +1299,10 @@ in
                 csi = {
                   driver = "nix.csi.store";
                   readOnly = true;
-                  volumeAttributes.x86_64-linux = pkgsWithOverlay.caddy-with-modules;
+                  volumeAttributes = {
+          x86_64-linux = pkgsWithOverlay.caddy-with-modules;
+          "csi.storage.k8s.io/ephemeral" = "true";
+        };
                 };
               };
               config = {
@@ -1382,7 +1415,10 @@ in
                 csi = {
                   driver = "nix.csi.store";
                   readOnly = true;
-                  volumeAttributes.x86_64-linux = pkgs.syncthing;
+                  volumeAttributes = {
+          x86_64-linux = pkgs.syncthing;
+          "csi.storage.k8s.io/ephemeral" = "true";
+        };
                 };
               };
               data = {

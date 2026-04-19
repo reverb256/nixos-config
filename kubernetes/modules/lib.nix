@@ -15,7 +15,10 @@
       csi = {
         driver = "nix.csi.store";
         readOnly = true;
-        volumeAttributes.x86_64-linux = pkg;
+        volumeAttributes = {
+          x86_64-linux = pkg;
+          "csi.storage.k8s.io/ephemeral" = "true";
+        };
       };
     };
   };
