@@ -20,8 +20,7 @@
 
     sane = {
       enable = true;
-      extraBackends = [ pkgs.hplip ];
-      netConf = "10.1.1.173";
+      extraBackends = [ pkgs.sane-airscan ];
     };
   };
 
@@ -32,6 +31,13 @@
     sane-backends # scanimage, scanadf CLI tools
     xsane          # GUI scanner frontend
   ];
+  # Static airscan config — eSCL on port 8080, bypasses broken mDNS
+  environment.etc."sane.d/airscan.conf" = {
+    text = ''
+      [devices]
+      "HP ENVY Photo 7800" = http://10.1.1.173:8080/eSCL/, escl
+    '';
+  };
 
   services = {
     pipewire = {
