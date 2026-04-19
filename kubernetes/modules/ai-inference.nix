@@ -478,7 +478,10 @@
             }];
             volumes = [
               { name = "redis-data"; emptyDir.sizeLimit = "512Mi"; }
-              { name = "nix-store"; csi = { driver = "nix.csi.store"; readOnly = true; volumeAttributes.x86_64-linux = pkgs.redis; }; }
+              { name = "nix-store"; csi = { driver = "nix.csi.store"; readOnly = true; volumeAttributes = {
+          x86_64-linux = pkgs.redis; };
+          "csi.storage.k8s.io/ephemeral" = "true";
+        }; }
             ];
           };
         };
