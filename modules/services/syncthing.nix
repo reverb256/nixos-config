@@ -61,5 +61,17 @@ in {
 
     systemd.services.syncthing.after = ["network-online.target"];
     systemd.services.syncthing.wants = ["network-online.target"];
+
+    # Make syncthing-init non-fatal during activation
+    # CSRF errors from stale API keys don't affect our Nix changes
+    systemd.services.syncthing-init = {
+      serviceConfig = {
+        SuccessExitStatus = "0 5";
+      };
+      unitConfig = {
+        StartLimitIntervalSec = 0;
+      };
+      onFailure = lib.mkForce [];
+    };
   };
 }

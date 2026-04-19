@@ -1,4 +1,4 @@
-{ config, pkgs, ... }: {
+{ config, lib, pkgs, ... }: {
   services = {
     hermes-cli = {
       enable = true;
@@ -139,6 +139,16 @@
     curl
     openssl
   ];
+
+  # Vestigial: ai-inference now runs as K8s pod (llama-server-sentry), not systemd
+  systemd.services.ai-inference-gateway = {
+    wantedBy = lib.mkForce [];
+    enable = false;
+  };
+  systemd.services.ai-inference-monitor = {
+    wantedBy = lib.mkForce [];
+    enable = false;
+  };
 
   systemd.services.tailscaled.environment = {
     TS_ADVERTISE_ROUTES = "10.1.1.0/24";

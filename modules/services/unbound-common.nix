@@ -66,6 +66,10 @@ in
           "api.hermes.lan. IN A 10.1.1.120"
           "brain.lan. IN A 10.1.1.120"
           "brain.cluster.local. IN A 10.1.1.120"
+          "n8n.lan. IN A 10.1.1.100"
+          "activepieces.lan. IN A 10.1.1.100"
+          "n8n.cluster.local. IN A 10.1.1.100"
+          "activepieces.cluster.local. IN A 10.1.1.100"
         ];
 
     networking.firewall.allowedUDPPorts = lib.mkOptionDefault [ 53 ];

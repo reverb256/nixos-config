@@ -162,11 +162,11 @@ in
       services = {
         pipewire.extraConfig = lib.mkForce {
           pipewire."99-lowlatency"."context.properties" = {
-            "default.clock.min-quantum" = 64;
+            "default.clock.min-quantum" = 1024;
             "default.clock.max-quantum" = 2048;
           };
-          pipewire-pulse."99-lowlatency"."pulse.min.quantum" = "64/48000";
-          client."99-lowlatency"."stream.properties"."node.latency" = "64/48000";
+          pipewire-pulse."99-lowlatency"."pulse.min.quantum" = "1024/48000";
+          client."99-lowlatency"."stream.properties"."node.latency" = "1024/48000";
         };
         udev.extraRules = ''
           SUBSYSTEM=="input", ATTRS{name}=="Sony Interactive Entertainment DualSense Wireless Controller Touchpad", ENV{LIBINPUT_IGNORE_DEVICE}="1"

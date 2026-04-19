@@ -14,7 +14,7 @@
       allowedUDPPorts = lib.mkOptionDefault [
         8472
       ];
-      interfaces."enp7s0".allowedTCPPorts = [ 3100 ];
+      interfaces."eth0".allowedTCPPorts = [ 3100 ];
     };
   };
 }

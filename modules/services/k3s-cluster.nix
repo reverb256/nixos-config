@@ -151,7 +151,11 @@ in
         )
         ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"
         ++ lib.optional (config.hardware.gpu-compute.rocm.enable or false) "--node-label=gpu=amd"
-        ++ lib.optional (cfg.nodeIP != "") "--node-external-ip=${cfg.nodeIP}";
+        ++ lib.optional (cfg.nodeIP != "") "--node-external-ip=${cfg.nodeIP}"
+        ++ [
+          "--kubelet-arg=authentication-token-webhook=true"
+          "--kubelet-arg=authorization-mode=Webhook"
+        ];
         # --flannel-external-ip removed in k3s 1.34+ (upstream PR)
         # Flannel now auto-detects external IP from --node-external-ip
 
@@ -358,6 +362,34 @@ in
     system.activationScripts.k3s-dirs = ''
       mkdir -p /var/lib/rancher/k3s/agent/etc/containerd
     '';
+
+    # Static route for K3s CNI pods to reach node IPs on other hosts.
+    # Without this, pods with hostNetwork=true that get CNI bridge routing
+    # cannot reach node IPs on other hosts (flannel VXLAN only handles pod CIDRs).
+    systemd.services.k3s-node-route = {
+      description = "Add static route for cross-node CNI pod traffic";
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
+      serviceConfig.Type = "oneshot";
+      serviceConfig.RemainAfterExit = true;
+      script = let
+        routeScript = pkgs.writeShellScript "k3s-node-route" ''
+          IFACE=$(ip route show default 2>/dev/null | awk ${"'"}{print $5}${"'"} | head -1)
+          if [ -n "$IFACE" ]; then
+            ip route replace 10.1.1.0/24 dev "$IFACE" 2>/dev/null || true
+          fi
+        '';
+      in "${routeScript}";
+    };
+    systemd.timers.k3s-node-route = {
+      description = "Ensure node route exists after network changes";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnBootSec = "10s";
+        OnUnitActiveSec = "60s";
+        AccuracySec = "5s";
+      };
+    };
 
     systemd.services.k3s-network-taint-fix = lib.mkIf isServer {
       description = "Fix NetworkUnavailable taint";

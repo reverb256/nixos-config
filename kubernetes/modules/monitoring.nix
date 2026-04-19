@@ -265,29 +265,6 @@ let
               - '10.1.1.120:9400'
               - '10.1.1.130:9400'
 
-      - job_name: 'xmrig'
-        scrape_interval: 30s
-        static_configs:
-          - targets:
-              - '10.1.1.120:8081'
-              - '10.1.1.120:8082'
-              - '10.1.1.110:8082'
-              - '10.1.1.140:8081'
-
-      - job_name: 'lolminer'
-        scrape_interval: 30s
-        static_configs:
-          - targets:
-              - '10.1.1.130:4068'
-              - '10.1.1.130:4069'
-              - '10.1.1.120:4068'
-              - '10.1.1.110:4069'
-
-      - job_name: 'caddy'
-        scrape_interval: 15s
-        static_configs:
-          - targets:
-              - '10.1.1.110:2019'
 
       - job_name: 'kube-state-metrics'
         kubernetes_sd_configs:
