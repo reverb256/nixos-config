@@ -265,6 +265,18 @@
           encode zstd gzip
           reverse_proxy 10.1.1.120:8642
         }
+
+        https://n8n.lan, https://n8n.cluster.local {
+          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
+          encode zstd gzip
+          reverse_proxy 10.12.30.204:5678
+        }
+
+        https://activepieces.lan, https://activepieces.cluster.local {
+          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
+          encode zstd gzip
+          reverse_proxy 10.11.184.70:80
+        }
       '';
     };
 
