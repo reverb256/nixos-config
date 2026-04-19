@@ -79,7 +79,8 @@
     rag = {
       enable = true;
       qdrantUrl = "http://127.0.0.1:6333";  # K8s qdrant with hostNetwork on nexus
-      embeddingModel = "sentence-transformers/all-MiniLM-L6-v2";
+      embeddingModel = "BAAI/bge-m3";  # 1024d, upgraded from MiniLM-L6-v2
+      embeddingDevice = "cpu";  # nexus GPU occupied by lolMiner
       chunkSize = 512;
       chunkOverlap = 50;
       topK = 10;
@@ -94,8 +95,8 @@
       };
       tokenScopedCollections = true;
       reranker = {
-        enable = false;  # nexus has no GPU, skip ~1.1GB reranker model
-        model = "BAAI/bge-reranker-v2-base";
+        enable = true;  # cross-encoder BGE-reranker-base on CPU
+        model = "BAAI/bge-reranker-base";
       };
       qdrant = {
         enable = true;  # Assertion requires this, but systemd service overridden below
@@ -105,6 +106,18 @@
         storagePath = "/var/lib/qdrant";
         memoryLimit = "4G";
       };
+    };
+
+    # Phase 2 hybrid search features
+    queryExpansion = {
+      enable = true;
+      model = "qwen3.6-35b-a3b";
+    };
+
+    semanticCache = {
+      enable = true;
+      ttlSeconds = 86400;  # 24h
+      similarityThreshold = 0.95;
     };
 
     security = {
