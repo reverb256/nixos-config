@@ -1,5 +1,5 @@
 {
-  pkgs, lib, ...
+  pkgs, lib, k8sLib, ...
 }:
 {
   config.kubernetes.objects.ai-inference = {
@@ -465,14 +465,21 @@
             nodeSelector."kubernetes.io/hostname" = "nexus";
             containers = [{
               name = "redis";
-              image = "redis:7-alpine";
-              command = ["redis-server" "--save" "" "--appendonly" "no"];
+              image = k8sLib.scratchImage;
+              imagePullPolicy = "IfNotPresent";
+              command = [ "${pkgs.redis}/bin/redis-server" ];
               args = ["--maxmemory" "256mb" "--maxmemory-policy" "allkeys-lru"];
               ports = [{ containerPort = 6379; name = "redis"; }];
               resources = { requests = { cpu = "100m"; memory = "128Mi"; }; limits = { cpu = "500m"; memory = "512Mi"; }; };
-              volumeMounts = [{ name = "redis-data"; mountPath = "/data"; }];
+              volumeMounts = [
+                { name = "redis-data"; mountPath = "/data"; }
+                { name = "nix-store"; mountPath = "/nix/store"; readOnly = true; }
+              ];
             }];
-            volumes = [{ name = "redis-data"; emptyDir.sizeLimit = "512Mi"; }];
+            volumes = [
+              { name = "redis-data"; emptyDir.sizeLimit = "512Mi"; }
+              { name = "nix-store"; csi = { driver = "nix.csi.store"; readOnly = true; volumeAttributes.x86_64-linux = pkgs.redis; }; }
+            ];
           };
         };
       };

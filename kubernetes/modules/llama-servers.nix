@@ -1,8 +1,7 @@
-# LLM inference deployments - llama-server via hostPath /nix/store
+# LLM inference deployments - llama-server via nix-csi
 #
-# Uses minimal scratch image with /nix/store bind-mounted from host.
+# Uses scratch image with nix-csi ephemeral volume for /nix/store.
 # The Nix-built llama-server binary runs directly - no Docker image build needed.
-# Binary auto-updates when NixOS is rebuilt (reads live /nix/store).
 #
 # Zephyr GPU layout:
 #   GPU 0 = RTX 3060 Ti (8GB)  → E4B model (port 1236) [DISABLED - needs GPU isolation]
@@ -25,13 +24,11 @@
   pkgsWithOverlay,
   config,
   lib,
+  k8sLib,
   ...
 }:
 let
-  scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
-  managed = {
-    "app.kubernetes.io/managed-by" = "easykubenix";
-  };
+  inherit (k8sLib) scratchImage managed;
 
   zephyrTolerations = [
     {
@@ -50,9 +47,12 @@ let
   ];
   zephyrVolumes = {
     _namedlist = true;
-    nix.hostPath = {
-      path = "/nix";
-      type = "Directory";
+    "nix-store" = {
+      csi = {
+        driver = "nix.csi.store";
+        readOnly = true;
+        volumeAttributes.x86_64-linux = pkgsWithOverlay.llama-cpp-turboquant;
+      };
     };
     nvidia-libs.hostPath.path = "/run/opengl-driver/lib";
     models.hostPath.path = "/home/j_kro/.lmstudio/models";
@@ -89,7 +89,6 @@ in
               host = "zephyr";
               gpu = "rtx3090";
             };
-            annotations."nix-csi/discard" = "true";
           };
           spec = {
             nodeName = "zephyr";
@@ -196,8 +195,8 @@ in
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  nix = {
-                    mountPath = "/nix";
+                  "nix-store" = {
+                    mountPath = "/nix/store";
                     readOnly = true;
                   };
                   nvidia-libs = {
@@ -262,7 +261,6 @@ in
               host = "zephyr";
               gpu = "rtx3060ti";
             };
-            annotations."nix-csi/discard" = "true";
           };
           spec = {
             nodeName = "zephyr";
@@ -365,8 +363,8 @@ in
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  nix = {
-                    mountPath = "/nix";
+                  "nix-store" = {
+                    mountPath = "/nix/store";
                     readOnly = true;
                   };
                   nvidia-libs = {
@@ -428,7 +426,6 @@ in
               app = "llama-server-sentry";
               host = "sentry";
             };
-            annotations."nix-csi/discard" = "true";
           };
           spec = {
             nodeName = "sentry";
@@ -523,8 +520,8 @@ in
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  nix = {
-                    mountPath = "/nix";
+                  "nix-store" = {
+                    mountPath = "/nix/store";
                     readOnly = true;
                   };
                   dev-dri = {
@@ -549,9 +546,12 @@ in
             };
             volumes = {
               _namedlist = true;
-              nix.hostPath = {
-                path = "/nix";
-                type = "Directory";
+              "nix-store" = {
+                csi = {
+                  driver = "nix.csi.store";
+                  readOnly = true;
+                  volumeAttributes.x86_64-linux = pkgsWithOverlay.llama-cpp-rocm;
+                };
               };
               dev-dri.hostPath = {
                 path = "/dev/dri";
