@@ -26,11 +26,6 @@ let
     web-dist = hermes-web-dist;
   };
 
-  # Nix-managed Python with fastapi + uvicorn for the dashboard
-  dashboard-python = pkgs.python3.withPackages (p: [
-    p.fastapi
-    p.uvicorn
-  ]);
 
 in
 {
@@ -76,12 +71,10 @@ in
         HERMES_HOME = "${hermesCfg.stateDir}/.hermes";
         HERMES_MANAGED = "true";
         # Use Nix-managed Python packages
-        PYTHONPATH = "${dashboard-python}/${dashboard-python.sitePackages}";
       };
 
       path = [
         hermes-with-web
-        dashboard-python
         pkgs.nodejs_20
         pkgs.bash
         pkgs.coreutils
@@ -93,7 +86,7 @@ in
         WorkingDirectory = hermesCfg.workingDirectory;
 
         # Use the wrapper package which has web_dist injected
-        ExecStart = "${lib.getExe hermes-with-web} dashboard --host ${cfg.host} --port ${toString cfg.port} --insecure --no-open";
+        ExecStart = "${hermes-with-web}/bin/hermes-agent dashboard --host ${cfg.host} --port ${toString cfg.port} --insecure --no-open";
 
         Restart = "always";
         RestartSec = 5;

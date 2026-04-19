@@ -260,7 +260,7 @@
             containers = {
               _namedlist = true;
               searxng = {
-                image = "searxng/searxng:2024.7.0-480c5be7";
+                image = "searxng/searxng:latest";
                 imagePullPolicy = "IfNotPresent";
                 securityContext = {
                   allowPrivilegeEscalation = false;
@@ -327,7 +327,7 @@
             initContainers = {
               _namedlist = true;
               patch-settings = {
-                image = "searxng/searxng:2024.7.0-480c5be7";
+                image = "searxng/searxng:latest";
                 command = ["/bin/sh" "-c" ''
                   cd /etc/searxng
                   sed -i 's/^    - html$/    - html\n    - csv\n    - json\n    - rss/' settings.yml

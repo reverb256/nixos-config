@@ -113,7 +113,7 @@ in
       extraConfig = {
         pipewire."99-lowlatency" = {
           "context.properties" = {
-            "default.clock.min-quantum" = 256;
+            "default.clock.min-quantum" = 1024;
             "default.clock.max-quantum" = 2048;
           };
           "context.modules" = [
@@ -132,8 +132,8 @@ in
             }
           ];
         };
-        pipewire-pulse."99-lowlatency"."pulse.min.quantum" = "256/48000";
-        client."99-lowlatency"."stream.properties"."node.latency" = "256/48000";
+        pipewire-pulse."99-lowlatency"."pulse.min.quantum" = "1024/48000";
+        client."99-lowlatency"."stream.properties"."node.latency" = "1024/48000";
       };
     };
 
