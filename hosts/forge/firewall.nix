@@ -19,6 +19,9 @@
       allowedUDPPorts = lib.mkOptionDefault [
         8472
       ];
+      extraInputRules = ''
+        ip saddr { 10.244.0.0/16, 10.1.1.0/24 } tcp dport { 9100, 9400 } accept
+      '';
     };
   };
 }

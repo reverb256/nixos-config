@@ -24,6 +24,20 @@ let
   cfg = config.services.hermes-cli;
   hermesAgentCfg = config.services.hermes-agent or { };
   hermesPkg = inputs.hermes-agent.packages.${pkgs.system}.default;
+
+  # Build the WhatsApp bridge from the hermes-agent source
+  # The upstream Nix package omits scripts/whatsapp-bridge/ — this fills the gap.
+  whatsapp-bridge = pkgs.callPackage ../../packages/hermes-whatsapp-bridge.nix {
+    hermesSrc = inputs.hermes-agent;
+  };
+
+  # Wrap hermes-agent with WhatsApp bridge injected into site-packages/
+  # This makes both `hermes whatsapp` (CLI pairing) and the gateway adapter work.
+  hermes-with-whatsapp = pkgs.callPackage ../../packages/hermes-with-whatsapp.nix {
+    hermes-pkg = hermesPkg;
+    inherit whatsapp-bridge;
+  };
+
   # If hermes-agent is enabled, use its state dir. Otherwise, use user home.
   useAgentStateDir = hermesAgentCfg.enable or false;
 in
@@ -71,7 +85,7 @@ in
 
   config = lib.mkIf cfg.enable {
     # Install hermes package system-wide
-    environment.systemPackages = [ hermesPkg ];
+    environment.systemPackages = [ hermes-with-whatsapp ];
 
     # Only set HERMES_HOME if hermes-agent is NOT managing it
     # The hermes-agent module sets addToSystemPackages which also sets HERMES_HOME
@@ -130,13 +144,20 @@ in
         compression:
           enabled: true
           threshold: 0.9
+
+        # WhatsApp bridge — point to Nix-built bridge since upstream
+        # package omits scripts/whatsapp-bridge/
+        platforms:
+          whatsapp:
+            extra:
+              bridge_script: ${whatsapp-bridge}/bridge.js
         YAML_EOF
                 chmod 644 "$HERMES_HOME/config.yaml"
               fi
 
               # Write .env with API keys from agenix secrets
               ${lib.optionalString (cfg.apiKeyFile != null) ''
-                echo -n "# Hermes environment variables" > "$HERMES_HOME/.env"
+                echo "# Hermes environment variables" > "$HERMES_HOME/.env"
                 if [ -f "${cfg.apiKeyFile}" ]; then
                   echo -n "ZAI_API_KEY=" >> "$HERMES_HOME/.env"
                   cat "${cfg.apiKeyFile}" >> "$HERMES_HOME/.env"
