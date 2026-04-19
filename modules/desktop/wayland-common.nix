@@ -1,4 +1,38 @@
-_: {
+{ pkgs, lib, ... }:
+
+{
+  hardware = {
+    printers = {
+      ensurePrinters = [
+        {
+          name = "HP_Envy_7800";
+          location = "Home Network";
+          description = "HP ENVY Photo 7800 All-in-One";
+          deviceUri = "ipp://10.1.1.173:631/ipp/print";
+          model = "everywhere";
+          ppdOptions = {
+            PageSize = "Letter";
+          };
+        }
+      ];
+      ensureDefaultPrinter = "HP_Envy_7800";
+    };
+
+    sane = {
+      enable = true;
+      extraBackends = [ pkgs.hplip ];
+      netConf = "10.1.1.173";
+    };
+  };
+
+  # Scanner access for desktop users
+  users.users.j_kro.extraGroups = [ "scanner" "lp" ];
+
+  environment.systemPackages = with pkgs; [
+    sane-backends # scanimage, scanadf CLI tools
+    xsane          # GUI scanner frontend
+  ];
+
   services = {
     pipewire = {
       enable = true;
@@ -16,8 +50,39 @@ _: {
       implementation = "broker";
     };
 
-    printing.enable = true;
+    printing = {
+      enable = true;
+      browsing = true;
+      listenAddresses = [ "*:631" ];
+      allowFrom = [ "all" ];
+      defaultShared = true;
+    };
   };
 
   security.rtkit.enable = true;
+
+  # Printer monitoring — ink levels and status via LEDM API
+  systemd.services.hp-envy-monitor = {
+    description = "HP ENVY 7800 Status Monitor";
+    path = with pkgs; [ curl bash coreutils ];
+    serviceConfig.Type = "oneshot";
+    script = ''
+      STATUS=$(curl -sk --max-time 5 'https://10.1.1.173/DevMgmt/ProductStatusDyn.xml' 2>/dev/null)
+      INK=$(curl -sk --max-time 5 'https://10.1.1.173/DevMgmt/ConsumableConfigDyn.xml' 2>/dev/null)
+      echo "Printer status at $(date):"
+      echo "$STATUS" | grep -oP '(?<=StatusCategory>)[^<]+' || echo "unknown"
+      echo "Ink levels:"
+      echo "$INK" | grep -oP '(?<=ConsumableLabelCode>)[^<]+' | paste - <(echo "$INK" | grep -oP '(?<=ConsumablePercentageLevelRemaining>)[^<]+') | while read label level; do
+        echo "  $label: $level%"
+      done
+    '';
+  };
+
+  systemd.timers.hp-envy-monitor = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "hourly";
+      Persistent = true;
+    };
+  };
 }
