@@ -1115,9 +1115,8 @@ in
             containers = {
               _namedlist = true;
               lolminer = {
-                image = scratchImage;
+                image = "docker.io/swamp7/lolminer:latest";
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgsWithOverlay.lolminer}/bin/lolMiner" ];
                 args = [
                   "--algo"
                   "CR29"
@@ -1170,7 +1169,6 @@ in
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  "nix-store" = { mountPath = "/nix/store"; readOnly = true; };
                   opengl = {
                     mountPath = "/run/opengl-driver/lib";
                   };
@@ -1185,16 +1183,6 @@ in
             };
             volumes = {
               _namedlist = true;
-              "nix-store" = {
-                csi = {
-                  driver = "nix.csi.store";
-                  readOnly = true;
-                  volumeAttributes = {
-          x86_64-linux = pkgsWithOverlay.lolminer;
-          "csi.storage.k8s.io/ephemeral" = "true";
-        };
-                };
-              };
               opengl.hostPath.path = "/run/opengl-driver/lib";
               dev.hostPath = {
                 path = "/dev";
