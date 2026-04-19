@@ -104,15 +104,6 @@ in
                 "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
               },
               {
-                "id": "deepseek-ai/deepseek-v3.1",
-                "name": "DeepSeek V3.1 (NVIDIA NIM)",
-                "reasoning": true,
-                "input": ["text"],
-                "contextWindow": 131072,
-                "maxTokens": 65536,
-                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
-              },
-              {
                 "id": "moonshotai/kimi-k2.5",
                 "name": "Kimi K2.5 1T (NVIDIA NIM)",
                 "reasoning": true,
@@ -166,13 +157,7 @@ in
                 "maxTokens": 65536,
                 "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
               }
-            ]
-          },
-                "contextWindow": 131072,
-                "maxTokens": 8192,
-                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
-              }
-            ]
+            ],
           },
           "sentry-local": {
             "baseUrl": "http://sentry:1235/v1",
