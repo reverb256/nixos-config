@@ -1385,6 +1385,9 @@ in
                   volumeAttributes.x86_64-linux = pkgs.syncthing;
                 };
               };
+              data = {
+                emptyDir = { sizeLimit = "1Gi"; };
+              };
               host-sync.hostPath = {
                 path = "/var/lib/syncthing";
                 type = "DirectoryOrCreate";
