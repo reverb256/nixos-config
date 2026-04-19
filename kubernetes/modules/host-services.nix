@@ -3,11 +3,22 @@
   pkgsWithOverlay,
   config,
   lib,
-  k8sLib,
   ...
 }:
 let
-  inherit (k8sLib) scratchImage managed allTolerations;
+  scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
+  managed = {
+    "app.kubernetes.io/managed-by" = "easykubenix";
+  };
+
+  # Common hostPath volume for Nix store (nix-csi pattern)
+  nixVolume = {
+    hostPath.path = "/nix";
+    type = "Directory";
+  };
+  nixVolumeMount = {
+    mountPath = "/nix/store";
+  };
 
   # Common host volume patterns
   hostVolume = path: {
@@ -15,31 +26,26 @@ let
     type = if lib.hasSuffix "/" path then "Directory" else "DirectoryOrCreate";
   };
 
-  # Script derivations for nix-csi (referenced in both command and volumeAttributes)
-  aiMonitorScript = pkgs.writeShellScript "ai-inference-monitor" ''
-    exec ${pkgs.python3}/bin/python3 /scripts/monitor.py
-  '';
-  gamingDetectScript = pkgs.writeShellScriptBin "gaming-detection" ''
-    #!/usr/bin/env bash
-    set -euo pipefail
-    echo "gaming-detection: running in K8s placeholder mode" >&2
-    STATE_DIR="/run/gaming-detection"
-    mkdir -p "$STATE_DIR"
-    echo "GAMING_ACTIVE=0" > "$STATE_DIR/gaming_state"
-    exec sleep infinity
-  '';
-  miningCoordScript = pkgs.writeShellScript "mining-coordinator" ''
-    export PATH=${pkgs.kubectl}/bin:${pkgs.procps}/bin:${pkgs.gawk}/bin:${pkgs.coreutils}/bin:$PATH
-    exec /nix/store/lcp11z5yjfrlsxgmipmghia4y2hl0awi-mining-coordinator/bin/mining-coordinator
-  '';
-  miningCoordInitScript = pkgs.writeShellScript "mining-coord-init" ''
-    export PATH=${pkgs.iptables}/bin:${pkgs.coreutils}/bin:$PATH
-    mkdir -p /host/run/mining-coordinator
-  '';
-  miningInferCoordScript = pkgs.writeShellScript "mining-inference-coord" ''
-    export PATH=${pkgs.curl}/bin:${pkgs.gawk}/bin:${pkgs.nftables}/bin:${pkgs.coreutils}/bin:$PATH
-    exec /nix/store/7i476xnfdjnxn46pd8pxy23zzyka44vw-mining-inference-coordinator
-  '';
+  # All cluster nodes for DaemonSets
+  allTolerations = [
+    {
+      key = "node-role.kubernetes.io/control-plane";
+      operator = "Exists";
+      effect = "NoSchedule";
+    }
+    {
+      key = "workstation";
+      operator = "Exists";
+    }
+    {
+      key = "interactive";
+      operator = "Exists";
+    }
+    {
+      key = "ram-constrained";
+      operator = "Exists";
+    }
+  ];
 in
 {
   config.kubernetes.objects = {
@@ -140,7 +146,7 @@ in
                 securityContext.capabilities.drop = [ "ALL" ];
                 volumeMounts = {
                   _namedlist = true;
-                  "nix-store" = { mountPath = "/nix/store"; readOnly = true; };
+                  nix = nixVolumeMount;
                   data = {
                     mountPath = "/data";
                   };
@@ -149,16 +155,7 @@ in
             };
             volumes = {
               _namedlist = true;
-              "nix-store" = {
-                csi = {
-                  driver = "nix.csi.store";
-                  readOnly = true;
-                  volumeAttributes = {
-          x86_64-linux = pkgs.redis;
-          "csi.storage.k8s.io/ephemeral" = "true";
-        };
-                };
-              };
+              nix = nixVolume;
             };
           };
         };
@@ -265,7 +262,7 @@ in
                 securityContext.capabilities.drop = [ "ALL" ];
                 volumeMounts = {
                   _namedlist = true;
-                  "nix-store" = { mountPath = "/nix/store"; readOnly = true; };
+                  nix = nixVolumeMount;
                   data = {
                     mountPath = "/data";
                   };
@@ -274,16 +271,7 @@ in
             };
             volumes = {
               _namedlist = true;
-              "nix-store" = {
-                csi = {
-                  driver = "nix.csi.store";
-                  readOnly = true;
-                  volumeAttributes = {
-          x86_64-linux = pkgs.redis;
-          "csi.storage.k8s.io/ephemeral" = "true";
-        };
-                };
-              };
+              nix = nixVolume;
             };
           };
         };
@@ -387,7 +375,7 @@ in
                 };
                 volumeMounts = {
                   _namedlist = true;
-                  "nix-store" = { mountPath = "/nix/store"; readOnly = true; };
+                  nix = nixVolumeMount;
                   root = {
                     mountPath = "/host/root";
                     readOnly = true;
@@ -405,16 +393,7 @@ in
             };
             volumes = {
               _namedlist = true;
-              "nix-store" = {
-                csi = {
-                  driver = "nix.csi.store";
-                  readOnly = true;
-                  volumeAttributes = {
-          x86_64-linux = pkgs.prometheus-node-exporter;
-          "csi.storage.k8s.io/ephemeral" = "true";
-        };
-                };
-              };
+              nix = nixVolume;
               root.hostPath = {
                 path = "/";
                 type = "Directory";
@@ -494,7 +473,7 @@ in
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  "nix-store" = { mountPath = "/nix/store"; readOnly = true; };
+                  nix = nixVolumeMount;
                   opengl = {
                     mountPath = "/run/opengl-driver/lib";
                   };
@@ -503,16 +482,7 @@ in
             };
             volumes = {
               _namedlist = true;
-              "nix-store" = {
-                csi = {
-                  driver = "nix.csi.store";
-                  readOnly = true;
-                  volumeAttributes = {
-          x86_64-linux = pkgs.prometheus-nvidia-gpu-exporter;
-          "csi.storage.k8s.io/ephemeral" = "true";
-        };
-                };
-              };
+              nix = nixVolume;
               opengl.hostPath.path = "/run/opengl-driver/lib";
             };
           };
@@ -693,7 +663,7 @@ in
                 securityContext.capabilities.drop = [ "ALL" ];
                 volumeMounts = {
                   _namedlist = true;
-                  "nix-store" = { mountPath = "/nix/store"; readOnly = true; };
+                  nix = nixVolumeMount;
                   config = {
                     mountPath = "/config";
                   };
@@ -705,16 +675,7 @@ in
             };
             volumes = {
               _namedlist = true;
-              "nix-store" = {
-                csi = {
-                  driver = "nix.csi.store";
-                  readOnly = true;
-                  volumeAttributes = {
-          x86_64-linux = pkgs.nodejs_22;
-          "csi.storage.k8s.io/ephemeral" = "true";
-        };
-                };
-              };
+              nix = nixVolume;
               config = {
                 hostPath.path = "/var/lib/claude-code-router";
                 type = "DirectoryOrCreate";
@@ -771,7 +732,11 @@ in
               monitor = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${aiMonitorScript}" ];
+                command = [
+                  "${pkgs.writeShellScript "ai-inference-monitor" ''
+                    exec ${pkgs.python3}/bin/python3 /scripts/monitor.py
+                  ''}"
+                ];
                 env = {
                   _namedlist = true;
                   BACKEND_URL.value = "http://127.0.0.1:1235";
@@ -798,7 +763,7 @@ in
                 securityContext.capabilities.drop = [ "ALL" ];
                 volumeMounts = {
                   _namedlist = true;
-                  "nix-store" = { mountPath = "/nix/store"; readOnly = true; };
+                  nix = nixVolumeMount;
                   scripts = {
                     mountPath = "/scripts";
                     readOnly = true;
@@ -808,16 +773,7 @@ in
             };
             volumes = {
               _namedlist = true;
-              "nix-store" = {
-                csi = {
-                  driver = "nix.csi.store";
-                  readOnly = true;
-                  volumeAttributes = {
-          x86_64-linux = aiMonitorScript;
-          "csi.storage.k8s.io/ephemeral" = "true";
-        };
-                };
-              };
+              nix = nixVolume;
               scripts = {
                 hostPath.path = "/etc/ai-inference-monitor";
                 type = "DirectoryOrCreate";
@@ -853,7 +809,19 @@ in
               detector = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${gamingDetectScript}/bin/gaming-detection" ];
+                command = [
+                  "${pkgs.writeShellScriptBin "gaming-detection" ''
+                    #!/usr/bin/env bash
+                    set -euo pipefail
+                    # Placeholder - gaming detection is host-bound (needs D-Bus, GameMode)
+                    # Real detection runs via NixOS systemd service on the host
+                    echo "gaming-detection: running in K8s placeholder mode" >&2
+                    STATE_DIR="/run/gaming-detection"
+                    mkdir -p "$STATE_DIR"
+                    echo "GAMING_ACTIVE=0" > "$STATE_DIR/gaming_state"
+                    exec sleep infinity
+                  ''}/bin/gaming-detection"
+                ];
                 resources = {
                   requests = {
                     memory = "32Mi";
@@ -867,7 +835,7 @@ in
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  "nix-store" = { mountPath = "/nix/store"; readOnly = true; };
+                  nix = nixVolumeMount;
                   proc = {
                     mountPath = "/host/proc";
                     readOnly = true;
@@ -877,16 +845,7 @@ in
             };
             volumes = {
               _namedlist = true;
-              "nix-store" = {
-                csi = {
-                  driver = "nix.csi.store";
-                  readOnly = true;
-                  volumeAttributes = {
-          x86_64-linux = gamingDetectScript;
-          "csi.storage.k8s.io/ephemeral" = "true";
-        };
-                };
-              };
+              nix = nixVolume;
               proc.hostPath = {
                 path = "/proc";
                 type = "Directory";
@@ -963,7 +922,12 @@ in
               coordinator = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${miningCoordScript}" ];
+                command = [
+                  "${pkgs.writeShellScript "mining-coordinator" ''
+                    export PATH=${pkgs.kubectl}/bin:${pkgs.procps}/bin:${pkgs.gawk}/bin:${pkgs.coreutils}/bin:$PATH
+                    exec /nix/store/lcp11z5yjfrlsxgmipmghia4y2hl0awi-mining-coordinator/bin/mining-coordinator
+                  ''}"
+                ];
                 resources = {
                   requests = {
                     memory = "32Mi";
@@ -977,22 +941,13 @@ in
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  "nix-store" = { mountPath = "/nix/store"; readOnly = true; };
+                  nix = nixVolumeMount;
                 };
               };
             };
             volumes = {
               _namedlist = true;
-              "nix-store" = {
-                csi = {
-                  driver = "nix.csi.store";
-                  readOnly = true;
-                  volumeAttributes = {
-          x86_64-linux = miningCoordScript;
-          "csi.storage.k8s.io/ephemeral" = "true";
-        };
-                };
-              };
+              nix = nixVolume;
             };
           };
         };
@@ -1024,11 +979,17 @@ in
               init = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${miningCoordInitScript}" ];
+                command = [
+                  "${pkgs.writeShellScript "mining-coord-init" ''
+                    export PATH=${pkgs.iptables}/bin:${pkgs.coreutils}/bin:$PATH
+                    # Pre-create nftables ruleset placeholder
+                    mkdir -p /host/run/mining-coordinator
+                  ''}"
+                ];
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  "nix-store" = { mountPath = "/nix/store"; readOnly = true; };
+                  nix = nixVolumeMount;
                   host-run = {
                     mountPath = "/host/run";
                   };
@@ -1040,7 +1001,12 @@ in
               coordinator = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${miningInferCoordScript}" ];
+                command = [
+                  "${pkgs.writeShellScript "mining-inference-coord" ''
+                    export PATH=${pkgs.curl}/bin:${pkgs.gawk}/bin:${pkgs.nftables}/bin:${pkgs.coreutils}/bin:$PATH
+                    exec /nix/store/7i476xnfdjnxn46pd8pxy23zzyka44vw-mining-inference-coordinator
+                  ''}"
+                ];
                 env = {
                   _namedlist = true;
                   NODE_NAME.valueFrom.fieldRef.fieldPath = "spec.nodeName";
@@ -1058,22 +1024,13 @@ in
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  "nix-store" = { mountPath = "/nix/store"; readOnly = true; };
+                  nix = nixVolumeMount;
                 };
               };
             };
             volumes = {
               _namedlist = true;
-              "nix-store" = {
-                csi = {
-                  driver = "nix.csi.store";
-                  readOnly = true;
-                  volumeAttributes = {
-          x86_64-linux = miningInferCoordScript;
-          "csi.storage.k8s.io/ephemeral" = "true";
-        };
-                };
-              };
+              nix = nixVolume;
               host-run.hostPath = {
                 path = "/run";
                 type = "Directory";
@@ -1169,6 +1126,7 @@ in
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
+                  nix = nixVolumeMount;
                   opengl = {
                     mountPath = "/run/opengl-driver/lib";
                   };
@@ -1183,6 +1141,7 @@ in
             };
             volumes = {
               _namedlist = true;
+              nix = nixVolume;
               opengl.hostPath.path = "/run/opengl-driver/lib";
               dev.hostPath = {
                 path = "/dev";
@@ -1270,7 +1229,7 @@ in
                 ];
                 volumeMounts = {
                   _namedlist = true;
-                  "nix-store" = { mountPath = "/nix/store"; readOnly = true; };
+                  nix = nixVolumeMount;
                   config = {
                     mountPath = "/etc/caddy";
                     readOnly = true;
@@ -1283,16 +1242,7 @@ in
             };
             volumes = {
               _namedlist = true;
-              "nix-store" = {
-                csi = {
-                  driver = "nix.csi.store";
-                  readOnly = true;
-                  volumeAttributes = {
-          x86_64-linux = pkgsWithOverlay.caddy-with-modules;
-          "csi.storage.k8s.io/ephemeral" = "true";
-        };
-                };
-              };
+              nix = nixVolume;
               config = {
                 hostPath.path = "/etc/caddy";
                 type = "Directory";
@@ -1387,7 +1337,7 @@ in
                 securityContext.capabilities.drop = [ "ALL" ];
                 volumeMounts = {
                   _namedlist = true;
-                  "nix-store" = { mountPath = "/nix/store"; readOnly = true; };
+                  nix = nixVolumeMount;
                   data = {
                     mountPath = "/data";
                   };
@@ -1399,16 +1349,7 @@ in
             };
             volumes = {
               _namedlist = true;
-              "nix-store" = {
-                csi = {
-                  driver = "nix.csi.store";
-                  readOnly = true;
-                  volumeAttributes = {
-          x86_64-linux = pkgs.syncthing;
-          "csi.storage.k8s.io/ephemeral" = "true";
-        };
-                };
-              };
+              nix = nixVolume;
               data = {
                 emptyDir = { sizeLimit = "1Gi"; };
               };
