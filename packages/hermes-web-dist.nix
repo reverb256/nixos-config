@@ -6,7 +6,7 @@ pkgs.buildNpmPackage {
   src = hermesSrc;
   sourceRoot = "source/web";
 
-  npmDepsHash = "sha256-Kh7lX3iWMM25E2kotpJFouZxtAx0n0fOsHeyPllqDDg=";
+  npmDepsHash = "sha256-Y0pOzdFG8BLjfvCLmsvqYpjxFjAQabXp1i7X9W/cCU4=";
 
   # Don't let buildNpmPackage run npm build - we do it ourselves
   dontNpmBuild = true;
