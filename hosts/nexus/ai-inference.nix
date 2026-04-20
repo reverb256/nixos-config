@@ -3,11 +3,11 @@
     enable = true;
 
     backend = {
-      url = "http://10.1.1.110:1235"; # zephyr llama-server
+      url = "http://10.1.1.140:1235"; # sentry llama-server (Qwen3.5-4B, always on)
       type = "llama-cpp";
       local = {
-        url = "http://10.1.1.110:1235";
-        model = "qwen3.6-35b-a3b";
+        url = "http://10.1.1.140:1235"; # sentry (always on)
+        model = "qwen3.5-4b-q4";
       };
       nvidia-nim = {
         enable = true;
@@ -34,13 +34,17 @@
       host = "0.0.0.0";
       port = 8080;
       workers = 1;
-      middleware.redis.enable = true;  # Local Redis for gateway caching
+      middleware.redis = {
+        enable = true;
+        host = "10.2.10.161"; # K8s search/valkey ClusterIP
+        port = 6379;
+      };
       middleware.knowledgeFabric = {
         enable = true;
         rrf_k = 60;
         rag_enabled = true;
         searxng_enabled = true;
-        searxng_url = "http://10.1.1.120:30888"; # SearXNG NodePort on this host
+        searxng_url = "http://10.4.98.141:8080"; # K8s search/searxng ClusterIP
         searxng_max_results = 10;
         code_search_enabled = false;
         brain_wiki_enabled = true;
@@ -52,8 +56,8 @@
 
     routing = {
       enable = true;
-      defaultModel = "qwen3.6-35b-a3b";
-      fallbackChain = ["zai" "pollinations"];
+      defaultModel = "qwen3.5-4b-q4"; # local-first
+      fallbackChain = ["zai" "nvidia-nim" "pollinations"];
     };
 
     auth.mode = "none";
@@ -111,7 +115,7 @@
     # Phase 2 hybrid search features
     queryExpansion = {
       enable = true;
-      model = "qwen3.6-35b-a3b";
+      model = "qwen3.5-4b-q4";
     };
 
     semanticCache = {
