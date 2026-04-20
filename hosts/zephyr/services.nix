@@ -278,11 +278,6 @@
           reverse_proxy 10.12.30.204:5678
         }
 
-          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
-          encode zstd gzip
-          reverse_proxy 10.3.6.35:3000
-        }
-
         https://activepieces.lan, https://activepieces.cluster.local {
           tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
           encode zstd gzip
