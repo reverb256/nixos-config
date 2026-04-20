@@ -396,7 +396,7 @@
           container = 5;
           position = 202;
         };
-        "SearXNG" = {
+        "Vane" = {
           id = "pin-ai-002b";
           url = "https://search.lan";
           workspace = "ai-2b9d4c41-6a8e-4c9b-9a44-6d1c7f2e8b02";
@@ -605,9 +605,9 @@
           container = 2;
           position = 670;
         };
-        "SearXNG (Cluster)" = {
+        "SearXNG" = {
           id = "pin-sys-015";
-          url = "http://search.cluster.local/search";
+          url = "https://searxng.lan";
           workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
           container = 2;
           position = 675;
@@ -826,7 +826,7 @@
             definedAliases = [ "@mdn" ];
           };
           searxng = {
-            urls = [ { template = "https://search.lan/search?q={searchTerms}"; } ];
+            urls = [ { template = "https://searxng.lan/search?q={searchTerms}"; } ];
             icon = "https://searxng.org/static/img/logo_small.svg";
             definedAliases = [
               "@sx"

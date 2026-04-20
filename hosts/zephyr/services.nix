@@ -232,10 +232,16 @@
           reverse_proxy 127.0.0.1:8080
         }
 
+        https://searxng.lan, https://searxng.cluster.local {
+          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
+          encode zstd gzip
+          reverse_proxy 10.4.98.141:8080
+        }
+
         https://search.lan, https://search.cluster.local {
           tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
           encode zstd gzip
-          reverse_proxy 10.1.1.120:30888
+          reverse_proxy 10.1.1.120:30900
         }
         https://ai.lan, https://ai.cluster.local {
           tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
