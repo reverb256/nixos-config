@@ -76,8 +76,8 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1776477575,
-        "narHash": "sha256-BkBkDiCoaOygQPlS5ioF1i26G4ICTesuZN+xiyyvn+8=",
+        "lastModified": 1776566614,
+        "narHash": "sha256-Q3pri7kiji9c357QQhjH8h427R2ufKxVCBit6TKkJkY=",
         "path": "/data/projects/own/astral-key",
         "type": "path"
       },
@@ -327,11 +327,11 @@
     },
     "crane": {
       "locked": {
-        "lastModified": 1776479158,
-        "narHash": "sha256-P7TLDtRgAxmo0Bdw8fkJrrBpX/8/WhO6Bm/uCfl6jXY=",
+        "lastModified": 1776533550,
+        "narHash": "sha256-8mTHsQ8cB0jGlXE4WWKqpQFQPM/VotDnr2uzfrOGNKI=",
         "owner": "ipetkov",
         "repo": "crane",
-        "rev": "3fbd73bdd9eb572209fdf094abad19d9b6d147b4",
+        "rev": "e24d86e91348e3d44014974fa24c9a22cfd663b5",
         "type": "github"
       },
       "original": {
@@ -931,8 +931,8 @@
         ]
       },
       "locked": {
-        "lastModified": 1776465797,
-        "narHash": "sha256-g0xOgTxQaEeu/OTQs0TF6rGBX21S5CSvcQGRZ1vaQRk=",
+        "lastModified": 1776566473,
+        "narHash": "sha256-7VSL2QcdJy3F/yU1pIuIbRhE4ehc6DNMRRPHrYJn2rc=",
         "path": "/data/projects/own/gpu-proxy",
         "type": "path"
       },
@@ -1008,8 +1008,8 @@
         ]
       },
       "locked": {
-        "lastModified": 1776477561,
-        "narHash": "sha256-82PtL7X1trL6MW7R4BG3Gly1VKWlNKIJaf6pKy2Vl0k=",
+        "lastModified": 1776566473,
+        "narHash": "sha256-rvMqnNFLfTDBHGNIWkfSmN2wpIaXH0AJeWq4ZaPBsU0=",
         "path": "/data/projects/own/knowledge-fabric",
         "type": "path"
       },
@@ -1025,7 +1025,7 @@
         ]
       },
       "locked": {
-        "lastModified": 1776496549,
+        "lastModified": 1776566474,
         "narHash": "sha256-9BNnN7rQs/ht91fpstYFm57z5jYCZgTbMQw8LhgvgAE=",
         "path": "/data/projects/own/llama-cpp-turboquant",
         "type": "path"
