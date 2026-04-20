@@ -94,7 +94,7 @@ spec:
             - name: studio-data
               mountPath: /app/.runtime
             - name: hermes-config
-              mountPath: /root/.hermes/config.yaml
+              mountPath: /home/hermes/.hermes/config.yaml
               subPath: config.yaml
               readOnly: true
       volumes:
