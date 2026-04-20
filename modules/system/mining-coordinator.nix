@@ -351,6 +351,10 @@
                   return
               fi
 
+          # Skip CPU PSI check when CPU mining is active (xmrig keeps PSI high)
+          if pgrep -x xmrig >/dev/null 2>&1; then
+              log "PSI: Skipping CPU check - xmrig mining active"
+          elif check_psi_cpu_pressure; then
               if check_psi_cpu_pressure; then
                   echo "builds"
                   return
