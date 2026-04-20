@@ -25,7 +25,7 @@ in
       '';
       serviceConfig = {
         Type = "exec";
-        ExecStart = "${pkgs.podman}/bin/podman run --name vane --network=host -e SEARXNG_API_URL=${cfg.searxngUrl} -v ${cfg.dataDir}:/home/vane/data --restart=no ${cfg.image}";
+        ExecStart = "${pkgs.podman}/bin/podman run --name vane --network=host -e SEARXNG_API_URL=${cfg.searxngUrl} -e PORT=${toString cfg.port} -v ${cfg.dataDir}:/home/vane/data --restart=no ${cfg.image}";
         ExecStop = "${pkgs.podman}/bin/podman stop -t 10 vane";
         Restart = "on-failure";
         RestartSec = 5;
