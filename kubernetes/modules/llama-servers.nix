@@ -75,7 +75,7 @@ in
         gpu = "rtx3090";
       };
       spec = {
-        replicas = 1;
+        replicas = 0;  # Disabled: now systemd service (llama-3060ti.nix)
         revisionHistoryLimit = 1;
         selector.matchLabels = {
           app = "llama-server-zephyr";
@@ -241,14 +241,14 @@ in
     # ── Zephyr RTX 3060 Ti (GPU 0) — Qwen3.5-9B Opus-Distilled ───────────────────────────
     # Claude 4.6 Opus reasoning distilled into Qwen3.5-9B. 5.6GB Q4_K_M.
     # 256K context (max), iq4_nl KV cache. Reasoning model (no mmproj).
-    Deployment.llama-server-zephyr-3060ti = {
+    Deployment.llama-server-zephyr-3060ti = {  # Disabled: now systemd llama-server-3060ti.service
       metadata.labels = managed // {
         app = "llama-server-zephyr-3060ti";
         host = "zephyr";
         gpu = "rtx3060ti";
       };
       spec = {
-        replicas = 1;
+        replicas = 0;  # Disabled: now systemd service
         revisionHistoryLimit = 1;
         selector.matchLabels = {
           app = "llama-server-zephyr-3060ti";
