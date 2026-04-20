@@ -602,6 +602,8 @@
     dockerSocket.enable = true;
   };
 
+  services.appimage-updater.enable = true;
+
   services.agenix-secrets-registry = {
     enable = true;
     aiServices = true;
