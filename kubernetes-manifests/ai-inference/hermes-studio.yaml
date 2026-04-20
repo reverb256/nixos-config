@@ -48,7 +48,7 @@ spec:
             - containerPort: 3000
               protocol: TCP
               name: http
-      nodePort: 30300
+          env:
             - name: HERMES_API_URL
               value: "http://10.1.1.120:8642"
             - name: HERMES_API_KEY
