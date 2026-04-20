@@ -75,7 +75,6 @@ in
 
       path = [
         hermes-with-web
-        pkgs.nodejs_20
         pkgs.bash
         pkgs.coreutils
       ];
@@ -86,7 +85,7 @@ in
         WorkingDirectory = hermesCfg.workingDirectory;
 
         # Use the wrapper package which has web_dist injected
-        ExecStart = "${hermes-with-web}/bin/hermes-agent dashboard --host ${cfg.host} --port ${toString cfg.port} --model glm-5.1 --insecure --no-open";
+        ExecStart = "${hermes-with-web}/bin/hermes dashboard --host ${cfg.host} --port ${toString cfg.port} --model glm-5.1 --insecure --no-open";
 
         Restart = "always";
         RestartSec = 5;
