@@ -15,6 +15,16 @@ stringData:
   password: "changeme-studio-2026"
   # TODO: Migrate to agenix-encrypted K8s secret
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hermes-studio-config
+  namespace: ai-inference
+data:
+  config.yaml: |
+    model: glm-5.1
+    provider: zai
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -91,9 +101,16 @@ spec:
           volumeMounts:
             - name: studio-data
               mountPath: /app/.runtime
+            - name: hermes-config
+              mountPath: /root/.hermes/config.yaml
+              subPath: config.yaml
+              readOnly: true
       volumes:
         - name: studio-data
           emptyDir: {}
+        - name: hermes-config
+          configMap:
+            name: hermes-studio-config
 ---
 apiVersion: v1
 kind: Service
@@ -114,6 +131,8 @@ spec:
     app: hermes-studio
 ---
 # NetworkPolicy — allow hermes-studio to reach hermes-agent API + Valkey
+# NOTE: kube-router netpol controller doesn't handle cross-namespace namespaceSelector
+# reliably for internal ClusterIPs. Using ipBlock with pod CIDR as workaround.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -136,6 +155,7 @@ spec:
     - from:
         - podSelector: {}
   egress:
+    # DNS resolution
     - to:
         - namespaceSelector: {}
           podSelector:
@@ -146,15 +166,17 @@ spec:
           protocol: UDP
         - port: 53
           protocol: TCP
+    # Hermes Agent API (nexus:8642)
     - to:
         - ipBlock:
             cidr: 10.1.1.120/32
       ports:
         - port: 8642
           protocol: TCP
+    # Valkey — nexus pod CIDR (Valkey pod is 10.244.1.x on nexus)
     - to:
         - ipBlock:
-            cidr: 10.2.10.161/32
+            cidr: 10.244.1.0/24
       ports:
         - port: 6379
           protocol: TCP
