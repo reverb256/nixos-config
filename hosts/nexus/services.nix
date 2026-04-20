@@ -243,6 +243,9 @@
     openFirewall = true;
   };
 
+  # Dashboard auth password
+  systemd.services.hermes-dashboard.environment.HERMES_PASSWORD = "changeme-studio-2026";
+
   # Load Z.AI and NVIDIA API keys for hermes-agent
   # The official module's environment option doesn't reliably set systemd env vars,
   # so we use a systemd override with ExecStartPre to generate an env file.
