@@ -237,7 +237,7 @@
 
   # Hermes web dashboard
   services.hermes-dashboard = {
-    enable = true;
+    enable = false;
     port = 9119;
     host = "0.0.0.0";
     openFirewall = true;
