@@ -50,7 +50,7 @@ spec:
               name: http
           env:
             - name: HERMES_API_URL
-              value: "http://10.1.1.120:8642"
+              value: "http://10.1.1.120:8650"
             - name: HERMES_API_KEY
               value: "hermes-local-dev-b8b2275d6053fb335a9508048c54dc96"
             - name: REDIS_URL
@@ -160,6 +160,8 @@ spec:
             cidr: 10.1.1.120/32
       ports:
         - port: 8642
+          protocol: TCP
+        - port: 8650
           protocol: TCP
     - to:
         - ipBlock:
