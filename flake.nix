@@ -258,6 +258,7 @@
       packages.x86_64-linux.claude-code-image = pkgsWithOverlay.claude-code-image; # extracted to packages/claude-code-image.nix
       packages.x86_64-linux.ai-inference-gateway-image = inputs.ai-gateway.packages.x86_64-linux.container; # migrated from local pkgs/
       packages.x86_64-linux.opencode-image = pkgsWithOverlay.opencode-image; # extracted to packages/opencode-image.nix
+      packages.x86_64-linux.hermes-studio-image = pkgsWithOverlay.hermes-studio-image; # extracted to packages/hermes-studio-image.nix
       overlays.default = (import ./overlay.nix) { inherit inputs; };
       kubernetes = import ./kubernetes { inherit pkgs pkgsWithOverlay inputs; };
 
