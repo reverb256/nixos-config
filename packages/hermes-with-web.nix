@@ -21,7 +21,7 @@ let
   '';
 in
 pkgs.runCommand "hermes-agent-with-web-${hermes-pkg.version or "0.9.0"}" {
-  nativeBuildInputs = [ pkgs.makeWrapper pkgs.python311Packages.pip ];
+  nativeBuildInputs = [ pkgs.makeWrapper ];
   # Ensure hermes-pkg is in the sandbox so we can read the wrapper script
   buildInputs = [ hermes-pkg ];
 } ''
@@ -57,7 +57,7 @@ pkgs.runCommand "hermes-agent-with-web-${hermes-pkg.version or "0.9.0"}" {
   done
 
   # Install fastapi + uvicorn into the overlay for the dashboard web server
-  pip install --target="$OVERLAY" --no-deps fastapi uvicorn starlette anyio sniffio idna click h11
+  ${pkgs.python311}/bin/python3.11 -m pip install --target="$OVERLAY" --no-deps --no-build-isolation fastapi uvicorn starlette anyio sniffio idna click h11 ||   (cd /tmp && ${pkgs.python311}/bin/python3.11 -m ensurepip --user 2>/dev/null; ${pkgs.python311}/bin/python3.11 -m pip install --target="$OVERLAY" --no-deps fastapi uvicorn starlette anyio sniffio idna click h11)
 
   # Wrap hermes binaries with our overlay in PYTHONPATH (takes precedence)
   for bin in ${hermes-pkg}/bin/*; do
