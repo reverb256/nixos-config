@@ -246,6 +246,26 @@
   # Dashboard auth password
   systemd.services.hermes-dashboard.environment.HERMES_PASSWORD = "changeme-studio-2026";
 
+  # Merged API proxy — unifies gateway (8642) + dashboard (9119) on port 8650
+  # Studio points HERMES_API_URL here for full enhanced mode
+  systemd.services.hermes-merged-proxy = {
+    description = "Hermes Merged API Proxy";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "hermes-agent.service" "hermes-dashboard.service" ];
+    requires = [ "hermes-agent.service" "hermes-dashboard.service" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.nodejs_20}/bin/node /opt/hermes-merged-proxy/proxy.js";
+      Restart = "always";
+      RestartSec = 5;
+    };
+    environment = {
+      GATEWAY_URL = "http://127.0.0.1:8642";
+      DASHBOARD_URL = "http://127.0.0.1:9119";
+      API_KEY = "hermes-local-dev-b8b2275d6053fb335a9508048c54dc96";
+      LISTEN_PORT = "8650";
+    };
+  };
+
   # Load Z.AI and NVIDIA API keys for hermes-agent
   # The official module's environment option doesn't reliably set systemd env vars,
   # so we use a systemd override with ExecStartPre to generate an env file.
