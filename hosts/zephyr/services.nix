@@ -251,13 +251,13 @@
         https://openwebui.lan, https://openwebui.cluster.local {
           tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
           encode zstd gzip
-          reverse_proxy 10.1.1.120:32080
+          reverse_proxy 10.15.130.66:8080
         }
 
         https://haven.lan, https://haven.cluster.local {
           tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
           encode zstd gzip
-          reverse_proxy 10.1.1.120:3000
+          reverse_proxy 10.14.133.147:3000
         }
 
         https://hermes.lan, https://hermes.cluster.local {
@@ -266,7 +266,7 @@
           reverse_proxy 10.1.1.120:9119
         }
 
-        https://api.hermes.lan {
+        https://api.hermes.lan, https://api.hermes.cluster.local {
           tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
           encode zstd gzip
           reverse_proxy 10.1.1.120:8642
@@ -276,6 +276,12 @@
           tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
           encode zstd gzip
           reverse_proxy 10.12.30.204:5678
+        }
+
+        https://studio.lan, https://studio.cluster.local {
+          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
+          encode zstd gzip
+          reverse_proxy 10.3.6.35:3000
         }
 
         https://activepieces.lan, https://activepieces.cluster.local {
