@@ -286,7 +286,7 @@
 
         https://studio.lan, https://studio.cluster.local {
           tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
-          reverse_proxy 10.3.6.35:3000
+          reverse_proxy 10.1.1.120:30300
         }
       '';
     };
