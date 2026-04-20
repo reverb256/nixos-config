@@ -68,8 +68,6 @@ in
           "n8n.lan. IN A 10.1.1.100"
           "searxng.lan. IN A 10.1.1.100"
           "activepieces.lan. IN A 10.1.1.100"
-          "studio.lan. IN A 10.1.1.100"
-          "studio.cluster.local. IN A 10.1.1.100"
           "n8n.cluster.local. IN A 10.1.1.100"
           "activepieces.cluster.local. IN A 10.1.1.100"
         ];
