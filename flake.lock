@@ -253,8 +253,8 @@
         ]
       },
       "locked": {
-        "lastModified": 1776465797,
-        "narHash": "sha256-p9uECkmGRCHLgcDYZx3vu7zvg6NLcuvnbKN/kdRRfic=",
+        "lastModified": 1776566473,
+        "narHash": "sha256-UkoBsNwoMuxunCi8RomVPy6e099tLTWk48W5cpt3Ix0=",
         "path": "/data/projects/own/caddy-ingress",
         "type": "path"
       },
@@ -315,8 +315,8 @@
         ]
       },
       "locked": {
-        "lastModified": 1776505216,
-        "narHash": "sha256-gAMmexAEJPL6k+3+lvTIcbDEi4XOI6bVUNEGNEhYsrE=",
+        "lastModified": 1776566473,
+        "narHash": "sha256-vMt+O2HkccU/tDSnVf5u89FdN6oRy4TNbymZydWvBr8=",
         "path": "/data/projects/own/compute-market",
         "type": "path"
       },
@@ -1067,8 +1067,8 @@
         ]
       },
       "locked": {
-        "lastModified": 1776465797,
-        "narHash": "sha256-b70ULwwYUVyatMxaUcbhCZXJ3dB624MoSMdBsqbmu68=",
+        "lastModified": 1776566474,
+        "narHash": "sha256-SNxMVKmxpOjrRqHCMBNOiaVYTD4DPIgUykwzPPqgG08=",
         "path": "/data/projects/own/mcp-registry",
         "type": "path"
       },
