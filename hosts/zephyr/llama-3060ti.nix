@@ -4,8 +4,8 @@ let
   modelDir = "/home/j_kro/.lmstudio/models";
   startScript = pkgs.writeShellScriptBin "llama-3060ti" ''
     exec env -i \
-      CUDA_VISIBLE_DEVICES=0 \
-      LD_LIBRARY_PATH=/run/opengl-driver/lib \
+      CUDA_VISIBLE_DEVICES=1 \
+      LD_LIBRARY_PATH=/nix/store/d7f6imkyiv8rsd00za8kln0hjij4nns5-llama-cpp-turboquant-1.6.0/lib:/run/opengl-driver/lib \
       PATH=/run/current-system/sw/bin \
       HOME=/home/j_kro \
       ${llama-cpp}/bin/llama-server \
