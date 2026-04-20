@@ -13,7 +13,7 @@ in {
     };
     serviceConfig = {
       Type = "simple";
-      ExecStart = "${lib.getExe llama-cpp} --model ${modelDir}/Jackrong/Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-GGUF/Qwen3.5-9B.Q4_K_M.gguf --host 0.0.0.0 --port 1236 -ngl 99 -c 32768 -t 4 --fit off --batch-size 32 --ubatch-size 16 --flash-attn on --parallel 1 --cache-type-k iq4_nl --cache-type-v iq4_nl --temp 0.6 --top-k 20 --top-p 0.95 --reasoning-format deepseek --chat-template-file ${modelDir}/qwen3-thinking-template.jinja --jinja --metrics";
+      ExecStart = "${llama-cpp}/bin/llama-server --model ${modelDir}/Jackrong/Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-GGUF/Qwen3.5-9B.Q4_K_M.gguf --host 0.0.0.0 --port 1236 -ngl 99 -c 32768 -t 4 --fit off --batch-size 32 --ubatch-size 16 --flash-attn on --parallel 1 --cache-type-k iq4_nl --cache-type-v iq4_nl --temp 0.6 --top-k 20 --top-p 0.95 --reasoning-format deepseek --chat-template-file ${modelDir}/qwen3-thinking-template.jinja --jinja --metrics";
       Restart = "on-failure";
       RestartSec = 10;
     };
