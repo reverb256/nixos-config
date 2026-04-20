@@ -53,7 +53,11 @@ in
         fi
 
         unset LD_LIBRARY_PATH
-        exec ${pkgs.lmstudio}/bin/lmstudio "$@"
+        exec ${pkgs.lmstudio}/bin/lmstudio \
+          --enable-features=UseOzonePlatform \
+          --ozone-platform=wayland \
+          --disable-gpu-sandbox \
+          "$@"
       '')
     ];
   };

@@ -42,7 +42,7 @@ spec:
       dnsPolicy: ClusterFirst
       containers:
         - name: hermes-studio
-          image: localhost/hermes-studio:1.18.1
+          image: localhost/hermes-studio:1.18.1-prod
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
