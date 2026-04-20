@@ -92,7 +92,6 @@
   };
 
   environment.sessionVariables = {
-    CUDA_VISIBLE_DEVICES = "0,1";
 
     NCCL_P2P_LEVEL = "2";
     NCCL_P2P_DISABLE = "0";
