@@ -1,6 +1,6 @@
 { config, lib, pkgs, inputs, ... }:
 let
-  llama-cpp = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp;
+  llama-cpp = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant;
   modelDir = "/home/j_kro/.lmstudio/models";
 in {
   systemd.services.llama-server-3060ti = {
