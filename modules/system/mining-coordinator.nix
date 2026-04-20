@@ -298,7 +298,7 @@
               done < <(pgrep -x nix-daemon | xargs -r ps -p -o %cpu --no-headers 2>/dev/null | tr -d ' ')
 
               local is_active=$(awk "BEGIN {exit ($total_cpu > 10.0)}")
-              if [ "${is_active:-0}" -eq 1 ]; then
+              if [ "$is_active" -eq 1 ] 2>/dev/null; then
                   log "nix-daemon activity detected: $total_cpu% CPU across $count processes"
                   return 0
               fi
