@@ -66,7 +66,7 @@ in {
           ${pkgs.openssl}/bin/openssl genrsa -out $LEAF_KEY 2048 2>/dev/null
           ${pkgs.openssl}/bin/openssl req -new -key $LEAF_KEY -out /tmp/leaf.csr \
             -subj "/CN=Cluster Ingress" \
-            -addext "subjectAltName=DNS:search.lan,DNS:search.cluster.local,DNS:ai.lan,DNS:ai.cluster.local,DNS:openwebui.lan,DNS:openwebui.cluster.local,DNS:haven.lan,DNS:haven.cluster.local,DNS:hermes.lan,DNS:hermes.cluster.local,DNS:api.hermes.lan,DNS:n8n.lan,DNS:n8n.cluster.local,DNS:activepieces.lan,DNS:activepieces.cluster.local" 2>/dev/null
+            -addext "subjectAltName=DNS:search.lan,DNS:search.cluster.local,DNS:ai.lan,DNS:ai.cluster.local,DNS:openwebui.lan,DNS:openwebui.cluster.local,DNS:haven.lan,DNS:haven.cluster.local,DNS:hermes.lan,DNS:hermes.cluster.local,DNS:api.hermes.lan,DNS:n8n.lan,DNS:n8n.cluster.local,DNS:activepieces.lan,DNS:searxng.lan,DNS:searxng.cluster.local,DNS:activepieces.cluster.local" 2>/dev/null
           ${pkgs.openssl}/bin/openssl x509 -req -in /tmp/leaf.csr -CA ${cfg.caCert} -CAkey ${cfg.caKey} \
             -CAcreateserial -out $LEAF_CERT -days 365 -copy_extensions copyall 2>/dev/null
           rm -f /tmp/leaf.csr
