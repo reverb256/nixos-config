@@ -98,6 +98,7 @@
     ./services/lm-studio-headless.nix
     ./services/llamafile.nix
     ./services/stability-matrix.nix
+    ./services/appimage-updater.nix
     ./services/haven-desktop.nix
     # ./services/ai-inference/default.nix  # migrated to inputs.ai-gateway
     ./services/nixos-share.nix
