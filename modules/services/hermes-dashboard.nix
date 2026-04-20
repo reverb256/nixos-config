@@ -70,10 +70,6 @@ in
         HOME = hermesCfg.stateDir;
         HERMES_HOME = "${hermesCfg.stateDir}/.hermes";
         HERMES_MANAGED = "true";
-        PYTHONPATH = let
-          webPy = pkgs.python312.withPackages (ps: [ ps.fastapi ps.uvicorn ]);
-        in "${webPy}/lib/python3.12/site-packages";
-        # Use Nix-managed Python packages
       };
 
       path = [
