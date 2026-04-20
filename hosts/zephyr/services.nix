@@ -278,7 +278,6 @@
           reverse_proxy 10.12.30.204:5678
         }
 
-        https://studio.lan, https://studio.cluster.local {
           tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
           encode zstd gzip
           reverse_proxy 10.3.6.35:3000
@@ -604,7 +603,6 @@
 
   programs = {
 
-    lm-studio.enable = true;
     haven-desktop.enable = true;
   };
 
