@@ -32,8 +32,7 @@ else
     log "SM: $current_sm -> $latest_sm — fetching correct hash..."
     sed -i "s/version = \"${current_sm}\"/version = \"${latest_sm}\"/" "$SM_FILE"
 
-    # fetchzip strips top-level dir — nix-prefetch-url --unpack doesn't match.
-    # Build with empty hash to get the correct one from error output.
+    # fetchzip strips top-level dir — build with empty hash to get correct one from error
     url="https://github.com/LykosAI/StabilityMatrix/releases/download/v${latest_sm}/StabilityMatrix-linux-x64.zip"
     hash_output=$(nix-build --option builders '' --no-out-link -E "
       with import <nixpkgs> {};
@@ -57,11 +56,13 @@ fi
 # ── LM Studio (CDN redirect, fetchurl) ──
 log "Checking LM Studio..."
 current_lm=$(grep -oP 'version = "\K[^"]+' "$LM_FILE")
-latest_lm=$(curl -sIL "https://lmstudio.ai/download/latest/linux/x64" 2>/dev/null \
-  | grep -i "^location:" | head -1 | grep -oP '\d+\.\d+\.\d+-\d+' || true)
+# Follow redirect to get latest version from URL path
+redirect_url=$(curl -sIL "https://lmstudio.ai/download/latest/linux/x64" 2>/dev/null \
+  | grep -i "^location:" | tail -1 | tr -d '\r' || true)
+latest_lm=$(echo "$redirect_url" | grep -oP '\d+\.\d+\.\d+-\d+' | head -1 || true)
 
 if [ -z "$latest_lm" ]; then
-    log "LM Studio: Failed to fetch latest version from CDN"
+    log "LM Studio: Failed to fetch latest version from CDN (url was: $redirect_url)"
 elif [ "$current_lm" = "$latest_lm" ]; then
     log "LM Studio: Already on $current_lm"
 else
