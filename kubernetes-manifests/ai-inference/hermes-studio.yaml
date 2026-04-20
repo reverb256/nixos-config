@@ -63,8 +63,7 @@ spec:
               value: "http://10.1.1.120:8642"
             - name: HERMES_API_KEY
               value: "hermes-local-dev-b8b2275d6053fb335a9508048c54dc96"
-            - name: REDIS_URL
-              value: "redis://10.2.10.161:6379"
+              value: "redis://10.1.1.120:30379"
             - name: HERMES_PASSWORD
               valueFrom:
                 secretKeyRef:
