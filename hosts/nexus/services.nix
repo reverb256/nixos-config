@@ -141,20 +141,20 @@
 
     settings = {
       providers = {
-        # All inference routed through AI Inference Gateway on Nexus:8080
-        # The gateway handles upstream provider selection, auth, monitoring
+        # All inference through AI Inference Gateway on Nexus:8080
+        # Gateway handles upstream routing, auth, think-param stripping
         ai-gateway = {
           base_url = "http://127.0.0.1:8080/v1";
           api_key = "none";
-          model = "supergemma4-Q5_K_M.gguf";
+          model = "qwen/qwen3-coder-480b-a35b-instruct";
         };
-        # Direct ZAI for gateway fallback (keep for reliability)
+        # Direct ZAI fallback (bypasses gateway for reliability)
         zai = {
           base_url = "https://api.z.ai/api/coding/paas/v4";
           api_key_env = "ZAI_API_KEY";
           model = "glm-5.1";
         };
-        # Local llama-cpp via gateway
+        # Local llama-cpp endpoints
         llama-cpp-zephyr = {
           base_url = "http://llama-server-zephyr.ai-inference.svc.cluster.local:1235/v1";
           api_key = "unused";
@@ -168,7 +168,6 @@
       };
       fallback_providers = [
         "zai"
-        "nvidia-nim"
         "llama-cpp-zephyr"
         "llama-cpp-sentry"
       ];
@@ -250,6 +249,7 @@
     environment = {
       GATEWAY_URL = "http://127.0.0.1:8642";
       DASHBOARD_URL = "http://127.0.0.1:9119";
+      AI_GATEWAY_URL = "http://127.0.0.1:8080";
       API_KEY = "hermes-local-dev-b8b2275d6053fb335a9508048c54dc96";
       LISTEN_PORT = "8650";
     };
@@ -267,12 +267,9 @@
       API_SERVER_PORT=8642
       API_SERVER_KEY=hermes-local-dev-b8b2275d6053fb335a9508048c54dc96
       GLM_BASE_URL=https://api.z.ai/api/coding/paas/v4
-      NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
       ENVEOF
       echo -n "ZAI_API_KEY=" >> /data/hermes/.hermes/provider-env
       cat /run/agenix/zai-api-key >> /data/hermes/.hermes/provider-env
-      echo -n "NVIDIA_API_KEY=" >> /data/hermes/.hermes/provider-env
-      cat /run/agenix/nvidia-api-key >> /data/hermes/.hermes/provider-env
       chmod 600 /data/hermes/.hermes/provider-env
       chown hermes:hermes /data/hermes/.hermes/provider-env
     '');
