@@ -2,8 +2,9 @@
 # Hermes Studio — Full-featured web UI for hermes-agent
 # Repo: https://github.com/JPeetz/Hermes-Studio v1.18.1
 # Deployed to nexus — Caddy on zephyr (10.1.1.100) exposes at studio.lan
-# Connects to hermes-agent API at 10.1.1.120:8642 (same host, zero hops)
+# Connects to hermes-agent API via merged proxy at 10.1.1.120:8650
 # Redis for sessions: Valkey at 10.2.10.161:6379 (search ns)
+# server-entry.js patched via ConfigMap (backpressure fix for send-stream)
 ---
 apiVersion: v1
 kind: Secret
@@ -42,7 +43,7 @@ spec:
       dnsPolicy: ClusterFirst
       containers:
         - name: hermes-studio
-          image: localhost/hermes-studio:1.18.1-prod
+          image: localhost/hermes-studio:1.18.1-original
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
@@ -97,12 +98,19 @@ spec:
               mountPath: /home/hermes/.hermes/config.yaml
               subPath: config.yaml
               readOnly: true
+            - name: server-entry-patch
+              mountPath: /app/server-entry.js
+              subPath: server-entry.js
+              readOnly: true
       volumes:
         - name: studio-data
           emptyDir: {}
         - name: hermes-config
           configMap:
             name: hermes-studio-config
+        - name: server-entry-patch
+          configMap:
+            name: hermes-studio-server-entry
 ---
 apiVersion: v1
 kind: Service
@@ -169,3 +177,4 @@ spec:
       ports:
         - port: 6379
           protocol: TCP
+
