@@ -130,7 +130,7 @@ in
       };
     };
 
-    networking.networkmanager.dns = "default";
+    networking.networkmanager.dns = "none";
 
     networking.firewall = {
       enable = true;
