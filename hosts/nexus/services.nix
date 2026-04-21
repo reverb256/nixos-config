@@ -224,37 +224,6 @@
   };
 
   # Hermes web dashboard
-  services.hermes-dashboard = {
-    enable = true;
-    port = 9119;
-    host = "0.0.0.0";
-    openFirewall = true;
-  };
-
-  # Dashboard auth password
-  systemd.services.hermes-dashboard.environment.HERMES_PASSWORD = "changeme-studio-2026";
-
-  # Merged API proxy — unifies gateway (8642) + dashboard (9119) on port 8650
-  # Studio points HERMES_API_URL here for full enhanced mode
-  systemd.services.hermes-merged-proxy = {
-    description = "Hermes Merged API Proxy";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "hermes-agent.service" "hermes-dashboard.service" ];
-    requires = [ "hermes-agent.service" "hermes-dashboard.service" ];
-    serviceConfig = {
-      ExecStart = "${pkgs.nodejs_20}/bin/node /opt/hermes-merged-proxy/proxy.js";
-      Restart = "always";
-      RestartSec = 5;
-    };
-    environment = {
-      GATEWAY_URL = "http://127.0.0.1:8642";
-      DASHBOARD_URL = "http://127.0.0.1:9119";
-      AI_GATEWAY_URL = "http://127.0.0.1:8080";
-      API_KEY = "hermes-local-dev-b8b2275d6053fb335a9508048c54dc96";
-      LISTEN_PORT = "8650";
-    };
-  };
-
   # Hermes WebUI — nesquena/hermes-webui (replaces JPeetz/Hermes-Studio)
   # Runs the agent in-process (no send-stream hang, no Redis, no proxy needed)
   systemd.services.hermes-webui = {
