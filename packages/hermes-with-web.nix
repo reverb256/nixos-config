@@ -66,16 +66,17 @@ pkgs.runCommand "hermes-agent-with-web-${hermes-pkg.version or "0.10.0"}" {
   VENV=$(<${hermesVenv})
 
   # Create our overlay site-packages directory
-  OVERLAY="$out/lib/python3.11/site-packages"
+  SITEPKG=$(find "$VENV/lib" -maxdepth 2 -name site-packages -type d | head -1)
+  OVERLAY="$out/lib/$(basename $(dirname "$SITEPKG"))/site-packages"
   mkdir -p "$OVERLAY"
 
   # Create a .pth file pointing to the original venv site-packages
-  echo "$VENV/lib/python3.11/site-packages" > "$OVERLAY/00-hermes-venv.pth"
+  echo "$SITEPKG" > "$OVERLAY/00-hermes-venv.pth"
 
   # Create the hermes_cli/web_dist directory with our built frontend
   mkdir -p "$OVERLAY/hermes_cli/web_dist"
   cp -r ${web-dist}/* "$OVERLAY/hermes_cli/web_dist/"
-  for f in $VENV/lib/python3.11/site-packages/hermes_cli/*; do
+  for f in $SITEPKG/hermes_cli/*; do
     name=$(basename "$f")
     if [ "$name" != "web_dist" ] && [ ! -e "$OVERLAY/hermes_cli/$name" ]; then
       ln -s "$f" "$OVERLAY/hermes_cli/$name"

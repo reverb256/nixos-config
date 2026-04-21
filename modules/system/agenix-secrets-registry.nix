@@ -102,6 +102,18 @@ in
           owner = "j_kro";
           group = "users";
         };
+        hermes-webui-password = {
+          file = "${inputs.self}/secrets/hermes-webui-password.age";
+          mode = "440";
+          owner = "j_kro";
+          group = "users";
+        };
+        hermes-api-server-key = {
+          file = "${inputs.self}/secrets/hermes-api-server-key.age";
+          mode = "440";
+          owner = "j_kro";
+          group = "users";
+        };
 
       })
       (lib.mkIf config.services.agenix-secrets-registry.monitoring {
