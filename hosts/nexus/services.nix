@@ -261,6 +261,9 @@
     description = "Hermes Web UI";
     wantedBy = [ "multi-user.target" ];
     after = [ "network.target" ];
+    environment = {
+      AI_GATEWAY_API_KEY = "none";
+    };
     serviceConfig = {
       ExecStart = "${pkgs.bash}/bin/bash /data/projects/own/hermes-webui/start-nixos.sh";
       Restart = "always";
