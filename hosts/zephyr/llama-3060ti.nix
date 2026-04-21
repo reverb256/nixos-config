@@ -5,13 +5,13 @@ let
   startScript = pkgs.writeShellScriptBin "llama-3060ti" ''
     exec env -i \
       CUDA_VISIBLE_DEVICES=1 \
-      LD_LIBRARY_PATH=/nix/store/d7f6imkyiv8rsd00za8kln0hjij4nns5-llama-cpp-turboquant-1.6.0/lib:/run/opengl-driver/lib \
+      LD_LIBRARY_PATH=${llama-cpp}/lib:/run/opengl-driver/lib \
       PATH=/run/current-system/sw/bin \
       HOME=/home/j_kro \
       ${llama-cpp}/bin/llama-server \
       --model ${modelDir}/Abiray/supergemma4-e4b-abliterated-GGUF/supergemma4-Q5_K_M.gguf \
       --host 0.0.0.0 --port 1236 -ngl 99 -c 32768 -t 4 --fit off \
-      --batch-size 32 --ubatch-size 16 --flash-attn on --parallel 1 \
+      --batch-size 512 --ubatch-size 128 --flash-attn on --parallel 1 \
       --cache-type-k iq4_nl --cache-type-v iq4_nl \
       --temp 0.6 --top-k 20 --top-p 0.95 \
       --metrics
