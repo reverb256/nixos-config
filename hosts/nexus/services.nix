@@ -1,4 +1,10 @@
 { config, pkgs, lib, inputs, ... }:
+
+let
+  patchedHermes = pkgs.callPackage ../../packages/hermes-agent-patch.nix {
+    hermes-pkg = inputs.hermes-agent.packages.x86_64-linux.default;
+  };
+in
 {
   systemd.tmpfiles.rules = [
     "R /var/lib/etcd - - - - -"
@@ -143,30 +149,25 @@
   # Hermes Agent — primary user-facing agent
   services.hermes-agent = {
     enable = true;
+    package = patchedHermes;
     addToSystemPackages = true;
 
     settings = {
       providers = {
+        # All inference routed through AI Inference Gateway on Nexus:8080
+        # The gateway handles upstream provider selection, auth, monitoring
+        ai-gateway = {
+          base_url = "http://127.0.0.1:8080/v1";
+          api_key = "none";
+          model = "supergemma4-Q5_K_M.gguf";
+        };
+        # Direct ZAI for gateway fallback (keep for reliability)
         zai = {
           base_url = "https://api.z.ai/api/coding/paas/v4";
           api_key_env = "ZAI_API_KEY";
           model = "glm-5.1";
         };
-        nvidia-nim = {
-          base_url = "https://integrate.api.nvidia.com/v1";
-          api_key_env = "NVIDIA_API_KEY";
-          model = "deepseek-ai/deepseek-v3.1";
-        };
-        ai-gateway = {
-          base_url = "http://127.0.0.1:8080/v1";
-          api_key = "none";
-          model = "qwen3.5-4b";
-        };
-        lmstudio = {
-          base_url = "http://127.0.0.1:1234/v1";
-          api_key = "lmstudio";
-          model = "qwen3.5-4b";
-        };
+        # Local llama-cpp via gateway
         llama-cpp-zephyr = {
           base_url = "http://llama-server-zephyr.ai-inference.svc.cluster.local:1235/v1";
           api_key = "unused";

@@ -22,6 +22,7 @@ let
       ./modules/haven.nix
       ./modules/monitoring.nix
       ./modules/monitoring-dashboards.nix
+      ./modules/vane.nix
       ./modules/host-services.nix
       ./modules/ai-coding-tools.nix
     ];
