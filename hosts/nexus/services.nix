@@ -142,7 +142,7 @@ in {
   # Hermes Agent — primary user-facing agent
   services.hermes-agent = {
     enable = true;
-    addToSystemPackages = true;
+    addToSystemPackages = false;  # hermes-with-whatsapp (superset) added via hermes-cli.nix
 
     settings = {
       providers = {
@@ -242,7 +242,7 @@ in {
       HERMES_HOME = "/home/j_kro/.hermes";
       HERMES_WEBUI_HOST = "0.0.0.0";
       HERMES_WEBUI_PORT = "8787";
-      HERMES_WEBUI_PASSWORD = "changeme-studio-2026";  # TODO: agenix
+      HERMES_WEBUI_PASSWORD = builtins.readFile config.age.secrets.hermes-webui-password.path;
       HERMES_WEBUI_STATE_DIR = "/home/j_kro/.hermes/webui-mvp";
       HERMES_WEBUI_DEFAULT_WORKSPACE = "/home/j_kro/workspace";
       HERMES_WEBUI_AGENT_DIR = "${hermesVenv}/lib/python3.11/site-packages";
@@ -297,10 +297,11 @@ in {
       API_SERVER_ENABLED=true
       API_SERVER_HOST=0.0.0.0
       API_SERVER_PORT=8642
-      API_SERVER_KEY=hermes-local-dev-b8b2275d6053fb335a9508048c54dc96
       GLM_BASE_URL=https://api.z.ai/api/coding/paas/v4
       ENVEOF
-      echo -n "ZAI_API_KEY=" >> /data/hermes/.hermes/provider-env
+      echo -n "API_SERVER_KEY=" >> /data/hermes/.hermes/provider-env
+      cat /run/agenix/hermes-api-server-key >> /data/hermes/.hermes/provider-env
+      echo -n "ZAI_API_KEY="" " >> /data/hermes/.hermes/provider-env
       cat /run/agenix/zai-api-key >> /data/hermes/.hermes/provider-env
       chmod 600 /data/hermes/.hermes/provider-env
       chown hermes:hermes /data/hermes/.hermes/provider-env

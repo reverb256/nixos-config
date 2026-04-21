@@ -102,5 +102,4 @@
   };
   claude-code-image = prev.callPackage ./packages/claude-code-image.nix {};
   opencode-image = prev.callPackage ./packages/opencode-image.nix {};
-  hermes-studio-image = prev.callPackage ./packages/hermes-studio-image.nix {};
 }
