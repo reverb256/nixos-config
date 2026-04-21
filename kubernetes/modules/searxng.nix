@@ -1,6 +1,14 @@
-{ pkgs, config, lib, ... }:
+{ pkgs, ... }:
+let
+  labels = {
+    app = "searxng";
+    "app.kubernetes.io/managed-by" = "easykubenix";
+  };
+in
 {
   config.kubernetes.objects = {
+
+    # ── Namespace ─────────────────────────────────────────────────
     none.Namespace.search = {
       metadata.labels = {
         name = "search";
@@ -10,60 +18,15 @@
       };
     };
 
+    # ── Secret ────────────────────────────────────────────────────
     search.Secret.searxng-secret = {
       type = "Opaque";
-      stringData = {
-        "secret-key" = "a3J5cHRleF82NHJhbmRvbXNlY3JldGtleTEyMw==";
-      };
+      stringData."secret-key" = "a3J5cHRleF82NHJhbmRvbXNlY3JldGtleTEyMw==";
     };
 
-    search.ConfigMap.searxng-config = {
-      data."settings.yml" = ''
-        server:
-          port: 7777
-          secret_key: "@SEARXNG_SECRET_KEY@"
-          limiter: false
-          image_proxy: true
-        search:
-          formats:
-            - html
-            - json
-            - csv
-            - rss
-        ui:
-          infinite_scroll: false
-          static_use_hash: true
-      '';
-    };
-
-    search.ConfigMap.searxng-settings-production = {
-      data."settings.yml" = ''
-        server:
-          limiter: false
-          secret_key: "@SEARXNG_SECRET_KEY@"
-          methods: []
-          port: 8888
-          bind_address: "127.0.0.1"
-
-        search:
-          formats:
-            - html
-            - csv
-            - json
-            - rss
-          language: en
-
-        engines:
-          - name: google
-          - name: stackoverflow
-          - name: github
-      '';
-    };
-
-    # Migrated from searxng/02-settings-configmap.yaml
-    # Full production settings with engine whitelist and limiter config
+    # ── ConfigMap: SearXNG settings (single source of truth) ──────
     search.ConfigMap.searxng-settings = {
-      metadata.labels.app = "searxng";
+      metadata.labels = labels;
       data = {
         "limiter.toml" = ''
           [botdetection.ip_limit]
@@ -72,13 +35,12 @@
         "settings.yml" = ''
           use_default_settings: true
 
-          # Completely remove engines that crash on init
           engines_drop:
             - wikidata
 
           server:
             limiter: false
-            secret_key: "REDACTED_SEARXNG_SECRET_KEY"
+            secret_key: "@SEARXNG_SECRET_KEY@"
             image_proxy: true
             method: "GET"
             port: 8080
@@ -108,8 +70,8 @@
               - 503
               - 504
 
-          # valkey:
-          #   url: valkey://valkey.search.svc.cluster.local:6379/0
+          valkey:
+            url: valkey://valkey.search.svc.cluster.local:6379/0
 
           engines:
             # -- General --
@@ -236,16 +198,19 @@
       };
     };
 
-    # Migrated from search/03-deployment.yaml - updated production deployment
+    # ── Deployment: SearXNG ───────────────────────────────────────
     search.Deployment.searxng = {
-      metadata.labels.app = "searxng";
+      metadata.labels = labels;
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
-        selector.matchLabels.app = "searxng";
-        strategy.type = "Recreate";
+        selector.matchLabels = labels;
+        strategy = {
+          type = "Recreate";
+          rollingUpdate = null;
+        };
         template = {
-          metadata.labels.app = "searxng";
+          metadata.labels = labels;
           spec = {
             nodeName = "nexus";
             enableServiceLinks = false;
@@ -271,41 +236,25 @@
                   _namedlist = true;
                   SEARXNG_SECRET.valueFrom.secretKeyRef = { name = "searxng-secret"; key = "secret-key"; };
                   SEARXNG_PORT.value = "8080";
-                  SEARXNG_BASE_URL.value = "https://search.cluster.local/";
+                  SEARXNG_BASE_URL.value = "https://search.lan/";
                   INSTANCE_NAME.value = "searxng-cluster";
                 };
                 ports = [
-                  {
-                    name = "http";
-                    containerPort = 8080;
-                    protocol = "TCP";
-                  }
+                  { name = "http"; containerPort = 8080; protocol = "TCP"; }
                 ];
                 resources = {
-                  requests = {
-                    memory = "256Mi";
-                    cpu = "200m";
-                  };
-                  limits = {
-                    memory = "512Mi";
-                    cpu = "1";
-                  };
+                  requests = { memory = "256Mi"; cpu = "200m"; };
+                  limits = { memory = "512Mi"; cpu = "1"; };
                 };
                 livenessProbe = {
-                  httpGet = {
-                    path = "/healthz";
-                    port = "http";
-                  };
+                  httpGet = { path = "/healthz"; port = "http"; };
                   initialDelaySeconds = 30;
                   periodSeconds = 30;
                   timeoutSeconds = 10;
                   failureThreshold = 3;
                 };
                 readinessProbe = {
-                  httpGet = {
-                    path = "/healthz";
-                    port = "http";
-                  };
+                  httpGet = { path = "/healthz"; port = "http"; };
                   initialDelaySeconds = 10;
                   periodSeconds = 10;
                   timeoutSeconds = 5;
@@ -318,33 +267,22 @@
                     subPath = "settings.yml";
                     readOnly = true;
                   };
-                  data = {
-                    mountPath = "/etc/searxng/data";
+                  limiter = {
+                    mountPath = "/etc/searxng/limiter.toml";
+                    subPath = "limiter.toml";
+                    readOnly = true;
                   };
-                };
-              };
-            };
-            initContainers = {
-              _namedlist = true;
-              patch-settings = {
-                image = "searxng/searxng:latest";
-                command = ["/bin/sh" "-c" ''
-                  cd /etc/searxng
-                  sed -i 's/^    - html$/    - html\n    - csv\n    - json\n    - rss/' settings.yml
-                  cat > limiter.toml << 'EOF'
-                  [botdetection.ip_limit]
-                  link_token = false
-                  EOF
-                ''];
-                volumeMounts = {
-                  _namedlist = true;
-                  settings.mountPath = "/etc/searxng";
+                  data = { mountPath = "/etc/searxng/data"; };
                 };
               };
             };
             volumes = {
               _namedlist = true;
               settings.configMap.name = "searxng-settings";
+              limiter.configMap = {
+                name = "searxng-settings";
+                items = [{ key = "limiter.toml"; path = "limiter.toml"; }];
+              };
               data.emptyDir = { };
             };
           };
@@ -352,126 +290,34 @@
       };
     };
 
+    # ── Service ───────────────────────────────────────────────────
     search.Service.searxng = {
-      metadata.labels.app = "searxng";
+      metadata.labels = labels;
       spec = {
         type = "ClusterIP";
         selector.app = "searxng";
         ports = [
-          {
-            name = "http";
-            port = 8080;
-            targetPort = 8080;
-            protocol = "TCP";
-          }
+          { name = "http"; port = 8080; targetPort = 8080; protocol = "TCP"; }
         ];
       };
     };
 
-    search.Ingress.searxng = {
-      metadata = { labels.app = "searxng"; annotations."caddy.ingress.kubernetes.io/disable-ssl-redirect" = "true"; };
-      spec = { ingressClassName = "caddy"; rules = [
-        { host = "search.lan"; http.paths = [{ path = "/"; pathType = "Prefix"; backend.service = { name = "searxng"; port.number = 8080; }; }]; }
-        { host = "search.cluster.local"; http.paths = [{ path = "/"; pathType = "Prefix"; backend.service = { name = "searxng"; port.number = 8080; }; }]; }
-      ]; };
-    };
-
-    search.NetworkPolicy.allow-searxng-ingress = {
-      metadata.labels = {
-        app = "searxng";
-        policy = "allow-ingress";
-      };
-      spec = {
-        podSelector.matchLabels.app = "searxng";
-        policyTypes = [ "Ingress" ];
-        ingress = [
-          {
-            from = [
-              { namespaceSelector.matchLabels.name = "ingress-system"; }
-            ];
-            ports = [
-              {
-                protocol = "TCP";
-                port = 8080;
-              }
-            ];
-          }
-          {
-            from = [ { podSelector = { }; } ];
-            ports = [
-              {
-                protocol = "TCP";
-                port = 8080;
-              }
-            ];
-          }
-        ];
-      };
-    };
-
-    search.NetworkPolicy.allow-searxng-egress = {
-      metadata.labels = {
-        app = "searxng";
-        policy = "allow-egress";
-      };
-      spec = {
-        podSelector.matchLabels.app = "searxng";
-        policyTypes = [ "Egress" ];
-        egress = [
-          {
-            to = [
-              { ipBlock.cidr = "0.0.0.0/0"; }
-            ];
-            ports = [
-              {
-                protocol = "TCP";
-                port = 80;
-              }
-              {
-                protocol = "TCP";
-                port = 443;
-              }
-            ];
-          }
-          {
-            to = [
-              { namespaceSelector.matchLabels.name = "kube-system"; }
-            ];
-            ports = [
-              {
-                protocol = "UDP";
-                port = 53;
-              }
-              {
-                protocol = "TCP";
-                port = 53;
-              }
-            ];
-          }
-        ];
-      };
-    };
-
-    # Migrated from searxng/05-valkey.yaml
-    # Valkey (Redis-compatible) cache for SearXNG
+    # ── Deployment: Valkey (cache) ────────────────────────────────
     search.Deployment.valkey = {
-      metadata.labels = {
-        app = "valkey";
-        component = "cache";
-      };
+      metadata.labels = labels // { component = "cache"; };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
-        selector.matchLabels.app = "valkey";
-        strategy.type = "Recreate";
+        selector.matchLabels = labels // { component = "cache"; };
+        strategy = {
+          type = "Recreate";
+          rollingUpdate = null;
+        };
         template = {
-          metadata.labels = {
-            app = "valkey";
-            component = "cache";
-          };
+          metadata.labels = labels // { component = "cache"; };
           spec = {
-            automountServiceAccountToken = false;
             nodeName = "nexus";
+            automountServiceAccountToken = false;
             securityContext = {
               runAsNonRoot = true;
               runAsUser = 999;
@@ -491,25 +337,11 @@
                   capabilities.drop = [ "ALL" ];
                 };
                 ports = [
-                  {
-                    containerPort = 6379;
-                    name = "valkey";
-                    protocol = "TCP";
-                  }
+                  { containerPort = 6379; name = "valkey"; protocol = "TCP"; }
                 ];
                 resources = {
-                  requests = {
-                    memory = "64Mi";
-                    cpu = "50m";
-                  };
-                  limits = {
-                    memory = "256Mi";
-                    cpu = "200m";
-                  };
-                };
-                volumeMounts = {
-                  _namedlist = true;
-                  data.mountPath = "/data";
+                  requests = { memory = "64Mi"; cpu = "50m"; };
+                  limits = { memory = "256Mi"; cpu = "200m"; };
                 };
                 readinessProbe = {
                   exec.command = [ "valkey-cli" "ping" ];
@@ -525,11 +357,15 @@
                   timeoutSeconds = 3;
                   failureThreshold = 3;
                 };
+                volumeMounts = {
+                  _namedlist = true;
+                  data.mountPath = "/data";
+                };
               };
             };
             volumes = {
               _namedlist = true;
-              data.emptyDir.medium = "";
+              data.emptyDir = { };
             };
           };
         };
@@ -537,19 +373,72 @@
     };
 
     search.Service.valkey = {
-      metadata.labels = {
-        app = "valkey";
-        component = "cache";
-      };
+      metadata.labels = labels // { component = "cache"; };
       spec = {
         type = "ClusterIP";
         selector.app = "valkey";
         ports = [
+          { name = "valkey"; port = 6379; targetPort = 6379; protocol = "TCP"; }
+        ];
+      };
+    };
+
+    # ── NetworkPolicies ───────────────────────────────────────────
+    search.NetworkPolicy.allow-searxng-ingress = {
+      metadata.labels = labels // { policy = "allow-ingress"; };
+      spec = {
+        podSelector.matchLabels.app = "searxng";
+        policyTypes = [ "Ingress" ];
+        ingress = [
           {
-            name = "valkey";
-            port = 6379;
-            targetPort = 6379;
-            protocol = "TCP";
+            from = [
+              { ipBlock.cidr = "10.1.1.0/24"; }
+              { ipBlock.cidr = "10.244.0.0/16"; }
+            ];
+            ports = [ { protocol = "TCP"; port = 8080; } ];
+          }
+        ];
+      };
+    };
+
+    search.NetworkPolicy.allow-searxng-egress = {
+      metadata.labels = labels // { policy = "allow-egress"; };
+      spec = {
+        podSelector.matchLabels.app = "searxng";
+        policyTypes = [ "Egress" ];
+        egress = [
+          {
+            to = [ { namespaceSelector.matchLabels.name = "kube-system"; } ];
+            ports = [
+              { protocol = "UDP"; port = 53; }
+              { protocol = "TCP"; port = 53; }
+            ];
+          }
+          {
+            to = [ { ipBlock.cidr = "0.0.0.0/0"; } ];
+            ports = [
+              { protocol = "TCP"; port = 80; }
+              { protocol = "TCP"; port = 443; }
+            ];
+          }
+          # Valkey access
+          {
+            to = [ { podSelector.matchLabels.app = "valkey"; } ];
+            ports = [ { protocol = "TCP"; port = 6379; } ];
+          }
+        ];
+      };
+    };
+
+    search.NetworkPolicy.allow-valkey-ingress = {
+      metadata.labels = { app = "valkey"; policy = "allow-ingress"; };
+      spec = {
+        podSelector.matchLabels.app = "valkey";
+        policyTypes = [ "Ingress" ];
+        ingress = [
+          {
+            from = [ { podSelector = { }; } ];
+            ports = [ { protocol = "TCP"; port = 6379; } ];
           }
         ];
       };
