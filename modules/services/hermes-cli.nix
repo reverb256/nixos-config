@@ -107,7 +107,7 @@ in
         model:
           provider: ai-gateway
           base_url: http://10.1.1.120:8080/v1
-          default: supergemma4-Q5_K_M.gguf
+          default: qwen/qwen3-coder-480b-a35b-instruct
           api_key: none
 
         providers:
