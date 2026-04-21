@@ -279,8 +279,6 @@ in {
   systemd.services.hermes-webui-update = {
     description = "Pull hermes-webui updates";
     serviceConfig = {
-      LoadCredential = [ "hermes-webui-password:${config.age.secrets.hermes-webui-password.path}" ];
-      LoadCredential = [ "hermes-webui-password:${config.age.secrets.hermes-webui-password.path}" ];
       Type = "oneshot";
       User = "j_kro";
       ExecStart = pkgs.writeShellScript "hermes-webui-update" ''
