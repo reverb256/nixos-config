@@ -9,18 +9,16 @@ let
       PATH=/run/current-system/sw/bin \
       HOME=/home/j_kro \
       ${llama-cpp}/bin/llama-server \
-      --model ${modelDir}/Jackrong/Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-GGUF/Qwen3.5-9B.Q4_K_M.gguf \
+      --model ${modelDir}/Abiray/supergemma4-e4b-abliterated-GGUF/supergemma4-Q5_K_M.gguf \
       --host 0.0.0.0 --port 1236 -ngl 99 -c 32768 -t 4 --fit off \
       --batch-size 32 --ubatch-size 16 --flash-attn on --parallel 1 \
       --cache-type-k iq4_nl --cache-type-v iq4_nl \
       --temp 0.6 --top-k 20 --top-p 0.95 \
-      --reasoning-format deepseek \
-      --chat-template-file ${modelDir}/qwen3-thinking-template.jinja \
-      --jinja --metrics
+      --metrics
   '';
 in {
   systemd.services.llama-server-3060ti = {
-    description = "llama.cpp server on RTX 3060 Ti (Qwen3.5-9B)";
+    description = "llama.cpp server on RTX 3060 Ti (Supergemma4 E4B)";
     after = [ "network.target" ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
