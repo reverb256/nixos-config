@@ -100,12 +100,13 @@
                 image = "ghcr.io/open-webui/open-webui:0.6.5"; imagePullPolicy = "IfNotPresent";
                 env = {
                   _namedlist = true;
-                  OLLAMA_BASE_URLS = { name = "OLLAMA_BASE_URLS"; value = "http://10.1.1.110:8080/v1"; };
+                  OLLAMA_BASE_URLS = { name = "OLLAMA_BASE_URLS"; value = "http://10.1.1.120:8080/v1"; }; # AI inference gateway
                   ENABLE_OLLAMA = { name = "ENABLE_OLLAMA"; value = "true"; };
-                  ENABLE_OPENAI_API = { name = "ENABLE_OPENAI_API"; value = "false"; };
+                  ENABLE_OPENAI_API = { name = "ENABLE_OPENAI_API"; value = "true"; };
                   ENABLE_LLM = { name = "ENABLE_LLM"; value = "true"; };
                   ENABLE_SIGNUP = { name = "ENABLE_SIGNUP"; value = "true"; };
                   ENABLE_LDAP_LOGIN = { name = "ENABLE_LDAP_LOGIN"; value = "false"; };
+                  OPENAI_API_BASE_URL = { name = "OPENAI_API_BASE_URL"; value = "http://10.1.1.120:8080/v1"; };
                 };
                 ports = [{ containerPort = 8080; name = "http"; protocol = "TCP"; }];
                 livenessProbe = { httpGet = { path = "/"; port = 8080; }; initialDelaySeconds = 60; periodSeconds = 30; failureThreshold = 3; };
