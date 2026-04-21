@@ -3,11 +3,11 @@
     enable = true;
 
     backend = {
-      url = "http://10.1.1.100:1236"; # zephyr 3060Ti llama-server (Qwen3.5-9B, always on)
+      url = "http://10.1.1.100:1236"; # zephyr 3060Ti llama-server (Supergemma4 E4B, always on)
       type = "llama-cpp";
       local = {
         url = "http://10.1.1.140:1235"; # sentry (always on)
-        model = "qwen3.5-9b-claude-4.6-opus-reasoning-distilled";
+        model = "supergemma4-Q5_K_M.gguf";
       };
       nvidia-nim = {
         enable = true;
@@ -56,7 +56,7 @@
 
     routing = {
       enable = true;
-      defaultModel = "qwen3.5-9b-claude-4.6-opus-reasoning-distilled"; # local-first (9B primary, 4B fallback)
+      defaultModel = "supergemma4-Q5_K_M.gguf"; # local-first (Supergemma4 E4B on 3060Ti)
       fallbackChain = ["zai" "nvidia-nim" "pollinations"];
     };
 
@@ -115,7 +115,7 @@
     # Phase 2 hybrid search features
     queryExpansion = {
       enable = true;
-      model = "qwen3.5-9b-claude-4.6-opus-reasoning-distilled";
+      model = "supergemma4-Q5_K_M.gguf";
     };
 
     semanticCache = {
