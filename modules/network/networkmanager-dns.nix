@@ -36,7 +36,7 @@ in {
 
   config = mkIf cfg.enable {
     networking.networkmanager = {
-      dns = "default";
+      dns = "none";
     };
 
   };
