@@ -34,6 +34,7 @@
     vane = {
       enable = true;
       port = 30900;
+      image = localhost/vane-custom:latest;
       searxngUrl = "http://10.4.98.141:8080"; # K8s search/searxng ClusterIP
       openFirewall = true;
     };
