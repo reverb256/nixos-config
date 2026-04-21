@@ -1,6 +1,9 @@
 { config, pkgs, lib, inputs, ... }:
 let
-  hermesPkg = inputs.hermes-agent.packages.${pkgs.system}.default;
+  # Build the hermes-agent Python venv (same derivation the flake uses for its wrappers)
+  hermesVenv = pkgs.callPackage (inputs.hermes-agent.outPath + "/nix/python.nix") {
+    inherit (inputs.hermes-agent.inputs) uv2nix pyproject-nix pyproject-build-systems;
+  };
 in {
   systemd.tmpfiles.rules = [
     "R /var/lib/etcd - - - - -"
@@ -242,13 +245,13 @@ in {
       HERMES_WEBUI_PASSWORD = "changeme-studio-2026";  # TODO: agenix
       HERMES_WEBUI_STATE_DIR = "/home/j_kro/.hermes/webui-mvp";
       HERMES_WEBUI_DEFAULT_WORKSPACE = "/home/j_kro/workspace";
-      HERMES_WEBUI_AGENT_DIR = "${hermesPkg}/lib/python3.11/site-packages";
-      PYTHONPATH = "${hermesPkg}/lib/python3.11/site-packages";
+      HERMES_WEBUI_AGENT_DIR = "${hermesVenv}/lib/python3.11/site-packages";
+      PYTHONPATH = "${hermesVenv}/lib/python3.11/site-packages";
     };
     serviceConfig = {
       ExecStart = pkgs.writeShellScript "hermes-webui-start" ''
         cd /data/projects/own/hermes-webui
-        exec "${hermesPkg}/bin/python" server.py
+        exec "${hermesVenv}/bin/python" server.py
       '';
       ExecStartPost = pkgs.writeShellScript "hermes-webui-warmup" ''
         # Pre-warm agent init so first user chat isn't slow
