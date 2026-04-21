@@ -115,6 +115,7 @@
     ./services/whisper-dictation.nix
     ./services/cloudflared.nix
     ./services/cluster-ca.nix
+    ./services/cluster-services.nix
     ./services/unbound-common.nix
     ./services/syncthing.nix
     ./services/garage.nix

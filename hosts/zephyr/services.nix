@@ -212,6 +212,8 @@
       mountMedia = false;
     };
 
+    # Caddy — only Tailscale ingress for this host
+    # All .lan services moved to nexus (OOM prevention)
     caddy = {
       enable = true;
       configFile = pkgs.writeText "Caddyfile" ''
@@ -232,61 +234,10 @@
           reverse_proxy 127.0.0.1:8080
         }
 
-        https://searxng.lan, https://searxng.cluster.local {
-          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
-          encode zstd gzip
-          reverse_proxy 10.4.98.141:8080
-        }
-
-        https://search.lan, https://search.cluster.local {
-          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
-          reverse_proxy 10.1.1.120:30900
-        }
-        https://ai.lan, https://ai.cluster.local {
-          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
-          encode zstd gzip
-          reverse_proxy 10.1.1.120:8080
-        }
-        https://openwebui.lan, https://openwebui.cluster.local {
-          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
-          encode zstd gzip
-          reverse_proxy 10.15.130.66:8080
-        }
-
-        https://haven.lan, https://haven.cluster.local {
-          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
-          encode zstd gzip
-          reverse_proxy 10.14.133.147:3000
-        }
-
-        https://hermes.lan, https://hermes.cluster.local {
-          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
-          encode zstd gzip
-          reverse_proxy 10.1.1.120:8787
-        }
-
-        https://api.hermes.lan, https://api.hermes.cluster.local {
-          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
-          encode zstd gzip
-          reverse_proxy 10.1.1.120:8642
-        }
-
-        https://n8n.lan, https://n8n.cluster.local {
-          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
-          encode zstd gzip
-          reverse_proxy 10.12.30.204:5678
-        }
-
-        https://activepieces.lan, https://activepieces.cluster.local {
-          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
-          encode zstd gzip
-          reverse_proxy 10.11.184.70:80
-        }
-
       '';
     };
 
-    redis.servers."".enable = true;
+    redis.servers."".enable = false;  # 0 keys, 1 client — unused, frees RAM on OOM-constrained host
 
     ai-inference = {
       enable = true;
