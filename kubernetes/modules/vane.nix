@@ -8,6 +8,16 @@ in
 {
   config.kubernetes.objects = {
 
+    # ── PVC for config persistence ────────────────────────────────
+    search.PersistentVolumeClaim.vane-data = {
+      metadata.labels = labels;
+      spec = {
+        accessModes = [ "ReadWriteOnce" ];
+        storageClassName = "local-path";
+        resources.requests.storage = "1Gi";
+      };
+    };
+
     # ── Deployment ────────────────────────────────────────────────
     search.Deployment.vane = {
       metadata.labels = labels;
@@ -116,7 +126,7 @@ in
 
             volumes = {
               _namedlist = true;
-              data.emptyDir = { };
+              data.persistentVolumeClaim.claimName = "vane-data";
             };
           };
         };
