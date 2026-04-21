@@ -1025,8 +1025,8 @@
         ]
       },
       "locked": {
-        "lastModified": 1776566474,
-        "narHash": "sha256-9BNnN7rQs/ht91fpstYFm57z5jYCZgTbMQw8LhgvgAE=",
+        "lastModified": 1776795482,
+        "narHash": "sha256-oEKyC1BWeoRWEhoBsT8AvQnxkQ0z/fE751Q/LJjsxo0=",
         "path": "/data/projects/own/llama-cpp-turboquant",
         "type": "path"
       },
