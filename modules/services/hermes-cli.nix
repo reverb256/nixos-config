@@ -103,32 +103,32 @@ in
               if [ ! -f "$HERMES_HOME/config.yaml" ] || grep -q "# Managed by NixOS" "$HERMES_HOME/config.yaml" 2>/dev/null; then
                 cat > "$HERMES_HOME/config.yaml" << 'YAML_EOF'
         # Managed by NixOS - hermes-cli module
-        # Harmonized with PI and OMP model configurations
+        # All inference routed through AI Inference Gateway on Nexus:8080
         model:
-          provider: zai
-          base_url: https://api.z.ai/api/coding/paas/v4
-          default: glm-5.1
+          provider: ai-gateway
+          base_url: http://10.1.1.120:8080/v1
+          default: supergemma4-Q5_K_M.gguf
           api_key: none
 
         providers:
+          ai-gateway:
+            base_url: http://10.1.1.120:8080/v1
+            api_key: none
           zai:
             base_url: https://api.z.ai/api/coding/paas/v4
             api_key_env: ZAI_API_KEY
-          nvidia-nim:
-            base_url: https://integrate.api.nvidia.com/v1
-            api_key_env: NVIDIA_NIM_API_KEY
-          zephyr-local:
-            base_url: http://zephyr:1235/v1
-            auth: none
-          sentry-local:
-            base_url: http://sentry:1235/v1
-            auth: none
+          llama-cpp-zephyr:
+            base_url: http://llama-server-zephyr.ai-inference.svc.cluster.local:1235/v1
+            api_key: unused
+          llama-cpp-sentry:
+            base_url: http://llama-server-sentry.ai-inference.svc.cluster.local:1235/v1
+            api_key: unused
 
         fallback_providers:
+          - ai-gateway
           - zai
-          - nvidia-nim
-          - zephyr-local
-          - sentry-local
+          - llama-cpp-zephyr
+          - llama-cpp-sentry
 
         terminal:
           backend: local
