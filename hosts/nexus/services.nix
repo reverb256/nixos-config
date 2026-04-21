@@ -1,5 +1,7 @@
 { config, pkgs, lib, inputs, ... }:
-{
+let
+  hermesPkg = inputs.hermes-agent.packages.${pkgs.system}.default;
+in {
   systemd.tmpfiles.rules = [
     "R /var/lib/etcd - - - - -"
   ];
@@ -226,9 +228,6 @@
   # Hermes WebUI — nesquena/hermes-webui
   # Runs the agent in-process (no send-stream hang, no Redis, no proxy needed)
   # Replaces: hermes-dashboard, hermes-merged-proxy, Hermes-Studio
-  let
-    hermesPkg = inputs.hermes-agent.packages.${pkgs.system}.default;
-  in {
   systemd.services.hermes-webui = {
     description = "Hermes Web UI";
     wantedBy = [ "multi-user.target" ];
@@ -275,13 +274,13 @@
   };
   systemd.services.hermes-webui-update = {
     description = "Pull hermes-webui updates";
-    script = ''
-      cd /data/projects/own/hermes-webui
-      git pull --ff-only 2>/dev/null && echo "[webui] updated" || echo "[webui] no updates or error"
-    '';
     serviceConfig = {
       Type = "oneshot";
       User = "j_kro";
+      ExecStart = pkgs.writeShellScript "hermes-webui-update" ''
+        cd /data/projects/own/hermes-webui
+        git pull --ff-only 2>/dev/null && echo "[webui] updated" || echo "[webui] no updates or error"
+      '';
     };
   };
 
