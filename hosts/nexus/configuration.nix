@@ -73,6 +73,8 @@
     alertmanager.enable = false; # K8s monitoring namespace replaces this
   };
 
+  services.cluster-ca.enable = true;
+
   security.caddyCa.enable = true;
 
   boot.kernelPackages =
