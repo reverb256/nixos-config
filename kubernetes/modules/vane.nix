@@ -1,5 +1,13 @@
 { pkgs, lib, ... }:
 let
+  copyConfigScript = ''
+    if [ ! -f /data/config.json ]; then
+      cp /config/config.json /data/config.json
+      echo "Config copied from ConfigMap."
+    else
+      echo "Config already exists, keeping it."
+    fi
+  '';
   labels = {
     app = "vane";
     "app.kubernetes.io/managed-by" = "easykubenix";
@@ -8,27 +16,54 @@ in
 {
   config.kubernetes.objects = {
 
-    # ── PVC for config persistence ────────────────────────────────
-    search.PersistentVolumeClaim.vane-data = {
+    search.ConfigMap.vane-config = {
       metadata.labels = labels;
-      spec = {
-        accessModes = [ "ReadWriteOnce" ];
-        storageClassName = "local-path";
-        resources.requests.storage = "1Gi";
-      };
+      data."config.json" = ''
+        {
+          "version": 1,
+          "setupComplete": true,
+          "preferences": {},
+          "personalization": {},
+          "modelProviders": [
+            {
+              "id": "local-gateway",
+              "name": "Local Gateway",
+              "type": "openai",
+              "chatModels": [{"key": "Qwen3.5-4B.Q4_K_M.gguf", "name": "Qwen3.5-4B (Local)"}],
+              "embeddingModels": [{"key": "BAAI/bge-m3", "name": "BGE-M3 (1024d)"}],
+              "config": {"baseURL": "http://10.1.1.120:8080/v1", "apiKey": "sk-placeholder"}
+            },
+            {
+              "id": "zai-cloud",
+              "name": "ZAI Cloud",
+              "type": "openai",
+              "chatModels": [{"key": "glm-5.1", "name": "GLM-5.1 (ZAI)"}],
+              "embeddingModels": [],
+              "config": {"baseURL": "http://10.1.1.120:8080/v1", "apiKey": "sk-placeholder"}
+            },
+            {
+              "id": "nvidia-nim",
+              "name": "NVIDIA NIM",
+              "type": "openai",
+              "chatModels": [{"key": "nvidia/llama-3.3-nemotron-super-49b-v1", "name": "Nemotron-Super-49B (NIM)"}],
+              "embeddingModels": [],
+              "config": {"baseURL": "http://10.1.1.120:8080/v1", "apiKey": "sk-placeholder"}
+            }
+          ],
+          "search": {"searxngURL": "http://searxng.search.svc.cluster.local:8080"},
+          "chatModel": {"providerId": "nvidia-nim", "key": "nvidia/llama-3.3-nemotron-super-49b-v1"},
+          "embeddingModel": {"providerId": "local-gateway", "key": "BAAI/bge-m3"}
+        }
+      '';
     };
 
-    # ── Deployment ────────────────────────────────────────────────
     search.Deployment.vane = {
       metadata.labels = labels;
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
         selector.matchLabels = labels;
-        strategy = {
-          type = "Recreate";
-          rollingUpdate = null;
-        };
+        strategy = { type = "Recreate"; rollingUpdate = null; };
         template = {
           metadata.labels = labels;
           spec = {
@@ -39,8 +74,6 @@ in
               runAsNonRoot = false;
               seccompProfile.type = "RuntimeDefault";
             };
-
-            # Init: copy existing config from /var/lib/vane if PVC is empty
             initContainers = {
               _namedlist = true;
               copy-config = {
@@ -51,21 +84,14 @@ in
                   allowPrivilegeEscalation = false;
                   capabilities.drop = [ "ALL" ];
                 };
-                command = [ "/bin/sh" "-c" ''
-                  if [ ! -f /data/config.json ]; then
-                    echo "No config.json found in PVC, creating default..."
-                    echo '{"version":1,"setupComplete":true}' > /data/config.json
-                  else
-                    echo "Config already exists in PVC."
-                  fi
-                ''];
+                command = [ "/bin/sh" "-c" copyConfigScript ];
                 volumeMounts = {
                   _namedlist = true;
                   data = { mountPath = "/data"; };
+                  config = { mountPath = "/config"; readOnly = true; };
                 };
               };
             };
-
             containers = {
               _namedlist = true;
               vane = {
@@ -81,37 +107,21 @@ in
                   { name = "SEARXNG_API_URL"; value = "http://searxng.search.svc.cluster.local:8080"; }
                 ];
                 ports = [
-                  {
-                    name = "http";
-                    containerPort = 30900;
-                    protocol = "TCP";
-                  }
+                  { name = "http"; containerPort = 30900; protocol = "TCP"; }
                 ];
                 resources = {
-                  requests = {
-                    memory = "512Mi";
-                    cpu = "250m";
-                  };
-                  limits = {
-                    memory = "2Gi";
-                    cpu = "2";
-                  };
+                  requests = { memory = "512Mi"; cpu = "250m"; };
+                  limits = { memory = "2Gi"; cpu = "2"; };
                 };
                 readinessProbe = {
-                  httpGet = {
-                    path = "/";
-                    port = "http";
-                  };
+                  httpGet = { path = "/"; port = "http"; };
                   initialDelaySeconds = 15;
                   periodSeconds = 10;
                   timeoutSeconds = 5;
                   failureThreshold = 6;
                 };
                 livenessProbe = {
-                  httpGet = {
-                    path = "/";
-                    port = "http";
-                  };
+                  httpGet = { path = "/"; port = "http"; };
                   initialDelaySeconds = 30;
                   periodSeconds = 30;
                   timeoutSeconds = 10;
@@ -123,19 +133,16 @@ in
                 };
               };
             };
-
             volumes = {
               _namedlist = true;
-              data.persistentVolumeClaim.claimName = "vane-data";
+              data.emptyDir = { };
+              config.configMap.name = "vane-config";
             };
           };
         };
       };
     };
 
-    # ── Service (NodePort for Caddy access) ───────────────────────
-    # NodePort because Caddy is systemd on zephyr, not a K8s pod.
-    # ClusterIP isn't routable from non-pod hosts.
     search.Service.vane = {
       metadata.labels = labels;
       spec = {
@@ -153,7 +160,6 @@ in
       };
     };
 
-    # ── NetworkPolicy: allow ingress from hosts + K8s pods ────────
     search.NetworkPolicy.allow-vane-ingress = {
       metadata.labels = labels // { policy = "allow-ingress"; };
       spec = {
@@ -165,22 +171,18 @@ in
               { ipBlock.cidr = "10.1.1.0/24"; }
               { ipBlock.cidr = "10.244.0.0/16"; }
             ];
-            ports = [
-              { protocol = "TCP"; port = 30900; }
-            ];
+            ports = [ { protocol = "TCP"; port = 30900; } ];
           }
         ];
       };
     };
 
-    # ── NetworkPolicy: allow egress (SearXNG, gateway, internet) ──
     search.NetworkPolicy.allow-vane-egress = {
       metadata.labels = labels // { policy = "allow-egress"; };
       spec = {
         podSelector.matchLabels.app = "vane";
         policyTypes = [ "Egress" ];
         egress = [
-          # DNS
           {
             to = [
               { namespaceSelector.matchLabels.name = "kube-system"; }
@@ -190,11 +192,8 @@ in
               { protocol = "TCP"; port = 53; }
             ];
           }
-          # Everything else (SearXNG, gateway, ZAI, internet)
           {
-            to = [
-              { ipBlock.cidr = "0.0.0.0/0"; }
-            ];
+            to = [ { ipBlock.cidr = "0.0.0.0/0"; } ];
           }
         ];
       };
