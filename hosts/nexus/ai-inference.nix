@@ -3,7 +3,7 @@
     enable = true;
 
     backend = {
-      url = "http://10.1.1.100:1236"; # zephyr 3060Ti llama-server (Supergemma4 E4B, always on)
+      url = "http://10.1.1.100:1237"; # zephyr 3060Ti llama-server (Supergemma4 E4B, always on)
       type = "llama-cpp";
       local = {
         url = "http://10.1.1.140:1235"; # sentry (always on)
