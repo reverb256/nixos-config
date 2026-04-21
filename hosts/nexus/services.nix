@@ -223,22 +223,65 @@
     extraPackages = with pkgs; [ git ripgrep curl jq ];
   };
 
-  # Hermes web dashboard
-  # Hermes WebUI — nesquena/hermes-webui (replaces JPeetz/Hermes-Studio)
+  # Hermes WebUI — nesquena/hermes-webui
   # Runs the agent in-process (no send-stream hang, no Redis, no proxy needed)
+  # Replaces: hermes-dashboard, hermes-merged-proxy, Hermes-Studio
+  let
+    hermesPkg = inputs.hermes-agent.packages.${pkgs.system}.default;
+  in {
   systemd.services.hermes-webui = {
     description = "Hermes Web UI";
     wantedBy = [ "multi-user.target" ];
-    after = [ "network.target" ];
+    after = [ "network.target" "hermes-agent.service" ];
+    wants = [ "hermes-agent.service" ];
+    path = with pkgs; [ git coreutils curl jq ];
     environment = {
       AI_GATEWAY_API_KEY = "none";
+      HERMES_HOME = "/home/j_kro/.hermes";
+      HERMES_WEBUI_HOST = "0.0.0.0";
+      HERMES_WEBUI_PORT = "8787";
+      HERMES_WEBUI_PASSWORD = "changeme-studio-2026";  # TODO: agenix
+      HERMES_WEBUI_STATE_DIR = "/home/j_kro/.hermes/webui-mvp";
+      HERMES_WEBUI_DEFAULT_WORKSPACE = "/home/j_kro/workspace";
+      HERMES_WEBUI_AGENT_DIR = "${hermesPkg}/lib/python3.11/site-packages";
+      PYTHONPATH = "${hermesPkg}/lib/python3.11/site-packages";
     };
     serviceConfig = {
-      ExecStart = "${pkgs.bash}/bin/bash /data/projects/own/hermes-webui/start-nixos.sh";
+      ExecStart = pkgs.writeShellScript "hermes-webui-start" ''
+        cd /data/projects/own/hermes-webui
+        exec "${hermesPkg}/bin/python" server.py
+      '';
+      ExecStartPost = pkgs.writeShellScript "hermes-webui-warmup" ''
+        # Pre-warm agent init so first user chat isn't slow
+        sleep 3
+        curl -sf http://127.0.0.1:8787/health >/dev/null 2>&1 && echo "[webui] warmup ok" || true
+        exit 0
+      '';
       Restart = "always";
       RestartSec = 5;
       User = "j_kro";
       Group = "users";
+      WorkingDirectory = "/data/projects/own/hermes-webui";
+    };
+  };
+
+  # Auto-update hermes-webui repo daily
+  systemd.timers.hermes-webui-update = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "daily";
+      Persistent = true;
+    };
+  };
+  systemd.services.hermes-webui-update = {
+    description = "Pull hermes-webui updates";
+    script = ''
+      cd /data/projects/own/hermes-webui
+      git pull --ff-only 2>/dev/null && echo "[webui] updated" || echo "[webui] no updates or error"
+    '';
+    serviceConfig = {
+      Type = "oneshot";
+      User = "j_kro";
     };
   };
 
