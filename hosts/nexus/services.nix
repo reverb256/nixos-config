@@ -255,6 +255,21 @@
     };
   };
 
+  # Hermes WebUI — nesquena/hermes-webui (replaces JPeetz/Hermes-Studio)
+  # Runs the agent in-process (no send-stream hang, no Redis, no proxy needed)
+  systemd.services.hermes-webui = {
+    description = "Hermes Web UI";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network.target" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.bash}/bin/bash /data/projects/own/hermes-webui/start-nixos.sh";
+      Restart = "always";
+      RestartSec = 5;
+      User = "j_kro";
+      Group = "users";
+    };
+  };
+
   # Load Z.AI and NVIDIA API keys for hermes-agent
   # The official module's environment option doesn't reliably set systemd env vars,
   # so we use a systemd override with ExecStartPre to generate an env file.
