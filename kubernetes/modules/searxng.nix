@@ -273,6 +273,7 @@ in
                     readOnly = true;
                   };
                   data = { mountPath = "/etc/searxng/data"; };
+                  tmp = { mountPath = "/tmp"; };
                 };
               };
             };
@@ -284,6 +285,7 @@ in
                 items = [{ key = "limiter.toml"; path = "limiter.toml"; }];
               };
               data.emptyDir = { };
+              tmp.emptyDir = { };
             };
           };
         };
