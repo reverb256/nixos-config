@@ -287,6 +287,12 @@
           tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
           reverse_proxy 10.1.1.120:30300
         }
+
+        https://webui.lan, https://webui.cluster.local {
+          tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
+          encode zstd gzip
+          reverse_proxy 10.1.1.120:8787
+        }
       '';
     };
 
