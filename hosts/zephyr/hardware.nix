@@ -11,6 +11,23 @@
     vulkan.enable = true;
   };
 
+  # GPU power limits — persistent across reboots
+  # 3090 (GPU 1 = nvidia-smi index 1): 250W (default 350W)
+  # 3060Ti (GPU 0 = nvidia-smi index 0): 150W (default 200W)
+  systemd.services.nvidia-power-limits = {
+    description = "Set NVIDIA GPU power limits";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "nvidia-persistenced.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStartPre = "${pkgs.coreutils}/bin/sleep 5";
+      ExecStart = pkgs.writeShellScript "set-gpu-power" ''
+        nvidia-smi -i 1 -pl 250
+        nvidia-smi -i 0 -pl 150
+      '';
+    };
+  };
+
   services.udev.extraRules = ''
     KERNEL=="i2c-[0-9]*", GROUP="i2c", MODE="0660"
 
