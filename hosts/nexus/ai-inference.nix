@@ -3,10 +3,14 @@
     enable = true;
 
     backend = {
-      url = "http://10.1.1.100:1237"; # zephyr 3060Ti llama-server (Supergemma4 E4B, always on)
+      url = "http://10.1.1.100:1237"; # zephyr 3090 llama-server (Qwen3.6-35B-A3B, primary local model)
       type = "llama-cpp";
       local = {
-        url = "http://10.1.1.140:1235"; # sentry (always on)
+        url = "http://10.1.1.140:1235"; # sentry ROCm Qwen3.5-4B (K8s pod)
+        model = "Qwen3.5-4B.Q4_K_M.gguf";
+      };
+      secondary = {
+        url = "http://10.1.1.100:1236"; # zephyr 3060Ti SuperGemma4 (always on)
         model = "supergemma4-Q5_K_M.gguf";
       };
       nvidia-nim = {
@@ -56,8 +60,8 @@
 
     routing = {
       enable = true;
-      defaultModel = "supergemma4-Q5_K_M.gguf"; # local-first (Supergemma4 E4B on 3060Ti)
-      fallbackChain = ["zai" "nvidia-nim" "pollinations"];
+      defaultModel = "qwen3.6-35b"; # local-first (Qwen3.6-35B on zephyr 3090)
+      fallbackChain = ["nvidia-nim" "zai" "pollinations"]; # NIM first (survives ZAI expiry)
     };
 
     auth.mode = "none";
