@@ -242,15 +242,16 @@ in {
       HERMES_HOME = "/home/j_kro/.hermes";
       HERMES_WEBUI_HOST = "0.0.0.0";
       HERMES_WEBUI_PORT = "8787";
-      HERMES_WEBUI_PASSWORD = builtins.readFile config.age.secrets.hermes-webui-password.path;
       HERMES_WEBUI_STATE_DIR = "/home/j_kro/.hermes/webui-mvp";
       HERMES_WEBUI_DEFAULT_WORKSPACE = "/home/j_kro/workspace";
       HERMES_WEBUI_AGENT_DIR = "${hermesVenv}/lib/python3.11/site-packages";
       PYTHONPATH = "${hermesVenv}/lib/python3.11/site-packages";
     };
     serviceConfig = {
+      LoadCredential = [ "hermes-webui-password:${config.age.secrets.hermes-webui-password.path}" ];
       ExecStart = pkgs.writeShellScript "hermes-webui-start" ''
         cd /data/projects/own/hermes-webui
+        export HERMES_WEBUI_PASSWORD=$(cat $CREDENTIALS_DIRECTORY/hermes-webui-password)
         exec "${hermesVenv}/bin/python" server.py
       '';
       ExecStartPost = pkgs.writeShellScript "hermes-webui-warmup" ''
@@ -278,6 +279,8 @@ in {
   systemd.services.hermes-webui-update = {
     description = "Pull hermes-webui updates";
     serviceConfig = {
+      LoadCredential = [ "hermes-webui-password:${config.age.secrets.hermes-webui-password.path}" ];
+      LoadCredential = [ "hermes-webui-password:${config.age.secrets.hermes-webui-password.path}" ];
       Type = "oneshot";
       User = "j_kro";
       ExecStart = pkgs.writeShellScript "hermes-webui-update" ''
@@ -330,4 +333,50 @@ in {
   systemd.services.qdrant = {
     enable = false;
   };
+
+  # Cluster service registry — single source of truth for DNS + Caddy
+  # All .lan domains terminate TLS on nexus and proxy to backends
+  services.cluster-services = {
+    enable = true;
+    services = {
+      searxng = {
+        domain = "searxng.lan";
+        backend = "10.4.98.141:8080";
+      };
+      search = {
+        domain = "search.lan";
+        backend = "10.1.1.120:30900";
+        compress = false;
+      };
+      ai = {
+        domain = "ai.lan";
+        backend = "10.1.1.120:8080";
+      };
+      openwebui = {
+        domain = "openwebui.lan";
+        backend = "10.15.130.66:8080";
+      };
+      haven = {
+        domain = "haven.lan";
+        backend = "10.14.133.147:3000";
+      };
+      hermes = {
+        domain = "hermes.lan";
+        backend = "10.1.1.120:8787";
+      };
+      api-hermes = {
+        domain = "api.hermes.lan";
+        backend = "10.1.1.120:8642";
+      };
+      n8n = {
+        domain = "n8n.lan";
+        backend = "10.12.30.204:5678";
+      };
+      activepieces = {
+        domain = "activepieces.lan";
+        backend = "10.11.184.70:80";
+      };
+    };
+  };
 }
+
