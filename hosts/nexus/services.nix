@@ -1,10 +1,4 @@
 { config, pkgs, lib, inputs, ... }:
-
-let
-  patchedHermes = pkgs.callPackage ../../packages/hermes-agent-patch.nix {
-    hermes-pkg = inputs.hermes-agent.packages.x86_64-linux.default;
-  };
-in
 {
   systemd.tmpfiles.rules = [
     "R /var/lib/etcd - - - - -"
@@ -143,7 +137,6 @@ in
   # Hermes Agent — primary user-facing agent
   services.hermes-agent = {
     enable = true;
-    package = patchedHermes;
     addToSystemPackages = true;
 
     settings = {

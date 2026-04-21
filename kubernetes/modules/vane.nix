@@ -33,10 +33,12 @@ in
           metadata.labels = labels;
           spec = {
             nodeName = "nexus";
-            hostNetwork = true;
-            dnsPolicy = "ClusterFirstWithHostNet";
             enableServiceLinks = false;
             automountServiceAccountToken = false;
+            securityContext = {
+              runAsNonRoot = false;
+              seccompProfile.type = "RuntimeDefault";
+            };
 
             # Init: copy existing config from /var/lib/vane if PVC is empty
             initContainers = {
@@ -45,15 +47,14 @@ in
                 name = "copy-config";
                 image = "localhost/vane-custom:latest";
                 imagePullPolicy = "IfNotPresent";
+                securityContext = {
+                  allowPrivilegeEscalation = false;
+                  capabilities.drop = [ "ALL" ];
+                };
                 command = [ "/bin/sh" "-c" ''
                   if [ ! -f /data/config.json ]; then
-                    echo "No config.json found, copying from host mount..."
-                    if [ -f /host-config/config.json ]; then
-                      cp /host-config/config.json /data/config.json
-                      echo "Config copied."
-                    else
-                      echo "No host config to copy. Vane will run initial setup."
-                    fi
+                    echo "No config.json found in PVC, creating default..."
+                    echo '{"version":1,"setupComplete":true}' > /data/config.json
                   else
                     echo "Config already exists in PVC."
                   fi
@@ -61,7 +62,6 @@ in
                 volumeMounts = {
                   _namedlist = true;
                   data = { mountPath = "/data"; };
-                  host-config = { mountPath = "/host-config"; readOnly = true; };
                 };
               };
             };
@@ -71,10 +71,14 @@ in
               vane = {
                 image = "localhost/vane-custom:latest";
                 imagePullPolicy = "IfNotPresent";
+                securityContext = {
+                  allowPrivilegeEscalation = false;
+                  capabilities.drop = [ "ALL" ];
+                };
                 env = [
                   { name = "PORT"; value = "30900"; }
                   { name = "HOSTNAME"; value = "0.0.0.0"; }
-                  { name = "SEARXNG_API_URL"; value = "http://10.4.98.141:8080"; }
+                  { name = "SEARXNG_API_URL"; value = "http://searxng.search.svc.cluster.local:8080"; }
                 ];
                 ports = [
                   {
@@ -123,36 +127,33 @@ in
             volumes = {
               _namedlist = true;
               data.persistentVolumeClaim.claimName = "vane-data";
-              host-config.hostPath = {
-                path = "/var/lib/vane";
-                type = "DirectoryOrCreate";
-              };
             };
           };
         };
       };
     };
 
-    # ── Service (ClusterIP for internal access) ───────────────────
-    # With hostNetwork, pod IP = node IP. But we still create a Service
-    # for DNS discovery and for Caddy to route to.
+    # ── Service (NodePort for Caddy access) ───────────────────────
+    # NodePort because Caddy is systemd on zephyr, not a K8s pod.
+    # ClusterIP isn't routable from non-pod hosts.
     search.Service.vane = {
       metadata.labels = labels;
       spec = {
-        type = "ClusterIP";
+        type = "NodePort";
         selector.app = "vane";
         ports = [
           {
             name = "http";
             port = 30900;
             targetPort = 30900;
+            nodePort = 30900;
             protocol = "TCP";
           }
         ];
       };
     };
 
-    # ── NetworkPolicy: allow ingress from Caddy/hosts ─────────────
+    # ── NetworkPolicy: allow ingress from hosts + K8s pods ────────
     search.NetworkPolicy.allow-vane-ingress = {
       metadata.labels = labels // { policy = "allow-ingress"; };
       spec = {
@@ -189,7 +190,7 @@ in
               { protocol = "TCP"; port = 53; }
             ];
           }
-          # Everything else (SearXNG ClusterIP, gateway, ZAI, internet)
+          # Everything else (SearXNG, gateway, ZAI, internet)
           {
             to = [
               { ipBlock.cidr = "0.0.0.0/0"; }
