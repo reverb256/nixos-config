@@ -38,6 +38,10 @@ in
 
         forward-zone = [
           {
+            name = "ts.net.";
+            forward-addr = [ "100.100.100.100" "fd7a:115c:a1e0::53" ];
+          }
+          {
             name = ".";
             forward-addr = [
               "1.1.1.1"
