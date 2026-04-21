@@ -13,7 +13,7 @@ in
       metadata.labels = labels;
       spec = {
         accessModes = [ "ReadWriteOnce" ];
-        storageClassName = "fast-local-ssd";
+        storageClassName = "local-path";
         resources.requests.storage = "1Gi";
       };
     };
