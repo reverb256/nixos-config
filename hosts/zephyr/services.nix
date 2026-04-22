@@ -59,7 +59,7 @@
 
     mining-inference-coordinator = {
       enable = true;
-      llamaPort = 1235;
+      llamaPort = 1237;
       primaryMiner = "deployment/gpu-miner-zephyr";
       fallbackMiner = "deployment/gpu-miner-zephyr-3060ti";
       namespace = "mining";
