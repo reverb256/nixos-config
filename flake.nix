@@ -83,35 +83,35 @@
     # ═══════════════════════════════════════════════════════════════════
 
     ai-gateway = {
-      url = "path:/data/projects/own/ai-inference-gateway";
+      url = "github:reverb256/ai-inference-gateway";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     knowledge-fabric = {
-      url = "path:/data/projects/own/knowledge-fabric";
+      url = "github:reverb256/knowledge-fabric";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     llama-turboquant = {
-      url = "path:/data/projects/own/llama-cpp-turboquant";
+      url = "github:reverb256/llama-cpp-turboquant";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     compute-market = {
-      url = "path:/data/projects/own/compute-market";
+      url = "github:reverb256/compute-market";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     mcp-registry = {
-      url = "path:/data/projects/own/mcp-registry";
+      url = "github:reverb256/mcp-registry";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     caddy-ingress = {
-      url = "path:/data/projects/own/caddy-ingress";
+      url = "github:reverb256/caddy-ingress";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     gpu-proxy = {
-      url = "path:/data/projects/own/gpu-proxy";
+      url = "github:reverb256/gpu-proxy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     astral-key = {
-      url = "path:/data/projects/own/astral-key";
+      url = "github:reverb256/astral-key";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # NOTE: astral-key has nixos-module.nix for systemd service — can be imported in host configs
