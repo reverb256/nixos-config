@@ -31,7 +31,7 @@ in {
       description = "Update STATUS.md with current cluster state";
       after = [ "network.target" "kubernetes.target" ];
       wants = [ "network-online.target" ];
-      path = with pkgs; [ kubectl kubernetes-helm jq ];
+      path = with pkgs; [ kubectl kubernetes-helm jq gawk ];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${cfg.scriptPath}";
