@@ -10,7 +10,7 @@ let
       HOME=/home/j_kro \
       ${llama-cpp}/bin/llama-server \
       --model ${modelDir}/Abiray/supergemma4-e4b-abliterated-GGUF/supergemma4-Q5_K_M.gguf \
-      --host 0.0.0.0 --port 1236 -ngl 99 -c 32768 -t 4 --fit off \
+      --host 0.0.0.0 --port 1236 -ngl 99 -c 131072 -t 4 --fit off \
       --batch-size 512 --ubatch-size 128 --flash-attn on --parallel 1 \
       --cache-type-k iq4_nl --cache-type-v iq4_nl \
       --temp 0.6 --top-k 20 --top-p 0.95 \
