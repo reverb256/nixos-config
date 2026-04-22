@@ -27,6 +27,7 @@ in {
   };
 
   config = mkIf cfg.enable {
+    security.pki.certificateFiles = [ ./../../certs/cluster-ca.crt ];
     systemd.services.cluster-ca-init = {
       description = "Generate internal CA certificate";
       wantedBy = [ "multi-user.target" ];
