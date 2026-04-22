@@ -216,7 +216,8 @@ in
           "/home/${cfg.user}/.factory/mcp.json" \
           "/home/${cfg.user}/.config/claude/mcp.json" \
           "/home/${cfg.user}/.config/crush/crush.json" \
-          "/home/${cfg.user}/.opencode/config.json" \
+          "/home/${cfg.user}/.opencode/config.json" 
+        do
           if [ -f "$f" ]; then
             servers=$(${pkgs.jq}/bin/jq -r '[.mcpServers // .mcp | keys[]] | length' "$f" 2>/dev/null || echo "?")
             echo "  ✓ $f ($servers MCP servers)"
