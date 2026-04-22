@@ -80,5 +80,10 @@ in
 
     networking.firewall.allowedUDPPorts = lib.mkOptionDefault [ 53 ];
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ 53 ];
+
+    networking.firewall.extraInputRules = lib.mkAfter ''
+      ip saddr { 10.1.1.0/24, 10.244.0.0/16 } udp dport 53 accept
+      ip saddr { 10.1.1.0/24, 10.244.0.0/16 } tcp dport 53 accept
+    '';
   };
 }
