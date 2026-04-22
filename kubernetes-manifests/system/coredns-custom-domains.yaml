@@ -1,0 +1,41 @@
+# Custom CoreDNS stub-domain config for .lan and .ts.net
+# Mounted via volume into /etc/coredns/custom/ and imported by K3s CoreDNS
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom-domains
+  namespace: kube-system
+data:
+  stub-lan.server: |
+    lan:53 {
+        errors
+        cache 30
+        forward . 10.1.1.120:53 10.1.1.110:53 10.1.1.130:53 10.1.1.140:53 {
+            policy sequential
+        }
+    }
+  stub-tsnet.server: |
+    ts.net:53 {
+        errors
+        cache 30
+        forward . 100.100.100.100:53
+    }
+---
+# Patch the CoreDNS deployment to mount our custom ConfigMap
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coredns
+  namespace: kube-system
+spec:
+  template:
+    spec:
+      volumes:
+        - name: custom-config
+          configMap:
+            name: coredns-custom-domains
+      containers:
+        - name: coredns
+          volumeMounts:
+            - name: custom-config
+              mountPath: /etc/coredns/custom
