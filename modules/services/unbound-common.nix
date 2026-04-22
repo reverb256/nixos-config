@@ -64,6 +64,7 @@ in
           "nexus.lan. IN A 10.1.1.120"
           "forge.lan. IN A 10.1.1.130"
           "sentry.lan. IN A 10.1.1.140"
+          "seeker.lan. IN A 100.84.24.43"
 
           # Service DNS — all services terminate TLS on nexus
           "search.lan. IN A 10.1.1.120"
