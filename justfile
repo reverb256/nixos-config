@@ -107,10 +107,10 @@ deploy target *args:
 
     if [ "{{target}}" = "all" ] || [ -z "{{target}}" ]; then
         tmux send-keys -t "$SESSION" "echo '▸ Deploying to all hosts (Ctrl+B D to detach)...'" Enter
-        tmux send-keys -t "$SESSION" "/etc/nixos/scripts/mining-scheduler.sh pause all && $DEPLOY_CMD && cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry --verbose {{args}} && cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply-local --sudo --verbose {{args}} && cd {{FLAKE}} && nix run .#k8s-deploy ; /etc/nixos/scripts/mining-scheduler.sh resume all" Enter
+        tmux send-keys -t "$SESSION" "/etc/nixos/scripts/mining-scheduler.sh pause all && $DEPLOY_CMD && cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry --verbose {{args}} && sudo nixos-rebuild switch --flake .#zephyr {{args}} && cd {{FLAKE}} && nix run .#k8s-deploy ; /etc/nixos/scripts/mining-scheduler.sh resume all" Enter
     elif [ "{{target}}" = "zephyr" ]; then
         tmux send-keys -t "$SESSION" "echo '▸ Deploying zephyr locally (Ctrl+B D to detach)...'" Enter
-        tmux send-keys -t "$SESSION" "/etc/nixos/scripts/mining-scheduler.sh pause zephyr && $DEPLOY_CMD && cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply-local --sudo --verbose {{args}} && cd {{FLAKE}} && nix run .#k8s-deploy ; /etc/nixos/scripts/mining-scheduler.sh resume zephyr" Enter
+        tmux send-keys -t "$SESSION" "/etc/nixos/scripts/mining-scheduler.sh pause zephyr && $DEPLOY_CMD && cd {{FLAKE}} && sudo nixos-rebuild switch --flake .#zephyr {{args}} && cd {{FLAKE}} && nix run .#k8s-deploy ; /etc/nixos/scripts/mining-scheduler.sh resume zephyr" Enter
     else
         tmux send-keys -t "$SESSION" "echo '▸ Deploying to {{target}} (Ctrl+B D to detach)...'" Enter
         tmux send-keys -t "$SESSION" "/etc/nixos/scripts/mining-scheduler.sh pause {{target}} && $DEPLOY_CMD && cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on {{target}} --verbose {{args}} && cd {{FLAKE}} && nix run .#k8s-deploy ; /etc/nixos/scripts/mining-scheduler.sh resume {{target}}" Enter
@@ -157,7 +157,7 @@ check:
 #  LOCAL OPERATIONS
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Apply to current host (uses colmena apply-local for correct HM integration)
+# Apply to current host (uses nixos-rebuild switch — colmena apply-local has NixOS sudo PATH issue)
 # Runs in tmux for visibility — Ctrl+B D to detach
 switch:
     #!/usr/bin/env bash
@@ -170,8 +170,8 @@ switch:
     tmux set-option -t "$SESSION" status-style "bg=#1e1e2e fg=#cdd6f4"
     tmux set-option -t "$SESSION" status-left " #[fg=#89b4fa]⬢ NixOS #[fg=#a6adc8]│ #[fg=#f9e2af]#{session_name} "
     tmux set-option -t "$SESSION" status-right " #[fg=#a6e3a1]%H:%M "
-    tmux send-keys -t "$SESSION" "echo '▸ Switching $(hostname -s) via colmena apply-local (Ctrl+B D to detach)...'" Enter
-    tmux send-keys -t "$SESSION" "/etc/nixos/scripts/mining-scheduler.sh pause $(hostname -s) && cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply-local --sudo --verbose && cd {{FLAKE}} && nix run .#k8s-deploy ; /etc/nixos/scripts/mining-scheduler.sh resume $(hostname -s)" Enter
+    tmux send-keys -t "$SESSION" "echo '▸ Switching $(hostname -s) via nixos-rebuild (Ctrl+B D to detach)...'" Enter
+    tmux send-keys -t "$SESSION" "/etc/nixos/scripts/mining-scheduler.sh pause $(hostname -s) && cd {{FLAKE}} && sudo nixos-rebuild switch --flake .#$(hostname -s) && cd {{FLAKE}} && nix run .#k8s-deploy ; /etc/nixos/scripts/mining-scheduler.sh resume $(hostname -s)" Enter
     echo "▸ Deploy started in tmux session — attaching now"
     exec tmux attach -t "$SESSION"
 

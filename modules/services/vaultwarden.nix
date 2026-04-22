@@ -66,11 +66,11 @@ in
           ${pkgs.podman}/bin/podman run --name vaultwarden \
             -p ${toString cfg.port}:80 \
             -v ${cfg.dataDir}:/data:Z \
-            -v ${config.age.secrets.vaultwarden-admin-token.path}:${config.age.secrets.vaultwarden-admin-token.path}:ro \
+            -v ${config.age.secrets.vaultwarden-admin-token.path}:/run/secrets/admin-token:ro,Z \
             -e WEBSOCKET_ENABLED=true \
             -e WEBSOCKET_ADDRESS=0.0.0.0 \
             -e DOMAIN=https://${cfg.hostName} \
-            -e ADMIN_TOKEN_FILE=${config.age.secrets.vaultwarden-admin-token.path} \
+            -e ADMIN_TOKEN_FILE=/run/secrets/admin-token \
             -e LOG_LEVEL=info \
             --replace \
             docker.io/vaultwarden/server:1.35.4
@@ -85,10 +85,9 @@ in
         MemoryMax = "512M";
         CPUQuota = "50%";
 
-        NoNewPrivileges = true;
+        
         PrivateTmp = true;
         ProtectHome = true;
-        ReadOnlyPaths = "/usr";
 
         ReadWritePaths = [
           cfg.dataDir
