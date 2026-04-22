@@ -61,7 +61,7 @@
       enable = true;
       llamaPort = 1237;
       primaryMiner = "deployment/gpu-miner-zephyr";
-      fallbackMiner = "deployment/gpu-miner-zephyr-3060ti";
+      fallbackMiner = "";
       namespace = "mining";
       checkInterval = 3;
       idleTimeout = 30;

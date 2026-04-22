@@ -74,7 +74,7 @@
             "baseUrl": "https://api.z.ai/api/anthropic",
             "apiKey": "$ZAI_API_KEY",
             "displayName": "GLM-4.5 Air [Validator Tier - Lightweight, Fast]",
-            "maxOutputTokens": 131072,
+            "maxOutputTokens": 8192,
             "noImageSupport": false,
             "provider": "anthropic"
           },
@@ -96,7 +96,7 @@
             "baseUrl": "https://api.z.ai/api/anthropic",
             "apiKey": "$ZAI_API_KEY",
             "displayName": "GLM-4.7 Flash [Worker Tier - 30B MoE, Vision]",
-            "maxOutputTokens": 131072,
+            "maxOutputTokens": 8192,
             "noImageSupport": false,
             "provider": "anthropic"
           },

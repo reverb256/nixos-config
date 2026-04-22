@@ -54,11 +54,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1776900536,
-        "narHash": "sha256-inqjQrmA40nMQTVRWGrikM0+EwtxkZFUnjAe8rDgik8=",
+        "lastModified": 1776901587,
+        "narHash": "sha256-GvKb5GK5ZdMHBWmHmqIVhrN7xDT0GuFaHmzP5ua5yu8=",
         "owner": "reverb256",
         "repo": "ai-inference-gateway",
-        "rev": "8a1039297b9bb73f51330d1bd894a98a6f783229",
+        "rev": "3293a63173f61f8edf85db37ddf1841bbb20afff",
         "type": "github"
       },
       "original": {
