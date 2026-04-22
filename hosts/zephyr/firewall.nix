@@ -42,7 +42,7 @@
         4789
       ];
       interfaces = {
-        "enp38s0".allowedUDPPorts = [
+        "eth0".allowedUDPPorts = [
           5353
           111
           2049
@@ -52,7 +52,7 @@
           18789
           18790
         ];
-        "enp38s0".allowedTCPPorts = [
+        "eth0".allowedTCPPorts = [
           111
           2049
           20048
