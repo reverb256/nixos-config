@@ -64,7 +64,7 @@
       };
 
       tailscale = {
-        domain = "tigris-ule.ts.net";
+        domain = "taila21e09.ts.net";
         dnsServer = "100.100.100.100";
       };
 

@@ -16,7 +16,7 @@ in {
     enable = lib.mkEnableOption "Grafana dashboard server";
     domain = lib.mkOption {
       type = lib.types.str;
-      default = "sentry.tigris-ule.ts.net";
+      default = "sentry.taila21e09.ts.net";
       description = "Domain for Grafana access";
     };
     adminUser = lib.mkOption {
