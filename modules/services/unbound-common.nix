@@ -57,26 +57,24 @@ in
     };
 
     environment.etc."unbound/local-dns.conf".text =
-      lib.concatMapStrings (record: "local-data: \"${record}\"\n")
-        [
-          # Cluster hostnames
-          "zephyr.lan. IN A 10.1.1.110"
-          "nexus.lan. IN A 10.1.1.120"
-          "forge.lan. IN A 10.1.1.130"
-          "sentry.lan. IN A 10.1.1.140"
+      lib.concatMapStrings (record: "local-data: \"${record}\"\n") (
+        lib.mapAttrsToList (name: host:
+          "${name}.lan. IN A ${host.ip}"
+        ) config.networking.cluster.hosts ++ [
+          # Tailscale mobile device
           "seeker.lan. IN A 100.84.24.43"
 
-          # Service DNS — all services terminate TLS on nexus
-          "search.lan. IN A 10.1.1.120"
-          "ai.lan. IN A 10.1.1.120"
-          "openwebui.lan. IN A 10.1.1.120"
-          "haven.lan. IN A 10.1.1.120"
-          "hermes.lan. IN A 10.1.1.120"
-          "api.hermes.lan. IN A 10.1.1.120"
-          "n8n.lan. IN A 10.1.1.120"
-          "searxng.lan. IN A 10.1.1.120"
-          "activepieces.lan. IN A 10.1.1.120"
-        ];
+          # Service DNS — VIP for HA (requires keepalived active)
+          "search.lan. IN A ${config.networking.cluster.kubernetes.vip}"
+          "ai.lan. IN A ${config.networking.cluster.kubernetes.vip}"
+          "openwebui.lan. IN A ${config.networking.cluster.kubernetes.vip}"
+          "haven.lan. IN A ${config.networking.cluster.kubernetes.vip}"
+          "hermes.lan. IN A ${config.networking.cluster.kubernetes.vip}"
+          "api.hermes.lan. IN A ${config.networking.cluster.kubernetes.vip}"
+          "n8n.lan. IN A ${config.networking.cluster.kubernetes.vip}"
+          "searxng.lan. IN A ${config.networking.cluster.kubernetes.vip}"
+          "activepieces.lan. IN A ${config.networking.cluster.kubernetes.vip}"
+        ]);
 
     networking.firewall.allowedUDPPorts = lib.mkOptionDefault [ 53 ];
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ 53 ];
