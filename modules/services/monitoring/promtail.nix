@@ -11,7 +11,7 @@ in {
 
     lokiUrl = lib.mkOption {
       type = lib.types.str;
-      default = "http://10.1.1.140:3100/loki/api/v1/push";
+      default = "http://${config.networking.cluster.hosts.sentry.ip}:3100/loki/api/v1/push";
       description = "Loki server push URL";
     };
   };

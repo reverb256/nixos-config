@@ -15,9 +15,9 @@ in
       allowedHosts = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [
-          "10.1.1.120"
-          "10.1.1.130"
-          "10.1.1.140"
+          config.networking.cluster.hosts.nexus.ip
+          config.networking.cluster.hosts.forge.ip
+          config.networking.cluster.hosts.sentry.ip
         ];
         description = "IP addresses allowed to mount the NFS share";
       };
@@ -27,7 +27,7 @@ in
       enable = lib.mkEnableOption "NFS client for mounting /etc/nixos from zephyr";
       serverHost = lib.mkOption {
         type = lib.types.str;
-        default = "10.1.1.110";
+        default = config.networking.cluster.hosts.zephyr.ip;
         description = "NFS server hostname or IP";
       };
       mountPoint = lib.mkOption {
