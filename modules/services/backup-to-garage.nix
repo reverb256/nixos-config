@@ -10,7 +10,7 @@ let
 
         set -euo pipefail
 
-        GARAGE_ENDPOINT="''${GARAGE_ENDPOINT:-http://10.1.1.110:3900}"
+        GARAGE_ENDPOINT="''${GARAGE_ENDPOINT:-http://${config.networking.cluster.hosts.zephyr.ip}:3900}"
         GARAGE_REGION="''${GARAGE_REGION:-garage}"
         GARAGE_SECRET_KEY="''${GARAGE_SECRET_KEY:-}"
         BACKUP_BUCKET="''${BACKUP_BUCKET:-backups}"
@@ -133,7 +133,7 @@ in
 
     endpoint = lib.mkOption {
       type = lib.types.str;
-      default = "http://10.1.1.110:3900";
+      default = "http://${config.networking.cluster.hosts.zephyr.ip}:3900";
       description = "Garage S3 endpoint URL";
     };
 
