@@ -28,10 +28,6 @@ let
       '') services
     );
 
-  # Build Unbound local-data records (for inclusion in the existing local-dns.conf)
-  buildUnboundRecords =
-    services: mapAttrsToList (name: svc: "${svc.domain}. IN A ${cfg.ingressIP}") services;
-
   # Build the full Caddyfile from registry + extra preamble
   buildCaddyfile =
     services:
@@ -64,7 +60,7 @@ let
 in
 {
   options.services.cluster-services = {
-    enable = mkEnableOption "Cluster service registry — single source of truth for DNS + Caddy";
+    enable = mkEnableOption "Cluster service registry — single source of truth for Caddy virtualHosts";
 
     ingressIP = mkOption {
       type = types.str;
@@ -107,7 +103,7 @@ in
         }
       );
       default = { };
-      description = "Service registry — each entry generates a Caddy virtualHost + Unbound DNS record";
+      description = "Service registry — each entry generates a Caddy virtualHost";
     };
   };
 
@@ -117,16 +113,6 @@ in
       enable = true;
       configFile = pkgs.writeText "Caddyfile" (buildCaddyfile cfg.services);
     };
-
-    # Append service DNS records to a separate Unbound include file
-    environment.etc."unbound/local-dns-services.conf".text = lib.concatMapStrings (
-      record: "local-data: \"${record}\"\n"
-    ) (buildUnboundRecords cfg.services);
-
-    # Append the service records file to Unbound's include list
-    services.unbound.settings.server.include = lib.mkAfter [
-      "/etc/unbound/local-dns-services.conf"
-    ];
 
     # svc CLI tool
     environment.systemPackages = [

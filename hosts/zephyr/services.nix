@@ -357,7 +357,7 @@
               "ai_inference_gateway.mcp_servers.searxng_server"
             ];
             environment = {
-              SEARXNG_URL = "http://searxng.search.svc.cluster.local:8080";
+              SEARXNG_URL = "http://10.1.1.120:30888";  # NodePort — K8s internal DNS unreachable from host
               SEARXNG_CACHE_TTL = "300";
             };
             enabled = true;
