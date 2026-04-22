@@ -54,14 +54,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1776793794,
-        "narHash": "sha256-LHaYqSF0EZ6LJ3QpiY0TvbjElsygk78RkYpn+csFELc=",
-        "path": "/data/projects/own/ai-inference-gateway",
-        "type": "path"
+        "lastModified": 1776900536,
+        "narHash": "sha256-inqjQrmA40nMQTVRWGrikM0+EwtxkZFUnjAe8rDgik8=",
+        "owner": "reverb256",
+        "repo": "ai-inference-gateway",
+        "rev": "8a1039297b9bb73f51330d1bd894a98a6f783229",
+        "type": "github"
       },
       "original": {
-        "path": "/data/projects/own/ai-inference-gateway",
-        "type": "path"
+        "owner": "reverb256",
+        "repo": "ai-inference-gateway",
+        "type": "github"
       }
     },
     "astral-key": {
@@ -76,14 +79,17 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1776566614,
-        "narHash": "sha256-Q3pri7kiji9c357QQhjH8h427R2ufKxVCBit6TKkJkY=",
-        "path": "/data/projects/own/astral-key",
-        "type": "path"
+        "lastModified": 1776465746,
+        "narHash": "sha256-/q5YcTumFPiDzX1uGnT21q6i3Nc+0G1Htn1CHkDLOZg=",
+        "owner": "reverb256",
+        "repo": "astral-key",
+        "rev": "f090d8af9d9e43c141a4804bff6eb8e28da7c766",
+        "type": "github"
       },
       "original": {
-        "path": "/data/projects/own/astral-key",
-        "type": "path"
+        "owner": "reverb256",
+        "repo": "astral-key",
+        "type": "github"
       }
     },
     "base16": {
@@ -253,14 +259,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1776566473,
-        "narHash": "sha256-UkoBsNwoMuxunCi8RomVPy6e099tLTWk48W5cpt3Ix0=",
-        "path": "/data/projects/own/caddy-ingress",
-        "type": "path"
+        "lastModified": 1776506351,
+        "narHash": "sha256-7nTAFoN0jYRzImStzwOPQae9ghaG1oL2GnHkUYE6Z7g=",
+        "owner": "reverb256",
+        "repo": "caddy-ingress",
+        "rev": "a6bc19374ed68da7c769473e2b36cefc3355ac39",
+        "type": "github"
       },
       "original": {
-        "path": "/data/projects/own/caddy-ingress",
-        "type": "path"
+        "owner": "reverb256",
+        "repo": "caddy-ingress",
+        "type": "github"
       }
     },
     "claude-native": {
@@ -315,23 +324,26 @@
         ]
       },
       "locked": {
-        "lastModified": 1776566473,
-        "narHash": "sha256-vMt+O2HkccU/tDSnVf5u89FdN6oRy4TNbymZydWvBr8=",
-        "path": "/data/projects/own/compute-market",
-        "type": "path"
+        "lastModified": 1776500763,
+        "narHash": "sha256-eJfPq8etYtkn3riL6ydEvQAuHVS4dZpXbNz6YbQEqvw=",
+        "owner": "reverb256",
+        "repo": "compute-market",
+        "rev": "02eb54874adf8a0887a4878a99d33274af9d5404",
+        "type": "github"
       },
       "original": {
-        "path": "/data/projects/own/compute-market",
-        "type": "path"
+        "owner": "reverb256",
+        "repo": "compute-market",
+        "type": "github"
       }
     },
     "crane": {
       "locked": {
-        "lastModified": 1776533550,
-        "narHash": "sha256-8mTHsQ8cB0jGlXE4WWKqpQFQPM/VotDnr2uzfrOGNKI=",
+        "lastModified": 1776635034,
+        "narHash": "sha256-OEOJrT3ZfwbChzODfIH4GzlNTtOFuZFWPtW7jIeR8xU=",
         "owner": "ipetkov",
         "repo": "crane",
-        "rev": "e24d86e91348e3d44014974fa24c9a22cfd663b5",
+        "rev": "dc7496d8ea6e526b1254b55d09b966e94673750f",
         "type": "github"
       },
       "original": {
@@ -440,11 +452,11 @@
         "rust-analyzer-src": "rust-analyzer-src"
       },
       "locked": {
-        "lastModified": 1776497206,
-        "narHash": "sha256-Em+RSdFnwyyKPGUBFtQYtVjm+1UvIc9gOR91Y22zlzg=",
+        "lastModified": 1776845169,
+        "narHash": "sha256-Ya6Ba5oC0+PK1TSU4Rkjpoca73mUp6FoHQV5QGnqbx0=",
         "owner": "nix-community",
         "repo": "fenix",
-        "rev": "df2295365fb081fe0745449762a771290782c22d",
+        "rev": "f0b5be1fa2891221ba8b48784f8fded5ef15301f",
         "type": "github"
       },
       "original": {
@@ -931,14 +943,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1776566473,
-        "narHash": "sha256-7VSL2QcdJy3F/yU1pIuIbRhE4ehc6DNMRRPHrYJn2rc=",
-        "path": "/data/projects/own/gpu-proxy",
-        "type": "path"
+        "lastModified": 1776506349,
+        "narHash": "sha256-lFphLIHt3qfNQ0HlS9A6X+RAqresMe7rnTK2ExH6Ev0=",
+        "owner": "reverb256",
+        "repo": "gpu-proxy",
+        "rev": "d17e8fa40d5f539714f05b7387b30a0e831c1c12",
+        "type": "github"
       },
       "original": {
-        "path": "/data/projects/own/gpu-proxy",
-        "type": "path"
+        "owner": "reverb256",
+        "repo": "gpu-proxy",
+        "type": "github"
       }
     },
     "hermes-agent": {
@@ -1008,14 +1023,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1776566473,
-        "narHash": "sha256-rvMqnNFLfTDBHGNIWkfSmN2wpIaXH0AJeWq4ZaPBsU0=",
-        "path": "/data/projects/own/knowledge-fabric",
-        "type": "path"
+        "lastModified": 1776508850,
+        "narHash": "sha256-IKLVxUiuJMTzKOLggTMHEBXXNYOAVbbQlunVMjxY75A=",
+        "owner": "reverb256",
+        "repo": "knowledge-fabric",
+        "rev": "9f3e90153be35a31a047693404ccea084a868138",
+        "type": "github"
       },
       "original": {
-        "path": "/data/projects/own/knowledge-fabric",
-        "type": "path"
+        "owner": "reverb256",
+        "repo": "knowledge-fabric",
+        "type": "github"
       }
     },
     "llama-turboquant": {
@@ -1026,13 +1044,16 @@
       },
       "locked": {
         "lastModified": 1776795482,
-        "narHash": "sha256-oEKyC1BWeoRWEhoBsT8AvQnxkQ0z/fE751Q/LJjsxo0=",
-        "path": "/data/projects/own/llama-cpp-turboquant",
-        "type": "path"
+        "narHash": "sha256-yNH/4+KDwyYU/Krbj7XC2v+r+UVD1ByZ5N87iK6kOso=",
+        "owner": "reverb256",
+        "repo": "llama-cpp-turboquant",
+        "rev": "1818bd47996da5e26edc1ac5b1a9b2543f36ff71",
+        "type": "github"
       },
       "original": {
-        "path": "/data/projects/own/llama-cpp-turboquant",
-        "type": "path"
+        "owner": "reverb256",
+        "repo": "llama-cpp-turboquant",
+        "type": "github"
       }
     },
     "llm-agents": {
@@ -1067,14 +1088,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1776566474,
-        "narHash": "sha256-SNxMVKmxpOjrRqHCMBNOiaVYTD4DPIgUykwzPPqgG08=",
-        "path": "/data/projects/own/mcp-registry",
-        "type": "path"
+        "lastModified": 1776500198,
+        "narHash": "sha256-hvhDjKIHqy6ZUAlKObYersZhtSkpkGUwhqVG7pwgetk=",
+        "owner": "reverb256",
+        "repo": "mcp-registry",
+        "rev": "d2d5daafaa9cd8f99feff39f8c18bbda014033b1",
+        "type": "github"
       },
       "original": {
-        "path": "/data/projects/own/mcp-registry",
-        "type": "path"
+        "owner": "reverb256",
+        "repo": "mcp-registry",
+        "type": "github"
       }
     },
     "niri": {
@@ -1400,11 +1424,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1775585728,
-        "narHash": "sha256-8Psjt+TWvE4thRKktJsXfR6PA/fWWsZ04DVaY6PUhr4=",
+        "lastModified": 1776796298,
+        "narHash": "sha256-PcRvlWayisPSjd0UcRQbhG8Oqw78AcPE6x872cPRHN8=",
         "owner": "cachix",
         "repo": "pre-commit-hooks.nix",
-        "rev": "580633fa3fe5fc0379905986543fd7495481913d",
+        "rev": "3cfd774b0a530725a077e17354fbdb87ea1c4aad",
         "type": "github"
       },
       "original": {
@@ -1625,11 +1649,11 @@
     "rust-analyzer-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1776441750,
-        "narHash": "sha256-1rVfG+mj8R4ze+lSYCa4iAv7FzrB03Cprtxmd1MfZak=",
+        "lastModified": 1776800521,
+        "narHash": "sha256-f8YJfwAOsLFpIoqZuX3yF69UvMLrkx7iVzMH1pJU7cM=",
         "owner": "rust-lang",
         "repo": "rust-analyzer",
-        "rev": "251df518d73abb5c5d573c4d5d266a3edae9ca5a",
+        "rev": "8954b66d43225e62c92e8bbcc8500191b5cceb1e",
         "type": "github"
       },
       "original": {
