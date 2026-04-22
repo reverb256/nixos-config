@@ -109,20 +109,26 @@ in
 
           shift_to_fallback() {
             scale "$PRIMARY" 0
-            scale "$FALLBACK" 1
+            if [ -n "$FALLBACK" ]; then
+              scale "$FALLBACK" 1
+              log "SHIFTED: 3090 -> inference | 3060 Ti -> mining"
+            else
+              log "PAUSED: 3090 miner stopped for inference"
+            fi
             mining_shifted=true
-            log "SHIFTED: 3090 -> inference | 3060 Ti -> mining"
           }
 
           shift_to_primary() {
-            scale "$FALLBACK" 0
+            if [ -n "$FALLBACK" ]; then
+              scale "$FALLBACK" 0
+            fi
             scale "$PRIMARY" 1
             mining_shifted=false
-            log "SHIFTED: 3090 -> mining | 3060 Ti -> idle"
+            log "RESUMED: 3090 -> mining"
           }
 
           log "Coordinator started - monitoring :$LLAMA_PORT"
-          log "Primary: $PRIMARY (3090) | Fallback: $FALLBACK (3060 Ti)"
+          log "Primary: $PRIMARY (3090) | Fallback: ${FALLBACK:-none}"
           log "Check interval: ''${CHECK_INTERVAL}s, idle timeout: ''${IDLE_TIMEOUT}s"
 
           while true; do
