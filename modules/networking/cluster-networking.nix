@@ -93,7 +93,7 @@ in
       search = [
         "lan"
         "cluster.local"
-        "tigris-ule.ts.net"
+        "taila21e09.ts.net"
       ];
 
       enableIPv6 = false;

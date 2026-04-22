@@ -579,7 +579,7 @@
         };
         "Vaultwarden" = {
           id = "pin-sys-011";
-          url = "https://vaultwarden.zephyr.tigris-ule.ts.net";
+          url = "https://vaultwarden.zephyr.taila21e09.ts.net";
           workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
           container = 2;
           position = 655;
