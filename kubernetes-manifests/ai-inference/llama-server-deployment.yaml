@@ -34,6 +34,7 @@ spec:
         - --model=/models/Qwen3.5-0.8B.Q8_0.gguf
         - --host=0.0.0.0
         - --port=8080
+        # Qwen3.5-4B native max context = 256K. llama.cpp offloads KV to RAM.
         - --ctx-size=262144
         - --threads=16
         - --metrics
