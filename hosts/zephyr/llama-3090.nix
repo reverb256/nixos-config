@@ -11,7 +11,7 @@ let
       HOME=/home/j_kro \
       ${llama-cpp}/bin/llama-server \
       --model ${modelDir}/mradermacher/Qwen3.6-35B-A3B-abliterated-i1-GGUF/Qwen3.6-35B-A3B-abliterated.i1-IQ3_M.gguf \
-      --host 0.0.0.0 --port 1237 -ngl 99 -c 32768 -t 8 --fit off \
+      --host 0.0.0.0 --port 1237 -ngl 99 -c 262144 -t 8 --fit off \
       --batch-size 1024 --ubatch-size 256 --flash-attn on --parallel 1 \
       --cache-type-k iq4_nl --cache-type-v iq4_nl \
       --temp 0.6 --top-k 20 --top-p 0.95 \
