@@ -25,14 +25,14 @@
     keepalived-vip = {
       enable = true;
       vip = "10.1.1.100";
-      interface = "enp38s0";
+      interface = "eth0";
       priority = 110;
     };
 
 
     backup-to-garage = {
       enable = true;
-      endpoint = "http://10.1.1.110:3900";
+      endpoint = "http://${config.networking.cluster.hosts.zephyr.ip}:3900";
       region = "garage";
       bucket = "backups";
       secretKeyFile = "/run/agenix/garage-s3-secret-key";
@@ -222,7 +222,7 @@
           default_sni cluster.local
         }
 
-        ai.zephyr.tigris-ule.ts.net:9002 {
+        ai.zephyr.taila21e09.ts.net:9002 {
           header {
             Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
             X-Content-Type-Options "nosniff"
@@ -278,7 +278,7 @@
           rrf_k = 60;
           rag_enabled = true;
           searxng_enabled = true;
-          searxng_url = "http://10.1.1.120:30888";
+          searxng_url = "http://${config.networking.cluster.hosts.nexus.ip}:30888";
           searxng_max_results = 10;
           code_search_enabled = true;
           code_search_paths = [
@@ -494,7 +494,7 @@
 
     vaultwarden-module = {
       enable = true;
-      hostName = "vaultwarden.zephyr.tigris-ule.ts.net";
+      hostName = "vaultwarden.zephyr.taila21e09.ts.net";
       dataDir = "/var/lib/vaultwarden";
     };
 
