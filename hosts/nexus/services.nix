@@ -343,12 +343,12 @@ in {
       };
       search = {
         domain = "search.lan";
-        backend = "10.1.1.120:30900";
+        backend = "10.5.42.235:30900";
         compress = false;
       };
       ai = {
         domain = "ai.lan";
-        backend = "10.1.1.120:8080";
+        backend = "127.0.0.1:8080";
       };
       openwebui = {
         domain = "openwebui.lan";
@@ -360,11 +360,11 @@ in {
       };
       hermes = {
         domain = "hermes.lan";
-        backend = "10.1.1.120:8787";
+        backend = "127.0.0.1:8787";
       };
       api-hermes = {
         domain = "api.hermes.lan";
-        backend = "10.1.1.120:8642";
+        backend = "127.0.0.1:8642";
       };
       n8n = {
         domain = "n8n.lan";
