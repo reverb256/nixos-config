@@ -64,16 +64,16 @@ in
           # Tailscale mobile device
           "seeker.lan. IN A 100.84.24.43"
 
-          # Service DNS — VIP for HA (requires keepalived active)
-          "search.lan. IN A ${config.networking.cluster.kubernetes.vip}"
-          "ai.lan. IN A ${config.networking.cluster.kubernetes.vip}"
-          "openwebui.lan. IN A ${config.networking.cluster.kubernetes.vip}"
-          "haven.lan. IN A ${config.networking.cluster.kubernetes.vip}"
-          "hermes.lan. IN A ${config.networking.cluster.kubernetes.vip}"
-          "api.hermes.lan. IN A ${config.networking.cluster.kubernetes.vip}"
-          "n8n.lan. IN A ${config.networking.cluster.kubernetes.vip}"
-          "searxng.lan. IN A ${config.networking.cluster.kubernetes.vip}"
-          "activepieces.lan. IN A ${config.networking.cluster.kubernetes.vip}"
+          # Service DNS — Caddy terminates TLS on nexus
+          "search.lan. IN A ${config.networking.cluster.hosts.nexus.ip}"
+          "ai.lan. IN A ${config.networking.cluster.hosts.nexus.ip}"
+          "openwebui.lan. IN A ${config.networking.cluster.hosts.nexus.ip}"
+          "haven.lan. IN A ${config.networking.cluster.hosts.nexus.ip}"
+          "hermes.lan. IN A ${config.networking.cluster.hosts.nexus.ip}"
+          "api.hermes.lan. IN A ${config.networking.cluster.hosts.nexus.ip}"
+          "n8n.lan. IN A ${config.networking.cluster.hosts.nexus.ip}"
+          "searxng.lan. IN A ${config.networking.cluster.hosts.nexus.ip}"
+          "activepieces.lan. IN A ${config.networking.cluster.hosts.nexus.ip}"
         ]);
 
     networking.firewall.allowedUDPPorts = lib.mkOptionDefault [ 53 ];
