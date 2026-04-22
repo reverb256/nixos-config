@@ -128,8 +128,6 @@ in
         garage-rpc-secret = lib.mkIf config.services.garage-cluster.enable {
           file = "${inputs.self}/secrets/garage-rpc-secret.age";
           mode = "440";
-          owner = "garage";
-          group = "garage";
         };
         garage-s3-secret-key = {
           file = "${inputs.self}/secrets/garage-s3-secret-key.age";
@@ -141,8 +139,6 @@ in
         garage-metrics-token = {
           file = "${inputs.self}/secrets/garage-metrics-token.age";
           mode = "440";
-          owner = "garage";
-          group = "garage";
         };
         # TODO: Run `agenix -e secrets/garage-s3-access-key-id.age` to create this file
         garage-s3-access-key-id = {

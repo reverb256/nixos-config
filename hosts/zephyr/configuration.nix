@@ -274,12 +274,8 @@
     python312Packages.openpyxl
   ];
 
-  networking.extraHosts = lib.mkOptionDefault ''
-    127.0.0.1 search.lan search.cluster.local
-    127.0.0.1 ai.lan ai.cluster.local
-    127.0.0.1 openwebui.lan openwebui.cluster.local
-    127.0.0.1 haven.lan haven.cluster.local
-  '';
+  # Service .lan domains resolved by unbound → nexus (10.1.1.120).
+  # Do NOT override to 127.0.0.1 — zephyr has no local Caddy proxy for these.
 
   systemd.services.dnat-nfs = {
     description = "DNAT rule for NFS redirect (10.1.1.100:80 -> 10.1.1.120:30888)";
