@@ -96,6 +96,7 @@ in
         "taila21e09.ts.net"
       ];
 
+      nameservers = [ "127.0.0.1" ];
       enableIPv6 = false;
 
       useNetworkd = false;
