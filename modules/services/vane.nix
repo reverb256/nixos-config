@@ -8,7 +8,7 @@ in
     enable = mkEnableOption "Vane AI search engine";
     port = mkOption { type = types.port; default = 30900; };
     image = mkOption { type = types.str; default = "docker.io/itzcrazykns1337/vane:slim-latest"; };
-    searxngUrl = mkOption { type = types.str; default = "http://10.1.1.120:30888"; };
+    searxngUrl = mkOption { type = types.str; default = "http://${config.networking.cluster.hosts.nexus.ip}:30888"; };
     dataDir = mkOption { type = types.str; default = "/var/lib/vane"; };
     openFirewall = mkOption { type = types.bool; default = false; };
   };

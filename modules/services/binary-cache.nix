@@ -18,7 +18,7 @@ in {
 
     bindAddress = mkOption {
       type = types.str;
-      default = "10.1.1.110";
+      default = config.networking.cluster.hosts.zephyr.ip;
       description = "Address to bind nix-serve to";
     };
   };
