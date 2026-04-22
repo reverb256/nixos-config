@@ -74,8 +74,8 @@ in
                 "name": "GLM-4.5 Air (Z.AI)",
                 "reasoning": false,
                 "input": ["text"],
-                "contextWindow": 131072,
-                "maxTokens": 8192,
+                "contextWindow": 131100,
+                "maxTokens": 98304,
                 "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
               }
             ]
@@ -117,7 +117,7 @@ in
                 "name": "MiniMax M2.5 230B (NVIDIA NIM)",
                 "reasoning": true,
                 "input": ["text"],
-                "contextWindow": 1048576,
+                "contextWindow": 204800,
                 "maxTokens": 131072,
                 "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
               },
@@ -126,7 +126,7 @@ in
                 "name": "GLM-5 744B (NVIDIA NIM)",
                 "reasoning": true,
                 "input": ["text"],
-                "contextWindow": 205000,
+                "contextWindow": 204800,
                 "maxTokens": 131072,
                 "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
               },
@@ -153,7 +153,7 @@ in
                 "name": "Qwen3 Coder 480B (NVIDIA NIM)",
                 "reasoning": true,
                 "input": ["text"],
-                "contextWindow": 1048576,
+                "contextWindow": 262144,
                 "maxTokens": 65536,
                 "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
               }
@@ -167,7 +167,7 @@ in
               {
                 "id": "Qwen3.5-4B.Q4_K_M.gguf",
                 "name": "Qwen3.5-4B (Local Sentry - RX5600 6GB)",
-                "reasoning": false,
+                "reasoning": true,
                 "input": ["text"],
                 "contextWindow": 262144,
                 "maxTokens": 8192,

@@ -47,7 +47,7 @@ let
       reasoning = false;
       input = [ "text" ];
       contextWindow = 131072;
-      maxTokens = 16384;
+      maxTokens = 8192;
     }
     {
       id = "glm-4.5-air";
@@ -60,14 +60,6 @@ let
   ];
 
   nvidiaModels = [
-    {
-      id = "deepseek-ai/deepseek-v3.1";
-      name = "DeepSeek V3.1 (NVIDIA NIM)";
-      reasoning = true;
-      input = [ "text" ];
-      contextWindow = 131072;
-      maxTokens = 16384;
-    }
     {
       id = "deepseek-ai/deepseek-v3.2";
       name = "DeepSeek V3.2 (NVIDIA NIM)";
@@ -85,7 +77,7 @@ let
         "image"
       ];
       contextWindow = 262144;
-      maxTokens = 32768;
+      maxTokens = 65536;
     }
     {
       id = "nvidia/nemotron-3-super-120b-a12b";
@@ -147,7 +139,7 @@ let
       reasoning = true;
       input = [ "text" ];
       contextWindow = 204800;
-      maxTokens = 16384;
+      maxTokens = 131072;
     }
     {
       id = "mistralai/mistral-large-3-675b-instruct-2512";
