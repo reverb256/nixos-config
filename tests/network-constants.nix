@@ -42,7 +42,7 @@ let
 
   hasLocalDNS = lib.strings.hasInfix "127.0.0.1" source;
 
-  hasTailscaleDomain = lib.strings.hasInfix "tigris-ule.ts.net" source;
+  hasTailscaleDomain = lib.strings.hasInfix "taila21e09.ts.net" source;
 
   requiredPorts = [
     "prometheus"
