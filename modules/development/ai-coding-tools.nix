@@ -32,11 +32,10 @@ let
     inherit cfg pkgs;
     inherit (mcpDefs) mkMcpServersJson;
   };
-  piGen = import ./ai-coding-tools/pi.nix { inherit cfg pkgs; };
 in
 {
   options.services.ai-coding-tools = {
-    enable = mkEnableOption "Harmonized MCP configuration for all AI coding tools (Droid, Claude Code, Crush, OpenCode, Pi)";
+    enable = mkEnableOption "Harmonized MCP configuration for all AI coding tools (Droid, Claude Code, Crush, OpenCode)";
     user = mkOption {
       type = types.str;
       default = "j_kro";
@@ -79,27 +78,6 @@ in
           description = "Generate Crush MCP config (~/.config/crush/crush.json)";
         };
       };
-      pi = {
-        enable = mkOption {
-          type = types.bool;
-          default = true;
-          description = "Generate Pi Coding Agent config (~/.pi/agent/settings.json, models.json)";
-        };
-        packages = mkOption {
-          type = types.listOf types.str;
-          default = [ ];
-          example = [
-            "npm:pi-lens@3.8.5"
-            "npm:pi-powerline-footer@0.4.9"
-          ];
-          description = ''
-            Declarative pi packages for global settings (~/.pi/agent/settings.json).
-            These survive NixOS activation. Use `pi install -l <pkg>` for
-            project-scoped packages (written to .pi/settings.json, not touched
-            by this module).
-          '';
-        };
-      };
       opencode = {
         enable = mkOption {
           type = types.bool;
@@ -126,8 +104,6 @@ in
       "d /home/${cfg.user}/.config/crush 0755 ${cfg.user} users -"
       "d /home/${cfg.user}/.config/crush/commands 0755 ${cfg.user} users -"
       "d /home/${cfg.user}/.opencode 0755 ${cfg.user} users -"
-      "d /home/${cfg.user}/.pi/agent 0700 ${cfg.user} users -"
-      "d /home/${cfg.user}/.pi/agent/sessions 0700 ${cfg.user} users -"
     ];
     environment.sessionVariables = mkIf cfg.enableShellEnv {
       ZAI_API_KEY_FILE = cfg.zaiApiKeyFile;
@@ -160,7 +136,6 @@ in
           "/home/${cfg.user}/.config/claude"
           "/home/${cfg.user}/.config/crush"
           "/home/${cfg.user}/.opencode"
-          "/home/${cfg.user}/.pi"
         ];
         ExecStart = pkgs.writeShellScript "ai-coding-tools-generate" ''
           set -euo pipefail
@@ -200,10 +175,6 @@ in
             echo "[ai-coding-tools] Generating OpenCode config..."
             ${opencodeGen.mkOpencodeConfig}
           ''}
-          ${optionalString cfg.tools.pi.enable ''
-            echo "[ai-coding-tools] Generating Pi config..."
-            ${piGen.mkPiConfig}
-          ''}
           echo "[ai-coding-tools] All configs generated successfully"
         '';
       };
@@ -232,25 +203,6 @@ in
         export npm_config_cache="/var/cache/ai-inference/npm"
         exec ${pkgs.nodejs_22}/bin/npx -y @charmland/crush@latest "$@"
       '')
-      (pkgs.writeShellScriptBin "pi" ''
-        export PATH="${pkgs.nodejs_22}/bin:$PATH"
-        export npm_config_cache="/var/cache/ai-inference/npm"
-        mkdir -p /home/${cfg.user}/.cache/pi/jiti /home/${cfg.user}/.cache/pi/v8
-        export TMPDIR=/home/${cfg.user}/.cache/pi
-        export NODE_COMPILE_CACHE=/home/${cfg.user}/.cache/pi/v8
-        PI_BIN=$(find "$npm_config_cache/_npx" -path '*/node_modules/.bin/pi' -type l 2>/dev/null | head -1)
-        if [ -n "$PI_BIN" ]; then
-          exec node "$PI_BIN" "$@"
-        else
-          exec ${pkgs.nodejs_22}/bin/npx -y @mariozechner/pi-coding-agent@latest "$@"
-        fi
-      '')
-      (pkgs.writeShellScriptBin "pi-update" ''
-        echo "Updating pi via npx (checks npm registry)..."
-        export PATH="${pkgs.nodejs_22}/bin:$PATH"
-        export npm_config_cache="/var/cache/ai-inference/npm"
-        exec ${pkgs.nodejs_22}/bin/npx -y @mariozechner/pi-coding-agent@latest --version
-      '')
       (pkgs.writeShellScriptBin "ai-tools-regenerate" ''
         echo "Regenerating all AI coding tool MCP configs..."
         sudo systemctl restart ai-coding-tools-config.service
@@ -265,8 +217,6 @@ in
           "/home/${cfg.user}/.config/claude/mcp.json" \
           "/home/${cfg.user}/.config/crush/crush.json" \
           "/home/${cfg.user}/.opencode/config.json" \
-          "/home/${cfg.user}/.pi/agent/settings.json" \
-          "/home/${cfg.user}/.pi/agent/models.json"; do
           if [ -f "$f" ]; then
             servers=$(${pkgs.jq}/bin/jq -r '[.mcpServers // .mcp | keys[]] | length' "$f" 2>/dev/null || echo "?")
             echo "  ✓ $f ($servers MCP servers)"
@@ -301,11 +251,11 @@ in
       | Provider | Endpoint | Key Source | Tools |
       |----------|----------|------------|-------|
       | Z.AI (Anthropic) | api.z.ai/api/anthropic | agenix | Droid |
-      | Z.AI (OpenAI) | api.z.ai/api/coding/paas/v4 | agenix | OpenCode, Crush, Pi |
-      | K8s AI Gateway | ai-inference-gateway:8080/v1 | None (internal) | OpenCode, Crush, Pi, Droid |
-      | NVIDIA NIM | integrate.api.nvidia.com/v1 | agenix | OpenCode, Crush, Pi, Droid |
-      | LM Studio | 127.0.0.1:1234/v1 | None (local) | OpenCode, Crush, Pi |
-      | llama.cpp | 127.0.0.1:1235/v1 | None (local) | OpenCode, Pi |
+      | Z.AI (OpenAI) | api.z.ai/api/coding/paas/v4 | agenix | OpenCode, Crush |
+      | K8s AI Gateway | ai-inference-gateway:8080/v1 | None (internal) | OpenCode, Crush, Droid |
+      | NVIDIA NIM | integrate.api.nvidia.com/v1 | agenix | OpenCode, Crush, Droid |
+      | LM Studio | 127.0.0.1:1234/v1 | None (local) | OpenCode, Crush |
+      | llama.cpp | 127.0.0.1:1235/v1 | None (local) | OpenCode |
       | Server | Type | Purpose | All Tools |
       |--------|------|---------|-----------|
       | zai-mcp-server | stdio | Z.AI image/video/analysis | Yes |
@@ -326,11 +276,9 @@ in
       | Claude Code | ~/.config/claude/mcp.json | MCP servers only |
       | Crush | ~/.config/crush/crush.json | Provider + MCP |
       | OpenCode | ~/.opencode/config.json | Provider + MCP |
-      | Pi Coding Agent | ~/.pi/agent/settings.json | Provider + models |
       | Tool | Command | Source |
       |------|---------|--------|
       | Crush | `crush` | npx @charmland/crush@latest |
-      | Pi | `pi` | npx @mariozechner/pi-coding-agent@latest |
       All keys managed via agenix secrets:
       - zai-api-key → /run/agenix/zai-api-key
       - context7-api-key → /run/agenix/context7-api-key

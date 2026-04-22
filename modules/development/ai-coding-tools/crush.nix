@@ -4,8 +4,8 @@
   mkMcpServersJson,
 }:
 let
-  gatewayUrl = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080";
-  nvidiaNimBaseUrl = "https://integrate.api.nvidia.com/v1";
+  gatewayUrl = "http://10.1.1.120:8080";
+  nvidiaNimBaseUrl = gatewayUrl + "/v1";
 in
 {
   mkCrushConfig = pkgs.writeShellScript "generate-crush-config" ''
@@ -21,7 +21,7 @@ in
       --arg zai_key "$ZAI_API_KEY" \
       --arg ctx7_key "$CONTEXT7_API_KEY" \
       --arg nvidia_key "$NVIDIA_NIM_API_KEY" \
-      --arg zai_base "https://api.z.ai/api/coding/paas/v4" \
+      --arg zai_base "${gatewayUrl}/v1" \
       --arg gateway_base "${gatewayUrl}/v1" \
       --arg nvidia_base "${nvidiaNimBaseUrl}" \
       '{
