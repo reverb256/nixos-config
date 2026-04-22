@@ -1,261 +1,5 @@
 [
   {
-    "timestamp": "2026-04-18T04:29:52.299Z",
-    "score": 100,
-    "breakdown": {
-      "linesAdded": 59,
-      "linesDeleted": 10,
-      "filesTouched": 2,
-      "testFiles": 0,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 1,
-      "logicLines": 68
-    },
-    "passed": true
-  },
-  {
-    "timestamp": "2026-04-18T04:29:52.324Z",
-    "score": 100,
-    "breakdown": {
-      "linesAdded": 59,
-      "linesDeleted": 17,
-      "filesTouched": 3,
-      "testFiles": 0,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 8,
-      "logicLines": 68
-    },
-    "passed": true
-  },
-  {
-    "timestamp": "2026-04-18T04:29:52.348Z",
-    "score": 100,
-    "breakdown": {
-      "linesAdded": 59,
-      "linesDeleted": 26,
-      "filesTouched": 4,
-      "testFiles": 0,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 17,
-      "logicLines": 68
-    },
-    "passed": true
-  },
-  {
-    "timestamp": "2026-04-18T04:30:09.997Z",
-    "score": 85,
-    "breakdown": {
-      "linesAdded": 62,
-      "linesDeleted": 27,
-      "filesTouched": 5,
-      "testFiles": 0,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 21,
-      "logicLines": 68
-    },
-    "passed": true
-  },
-  {
-    "timestamp": "2026-04-18T04:30:10.023Z",
-    "score": 82,
-    "breakdown": {
-      "linesAdded": 63,
-      "linesDeleted": 27,
-      "filesTouched": 6,
-      "testFiles": 0,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 22,
-      "logicLines": 68
-    },
-    "passed": true
-  },
-  {
-    "timestamp": "2026-04-18T04:30:36.572Z",
-    "score": 82,
-    "breakdown": {
-      "linesAdded": 67,
-      "linesDeleted": 28,
-      "filesTouched": 6,
-      "testFiles": 0,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 27,
-      "logicLines": 68
-    },
-    "passed": true
-  },
-  {
-    "timestamp": "2026-04-18T04:31:22.969Z",
-    "score": 79,
-    "breakdown": {
-      "linesAdded": 71,
-      "linesDeleted": 42,
-      "filesTouched": 6,
-      "testFiles": 0,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 45,
-      "logicLines": 68
-    },
-    "passed": true
-  },
-  {
-    "timestamp": "2026-04-18T04:54:40.439Z",
-    "score": 0,
-    "breakdown": {
-      "linesAdded": 813,
-      "linesDeleted": 806,
-      "filesTouched": 52,
-      "testFiles": 1,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 576,
-      "logicLines": 1043
-    },
-    "passed": false
-  },
-  {
-    "timestamp": "2026-04-18T04:56:48.487Z",
-    "score": 0,
-    "breakdown": {
-      "linesAdded": 927,
-      "linesDeleted": 805,
-      "filesTouched": 53,
-      "testFiles": 1,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 680,
-      "logicLines": 1052
-    },
-    "passed": false
-  },
-  {
-    "timestamp": "2026-04-18T04:57:04.999Z",
-    "score": 0,
-    "breakdown": {
-      "linesAdded": 926,
-      "linesDeleted": 805,
-      "filesTouched": 53,
-      "testFiles": 1,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 759,
-      "logicLines": 972
-    },
-    "passed": false
-  },
-  {
-    "timestamp": "2026-04-18T05:05:49.277Z",
-    "score": 0,
-    "breakdown": {
-      "linesAdded": 930,
-      "linesDeleted": 809,
-      "filesTouched": 53,
-      "testFiles": 1,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 759,
-      "logicLines": 980
-    },
-    "passed": false
-  },
-  {
-    "timestamp": "2026-04-18T05:05:49.341Z",
-    "score": 0,
-    "breakdown": {
-      "linesAdded": 939,
-      "linesDeleted": 810,
-      "filesTouched": 54,
-      "testFiles": 1,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 759,
-      "logicLines": 990
-    },
-    "passed": false
-  },
-  {
-    "timestamp": "2026-04-18T05:06:27.344Z",
-    "score": 0,
-    "breakdown": {
-      "linesAdded": 940,
-      "linesDeleted": 813,
-      "filesTouched": 55,
-      "testFiles": 1,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 759,
-      "logicLines": 994
-    },
-    "passed": false
-  },
-  {
-    "timestamp": "2026-04-18T05:06:27.486Z",
-    "score": 0,
-    "breakdown": {
-      "linesAdded": 947,
-      "linesDeleted": 813,
-      "filesTouched": 55,
-      "testFiles": 1,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 759,
-      "logicLines": 1001
-    },
-    "passed": false
-  },
-  {
-    "timestamp": "2026-04-18T05:07:01.620Z",
-    "score": 0,
-    "breakdown": {
-      "linesAdded": 945,
-      "linesDeleted": 813,
-      "filesTouched": 55,
-      "testFiles": 1,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 759,
-      "logicLines": 999
-    },
-    "passed": false
-  },
-  {
-    "timestamp": "2026-04-18T05:07:26.645Z",
-    "score": 0,
-    "breakdown": {
-      "linesAdded": 944,
-      "linesDeleted": 813,
-      "filesTouched": 55,
-      "testFiles": 1,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 759,
-      "logicLines": 998
-    },
-    "passed": false
-  },
-  {
     "timestamp": "2026-04-18T05:07:50.670Z",
     "score": 0,
     "breakdown": {
@@ -1484,6 +1228,374 @@
       "conventionCompliance": 0,
       "mixedFormattingLines": 0,
       "logicLines": 17
+    },
+    "passed": true
+  },
+  {
+    "timestamp": "2026-04-22T13:54:49.539Z",
+    "score": 100,
+    "breakdown": {
+      "linesAdded": 3,
+      "linesDeleted": 3,
+      "filesTouched": 1,
+      "testFiles": 0,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 6
+    },
+    "passed": true
+  },
+  {
+    "timestamp": "2026-04-22T13:54:49.577Z",
+    "score": 100,
+    "breakdown": {
+      "linesAdded": 20,
+      "linesDeleted": 3,
+      "filesTouched": 3,
+      "testFiles": 0,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 23
+    },
+    "passed": true
+  },
+  {
+    "timestamp": "2026-04-22T13:54:49.610Z",
+    "score": 100,
+    "breakdown": {
+      "linesAdded": 38,
+      "linesDeleted": 5,
+      "filesTouched": 4,
+      "testFiles": 0,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 43
+    },
+    "passed": true
+  },
+  {
+    "timestamp": "2026-04-22T13:55:41.984Z",
+    "score": 85,
+    "breakdown": {
+      "linesAdded": 61,
+      "linesDeleted": 12,
+      "filesTouched": 10,
+      "testFiles": 0,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 73
+    },
+    "passed": true
+  },
+  {
+    "timestamp": "2026-04-22T13:55:55.902Z",
+    "score": 77,
+    "breakdown": {
+      "linesAdded": 81,
+      "linesDeleted": 16,
+      "filesTouched": 11,
+      "testFiles": 0,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 97
+    },
+    "passed": true
+  },
+  {
+    "timestamp": "2026-04-22T13:56:06.189Z",
+    "score": 49,
+    "breakdown": {
+      "linesAdded": 100,
+      "linesDeleted": 19,
+      "filesTouched": 14,
+      "testFiles": 0,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 119
+    },
+    "passed": false
+  },
+  {
+    "timestamp": "2026-04-22T13:56:18.125Z",
+    "score": 38,
+    "breakdown": {
+      "linesAdded": 117,
+      "linesDeleted": 20,
+      "filesTouched": 15,
+      "testFiles": 0,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 137
+    },
+    "passed": false
+  },
+  {
+    "timestamp": "2026-04-22T13:57:01.128Z",
+    "score": 22,
+    "breakdown": {
+      "linesAdded": 143,
+      "linesDeleted": 30,
+      "filesTouched": 16,
+      "testFiles": 0,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 173
+    },
+    "passed": false
+  },
+  {
+    "timestamp": "2026-04-22T13:57:35.407Z",
+    "score": 17,
+    "breakdown": {
+      "linesAdded": 163,
+      "linesDeleted": 50,
+      "filesTouched": 16,
+      "testFiles": 0,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 213
+    },
+    "passed": false
+  },
+  {
+    "timestamp": "2026-04-22T13:59:36.949Z",
+    "score": 9,
+    "breakdown": {
+      "linesAdded": 183,
+      "linesDeleted": 70,
+      "filesTouched": 17,
+      "testFiles": 0,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 253
+    },
+    "passed": false
+  },
+  {
+    "timestamp": "2026-04-22T14:02:20.223Z",
+    "score": 9,
+    "breakdown": {
+      "linesAdded": 200,
+      "linesDeleted": 88,
+      "filesTouched": 17,
+      "testFiles": 0,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 288
+    },
+    "passed": false
+  },
+  {
+    "timestamp": "2026-04-22T14:02:53.470Z",
+    "score": 9,
+    "breakdown": {
+      "linesAdded": 217,
+      "linesDeleted": 105,
+      "filesTouched": 17,
+      "testFiles": 0,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 322
+    },
+    "passed": false
+  },
+  {
+    "timestamp": "2026-04-22T14:03:16.761Z",
+    "score": 9,
+    "breakdown": {
+      "linesAdded": 233,
+      "linesDeleted": 122,
+      "filesTouched": 17,
+      "testFiles": 0,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 355
+    },
+    "passed": false
+  },
+  {
+    "timestamp": "2026-04-22T14:03:32.783Z",
+    "score": 9,
+    "breakdown": {
+      "linesAdded": 249,
+      "linesDeleted": 138,
+      "filesTouched": 17,
+      "testFiles": 0,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 387
+    },
+    "passed": false
+  },
+  {
+    "timestamp": "2026-04-22T21:24:43.904Z",
+    "score": 1,
+    "breakdown": {
+      "linesAdded": 266,
+      "linesDeleted": 155,
+      "filesTouched": 18,
+      "testFiles": 1,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 421
+    },
+    "passed": false
+  },
+  {
+    "timestamp": "2026-04-22T21:36:32.440Z",
+    "score": 17,
+    "breakdown": {
+      "linesAdded": 279,
+      "linesDeleted": 169,
+      "filesTouched": 16,
+      "testFiles": 1,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 448
+    },
+    "passed": false
+  },
+  {
+    "timestamp": "2026-04-22T21:36:35.390Z",
+    "score": 25,
+    "breakdown": {
+      "linesAdded": 290,
+      "linesDeleted": 180,
+      "filesTouched": 15,
+      "testFiles": 1,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 470
+    },
+    "passed": false
+  },
+  {
+    "timestamp": "2026-04-22T21:36:38.428Z",
+    "score": 74,
+    "breakdown": {
+      "linesAdded": 293,
+      "linesDeleted": 183,
+      "filesTouched": 7,
+      "testFiles": 1,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 476
+    },
+    "passed": true
+  },
+  {
+    "timestamp": "2026-04-22T21:36:41.240Z",
+    "score": 80,
+    "breakdown": {
+      "linesAdded": 305,
+      "linesDeleted": 195,
+      "filesTouched": 3,
+      "testFiles": 1,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 500
+    },
+    "passed": true
+  },
+  {
+    "timestamp": "2026-04-22T21:36:44.170Z",
+    "score": 80,
+    "breakdown": {
+      "linesAdded": 305,
+      "linesDeleted": 193,
+      "filesTouched": 2,
+      "testFiles": 1,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 498
+    },
+    "passed": true
+  },
+  {
+    "timestamp": "2026-04-22T21:36:46.504Z",
+    "score": 80,
+    "breakdown": {
+      "linesAdded": 320,
+      "linesDeleted": 208,
+      "filesTouched": 1,
+      "testFiles": 0,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 528
+    },
+    "passed": true
+  },
+  {
+    "timestamp": "2026-04-22T21:53:34.119Z",
+    "score": 80,
+    "breakdown": {
+      "linesAdded": 339,
+      "linesDeleted": 227,
+      "filesTouched": 2,
+      "testFiles": 0,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 566
+    },
+    "passed": true
+  },
+  {
+    "timestamp": "2026-04-22T21:54:33.671Z",
+    "score": 80,
+    "breakdown": {
+      "linesAdded": 352,
+      "linesDeleted": 240,
+      "filesTouched": 1,
+      "testFiles": 0,
+      "sourceFiles": 0,
+      "testToCodeRatio": 0,
+      "conventionCompliance": 0,
+      "mixedFormattingLines": 0,
+      "logicLines": 592
     },
     "passed": true
   }

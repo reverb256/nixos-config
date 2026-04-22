@@ -4,9 +4,9 @@
   mkMcpServersJson,
 }:
 let
-  gatewayUrl = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080";
-  zaiCodingBaseUrl = "https://api.z.ai/api/coding/paas/v4";
-  nvidiaNimBaseUrl = "https://integrate.api.nvidia.com/v1";
+  gatewayUrl = "http://10.1.1.120:8080";
+  zaiCodingBaseUrl = gatewayUrl + "/v1";
+  nvidiaNimBaseUrl = gatewayUrl + "/v1";
 in
 {
   mkOpencodeConfig = pkgs.writeShellScript "generate-opencode-config" ''

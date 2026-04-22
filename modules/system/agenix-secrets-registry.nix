@@ -201,14 +201,14 @@ in
         nextcloud-admin = {
           file = "${inputs.self}/secrets/nextcloud-admin.age";
           mode = "440";
-          owner = "nextcloud";
-          group = "nextcloud";
+          owner = "root";
+          group = "root";
         };
         vaultwarden-admin-token = {
           file = "${inputs.self}/secrets/vaultwarden-admin-token.age";
           mode = "440";
-          owner = "vaultwarden";
-          group = "vaultwarden";
+          owner = "root";
+          group = "root";
         };
         # TODO: Run `agenix -e secrets/rclone-config.age` to create this file
         rclone-config = {

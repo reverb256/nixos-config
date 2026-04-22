@@ -305,7 +305,7 @@ in {
       echo -n "ZAI_API_KEY="" " >> /data/hermes/.hermes/provider-env
       cat /run/agenix/zai-api-key >> /data/hermes/.hermes/provider-env
       chmod 600 /data/hermes/.hermes/provider-env
-      chown hermes:hermes /data/hermes/.hermes/provider-env
+      chown j_kro:users /data/hermes/.hermes/provider-env
     '');
     # Use "-" prefix so systemd doesn't fail if file doesn't exist yet
     serviceConfig.EnvironmentFile = "-/data/hermes/.hermes/provider-env";
