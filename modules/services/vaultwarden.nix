@@ -66,6 +66,7 @@ in
           ${pkgs.podman}/bin/podman run --name vaultwarden \
             -p ${toString cfg.port}:80 \
             -v ${cfg.dataDir}:/data:Z \
+            -v ${config.age.secrets.vaultwarden-admin-token.path}:${config.age.secrets.vaultwarden-admin-token.path}:ro \
             -e WEBSOCKET_ENABLED=true \
             -e WEBSOCKET_ADDRESS=0.0.0.0 \
             -e DOMAIN=https://${cfg.hostName} \
@@ -91,6 +92,7 @@ in
 
         ReadWritePaths = [
           cfg.dataDir
+          config.age.secrets.vaultwarden-admin-token.path
           "/var/lib/containers/storage"
           "/run/podman"
           "/var/lib/containers"
