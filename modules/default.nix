@@ -43,7 +43,6 @@
 
     ./security/pam-vaultwarden.nix
     ./security/gpg.nix
-    ./security/caddy-ca.nix
     ./kubernetes-security.nix
 
     ./hardware/corsair.nix
