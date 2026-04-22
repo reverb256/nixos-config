@@ -96,7 +96,6 @@
 
   security.kubernetes.enable = true;
 
-  security.caddyCa.enable = true;
 
   security.gpg.enable = true;
 

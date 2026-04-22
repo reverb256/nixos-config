@@ -75,7 +75,6 @@
 
   services.cluster-ca.enable = true;
 
-  security.caddyCa.enable = true;
 
   boot.kernelPackages =
     inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
