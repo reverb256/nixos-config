@@ -18,6 +18,7 @@
     description = "Set NVIDIA GPU power limits";
     wantedBy = [ "multi-user.target" ];
     after = [ "nvidia-persistenced.service" ];
+    path = [ config.hardware.nvidia.package.bin ];
     serviceConfig = {
       Type = "oneshot";
       ExecStartPre = "${pkgs.coreutils}/bin/sleep 5";
