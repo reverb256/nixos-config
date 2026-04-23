@@ -29,7 +29,6 @@
     ./system/security-hardening.nix
     ./system/cluster-firewall.nix
     ./system/btrfs-compression.nix
-    ./system/btrfs-tuning.nix
     ./system/gaming-detection.nix
     ./system/gpu-profile-manager.nix
     ./system/mining-coordinator.nix
