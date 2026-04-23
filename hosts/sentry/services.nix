@@ -95,7 +95,7 @@
       topP = 0.95;
     };
 
-    unbound-common.enable = true;
+    networking.cluster.dns.enable = true;
 
     agenix-secrets-registry = {
       enable = true;
