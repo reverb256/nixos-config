@@ -4,7 +4,7 @@
   ...
 }: let
   cfg = config.services.monitoring.node-exporter;
-  port = config.networking.cluster.ports.node-exporter;
+  port = 9100;  # Default node-exporter port (networking.cluster.ports.node-exporter)
 in {
   options.services.monitoring.node-exporter = {
     enable = lib.mkEnableOption "Prometheus node exporter";

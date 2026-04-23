@@ -6,7 +6,7 @@
 }:
 let
   inherit (lib) mkIf mkOption types;
-  cfg = config.clusterNetworking;
+  cfg = config.services.unbound-common;
 in
 {
   options.services.unbound-common = {
@@ -21,7 +21,7 @@ in
         server = {
           interface = [
             "127.0.0.1"
-            cfg.ipAddress
+            "10.1.1.110"
           ];
           access-control = [
             "127.0.0.0/8 allow"
@@ -58,23 +58,26 @@ in
 
     environment.etc."unbound/local-dns.conf".text =
       lib.concatMapStrings (record: "local-data: \"${record}\"\n") (
-        lib.mapAttrsToList (name: host:
-          "${name}.lan. IN A ${host.ip}"
-        ) config.networking.cluster.hosts ++ [
+        # Cluster hosts
+        [
+          "zephyr.lan. IN A 10.1.1.110"
+          "nexus.lan. IN A 10.1.1.120"
+          "forge.lan. IN A 10.1.1.130"
+          "sentry.lan. IN A 10.1.1.140"
           # Tailscale mobile device
           "seeker.lan. IN A 100.84.24.43"
-
           # Service DNS — Caddy terminates TLS on nexus
-          "search.lan. IN A ${config.networking.cluster.hosts.nexus.ip}"
-          "ai.lan. IN A ${config.networking.cluster.hosts.nexus.ip}"
-          "openwebui.lan. IN A ${config.networking.cluster.hosts.nexus.ip}"
-          "haven.lan. IN A ${config.networking.cluster.hosts.nexus.ip}"
-          "hermes.lan. IN A ${config.networking.cluster.hosts.nexus.ip}"
-          "api.hermes.lan. IN A ${config.networking.cluster.hosts.nexus.ip}"
-          "n8n.lan. IN A ${config.networking.cluster.hosts.nexus.ip}"
-          "searxng.lan. IN A ${config.networking.cluster.hosts.nexus.ip}"
-          "activepieces.lan. IN A ${config.networking.cluster.hosts.nexus.ip}"
-        ]);
+          "search.lan. IN A 10.1.1.120"
+          "ai.lan. IN A 10.1.1.120"
+          "openwebui.lan. IN A 10.1.1.120"
+          "haven.lan. IN A 10.1.1.120"
+          "hermes.lan. IN A 10.1.1.120"
+          "api.hermes.lan. IN A 10.1.1.120"
+          "n8n.lan. IN A 10.1.1.120"
+          "searxng.lan. IN A 10.1.1.120"
+          "activepieces.lan. IN A 10.1.1.120"
+        ]
+      );
 
     networking.firewall.allowedUDPPorts = lib.mkOptionDefault [ 53 ];
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ 53 ];

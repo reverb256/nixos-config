@@ -22,9 +22,23 @@
 
     ../../modules/default.nix
 
-
     ../../modules/hardware/rgb-control.nix
+    inputs.nix-mineral.nixosModules.nix-mineral
   ];
+
+  # System hardening (Phase 0: Security Baseline)
+  # Preset: performance + compatibility (gaming/VR/desktop)
+  nix-mineral = {
+    enable = true;
+    preset = [ "performance" "compatibility" ];
+  };
+
+  # Resolve gitconfig conflict between NixOS default and nix-mineral
+  environment.etc.gitconfig.source = lib.mkForce (pkgs.writeText "gitconfig" ''
+    [user]
+      name = Jeremy Kroeker
+      email = jkroeker@proton.me
+  '');
 
   clusterNetworking = {
     enable = true;

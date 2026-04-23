@@ -64,7 +64,7 @@ in
 
     ingressIP = mkOption {
       type = types.str;
-      default = config.networking.cluster.hosts.nexus.ip;
+      default = "10.1.1.120";
       description = "IP address of the TLS ingress (Caddy) host";
     };
 

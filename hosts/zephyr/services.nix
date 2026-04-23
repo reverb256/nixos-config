@@ -32,7 +32,7 @@
 
     backup-to-garage = {
       enable = true;
-      endpoint = "http://${config.networking.cluster.hosts.zephyr.ip}:3900";
+      endpoint = "http://10.1.1.110:3900";  # zephyr cluster host
       region = "garage";
       bucket = "backups";
       secretKeyFile = "/run/agenix/garage-s3-secret-key";
