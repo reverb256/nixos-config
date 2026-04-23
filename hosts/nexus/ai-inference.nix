@@ -3,14 +3,14 @@
     enable = true;
 
     backend = {
-      url = "http://10.1.1.110:1237"; # zephyr 3090 llama-server (Qwen3.6-35B-A3B, primary local model)
+      url = "http://zephyr.lan:1237"; # zephyr 3090 llama-server (Qwen3.6-35B-A3B, primary local model)
       type = "llama-cpp";
       local = {
-        url = "http://10.1.1.140:1235"; # sentry ROCm Qwen3.5-4B (K8s pod)
+        url = "http://sentry.lan:1235"; # sentry ROCm Qwen3.5-4B (K8s pod)
         model = "Qwen3.5-4B.Q4_K_M.gguf";
       };
       secondary = {
-        url = "http://10.1.1.110:1236"; # zephyr 3060Ti SuperGemma4 (always on)
+        url = "http://zephyr.lan:1236"; # zephyr 3060Ti SuperGemma4 (always on)
         model = "supergemma4-Q5_K_M.gguf";
       };
       nvidia-nim = {
@@ -40,7 +40,7 @@
       workers = 1;
       middleware.redis = {
         enable = true;
-        host = "10.2.10.161"; # K8s search/valkey ClusterIP
+        host = "valkey.ai-inference.svc.cluster.local"; # K8s service DNS
         port = 6379;
       };
       middleware.knowledgeFabric = {
@@ -48,7 +48,7 @@
         rrf_k = 60;
         rag_enabled = true;
         searxng_enabled = true;
-        searxng_url = "http://10.1.1.120:30888"; # NodePort — ClusterIP unreachable from host systemd
+        searxng_url = "http://nexus.lan:30888"; # NodePort — ClusterIP unreachable from host systemd
         searxng_max_results = 10;
         code_search_enabled = false;
         brain_wiki_enabled = true;
@@ -86,7 +86,7 @@
 
     rag = {
       enable = true;
-      qdrantUrl = "http://10.5.93.32:6333";  # K8s ClusterIP for Qdrant StatefulSet
+      qdrantUrl = "http://qdrant.ai-inference.svc.cluster.local:6333";  # K8s service DNS
       embeddingModel = "BAAI/bge-m3";  # 1024d, upgraded from MiniLM-L6-v2
       embeddingDevice = "cpu";  # nexus GPU occupied by lolMiner
       chunkSize = 512;
