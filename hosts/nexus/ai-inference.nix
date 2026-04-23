@@ -40,7 +40,7 @@
       workers = 1;
       middleware.redis = {
         enable = true;
-        host = "valkey.ai-inference.svc.cluster.local"; # K8s service DNS
+        host = "valkey.search.svc.cluster.local"; # K8s service DNS (search namespace)
         port = 6379;
       };
       middleware.knowledgeFabric = {
