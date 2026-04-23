@@ -17,7 +17,7 @@ in {
 
     serverIp = lib.mkOption {
       type = lib.types.str;
-      default = config.networking.cluster.hosts.nexus.ip;
+      default = "10.1.1.120";
       description = "NFS server IP address";
     };
   };

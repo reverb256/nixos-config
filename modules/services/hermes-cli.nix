@@ -106,13 +106,13 @@ in
         # All inference routed through AI Inference Gateway on Nexus:8080
         model:
           provider: ai-gateway
-          base_url: http://${config.networking.cluster.hosts.nexus.ip}:8080/v1
+          base_url: http://10.1.1.120:8080/v1
           default: qwen/qwen3-coder-480b-a35b-instruct
           api_key: none
 
         providers:
           ai-gateway:
-            base_url: http://${config.networking.cluster.hosts.nexus.ip}:8080/v1
+            base_url: http://10.1.1.120:8080/v1
             api_key: none
           zai:
             base_url: https://api.z.ai/api/coding/paas/v4

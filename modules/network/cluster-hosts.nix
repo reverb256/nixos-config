@@ -20,7 +20,12 @@ in {
   config = mkIf cfg.enable {
     networking.extraHosts = lib.mkIf cfg.populateLocal (
       lib.mkOptionDefault (
-      lib.pipe config.networking.cluster.hosts [
+      lib.pipe (config.networking.cluster.hosts or {
+        zephyr = { ip = "10.1.1.110"; };
+        nexus = { ip = "10.1.1.120"; };
+        forge = { ip = "10.1.1.130"; };
+        sentry = { ip = "10.1.1.140"; };
+      }) [
         (lib.mapAttrsToList (name: host: "${host.ip} ${name}"))
         (lib.concatStringsSep "\n")
       ]
