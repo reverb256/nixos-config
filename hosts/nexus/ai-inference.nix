@@ -48,7 +48,7 @@
         rrf_k = 60;
         rag_enabled = true;
         searxng_enabled = true;
-        searxng_url = "http://10.4.98.141:8080"; # ClusterIP — accessible from host systemd
+        searxng_url = "http://10.1.1.120:30888"; # NodePort — ClusterIP unreachable from host systemd
         searxng_max_results = 10;
         code_search_enabled = false;
         brain_wiki_enabled = true;
