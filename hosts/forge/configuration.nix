@@ -86,10 +86,10 @@
   };
 
   # System hardening (Phase 0: Security Baseline)
-  # Preset: performance (GPU compute/mining, no desktop)
+  # Preset: default + performance (base hardening, relaxed PTI/CPU mitigations for mining)
   nix-mineral = {
     enable = true;
-    preset = [ "performance" ];
+    preset = [ "default" "performance" ];
   };
 
   # Resolve gitconfig conflict between NixOS default and nix-mineral
