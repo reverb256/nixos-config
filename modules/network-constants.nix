@@ -182,6 +182,7 @@
 
               listenAddress = lib.mkOption {
                 type = lib.types.str;
+                default = "";
                 description = "IP address for unbound to listen on (defaults to host IP)";
               };
 

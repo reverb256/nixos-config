@@ -6,7 +6,7 @@
 }:
 let
   cfg = config.services.garage-cluster;
-  hostIp = config.networking.cluster.hosts.${config.networking.hostName}.ip or "127.0.0.1";
+  hostIp = (config.networking.cluster.hosts.${config.networking.hostName}.ip or "127.0.0.1");
 
   # Template with placeholders that sed will replace at runtime
   garageConfigTemplate = pkgs.writeText "garage.toml.tpl" ''

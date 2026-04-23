@@ -40,6 +40,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
+
+    # System hardening (Phase 0: Security Baseline)
+    # https://github.com/cynicsketch/nix-mineral
+    nix-mineral = {
+      url = "github:cynicsketch/nix-mineral/";
+    };
+
     colmena = {
       url = "github:zhaofengli/colmena";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -141,6 +148,7 @@
       nur,
       claude-native,
       agenix,
+      nix-mineral,
       colmena,
       pre-commit-hooks,
       ...
