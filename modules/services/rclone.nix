@@ -173,7 +173,7 @@ in
         garage = {
           type = "s3";
           provider = "Other";
-          endpoint = "http://${config.networking.cluster.hosts.zephyr.ip}:3900";
+          endpoint = "http://10.1.1.110:3900";
           region = "garage";
         };
         onedrive = {

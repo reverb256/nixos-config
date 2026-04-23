@@ -4,6 +4,8 @@ let
   clusterCfg = config.networking.cluster;
   # Get DNS config - use or {} for safety in case the option doesn't exist
   dnsCfg = clusterCfg.dns or { enable = false; };
+  # Safely get listenAddress with fallback
+  listenAddress = lib.attrsets.attrByPath ["dns" "listenAddress"] null clusterCfg;
 in
 {
   config = mkIf dnsCfg.enable {
@@ -19,8 +21,8 @@ in
           # Listen on localhost and cluster IP
           interface = [
             "127.0.0.1"
-            (if dnsCfg ? listenAddress && dnsCfg.listenAddress or "" != ""
-              then dnsCfg.listenAddress
+            (if listenAddress != null
+              then listenAddress
               else clusterCfg.hosts.${clusterCfg.hostName}.ip)
           ];
 

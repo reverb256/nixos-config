@@ -10,7 +10,9 @@ let
 
         set -euo pipefail
 
-        GARAGE_ENDPOINT="''${GARAGE_ENDPOINT:-http://${config.networking.cluster.hosts.zephyr.ip}:3900}"
+        # Get zephyr IP from cluster config (fallback to localhost)
+        ZEPHYR_IP="10.1.1.110"
+        GARAGE_ENDPOINT="''${GARAGE_ENDPOINT:-http://$ZEPHYR_IP:3900}"
         GARAGE_REGION="''${GARAGE_REGION:-garage}"
         GARAGE_SECRET_KEY="''${GARAGE_SECRET_KEY:-}"
         BACKUP_BUCKET="''${BACKUP_BUCKET:-backups}"
@@ -133,7 +135,7 @@ in
 
     endpoint = lib.mkOption {
       type = lib.types.str;
-      default = "http://${config.networking.cluster.hosts.zephyr.ip}:3900";
+      default = "http://10.1.1.110:3900";  # zephyr cluster host
       description = "Garage S3 endpoint URL";
     };
 
