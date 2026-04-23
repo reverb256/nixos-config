@@ -24,6 +24,7 @@
 
     ../../modules/services/k3s-cluster.nix
     ../../modules/services/keepalived-vip.nix
+    inputs.nix-mineral.nixosModules.nix-mineral
   ];
 
   clusterNetworking = {
@@ -93,5 +94,20 @@
     fsType = "none";
     options = [ "bind" "noatime" ];
   };
+
+  # System hardening (Phase 0: Security Baseline)
+  # Preset: compatibility (desktop + AI gateway)
+  nix-mineral = {
+    enable = true;
+    preset = [ "compatibility" ];
+  };
+
+  # Resolve gitconfig conflict between NixOS default and nix-mineral
+  environment.etc.gitconfig.source = lib.mkForce (pkgs.writeText "gitconfig" ''
+    [user]
+      name = Jeremy Kroeker
+      email = jkroeker@proton.me
+  '');
+
   system.stateVersion = "26.05";
 }
