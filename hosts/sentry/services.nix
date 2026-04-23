@@ -95,7 +95,7 @@
       topP = 0.95;
     };
 
-    networking.cluster.dns.enable = true;
+  networking.cluster.dns.enable = true;
 
     agenix-secrets-registry = {
       enable = true;
