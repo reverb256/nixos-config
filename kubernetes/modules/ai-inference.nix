@@ -1,6 +1,19 @@
 {
-  pkgs, lib, ...
+  pkgs,
+  pkgsWithOverlay,
+  inputs,
+  lib,
+  ...
 }:
+let
+  # nix-csi scratch image (proven pattern from llama-servers)
+  scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
+
+  # Managed-by labels for easykubenix
+  managed = {
+    "app.kubernetes.io/managed-by" = "easykubenix";
+  };
+in
 {
   config.kubernetes.objects.ai-inference = {
     ServiceAccount.default = {};
@@ -164,21 +177,177 @@
     #   - Knowledge Fabric middleware (SearXNG + RAG + brain wiki)
 
     Service.ai-inference-gateway = {
-      metadata.labels.app = "ai-inference-gateway";
+      metadata.labels = managed // {
+        app = "ai-inference-gateway";
+      };
       spec = {
         type = "ClusterIP";
-        clusterIP = "None";  # Headless, backed by Endpoints below
-        ports = [{ name = "http"; port = 8080; protocol = "TCP"; }];
+        selector.app = "ai-inference-gateway";
+        ports = [{ name = "http"; port = 8080; protocol = "TCP"; targetPort = 8080; }];
       };
     };
 
-    # Static endpoint pointing to systemd gateway on nexus
-    Endpoints.ai-inference-gateway = {
-      metadata.labels.app = "ai-inference-gateway";
-      subsets = [{
-        addresses = [{ ip = "10.1.1.120"; }];
-        ports = [{ name = "http"; port = 8080; protocol = "TCP"; }];
-      }];
+    # AI Inference Gateway - migrated from systemd to K8s
+    # Uses nix-csi scratch pattern (proven with llama-servers)
+    Deployment.ai-inference-gateway = {
+      metadata.labels = managed // {
+        app = "ai-inference-gateway";
+        component = "gateway";
+      };
+      spec = {
+        replicas = 1;
+        revisionHistoryLimit = 2;
+        selector.matchLabels.app = "ai-inference-gateway";
+        strategy = {
+          type = "RollingUpdate";
+          rollingUpdate = {
+            maxSurge = 0;
+            maxUnavailable = 1;
+          };
+        };
+        template = {
+          metadata.labels = managed // {
+            app = "ai-inference-gateway";
+            component = "gateway";
+          };
+          annotations."nix-csi/discard" = "true";
+          spec = {
+            nodeName = "nexus";  # Primary server with GPU
+            serviceAccountName = "ai-inference-gateway";
+            automountServiceAccountToken = false;
+            containers = {
+              _namedlist = true;
+              ai-gateway = {
+                image = scratchImage;
+                imagePullPolicy = "IfNotPresent";
+                command = [
+                  "${inputs.ai-gateway.packages.x86_64-linux.container}/bin/ai-inference-gateway"
+                ];
+                env = {
+                  _namedlist = true;
+                  # Config from ConfigMap
+                  AUTH_MODE = {
+                    name = "AUTH_MODE";
+                    valueFrom.configMapKeyRef = {
+                      name = "ai-inference-gateway-config";
+                      key = "AUTH_MODE";
+                    };
+                  };
+                  BACKEND_TYPE = {
+                    name = "BACKEND_TYPE";
+                    valueFrom.configMapKeyRef = {
+                      name = "ai-inference-gateway-config";
+                      key = "BACKEND_TYPE";
+                    };
+                  };
+                  BACKEND_URL = {
+                    name = "BACKEND_URL";
+                    valueFrom.configMapKeyRef = {
+                      name = "ai-inference-gateway-config";
+                      key = "BACKEND_URL";
+                    };
+                  };
+                  DEFAULT_MODEL = {
+                    name = "DEFAULT_MODEL";
+                    valueFrom.configMapKeyRef = {
+                      name = "ai-inference-gateway-config";
+                      key = "DEFAULT_MODEL";
+                    };
+                  };
+                  PORT = {
+                    name = "PORT";
+                    valueFrom.configMapKeyRef = {
+                      name = "ai-inference-gateway-config";
+                      key = "PORT";
+                    };
+                  };
+                  PYTHONUNBUFFERED = {
+                    name = "PYTHONUNBUFFERED";
+                    valueFrom.configMapKeyRef = {
+                      name = "ai-inference-gateway-config";
+                      key = "PYTHONUNBUFFERED";
+                    };
+                  };
+                  QDRANT_URL = {
+                    name = "QDRANT_URL";
+                    valueFrom.configMapKeyRef = {
+                      name = "ai-inference-gateway-config";
+                      key = "QDRANT_URL";
+                    };
+                  };
+                  HF_HOME = {
+                    name = "HF_HOME";
+                    valueFrom.configMapKeyRef = {
+                      name = "ai-inference-gateway-config";
+                      key = "HF_HOME";
+                    };
+                  };
+                  TRANSFORMERS_CACHE = {
+                    name = "TRANSFORMERS_CACHE";
+                    valueFrom.configMapKeyRef = {
+                      name = "ai-inference-gateway-config";
+                      key = "TRANSFORMERS_CACHE";
+                    };
+                  };
+                };
+                ports = [
+                  {
+                    containerPort = 8080;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
+                resources = {
+                  requests = {
+                    cpu = "500m";
+                    memory = "512Mi";
+                  };
+                  limits = {
+                    cpu = "2000m";
+                    memory = "2Gi";
+                  };
+                };
+                livenessProbe = {
+                  httpGet = {
+                    path = "/health";
+                    port = 8080;
+                  };
+                  initialDelaySeconds = 30;
+                  periodSeconds = 30;
+                  failureThreshold = 3;
+                };
+                readinessProbe = {
+                  httpGet = {
+                    path = "/health";
+                    port = 8080;
+                  };
+                  initialDelaySeconds = 10;
+                  periodSeconds = 10;
+                  failureThreshold = 3;
+                };
+                volumeMounts = {
+                  _namedlist = true;
+                  nix = {
+                    mountPath = "/nix";
+                    readOnly = true;
+                  };
+                  "hf-cache" = {
+                    mountPath = "/var/cache/ai-inference";
+                  };
+                };
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              nix.hostPath = {
+                path = "/nix";
+                type = "Directory";
+              };
+              hf-cache.emptyDir = { };
+            };
+          };
+        };
+      };
     };
 
     # ── NetworkPolicies ────────────────────────────────────────
