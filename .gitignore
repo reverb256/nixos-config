@@ -55,3 +55,4 @@ Updated API key file
 .sisyphus/
 territory_map.json
 /kubernetes/modules/monitoring.nix.bak
+lucebox-hub
