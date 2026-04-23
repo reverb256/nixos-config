@@ -17,6 +17,7 @@
     ../../modules/system/security.nix
     ../../modules/services/podman-support.nix
     ../../modules/services/k3s-cluster.nix
+    inputs.nix-mineral.nixosModules.nix-mineral
   ];
 
   stylix = {
@@ -83,5 +84,20 @@
     fsType = "nfs4";
     options = [ "noatime" "nodiratime" "_netdev" ];
   };
+
+  # System hardening (Phase 0: Security Baseline)
+  # Preset: performance (GPU compute/mining, no desktop)
+  nix-mineral = {
+    enable = true;
+    preset = [ "performance" ];
+  };
+
+  # Resolve gitconfig conflict between NixOS default and nix-mineral
+  environment.etc.gitconfig.source = lib.mkForce (pkgs.writeText "gitconfig" ''
+    [user]
+      name = Jeremy Kroeker
+      email = jkroeker@proton.me
+  '');
+
   system.stateVersion = "26.05";
 }
