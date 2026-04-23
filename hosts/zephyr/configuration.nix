@@ -24,6 +24,7 @@
 
     ../../modules/hardware/rgb-control.nix
     inputs.nix-mineral.nixosModules.nix-mineral
+    ../../modules/virtualization/microvm-host.nix  # Phase 3: MicroVM host
   ];
 
   # System hardening (Phase 0: Security Baseline)
