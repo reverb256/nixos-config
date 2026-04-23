@@ -34,6 +34,10 @@
     preset = [ "performance" "compatibility" ];
   };
 
+  # Force hidepid off -- nix-mineral sets hidepid=2 which breaks CUDA GPU detection
+  # in sandboxed apps (LM Studio, etc.). Override at top-level boot.specialFileSystems.
+  boot.specialFileSystems."/proc".options = lib.mkForce [ "rw" "nosuid" "nodev" "noexec" "relatime" ];
+
   # Resolve gitconfig conflict between NixOS default and nix-mineral
   environment.etc.gitconfig.source = lib.mkForce (pkgs.writeText "gitconfig" ''
     [user]
