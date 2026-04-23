@@ -15,6 +15,7 @@
   };
   llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant;
   llama-cpp-rocm = prev.callPackage ./packages/llama-cpp-rocm.nix {};
+  ai-inference-gateway = inputs.ai-gateway.packages.x86_64-linux.default;
   caddy-with-modules = inputs.caddy-ingress.packages.x86_64-linux.caddy-with-modules;
   python3 = prev.python3.override {
     packageOverrides = py-self: py-super: {
