@@ -104,6 +104,9 @@
     };
   };
 
+  # Cluster DNS configuration
+  networking.cluster.dns.enable = true;
+
   services.xserver.videoDrivers = ["amdgpu"];
 
   programs.nix-ld.libraries = with pkgs; [
