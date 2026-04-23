@@ -182,6 +182,7 @@ in
       };
       spec = {
         type = "ClusterIP";
+        ipFamilyPolicy = "SingleStack";
         selector.app = "ai-inference-gateway";
         ports = [{ name = "http"; port = 8080; protocol = "TCP"; targetPort = 8080; }];
       };
@@ -206,11 +207,13 @@ in
           };
         };
         template = {
-          metadata.labels = managed // {
-            app = "ai-inference-gateway";
-            component = "gateway";
+          metadata = {
+            labels = managed // {
+              app = "ai-inference-gateway";
+              component = "gateway";
+            };
+            annotations."nix-csi/discard" = "true";
           };
-          annotations."nix-csi/discard" = "true";
           spec = {
             nodeName = "nexus";  # Primary server with GPU
             serviceAccountName = "ai-inference-gateway";
@@ -221,7 +224,7 @@ in
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
                 command = [
-                  "${inputs.ai-gateway.packages.x86_64-linux.container}/bin/ai-inference-gateway"
+                  "${pkgsWithOverlay.ai-inference-gateway}/bin/ai-inference-gateway"
                 ];
                 env = {
                   _namedlist = true;
