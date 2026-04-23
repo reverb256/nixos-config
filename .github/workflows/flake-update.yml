@@ -3,53 +3,122 @@ name: Update Flake Lock
 
 on:
   schedule:
+    # Project inputs: weekly Sunday 3am UTC
     - cron: '0 3 * * 0'
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'Which inputs to update'
+        required: true
+        default: 'projects'
+        type: choice
+        options:
+          - projects
+          - nixpkgs
+          - all
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  update-flake:
-    name: Update flake.lock
+  update-projects:
+    name: Update project flake inputs
+    if: github.event.inputs.target == 'projects' || github.event.inputs.target == 'all' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        input:
+          - ai-gateway
+          - knowledge-fabric
+          - llama-turboquant
+          - compute-market
+          - mcp-registry
+          - caddy-ingress
+          - gpu-proxy
     steps:
       - name: Checkout
-        # pin:actions/checkout@v4
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: Install Nix
-        # pin:cachix/install-nix-action@v25
         uses: cachix/install-nix-action@6004951b182f8860210c8d6f0d808ec5b1a33d28
         with:
           nix_path: nixpkgs=channel:nixos-unstable
 
       - name: Setup Cachix
-        # pin:cachix/cachix-action@v14
         uses: cachix/cachix-action@18cf96c7c98e048e10a83abd92116114cd8504be
         with:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Update flake.lock
-        run: nix flake update
+      - name: Update ${{ matrix.input }}
+        run: |
+          BEFORE=$(git rev-parse HEAD:flake.lock)
+          nix flake lock --update-input ${{ matrix.input }}
+          AFTER=$(git rev-parse HEAD:flake.lock)
 
-      - name: Build to verify
+          if [ "$BEFORE" = "$AFTER" ]; then
+            echo "No changes for ${{ matrix.input }}"
+            echo "CHANGED=false" >> $GITHUB_ENV
+          else
+            echo "CHANGED=true" >> $GITHUB_ENV
+          fi
+
+      - name: Verify build
+        if: env.CHANGED == 'true'
         run: nix flake check
 
       - name: Create PR
-        # pin:peter-evans/create-pull-request@v6
+        if: env.CHANGED == 'true'
         uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c
         with:
-          title: "chore: update flake.lock"
+          title: "chore(deps): update ${{ matrix.input }} flake input"
           body: |
-            Automated flake.lock update
+            Automated selective flake input update.
 
-            Changes:
-            - Updated nixpkgs
-            - Updated other flake inputs
+            Updated input: `${{ matrix.input }}`
 
-            Please review the changes and ensure nothing breaks.
-          branch: update/flake-lock
-          commit-message: "chore: update flake.lock"
+            Only this input was updated to isolate any breakage.
+            Please review and verify the changes work correctly.
+          branch: update/deps-${{ matrix.input }}
+          commit-message: "chore(deps): update ${{ matrix.input }} flake input"
+          delete-branch: true
+
+  update-nixpkgs:
+    name: Update nixpkgs
+    if: github.event.inputs.target == 'nixpkgs' || github.event.inputs.target == 'all'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@6004951b182f8860210c8d6f0d808ec5b1a33d28
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@18cf96c7c98e048e10a83abd92116114cd8504be
+        with:
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Update nixpkgs only
+        run: nix flake lock --update-input nixpkgs
+
+      - name: Verify build
+        run: nix flake check
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c
+        with:
+          title: "chore(deps): update nixpkgs"
+          body: |
+            Automated nixpkgs update.
+
+            **WARNING**: nixpkgs update may trigger cascading rebuilds
+            including hermes-agent npm dependencies.
+
+            Please review carefully before merging.
+          branch: update/deps-nixpkgs
+          commit-message: "chore(deps): update nixpkgs"
           delete-branch: true

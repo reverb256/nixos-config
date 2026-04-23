@@ -2,8 +2,6 @@
 name: Deploy
 
 on:
-  push:
-    branches: [main, master]
   workflow_dispatch:
     inputs:
       target:
@@ -30,10 +28,36 @@ jobs:
         # pin:actions/checkout@v4
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
-      - name: Pre-deploy validation
+      - name: Pre-build validation
         run: |
           cd /etc/nixos
-          ./scripts/pre-deploy-check.sh "${{ github.event.inputs.target || 'all' }}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Pre-build: verifying configs build before deploying..."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          TARGET="${{ github.event.inputs.target }}"
+          if [ "$TARGET" = "all" ]; then
+            HOSTS="zephyr nexus forge sentry"
+          else
+            HOSTS="$TARGET"
+          fi
+
+          for host in $HOSTS; do
+            echo "Building $host..."
+            if ! nixos-rebuild build --flake .#$host 2>&1 | tee /tmp/prebuild-$host.log; then
+              echo ""
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              echo "ERROR: Build failed for $host -- aborting deploy"
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              cat /tmp/prebuild-$host.log
+              exit 1
+            fi
+            echo "✓ $host builds successfully"
+          done
+
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "All targets build successfully. Proceeding with deploy..."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
       - name: Pause mining
         run: |
@@ -41,7 +65,6 @@ jobs:
 
       - name: Deploy to hosts
         run: |
-          # Colmena-based deployment with dependency management and rollback
           cd /etc/nixos
 
           # Signal GPU scheduler (for all GPU nodes: zephyr, nexus, forge, sentry)
@@ -132,7 +155,14 @@ jobs:
           echo "Running health checks..."
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-          for host in zephyr nexus forge sentry; do
+          TARGET="${{ github.event.inputs.target }}"
+          if [ "$TARGET" = "all" ]; then
+            HOSTS="zephyr nexus forge sentry"
+          else
+            HOSTS="$TARGET"
+          fi
+
+          for host in $HOSTS; do
             echo "Checking $host..."
             if [ "$host" = "zephyr" ]; then
               if curl -f http://127.0.0.1:8080/health 2>/dev/null; then
