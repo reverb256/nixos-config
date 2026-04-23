@@ -135,6 +135,7 @@
     ./profiles/node-profiles.nix
 
     ./network/cluster-hosts.nix
+    ./network/cluster-dns.nix
     ./networking/cluster-networking.nix
     ./services/claude-code-router.nix
     ./services/supply-chain-cooldowns.nix
