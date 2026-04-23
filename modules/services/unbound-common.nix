@@ -21,7 +21,6 @@ in
         server = {
           interface = [
             "127.0.0.1"
-            "10.1.1.110"
           ];
           access-control = [
             "127.0.0.0/8 allow"

@@ -1,11 +1,28 @@
 { config, lib, pkgs, ... }:
 let
   inherit (lib) mkIf mkBefore mkDefault;
-  clusterCfg = config.networking.cluster;
+  clusterCfg = config.clusterNetworking;
+  # Cluster host IPs (hardcoded for reliability)
+  hosts = {
+    zephyr = "10.1.1.110";
+    nexus = "10.1.1.120";
+    forge = "10.1.1.130";
+    sentry = "10.1.1.140";
+  };
   # Get DNS config - use or {} for safety in case the option doesn't exist
-  dnsCfg = clusterCfg.dns or { enable = false; };
-  # Safely get listenAddress with fallback
-  listenAddress = lib.attrsets.attrByPath ["dns" "listenAddress"] null clusterCfg;
+  dnsCfg = {
+    enable = clusterCfg.unbound.enable or false;
+    listenAddress = clusterCfg.unbound.listenAddress or null;
+    upstreamServers = [
+      "1.1.1.1@853"
+      "1.0.0.1@853"
+      "8.8.8.8@853"
+      "8.8.4.4@853"
+    ];
+    searchDomains = config.networking.search or [];
+    enableLanRecords = true;
+    enableServiceRecords = true;
+  };
 in
 {
   config = mkIf dnsCfg.enable {
@@ -20,10 +37,9 @@ in
         server = {
           # Listen on localhost and cluster IP
           interface = [
-            "127.0.0.1"
-            (if listenAddress != null
-              then listenAddress
-              else clusterCfg.hosts.${clusterCfg.hostName}.ip)
+            (if dnsCfg.listenAddress != null && dnsCfg.listenAddress != "127.0.0.1"
+              then dnsCfg.listenAddress
+              else clusterCfg.ipAddress)
           ];
 
           # Allow queries from cluster network
@@ -77,35 +93,35 @@ in
       let
         # Base service records (always present)
         baseServices = [
-          "search.lan. IN A ${clusterCfg.hosts.nexus.ip}"
-          "ai.lan. IN A ${clusterCfg.hosts.nexus.ip}"
-          "openwebui.lan. IN A ${clusterCfg.hosts.nexus.ip}"
-          "haven.lan. IN A ${clusterCfg.hosts.nexus.ip}"
-          "hermes.lan. IN A ${clusterCfg.hosts.nexus.ip}"
-          "api.hermes.lan. IN A ${clusterCfg.hosts.nexus.ip}"
-          "n8n.lan. IN A ${clusterCfg.hosts.nexus.ip}"
-          "searxng.lan. IN A ${clusterCfg.hosts.nexus.ip}"
-          "activepieces.lan. IN A ${clusterCfg.hosts.nexus.ip}"
+          "search.lan. IN A ${hosts.nexus}"
+          "ai.lan. IN A ${hosts.nexus}"
+          "openwebui.lan. IN A ${hosts.nexus}"
+          "haven.lan. IN A ${hosts.nexus}"
+          "hermes.lan. IN A ${hosts.nexus}"
+          "api.hermes.lan. IN A ${hosts.nexus}"
+          "n8n.lan. IN A ${hosts.nexus}"
+          "searxng.lan. IN A ${hosts.nexus}"
+          "activepieces.lan. IN A ${hosts.nexus}"
         ];
 
         # Optional forge services
-        forgeServices = lib.optionals (clusterCfg.hosts ? forge) [
-          "mining.lan. IN A ${clusterCfg.hosts.forge.ip}"
+        forgeServices = [
+          "mining.lan. IN A ${hosts.forge}"
         ];
 
         # Optional sentry services
-        sentryServices = lib.optionals (clusterCfg.hosts ? sentry) [
-          "monitoring.lan. IN A ${clusterCfg.hosts.sentry.ip}"
-          "grafana.lan. IN A ${clusterCfg.hosts.sentry.ip}"
-          "prometheus.lan. IN A ${clusterCfg.hosts.sentry.ip}"
+        sentryServices = [
+          "monitoring.lan. IN A ${hosts.sentry}"
+          "grafana.lan. IN A ${hosts.sentry}"
+          "prometheus.lan. IN A ${hosts.sentry}"
         ];
 
         # All service records combined
         allServices = baseServices ++ forgeServices ++ sentryServices;
 
         # Host records
-        hostRecords = lib.mapAttrsToList (name: host: "${name}.lan. IN A ${host.ip}")
-          clusterCfg.hosts;
+        hostRecords = lib.mapAttrsToList (name: ip: "${name}.lan. IN A ${ip}")
+          hosts;
       in
       # Host records section
       (lib.optionalString dnsCfg.enableLanRecords (
@@ -143,8 +159,8 @@ in
 
     # Populate /etc/hosts for compatibility
     networking.extraHosts = lib.mkBefore (
-      lib.pipe clusterCfg.hosts [
-        (lib.mapAttrsToList (name: host: "${host.ip} ${name}.lan ${name}"))
+      lib.pipe hosts [
+        (lib.mapAttrsToList (name: ip: "${ip} ${name}.lan ${name}"))
         (lib.concatStringsSep "\n")
       ]
     );
