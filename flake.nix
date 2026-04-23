@@ -43,6 +43,13 @@
 
     # System hardening (Phase 0: Security Baseline)
     # https://github.com/cynicsketch/nix-mineral
+    # Phase 3: MicroVM isolation (Qubes-like compartmentalization)
+    # https://github.com/microvm-nix/microvm.nix
+    microvm = {
+      url = "github:microvm-nix/microvm.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nix-mineral = {
       url = "github:cynicsketch/nix-mineral/";
     };
@@ -208,9 +215,16 @@
 
       checks.x86_64-linux = {};
 
-      nixosConfigurations = builtins.mapAttrs (
+      nixosConfigurations = (builtins.mapAttrs (
         _name: value: mkNixosSystem { inherit (value) hostName; }
-      ) hosts;
+      ) hosts) // {
+        # Phase 3: MicroVM configurations (not regular hosts, not managed by Colmena)
+        ci-test = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [ ./hosts/ci-test/configuration.nix ];
+          specialArgs = { inherit inputs; };
+        };
+      };
 
       colmena = import ./colmena.nix {
         inherit inputs self;
