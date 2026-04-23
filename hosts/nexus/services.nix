@@ -104,7 +104,7 @@ in {
 
     status-auto-update.enable = false; # NixOS module not available yet
 
-    unbound-common.enable = false; # NixOS module not available yet
+    unbound-common.enable = true;
 
     ai-coding-tools = {
       enable = false; # NixOS module not available yet
