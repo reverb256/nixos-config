@@ -58,11 +58,6 @@
           "processor.max_cstate=1"
           "intel_idle.max_cstate=1"
           "iommu=pt"
-
-          "hugepagesz=1G"
-          "hugepages=3"
-
-          "btrfs.commit_interval=300"
         ];
 
         zswapParams =

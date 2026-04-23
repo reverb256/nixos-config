@@ -104,11 +104,14 @@
       "intel_idle.max_cstate=1"
       "hugepagesz=1G"
       "hugepages=3"
-      "btrfs.commit_interval=300"
       "nvidia.NVreg_RegistryDwords=EnableBrightnessControl=1"
     ];
   };
 
+
+  # BTRFS commit interval - merge with hardware-configuration.nix options
+  fileSystems."/".options = [ "commit=300" ];
+  fileSystems."/home".options = [ "commit=300" ];
   environment.sessionVariables = {
 
     NCCL_P2P_LEVEL = "2";
