@@ -56,3 +56,4 @@ Updated API key file
 territory_map.json
 /kubernetes/modules/monitoring.nix.bak
 lucebox-hub
+sbom/
