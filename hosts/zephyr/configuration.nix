@@ -23,27 +23,16 @@
     ../../modules/default.nix
 
     ../../modules/hardware/rgb-control.nix
-    inputs.nix-mineral.nixosModules.nix-mineral
-    ../../modules/virtualization/microvm-host.nix  # Phase 3: MicroVM host
+    # inputs.nix-mineral.nixosModules.nix-mineral  # DISABLED: security-misc broke niri on NVIDIA Wayland (gen 1658+ crash)
+    # ../../modules/virtualization/microvm-host.nix  # DISABLED: not yet needed, adds 1.7GB closure bloat
   ];
 
-  # System hardening (Phase 0: Security Baseline)
-  # Preset: performance + compatibility (gaming/VR/desktop)
-  nix-mineral = {
-    enable = true;
-    preset = [ "performance" "compatibility" ];
-  };
-
-  # Force hidepid off -- nix-mineral sets hidepid=2 which breaks CUDA GPU detection
-  # in sandboxed apps (LM Studio, etc.). Override at top-level boot.specialFileSystems.
-  boot.specialFileSystems."/proc".options = lib.mkForce [ "rw" "nosuid" "nodev" "noexec" "relatime" ];
-
-  # Resolve gitconfig conflict between NixOS default and nix-mineral
-  environment.etc.gitconfig.source = lib.mkForce (pkgs.writeText "gitconfig" ''
-    [user]
-      name = Jeremy Kroeker
-      email = jkroeker@proton.me
-  '');
+  # nix-mineral disabled -- security-misc hardening broke niri on NVIDIA Wayland.
+  # See gen 1658+ crash investigation. Re-enable only after testing compositor startup.
+  # nix-mineral = {
+  #   enable = true;
+  #   preset = [ "performance" "compatibility" ];
+  # };
 
   clusterNetworking = {
     enable = true;
