@@ -49,6 +49,7 @@
       enable = true;
       ipAddress = "10.1.1.125";
     };
+    unbound.enable = true;
     unbound.listenAddress = "10.1.1.120";
   };
 
