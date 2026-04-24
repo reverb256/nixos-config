@@ -104,7 +104,6 @@ in {
 
     status-auto-update.enable = false; # NixOS module not available yet
 
-    unbound-common.enable = true;
 
     ai-coding-tools = {
       enable = false; # NixOS module not available yet
@@ -373,6 +372,18 @@ in {
       activepieces = {
         domain = "activepieces.lan";
         backend = "10.11.184.70:80";
+      };
+      ai-inference = {
+        domain = "ai-inference.lan";
+        backend = "10.15.67.242:8080";
+      };
+      qdrant = {
+        domain = "qdrant.lan";
+        backend = "10.5.93.32:6333";
+      };
+      knowledge-fabric = {
+        domain = "knowledge-fabric.lan";
+        backend = "10.6.31.109:3000";
       };
     };
   };

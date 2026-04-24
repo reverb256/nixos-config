@@ -1,4 +1,10 @@
-{ config, pkgs, lib, ... }: {
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
+{
   services.ai-inference = {
     enable = true;
 
@@ -10,8 +16,8 @@
         model = "Qwen3.5-4B.Q4_K_M.gguf";
       };
       secondary = {
-        url = "http://zephyr.lan:1236"; # zephyr 3060Ti SuperGemma4 (always on)
-        model = "supergemma4-Q5_K_M.gguf";
+        url = "http://zephyr.lan:1236"; # zephyr 3060Ti Qwen3.5-9B
+        model = "Qwen3.5-9B.Q4_K_M.gguf";
       };
       nvidia-nim = {
         enable = true;
@@ -61,7 +67,11 @@
     routing = {
       enable = true;
       defaultModel = "qwen3.6-35b"; # local-first (Qwen3.6-35B on zephyr 3090)
-      fallbackChain = ["nvidia-nim" "zai" "pollinations"]; # TODO post-May 8: remove "zai" → ["nvidia-nim" "pollinations"] # NIM first (survives ZAI expiry)
+      fallbackChain = [
+        "nvidia-nim"
+        "zai"
+        "pollinations"
+      ]; # TODO post-May 8: remove "zai" → ["nvidia-nim" "pollinations"] # NIM first (survives ZAI expiry)
     };
 
     auth.mode = "none";
@@ -86,9 +96,9 @@
 
     rag = {
       enable = true;
-      qdrantUrl = "http://qdrant.ai-inference.svc.cluster.local:6333";  # K8s service DNS
-      embeddingModel = "BAAI/bge-m3";  # 1024d, upgraded from MiniLM-L6-v2
-      embeddingDevice = "cpu";  # nexus GPU occupied by lolMiner
+      qdrantUrl = "http://qdrant.ai-inference.svc.cluster.local:6333"; # K8s service DNS
+      embeddingModel = "BAAI/bge-m3"; # 1024d, upgraded from MiniLM-L6-v2
+      embeddingDevice = "cpu"; # nexus GPU occupied by lolMiner
       chunkSize = 512;
       chunkOverlap = 50;
       topK = 10;
@@ -103,11 +113,11 @@
       };
       tokenScopedCollections = true;
       reranker = {
-        enable = true;  # cross-encoder BGE-reranker-base on CPU
+        enable = true; # cross-encoder BGE-reranker-base on CPU
         model = "BAAI/bge-reranker-base";
       };
       qdrant = {
-        enable = false;  # Qdrant runs as K8s StatefulSet, not local systemd
+        enable = false; # Qdrant runs as K8s StatefulSet, not local systemd
         host = "0.0.0.0";
         port = 6333;
         grpcPort = 6334;
@@ -119,12 +129,12 @@
     # Phase 2 hybrid search features
     queryExpansion = {
       enable = true;
-      model = "supergemma4-Q5_K_M.gguf";
+      model = "Qwen3.5-9B.Q4_K_M.gguf";
     };
 
     semanticCache = {
       enable = true;
-      ttlSeconds = 86400;  # 24h
+      ttlSeconds = 86400; # 24h
       similarityThreshold = 0.95;
     };
 
