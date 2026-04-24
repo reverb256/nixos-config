@@ -97,8 +97,10 @@
     rag = {
       enable = true;
       qdrantUrl = "http://qdrant.ai-inference.svc.cluster.local:6333"; # K8s service DNS
-      embeddingModel = "BAAI/bge-m3"; # 1024d, upgraded from MiniLM-L6-v2
+      embeddingModel = "BidirLM/BidirLM-Omni-2.5B-Embedding"; # 2048d, multimodal (text/image/audio)
       embeddingDevice = "cpu"; # nexus GPU occupied by lolMiner
+      embeddingTrustRemoteCode = true; # BidirLM requires custom code
+      embeddingDimensions = 2048;
       chunkSize = 512;
       chunkOverlap = 50;
       topK = 10;
