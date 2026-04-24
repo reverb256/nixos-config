@@ -63,9 +63,8 @@ in
 
     # ── Zephyr RTX 3090 (GPU 1) — Qwen3.6-35B-A3B MoE ──────────────
     # 16.6GB UD-IQ3_S GGUF weights. Only 3B active params/token = fast gen.
-    # Pure VRAM: turbo4 TCQ KV cache (TurboQuant's custom compression).
-    # turbo4 compresses KV ~75% vs f16, enabling 262K context in ~7GB VRAM.
-    # Community benchmarks: ~120 tok/s at full 262K context on 3090.
+    # Pure VRAM: tbq4/tbqp4 KV cache (TurboQuant BQ 4-bit, ~75% vs f16).
+    # tbq4 compresses KV ~75% vs f16, enabling 262K context in ~7GB VRAM.
     # mmproj disabled — crashes turboquant binary (SIGSEGV in clip_model_loader).
     Deployment.llama-server-zephyr = {
       metadata.labels = managed // {
@@ -127,9 +126,9 @@ in
                   "--parallel"
                   "1"
                   "--cache-type-k"
-                  "turbo4"
+                  "tbq4"
                   "--cache-type-v"
-                  "t4"
+                  "tbq4"
                   "--temp"
                   "0.6"
                   "--top-k"
@@ -236,7 +235,7 @@ in
 
     # ── Zephyr RTX 3060 Ti (GPU 0) — Qwen3.5-9B Opus-Distilled ───────────────────────────
     # Claude 4.6 Opus reasoning distilled into Qwen3.5-9B. 5.6GB Q4_K_M.
-    # 8GB VRAM: turbo4 KV cache enables 262K context in ~2GB VRAM.
+    # 8GB VRAM: tbq4 KV cache enables 262K context in ~2GB VRAM.
     Deployment.llama-server-zephyr-3060ti = {
       metadata.labels = managed // {
         app = "llama-server-zephyr-3060ti";
@@ -288,17 +287,17 @@ in
                   "--fit"
                   "off"
                   "--batch-size"
-                  "2048"
-                  "--ubatch-size"
                   "512"
+                  "--ubatch-size"
+                  "128"
                   "--flash-attn"
                   "on"
                   "--parallel"
                   "1"
                   "--cache-type-k"
-                  "turbo4"
+                  "tbq4"
                   "--cache-type-v"
-                  "t4"
+                  "tbq4"
                   "--temp"
                   "0.6"
                   "--top-k"
@@ -403,8 +402,10 @@ in
       };
     };
 
-    # ── Sentry AMD RX 5600 XT (ROCm, gfx1010) — Qwen3.5-4B Opus-Distilled ─────────────────────────
-    # 256K context (max), iq4_nl KV cache.
+    # ── Sentry AMD RX 5600 XT (Vulkan/RADV, gfx1010) — Qwen3.5-4B Opus-Distilled ───────
+    # Vulkan backend: RADV (Mesa) outperforms ROCm on RDNA1 for token generation.
+    # Flash attention disabled: slower on AMD via Vulkan (issue #10439).
+    # 256K context, q4_0 KV cache (lighter than iq4_nl, faster decompression).
     Deployment.llama-server-sentry = {
       metadata.labels = managed // {
         app = "llama-server-sentry";
@@ -435,7 +436,7 @@ in
               llama-server = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgsWithOverlay.llama-cpp-rocm}/bin/llama-server" ];
+                command = [ "${pkgsWithOverlay.llama-cpp-vulkan}/bin/llama-server" ];
                 args = [
                   "--model"
                   "/models/Jackrong/Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-GGUF/Qwen3.5-4B.Q4_K_M.gguf"
@@ -452,17 +453,17 @@ in
                   "--fit"
                   "off"
                   "--batch-size"
-                  "32"
+                  "128"
                   "--ubatch-size"
-                  "8"
+                  "32"
                   "--flash-attn"
-                  "on"
+                  "off"
                   "--parallel"
                   "1"
                   "--cache-type-k"
-                  "iq4_nl"
+                  "q4_0"
                   "--cache-type-v"
-                  "iq4_nl"
+                  "q4_0"
                   "--temp"
                   "0.6"
                   "--top-k"
@@ -478,13 +479,13 @@ in
                 ];
                 env = {
                   _namedlist = true;
-                  ROC_ENABLE_PRE_VEGA = {
-                    name = "ROC_ENABLE_PRE_VEGA";
-                    value = "1";
-                  };
                   LD_LIBRARY_PATH = {
                     name = "LD_LIBRARY_PATH";
                     value = "/run/opengl-driver/lib:/nix/store";
+                  };
+                  VK_ICD_FILENAMES = {
+                    name = "VK_ICD_FILENAMES";
+                    value = "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json";
                   };
                 };
                 ports = [
@@ -526,15 +527,16 @@ in
                   dev-dri = {
                     mountPath = "/dev/dri";
                   };
-                  dev-kfd = {
-                    mountPath = "/dev/kfd";
-                  };
                   models = {
                     mountPath = "/models";
                     readOnly = true;
                   };
                   opengl = {
                     mountPath = "/run/opengl-driver/lib";
+                    readOnly = true;
+                  };
+                  vulkan-icd = {
+                    mountPath = "/run/opengl-driver/share/vulkan/icd.d";
                     readOnly = true;
                   };
                   tmp = {
@@ -553,12 +555,9 @@ in
                 path = "/dev/dri";
                 type = "Directory";
               };
-              dev-kfd.hostPath = {
-                path = "/dev/kfd";
-                type = "CharDevice";
-              };
               models.hostPath.path = "/home/j_kro/.lmstudio/models";
               opengl.hostPath.path = "/run/opengl-driver/lib";
+              vulkan-icd.hostPath.path = "/run/opengl-driver/share/vulkan/icd.d";
               tmp.emptyDir = { };
             };
           };
