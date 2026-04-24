@@ -90,7 +90,7 @@
             };
           };
           spec = {
-            nodeName = "nexus";
+            nodeSelector."kubernetes.io/hostname" = "nexus";
             containers = {
               _namedlist = true;
               claude-code = {
@@ -226,7 +226,7 @@
             };
           };
           spec = {
-            nodeName = "nexus";
+            nodeSelector."kubernetes.io/hostname" = "nexus";
             containers = {
               _namedlist = true;
               opencode = {
