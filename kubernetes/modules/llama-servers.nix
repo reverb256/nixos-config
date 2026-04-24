@@ -138,8 +138,6 @@ in
                   "--min-p"
                   "0.0"
                   "--metrics"
-                  "--reasoning-format"
-                  "deepseek"
                   "--jinja"
                 ];
                 env = {
@@ -304,8 +302,6 @@ in
                   "20"
                   "--top-p"
                   "0.95"
-                  "--reasoning-format"
-                  "deepseek"
                   "--chat-template-file"
                   "/models/qwen3-thinking-template.jinja"
                   "--jinja"
@@ -470,8 +466,6 @@ in
                   "20"
                   "--top-p"
                   "0.95"
-                  "--reasoning-format"
-                  "deepseek"
                   "--chat-template-file"
                   "/models/qwen3-thinking-template.jinja"
                   "--jinja"
