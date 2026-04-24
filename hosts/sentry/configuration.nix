@@ -50,6 +50,7 @@
     ipAddress = "10.1.1.140";
     interfaceName = "enp7s0";
     wireless.enable = false;
+    unbound.enable = true;
     unbound.listenAddress = "10.1.1.140";
   };
 

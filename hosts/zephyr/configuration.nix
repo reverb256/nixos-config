@@ -53,6 +53,7 @@
     };
     usbEthernet.enable = true;
     interfaceName = "eth0";
+    unbound.enable = true;
     unbound.listenAddress = "10.1.1.110";
   };
 

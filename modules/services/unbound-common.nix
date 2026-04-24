@@ -67,6 +67,10 @@ in
           "seeker.lan. IN A 100.84.24.43"
           # Service DNS — Caddy terminates TLS on nexus
           "search.lan. IN A 10.1.1.120"
+          "brain.lan. IN A 10.1.1.120"
+          "ai-inference.lan. IN A 10.1.1.120"
+          "qdrant.lan. IN A 10.1.1.120"
+          "knowledge-fabric.lan. IN A 10.1.1.120"
           "ai.lan. IN A 10.1.1.120"
           "openwebui.lan. IN A 10.1.1.120"
           "haven.lan. IN A 10.1.1.120"

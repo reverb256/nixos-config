@@ -47,6 +47,7 @@
     ipAddress = "10.1.1.130";
     interfaceName = lib.mkForce "eno1";
     wireless.enable = false;
+    unbound.enable = true;
     unbound.listenAddress = "10.1.1.130";
   };
 
