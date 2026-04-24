@@ -21,12 +21,13 @@ just health             # Detailed health check
 | Host | IP | Role | RAM | GPUs |
 |------|-----|------|-----|------|
 | Zephyr | 10.1.1.110 | Workstation, control plane, gaming, NFS server | 31GB | 2x NVIDIA |
-| Nexus | 10.1.1.120 | Primary server, Hermes Agent, monitoring, storage | 46GB | 1x NVIDIA |
+| Nexus | 10.1.1.120 | Primary server, AI Gateway, monitoring, storage | 46GB | 1x NVIDIA |
 | Forge | 10.1.1.130 | GPU computing, mining | 15GB | 2x NVIDIA + 2x AMD |
 | Sentry | 10.1.1.140 | Monitoring, AI inference (ROCm) | 31GB | 1x AMD Radeon RX 5600 XT (8GB) |
 
 **Resources**: 78 cores, 123GB RAM, 7 GPUs, 8.4TB storage
-**K3s**: v1.34.x — All 4 nodes Ready, **Calico CNI** (Flannel disabled)
+**K3s**: v1.34.x — All 4 nodes functional, **Flannel CNI** (VXLAN, UDP 8472)
+**AI Gateway**: Sovereign Service Mesh operational on Nexus (10.15.67.242:8080)
 
 ## Deployment Model (Hybrid NFS + Colmena)
 
