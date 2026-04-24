@@ -11,8 +11,8 @@ let
       { _module.args.pkgsWithOverlay = pkgsWithOverlay; }
       { _module.args.llama-cpp-turboquant = llama-cpp-turboquant; }
       { _module.args.inputs = inputs; }
-      # nix-csi disabled - upstream module has builtins.currentSystem issue
-      # ./modules/nix-csi.nix
+      # nix-csi - upstream module with builtins.currentSystem fix applied
+      ./modules/nix-csi.nix
       ./modules/common.nix
       ./modules/infrastructure.nix
       ./modules/ingress.nix

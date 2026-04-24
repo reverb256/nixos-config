@@ -1,7 +1,7 @@
 # Master Plan: Hermes Agent & K8s Gateway Integration
 
-**Status:** Phase 0 Complete | Phase 1 In Progress
-**Created:** 2026-04-22 | **Updated:** 2026-04-23
+**Status:** Phase 0 Partial | Phase 1 Not Started | Track A Partially Done (gateway in K8s but broken)
+**Created:** 2026-04-22 | **Updated:** 2026-04-24
 **Owner:** j_kro
 
 ## Overview
@@ -35,7 +35,7 @@ This plan integrates Hermes Agent and the AI Inference Gateway into the Kubernet
 
 ## Execution Order
 
-**Phase 0: Security Baseline** ✅ COMPLETE
+**Phase 0: Security Baseline** ⚠️ PARTIAL
 - Fix all pre-existing configuration errors
 - Enable nix-mineral on all hosts
 - Document hardening choices
@@ -62,17 +62,19 @@ This plan integrates Hermes Agent and the AI Inference Gateway into the Kubernet
 
 ## Phase 0: Security Baseline ✅
 
-**Status:** COMPLETE
+**Status:** PARTIAL
 
 **Completed:**
 - ✅ Fixed 14 pre-existing configuration errors blocking all hosts
-- ✅ Enabled nix-mineral on zephyr (compatibility preset)
+- ❌ Enabled nix-mineral on zephyr: DISABLED (broke niri on NVIDIA Wayland)
+- ✅ Enabled nix-mineral on forge
 - ✅ Resolved gitconfig conflict with lib.mkForce
 - ✅ All 4 hosts build successfully
 
 **Remaining:**
-- ⏳ Deploy nix-mineral to nexus, forge, sentry
+- ⏳ Deploy nix-mineral to nexus, sentry (if desired)
 - ⏳ Test gaming compatibility on zephyr
+- ⏳ Re-enable nix-mineral on zephyr (needs niri/NVIDIA compat fix)
 - ⏳ Verify AI workload compatibility
 
 **Documentation:** PHASE-0-SECURITY-BASELINE.md
@@ -108,7 +110,7 @@ This plan integrates Hermes Agent and the AI Inference Gateway into the Kubernet
 
 ## Track A: K8s Gateway Migration
 
-**Status:** NOT STARTED
+**Status:** PARTIALLY COMPLETE — gateway deployed to K8s but /v1/models returns empty (no NIM routing config)
 
 **Objective:** Migrate AI Inference Gateway from systemd to Kubernetes
 
@@ -202,5 +204,5 @@ This plan integrates Hermes Agent and the AI Inference Gateway into the Kubernet
 
 ---
 
-**Last Updated:** 2026-04-23
-**Current Phase:** 0 Complete → 1 Next
+**Last Updated:** 2026-04-24
+**Current Phase:** 0 Partial → 1 Next → Track A needs fixing (gateway NIM routing)

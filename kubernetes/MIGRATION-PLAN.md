@@ -1,6 +1,6 @@
 # K8s Migration Plan — systemd → easykubenix
 
-**Created:** 2026-04-14 | **Status:** Phase 1.7
+**Created:** 2026-04-14 | **Status:** Phase 1.7+ — K3s running 19+ days, multiple services migrated, audit completed 2026-04-24
 
 ## Current State
 
@@ -12,28 +12,30 @@
 | `infrastructure.nix` | Namespaces, NetworkPolicy, PSS | ✅ |
 | `gpu-miners.nix` | 6 lolMiner deployments (forge×4, zephyr, nexus) | ⚠️ nexus not deployed |
 | `mining.nix` | xmrig (zephyr, nexus, sentry, proxy) | ✅ |
-| `haven.nix` | haven deployment | ✅ |
+| `haven.nix` | haven deployment | ✅ running |
 | `searxng.nix` | searxng (2 replicas) | ✅ |
 | `host-services.nix` | Host service definitions | ✅ `nix flake check` passes all 4 hosts |
 
+| `ai-inference-gateway` | K8s gateway deployment | ⚠️ deployed to nexus, returns empty /v1/models (NIM routing lost) |
 ### importyaml (needs conversion)
 
 | Module | Source | Resources |
 |---|---|---|
-| `ai-inference.nix` | `ai-inference-clean.yaml` (13KB) | grafana, open-webui, ingresses, SAs, RBAC, 6 ConfigMaps |
+| `ai-inference.nix` | `ai-inference-clean.yaml` (13KB) | grafana ✅ running, open-webui ✅ running, ingresses, SAs, RBAC, 6 ConfigMaps |
 | `nixkube.nix` | `nixkube-clean.yaml` (28KB) | nix-node DaemonSet, proxy, nix-cache StatefulSet, CMs |
 | `ingress.nix` | `caddy-ingress-controller.yaml` (5KB) | caddy controller, SA, ClusterRole, ConfigMap |
 
+> **Note:** These importyaml modules are partially migrated — some services from these imports are already running in the cluster.
 ### systemd services (candidates for migration)
 
 | Service | Nodes | Type | K8s Pattern | Priority |
 |---|---|---|---|---|
-| `llamafile` | zephyr | GPU inference (CUDA) | Deployment + hostPath | P0 |
-| `llama-server` | sentry | GPU inference (ROCm) | Deployment + hostPath | P0 |
+| `llamafile` | zephyr | GPU inference (CUDA) | Deployment + hostPath | P0 — INACTIVE systemd, running as K8s pod |
+| `llama-server` | sentry | GPU inference (ROCm) | Deployment + hostPath | P0 — INACTIVE systemd, running as K8s pod |
 | `prometheus-node-exporter` | all 4 | Host metrics | DaemonSet | P1 |
 | `prometheus-mining-exporter` | nexus, forge, sentry | GPU metrics | DaemonSet + hostPath | P1 |
 | `xmrig-proxy` | zephyr | Stratum proxy | Deployment | P1 |
-| `ai-inference-gateway` | zephyr, sentry | API gateway | Deployment | P2 |
+| `ai-inference-gateway` | zephyr, sentry | API gateway | Deployment | P2 — INACTIVE on zephyr systemd, K8s gateway on nexus but broken (empty /v1/models) |
 | `ai-inference-monitor` | zephyr, nexus, sentry | Health monitor | Deployment | P2 |
 | `prometheus` | nexus, sentry | Metrics | StatefulSet + PVC | P2 |
 | `alertmanager` | nexus, sentry | Alerting | StatefulSet | P2 |
@@ -50,7 +52,7 @@
 - gaming-detection, mining-coordinator (need host process visibility)
 - keepalived (VIP failover), caddy (local proxy), claude-code-router
 - gpu-proxy-cpp (GPU scheduling), syncthing (filesystem)
-- redis, redis-ai-gateway, qdrant (stateful, low migration value)
+- redis, redis-ai-gateway, qdrant (stateful, low migration value) — **note:** redis and redis-ai-gateway now running as K8s pods in infra namespace, but systemd units may still be active on some hosts
 
 > **Note:** qdrant needs a new K8s module definition (not currently in any easykubenix module).
 
@@ -85,6 +87,7 @@ The nix-csi CSI driver is confirmed deployed and operational:
 - **Current modules** use `hostPath /nix` as a transitional pattern, not the final architecture
 
 ## Phase 1.7: Migrate hostPath → nix-csi CSI volumes
+> **Deferred:** hostPath → CSI migration is deferred; hostPath pattern is still in active use across multiple modules.
 
 Convert the transitional hostPath pattern to the upstream-recommended CSI ephemeral volume pattern:
 
@@ -144,3 +147,15 @@ Each migration follows the same pattern:
 - **Nix store paths change per build** — must reference `pkgs.llama-cpp` not hardcoded store paths
 - **Model files on host filesystem** — need hostPath mounts for `/home/j_kro/.lmstudio`
 - **Sentry llama-cpp-rocm is stale** — must wait for deploy before migrating
+
+
+## 2026-04-24 Audit Notes
+
+- K8s gateway deployed to nexus but returns empty /v1/models — NIM routing lost
+- Forge GPU miner pod explosion: 46 replicas, 45 OutOfcpu
+- 8 Pending PVCs — no StorageClass binding
+- Monitoring stack mostly operational: Alloy 4/4, Prometheus, Grafana, Loki running
+- prometheus-adapter fixed (was CrashLoop, now Running)
+- nix-mineral enabled on forge only, disabled on zephyr
+- Many systemd services still dual-running with K8s pods
+- Verified state: See ~/brain/STATUS.md (2026-04-24 audit)

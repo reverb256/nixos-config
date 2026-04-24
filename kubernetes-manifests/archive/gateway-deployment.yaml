@@ -69,8 +69,8 @@ data:
   AUTO_RAG_ENABLED: "true"
   TOKEN_SCOPED_COLLECTIONS: "true"
 
-  # Knowledge Fabric (disabled for non-RAG requests to reduce TTFT)
-  MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED: "false"
+  # Knowledge Fabric and search enabled
+  MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED: "true"
   MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K: "60"
   MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED: "true"
   MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED: "true"
