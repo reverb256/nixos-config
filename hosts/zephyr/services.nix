@@ -497,7 +497,6 @@
 
     cluster-ca.enable = true;
 
-    unbound-common.enable = true;
 
     claude-code-router = {
       enable = true;

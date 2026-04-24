@@ -115,7 +115,6 @@
       updateFlakeInputs = [ "nixpkgs" ];
     };
 
-    unbound-common.enable = true;
 
     agenix-secrets-registry = {
       enable = true;

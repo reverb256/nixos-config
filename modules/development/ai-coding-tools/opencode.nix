@@ -4,7 +4,7 @@
   mkMcpServersJson,
 }:
 let
-  gatewayUrl = "http://10.1.1.120:8080";
+  gatewayUrl = "http://ai-inference.lan:8080";
   zaiCodingBaseUrl = gatewayUrl + "/v1";
   nvidiaNimBaseUrl = gatewayUrl + "/v1";
 in
