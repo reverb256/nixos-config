@@ -34,12 +34,13 @@ ACTIVE_LOCKS=0
 echo "Checking for Nix store issues..." >&2
 if [[ -d "/nix/store" ]]; then
   # Check for files with wrong permissions in Nix store
-  bad_perms=$(find /nix/store -name "*.pem" -type f \! -perm 644 2>/dev/null | head -3 || echo "")
+  # Accept both 444 (read-only, more secure for certs) and 644 (read-write)
+  bad_perms=$(find /nix/store -name "*.pem" -type f \! \( -perm 644 -o -perm 444 \) 2>/dev/null | head -3 || echo "")
   if [[ -n "$bad_perms" ]]; then
     echo "⚠️  WARNING: Found Nix store files with incorrect permissions:" >&2
     echo "$bad_perms" >&2
     echo "   This can cause hash mismatch errors during deployment" >&2
-    echo "   Fix: sudo chmod 644 <file-path> (but rebuilding is preferred)" >&2
+    echo "   Fix: Rebuild the package with correct permissions" >&2
   fi
   echo "✓ Nix store check complete" >&2
 else
