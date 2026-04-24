@@ -124,4 +124,5 @@
   '');
 
   system.stateVersion = "26.05";
+  services.unbound-common.enable = true;
 }
