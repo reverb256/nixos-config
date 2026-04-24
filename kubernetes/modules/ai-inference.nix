@@ -13,6 +13,11 @@ let
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
+
+  # AI Inference Gateway — derive paths from flake input, not hardcoded store paths
+  gatewayPkg = inputs.ai-gateway.packages.x86_64-linux.ai-inference-gateway;
+  gatewayEnv = pkgs.python313.withPackages (ps: [ gatewayPkg ]);
+  gatewaySitePackages = "${gatewayEnv}/${gatewayEnv.python.sitePackages}";
 in
 {
   config.kubernetes.objects.ai-inference = {
@@ -37,11 +42,9 @@ in
     ConfigMap.ai-inference-gateway-config.data = {
       AUTH_MODE = "api-key";
       BACKEND_TYPE = "llama-cpp";
-      # Primary: Qwen 35B MoE on zephyr 3090 (K8s service)
-      BACKEND_URL = "http://llama-server-zephyr.ai-inference.svc.cluster.local:1235";
-      # Fallback chain: 3060Ti → Sentry → Z.AI cloud API
-      BACKEND_FALLBACK_URLS = "http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236,http://llama-server-sentry.ai-inference.svc.cluster.local:1235,https://api.z.ai/api/coding/paas/v4";
-      DEFAULT_MODEL = "qwen3.6-35b-a3b";
+      BACKEND_URL = "http://llama-server-sentry.ai-inference.svc.cluster.local:1235";
+      BACKEND_FALLBACK_URLS = "http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236,http://llama-server-zephyr.ai-inference.svc.cluster.local:1235,https://api.z.ai/api/coding/paas/v4";
+      DEFAULT_MODEL = "Qwen3.5-4B.Q4_K_M.gguf";
       GATEWAY_HOST = "0.0.0.0";
       PORT = "8080";
       PYTHONUNBUFFERED = "1";
@@ -55,7 +58,7 @@ in
       RAG_TOP_K = "10";
       HYBRID_SEARCH_ENABLED = "true";
       EMBEDDING_MODEL = "BAAI/bge-m3";
-      EMBEDDING_DEVICE = "cpu";  # nexus GPU occupied by lolMiner
+      EMBEDDING_DEVICE = "cpu";
       BM25_WEIGHT = "0.3";
       CHUNK_OVERLAP = "50";
       CHUNK_SIZE = "512";
@@ -67,6 +70,7 @@ in
       TRANSFORMERS_CACHE = "/var/cache/ai-inference";
       MAX_REQUEST_SIZE = "10485760";
       CIRCUIT_BREAKER_ENABLED = "true";
+      REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
     };
 
     ConfigMap.prometheus-config.data."prometheus.yml" = ''
@@ -188,6 +192,14 @@ in
       };
     };
 
+    Ingress.ai-inference-gateway = {
+      metadata = { labels."app.kubernetes.io/name" = "ai-inference-gateway"; annotations."caddy.ingress.kubernetes.io/disable-ssl-redirect" = "true"; };
+      spec = { ingressClassName = "caddy"; rules = [
+        { host = "ai-inference.lan"; http.paths = [{ path = "/"; pathType = "Prefix"; backend.service = { name = "ai-inference-gateway"; port.number = 8080; }; }]; }
+        { host = "ai-inference.cluster.local"; http.paths = [{ path = "/"; pathType = "Prefix"; backend.service = { name = "ai-inference-gateway"; port.number = 8080; }; }]; }
+      ]; };
+    };
+
     # AI Inference Gateway - migrated from systemd to K8s
     # Uses nix-csi scratch pattern (proven with llama-servers)
     Deployment.ai-inference-gateway = {
@@ -224,9 +236,7 @@ in
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
                 command = [
-                  # NOTE: This path must match the systemd service Python environment
-                  # The path is host-specific and should be kept in sync
-                  "/nix/store/cbl1piphv4msmhkjvvdq44zjsxi94ycm-python3-3.13.12-env/bin/python"
+                  "${lib.getExe gatewayEnv}"
                   "-m"
                   "uvicorn"
                   "ai_inference_gateway.main:app"
@@ -239,82 +249,28 @@ in
                 ];
                 env = {
                   _namedlist = true;
-                  # Config from ConfigMap
-                  AUTH_MODE = {
-                    name = "AUTH_MODE";
-                    valueFrom.configMapKeyRef = {
-                      name = "ai-inference-gateway-config";
-                      key = "AUTH_MODE";
-                    };
-                  };
-                  BACKEND_TYPE = {
-                    name = "BACKEND_TYPE";
-                    valueFrom.configMapKeyRef = {
-                      name = "ai-inference-gateway-config";
-                      key = "BACKEND_TYPE";
-                    };
-                  };
-                  BACKEND_URL = {
-                    name = "BACKEND_URL";
-                    valueFrom.configMapKeyRef = {
-                      name = "ai-inference-gateway-config";
-                      key = "BACKEND_URL";
-                    };
-                  };
-                  DEFAULT_MODEL = {
-                    name = "DEFAULT_MODEL";
-                    valueFrom.configMapKeyRef = {
-                      name = "ai-inference-gateway-config";
-                      key = "DEFAULT_MODEL";
-                    };
-                  };
-                  PORT = {
-                    name = "PORT";
-                    valueFrom.configMapKeyRef = {
-                      name = "ai-inference-gateway-config";
-                      key = "PORT";
-                    };
-                  };
-                  PYTHONUNBUFFERED = {
-                    name = "PYTHONUNBUFFERED";
-                    valueFrom.configMapKeyRef = {
-                      name = "ai-inference-gateway-config";
-                      key = "PYTHONUNBUFFERED";
-                    };
-                  };
-                  QDRANT_URL = {
-                    name = "QDRANT_URL";
-                    valueFrom.configMapKeyRef = {
-                      name = "ai-inference-gateway-config";
-                      key = "QDRANT_URL";
-                    };
-                  };
-                  HF_HOME = {
-                    name = "HF_HOME";
-                    valueFrom.configMapKeyRef = {
-                      name = "ai-inference-gateway-config";
-                      key = "HF_HOME";
-                    };
-                  };
-                  TRANSFORMERS_CACHE = {
-                    name = "TRANSFORMERS_CACHE";
-                    valueFrom.configMapKeyRef = {
-                      name = "ai-inference-gateway-config";
-                      key = "TRANSFORMERS_CACHE";
-                    };
-                  };
-                  # Required for Python getpass module (torch cache dir)
-                  USER = {
-                    value = "nobody";
-                  };
-                  HOME = {
-                    value = "/tmp";
-                  };
-                  # PYTHONPATH must include modular-pkg-base for ai_inference_gateway module
-                  # NOTE: This path is host-specific and should match the systemd service
-                  PYTHONPATH = {
-                    value = "/nix/store/d2aidfzw7f4ipx3lwm0i99jh8vjkvqvf-ai-inference-gateway-modular-pkg-base-789b0b8f:/nix/store/cbl1piphv4msmhkjvvdq44zjsxi94ycm-python3-3.13.12-env/lib/python3.13/site-packages";
-                  };
+                  AUTH_MODE.valueFrom.configMapKeyRef = { name = "ai-inference-gateway-config"; key = "AUTH_MODE"; };
+                  BACKEND_TYPE.valueFrom.configMapKeyRef = { name = "ai-inference-gateway-config"; key = "BACKEND_TYPE"; };
+                  BACKEND_URL.valueFrom.configMapKeyRef = { name = "ai-inference-gateway-config"; key = "BACKEND_URL"; };
+                  BACKEND_FALLBACK_URLS.valueFrom.configMapKeyRef = { name = "ai-inference-gateway-config"; key = "BACKEND_FALLBACK_URLS"; };
+                  DEFAULT_MODEL.valueFrom.configMapKeyRef = { name = "ai-inference-gateway-config"; key = "DEFAULT_MODEL"; };
+                  PORT.valueFrom.configMapKeyRef = { name = "ai-inference-gateway-config"; key = "PORT"; };
+                  PYTHONUNBUFFERED.valueFrom.configMapKeyRef = { name = "ai-inference-gateway-config"; key = "PYTHONUNBUFFERED"; };
+                  QDRANT_URL.valueFrom.configMapKeyRef = { name = "ai-inference-gateway-config"; key = "QDRANT_URL"; };
+                  ROUTING_ENABLED.valueFrom.configMapKeyRef = { name = "ai-inference-gateway-config"; key = "ROUTING_ENABLED"; };
+                  CIRCUIT_BREAKER_ENABLED.valueFrom.configMapKeyRef = { name = "ai-inference-gateway-config"; key = "CIRCUIT_BREAKER_ENABLED"; };
+                  RATE_LIMIT_ENABLED.valueFrom.configMapKeyRef = { name = "ai-inference-gateway-config"; key = "RATE_LIMIT_ENABLED"; };
+                  RAG_ENABLED.valueFrom.configMapKeyRef = { name = "ai-inference-gateway-config"; key = "RAG_ENABLED"; };
+                  MCP_ENABLED.valueFrom.configMapKeyRef = { name = "ai-inference-gateway-config"; key = "MCP_ENABLED"; };
+                  REDIS_URL.valueFrom.configMapKeyRef = { name = "ai-inference-gateway-config"; key = "REDIS_URL"; };
+                  HF_HOME.valueFrom.configMapKeyRef = { name = "ai-inference-gateway-config"; key = "HF_HOME"; };
+                  TRANSFORMERS_CACHE.valueFrom.configMapKeyRef = { name = "ai-inference-gateway-config"; key = "TRANSFORMERS_CACHE"; };
+                  USER.value = "nobody";
+                  HOME.value = "/tmp";
+                  KUBECONFIG.value = "/etc/rancher/k3s/k3s.yaml";
+                  PYTHONPATH.value = gatewaySitePackages;
+                  PATH.value = "${lib.getBin pkgs.kubectl}:/usr/bin:/bin";
+                  ZAI_API_KEY.valueFrom.secretKeyRef = { name = "zai-api-key"; key = "ZAI_API_KEY"; };
                 };
                 ports = [
                   {
@@ -360,6 +316,10 @@ in
                   "hf-cache" = {
                     mountPath = "/var/cache/ai-inference";
                   };
+                  kubeconfig = {
+                    mountPath = "/etc/rancher/k3s/k3s.yaml";
+                    readOnly = true;
+                  };
                 };
               };
             };
@@ -370,6 +330,10 @@ in
                 type = "Directory";
               };
               hf-cache.emptyDir = { };
+              kubeconfig.hostPath = {
+                path = "/etc/rancher/k3s/k3s.yaml";
+                type = "File";
+              };
             };
           };
         };
@@ -446,7 +410,7 @@ in
 
 
     # ── LimitRange ───────────────────────────────────────────────
-    # Fixed version: does NOT auto-assign GPUs to all pods
+    # No GPU in default/defaultRequest/max — prevents auto-injection
     # GPU workloads must explicitly request GPUs in their deployment specs
     LimitRange.ai-inference-limits = {
       metadata.labels.app = "gpu-scheduler";
@@ -454,7 +418,7 @@ in
         type = "Container";
         default = { cpu = "2"; memory = "4Gi"; };
         defaultRequest = { cpu = "500m"; memory = "1Gi"; };
-        max = { cpu = "8"; memory = "16Gi"; "nvidia.com/gpu" = "1"; };
+        max = { cpu = "8"; memory = "16Gi"; };
         min = { cpu = "100m"; memory = "128Mi"; };
         maxLimitRequestRatio = { cpu = "10"; memory = "4"; };
       }];
@@ -839,11 +803,16 @@ in
     Secret.ai-inference-gateway-secrets = {
       type = "Opaque";
       stringData = {
-        "zai-api-key" = "YOUR_ZAI_API_KEY_HERE";
         "api-keys" = ''
           default=sk-rep...-key
         '';
       };
+    };
+
+    # Z.AI API key — matches agenix secrets/zai-api-key.age
+    Secret.zai-api-key = {
+      type = "Opaque";
+      stringData.ZAI_API_KEY = "a304de1a9f0e46fb870d59d884b9616c.4Zeci63KC3W6FzuR";
     };
 
     # ── Additional NetworkPolicies ───────────────────────────────
@@ -872,6 +841,7 @@ in
     };
 
     # Allow gateway egress to dependencies
+    # Includes ipBlock for hostNetwork pods (llama-servers use hostNetwork)
     NetworkPolicy.allow-gateway-egress = {
       spec = {
         podSelector.matchLabels.app = "ai-inference-gateway";
@@ -881,7 +851,11 @@ in
           { ports = [{ protocol = "TCP"; port = 443; }]; }
           { to = [{ namespaceSelector.matchLabels.name = "search"; }]; ports = [{ protocol = "TCP"; port = 8080; }]; }
           { to = [{ podSelector.matchLabels.app = "qdrant"; }]; ports = [{ protocol = "TCP"; port = 6333; }]; }
-          { to = [{ podSelector.matchLabels.app = "llama-cpp"; }]; ports = [{ protocol = "TCP"; port = 8083; }]; }
+          { to = [{ podSelector.matchLabels.app = "redis"; }]; ports = [{ protocol = "TCP"; port = 6379; }]; }
+          { to = [{ podSelector.matchLabels.app = "llama-server-sentry"; }]; ports = [{ protocol = "TCP"; port = 1235; }]; }
+          { to = [{ podSelector.matchLabels.app = "llama-server-zephyr"; }]; ports = [{ protocol = "TCP"; port = 1235; }]; }
+          { to = [{ podSelector.matchLabels.app = "llama-server-zephyr-3060ti"; }]; ports = [{ protocol = "TCP"; port = 1236; }]; }
+          { to = [{ ipBlock.cidr = "10.1.1.0/24"; }]; ports = [{ protocol = "TCP"; port = 1235; } { protocol = "TCP"; port = 1236; } { protocol = "TCP"; port = 1237; }]; }
         ];
       };
     };
