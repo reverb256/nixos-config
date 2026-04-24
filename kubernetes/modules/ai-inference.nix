@@ -527,6 +527,10 @@ in
                     name = "ai-inference-gateway-config";
                     key = "RAG_ENABLED";
                   };
+                  EMBEDDING_MODEL.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "EMBEDDING_MODEL";
+                  };
                   MCP_ENABLED.valueFrom.configMapKeyRef = {
                     name = "ai-inference-gateway-config";
                     key = "MCP_ENABLED";
