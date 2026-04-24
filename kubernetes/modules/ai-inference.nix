@@ -39,7 +39,7 @@ in
       HYBRID_SEARCH_ENABLED = "true";
       MCP_ENABLED = "false";
       AUTO_RAG_ENABLED = "true";
-      EMBEDDING_MODEL = "BAAI/bge-m3";
+      EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2";
       EMBEDDING_DEVICE = "cpu"; # nexus GPU occupied by lolMiner
       BM25_WEIGHT = "0.300000";
       CHUNK_OVERLAP = "50";
@@ -49,9 +49,9 @@ in
     ConfigMap.ai-inference-gateway-config.data = {
       AUTH_MODE = "api-key";
       BACKEND_TYPE = "llama-cpp";
-      BACKEND_URL = "http://llama-server-sentry.ai-inference.svc.cluster.local:1235";
-      BACKEND_FALLBACK_URLS = "http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236,http://llama-server-zephyr.ai-inference.svc.cluster.local:1235,https://api.z.ai/api/coding/paas/v4";
-      DEFAULT_MODEL = "Qwen3.5-4B.Q4_K_M.gguf";
+      BACKEND_URL = "http://llama-server-zephyr.ai-inference.svc.cluster.local:1235";
+      BACKEND_FALLBACK_URLS = "http://llama-server-sentry.ai-inference.svc.cluster.local:1235,http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236,https://api.z.ai/api/coding/paas/v4";
+      DEFAULT_MODEL = "Qwen3.6-35B-A3B-UD-IQ3_S.gguf";
       GATEWAY_HOST = "0.0.0.0";
       PORT = "8080";
       PYTHONUNBUFFERED = "1";
@@ -64,7 +64,7 @@ in
       RAG_ENABLED = "true";
       RAG_TOP_K = "10";
       HYBRID_SEARCH_ENABLED = "true";
-      EMBEDDING_MODEL = "BAAI/bge-m3";
+      EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2";
       EMBEDDING_DEVICE = "cpu";
       BM25_WEIGHT = "0.3";
       CHUNK_OVERLAP = "50";
@@ -457,6 +457,7 @@ in
           };
           spec = {
             nodeName = "nexus"; # Primary server with GPU
+            hostNetwork = true; # Allow Hermes on zephyr to reach gateway via nexus.lan:8080
             serviceAccountName = "ai-inference-gateway";
             automountServiceAccountToken = false;
             containers = {
@@ -820,25 +821,45 @@ in
           spec = {
             nodeName = "nexus";
             automountServiceAccountToken = false;
-            securityContext = {
-              runAsNonRoot = true;
-              runAsUser = 1000;
-              runAsGroup = 1000;
-              fsGroup = 1000;
-              seccompProfile.type = "RuntimeDefault";
-            };
             containers = [
               {
-                name = "knowledge-fabric-api";
-                image = "nginx:alpine";
+                name = "api";
+                image = "python:3.12-slim";
                 imagePullPolicy = "IfNotPresent";
-                securityContext = {
-                  allowPrivilegeEscalation = false;
-                  capabilities.drop = [ "ALL" ];
-                };
+                command = [
+                  "python3"
+                  "-c"
+                  # Knowledge Fabric API stub - RRF middleware runs in gateway
+                  ''
+                    from http.server import HTTPServer, BaseHTTPRequestHandler
+                    import json
+                    class Handler(BaseHTTPRequestHandler):
+                      def do_GET(self):
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'application/json')
+                        self.end_headers()
+                        self.wfile.write(b'{"status": "healthy", "service": "knowledge-fabric-api"}')
+                      def do_POST(self):
+                        if self.path == '/brain/query':
+                          content_length = int(self.headers.get('Content-Length', 0))
+                          body = self.rfile.read(content_length).decode() if content_length else '{}'
+                          self.send_response(200)
+                          self.send_header('Content-Type', 'application/json')
+                          self.end_headers()
+                          response = {"results": [], "status": "ready", "note": "RRF handled by gateway middleware"}
+                          self.wfile.write(json.dumps(response).encode())
+                        else:
+                          self.send_response(404)
+                          self.end_headers()
+                      def log_message(self, format, *args):
+                        print(f"[brain] {format % args}")
+                    print("Starting Knowledge Fabric API on port 3000")
+                    HTTPServer(('0.0.0.0', 3000), Handler).serve_forever()
+                  ''
+                ];
                 ports = [
                   {
-                    containerPort = 8081;
+                    containerPort = 3000;
                     name = "http";
                     protocol = "TCP";
                   }
@@ -849,29 +870,17 @@ in
                     memory = "128Mi";
                   };
                   limits = {
-                    cpu = "500m";
-                    memory = "256Mi";
+                    cpu = "200m";
+                    memory = "128Mi";
                   };
                 };
                 readinessProbe = {
                   httpGet = {
                     path = "/";
-                    port = "http";
+                    port = 3000;
                   };
                   initialDelaySeconds = 5;
                   periodSeconds = 10;
-                  timeoutSeconds = 5;
-                  failureThreshold = 6;
-                };
-                livenessProbe = {
-                  httpGet = {
-                    path = "/";
-                    port = "http";
-                  };
-                  initialDelaySeconds = 15;
-                  periodSeconds = 30;
-                  timeoutSeconds = 10;
-                  failureThreshold = 3;
                 };
               }
             ];
@@ -902,9 +911,9 @@ in
         ports = [
           {
             name = "http";
-            port = 8081;
+            port = 3000;
             protocol = "TCP";
-            targetPort = 8081;
+            targetPort = 3000;
           }
         ];
       };
@@ -926,7 +935,7 @@ in
                 pathType = "Prefix";
                 backend.service = {
                   name = "knowledge-fabric-api";
-                  port.number = 8081;
+                  port.number = 3000;
                 };
               }
             ];
