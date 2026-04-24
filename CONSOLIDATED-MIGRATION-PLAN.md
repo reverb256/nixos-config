@@ -1,5 +1,5 @@
 # Consolidated Migration Plan
-**Date:** 2026-04-17
+**Date:** 2026-04-17 | **Updated:** 2026-04-24
 **Goal:** Migrate all feasible workloads from systemd/zephyr to K8s/nexus using nix-csi + easykubenix
 
 ---
@@ -22,16 +22,16 @@ Move any non-GPU, non-desktop workloads from Zephyr (31GB, tight) to Nexus (46GB
 ### P0 - Zephyr RAM Critical (Do Now)
 | Service | Zephyr Current | Target | Method | RAM Saved |
 |---------|---------------|--------|--------|-----------|
-| redis-ai-gateway | systemd port 6380 | DELETE (Valkey in K8s search ns) | disable svc | ~50MB |
+| redis-ai-gateway | systemd port 6380 | DELETE (Valkey in K8s search ns) | disable svc | ~50MB | ⚠️ Dual-running: systemd active + K8s pod Pending PVC |
 | caddy (local) | systemd | → K8s infra namespace | easykubenix | ~100MB |
 | vaultwarden | systemd/podman | → K8s on nexus | easykubenix | ~100MB |
 
 ### P1 - Systemd → K8s Conversions
 | Service | Host | Current | Target | Module | Notes |
 |---------|------|---------|--------|--------|-------|
-| redis | zephyr | systemd | → K8s infra | host-services.nix | |
+| redis | zephyr | systemd **INACTIVE** (migrated to K8s) | → K8s infra | host-services.nix | systemd unit disabled |
 | node-exporter | all 4 | systemd | → K8s DaemonSet | host-services.nix | |
-| nvidia-gpu-exporter | zephyr/nexus/forge | **NOT RUNNING** | → K8s DaemonSet | host-services.nix | ⚠️ **Fresh deploy needed** - no active systemd service on any GPU node |
+| nvidia-gpu-exporter | zephyr/nexus/forge | **NOT RUNNING** (systemd) | → K8s DaemonSet **DEPLOYED** | host-services.nix | ⚠️ DaemonSet deployed, systemd still absent on all GPU nodes |
 | kb-mcp-server | nexus | systemd | DELETE (kf replaces) | — | |
 | qdrant | nexus | systemd | → K8s search ns | **NEW MODULE NEEDED** | ⚠️ **No K8s module defined yet** - needs creation |
 | knowledge-fabric | NEW | — | → K8s search ns | other agent | |
@@ -39,7 +39,7 @@ Move any non-GPU, non-desktop workloads from Zephyr (31GB, tight) to Nexus (46GB
 ### P2 - Zephyr → Nexus Moves
 | Service | Zephyr Current | Nexus Target | Notes |
 |---------|---------------|-------------|-------|
-| ai-inference gateway | systemd :8080 | already there | gateway `enable=true` on zephyr (still active), migrate by disabling on zephyr |
+| ai-inference gateway | systemd **INACTIVE** on zephyr :8080 | K8s gateway on nexus | gateway running on nexus but /v1/models returns EMPTY — NIM cloud routing lost |
 | hermes-agent | systemd | → K8s | needs workspace PVC |
 | hermes-dashboard | systemd | → K8s | simple web app |
 | claude-code-router | systemd :3456 | → K8s | easykubenix defined |
@@ -149,6 +149,16 @@ volumes.nix.csi = {
 **Action:** When updating gaming.nix, use `wayvr` (not `wlx-overlay-s`). The upstream package name change is intentional and permanent.
 
 ---
+
+## 2026-04-24 Audit Notes
+
+- K8s gateway (nexus) running but /v1/models returns EMPTY — NIM cloud routing lost
+- Forge GPU miner: 46 replicas, 45 OutOfcpu — pod explosion, needs replica cap
+- 8 Pending PVCs across namespaces — no StorageClass binding
+- Mining coordinator hardcoded to port 1235 (sentry) instead of 1237 (zephyr 3090)
+- nix-mineral: enabled on forge only, disabled on zephyr (niri breakage)
+- Many P0/P1 items still in systemd — migration slower than planned
+- Verified state: See ~/brain/STATUS.md (2026-04-24 audit)
 
 ## Next Steps
 

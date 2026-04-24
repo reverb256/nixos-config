@@ -1,7 +1,7 @@
 # NixOS Cluster Kubernetes Migration Roadmap
 
-**Status:** ✅ K3s migration COMPLETE — All 4 nodes Ready, 34 pods running, post-migration hardening in progress
-**Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-04-15
+**Status:** K3s migration COMPLETE (Phase 1-5) — Post-migration hardening + cleanup in progress (Phase 6-7). Several stale items identified in 2026-04-24 audit.
+**Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-04-24
 
 > **See `INFRASTRUCTURE-AUDIT.md` for current cluster state, issues, and next steps.**
 
@@ -172,7 +172,7 @@
 
 ## Implementation Phases
 
-### Phase 1: Foundation (Week 1-2)
+### Phase 1: Foundation (Week 1-2) COMPLETE
 
 **Objectives:**
 - Deploy Kubernetes control plane on Zephyr
@@ -288,9 +288,11 @@
 - Backup automation deployed
 - Runbook for backup/restore procedures
 
+> **Phase 3 (DB Migration): DEFERRED** — databases handled as K8s StatefulSets, no separate phase needed.
+
 ---
 
-### Phase 4: Stateless Services (Week 4-6)
+### Phase 4: Stateless Services COMPLETE (subset) (Week 4-6)
 
 **Objectives:**
 - Migrate web applications to Kubernetes
@@ -416,6 +418,8 @@
 
 ---
 
+> **Status:** PARTIALLY COMPLETE. Alloy 4/4 DaemonSet, Prometheus, Grafana, Loki, Mimir, Tempo all running. prometheus-adapter fixed. AlertManager not configured. Alerting rules not configured.
+
 ### Phase 6: Monitoring & Observability (Week 7-8)
 
 **Objectives:**
@@ -451,6 +455,8 @@
 - Logging stack operational
 
 ---
+
+> **Status:** IN PROGRESS. Some systemd services migrated to K8s (llama-servers, redis). Many still dual-running.
 
 ### Phase 7: Cleanup & Optimization (Week 8-9)
 
@@ -840,5 +846,17 @@
 
 ---
 
-**Last Updated:** 2026-04-07
-**Status:** K3s Migration Complete — Post-Migration Hardening
+**Last Updated:** 2026-04-24
+**Status:** K3s migration COMPLETE (Phase 1-5) — Post-migration hardening + cleanup in progress (Phase 6-7)
+
+---
+
+## 2026-04-24 Audit Notes (Stale Items)
+
+The following items in this roadmap are stale and no longer reflect current infrastructure:
+- Service inventory (lines 45-82): Lists 31 services including GlitchTip, Nextcloud, Bolt.diy, LM Studio, Whisper, Stability Matrix — most not deployed or unused
+- CNI listed as Calico: Cluster actually runs K3s with flannel VXLAN
+- Timeline Week 1-9: Cluster has been running 19+ days past initial K3s deploy
+- NVIDIA device plugin Forge 0 GPUs: Forge now has NVIDIA GPUs registered
+
+Current verified state: See ~/brain/STATUS.md (2026-04-24 audit)

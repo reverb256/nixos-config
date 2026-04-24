@@ -14,7 +14,7 @@ metadata:
   name: searxng-mcp-config
   namespace: ai-inference
 data:
-  SEARXNG_URL: "http://searxng-refactored.search.svc.cluster.local:8080"
+  SEARXNG_URL: "http://searxng.search.svc.cluster.local:8080"
   SEARXNG_CACHE_TTL: "300"
 ---
 apiVersion: apps/v1
