@@ -745,6 +745,43 @@ All documentation files are in the repo root and `kubernetes-manifests/` subdire
 
 ## AI INFRASTRUCTURE
 
+### Sovereign Service Mesh — AI Gateway (Central Bus)
+
+**Status:** ✅ OPERATIONAL — All AI/ML workloads route through AI Gateway
+
+**Gateway Service:** `ai-inference-gateway.ai-inference.svc.cluster.local:8080`
+**ClusterIP:** 10.15.67.242:8080
+**Location:** K8s Deployment on Nexus
+
+**Endpoints:**
+- `/health` — Health check
+- `/v1/models` — Model listing
+- `/v1/chat/completions` — OpenAI-compatible API
+- `/search` — SearXNG raw web search
+- `/search/hybrid` — RAG + SearXNG with RRF
+- `/search/agent` — Intent detection + summarization
+- `/rag/search` — Qdrant semantic search
+- `/v1/embeddings` — BGE-M3 embedding generation
+
+**RRF Middleware Configuration:**
+```yaml
+MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED: "true"
+MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED: "true"
+MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL: "http://searxng.search.svc.cluster.local:8080"
+MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K: "60"
+MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED: "true"
+MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED: "true"
+QDRANT_URL: "http://qdrant.ai-inference.svc.cluster.local:6333"
+```
+
+**Architecture:** Bus-style service mesh with AI Gateway as central orchestrator
+- **Qdrant** — Vector database for semantic search (10.5.93.32:6333)
+- **SearXNG** — Web search for current information (10.4.98.141:8080)
+- **QueryIntent routing** — Automatic query classification
+- **CrossEncoder reranking** — Result quality optimization
+
+**Documentation:** See `SOVEREIGN-SERVICE-MESH-STATUS.md` for complete details.
+
 ### Multi-GPU Model Distribution
 
 The cluster runs multiple llama-server instances across GPUs for different model sizes:
@@ -755,32 +792,7 @@ The cluster runs multiple llama-server instances across GPUs for different model
 | **Zephyr RTX 3060 Ti** | CUDA 0 | 8GB | supergemma4-Q5_K_M | 1236 | ✅ Systemd |
 | **Sentry AMD RX 5600 XT** | ROCm | 8GB | Qwen3.5-4B-Q4_K_M | 1235 | ✅ K8s |
 
-**K8s Deployments (disabled in favor of systemd):**
-- `llama-server-zephyr` - RTX 3090 (port 1235) - Qwen3.6-35B-A3B-UD-Q3_K_M
-- `llama-server-zephyr-3060ti` - RTX 3060 Ti (port 1236) - Qwen3.5-9B-Q4_K_M
-
 **Note:** Zephyr uses systemd llama-server services instead of K8s for better GPU isolation and gaming integration.
-
-### AI Inference Gateway
-
-**Service:** `ai-inference-gateway.ai-inference.svc.cluster.local:8080`
-
-**Configuration (ConfigMap: `ai-inference-gateway-config`):**
-- `BACKEND_URL`: `http://llama-server-sentry.ai-inference.svc.cluster.local:1235`
-- `BACKEND_TYPE`: `llama-cpp`
-- `DEFAULT_MODEL`: `Qwen3.5-4B.Q4_K_M.gguf`
-- `BACKEND_FALLBACK_URLS`: `https://api.z.ai/api/coding/paas/v4`
-- `ROUTING_ENABLED`: `true`
-
-**Network Policies:**
-- `allow-gateway-egress` - Allows gateway to reach backends
-- Must include rules for `llama-server-sentry` (port 1235)
-- Must include rules for host network IPs (10.1.1.0/24) for hostNetwork pods
-
-**Common Issues:**
-1. **Error 1210 from Z.AI**: Invalid API parameters - check ZAI_API_KEY secret is mounted
-2. **Backend health check FAILED**: Network policy blocking traffic - add egress rule for backend service
-3. **hostNetwork pods**: Calico policies don't apply - add ipBlock rule for host CIDR
 
 ### llama.cpp Custom Patches
 

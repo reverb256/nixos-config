@@ -1,0 +1,18 @@
+proxies:
+  all://:
+    - http://proxy1:8080
+    - http://proxy2:8080
+
+engines:
+  - name: google
+    engine: google
+    proxies:
+      http: http://proxy3:8080
+      https: http://proxy3:8080
+    using_tor_proxy: false
+  - name: duckduckgo
+    engine: duckduckgo
+    proxies:
+      http: http://proxy4:8080
+      https: http://proxy4:8080
+    using_tor_proxy: true

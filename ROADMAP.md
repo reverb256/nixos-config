@@ -1,9 +1,10 @@
 # NixOS Cluster Kubernetes Migration Roadmap
 
-**Status:** K3s migration COMPLETE (Phase 1-5) — Post-migration hardening + cleanup in progress (Phase 6-7). Several stale items identified in 2026-04-24 audit.
+**Status:** K3s migration COMPLETE (Phase 1-5) — Sovereign Service Mesh OPERATIONAL (Phase 7)
 **Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-04-24
 
 > **See `INFRASTRUCTURE-AUDIT.md` for current cluster state, issues, and next steps.**
+> **See `SOVEREIGN-SERVICE-MESH-STATUS.md` for AI Gateway mesh status.**
 
 ## Executive Summary
 
@@ -132,11 +133,11 @@
 
 ### Networking
 
-**CNI:** Calico (v3.28.0) - migrated from Flannel (2026-03-24)
+**CNI:** Flannel VXLAN (default K3s)
 - Network: `10.244.0.0/16`
-- Backend: IPIP (port 4), MTU 1480
-- Features: BGP routing, IPVS load balancing, WireGuard encryption
-- BGP peers: Zephyr, Nexus (Sentry/Forge degraded - link-local IPv6 only)
+- Backend: VXLAN (UDP 8472)
+- MTU: 1450 (VXLAN overhead)
+- Note: Calico migration was planned but not deployed
 
 **Service Discovery:**
 - Cluster DNS (CoreDNS)
@@ -795,6 +796,99 @@
 
 ---
 
+## Sovereign Service Mesh (2026-04-24)
+
+### Overview
+
+**Status:** ✅ OPERATIONAL — Phase 1 Complete
+
+The Sovereign Service Mesh is a bus-style architecture where the AI Gateway serves as the central orchestrator for all AI/ML workloads. The gateway implements RRF (Reciprocal Rank Fusion) middleware that combines:
+
+- **Qdrant** — Vector database for semantic search
+- **SearXNG** — Web search for current information
+- **QueryIntent routing** — Automatic query classification
+- **CrossEncoder reranking** — Result quality optimization
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                       AI GATEWAY (Central Bus)                       │
+│                   ClusterIP: 10.15.67.242:8080                       │
+├─────────────────────────────────────────────────────────────────────┤
+│  /search/hybrid  ←→  SearXNG + Qdrant with RRF fusion               │
+│  /rag/search      ←→  Qdrant semantic search                         │
+│  /v1/embeddings   ←→  BGE-M3 embedding generation                    │
+│  /v1/chat/*       ←→  Model routing (Qwen3.6, SGemma, Qwen3.5)       │
+│                                                                         │
+│  MIDDLEWARE:                                                            │
+│  • Knowledge Fabric (RRF K=60)                                         │
+│  • QueryIntent routing (REALTIME/CODE/FACTUAL/PROCEDURAL)            │
+│  • CrossEncoder reranking                                              │
+└──────────────┬────────────────────────────────────────────────────────┘
+               │
+     ┌─────────┼─────────┐
+     │         │         │
+┌────▼─────┐ ┌▼──────┐ ┌▼────────┐
+│  HERMES  │ │  OMP   │ │  CRON   │
+│  (agent) │ │(coding)│ │(scheduled)
+└──────────┘ └───────┘ └─────────┘
+     │         │         │
+     └─────────┴─────────┘
+               │
+    ┌──────────┴──────────┐
+    │                     │
+┌───▼────┐          ┌────▼───┐
+│ Qdrant │          │ SearXNG│
+│(vector)│          │ (web)  │
+└────────┘          └────────┘
+```
+
+### Mesh Components
+
+| Component | Status | ClusterIP | Node | Purpose |
+|-----------|--------|-----------|------|---------|
+| AI Gateway | ✅ Running | 10.15.67.242:8080 | nexus | Central bus with RRF middleware |
+| Qdrant | ✅ Running | 10.5.93.32:6333 | nexus | Vector database (v1.13.4) |
+| Knowledge Fabric API | ✅ Running | 10.6.31.109:3000 | nexus | Stub API (RRF in gateway) |
+| SearXNG | ✅ Running | 10.4.98.141:8080 | nexus | Web search (v2026.4.17) |
+| Valkey | ✅ Running | — | nexus | Redis-compatible cache |
+| Redis | ✅ Running | 10.10.99.29:6379 | nexus | Gateway cache |
+
+### Implementation Phases
+
+#### Phase 0: Kill pi (2-3h)
+- [ ] Audit pi-unique extensions
+- [ ] Port knowledge-fabric out of pi
+- [ ] Remove pi from NixOS
+- [ ] Archive ~/.pi/
+
+#### Phase 1: Gateway Unified Endpoints (4-6h)
+- [x] AI Gateway deployed with RRF middleware
+- [x] Qdrant + SearXNG integration
+- [ ] `/v1/search` — Unified search wrapper
+- [ ] `/v1/knowledge/commit` — Knowledge upsert
+- [ ] `/v1/knowledge/query` — Qdrant wrapper
+- [ ] `/v1/chat/smol|slow|plan` — Model role routes
+
+#### Phase 2: Wire Hermes Through Mesh (2-3h)
+- [x] Update Hermes config to use gateway
+- [ ] Hermes memory → gateway dual-write
+- [ ] Hermes brain queries → gateway
+
+#### Phase 3: Collapse Per-Tool Configs (3-4h)
+- [ ] omp → gateway only
+- [ ] Harvest opencode, deprecate
+- [ ] Verify mesh exclusivity
+
+### Documentation
+
+- **Sovereign Service Mesh Plan:** `/etc/nixos/.hermes/plans/2026-04-22_sovereign-service-mesh.md`
+- **Service Mesh Status:** `/etc/nixos/docs/SOVEREIGN-SERVICE-MESH-STATUS.md`
+- **Knowledge Fabric Reflow:** `/etc/nixos/docs/KNOWLEDGE-FABRIC-REFLOW.md`
+
+---
+
 ## K3s Migration Audit (2026-04-07)
 
 ### Current Cluster State
@@ -802,10 +896,10 @@
 | Component | Status |
 |-----------|--------|
 | K3s version | v1.34.5+k3s1 |
-| Nodes | 4/4 Ready (zephyr, nexus, forge, sentry) |
+| Nodes | 4/4 functional (zephyr, nexus, forge, sentry) |
 | etcd HA | 3-node quorum (nexus=bootstrap, zephyr, sentry) |
 | VIP (Keepalived) | 10.1.1.100 ✅ |
-| CNI | Calico v3.31.4 (nftables mode) — see open issues |
+| CNI | Flannel VXLAN (UDP 8472) — default K3s CNI |
 | Ingress | Caddy (ingress-system namespace) |
 | GPU devices | 5 NVIDIA registered (forge=2, nexus=1, zephyr=2) |
 | Storage | local-path provisioner (default) |
