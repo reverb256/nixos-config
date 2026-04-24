@@ -743,6 +743,58 @@ All documentation files are in the repo root and `kubernetes-manifests/` subdire
 
 ---
 
+## AI INFRASTRUCTURE
+
+### Multi-GPU Model Distribution
+
+The cluster runs multiple llama-server instances across GPUs for different model sizes:
+
+| GPU Location | GPU | VRAM | Model | Port | Status |
+|--------------|-----|------|-------|------|--------|
+| **Zephyr RTX 3090** | CUDA 1 | 24GB | Qwen3.6-35B-A3B (MoE) | 1237 | ✅ Systemd |
+| **Zephyr RTX 3060 Ti** | CUDA 0 | 8GB | supergemma4-Q5_K_M | 1236 | ✅ Systemd |
+| **Sentry AMD RX 5600 XT** | ROCm | 8GB | Qwen3.5-4B-Q4_K_M | 1235 | ✅ K8s |
+
+**K8s Deployments (disabled in favor of systemd):**
+- `llama-server-zephyr` - RTX 3090 (port 1235) - Qwen3.6-35B-A3B-UD-Q3_K_M
+- `llama-server-zephyr-3060ti` - RTX 3060 Ti (port 1236) - Qwen3.5-9B-Q4_K_M
+
+**Note:** Zephyr uses systemd llama-server services instead of K8s for better GPU isolation and gaming integration.
+
+### AI Inference Gateway
+
+**Service:** `ai-inference-gateway.ai-inference.svc.cluster.local:8080`
+
+**Configuration (ConfigMap: `ai-inference-gateway-config`):**
+- `BACKEND_URL`: `http://llama-server-sentry.ai-inference.svc.cluster.local:1235`
+- `BACKEND_TYPE`: `llama-cpp`
+- `DEFAULT_MODEL`: `Qwen3.5-4B.Q4_K_M.gguf`
+- `BACKEND_FALLBACK_URLS`: `https://api.z.ai/api/coding/paas/v4`
+- `ROUTING_ENABLED`: `true`
+
+**Network Policies:**
+- `allow-gateway-egress` - Allows gateway to reach backends
+- Must include rules for `llama-server-sentry` (port 1235)
+- Must include rules for host network IPs (10.1.1.0/24) for hostNetwork pods
+
+**Common Issues:**
+1. **Error 1210 from Z.AI**: Invalid API parameters - check ZAI_API_KEY secret is mounted
+2. **Backend health check FAILED**: Network policy blocking traffic - add egress rule for backend service
+3. **hostNetwork pods**: Calico policies don't apply - add ipBlock rule for host CIDR
+
+### llama.cpp Custom Patches
+
+**TurboQuant Build:** `pkgsWithOverlay.llama-cpp-turboquant`
+- Custom optimizations for flash attention, KV cache compression
+- IQ4_NL and turbo4 cache types for reduced VRAM usage
+- DeepSeek reasoning format support
+
+**ROCm Build:** `pkgsWithOverlay.llama-cpp-rocm`
+- AMD GPU support for Sentry (RX 5600 XT)
+- ROCm-specific optimizations
+
+---
+
 ## SUPPLY CHAIN SECURITY
 
 All software on this cluster has supply chain protections enforcing a 7-day cooling period on newly published packages and images.
@@ -778,12 +830,12 @@ All CI workflows (`.github/workflows/`) pin actions to immutable commit SHAs ins
 ## CLUSTER CONTEXT
 
 ### Hosts
-| Host | IP | Role | GPUs |
-|------|-----|------|------|
-| **Zephyr** | 10.1.1.110 | Control plane, AI workstation, gaming | 2× NVIDIA (RTX 3090, 3060 Ti) |
-| **Nexus** | 10.1.1.120 | Storage, GPU compute | 1× NVIDIA (RTX 3060 Ti) |
-| **Forge** | 10.1.1.130 | Multi-GPU mining, AI | 2× NVIDIA (RTX 4060) + 2× AMD (RX 5700 XT) |
-| **Sentry** | 10.1.1.140 | Monitoring, logging | 1× AMD (RX 5600 XT) — 8GB RAM |
+| Host | IP | Role | RAM | GPUs |
+|------|-----|------|-----|------|
+| **Zephyr** | 10.1.1.110 | Control plane, AI workstation, gaming | 31GB | 2× NVIDIA (RTX 3090, 3060 Ti) |
+| **Nexus** | 10.1.1.120 | Storage, GPU compute, monitoring | 46GB | 1× NVIDIA (RTX 3060 Ti) |
+| **Forge** | 10.1.1.130 | Multi-GPU mining, AI | 15GB | 2× NVIDIA (RTX 4060) + 2× AMD (RX 5700 XT) |
+| **Sentry** | 10.1.1.140 | Monitoring, AI inference (ROCm) | 31GB | 1× AMD (RX 5600 XT — 8GB VRAM) |
 
 **Total Resources**: 78 cores, 123GB RAM, 7 GPUs, 8.4TB storage
 

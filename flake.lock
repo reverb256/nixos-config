@@ -54,17 +54,14 @@
         ]
       },
       "locked": {
-        "lastModified": 1776903372,
-        "narHash": "sha256-jmDWilsX1pXScd3aXBiZKFHOA2QuMonq/FBZGNWVyOs=",
-        "owner": "reverb256",
-        "repo": "ai-inference-gateway",
-        "rev": "b4779befc9ba6a40b5e9ad1123d676efd0eb2719",
-        "type": "github"
+        "lastModified": 1777006438,
+        "narHash": "sha256-U1i2gVkHf2LUFUAC6TwMY8PGmKoZ3gkfH1AjyIUqMQs=",
+        "path": "/data/projects/own/ai-inference-gateway",
+        "type": "path"
       },
       "original": {
-        "owner": "reverb256",
-        "repo": "ai-inference-gateway",
-        "type": "github"
+        "path": "/data/projects/own/ai-inference-gateway",
+        "type": "path"
       }
     },
     "astral-key": {

@@ -812,8 +812,7 @@ in
 
     # --- OpenCL ICD ConfigMap for AMD GPUs ---
     mining.ConfigMap.opencl-icd-vendors = {
-      data."amdocl64.icd" =
-        "/nix/store/2qfd7pvbwjhzx112x5w161q063z3qfyx-clr-7.2.0/lib/libamdocl64.so\n";
+      data."amdocl64.icd" = "${pkgs.rocmPackages.clr}/lib/libamdocl64.so\n";
     };
 
     # --- XMRig CPU Miner - sentry (8 cores, 8 threads = 50%) ---
