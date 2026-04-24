@@ -1,6 +1,6 @@
-# Upstream nix-csi module with builtins.currentSystem fix
-# The upstream module uses builtins.currentSystem which breaks in certain
-# evaluation contexts. We override _module.args to use pkgs.system instead.
+# nix-csi module placeholder
+# The nix-csi module import causes issues with inputs/eval context
+# We disable it for now - CSI volumes use hostPath/nix mounts directly
 {
   config,
   lib,
@@ -8,10 +8,8 @@
   ...
 }:
 {
-  # Disable the problematic _module.args.curPkgs from upstream
-  _module.args.curPkgs = pkgs;
-
-  imports = [
-    "${inputs.nix-csi}/kubenix"
-  ];
+  # The nix-csi import requires specialArgs.inputs which isn't available
+  # properly in this context. For now, we skip the CSI import.
+  # CSI functionality is provided via hostPath volumes in deployment specs
+  # instead of CSI driver
 }
