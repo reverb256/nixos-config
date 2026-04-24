@@ -54,10 +54,10 @@
     ./desktop/wayland-common.nix
     ./desktop/wayland-compositor-common.nix
     ./desktop/flatpak.nix
-#    ./desktop/plasma6.nix
+    #    ./desktop/plasma6.nix
     ./desktop/hyprland.nix
     ./desktop/uwsm-sessions.nix
-#    ./desktop/systems-intelligence-plasmoid.nix
+    #    ./desktop/systems-intelligence-plasmoid.nix
     ./desktop/niri.nix
     ./desktop/noctalia-sdr-brightness.nix
     ./desktop/stylix.nix
@@ -77,7 +77,7 @@
     ./gaming/scopebuddy.nix
 
     # ./mining/mining.nix  # migrated to inputs.compute-market
-#    ./mining/mining-plasmoid.nix
+    #    ./mining/mining-plasmoid.nix
     # ./mining/mining-desktop-toggle.nix  # migrated to inputs.compute-market
     # ./mining/dual-xmrig.nix  # migrated to inputs.compute-market
     # ./mining/xmrig-proxy.nix  # migrated to inputs.compute-market
@@ -113,7 +113,7 @@
     ./services/cloudflared.nix
     ./services/cluster-ca.nix
     ./services/cluster-services.nix
-    ./services/unbound-common.nix
+    # ./services/unbound-common.nix  # REPLACED by cluster-dns.nix
     ./services/syncthing.nix
     ./services/garage.nix
     ./services/backup-to-garage.nix
