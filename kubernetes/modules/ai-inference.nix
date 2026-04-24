@@ -71,6 +71,8 @@ in
       MAX_REQUEST_SIZE = "10485760";
       CIRCUIT_BREAKER_ENABLED = "true";
       REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
+      PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
+      PRIVACY_FILTER_ENABLED = "true";
     };
 
     ConfigMap.prometheus-config.data."prometheus.yml" = ''
@@ -355,6 +357,7 @@ in
         egress = [
           { to = [{ namespaceSelector.matchLabels.name = "ai-inference"; }]; }
           { to = [{ namespaceSelector = { }; podSelector.matchLabels."k8s-app" = "kube-dns"; }]; ports = [{ protocol = "UDP"; port = 53; } { protocol = "TCP"; port = 53; }]; }
+          { to = [{ podSelector.matchLabels.app = "privacy-filter"; }]; ports = [{ protocol = "TCP"; port = 8080; }]; }
         ];
       };
     };
@@ -855,7 +858,31 @@ in
           { to = [{ podSelector.matchLabels.app = "llama-server-sentry"; }]; ports = [{ protocol = "TCP"; port = 1235; }]; }
           { to = [{ podSelector.matchLabels.app = "llama-server-zephyr"; }]; ports = [{ protocol = "TCP"; port = 1235; }]; }
           { to = [{ podSelector.matchLabels.app = "llama-server-zephyr-3060ti"; }]; ports = [{ protocol = "TCP"; port = 1236; }]; }
+          { to = [{ podSelector.matchLabels.app = "privacy-filter"; }]; ports = [{ protocol = "TCP"; port = 8080; }]; }
           { to = [{ ipBlock.cidr = "10.1.1.0/24"; }]; ports = [{ protocol = "TCP"; port = 1235; } { protocol = "TCP"; port = 1236; } { protocol = "TCP"; port = 1237; }]; }
+        ];
+      };
+    };
+
+    # Privacy filter network policies
+    NetworkPolicy.privacy-filter-ingress = {
+      spec = {
+        podSelector.matchLabels.app = "privacy-filter";
+        policyTypes = ["Ingress"];
+        ingress = [
+          { from = [{ namespaceSelector.matchLabels.name = "ingress-system"; }]; ports = [{ protocol = "TCP"; port = 8080; }]; }
+          { from = [{ podSelector.matchLabels.name = "ai-inference"; }]; ports = [{ protocol = "TCP"; port = 8080; }]; }
+        ];
+      };
+    };
+
+    NetworkPolicy.privacy-filter-egress = {
+      spec = {
+        podSelector.matchLabels.app = "privacy-filter";
+        policyTypes = ["Egress"];
+        egress = [
+          { to = [{ namespaceSelector.matchLabels.name = "kube-system"; }]; ports = [{ protocol = "UDP"; port = 53; }]; }
+          { to = [{ ipBlock.cidr = "0.0.0.0/0"; except = ["10.0.0.0/8" "172.16.0.0/12" "192.168.0.0/16"]; }]; ports = [{ protocol = "TCP"; port = 443; }]; }
         ];
       };
     };
@@ -870,6 +897,151 @@ in
           { from = [{ podSelector = { }; }]; }
         ];
         egress = [{ }];
+      };
+    };
+
+    # ── OpenAI Privacy Filter ───────────────────────────────────────
+    # PII detection and masking using openai/privacy-filter model
+    # Categories: NAME_PEDIA, DATE_TIME, LOCATION, AGE, ID_NUM, EMAIL, PHONE_NUM, URL
+    Deployment.privacy-filter = {
+      metadata.labels = managed // {
+        app = "privacy-filter";
+        component = "pii-detection";
+      };
+      spec = {
+        replicas = 1;
+        revisionHistoryLimit = 2;
+        selector.matchLabels.app = "privacy-filter";
+        strategy = {
+          type = "RollingUpdate";
+          rollingUpdate = {
+            maxSurge = 0;
+            maxUnavailable = 1;
+          };
+        };
+        template = {
+          metadata = {
+            labels = managed // {
+              app = "privacy-filter";
+              component = "pii-detection";
+            };
+            annotations."nix-csi/discard" = "true";
+          };
+          spec = {
+            nodeName = "nexus";
+            automountServiceAccountToken = false;
+            containers = {
+              _namedlist = true;
+              privacy-filter = {
+                image = scratchImage;
+                imagePullPolicy = "IfNotPresent";
+                command = [ "${pkgsWithOverlay.privacy-filter}/bin/privacy-filter-server" ];
+                env = {
+                  _namedlist = true;
+                  HF_HOME = {
+                    name = "HF_HOME";
+                    value = "/var/cache/privacy-filter";
+                  };
+                  TRANSFORMERS_CACHE = {
+                    name = "TRANSFORMERS_CACHE";
+                    value = "/var/cache/privacy-filter";
+                  };
+                  PYTHONUNBUFFERED = {
+                    name = "PYTHONUNBUFFERED";
+                    value = "1";
+                  };
+                };
+                ports = [
+                  {
+                    containerPort = 8080;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
+                resources = {
+                  requests = {
+                    cpu = "500m";
+                    memory = "512Mi";
+                  };
+                  limits = {
+                    cpu = "2";
+                    memory = "2Gi";
+                  };
+                };
+                livenessProbe = {
+                  httpGet = {
+                    path = "/health";
+                    port = 8080;
+                  };
+                  initialDelaySeconds = 30;
+                  periodSeconds = 30;
+                  failureThreshold = 3;
+                };
+                readinessProbe = {
+                  httpGet = {
+                    path = "/health";
+                    port = 8080;
+                  };
+                  initialDelaySeconds = 10;
+                  periodSeconds = 10;
+                  failureThreshold = 3;
+                };
+                volumeMounts = {
+                  _namedlist = true;
+                  nix = {
+                    mountPath = "/nix";
+                    readOnly = true;
+                  };
+                  "hf-cache" = {
+                    mountPath = "/var/cache/privacy-filter";
+                  };
+                };
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              nix.hostPath = {
+                path = "/nix";
+                type = "Directory";
+              };
+              hf-cache.emptyDir = {
+                sizeLimit = "2Gi";
+              };
+            };
+          };
+        };
+      };
+    };
+
+    Service.privacy-filter = {
+      metadata.labels = managed // {
+        app = "privacy-filter";
+      };
+      spec = {
+        type = "ClusterIP";
+        selector.app = "privacy-filter";
+        ports = [
+          {
+            name = "http";
+            port = 8080;
+            protocol = "TCP";
+            targetPort = 8080;
+          }
+        ];
+      };
+    };
+
+    Ingress.privacy-filter = {
+      metadata = {
+        labels."app.kubernetes.io/name" = "privacy-filter";
+        annotations."caddy.ingress.kubernetes.io/disable-ssl-redirect" = "true";
+      };
+      spec = {
+        ingressClassName = "caddy";
+        rules = [
+          { host = "privacy-filter.lan"; http.paths = [{ path = "/"; pathType = "Prefix"; backend.service = { name = "privacy-filter"; port.number = 8080; }; }]; }
+          { host = "privacy-filter.cluster.local"; http.paths = [{ path = "/"; pathType = "Prefix"; backend.service = { name = "privacy-filter"; port.number = 8080; }; }]; }
+        ];
       };
     };
 
