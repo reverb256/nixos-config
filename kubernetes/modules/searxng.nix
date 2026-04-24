@@ -37,9 +37,19 @@ in
 
           engines_drop:
             - wikidata
+            # Blocked upstream - drop to avoid 403s
+            - google
+            - bing
+            - duckduckgo
+            - brave
+            - startpage
+            - google scholar
+            - google news
+            - bing news
+            - duckduckgo news
 
           server:
-            limiter: false
+            limiter: true  # Enable rate limiting
             secret_key: "@SEARXNG_SECRET_KEY@"
             image_proxy: true
             method: "GET"
@@ -234,27 +244,46 @@ in
                 };
                 env = {
                   _namedlist = true;
-                  SEARXNG_SECRET.valueFrom.secretKeyRef = { name = "searxng-secret"; key = "secret-key"; };
+                  SEARXNG_SECRET.valueFrom.secretKeyRef = {
+                    name = "searxng-secret";
+                    key = "secret-key";
+                  };
                   SEARXNG_PORT.value = "8080";
                   SEARXNG_BASE_URL.value = "https://search.lan/";
                   INSTANCE_NAME.value = "searxng-cluster";
                 };
                 ports = [
-                  { name = "http"; containerPort = 8080; protocol = "TCP"; }
+                  {
+                    name = "http";
+                    containerPort = 8080;
+                    protocol = "TCP";
+                  }
                 ];
                 resources = {
-                  requests = { memory = "256Mi"; cpu = "200m"; };
-                  limits = { memory = "512Mi"; cpu = "1"; };
+                  requests = {
+                    memory = "256Mi";
+                    cpu = "200m";
+                  };
+                  limits = {
+                    memory = "512Mi";
+                    cpu = "1";
+                  };
                 };
                 livenessProbe = {
-                  httpGet = { path = "/healthz"; port = "http"; };
+                  httpGet = {
+                    path = "/healthz";
+                    port = "http";
+                  };
                   initialDelaySeconds = 30;
                   periodSeconds = 30;
                   timeoutSeconds = 10;
                   failureThreshold = 3;
                 };
                 readinessProbe = {
-                  httpGet = { path = "/healthz"; port = "http"; };
+                  httpGet = {
+                    path = "/healthz";
+                    port = "http";
+                  };
                   initialDelaySeconds = 10;
                   periodSeconds = 10;
                   timeoutSeconds = 5;
@@ -272,8 +301,12 @@ in
                     subPath = "limiter.toml";
                     readOnly = true;
                   };
-                  data = { mountPath = "/etc/searxng/data"; };
-                  tmp = { mountPath = "/tmp"; };
+                  data = {
+                    mountPath = "/etc/searxng/data";
+                  };
+                  tmp = {
+                    mountPath = "/tmp";
+                  };
                 };
               };
             };
@@ -282,7 +315,12 @@ in
               settings.configMap.name = "searxng-settings";
               limiter.configMap = {
                 name = "searxng-settings";
-                items = [{ key = "limiter.toml"; path = "limiter.toml"; }];
+                items = [
+                  {
+                    key = "limiter.toml";
+                    path = "limiter.toml";
+                  }
+                ];
               };
               data.emptyDir = { };
               tmp.emptyDir = { };
@@ -299,24 +337,35 @@ in
         type = "ClusterIP";
         selector.app = "searxng";
         ports = [
-          { name = "http"; port = 8080; targetPort = 8080; protocol = "TCP"; }
+          {
+            name = "http";
+            port = 8080;
+            targetPort = 8080;
+            protocol = "TCP";
+          }
         ];
       };
     };
 
     # ── Deployment: Valkey (cache) ────────────────────────────────
     search.Deployment.valkey = {
-      metadata.labels = labels // { component = "cache"; };
+      metadata.labels = labels // {
+        component = "cache";
+      };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
-        selector.matchLabels = labels // { component = "cache"; };
+        selector.matchLabels = labels // {
+          component = "cache";
+        };
         strategy = {
           type = "Recreate";
           rollingUpdate = null;
         };
         template = {
-          metadata.labels = labels // { component = "cache"; };
+          metadata.labels = labels // {
+            component = "cache";
+          };
           spec = {
             nodeName = "nexus";
             automountServiceAccountToken = false;
@@ -332,28 +381,54 @@ in
               valkey = {
                 image = "valkey/valkey:8.1";
                 imagePullPolicy = "IfNotPresent";
-                command = [ "valkey-server" "--save" "" "--appendonly" "no" "--bind" "0.0.0.0" "--port" "6379" ];
+                command = [
+                  "valkey-server"
+                  "--save"
+                  ""
+                  "--appendonly"
+                  "no"
+                  "--bind"
+                  "0.0.0.0"
+                  "--port"
+                  "6379"
+                ];
                 securityContext = {
                   allowPrivilegeEscalation = false;
                   readOnlyRootFilesystem = true;
                   capabilities.drop = [ "ALL" ];
                 };
                 ports = [
-                  { containerPort = 6379; name = "valkey"; protocol = "TCP"; }
+                  {
+                    containerPort = 6379;
+                    name = "valkey";
+                    protocol = "TCP";
+                  }
                 ];
                 resources = {
-                  requests = { memory = "64Mi"; cpu = "50m"; };
-                  limits = { memory = "256Mi"; cpu = "200m"; };
+                  requests = {
+                    memory = "64Mi";
+                    cpu = "50m";
+                  };
+                  limits = {
+                    memory = "256Mi";
+                    cpu = "200m";
+                  };
                 };
                 readinessProbe = {
-                  exec.command = [ "valkey-cli" "ping" ];
+                  exec.command = [
+                    "valkey-cli"
+                    "ping"
+                  ];
                   initialDelaySeconds = 5;
                   periodSeconds = 10;
                   timeoutSeconds = 3;
                   failureThreshold = 3;
                 };
                 livenessProbe = {
-                  exec.command = [ "valkey-cli" "ping" ];
+                  exec.command = [
+                    "valkey-cli"
+                    "ping"
+                  ];
                   initialDelaySeconds = 10;
                   periodSeconds = 30;
                   timeoutSeconds = 3;
@@ -375,19 +450,28 @@ in
     };
 
     search.Service.valkey = {
-      metadata.labels = labels // { component = "cache"; };
+      metadata.labels = labels // {
+        component = "cache";
+      };
       spec = {
         type = "ClusterIP";
         selector.app = "valkey";
         ports = [
-          { name = "valkey"; port = 6379; targetPort = 6379; protocol = "TCP"; }
+          {
+            name = "valkey";
+            port = 6379;
+            targetPort = 6379;
+            protocol = "TCP";
+          }
         ];
       };
     };
 
     # ── NetworkPolicies ───────────────────────────────────────────
     search.NetworkPolicy.allow-searxng-ingress = {
-      metadata.labels = labels // { policy = "allow-ingress"; };
+      metadata.labels = labels // {
+        policy = "allow-ingress";
+      };
       spec = {
         podSelector.matchLabels.app = "searxng";
         policyTypes = [ "Ingress" ];
@@ -397,14 +481,21 @@ in
               { ipBlock.cidr = "10.1.1.0/24"; }
               { ipBlock.cidr = "10.244.0.0/16"; }
             ];
-            ports = [ { protocol = "TCP"; port = 8080; } ];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 8080;
+              }
+            ];
           }
         ];
       };
     };
 
     search.NetworkPolicy.allow-searxng-egress = {
-      metadata.labels = labels // { policy = "allow-egress"; };
+      metadata.labels = labels // {
+        policy = "allow-egress";
+      };
       spec = {
         podSelector.matchLabels.app = "searxng";
         policyTypes = [ "Egress" ];
@@ -412,35 +503,60 @@ in
           {
             to = [ { namespaceSelector.matchLabels.name = "kube-system"; } ];
             ports = [
-              { protocol = "UDP"; port = 53; }
-              { protocol = "TCP"; port = 53; }
+              {
+                protocol = "UDP";
+                port = 53;
+              }
+              {
+                protocol = "TCP";
+                port = 53;
+              }
             ];
           }
           {
             to = [ { ipBlock.cidr = "0.0.0.0/0"; } ];
             ports = [
-              { protocol = "TCP"; port = 80; }
-              { protocol = "TCP"; port = 443; }
+              {
+                protocol = "TCP";
+                port = 80;
+              }
+              {
+                protocol = "TCP";
+                port = 443;
+              }
             ];
           }
           # Valkey access
           {
             to = [ { podSelector.matchLabels.app = "valkey"; } ];
-            ports = [ { protocol = "TCP"; port = 6379; } ];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 6379;
+              }
+            ];
           }
         ];
       };
     };
 
     search.NetworkPolicy.allow-valkey-ingress = {
-      metadata.labels = { app = "valkey"; policy = "allow-ingress"; };
+      metadata.labels = {
+        app = "valkey";
+        policy = "allow-ingress";
+      };
       spec = {
         podSelector.matchLabels.app = "valkey";
         policyTypes = [ "Ingress" ];
         ingress = [
           {
             from = [ { podSelector = { }; } ];
-            ports = [ { protocol = "TCP"; port = 6379; } ];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 6379;
+              }
+            ];
           }
         ];
       };
