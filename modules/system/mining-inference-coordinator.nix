@@ -9,8 +9,8 @@ in
 
     llamaPort = lib.mkOption {
       type = lib.types.port;
-      default = 1235;
-      description = "Port the llama-server is listening on";
+      default = 1237;
+      description = "Port the llama-server is listening on (3090 moved to 1237)";
     };
 
     primaryMiner = lib.mkOption {
