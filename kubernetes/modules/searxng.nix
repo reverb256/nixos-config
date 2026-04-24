@@ -38,11 +38,7 @@ in
           engines_drop:
             - wikidata
             # Blocked upstream - drop to avoid 403s
-            - google
-            - bing
-            - duckduckgo
-            - brave
-            - startpage
+            # Note: google, bing, duckduckgo removed from drop list - they work now
             - google scholar
             - google news
             - bing news
