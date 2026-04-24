@@ -7,9 +7,6 @@
 }:
 {
   imports = [
-    ./llama-3060ti.nix
-    ./llama-3090.nix
-
     ./monitoring.nix
     ./firewall.nix
     ./hardware.nix

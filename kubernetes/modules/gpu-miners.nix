@@ -9,7 +9,7 @@ let
   lolminerImage = "docker.io/swamp7/lolminer:latest";
   lolminerAmdImage = "docker.io/library/lolminer-amd:1.98a-nixos";
 
-  openclIcd = "/nix/store/6yvx83sa6iwhr6xnjjlfjg56jnki5mdn-clr-7.2.0-icd/etc/OpenCL/vendors";
+  openclIcd = "${pkgs.rocmPackages.clr}/etc/OpenCL/vendors";
 
   nvidiaVolumeMounts = {
     opengl-driver = {

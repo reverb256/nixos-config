@@ -62,11 +62,10 @@ in
   config.kubernetes.objects.ai-inference = {
 
     # ── Zephyr RTX 3090 (GPU 1) — Qwen3.6-35B-A3B MoE ──────────────
-    # 16.6GB UD-Q3_K_M GGUF weights + KV cache (turbo4 compressed).
-    # Only 3B active params per token = fast generation despite 35B total.
-    # 262K native context, 64K configured. 5.7GB VRAM free for KV cache.
-    # Q3_K_M chosen over Q4_K_XL (21GB) to free VRAM for 2x context window.
-    # Decode speed: ~104 tok/s (within 2% of Q4_K_XL).
+    # 16.6GB UD-IQ3_S GGUF weights. Only 3B active params/token = fast gen.
+    # Pure VRAM: turbo4 TCQ KV cache (TurboQuant's custom compression).
+    # turbo4 compresses KV ~75% vs f16, enabling 262K context in ~7GB VRAM.
+    # Community benchmarks: ~120 tok/s at full 262K context on 3090.
     # mmproj disabled — crashes turboquant binary (SIGSEGV in clip_model_loader).
     Deployment.llama-server-zephyr = {
       metadata.labels = managed // {
@@ -75,7 +74,7 @@ in
         gpu = "rtx3090";
       };
       spec = {
-        replicas = 0;  # Disabled: now systemd service (llama-3060ti.nix)
+        replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels = {
           app = "llama-server-zephyr";
@@ -105,9 +104,7 @@ in
                 command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
                 args = [
                   "--model"
-                  "/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-Q3_K_M.gguf"
-                  "--mmproj"
-                  "/models/unsloth/Qwen3.6-35B-A3B-GGUF/mmproj-F16.gguf"
+                  "/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-IQ3_S.gguf"
                   "--host"
                   "0.0.0.0"
                   "--port"
@@ -120,10 +117,11 @@ in
                   "4"
                   "--fit"
                   "off"
+                  "--no-mmap"
                   "--batch-size"
-                  "128"
+                  "4096"
                   "--ubatch-size"
-                  "32"
+                  "1024"
                   "--flash-attn"
                   "on"
                   "--parallel"
@@ -131,17 +129,15 @@ in
                   "--cache-type-k"
                   "turbo4"
                   "--cache-type-v"
-                  "turbo4"
+                  "t4"
                   "--temp"
                   "0.6"
                   "--top-k"
                   "20"
                   "--top-p"
                   "0.95"
-                  "--presence-penalty"
+                  "--min-p"
                   "0.0"
-                  "--repeat-penalty"
-                  "1.0"
                   "--metrics"
                   "--reasoning-format"
                   "deepseek"
@@ -189,7 +185,7 @@ in
                     cpu = "500m";
                   };
                   limits = {
-                    memory = "20Gi";
+                    memory = "16Gi";
                     cpu = "4";
                   };
                 };
@@ -240,15 +236,15 @@ in
 
     # ── Zephyr RTX 3060 Ti (GPU 0) — Qwen3.5-9B Opus-Distilled ───────────────────────────
     # Claude 4.6 Opus reasoning distilled into Qwen3.5-9B. 5.6GB Q4_K_M.
-    # 256K context (max), iq4_nl KV cache. Reasoning model (no mmproj).
-    Deployment.llama-server-zephyr-3060ti = {  # Disabled: now systemd llama-server-3060ti.service
+    # 8GB VRAM: turbo4 KV cache enables 262K context in ~2GB VRAM.
+    Deployment.llama-server-zephyr-3060ti = {
       metadata.labels = managed // {
         app = "llama-server-zephyr-3060ti";
         host = "zephyr";
         gpu = "rtx3060ti";
       };
       spec = {
-        replicas = 0;  # Disabled: now systemd service
+        replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels = {
           app = "llama-server-zephyr-3060ti";
@@ -292,17 +288,17 @@ in
                   "--fit"
                   "off"
                   "--batch-size"
-                  "32"
+                  "2048"
                   "--ubatch-size"
-                  "16"
+                  "512"
                   "--flash-attn"
                   "on"
                   "--parallel"
                   "1"
                   "--cache-type-k"
-                  "iq4_nl"
+                  "turbo4"
                   "--cache-type-v"
-                  "iq4_nl"
+                  "t4"
                   "--temp"
                   "0.6"
                   "--top-k"

@@ -1,6 +1,6 @@
 # NixOS Cluster - Agent Guidelines
 
-**Generated:** 2026-04-17 | **Commit:** 5c9153ea | **Branch:** feature/brain-v2-embedding-first
+**Generated:** 2026-04-23 | **Commit:** HEAD | **Branch:** feature/brain-v2-embedding-first
 
 ## Quick Start
 
@@ -22,7 +22,7 @@ just health             # Detailed health check
 |------|-----|------|-----|------|
 | Zephyr | 10.1.1.110 | Workstation, control plane, gaming, NFS server | 31GB | 2x NVIDIA |
 | Nexus | 10.1.1.120 | Primary server, Hermes Agent, monitoring, storage | 46GB | 1x NVIDIA |
-| Forge | 10.1.1.130 | GPU computing, mining | 16GB | 2x NVIDIA + 2x AMD |
+| Forge | 10.1.1.130 | GPU computing, mining | 15GB | 2x NVIDIA + 2x AMD |
 | Sentry | 10.1.1.140 | Monitoring, AI inference (ROCm) | 31GB | 1x AMD Radeon RX 5600 XT (8GB) |
 
 **Resources**: 78 cores, 123GB RAM, 7 GPUs, 8.4TB storage
@@ -49,6 +49,7 @@ Non-system projects live in `/data/projects/own/` as standalone flakes:
 | gpu-proxy | `gpu-proxy` | Stratum mining proxy |
 | knowledge-fabric | `knowledge-fabric` | Knowledge base |
 | llama-cpp-turboquant | `llama-turboquant` | TurboQuant llama.cpp |
+| hermes-chat | (local package) | Hermes Agent desktop client |
 | mcp-registry | `mcp-registry` | MCP server management |
 
 > NOTE: `searxng-cluster` is NOT extracted — not in flake.nix inputs. Lives in `kubernetes/modules/searxng.nix` via easykubenix.
@@ -75,7 +76,7 @@ Non-system projects live in `/data/projects/own/` as standalone flakes:
 ├── kubernetes/                      # K8s Nix modules via easykubenix (13 files)
 ├── kubernetes-manifests/            # K8s YAML manifests (429 files)
 ├── scripts/                         # Utility scripts (101 files)
-├── packages/                        # Custom packages (6 files)
+├── packages/                        # Custom packages (7 files: hermes-chat, llama-cpp-*)
 ├── tests/                           # NixOS tests (8 files)
 ├── secrets/                         # Agenix encrypted secrets (41 .age files)
 └── .github/workflows/               # CI/CD (5 workflows, SHA-pinned)
