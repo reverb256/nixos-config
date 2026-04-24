@@ -129,12 +129,5 @@ find /tmp -name "nix-build-*" -type f -mtime +1 -delete 2>/dev/null || true
 echo "" >&2
 echo "✓ All checks passed - deployment can proceed" >&2
 
-# Display helpful hints if warnings were shown
-if grep -q "WARNING" <<< "$(cat /dev/stdin)" 2>/dev/null; then
-  echo "" >&2
-  echo "=== Quick Fixes ===" >&2
-  echo "Home permissions: ssh <host> 'chmod 755 ~'" >&2
-  echo "Nix store issues: DO NOT manually modify Nix store files" >&2
-  echo "                  Rebuild the path instead: nix-store --verify-path --repair" >&2
-  echo "" >&2
-fi
+# Removed: stdin check was blocking deployment
+# Quick fixes are documented in INFRASTRUCTURE-AUDIT.md
