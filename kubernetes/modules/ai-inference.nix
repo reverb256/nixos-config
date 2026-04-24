@@ -224,7 +224,18 @@ in
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
                 command = [
-                  "${pkgsWithOverlay.ai-inference-gateway}/bin/ai-inference-gateway"
+                  # NOTE: This path must match the systemd service Python environment
+                  # The path is host-specific and should be kept in sync
+                  "/nix/store/cbl1piphv4msmhkjvvdq44zjsxi94ycm-python3-3.13.12-env/bin/python"
+                  "-m"
+                  "uvicorn"
+                  "ai_inference_gateway.main:app"
+                  "--host"
+                  "0.0.0.0"
+                  "--port"
+                  "8080"
+                  "--workers"
+                  "1"
                 ];
                 env = {
                   _namedlist = true;
@@ -291,6 +302,18 @@ in
                       name = "ai-inference-gateway-config";
                       key = "TRANSFORMERS_CACHE";
                     };
+                  };
+                  # Required for Python getpass module (torch cache dir)
+                  USER = {
+                    value = "nobody";
+                  };
+                  HOME = {
+                    value = "/tmp";
+                  };
+                  # PYTHONPATH must include modular-pkg-base for ai_inference_gateway module
+                  # NOTE: This path is host-specific and should match the systemd service
+                  PYTHONPATH = {
+                    value = "/nix/store/d2aidfzw7f4ipx3lwm0i99jh8vjkvqvf-ai-inference-gateway-modular-pkg-base-789b0b8f:/nix/store/cbl1piphv4msmhkjvvdq44zjsxi94ycm-python3-3.13.12-env/lib/python3.13/site-packages";
                   };
                 };
                 ports = [
