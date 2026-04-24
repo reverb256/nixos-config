@@ -9,7 +9,6 @@ let
     forge = "10.1.1.130";
     sentry = "10.1.1.140";
     # K8s service ClusterIPs
-    aiGateway = "10.15.67.242";
   };
   # Get DNS config - use or {} for safety in case the option doesn't exist
   dnsCfg = {
@@ -93,20 +92,20 @@ in
     # Generate local DNS records
     environment.etc."unbound/local-dns.conf".text =
       let
-        # Base service records (always present)
-        # K8s services via ClusterIP (accessible from cluster hosts)
-        clusterServices = [
-          "ai-inference.lan. IN A ${hosts.aiGateway}"
-        ];
+        # All services route through Caddy on nexus (no fragile ClusterIPs)
+
         # Services via Caddy Ingress (accessed via NodePort on Nexus)
         ingressServices = [
           "search.lan. IN A ${hosts.nexus}"
           "brain.lan. IN A ${hosts.nexus}"
           "openwebui.lan. IN A ${hosts.nexus}"
         ];
-        # Services direct to host
+        # Services proxied via Caddy on nexus (single stable entry point)
         hostServices = [
           "ai.lan. IN A ${hosts.nexus}"
+          "ai-inference.lan. IN A ${hosts.nexus}"
+          "qdrant.lan. IN A ${hosts.nexus}"
+          "knowledge-fabric.lan. IN A ${hosts.nexus}"
           "haven.lan. IN A ${hosts.nexus}"
           "hermes.lan. IN A ${hosts.nexus}"
           "api.hermes.lan. IN A ${hosts.nexus}"
@@ -114,7 +113,6 @@ in
           "searxng.lan. IN A ${hosts.nexus}"
           "activepieces.lan. IN A ${hosts.nexus}"
         ];
-
         # Optional forge services
         forgeServices = [
           "mining.lan. IN A ${hosts.forge}"
@@ -128,7 +126,7 @@ in
         ];
 
         # All service records combined
-        allServices = clusterServices ++ ingressServices ++ hostServices ++ forgeServices ++ sentryServices;
+        allServices = ingressServices ++ hostServices ++ forgeServices ++ sentryServices;
 
         # Host records
         hostRecords = lib.mapAttrsToList (name: ip: "${name}.lan. IN A ${ip}")
