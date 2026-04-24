@@ -113,7 +113,7 @@
     ./services/cloudflared.nix
     ./services/cluster-ca.nix
     ./services/cluster-services.nix
-    # ./services/unbound-common.nix  # REPLACED by cluster-dns.nix
+    ./services/unbound-common.nix
     ./services/syncthing.nix
     ./services/garage.nix
     ./services/backup-to-garage.nix
