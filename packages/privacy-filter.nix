@@ -1,21 +1,18 @@
 {
   lib,
   python3Packages,
-  transformers,
-  torch,
-  accelerate,
   stdenv,
 }:
 let
   pythonEnv = python3Packages.python.withPackages (
-    ps: [
-      ps.transformers
-      ps.torch
-      ps.accelerate
-      ps.fastapi
-      ps.uvicicorn
-      ps.pydantic
-      ps.safetensors
+    ps: with ps; [
+      transformers
+      torch
+      accelerate
+      fastapi
+      uvicorn
+      pydantic
+      safetensors
     ]
   );
 in
