@@ -1,4 +1,5 @@
 {
+  config,
   lib,
   pkgs,
   inputs,
@@ -23,6 +24,19 @@
     ../../modules/services/keepalived-vip.nix
     inputs.nix-mineral.nixosModules.nix-mineral
   ];
+
+  # Host-specific CPU/GPU optimization for llama.cpp (Intel 9500f + AMD RX 5600 XT)
+  nixpkgs.config.packageOverrides = pkgs: {
+    llama-cpp-turboquant = pkgs.llama-cpp-turboquant.overrideAttrs (old: {
+      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=haswell";
+    });
+    llama-cpp = pkgs.llama-cpp.overrideAttrs (old: {
+      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=haswell";
+    });
+    llama-cpp-vulkan = pkgs.llama-cpp-vulkan.overrideAttrs (old: {
+      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=haswell";
+    });
+  };
 
   stylix = {
     base16Scheme = "${pkgs.base16-schemes}/share/themes/dracula.yaml";
