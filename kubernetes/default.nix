@@ -11,6 +11,7 @@ let
       { _module.args.pkgsWithOverlay = pkgsWithOverlay; }
       { _module.args.llama-cpp-turboquant = llama-cpp-turboquant; }
       { _module.args.inputs = inputs; }
+      # ./modules/nix-csi.nix  # TODO: easykubenix bug - triggers readFile on .drv
       ./modules/common.nix
       ./modules/infrastructure.nix
       ./modules/ingress.nix

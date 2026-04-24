@@ -1,4 +1,5 @@
 {
+  config,
   lib,
   pkgs,
   inputs,
@@ -26,6 +27,18 @@
     ../../modules/services/keepalived-vip.nix
     inputs.nix-mineral.nixosModules.nix-mineral
   ];
+
+  # Host-specific CPU/GPU optimization for llama.cpp (Zen2 + Ampere: RTX 3060 Ti)
+  nixpkgs.config.packageOverrides = pkgs: {
+    llama-cpp-turboquant = pkgs.llama-cpp-turboquant.overrideAttrs (old: {
+      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=zen2";
+      cmakeFlags = (old.cmakeFlags or []) ++ [ "-DLLAMA_CUDA_ARCHITECTURES=86" ];
+    });
+    llama-cpp = pkgs.llama-cpp.overrideAttrs (old: {
+      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=zen2";
+      cmakeFlags = (old.cmakeFlags or []) ++ [ "-DLLAMA_CUDA_ARCHITECTURES=86" ];
+    });
+  };
 
   clusterNetworking = {
     enable = true;
