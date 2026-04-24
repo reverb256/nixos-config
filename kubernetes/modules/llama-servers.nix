@@ -61,10 +61,156 @@ in
 {
   config.kubernetes.objects.ai-inference = {
 
-    # ── Zephyr RTX 3090 (GPU 1) — Qwen3.6-35B-A3B MoE ──────────────
+    # ── Zephyr RTX 3090 (GPU 1) — Qwen3.6-27B Dense + DFlash+DDTree ──────
+    # 16GB Q4_K_M target + 3.5GB BF16 DFlash draft. Dense 27B (all params active).
+    # DFlash block-diffusion + DDTree budget=22 → 73-130 tok/s (3-5x over MoE).
+    # Q4_0 KV cache. Mathematically lossless vs greedy solo 27B.
+    # test_dflash is one-shot; dflash-server wraps it as OpenAI-compatible HTTP.
+    Deployment.llama-server-zephyr-dflash = {
+      metadata.labels = managed // {
+        app = "llama-server-zephyr-dflash";
+        host = "zephyr";
+        gpu = "rtx3090";
+      };
+      spec = {
+        replicas = 0;  # Scaled down until tested
+        revisionHistoryLimit = 1;
+        selector.matchLabels = {
+          app = "llama-server-zephyr-dflash";
+          host = "zephyr";
+        };
+        strategy.type = "Recreate";
+        template = {
+          metadata = {
+            labels = managed // {
+              app = "llama-server-zephyr-dflash";
+              host = "zephyr";
+              gpu = "rtx3090";
+            };
+            annotations."nix-csi/discard" = "true";
+          };
+          spec = {
+            nodeName = "zephyr";
+            hostNetwork = true;
+            automountServiceAccountToken = false;
+            priorityClassName = "high-priority-ai";
+            tolerations = zephyrTolerations;
+            containers = {
+              _namedlist = true;
+              dflash-server = {
+                image = scratchImage;
+                imagePullPolicy = "IfNotPresent";
+                command = [ "${pkgsWithOverlay.dflash-server}/bin/dflash-server" ];
+                args = [
+                  "--bin"
+                  "${pkgsWithOverlay.llama-cpp-dflash}/bin/test_dflash"
+                  "--target"
+                  "/models/lucebox/Qwen3.6-27B-Q4_K_M.gguf"
+                  "--draft"
+                  "/models/lucebox/draft/model.safetensors"
+                  "--host"
+                  "0.0.0.0"
+                  "--port"
+                  "1237"
+                  "--ddtree-budget"
+                  "22"
+                  "--kv-q4"
+                  "--max-ctx"
+                  "32768"
+                ];
+                env = {
+                  _namedlist = true;
+                  NVIDIA_VISIBLE_DEVICES.value = "1";
+                  CUDA_VISIBLE_DEVICES.value = "0";
+                  LD_LIBRARY_PATH.value = "/run/opengl-driver/lib:/nix/store";
+                  TRANSFORMERS_CACHE.value = "/var/cache/ai-inference";
+                  HF_HOME.value = "/var/cache/ai-inference";
+                };
+                ports = [
+                  {
+                    containerPort = 1237;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
+                livenessProbe = {
+                  httpGet = {
+                    path = "/health";
+                    port = 1237;
+                  };
+                  initialDelaySeconds = 30;
+                  periodSeconds = 30;
+                  failureThreshold = 5;
+                };
+                readinessProbe = {
+                  httpGet = {
+                    path = "/health";
+                    port = 1237;
+                  };
+                  initialDelaySeconds = 10;
+                  periodSeconds = 10;
+                  failureThreshold = 10;
+                };
+                resources = {
+                  requests = {
+                    memory = "1Gi";
+                    cpu = "500m";
+                  };
+                  limits = {
+                    memory = "24Gi";
+                    cpu = "4";
+                  };
+                };
+                securityContext.privileged = true;
+                volumeMounts = {
+                  _namedlist = true;
+                  nix.mountPath = "/nix";
+                  nix.readOnly = true;
+                  nvidia-libs.mountPath = "/run/opengl-driver/lib";
+                  nvidia-libs.readOnly = true;
+                  models.mountPath = "/models";
+                  models.readOnly = true;
+                  hf-cache = {
+                    mountPath = "/var/cache/ai-inference";
+                  };
+                };
+              };
+            };
+            volumes = zephyrVolumes // {
+              hf-cache.hostPath = {
+                path = "/var/cache/ai-inference";
+                type = "Directory";
+              };
+            };
+          };
+        };
+      };
+    };
+
+    Service.llama-server-zephyr-dflash = {
+      metadata.labels = managed // {
+        app = "llama-server-zephyr-dflash";
+      };
+      spec = {
+        type = "ClusterIP";
+        ports = [
+          {
+            name = "http";
+            port = 1237;
+            protocol = "TCP";
+            targetPort = 1237;
+          }
+        ];
+        selector = {
+          app = "llama-server-zephyr-dflash";
+          host = "zephyr";
+        };
+      };
+    };
+
+    # ── Zephyr RTX 3090 (GPU 1) — Qwen3.6-35B-A3B MoE (FALLBACK) ──────
     # 16.6GB UD-IQ3_S GGUF weights. Only 3B active params/token = fast gen.
     # Pure VRAM: tbq4/tbqp4 KV cache (TurboQuant BQ 4-bit, ~75% vs f16).
-    # tbq4 compresses KV ~75% vs f16, enabling 262K context in ~7GB VRAM.
     # mmproj disabled — crashes turboquant binary (SIGSEGV in clip_model_loader).
     Deployment.llama-server-zephyr = {
       metadata.labels = managed // {
