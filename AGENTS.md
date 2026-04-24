@@ -1,6 +1,6 @@
 # NixOS Cluster - Agent Guidelines
 
-**Generated:** 2026-04-23 | **Commit:** HEAD | **Branch:** feature/brain-v2-embedding-first
+**Generated:** 2026-04-24 | **Commit:** 29d0d02f | **Branch:** main
 
 ## Quick Start
 
@@ -57,7 +57,7 @@ Non-system projects live in `/data/projects/own/` as standalone flakes:
 ## Project Structure
 
 ```
-/etc/nixos/                          # 273 .nix files, 38k lines
+/etc/nixos/                          # 280+ .nix files, 40k+ lines
 ├── flake.nix                        # Main flake + host definitions
 ├── colmena.nix                      # Multi-host Colmena deployment
 ├── justfile                         # Task runner (deploy, check, rollback)
@@ -73,10 +73,24 @@ Non-system projects live in `/data/projects/own/` as standalone flakes:
 │   ├── development/                 # Dev tools (6 files)
 │   ├── gaming/                      # Game launchers (3 files)
 │   └── network/                     # Networking (4 files)
-├── kubernetes/                      # K8s Nix modules via easykubenix (13 files)
-├── kubernetes-manifests/            # K8s YAML manifests (429 files)
+├── kubernetes/                      # K8s Nix modules via easykubenix (15 files)
+│   ├── modules/                     # K8s resource definitions
+│   │   ├── nix-csi.nix              # Upstream nix-csi (with builtins.currentSystem fix)
+│   │   ├── ai-inference.nix         # AI gateway, privacy filter, llama servers
+│   │   ├── llama-servers.nix        # llama.cpp deployments (Vulkan/CUDA)
+│   │   ├── monitoring.nix           # Prometheus, Grafana
+│   │   └── ingress.nix              # Caddy ingress controller
+│   └── default.nix                  # Easykubenix entry point
+├── kubernetes-manifests/            # K8s YAML manifests
+│   ├── archive/                     # Migrated manifests (200+ files archived)
+│   ├── calico/                      # Calico CNI reference configs
+│   └── gpu/                         # GPU scheduling examples
 ├── scripts/                         # Utility scripts (101 files)
-├── packages/                        # Custom packages (7 files: hermes-chat, llama-cpp-*)
+├── packages/                        # Custom packages
+│   ├── privacy-filter.nix           # OpenAI PII detection (NEW)
+│   ├── llama-cpp-vulkan.nix         # Vulkan llama.cpp for AMD (NEW)
+│   ├── llama-cpp-*.nix              # CUDA, ROCm, TurboQuant variants
+│   └── hermes-chat.nix              # Hermes Agent desktop client
 ├── tests/                           # NixOS tests (8 files)
 ├── secrets/                         # Agenix encrypted secrets (41 .age files)
 └── .github/workflows/               # CI/CD (5 workflows, SHA-pinned)
