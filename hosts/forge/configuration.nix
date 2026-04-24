@@ -1,4 +1,5 @@
 {
+  config,
   lib,
   pkgs,
   inputs,
@@ -19,6 +20,21 @@
     ../../modules/services/k3s-cluster.nix
     inputs.nix-mineral.nixosModules.nix-mineral
   ];
+
+  # Host-specific CPU/GPU optimization for llama.cpp (Zen1 + Ada: RTX 4060)
+  nixpkgs.config.packageOverrides = pkgs: {
+    llama-cpp-turboquant = pkgs.llama-cpp-turboquant.overrideAttrs (old: {
+      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3";
+      cmakeFlags = (old.cmakeFlags or []) ++ [ "-DLLAMA_CUDA_ARCHITECTURES=89" ];
+    });
+    llama-cpp = pkgs.llama-cpp.overrideAttrs (old: {
+      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3";
+      cmakeFlags = (old.cmakeFlags or []) ++ [ "-DLLAMA_CUDA_ARCHITECTURES=89" ];
+    });
+    llama-cpp-vulkan = pkgs.llama-cpp-vulkan.overrideAttrs (old: {
+      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3";
+    });
+  };
 
   stylix = {
     base16Scheme = "${pkgs.base16-schemes}/share/themes/gruvbox-dark-medium.yaml";
