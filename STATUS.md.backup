@@ -1,6 +1,6 @@
 # NixOS Cluster - Real-Time Status
 
-**Last Updated:** 2026-04-22 06:22:18 | **Auto-Generated:** Yes | **Refresh:** `./scripts/update-status.sh`
+**Last Updated:** 2026-04-23 21:22:21 | **Auto-Generated:** Yes | **Refresh:** `./scripts/update-status.sh`
 
 > **Quick Check:** Run `just cluster-status` to see current cluster state. This command works from any cluster host and proxies to zephyr for Kubernetes queries when needed.
 >
@@ -28,10 +28,10 @@
 
 ```
 NAME     STATUS   ROLES                AGE   VERSION
-forge    Ready    <none>               17d   v1.34.5+k3s1
-nexus    Ready    control-plane,etcd   17d   v1.34.5+k3s1
-sentry   Ready    control-plane,etcd   17d   v1.34.5+k3s1
-zephyr   Ready    control-plane,etcd   15d   v1.34.5+k3s1
+forge    Ready    <none>               19d   v1.34.5+k3s1
+nexus    Ready    control-plane,etcd   19d   v1.34.5+k3s1
+sentry   Ready    control-plane,etcd   19d   v1.34.5+k3s1
+zephyr   Ready    control-plane,etcd   17d   v1.34.5+k3s1
 ```
 
 > **Note:** Node ages reflect CIDR fix + role label application. Roles describe node function for pod scheduling.
@@ -76,56 +76,56 @@ zephyr   Ready    control-plane,etcd   15d   v1.34.5+k3s1
 ### Kubernetes Pods by Namespace
 
 ```
-NAMESPACE        NAME                                        READY   STATUS                   RESTARTS          AGE     IP            NODE     NOMINATED NODE   READINESS GATES
-ai-inference     grafana-54df9fcd99-kfz5w                    1/1     Running                  0                 3d5h    10.244.1.28   nexus    <none>           <none>
-ai-inference     llama-server-sentry-5947bc6fbf-gd996        1/1     Running                  8 (11h ago)       14h     10.1.1.140    sentry   <none>           <none>
-ai-inference     open-webui-5fb7fbd579-fsmqq                 1/1     Running                  0                 3d8h    10.244.1.12   nexus    <none>           <none>
-ai-inference     prometheus-c4ffb886d-zjbxp                  1/1     Running                  0                 19h     10.244.1.78   nexus    <none>           <none>
-ai-inference     qdrant-0                                    1/1     Running                  0                 3d5h    10.244.1.23   nexus    <none>           <none>
-ai-inference     tmp-test                                    0/1     ContainerStatusUnknown   0                 12h     <none>        zephyr   <none>           <none>
-automation       activepieces-5fb75896b6-mxqng               1/1     Running                  0                 3d1h    10.244.1.37   nexus    <none>           <none>
-automation       n8n-86bf9b6889-plk9g                        1/1     Running                  0                 3d1h    10.244.1.29   nexus    <none>           <none>
-automation       postgres-activepieces-0                     1/1     Running                  0                 3d1h    10.244.1.35   nexus    <none>           <none>
-automation       postgres-n8n-0                              1/1     Running                  0                 3d1h    10.244.1.31   nexus    <none>           <none>
-automation       redis-activepieces-54dcdf6c86-6ptx5         1/1     Running                  0                 3d1h    10.244.1.32   nexus    <none>           <none>
-cert-manager     cert-manager-5f9ddb88b4-7jn64               1/1     Running                  2 (10h ago)       7d      10.244.3.7    sentry   <none>           <none>
-cert-manager     cert-manager-cainjector-9bb5d7d75-x9q78     1/1     Running                  2 (10h ago)       7d      10.244.3.8    sentry   <none>           <none>
-cert-manager     cert-manager-webhook-7fc8569958-v2k95       1/1     Running                  1 (3d8h ago)      7d      10.244.3.6    sentry   <none>           <none>
-custom-metrics   prometheus-adapter-6d56cbbd7c-56gn8         1/1     Running                  7 (10m ago)       19h     10.244.0.2    zephyr   <none>           <none>
-haven            haven-6df4d8c688-4gzxb                      1/1     Running                  4 (3d8h ago)      6d4h    10.1.1.120    nexus    <none>           <none>
-infra            syncthing-4l8g2                             1/1     Running                  0                 3d5h    10.1.1.120    nexus    <none>           <none>
-infra            syncthing-g94pm                             0/1     CrashLoopBackOff         135 (4m26s ago)   3d5h    10.1.1.110    zephyr   <none>           <none>
-infra            syncthing-jx65f                             1/1     Running                  0                 3d5h    10.1.1.140    sentry   <none>           <none>
-infra            syncthing-mr2pp                             1/1     Running                  0                 3d5h    10.1.1.130    forge    <none>           <none>
-ingress-nginx    ingress-nginx-controller-86c5998465-gg8lf   1/1     Running                  1 (3d8h ago)      6d23h   10.244.1.7    nexus    <none>           <none>
-ingress-system   caddy-ingress-controller-6f9d776bc4-bdzbq   1/1     Running                  1 (3d8h ago)      6d23h   10.244.1.8    nexus    <none>           <none>
-ingress-system   caddy-ingress-controller-6f9d776bc4-nmdpc   1/1     Running                  1 (3d8h ago)      6d23h   10.244.1.6    nexus    <none>           <none>
-kube-system      coredns-86bbcbc8fb-g7vhr                    1/1     Running                  1 (10m ago)       3h25m   10.244.0.4    zephyr   <none>           <none>
-kube-system      local-path-provisioner-6d4f6d6666-x5qzb     1/1     Running                  5 (3d8h ago)      4d5h    10.244.1.11   nexus    <none>           <none>
-kube-system      metrics-server-b5b44cf9-ff4l5               1/1     Running                  2 (3d8h ago)      4d5h    10.1.1.120    nexus    <none>           <none>
-kube-system      nvidia-device-plugin-daemonset-l7k28        1/1     Running                  2 (10m ago)       2d2h    10.244.0.6    zephyr   <none>           <none>
-kube-system      nvidia-device-plugin-daemonset-rchmc        1/1     Running                  0                 2d2h    10.244.1.42   nexus    <none>           <none>
-kube-system      nvidia-device-plugin-daemonset-sxp9b        1/1     Running                  0                 2d2h    10.244.5.4    forge    <none>           <none>
-mining           gpu-miner-forge-amd-0-5c7f6b6c5-grc4b       1/1     Running                  0                 4d21h   10.1.1.130    forge    <none>           <none>
-mining           gpu-miner-forge-amd-1-684cbf8f66-kgwm4      1/1     Running                  0                 4d21h   10.1.1.130    forge    <none>           <none>
-mining           gpu-miner-forge-nvidia-0-5d575c5cb4-qzxsm   1/1     Running                  0                 3d7h    10.1.1.130    forge    <none>           <none>
-mining           gpu-miner-forge-nvidia-1-8478d94f64-ml5jr   1/1     Running                  0                 3d7h    10.1.1.130    forge    <none>           <none>
-mining           gpu-miner-nexus-594999b76c-5q99j            1/1     Running                  0                 3d7h    10.1.1.120    nexus    <none>           <none>
-mining           xmrig-nexus-77c97fddd8-27nf7                1/1     Running                  1 (3d8h ago)      4d20h   10.1.1.120    nexus    <none>           <none>
-mining           xmrig-proxy-5bf674695d-59fsm                1/1     Running                  1 (3d8h ago)      7d23h   10.1.1.120    nexus    <none>           <none>
-mining           xmrig-sentry-547976497-sxdhq                1/1     Running                  0                 3d7h    10.1.1.140    sentry   <none>           <none>
-monitoring       alloy-9b5ck                                 1/1     Running                  15 (10m ago)      6d10h   10.1.1.110    zephyr   <none>           <none>
-monitoring       alloy-l7rp5                                 1/1     Running                  1 (3d8h ago)      6d10h   10.1.1.120    nexus    <none>           <none>
-monitoring       alloy-mpbxq                                 1/1     Running                  2 (5d1h ago)      6d10h   10.1.1.130    forge    <none>           <none>
-monitoring       alloy-wkbql                                 1/1     Running                  1 (3d8h ago)      6d10h   10.1.1.140    sentry   <none>           <none>
-monitoring       grafana-85df9d77bf-x279d                    1/1     Running                  0                 3d7h    10.244.3.14   sentry   <none>           <none>
-monitoring       kube-state-metrics-54cc567467-lvksv         1/1     Running                  1 (3d8h ago)      6d9h    10.244.3.5    sentry   <none>           <none>
-monitoring       loki-0                                      1/1     Running                  1 (3d8h ago)      6d10h   10.244.3.4    sentry   <none>           <none>
-monitoring       memory-monitor-29614270-nx5pq               0/1     Completed                0                 12m     10.244.0.3    zephyr   <none>           <none>
-monitoring       memory-monitor-29614275-fbqhq               0/1     Completed                0                 7m18s   10.244.0.8    zephyr   <none>           <none>
-monitoring       memory-monitor-29614280-rkl5d               0/1     Completed                0                 2m18s   10.244.0.9    zephyr   <none>           <none>
-monitoring       mimir-0                                     1/1     Running                  0                 3d7h    10.244.3.13   sentry   <none>           <none>
-monitoring       prometheus-66cf78895f-g268w                 1/1     Running                  27 (21h ago)      3d1h    10.1.1.140    sentry   <none>           <none>
+NAMESPACE        NAME                                        READY   STATUS             RESTARTS          AGE     IP            NODE     NOMINATED NODE   READINESS GATES
+ai-inference     ai-inference-gateway-55ff74b7f-25846        0/1     CrashLoopBackOff   157 (78s ago)     13h     10.244.1.25   nexus    <none>           <none>
+ai-inference     grafana-54df9fcd99-4g6hq                    1/1     Running            0                 23h     10.244.1.17   nexus    <none>           <none>
+ai-inference     llama-server-sentry-5947bc6fbf-gd996        1/1     Running            8 (45h ago)       2d      10.1.1.140    sentry   <none>           <none>
+ai-inference     open-webui-5fb7fbd579-fsmqq                 1/1     Running            1 (23h ago)       4d18h   10.244.1.4    nexus    <none>           <none>
+ai-inference     prometheus-c4ffb886d-7cjpc                  1/1     Running            0                 23h     10.244.1.18   nexus    <none>           <none>
+ai-inference     qdrant-0                                    1/1     Running            0                 20h     10.244.1.20   nexus    <none>           <none>
+automation       activepieces-5fb75896b6-mxqng               1/1     Running            2 (23h ago)       4d11h   10.244.1.6    nexus    <none>           <none>
+automation       n8n-86bf9b6889-plk9g                        1/1     Running            2 (23h ago)       4d11h   10.244.1.7    nexus    <none>           <none>
+automation       postgres-activepieces-0                     1/1     Running            1 (23h ago)       4d11h   10.244.1.5    nexus    <none>           <none>
+automation       postgres-n8n-0                              1/1     Running            1 (23h ago)       4d11h   10.244.1.8    nexus    <none>           <none>
+automation       redis-activepieces-54dcdf6c86-6ptx5         1/1     Running            1 (23h ago)       4d11h   10.244.1.9    nexus    <none>           <none>
+cert-manager     cert-manager-5f9ddb88b4-7jn64               1/1     Running            2 (44h ago)       8d      10.244.3.7    sentry   <none>           <none>
+cert-manager     cert-manager-cainjector-9bb5d7d75-x9q78     1/1     Running            2 (44h ago)       8d      10.244.3.8    sentry   <none>           <none>
+cert-manager     cert-manager-webhook-7fc8569958-v2k95       1/1     Running            1 (4d18h ago)     8d      10.244.3.6    sentry   <none>           <none>
+custom-metrics   prometheus-adapter-6d56cbbd7c-56gn8         1/1     Running            8 (4m40s ago)     2d5h    10.244.0.2    zephyr   <none>           <none>
+haven            haven-6df4d8c688-4gzxb                      1/1     Running            5 (23h ago)       7d14h   10.1.1.120    nexus    <none>           <none>
+infra            syncthing-4l8g2                             1/1     Running            2 (23h ago)       4d15h   10.1.1.120    nexus    <none>           <none>
+infra            syncthing-g94pm                             0/1     CrashLoopBackOff   531 (39s ago)     4d15h   10.1.1.110    zephyr   <none>           <none>
+infra            syncthing-jx65f                             1/1     Running            0                 4d15h   10.1.1.140    sentry   <none>           <none>
+infra            syncthing-mr2pp                             0/1     CrashLoopBackOff   273 (83s ago)     4d15h   10.1.1.130    forge    <none>           <none>
+ingress-nginx    ingress-nginx-controller-86c5998465-gg8lf   1/1     Running            2 (23h ago)       8d      10.244.1.12   nexus    <none>           <none>
+ingress-system   caddy-ingress-controller-6f9d776bc4-bdzbq   1/1     Running            2 (23h ago)       8d      10.244.1.14   nexus    <none>           <none>
+ingress-system   caddy-ingress-controller-6f9d776bc4-nmdpc   1/1     Running            2 (23h ago)       8d      10.244.1.15   nexus    <none>           <none>
+kube-system      coredns-86bbcbc8fb-g7vhr                    1/1     Running            2 (4m40s ago)     37h     10.244.0.3    zephyr   <none>           <none>
+kube-system      local-path-provisioner-6d4f6d6666-x5qzb     1/1     Running            6 (23h ago)       5d15h   10.244.1.3    nexus    <none>           <none>
+kube-system      metrics-server-b5b44cf9-ff4l5               1/1     Running            3 (23h ago)       5d15h   10.1.1.120    nexus    <none>           <none>
+kube-system      nvidia-device-plugin-daemonset-l7k28        1/1     Running            3 (4m40s ago)     3d12h   10.244.0.7    zephyr   <none>           <none>
+kube-system      nvidia-device-plugin-daemonset-rchmc        1/1     Running            1 (23h ago)       3d12h   10.244.1.10   nexus    <none>           <none>
+kube-system      nvidia-device-plugin-daemonset-sxp9b        1/1     Running            0                 3d12h   10.244.5.4    forge    <none>           <none>
+mining           gpu-miner-forge-amd-0-5c7f6b6c5-grc4b       1/1     Running            0                 6d7h    10.1.1.130    forge    <none>           <none>
+mining           gpu-miner-forge-amd-1-684cbf8f66-kgwm4      1/1     Running            0                 6d7h    10.1.1.130    forge    <none>           <none>
+mining           gpu-miner-forge-nvidia-0-5d575c5cb4-qzxsm   1/1     Running            0                 4d17h   10.1.1.130    forge    <none>           <none>
+mining           gpu-miner-forge-nvidia-1-8478d94f64-ml5jr   1/1     Running            0                 4d17h   10.1.1.130    forge    <none>           <none>
+mining           gpu-miner-nexus-594999b76c-5q99j            1/1     Running            1 (23h ago)       4d17h   10.1.1.120    nexus    <none>           <none>
+mining           gpu-miner-zephyr-d7db4c988-vcqr7            1/1     Running            116 (4m40s ago)   9h      10.1.1.110    zephyr   <none>           <none>
+mining           xmrig-nexus-77c97fddd8-27nf7                1/1     Running            2 (23h ago)       6d6h    10.1.1.120    nexus    <none>           <none>
+mining           xmrig-proxy-5bf674695d-59fsm                1/1     Running            2 (23h ago)       9d      10.1.1.120    nexus    <none>           <none>
+mining           xmrig-sentry-547976497-sxdhq                1/1     Running            0                 4d17h   10.1.1.140    sentry   <none>           <none>
+mining           xmrig-zephyr-69bbfffc76-pzbx7               1/1     Running            1 (4m40s ago)     21h     10.1.1.110    zephyr   <none>           <none>
+monitoring       alloy-9b5ck                                 1/1     Running            16 (4m40s ago)    7d20h   10.1.1.110    zephyr   <none>           <none>
+monitoring       alloy-l7rp5                                 1/1     Running            2 (23h ago)       7d20h   10.1.1.120    nexus    <none>           <none>
+monitoring       alloy-mpbxq                                 1/1     Running            2 (6d11h ago)     7d20h   10.1.1.130    forge    <none>           <none>
+monitoring       alloy-wkbql                                 1/1     Running            1 (4d18h ago)     7d20h   10.1.1.140    sentry   <none>           <none>
+monitoring       grafana-85df9d77bf-x279d                    1/1     Running            0                 4d17h   10.244.3.14   sentry   <none>           <none>
+monitoring       kube-state-metrics-54cc567467-lvksv         1/1     Running            1 (4d18h ago)     7d19h   10.244.3.5    sentry   <none>           <none>
+monitoring       loki-0                                      1/1     Running            1 (4d18h ago)     7d20h   10.244.3.4    sentry   <none>           <none>
+monitoring       memory-monitor-29616310-vjtxw               0/1     Completed          0                 12m     10.244.0.5    zephyr   <none>           <none>
+monitoring       memory-monitor-29616315-6nrmf               0/1     Completed          0                 7m22s   10.244.0.6    zephyr   <none>           <none>
+monitoring       memory-monitor-29616320-cfw6w               0/1     Completed          0                 2m22s   10.244.0.9    zephyr   <none>           <none>
 ```
 
 > **Note:** Showing first 50 pods. Run `kubectl get pods --all-namespaces` for full list.
@@ -133,7 +133,7 @@ monitoring       prometheus-66cf78895f-g268w                 1/1     Running    
 ### Pod Summary by Namespace
 ```
      13 monitoring
-      8 mining
+     10 mining
       6 nixkube
       6 kube-system
       6 ai-inference
@@ -152,7 +152,7 @@ monitoring       prometheus-66cf78895f-g268w                 1/1     Running    
 
 ## Recent Changes
 
-**2026-04-22 06:22:18:**
+**2026-04-23 21:22:21:**
 - 🔄 **AUTO-UPDATED:** STATUS.md regenerated from current cluster state
 - 📊 **CLUSTER STATUS:** All nodes Ready, control plane operational
 
@@ -235,7 +235,7 @@ kubectl get endpoints <service-name> -n <namespace>
 
 ---
 
-**Auto-Generated:** 2026-04-22 06:22:18
+**Auto-Generated:** 2026-04-23 21:22:21
 **Update Script:** `scripts/update-status.sh`
 **Run Manually:** `sudo ./scripts/update-status.sh`
 **Auto-Refresh:** Hourly via systemd timer (status-update.timer)

@@ -543,7 +543,7 @@ in
         };
       };
       spec = {
-        replicas = 1;
+        replicas = 0;  # Disabled: 3090 VRAM exhausted by Qwen3.6-35B + desktop
         revisionHistoryLimit = 1;
         selector = {
           matchLabels = {
