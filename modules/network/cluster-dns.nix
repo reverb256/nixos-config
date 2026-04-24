@@ -8,6 +8,8 @@ let
     nexus = "10.1.1.120";
     forge = "10.1.1.130";
     sentry = "10.1.1.140";
+    # K8s service ClusterIPs
+    aiGateway = "10.15.67.242";
   };
   # Get DNS config - use or {} for safety in case the option doesn't exist
   dnsCfg = {
@@ -92,10 +94,19 @@ in
     environment.etc."unbound/local-dns.conf".text =
       let
         # Base service records (always present)
-        baseServices = [
+        # K8s services via ClusterIP (accessible from cluster hosts)
+        clusterServices = [
+          "ai-inference.lan. IN A ${hosts.aiGateway}"
+        ];
+        # Services via Caddy Ingress (accessed via NodePort on Nexus)
+        ingressServices = [
           "search.lan. IN A ${hosts.nexus}"
-          "ai.lan. IN A ${hosts.nexus}"
+          "brain.lan. IN A ${hosts.nexus}"
           "openwebui.lan. IN A ${hosts.nexus}"
+        ];
+        # Services direct to host
+        hostServices = [
+          "ai.lan. IN A ${hosts.nexus}"
           "haven.lan. IN A ${hosts.nexus}"
           "hermes.lan. IN A ${hosts.nexus}"
           "api.hermes.lan. IN A ${hosts.nexus}"
@@ -117,7 +128,7 @@ in
         ];
 
         # All service records combined
-        allServices = baseServices ++ forgeServices ++ sentryServices;
+        allServices = clusterServices ++ ingressServices ++ hostServices ++ forgeServices ++ sentryServices;
 
         # Host records
         hostRecords = lib.mapAttrsToList (name: ip: "${name}.lan. IN A ${ip}")

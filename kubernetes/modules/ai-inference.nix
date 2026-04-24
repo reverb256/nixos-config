@@ -78,7 +78,7 @@ in
       MAX_REQUEST_SIZE = "10485760";
       CIRCUIT_BREAKER_ENABLED = "true";
       REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
-      PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
+      PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8081";
       PRIVACY_FILTER_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED = "true";
@@ -551,6 +551,38 @@ in
                     name = "zai-api-key";
                     key = "ZAI_API_KEY";
                   };
+                  MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED";
+                  };
+                  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED";
+                  };
+                  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL";
+                  };
+                  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS";
+                  };
+                  MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K";
+                  };
+                  MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED";
+                  };
+                  MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED";
+                  };
+                  MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K";
+                  };
                 };
                 ports = [
                   {
@@ -703,7 +735,7 @@ in
                   }
                 ];
                 resources = {
-                  requests.memory = "256Mi";
+                  requests.memory = "1Gi";
                   limits.memory = "4Gi";
                 };
                 readinessProbe = {
@@ -806,8 +838,8 @@ in
                 };
                 ports = [
                   {
+                    containerPort = 8081;
                     name = "http";
-                    containerPort = 3000;
                     protocol = "TCP";
                   }
                 ];
@@ -870,9 +902,9 @@ in
         ports = [
           {
             name = "http";
-            port = 3000;
-            targetPort = 3000;
+            port = 8081;
             protocol = "TCP";
+            targetPort = 8081;
           }
         ];
       };
@@ -894,7 +926,7 @@ in
                 pathType = "Prefix";
                 backend.service = {
                   name = "knowledge-fabric-api";
-                  port.number = 3000;
+                  port.number = 8081;
                 };
               }
             ];
