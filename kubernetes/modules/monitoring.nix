@@ -333,7 +333,9 @@ let
   };
 
   # Common node selector for sentry
-  sentrySelector = { "kubernetes.io/hostname" = "sentry"; };
+  sentrySelector = {
+    "kubernetes.io/hostname" = "sentry";
+  };
 
   # Common security context
   securityContext = {
@@ -380,26 +382,98 @@ in
     # ── ClusterRole for Alloy (needs wide cluster access) ──────
     none.ClusterRole.alloy-cluster-role = {
       rules = [
-        { apiGroups = [ "" ]; resources = [ "nodes" "nodes/metrics" "nodes/proxy" "pods" "services" "endpoints" "namespaces" ]; verbs = [ "get" "list" "watch" ]; }
-        { apiGroups = [ "extensions" "networking.k8s.io" ]; resources = [ "ingresses" ]; verbs = [ "get" "list" "watch" ]; }
-        { nonResourceURLs = [ "/metrics" "/metrics/cadvisor" ]; verbs = [ "get" ]; }
+        {
+          apiGroups = [ "" ];
+          resources = [
+            "nodes"
+            "nodes/metrics"
+            "nodes/proxy"
+            "pods"
+            "services"
+            "endpoints"
+            "namespaces"
+          ];
+          verbs = [
+            "get"
+            "list"
+            "watch"
+          ];
+        }
+        {
+          apiGroups = [
+            "extensions"
+            "networking.k8s.io"
+          ];
+          resources = [ "ingresses" ];
+          verbs = [
+            "get"
+            "list"
+            "watch"
+          ];
+        }
+        {
+          nonResourceURLs = [
+            "/metrics"
+            "/metrics/cadvisor"
+          ];
+          verbs = [ "get" ];
+        }
       ];
     };
     none.ClusterRoleBinding.alloy-cluster-rolebinding = {
-      roleRef = { apiGroup = "rbac.authorization.k8s.io"; kind = "ClusterRole"; name = "alloy-cluster-role"; };
-      subjects = [{ kind = "ServiceAccount"; name = "alloy-sa"; namespace = "monitoring"; }];
+      roleRef = {
+        apiGroup = "rbac.authorization.k8s.io";
+        kind = "ClusterRole";
+        name = "alloy-cluster-role";
+      };
+      subjects = [
+        {
+          kind = "ServiceAccount";
+          name = "alloy-sa";
+          namespace = "monitoring";
+        }
+      ];
     };
 
     # ── ClusterRole for Prometheus ─────────────────────────────
     none.ClusterRole.prometheus-cluster-role = {
       rules = [
-        { apiGroups = [ "" ]; resources = [ "nodes" "nodes/metrics" "nodes/proxy" "pods" "services" "endpoints" "namespaces" ]; verbs = [ "get" "list" "watch" ]; }
-        { nonResourceURLs = [ "/metrics" ]; verbs = [ "get" ]; }
+        {
+          apiGroups = [ "" ];
+          resources = [
+            "nodes"
+            "nodes/metrics"
+            "nodes/proxy"
+            "pods"
+            "services"
+            "endpoints"
+            "namespaces"
+          ];
+          verbs = [
+            "get"
+            "list"
+            "watch"
+          ];
+        }
+        {
+          nonResourceURLs = [ "/metrics" ];
+          verbs = [ "get" ];
+        }
       ];
     };
     none.ClusterRoleBinding.prometheus-cluster-rolebinding = {
-      roleRef = { apiGroup = "rbac.authorization.k8s.io"; kind = "ClusterRole"; name = "prometheus-cluster-role"; };
-      subjects = [{ kind = "ServiceAccount"; name = "prometheus-sa"; namespace = "monitoring"; }];
+      roleRef = {
+        apiGroup = "rbac.authorization.k8s.io";
+        kind = "ClusterRole";
+        name = "prometheus-cluster-role";
+      };
+      subjects = [
+        {
+          kind = "ServiceAccount";
+          name = "prometheus-sa";
+          namespace = "monitoring";
+        }
+      ];
     };
 
     # ── NetworkPolicies ────────────────────────────────────────
@@ -412,11 +486,31 @@ in
     monitoring.NetworkPolicy.allow-internal = {
       spec = {
         podSelector = { };
-        policyTypes = [ "Ingress" "Egress" ];
-        ingress = [{ from = [{ namespaceSelector.matchLabels.name = "monitoring"; }]; }];
+        policyTypes = [
+          "Ingress"
+          "Egress"
+        ];
+        ingress = [ { from = [ { namespaceSelector.matchLabels.name = "monitoring"; } ]; } ];
         egress = [
-          { to = [{ namespaceSelector.matchLabels.name = "monitoring"; }]; }
-          { to = [{ namespaceSelector = { }; podSelector.matchLabels."k8s-app" = "kube-dns"; }]; ports = [{ protocol = "UDP"; port = 53; } { protocol = "TCP"; port = 53; }]; }
+          { to = [ { namespaceSelector.matchLabels.name = "monitoring"; } ]; }
+          {
+            to = [
+              {
+                namespaceSelector = { };
+                podSelector.matchLabels."k8s-app" = "kube-dns";
+              }
+            ];
+            ports = [
+              {
+                protocol = "UDP";
+                port = 53;
+              }
+              {
+                protocol = "TCP";
+                port = 53;
+              }
+            ];
+          }
         ];
       };
     };
@@ -424,14 +518,34 @@ in
       spec = {
         podSelector.matchLabels.app = "grafana";
         policyTypes = [ "Ingress" ];
-        ingress = [{ from = [{ namespaceSelector.matchLabels.name = "ingress-system"; }]; ports = [{ protocol = "TCP"; port = 3000; }]; }];
+        ingress = [
+          {
+            from = [ { namespaceSelector.matchLabels.name = "ingress-system"; } ];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 3000;
+              }
+            ];
+          }
+        ];
       };
     };
     monitoring.NetworkPolicy.allow-alloy-kubelet = {
       spec = {
         podSelector.matchLabels.app = "alloy";
         policyTypes = [ "Egress" ];
-        egress = [{ to = [{ ipBlock.cidr = "10.1.1.0/24"; }]; ports = [{ protocol = "TCP"; port = 10250; }]; }];
+        egress = [
+          {
+            to = [ { ipBlock.cidr = "10.1.1.0/24"; } ];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 10250;
+              }
+            ];
+          }
+        ];
       };
     };
 
@@ -446,7 +560,10 @@ in
         serviceName = "loki-headless";
         selector.matchLabels.app = "loki";
         template = {
-          metadata.labels.app = "loki";
+          metadata = {
+            labels.app = "loki";
+            annotations."nix-csi/discard" = "true";
+          };
           spec = {
             nodeSelector = sentrySelector;
             securityContext = securityContext;
@@ -456,22 +573,44 @@ in
               loki = {
                 image = lokiImage;
                 imagePullPolicy = "IfNotPresent";
-                args = [ "-config.file=/etc/loki/loki.yaml" "-target=all" ];
+                args = [
+                  "-config.file=/etc/loki/loki.yaml"
+                  "-target=all"
+                ];
                 ports = [
-                  { containerPort = 3100; name = "http"; protocol = "TCP"; }
-                  { containerPort = 9096; name = "grpc"; protocol = "TCP"; }
+                  {
+                    containerPort = 3100;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                  {
+                    containerPort = 9096;
+                    name = "grpc";
+                    protocol = "TCP";
+                  }
                 ];
                 resources = {
-                  requests = { cpu = "250m"; memory = "512Mi"; };
-                  limits = { cpu = "1"; memory = "1Gi"; };
+                  requests = {
+                    cpu = "250m";
+                    memory = "512Mi";
+                  };
+                  limits = {
+                    cpu = "1";
+                    memory = "1Gi";
+                  };
                 };
                 livenessProbe = httpProbe 3100 "/ready";
                 readinessProbe = httpProbe 3100 "/ready";
                 securityContext = containerSecurity;
                 volumeMounts = {
                   _namedlist = true;
-                  config = { mountPath = "/etc/loki"; readOnly = true; };
-                  data = { mountPath = "/loki"; };
+                  config = {
+                    mountPath = "/etc/loki";
+                    readOnly = true;
+                  };
+                  data = {
+                    mountPath = "/loki";
+                  };
                 };
               };
             };
@@ -481,14 +620,16 @@ in
             };
           };
         };
-        volumeClaimTemplates = [{
-          metadata.name = "data";
-          spec = {
-            accessModes = [ "ReadWriteOnce" ];
-            storageClassName = storageClass;
-            resources.requests.storage = "50Gi";
-          };
-        }];
+        volumeClaimTemplates = [
+          {
+            metadata.name = "data";
+            spec = {
+              accessModes = [ "ReadWriteOnce" ];
+              storageClassName = storageClass;
+              resources.requests.storage = "50Gi";
+            };
+          }
+        ];
       };
     };
 
@@ -497,8 +638,18 @@ in
       spec = {
         type = "ClusterIP";
         ports = [
-          { name = "http"; port = 3100; targetPort = 3100; protocol = "TCP"; }
-          { name = "grpc"; port = 9096; targetPort = 9096; protocol = "TCP"; }
+          {
+            name = "http";
+            port = 3100;
+            targetPort = 3100;
+            protocol = "TCP";
+          }
+          {
+            name = "grpc";
+            port = 9096;
+            targetPort = 9096;
+            protocol = "TCP";
+          }
         ];
         selector.app = "loki";
       };
@@ -508,7 +659,14 @@ in
       spec = {
         type = "ClusterIP";
         clusterIP = "None";
-        ports = [{ name = "http"; port = 3100; targetPort = 3100; protocol = "TCP"; }];
+        ports = [
+          {
+            name = "http";
+            port = 3100;
+            targetPort = 3100;
+            protocol = "TCP";
+          }
+        ];
         selector.app = "loki";
       };
     };
@@ -524,7 +682,10 @@ in
         serviceName = "mimir-headless";
         selector.matchLabels.app = "mimir";
         template = {
-          metadata.labels.app = "mimir";
+          metadata = {
+            labels.app = "mimir";
+            annotations."nix-csi/discard" = "true";
+          };
           spec = {
             nodeSelector = sentrySelector;
             securityContext = securityContext;
@@ -534,24 +695,52 @@ in
               mimir = {
                 image = mimirImage;
                 imagePullPolicy = "IfNotPresent";
-                args = [ "-config.file=/etc/mimir/mimir.yaml" "-target=all" ];
+                args = [
+                  "-config.file=/etc/mimir/mimir.yaml"
+                  "-target=all"
+                ];
                 ports = [
-                  { containerPort = 9009; name = "http"; protocol = "TCP"; }
-                  { containerPort = 9095; name = "grpc"; protocol = "TCP"; }
-                  { containerPort = 7946; name = "memberlist"; protocol = "TCP"; }
+                  {
+                    containerPort = 9009;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                  {
+                    containerPort = 9095;
+                    name = "grpc";
+                    protocol = "TCP";
+                  }
+                  {
+                    containerPort = 7946;
+                    name = "memberlist";
+                    protocol = "TCP";
+                  }
                 ];
                 resources = {
-                  requests = { cpu = "500m"; memory = "1Gi"; };
-                  limits = { cpu = "2"; memory = "2Gi"; };
+                  requests = {
+                    cpu = "500m";
+                    memory = "1Gi";
+                  };
+                  limits = {
+                    cpu = "2";
+                    memory = "2Gi";
+                  };
                 };
                 livenessProbe = httpProbe 9009 "/ready";
                 readinessProbe = httpProbe 9009 "/ready";
                 securityContext = containerSecurity;
                 volumeMounts = {
                   _namedlist = true;
-                  config = { mountPath = "/etc/mimir"; readOnly = true; };
-                  data = { mountPath = "/mimir"; };
-                  activity = { mountPath = "/mimir/activity"; };
+                  config = {
+                    mountPath = "/etc/mimir";
+                    readOnly = true;
+                  };
+                  data = {
+                    mountPath = "/mimir";
+                  };
+                  activity = {
+                    mountPath = "/mimir/activity";
+                  };
                 };
               };
             };
@@ -562,14 +751,16 @@ in
             };
           };
         };
-        volumeClaimTemplates = [{
-          metadata.name = "data";
-          spec = {
-            accessModes = [ "ReadWriteOnce" ];
-            storageClassName = storageClass;
-            resources.requests.storage = "100Gi";
-          };
-        }];
+        volumeClaimTemplates = [
+          {
+            metadata.name = "data";
+            spec = {
+              accessModes = [ "ReadWriteOnce" ];
+              storageClassName = storageClass;
+              resources.requests.storage = "100Gi";
+            };
+          }
+        ];
       };
     };
 
@@ -578,8 +769,18 @@ in
       spec = {
         type = "ClusterIP";
         ports = [
-          { name = "http"; port = 9009; targetPort = 9009; protocol = "TCP"; }
-          { name = "grpc"; port = 9095; targetPort = 9095; protocol = "TCP"; }
+          {
+            name = "http";
+            port = 9009;
+            targetPort = 9009;
+            protocol = "TCP";
+          }
+          {
+            name = "grpc";
+            port = 9095;
+            targetPort = 9095;
+            protocol = "TCP";
+          }
         ];
         selector.app = "mimir";
       };
@@ -589,7 +790,14 @@ in
       spec = {
         type = "ClusterIP";
         clusterIP = "None";
-        ports = [{ name = "http"; port = 9009; targetPort = 9009; protocol = "TCP"; }];
+        ports = [
+          {
+            name = "http";
+            port = 9009;
+            targetPort = 9009;
+            protocol = "TCP";
+          }
+        ];
         selector.app = "mimir";
       };
     };
@@ -605,7 +813,10 @@ in
         serviceName = "tempo-headless";
         selector.matchLabels.app = "tempo";
         template = {
-          metadata.labels.app = "tempo";
+          metadata = {
+            labels.app = "tempo";
+            annotations."nix-csi/discard" = "true";
+          };
           spec = {
             nodeSelector = sentrySelector;
             securityContext = securityContext;
@@ -617,21 +828,44 @@ in
                 imagePullPolicy = "IfNotPresent";
                 args = [ "-config.file=/etc/tempo/tempo.yaml" ];
                 ports = [
-                  { containerPort = 3200; name = "http"; protocol = "TCP"; }
-                  { containerPort = 4317; name = "otlp-grpc"; protocol = "TCP"; }
-                  { containerPort = 4318; name = "otlp-http"; protocol = "TCP"; }
+                  {
+                    containerPort = 3200;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                  {
+                    containerPort = 4317;
+                    name = "otlp-grpc";
+                    protocol = "TCP";
+                  }
+                  {
+                    containerPort = 4318;
+                    name = "otlp-http";
+                    protocol = "TCP";
+                  }
                 ];
                 resources = {
-                  requests = { cpu = "250m"; memory = "512Mi"; };
-                  limits = { cpu = "1"; memory = "1Gi"; };
+                  requests = {
+                    cpu = "250m";
+                    memory = "512Mi";
+                  };
+                  limits = {
+                    cpu = "1";
+                    memory = "1Gi";
+                  };
                 };
                 livenessProbe = httpProbe 3200 "/ready";
                 readinessProbe = httpProbe 3200 "/ready";
                 securityContext = containerSecurity;
                 volumeMounts = {
                   _namedlist = true;
-                  config = { mountPath = "/etc/tempo"; readOnly = true; };
-                  data = { mountPath = "/data"; };
+                  config = {
+                    mountPath = "/etc/tempo";
+                    readOnly = true;
+                  };
+                  data = {
+                    mountPath = "/data";
+                  };
                 };
               };
             };
@@ -641,14 +875,16 @@ in
             };
           };
         };
-        volumeClaimTemplates = [{
-          metadata.name = "data";
-          spec = {
-            accessModes = [ "ReadWriteOnce" ];
-            storageClassName = storageClass;
-            resources.requests.storage = "50Gi";
-          };
-        }];
+        volumeClaimTemplates = [
+          {
+            metadata.name = "data";
+            spec = {
+              accessModes = [ "ReadWriteOnce" ];
+              storageClassName = storageClass;
+              resources.requests.storage = "50Gi";
+            };
+          }
+        ];
       };
     };
 
@@ -657,9 +893,24 @@ in
       spec = {
         type = "ClusterIP";
         ports = [
-          { name = "http"; port = 3200; targetPort = 3200; protocol = "TCP"; }
-          { name = "otlp-grpc"; port = 4317; targetPort = 4317; protocol = "TCP"; }
-          { name = "otlp-http"; port = 4318; targetPort = 4318; protocol = "TCP"; }
+          {
+            name = "http";
+            port = 3200;
+            targetPort = 3200;
+            protocol = "TCP";
+          }
+          {
+            name = "otlp-grpc";
+            port = 4317;
+            targetPort = 4317;
+            protocol = "TCP";
+          }
+          {
+            name = "otlp-http";
+            port = 4318;
+            targetPort = 4318;
+            protocol = "TCP";
+          }
         ];
         selector.app = "tempo";
       };
@@ -669,7 +920,14 @@ in
       spec = {
         type = "ClusterIP";
         clusterIP = "None";
-        ports = [{ name = "http"; port = 3200; targetPort = 3200; protocol = "TCP"; }];
+        ports = [
+          {
+            name = "http";
+            port = 3200;
+            targetPort = 3200;
+            protocol = "TCP";
+          }
+        ];
         selector.app = "tempo";
       };
     };
@@ -693,10 +951,16 @@ in
         selector.matchLabels.app = "grafana";
         strategy = {
           type = "RollingUpdate";
-          rollingUpdate = { maxSurge = 0; maxUnavailable = 1; };
+          rollingUpdate = {
+            maxSurge = 0;
+            maxUnavailable = 1;
+          };
         };
         template = {
-          metadata.labels.app = "grafana";
+          metadata = {
+            labels.app = "grafana";
+            annotations."nix-csi/discard" = "true";
+          };
           spec = {
             nodeSelector = sentrySelector;
             securityContext = {
@@ -715,27 +979,53 @@ in
                 env = {
                   _namedlist = true;
                   GF_SECURITY_ADMIN_USER.value = "admin";
-                  GF_SECURITY_ADMIN_PASSWORD.valueFrom.secretKeyRef = { name = "grafana-admin-secret"; key = "admin-password"; };
+                  GF_SECURITY_ADMIN_PASSWORD.valueFrom.secretKeyRef = {
+                    name = "grafana-admin-secret";
+                    key = "admin-password";
+                  };
                   GF_USERS_ALLOW_SIGN_UP.value = "false";
                   GF_AUTH_ANONYMOUS_ENABLED.value = "false";
                   GF_LOG_MODE.value = "console";
                   GF_LOG_LEVEL.value = "warn";
                   GF_SERVER_ROOT_URL.value = "http://grafana.monitoring.svc.cluster.local:3000";
                 };
-                ports = [{ containerPort = 3000; name = "http"; protocol = "TCP"; }];
+                ports = [
+                  {
+                    containerPort = 3000;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
                 resources = {
-                  requests = { cpu = "100m"; memory = "128Mi"; };
-                  limits = { cpu = "500m"; memory = "512Mi"; };
+                  requests = {
+                    cpu = "100m";
+                    memory = "128Mi";
+                  };
+                  limits = {
+                    cpu = "500m";
+                    memory = "512Mi";
+                  };
                 };
                 livenessProbe = httpProbe 3000 "/api/health";
                 readinessProbe = httpProbe 3000 "/api/health";
                 securityContext = containerSecurity;
                 volumeMounts = {
                   _namedlist = true;
-                  datasources = { mountPath = "/etc/grafana/provisioning/datasources"; readOnly = true; };
-                  dashboards-provider = { mountPath = "/etc/grafana/provisioning/dashboards"; readOnly = true; };
-                  dashboards = { mountPath = "/var/lib/grafana/dashboards"; readOnly = true; };
-                  data = { mountPath = "/var/lib/grafana"; };
+                  datasources = {
+                    mountPath = "/etc/grafana/provisioning/datasources";
+                    readOnly = true;
+                  };
+                  dashboards-provider = {
+                    mountPath = "/etc/grafana/provisioning/dashboards";
+                    readOnly = true;
+                  };
+                  dashboards = {
+                    mountPath = "/var/lib/grafana/dashboards";
+                    readOnly = true;
+                  };
+                  data = {
+                    mountPath = "/var/lib/grafana";
+                  };
                 };
               };
             };
@@ -763,7 +1053,14 @@ in
       metadata.labels.app = "grafana";
       spec = {
         type = "ClusterIP";
-        ports = [{ name = "http"; port = 3000; targetPort = 3000; protocol = "TCP"; }];
+        ports = [
+          {
+            name = "http";
+            port = 3000;
+            targetPort = 3000;
+            protocol = "TCP";
+          }
+        ];
         selector.app = "grafana";
       };
     };
@@ -775,19 +1072,29 @@ in
         rules = [
           {
             host = "grafana.lan";
-            http.paths = [{
-              path = "/";
-              pathType = "Prefix";
-              backend.service = { name = "grafana"; port.number = 3000; };
-            }];
+            http.paths = [
+              {
+                path = "/";
+                pathType = "Prefix";
+                backend.service = {
+                  name = "grafana";
+                  port.number = 3000;
+                };
+              }
+            ];
           }
           {
             host = "grafana.cluster.local";
-            http.paths = [{
-              path = "/";
-              pathType = "Prefix";
-              backend.service = { name = "grafana"; port.number = 3000; };
-            }];
+            http.paths = [
+              {
+                path = "/";
+                pathType = "Prefix";
+                backend.service = {
+                  name = "grafana";
+                  port.number = 3000;
+                };
+              }
+            ];
           }
         ];
       };
@@ -808,8 +1115,14 @@ in
             hostNetwork = true;
             dnsPolicy = "ClusterFirstWithHostNet";
             tolerations = [
-              { key = "node-role.kubernetes.io/control-plane"; effect = "NoSchedule"; }
-              { key = "node-role.kubernetes.io/master"; effect = "NoSchedule"; }
+              {
+                key = "node-role.kubernetes.io/control-plane";
+                effect = "NoSchedule";
+              }
+              {
+                key = "node-role.kubernetes.io/master";
+                effect = "NoSchedule";
+              }
             ];
             securityContext = {
               runAsUser = 0;
@@ -831,10 +1144,22 @@ in
                   _namedlist = true;
                   HOSTNAME.valueFrom.fieldRef.fieldPath = "spec.nodeName";
                 };
-                ports = [{ containerPort = 12345; name = "http"; protocol = "TCP"; }];
+                ports = [
+                  {
+                    containerPort = 12345;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
                 resources = {
-                  requests = { cpu = "100m"; memory = "256Mi"; };
-                  limits = { cpu = "500m"; memory = "512Mi"; };
+                  requests = {
+                    cpu = "100m";
+                    memory = "256Mi";
+                  };
+                  limits = {
+                    cpu = "500m";
+                    memory = "512Mi";
+                  };
                 };
                 securityContext = {
                   allowPrivilegeEscalation = false;
@@ -843,11 +1168,25 @@ in
                 };
                 volumeMounts = {
                   _namedlist = true;
-                  config = { mountPath = "/etc/alloy"; readOnly = true; };
-                  data = { mountPath = "/var/lib/alloy"; };
-                  "var-log" = { mountPath = "/var/log"; readOnly = true; };
-                  "docker-containers" = { mountPath = "/var/lib/docker/containers"; readOnly = true; };
-                  "containerd-containers" = { mountPath = "/var/lib/containerd"; readOnly = true; };
+                  config = {
+                    mountPath = "/etc/alloy";
+                    readOnly = true;
+                  };
+                  data = {
+                    mountPath = "/var/lib/alloy";
+                  };
+                  "var-log" = {
+                    mountPath = "/var/log";
+                    readOnly = true;
+                  };
+                  "docker-containers" = {
+                    mountPath = "/var/lib/docker/containers";
+                    readOnly = true;
+                  };
+                  "containerd-containers" = {
+                    mountPath = "/var/lib/containerd";
+                    readOnly = true;
+                  };
                 };
               };
             };
@@ -855,9 +1194,18 @@ in
               _namedlist = true;
               config.configMap.name = "alloy-config";
               data.emptyDir = { };
-              "var-log" = { hostPath.path = "/var/log"; hostPath.type = "DirectoryOrCreate"; };
-              "docker-containers" = { hostPath.path = "/var/lib/docker/containers"; hostPath.type = "DirectoryOrCreate"; };
-              "containerd-containers" = { hostPath.path = "/var/lib/containerd"; hostPath.type = "DirectoryOrCreate"; };
+              "var-log" = {
+                hostPath.path = "/var/log";
+                hostPath.type = "DirectoryOrCreate";
+              };
+              "docker-containers" = {
+                hostPath.path = "/var/lib/docker/containers";
+                hostPath.type = "DirectoryOrCreate";
+              };
+              "containerd-containers" = {
+                hostPath.path = "/var/lib/containerd";
+                hostPath.type = "DirectoryOrCreate";
+              };
             };
           };
         };
@@ -875,10 +1223,16 @@ in
         selector.matchLabels.app = "prometheus";
         strategy = {
           type = "RollingUpdate";
-          rollingUpdate = { maxSurge = 0; maxUnavailable = 1; };
+          rollingUpdate = {
+            maxSurge = 0;
+            maxUnavailable = 1;
+          };
         };
         template = {
-          metadata.labels.app = "prometheus";
+          metadata = {
+            labels.app = "prometheus";
+            annotations."nix-csi/discard" = "true";
+          };
           spec = {
             nodeSelector = sentrySelector;
             securityContext = {
@@ -902,18 +1256,35 @@ in
                   "--web.enable-remote-write-receiver"
                   "--web.listen-address=0.0.0.0:9090"
                 ];
-                ports = [{ containerPort = 9090; name = "http"; protocol = "TCP"; }];
+                ports = [
+                  {
+                    containerPort = 9090;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
                 resources = {
-                  requests = { cpu = "250m"; memory = "512Mi"; };
-                  limits = { cpu = "1"; memory = "1Gi"; };
+                  requests = {
+                    cpu = "250m";
+                    memory = "512Mi";
+                  };
+                  limits = {
+                    cpu = "1";
+                    memory = "1Gi";
+                  };
                 };
                 livenessProbe = httpProbe 9090 "/-/healthy";
                 readinessProbe = httpProbe 9090 "/-/ready";
                 securityContext = containerSecurity;
                 volumeMounts = {
                   _namedlist = true;
-                  config = { mountPath = "/etc/prometheus"; readOnly = true; };
-                  data = { mountPath = "/prometheus"; };
+                  config = {
+                    mountPath = "/etc/prometheus";
+                    readOnly = true;
+                  };
+                  data = {
+                    mountPath = "/prometheus";
+                  };
                 };
               };
             };
@@ -931,26 +1302,289 @@ in
       metadata.labels.app = "prometheus";
       spec = {
         type = "ClusterIP";
-        ports = [{ name = "http"; port = 9090; targetPort = 9090; protocol = "TCP"; }];
+        ports = [
+          {
+            name = "http";
+            port = 9090;
+            targetPort = 9090;
+            protocol = "TCP";
+          }
+        ];
         selector.app = "prometheus";
       };
     };
 
-    # ── kube-state-metrics ─────────────────────────────────────
+    # ── AlertManager ───────────────────────────────────────
+    monitoring.ConfigMap.alertmanager-config = {
+      metadata.labels.app = "alertmanager";
+      data."alertmanager.yml" = ''
+        global:
+          resolve_timeout: 5m
+        route:
+          group_by: ['alertname', 'severity']
+          group_wait: 10s
+          group_interval: 10s
+          receiver: 'null'
+          routes:
+            - match:
+                severity: critical
+              receiver: 'critical-alerts'
+            - match:
+                severity: warning
+              receiver: 'warning-alerts'
+        receivers:
+          - name: 'null'
+          - name: 'critical-alerts'
+            webhook_configs:
+              - url: 'http://alert-webhook.monitoring.svc.cluster.local:9093/api/webhook'
+                send_resolved: true
+          - name: 'warning-alerts'
+            webhook_configs:
+              - url: 'http://alert-webhook.monitoring.svc.cluster.local:9093/api/webhook'
+                send_resolved: true
+        inhibit_rules:
+          - source_match:
+              severity: 'critical'
+            target_match:
+              severity: 'warning'
+            equal: ['alertname', 'instance']
+      '';
+    };
+
+    monitoring.ServiceAccount.alertmanager-sa = { };
+
+    monitoring.Deployment.alertmanager = {
+      metadata.labels.app = "alertmanager";
+      spec = {
+        replicas = 1;
+        revisionHistoryLimit = 1;
+        selector.matchLabels.app = "alertmanager";
+        strategy = {
+          type = "RollingUpdate";
+          rollingUpdate = {
+            maxSurge = 0;
+            maxUnavailable = 1;
+          };
+        };
+        template = {
+          metadata = {
+            labels.app = "alertmanager";
+            annotations."nix-csi/discard" = "true";
+          };
+          spec = {
+            nodeSelector = sentrySelector;
+            serviceAccountName = "alertmanager-sa";
+            containers = {
+              _namedlist = true;
+              alertmanager = {
+                image = "docker.io/prom/alertmanager:v0.27.0";
+                imagePullPolicy = "IfNotPresent";
+                args = [
+                  "--config.file=/etc/alertmanager/alertmanager.yml"
+                  "--storage.path=/alertmanager"
+                  "--web.listen-address=:9093"
+                  "--cluster.listen-address=:9094"
+                ];
+                ports = [
+                  {
+                    containerPort = 9093;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                  {
+                    containerPort = 9094;
+                    name = "cluster";
+                    protocol = "TCP";
+                  }
+                ];
+                volumeMounts = {
+                  _namedlist = true;
+                  config = {
+                    mountPath = "/etc/alertmanager";
+                    readOnly = true;
+                  };
+                  data = {
+                    mountPath = "/alertmanager";
+                  };
+                };
+                securityContext = {
+                  runAsNonRoot = true;
+                  runAsUser = 10002;
+                  runAsGroup = 10002;
+                  fsGroup = 10002;
+                  seccompProfile.type = "RuntimeDefault";
+                };
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              config = {
+                name = "alertmanager-config";
+                configMap.name = "alertmanager-config";
+              };
+            };
+          };
+        };
+      };
+    };
+
+    monitoring.Service.alertmanager = {
+      metadata.labels.app = "alertmanager";
+      spec = {
+        type = "ClusterIP";
+        ports = [
+          {
+            name = "http";
+            port = 9093;
+            targetPort = 9093;
+            protocol = "TCP";
+          }
+        ];
+        selector.app = "alertmanager";
+      };
+    };
+
+    # ── Alert Webhook (receiver for alerts) ─────────────────────
+    monitoring.ServiceAccount.alert-webhook-sa = { };
+
+    monitoring.Deployment.alert-webhook = {
+      metadata.labels.app = "alert-webhook";
+      spec = {
+        replicas = 1;
+        selector.matchLabels.app = "alert-webhook";
+        template = {
+          metadata = {
+            labels.app = "alert-webhook";
+            annotations."nix-csi/discard" = "true";
+          };
+          spec = {
+            serviceAccountName = "alert-webhook-sa";
+            containers = {
+              _namedlist = true;
+              webhook = {
+                image = "docker.io/bash:latest";
+                imagePullPolicy = "IfNotPresent";
+                command = [
+                  "sleep"
+                  "infinity"
+                ];
+                ports = [
+                  {
+                    containerPort = 9093;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
+              };
+            };
+          };
+        };
+      };
+    };
+
+    monitoring.Service.alert-webhook = {
+      metadata.labels.app = "alert-webhook";
+      spec = {
+        type = "ClusterIP";
+        ports = [
+          {
+            name = "http";
+            port = 9093;
+            targetPort = 9093;
+          }
+        ];
+        selector.app = "alert-webhook";
+      };
+    };
+
+    # ── Rest is unchanged, starting from kube-state-metrics
     monitoring.ServiceAccount.kube-state-metrics-sa = { };
     none.ClusterRole.kube-state-metrics-role = {
       rules = [
-        { apiGroups = [ "" ]; resources = [ "configmaps" "secrets" "nodes" "pods" "limitranges" "replicationcontrollers" "resourcequotas" "services" ]; verbs = [ "list" "watch" ]; }
-        { apiGroups = [ "apps" ]; resources = [ "controllerrevisions" "daemonsets" "deployments" "replicasets" "statefulsets" ]; verbs = [ "list" "watch" ]; }
-        { apiGroups = [ "batch" ]; resources = [ "cronjobs" "jobs" ]; verbs = [ "list" "watch" ]; }
-        { apiGroups = [ "autoscaling" ]; resources = [ "horizontalpodautoscalers" ]; verbs = [ "list" "watch" ]; }
-        { apiGroups = [ "policy" ]; resources = [ "poddisruptionbudgets" ]; verbs = [ "list" "watch" ]; }
-        { apiGroups = [ "storage.k8s.io" ]; resources = [ "storageclasses" "volumeattachments" ]; verbs = [ "list" "watch" ]; }
+        {
+          apiGroups = [ "" ];
+          resources = [
+            "configmaps"
+            "secrets"
+            "nodes"
+            "pods"
+            "limitranges"
+            "replicationcontrollers"
+            "resourcequotas"
+            "services"
+          ];
+          verbs = [
+            "list"
+            "watch"
+          ];
+        }
+        {
+          apiGroups = [ "apps" ];
+          resources = [
+            "controllerrevisions"
+            "daemonsets"
+            "deployments"
+            "replicasets"
+            "statefulsets"
+          ];
+          verbs = [
+            "list"
+            "watch"
+          ];
+        }
+        {
+          apiGroups = [ "batch" ];
+          resources = [
+            "cronjobs"
+            "jobs"
+          ];
+          verbs = [
+            "list"
+            "watch"
+          ];
+        }
+        {
+          apiGroups = [ "autoscaling" ];
+          resources = [ "horizontalpodautoscalers" ];
+          verbs = [
+            "list"
+            "watch"
+          ];
+        }
+        {
+          apiGroups = [ "policy" ];
+          resources = [ "poddisruptionbudgets" ];
+          verbs = [
+            "list"
+            "watch"
+          ];
+        }
+        {
+          apiGroups = [ "storage.k8s.io" ];
+          resources = [
+            "storageclasses"
+            "volumeattachments"
+          ];
+          verbs = [
+            "list"
+            "watch"
+          ];
+        }
       ];
     };
     none.ClusterRoleBinding.kube-state-metrics-rolebinding = {
-      roleRef = { apiGroup = "rbac.authorization.k8s.io"; kind = "ClusterRole"; name = "kube-state-metrics-role"; };
-      subjects = [{ kind = "ServiceAccount"; name = "kube-state-metrics-sa"; namespace = "monitoring"; }];
+      roleRef = {
+        apiGroup = "rbac.authorization.k8s.io";
+        kind = "ClusterRole";
+        name = "kube-state-metrics-role";
+      };
+      subjects = [
+        {
+          kind = "ServiceAccount";
+          name = "kube-state-metrics-sa";
+          namespace = "monitoring";
+        }
+      ];
     };
     monitoring.Deployment.kube-state-metrics = {
       metadata.labels.app = "kube-state-metrics";
@@ -961,7 +1595,9 @@ in
         template = {
           metadata.labels.app = "kube-state-metrics";
           spec = {
-            nodeSelector = { "kubernetes.io/hostname" = "sentry"; };
+            nodeSelector = {
+              "kubernetes.io/hostname" = "sentry";
+            };
             serviceAccountName = "kube-state-metrics-sa";
             securityContext = {
               runAsNonRoot = true;
@@ -975,15 +1611,48 @@ in
               kube-state-metrics = {
                 image = "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0";
                 imagePullPolicy = "IfNotPresent";
-                args = [ "--port=8080" "--metric-labels-allowlist=nodes=[kubernetes.io/hostname]" ];
-                ports = [{ containerPort = 8080; name = "http"; protocol = "TCP"; }];
+                args = [
+                  "--port=8080"
+                  "--metric-labels-allowlist=nodes=[kubernetes.io/hostname]"
+                ];
+                ports = [
+                  {
+                    containerPort = 8080;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
                 resources = {
-                  requests = { cpu = "100m"; memory = "128Mi"; };
-                  limits = { cpu = "500m"; memory = "512Mi"; };
+                  requests = {
+                    cpu = "100m";
+                    memory = "128Mi";
+                  };
+                  limits = {
+                    cpu = "500m";
+                    memory = "512Mi";
+                  };
                 };
-                livenessProbe = { httpGet = { path = "/healthz"; port = 8080; }; initialDelaySeconds = 5; periodSeconds = 10; };
-                readinessProbe = { httpGet = { path = "/"; port = 8080; }; initialDelaySeconds = 5; periodSeconds = 10; };
-                securityContext = { allowPrivilegeEscalation = false; readOnlyRootFilesystem = true; capabilities.drop = [ "ALL" ]; };
+                livenessProbe = {
+                  httpGet = {
+                    path = "/healthz";
+                    port = 8080;
+                  };
+                  initialDelaySeconds = 5;
+                  periodSeconds = 10;
+                };
+                readinessProbe = {
+                  httpGet = {
+                    path = "/";
+                    port = 8080;
+                  };
+                  initialDelaySeconds = 5;
+                  periodSeconds = 10;
+                };
+                securityContext = {
+                  allowPrivilegeEscalation = false;
+                  readOnlyRootFilesystem = true;
+                  capabilities.drop = [ "ALL" ];
+                };
               };
             };
           };
@@ -994,7 +1663,14 @@ in
       metadata.labels.app = "kube-state-metrics";
       spec = {
         type = "ClusterIP";
-        ports = [{ name = "http"; port = 8080; targetPort = 8080; protocol = "TCP"; }];
+        ports = [
+          {
+            name = "http";
+            port = 8080;
+            targetPort = 8080;
+            protocol = "TCP";
+          }
+        ];
         selector.app = "kube-state-metrics";
       };
     };
@@ -1229,14 +1905,25 @@ in
               _namedlist = true;
               memory-check = {
                 image = "docker.io/library/busybox:1.36";
-                command = [ "/bin/sh" "/scripts/check-memory.sh" ];
+                command = [
+                  "/bin/sh"
+                  "/scripts/check-memory.sh"
+                ];
                 resources = {
-                  requests = { cpu = "100m"; memory = "128Mi"; };
-                  limits = { cpu = "200m"; memory = "256Mi"; };
+                  requests = {
+                    cpu = "100m";
+                    memory = "128Mi";
+                  };
+                  limits = {
+                    cpu = "200m";
+                    memory = "256Mi";
+                  };
                 };
                 volumeMounts = {
                   _namedlist = true;
-                  scripts = { mountPath = "/scripts"; };
+                  scripts = {
+                    mountPath = "/scripts";
+                  };
                 };
               };
             };
@@ -1280,14 +1967,25 @@ in
         policyTypes = [ "Egress" ];
         egress = [
           {
-            to = [{ ipBlock.cidr = "10.1.1.0/24"; }];
-            ports = [{ protocol = "TCP"; port = 10250; }];
+            to = [ { ipBlock.cidr = "10.1.1.0/24"; } ];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 10250;
+              }
+            ];
           }
           {
-            to = [{ namespaceSelector.matchLabels.name = "kube-system"; }];
+            to = [ { namespaceSelector.matchLabels.name = "kube-system"; } ];
             ports = [
-              { protocol = "UDP"; port = 53; }
-              { protocol = "TCP"; port = 53; }
+              {
+                protocol = "UDP";
+                port = 53;
+              }
+              {
+                protocol = "TCP";
+                port = 53;
+              }
             ];
           }
         ];
@@ -1304,11 +2002,21 @@ in
     custom-metrics.ServiceAccount.prometheus-adapter = { };
 
     none.ClusterRole.prometheus-adapter-server-resources = {
-      rules = [{
-        apiGroups = [ "" ];
-        resources = [ "namespaces" "pods" "nodes" ];
-        verbs = [ "get" "list" "watch" ];
-      }];
+      rules = [
+        {
+          apiGroups = [ "" ];
+          resources = [
+            "namespaces"
+            "pods"
+            "nodes"
+          ];
+          verbs = [
+            "get"
+            "list"
+            "watch"
+          ];
+        }
+      ];
     };
 
     none.ClusterRoleBinding.prometheus-adapter-auth-delegator = {
@@ -1318,11 +2026,13 @@ in
         kind = "ClusterRole";
         name = "system:auth-delegator";
       };
-      subjects = [{
-        kind = "ServiceAccount";
-        name = "prometheus-adapter";
-        namespace = "custom-metrics";
-      }];
+      subjects = [
+        {
+          kind = "ServiceAccount";
+          name = "prometheus-adapter";
+          namespace = "custom-metrics";
+        }
+      ];
     };
 
     none.ClusterRoleBinding.prometheus-adapter-resource-reader = {
@@ -1331,11 +2041,13 @@ in
         kind = "ClusterRole";
         name = "prometheus-adapter-server-resources";
       };
-      subjects = [{
-        kind = "ServiceAccount";
-        name = "prometheus-adapter";
-        namespace = "custom-metrics";
-      }];
+      subjects = [
+        {
+          kind = "ServiceAccount";
+          name = "prometheus-adapter";
+          namespace = "custom-metrics";
+        }
+      ];
     };
 
     kube-system.RoleBinding.prometheus-adapter-auth-reader = {
@@ -1345,11 +2057,13 @@ in
         kind = "Role";
         name = "extension-apiserver-authentication-reader";
       };
-      subjects = [{
-        kind = "ServiceAccount";
-        name = "prometheus-adapter";
-        namespace = "custom-metrics";
-      }];
+      subjects = [
+        {
+          kind = "ServiceAccount";
+          name = "prometheus-adapter";
+          namespace = "custom-metrics";
+        }
+      ];
     };
 
     # Source: prometheus-adapter-config.yaml
@@ -1415,17 +2129,34 @@ in
                   "--v=4"
                   "--config=/etc/adapter/config.yaml"
                 ];
-                ports = [{ containerPort = 443; name = "https"; protocol = "TCP"; }];
+                ports = [
+                  {
+                    containerPort = 443;
+                    name = "https";
+                    protocol = "TCP";
+                  }
+                ];
                 volumeMounts = {
                   _namedlist = true;
-                  config = { mountPath = "/etc/adapter/"; readOnly = true; };
+                  config = {
+                    mountPath = "/etc/adapter/";
+                    readOnly = true;
+                  };
                 };
                 livenessProbe = {
-                  httpGet = { path = "/healthz"; port = "https"; scheme = "HTTPS"; };
+                  httpGet = {
+                    path = "/healthz";
+                    port = "https";
+                    scheme = "HTTPS";
+                  };
                   initialDelaySeconds = 30;
                 };
                 readinessProbe = {
-                  httpGet = { path = "/healthz"; port = "https"; scheme = "HTTPS"; };
+                  httpGet = {
+                    path = "/healthz";
+                    port = "https";
+                    scheme = "HTTPS";
+                  };
                   initialDelaySeconds = 30;
                 };
                 securityContext.runAsUser = 0;
@@ -1443,7 +2174,13 @@ in
     custom-metrics.Service.prometheus-adapter = {
       metadata.labels.name = "prometheus-adapter";
       spec = {
-        ports = [{ name = "https"; port = 443; targetPort = "https"; }];
+        ports = [
+          {
+            name = "https";
+            port = 443;
+            targetPort = "https";
+          }
+        ];
         selector.name = "prometheus-adapter";
       };
     };
@@ -1452,7 +2189,10 @@ in
     none.APIService.v1beta1-custom-metrics-k8s-io = {
       metadata.name = "v1beta1.custom.metrics.k8s.io";
       spec = {
-        service = { name = "prometheus-adapter"; namespace = "custom-metrics"; };
+        service = {
+          name = "prometheus-adapter";
+          namespace = "custom-metrics";
+        };
         group = "custom.metrics.k8s.io";
         version = "v1beta1";
         insecureSkipTLSVerify = true;
@@ -1464,7 +2204,10 @@ in
     none.APIService.v1beta2-custom-metrics-k8s-io = {
       metadata.name = "v1beta2.custom.metrics.k8s.io";
       spec = {
-        service = { name = "prometheus-adapter"; namespace = "custom-metrics"; };
+        service = {
+          name = "prometheus-adapter";
+          namespace = "custom-metrics";
+        };
         group = "custom.metrics.k8s.io";
         version = "v1beta2";
         insecureSkipTLSVerify = true;
