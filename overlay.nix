@@ -16,6 +16,8 @@
   llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant;
   llama-cpp-rocm = prev.callPackage ./packages/llama-cpp-rocm.nix {};
   llama-cpp-vulkan = prev.callPackage ./packages/llama-cpp-vulkan.nix {};
+  llama-cpp-dflash = prev.callPackage ./packages/llama-cpp-dflash.nix {};
+  dflash-server = prev.callPackage ./packages/dflash-server.nix {};
   ai-inference-gateway = inputs.ai-gateway.packages.x86_64-linux.default;
   caddy-with-modules = inputs.caddy-ingress.packages.x86_64-linux.caddy-with-modules;
   python3 = prev.python3.override {
