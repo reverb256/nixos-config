@@ -1,0 +1,30 @@
+use_default_settings: true
+engines:
+  - name: google
+    engine: google
+    shortcut: go
+    categories: general
+    safe_search: true
+    weight: 1.0
+    disabled: true
+  - name: bing
+    engine: bing
+    shortcut: bi
+    categories: general
+    safe_search: true
+    weight: 1.0
+    disabled: true
+  - name: duckduckgo
+    engine: duckduckgo
+    shortcut: ddg
+    categories: general
+    safe_search: true
+    weight: 1.0
+    disabled: false
+  - name: wikipedia
+    engine: wikipedia
+    shortcut: wi
+    categories: general
+    safe_search: true
+    weight: 1.0
+    disabled: false

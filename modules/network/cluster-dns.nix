@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   inherit (lib) mkIf mkBefore mkDefault;
   clusterCfg = config.clusterNetworking;
@@ -20,7 +25,7 @@ let
       "8.8.8.8@853"
       "8.8.4.4@853"
     ];
-    searchDomains = config.networking.search or [];
+    searchDomains = config.networking.search or [ ];
     enableLanRecords = true;
     enableServiceRecords = true;
   };
@@ -38,9 +43,12 @@ in
         server = {
           # Listen on localhost and cluster IP
           interface = [
-            (if dnsCfg.listenAddress != null && dnsCfg.listenAddress != "127.0.0.1"
-              then dnsCfg.listenAddress
-              else clusterCfg.ipAddress)
+            (
+              if dnsCfg.listenAddress != null && dnsCfg.listenAddress != "127.0.0.1" then
+                dnsCfg.listenAddress
+              else
+                clusterCfg.ipAddress
+            )
           ];
 
           # Allow queries from cluster network
@@ -92,6 +100,20 @@ in
     # Generate local DNS records
     environment.etc."unbound/local-dns.conf".text =
       let
+        # Server section header (required for local-data lines to work)
+        serverSection = ''
+          server:
+            interface: 0.0.0.0
+            interface: ::0
+            access-control: 10.0.0.0/8 allow
+            access-control: 100.64.0.0/10 allow
+            access-control: 172.16.0.0/12 allow
+            verbosity: 1
+            local-zone: "lan." static
+            local-zone: "cluster.local." static
+
+        '';
+
         # All services route through Caddy on nexus (no fragile ClusterIPs)
 
         # Services via Caddy Ingress (accessed via NodePort on Nexus)
@@ -129,19 +151,20 @@ in
         allServices = ingressServices ++ hostServices ++ forgeServices ++ sentryServices;
 
         # Host records
-        hostRecords = lib.mapAttrsToList (name: ip: "${name}.lan. IN A ${ip}")
-          hosts;
+        hostRecords = lib.mapAttrsToList (name: ip: "${name}.lan. IN A ${ip}") hosts;
       in
       # Host records section
       (lib.optionalString dnsCfg.enableLanRecords (
         lib.concatMapStrings (record: "local-data: \"${record}\"\n") hostRecords
-      )) +
-      # Service records section
-      (lib.optionalString dnsCfg.enableServiceRecords (
-        lib.concatMapStrings (record: "local-data: \"${record}\"\n") allServices
-      )) +
-      # Tailscale mobile device
-      "local-data: \"seeker.lan. IN A 100.84.24.43\"\n";
+      ))
+      +
+        # Service records section
+        (lib.optionalString dnsCfg.enableServiceRecords (
+          lib.concatMapStrings (record: "local-data: \"${record}\"\n") allServices
+        ))
+      +
+        # Tailscale mobile device
+        "local-data: \"seeker.lan. IN A 100.84.24.43\"\n";
 
     # Static resolv.conf (prevent DHCP overrides)
     environment.etc."resolv.conf".text = ''
@@ -168,7 +191,26 @@ in
 
     # Populate /etc/hosts for compatibility
     networking.extraHosts = lib.mkBefore (
-      lib.pipe hosts [
+      let
+        allHosts = hosts // {
+          ai-inference = hosts.nexus;
+          qdrant = hosts.nexus;
+          knowledge-fabric = hosts.nexus;
+          hermes = hosts.nexus;
+          brain = hosts.nexus;
+          search = hosts.nexus;
+          searxng = hosts.nexus;
+          n8n = hosts.nexus;
+          activepieces = hosts.nexus;
+          openwebui = hosts.nexus;
+          haven = hosts.nexus;
+          grafana = hosts.sentry;
+          prometheus = hosts.sentry;
+          monitoring = hosts.sentry;
+          mining = hosts.forge;
+        };
+      in
+      lib.pipe allHosts [
         (lib.mapAttrsToList (name: ip: "${ip} ${name}.lan ${name}"))
         (lib.concatStringsSep "\n")
       ]
