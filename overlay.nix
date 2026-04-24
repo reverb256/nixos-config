@@ -15,6 +15,7 @@
   };
   llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant;
   llama-cpp-rocm = prev.callPackage ./packages/llama-cpp-rocm.nix {};
+  llama-cpp-vulkan = prev.callPackage ./packages/llama-cpp-vulkan.nix {};
   ai-inference-gateway = inputs.ai-gateway.packages.x86_64-linux.default;
   caddy-with-modules = inputs.caddy-ingress.packages.x86_64-linux.caddy-with-modules;
   python3 = prev.python3.override {
@@ -103,4 +104,5 @@
   };
   claude-code-image = prev.callPackage ./packages/claude-code-image.nix {};
   opencode-image = prev.callPackage ./packages/opencode-image.nix {};
+  hermes-chat = prev.callPackage ./packages/hermes-chat.nix {};
 }

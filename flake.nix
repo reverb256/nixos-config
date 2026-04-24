@@ -97,7 +97,7 @@
     # ═══════════════════════════════════════════════════════════════════
 
     ai-gateway = {
-      url = "github:reverb256/ai-inference-gateway";
+      url = "path:/data/projects/own/ai-inference-gateway";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     knowledge-fabric = {
@@ -237,6 +237,7 @@
       packages.x86_64-linux.llama-cpp = pkgsWithOverlay.llama-cpp;
       packages.x86_64-linux.caddy-with-modules = inputs.caddy-ingress.packages.x86_64-linux.caddy-with-modules;
       packages.x86_64-linux.caddy-ingress-image = inputs.caddy-ingress.packages.x86_64-linux.caddy-ingress-image;
+      packages.x86_64-linux.hermes-chat = pkgsWithOverlay.hermes-chat;
 
       packages.x86_64-linux.xmrig-proxy-image = pkgsWithOverlay.dockerTools.buildImage {
         name = "xmrig-proxy";

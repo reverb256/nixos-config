@@ -105,4 +105,4 @@ spec:
     protocol: TCP
     name: http
   selector:
-    app: llama-server
+    app: llama-cpp
