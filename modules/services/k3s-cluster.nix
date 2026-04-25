@@ -119,20 +119,25 @@ in
     services.k3s = {
       enable = true;
       inherit (cfg) role nodeName;
-
-      # Provide k3s-agent as a symlink to the real Go binary (.k3s-wrapped).
-      # k3s re-execs itself as "k3s-agent" via PATH lookup. When it finds
-      # k3s-agent pointing to the same .k3s-wrapped binary, it recognizes
-      # /proc/self/exe matches and stops the re-exec loop.
-      package = pkgs.symlinkJoin {
-        name = "k3s-with-agent";
-        paths = [ pkgs.k3s ];
-        postBuild = ''
-          # Remove any existing k3s-agent, then symlink to the real Go binary
-          rm -f $out/bin/k3s-agent
-          ln -s $out/bin/.k3s-wrapped $out/bin/k3s-agent
-        '';
-      };
+      # Pin k3s to 1.34.5 — k3s 1.35.x has a broken re-exec loop that crashes
+      # even with wrappers. Override the package to fetch the 1.34.5 binary.
+      package = let
+        k3sBin = pkgs.fetchurl {
+          url = "https://github.com/k3s-io/k3s/releases/download/v1.34.5+k3s1/k3s";
+          hash = "sha256-kAlneujh3SoHuono4kFy0sLHyPH0ZTPXwzWTjObOUmk=";
+        };
+      in pkgs.runCommand "k3s-with-agent" {
+        nativeBuildInputs = [ pkgs.installShellFiles ];
+      } ''
+        mkdir -p $out/bin
+        cp ${k3sBin} $out/bin/.k3s-wrapped
+        chmod +x $out/bin/.k3s-wrapped
+        ln -s .k3s-wrapped $out/bin/k3s
+        ln -s .k3s-wrapped $out/bin/k3s-agent
+        ln -s .k3s-wrapped $out/bin/crictl
+        ln -s .k3s-wrapped $out/bin/ctr
+        ln -s .k3s-wrapped $out/bin/kubectl
+      '';
 
       clusterInit = if isServer then cfg.clusterInit else false;
 
