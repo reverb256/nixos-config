@@ -15,10 +15,8 @@
     ./hardware-configuration.nix
     ../../modules/default.nix
     ../../modules/hardware/rgb-control.nix
-    ../../modules/system/security.nix
     ../../modules/services/podman-support.nix
     ../../modules/services/k3s-cluster.nix
-    inputs.nix-mineral.nixosModules.nix-mineral
   ];
 
   # Host-specific CPU/GPU optimization for llama.cpp (Zen1 + Ada: RTX 4060)
@@ -102,19 +100,10 @@
     options = [ "noatime" "nodiratime" "_netdev" ];
   };
 
-  # System hardening (Phase 0: Security Baseline)
-  # Preset: default + performance (base hardening, relaxed PTI/CPU mitigations for mining)
-  nix-mineral = {
-    enable = true;
-    preset = [ "default" "performance" ];
-  };
-
-  # Resolve gitconfig conflict between NixOS default and nix-mineral
-  environment.etc.gitconfig.source = lib.mkForce (pkgs.writeText "gitconfig" ''
-    [user]
-      name = Jeremy Kroeker
-      email = jkroeker@proton.me
-  '');
+  # nix-mineral DISABLED on forge (same as zephyr)
+  # Reason: NixOS 26.05 PAM/apparmor strict checking breaks
+  # nix-mineral's non-absolute modulePath 'login'
+  # nix-mineral = { enable = true; preset = [ 'default' 'performance' ]; };
 
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
