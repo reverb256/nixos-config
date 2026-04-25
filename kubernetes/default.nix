@@ -19,6 +19,7 @@ let
       ./modules/ingress.nix
       ./modules/mining.nix
       ./modules/gpu-miners.nix
+      ./modules/profit-switcher.nix
       ./modules/ai-inference.nix
       ./modules/llama-servers.nix
       ./modules/nixkube.nix
