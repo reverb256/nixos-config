@@ -124,7 +124,7 @@ in
       package = let
         k3sBin = pkgs.fetchurl {
           url = "https://github.com/k3s-io/k3s/releases/download/v1.34.5+k3s1/k3s";
-          hash = "sha256-kAlneujh3SoHuono4kFy0sLHyPH0ZTPXwzWTjObOUmk=";
+          hash = "sha256-76qEQWz1nzb3wbRb0SmI3PARIoj1iKn9XA+8ptMJ6dk=";
         };
       in pkgs.runCommand "k3s-with-agent" {
         nativeBuildInputs = [ pkgs.installShellFiles ];
