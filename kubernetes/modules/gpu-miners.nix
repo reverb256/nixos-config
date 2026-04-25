@@ -585,7 +585,7 @@ in
         };
       };
       spec = {
-        replicas = 0;
+        replicas = 1;
         revisionHistoryLimit = 1;
         selector = {
           matchLabels = {
@@ -605,9 +605,11 @@ in
           spec = {
             nodeName = "zephyr";
             hostNetwork = true;
+            runtimeClassName = "nvidia";
             automountServiceAccountToken = false;
             serviceAccountName = "gpu-miner-sa";
             priorityClassName = "mining-low";
+            terminationGracePeriodSeconds = 30;
             tolerations = [
               {
                 key = "workstation";
@@ -625,41 +627,44 @@ in
             ];
             containers = {
               _namedlist = true;
-              lolminer = {
+              miner = {
                 image = nvidiaBaseImage;
                 imagePullPolicy = "IfNotPresent";
                 command = ["/bin/sh" "-c"];
                 args = [
                   (downloadAllMiners
-                  + " && LOLMINER=$(find /opt/miners -name lolMiner -type f | head -1)"
-                  + " && exec $LOLMINER --algo=CFX"
-                  + " --pool=cfx-us.kryptex.network:8027"
-                  + " --user=krxXVNVMM7.zephyr-3090"
-                  + " --pass=x --tls=1 --devices=1"
-                  + " --pl=250 --moff=1300 --apiport=4068")
+                  + " && RIGEL=$(find /opt/miners -name rigel -type f | head -1)"
+                  + " && exec $RIGEL -a octopus --coin cfx"
+                  + " -o stratum+ssl://cfx-us.kryptex.network:8027"
+                  + " -u ${rvnWallet}.zephyr-3090"
+                  + " -p x -w zephyr-3090 -d 1"
+                  + " --api-bind 0.0.0.0:4068")
                 ];
-                env = {
-                  _namedlist = true;
-                  LD_LIBRARY_PATH = {
-                    name = "LD_LIBRARY_PATH";
-                    value = "/run/opengl-driver/lib:/usr/local/cuda-12.1/compat";
-                  };
+                env = nvidiaEnv;
+                ports = [
+                  {
+                    containerPort = 4068;
+                    name = "api";
+                    protocol = "TCP";
+                  }
+                ];
+                livenessProbe = {
+                  tcpSocket.port = 4068;
+                  initialDelaySeconds = 60;
+                  periodSeconds = 30;
+                  failureThreshold = 5;
+                };
+                readinessProbe = {
+                  tcpSocket.port = 4068;
+                  initialDelaySeconds = 90;
+                  periodSeconds = 15;
+                  failureThreshold = 10;
                 };
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  dev = {
-                    mountPath = "/dev";
-                  };
-                  nvidia-libs = {
-                    mountPath = "/run/opengl-driver/lib";
-                    readOnly = true;
-                  };
-                  nix-store = {
-                    mountPath = "/nix/store";
-                    readOnly = true;
-                  };
-                };
+                }
+                // nvidiaVolumeMounts;
                 resources = {
                   requests = {
                     memory = "4Gi";
@@ -674,16 +679,8 @@ in
             };
             volumes = {
               _namedlist = true;
-              dev = {
-                hostPath.path = "/dev";
-              };
-              nvidia-libs = {
-                hostPath.path = "/run/opengl-driver/lib";
-              };
-              nix-store = {
-                hostPath.path = "/nix/store";
-              };
-            };
+            }
+            // nvidiaVolumes;
           };
         };
       };
