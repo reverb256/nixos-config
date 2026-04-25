@@ -1312,9 +1312,9 @@ in
               {
                 name = "searxng-mcp";
                 image = scratchImage;
-                imagePullPolicy = "Never";
+                imagePullPolicy = "IfNotPresent";
                 command = [
-                  "${lib.getExe gatewayEnv}"
+                  "python"
                   "-m"
                   "ai_inference_gateway.mcp_servers.searxng_server"
                 ];
@@ -1332,10 +1332,6 @@ in
                       name = "searxng-mcp-config";
                       key = "SEARXNG_CACHE_TTL";
                     };
-                  }
-                  {
-                    name = "PYTHONPATH";
-                    value = gatewaySitePackages;
                   }
                 ];
                 resources = {
@@ -1366,11 +1362,6 @@ in
                 };
                 volumeMounts = [
                   {
-                    name = "nix";
-                    mountPath = "/nix";
-                    readOnly = true;
-                  }
-                  {
                     name = "tmp";
                     mountPath = "/tmp";
                   }
@@ -1383,10 +1374,6 @@ in
               }
             ];
             volumes = [
-              {
-                name = "nix";
-                hostPath.path = "/nix";
-              }
               {
                 name = "tmp";
                 emptyDir = {};
