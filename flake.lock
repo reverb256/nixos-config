@@ -54,8 +54,8 @@
         ]
       },
       "locked": {
-        "lastModified": 1777101512,
-        "narHash": "sha256-nCTNt2aUuPfEcgkSOf/jN0iVnENvBVeVnOQG7AgzEbw=",
+        "lastModified": 1777116400,
+        "narHash": "sha256-iW0LBQhxBcswblc/yEYRZPp5EeXx2TFgHzSugrWUFdw=",
         "path": "/data/projects/own/ai-inference-gateway",
         "type": "path"
       },
@@ -991,16 +991,17 @@
         "nixpkgs": [
           "nixpkgs"
         ],
+        "npm-lockfile-fix": "npm-lockfile-fix",
         "pyproject-build-systems": "pyproject-build-systems",
         "pyproject-nix": "pyproject-nix_3",
         "uv2nix": "uv2nix_2"
       },
       "locked": {
-        "lastModified": 1776425147,
-        "narHash": "sha256-Fm+3f49kuwK1QXztinfROe2zx44Yf595ANJCBrp6BYE=",
+        "lastModified": 1777109876,
+        "narHash": "sha256-W80N6HiV8jR1601P0insHvZ8AySCHdkI1eEJHpW9kE0=",
         "owner": "NousResearch",
         "repo": "hermes-agent",
-        "rev": "24342813fe2196335ac8e510e8f59f716197d0e8",
+        "rev": "5401a0080d97cfa61e20749f02ba6b54dbb181bd",
         "type": "github"
       },
       "original": {
@@ -1502,6 +1503,27 @@
         "owner": "NixOS",
         "ref": "nixos-unstable",
         "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "npm-lockfile-fix": {
+      "inputs": {
+        "nixpkgs": [
+          "hermes-agent",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1775903712,
+        "narHash": "sha256-2GV79U6iVH4gKAPWYrxUReB0S41ty/Y3dBLquU8AlaA=",
+        "owner": "jeslie0",
+        "repo": "npm-lockfile-fix",
+        "rev": "c6093acb0c0548e0f9b8b3d82918823721930fe8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeslie0",
+        "repo": "npm-lockfile-fix",
         "type": "github"
       }
     },
