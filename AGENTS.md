@@ -49,7 +49,7 @@ Non-system projects live in `/data/projects/own/` as standalone flakes:
 | caddy-ingress | `caddy-ingress` | Custom Caddy build |
 | gpu-proxy | `gpu-proxy` | Stratum mining proxy |
 | knowledge-fabric | `knowledge-fabric` | Knowledge base |
-| llama-cpp-turboquant | `llama-turboquant` | TurboQuant llama.cpp |
+| llama-cpp-turboquant | `llama-turboquant` | TurboQuant + DFlash llama.cpp |
 | hermes-chat | (local package) | Hermes Agent desktop client |
 | mcp-registry | `mcp-registry` | MCP server management |
 
