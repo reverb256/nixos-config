@@ -54,9 +54,14 @@ in
 
         unset LD_LIBRARY_PATH
 
+        # Forcefully override systemd session variables
+        unset CUDA_VISIBLE_DEVICES
+        unset CUDA_DEVICES
+
         # Restrict to GPU 0 (RTX 3060 Ti) — GPU 1 (RTX 3090) is
         # mining-saturated and causes LM Studio to OOM on device init.
         export CUDA_VISIBLE_DEVICES=0
+        export LD_LIBRARY_PATH=${pkgs.gcc14.cc.lib}/lib:$LD_LIBRARY_PATH
         exec ${pkgs.lmstudio}/bin/lmstudio \
           --enable-features=UseOzonePlatform \
           --ozone-platform=wayland \

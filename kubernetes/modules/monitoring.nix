@@ -1863,14 +1863,6 @@ in
           summary: "Control plane using >20% of cluster memory"
     '';
 
-    monitoring.PersistentVolumeClaim.prometheus-api-server-alerts = {
-      spec = {
-        accessModes = [ "ReadWriteOnce" ];
-        storageClassName = "local-path";
-        resources.requests.storage = "1Gi";
-      };
-    };
-
     # -- Alert Rules: Kube API Server (ConfigMap version) -----------------
     # Source: prometheus-alert-rules-kube-apiserver.yaml
     monitoring.ConfigMap.prometheus-alert-rules-kube-apiserver.data."kube-apiserver-rules.yml" = ''

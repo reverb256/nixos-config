@@ -130,6 +130,29 @@ let
 
   rvnPool = "stratum+tcp://rvn-us.kryptex.network:7031";
   rvnWallet = "krxXVNVMM7";
+
+  wrapperVolumes = {
+    mining-config.configMap.name = "mining-profit-config";
+    mining-wrapper.configMap.name = "mining-wrapper";
+    gpu-tuning.configMap.name = "gpu-tune-script";
+  };
+  wrapperVolumeMounts = {
+    mining-config.mountPath = "/etc/mining-config";
+    mining-wrapper.mountPath = "/opt/wrapper";
+  };
+
+  mkWrapperEnv = { group, worker, device, apiPort, minerType ? "rigel", defaultCoin ? "rvn", gpuProfile ? "rtx4060" }: {
+    _namedlist = true;
+    MINING_GROUP = { name = "MINING_GROUP"; value = group; };
+    WORKER_NAME = { name = "WORKER_NAME"; value = worker; };
+    DEVICE_INDEX = { name = "DEVICE_INDEX"; value = toString device; };
+    API_PORT = { name = "API_PORT"; value = toString apiPort; };
+    MINER_TYPE = { name = "MINER_TYPE"; value = minerType; };
+    WALLET = { name = "WALLET"; value = rvnWallet; };
+    DEFAULT_COIN = { name = "DEFAULT_COIN"; value = defaultCoin; };
+    GPU_PROFILE = { name = "GPU_PROFILE"; value = gpuProfile; };
+    LD_LIBRARY_PATH = { name = "LD_LIBRARY_PATH"; value = "/run/opengl-driver/lib"; };
+  };
 in
 {
   config.kubernetes.objects = {
@@ -171,22 +194,13 @@ in
               _namedlist = true;
               miner = {
                 image = nvidiaBaseImage;
-                command = ["/bin/sh" "-c"];
-                args = [
-                  (downloadAllMiners
-                  + " && RIGEL=$(find /opt/miners -name rigel -type f | head -1)"
-                  + " && exec $RIGEL -a kawpow --coin rvn"
-                  + " -o ${rvnPool}"
-                  + " -u ${rvnWallet}.forge-n0"
-                  + " -p x -w forge-n0 -d 0"
-                  + " --api-bind 0.0.0.0:4068")
-                ];
-                env = {
-                  _namedlist = true;
-                  LD_LIBRARY_PATH = {
-                    name = "LD_LIBRARY_PATH";
-                    value = "/run/opengl-driver/lib";
-                  };
+                command = ["/bin/sh" "/opt/wrapper/mining-wrapper.sh"];
+                env = mkWrapperEnv {
+                  group = "nvidia";
+                  worker = "forge-n0";
+                  device = 0;
+                  apiPort = 4068;
+                  gpuProfile = "rtx4060";
                 };
                 ports = [
                   {
@@ -221,12 +235,14 @@ in
                 volumeMounts = {
                   _namedlist = true;
                 }
+                // wrapperVolumeMounts
                 // nvidiaVolumeMounts;
               };
             };
             volumes = {
               _namedlist = true;
             }
+            // wrapperVolumes
             // nvidiaVolumes;
           };
         };
@@ -270,22 +286,13 @@ in
               _namedlist = true;
               miner = {
                 image = nvidiaBaseImage;
-                command = ["/bin/sh" "-c"];
-                args = [
-                  (downloadAllMiners
-                  + " && RIGEL=$(find /opt/miners -name rigel -type f | head -1)"
-                  + " && exec $RIGEL -a kawpow --coin rvn"
-                  + " -o ${rvnPool}"
-                  + " -u ${rvnWallet}.forge-n1"
-                  + " -p x -w forge-n1 -d 1"
-                  + " --api-bind 0.0.0.0:4069")
-                ];
-                env = {
-                  _namedlist = true;
-                  LD_LIBRARY_PATH = {
-                    name = "LD_LIBRARY_PATH";
-                    value = "/run/opengl-driver/lib";
-                  };
+                command = ["/bin/sh" "/opt/wrapper/mining-wrapper.sh"];
+                env = mkWrapperEnv {
+                  group = "nvidia";
+                  worker = "forge-n1";
+                  device = 1;
+                  apiPort = 4069;
+                  gpuProfile = "rtx4060";
                 };
                 ports = [
                   {
@@ -320,12 +327,14 @@ in
                 volumeMounts = {
                   _namedlist = true;
                 }
+                // wrapperVolumeMounts
                 // nvidiaVolumeMounts;
               };
             };
             volumes = {
               _namedlist = true;
             }
+            // wrapperVolumes
             // nvidiaVolumes;
           };
         };
@@ -528,22 +537,13 @@ in
               _namedlist = true;
               miner = {
                 image = nvidiaBaseImage;
-                command = ["/bin/sh" "-c"];
-                args = [
-                  (downloadAllMiners
-                  + " && RIGEL=$(find /opt/miners -name rigel -type f | head -1)"
-                  + " && exec $RIGEL -a kawpow --coin rvn"
-                  + " -o ${rvnPool}"
-                  + " -u ${rvnWallet}.nexus-gpu"
-                  + " -p x -w nexus-gpu -d 0"
-                  + " --api-bind 0.0.0.0:4068")
-                ];
-                env = {
-                  _namedlist = true;
-                  LD_LIBRARY_PATH = {
-                    name = "LD_LIBRARY_PATH";
-                    value = "/run/opengl-driver/lib";
-                  };
+                command = ["/bin/sh" "/opt/wrapper/mining-wrapper.sh"];
+                env = mkWrapperEnv {
+                  group = "nvidia";
+                  worker = "nexus-gpu";
+                  device = 0;
+                  apiPort = 4068;
+                  gpuProfile = "rtx3060ti";
                 };
                 ports = [
                   {
@@ -578,12 +578,14 @@ in
                 volumeMounts = {
                   _namedlist = true;
                 }
+                // wrapperVolumeMounts
                 // nvidiaVolumeMounts;
               };
             };
             volumes = {
               _namedlist = true;
             }
+            // wrapperVolumes
             // nvidiaVolumes;
           };
         };
@@ -646,17 +648,15 @@ in
               miner = {
                 image = nvidiaBaseImage;
                 imagePullPolicy = "IfNotPresent";
-                command = ["/bin/sh" "-c"];
-                args = [
-                  (downloadAllMiners
-                  + " && RIGEL=$(find /opt/miners -name rigel -type f | head -1)"
-                  + " && exec $RIGEL -a octopus --coin cfx"
-                  + " -o stratum+ssl://cfx-us.kryptex.network:8027"
-                  + " -u ${rvnWallet}.zephyr-3090"
-                  + " -p x -w zephyr-3090 -d 1"
-                  + " --api-bind 0.0.0.0:4068")
-                ];
-                env = nvidiaEnv;
+                command = ["/bin/sh" "/opt/wrapper/mining-wrapper.sh"];
+                env = mkWrapperEnv {
+                  group = "nvidia-3090";
+                  worker = "zephyr-3090";
+                  device = 1;
+                  apiPort = 4068;
+                  defaultCoin = "cfx";
+                  gpuProfile = "rtx3090";
+                };
                 ports = [
                   {
                     containerPort = 4068;
@@ -680,6 +680,7 @@ in
                 volumeMounts = {
                   _namedlist = true;
                 }
+                // wrapperVolumeMounts
                 // nvidiaVolumeMounts;
                 resources = {
                   requests = {
@@ -696,6 +697,7 @@ in
             volumes = {
               _namedlist = true;
             }
+            // wrapperVolumes
             // nvidiaVolumes;
           };
         };
@@ -728,6 +730,7 @@ in
             serviceAccountName = "gpu-miner-sa";
             automountServiceAccountToken = false;
             hostNetwork = true;
+            runtimeClassName = "nvidia";
             priorityClassName = "mining-low";
             tolerations = [
               { key = "workstation"; operator = "Exists"; }
@@ -743,37 +746,20 @@ in
               miner = {
                 image = nvidiaBaseImage;
                 imagePullPolicy = "IfNotPresent";
-                command = ["/bin/sh" "-c"];
-                args = [
-                  (downloadAllMiners
-                  + " && RIGEL=$(find /opt/miners -name rigel -type f | head -1)"
-                  + " && exec $RIGEL -a kawpow --coin rvn"
-                  + " -o ${rvnPool}"
-                  + " -u ${rvnWallet}.zephyr-3060ti"
-                  + " -p x -w zephyr-3060ti -d 0"
-                  + " --api-bind 0.0.0.0:4069")
-                ];
-                env = {
-                  _namedlist = true;
-                  LD_LIBRARY_PATH = {
-                    name = "LD_LIBRARY_PATH";
-                    value =
-                      "/run/opengl-driver/lib:/usr/local/cuda-12.1/compat";
-                  };
+                command = ["/bin/sh" "/opt/wrapper/mining-wrapper.sh"];
+                env = mkWrapperEnv {
+                  group = "nvidia";
+                  worker = "zephyr-3060ti";
+                  device = 0;
+                  apiPort = 4069;
+                  gpuProfile = "rtx3060ti";
                 };
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  dev = { mountPath = "/dev"; };
-                  nvidia-libs = {
-                    mountPath = "/run/opengl-driver/lib";
-                    readOnly = true;
-                  };
-                  nix-store = {
-                    mountPath = "/nix/store";
-                    readOnly = true;
-                  };
-                };
+                }
+                // wrapperVolumeMounts
+                // nvidiaVolumeMounts;
                 resources = {
                   requests = {
                     memory = "2Gi";
@@ -788,10 +774,9 @@ in
             };
             volumes = {
               _namedlist = true;
-              dev = { hostPath.path = "/dev"; };
-              nvidia-libs = { hostPath.path = "/run/opengl-driver/lib"; };
-              nix-store = { hostPath.path = "/nix/store"; };
-            };
+            }
+            // wrapperVolumes
+            // nvidiaVolumes;
           };
         };
       };
