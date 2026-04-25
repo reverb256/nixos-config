@@ -78,8 +78,9 @@ in
       TOKEN_SCOPED_COLLECTIONS = "true";
       VECTOR_WEIGHT = "0.7";
       HF_HOME = "/home/j_kro/.cache/huggingface";
+      HF_HUB_OFFLINE = "1";
+      HF_HUB_ENABLE_HF_TRANSFER = "0";
       CURL_CA_BUNDLE = "/nix/store/dq40xbv9srgrmz4zlcl26q8xa5v426pa-nss-cacert-3.121/etc/ssl/certs/ca-bundle.crt";
-      TRANSFORMERS_CACHE = "/home/j_kro/.cache/huggingface";
       MAX_REQUEST_SIZE = "10485760";
       CIRCUIT_BREAKER_ENABLED = "true";
       REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
@@ -595,9 +596,13 @@ in
                     name = "ai-inference-gateway-config";
                     key = "HF_HOME";
                   };
-                  TRANSFORMERS_CACHE.valueFrom.configMapKeyRef = {
+                  HF_HUB_OFFLINE.valueFrom.configMapKeyRef = {
                     name = "ai-inference-gateway-config";
-                    key = "TRANSFORMERS_CACHE";
+                    key = "HF_HUB_OFFLINE";
+                  };
+                  HF_HUB_ENABLE_HF_TRANSFER.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "HF_HUB_ENABLE_HF_TRANSFER";
                   };
                   SSL_CERT_FILE.value = "/nix/store/dq40xbv9srgrmz4zlcl26q8xa5v426pa-nss-cacert-3.121/etc/ssl/certs/ca-bundle.crt";
                   REQUESTS_CA_BUNDLE.value = "/nix/store/dq40xbv9srgrmz4zlcl26q8xa5v426pa-nss-cacert-3.121/etc/ssl/certs/ca-bundle.crt";
