@@ -164,10 +164,6 @@ in
                     name = "LD_LIBRARY_PATH";
                     value = "/run/opengl-driver/lib";
                   };
-                  CUDA_VISIBLE_DEVICES = {
-                    name = "CUDA_VISIBLE_DEVICES";
-                    value = "0";
-                  };
                 };
                 ports = [
                   {
@@ -266,10 +262,6 @@ in
                   LD_LIBRARY_PATH = {
                     name = "LD_LIBRARY_PATH";
                     value = "/run/opengl-driver/lib";
-                  };
-                  CUDA_VISIBLE_DEVICES = {
-                    name = "CUDA_VISIBLE_DEVICES";
-                    value = "1";
                   };
                 };
                 ports = [
@@ -520,10 +512,6 @@ in
                   LD_LIBRARY_PATH = {
                     name = "LD_LIBRARY_PATH";
                     value = "/run/opengl-driver/lib";
-                  };
-                  CUDA_VISIBLE_DEVICES = {
-                    name = "CUDA_VISIBLE_DEVICES";
-                    value = "0";
                   };
                 };
                 ports = [
