@@ -1,236 +1,166 @@
 [
   {
-    "timestamp": "2026-04-22T23:36:39.586Z",
-    "score": 80,
-    "breakdown": {
-      "linesAdded": 258,
-      "linesDeleted": 259,
-      "filesTouched": 3,
-      "testFiles": 0,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 0,
-      "logicLines": 517
-    },
-    "passed": true
-  },
-  {
-    "timestamp": "2026-04-22T23:36:48.078Z",
-    "score": 80,
-    "breakdown": {
-      "linesAdded": 274,
-      "linesDeleted": 275,
-      "filesTouched": 3,
-      "testFiles": 0,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 0,
-      "logicLines": 549
-    },
-    "passed": true
-  },
-  {
-    "timestamp": "2026-04-22T23:41:48.597Z",
-    "score": 80,
-    "breakdown": {
-      "linesAdded": 291,
-      "linesDeleted": 292,
-      "filesTouched": 4,
-      "testFiles": 0,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 0,
-      "logicLines": 583
-    },
-    "passed": true
-  },
-  {
-    "timestamp": "2026-04-22T23:43:58.861Z",
-    "score": 80,
-    "breakdown": {
-      "linesAdded": 306,
-      "linesDeleted": 307,
-      "filesTouched": 3,
-      "testFiles": 0,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 0,
-      "logicLines": 613
-    },
-    "passed": true
-  },
-  {
-    "timestamp": "2026-04-22T23:44:24.828Z",
-    "score": 80,
-    "breakdown": {
-      "linesAdded": 323,
-      "linesDeleted": 324,
-      "filesTouched": 4,
-      "testFiles": 0,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 0,
-      "logicLines": 647
-    },
-    "passed": true
-  },
-  {
-    "timestamp": "2026-04-22T23:45:01.227Z",
-    "score": 80,
-    "breakdown": {
-      "linesAdded": 697,
-      "linesDeleted": 692,
-      "filesTouched": 5,
-      "testFiles": 0,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 4,
-      "logicLines": 1385
-    },
-    "passed": true
-  },
-  {
-    "timestamp": "2026-04-23T21:39:46.952Z",
-    "score": 96,
-    "breakdown": {
-      "linesAdded": 60,
-      "linesDeleted": 60,
-      "filesTouched": 2,
-      "testFiles": 0,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 2,
-      "logicLines": 118
-    },
-    "passed": true
-  },
-  {
-    "timestamp": "2026-04-23T21:39:56.576Z",
-    "score": 85,
-    "breakdown": {
-      "linesAdded": 82,
-      "linesDeleted": 93,
-      "filesTouched": 3,
-      "testFiles": 0,
-      "sourceFiles": 0,
-      "testToCodeRatio": 0,
-      "conventionCompliance": 0,
-      "mixedFormattingLines": 2,
-      "logicLines": 173
-    },
-    "passed": true
-  },
-  {
-    "score": 85,
-    "timestamp": 1777021569.7229269,
-    "files_touched": 4,
-    "lines_added": 46,
-    "lines_deleted": 8,
-    "penalties": [
-      "No tests for code changes: -15"
-    ]
-  },
-  {
-    "score": 75,
-    "timestamp": 1777022722.4764872,
-    "files_touched": 9,
-    "lines_added": 84,
-    "lines_deleted": 1324,
-    "penalties": [
-      "Too many files (9): -10",
-      "No tests for code changes: -15"
-    ]
-  },
-  {
-    "score": 75,
-    "timestamp": 1777023554.222867,
-    "files_touched": 9,
-    "lines_added": 48,
-    "lines_deleted": 1340,
-    "penalties": [
-      "Too many files (9): -10",
-      "No tests for code changes: -15"
-    ]
-  },
-  {
     "score": 100,
-    "timestamp": 1777072158.323038,
+    "timestamp": 1777078189.8087661,
     "files_touched": 1,
-    "lines_added": 2,
-    "lines_deleted": 2,
+    "lines_added": 107,
+    "lines_deleted": 165,
     "penalties": []
   },
   {
     "score": 100,
-    "timestamp": 1777072166.1753118,
-    "files_touched": 2,
-    "lines_added": 10,
-    "lines_deleted": 18,
+    "timestamp": 1777078254.7156782,
+    "files_touched": 1,
+    "lines_added": 107,
+    "lines_deleted": 173,
     "penalties": []
   },
   {
     "score": 100,
-    "timestamp": 1777072183.388087,
-    "files_touched": 2,
-    "lines_added": 18,
-    "lines_deleted": 34,
+    "timestamp": 1777078307.1658452,
+    "files_touched": 1,
+    "lines_added": 119,
+    "lines_deleted": 193,
     "penalties": []
   },
   {
     "score": 100,
-    "timestamp": 1777072263.1567626,
-    "files_touched": 2,
-    "lines_added": 26,
-    "lines_deleted": 50,
+    "timestamp": 1777078377.1044517,
+    "files_touched": 1,
+    "lines_added": 119,
+    "lines_deleted": 195,
     "penalties": []
   },
   {
     "score": 100,
-    "timestamp": 1777072290.75465,
-    "files_touched": 2,
-    "lines_added": 34,
-    "lines_deleted": 66,
+    "timestamp": 1777078426.5618913,
+    "files_touched": 1,
+    "lines_added": 119,
+    "lines_deleted": 195,
     "penalties": []
   },
   {
     "score": 100,
-    "timestamp": 1777072795.4640126,
-    "files_touched": 2,
-    "lines_added": 42,
-    "lines_deleted": 82,
+    "timestamp": 1777078467.4741104,
+    "files_touched": 1,
+    "lines_added": 119,
+    "lines_deleted": 195,
     "penalties": []
   },
   {
     "score": 100,
-    "timestamp": 1777074358.5669448,
-    "files_touched": 2,
-    "lines_added": 50,
-    "lines_deleted": 98,
+    "timestamp": 1777078618.9357686,
+    "files_touched": 1,
+    "lines_added": 119,
+    "lines_deleted": 195,
+    "penalties": []
+  },
+  {
+    "score": 100,
+    "timestamp": 1777078755.0013793,
+    "files_touched": 1,
+    "lines_added": 119,
+    "lines_deleted": 195,
+    "penalties": []
+  },
+  {
+    "score": 100,
+    "timestamp": 1777078843.8379786,
+    "files_touched": 1,
+    "lines_added": 119,
+    "lines_deleted": 195,
+    "penalties": []
+  },
+  {
+    "score": 100,
+    "timestamp": 1777079055.1953566,
+    "files_touched": 1,
+    "lines_added": 119,
+    "lines_deleted": 195,
+    "penalties": []
+  },
+  {
+    "score": 100,
+    "timestamp": 1777079187.10575,
+    "files_touched": 1,
+    "lines_added": 119,
+    "lines_deleted": 195,
+    "penalties": []
+  },
+  {
+    "score": 100,
+    "timestamp": 1777081118.5521665,
+    "files_touched": 1,
+    "lines_added": 119,
+    "lines_deleted": 195,
+    "penalties": []
+  },
+  {
+    "score": 100,
+    "timestamp": 1777081549.3138676,
+    "files_touched": 1,
+    "lines_added": 119,
+    "lines_deleted": 195,
+    "penalties": []
+  },
+  {
+    "score": 100,
+    "timestamp": 1777083104.1949797,
+    "files_touched": 1,
+    "lines_added": 119,
+    "lines_deleted": 195,
+    "penalties": []
+  },
+  {
+    "score": 100,
+    "timestamp": 1777083122.8908346,
+    "files_touched": 1,
+    "lines_added": 119,
+    "lines_deleted": 195,
     "penalties": []
   },
   {
     "score": 85,
-    "timestamp": 1777074477.7179022,
-    "files_touched": 5,
-    "lines_added": 787,
-    "lines_deleted": 578,
+    "timestamp": 1777084735.726257,
+    "files_touched": 2,
+    "lines_added": 123,
+    "lines_deleted": 210,
     "penalties": [
       "No tests for code changes: -15"
     ]
   },
   {
     "score": 85,
-    "timestamp": 1777075562.8263173,
-    "files_touched": 5,
-    "lines_added": 796,
-    "lines_deleted": 592,
+    "timestamp": 1777084752.4545722,
+    "files_touched": 2,
+    "lines_added": 121,
+    "lines_deleted": 206,
+    "penalties": [
+      "No tests for code changes: -15"
+    ]
+  },
+  {
+    "score": 100,
+    "timestamp": 1777085657.9612975,
+    "files_touched": 1,
+    "lines_added": 115,
+    "lines_deleted": 187,
+    "penalties": []
+  },
+  {
+    "score": 100,
+    "timestamp": 1777085742.1219037,
+    "files_touched": 1,
+    "lines_added": 115,
+    "lines_deleted": 187,
+    "penalties": []
+  },
+  {
+    "score": 85,
+    "timestamp": 1777085765.6099086,
+    "files_touched": 2,
+    "lines_added": 116,
+    "lines_deleted": 193,
     "penalties": [
       "No tests for code changes: -15"
     ]
