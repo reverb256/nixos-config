@@ -6,10 +6,33 @@
   ...
 }:
 let
-  lolminerImage = "docker.io/swamp7/lolminer:latest";
-  lolminerAmdImage = "docker.io/library/lolminer-amd:1.98a-nixos";
-  rigelImage = "docker.io/swamp7/bzminer:latest";
-  teamredminerImage = "docker.io/swamp7/teamredminer:latest";
+  # Base OS images (provide /bin/sh, wget, tar)
+  nvidiaBaseImage = "docker.io/swamp7/bzminer:latest";
+  amdBaseImage = "docker.io/swamp7/teamredminer:latest";
+
+  # All Kryptex-hosted miner binaries (profit switching compatible)
+  minerUrls = {
+    rigel = "https://github.com/kryptex-miners-org/kryptex-miners/releases/download/rigel-1-23-2/rigel-1.23.2-linux.tar.gz";
+    srbminer = "https://github.com/kryptex-miners-org/kryptex-miners/releases/download/srbminer-3-2-6/SRBMiner-Multi-3-2-6-Linux.tar.gz";
+    bzminer = "https://github.com/kryptex-miners-org/kryptex-miners/releases/download/bzminer-24-0-1/bzminer_v24.0.1_linux.tar.gz";
+    onezerominer = "https://github.com/kryptex-miners-org/kryptex-miners/releases/download/onezerominer-1-7-4/onezerominer-1.7.4.tar.gz";
+    lolminer = "https://github.com/kryptex-miners-org/kryptex-miners/releases/download/lolminer-1-98a/lolMiner_v1.98a_Lin64.tar.gz";
+  };
+
+  # Download all miners to /opt/miners/ for profit switching
+  downloadAllMiners = ''
+    echo "Downloading all miners for profit switching..."
+    mkdir -p /opt/miners
+  '' + lib.concatStrings (lib.mapAttrsToList (name: url: ''
+    wget -qO /tmp/${name}.tar.gz ${url} \
+      && tar xzf /tmp/${name}.tar.gz -C /opt/miners/ \
+      && find /opt/miners -name "${name}" -o -name "${name}.*" | head -5 \
+      && echo "${name} extracted OK" \
+      || echo "WARNING: ${name} download failed"
+  '') minerUrls) + ''
+    find /opt/miners -type f -executable -exec chmod +x {} \;
+    echo "All miners available in /opt/miners/"
+  '';
 
   openclIcd = "${pkgs.rocmPackages.clr}/etc/OpenCL/vendors";
 
@@ -145,13 +168,11 @@ in
             containers = {
               _namedlist = true;
               miner = {
-                image = rigelImage;
+                image = nvidiaBaseImage;
                 command = ["/bin/sh" "-c"];
                 args = [
-                  ("wget -qO /tmp/rigel.tar.gz https://github.com/kryptex-miners-org/kryptex-miners/releases/download/rigel-1-23-2/rigel-1.23.2-linux.tar.gz"
-                  + " && tar xzf /tmp/rigel.tar.gz -C /tmp/"
-                  + " && RIGEL=$(find /tmp -name rigel -type f | head -1)"
-                  + " && chmod +x $RIGEL"
+                  (downloadAllMiners
+                  + " && RIGEL=$(find /opt/miners -name rigel -type f | head -1)"
                   + " && exec $RIGEL -a kawpow --coin rvn"
                   + " -o ${rvnPool}"
                   + " -u ${rvnWallet}.forge-n0"
@@ -244,13 +265,11 @@ in
             containers = {
               _namedlist = true;
               miner = {
-                image = rigelImage;
+                image = nvidiaBaseImage;
                 command = ["/bin/sh" "-c"];
                 args = [
-                  ("wget -qO /tmp/rigel.tar.gz https://github.com/kryptex-miners-org/kryptex-miners/releases/download/rigel-1-23-2/rigel-1.23.2-linux.tar.gz"
-                  + " && tar xzf /tmp/rigel.tar.gz -C /tmp/"
-                  + " && RIGEL=$(find /tmp -name rigel -type f | head -1)"
-                  + " && chmod +x $RIGEL"
+                  (downloadAllMiners
+                  + " && RIGEL=$(find /opt/miners -name rigel -type f | head -1)"
                   + " && exec $RIGEL -a kawpow --coin rvn"
                   + " -o ${rvnPool}"
                   + " -u ${rvnWallet}.forge-n1"
@@ -328,7 +347,7 @@ in
             containers = {
               _namedlist = true;
               teamredminer = {
-                image = teamredminerImage;
+                image = amdBaseImage;
                 args = [
                   "-a" "kawpow"
                   "-o" rvnPool
@@ -402,7 +421,7 @@ in
             containers = {
               _namedlist = true;
               teamredminer = {
-                image = teamredminerImage;
+                image = amdBaseImage;
                 args = [
                   "-a" "kawpow"
                   "-o" rvnPool
@@ -494,13 +513,11 @@ in
             containers = {
               _namedlist = true;
               miner = {
-                image = rigelImage;
+                image = nvidiaBaseImage;
                 command = ["/bin/sh" "-c"];
                 args = [
-                  ("wget -qO /tmp/rigel.tar.gz https://github.com/kryptex-miners-org/kryptex-miners/releases/download/rigel-1-23-2/rigel-1.23.2-linux.tar.gz"
-                  + " && tar xzf /tmp/rigel.tar.gz -C /tmp/"
-                  + " && RIGEL=$(find /tmp -name rigel -type f | head -1)"
-                  + " && chmod +x $RIGEL"
+                  (downloadAllMiners
+                  + " && RIGEL=$(find /opt/miners -name rigel -type f | head -1)"
                   + " && exec $RIGEL -a kawpow --coin rvn"
                   + " -o ${rvnPool}"
                   + " -u ${rvnWallet}.nexus-gpu"
@@ -609,18 +626,17 @@ in
             containers = {
               _namedlist = true;
               lolminer = {
-                image = lolminerImage;
+                image = nvidiaBaseImage;
                 imagePullPolicy = "IfNotPresent";
+                command = ["/bin/sh" "-c"];
                 args = [
-                  "--algo=CFX"
-                  "--pool=cfx-us.kryptex.network:8027"
-                  "--user=krxXVNVMM7.zephyr-3090"
-                  "--pass=x"
-                  "--tls=1"
-                  "--devices=1"
-                  "--pl=250"
-                  "--moff=1300"
-                  "--apiport=4068"
+                  (downloadAllMiners
+                  + " && LOLMINER=$(find /opt/miners -name lolMiner -type f | head -1)"
+                  + " && exec $LOLMINER --algo=CFX"
+                  + " --pool=cfx-us.kryptex.network:8027"
+                  + " --user=krxXVNVMM7.zephyr-3090"
+                  + " --pass=x --tls=1 --devices=1"
+                  + " --pl=250 --moff=1300 --apiport=4068")
                 ];
                 env = {
                   _namedlist = true;
@@ -712,14 +728,12 @@ in
             containers = {
               _namedlist = true;
               miner = {
-                image = rigelImage;
+                image = nvidiaBaseImage;
                 imagePullPolicy = "IfNotPresent";
                 command = ["/bin/sh" "-c"];
                 args = [
-                  ("wget -qO /tmp/rigel.tar.gz https://github.com/kryptex-miners-org/kryptex-miners/releases/download/rigel-1-23-2/rigel-1.23.2-linux.tar.gz"
-                  + " && tar xzf /tmp/rigel.tar.gz -C /tmp/"
-                  + " && RIGEL=$(find /tmp -name rigel -type f | head -1)"
-                  + " && chmod +x $RIGEL"
+                  (downloadAllMiners
+                  + " && RIGEL=$(find /opt/miners -name rigel -type f | head -1)"
                   + " && exec $RIGEL -a kawpow --coin rvn"
                   + " -o ${rvnPool}"
                   + " -u ${rvnWallet}.zephyr-3060ti"
