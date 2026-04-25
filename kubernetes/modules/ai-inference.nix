@@ -25,7 +25,6 @@ in
     ServiceAccount.ai-inference-gateway = { };
     ServiceAccount.open-webui = { };
     ServiceAccount.prometheus = { };
-    ServiceAccount.searxng-mcp = { };
     ServiceAccount.n8n-sa.automountServiceAccountToken = false;
 
     ConfigMap.ai-gateway-config.data = {
@@ -51,7 +50,7 @@ in
     ConfigMap.ai-inference-gateway-config.data = {
       AUTH_MODE = "api-key";
       BACKEND_TYPE = "llama-cpp";
-      BACKEND_URL = "http://llama-server-zephyr.ai-inference.svc.cluster.local:1235";
+      BACKEND_URL = "http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236";
       BACKEND_FALLBACK_URLS = "http://llama-server-sentry.ai-inference.svc.cluster.local:1235,http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236,https://api.z.ai/api/coding/paas/v4";
       DEFAULT_MODEL = "Qwen3.6-35B-A3B-UD-IQ3_S.gguf";
       GATEWAY_HOST = "0.0.0.0";
@@ -67,7 +66,7 @@ in
       RAG_TOP_K = "10";
       HYBRID_SEARCH_ENABLED = "true";
       EMBEDDING_MODEL = "BidirLM/BidirLM-Omni-2.5B-Embedding";
-      EMBEDDING_DEVICE = "cpu";
+      EMBEDDING_DEVICE = "cuda";
       EMBEDDING_DIMENSIONS = "2048";
       EMBEDDING_TRUST_REMOTE_CODE = "true";
       BM25_WEIGHT = "0.3";
@@ -122,11 +121,6 @@ in
                 app: llamacpp
                 component: inference
     '';
-
-    ConfigMap.searxng-mcp-config.data = {
-      SEARXNG_CACHE_TTL = "300";
-      SEARXNG_URL = "http://searxng-refactored.search.svc.cluster.local:8080";
-    };
 
     Deployment.open-webui = {
       metadata.labels.app = "open-webui";
@@ -1287,141 +1281,6 @@ in
             port = 6379;
             targetPort = 6379;
             name = "redis";
-          }
-        ];
-      };
-    };
-
-    # ── SearXNG MCP Server ───────────────────────────────────────
-    Deployment.searxng-mcp = {
-      metadata.labels.app = "searxng-mcp";
-      spec = {
-        replicas = 1;
-        selector.matchLabels.app = "searxng-mcp";
-        template = {
-          metadata.labels.app = "searxng-mcp";
-          spec = {
-            serviceAccountName = "searxng-mcp";
-            securityContext = {
-              runAsNonRoot = true;
-              runAsUser = 1000;
-              fsGroup = 1000;
-            };
-            nodeSelector."kubernetes.io/hostname" = "nexus";
-            containers = [
-              {
-                name = "searxng-mcp";
-                image = scratchImage;
-                imagePullPolicy = "IfNotPresent";
-                command = [
-                  "python"
-                  "-m"
-                  "ai_inference_gateway.mcp_servers.searxng_server"
-                ];
-                env = [
-                  {
-                    name = "SEARXNG_URL";
-                    valueFrom.configMapKeyRef = {
-                      name = "searxng-mcp-config";
-                      key = "SEARXNG_URL";
-                    };
-                  }
-                  {
-                    name = "SEARXNG_CACHE_TTL";
-                    valueFrom.configMapKeyRef = {
-                      name = "searxng-mcp-config";
-                      key = "SEARXNG_CACHE_TTL";
-                    };
-                  }
-                ];
-                resources = {
-                  requests = {
-                    cpu = "100m";
-                    memory = "128Mi";
-                  };
-                  limits = {
-                    cpu = "500m";
-                    memory = "512Mi";
-                  };
-                };
-                livenessProbe = {
-                  httpGet = {
-                    path = "/health";
-                    port = 3000;
-                  };
-                  initialDelaySeconds = 10;
-                  periodSeconds = 30;
-                };
-                readinessProbe = {
-                  httpGet = {
-                    path = "/health";
-                    port = 3000;
-                  };
-                  initialDelaySeconds = 5;
-                  periodSeconds = 10;
-                };
-                volumeMounts = [
-                  {
-                    name = "tmp";
-                    mountPath = "/tmp";
-                  }
-                ];
-                securityContext = {
-                  allowPrivilegeEscalation = false;
-                  capabilities.drop = [ "ALL" ];
-                  readOnlyRootFilesystem = true;
-                };
-              }
-            ];
-            volumes = [
-              {
-                name = "tmp";
-                emptyDir = {};
-              }
-            ];
-          };
-        };
-      };
-    };
-
-    Service.searxng-mcp = {
-      metadata.labels.app = "searxng-mcp";
-      spec = {
-        type = "ClusterIP";
-        selector.app = "searxng-mcp";
-        ports = [
-          {
-            name = "mcp";
-            protocol = "TCP";
-            port = 3000;
-            targetPort = 3000;
-          }
-        ];
-      };
-    };
-
-    NetworkPolicy.searxng-mcp-egress = {
-      spec = {
-        podSelector.matchLabels.app = "searxng-mcp";
-        policyTypes = [ "Egress" ];
-        egress = [
-          {
-            to = [ { namespaceSelector.matchLabels.name = "kube-system"; } ];
-            ports = [
-              {
-                protocol = "UDP";
-                port = 53;
-              }
-            ];
-          }
-          {
-            to = [ { namespaceSelector.matchLabels.name = "search"; } ];
-            ports = [
-              {
-                protocol = "TCP";
-                port = 8080;
-              }
-            ];
           }
         ];
       };
