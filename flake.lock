@@ -1073,11 +1073,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1776795482,
-        "narHash": "sha256-yNH/4+KDwyYU/Krbj7XC2v+r+UVD1ByZ5N87iK6kOso=",
+        "lastModified": 1777119801,
+        "narHash": "sha256-MdgUKr8ZQ7DuU+pDl+N+lfUel2z8Py7djJGFgO77jlY=",
         "owner": "reverb256",
         "repo": "llama-cpp-turboquant",
-        "rev": "1818bd47996da5e26edc1ac5b1a9b2543f36ff71",
+        "rev": "8457f8f9f00924e3774a3d4e707f7700b8c3ec80",
         "type": "github"
       },
       "original": {
