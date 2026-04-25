@@ -120,28 +120,13 @@ in
       enable = true;
       inherit (cfg) role nodeName;
 
-      # k3s agent mode re-execs itself via /proc/self/exe as "k3s-agent",
-      # but the Nix package doesn't ship that name. We must copy the real
-      # Go binary (.k3s-wrapped) directly — NOT the C wrapper — so that
-      # /proc/self/exe resolves to our $out/bin/ where both "k3s" and
-      # "k3s-agent" exist as copies of the same binary.
-      # The C wrapper is skipped because: (1) it has a hardcoded path to
-      # .k3s-wrapped in the raw package dir, breaking /proc/self/exe, and
-      # (2) systemd already sets PATH for the service.
-      package = pkgs.runCommand "k3s-with-agent-symlink" {} ''
-        mkdir -p $out/bin
-        # Copy the real Go binary as both k3s and k3s-agent
-        cp ${pkgs.k3s_1_34}/bin/.k3s-wrapped $out/bin/k3s
-        cp ${pkgs.k3s_1_34}/bin/.k3s-wrapped $out/bin/k3s-agent
-        chmod +x $out/bin/k3s $out/bin/k3s-agent
-        # Symlink any other binaries from the package (kubectl, crictl, etc.)
-        for f in ${pkgs.k3s_1_34}/bin/*; do
-          local name=$(basename "$f")
-          if [ "$name" != ".k3s-wrapped" ] && [ "$name" != "k3s" ] && [ ! -e "$out/bin/$name" ]; then
-            ln -sf "$f" "$out/bin/$name"
-          fi
-        done
-      '';
+      # Use the default k3s package from nixpkgs.
+      # The upstream NixOS k3s module (rancher/default.nix) supports both
+      # server and agent roles with the default package. k3s agent mode will
+      # attempt to find a "k3s-agent" binary for process renaming, but handles
+      # the missing binary gracefully — it just continues running as "k3s".
+      # Previous custom wrappers that provided k3s-agent caused infinite
+      # re-exec loops (argv[0] mismatch → E2BIG).
 
       clusterInit = if isServer then cfg.clusterInit else false;
 
