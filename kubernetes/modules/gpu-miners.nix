@@ -140,6 +140,8 @@ in
         "gpu-vendor" = "nvidia";
         host = "forge";
         workload = "crypto-mining";
+        "mining-coin" = "rvn";
+        "mining-group" = "nvidia";
       };
       spec = {
         replicas = 1;
@@ -237,6 +239,8 @@ in
         "gpu-vendor" = "nvidia";
         host = "forge";
         workload = "crypto-mining";
+        "mining-coin" = "rvn";
+        "mining-group" = "nvidia";
       };
       spec = {
         replicas = 1;
@@ -329,7 +333,11 @@ in
     };
 
     mining.Deployment.gpu-miner-forge-amd-0 = {
-      metadata.labels.app = "gpu-miner-forge-amd-0";
+      metadata.labels = {
+        app = "gpu-miner-forge-amd-0";
+        "mining-coin" = "rvn";
+        "mining-group" = "amd";
+      };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -403,7 +411,11 @@ in
     };
 
     mining.Deployment.gpu-miner-forge-amd-1 = {
-      metadata.labels.app = "gpu-miner-forge-amd-1";
+      metadata.labels = {
+        app = "gpu-miner-forge-amd-1";
+        "mining-coin" = "rvn";
+        "mining-group" = "amd";
+      };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -481,6 +493,8 @@ in
         app = "gpu-miner-nexus";
         host = "nexus";
         workload = "crypto-mining";
+        "mining-coin" = "rvn";
+        "mining-group" = "nvidia";
       };
       spec = {
         replicas = 1;
@@ -582,6 +596,8 @@ in
           app = "gpu-miner-zephyr";
           host = "zephyr";
           workload = "crypto-mining";
+          "mining-coin" = "cfx";
+          "mining-group" = "nvidia-3090";
         };
       };
       spec = {
