@@ -105,6 +105,13 @@
   # nix-mineral's non-absolute modulePath 'login'
   # nix-mineral = { enable = true; preset = [ 'default' 'performance' ]; };
 
+  # Override noexec on /var (nix-mineral remnant) for k3s re-exec
+  fileSystems."/var/lib/rancher/k3s" = {
+    device = "/var/lib/rancher/k3s";
+    fsType = "none";
+    options = [ "bind" "rw" "nosuid" ];
+  };
+
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
 }
