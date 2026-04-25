@@ -41,7 +41,7 @@ in
       AUTO_RAG_ENABLED = "true";
       EMBEDDING_MODEL = "BidirLM/BidirLM-Omni-2.5B-Embedding";
       EMBEDDING_DEVICE = "cpu"; # nexus GPU occupied by lolMiner
-      EMBEDDING_DIMENSIONS = "2048";
+      EMBEDDING_DIMENSIONS = "384";
       EMBEDDING_TRUST_REMOTE_CODE = "true";
       BM25_WEIGHT = "0.300000";
       CHUNK_OVERLAP = "50";
@@ -68,7 +68,7 @@ in
       HYBRID_SEARCH_ENABLED = "true";
       EMBEDDING_MODEL = "BidirLM/BidirLM-Omni-2.5B-Embedding";
       EMBEDDING_DEVICE = "cpu";
-      EMBEDDING_DIMENSIONS = "2048";
+      EMBEDDING_DIMENSIONS = "384";
       EMBEDDING_TRUST_REMOTE_CODE = "true";
       BM25_WEIGHT = "0.3";
       CHUNK_OVERLAP = "50";
@@ -362,6 +362,37 @@ in
       ];
     };
 
+    # Gateway needs ConfigMap access for GPU scheduler state (gpu_scheduler.py writes to kube-system)
+    ClusterRole.ai-inference-gateway-configmap.rules = [
+      {
+        apiGroups = [ "" ];
+        resources = [ "configmaps" ];
+        verbs = [
+          "get"
+          "list"
+          "watch"
+          "create"
+          "update"
+          "patch"
+        ];
+      }
+    ];
+
+    ClusterRoleBinding.ai-inference-gateway-configmap = {
+      roleRef = {
+        apiGroup = "rbac.authorization.k8s.io";
+        kind = "ClusterRole";
+        name = "ai-inference-gateway-configmap";
+      };
+      subjects = [
+        {
+          kind = "ServiceAccount";
+          name = "ai-inference-gateway";
+          namespace = "ai-inference";
+        }
+      ];
+    };
+
     # ── AI Inference Gateway ──────────────────────────────────────
     # Runs as systemd service on nexus (10.1.1.120:8080).
     # Exposed to K8s via Endpoints so pods can reach it at:
@@ -463,7 +494,7 @@ in
             nodeName = "nexus"; # Primary server with GPU
             hostNetwork = true; # Allow Hermes on zephyr to reach gateway via nexus.lan:8080
             serviceAccountName = "ai-inference-gateway";
-            automountServiceAccountToken = false;
+            automountServiceAccountToken = true; # needed by gpu_scheduler.py kubectl calls
             containers = {
               _namedlist = true;
               ai-gateway = {
@@ -565,9 +596,12 @@ in
                   };
                   USER.value = "nobody";
                   HOME.value = "/tmp";
-                  KUBECONFIG.value = "/etc/rancher/k3s/k3s.yaml";
                   PYTHONPATH.value = gatewaySitePackages;
                   PATH.value = "${lib.getBin pkgs.kubectl}:/usr/bin:/bin";
+                  SEARXNG_URL.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL";
+                  };
                   ZAI_API_KEY.valueFrom.secretKeyRef = {
                     name = "zai-api-key";
                     key = "ZAI_API_KEY";
@@ -615,11 +649,11 @@ in
                 resources = {
                   requests = {
                     cpu = "500m";
-                    memory = "512Mi";
+                    memory = "768Mi";
                   };
                   limits = {
                     cpu = "2000m";
-                    memory = "2Gi";
+                    memory = "3Gi";
                   };
                 };
                 livenessProbe = {
@@ -629,6 +663,7 @@ in
                   };
                   initialDelaySeconds = 30;
                   periodSeconds = 30;
+                  timeoutSeconds = 5;
                   failureThreshold = 3;
                 };
                 readinessProbe = {
@@ -638,6 +673,7 @@ in
                   };
                   initialDelaySeconds = 10;
                   periodSeconds = 10;
+                  timeoutSeconds = 3;
                   failureThreshold = 3;
                 };
                 volumeMounts = {
@@ -649,10 +685,6 @@ in
                   "hf-cache" = {
                     mountPath = "/var/cache/ai-inference";
                   };
-                  kubeconfig = {
-                    mountPath = "/etc/rancher/k3s/k3s.yaml";
-                    readOnly = true;
-                  };
                 };
               };
             };
@@ -663,10 +695,6 @@ in
                 type = "Directory";
               };
               hf-cache.emptyDir = { };
-              kubeconfig.hostPath = {
-                path = "/etc/rancher/k3s/k3s.yaml";
-                type = "File";
-              };
             };
           };
         };
