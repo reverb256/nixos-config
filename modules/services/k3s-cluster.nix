@@ -133,6 +133,11 @@ in
         if [ ! -e "$out/bin/k3s-agent" ]; then
           ln -sf ${pkgs.k3s_1_34}/bin/.k3s-wrapped "$out/bin/k3s-agent"
         fi
+        # Copy the actual binary (not symlink) so /proc/self/exe resolves to $out/bin,
+        # where the k3s-agent symlink exists. Without this, k3s resolves its own
+        # path to the raw package dir which lacks k3s-agent.
+        rm $out/bin/k3s
+        cp ${pkgs.k3s_1_34}/bin/k3s $out/bin/k3s
       '';
 
       clusterInit = if isServer then cfg.clusterInit else false;
