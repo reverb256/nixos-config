@@ -4,8 +4,15 @@
   lib,
   inputs,
   ...
-}: {
+}:
+{
   services = {
+    voxtype = {
+      enable = true;
+      model = "base.en";
+      language = "en";
+    };
+
     hermes-cli = {
       enable = true;
       apiKeyFile = config.age.secrets.zai-api-key.path;
@@ -21,7 +28,6 @@
       calico.enable = false;
     };
 
-
     keepalived-vip = {
       enable = true;
       vip = "10.1.1.100";
@@ -29,10 +35,9 @@
       priority = 110;
     };
 
-
     backup-to-garage = {
       enable = true;
-      endpoint = "http://10.1.1.110:3900";  # zephyr cluster host
+      endpoint = "http://10.1.1.110:3900"; # zephyr cluster host
       region = "garage";
       bucket = "backups";
       secretKeyFile = "/run/agenix/garage-s3-secret-key";
@@ -237,7 +242,7 @@
       '';
     };
 
-    redis.servers."".enable = false;  # 0 keys, 1 client — unused, frees RAM on OOM-constrained host
+    redis.servers."".enable = false; # 0 keys, 1 client — unused, frees RAM on OOM-constrained host
 
     ai-inference = {
       enable = true;
@@ -327,7 +332,7 @@
           nix-rebuild = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
               "/etc/nixos/skills/nix-rebuild-mcp/server.py"
             ];
             environment.NIX_HOST = "zephyr";
@@ -337,15 +342,15 @@
           add-service = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
               "/etc/nixos/skills/add-service-mcp/server.py"
             ];
-            environment = {};
+            environment = { };
             enabled = true;
           };
           context7 = {
             type = "local";
-            command = ["/run/current-system/sw/bin/mcp-context7"];
+            command = [ "/run/current-system/sw/bin/mcp-context7" ];
             environment.CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
             enabled = true;
           };
@@ -357,7 +362,7 @@
               "ai_inference_gateway.mcp_servers.searxng_server"
             ];
             environment = {
-              SEARXNG_URL = "http://10.1.1.120:30888";  # NodePort — K8s internal DNS unreachable from host
+              SEARXNG_URL = "http://10.1.1.120:30888"; # NodePort — K8s internal DNS unreachable from host
               SEARXNG_CACHE_TTL = "300";
             };
             enabled = true;
@@ -446,12 +451,12 @@
         ];
       };
       lolminer.nvidia = {
-        enable = false;  # Use K8s deployment gpu-miner-zephyr instead (coordinated with gaming/inference)
+        enable = false; # Use K8s deployment gpu-miner-zephyr instead (coordinated with gaming/inference)
         autostart = false;
         devices = "1"; # RTX 3090 only (3060 Ti idle for power envelope)
         perGpuPowerLimits = [
-          0    # unused
-          250  # RTX 3090
+          0 # unused
+          250 # RTX 3090
         ];
         apiPort = 4068;
       };
@@ -497,7 +502,6 @@
 
     cluster-ca.enable = true;
 
-
     claude-code-router = {
       enable = true;
       port = 3456;
@@ -531,7 +535,6 @@
     enableThinking = false;
   };
 
-
   programs = {
 
     haven-desktop.enable = true;
@@ -557,7 +560,7 @@
   };
 
   age = {
-    identityPaths = ["/home/j_kro/.age/key.txt"];
+    identityPaths = [ "/home/j_kro/.age/key.txt" ];
     secrets.cloudflared-token = lib.mkForce {
       file = "${inputs.self}/secrets/cloudflared-token.age";
       mode = "400";
