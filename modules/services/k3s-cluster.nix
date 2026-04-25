@@ -120,7 +120,20 @@ in
       enable = true;
       inherit (cfg) role nodeName;
 
-      package = pkgs.k3s_1_34;
+      # k3s agent mode re-execs itself as "k3s-agent" but the Nix package
+      # doesn't ship that symlink. Create a wrapper that includes it.
+      package = pkgs.runCommand "k3s-with-agent-symlink" {
+        nativeBuildInputs = [ pkgs.makeWrapper ];
+      } ''
+        mkdir -p $out/bin
+        for f in ${pkgs.k3s_1_34}/bin/*; do
+          ln -sf "$f" "$out/bin/$(basename "$f")"
+        done
+        # Add the missing k3s-agent symlink (same binary, different name)
+        if [ ! -e "$out/bin/k3s-agent" ]; then
+          ln -sf ${pkgs.k3s_1_34}/bin/.k3s-wrapped "$out/bin/k3s-agent"
+        fi
+      '';
 
       clusterInit = if isServer then cfg.clusterInit else false;
 
