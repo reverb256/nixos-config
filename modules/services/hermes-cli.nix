@@ -124,6 +124,9 @@ in
           zai:
             base_url: https://api.z.ai/api/coding/paas/v4
             api_key_env: ZAI_API_KEY
+          nvidia-nim:
+            base_url: https://integrate.api.nvidia.com/v1
+            api_key_env: NVIDIA_API_KEY
           llama-cpp-zephyr:
             base_url: http://llama-server-zephyr.ai-inference.svc.cluster.local:1235/v1
             api_key: unused
@@ -134,6 +137,7 @@ in
         fallback_providers:
           - ai-gateway
           - zai
+          - nvidia-nim
           - llama-cpp-zephyr
           - llama-cpp-sentry
 

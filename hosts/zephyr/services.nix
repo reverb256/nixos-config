@@ -64,7 +64,7 @@
 
     mining-inference-coordinator = {
       enable = true;
-      llamaPort = 1237;
+      llamaPort = 1235;  # monitor zephyr llama-server (3090 model)
       primaryMiner = "deployment/gpu-miner-zephyr";
       fallbackMiner = "";
       namespace = "mining";

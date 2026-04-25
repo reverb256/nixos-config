@@ -8,6 +8,8 @@
 let
   lolminerImage = "docker.io/swamp7/lolminer:latest";
   lolminerAmdImage = "docker.io/library/lolminer-amd:1.98a-nixos";
+  bzminerImage = "docker.io/swamp7/bzminer:latest";
+  teamredminerImage = "docker.io/swamp7/teamredminer:latest";
 
   openclIcd = "${pkgs.rocmPackages.clr}/etc/OpenCL/vendors";
 
@@ -103,11 +105,8 @@ let
     };
   };
 
-  commonArgs = [
-    "--algo=RVN"
-    "--pool=rvn-us.kryptex.network:8031"
-    "--tls=1"
-  ];
+  rvnPool = "stratum+tcp://rvn-us.kryptex.network:8031";
+  rvnWallet = "krxXVNVMM7";
 in
 {
   config.kubernetes.objects = {
@@ -144,16 +143,14 @@ in
             terminationGracePeriodSeconds = 30;
             containers = {
               _namedlist = true;
-              lolminer = {
-                image = lolminerImage;
-                args = commonArgs ++ [
-                  "--user=krxXVNVMM7.forge-n0"
-                  "--pass=x"
-                  "--user=krxXVNVMM7.forge-n0"
-                  "--pass=x"
-                  "--devices=0"
-                  "--apiport=4068"
-                  "--cclk=2350 --moff=1100 --pl=90"
+              bzminer = {
+                image = bzminerImage;
+                args = [
+                  "-a" "rvn"
+                  "-p" rvnPool
+                  "-w" "${rvnWallet}.forge-n0"
+                  "--nc" "1"
+                  "--pool_devices1" "0"
                 ];
                 env = nvidiaEnv;
                 ports = [
@@ -233,16 +230,14 @@ in
             terminationGracePeriodSeconds = 30;
             containers = {
               _namedlist = true;
-              lolminer = {
-                image = lolminerImage;
-                args = commonArgs ++ [
-                  "--user=krxXVNVMM7.forge-n1"
-                  "--pass=x"
-                  "--user=krxXVNVMM7.forge-n1"
-                  "--pass=x"
-                  "--devices=1"
-                  "--apiport=4069"
-                  "--cclk=2350 --moff=1100 --pl=90"
+              bzminer = {
+                image = bzminerImage;
+                args = [
+                  "-a" "rvn"
+                  "-p" rvnPool
+                  "-w" "${rvnWallet}.forge-n1"
+                  "--nc" "1"
+                  "--pool_devices1" "1"
                 ];
                 env = nvidiaEnv;
                 ports = [
@@ -308,16 +303,15 @@ in
             terminationGracePeriodSeconds = 30;
             containers = {
               _namedlist = true;
-              lolminer = {
-                image = lolminerAmdImage;
-                imagePullPolicy = "Never";
-                args = commonArgs ++ [
-                  "--user=krxXVNVMM7.forge-a0"
-                  "--pass=x"
-                  "--user=krxXVNVMM7.forge-a0"
-                  "--pass=x"
-                  "--devices=0"
-                  "--apiport=4070"
+              teamredminer = {
+                image = teamredminerImage;
+                args = [
+                  "-a" "kawpow"
+                  "-o" rvnPool
+                  "-u" "${rvnWallet}.forge-a0"
+                  "-p" "x"
+                  "--api_listen=0.0.0.0:4070"
+                  "-d" "0"
                 ];
                 env = amdEnv;
                 ports = [
@@ -383,16 +377,15 @@ in
             terminationGracePeriodSeconds = 30;
             containers = {
               _namedlist = true;
-              lolminer = {
-                image = lolminerAmdImage;
-                imagePullPolicy = "Never";
-                args = commonArgs ++ [
-                  "--user=krxXVNVMM7.forge-a1"
-                  "--pass=x"
-                  "--user=krxXVNVMM7.forge-a1"
-                  "--pass=x"
-                  "--devices=1"
-                  "--apiport=4071"
+              teamredminer = {
+                image = teamredminerImage;
+                args = [
+                  "-a" "kawpow"
+                  "-o" rvnPool
+                  "-u" "${rvnWallet}.forge-a1"
+                  "-p" "x"
+                  "--api_listen=0.0.0.0:4071"
+                  "-d" "1"
                 ];
                 env = amdEnv;
                 ports = [
@@ -476,15 +469,14 @@ in
             terminationGracePeriodSeconds = 30;
             containers = {
               _namedlist = true;
-              lolminer = {
-                image = lolminerImage;
-                args = commonArgs ++ [
-                  "--user=krxXVNVMM7.nexus-gpu"
-                  "--pass=x"
-                  "--user=krxXVNVMM7.nexus-gpu"
-                  "--pass=x"
-                  "--devices=0"
-                  "--apiport=4068"
+              bzminer = {
+                image = bzminerImage;
+                args = [
+                  "-a" "rvn"
+                  "-p" rvnPool
+                  "-w" "${rvnWallet}.nexus-gpu"
+                  "--nc" "1"
+                  "--pool_devices1" "0"
                 ];
                 env = nvidiaEnv;
                 ports = [
@@ -541,7 +533,7 @@ in
         };
       };
       spec = {
-        replicas = 1;
+        replicas = 0;
         revisionHistoryLimit = 1;
         selector = {
           matchLabels = {
@@ -684,18 +676,15 @@ in
             ];
             containers = {
               _namedlist = true;
-              lolminer = {
-                image = "docker.io/swamp7/lolminer:latest";
+              bzminer = {
+                image = bzminerImage;
                 imagePullPolicy = "IfNotPresent";
                 args = [
-                  "--algo=RVN"
-                  "--pool=rvn-us.kryptex.network:8031"
-                  "--user=krxXVNVMM7.zephyr-3060ti"
-                  "--pass=x"
-                  "--tls=1"
-                  "--devices=0"
-                  "--pl=120"
-                  "--apiport=4069"
+                  "-a" "rvn"
+                  "-p" rvnPool
+                  "-w" "${rvnWallet}.zephyr-3060ti"
+                  "--nc" "1"
+                  "--pool_devices1" "0"
                 ];
                 env = {
                   _namedlist = true;

@@ -493,7 +493,7 @@ in
           };
           spec = {
             nodeName = "nexus"; # Primary server with GPU
-            hostNetwork = true; # Allow Hermes on zephyr to reach gateway via nexus.lan:8080
+            hostNetwork = false; # hostNetwork=true causes K3s NodePorts pod explosion with nix-csi scratch
             serviceAccountName = "ai-inference-gateway";
             automountServiceAccountToken = true; # needed by gpu_scheduler.py kubectl calls
             containers = {
@@ -696,6 +696,9 @@ in
                   "hf-cache" = {
                     mountPath = "/home/j_kro/.cache/huggingface";
                   };
+                  tmp = {
+                    mountPath = "/tmp";
+                  };
                 };
               };
             };
@@ -709,6 +712,7 @@ in
                 path = "/home/j_kro/.cache/huggingface";
                 type = "Directory";
               };
+              tmp.emptyDir = {};
             };
           };
         };
