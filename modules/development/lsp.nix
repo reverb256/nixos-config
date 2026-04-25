@@ -56,7 +56,9 @@
 
   environment.common.development.editor = lib.mkDefault "nvim";
   environment.sessionVariables = {
-    PYTHONPATH = "/var/lib/ai/python";
+    # PYTHONPATH removed from session vars — was poisoning ai-inference-gateway systemd service.
+    # If Python LSP needs extra paths, configure in editor LSP settings, not globally.
+    # PYTHONPATH = "/var/lib/ai/python";
     GOPATH = "$HOME/go";
     GOBIN = "$HOME/go/bin";
     CARGO_HOME = "$HOME/.cargo";
