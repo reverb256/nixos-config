@@ -16,6 +16,7 @@
     hermes-cli = {
       enable = true;
       apiKeyFile = config.age.secrets.zai-api-key.path;
+      nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
     };
     k3s-cluster = {
       enable = true;
