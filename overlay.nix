@@ -108,5 +108,7 @@
   claude-code-image = prev.callPackage ./packages/claude-code-image.nix {};
   opencode-image = prev.callPackage ./packages/opencode-image.nix {};
   hermes-chat = prev.callPackage ./packages/hermes-chat.nix {};
-  privacy-filter = prev.callPackage ./packages/privacy-filter.nix {};
+  privacy-filter = prev.callPackage ./packages/privacy-filter.nix {
+    transformers-dev = prev.callPackage ./packages/transformers-dev.nix {};
+  };
 }
