@@ -81,6 +81,13 @@ in
       description = "Path to agenix secret file containing NVIDIA_API_KEY";
       example = "config.age.secrets.nvidia-api-key.path";
     };
+
+    openrouterApiKeyFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to agenix secret file containing OPENROUTER_API_KEY";
+      example = "config.age.secrets.openrouter-api-key.path";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -169,6 +176,14 @@ in
                 echo -n "NVIDIA_API_KEY=" >> "$HERMES_HOME/.env"
                 if [ -f "${cfg.nvidiaApiKeyFile}" ]; then
                   cat "${cfg.nvidiaApiKeyFile}" >> "$HERMES_HOME/.env"
+                  echo "" >> "$HERMES_HOME/.env"
+                fi
+                chmod 600 "$HERMES_HOME/.env"
+              ''}
+              ${lib.optionalString (cfg.openrouterApiKeyFile != null) ''
+                echo -n "OPENROUTER_API_KEY=" >> "$HERMES_HOME/.env"
+                if [ -f "${cfg.openrouterApiKeyFile}" ]; then
+                  cat "${cfg.openrouterApiKeyFile}" >> "$HERMES_HOME/.env"
                   echo "" >> "$HERMES_HOME/.env"
                 fi
                 chmod 600 "$HERMES_HOME/.env"
