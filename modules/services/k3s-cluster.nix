@@ -120,24 +120,27 @@ in
       enable = true;
       inherit (cfg) role nodeName;
 
-      # k3s agent mode re-execs itself as "k3s-agent" but the Nix package
-      # doesn't ship that symlink. Create a wrapper that includes it.
-      package = pkgs.runCommand "k3s-with-agent-symlink" {
-        nativeBuildInputs = [ pkgs.makeWrapper ];
-      } ''
+      # k3s agent mode re-execs itself via /proc/self/exe as "k3s-agent",
+      # but the Nix package doesn't ship that name. We must copy the real
+      # Go binary (.k3s-wrapped) directly — NOT the C wrapper — so that
+      # /proc/self/exe resolves to our $out/bin/ where both "k3s" and
+      # "k3s-agent" exist as copies of the same binary.
+      # The C wrapper is skipped because: (1) it has a hardcoded path to
+      # .k3s-wrapped in the raw package dir, breaking /proc/self/exe, and
+      # (2) systemd already sets PATH for the service.
+      package = pkgs.runCommand "k3s-with-agent-symlink" {} ''
         mkdir -p $out/bin
+        # Copy the real Go binary as both k3s and k3s-agent
+        cp ${pkgs.k3s_1_34}/bin/.k3s-wrapped $out/bin/k3s
+        cp ${pkgs.k3s_1_34}/bin/.k3s-wrapped $out/bin/k3s-agent
+        chmod +x $out/bin/k3s $out/bin/k3s-agent
+        # Symlink any other binaries from the package (kubectl, crictl, etc.)
         for f in ${pkgs.k3s_1_34}/bin/*; do
-          ln -sf "$f" "$out/bin/$(basename "$f")"
+          local name=$(basename "$f")
+          if [ "$name" != ".k3s-wrapped" ] && [ "$name" != "k3s" ] && [ ! -e "$out/bin/$name" ]; then
+            ln -sf "$f" "$out/bin/$name"
+          fi
         done
-        # Add the missing k3s-agent symlink (same binary, different name)
-        if [ ! -e "$out/bin/k3s-agent" ]; then
-          ln -sf ${pkgs.k3s_1_34}/bin/.k3s-wrapped "$out/bin/k3s-agent"
-        fi
-        # Copy the actual binary (not symlink) so /proc/self/exe resolves to $out/bin,
-        # where the k3s-agent symlink exists. Without this, k3s resolves its own
-        # path to the raw package dir which lacks k3s-agent.
-        rm $out/bin/k3s
-        cp ${pkgs.k3s_1_34}/bin/k3s $out/bin/k3s
       '';
 
       clusterInit = if isServer then cfg.clusterInit else false;
