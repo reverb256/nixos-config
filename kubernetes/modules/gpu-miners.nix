@@ -104,10 +104,8 @@ let
   };
 
   commonArgs = [
-    "--algo=CR29"
-    "--pool=xtm-c29-us.kryptex.network:8040"
-    "--tls=1"
-    "--pool=xtm-c29-eu.kryptex.network:8040"
+    "--algo=RVN"
+    "--pool=rvn-us.kryptex.network:8031"
     "--tls=1"
   ];
 in
@@ -543,7 +541,7 @@ in
         };
       };
       spec = {
-        replicas = 0;  # Disabled: 3090 VRAM exhausted by Qwen3.6-35B + desktop
+        replicas = 1;
         revisionHistoryLimit = 1;
         selector = {
           matchLabels = {
@@ -587,13 +585,9 @@ in
                 image = lolminerImage;
                 imagePullPolicy = "IfNotPresent";
                 args = [
-                  "--algo=CR29"
-                  "--pool=xtm-c29-us.kryptex.network:8040"
-                  "--user=krxXVNVMM7.zephyr-gpu"
-                  "--pass=x"
-                  "--tls=1"
-                  "--pool=xtm-c29-eu.kryptex.network:8040"
-                  "--user=krxXVNVMM7.zephyr-gpu"
+                  "--algo=CFX"
+                  "--pool=cfx-us.kryptex.network:8027"
+                  "--user=krxXVNVMM7.zephyr-3090"
                   "--pass=x"
                   "--tls=1"
                   "--devices=1"
@@ -694,12 +688,8 @@ in
                 image = "docker.io/swamp7/lolminer:latest";
                 imagePullPolicy = "IfNotPresent";
                 args = [
-                  "--algo=CR29"
-                  "--pool=xtm-c29-us.kryptex.network:8040"
-                  "--user=krxXVNVMM7.zephyr-3060ti"
-                  "--pass=x"
-                  "--tls=1"
-                  "--pool=xtm-c29-eu.kryptex.network:8040"
+                  "--algo=RVN"
+                  "--pool=rvn-us.kryptex.network:8031"
                   "--user=krxXVNVMM7.zephyr-3060ti"
                   "--pass=x"
                   "--tls=1"
