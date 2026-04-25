@@ -63,8 +63,8 @@ in
   networking.firewall.extraInputRules = mkAfter ''
     ip saddr { ${podCidr} } accept
 
-    ip saddr { ${clusterSubnet} } tcp dport 6443 accept
-    iifname "tailscale0" tcp dport 6443 accept
+    ip saddr { ${clusterSubnet} } tcp dport { 6443, 10443 } accept
+    iifname "tailscale0" tcp dport { 6443, 10443 } accept
 
     ip saddr { ${clusterSubnet} } tcp dport 10250 accept
     iifname "tailscale0" tcp dport 10250 accept
