@@ -10,7 +10,7 @@ python3Packages.transformers.overrideAttrs (old: rec {
     owner = "huggingface";
     repo = "transformers";
     rev = "c472755e79aac54d675845bff5e5c821c21260af";
-    hash = "sha256-1jq5qnis5h10iwxf428cbfcn8i38n1la3a9rjlxysjafygrv6vp9";
+    hash = "sha256-6W6z8/NOSe07lTmpoWiwaERkmVsMCeI6jyDAoqPFBcs=";
   };
   format = "pyproject";
   buildInputs = (old.buildInputs or []) ++ [ python3Packages.setuptools ];
