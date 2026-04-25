@@ -55,7 +55,7 @@ let
         active_index_directory: /loki/tsdb-index
         cache_location: /loki/tsdb-cache
     limits_config:
-      retention_period: 30d
+      retention_period: 7d
       allow_structured_metadata: true
       max_query_length: 721h
     compactor:
@@ -160,10 +160,55 @@ let
       role = "pod"
     }
 
-    // Collect container logs → Loki
+    // PII stripping pipeline (MLSEC Phase 3.2)
+    // Redacts emails, bearer tokens, API keys before Loki write
+    loki.process "pii_strip" {
+      // Strip email addresses
+      stage.match {
+        selector = "{job=~\".+\"}"
+        stage.regex {
+          expression = "(?i)[a-z0-9._%+\\-]+@[a-z0-9.\\-]+\\.[a-z]{2,}"
+          source     = "entry"
+        }
+        stage.replace {
+          expression = "(?i)[a-z0-9._%+\\-]+@[a-z0-9.\\-]+\\.[a-z]{2,}"
+          replace    = "[REDACTED-EMAIL]"
+        }
+      }
+
+      // Strip bearer/token patterns
+      stage.match {
+        selector = "{job=~\".+\"}"
+        stage.regex {
+          expression = "(?i)bearer\\s+[A-Za-z0-9\\-._~+/]+=*"
+          source     = "entry"
+        }
+        stage.replace {
+          expression = "(?i)(bearer)\\s+[A-Za-z0-9\\-._~+/]+=*"
+          replace    = "''${1} [REDACTED-TOKEN]"
+        }
+      }
+
+      // Strip API keys and long hex tokens
+      stage.match {
+        selector = "{job=~\".+\"}"
+        stage.regex {
+          expression = "(?i)(api[_\\-]?key|token|secret|password|apikey)[\"']?\\s*[:=]\\s*[\"']?[A-Za-z0-9\\-._~+/]{16,}"
+          source     = "entry"
+        }
+        stage.replace {
+          expression = "(?i)(api[_\\-]?key|token|secret|password|apikey)([\"']?\\s*[:=]\\s*[\"']?)[A-Za-z0-9\\-._~+/]{16,}"
+          replace    = "''${1}''${2}[REDACTED]"
+        }
+      }
+
+      forward_to = [loki.write.loki.receiver]
+    }
+
+    // Collect container logs → PII stripping → Loki
     loki.source.kubernetes "logs" {
       targets    = discovery.kubernetes.pods.targets
-      forward_to = [loki.write.loki.receiver]
+      forward_to = [loki.process.pii_strip.receiver]
     }
 
     // Write logs to Loki
@@ -222,11 +267,11 @@ let
       }
     }
 
-    // Collect Kubernetes events → Loki
+    // Collect Kubernetes events → PII stripping → Loki
     loki.source.kubernetes_events "events" {
       job_name   = "integrations/kubernetes/eventhandler"
       log_format = "logfmt"
-      forward_to = [loki.write.loki.receiver]
+      forward_to = [loki.process.pii_strip.receiver]
     }
 
     // Self-monitoring: scrape Alloy metrics → Mimir
@@ -988,6 +1033,17 @@ in
                   GF_LOG_MODE.value = "console";
                   GF_LOG_LEVEL.value = "warn";
                   GF_SERVER_ROOT_URL.value = "http://grafana.monitoring.svc.cluster.local:3000";
+                  # MLSEC Phase 3.5: RBAC hardening
+                  GF_AUTH_DISABLE_LOGIN_FORM.value = "false";
+                  GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION.value = "true";
+                  GF_VIEWERS_CAN_EDIT.value = "false";
+                  GF_EDITORS_CAN_ADMIN.value = "false";
+                  GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH.value = "/var/lib/grafana/dashboards/cluster-overview.json";
+                  GF_SECURITY_COOKIE_SECURE.value = "false";
+                  GF_SECURITY_CONTENT_SECURITY_POLICY.value = "true";
+                  GF_SECURITY_STRICT_TRANSPORT_SECURITY.value = "false";
+                  GF_ALERTING_ENABLED.value = "true";
+                  GF_UNIFIED_ALERTING_ENABLED.value = "true";
                 };
                 ports = [
                   {
