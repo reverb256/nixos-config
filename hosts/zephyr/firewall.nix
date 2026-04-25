@@ -22,9 +22,7 @@
         179
         5473
         9100
-        1235  # llama-server (AI inference backend)
-        1236  # llama-server-zephyr-3060ti
-        1237  # llama-server-zephyr-3090 (Qwen3.6-35B-A3B)
+1235  # llama-server (Qwen3.6-27B Dense + DFlash)
       ];
       # Workaround: list merge is broken for this host. Ensure critical ports via nft rules.
       extraInputRules = ''
