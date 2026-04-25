@@ -61,21 +61,16 @@ in
 {
   config.kubernetes.objects.ai-inference = {
 
-    # ── Zephyr RTX 3090 (GPU 1) — Qwen3.6-27B Dense + DFlash+DDTree ──────
-    # 16GB Q4_K_M target + 3.5GB BF16 DFlash draft. Dense 27B (all params active).
-    # DFlash block-diffusion + DDTree budget=22 → 73-130 tok/s (3-5x over MoE).
-    # Q4_0 KV cache. Mathematically lossless vs greedy solo 27B.
-    # test_dflash is one-shot; dflash-server wraps it as OpenAI-compatible HTTP.
-
-    # TODO: DFlash deployment disabled — llama-cpp-dflash package has broken placeholder
-    # rev/hash in packages/llama-cpp-dflash.nix. Re-enable when valid source is available.
-    # Deployment and Service definitions preserved in git history (98f060de).
-
-
-    # ── Zephyr RTX 3090 (GPU 1) — Qwen3.6-35B-A3B MoE (FALLBACK) ──────
-    # 16.6GB UD-IQ3_S GGUF weights. Only 3B active params/token = fast gen.
-    # Pure VRAM: tbq4/tbqp4 KV cache (TurboQuant BQ 4-bit, ~75% vs f16).
-    # mmproj disabled — crashes turboquant binary (SIGSEGV in clip_model_loader).
+    # ── Zephyr RTX 3090 (GPU 1) — Qwen3.6-27B Dense ─────────────────────────
+    # Released April 22-23, 2026. Dense 27B (all params active).
+    # Benchmarks: SWE-bench 77.2%, Terminal-Bench 59.3%, SkillsBench 48.2%
+    # Stack: spiritbuun/buun-llama-cpp with DFlash + TCQ + TurboQuant
+    # Speed: ~1.6 tok/s AR → 85-130+ tok/s with DFlash speculative decoding
+    # Context: 131072 (turbo4 KV = 3.8x compression, fits in 24GB VRAM)
+    # GPU layers: 99 (all layers on GPU — dense model fits with turbo4 KV)
+    # Models:
+    #   Target: /home/j_kro/.lmstudio/models/Qwen3.6-27B-Q4_K_M.gguf
+    #   DFlash: spiritbuun/Qwen3.6-27B-DFlash-GGUF (q8_0 recommended)
     Deployment.llama-server-zephyr = {
       metadata.labels = managed // {
         app = "llama-server-zephyr";
@@ -113,7 +108,10 @@ in
                 command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
                 args = [
                   "--model"
-                  "/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-IQ3_S.gguf"
+                  "/models/Qwen3.6-27B-Q4_K_M.gguf"
+                  # DFlash draft model for speculative decoding
+                  "-md"
+                  "/dflash/dflash-draft-3.6-q8_0.gguf"
                   "--host"
                   "0.0.0.0"
                   "--port"
@@ -121,34 +119,26 @@ in
                   "-ngl"
                   "99"
                   "-c"
-                  "32768"
+                  "131072"
                   "-t"
                   "4"
-                  "--fit"
-                  "off"
-                  "--no-mmap"
-                  "--batch-size"
-                  "4096"
-                  "--ubatch-size"
-                  "1024"
                   "--flash-attn"
                   "on"
+                  # DFlash speculative decoding — entire block in single forward pass
+                  "--spec-type"
+                  "dflash"
+                  "--draft-max"
+                  "22"
+                  # TurboQuant KV cache: 3.8x compression, lossless quality
+                  "-ctk"
+                  "turbo4"
+                  "-ctv"
+                  "turbo4"
                   "--parallel"
                   "1"
-                  "--cache-type-k"
-                  "tbq4"
-                  "--cache-type-v"
-                  "tbq4"
                   "--temp"
-                  "0.6"
-                  "--top-k"
-                  "20"
-                  "--top-p"
-                  "0.95"
-                  "--min-p"
-                  "0.0"
+                  "0.7"
                   "--metrics"
-                  "--jinja"
                 ];
                 env = {
                   _namedlist = true;
@@ -209,6 +199,10 @@ in
                   };
                   models = {
                     mountPath = "/models";
+                    readOnly = true;
+                  };
+                  dflash = {
+                    mountPath = "/dflash";
                     readOnly = true;
                   };
                 };
@@ -303,9 +297,9 @@ in
                   "--parallel"
                   "1"
                   "--cache-type-k"
-                  "tbq4"
+                  "turbo4"
                   "--cache-type-v"
-                  "tbq4"
+                  "turbo4"
                   "--temp"
                   "0.6"
                   "--top-k"
@@ -410,8 +404,8 @@ in
 
     # ── Sentry AMD RX 5600 XT (Vulkan/RADV, gfx1010) — Qwen3.5-4B Opus-Distilled ───────
     # Vulkan backend: RADV (Mesa) outperforms ROCm on RDNA1 for token generation.
-    # Flash attention disabled: slower on AMD via Vulkan (issue #10439).
-    # 256K context, q4_0 KV cache (lighter than iq4_nl, faster decompression).
+    # Flash attention required: quantized V cache (q4_0) needs flash_attn since llama.cpp b3880+.
+    # 32K context, q4_0 KV cache (lighter than iq4_nl, faster decompression).
     Deployment.llama-server-sentry = {
       metadata.labels = managed // {
         app = "llama-server-sentry";
@@ -463,7 +457,7 @@ in
                   "--ubatch-size"
                   "32"
                   "--flash-attn"
-                  "off"
+                  "on"
                   "--parallel"
                   "1"
                   "--cache-type-k"
@@ -559,7 +553,8 @@ in
                 path = "/dev/dri";
                 type = "Directory";
               };
-              models.hostPath.path = "/home/j_kro/.lmstudio/models";
+    models.hostPath.path = "/home/j_kro/.lmstudio/models";
+    dflash.hostPath.path = "/home/j_kro/.cache/huggingface/hub/models--spiritbuun--Qwen3.6-27B-DFlash-GGUF/snapshots/5e4442a299deb9282b3dfe179de6e8330b19d9de";
               opengl.hostPath.path = "/run/opengl-driver/lib";
               vulkan-icd.hostPath.path = "/run/opengl-driver/share/vulkan/icd.d";
               tmp.emptyDir = { };
