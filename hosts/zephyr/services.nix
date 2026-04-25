@@ -16,6 +16,7 @@
     hermes-cli = {
       enable = true;
       apiKeyFile = config.age.secrets.zai-api-key.path;
+      openrouterApiKeyFile = config.age.secrets.openrouter-api-key.path;
     };
     k3s-cluster = {
       enable = true;
@@ -508,6 +509,7 @@
       openFirewall = false;
       zai = {
         apiKeyFile = config.age.secrets.zai-api-key.path;
+      openrouterApiKeyFile = config.age.secrets.openrouter-api-key.path;
         defaultModel = "glm-4.7";
         thinkModel = "glm-4.7";
       };
