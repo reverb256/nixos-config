@@ -82,7 +82,7 @@ in
       HF_HUB_ENABLE_HF_TRANSFER = "0";
       CURL_CA_BUNDLE = "/nix/store/dq40xbv9srgrmz4zlcl26q8xa5v426pa-nss-cacert-3.121/etc/ssl/certs/ca-bundle.crt";
       MAX_REQUEST_SIZE = "10485760";
-      CIRCUIT_BREAKER_ENABLED = "true";
+      CIRCUIT_BREAKER_ENABLED = "false";
       REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
       PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8081";
       PRIVACY_FILTER_ENABLED = "true";
@@ -622,6 +622,10 @@ in
                     name = "zai-api-key";
                     key = "ZAI_API_KEY";
                   };
+                  NVIDIA_API_KEY.valueFrom.secretKeyRef = {
+                    name = "nvidia-api-key";
+                    key = "NVIDIA_API_KEY";
+                  };
                   MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED.valueFrom.configMapKeyRef = {
                     name = "ai-inference-gateway-config";
                     key = "MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED";
@@ -704,6 +708,9 @@ in
                   tmp = {
                     mountPath = "/tmp";
                   };
+                  ai-memory = {
+                    mountPath = "/run/ai-inference/memory";
+                  };
                 };
               };
             };
@@ -718,6 +725,7 @@ in
                 type = "Directory";
               };
               tmp.emptyDir = {};
+              ai-memory.emptyDir = {};
             };
           };
         };
