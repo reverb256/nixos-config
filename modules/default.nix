@@ -110,6 +110,7 @@
     ./services/hermes-cli.nix
     ./services/auto-update.nix
     ./services/whisper-dictation.nix
+    ./services/voxtype.nix
     ./services/cloudflared.nix
     ./services/cluster-ca.nix
     ./services/cluster-services.nix
