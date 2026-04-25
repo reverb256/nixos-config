@@ -8,7 +8,7 @@
 let
   lolminerImage = "docker.io/swamp7/lolminer:latest";
   lolminerAmdImage = "docker.io/library/lolminer-amd:1.98a-nixos";
-  bzminerImage = "docker.io/swamp7/bzminer:latest";
+  rigelImage = "docker.io/swamp7/bzminer:latest";
   teamredminerImage = "docker.io/swamp7/teamredminer:latest";
 
   openclIcd = "${pkgs.rocmPackages.clr}/etc/OpenCL/vendors";
@@ -105,7 +105,7 @@ let
     };
   };
 
-  rvnPool = "stratum+tcp://rvn-us.kryptex.network:8031";
+  rvnPool = "stratum+tcp://rvn-us.kryptex.network:7031";
   rvnWallet = "krxXVNVMM7";
 in
 {
@@ -137,22 +137,38 @@ in
           spec = {
             nodeName = "forge";
             hostNetwork = true;
+            runtimeClassName = "nvidia";
             automountServiceAccountToken = false;
             serviceAccountName = "gpu-miner-sa";
             priorityClassName = "mining-low";
             terminationGracePeriodSeconds = 30;
             containers = {
               _namedlist = true;
-              bzminer = {
-                image = bzminerImage;
+              miner = {
+                image = rigelImage;
+                command = ["/bin/sh" "-c"];
                 args = [
-                  "-a" "rvn"
-                  "-p" rvnPool
-                  "-w" "${rvnWallet}.forge-n0"
-                  "--nc" "1"
-                  "--pool_devices1" "0"
+                  ("wget -qO /tmp/rigel.tar.gz https://github.com/kryptex-miners-org/kryptex-miners/releases/download/rigel-1-23-2/rigel-1.23.2-linux.tar.gz"
+                  + " && tar xzf /tmp/rigel.tar.gz -C /tmp/"
+                  + " && RIGEL=$(find /tmp -name rigel -type f | head -1)"
+                  + " && chmod +x $RIGEL"
+                  + " && exec $RIGEL -a kawpow --coin rvn"
+                  + " -o ${rvnPool}"
+                  + " -u ${rvnWallet}.forge-n0"
+                  + " -p x -w forge-n0 -d 0"
+                  + " --api-bind 0.0.0.0:4068")
                 ];
-                env = nvidiaEnv;
+                env = {
+                  _namedlist = true;
+                  LD_LIBRARY_PATH = {
+                    name = "LD_LIBRARY_PATH";
+                    value = "/run/opengl-driver/lib";
+                  };
+                  CUDA_VISIBLE_DEVICES = {
+                    name = "CUDA_VISIBLE_DEVICES";
+                    value = "0";
+                  };
+                };
                 ports = [
                   {
                     containerPort = 4068;
@@ -162,24 +178,24 @@ in
                 ];
                 livenessProbe = {
                   tcpSocket.port = 4068;
-                  initialDelaySeconds = 30;
+                  initialDelaySeconds = 60;
                   periodSeconds = 30;
-                  failureThreshold = 3;
+                  failureThreshold = 5;
                 };
                 readinessProbe = {
                   tcpSocket.port = 4068;
-                  initialDelaySeconds = 60;
+                  initialDelaySeconds = 90;
                   periodSeconds = 15;
                   failureThreshold = 10;
                 };
                 resources = {
                   requests = {
-                    memory = "4Gi";
-                    cpu = "2";
+                    memory = "2Gi";
+                    cpu = "500m";
                   };
                   limits = {
-                    memory = "8Gi";
-                    cpu = "4";
+                    memory = "4Gi";
+                    cpu = "2";
                   };
                 };
                 securityContext.privileged = true;
@@ -224,22 +240,38 @@ in
           spec = {
             nodeName = "forge";
             hostNetwork = true;
+            runtimeClassName = "nvidia";
             automountServiceAccountToken = false;
             serviceAccountName = "gpu-miner-sa";
             priorityClassName = "mining-low";
             terminationGracePeriodSeconds = 30;
             containers = {
               _namedlist = true;
-              bzminer = {
-                image = bzminerImage;
+              miner = {
+                image = rigelImage;
+                command = ["/bin/sh" "-c"];
                 args = [
-                  "-a" "rvn"
-                  "-p" rvnPool
-                  "-w" "${rvnWallet}.forge-n1"
-                  "--nc" "1"
-                  "--pool_devices1" "1"
+                  ("wget -qO /tmp/rigel.tar.gz https://github.com/kryptex-miners-org/kryptex-miners/releases/download/rigel-1-23-2/rigel-1.23.2-linux.tar.gz"
+                  + " && tar xzf /tmp/rigel.tar.gz -C /tmp/"
+                  + " && RIGEL=$(find /tmp -name rigel -type f | head -1)"
+                  + " && chmod +x $RIGEL"
+                  + " && exec $RIGEL -a kawpow --coin rvn"
+                  + " -o ${rvnPool}"
+                  + " -u ${rvnWallet}.forge-n1"
+                  + " -p x -w forge-n1 -d 1"
+                  + " --api-bind 0.0.0.0:4069")
                 ];
-                env = nvidiaEnv;
+                env = {
+                  _namedlist = true;
+                  LD_LIBRARY_PATH = {
+                    name = "LD_LIBRARY_PATH";
+                    value = "/run/opengl-driver/lib";
+                  };
+                  CUDA_VISIBLE_DEVICES = {
+                    name = "CUDA_VISIBLE_DEVICES";
+                    value = "1";
+                  };
+                };
                 ports = [
                   {
                     containerPort = 4069;
@@ -249,24 +281,24 @@ in
                 ];
                 livenessProbe = {
                   tcpSocket.port = 4069;
-                  initialDelaySeconds = 30;
+                  initialDelaySeconds = 60;
                   periodSeconds = 30;
-                  failureThreshold = 3;
+                  failureThreshold = 5;
                 };
                 readinessProbe = {
                   tcpSocket.port = 4069;
-                  initialDelaySeconds = 60;
+                  initialDelaySeconds = 90;
                   periodSeconds = 15;
                   failureThreshold = 10;
                 };
                 resources = {
                   requests = {
-                    memory = "4Gi";
-                    cpu = "2";
+                    memory = "2Gi";
+                    cpu = "500m";
                   };
                   limits = {
-                    memory = "8Gi";
-                    cpu = "4";
+                    memory = "4Gi";
+                    cpu = "2";
                   };
                 };
                 securityContext.privileged = true;
@@ -469,16 +501,31 @@ in
             terminationGracePeriodSeconds = 30;
             containers = {
               _namedlist = true;
-              bzminer = {
-                image = bzminerImage;
+              miner = {
+                image = rigelImage;
+                command = ["/bin/sh" "-c"];
                 args = [
-                  "-a" "rvn"
-                  "-p" rvnPool
-                  "-w" "${rvnWallet}.nexus-gpu"
-                  "--nc" "1"
-                  "--pool_devices1" "0"
+                  ("wget -qO /tmp/rigel.tar.gz https://github.com/kryptex-miners-org/kryptex-miners/releases/download/rigel-1-23-2/rigel-1.23.2-linux.tar.gz"
+                  + " && tar xzf /tmp/rigel.tar.gz -C /tmp/"
+                  + " && RIGEL=$(find /tmp -name rigel -type f | head -1)"
+                  + " && chmod +x $RIGEL"
+                  + " && exec $RIGEL -a kawpow --coin rvn"
+                  + " -o ${rvnPool}"
+                  + " -u ${rvnWallet}.nexus-gpu"
+                  + " -p x -w nexus-gpu -d 0"
+                  + " --api-bind 0.0.0.0:4068")
                 ];
-                env = nvidiaEnv;
+                env = {
+                  _namedlist = true;
+                  LD_LIBRARY_PATH = {
+                    name = "LD_LIBRARY_PATH";
+                    value = "/run/opengl-driver/lib";
+                  };
+                  CUDA_VISIBLE_DEVICES = {
+                    name = "CUDA_VISIBLE_DEVICES";
+                    value = "0";
+                  };
+                };
                 ports = [
                   {
                     containerPort = 4068;
@@ -676,15 +723,20 @@ in
             ];
             containers = {
               _namedlist = true;
-              bzminer = {
-                image = bzminerImage;
+              miner = {
+                image = rigelImage;
                 imagePullPolicy = "IfNotPresent";
+                command = ["/bin/sh" "-c"];
                 args = [
-                  "-a" "rvn"
-                  "-p" rvnPool
-                  "-w" "${rvnWallet}.zephyr-3060ti"
-                  "--nc" "1"
-                  "--pool_devices1" "0"
+                  ("wget -qO /tmp/rigel.tar.gz https://github.com/kryptex-miners-org/kryptex-miners/releases/download/rigel-1-23-2/rigel-1.23.2-linux.tar.gz"
+                  + " && tar xzf /tmp/rigel.tar.gz -C /tmp/"
+                  + " && RIGEL=$(find /tmp -name rigel -type f | head -1)"
+                  + " && chmod +x $RIGEL"
+                  + " && exec $RIGEL -a kawpow --coin rvn"
+                  + " -o ${rvnPool}"
+                  + " -u ${rvnWallet}.zephyr-3060ti"
+                  + " -p x -w zephyr-3060ti -d 0"
+                  + " --api-bind 0.0.0.0:4069")
                 ];
                 env = {
                   _namedlist = true;
