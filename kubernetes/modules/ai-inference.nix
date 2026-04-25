@@ -41,7 +41,7 @@ in
       AUTO_RAG_ENABLED = "true";
       EMBEDDING_MODEL = "BidirLM/BidirLM-Omni-2.5B-Embedding";
       EMBEDDING_DEVICE = "cpu"; # nexus GPU occupied by lolMiner
-      EMBEDDING_DIMENSIONS = "384";
+      EMBEDDING_DIMENSIONS = "2048";
       EMBEDDING_TRUST_REMOTE_CODE = "true";
       BM25_WEIGHT = "0.300000";
       CHUNK_OVERLAP = "50";
@@ -68,7 +68,7 @@ in
       HYBRID_SEARCH_ENABLED = "true";
       EMBEDDING_MODEL = "BidirLM/BidirLM-Omni-2.5B-Embedding";
       EMBEDDING_DEVICE = "cpu";
-      EMBEDDING_DIMENSIONS = "384";
+      EMBEDDING_DIMENSIONS = "2048";
       EMBEDDING_TRUST_REMOTE_CODE = "true";
       BM25_WEIGHT = "0.3";
       CHUNK_OVERLAP = "50";
