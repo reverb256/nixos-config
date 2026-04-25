@@ -62,9 +62,27 @@ device = 0 if torch.cuda.is_available() else -1
 logger.info(f"Loading model on device: {device}")
 
 try:
+    from transformers import AutoModelForTokenClassification, AutoTokenizer, AutoConfig
+    from huggingface_hub import hf_hub_download
+    import json
+
+    # Patch config to use olmoe model_type (identical architecture)
+    config_path = hf_hub_download("openai/privacy-filter", "config.json")
+    with open(config_path) as f:
+        cfg = json.load(f)
+    cfg["model_type"] = "olmoe"
+    cfg["architectures"] = ["OlmoeForTokenClassification"]
+    patched_path = config_path.replace("config.json", "config_patched.json")
+    with open(patched_path, "w") as f:
+        json.dump(cfg, f)
+
+    config = AutoConfig.from_pretrained(patched_path)
+    tokenizer = AutoTokenizer.from_pretrained("openai/privacy-filter")
+    model = AutoModelForTokenClassification.from_pretrained("openai/privacy-filter", config=config)
     classifier = pipeline(
         task="token-classification",
-        model="openai/privacy-filter",
+        model=model,
+        tokenizer=tokenizer,
         device=device,
         aggregation_strategy="simple"
     )
