@@ -269,7 +269,7 @@ in
             containers = {
               _namedlist = true;
               xmrig = {
-                image = "docker.io/library/xmrig-alpine:6.25.0";
+                image = "docker.io/library/xmrig-alpine:6.26.0";
                 args = [
                   "-o"
                   "10.1.1.120:3333"
@@ -401,7 +401,7 @@ in
             containers = {
               _namedlist = true;
               xmrig = {
-                image = "docker.io/library/xmrig-alpine:6.25.0";
+                image = "docker.io/library/xmrig-alpine:6.26.0";
                 args = [
                   "-o"
                   "10.1.1.120:3333"
@@ -859,7 +859,7 @@ in
             containers = {
               _namedlist = true;
               xmrig = {
-                image = "docker.io/library/xmrig-alpine:6.25.0";
+                image = "docker.io/library/xmrig-alpine:6.26.0";
                 imagePullPolicy = "Never";
                 args = [
                   "-o"
