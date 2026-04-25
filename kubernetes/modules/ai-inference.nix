@@ -7,7 +7,7 @@
 }:
 let
   # nix-csi scratch image (proven pattern from llama-servers)
-  scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
+  scratchImage = "docker.io/library/ai-inference-gateway:2.0.0";
 
   # Managed-by labels for easykubenix
   managed = {
@@ -586,10 +586,6 @@ in
                   REDIS_URL.valueFrom.configMapKeyRef = {
                     name = "ai-inference-gateway-config";
                     key = "REDIS_URL";
-                  };
-                  HF_HUB_OFFLINE.valueFrom.configMapKeyRef = {
-                    name = "ai-inference-gateway-config";
-                    key = "HF_HUB_OFFLINE";
                   };
                   CURL_CA_BUNDLE.valueFrom.configMapKeyRef = {
                     name = "ai-inference-gateway-config";

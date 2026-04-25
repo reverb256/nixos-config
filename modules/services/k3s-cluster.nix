@@ -120,13 +120,19 @@ in
       enable = true;
       inherit (cfg) role nodeName;
 
-      # Use the default k3s package from nixpkgs.
-      # The upstream NixOS k3s module (rancher/default.nix) supports both
-      # server and agent roles with the default package. k3s agent mode will
-      # attempt to find a "k3s-agent" binary for process renaming, but handles
-      # the missing binary gracefully — it just continues running as "k3s".
-      # Previous custom wrappers that provided k3s-agent caused infinite
-      # re-exec loops (argv[0] mismatch → E2BIG).
+      # Provide k3s-agent as a symlink to the real Go binary (.k3s-wrapped).
+      # k3s re-execs itself as "k3s-agent" via PATH lookup. When it finds
+      # k3s-agent pointing to the same .k3s-wrapped binary, it recognizes
+      # /proc/self/exe matches and stops the re-exec loop.
+      package = pkgs.symlinkJoin {
+        name = "k3s-with-agent";
+        paths = [ pkgs.k3s ];
+        postBuild = ''
+          # Remove any existing k3s-agent, then symlink to the real Go binary
+          rm -f $out/bin/k3s-agent
+          ln -s $out/bin/.k3s-wrapped $out/bin/k3s-agent
+        '';
+      };
 
       clusterInit = if isServer then cfg.clusterInit else false;
 
