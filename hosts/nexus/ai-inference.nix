@@ -40,7 +40,7 @@
     };
 
     gateway = {
-      enable = true;
+      enable = false; # disabled — K8s deployment handles gateway
       host = "0.0.0.0";
       port = 8080;
       workers = 1;
