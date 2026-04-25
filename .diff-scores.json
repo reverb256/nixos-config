@@ -1,28 +1,6 @@
 [
   {
     "score": 75,
-    "timestamp": 1777093457.5296948,
-    "files_touched": 6,
-    "lines_added": 177,
-    "lines_deleted": 142,
-    "penalties": [
-      "Too many files (6): -10",
-      "No tests for code changes: -15"
-    ]
-  },
-  {
-    "score": 75,
-    "timestamp": 1777093520.7134776,
-    "files_touched": 6,
-    "lines_added": 184,
-    "lines_deleted": 146,
-    "penalties": [
-      "Too many files (6): -10",
-      "No tests for code changes: -15"
-    ]
-  },
-  {
-    "score": 75,
     "timestamp": 1777093535.7725666,
     "files_touched": 6,
     "lines_added": 190,
@@ -187,5 +165,21 @@
       "Too many files (9): -10",
       "No tests for code changes: -15"
     ]
+  },
+  {
+    "score": 100,
+    "timestamp": 1777099542.4467595,
+    "files_touched": 1,
+    "lines_added": 64,
+    "lines_deleted": 0,
+    "penalties": []
+  },
+  {
+    "score": 100,
+    "timestamp": 1777099652.6140633,
+    "files_touched": 2,
+    "lines_added": 72,
+    "lines_deleted": 11,
+    "penalties": []
   }
 ]
