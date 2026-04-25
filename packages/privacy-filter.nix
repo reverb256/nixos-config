@@ -1,18 +1,19 @@
 {
   lib,
   python3Packages,
+  transformers-dev,
   stdenv,
 }:
 let
   pythonEnv = python3Packages.python.withPackages (
-    ps: with ps; [
-      transformers
-      torch
-      accelerate
-      fastapi
-      uvicorn
-      pydantic
-      safetensors
+    ps: [
+      transformers-dev
+      ps.torch
+      ps.accelerate
+      ps.fastapi
+      ps.uvicorn
+      ps.pydantic
+      ps.safetensors
     ]
   );
 in
@@ -62,29 +63,12 @@ device = 0 if torch.cuda.is_available() else -1
 logger.info(f"Loading model on device: {device}")
 
 try:
-    from transformers import AutoModelForTokenClassification, AutoTokenizer, AutoConfig
-    from huggingface_hub import hf_hub_download
-    import json
-
-    # Patch config to use olmoe model_type (identical architecture)
-    config_path = hf_hub_download("openai/privacy-filter", "config.json")
-    with open(config_path) as f:
-        cfg = json.load(f)
-    cfg["model_type"] = "olmoe"
-    cfg["architectures"] = ["OlmoeForTokenClassification"]
-    patched_path = config_path.replace("config.json", "config_patched.json")
-    with open(patched_path, "w") as f:
-        json.dump(cfg, f)
-
-    config = AutoConfig.from_pretrained(patched_path)
-    tokenizer = AutoTokenizer.from_pretrained("openai/privacy-filter")
-    model = AutoModelForTokenClassification.from_pretrained("openai/privacy-filter", config=config)
     classifier = pipeline(
         task="token-classification",
-        model=model,
-        tokenizer=tokenizer,
+        model="openai/privacy-filter",
         device=device,
-        aggregation_strategy="simple"
+        aggregation_strategy="simple",
+        trust_remote_code=True
     )
     logger.info("Model loaded successfully")
 except Exception as e:
