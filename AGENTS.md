@@ -133,6 +133,19 @@ spec.template.spec.nodeName: nexus  # Force scheduling
 # OR use nodeAffinity (see kubernetes-manifests/AGENTS.md)
 ```
 
+### GPU Isolation Limitation
+
+**⚠️ nvidia-container-runtime is broken on NixOS** - The libnvidia-ml.so.1 dlopen fails due to NixOS glibc LD_LIBRARY_PATH handling.
+
+**Impact**: K8s pods cannot properly isolate GPUs. Both visible GPUs show in `/dev` regardless of `CUDA_VISIBLE_DEVICES`.
+
+**Workaround**: 
+- Use `CUDA_VISIBLE_DEVICES` as a hint only - llama.cpp respects it
+- Both pods run privileged on the same host
+- Use `mining-inference-coordinator` to shift mining when inference is active
+
+**For inference-only workloads**: Safe because each pod uses the GPU specified in the env var.
+
 ### Stop Immediately If
 - SSH breaks on any node
 - Multiple nodes affected

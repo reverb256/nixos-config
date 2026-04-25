@@ -148,7 +148,7 @@ in {
         # All inference through AI Inference Gateway on Nexus:8080
         # Gateway handles upstream routing, auth, think-param stripping
         ai-gateway = {
-          base_url = "http://127.0.0.1:8080/v1";
+          base_url = "http://ai-inference.lan:8080/v1";
           api_key = "none";
           model = "qwen/qwen3-coder-480b-a35b-instruct";
         };
@@ -157,6 +157,12 @@ in {
           base_url = "https://api.z.ai/api/coding/paas/v4";
           api_key_env = "ZAI_API_KEY";
           model = "glm-5.1";
+        };
+        # NVIDIA NIM cloud models
+        nvidia-nim = {
+          base_url = "https://integrate.api.nvidia.com/v1";
+          api_key_env = "NVIDIA_API_KEY";
+          model = "nvidia/llama-3.3-nemotron-super-49b-v1";
         };
         # Local llama-cpp endpoints
         llama-cpp-zephyr = {
@@ -172,6 +178,7 @@ in {
       };
       fallback_providers = [
         "zai"
+        "nvidia-nim"
         "llama-cpp-zephyr"
         "llama-cpp-sentry"
       ];
@@ -303,6 +310,9 @@ in {
       cat /run/agenix/hermes-api-server-key >> /data/hermes/.hermes/provider-env
       echo -n "ZAI_API_KEY="" " >> /data/hermes/.hermes/provider-env
       cat /run/agenix/zai-api-key >> /data/hermes/.hermes/provider-env
+      echo "" >> /data/hermes/.hermes/provider-env
+      echo -n "NVIDIA_API_KEY=" >> /data/hermes/.hermes/provider-env
+      cat /run/agenix/nvidia-api-key >> /data/hermes/.hermes/provider-env
       chmod 600 /data/hermes/.hermes/provider-env
       chown j_kro:users /data/hermes/.hermes/provider-env
     '');
