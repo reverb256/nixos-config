@@ -205,6 +205,30 @@ in
           goverlay
           gamemode
           scx.full
+          # Mining pause/resume for desktop launcher
+          (pkgs.writeShellScriptBin "mining-pause" ''
+            exec /etc/nixos/scripts/gpu-profiles/k8s-mining-pause.sh start
+          '')
+          (pkgs.writeShellScriptBin "mining-resume" ''
+            exec /etc/nixos/scripts/gpu-profiles/k8s-mining-pause.sh end
+          '')
+          (pkgs.makeDesktopItem {
+            name = "mining-pause";
+            desktopName = "Mining Pause";
+            comment = "Pause all GPU mining on this host";
+            icon = "media-playback-pause";
+            exec = "mining-pause";
+            categories = [ "System" ];
+            terminal = false;
+          })
+          (pkgs.makeDesktopItem {
+            name = "mining-resume";
+            desktopName = "Mining Resume";
+            comment = "Resume all GPU mining on this host";
+            icon = "media-playback-start";
+            exec = "mining-resume";
+            terminal = false;
+          })
           (pkgs.writeShellScriptBin "launch-game" ''
             #!/usr/bin/env bash
             set -euo pipefail

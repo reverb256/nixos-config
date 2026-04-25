@@ -82,9 +82,31 @@ get_current_coin() {
     fi
 }
 
+tune_gpu() {
+    algo="$1"
+    TUNE_SCRIPT="/opt/wrapper/gpu-tune.sh"
+    if [ -f "$TUNE_SCRIPT" ]; then
+        echo "[wrapper] Applying GPU tuning for algo=$algo"
+        sh "$TUNE_SCRIPT" "$algo" 2>&1 || echo "[wrapper] GPU tuning failed, continuing"
+    else
+        echo "[wrapper] No tuning script found, skipping"
+    fi
+}
+
 start_miner() {
     coin="$1"
     echo "[wrapper] Starting miner for ${coin} (group=${GROUP})"
+
+    case "$coin" in
+        rvn|xna)  ALGO="kawpow" ;;
+        cfx)      ALGO="octopus" ;;
+        erg)      ALGO="autolykos2" ;;
+        nexa)     ALGO="nexapow" ;;
+        iron)     ALGO="fishhash" ;;
+        xel)      ALGO="xelishashv3" ;;
+        *)        ALGO="kawpow" ;;
+    esac
+    tune_gpu "$ALGO"
 
     if [ "$MINER_TYPE" = "teamredminer" ]; then
         cmd=$(get_trm_pool_args "$coin" "$WORKER_NAME")

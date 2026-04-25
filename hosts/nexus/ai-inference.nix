@@ -96,7 +96,7 @@
 
     rag = {
       enable = true;
-      qdrantUrl = "http://qdrant.ai-inference.svc.cluster.local:6333"; # K8s service DNS
+      qdrantUrl = "http://10.5.93.32:6333"; # K8s service DNS
       embeddingModel = "BidirLM/BidirLM-Omni-2.5B-Embedding"; # 2048d, multimodal (text/image/audio)
       embeddingDevice = "cpu"; # nexus GPU occupied by lolMiner
       embeddingTrustRemoteCode = true; # BidirLM requires custom code

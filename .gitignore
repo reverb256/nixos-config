@@ -57,3 +57,6 @@ territory_map.json
 /kubernetes/modules/monitoring.nix.bak
 lucebox-hub
 sbom/
+
+# Diff review artifacts (false positives on infra configs)
+.diff-scores.json

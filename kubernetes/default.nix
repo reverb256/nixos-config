@@ -20,6 +20,7 @@ let
       ./modules/mining.nix
       ./modules/gpu-miners.nix
       ./modules/profit-switcher.nix
+      ./modules/gpu-tuning.nix
       ./modules/ai-inference.nix
       ./modules/llama-servers.nix
       ./modules/nixkube.nix
