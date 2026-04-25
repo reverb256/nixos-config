@@ -1,17 +1,6 @@
 [
   {
     "score": 75,
-    "timestamp": 1777093535.7725666,
-    "files_touched": 6,
-    "lines_added": 190,
-    "lines_deleted": 149,
-    "penalties": [
-      "Too many files (6): -10",
-      "No tests for code changes: -15"
-    ]
-  },
-  {
-    "score": 75,
     "timestamp": 1777093566.2758987,
     "files_touched": 6,
     "lines_added": 191,
@@ -180,6 +169,14 @@
     "files_touched": 2,
     "lines_added": 72,
     "lines_deleted": 11,
+    "penalties": []
+  },
+  {
+    "score": 100,
+    "timestamp": 1777101222.4643795,
+    "files_touched": 1,
+    "lines_added": 28,
+    "lines_deleted": 0,
     "penalties": []
   }
 ]
