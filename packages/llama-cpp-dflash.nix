@@ -20,9 +20,9 @@ effectiveStdenv.mkDerivation rec {
   src = fetchFromGitHub {
     owner = "Luce-Org";
     repo = "lucebox-hub";
-    rev = "main";
+    rev = "[REDACTED:API_KEY]";
     fetchSubmodules = true;
-    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    hash = "sha256-[REDACTED:API_KEY]+ZlLi69dw=";
   };
 
   sourceRoot = "source/dflash";

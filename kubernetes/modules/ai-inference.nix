@@ -39,8 +39,10 @@ in
       HYBRID_SEARCH_ENABLED = "true";
       MCP_ENABLED = "false";
       AUTO_RAG_ENABLED = "true";
-      EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2";
+      EMBEDDING_MODEL = "BidirLM/BidirLM-Omni-2.5B-Embedding";
       EMBEDDING_DEVICE = "cpu"; # nexus GPU occupied by lolMiner
+      EMBEDDING_DIMENSIONS = "2048";
+      EMBEDDING_TRUST_REMOTE_CODE = "true";
       BM25_WEIGHT = "0.300000";
       CHUNK_OVERLAP = "50";
       CHUNK_SIZE = "512";
@@ -64,8 +66,10 @@ in
       RAG_ENABLED = "true";
       RAG_TOP_K = "10";
       HYBRID_SEARCH_ENABLED = "true";
-      EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2";
+      EMBEDDING_MODEL = "BidirLM/BidirLM-Omni-2.5B-Embedding";
       EMBEDDING_DEVICE = "cpu";
+      EMBEDDING_DIMENSIONS = "2048";
+      EMBEDDING_TRUST_REMOTE_CODE = "true";
       BM25_WEIGHT = "0.3";
       CHUNK_OVERLAP = "50";
       CHUNK_SIZE = "512";
@@ -530,6 +534,18 @@ in
                   EMBEDDING_MODEL.valueFrom.configMapKeyRef = {
                     name = "ai-inference-gateway-config";
                     key = "EMBEDDING_MODEL";
+                  };
+                  EMBEDDING_DEVICE.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "EMBEDDING_DEVICE";
+                  };
+                  EMBEDDING_DIMENSIONS.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "EMBEDDING_DIMENSIONS";
+                  };
+                  EMBEDDING_TRUST_REMOTE_CODE.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "EMBEDDING_TRUST_REMOTE_CODE";
                   };
                   MCP_ENABLED.valueFrom.configMapKeyRef = {
                     name = "ai-inference-gateway-config";
