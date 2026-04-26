@@ -1,6 +1,7 @@
 {
   cfg,
   pkgs,
+  gatewayUrl,
   mkMcpServersJson,
 }:
 {
