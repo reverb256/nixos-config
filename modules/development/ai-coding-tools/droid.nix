@@ -1,6 +1,7 @@
 {
   cfg,
   pkgs,
+  gatewayUrl,
   mkMcpServersJson,
 }:
 {
@@ -28,6 +29,7 @@
     NVIDIA_NIM_API_KEY="$(cat $NVIDIA_NIM_KEY_PATH 2>/dev/null || echo)"
     ${pkgs.jq}/bin/jq -n \
       --arg nvidia_key "$NVIDIA_NIM_API_KEY" \
+      --arg gateway_base "${gatewayUrl}" \
       '{
         "enabledPlugins": {
           "core@factory-plugins": true
@@ -104,7 +106,7 @@
             "model": "qwen3.5-4b",
             "id": "custom:Qwen3.5-4B-Gateway-OpenAI-6",
             "index": 6,
-            "baseUrl": "http://ai-inference.lan:8080/v1",
+            "baseUrl": ($gateway_base + "/v1"),
             "apiKey": "k8s-gateway",
             "displayName": "Qwen 3.5 4B [K8s Gateway - llama.cpp]",
             "maxOutputTokens": 8192,
@@ -115,7 +117,7 @@
             "model": "qwen3.5-32b",
             "id": "custom:Qwen3.5-32B-Gateway-OpenAI-7",
             "index": 7,
-            "baseUrl": "http://ai-inference.lan:8080/v1",
+            "baseUrl": ($gateway_base + "/v1"),
             "apiKey": "k8s-gateway",
             "displayName": "Qwen 3.5 32B [K8s Gateway - vLLM]",
             "maxOutputTokens": 8192,
@@ -126,7 +128,7 @@
             "model": "deepseek-r1",
             "id": "custom:DeepSeek-R1-Gateway-OpenAI-8",
             "index": 8,
-            "baseUrl": "http://ai-inference.lan:8080/v1",
+            "baseUrl": ($gateway_base + "/v1"),
             "apiKey": "k8s-gateway",
             "displayName": "DeepSeek R1 [K8s Gateway - SGLang]",
             "maxOutputTokens": 8192,
@@ -137,7 +139,7 @@
             "model": "meta/llama-3.1-70b-instruct",
             "id": "custom:Llama-3.1-70B-NVIDIA-NIM-OpenAI-9",
             "index": 9,
-            "baseUrl": "http://ai-inference.lan:8080/v1",
+            "baseUrl": ($gateway_base + "/v1"),
             "apiKey": $nvidia_key,
             "displayName": "Llama 3.1 70B [NVIDIA NIM - Free]",
             "maxOutputTokens": 4096,

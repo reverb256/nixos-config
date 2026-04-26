@@ -152,9 +152,82 @@
                 default = 6443;
                 description = "Kubernetes API port";
               };
+
+              services = lib.mkOption {
+                type = lib.types.submodule {
+                  options = {
+                    ai-inference = lib.mkOption {
+                      type = lib.types.submodule {
+                        options = {
+                          primary = lib.mkOption {
+                            type = lib.types.str;
+                            default = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080";
+                            description = "AI inference gateway primary endpoint (K8s service)";
+                          };
+
+                          lan = lib.mkOption {
+                            type = lib.types.str;
+                            default = "http://ai-inference.lan:8080";
+                            description = "AI inference gateway LAN alias (via Unbound)";
+                          };
+
+                          clusterIP = lib.mkOption {
+                            type = lib.types.str;
+                            default = "http://10.15.67.242:8080";
+                            description = "AI inference gateway ClusterIP";
+                          };
+
+                          nodePort = lib.mkOption {
+                            type = lib.types.str;
+                            default = "http://10.1.1.110:30880";
+                            description = "AI inference gateway NodePort (Zephyr)";
+                          };
+
+                          health = lib.mkOption {
+                            type = lib.types.str;
+                            description = "Health check endpoint (auto-generated)";
+                            readOnly = true;
+                            default = "";
+                          };
+
+                          chat = lib.mkOption {
+                            type = lib.types.str;
+                            description = "Chat completions API endpoint (auto-generated)";
+                            readOnly = true;
+                            default = "";
+                          };
+
+                          models = lib.mkOption {
+                            type = lib.types.str;
+                            description = "Models list endpoint (auto-generated)";
+                            readOnly = true;
+                            default = "";
+                          };
+
+                          embeddings = lib.mkOption {
+                            type = lib.types.str;
+                            description = "Embeddings API endpoint (auto-generated)";
+                            readOnly = true;
+                            default = "";
+                          };
+                        };
+                      };
+                      default = {};
+                      description = "AI inference gateway service endpoints";
+                    };
+                  };
+                  default = {};
+                  description = "Kubernetes service endpoints";
+                };
+              };
             };
           };
-          default = {};
+          default = {
+            vip = "10.1.1.100";
+            apiPort = 6443;
+            services.ai-inference.primary = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080";
+            services.ai-inference.lan = "http://ai-inference.lan:8080";
+          };
           description = "Kubernetes cluster configuration";
         };
 

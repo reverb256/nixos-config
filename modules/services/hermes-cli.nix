@@ -108,18 +108,18 @@ in
 
               # Write config.yaml if it doesn't exist or is managed by us
               if [ ! -f "$HERMES_HOME/config.yaml" ] || grep -q "# Managed by NixOS" "$HERMES_HOME/config.yaml" 2>/dev/null; then
-                cat > "$HERMES_HOME/config.yaml" << 'YAML_EOF'
+                cat > "$HERMES_HOME/config.yaml" << YAML_EOF
         # Managed by NixOS - hermes-cli module
-        # All inference routed through AI Inference Gateway on Nexus:8080
+        # All inference routed through AI Inference Gateway
         model:
           provider: ai-gateway
-          base_url: http://ai-inference.lan:8080/v1
+          base_url: ${config.networking.cluster.kubernetes.services.ai-inference.nodePort or "http://10.1.1.110:30880"}/v1
           default: qwen/qwen3-coder-480b-a35b-instruct
           api_key: none
 
         providers:
           ai-gateway:
-            base_url: http://ai-inference.lan:8080/v1
+            base_url: ${config.networking.cluster.kubernetes.services.ai-inference.nodePort or "http://10.1.1.110:30880"}/v1
             api_key: none
           zai:
             base_url: https://api.z.ai/api/coding/paas/v4

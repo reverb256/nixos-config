@@ -16,20 +16,24 @@ let
 
   mcpDefs = import ./ai-coding-tools/mcp-defs.nix { inherit lib; };
 
+  # Gateway URL from network-constants (single source of truth)
+  # Use nodePort for host tools (ClusterIP only accessible from within K8s)
+  gatewayUrl = config.networking.cluster.kubernetes.services.ai-inference.nodePort or "http://10.1.1.110:30880";
+
   droidGen = import ./ai-coding-tools/droid.nix {
-    inherit cfg pkgs;
+    inherit cfg pkgs gatewayUrl;
     inherit (mcpDefs) mkMcpServersJson;
   };
   claudeGen = import ./ai-coding-tools/claude.nix {
-    inherit cfg pkgs;
+    inherit cfg pkgs gatewayUrl;
     inherit (mcpDefs) mkMcpServersJson;
   };
   crushGen = import ./ai-coding-tools/crush.nix {
-    inherit cfg pkgs;
+    inherit cfg pkgs gatewayUrl;
     inherit (mcpDefs) mkMcpServersJson;
   };
   opencodeGen = import ./ai-coding-tools/opencode.nix {
-    inherit cfg pkgs;
+    inherit cfg pkgs gatewayUrl;
     inherit (mcpDefs) mkMcpServersJson;
   };
 in

@@ -68,7 +68,7 @@ in
           # Service DNS — Caddy terminates TLS on nexus
           "search.lan. IN A 10.1.1.120"
           "brain.lan. IN A 10.1.1.120"
-          "ai-inference.lan. IN A 10.1.1.120"
+          "ai-inference.lan. IN A 10.1.1.110"
           "qdrant.lan. IN A 10.1.1.120"
           "knowledge-fabric.lan. IN A 10.1.1.120"
           "ai.lan. IN A 10.1.1.120"
