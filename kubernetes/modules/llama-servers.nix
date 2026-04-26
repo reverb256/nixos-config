@@ -402,10 +402,11 @@ in
       };
     };
 
-    # ── Sentry AMD RX 5600 XT (Vulkan/RADV, gfx1010) — Qwen3.5-4B Opus-Distilled ───────
+    # ── Sentry AMD RX 5600 XT (Vulkan/RADV, gfx1010) — Gemma 4 E2B Vision ──────
     # Vulkan backend: RADV (Mesa) outperforms ROCm on RDNA1 for token generation.
-    # Flash attention required: quantized V cache (q4_0) needs flash_attn since llama.cpp b3880+.
-    # 32K context, q4_0 KV cache (lighter than iq4_nl, faster decompression).
+    # Gemma 4 E2B IQ4_NL (2.9GB) + BF16 mmproj (942MB) = 4.8GB VRAM, 48 tok/s text, vision capable.
+    # Reasoning disabled for direct content output. Large ubatch for mmproj token budget.
+    
     Deployment.llama-server-sentry = {
       metadata.labels = managed // {
         app = "llama-server-sentry";
@@ -439,7 +440,9 @@ in
                 command = [ "${pkgsWithOverlay.llama-cpp-vulkan}/bin/llama-server" ];
                 args = [
                   "--model"
-                  "/models/Jackrong/Qwen3.5-4B-Claude-4.6-Opus-Reasoning-Distilled-GGUF/Qwen3.5-4B.Q4_K_M.gguf"
+                  "/models/unsloth/gemma-4-E2B-it-GGUF/gemma-4-e2b-it-IQ4_NL.gguf"
+                  "--mmproj"
+                  "/models/lmstudio-community/gemma-4-E2B-it-GGUF/mmproj-gemma-4-E2B-it-BF16.gguf"
                   "--host"
                   "0.0.0.0"
                   "--port"
@@ -447,32 +450,27 @@ in
                   "-ngl"
                   "99"
                   "-c"
-                  "32768"
+                  "4096"
                   "-t"
                   "4"
                   "--fit"
                   "off"
                   "--batch-size"
-                  "128"
+                  "512"
                   "--ubatch-size"
-                  "32"
+                  "512"
                   "--flash-attn"
                   "on"
                   "--parallel"
                   "1"
-                  "--cache-type-k"
-                  "q4_0"
-                  "--cache-type-v"
-                  "q4_0"
+                  "--reasoning"
+                  "off"
                   "--temp"
                   "0.6"
                   "--top-k"
                   "20"
                   "--top-p"
                   "0.95"
-                  "--chat-template-file"
-                  "/models/qwen3-thinking-template.jinja"
-                  "--jinja"
                   "--metrics"
                 ];
                 env = {
