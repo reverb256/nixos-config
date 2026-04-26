@@ -57,7 +57,7 @@ in {
     lib.mkIf cfg.enable {
       environment.etc."health-checks/ai-gateway.sh".text = ''
         #!/bin/sh
-        GATEWAY_URL="http://127.0.0.1:8080/health"
+        GATEWAY_URL="${config.networking.cluster.kubernetes.services.ai-inference.nodePort or "http://10.1.1.110:30880"}/health"
         TIMEOUT=5
 
         if ${pkgs.curl}/bin/curl -f -s --max-time "$TIMEOUT" "$GATEWAY_URL" >/dev/null 2>&1; then
@@ -92,7 +92,7 @@ in {
         #!/bin/sh
         mkdir -p /var/lib/health-checks
 
-        if ${pkgs.curl}/bin/curl -f -s --max-time 5 http://127.0.0.1:8080/health >/dev/null 2>&1; then
+        if ${pkgs.curl}/bin/curl -f -s --max-time 5 ${config.networking.cluster.kubernetes.services.ai-inference.nodePort or "http://10.1.1.110:30880"}/health >/dev/null 2>&1; then
           echo "ai_gateway_health 1" > /var/lib/health-checks/ai-gateway.prom
         else
           echo "ai_gateway_health 0" > /var/lib/health-checks/ai-gateway.prom
