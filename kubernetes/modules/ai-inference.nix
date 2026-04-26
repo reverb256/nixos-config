@@ -624,6 +624,10 @@ in
                     name = "nvidia-api-key";
                     key = "NVIDIA_API_KEY";
                   };
+                  NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
+                    name = "nvidia-api-key";
+                    key = "NVIDIA_API_KEY";
+                  };
                   MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED.valueFrom.configMapKeyRef = {
                     name = "ai-inference-gateway-config";
                     key = "MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED";
