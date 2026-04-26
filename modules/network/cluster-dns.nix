@@ -134,6 +134,7 @@ in
           "n8n.lan. IN A ${hosts.nexus}"
           "searxng.lan. IN A ${hosts.nexus}"
           "activepieces.lan. IN A ${hosts.nexus}"
+          "mission-control.lan. IN A ${hosts.nexus}"
         ];
         # Optional forge services
         forgeServices = [
