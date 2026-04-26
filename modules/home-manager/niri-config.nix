@@ -48,40 +48,11 @@ in
             "-s"
             "b"
             "--"
-            "${pkgs.wl-clipboard}/bin/wl-paste"
-            "--type"
-            "text"
-            "--watch"
-            "${pkgs.cliphist}/bin/cliphist"
-            "store"
-          ];
-        }
-        {
-          argv = [
-            "uwsm"
-            "app"
-            "-s"
-            "b"
-            "--"
-            "${pkgs.wl-clipboard}/bin/wl-paste"
-            "--type"
-            "image"
-            "--watch"
-            "${pkgs.cliphist}/bin/cliphist"
-            "store"
-          ];
-        }
-        {
-          argv = [
-            "uwsm"
-            "app"
-            "-s"
-            "b"
-            "--"
             "ckb-next"
             "-b"
           ];
         }
+        # Clipboard monitoring moved to CopyQ (home-manager module)
       ];
 
       cursor = {

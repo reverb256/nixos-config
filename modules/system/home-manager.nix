@@ -37,6 +37,7 @@ in
           ../../modules/home-manager/icon-theme.nix
           ../../modules/home-manager/dolphin.nix
           ../../modules/home-manager/desktop-utilities.nix
+          ../../modules/home-manager/copyq.nix
         ];
 
         disabledModules = [ "stylix/hm/opencode.nix" ];
@@ -49,6 +50,17 @@ in
 
         nixcord-config.enable = lib.mkForce (hostName == "zephyr");
         caprine.enable = lib.mkForce (hostName == "zephyr");
+
+        # CopyQ clipboard manager (replaces cliphist)
+        programs.copyq = {
+          enable = true;
+          maxItems = 200;
+          pluginImage = true;
+          pluginText = true;
+          pluginHtml = true;
+          syncClipboard = true;
+          startServer = true;
+        };
 
 
         home.stateVersion = "26.05";
