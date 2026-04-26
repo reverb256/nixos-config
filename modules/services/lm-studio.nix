@@ -19,6 +19,9 @@ in
       pkgs.lmstudio
       (pkgs.writeShellScriptBin "lm-studio" ''
         #!/bin/bash
+        # CRITICAL: Change to HOME first - bwrap sandbox fails in /etc/nixos
+        cd "$HOME" || exit 1
+
         BACKENDS="$HOME/.lmstudio/extensions/backends"
         for d in "$BACKENDS"/llama.cpp-linux-x86_64-avx2-* \
                  "$BACKENDS"/llama.cpp-linux-x86_64-vulkan-*; do
@@ -42,26 +45,28 @@ in
           fi
         done
 
-        cd "$HOME"
-
         NVIDIA_LIB_DIR="/run/opengl-driver/lib"
         CUDA_DIR="$BACKENDS/vendor/linux-llama-cuda12-vendor-v1"
+        GCC_LIB_DIR="${pkgs.gcc14.cc.lib}/lib"
         if [ -d "$CUDA_DIR" ]; then
+          # Symlink NVIDIA libraries
           for lib in "$NVIDIA_LIB_DIR"/libnvidia-ml.so* "$NVIDIA_LIB_DIR"/libnvidia-ptxjitcompiler.so*; do
+            [ -e "$lib" ] && ln -sf "$lib" "$CUDA_DIR"/$(basename "$lib")
+          done
+          # Symlink libstdc++ for native Node.js modules
+          for lib in "$GCC_LIB_DIR"/libstdc++.so.6*; do
             [ -e "$lib" ] && ln -sf "$lib" "$CUDA_DIR"/$(basename "$lib")
           done
         fi
 
-        unset LD_LIBRARY_PATH
+        # Set library path to include vendor directory for libstdc++
+        export LD_LIBRARY_PATH="$BACKENDS/vendor/linux-llama-cuda12-vendor-v1"
 
         # Forcefully override systemd session variables
         unset CUDA_VISIBLE_DEVICES
         unset CUDA_DEVICES
 
-        # Restrict to GPU 0 (RTX 3060 Ti) — GPU 1 (RTX 3090) is
-        # mining-saturated and causes LM Studio to OOM on device init.
-        export CUDA_VISIBLE_DEVICES=0
-        export LD_LIBRARY_PATH=${pkgs.gcc14.cc.lib}/lib:$LD_LIBRARY_PATH
+        # Allow both GPUs (removed GPU 0 restriction since both are now visible)
         exec ${pkgs.lmstudio}/bin/lmstudio \
           --enable-features=UseOzonePlatform \
           --ozone-platform=wayland \
