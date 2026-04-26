@@ -77,7 +77,7 @@ in
           "hermes.lan. IN A 10.1.1.120"
           "api.hermes.lan. IN A 10.1.1.120"
           "n8n.lan. IN A 10.1.1.120"
-          "searxng.lan. IN A 10.1.1.120"
+          # searxng.lan uses CNAME to search.lan (see cluster-dns.nix)
           "activepieces.lan. IN A 10.1.1.120"
         ]
       );

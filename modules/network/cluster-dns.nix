@@ -132,7 +132,7 @@ in
           "hermes.lan. IN A ${hosts.nexus}"
           "api.hermes.lan. IN A ${hosts.nexus}"
           "n8n.lan. IN A ${hosts.nexus}"
-          "searxng.lan. IN A ${hosts.nexus}"
+          # searxng.lan uses search.lan via CNAME
           "activepieces.lan. IN A ${hosts.nexus}"
           "mission-control.lan. IN A ${hosts.nexus}"
         ];
@@ -163,6 +163,9 @@ in
         (lib.optionalString dnsCfg.enableServiceRecords (
           lib.concatMapStrings (record: "local-data: \"${record}\"\n") allServices
         ))
+      +
+        # CNAME records (aliases)
+        "local-data: \"searxng.lan. IN CNAME search.lan\"\n"
       +
         # Tailscale mobile device
         "local-data: \"seeker.lan. IN A 100.84.24.43\"\n";
