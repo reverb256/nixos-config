@@ -137,6 +137,19 @@
     ];
   };
 
+  # Bind mounts for NFS export paths (hermes + pi state)
+  # /data/hermes and /data/pi are exported via NFS but data lives in ~/
+  fileSystems."/data/hermes" = {
+    device = "/home/j_kro/.hermes";
+    fsType = "none";
+    options = [ "bind" "rw" ];
+  };
+  fileSystems."/data/pi" = {
+    device = "/home/j_kro/.pi";
+    fsType = "none";
+    options = [ "bind" "rw" ];
+  };
+
 
   i18n.defaultLocale = "en_CA.UTF-8";
 
