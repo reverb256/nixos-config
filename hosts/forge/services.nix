@@ -1,4 +1,7 @@
 { config, pkgs, lib, ... }:
+let
+  cluster = config.networking.cluster;
+in
 {
   services = {
     hermes-cli = {
@@ -10,9 +13,9 @@
       nvidia.enable = true;
       role = "agent";
       nodeName = "forge";
-      serverAddr = "https://10.1.1.100:6443";
+      serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";
-      nodeIP = "10.1.1.130";
+      nodeIP = cluster.hosts.forge.ip;
     };
 
     spotify-spotx.enable = true;

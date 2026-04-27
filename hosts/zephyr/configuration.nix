@@ -84,6 +84,9 @@
     "net.core.rmem_max" = 16777216;
     "net.core.wmem_max" = 16777216;
 
+    # Suppress martian source warnings from wlan0 (same subnet as eth0)
+    "net.ipv4.conf.wlan0.rp_filter" = 2;
+    "net.ipv4.conf.all.log_martians" = false;
   };
 
   stylix = {
@@ -134,19 +137,6 @@
     ];
   };
 
-  # Shared hermes state via NFS (nexus is canonical)
-  fileSystems."/home/j_kro/.hermes" = {
-    device = "nexus:/data/hermes";
-    fsType = "nfs4";
-    options = [ "noatime" "nodiratime" "_netdev" ];
-  };
-
-  # Shared pi agent config via NFS
-  fileSystems."/home/j_kro/.pi/agent" = {
-    device = "nexus:/data/pi";
-    fsType = "nfs4";
-    options = [ "noatime" "nodiratime" "_netdev" ];
-  };
 
   i18n.defaultLocale = "en_CA.UTF-8";
 
@@ -300,11 +290,19 @@
     wantedBy = [ "multi-user.target" ];
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
+    unitConfig = {
+      StartLimitIntervalSec = 60;
+      StartLimitBurst = 3;
+    };
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+      Restart = "on-failure";
+      RestartSec = 30;
+      ExecStartPre = "${pkgs.iputils}/bin/ping -c1 -W2 10.1.1.120";
       ExecStart = pkgs.writeShellScript "dnat-nfs" ''
-        if ! ${pkgs.nftables}/bin/nft list ruleset 2>/dev/null \
+        ${pkgs.nftables}/bin/nft list tables 2>/dev/null | grep -q "nat" || exit 0
+        if ! ${pkgs.nftables}/bin/nft list chain ip nat PREROUTING 2>/dev/null \
           | grep -q 'dnat to 10.1.1.120:30888'; then
           ${pkgs.nftables}/bin/nft add rule ip nat PREROUTING \
             ip daddr 10.1.1.100 tcp dport 80 \

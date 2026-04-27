@@ -206,9 +206,7 @@ in
         "Mod+Return".action = spawn "uwsm" "app" "--" "ghostty";
         "Mod+B".action = spawn "launch-or-focus" "Zen" "uwsm" "app" "--" "zen-twilight";
         "Mod+Shift+B".action = spawn "uwsm" "app" "--" "zen-twilight" "--private-window";
-        "Mod+E".action =
-          spawn "launch-or-focus" "Dolphin" "uwsm" "app" "--"
-            "${pkgs.kdePackages.dolphin}/bin/dolphin";
+        "Mod+E".action = spawn "launch-or-focus" "Dolphin" "${pkgs.kdePackages.dolphin}/bin/dolphin";
         "Mod+N".action =
           spawn "launch-or-focus" "KWrite" "uwsm" "app" "--"
             "${pkgs.kdePackages.kate}/bin/kwrite";
@@ -332,7 +330,7 @@ in
 
         "Mod+F".action = fullscreen-window;
         "Mod+Shift+F".action = maximize-column;
-        "Mod+V".action = toggle-window-floating;
+        "Mod+V".action = spawn "uwsm" "app" "--" "copyq" "show";
         "Mod+Shift+V".action = switch-focus-between-floating-and-tiling;
 
         # Zowie (DP-5) - Main monitor - focus workspace 1-4
@@ -695,6 +693,11 @@ in
             }
           ];
           open-maximized = true;
+        }
+        # CopyQ - clipboard manager (floating)
+        {
+          matches = [ { app-id = "copyq"; } ];
+          open-floating = true;
         }
       ];
 

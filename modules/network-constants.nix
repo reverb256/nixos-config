@@ -153,80 +153,234 @@
                 description = "Kubernetes API port";
               };
 
-              services = lib.mkOption {
+              clusterDnsIP = lib.mkOption {
+                type = lib.types.str;
+                default = "10.0.0.10";
+                description = "CoreDNS service ClusterIP for cluster.local resolution";
+              };
+
+              nodePorts = lib.mkOption {
                 type = lib.types.submodule {
                   options = {
-                    ai-inference = lib.mkOption {
-                      type = lib.types.submodule {
-                        options = {
-                          primary = lib.mkOption {
-                            type = lib.types.str;
-                            default = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080";
-                            description = "AI inference gateway primary endpoint (K8s service)";
-                          };
+                    ai-gateway = lib.mkOption { type = lib.types.int; default = 30880; };
+                    open-webui = lib.mkOption { type = lib.types.int; default = 32080; };
+                    caddy-http = lib.mkOption { type = lib.types.int; default = 30080; };
+                    caddy-https = lib.mkOption { type = lib.types.int; default = 30443; };
+                    vane = lib.mkOption { type = lib.types.int; default = 30900; };
+                    nginx-http = lib.mkOption { type = lib.types.int; default = 32095; };
+                    nginx-https = lib.mkOption { type = lib.types.int; default = 31021; };
+                  };
+                };
+                default = {};
+                description = "K8s NodePort allocations";
+              };
 
+              services = lib.mkOption {
+                type = lib.types.submodule {
+                  options =
+                    let
+                      svcOpts = { namespace, port, nodePort ? null, ... }: {
+                        options = {
+                          dns = lib.mkOption {
+                            type = lib.types.str;
+                            default = "${namespace}.svc.cluster.local:${toString port}";
+                            description = "K8s service DNS name (stable across recreations)";
+                          };
+                          namespace = lib.mkOption {
+                            type = lib.types.str;
+                            default = namespace;
+                          };
+                          port = lib.mkOption {
+                            type = lib.types.int;
+                            default = port;
+                          };
                           lan = lib.mkOption {
                             type = lib.types.str;
-                            default = "http://ai-inference.lan:8080";
-                            description = "AI inference gateway LAN alias (via Unbound)";
+                            default = "";
+                            description = "LAN hostname for this service (if exposed via ingress)";
                           };
-
-                          clusterIP = lib.mkOption {
-                            type = lib.types.str;
-                            default = "http://10.15.67.242:8080";
-                            description = "AI inference gateway ClusterIP";
-                          };
-
                           nodePort = lib.mkOption {
-                            type = lib.types.str;
-                            default = "http://10.1.1.110:30880";
-                            description = "AI inference gateway NodePort (Zephyr)";
-                          };
-
-                          health = lib.mkOption {
-                            type = lib.types.str;
-                            description = "Health check endpoint (auto-generated)";
-                            readOnly = true;
-                            default = "";
-                          };
-
-                          chat = lib.mkOption {
-                            type = lib.types.str;
-                            description = "Chat completions API endpoint (auto-generated)";
-                            readOnly = true;
-                            default = "";
-                          };
-
-                          models = lib.mkOption {
-                            type = lib.types.str;
-                            description = "Models list endpoint (auto-generated)";
-                            readOnly = true;
-                            default = "";
-                          };
-
-                          embeddings = lib.mkOption {
-                            type = lib.types.str;
-                            description = "Embeddings API endpoint (auto-generated)";
-                            readOnly = true;
-                            default = "";
+                            type = lib.types.nullOr lib.types.int;
+                            default = nodePort;
                           };
                         };
                       };
-                      default = {};
-                      description = "AI inference gateway service endpoints";
+                    in
+                    {
+                      ai-gateway = lib.mkOption {
+                        type = lib.types.submodule (svcOpts {
+                          namespace = "ai-inference";
+                          port = 8080;
+                          nodePort = 30880;
+                        });
+                        default = { };
+                        description = "AI Inference Gateway";
+                      };
+
+                      open-webui = lib.mkOption {
+                        type = lib.types.submodule (svcOpts {
+                          namespace = "ai-inference";
+                          port = 8080;
+                          nodePort = 32080;
+                        });
+                        default = { };
+                        description = "Open WebUI";
+                      };
+
+                      qdrant = lib.mkOption {
+                        type = lib.types.submodule (svcOpts {
+                          namespace = "ai-inference";
+                          port = 6333;
+                        });
+                        default = { };
+                        description = "Qdrant vector database";
+                      };
+
+                      redis = lib.mkOption {
+                        type = lib.types.submodule (svcOpts {
+                          namespace = "ai-inference";
+                          port = 6379;
+                        });
+                        default = { };
+                        description = "Redis cache";
+                      };
+
+                      prometheus = lib.mkOption {
+                        type = lib.types.submodule (svcOpts {
+                          namespace = "ai-inference";
+                          port = 9090;
+                        });
+                        default = { };
+                        description = "Prometheus metrics";
+                      };
+
+                      grafana = lib.mkOption {
+                        type = lib.types.submodule (svcOpts {
+                          namespace = "ai-inference";
+                          port = 3000;
+                        });
+                        default = { };
+                        description = "Grafana dashboards";
+                      };
+
+                      searxng = lib.mkOption {
+                        type = lib.types.submodule (svcOpts {
+                          namespace = "search";
+                          port = 8080;
+                        });
+                        default = { };
+                        description = "SearXNG meta search engine";
+                      };
+
+                      vane = lib.mkOption {
+                        type = lib.types.submodule (svcOpts {
+                          namespace = "search";
+                          port = 30900;
+                          nodePort = 30900;
+                        });
+                        default = { };
+                        description = "Vane search cache";
+                      };
+
+                      knowledge-fabric = lib.mkOption {
+                        type = lib.types.submodule (svcOpts {
+                          namespace = "ai-inference";
+                          port = 3000;
+                        });
+                        default = { };
+                        description = "Knowledge Fabric API";
+                      };
+
+                      privacy-filter = lib.mkOption {
+                        type = lib.types.submodule (svcOpts {
+                          namespace = "ai-inference";
+                          port = 8080;
+                        });
+                        default = { };
+                        description = "Privacy filter service";
+                      };
+
+                      n8n = lib.mkOption {
+                        type = lib.types.submodule (svcOpts {
+                          namespace = "automation";
+                          port = 5678;
+                        });
+                        default = { };
+                        description = "n8n workflow automation";
+                      };
+
+                      activepieces = lib.mkOption {
+                        type = lib.types.submodule (svcOpts {
+                          namespace = "automation";
+                          port = 80;
+                        });
+                        default = { };
+                        description = "ActivePieces automation";
+                      };
+
+                      haven = lib.mkOption {
+                        type = lib.types.submodule (svcOpts {
+                          namespace = "haven";
+                          port = 3000;
+                        });
+                        default = { };
+                        description = "Haven dashboard";
+                      };
+
+                      llama-zephyr = lib.mkOption {
+                        type = lib.types.submodule (svcOpts {
+                          namespace = "ai-inference";
+                          port = 1235;
+                        });
+                        default = { };
+                        description = "llama-server Zephyr RTX 3090";
+                      };
+
+                      llama-zephyr-3060ti = lib.mkOption {
+                        type = lib.types.submodule (svcOpts {
+                          namespace = "ai-inference";
+                          port = 1236;
+                        });
+                        default = { };
+                        description = "llama-server Zephyr RTX 3060 Ti";
+                      };
+
+                      llama-sentry = lib.mkOption {
+                        type = lib.types.submodule (svcOpts {
+                          namespace = "ai-inference";
+                          port = 1235;
+                        });
+                        default = { };
+                        description = "llama-server Sentry ROCm";
+                      };
+
+                      xmrig-proxy = lib.mkOption {
+                        type = lib.types.submodule {
+                          options = {
+                            host = lib.mkOption {
+                              type = lib.types.str;
+                              default = "10.1.1.120";
+                              description = "xmrig-proxy host (not a K8s DNS service)";
+                            };
+                            port = lib.mkOption {
+                              type = lib.types.int;
+                              default = 3333;
+                            };
+                          };
+                        };
+                        default = { };
+                        description = "xmrig-proxy stratum endpoint";
+                      };
                     };
-                  };
-                  default = {};
-                  description = "Kubernetes service endpoints";
                 };
+                default = { };
+                description = "Kubernetes service endpoints";
               };
             };
           };
           default = {
             vip = "10.1.1.100";
             apiPort = 6443;
-            services.ai-inference.primary = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080";
-            services.ai-inference.lan = "http://ai-inference.lan:8080";
           };
           description = "Kubernetes cluster configuration";
         };
@@ -289,6 +443,6 @@
       };
     };
     description = "Cluster network configuration";
-    readOnly = true;
+    default = {};
   };
 }

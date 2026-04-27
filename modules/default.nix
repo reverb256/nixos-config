@@ -88,6 +88,8 @@
 
     # ./services/mcp-servers.nix  # migrated to inputs.mcp-registry
     ./services/nfs-server.nix
+    ./services/nfs-cluster-mounts.nix
+    ./services/nfs-state-sync.nix
     ./services/nfs-client.nix
     ./services/tplink-switches.nix
     ./services/tplink-cli.nix

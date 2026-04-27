@@ -15,10 +15,15 @@ let
 
   storageClass = "slow-hdd";
 
-  # Sentry internal IP for node affinity
-  sentryIP = "10.1.1.140";
+  # Cluster host IPs for node affinity and scrape targets
+  hostIPs = {
+    zephyr = "10.1.1.110";
+    nexus = "10.1.1.120";
+    forge = "10.1.1.130";
+    sentry = "10.1.1.140";
+  };
 
-  # Cluster DNS service IP
+  # Cluster DNS service IP (CoreDNS)
   clusterDNS = "10.0.0.10";
 
   # Loki config (monolithic mode, filesystem storage)
@@ -297,18 +302,18 @@ let
         scrape_interval: 15s
         static_configs:
           - targets:
-              - '10.1.1.110:9100'
-              - '10.1.1.120:9100'
-              - '10.1.1.130:9100'
-              - '10.1.1.140:9100'
+              - '${hostIPs.zephyr}:9100'
+              - '${hostIPs.nexus}:9100'
+              - '${hostIPs.forge}:9100'
+              - '${hostIPs.sentry}:9100'
 
       - job_name: 'nvidia-exporter'
         scrape_interval: 15s
         static_configs:
           - targets:
-              - '10.1.1.110:9400'
-              - '10.1.1.120:9400'
-              - '10.1.1.130:9400'
+              - '${hostIPs.zephyr}:9400'
+              - '${hostIPs.nexus}:9400'
+              - '${hostIPs.forge}:9400'
 
 
       - job_name: 'kube-state-metrics'
