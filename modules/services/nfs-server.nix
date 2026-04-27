@@ -5,6 +5,24 @@
 }:
 let
   cfg = config.services.nfs-data-server;
+
+  baseExports = ''
+    /data/shared 10.1.1.0/24(rw,sync,no_subtree_check,crossmnt,root_squash,anonuid=1000,anongid=100,fsid=100)
+
+    /data/home 10.1.1.0/24(rw,sync,no_subtree_check,crossmnt,root_squash,anonuid=1000,anongid=100,fsid=101)
+
+    /data/media 10.1.1.0/24(ro,sync,no_subtree_check,crossmnt,fsid=102)
+
+    /data/backups 10.1.1.0/24(ro,sync,no_subtree_check,crossmnt,fsid=103)
+
+    /mnt/garage/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=104)
+
+    /data/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=105)
+
+    /data/pi 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=106)
+
+    /data/qdrant 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=107)
+  '';
 in
 {
   options.services.nfs-data-server = {
@@ -27,23 +45,7 @@ in
 
     # Base data exports -- only applied when nfs-data-server is enabled
     # Uses mkDefault so hosts can mkForce override with selective exports
-    services.nfs.server.exports = lib.mkDefault ''
-      /data/shared 10.1.1.0/24(rw,sync,no_subtree_check,crossmnt,root_squash,anonuid=1000,anongid=100,fsid=100)
-
-      /data/home 10.1.1.0/24(rw,sync,no_subtree_check,crossmnt,root_squash,anonuid=1000,anongid=100,fsid=101)
-
-      /data/media 10.1.1.0/24(ro,sync,no_subtree_check,crossmnt,fsid=102)
-
-      /data/backups 10.1.1.0/24(ro,sync,no_subtree_check,crossmnt,fsid=103)
-
-      /mnt/garage/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=104)
-
-      /data/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=105)
-
-      /data/pi 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=106)
-
-      /data/qdrant 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=107)
-    '' + cfg.exports;
+    services.nfs.server.exports = lib.mkDefault (baseExports + cfg.exports);
 
     services.nfs.settings = {
       idmapd = {
