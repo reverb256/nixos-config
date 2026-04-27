@@ -28,7 +28,7 @@
 ## WHAT
 NixOS flake-based 4-host Linux cluster (Zephyr, Nexus, Forge, Sentry) for AI inference, GPU computing, storage, and monitoring.
 
-**Tech stack**: NixOS flakes, Kubernetes v1.35.0, Colmena, Just, Serena tools
+**Tech stack**: NixOS flakes, Kubernetes v1.34.5, Colmena, Just, Serena tools
 
 **Current Branch**: `feature/brain-v2-embedding-first` (main: `main`)
 

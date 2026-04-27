@@ -4,6 +4,8 @@ let
   hermesVenv = pkgs.callPackage (inputs.hermes-agent.outPath + "/nix/python.nix") {
     inherit (inputs.hermes-agent.inputs) uv2nix pyproject-nix pyproject-build-systems;
   };
+  k8s = config.networking.cluster.kubernetes.services;
+  cluster = config.networking.cluster;
 in {
   systemd.tmpfiles.rules = [
     "R /var/lib/etcd - - - - -"
@@ -21,15 +23,15 @@ in {
       role = "server";
       clusterInit = true;
       nodeName = "nexus";
-      serverAddr = "https://10.1.1.100:6443";
+      serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";
-      nodeIP = "10.1.1.120";
+      nodeIP = cluster.hosts.nexus.ip;
       calico.enable = false;
     };
 
     keepalived-vip = {
-      enable = false; # NixOS module not available yet
-      vip = "10.1.1.100";
+      enable = false;
+      vip = cluster.kubernetes.vip;
       interface = "enp7s0";
       priority = 100;
     };
@@ -63,7 +65,7 @@ in {
           httpTokenFile = "/run/agenix/xmrig-flexible-api-token";
           autostart = false;
         };
-        pool = "10.1.1.110:3333";
+        pool = "${cluster.hosts.zephyr.ip}:3333";
         wallet = "nexus-cpu";
         password = "x";
         tls = false;
@@ -86,7 +88,7 @@ in {
       client.enable = true;
     };
 
-    nfs.server.enable = true;
+    nfs-data-server.enable = true;
 
     syncthing-cluster = {
       enable = false; # NixOS module not available yet
@@ -343,16 +345,17 @@ in {
 
   # Cluster service registry — single source of truth for DNS + Caddy
   # All .lan domains terminate TLS on nexus and proxy to backends
+  # Uses K8s service DNS (stable across recreations) instead of ephemeral ClusterIPs
   services.cluster-services = {
     enable = true;
     services = {
       searxng = {
         domain = "searxng.lan";
-        backend = "10.4.98.141:8080";
+        backend = k8s.searxng.dns;
       };
       search = {
         domain = "search.lan";
-        backend = "10.5.42.235:30900";
+        backend = k8s.vane.dns;
         compress = false;
       };
       ai = {
@@ -361,11 +364,11 @@ in {
       };
       openwebui = {
         domain = "openwebui.lan";
-        backend = "10.15.130.66:8080";
+        backend = k8s.open-webui.dns;
       };
       haven = {
         domain = "haven.lan";
-        backend = "10.14.133.147:3000";
+        backend = k8s.haven.dns;
       };
       hermes = {
         domain = "hermes.lan";
@@ -377,23 +380,23 @@ in {
       };
       n8n = {
         domain = "n8n.lan";
-        backend = "10.12.30.204:5678";
+        backend = k8s.n8n.dns;
       };
       activepieces = {
         domain = "activepieces.lan";
-        backend = "10.11.184.70:80";
+        backend = k8s.activepieces.dns;
       };
       ai-inference = {
         domain = "ai-inference.lan";
-        backend = "10.15.67.242:8080";
+        backend = k8s.ai-gateway.dns;
       };
       qdrant = {
         domain = "qdrant.lan";
-        backend = "10.5.93.32:6333";
+        backend = k8s.qdrant.dns;
       };
       knowledge-fabric = {
         domain = "knowledge-fabric.lan";
-        backend = "10.6.31.109:3000";
+        backend = k8s.knowledge-fabric.dns;
       };
     };
   };

@@ -54,12 +54,6 @@ in
         # CopyQ clipboard manager (replaces cliphist)
         programs.copyq = {
           enable = true;
-          maxItems = 200;
-          pluginImage = true;
-          pluginText = true;
-          pluginHtml = true;
-          syncClipboard = true;
-          startServer = true;
         };
 
 

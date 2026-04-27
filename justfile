@@ -75,49 +75,10 @@ nfs-status:
 #  DEPLOYMENT
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Deploy to all hosts or specific host via tmux session
-# Ctrl+B D to detach, 'just attach' to reattach
+# Deploy to all hosts or specific host via tmux session (non-blocking for agents)
+# Use 'just attach' to view progress, Ctrl+B D to detach when attached
 deploy target *args:
-    #!/usr/bin/env bash
-    set -e
-
-    SESSION="deploy"
-    if tmux has-session -t "$SESSION" 2>/dev/null; then
-        echo "▸ Deploy session already running — attaching (Ctrl+B D to detach)"
-        exec tmux attach -t "$SESSION"
-    fi
-
-    tmux new-session -d -s "$SESSION" -c {{FLAKE}} -x 200 -y 50
-
-    # Set up nice status bar
-    tmux set-option -t "$SESSION" status-style "bg=#1e1e2e fg=#cdd6f4"
-    tmux set-option -t "$SESSION" status-left-length 30
-    tmux set-option -t "$SESSION" status-right-length 60
-    tmux set-option -t "$SESSION" status-left " #[fg=#89b4fa]⬢ NixOS #[fg=#a6adc8]│ #[fg=#f9e2af]#{session_name} "
-    tmux set-option -t "$SESSION" status-right " #[fg=#a6adc8]#{pane_current_path} #[fg=#6c7086]│ #[fg=#a6e3a1]%H:%M "
-    tmux set-option -t "$SESSION" pane-border-style "fg=#45475a"
-    tmux set-option -t "$SESSION" message-style "bg=#89b4fa fg=#1e1e2e"
-    tmux set-option -t "$SESSION" window-status-current-format " #[fg=#cdd6f4]#I:#W "
-
-    # Send the deploy command with mining scheduler
-    DEPLOY_CMD="/etc/nixos/scripts/cleanup-stale-locks.sh && \
-        exec {LOCK_FD}>/tmp/colmena-deploy.lock && \
-        flock -x -w 5 \$LOCK_FD || { echo '⚠ Another deploy is already running'; exit 1; }; \
-        trap 'flock -u \$LOCK_FD' EXIT"
-
-    if [ "{{target}}" = "all" ] || [ -z "{{target}}" ]; then
-        tmux send-keys -t "$SESSION" "echo '▸ Deploying to all hosts (Ctrl+B D to detach)...'" Enter
-        tmux send-keys -t "$SESSION" "/etc/nixos/scripts/mining-scheduler.sh pause all && $DEPLOY_CMD && cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry --verbose {{args}} && sudo nixos-rebuild switch --flake .#zephyr {{args}} && cd {{FLAKE}} && nix run .#k8s-deploy ; /etc/nixos/scripts/mining-scheduler.sh resume all" Enter
-    elif [ "{{target}}" = "zephyr" ]; then
-        tmux send-keys -t "$SESSION" "echo '▸ Deploying zephyr locally (Ctrl+B D to detach)...'" Enter
-        tmux send-keys -t "$SESSION" "/etc/nixos/scripts/mining-scheduler.sh pause zephyr && $DEPLOY_CMD && cd {{FLAKE}} && sudo nixos-rebuild switch --flake .#zephyr {{args}} && cd {{FLAKE}} && nix run .#k8s-deploy ; /etc/nixos/scripts/mining-scheduler.sh resume zephyr" Enter
-    else
-        tmux send-keys -t "$SESSION" "echo '▸ Deploying to {{target}} (Ctrl+B D to detach)...'" Enter
-        tmux send-keys -t "$SESSION" "/etc/nixos/scripts/mining-scheduler.sh pause {{target}} && $DEPLOY_CMD && cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on {{target}} --verbose {{args}} && cd {{FLAKE}} && nix run .#k8s-deploy ; /etc/nixos/scripts/mining-scheduler.sh resume {{target}}" Enter
-    fi
-
-    echo "▸ Deploy started in tmux session '$SESSION' — attaching now"
-    exec tmux attach -t "$SESSION"
+    @just deploy-bg {{target}} {{args}}
 
 # Attach to running deploy session
 attach:
@@ -129,6 +90,58 @@ attach:
         echo "No active deploy session. Use 'just deploy' to start one."
         exit 1
     fi
+
+# Non-blocking deploy (for agents) - runs in tmux without attaching
+deploy-bg target *args:
+    #!/usr/bin/env bash
+    set -e
+
+    SESSION="deploy"
+    if tmux has-session -t "$SESSION" 2>/dev/null; then
+        echo "▸ Deploy session already running — use 'just attach' to view"
+        exit 1
+    fi
+
+    tmux new-session -d -s "$SESSION" -c {{FLAKE}} -x 200 -y 50
+    tmux set-option -t "$SESSION" status-style "bg=#1e1e2e fg=#cdd6f4"
+    tmux set-option -t "$SESSION" status-left " #[fg=#89b4fa]⬢ NixOS #[fg=#a6adc8]│ #[fg=#f9e2af]#{session_name} "
+    tmux set-option -t "$SESSION" status-right " #[fg=#a6adc8]#{pane_current_path} #[fg=#6c7086]│ #[fg=#a6e3a1]%H:%M "
+
+    if [ "{{target}}" = "all" ] || [ -z "{{target}}" ]; then
+        tmux send-keys -t "$SESSION" "echo '▸ Deploying all hosts...'" Enter
+        tmux send-keys -t "$SESSION" "cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry --verbose {{args}} && sudo nixos-rebuild switch --flake .#zephyr {{args}}" Enter
+    elif [ "{{target}}" = "zephyr" ]; then
+        tmux send-keys -t "$SESSION" "echo '▸ Deploying zephyr...'" Enter
+        tmux send-keys -t "$SESSION" "cd {{FLAKE}} && sudo nixos-rebuild switch --flake .#zephyr {{args}}" Enter
+    else
+        tmux send-keys -t "$SESSION" "echo '▸ Deploying {{target}}...'" Enter
+        tmux send-keys -t "$SESSION" "cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on {{target}} --verbose {{args}}" Enter
+    fi
+
+    echo "▸ Deploy started in tmux session '$SESSION' (non-blocking)"
+    echo "  → Use 'just attach' to view progress"
+    echo "  → Use 'tmux kill-session -t deploy' to cancel"
+
+# Non-blocking local switch (for agents) - runs in tmux without attaching
+switch-bg:
+    #!/usr/bin/env bash
+    set -e
+
+    SESSION="deploy"
+    if tmux has-session -t "$SESSION" 2>/dev/null; then
+        echo "▸ Deploy session already running — use 'just attach' to view"
+        exit 1
+    fi
+
+    tmux new-session -d -s "$SESSION" -c {{FLAKE}} -x 200 -y 50
+    tmux set-option -t "$SESSION" status-style "bg=#1e1e2e fg=#cdd6f4"
+    tmux set-option -t "$SESSION" status-left " #[fg=#89b4fa]⬢ NixOS #[fg=#a6adc8]│ #[fg=#f9e2af]#{session_name} "
+    tmux set-option -t "$SESSION" status-right " #[fg=#a6e3a1]%H:%M "
+    tmux send-keys -t "$SESSION" "echo '▸ Switching $(hostname -s)...'" Enter
+    tmux send-keys -t "$SESSION" "cd {{FLAKE}} && sudo nixos-rebuild switch --flake .#$(hostname -s)" Enter
+
+    echo "▸ Switch started in tmux session '$SESSION' (non-blocking)"
+    echo "  → Use 'just attach' to view progress"
 
 # Convenience aliases
 zephyr:
@@ -158,22 +171,9 @@ check:
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Apply to current host (uses nixos-rebuild switch — colmena apply-local has NixOS sudo PATH issue)
-# Runs in tmux for visibility — Ctrl+B D to detach
+# Runs in tmux for visibility — runs non-blocking for agents
 switch:
-    #!/usr/bin/env bash
-    SESSION="deploy"
-    if tmux has-session -t "$SESSION" 2>/dev/null; then
-        echo "▸ Deploy session already running — attaching (Ctrl+B D to detach)"
-        exec tmux attach -t "$SESSION"
-    fi
-    tmux new-session -d -s "$SESSION" -c {{FLAKE}} -x 200 -y 50
-    tmux set-option -t "$SESSION" status-style "bg=#1e1e2e fg=#cdd6f4"
-    tmux set-option -t "$SESSION" status-left " #[fg=#89b4fa]⬢ NixOS #[fg=#a6adc8]│ #[fg=#f9e2af]#{session_name} "
-    tmux set-option -t "$SESSION" status-right " #[fg=#a6e3a1]%H:%M "
-    tmux send-keys -t "$SESSION" "echo '▸ Switching $(hostname -s) via nixos-rebuild (Ctrl+B D to detach)...'" Enter
-    tmux send-keys -t "$SESSION" "/etc/nixos/scripts/mining-scheduler.sh pause $(hostname -s) && cd {{FLAKE}} && sudo nixos-rebuild switch --flake .#$(hostname -s) && cd {{FLAKE}} && nix run .#k8s-deploy ; /etc/nixos/scripts/mining-scheduler.sh resume $(hostname -s)" Enter
-    echo "▸ Deploy started in tmux session — attaching now"
-    exec tmux attach -t "$SESSION"
+    @just switch-bg
 
 # Build without applying (local host only)
 build:

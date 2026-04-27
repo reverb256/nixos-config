@@ -12,6 +12,7 @@ let
     app = "vane";
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
+  gatewayUrl = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080";
 in
 {
   config.kubernetes.objects = {
@@ -31,7 +32,7 @@ in
               "type": "openai",
               "chatModels": [{"key": "Qwen3.5-4B.Q4_K_M.gguf", "name": "Qwen3.5-4B (Local)"}],
               "embeddingModels": [{"key": "BAAI/bge-m3", "name": "BGE-M3 (1024d)"}],
-              "config": {"baseURL": "http://10.1.1.120:8080/v1", "apiKey": "sk-placeholder"}
+              "config": {"baseURL": "${gatewayUrl}/v1", "apiKey": "sk-placeholder"}
             },
             {
               "id": "zai-cloud",
@@ -39,7 +40,7 @@ in
               "type": "openai",
               "chatModels": [{"key": "glm-5.1", "name": "GLM-5.1 (ZAI)"}],
               "embeddingModels": [],
-              "config": {"baseURL": "http://10.1.1.120:8080/v1", "apiKey": "sk-placeholder"}
+              "config": {"baseURL": "${gatewayUrl}/v1", "apiKey": "sk-placeholder"}
             },
             {
               "id": "nvidia-nim",
@@ -47,7 +48,7 @@ in
               "type": "openai",
               "chatModels": [{"key": "nvidia/llama-3.3-nemotron-super-49b-v1", "name": "Nemotron-Super-49B (NIM)"}],
               "embeddingModels": [],
-              "config": {"baseURL": "http://10.1.1.120:8080/v1", "apiKey": "sk-placeholder"}
+              "config": {"baseURL": "${gatewayUrl}/v1", "apiKey": "sk-placeholder"}
             }
           ],
           "search": {"searxngURL": "http://searxng.search.svc.cluster.local:8080"},
