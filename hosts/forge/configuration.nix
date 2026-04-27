@@ -86,18 +86,11 @@
     inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
 
 
-  # Shared hermes state via NFS (nexus is canonical)
-  fileSystems."/home/j_kro/.hermes" = {
-    device = "nexus:/data/hermes";
-    fsType = "nfs4";
-    options = [ "noatime" "nodiratime" "_netdev" ];
-  };
-
-  # Shared pi agent config via NFS
-  fileSystems."/home/j_kro/.pi/agent" = {
-    device = "nexus:/data/pi";
-    fsType = "nfs4";
-    options = [ "noatime" "nodiratime" "_netdev" ];
+  # Shared hermes + pi state via NFS (resilient: nofail, automount, soft)
+  services.nfs-cluster-mounts = {
+    enable = true;
+    mountHermes = true;
+    mountPi = true;
   };
 
   # nix-mineral DISABLED on forge (same as zephyr)

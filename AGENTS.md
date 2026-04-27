@@ -1,6 +1,6 @@
 # NixOS Cluster - Agent Guidelines
 
-**Generated:** 2026-04-24 | **Commit:** 29d0d02f | **Branch:** main
+**Generated:** 2026-04-26 | **Commit:** 29d0d02f | **Branch:** main
 
 ## Quick Start
 
@@ -26,7 +26,7 @@ just health             # Detailed health check
 | Sentry | 10.1.1.140 | Monitoring, AI inference (ROCm) | 31GB | 1x AMD Radeon RX 5600 XT (8GB) |
 
 **Resources**: 78 cores, 123GB RAM, 7 GPUs, 8.4TB storage
-**K3s**: v1.34.x — All 4 nodes functional, **Flannel CNI** (VXLAN, UDP 8472)
+**K3s**: v1.34.5+k3s1 — All 4 nodes functional, **Flannel CNI** (VXLAN, UDP 8472)
 **AI Gateway**: Sovereign Service Mesh operational on Nexus (10.15.67.242:8080)
 
 ## Deployment Model (Hybrid NFS + Colmena)

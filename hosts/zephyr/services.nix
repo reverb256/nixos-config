@@ -5,6 +5,9 @@
   inputs,
   ...
 }:
+let
+  cluster = config.networking.cluster;
+in
 {
   services = {
     voxtype = {
@@ -23,22 +26,22 @@
       nvidia.enable = true;
       role = "server";
       nodeName = "zephyr";
-      serverAddr = "https://10.1.1.100:6443";
+      serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";
-      nodeIP = "10.1.1.110";
+      nodeIP = cluster.hosts.zephyr.ip;
       calico.enable = false;
     };
 
     keepalived-vip = {
       enable = true;
-      vip = "10.1.1.100";
+      vip = cluster.kubernetes.vip;
       interface = "eth0";
       priority = 110;
     };
 
     backup-to-garage = {
       enable = true;
-      endpoint = "http://10.1.1.110:3900"; # zephyr cluster host
+      endpoint = "http://${cluster.hosts.zephyr.ip}:3900";
       region = "garage";
       bucket = "backups";
       secretKeyFile = "/run/agenix/garage-s3-secret-key";
@@ -211,6 +214,16 @@
       server.enable = true;
     };
 
+    # Canonical NFS server for hermes + pi agent state
+    nfs-data-server = {
+      enable = true;
+      exports = ''
+        /data/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=105)
+
+        /data/pi 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=106)
+      '';
+    };
+
     nfs-client = {
       enable = true;
       mountShared = false;
@@ -363,7 +376,7 @@
               "ai_inference_gateway.mcp_servers.searxng_server"
             ];
             environment = {
-              SEARXNG_URL = "http://10.1.1.120:30888"; # NodePort — K8s internal DNS unreachable from host
+              SEARXNG_URL = "http://${cluster.hosts.nexus.ip}:30888";
               SEARXNG_CACHE_TTL = "300";
             };
             enabled = true;
@@ -428,11 +441,11 @@
 
     mining = {
       lolminer = {
-        pool = "stratum+tcp://10.1.1.120:3333";
+        pool = "stratum+tcp://${cluster.kubernetes.services.xmrig-proxy.host}:${toString cluster.kubernetes.services.xmrig-proxy.port}";
         wallet = "krxXVNVMM7.zephyr-gpu";
         pools = [
           {
-            url = "stratum+tcp://10.1.1.120:3333";
+            url = "stratum+tcp://${cluster.kubernetes.services.xmrig-proxy.host}:${toString cluster.kubernetes.services.xmrig-proxy.port}";
             wallet = "krxXVNVMM7.zephyr-gpu";
             password = "x";
             tls = false;
@@ -477,7 +490,7 @@
           httpTokenFile = "/run/agenix/xmrig-flexible-api-token";
           autostart = false;
         };
-        pool = "10.1.1.110:3333";
+        pool = "${cluster.hosts.zephyr.ip}:3333";
         wallet = "zephyr-cpu";
         password = "x";
         tls = false;

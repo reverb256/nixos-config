@@ -6,6 +6,8 @@
 }:
 let
   nixCsiScratch = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
+  nexusIP = "10.1.1.120";
+  xmrigProxy = "${nexusIP}:3333";
 in
 {
   config.kubernetes.objects = {
@@ -272,7 +274,7 @@ in
                 image = "docker.io/library/xmrig-alpine:6.26.0";
                 args = [
                   "-o"
-                  "10.1.1.120:3333"
+                  "${xmrigProxy}"
                   "-u"
                   "zephyr-cpu"
                   "--tls=false"
@@ -404,7 +406,7 @@ in
                 image = "docker.io/library/xmrig-alpine:6.26.0";
                 args = [
                   "-o"
-                  "10.1.1.120:3333"
+                  "${xmrigProxy}"
                   "-u"
                   "nexus-cpu"
                   "--tls=false"
@@ -863,7 +865,7 @@ in
                 imagePullPolicy = "Never";
                 args = [
                   "-o"
-                  "10.1.1.120:3333"
+                  "${xmrigProxy}"
                   "-u"
                   "sentry-cpu"
                   "--tls=false"

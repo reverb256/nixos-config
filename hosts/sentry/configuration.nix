@@ -66,18 +66,11 @@
   boot.loader.timeout = lib.mkDefault 5;
 
 
-  # Shared hermes state via NFS (nexus is canonical)
-  fileSystems."/home/j_kro/.hermes" = {
-    device = "nexus:/data/hermes";
-    fsType = "nfs4";
-    options = [ "noatime" "nodiratime" "_netdev" ];
-  };
-
-  # Shared pi agent config via NFS
-  fileSystems."/home/j_kro/.pi/agent" = {
-    device = "nexus:/data/pi";
-    fsType = "nfs4";
-    options = [ "noatime" "nodiratime" "_netdev" ];
+  # Shared hermes + pi state via NFS (resilient: nofail, automount, soft)
+  services.nfs-cluster-mounts = {
+    enable = true;
+    mountHermes = true;
+    mountPi = true;
   };
 
   # System hardening (Phase 0: Security Baseline)

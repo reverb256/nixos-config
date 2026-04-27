@@ -1,4 +1,8 @@
-{ config, lib, pkgs, ... }: {
+{ config, lib, pkgs, ... }:
+let
+  cluster = config.networking.cluster;
+in
+{
   services = {
     hermes-cli = {
       enable = true;
@@ -8,15 +12,15 @@
       enable = true;
       role = "server";
       nodeName = "sentry";
-      serverAddr = "https://10.1.1.100:6443";
+      serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";
-      nodeIP = "10.1.1.140";
+      nodeIP = cluster.hosts.sentry.ip;
       calico.enable = false;
     };
 
     keepalived-vip = {
       enable = true;
-      vip = "10.1.1.100";
+      vip = cluster.kubernetes.vip;
       interface = "enp7s0";
       priority = 90;
     };
@@ -43,7 +47,7 @@
         enable = false;
         autostart = false;
         threads = 4;
-        pool = "10.1.1.110:3333";
+        pool = "${cluster.hosts.zephyr.ip}:3333";
       };
       xmrigDual = {
         enable = false;
@@ -67,6 +71,20 @@
       mountShared = true;
       mountHome = false;
       mountMedia = false;
+    };
+
+    # Secondary NFS data server for failover (hermes + pi state)
+    nfs-data-server = {
+      enable = true;
+      exports = ''
+        /data/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=105)
+
+        /data/pi 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=106)
+      '';
+    };
+    nfs-state-sync = {
+      enable = true;
+      sourceHost = "zephyr";
     };
 
     syncthing-cluster = {
