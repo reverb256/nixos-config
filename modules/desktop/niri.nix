@@ -87,6 +87,7 @@ in
           environment.systemPackages = with pkgs.kdePackages; [
             dolphin
             dolphin-plugins
+            konsole  # Provides konsolepart plugin for Dolphin terminal
             ark
           ] ++ [
             pkgs.swaylock

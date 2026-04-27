@@ -4,16 +4,30 @@
   ...
 }:
 let
-  cfg = config.services.nfs.server;
+  cfg = config.services.nfs-data-server;
 in
 {
+  options.services.nfs-data-server = {
+    enable = lib.mkEnableOption "NFS data server (exports /data/* to cluster)";
+
+    exports = lib.mkOption {
+      type = lib.types.lines;
+      default = "";
+      description = "Additional NFS export entries for /data/* paths";
+    };
+  };
+
   config = lib.mkIf cfg.enable {
+    services.nfs.server.enable = true;
+
     systemd.tmpfiles.rules = [
       "d /mnt/garage 0755 root root - -"
       "d /mnt/garage/hermes 0775 root wheel - -"
     ];
 
-    services.nfs.server.exports = ''
+    # Base data exports -- only applied when nfs-data-server is enabled
+    # Uses mkDefault so hosts can mkForce override with selective exports
+    services.nfs.server.exports = lib.mkDefault ''
       /data/shared 10.1.1.0/24(rw,sync,no_subtree_check,crossmnt,root_squash,anonuid=1000,anongid=100,fsid=100)
 
       /data/home 10.1.1.0/24(rw,sync,no_subtree_check,crossmnt,root_squash,anonuid=1000,anongid=100,fsid=101)
@@ -29,7 +43,7 @@ in
       /data/pi 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=106)
 
       /data/qdrant 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=107)
-    '';
+    '' + cfg.exports;
 
     services.nfs.settings = {
       idmapd = {

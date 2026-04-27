@@ -41,6 +41,9 @@ in
 
       settings = {
         server = {
+          domain-insecure = [
+            "cluster.local."
+          ];
           # Listen on localhost and cluster IP
           interface = [
             (
@@ -87,6 +90,11 @@ in
               "fd7a:115c:a1e0::53"
             ];
           }
+          # K8s cluster DNS → CoreDNS (enables host-level K8s service resolution)
+          {
+            name = "cluster.local.";
+            forward-addr = [ config.networking.cluster.kubernetes.clusterDnsIP ];
+          }
           # Everything else: use upstream DoT
           {
             name = ".";
@@ -110,7 +118,6 @@ in
             access-control: 172.16.0.0/12 allow
             verbosity: 1
             local-zone: "lan." static
-            local-zone: "cluster.local." static
 
         '';
 
@@ -135,6 +142,7 @@ in
           # searxng.lan uses search.lan via CNAME
           "activepieces.lan. IN A ${hosts.nexus}"
           "mission-control.lan. IN A ${hosts.nexus}"
+          "privacy-filter.lan. IN A ${hosts.nexus}"
         ];
         # Optional forge services
         forgeServices = [
@@ -212,6 +220,8 @@ in
           prometheus = hosts.sentry;
           monitoring = hosts.sentry;
           mining = hosts.forge;
+          mission-control = hosts.nexus;
+          privacy-filter = hosts.nexus;
         };
       in
       lib.pipe allHosts [

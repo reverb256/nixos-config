@@ -113,13 +113,13 @@ in
         # All inference routed through AI Inference Gateway
         model:
           provider: ai-gateway
-          base_url: ${config.networking.cluster.kubernetes.services.ai-inference.nodePort or "http://10.1.1.110:30880"}/v1
+          base_url: http://${config.networking.cluster.hosts.zephyr.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-gateway}/v1
           default: qwen/qwen3-coder-480b-a35b-instruct
           api_key: none
 
         providers:
           ai-gateway:
-            base_url: ${config.networking.cluster.kubernetes.services.ai-inference.nodePort or "http://10.1.1.110:30880"}/v1
+            base_url: http://${config.networking.cluster.hosts.zephyr.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-gateway}/v1
             api_key: none
           zai:
             base_url: https://api.z.ai/api/coding/paas/v4

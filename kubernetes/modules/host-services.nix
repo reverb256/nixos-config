@@ -8,6 +8,7 @@
 }:
 let
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
+  xmrigProxy = "stratum+tcp://10.1.1.120:3333";
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
@@ -1079,7 +1080,7 @@ in
                   "--algo"
                   "CR29"
                   "--pool"
-                  "stratum+tcp://10.1.1.120:3333"
+                  "${xmrigProxy}"
                   "--user"
                   "krxXVNVMM7.zephyr-gpu"
                   "--pass"
