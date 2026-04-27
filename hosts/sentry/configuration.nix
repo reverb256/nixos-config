@@ -84,7 +84,7 @@
   # Fix: nix-mineral compatibility preset should set hidepid=false but doesn't take effect.
   # hidepid=2 blocks nfs-idmapd from reading /proc/net/rpc/nfs4.*. Force it off.
   boot.specialFileSystems."/proc".options = lib.mkForce [
-    "nosuid" "noexec" "nodev"
+    "nosuid" "noexec" "nodev" "hidepid=0" "gid=21"
   ];
 
 
