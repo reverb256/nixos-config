@@ -78,7 +78,9 @@
   nix-mineral = {
     enable = true;
     preset = [ "compatibility" ];
+    settings.etc.kicksecure-module-blacklist = false;
   };
+
 
   # Resolve gitconfig conflict between NixOS default and nix-mineral
   environment.etc.gitconfig.source = lib.mkForce (pkgs.writeText "gitconfig" ''
