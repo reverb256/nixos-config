@@ -278,7 +278,7 @@ in {
         NoNewPrivileges = true;
         PrivateTmp = true;
         ProtectSystem = "yes";
-        ProtectHome = "read-write";
+        ProtectHome = false;
         ReadWritePaths = [
           "/home/${cfg.user}/.config/opencode"
           "/root/.config/opencode"
