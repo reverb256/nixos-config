@@ -81,6 +81,12 @@
     settings.etc.kicksecure-module-blacklist = false;
   };
 
+  # Fix: nix-mineral compatibility preset should set hidepid=false but doesn't take effect.
+  # hidepid=2 blocks nfs-idmapd from reading /proc/net/rpc/nfs4.*. Force it off.
+  boot.specialFileSystems."/proc".options = lib.mkForce [
+    "nosuid" "noexec" "nodev"
+  ];
+
 
   # Resolve gitconfig conflict between NixOS default and nix-mineral
   environment.etc.gitconfig.source = lib.mkForce (pkgs.writeText "gitconfig" ''
