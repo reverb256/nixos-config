@@ -17,7 +17,7 @@ in {
 
     serverIp = lib.mkOption {
       type = lib.types.str;
-      default = "10.1.1.120";
+      default = "10.1.1.110"; # zephyr (primary NFS server)
       description = "NFS server IP address";
     };
   };
@@ -42,6 +42,7 @@ in {
             "x-systemd.device-timeout=5s"
             "x-systemd.mount-timeout=10s"
             "_netdev"
+            "nofail"
             "noatime"
             "rw"
           ];
@@ -60,6 +61,7 @@ in {
             "x-systemd.device-timeout=5s"
             "x-systemd.mount-timeout=10s"
             "_netdev"
+            "nofail"
             "noatime"
             "rw"
           ];
@@ -78,6 +80,7 @@ in {
             "x-systemd.device-timeout=5s"
             "x-systemd.mount-timeout=10s"
             "_netdev"
+            "nofail"
             "noatime"
             "ro"
           ];
