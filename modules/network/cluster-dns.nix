@@ -122,28 +122,31 @@ in
 
         '';
 
-        # All services route through Caddy on nexus (no fragile ClusterIPs)
+        # All ingress services route through Caddy via VIP (10.1.1.100)
+        # VIP is keepalived: zephyr MASTER, survives node failures
+        vip = "10.1.1.100";
 
-        # Services via Caddy Ingress (accessed via NodePort on Nexus)
+
+        # Services via Caddy Ingress (accessed via VIP)
         ingressServices = [
-          "search.lan. IN A ${hosts.nexus}"
-          "brain.lan. IN A ${hosts.nexus}"
-          "openwebui.lan. IN A ${hosts.nexus}"
+          "search.lan. IN A ${vip}"
+          "brain.lan. IN A ${vip}"
+          "openwebui.lan. IN A ${vip}"
         ];
-        # Services proxied via Caddy on nexus (single stable entry point)
+        # Services proxied via Caddy via VIP (single stable entry point)
         hostServices = [
-          "ai.lan. IN A ${hosts.nexus}"
-          "ai-inference.lan. IN A ${hosts.nexus}"
-          "qdrant.lan. IN A ${hosts.nexus}"
-          "knowledge-fabric.lan. IN A ${hosts.nexus}"
-          "haven.lan. IN A ${hosts.nexus}"
-          "hermes.lan. IN A ${hosts.nexus}"
-          "api.hermes.lan. IN A ${hosts.nexus}"
-          "n8n.lan. IN A ${hosts.nexus}"
+          "ai.lan. IN A ${vip}"
+          "ai-inference.lan. IN A ${vip}"
+          "qdrant.lan. IN A ${vip}"
+          "knowledge-fabric.lan. IN A ${vip}"
+          "haven.lan. IN A ${vip}"
+          "hermes.lan. IN A ${vip}"
+          "api.hermes.lan. IN A ${vip}"
+          "n8n.lan. IN A ${vip}"
           # searxng.lan uses search.lan via CNAME
-          "activepieces.lan. IN A ${hosts.nexus}"
-          "mission-control.lan. IN A ${hosts.nexus}"
-          "privacy-filter.lan. IN A ${hosts.nexus}"
+          "activepieces.lan. IN A ${vip}"
+          "mission-control.lan. IN A ${vip}"
+          "privacy-filter.lan. IN A ${vip}"
         ];
         # Optional forge services
         forgeServices = [
@@ -205,24 +208,25 @@ in
     # Populate /etc/hosts for compatibility
     networking.extraHosts = lib.mkBefore (
       let
+        vip = "10.1.1.100";
         allHosts = hosts // {
-          ai-inference = hosts.nexus;
-          qdrant = hosts.nexus;
-          knowledge-fabric = hosts.nexus;
-          hermes = hosts.nexus;
-          brain = hosts.nexus;
-          search = hosts.nexus;
-          searxng = hosts.nexus;
-          n8n = hosts.nexus;
-          activepieces = hosts.nexus;
-          openwebui = hosts.nexus;
-          haven = hosts.nexus;
+          ai-inference = vip;
+          qdrant = vip;
+          knowledge-fabric = vip;
+          hermes = vip;
+          brain = vip;
+          search = vip;
+          searxng = vip;
+          n8n = vip;
+          activepieces = vip;
+          openwebui = vip;
+          haven = vip;
           grafana = hosts.sentry;
           prometheus = hosts.sentry;
           monitoring = hosts.sentry;
           mining = hosts.forge;
-          mission-control = hosts.nexus;
-          privacy-filter = hosts.nexus;
+          mission-control = vip;
+          privacy-filter = vip;
         };
       in
       lib.pipe allHosts [
