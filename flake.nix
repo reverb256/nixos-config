@@ -224,6 +224,12 @@
           modules = [ ./hosts/ci-test/configuration.nix ];
           specialArgs = { inherit inputs; };
         };
+        # Rescue USB — standalone live ISO (no mining/gaming/K8s)
+        usb-rescue = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = { inherit inputs; };
+          modules = [ ./hosts/usb/configuration.nix ];
+        };
       };
 
       colmena = import ./colmena.nix {

@@ -31,6 +31,7 @@ let
       ./modules/vane.nix
       ./modules/host-services.nix
       ./modules/ai-coding-tools.nix
+      ./modules/mission-control.nix
     ];
   };
 in

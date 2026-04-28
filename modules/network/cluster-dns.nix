@@ -5,14 +5,15 @@
   ...
 }:
 let
+  cluster = config.networking.cluster;
   inherit (lib) mkIf mkBefore mkDefault;
   clusterCfg = config.clusterNetworking;
   # Cluster host IPs (hardcoded for reliability)
   hosts = {
-    zephyr = "10.1.1.110";
-    nexus = "10.1.1.120";
-    forge = "10.1.1.130";
-    sentry = "10.1.1.140";
+    zephyr = "${cluster.hosts.zephyr.ip}";
+    nexus = "${cluster.hosts.nexus.ip}";
+    forge = cluster.hosts.forge.ip;
+    sentry = "${cluster.hosts.sentry.ip}";
     # K8s service ClusterIPs
   };
   # Get DNS config - use or {} for safety in case the option doesn't exist

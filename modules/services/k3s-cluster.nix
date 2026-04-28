@@ -5,6 +5,7 @@
   ...
 }:
 let
+  cluster = config.networking.cluster;
   cfg = config.services.k3s-cluster;
   inherit (lib)
     mkEnableOption
@@ -24,11 +25,11 @@ let
   clusterDNS = "10.0.0.10";
 
   tlsSans = [
-    "10.1.1.100"
-    "10.1.1.110"
-    "10.1.1.120"
-    "10.1.1.130"
-    "10.1.1.140"
+    "${cluster.kubernetes.vip}"
+    "${cluster.hosts.zephyr.ip}"
+    "${cluster.hosts.nexus.ip}"
+    "${cluster.hosts.forge.ip}"
+    "${cluster.hosts.sentry.ip}"
     "zephyr"
     "nexus"
     "forge"
@@ -76,7 +77,7 @@ in
 
     serverAddr = mkOption {
       type = types.str;
-      default = "https://10.1.1.100:6443";
+      default = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       description = "k3s server URL for agents and joining servers (VIP for HA)";
     };
 
@@ -393,7 +394,7 @@ in
         routeScript = pkgs.writeShellScript "k3s-node-route" ''
           IFACE=$(ip route show default 2>/dev/null | awk ${"'"}{print $5}${"'"} | head -1)
           if [ -n "$IFACE" ]; then
-            ip route replace 10.1.1.0/24 dev "$IFACE" 2>/dev/null || true
+            ip route replace ${cluster.subnet} dev "$IFACE" 2>/dev/null || true
           fi
         '';
       in "${routeScript}";
