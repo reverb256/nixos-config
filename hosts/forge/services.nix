@@ -129,6 +129,7 @@ in
     rocmPackages.rocm-smi
     clinfo
     nvtopPackages.full
+    inputs.claude-native.packages.x86_64-linux.claude
   ];
 
   programs.nix-ld.libraries = with pkgs; [
