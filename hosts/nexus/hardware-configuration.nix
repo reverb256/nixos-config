@@ -9,42 +9,19 @@
 
   boot = {
     initrd = {
-      availableKernelModules = ["nvme" "xhci_pci" "ahci" "usbhid" "usb_storage" "sd_mod"];
+      availableKernelModules = ["nvme" "xhci_pci" "ahci" "usbhid" "usb_storage" "sd_mod" "bcache"];
       kernelModules = [];
     };
     kernelModules = ["kvm-amd"];
     extraModulePackages = [];
   };
 
-  fileSystems = {
-    "/" = {
-      device = "/dev/disk/by-uuid/0893f780-7016-44cc-aae7-1f7996e498cc";
-      fsType = "btrfs";
-      options = ["subvol=@"];
-    };
-
-    "/home" = {
-      device = "/dev/disk/by-uuid/0893f780-7016-44cc-aae7-1f7996e498cc";
-      fsType = "btrfs";
-      options = ["subvol=@home"];
-    };
-
-    "/boot" = {
-      device = "/dev/disk/by-uuid/573A-6118";
-      fsType = "vfat";
-      options = ["fmask=0077" "dmask=0077"];
-    };
-
-    "/data/worn" = {
-      device = "/dev/disk/by-uuid/2056c7e4-cd6c-4a67-9b3d-001178a70eaa";
-      fsType = "btrfs";
-      options = ["subvol=@worn" "compress=zstd" "ssd" "discard=async" "nofail" "x-systemd.device-timeout=10s"];
-    };
+  # nvme1n1 mount - not managed by disko
+  fileSystems."/data/worn" = {
+    device = "/dev/disk/by-uuid/2056c7e4-cd6c-4a67-9b3d-001178a70eaa";
+    fsType = "btrfs";
+    options = ["subvol=@worn" "compress=zstd" "ssd" "discard=async" "nofail" "x-systemd.device-timeout=10s"];
   };
-
-  swapDevices = [
-    {device = "/dev/disk/by-uuid/e0137755-9f24-4d61-829c-6cf9ae7ef3ef";}
-  ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }
