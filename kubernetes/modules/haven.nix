@@ -99,11 +99,11 @@ in
                 };
                 resources = {
                   requests = {
-                    cpu = "250m";
-                    memory = "256Mi";
+                    cpu = "100m";
+                    memory = "128Mi";
                   };
                   limits = {
-                    cpu = "1";
+                    cpu = "500m";
                     memory = "512Mi";
                   };
                 };

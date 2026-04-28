@@ -235,9 +235,314 @@ in
       };
     };
 
-    # ── Zephyr RTX 3060 Ti (GPU 0) — Qwen3.5-9B Opus-Distilled ───────────────────────────
-    # Claude 4.6 Opus reasoning distilled into Qwen3.5-9B. 5.6GB Q4_K_M.
-    # 8GB VRAM: tbq4 KV cache enables 262K context in ~2GB VRAM.
+    # ── Zephyr RTX 3060 Ti (GPU 0) — Harmonic-Hermes-9B ───────────────────────────
+    # Qwen3.5-9B Stage 2 agentic fine-tune (reasoning + Hermes tool calling).
+    # 5.3GB i1-Q4_K_M. 8GB VRAM: turbo4 KV cache for 32K context.
+
+    # ── Zephyr RTX 3090 Burst — hermes-qwen3.5-35b-a3b MoE (Speed) ──────────────
+    # MoE: 35B total / ~3B active per token. Blazing fast for agentic workloads.
+    # Scaled to 0 by default — scale up when mining is paused.
+    Deployment.llama-server-zephyr-3090-moe = {
+      metadata.labels = managed // {
+        app = "llama-server-zephyr-3090-moe";
+        host = "zephyr";
+        gpu = "rtx3090";
+      };
+      spec = {
+        replicas = 0;
+        revisionHistoryLimit = 1;
+        selector.matchLabels = {
+          app = "llama-server-zephyr-3090-moe";
+          host = "zephyr";
+        };
+        strategy.type = "Recreate";
+        template = {
+          metadata = {
+            labels = managed // {
+              app = "llama-server-zephyr-3090-moe";
+              host = "zephyr";
+              gpu = "rtx3090";
+            };
+            annotations."nix-csi/discard" = "true";
+          };
+          spec = {
+            nodeName = "zephyr";
+            hostNetwork = true;
+            automountServiceAccountToken = false;
+            priorityClassName = "high-priority-ai";
+            tolerations = zephyrTolerations;
+            containers = {
+              _namedlist = true;
+              llama-server = {
+                image = scratchImage;
+                imagePullPolicy = "IfNotPresent";
+                command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
+                args = [
+                  "--model"
+                  "/models/DJLougen/hermes-qwen3.5-35b-a3b-GGUF/hermes-qwen3.5-35b-a3b-Q4_K_M.gguf"
+                  "--host"
+                  "0.0.0.0"
+                  "--port"
+                  "1237"
+                  "-ngl"
+                  "99"
+                  "-c"
+                  "32768"
+                  "-t"
+                  "4"
+                  "--flash-attn"
+                  "on"
+                  "-ctk"
+                  "turbo4"
+                  "-ctv"
+                  "turbo4"
+                  "--parallel"
+                  "1"
+                  "--temp"
+                  "0.7"
+                  "--metrics"
+                ];
+                env = {
+                  _namedlist = true;
+                  NVIDIA_VISIBLE_DEVICES = {
+                    name = "NVIDIA_VISIBLE_DEVICES";
+                    value = "1";
+                  };
+                  CUDA_VISIBLE_DEVICES = {
+                    name = "CUDA_VISIBLE_DEVICES";
+                    value = "0";
+                  };
+                  LD_LIBRARY_PATH = {
+                    name = "LD_LIBRARY_PATH";
+                    value = "/run/opengl-driver/lib:/nix/store";
+                  };
+                };
+                ports = [
+                  {
+                    containerPort = 1237;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
+                livenessProbe = {
+                  tcpSocket.port = 1237;
+                  initialDelaySeconds = 120;
+                  periodSeconds = 30;
+                  failureThreshold = 5;
+                };
+                readinessProbe = {
+                  tcpSocket.port = 1237;
+                  initialDelaySeconds = 60;
+                  periodSeconds = 10;
+                  failureThreshold = 10;
+                };
+                resources = {
+                  requests = {
+                    memory = "4Gi";
+                    cpu = "500m";
+                  };
+                  limits = {
+                    memory = "24Gi";
+                    cpu = "4";
+                  };
+                };
+                securityContext.privileged = true;
+                volumeMounts = {
+                  _namedlist = true;
+                  nix = {
+                    mountPath = "/nix";
+                    readOnly = true;
+                  };
+                  nvidia-libs = {
+                    mountPath = "/run/opengl-driver/lib";
+                    readOnly = true;
+                  };
+                  models = {
+                    mountPath = "/models";
+                    readOnly = true;
+                  };
+                };
+              };
+            };
+            volumes = zephyrVolumes;
+          };
+        };
+      };
+    };
+
+    Service.llama-server-zephyr-3090-moe = {
+      metadata.labels = managed // {
+        app = "llama-server-zephyr-3090-moe";
+      };
+      spec = {
+        type = "ClusterIP";
+        ports = [
+          {
+            name = "http";
+            port = 1237;
+            protocol = "TCP";
+            targetPort = 1237;
+          }
+        ];
+        selector = {
+          app = "llama-server-zephyr-3090-moe";
+          host = "zephyr";
+        };
+      };
+    };
+
+    # ── Zephyr RTX 3090 Burst — Ornstein-Hermes-3.6-27b-SABER (Quality) ────────
+    # Dense 27B with SABER refusal shaping, multimodal preserved.
+    # Scaled to 0 by default — scale up when mining is paused.
+    Deployment.llama-server-zephyr-3090-dense = {
+      metadata.labels = managed // {
+        app = "llama-server-zephyr-3090-dense";
+        host = "zephyr";
+        gpu = "rtx3090";
+      };
+      spec = {
+        replicas = 0;
+        revisionHistoryLimit = 1;
+        selector.matchLabels = {
+          app = "llama-server-zephyr-3090-dense";
+          host = "zephyr";
+        };
+        strategy.type = "Recreate";
+        template = {
+          metadata = {
+            labels = managed // {
+              app = "llama-server-zephyr-3090-dense";
+              host = "zephyr";
+              gpu = "rtx3090";
+            };
+            annotations."nix-csi/discard" = "true";
+          };
+          spec = {
+            nodeName = "zephyr";
+            hostNetwork = true;
+            automountServiceAccountToken = false;
+            priorityClassName = "high-priority-ai";
+            tolerations = zephyrTolerations;
+            containers = {
+              _namedlist = true;
+              llama-server = {
+                image = scratchImage;
+                imagePullPolicy = "IfNotPresent";
+                command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
+                args = [
+                  "--model"
+                  "/models/GestaltLabs/Ornstein-Hermes-3.6-27b-SABER-GGUF/Ornstein-Hermes-3.6-27b-SABER-Q5_K_M.gguf"
+                  "--host"
+                  "0.0.0.0"
+                  "--port"
+                  "1238"
+                  "-ngl"
+                  "99"
+                  "-c"
+                  "32768"
+                  "-t"
+                  "4"
+                  "--flash-attn"
+                  "on"
+                  "-ctk"
+                  "turbo4"
+                  "-ctv"
+                  "turbo4"
+                  "--parallel"
+                  "1"
+                  "--temp"
+                  "0.7"
+                  "--metrics"
+                ];
+                env = {
+                  _namedlist = true;
+                  NVIDIA_VISIBLE_DEVICES = {
+                    name = "NVIDIA_VISIBLE_DEVICES";
+                    value = "1";
+                  };
+                  CUDA_VISIBLE_DEVICES = {
+                    name = "CUDA_VISIBLE_DEVICES";
+                    value = "0";
+                  };
+                  LD_LIBRARY_PATH = {
+                    name = "LD_LIBRARY_PATH";
+                    value = "/run/opengl-driver/lib:/nix/store";
+                  };
+                };
+                ports = [
+                  {
+                    containerPort = 1238;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
+                livenessProbe = {
+                  tcpSocket.port = 1238;
+                  initialDelaySeconds = 120;
+                  periodSeconds = 30;
+                  failureThreshold = 5;
+                };
+                readinessProbe = {
+                  tcpSocket.port = 1238;
+                  initialDelaySeconds = 60;
+                  periodSeconds = 10;
+                  failureThreshold = 10;
+                };
+                resources = {
+                  requests = {
+                    memory = "4Gi";
+                    cpu = "500m";
+                  };
+                  limits = {
+                    memory = "24Gi";
+                    cpu = "4";
+                  };
+                };
+                securityContext.privileged = true;
+                volumeMounts = {
+                  _namedlist = true;
+                  nix = {
+                    mountPath = "/nix";
+                    readOnly = true;
+                  };
+                  nvidia-libs = {
+                    mountPath = "/run/opengl-driver/lib";
+                    readOnly = true;
+                  };
+                  models = {
+                    mountPath = "/models";
+                    readOnly = true;
+                  };
+                };
+              };
+            };
+            volumes = zephyrVolumes;
+          };
+        };
+      };
+    };
+
+    Service.llama-server-zephyr-3090-dense = {
+      metadata.labels = managed // {
+        app = "llama-server-zephyr-3090-dense";
+      };
+      spec = {
+        type = "ClusterIP";
+        ports = [
+          {
+            name = "http";
+            port = 1238;
+            protocol = "TCP";
+            targetPort = 1238;
+          }
+        ];
+        selector = {
+          app = "llama-server-zephyr-3090-dense";
+          host = "zephyr";
+        };
+      };
+    };
+
     Deployment.llama-server-zephyr-3060ti = {
       metadata.labels = managed // {
         app = "llama-server-zephyr-3060ti";
@@ -275,7 +580,7 @@ in
                 command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
                 args = [
                   "--model"
-                  "/models/Jackrong/Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-GGUF/Qwen3.5-9B.Q4_K_M.gguf"
+                  "/models/DJLougen/Harmonic-Hermes-9B-GGUF/Harmonic-Hermes-9B.i1-Q4_K_M.gguf"
                   "--host"
                   "0.0.0.0"
                   "--port"
@@ -402,10 +707,10 @@ in
       };
     };
 
-    # ── Sentry AMD RX 5600 XT (Vulkan/RADV, gfx1010) — Gemma 4 E2B Vision ──────
+    # ── Sentry AMD RX 5600 XT (Vulkan/RADV, gfx1010) — Qwen3-4B-Wrist-On-Hermes ──────
     # Vulkan backend: RADV (Mesa) outperforms ROCm on RDNA1 for token generation.
-    # Gemma 4 E2B IQ4_NL (2.9GB) + BF16 mmproj (942MB) = 4.8GB VRAM, 48 tok/s text, vision capable.
-    # Reasoning disabled for direct content output. Large ubatch for mmproj token budget.
+    # Flash attention required: quantized V cache (q4_0) needs flash_attn since llama.cpp b3880+.
+    # 256K context, q4_0 KV cache (lighter than iq4_nl, faster decompression).
     
     Deployment.llama-server-sentry = {
       metadata.labels = managed // {
@@ -440,9 +745,7 @@ in
                 command = [ "${pkgsWithOverlay.llama-cpp-vulkan}/bin/llama-server" ];
                 args = [
                   "--model"
-                  "/models/unsloth/gemma-4-E2B-it-GGUF/gemma-4-e2b-it-IQ4_NL.gguf"
-                  "--mmproj"
-                  "/models/lmstudio-community/gemma-4-E2B-it-GGUF/mmproj-gemma-4-E2B-it-BF16.gguf"
+                  "/models/mradermacher/Qwen3-4B-Wrist-On-Hermes-i1-GGUF/Qwen3-4B-Wrist-On-Hermes.i1-Q4_K_M.gguf"
                   "--host"
                   "0.0.0.0"
                   "--port"
@@ -450,21 +753,23 @@ in
                   "-ngl"
                   "99"
                   "-c"
-                  "4096"
+                  "262144"
                   "-t"
                   "4"
                   "--fit"
                   "off"
                   "--batch-size"
-                  "512"
+                  "128"
                   "--ubatch-size"
-                  "512"
+                  "32"
                   "--flash-attn"
                   "on"
                   "--parallel"
                   "1"
-                  "--reasoning"
-                  "off"
+                  "--cache-type-k"
+                  "q4_0"
+                  "--cache-type-v"
+                  "q4_0"
                   "--temp"
                   "0.6"
                   "--top-k"
@@ -577,6 +882,310 @@ in
           }
         ];
         selector.app = "llama-server-sentry";
+      };
+    };
+
+    # ── Zephyr RTX 3090 Burst — Ornstein-Hermes-3.6-27b-SABER (131K ctx) ──────
+    # Dense 27B with SABER refusal shaping, 131K context via turbo4 KV compression.
+    # Scaled to 0 by default — scale up when mining is paused.
+    Deployment.llama-server-zephyr-3090-ornstein = {
+      metadata.labels = managed // {
+        app = "llama-server-zephyr-3090-ornstein";
+        host = "zephyr";
+        gpu = "rtx3090";
+      };
+      spec = {
+        replicas = 0;
+        revisionHistoryLimit = 1;
+        selector.matchLabels = {
+          app = "llama-server-zephyr-3090-ornstein";
+          host = "zephyr";
+        };
+        strategy.type = "Recreate";
+        template = {
+          metadata = {
+            labels = managed // {
+              app = "llama-server-zephyr-3090-ornstein";
+              host = "zephyr";
+              gpu = "rtx3090";
+            };
+            annotations."nix-csi/discard" = "true";
+          };
+          spec = {
+            nodeName = "zephyr";
+            hostNetwork = true;
+            automountServiceAccountToken = false;
+            priorityClassName = "high-priority-ai";
+            tolerations = zephyrTolerations;
+            containers = {
+              _namedlist = true;
+              llama-server = {
+                image = scratchImage;
+                imagePullPolicy = "IfNotPresent";
+                command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
+                args = [
+                  "--model"
+                  "/models/GestaltLabs/Ornstein-Hermes-3.6-27b-SABER-GGUF/Ornstein-Hermes-3.6-27b-SABER-Q5_K_M.gguf"
+                  "--host"
+                  "0.0.0.0"
+                  "--port"
+                  "1237"
+                  "-ngl"
+                  "99"
+                  "-c"
+                  "131072"
+                  "-t"
+                  "4"
+                  "--flash-attn"
+                  "on"
+                  "-ctk"
+                  "turbo4"
+                  "-ctv"
+                  "turbo4"
+                  "--parallel"
+                  "1"
+                  "--temp"
+                  "0.7"
+                  "--metrics"
+                ];
+                env = {
+                  _namedlist = true;
+                  NVIDIA_VISIBLE_DEVICES = {
+                    name = "NVIDIA_VISIBLE_DEVICES";
+                    value = "1";
+                  };
+                  CUDA_VISIBLE_DEVICES = {
+                    name = "CUDA_VISIBLE_DEVICES";
+                    value = "0";
+                  };
+                  LD_LIBRARY_PATH = {
+                    name = "LD_LIBRARY_PATH";
+                    value = "/run/opengl-driver/lib:/nix/store";
+                  };
+                };
+                ports = [
+                  {
+                    containerPort = 1237;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
+                livenessProbe = {
+                  tcpSocket.port = 1237;
+                  initialDelaySeconds = 120;
+                  periodSeconds = 30;
+                  failureThreshold = 5;
+                };
+                readinessProbe = {
+                  tcpSocket.port = 1237;
+                  initialDelaySeconds = 60;
+                  periodSeconds = 10;
+                  failureThreshold = 10;
+                };
+                resources = {
+                  requests = {
+                    memory = "4Gi";
+                    cpu = "500m";
+                  };
+                  limits = {
+                    memory = "16Gi";
+                    cpu = "4";
+                  };
+                };
+                securityContext.privileged = true;
+                volumeMounts = {
+                  _namedlist = true;
+                  nix = {
+                    mountPath = "/nix";
+                    readOnly = true;
+                  };
+                  nvidia-libs = {
+                    mountPath = "/run/opengl-driver/lib";
+                    readOnly = true;
+                  };
+                  models = {
+                    mountPath = "/models";
+                    readOnly = true;
+                  };
+                };
+              };
+            };
+            volumes = zephyrVolumes;
+          };
+        };
+      };
+    };
+
+    Service.llama-server-zephyr-3090-ornstein = {
+      metadata.labels = managed // {
+        app = "llama-server-zephyr-3090-ornstein";
+      };
+      spec = {
+        type = "ClusterIP";
+        ports = [
+          {
+            name = "http";
+            port = 1237;
+            protocol = "TCP";
+            targetPort = 1237;
+          }
+        ];
+        selector = {
+          app = "llama-server-zephyr-3090-ornstein";
+          host = "zephyr";
+        };
+      };
+    };
+
+    # ── Zephyr RTX 3090 Burst — hermes-qwen3.5-35b-a3b MoE (131K ctx) ────────
+    # MoE: 35B total / ~3B active per token. 131K context via turbo4 KV compression.
+    # Scaled to 0 by default — scale up when mining is paused.
+    Deployment.llama-server-zephyr-3090-hermes = {
+      metadata.labels = managed // {
+        app = "llama-server-zephyr-3090-hermes";
+        host = "zephyr";
+        gpu = "rtx3090";
+      };
+      spec = {
+        replicas = 0;
+        revisionHistoryLimit = 1;
+        selector.matchLabels = {
+          app = "llama-server-zephyr-3090-hermes";
+          host = "zephyr";
+        };
+        strategy.type = "Recreate";
+        template = {
+          metadata = {
+            labels = managed // {
+              app = "llama-server-zephyr-3090-hermes";
+              host = "zephyr";
+              gpu = "rtx3090";
+            };
+            annotations."nix-csi/discard" = "true";
+          };
+          spec = {
+            nodeName = "zephyr";
+            hostNetwork = true;
+            automountServiceAccountToken = false;
+            priorityClassName = "high-priority-ai";
+            tolerations = zephyrTolerations;
+            containers = {
+              _namedlist = true;
+              llama-server = {
+                image = scratchImage;
+                imagePullPolicy = "IfNotPresent";
+                command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
+                args = [
+                  "--model"
+                  "/models/DJLougen/hermes-qwen3.5-35b-a3b-GGUF/hermes-qwen3.5-35b-a3b-Q4_K_M.gguf"
+                  "--host"
+                  "0.0.0.0"
+                  "--port"
+                  "1238"
+                  "-ngl"
+                  "99"
+                  "-c"
+                  "131072"
+                  "-t"
+                  "4"
+                  "--flash-attn"
+                  "on"
+                  "-ctk"
+                  "turbo4"
+                  "-ctv"
+                  "turbo4"
+                  "--parallel"
+                  "1"
+                  "--temp"
+                  "0.7"
+                  "--metrics"
+                ];
+                env = {
+                  _namedlist = true;
+                  NVIDIA_VISIBLE_DEVICES = {
+                    name = "NVIDIA_VISIBLE_DEVICES";
+                    value = "1";
+                  };
+                  CUDA_VISIBLE_DEVICES = {
+                    name = "CUDA_VISIBLE_DEVICES";
+                    value = "0";
+                  };
+                  LD_LIBRARY_PATH = {
+                    name = "LD_LIBRARY_PATH";
+                    value = "/run/opengl-driver/lib:/nix/store";
+                  };
+                };
+                ports = [
+                  {
+                    containerPort = 1238;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
+                livenessProbe = {
+                  tcpSocket.port = 1238;
+                  initialDelaySeconds = 120;
+                  periodSeconds = 30;
+                  failureThreshold = 5;
+                };
+                readinessProbe = {
+                  tcpSocket.port = 1238;
+                  initialDelaySeconds = 60;
+                  periodSeconds = 10;
+                  failureThreshold = 10;
+                };
+                resources = {
+                  requests = {
+                    memory = "4Gi";
+                    cpu = "500m";
+                  };
+                  limits = {
+                    memory = "16Gi";
+                    cpu = "4";
+                  };
+                };
+                securityContext.privileged = true;
+                volumeMounts = {
+                  _namedlist = true;
+                  nix = {
+                    mountPath = "/nix";
+                    readOnly = true;
+                  };
+                  nvidia-libs = {
+                    mountPath = "/run/opengl-driver/lib";
+                    readOnly = true;
+                  };
+                  models = {
+                    mountPath = "/models";
+                    readOnly = true;
+                  };
+                };
+              };
+            };
+            volumes = zephyrVolumes;
+          };
+        };
+      };
+    };
+
+    Service.llama-server-zephyr-3090-hermes = {
+      metadata.labels = managed // {
+        app = "llama-server-zephyr-3090-hermes";
+      };
+      spec = {
+        type = "ClusterIP";
+        ports = [
+          {
+            name = "http";
+            port = 1238;
+            protocol = "TCP";
+            targetPort = 1238;
+          }
+        ];
+        selector = {
+          app = "llama-server-zephyr-3090-hermes";
+          host = "zephyr";
+        };
       };
     };
   };

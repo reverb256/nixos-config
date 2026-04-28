@@ -42,13 +42,11 @@ in
   config = lib.mkIf cfg.enable {
     services.nfs.server = lib.mkIf cfg.server.enable {
       enable = true;
-      # Use mkMerge so both nixos-share and nfs-data-server exports coexist.
-      # Without mkMerge, this direct assignment overrides nfs-data-server's mkDefault exports.
-      exports = lib.mkMerge [
-        (lib.concatMapStringsSep "\n" (host: ''
-          /etc/nixos ${host}(ro,no_subtree_check,async,nohide,insecure)
-        '') cfg.server.allowedHosts)
-      ];
+      # Use mkDefault so both nixos-share and nfs-data-server exports coexist
+      # at the same priority level (1000). types.lines merge concatenates them.
+      exports = lib.mkDefault (lib.concatMapStringsSep "\n" (host: ''
+        /etc/nixos ${host}(ro,no_subtree_check,async,nohide,insecure)
+      '') cfg.server.allowedHosts);
     };
 
     networking.firewall = lib.mkIf cfg.server.enable {
