@@ -128,6 +128,7 @@ in
   environment.systemPackages = with pkgs; [
     rocmPackages.rocm-smi
     clinfo
+    nvtopPackages.full
   ];
 
   programs.nix-ld.libraries = with pkgs; [
