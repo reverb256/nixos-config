@@ -118,6 +118,10 @@ in
       updateFlakeInputs = [ "nixpkgs" ];
     };
 
+    # AMD GPU Fan Control Service
+    amd-gpu-fan-control = {
+      enable = true;
+    };
 
     agenix-secrets-registry = {
       enable = true;
