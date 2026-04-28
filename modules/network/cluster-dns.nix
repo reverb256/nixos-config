@@ -143,7 +143,7 @@ in
           "hermes.lan. IN A ${vip}"
           "api.hermes.lan. IN A ${vip}"
           "n8n.lan. IN A ${vip}"
-          # searxng.lan uses search.lan via CNAME
+                    "searxng.lan. IN A ${vip}"
           "activepieces.lan. IN A ${vip}"
           "mission-control.lan. IN A ${vip}"
           "privacy-filter.lan. IN A ${vip}"
@@ -177,7 +177,6 @@ in
         ))
       +
         # CNAME records (aliases)
-        "local-data: \"searxng.lan. IN CNAME search.lan\"\n"
       +
         # Tailscale mobile device
         "local-data: \"seeker.lan. IN A 100.84.24.43\"\n";
