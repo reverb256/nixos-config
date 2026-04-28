@@ -13,6 +13,7 @@
     ./desktop.nix
     ./services.nix
     ./hardware-configuration.nix
+    ./disko.nix
 
     ./ai-inference.nix
 
@@ -25,6 +26,7 @@
 
     ../../modules/services/k3s-cluster.nix
     ../../modules/services/keepalived-vip.nix
+    inputs.disko.nixosModules.disko
     inputs.nix-mineral.nixosModules.nix-mineral
   ];
 
