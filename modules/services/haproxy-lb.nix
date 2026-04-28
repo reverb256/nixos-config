@@ -5,6 +5,7 @@
 }:
 with lib;
 let
+  cluster = config.networking.cluster;
   cfg = config.services.haproxy-kubernetes;
 
   haproxyConfig = {
@@ -86,7 +87,7 @@ in
 
     vip = mkOption {
       type = types.str;
-      default = "10.1.1.100";
+      default = cluster.kubernetes.vip;
       description = "Virtual IP for API server";
     };
 
@@ -119,15 +120,15 @@ in
       default = [
         {
           name = "zephyr";
-          ip = "10.1.1.110";
+          ip = cluster.hosts.zephyr.ip;
         }
         {
           name = "nexus";
-          ip = "10.1.1.120";
+          ip = cluster.hosts.nexus.ip;
         }
         {
           name = "sentry";
-          ip = "10.1.1.140";
+          ip = cluster.hosts.sentry.ip;
         }
       ];
       description = "Kubernetes master nodes";

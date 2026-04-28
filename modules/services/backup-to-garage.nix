@@ -5,13 +5,14 @@
   ...
 }:
 let
+  cluster = config.networking.cluster;
   cfg = config.services.backup-to-garage;
   backupScript = pkgs.writeShellScriptBin "backup-to-garage" ''
 
         set -euo pipefail
 
         # Get zephyr IP from cluster config (fallback to localhost)
-        ZEPHYR_IP="10.1.1.110"
+        ZEPHYR_IP=cluster.hosts.zephyr.ip
         GARAGE_ENDPOINT="''${GARAGE_ENDPOINT:-http://$ZEPHYR_IP:3900}"
         GARAGE_REGION="''${GARAGE_REGION:-garage}"
         GARAGE_SECRET_KEY="''${GARAGE_SECRET_KEY:-}"
@@ -135,7 +136,7 @@ in
 
     endpoint = lib.mkOption {
       type = lib.types.str;
-      default = "http://10.1.1.110:3900";  # zephyr cluster host
+      default = "http://${cluster.hosts.zephyr.ip}:3900";  # zephyr cluster host
       description = "Garage S3 endpoint URL";
     };
 

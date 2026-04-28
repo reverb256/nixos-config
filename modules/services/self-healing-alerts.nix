@@ -4,6 +4,7 @@
   pkgs,
   ...
 }: let
+  cluster = config.networking.cluster;
   cfg = config.services.self-healing-alerts;
 in {
   options.services.self-healing-alerts = {
@@ -233,7 +234,7 @@ in {
 
           ALERT_SCRIPT="/etc/self-healing-alerts/alert.sh"
           STATE_FILE="/run/self-healing/vip-state"
-          VIP="10.1.1.100"
+          VIP=cluster.kubernetes.vip
 
           mkdir -p "$(dirname "''${STATE_FILE}")"
 

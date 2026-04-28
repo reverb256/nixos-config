@@ -6,6 +6,7 @@
 }:
 let
   inherit (lib) mkIf mkOption types;
+  cluster = config.networking.cluster;
   cfg = config.services.unbound-common;
 in
 {
@@ -59,26 +60,26 @@ in
       lib.concatMapStrings (record: "local-data: \"${record}\"\n") (
         # Cluster hosts
         [
-          "zephyr.lan. IN A 10.1.1.110"
-          "nexus.lan. IN A 10.1.1.120"
-          "forge.lan. IN A 10.1.1.130"
-          "sentry.lan. IN A 10.1.1.140"
+          "zephyr.lan. IN A ${cluster.hosts.zephyr.ip}"
+          "nexus.lan. IN A ${cluster.hosts.nexus.ip}"
+          "forge.lan. IN A ${cluster.hosts.forge.ip}"
+          "sentry.lan. IN A ${cluster.hosts.sentry.ip}"
           # Tailscale mobile device
           "seeker.lan. IN A 100.84.24.43"
           # Service DNS — Caddy terminates TLS on nexus
-          "search.lan. IN A 10.1.1.120"
-          "brain.lan. IN A 10.1.1.120"
-          "ai-inference.lan. IN A 10.1.1.110"
-          "qdrant.lan. IN A 10.1.1.120"
-          "knowledge-fabric.lan. IN A 10.1.1.120"
-          "ai.lan. IN A 10.1.1.120"
-          "openwebui.lan. IN A 10.1.1.120"
-          "haven.lan. IN A 10.1.1.120"
-          "hermes.lan. IN A 10.1.1.120"
-          "api.hermes.lan. IN A 10.1.1.120"
-          "n8n.lan. IN A 10.1.1.120"
+          "search.lan. IN A ${cluster.hosts.nexus.ip}"
+          "brain.lan. IN A ${cluster.hosts.nexus.ip}"
+          "ai-inference.lan. IN A ${cluster.hosts.zephyr.ip}"
+          "qdrant.lan. IN A ${cluster.hosts.nexus.ip}"
+          "knowledge-fabric.lan. IN A ${cluster.hosts.nexus.ip}"
+          "ai.lan. IN A ${cluster.hosts.nexus.ip}"
+          "openwebui.lan. IN A ${cluster.hosts.nexus.ip}"
+          "haven.lan. IN A ${cluster.hosts.nexus.ip}"
+          "hermes.lan. IN A ${cluster.hosts.nexus.ip}"
+          "api.hermes.lan. IN A ${cluster.hosts.nexus.ip}"
+          "n8n.lan. IN A ${cluster.hosts.nexus.ip}"
           # searxng.lan uses CNAME to search.lan (see cluster-dns.nix)
-          "activepieces.lan. IN A 10.1.1.120"
+          "activepieces.lan. IN A ${cluster.hosts.nexus.ip}"
         ]
       );
 

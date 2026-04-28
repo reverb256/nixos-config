@@ -4,6 +4,7 @@
   pkgs,
   ...
 }: let
+  cluster = config.networking.cluster;
   cfg = config.services.nfs-client;
 in {
   options.services.nfs-client = {
@@ -17,7 +18,7 @@ in {
 
     serverIp = lib.mkOption {
       type = lib.types.str;
-      default = "10.1.1.110"; # zephyr (primary NFS server)
+      default = cluster.hosts.zephyr.ip; # zephyr (primary NFS server)
       description = "NFS server IP address";
     };
   };

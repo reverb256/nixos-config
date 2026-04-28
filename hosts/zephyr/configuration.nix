@@ -5,6 +5,9 @@
   inputs,
   ...
 }:
+let
+  cluster = config.networking.cluster;
+in
 {
   imports = [
     ./monitoring.nix
@@ -46,7 +49,7 @@
   clusterNetworking = {
     enable = true;
     hostName = "zephyr";
-    ipAddress = "10.1.1.110";
+    ipAddress = cluster.hosts.zephyr.ip;
     wireless = {
       enable = true;
       ipAddress = "10.1.1.115";
@@ -54,7 +57,7 @@
     usbEthernet.enable = true;
     interfaceName = "eth0";
     unbound.enable = true;
-    unbound.listenAddress = "10.1.1.110";
+    unbound.listenAddress = cluster.hosts.zephyr.ip;
   };
 
   # Prevent hardware-configuration from overriding interface naming
@@ -295,11 +298,11 @@
     python312Packages.openpyxl
   ];
 
-  # Service .lan domains resolved by unbound → nexus (10.1.1.120).
+  # Service .lan domains resolved by unbound → nexus (${cluster.hosts.nexus.ip}).
   # Do NOT override to 127.0.0.1 — zephyr has no local Caddy proxy for these.
 
   systemd.services.dnat-nfs = {
-    description = "DNAT rule for NFS redirect (10.1.1.100:80 -> 10.1.1.120:30888)";
+    description = "DNAT rule for NFS redirect (${cluster.kubernetes.vip}:80 -> ${cluster.hosts.nexus.ip}:30888)";
     wantedBy = [ "multi-user.target" ];
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
@@ -312,14 +315,14 @@
       RemainAfterExit = true;
       Restart = "on-failure";
       RestartSec = 30;
-      ExecStartPre = "${pkgs.iputils}/bin/ping -c1 -W2 10.1.1.120";
+      ExecStartPre = "${pkgs.iputils}/bin/ping -c1 -W2 ${cluster.hosts.nexus.ip}";
       ExecStart = pkgs.writeShellScript "dnat-nfs" ''
         ${pkgs.nftables}/bin/nft list tables 2>/dev/null | grep -q "nat" || exit 0
         if ! ${pkgs.nftables}/bin/nft list chain ip nat PREROUTING 2>/dev/null \
-          | grep -q 'dnat to 10.1.1.120:30888'; then
+          | grep -q 'dnat to ${cluster.hosts.nexus.ip}:30888'; then
           ${pkgs.nftables}/bin/nft add rule ip nat PREROUTING \
-            ip daddr 10.1.1.100 tcp dport 80 \
-            dnat to 10.1.1.120:30888
+            ip daddr ${cluster.kubernetes.vip} tcp dport 80 \
+            dnat to ${cluster.hosts.nexus.ip}:30888
         fi
       '';
     };

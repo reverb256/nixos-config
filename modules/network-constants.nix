@@ -440,6 +440,19 @@
           };
           description = "Cluster DNS configuration";
         };
+      devices = lib.mkOption {
+        type = lib.types.submodule {
+          options = {
+            printer = lib.mkOption { type = lib.types.str; default = "10.1.1.173"; description = "HP ENVY Photo 7800"; };
+            switch-1 = lib.mkOption { type = lib.types.str; default = "10.1.1.10"; };
+            switch-2 = lib.mkOption { type = lib.types.str; default = "10.1.1.11"; };
+            switch-3 = lib.mkOption { type = lib.types.str; default = "10.1.1.12"; };
+            switch-4 = lib.mkOption { type = lib.types.str; default = "10.1.1.13"; };
+          };
+        };
+        default = {};
+        description = "Infrastructure device IPs (printers, switches)";
+      };
       };
     };
     description = "Cluster network configuration";

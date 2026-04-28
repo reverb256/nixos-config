@@ -4,6 +4,7 @@
   ...
 }:
 let
+  cluster = config.networking.cluster;
   cfg = config.services.nixos-share;
 in
 {
@@ -15,9 +16,9 @@ in
       allowedHosts = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [
-          "10.1.1.120"  # nexus
-          "10.1.1.130"  # forge
-          "10.1.1.140"  # sentry
+          cluster.hosts.nexus.ip  # nexus
+          cluster.hosts.forge.ip  # forge
+          cluster.hosts.sentry.ip  # sentry
         ];
         description = "IP addresses allowed to mount the NFS share";
       };
@@ -27,7 +28,7 @@ in
       enable = lib.mkEnableOption "NFS client for mounting /etc/nixos from zephyr";
       serverHost = lib.mkOption {
         type = lib.types.str;
-        default = "10.1.1.110";  # zephyr
+        default = cluster.hosts.zephyr.ip;  # zephyr
         description = "NFS server hostname or IP";
       };
       mountPoint = lib.mkOption {

@@ -5,6 +5,7 @@
   ...
 }:
 let
+  cluster = config.networking.cluster;
   inherit (lib)
     mkEnableOption
     mkOption
@@ -24,7 +25,7 @@ in
 
     ipAddress = mkOption {
       type = types.str;
-      example = "10.1.1.110";
+      example = cluster.hosts.zephyr.ip;
       description = "Static IPv4 address for wired interface";
     };
 
@@ -66,7 +67,7 @@ in
       ipAddress = mkOption {
         type = types.nullOr types.str;
         default = null;
-        example = "10.1.1.110";
+        example = cluster.hosts.zephyr.ip;
         description = "Static IP for USB Ethernet adapters (same as main IP by default)";
       };
     };

@@ -5,6 +5,7 @@
   ...
 }: let
   inherit (lib) types mkEnableOption mkOption mkIf;
+  cluster = config.networking.cluster;
   cfg = config.services.binary-cache;
 in {
   options.services.binary-cache = {
@@ -18,7 +19,7 @@ in {
 
     bindAddress = mkOption {
       type = types.str;
-      default = 10.1.1.110;
+      default = cluster.hosts.zephyr.ip;
       description = "Address to bind nix-serve to";
     };
   };
