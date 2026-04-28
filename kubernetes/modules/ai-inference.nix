@@ -7,7 +7,7 @@
 }:
 let
   # nix-csi scratch image (proven pattern from llama-servers)
-  scratchImage = "docker.io/library/ai-inference-gateway:2.3.3";
+  scratchImage = "docker.io/library/ai-inference-gateway:2.3.4";
 
   # Managed-by labels for easykubenix
   managed = {
