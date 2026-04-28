@@ -409,6 +409,13 @@ in
                   };
                 };
                 securityContext.privileged = true;
+                lifecycle.postStart = {
+                  exec.command = [
+                    "/run/current-system/sw/bin/rocm-smi"
+                    "-d" "0"
+                    "--setpoweroverdrive" "115"
+                  ];
+                };
                 volumeMounts = {
                   _namedlist = true;
                 }
