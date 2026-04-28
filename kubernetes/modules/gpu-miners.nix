@@ -372,7 +372,11 @@ in
                   "-p" "x"
                   "--api_listen=0.0.0.0:4070"
                   "-d" "0"
-                  "--fan_control=1:50,80"  # GPU 0: 50% min, ramp to 80% at 75C
+                  # Fan control format: core:junc:mem:init:min:max (empty values use defaults)
+                  # Target mem temp 70C, start at 50%, min 40%, max 80%
+                  # NOTE: AMDGPU driver on Linux often blocks fan control via sysfs.
+                  # If fan stays at 10%, use rocm-smi on host: rocm-smi --setfan 0,60
+                  "--fan_control=::70:50:40:80"
                 ];
                 env = amdEnv;
                 ports = [
