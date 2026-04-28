@@ -56,32 +56,8 @@ in
       };
     };
 
-    environment.etc."unbound/local-dns.conf".text =
-      lib.concatMapStrings (record: "local-data: \"${record}\"\n") (
-        # Cluster hosts
-        [
-          "zephyr.lan. IN A ${cluster.hosts.zephyr.ip}"
-          "nexus.lan. IN A ${cluster.hosts.nexus.ip}"
-          "forge.lan. IN A ${cluster.hosts.forge.ip}"
-          "sentry.lan. IN A ${cluster.hosts.sentry.ip}"
-          # Tailscale mobile device
-          "seeker.lan. IN A 100.84.24.43"
-          # Service DNS — Caddy terminates TLS on nexus
-          "search.lan. IN A ${cluster.hosts.nexus.ip}"
-          "brain.lan. IN A ${cluster.hosts.nexus.ip}"
-          "ai-inference.lan. IN A ${cluster.hosts.zephyr.ip}"
-          "qdrant.lan. IN A ${cluster.hosts.nexus.ip}"
-          "knowledge-fabric.lan. IN A ${cluster.hosts.nexus.ip}"
-          "ai.lan. IN A ${cluster.hosts.nexus.ip}"
-          "openwebui.lan. IN A ${cluster.hosts.nexus.ip}"
-          "haven.lan. IN A ${cluster.hosts.nexus.ip}"
-          "hermes.lan. IN A ${cluster.hosts.nexus.ip}"
-          "api.hermes.lan. IN A ${cluster.hosts.nexus.ip}"
-          "n8n.lan. IN A ${cluster.hosts.nexus.ip}"
-          # searxng.lan uses CNAME to search.lan (see cluster-dns.nix)
-          "activepieces.lan. IN A ${cluster.hosts.nexus.ip}"
-        ]
-      );
+    # DNS records for .lan zones are managed by cluster-dns.nix (VIP-based routing)
+    # This module only provides the unbound server config and upstream forwarding.
 
     networking.firewall.allowedUDPPorts = lib.mkOptionDefault [ 53 ];
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ 53 ];

@@ -18,7 +18,7 @@ in {
           metadata.labels = podLabels;
           spec = {
             serviceAccountName = "caddy-ingress-controller";
-            nodeSelector."kubernetes.io/hostname" = "nexus";
+            # No nodeSelector - let scheduler place on healthy nodes;
             tolerations = [{ key = "node-role.kubernetes.io/control-plane"; operator = "Exists"; effect = "NoSchedule"; }];
             containers = {
               _namedlist = true;
