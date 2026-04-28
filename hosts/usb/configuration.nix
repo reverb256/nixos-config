@@ -18,10 +18,13 @@ let
   rescue-scripts = pkgs.runCommand "rescue-scripts" {
     buildInputs = [ pkgs.bash ];
   } ''
-    mkdir -p $out/bin
+    mkdir -p $out/bin $out/share/doc
     for script in detect-hosts mount-cluster rebuild-host hardware-scan boot-diagnostics fix-btrfs-default; do
-      cp ${../../scripts/rescue/$script.sh} $out/bin/rescue-$script
-      chmod +x $out/bin/rescue-$script
+      cp ''${../../scripts/rescue/''$script.sh} $out/bin/rescue-''$script
+      chmod +x $out/bin/rescue-''$script
+    done
+    for doc in RESCUE-GUIDE.md RESCUE-AGENT.md; do
+      cp ''${../../scripts/rescue/''$doc} $out/share/doc/''$doc
     done
   '';
 
@@ -411,10 +414,10 @@ in
     # Rescue / disk tools
     gparted parted
     e2fsprogs dosfstools btrfs-progs lvm2 cryptsetup mdadm smartmontools nvme-cli
-    xfsprogs reiserfsprogs jfsutils nilfs-utils f2fs-tools
+    xfsprogs jfsutils nilfs-utils f2fs-tools
 
     # Additional recovery tools
-    efibootmgr gdisk
+    efibootmgr gptfdisk
     htop iotop
     pciutils usbutils
 

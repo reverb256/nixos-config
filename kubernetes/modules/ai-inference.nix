@@ -39,7 +39,6 @@ in
       MCP_ENABLED = "false";
       AUTO_RAG_ENABLED = "true";
       EMBEDDING_MODEL = "BidirLM/BidirLM-Omni-2.5B-Embedding";
-      EMBEDDING_DEVICE = "cpu"; # nexus GPU occupied by lolMiner
       EMBEDDING_DIMENSIONS = "2048";
       EMBEDDING_TRUST_REMOTE_CODE = "true";
       BM25_WEIGHT = "0.300000";
@@ -51,8 +50,8 @@ in
       AUTH_MODE = "api-key";
       BACKEND_TYPE = "llama-cpp";
       BACKEND_URL = "http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236";
-      BACKEND_FALLBACK_URLS = "http://llama-server-sentry.ai-inference.svc.cluster.local:1235,http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236,https://api.z.ai/api/coding/paas/v4";
-      DEFAULT_MODEL = "Qwen3.6-35B-A3B-UD-IQ3_S.gguf";
+      BACKEND_FALLBACK_URLS = "http://llama-server-sentry.ai-inference.svc.cluster.local:1235,http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236";
+      DEFAULT_MODEL = "Qwen3.5-9B-abliterated.i1-IQ2_M.gguf";
       GATEWAY_HOST = "0.0.0.0";
       PORT = "8080";
       PYTHONUNBUFFERED = "1";
@@ -66,7 +65,7 @@ in
       RAG_TOP_K = "10";
       HYBRID_SEARCH_ENABLED = "true";
       EMBEDDING_MODEL = "BidirLM/BidirLM-Omni-2.5B-Embedding";
-      EMBEDDING_DEVICE = "cuda";
+      EMBEDDING_DEVICE = "cpu";
       EMBEDDING_DIMENSIONS = "2048";
       EMBEDDING_TRUST_REMOTE_CODE = "true";
       BM25_WEIGHT = "0.3";
@@ -81,10 +80,10 @@ in
       HF_HUB_ENABLE_HF_TRANSFER = "0";
       CURL_CA_BUNDLE = "/nix/store/dq40xbv9srgrmz4zlcl26q8xa5v426pa-nss-cacert-3.121/etc/ssl/certs/ca-bundle.crt";
       MAX_REQUEST_SIZE = "10485760";
-      CIRCUIT_BREAKER_ENABLED = "false";
+      CIRCUIT_BREAKER_ENABLED = "true";
       REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
       PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8081";
-      PRIVACY_FILTER_ENABLED = "true";
+      PRIVACY_FILTER_ENABLED = "false";
       MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL = "http://searxng.search.svc.cluster.local:8080";
@@ -210,11 +209,11 @@ in
                 resources = {
                   requests = {
                     cpu = "500m";
-                    memory = "1Gi";
+                    memory = "768Mi";
                   };
                   limits = {
                     cpu = "2";
-                    memory = "4Gi";
+                    memory = "3Gi";
                   };
                 };
               };
@@ -671,11 +670,11 @@ in
                 resources = {
                   requests = {
                     cpu = "500m";
-                    memory = "768Mi";
+                    memory = "512Mi";
                   };
                   limits = {
-                    cpu = "2000m";
-                    memory = "3Gi";
+                    cpu = "2";
+                    memory = "2Gi";
                   };
                 };
                 livenessProbe = {
@@ -2043,12 +2042,12 @@ in
                 ];
                 resources = {
                   requests = {
-                    cpu = "1";
-                    memory = "2Gi";
+                    cpu = "100m";
+                    memory = "128Mi";
                   };
                   limits = {
-                    cpu = "2";
-                    memory = "4Gi";
+                    cpu = "500m";
+                    memory = "512Mi";
                   };
                 };
                 readinessProbe = {

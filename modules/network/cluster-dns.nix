@@ -176,8 +176,6 @@ in
           lib.concatMapStrings (record: "local-data: \"${record}\"\n") allServices
         ))
       +
-        # CNAME records (aliases)
-      +
         # Tailscale mobile device
         "local-data: \"seeker.lan. IN A 100.84.24.43\"\n";
 

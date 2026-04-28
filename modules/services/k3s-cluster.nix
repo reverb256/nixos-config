@@ -163,6 +163,12 @@ in
             "--service-cidr=${serviceCIDR}"
             "--cluster-dns=${clusterDNS}"
             "--write-kubeconfig-mode=644"
+            "--etcd-arg=auto-compaction-mode=periodic"
+            "--etcd-arg=auto-compaction-retention=5m"
+            "--etcd-snapshot-retention=10"
+            "--etcd-snapshot-compress"
+            "--etcd-expose-metrics"
+            "--kube-controller-manager-arg=terminated-pod-gc-threshold=500"
           ]
           ++ map (san: "--tls-san=${san}") tlsSans
           ++ lib.optional cfg.calico.enable "--flannel-backend=none"
@@ -432,5 +438,35 @@ in
         AccuracySec = "10s";
       };
     };
+
+    # Etcd defragmentation — compaction alone doesn't reclaim disk space.
+    # Must defrag periodically. Runs on all servers.
+    systemd.services.k3s-etcd-defrag = lib.mkIf isServer {
+      description = "Defragment etcd to reclaim disk space after compaction";
+      path = with pkgs; [ k3s curl ];
+      serviceConfig.Type = "oneshot";
+      script = ''
+        ETCD_ENDPOINT="https://127.0.0.1:2379"
+        CERT_DIR="/var/lib/rancher/k3s/server/tls/etcd"
+        if [ ! -d "$CERT_DIR" ]; then
+          echo "etcd TLS dir not found, skipping defrag"
+          exit 0
+        fi
+        curl --cacert "$CERT_DIR/ca.crt" \
+             --cert "$CERT_DIR/server.crt" \
+             --key "$CERT_DIR/server.key" \
+             -s -X POST "$ETCD_ENDPOINT/maintenance/defrag" || true
+      '';
+    };
+    systemd.timers.k3s-etcd-defrag = lib.mkIf isServer {
+      description = "Weekly etcd defragmentation";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "weekly";
+        Persistent = true;
+        RandomizedDelaySec = "1h";
+      };
+    };
+
   };
 }
