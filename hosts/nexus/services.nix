@@ -21,7 +21,7 @@ in {
       enable = true;
       nvidia.enable = true;
       role = "server";
-      clusterInit = true;
+      clusterInit = false;  # Rejoining existing cluster, not bootstrapping
       nodeName = "nexus";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";

@@ -30,19 +30,8 @@
     };
   };
 
-  fileSystems = {
-    "/".options = lib.mkOptionDefault [
-      "compress=zstd:3"
-      "ssd"
-      "discard=async"
-    ];
-    "/home".options = lib.mkForce [
-      "subvol=@home"
-      "compress=zstd:3"
-      "ssd"
-      "discard=async"
-    ];
-  };
+  # /, /home, swap, /boot are managed by disko.nix (nvme0n1)
+  # Only bcache0 and nvme1n1 mounts here
 
   fileSystems = {
     "/data/home" = {
