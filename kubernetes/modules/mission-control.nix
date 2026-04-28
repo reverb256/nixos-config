@@ -98,7 +98,7 @@ in
                   };
                   PORT.value = "3000";
                   NEXT_PUBLIC_GATEWAY_OPTIONAL.value = "true";
-                  MC_ALLOWED_HOSTS.value = "mission-control.lan,mc.cluster.local,10.1.1.110,10.244.0.0/16,localhost,127.0.0.1";
+                  MC_ALLOWED_HOSTS.value = "mission-control.lan,mc.cluster.local,10.1.1.100,10.1.1.110,10.244.0.0/16,localhost,127.0.0.1";
                   MISSION_CONTROL_DATA_DIR.value = "/data";
                   SKIP_AUTH_FOR_PROBES.value = "true";
                 };

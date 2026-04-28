@@ -149,7 +149,7 @@
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
           }
           declare -A GPU_HWMON
-          GPU_HWMON[0]="/sys/class/drm/card1/device/hwmon/hwmon0"
+          GPU_HWMON[0]="/sys/class/drm/card0/device/hwmon/hwmon0"
           GPU_HWMON[1]="/sys/class/drm/card2/device/hwmon/hwmon1"
           get_temp() {
             local gpu=$1
@@ -173,8 +173,9 @@
             local fan_level=$1
             local gpu=$2
             local hwmon="''${GPU_HWMON[$gpu]}"
-            if echo "0" > "$hwmon/pwm1_enable" 2>/dev/null && echo "$fan_level" > "$hwmon/pwm1" 2>/dev/null; then
-              log "GPU$gpu: Set fan to level $fan_level/255"
+            # Enable manual PWM mode (1=manual, 2=auto, 0=disabled)
+            if echo "1" > "$hwmon/pwm1_enable" 2>/dev/null && echo "$fan_level" > "$hwmon/pwm1" 2>/dev/null; then
+              log "GPU$gpu: Set fan to level $fan_level/255 (manual mode)"
             else
               log "GPU$gpu: Failed sysfs, rocm-smi fallback"
               rocm-smi -d $gpu --setfan $fan_level 2>/dev/null || true

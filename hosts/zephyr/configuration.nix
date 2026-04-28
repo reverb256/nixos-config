@@ -89,7 +89,7 @@ in
 
     # Suppress martian source warnings from wlan0 (same subnet as eth0)
     "net.ipv4.conf.wlan0.rp_filter" = 2;
-    "net.ipv4.conf.all.log_martians" = false;
+    "net.ipv4.conf.all.log_martians" = lib.mkForce false;
   };
 
   stylix = {
