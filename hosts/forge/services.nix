@@ -104,7 +104,7 @@ in
       enable = true;
       mountShared = true;
       mountHome = true;
-      mountMedia = true;
+      mountMedia = false;
     };
 
     syncthing-cluster = {
