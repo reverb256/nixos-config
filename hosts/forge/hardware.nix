@@ -148,9 +148,26 @@
           log() {
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
           }
+          # Auto-detect hwmon paths - card numbers change between reboots
           declare -A GPU_HWMON
-          GPU_HWMON[0]="/sys/class/drm/card1/device/hwmon/hwmon0"
-          GPU_HWMON[1]="/sys/class/drm/card2/device/hwmon/hwmon1"
+          for card_dir in /sys/class/drm/card*/device/hwmon/hwmon*; do
+            if [ -f "$card_dir/temp1_input" ]; then
+              # Get temp to identify active GPUs (skip if 0 or very low)
+              temp=$(cat "$card_dir/temp1_input" 2>/dev/null || echo "0")
+              temp_c=$((temp / 1000))
+              if [ "$temp_c" -gt 30 ]; then
+                # Active GPU found - assign to next available slot
+                gpu_count=${#GPU_HWMON[@]}
+                if [ "$gpu_count" -lt 2 ]; then
+                  GPU_HWMON[$gpu_count]="$card_dir"
+                  log "Auto-detected GPU$gpu_count: $card_dir (temp: ${temp_c}°C)"
+                fi
+              fi
+            fi
+          done
+          if [ ${#GPU_HWMON[@]} -lt 2 ]; then
+            log "ERROR: Only detected ${#GPU_HWMON[@]} GPU(s), expected 2"
+          fi
           get_temp() {
             local gpu=$1
             local hwmon="''${GPU_HWMON[$gpu]}"
