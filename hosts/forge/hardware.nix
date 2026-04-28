@@ -149,7 +149,7 @@
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
           }
           declare -A GPU_HWMON
-          GPU_HWMON[0]="/sys/class/drm/card0/device/hwmon/hwmon0"
+          GPU_HWMON[0]="/sys/class/drm/card1/device/hwmon/hwmon0"
           GPU_HWMON[1]="/sys/class/drm/card2/device/hwmon/hwmon1"
           get_temp() {
             local gpu=$1
