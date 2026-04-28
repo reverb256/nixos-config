@@ -14,6 +14,17 @@
 let
   sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEvekxGk1YR/eF8llVmNk3C59BtgB+9DNvxLy2WjPEyb j_kro@zephyr";
 
+  # Rescue scripts from /etc/nixos/scripts/rescue/
+  rescue-scripts = pkgs.runCommand "rescue-scripts" {
+    buildInputs = [ pkgs.bash ];
+  } ''
+    mkdir -p $out/bin
+    for script in detect-hosts mount-cluster rebuild-host hardware-scan boot-diagnostics fix-btrfs-default; do
+      cp ${../../scripts/rescue/$script.sh} $out/bin/rescue-$script
+      chmod +x $out/bin/rescue-$script
+    done
+  '';
+
   rescue-script = pkgs.writeShellScriptBin "rescue" ''
     #!/usr/bin/env bash
     set -euo pipefail
@@ -21,121 +32,153 @@ let
     RED='\033[0;31m'
     GRN='\033[0;32m'
     YEL='\033[1;33m'
+    BLU='\033[0;34m'
     NC='\033[0m'
 
-    echo -e "''${GRN}=== NixOS Rescue USB ===''${NC}"
-    echo ""
-    echo "Cluster hosts:"
-    echo "  zephyr  10.1.1.110  (control plane, gaming)"
-    echo "  nexus   10.1.1.120  (server, AI gateway)"
-    echo "  forge   10.1.1.130  (GPU compute, mining)"
-    echo "  sentry  10.1.1.140  (monitoring, ROCm)"
-    echo ""
-    echo "Actions:"
-    echo "  1) Scan local disks"
-    echo "  2) Mount a filesystem"
-    echo "  3) Chroot into existing NixOS system"
-    echo "  4) SSH into a cluster host"
-    echo "  5) Clone nixos-config from GitHub"
-    echo "  6) Run nixos-rebuild on mounted system"
-    echo "  7) Install NixOS to a disk (full reinstall)"
-    echo ""
-    echo -n "Select [1-7]: "
-    read -r choice
+    while true; do
+      clear
+      echo -e "''${BLU}╔═══════════════════════════════════════════════════════════╗''${NC}"
+      echo -e "''${BLU}║         NixOS Cluster Rescue USB v2.0                    ║''${NC}"
+      echo -e "''${BLU}╠═══════════════════════════════════════════════════════════╣''${NC}"
+      echo -e "''${BLU}║ 1) Detect cluster hosts (network scan)                   ║''${NC}"
+      echo -e "''${BLU}║ 2) Mount NFS share from Zephyr                           ║''${NC}"
+      echo -e "''${BLU}║ 3) Scan local hardware and disks                         ║''${NC}"
+      echo -e "''${BLU}║ 4) Run boot diagnostics                                  ║''${NC}"
+      echo -e "''${BLU}║ 5) Rebuild a host from NFS config                        ║''${NC}"
+      echo -e "''${BLU}║ 6) Fix btrfs default subvolume                           ║''${NC}"
+      echo -e "''${BLU}║ 7) Manual mount/chroot                                   ║''${NC}"
+      echo -e "''${BLU}║ 8) SSH into cluster host                                 ║''${NC}"
+      echo -e "''${BLU}║ 9) Launch Hermes AI assistant                            ║''${NC}"
+      echo -e "''${BLU}║ 0) Reboot                                                ║''${NC}"
+      echo -e "''${BLU}╚═══════════════════════════════════════════════════════════╝''${NC}"
+      echo ""
+      echo -n "Select [0-9]: "
+      read -r choice
 
-    case $choice in
-      1)
-        echo -e "''${YEL}Scanning disks...''${NC}"
-        lsblk -f
-        echo ""
-        echo "NixOS partitions (btrfs/ext4):"
-        lsblk -ln -o NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT | grep -iE 'btrfs|ext4' || echo "  None found"
-        ;;
-      2)
-        echo -e "''${YEL}Available filesystems:''${NC}"
-        lsblk -f
-        echo ""
-        echo -n "Device to mount (e.g. /dev/nvme0n1p2): "
-        read -r dev
-        echo -n "Mount point (default /mnt): "
-        read -r mnt
-        mnt=''${mnt:-/mnt}
-        sudo mkdir -p "$mnt"
-        sudo mount "$dev" "$mnt"
-        echo -e "''${GRN}Mounted $dev at $mnt''${NC}"
-        echo ""
-        echo "Mount ESP (boot) partition?"
-        echo -n "  Device (blank to skip): "
-        read -r esp_dev
-        if [ -n "$esp_dev" ]; then
-          sudo mkdir -p "$mnt/boot"
-          sudo mount "$esp_dev" "$mnt/boot"
-          echo -e "''${GRN}Mounted $esp_dev at $mnt/boot''${NC}"
-        fi
-        lsblk -f
-        ;;
-      3)
-        echo -e "''${YEL}Chrooting...''${NC}"
-        echo "Make sure /mnt is mounted to the target root filesystem."
-        echo "  rescue -> option 2 to mount, then come back"
-        echo ""
-        for d in /mnt/proc /mnt/sys /mnt/dev /mnt/run; do
-          sudo mount --bind "$(echo $d | sed 's|/mnt||')" "$d" 2>/dev/null || true
-        done
-        sudo chroot /mnt /usr/bin/env -i \
-          HOME=/root \
-          TERM=$TERM \
-          PS1='[rescue chroot] \u@\h:\w\$ ' \
-          PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin \
-          /usr/bin/bash --login
-        ;;
-      4)
-        echo -e "''${YEL}SSH into cluster host''${NC}"
-        echo -n "Host (zephyr/nexus/forge/sentry): "
-        read -r host
-        ssh "$host"
-        ;;
-      5)
-        echo -e "''${YEL}Cloning nixos-config...''${NC}"
-        cd /tmp
-        git clone https://github.com/reverb256/nixos-config.git
-        echo -e "''${GRN}Cloned to /tmp/nixos-config''${NC}"
-        ;;
-      6)
-        echo -e "''${YEL}Rebuild on mounted system:''${NC}"
-        echo -n "Flake path (default /tmp/nixos-config): "
-        read -r flake
-        flake=''${flake:-/tmp/nixos-config}
-        echo -n "Host (zephyr/nexus/forge/sentry): "
-        read -r host
-        echo -n "Root mount (default /mnt): "
-        read -r root
-        root=''${root:-/mnt}
-        sudo nixos-rebuild switch --flake "$flake#$host" --root "$root"
-        ;;
-      7)
-        echo -e "''${RED}WARNING: This will ERASE the target disk!''${NC}"
-        echo -n "Target disk (e.g. /dev/nvme0n1): "
-        read -r disk
-        echo -n "Host to install (zephyr/nexus/forge/sentry): "
-        read -r host
-        echo -n "Confirm wiping $disk for $host [y/N]: "
-        read -r confirm
-        if [ "$confirm" = "y" ]; then
-          echo -e "''${YEL}Starting install...''${NC}"
-          if [ ! -d /tmp/nixos-config ]; then
-            git clone https://github.com/reverb256/nixos-config.git /tmp/nixos-config
+      case $choice in
+        1)
+          clear
+          echo -e "''${YEL}==> Scanning cluster network''${NC}"
+          echo ""
+          rescue-detect-hosts || echo "Script not found"
+          echo ""
+          read -p "Press Enter to continue..."
+          ;;
+        2)
+          clear
+          echo -e "''${YEL}==> Mounting cluster resources''${NC}"
+          echo ""
+          rescue-mount-cluster || echo "Script not found"
+          echo ""
+          read -p "Press Enter to continue..."
+          ;;
+        3)
+          clear
+          echo -e "''${YEL}==> Hardware scan''${NC}"
+          echo ""
+          rescue-hardware-scan || echo "Script not found"
+          echo ""
+          read -p "Press Enter to continue..."
+          ;;
+        4)
+          clear
+          echo -e "''${YEL}==> Boot diagnostics''${NC}"
+          echo ""
+          rescue-boot-diagnostics || echo "Script not found"
+          echo ""
+          read -p "Press Enter to continue..."
+          ;;
+        5)
+          clear
+          echo -e "''${YEL}==> Rebuild host from NFS''${NC}"
+          echo ""
+          echo "Available hosts: nexus, zephyr, forge, sentry"
+          echo -n "Target host: "
+          read -r host
+          echo -n "Root device (blank to auto-detect): "
+          read -r dev
+          if [ -z "$dev" ]; then
+            rescue-rebuild-host "$host"
+          else
+            rescue-rebuild-host "$host" "$dev"
           fi
-          sudo nixos-install --flake "/tmp/nixos-config#$host" --root /mnt
-          echo -e "''${GRN}Install complete! Reboot to boot into $host.''${NC}"
-        else
-          echo "Cancelled."
-        fi
-        ;;
-      *)
-        echo "Invalid selection."
-        ;;
-    esac
+          echo ""
+          read -p "Press Enter to continue..."
+          ;;
+        6)
+          clear
+          echo -e "''${YEL}==> Fix btrfs default subvolume''${NC}"
+          echo ""
+          echo -n "Device (e.g. /dev/nvme1n1p2): "
+          read -r dev
+          echo -n "Subvolume ID (default 256 for @): "
+          read -r subvol
+          subvol=''${subvol:-256}
+          rescue-fix-btrfs-default "$dev" "$subvol" || echo "Script failed"
+          echo ""
+          read -p "Press Enter to continue..."
+          ;;
+        7)
+          clear
+          echo -e "''${YEL}==> Manual mount/chroot''${NC}"
+          echo ""
+          echo "Available filesystems:"
+          lsblk -f
+          echo ""
+          echo -n "Device to mount (e.g. /dev/nvme0n1p2): "
+          read -r dev
+          echo -n "Mount point (default /mnt): "
+          read -r mnt
+          mnt=''${mnt:-/mnt}
+          sudo mkdir -p "$mnt"
+          sudo mount "$dev" "$mnt"
+          echo -e "''${GRN}Mounted $dev at $mnt''${NC}"
+          echo ""
+          echo "Mount ESP (boot)?"
+          echo -n "  Device (blank to skip): "
+          read -r esp_dev
+          if [ -n "$esp_dev" ]; then
+            sudo mkdir -p "$mnt/boot"
+            sudo mount "$esp_dev" "$mnt/boot"
+            echo -e "''${GRN}Mounted $esp_dev at $mnt/boot''${NC}"
+          fi
+          echo ""
+          echo "Starting nixos-enter chroot..."
+          echo "  Inside chroot: cd /mnt/nixos-shared && nixos-rebuild switch --flake .#<host>"
+          echo "  Exit with: exit or Ctrl-D"
+          echo ""
+          sudo nixos-enter --root "$mnt" || echo "nixos-enter failed"
+          ;;
+        8)
+          clear
+          echo -e "''${YEL}==> SSH to cluster host''${NC}"
+          echo ""
+          echo "Available hosts: zephyr, nexus, forge, sentry"
+          echo -n "Target host: "
+          read -r host
+          ssh "$host"
+          ;;
+        9)
+          clear
+          echo -e "''${YEL}==> Launching Hermes AI assistant''${NC}"
+          echo ""
+          echo "Ask for help with recovery, diagnostics, or any issue."
+          echo "Exit with: exit or Ctrl-D"
+          echo ""
+          hermes || echo "Hermes not available"
+          ;;
+        0)
+          clear
+          echo -e "''${YEL}Rebooting...''${NC}"
+          sudo systemctl reboot
+          exit 0
+          ;;
+        *)
+          echo "Invalid selection."
+          sleep 1
+          ;;
+      esac
+    done
   '';
 in
 {
@@ -351,6 +394,7 @@ in
   # System Packages
   environment.systemPackages = [
     inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.default
+    rescue-scripts
   ] ++ (with pkgs; [
     # Shell
     fish zoxide fzf eza btop tmux mosh
@@ -359,11 +403,20 @@ in
     git gh
 
     # Networking
-    nmap dnsutils iproute2 iputils net-tools curl wget jq
+    nmap dnsutils iproute2 iputils net-tools curl wget jq tcpdump mtr
+
+    # NFS client for mounting config from Zephyr
+    nfs-utils
 
     # Rescue / disk tools
     gparted parted
     e2fsprogs dosfstools btrfs-progs lvm2 cryptsetup mdadm smartmontools nvme-cli
+    xfsprogs reiserfsprogs jfsutils nilfs-utils f2fs-tools
+
+    # Additional recovery tools
+    efibootmgr gdisk
+    htop iotop
+    pciutils usbutils
 
     # NixOS tools
     inputs.colmena.packages.${pkgs.stdenv.hostPlatform.system}.colmena
