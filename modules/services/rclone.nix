@@ -5,6 +5,7 @@
   ...
 }:
 let
+  cluster = config.networking.cluster;
   cfg = config.services.rclone-sync;
 
   syncScript =
@@ -173,7 +174,7 @@ in
         garage = {
           type = "s3";
           provider = "Other";
-          endpoint = "http://10.1.1.110:3900";
+          endpoint = "http://${cluster.hosts.zephyr.ip}:3900";
           region = "garage";
         };
         onedrive = {

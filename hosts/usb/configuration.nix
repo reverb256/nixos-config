@@ -1,0 +1,400 @@
+# Rescue USB — NixOS Live ISO with Niri desktop + Hermes agent
+#
+# Boots on any x86_64 machine. Provides:
+#   - Niri Wayland desktop with noctalia-shell
+#   - Hermes agent pointing at AI gateway
+#   - SSH access via j_kro user
+#   - Rescue tools (btrfs-progs, lvm2, cryptsetup)
+#   - Network access (NetworkManager, DHCP)
+#
+# Build:  nix build .#nixosConfigurations.usb-rescue.config.system.build.isoImage
+# Flash:  sudo dd if=result/iso/*.iso of=/dev/sda bs=4M status=progress
+#
+{ config, pkgs, lib, inputs, ... }:
+let
+  sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEvekxGk1YR/eF8llVmNk3C59BtgB+9DNvxLy2WjPEyb j_kro@zephyr";
+
+  rescue-script = pkgs.writeShellScriptBin "rescue" ''
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    RED='\033[0;31m'
+    GRN='\033[0;32m'
+    YEL='\033[1;33m'
+    NC='\033[0m'
+
+    echo -e "''${GRN}=== NixOS Rescue USB ===''${NC}"
+    echo ""
+    echo "Cluster hosts:"
+    echo "  zephyr  10.1.1.110  (control plane, gaming)"
+    echo "  nexus   10.1.1.120  (server, AI gateway)"
+    echo "  forge   10.1.1.130  (GPU compute, mining)"
+    echo "  sentry  10.1.1.140  (monitoring, ROCm)"
+    echo ""
+    echo "Actions:"
+    echo "  1) Scan local disks"
+    echo "  2) Mount a filesystem"
+    echo "  3) Chroot into existing NixOS system"
+    echo "  4) SSH into a cluster host"
+    echo "  5) Clone nixos-config from GitHub"
+    echo "  6) Run nixos-rebuild on mounted system"
+    echo "  7) Install NixOS to a disk (full reinstall)"
+    echo ""
+    echo -n "Select [1-7]: "
+    read -r choice
+
+    case $choice in
+      1)
+        echo -e "''${YEL}Scanning disks...''${NC}"
+        lsblk -f
+        echo ""
+        echo "NixOS partitions (btrfs/ext4):"
+        lsblk -ln -o NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT | grep -iE 'btrfs|ext4' || echo "  None found"
+        ;;
+      2)
+        echo -e "''${YEL}Available filesystems:''${NC}"
+        lsblk -f
+        echo ""
+        echo -n "Device to mount (e.g. /dev/nvme0n1p2): "
+        read -r dev
+        echo -n "Mount point (default /mnt): "
+        read -r mnt
+        mnt=''${mnt:-/mnt}
+        sudo mkdir -p "$mnt"
+        sudo mount "$dev" "$mnt"
+        echo -e "''${GRN}Mounted $dev at $mnt''${NC}"
+        echo ""
+        echo "Mount ESP (boot) partition?"
+        echo -n "  Device (blank to skip): "
+        read -r esp_dev
+        if [ -n "$esp_dev" ]; then
+          sudo mkdir -p "$mnt/boot"
+          sudo mount "$esp_dev" "$mnt/boot"
+          echo -e "''${GRN}Mounted $esp_dev at $mnt/boot''${NC}"
+        fi
+        lsblk -f
+        ;;
+      3)
+        echo -e "''${YEL}Chrooting...''${NC}"
+        echo "Make sure /mnt is mounted to the target root filesystem."
+        echo "  rescue -> option 2 to mount, then come back"
+        echo ""
+        for d in /mnt/proc /mnt/sys /mnt/dev /mnt/run; do
+          sudo mount --bind "$(echo $d | sed 's|/mnt||')" "$d" 2>/dev/null || true
+        done
+        sudo chroot /mnt /usr/bin/env -i \
+          HOME=/root \
+          TERM=$TERM \
+          PS1='[rescue chroot] \u@\h:\w\$ ' \
+          PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin \
+          /usr/bin/bash --login
+        ;;
+      4)
+        echo -e "''${YEL}SSH into cluster host''${NC}"
+        echo -n "Host (zephyr/nexus/forge/sentry): "
+        read -r host
+        ssh "$host"
+        ;;
+      5)
+        echo -e "''${YEL}Cloning nixos-config...''${NC}"
+        cd /tmp
+        git clone https://github.com/reverb256/nixos-config.git
+        echo -e "''${GRN}Cloned to /tmp/nixos-config''${NC}"
+        ;;
+      6)
+        echo -e "''${YEL}Rebuild on mounted system:''${NC}"
+        echo -n "Flake path (default /tmp/nixos-config): "
+        read -r flake
+        flake=''${flake:-/tmp/nixos-config}
+        echo -n "Host (zephyr/nexus/forge/sentry): "
+        read -r host
+        echo -n "Root mount (default /mnt): "
+        read -r root
+        root=''${root:-/mnt}
+        sudo nixos-rebuild switch --flake "$flake#$host" --root "$root"
+        ;;
+      7)
+        echo -e "''${RED}WARNING: This will ERASE the target disk!''${NC}"
+        echo -n "Target disk (e.g. /dev/nvme0n1): "
+        read -r disk
+        echo -n "Host to install (zephyr/nexus/forge/sentry): "
+        read -r host
+        echo -n "Confirm wiping $disk for $host [y/N]: "
+        read -r confirm
+        if [ "$confirm" = "y" ]; then
+          echo -e "''${YEL}Starting install...''${NC}"
+          if [ ! -d /tmp/nixos-config ]; then
+            git clone https://github.com/reverb256/nixos-config.git /tmp/nixos-config
+          fi
+          sudo nixos-install --flake "/tmp/nixos-config#$host" --root /mnt
+          echo -e "''${GRN}Install complete! Reboot to boot into $host.''${NC}"
+        else
+          echo "Cancelled."
+        fi
+        ;;
+      *)
+        echo "Invalid selection."
+        ;;
+    esac
+  '';
+in
+{
+  imports = [
+    # Live ISO base (graphical — X/Wayland, gparted, firefox)
+    "${inputs.nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-graphical-base.nix"
+
+    # USB-specific hardware (broad driver support)
+    ./hardware-usb.nix
+
+    # Selective module imports (NOT modules/default.nix — too heavy)
+    ../../modules/system/nix-config.nix
+    ../../modules/system/fetch-tools.nix
+    ../../modules/shell/fish.nix
+    ../../modules/desktop/niri.nix
+    ../../modules/desktop/wayland-common.nix
+    ../../modules/desktop/wayland-compositor-common.nix
+    ../../modules/desktop/desktop.nix
+    ../../modules/desktop/stylix.nix
+    ../../modules/network-constants.nix
+
+    # Flake inputs
+    inputs.niri.nixosModules.niri
+    inputs.home-manager.nixosModules.home-manager
+    inputs.stylix.nixosModules.stylix
+  ];
+
+  # ISO Settings
+  isoImage.makeUsbBootable = true;
+  isoImage.makeEfiBootable = true;
+
+  # Boot
+  boot.loader.grub.efiInstallAsRemovable = true;
+  boot.loader.efi.canTouchEfiVariables = false;
+  boot.loader.timeout = lib.mkForce 5;
+  boot.plymouth.enable = lib.mkForce false;
+  boot.kernelPackages =
+    inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
+  boot.supportedFilesystems = lib.mkForce [ "ext4" "btrfs" "vfat" "xfs" "ntfs" ];
+  boot.kernelParams = [
+    "copytoram"
+    "amd_iommu=on"
+    "iommu=pt"
+  ];
+  boot.blacklistedKernelModules = [
+    "snd_seq_dummy"
+    "snd_hrtimer"
+    "ufs" "hfs" "hfsplus" "reiserfs"
+    "appletalk" "ipx" "decnet"
+  ];
+
+  # Networking
+  networking = {
+    hostName = "usb-rescue";
+    networkmanager.enable = true;
+    wireless.enable = true;
+    useDHCP = lib.mkDefault true;
+    extraHosts = ''
+      10.1.1.110  zephyr
+      10.1.1.120  nexus
+      10.1.1.130  forge
+      10.1.1.140  sentry
+      10.1.1.100  k8s-vip
+    '';
+    firewall.allowedTCPPorts = lib.mkOptionDefault [ 22 ];
+  };
+
+  # Timezone
+  i18n.defaultLocale = "en_CA.UTF-8";
+  time.timeZone = "America/Winnipeg";
+
+  # GPU / Graphics
+  hardware.nvidia = {
+    open = true;
+    modesetting.enable = true;
+  };
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true;
+  };
+
+  # Nix overlays
+  nixpkgs.overlays = [
+    inputs.niri.overlays.niri
+    inputs.llm-agents.overlays.default
+  ];
+
+  # User — override ISO base's "nixos" auto-login to use j_kro
+  users.users.j_kro = {
+    isNormalUser = true;
+    group = "j_kro";
+    description = "Jeremy Kroeker";
+    extraGroups = [ "wheel" "networkmanager" "video" "render" ];
+    shell = pkgs.fish;
+    openssh.authorizedKeys.keys = [ sshKey ];
+  };
+  users.groups.j_kro = {};
+
+  # Disable the ISO base's nixos user auto-login, use j_kro instead
+  services.displayManager.autoLogin = {
+    enable = true;
+    user = "j_kro";
+  };
+  # Prevent nixos user from being auto-created by ISO base
+  users.users.nixos = lib.mkForce {
+    isNormalUser = true;
+    extraGroups = [ "wheel" ];
+    openssh.authorizedKeys.keys = [ sshKey ];
+  };
+
+  # SSH
+  services.openssh = {
+    enable = true;
+    settings = {
+      PasswordAuthentication = false;
+      KbdInteractiveAuthentication = false;
+      PermitRootLogin = "no";
+    };
+  };
+
+  security.sudo = {
+    enable = true;
+    extraConfig = ''
+      j_kro ALL=(ALL) NOPASSWD: ALL
+    '';
+  };
+
+  # Desktop / Niri
+  programs.niri.enable = true;
+  stylix.base16Scheme = "${pkgs.base16-schemes}/share/themes/nord.yaml";
+  services.displayManager.sddm.enable = lib.mkForce true;
+
+  # Home Manager — j_kro desktop setup (niri config + noctalia-shell)
+  home-manager = {
+    useGlobalPkgs = true;
+    useUserPackages = true;
+    backupFileExtension = "hm-backup";
+    users.j_kro = { pkgs, ... }: {
+      imports = [
+        ../../modules/home-manager/niri-config.nix
+        ../../modules/home-manager/fish.nix
+        ../../modules/home-manager/starship.nix
+        ../../modules/home-manager/ghostty.nix
+      ];
+      home.stateVersion = "26.05";
+    };
+  };
+
+  # Hermes Agent — self-contained config matching live setup
+  environment.variables.HERMES_HOME = "/home/j_kro/.hermes";
+  system.activationScripts.hermes-usb-setup = lib.stringAfter [ "users" ] ''
+    HERMES_HOME="/home/j_kro/.hermes"
+    mkdir -p "$HERMES_HOME"/{sessions,memories,skills,cron,logs}
+
+    cat > "$HERMES_HOME/config.yaml" << 'YAML_EOF'
+    model:
+      provider: ai-gateway
+      base_url: http://10.1.1.110:30880/v1
+      default: qwen/qwen3-coder-480b-a35b-instruct
+      api_key: none
+
+    providers:
+      ai-gateway:
+        base_url: http://10.1.1.110:30880/v1
+        api_key: none
+      local-qwen36:
+        base_url: http://10.1.1.110:1237/v1
+        model: Qwen3.6-35B-A3B-abliterated.i1-IQ3_M.gguf
+      zephyr-3060ti:
+        base_url: http://10.1.1.110:1236/v1
+        model: gemma-4-e2b-it-IQ4_NL.gguf
+      sentry-qwen35:
+        base_url: http://10.1.1.140:1235/v1
+        model: Qwen3.5-9B-abliterated.i1-IQ2_M.gguf
+
+    fallback_providers:
+      - ai-gateway
+      - local-qwen36
+      - zephyr-3060ti
+      - sentry-qwen35
+
+    terminal:
+      backend: local
+      timeout: 180
+
+    toolsets:
+      - all
+
+    memory:
+      memory_enabled: true
+      user_profile_enabled: true
+
+    compression:
+      enabled: true
+      threshold: 0.9
+
+    agent:
+      max_turns: 90
+      gateway_timeout: 1800
+      api_max_retries: 3
+      tool_use_enforcement: auto
+    YAML_EOF
+
+    cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
+    You are Hermes Agent, an intelligent AI assistant. You are helpful,
+    knowledgeable, and direct. You are running from a NixOS rescue USB.
+    SOUL_EOF
+
+    chown -R j_kro:j_kro "$HERMES_HOME"
+    chmod 750 "$HERMES_HOME"
+  '';
+
+  # System Packages
+  environment.systemPackages = [
+    inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.default
+  ] ++ (with pkgs; [
+    # Shell
+    fish zoxide fzf eza btop tmux mosh
+
+    # Git + GitHub
+    git gh
+
+    # Networking
+    nmap dnsutils iproute2 iputils net-tools curl wget jq
+
+    # Rescue / disk tools
+    gparted parted
+    e2fsprogs dosfstools btrfs-progs lvm2 cryptsetup mdadm smartmontools nvme-cli
+
+    # NixOS tools
+    inputs.colmena.packages.${pkgs.stdenv.hostPlatform.system}.colmena
+
+    # Editors
+    vim nano
+
+    # Browser
+    firefox
+
+    # Desktop
+    noctalia-shell
+
+    # Rescue script
+    rescue-script
+  ]);
+
+  # ZRAM (reduce writes on flash)
+  zramSwap = {
+    enable = true;
+    algorithm = "zstd";
+    memoryPercent = 25;
+    priority = 999;
+  };
+
+  # tmpfs /tmp to reduce flash writes
+  fileSystems."/tmp" = {
+    device = "tmpfs";
+    fsType = "tmpfs";
+    options = [ "size=2G" "mode=1777" "nosuid" "nodev" ];
+  };
+
+  system.stateVersion = "25.11";
+}

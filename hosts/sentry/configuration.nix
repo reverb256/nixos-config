@@ -85,6 +85,10 @@
   # reading /proc/net/rpc/nfs4.* channels. Add it to the proc group instead.
   systemd.services.nfs-idmapd.serviceConfig.SupplementaryGroups = [ "proc" ];
 
+  # nfs-idmapd needs /var/lib/nfs/rpc_pipefs/nfs to exist (created by nfsd
+  # normally, but can race on boot with nix-mineral's hardened /proc).
+  systemd.tmpfiles.rules = [ "d /var/lib/nfs/rpc_pipefs/nfs 0755 root root -" ];
+
 
   # Resolve gitconfig conflict between NixOS default and nix-mineral
   environment.etc.gitconfig.source = lib.mkForce (pkgs.writeText "gitconfig" ''
@@ -95,4 +99,17 @@
 
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
+
+  # nix-mineral breaks DoT (TLS to port 853) — override with plain DNS
+  services.unbound.settings.forward-zone = lib.mkForce [
+    {
+      name = "ts.net.";
+      forward-addr = [ "100.100.100.100" "fd7a:115c:a1e0::53" ];
+    }
+    {
+      name = ".";
+      forward-addr = [ "1.1.1.1" "1.0.0.1" "8.8.8.8" "8.8.4.4" ];
+    }
+  ];
+
 }

@@ -4,6 +4,7 @@
   pkgs,
   ...
 }: let
+  cluster = config.networking.cluster;
   cfg = config.services.keepalived-vip;
 in {
   options.services.keepalived-vip = {
@@ -11,7 +12,7 @@ in {
 
     vip = lib.mkOption {
       type = lib.types.str;
-      default = "10.1.1.100";
+      default = cluster.kubernetes.vip;
       description = "Virtual IP address for Kubernetes API";
     };
 
