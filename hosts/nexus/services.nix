@@ -132,6 +132,7 @@ in {
 
   environment.systemPackages = with pkgs; [
     llama-cpp
+    nvtopPackages.full
   ];
 
   systemd.services.tailscaled.environment = {
