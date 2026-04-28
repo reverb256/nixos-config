@@ -372,6 +372,7 @@ in
                   "-p" "x"
                   "--api_listen=0.0.0.0:4070"
                   "-d" "0"
+                  "--fan_control=1:50,80"  # GPU 0: 50% min, ramp to 80% at 75C
                 ];
                 env = amdEnv;
                 ports = [
