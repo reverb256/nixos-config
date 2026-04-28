@@ -137,12 +137,12 @@ in
                 };
                 resources = {
                   requests = {
-                    memory = "64Mi";
-                    cpu = "50m";
+                    cpu = "100m";
+                    memory = "128Mi";
                   };
                   limits = {
-                    memory = "512Mi";
                     cpu = "500m";
+                    memory = "512Mi";
                   };
                 };
                 securityContext.capabilities.drop = [ "ALL" ];
@@ -253,12 +253,12 @@ in
                 };
                 resources = {
                   requests = {
-                    memory = "64Mi";
-                    cpu = "50m";
+                    cpu = "100m";
+                    memory = "128Mi";
                   };
                   limits = {
-                    memory = "1Gi";
                     cpu = "500m";
+                    memory = "512Mi";
                   };
                 };
                 securityContext.capabilities.drop = [ "ALL" ];

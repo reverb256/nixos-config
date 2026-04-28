@@ -349,6 +349,26 @@ let
             regex: (.+)
             replacement: "$1"
 
+      - job_name: 'etcd'
+        scrape_interval: 30s
+        static_configs:
+          - targets:
+              - '${hostIPs.zephyr}:2379'
+              - '${hostIPs.nexus}:2379'
+              - '${hostIPs.sentry}:2379'
+        scheme: https
+        tls_config:
+          insecure_skip_verify: true
+
+    rule_files:
+      - /etc/prometheus/rules/*.yml
+
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+                - 'alertmanager.monitoring.svc.cluster.local:9093'
+
     remote_write:
       - url: 'http://mimir.monitoring.svc.cluster.local:9009/api/v1/push'
   '';
@@ -1343,6 +1363,21 @@ in
                     mountPath = "/etc/prometheus";
                     readOnly = true;
                   };
+                  rules-api-server = {
+                    mountPath = "/etc/prometheus/rules/api-server-alerts.yml";
+                    subPath = "api-server-alerts.yml";
+                    readOnly = true;
+                  };
+                  rules-kube-apiserver = {
+                    mountPath = "/etc/prometheus/rules/kube-apiserver-rules.yml";
+                    subPath = "kube-apiserver-rules.yml";
+                    readOnly = true;
+                  };
+                  rules-cluster-health = {
+                    mountPath = "/etc/prometheus/rules/cluster-health.yml";
+                    subPath = "cluster-health.yml";
+                    readOnly = true;
+                  };
                   data = {
                     mountPath = "/prometheus";
                   };
@@ -1352,6 +1387,9 @@ in
             volumes = {
               _namedlist = true;
               config.configMap.name = "prometheus-config";
+              rules-api-server.configMap.name = "prometheus-api-server-rules";
+              rules-kube-apiserver.configMap.name = "prometheus-alert-rules-kube-apiserver";
+              rules-cluster-health.configMap.name = "prometheus-cluster-health-rules";
               data.emptyDir = { }; # Short retention — Mimir handles long-term
             };
           };
@@ -1926,6 +1964,109 @@ in
               component: control-plane
             annotations:
               summary: "Kubernetes API server etcd latency high"
+    '';
+
+    # -- Alert Rules: Cluster Health (pod count, etcd size, evictions) ------
+    monitoring.ConfigMap.prometheus-cluster-health-rules.data."cluster-health.yml" = ''
+      groups:
+      - name: cluster-pod-health
+        interval: 30s
+        rules:
+        - alert: TooManyPodsInNamespace
+          expr: |
+            count by (namespace) (kube_pod_info) > 100
+          for: 5m
+          labels:
+            severity: warning
+            component: scheduling
+          annotations:
+            summary: "Namespace {{ $labels.namespace }} has {{ $value }} pods (>100)"
+            description: "High pod count may indicate a leak or missing cleanup"
+
+        - alert: EvictedPodsDetected
+          expr: |
+            sum by (namespace) (kube_pod_status_phase{phase="Failed",reason="Evicted"}) > 5
+          for: 5m
+          labels:
+            severity: warning
+            component: scheduling
+          annotations:
+            summary: "{{ $value }} evicted pods in namespace {{ $labels.namespace }}"
+            description: "Pods are being evicted, possible resource pressure"
+
+        - alert: CrashLoopingPods
+          expr: |
+            sum by (namespace) (kube_pod_container_status_restarts_total - kube_pod_container_status_restarts_total offset 5m) > 5
+          for: 5m
+          labels:
+            severity: warning
+            component: workloads
+          annotations:
+            summary: "Pods restarting frequently in {{ $labels.namespace }}"
+
+      - name: etcd-health
+        interval: 30s
+        rules:
+        - alert: EtcdClusterSizeMismatch
+          expr: |
+            count(etcd_server_has_leader) != 3
+          for: 5m
+          labels:
+            severity: critical
+            component: control-plane
+          annotations:
+            summary: "etcd cluster size mismatch: {{ $value }} members (expected 3)"
+
+        - alert: EtcdNoLeader
+          expr: |
+            etcd_server_has_leader == 0
+          for: 1m
+          labels:
+            severity: critical
+            component: control-plane
+          annotations:
+            summary: "etcd member {{ $labels.instance }} has no leader"
+
+        - alert: EtcdHighDBSize
+          expr: |
+            etcd_mvcc_db_total_size_in_bytes > 2147483648
+          for: 10m
+          labels:
+            severity: warning
+            component: control-plane
+          annotations:
+            summary: "etcd DB size {{ $value | humanize }}B (>2GB) on {{ $labels.instance }}"
+            description: "etcd database is growing large. Check compaction and defrag."
+
+        - alert: NodeNotReady
+          expr: |
+            kube_node_status_condition{condition="Ready",status="true"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            component: nodes
+          annotations:
+            summary: "Node {{ $labels.node }} is NotReady"
+
+        - alert: NodeDiskPressure
+          expr: |
+            kube_node_status_condition{condition="DiskPressure",status="true"} == 1
+          for: 5m
+          labels:
+            severity: warning
+            component: nodes
+          annotations:
+            summary: "Node {{ $labels.node }} has disk pressure"
+
+        - alert: NodeMemoryPressure
+          expr: |
+            kube_node_status_condition{condition="MemoryPressure",status="true"} == 1
+          for: 5m
+          labels:
+            severity: warning
+            component: nodes
+          annotations:
+            summary: "Node {{ $labels.node }} has memory pressure"
     '';
 
     # -- Memory Monitor (CronJob on zephyr) --------------------------------

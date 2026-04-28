@@ -36,7 +36,8 @@
       "ssd"
       "discard=async"
     ];
-    "/home".options = lib.mkOptionDefault [
+    "/home".options = lib.mkForce [
+      "subvol=@home"
       "compress=zstd:3"
       "ssd"
       "discard=async"
