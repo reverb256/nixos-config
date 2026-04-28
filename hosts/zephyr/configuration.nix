@@ -330,6 +330,47 @@ in
     };
   };
 
+  # DNAT rules for Caddy ingress controller (VIP:80/443 -> Caddy pod:80/443)
+  systemd.services.dnat-caddy-ingress = {
+    description = "DNAT rules for Caddy Ingress (${cluster.kubernetes.vip}:80/443 -> Caddy pod)";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network-online.target" "k3s.service" ];
+    wants = [ "network-online.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = pkgs.writeShellScript "dnat-caddy-ingress" ''
+        ${pkgs.nftables}/bin/nft list tables 2>/dev/null | grep -q "nat" || exit 0
+        # Get Caddy pod IP on local node (Zephyr) for optimal routing
+        CADDY_POD_IP=$(${pkgs.k3s}/bin/k3s kubectl get pods -n ingress-system -l app.kubernetes.io/name=caddy-ingress-controller -o jsonpath='{.items[?(@.spec.nodeName=="zephyr")].status.podIP}' 2>/dev/null | head -1 || echo "10.244.0.79")
+        # HTTP: VIP:80 -> Caddy pod:80 (PREROUTING)
+        if ! ${pkgs.nftables}/bin/nft list chain ip nat PREROUTING 2>/dev/null | grep -q "caddy-ingress-http"; then
+          ${pkgs.nftables}/bin/nft add rule ip nat PREROUTING \
+            ip daddr ${cluster.kubernetes.vip} tcp dport 80 \
+            dnat to "''${CADDY_POD_IP}:80" comment "caddy-ingress-http"
+        fi
+        # HTTPS: VIP:443 -> Caddy pod:443 (PREROUTING)
+        if ! ${pkgs.nftables}/bin/nft list chain ip nat PREROUTING 2>/dev/null | grep -q "caddy-ingress-https"; then
+          ${pkgs.nftables}/bin/nft add rule ip nat PREROUTING \
+            ip daddr ${cluster.kubernetes.vip} tcp dport 443 \
+            dnat to "''${CADDY_POD_IP}:443" comment "caddy-ingress-https"
+        fi
+        # HTTP: VIP:80 -> Caddy pod:80 (OUTPUT for local traffic)
+        if ! ${pkgs.nftables}/bin/nft list chain ip nat OUTPUT 2>/dev/null | grep -q "caddy-ingress-http-out"; then
+          ${pkgs.nftables}/bin/nft add rule ip nat OUTPUT \
+            ip daddr ${cluster.kubernetes.vip} tcp dport 80 \
+            dnat to "''${CADDY_POD_IP}:80" comment "caddy-ingress-http-out"
+        fi
+        # HTTPS: VIP:443 -> Caddy pod:443 (OUTPUT for local traffic)
+        if ! ${pkgs.nftables}/bin/nft list chain ip nat OUTPUT 2>/dev/null | grep -q "caddy-ingress-https-out"; then
+          ${pkgs.nftables}/bin/nft add rule ip nat OUTPUT \
+            ip daddr ${cluster.kubernetes.vip} tcp dport 443 \
+            dnat to "''${CADDY_POD_IP}:443" comment "caddy-ingress-https-out"
+        fi
+      '';
+    };
+  };
+
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
 }
