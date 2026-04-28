@@ -296,6 +296,8 @@ in
     python3Packages.playwright
 
     python312Packages.openpyxl
+
+    nvtopPackages.full
   ];
 
   # Service .lan domains resolved by unbound → nexus (${cluster.hosts.nexus.ip}).
