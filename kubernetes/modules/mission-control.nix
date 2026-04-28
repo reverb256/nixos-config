@@ -10,14 +10,11 @@ let
   # Check: https://github.com/builderz-labs/mission-control/pkgs/container/mission-control/versions
   mcImage = "ghcr.io/builderz-labs/mission-control:sha-90a5615";
 
-  # NFS server is zephyr (10.1.1.110).
-  # NFS PV survives node failure if pod migrates (RWX access mode).
-  nfsServer = "10.1.1.110";
-  nfsDataPath = "/data/shared/mission-control-data";
-
-  # Pod targets sentry -- 31GB RAM, not OOM-constrained like zephyr.
-  # Nexus is down; sentry is the available workload node.
-  targetNode = "sentry";
+  # Pod targets forge -- local-path SC works there.
+  # Sentry has DiskPressure, nexus is down, zephyr is OOM-constrained.
+  # NOTE: local-path PVC is node-bound. If forge goes down, data stays there.
+  # TODO: when sentry disk is fixed, consider NFS with SQLite journal_mode=DELETE.
+  targetNode = "forge";
 in
 {
   config.kubernetes.objects = {
@@ -32,31 +29,19 @@ in
       };
     };
 
-    # ── NFS PersistentVolume (survives node loss) ──────────────────────
-    none.PersistentVolume.mission-control-data-pv = {
-      spec = {
-        capacity.storage = "2Gi";
-        accessModes = [ "ReadWriteMany" ];
-        persistentVolumeReclaimPolicy = "Retain";
-        storageClassName = "nfs";
-        nfs = {
-          server = nfsServer;
-          path = nfsDataPath;
-        };
-      };
-    };
-
-    # ── PVC binding to NFS PV ──────────────────────────────────────────
+    # ── PVC (local-path on forge) ─────────────────────────────────────
+    # SQLite WAL mode does NOT work on NFS (process hangs in D-state).
+    # Using local-path SC which binds to the node the pod runs on.
     orchestration.PersistentVolumeClaim.mission-control-data = {
       spec = {
-        accessModes = [ "ReadWriteMany" ];
-        storageClassName = "nfs";
+        accessModes = [ "ReadWriteOnce" ];
+        storageClassName = "local-path";
         resources.requests.storage = "2Gi";
       };
     };
 
     # ── Secret ─────────────────────────────────────────────────────────
-    # TODO: migrate to agenix. Currently matches existing imperative secrets.
+    # TODO: migrate to agenix.
     orchestration.Secret.mission-control-secrets = {
       type = "Opaque";
       stringData = {
@@ -127,34 +112,27 @@ in
                     memory = "2Gi";
                   };
                 };
-                livenessProbe = {
-                  httpGet = {
-                    path = "/api/status?action=health";
-                    port = 3000;
-                  };
-                  initialDelaySeconds = 30;
-                  periodSeconds = 30;
-                  timeoutSeconds = 10;
-                  failureThreshold = 3;
+                # TCP probes -- httpGet probes hang when SQLite is in D-state
+                startupProbe = {
+                  tcpSocket.port = 3000;
+                  initialDelaySeconds = 10;
+                  periodSeconds = 5;
+                  timeoutSeconds = 3;
+                  failureThreshold = 18;
                 };
-                readinessProbe = {
-                  httpGet = {
-                    path = "/api/status?action=health";
-                    port = 3000;
-                  };
-                  initialDelaySeconds = 15;
-                  periodSeconds = 10;
+                livenessProbe = {
+                  tcpSocket.port = 3000;
+                  initialDelaySeconds = 60;
+                  periodSeconds = 30;
                   timeoutSeconds = 5;
                   failureThreshold = 3;
                 };
-                startupProbe = {
-                  httpGet = {
-                    path = "/api/status?action=health";
-                    port = 3000;
-                  };
-                  initialDelaySeconds = 5;
-                  periodSeconds = 5;
-                  failureThreshold = 12;
+                readinessProbe = {
+                  tcpSocket.port = 3000;
+                  initialDelaySeconds = 10;
+                  periodSeconds = 10;
+                  timeoutSeconds = 3;
+                  failureThreshold = 3;
                 };
                 volumeMounts = {
                   _namedlist = true;
