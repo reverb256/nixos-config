@@ -139,7 +139,7 @@ in
           metadata.labels.app = "open-webui";
           spec = {
             serviceAccountName = "open-webui";
-            nodeSelector."kubernetes.io/hostname" = "nexus";
+            nodeSelector."kubernetes.io/hostname" = "sentry";
             containers = {
               _namedlist = true;
               open-webui = {
@@ -149,7 +149,7 @@ in
                   _namedlist = true;
                   OLLAMA_BASE_URLS = {
                     name = "OLLAMA_BASE_URLS";
-                    value = "http://10.1.1.120:8080/v1";
+                    value = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1";
                   }; # AI inference gateway
                   ENABLE_OLLAMA = {
                     name = "ENABLE_OLLAMA";
@@ -173,7 +173,7 @@ in
                   };
                   OPENAI_API_BASE_URL = {
                     name = "OPENAI_API_BASE_URL";
-                    value = "http://10.1.1.120:8080/v1";
+                    value = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1";
                   };
                 };
                 ports = [
@@ -223,7 +223,7 @@ in
               _namedlist = true;
               webui-data = {
                 hostPath = {
-                  path = "/mnt/open-webui-data";
+                  path = "/storage/open-webui";
                   type = "DirectoryOrCreate";
                 };
               };
@@ -487,7 +487,7 @@ in
             annotations."nix-csi/discard" = "true";
           };
           spec = {
-            nodeName = "nexus"; # Primary server with GPU
+            nodeName = "sentry"; # Primary server with GPU
             hostNetwork = false; # hostNetwork=true causes K3s NodePorts pod explosion with nix-csi scratch
             serviceAccountName = "ai-inference-gateway";
             automountServiceAccountToken = true; # needed by gpu_scheduler.py kubectl calls
@@ -786,69 +786,55 @@ in
     };
 
     # Qdrant vector database — migrated from systemd to K8s StatefulSet
-    StatefulSet.qdrant = {
+    Deployment.qdrant = {
       metadata.labels.app = "qdrant";
       spec = {
-        serviceName = "qdrant";
         replicas = 1;
+        revisionHistoryLimit = 2;
         selector.matchLabels.app = "qdrant";
+        strategy.type = "Recreate";
         template = {
           metadata.labels.app = "qdrant";
           spec = {
-            nodeName = "nexus";
+            nodeName = "sentry";
             containers = [
               {
                 name = "qdrant";
                 image = "docker.io/qdrant/qdrant:v1.13.4";
                 ports = [
-                  {
-                    containerPort = 6333;
-                    name = "http";
-                  }
-                  {
-                    containerPort = 6334;
-                    name = "grpc";
-                  }
+                  { containerPort = 6333; name = "http"; }
+                  { containerPort = 6334; name = "grpc"; }
                 ];
                 volumeMounts = [
-                  {
-                    name = "qdrant-data";
-                    mountPath = "/qdrant/storage";
-                  }
+                  { name = "qdrant-data"; mountPath = "/qdrant/storage"; }
                 ];
                 resources = {
                   requests.memory = "1Gi";
                   limits.memory = "4Gi";
                 };
                 readinessProbe = {
-                  httpGet = {
-                    path = "/healthz";
-                    port = 6333;
-                  };
+                  httpGet = { path = "/healthz"; port = 6333; };
                   initialDelaySeconds = 5;
                   periodSeconds = 10;
                 };
                 livenessProbe = {
-                  httpGet = {
-                    path = "/healthz";
-                    port = 6333;
-                  };
+                  httpGet = { path = "/healthz"; port = 6333; };
                   initialDelaySeconds = 15;
                   periodSeconds = 20;
                 };
               }
             ];
+            volumes = [
+              {
+                name = "qdrant-data";
+                hostPath = {
+                  path = "/storage/qdrant";
+                  type = "DirectoryOrCreate";
+                };
+              }
+            ];
           };
         };
-        volumeClaimTemplates = [
-          {
-            metadata.name = "qdrant-data";
-            spec = {
-              accessModes = [ "ReadWriteOnce" ];
-              resources.requests.storage = "10Gi";
-            };
-          }
-        ];
       };
     };
 
@@ -1828,7 +1814,7 @@ in
             annotations."nix-csi/discard" = "true";
           };
           spec = {
-            nodeName = "nexus";
+            nodeName = "sentry";
             automountServiceAccountToken = false;
             containers = {
               _namedlist = true;

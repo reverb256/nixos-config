@@ -1,4 +1,7 @@
-{ pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
+let
+  cluster = config.networking.cluster;
+in
 
 {
   hardware = {
@@ -8,7 +11,7 @@
           name = "HP_Envy_7800";
           location = "Home Network";
           description = "HP ENVY Photo 7800 All-in-One";
-          deviceUri = "ipp://10.1.1.173:631/ipp/print";
+          deviceUri = "ipp://${cluster.devices.printer}:631/ipp/print";
           model = "everywhere";
           ppdOptions = {
             PageSize = "Letter";
@@ -35,7 +38,7 @@
   environment.etc."sane.d/airscan.conf" = {
     text = ''
       [devices]
-      "HP ENVY Photo 7800" = http://10.1.1.173:8080/eSCL/, escl
+      "HP ENVY Photo 7800" = http://${cluster.devices.printer}:8080/eSCL/, escl
     '';
   };
 
@@ -73,8 +76,8 @@
     path = with pkgs; [ curl bash coreutils ];
     serviceConfig.Type = "oneshot";
     script = ''
-      STATUS=$(curl -sk --max-time 5 'https://10.1.1.173/DevMgmt/ProductStatusDyn.xml' 2>/dev/null)
-      INK=$(curl -sk --max-time 5 'https://10.1.1.173/DevMgmt/ConsumableConfigDyn.xml' 2>/dev/null)
+      STATUS=$(curl -sk --max-time 5 'https://${cluster.devices.printer}/DevMgmt/ProductStatusDyn.xml' 2>/dev/null)
+      INK=$(curl -sk --max-time 5 'https://${cluster.devices.printer}/DevMgmt/ConsumableConfigDyn.xml' 2>/dev/null)
       echo "Printer status at $(date):"
       echo "$STATUS" | grep -oP '(?<=StatusCategory>)[^<]+' || echo "unknown"
       echo "Ink levels:"

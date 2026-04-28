@@ -6,6 +6,7 @@
 }: let
   inherit (lib) mkOption types mkIf mkEnableOption;
 
+  cluster = config.networking.cluster;
   cfg = config.services.tplinkSwitches;
 in {
   options.services.tplinkSwitches = {
@@ -56,19 +57,19 @@ in {
       });
       default = {
         switch1 = {
-          ip = "10.1.1.10";
+          ip = cluster.devices."switch-1";
           name = "tl-sg105e-1";
         };
         switch2 = {
-          ip = "10.1.1.11";
+          ip = cluster.devices."switch-2";
           name = "tl-sg105e-2";
         };
         switch3 = {
-          ip = "10.1.1.12";
+          ip = cluster.devices."switch-3";
           name = "tl-sg105e-3";
         };
         switch4 = {
-          ip = "10.1.1.13";
+          ip = cluster.devices."switch-4";
           name = "tl-sg105e-4";
         };
       };

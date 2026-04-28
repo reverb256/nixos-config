@@ -1,4 +1,5 @@
 let
+  cluster = config.networking.cluster;
   lib = import <nixpkgs/lib>;
 
   mkTestConfig =
@@ -21,9 +22,9 @@ let
         multiGpu = true;
       };
       networking = {
-        ipAddress = "10.1.1.110";
+        ipAddress = cluster.hosts.zephyr.ip;
         interfaceName = "enp38s0";
-        unboundListenAddress = "10.1.1.110";
+        unboundListenAddress = cluster.hosts.zephyr.ip;
         wireless.enable = true;
       };
       firewallExtraTCPPorts = [
@@ -55,9 +56,9 @@ let
         multiGpu = false;
       };
       networking = {
-        ipAddress = "10.1.1.120";
+        ipAddress = cluster.hosts.nexus.ip;
         interfaceName = "enp7s0";
-        unboundListenAddress = "10.1.1.120";
+        unboundListenAddress = cluster.hosts.nexus.ip;
         wireless.enable = true;
       };
       firewallExtraTCPPorts = [ 10250 ];
@@ -81,9 +82,9 @@ let
         wayland = true;
       };
       networking = {
-        ipAddress = "10.1.1.130";
+        ipAddress = cluster.hosts.forge.ip;
         interfaceName = "enp0s31f6";
-        unboundListenAddress = "10.1.1.130";
+        unboundListenAddress = cluster.hosts.forge.ip;
         wireless.enable = false;
       };
       disableDHCP = true;
@@ -104,9 +105,9 @@ let
         wayland = true;
       };
       networking = {
-        ipAddress = "10.1.1.140";
+        ipAddress = cluster.hosts.sentry.ip;
         interfaceName = "enp7s0";
-        unboundListenAddress = "10.1.1.140";
+        unboundListenAddress = cluster.hosts.sentry.ip;
         wireless.enable = false;
       };
       firewallExtraTCPPorts = [ 10250 ];
