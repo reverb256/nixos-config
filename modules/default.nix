@@ -124,7 +124,6 @@
     ./services/rclone.nix
     ./services/vaultwarden.nix
     ./services/self-healing-alerts.nix
-    ./services/amd-gpu-fan-control.nix
 
     ./services/monitoring/default.nix
     ./services/gpu-exporters.nix
