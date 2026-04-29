@@ -110,7 +110,7 @@
     after = [ "dev-nvme1n1p3.device" ];
     unitConfig.DefaultDependencies = "no";
     serviceConfig.Type = "oneshot";
-    path = with pkgs; [ btrfs-progs coreutils findutils ];
+    path = with pkgs; [ btrfs-progs coreutils findutils util-linux ];
     script = ''
       mkdir -p /btrfs_tmp
       mount -t btrfs -o subvol=/ /dev/nvme1n1p3 /btrfs_tmp
