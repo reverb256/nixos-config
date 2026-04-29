@@ -5,8 +5,8 @@
 }:
 {
   disko.devices = {
-    disk.nvme0n1 = {
-      device = "/dev/nvme0n1";
+    disk.nvme1n1 = {
+      device = "/dev/nvme1n1";
       type = "disk";
       content = {
         type = "gpt";
@@ -107,13 +107,13 @@
     description = "Rotate ephemeral BTRFS root subvolume";
     requiredBy = [ "initrd-root-device.target" ];
     before = [ "sysroot.mount" ];
-    after = [ "dev-nvme0n1p3.device" ];
+    after = [ "dev-nvme1n1p3.device" ];
     unitConfig.DefaultDependencies = "no";
     serviceConfig.Type = "oneshot";
     path = with pkgs; [ btrfs-progs coreutils findutils ];
     script = ''
       mkdir -p /btrfs_tmp
-      mount -t btrfs -o subvol=/ /dev/nvme0n1p3 /btrfs_tmp
+      mount -t btrfs -o subvol=/ /dev/nvme1n1p3 /btrfs_tmp
 
       if [[ -e /btrfs_tmp/@root ]]; then
         mkdir -p /btrfs_tmp/old_roots
