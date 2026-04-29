@@ -202,8 +202,8 @@ in {
       LoadCredential = [ "hermes-webui-password:${config.age.secrets.hermes-webui-password.path}" ];
       ExecStart = pkgs.writeShellScript "hermes-webui-start" ''
         cd /data/projects/own/hermes-webui
-        export HERMES_WEBUI_PASSWORD=*** $CREDENTIALS_DIRECTORY/hermes-webui-password)
-        exec "${hermesVenv}/bin/python" server.py
+        export HERMES_WEBUI_PASSWORD=$(cat $CREDENTIALS_DIRECTORY/hermes-webui-password)
+              exec "${hermesVenv}/bin/python" server.py
       '';
       ExecStartPost = pkgs.writeShellScript "hermes-webui-warmup" ''
         # Pre-warm agent init so first user chat isn't slow
