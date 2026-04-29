@@ -36,6 +36,7 @@
 
   {
     age.identityPaths = [
+      "/persistent/etc/age/key.txt"
       "/etc/nixos/.age/key.txt"
       "/etc/age/key.txt"
       "/home/j_kro/.age/key.txt"
