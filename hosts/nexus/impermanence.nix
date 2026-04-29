@@ -42,10 +42,6 @@
     ];
 
     files = [
-      # Machine identity
-      "/etc/machine-id"
-      # Age identity key for agenix (avoids NFS race on boot)
-      "/etc/age/key.txt"
 
       # SSH host keys (persisted to avoid regenerating every boot)
       "/etc/ssh/ssh_host_ed25519_key"
@@ -59,6 +55,21 @@
     ];
 
     # User-level persistence (j_kro)
+    # Machine identity and age key: use symlinks instead of bind mounts
+    # because NixOS activation creates these files before impermanence
+    # bind mounts can run (impermanence issue #229, #294, #311)
+    system.activationScripts.persist-symlinks = lib.stringAfter ["etc" "users"] ''
+      # machine-id: remove NixOS symlink and replace with ours
+      if [ -f /persistent/etc/machine-id ]; then
+        rm -f /etc/machine-id
+        ln -sf /persistent/etc/machine-id /etc/machine-id
+      fi
+      # age key: remove any existing file and symlink to persistent
+      if [ -f /persistent/etc/age/key.txt ]; then
+        rm -f /etc/age/key.txt
+        ln -sf /persistent/etc/age/key.txt /etc/age/key.txt
+      fi
+    '';
     users.j_kro = {
       directories = [
         # SSH keys
