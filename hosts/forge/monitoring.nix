@@ -1,7 +1,4 @@
 {...}: {
-  imports = [
-    ../../modules/services/monitoring/default.nix
-  ];
 
   services = {
     gpu-exporters.enable = true;
