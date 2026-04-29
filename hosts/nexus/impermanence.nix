@@ -44,6 +44,8 @@
     files = [
       # Machine identity
       "/etc/machine-id"
+      # Age identity key for agenix (avoids NFS race on boot)
+      "/etc/age/key.txt"
 
       # SSH host keys (persisted to avoid regenerating every boot)
       "/etc/ssh/ssh_host_ed25519_key"
