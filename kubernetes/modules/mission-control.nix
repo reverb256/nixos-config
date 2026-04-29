@@ -237,42 +237,5 @@ in
       };
     };
 
-    # ── Ingress ────────────────────────────────────────────────────────
-    orchestration.Ingress.mission-control = {
-      metadata.annotations = {
-        "caddy.ingress.kubernetes.io/disable-ssl-redirect" = "true";
-      };
-      spec = {
-        ingressClassName = "caddy";
-        rules = [
-          {
-            host = "mission-control.lan";
-            http.paths = [
-              {
-                path = "/";
-                pathType = "Prefix";
-                backend.service = {
-                  name = "mission-control";
-                  port.number = 3000;
-                };
-              }
-            ];
-          }
-          {
-            host = "mc.cluster.local";
-            http.paths = [
-              {
-                path = "/";
-                pathType = "Prefix";
-                backend.service = {
-                  name = "mission-control";
-                  port.number = 3000;
-                };
-              }
-            ];
-          }
-        ];
-      };
-    };
   };
 }

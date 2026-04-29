@@ -249,81 +249,6 @@ in
       };
     };
 
-    Ingress.llama-server = {
-      metadata = {
-        labels."app.kubernetes.io/name" = "llama-server";
-        annotations."caddy.ingress.kubernetes.io/disable-ssl-redirect" = "true";
-      };
-      spec = {
-        ingressClassName = "caddy";
-        rules = [
-          {
-            host = "ai.lan";
-            http.paths = [
-              {
-                path = "/";
-                pathType = "Prefix";
-                backend.service = {
-                  name = "llama-server-zephyr";
-                  port.number = 1235;
-                };
-              }
-            ];
-          }
-          {
-            host = "ai.cluster.local";
-            http.paths = [
-              {
-                path = "/";
-                pathType = "Prefix";
-                backend.service = {
-                  name = "llama-server-zephyr";
-                  port.number = 1235;
-                };
-              }
-            ];
-          }
-        ];
-      };
-    };
-
-    Ingress.openwebui = {
-      metadata = {
-        labels."app.kubernetes.io/name" = "openwebui";
-        annotations."caddy.ingress.kubernetes.io/disable-ssl-redirect" = "true";
-      };
-      spec = {
-        ingressClassName = "caddy";
-        rules = [
-          {
-            host = "openwebui.lan";
-            http.paths = [
-              {
-                path = "/";
-                pathType = "Prefix";
-                backend.service = {
-                  name = "open-webui";
-                  port.number = 8080;
-                };
-              }
-            ];
-          }
-          {
-            host = "openwebui.cluster.local";
-            http.paths = [
-              {
-                path = "/";
-                pathType = "Prefix";
-                backend.service = {
-                  name = "open-webui";
-                  port.number = 8080;
-                };
-              }
-            ];
-          }
-        ];
-      };
-    };
 
     Role.n8n-role.rules = [
       {
@@ -416,44 +341,6 @@ in
             port = 8080;
             protocol = "TCP";
             targetPort = 8080;
-          }
-        ];
-      };
-    };
-
-    Ingress.ai-inference-gateway = {
-      metadata = {
-        labels."app.kubernetes.io/name" = "ai-inference-gateway";
-        annotations."caddy.ingress.kubernetes.io/disable-ssl-redirect" = "true";
-      };
-      spec = {
-        ingressClassName = "caddy";
-        rules = [
-          {
-            host = "ai-inference.lan";
-            http.paths = [
-              {
-                path = "/";
-                pathType = "Prefix";
-                backend.service = {
-                  name = "ai-inference-gateway";
-                  port.number = 8080;
-                };
-              }
-            ];
-          }
-          {
-            host = "ai-inference.cluster.local";
-            http.paths = [
-              {
-                path = "/";
-                pathType = "Prefix";
-                backend.service = {
-                  name = "ai-inference-gateway";
-                  port.number = 8080;
-                };
-              }
-            ];
           }
         ];
       };
@@ -980,31 +867,6 @@ in
             port = 3000;
             protocol = "TCP";
             targetPort = 3000;
-          }
-        ];
-      };
-    };
-
-    Ingress.knowledge-fabric-api = {
-      metadata = {
-        labels."app.kubernetes.io/name" = "knowledge-fabric-api";
-        annotations."caddy.ingress.kubernetes.io/disable-ssl-redirect" = "true";
-      };
-      spec = {
-        ingressClassName = "caddy";
-        rules = [
-          {
-            host = "brain.lan";
-            http.paths = [
-              {
-                path = "/";
-                pathType = "Prefix";
-                backend.service = {
-                  name = "knowledge-fabric-api";
-                  port.number = 3000;
-                };
-              }
-            ];
           }
         ];
       };
@@ -1920,44 +1782,6 @@ in
             port = 8080;
             protocol = "TCP";
             targetPort = 8080;
-          }
-        ];
-      };
-    };
-
-    Ingress.privacy-filter = {
-      metadata = {
-        labels."app.kubernetes.io/name" = "privacy-filter";
-        annotations."caddy.ingress.kubernetes.io/disable-ssl-redirect" = "true";
-      };
-      spec = {
-        ingressClassName = "caddy";
-        rules = [
-          {
-            host = "privacy-filter.lan";
-            http.paths = [
-              {
-                path = "/";
-                pathType = "Prefix";
-                backend.service = {
-                  name = "privacy-filter";
-                  port.number = 8080;
-                };
-              }
-            ];
-          }
-          {
-            host = "privacy-filter.cluster.local";
-            http.paths = [
-              {
-                path = "/";
-                pathType = "Prefix";
-                backend.service = {
-                  name = "privacy-filter";
-                  port.number = 8080;
-                };
-              }
-            ];
           }
         ];
       };

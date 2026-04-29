@@ -1146,41 +1146,6 @@ in
       };
     };
 
-    monitoring.Ingress.grafana = {
-      metadata.annotations."caddy.ingress.kubernetes.io/disable-ssl-redirect" = "true";
-      spec = {
-        ingressClassName = "caddy";
-        rules = [
-          {
-            host = "grafana.lan";
-            http.paths = [
-              {
-                path = "/";
-                pathType = "Prefix";
-                backend.service = {
-                  name = "grafana";
-                  port.number = 3000;
-                };
-              }
-            ];
-          }
-          {
-            host = "grafana.cluster.local";
-            http.paths = [
-              {
-                path = "/";
-                pathType = "Prefix";
-                backend.service = {
-                  name = "grafana";
-                  port.number = 3000;
-                };
-              }
-            ];
-          }
-        ];
-      };
-    };
-
     # ── Alloy (DaemonSet — one per node) ───────────────────────
     monitoring.ConfigMap.alloy-config.data."config.alloy" = alloyConfig;
 

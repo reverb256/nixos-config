@@ -10,6 +10,7 @@
 #   - This script runs ON ZEPHYR from /etc/nixos/
 
 set -euo pipefail
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
 TARGET="j_kro@10.1.1.120"
 TARGET_ROOT="root@10.1.1.120"
@@ -48,7 +49,7 @@ ssh "$TARGET" "sudo -n whoami" 2>/dev/null | grep -q root || die "Target needs p
 
 # Check cluster health
 log "Checking K3s cluster health..."
-HEALTHY=$(kubectl get nodes --no-headers 2>/dev/null | grep -c " Ready" || echo "0")
+HEALTHY=$(kubectl get nodes --no-headers 2>&1 | grep -c " Ready" || true)
 [[ "$HEALTHY" -ge 2 ]] || die "Need at least 2 healthy K3s nodes. Found: $HEALTHY"
 
 # Check K3s VIP reachable
@@ -83,8 +84,8 @@ kubectl get nodes --no-headers 2>/dev/null || true
 log "Setting up temporary root SSH access on target..."
 
 # Copy j_kro's public key to root's authorized_keys on nexus
-PUB_KEY=$(cat ~/.ssh/id_ed25519.pub 2>/dev/null || cat ~/.ssh/id_rsa.pub 2>/dev/null || die "No SSH public key found for j_kro")
-ssh "$TARGET" "sudo mkdir -p /root/.ssh && echo '$PUB_KEY # TEMP nixos-anywhere' | sudo tee -a /root/.ssh/authorized_keys > /dev/null && sudo chmod 600 /root/.ssh/authorized_keys"
+PUB_KEY=$(cat /home/j_kro/.ssh/id_ed25519.pub 2>/dev/null || cat /home/j_kro/.ssh/id_rsa.pub 2>/dev/null || die "No SSH public key found for j_kro")
+ssh -i /home/j_kro/.ssh/id_ed25519 "$TARGET" "sudo mkdir -p /root/.ssh && echo '$PUB_KEY # TEMP nixos-anywhere' | sudo tee -a /root/.ssh/authorized_keys > /dev/null && sudo chmod 600 /root/.ssh/authorized_keys"
 
 # Verify root SSH works
 ssh -o ConnectTimeout=5 "$TARGET_ROOT" "echo ROOT_OK" > /dev/null 2>&1 || die "Root SSH setup failed"
