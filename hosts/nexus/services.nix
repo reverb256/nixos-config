@@ -48,39 +48,9 @@ in {
 
     spotify-spotx.enable = false; # NixOS module not available yet
 
-    mining = {
-      xmrigDual = {
-        enable = false;
-        alwaysOn = {
-          enable = false;
-          threads = 4;
-          httpPort = 8081;
-          httpTokenFile = "/run/agenix/xmrig-always-api-token";
-          autostart = false;
-        };
-        flexible = {
-          enable = false; # NixOS module not available yet
-          threads = 8;
-          httpPort = 8082;
-          httpTokenFile = "/run/agenix/xmrig-flexible-api-token";
-          autostart = false;
-        };
-        pool = "${cluster.hosts.zephyr.ip}:3333";
-        wallet = "nexus-cpu";
-        password = "x";
-        tls = false;
-      };
-
-      lolminer.nvidia = {
-        enable = false;
-        powerLimit = 120;
-      };
-    };
-
-    mcp-servers = {
-      enable = false; # NixOS module not available yet
-      servers.playwright.enable = false; # NixOS module not available yet
-      servers.context7.apiKeyFile = "/run/agenix/context7-api-key";
+    mining.lolminer.nvidia = {
+      enable = false;
+      powerLimit = 120;
     };
 
     nixos-share = {
@@ -90,28 +60,7 @@ in {
 
     nfs-data-server.enable = true;
 
-    syncthing-cluster = {
-      enable = false; # NixOS module not available yet
-      deviceId = "NEXUS-PLACEHOLDER";
-    };
-
-    garage-cluster = {
-      enable = false; # NixOS module not available yet
-      dataDir = "/data/shared/garage";
-      replicationFactor = 1;
-      consistencyMode = "consistent";
-      enableMetrics = true;
-      enableBackup = false;
-    };
-
     status-auto-update.enable = false; # NixOS module not available yet
-
-
-    ai-coding-tools = {
-      enable = false; # NixOS module not available yet
-      zaiApiKeyFile = config.age.secrets.zai-api-key.path;
-      context7ApiKeyFile = "/run/agenix/context7-api-key";
-    };
 
     agenix-secrets-registry = {
       enable = true;
@@ -209,14 +158,7 @@ in {
       };
     };
 
-    # Non-secret environment vars — passed via systemd override below
-    # (the module's environment option doesn't reliably set systemd env vars)
-    environment = {};
-
     # Secrets loaded via ExecStartPre + EnvironmentFile override below
-    # environmentFiles = [ config.age.secrets.hermes-env.path ];
-
-    # MCP servers
     mcpServers = {
       github = {
         command = "npx";
@@ -247,7 +189,7 @@ in {
     wants = [ "hermes-agent.service" ];
     path = with pkgs; [ git coreutils curl jq ];
     environment = {
-      AI_GATEWAY_API_KEY = "none";
+      AI_GATEWAY_API_KEY="***";
       HERMES_HOME = "/home/j_kro/.hermes";
       HERMES_WEBUI_HOST = "0.0.0.0";
       HERMES_WEBUI_PORT = "8787";
@@ -260,7 +202,7 @@ in {
       LoadCredential = [ "hermes-webui-password:${config.age.secrets.hermes-webui-password.path}" ];
       ExecStart = pkgs.writeShellScript "hermes-webui-start" ''
         cd /data/projects/own/hermes-webui
-        export HERMES_WEBUI_PASSWORD=$(cat $CREDENTIALS_DIRECTORY/hermes-webui-password)
+        export HERMES_WEBUI_PASSWORD=*** $CREDENTIALS_DIRECTORY/hermes-webui-password)
         exec "${hermesVenv}/bin/python" server.py
       '';
       ExecStartPost = pkgs.writeShellScript "hermes-webui-warmup" ''
@@ -311,7 +253,7 @@ in {
       ENVEOF
       echo -n "API_SERVER_KEY=" >> /data/hermes/.hermes/provider-env
       cat /run/agenix/hermes-api-server-key >> /data/hermes/.hermes/provider-env
-      echo -n "ZAI_API_KEY="" " >> /data/hermes/.hermes/provider-env
+      echo -n "ZAI_API_KEY=" >> /data/hermes/.hermes/provider-env
       cat /run/agenix/zai-api-key >> /data/hermes/.hermes/provider-env
       echo "" >> /data/hermes/.hermes/provider-env
       echo -n "NVIDIA_API_KEY=" >> /data/hermes/.hermes/provider-env
@@ -322,10 +264,6 @@ in {
     # Use "-" prefix so systemd doesn't fail if file doesn't exist yet
     serviceConfig.EnvironmentFile = "-/data/hermes/.hermes/provider-env";
   };
-
-  # Knowledge Base MCP server — RAG search over 38 ingested books
-  # kb-mcp-server: DELETED — replaced by knowledge-fabric
-  # brain-wiki-sync: DELETED — wiki pages are display-only, Qdrant is the retrieval path
 
   users.users.j_kro.extraGroups = [
     "hermes"
@@ -402,4 +340,3 @@ in {
     };
   };
 }
-
