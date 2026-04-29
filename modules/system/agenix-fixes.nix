@@ -17,7 +17,7 @@ in
 
     identityFile = mkOption {
       type = types.path;
-      default = "/etc/nixos/.age/key.txt";
+      default = "/persistent/etc/age/key.txt";
       description = "Path to age identity key for decryption";
     };
   };
@@ -31,7 +31,7 @@ in
 
         set -euo pipefail
 
-        IDENTITY_FILE="''${1:-/etc/nixos/.age/key.txt}"
+        IDENTITY_FILE="''${1:-/persistent/etc/age/key.txt}"
         FALLBACK_IDENTITY="/etc/age/key.txt"
         HOME_IDENTITY="/home/j_kro/.age/key.txt"
         SECRETS_DIR="/etc/nixos/secrets"
@@ -175,7 +175,8 @@ in
         ExecStart = "/etc/agenix-rekey-wrapper.sh ${config.services.agenix-fixes.identityFile}";
 
         ProtectSystem = "strict";
-        ProtectHome = true;
+        ReadWritePaths = "/run/agenix.d /persistent/etc/age";
+        ProtectHome = "read-only";
         ReadWritePaths = "/run/agenix.d";
         PrivateTmp = false;
 
@@ -190,12 +191,13 @@ in
     system.activationScripts.copy-age-key = lib.stringAfter [ "users" ] ''
       mkdir -p /etc/age /etc/nixos/.age
 
+      PERSISTENT_KEY="/persistent/etc/age/key.txt"
       NIXOS_KEY="/etc/nixos/.age/key.txt"
       SYSTEM_KEY="/etc/age/key.txt"
       HOME_KEY="/home/j_kro/.age/key.txt"
 
       SOURCE_KEY=""
-      for key in "$NIXOS_KEY" "$HOME_KEY" "$SYSTEM_KEY"; do
+      for key in "$PERSISTENT_KEY" "$NIXOS_KEY" "$HOME_KEY" "$SYSTEM_KEY"; do
         if [ -f "$key" ]; then
           SOURCE_KEY="$key"
           break
