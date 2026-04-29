@@ -32,8 +32,6 @@
   };
 
   boot = {
-    kernelParams = [
-    ];
     kernelModules = [ "tun" ];
   };
 
@@ -276,30 +274,6 @@
       };
     };
 
-    "amd-gpu-max-fan" = {
-      description = "AMD GPU Max Fan Speed (100%) - DISABLED, using fan curve instead";
-      after = [
-        "basic.target"
-        "amd-gpu-power-mgmt.service"
-      ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStart = pkgs.writeShellScript "amd-max-fan" ''
-          #!/usr/bin/env bash
-          set -euo pipefail
-          log() {
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
-          }
-          sleep 5
-          if /run/wrappers/bin/sudo /run/current-system/sw/bin/rocm-smi --setfan 100%; then
-            log "AMD GPUs set to 100% fan speed"
-          else
-            log "Failed to set AMD GPU fan speed"
-          fi
-        '';
-      };
-    };
 
     "amd-gpu-info" = {
       description = "AMD GPU Information Service";

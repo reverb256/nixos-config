@@ -28,21 +28,6 @@ in
     };
 
     mining.lolminer = {
-      nvidia = {
-        enable = false;
-        autostart = false;
-        devices = "2,3";
-        powerLimit = 90;
-        memoryClockLock = 8501;
-        apiPort = 4068;
-      };
-      amd = {
-        enable = false;
-        autostart = false;
-        devices = "0,1";
-        powerLimit = 110;
-        apiPort = 4069;
-      };
       pool = "xtm-c29-us.kryptex.network:8040";
       wallet = "krxXVNVMM7.forge-gpu";
       pools = [

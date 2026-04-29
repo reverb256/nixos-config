@@ -147,6 +147,7 @@ in
           "activepieces.lan. IN A ${vip}"
           "mission-control.lan. IN A ${vip}"
           "privacy-filter.lan. IN A ${vip}"
+          "grafana.lan. IN A ${vip}"
         ];
         # Optional forge services
         forgeServices = [
@@ -156,7 +157,6 @@ in
         # Optional sentry services
         sentryServices = [
           "monitoring.lan. IN A ${hosts.sentry}"
-          "grafana.lan. IN A ${hosts.sentry}"
           "prometheus.lan. IN A ${hosts.sentry}"
         ];
 
@@ -218,7 +218,7 @@ in
           activepieces = vip;
           openwebui = vip;
           haven = vip;
-          grafana = hosts.sentry;
+          grafana = vip;
           prometheus = hosts.sentry;
           monitoring = hosts.sentry;
           mining = hosts.forge;
