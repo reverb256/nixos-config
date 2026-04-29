@@ -187,42 +187,6 @@ in
     };
 
     
-    haven.Ingress.haven = {
-      metadata.annotations = {
-        "ingress.caddy.lblt.net/scheme" = "http";
-      };
-      spec = {
-        ingressClassName = "caddy";
-        rules = [
-          {
-            host = "haven.lan";
-            http.paths = [
-              {
-                path = "/";
-                pathType = "Prefix";
-                backend.service = {
-                  name = "haven";
-                  port.number = 3000;
-                };
-              }
-            ];
-          }
-          {
-            host = "haven.cluster.local";
-            http.paths = [
-              {
-                path = "/";
-                pathType = "Prefix";
-                backend.service = {
-                  name = "haven";
-                  port.number = 3000;
-                };
-              }
-            ];
-          }
-        ];
-      };
-    };
 
     haven.NetworkPolicy.allow-haven-egress = {
       metadata.labels = {

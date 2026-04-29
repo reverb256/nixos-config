@@ -16,7 +16,6 @@ let
       ./modules/nix-csi.nix
       ./modules/common.nix
       ./modules/infrastructure.nix
-      ./modules/ingress.nix
       ./modules/mining.nix
       ./modules/gpu-miners.nix
       ./modules/profit-switcher.nix
