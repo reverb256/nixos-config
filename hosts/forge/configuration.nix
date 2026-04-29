@@ -93,10 +93,6 @@
     mountPi = true;
   };
 
-  # nix-mineral DISABLED on forge (same as zephyr)
-  # Reason: NixOS 26.05 PAM/apparmor strict checking breaks
-  # nix-mineral's non-absolute modulePath 'login'
-  # nix-mineral = { enable = true; preset = [ 'default' 'performance' ]; };
 
   # Override noexec on /var (nix-mineral remnant) for k3s re-exec
   fileSystems."/var/lib/rancher/k3s" = {
