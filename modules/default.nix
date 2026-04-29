@@ -54,10 +54,8 @@
     ./desktop/wayland-common.nix
     ./desktop/wayland-compositor-common.nix
     ./desktop/flatpak.nix
-    #    ./desktop/plasma6.nix
     ./desktop/hyprland.nix
     ./desktop/uwsm-sessions.nix
-    #    ./desktop/systems-intelligence-plasmoid.nix
     ./desktop/niri.nix
     ./desktop/noctalia-sdr-brightness.nix
     ./desktop/stylix.nix
@@ -77,7 +75,6 @@
     ./gaming/scopebuddy.nix
 
     # ./mining/mining.nix  # migrated to inputs.compute-market
-    #    ./mining/mining-plasmoid.nix
     # ./mining/mining-desktop-toggle.nix  # migrated to inputs.compute-market
     # ./mining/dual-xmrig.nix  # migrated to inputs.compute-market
     # ./mining/xmrig-proxy.nix  # migrated to inputs.compute-market
@@ -86,7 +83,6 @@
 
     # ./compute-market/default.nix  # migrated to inputs.compute-market
 
-    # ./services/mcp-servers.nix  # migrated to inputs.mcp-registry
     ./services/nfs-server.nix
     ./services/nfs-cluster-mounts.nix
     ./services/nfs-state-sync.nix

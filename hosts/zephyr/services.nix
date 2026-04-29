@@ -235,7 +235,9 @@ in
     # All .lan services moved to nexus (OOM prevention)
     caddy = {
       enable = true;
-      configFile = pkgs.writeText "Caddyfile" ''
+      configFile = let
+        lanRoutes = import ./caddy-routes.nix { inherit cluster; };
+      in pkgs.writeText "Caddyfile" ''
         {
           admin 127.0.0.1:2019
           default_sni cluster.local
@@ -253,6 +255,7 @@ in
           reverse_proxy 127.0.0.1:8080
         }
 
+        ${lanRoutes}
       '';
     };
 
