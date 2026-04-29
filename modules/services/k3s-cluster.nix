@@ -150,9 +150,11 @@ in
 
       disable =
         lib.optionals isServer disabledComponents
+        ++ [
+          "network-policy"
+        ]
         ++ lib.optionals (isServer && cfg.calico.enable) [
           "flannel"
-          "network-policy"
           "kube-proxy"
         ];
 
