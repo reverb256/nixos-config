@@ -22,7 +22,7 @@ let
 in
 
 # AI services
-mkRoute "ai.lan"                    "${cluster.hosts.zephyr.ip}:1235"
+mkRoute "ai.lan"                    "llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236"
 + mkRoute "ai-inference.lan"        "ai-inference-gateway.ai-inference.svc.cluster.local:8080"
 + mkRoute "openwebui.lan"           "open-webui.ai-inference.svc.cluster.local:8080"
 + mkRoute "brain.lan"               "knowledge-fabric-api.ai-inference.svc.cluster.local:3000"
