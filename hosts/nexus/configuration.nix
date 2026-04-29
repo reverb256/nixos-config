@@ -14,6 +14,7 @@
     ./services.nix
     ./hardware-configuration.nix
     ./disko.nix
+    ./impermanence.nix
 
     ./ai-inference.nix
 
