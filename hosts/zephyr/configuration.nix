@@ -23,8 +23,6 @@ in
     ../../modules/default.nix
 
     ../../modules/hardware/rgb-control.nix
-    # inputs.nix-mineral.nixosModules.nix-mineral  # DISABLED: security-misc broke niri on NVIDIA Wayland (gen 1658+ crash)
-    # ../../modules/virtualization/microvm-host.nix  # DISABLED: not yet needed, adds 1.7GB closure bloat
   ];
 
   # Host-specific CPU/GPU optimization for llama.cpp (Zen3: 5950X + Ampere: RTX 3090/3060 Ti)
@@ -38,13 +36,6 @@ in
       cmakeFlags = (old.cmakeFlags or []) ++ [ "-DLLAMA_CUDA_ARCHITECTURES=86" ];
     });
   };
-
-  # nix-mineral disabled -- security-misc hardening broke niri on NVIDIA Wayland.
-  # See gen 1658+ crash investigation. Re-enable only after testing compositor startup.
-  # nix-mineral = {
-  #   enable = true;
-  #   preset = [ "performance" "compatibility" ];
-  # };
 
   clusterNetworking = {
     enable = true;

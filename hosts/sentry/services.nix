@@ -42,20 +42,6 @@ in
       };
     };
 
-    mining = {
-      xmrig = {
-        enable = false;
-        autostart = false;
-        threads = 4;
-        pool = "${cluster.hosts.zephyr.ip}:3333";
-      };
-      xmrigDual = {
-        enable = false;
-        alwaysOn = {
-          enable = false;
-        };
-      };
-    };
 
     spotify-spotx.enable = true;
 
@@ -94,24 +80,6 @@ in
 
     garage-cluster.enable = false;
 
-    llamafile = {
-      enable = false; # Using K8s llama-server pod instead
-      modelPath = "/home/j_kro/.lmstudio/models/unsloth/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-IQ4_NL.gguf";
-      mmprojPath = "/home/j_kro/.lmstudio/models/unsloth/gemma-4-E2B-it-GGUF/mmproj-F32.gguf";
-      modelName = "gemma4-e2b";
-      host = "0.0.0.0";
-      port = 1235;
-      gpu = "amd";
-      gpuLayers = 99;
-      ctxSize = 32768;
-      threads = 4;
-      flashAttention = true;
-      cacheTypeK = "q4_0";
-      cacheTypeV = "q4_0";
-      temperature = 1.0;
-      topK = 64;
-      topP = 0.95;
-    };
 
     agenix-secrets-registry = {
       enable = true;
@@ -159,11 +127,6 @@ in
     openssl
   ];
 
-  # Vestigial: ai-inference now runs as K8s pod (llama-server-sentry), not systemd
-  systemd.services.ai-inference-gateway = {
-    wantedBy = lib.mkForce [];
-    enable = false;
-  };
   systemd.services.ai-inference-monitor = {
     wantedBy = lib.mkForce [];
     enable = false;

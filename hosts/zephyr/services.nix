@@ -80,49 +80,6 @@ in
 
     binary-cache.enable = false; # unused, was burning CPU on crash-loop
 
-    compute-market = {
-      enable = false;
-      auctionInterval = 30;
-
-      bidders = {
-        mining = {
-          enable = true;
-          hourlyRevenue = 0.10;
-          services = [
-            "lolminer-nvidia"
-            "xmrig"
-          ];
-        };
-
-        kubernetes = {
-          enable = true;
-          baseBid = 2.50;
-          urgencyMultiplier = 2.0;
-          namespace = "default";
-        };
-
-        gaming = {
-          enable = true;
-          processes = [
-            "steam"
-            "steamwebhelper"
-            "steamapps"
-            "lutris"
-            "heroic"
-            "Lutris"
-            "HeroicGamesLauncher"
-            "wine"
-            "proton"
-          ];
-        };
-      };
-
-      prometheus = {
-        enable = false;
-        port = 9200;
-      };
-    };
-
     xmrig-proxy = {
       enable = true;
 
@@ -289,34 +246,6 @@ in
           baseUrl = "https://text.pollinations.ai";
         };
       };
-      gateway = {
-        enable = false; # Use nexus gateway instead (saves ~140MB RAM on zephyr)
-        host = "0.0.0.0";
-        port = 8080;
-        workers = 1;
-        middleware.redis.enable = false; # K8s valkey replaces this
-        middleware.knowledgeFabric = {
-          enable = true;
-          rrf_k = 60;
-          rag_enabled = true;
-          searxng_enabled = true;
-          searxng_url = "http://${config.networking.cluster.hosts.nexus.ip}:30888";
-          searxng_max_results = 10;
-          code_search_enabled = true;
-          code_search_paths = [
-            "/etc/nixos"
-            "/home/j_kro"
-          ];
-          code_max_results = 10;
-          web_search_enabled = true;
-          web_max_results = 10;
-          rag_top_k = 10;
-          brain_wiki_enabled = true;
-          brain_wiki_path = "/home/j_kro/brain/wiki";
-          brain_wiki_max_results = 5;
-          brain_wiki_max_chunk_chars = 2000;
-        };
-      };
       routing = {
         enable = true;
         defaultModel = "qwen3.5-35b-a3b";
@@ -341,79 +270,6 @@ in
         custom = {
           nixos = "You are a NixOS configuration expert. Always use lib.mkOptionDefault for shared modules. Reference the cluster documentation.";
           kubernetes = "You are a Kubernetes expert. Use best practices for manifests, deployments, and troubleshooting.";
-        };
-      };
-      mcp = {
-        enable = false;
-        servers = {
-          nix-rebuild = {
-            type = "local";
-            command = [
-              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
-              "/etc/nixos/skills/nix-rebuild-mcp/server.py"
-            ];
-            environment.NIX_HOST = "zephyr";
-            environment.NIX_ACCEPT_FLAKE_CONFIG = "1";
-            enabled = true;
-          };
-          add-service = {
-            type = "local";
-            command = [
-              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
-              "/etc/nixos/skills/add-service-mcp/server.py"
-            ];
-            environment = { };
-            enabled = true;
-          };
-          context7 = {
-            type = "local";
-            command = [ "/run/current-system/sw/bin/mcp-context7" ];
-            environment.CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
-            enabled = true;
-          };
-          searxng = {
-            type = "local";
-            command = [
-              "python3"
-              "-m"
-              "ai_inference_gateway.mcp_servers.searxng_server"
-            ];
-            environment = {
-              SEARXNG_URL = "http://${cluster.hosts.nexus.ip}:30888";
-              SEARXNG_CACHE_TTL = "300";
-            };
-            enabled = true;
-          };
-        };
-      };
-      rag = {
-        enable = false;
-        qdrantUrl = "http://127.0.0.1:6333";
-        embeddingModel = "sentence-transformers/all-MiniLM-L6-v2";
-        chunkSize = 512;
-        chunkOverlap = 50;
-        topK = 10;
-        hybridSearch = {
-          enable = true;
-          vectorWeight = 0.7;
-          bm25Weight = 0.3;
-        };
-        autoRag = {
-          enable = true;
-          threshold = 0.3;
-        };
-        tokenScopedCollections = true;
-        reranker = {
-          enable = true;
-          model = "BAAI/bge-reranker-v2-base";
-        };
-        qdrant = {
-          enable = true;
-          host = "127.0.0.1";
-          port = 6333;
-          grpcPort = 6334;
-          storagePath = "/var/lib/qdrant";
-          memoryLimit = "4G";
         };
       };
       security = {
@@ -529,27 +385,6 @@ in
         thinkModel = "glm-4.7";
       };
     };
-  };
-
-  services.llamafile = {
-    enable = false; # Migrated to k8s
-    modelPath = "/home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E4B-it-GGUF/gemma-4-E4B-it-Q4_K_M.gguf";
-    mmprojPath = "/home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E4B-it-GGUF/mmproj-gemma-4-E4B-it-BF16.gguf";
-    modelName = "gemma4-e4b-vision";
-    host = "0.0.0.0";
-    port = 1235;
-    gpu = "nvidia";
-    gpuLayers = 99;
-    gpuDevice = 1;
-    ctxSize = 131072;
-    threads = 4;
-    flashAttention = true;
-    cacheTypeK = "q4_0";
-    cacheTypeV = "q4_0";
-    temperature = 1.0;
-    topK = 64;
-    topP = 0.95;
-    enableThinking = false;
   };
 
   programs = {

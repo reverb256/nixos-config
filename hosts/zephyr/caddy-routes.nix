@@ -14,7 +14,7 @@ let
       ${tls}
       encode zstd gzip
       reverse_proxy ${backend} {
-    ${proxyHeader}
+        ${proxyHeader}
       }
     }
   '';
@@ -22,7 +22,7 @@ let
 in
 
 # AI services
-mkRoute "ai.lan"                    "llama-server-zephyr.ai-inference.svc.cluster.local:1235"
+mkRoute "ai.lan"                    "${cluster.hosts.zephyr.ip}:1235"
 + mkRoute "ai-inference.lan"        "ai-inference-gateway.ai-inference.svc.cluster.local:8080"
 + mkRoute "openwebui.lan"           "open-webui.ai-inference.svc.cluster.local:8080"
 + mkRoute "brain.lan"               "knowledge-fabric-api.ai-inference.svc.cluster.local:3000"
