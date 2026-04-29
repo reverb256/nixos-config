@@ -19,13 +19,15 @@ let
     buildInputs = [ pkgs.bash ];
   } ''
     mkdir -p $out/bin $out/share/doc
-    for script in detect-hosts mount-cluster rebuild-host hardware-scan boot-diagnostics fix-btrfs-default; do
-      cp ''${../../scripts/rescue/''$script.sh} $out/bin/rescue-''$script
-      chmod +x $out/bin/rescue-''$script
-    done
-    for doc in RESCUE-GUIDE.md RESCUE-AGENT.md; do
-      cp ''${../../scripts/rescue/''$doc} $out/share/doc/''$doc
-    done
+    cp ${../../scripts/rescue/detect-hosts.sh} $out/bin/rescue-detect-hosts
+    cp ${../../scripts/rescue/mount-cluster.sh} $out/bin/rescue-mount-cluster
+    cp ${../../scripts/rescue/rebuild-host.sh} $out/bin/rescue-rebuild-host
+    cp ${../../scripts/rescue/hardware-scan.sh} $out/bin/rescue-hardware-scan
+    cp ${../../scripts/rescue/boot-diagnostics.sh} $out/bin/rescue-boot-diagnostics
+    cp ${../../scripts/rescue/fix-btrfs-default.sh} $out/bin/rescue-fix-btrfs-default
+    chmod +x $out/bin/rescue-*
+    cp ${../../scripts/rescue/RESCUE-GUIDE.md} $out/share/doc/RESCUE-GUIDE.md
+    cp ${../../scripts/rescue/RESCUE-AGENT.md} $out/share/doc/RESCUE-AGENT.md
   '';
 
   rescue-script = pkgs.writeShellScriptBin "rescue" ''
@@ -293,12 +295,15 @@ in
   };
 
   # SSH
+  users.users.root = {
+    openssh.authorizedKeys.keys = [ sshKey ];
+  };
   services.openssh = {
     enable = true;
     settings = {
       PasswordAuthentication = false;
       KbdInteractiveAuthentication = false;
-      PermitRootLogin = "no";
+      PermitRootLogin = "yes";
     };
   };
 
