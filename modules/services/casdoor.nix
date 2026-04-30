@@ -13,7 +13,6 @@ let
     mkIf
     mkOptionDefault
     ;
-  certDir = "/var/lib/caddy/certs";
 in
 {
   options.services.casdoor = {
@@ -83,20 +82,13 @@ in
       '';
     };
 
-    # State + cert directories
+    # State directory
     systemd.tmpfiles.settings."casdoor" = {
       "${cfg.dataDir}" = {
         d = {
           mode = "755";
           user = "root";
           group = "root";
-        };
-      };
-      "${certDir}" = {
-        d = {
-          mode = "755";
-          user = "caddy";
-          group = "caddy";
         };
       };
     };
@@ -126,34 +118,7 @@ in
       '';
     };
 
-    # Auto-refresh Tailscale cert weekly
-    systemd.services.casdoor-cert-refresh = {
-      description = "Refresh Tailscale TLS cert for Casdoor";
-      after = [ "network-online.target" "tailscaled.service" ];
-      wants = [ "network-online.target" ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-      };
-      script = ''
-        ${pkgs.tailscale}/bin/tailscale cert \
-          --cert-file ${certDir}/${cfg.hostName}.crt \
-          --key-file ${certDir}/${cfg.hostName}.key \
-          ${cfg.hostName}
-        chown caddy:caddy ${certDir}/${cfg.hostName}.*
-        chmod 400 ${certDir}/${cfg.hostName}.key
-      '';
-    };
-    systemd.timers.casdoor-cert-refresh = {
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        OnCalendar = "weekly";
-        Persistent = true;
-        RandomizedDelaySec = "1h";
-      };
-    };
-
-    # Write app.conf for Casdoor
+    # Write app.conf for Casdoor (mounted read-only into container)
     environment.etc."casdoor/app.conf".text = ''
       appname = casdoor
       httpport = 8000
@@ -227,11 +192,9 @@ in
         ExecStop = "${pkgs.podman}/bin/podman stop --ignore casdoor";
         ExecStopPost = "${pkgs.podman}/bin/podman rm -f casdoor || true";
 
-        # Resource limits
         MemoryMax = "1G";
         CPUQuota = "50%";
 
-        # Security
         PrivateTmp = true;
         ProtectSystem = lib.mkForce "full";
 
@@ -244,10 +207,8 @@ in
       };
     };
 
-    # Firewall: allow loopback + tailscale
+    # Firewall: allow loopback (for caddy reverse proxy)
     networking.firewall.interfaces."lo".allowedTCPPorts =
-      lib.mkOptionDefault [ cfg.port ];
-    networking.firewall.interfaces."tailscale0".allowedTCPPorts =
       lib.mkOptionDefault [ cfg.port ];
   };
 }
