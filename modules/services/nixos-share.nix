@@ -79,7 +79,8 @@ in
     };
 
     systemd.tmpfiles.rules = lib.mkIf cfg.client.enable [
-      "L+ /etc/nixos-shared - - - - ${cfg.client.mountPoint}"
+      # Symlink /etc/nixos -> NFS mount so colmena can find flake.nix
+      "L! /etc/nixos - - - - ${cfg.client.mountPoint}"
     ];
 
     environment.variables.NIXOS_SHARED_PATH = lib.mkIf cfg.client.enable cfg.client.mountPoint;
