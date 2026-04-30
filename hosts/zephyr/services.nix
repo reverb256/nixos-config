@@ -18,6 +18,7 @@ in {
       enable = true;
       apiKeyFile = config.age.secrets.zai-api-key.path;
       nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
+      casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
     };
     k3s-cluster = {
       enable = true;
