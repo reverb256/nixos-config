@@ -939,7 +939,7 @@ in {
         apiGroup = "rbac.authorization.k8s.io";
       };
     };
-    infra.Deployment.mining-coordinator = {
+    infra.Deployment.mining-coordinator = lib.mkIf (config.services.mining-coordinator.enable or false) {
       metadata.labels =
         managed
         // {
@@ -969,9 +969,9 @@ in {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
                 command = [
-                  "${pkgs.writeShellScript "mining-coordinator" ''
+                  "${pkgs.writeShellScript "mining-coordinator-entrypoint" ''
                     export PATH=${pkgs.kubectl}/bin:${pkgs.procps}/bin:${pkgs.gawk}/bin:${pkgs.coreutils}/bin:$PATH
-                    exec /nix/store/lcp11z5yjfrlsxgmipmghia4y2hl0awi-mining-coordinator/bin/mining-coordinator
+                    exec ${config.systemd.services.mining-coordinator.serviceConfig.ExecStart}
                   ''}"
                 ];
                 resources = {
@@ -1003,7 +1003,7 @@ in {
     # ── Mining-Inference Coordinator (DaemonSet) ──────────────────
     # Replaces: mining-inference-coordinator.service on zephyr/nexus/forge/sentry
     # Needs curl, awk, nftables for network control + host proc access
-    infra.DaemonSet.mining-inference-coordinator = {
+    infra.DaemonSet.mining-inference-coordinator = lib.mkIf (config.services.mining-inference-coordinator.enable or false) {
       metadata.labels =
         managed
         // {
@@ -1052,9 +1052,9 @@ in {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
                 command = [
-                  "${pkgs.writeShellScript "mining-inference-coord" ''
+                  "${pkgs.writeShellScript "mining-inference-coord-entrypoint" ''
                     export PATH=${pkgs.curl}/bin:${pkgs.gawk}/bin:${pkgs.nftables}/bin:${pkgs.coreutils}/bin:$PATH
-                    exec /nix/store/7i476xnfdjnxn46pd8pxy23zzyka44vw-mining-inference-coordinator
+                    exec ${config.systemd.services.mining-inference-coordinator.serviceConfig.ExecStart}
                   ''}"
                 ];
                 env = {

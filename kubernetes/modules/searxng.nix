@@ -230,7 +230,7 @@ in {
             containers = {
               _namedlist = true;
               searxng = {
-                image = "searxng/searxng:latest";
+                image = "searxng/searxng:2026.4.17";
                 imagePullPolicy = "IfNotPresent";
                 securityContext = {
                   allowPrivilegeEscalation = false;

@@ -58,16 +58,9 @@
   };
 in {
   config.kubernetes.objects.ai-inference = {
-    # ── Zephyr RTX 3090 (GPU 1) — Qwen3.6-27B Dense ─────────────────────────
-    # Released April 22-23, 2026. Dense 27B (all params active).
-    # Benchmarks: SWE-bench 77.2%, Terminal-Bench 59.3%, SkillsBench 48.2%
-    # Stack: spiritbuun/buun-llama-cpp with DFlash + TCQ + TurboQuant
-    # Speed: ~1.6 tok/s AR → 85-130+ tok/s with DFlash speculative decoding
-    # Context: 131072 (turbo4 KV = 3.8x compression, fits in 24GB VRAM)
-    # GPU layers: 99 (all layers on GPU — dense model fits with turbo4 KV)
-    # Models:
-    #   Target: /home/j_kro/.lmstudio/models/Qwen3.6-27B-Q4_K_M.gguf
-    #   DFlash: spiritbuun/Qwen3.6-27B-DFlash-GGUF (q8_0 recommended)
+    # ── Zephyr RTX 3090 (GPU 1) — Qwen3.6-35B-A3B MoE ──────────────────────
+    #   MoE 35B (15B active) with A3B + IQ3_S quantization.
+    #   Target: /home/j_kro/.lmstudio/models/Qwen3.6-35B-A3B-UD-IQ3_S.gguf
     Deployment.llama-server-zephyr = {
       metadata.labels =
         managed
@@ -109,7 +102,7 @@ in {
                 command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
                 args = [
                   "--model"
-                  "/models/Qwen3.6-27B-Q4_K_M.gguf"
+                  "/models/Qwen3.6-35B-A3B-UD-IQ3_S.gguf"
                   # DFlash draft model for speculative decoding
                   "-md"
                   "/dflash/dflash-draft-3.6-q8_0.gguf"
@@ -286,7 +279,7 @@ in {
                 command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
                 args = [
                   "--model"
-                  "/models/Qwen3.6-27B-Q4_K_M.gguf"
+                  "/models/Qwen3.6-35B-A3B-UD-IQ3_S.gguf"
                   "--host"
                   "0.0.0.0"
                   "--port"
@@ -317,7 +310,7 @@ in {
                   };
                   CUDA_VISIBLE_DEVICES = {
                     name = "CUDA_VISIBLE_DEVICES";
-                    value = "0";
+                    value = "1";
                   };
                   LD_LIBRARY_PATH = {
                     name = "LD_LIBRARY_PATH";
@@ -1114,7 +1107,7 @@ in {
                 command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
                 args = [
                   "--model"
-                  "/models/Qwen3.6-27B-Q4_K_M.gguf"
+                  "/models/Qwen3.6-35B-A3B-UD-IQ3_S.gguf"
                   "--host"
                   "0.0.0.0"
                   "--port"

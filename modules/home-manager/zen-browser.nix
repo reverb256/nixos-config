@@ -127,6 +127,8 @@
         user_pref("zen.view.compact", true);
         user_pref("zen.workspaces.vertical", true);
 
+        // DNS: treat single-word inputs (e.g. "sentry.lan") as navigations, not searches
+        user_pref("browser.fixup.dns_first_for_single_words", true);
         // Dark mode - signal to websites that system prefers dark mode
         // This enables native dark themes on supporting websites via CSS prefers-color-scheme
         user_pref("ui.systemUsesDarkTheme", 1);
