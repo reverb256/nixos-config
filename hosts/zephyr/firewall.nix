@@ -1,5 +1,4 @@
-{ lib, ... }:
-{
+{lib, ...}: {
   networking = {
     firewall = {
       allowedTCPPorts = lib.mkOptionDefault [
@@ -22,7 +21,7 @@
         179
         5473
         9100
-1235  # llama-server (Qwen3.6-27B Dense + DFlash)
+        1235 # llama-server (Qwen3.6-27B Dense + DFlash)
       ];
       # Workaround: list merge is broken for this host. Ensure critical ports via nft rules.
       extraInputRules = ''

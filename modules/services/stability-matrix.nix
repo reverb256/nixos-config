@@ -3,8 +3,7 @@
   config,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.programs.stability-matrix;
   inherit (pkgs) appimageTools fetchzip;
   version = "2.15.7";
@@ -60,8 +59,7 @@ let
     cd "$SM_DATA"
     exec ${pkgs.steam-run}/bin/steam-run ${wrappedApp}/bin/${pname} "$@"
   '';
-in
-{
+in {
   options.programs.stability-matrix = {
     enable = lib.mkEnableOption "StabilityMatrix - Package Manager for Stable Diffusion";
     dataDir = lib.mkOption {
@@ -82,7 +80,7 @@ in
   };
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [
-      (pkgs.runCommand "compiler-symlinks" { } ''
+      (pkgs.runCommand "compiler-symlinks" {} ''
         mkdir -p $out/bin
         ln -s ${pkgs.gcc}/bin/g++ $out/bin/c++
         ln -s ${pkgs.gcc}/bin/gcc $out/bin/gcc

@@ -1,6 +1,4 @@
-{ lib, ... }:
-{
-
+{lib, ...}: {
   services.earlyoom = {
     enable = true;
     freeMemThreshold = 12;
@@ -9,6 +7,7 @@
   };
 
   boot.kernel.sysctl = {
+    "vm.nr_hugepages" = lib.mkForce 0;
     "vm.overcommit_memory" = lib.mkForce 0;
     "vm.overcommit_ratio" = lib.mkDefault 100;
 

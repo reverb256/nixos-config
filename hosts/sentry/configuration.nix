@@ -1,11 +1,9 @@
 {
-  config,
   lib,
   pkgs,
   inputs,
   ...
-}:
-{
+}: {
   imports = [
     ./monitoring.nix
     ./firewall.nix
@@ -43,7 +41,6 @@
     image = ../../modules/desktop/wallpapers/dracula-bg.png;
   };
 
-
   clusterNetworking = {
     enable = true;
     hostName = "sentry";
@@ -65,7 +62,6 @@
     inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
   boot.loader.timeout = lib.mkDefault 5;
 
-
   # Shared hermes + pi state via NFS (resilient: nofail, automount, soft)
   services.nfs-cluster-mounts = {
     enable = true;
@@ -77,18 +73,17 @@
   # Preset: compatibility (desktop + monitoring)
   nix-mineral = {
     enable = true;
-    preset = [ "compatibility" ];
+    preset = ["compatibility"];
     settings.etc.kicksecure-module-blacklist = false;
   };
 
   # Fix: nix-mineral sets hidepid=2 on /proc which blocks nfs-idmapd from
   # reading /proc/net/rpc/nfs4.* channels. Add it to the proc group instead.
-  systemd.services.nfs-idmapd.serviceConfig.SupplementaryGroups = [ "proc" ];
+  systemd.services.nfs-idmapd.serviceConfig.SupplementaryGroups = ["proc"];
 
   # nfs-idmapd needs /var/lib/nfs/rpc_pipefs/nfs to exist (created by nfsd
   # normally, but can race on boot with nix-mineral's hardened /proc).
-  systemd.tmpfiles.rules = [ "d /var/lib/nfs/rpc_pipefs/nfs 0755 root root -" ];
-
+  systemd.tmpfiles.rules = ["d /var/lib/nfs/rpc_pipefs/nfs 0755 root root -"];
 
   # Resolve gitconfig conflict between NixOS default and nix-mineral
   environment.etc.gitconfig.source = lib.mkForce (pkgs.writeText "gitconfig" ''
@@ -104,16 +99,15 @@
   services.unbound.settings.forward-zone = lib.mkForce [
     {
       name = "ts.net.";
-      forward-addr = [ "100.100.100.100" "fd7a:115c:a1e0::53" ];
+      forward-addr = ["100.100.100.100" "fd7a:115c:a1e0::53"];
     }
     {
       name = ".";
-      forward-addr = [ "1.1.1.1" "1.0.0.1" "8.8.8.8" "8.8.4.4" ];
+      forward-addr = ["1.1.1.1" "1.0.0.1" "8.8.8.8" "8.8.4.4"];
     }
   ];
 
   environment.systemPackages = with pkgs; [
     nvtopPackages.full
   ];
-
 }

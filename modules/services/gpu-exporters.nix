@@ -3,17 +3,16 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.gpu-exporters;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
     mkIf
     ;
-in
-{
+in {
   options.services.gpu-exporters = {
     enable = mkEnableOption "GPU metrics exporters for Prometheus";
 
@@ -57,13 +56,13 @@ in
       isSystemUser = true;
       group = "nvidia-gpu-exporter";
     };
-    users.groups.nvidia-gpu-exporter = mkIf cfg.nvidia.enable { };
+    users.groups.nvidia-gpu-exporter = mkIf cfg.nvidia.enable {};
 
     systemd = {
       services.prometheus-nvidia-gpu-exporter = mkIf cfg.nvidia.enable {
         description = "Prometheus NVIDIA GPU Metrics Exporter";
-        wantedBy = [ "multi-user.target" ];
-        after = [ "network.target" ];
+        wantedBy = ["multi-user.target"];
+        after = ["network.target"];
 
         serviceConfig = {
           Type = "simple";
@@ -110,8 +109,8 @@ in
 
       services.prometheus-amdgpu-exporter = mkIf cfg.amd.enable {
         description = "Prometheus AMD GPU Metrics Exporter";
-        wantedBy = [ "multi-user.target" ];
-        after = [ "network.target" ];
+        wantedBy = ["multi-user.target"];
+        after = ["network.target"];
 
         serviceConfig = {
           Type = "simple";

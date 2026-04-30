@@ -1,9 +1,7 @@
 {
   inputs,
   self,
-}:
-[
-
+}: [
   inputs.home-manager.nixosModules.home-manager
   inputs.aagl.nixosModules.default
   inputs.nur.modules.nixos.default

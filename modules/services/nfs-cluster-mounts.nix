@@ -2,11 +2,9 @@
   config,
   lib,
   ...
-}:
-let
+}: let
   cfg = config.services.nfs-cluster-mounts;
-in
-{
+in {
   options.services.nfs-cluster-mounts = {
     enable = lib.mkEnableOption "Resilient NFS cluster mounts with failover";
 

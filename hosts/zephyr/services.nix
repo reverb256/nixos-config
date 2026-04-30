@@ -4,11 +4,9 @@
   lib,
   inputs,
   ...
-}:
-let
+}: let
   cluster = config.networking.cluster;
-in
-{
+in {
   services = {
     voxtype = {
       enable = true;
@@ -68,7 +66,7 @@ in
 
     mining-inference-coordinator = {
       enable = true;
-      llamaPort = 1235;  # monitor zephyr llama-server (3090 model)
+      llamaPort = 1235; # monitor zephyr llama-server (3090 model)
       primaryMiner = "deployment/gpu-miner-zephyr";
       fallbackMiner = "";
       namespace = "mining";
@@ -193,26 +191,27 @@ in
     caddy = {
       enable = true;
       configFile = let
-        lanRoutes = import ./caddy-routes.nix { inherit cluster; };
-      in pkgs.writeText "Caddyfile" ''
-        {
-          admin 127.0.0.1:2019
-          default_sni cluster.local
-        }
-
-        ai.zephyr.taila21e09.ts.net:9002 {
-          header {
-            Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-            X-Content-Type-Options "nosniff"
-            X-Frame-Options "SAMEORIGIN"
-            Referrer-Policy "strict-origin-when-cross-origin"
-            -Server
+        lanRoutes = import ./caddy-routes.nix {inherit cluster;};
+      in
+        pkgs.writeText "Caddyfile" ''
+          {
+            admin 127.0.0.1:2019
+            default_sni cluster.local
           }
-          encode zstd gzip
-          reverse_proxy 127.0.0.1:8080
-        }
-        ${lanRoutes}
-      '';
+
+          ai.zephyr.taila21e09.ts.net:9002 {
+            header {
+              Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+              X-Content-Type-Options "nosniff"
+              X-Frame-Options "SAMEORIGIN"
+              Referrer-Policy "strict-origin-when-cross-origin"
+              -Server
+            }
+            encode zstd gzip
+            reverse_proxy 127.0.0.1:8080
+          }
+          ${lanRoutes}
+        '';
     };
 
     redis.servers."".enable = false; # 0 keys, 1 client — unused, frees RAM on OOM-constrained host
@@ -391,7 +390,6 @@ in
   };
 
   programs = {
-
     haven-desktop.enable = true;
   };
 
@@ -415,7 +413,7 @@ in
   };
 
   age = {
-    identityPaths = [ "/home/j_kro/.age/key.txt" ];
+    identityPaths = ["/home/j_kro/.age/key.txt"];
     secrets.cloudflared-token = lib.mkForce {
       file = "${inputs.self}/secrets/cloudflared-token.age";
       mode = "400";

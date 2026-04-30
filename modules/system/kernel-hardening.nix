@@ -2,8 +2,7 @@
   lib,
   config,
   ...
-}:
-{
+}: {
   options = {
     kernel-hardening = {
       zswap.enable = lib.mkOption {
@@ -28,53 +27,50 @@
       virtualisation.flushL1DataCache = "cond";
     };
 
-    boot.kernelParams =
-      let
-        baseParams = [
-          "quiet"
-          "splash"
-          "loglevel=3"
-          "rd.udev.log_priority=3"
-          "systemd.show_status=auto"
+    boot.kernelParams = let
+      baseParams = [
+        "quiet"
+        "splash"
+        "loglevel=3"
+        "rd.udev.log_priority=3"
+        "systemd.show_status=auto"
 
-          "fbcon=nodefer"
-          "vt.global_cursor_default=0"
+        "fbcon=nodefer"
+        "vt.global_cursor_default=0"
 
+        "lsm=landlock,lockdown,yama,integrity,apparmor,bpf"
 
-          "lsm=landlock,lockdown,yama,integrity,apparmor,bpf"
+        "usbcore.autosuspend=-1"
 
-          "usbcore.autosuspend=-1"
+        "video4linux"
 
-          "video4linux"
+        "acpi_rev_override=5"
 
-          "acpi_rev_override=5"
+        "panic=10"
+        "panic_on_oops=1"
+        "softlockup_panic=1"
 
-          "panic=10"
-          "panic_on_oops=1"
-          "softlockup_panic=1"
+        "nmi_watchdog=1"
 
-          "nmi_watchdog=1"
+        "processor.max_cstate=1"
+        "intel_idle.max_cstate=1"
+        "iommu=pt"
+      ];
 
-          "processor.max_cstate=1"
-          "intel_idle.max_cstate=1"
-          "iommu=pt"
+      zswapParams =
+        if config.kernel-hardening.zswap.enable
+        then [
+          "zswap.enabled=1"
+          "zswap.compressor=zstd"
+          "zswap.max_pool_percent=${builtins.toString config.kernel-hardening.zswap.maxPoolPercent}"
+          "zswap.zpool=z3fold"
+        ]
+        else [
+          "zswap.enabled=0"
         ];
 
-        zswapParams =
-          if config.kernel-hardening.zswap.enable then
-            [
-              "zswap.enabled=1"
-              "zswap.compressor=zstd"
-              "zswap.max_pool_percent=${builtins.toString config.kernel-hardening.zswap.maxPoolPercent}"
-              "zswap.zpool=z3fold"
-            ]
-          else
-            [
-              "zswap.enabled=0"
-            ];
-
-        allParams = baseParams ++ zswapParams;
-      in
+      allParams = baseParams ++ zswapParams;
+    in
       allParams;
 
     boot.kernel.sysctl = {
@@ -87,6 +83,5 @@
       "net.ipv4.conf.all.rp_filter" = lib.mkForce 2;
       "net.ipv4.conf.default.rp_filter" = lib.mkForce 2;
     };
-
   };
 }

@@ -2,12 +2,10 @@
   config,
   lib,
   ...
-}:
-let
+}: let
   cluster = config.networking.cluster;
   cfg = config.services.nixos-share;
-in
-{
+in {
   options.services.nixos-share = {
     enable = lib.mkEnableOption "NixOS configuration sharing";
 
@@ -16,9 +14,9 @@ in
       allowedHosts = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [
-          cluster.hosts.nexus.ip  # nexus
-          cluster.hosts.forge.ip  # forge
-          cluster.hosts.sentry.ip  # sentry
+          cluster.hosts.nexus.ip # nexus
+          cluster.hosts.forge.ip # forge
+          cluster.hosts.sentry.ip # sentry
         ];
         description = "IP addresses allowed to mount the NFS share";
       };
@@ -28,7 +26,7 @@ in
       enable = lib.mkEnableOption "NFS client for mounting /etc/nixos from zephyr";
       serverHost = lib.mkOption {
         type = lib.types.str;
-        default = cluster.hosts.zephyr.ip;  # zephyr
+        default = cluster.hosts.zephyr.ip; # zephyr
         description = "NFS server hostname or IP";
       };
       mountPoint = lib.mkOption {
@@ -45,8 +43,9 @@ in
       # Use mkDefault so both nixos-share and nfs-data-server exports coexist
       # at the same priority level (1000). types.lines merge concatenates them.
       exports = lib.mkDefault (lib.concatMapStringsSep "\n" (host: ''
-        /etc/nixos ${host}(ro,no_subtree_check,async,nohide,insecure)
-      '') cfg.server.allowedHosts);
+          /etc/nixos ${host}(ro,no_subtree_check,async,nohide,insecure)
+        '')
+        cfg.server.allowedHosts);
     };
 
     networking.firewall = lib.mkIf cfg.server.enable {
@@ -55,9 +54,11 @@ in
         2049
         20048
       ];
-      extraInputRules = lib.concatMapStringsSep "\n" (host: ''
-        ip saddr ${host} tcp dport { 111, 2049, 20048 } accept
-      '') cfg.server.allowedHosts;
+      extraInputRules =
+        lib.concatMapStringsSep "\n" (host: ''
+          ip saddr ${host} tcp dport { 111, 2049, 20048 } accept
+        '')
+        cfg.server.allowedHosts;
     };
 
     fileSystems = lib.mkIf cfg.client.enable {

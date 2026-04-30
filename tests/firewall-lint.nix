@@ -1,7 +1,4 @@
-{
-  pkgs ? import <nixpkgs> { },
-}:
-let
+{pkgs ? import <nixpkgs> {}}: let
   lib = pkgs.lib;
 
   scanDirs = [
@@ -21,16 +18,18 @@ let
   allNixFiles = lib.flatten (
     map (
       dir:
-      if builtins.pathExists dir then
-        builtins.filter (f: lib.strings.hasSuffix ".nix" f) (lib.filesystem.listFilesRecursive dir)
-      else
-        [ ]
-    ) scanDirs
+        if builtins.pathExists dir
+        then builtins.filter (f: lib.strings.hasSuffix ".nix" f) (lib.filesystem.listFilesRecursive dir)
+        else []
+    )
+    scanDirs
   );
 
-  nixFiles = builtins.filter (
-    f: !(lib.strings.hasSuffix ".backup" f) && !(lib.strings.hasInfix ".backup." f)
-  ) allNixFiles;
+  nixFiles =
+    builtins.filter (
+      f: !(lib.strings.hasSuffix ".backup" f) && !(lib.strings.hasInfix ".backup." f)
+    )
+    allNixFiles;
 
   unsafePatterns = [
     "allowedTCPPorts = ["
@@ -41,43 +40,37 @@ let
 
   safePattern = "mkOptionDefault";
 
-  checkFile =
-    file:
-    let
-      content = builtins.readFile file;
-      lines = lib.splitString "\n" content;
+  checkFile = file: let
+    content = builtins.readFile file;
+    lines = lib.splitString "\n" content;
 
-      findUnsafe =
-        line:
-        let
-          hasUnsafe = builtins.any (p: lib.strings.hasInfix p line) unsafePatterns;
-          hasSafe = lib.strings.hasInfix safePattern line;
-          isComment = lib.strings.hasPrefix "#" (lib.strings.trim line);
-        in
-        hasUnsafe && !hasSafe && !isComment;
-
-      unsafeLines = builtins.filter findUnsafe lines;
-      hasViolation = builtins.length unsafeLines > 0;
-
-      relPath = lib.strings.removePrefix (toString ../.. + "/") file;
-
+    findUnsafe = line: let
+      hasUnsafe = builtins.any (p: lib.strings.hasInfix p line) unsafePatterns;
+      hasSafe = lib.strings.hasInfix safePattern line;
+      isComment = lib.strings.hasPrefix "#" (lib.strings.trim line);
     in
-    {
-      file = relPath;
-      unsafeLines = unsafeLines;
-      hasViolation = hasViolation;
-    };
+      hasUnsafe && !hasSafe && !isComment;
+
+    unsafeLines = builtins.filter findUnsafe lines;
+    hasViolation = builtins.length unsafeLines > 0;
+
+    relPath = lib.strings.removePrefix (toString ../.. + "/") file;
+  in {
+    file = relPath;
+    unsafeLines = unsafeLines;
+    hasViolation = hasViolation;
+  };
 
   results = map checkFile nixFiles;
 
   violations = builtins.filter (r: r.hasViolation) results;
-
-in
-{
+in {
   filesScanned = builtins.length nixFiles;
-  violations = map (r: {
-    file = r.file;
-    lines = r.unsafeLines;
-  }) violations;
-  passed = violations == [ ];
+  violations =
+    map (r: {
+      file = r.file;
+      lines = r.unsafeLines;
+    })
+    violations;
+  passed = violations == [];
 }

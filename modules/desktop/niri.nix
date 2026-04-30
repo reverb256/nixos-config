@@ -4,10 +4,10 @@
   pkgs,
   inputs,
   ...
-}:
-let
+}: let
   niriEnabled = config.programs.niri.enable or false;
-  inherit (lib)
+  inherit
+    (lib)
     mkForce
     mkIf
     mkMerge
@@ -15,23 +15,24 @@ let
     types
     mkDefault
     ;
-in
-{
+in {
   options.desktop.niri = {
     extraPackages = mkOption {
       type = types.listOf types.package;
-      default = [ ];
+      default = [];
       description = "Additional packages to install alongside niri";
     };
   };
   config = mkMerge [
-    { programs.niri.enable = lib.mkOptionDefault false; }
+    {programs.niri.enable = lib.mkOptionDefault false;}
     (mkIf niriEnabled {
       programs.niri.package = lib.mkForce (
         inputs.niri.packages.${pkgs.stdenv.hostPlatform.system}.niri-unstable.overrideAttrs (old: {
-          patches = (old.patches or []) ++ [
-            ./patches/niri-hdr-sdr-brightness.patch
-          ];
+          patches =
+            (old.patches or [])
+            ++ [
+              ./patches/niri-hdr-sdr-brightness.patch
+            ];
         })
       );
     })
@@ -84,18 +85,20 @@ in
           };
         }
         {
-          environment.systemPackages = with pkgs.kdePackages; [
-            dolphin
-            dolphin-plugins
-            konsole  # Provides konsolepart plugin for Dolphin terminal
-            ark
-          ] ++ [
-            pkgs.swaylock
-            pkgs.swayidle
-            pkgs.polkit_gnome
-            pkgs.xwayland-satellite
-          ]
-          ++ config.desktop.niri.extraPackages;
+          environment.systemPackages = with pkgs.kdePackages;
+            [
+              dolphin
+              dolphin-plugins
+              konsole # Provides konsolepart plugin for Dolphin terminal
+              ark
+            ]
+            ++ [
+              pkgs.swaylock
+              pkgs.swayidle
+              pkgs.polkit_gnome
+              pkgs.xwayland-satellite
+            ]
+            ++ config.desktop.niri.extraPackages;
         }
         {
           environment.sessionVariables = {
@@ -125,23 +128,23 @@ in
         {
           systemd.user.services = {
             xdg-desktop-portal = {
-              after = [ "xdg-desktop-autostart.target" ];
+              after = ["xdg-desktop-autostart.target"];
             };
             xdg-desktop-portal-gnome = {
-              after = [ "xdg-desktop-autostart.target" ];
+              after = ["xdg-desktop-autostart.target"];
             };
             xdg-desktop-portal-gtk = {
-              after = [ "xdg-desktop-autostart.target" ];
+              after = ["xdg-desktop-autostart.target"];
             };
             niri-flake-polkit = {
-              after = [ "xdg-desktop-autostart.target" ];
+              after = ["xdg-desktop-autostart.target"];
             };
             polkit-gnome-authentication-agent-1 = {
               description = "Polkit Authentication Agent (Niri)";
-              wantedBy = [ "graphical-session.target" ];
-              after = [ "graphical-session.target" ];
-              requisite = [ "graphical-session.target" ];
-              partOf = [ "graphical-session.target" ];
+              wantedBy = ["graphical-session.target"];
+              after = ["graphical-session.target"];
+              requisite = ["graphical-session.target"];
+              partOf = ["graphical-session.target"];
               serviceConfig = {
                 Type = "simple";
                 ExecCondition = "${pkgs.systemd}/lib/systemd/systemd-xdg-autostart-condition niri ''";
@@ -152,10 +155,10 @@ in
             };
             niri-idle = lib.mkIf false {
               description = "Idle management for Niri (swayidle)";
-              wantedBy = [ "graphical-session.target" ];
-              after = [ "graphical-session.target" ];
-              requisite = [ "graphical-session.target" ];
-              partOf = [ "graphical-session.target" ];
+              wantedBy = ["graphical-session.target"];
+              after = ["graphical-session.target"];
+              requisite = ["graphical-session.target"];
+              partOf = ["graphical-session.target"];
               serviceConfig = {
                 Type = "simple";
                 ExecCondition = "${pkgs.systemd}/lib/systemd/systemd-xdg-autostart-condition niri ''";

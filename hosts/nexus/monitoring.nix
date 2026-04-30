@@ -1,6 +1,4 @@
-{ lib, ... }:
-{
-
+{lib, ...}: {
   services = {
     gpu-exporters.enable = true;
 
@@ -18,7 +16,6 @@
 
     mining-exporter.enable = true;
 
-
     xmrig-metrics = {
       enable = true;
       targets = [
@@ -29,5 +26,5 @@
     };
   };
 
-  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ 9100 ];
+  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [9100];
 }
