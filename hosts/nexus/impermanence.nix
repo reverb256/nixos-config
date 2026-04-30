@@ -48,9 +48,6 @@
       "/etc/ssh/ssh_host_rsa_key"
       "/etc/ssh/ssh_host_rsa_key.pub"
 
-      # Nixos auto-generated uid/gid tracking
-      "/var/lib/nixos/uid-map"
-      "/var/lib/nixos/gid-map"
     ];
 
     # User-level persistence (j_kro)
@@ -99,6 +96,15 @@
   # bind mounts. NixOS activation creates these files before impermanence
   # bind mount services run, causing "A file already exists" failures.
   # Symlinks are created AFTER activation, overriding what NixOS made.
+  # Seed uid-map/gid-map with valid JSON on fresh impermanence installs
+  system.activationScripts.seed-uid-gid-maps = lib.stringAfter [ "etc" ] ''
+    for f in /var/lib/nixos/uid-map /var/lib/nixos/gid-map /persistent/var/lib/nixos/uid-map /persistent/var/lib/nixos/gid-map; do
+      if [ -f "$f" ] && [ ! -s "$f" ]; then
+        echo '{}' > "$f"
+      fi
+    done
+  '';
+
   system.activationScripts.persist-symlinks = lib.stringAfter [ "etc" "users" ] ''
     # machine-id: remove NixOS symlink and point to persistent copy
     if [ -f /persistent/etc/machine-id ]; then
