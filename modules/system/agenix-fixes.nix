@@ -177,7 +177,6 @@ in
         ProtectSystem = "strict";
         ReadWritePaths = "/run/agenix.d /persistent/etc/age";
         ProtectHome = "read-only";
-        ReadWritePaths = "/run/agenix.d";
         PrivateTmp = false;
 
         StandardOutput = "journal";
