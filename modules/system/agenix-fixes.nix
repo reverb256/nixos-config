@@ -188,7 +188,8 @@ in
     environment.systemPackages = with pkgs; [ age ];
 
     system.activationScripts.copy-age-key = lib.stringAfter [ "users" ] ''
-      mkdir -p /etc/age /etc/nixos/.age
+      mkdir -p /etc/age
+      mkdir -p /etc/nixos/.age 2>/dev/null || true
 
       PERSISTENT_KEY="/persistent/etc/age/key.txt"
       NIXOS_KEY="/etc/nixos/.age/key.txt"
@@ -214,9 +215,11 @@ in
       if [ "$SOURCE_KEY" != "$NIXOS_KEY" ]; then
         if [ ! -f "$NIXOS_KEY" ] || ! /run/current-system/sw/bin/cmp -s "$SOURCE_KEY" "$NIXOS_KEY"; then
           echo "[agenix] Syncing to /etc/nixos/.age/key.txt (Syncthing)..."
-          cp "$SOURCE_KEY" "$NIXOS_KEY"
-          chmod 400 "$NIXOS_KEY"
-          chown root:root "$NIXOS_KEY"
+          cp "$SOURCE_KEY" "$NIXOS_KEY" 2>/dev/null || {
+            echo "[agenix] Warning: Cannot write to $NIXOS_KEY (read-only NFS mount?)"
+          }
+          chmod 400 "$NIXOS_KEY" 2>/dev/null || true
+          chown root:root "$NIXOS_KEY" 2>/dev/null || true
         fi
       fi
 
