@@ -78,18 +78,9 @@ in
       };
     };
 
-    # Bind /etc/nixos -> NFS mount for colmena
-    # Must be in activation (not tmpfiles) because /etc/nixos may already
-    # be a non-empty directory that L! cannot replace.
-    system.activationScripts.nixos-shared-bind = lib.stringAfter [ "etc" ] ''
-      if [ -d /etc/nixos ] && [ ! -L /etc/nixos ]; then
-        echo "nixos-shared: replacing /etc/nixos directory with symlink to ${cfg.client.mountPoint}"
-        rm -rf /etc/nixos
-        ln -sf ${cfg.client.mountPoint} /etc/nixos
-      elif [ ! -L /etc/nixos ]; then
-        ln -sf ${cfg.client.mountPoint} /etc/nixos
-      fi
-    '';
+    systemd.tmpfiles.rules = lib.mkIf cfg.client.enable [
+      "L+ /etc/nixos-shared - - - - ${cfg.client.mountPoint}"
+    ];
 
     environment.variables.NIXOS_SHARED_PATH = lib.mkIf cfg.client.enable cfg.client.mountPoint;
   };
