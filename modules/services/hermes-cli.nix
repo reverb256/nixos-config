@@ -84,6 +84,19 @@ in {
       description = "Path to agenix secret file containing OPENROUTER_API_KEY";
       example = "config.age.secrets.openrouter-api-key.path";
     };
+
+    casdoorJwtFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to agenix secret file containing Casdoor JWT for MCP";
+      example = "config.age.secrets.casdoor-hermes-jwt.path";
+    };
+
+    gatewayUrl = lib.mkOption {
+      type = lib.types.str;
+      default = "http://${config.networking.cluster.hosts.zephyr.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-gateway}/v1";
+      description = "AI Inference Gateway URL for routing";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -210,5 +223,72 @@ in {
         hermes completion fish 2>/dev/null | source
       end
     '';
+
+    # Inject agenix secrets into Hermes config at boot
+    systemd.services.hermes-config-secrets = lib.mkIf (cfg.casdoorJwtFile != null) {
+      description = "Inject agenix secrets into Hermes config";
+      after = ["agenix.service" "network.target"];
+      wants = ["agenix.service"];
+      wantedBy = ["multi-user.target"];
+
+      path = with pkgs; [coreutils gnused gnugrep];
+
+      serviceConfig = {
+        Type = "oneshot";
+        User = "root";
+        Group = "root";
+        RemainAfterExit = true;
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectSystem = "strict";
+        ProtectHome = "read-only";
+        ReadWritePaths = ["/home/${cfg.user}/.hermes"];
+
+        ExecStart = pkgs.writeShellScript "hermes-config-secrets" ''
+          set -euo pipefail
+
+          HERMES_CONFIG="/home/${cfg.user}/.hermes/config.yaml"
+
+          if [ ! -f "$HERMES_CONFIG" ]; then
+            echo "[hermes-config] No config.yaml found, skipping"
+            exit 0
+          fi
+
+          # Wait for agenix secret
+          for i in $(seq 1 30); do
+            if [ -f "${cfg.casdoorJwtFile}" ] && [ -s "${cfg.casdoorJwtFile}" ]; then
+              break
+            fi
+            sleep 1
+          done
+
+          if [ ! -f "${cfg.casdoorJwtFile}" ] || [ ! -s "${cfg.casdoorJwtFile}" ]; then
+            echo "[hermes-config] WARNING: Casdoor JWT not available"
+            exit 0
+          fi
+
+          JWT=$(cat "${cfg.casdoorJwtFile}")
+
+          # Inject Casdoor JWT into MCP server config
+          if grep -q 'casdoor:' "$HERMES_CONFIG"; then
+            sed -i "/^[[:space:]]*casdoor:/,/^[[:space:]]*\(connect_timeout\|timeout\|command\|url\):/{
+              s|Authorization: Bearer .*|Authorization: Bearer $JWT|
+            }" "$HERMES_CONFIG"
+            echo "[hermes-config] ✓ Injected Casdoor JWT"
+          fi
+
+          # Ensure all base_url entries point to gateway (prevents stale IPs)
+          GATEWAY_URL="${cfg.gatewayUrl}"
+          # Fix any remaining direct Sentry or stale pod IPs
+          sed -i "s|base_url: http://10\.1\.1\.140:1235/v1|base_url: $GATEWAY_URL|g" "$HERMES_CONFIG"
+          sed -i "s|base_url: http://10\.4\.[0-9]*\.[0-9]*:1235/v1|base_url: $GATEWAY_URL|g" "$HERMES_CONFIG"
+
+          chown ${cfg.user}:users "$HERMES_CONFIG" 2>/dev/null || true
+          chmod 600 "$HERMES_CONFIG" 2>/dev/null || true
+
+          echo "[hermes-config] Done"
+        '';
+      };
+    };
   };
 }
