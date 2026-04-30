@@ -156,7 +156,8 @@ in
     };
 
     # Firewall: allow on tailscale only (like vaultwarden)
-    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [ cfg.port ];
+    networking.firewall.interfaces."lo".allowedTCPPorts = lib.mkOptionDefault [ cfg.port ];
+  networking.firewall.interfaces."tailscale0".allowedTCPPorts = lib.mkOptionDefault [ cfg.port ];
 
     environment.systemPackages = with pkgs; [ casdoor ];
   };
