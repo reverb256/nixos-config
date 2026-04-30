@@ -391,6 +391,17 @@ in
       mkdir -p /var/lib/rancher/k3s/agent/etc/containerd
     '';
 
+    # Replace busybox mount with util-linux mount for NFS PV support.
+    # k3s bundles busybox mount which does not support NFS protocol.
+    # The real util-linux mount calls mount.nfs as a helper.
+    system.activationScripts.k3s-fix-mount = lib.stringAfter [ "k3s-dirs" ] ''
+      for aux in /var/lib/rancher/k3s/data/*/bin/aux; do
+        if [ -L "$aux/mount" ] && readlink "$aux/mount" | grep -q busybox; then
+          ln -sf ${pkgs.util-linux.mount}/bin/mount "$aux/mount"
+        fi
+      done
+    '';
+
     # Static route for K3s CNI pods to reach node IPs on other hosts.
     # Without this, pods with hostNetwork=true that get CNI bridge routing
     # cannot reach node IPs on other hosts (flannel VXLAN only handles pod CIDRs).
