@@ -1,5 +1,4 @@
-{ pkgs, lib, ... }:
-let
+{lib, ...}: let
   copyConfigScript = ''
     if [ ! -f /data/config.json ]; then
       cp /config/config.json /data/config.json
@@ -13,10 +12,8 @@ let
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
   gatewayUrl = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080";
-in
-{
+in {
   config.kubernetes.objects = {
-
     search.ConfigMap.vane-config = {
       metadata.labels = labels;
       data."config.json" = ''
@@ -64,7 +61,10 @@ in
         replicas = 1;
         revisionHistoryLimit = 2;
         selector.matchLabels = labels;
-        strategy = { type = "Recreate"; rollingUpdate = null; };
+        strategy = {
+          type = "Recreate";
+          rollingUpdate = null;
+        };
         template = {
           metadata.labels = labels;
           spec = {
@@ -83,13 +83,16 @@ in
                 imagePullPolicy = "IfNotPresent";
                 securityContext = {
                   allowPrivilegeEscalation = false;
-                  capabilities.drop = [ "ALL" ];
+                  capabilities.drop = ["ALL"];
                 };
-                command = [ "/bin/sh" "-c" copyConfigScript ];
+                command = ["/bin/sh" "-c" copyConfigScript];
                 volumeMounts = {
                   _namedlist = true;
-                  data = { mountPath = "/data"; };
-                  config = { mountPath = "/config"; readOnly = true; };
+                  data = {mountPath = "/data";};
+                  config = {
+                    mountPath = "/config";
+                    readOnly = true;
+                  };
                 };
               };
             };
@@ -100,29 +103,54 @@ in
                 imagePullPolicy = "IfNotPresent";
                 securityContext = {
                   allowPrivilegeEscalation = false;
-                  capabilities.drop = [ "ALL" ];
+                  capabilities.drop = ["ALL"];
                 };
                 env = [
-                  { name = "PORT"; value = "30900"; }
-                  { name = "HOSTNAME"; value = "0.0.0.0"; }
-                  { name = "SEARXNG_API_URL"; value = "http://searxng.search.svc.cluster.local:8080"; }
+                  {
+                    name = "PORT";
+                    value = "30900";
+                  }
+                  {
+                    name = "HOSTNAME";
+                    value = "0.0.0.0";
+                  }
+                  {
+                    name = "SEARXNG_API_URL";
+                    value = "http://searxng.search.svc.cluster.local:8080";
+                  }
                 ];
                 ports = [
-                  { name = "http"; containerPort = 30900; protocol = "TCP"; }
+                  {
+                    name = "http";
+                    containerPort = 30900;
+                    protocol = "TCP";
+                  }
                 ];
                 resources = {
-                  requests = { memory = "512Mi"; cpu = "250m"; };
-                  limits = { memory = "2Gi"; cpu = "2"; };
+                  requests = {
+                    memory = "512Mi";
+                    cpu = "250m";
+                  };
+                  limits = {
+                    memory = "2Gi";
+                    cpu = "2";
+                  };
                 };
                 readinessProbe = {
-                  httpGet = { path = "/"; port = "http"; };
+                  httpGet = {
+                    path = "/";
+                    port = "http";
+                  };
                   initialDelaySeconds = 15;
                   periodSeconds = 10;
                   timeoutSeconds = 5;
                   failureThreshold = 6;
                 };
                 livenessProbe = {
-                  httpGet = { path = "/"; port = "http"; };
+                  httpGet = {
+                    path = "/";
+                    port = "http";
+                  };
                   initialDelaySeconds = 30;
                   periodSeconds = 30;
                   timeoutSeconds = 10;
@@ -130,13 +158,13 @@ in
                 };
                 volumeMounts = {
                   _namedlist = true;
-                  data = { mountPath = "/home/vane/data"; };
+                  data = {mountPath = "/home/vane/data";};
                 };
               };
             };
             volumes = {
               _namedlist = true;
-              data.emptyDir = { };
+              data.emptyDir = {};
               config.configMap.name = "vane-config";
             };
           };
@@ -162,39 +190,50 @@ in
     };
 
     search.NetworkPolicy.allow-vane-ingress = {
-      metadata.labels = labels // { policy = "allow-ingress"; };
+      metadata.labels = labels // {policy = "allow-ingress";};
       spec = {
         podSelector.matchLabels.app = "vane";
-        policyTypes = [ "Ingress" ];
+        policyTypes = ["Ingress"];
         ingress = [
           {
             from = [
-              { ipBlock.cidr = "10.1.1.0/24"; }
-              { ipBlock.cidr = "10.244.0.0/16"; }
+              {ipBlock.cidr = "10.1.1.0/24";}
+              {ipBlock.cidr = "10.244.0.0/16";}
             ];
-            ports = [ { protocol = "TCP"; port = 30900; } ];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 30900;
+              }
+            ];
           }
         ];
       };
     };
 
     search.NetworkPolicy.allow-vane-egress = {
-      metadata.labels = labels // { policy = "allow-egress"; };
+      metadata.labels = labels // {policy = "allow-egress";};
       spec = {
         podSelector.matchLabels.app = "vane";
-        policyTypes = [ "Egress" ];
+        policyTypes = ["Egress"];
         egress = [
           {
             to = [
-              { namespaceSelector.matchLabels.name = "kube-system"; }
+              {namespaceSelector.matchLabels.name = "kube-system";}
             ];
             ports = [
-              { protocol = "UDP"; port = 53; }
-              { protocol = "TCP"; port = 53; }
+              {
+                protocol = "UDP";
+                port = 53;
+              }
+              {
+                protocol = "TCP";
+                port = 53;
+              }
             ];
           }
           {
-            to = [ { ipBlock.cidr = "0.0.0.0/0"; } ];
+            to = [{ipBlock.cidr = "0.0.0.0/0";}];
           }
         ];
       };

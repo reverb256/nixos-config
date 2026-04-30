@@ -1,8 +1,4 @@
-{
-  pkgs,
-  lib,
-  ...
-}: let
+{pkgs, ...}: let
   claudeWrapper = pkgs.writeShellScriptBin "claude-code-entry" ''
     #!${pkgs.bash}/bin/bash
     set -e

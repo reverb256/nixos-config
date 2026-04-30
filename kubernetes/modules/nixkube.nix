@@ -1,8 +1,4 @@
-{
-  pkgs,
-  lib,
-  ...
-}: {
+{pkgs, ...}: {
   config.kubernetes.objects.none = {
     Namespace.ai-inference = {
       metadata.labels = {
@@ -17,7 +13,7 @@
   };
 
   config.importyaml.nixkube = {
-    src = pkgs.runCommand "nixkube.yaml" { } ''
+    src = pkgs.runCommand "nixkube.yaml" {} ''
       cp ${../../kubernetes-manifests/nixkube/nixkube-clean.yaml} $out
     '';
   };

@@ -3,8 +3,7 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cluster = config.networking.cluster;
   cfg = config.services.backup-to-garage;
   backupScript = pkgs.writeShellScriptBin "backup-to-garage" ''
@@ -129,14 +128,13 @@ let
 
         log_success "Backup completed successfully"
   '';
-in
-{
+in {
   options.services.backup-to-garage = {
     enable = lib.mkEnableOption "Automated backups to Garage S3";
 
     endpoint = lib.mkOption {
       type = lib.types.str;
-      default = "http://${cluster.hosts.zephyr.ip}:3900";  # zephyr cluster host
+      default = "http://${cluster.hosts.zephyr.ip}:3900"; # zephyr cluster host
       description = "Garage S3 endpoint URL";
     };
 
@@ -205,29 +203,28 @@ in
         "network-online.target"
         "garage.service"
       ];
-      wants = [ "network-online.target" ];
+      wants = ["network-online.target"];
 
       serviceConfig = {
         Type = "oneshot";
         Environment = "PATH=/run/current-system/sw/bin:/run/wrappers/bin";
         ExecStart =
-          if cfg.secretKeyFile != null then
-            "${pkgs.bash}/bin/bash -c 'source /etc/backup-to-garage/credentials && export GARAGE_SECRET_KEY=$(cat ${cfg.secretKeyFile}) && exec ${backupScript}/bin/backup-to-garage'"
-          else
-            "${backupScript}/bin/backup-to-garage";
+          if cfg.secretKeyFile != null
+          then "${pkgs.bash}/bin/bash -c 'source /etc/backup-to-garage/credentials && export GARAGE_SECRET_KEY=$(cat ${cfg.secretKeyFile}) && exec ${backupScript}/bin/backup-to-garage'"
+          else "${backupScript}/bin/backup-to-garage";
         EnvironmentFile = "/etc/backup-to-garage/credentials";
         User = "root";
         Group = "root";
         PrivateTmp = true;
         NoNewPrivileges = true;
         ReadOnlyPaths = cfg.backupPaths;
-        ReadWritePaths = [ "/tmp" ];
+        ReadWritePaths = ["/tmp"];
       };
     };
 
     systemd.timers.backup-to-garage = {
       description = "Daily backup to Garage S3";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnCalendar = cfg.startAt;
         Persistent = true;

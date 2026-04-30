@@ -1,8 +1,4 @@
-{
-  pkgs,
-  lib,
-  ...
-}: let
+{pkgs, ...}: let
   opencodeWrapper = pkgs.writeShellScriptBin "opencode-entry" ''
     #!${pkgs.bash}/bin/bash
     set -e

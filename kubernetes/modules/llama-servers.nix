@@ -26,8 +26,7 @@
   config,
   lib,
   ...
-}:
-let
+}: let
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
@@ -57,10 +56,8 @@ let
     nvidia-libs.hostPath.path = "/run/opengl-driver/lib";
     models.hostPath.path = "/home/j_kro/.lmstudio/models";
   };
-in
-{
+in {
   config.kubernetes.objects.ai-inference = {
-
     # ── Zephyr RTX 3090 (GPU 1) — Qwen3.6-27B Dense ─────────────────────────
     # Released April 22-23, 2026. Dense 27B (all params active).
     # Benchmarks: SWE-bench 77.2%, Terminal-Bench 59.3%, SkillsBench 48.2%
@@ -72,11 +69,13 @@ in
     #   Target: /home/j_kro/.lmstudio/models/Qwen3.6-27B-Q4_K_M.gguf
     #   DFlash: spiritbuun/Qwen3.6-27B-DFlash-GGUF (q8_0 recommended)
     Deployment.llama-server-zephyr = {
-      metadata.labels = managed // {
-        app = "llama-server-zephyr";
-        host = "zephyr";
-        gpu = "rtx3090";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-server-zephyr";
+          host = "zephyr";
+          gpu = "rtx3090";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -87,11 +86,13 @@ in
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels = managed // {
-              app = "llama-server-zephyr";
-              host = "zephyr";
-              gpu = "rtx3090";
-            };
+            labels =
+              managed
+              // {
+                app = "llama-server-zephyr";
+                host = "zephyr";
+                gpu = "rtx3090";
+              };
             annotations."nix-csi/discard" = "true";
           };
           spec = {
@@ -105,7 +106,7 @@ in
               llama-server = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
+                command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
                 args = [
                   "--model"
                   "/models/Qwen3.6-27B-Q4_K_M.gguf"
@@ -215,9 +216,11 @@ in
     };
 
     Service.llama-server-zephyr = {
-      metadata.labels = managed // {
-        app = "llama-server-zephyr";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-server-zephyr";
+        };
       spec = {
         type = "ClusterIP";
         ports = [
@@ -243,11 +246,13 @@ in
     # MoE: 35B total / ~3B active per token. Blazing fast for agentic workloads.
     # Scaled to 0 by default — scale up when mining is paused.
     Deployment.llama-server-zephyr-3090-moe = {
-      metadata.labels = managed // {
-        app = "llama-server-zephyr-3090-moe";
-        host = "zephyr";
-        gpu = "rtx3090";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-server-zephyr-3090-moe";
+          host = "zephyr";
+          gpu = "rtx3090";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -258,11 +263,13 @@ in
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels = managed // {
-              app = "llama-server-zephyr-3090-moe";
-              host = "zephyr";
-              gpu = "rtx3090";
-            };
+            labels =
+              managed
+              // {
+                app = "llama-server-zephyr-3090-moe";
+                host = "zephyr";
+                gpu = "rtx3090";
+              };
             annotations."nix-csi/discard" = "true";
           };
           spec = {
@@ -276,7 +283,7 @@ in
               llama-server = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
+                command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
                 args = [
                   "--model"
                   "/models/Qwen3.6-27B-Q4_K_M.gguf"
@@ -371,9 +378,11 @@ in
     };
 
     Service.llama-server-zephyr-3090-moe = {
-      metadata.labels = managed // {
-        app = "llama-server-zephyr-3090-moe";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-server-zephyr-3090-moe";
+        };
       spec = {
         type = "ClusterIP";
         ports = [
@@ -395,11 +404,13 @@ in
     # Dense 27B with SABER refusal shaping, multimodal preserved.
     # Scaled to 0 by default — scale up when mining is paused.
     Deployment.llama-server-zephyr-3090-dense = {
-      metadata.labels = managed // {
-        app = "llama-server-zephyr-3090-dense";
-        host = "zephyr";
-        gpu = "rtx3090";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-server-zephyr-3090-dense";
+          host = "zephyr";
+          gpu = "rtx3090";
+        };
       spec = {
         replicas = 0;
         revisionHistoryLimit = 1;
@@ -410,11 +421,13 @@ in
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels = managed // {
-              app = "llama-server-zephyr-3090-dense";
-              host = "zephyr";
-              gpu = "rtx3090";
-            };
+            labels =
+              managed
+              // {
+                app = "llama-server-zephyr-3090-dense";
+                host = "zephyr";
+                gpu = "rtx3090";
+              };
             annotations."nix-csi/discard" = "true";
           };
           spec = {
@@ -428,7 +441,7 @@ in
               llama-server = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
+                command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
                 args = [
                   "--model"
                   "/models/GestaltLabs/Ornstein-Hermes-3.6-27b-SABER-GGUF/Ornstein-Hermes-3.6-27b-SABER-Q5_K_M.gguf"
@@ -523,9 +536,11 @@ in
     };
 
     Service.llama-server-zephyr-3090-dense = {
-      metadata.labels = managed // {
-        app = "llama-server-zephyr-3090-dense";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-server-zephyr-3090-dense";
+        };
       spec = {
         type = "ClusterIP";
         ports = [
@@ -544,11 +559,13 @@ in
     };
 
     Deployment.llama-server-zephyr-3060ti = {
-      metadata.labels = managed // {
-        app = "llama-server-zephyr-3060ti";
-        host = "zephyr";
-        gpu = "rtx3060ti";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-server-zephyr-3060ti";
+          host = "zephyr";
+          gpu = "rtx3060ti";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -559,11 +576,13 @@ in
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels = managed // {
-              app = "llama-server-zephyr-3060ti";
-              host = "zephyr";
-              gpu = "rtx3060ti";
-            };
+            labels =
+              managed
+              // {
+                app = "llama-server-zephyr-3060ti";
+                host = "zephyr";
+                gpu = "rtx3060ti";
+              };
             annotations."nix-csi/discard" = "true";
           };
           spec = {
@@ -577,7 +596,7 @@ in
               llama-server = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
+                command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
                 args = [
                   "--model"
                   "/models/DJLougen/Harmonic-Hermes-9B-GGUF/Harmonic-Hermes-9B.i1-Q4_K_M.gguf"
@@ -687,9 +706,11 @@ in
     };
 
     Service.llama-server-zephyr-3060ti = {
-      metadata.labels = managed // {
-        app = "llama-server-zephyr-3060ti";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-server-zephyr-3060ti";
+        };
       spec = {
         type = "ClusterIP";
         ports = [
@@ -711,12 +732,14 @@ in
     # Vulkan backend: RADV (Mesa) outperforms ROCm on RDNA1 for token generation.
     # Flash attention required: quantized V cache (q4_0) needs flash_attn since llama.cpp b3880+.
     # 256K context, q4_0 KV cache (lighter than iq4_nl, faster decompression).
-    
+
     Deployment.llama-server-sentry = {
-      metadata.labels = managed // {
-        app = "llama-server-sentry";
-        host = "sentry";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-server-sentry";
+          host = "sentry";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -727,10 +750,12 @@ in
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels = managed // {
-              app = "llama-server-sentry";
-              host = "sentry";
-            };
+            labels =
+              managed
+              // {
+                app = "llama-server-sentry";
+                host = "sentry";
+              };
             annotations."nix-csi/discard" = "true";
           };
           spec = {
@@ -742,7 +767,7 @@ in
               llama-server = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgsWithOverlay.llama-cpp-vulkan}/bin/llama-server" ];
+                command = ["${pkgsWithOverlay.llama-cpp-vulkan}/bin/llama-server"];
                 args = [
                   "--model"
                   "/models/mradermacher/Qwen3-4B-Wrist-On-Hermes-i1-GGUF/Qwen3-4B-Wrist-On-Hermes.i1-Q4_K_M.gguf"
@@ -856,11 +881,11 @@ in
                 path = "/dev/dri";
                 type = "Directory";
               };
-    models.hostPath.path = "/home/j_kro/.lmstudio/models";
-    dflash.hostPath.path = "/home/j_kro/.cache/huggingface/hub/models--spiritbuun--Qwen3.6-27B-DFlash-GGUF/snapshots/5e4442a299deb9282b3dfe179de6e8330b19d9de";
+              models.hostPath.path = "/home/j_kro/.lmstudio/models";
+              dflash.hostPath.path = "/home/j_kro/.cache/huggingface/hub/models--spiritbuun--Qwen3.6-27B-DFlash-GGUF/snapshots/5e4442a299deb9282b3dfe179de6e8330b19d9de";
               opengl.hostPath.path = "/run/opengl-driver/lib";
               vulkan-icd.hostPath.path = "/run/opengl-driver/share/vulkan/icd.d";
-              tmp.emptyDir = { };
+              tmp.emptyDir = {};
             };
           };
         };
@@ -868,9 +893,11 @@ in
     };
 
     Service.llama-server-sentry = {
-      metadata.labels = managed // {
-        app = "llama-server-sentry";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-server-sentry";
+        };
       spec = {
         type = "ClusterIP";
         ports = [
@@ -889,11 +916,13 @@ in
     # Dense 27B with SABER refusal shaping, 131K context via turbo4 KV compression.
     # Scaled to 0 by default — scale up when mining is paused.
     Deployment.llama-server-zephyr-3090-ornstein = {
-      metadata.labels = managed // {
-        app = "llama-server-zephyr-3090-ornstein";
-        host = "zephyr";
-        gpu = "rtx3090";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-server-zephyr-3090-ornstein";
+          host = "zephyr";
+          gpu = "rtx3090";
+        };
       spec = {
         replicas = 0;
         revisionHistoryLimit = 1;
@@ -904,11 +933,13 @@ in
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels = managed // {
-              app = "llama-server-zephyr-3090-ornstein";
-              host = "zephyr";
-              gpu = "rtx3090";
-            };
+            labels =
+              managed
+              // {
+                app = "llama-server-zephyr-3090-ornstein";
+                host = "zephyr";
+                gpu = "rtx3090";
+              };
             annotations."nix-csi/discard" = "true";
           };
           spec = {
@@ -922,7 +953,7 @@ in
               llama-server = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
+                command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
                 args = [
                   "--model"
                   "/models/GestaltLabs/Ornstein-Hermes-3.6-27b-SABER-GGUF/Ornstein-Hermes-3.6-27b-SABER-Q5_K_M.gguf"
@@ -1017,9 +1048,11 @@ in
     };
 
     Service.llama-server-zephyr-3090-ornstein = {
-      metadata.labels = managed // {
-        app = "llama-server-zephyr-3090-ornstein";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-server-zephyr-3090-ornstein";
+        };
       spec = {
         type = "ClusterIP";
         ports = [
@@ -1041,11 +1074,13 @@ in
     # MoE: 35B total / ~3B active per token. 131K context via turbo4 KV compression.
     # Scaled to 0 by default — scale up when mining is paused.
     Deployment.llama-server-zephyr-3090-hermes = {
-      metadata.labels = managed // {
-        app = "llama-server-zephyr-3090-hermes";
-        host = "zephyr";
-        gpu = "rtx3090";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-server-zephyr-3090-hermes";
+          host = "zephyr";
+          gpu = "rtx3090";
+        };
       spec = {
         replicas = 0;
         revisionHistoryLimit = 1;
@@ -1056,11 +1091,13 @@ in
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels = managed // {
-              app = "llama-server-zephyr-3090-hermes";
-              host = "zephyr";
-              gpu = "rtx3090";
-            };
+            labels =
+              managed
+              // {
+                app = "llama-server-zephyr-3090-hermes";
+                host = "zephyr";
+                gpu = "rtx3090";
+              };
             annotations."nix-csi/discard" = "true";
           };
           spec = {
@@ -1074,7 +1111,7 @@ in
               llama-server = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
+                command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
                 args = [
                   "--model"
                   "/models/Qwen3.6-27B-Q4_K_M.gguf"
@@ -1169,9 +1206,11 @@ in
     };
 
     Service.llama-server-zephyr-3090-hermes = {
-      metadata.labels = managed // {
-        app = "llama-server-zephyr-3090-hermes";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-server-zephyr-3090-hermes";
+        };
       spec = {
         type = "ClusterIP";
         ports = [

@@ -1,8 +1,11 @@
-{ config, lib, pkgs, ... }:
-let
-  cluster = config.networking.cluster;
-in
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  cluster = config.networking.cluster;
+in {
   services = {
     hermes-cli = {
       enable = true;
@@ -42,7 +45,6 @@ in
       };
     };
 
-
     spotify-spotx.enable = true;
 
     tailscale.enable = true;
@@ -79,7 +81,6 @@ in
     };
 
     garage-cluster.enable = false;
-
 
     agenix-secrets-registry = {
       enable = true;

@@ -4,18 +4,16 @@
   pkgs,
   k8sManifestPackage ? null,
   ...
-}:
-let
+}: let
   cfg = config.services.k8s-nix-deploy;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
     mkIf
-    mkDefault
     ;
-in
-{
+in {
   options.services.k8s-nix-deploy = {
     enable = mkEnableOption "Deploy K8s manifests from Nix store on boot";
     manifestPackage = mkOption {
@@ -33,9 +31,9 @@ in
   config = mkIf cfg.enable {
     systemd.services.k8s-nix-deploy = {
       description = "Deploy Kubernetes manifests from Nix store";
-      after = [ "k3s.service" ];
-      requires = [ "k3s.service" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["k3s.service"];
+      requires = ["k3s.service"];
+      wantedBy = ["multi-user.target"];
       serviceConfig = {
         Type = "oneshot";
         Environment = "KUBECONFIG=/etc/rancher/k3s/k3s.yaml";

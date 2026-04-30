@@ -5,8 +5,7 @@
   lib,
   pkgs,
   ...
-}:
-{
+}: {
   # Broad kernel module support for any hardware
   boot.initrd.availableKernelModules = [
     "xhci_pci"
@@ -37,10 +36,10 @@
   ];
 
   # Load all common GPU drivers — works on any host in the cluster
-  services.xserver.videoDrivers = [ "amdgpu" "nvidia" "modesetting" ];
+  services.xserver.videoDrivers = ["amdgpu" "nvidia" "modesetting"];
 
   hardware.enableRedistributableFirmware = true;
 
   # USB boot support
-  boot.supportedFilesystems = [ "btrfs" "ext4" "vfat" "exfat" "ntfs" "tmpfs" ];
+  boot.supportedFilesystems = ["btrfs" "ext4" "vfat" "exfat" "ntfs" "tmpfs"];
 }

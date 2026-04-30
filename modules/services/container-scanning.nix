@@ -3,18 +3,16 @@
   pkgs,
   lib,
   ...
-}:
-let
+}: let
   cfg = config.services.container-scanning;
-  inherit (lib)
-    mkEnableOption
+  inherit
+    (lib)
     mkIf
     mkOption
     types
     mkDefault
     ;
-in
-{
+in {
   options.services.container-scanning = {
     enable = mkOption {
       type = types.bool;
@@ -37,7 +35,7 @@ in
   };
 
   config = mkIf cfg.enable {
-    environment.systemPackages = with pkgs; [ trivy ];
+    environment.systemPackages = with pkgs; [trivy];
 
     systemd.services.trivy-scan = {
       description = "Scan all container images for vulnerabilities";
@@ -45,7 +43,7 @@ in
         "network-online.target"
         "podman.service"
       ];
-      wants = [ "network-online.target" ];
+      wants = ["network-online.target"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "trivy-scan" ''
@@ -84,13 +82,13 @@ in
           "AF_UNIX"
           "AF_INET"
         ];
-        ReadWritePaths = [ "/tmp" ];
+        ReadWritePaths = ["/tmp"];
       };
     };
 
     systemd.timers.trivy-scan = {
       description = "Weekly container vulnerability scan timer";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnCalendar = cfg.schedule;
         Persistent = true;

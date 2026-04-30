@@ -2,8 +2,7 @@
   pkgs,
   lib,
   ...
-}:
-{
+}: {
   environment.systemPackages = with pkgs; [
     fail2ban
     usbguard
@@ -30,7 +29,6 @@
     podman-tui
     lazydocker
   ];
-
 
   services = {
     fail2ban = {
@@ -95,7 +93,6 @@
 
   '';
 
-
   security = {
     sudo-rs = {
       enable = true;
@@ -138,8 +135,6 @@
     };
   };
 
-
-
   systemd.services.nixos-upgrade-unit = {
     description = "Notify about available NixOS upgrades";
     serviceConfig.ExecStart = pkgs.writeShellScript "nixos-upgrade-notify" ''
@@ -147,7 +142,7 @@
         ${pkgs.libnotify}/bin/notify-send "NixOS Updates Available" "Run 'sudo nixos-rebuild switch' to update" -i software-update-available
       fi
     '';
-    wantedBy = [ "multi-user.target" ];
+    wantedBy = ["multi-user.target"];
     serviceConfig.Type = "oneshot";
   };
 }

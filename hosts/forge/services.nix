@@ -1,8 +1,12 @@
-{ config, pkgs, lib, inputs, ... }:
-let
-  cluster = config.networking.cluster;
-in
 {
+  config,
+  pkgs,
+  lib,
+  inputs,
+  ...
+}: let
+  cluster = config.networking.cluster;
+in {
   services = {
     hermes-cli = {
       enable = true;
@@ -100,7 +104,7 @@ in
     nixos-auto-update = {
       enable = true;
       interval = "daily";
-      updateFlakeInputs = [ "nixpkgs" ];
+      updateFlakeInputs = ["nixpkgs"];
     };
 
     agenix-secrets-registry = {

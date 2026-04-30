@@ -4,7 +4,6 @@
   pkgs,
   ...
 }: let
-  cluster = config.networking.cluster;
   cfg = config.services.self-healing-alerts;
 in {
   options.services.self-healing-alerts = {

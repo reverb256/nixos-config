@@ -3,8 +3,7 @@
   lib,
   config,
   ...
-}:
-let
+}: let
   monitorSetupScript = pkgs.writeShellApplication {
     name = "plasma-monitor-setup";
     runtimeInputs = with pkgs; [
@@ -87,8 +86,7 @@ let
       log "=== Completed ==="
     '';
   };
-in
-{
+in {
   services = {
     xserver = {
       enable = true;
@@ -101,7 +99,6 @@ in
       sddm.enable = true;
       sddm.settings.General.DisplayServer = "wayland";
     };
-
 
     pipewire = {
       enable = true;
@@ -143,8 +140,8 @@ in
   };
 
   xdg.portal = lib.mkIf config.services.desktopManager.plasma6.enable {
-    extraPortals = with pkgs; [ pkgs.kdePackages.xdg-desktop-portal-kde ];
-    config.kde.default = [ "kde" ];
+    extraPortals = with pkgs; [pkgs.kdePackages.xdg-desktop-portal-kde];
+    config.kde.default = ["kde"];
   };
 
   hardware.bluetooth = {
@@ -180,12 +177,11 @@ in
       GTK_USE_PORTAL = "1";
 
       QT_MEDIA_BACKEND = "pipewire";
-      LD_LIBRARY_PATH = lib.mkBefore [ "/run/current-system/sw/lib/pipewire-0.3" ];
+      LD_LIBRARY_PATH = lib.mkBefore ["/run/current-system/sw/lib/pipewire-0.3"];
 
       QT_QPA_PLATFORM = lib.mkOptionDefault "wayland;xcb";
       QT_AUTO_SCREEN_SCALE_FACTOR = "1";
       QT_QPA_GL_VERSION = "2";
-
     };
 
     systemPackages = lib.mkIf config.services.desktopManager.plasma6.enable (
@@ -304,7 +300,6 @@ in
         [Module-kscreen]
         Enabled=false
       '';
-
     };
   };
 

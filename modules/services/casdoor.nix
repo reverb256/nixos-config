@@ -3,18 +3,16 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.casdoor;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
     mkIf
-    mkOptionDefault
     ;
-in
-{
+in {
   options.services.casdoor = {
     enable = mkEnableOption "Casdoor - Self-hosted SSO / OIDC / OAuth 2.0 / SAML / LDAP";
 
@@ -68,7 +66,7 @@ in
     services.postgresql = {
       enable = true;
       package = pkgs.postgresql_16;
-      ensureDatabases = [ cfg.dbName ];
+      ensureDatabases = [cfg.dbName];
       ensureUsers = [
         {
           name = cfg.dbUser;
@@ -96,9 +94,9 @@ in
     # Generate random admin password at first boot
     systemd.services.casdoor-init-password = {
       description = "Generate Casdoor admin password";
-      before = [ "casdoor.service" ];
-      requiredBy = [ "casdoor.service" ];
-      after = [ "systemd-tmpfiles-setup.service" ];
+      before = ["casdoor.service"];
+      requiredBy = ["casdoor.service"];
+      after = ["systemd-tmpfiles-setup.service"];
 
       serviceConfig = {
         Type = "oneshot";
@@ -167,9 +165,9 @@ in
         "postgresql.service"
         "casdoor-init-password.service"
       ];
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = ["multi-user.target"];
 
-      path = with pkgs; [ podman openssl coreutils ];
+      path = with pkgs; [podman openssl coreutils];
 
       serviceConfig = {
         Type = "simple";
@@ -209,6 +207,6 @@ in
 
     # Firewall: allow loopback (for caddy reverse proxy)
     networking.firewall.interfaces."lo".allowedTCPPorts =
-      lib.mkOptionDefault [ cfg.port ];
+      lib.mkOptionDefault [cfg.port];
   };
 }

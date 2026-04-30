@@ -3,11 +3,9 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.hardware.nvidia.wayland;
-in
-{
+in {
   options.hardware.nvidia.wayland = {
     enable = lib.mkEnableOption "NVIDIA Wayland optimizations for Plasma 6";
     enable32Bit = lib.mkOption {
@@ -36,8 +34,6 @@ in
     };
   };
   config = lib.mkIf cfg.enable {
-
-
     hardware.nvidia = {
       open = cfg.openModules;
       modesetting.enable = true;
@@ -47,9 +43,7 @@ in
       gsp.enable = cfg.openModules;
     };
 
-
     services.displayManager.sddm.wayland.enable = lib.mkDefault cfg.sddmWayland;
-
 
     environment.sessionVariables = {
       VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
@@ -62,7 +56,6 @@ in
       __GL_SYNC_TO_VBLANK = "0";
     };
 
-
     environment.systemPackages = with pkgs; [
       wayland-utils
       kanshi
@@ -70,12 +63,9 @@ in
     ];
 
     environment.etc = {
-      "vulkan/icd.d/nvidia_icd.json".source =
-        "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
-      "vulkan/icd.d/nvidia_icd.x86_64.json".source =
-        "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
+      "vulkan/icd.d/nvidia_icd.json".source = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
+      "vulkan/icd.d/nvidia_icd.x86_64.json".source = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
     };
-
 
     boot = {
       kernelParams = [
@@ -97,15 +87,14 @@ in
       };
     };
 
-
     systemd.services.nvidia-device-nodes = {
       description = "Create NVIDIA device nodes";
       after = [
         "systemd-modules-load.service"
         "systemd-udev-trigger.service"
       ];
-      wants = [ "systemd-modules-load.service" ];
-      wantedBy = [ "multi-user.target" ];
+      wants = ["systemd-modules-load.service"];
+      wantedBy = ["multi-user.target"];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -114,7 +103,7 @@ in
         ProtectHome = true;
         PrivateTmp = true;
         RestrictRealtime = true;
-        RestrictAddressFamilies = [ "AF_UNIX" ];
+        RestrictAddressFamilies = ["AF_UNIX"];
         ExecStart = pkgs.writeShellScript "nvidia-device-nodes" ''
           if [ -d /proc/driver/nvidia ]; then
             if [ ! -e /dev/nvidiactl ]; then

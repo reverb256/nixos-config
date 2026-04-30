@@ -1,19 +1,17 @@
 {
   config,
   lib,
-  pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.zram-tuning;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkIf
     mkOption
     types
     ;
-in
-{
+in {
   options.services.zram-tuning = {
     enable = mkEnableOption "ZRAM swap and kernel tuning";
 

@@ -162,7 +162,6 @@ in {
       };
     };
 
-
     networking.firewall.interfaces."tailscale0".allowedTCPPorts = [cfg.port];
   };
 }

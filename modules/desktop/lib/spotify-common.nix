@@ -4,7 +4,6 @@
 }: let
   inherit (lib) mkOption types;
 
-
   /**
   mkSpotifyStateDir
   -----------------
@@ -166,7 +165,6 @@
     script,
   }:
     pkgs.writeShellScriptBin name script;
-
 
   /**
   spotifyAutoUpdateOptions

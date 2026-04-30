@@ -3,10 +3,10 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.service-gateway;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
@@ -19,15 +19,12 @@ let
 
   hostname = config.networking.hostName or "localhost";
 
-  buildCaddyConfig =
-    services:
+  buildCaddyConfig = services:
     concatMapStringsSep "\n" (
-      name: service:
-      let
+      name: service: let
         fqdn = "${name}.${hostname}";
         backendUrl = "http://${service.backend}:${toString service.port}";
-      in
-      ''
+      in ''
         ${fqdn}:${toString cfg.port} {
           ${lib.optionalString service.https "tls internal"}
 
@@ -39,9 +36,9 @@ let
             header_up X-Forwarded-Proto {scheme}
 
             ${lib.optionalString (service.websocket or false) ''
-              header_up Connection {>Connection}
-              header_up Upgrade {>Upgrade}
-            ''}
+          header_up Connection {>Connection}
+          header_up Upgrade {>Upgrade}
+        ''}
           }
 
           header {
@@ -54,8 +51,7 @@ let
         }
       ''
     ) (lib.attrValues services);
-in
-{
+in {
   options.services.service-gateway = {
     enable = mkEnableOption "Service Gateway - simple URLs for self-hosted services (e.g., ai.zephyr)";
 
@@ -135,7 +131,7 @@ in
           };
         }
       );
-      default = { };
+      default = {};
       example = literalExpression ''
         {
           ai = {
@@ -171,11 +167,13 @@ in
     };
 
     services.unbound.settings.server = mkIf config.services.unbound-cluster.enable {
-      local-zone = [ "${hostname} static" ];
+      local-zone = ["${hostname} static"];
 
-      local-data = mapAttrsToList (
-        name: _service: "${name}.${hostname}. IN A ${cfg.listenAddress}"
-      ) cfg.services;
+      local-data =
+        mapAttrsToList (
+          name: _service: "${name}.${hostname}. IN A ${cfg.listenAddress}"
+        )
+        cfg.services;
     };
 
     networking.extraHosts = concatStringsSep "\n" (
@@ -201,7 +199,8 @@ in
             echo "  → ${service.backend}:${toString service.port}"
             echo "  ${service.description}"
             echo ""
-          '') cfg.services
+          '')
+          cfg.services
         )}
         echo "Total: ${toString (builtins.attrNames cfg.services)}"
         echo ""
@@ -210,7 +209,8 @@ in
         ${concatStringsSep "\n" (
           mapAttrsToList (name: service: ''
             echo "  http://${name}.${hostname}    (${service.description})"
-          '') cfg.services
+          '')
+          cfg.services
         )}
       '')
     ];
@@ -224,7 +224,8 @@ in
       ${concatStringsSep "\n" (
         mapAttrsToList (name: service: ''
           | ${service.description} | http://${name}.${hostname} | ${service.backend}:${toString service.port} |
-        '') cfg.services
+        '')
+        cfg.services
       )}
 
 

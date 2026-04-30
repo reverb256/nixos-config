@@ -1,6 +1,9 @@
-{ inputs }: _final: prev: {
-  lolminer = inputs.compute-market.packages.x86_64-linux.lolminer;
-  xmrig = inputs.compute-market.packages.x86_64-linux.xmrig;
+{inputs}: _final: prev: {
+  inherit
+    (inputs.compute-market.packages.x86_64-linux)
+    lolminer
+    xmrig
+    ;
   lmstudio = prev.callPackage ./packages/lmstudio.nix {};
   haven-desktop = prev.callPackage ./packages/haven-desktop.nix {};
   wivrn = prev.wivrn.overrideAttrs (old: {
@@ -13,14 +16,20 @@
   llama-cpp = prev.callPackage ./packages/llama-cpp-cuda.nix {
     inherit (prev) config;
   };
-  llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant;
+  inherit
+    (inputs.llama-turboquant.packages.x86_64-linux)
+    llama-cpp-turboquant
+    ;
   llama-cpp-rocm = prev.callPackage ./packages/llama-cpp-rocm.nix {};
   llama-cpp-vulkan = prev.callPackage ./packages/llama-cpp-vulkan.nix {};
   # TODO: broken placeholder rev/hash — re-enable when source is valid
   # llama-cpp-dflash = prev.callPackage ./packages/llama-cpp-dflash.nix {};
   # dflash-server = prev.callPackage ./packages/dflash-server.nix {};
   ai-inference-gateway = inputs.ai-gateway.packages.x86_64-linux.default;
-  caddy-with-modules = inputs.caddy-ingress.packages.x86_64-linux.caddy-with-modules;
+  inherit
+    (inputs.caddy-ingress.packages.x86_64-linux)
+    caddy-with-modules
+    ;
   python3 = prev.python3.override {
     packageOverrides = py-self: py-super: {
       qwen-tts = py-self.buildPythonPackage rec {

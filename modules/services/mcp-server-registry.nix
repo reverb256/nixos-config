@@ -1,5 +1,4 @@
-{ lib }:
-let
+{...}: let
   servers = {
     filesystem = {
       type = "npm";
@@ -70,7 +69,6 @@ let
   };
 
   mkCommand = name: "mcp-${name}";
-in
-{
+in {
   inherit servers mkCommand;
 }

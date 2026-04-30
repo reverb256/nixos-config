@@ -15,15 +15,12 @@
 #   3. Regenerate lockfile: copy upstream's package-lock.json, patch baileys entry
 #   4. Set npmDepsHash to lib.fakeHash, rebuild, copy the "got:" hash
 #   5. If bridge.js API changed, check for compatibility
-
 {
   lib,
   pkgs,
   hermesSrc,
   lockfile ? ./whatsapp-bridge-package-lock.json,
-}:
-
-let
+}: let
   # Patched source: replace baileys git dep with npm registry version in package.json
   # Uses generic regex to match any Baileys#commit hash
   patchedSrc = pkgs.runCommand "whatsapp-bridge-patched" {} ''
@@ -39,33 +36,32 @@ let
     # Lockfile patched from upstream original (baileys git → npm registry)
     cp ${lockfile} $out/package-lock.json
   '';
-
 in
-pkgs.buildNpmPackage {
-  pname = "hermes-whatsapp-bridge";
-  version = "1.0.0";
+  pkgs.buildNpmPackage {
+    pname = "hermes-whatsapp-bridge";
+    version = "1.0.0";
 
-  src = patchedSrc;
+    src = patchedSrc;
 
-  npmDepsHash = "sha256-8V2tBE+z5BODS1dEauZyKzrjfulpfjWosHdJs6O7+98=";
+    npmDepsHash = "sha256-8V2tBE+z5BODS1dEauZyKzrjfulpfjWosHdJs6O7+98=";
 
-  forceGitDeps = true;
-  makeCacheWritable = true;
-  dontNpmBuild = true;
+    forceGitDeps = true;
+    makeCacheWritable = true;
+    dontNpmBuild = true;
 
-  installPhase = ''
-    runHook preInstall
+    installPhase = ''
+      runHook preInstall
 
-    mkdir -p $out
-    cp -r node_modules $out/node_modules
-    cp bridge.js allowlist.js package.json $out/
+      mkdir -p $out
+      cp -r node_modules $out/node_modules
+      cp bridge.js allowlist.js package.json $out/
 
-    runHook postInstall
-  '';
+      runHook postInstall
+    '';
 
-  meta = with lib; {
-    description = "WhatsApp bridge for Hermes Agent using Baileys";
-    license = licenses.mit;
-    platforms = platforms.unix;
-  };
-}
+    meta = with lib; {
+      description = "WhatsApp bridge for Hermes Agent using Baileys";
+      license = licenses.mit;
+      platforms = platforms.unix;
+    };
+  }

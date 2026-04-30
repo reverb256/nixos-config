@@ -1,5 +1,4 @@
 {...}: {
-
   services = {
     gpu-exporters.enable = true;
 
@@ -16,6 +15,5 @@
     monitoring.smart-exporter.enable = true;
 
     mining-exporter.enable = true;
-
   };
 }

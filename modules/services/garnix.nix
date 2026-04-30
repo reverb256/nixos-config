@@ -1,13 +1,10 @@
 {
   config,
   lib,
-  pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.garnix;
-in
-{
+in {
   options.services.garnix = {
     enable = lib.mkEnableOption "Garnix CI/CD cache configuration";
   };
@@ -15,7 +12,7 @@ in
   config = lib.mkIf cfg.enable {
     nix.settings = {
       narinfo-cache-positive-ttl = 3600;
-      substituters = lib.mkOptionDefault [ "https://cache.garnix.io" ];
+      substituters = lib.mkOptionDefault ["https://cache.garnix.io"];
       trusted-public-keys = lib.mkOptionDefault [
         "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
       ];

@@ -3,11 +3,9 @@
   lib,
   inputs,
   ...
-}:
-let
+}: let
   inherit (lib) mkOption types mkIf;
-in
-{
+in {
   options.services.agenix-secrets-registry = {
     enable = mkOption {
       type = types.bool;
@@ -56,8 +54,6 @@ in
     };
   };
   config = mkIf config.services.agenix-secrets-registry.enable {
-
-
     age.secrets = lib.mkMerge [
       (lib.mkIf config.services.agenix-secrets-registry.aiServices {
         huggingface-token = {
@@ -120,7 +116,6 @@ in
           owner = "j_kro";
           group = "users";
         };
-
       })
       (lib.mkIf config.services.agenix-secrets-registry.monitoring {
         grafana-admin = {
