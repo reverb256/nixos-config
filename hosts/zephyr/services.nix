@@ -212,6 +212,19 @@ in
           reverse_proxy 127.0.0.1:8080
         }
 
+        zephyr.taila21e09.ts.net {
+          tls /var/lib/caddy/certs/zephyr.ts.net.crt /var/lib/caddy/certs/zephyr.ts.net.key
+          header {
+            Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+            X-Content-Type-Options "nosniff"
+            X-Frame-Options "SAMEORIGIN"
+            Referrer-Policy "strict-origin-when-cross-origin"
+            -Server
+          }
+          encode zstd gzip
+          reverse_proxy 127.0.0.1:8000
+        }
+
         ${lanRoutes}
       '';
     };
@@ -358,7 +371,7 @@ in
 
     casdoor = {
       enable = true;
-      hostName = "auth.zephyr.taila21e09.ts.net";
+      hostName = "zephyr.taila21e09.ts.net";
     };
     vaultwarden-module = {
       enable = true;
