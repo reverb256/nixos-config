@@ -6,7 +6,10 @@
   ...
 }: let
   # nix-csi scratch image (proven pattern from llama-servers)
-  scratchImage = "docker.io/library/ai-inference-gateway:2.3.4";
+  scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
+
+  # AI Inference Gateway — pre-built container image (loaded into containerd on target node)
+  gatewayImage = "docker.io/library/ai-inference-gateway:2.4.2";
 
   # Managed-by labels for easykubenix
   managed = {
@@ -76,7 +79,7 @@ in {
       HF_HOME = "/home/j_kro/.cache/huggingface";
       HF_HUB_OFFLINE = "1";
       HF_HUB_ENABLE_HF_TRANSFER = "0";
-      CURL_CA_BUNDLE = "/nix/store/dq40xbv9srgrmz4zlcl26q8xa5v426pa-nss-cacert-3.121/etc/ssl/certs/ca-bundle.crt";
+      CURL_CA_BUNDLE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
       MAX_REQUEST_SIZE = "10485760";
       CIRCUIT_BREAKER_ENABLED = "true";
       REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
@@ -373,20 +376,21 @@ in {
                 app = "ai-inference-gateway";
                 component = "gateway";
               };
-            annotations."nix-csi/discard" = "true";
           };
           spec = {
-            nodeName = "sentry"; # Primary server with GPU
-            hostNetwork = false; # hostNetwork=true causes K3s NodePorts pod explosion with nix-csi scratch
+            nodeName = "nexus"; # Non-infrastructure workloads default to Nexus (46GB RAM)
+            hostNetwork = false;
             serviceAccountName = "ai-inference-gateway";
             automountServiceAccountToken = true; # needed by gpu_scheduler.py kubectl calls
             containers = {
               _namedlist = true;
               ai-gateway = {
-                image = scratchImage;
+                image = gatewayImage;
                 imagePullPolicy = "IfNotPresent";
+                # Container image has default Cmd: python -m uvicorn ... --workers 4
+                # Override workers to 1 for stability
                 command = [
-                  "${lib.getExe gatewayEnv}"
+                  "python"
                   "-m"
                   "uvicorn"
                   "ai_inference_gateway.main:app"
@@ -493,8 +497,8 @@ in {
                     name = "ai-inference-gateway-config";
                     key = "TRANSFORMERS_CACHE";
                   };
-                  SSL_CERT_FILE.value = "/nix/store/dq40xbv9srgrmz4zlcl26q8xa5v426pa-nss-cacert-3.121/etc/ssl/certs/ca-bundle.crt";
-                  REQUESTS_CA_BUNDLE.value = "/nix/store/dq40xbv9srgrmz4zlcl26q8xa5v426pa-nss-cacert-3.121/etc/ssl/certs/ca-bundle.crt";
+                  SSL_CERT_FILE.value = "/etc/ssl/certs/ca-bundle.crt";
+                  REQUESTS_CA_BUNDLE.value = "/etc/ssl/certs/ca-bundle.crt";
                   HF_TOKEN.valueFrom.secretKeyRef = {
                     name = "hf-token";
                     key = "token";
@@ -502,8 +506,8 @@ in {
                   USER.value = "nobody";
                   HOME.value = "/tmp";
                   LOG_LEVEL.value = "INFO";
-                  PYTHONPATH.value = gatewaySitePackages;
-                  PATH.value = "${lib.getBin pkgs.kubectl}:/usr/bin:/bin";
+                  PYTHONPATH.value = "/app";
+                  PATH.value = "/bin:/usr/bin";
                   SEARXNG_URL.valueFrom.configMapKeyRef = {
                     name = "ai-inference-gateway-config";
                     key = "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL";
@@ -596,10 +600,6 @@ in {
                 };
                 volumeMounts = {
                   _namedlist = true;
-                  nix = {
-                    mountPath = "/nix";
-                    readOnly = true;
-                  };
                   "hf-cache" = {
                     mountPath = "/home/j_kro/.cache/huggingface";
                   };
@@ -614,10 +614,6 @@ in {
             };
             volumes = {
               _namedlist = true;
-              nix.hostPath = {
-                path = "/nix";
-                type = "Directory";
-              };
               hf-cache.hostPath = {
                 path = "/home/j_kro/.cache/huggingface";
                 type = "Directory";
@@ -927,7 +923,7 @@ in {
             containers = [
               {
                 name = "llama-server";
-                image = "alpine:latest";
+                image = "alpine:3.21";
                 command = ["/run/current-system/sw/bin/llama-server"];
                 args = [
                   "--model=/models/Qwen3.5-0.8B.Q8_0.gguf"
