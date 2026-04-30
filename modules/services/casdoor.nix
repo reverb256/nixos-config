@@ -13,6 +13,7 @@ let
     mkIf
     mkOptionDefault
     ;
+  certDir = "/var/lib/caddy/certs";
 in
 {
   options.services.casdoor = {
@@ -21,7 +22,7 @@ in
     hostName = mkOption {
       type = types.str;
       default = "auth.lan";
-      description = "The hostname for Casdoor (use cluster DNS or Tailscale Magic DNS)";
+      description = "The hostname for Casdoor";
     };
 
     dataDir = mkOption {
@@ -82,13 +83,20 @@ in
       '';
     };
 
-    # State directory
+    # State + cert directories
     systemd.tmpfiles.settings."casdoor" = {
       "${cfg.dataDir}" = {
         d = {
           mode = "755";
           user = "root";
           group = "root";
+        };
+      };
+      "${certDir}" = {
+        d = {
+          mode = "755";
+          user = "caddy";
+          group = "caddy";
         };
       };
     };
@@ -116,6 +124,33 @@ in
           echo "Casdoor admin password generated to $PW_FILE"
         fi
       '';
+    };
+
+    # Auto-refresh Tailscale cert weekly
+    systemd.services.casdoor-cert-refresh = {
+      description = "Refresh Tailscale TLS cert for Casdoor";
+      after = [ "network-online.target" "tailscaled.service" ];
+      wants = [ "network-online.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+      };
+      script = ''
+        ${pkgs.tailscale}/bin/tailscale cert \
+          --cert-file ${certDir}/${cfg.hostName}.crt \
+          --key-file ${certDir}/${cfg.hostName}.key \
+          ${cfg.hostName}
+        chown caddy:caddy ${certDir}/${cfg.hostName}.*
+        chmod 400 ${certDir}/${cfg.hostName}.key
+      '';
+    };
+    systemd.timers.casdoor-cert-refresh = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "weekly";
+        Persistent = true;
+        RandomizedDelaySec = "1h";
+      };
     };
 
     # Write app.conf for Casdoor
@@ -209,7 +244,7 @@ in
       };
     };
 
-    # Firewall: allow loopback (for local access) + tailscale
+    # Firewall: allow loopback + tailscale
     networking.firewall.interfaces."lo".allowedTCPPorts =
       lib.mkOptionDefault [ cfg.port ];
     networking.firewall.interfaces."tailscale0".allowedTCPPorts =

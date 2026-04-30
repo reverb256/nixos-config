@@ -1,0 +1,5 @@
+SEDSCRIPT
+/vaultwarden-module = {/i\    casdoor = {\
+      enable = true;\
+      hostName = "auth.zephyr.taila21e09.ts.net";\
+    };
