@@ -383,6 +383,8 @@ in
       environment.CONTAINERD_NRI_DISABLED = "1";
       # Start before keepalived so flannel detects the real IP, not the VIP
       before = lib.mkIf config.services.keepalived.enable [ "keepalived.service" ];
+      # nfs-utils needed for kubelet to mount NFS PVs (mount.nfs binary)
+      path = with pkgs; [ nfs-utils ];
     };
 
     system.activationScripts.k3s-dirs = ''
