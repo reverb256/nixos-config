@@ -121,9 +121,11 @@ in
     serviceConfig.Type = "oneshot";
     serviceConfig.RemainAfterExit = true;
     script = ''
-      if [ ! -f /etc/nixos/ssh/id_ed25519 ]; then
+      if [ ! -f /etc/nixos/ssh/id_ed25519 ] && [ -f /home/j_kro/.ssh/id_ed25519 ]; then
         install -m 600 /home/j_kro/.ssh/id_ed25519 /etc/nixos/ssh/id_ed25519
         install -m 644 /home/j_kro/.ssh/id_ed25519.pub /etc/nixos/ssh/id_ed25519.pub
+      elif [ ! -f /etc/nixos/ssh/id_ed25519 ]; then
+        echo "copy-build-ssh-key: No SSH key found, remote builds unavailable"
       fi
     '';
   };
