@@ -42,7 +42,7 @@ in
     selfHosting = mkOption {
       type = types.bool;
       default = false;
-      description = "Enable self-hosted service secrets (Nextcloud, Vaultwarden)";
+      description = "Enable self-hosted service secrets (Nextcloud, Vaultwarden, Casdoor)";
     };
     ci = mkOption {
       type = types.bool;
@@ -212,6 +212,20 @@ in
         };
         vaultwarden-admin-token = {
           file = "${inputs.self}/secrets/vaultwarden-admin-token.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
+        # TODO: Run `agenix -e secrets/casdoor-postgres-password.age` to create this file
+        casdoor-postgres-password = {
+          file = "${inputs.self}/secrets/casdoor-postgres-password.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
+        # TODO: Run `agenix -e secrets/casdoor-init-admin-password.age` to create this file
+        casdoor-init-admin-password = {
+          file = "${inputs.self}/secrets/casdoor-init-admin-password.age";
           mode = "440";
           owner = "root";
           group = "root";
