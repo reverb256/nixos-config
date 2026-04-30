@@ -1407,7 +1407,9 @@ in {
     };
 
     # ── Secrets ──────────────────────────────────────────────────
-    # Note: Secrets with sensitive data should ideally be managed via agenix
+    # Secrets are populated by kubectl-apply-k8s-secrets systemd service
+    # from agenix-decrypted files at /run/agenix/. These placeholder
+    # definitions ensure the Secret objects exist for secretKeyRef lookups.
     Secret.open-webui-secrets = {
       type = "Opaque";
       stringData.webui-secret-key = "";
@@ -1422,10 +1424,28 @@ in {
       };
     };
 
-    # Z.AI API key — matches agenix secrets/zai-api-key.age
+    # Z.AI API key — populated from agenix (secrets/ai-gateway-zai-api-key.age)
     Secret.zai-api-key = {
       type = "Opaque";
-      stringData.ZAI_API_KEY = "a304de1a9f0e46fb870d59d884b9616c.4Zeci63KC3W6FzuR";
+      stringData.ZAI_API_KEY = ""; # placeholder — populated by kubectl-apply-k8s-secrets
+    };
+
+    # HuggingFace token — populated from agenix (secrets/huggingface-token.age)
+    Secret.hf-token = {
+      type = "Opaque";
+      stringData.token = "";
+    };
+
+    # NVIDIA API key — populated from agenix (secrets/nvidia-api-key.age)
+    Secret.nvidia-api-key = {
+      type = "Opaque";
+      stringData.NVIDIA_API_KEY = "";
+    };
+
+    # OpenRouter API key — populated from agenix (secrets/openrouter-api-key.age)
+    Secret.openrouter-api-key = {
+      type = "Opaque";
+      stringData.OPENROUTER_API_KEY = "";
     };
 
     # ── Additional NetworkPolicies ───────────────────────────────

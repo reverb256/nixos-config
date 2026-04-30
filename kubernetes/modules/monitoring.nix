@@ -1000,10 +1000,11 @@ in {
     };
 
     # ── Grafana admin secret ──────────────────────────────────
+    # Populated by kubectl-apply-k8s-secrets from agenix:
+    #   admin-password ← /run/agenix/grafana-admin-password
     monitoring.Secret.grafana-admin-secret = {
       type = "Opaque";
-      # TODO: Run `agenix -e secrets/grafana-admin-password.age` to create the encrypted secret file
-      stringData."admin-password" = "CHANGE-ME-ON-DEPLOY";
+      stringData."admin-password" = "";
     };
 
     # ── Grafana ────────────────────────────────────────────────

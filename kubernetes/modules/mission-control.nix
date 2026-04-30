@@ -38,12 +38,14 @@ in {
     };
 
     # ── Secret ─────────────────────────────────────────────────────────
-    # TODO: migrate to agenix.
+    # Populated by kubectl-apply-k8s-secrets from agenix:
+    #   auth-pass ← /run/agenix/mission-control-auth-pass
+    #   api-key   ← /run/agenix/mission-control-api-key
     orchestration.Secret.mission-control-secrets = {
       type = "Opaque";
       stringData = {
-        auth-pass = "yt1x6F61dfy6R9jpW66q7zgOLdnbNSxW";
-        api-key = "5MDMlvnW0gYdgZxk1y6PZSuULQRpIVxw0OxSPqZHm8o";
+        auth-pass = "";
+        api-key = "";
       };
     };
 
