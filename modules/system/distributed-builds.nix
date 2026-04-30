@@ -100,7 +100,7 @@ in
       auto-optimise-store = true;
       extra-sandbox-paths = [
         "/var/cache/ccache"
-        "/home/j_kro/.steam"
+        
       ];
     };
 
