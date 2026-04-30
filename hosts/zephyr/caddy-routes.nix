@@ -39,3 +39,6 @@ mkRoute "ai.lan"                    "llama-server-zephyr-3060ti.ai-inference.svc
 
 # Orchestration
 + mkRoute "mission-control.lan"     "mission-control.orchestration.svc.cluster.local:3000"
+
+# SSO
++ mkRoute "auth.lan"               "127.0.0.1:8000"
