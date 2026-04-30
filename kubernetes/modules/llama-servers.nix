@@ -279,7 +279,7 @@ in
                 command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
                 args = [
                   "--model"
-                  "/home/j_kro/.lmstudio/models/Qwen3.6-27B-Q4_K_M.gguf"
+                  "/models/Qwen3.6-27B-Q4_K_M.gguf"
                   "--host"
                   "0.0.0.0"
                   "--port"
@@ -1077,7 +1077,7 @@ in
                 command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
                 args = [
                   "--model"
-                  "/home/j_kro/.lmstudio/models/Qwen3.6-27B-Q4_K_M.gguf"
+                  "/models/Qwen3.6-27B-Q4_K_M.gguf"
                   "--host"
                   "0.0.0.0"
                   "--port"
