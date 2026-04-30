@@ -342,7 +342,7 @@ in
                     cpu = "500m";
                   };
                   limits = {
-                    memory = "24Gi";
+                    memory = "16Gi";
                     cpu = "4";
                   };
                 };
