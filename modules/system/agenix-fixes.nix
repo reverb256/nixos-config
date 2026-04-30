@@ -17,7 +17,7 @@ in
 
     identityFile = mkOption {
       type = types.path;
-      default = "/persistent/etc/age/key.txt";
+      default = "/etc/age/key.txt";
       description = "Path to age identity key for decryption";
     };
   };
@@ -31,7 +31,7 @@ in
 
         set -euo pipefail
 
-        IDENTITY_FILE="''${1:-/persistent/etc/age/key.txt}"
+        IDENTITY_FILE="''${1:-/etc/age/key.txt}"
         FALLBACK_IDENTITY="/etc/age/key.txt"
         HOME_IDENTITY="/home/j_kro/.age/key.txt"
         SECRETS_DIR="''${NIXOS_SHARED_PATH:-/etc/nixos}/secrets"
@@ -175,7 +175,7 @@ in
         ExecStart = "/etc/agenix-rekey-wrapper.sh ${config.services.agenix-fixes.identityFile}";
 
         ProtectSystem = "strict";
-        ReadWritePaths = "/run/agenix.d /persistent/etc/age";
+        ReadWritePaths = "/run/agenix.d /etc/age";
         ProtectHome = "read-only";
         PrivateTmp = false;
 

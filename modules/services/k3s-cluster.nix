@@ -149,14 +149,15 @@ in
       nodeIP = if cfg.nodeIP != "" then cfg.nodeIP else null;
 
       disable =
-        lib.optionals isServer disabledComponents
-        ++ [
-          "network-policy"
-        ]
-        ++ lib.optionals (isServer && cfg.calico.enable) [
-          "flannel"
-          "kube-proxy"
-        ];
+        # --disable flags are only valid for k3s server, not agent
+        lib.optionals isServer (
+          disabledComponents
+          ++ [ "network-policy" ]
+          ++ lib.optionals cfg.calico.enable [
+            "flannel"
+            "kube-proxy"
+          ]
+        );
 
       extraFlags =
         lib.optionals isServer (
