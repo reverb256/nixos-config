@@ -1,32 +1,20 @@
-{
-  pkgs ? import <nixpkgs> { },
-}:
-let
+{pkgs ? import <nixpkgs> {}}: let
   lib = pkgs.lib;
 
   k3sSource = builtins.readFile ../modules/services/k3s-cluster.nix;
 
-  isValidCIDR =
-    cidr:
-    let
-      parts = lib.splitString "/" cidr;
-      hasSlash = builtins.length parts == 2;
-      mask = if hasSlash then lib.toInt (builtins.elemAt parts 1) else 0;
-    in
-    hasSlash && mask >= 8 && mask <= 32;
-
-  extractCIDRs =
-    let
-      lines = lib.splitString "\n" k3sSource;
-      cidrLines = builtins.filter (
+  extractCIDRs = let
+    lines = lib.splitString "\n" k3sSource;
+    cidrLines =
+      builtins.filter (
         line: lib.strings.hasInfix "CIDR" line || lib.strings.hasInfix "clusterDNS" line
-      ) lines;
-    in
-    {
-      hasClusterCIDR = lib.strings.hasInfix "10.244.0.0/16" k3sSource;
-      hasServiceCIDR = lib.strings.hasInfix "10.0.0.0/12" k3sSource;
-      hasClusterDNS = lib.strings.hasInfix "10.0.0.10" k3sSource;
-    };
+      )
+      lines;
+  in {
+    hasClusterCIDR = lib.strings.hasInfix "10.244.0.0/16" k3sSource;
+    hasServiceCIDR = lib.strings.hasInfix "10.0.0.0/12" k3sSource;
+    hasClusterDNS = lib.strings.hasInfix "10.0.0.10" k3sSource;
+  };
 
   requiredSans = [
     "10.1.1.100"
@@ -51,9 +39,11 @@ let
     "metrics-server"
   ];
 
-  missingDisabled = builtins.filter (
-    comp: !(lib.strings.hasInfix "\"${comp}\"" k3sSource)
-  ) requiredDisabled;
+  missingDisabled =
+    builtins.filter (
+      comp: !(lib.strings.hasInfix "\"${comp}\"" k3sSource)
+    )
+    requiredDisabled;
 
   requiredServerPorts = [
     "10250"
@@ -62,9 +52,11 @@ let
     "2380"
   ];
 
-  missingServerPorts = builtins.filter (
-    port: !(lib.strings.hasInfix port k3sSource)
-  ) requiredServerPorts;
+  missingServerPorts =
+    builtins.filter (
+      port: !(lib.strings.hasInfix port k3sSource)
+    )
+    requiredServerPorts;
 
   usesMkOptionDefault = lib.strings.hasInfix "mkOptionDefault" k3sSource;
 
@@ -82,11 +74,11 @@ let
     hasServiceCIDR = cidrs.hasServiceCIDR;
     hasClusterDNS = cidrs.hasClusterDNS;
 
-    allSansPresent = missingSans == [ ];
+    allSansPresent = missingSans == [];
 
-    allDisabledPresent = missingDisabled == [ ];
+    allDisabledPresent = missingDisabled == [];
 
-    allServerPortsPresent = missingServerPorts == [ ];
+    allServerPortsPresent = missingServerPorts == [];
     usesMkOptionDefault = usesMkOptionDefault;
 
     hasServerRole = hasServerRole;
@@ -97,10 +89,8 @@ let
   };
 
   failures = lib.filterAttrs (_: v: v == false) allChecks;
-
-in
-{
+in {
   checks = allChecks;
   failures = builtins.attrNames failures;
-  passed = failures == { };
+  passed = failures == {};
 }

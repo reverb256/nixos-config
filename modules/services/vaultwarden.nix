@@ -3,17 +3,16 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.vaultwarden-module;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
     mkIf
     ;
-in
-{
+in {
   options.services.vaultwarden-module = {
     enable = mkEnableOption "Vaultwarden - Self-hosted password manager with FIDO2";
 
@@ -59,7 +58,7 @@ in
         "podman.service"
         "network-online.target"
       ];
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = ["multi-user.target"];
 
       serviceConfig = {
         ExecStart = ''
@@ -85,7 +84,6 @@ in
         MemoryMax = "512M";
         CPUQuota = "50%";
 
-        
         PrivateTmp = true;
         ProtectHome = true;
 
@@ -105,8 +103,8 @@ in
       reverseProxy = "localhost:${toString cfg.port}";
     };
 
-    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [ cfg.port ];
+    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [cfg.port];
 
-    environment.systemPackages = with pkgs; [ vaultwarden ];
+    environment.systemPackages = with pkgs; [vaultwarden];
   };
 }

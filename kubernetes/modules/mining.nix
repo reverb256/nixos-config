@@ -3,13 +3,11 @@
   config,
   lib,
   ...
-}:
-let
+}: let
   nixCsiScratch = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
   nexusIP = "10.1.1.120";
   xmrigProxy = "${nexusIP}:3333";
-in
-{
+in {
   config.kubernetes.objects = {
     none.Namespace.mining = {
       metadata.labels = {
@@ -18,12 +16,12 @@ in
       };
     };
 
-    mining.ServiceAccount.gpu-miner-sa = { };
+    mining.ServiceAccount.gpu-miner-sa = {};
     mining.Role.gpu-miner-role = {
       rules = [
         {
-          apiGroups = [ "" ];
-          resources = [ "configmaps" ];
+          apiGroups = [""];
+          resources = ["configmaps"];
           verbs = [
             "get"
             "list"
@@ -46,10 +44,9 @@ in
       };
     };
 
-
     mining.NetworkPolicy.default-deny-all = {
       spec = {
-        podSelector = { };
+        podSelector = {};
         policyTypes = [
           "Ingress"
           "Egress"
@@ -66,8 +63,8 @@ in
         ingress = [
           {
             from = [
-              { namespaceSelector.matchLabels.name = "mining"; }
-              { podSelector = { }; }
+              {namespaceSelector.matchLabels.name = "mining";}
+              {podSelector = {};}
             ];
             ports = [
               {
@@ -77,7 +74,7 @@ in
             ];
           }
           {
-            from = [ { namespaceSelector.matchLabels.name = "monitoring"; } ];
+            from = [{namespaceSelector.matchLabels.name = "monitoring";}];
             ports = [
               {
                 protocol = "TCP";
@@ -88,7 +85,7 @@ in
         ];
         egress = [
           {
-            to = [ { namespaceSelector = { }; } ];
+            to = [{namespaceSelector = {};}];
             ports = [
               {
                 protocol = "UDP";
@@ -134,10 +131,10 @@ in
     mining.NetworkPolicy.xmrig-miner-policy = {
       spec = {
         podSelector.matchLabels.app = "xmrig";
-        policyTypes = [ "Egress" ];
+        policyTypes = ["Egress"];
         egress = [
           {
-            to = [ { podSelector.matchLabels.app = "xmrig-proxy"; } ];
+            to = [{podSelector.matchLabels.app = "xmrig-proxy";}];
             ports = [
               {
                 protocol = "TCP";
@@ -146,7 +143,7 @@ in
             ];
           }
           {
-            to = [ { ipBlock.cidr = "10.1.1.0/24"; } ];
+            to = [{ipBlock.cidr = "10.1.1.0/24";}];
             ports = [
               {
                 protocol = "TCP";
@@ -155,7 +152,7 @@ in
             ];
           }
           {
-            to = [ { namespaceSelector = { }; } ];
+            to = [{namespaceSelector = {};}];
             ports = [
               {
                 protocol = "UDP";
@@ -173,10 +170,10 @@ in
     mining.NetworkPolicy.gpu-miner-policy = {
       spec = {
         podSelector.matchLabels.app = "gpu-miner";
-        policyTypes = [ "Egress" ];
+        policyTypes = ["Egress"];
         egress = [
           {
-            to = [ { podSelector.matchLabels.app = "xmrig-proxy"; } ];
+            to = [{podSelector.matchLabels.app = "xmrig-proxy";}];
             ports = [
               {
                 protocol = "TCP";
@@ -185,7 +182,7 @@ in
             ];
           }
           {
-            to = [ { ipBlock.cidr = "10.1.1.0/24"; } ];
+            to = [{ipBlock.cidr = "10.1.1.0/24";}];
             ports = [
               {
                 protocol = "TCP";
@@ -194,7 +191,7 @@ in
             ];
           }
           {
-            to = [ { namespaceSelector = { }; } ];
+            to = [{namespaceSelector = {};}];
             ports = [
               {
                 protocol = "UDP";
@@ -209,7 +206,6 @@ in
         ];
       };
     };
-
 
     mining.Deployment.xmrig-zephyr = {
       metadata = {
@@ -361,7 +357,7 @@ in
                 };
               };
               tmp = {
-                emptyDir = { };
+                emptyDir = {};
               };
             };
           };
@@ -490,7 +486,7 @@ in
                 };
               };
               tmp = {
-                emptyDir = { };
+                emptyDir = {};
               };
             };
           };
@@ -689,7 +685,7 @@ in
                     cpu = "1000m";
                   };
                 };
-                securityContext.capabilities.drop = [ "ALL" ];
+                securityContext.capabilities.drop = ["ALL"];
                 volumeMounts = {
                   _namedlist = true;
                   config = {
@@ -954,7 +950,7 @@ in
                 };
               };
               tmp = {
-                emptyDir = { };
+                emptyDir = {};
               };
             };
           };

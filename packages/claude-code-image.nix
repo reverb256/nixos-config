@@ -1,4 +1,14 @@
-{ dockerTools, buildEnv, bash, coreutils, fish, git, gnugrep, gnused, claude-code }:
+{
+  dockerTools,
+  buildEnv,
+  bash,
+  coreutils,
+  fish,
+  git,
+  gnugrep,
+  gnused,
+  claude-code,
+}:
 dockerTools.buildImage {
   name = "claude-code";
   tag = "nixos";
@@ -34,7 +44,7 @@ dockerTools.buildImage {
       "SHELL=/bin/fish"
     ];
     ExposedPorts = {
-      "8080/tcp" = { };
+      "8080/tcp" = {};
     };
     Labels = {
       "org.opencontainers.image.title" = "Claude Code";

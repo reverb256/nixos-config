@@ -4,11 +4,9 @@
   lib,
   inputs,
   ...
-}:
-let
+}: let
   cluster = config.networking.cluster;
-in
-{
+in {
   imports = [
     ./monitoring.nix
     ./firewall.nix
@@ -29,11 +27,11 @@ in
   nixpkgs.config.packageOverrides = pkgs: {
     llama-cpp-turboquant = pkgs.llama-cpp-turboquant.overrideAttrs (old: {
       CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=zen3";
-      cmakeFlags = (old.cmakeFlags or []) ++ [ "-DLLAMA_CUDA_ARCHITECTURES=86" ];
+      cmakeFlags = (old.cmakeFlags or []) ++ ["-DLLAMA_CUDA_ARCHITECTURES=86"];
     });
     llama-cpp = pkgs.llama-cpp.overrideAttrs (old: {
       CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=zen3";
-      cmakeFlags = (old.cmakeFlags or []) ++ [ "-DLLAMA_CUDA_ARCHITECTURES=86" ];
+      cmakeFlags = (old.cmakeFlags or []) ++ ["-DLLAMA_CUDA_ARCHITECTURES=86"];
     });
   };
 
@@ -63,7 +61,6 @@ in
       };
     };
   };
-
 
   zramSwap = {
     enable = true;
@@ -111,11 +108,10 @@ in
 
   security.kubernetes.enable = true;
 
-
   security.gpg.enable = true;
 
   systemd.user.services.gamemoded = {
-    wantedBy = [ "default.target" ];
+    wantedBy = ["default.target"];
   };
 
   fileSystems = {
@@ -136,14 +132,13 @@ in
   fileSystems."/data/hermes" = {
     device = "/home/j_kro/.hermes";
     fsType = "none";
-    options = [ "bind" "rw" ];
+    options = ["bind" "rw"];
   };
   fileSystems."/data/pi" = {
     device = "/home/j_kro/.pi";
     fsType = "none";
-    options = [ "bind" "rw" ];
+    options = ["bind" "rw"];
   };
-
 
   i18n.defaultLocale = "en_CA.UTF-8";
 

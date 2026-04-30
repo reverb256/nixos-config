@@ -63,7 +63,7 @@ in {
         ProtectSystem = "strict";
         PrivateTmp = true;
         NoNewPrivileges = true;
-        ReadWritePaths = [ runnerHome ];
+        ReadWritePaths = [runnerHome];
       };
 
       wantedBy = ["multi-user.target"];

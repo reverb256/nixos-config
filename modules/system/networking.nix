@@ -1,24 +1,22 @@
 {
   lib,
   pkgs,
-  config,
   ...
-}:
-{
+}: {
   networking = {
     networkmanager = {
       enable = lib.mkDefault true;
-      insertNameservers = [ "127.0.0.1" "::1" ];
+      insertNameservers = ["127.0.0.1" "::1"];
     };
     useDHCP = false;
 
     hosts = {
-      "10.1.1.110" = [ "zephyr" ];
-      "10.1.1.120" = [ "nexus" "haven.lan" "haven.cluster.local" ];
-      "10.1.1.130" = [ "forge" ];
-      "10.1.1.150" = [ "krash3" ];
-      "10.1.1.173" = [ "hp-envy7800" "printer" ];
-      "10.1.1.140" = [ "sentry" ];
+      "10.1.1.110" = ["zephyr"];
+      "10.1.1.120" = ["nexus" "haven.lan" "haven.cluster.local"];
+      "10.1.1.130" = ["forge"];
+      "10.1.1.150" = ["krash3"];
+      "10.1.1.173" = ["hp-envy7800" "printer"];
+      "10.1.1.140" = ["sentry"];
     };
 
     extraHosts = lib.mkOptionDefault ''
@@ -98,7 +96,6 @@
       '';
     };
 
-
     timesyncd = {
       enable = true;
       servers = [
@@ -122,15 +119,12 @@
       RemainAfterExit = true;
     };
   };
-  systemd.targets.network-online.wantedBy = lib.mkForce [ "network-online.target" ];
-
-
+  systemd.targets.network-online.wantedBy = lib.mkForce ["network-online.target"];
 
   boot.kernel.sysctl = {
     "net.ipv4.tcp_congestion_control" = "bbr";
     "net.core.default_qdisc" = "fq";
   };
-
 
   environment.etc."analytics-blocklist-active".text = ''
     Analytics & Telemetry Blocklist is active.

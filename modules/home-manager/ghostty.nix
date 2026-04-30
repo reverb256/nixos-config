@@ -17,7 +17,6 @@
 
       cursor-style = "block";
       cursor-style-blink = false;
-
     };
   };
 }

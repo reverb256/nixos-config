@@ -1,6 +1,4 @@
-{ lib, ... }:
-{
-
+{lib, ...}: {
   services = {
     gpu-exporters.enable = true;
 
@@ -23,9 +21,7 @@
 
       node-exporter.enable = true;
       smart-exporter.enable = true;
-
     };
-
 
     mining-exporter.enable = true;
 
@@ -55,5 +51,5 @@
     };
   };
 
-  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ 9100 ];
+  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [9100];
 }

@@ -1,5 +1,10 @@
-{ config, lib, pkgs, inputs, ... }:
 {
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}: {
   imports = [
     inputs.impermanence.nixosModules.impermanence
   ];
@@ -13,7 +18,7 @@
       "/var/log"
       "/var/lib/nixos"
       "/var/lib/systemd/coredump"
-      "/var/lib/systemd/backlight"  # display brightness
+      "/var/lib/systemd/backlight" # display brightness
 
       # Networking
       "/etc/NetworkManager/system-connections"
@@ -47,15 +52,20 @@
       "/etc/ssh/ssh_host_ed25519_key.pub"
       "/etc/ssh/ssh_host_rsa_key"
       "/etc/ssh/ssh_host_rsa_key.pub"
-
     ];
 
     # User-level persistence (j_kro)
     users.j_kro = {
       directories = [
         # SSH keys
-        { directory = ".ssh"; mode = "0700"; }
-        { directory = ".gnupg"; mode = "0700"; }
+        {
+          directory = ".ssh";
+          mode = "0700";
+        }
+        {
+          directory = ".gnupg";
+          mode = "0700";
+        }
 
         # Hermes agent state
         ".hermes"
@@ -83,7 +93,10 @@
         ".cache/huggingface"
 
         # Keyrings
-        { directory = ".local/share/keyrings"; mode = "0700"; }
+        {
+          directory = ".local/share/keyrings";
+          mode = "0700";
+        }
       ];
 
       files = [
@@ -97,7 +110,7 @@
   # bind mount services run, causing "A file already exists" failures.
   # Symlinks are created AFTER activation, overriding what NixOS made.
   # Seed uid-map/gid-map with valid JSON on fresh impermanence installs
-  system.activationScripts.seed-uid-gid-maps = lib.stringAfter [ "etc" ] ''
+  system.activationScripts.seed-uid-gid-maps = lib.stringAfter ["etc"] ''
     for f in /var/lib/nixos/uid-map /var/lib/nixos/gid-map /persistent/var/lib/nixos/uid-map /persistent/var/lib/nixos/gid-map; do
       if [ -f "$f" ] && [ ! -s "$f" ]; then
         echo '{}' > "$f"
@@ -105,7 +118,7 @@
     done
   '';
 
-  system.activationScripts.persist-symlinks = lib.stringAfter [ "etc" "users" ] ''
+  system.activationScripts.persist-symlinks = lib.stringAfter ["etc" "users"] ''
     # machine-id: remove NixOS symlink and point to persistent copy
     if [ -f /persistent/etc/machine-id ]; then
       rm -f /etc/machine-id

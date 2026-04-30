@@ -156,194 +156,190 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
-  outputs =
-    inputs@{
-      self,
-      nixpkgs,
-      home-manager,
-      aagl,
-      nur,
-      claude-native,
-      agenix,
-      nix-mineral,
-      colmena,
-      pre-commit-hooks,
-      ...
+  outputs = inputs @ {
+    self,
+    nixpkgs,
+    home-manager,
+    aagl,
+    nur,
+    claude-native,
+    agenix,
+    nix-mineral,
+    colmena,
+    pre-commit-hooks,
+    ...
+  }: let
+    system = "x86_64-linux";
+    pkgs = import nixpkgs {
+      inherit system;
+      config.allowUnfree = true;
+    };
+
+    pkgsWithOverlay = import nixpkgs {
+      inherit system;
+      config.allowUnfree = true;
+      config.cudaSupport = true;
+      overlays = [((import ./overlay.nix) {inherit inputs;})];
+    };
+
+    commonModules = import ./common-modules-list.nix {
+      inherit inputs self;
+    };
+
+    mkNixosSystem = {
+      hostName,
+      extraModules ? [],
     }:
-    let
-      system = "x86_64-linux";
-      pkgs = import nixpkgs {
-        inherit system;
-        config.allowUnfree = true;
-        config.cudaSupport = true;
-      };
-      pkgsWithOverlay = import nixpkgs {
-        inherit system;
-        config.allowUnfree = true;
-        config.cudaSupport = true;
-        overlays = [ ((import ./overlay.nix) { inherit inputs; }) ];
+      nixpkgs.lib.nixosSystem {
+        specialArgs = {
+          inherit inputs;
+        };
+        modules =
+          commonModules
+          ++ [
+            ./hosts/${hostName}/configuration.nix
+          ]
+          ++ extraModules;
       };
 
-      commonModules = import ./common-modules-list.nix {
-        inherit inputs self;
+    hosts = {
+      zephyr = {
+        hostName = "zephyr";
       };
-
-      mkNixosSystem =
-        {
-          hostName,
-          extraModules ? [ ],
-        }:
-        nixpkgs.lib.nixosSystem {
-          specialArgs = {
-            inherit inputs;
-          };
-          modules =
-            commonModules
-            ++ [
-              ./hosts/${hostName}/configuration.nix
-            ]
-            ++ extraModules;
-        };
-
-      hosts = {
-        zephyr = {
-          hostName = "zephyr";
-        };
-        nexus = {
-          hostName = "nexus";
-        };
-        forge = {
-          hostName = "forge";
-        };
-        sentry = {
-          hostName = "sentry";
-        };
+      nexus = {
+        hostName = "nexus";
       };
-    in
-    {
+      forge = {
+        hostName = "forge";
+      };
+      sentry = {
+        hostName = "sentry";
+      };
+    };
+  in {
+    checks.x86_64-linux = {};
 
-
-      checks.x86_64-linux = {};
-
-      nixosConfigurations = (builtins.mapAttrs (
-        _name: value: mkNixosSystem { inherit (value) hostName; }
-      ) hosts) // {
+    nixosConfigurations =
+      (builtins.mapAttrs (
+          _name: value: mkNixosSystem {inherit (value) hostName;}
+        )
+        hosts)
+      // {
         # Phase 3: MicroVM configurations (not regular hosts, not managed by Colmena)
         ci-test = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
-          modules = [ ./hosts/ci-test/configuration.nix ];
-          specialArgs = { inherit inputs; };
+          modules = [./hosts/ci-test/configuration.nix];
+          specialArgs = {inherit inputs;};
         };
         # Rescue USB — standalone live ISO (no mining/gaming/K8s)
         usb-rescue = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
-          specialArgs = { inherit inputs; };
-          modules = [ ./hosts/usb/configuration.nix ];
+          specialArgs = {inherit inputs;};
+          modules = [./hosts/usb/configuration.nix];
         };
       };
 
-      colmena = import ./colmena.nix {
-        inherit inputs self;
-        inherit hosts;
+    colmena = import ./colmena.nix {
+      inherit inputs self;
+      inherit hosts;
+    };
+
+    colmenaHive = colmena.lib.makeHive self.outputs.colmena;
+
+    packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
+    packages.x86_64-linux.llama-cpp = pkgsWithOverlay.llama-cpp;
+    packages.x86_64-linux.caddy-with-modules = inputs.caddy-ingress.packages.x86_64-linux.caddy-with-modules;
+    packages.x86_64-linux.caddy-ingress-image = inputs.caddy-ingress.packages.x86_64-linux.caddy-ingress-image;
+    packages.x86_64-linux.hermes-chat = pkgsWithOverlay.hermes-chat;
+    packages.x86_64-linux.privacy-filter = pkgsWithOverlay.privacy-filter;
+
+    packages.x86_64-linux.xmrig-proxy-image = pkgsWithOverlay.dockerTools.buildImage {
+      name = "xmrig-proxy";
+      tag = "nixos-6.24.0";
+      copyToRoot = pkgsWithOverlay.buildEnv {
+        name = "xmrig-proxy-root";
+        paths = [
+          pkgsWithOverlay.xmrig-proxy
+          pkgsWithOverlay.bash
+          pkgsWithOverlay.coreutils
+          pkgsWithOverlay.cacert
+        ];
+        pathsToLink = [
+          "/bin"
+          "/etc"
+          "/lib"
+        ];
       };
-
-      colmenaHive = colmena.lib.makeHive self.outputs.colmena;
-
-      packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
-      packages.x86_64-linux.llama-cpp = pkgsWithOverlay.llama-cpp;
-      packages.x86_64-linux.caddy-with-modules = inputs.caddy-ingress.packages.x86_64-linux.caddy-with-modules;
-      packages.x86_64-linux.caddy-ingress-image = inputs.caddy-ingress.packages.x86_64-linux.caddy-ingress-image;
-      packages.x86_64-linux.hermes-chat = pkgsWithOverlay.hermes-chat;
-      packages.x86_64-linux.privacy-filter = pkgsWithOverlay.privacy-filter;
-
-      packages.x86_64-linux.xmrig-proxy-image = pkgsWithOverlay.dockerTools.buildImage {
-        name = "xmrig-proxy";
-        tag = "nixos-6.24.0";
-        copyToRoot = pkgsWithOverlay.buildEnv {
-          name = "xmrig-proxy-root";
-          paths = [
-            pkgsWithOverlay.xmrig-proxy
-            pkgsWithOverlay.bash
-            pkgsWithOverlay.coreutils
-            pkgsWithOverlay.cacert
-          ];
-          pathsToLink = [
-            "/bin"
-            "/etc"
-            "/lib"
-          ];
+      config = {
+        Entrypoint = ["/bin/xmrig-proxy"];
+        Cmd = [
+          "--config=/etc/xmrig-proxy/config.json"
+          "--no-color"
+        ];
+        ExposedPorts = {
+          "3333/tcp" = {};
+          "8081/tcp" = {};
         };
-        config = {
-          Entrypoint = [ "/bin/xmrig-proxy" ];
-          Cmd = [
-            "--config=/etc/xmrig-proxy/config.json"
-            "--no-color"
-          ];
-          ExposedPorts = {
-            "3333/tcp" = { };
-            "8081/tcp" = { };
-          };
-          Env = [
-            "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
-            "PATH=/bin"
-          ];
-        };
-      };
-
-      # packages.x86_64-linux.lolminer-image = inputs.compute-market.packages.x86_64-linux.lolminer-image; # migrated
-      # packages.x86_64-linux.lolminer-amd-image = inputs.compute-market.packages.x86_64-linux.lolminer-amd-image; # migrated
-      packages.x86_64-linux.xmrig-nixos-image = inputs.compute-market.packages.x86_64-linux.xmrig-nixos-image; # migrated
-      packages.x86_64-linux.xmrig-alpine-image = inputs.compute-market.packages.x86_64-linux.xmrig-alpine-image; # migrated
-      packages.x86_64-linux.xmrig-proxy-alpine-image = inputs.compute-market.packages.x86_64-linux.xmrig-proxy-alpine-image; # migrated
-      packages.x86_64-linux.claude-code-image = pkgsWithOverlay.claude-code-image; # extracted to packages/claude-code-image.nix
-      packages.x86_64-linux.ai-inference-gateway-image = inputs.ai-gateway.packages.x86_64-linux.container; # migrated from local pkgs/
-      packages.x86_64-linux.opencode-image = pkgsWithOverlay.opencode-image; # extracted to packages/opencode-image.nix
-      overlays.default = (import ./overlay.nix) { inherit inputs; };
-      kubernetes = import ./kubernetes { inherit pkgs pkgsWithOverlay inputs; };
-
-
-      apps.x86_64-linux.k8s-validate = {
-        type = "app";
-        program = "${self.kubernetes.validationScript}/bin/kubeval";
-        meta.description = "Validate K8s manifests against ephemeral apiserver";
-      };
-
-      apps.x86_64-linux.k8s-deploy = {
-        type = "app";
-        program = "${self.kubernetes.deploymentScript}/bin/kubenixDeploy";
-        meta.description = "Deploy K8s manifests via kluctl";
-      };
-
-      apps.x86_64-linux.colmena = {
-        type = "app";
-        program = "${colmena.packages.x86_64-linux.colmena}/bin/colmena";
-        meta.description = "Colmena multi-host NixOS deployment";
-      };
-
-      # ── Phase 5: Unified deployment pipeline apps ───────────────────────────
-
-      apps.x86_64-linux.deploy = {
-        type = "app";
-        program = toString (pkgs.writeShellScriptBin "deploy" ''
-          exec ${self}/scripts/deploy.sh "$@"
-        '');
-        meta.description = "Unified deployment: validate + colmena + nix copy + k8s apply";
-      };
-
-      apps.x86_64-linux.rollback = {
-        type = "app";
-        program = toString (pkgs.writeShellScriptBin "rollback" ''
-          exec ${self}/scripts/rollback.sh "$@"
-        '');
-        meta.description = "Unified rollback for OS and K8s";
-      };
-
-      apps.x86_64-linux.check = {
-        type = "app";
-        program = toString (pkgs.writeShellScriptBin "check" ''
-          exec ${self}/scripts/check.sh "$@"
-        '');
-        meta.description = "Run all validations: flake check, colmena build, k8s dry-run, connectivity";
+        Env = [
+          "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
+          "PATH=/bin"
+        ];
       };
     };
+
+    # packages.x86_64-linux.lolminer-image = inputs.compute-market.packages.x86_64-linux.lolminer-image; # migrated
+    # packages.x86_64-linux.lolminer-amd-image = inputs.compute-market.packages.x86_64-linux.lolminer-amd-image; # migrated
+    packages.x86_64-linux.xmrig-nixos-image = inputs.compute-market.packages.x86_64-linux.xmrig-nixos-image; # migrated
+    packages.x86_64-linux.xmrig-alpine-image = inputs.compute-market.packages.x86_64-linux.xmrig-alpine-image; # migrated
+    packages.x86_64-linux.xmrig-proxy-alpine-image = inputs.compute-market.packages.x86_64-linux.xmrig-proxy-alpine-image; # migrated
+    packages.x86_64-linux.claude-code-image = pkgsWithOverlay.claude-code-image; # extracted to packages/claude-code-image.nix
+    packages.x86_64-linux.ai-inference-gateway-image = inputs.ai-gateway.packages.x86_64-linux.container; # migrated from local pkgs/
+    packages.x86_64-linux.opencode-image = pkgsWithOverlay.opencode-image; # extracted to packages/opencode-image.nix
+    overlays.default = (import ./overlay.nix) {inherit inputs;};
+    kubernetes = import ./kubernetes {inherit pkgs pkgsWithOverlay inputs;};
+
+    apps.x86_64-linux.k8s-validate = {
+      type = "app";
+      program = "${self.kubernetes.validationScript}/bin/kubeval";
+      meta.description = "Validate K8s manifests against ephemeral apiserver";
+    };
+
+    apps.x86_64-linux.k8s-deploy = {
+      type = "app";
+      program = "${self.kubernetes.deploymentScript}/bin/kubenixDeploy";
+      meta.description = "Deploy K8s manifests via kluctl";
+    };
+
+    apps.x86_64-linux.colmena = {
+      type = "app";
+      program = "${colmena.packages.x86_64-linux.colmena}/bin/colmena";
+      meta.description = "Colmena multi-host NixOS deployment";
+    };
+
+    # ── Phase 5: Unified deployment pipeline apps ───────────────────────────
+
+    apps.x86_64-linux.deploy = {
+      type = "app";
+      program = toString (pkgs.writeShellScriptBin "deploy" ''
+        exec ${self}/scripts/deploy.sh "$@"
+      '');
+      meta.description = "Unified deployment: validate + colmena + nix copy + k8s apply";
+    };
+
+    apps.x86_64-linux.rollback = {
+      type = "app";
+      program = toString (pkgs.writeShellScriptBin "rollback" ''
+        exec ${self}/scripts/rollback.sh "$@"
+      '');
+      meta.description = "Unified rollback for OS and K8s";
+    };
+
+    apps.x86_64-linux.check = {
+      type = "app";
+      program = toString (pkgs.writeShellScriptBin "check" ''
+        exec ${self}/scripts/check.sh "$@"
+      '');
+      meta.description = "Run all validations: flake check, colmena build, k8s dry-run, connectivity";
+    };
+  };
 }

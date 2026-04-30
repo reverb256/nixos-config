@@ -1,10 +1,8 @@
 {
-  pkgs,
   config,
   lib,
   ...
-}:
-let
+}: let
   # Pinned to latest published GHCR tag (sha-90a5615, Apr 14 2026)
   # Latest commit a020d1b has failing CI, no published image yet.
   # Check: https://github.com/builderz-labs/mission-control/pkgs/container/mission-control/versions
@@ -15,8 +13,7 @@ let
   # NOTE: local-path PVC is node-bound. If forge goes down, data stays there.
   # TODO: when sentry disk is fixed, consider NFS with SQLite journal_mode=DELETE.
   targetNode = "forge";
-in
-{
+in {
   config.kubernetes.objects = {
     # ── Namespace ──────────────────────────────────────────────────────
     none.Namespace.orchestration = {
@@ -34,7 +31,7 @@ in
     # Using local-path SC which binds to the node the pod runs on.
     orchestration.PersistentVolumeClaim.mission-control-data = {
       spec = {
-        accessModes = [ "ReadWriteOnce" ];
+        accessModes = ["ReadWriteOnce"];
         storageClassName = "local-path";
         resources.requests.storage = "2Gi";
       };
@@ -151,7 +148,7 @@ in
                 persistentVolumeClaim.claimName = "mission-control-data";
               };
               tmp = {
-                emptyDir = { };
+                emptyDir = {};
               };
             };
           };
@@ -184,30 +181,39 @@ in
       };
       spec = {
         podSelector.matchLabels.app = "mission-control";
-        policyTypes = [ "Ingress" ];
+        policyTypes = ["Ingress"];
         ingress = [
           {
             from = [
-              { namespaceSelector.matchLabels.name = "ingress-system"; }
+              {namespaceSelector.matchLabels.name = "ingress-system";}
             ];
             ports = [
-              { protocol = "TCP"; port = 3000; }
+              {
+                protocol = "TCP";
+                port = 3000;
+              }
             ];
           }
           {
             from = [
-              { ipBlock.cidr = "10.244.0.0/16"; }
+              {ipBlock.cidr = "10.244.0.0/16";}
             ];
             ports = [
-              { protocol = "TCP"; port = 3000; }
+              {
+                protocol = "TCP";
+                port = 3000;
+              }
             ];
           }
           {
             from = [
-              { ipBlock.cidr = "10.1.1.0/24"; }
+              {ipBlock.cidr = "10.1.1.0/24";}
             ];
             ports = [
-              { protocol = "TCP"; port = 3000; }
+              {
+                protocol = "TCP";
+                port = 3000;
+              }
             ];
           }
         ];
@@ -222,20 +228,31 @@ in
       };
       spec = {
         podSelector.matchLabels.app = "mission-control";
-        policyTypes = [ "Egress" ];
+        policyTypes = ["Egress"];
         egress = [
           {
-            to = [ { ipBlock.cidr = "0.0.0.0/0"; } ];
+            to = [{ipBlock.cidr = "0.0.0.0/0";}];
             ports = [
-              { protocol = "UDP"; port = 53; }
-              { protocol = "TCP"; port = 53; }
-              { protocol = "TCP"; port = 443; }
-              { protocol = "TCP"; port = 80; }
+              {
+                protocol = "UDP";
+                port = 53;
+              }
+              {
+                protocol = "TCP";
+                port = 53;
+              }
+              {
+                protocol = "TCP";
+                port = 443;
+              }
+              {
+                protocol = "TCP";
+                port = 80;
+              }
             ];
           }
         ];
       };
     };
-
   };
 }

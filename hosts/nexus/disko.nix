@@ -2,8 +2,7 @@
   lib,
   pkgs,
   ...
-}:
-{
+}: {
   disko.devices = {
     disk.nvme1n1 = {
       device = "/dev/nvme1n1";
@@ -37,7 +36,7 @@
             size = "100%";
             content = {
               type = "btrfs";
-              extraArgs = [ "-f" ];
+              extraArgs = ["-f"];
               subvolumes = {
                 # Ephemeral root — wiped each boot via impermanence
                 "@root" = {
@@ -92,28 +91,28 @@
 
   # Impermanence requires these to be neededForBoot
   fileSystems = {
-    "/persistent" = { neededForBoot = true; };
-    "/nix" = { neededForBoot = true; };
-    "/home" = { neededForBoot = true; };
-    "/etc" = { neededForBoot = true; };
-    "/var" = { neededForBoot = true; };
-    "/var/lib" = { neededForBoot = true; };
+    "/persistent" = {neededForBoot = true;};
+    "/nix" = {neededForBoot = true;};
+    "/home" = {neededForBoot = true;};
+    "/etc" = {neededForBoot = true;};
+    "/var" = {neededForBoot = true;};
+    "/var/lib" = {neededForBoot = true;};
   };
 
   # BTRFS impermanence: recreate root subvolume each boot via systemd service
   # (systemd stage 1 doesn't support boot.initrd.postResumeCommands)
   boot.initrd.systemd.enable = true;
-  boot.initrd.systemd.initrdBin = with pkgs; [ btrfs-progs coreutils findutils util-linux ];
+  boot.initrd.systemd.initrdBin = with pkgs; [btrfs-progs coreutils findutils util-linux];
   boot.initrd.systemd.services.impermanence-root-rotate = {
     description = "Rotate ephemeral BTRFS root subvolume";
-    requiredBy = [ "initrd-root-device.target" ];
-    before = [ "sysroot.mount" ];
-    after = [ "dev-nvme1n1p3.device" ];
+    requiredBy = ["initrd-root-device.target"];
+    before = ["sysroot.mount"];
+    after = ["dev-nvme1n1p3.device"];
     unitConfig.DefaultDependencies = "no";
     serviceConfig.Type = "oneshot";
-    path = with pkgs; [ btrfs-progs coreutils findutils util-linux ];
+    path = with pkgs; [btrfs-progs coreutils findutils util-linux];
     preStart = ''
-      export PATH=${lib.makeBinPath [ pkgs.btrfs-progs pkgs.coreutils pkgs.findutils pkgs.util-linux ]}:$PATH
+      export PATH=${lib.makeBinPath [pkgs.btrfs-progs pkgs.coreutils pkgs.findutils pkgs.util-linux]}:$PATH
     '';
     script = ''
       mkdir -p /btrfs_tmp

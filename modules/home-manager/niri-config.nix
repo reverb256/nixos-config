@@ -3,17 +3,14 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   inherit (lib) mkDefault mkIf;
   niriHmAvailable = config.lib ? niri;
-in
-{
+in {
   programs.niri.settings = mkIf niriHmAvailable (
     let
       acts = config.lib.niri.actions;
-    in
-    {
+    in {
       spawn-at-startup = [
         {
           argv = [
@@ -209,28 +206,28 @@ in
         "Mod+E".action = spawn "launch-or-focus" "Dolphin" "${pkgs.kdePackages.dolphin}/bin/dolphin";
         "Mod+N".action =
           spawn "launch-or-focus" "KWrite" "uwsm" "app" "--"
-            "${pkgs.kdePackages.kate}/bin/kwrite";
+          "${pkgs.kdePackages.kate}/bin/kwrite";
         "Mod+Shift+N".action =
           spawn "launch-or-focus" "Kate" "uwsm" "app" "--"
-            "${pkgs.kdePackages.kate}/bin/kate";
+          "${pkgs.kdePackages.kate}/bin/kate";
         "Mod+O".action = spawn "launch-or-focus" "Obsidian" "uwsm" "app" "--" "obsidian";
         "Mod+T".action = spawn "uwsm" "app" "--" "ghostty" "-e" "btop";
         "Mod+D".action = spawn "uwsm" "app" "--" "ghostty" "-e" "lazydocker";
         "Mod+G".action = spawn "launch-or-focus" "Vesktop" "uwsm" "app" "--" "vesktop";
         "Mod+Shift+G".action =
           spawn "launch-or-focus" "Grok" "uwsm" "app" "--" "firefoxpwa" "site" "launch"
-            "grok";
+          "grok";
         "Mod+A".action = spawn "launch-or-focus" "LM" "uwsm" "app" "--" "lm-studio";
         "Mod+Shift+A".action =
           spawn "launch-or-focus" "ChatGPT" "uwsm" "app" "--" "firefoxpwa" "site" "launch"
-            "chatgpt";
+          "chatgpt";
         "Mod+M".action =
           spawn "launch-or-focus" "Spotify" "uwsm" "app" "--" "flatpak" "run"
-            "com.spotify.Client";
+          "com.spotify.Client";
         "Mod+Shift+M".action = spawn "launch-or-focus" "Caprine" "uwsm" "app" "--" "caprine";
         "Mod+Slash".action =
           spawn "launch-or-focus" "Bitwarden" "uwsm" "app" "--" "flatpak" "run"
-            "com.bitwarden.desktop";
+          "com.bitwarden.desktop";
 
         # Voice dictation - push-to-talk
         "Mod+Alt+V".action = spawn-sh "voxtype record toggle";
@@ -291,7 +288,7 @@ in
 
         # Screen recording (toggle: run to start, run again to stop)
         "Alt+Print" = {
-          action.spawn = [ "screenrecord" ];
+          action.spawn = ["screenrecord"];
         };
         "Mod+Alt+Shift+Print" = {
           action.spawn = [
@@ -417,37 +414,37 @@ in
         # ═══════════════════════════════════════════════════════════════
         {
           matches = [
-            { app-id = "pavucontrol"; }
-            { app-id = "nm-connection-editor"; }
-            { app-id = "blueman-manager"; }
-            { app-id = "gnome-calculator"; }
-            { app-id = "gnome-control-center"; }
-            { app-id = "org.kde.kinfocenter"; }
-            { app-id = "file-roller"; }
-            { app-id = "org.kde.ark"; }
-            { app-id = "pinentry-"; }
-            { title = "File Transfer*"; }
-            { title = "Authentication*"; }
+            {app-id = "pavucontrol";}
+            {app-id = "nm-connection-editor";}
+            {app-id = "blueman-manager";}
+            {app-id = "gnome-calculator";}
+            {app-id = "gnome-control-center";}
+            {app-id = "org.kde.kinfocenter";}
+            {app-id = "file-roller";}
+            {app-id = "org.kde.ark";}
+            {app-id = "pinentry-";}
+            {title = "File Transfer*";}
+            {title = "Authentication*";}
           ];
           open-floating = true;
         }
         # Polkit auth agent
         {
           matches = [
-            { app-id = "org.kde.polkit-kde-authentication-agent-1"; }
-            { title = ".*Authentication Required.*"; }
+            {app-id = "org.kde.polkit-kde-authentication-agent-1";}
+            {title = ".*Authentication Required.*";}
           ];
           open-floating = true;
         }
         # GTK/Qt file chooser dialogs from any app
         {
           matches = [
-            { title = "Open (.*Files?|Folder).*"; }
-            { title = "Save (.*Files?|As).*"; }
-            { title = "Select.*"; }
-            { title = "Choose.*"; }
-            { title = "Rename.*"; }
-            { title = "Properties.*"; }
+            {title = "Open (.*Files?|Folder).*";}
+            {title = "Save (.*Files?|As).*";}
+            {title = "Select.*";}
+            {title = "Choose.*";}
+            {title = "Rename.*";}
+            {title = "Properties.*";}
             {
               app-id = "org.kde.dolphin";
               title = "Open.*";
@@ -468,8 +465,8 @@ in
               app-id = "org.kde.dolphin";
               title = "Delete.*";
             }
-            { app-id = "org.gtk.FileChooserDialog"; }
-            { app-id = "xdg-desktop-portal-gtk"; }
+            {app-id = "org.gtk.FileChooserDialog";}
+            {app-id = "xdg-desktop-portal-gtk";}
           ];
           open-floating = true;
           default-column-width = {
@@ -481,12 +478,12 @@ in
         }
         # Screen share picker
         {
-          matches = [ { title = "Choose what to share"; } ];
+          matches = [{title = "Choose what to share";}];
           open-floating = true;
         }
         # Picture-in-Picture overlays — float, pin top-left
         {
-          matches = [ { title = "Picture-in-Picture"; } ];
+          matches = [{title = "Picture-in-Picture";}];
           open-floating = true;
           default-floating-position = {
             x = 10;
@@ -522,11 +519,11 @@ in
         # Browsers — full width
         {
           matches = [
-            { app-id = "firefox"; }
-            { app-id = "zen-twilight"; }
-            { app-id = "librewolf"; }
-            { app-id = "chromium"; }
-            { app-id = "brave"; }
+            {app-id = "firefox";}
+            {app-id = "zen-twilight";}
+            {app-id = "librewolf";}
+            {app-id = "chromium";}
+            {app-id = "brave";}
           ];
           default-column-width = {
             proportion = 1.0;
@@ -535,11 +532,11 @@ in
         # Terminals — half width
         {
           matches = [
-            { app-id = "Alacritty"; }
-            { app-id = "kitty"; }
-            { app-id = "foot"; }
-            { app-id = "gnome-terminal"; }
-            { app-id = "com.mitchellh.ghostty"; }
+            {app-id = "Alacritty";}
+            {app-id = "kitty";}
+            {app-id = "foot";}
+            {app-id = "gnome-terminal";}
+            {app-id = "com.mitchellh.ghostty";}
           ];
           default-column-width = {
             proportion = 0.5;
@@ -548,11 +545,11 @@ in
         # IDEs and editors — 70%
         {
           matches = [
-            { app-id = "code"; }
-            { app-id = "code-url-handler"; }
-            { app-id = "jetbrains-"; }
-            { app-id = "emacs"; }
-            { app-id = "obsidian"; }
+            {app-id = "code";}
+            {app-id = "code-url-handler";}
+            {app-id = "jetbrains-";}
+            {app-id = "emacs";}
+            {app-id = "obsidian";}
           ];
           default-column-width = {
             proportion = 0.7;
@@ -561,12 +558,12 @@ in
         # Chat/messaging — 50% (compact, chat doesn't need width)
         {
           matches = [
-            { app-id = "vesktop"; }
-            { app-id = "caprine"; }
-            { app-id = "telegram.desktop"; }
-            { app-id = "org.telegram.desktop"; }
-            { app-id = "Signal"; }
-            { app-id = "discord"; }
+            {app-id = "vesktop";}
+            {app-id = "caprine";}
+            {app-id = "telegram.desktop";}
+            {app-id = "org.telegram.desktop";}
+            {app-id = "Signal";}
+            {app-id = "discord";}
           ];
           default-column-width = {
             proportion = 0.5;
@@ -575,10 +572,10 @@ in
         # Media players — 65%
         {
           matches = [
-            { app-id = "spotify"; }
-            { app-id = "mpv"; }
-            { app-id = "vlc"; }
-            { app-id = "org.kde.audiotube"; }
+            {app-id = "spotify";}
+            {app-id = "mpv";}
+            {app-id = "vlc";}
+            {app-id = "org.kde.audiotube";}
           ];
           default-column-width = {
             proportion = 0.65;
@@ -587,7 +584,7 @@ in
         # System monitors — 40% (narrow, data-dense)
         {
           matches = [
-            { app-id = "org.kde.systemmonitor"; }
+            {app-id = "org.kde.systemmonitor";}
           ];
           default-column-width = {
             proportion = 0.4;
@@ -599,12 +596,12 @@ in
         # ═══════════════════════════════════════════════════════════════
         {
           matches = [
-            { app-id = "bitwarden"; }
-            { app-id = "Bitwarden"; }
-            { app-id = "keepassxc"; }
-            { app-id = "1password"; }
-            { title = ".*Password.*"; }
-            { title = ".*Secret.*"; }
+            {app-id = "bitwarden";}
+            {app-id = "Bitwarden";}
+            {app-id = "keepassxc";}
+            {app-id = "1password";}
+            {title = ".*Password.*";}
+            {title = ".*Secret.*";}
           ];
           block-out-from = "screen-capture";
         }
@@ -613,7 +610,7 @@ in
         # GAMING — route to TV (HDMI-A-2), fullscreen
         # ═══════════════════════════════════════════════════════════════
         {
-          matches = [ { app-id = ".*GenshinImpact.*"; } ];
+          matches = [{app-id = ".*GenshinImpact.*";}];
           open-on-output = "HDMI-A-2";
           open-fullscreen = true;
         }
@@ -629,14 +626,14 @@ in
         }
         {
           matches = [
-            { app-id = "moe.launcher.an-anime-game-launcher"; }
-            { app-id = "moe.launcher.the-honkers-railway-launcher"; }
-            { app-id = "lutris"; }
-            { app-id = "heroic"; }
-            { app-id = "minecraft"; }
-            { app-id = "prism-launcher"; }
-            { app-id = "com.libretro.RetroArch"; }
-            { app-id = "com.moonlight_stream.Moonlight"; }
+            {app-id = "moe.launcher.an-anime-game-launcher";}
+            {app-id = "moe.launcher.the-honkers-railway-launcher";}
+            {app-id = "lutris";}
+            {app-id = "heroic";}
+            {app-id = "minecraft";}
+            {app-id = "prism-launcher";}
+            {app-id = "com.libretro.RetroArch";}
+            {app-id = "com.moonlight_stream.Moonlight";}
           ];
           open-on-output = "HDMI-A-2";
         }
@@ -696,22 +693,22 @@ in
         }
         # CopyQ - clipboard manager (floating)
         {
-          matches = [ { app-id = "copyq"; } ];
+          matches = [{app-id = "copyq";}];
           open-floating = true;
         }
       ];
 
       layer-rules = [
         {
-          matches = [ { namespace = "noctalia.*"; } ];
+          matches = [{namespace = "noctalia.*";}];
           place-within-backdrop = false;
         }
         {
-          matches = [ { namespace = "quickshell.*"; } ];
+          matches = [{namespace = "quickshell.*";}];
           place-within-backdrop = false;
         }
         {
-          matches = [ { namespace = "gtk-layer-shell"; } ];
+          matches = [{namespace = "gtk-layer-shell";}];
           place-within-backdrop = false;
         }
       ];

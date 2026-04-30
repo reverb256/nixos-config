@@ -1,13 +1,10 @@
-{ pkgs, ... }:
-let
+{...}: let
   labels = {
     app = "searxng";
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
-in
-{
+in {
   config.kubernetes.objects = {
-
     # ── Namespace ─────────────────────────────────────────────────
     none.Namespace.search = {
       metadata.labels = {
@@ -236,7 +233,7 @@ in
                 securityContext = {
                   allowPrivilegeEscalation = false;
                   readOnlyRootFilesystem = true;
-                  capabilities.drop = [ "ALL" ];
+                  capabilities.drop = ["ALL"];
                 };
                 env = {
                   _namedlist = true;
@@ -318,8 +315,8 @@ in
                   }
                 ];
               };
-              data.emptyDir = { };
-              tmp.emptyDir = { };
+              data.emptyDir = {};
+              tmp.emptyDir = {};
             };
           };
         };
@@ -345,23 +342,29 @@ in
 
     # ── Deployment: Valkey (cache) ────────────────────────────────
     search.Deployment.valkey = {
-      metadata.labels = labels // {
-        component = "cache";
-      };
+      metadata.labels =
+        labels
+        // {
+          component = "cache";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
-        selector.matchLabels = labels // {
-          component = "cache";
-        };
+        selector.matchLabels =
+          labels
+          // {
+            component = "cache";
+          };
         strategy = {
           type = "Recreate";
           rollingUpdate = null;
         };
         template = {
-          metadata.labels = labels // {
-            component = "cache";
-          };
+          metadata.labels =
+            labels
+            // {
+              component = "cache";
+            };
           spec = {
             nodeName = "nexus";
             automountServiceAccountToken = false;
@@ -391,7 +394,7 @@ in
                 securityContext = {
                   allowPrivilegeEscalation = false;
                   readOnlyRootFilesystem = true;
-                  capabilities.drop = [ "ALL" ];
+                  capabilities.drop = ["ALL"];
                 };
                 ports = [
                   {
@@ -438,7 +441,7 @@ in
             };
             volumes = {
               _namedlist = true;
-              data.emptyDir = { };
+              data.emptyDir = {};
             };
           };
         };
@@ -446,9 +449,11 @@ in
     };
 
     search.Service.valkey = {
-      metadata.labels = labels // {
-        component = "cache";
-      };
+      metadata.labels =
+        labels
+        // {
+          component = "cache";
+        };
       spec = {
         type = "ClusterIP";
         selector.app = "valkey";
@@ -465,17 +470,19 @@ in
 
     # ── NetworkPolicies ───────────────────────────────────────────
     search.NetworkPolicy.allow-searxng-ingress = {
-      metadata.labels = labels // {
-        policy = "allow-ingress";
-      };
+      metadata.labels =
+        labels
+        // {
+          policy = "allow-ingress";
+        };
       spec = {
         podSelector.matchLabels.app = "searxng";
-        policyTypes = [ "Ingress" ];
+        policyTypes = ["Ingress"];
         ingress = [
           {
             from = [
-              { ipBlock.cidr = "10.1.1.0/24"; }
-              { ipBlock.cidr = "10.244.0.0/16"; }
+              {ipBlock.cidr = "10.1.1.0/24";}
+              {ipBlock.cidr = "10.244.0.0/16";}
             ];
             ports = [
               {
@@ -489,15 +496,17 @@ in
     };
 
     search.NetworkPolicy.allow-searxng-egress = {
-      metadata.labels = labels // {
-        policy = "allow-egress";
-      };
+      metadata.labels =
+        labels
+        // {
+          policy = "allow-egress";
+        };
       spec = {
         podSelector.matchLabels.app = "searxng";
-        policyTypes = [ "Egress" ];
+        policyTypes = ["Egress"];
         egress = [
           {
-            to = [ { namespaceSelector.matchLabels.name = "kube-system"; } ];
+            to = [{namespaceSelector.matchLabels.name = "kube-system";}];
             ports = [
               {
                 protocol = "UDP";
@@ -510,7 +519,7 @@ in
             ];
           }
           {
-            to = [ { ipBlock.cidr = "0.0.0.0/0"; } ];
+            to = [{ipBlock.cidr = "0.0.0.0/0";}];
             ports = [
               {
                 protocol = "TCP";
@@ -524,7 +533,7 @@ in
           }
           # Valkey access
           {
-            to = [ { podSelector.matchLabels.app = "valkey"; } ];
+            to = [{podSelector.matchLabels.app = "valkey";}];
             ports = [
               {
                 protocol = "TCP";
@@ -543,10 +552,10 @@ in
       };
       spec = {
         podSelector.matchLabels.app = "valkey";
-        policyTypes = [ "Ingress" ];
+        policyTypes = ["Ingress"];
         ingress = [
           {
-            from = [ { podSelector = { }; } ];
+            from = [{podSelector = {};}];
             ports = [
               {
                 protocol = "TCP";

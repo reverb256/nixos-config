@@ -1,5 +1,4 @@
-{ ... }:
-{
+{...}: {
   imports = [
     ./common-host-defaults.nix
 

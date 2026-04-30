@@ -3,13 +3,11 @@
   lib,
   config,
   ...
-}:
-let
+}: let
   dagEntryAfter =
-    if config.lib ? hm && config.lib.hm ? dag then
-      config.lib.hm.dag.entryAfter
-    else
-      (_names: script: script);
+    if config.lib ? hm && config.lib.hm ? dag
+    then config.lib.hm.dag.entryAfter
+    else (_names: script: script);
   brightness-all = pkgs.writeShellScriptBin "brightness-all" ''
     SAMSUNG_OUTPUT="HDMI-A-2"
     SDR_MIN=0.1
@@ -127,8 +125,7 @@ let
       exec $LAUNCH_CMD
     fi
   '';
-in
-{
+in {
   home.packages = with pkgs; [
     wl-clipboard
     grim
@@ -140,8 +137,7 @@ in
     scratchpad-toggle
   ];
 
-
-  home.activation.noctalia-ddc = dagEntryAfter [ "writeBoundary" ] ''
+  home.activation.noctalia-ddc = dagEntryAfter ["writeBoundary"] ''
         $VERBOSE_ECHO "Ensuring noctalia DDC support is enabled"
         NOCTALIA_CFG="$HOME/.config/noctalia/settings.json"
         if [ -f "$NOCTALIA_CFG" ]; then
@@ -176,8 +172,7 @@ in
         fi
   '';
 
-
-  home.activation.noctalia-version-check = dagEntryAfter [ "writeBoundary" ] ''
+  home.activation.noctalia-version-check = dagEntryAfter ["writeBoundary"] ''
     RUNNING=$(pgrep -a quickshell 2>/dev/null | grep noctalia-shell || true)
     if [ -n "''${RUNNING:-}" ]; then
       RUNNING_PATH=$(echo "$RUNNING" | grep -oP '/nix/store/[^/]+-noctalia-shell-[^/]*/' || true)

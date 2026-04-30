@@ -1,8 +1,7 @@
-{ config, lib, ... }:
-{
+{lib, ...}: {
   # Allow NFS kernel modules — nix-mineral security hardening blacklists them
   # but our cluster needs NFS mounts from zephyr for config sharing
-  boot.kernelModules = lib.mkAfter [ "nfs" "nfsv4" ];
+  boot.kernelModules = lib.mkAfter ["nfs" "nfsv4"];
 
   # Override nix-mineral's NFS blacklists WITHOUT wiping other modprobe config
   # WARNING: Do NOT use boot.extraModprobeConfig = lib.mkForce "" — it breaks boot!

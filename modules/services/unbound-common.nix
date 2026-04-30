@@ -3,13 +3,11 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   inherit (lib) mkIf mkOption types;
   cluster = config.networking.cluster;
   cfg = config.services.unbound-common;
-in
-{
+in {
   options.services.unbound-common = {
     enable = lib.mkEnableOption "Unbound DNS resolver with DNS-over-TLS (cluster-wide config)";
   };
@@ -34,13 +32,13 @@ in
           hide-identity = true;
           hide-version = true;
           tls-cert-bundle = "/etc/ssl/certs/ca-bundle.crt";
-          include = [ "/etc/unbound/local-dns.conf" ];
+          include = ["/etc/unbound/local-dns.conf"];
         };
 
         forward-zone = [
           {
             name = "ts.net.";
-            forward-addr = [ "100.100.100.100" "fd7a:115c:a1e0::53" ];
+            forward-addr = ["100.100.100.100" "fd7a:115c:a1e0::53"];
           }
           {
             name = ".";
@@ -59,8 +57,8 @@ in
     # DNS records for .lan zones are managed by cluster-dns.nix (VIP-based routing)
     # This module only provides the unbound server config and upstream forwarding.
 
-    networking.firewall.allowedUDPPorts = lib.mkOptionDefault [ 53 ];
-    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ 53 ];
+    networking.firewall.allowedUDPPorts = lib.mkOptionDefault [53];
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [53];
 
     networking.firewall.extraInputRules = lib.mkAfter ''
       ip saddr { 10.1.1.0/24, 10.244.0.0/16 } udp dport 53 accept

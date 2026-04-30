@@ -1,8 +1,4 @@
-{
-  pkgs,
-  lib,
-  ...
-}: let
+{pkgs, ...}: let
   lolminerWrapper = pkgs.writeShellScriptBin "lolMiner" ''
     #!${pkgs.bash}/bin/bash
     set -e

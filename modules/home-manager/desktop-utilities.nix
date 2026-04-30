@@ -1,6 +1,8 @@
-{ pkgs, lib, config, ... }:
-
-let
+{
+  pkgs,
+  config,
+  ...
+}: let
   # ═══════════════════════════════════════════════════════════════
   # SMART SCREENSHOT
   # Modes: region (default), window, fullscreen, color
@@ -154,9 +156,7 @@ let
     #!/usr/bin/env bash
     if [ -f "''${XDG_STATE_HOME:-$HOME/.local/state}/toggles/''${1:?Usage: toggle-get <name>}" ]; then echo "on"; else echo "off"; fi
   '';
-
-in
-{
+in {
   home.packages = [
     screenshot
     screenrecord

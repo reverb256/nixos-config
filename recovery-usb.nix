@@ -23,58 +23,67 @@
     };
   };
 
-  outputs =
-    { self, nixpkgs, ... } @ inputs:
-    let
-      system = "x86_64-linux";
-      pkgs = import nixpkgs {
-        inherit system;
-        config.allowUnfree = true;
-        config.cudaSupport = true;
-      };
-    in
-    {
-      nixosConfigurations.recovery-usb = nixpkgs.lib.nixosSystem {
-        inherit system;
-        specialArgs = { inherit inputs; };
-        modules = [
-          home-manager.nixosModules.home-manager
-          niri.nixosModules.niri
+  outputs = {
+    self,
+    nixpkgs,
+    ...
+  } @ inputs: let
+    system = "x86_64-linux";
+    pkgs = import nixpkgs {
+      inherit system;
+      config.allowUnfree = true;
+      config.cudaSupport = true;
+    };
+  in {
+    nixosConfigurations.recovery-usb = nixpkgs.lib.nixosSystem {
+      inherit system;
+      specialArgs = {inherit inputs;};
+      modules = [
+        home-manager.nixosModules.home-manager
+        niri.nixosModules.niri
 
-          # Core configuration for recovery
-          {
-            # Hostname
-            networking.hostName = "recovery-usb";
+        # Core configuration for recovery
+        {
+          # Basic users
+          users.users.j_kro = {
+            isNormalUser = true;
+            description = "Recovery User";
+            extraGroups = ["wheel" "networkmanager"];
+            openssh.authorizedKeys.keys = [
+              # Add your SSH keys here or use empty for password auth
+            ];
+          };
 
-            # Basic users
-            users.users.j_kro = {
-              isNormalUser = true;
-              description = "Recovery User";
-              extraGroups = [ "wheel" "networkmanager" ];
-              openssh.authorizedKeys.keys = [
-                # Add your SSH keys here or use empty for password auth
-              ];
-            };
+          # Network
+          networking = {
+            hostName = "recovery-usb";
+            networkmanager.enable = true;
+            wireless.enable = true;
+          };
 
-            # Enable SSH
-            services.openssh = {
+          # Services
+          services = {
+            openssh = {
               enable = true;
               settings.PermitRootLogin = "yes";
               settings.PasswordAuthentication = true;
             };
-
-            # Network - enable both wired and wireless
-            networking.networkmanager.enable = true;
-            networking.wireless.enable = true;
-
-            # Desktop - Niri
-            programs.niri.enable = true;
-            programs.niri.settings = {
-              # Niri will auto-detect
+            xserver.enable = true;
+            displayManager = {
+              sddm.enable = true;
+              defaultSession = "niri";
             };
+          };
 
-            # UWSM for session management
-            programs.uwsm = {
+          # Programs
+          programs = {
+            niri = {
+              enable = true;
+              settings = {
+                # Niri will auto-detect
+              };
+            };
+            uwsm = {
               enable = true;
               waylandCompositors.niri = {
                 prettyName = "Niri Recovery";
@@ -82,73 +91,69 @@
                 binPath = "/run/current-system/sw/bin/niri-session";
               };
             };
+          };
 
-            # Display manager
-            services.xserver.enable = true;
-            services.displayManager.sddm.enable = true;
-            services.displayManager.defaultSession = "niri";
+          # Basic packages for recovery
+          environment.systemPackages = with pkgs; [
+            git
+            vim
+            tmux
+            htop
+            curl
+            wget
+            fish
+            starship
+            eza
+            bat
+            ripgrep
+            fd
+            fzf
+            # Browser for docs
+            firefox
+            # Build tools
+            nix
+            nix-tree
+            nix-index
+            # Cluster tools
+            colmena
+            # Network tools
+            iputils
+            iproute2
+            dnsutils
+            nettools
+            # GitHub CLI
+            gh
+          ];
 
-            # Basic packages for recovery
-            environment.systemPackages = with pkgs; [
-              git
-              vim
-              tmux
-              htop
-              curl
-              wget
-              fish
-              starship
-              eza
-              bat
-              ripgrep
-              fd
-              fzf
-              # Browser for docs
-              firefox
-              # Build tools
-              nix
-              nix-tree
-              nix-index
-              # Cluster tools
-              colmena
-              # Network tools
-              iputils
-              iproute2
-              dnsutils
-              nettools
-              # GitHub CLI
-              gh
-            ];
+          # Boot
+          boot.loader.systemd-boot.enable = true;
+          boot.loader.efi.canTouchEfiVariables = true;
 
-            # Boot
-            boot.loader.systemd-boot.enable = true;
-            boot.loader.efi.canTouchEfiVariables = true;
+          # Filesystems
+          fileSystems."/".device = "/dev/sda1";
+          fileSystems."/boot" = {
+            device = "/dev/sda1";
+            fsType = "ext4";
+          };
 
-            # Filesystems
-            fileSystems."/".device = "/dev/sda1";
-            fileSystems."/boot" = {
-              device = "/dev/sda1";
-              fsType = "ext4";
-            };
+          # Swap
+          swapDevices = [
+            {device = "/dev/sda2";}
+          ];
 
-            # Swap
-            swapDevices = [
-              { device = "/dev/sda2"; }
-            ];
+          # Timezone
+          time.timeZone = "America/Winnipeg";
 
-            # Timezone
-            time.timeZone = "America/Winnipeg";
+          # Locale
+          i18n.defaultLocale = "en_US.UTF-8";
 
-            # Locale
-            i18n.defaultLocale = "en_US.UTF-8";
-
-            # Console
-            console = {
-              font = "Lat15-Fixed16.psfu";
-              keyMap = "us";
-            };
-          }
-        ];
-      };
+          # Console
+          console = {
+            font = "Lat15-Fixed16.psfu";
+            keyMap = "us";
+          };
+        }
+      ];
     };
+  };
 }

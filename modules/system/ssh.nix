@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-let
+{pkgs, ...}: let
   hosts = {
     zephyr = {
       ip = "10.1.1.110";
@@ -20,8 +19,7 @@ let
   };
 
   j_kroPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEvekxGk1YR/eF8llVmNk3C59BtgB+9DNvxLy2WjPEyb j_kro@zephyr";
-in
-{
+in {
   services.openssh = {
     enable = true;
     settings = {
@@ -111,7 +109,7 @@ in
     };
   };
 
-  users.users.j_kro.openssh.authorizedKeys.keys = [ j_kroPublicKey ];
+  users.users.j_kro.openssh.authorizedKeys.keys = [j_kroPublicKey];
 
   environment.etc."ssh/config" = {
     source = pkgs.writeText "ssh-config" ''
@@ -162,14 +160,12 @@ in
     '';
   };
 
-
-
   systemd.tmpfiles.rules = [
     "d /home/j_kro/.ssh/sockets 0700 j_kro users -"
   ];
 
   networking.firewall.interfaces = {
-    tailscale0.allowedTCPPorts = [ 22 ];
+    tailscale0.allowedTCPPorts = [22];
   };
   networking.firewall.extraInputRules = ''
     ip saddr 10.1.1.0/24 tcp dport 22 accept

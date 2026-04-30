@@ -1,10 +1,8 @@
 {
-  config,
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   inherit (lib) mkAfter mkDefault;
   clusterSubnet = "10.1.1.0/24";
   podCidr = "10.244.0.0/16";
@@ -23,8 +21,7 @@ let
   ip6tables-legacy-wrapper = pkgs.writeShellScript "ip6tables-legacy-wrapper" ''
     exec ${pkgs.iptables}/bin/ip6tables-legacy "$@"
   '';
-in
-{
+in {
   networking.nftables.enable = true;
 
   # K3s/Calico IPIP tunneling confuses strict rpfilter.
@@ -38,14 +35,14 @@ in
     ip rule add from 10.244.0.0/16 table main priority 100 2>/dev/null || true
   '';
 
-  boot.blacklistedKernelModules = [ "br_netfilter" ];
+  boot.blacklistedKernelModules = ["br_netfilter"];
 
   systemd.tmpfiles.rules = [
     "L+ /run/local/bin/nft - - - - ${nft-wrapper-script}"
     "L+ /run/local/bin/iptables - - - - ${iptables-legacy-wrapper}"
     "L+ /run/local/bin/ip6tables - - - - ${ip6tables-legacy-wrapper}"
   ];
-  environment.variables.PATH = [ "/run/local/bin" ];
+  environment.variables.PATH = ["/run/local/bin"];
 
   systemd.services.nft-coredump-cleanup = {
     description = "Clean nft coredumps (CachyOS kernel bug workaround)";
@@ -55,7 +52,7 @@ in
     serviceConfig.Type = "oneshot";
   };
   systemd.timers.nft-coredump-cleanup = {
-    wantedBy = [ "timers.target" ];
+    wantedBy = ["timers.target"];
     timerConfig.OnCalendar = "*:0/10:00";
     timerConfig.Persistent = false;
   };

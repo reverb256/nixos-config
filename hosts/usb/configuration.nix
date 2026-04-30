@@ -10,25 +10,31 @@
 # Build:  nix build .#nixosConfigurations.usb-rescue.config.system.build.isoImage
 # Flash:  sudo dd if=result/iso/*.iso of=/dev/sda bs=4M status=progress
 #
-{ config, pkgs, lib, inputs, ... }:
-let
+{
+  config,
+  pkgs,
+  lib,
+  inputs,
+  ...
+}: let
   sshKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEvekxGk1YR/eF8llVmNk3C59BtgB+9DNvxLy2WjPEyb j_kro@zephyr";
 
   # Rescue scripts from /etc/nixos/scripts/rescue/
-  rescue-scripts = pkgs.runCommand "rescue-scripts" {
-    buildInputs = [ pkgs.bash ];
-  } ''
-    mkdir -p $out/bin $out/share/doc
-    cp ${../../scripts/rescue/detect-hosts.sh} $out/bin/rescue-detect-hosts
-    cp ${../../scripts/rescue/mount-cluster.sh} $out/bin/rescue-mount-cluster
-    cp ${../../scripts/rescue/rebuild-host.sh} $out/bin/rescue-rebuild-host
-    cp ${../../scripts/rescue/hardware-scan.sh} $out/bin/rescue-hardware-scan
-    cp ${../../scripts/rescue/boot-diagnostics.sh} $out/bin/rescue-boot-diagnostics
-    cp ${../../scripts/rescue/fix-btrfs-default.sh} $out/bin/rescue-fix-btrfs-default
-    chmod +x $out/bin/rescue-*
-    cp ${../../scripts/rescue/RESCUE-GUIDE.md} $out/share/doc/RESCUE-GUIDE.md
-    cp ${../../scripts/rescue/RESCUE-AGENT.md} $out/share/doc/RESCUE-AGENT.md
-  '';
+  rescue-scripts =
+    pkgs.runCommand "rescue-scripts" {
+      buildInputs = [pkgs.bash];
+    } ''
+      mkdir -p $out/bin $out/share/doc
+      cp ${../../scripts/rescue/detect-hosts.sh} $out/bin/rescue-detect-hosts
+      cp ${../../scripts/rescue/mount-cluster.sh} $out/bin/rescue-mount-cluster
+      cp ${../../scripts/rescue/rebuild-host.sh} $out/bin/rescue-rebuild-host
+      cp ${../../scripts/rescue/hardware-scan.sh} $out/bin/rescue-hardware-scan
+      cp ${../../scripts/rescue/boot-diagnostics.sh} $out/bin/rescue-boot-diagnostics
+      cp ${../../scripts/rescue/fix-btrfs-default.sh} $out/bin/rescue-fix-btrfs-default
+      chmod +x $out/bin/rescue-*
+      cp ${../../scripts/rescue/RESCUE-GUIDE.md} $out/share/doc/RESCUE-GUIDE.md
+      cp ${../../scripts/rescue/RESCUE-AGENT.md} $out/share/doc/RESCUE-AGENT.md
+    '';
 
   rescue-script = pkgs.writeShellScriptBin "rescue" ''
     #!/usr/bin/env bash
@@ -185,8 +191,7 @@ let
       esac
     done
   '';
-in
-{
+in {
   imports = [
     # Live ISO base (graphical — X/Wayland, gparted, firefox)
     "${inputs.nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-graphical-base.nix"
@@ -222,7 +227,7 @@ in
   boot.plymouth.enable = lib.mkForce false;
   boot.kernelPackages =
     inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
-  boot.supportedFilesystems = lib.mkForce [ "ext4" "btrfs" "vfat" "xfs" "ntfs" ];
+  boot.supportedFilesystems = lib.mkForce ["ext4" "btrfs" "vfat" "xfs" "ntfs"];
   boot.kernelParams = [
     "copytoram"
     "amd_iommu=on"
@@ -231,8 +236,13 @@ in
   boot.blacklistedKernelModules = [
     "snd_seq_dummy"
     "snd_hrtimer"
-    "ufs" "hfs" "hfsplus" "reiserfs"
-    "appletalk" "ipx" "decnet"
+    "ufs"
+    "hfs"
+    "hfsplus"
+    "reiserfs"
+    "appletalk"
+    "ipx"
+    "decnet"
   ];
 
   # Networking
@@ -248,7 +258,7 @@ in
       10.1.1.140  sentry
       10.1.1.100  k8s-vip
     '';
-    firewall.allowedTCPPorts = lib.mkOptionDefault [ 22 ];
+    firewall.allowedTCPPorts = lib.mkOptionDefault [22];
   };
 
   # Timezone
@@ -276,9 +286,9 @@ in
     isNormalUser = true;
     group = "j_kro";
     description = "Jeremy Kroeker";
-    extraGroups = [ "wheel" "networkmanager" "video" "render" ];
+    extraGroups = ["wheel" "networkmanager" "video" "render"];
     shell = pkgs.fish;
-    openssh.authorizedKeys.keys = [ sshKey ];
+    openssh.authorizedKeys.keys = [sshKey];
   };
   users.groups.j_kro = {};
 
@@ -290,13 +300,13 @@ in
   # Prevent nixos user from being auto-created by ISO base
   users.users.nixos = lib.mkForce {
     isNormalUser = true;
-    extraGroups = [ "wheel" ];
-    openssh.authorizedKeys.keys = [ sshKey ];
+    extraGroups = ["wheel"];
+    openssh.authorizedKeys.keys = [sshKey];
   };
 
   # SSH
   users.users.root = {
-    openssh.authorizedKeys.keys = [ sshKey ];
+    openssh.authorizedKeys.keys = [sshKey];
   };
   services.openssh = {
     enable = true;
@@ -324,7 +334,7 @@ in
     useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "hm-backup";
-    users.j_kro = { pkgs, ... }: {
+    users.j_kro = {pkgs, ...}: {
       imports = [
         ../../modules/home-manager/niri-config.nix
         ../../modules/home-manager/fish.nix
@@ -337,7 +347,7 @@ in
 
   # Hermes Agent — self-contained config matching live setup
   environment.variables.HERMES_HOME = "/home/j_kro/.hermes";
-  system.activationScripts.hermes-usb-setup = lib.stringAfter [ "users" ] ''
+  system.activationScripts.hermes-usb-setup = lib.stringAfter ["users"] ''
     HERMES_HOME="/home/j_kro/.hermes"
     mkdir -p "$HERMES_HOME"/{sessions,memories,skills,cron,logs}
 
@@ -400,47 +410,80 @@ in
   '';
 
   # System Packages
-  environment.systemPackages = [
-    inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.default
-    rescue-scripts
-  ] ++ (with pkgs; [
-    # Shell
-    fish zoxide fzf eza btop tmux mosh
+  environment.systemPackages =
+    [
+      inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.default
+      rescue-scripts
+    ]
+    ++ (with pkgs; [
+      # Shell
+      fish
+      zoxide
+      fzf
+      eza
+      btop
+      tmux
+      mosh
 
-    # Git + GitHub
-    git gh
+      # Git + GitHub
+      git
+      gh
 
-    # Networking
-    nmap dnsutils iproute2 iputils net-tools curl wget jq tcpdump mtr
+      # Networking
+      nmap
+      dnsutils
+      iproute2
+      iputils
+      net-tools
+      curl
+      wget
+      jq
+      tcpdump
+      mtr
 
-    # NFS client for mounting config from Zephyr
-    nfs-utils
+      # NFS client for mounting config from Zephyr
+      nfs-utils
 
-    # Rescue / disk tools
-    gparted parted
-    e2fsprogs dosfstools btrfs-progs lvm2 cryptsetup mdadm smartmontools nvme-cli
-    xfsprogs jfsutils nilfs-utils f2fs-tools
+      # Rescue / disk tools
+      gparted
+      parted
+      e2fsprogs
+      dosfstools
+      btrfs-progs
+      lvm2
+      cryptsetup
+      mdadm
+      smartmontools
+      nvme-cli
+      xfsprogs
+      jfsutils
+      nilfs-utils
+      f2fs-tools
 
-    # Additional recovery tools
-    efibootmgr gptfdisk
-    htop iotop
-    pciutils usbutils
+      # Additional recovery tools
+      efibootmgr
+      gptfdisk
+      htop
+      iotop
+      pciutils
+      usbutils
 
-    # NixOS tools
-    inputs.colmena.packages.${pkgs.stdenv.hostPlatform.system}.colmena
+      # NixOS tools
+      inputs.colmena.packages.${pkgs.stdenv.hostPlatform.system}.colmena
 
-    # Editors
-    vim nano
+      # Editors
+      vim
+      nano
 
-    # Browser
-    firefox
+      # Browser
+      firefox
 
-    # Desktop
-    noctalia-shell
+      # Desktop
+      noctalia-shell
 
-    # Rescue script
-    rescue-script
-  ]);
+      # Rescue script
+      rescue-script
+    ]);
 
   # ZRAM (reduce writes on flash)
   zramSwap = {
@@ -454,7 +497,7 @@ in
   fileSystems."/tmp" = {
     device = "tmpfs";
     fsType = "tmpfs";
-    options = [ "size=2G" "mode=1777" "nosuid" "nodev" ];
+    options = ["size=2G" "mode=1777" "nosuid" "nodev"];
   };
 
   system.stateVersion = "25.11";

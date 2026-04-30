@@ -4,8 +4,7 @@
   config,
   lib,
   ...
-}:
-let
+}: let
   # Base OS images (provide /bin/sh, wget, tar)
   nvidiaBaseImage = "docker.io/swamp7/bzminer:latest";
   amdBaseImage = "docker.io/swamp7/teamredminer:latest";
@@ -20,19 +19,23 @@ let
   };
 
   # Download all miners to /opt/miners/ for profit switching
-  downloadAllMiners = ''
-    echo "Downloading all miners for profit switching..."
-    mkdir -p /opt/miners
-  '' + lib.concatStrings (lib.mapAttrsToList (name: url: ''
-    wget -qO /tmp/${name}.tar.gz ${url} \
-      && tar xzf /tmp/${name}.tar.gz -C /opt/miners/ \
-      && find /opt/miners -name "${name}" -o -name "${name}.*" | head -5 \
-      && echo "${name} extracted OK" \
-      || echo "WARNING: ${name} download failed"
-  '') minerUrls) + ''
-    find /opt/miners -type f -executable -exec chmod +x {} \;
-    echo "All miners available in /opt/miners/"
-  '';
+  downloadAllMiners =
+    ''
+      echo "Downloading all miners for profit switching..."
+      mkdir -p /opt/miners
+    ''
+    + lib.concatStrings (lib.mapAttrsToList (name: url: ''
+        wget -qO /tmp/${name}.tar.gz ${url} \
+          && tar xzf /tmp/${name}.tar.gz -C /opt/miners/ \
+          && find /opt/miners -name "${name}" -o -name "${name}.*" | head -5 \
+          && echo "${name} extracted OK" \
+          || echo "WARNING: ${name} download failed"
+      '')
+      minerUrls)
+    + ''
+      find /opt/miners -type f -executable -exec chmod +x {} \;
+      echo "All miners available in /opt/miners/"
+    '';
 
   openclIcd = "${pkgs.rocmPackages.clr}/etc/OpenCL/vendors";
 
@@ -141,22 +144,55 @@ let
     mining-wrapper.mountPath = "/opt/wrapper";
   };
 
-  mkWrapperEnv = { group, worker, device, apiPort, minerType ? "rigel", defaultCoin ? "rvn", gpuProfile ? "rtx4060" }: {
+  mkWrapperEnv = {
+    group,
+    worker,
+    device,
+    apiPort,
+    minerType ? "rigel",
+    defaultCoin ? "rvn",
+    gpuProfile ? "rtx4060",
+  }: {
     _namedlist = true;
-    MINING_GROUP = { name = "MINING_GROUP"; value = group; };
-    WORKER_NAME = { name = "WORKER_NAME"; value = worker; };
-    DEVICE_INDEX = { name = "DEVICE_INDEX"; value = toString device; };
-    API_PORT = { name = "API_PORT"; value = toString apiPort; };
-    MINER_TYPE = { name = "MINER_TYPE"; value = minerType; };
-    WALLET = { name = "WALLET"; value = rvnWallet; };
-    DEFAULT_COIN = { name = "DEFAULT_COIN"; value = defaultCoin; };
-    GPU_PROFILE = { name = "GPU_PROFILE"; value = gpuProfile; };
-    LD_LIBRARY_PATH = { name = "LD_LIBRARY_PATH"; value = "/run/opengl-driver/lib"; };
+    MINING_GROUP = {
+      name = "MINING_GROUP";
+      value = group;
+    };
+    WORKER_NAME = {
+      name = "WORKER_NAME";
+      value = worker;
+    };
+    DEVICE_INDEX = {
+      name = "DEVICE_INDEX";
+      value = toString device;
+    };
+    API_PORT = {
+      name = "API_PORT";
+      value = toString apiPort;
+    };
+    MINER_TYPE = {
+      name = "MINER_TYPE";
+      value = minerType;
+    };
+    WALLET = {
+      name = "WALLET";
+      value = rvnWallet;
+    };
+    DEFAULT_COIN = {
+      name = "DEFAULT_COIN";
+      value = defaultCoin;
+    };
+    GPU_PROFILE = {
+      name = "GPU_PROFILE";
+      value = gpuProfile;
+    };
+    LD_LIBRARY_PATH = {
+      name = "LD_LIBRARY_PATH";
+      value = "/run/opengl-driver/lib";
+    };
   };
-in
-{
+in {
   config.kubernetes.objects = {
-
     mining.Deployment.gpu-miner-forge-nvidia-0 = {
       metadata.labels = {
         app = "gpu-miner-forge-nvidia-0";
@@ -232,18 +268,20 @@ in
                   };
                 };
                 securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                }
-                // wrapperVolumeMounts
-                // nvidiaVolumeMounts;
+                volumeMounts =
+                  {
+                    _namedlist = true;
+                  }
+                  // wrapperVolumeMounts
+                  // nvidiaVolumeMounts;
               };
             };
-            volumes = {
-              _namedlist = true;
-            }
-            // wrapperVolumes
-            // nvidiaVolumes;
+            volumes =
+              {
+                _namedlist = true;
+              }
+              // wrapperVolumes
+              // nvidiaVolumes;
           };
         };
       };
@@ -324,18 +362,20 @@ in
                   };
                 };
                 securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                }
-                // wrapperVolumeMounts
-                // nvidiaVolumeMounts;
+                volumeMounts =
+                  {
+                    _namedlist = true;
+                  }
+                  // wrapperVolumeMounts
+                  // nvidiaVolumeMounts;
               };
             };
-            volumes = {
-              _namedlist = true;
-            }
-            // wrapperVolumes
-            // nvidiaVolumes;
+            volumes =
+              {
+                _namedlist = true;
+              }
+              // wrapperVolumes
+              // nvidiaVolumes;
           };
         };
       };
@@ -366,12 +406,17 @@ in
               teamredminer = {
                 image = amdBaseImage;
                 args = [
-                  "-a" "kawpow"
-                  "-o" rvnPool
-                  "-u" "${rvnWallet}.forge-a0"
-                  "-p" "x"
+                  "-a"
+                  "kawpow"
+                  "-o"
+                  rvnPool
+                  "-u"
+                  "${rvnWallet}.forge-a0"
+                  "-p"
+                  "x"
                   "--api_listen=0.0.0.0:4070"
-                  "-d" "0"
+                  "-d"
+                  "0"
                   # Fan control format: core:junc:mem:init:min:max (empty values use defaults)
                   # Target mem temp 70C, start at 50%, min 40%, max 80%
                   # NOTE: AMDGPU driver on Linux often blocks fan control via sysfs.
@@ -412,20 +457,24 @@ in
                 lifecycle.postStart = {
                   exec.command = [
                     "/run/current-system/sw/bin/rocm-smi"
-                    "-d" "0"
-                    "--setpoweroverdrive" "115"
+                    "-d"
+                    "0"
+                    "--setpoweroverdrive"
+                    "115"
                   ];
                 };
-                volumeMounts = {
-                  _namedlist = true;
-                }
-                // amdVolumeMounts;
+                volumeMounts =
+                  {
+                    _namedlist = true;
+                  }
+                  // amdVolumeMounts;
               };
             };
-            volumes = {
-              _namedlist = true;
-            }
-            // amdVolumes;
+            volumes =
+              {
+                _namedlist = true;
+              }
+              // amdVolumes;
           };
         };
       };
@@ -456,12 +505,17 @@ in
               teamredminer = {
                 image = amdBaseImage;
                 args = [
-                  "-a" "kawpow"
-                  "-o" rvnPool
-                  "-u" "${rvnWallet}.forge-a1"
-                  "-p" "x"
+                  "-a"
+                  "kawpow"
+                  "-o"
+                  rvnPool
+                  "-u"
+                  "${rvnWallet}.forge-a1"
+                  "-p"
+                  "x"
                   "--api_listen=0.0.0.0:4071"
-                  "-d" "1"
+                  "-d"
+                  "1"
                 ];
                 env = amdEnv;
                 ports = [
@@ -494,16 +548,18 @@ in
                   };
                 };
                 securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                }
-                // amdVolumeMounts;
+                volumeMounts =
+                  {
+                    _namedlist = true;
+                  }
+                  // amdVolumeMounts;
               };
             };
-            volumes = {
-              _namedlist = true;
-            }
-            // amdVolumes;
+            volumes =
+              {
+                _namedlist = true;
+              }
+              // amdVolumes;
           };
         };
       };
@@ -587,18 +643,20 @@ in
                   };
                 };
                 securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                }
-                // wrapperVolumeMounts
-                // nvidiaVolumeMounts;
+                volumeMounts =
+                  {
+                    _namedlist = true;
+                  }
+                  // wrapperVolumeMounts
+                  // nvidiaVolumeMounts;
               };
             };
-            volumes = {
-              _namedlist = true;
-            }
-            // wrapperVolumes
-            // nvidiaVolumes;
+            volumes =
+              {
+                _namedlist = true;
+              }
+              // wrapperVolumes
+              // nvidiaVolumes;
           };
         };
       };
@@ -689,11 +747,12 @@ in
                   failureThreshold = 10;
                 };
                 securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                }
-                // wrapperVolumeMounts
-                // nvidiaVolumeMounts;
+                volumeMounts =
+                  {
+                    _namedlist = true;
+                  }
+                  // wrapperVolumeMounts
+                  // nvidiaVolumeMounts;
                 resources = {
                   requests = {
                     memory = "4Gi";
@@ -706,11 +765,12 @@ in
                 };
               };
             };
-            volumes = {
-              _namedlist = true;
-            }
-            // wrapperVolumes
-            // nvidiaVolumes;
+            volumes =
+              {
+                _namedlist = true;
+              }
+              // wrapperVolumes
+              // nvidiaVolumes;
           };
         };
       };
@@ -745,8 +805,14 @@ in
             runtimeClassName = "nvidia";
             priorityClassName = "mining-low";
             tolerations = [
-              { key = "workstation"; operator = "Exists"; }
-              { key = "interactive"; operator = "Exists"; }
+              {
+                key = "workstation";
+                operator = "Exists";
+              }
+              {
+                key = "interactive";
+                operator = "Exists";
+              }
               {
                 key = "node-role.kubernetes.io/control-plane";
                 operator = "Exists";
@@ -767,11 +833,12 @@ in
                   gpuProfile = "rtx3060ti";
                 };
                 securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                }
-                // wrapperVolumeMounts
-                // nvidiaVolumeMounts;
+                volumeMounts =
+                  {
+                    _namedlist = true;
+                  }
+                  // wrapperVolumeMounts
+                  // nvidiaVolumeMounts;
                 resources = {
                   requests = {
                     memory = "2Gi";
@@ -784,11 +851,12 @@ in
                 };
               };
             };
-            volumes = {
-              _namedlist = true;
-            }
-            // wrapperVolumes
-            // nvidiaVolumes;
+            volumes =
+              {
+                _namedlist = true;
+              }
+              // wrapperVolumes
+              // nvidiaVolumes;
           };
         };
       };

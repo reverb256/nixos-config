@@ -2,8 +2,7 @@
   config,
   lib,
   ...
-}:
-let
+}: let
   cfg = config.services.nfs-data-server;
 
   baseExports = ''
@@ -23,8 +22,7 @@ let
 
     /data/qdrant 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=107)
   '';
-in
-{
+in {
   options.services.nfs-data-server = {
     enable = lib.mkEnableOption "NFS data server (exports /data/* to cluster)";
 
