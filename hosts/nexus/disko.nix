@@ -103,6 +103,7 @@
   # BTRFS impermanence: recreate root subvolume each boot via systemd service
   # (systemd stage 1 doesn't support boot.initrd.postResumeCommands)
   boot.initrd.systemd.enable = true;
+  boot.initrd.systemd.initrdBin = with pkgs; [ btrfs-progs coreutils findutils util-linux ];
   boot.initrd.systemd.services.impermanence-root-rotate = {
     description = "Rotate ephemeral BTRFS root subvolume";
     requiredBy = [ "initrd-root-device.target" ];
