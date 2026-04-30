@@ -35,20 +35,7 @@ in
       description = "Host port for Casdoor HTTP interface";
     };
 
-    # Simplified config - most Casdoor defaults work out of the box
-    # Only truly required: init admin account
-    initAdminUser = mkOption {
-      type = types.str;
-      default = "admin";
-      description = "Initial admin username";
-    };
-
-    initAdminPassword = mkOption {
-      type = types.str;
-      default = "admin";
-      description = "Initial admin password (SHOULD be changed via secrets on deploy)";
-    };
-
+    # Admin user is fixed, password comes from agenix secret
     organizationName = mkOption {
       type = types.str;
       default = "Casdoor";
