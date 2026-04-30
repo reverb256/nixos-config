@@ -49,8 +49,8 @@ in
     ConfigMap.ai-inference-gateway-config.data = {
       AUTH_MODE = "api-key";
       BACKEND_TYPE = "llama-cpp";
-      BACKEND_URL = "http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236";
-      BACKEND_FALLBACK_URLS = "http://llama-server-sentry.ai-inference.svc.cluster.local:1235,http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236";
+      BACKEND_URL = "http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236,https://openrouter.ai/api/v1";
+      BACKEND_FALLBACK_URLS = "http://llama-server-sentry.ai-inference.svc.cluster.local:1235,http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236,https://openrouter.ai/api/v1";
       DEFAULT_MODEL = "Qwen3.5-9B-abliterated.i1-IQ2_M.gguf";
       GATEWAY_HOST = "0.0.0.0";
       PORT = "8080";
@@ -393,6 +393,8 @@ in
                   "8080"
                   "--workers"
                   "1"
+                  "--log-level"
+                  "info"
                 ];
                 env = {
                   _namedlist = true;
@@ -496,6 +498,7 @@ in
                   };
                   USER.value = "nobody";
                   HOME.value = "/tmp";
+                  LOG_LEVEL.value = "INFO";
                   PYTHONPATH.value = gatewaySitePackages;
                   PATH.value = "${lib.getBin pkgs.kubectl}:/usr/bin:/bin";
                   SEARXNG_URL.valueFrom.configMapKeyRef = {
@@ -513,6 +516,10 @@ in
                   NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
                     name = "nvidia-api-key";
                     key = "NVIDIA_API_KEY";
+                  };
+                  OPENROUTER_API_KEY.valueFrom.secretKeyRef = {
+                    name = "openrouter-api-key";
+                    key = "OPENROUTER_API_KEY";
                   };
                   MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED.valueFrom.configMapKeyRef = {
                     name = "ai-inference-gateway-config";
