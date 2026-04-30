@@ -3,13 +3,11 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cluster = config.networking.cluster;
   cfg = config.services.rclone-sync;
 
-  syncScript =
-    job:
+  syncScript = job:
     pkgs.writeShellScriptBin "rclone-${job.name}" ''
       set -euo pipefail
 
@@ -39,11 +37,27 @@ let
         --progress \
         --transfers ${toString job.transfers or 4} \
         --checkers ${toString job.checkers or 8} \
-        ${if job.exclude != null then "--exclude=${job.exclude}" else ""} \
-        ${if job.excludeFrom != null then "--exclude-from=${job.excludeFrom}" else ""} \
-        ${if job.include != null then "--include=${job.include}" else ""} \
-        ${if job.includeFrom != null then "--include-from=${job.includeFrom}" else ""} \
-        ${lib.concatStringsSep " " (map (o: "--${o}") (job.extraFlags or [ ]))} \
+        ${
+        if job.exclude != null
+        then "--exclude=${job.exclude}"
+        else ""
+      } \
+        ${
+        if job.excludeFrom != null
+        then "--exclude-from=${job.excludeFrom}"
+        else ""
+      } \
+        ${
+        if job.include != null
+        then "--include=${job.include}"
+        else ""
+      } \
+        ${
+        if job.includeFrom != null
+        then "--include-from=${job.includeFrom}"
+        else ""
+      } \
+        ${lib.concatStringsSep " " (map (o: "--${o}") (job.extraFlags or []))} \
         $OPTIONS; then
         log_success "Job '${job.name}' completed"
       else
@@ -51,8 +65,7 @@ let
         exit 1
       fi
     '';
-in
-{
+in {
   options.services.rclone-sync = {
     enable = lib.mkEnableOption "Rclone cloud storage synchronization";
 
@@ -168,7 +181,7 @@ in
           };
         }
       );
-      default = { };
+      default = {};
       description = "Remote storage configurations";
       example = {
         garage = {
@@ -251,7 +264,7 @@ in
             };
             extraFlags = lib.mkOption {
               type = lib.types.listOf lib.types.str;
-              default = [ ];
+              default = [];
               description = "Extra command-line flags (without -- prefix)";
             };
             enableTimer = lib.mkOption {
@@ -267,7 +280,7 @@ in
           };
         }
       );
-      default = [ ];
+      default = [];
       description = "Sync job definitions";
       example = [
         {
@@ -282,7 +295,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = [ pkgs.rclone ];
+    environment.systemPackages = [pkgs.rclone];
 
     # TODO: Run `agenix -e secrets/rclone-config.age` to create the secret file.
     # The rclone config should contain all remote definitions with credentials.
@@ -299,8 +312,8 @@ in
         name = "rclone-${job.name}";
         value = {
           description = "Rclone sync: ${job.name}";
-          after = [ "network-online.target" ];
-          wants = [ "network-online.target" ];
+          after = ["network-online.target"];
+          wants = ["network-online.target"];
           serviceConfig = {
             Type = "oneshot";
             User = cfg.user;
@@ -323,24 +336,27 @@ in
             ];
           };
         };
-      }) cfg.syncJobs
+      })
+      cfg.syncJobs
     );
 
     systemd.timers = lib.listToAttrs (
       map (job: {
         name = "rclone-${job.name}";
-        value = {
-          inherit (job) enableTimer;
-        }
-        // lib.optionalAttrs job.enableTimer {
-          wantedBy = [ "timers.target" ];
-          timerConfig = {
-            OnCalendar = job.startAt;
-            Persistent = true;
-            Unit = "rclone-${job.name}.service";
+        value =
+          {
+            inherit (job) enableTimer;
+          }
+          // lib.optionalAttrs job.enableTimer {
+            wantedBy = ["timers.target"];
+            timerConfig = {
+              OnCalendar = job.startAt;
+              Persistent = true;
+              Unit = "rclone-${job.name}.service";
+            };
           };
-        };
-      }) cfg.syncJobs
+      })
+      cfg.syncJobs
     );
   };
 }

@@ -20,15 +20,15 @@ in {
   config = mkIf cfg.enable {
     networking.extraHosts = lib.mkIf cfg.populateLocal (
       lib.mkOptionDefault (
-      lib.pipe (config.networking.cluster.hosts or {
-        zephyr = { ip = config.networking.cluster.hosts.zephyr.ip; };
-        nexus = { ip = config.networking.cluster.hosts.nexus.ip; };
-        forge = { ip = config.networking.cluster.hosts.forge.ip; };
-        sentry = { ip = config.networking.cluster.hosts.sentry.ip; };
-      }) [
-        (lib.mapAttrsToList (name: host: "${host.ip} ${name}"))
-        (lib.concatStringsSep "\n")
-      ]
+        lib.pipe (config.networking.cluster.hosts or {
+          zephyr = {ip = config.networking.cluster.hosts.zephyr.ip;};
+          nexus = {ip = config.networking.cluster.hosts.nexus.ip;};
+          forge = {ip = config.networking.cluster.hosts.forge.ip;};
+          sentry = {ip = config.networking.cluster.hosts.sentry.ip;};
+        }) [
+          (lib.mapAttrsToList (name: host: "${host.ip} ${name}"))
+          (lib.concatStringsSep "\n")
+        ]
       )
     );
   };

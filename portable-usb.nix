@@ -42,56 +42,66 @@
     };
   };
 
-  outputs = { self, nixpkgs, ... } @ inputs:
-    let
-      system = "x86_64-linux";
-      pkgs = import nixpkgs {
-        inherit system;
-        config.allowUnfree = true;
-        config.cudaSupport = true;
-      };
-    in
-    {
-      nixosConfigurations.portable-usb = nixpkgs.lib.nixosSystem {
-        inherit system;
-        specialArgs = { inherit inputs; };
-        modules = [
-          home-manager.nixosModules.home-manager
-          niri.nixosModules.niri
+  outputs = {
+    self,
+    nixpkgs,
+    ...
+  } @ inputs: let
+    system = "x86_64-linux";
+    pkgs = import nixpkgs {
+      inherit system;
+      config.allowUnfree = true;
+      config.cudaSupport = true;
+    };
+  in {
+    nixosConfigurations.portable-usb = nixpkgs.lib.nixosSystem {
+      inherit system;
+      specialArgs = {inherit inputs;};
+      modules = [
+        home-manager.nixosModules.home-manager
+        niri.nixosModules.niri
 
-          # ─────────────────────────────────────────────────────────
-          # FULL SYSTEM CONFIG
-          # ─────────────────────────────────────────────────────────
-          {
-            networking.hostName = "portable-nixos";
+        # ─────────────────────────────────────────────────────────
+        # FULL SYSTEM CONFIG
+        # ─────────────────────────────────────────────────────────
+        {
+          # ─── Network ────────────────────────────────────────
+          networking = {
+            hostName = "portable-nixos";
+            networkmanager.enable = true;
+            wireless.enable = true;
+            firewall.enable = false; # Portable, more flexible
+          };
 
-            # ─── User ───────────────────────────────────────────
-            users.users.j_kro = {
-              isNormalUser = true;
-              description = "Portable NixOS User";
-              extraGroups = [ "wheel" "networkmanager" "docker" "kvm" ];
-              # Add your SSH keys here:
-              # openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC..." ];
-            };
+          # ─── User ───────────────────────────────────────────
+          users.users.j_kro = {
+            isNormalUser = true;
+            description = "Portable NixOS User";
+            extraGroups = ["wheel" "networkmanager" "docker" "kvm"];
+            # Add your SSH keys here:
+            # openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC..." ];
+          };
 
-            # ─── SSH ─────────────────────────────────────────────
-            services.openssh = {
+          # ─── Services ───────────────────────────────────────
+          services = {
+            openssh = {
               enable = true;
               settings = {
                 PermitRootLogin = "yes";
                 PasswordAuthentication = true;
               };
             };
+            xserver.enable = true;
+            displayManager = {
+              sddm.enable = true;
+              defaultSession = "niri";
+            };
+          };
 
-            # ─── Network ────────────────────────────────────────
-            networking.networkmanager.enable = true;
-            networking.wireless.enable = true;
-            networking.firewall.enable = false;  # Portable, more flexible
-
-            # ─── Niri Desktop ────────────────────────────────────
-            programs.niri.enable = true;
-
-            programs.uwsm = {
+          # ─── Niri Desktop ────────────────────────────────────
+          programs = {
+            niri.enable = true;
+            uwsm = {
               enable = true;
               waylandCompositors.niri = {
                 prettyName = "Portable Niri";
@@ -99,174 +109,164 @@
                 binPath = "/run/current-system/sw/bin/niri-session";
               };
             };
-
-            # ─── Display & Session ──────────────────────────────
-            services.xserver.enable = true;
-            services.displayManager.sddm.enable = true;
-            services.displayManager.defaultSession = "niri";
-
-            # ─── Shell ────────────────────────────────────────────
-            programs.fish = {
+            fish = {
               enable = true;
               interactiveShellInit = ''
                 starship init fish | source
               '';
             };
-            programs.starship = {
+            starship = {
               enable = true;
             };
+          };
 
-            # ─── Basic Packages ────────────────────────────────────
-            environment.systemPackages = with pkgs; [
-              # Core utils
-              git
-              vim
-              tmux
-              fish
-              starship
-              eza
-              bat
-              ripgrep
-              fd
-              fzf
-              curl
-              wget
-              httpie
-              gh
+          # ─── Basic Packages ────────────────────────────────────
+          environment.systemPackages = with pkgs; [
+            # Core utils
+            git
+            vim
+            tmux
+            fish
+            starship
+            eza
+            bat
+            ripgrep
+            fd
+            fzf
+            curl
+            wget
+            httpie
+            gh
 
-              # Development
-              # nix
-              # colmena
+            # Development
+            # nix
+            # colmena
 
-              # Network
-              iproute2
-              iputils
-              dnsutils
-              nettools
-              whois
-              mtr
-              tcpdump
-              nmap
+            # Network
+            iproute2
+            iputils
+            dnsutils
+            nettools
+            whois
+            mtr
+            tcpdump
+            nmap
 
-              # Monitoring
-              htop
-              btop
-              nvtop
+            # Monitoring
+            htop
+            btop
+            nvtop
 
-              # Browser
-              # firefox-unwrapped
+            # Browser
+            # firefox-unwrapped
 
-              # Shell utils
-              bc
-              rsync
-              tree
-              jq
-              yq
-              tokei
-              dust
+            # Shell utils
+            bc
+            rsync
+            tree
+            jq
+            yq
+            tokei
+            dust
 
-              # Compression
-              unzip
-              zip
-              tar
-              gzip
-              xz
-              bzip2
-              p7zip
+            # Compression
+            unzip
+            zip
+            tar
+            gzip
+            xz
+            bzip2
+            p7zip
 
-              # Media
-              feh
-              mpv
-              imagemagick
-              ffmpeg
+            # Media
+            feh
+            mpv
+            imagemagick
+            ffmpeg
 
-              # Fonts
-              nerdfonts
-            ];
+            # Fonts
+            nerdfonts
+          ];
 
-            # ─── Fonts & Theming ───────────────────────────────
-            fonts.fonts = with pkgs.nerdfonts; [
-              JetBrainsMono
-              FiraCode
-              Hack
-              SourceCodePro
-            ];
+          # ─── Fonts & Theming ───────────────────────────────
+          fonts.fonts = with pkgs.nerdfonts; [
+            JetBrainsMono
+            FiraCode
+            Hack
+            SourceCodePro
+          ];
 
-            # ─── Boot ──────────────────────────────────────────
-            boot.loader.systemd-boot.enable = true;
-            boot.loader.efi.canTouchEfiVariables = true;
-            boot.kernelParams = [
+          # ─── Boot ──────────────────────────────────────────
+          boot = {
+            loader = {
+              systemd-boot.enable = true;
+              efi.canTouchEfiVariables = true;
+            };
+            kernelParams = [
               "quiet"
               "loglevel=3"
             ];
+          };
 
-            # ─── Filesystem ─────────────────────────────────────
-            # USB will be the root
-            # Configure after installation based on actual drive
+          # ─── Filesystem ─────────────────────────────────────
+          # USB will be the root
+          # Configure after installation based on actual drive
 
-            # ─── Timezone & Locale ──────────────────────────────
-            time.timeZone = "America/Winnipeg";
-            i18n.defaultLocale = "en_US.UTF-8";
+          # ─── Timezone & Locale ──────────────────────────────
+          time.timeZone = "America/Winnipeg";
+          i18n.defaultLocale = "en_US.UTF-8";
 
-            # ─── Hardware ─────────────────────────────────────
-            hardware.nvidia = {
-              enable = true;
-              open = false;
-              modesetting.enable = true;
+          # ─── Hardware ─────────────────────────────────────
+          hardware.nvidia = {
+            enable = true;
+            open = false;
+            modesetting.enable = true;
+          };
+          hardware.opengl = {
+            enable = true;
+            driSupport = true;
+          };
+
+          # ─── Nix ─────────────────────────────────────────
+          nix = {
+            settings = {
+              substituters = [
+                "https://niri.cachix.org"
+                "https://noctalia.cachix.org"
+                "https://nix-community.cachix.org"
+              ];
+              trusted-public-keys = [
+                "niri.cachix.org-1:Wv0O6Tz6V5fM6gD8hIRwM+QjRtBu5OD5QyQjx2hE8vE="
+                "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
+                "nix-community.cachix.org-1:3B8gQfk+egR5f2cK5zJqHmWqJdY6LlBBwRiAxH2wX5o="
+              ];
+              max-jobs = "auto";
+              cores = 0; # Use all available
             };
-            hardware.opengl = {
-              enable = true;
-              driSupport = true;
-            };
+            package = pkgs.nix;
+            nixPath = "nixpkgs=https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz";
+          };
 
-            # ─── Services for portability ──────────────────────
-            services = {
-              # Enable common cluster services
-              # These can be started when needed
-              # podman.enable = true;
-              # docker.enable = true;
-            };
+          # ─── Environment ─────────────────────────────────
+          environment.sessionVariables = {
+            # Add your env vars here
+            # EDITOR = "vim";
+            # VISUAL = "code";
+          };
 
-            # ─── Nix ─────────────────────────────────────────
-            nix = {
-              settings = {
-                substituters = [
-                  "https://niri.cachix.org"
-                  "https://noctalia.cachix.org"
-                  "https://nix-community.cachix.org"
-                ];
-                trusted-public-keys = [
-                  "niri.cachix.org-1:Wv0O6Tz6V5fM6gD8hIRwM+QjRtBu5OD5QyQjx2hE8vE="
-                  "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
-                  "nix-community.cachix.org-1:3B8gQfk+egR5f2cK5zJqHmWqJdY6LlBBwRiAxH2wX5o="
-                ];
-                max-jobs = "auto";
-                cores = 0;  # Use all available
-              };
-              package = pkgs.nix;
-              nixPath = "nixpkgs=https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz";
-            };
+          # ─── Security (minimal for portable) ───────────────
+          security = {
+            sudo.wheelNeedsPassword = false;
+            doas.enable = false;
+          };
 
-            # ─── Environment ─────────────────────────────────
-            environment.sessionVariables = {
-              # Add your env vars here
-              # EDITOR = "vim";
-              # VISUAL = "code";
-            };
-
-            # ─── Security (minimal for portable) ───────────────
-            security = {
-              sudo.wheelNeedsPassword = false;
-              doas.enable = false;
-            };
-
-            # ─── System ────────────────────────────────────────
-            system = {
-              stateVersion = "25.05";
-              autoUpgrade.enable = false;
-            };
-          }
-        ];
-      };
+          # ─── System ────────────────────────────────────────
+          system = {
+            stateVersion = "25.05";
+            autoUpgrade.enable = false;
+          };
+        }
+      ];
     };
+  };
 }

@@ -3,11 +3,9 @@
   config,
   pkgs,
   ...
-}:
-let
+}: let
   currentHost = config.networking.hostName or "unknown";
-in
-{
+in {
   nix = {
     distributedBuilds = lib.mkDefault true;
 
@@ -22,74 +20,70 @@ in
       ];
 
       substituters = lib.mkForce (
-        if currentHost == "zephyr" then
-          [
-            "https://cache.nixos.org"
-            "https://nix-community.cachix.org"
-            "https://cache.garnix.io"
-            "https://reverb-os.cachix.org"
-            "https://ezkea.cachix.org"
-            "https://nix-gaming.cachix.org"
-            "https://attic.xuyh0120.win/lantian"
-          ]
-        else
-          [
-            "https://cache.nixos.org"
-            "https://nix-community.cachix.org"
-            "https://cache.garnix.io"
-            "https://reverb-os.cachix.org"
-            "https://ezkea.cachix.org"
-            "https://nix-gaming.cachix.org"
-            "https://attic.xuyh0120.win/lantian"
-          ]
+        if currentHost == "zephyr"
+        then [
+          "https://cache.nixos.org"
+          "https://nix-community.cachix.org"
+          "https://cache.garnix.io"
+          "https://reverb-os.cachix.org"
+          "https://ezkea.cachix.org"
+          "https://nix-gaming.cachix.org"
+          "https://attic.xuyh0120.win/lantian"
+        ]
+        else [
+          "https://cache.nixos.org"
+          "https://nix-community.cachix.org"
+          "https://cache.garnix.io"
+          "https://reverb-os.cachix.org"
+          "https://ezkea.cachix.org"
+          "https://nix-gaming.cachix.org"
+          "https://attic.xuyh0120.win/lantian"
+        ]
       );
       trusted-public-keys = lib.mkForce (
-        if currentHost == "zephyr" then
-          [
-            "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-            "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-            "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
-            "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
-            "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
-            "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
-            "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc="
-          ]
-        else
-          [
-            "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-            "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-            "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
-            "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
-            "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
-            "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
-            "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc="
-          ]
+        if currentHost == "zephyr"
+        then [
+          "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+          "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+          "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+          "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
+          "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
+          "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
+          "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc="
+        ]
+        else [
+          "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+          "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+          "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+          "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
+          "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
+          "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
+          "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc="
+        ]
       );
 
       cores = lib.mkForce (
-        if currentHost == "zephyr" then
-          4
-        else if currentHost == "nexus" then
-          4
-        else if currentHost == "sentry" then
-          2
-        else if currentHost == "forge" then
-          2
-        else
-          4
+        if currentHost == "zephyr"
+        then 4
+        else if currentHost == "nexus"
+        then 4
+        else if currentHost == "sentry"
+        then 2
+        else if currentHost == "forge"
+        then 2
+        else 4
       );
 
       max-jobs = lib.mkForce (
-        if currentHost == "zephyr" then
-          2
-        else if currentHost == "nexus" then
-          6
-        else if currentHost == "sentry" then
-          4
-        else if currentHost == "forge" then
-          2
-        else
-          2
+        if currentHost == "zephyr"
+        then 2
+        else if currentHost == "nexus"
+        then 6
+        else if currentHost == "sentry"
+        then 4
+        else if currentHost == "forge"
+        then 2
+        else 2
       );
 
       http-connections = 100;
@@ -100,7 +94,6 @@ in
       auto-optimise-store = true;
       extra-sandbox-paths = [
         "/var/cache/ccache"
-        
       ];
     };
 
@@ -115,9 +108,9 @@ in
 
   systemd.services.copy-build-ssh-key = {
     description = "Copy SSH key for distributed builds";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "local-fs.target" ];
-    before = [ "nix-daemon.service" ];
+    wantedBy = ["multi-user.target"];
+    after = ["local-fs.target"];
+    before = ["nix-daemon.service"];
     serviceConfig.Type = "oneshot";
     serviceConfig.RemainAfterExit = true;
     script = ''
@@ -130,7 +123,6 @@ in
     '';
   };
 
-
   environment = {
     etc = {
       "ssh/ssh_config.d/50-build-machines.conf".text = ''
@@ -142,53 +134,54 @@ in
           ConnectTimeout 30
       '';
 
-      "nix/machines".text =
-        let
-          allMachines = [
-            {
-              hostName = "zephyr";
-              system = "x86_64-linux";
-              sshUser = "j_kro";
-              sshKey = "/etc/nixos/ssh/id_ed25519";
-              maxJobs = 0;
-              speedFactor = 4;
-              supportedFeatures = [
-                "big-parallel"
-                "kvm"
-              ];
-              mandatoryFeatures = [ ];
-            }
-            {
-              hostName = "nexus";
-              system = "x86_64-linux";
-              sshUser = "j_kro";
-              sshKey = "/etc/nixos/ssh/id_ed25519";
-              maxJobs = 6;
-              speedFactor = 5;
-              supportedFeatures = [
-                "big-parallel"
-                "kvm"
-              ];
-              mandatoryFeatures = [ ];
-            }
-            {
-              hostName = "sentry";
-              system = "x86_64-linux";
-              sshUser = "j_kro";
-              sshKey = "/etc/nixos/ssh/id_ed25519";
-              maxJobs = 4;
-              speedFactor = 3;
-              supportedFeatures = [ "big-parallel" ];
-              mandatoryFeatures = [ ];
-            }
-          ];
-          machines = builtins.filter (m: m.hostName != currentHost) allMachines;
-          formatMachine = m: ''
-            ssh-ng://${m.sshUser}@${m.hostName} ${m.system} ${
-              if m.sshKey != null then m.sshKey else "-"
-            } ${toString m.maxJobs} ${toString m.speedFactor} ${lib.concatStringsSep "," m.supportedFeatures} ${lib.concatStringsSep "," m.mandatoryFeatures}
-          '';
-        in
+      "nix/machines".text = let
+        allMachines = [
+          {
+            hostName = "zephyr";
+            system = "x86_64-linux";
+            sshUser = "j_kro";
+            sshKey = "/etc/nixos/ssh/id_ed25519";
+            maxJobs = 0;
+            speedFactor = 4;
+            supportedFeatures = [
+              "big-parallel"
+              "kvm"
+            ];
+            mandatoryFeatures = [];
+          }
+          {
+            hostName = "nexus";
+            system = "x86_64-linux";
+            sshUser = "j_kro";
+            sshKey = "/etc/nixos/ssh/id_ed25519";
+            maxJobs = 6;
+            speedFactor = 5;
+            supportedFeatures = [
+              "big-parallel"
+              "kvm"
+            ];
+            mandatoryFeatures = [];
+          }
+          {
+            hostName = "sentry";
+            system = "x86_64-linux";
+            sshUser = "j_kro";
+            sshKey = "/etc/nixos/ssh/id_ed25519";
+            maxJobs = 4;
+            speedFactor = 3;
+            supportedFeatures = ["big-parallel"];
+            mandatoryFeatures = [];
+          }
+        ];
+        machines = builtins.filter (m: m.hostName != currentHost) allMachines;
+        formatMachine = m: ''
+          ssh-ng://${m.sshUser}@${m.hostName} ${m.system} ${
+            if m.sshKey != null
+            then m.sshKey
+            else "-"
+          } ${toString m.maxJobs} ${toString m.speedFactor} ${lib.concatStringsSep "," m.supportedFeatures} ${lib.concatStringsSep "," m.mandatoryFeatures}
+        '';
+      in
         lib.concatMapStrings formatMachine machines;
     };
 
@@ -202,7 +195,7 @@ in
       CCACHE_LOGFILE = "/var/log/ccache.log";
     };
 
-    systemPackages = with pkgs; [ ccache ];
+    systemPackages = with pkgs; [ccache];
   };
 
   systemd.tmpfiles.rules = [

@@ -1,5 +1,8 @@
-{ pkgs, lib, ... }:
 {
+  pkgs,
+  lib,
+  ...
+}: {
   hardware.gpu-compute = {
     enable = true;
     cuda.enable = true;
@@ -32,15 +35,15 @@
   };
 
   boot = {
-    kernelModules = [ "tun" ];
+    kernelModules = ["tun"];
   };
 
   systemd.services = {
     amd-gpu-power-mgmt = {
       description = "AMD GPU Power Limit (110W for RX 5700 XT)";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "multi-user.target" ];
-      path = [ pkgs.coreutils ];
+      wantedBy = ["multi-user.target"];
+      after = ["multi-user.target"];
+      path = [pkgs.coreutils];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -85,8 +88,8 @@
 
     nvidia-compute-mode = {
       description = "NVIDIA GPU Compute-Only Mode (EXCLUSIVE_PROCESS)";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "basic.target" ];
+      wantedBy = ["multi-user.target"];
+      after = ["basic.target"];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -115,7 +118,7 @@
 
     amd-gpu-fan-curve = {
       description = "AMD GPU Dynamic Fan Curve Control";
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = ["multi-user.target"];
       after = [
         "network.target"
       ];
@@ -265,8 +268,8 @@
 
     "amd-gpu-check" = {
       description = "AMD GPU Detection and Health Check";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "basic.target" ];
+      wantedBy = ["multi-user.target"];
+      after = ["basic.target"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo 2>/dev/null || echo \"AMD GPU detection failed\"'";
@@ -274,11 +277,10 @@
       };
     };
 
-
     "amd-gpu-info" = {
       description = "AMD GPU Information Service";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "basic.target" ];
+      wantedBy = ["multi-user.target"];
+      after = ["basic.target"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo > /tmp/amd-gpu-info.log 2>&1 || true'";
@@ -307,27 +309,24 @@
       LD_LIBRARY_PATH = lib.mkForce "${pkgs.rocmPackages.clr}/lib:${pkgs.rocmPackages.clr.icd}/lib:${pkgs.mesa.opencl}/lib";
       OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
     };
-    etc."OpenCL/vendors/amdocl64.icd".source =
-      "${pkgs.rocmPackages.clr.icd}/etc/OpenCL/vendors/amdocl64.icd";
+    etc."OpenCL/vendors/amdocl64.icd".source = "${pkgs.rocmPackages.clr.icd}/etc/OpenCL/vendors/amdocl64.icd";
   };
 
-  systemd.tmpfiles.rules =
-    let
-      rocmEnv = pkgs.symlinkJoin {
-        name = "rocm-combined";
-        paths = with pkgs.rocmPackages; [
-          clr
-          clr.icd
-          rocblas
-          hipblas
-          rpp
-        ];
-      };
-    in
-    [
-      "c /dev/net/tun 666 root root - - - -"
-      "L+ /opt/rocm - - - - ${rocmEnv}"
-      "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
-      "L /etc/OpenCL/vendorsamdocl64.icd - - - - /etc/OpenCL/vendors/amdocl64.icd"
-    ];
+  systemd.tmpfiles.rules = let
+    rocmEnv = pkgs.symlinkJoin {
+      name = "rocm-combined";
+      paths = with pkgs.rocmPackages; [
+        clr
+        clr.icd
+        rocblas
+        hipblas
+        rpp
+      ];
+    };
+  in [
+    "c /dev/net/tun 666 root root - - - -"
+    "L+ /opt/rocm - - - - ${rocmEnv}"
+    "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
+    "L /etc/OpenCL/vendorsamdocl64.icd - - - - /etc/OpenCL/vendors/amdocl64.icd"
+  ];
 }

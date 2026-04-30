@@ -3,11 +3,9 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.hardware.rgb-control;
-in
-{
+in {
   options.hardware.rgb-control = {
     enable = lib.mkEnableOption "RGB control with temperature-based lighting";
 
@@ -73,32 +71,34 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = [
-      pkgs.openrgb
-    ]
-    ++ lib.optionals cfg.openrgb.enable [
-      pkgs.openrgb-plugin-effects
-      pkgs.python3Packages.openrgb-python
-    ]
-    ++ lib.optionals cfg.openrazer.enable [
-      pkgs.polychromatic
-      pkgs.razer-cli
-    ]
-    ++ lib.optionals cfg.wraithRgb.enable [
-      pkgs.cm-rgb
-    ];
+    environment.systemPackages =
+      [
+        pkgs.openrgb
+      ]
+      ++ lib.optionals cfg.openrgb.enable [
+        pkgs.openrgb-plugin-effects
+        pkgs.python3Packages.openrgb-python
+      ]
+      ++ lib.optionals cfg.openrazer.enable [
+        pkgs.polychromatic
+        pkgs.razer-cli
+      ]
+      ++ lib.optionals cfg.wraithRgb.enable [
+        pkgs.cm-rgb
+      ];
 
-    boot.kernelModules = [
-      "i2c-dev"
-      "i2c-piix4"
-      "i2c-i801"
-    ]
-    ++ lib.optionals cfg.openrazer.enable [
-      "razeraccessory"
-      "razerkbd"
-      "razerkraken"
-      "razermouse"
-    ];
+    boot.kernelModules =
+      [
+        "i2c-dev"
+        "i2c-piix4"
+        "i2c-i801"
+      ]
+      ++ lib.optionals cfg.openrazer.enable [
+        "razeraccessory"
+        "razerkbd"
+        "razerkraken"
+        "razermouse"
+      ];
 
     services.udev.extraRules = lib.mkIf cfg.openrgb.enable ''
       SUBSYSTEM=="i2c-dev", MODE="0666"
@@ -111,7 +111,7 @@ in
 
     hardware.openrazer = lib.mkIf cfg.openrazer.enable {
       enable = true;
-      users = [ "j_kro" ];
+      users = ["j_kro"];
     };
     boot.extraModulePackages = lib.optionals cfg.openrazer.enable [
       config.boot.kernelPackages.openrazer
@@ -119,8 +119,8 @@ in
 
     systemd.services.rgb-temperature-control = lib.mkIf cfg.temperatureReactive.enable {
       description = "Temperature-reactive RGB lighting control";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "graphical-session.target" ];
+      wantedBy = ["multi-user.target"];
+      after = ["graphical-session.target"];
       serviceConfig = {
         Type = "simple";
         Restart = "always";

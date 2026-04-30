@@ -13,7 +13,7 @@
     types
     ;
 
-  pythonEnv = pkgs.python3.withPackages (ps: [
+  pythonEnv = pkgs.python3.withPackages (_ps: [
     # stdlib only — urllib, json, tempfile are built-in
   ]);
 in {

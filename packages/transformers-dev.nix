@@ -1,9 +1,7 @@
 {
-  lib,
   python3Packages,
   fetchFromGitHub,
 }:
-
 python3Packages.transformers.overrideAttrs (old: rec {
   version = "5.6.0-dev";
   src = fetchFromGitHub {
@@ -13,5 +11,5 @@ python3Packages.transformers.overrideAttrs (old: rec {
     hash = "sha256-6W6z8/NOSe07lTmpoWiwaERkmVsMCeI6jyDAoqPFBcs=";
   };
   format = "pyproject";
-  buildInputs = (old.buildInputs or []) ++ [ python3Packages.setuptools ];
+  buildInputs = (old.buildInputs or []) ++ [python3Packages.setuptools];
 })

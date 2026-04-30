@@ -67,7 +67,6 @@
 
   nix.settings = {
     trusted-users = ["j_kro"];
-
   };
 
   boot.loader = {
@@ -84,7 +83,6 @@
     systemd-boot.edk2-uefi-shell.enable = lib.mkDefault true;
 
     systemd-boot.memtest86.enable = lib.mkDefault true;
-
   };
 
   boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_zen;

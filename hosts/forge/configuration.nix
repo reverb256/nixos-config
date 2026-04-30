@@ -4,8 +4,7 @@
   pkgs,
   inputs,
   ...
-}:
-{
+}: {
   imports = [
     ./monitoring.nix
     ./firewall.nix
@@ -23,11 +22,11 @@
   nixpkgs.config.packageOverrides = pkgs: {
     llama-cpp-turboquant = pkgs.llama-cpp-turboquant.overrideAttrs (old: {
       CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3";
-      cmakeFlags = (old.cmakeFlags or []) ++ [ "-DLLAMA_CUDA_ARCHITECTURES=89" ];
+      cmakeFlags = (old.cmakeFlags or []) ++ ["-DLLAMA_CUDA_ARCHITECTURES=89"];
     });
     llama-cpp = pkgs.llama-cpp.overrideAttrs (old: {
       CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3";
-      cmakeFlags = (old.cmakeFlags or []) ++ [ "-DLLAMA_CUDA_ARCHITECTURES=89" ];
+      cmakeFlags = (old.cmakeFlags or []) ++ ["-DLLAMA_CUDA_ARCHITECTURES=89"];
     });
     llama-cpp-vulkan = pkgs.llama-cpp-vulkan.overrideAttrs (old: {
       CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3";
@@ -85,7 +84,6 @@
   boot.kernelPackages =
     inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
 
-
   # Shared hermes + pi state via NFS (resilient: nofail, automount, soft)
   services.nfs-cluster-mounts = {
     enable = true;
@@ -93,12 +91,11 @@
     mountPi = true;
   };
 
-
   # Override noexec on /var (nix-mineral remnant) for k3s re-exec
   fileSystems."/var/lib/rancher/k3s" = {
     device = "/var/lib/rancher/k3s";
     fsType = "none";
-    options = [ "bind" "rw" "nosuid" ];
+    options = ["bind" "rw" "nosuid"];
   };
 
   system.stateVersion = "26.05";

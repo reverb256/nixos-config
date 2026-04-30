@@ -1,9 +1,12 @@
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.appimage-updater;
   script = "${../../scripts/auto-update-appimages.sh}";
-in
-{
+in {
   options.services.appimage-updater = {
     enable = lib.mkEnableOption "Automatic AppImage package updater (Stability Matrix, LM Studio)";
     schedule = lib.mkOption {
@@ -42,13 +45,13 @@ in
         # Need network for API calls and nix builds
         PrivateNetwork = false;
         # Need write access to /etc/nixos git repo
-        ReadWritePaths = [ "/etc/nixos" ];
+        ReadWritePaths = ["/etc/nixos"];
       };
     };
 
     systemd.timers.appimage-updater = {
       description = "Weekly auto-update check for AppImage packages";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnCalendar = cfg.schedule;
         Persistent = true;

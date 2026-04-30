@@ -1,5 +1,4 @@
-{ lib, ... }:
-{
+{lib, ...}: {
   networking = {
     firewall = {
       extraInputRules = lib.mkAfter ''

@@ -1,28 +1,43 @@
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.vane;
   inherit (lib) mkEnableOption mkOption types mkIf;
-in
-{
+in {
   options.services.vane = {
     enable = mkEnableOption "Vane AI search engine";
-    port = mkOption { type = types.port; default = 30900; };
-    image = mkOption { type = types.str; default = "docker.io/itzcrazykns1337/vane:slim-latest"; };
+    port = mkOption {
+      type = types.port;
+      default = 30900;
+    };
+    image = mkOption {
+      type = types.str;
+      default = "docker.io/itzcrazykns1337/vane:slim-latest";
+    };
     searxngUrl = mkOption {
       type = types.str;
       default = "http://searxng.search.svc.cluster.local:8080";
     };
-    dataDir = mkOption { type = types.str; default = "/var/lib/vane"; };
-    openFirewall = mkOption { type = types.bool; default = false; };
+    dataDir = mkOption {
+      type = types.str;
+      default = "/var/lib/vane";
+    };
+    openFirewall = mkOption {
+      type = types.bool;
+      default = false;
+    };
   };
   config = mkIf cfg.enable {
-    systemd.tmpfiles.rules = [ "d ${cfg.dataDir} 0755 root root -" ];
+    systemd.tmpfiles.rules = ["d ${cfg.dataDir} 0755 root root -"];
     systemd.services.vane = {
       description = "Vane AI Search Engine";
-      after = [ "network-online.target" "podman.service" ];
-      wants = [ "network-online.target" ];
-      requires = [ "podman.service" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["network-online.target" "podman.service"];
+      wants = ["network-online.target"];
+      requires = ["podman.service"];
+      wantedBy = ["multi-user.target"];
       preStart = ''
         ${pkgs.podman}/bin/podman rm -f vane 2>/dev/null || true
       '';
@@ -35,6 +50,6 @@ in
         TimeoutStartSec = "120";
       };
     };
-    networking.firewall.allowedTCPPorts = lib.mkIf cfg.openFirewall (lib.mkOptionDefault [ cfg.port ]);
+    networking.firewall.allowedTCPPorts = lib.mkIf cfg.openFirewall (lib.mkOptionDefault [cfg.port]);
   };
 }

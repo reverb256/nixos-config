@@ -3,17 +3,16 @@
   lib,
   pkgs,
   ...
-}:
-let
-  inherit (lib)
+}: let
+  inherit
+    (lib)
     mkEnableOption
     mkIf
     mkOption
     types
     ;
   cfg = config.security.clusterAudit;
-in
-{
+in {
   options.security.clusterAudit = {
     enable = mkEnableOption "Security audit remediation and hardening";
 
@@ -40,11 +39,10 @@ in
     networking.firewall = mkIf cfg.enableFirewall {
       enable = true;
 
-      trustedInterfaces = [ "tailscale0" ];
+      trustedInterfaces = ["tailscale0"];
 
-      allowedTCPPorts = lib.mkOptionDefault [ ];
+      allowedTCPPorts = lib.mkOptionDefault [];
     };
-
 
     services = {
       tailscale = mkIf cfg.enableTailscaleSSH {

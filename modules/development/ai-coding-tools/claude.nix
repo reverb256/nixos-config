@@ -1,10 +1,9 @@
 {
   cfg,
   pkgs,
-  gatewayUrl,
   mkMcpServersJson,
-}:
-{
+  gatewayUrl,
+}: {
   mkClaudeMcpJson = pkgs.writeShellScript "generate-claude-mcp" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
@@ -18,14 +17,14 @@
       '{
         "mcpServers": {
           ${mkMcpServersJson {
-            keyMode = "resolved";
-            extraServers = {
-              nixos = {
-                command = "uvx";
-                args = [ "mcp-nixos" ];
-              };
-            };
-          }}
+      keyMode = "resolved";
+      extraServers = {
+        nixos = {
+          command = "uvx";
+          args = ["mcp-nixos"];
+        };
+      };
+    }}
         }
       }' > "/home/${cfg.user}/.config/claude/mcp.json"
     chown ${cfg.user}:users "/home/${cfg.user}/.config/claude/mcp.json"

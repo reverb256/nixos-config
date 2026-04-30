@@ -2,11 +2,8 @@
   pkgs,
   lib,
   ...
-}:
-{
+}: {
   environment.systemPackages = with pkgs; [
-
-
     rust-analyzer
     taplo
     python312Packages.python-lsp-server
@@ -46,13 +43,11 @@
     dockerfile-language-server
     hadolint
 
-
     meson
     dive
     lazydocker
     postgresql
   ];
-
 
   environment.common.development.editor = lib.mkDefault "nvim";
   environment.sessionVariables = {
@@ -64,7 +59,6 @@
     CARGO_HOME = "$HOME/.cargo";
     GIT_CONFIG_SYSTEM = "/etc/gitconfig-safe-nixos.conf";
   };
-
 
   systemd.tmpfiles.rules = [
     "f /etc/gitconfig-safe - - - - -"
