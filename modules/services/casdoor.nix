@@ -11,11 +11,12 @@ let
     mkOption
     types
     mkIf
+    mkOptionDefault
     ;
 in
 {
   options.services.casdoor = {
-    enable = mkEnableOption "Casdoor - Self-hosted SSO, OAuth 2.0, OIDC, SAML and LDAP";
+    enable = mkEnableOption "Casdoor - Self-hosted SSO / OIDC / OAuth 2.0 / SAML / LDAP";
 
     hostName = mkOption {
       type = types.str;
@@ -26,7 +27,7 @@ in
     dataDir = mkOption {
       type = types.path;
       default = "/var/lib/casdoor";
-      description = "Casdoor data directory (embedded DB, session data)";
+      description = "Casdoor data directory (logs, config)";
     };
 
     port = mkOption {
@@ -35,98 +36,157 @@ in
       description = "Host port for Casdoor HTTP interface";
     };
 
-    # Admin user is fixed, password comes from agenix secret
+    adminEmail = mkOption {
+      type = types.str;
+      default = "admin@localhost";
+      description = "Initial admin email address";
+    };
+
     organizationName = mkOption {
       type = types.str;
       default = "Casdoor";
       description = "Default organization name";
     };
 
-    # Optional: connection to existing PostgreSQL
-    # Defaults to embedded DB (BoltDB) if not specified
-    postgresql = {
-      enable = mkOption {
-        type = types.bool;
-        default = false;
-        description = "Use external PostgreSQL instead of embedded DB";
-      };
-      host = mkOption {
-        type = types.str;
-        default = "localhost";
-        description = "PostgreSQL host";
-      };
-      port = mkOption {
-        type = types.int;
-        default = 5432;
-        description = "PostgreSQL port";
-      };
-      user = mkOption {
-        type = types.str;
-        default = "casdoor";
-        description = "PostgreSQL user";
-      };
-      database = mkOption {
-        type = types.str;
-        default = "casdoor";
-        description = "PostgreSQL database name";
-      };
-      # Password via secrets.casdoor-postgres-password.path
+    dbUser = mkOption {
+      type = types.str;
+      default = "casdoor";
+      description = "PostgreSQL database user";
+    };
+
+    dbName = mkOption {
+      type = types.str;
+      default = "casdoor";
+      description = "PostgreSQL database name";
     };
   };
 
   config = mkIf cfg.enable {
     virtualisation.podman.enable = true;
 
+    # Local PostgreSQL for Casdoor (zero-touch, declarative)
+    services.postgresql = {
+      enable = true;
+      package = pkgs.postgresql_16;
+      ensureDatabases = [ cfg.dbName ];
+      ensureUsers = [
+        {
+          name = cfg.dbUser;
+          ensureDBOwnership = true;
+        }
+      ];
+      authentication = ''
+        local   all   all                     trust
+        host    ${cfg.dbName}  ${cfg.dbUser}  127.0.0.1/32  trust
+        host    ${cfg.dbName}  ${cfg.dbUser}  ::1/128       trust
+      '';
+    };
+
     # State directory
     systemd.tmpfiles.settings."casdoor" = {
       "${cfg.dataDir}" = {
         d = {
-          mode = "700";
+          mode = "755";
           user = "root";
           group = "root";
         };
       };
     };
 
+    # Generate random admin password at first boot
+    systemd.services.casdoor-init-password = {
+      description = "Generate Casdoor admin password";
+      before = [ "casdoor.service" ];
+      requiredBy = [ "casdoor.service" ];
+      after = [ "systemd-tmpfiles-setup.service" ];
+
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+      };
+
+      script = ''
+        PW_FILE="${cfg.dataDir}/init-password"
+        if [ ! -f "$PW_FILE" ]; then
+          PW=$(${pkgs.openssl}/bin/openssl rand -base64 24)
+          mkdir -p "$(dirname "$PW_FILE")"
+          printf '%s' "$PW" > "$PW_FILE"
+          chmod 644 "$PW_FILE"
+          ln -sf "$PW_FILE" "/home/j_kro/.casdoor-init-password"
+          echo "Casdoor admin password generated to $PW_FILE"
+        fi
+      '';
+    };
+
+    # Write app.conf for Casdoor
+    environment.etc."casdoor/app.conf".text = ''
+      appname = casdoor
+      httpport = 8000
+      runmode = prod
+      copyrequestbody = true
+      driverName = postgres
+      dataSourceName = user=${cfg.dbUser} host=127.0.0.1 port=5432 sslmode=disable dbname=${cfg.dbName}
+      dbName = ${cfg.dbName}
+      tableNamePrefix =
+      showSql = false
+      redisEndpoint =
+      defaultStorageProvider =
+      isCloudIntranet = false
+      authState = "casdoor"
+      verificationCodeTimeout = 10
+      initScore = 0
+      logPostOnly = true
+      isUsernameLowered = false
+      origin = https://${cfg.hostName}
+      staticBaseUrl = "https://cdn.casbin.org"
+      isDemoMode = false
+      batchSize = 100
+      showGithubCorner = false
+      defaultLanguage = "en"
+      defaultApplication = "app-built-in"
+      maxItemsForFlatMenu = 7
+      enableGzip = true
+      initDataNewOnly = false
+      initDataFile = "./init_data.json"
+    '';
+
     # Main service
     systemd.services.casdoor = {
-      description = "Casdoor SSO Service";
+      description = "Casdoor SSO / OIDC Service";
       after = [
         "network-online.target"
         "podman.service"
+        "postgresql.service"
+        "casdoor-init-password.service"
       ];
       wants = [
         "podman.service"
         "network-online.target"
       ];
+      requires = [
+        "postgresql.service"
+        "casdoor-init-password.service"
+      ];
       wantedBy = [ "multi-user.target" ];
+
+      path = with pkgs; [ podman openssl coreutils ];
 
       serviceConfig = {
         Type = "simple";
         Restart = "always";
         RestartSec = "10s";
 
-        ExecStart = ''
+        ExecStart = pkgs.writeShellScript "casdoor-run" ''
+          set -euo pipefail
+
           ${pkgs.podman}/bin/podman run --name casdoor \
-            -p ${toString cfg.port}:8000 \
-            -v ${cfg.dataDir}:/data:Z \
-            -e GIN_MODE=release \
-            -e CASDOOR_NAME="${cfg.organizationName}" \
-            -e CASDOOR_ORGANIZATION_NAME="${cfg.organizationName}" \
-            -e CASDOOR_PORT=${toString cfg.port} \
-            -e CASDOOR_INIT_ADMIN_EMAIL=admin@localhost \
-            -e CASDOOR_INIT_ADMIN_PASSWORD='${cfg.initAdminPassword}' \
-            ${lib.optionalString cfg.postgresql.enable ''
-              -e CASDOOR_DATABASE_TYPE=postgres \
-              -e CASDOOR_DATABASE_HOST=${cfg.postgresql.host} \
-              -e CASDOOR_DATABASE_PORT=${toString cfg.postgresql.port} \
-              -e CASDOOR_DATABASE_USER=${cfg.postgresql.user} \
-              -e CASDOOR_DATABASE_NAME=${cfg.postgresql.database} \
-              -v ${config.age.secrets.casdoor-postgres-password.path}:/run/secrets/db-password:ro,Z \
-              -e CASDOOR_DATABASE_PASSWORD_FILE=/run/secrets/db-password \
-            ''} \
+            --network host \
+            -v /etc/casdoor/app.conf:/conf/app.conf:ro \
+            -e RUNNING_IN_DOCKER=true \
+            --init \
             --replace \
-            ghcr.io/casdoor/casdoor:v1.750.0
+            docker.io/casbin/casdoor:3.49.0 \
+            ./server --createDatabase=true
         '';
 
         ExecStop = "${pkgs.podman}/bin/podman stop --ignore casdoor";
@@ -138,7 +198,6 @@ in
 
         # Security
         PrivateTmp = true;
-        ProtectHome = true;
         ProtectSystem = lib.mkForce "full";
 
         ReadWritePaths = [
@@ -150,15 +209,10 @@ in
       };
     };
 
-    # Caddy reverse proxy (matches vaultwarden.nix pattern)
-    services.caddy-module.${cfg.hostName} = {
-      reverseProxy = "localhost:${toString cfg.port}";
-    };
-
-    # Firewall: allow on tailscale only (like vaultwarden)
-    networking.firewall.interfaces."lo".allowedTCPPorts = lib.mkOptionDefault [ cfg.port ];
-  networking.firewall.interfaces."tailscale0".allowedTCPPorts = lib.mkOptionDefault [ cfg.port ];
-
-    environment.systemPackages = with pkgs; [ casdoor ];
+    # Firewall: allow loopback (for local access) + tailscale
+    networking.firewall.interfaces."lo".allowedTCPPorts =
+      lib.mkOptionDefault [ cfg.port ];
+    networking.firewall.interfaces."tailscale0".allowedTCPPorts =
+      lib.mkOptionDefault [ cfg.port ];
   };
 }

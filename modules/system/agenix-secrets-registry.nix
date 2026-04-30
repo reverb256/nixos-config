@@ -216,21 +216,6 @@ in
           owner = "root";
           group = "root";
         };
-        # TODO: Run `agenix -e secrets/casdoor-postgres-password.age` to create this file
-        casdoor-postgres-password = {
-          file = "${inputs.self}/secrets/casdoor-postgres-password.age";
-          mode = "440";
-          owner = "root";
-          group = "root";
-        };
-        # TODO: Run `agenix -e secrets/casdoor-init-admin-password.age` to create this file
-        casdoor-init-admin-password = {
-          file = "${inputs.self}/secrets/casdoor-init-admin-password.age";
-          mode = "440";
-          owner = "root";
-          group = "root";
-        };
-        # TODO: Run `agenix -e secrets/rclone-config.age` to create this file
         rclone-config = {
           file = "${inputs.self}/secrets/rclone-config.age";
           mode = "400";

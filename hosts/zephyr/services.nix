@@ -356,6 +356,10 @@ in
       };
     };
 
+    casdoor = {
+      enable = true;
+      hostName = "auth.zephyr.taila21e09.ts.net";
+    };
     vaultwarden-module = {
       enable = true;
       hostName = "vaultwarden.zephyr.taila21e09.ts.net";
