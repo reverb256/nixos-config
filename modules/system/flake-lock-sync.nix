@@ -1,8 +1,10 @@
 {
   lib,
   config,
+  pkgs,
   ...
-}: let
+}:
+let
   currentHost = config.networking.hostName or "unknown";
   isZephyr = currentHost == "zephyr";
   cfg = {
@@ -39,42 +41,6 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    environment.etc."nixos/scripts/sync-flake-lock.sh" = {
-      mode = "0755";
-      text = ''
-        #!/usr/bin/env bash
-        set -euo pipefail
-
-        SOURCE="${cfg.sourcePath}"
-        TARGET="${cfg.targetPath}"
-        STATE_FILE="/var/lib/flake-lock-sync/last-sync"
-
-        if [ ! -f "$SOURCE" ]; then
-          echo "flake-lock-sync: Source not available ($SOURCE)"
-          exit 0
-        fi
-
-        SOURCE_SUM=$(md5sum "$SOURCE" | cut -d' ' -f1)
-        TARGET_SUM=$(md5sum "$TARGET" 2>/dev/null | cut -d' ' -f1 || echo "none")
-
-        if [ "$SOURCE_SUM" = "$TARGET_SUM" ]; then
-          exit 0
-        fi
-
-        if [ -f "$TARGET" ]; then
-          cp "$TARGET" "''${TARGET}.backup"
-        fi
-
-        cp "$SOURCE" "$TARGET"
-
-        mkdir -p "$(dirname "$STATE_FILE")"
-        echo "$SOURCE_SUM" > "$STATE_FILE"
-
-        logger -t flake-lock-sync "Synced flake.lock from NFS (checksum: $SOURCE_SUM)"
-        echo "flake-lock-sync: Synced flake.lock from NFS"
-      '';
-    };
-
     systemd.services.flake-lock-sync = {
       description = "Sync flake.lock from NFS mount";
       wantedBy = ["multi-user.target"];
@@ -90,7 +56,37 @@ in {
 
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "/etc/nixos/scripts/sync-flake-lock.sh";
+        ExecStart = pkgs.writeShellScript "sync-flake-lock" ''
+          set -euo pipefail
+
+          SOURCE="${cfg.sourcePath}"
+          TARGET="${cfg.targetPath}"
+          STATE_FILE="/var/lib/flake-lock-sync/last-sync"
+
+          if [ ! -f "$SOURCE" ]; then
+            echo "flake-lock-sync: Source not available ($SOURCE)"
+            exit 0
+          fi
+
+          SOURCE_SUM=$(md5sum "$SOURCE" | cut -d' ' -f1)
+          TARGET_SUM=$(md5sum "$TARGET" 2>/dev/null | cut -d' ' -f1 || echo "none")
+
+          if [ "$SOURCE_SUM" = "$TARGET_SUM" ]; then
+            exit 0
+          fi
+
+          if [ -f "$TARGET" ]; then
+            cp "$TARGET" "''${TARGET}.backup"
+          fi
+
+          cp "$SOURCE" "$TARGET"
+
+          mkdir -p "$(dirname "$STATE_FILE")"
+          echo "$SOURCE_SUM" > "$STATE_FILE"
+
+          logger -t flake-lock-sync "Synced flake.lock from NFS (checksum: $SOURCE_SUM)"
+          echo "flake-lock-sync: Synced flake.lock from NFS"
+        '';
         RemainAfterExit = false;
       };
     };
