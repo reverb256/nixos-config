@@ -182,6 +182,93 @@ in {
       };
     };
 
+    # Apply agenix-decrypted secrets as K8s secrets
+    # Runs on hosts with kubectl access (control plane nodes)
+    # IMPORTANT: runs after k8s-nix-deploy to ensure Secret objects exist first
+    systemd.services.kubectl-apply-k8s-secrets = lib.mkIf config.services.k3s-cluster.enable {
+      description = "Apply agenix secrets as Kubernetes secrets";
+      after = ["agenix.service" "k3s.service" "k8s-nix-deploy.service" "network-online.target"];
+      wants = ["agenix.service" "k8s-nix-deploy.service" "network-online.target"];
+      requires = ["k3s.service"];
+      wantedBy = ["multi-user.target"];
+
+      path = with pkgs; [kubectl coreutils gnugrep];
+
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = pkgs.writeShellScript "kubectl-apply-k8s-secrets" ''
+          set -euo pipefail
+
+          # Wait for K8s API to be ready
+          for i in $(seq 1 60); do
+            if kubectl get nodes >/dev/null 2>&1; then
+              break
+            fi
+            echo "[k8s-secrets] Waiting for K8s API... ($i/60)"
+            sleep 2
+          done
+
+          if ! kubectl get nodes >/dev/null 2>&1; then
+            echo "[k8s-secrets] ERROR: K8s API not available after 120s"
+            exit 1
+          fi
+
+          apply_secret() {
+            local namespace="$1"
+            local secret_name="$2"
+            local key="$3"
+            local file="$4"
+
+            if [ ! -f "$file" ] || [ ! -s "$file" ]; then
+              echo "[k8s-secrets] SKIP: $namespace/$secret_name ($key) — file not ready: $file"
+              return 0
+            fi
+
+            local value
+            value=$(cat "$file")
+
+            # Create or update the secret
+            if kubectl get secret "$secret_name" -n "$namespace" >/dev/null 2>&1; then
+              kubectl patch secret "$secret_name" -n "$namespace" -p "{\"stringData\":{\"$key\":\"$value\"}}" 2>/dev/null && \
+                echo "[k8s-secrets] ✓ Updated $namespace/$secret_name ($key)" || \
+                echo "[k8s-secrets] ✗ Failed to update $namespace/$secret_name ($key)"
+            else
+              kubectl create secret generic "$secret_name" -n "$namespace" --from-literal="$key=$value" --dry-run=client -o yaml | kubectl apply -f - && \
+                echo "[k8s-secrets] ✓ Created $namespace/$secret_name ($key)" || \
+                echo "[k8s-secrets] ✗ Failed to create $namespace/$secret_name ($key)"
+            fi
+          }
+
+          echo "[k8s-secrets] Applying agenix secrets to Kubernetes..."
+
+          # AI Inference namespace
+          apply_secret ai-inference zai-api-key ZAI_API_KEY /run/agenix/ai-gateway-zai-api-key
+          apply_secret ai-inference hf-token token /run/agenix/huggingface-token
+          apply_secret ai-inference nvidia-api-key NVIDIA_API_KEY /run/agenix/nvidia-api-key
+          apply_secret ai-inference openrouter-api-key OPENROUTER_API_KEY /run/agenix/openrouter-api-key
+
+          # Search namespace
+          apply_secret search searxng-secret secret-key /run/agenix/searxng-secret-key
+
+          # Orchestration namespace
+          apply_secret orchestration mission-control-secrets auth-pass /run/agenix/mission-control-auth-pass
+          apply_secret orchestration mission-control-secrets api-key /run/agenix/mission-control-api-key
+
+          # Mining namespace
+          apply_secret mining xmrig-proxy-secret api-token /run/agenix/xmrig-proxy-api-token
+
+          # Monitoring namespace (ai-inference — grafana lives there)
+          apply_secret ai-inference grafana-admin-secret admin-password /run/agenix/grafana-admin-password
+
+          echo "[k8s-secrets] Done"
+        '';
+        StandardOutput = "journal";
+        StandardError = "journal";
+        SyslogIdentifier = "kubectl-apply-k8s-secrets";
+      };
+    };
+
     environment.systemPackages = with pkgs; [age];
 
     system.activationScripts.copy-age-key = lib.stringAfter ["users"] ''

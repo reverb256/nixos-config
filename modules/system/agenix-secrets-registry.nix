@@ -225,6 +225,43 @@ in {
           owner = "root";
           group = "root";
         };
+        # K8s namespace-scoped secrets (applied via kubectl-apply-k8s-secrets service)
+        searxng-secret-key = {
+          file = "${inputs.self}/secrets/searxng-secret-key.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
+        mission-control-auth-pass = {
+          file = "${inputs.self}/secrets/mission-control-auth-pass.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
+        mission-control-api-key = {
+          file = "${inputs.self}/secrets/mission-control-api-key.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
+        ai-gateway-zai-api-key = {
+          file = "${inputs.self}/secrets/ai-gateway-zai-api-key.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
+        grafana-admin-password = {
+          file = "${inputs.self}/secrets/grafana-admin-password.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
+        xmrig-proxy-api-token = {
+          file = "${inputs.self}/secrets/xmrig-proxy-api-token.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
       })
     ];
   };
