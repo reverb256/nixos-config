@@ -119,6 +119,7 @@
     ./services/binary-cache.nix
     ./services/rclone.nix
     ./services/vaultwarden.nix
+    ./services/casdoor.nix
     ./services/self-healing-alerts.nix
 
     ./services/monitoring/default.nix
