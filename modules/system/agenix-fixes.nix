@@ -34,7 +34,7 @@ in
         IDENTITY_FILE="''${1:-/persistent/etc/age/key.txt}"
         FALLBACK_IDENTITY="/etc/age/key.txt"
         HOME_IDENTITY="/home/j_kro/.age/key.txt"
-        SECRETS_DIR="/etc/nixos/secrets"
+        SECRETS_DIR="''${NIXOS_SHARED_PATH:-/etc/nixos}/secrets"
         AGENTX_BASE="/run/agenix.d"
 
         echo "[agenix-rekey] Verifying secret decryption..."
