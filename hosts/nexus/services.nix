@@ -179,10 +179,9 @@ in {
     extraPackages = with pkgs; [ git ripgrep curl jq ];
   };
 
-  # Hermes WebUI — nesquena/hermes-webui
-  # Runs the agent in-process (no send-stream hang, no Redis, no proxy needed)
-  # Replaces: hermes-dashboard, hermes-merged-proxy, Hermes-Studio
-  systemd.services.hermes-webui = {
+  # Hermes WebUI — disabled on nexus (no /data/projects/own/hermes-webui)
+  # Runs on zephyr only
+  systemd.services.hermes-webui = lib.mkIf false {
     description = "Hermes Web UI";
     wantedBy = [ "multi-user.target" ];
     after = [ "network.target" "hermes-agent.service" ];
