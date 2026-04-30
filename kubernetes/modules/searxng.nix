@@ -16,9 +16,11 @@ in {
     };
 
     # ── Secret ────────────────────────────────────────────────────
+    # Populated by kubectl-apply-k8s-secrets from agenix:
+    #   secret-key ← /run/agenix/searxng-secret-key
     search.Secret.searxng-secret = {
       type = "Opaque";
-      stringData."secret-key" = "a3J5cHRleF82NHJhbmRvbXNlY3JldGtleTEyMw==";
+      stringData."secret-key" = "";
     };
 
     # ── ConfigMap: SearXNG settings (single source of truth) ──────
