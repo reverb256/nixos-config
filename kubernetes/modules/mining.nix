@@ -273,7 +273,7 @@ in {
                   "${xmrigProxy}"
                   "-u"
                   "zephyr-cpu"
-                  "--tls=false"
+                  "--tls=true"
                   "--threads=16"
                   "--donate-level=1"
                   "--http-enabled"
@@ -405,7 +405,7 @@ in {
                   "${xmrigProxy}"
                   "-u"
                   "nexus-cpu"
-                  "--tls=false"
+                  "--tls=true"
                   "--threads=6"
                   "--donate-level=1"
                   "--http-enabled"
@@ -595,7 +595,9 @@ in {
       };
       type = "Opaque";
       stringData = {
-        "api-token" = "CHANGE-THIS-TO-A-SECURE-RANDOM-TOKEN";
+        # Populated by kubectl-apply-k8s-secrets from agenix:
+        #   api-token ← /run/agenix/xmrig-proxy-api-token
+        "api-token" = "";
         "kryptex-password" = "x";
       };
     };
@@ -864,7 +866,7 @@ in {
                   "${xmrigProxy}"
                   "-u"
                   "sentry-cpu"
-                  "--tls=false"
+                  "--tls=true"
                   "--threads=8"
                   "--donate-level=1"
                   "--http-enabled"

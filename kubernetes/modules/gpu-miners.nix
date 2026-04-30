@@ -131,7 +131,7 @@
     };
   };
 
-  rvnPool = "stratum+tcp://rvn-us.kryptex.network:7031";
+  rvnPool = "stratum+ssl://rvn-us.kryptex.network:8031";
   rvnWallet = "krxXVNVMM7";
 
   wrapperVolumes = {
