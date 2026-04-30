@@ -262,6 +262,12 @@ in {
           owner = "root";
           group = "root";
         };
+        casdoor-hermes-jwt = {
+          file = "${inputs.self}/secrets/casdoor-hermes-jwt.age";
+          mode = "440";
+          owner = "j_kro";
+          group = "users";
+        };
       })
     ];
   };
