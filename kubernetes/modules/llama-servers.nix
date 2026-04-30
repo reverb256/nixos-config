@@ -249,7 +249,7 @@ in
         gpu = "rtx3090";
       };
       spec = {
-        replicas = 0;
+        replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels = {
           app = "llama-server-zephyr-3090-moe";
@@ -279,7 +279,7 @@ in
                 command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
                 args = [
                   "--model"
-                  "/models/DJLougen/hermes-qwen3.5-35b-a3b-GGUF/hermes-qwen3.5-35b-a3b-Q4_K_M.gguf"
+                  "/home/j_kro/.lmstudio/models/Qwen3.6-27B-Q4_K_M.gguf"
                   "--host"
                   "0.0.0.0"
                   "--port"
@@ -1077,7 +1077,7 @@ in
                 command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
                 args = [
                   "--model"
-                  "/models/DJLougen/hermes-qwen3.5-35b-a3b-GGUF/hermes-qwen3.5-35b-a3b-Q4_K_M.gguf"
+                  "/home/j_kro/.lmstudio/models/Qwen3.6-27B-Q4_K_M.gguf"
                   "--host"
                   "0.0.0.0"
                   "--port"
