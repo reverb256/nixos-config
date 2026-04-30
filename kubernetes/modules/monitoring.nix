@@ -1524,7 +1524,7 @@ in {
             containers = {
               _namedlist = true;
               webhook = {
-                image = "docker.io/bash:latest";
+                image = "docker.io/bash:5.2";
                 imagePullPolicy = "IfNotPresent";
                 command = [
                   "sleep"

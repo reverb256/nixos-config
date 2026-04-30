@@ -193,6 +193,7 @@ in {
       wantedBy = ["multi-user.target"];
 
       path = with pkgs; [kubectl coreutils gnugrep];
+      environment.KUBECONFIG = "/etc/rancher/k3s/k3s.yaml";
 
       serviceConfig = {
         Type = "oneshot";

@@ -226,10 +226,13 @@ in {
         selector.matchLabels.app = "xmrig-zephyr";
         strategy.type = "Recreate";
         template = {
-          metadata.labels = {
-            app = "xmrig-zephyr";
-            host = "zephyr";
-            workload = "crypto-mining";
+          metadata = {
+            labels = {
+              app = "xmrig-zephyr";
+              host = "zephyr";
+              workload = "crypto-mining";
+            };
+            annotations."nix-csi/discard" = "true";
           };
           spec = {
             nodeName = "zephyr";
@@ -267,7 +270,8 @@ in {
             containers = {
               _namedlist = true;
               xmrig = {
-                image = "docker.io/library/xmrig-alpine:6.26.0";
+                image = nixCsiScratch;
+                command = ["${lib.getExe pkgs.xmrig}"];
                 args = [
                   "-o"
                   "${xmrigProxy}"
@@ -321,6 +325,10 @@ in {
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
+                  nix = {
+                    mountPath = "/nix";
+                    readOnly = true;
+                  };
                   msr = {
                     mountPath = "/dev/cpu";
                   };
@@ -338,6 +346,10 @@ in {
             };
             volumes = {
               _namedlist = true;
+              nix.hostPath = {
+                path = "/nix";
+                type = "Directory";
+              };
               msr = {
                 hostPath = {
                   path = "/dev/cpu";
@@ -399,7 +411,8 @@ in {
             containers = {
               _namedlist = true;
               xmrig = {
-                image = "docker.io/library/xmrig-alpine:6.26.0";
+                image = nixCsiScratch;
+                command = ["${lib.getExe pkgs.xmrig}"];
                 args = [
                   "-o"
                   "${xmrigProxy}"
@@ -450,6 +463,10 @@ in {
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
+                  nix = {
+                    mountPath = "/nix";
+                    readOnly = true;
+                  };
                   msr = {
                     mountPath = "/dev/cpu";
                   };
@@ -467,6 +484,10 @@ in {
             };
             volumes = {
               _namedlist = true;
+              nix.hostPath = {
+                path = "/nix";
+                type = "Directory";
+              };
               msr = {
                 hostPath = {
                   path = "/dev/cpu";
@@ -690,6 +711,10 @@ in {
                 securityContext.capabilities.drop = ["ALL"];
                 volumeMounts = {
                   _namedlist = true;
+                  nix = {
+                    mountPath = "/nix";
+                    readOnly = true;
+                  };
                   config = {
                     mountPath = "/etc/xmrig-proxy";
                   };
@@ -701,6 +726,10 @@ in {
             };
             volumes = {
               _namedlist = true;
+              nix.hostPath = {
+                path = "/nix";
+                type = "Directory";
+              };
               config.configMap.name = "xmrig-proxy-config";
               secrets = {
                 secret = {
@@ -859,8 +888,9 @@ in {
             containers = {
               _namedlist = true;
               xmrig = {
-                image = "docker.io/library/xmrig-alpine:6.26.0";
-                imagePullPolicy = "Never";
+                image = nixCsiScratch;
+                imagePullPolicy = "IfNotPresent";
+                command = ["${lib.getExe pkgs.xmrig}"];
                 args = [
                   "-o"
                   "${xmrigProxy}"
@@ -893,6 +923,10 @@ in {
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
+                  nix = {
+                    mountPath = "/nix";
+                    readOnly = true;
+                  };
                   msr = {
                     mountPath = "/dev/cpu";
                     mountPropagation = "HostToContainer";
@@ -933,6 +967,10 @@ in {
             };
             volumes = {
               _namedlist = true;
+              nix.hostPath = {
+                path = "/nix";
+                type = "Directory";
+              };
               msr = {
                 hostPath = {
                   path = "/dev/cpu";
