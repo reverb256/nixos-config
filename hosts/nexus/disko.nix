@@ -112,9 +112,12 @@
     unitConfig.DefaultDependencies = "no";
     serviceConfig.Type = "oneshot";
     path = with pkgs; [ btrfs-progs coreutils findutils util-linux ];
+    preStart = ''
+      export PATH=${lib.makeBinPath [ pkgs.btrfs-progs pkgs.coreutils pkgs.findutils pkgs.util-linux ]}:$PATH
+    '';
     script = ''
       mkdir -p /btrfs_tmp
-      mount -t btrfs -o subvol=/ /dev/nvme1n1p3 /btrfs_tmp
+      ${lib.getExe' pkgs.util-linux "mount"} -t btrfs -o subvol=/ /dev/nvme1n1p3 /btrfs_tmp
 
       if [[ -e /btrfs_tmp/@root ]]; then
         mkdir -p /btrfs_tmp/old_roots
@@ -135,7 +138,7 @@
       fi
 
       btrfs subvolume create /btrfs_tmp/@root
-      umount /btrfs_tmp
+      ${lib.getExe' pkgs.util-linux "umount"} /btrfs_tmp
     '';
   };
 }
