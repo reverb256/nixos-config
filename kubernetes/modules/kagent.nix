@@ -203,12 +203,11 @@ in {
       type = "Opaque";
       stringData = {
         client-id = "151887e1a35f8692a65e";
-        client-secret = "6fed158311d955796b3456ad4207ed6d366c3e2c";
         cookie-secret = "HqbewPw85UjI1OAlRXUxnN52WAoba5tBg+UkDJ2Wsmg=";
       };
     };
 
-        kagent.PersistentVolumeClaim.kagent-postgresql = {
+    kagent.PersistentVolumeClaim.kagent-postgresql = {
       metadata.labels = managed // {"app.kubernetes.io/component" = "database";};
       spec = {
         accessModes = ["ReadWriteOnce"];

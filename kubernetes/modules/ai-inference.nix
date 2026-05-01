@@ -364,8 +364,8 @@ in {
         strategy = {
           type = "RollingUpdate";
           rollingUpdate = {
-            maxSurge = 0;
-            maxUnavailable = 1;
+            maxSurge = 1;
+            maxUnavailable = 0;
           };
         };
         template = {
@@ -626,6 +626,41 @@ in {
       };
     };
 
+
+    # ── Gateway HPA ───────────────────────────────────────────
+    HorizontalPodAutoscaler.ai-inference-gateway-hpa = {
+      spec = {
+        scaleTargetRef = {
+          apiVersion = "apps/v1";
+          kind = "Deployment";
+          name = "ai-inference-gateway";
+        };
+        minReplicas = 1;
+        maxReplicas = 3;
+        metrics = [
+          {
+            type = "Resource";
+            resource = {
+              name = "cpu";
+              target = {
+                type = "Utilization";
+                averageUtilization = 70;
+              };
+            };
+          }
+          {
+            type = "Resource";
+            resource = {
+              name = "memory";
+              target = {
+                type = "Utilization";
+                averageUtilization = 80;
+              };
+            };
+          }
+        ];
+      };
+    };
     # ── NetworkPolicies ────────────────────────────────────────
     NetworkPolicy.default-deny = {
       spec = {

@@ -32,5 +32,6 @@ in
   + mkRoute "grafana.lan" "grafana.ai-inference.svc.cluster.local:3000"
   # Orchestration
   + mkRoute "mission-control.lan" "mission-control.orchestration.svc.cluster.local:3000"
+  + mkRoute "kagent.lan" "kagent-ui.kagent.svc.cluster.local:8080"
   # SSO
   + mkRoute "auth.lan" "127.0.0.1:8000"
