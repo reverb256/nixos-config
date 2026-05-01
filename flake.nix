@@ -253,6 +253,7 @@
     packages.x86_64-linux.hermes-chat = pkgsWithOverlay.hermes-chat;
     packages.x86_64-linux.privacy-filter = pkgsWithOverlay.privacy-filter;
     packages.x86_64-linux.kubernetes-mcp-server = pkgs.callPackage ./packages/kubernetes-mcp-server.nix {};
+    packages.x86_64-linux.nixos-cluster-mcp = pkgs.callPackage ./packages/nixos-cluster-mcp {};
 
     packages.x86_64-linux.xmrig-proxy-image = pkgsWithOverlay.dockerTools.buildImage {
       name = "xmrig-proxy";
