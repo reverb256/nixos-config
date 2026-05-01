@@ -638,7 +638,7 @@ def safety_rules() -> str:
     }, indent=2)
 
 
-if __name__ == "__main__":
+def main():
     import argparse
     parser = argparse.ArgumentParser(description="NixOS Cluster MCP Server")
     parser.add_argument("--transport", choices=["stdio", "sse"], default="stdio")
@@ -648,3 +648,7 @@ if __name__ == "__main__":
         mcp.run(transport="sse", host="0.0.0.0", port=args.port)
     else:
         mcp.run()
+
+
+if __name__ == "__main__":
+    main()
