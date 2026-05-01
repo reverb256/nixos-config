@@ -11,7 +11,7 @@ python313.pkgs.buildPythonApplication {
 
   build-system = with python313.pkgs; [setuptools];
 
-  dependencies = with python313.pkgs; [mcp];
+  dependencies = with python313.pkgs; [fastmcp];
 
   meta = with lib; {
     description = "MCP server for NixOS cluster management";
