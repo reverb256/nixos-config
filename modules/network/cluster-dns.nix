@@ -136,6 +136,7 @@ in {
         "qdrant.lan. IN A ${vip}"
         "knowledge-fabric.lan. IN A ${vip}"
         "haven.lan. IN A ${vip}"
+        "kagent.lan. IN A ${vip}"
         "hermes.lan. IN A ${vip}"
         "api.hermes.lan. IN A ${vip}"
         "n8n.lan. IN A ${vip}"
