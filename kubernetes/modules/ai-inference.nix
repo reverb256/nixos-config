@@ -51,7 +51,7 @@ in {
       AUTH_MODE = "api-key";
       BACKEND_TYPE = "zai";
       BACKEND_URL = "https://api.z.ai/api/coding/paas/v4";
-      BACKEND_FALLBACK_URLS = "http://llama-server-zephyr-3090-moe.ai-inference.svc.cluster.local:1237,http://llama-server-sentry.ai-inference.svc.cluster.local:1235,http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236,https://text.pollinations.ai,https://integrate.api.nvidia.com/v1,https://openrouter.ai/api/v1";
+      BACKEND_FALLBACK_URLS = "http://llama-server-zephyr-3090-moe.ai-inference.svc.cluster.local:1237,http://llama-server-sentry.ai-inference.svc.cluster.local:1235,http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236,https://text.pollinations.ai,https://api.kilo.ai/api/gateway,https://integrate.api.nvidia.com/v1,https://openrouter.ai/api/v1";
       DEFAULT_MODEL = "glm-5.1";
       GATEWAY_HOST = "0.0.0.0";
       PORT = "8080";
@@ -550,6 +550,10 @@ in {
                   POLLINATIONS_API_KEY.valueFrom.secretKeyRef = {
                     name = "pollinations-api-key";
                     key = "POLLINATIONS_API_KEY";
+                  };
+                  KILO_API_KEY.valueFrom.secretKeyRef = {
+                    name = "kilo-api-key";
+                    key = "KILO_API_KEY";
                   };
                   MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED.valueFrom.configMapKeyRef = {
                     name = "ai-inference-gateway-config";
@@ -1506,6 +1510,12 @@ in {
     Secret.pollinations-api-key = {
       type = "Opaque";
       stringData.POLLINATIONS_API_KEY = "";
+    };
+
+    # Kilo API key — populated from agenix (secrets/kilo-api-key.age)
+    Secret.kilo-api-key = {
+      type = "Opaque";
+      stringData.KILO_API_KEY = "";
     };
 
     # ── Additional NetworkPolicies ───────────────────────────────
