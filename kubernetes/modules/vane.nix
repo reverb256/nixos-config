@@ -27,7 +27,10 @@ in {
               "id": "local-gateway",
               "name": "Local Gateway",
               "type": "openai",
-              "chatModels": [{"key": "Qwen3.5-4B.Q4_K_M.gguf", "name": "Qwen3.5-4B (Local)"}],
+              "chatModels": [
+              {"key": "qwen3.5-2b-awq", "name": "Qwen 3.5 2B AWQ (vLLM, 564 tok/s)"},
+              {"key": "Qwen3.5-4B.Q4_K_M.gguf", "name": "Qwen3.5-4B (Local)"}
+            ],
               "embeddingModels": [{"key": "BAAI/bge-m3", "name": "BGE-M3 (1024d)"}],
               "config": {"baseURL": "${gatewayUrl}/v1", "apiKey": "sk-placeholder"}
             },
@@ -49,7 +52,7 @@ in {
             }
           ],
           "search": {"searxngURL": "http://searxng.search.svc.cluster.local:8080"},
-          "chatModel": {"providerId": "nvidia-nim", "key": "nvidia/llama-3.3-nemotron-super-49b-v1"},
+          "chatModel": {"providerId": "local-gateway", "key": "qwen3.5-2b-awq"},
           "embeddingModel": {"providerId": "local-gateway", "key": "BAAI/bge-m3"}
         }
       '';
