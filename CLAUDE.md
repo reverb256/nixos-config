@@ -807,6 +807,49 @@ The cluster runs multiple llama-server instances across GPUs for different model
 
 ---
 
+## MCP INFRASTRUCTURE
+
+### In-Cluster MCP Servers
+
+| Server | Type | Namespace | Transport | Status |
+|--------|------|-----------|-----------|--------|
+| kubernetes-mcp | Deployment (nexus) | infra | SSE :8080 | Running |
+| nixos-cluster-mcp | DaemonSet (all nodes) | infra | SSE :8081 | Running |
+
+**Access from host:** ClusterIP unreachable (kube-proxy in container). Use NodePort `10.1.1.110:30880` or `kubectl port-forward`.
+
+### MCP Registry
+
+**Source of truth:** `modules/services/mcp-server-registry.nix` — 13 servers defined.
+**Config generation:** `modules/development/ai-coding-tools/mcp-defs.nix` — generates Claude Code configs.
+
+### MCP Packages
+
+| Package | Flake output | Purpose |
+|---------|-------------|---------|
+| `kubernetes-mcp-server` | `.#kubernetes-mcp-server` | Go binary, K8s CRUD + Helm |
+| `nixos-cluster-mcp` | `.#nixos-cluster-mcp` | Python FastMCP, 6 cluster tools |
+
+### nixos-cluster-mcp Tools
+
+| Tool | Purpose |
+|------|---------|
+| `cluster_status` | Nodes, pods summary, resource usage |
+| `check_node_capacity` | CPU, memory, GPU capacity per node |
+| `safe_scale` | Scale deployment with explosion prevention |
+| `debug_pod` | Describe + events + logs for failing pod |
+| `deploy_host` | Deploy NixOS config to specific host |
+| `check_nix_store` | Verify store path exists on target node |
+
+### Known Issues
+
+- 7 of 18 Claude Code MCP servers broken — see `docs/plans/2026-05-01-mcp-system-plan.md`
+- DaemonSet uses hardcoded nix store path — needs nixkube CSI conversion
+- Casdoor tool sync failing — stdio servers need HTTP proxy
+- Full plan: `docs/plans/2026-05-01-mcp-system-plan.md`
+
+---
+
 ## SUPPLY CHAIN SECURITY
 
 All software on this cluster has supply chain protections enforcing a 7-day cooling period on newly published packages and images.
@@ -886,7 +929,7 @@ All CI workflows (`.github/workflows/`) pin actions to immutable commit SHAs ins
 
 ---
 
-**Version**: 5.3 | **Updated:** 2026-04-17
+**Version**: 6.0 | **Updated:** 2026-05-01
 **Changes**:
 - Fixed branch name (feature/brain-v2-embedding-first)
 - Fixed K3s version (v1.34.x, not v1.35.0)
