@@ -1,5 +1,5 @@
 {pkgs, ...}: {
-  xdg.configFile."autostart/vesktop.desktop".text = ''
+  xdg.configFile."autostart/discord.desktop".text = ''
     [Desktop Entry]
     Hidden=true
     X-GNOME-Autostart-enabled=false

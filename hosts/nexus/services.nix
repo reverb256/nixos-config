@@ -185,63 +185,7 @@ in {
   };
 
   # Hermes WebUI — disabled on nexus (no /data/projects/own/hermes-webui)
-  # Runs on zephyr only
-  systemd.services.hermes-webui = lib.mkIf false {
-    description = "Hermes Web UI";
-    wantedBy = ["multi-user.target"];
-    after = ["network.target" "hermes-agent.service"];
-    wants = ["hermes-agent.service"];
-    path = with pkgs; [git coreutils curl jq];
-    environment = {
-      AI_GATEWAY_API_KEY = "***";
-      HERMES_HOME = "/home/j_kro/.hermes";
-      HERMES_WEBUI_HOST = "0.0.0.0";
-      HERMES_WEBUI_PORT = "8787";
-      HERMES_WEBUI_STATE_DIR = "/home/j_kro/.hermes/webui-mvp";
-      HERMES_WEBUI_DEFAULT_WORKSPACE = "/home/j_kro/workspace";
-      HERMES_WEBUI_AGENT_DIR = "${hermesVenv}/lib/python3.11/site-packages";
-      PYTHONPATH = "${hermesVenv}/lib/python3.11/site-packages";
-    };
-    serviceConfig = {
-      LoadCredential = ["hermes-webui-password:${config.age.secrets.hermes-webui-password.path}"];
-      ExecStart = pkgs.writeShellScript "hermes-webui-start" ''
-        cd /data/projects/own/hermes-webui
-        export HERMES_WEBUI_PASSWORD=$(cat $CREDENTIALS_DIRECTORY/hermes-webui-password)
-              exec "${hermesVenv}/bin/python" server.py
-      '';
-      ExecStartPost = pkgs.writeShellScript "hermes-webui-warmup" ''
-        # Pre-warm agent init so first user chat isn't slow
-        sleep 3
-        curl -sf http://127.0.0.1:8787/health >/dev/null 2>&1 && echo "[webui] warmup ok" || true
-        exit 0
-      '';
-      Restart = "always";
-      RestartSec = 5;
-      User = "j_kro";
-      Group = "users";
-      WorkingDirectory = "/data/projects/own/hermes-webui";
-    };
-  };
-
-  # Auto-update hermes-webui repo daily
-  systemd.timers.hermes-webui-update = {
-    wantedBy = ["timers.target"];
-    timerConfig = {
-      OnCalendar = "daily";
-      Persistent = true;
-    };
-  };
-  systemd.services.hermes-webui-update = {
-    description = "Pull hermes-webui updates";
-    serviceConfig = {
-      Type = "oneshot";
-      User = "j_kro";
-      ExecStart = pkgs.writeShellScript "hermes-webui-update" ''
-        cd /data/projects/own/hermes-webui
-        git pull --ff-only 2>/dev/null && echo "[webui] updated" || echo "[webui] no updates or error"
-      '';
-    };
-  };
+  # Runs on zephyr only. Dead code and timer removed.
 
   # Load Z.AI and NVIDIA API keys for hermes-agent
   # The official module's environment option doesn't reliably set systemd env vars,
