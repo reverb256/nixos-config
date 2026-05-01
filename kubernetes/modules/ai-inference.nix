@@ -78,7 +78,7 @@ in {
       VECTOR_WEIGHT = "0.7";
       HF_HOME = "/home/j_kro/.cache/huggingface";
       HF_HUB_OFFLINE = "0";
-      HF_HUB_ENABLE_HF_TRANSFER = "0";
+      HF_HUB_ENABLE_HF_TRANSFER = "1";
       CURL_CA_BUNDLE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
       MAX_REQUEST_SIZE = "10485760";
       CIRCUIT_BREAKER_ENABLED = "true";
