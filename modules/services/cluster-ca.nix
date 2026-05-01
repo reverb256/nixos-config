@@ -31,9 +31,8 @@ in {
 
   config =
     mkIf cfg.enable {
-      security.pki.certificateFiles = lib.mkIf (builtins.pathExists cfg.caCert) [ cfg.caCert ];
       systemd.services.cluster-ca-init = {
-        description = "Generate internal CA certificate";
+        description = "Generate internal CA certificate and update trust store";
         wantedBy = ["multi-user.target"];
         before = ["caddy.service"];
         serviceConfig = {
@@ -82,6 +81,10 @@ in {
           else
             echo "Leaf certificate still valid"
           fi
+
+          # Install CA cert into system trust store at runtime
+          cp ${cfg.caCert} /etc/pki/ca-trust/source/anchors/cluster-ca.crt 2>/dev/null || true
+          ${pkgs.openssl}/bin/c_rehash /etc/ssl/certs 2>/dev/null || true
         '';
       };
 
