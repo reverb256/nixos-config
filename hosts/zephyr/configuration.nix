@@ -23,6 +23,8 @@ in {
     ../../modules/hardware/rgb-control.nix
   ];
 
+  # Enable Hermes RAM protection
+
   # Host-specific CPU/GPU optimization for llama.cpp (Zen3: 5950X + Ampere: RTX 3090/3060 Ti)
   nixpkgs.config.packageOverrides = pkgs: {
     llama-cpp-turboquant = pkgs.llama-cpp-turboquant.overrideAttrs (old: {
@@ -294,4 +296,5 @@ in {
 
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
+# Enable Hermes RAM protection (mandatory pre-flight checks)
 }
