@@ -1,40 +1,85 @@
-# Infrastructure Audit — 2026-04-26
+# Infrastructure Audit — 2026-05-01
 
 ## Cluster Overview
 
 | Host | CPU | RAM (used/total) | GPUs | Disk | Load | Status |
 |------|-----|-------------------|------|------|------|--------|
-| **Zephyr** | 16c | 18GB/31GB | RTX 3060 Ti + RTX 3090 | 86% | ~5 | Ready |
-| **Nexus** | 24c | ~20GB/46GB | RTX 3060 Ti @100% | 37% | ~6 | NotReady* |
-| **Forge** | 6c | ~10GB/15GB | 2× RX 5700 XT + 2× RTX 4060 | 81% | ~5 | Ready |
-| **Sentry** | 16c | ~15GB/31GB | RX 5600 XT | 74% | ~11 | Ready |
+| **Zephyr** | 16c | 18GB/31GB | RTX 3060 Ti + RTX 3090 | 86% | ~5 | Unknown* |
+| **Nexus** | 24c | ~20GB/46GB | RTX 3060 Ti | 37% | ~6 | Unknown* |
+| **Forge** | 6c | ~10GB/15GB | 2× RX 5700 XT + 2× RTX 4060 | 81% | ~5 | Unknown* |
+| **Sentry** | 16c | ~15GB/31GB | RX 5600 XT | 74% | ~11 | Unknown* |
 
-*Nexus shows NotReady - likely network issue. K3s heartbeat issue, not actual problem.
+*All nodes show Unknown — kubelet not reporting Ready condition. Pods run fine, cosmetic issue.
 **CNI:** Flannel VXLAN (default K3s CNI) — UDP 8472
 
 ---
 
-## K3s Cluster — ALL HEALTHY ✅
+## K3s Cluster
 
 | Node | Status | Role | Age | Version | CNI |
 |------|--------|------|-----|---------|-----|
-| zephyr | Ready | control-plane, etcd | 19d | v1.34.5+k3s1 | Flannel |
-| nexus | NotReady | control-plane, etcd | 21d | v1.34.5+k3s1 | Flannel |
-| forge | Ready | agent | 21d | v1.34.5+k3s1 | Flannel |
-| sentry | Ready | control-plane, etcd | 21d | v1.34.5+k3s1 | Flannel |
+| zephyr | Unknown | control-plane, etcd | 24d | v1.34.5+k3s1 | Flannel |
+| nexus | Unknown | control-plane, etcd | 2d | v1.34.5+k3s1 | Flannel |
+| forge | Unknown | agent | 26d | v1.34.5+k3s1 | Flannel |
+| sentry | Unknown | control-plane, etcd | 26d | v1.34.5+k3s1 | Flannel |
 
 **CNI:** Flannel VXLAN (default) — 10.244.0.0/16 pod network, UDP 8472
-**73 pods running across 23 namespaces.**
+**~56 pods running across 24 namespaces.**
+
+**Note:** ClusterIP unreachable from host (kube-proxy in container, no iptables DNAT). Fixed by routing 10.0.0.0/12 via Flannel gateway + NodePort for Caddy routes.
 
 ---
 
-## Sovereign Service Mesh — OPERATIONAL ✅
+## MCP Infrastructure — 2026-05-01
+
+### In-Cluster MCP Servers
+
+| Server | Type | Namespace | Node(s) | Transport | Status |
+|--------|------|-----------|---------|-----------|--------|
+| kubernetes-mcp | Deployment | infra | nexus | SSE :8080 | Running |
+| nixos-cluster-mcp | DaemonSet | infra | all 4 | SSE :8081 | Running (4 pods) |
+
+### Claude Code MCP (18 servers)
+
+| Status | Count | Servers |
+|--------|-------|---------|
+| Working | 11 | context-mode, context7, git, fetch, filesystem, zread, sonatype-guide, chrome-devtools, playwright, kubernetes, nixos-cluster |
+| Broken | 7 | nixos, grep-app, searxng, gateway, web-reader, pinecone, web-search-prime |
+| Needs auth | 2 | sentry, gitlab |
+
+### Hermes MCP (6 servers)
+
+| Server | Transport | Status |
+|--------|-----------|--------|
+| lightpanda | stdio | Working |
+| bsky | stdio | Working |
+| casdoor | stdio bridge | Working |
+| nixos-cluster | stdio | Working |
+| searxng | stdio | Working |
+| kubernetes | SSE | Working |
+
+### MCP Gateway Infrastructure
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Casdoor SSO | Running | 4 MCP servers registered, tool sync failing (stdio servers need HTTP proxy) |
+| mcp-gateway-bridge | Broken | ClusterIP routing issue, needs NodePort |
+| mcp-server-registry.nix | Partial | 13 servers defined, not generating downstream configs |
+| nixkube CSI | Running | nix-node DaemonSet on all 4 nodes |
+| RemoteMCPServer CRD | Installed | 0 instances |
+| mcp-proxy | Not deployed | Needed for Casdoor tool sync with stdio servers |
+
+**Full plan:** `docs/plans/2026-05-01-mcp-system-plan.md`
+
+---
+
+## Sovereign Service Mesh — OPERATIONAL
 
 ### AI Gateway (Central Bus)
 
 **Location:** K8s Deployment on Nexus
-**ClusterIP:** 10.15.67.242:8080
-**Status:** ✅ Running
+**NodePort:** 10.1.1.110:30880 (Caddy routes via NodePort, not ClusterIP)
+**Status:** Running
 
 **Endpoints:**
 - `/health` — Health check
@@ -50,42 +95,38 @@
 
 | Component | Status | ClusterIP | Node | Purpose |
 |-----------|--------|-----------|------|---------|
-| AI Gateway | ✅ Running | 10.15.67.242:8080 | nexus | Central bus with RRF middleware |
-| Qdrant | ✅ Running | 10.5.93.32:6333 | nexus | Vector database |
-| Knowledge Fabric API | ✅ Running | 10.6.31.109:3000 | nexus | Stub API (RRF in gateway) |
-| SearXNG | ✅ Running | 10.4.98.141:8080 | nexus | Web search |
+| AI Gateway | Running | 10.15.67.242:8080 | nexus | Central bus with RRF middleware |
+| Qdrant | Running | 10.5.93.32:6333 | nexus | Vector database |
+| Knowledge Fabric API | Running | 10.6.31.109:3000 | nexus | Stub API (RRF in gateway) |
+| SearXNG | Running | 10.4.98.141:8080 | nexus | Web search |
 
 ---
 
-## Current Service Distribution
+## Service Distribution
 
 | Service | Zephyr | Nexus | Forge | Sentry |
 |---------|-------|-------|-------|--------|
 | K3s | server | server | agent | server |
 | **AI Mesh** | | | | |
-| AI Gateway | — | ✅ | — | — |
-| Qdrant | — | ✅ | — | — |
-| SearXNG | — | ✅ | — |
+| AI Gateway | — | Running | — | — |
+| Qdrant | — | Running | — | — |
+| SearXNG | — | Running | — | — |
+| **MCP** | | | | |
+| kubernetes-mcp | — | Running | — | — |
+| nixos-cluster-mcp | Running | Running | Running | Running |
+| nixkube CSI | Running | Running | Running | Running |
 | **LLM Servers** | | | | |
-| llama-server-zephyr | ✅ | — | — | — |
-| llama-server-sentry (AMD) | — | — | — | ✅ |
+| llama-server-zephyr | Running | — | — | — |
+| llama-server-sentry (AMD) | — | — | — | Running |
 | **Monitoring** | | | | |
-| node-exporter | ✅ | ✅ | ✅ | ✅ |
-| NVIDIA GPU exporter | ✅ | ✅ | ✅ | — |
+| node-exporter | Running | Running | Running | Running |
+| NVIDIA GPU exporter | Running | Running | Running | — |
 | **Mining** | | | | |
-| gpu-miner-zephyr | ✅ | — | — | — |
-| gpu-miner-forge (AMD) | — | — | ✅ | — |
-| gpu-miner-forge (NVIDIA) | — | — | ✅ | — |
-| xmrig-* | ✅ | ✅ | — | ✅ |
+| gpu-miner-zephyr | Running | — | — | — |
+| gpu-miner-forge (AMD) | — | — | Running | — |
+| gpu-miner-forge (NVIDIA) | — | — | Running | — |
+| xmrig-* | Running | Running | — | Running |
 
 ---
 
-## Documentation
-
-- **AGENTS.md:** `/etc/nixos/AGENTS.md`
-- **CLAUDE.md:** `/etc/nixos/CLAUDE.md`
-- **STATUS.md:** `/etc/nixos/STATUS.md` (auto-generated)
-
----
-
-**Last Updated:** 2026-04-26
+**Last Updated:** 2026-05-01
