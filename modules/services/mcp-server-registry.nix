@@ -29,6 +29,7 @@
     # MCP gateway bridge to AI Inference Gateway
     gateway = {
       type = "custom";
+      command = "/etc/nixos/scripts/mcp-gateway-bridge";
       env.GATEWAY_URL = "http://10.15.67.242:8080";
     };
 
