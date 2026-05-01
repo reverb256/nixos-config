@@ -1,6 +1,11 @@
-{lib, ...}: {
+{lib, pkgs, ...}: {
   nixpkgs.overlays = [
     (_final: prev: {
+      inherit (prev.lixPackageSets.stable)
+        nix-eval-jobs
+        nix-fast-build
+        colmena;
+
       cuda_compat =
         prev.runCommand "cuda_compat-dummy"
         {}
@@ -28,6 +33,8 @@
   ];
 
   nix = {
+    package = lib.mkDefault pkgs.lixPackageSets.stable.lix;
+
     settings = {
       experimental-features = ["nix-command" "flakes"];
 
@@ -52,8 +59,8 @@
       options = lib.mkForce "--delete-older-than 14d";
     };
 
-    settings.max-free = lib.mkDefault "100G";
-    settings.min-free = lib.mkDefault "5G";
+    settings.max-free = lib.mkDefault (toString (100 * 1024 * 1024 * 1024));
+    settings.min-free = lib.mkDefault (toString (5 * 1024 * 1024 * 1024));
 
     optimise = {
       automatic = true;

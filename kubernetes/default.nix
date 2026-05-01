@@ -10,9 +10,8 @@
       {_module.args.pkgsWithOverlay = pkgsWithOverlay;}
       {_module.args.llama-cpp-turboquant = llama-cpp-turboquant;}
       {_module.args.inputs = inputs;}
-      {_module.args.nix-csi = inputs.nix-csi;}
-      # nix-csi - upstream module with builtins.currentSystem fix applied
-      ./modules/nix-csi.nix
+      # nix-csi disabled — CSI volumes use hostPath/nix mounts directly
+      # See modules/nix-csi-README.md for upstream CSI driver details
       ./modules/common.nix
       ./modules/infrastructure.nix
       ./modules/mining.nix

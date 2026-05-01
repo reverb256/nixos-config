@@ -268,6 +268,24 @@ in {
           owner = "j_kro";
           group = "users";
         };
+        grafana-oidc-client-secret = {
+          file = "${inputs.self}/secrets/grafana-oidc-client-secret.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
+        openwebui-oidc-client-secret = {
+          file = "${inputs.self}/secrets/openwebui-oidc-client-secret.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
+        vaultwarden-oidc-client-secret = {
+          file = "${inputs.self}/secrets/vaultwarden-oidc-client-secret.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
         kagent-oidc-client-secret = {
           file = "${inputs.self}/secrets/kagent-oidc-client-secret.age";
           mode = "440";

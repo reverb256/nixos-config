@@ -31,6 +31,10 @@ in {
 
   config =
     mkIf cfg.enable {
+      # Install CA into system trust store via NixOS declarative mechanism
+      # (runtime approaches like /etc/pki/ca-trust fail on NixOS — /etc is read-only)
+      security.pki.certificateFiles = [ ./../../certs/cluster-ca.crt ];
+
       systemd.services.cluster-ca-init = {
         description = "Generate internal CA certificate and update trust store";
         wantedBy = ["multi-user.target"];
@@ -82,9 +86,6 @@ in {
             echo "Leaf certificate still valid"
           fi
 
-          # Install CA cert into system trust store at runtime
-          cp ${cfg.caCert} /etc/pki/ca-trust/source/anchors/cluster-ca.crt 2>/dev/null || true
-          ${pkgs.openssl}/bin/c_rehash /etc/ssl/certs 2>/dev/null || true
         '';
       };
 
