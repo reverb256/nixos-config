@@ -30,6 +30,7 @@
       ./modules/host-services.nix
       ./modules/ai-coding-tools.nix
       ./modules/mission-control.nix
+      ./modules/kagent.nix
     ];
   };
 in
