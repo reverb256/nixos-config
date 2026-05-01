@@ -35,21 +35,17 @@
   };
 
   mkLocalServer = name: def:
-    if def.type == "custom" && def ? command then {
-      # Custom servers with explicit command (searxng, casdoor, etc.)
+    if def ? command then {
+      # Servers with explicit command (custom, nix with remapped binary, etc.)
       command = def.command;
     } // (lib.optionalAttrs (def ? args) {args = def.args;})
       // (lib.optionalAttrs (def ? env) {env = def.env;})
-    else if def.type == "nix" then {
-      # Nix packages provide mcp-<name> commands directly
-      command = registry.mkCommand name;
-    }
     else if def.type == "custom" then {
       # Custom type without command → use mcp-<name> from PATH
       command = registry.mkCommand name;
     }
     else {
-      # npm/uvx types → use mcp-<name> from PATH
+      # npm/uvx/nix types → use mcp-<name> from PATH
       command = registry.mkCommand name;
     };
 
