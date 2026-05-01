@@ -147,6 +147,7 @@ in {
           spec = {
             serviceAccountName = "open-webui";
             nodeSelector."kubernetes.io/hostname" = "sentry";
+            hostAliases = [{ ip = "10.1.1.100"; hostnames = ["auth.lan" "openwebui.lan"]; }];
             containers = {
               _namedlist = true;
               open-webui = {
