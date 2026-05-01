@@ -248,6 +248,8 @@ in {
           apply_secret ai-inference hf-token token /run/agenix/huggingface-token
           apply_secret ai-inference nvidia-api-key NVIDIA_API_KEY /run/agenix/nvidia-api-key
           apply_secret ai-inference openrouter-api-key OPENROUTER_API_KEY /run/agenix/openrouter-api-key
+          apply_secret ai-inference kilo-api-key KILO_API_KEY /run/agenix/kilo-api-key
+          apply_secret ai-inference opencode-api-key OPENCODE_API_KEY /run/agenix/opencode-api-key
 
           # Search namespace
           apply_secret search searxng-secret secret-key /run/agenix/searxng-secret-key
