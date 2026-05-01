@@ -410,6 +410,8 @@ In-Cluster:
 | — | Critical | Fixed kubernetes-mcp CrashLoopBackOff (removed broken liveness probe on `/`) |
 | — | Critical | Restored SSE transport in server.py (argparse + main() entry point) |
 | — | Critical | Updated dependency from `mcp` to `fastmcp>=2.0.0` |
+| D | D1 | Converted nixos-cluster-mcp DaemonSet from hostPath to nixkube CSI volumes |
+| — | — | Fixed syntax error in agenix-secrets-registry.nix (missing attribute name) |
 
 ### Remaining (20 tasks)
 
@@ -417,7 +419,7 @@ In-Cluster:
 |------------|-------|--------|
 | B | B1-B2 | Sentry/GitLab OAuth not completed |
 | C | C1-C6 | Registry not generating configs; duplicate nixos-cluster-mcp not deduped |
-| D | D1-D2 | DaemonSet still uses hostPath, not nixkube CSI |
+| D | D2 | Verify pods start on all 4 nodes without manual nix copy |
 | E | E2 | Node Unknown status not investigated |
 | F | F2-F6 | Missing: rollback_host, config_diff, check_storage, check_network, check_secrets |
 | G | G3 | Casdoor tool sync still failing (401s) |

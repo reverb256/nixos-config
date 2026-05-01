@@ -49,10 +49,10 @@ in {
 
     ConfigMap.ai-inference-gateway-config.data = {
       AUTH_MODE = "api-key";
-      BACKEND_TYPE = "llama-cpp";
-      BACKEND_URL = "http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236,https://openrouter.ai/api/v1";
-      BACKEND_FALLBACK_URLS = "http://llama-server-sentry.ai-inference.svc.cluster.local:1235,http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236,https://openrouter.ai/api/v1";
-      DEFAULT_MODEL = "Qwen3.5-9B-abliterated.i1-IQ2_M.gguf";
+      BACKEND_TYPE = "zai";
+      BACKEND_URL = "https://api.z.ai/api/coding/paas/v4";
+      BACKEND_FALLBACK_URLS = "http://llama-server-zephyr-3090-moe.ai-inference.svc.cluster.local:1237,http://llama-server-sentry.ai-inference.svc.cluster.local:1235,http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236";
+      DEFAULT_MODEL = "glm-5.1";
       GATEWAY_HOST = "0.0.0.0";
       PORT = "8080";
       PYTHONUNBUFFERED = "1";
