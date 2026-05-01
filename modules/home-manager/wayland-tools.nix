@@ -59,7 +59,7 @@
       json_out=$(niri msg windows --json 2>/dev/null) || true
       if [ -n "$json_out" ] && echo "$json_out" | ${lib.getExe pkgs.jq} -e '.[0].id' >/dev/null 2>&1; then
         count=$(echo "$json_out" | ${lib.getExe pkgs.jq} "[.[] | select(.workspace == \"$SCRATCH_WS\" or (.workspace // 0) == 99)] | length")
-        [ "${count:-0}" -gt 0 ] && scratch_has_windows=true
+        [ "''${count:-0}" -gt 0 ] && scratch_has_windows=true
       fi
 
       echo "$current_ws" > "$STATE_FILE"

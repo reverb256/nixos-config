@@ -108,9 +108,9 @@ in {
             containers = {
               _namedlist = true;
               mcp = {
-                image = "ghcr.io/containers/kubernetes-mcp-server:v0.0.51";
+                image = "ghcr.io/containers/kubernetes-mcp-server:latest-linux-amd64";
                 imagePullPolicy = "IfNotPresent";
-                args = ["--transport" "sse" "--port" "8080" "--toolsets" "core,helm"];
+                args = ["--port" "8080" "--toolsets" "core,helm"];
                 ports = [{containerPort = 8080; protocol = "TCP";}];
                 resources = {
                   requests = {cpu = "100m"; memory = "128Mi";};
@@ -159,7 +159,7 @@ in {
               mcp = {
                 image = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
                 imagePullPolicy = "IfNotPresent";
-                command = ["${lib.getExe nixosClusterMcp}"];
+                command = ["${lib.getExe nixosClusterMcp}" "--transport" "sse" "--port" "8081"];
                 env = {HOME.value = "/tmp";};
                 resources = {
                   requests = {cpu = "50m"; memory = "64Mi";};
@@ -179,6 +179,23 @@ in {
             };
           };
         };
+      };
+    NetworkPolicy.allow-mcp = {
+      metadata.labels.app = "kubernetes-mcp";
+      spec = {
+        podSelector.matchLabels.app = "kubernetes-mcp";
+        policyTypes = ["Ingress" "Egress"];
+        ingress = [{}];
+        egress = [{}];
+      };
+    };
+    NetworkPolicy.allow-nixos-mcp = {
+      metadata.labels.app = "nixos-cluster-mcp";
+      spec = {
+        podSelector.matchLabels.app = "nixos-cluster-mcp";
+        policyTypes = ["Ingress" "Egress"];
+        ingress = [{}];
+        egress = [{}];
       };
     };
   };

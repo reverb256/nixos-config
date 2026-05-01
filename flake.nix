@@ -88,12 +88,8 @@
 
     easykubenix.url = "github:Lillecarl/easykubenix";
 
-    # Phase 3: nix-csi -- mount /nix into pods via CSI ephemeral volumes
-    # See kubernetes/modules/nix-csi-README.md for details
-    nix-csi = {
-      url = "github:Lillecarl/nix-csi";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # nix-csi removed — CSI volumes use hostPath/nix mounts directly
+    # See kubernetes/modules/nix-csi-README.md for upstream CSI driver details
 
     hermes-agent = {
       url = "github:NousResearch/hermes-agent";
