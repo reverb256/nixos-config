@@ -51,7 +51,7 @@ in {
       AUTH_MODE = "api-key";
       BACKEND_TYPE = "zai";
       BACKEND_URL = "https://api.z.ai/api/coding/paas/v4";
-      BACKEND_FALLBACK_URLS = "http://llama-server-zephyr-3090-moe.ai-inference.svc.cluster.local:1237,http://llama-server-sentry.ai-inference.svc.cluster.local:1235,http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236";
+      BACKEND_FALLBACK_URLS = "http://llama-server-zephyr-3090-moe.ai-inference.svc.cluster.local:1237,http://llama-server-sentry.ai-inference.svc.cluster.local:1235,http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236,https://text.pollinations.ai";
       DEFAULT_MODEL = "glm-5.1";
       GATEWAY_HOST = "0.0.0.0";
       PORT = "8080";
@@ -546,6 +546,10 @@ in {
                   OPENROUTER_API_KEY.valueFrom.secretKeyRef = {
                     name = "openrouter-api-key";
                     key = "OPENROUTER_API_KEY";
+                  };
+                  POLLINATIONS_API_KEY.valueFrom.secretKeyRef = {
+                    name = "pollinations-api-key";
+                    key = "POLLINATIONS_API_KEY";
                   };
                   MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED.valueFrom.configMapKeyRef = {
                     name = "ai-inference-gateway-config";
@@ -1496,6 +1500,12 @@ in {
     Secret.openrouter-api-key = {
       type = "Opaque";
       stringData.OPENROUTER_API_KEY = "";
+    };
+
+    # Pollinations API key — populated from agenix (secrets/pollinations-api-key.age)
+    Secret.pollinations-api-key = {
+      type = "Opaque";
+      stringData.POLLINATIONS_API_KEY = "";
     };
 
     # ── Additional NetworkPolicies ───────────────────────────────
