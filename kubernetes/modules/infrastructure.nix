@@ -77,7 +77,7 @@ in {
     };
   };
 
-  config.kubernetes.objects.infrastructure = {
+  config.kubernetes.objects.infra = {
     ServiceAccount.kubernetes-mcp = {};
     ClusterRole.kubernetes-mcp.rules = [
       {apiGroups = [""]; resources = ["pods" "pods/log" "namespaces" "nodes" "services" "configmaps" "secrets" "events"]; verbs = ["get" "list" "watch"];}
@@ -86,7 +86,7 @@ in {
       {apiGroups = ["networking.k8s.io"]; resources = ["ingresses" "networkpolicies"]; verbs = ["get" "list" "watch"];}
     ];
     ClusterRoleBinding.kubernetes-mcp = {
-      subjects = [{kind = "ServiceAccount"; name = "kubernetes-mcp"; namespace = "infrastructure";}];
+      subjects = [{kind = "ServiceAccount"; name = "kubernetes-mcp"; namespace = "infra";}];
       roleRef = {apiGroup = "rbac.authorization.k8s.io"; kind = "ClusterRole"; name = "kubernetes-mcp";};
     };
 
