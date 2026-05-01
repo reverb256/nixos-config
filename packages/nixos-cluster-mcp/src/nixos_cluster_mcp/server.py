@@ -26,7 +26,7 @@ def cluster_status() -> str:
             {
                 "name": n["metadata"]["name"],
                 "status": next(
-                    (c["type"] for c in reversed(n["status"]["conditions"]) if c["status"] == "True"),
+                    (c["status"] for c in n["status"]["conditions"] if c["type"] == "Ready"),
                     "Unknown",
                 ),
                 "roles": sorted(
