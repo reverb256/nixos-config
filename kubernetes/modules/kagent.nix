@@ -203,7 +203,7 @@ in {
       type = "Opaque";
       stringData = {
         client-id = "151887e1a35f8692a65e";
-        cookie-secret = "HqbewPw85UjI1OAlRXUxnN52WAoba5tBg+UkDJ2Wsmg=";
+        cookie-secret = "8b7fa9a5fea12fd01b2c6e7294f79672";
       };
     };
 
