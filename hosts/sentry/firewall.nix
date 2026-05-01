@@ -2,7 +2,7 @@
   networking = {
     firewall = {
       extraInputRules = lib.mkAfter ''
-        tcp dport { 1235, 3100, 3900, 3901, 9100 } accept
+        tcp dport { 1235, 4180, 3100, 3900, 3901, 9100 } accept
       '';
       allowedTCPPortRanges = lib.mkOptionDefault [
         {

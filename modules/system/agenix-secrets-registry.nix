@@ -292,6 +292,18 @@ in {
           owner = "root";
           group = "root";
         };
+        central-auth-client-secret = {
+          file = "${inputs.self}/secrets/central-auth-client-secret.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
+        central-auth-cookie-secret = {
+          file = "${inputs.self}/secrets/central-auth-cookie-secret.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
       })
     ];
   };

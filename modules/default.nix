@@ -106,6 +106,7 @@
     ./services/rclone.nix
     ./services/vaultwarden.nix
     ./services/casdoor.nix
+    ./services/central-auth.nix
     ./services/self-healing-alerts.nix
 
     ./services/monitoring/default.nix
