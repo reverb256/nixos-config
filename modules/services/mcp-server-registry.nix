@@ -1,70 +1,62 @@
 {...}: let
   servers = {
+    # Local stdio servers (Nix packages providing mcp-<name> commands)
     filesystem = {
       type = "npm";
       package = "@modelcontextprotocol/server-filesystem";
-      args = [
-        "/etc/nixos"
-        "/home/j_kro"
-      ];
+      args = ["/etc/nixos" "/home/j_kro"];
     };
 
     git = {
       type = "uvx";
       package = "mcp-server-git";
-      entrypoint = "mcp-server-git";
     };
 
     fetch = {
       type = "uvx";
       package = "mcp-server-fetch";
-      entrypoint = "mcp-server-fetch";
-    };
-
-    playwright = {
-      type = "custom";
     };
 
     context7 = {
       type = "npm";
       package = "@upstash/context7-mcp";
-      env = {
-        CONTEXT7_API_KEY_FILE = "";
-      };
+      env = {CONTEXT7_API_KEY_FILE = "";};
     };
 
-    chrome-devtools = {
-      type = "npm";
-      package = "chrome-devtools-mcp@latest";
-    };
+    playwright = {type = "custom";};
+    chrome-devtools = {type = "custom";};
 
-    lightpanda = {
-      type = "custom";
-    };
-
+    # MCP gateway bridge to AI Inference Gateway
     gateway = {
       type = "custom";
+      env.GATEWAY_URL = "http://10.15.67.242:8080";
     };
 
-    puppeteer = {
-      type = "npm";
-      package = "@modelcontextprotocol/server-puppeteer";
+    # SearXNG search via local wrapper script
+    searxng = {
+      type = "custom";
+      command = "/data/agents/mcp-bridges/searxng-mcp.sh";
     };
 
-    brave-search = {
-      type = "npm";
-      package = "@modelcontextprotocol/server-brave-search";
-      env = {
-        BRAVE_API_KEY = "";
-      };
+    # Casdoor SSO bridge (temporary until native MCP Auth)
+    casdoor = {
+      type = "custom";
+      command = "python3";
+      args = ["/data/agents/mcp-bridges/casdoor-mcp-bridge.py"];
     };
 
-    github = {
-      type = "npm";
-      package = "@modelcontextprotocol/server-github";
-      env = {
-        GITHUB_API_TOKEN = "";
-      };
+    # NixOS helper (Claude Code only — uses uvx)
+    nixos = {
+      type = "custom";
+      claudeOnly = true;
+      command = "uvx";
+      args = ["mcp-nixos"];
+    };
+
+    # NixOS cluster management (built package)
+    nixos-cluster = {
+      type = "nix";
+      package = "nixos-cluster-mcp";
     };
   };
 
