@@ -34,19 +34,33 @@
     };
   };
 
-  mkLocalServer = name: _def: {
-    command = registry.mkCommand name;
-  };
+  mkLocalServer = name: def:
+    if def.type == "custom" && def ? command then {
+      # Custom servers with explicit command (searxng, casdoor, etc.)
+      command = def.command;
+    } // (lib.optionalAttrs (def ? args) {args = def.args;})
+      // (lib.optionalAttrs (def ? env) {env = def.env;})
+    else if def.type == "nix" then {
+      # Nix packages provide mcp-<name> commands directly
+      command = registry.mkCommand name;
+    }
+    else if def.type == "custom" then {
+      # Custom type without command → use mcp-<name> from PATH
+      command = registry.mkCommand name;
+    }
+    else {
+      # npm/uvx types → use mcp-<name> from PATH
+      command = registry.mkCommand name;
+    };
 
+  # Filter out claudeOnly servers from local stdio (they go in extraServers)
   localStdioServers =
+    lib.filterAttrs (name: _: !(registry.servers.${name}.claudeOnly or false))
     (lib.mapAttrs mkLocalServer registry.servers)
     // {
       filesystem = {
         command = "mcp-filesystem";
-        args = [
-          "/etc/nixos"
-          "/home/j_kro"
-        ];
+        args = ["/etc/nixos" "/home/j_kro"];
       };
       context7 = {
         command = "mcp-context7";
@@ -54,10 +68,11 @@
       };
       chrome-devtools = {
         command = "npx";
-        args = [
-          "-y"
-          "chrome-devtools-mcp@latest"
-        ];
+        args = ["-y" "chrome-devtools-mcp@latest"];
+      };
+      casdoor = {
+        command = "python3";
+        args = ["/data/agents/mcp-bridges/casdoor-mcp-bridge.py"];
       };
     };
 
