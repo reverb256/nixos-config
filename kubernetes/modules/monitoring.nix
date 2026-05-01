@@ -1002,6 +1002,12 @@ in {
     # ── Grafana admin secret ──────────────────────────────────
     # Populated by kubectl-apply-k8s-secrets from agenix:
     #   admin-password ← /run/agenix/grafana-admin-password
+    # grafana-oidc-secret populated by kubectl-apply-k8s-secrets from agenix
+    monitoring.Secret.grafana-oidc-secret = {
+      type = "Opaque";
+      stringData = {};
+    };
+
     monitoring.Secret.grafana-admin-secret = {
       type = "Opaque";
       stringData."admin-password" = "";
@@ -1067,6 +1073,35 @@ in {
                   GF_SECURITY_STRICT_TRANSPORT_SECURITY.value = "false";
                   GF_ALERTING_ENABLED.value = "true";
                   GF_UNIFIED_ALERTING_ENABLED.value = "true";
+                  # Casdoor SSO via Generic OAuth
+                  GF_AUTH_GENERIC_OAUTH_ENABLED.value = "true";
+                  GF_AUTH_GENERIC_OAUTH_NAME.value = "Casdoor";
+                  GF_AUTH_GENERIC_OAUTH_CLIENT_ID.value = "fa39ccce16fbc8ad4d23";
+                  GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET.valueFrom.secretKeyRef = {
+                    name = "grafana-oidc-secret";
+                    key = "client-secret";
+                  };
+                  GF_AUTH_GENERIC_OAUTH_AUTH_URL.value = "https://auth.lan/login/oauth/authorize";
+                  GF_AUTH_GENERIC_OAUTH_TOKEN_URL.value = "https://auth.lan/api/login/oauth/access_token";
+                  GF_AUTH_GENERIC_OAUTH_API_URL.value = "https://auth.lan/api/userinfo";
+                  GF_AUTH_GENERIC_OAUTH_SCOPES.value = "openid profile email";
+                  GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP.value = "true";
+                  GF_AUTH_SIGNOUT_REDIRECT_URL.value = "https://auth.lan/login/oauth/logout";
+                  # OAuth / OIDC Auth - Casdoor
+                  GF_AUTH_GENERIC_OAUTH_ENABLED.value = "true";
+                  GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP.value = "true";
+                  GF_AUTH_GENERIC_OAUTH_CLIENT_ID.value = "grafana-app";
+                  GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET.valueFrom.secretKeyRef = {
+                    name = "grafana-oidc-secret";
+                    key = "client-secret";
+                  };
+                  GF_AUTH_GENERIC_OAUTH_AUTH_URL.value = "https://auth.lan/oauth/authorize";
+                  GF_AUTH_GENERIC_OAUTH_TOKEN_URL.value = "https://auth.lan/oauth/token";
+                  GF_AUTH_GENERIC_OAUTH_API_URL.value = "https://auth.lan/api";
+                  GF_AUTH_GENERIC_OAUTH_SCOPES.value = "openid profile email";
+                  GF_AUTH_GENERIC_OAUTH_EMAIL_ATTRIBUTE_NAME.value = "email";
+                  GF_AUTH_GENERIC_OAUTH_NAME_ATTRIBUTE_PATH.value = "name";
+                  GF_AUTH_GENERIC_OAUTH_ID_TOKEN_GROUPS_PATH.value = "groups";
                 };
                 ports = [
                   {
@@ -1131,12 +1166,13 @@ in {
     monitoring.Service.grafana = {
       metadata.labels.app = "grafana";
       spec = {
-        type = "ClusterIP";
+        type = "NodePort";
         ports = [
           {
             name = "http";
             port = 3000;
             targetPort = 3000;
+            nodePort = 32102;
             protocol = "TCP";
           }
         ];
