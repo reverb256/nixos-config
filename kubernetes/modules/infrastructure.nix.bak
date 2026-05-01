@@ -11,10 +11,7 @@
   };
   nixosClusterMcp = pkgs.callPackage ../../packages/nixos-cluster-mcp {};
 in {
-  config.kubernetes.objects = {
-    none = {
-    default = {
-    infra = {
+  config.kubernetes.objects.none = {
     PriorityClass.high-priority-ai = {
       value = 1000;
       globalDefault = false;
@@ -27,6 +24,7 @@ in {
     };
   };
 
+  config.kubernetes.objects.default = {
     Namespace.default = {
       metadata.labels =
         pssLabels
@@ -79,6 +77,7 @@ in {
     };
   };
 
+  config.kubernetes.objects.infra = {
     ServiceAccount.kubernetes-mcp = {};
     ClusterRole.kubernetes-mcp.rules = [
       {apiGroups = [""]; resources = ["pods" "pods/log" "namespaces" "nodes" "services" "configmaps" "secrets" "events"]; verbs = ["get" "list" "watch"];}
@@ -219,6 +218,3 @@ in {
       };
     };
   };
-
-  };
-}
