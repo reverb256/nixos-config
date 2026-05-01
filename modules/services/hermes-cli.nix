@@ -282,6 +282,8 @@ in {
           # Fix any remaining direct Sentry or stale pod IPs
           sed -i "s|base_url: http://10\.1\.1\.140:1235/v1|base_url: $GATEWAY_URL|g" "$HERMES_CONFIG"
           sed -i "s|base_url: http://10\.4\.[0-9]*\.[0-9]*:1235/v1|base_url: $GATEWAY_URL|g" "$HERMES_CONFIG"
+          # Fix any corrupted [IP_ADDRESS] placeholders from previous sed failures
+          sed -i "s|base_url: http://\[IP_ADDRESS\]:8080/v1|base_url: $GATEWAY_URL|g" "$HERMES_CONFIG"
 
           chown ${cfg.user}:users "$HERMES_CONFIG" 2>/dev/null || true
           chmod 600 "$HERMES_CONFIG" 2>/dev/null || true
