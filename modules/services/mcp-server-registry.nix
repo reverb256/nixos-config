@@ -60,6 +60,23 @@
       package = "nixos-cluster-mcp";
       command = "nixos-cluster-mcp";
     };
+
+    # Auth-needed servers (OAuth not yet configured)
+    # B1: Sentry — needs DSN token (GF_AUTH_GENERIC_OAUTH_CLIENT_ID from Casdoor app)
+    sentry = {
+      type = "custom";
+      authNeeded = true;
+      command = "uvx";
+      args = ["@sentry/sentry-mcp"];
+    };
+
+    # B2: GitLab — needs PAT (gl_mr_helper MCP or custom)
+    gitlab = {
+      type = "custom";
+      authNeeded = true;
+      command = "uvx";
+      args = ["mcp-gitlab"];
+    };
   };
 
   mkCommand = name: "mcp-${name}";
