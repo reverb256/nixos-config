@@ -38,7 +38,7 @@
     export LD_LIBRARY_PATH=/run/opengl-driver/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
   '';
   wrapperScript = pkgs.writeShellScriptBin "stability-matrix" ''
-    #!/bin/bash
+    #!/usr/bin/env bash
     SM_DATA="$(eval echo "${cfg.dataDir}")"
     mkdir -p "$SM_DATA"
     export PATH="${
@@ -56,6 +56,13 @@
     ${lib.optionalString cfg.enableCuda cudaEnv}
     ${lib.optionalString cfg.enableRocm rocmEnv}
     export STABILITY_MATRIX_DATA="$SM_DATA"
+    # Fix uv 0.9.30 exclude-newer cutoff blocking recently-published packages
+    # (e.g. comfyui-frontend-package==1.42.15 published after uv's build date)
+    export UV_EXCLUDE_NEWER="2099-01-01T00:00:00Z"
+    # Pass DBus session address for system tray icon (steam-run strips it)
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
+    # Set APPIMAGE env var so SM can find its path for tray icon and URI handling
+    export APPIMAGE="${src}"
     cd "$SM_DATA"
     exec ${pkgs.steam-run}/bin/steam-run ${wrappedApp}/bin/${pname} "$@"
   '';
