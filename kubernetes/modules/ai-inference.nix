@@ -525,6 +525,8 @@ in {
                   };
                   USER.value = "nobody";
                   HOME.value = "/tmp";
+                  TORCH_HOME.value = "/tmp/.torch";
+                  TORCHINDUCTOR_CACHE_DIR.value = "/tmp/.torch/inductor";
                   LOG_LEVEL.value = "INFO";
                   PYTHONPATH.value = "/app";
                   PATH.value = "/bin:/usr/bin";
@@ -555,6 +557,10 @@ in {
                   KILO_API_KEY.valueFrom.secretKeyRef = {
                     name = "kilo-api-key";
                     key = "KILO_API_KEY";
+                  };
+                  OPENCODE_API_KEY.valueFrom.secretKeyRef = {
+                    name = "opencode-api-key";
+                    key = "OPENCODE_API_KEY";
                   };
                   MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED.valueFrom.configMapKeyRef = {
                     name = "ai-inference-gateway-config";
@@ -1517,6 +1523,12 @@ in {
     Secret.kilo-api-key = {
       type = "Opaque";
       stringData.KILO_API_KEY = "";
+    };
+
+    # OpenCode API key — populated from agenix (secrets/opencode-api-key.age)
+    Secret.opencode-api-key = {
+      type = "Opaque";
+      stringData.OPENCODE_API_KEY = "";
     };
 
     # ── Additional NetworkPolicies ───────────────────────────────
