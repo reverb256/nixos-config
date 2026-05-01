@@ -236,6 +236,14 @@ in {
 - `container-scanning.nix` exists but **not imported** in `default.nix`
 - GitHub Actions pinned to commit SHAs
 
+## MCP Infrastructure
+
+**In-cluster:** kubernetes-mcp (SSE :8080 on nexus) + nixos-cluster-mcp (DaemonSet, SSE :8081 on all nodes)
+**Claude Code:** `nix run /etc/nixos#kubernetes-mcp-server` and `nix run /etc/nixos#nixos-cluster-mcp` (stdio)
+**Hermes:** SSE URL for kubernetes, stdio for others (see `~/.hermes/config.yaml`)
+**Registry:** `modules/services/mcp-server-registry.nix` — single source of truth
+**Full plan:** `docs/plans/2026-05-01-mcp-system-plan.md`
+
 ## Reference
 
 | Document | Purpose |
@@ -247,4 +255,4 @@ in {
 
 ---
 
-**Version**: 4.0 | **Last Updated:** 2026-04-17
+**Version**: 5.0 | **Last Updated:** 2026-05-01
