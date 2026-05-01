@@ -22,6 +22,7 @@
       pkgs.icu
       pkgs.libxcrypt
       pkgs.libxcrypt-legacy
+      pkgs.libayatana-appindicator
     ];
   };
   cudaEnv = ''
@@ -61,8 +62,6 @@
     export UV_EXCLUDE_NEWER="2099-01-01T00:00:00Z"
     # Pass DBus session address for system tray icon (steam-run strips it)
     export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
-    # Set APPIMAGE env var so SM can find its path for tray icon and URI handling
-    export APPIMAGE="${src}"
     cd "$SM_DATA"
     exec ${pkgs.steam-run}/bin/steam-run ${wrappedApp}/bin/${pname} "$@"
   '';

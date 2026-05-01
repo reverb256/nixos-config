@@ -3,20 +3,24 @@
   config,
   lib,
   ...
-}: {
-  options.nixcord-config.enable = lib.mkEnableOption "Nixcord Vesktop configuration";
+}: let
+  discord-patched = pkgs.discord.override {
+    withOpenASAR = true;
+    withVencord = true;
+  };
+in {
+  options.nixcord-config.enable = lib.mkEnableOption "Nixcord Discord configuration";
 
   config = lib.mkIf config.nixcord-config.enable {
+    home.packages = [discord-patched];
+
     programs.nixcord = {
       enable = true;
       discord.enable = false;
-      vesktop.enable = true;
+      vesktop.enable = false;
 
-      vesktopConfig = {
-        tray = false;
-        trayIcon = false;
-        openHidden = false;
-
+      config = {
+        useQuickCss = true;
         plugins = {
           XSOverlay = {
             enable = true;
@@ -34,7 +38,7 @@
             enable = true;
             enableEmojiBypass = true;
             enableStickerBypass = true;
-            enableStreamBypass = true;
+            enableStreamQualityBypass = true;
             emojiSize = 48.0;
           };
           USRBG = {
@@ -49,9 +53,9 @@
       };
     };
 
-    systemd.user.services.vesktop-autostart = {
+    systemd.user.services.discord-autostart = {
       Unit = {
-        Description = "Vesktop autostart";
+        Description = "Discord autostart";
         After = [
           "graphical-session-pre.target"
           "wayland-wm@niri-session.service"
@@ -61,7 +65,7 @@
       Service = {
         Type = "simple";
         Environment = ["XDG_CURRENT_DESKTOP=KDE"];
-        ExecStart = lib.getExe pkgs.vesktop + " --start-minimized";
+        ExecStart = lib.getExe discord-patched + " --start-minimized";
         Restart = "on-failure";
         RestartSec = 5;
       };

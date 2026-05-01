@@ -287,9 +287,7 @@
       };
     };
 
-    # packages.x86_64-linux.lolminer-image = inputs.compute-market.packages.x86_64-linux.lolminer-image; # migrated
-    # packages.x86_64-linux.lolminer-amd-image = inputs.compute-market.packages.x86_64-linux.lolminer-amd-image; # migrated
-    packages.x86_64-linux.xmrig-nixos-image = inputs.compute-market.packages.x86_64-linux.xmrig-nixos-image; # migrated
+            packages.x86_64-linux.xmrig-nixos-image = inputs.compute-market.packages.x86_64-linux.xmrig-nixos-image; # migrated
     packages.x86_64-linux.xmrig-alpine-image = inputs.compute-market.packages.x86_64-linux.xmrig-alpine-image; # migrated
     packages.x86_64-linux.xmrig-proxy-alpine-image = inputs.compute-market.packages.x86_64-linux.xmrig-proxy-alpine-image; # migrated
     packages.x86_64-linux.claude-code-image = pkgsWithOverlay.claude-code-image; # extracted to packages/claude-code-image.nix

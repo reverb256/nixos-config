@@ -73,15 +73,6 @@
     ./gaming/gaming-hdr.nix
     ./gaming/scopebuddy.nix
 
-    # ./mining/mining.nix  # migrated to inputs.compute-market
-    # ./mining/mining-desktop-toggle.nix  # migrated to inputs.compute-market
-    # ./mining/dual-xmrig.nix  # migrated to inputs.compute-market
-    # ./mining/xmrig-proxy.nix  # migrated to inputs.compute-market
-    # ./mining/mining-proxy.nix  # migrated to inputs.compute-market
-    # ./mining/gpu-proxy-cpp.nix  # migrated to inputs.gpu-proxy
-
-    # ./compute-market/default.nix  # migrated to inputs.compute-market
-
     ./services/nfs-server.nix
     ./services/nfs-cluster-mounts.nix
     ./services/nfs-state-sync.nix
@@ -94,11 +85,8 @@
     ./services/stability-matrix.nix
     ./services/appimage-updater.nix
     ./services/haven-desktop.nix
-    # ./services/ai-inference/default.nix  # migrated to inputs.ai-gateway
     ./services/nixos-share.nix
     ./services/podman-auto-update.nix
-    # ./services/caddy.nix  # migrated to inputs.caddy-ingress
-    # ./services/caddy-common.nix  # migrated to inputs.caddy-ingress
     ./services/nextcloud.nix
     ./services/service-gateway.nix
     ./services/host-dashboard.nix
@@ -122,9 +110,7 @@
     ./services/self-healing-alerts.nix
 
     ./services/monitoring/default.nix
-    ./services/gpu-exporters.nix
-    # ./services/mining-exporter.nix  # migrated to inputs.compute-market
-    ./multimedia/gstreamer.nix
+    ./services/gpu-exporters.nix    ./multimedia/gstreamer.nix
     ./desktop/spotify-spotx.nix
     ./system/distributed-builds.nix
     ./system/flake-lock-sync.nix
