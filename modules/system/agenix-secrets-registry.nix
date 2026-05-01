@@ -268,6 +268,12 @@ in {
           owner = "j_kro";
           group = "users";
         };
+        kagent-oidc-client-secret = {
+          file = "${inputs.self}/secrets/kagent-oidc-client-secret.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
       })
     ];
   };

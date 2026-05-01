@@ -85,7 +85,7 @@ jywjVe14d83848k7ec+hCF/K0LC1ItscIlIJw/PweOnf62sy/1CWSFgcfYl3VwzA
               -days 3650 \
               -nodes \
               -subj "/C=US/ST=State/L=City/O=Cluster/CN=Cluster CA" \
-            -addext "subjectAltName=DNS:*.lan,DNS:*.cluster.local,DNS:mission-control.lan,DNS:mc.cluster.local,DNS:privacy-filter.lan,DNS:search.lan,DNS:ai.lan,DNS:openwebui.lan,DNS:haven.lan,DNS:hermes.lan,DNS:api.hermes.lan,DNS:n8n.lan,DNS:activepieces.lan,DNS:searxng.lan,DNS:brain.lan,DNS:qdrant.lan,DNS:knowledge-fabric.lan,DNS:monitoring.lan,DNS:grafana.lan,DNS:prometheus.lan" 2>/dev/null
+            -addext "subjectAltName=DNS:*.lan,DNS:*.cluster.local,DNS:mission-control.lan,DNS:kagent.lan,DNS:mc.cluster.local,DNS:privacy-filter.lan,DNS:search.lan,DNS:ai.lan,DNS:ai-inference.lan,DNS:openwebui.lan,DNS:haven.lan,DNS:hermes.lan,DNS:api.hermes.lan,DNS:n8n.lan,DNS:activepieces.lan,DNS:searxng.lan,DNS:brain.lan,DNS:qdrant.lan,DNS:knowledge-fabric.lan,DNS:monitoring.lan,DNS:grafana.lan,DNS:prometheus.lan" 2>/dev/null
 
             echo "Internal CA certificate generated at ${cfg.caCert}"
             chmod 644 ${cfg.caCert}
@@ -105,7 +105,7 @@ jywjVe14d83848k7ec+hCF/K0LC1ItscIlIJw/PweOnf62sy/1CWSFgcfYl3VwzA
             ${pkgs.openssl}/bin/openssl genrsa -out $LEAF_KEY 2048 2>/dev/null
             ${pkgs.openssl}/bin/openssl req -new -key $LEAF_KEY -out /tmp/leaf.csr \
               -subj "/CN=Cluster Ingress" \
-            -addext "subjectAltName=DNS:*.lan,DNS:*.cluster.local,DNS:mission-control.lan,DNS:mc.cluster.local,DNS:privacy-filter.lan,DNS:search.lan,DNS:ai.lan,DNS:openwebui.lan,DNS:haven.lan,DNS:hermes.lan,DNS:api.hermes.lan,DNS:n8n.lan,DNS:activepieces.lan,DNS:searxng.lan,DNS:brain.lan,DNS:qdrant.lan,DNS:knowledge-fabric.lan,DNS:monitoring.lan,DNS:grafana.lan,DNS:prometheus.lan" 2>/dev/null
+            -addext "subjectAltName=DNS:*.lan,DNS:*.cluster.local,DNS:mission-control.lan,DNS:kagent.lan,DNS:mc.cluster.local,DNS:privacy-filter.lan,DNS:search.lan,DNS:ai.lan,DNS:ai-inference.lan,DNS:openwebui.lan,DNS:haven.lan,DNS:hermes.lan,DNS:api.hermes.lan,DNS:n8n.lan,DNS:activepieces.lan,DNS:searxng.lan,DNS:brain.lan,DNS:qdrant.lan,DNS:knowledge-fabric.lan,DNS:monitoring.lan,DNS:grafana.lan,DNS:prometheus.lan" 2>/dev/null
             ${pkgs.openssl}/bin/openssl x509 -req -in /tmp/leaf.csr -CA ${cfg.caCert} -CAkey ${cfg.caKey} \
               -CAcreateserial -out $LEAF_CERT -days 365 -copy_extensions copyall 2>/dev/null
             rm -f /tmp/leaf.csr

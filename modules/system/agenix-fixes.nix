@@ -261,6 +261,7 @@ in {
 
           # Monitoring namespace (ai-inference — grafana lives there)
           apply_secret ai-inference grafana-admin-secret admin-password /run/agenix/grafana-admin-password
+          apply_secret orchestration kagent-oidc client-secret /run/agenix/kagent-oidc-client-secret
 
           echo "[k8s-secrets] Done"
         '';
