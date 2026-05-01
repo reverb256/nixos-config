@@ -9,7 +9,7 @@
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
 
   # AI Inference Gateway — pre-built container image (loaded into containerd on target node)
-  gatewayImage = "docker.io/library/ai-inference-gateway:2.4.5";
+  gatewayImage = "docker.io/library/ai-inference-gateway:2.4.6";
 
   # Managed-by labels for easykubenix
   managed = {
@@ -85,6 +85,7 @@ in {
       REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
       SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
       SECONDARY_BACKEND_MODEL = "QuantTrio/Qwen3.5-2B-AWQ";
+      DISCOVERY_BACKENDS = "[{"name":"vllm-3060ti","base_url":"http://10.1.1.110:8040/v1","priority":12}]";
       PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8081";
       PRIVACY_FILTER_ENABLED = "false";
       MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
@@ -506,6 +507,10 @@ in {
                   SECONDARY_BACKEND_MODEL.valueFrom.configMapKeyRef = {
                     name = "ai-inference-gateway-config";
                     key = "SECONDARY_BACKEND_MODEL";
+                  DISCOVERY_BACKENDS.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "DISCOVERY_BACKENDS";
+                  };
                   };
                   SSL_CERT_FILE.value = "/etc/ssl/certs/ca-bundle.crt";
                   REQUESTS_CA_BUNDLE.value = "/etc/ssl/certs/ca-bundle.crt";
