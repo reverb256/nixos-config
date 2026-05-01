@@ -2087,12 +2087,12 @@ in {
       metadata.labels.app = "memory-monitor";
       spec = {
         schedule = "*/5 * * * *";
-        concurrencyPolicy = "Allow";
+        concurrencyPolicy = "Forbid";
         successfulJobsHistoryLimit = 3;
         failedJobsHistoryLimit = 1;
         jobTemplate.spec.template = {
           spec = {
-            nodeName = "zephyr";
+            nodeName = "sentry";
             restartPolicy = "OnFailure";
             containers = {
               _namedlist = true;

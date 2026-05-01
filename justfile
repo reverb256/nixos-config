@@ -170,10 +170,20 @@ check:
 #  LOCAL OPERATIONS
 # ──────────────────────────────────────────────────────────────────────────────
 
+# Pre-flight check (run before switch/deploy to prevent OOM)
+preflight:
+    #!/usr/bin/env bash
+    set -e
+    /etc/nixos/scripts/preflight-check.sh
+
 # Apply to current host (uses nixos-rebuild switch — colmena apply-local has NixOS sudo PATH issue)
 # Runs in tmux for visibility — runs non-blocking for agents
 switch:
-    @just switch-bg
+    #!/usr/bin/env bash
+    set -e
+    echo "▸ Running pre-flight check..."
+    /etc/nixos/scripts/preflight-check.sh
+    just switch-bg
 
 # Build without applying (local host only)
 build:
