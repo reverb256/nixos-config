@@ -68,9 +68,9 @@
       defaultModel = "qwen3.6-35b"; # local-first (Qwen3.6-35B on zephyr 3090)
       fallbackChain = [
         "nvidia-nim"
-        "zai"
+        "nvidia-nim"
         "pollinations"
-      ]; # TODO post-May 8: remove "zai" → ["nvidia-nim" "pollinations"] # NIM first (survives ZAI expiry)
+      ];
     };
 
     auth.mode = "none";

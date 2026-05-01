@@ -327,6 +327,6 @@
     "c /dev/net/tun 666 root root - - - -"
     "L+ /opt/rocm - - - - ${rocmEnv}"
     "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
-    "L /etc/OpenCL/vendorsamdocl64.icd - - - - /etc/OpenCL/vendors/amdocl64.icd"
+    "L+ /etc/OpenCL/vendors/amdocl64.icd - - - - ${pkgs.rocmPackages.clr.icd}/amdocl64.icd"
   ];
 }
