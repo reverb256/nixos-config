@@ -110,16 +110,23 @@ in {
               mcp = {
                 image = "ghcr.io/containers/kubernetes-mcp-server:latest-linux-amd64";
                 imagePullPolicy = "IfNotPresent";
-                args = ["--port" "8080" "--toolsets" "core,helm"];
+                args = ["--port" "8080" "--toolsets" "core,helm" "--stateless"];
                 ports = [{containerPort = 8080; protocol = "TCP";}];
                 resources = {
                   requests = {cpu = "100m"; memory = "128Mi";};
                   limits = {cpu = "500m"; memory = "256Mi";};
                 };
+                readinessProbe = {
+                  httpGet = {path = "/sse"; port = 8080;};
+                  initialDelaySeconds = 5;
+                  periodSeconds = 10;
+                  failureThreshold = 3;
+                };
                 livenessProbe = {
-                  httpGet = {path = "/"; port = 8080;};
-                  initialDelaySeconds = 10;
+                  httpGet = {path = "/sse"; port = 8080;};
+                  initialDelaySeconds = 15;
                   periodSeconds = 30;
+                  failureThreshold = 3;
                 };
               };
             };
@@ -164,6 +171,18 @@ in {
                 resources = {
                   requests = {cpu = "50m"; memory = "64Mi";};
                   limits = {cpu = "200m"; memory = "128Mi";};
+                };
+                readinessProbe = {
+                  httpGet = {path = "/sse"; port = 8081;};
+                  initialDelaySeconds = 5;
+                  periodSeconds = 10;
+                  failureThreshold = 3;
+                };
+                livenessProbe = {
+                  httpGet = {path = "/sse"; port = 8081;};
+                  initialDelaySeconds = 15;
+                  periodSeconds = 30;
+                  failureThreshold = 3;
                 };
                 volumeMounts = {
                   _namedlist = true;
