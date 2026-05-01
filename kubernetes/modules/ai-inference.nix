@@ -79,6 +79,10 @@ in {
       HF_HOME = "/home/j_kro/.cache/huggingface";
       HF_HUB_OFFLINE = "0";
       HF_HUB_ENABLE_HF_TRANSFER = "1";
+      HF_HUB_CACHE = "/home/j_kro/.cache/huggingface/hub";
+      HF_HUB_DISABLE_TELEMETRY = "1";
+      HF_HUB_UPDATE_CHECK_DISABLED = "1";
+      TRANSFORMERS_CACHE = "/home/j_kro/.cache/huggingface";
       CURL_CA_BUNDLE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
       MAX_REQUEST_SIZE = "10485760";
       CIRCUIT_BREAKER_ENABLED = "true";
