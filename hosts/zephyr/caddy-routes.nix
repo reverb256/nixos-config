@@ -20,24 +20,24 @@
 in
   # AI services -> use NodePort (working) and direct pod IPs via Flannel
   # ClusterIP is unreachable from host (kube-proxy runs in container, not host-level)
-  # ai.lan -> llama-server-zephyr-3060ti on port 1236 (NodePort via host)
-  mkRoute "ai.lan" "http://10.1.1.110:1236" +
-  # ai-inference.lan -> AI Gateway via NodePort (10.1.1.110:30880)
-  mkRoute "ai-inference.lan" "http://10.1.1.110:30880" +
-  # openwebui.lan -> OpenWebUI via NodePort (10.1.1.110:32080)
-  mkRoute "openwebui.lan" "http://10.1.1.110:32080" +
+  # ai.lan -> llama-server-3090 (host port 1237)
+  mkRoute "ai.lan" "http://127.0.0.1:1237" +
+  # ai-inference.lan -> AI Gateway (NodePort 30880)
+  mkRoute "ai-inference.lan" "http://127.0.0.1:30880" +
+  # openwebui.lan -> OpenWebUI (NodePort 32080)
+  mkRoute "openwebui.lan" "http://127.0.0.1:32080" +
   # brain.lan -> Knowledge Fabric API (via Flannel pod IP)
   mkRoute "brain.lan" "http://10.244.1.7:3000" +
   # privacy-filter.lan -> Privacy Filter (via Flannel pod IP)
   mkRoute "privacy-filter.lan" "http://10.244.1.23:8080" +
-  # Search
-  mkRoute "searxng.lan, search.lan" "http://10.1.1.110:32080" +
-  # Haven (personal wiki)
-  mkRoute "haven.lan" "http://10.1.1.110:32080" +
-  # Monitoring
-  mkRoute "grafana.lan" "http://10.1.1.110:32080" +
-  # Orchestration
-  mkRoute "mission-control.lan" "http://10.1.1.110:32080" +
-  mkRoute "kagent.lan" "http://10.1.1.110:32080" +
+  # Search (SearXNG NodePort 32081)
+  mkRoute "searxng.lan, search.lan" "http://127.0.0.1:32081" +
+  # Haven (oauth2-proxy NodePort 32100)
+  mkRoute "haven.lan" "http://127.0.0.1:32100" +
+  # Monitoring (Grafana NodePort 32102)
+  mkRoute "grafana.lan" "http://127.0.0.1:32102" +
+  # Orchestration (MC NodePort 32101, kagent NodePort 32103)
+  mkRoute "mission-control.lan" "http://127.0.0.1:32101" +
+  mkRoute "kagent.lan" "http://127.0.0.1:32103" +
   # SSO
   mkRoute "auth.lan" "127.0.0.1:8000"
