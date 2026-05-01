@@ -53,10 +53,11 @@
       args = ["mcp-nixos"];
     };
 
-    # NixOS cluster management (built package)
+    # NixOS cluster management (built package; mainProgram = "nixos-cluster-mcp", not "mcp-nixos-cluster")
     nixos-cluster = {
       type = "nix";
       package = "nixos-cluster-mcp";
+      command = "nixos-cluster-mcp";
     };
   };
 
