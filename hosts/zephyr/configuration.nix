@@ -106,7 +106,6 @@ in {
     bindServicesToLocalhost = true;
   };
 
-  security.kubernetes.enable = true;
 
   security.gpg.enable = true;
 

@@ -40,7 +40,6 @@
 
     ./security/pam-vaultwarden.nix
     ./security/gpg.nix
-    ./kubernetes-security.nix
 
     ./hardware/corsair.nix
     ./hardware/gpu-compute.nix

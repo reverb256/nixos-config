@@ -29,6 +29,12 @@
     enableLanRecords = true;
     enableServiceRecords = true;
   };
+
+  # K8s service CIDR - same value as in k3s-cluster. nix (10.0.0.0/12)
+  serviceCIDR = "10.0.0.0/12";
+
+  # Flannel gateway IP for this node (gateway of the pod subnet)
+  kubeFlannelGateway = "10.244.0.1";
 in {
   config = mkIf dnsCfg.enable {
     # Disable systemd-resolved (conflicts with unbound)
@@ -198,6 +204,15 @@ in {
         ip saddr { 10.1.1.0/24, 10.244.0.0/16 } tcp dport 53 accept
       '';
     };
+
+    # Route K8s service CIDR via Flannel so ClusterIP traffic stays local
+    # Problem: kube-proxy runs as container (not host binary), so iptables rules don't
+    # exist on host. Without this route, traffic to 10.0.0.0/12 (ClusterIPs) goes to
+    # default gateway (10.1.1.1) and is lost.
+    networking.localCommands = ''
+      # Add route to K8s service CIDR via Flannel gateway
+      ip route add 10.0.0.0/12 via 10.244.0.1 dev flannel.1 2>/dev/null || true
+    '';
 
     # Populate /etc/hosts for compatibility
     networking.extraHosts = lib.mkBefore (

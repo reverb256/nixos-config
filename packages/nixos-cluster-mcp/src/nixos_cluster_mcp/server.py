@@ -1,5 +1,6 @@
 """NixOS Cluster MCP Server — cluster-specific orchestration tools."""
 
+import argparse
 import json
 import subprocess
 
@@ -164,7 +165,18 @@ def check_nix_store(store_path: str, node: str) -> str:
 
 
 def main():
-    mcp.run()
+    parser = argparse.ArgumentParser(description="NixOS Cluster MCP Server")
+    parser.add_argument("--transport", choices=["stdio", "sse"], default="stdio")
+    parser.add_argument("--port", type=int, default=8081, help="Port for SSE transport")
+    args = parser.parse_args()
+
+    if args.transport == "sse":
+        mcp.settings.host = "0.0.0.0"
+        mcp.settings.port = args.port
+        mcp.settings.transport_security = False
+        mcp.run(transport="sse")
+    else:
+        mcp.run()
 
 
 if __name__ == "__main__":
