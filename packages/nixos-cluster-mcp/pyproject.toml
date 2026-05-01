@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nixos-cluster-mcp"
+version = "0.1.0"
+description = "MCP server for NixOS cluster management"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp[cli]>=1.0.0",
+]
+
+[project.scripts]
+nixos-cluster-mcp = "nixos_cluster_mcp.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
