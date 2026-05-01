@@ -130,7 +130,7 @@ in {
           }
 
           log "Coordinator started - monitoring :$LLAMA_PORT"
-          log "Primary: $PRIMARY (3090) | Fallback: ${FALLBACK:-none}"
+          log "Primary: $PRIMARY (3090) | Fallback: ''${FALLBACK:-none}"
           log "Check interval: ''${CHECK_INTERVAL}s, idle timeout: ''${IDLE_TIMEOUT}s"
 
           while true; do

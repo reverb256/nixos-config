@@ -369,6 +369,7 @@ in {
           spec = {
             nodeSelector."kubernetes.io/hostname" = targetNode;
             serviceAccountName = "kagent-ui";
+            hostAliases = [{ ip = "10.1.1.100"; hostnames = ["auth.lan" "kagent.lan"]; }];
             securityContext = { runAsNonRoot = true; seccompProfile.type = "RuntimeDefault"; };
             containers._namedlist = true;
             containers.ui = {
@@ -417,6 +418,8 @@ in {
                 OAUTH2_PROXY_OIDC_EMAIL_CLAIM.value = "sub";
                 OAUTH2_PROXY_SKIP_AUTH_REGEX.value = "^/(health|api/ws/)$";
                 OAUTH2_PROXY_SCOPE.value = "openid profile email";
+                OAUTH2_PROXY_HTTP_ADDRESS.value = "0.0.0.0:4180";
+                OAUTH2_PROXY_SSL_INSECURE_SKIP_VERIFY.value = "true";
               };
               resources = { requests = {cpu = "50m"; memory = "64Mi";}; limits = {cpu = "200m"; memory = "128Mi";}; };
               securityContext = { allowPrivilegeEscalation = false; capabilities.drop = ["ALL"]; seccompProfile.type = "RuntimeDefault"; };
