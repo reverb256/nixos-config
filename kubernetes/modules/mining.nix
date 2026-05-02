@@ -13,7 +13,7 @@
 in {
   config.kubernetes.objects = {
     none.Namespace.mining = {
-      metadata.labels = {
+      metadata.labels = managed // {
         name = "mining";
         workload = "crypto-mining";
       };
@@ -212,7 +212,7 @@ in {
 
     mining.Deployment.xmrig-zephyr = {
       metadata = {
-        labels = {
+        labels = managed // {
           app = "xmrig-zephyr";
           host = "zephyr";
           workload = "crypto-mining";
@@ -230,7 +230,7 @@ in {
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels = {
+            labels = managed // {
               app = "xmrig-zephyr";
               host = "zephyr";
               workload = "crypto-mining";
@@ -395,7 +395,7 @@ in {
         selector.matchLabels.app = "xmrig-nexus";
         strategy.type = "Recreate";
         template = {
-          metadata.labels.app = "xmrig-nexus";
+          metadata.labels = managed // { app = "xmrig-nexus"; };
           spec = {
             nodeName = "nexus";
             hostNetwork = true;
@@ -519,7 +519,7 @@ in {
     };
 
     mining.ConfigMap.xmrig-proxy-config = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "xmrig-proxy";
         component = "stratum-proxy";
       };
@@ -613,7 +613,7 @@ in {
     };
 
     mining.Secret.xmrig-proxy-secret = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "xmrig-proxy";
         component = "stratum-proxy";
       };
@@ -628,7 +628,7 @@ in {
 
     mining.Deployment.xmrig-proxy = {
       metadata = {
-        labels = {
+        labels = managed // {
           app = "xmrig-proxy";
           component = "stratum-proxy";
         };
@@ -649,7 +649,7 @@ in {
           };
         };
         template = {
-          metadata.labels = {
+          metadata.labels = managed // {
             app = "xmrig-proxy";
             component = "stratum-proxy";
           };
@@ -756,7 +756,7 @@ in {
     };
 
     mining.Service.xmrig-proxy = {
-      metadata.labels.app = "xmrig-proxy";
+      metadata.labels = managed // { app = "xmrig-proxy"; };
       spec = {
         type = "ClusterIP";
         selector.app = "xmrig-proxy";
@@ -780,7 +780,7 @@ in {
 
     # --- LimitRange for mining namespace ---
     mining.LimitRange.mining-limits = {
-      metadata.labels.app = "gpu-scheduler";
+      metadata.labels = managed // { app = "gpu-scheduler"; };
       spec.limits = [
         {
           default = {
@@ -835,7 +835,7 @@ in {
 
     # --- PodDisruptionBudget for xmrig-proxy ---
     mining.PodDisruptionBudget.xmrig-proxy-pdb = {
-      metadata.labels.app = "xmrig-proxy";
+      metadata.labels = managed // { app = "xmrig-proxy"; };
       spec = {
         maxUnavailable = 1;
         selector.matchLabels.app = "xmrig-proxy";
@@ -849,7 +849,7 @@ in {
 
     # --- XMRig CPU Miner - sentry (8 cores, 8 threads = 50%) ---
     mining.Deployment.xmrig-sentry = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "xmrig-sentry";
         host = "sentry";
         workload = "crypto-mining";
@@ -861,7 +861,7 @@ in {
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels = {
+            labels = managed // {
               app = "xmrig-sentry";
               host = "sentry";
               workload = "crypto-mining";

@@ -846,7 +846,7 @@ ConfigMap.ai-inference-gateway-config.data = {
 
     # ── Knowledge Fabric API ─────────────────────────────────────
     Deployment.knowledge-fabric-api = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "knowledge-fabric-api";
         component = "brain";
       };
@@ -855,7 +855,7 @@ ConfigMap.ai-inference-gateway-config.data = {
         selector.matchLabels.app = "knowledge-fabric-api";
         strategy.type = "Recreate";
         template = {
-          metadata.labels = {
+          metadata.labels = managed // {
             app = "knowledge-fabric-api";
             component = "brain";
           };
@@ -967,7 +967,7 @@ ConfigMap.ai-inference-gateway-config.data = {
 
     # ── llama-server (Qwen on Nexus) ─────────────────────────────
     Deployment.llama-server = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "llama-cpp";
         purpose = "llm-inference";
       };
@@ -1925,7 +1925,7 @@ ConfigMap.ai-inference-gateway-config.data = {
     # Replaces: kubernetes-manifests/kb-mcp/deployment.yaml, service.yaml
     # Provides vector search over technical eBooks via FastMCP protocol
     Deployment.kb-mcp = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "kb-mcp";
         component = "rag";
       };
@@ -1934,7 +1934,7 @@ ConfigMap.ai-inference-gateway-config.data = {
         revisionHistoryLimit = 2;
         selector.matchLabels.app = "kb-mcp";
         template = {
-          metadata.labels = {
+          metadata.labels = managed // {
             app = "kb-mcp";
             component = "rag";
           };
@@ -2056,7 +2056,7 @@ ConfigMap.ai-inference-gateway-config.data = {
     };
 
     Service.kb-mcp = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "kb-mcp";
         component = "rag";
       };

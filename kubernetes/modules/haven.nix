@@ -10,7 +10,7 @@
 in {
   config.kubernetes.objects = {
     none.Namespace.haven = {
-      metadata.labels = {
+      metadata.labels = managed // {
         name = "haven";
         "pod-security.kubernetes.io/enforce" = "baseline";
         "pod-security.kubernetes.io/audit" = "restricted";
@@ -56,7 +56,7 @@ in {
     };
 
     haven.Deployment.haven = {
-      metadata.labels.app = "haven";
+      metadata.labels = managed // { app = "haven"; };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 3;
@@ -69,7 +69,7 @@ in {
           };
         };
         template = {
-          metadata.labels.app = "haven";
+          metadata.labels = managed // { app = "haven"; };
           spec = {
             nodeSelector."kubernetes.io/hostname" = "nexus";
             schedulerName = "default-scheduler";
@@ -156,7 +156,7 @@ in {
     };
 
     haven.Service.haven = {
-      metadata.labels.app = "haven";
+      metadata.labels = managed // { app = "haven"; };
       spec = {
         type = "NodePort";
         ports = {
@@ -173,7 +173,7 @@ in {
     };
 
     haven.NetworkPolicy.allow-haven-ingress = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "haven";
         policy = "allow-ingress";
       };
@@ -197,7 +197,7 @@ in {
     };
 
     haven.NetworkPolicy.allow-haven-egress = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "haven";
         policy = "allow-egress";
       };
