@@ -36,7 +36,7 @@ in {
         };
     };
     NetworkPolicy.default-deny-all = {
-      metadata.labels.policy = "default-deny";
+      metadata.labels = managed // { policy = "default-deny"; };
       spec = {
         podSelector = {};
         policyTypes = [
@@ -46,7 +46,7 @@ in {
       };
     };
     NetworkPolicy.allow-dns = {
-      metadata.labels.policy = "allow-dns";
+      metadata.labels = managed // { policy = "allow-dns"; };
       spec = {
         podSelector = {};
         policyTypes = ["Egress"];
@@ -98,7 +98,7 @@ in {
     # Streamable HTTP endpoint: POST /mcp (recommended for HTTP clients)
     # Health check: GET /healthz
     Deployment.kubernetes-mcp = {
-      metadata.labels.app = "kubernetes-mcp";
+      metadata.labels = managed // { app = "kubernetes-mcp"; };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -141,7 +141,7 @@ in {
       };
     };
     Service.kubernetes-mcp = {
-      metadata.labels.app = "kubernetes-mcp";
+      metadata.labels = managed // { app = "kubernetes-mcp"; };
       spec = {
         type = "ClusterIP";
         clusterIP = "10.12.22.155";
@@ -152,7 +152,7 @@ in {
 
     # ── NixOS Cluster MCP (SSE) ──────────────────────────────────
     DaemonSet.nixos-cluster-mcp = {
-      metadata.labels.app = "nixos-cluster-mcp";
+      metadata.labels = managed // { app = "nixos-cluster-mcp"; };
       spec = {
         selector.matchLabels.app = "nixos-cluster-mcp";
         template = {
@@ -207,7 +207,7 @@ in {
         };
       };
     NetworkPolicy.allow-mcp = {
-      metadata.labels.app = "kubernetes-mcp";
+      metadata.labels = managed // { app = "kubernetes-mcp"; };
       spec = {
         podSelector.matchLabels.app = "kubernetes-mcp";
         policyTypes = ["Ingress" "Egress"];
@@ -216,7 +216,7 @@ in {
       };
     };
     NetworkPolicy.allow-nixos-mcp = {
-      metadata.labels.app = "nixos-cluster-mcp";
+      metadata.labels = managed // { app = "nixos-cluster-mcp"; };
       spec = {
         podSelector.matchLabels.app = "nixos-cluster-mcp";
         policyTypes = ["Ingress" "Egress"];

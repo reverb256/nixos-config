@@ -197,7 +197,7 @@
 in {
   config.kubernetes.objects = {
     mining.Deployment.gpu-miner-forge-nvidia-0 = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "gpu-miner-forge-nvidia-0";
         "gpu-vendor" = "nvidia";
         host = "forge";
@@ -215,7 +215,7 @@ in {
         };
         strategy.type = "Recreate";
         template = {
-          metadata.labels = {
+          metadata.labels = managed // {
             app = "gpu-miner-forge-nvidia-0";
             "gpu-vendor" = "nvidia";
             host = "forge";
@@ -291,7 +291,7 @@ in {
     };
 
     mining.Deployment.gpu-miner-forge-nvidia-1 = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "gpu-miner-forge-nvidia-1";
         "gpu-vendor" = "nvidia";
         host = "forge";
@@ -309,7 +309,7 @@ in {
         };
         strategy.type = "Recreate";
         template = {
-          metadata.labels = {
+          metadata.labels = managed // {
             app = "gpu-miner-forge-nvidia-1";
             "gpu-vendor" = "nvidia";
             host = "forge";
@@ -385,7 +385,7 @@ in {
     };
 
     mining.Deployment.gpu-miner-forge-amd-0 = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "gpu-miner-forge-amd-0";
         "mining-coin" = "rvn";
         "mining-group" = "amd";
@@ -396,7 +396,7 @@ in {
         selector.matchLabels.app = "gpu-miner-forge-amd-0";
         strategy.type = "Recreate";
         template = {
-          metadata.labels.app = "gpu-miner-forge-amd-0";
+          metadata.labels = managed // { app = "gpu-miner-forge-amd-0"; };
           spec = {
             nodeName = "forge";
             hostNetwork = true;
@@ -484,7 +484,7 @@ in {
     };
 
     mining.Deployment.gpu-miner-forge-amd-1 = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "gpu-miner-forge-amd-1";
         "mining-coin" = "rvn";
         "mining-group" = "amd";
@@ -495,7 +495,7 @@ in {
         selector.matchLabels.app = "gpu-miner-forge-amd-1";
         strategy.type = "Recreate";
         template = {
-          metadata.labels.app = "gpu-miner-forge-amd-1";
+          metadata.labels = managed // { app = "gpu-miner-forge-amd-1"; };
           spec = {
             nodeName = "forge";
             hostNetwork = true;
@@ -569,7 +569,7 @@ in {
     };
 
     mining.Deployment.gpu-miner-nexus = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "gpu-miner-nexus";
         host = "nexus";
         workload = "crypto-mining";
@@ -585,7 +585,7 @@ in {
         };
         strategy.type = "Recreate";
         template = {
-          metadata.labels = {
+          metadata.labels = managed // {
             app = "gpu-miner-nexus";
             host = "nexus";
             workload = "crypto-mining";
@@ -687,7 +687,7 @@ in {
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels = {
+            labels = managed // {
               app = "gpu-miner-zephyr";
               host = "zephyr";
               workload = "crypto-mining";
@@ -781,7 +781,7 @@ in {
 
     # --- GPU Miner for Zephyr 3060 Ti (on-demand by coordinator, replicas: 0) ---
     mining.Deployment.gpu-miner-zephyr-3060ti = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "gpu-miner-zephyr-3060ti";
         host = "zephyr";
         workload = "crypto-mining";
@@ -795,7 +795,7 @@ in {
         };
         strategy.type = "Recreate";
         template = {
-          metadata.labels = {
+          metadata.labels = managed // {
             app = "gpu-miner-zephyr-3060ti";
             host = "zephyr";
             workload = "crypto-mining";
