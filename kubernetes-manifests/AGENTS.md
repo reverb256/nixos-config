@@ -1,10 +1,11 @@
 # Kubernetes Manifests - Agent Context
 
-**Parent:** `../AGENTS.md` | **Domain:** K8s deployment configs (429 files, 64 dirs)
+**Parent:** `../AGENTS.md` | **Domain:** K8s deployment configs (~256 files, ~28 dirs)
 
 ## Overview
 Kubernetes YAML manifests for cluster workloads. Organized by application domain.
-Uses Calico CNI (Flannel disabled). K8s Nix modules live in `../kubernetes/modules/` (easykubenix).
+Uses **Flannel CNI** (VXLAN, UDP 8472). Calico configs in `calico/` are archived reference material only.
+K8s Nix modules live in `../kubernetes/modules/` (easykubenix, 21 .nix files).
 
 ## Structure
 ```
@@ -13,7 +14,7 @@ kubernetes-manifests/
 ├── ai-inference/        # AI workloads (22 files)
 ├── ai-coding-tools/     # Development tools (22 files)
 ├── monitoring/          # Prometheus/Grafana (16 files)
-├── calico/              # CNI configs (17 files)
+├── calico/              # Archived Calico CNI reference configs (not active)
 ├── ingress/             # Ingress controllers (16 files)
 ├── spacebot/            # Discord bot (14 files)
 ├── pod-disruption-budgets/  # PDBs (18 files)
@@ -28,7 +29,7 @@ kubernetes-manifests/
 | Deploy AI workload | `ai-inference/` |
 | Configure mining | `mining/` |
 | Set up monitoring | `monitoring/` |
-| Configure CNI | `calico/` |
+| View archived CNI configs | `calico/` |
 | Add ingress rule | `ingress/` |
 | Block :latest tags | `security/deny-latest-tag.yaml` |
 
@@ -49,7 +50,7 @@ kubernetes-manifests/
 | **nexus** | 46GB | DEFAULT for all workloads |
 | **zephyr** | 31GB | Infrastructure + mining ONLY |
 | **forge** | 16GB | Mining + GPU compute |
-| **sentry** | 8GB | Monitoring only |
+| **sentry** | 31GB | Monitoring + Vulkan AI inference |
 
 ### Scheduling Pattern
 ```yaml
@@ -78,8 +79,8 @@ spec:
 - `ai-inference` → AI workloads
 - `monitoring` → Prometheus stack
 - `mining` → GPU miners
-- `calico-system` → CNI components
+- `calico-system` → Archived Calico configs (not active, Flannel is the CNI)
 
 ## Secret References
-- Agenix-encrypted secrets in `/etc/nixos/secrets/` (41 .age files)
+- Agenix-encrypted secrets in `/etc/nixos/secrets/` (42 .age files)
 - K8s secrets reference same values via env vars

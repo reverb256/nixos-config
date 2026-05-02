@@ -13,7 +13,7 @@ Replace all Z.AI-dependent AI routing with a fully free stack: local models + NV
 | Server | Endpoint | Model | GPU | Status |
 |--------|----------|-------|-----|--------|
 | Zephyr 3060 Ti | :1236 | Qwen3.5-9B-Q4_K_M | 8GB VRAM | Running |
-| Sentry RX 5600 XT | :1235 | Qwen3.5-4B-Q4_K_M | 8GB VRAM (Vulkan) | Running |
+| Sentry RX 5600 XT | :1235 | Qwen3.5-4B-Q4_K_M | 6GB VRAM (Vulkan) | Running |
 | Zephyr RTX 3090 | :1237 | Qwen3.6-35B-A3B | 24GB VRAM | **Running** (K8s deploy, 1/1) |
 
 ### Gateway (Healthy — ClusterIP 10.15.67.242)

@@ -19,7 +19,7 @@
 # activity on the 3090 and shifts gpu-miner-zephyr to the 3060 Ti.
 #
 # Sentry:
-#   AMD RX 5600 XT (8GB, Vulkan/RADV, gfx1010) → 4B model
+#   AMD RX 5600 XT (6GB, Vulkan/RADV, gfx1010) → 4B model
 {
   pkgs,
   pkgsWithOverlay,
@@ -288,13 +288,14 @@ in {
                   ''
                     export LD_LIBRARY_PATH=/run/opengl-driver/lib:/nix/store:/run/current-system/sw/lib
                     export PYTHONPATH=/data/projects/own/turboquant
-                    export HOME=/home/j_kro
+                    export HOME=/tmp
                     export USER=j_kro
                     export VLLM_CACHE_ROOT=/tmp/vllm-cache
                     export TORCHINDUCTOR_CACHE_DIR=/tmp/torch-cache
+                    export TRITON_CACHE_DIR=/tmp/triton-cache
                     export TRANSFORMERS_CACHE=/tmp/hf-cache
                     export HF_HOME=/tmp/hf-cache
-                    mkdir -p /tmp/vllm-cache /tmp/torch-cache /tmp/hf-cache
+                    /nix/store/*coreutils*/bin/mkdir -p /tmp/vllm-cache /tmp/torch-cache /tmp/triton-cache /tmp/hf-cache 2>/dev/null || true
                     exec /home/j_kro/vllm-env/bin/python3 /home/j_kro/vllm-start-tq.sh
                   ''
                 ];
