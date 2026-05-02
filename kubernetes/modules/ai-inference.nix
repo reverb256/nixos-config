@@ -9,7 +9,7 @@
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
 
   # AI Inference Gateway — pre-built container image (loaded into containerd on target node)
-  gatewayImage = "docker.io/library/ai-inference-gateway:2.4.6";
+  gatewayImage = "docker.io/library/ai-inference-gateway:2.4.8";
 
   # Managed-by labels for easykubenix
   managed = {
@@ -512,10 +512,10 @@ in {
                   SECONDARY_BACKEND_MODEL.valueFrom.configMapKeyRef = {
                     name = "ai-inference-gateway-config";
                     key = "SECONDARY_BACKEND_MODEL";
+                  };
                   DISCOVERY_BACKENDS.valueFrom.configMapKeyRef = {
                     name = "ai-inference-gateway-config";
                     key = "DISCOVERY_BACKENDS";
-                  };
                   };
                   SSL_CERT_FILE.value = "/etc/ssl/certs/ca-bundle.crt";
                   REQUESTS_CA_BUNDLE.value = "/etc/ssl/certs/ca-bundle.crt";

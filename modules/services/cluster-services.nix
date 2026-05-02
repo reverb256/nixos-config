@@ -6,6 +6,7 @@
 }: let
   cluster = config.networking.cluster;
   cfg = config.services.cluster-services;
+  authCfg = config.services.central-auth;
   inherit
     (lib)
     mkEnableOption
@@ -14,22 +15,59 @@
     mkIf
     mapAttrsToList
     concatStringsSep
+    optionalString
     ;
 
-  # Build Caddy virtualHost blocks from the service registry
-  buildCaddyBlocks = services:
-    concatStringsSep "\n" (
-      mapAttrsToList (_name: svc: ''
-        https://${svc.domain} {
-          tls ${cfg.tlsCert} ${cfg.tlsKey}
-          ${lib.optionalString (svc.compress or true) "encode zstd gzip"}
-          reverse_proxy ${svc.backend}
-        }
-      '')
-      services
-    );
+  # Build a public (no auth) Caddy virtualHost block
+  mkPublicBlock = svc: ''
+    https://${svc.domain} {
+      tls ${cfg.tlsCert} ${cfg.tlsKey}
+      ${optionalString (svc.compress or true) "encode zstd gzip"}
+      reverse_proxy ${svc.backend}
+    }
+  '';
 
-  # Build the full Caddyfile from registry + extra preamble
+  # Build a protected Caddy virtualHost block with forward_auth
+  # Uses the expanded form from Caddy docs: reverse_proxy with handle_response
+  mkProtectedBlock = svc: ''
+    https://${svc.domain} {
+      tls ${cfg.tlsCert} ${cfg.tlsKey}
+      ${optionalString (svc.compress or true) "encode zstd gzip"}
+
+      handle /oauth2/* {
+        reverse_proxy 127.0.0.1:${toString authCfg.port}
+      }
+
+      handle {
+        reverse_proxy 127.0.0.1:${toString authCfg.port} {
+          method GET
+          rewrite /oauth2/auth
+
+          header_up X-Forwarded-Host {host}
+          header_up X-Forwarded-Method {method}
+          header_up X-Forwarded-Proto {scheme}
+          header_up X-Forwarded-Uri {uri}
+
+          @auth_ok status 2xx
+          handle_response @auth_ok {
+            request_header X-Auth-Request-User {rp.header.X-Auth-Request-User}
+            request_header X-Auth-Request-Email {rp.header.X-Auth-Request-Email}
+            request_header X-Auth-Request-Preferred-Username {rp.header.X-Auth-Request-Preferred-Username}
+            request_header X-Auth-Request-Access-Token {rp.header.X-Auth-Request-Access-Token}
+
+            reverse_proxy ${svc.backend}
+          }
+        }
+      }
+    }
+  '';
+
+  # Route each service to the correct block builder
+  buildCaddyBlock = _name: svc:
+    if svc.protected or false
+    then mkProtectedBlock svc
+    else mkPublicBlock svc;
+
   buildCaddyfile = services: let
     preamble = ''
       {
@@ -37,11 +75,10 @@
         default_sni cluster.local
       }
     '';
-    blocks = buildCaddyBlocks services;
+    blocks = concatStringsSep "\n" (mapAttrsToList buildCaddyBlock services);
   in
     preamble + "\n" + blocks;
 
-  # Build the svc CLI tool
   buildSvcScript = services:
     pkgs.writeShellScriptBin "svc" ''
       set -euo pipefail
@@ -49,9 +86,9 @@
       echo ""
       ${concatStringsSep "\n" (
         mapAttrsToList (_name: svc: ''
-          echo "  https://${svc.domain} -> ${svc.backend}"
-        '')
-        services
+          proto=$(${lib.getExe pkgs.gnugrep} -q "protected" <<< "${optionalString (svc.protected or false) "protected"}" && echo "🔒" || echo "  ")
+          echo "  $proto https://${svc.domain} -> ${svc.backend}"
+        '') services
       )}
       echo ""
       echo "Total: ${toString (builtins.length (builtins.attrNames services))}"
@@ -97,6 +134,12 @@ in {
               default = true;
               description = "Enable zstd+gzip compression";
             };
+
+            protected = mkOption {
+              type = types.bool;
+              default = false;
+              description = "Require SSO authentication via central-auth";
+            };
           };
         }
       );
@@ -106,13 +149,11 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # Generate Caddy config from registry
     services.caddy = {
       enable = true;
       configFile = pkgs.writeText "Caddyfile" (buildCaddyfile cfg.services);
     };
 
-    # svc CLI tool
     environment.systemPackages = [
       (buildSvcScript cfg.services)
     ];

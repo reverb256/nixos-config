@@ -28,6 +28,47 @@
 
 **Note:** ClusterIP unreachable from host (kube-proxy in container, no iptables DNAT). Fixed by routing 10.0.0.0/12 via Flannel gateway + NodePort for Caddy routes.
 
+
+---
+
+## Central SSO Authentication
+
+### Architecture
+
+Centralized OAuth2 Proxy (oauth2-proxy v7.15.2) on zephyr + nexus, backed by Casdoor OIDC at auth.lan.
+All protected services use Caddy `forward_auth` to enforce authentication.
+
+### Service Classification
+
+| Type | Services | Expected Status |
+|------|----------|-----------------|
+| Public (no auth) | searxng.lan, ai-inference.lan | 200 |
+| Protected (SSO) | haven.lan, openwebui.lan, kagent.lan, grafana.lan, mission-control.lan | 401 → login redirect |
+| Auth endpoint | auth.lan (Casdoor) | 200 |
+
+### Routing
+
+- All `.lan` services resolve to VIP 10.1.1.100 (keepalived MASTER on zephyr)
+- **Zephyr Caddy** (`caddy-routes.nix`): mkAuthRoute for protected, mkRoute for public
+- **Nexus Caddy** (`cluster-services.nix`): `protected = true` flag per service
+- Both Caddys proxy auth checks to local oauth2-proxy on port 4180
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `modules/services/central-auth.nix` | oauth2-proxy NixOS module (runs on zephyr + nexus) |
+| `hosts/zephyr/caddy-routes.nix` | Zephyr Caddy route definitions |
+| `modules/services/cluster-services.nix` | Nexus Caddy + service registry |
+| `modules/network/cluster-dns.nix` | Unbound DNS with .lan local-zone |
+
+### Cleanup Done (2026-05-02)
+
+- Removed oauth2-proxy sidecars from ALL K8s pods (haven, openwebui, kagent-ui, mission-control, llama-server-sentry, llama-server-zephyr-3090-moe)
+- Deleted 8 orphaned K8s Ingress resources (referenced non-existent `caddy` IngressClass)
+- Removed stale `llama.zephyr.lan` Caddy route
+- Fixed unbound `local-zone "lan." static` declaration (was missing from generated config)
+
 ---
 
 ## MCP Infrastructure — 2026-05-01
@@ -62,8 +103,8 @@
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Casdoor SSO | Running | 4 MCP servers registered, tool sync failing (stdio servers need HTTP proxy) |
-| mcp-gateway-bridge | Broken | ClusterIP routing issue, needs NodePort |
+| Casdoor SSO | Running | Central SSO operational, OIDC auth for all protected services |
+| mcp-gateway-bridge | Not deployed | Superseded by direct NixOS Caddy routes |
 | mcp-server-registry.nix | Partial | 13 servers defined, not generating downstream configs |
 | nixkube CSI | Running | nix-node DaemonSet on all 4 nodes |
 | RemoteMCPServer CRD | Installed | 0 instances |
@@ -129,4 +170,4 @@
 
 ---
 
-**Last Updated:** 2026-05-01
+**Last Updated:** 2026-05-02

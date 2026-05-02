@@ -78,6 +78,10 @@ in {
           tls-cert-bundle = "/etc/ssl/certs/ca-bundle.crt";
 
           # Include local DNS records
+          local-zone = [
+            "lan. static"
+            "cluster.local. transparent"
+          ];
           include = ["/etc/unbound/local-dns.conf"];
 
           # Don't query localhost (prevent loops)
