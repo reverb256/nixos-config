@@ -108,7 +108,7 @@ in {
     };
 
     services.caddy-module.${cfg.hostName} = {
-      reverseProxy = "localhost:${toString cfg.port}";
+      reverseProxy = "10.1.1.120:32110";
     };
 
     networking.firewall.interfaces."tailscale0".allowedTCPPorts = [cfg.port];
