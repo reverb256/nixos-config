@@ -132,7 +132,7 @@ in
     };
 
     # ── NetworkPolicy ───────────────────────────────────────────────────
-    # Allow ingress only from Caddy (zephyr) and within ai-inference namespace
+    # Allow ingress from AI gateway (ai-inference namespace) and monitoring
     privacy-filter.NetworkPolicy.privacy-filter-allow = {
       spec = {
         podSelector.matchLabels.app = "privacy-filter";
@@ -140,10 +140,8 @@ in
         ingress = [
           {
             from = [
-              {
-                namespaceSelector.matchLabels.name = "kube-system";
-                podSelector.matchLabels.k8s-app = "coredns";
-              }
+              { namespaceSelector.matchLabels.name = "ai-inference"; }
+              { namespaceSelector.matchLabels.name = "ingress-system"; }
             ];
           }
         ];
