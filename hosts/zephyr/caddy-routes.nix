@@ -19,49 +19,32 @@
     }
   '';
 
-  # Protected routes — uses the expanded forward_auth form from Caddy docs.
-  # Key: reverse_proxy with handle_response that only passes on 2xx.
-  # Non-2xx auth responses are returned to client and execution stops.
+  # Protected routes — Caddy forward_auth + oauth2-proxy (Casdoor SSO).
+  # Pattern from official oauth2-proxy/Caddy integration docs.
+  # forward_auth sends GET /oauth2/auth to oauth2-proxy:
+  #   - 2xx: copies auth headers, continues to reverse_proxy
+  #   - 401: copies response (401) to client → browser sees redirect
   mkAuthRoute = hosts: backend: ''
     ${hosts} {
       ${tls}
       encode zstd gzip
 
-      # OAuth2 callback endpoint — always proxy to auth service
+      # OAuth2 callback — always proxy to oauth2-proxy
       handle /oauth2/* {
-        reverse_proxy localhost:4180
+        reverse_proxy localhost:4180 {
+          header_up X-Real-IP {remote_host}
+          header_up X-Forwarded-Uri {uri}
+        }
       }
 
       # Everything else — auth check, then backend on success
       handle {
-        reverse_proxy localhost:4180 {
-          method GET
-          rewrite /oauth2/auth
-
-          header_up X-Forwarded-Host {host}
-          header_up X-Forwarded-Method {method}
-          header_up X-Forwarded-Proto {scheme}
-          header_up X-Forwarded-Uri {uri}
-
-          # On successful auth (2xx), copy auth headers and continue
-          @good status 2xx
-          handle_response @good {
-            request_header X-Auth-Request-User {rp.header.X-Auth-Request-User}
-            request_header X-Auth-Request-Email {rp.header.X-Auth-Request-Email}
-            request_header X-Auth-Request-Preferred-Username {rp.header.X-Auth-Request-Preferred-Username}
-            request_header X-Auth-Request-Access-Token {rp.header.X-Auth-Request-Access-Token}
-
-            reverse_proxy ${backend} {
-              ${proxyHeader}
-            }
-          }
-
-          # On auth failure (401), redirect to login
-          @unauth status 401
-          handle_response @unauth {
-            redir /oauth2/start?rd={scheme}://{host}{uri} 302
-          }
+        forward_auth localhost:4180 {
+          uri /oauth2/auth
+          copy_headers X-Auth-Request-User X-Auth-Request-Email X-Auth-Request-Preferred-Username X-Auth-Request-Access-Token
         }
+
+        reverse_proxy ${backend}
       }
     }
   '';
@@ -93,4 +76,6 @@ in
   mkAuthRoute "llama.zephyr.lan" "http://127.0.0.1:1237" +
   # Llama Sentry (Sentry host IP)
   mkAuthRoute "llama.sentry.lan" "http://10.1.1.140:1235" +
+  # Vaultwarden (nexus NodePort 32110)
+  mkAuthRoute "vaultwarden.lan" "http://10.1.1.120:32110" +
   ""
