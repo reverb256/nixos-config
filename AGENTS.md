@@ -264,6 +264,14 @@ Unbound on all nodes with `local-zone "lan." static`.
 
 Do NOT deploy oauth2-proxy as K8s sidecar containers. Use the `central-auth` NixOS service instead.
 Sidecars were removed 2026-05-02 from: haven, openwebui, kagent-ui, mission-control, llama-server-sentry, llama-server-zephyr-3090-moe.
+Auth is handled exclusively by Caddy `forward_auth` → local `central-auth` (oauth2-proxy) on zephyr + nexus.
+
+### Grafana Deployment
+
+Grafana runs **only as K8s** (`monitoring` namespace, sentry, NodePort 32102).
+The NixOS `services.monitoring.grafana` module (`modules/services/monitoring/grafana-v2.nix`) is **disabled on all hosts** — it's dead code.
+Grafana OAuth uses Casdoor via `GF_AUTH_GENERIC_OAUTH` env vars + Caddy `forward_auth` as a second layer.
+Secrets populated by `kubectl-apply-k8s-secrets` from agenix (`monitoring/grafana-oidc-secret`, `monitoring/grafana-admin-secret`).
 
 ## MCP Infrastructure
 
