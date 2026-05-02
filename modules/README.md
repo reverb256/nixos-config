@@ -408,14 +408,6 @@ Hardware-specific configurations.
 |--------|-----------|-------------|
 | `nvidia-common.nix` | - | NVIDIA driver base config |
 
-### Mining (`mining/`)
-
-Cryptocurrency mining configuration.
-
-| Module | Namespace | Description |
-|--------|-----------|-------------|
-| `mining.nix` | `services.mining` | Mining service aggregator |
-
 ### Multimedia (`multimedia/`)
 
 Media codec and format support.

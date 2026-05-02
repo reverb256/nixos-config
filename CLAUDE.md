@@ -1,5 +1,8 @@
 # NixOS Cluster - Claude Code Context
 
+> **⚠️ Cluster conventions, safety rules, deployment workflow, and code style are in `AGENTS.md`.**
+> This file covers NixOS basics, K8s troubleshooting, and infrastructure details NOT in AGENTS.md.
+
 ## ⚠️ CRITICAL: THIS IS NIXOS
 
 **This is NOT a typical Linux distribution.** This is **NixOS** - a purely declarative Linux distribution where the entire operating system configuration is defined in `/etc/nixos/` and rebuilt via `nixos-rebuild switch`.
@@ -25,41 +28,6 @@
 
 ---
 
-## WHAT
-NixOS flake-based 4-host Linux cluster (Zephyr, Nexus, Forge, Sentry) for AI inference, GPU computing, storage, and monitoring.
-
-**Tech stack**: NixOS flakes, Kubernetes v1.34.5, Colmena, Just, Serena tools
-
-**Current Branch**: `feature/brain-v2-embedding-first` (main: `main`)
-
----
-
-## PROJECT ARCHITECTURE
-
-**Non-system projects** have been extracted to standalone flakes in `/data/projects/own/`:
-
-| Project | Purpose | Flake Input |
-|---------|---------|-------------|
-| ai-inference-gateway | AI gateway service | `ai-gateway` |
-| compute-market | GPU time-slicing | `compute-market` |
-| caddy-ingress | Custom Caddy build | `caddy-ingress` |
-| gpu-proxy | Stratum mining proxy | `gpu-proxy` |
-| knowledge-fabric | Knowledge base | `knowledge-fabric` |
-| llama-cpp-turboquant | TurboQuant llama.cpp | (wired via overlay) |
-| mcp-registry | MCP server management | `mcp-registry` |
-| searxng-cluster | Self-hosted search | `searxng` (easykubenix, not extracted) |
-
-Each project has its own `flake.nix` with:
-- `packages.*` - Nix packages
-- `nixosModules` - Host-level modules (for services that MUST run on host)
-- `kubernetesModules` - K8s manifests (easykubenix)
-
-See `/data/projects/AGENTS.md` for full project inventory and status.
-
----
-
-## ⚠️ CRITICAL SAFETY RULES
-
 ### NixOS Declarative Model (MANDATORY)
 
 **ALL system changes MUST go through NixOS configuration:**
@@ -72,12 +40,6 @@ See `/data/projects/AGENTS.md` for full project inventory and status.
 | Create users | Edit `users.users.<name>` in config.nix | `useradd <name>` |
 | Configure system | Edit `/etc/nixos/modules/*.nix` | Edit `/etc/<files>` directly |
 | Apply changes | `nixos-rebuild switch` or `just deploy` | Direct system modifications |
-
-**Why This Matters:**
-- **Reproducibility:** Same config → same system every time
-- **Rollback:** Every rebuild creates a new generation (can boot into any previous one)
-- **Documentation:** Config is self-documenting (all state in one place)
-- **Safety:** `nixos-rebuild test` applies changes temporarily (can revert on reboot)
 
 ### Emergency Overrides (RARE)
 
@@ -95,160 +57,32 @@ systemctl restart kube-apiserver  # Restart control plane (temporary)
 
 ### NixOS Store (/nix vs /etc/nixos)
 
-**CRITICAL DISTINCTION:**
-
 | Path | Purpose | Mutable? | Managed By |
 |------|---------|----------|-----------|
 | `/etc/nixos/` | **NixOS configuration** (source code) | ✅ Yes | You (edit files) |
 | `/nix` or `/etc/nix` | **Nix store** (built packages) | ❌ No | Nix (immutable) |
-| `/etc/nixos/` | **Your system config** | ✅ Yes | Declarative |
 | `/nix/var/nix/profiles/system-*` | **System generations** | ❌ No | NixOS (read-only) |
 
-**Key Points:**
 - `/etc/nixos/` = Source code (like `/usr/src/linux`)
 - `/nix` = Binary store (like `/usr/bin` but immutable)
 - **NEVER** edit `/nix` directly (it's rebuilt from `/etc/nixos/`)
-- **ALWAYS** edit `/etc/nixos/` then run `nixos-rebuild switch`
-
-**Example:**
-```bash
-# ✅ CORRECT: Edit source, rebuild system
-vim /etc/nixos/modules/services/my-service.nix
-nixos-rebuild switch  # Builds new generation, activates it
-
-# ❌ WRONG: Try to edit Nix store
-vim /nix/store/...-my-service-.../bin/my-service  # Can't save (read-only filesystem)
-```
 
 ### NixOS Generations and Rollback
 
 **Every `nixos-rebuild switch` creates a new generation:**
 
 ```bash
-# View all generations
-nixos-rebuild list-generations
-
-# Sample output:
-# Generation 150 (Mar 25 10:00) → Current
-# Generation 149 (Mar 24 15:30) → Previous
-# Generation 148 (Mar 23 09:00) → Older
-
-# Rollback to previous generation
-nixos-rebuild rollback
-
-# Rollback to specific generation
-nixos-rebuild switch --profile /nix/var/nix/profiles/system-150-link
-
-# Delete old generations (cleanup)
-nix-collect-garbage -d
+nixos-rebuild list-generations        # View all generations
+nixos-rebuild rollback                # Rollback to previous generation
+nix-collect-garbage -d                # Delete old generations (cleanup)
 ```
 
-**Boot Menu:**
-- GRUB2 shows all generations (can boot into any previous one)
-- Useful for disaster recovery (if config breaks system)
+**Boot Menu:** GRUB2 shows all generations (can boot into any previous one). Useful for disaster recovery.
 
 ---
-
-## NixOS-Specific Conventions
-
-### Declarative System Configuration
-
-**ALL system state must be defined in NixOS modules:**
-
-```nix
-# ✅ CORRECT: Define service in NixOS module
-{ config, pkgs, ... }: {
-  services.my-service = {
-    enable = true;
-    settings.port = 8080;
-  };
-  systemd.services.my-service = {
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig.ExecStart = "${pkgs.my-package}/bin/my-service";
-  };
-}
-```
-
-**Then rebuild the system:**
-```bash
-nixos-rebuild switch  # Builds new generation, activates it, updates boot menu
-```
-
-**❌ WRONG: Imperative service management**
-```bash
-# DO NOT DO THIS - Changes won't survive reboot
-systemctl start my-service
-systemctl enable my-service
-# ❌ Breaks declarative model, can't be rolled back
-```
-
-### Package Management
-
-**✅ CORRECT: Declare packages in configuration**
-```nix
-# hosts/zephyr/configuration.nix
-{ config, pkgs, ... }: {
-  environment.systemPackages = with pkgs; [
-    vim
-    git
-    htop
-  ];
-}
-```
-
-**❌ WRONG: Imperative package installation**
-```bash
-# DO NOT DO THIS - Breaks reproducibility
-nix-env -iA nixos.vim
-nix-channel --update && nix-env -iA nixos.git
-# ❌ Package only installed for current user, not declarative
-```
-
-### Configuration Files
-
-**✅ CORRECT: Generate config files in NixOS**
-```nix
-{ config, pkgs, ... }: {
-  environment.etc."my-service/config.yaml".text = ''
-    port: 8080
-    debug: false
-  '';
-}
-```
-
-**❌ WRONG: Manually edit config files**
-```bash
-# DO NOT DO THIS - Changes will be overwritten on next rebuild
-vim /etc/my-service/config.yaml
-# ❌ File regenerated from NixOS config on every rebuild
-```
-
-### User Management
-
-**✅ CORRECT: Define users in NixOS**
-```nix
-{ config, pkgs, ... }: {
-  users.users.myuser = {
-    isNormalUser = true;
-    extraGroups = [ "wheel" "docker" ];
-  };
-}
-```
-
-**❌ WRONG: Imperative user creation**
-```bash
-# DO NOT DO THIS - User won't survive rebuild
-useradd myuser
-# ❌ Users are managed declaratively in NixOS
-```
-
----
-
-## CONVENTIONS
-
-### mkOptionDefault (MANDATORY for extensible options)
 
 ## COMMANDS
+
 ```bash
 just check             # Validate flake (quick, no build)
 just check-nfs         # Verify NFS mount health on all hosts
@@ -266,339 +100,6 @@ kubectl get pods --all-namespaces        # All pods
 kubectl get pv,pvc -A                    # Persistent volumes
 just cluster-status                      # Host + K8s status combined
 ```
-
----
-
-## PROJECT STRUCTURE
-
-**⚠️ CRITICAL:** All system configuration MUST be in `/etc/nixos/`. The entire OS is rebuilt from these files.
-
-```
-/etc/nixos/
-├── flake.nix              # Main flake (defines packages, devshells, NixOS configs)
-├── colmena.nix            # Multi-host deployment (NFS-based, no git push needed)
-├── justfile               # CI/CD commands (no sync needed - NFS mount)
-├── hosts/                 # Per-host configs (zephyr, nexus, forge, sentry)
-│   └── <hostname>/configuration.nix  # NixOS config for each host
-├── modules/               # Reusable modules (auto-imported via default.nix)
-│   ├── profiles/          # Hardware, role, network profiles
-│   ├── system/            # System-level modules (systemd, networking, etc.)
-│   ├── services/          # Background services (K8s, monitoring, etc.)
-│   └── compute-market/    # GPU resource marketplace
-├── kubernetes-manifests/  # K8s manifests for migrated services
-├── AGENTS.md              # Universal patterns for ALL agents
-├── CLAUDE.md              # This file
-└── skills/                # Agent skills
-```
-
-**🔴 FORBIDDEN PATHS (Never Edit):**
-- `/etc/nix` - Nix store (immutable, managed by Nix, contains all packages)
-- `/nix` - Alternative Nix store path (same as above)
-- Any imperative package installation locations
-
-**✅ CORRECT WORKFLOW:**
-1. Edit `/etc/nixos/modules/` or `/etc/nixos/hosts/<hostname>/configuration.nix`
-2. Test: `nixos-rebuild test` (applies to current host, can rollback)
-3. Commit: `git add` && `git commit`
-4. Deploy: `just deploy` (applies to all hosts via Colmena)
-```
-
-**Architecture**: All remote hosts mount `/run/nixos-shared` (NFS from Zephyr) - no config sync needed
-
----
-
-## NixOS-SPECIFIC CONVENTIONS
-
-### Declarative System Configuration
-
-**ALL system state must be defined in NixOS modules:**
-
-```nix
-# ✅ CORRECT: Define service in NixOS module
-{ config, pkgs, ... }: {
-  services.my-service = {
-    enable = true;
-    settings.port = 8080;
-  };
-  systemd.services.my-service = {
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig.ExecStart = "${pkgs.my-package}/bin/my-service";
-  };
-}
-```
-
-**Then rebuild the system:**
-```bash
-nixos-rebuild switch  # Builds new generation, activates it, updates boot menu
-```
-
-**❌ WRONG: Imperative service management**
-```bash
-# DO NOT DO THIS - Changes won't survive reboot
-systemctl start my-service
-systemctl enable my-service
-# ❌ Breaks declarative model, can't be rolled back
-```
-
-### Package Management
-
-**✅ CORRECT: Declare packages in configuration**
-```nix
-# hosts/zephyr/configuration.nix
-{ config, pkgs, ... }: {
-  environment.systemPackages = with pkgs; [
-    vim
-    git
-    htop
-  ];
-}
-```
-
-**❌ WRONG: Imperative package installation**
-```bash
-# DO NOT DO THIS - Breaks reproducibility
-nix-env -iA nixos.vim
-nix-channel --update && nix-env -iA nixos.git
-# ❌ Package only installed for current user, not declarative
-```
-
-### Configuration Files
-
-**✅ CORRECT: Generate config files in NixOS**
-```nix
-{ config, pkgs, ... }: {
-  environment.etc."my-service/config.yaml".text = ''
-    port: 8080
-    debug: false
-  '';
-}
-```
-
-**❌ WRONG: Manually edit config files**
-```bash
-# DO NOT DO THIS - Changes will be overwritten on next rebuild
-vim /etc/my-service/config.yaml
-# ❌ File regenerated from NixOS config on every rebuild
-```
-
-### User Management
-
-**✅ CORRECT: Define users in NixOS**
-```nix
-{ config, pkgs, ... }: {
-  users.users.myuser = {
-    isNormalUser = true;
-    extraGroups = [ "wheel" "docker" ];
-  };
-}
-```
-
-**❌ WRONG: Imperative user creation**
-```bash
-# DO NOT DO THIS - User won't survive rebuild
-useradd myuser
-# ❌ Users are managed declaratively in NixOS
-```
-
----
-
-## CONVENTIONS
-
-> **Full convention reference:** `skills/cluster-conventions/SKILL.md` — 12 codified patterns.
-> Quick reference table in `AGENTS.md` → "Codified Conventions" section.
-
-### Critical Safety Rules
-- **IMPORTANT**: Use `lib.mkOptionDefault` in shared modules (NEVER direct assignment)
-  - Direct assignment breaks SSH on all nodes
-  - See @AGENTS.md Critical Safety Constraints for examples
-
-- **CRITICAL**: KUBERNETES POD EXPLOSION PREVENTION
-  - **NEVER apply nodeSelector without checking target node capacity FIRST**
-    ```bash
-    # BEFORE any nodeSelector change:
-    kubectl top nodes
-    kubectl describe node <target> | grep -A 5 "Allocated resources"
-    kubectl get pods -n <namespace> --no-headers | wc -l
-    ```
-  - **ALWAYS check replica set count before deployment changes**
-
-- **CRITICAL: WORKLOAD SCHEDULING - ZEPHYR OOM PREVENTION**
-  - **ZEPHYR HAS CONSTANT OOM EXHAUSTION (31GB RAM, control plane + AI + gaming)**
-  - **DEFAULT ALL NON-INFRASTRUCTURE, NON-MINING WORKLOADS TO NEXUS (46GB RAM)**
-  - **Valid scheduling targets:**
-    - **Nexus** (46GB RAM): Default for ALL workloads except:
-      - Infrastructure (control plane, Calico, storage, monitoring)
-      - Mining (must be on nodes with GPUs: forge, nexus, zephyr)
-    - **Zephyr** (31GB RAM): ONLY infrastructure + mining
-      - Control plane: kube-apiserver, etcd, kube-scheduler, kube-controller-manager
-      - CNI: Calico components
-      - Mining: gpu-miner-zephyr, xmrig-zephyr (RTX 3090 GPU)
-      - NO OTHER WORKLOADS
-    - **Forge** (15GB RAM): GPU mining only (2x NVIDIA + 2x AMD)
-    - **Sentry** (8GB RAM): Monitoring, logging
-  - **NEVER schedule stateless services, AI workloads, or applications to zephyr**
-  - **Use nodeSelector or nodeAffinity to enforce nexus scheduling:**
-    ```yaml
-    spec:
-      template:
-        spec:
-          nodeName: nexus  # Force scheduling to nexus
-          # OR use affinity:
-          nodeAffinity:
-            requiredDuringSchedulingIgnoredDuringExecution:
-              nodeSelectorTerms:
-              - matchExpressions:
-                - key: kubernetes.io/hostname
-                  operator: In
-                  values:
-                  - nexus
-    ```
-    ```bash
-    # IF > 20 replica sets exist, CLEAN UP FIRST
-    kubectl get replicasets -A --no-headers | wc -l
-    kubectl get replicasets -A -o json | jq -r '.items[] | select(.status.replicas==0) | "\(.metadata.namespace)/\(.metadata.name)"' | xargs -I {} kubectl delete replicetset {}
-    ```
-  - **NEVER scale deployments without checking current state**
-    ```bash
-    # Check BEFORE scaling:
-    kubectl get deploy -A -o jsonpath='{range .items[?(@.spec.replicas>3)]}{.metadata.namespace}{"\t"}{.metadata.name}{"\t"}{.spec.replicas}{"\n"}{end}'
-    ```
-  - **USE `--replicas=0` BEFORE deleting deployments**
-    ```bash
-    # CORRECT order:
-    kubectl scale deploy <name> --replicas=0
-    kubectl delete deploy <name>
-    ```
-  - **NEVER use `--all` flags with kubectl delete/scale**
-    - Can cascade out of control creating hundreds of pods
-    - Be SPECIFIC: `kubectl delete pods -n <namespace> -l <label>`
-  - **Node scheduling priority: NEXUS > FORGE > SENTRY > ZEPHYR**
-    - Zephyr has EXTREME RAM exhaustion at all times
-    - **ALWAYS** use nodeSelector to force non-critical workloads to Nexus
-    - Only infrastructure on Zephyr: calico-node, nix-node, nvidia-plugin, csi-node-driver
-  - **Set revisionHistoryLimit: 2** (not default 10) on ALL deployments
-    - Prevents accumulation of old replica sets
-  - **Set maxSurge: 0** in RollingUpdate (not default 1)
-    - Prevents creating extra pods during updates
-  - **See**: `kubernetes-manifests/PREVENT_POD_EXPLOSION.md` for complete rules
-
-- **CRITICAL**: NEVER background nixos-rebuild or similar long-running commands
-  - Commands like `nixos-rebuild test`, `colmena apply` MUST show real-time output
-  - User needs to see build progress, errors, and ETA
-  - Backgrounding hides output and causes confusion
-
-- **CRITICAL**: NEVER use Volcano scheduler for general workloads
-  - Volcano is for batch/HPC/AI jobs with explicit PodGroup configuration
-  - Use `default-scheduler` for stateless services (Deployments, StatefulSets)
-  - Volcano requires RBAC setup for PodGroups or all deployments fail
-  - See: `docs/kubernetes/volcano-scheduler-incident-2026-03-22.md`
-
-- **CRITICAL**: Control plane restart order (if absolutely necessary)
-  1. kube-apiserver (last to stop, first to start)
-  2. kube-scheduler
-  3. kube-controller-manager
-  4. kubelet
-  5. **NEVER restart etcd** unless absolutely necessary (breaks cluster)
-  - etcd SIGTERM → kube-apiserver hangs → cascade failure
-
-### Code Style
-- 2-space indentation, trailing semicolons
-- kebab-case for files and modules
-- Line length 80-100 chars (soft limit 120)
-
-### Kubernetes Naming Conventions (MANDATORY)
-
-**✅ CORRECT: Use DNS names for service discovery**
-```yaml
-# Kubernetes internal services
-service-name.namespace.svc.cluster.local  # Full FQDN
-service-name.namespace.svc.cluster        # Short form
-service-name                               # Same namespace only
-
-# External services (via Ingress or ExternalName)
-search.reverb256.ca                        # Caddy Ingress
-ai-inference-gateway.ai-inference.svc.cluster.local
-```
-
-**❌ WRONG: Hardcoded IP addresses**
-```yaml
-# DO NOT DO THIS - Breaks when IPs change
-http://10.0.0.192:8080                      # ClusterIP (not accessible from host)
-http://10.1.1.100:30880                      # VIP (should use DNS instead)
-```
-
-**Why This Matters:**
-- **Maintainability:** IPs change on redeployment, DNS names are stable
-- **Portability:** Configs work across environments (dev/staging/prod)
-- **Self-Documenting:** DNS names describe the service (e.g., `ai-inference-gateway`)
-- **Service Discovery:** Kubernetes DNS automatically tracks service endpoints
-- **HA Support:** DNS can resolve to multiple endpoints (VIP, round-robin)
-
-**Examples:**
-```nix
-# ✅ CORRECT: Use service DNS in NixOS configs
-services.my-service = {
-  settings.apiUrl = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080";
-};
-
-# ❌ WRONG: Hardcoded ClusterIP
-services.my-service = {
-  settings.apiUrl = "http://10.0.0.192:8080";  # Breaks on service restart
-};
-```
-
-**Kubernetes DNS Patterns:**
-| Pattern | Resolves To | Example |
-|---------|-------------|---------|
-| `<service>` | Same namespace | `ai-inference-gateway` |
-| `<service>.<namespace>` | Cross-namespace | `ai-inference-gateway.ai-inference` |
-| `<service>.<namespace>.svc.cluster.local` | Fully qualified | `ai-inference-gateway.ai-inference.svc.cluster.local` |
-| `<pod-ip>.<namespace>.pod.cluster.local` | Direct pod access | `10-244-98-6.ai-inference.pod.cluster.local` |
-
----
-
-## WORKFLOW
-
-### Standard Deployment
-1. Make changes on Zephyr (source of truth)
-2. `nix flake check` (validate options, syntax)
-3. `git add` new files (Nix only packages git-tracked files!)
-4. `git commit`
-5. `just deploy` (applies to all hosts via Colmena, uses NFS mount)
-
-### Pre-commit Validation
-**Always run** `nix flake check` to catch non-existent options before committing.
-- Catches option typos (e.g., Home Manager incidents)
-- Fast validation (<5 seconds)
-- Prevents broken deployments
-
-### Testing Checklist (NixOS-Specific)
-| File Changed | Test On |
-|--------------|---------|
-| `modules/networking/*` | zephyr AND nexus |
-| `modules/system/ssh.nix` | ALL 4 nodes |
-| `modules/system/users.nix` | ALL 4 nodes |
-| `modules/default.nix` | Entire cluster |
-
-### Stop Immediately If
-- SSH breaks on any node → Document incident, wait for human
-- Multiple nodes affected → STOP ALL WORK
-- `nix flake check` fails → Fix errors before committing
-
----
-
-## SERENA TOOLS
-
-**Use Serena for:**
-- Understanding module structure (`get_symbols_overview()`)
-- Finding symbol definitions (`find_symbol()`)
-- Tracing references (`find_referencing_symbols()`)
-- Multi-step refactoring or cross-file analysis
-
-**Use standard tools for:**
-- Simple file reading (`Read`)
-- Basic pattern matching (`Grep`)
-- File discovery (`Glob`)
 
 ---
 
@@ -689,7 +190,7 @@ resources:
 ```yaml
 spec:
   replicas: 1                     # ALWAYS set explicit count
-  revisionHistoryLimit: 3         # Limit old replica sets
+  revisionHistoryLimit: 2         # Limit old replica sets
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -712,37 +213,13 @@ kubectl apply -f kubernetes-manifests/glitchtip/
 kubectl apply -f kubernetes-manifests/ai-inference/
 ```
 
----
-
-## REFERENCE DOCUMENTS
-
-### Must-Read (First Time)
-**@AGENTS.md** — Universal patterns for ALL AI agents
-- Quick start commands
-- Critical safety rules (mkOptionDefault)
-- Multi-host deployment patterns
-- Kubernetes workflows
-
-**@INFRASTRUCTURE-AUDIT.md** — Live cluster state
-- Current issues and recent changes
-
-### Architecture & Decisions
-**@ROADMAP.md** — Kubernetes migration plan
-- Current status and phases
-
-### Incident Documentation
-**kubernetes-manifests/PREVENT_POD_EXPLOSION.md** — Pod explosion prevention rules
-- Revision history limits, maxSurge settings, replica management
-
-### Services & Features
-**kubernetes-manifests/calico/archive/FINAL_INTEGRATION_TEST_REPORT.md** — Calico CNI integration
-**kubernetes-manifests/NVIDIA-DEVICE-PLUGIN-FIX-PLAN.md** — NVIDIA device plugin fixes
-
-### Agent Configuration
-**skills/nixos-best-practices/AGENTS.md** — NixOS overlay/Home Manager patterns
-
-### Documentation Index
-All documentation files are in the repo root and `kubernetes-manifests/` subdirectories.
+**6. Control plane restart order (if absolutely necessary)**
+1. kube-apiserver (last to stop, first to start)
+2. kube-scheduler
+3. kube-controller-manager
+4. kubelet
+5. **NEVER restart etcd** unless absolutely necessary (breaks cluster)
+   - etcd SIGTERM → kube-apiserver hangs → cascade failure
 
 ---
 
@@ -766,34 +243,21 @@ All documentation files are in the repo root and `kubernetes-manifests/` subdire
 - `/rag/search` — Qdrant semantic search
 - `/v1/embeddings` — BGE-M3 embedding generation
 
-**RRF Middleware Configuration:**
-```yaml
-MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED: "true"
-MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED: "true"
-MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL: "http://searxng.search.svc.cluster.local:8080"
-MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K: "60"
-MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED: "true"
-MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED: "true"
-QDRANT_URL: "http://qdrant.ai-inference.svc.cluster.local:6333"
-```
-
 **Architecture:** Bus-style service mesh with AI Gateway as central orchestrator
-- **Qdrant** — Vector database for semantic search (10.5.93.32:6333)
-- **SearXNG** — Web search for current information (10.4.98.141:8080)
+- **Qdrant** — Vector database for semantic search
+- **SearXNG** — Web search for current information
 - **QueryIntent routing** — Automatic query classification
 - **CrossEncoder reranking** — Result quality optimization
 
-**Documentation:** See `SOVEREIGN-SERVICE-MESH-STATUS.md` for complete details.
+**Documentation:** See `docs/SOVEREIGN-SERVICE-MESH-STATUS.md` for complete details.
 
 ### Multi-GPU Model Distribution
-
-The cluster runs multiple llama-server instances across GPUs for different model sizes:
 
 | GPU Location | GPU | VRAM | Model | Port | Status |
 |--------------|-----|------|-------|------|--------|
 | **Zephyr RTX 3090** | CUDA 1 | 24GB | Qwen3.6-35B-A3B (MoE) | 1237 | ✅ Systemd |
 | **Zephyr RTX 3060 Ti** | CUDA 0 | 8GB | Qwen3.5-2B-AWQ (vLLM+TQ) | 8040 | ✅ Systemd |
-| **Sentry AMD RX 5600 XT** | ROCm | 8GB | Qwen3.5-4B-Q4_K_M | 1235 | ✅ K8s |
+| **Sentry AMD RX 5600 XT** | Vulkan | 6GB | Qwen3.5-4B-Q4_K_M | 1235 | ✅ K8s |
 
 **Note:** Zephyr uses systemd llama-server services instead of K8s for better GPU isolation and gaming integration.
 
@@ -803,53 +267,6 @@ The cluster runs multiple llama-server instances across GPUs for different model
 - Custom optimizations for flash attention, KV cache compression
 - IQ4_NL and turbo4 cache types for reduced VRAM usage
 - DeepSeek reasoning format support
-
-**ROCm Build:** `pkgsWithOverlay.llama-cpp-rocm`
-- AMD GPU support for Sentry (RX 5600 XT)
-- ROCm-specific optimizations
-
----
-
-## MCP INFRASTRUCTURE
-
-### In-Cluster MCP Servers
-
-| Server | Type | Namespace | Transport | Status |
-|--------|------|-----------|-----------|--------|
-| kubernetes-mcp | Deployment (nexus) | infra | SSE :8080 | Running |
-| nixos-cluster-mcp | DaemonSet (all nodes) | infra | SSE :8081 | Running |
-
-**Access from host:** ClusterIP unreachable (kube-proxy in container). Use NodePort `10.1.1.110:30880` or `kubectl port-forward`.
-
-### MCP Registry
-
-**Source of truth:** `modules/services/mcp-server-registry.nix` — 13 servers defined.
-**Config generation:** `modules/development/ai-coding-tools/mcp-defs.nix` — generates Claude Code configs.
-
-### MCP Packages
-
-| Package | Flake output | Purpose |
-|---------|-------------|---------|
-| `kubernetes-mcp-server` | `.#kubernetes-mcp-server` | Go binary, K8s CRUD + Helm |
-| `nixos-cluster-mcp` | `.#nixos-cluster-mcp` | Python FastMCP, 6 cluster tools |
-
-### nixos-cluster-mcp Tools
-
-| Tool | Purpose |
-|------|---------|
-| `cluster_status` | Nodes, pods summary, resource usage |
-| `check_node_capacity` | CPU, memory, GPU capacity per node |
-| `safe_scale` | Scale deployment with explosion prevention |
-| `debug_pod` | Describe + events + logs for failing pod |
-| `deploy_host` | Deploy NixOS config to specific host |
-| `check_nix_store` | Verify store path exists on target node |
-
-### Known Issues
-
-- 7 of 18 Claude Code MCP servers broken — see `docs/plans/2026-05-01-mcp-system-plan.md`
-- DaemonSet uses hardcoded nix store path — needs nixkube CSI conversion
-- Casdoor SSO operational — central OAuth2 proxy (oauth2-proxy v7.15.2) on zephyr+nexus
-- Full plan: `docs/plans/2026-05-01-mcp-system-plan.md`
 
 ---
 
@@ -866,99 +283,43 @@ All software on this cluster has supply chain protections enforcing a 7-day cool
 | **bun** | `~/.bunfig.toml` → `minimumReleaseAge = "7d"` | `services.supply-chain-cooldowns` |
 | **uv (Python)** | `~/.config/uv/uv.toml` → `exclude-newer = "7 days"` | `services.supply-chain-cooldowns` |
 
-**Module**: `modules/services/supply-chain-cooldowns.nix` — enable with `services.supply-chain-cooldowns.enable = true`
-
 ### Container Image Security
 
-- **Image policy** (`/etc/containers/policy.json`): Rejects unsigned images by default; allows docker.io/library, ghcr.io, quay.io, localhost
-- **No `:latest` tags**: All NixOS-managed container images pinned to specific versions (vaultwarden `1.35.4`, glitchtip `:6`, postgres `:16-alpine`, redis `:7-alpine`)
-- **Trivy scanning**: Weekly vulnerability scan of all pulled images (`services.container-scanning.enable = true`)
-- **K8s admission policy**: `kubernetes-manifests/security/deny-latest-tag.yaml` blocks `:latest` tags cluster-wide
+- **Image policy**: Rejects unsigned images by default; allows docker.io/library, ghcr.io, quay.io, localhost
+- **No `:latest` tags**: All images pinned to specific versions
+- **Trivy scanning**: Weekly vulnerability scan (`services.container-scanning.enable = true`)
+- **K8s admission policy**: `kubernetes-manifests/security/deny-latest-tag.yaml` blocks `:latest` tags
 
 ### Flake Input Age Validation
 
-`modules/services/auto-update.nix` validates that nixpkgs inputs are older than 7 days before auto-updating, preventing unreviewed changes from reaching the cluster.
+`modules/services/auto-update.nix` validates that nixpkgs inputs are older than 7 days before auto-updating.
 
 ### GitHub Actions Pinned to Commit SHAs
 
-All CI workflows (`.github/workflows/`) pin actions to immutable commit SHAs instead of mutable version tags (prevents tag-hijacking attacks like the Trivy incident).
+All CI workflows (`.github/workflows/`) pin actions to immutable commit SHAs instead of mutable version tags.
 
 ---
-
-## CLUSTER CONTEXT
-
-### Hosts
-| Host | IP | Role | RAM | GPUs |
-|------|-----|------|-----|------|
-| **Zephyr** | 10.1.1.110 | Control plane, AI workstation, gaming | 31GB | 2× NVIDIA (RTX 3090, 3060 Ti) |
-| **Nexus** | 10.1.1.120 | Storage, GPU compute, monitoring | 46GB | 1× NVIDIA (RTX 3060 Ti) |
-| **Forge** | 10.1.1.130 | Multi-GPU mining, AI | 15GB | 2× NVIDIA (RTX 4060) + 2× AMD (RX 5700 XT) |
-| **Sentry** | 10.1.1.140 | Monitoring, AI inference (ROCm) | 31GB | 1× AMD (RX 5600 XT — 8GB VRAM) |
-
-**Total Resources**: 78 cores, 123GB RAM, 7 GPUs, 8.4TB storage
-
-### Kubernetes Status
-- **Version**: v1.34.x
-- **Nodes**: 4/4 Ready (Zephyr, Nexus, Forge, Sentry)
-- **Control Plane**: 3-node HA (Zephyr, Nexus, Sentry) with Keepalived VIP
-- **Migration Progress**: 95% complete (Phases 1-7)
-- **Key Services**: Caddy Ingress, GlitchTip, SearXNG, n8n, home-assistant
-
-### Key Features
-- **GPU Marketplace**: Dynamic GPU allocation (mining/K8s/gaming)
-- **Gaming Detection**: GameMode + K8s integration with auto-mining pause
-- **Monitoring**: Prometheus + Grafana with Caddy metrics
-- **Storage**: NFS shared storage, local-path provisioner, Garage S3
-
----
-
-## RELATED RESOURCES
-
-### Quick Status
-- **Cluster Health**: `just status` or `just cluster-status`
-- **NFS Health**: `just check-nfs`
-- **Git Status**: `just status` (shows untracked files on all nodes)
-
-### Documentation
-- **Full Catalog**: `@DOCUMENTATION_INDEX.md`
-- **Hookify Rules**: `.claude/hookify-*.md` for deployment safety
-- **Archive**: `docs/archive/` for historical documentation
-
-### Skills Available (Hermes Agent)
-- **nixos-cluster-conventions** -- Master reference for all 12 cluster patterns
-- **k8s-scratch-deployment** -- Deploy Nix binaries as K8s pods via scratch image
-- **cluster-gateway-rebuild** -- AI Gateway container rebuild pipeline (Nix to K3s)
-- **nixos-module-authoring** -- NixOS module template, options, lib helpers
-- **caddy-routing** -- Caddy mkRoute/mkAuthRoute, DNS, SSO integration
-- **k8s-network-policies** -- Default-deny, allow-dns, service isolation
-
-Load the relevant skill via `skill_view(name)` before any infrastructure work.
----
-
-**Version**: 7.0 | **Updated:** 2026-05-02
-**Changes**:
-- Added cluster-conventions skill reference (12 codified patterns)
-- Updated convention docs to reference skills/cluster-conventions/SKILL.md
-
 
 ## Central SSO Authentication
 
-### Architecture
-- Casdoor OIDC at auth.lan → oauth2-proxy (central-auth.service) → Caddy forward_auth
-- Deployed on both zephyr and nexus
+> **Full details in `AGENTS.md` → "Central SSO Authentication" section.**
 
-### Service Classification
-- **Public (no auth):** searxng.lan, ai-inference.lan
-- **Protected (SSO required):** haven.lan, openwebui.lan, kagent.lan, grafana.lan, mission-control.lan
-- All `.lan` → VIP 10.1.1.100 (keepalived on zephyr)
+Architecture: Casdoor OIDC (auth.lan) → oauth2-proxy (central-auth.service) → Caddy forward_auth.
+Deployed on Zephyr + Nexus. Do NOT deploy oauth2-proxy as K8s sidecars.
 
-### Key Files
-- `modules/services/central-auth.nix` — oauth2-proxy NixOS module
-- `hosts/zephyr/caddy-routes.nix` — zephyr Caddy routes (mkAuthRoute/mkRoute helpers)
-- `modules/services/cluster-services.nix` — nexus Caddy + service registry (protected=true)
-- `modules/network/cluster-dns.nix` — unbound with .lan local-zone
+---
 
-### ⚠️ Rules
-- Do NOT deploy oauth2-proxy as K8s sidecars — use central-auth NixOS service
-- All oauth2-proxy sidecars removed from K8s pods (2026-05-02)
-- Orphaned caddy Ingress resources deleted (no caddy IngressClass exists)
+## REFERENCE DOCUMENTS
+
+| Document | Purpose |
+|----------|---------|
+| `AGENTS.md` | **Primary reference** — cluster conventions, safety rules, code style, deployment |
+| `INFRASTRUCTURE-AUDIT.md` | Live cluster state and issues |
+| `ROADMAP.md` | Kubernetes migration plan |
+| `kubernetes-manifests/PREVENT_POD_EXPLOSION.md` | Pod explosion prevention rules |
+| `skills/cluster-conventions/SKILL.md` | Full convention reference with templates |
+
+---
+
+**Version**: 8.0 | **Updated:** 2026-05-02
+**Changes**: Deduplicated with AGENTS.md — this file now covers NixOS basics + K8s troubleshooting + AI infrastructure only. Cluster conventions moved to AGENTS.md.
