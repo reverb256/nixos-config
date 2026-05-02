@@ -132,8 +132,8 @@ Browser → Caddy (.lan) ──→ forward_auth ──→ oauth2-proxy (:4180)
 │    │  └─ llama-server (CUDA)                 │                      │
 │    │                                         │                      │
 │    │  SENTRY                                 │                      │
-│    │  └─ (ROCm inference via llama.cpp)      │                      │
-│    │     AMD RX 5600 XT (8GB)                │                      │
+│    │  └─ (Vulkan inference via llama.cpp)    │                      │
+│    │     AMD RX 5600 XT (6GB)                │                      │
 │    └─────────────────────────────────────────┘                      │
 │                                                                      │
 │  ┌──────────────────────────────────────────────┐                   │
@@ -209,7 +209,7 @@ Browser → Caddy (.lan) ──→ forward_auth ──→ oauth2-proxy (:4180)
 │  └─ AMD GPU 1 ──── gpu-miner-forge-amd-1                │
 │                                                         │
 │  SENTRY (1x AMD)                                        │
-│  └─ RX 5600 XT (8GB) ── ROCm inference + privacy-filter│
+│  └─ RX 5600 XT (6GB) ── Vulkan inference + privacy-filter│
 │                                                         │
 │  mining-coordinator (zephyr) ── profit switching        │
 │  gpu-proxy ── stratum mining proxy                      │

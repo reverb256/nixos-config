@@ -25,7 +25,6 @@ in {
     ServiceAccount.default = {};
     ServiceAccount.ai-inference-gateway = {};
     ServiceAccount.open-webui = {};
-    ServiceAccount.prometheus = {};
     ServiceAccount.n8n-sa.automountServiceAccountToken = false;
 
     ConfigMap.ai-gateway-config.data = {
@@ -85,9 +84,9 @@ ConfigMap.ai-inference-gateway-config.data = {
        MAX_REQUEST_SIZE = "10485760";
        CIRCUIT_BREAKER_ENABLED = "true";
        REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
-       SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
-       SECONDARY_BACKEND_MODEL = "qwen3.5-4b-awq";
-       DISCOVERY_BACKENDS = ''[]'';  # vLLM Qwen3.5-4B-AWQ active on 3060Ti (port 8040)
+SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
+        SECONDARY_BACKEND_MODEL = "qwen3.5-2b-awq";
+        DISCOVERY_BACKENDS = ''[{"url": "http://10.1.1.110:8040", "model": "qwen3.5-2b-awq", "name": "vLLM-3060Ti"}]'';  # vLLM Qwen3.5-2B-AWQ on 3060Ti (port 8040)
        PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
        PRIVACY_FILTER_ENABLED = "false";
        MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
@@ -101,31 +100,8 @@ ConfigMap.ai-inference-gateway-config.data = {
       MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K = "10";
     };
 
-    ConfigMap.prometheus-config.data."prometheus.yml" = ''
-      global:
-        scrape_interval: 15s
-        evaluation_interval: 15s
-        external_labels:
-          cluster: nixos-k8s
-          environment: production
-
-      scrape_configs:
-        - job_name: ai-gateway
-          static_configs:
-            - targets:
-                - ai-gateway:8080
-              labels:
-                app: ai-gateway
-                component: gateway
-
-        - job_name: llamacpp
-          static_configs:
-            - targets:
-                - zephyr:9400
-              labels:
-                app: llamacpp
-                component: inference
-    '';
+    # NOTE: Prometheus + Grafana removed — see kubernetes/modules/monitoring.nix
+    # for the canonical monitoring stack (monitoring namespace).
 
     Deployment.open-webui = {
       metadata.labels.app = "open-webui";
@@ -149,7 +125,7 @@ ConfigMap.ai-inference-gateway-config.data = {
             containers = {
               _namedlist = true;
               open-webui = {
-                image = "ghcr.io/open-webui/open-webui:0.6.5";
+                image = "ghcr.io/open-webui/open-webui:0.9.2";
                 imagePullPolicy = "IfNotPresent";
                 env = {
                   _namedlist = true;
@@ -1223,250 +1199,6 @@ ConfigMap.ai-inference-gateway-config.data = {
           }
         ];
       };
-    };
-
-    # ── Observability (Prometheus + Grafana) ─────────────────────
-    ServiceAccount.grafana-sa.automountServiceAccountToken = false;
-
-    ClusterRole.prometheus.rules = [
-      {
-        apiGroups = [""];
-        resources = [
-          "nodes"
-          "nodes/proxy"
-          "services"
-          "endpoints"
-          "pods"
-        ];
-        verbs = [
-          "get"
-          "list"
-          "watch"
-        ];
-      }
-      {
-        nonResourceURLs = ["/metrics"];
-        verbs = ["get"];
-      }
-    ];
-
-    ClusterRoleBinding.prometheus = {
-      roleRef = {
-        apiGroup = "rbac.authorization.k8s.io";
-        kind = "ClusterRole";
-        name = "prometheus";
-      };
-      subjects = [
-        {
-          kind = "ServiceAccount";
-          name = "prometheus";
-          namespace = "ai-inference";
-        }
-      ];
-    };
-
-    Deployment.prometheus = {
-      metadata.labels.app = "prometheus";
-      spec = {
-        replicas = 1;
-        selector.matchLabels.app = "prometheus";
-        template = {
-          metadata.labels.app = "prometheus";
-          spec = {
-            nodeSelector."kubernetes.io/hostname" = "nexus";
-            serviceAccountName = "prometheus";
-            containers = [
-              {
-                name = "prometheus";
-                image = "prom/prometheus:v2.53.0";
-                args = [
-                  "--config.file=/etc/prometheus/prometheus.yml"
-                  "--storage.tsdb.path=/prometheus"
-                  "--web.console.libraries=/etc/prometheus/console_libraries"
-                  "--web.console.templates=/etc/prometheus/consoles"
-                  "--storage.tsdb.retention.time=30d"
-                  "--web.enable-lifecycle"
-                ];
-                ports = [
-                  {
-                    containerPort = 9090;
-                    name = "http";
-                  }
-                ];
-                env = [
-                  {
-                    name = "POD_IP";
-                    valueFrom.fieldRef.fieldPath = "status.podIP";
-                  }
-                ];
-                volumeMounts = [
-                  {
-                    name = "config";
-                    mountPath = "/etc/prometheus";
-                  }
-                  {
-                    name = "storage";
-                    mountPath = "/prometheus";
-                  }
-                ];
-                livenessProbe = {
-                  httpGet = {
-                    path = "/-/healthy";
-                    port = 9090;
-                  };
-                  initialDelaySeconds = 30;
-                  periodSeconds = 10;
-                };
-                readinessProbe = {
-                  httpGet = {
-                    path = "/-/ready";
-                    port = 9090;
-                  };
-                  initialDelaySeconds = 30;
-                  periodSeconds = 5;
-                };
-                resources = {
-                  requests = {
-                    cpu = "200m";
-                    memory = "512Mi";
-                  };
-                  limits = {
-                    cpu = "1";
-                    memory = "2Gi";
-                  };
-                };
-              }
-            ];
-            volumes = [
-              {
-                name = "config";
-                configMap.name = "prometheus-config";
-              }
-              {
-                name = "storage";
-                emptyDir.sizeLimit = "4Gi";
-              }
-            ];
-          };
-        };
-      };
-    };
-
-    Service.prometheus = {
-      metadata.labels.app = "prometheus";
-      spec = {
-        type = "ClusterIP";
-        selector.app = "prometheus";
-        ports = [
-          {
-            port = 9090;
-            targetPort = 9090;
-            name = "http";
-          }
-        ];
-      };
-    };
-
-    Deployment.grafana = {
-      metadata.labels.app = "grafana";
-      spec = {
-        replicas = 1;
-        selector.matchLabels.app = "grafana";
-        template = {
-          metadata.labels.app = "grafana";
-          spec = {
-            nodeSelector."kubernetes.io/hostname" = "nexus";
-            containers = [
-              {
-                name = "grafana";
-                image = "grafana/grafana:11.1.0";
-                env = [
-                  {
-                    name = "GF_SECURITY_ADMIN_USER";
-                    value = "admin";
-                  }
-                  {
-                    name = "GF_SECURITY_ADMIN_PASSWORD";
-                    value = "admin";
-                  }
-                  {
-                    name = "GF_USERS_ALLOW_SIGN_UP";
-                    value = "false";
-                  }
-                  {
-                    name = "GF_INSTALL_PLUGINS";
-                    value = "";
-                  }
-                  {
-                    name = "GF_SERVER_ROOT_URL";
-                    value = "http://localhost:3000";
-                  }
-                ];
-                ports = [
-                  {
-                    containerPort = 3000;
-                    name = "http";
-                  }
-                ];
-                resources = {
-                  requests = {
-                    cpu = "100m";
-                    memory = "128Mi";
-                  };
-                  limits = {
-                    cpu = "500m";
-                    memory = "512Mi";
-                  };
-                };
-              }
-            ];
-          };
-        };
-      };
-    };
-
-    Service.grafana = {
-      metadata.labels.app = "grafana";
-      spec = {
-        type = "ClusterIP";
-        selector.app = "grafana";
-        ports = [
-          {
-            port = 3000;
-            targetPort = 3000;
-            name = "http";
-          }
-        ];
-      };
-    };
-
-    Role.grafana-role.rules = [
-      {
-        apiGroups = [""];
-        resources = [
-          "configmaps"
-          "secrets"
-        ];
-        verbs = [
-          "get"
-          "list"
-          "watch"
-        ];
-      }
-    ];
-
-    RoleBinding.grafana-rolebinding = {
-      roleRef = {
-        apiGroup = "rbac.authorization.k8s.io";
-        kind = "Role";
-        name = "grafana-role";
-      };
-      subjects = [
-        {
-          kind = "ServiceAccount";
-          name = "grafana-sa";
-        }
-      ];
     };
 
     # ── Secrets ──────────────────────────────────────────────────

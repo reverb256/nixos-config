@@ -28,6 +28,7 @@ in {
               "name": "Local Gateway",
               "type": "openai",
               "chatModels": [
+               {"key": "qwen3.5-2b-awq", "name": "Qwen 3.5 2B AWQ (vLLM, fast)"},
                {"key": "qwen3.5-4b-awq", "name": "Qwen 3.5 4B AWQ (vLLM, concurrency)"},
               {"key": "Qwen3-4B-Wrist-On-Hermes", "name": "Qwen3-4B Wrist (Sentry, deep search)"}
             ],
@@ -52,7 +53,7 @@ in {
             }
           ],
           "search": {"searxngURL": "http://searxng.search.svc.cluster.local:8080"},
-          "chatModel": {"providerId": "local-gateway", "key": "qwen3.5-4b-awq"},
+          "chatModel": {"providerId": "local-gateway", "key": "qwen3.5-2b-awq"},
           "embeddingModel": {"providerId": "local-gateway", "key": "BAAI/bge-m3"}
         }
       '';

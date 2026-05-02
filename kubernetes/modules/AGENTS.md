@@ -1,6 +1,6 @@
 # Kubernetes Nix Modules - Agent Context
 
-**Parent:** `../../AGENTS.md` | **Domain:** K8s Nix modules via easykubenix (14 .nix files)
+**Parent:** `../../AGENTS.md` | **Domain:** K8s Nix modules via easykubenix (21 .nix files)
 
 ## Overview
 Nix-native Kubernetes resource definitions using the easykubenix library.
@@ -14,7 +14,7 @@ Do NOT confuse with `../modules/services/k3s-cluster.nix` (the K3s daemon config
 | AI inference workloads | `ai-inference.nix` |
 | GPU mining pods | `gpu-miners.nix`, `mining.nix` |
 | LLM serving | `llama-servers.nix` |
-| Infrastructure (Calico, etc.) | `infrastructure.nix` |
+| Infrastructure (Flannel, storage, etc.) | `infrastructure.nix` |
 | Ingress routing | `ingress.nix` |
 | Host-level services | `host-services.nix` (1365 lines — largest K8s module) |
 | Monitoring dashboards | `monitoring.nix`, `monitoring-dashboards.nix` |
