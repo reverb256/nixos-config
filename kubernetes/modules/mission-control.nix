@@ -13,6 +13,9 @@
   # NOTE: local-path PVC is node-bound. If forge goes down, data stays there.
   # TODO: when sentry disk is fixed, consider NFS with SQLite journal_mode=DELETE.
   targetNode = "forge";
+  managed = {
+    "app.kubernetes.io/managed-by" = "easykubenix";
+  };
 in {
   config.kubernetes.objects = {
     # ── Namespace ──────────────────────────────────────────────────────
@@ -58,7 +61,7 @@ in {
 
     # ── Deployment ─────────────────────────────────────────────────────
     orchestration.Deployment.mission-control = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "mission-control";
         "app.kubernetes.io/part-of" = "personal-corporation";
       };

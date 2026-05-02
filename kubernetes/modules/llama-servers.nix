@@ -5,7 +5,7 @@
 # Binary auto-updates when NixOS is rebuilt (reads live /nix/store).
 #
 # Zephyr GPU layout:
-#   GPU 0 = RTX 3060 Ti (8GB)  → Qwen3.5-4B-AWQ via vLLM (port 8040, concurrency)
+#   GPU 0 = RTX 3060 Ti (8GB)  → Qwen3.5-2B-AWQ via vLLM+TurboQuant (port 8040)
 #   GPU 1 = RTX 3090 (24GB)    → 35B MoE model (port 1235, coordinator-monitored)
 #
 # GPU ISOLATION NOTE:
@@ -231,10 +231,11 @@ in {
       };
     };
 
-    # ── Zephyr RTX 3060 Ti (GPU 0) — Qwen3.5-4B-AWQ via vLLM (concurrency) ──────
-    # vLLM for concurrent request handling (vs llama-cpp for single-stream).
-    # 4B-AWQ fits in 8GB VRAM with headroom for large KV cache.
-    # hostNetwork + CUDA_VISIBLE_DEVICES=1 selects the 3060Ti (PCI enumeration).
+    # ── Zephyr RTX 3060 Ti — Qwen3.5-2B-AWQ via vLLM + TurboQuant ──────
+    # Scratch container with host mounts: venv python (torch 2.10, vllm 0.19.1)
+    # + TurboQuant KV cache compression (key_bits=3, value_bits=4).
+    # Startup script sets CUDA_DEVICE_ORDER=PCI_BUS_ID + CUDA_VISIBLE_DEVICES=0
+    # (PCI bus 0 = 3060Ti by address order).
     Deployment.llama-qwen-vllm-zephyr-3060ti = {
       metadata.labels =
         managed
@@ -271,57 +272,35 @@ in {
             containers = {
               _namedlist = true;
               vllm = {
-                image = "vllm/vllm-openai:v0.19.1";
+                image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [
-                  "python3"
-                  "-m"
-                  "vllm.entrypoints.openai.api_server"
-                ];
+                command = ["${pkgs.bash}/bin/bash"];
                 args = [
-                  "--model"
-                  "/models/QuantTrio/Qwen3.5-4B-AWQ"
-                  "--served-model-name"
-                  "qwen3.5-4b-awq"
-                  "--port"
-                  "8040"
-                  "--host"
-                  "0.0.0.0"
-                  "--quantization"
-                  "awq"
-                  "--gpu-memory-utilization"
-                  "0.98"
-                  "--max-num-seqs"
-                  "16"
-                  "--max-model-len"
-                  "230112"
-                  "--enable-prefix-caching"
-                  "--performance-mode"
-                  "throughput"
-                  "--disable-log-requests"
-                  "--no-enable-reasoning"
+                  "-c"
+                  ''
+                    export LD_LIBRARY_PATH=/run/opengl-driver/lib:/nix/store:/run/current-system/sw/lib
+                    export PYTHONPATH=/data/projects/own/turboquant
+                    export HOME=/home/j_kro
+                    export VLLM_CACHE_ROOT=/tmp/vllm-cache
+                    exec /home/j_kro/vllm-env/bin/python3 /home/j_kro/vllm-start-tq.sh
+                  ''
                 ];
                 env = {
                   _namedlist = true;
-                  CUDA_VISIBLE_DEVICES = {
-                    name = "CUDA_VISIBLE_DEVICES";
-                    value = "1";
-                  };
-                  VLLM_WORKER_MULTIPROCESING_METHOD = {
-                    name = "VLLM_WORKER_MULTIPROCESING_METHOD";
+                  # vLLM multiprocessing: spawn avoids fork issues with CUDA
+                  VLLM_WORKER_MULTIPROCESSING_METHOD = {
+                    name = "VLLM_WORKER_MULTIPROCESSING_METHOD";
                     value = "spawn";
                   };
                 };
                 resources = {
                   requests = {
-                    cpu = "1";
-                    memory = "4Gi";
-
+                    cpu = "2";
+                    memory = "6Gi";
                   };
                   limits = {
-                    cpu = "2";
-                    memory = "8Gi";
-
+                    cpu = "4";
+                    memory = "10Gi";
                   };
                 };
                 ports = [
@@ -336,7 +315,7 @@ in {
                     path = "/health";
                     port = 8040;
                   };
-                  initialDelaySeconds = 120;
+                  initialDelaySeconds = 180;
                   periodSeconds = 30;
                   failureThreshold = 5;
                 };
@@ -345,24 +324,60 @@ in {
                     path = "/health";
                     port = 8040;
                   };
-                  initialDelaySeconds = 60;
+                  initialDelaySeconds = 90;
                   periodSeconds = 10;
-                  failureThreshold = 3;
+                  failureThreshold = 10;
                 };
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  models = {
-                    mountPath = "/models";
+                  nix = {
+                    mountPath = "/nix";
                     readOnly = true;
+                  };
+                  nvidia-libs = {
+                    mountPath = "/run/opengl-driver/lib";
+                    readOnly = true;
+                  };
+                  home-jkro = {
+                    mountPath = "/home/j_kro";
+                    readOnly = true;
+                  };
+                  turboquant = {
+                    mountPath = "/data/projects/own/turboquant";
+                    readOnly = true;
+                  };
+                  nix-sw = {
+                    mountPath = "/run/current-system/sw";
+                    readOnly = true;
+                  };
+                  tmp = {
+                    mountPath = "/tmp";
                   };
                 };
               };
             };
             volumes = {
               _namedlist = true;
-              models.hostPath = {
-                path = "/home/j_kro/.lmstudio/models";
+              nix.hostPath = {
+                path = "/nix";
+                type = "Directory";
+              };
+              nvidia-libs.hostPath.path = "/run/opengl-driver/lib";
+              home-jkro.hostPath = {
+                path = "/home/j_kro";
+                type = "Directory";
+              };
+              turboquant.hostPath = {
+                path = "/data/projects/own/turboquant";
+                type = "Directory";
+              };
+              nix-sw.hostPath = {
+                path = "/run/current-system/sw";
+                type = "Directory";
+              };
+              tmp.hostPath = {
+                path = "/tmp";
                 type = "Directory";
               };
             };

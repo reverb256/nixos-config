@@ -7,6 +7,9 @@
   nixCsiScratch = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
   nexusIP = "10.1.1.120";
   xmrigProxy = "${nexusIP}:3333";
+  managed = {
+    "app.kubernetes.io/managed-by" = "easykubenix";
+  };
 in {
   config.kubernetes.objects = {
     none.Namespace.mining = {
@@ -799,7 +802,7 @@ in {
 
     # --- ResourceQuota for mining namespace ---
     mining.ResourceQuota.mining-quota = {
-      metadata.labels.app = "mining";
+      metadata.labels = managed // { app = "mining"; };
       spec.hard = {
         "requests.cpu" = "25";
         "limits.cpu" = "50";

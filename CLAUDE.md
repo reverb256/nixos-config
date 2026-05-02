@@ -404,6 +404,9 @@ useradd myuser
 
 ## CONVENTIONS
 
+> **Full convention reference:** Load Hermes skill `nixos-cluster-conventions` with `skill_view(name="nixos-cluster-conventions")`.
+> Also documented in `AGENTS.md` -> Codified Conventions section.
+
 ### Critical Safety Rules
 - **IMPORTANT**: Use `lib.mkOptionDefault` in shared modules (NEVER direct assignment)
   - Direct assignment breaks SSH on all nodes
@@ -789,7 +792,7 @@ The cluster runs multiple llama-server instances across GPUs for different model
 | GPU Location | GPU | VRAM | Model | Port | Status |
 |--------------|-----|------|-------|------|--------|
 | **Zephyr RTX 3090** | CUDA 1 | 24GB | Qwen3.6-35B-A3B (MoE) | 1237 | ✅ Systemd |
-| **Zephyr RTX 3060 Ti** | CUDA 0 | 8GB | supergemma4-Q5_K_M | 1236 | ✅ Systemd |
+| **Zephyr RTX 3060 Ti** | CUDA 0 | 8GB | Qwen3.5-2B-AWQ (vLLM+TQ) | 8040 | ✅ Systemd |
 | **Sentry AMD RX 5600 XT** | ROCm | 8GB | Qwen3.5-4B-Q4_K_M | 1235 | ✅ K8s |
 
 **Note:** Zephyr uses systemd llama-server services instead of K8s for better GPU isolation and gaming integration.

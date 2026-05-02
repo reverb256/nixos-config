@@ -1126,7 +1126,7 @@ ConfigMap.ai-inference-gateway-config.data = {
     };
 
     Endpoints.llama-cpp-qwen = {
-      metadata.labels.app = "llama-cpp";
+      metadata.labels = managed // { app = "llama-cpp"; };
       subsets = [
         {
           addresses = [{ip = "10.1.1.120";}];

@@ -199,6 +199,9 @@ in {
       options edns0 trust-ad
     '';
 
+    # Disable resolvconf — we manage /etc/resolv.conf directly
+    networking.resolvconf.enable = false;
+
     # NetworkManager: don't manage DNS, we use unbound
     networking.networkmanager.dns = mkDefault "none";
 
