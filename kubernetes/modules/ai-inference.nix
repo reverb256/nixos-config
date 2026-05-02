@@ -30,7 +30,7 @@ in {
     ConfigMap.ai-gateway-config.data = {
       AUTH_MODE = "none";
       BACKEND_TYPE = "llama-cpp";
-      BACKEND_URL = "http://llama-server-zephyr-3090-moe.ai-inference.svc.cluster.local:1237";
+      BACKEND_URL = "http://10.1.1.110:1237";
       DEFAULT_MODEL = "Qwen3.6-35B-A3B-UD-IQ3_S.gguf";
       RAG_ENABLED = "true";
       RAG_TOP_K = "5";
@@ -47,7 +47,7 @@ in {
 ConfigMap.ai-inference-gateway-config.data = {
        AUTH_MODE = "api-key";
        BACKEND_TYPE = "zai";
-       BACKEND_URL = "http://llama-server-zephyr-3090-moe.ai-inference.svc.cluster.local:1237";
+       BACKEND_URL = "http://10.1.1.110:1237";
        BACKEND_FALLBACK_URLS = "";  # Dead backends removed (see git log)
        DEFAULT_MODEL = "glm-5-turbo";
        GATEWAY_HOST = "0.0.0.0";
@@ -735,7 +735,7 @@ SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
             containers = [
               {
                 name = "qdrant";
-                image = "docker.io/qdrant/qdrant:v1.13.4";
+                image = "docker.io/qdrant/qdrant:v1.17.1";
                 ports = [
                   {
                     containerPort = 6333;
@@ -966,7 +966,7 @@ SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
             containers = [
               {
                 name = "llama-server";
-                image = "alpine:3.21";
+                image = "alpine:3.22";
                 command = ["/run/current-system/sw/bin/llama-server"];
                 args = [
                   "--model=/models/Qwen3.5-0.8B.Q8_0.gguf"

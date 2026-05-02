@@ -230,7 +230,7 @@ in {
             containers = {
               _namedlist = true;
               searxng = {
-                image = "searxng/searxng:2026.4.17";
+                image = "searxng/searxng:2026.5.2";
                 imagePullPolicy = "IfNotPresent";
                 securityContext = {
                   allowPrivilegeEscalation = false;
@@ -380,7 +380,7 @@ in {
             containers = {
               _namedlist = true;
               valkey = {
-                image = "valkey/valkey:8.1";
+                image = "valkey/valkey:9.0.3";
                 imagePullPolicy = "IfNotPresent";
                 command = [
                   "valkey-server"

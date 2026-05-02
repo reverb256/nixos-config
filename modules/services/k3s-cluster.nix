@@ -205,6 +205,12 @@ in {
       '';
 
       extraKubeletConfig = {
+        evictionHard = {
+          "memory.available" = "100Mi";
+          "nodefs.available" = "5%";
+          "nodefs.inodesFree" = "5%";
+          "imagefs.available" = "5%";
+        };
         failSwapOn = false;
       };
 

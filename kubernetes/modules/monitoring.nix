@@ -1461,7 +1461,7 @@ in {
             containers = {
               _namedlist = true;
               alertmanager = {
-                image = "docker.io/prom/alertmanager:v0.27.0";
+                image = "docker.io/prom/alertmanager:v0.32.1";
                 imagePullPolicy = "IfNotPresent";
                 args = [
                   "--config.file=/etc/alertmanager/alertmanager.yml"
@@ -1643,7 +1643,7 @@ in {
             containers = {
               _namedlist = true;
               kube-state-metrics = {
-                image = "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0";
+                image = "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.18.0";
                 imagePullPolicy = "IfNotPresent";
                 args = [
                   "--port=8080"
