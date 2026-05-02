@@ -5,9 +5,12 @@
 # discover it via Path(__file__).resolve().parents[1] / "scripts/whatsapp-bridge/".
 {
   pkgs,
+  lib,
   hermes-pkg,
   whatsapp-bridge,
 }: let
+  # sounddevice needs libportaudio at runtime
+  portaudioLib = lib.makeLibraryPath [pkgs.portaudio];
   hermesVenv = pkgs.runCommand "hermes-venv-path" {} ''
     VENV_PATH=$(cat ${hermes-pkg}/bin/hermes | grep -oP '/nix/store/[a-z0-9]+-hermes-agent-env' | head -1)
     if [ -z "$VENV_PATH" ]; then
@@ -72,7 +75,8 @@ in
     for bin in ${hermes-pkg}/bin/*; do
       name=$(basename "$bin")
       makeWrapper "$bin" "$out/bin/$name" \
-        --prefix PYTHONPATH : "$OVERLAY"
+        --prefix PYTHONPATH : "$OVERLAY" \
+        --prefix LD_LIBRARY_PATH : "${portaudioLib}"
     done
 
     # Copy share
