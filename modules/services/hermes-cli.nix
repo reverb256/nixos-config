@@ -37,6 +37,75 @@
 
   # If hermes-agent is enabled, use its state dir. Otherwise, use user home.
   useAgentStateDir = hermesAgentCfg.enable or false;
+
+  # Declarative MCP server configuration for Hermes
+  # API keys are injected at runtime via __PLACEHOLDER__ tokens
+  mcpServersBlock = pkgs.writeText "hermes-mcp-servers.yaml" ''
+    mcp_servers:
+      kubernetes:
+        url: http://10.12.22.155:8080/mcp
+        connect_timeout: 30
+        timeout: 60
+      lightpanda:
+        command: lightpanda
+        args:
+          - mcp
+        connect_timeout: 30
+        timeout: 60
+      nixos-cluster:
+        command: nix
+        args:
+          - run
+          - /etc/nixos#nixos-cluster-mcp
+        connect_timeout: 30
+        timeout: 60
+      searxng:
+        command: /data/agents/mcp-bridges/searxng-mcp.sh
+        connect_timeout: 30
+        timeout: 60
+      web-reader:
+        url: https://api.z.ai/api/mcp/web_reader/mcp
+        headers:
+          Authorization: Bearer __ZAI_API_KEY__
+        timeout: 60
+      web-search:
+        url: https://api.z.ai/api/mcp/web_search_prime/mcp
+        headers:
+          Authorization: Bearer __ZAI_API_KEY__
+        timeout: 60
+      zread:
+        url: https://api.z.ai/api/mcp/zread/mcp
+        headers:
+          Authorization: Bearer __ZAI_API_KEY__
+        timeout: 60
+      casdoor:
+        command: python3
+        args:
+          - /data/agents/mcp-bridges/casdoor-mcp-bridge.py
+        connect_timeout: 30
+        timeout: 60
+        description: Casdoor SSO/OIDC - application management (5 tools, Bearer auth)
+  '';
+
+  # Python script to merge mcp_servers section into Hermes config.yaml
+  mcpMergeScript = pkgs.writeText "hermes-mcp-merge.py" ''
+    import re, sys
+    config_path = sys.argv[1]
+    mcp_path = sys.argv[2]
+    with open(config_path) as f:
+        content = f.read()
+    with open(mcp_path) as f:
+        mcp_block = f.read().strip()
+    # Remove existing mcp_servers section (from ^mcp_servers: to next top-level key)
+    content = re.sub(r'\nmcp_servers:.*?(?=\n\S)', '', content, flags=re.MULTILINE | re.DOTALL)
+    # Insert new block before smart_model_routing or at end
+    if 'smart_model_routing:' in content:
+        content = content.replace('smart_model_routing:', mcp_block + '\n\nsmart_model_routing:', 1)
+    else:
+        content = content.rstrip() + '\n\n' + mcp_block + '\n'
+    with open(config_path, 'w') as f:
+        f.write(content)
+  '';
 in {
   options.services.hermes-cli = {
     enable = lib.mkEnableOption "Hermes Agent CLI for interactive use";

@@ -217,14 +217,16 @@ in {
 
     redis.servers."".enable = false; # 0 keys, 1 client — unused, frees RAM on OOM-constrained host
 
+    # ai-inference: Uses K8s gateway (30880) via Caddy routing
+    # Keep config for declarative completeness but backend routes to K8s
     ai-inference = {
       enable = true;
       backend = {
-        url = "http://127.0.0.1:1235";
+        url = "http://127.0.0.1:30880";  # Proxy to K8s gateway
         type = "llama-cpp";
         local = {
-          url = "http://127.0.0.1:1235";
-          model = "gemma-4-e4b-it";
+          url = "http://127.0.0.1:30880";
+          model = "qwen3.6-35b-a3b";
         };
         nvidia-nim = {
           enable = true;
