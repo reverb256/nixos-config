@@ -77,5 +77,5 @@ in
   # Llama Sentry (Sentry host IP)
   mkAuthRoute "llama.sentry.lan" "http://10.1.1.140:1235" +
   # Vaultwarden (nexus NodePort 32110)
-  mkAuthRoute "vaultwarden.lan" "http://10.1.1.120:32110" +
+  mkRoute "vaultwarden.lan" "http://10.1.1.120:32110" +
   ""
