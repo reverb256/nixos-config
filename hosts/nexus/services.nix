@@ -254,10 +254,12 @@ in {
       openwebui = {
         domain = "openwebui.lan";
         backend = k8s.open-webui.dns;
+        protected = true;
       };
       haven = {
         domain = "haven.lan";
         backend = k8s.haven.dns;
+        protected = true;
       };
       hermes = {
         domain = "hermes.lan";
@@ -288,5 +290,13 @@ in {
         backend = k8s.knowledge-fabric.dns;
       };
     };
+  };
+
+  # Central SSO auth proxy
+  services.central-auth = {
+    enable = true;
+    clientID = "5bf72a094f75c6f5729e";
+    clientSecretFile = config.age.secrets.central-auth-client-secret.path;
+    cookieSecretFile = config.age.secrets.central-auth-cookie-secret.path;
   };
 }

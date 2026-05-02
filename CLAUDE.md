@@ -845,7 +845,7 @@ The cluster runs multiple llama-server instances across GPUs for different model
 
 - 7 of 18 Claude Code MCP servers broken — see `docs/plans/2026-05-01-mcp-system-plan.md`
 - DaemonSet uses hardcoded nix store path — needs nixkube CSI conversion
-- Casdoor tool sync failing — stdio servers need HTTP proxy
+- Casdoor SSO operational — central OAuth2 proxy (oauth2-proxy v7.15.2) on zephyr+nexus
 - Full plan: `docs/plans/2026-05-01-mcp-system-plan.md`
 
 ---
@@ -938,3 +938,26 @@ All CI workflows (`.github/workflows/`) pin actions to immutable commit SHAs ins
 - Removed references to non-existent docs (STATUS.md, DECISION_LOG.md, DOCUMENTATION_INDEX.md)
 - Removed references to non-existent .claude/ files and docs/ directory
 - Fixed typo: "OUM" → "OOM" in Zephyr exhaustion warning
+
+
+## Central SSO Authentication
+
+### Architecture
+- Casdoor OIDC at auth.lan → oauth2-proxy (central-auth.service) → Caddy forward_auth
+- Deployed on both zephyr and nexus
+
+### Service Classification
+- **Public (no auth):** searxng.lan, ai-inference.lan
+- **Protected (SSO required):** haven.lan, openwebui.lan, kagent.lan, grafana.lan, mission-control.lan
+- All `.lan` → VIP 10.1.1.100 (keepalived on zephyr)
+
+### Key Files
+- `modules/services/central-auth.nix` — oauth2-proxy NixOS module
+- `hosts/zephyr/caddy-routes.nix` — zephyr Caddy routes (mkAuthRoute/mkRoute helpers)
+- `modules/services/cluster-services.nix` — nexus Caddy + service registry (protected=true)
+- `modules/network/cluster-dns.nix` — unbound with .lan local-zone
+
+### ⚠️ Rules
+- Do NOT deploy oauth2-proxy as K8s sidecars — use central-auth NixOS service
+- All oauth2-proxy sidecars removed from K8s pods (2026-05-02)
+- Orphaned caddy Ingress resources deleted (no caddy IngressClass exists)
