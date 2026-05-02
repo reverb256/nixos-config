@@ -57,6 +57,12 @@
 
             reverse_proxy ${svc.backend}
           }
+
+          # On auth failure (401), redirect to SSO login
+          @unauth status 401
+          handle_response @unauth {
+            redir /oauth2/start?rd={scheme}://{host}{uri} 302
+          }
         }
       }
     }
