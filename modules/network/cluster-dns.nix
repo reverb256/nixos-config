@@ -155,6 +155,9 @@ in {
         "mission-control.lan. IN A ${vip}"
         "privacy-filter.lan. IN A ${vip}"
         "grafana.lan. IN A ${vip}"
+        "vaultwarden.lan. IN A ${vip}"
+        "llama.zephyr.lan. IN A ${vip}"
+        "llama.sentry.lan. IN A ${vip}"
       ];
       # Optional forge services
       forgeServices = [
