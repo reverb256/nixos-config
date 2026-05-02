@@ -368,11 +368,8 @@ in {
       clientSecretFile = config.age.secrets.central-auth-client-secret.path;
       cookieSecretFile = config.age.secrets.central-auth-cookie-secret.path;
     };
-    vaultwarden-module = {
-      enable = true;
-      hostName = "vaultwarden.zephyr.taila21e09.ts.net";
-      dataDir = "/var/lib/vaultwarden";
-    };
+    # Vaultwarden migrated to K8s on nexus (vaultwarden.lan via Caddy)
+    vaultwarden-module.enable = false;
 
     syncthing-cluster = {
       enable = true;
