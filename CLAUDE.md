@@ -924,16 +924,18 @@ All CI workflows (`.github/workflows/`) pin actions to immutable commit SHAs ins
 - **Hookify Rules**: `.claude/hookify-*.md` for deployment safety
 - **Archive**: `docs/archive/` for historical documentation
 
-### Skills Available
-- **cluster-conventions** — ALL codebase patterns (12 conventions: scratch image, mkOptionDefault, GPU scheduling, Caddy routing, etc.)
-- **kubernetes-specialist** — Day-to-day K8s operations
-- **kubernetes-architect** — Architecture patterns
-- **add-service** — systemd service creation
-- **nix-rebuild** — Safe rebuild patterns
+### Skills Available (Hermes Agent)
+- **nixos-cluster-conventions** -- Master reference for all 12 cluster patterns
+- **k8s-scratch-deployment** -- Deploy Nix binaries as K8s pods via scratch image
+- **cluster-gateway-rebuild** -- AI Gateway container rebuild pipeline (Nix to K3s)
+- **nixos-module-authoring** -- NixOS module template, options, lib helpers
+- **caddy-routing** -- Caddy mkRoute/mkAuthRoute, DNS, SSO integration
+- **k8s-network-policies** -- Default-deny, allow-dns, service isolation
 
+Load the relevant skill via `skill_view(name)` before any infrastructure work.
 ---
 
-**Version**: 6.1 | **Updated:** 2026-05-02
+**Version**: 7.0 | **Updated:** 2026-05-02
 **Changes**:
 - Added cluster-conventions skill reference (12 codified patterns)
 - Updated convention docs to reference skills/cluster-conventions/SKILL.md
