@@ -60,6 +60,13 @@
       package = "nixos-cluster-mcp";
       command = "nixos-cluster-mcp";
     };
+
+    # Kubernetes MCP (K8s deployment in infra namespace, streamable HTTP)
+    # Hermes connects via K8s service DNS; other tools use ClusterIP
+    kubernetes = {
+      type = "http";
+      url = "http://kubernetes-mcp.infra.svc.cluster.local:8080/mcp";
+    };
   };
 
   mkCommand = name: "mcp-${name}";
