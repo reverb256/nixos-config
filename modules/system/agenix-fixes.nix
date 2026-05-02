@@ -183,9 +183,8 @@ in {
     };
 
     # Apply agenix-decrypted secrets as K8s secrets
-    # Runs on hosts with kubectl access (control plane nodes)
-    # IMPORTANT: runs after k8s-nix-deploy to ensure Secret objects exist first
-    systemd.services.kubectl-apply-k8s-secrets = lib.mkIf config.services.k3s-cluster.enable {
+    # Runs ONLY on K3s server nodes (control plane) — agents have no local API server
+    systemd.services.kubectl-apply-k8s-secrets = lib.mkIf (config.services.k3s-cluster.enable && config.services.k3s-cluster.role == "server") {
       description = "Apply agenix secrets as Kubernetes secrets";
       after = ["agenix.service" "k3s.service" "k8s-nix-deploy.service" "network-online.target"];
       wants = ["agenix.service" "k8s-nix-deploy.service" "network-online.target"];
