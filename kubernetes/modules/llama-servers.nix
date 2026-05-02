@@ -232,179 +232,179 @@ in {
     };
 
     # ── Zephyr RTX 3060 Ti — Qwen3.5-2B-AWQ via vLLM + TurboQuant ──────
-    # Scratch container with host mounts: venv python (torch 2.10, vllm 0.19.1)
-    # + TurboQuant KV cache compression (key_bits=3, value_bits=4).
-    # Startup script sets CUDA_DEVICE_ORDER=PCI_BUS_ID + CUDA_VISIBLE_DEVICES=0
-    # (PCI bus 0 = 3060Ti by address order).
-    Deployment.llama-qwen-vllm-zephyr-3060ti = {
-      metadata.labels =
-        managed
-        // {
-          app = "llama-qwen-vllm-zephyr-3060ti";
-          host = "zephyr";
-          gpu = "rtx3060ti";
-        };
-      spec = {
-        replicas = 1;
-        revisionHistoryLimit = 1;
-        selector.matchLabels = {
-          app = "llama-qwen-vllm-zephyr-3060ti";
-          host = "zephyr";
-        };
-        strategy.type = "Recreate";
-        template = {
-          metadata = {
-            labels =
-              managed
-              // {
-                app = "llama-qwen-vllm-zephyr-3060ti";
-                host = "zephyr";
-                gpu = "rtx3060ti";
-              };
-            annotations."nix-csi/discard" = "true";
-          };
-          spec = {
-            nodeName = "zephyr";
-            hostNetwork = true;
-            automountServiceAccountToken = false;
-            priorityClassName = "high-priority-ai";
-            tolerations = zephyrTolerations;
-            containers = {
-              _namedlist = true;
-              vllm = {
-                image = scratchImage;
-                imagePullPolicy = "IfNotPresent";
-                command = ["${pkgs.bash}/bin/bash"];
-                args = [
-                  "-c"
-                  ''
-                    export LD_LIBRARY_PATH=/run/opengl-driver/lib:/nix/store:/run/current-system/sw/lib
-                    export PYTHONPATH=/data/projects/own/turboquant
-                    export HOME=/home/j_kro
-                    export VLLM_CACHE_ROOT=/tmp/vllm-cache
-                    exec /home/j_kro/vllm-env/bin/python3 /home/j_kro/vllm-start-tq.sh
-                  ''
-                ];
-                env = {
-                  _namedlist = true;
-                  # vLLM multiprocessing: spawn avoids fork issues with CUDA
-                  VLLM_WORKER_MULTIPROCESSING_METHOD = {
-                    name = "VLLM_WORKER_MULTIPROCESSING_METHOD";
-                    value = "spawn";
-                  };
-                };
-                resources = {
-                  requests = {
-                    cpu = "2";
-                    memory = "6Gi";
-                  };
-                  limits = {
-                    cpu = "4";
-                    memory = "10Gi";
-                  };
-                };
-                ports = [
-                  {
-                    containerPort = 8040;
-                    name = "http";
-                    protocol = "TCP";
-                  }
-                ];
-                livenessProbe = {
-                  httpGet = {
-                    path = "/health";
-                    port = 8040;
-                  };
-                  initialDelaySeconds = 180;
-                  periodSeconds = 30;
-                  failureThreshold = 5;
-                };
-                readinessProbe = {
-                  httpGet = {
-                    path = "/health";
-                    port = 8040;
-                  };
-                  initialDelaySeconds = 90;
-                  periodSeconds = 10;
-                  failureThreshold = 10;
-                };
-                securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                  nix = {
-                    mountPath = "/nix";
-                    readOnly = true;
-                  };
-                  nvidia-libs = {
-                    mountPath = "/run/opengl-driver/lib";
-                    readOnly = true;
-                  };
-                  home-jkro = {
-                    mountPath = "/home/j_kro";
-                    readOnly = true;
-                  };
-                  turboquant = {
-                    mountPath = "/data/projects/own/turboquant";
-                    readOnly = true;
-                  };
-                  nix-sw = {
-                    mountPath = "/run/current-system/sw";
-                    readOnly = true;
-                  };
-                  tmp = {
-                    mountPath = "/tmp";
-                  };
-                };
-              };
-            };
-            volumes = {
-              _namedlist = true;
-              nix.hostPath = {
-                path = "/nix";
-                type = "Directory";
-              };
-              nvidia-libs.hostPath.path = "/run/opengl-driver/lib";
-              home-jkro.hostPath = {
-                path = "/home/j_kro";
-                type = "Directory";
-              };
-              turboquant.hostPath = {
-                path = "/data/projects/own/turboquant";
-                type = "Directory";
-              };
-              nix-sw.hostPath = {
-                path = "/run/current-system/sw";
-                type = "Directory";
-              };
-              tmp.hostPath = {
-                path = "/tmp";
-                type = "Directory";
-              };
-            };
-          };
-        };
-      };
-    };
+    # MANAGED BY SYSTEMD: vllm-turboquant.service (host-level, port 8040)
+    # K8s scratch container CANNOT run Python venvs — dynamic linker, triton,
+    # and CUDA subprocess detection all fail in the empty scratch image.
+    # To re-enable K8s: build vLLM as a Nix derivation first.
+    #     # Deployment.llama-qwen-vllm-zephyr-3060ti = {
+    #       metadata.labels =
+    #         managed
+    #         // {
+    #           app = "llama-qwen-vllm-zephyr-3060ti";
+    #           host = "zephyr";
+    #           gpu = "rtx3060ti";
+    #         };
+    #       spec = {
+    #         replicas = 1;
+    #         revisionHistoryLimit = 1;
+    #         selector.matchLabels = {
+    #           app = "llama-qwen-vllm-zephyr-3060ti";
+    #           host = "zephyr";
+    #         };
+    #         strategy.type = "Recreate";
+    #         template = {
+    #           metadata = {
+    #             labels =
+    #               managed
+    #               // {
+    #                 app = "llama-qwen-vllm-zephyr-3060ti";
+    #                 host = "zephyr";
+    #                 gpu = "rtx3060ti";
+    #               };
+    #             annotations."nix-csi/discard" = "true";
+    #           };
+    #           spec = {
+    #             nodeName = "zephyr";
+    #             hostNetwork = true;
+    #             automountServiceAccountToken = false;
+    #             priorityClassName = "high-priority-ai";
+    #             tolerations = zephyrTolerations;
+    #             containers = {
+    #               _namedlist = true;
+    #               vllm = {
+    #                 image = scratchImage;
+    #                 imagePullPolicy = "IfNotPresent";
+    #                 command = ["${pkgs.bash}/bin/bash"];
+    #                 args = [
+    #                   "-c"
+    #                   ''
+    #                     export LD_LIBRARY_PATH=/run/opengl-driver/lib:/nix/store:/run/current-system/sw/lib
+    #                     export PYTHONPATH=/data/projects/own/turboquant
+    #                     export HOME=/home/j_kro
+    #                     export VLLM_CACHE_ROOT=/tmp/vllm-cache
+    #                     exec /home/j_kro/vllm-env/bin/python3 /home/j_kro/vllm-start-tq.sh
+    #                   ''
+    #                 ];
+    #                 env = {
+    #                   _namedlist = true;
+    #                   # vLLM multiprocessing: spawn avoids fork issues with CUDA
+    #                   VLLM_WORKER_MULTIPROCESSING_METHOD = {
+    #                     name = "VLLM_WORKER_MULTIPROCESSING_METHOD";
+    #                     value = "spawn";
+    #                   };
+    #                 };
+    #                 resources = {
+    #                   requests = {
+    #                     cpu = "2";
+    #                     memory = "6Gi";
+    #                   };
+    #                   limits = {
+    #                     cpu = "4";
+    #                     memory = "10Gi";
+    #                   };
+    #                 };
+    #                 ports = [
+    #                   {
+    #                     containerPort = 8040;
+    #                     name = "http";
+    #                     protocol = "TCP";
+    #                   }
+    #                 ];
+    #                 livenessProbe = {
+    #                   httpGet = {
+    #                     path = "/health";
+    #                     port = 8040;
+    #                   };
+    #                   initialDelaySeconds = 180;
+    #                   periodSeconds = 30;
+    #                   failureThreshold = 5;
+    #                 };
+    #                 readinessProbe = {
+    #                   httpGet = {
+    #                     path = "/health";
+    #                     port = 8040;
+    #                   };
+    #                   initialDelaySeconds = 90;
+    #                   periodSeconds = 10;
+    #                   failureThreshold = 10;
+    #                 };
+    #                 securityContext.privileged = true;
+    #                 volumeMounts = {
+    #                   _namedlist = true;
+    #                   nix = {
+    #                     mountPath = "/nix";
+    #                     readOnly = true;
+    #                   };
+    #                   nvidia-libs = {
+    #                     mountPath = "/run/opengl-driver/lib";
+    #                     readOnly = true;
+    #                   };
+    #                   home-jkro = {
+    #                     mountPath = "/home/j_kro";
+    #                     readOnly = true;
+    #                   };
+    #                   turboquant = {
+    #                     mountPath = "/data/projects/own/turboquant";
+    #                     readOnly = true;
+    #                   };
+    #                   nix-sw = {
+    #                     mountPath = "/run/current-system/sw";
+    #                     readOnly = true;
+    #                   };
+    #                   tmp = {
+    #                     mountPath = "/tmp";
+    #                   };
+    #                 };
+    #               };
+    #             };
+    #             volumes = {
+    #               _namedlist = true;
+    #               nix.hostPath = {
+    #                 path = "/nix";
+    #                 type = "Directory";
+    #               };
+    #               nvidia-libs.hostPath.path = "/run/opengl-driver/lib";
+    #               home-jkro.hostPath = {
+    #                 path = "/home/j_kro";
+    #                 type = "Directory";
+    #               };
+    #               turboquant.hostPath = {
+    #                 path = "/data/projects/own/turboquant";
+    #                 type = "Directory";
+    #               };
+    #               nix-sw.hostPath = {
+    #                 path = "/run/current-system/sw";
+    #                 type = "Directory";
+    #               };
+    #               tmp.hostPath = {
+    #                 path = "/tmp";
+    #                 type = "Directory";
+    #               };
+    #             };
+    #           };
+    #         };
+    #       };
+    #     };
 
-    Service.llama-qwen-vllm-zephyr-3060ti = {
-      metadata.labels =
-        managed
-        // {
-          app = "llama-qwen-vllm-zephyr-3060ti";
-        };
-      spec = {
-        type = "ClusterIP";
-        ports = [
-          {
-            name = "http";
-            port = 8040;
-            protocol = "TCP";
-            targetPort = 8040;
-          }
-        ];
-        selector.app = "llama-qwen-vllm-zephyr-3060ti";
-      };
-    };
+    #     Service.llama-qwen-vllm-zephyr-3060ti = {
+    #       metadata.labels =
+    #         managed
+    #         // {
+    #           app = "llama-qwen-vllm-zephyr-3060ti";
+    #         };
+    #       spec = {
+    #         type = "ClusterIP";
+    #         ports = [
+    #           {
+    #             name = "http";
+    #             port = 8040;
+    #             protocol = "TCP";
+    #             targetPort = 8040;
+    #           }
+    #         ];
+    #         selector.app = "llama-qwen-vllm-zephyr-3060ti";
+    #       };
+    #     };
 
     # ── Zephyr RTX 3090 Burst — hermes-qwen3.5-35b-a3b MoE (Speed) ──────────────
     # MoE: 35B total / ~3B active per token. Blazing fast for agentic workloads.
