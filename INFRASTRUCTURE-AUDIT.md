@@ -1,15 +1,14 @@
-# Infrastructure Audit — 2026-05-01
+# Infrastructure Audit — 2026-05-02
 
 ## Cluster Overview
 
-| Host | CPU | RAM (used/total) | GPUs | Disk | Load | Status |
-|------|-----|-------------------|------|------|------|--------|
-| **Zephyr** | 16c | 18GB/31GB | RTX 3060 Ti + RTX 3090 | 86% | ~5 | Unknown* |
-| **Nexus** | 24c | ~20GB/46GB | RTX 3060 Ti | 37% | ~6 | Unknown* |
-| **Forge** | 6c | ~10GB/15GB | 2× RX 5700 XT + 2× RTX 4060 | 81% | ~5 | Unknown* |
-| **Sentry** | 16c | ~15GB/31GB | RX 5600 XT | 74% | ~11 | Unknown* |
+| Host | CPU | RAM (used/total) | GPUs | Disk | Load | K8s Status |
+|------|-----|-------------------|------|------|------|------------|
+| **Zephyr** | 16c | 6.8GB/31GB (23%) | RTX 3060 Ti + RTX 3090 | 86% | ~4 | Ready |
+| **Nexus** | 24c | 9.0GB/46GB (20%) | RTX 3060 Ti | 37% | ~7 | Ready |
+| **Forge** | 6c | 3.8GB/15GB (29%) | 2× RX 5700 XT + 2× RTX 4060 | 81% | ~5 | Ready |
+| **Sentry** | 16c | 9.8GB/31GB (34%) | RX 5600 XT | 74% | ~11 | Ready |
 
-*All nodes show Unknown — kubelet not reporting Ready condition. Pods run fine, cosmetic issue.
 **CNI:** Flannel VXLAN (default K3s CNI) — UDP 8472
 
 ---
@@ -18,16 +17,18 @@
 
 | Node | Status | Role | Age | Version | CNI |
 |------|--------|------|-----|---------|-----|
-| zephyr | Unknown | control-plane, etcd | 24d | v1.34.5+k3s1 | Flannel |
-| nexus | Unknown | control-plane, etcd | 2d | v1.34.5+k3s1 | Flannel |
-| forge | Unknown | agent | 26d | v1.34.5+k3s1 | Flannel |
-| sentry | Unknown | control-plane, etcd | 26d | v1.34.5+k3s1 | Flannel |
+| zephyr | Ready | control-plane, etcd | 25d | v1.34.5+k3s1 | Flannel |
+| nexus | Ready | control-plane, etcd | 3d | v1.34.5+k3s1 | Flannel |
+| forge | Ready | agent | 27d | v1.34.5+k3s1 | Flannel |
+| sentry | Ready | control-plane, etcd | 27d | v1.34.5+k3s1 | Flannel |
 
 **CNI:** Flannel VXLAN (default) — 10.244.0.0/16 pod network, UDP 8472
-**~56 pods running across 24 namespaces.**
+**60 pods running across 22 namespaces.**
+**OS:** NixOS 26.05 (Yarara), Kernel 7.0.0-cachyos, containerd 2.1.5-k3s1
 
 **Note:** ClusterIP unreachable from host (kube-proxy in container, no iptables DNAT). Fixed by routing 10.0.0.0/12 via Flannel gateway + NodePort for Caddy routes.
 
+**Stuck pods:** `debug-nexus` in default namespace (CreateContainerConfigError) — orphaned debug pod.
 
 ---
 
@@ -35,8 +36,8 @@
 
 ### Architecture
 
-Centralized OAuth2 Proxy (oauth2-proxy v7.15.2) on zephyr + nexus, backed by Casdoor OIDC at auth.lan.
-All protected services use Caddy `forward_auth` to enforce authentication.
+Centralized OAuth2 Proxy (oauth2-proxy v7) on zephyr + nexus, backed by Casdoor OIDC at auth.lan.
+All protected services use Caddy `forward_auth` to enforce authentication. No per-pod sidecars.
 
 ### Service Classification
 
@@ -68,6 +69,15 @@ All protected services use Caddy `forward_auth` to enforce authentication.
 - Deleted 8 orphaned K8s Ingress resources (referenced non-existent `caddy` IngressClass)
 - Removed stale `llama.zephyr.lan` Caddy route
 - Fixed unbound `local-zone "lan." static` declaration (was missing from generated config)
+
+### Fixes Applied (2026-05-02, Session 2)
+
+- Fixed Grafana K8s OAuth: removed duplicated/conflicting `GF_AUTH_GENERIC_OAUTH_*` env vars (monitoring.nix)
+- Fixed Grafana admin-secret namespace: was applying to `ai-inference`, now correctly applies to `monitoring` (agenix-fixes.nix)
+- Removed K8s sidecars (haven, kagent, mission-control) — auth now handled by Caddy forward_auth only
+- Fixed Service targetPorts: changed from 4180 (removed sidecar) to actual app ports (3000, 8080)
+- Removed alert-webhook stub deployment — AlertManager logs directly via Alloy → Loki
+- Fixed privacy-filter NetworkPolicy: allows ingress from `ai-inference` and `ingress-system` namespaces
 
 ---
 
@@ -141,6 +151,15 @@ All protected services use Caddy `forward_auth` to enforce authentication.
 | Knowledge Fabric API | Running | 10.6.31.109:3000 | nexus | Stub API (RRF in gateway) |
 | SearXNG | Running | 10.4.98.141:8080 | nexus | Web search |
 
+### Known Stubs (need real implementation)
+
+| Component | File | Status |
+|-----------|------|--------|
+| Knowledge Fabric API | `kubernetes/modules/ai-inference.nix` | Inline Python stub — returns empty results. RRF middleware runs in gateway. Needs Qdrant embedding pipeline. |
+| Gaming detection | `kubernetes/modules/host-services.nix` | `sleep infinity` — real detection runs on host via NixOS systemd (needs D-Bus/GameMode) |
+| nix-csi | `kubernetes/modules/nix-csi.nix` | Empty module — CSI volumes use hostPath mounts directly |
+| Privacy filter | `kubernetes/modules/privacy-filter.nix` | `pip install` at runtime — not a proper container image |
+
 ---
 
 ## Service Distribution
@@ -159,7 +178,15 @@ All protected services use Caddy `forward_auth` to enforce authentication.
 | **LLM Servers** | | | | |
 | llama-server-zephyr | Running | — | — | — |
 | llama-server-sentry (AMD) | — | — | — | Running |
-| **Monitoring** | | | | |
+| **Monitoring (K8s)** | | | | |
+| Grafana | — | — | — | Running (NodePort 32102) |
+| Prometheus | — | — | — | Running |
+| Loki | — | — | — | Running |
+| Mimir | — | — | — | Running |
+| Tempo | — | — | — | Running |
+| Alloy (DaemonSet) | Running | Running | Running | Running |
+| AlertManager | — | — | — | Running |
+| **Monitoring (NixOS)** | | | | |
 | node-exporter | Running | Running | Running | Running |
 | NVIDIA GPU exporter | Running | Running | Running | — |
 | **Mining** | | | | |
@@ -167,6 +194,13 @@ All protected services use Caddy `forward_auth` to enforce authentication.
 | gpu-miner-forge (AMD) | — | — | Running | — |
 | gpu-miner-forge (NVIDIA) | — | — | Running | — |
 | xmrig-* | Running | Running | — | Running |
+
+### Grafana Deployment Model
+
+Grafana runs **only as a K8s Deployment** in the `monitoring` namespace on sentry (NodePort 32102).
+The NixOS `services.monitoring.grafana` module (`grafana-v2.nix`) is **disabled on all hosts** — it's dead code.
+Access: `grafana.lan` → VIP 10.1.1.100 → Zephyr Caddy → `mkAuthRoute` → NodePort 32102 → K8s Grafana.
+OAuth via Casdoor SSO (Caddy forward_auth). Grafana also has native `GF_AUTH_GENERIC_OAUTH` configured as fallback.
 
 ---
 
