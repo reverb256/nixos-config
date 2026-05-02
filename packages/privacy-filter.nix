@@ -135,13 +135,40 @@ in
               "model": "openai/privacy-filter",
               "endpoints": {
                   "/filter": "POST - Detect and mask PII in text",
+                  "/redact": "POST - Gateway-compatible PII redaction",
                   "/health": "GET - Health check"
               }
           }
 
+      @app.post("/redact")
+      async def redact_pii(input_data: dict) -> dict:
+          """Redact PII - compatible with ai-inference-gateway privacy_filter_client."""
+          try:
+              text = input_data.get("text", "")
+              mode = input_data.get("mode", "redact")
+              results = classifier(text)
+              entities = [
+                  {
+                      "entity": r.get("entity_group", r.get("entity", "UNKNOWN")),
+                      "score": float(r["score"]),
+                      "word": r["word"],
+                      "start": r.get("start"),
+                      "end": r.get("end")
+                  }
+                  for r in results
+              ]
+              masked_text = text
+              for entity in reversed(entities):
+                  if entity["start"] is not None and entity["end"] is not None:
+                      masked_text = masked_text[:entity["start"]] + "[REDACTED]" + masked_text[entity["end"]:]
+              return {"redacted_text": masked_text, "entities_found": entities}
+          except Exception as e:
+              logger.error(f"Error in /redact: {e}")
+              raise HTTPException(status_code=500, detail=str(e))
+
       if __name__ == "__main__":
           import uvicorn
-          uvicorn.run(app, host="0.0.0.0", port=8081)
+          uvicorn.run(app, host="0.0.0.0", port=8080)
       EOF
 
           chmod +x $out/bin/privacy-filter-server

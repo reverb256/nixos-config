@@ -46,7 +46,7 @@ Non-system projects live in `/data/projects/own/` as standalone flakes:
 |---------|-------------|---------|
 | ai-inference-gateway | `ai-gateway` | AI gateway service |
 | compute-market | `compute-market` | GPU time-slicing |
-| caddy-ingress | `caddy-ingress` | Custom Caddy build |
+| ~~caddy-ingress~~ | `caddy-ingress` | Archived — NixOS Caddy replaces K8s ingress controller |
 | gpu-proxy | `gpu-proxy` | Stratum mining proxy |
 | knowledge-fabric | `knowledge-fabric` | Knowledge base |
 | llama-cpp-turboquant | `llama-turboquant` | TurboQuant + DFlash llama.cpp |
@@ -236,6 +236,35 @@ in {
 - `container-scanning.nix` exists but **not imported** in `default.nix`
 - GitHub Actions pinned to commit SHAs
 
+
+## Central SSO Authentication
+
+**Architecture:** Casdoor OIDC (auth.lan) → oauth2-proxy (central-auth.service) → Caddy forward_auth
+**Deployed on:** Zephyr + Nexus (both run central-auth.service)
+
+### Service Classification
+
+| Type | Services |
+|------|----------|
+| Public (no auth) | searxng.lan, ai-inference.lan |
+| Protected (SSO) | haven.lan, openwebui.lan, kagent.lan, grafana.lan, mission-control.lan |
+
+### Caddy Config
+
+- **Zephyr** (`hosts/zephyr/caddy-routes.nix`): `mkAuthRoute` for protected, `mkRoute` for public
+- **Nexus** (`modules/services/cluster-services.nix`): `protected = true` per service in registry
+- Both proxy auth to local oauth2-proxy on port 4180
+
+### DNS
+
+All `.lan` domains → VIP 10.1.1.100 (keepalived MASTER on zephyr).
+Unbound on all nodes with `local-zone "lan." static`.
+
+### ⚠️ No K8s Sidecars
+
+Do NOT deploy oauth2-proxy as K8s sidecar containers. Use the `central-auth` NixOS service instead.
+Sidecars were removed 2026-05-02 from: haven, openwebui, kagent-ui, mission-control, llama-server-sentry, llama-server-zephyr-3090-moe.
+
 ## MCP Infrastructure
 
 **In-cluster:** kubernetes-mcp (SSE :8080 on nexus) + nixos-cluster-mcp (DaemonSet, SSE :8081 on all nodes)
@@ -255,4 +284,4 @@ in {
 
 ---
 
-**Version**: 5.0 | **Last Updated:** 2026-05-01
+**Version**: 5.1 | **Last Updated:** 2026-05-02

@@ -64,8 +64,7 @@ in {
     systemd.services.central-auth = {
       description = "Central OAuth2 Proxy (Casdoor SSO)";
       wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" "casdoor.service" ];
-      wants = [ "casdoor.service" ];
+      after = [ "network.target" ];
 
       serviceConfig = {
         Type = "simple";
