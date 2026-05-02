@@ -85,9 +85,9 @@ ConfigMap.ai-inference-gateway-config.data = {
        MAX_REQUEST_SIZE = "10485760";
        CIRCUIT_BREAKER_ENABLED = "true";
        REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
-       SECONDARY_BACKEND_URL = "http://llama-server-zephyr-3090-moe.ai-inference.svc.cluster.local:1237";
-       SECONDARY_BACKEND_MODEL = "Qwen3.6-35B-A3B-UD-IQ3_S.gguf";
-       DISCOVERY_BACKENDS = ''[]'';  # Dead vllm-3060ti removed (port 8040 unreachable)
+       SECONDARY_BACKEND_URL = "http://10.1.1.110:8041";
+       SECONDARY_BACKEND_MODEL = "QuantTrio/Qwen3.5-2B-AWQ";
+       DISCOVERY_BACKENDS = ''[]'';  # vLLM Qwen3.5-4B-AWQ active on 3060Ti (port 8041)
        PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
        PRIVACY_FILTER_ENABLED = "false";
        MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
@@ -1652,11 +1652,11 @@ ConfigMap.ai-inference-gateway-config.data = {
             ];
           }
           {
-            to = [{podSelector.matchLabels.app = "llama-server-zephyr-3060ti";}];
+            to = [{podSelector.matchLabels.app = "llama-qwen-vllm-zephyr-3060ti";}];
             ports = [
               {
                 protocol = "TCP";
-                port = 1236;
+                port = 8041;
               }
             ];
           }
@@ -1669,23 +1669,23 @@ ConfigMap.ai-inference-gateway-config.data = {
               }
             ];
           }
-          {
-            to = [{ipBlock.cidr = "10.1.1.0/24";}];
-            ports = [
-              {
-                protocol = "TCP";
-                port = 1235;
-              }
-              {
-                protocol = "TCP";
-                port = 1236;
-              }
-              {
-                protocol = "TCP";
-                port = 1237;
-              }
-            ];
-          }
+           {
+             to = [{ipBlock.cidr = "10.1.1.0/24";}];
+             ports = [
+               {
+                 protocol = "TCP";
+                 port = 1235;
+               }
+               {
+                 protocol = "TCP";
+                 port = 8041;
+               }
+               {
+                 protocol = "TCP";
+                 port = 1237;
+               }
+             ];
+           }
         ];
       };
     };
