@@ -432,10 +432,10 @@
                     llama-zephyr-3060ti = lib.mkOption {
                       type = lib.types.submodule (svcOpts {
                         namespace = "ai-inference";
-                        port = 1236;
+                        port = 8040;
                       });
                       default = {};
-                      description = "llama-server Zephyr RTX 3060 Ti";
+                      description = "vLLM Zephyr RTX 3060 Ti (Qwen3.5-4B-AWQ)";
                     };
 
                     llama-sentry = lib.mkOption {
