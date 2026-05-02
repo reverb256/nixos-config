@@ -139,33 +139,7 @@ in {
                   };
                 };
               };
-              oauth2-proxy = {
-                image = "quay.io/oauth2-proxy/oauth2-proxy:v7.10.0";
-                imagePullPolicy = "IfNotPresent";
-                ports = [{
-                  containerPort = 4180;
-                  name = "http";
-                  protocol = "TCP";
-                }];
-                env = {
-                  OAUTH2_PROXY_PROVIDER.value = "oidc";
-                  OAUTH2_PROXY_OIDC_ISSUER_URL.value = "https://auth.lan";
-                  OAUTH2_PROXY_CLIENT_ID.valueFrom.secretKeyRef = { name = "haven-oidc"; key = "client-id"; };
-                  OAUTH2_PROXY_CLIENT_SECRET.valueFrom.secretKeyRef = { name = "haven-oidc"; key = "client-secret"; };
-                  OAUTH2_PROXY_COOKIE_SECRET.valueFrom.secretKeyRef = { name = "haven-oidc"; key = "cookie-secret"; };
-                  OAUTH2_PROXY_REDIRECT_URL.value = "https://haven.lan/oauth2/callback";
-                  OAUTH2_PROXY_UPSTREAM.value = "http://127.0.0.1:3000";
-                  OAUTH2_PROXY_EMAIL_DOMAINS.value = "*";
-                  OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER.value = "true";
-                  OAUTH2_PROXY_SET_AUTHORIZATION_HEADER.value = "true";
-                  OAUTH2_PROXY_SKIP_JWT_BEARER_TOKENS.value = "true";
-                  OAUTH2_PROXY_COOKIE_SECURE.value = "false";
-                  OAUTH2_PROXY_COOKIE_SAMESITE.value = "lax";
-                  OAUTH2_PROXY_INSECURE_OIDC_ALLOW_UNVERIFIED_EMAIL.value = "true";
-                  OAUTH2_PROXY_OIDC_EMAIL_CLAIM.value = "sub";
-                  OAUTH2_PROXY_SKIP_AUTH_REGEX.value = "^/api/health$";
-                };
-              };
+              # Sidecar removed: auth handled by Caddy forward_auth → central-auth
             };
             volumes = {
               _namedlist = true;
@@ -186,7 +160,7 @@ in {
           _namedlist = true;
           http = {
             port = 3000;
-            targetPort = 4180;
+            targetPort = 3000;
             nodePort = 32100;
             protocol = "TCP";
           };
