@@ -295,6 +295,7 @@ in {
                     export TRITON_CACHE_DIR=/tmp/triton-cache
                     export TRANSFORMERS_CACHE=/tmp/hf-cache
                     export HF_HOME=/tmp/hf-cache
+                    export CC=/run/current-system/sw/bin/gcc
                     /nix/store/*coreutils*/bin/mkdir -p /tmp/vllm-cache /tmp/torch-cache /tmp/triton-cache /tmp/hf-cache 2>/dev/null || true
                     exec /home/j_kro/vllm-env/bin/python3 /home/j_kro/vllm-start-tq.sh
                   ''
