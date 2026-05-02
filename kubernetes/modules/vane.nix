@@ -28,7 +28,7 @@ in {
               "name": "Local Gateway",
               "type": "openai",
               "chatModels": [
-               {"key": "qwen3_5_4b_awq", "name": "Qwen 3.5 4B AWQ (vLLM, concurrency)"},
+               {"key": "qwen3.5-2b-awq", "name": "Qwen 3.5 2B AWQ (vLLM, concurrency)"},
               {"key": "Qwen3.5-4B.Q4_K_M.gguf", "name": "Qwen3.5-4B (Local)"}
             ],
               "embeddingModels": [{"key": "BAAI/bge-m3", "name": "BGE-M3 (1024d)"}],
@@ -52,7 +52,7 @@ in {
             }
           ],
           "search": {"searxngURL": "http://searxng.search.svc.cluster.local:8080"},
-          "chatModel": {"providerId": "local-gateway", "key": "qwen3_5_4b_awq"},
+          "chatModel": {"providerId": "local-gateway", "key": "qwen3.5-2b-awq"},
           "embeddingModel": {"providerId": "local-gateway", "key": "BAAI/bge-m3"}
         }
       '';
