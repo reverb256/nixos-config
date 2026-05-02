@@ -20,7 +20,7 @@ in {
   config.kubernetes.objects = {
     # ── Namespace ──────────────────────────────────────────────────────
     none.Namespace.orchestration = {
-      metadata.labels = {
+      metadata.labels = managed // {
         name = "orchestration";
         "pod-security.kubernetes.io/enforce" = "baseline";
         "pod-security.kubernetes.io/audit" = "restricted";
@@ -73,7 +73,7 @@ in {
           type = "Recreate";
         };
         template = {
-          metadata.labels.app = "mission-control";
+          metadata.labels = managed // { app = "mission-control"; };
           spec = {
             nodeSelector."kubernetes.io/hostname" = targetNode;
             automountServiceAccountToken = false;
@@ -172,7 +172,7 @@ in {
 
     # ── Service ────────────────────────────────────────────────────────
     orchestration.Service.mission-control = {
-      metadata.labels.app = "mission-control";
+      metadata.labels = managed // { app = "mission-control"; };
       spec = {
         type = "NodePort";
         selector.app = "mission-control";
@@ -190,7 +190,7 @@ in {
 
     # ── NetworkPolicy: ingress from caddy + cluster ────────────────────
     orchestration.NetworkPolicy.allow-mc-ingress = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "mission-control";
         policy = "allow-ingress";
       };
@@ -237,7 +237,7 @@ in {
 
     # ── NetworkPolicy: egress (DNS + internet) ─────────────────────────
     orchestration.NetworkPolicy.allow-mc-egress = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "mission-control";
         policy = "allow-egress";
       };

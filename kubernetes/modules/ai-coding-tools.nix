@@ -111,7 +111,7 @@ in {
         };
         template = {
           metadata = {
-            labels = {
+            labels = managed // {
               app = "claude-code";
               component = "ai-coding-tool";
             };
@@ -309,7 +309,7 @@ in {
     # Replaces: 20-opencode-deployment.yaml, 20-opencode-multi-node.yaml,
     #           20-opencode-simple.yaml, 60-opencode-containerized.yaml
     Deployment.opencode = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "opencode";
         component = "ai-coding-tool";
       };
@@ -326,7 +326,7 @@ in {
         };
         template = {
           metadata = {
-            labels = {
+            labels = managed // {
               app = "opencode";
               component = "ai-coding-tool";
             };
