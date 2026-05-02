@@ -191,6 +191,9 @@
       value = "/run/opengl-driver/lib";
     };
   };
+  managed = {
+    "app.kubernetes.io/managed-by" = "easykubenix";
+  };
 in {
   config.kubernetes.objects = {
     mining.Deployment.gpu-miner-forge-nvidia-0 = {
@@ -664,7 +667,7 @@ in {
 
     mining.Deployment.gpu-miner-zephyr = {
       metadata = {
-        labels = {
+        labels = managed // {
           app = "gpu-miner-zephyr";
           host = "zephyr";
           workload = "crypto-mining";

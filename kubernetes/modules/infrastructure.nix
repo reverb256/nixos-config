@@ -10,6 +10,9 @@
     "pod-security.kubernetes.io/warn" = "restricted";
   };
   nixosClusterMcp = pkgs.callPackage ../../packages/nixos-cluster-mcp {};
+  managed = {
+    "app.kubernetes.io/managed-by" = "easykubenix";
+  };
 in {
   config.kubernetes.objects.none = {
     PriorityClass.high-priority-ai = {

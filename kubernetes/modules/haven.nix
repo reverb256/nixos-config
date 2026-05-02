@@ -4,6 +4,9 @@
   ...
 }: let
   havenImage = "ghcr.io/ancsemi/haven:3.1.1";
+  managed = {
+    "app.kubernetes.io/managed-by" = "easykubenix";
+  };
 in {
   config.kubernetes.objects = {
     none.Namespace.haven = {
