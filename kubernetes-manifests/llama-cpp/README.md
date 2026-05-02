@@ -206,17 +206,9 @@ kubectl logs -n ai-inference deployment/llama-cpp-qwen | grep "kv cache"
 --ngl 999           # Max GPU offloading
 ```
 
-## Comparison: llama.cpp vs vLLM
+## Why llama.cpp
 
-| Feature | llama.cpp | vLLM |
-|---------|-----------|------|
-| Memory Usage | ~2GB (2B model) | ~8GB (7B model) |
-| Flash Attention | ✅ Native support | ⚠️ Experimental |
-| Quantization | ✅ GGUF (4-bit) | ❌ No quantization |
-| bf16 KV Cache | ✅ Working | ⚠️ CUDA issues |
-| Model Support | Wide range | Transformer-only |
-| GPU Requirements | 8GB+ VRAM | 16GB+ VRAM |
-| Production Ready | ✅ Stable | ⚠️ Version compatibility |
+llama.cpp with TurboQuant was chosen over vLLM for the 3090. GGUF quantization + Flash Attention delivers 24.7 tok/s with low VRAM. This is the permanent stack — no plans to switch.
 
 ## References
 - llama.cpp: https://github.com/ggerganov/llama.cpp
