@@ -9,7 +9,7 @@
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
 
   # AI Inference Gateway — pre-built container image (loaded into containerd on target node)
-  gatewayImage = "docker.io/library/ai-inference-gateway:2.4.8";
+  gatewayImage = "docker.io/library/ai-inference-gateway:2.4.9";
 
   # Managed-by labels for easykubenix
   managed = {
@@ -31,14 +31,12 @@ in {
     ConfigMap.ai-gateway-config.data = {
       AUTH_MODE = "none";
       BACKEND_TYPE = "llama-cpp";
-      BACKEND_URL = "http://llama-cpp-qwen.ai-inference.svc.cluster.local:8080";
-      DEFAULT_MODEL = "qwen3.5-4b";
+      BACKEND_URL = "http://llama-server-zephyr-3090-moe.ai-inference.svc.cluster.local:1237";
+      DEFAULT_MODEL = "Qwen3.6-35B-A3B-UD-IQ3_S.gguf";
       RAG_ENABLED = "true";
       RAG_TOP_K = "5";
-      QDRANT_URL = "http://qdrant:6333";
+      QDRANT_URL = "http://qdrant.ai-inference.svc.cluster.local:6333";
       HYBRID_SEARCH_ENABLED = "true";
-      MCP_ENABLED = "false";
-      AUTO_RAG_ENABLED = "true";
       EMBEDDING_MODEL = "BidirLM/BidirLM-Omni-2.5B-Embedding";
       EMBEDDING_DIMENSIONS = "2048";
       EMBEDDING_TRUST_REMOTE_CODE = "true";
@@ -51,8 +49,8 @@ in {
       AUTH_MODE = "api-key";
       BACKEND_TYPE = "zai";
       BACKEND_URL = "https://api.z.ai/api/coding/paas/v4";
-      BACKEND_FALLBACK_URLS = "http://llama-server-zephyr-3090-moe.ai-inference.svc.cluster.local:1237,http://llama-server-sentry.ai-inference.svc.cluster.local:1235,http://llama-server-zephyr-3060ti.ai-inference.svc.cluster.local:1236,https://text.pollinations.ai,https://api.kilo.ai/api/gateway,https://integrate.api.nvidia.com/v1,https://openrouter.ai/api/v1";
-      DEFAULT_MODEL = "glm-5.1";
+      BACKEND_FALLBACK_URLS = "https://text.pollinations.ai,https://api.kilo.ai/api/gateway";
+      DEFAULT_MODEL = "glm-5-turbo";
       GATEWAY_HOST = "0.0.0.0";
       PORT = "8080";
       PYTHONUNBUFFERED = "1";
@@ -87,8 +85,8 @@ in {
       MAX_REQUEST_SIZE = "10485760";
       CIRCUIT_BREAKER_ENABLED = "true";
       REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
-      SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
-      SECONDARY_BACKEND_MODEL = "QuantTrio/Qwen3.5-2B-AWQ";
+      SECONDARY_BACKEND_URL = "http://10.1.1.110:1237";
+      SECONDARY_BACKEND_MODEL = "Qwen3.6-35B-A3B-UD-IQ3_S.gguf";
       DISCOVERY_BACKENDS = "[{"name":"vllm-3060ti","base_url":"http://10.1.1.110:8040/v1","priority":12}]";
       PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8081";
       PRIVACY_FILTER_ENABLED = "false";
