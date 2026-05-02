@@ -67,6 +67,32 @@
       type = "http";
       url = "http://kubernetes-mcp.infra.svc.cluster.local:8080/mcp";
     };
+
+    # Grafana MCP (K8s deployment in mcp namespace, SSE transport)
+    # Dashboards, metrics, alerts, datasources via natural language
+    grafana = {
+      type = "http";
+      url = "http://grafana-mcp.mcp.svc.cluster.local:8000/sse";
+    };
+
+    # Qdrant MCP (K8s deployment in mcp namespace, SSE transport)
+    # Vector search, semantic memory, document storage
+    qdrant = {
+      type = "http";
+      url = "http://qdrant-mcp.mcp.svc.cluster.local:8000/sse";
+    };
+
+    # Prometheus MCP (local bridge script, stdio transport)
+    prometheus = {
+      type = "custom";
+      command = "/data/agents/mcp-bridges/prometheus-mcp.sh";
+    };
+
+    # PostgreSQL MCP (local bridge script, stdio transport)
+    postgres = {
+      type = "custom";
+      command = "/data/agents/mcp-bridges/postgres-mcp.sh";
+    };
   };
 
   mkCommand = name: "mcp-${name}";
