@@ -90,7 +90,10 @@ in {
       roleRef = {apiGroup = "rbac.authorization.k8s.io"; kind = "ClusterRole"; name = "kubernetes-mcp";};
     };
 
-    # ── Kubernetes MCP Server (SSE) ───────────────────────────────
+    # ── Kubernetes MCP Server (SSE + Streamable HTTP) ─────────────
+    # SSE endpoint: GET /sse (legacy)
+    # Streamable HTTP endpoint: POST /mcp (recommended for HTTP clients)
+    # Health check: GET /healthz
     Deployment.kubernetes-mcp = {
       metadata.labels.app = "kubernetes-mcp";
       spec = {
@@ -117,13 +120,13 @@ in {
                   limits = {cpu = "500m"; memory = "256Mi";};
                 };
                 readinessProbe = {
-                  httpGet = {path = "/sse"; port = 8080;};
+                  httpGet = {path = "/healthz"; port = 8080;};
                   initialDelaySeconds = 5;
                   periodSeconds = 10;
                   failureThreshold = 3;
                 };
                 livenessProbe = {
-                  httpGet = {path = "/sse"; port = 8080;};
+                  httpGet = {path = "/healthz"; port = 8080;};
                   initialDelaySeconds = 15;
                   periodSeconds = 30;
                   failureThreshold = 3;
@@ -138,6 +141,7 @@ in {
       metadata.labels.app = "kubernetes-mcp";
       spec = {
         type = "ClusterIP";
+        clusterIP = "10.12.22.155";
         ports = [{port = 8080; targetPort = 8080; protocol = "TCP";}];
         selector.app = "kubernetes-mcp";
       };
