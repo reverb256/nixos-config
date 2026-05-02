@@ -16,10 +16,7 @@
   llama-cpp = prev.callPackage ./packages/llama-cpp-cuda.nix {
     inherit (prev) config;
   };
-  inherit
-    (inputs.llama-turboquant.packages.x86_64-linux)
-    llama-cpp-turboquant
-    ;
+  llama-cpp-turboquant = prev.callPackage ./packages/llama-cpp-turboquant.nix {};
   llama-cpp-rocm = prev.callPackage ./packages/llama-cpp-rocm.nix {};
   llama-cpp-vulkan = prev.callPackage ./packages/llama-cpp-vulkan.nix {};
   # TODO: broken placeholder rev/hash — re-enable when source is valid
