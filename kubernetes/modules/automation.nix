@@ -226,12 +226,11 @@ in {
 
     # ══════════════════════════════════════════════════════════════════════
     # ACTIVEPIECES — Workflow automation platform
-    # NOTE: Scaled to 0 (not actively used). Scale up when needed.
     # ══════════════════════════════════════════════════════════════════════
     Deployment.activepieces = {
       metadata.labels = managed // {"app" = "activepieces";};
       spec = {
-        replicas = 0;
+        replicas = 1;
         revisionHistoryLimit = 2;
         strategy.type = "Recreate";
         selector.matchLabels = {"app" = "activepieces";};
@@ -284,12 +283,11 @@ in {
 
     # ══════════════════════════════════════════════════════════════════════
     # N8N — Workflow automation platform
-    # NOTE: Scaled to 0 (not actively used). Scale up when needed.
     # ══════════════════════════════════════════════════════════════════════
     Deployment.n8n = {
       metadata.labels = managed // {"app" = "n8n";};
       spec = {
-        replicas = 0;
+        replicas = 1;
         revisionHistoryLimit = 2;
         strategy.type = "Recreate";
         selector.matchLabels = {"app" = "n8n";};
