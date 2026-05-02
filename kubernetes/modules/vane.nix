@@ -28,8 +28,8 @@ in {
               "name": "Local Gateway",
               "type": "openai",
               "chatModels": [
-               {"key": "qwen3.5-2b-awq", "name": "Qwen 3.5 2B AWQ (vLLM, concurrency)"},
-              {"key": "Qwen3.5-4B.Q4_K_M.gguf", "name": "Qwen3.5-4B (Local)"}
+               {"key": "qwen3.5-4b-awq", "name": "Qwen 3.5 4B AWQ (vLLM, concurrency)"},
+              {"key": "Qwen3-4B-Wrist-On-Hermes", "name": "Qwen3-4B Wrist (Sentry, deep search)"}
             ],
               "embeddingModels": [{"key": "BAAI/bge-m3", "name": "BGE-M3 (1024d)"}],
               "config": {"baseURL": "${gatewayUrl}/v1", "apiKey": "sk-placeholder"}

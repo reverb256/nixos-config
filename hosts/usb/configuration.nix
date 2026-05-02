@@ -367,7 +367,7 @@ in {
         model: Qwen3.6-35B-A3B-abliterated.i1-IQ3_M.gguf
       zephyr-3060ti:
         base_url: http://10.1.1.110:8040/v1
-        model: qwen3.5-4b-awq
+        model: qwen3.5-2b-awq
       sentry-qwen35:
         base_url: http://10.1.1.140:1235/v1
         model: Qwen3.5-9B-abliterated.i1-IQ2_M.gguf
