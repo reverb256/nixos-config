@@ -31,6 +31,7 @@
   # Wrap hermes-agent with WhatsApp bridge injected into site-packages/
   # This makes both `hermes whatsapp` (CLI pairing) and the gateway adapter work.
   hermes-with-whatsapp = pkgs.callPackage ../../packages/hermes-with-whatsapp.nix {
+    inherit lib;
     hermes-pkg = hermesPkg;
     inherit whatsapp-bridge;
   };
