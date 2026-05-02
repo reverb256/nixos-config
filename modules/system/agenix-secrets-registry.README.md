@@ -214,7 +214,7 @@ services.ai-inference = {
   routing = {
     enable = true;
     defaultModel = "qwen3.5-35b-a3b";
-    fallbackChain = [ "vllm" "zai" "pollinations" ];
+    fallbackChain = [ "llamacpp" "pollinations" ];
   };
   rag = {
     enable = true;

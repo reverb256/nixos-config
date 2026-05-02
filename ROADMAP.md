@@ -1,10 +1,33 @@
 # NixOS Cluster Kubernetes Migration Roadmap
 
-**Status:** K3s migration COMPLETE (Phase 1-5) — Sovereign Service Mesh OPERATIONAL (Phase 7)
-**Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-04-26
+**Status:** K3s migration COMPLETE (Phase 1-7) — Sovereign Service Mesh OPERATIONAL — Post-migration hardening in progress
+**Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-05-02
 
 > **See `INFRASTRUCTURE-AUDIT.md` for current cluster state, issues, and next steps.**
-> **See `SOVEREIGN-SERVICE-MESH-STATUS.md` for AI Gateway mesh status.**
+> **See `docs/plans/2026-05-01-mcp-system-plan.md` for MCP system plan.**
+> **See `docs/SOVEREIGN-SERVICE-MESH-STATUS.md` for AI Gateway mesh status.**
+
+## Current State (2026-05-02)
+
+**What changed since last update:**
+- All K8s nodes now show `Ready` (was `Unknown`)
+- Grafana K8s OAuth fixed (duplicated env vars removed, correct Casdoor endpoints)
+- Grafana admin-secret namespace fixed (was `ai-inference`, now `monitoring`)
+- K8s oauth2-proxy sidecars removed from haven, kagent, mission-control (centralized SSO via Caddy)
+- Alert-webhook stub removed (AlertManager logs via Alloy → Loki)
+- Privacy-filter NetworkPolicy fixed (allows AI gateway traffic)
+- 60 pods running across 22 namespaces, all nodes healthy
+
+**Known stubs needing real implementation:**
+- Knowledge Fabric API: inline Python stub, needs Qdrant embedding pipeline
+- Privacy filter: `pip install` at runtime, needs proper container image
+- Gaming detection: `sleep infinity`, real detection runs on host via systemd
+- nix-csi: empty module, hostPath volumes used directly
+
+**Confirmed permanent:** TurboQuant llama.cpp on 3090 (24.7 tok/s). No vLLM on 3090.
+**Z.AI API shutting down after May 8.**
+
+> **Historical content below preserved for reference. Many sections are stale (service inventory, `services.kubernetes` references, timeline estimates). Rely on `INFRASTRUCTURE-AUDIT.md` for current state.**
 
 ## Executive Summary
 
@@ -45,12 +68,11 @@
 
 ### Current Service Inventory (31 services)
 
-**AI/ML Services (5):**
+**AI/ML Services (4):**
 - AI Inference Gateway (OpenAI-compatible API)
-- vLLM/Qwen3.5 (local LLM)
+- llama.cpp / TurboQuant (local LLM on 3090)
 - LM Studio (desktop UI)
 - Whisper Dictation (speech-to-text)
-- Stability Matrix (AI tool management)
 
 **Databases (2):**
 - GlitchTip PostgreSQL (error tracking)
@@ -319,10 +341,9 @@
 
 **Tier 3 - AI/ML Services (Week 6):**
 - AI Inference Gateway
-- vLLM/Qwen3.5
+- llama.cpp / TurboQuant
 - LM Studio (desktop app, may stay external)
 - Whisper Dictation
-- Stability Matrix
 
 **Tier 4 - Utilities (Week 6):**
 - ✅ SearXNG **MIGRATED (2026-03-19)**
@@ -339,7 +360,7 @@
 
 **Success Criteria:**
 - All services accessible via cluster DNS
-- Services can communicate (ai-inference → vLLM, etc.)
+- Services can communicate (ai-inference → llama.cpp, etc.)
 - Auto-restart working properly
 - Resource quotas enforced
 
@@ -358,9 +379,8 @@
 - Optimize GPU utilization
 
 **Workloads:**
-- **vLLM/Qwen3.5** - Multi-GPU training/inference
+- **llama.cpp / TurboQuant** - GPU inference (permanent on 3090)
 - **Whisper Dictation** - Single GPU
-- **Stability Matrix** - GPU resource management
 
 **Tasks:**
 1. Deploy AI workloads with GPU resource requests
@@ -396,7 +416,7 @@
 - GPU monitoring dashboards operational
 
 **Deliverables:**
-- ✅ GPU workload manifests (llama.cpp, vLLM)
+- ✅ GPU workload manifests (llama.cpp, TurboQuant)
 - ✅ Scheduling strategies documented
 - ✅ AI Gateway integrated with Kubernetes service
 - ✅ End-to-end testing complete (17/18 tests passed)
@@ -410,12 +430,11 @@
 - ✅ GPU resources allocated (RTX 3060 Ti: 1331 MiB, RTX 3090: 2726 MiB)
 - ✅ Comprehensive test suite executed (E2E-TEST-REPORT.md)
 - ✅ Model: Qwen3.5-2B-IQ4_NL.gguf with Flash Attention + bf16 KV cache
-- ⚠️ vLLM deployment pending (CUDA compatibility issue - llama.cpp used as alternative)
+- ✅ 3090: TurboQuant llama.cpp permanent (24.7 tok/s)
 - GPU monitoring deployed
 
 **Known Issues:**
 - ❌ Forge GPU registration failing (RTX 4060 Ada Lovelace support issue)
-- ⚠️ vLLM deployment pending (CUDA compatibility issue - llama.cpp used as alternative)
 
 ---
 
