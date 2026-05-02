@@ -23,7 +23,7 @@ just health             # Detailed health check
 | Zephyr | 10.1.1.110 | Workstation, control plane, gaming, NFS server | 31GB | 2x NVIDIA |
 | Nexus | 10.1.1.120 | Primary server, AI Gateway, monitoring, storage | 46GB | 1x NVIDIA |
 | Forge | 10.1.1.130 | GPU computing, mining | 15GB | 2x NVIDIA + 2x AMD |
-| Sentry | 10.1.1.140 | Monitoring, AI inference (ROCm) | 31GB | 1x AMD Radeon RX 5600 XT (8GB) |
+| Sentry | 10.1.1.140 | Monitoring, AI inference (Vulkan) | 31GB | 1x AMD Radeon RX 5600 XT (6GB) |
 
 **Resources**: 78 cores, 123GB RAM, 7 GPUs, 8.4TB storage
 **K3s**: v1.34.5+k3s1 — All 4 nodes functional, **Flannel CNI** (VXLAN, UDP 8472)
@@ -58,23 +58,27 @@ Non-system projects live in `/data/projects/own/` as standalone flakes:
 ## Project Structure
 
 ```
-/etc/nixos/                          # 280+ .nix files, 40k+ lines
+/etc/nixos/                          # 268 .nix files, ~45k lines
 ├── flake.nix                        # Main flake + host definitions
 ├── colmena.nix                      # Multi-host Colmena deployment
 ├── justfile                         # Task runner (deploy, check, rollback)
-├── hosts/<hostname>/                # Per-host configs (8 files each)
+├── hosts/<hostname>/                # Per-host configs
 │   └── (never edit hardware-configuration.nix)
-├── modules/                         # Reusable modules
-│   ├── system/                      # Core system (43 files)
-│   ├── services/                    # Background daemons (73 files)
-│   ├── desktop/                     # Wayland compositors (14 files)
-│   ├── home-manager/                # HM modules (12 files)
-│   ├── profiles/                    # Composable hardware/role/network profiles
+├── modules/                         # Reusable modules (~171 .nix files)
+│   ├── system/                      # Core system (34 files)
+│   ├── services/                    # Background daemons (67 files)
+│   ├── desktop/                     # Wayland compositors (11 files)
+│   ├── home-manager/                # HM modules (15 files)
+│   ├── profiles/                    # Composable hardware/role/network profiles (9 files)
 │   ├── hardware/                    # GPU, AMD, NVIDIA, monitoring, RGB (7 files)
-│   ├── development/                 # Dev tools (6 files)
+│   ├── development/                 # Dev tools (11 files)
 │   ├── gaming/                      # Game launchers (3 files)
-│   └── network/                     # Networking (4 files)
-├── kubernetes/                      # K8s Nix modules via easykubenix (15 files)
+│   ├── network/                     # Networking (3 files: cluster-hosts, cluster-dns, cluster-networking)
+│   ├── common/                      # Shared host defaults (2 files)
+│   ├── security/                    # PAM, GPG (3 files)
+│   ├── shell/                       # Shell config (2 files)
+│   ├── multimedia/                  # GStreamer (1 file)
+├── kubernetes/                      # K8s Nix modules via easykubenix (21 .nix files)
 │   ├── modules/                     # K8s resource definitions
 │   │   ├── nix-csi.nix              # Upstream nix-csi (with builtins.currentSystem fix)
 │   │   ├── ai-inference.nix         # AI gateway, privacy filter, llama servers
@@ -82,18 +86,18 @@ Non-system projects live in `/data/projects/own/` as standalone flakes:
 │   │   ├── monitoring.nix           # Prometheus, Grafana
 │   │   └── ingress.nix              # Caddy ingress controller
 │   └── default.nix                  # Easykubenix entry point
-├── kubernetes-manifests/            # K8s YAML manifests
-│   ├── archive/                     # Migrated manifests (200+ files archived)
-│   ├── calico/                      # Calico CNI reference configs
+├── kubernetes-manifests/            # K8s YAML manifests (~256 files)
+│   ├── archive/                     # Migrated manifests (archived)
+│   ├── calico/                      # Archived Calico CNI reference configs
 │   └── gpu/                         # GPU scheduling examples
-├── scripts/                         # Utility scripts (101 files)
-├── packages/                        # Custom packages
-│   ├── privacy-filter.nix           # OpenAI PII detection (NEW)
-│   ├── llama-cpp-vulkan.nix         # Vulkan llama.cpp for AMD (NEW)
+├── scripts/                         # Utility scripts (~118 files: 78 .sh, 30 .py, misc)
+├── packages/                        # Custom packages (~14 .nix files)
+│   ├── privacy-filter.nix           # OpenAI PII detection
+│   ├── llama-cpp-vulkan.nix         # Vulkan llama.cpp for AMD
 │   ├── llama-cpp-*.nix              # CUDA, ROCm, TurboQuant variants
 │   └── hermes-chat.nix              # Hermes Agent desktop client
 ├── tests/                           # NixOS tests (8 files)
-├── secrets/                         # Agenix encrypted secrets (41 .age files)
+├── secrets/                         # Agenix encrypted secrets (42 .age files)
 └── .github/workflows/               # CI/CD (5 workflows, SHA-pinned)
 ```
 
@@ -125,7 +129,7 @@ networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22 53 6443];
 | **Nexus** | 46GB | ✅ DEFAULT for ALL workloads |
 | **Zephyr** | 31GB | ⚠️ Infrastructure + mining ONLY |
 | **Forge** | 16GB | Mining + GPU compute |
-| **Sentry** | 31GB | Monitoring + ROCm AI inference (5600 XT) |
+| **Sentry** | 31GB | Monitoring + Vulkan AI inference (5600 XT) |
 
 **Enforce in K8s manifests:**
 ```yaml
@@ -233,7 +237,7 @@ in {
 - All package managers: 7-day cooldown (npm, bun, uv, pnpm)
 - Container images: pinned versions, no `:latest` tags
 - K8s admission policy blocks `:latest` (see `kubernetes-manifests/security/`)
-- `container-scanning.nix` exists but **not imported** in `default.nix`
+- `container-scanning.nix` is imported in `default.nix` (auto-enabled when Podman is enabled)
 - GitHub Actions pinned to commit SHAs
 
 
@@ -283,7 +287,7 @@ Secrets populated by `kubectl-apply-k8s-secrets` from agenix (`monitoring/grafan
 
 ## Codified Conventions (Hermes Skills)
 
-All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills/devops/`.
+All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills/devops/` (~38 skills).
 **Load this skill before ANY NixOS module or K8s manifest work.**
 
 ### Quick Reference: 12 Convention Categories
@@ -330,5 +334,5 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 
 ---
 
-**Version**: 7.0 | **Last Updated:** 2026-05-02
-**Changes**: Updated skill references (6 Hermes skills at ~/.hermes/skills/devops/), fixed revisionHistoryLimit to 2
+**Version**: 8.0 | **Last Updated:** 2026-05-02
+**Changes**: Documentation audit — fixed all file counts, module tree, CNI reference, secrets count, scripts count, Hermes skills count (~38), container-scanning import status
