@@ -14,10 +14,10 @@
         url = "http://sentry.lan:1235"; # sentry ROCm Qwen3.5-4B (K8s pod)
         model = "Qwen3.5-4B.Q4_K_M.gguf";
       };
-      secondary = {
-        url = "http://zephyr.lan:1236"; # zephyr 3060Ti Qwen3.5-9B
-        model = "Qwen3.5-9B.Q4_K_M.gguf";
-      };
+       secondary = {
+         url = "http://zephyr.lan:8040"; # zephyr 3060Ti Qwen3.5-4B-AWQ (vLLM)
+         model = "Qwen3.5-4B-AWQ";
+       };
       nvidia-nim = {
         enable = true;
         apiKeyFile = "/run/agenix/nvidia-api-key";

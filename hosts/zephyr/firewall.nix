@@ -10,23 +10,23 @@
         8080
         8083
         53317
-        8888
-        3900
-        3901
-        50000
-        6443
-        2379
-        2380
-        10250
-        179
-        5473
-        9100
-        9101 # Hermes agent Prometheus exporter
-        1235 # llama-server (Qwen3.6-27B Dense + DFlash)
-      ];
+         8888
+         3900
+         3901
+         50000
+         6443
+         2379
+         2380
+         10250
+         179
+         5473
+         9100
+         9101 # Hermes agent Prometheus exporter
+         1235 # llama-server (Qwen3.6-27B Dense + DFlash)
+       ];
       # Workaround: list merge is broken for this host. Ensure critical ports via nft rules.
       extraInputRules = ''
-        tcp dport { 443, 1235, 1236, 1237, 53317, 8080, 8040, 8888, 3900, 3901, 50000, 9100, 9101, 9400 } accept
+        tcp dport { 443, 1235, 1237, 53317, 8080, 8040, 8888, 3900, 3901, 50000, 9100, 9101, 9400 } accept
       '';
       allowedUDPPorts = lib.mkOptionDefault [
         9757
