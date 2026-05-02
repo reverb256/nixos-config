@@ -1086,22 +1086,10 @@ in {
                   GF_AUTH_GENERIC_OAUTH_API_URL.value = "https://auth.lan/api/userinfo";
                   GF_AUTH_GENERIC_OAUTH_SCOPES.value = "openid profile email";
                   GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP.value = "true";
-                  GF_AUTH_SIGNOUT_REDIRECT_URL.value = "https://auth.lan/login/oauth/logout";
-                  # OAuth / OIDC Auth - Casdoor
-                  GF_AUTH_GENERIC_OAUTH_ENABLED.value = "true";
-                  GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP.value = "true";
-                  GF_AUTH_GENERIC_OAUTH_CLIENT_ID.value = "grafana-app";
-                  GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET.valueFrom.secretKeyRef = {
-                    name = "grafana-oidc-secret";
-                    key = "client-secret";
-                  };
-                  GF_AUTH_GENERIC_OAUTH_AUTH_URL.value = "https://auth.lan/oauth/authorize";
-                  GF_AUTH_GENERIC_OAUTH_TOKEN_URL.value = "https://auth.lan/oauth/token";
-                  GF_AUTH_GENERIC_OAUTH_API_URL.value = "https://auth.lan/api";
-                  GF_AUTH_GENERIC_OAUTH_SCOPES.value = "openid profile email";
                   GF_AUTH_GENERIC_OAUTH_EMAIL_ATTRIBUTE_NAME.value = "email";
-                  GF_AUTH_GENERIC_OAUTH_NAME_ATTRIBUTE_PATH.value = "name";
-                  GF_AUTH_GENERIC_OAUTH_ID_TOKEN_GROUPS_PATH.value = "groups";
+                  GF_AUTH_GENERIC_OAUTH_NAME_ATTRIBUTE_PATH.value = "displayName";
+                  GF_AUTH_GENERIC_OAUTH_LOGIN_ATTRIBUTE_PATH.value = "name";
+                  GF_AUTH_SIGNOUT_REDIRECT_URL.value = "https://auth.lan/login/oauth/logout";
                 };
                 ports = [
                   {
@@ -1422,24 +1410,18 @@ in {
           group_by: ['alertname', 'severity']
           group_wait: 10s
           group_interval: 10s
-          receiver: 'null'
+          receiver: 'log-only'
           routes:
             - match:
                 severity: critical
-              receiver: 'critical-alerts'
+              receiver: 'log-only'
             - match:
                 severity: warning
-              receiver: 'warning-alerts'
+              receiver: 'log-only'
         receivers:
-          - name: 'null'
-          - name: 'critical-alerts'
-            webhook_configs:
-              - url: 'http://alert-webhook.monitoring.svc.cluster.local:9093/api/webhook'
-                send_resolved: true
-          - name: 'warning-alerts'
-            webhook_configs:
-              - url: 'http://alert-webhook.monitoring.svc.cluster.local:9093/api/webhook'
-                send_resolved: true
+          - name: 'log-only'
+            # Alerts are logged by AlertManager itself → Alloy → Loki.
+            # Add real notification channels (Slack/Discord) here when ready.
         inhibit_rules:
           - source_match:
               severity: 'critical'
@@ -1542,58 +1524,8 @@ in {
       };
     };
 
-    # ── Alert Webhook (receiver for alerts) ─────────────────────
-    monitoring.ServiceAccount.alert-webhook-sa = {};
-
-    monitoring.Deployment.alert-webhook = {
-      metadata.labels.app = "alert-webhook";
-      spec = {
-        replicas = 1;
-        selector.matchLabels.app = "alert-webhook";
-        template = {
-          metadata = {
-            labels.app = "alert-webhook";
-            annotations."nix-csi/discard" = "true";
-          };
-          spec = {
-            serviceAccountName = "alert-webhook-sa";
-            containers = {
-              _namedlist = true;
-              webhook = {
-                image = "docker.io/bash:5.2";
-                imagePullPolicy = "IfNotPresent";
-                command = [
-                  "sleep"
-                  "infinity"
-                ];
-                ports = [
-                  {
-                    containerPort = 9093;
-                    name = "http";
-                    protocol = "TCP";
-                  }
-                ];
-              };
-            };
-          };
-        };
-      };
-    };
-
-    monitoring.Service.alert-webhook = {
-      metadata.labels.app = "alert-webhook";
-      spec = {
-        type = "ClusterIP";
-        ports = [
-          {
-            name = "http";
-            port = 9093;
-            targetPort = 9093;
-          }
-        ];
-        selector.app = "alert-webhook";
-      };
-    };
+    # AlertManager logs alerts to stdout → Alloy → Loki.
+    # No separate webhook deployment needed until real notification (Slack/Discord) is configured.
 
     # ── Rest is unchanged, starting from kube-state-metrics
     monitoring.ServiceAccount.kube-state-metrics-sa = {};
