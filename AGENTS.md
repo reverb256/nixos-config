@@ -281,9 +281,9 @@ Secrets populated by `kubectl-apply-k8s-secrets` from agenix (`monitoring/grafan
 **Registry:** `modules/services/mcp-server-registry.nix` — single source of truth
 **Full plan:** `docs/plans/2026-05-01-mcp-system-plan.md`
 
-## Codified Conventions (Skill)
+## Codified Conventions (Hermes Skills)
 
-All repeatable patterns are codified in `skills/cluster-conventions/SKILL.md`.
+All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills/devops/`.
 **Load this skill before ANY NixOS module or K8s manifest work.**
 
 ### Quick Reference: 12 Convention Categories
@@ -292,7 +292,7 @@ All repeatable patterns are codified in `skills/cluster-conventions/SKILL.md`.
 |---|---------|-----------|---------|
 | 1 | **K8s Scratch Pattern** | Yes | `ghcr.io/lillecarl/nix-csi/scratch:1.0.1` + hostPath `/nix` mount for Nix-built binaries. Python venvs/non-Nix binaries → use systemd on host. |
 | 2 | **Extensible Lists** | **BREAKS SSH** | `lib.mkOptionDefault` for ALL lists in shared modules (ports, packages). Direct assignment replaces across all hosts. |
-| 3 | **Deployment Safety** | Yes | `revisionHistoryLimit = 1`, `maxSurge = 0`, explicit `replicas = 1`. `Recreate` for GPU, `RollingUpdate` for stateless. Scale to 0 before deleting. |
+| 3 | **Deployment Safety** | Yes | `revisionHistoryLimit = 2`, `maxSurge = 0`, explicit `replicas = 1`. `Recreate` for GPU, `RollingUpdate` for stateless. Scale to 0 before deleting. |
 | 4 | **GPU Scheduling** | Yes | Default ALL workloads to **Nexus** (46GB). Zephyr = infrastructure only (31GB, constant OOM). `nodeName` preferred over `nodeAffinity`. |
 | 5 | **Caddy Routing** | Yes | Zephyr: `mkRoute`/`mkAuthRoute` helpers. Nexus: service registry with `protected = true`. Both use Caddy `forward_auth` → local oauth2-proxy. |
 | 6 | **Nix Module Boilerplate** | No | `services.*` namespace, `mkEnableOption`, `mkIf cfg.enable`, register in `modules/default.nix`, `git add` new files. |
@@ -315,6 +315,8 @@ All repeatable patterns are codified in `skills/cluster-conventions/SKILL.md`.
 - **Use `bash -c '...'` for ExecStart** — use `writeShellScript`
 - **Manually concatenate PATH** — use `lib.makeBinPath`
 - **Use `systemctl enable`** — declare in NixOS config
+- **Import images on wrong K3s node** -- import on the node where the pod runs
+- **Build Nix containers without `git commit`** -- flakes only see tracked files
 
 ## Reference
 
@@ -328,5 +330,5 @@ All repeatable patterns are codified in `skills/cluster-conventions/SKILL.md`.
 
 ---
 
-**Version**: 6.0 | **Last Updated:** 2026-05-02
-**Changes**: Added codified conventions (12 patterns), created cluster-conventions skill, updated references
+**Version**: 7.0 | **Last Updated:** 2026-05-02
+**Changes**: Updated skill references (6 Hermes skills at ~/.hermes/skills/devops/), fixed revisionHistoryLimit to 2
