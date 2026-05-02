@@ -11,24 +11,32 @@ let
 
   # Target nexus for GPU acceleration (46GB RAM, RTX 4060 Ti)
   targetNode = "nexus";
+
+  managed = {
+    "app.kubernetes.io/managed-by" = "easykubenix";
+  };
 in
 {
   config.kubernetes.objects = {
     # ── Namespace ──────────────────────────────────────────────────────
     none.Namespace.privacy-filter = {
-      metadata.labels = {
-        name = "privacy-filter";
-        "pod-security.kubernetes.io/enforce" = "baseline";
-        "app.kubernetes.io/part-of" = "ai-inference";
-      };
+      metadata.labels =
+        managed
+        // {
+          name = "privacy-filter";
+          "pod-security.kubernetes.io/enforce" = "baseline";
+          "app.kubernetes.io/part-of" = "ai-inference";
+        };
     };
 
     # ── Deployment ─────────────────────────────────────────────────────
     privacy-filter.Deployment.privacy-filter = {
-      metadata.labels = {
-        app = "privacy-filter";
-        "app.kubernetes.io/part-of" = "ai-inference";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "privacy-filter";
+          "app.kubernetes.io/part-of" = "ai-inference";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
@@ -39,7 +47,7 @@ in
           rollingUpdate.maxUnavailable = 1;
         };
         template = {
-          metadata.labels.app = "privacy-filter";
+          metadata.labels = managed // { app = "privacy-filter"; };
           spec = {
             nodeName = targetNode;
             automountServiceAccountToken = false;
