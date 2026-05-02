@@ -5,7 +5,7 @@
 # Binary auto-updates when NixOS is rebuilt (reads live /nix/store).
 #
 # Zephyr GPU layout:
-#   GPU 0 = RTX 3060 Ti (8GB)  → Qwen3.5-2B-AWQ via vLLM (port 8040, concurrency)
+#   GPU 0 = RTX 3060 Ti (8GB)  → Qwen3.5-4B-AWQ via vLLM (port 8040, concurrency)
 #   GPU 1 = RTX 3090 (24GB)    → 35B MoE model (port 1235, coordinator-monitored)
 #
 # GPU ISOLATION NOTE:
@@ -19,7 +19,7 @@
 # activity on the 3090 and shifts gpu-miner-zephyr to the 3060 Ti.
 #
 # Sentry:
-#   AMD RX 5700 XT (6GB, ROCm, gfx1010) → 4B model
+#   AMD RX 5600 XT (8GB, Vulkan/RADV, gfx1010) → 4B model
 {
   pkgs,
   pkgsWithOverlay,
@@ -231,9 +231,9 @@ in {
       };
     };
 
-    # ── Zephyr RTX 3060 Ti (GPU 0) — Qwen3.5-2B-AWQ via vLLM (concurrency) ──────
+    # ── Zephyr RTX 3060 Ti (GPU 0) — Qwen3.5-4B-AWQ via vLLM (concurrency) ──────
     # vLLM for concurrent request handling (vs llama-cpp for single-stream).
-    # 2B-AWQ fits easily in 8GB VRAM with headroom for large KV cache.
+    # 4B-AWQ fits in 8GB VRAM with headroom for large KV cache.
     # hostNetwork + CUDA_VISIBLE_DEVICES=1 selects the 3060Ti (PCI enumeration).
     Deployment.llama-qwen-vllm-zephyr-3060ti = {
       metadata.labels =
@@ -280,9 +280,9 @@ in {
                 ];
                 args = [
                   "--model"
-                  "/models/QuantTrio/Qwen3.5-2B-AWQ"
+                  "/models/QuantTrio/Qwen3.5-4B-AWQ"
                   "--served-model-name"
-                  "qwen3.5-2b-awq"
+                  "qwen3.5-4b-awq"
                   "--port"
                   "8040"
                   "--host"
