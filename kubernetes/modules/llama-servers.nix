@@ -5,8 +5,8 @@
 # Binary auto-updates when NixOS is rebuilt (reads live /nix/store).
 #
 # Zephyr GPU layout:
-#   GPU 0 = RTX 3060 Ti (8GB)  → E4B model (port 1236) [DISABLED - needs GPU isolation]
-#   GPU 1 = RTX 3090 (24GB)    → 26B-A4B model (port 1235, coordinator-monitored)
+#   GPU 0 = RTX 3060 Ti (8GB)  → Qwen3.5-4B-AWQ via vLLM (port 8040, concurrency)
+#   GPU 1 = RTX 3090 (24GB)    → 35B MoE model (port 1235, coordinator-monitored)
 #
 # GPU ISOLATION NOTE:
 #   nvidia-container-runtime on NixOS is broken (libnvidia-container dlopen can't find
@@ -231,9 +231,162 @@ in {
       };
     };
 
-    # ── Zephyr RTX 3060 Ti (GPU 0) — Harmonic-Hermes-9B ───────────────────────────
-    # Qwen3.5-9B Stage 2 agentic fine-tune (reasoning + Hermes tool calling).
-    # 5.3GB i1-Q4_K_M. 8GB VRAM: turbo4 KV cache for 32K context.
+    # ── Zephyr RTX 3060 Ti (GPU 0) — Qwen3.5-4B-AWQ via vLLM (concurrency) ──────
+    # vLLM for concurrent request handling (vs llama-cpp for single-stream).
+    # AWQ 4-bit fits in 8GB VRAM with room for KV cache.
+    # hostNetwork + CUDA_VISIBLE_DEVICES=1 selects the 3060Ti (PCI enumeration).
+    Deployment.llama-qwen-vllm-zephyr-3060ti = {
+      metadata.labels =
+        managed
+        // {
+          app = "llama-qwen-vllm-zephyr-3060ti";
+          host = "zephyr";
+          gpu = "rtx3060ti";
+        };
+      spec = {
+        replicas = 1;
+        revisionHistoryLimit = 1;
+        selector.matchLabels = {
+          app = "llama-qwen-vllm-zephyr-3060ti";
+          host = "zephyr";
+        };
+        strategy.type = "Recreate";
+        template = {
+          metadata = {
+            labels =
+              managed
+              // {
+                app = "llama-qwen-vllm-zephyr-3060ti";
+                host = "zephyr";
+                gpu = "rtx3060ti";
+              };
+            annotations."nix-csi/discard" = "true";
+          };
+          spec = {
+            nodeName = "zephyr";
+            hostNetwork = true;
+            automountServiceAccountToken = false;
+            priorityClassName = "high-priority-ai";
+            tolerations = zephyrTolerations;
+            containers = {
+              _namedlist = true;
+              vllm = {
+                image = "vllm/vllm-openai:v0.19.1";
+                imagePullPolicy = "IfNotPresent";
+                command = [
+                  "python3"
+                  "-m"
+                  "vllm.entrypoints.openai.api_server"
+                ];
+                args = [
+                  "--model"
+                  "/models/QuantTrio/Qwen3.5-4B-AWQ"
+                  "--served-model-name"
+                  "qwen3.5-4b-awq"
+                  "--port"
+                  "8040"
+                  "--host"
+                  "0.0.0.0"
+                  "--quantization"
+                  "awq"
+                  "--gpu-memory-utilization"
+                  "0.95"
+                  "--max-num-seqs"
+                  "16"
+                  "--max-model-len"
+                  "32768"
+                  "--enable-prefix-caching"
+                  "--disable-log-requests"
+                ];
+                env = {
+                  _namedlist = true;
+                  CUDA_VISIBLE_DEVICES = {
+                    name = "CUDA_VISIBLE_DEVICES";
+                    value = "1";
+                  };
+                  VLLM_WORKER_MULTIPROCESING_METHOD = {
+                    name = "VLLM_WORKER_MULTIPROCESING_METHOD";
+                    value = "spawn";
+                  };
+                };
+                resources = {
+                  requests = {
+                    cpu = "1";
+                    memory = "4Gi";
+                    nvidia.com/gpu = "1";
+                  };
+                  limits = {
+                    cpu = "2";
+                    memory = "8Gi";
+                    nvidia.com/gpu = "1";
+                  };
+                };
+                ports = [
+                  {
+                    containerPort = 8040;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
+                livenessProbe = {
+                  httpGet = {
+                    path = "/health";
+                    port = 8040;
+                  };
+                  initialDelaySeconds = 120;
+                  periodSeconds = 30;
+                  failureThreshold = 5;
+                };
+                readinessProbe = {
+                  httpGet = {
+                    path = "/health";
+                    port = 8040;
+                  };
+                  initialDelaySeconds = 60;
+                  periodSeconds = 10;
+                  failureThreshold = 3;
+                };
+                securityContext.privileged = true;
+                volumeMounts = {
+                  _namedlist = true;
+                  models = {
+                    mountPath = "/models";
+                    readOnly = true;
+                  };
+                };
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              models.hostPath = {
+                path = "/home/j_kro/.lmstudio/models";
+                type = "Directory";
+              };
+            };
+          };
+        };
+      };
+    };
+
+    Service.llama-qwen-vllm-zephyr-3060ti = {
+      metadata.labels =
+        managed
+        // {
+          app = "llama-qwen-vllm-zephyr-3060ti";
+        };
+      spec = {
+        type = "ClusterIP";
+        ports = [
+          {
+            name = "http";
+            port = 8040;
+            protocol = "TCP";
+            targetPort = 8040;
+          }
+        ];
+        selector.app = "llama-qwen-vllm-zephyr-3060ti";
+      };
+    };
 
     # ── Zephyr RTX 3090 Burst — hermes-qwen3.5-35b-a3b MoE (Speed) ──────────────
     # MoE: 35B total / ~3B active per token. Blazing fast for agentic workloads.
