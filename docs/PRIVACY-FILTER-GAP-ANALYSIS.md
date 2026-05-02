@@ -194,11 +194,11 @@ Research finding: *Same weights, different stack = different leak rates*
 ```
 openai/privacy-filter model
 ├─ K8s deployment (transformers + torch)
-├─ Different than: llama.cpp, vLLM, ONNX
+├─ Different than: llama.cpp, ONNX
 └─ Safety profile tied to serving stack
 ```
 
-**Risk:** If you switch serving stacks (e.g., transformers → vLLM), you must re-evaluate safety.
+**Risk:** If you switch serving stacks, you must re-evaluate safety.
 
 ---
 
