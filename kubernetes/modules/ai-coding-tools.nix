@@ -1,4 +1,8 @@
-{lib, ...}: {
+{lib, ...}: let
+  managed = {
+    "app.kubernetes.io/managed-by" = "easykubenix";
+  };
+in {
   # ── AI Coding Tools Namespace ────────────────────────────────────
   # Claude Code and OpenCode AI coding assistants
   # Replaces YAML manifests in kubernetes-manifests/ai-coding-tools/
@@ -90,7 +94,7 @@
     # Replaces: 10-claude-code-deployment.yaml, 10-claude-code-multi-node.yaml,
     #           10-claude-code-simple.yaml, 50-claude-code-containerized.yaml
     Deployment.claude-code = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "claude-code";
         component = "ai-coding-tool";
       };

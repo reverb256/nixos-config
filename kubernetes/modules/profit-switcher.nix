@@ -146,6 +146,9 @@
   profitSwitcherScript = pkgs.writePythonApplication "profit-switcher" {
     libraries = [pkgs.python312Packages.requests];
   } (builtins.readFile ./profit-switcher.py);
+  managed = {
+    "app.kubernetes.io/managed-by" = "easykubenix";
+  };
 in {
   config.kubernetes.objects = {
     # --- ConfigMap: current profit switching state ---
@@ -192,7 +195,7 @@ in {
 
     # --- CronJob: profit switcher ---
     mining.CronJob.profit-switcher = {
-      metadata.labels = {
+      metadata.labels = managed // {
         app = "profit-switcher";
         workload = "mining-infra";
       };
