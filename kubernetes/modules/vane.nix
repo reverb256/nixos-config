@@ -52,7 +52,7 @@ in {
             }
           ],
           "search": {"searxngURL": "http://searxng.search.svc.cluster.local:8080"},
-          "chatModel": {"providerId": "local-gateway", "key": "qwen3.5-2b-awq"},
+          "chatModel": {"providerId": "local-gateway", "key": "qwen3.5-4b-awq"},
           "embeddingModel": {"providerId": "local-gateway", "key": "BAAI/bge-m3"}
         }
       '';
