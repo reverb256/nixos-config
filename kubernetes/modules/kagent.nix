@@ -14,7 +14,6 @@
   controllerImage = "${registry}/kagent-dev/kagent/controller:${version}";
   uiImage = "${registry}/kagent-dev/kagent/ui:${version}";
   postgresImage = "docker.io/library/postgres:18.3-alpine";
-  oauth2ProxyImage = "quay.io/oauth2-proxy/oauth2-proxy:v7.10.0";
 
   # ── Cluster placement ────────────────────────────────────────────────
   # All kagent components on Nexus (46GB RAM, control plane)
@@ -380,7 +379,6 @@ in {
               env._namedlist = true;
               env = {
                 NEXT_PUBLIC_BACKEND_URL.value = "http://kagent-controller.${ns}.svc.cluster.local:8083/api";
-                SSO_REDIRECT_PATH.value = "/oauth2/start";
               };
               resources = { requests = {cpu = "100m"; memory = "256Mi";}; limits = {cpu = "1"; memory = "1Gi";}; };
               securityContext = { readOnlyRootFilesystem = true; allowPrivilegeEscalation = false; capabilities.drop = ["ALL"]; seccompProfile.type = "RuntimeDefault"; };
@@ -394,38 +392,7 @@ in {
                 supervisord-conf = { mountPath = "/etc/supervisor/conf.d/supervisord.conf"; subPath = "supervisord.conf"; readOnly = true; };
               };
             };
-            containers.oauth2-proxy = {
-              image = oauth2ProxyImage;
-              imagePullPolicy = "IfNotPresent";
-              ports._namedlist = true;
-              ports.proxy = { containerPort = 4180; protocol = "TCP"; };
-              env._namedlist = true;
-              env = {
-                OAUTH2_PROXY_PROVIDER.value = "oidc";
-                OAUTH2_PROXY_OIDC_ISSUER_URL.value = "https://auth.lan";
-                OAUTH2_PROXY_CLIENT_ID.valueFrom.secretKeyRef = { name = "kagent-oidc"; key = "client-id"; };
-                OAUTH2_PROXY_CLIENT_SECRET.valueFrom.secretKeyRef = { name = "kagent-oidc"; key = "client-secret"; };
-                OAUTH2_PROXY_COOKIE_SECRET.valueFrom.secretKeyRef = { name = "kagent-oidc"; key = "cookie-secret"; };
-                OAUTH2_PROXY_REDIRECT_URL.value = "https://kagent.lan/oauth2/callback";
-                OAUTH2_PROXY_UPSTREAM.value = "http://127.0.0.1:8080";
-                OAUTH2_PROXY_EMAIL_DOMAINS.value = "*";
-                OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER.value = "true";
-                OAUTH2_PROXY_SET_AUTHORIZATION_HEADER.value = "true";
-                OAUTH2_PROXY_SKIP_JWT_BEARER_TOKENS.value = "true";
-                OAUTH2_PROXY_COOKIE_SECURE.value = "false";
-                OAUTH2_PROXY_COOKIE_SAMESITE.value = "lax";
-                OAUTH2_PROXY_INSECURE_OIDC_ALLOW_UNVERIFIED_EMAIL.value = "true";
-                OAUTH2_PROXY_OIDC_EMAIL_CLAIM.value = "sub";
-                OAUTH2_PROXY_SKIP_AUTH_REGEX.value = "^/(health|api/ws/)$";
-                OAUTH2_PROXY_SCOPE.value = "openid profile email";
-                OAUTH2_PROXY_HTTP_ADDRESS.value = "0.0.0.0:4180";
-                OAUTH2_PROXY_SSL_INSECURE_SKIP_VERIFY.value = "true";
-              };
-              resources = { requests = {cpu = "50m"; memory = "64Mi";}; limits = {cpu = "200m"; memory = "128Mi";}; };
-              securityContext = { allowPrivilegeEscalation = false; capabilities.drop = ["ALL"]; seccompProfile.type = "RuntimeDefault"; };
-              readinessProbe = { httpGet = {path = "/ping"; port = 4180;}; periodSeconds = 10; };
-              livenessProbe = { httpGet = {path = "/ping"; port = 4180;}; periodSeconds = 30; };
-            };
+            # Sidecar removed: auth handled by Caddy forward_auth → central-auth
             volumes._namedlist = true;
             volumes = {
               nextjs-cache.emptyDir.sizeLimit = "100Mi";
@@ -444,7 +411,7 @@ in {
         type = "ClusterIP";
         selector = {"app.kubernetes.io/component" = "ui";};
         ports._namedlist = true;
-        ports.http = { port = 8080; targetPort = 4180; protocol = "TCP"; };
+        ports.http = { port = 8080; targetPort = 8080; protocol = "TCP"; };
       };
     };
 
