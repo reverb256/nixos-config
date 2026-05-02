@@ -49,7 +49,7 @@
         RemainAfterExit = true;
         ExecStart = pkgs.writeShellScript "amd-power-limit" ''
           #!/usr/bin/env bash
-          set -euo pipefail
+          set -eo pipefail
           POWER_LIMIT_MICROWATTS=110000000
           log() {
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
@@ -95,7 +95,7 @@
         RemainAfterExit = true;
         ExecStart = pkgs.writeShellScript "nvidia-compute-mode" ''
           #!/usr/bin/env bash
-          set -euo pipefail
+          set -eo pipefail
           log() {
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
           }
@@ -128,7 +128,7 @@
         RestartSec = "10s";
         ExecStart = pkgs.writeShellScript "amd-fan-curve" ''
           #!/run/current-system/sw/bin/bash
-          set -euo pipefail
+          set -eo pipefail
           PATH=/run/current-system/sw/bin:$PATH
           FAN_CURVE=(
             "45:100"
