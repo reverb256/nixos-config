@@ -78,11 +78,11 @@ in {
         if currentHost == "zephyr"
         then 2
         else if currentHost == "nexus"
-        then 6
+        then 10
         else if currentHost == "sentry"
         then 4
         else if currentHost == "forge"
-        then 2
+        then 3
         else 2
       );
 
@@ -154,7 +154,7 @@ in {
             system = "x86_64-linux";
             sshUser = "j_kro";
             sshKey = "/etc/nixos/ssh/id_ed25519";
-            maxJobs = 6;
+            maxJobs = 10;
             speedFactor = 5;
             supportedFeatures = [
               "big-parallel"
