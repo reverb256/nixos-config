@@ -522,9 +522,15 @@ in {
         };
       spec = {
         replicas = 1;
-        revisionHistoryLimit = 1;
+        revisionHistoryLimit = 2;
         selector.matchLabels.app = "vaultwarden";
-        strategy.type = "Recreate";
+        strategy = {
+          type = "RollingUpdate";
+          rollingUpdate = {
+            maxSurge = 0;
+            maxUnavailable = 1;
+          };
+        };
         template = {
           metadata.labels =
             managed
@@ -532,9 +538,7 @@ in {
               app = "vaultwarden";
             };
           spec = {
-            nodeName = "zephyr";
-            hostNetwork = true;
-            dnsPolicy = "ClusterFirstWithHostNet";
+            nodeName = "nexus";
             automountServiceAccountToken = false;
             tolerations = allTolerations;
             containers = {
@@ -546,7 +550,22 @@ in {
                   _namedlist = true;
                   WEBSOCKET_ENABLED.value = "true";
                   WEBSOCKET_ADDRESS.value = "0.0.0.0";
+                  DOMAIN.value = "https://vaultwarden.zephyr.taila21e09.ts.net";
                   LOG_LEVEL.value = "info";
+                  OIDC_CLIENT_ID.value = "45b131ddd1706688495a";
+                  OIDC_AUTH_URL.value = "https://auth.lan/authorize";
+                  OIDC_TOKEN_URL.value = "https://auth.lan/oauth/token";
+                  OIDC_USERINFO_URL.value = "https://auth.lan/api/userinfo";
+                  OIDC_SCOPES.value = "openid profile email";
+                  OIDC_ADMIN_VALIDATE.value = "true";
+                  ADMIN_TOKEN.valueFrom.secretKeyRef = {
+                    name = "vaultwarden-secrets";
+                    key = "admin-token";
+                  };
+                  OIDC_CLIENT_SECRET.valueFrom.secretKeyRef = {
+                    name = "vaultwarden-secrets";
+                    key = "oidc-client-secret";
+                  };
                 };
                 ports = [
                   {
@@ -554,22 +573,29 @@ in {
                     name = "http";
                     protocol = "TCP";
                   }
+                  {
+                    containerPort = 3012;
+                    name = "websocket";
+                    protocol = "TCP";
+                  }
                 ];
                 livenessProbe = {
                   httpGet = {
                     path = "/alive";
-                    port = 80;
+                    port = "http";
                   };
                   initialDelaySeconds = 10;
                   periodSeconds = 30;
+                  timeoutSeconds = 5;
                 };
                 readinessProbe = {
                   httpGet = {
                     path = "/alive";
-                    port = 80;
+                    port = "http";
                   };
                   initialDelaySeconds = 5;
                   periodSeconds = 10;
+                  timeoutSeconds = 3;
                 };
                 resources = {
                   requests = {
@@ -593,8 +619,9 @@ in {
             volumes = {
               _namedlist = true;
               data = {
-                hostPath.path = "/var/lib/vaultwarden";
-                type = "DirectoryOrCreate";
+                persistentVolumeClaim = {
+                  claimName = "vaultwarden-data";
+                };
               };
             };
           };
@@ -609,16 +636,53 @@ in {
           app = "vaultwarden";
         };
       spec = {
-        type = "ClusterIP";
+        type = "NodePort";
         selector.app = "vaultwarden";
         ports = [
           {
             name = "http";
-            port = 8222;
+            port = 80;
             targetPort = 80;
+            nodePort = 32110;
+            protocol = "TCP";
+          }
+          {
+            name = "websocket";
+            port = 3012;
+            targetPort = 3012;
+            nodePort = 32111;
             protocol = "TCP";
           }
         ];
+      };
+    };
+
+    infra.PersistentVolume.vaultwarden-data-nexus-pv = {
+      spec = {
+        capacity.storage = "1Gi";
+        accessModes = ["ReadWriteOnce"];
+        persistentVolumeReclaimPolicy = "Retain";
+        storageClassName = "fast-local-ssd";
+        local.path = "/data/vaultwarden-data";
+        nodeAffinity.required.nodeSelectorTerms = [
+          {
+            matchExpressions = [
+              {
+                key = "kubernetes.io/hostname";
+                operator = "In";
+                values = ["nexus"];
+              }
+            ];
+          }
+        ];
+      };
+    };
+
+    infra.PersistentVolumeClaim.vaultwarden-data = {
+      spec = {
+        accessModes = ["ReadWriteOnce"];
+        storageClassName = "fast-local-ssd";
+        resources.requests.storage = "1Gi";
       };
     };
 
