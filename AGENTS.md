@@ -281,31 +281,40 @@ Secrets populated by `kubectl-apply-k8s-secrets` from agenix (`monitoring/grafan
 **Registry:** `modules/services/mcp-server-registry.nix` — single source of truth
 **Full plan:** `docs/plans/2026-05-01-mcp-system-plan.md`
 
-## Codified Conventions (Hermes Skill)
+## Codified Conventions (Skill)
 
-All repeatable patterns are codified in the `nixos-cluster-conventions` Hermes skill.
-Load with `skill_view(name="nixos-cluster-conventions")` before any K8s/Nix module work.
+All repeatable patterns are codified in `skills/cluster-conventions/SKILL.md`.
+**Load this skill before ANY NixOS module or K8s manifest work.**
 
-### Quick Reference: 10 Convention Categories
+### Quick Reference: 12 Convention Categories
 
-1. **K8s Scratch Pattern** — `ghcr.io/lillecarl/nix-csi/scratch:1.0.1` for Nix-built binaries ONLY. Python venvs/non-Nix binaries -> use systemd on host instead.
-2. **Deployment Safety** — `revisionHistoryLimit = 2`, `maxSurge = 0`, always explicit `replicas = 1`. Scale to 0 before deleting.
-3. **GPU Scheduling** — `CUDA_DEVICE_ORDER=PCI_BUS_ID`, GPU 0 = 3060Ti, GPU 1 = 3090. Privileged + CUDA_VISIBLE_DEVICES as hint (nvidia-container-runtime broken on NixOS).
-4. **Caddy Routing** — `mkRoute` for public, `mkAuthRoute` for SSO-protected. Add DNS in `cluster-dns.nix`.
-5. **Nix Module Options** — `lib.mkOptionDefault` for ALL lists in shared modules (prevents SSH breakage). `lib.getExe` for ExecStart, `lib.makeBinPath` for PATH.
-6. **Network Policies** — `default-deny-all` per namespace + `allow-dns` egress + specific allow policies.
-7. **Namespace Security** — PSS labels: `enforce=baseline`, `audit=restricted`, `warn=restricted`.
-8. **Secrets** — Agenix (`/run/agenix/<name>`), never patch files with secrets (read_file redacts them).
-9. **Cluster DNS** — Unbound `local-zone "lan." static`, `.lan` -> VIP 10.1.1.100, NodePort range 32000-32110.
-10. **SSO/Auth** — Casdoor OIDC -> oauth2-proxy -> Caddy `forward_auth`. NO K8s sidecars.
+| # | Pattern | Critical? | Summary |
+|---|---------|-----------|---------|
+| 1 | **K8s Scratch Pattern** | Yes | `ghcr.io/lillecarl/nix-csi/scratch:1.0.1` + hostPath `/nix` mount for Nix-built binaries. Python venvs/non-Nix binaries → use systemd on host. |
+| 2 | **Extensible Lists** | **BREAKS SSH** | `lib.mkOptionDefault` for ALL lists in shared modules (ports, packages). Direct assignment replaces across all hosts. |
+| 3 | **Deployment Safety** | Yes | `revisionHistoryLimit = 1`, `maxSurge = 0`, explicit `replicas = 1`. `Recreate` for GPU, `RollingUpdate` for stateless. Scale to 0 before deleting. |
+| 4 | **GPU Scheduling** | Yes | Default ALL workloads to **Nexus** (46GB). Zephyr = infrastructure only (31GB, constant OOM). `nodeName` preferred over `nodeAffinity`. |
+| 5 | **Caddy Routing** | Yes | Zephyr: `mkRoute`/`mkAuthRoute` helpers. Nexus: service registry with `protected = true`. Both use Caddy `forward_auth` → local oauth2-proxy. |
+| 6 | **Nix Module Boilerplate** | No | `services.*` namespace, `mkEnableOption`, `mkIf cfg.enable`, register in `modules/default.nix`, `git add` new files. |
+| 7 | **Lib Helpers** | No | `lib.getExe` for ExecStart, `writeShellScript` for multi-line scripts, `makeBinPath` for PATH, `pipe` for transforms. |
+| 8 | **Network Policies** | No | `default-deny-all` per namespace + `allow-dns` egress + specific allow policies. |
+| 9 | **Agenix Secrets** | No | `/run/agenix/<name>` paths, `config.age.secrets.*.path` references, never hardcode secrets. |
+| 10 | **Systemd Services** | No | `wantedBy = ["multi-user.target"]`, `Restart = "on-failure"`, `writeShellScript` over `bash -c`. |
+| 11 | **Pod Security Standards** | No | PSS labels: `enforce=baseline`, `audit=restricted`, `warn=restricted` on all namespaces. |
+| 12 | **Managed-By Labels** | No | `"app.kubernetes.io/managed-by" = "easykubenix"` on all K8s resources. |
 
 ### Anti-Patterns (DO NOT)
 
-- Run Python venvs in scratch containers (symlink resolution fails)
-- Use `:latest` container tags (admission policy blocks them)
-- Schedule non-essential workloads on zephyr (31GB, constant OOM)
-- Trust `nix-instantiate --parse` for easykubenix (Lix 2.94.1 bug)
-- Mix imperative `kubectl apply` with declarative Nix module changes (track one or the other)
+- **Run Python venvs in scratch containers** — symlink resolution fails
+- **Use `:latest` container tags** — admission policy blocks them
+- **Schedule non-essential workloads on zephyr** — 31GB, constant OOM
+- **Trust `nix-instantiate --parse` for easykubenix** — Lix 2.94.1 bug
+- **Mix imperative `kubectl apply` with declarative Nix module changes** — track one or the other
+- **Deploy oauth2-proxy as K8s sidecars** — use NixOS `central-auth` service
+- **Forget `_namedlist = true`** on easykubenix containers/volumes/volumeMounts/env blocks
+- **Use `bash -c '...'` for ExecStart** — use `writeShellScript`
+- **Manually concatenate PATH** — use `lib.makeBinPath`
+- **Use `systemctl enable`** — declare in NixOS config
 
 ## Reference
 
@@ -315,8 +324,9 @@ Load with `skill_view(name="nixos-cluster-conventions")` before any K8s/Nix modu
 | `INFRASTRUCTURE-AUDIT.md` | Live cluster state and issues |
 | `ROADMAP.md` | Kubernetes migration plan |
 | `modules/README.md` | Module development guide |
-| Hermes skill `nixos-cluster-conventions` | Full convention reference with templates |
+| `skills/cluster-conventions/SKILL.md` | Full convention reference with templates (12 patterns) |
 
 ---
 
 **Version**: 6.0 | **Last Updated:** 2026-05-02
+**Changes**: Added codified conventions (12 patterns), created cluster-conventions skill, updated references

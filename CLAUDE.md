@@ -404,8 +404,8 @@ useradd myuser
 
 ## CONVENTIONS
 
-> **Full convention reference:** Load Hermes skill `nixos-cluster-conventions` with `skill_view(name="nixos-cluster-conventions")`.
-> Also documented in `AGENTS.md` -> Codified Conventions section.
+> **Full convention reference:** `skills/cluster-conventions/SKILL.md` — 12 codified patterns.
+> Quick reference table in `AGENTS.md` → "Codified Conventions" section.
 
 ### Critical Safety Rules
 - **IMPORTANT**: Use `lib.mkOptionDefault` in shared modules (NEVER direct assignment)
@@ -925,6 +925,7 @@ All CI workflows (`.github/workflows/`) pin actions to immutable commit SHAs ins
 - **Archive**: `docs/archive/` for historical documentation
 
 ### Skills Available
+- **cluster-conventions** — ALL codebase patterns (12 conventions: scratch image, mkOptionDefault, GPU scheduling, Caddy routing, etc.)
 - **kubernetes-specialist** — Day-to-day K8s operations
 - **kubernetes-architect** — Architecture patterns
 - **add-service** — systemd service creation
@@ -932,15 +933,10 @@ All CI workflows (`.github/workflows/`) pin actions to immutable commit SHAs ins
 
 ---
 
-**Version**: 6.0 | **Updated:** 2026-05-01
+**Version**: 6.1 | **Updated:** 2026-05-02
 **Changes**:
-- Fixed branch name (feature/brain-v2-embedding-first)
-- Fixed K3s version (v1.34.x, not v1.35.0)
-- Fixed Sentry RAM (8GB, not 31GB)
-- Fixed searxng-cluster status (easykubenix, not extracted)
-- Removed references to non-existent docs (STATUS.md, DECISION_LOG.md, DOCUMENTATION_INDEX.md)
-- Removed references to non-existent .claude/ files and docs/ directory
-- Fixed typo: "OUM" → "OOM" in Zephyr exhaustion warning
+- Added cluster-conventions skill reference (12 codified patterns)
+- Updated convention docs to reference skills/cluster-conventions/SKILL.md
 
 
 ## Central SSO Authentication
