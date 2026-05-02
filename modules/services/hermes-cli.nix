@@ -43,7 +43,7 @@
   mcpServersBlock = pkgs.writeText "hermes-mcp-servers.yaml" ''
     mcp_servers:
       kubernetes:
-        url: http://10.12.22.155:8080/mcp
+        url: http://kubernetes-mcp.infra.svc.cluster.local:8080/mcp
         connect_timeout: 30
         timeout: 60
       lightpanda:
@@ -88,24 +88,43 @@
   '';
 
   # Python script to merge mcp_servers section into Hermes config.yaml
-  mcpMergeScript = pkgs.writeText "hermes-mcp-merge.py" ''
-    import re, sys
-    config_path = sys.argv[1]
-    mcp_path = sys.argv[2]
-    with open(config_path) as f:
-        content = f.read()
-    with open(mcp_path) as f:
-        mcp_block = f.read().strip()
-    # Remove existing mcp_servers section (from ^mcp_servers: to next top-level key)
-    content = re.sub(r'\nmcp_servers:.*?(?=\n\S)', '', content, flags=re.MULTILINE | re.DOTALL)
-    # Insert new block before smart_model_routing or at end
-    if 'smart_model_routing:' in content:
-        content = content.replace('smart_model_routing:', mcp_block + '\n\nsmart_model_routing:', 1)
-    else:
-        content = content.rstrip() + '\n\n' + mcp_block + '\n'
-    with open(config_path, 'w') as f:
-        f.write(content)
-  '';
+  # Uses line-by-line parsing to avoid regex escape issues with Nix multiline strings
+  mcpMergeScript = pkgs.writeText "hermes-mcp-merge.py" (
+    builtins.concatStringsSep "\n" [
+      "import sys"
+      "config_path = sys.argv[1]"
+      "mcp_path = sys.argv[2]"
+      "with open(config_path) as f:"
+      "    lines = f.readlines()"
+      "with open(mcp_path) as f:"
+      "    mcp_block = f.read().strip()"
+      "# Strip existing mcp_servers section"
+      "in_mcp = False"
+      "filtered = []"
+      "for line in lines:"
+      "    # Detect top-level mcp_servers: key (not indented)"
+      "    if line.startswith('mcp_servers:') or line.startswith('mcp_servers: '):"
+      "        in_mcp = True"
+      "        continue"
+      "    if in_mcp:"
+      "        # Skip indented children (part of mcp_servers block)"
+      "        if line.startswith(' ') or line.startswith(chr(9)) or line.strip() == '':"
+      "            continue"
+      "        # Non-indented, non-empty line = next top-level section"
+      "        in_mcp = False"
+      "    filtered.append(line)"
+      "content = ''.join(filtered).rstrip()"
+      "# Insert new block before smart_model_routing or at end"
+      "marker = 'smart_model_routing:'"
+      "full = content.split(marker, 1)"
+      "if len(full) == 2:"
+      "    result = full[0] + mcp_block + chr(10) + chr(10) + marker + full[1]"
+      "else:"
+      "    result = content + chr(10) + chr(10) + mcp_block + chr(10)"
+      "with open(config_path, 'w') as f:"
+      "    f.write(result)"
+    ]
+  );
 in {
   options.services.hermes-cli = {
     enable = lib.mkEnableOption "Hermes Agent CLI for interactive use";
@@ -358,6 +377,65 @@ in {
           chmod 600 "$HERMES_CONFIG" 2>/dev/null || true
 
           echo "[hermes-config] Done"
+        '';
+      };
+    };
+
+    # ── Declarative MCP server management ─────────────────────────
+    # Merges Nix-defined mcp_servers into Hermes config.yaml at boot.
+    # API keys are injected from agenix secrets (ZAI_API_KEY).
+    systemd.services.hermes-mcp-servers = {
+      description = "Inject declarative MCP servers into Hermes config";
+      after = ["agenix.service" "network.target"];
+      wants = ["agenix.service"];
+      wantedBy = ["multi-user.target"];
+
+      path = with pkgs; [python3 coreutils gnused];
+
+      serviceConfig = {
+        Type = "oneshot";
+        User = "root";
+        Group = "root";
+        RemainAfterExit = true;
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectSystem = "strict";
+        ProtectHome = "read-only";
+        ReadWritePaths = ["/home/${cfg.user}/.hermes"];
+
+        ExecStart = pkgs.writeShellScript "hermes-mcp-servers" ''
+          set -euo pipefail
+
+          HERMES_CONFIG="/home/${cfg.user}/.hermes/config.yaml"
+
+          if [ ! -f "$HERMES_CONFIG" ]; then
+            echo "[hermes-mcp] No config.yaml found, skipping"
+            exit 0
+          fi
+
+          # Wait for ZAI API key
+          ${lib.optionalString (cfg.apiKeyFile != null) ''
+            for i in $(seq 1 30); do
+              if [ -f "${cfg.apiKeyFile}" ] && [ -s "${cfg.apiKeyFile}" ]; then
+                break
+              fi
+              sleep 1
+            done
+          ''}
+
+          # Build mcp_servers block with injected API key
+          ZAI_KEY="$(if [ -n "${cfg.apiKeyFile}" ]; then cat "${cfg.apiKeyFile}" 2>/dev/null; else echo missing; fi)"
+          MCP_TMP=$(mktemp /tmp/hermes-mcp-XXXXXX.yaml)
+          sed "s/__ZAI_API_KEY__/$ZAI_KEY/g" ${mcpServersBlock} > "$MCP_TMP"
+
+          # Merge into config.yaml using Python3
+          python3 ${mcpMergeScript} "$HERMES_CONFIG" "$MCP_TMP"
+          rm -f "$MCP_TMP"
+
+          chown ${cfg.user}:users "$HERMES_CONFIG" 2>/dev/null || true
+          chmod 600 "$HERMES_CONFIG" 2>/dev/null || true
+
+          echo "[hermes-mcp] ✓ MCP servers configured"
         '';
       };
     };
