@@ -31,6 +31,7 @@
       ./modules/mission-control.nix
       ./modules/kagent.nix
       ./modules/automation.nix
+      ./modules/mcp-servers.nix
     ];
   };
 in
