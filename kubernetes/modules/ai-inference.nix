@@ -87,7 +87,7 @@ in {
       REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
       SECONDARY_BACKEND_URL = "http://10.1.1.110:1237";
       SECONDARY_BACKEND_MODEL = "Qwen3.6-35B-A3B-UD-IQ3_S.gguf";
-      DISCOVERY_BACKENDS = "[{"name":"vllm-3060ti","base_url":"http://10.1.1.110:8040/v1","priority":12}]";
+      DISCOVERY_BACKENDS = ''[{"name":"vllm-3060ti","base_url":"http://10.1.1.110:8040/v1","priority":12}]'';
       PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8081";
       PRIVACY_FILTER_ENABLED = "false";
       MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
@@ -1920,6 +1920,8 @@ in {
     };
 
     # ── KB MCP Server (Knowledge Base RAG) ─────────────────────────
+    # STUB: Image not built (localhost/kb-mcp:latest doesn't exist).
+    # 0 replicas, no pods running. Disabled until image is built.
     # Replaces: kubernetes-manifests/kb-mcp/deployment.yaml, service.yaml
     # Provides vector search over technical eBooks via FastMCP protocol
     Deployment.kb-mcp = {
