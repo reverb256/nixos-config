@@ -89,7 +89,7 @@ in {
         hosts.nexus.ip
         hosts.nexus.tailscale
       ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEldBvJIZYJKHw8pt0/Bx3xhJK4rSrhno0NyHgTtWAaV";
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICTdrAzFKvog0uLbtvLM5plQXnk5VSRMUOGqXvtQaDHf";
     };
     forge = {
       hostNames = [
@@ -105,7 +105,7 @@ in {
         hosts.sentry.ip
         hosts.sentry.tailscale
       ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBK7IznKNG8BJVrPv1dnJBrbFhcmzTKaYSAzVdrXV7Fn";
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGZCgbZR/+B3H6Z8VnRSkNbG9ta/yk0qJro1focrOfl7";
     };
   };
 
