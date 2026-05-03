@@ -31,6 +31,22 @@ in {
       calico.enable = false;
     };
 
+    k8s-secret-bootstrap = {
+      enable = true;
+      secrets = [
+        {
+          namespace = "auth";
+          name = "casdoor-postgres-secret";
+          keys = ["POSTGRES_PASSWORD"];
+        }
+        {
+          namespace = "auth";
+          name = "oauth2-proxy-secrets";
+          keys = ["client-secret" "cookie-secret"];
+        }
+      ];
+    };
+
     keepalived-vip = {
       enable = true;
       vip = cluster.kubernetes.vip;
