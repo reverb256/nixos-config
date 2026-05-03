@@ -54,6 +54,13 @@
     }
   '';
 in
+  # HTTP → HTTPS redirect for all .lan domains
+  # Caddy skips auto-redirect when using manual TLS
+  ":80 {
+  redir https://{host}{uri} permanent
+}
+
+" + "\n" +
   # === PUBLIC SERVICES (no auth) ===
   # ai.lan -> llama-server-3090 (hostNetwork on zephyr, host port 1237)
   mkRoute "ai.lan" "http://127.0.0.1:1237" + "\n" +
