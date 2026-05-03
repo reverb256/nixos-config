@@ -185,6 +185,7 @@
     mkNixosSystem = {
       hostName,
       extraModules ? [],
+      k8sManifest ? null,
     }:
       nixpkgs.lib.nixosSystem {
         specialArgs = {
@@ -195,12 +196,17 @@
           ++ [
             ./hosts/${hostName}/configuration.nix
           ]
-          ++ extraModules;
+          ++ extraModules
+          ++ nixpkgs.lib.optional (k8sManifest != null) {
+            services.k8s-nix-deploy.enable = true;
+            services.k8s-nix-deploy.manifestPackage = k8sManifest;
+          };
       };
 
     hosts = {
       zephyr = {
         hostName = "zephyr";
+        k8sManifest = self.kubernetes.manifestYAMLFile;
       };
       nexus = {
         hostName = "nexus";
