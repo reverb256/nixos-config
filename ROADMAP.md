@@ -25,7 +25,7 @@
 - nix-csi: empty module, hostPath volumes used directly
 
 **Confirmed permanent:** TurboQuant llama.cpp on 3090 (24.7 tok/s). No vLLM on 3090.
-**Z.AI API shutting down after May 8.**
+**Z.AI API ~Jul 8** (2-month free extension from Z.AI, was May 8)
 
 > **Historical content below preserved for reference. Many sections are stale (service inventory, `services.kubernetes` references, timeline estimates). Rely on `INFRASTRUCTURE-AUDIT.md` for current state.**
 

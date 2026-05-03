@@ -113,6 +113,13 @@ in {
       };
     };
 
+    # Survive failed nixos-rebuild: reload (SIGHUP) instead of stop/start.
+    # If activation crashes mid-switch, unbound stays running.
+    systemd.services.unbound = {
+      reloadIfChanged = true;
+      restartIfChanged = false;
+    };
+
     # Generate local DNS records
     environment.etc."unbound/local-dns.conf".text = let
       # Server section header (required for local-data lines to work)
