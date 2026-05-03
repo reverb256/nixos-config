@@ -23,6 +23,7 @@
       ./modules/nixkube.nix
       ./modules/searxng.nix
       ./modules/haven.nix
+      ./modules/casdoor.nix
       ./modules/monitoring.nix
       ./modules/monitoring-dashboards.nix
       ./modules/vane.nix

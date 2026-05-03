@@ -24,15 +24,6 @@ effectiveStdenv.mkDerivation rec {
     hash = "sha256-hXWS2R5GuRPTgmci4OxLkBNbmEHH84TmOhdeVYEnocM=";
   };
 
-  # TriAttention patch (llama-context.cpp hunk removed — handled by postPatch)
-  patches = [ ./triattention.patch ];
-
-  # Add the two includes that the failed hunk was trying to insert
-  postPatch = ''
-    sed -i '/#include "llama-io.h"/a #include "llama-kv-cache.h"' src/llama-context.cpp
-    sed -i '/#include "llama-ext.h"/a #include "llama-triattention.h"' src/llama-context.cpp
-  '';
-
   nativeBuildInputs = with cudaPackages; [
     cmake
     git
@@ -76,7 +67,7 @@ effectiveStdenv.mkDerivation rec {
   '';
 
   meta = {
-    description = "llama.cpp with DFlash + TurboQuant TCQ KV cache + TriAttention pruning (spiritbuun fork)";
+    description = "llama.cpp with DFlash + TurboQuant TCQ KV cache (spiritbuun fork, no triattention)";
     homepage = "https://github.com/spiritbuun/buun-llama-cpp";
     license = lib.licenses.mit;
     platforms = lib.platforms.linux;

@@ -44,7 +44,6 @@
 
   disabledComponents = [
     "traefik"
-    "servicelb"
     "metrics-server"
   ];
 in {

@@ -357,17 +357,8 @@ in {
       };
     };
 
-    casdoor = {
-      enable = true;
-      hostName = "auth.lan";
-    };
-
-    central-auth = {
-      enable = true;
-      clientID = "5bf72a094f75c6f5729e";
-      clientSecretFile = config.age.secrets.central-auth-client-secret.path;
-      cookieSecretFile = config.age.secrets.central-auth-cookie-secret.path;
-    };
+    # Migrated to K8s auth namespace
+    central-auth.enable = false;
     # Vaultwarden migrated to K8s on nexus (vaultwarden.lan via Caddy)
     vaultwarden-module.enable = false;
 

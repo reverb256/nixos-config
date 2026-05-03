@@ -190,6 +190,8 @@ in {
       wants = ["agenix.service" "k8s-nix-deploy.service" "network-online.target"];
       requires = ["k3s.service"];
       wantedBy = ["multi-user.target"];
+      # Don't block graphical.target -- K8s secrets don't gate desktop login
+      before = lib.mkForce [];
 
       path = with pkgs; [kubectl coreutils gnugrep];
       environment.KUBECONFIG = "/etc/rancher/k3s/k3s.yaml";

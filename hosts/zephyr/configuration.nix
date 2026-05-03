@@ -152,7 +152,7 @@ in {
       autoDetect = {
         resolution = true;
         hdr = true;
-        vrr = true;
+        vrr = false;
       };
     };
 
