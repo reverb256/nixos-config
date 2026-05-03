@@ -4,12 +4,14 @@
   inputs,
 }: let
   llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant;
+  cluster = import ./cluster.nix;
   easykubenix = import inputs.easykubenix {
     inherit pkgs;
     modules = [
       {_module.args.pkgsWithOverlay = pkgsWithOverlay;}
       {_module.args.llama-cpp-turboquant = llama-cpp-turboquant;}
       {_module.args.inputs = inputs;}
+      {_module.args.cluster = cluster;}
       # nix-csi disabled — CSI volumes use hostPath/nix mounts directly
       # See modules/nix-csi-README.md for upstream CSI driver details
       ./modules/common.nix
@@ -24,6 +26,7 @@
       ./modules/searxng.nix
       ./modules/haven.nix
       ./modules/casdoor.nix
+      ./modules/oauth2-proxy.nix
       ./modules/monitoring.nix
       ./modules/monitoring-dashboards.nix
       ./modules/vane.nix

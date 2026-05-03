@@ -10,14 +10,8 @@ in {
       automountServiceAccountToken = false;
     };
 
-    auth.Secret.oauth2-proxy-secrets = {
-      metadata.labels = managed // {app = "oauth2-proxy";};
-      type = "Opaque";
-      stringData = {
-        client-secret = "_PLACEHOLDER_";
-        cookie-secret = "_PLACEHOLDER_";
-      };
-    };
+    # Secret managed imperatively: kubectl create secret generic oauth2-proxy-secrets ...
+    # DO NOT define here — kubectl apply would overwrite real values with placeholders
 
     auth.Deployment.oauth2-proxy = {
       metadata.labels = managed // {

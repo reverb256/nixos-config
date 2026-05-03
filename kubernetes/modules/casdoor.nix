@@ -1,4 +1,4 @@
-{...}: let
+{cluster, ...}: let
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
@@ -6,7 +6,6 @@
   namespace = "auth";
 in {
   config.kubernetes.objects = {
-    # Namespace definition
     none.Namespace.${namespace} = {
       metadata.labels = managed // {
         name = namespace;
@@ -16,21 +15,15 @@ in {
       };
     };
 
-    # PostgreSQL ConfigMap
     auth.ConfigMap.casdoor-postgres-config = {
       metadata.labels = managed // {app = "casdoor-postgres";};
       data.POSTGRES_DB = "casdoor";
       data.POSTGRES_USER = "casdoor";
     };
 
-    # PostgreSQL Secret
-    auth.Secret.casdoor-postgres-secret = {
-      metadata.labels = managed // {app = "casdoor-postgres";};
-      type = "Opaque";
-      stringData.POSTGRES_PASSWORD = "_PLACEHOLDER_";  # Set via agenix or manual
-    };
+    # Secret managed imperatively: kubectl create secret generic casdoor-postgres-secret ...
+    # DO NOT define here — kubectl apply would overwrite real values with placeholders
 
-    # Casdoor ConfigMap (template for password substitution via init container)
     auth.ConfigMap.casdoor-config = {
       metadata.labels = managed // {app = "casdoor";};
       data."app.conf.template" = ''
@@ -39,7 +32,7 @@ in {
         runmode = prod
         copyrequestbody = true
         driverName = postgres
-        dataSourceName = user=casdoor host=casdoor-postgres.auth.svc.cluster.local port=5432 sslmode=disable dbname=casdoor password=POSTGRES_PASSWORD_PLACEHOLDER
+        dataSourceName = user=casdoor host=casdoor-postgres.${namespace}.svc.cluster.local port=5432 sslmode=disable dbname=casdoor password=POSTGRES_PASSWORD_PLACEHOLDER
         dbName = casdoor
         tableNamePrefix =
         showSql = false
@@ -65,12 +58,10 @@ in {
       '';
     };
 
-    # Service Account
     auth.ServiceAccount.casdoor = {
       automountServiceAccountToken = false;
     };
 
-    # PostgreSQL StatefulSet
     auth.StatefulSet.casdoor-postgres = {
       metadata.labels = managed // {
         app = "casdoor-postgres";
@@ -129,7 +120,6 @@ in {
       };
     };
 
-    # PostgreSQL Service
     auth.Service.casdoor-postgres = {
       metadata.labels = managed // {
         app = "casdoor-postgres";
@@ -143,7 +133,6 @@ in {
       };
     };
 
-    # Casdoor Deployment
     auth.Deployment.casdoor = {
       metadata.labels = managed // {
         app = "casdoor";
@@ -209,7 +198,6 @@ in {
       };
     };
 
-    # Casdoor Service (NodePort)
     auth.Service.casdoor = {
       metadata.labels = managed // {app = "casdoor";};
       spec = {
@@ -225,7 +213,6 @@ in {
       };
     };
 
-    # NetworkPolicy: Casdoor ingress
     auth.NetworkPolicy.casdoor-ingress = {
       metadata.labels = managed;
       spec = {
@@ -233,13 +220,12 @@ in {
         policyTypes = ["Ingress"];
         ingress = [
           {from = [{namespaceSelector.matchLabels.name = "kube-system";}]; ports = [{port = 8000; protocol = "TCP";}];}
-          {from = [{ipBlock.cidr = "10.244.0.0/16";}]; ports = [{port = 8000; protocol = "TCP";}];}
-          {from = [{ipBlock.cidr = "10.1.1.0/24";}]; ports = [{port = 8000; protocol = "TCP";}];}
+          {from = [{ipBlock.cidr = cluster.podCidr;}]; ports = [{port = 8000; protocol = "TCP";}];}
+          {from = [{ipBlock.cidr = cluster.subnet;}]; ports = [{port = 8000; protocol = "TCP";}];}
         ];
       };
     };
 
-    # NetworkPolicy: Casdoor egress (DNS + PostgreSQL)
     auth.NetworkPolicy.casdoor-egress = {
       metadata.labels = managed;
       spec = {
@@ -252,7 +238,6 @@ in {
       };
     };
 
-    # NetworkPolicy: PostgreSQL egress (DNS)
     auth.NetworkPolicy.casdoor-postgres-egress = {
       metadata.labels = managed;
       spec = {
