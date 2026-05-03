@@ -292,11 +292,6 @@ in {
     };
   };
 
-  # Central SSO auth proxy
-  services.central-auth = {
-    enable = true;
-    clientID = "5bf72a094f75c6f5729e";
-    clientSecretFile = config.age.secrets.central-auth-client-secret.path;
-    cookieSecretFile = config.age.secrets.central-auth-cookie-secret.path;
-  };
+  # SSO now handled by oauth2-proxy in K8s (auth namespace)
+  services.central-auth.enable = false;
 }

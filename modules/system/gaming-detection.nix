@@ -24,6 +24,7 @@
     systemd.services.gaming-detection = {
       description = "Gaming Detection - GameMode and GPU pattern monitoring";
       wantedBy = ["multi-user.target"];
+      before = lib.mkForce [];
       after = ["network.target"];
       path = with pkgs; [
         procps

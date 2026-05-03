@@ -30,7 +30,7 @@ in {
       stringData.POSTGRES_PASSWORD = "_PLACEHOLDER_";  # Set via agenix or manual
     };
 
-    # Casdoor ConfigMap (template for password substitution)
+    # Casdoor ConfigMap (template for password substitution via init container)
     auth.ConfigMap.casdoor-config = {
       metadata.labels = managed // {app = "casdoor";};
       data."app.conf.template" = ''
@@ -39,7 +39,7 @@ in {
         runmode = prod
         copyrequestbody = true
         driverName = postgres
-        dataSourceName = user=casdoor host=casdoor-postgres.auth.svc.cluster.local port=5432 sslmode=disable dbname=casdoor password=''${POSTGRES_PASSWORD}
+        dataSourceName = user=casdoor host=casdoor-postgres.auth.svc.cluster.local port=5432 sslmode=disable dbname=casdoor password=POSTGRES_PASSWORD_PLACEHOLDER
         dbName = casdoor
         tableNamePrefix =
         showSql = false
@@ -167,7 +167,7 @@ in {
             initContainers._namedlist = true;
             initContainers.setup-config = {
               image = "alpine:3.19";
-              command = ["sh" "-c" "sed \"s/\\''${POSTGRES_PASSWORD}/$POSTGRES_PASSWORD/g\" /template/app.conf.template > /config/app.conf"];
+              command = ["sh" "-c" "sed \"s/POSTGRES_PASSWORD_PLACEHOLDER/$POSTGRES_PASSWORD/g\" /template/app.conf.template > /config/app.conf"];
               env._namedlist = true;
               env.POSTGRES_PASSWORD.valueFrom.secretKeyRef = {name = "casdoor-postgres-secret"; key = "POSTGRES_PASSWORD";};
               volumeMounts._namedlist = true;

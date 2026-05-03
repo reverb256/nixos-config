@@ -130,7 +130,7 @@ index 7b52b27..42717b2 100644
      /// Tracy frame that goes from vblank to vblank.
      vblank_frame: Option<tracy_client::Frame>,
      /// Frame name for the VBlank frame.
-@@ -404,6 +408,95 @@ struct GammaProps {
+@@ -404,6 +408,76 @@ struct GammaProps {
      previous_blob: Option<NonZeroU64>,
  }
  
@@ -147,15 +147,9 @@ index 7b52b27..42717b2 100644
 +}
 +
 +impl NvBrightnessProps {
-+    /// Detect NV_PLANE_DEGAMMA_MULTIPLIER on a primary plane that can drive this CRTC.
-+    ///
-+    /// Uses `possible_crtcs` mask instead of `plane_info.crtc()` because at surface
-+    /// creation time (especially after compositor restart), planes may not yet be
-+    /// assigned to any CRTC. The `possible_crtcs` bitmask is a static property that
-+    /// indicates which CRTCs a plane is capable of driving, regardless of current state.
++    /// Detect NV_PLANE_DEGAMMA_MULTIPLIER on a plane driving this CRTC.
 +    fn new(drm: &DrmDevice, crtc: crtc::Handle) -> Option<Self> {
 +        let planes = drm.plane_handles().ok()?;
-+        let res_handles = drm.resource_handles().ok()?;
 +
 +        for &plane_handle in planes.iter() {
 +            let plane_info = match drm.get_plane(plane_handle) {
@@ -163,21 +157,8 @@ index 7b52b27..42717b2 100644
 +                Err(_) => continue,
 +            };
 +
-+            // Check if this plane CAN drive our CRTC (not just currently is).
-+            // Use filter_crtcs to resolve the possible_crtcs bitmask against
-+            // the resource list, then check if our CRTC is among them.
-+            let compatible_crtcs = res_handles.filter_crtcs(plane_info.possible_crtcs());
-+            if !compatible_crtcs.contains(&crtc) {
-+                continue;
-+            }
-+
-+            // Only use primary planes (type == Primary) to avoid cursor/overlay.
-+            if let Some((_, info, value)) = find_drm_property(drm, plane_handle, "type") {
-+                match info.value_type().convert_value(value) {
-+                    property::Value::Enum(Some(val)) if val.value() == PlaneType::Primary as u64 => {}
-+                    _ => continue,
-+                }
-+            } else {
++            // Check if this plane is currently driving our CRTC.
++            if plane_info.crtc() != Some(crtc) {
 +                continue;
 +            }
 +
@@ -186,7 +167,7 @@ index 7b52b27..42717b2 100644
 +                find_drm_property(drm, plane_handle, "NV_PLANE_DEGAMMA_MULTIPLIER")
 +            {
 +                debug!(
-+                    "found NV_PLANE_DEGAMMA_MULTIPLIER on primary plane {:?} compatible with CRTC {:?}",
++                    "found NV_PLANE_DEGAMMA_MULTIPLIER on plane {:?} for CRTC {:?}",
 +                    plane_handle, crtc
 +                );
 +                return Some(Self {
@@ -226,7 +207,7 @@ index 7b52b27..42717b2 100644
  struct ConnectorProperties<'a> {
      device: &'a DrmDevice,
      connector: connector::Handle,
-@@ -695,6 +788,27 @@ impl Tty {
+@@ -695,6 +769,27 @@ impl Tty {
                                  warn!("error restoring gamma: {err:?}");
                              }
                          }
@@ -254,7 +235,7 @@ index 7b52b27..42717b2 100644
                      }
                  }
  
-@@ -1315,6 +1429,17 @@ impl Tty {
+@@ -1315,6 +1410,17 @@ impl Tty {
              debug!("couldn't reset gamma: {err:?}");
          }
  
@@ -272,7 +253,7 @@ index 7b52b27..42717b2 100644
          let surface = device
              .drm
              .create_surface(crtc, mode, &[connector.handle()])?;
-@@ -1515,6 +1640,8 @@ impl Tty {
+@@ -1515,6 +1621,8 @@ impl Tty {
              dmabuf_feedback,
              gamma_props,
              pending_gamma_change: None,
@@ -281,7 +262,7 @@ index 7b52b27..42717b2 100644
              vblank_frame: None,
              vblank_frame_name,
              time_since_presentation_plot_name,
-@@ -2085,6 +2212,30 @@ impl Tty {
+@@ -2085,6 +2193,30 @@ impl Tty {
          }
      }
  
@@ -312,7 +293,7 @@ index 7b52b27..42717b2 100644
      fn refresh_ipc_outputs(&self, niri: &mut Niri) {
          let _span = tracy_client::span!("Tty::refresh_ipc_outputs");
  
-@@ -2441,6 +2592,17 @@ impl Tty {
+@@ -2441,6 +2573,17 @@ impl Tty {
                          .set_vrr(surface.compositor.vrr_enabled());
                  }
  
@@ -334,7 +315,7 @@ diff --git a/src/niri.rs b/src/niri.rs
 index d84c390..03fe3d7 100644
 --- a/src/niri.rs
 +++ b/src/niri.rs
-@@ -1838,6 +1857,12 @@ impl State {
+@@ -1838,6 +1838,12 @@ impl State {
      }
  
      pub fn apply_transient_output_config(&mut self, name: &str, action: niri_ipc::OutputAction) {
@@ -347,7 +328,7 @@ index d84c390..03fe3d7 100644
          self.modify_output_config(name, move |config| match action {
              niri_ipc::OutputAction::Off => config.off = true,
              niri_ipc::OutputAction::On => config.off = false,
-@@ -1908,8 +1933,20 @@ impl State {
+@@ -1908,8 +1914,20 @@ impl State {
                      None
                  }
              }
@@ -370,3 +351,4 @@ index d84c390..03fe3d7 100644
  
 -- 
 2.53.0
+

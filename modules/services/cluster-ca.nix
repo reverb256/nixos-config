@@ -35,6 +35,14 @@ in {
       # (runtime approaches like /etc/pki/ca-trust fail on NixOS — /etc is read-only)
       security.pki.certificateFiles = [ ./../../certs/cluster-ca.crt ];
 
+      # Point Python (certifi/requests/httpx) at the system CA bundle so that
+      # apps like Hermes Agent trust the Cluster CA for *.lan endpoints.
+      # The system bundle is a superset of certifi's own CAs + our Cluster CA.
+      environment.variables = {
+        SSL_CERT_FILE = "/etc/ssl/certs/ca-bundle.crt";
+        REQUESTS_CA_BUNDLE = "/etc/ssl/certs/ca-bundle.crt";
+      };
+
       systemd.services.cluster-ca-init = {
         description = "Generate internal CA certificate and update trust store";
         wantedBy = ["multi-user.target"];

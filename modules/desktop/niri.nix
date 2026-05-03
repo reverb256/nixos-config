@@ -126,6 +126,16 @@ in {
           };
         }
         {
+          # Prevent nixos-rebuild from restarting the compositor mid-session.
+          # When the niri package changes, systemd --user detects changed unit files
+          # and restarts them. For a Wayland compositor, this kills the entire graphical
+          # session (niri -> graphical-session.target -> all apps).
+          # X-RestartIfChanged=no tells systemd to reload the unit definition but
+          # NOT restart the running instance. The new version takes effect on next login.
+          # NOTE: environment.etc drop-ins disabled due to Nix sandbox permission issues
+          # TODO: Re-enable when NixOS fixed the systemd user drop-in creation
+        }
+        {
           systemd.user.services = {
             xdg-desktop-portal = {
               after = ["xdg-desktop-autostart.target"];
@@ -134,9 +144,6 @@ in {
               after = ["xdg-desktop-autostart.target"];
             };
             xdg-desktop-portal-gtk = {
-              after = ["xdg-desktop-autostart.target"];
-            };
-            niri-flake-polkit = {
               after = ["xdg-desktop-autostart.target"];
             };
             polkit-gnome-authentication-agent-1 = {
