@@ -14,6 +14,7 @@ in {
       language = "en";
     };
 
+    hermes-workspace.enable = true;
     hermes-cli = {
       enable = true;
       apiKeyFile = config.age.secrets.zai-api-key.path;
@@ -50,7 +51,7 @@ in {
     keepalived-vip = {
       enable = true;
       vip = cluster.kubernetes.vip;
-      interface = "eth0";
+      interface = "eth1";
       priority = 110;
     };
 

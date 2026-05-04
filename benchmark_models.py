@@ -101,8 +101,6 @@ def make_request(host: str, port: int, prompt: str, max_tokens: int,
         
         prompt_time = time.time() - start_time
         
-        first_token_time = time.time()
-        
         # Read streaming output line by line
         for line in process.stdout:
             line = line.strip()
@@ -116,6 +114,8 @@ def make_request(host: str, port: int, prompt: str, max_tokens: int,
                         delta = data['choices'][0].get('delta', {})
                         content = delta.get('content', '')
                         reasoning = delta.get('reasoning_content', '')
+                        if first_token_time is None and (content or reasoning):
+                            first_token_time = time.time()
                         if content:
                             full_content += content
                             token_count += 1
@@ -124,13 +124,13 @@ def make_request(host: str, port: int, prompt: str, max_tokens: int,
                 except json.JSONDecodeError:
                     pass
         
-        gen_time = time.time() - first_token_time
+        gen_time = (time.time() - first_token_time) if first_token_time else 0
         process.wait(timeout=5)
         
         return {
             "prompt_time": prompt_time,
             "gen_time": gen_time,
-            "ttft": first_token_time - start_time,
+            "ttft": (first_token_time - start_time) if first_token_time else -1,
             "content": full_content,
             "reasoning_content": reasoning_content,
             "token_count": token_count,

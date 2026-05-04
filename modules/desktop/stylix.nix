@@ -30,6 +30,12 @@
       };
     };
 
+    cursor = {
+      package = pkgs.bibata-cursors;
+      name = "Bibata-Modern-Ice";
+      size = 24;
+    };
+
     opacity = {
       applications = 1.0;
       desktop = 1.0;
