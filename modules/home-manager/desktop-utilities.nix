@@ -149,10 +149,27 @@
     #!/usr/bin/env bash
     if [ -f "''${XDG_STATE_HOME:-$HOME/.local/state}/toggles/''${1:?Usage: toggle-get <name>}" ]; then echo "on"; else echo "off"; fi
   '';
+
+  ocr-extract = pkgs.writeShellScriptBin "ocr-extract" ''
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    GEOM="$(${pkgs.slurp}/bin/slurp -b 00000066 -c 8fbcbb -s 00000000 -w 2 2>/dev/null)" || exit 0
+
+    TEXT=$(${pkgs.grim}/bin/grim -g "$GEOM" -t png - | ${pkgs.tesseract}/bin/tesseract -l eng - - 2>/dev/null) || true
+
+    if [ -n "$TEXT" ]; then
+      echo -n "$TEXT" | ${pkgs.wl-clipboard}/bin/wl-copy
+      notify-send "Text extracted" "$(echo "$TEXT" | head -c 100)''${TEXT_LENGTH:+...}" -i edit-paste -t 3000 2>/dev/null || true
+    else
+      notify-send "OCR failed" "No text detected in selection" -i dialog-warning -t 3000 2>/dev/null || true
+    fi
+  '';
 in {
   home.packages = [
     screenshot
     screenrecord
+    ocr-extract
     toggle
     toggle-enabled
     toggle-get
