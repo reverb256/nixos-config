@@ -7,7 +7,6 @@
     nmap
     netcat
     socat
-    tmux
     xh
     hexdump
     xxd

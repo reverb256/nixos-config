@@ -165,6 +165,7 @@ in {
         "vaultwarden.lan. IN A ${vip}"
         "llama.zephyr.lan. IN A ${vip}"
         "llama.sentry.lan. IN A ${vip}"
+        "workspace.lan. IN A ${vip}"
       ];
       # Optional forge services
       forgeServices = [
@@ -254,6 +255,7 @@ in {
             monitoring = hosts.sentry;
             mining = hosts.forge;
             mission-control = vip;
+            workspace = vip;
             privacy-filter = vip;
           };
       in

@@ -6,6 +6,7 @@ Provides tools for creating systemd service modules.
 import asyncio
 import json
 import logging
+import re
 from typing import Any, Dict, List
 from pathlib import Path
 
@@ -31,6 +32,10 @@ HOSTS_DIR = PROJECT_ROOT / "hosts"
 
 
 # Service template
+# Slug validation: only lowercase alphanumeric and hyphens, no path traversal.
+SLUG_RE = re.compile(r"^[a-z][a-z0-9-]*$")
+
+
 SERVICE_TEMPLATE = """{ config, lib, pkgs, ... }:
 let
   cfg = config.services.SERVICE-NAME;
@@ -74,8 +79,14 @@ async def create_service_module(
 ) -> Dict[str, Any]:
     """Create a new systemd service module."""
     try:
-        # Validate service name (kebab-case)
         service_slug = service_name.lower().replace("_", "-").replace(" ", "-")
+
+        if not SLUG_RE.match(service_slug):
+            return {
+                "success": False,
+                "error": (f"Invalid service name '{service_name}': must start with a letter, "
+                          f"contain only lowercase letters, digits, and hyphens"),
+            }
 
         # Create service directory
         service_dir = SERVICES_DIR / service_slug

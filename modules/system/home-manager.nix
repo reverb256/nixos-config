@@ -29,11 +29,18 @@ in {
         ../../modules/home-manager/obsidian.nix
         ../../modules/home-manager/opencode.nix
         ../../modules/home-manager/firefox-pwa-apps.nix
-        ../../modules/home-manager/ghostty.nix
+        ../../modules/home-manager/alacritty.nix
         ../../modules/home-manager/icon-theme.nix
         ../../modules/home-manager/dolphin.nix
         ../../modules/home-manager/desktop-utilities.nix
         ../../modules/home-manager/copyq.nix
+        ../../modules/home-manager/git.nix
+        ../../modules/home-manager/tmux.nix
+        ../../modules/home-manager/lazygit.nix
+        ../../modules/home-manager/mime-apps.nix
+        ../../modules/home-manager/tui-apps.nix
+        ../../modules/home-manager/editorconfig.nix
+        ../../modules/home-manager/btop.nix
       ];
 
       disabledModules = ["stylix/hm/opencode.nix"];
@@ -51,6 +58,8 @@ in {
       programs.copyq = {
         enable = true;
       };
+
+      home.sessionVariables.BAT_THEME = "base16";
 
       home.stateVersion = "26.05";
 
