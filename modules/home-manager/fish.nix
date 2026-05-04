@@ -1,4 +1,27 @@
-{pkgs, ...}: {
+{pkgs, ...}: let
+  theme-switch = pkgs.writeShellScriptBin "theme-switch" ''
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [ "''${1:-}" = "list" ]; then
+      find /nix/store -maxdepth 3 -path '*/base16-schemes/share/themes/*.yaml' 2>/dev/null | \
+        xargs -I{} basename {} .yaml | sort -u | head -60
+      exit 0
+    fi
+
+    THEME="''${1:?Usage: theme-switch <theme-name> | theme-switch list}"
+    SCHEME_FILE="/etc/nixos/modules/desktop/stylix.nix"
+
+    if ! grep -q 'share/themes/.*\.yaml' "$SCHEME_FILE"; then
+      echo "ERROR: Cannot find theme line in $SCHEME_FILE"
+      exit 1
+    fi
+
+    sed -i "s|share/themes/.*\.yaml|share/themes/''${THEME}.yaml|" "$SCHEME_FILE"
+    echo "Theme set to $THEME. Rebuilding..."
+    sudo /etc/nixos/scripts/nixos-rebuild-safe.sh switch --flake /etc/nixos
+  '';
+in {
   programs.fish = {
     enable = true;
 
@@ -14,40 +37,18 @@
 
       set -g fish_greeting
 
+      if test -z "$FASTFETCH_DONE"
+        fastfetch
+        set -gx FASTFETCH_DONE 1
+      end
+
       fish_add_path ~/.lmstudio/bin
 
       fish_add_path ~/.local/bin
 
       zoxide init fish | source
 
-
-
-      alias nswitch "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh switch --flake /etc/nixos"
-      alias nswitchu "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh switch --flake /etc/nixos --upgrade"
-      alias ntest "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh test --flake /etc/nixos"
-      alias nbuild "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh build --flake /etc/nixos"
-      alias ndry "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh dry-activate --flake /etc/nixos"
-
-      alias nsgc "sudo nix-store --gc"
-      alias ngc "sudo nix-collect-garbage -d"
-      alias ngc7 "sudo nix-collect-garbage --delete-older-than 7d"
-      alias ngc14 "sudo nix-collect-garbage --delete-older-than 14d"
-      alias ngo "sudo nix-collect-garbage --delete-old"
-
-      alias noptimise "nix-store --optimise"
-      alias nverify "nix-store --verify"
-      alias nrepair "nix-store --repair"
-
-      alias nixos "cd /etc/nixos"
-      alias store "cd /nix/store"
-      alias conf "cd ~/.config"
-
-      alias nq "nix-env -qaP"
-      alias nsearch "nix search nixpkgs"
-
-      alias g lgit
-      alias g ldocker
-      alias g lpodman
+      fzf --fish | source
 
       alias ll "eza -lh --group-directories-first --icons=auto"
       alias la "eza -la --group-directories-first --icons=auto"
@@ -58,44 +59,69 @@
       alias du "dust"
       alias df "dufs"
 
-      alias gs "git status"
-      alias ga "git add"
-      alias gc "git commit"
-      alias gp "git push"
-      alias gl "git log --oneline --graph --decorate --all"
-      alias gd "git diff"
-      alias gds "git diff --staged"
-
-      alias nconf "nvim /etc/nixos/flake.nix"
-      alias fconf "nvim ~/.config/fish/config.fish"
-
-      alias sysinfo "fastfetch"
-      alias neofetch "fastfetch"
-
-      alias .. "cd .."
-      alias ... "cd ../.."
-      alias .... "cd ../../.."
-
       alias swl "grim - | wl-copy"
       alias swlr 'grim -g (slurp) - | wl-copy'
-
       alias killhypr "pkill Hyprland"
       alias restartwaybar "pkill waybar && waybar &"
     '';
 
     shellAbbrs = {
+      # Git
+      gs = "git status";
+      ga = "git add";
+      gc = "git commit";
+      gp = "git push";
+      gl = "git log --oneline --graph --decorate --all";
+      gd = "git diff";
+      gds = "git diff --staged";
+
+      # NixOS
+      nswitch = "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh switch --flake /etc/nixos";
+      nswitchu = "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh switch --flake /etc/nixos --upgrade";
+      ntest = "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh test --flake /etc/nixos";
+      nbuild = "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh build --flake /etc/nixos";
+      ndry = "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh dry-activate --flake /etc/nixos";
+      nconf = "nvim /etc/nixos/flake.nix";
+      fconf = "nvim ~/.config/fish/config.fish";
+
+      nsgc = "sudo nix-store --gc";
+      ngc = "sudo nix-collect-garbage -d";
+      ngc7 = "sudo nix-collect-garbage --delete-older-than 7d";
+      ngc14 = "sudo nix-collect-garbage --delete-older-than 14d";
+      ngo = "sudo nix-collect-garbage --delete-old";
+      noptimise = "nix-store --optimise";
+      nverify = "nix-store --verify";
+      nrepair = "nix-store --repair";
+
+      nixos = "cd /etc/nixos";
+      store = "cd /nix/store";
+      conf = "cd ~/.config";
+      nq = "nix-env -qaP";
+      nsearch = "nix search nixpkgs";
       nrb = "nixos-rebuild";
       ns = "nix-shell";
       nfp = "nix flake show";
 
-      gs = "git status";
-      gc = "git commit";
-      gp = "git push";
+      # Navigation
+      ".." = "cd ..";
+      "..." = "cd ../..";
+      "...." = "cd ../../..";
 
+      # Quick commands
+      sysinfo = "fastfetch";
+      neofetch = "fastfetch";
+
+      # Container runtimes
+      dgit = "lazygit";
+      ddocker = "lazydocker";
+      dpodman = "podman";
+
+      # System
       s = "sudo";
       su = "systemctl user";
       ss = "systemctl --user";
 
+      # Clipboard
       wclip = "wl-copy";
       wpaste = "wl-paste";
     };
@@ -124,7 +150,70 @@
     };
   };
 
+  xdg.configFile."fastfetch/config.jsonc".text = ''
+    {
+      "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+      "logo": {
+        "source": "nixos_small",
+        "padding": {
+          "top": 0,
+          "right": 2
+        }
+      },
+      "display": {
+        "separator": " 󰁔 "
+      },
+      "modules": [
+        "title",
+        "separator",
+        {
+          "type": "os",
+          "format": "{3} {12}",
+          "key": "╭─ OS"
+        },
+        {
+          "type": "kernel",
+          "key": "├─󰌽 Kernel"
+        },
+        {
+          "type": "shell",
+          "format": "{1} {2}",
+          "key": "├─ Shell"
+        },
+        {
+          "type": "terminal",
+          "key": "├─ Terminal"
+        },
+        {
+          "type": "wm",
+          "key": "├─ WM"
+        },
+        {
+          "type": "cpu",
+          "format": "{1} ({5})",
+          "key": "├─󰻠 CPU"
+        },
+        {
+          "type": "gpu",
+          "format": "{2}",
+          "key": "├─󰢮 GPU"
+        },
+        {
+          "type": "memory",
+          "format": "{1} / {2}",
+          "key": "╰─󰍛 Memory"
+        },
+        "break",
+        {
+          "type": "colors",
+          "symbol": "circle"
+        }
+      ]
+    }
+  '';
+
   home.packages = with pkgs; [
+    theme-switch
     eza
     bat
     btop
@@ -135,14 +224,11 @@
     ripgrep
     fd
     fzf
-    lazygit
 
     starship
 
     jq
     screen
     sshpass
-    tmux
-    gh
   ];
 }

@@ -8,6 +8,7 @@ Follows MCP best practices: clear tool names, structured output, actionable erro
 
 import asyncio
 import json
+import os
 from typing import Any
 from urllib.parse import urlencode, urlparse
 

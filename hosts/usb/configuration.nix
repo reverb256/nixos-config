@@ -326,7 +326,10 @@ in {
 
   # Desktop / Niri
   programs.niri.enable = true;
-  stylix.base16Scheme = "${pkgs.base16-schemes}/share/themes/nord.yaml";
+  stylix = {
+    base16Scheme = "${pkgs.base16-schemes}/share/themes/nord.yaml";
+    image = ../../modules/desktop/wallpapers/nord-bg.png;
+  };
   services.displayManager.sddm.enable = lib.mkForce true;
 
   # Home Manager — j_kro desktop setup (niri config + noctalia-shell)
@@ -339,7 +342,7 @@ in {
         ../../modules/home-manager/niri-config.nix
         ../../modules/home-manager/fish.nix
         ../../modules/home-manager/starship.nix
-        ../../modules/home-manager/ghostty.nix
+        ../../modules/home-manager/alacritty.nix
       ];
       home.stateVersion = "26.05";
     };
