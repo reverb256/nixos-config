@@ -147,7 +147,6 @@ in {
       ];
       # Services proxied via Caddy via VIP (single stable entry point)
       hostServices = [
-        "ai.lan. IN A ${vip}"
         "ai-inference.lan. IN A ${vip}"
         "auth.lan. IN A ${vip}"
         "qdrant.lan. IN A ${vip}"
@@ -163,8 +162,6 @@ in {
         "privacy-filter.lan. IN A ${vip}"
         "grafana.lan. IN A ${vip}"
         "vaultwarden.lan. IN A ${vip}"
-        "llama.zephyr.lan. IN A ${vip}"
-        "llama.sentry.lan. IN A ${vip}"
         "workspace.lan. IN A ${vip}"
       ];
       # Optional forge services

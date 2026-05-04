@@ -33,8 +33,10 @@ in {
       ];
 
       env = [
-        "XCURSOR_THEME,Adwaita"
-        "XCURSOR_SIZE,24"
+        "XCURSOR_THEME,${config.stylix.cursor.name}"
+        "XCURSOR_SIZE,${toString config.stylix.cursor.size}"
+        "HYPRCURSOR_THEME,${config.stylix.cursor.name}"
+        "HYPRCURSOR_SIZE,${toString config.stylix.cursor.size}"
         "QT_WAYLAND_DISABLE_WINDOWDECORATION,1"
         "NIXOS_OZONE_WL,1"
         "MOZ_ENABLE_WAYLAND,1"
@@ -78,7 +80,11 @@ in {
       misc = {
         disable_hyprland_logo = true;
         disable_splash_rendering = true;
+        middle_click_paste = false;
       };
+
+      "general:no_border_on_floating" = false;
+      "general:allow_tearing" = false;
 
       input = {
         kb_layout = "us";
@@ -160,7 +166,7 @@ in {
           "SUPER SHIFT, Up, movewindow, u"
           "SUPER SHIFT, Down, movewindow, d"
           "SUPER, Period, togglesplit"
-          "SUPER CTRL, Period, movewindow, silentspace"
+          "SUPER CTRL, Period, movetoworkspacesilent, e+1"
           "SUPER, R, splitratio, exact 0.5"
           "SUPER SHIFT, R, splitratio, exact 0.7"
           "SUPER, Minus, resizeactive, -5% 0"
@@ -221,8 +227,10 @@ in {
           # Screenshots
           ", Print, exec, screenshot region"
           "SUPER, Print, exec, screenshot color"
+          "SUPER CTRL, Print, exec, ocr-extract"
           "SUPER SHIFT, Print, exec, screenshot fullscreen"
           "SUPER ALT, Print, exec, screenshot window"
+          "SUPER CTRL SHIFT, Print, exec, grim -o $(hyprctl monitors -j | ${lib.getExe pkgs.jq} -r '.[] | select(.focused) | .name') ~/Pictures/Screenshots/screenshot-$(date +%Y-%m-%d_%H-%M-%S).png"
           "ALT, Print, exec, screenrecord"
           "SUPER ALT SHIFT, Print, exec, screenrecord desktop"
 
@@ -325,6 +333,11 @@ in {
 
           # CopyQ
           "float, match:class ^(copyq)$"
+
+          # Spotify — no decorations (fixes CSD issues)
+          "rounding 0, match:class ^(spotify)$"
+          "noshadow, match:class ^(spotify)$"
+          "noborder, match:class ^(spotify)$"
         ];
     };
   };
