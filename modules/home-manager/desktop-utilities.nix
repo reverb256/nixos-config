@@ -1,15 +1,16 @@
 {
   pkgs,
-  config,
+  lib,
   ...
 }: let
-  # ═══════════════════════════════════════════════════════════════
-  # SMART SCREENSHOT
-  # Modes: region (default), window, fullscreen, color
-  # Smart mode: if selection < 20x20, snaps to containing window
-  # Auto-opens satty editor, copies to clipboard
-  # Noctilia has no built-in screenshot tool, this fills that gap.
-  # ═══════════════════════════════════════════════════════════════
+  compositorDetect = ''
+    if [ -n "''${HYPRLAND_INSTANCE_SIGNATURE:-}" ] || pgrep -x hyprland >/dev/null 2>&1; then
+      echo "hyprland"
+    else
+      echo "niri"
+    fi
+  '';
+
   screenshot = pkgs.writeShellScriptBin "screenshot" ''
     #!/usr/bin/env bash
     set -euo pipefail
@@ -22,24 +23,33 @@
 
     case "$MODE" in
       region)
-        # Smart region: select area, snap to window if tiny selection
         GEOM="$(${pkgs.slurp}/bin/slurp -b 00000066 -c 8fbcbb -s 00000000 -w 2 2>/dev/null)" || exit 0
 
-        # Parse geometry: X,Y WxH
         read -r X Y W H <<< "$(echo "$GEOM" | sed 's/,/ /g; s/x/ /')"
         AREA=$((W * H))
 
         if [ "$AREA" -lt 400 ]; then
-          # Tiny selection (< 20x20) -- snap to focused window
-          GEOM=$(${pkgs.niri}/bin/niri msg --json focused-window 2>/dev/null | \
-            ${pkgs.jq}/bin/jq -r '"\(.output_x),\(.output_y) \(.width)x\(.height)"' 2>/dev/null) || true
+          COMPOSITOR=$(${compositorDetect})
+          if [ "$COMPOSITOR" = "hyprland" ]; then
+            GEOM=$(${pkgs.hyprland}/bin/hyprctl activewindow -j 2>/dev/null | \
+              ${pkgs.jq}/bin/jq -r '"\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"' 2>/dev/null) || true
+          else
+            GEOM=$(${pkgs.niri}/bin/niri msg --json focused-window 2>/dev/null | \
+              ${pkgs.jq}/bin/jq -r '"\(.output_x),\(.output_y) \(.width)x\(.height)"' 2>/dev/null) || true
+          fi
         fi
 
         [ -n "$GEOM" ] && ${pkgs.grim}/bin/grim -g "$GEOM" "$FILE" || ${pkgs.grim}/bin/grim "$FILE"
         ;;
       window)
-        GEOM=$(${pkgs.niri}/bin/niri msg --json focused-window 2>/dev/null | \
-          ${pkgs.jq}/bin/jq -r '"\(.output_x),\(.output_y) \(.width)x\(.height)"' 2>/dev/null) || true
+        COMPOSITOR=$(${compositorDetect})
+        if [ "$COMPOSITOR" = "hyprland" ]; then
+          GEOM=$(${pkgs.hyprland}/bin/hyprctl activewindow -j 2>/dev/null | \
+            ${pkgs.jq}/bin/jq -r '"\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"' 2>/dev/null) || true
+        else
+          GEOM=$(${pkgs.niri}/bin/niri msg --json focused-window 2>/dev/null | \
+            ${pkgs.jq}/bin/jq -r '"\(.output_x),\(.output_y) \(.width)x\(.height)"' 2>/dev/null) || true
+        fi
 
         [ -n "$GEOM" ] && ${pkgs.grim}/bin/grim -g "$GEOM" "$FILE" || ${pkgs.grim}/bin/grim "$FILE"
         ;;
@@ -62,22 +72,14 @@
         ;;
     esac
 
-    # Copy to clipboard
     ${pkgs.wl-clipboard}/bin/wl-copy < "$FILE"
 
-    # Open in satty editor in background
     ${pkgs.satty}/bin/satty --filename "$FILE" --output-filename "$FILE" \
       --actions-on-enter save-to-clipboard --save-after-copy --copy-command 'wl-copy' &
 
     notify-send "Screenshot saved" "$(basename "$FILE")" -i camera-photo -t 3000 2>/dev/null || true
   '';
 
-  # ═══════════════════════════════════════════════════════════════
-  # SCREEN RECORDING
-  # Toggle-based: run once to start, run again to stop.
-  # Audio modes: none (default), desktop, mic, both
-  # State file for recording indicator integration with Noctilia hooks.
-  # ═══════════════════════════════════════════════════════════════
   screenrecord = pkgs.writeShellScriptBin "screenrecord" ''
     #!/usr/bin/env bash
     set -euo pipefail
@@ -86,7 +88,6 @@
     RECORDING_DIR="''${RECORDING_DIR:-$HOME/Videos/Recordings}"
     mkdir -p "$RECORDING_DIR"
 
-    # Toggle: if already recording, stop
     if [ -f "$STATE_FILE" ]; then
       PID=$(cat "$STATE_FILE")
       if kill -0 "$PID" 2>/dev/null; then
@@ -98,7 +99,6 @@
       exit 0
     fi
 
-    # Start recording
     AUDIO="''${1:-none}"
     FILE="$RECORDING_DIR/recording-$(date +%Y-%m-%d_%H-%M-%S).mp4"
 
@@ -121,7 +121,6 @@
 
     notify-send "Recording started" "Audio: $AUDIO" -i media-record -t 2000 2>/dev/null || true
 
-    # Use gpu-screen-recorder via portal, fall back to wf-recorder
     if command -v gpu-screen-recorder &>/dev/null; then
       gpu-screen-recorder "''${AUDIO_ARGS[@]}" -w portal -f 60 -o "$FILE" &
     else
@@ -131,12 +130,6 @@
     echo $! > "$STATE_FILE"
   '';
 
-  # ═══════════════════════════════════════════════════════════════
-  # FILE-BASED TOGGLES
-  # Complements Noctilia's in-memory IPC toggles with persistent state
-  # that survives shell restarts. Useful for niri config sourcing.
-  # Usage: toggle <name> / toggle-enabled <name> / toggle-get <name>
-  # ═══════════════════════════════════════════════════════════════
   toggle = pkgs.writeShellScriptBin "toggle" ''
     #!/usr/bin/env bash
     set -euo pipefail

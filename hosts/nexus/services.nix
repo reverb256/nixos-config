@@ -277,6 +277,11 @@ in {
         domain = "activepieces.lan";
         backend = k8s.activepieces.dns;
       };
+      auth = {
+        domain = "auth.lan";
+        backend = k8s.casdoor.dns;
+      };
+
       ai-inference = {
         domain = "ai-inference.lan";
         backend = k8s.ai-gateway.dns;

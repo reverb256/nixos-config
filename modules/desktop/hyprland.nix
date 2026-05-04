@@ -14,6 +14,22 @@ in {
 
     programs.hyprlock.enable = cfg;
 
+    xdg.portal = lib.mkIf cfg {
+      enable = lib.mkDefault true;
+      xdgOpenUsePortal = lib.mkForce false;
+      config.hyprland = {
+        default = ["hyprland" "gtk"];
+        "org.freedesktop.impl.portal.Access" = "gtk";
+        "org.freedesktop.impl.portal.FileChooser" = "gtk";
+        "org.freedesktop.impl.portal.Notification" = "gtk";
+        "org.freedesktop.impl.portal.Secret" = "gnome-keyring";
+      };
+      extraPortals = lib.mkDefault [
+        pkgs.xdg-desktop-portal-hyprland
+        pkgs.xdg-desktop-portal-gtk
+      ];
+    };
+
     environment.systemPackages = lib.mkIf cfg (
       with pkgs; [
         hyprpicker
@@ -23,6 +39,7 @@ in {
         hyprpolkitagent
 
         wayvnc
+        xwayland-satellite
       ]
     );
 
@@ -39,6 +56,15 @@ in {
           ExecCondition = "${pkgs.systemd}/lib/systemd/systemd-xdg-autostart-condition Hyprland ''";
         };
         enable = true;
+      };
+      xdg-desktop-portal = {
+        after = ["xdg-desktop-autostart.target"];
+      };
+      xdg-desktop-portal-hyprland = {
+        after = ["xdg-desktop-autostart.target"];
+      };
+      xdg-desktop-portal-gtk = {
+        after = ["xdg-desktop-autostart.target"];
       };
     };
   };
