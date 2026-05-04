@@ -17,9 +17,6 @@
   };
 
   # AI Inference Gateway — derive paths from flake input, not hardcoded store paths
-  gatewayPkg = inputs.ai-gateway.packages.x86_64-linux.ai-inference-gateway;
-  gatewayEnv = pkgs.python313.withPackages (_ps: [gatewayPkg]);
-  gatewaySitePackages = "${gatewayEnv}/${gatewayEnv.python.sitePackages}";
 in {
   config.kubernetes.objects.ai-inference = {
     ServiceAccount.default = {};
@@ -125,13 +122,13 @@ SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
             containers = {
               _namedlist = true;
               open-webui = {
-                image = "ghcr.io/open-webui/open-webui:0.9.2";
+                image = "ghcr.io/open-webui/open-webui:main";
                 imagePullPolicy = "IfNotPresent";
                 env = {
                   _namedlist = true;
                   OLLAMA_BASE_URLS = {
                     name = "OLLAMA_BASE_URLS";
-                    value = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1";
+                    value = "http://ai-inference.ai-inference.svc.cluster.local:11434";
                   }; # AI inference gateway
                   ENABLE_OLLAMA = {
                     name = "ENABLE_OLLAMA";
@@ -155,7 +152,7 @@ SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
                   };
                   OPENAI_API_BASE_URL = {
                     name = "OPENAI_API_BASE_URL";
-                    value = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1";
+                    value = "http://ai-inference.ai-inference.svc.cluster.local:11434";
                   };
                 };
                 ports = [
@@ -735,7 +732,7 @@ SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
             containers = [
               {
                 name = "qdrant";
-                image = "docker.io/qdrant/qdrant:v1.17.1";
+                image = "docker.io/qdrant/qdrant:v1.13.4";
                 ports = [
                   {
                     containerPort = 6333;
@@ -948,7 +945,7 @@ SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
         purpose = "llm-inference";
       };
       spec = {
-        replicas = 1;
+        replicas = 0;
         revisionHistoryLimit = 2;
         selector.matchLabels.app = "llama-cpp";
         strategy = {
@@ -966,7 +963,7 @@ SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
             containers = [
               {
                 name = "llama-server";
-                image = "alpine:3.22";
+                image = "alpine:latest";
                 command = ["/run/current-system/sw/bin/llama-server"];
                 args = [
                   "--model=/models/Qwen3.5-0.8B.Q8_0.gguf"

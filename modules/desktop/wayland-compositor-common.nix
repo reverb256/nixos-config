@@ -19,6 +19,8 @@ in {
       pkgs.gpu-screen-recorder
 
       pkgs.adwaita-icon-theme
+
+      (pkgs.tesseract.override {languages = pkgs.tesseract.languages.eng;})
     ];
 
     services.gnome.gnome-keyring.enable = lib.mkDefault true;

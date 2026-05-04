@@ -44,7 +44,7 @@ in {
             - duckduckgo news
 
           server:
-            limiter: true  # Enable rate limiting
+            limiter: false  # Rate limiting disabled (internal service, no public exposure)
             secret_key: "@SEARXNG_SECRET_KEY@"
             image_proxy: true
             method: "GET"
@@ -230,7 +230,7 @@ in {
             containers = {
               _namedlist = true;
               searxng = {
-                image = "searxng/searxng:2026.5.2";
+                image = "searxng/searxng:latest";
                 imagePullPolicy = "IfNotPresent";
                 securityContext = {
                   allowPrivilegeEscalation = false;
@@ -380,7 +380,7 @@ in {
             containers = {
               _namedlist = true;
               valkey = {
-                image = "valkey/valkey:9.0.3";
+                image = "valkey/valkey:8.1";
                 imagePullPolicy = "IfNotPresent";
                 command = [
                   "valkey-server"

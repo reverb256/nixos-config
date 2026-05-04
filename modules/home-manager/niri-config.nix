@@ -272,6 +272,9 @@ in {
             "color"
           ];
         };
+        "Mod+Ctrl+Print" = {
+          action.spawn = ["ocr-extract"];
+        };
         "Mod+Shift+Print" = {
           action.spawn = [
             "screenshot"
