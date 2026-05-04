@@ -133,7 +133,7 @@ in
   # Open WebUI via K8s service discovery
   mkAuthRoute "openwebui.lan" "http://openwebui.ai-inference.svc.cluster.local:3000" + "\n" +
   # Hermes Workspace (zephyr, port 3002)
-  mkRoute "workspace.lan" "http://127.0.0.1:3002" + "\n" +
+  mkAuthRoute "workspace.lan" "http://127.0.0.1:3002" + "\n" +
   # Llama Zephyr (hostNetwork on zephyr, host port 1237)
   mkAuthRoute "llama.zephyr.lan" "http://127.0.0.1:1237" + "\n" +
   # Llama Sentry via K8s service discovery
