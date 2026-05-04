@@ -53,7 +53,7 @@ in {
       ];
 
       cursor = {
-        theme = mkDefault "Adwaita";
+        theme = lib.mkForce "Adwaita";
         size = mkDefault 24;
         hide-on-key-press = true;
         hide-after-inactive-ms = 3000;
@@ -200,7 +200,7 @@ in {
       };
 
       binds = with acts; {
-        "Mod+Return".action = spawn "uwsm" "app" "--" "ghostty";
+        "Mod+Return".action = spawn "uwsm" "app" "--" "alacritty";
         "Mod+B".action = spawn "launch-or-focus" "Zen" "uwsm" "app" "--" "zen-twilight";
         "Mod+Shift+B".action = spawn "uwsm" "app" "--" "zen-twilight" "--private-window";
         "Mod+E".action = spawn "launch-or-focus" "Dolphin" "${pkgs.kdePackages.dolphin}/bin/dolphin";
@@ -211,8 +211,8 @@ in {
           spawn "launch-or-focus" "Kate" "uwsm" "app" "--"
           "${pkgs.kdePackages.kate}/bin/kate";
         "Mod+O".action = spawn "launch-or-focus" "Obsidian" "uwsm" "app" "--" "obsidian";
-        "Mod+T".action = spawn "uwsm" "app" "--" "ghostty" "-e" "btop";
-        "Mod+D".action = spawn "uwsm" "app" "--" "ghostty" "-e" "lazydocker";
+        "Mod+T".action = spawn "uwsm" "app" "--" "alacritty" "-e" "btop";
+        "Mod+D".action = spawn "uwsm" "app" "--" "alacritty" "-e" "lazydocker";
         "Mod+G".action = spawn "launch-or-focus" "Discord" "uwsm" "app" "--" "discord";
         "Mod+Shift+G".action =
           spawn "launch-or-focus" "Grok" "uwsm" "app" "--" "firefoxpwa" "site" "launch"
@@ -536,7 +536,6 @@ in {
             {app-id = "kitty";}
             {app-id = "foot";}
             {app-id = "gnome-terminal";}
-            {app-id = "com.mitchellh.ghostty";}
           ];
           default-column-width = {
             proportion = 0.5;

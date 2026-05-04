@@ -92,6 +92,7 @@
     ./services/ci-runner.nix
     ./services/garnix.nix
     ./services/hermes-cli.nix
+    ./services/hermes-workspace.nix
     ./services/auto-update.nix
     ./services/whisper-dictation.nix
     ./services/voxtype.nix

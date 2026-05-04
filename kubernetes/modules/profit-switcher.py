@@ -27,6 +27,11 @@ except ImportError:
             return R()
     requests = _Requests()
 
+REQUIRED_ENV = ["WALLET", "GPU_PROFILES", "KRYPTXEX_POOLS", "GPU_GROUPS", "WTM_NAMES"]
+missing = [v for v in REQUIRED_ENV if v not in os.environ]
+if missing:
+    sys.exit(f"ERROR: Missing required env vars: {', '.join(missing)}")
+
 WALLET = os.environ["WALLET"]
 GPU_PROFILES = json.loads(os.environ["GPU_PROFILES"])
 KRYPTXEX_POOLS = json.loads(os.environ["KRYPTXEX_POOLS"])

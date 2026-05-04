@@ -74,7 +74,7 @@
 
   stylix = {
     base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
-    image = ../../modules/desktop/wallpapers/catppuccin-mocha-bg.jpg;
+    image = ../../modules/desktop/wallpapers/catppuccin-mocha-bg.png;
   };
 
   networking.cluster-hosts = {

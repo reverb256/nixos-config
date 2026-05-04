@@ -6,29 +6,6 @@
     X-KDE-autostart-after-panel=false
   '';
 
-  xdg.mimeApps.enable = true;
-  xdg.mimeApps.defaultApplications = {
-    "text/html" = "zen-twilight.desktop";
-    "text/xml" = "zen-twilight.desktop";
-    "application/xhtml+xml" = "zen-twilight.desktop";
-    "application/vnd.mozilla.xul+xml" = "zen-twilight.desktop";
-    "text/mml" = "zen-twilight.desktop";
-    "application/rss+xml" = "zen-twilight.desktop";
-    "application/rdf+xml" = "zen-twilight.desktop";
-    "x-scheme-handler/http" = "zen-twilight.desktop";
-    "x-scheme-handler/https" = "zen-twilight.desktop";
-    "x-scheme-handler/ftp" = "zen-twilight.desktop";
-    "x-scheme-handler/chrome" = "zen-twilight.desktop";
-    "x-scheme-handler/about" = "zen-twilight.desktop";
-    "x-scheme-handler/unknown" = "zen-twilight.desktop";
-    "x-scheme-handler/webcal" = "zen-twilight.desktop";
-    "x-scheme-handler/mailto" = "zen-twilight.desktop";
-    "x-scheme-handler/irc" = "zen-twilight.desktop";
-
-    "inode/directory" = "org.kde.dolphin.desktop";
-    "application/x-gnome-saved-search" = "org.kde.dolphin.desktop";
-  };
-
   programs.zen-browser = {
     enable = true;
 
