@@ -15,7 +15,7 @@ let
 in
 effectiveStdenv.mkDerivation rec {
   pname = "llama-cpp-turboquant";
-  version = "0.0.2-spiritbuun-aecbbd5d";
+  version = "0.0.3-spiritbuun-aecbbd5da";
 
   src = fetchFromGitHub {
     owner = "spiritbuun";
@@ -67,7 +67,7 @@ effectiveStdenv.mkDerivation rec {
   '';
 
   meta = {
-    description = "llama.cpp with DFlash + TurboQuant TCQ KV cache (spiritbuun fork, no triattention)";
+    description = "llama.cpp with DFlash speculative decoding + TurboQuant TCQ KV cache (spiritbuun fork, triattention pending rebase)";
     homepage = "https://github.com/spiritbuun/buun-llama-cpp";
     license = lib.licenses.mit;
     platforms = lib.platforms.linux;

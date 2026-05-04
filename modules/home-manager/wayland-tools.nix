@@ -8,6 +8,16 @@
     if config.lib ? hm && config.lib.hm ? dag
     then config.lib.hm.dag.entryAfter
     else (_names: script: script);
+
+  # Detect running compositor: "hyprland" or "niri" (fallback)
+  compositorDetect = ''
+    if [ -n "''${HYPRLAND_INSTANCE_SIGNATURE:-}" ] || pgrep -x hyprland >/dev/null 2>&1; then
+      echo "hyprland"
+    else
+      echo "niri"
+    fi
+  '';
+
   brightness-all = pkgs.writeShellScriptBin "brightness-all" ''
     SAMSUNG_OUTPUT="HDMI-A-2"
     SDR_MIN=0.1
@@ -21,56 +31,73 @@
     case "$1" in
       up)
         noctalia-shell ipc call brightness increase 2>/dev/null || true
-        current=$(get_current)
-        new=$(echo "$current + $SDR_STEP" | bc 2>/dev/null)
-        [ -z "$new" ] && new="1.0"
-        if [ "$(echo "$new > $SDR_MAX" | bc)" = "1" ]; then new="$SDR_MAX"; fi
-        export NIRI_SAMSUNG_BRIGHTNESS="$new"
-        niri msg output "$SAMSUNG_OUTPUT" sdr-brightness "$new" 2>/dev/null || true
+        COMPOSITOR=$(${compositorDetect})
+        if [ "$COMPOSITOR" = "niri" ]; then
+          current=$(get_current)
+          new=$(echo "$current + $SDR_STEP" | bc 2>/dev/null)
+          [ -z "$new" ] && new="1.0"
+          if [ "$(echo "$new > $SDR_MAX" | bc)" = "1" ]; then new="$SDR_MAX"; fi
+          export NIRI_SAMSUNG_BRIGHTNESS="$new"
+          niri msg output "$SAMSUNG_OUTPUT" sdr-brightness "$new" 2>/dev/null || true
+        fi
         ;;
       down)
         noctalia-shell ipc call brightness decrease 2>/dev/null || true
-        current=$(get_current)
-        new=$(echo "$current - $SDR_STEP" | bc 2>/dev/null)
-        [ -z "$new" ] && new="0.95"
-        if [ "$(echo "$new < $SDR_MIN" | bc)" = "1" ]; then new="$SDR_MIN"; fi
-        export NIRI_SAMSUNG_BRIGHTNESS="$new"
-        niri msg output "$SAMSUNG_OUTPUT" sdr-brightness "$new" 2>/dev/null || true
+        COMPOSITOR=$(${compositorDetect})
+        if [ "$COMPOSITOR" = "niri" ]; then
+          current=$(get_current)
+          new=$(echo "$current - $SDR_STEP" | bc 2>/dev/null)
+          [ -z "$new" ] && new="0.95"
+          if [ "$(echo "$new < $SDR_MIN" | bc)" = "1" ]; then new="$SDR_MIN"; fi
+          export NIRI_SAMSUNG_BRIGHTNESS="$new"
+          niri msg output "$SAMSUNG_OUTPUT" sdr-brightness "$new" 2>/dev/null || true
+        fi
         ;;
     esac
   '';
 
   scratchpad-toggle = pkgs.writeShellScriptBin "scratchpad-toggle" ''
     set -euo pipefail
+    COMPOSITOR=$(${compositorDetect})
 
-    SCRATCH_WS="scratch"
-    STATE_FILE="''${XDG_RUNTIME_DIR:-/tmp}/niri-scratchpad-prev-ws"
-
-    current_ws=$(niri msg workspaces 2>/dev/null | awk '/\*/ {print $2}' | head -1)
-    if [ -z "$current_ws" ]; then
-      current_ws=$(niri msg focused-output 2>/dev/null | awk '/Active workspace:/ {print $NF}')
-    fi
-
-    if [ "$current_ws" = "$SCRATCH_WS" ]; then
-      prev=$(cat "$STATE_FILE" 2>/dev/null || echo "1")
-      niri msg action focus-workspace "$prev" 2>/dev/null || true
+    if [ "$COMPOSITOR" = "hyprland" ]; then
+      CURRENT=$(hyprctl activeworkspace -j 2>/dev/null | ${lib.getExe pkgs.jq} -r '.name' 2>/dev/null || echo "")
+      if [ "$CURRENT" = "special:scratch" ]; then
+        hyprctl dispatch togglespecialworkspace scratch 2>/dev/null || true
+      else
+        hyprctl dispatch movetoworkspace "special:scratch" 2>/dev/null || true
+        hyprctl dispatch togglespecialworkspace scratch 2>/dev/null || true
+      fi
     else
-      scratch_has_windows=false
-      json_out=$(niri msg windows --json 2>/dev/null) || true
-      if [ -n "$json_out" ] && echo "$json_out" | ${lib.getExe pkgs.jq} -e '.[0].id' >/dev/null 2>&1; then
-        count=$(echo "$json_out" | ${lib.getExe pkgs.jq} "[.[] | select(.workspace == \"$SCRATCH_WS\" or (.workspace // 0) == 99)] | length")
-        [ "''${count:-0}" -gt 0 ] && scratch_has_windows=true
+      SCRATCH_WS="scratch"
+      STATE_FILE="''${XDG_RUNTIME_DIR:-/tmp}/niri-scratchpad-prev-ws"
+
+      current_ws=$(niri msg workspaces 2>/dev/null | awk '/\*/ {print $2}' | head -1)
+      if [ -z "$current_ws" ]; then
+        current_ws=$(niri msg focused-output 2>/dev/null | awk '/Active workspace:/ {print $NF}')
       fi
 
-      echo "$current_ws" > "$STATE_FILE"
-
-      if $scratch_has_windows; then
-        niri msg action focus-workspace "$SCRATCH_WS" 2>/dev/null || true
-        sleep 0.1
-        niri msg action move-column-to-workspace "$current_ws" 2>/dev/null || true
-        niri msg action focus-workspace "$current_ws" 2>/dev/null || true
+      if [ "$current_ws" = "$SCRATCH_WS" ]; then
+        prev=$(cat "$STATE_FILE" 2>/dev/null || echo "1")
+        niri msg action focus-workspace "$prev" 2>/dev/null || true
       else
-        niri msg action move-column-to-workspace "$SCRATCH_WS" 2>/dev/null || true
+        scratch_has_windows=false
+        json_out=$(niri msg windows --json 2>/dev/null) || true
+        if [ -n "$json_out" ] && echo "$json_out" | ${lib.getExe pkgs.jq} -e '.[0].id' >/dev/null 2>&1; then
+          count=$(echo "$json_out" | ${lib.getExe pkgs.jq} "[.[] | select(.workspace == \"$SCRATCH_WS\" or (.workspace // 0) == 99)] | length")
+          [ "''${count:-0}" -gt 0 ] && scratch_has_windows=true
+        fi
+
+        echo "$current_ws" > "$STATE_FILE"
+
+        if $scratch_has_windows; then
+          niri msg action focus-workspace "$SCRATCH_WS" 2>/dev/null || true
+          sleep 0.1
+          niri msg action move-column-to-workspace "$current_ws" 2>/dev/null || true
+          niri msg action focus-workspace "$current_ws" 2>/dev/null || true
+        else
+          niri msg action move-column-to-workspace "$SCRATCH_WS" 2>/dev/null || true
+        fi
       fi
     fi
   '';
@@ -78,51 +105,66 @@
   launch-or-focus = pkgs.writeShellScriptBin "launch-or-focus" ''
     set -euo pipefail
 
-    if [ ''$# -lt 1 ]; then
+    if [ $# -lt 1 ]; then
       echo "Usage: launch-or-focus <window-pattern> [launch-command] [args...]" >&2
-      echo "  If a window matching the pattern exists, focus it." >&2
-      echo "  Otherwise, launch the command (defaults to the pattern)." >&2
       exit 1
     fi
 
     PATTERN="$1"
     shift || true
     LAUNCH_CMD="''${@:-$PATTERN}"
+    COMPOSITOR=$(${compositorDetect})
 
-    find_window_id() {
-      local pat_lower
+    if [ "$COMPOSITOR" = "hyprland" ]; then
       pat_lower=$(echo "$PATTERN" | tr '[:upper:]' '[:lower:]')
-
-      local json_out
-      json_out=$(niri msg windows --json 2>/dev/null) || true
-      if [ -n "$json_out" ] && echo "$json_out" | ${lib.getExe pkgs.jq} -e '.[0].id' >/dev/null 2>&1; then
-        echo "$json_out" | ${lib.getExe pkgs.jq} -r ".[] | select(
+      json_out=$(hyprctl clients -j 2>/dev/null) || true
+      if [ -n "$json_out" ]; then
+        WINDOW_ADDR=$(echo "$json_out" | ${lib.getExe pkgs.jq} -r ".[] | select(
           (.title // \"\") | test(\"$PATTERN\"; \"i\")
-          or (.\"app-id\" // \"\") | test(\"$PATTERN\"; \"i\")
-        ) | .id" | head -1
-        return
+          or (.class // \"\") | test(\"$PATTERN\"; \"i\")
+        ) | .address" | head -1) || true
       fi
 
-      niri msg windows 2>/dev/null | awk -v pat="$pat_lower" '
-        /^Window ID/ { current_id = \$3; gsub(/:/, "", current_id); title=""; appid="" }
-        /^\s+Title:/ {
-          val = \$0; sub(/^\s+Title:\s*"/, "", val); sub(/"$/, "", val); title = val
-        }
-        /^\s+App ID:/ {
-          val = \$0; sub(/^\s+App ID:\s*"/, "", val); sub(/"$/, "", val); appid = val
-          if (tolower(title) ~ pat || tolower(appid) ~ pat) {
-            print current_id; exit
-          }
-        }
-      '
-    }
-
-    WINDOW_ID=$(find_window_id) || true
-
-    if [ -n "$WINDOW_ID" ]; then
-      niri msg action focus-window --id "$WINDOW_ID" 2>/dev/null || true
+      if [ -n "''${WINDOW_ADDR:-}" ]; then
+        hyprctl dispatch focuswindow "address:$WINDOW_ADDR" 2>/dev/null || true
+      else
+        exec $LAUNCH_CMD
+      fi
     else
-      exec $LAUNCH_CMD
+      pat_lower=$(echo "$PATTERN" | tr '[:upper:]' '[:lower:]')
+
+      find_window_id() {
+        local json_out
+        json_out=$(niri msg windows --json 2>/dev/null) || true
+        if [ -n "$json_out" ] && echo "$json_out" | ${lib.getExe pkgs.jq} -e '.[0].id' >/dev/null 2>&1; then
+          echo "$json_out" | ${lib.getExe pkgs.jq} -r ".[] | select(
+            (.title // \"\") | test(\"$PATTERN\"; \"i\")
+            or (.\"app-id\" // \"\") | test(\"$PATTERN\"; \"i\")
+          ) | .id" | head -1
+          return
+        fi
+
+        niri msg windows 2>/dev/null | awk -v pat="$pat_lower" '
+          /^Window ID/ { current_id = $3; gsub(/:/, "", current_id); title=""; appid="" }
+          /^\s+Title:/ {
+            val = $0; sub(/^\s+Title:\s*"/, "", val); sub(/"$/, "", val); title = val
+          }
+          /^\s+App ID:/ {
+            val = $0; sub(/^\s+App ID:\s*"/, "", val); sub(/"$/, "", val); appid = val
+            if (tolower(title) ~ pat || tolower(appid) ~ pat) {
+              print current_id; exit
+            }
+          }
+        '
+      }
+
+      WINDOW_ID=$(find_window_id) || true
+
+      if [ -n "$WINDOW_ID" ]; then
+        niri msg action focus-window --id "$WINDOW_ID" 2>/dev/null || true
+      else
+        exec $LAUNCH_CMD
+      fi
     fi
   '';
 in {
