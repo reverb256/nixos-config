@@ -411,6 +411,16 @@
                       description = "ActivePieces automation";
                     };
 
+                    casdoor = lib.mkOption {
+                      type = lib.types.submodule (svcOpts {
+                        namespace = "auth";
+                        port = 8000;
+                        nodePort = 32106;
+                      });
+                      default = {};
+                      description = "Casdoor SSO / OIDC provider";
+                    };
+
                     haven = lib.mkOption {
                       type = lib.types.submodule (svcOpts {
                         namespace = "haven";
