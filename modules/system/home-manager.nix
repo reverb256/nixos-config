@@ -50,6 +50,7 @@ in {
       stylix.targets = {
         zen-browser.profileNames = ["default"];
         qt.platform = "qtct";
+        hyprland.hyprpaper.enable = false;
       };
 
       nixcord-config.enable = lib.mkForce (hostName == "zephyr");

@@ -51,14 +51,13 @@ in {
                 "--http-address=0.0.0.0:4180"
                 "--redirect-url=https://auth.lan/oauth2/callback"
                 "--cookie-domain=.lan"
-                "--cookie-secure=false"
+                "--cookie-secure=true"
                 "--cookie-samesite=lax"
                 "--cookie-httponly=true"
                 "--email-domain=*"
                 "--scope=openid profile email"
-                "--code-challenge-method=S256"
                 "--ssl-insecure-skip-verify=true"
-                "--reverse-proxy"
+                "--reverse-proxy=true"
                 "--set-xauthrequest=true"
                 "--set-authorization-header=true"
                 "--skip-provider-button=false"
@@ -67,6 +66,7 @@ in {
                 "--skip-auth-route=^/health$,^/healthz$,^/api/health$,^/ready$,^/metrics$,^/favicon$,^/assets/,^/public/,^/static/"
                 "--whitelist-domain=.lan"
                 "--insecure-oidc-allow-unverified-email=true"
+                "--insecure-oidc-skip-issuer-verification=true"
               ];
               resources = {
                 requests = {cpu = "100m"; memory = "128Mi";};
