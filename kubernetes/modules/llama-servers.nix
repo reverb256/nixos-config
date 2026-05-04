@@ -118,11 +118,17 @@ in {
                   "4"
                   "--flash-attn"
                   "on"
-                  # DFlash speculative decoding — entire block in single forward pass
+                  # DFlash speculative decoding — block-diffusion draft + DDTree verify
                   "--spec-type"
                   "dflash"
                   "--draft-max"
                   "22"
+                  # Adaptive draft: skip low-confidence drafts (new in spiritbuun aecbbd5da)
+                  "--spec-draft-p-min"
+                  "0.75"
+                  # DFlash slot limit: only 1 slot gets DFlash state (others fall back to AR)
+                  "--dflash-max-slots"
+                  "1"
                   # TurboQuant KV cache: 3.8x compression, lossless quality
                   "-ctk"
                   "turbo4"

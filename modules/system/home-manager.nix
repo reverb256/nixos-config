@@ -26,6 +26,7 @@ in {
         ../../modules/home-manager/nixcord-config.nix
         ../../modules/home-manager/caprine.nix
         ../../modules/home-manager/niri-config.nix
+        ../../modules/home-manager/hyprland-config.nix
         ../../modules/home-manager/obsidian.nix
         ../../modules/home-manager/opencode.nix
         ../../modules/home-manager/firefox-pwa-apps.nix

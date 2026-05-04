@@ -1,9 +1,10 @@
 {
   lib,
   pkgs,
+  config,
   ...
 }: {
-  nixpkgs.overlays = [
+  nixpkgs.overlays = lib.mkIf config.programs.niri.enable [
     (final: prev: {
       noctalia-shell = prev.noctalia-shell.overrideAttrs (old: {
         preFixup =

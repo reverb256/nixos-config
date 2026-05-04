@@ -12,7 +12,7 @@
 
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "j_kro";
-  services.displayManager.defaultSession = "niri-uwsm";
+  services.displayManager.defaultSession = "hyprland-uwsm";
 
   services.gaming.hdr.enable = true;
 
