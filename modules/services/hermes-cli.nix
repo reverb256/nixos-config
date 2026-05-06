@@ -68,6 +68,18 @@
         command: /data/agents/mcp-bridges/selfhosted-mcp.sh
         connect_timeout: 30
         timeout: 60
+      github:
+        command: /data/agents/mcp-bridges/github-mcp.sh
+        connect_timeout: 30
+        timeout: 120
+      git:
+        command: /data/agents/mcp-bridges/git-mcp.sh
+        connect_timeout: 30
+        timeout: 60
+      sequential-thinking:
+        command: /data/agents/mcp-bridges/sequential-thinking.sh
+        connect_timeout: 30
+        timeout: 60
       casdoor:
         command: python3
         args:
