@@ -286,6 +286,10 @@ in {
                 ];
                 env = {
                   _namedlist = true;
+                  PATH = {
+                    name = "PATH";
+                    value = "/run/current-system/sw/bin:/usr/bin:/bin";
+                  };
                   VLLM_WORKER_MULTIPROCESSING_METHOD = {
                     name = "VLLM_WORKER_MULTIPROCESSING_METHOD";
                     value = "spawn";

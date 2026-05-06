@@ -1,6 +1,5 @@
 {
   pkgs,
-  config,
   lib,
   ...
 }: {
@@ -121,7 +120,6 @@
       description = "NVIDIA GPU Power Limit (90W for RTX 4060)";
       wantedBy = ["multi-user.target"];
       after = ["multi-user.target"];
-      path = [ config.boot.kernelPackages.nvidia_x11.bin ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -129,13 +127,13 @@
           #!/usr/bin/env bash
           set -eo pipefail
           for i in $(seq 1 30); do
-            if nvidia-smi &>/dev/null; then
+            if /run/current-system/sw/bin/nvidia-smi &>/dev/null; then
               break
             fi
             sleep 2
           done
-          nvidia-smi -i 0 -pl 90
-          nvidia-smi -i 1 -pl 90
+          /run/current-system/sw/bin/nvidia-smi -i 0 -pl 90
+          /run/current-system/sw/bin/nvidia-smi -i 1 -pl 90
           echo "NVIDIA GPUs capped at 90W"
         '';
       };
