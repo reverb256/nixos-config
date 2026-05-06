@@ -11,7 +11,7 @@ in {
 
     llamaPort = lib.mkOption {
       type = lib.types.port;
-      default = 1237; # 3090 llama-server port
+      default = 1237; # 3090 llama.cpp server port
       description = "Port the llama-server is listening on (3090 moved to 1237)";
     };
 
