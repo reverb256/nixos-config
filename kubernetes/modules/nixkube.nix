@@ -1,13 +1,22 @@
 {pkgs, ...}: {
-  config.kubernetes.objects.none = {
-    Namespace.ai-inference = {
-      metadata.labels = {
-        name = "ai-inference";
+  config.kubernetes.objects = {
+    none = {
+      Namespace.ai-inference = {
+        metadata.labels = {
+          name = "ai-inference";
+        };
+      };
+      Namespace.nixkube = {
+        metadata.labels = {
+          name = "nixkube";
+        };
       };
     };
-    Namespace.nixkube = {
-      metadata.labels = {
-        name = "nixkube";
+
+    nixkube.NetworkPolicy.default-deny-all = {
+      spec = {
+        podSelector = {};
+        policyTypes = ["Ingress" "Egress"];
       };
     };
   };

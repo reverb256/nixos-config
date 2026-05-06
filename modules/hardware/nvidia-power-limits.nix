@@ -10,18 +10,22 @@
   # Shell-sourceable config: POWER_<profile>_<gpu_pattern>=<watts>
   profilesConfContent = lib.concatStringsSep "\n" (
     lib.flatten (
-      lib.mapAttrsToList (profileName: gpuLimits:
-        lib.mapAttrsToList (gpuPattern: watts:
-          "POWER_${profileName}_${gpuPattern}=${toString watts}"
-        ) gpuLimits
-      ) cfg.profiles
+      lib.mapAttrsToList (
+        profileName: gpuLimits:
+          lib.mapAttrsToList (
+            gpuPattern: watts: "POWER_${profileName}_${gpuPattern}=${toString watts}"
+          )
+          gpuLimits
+      )
+      cfg.profiles
     )
   );
 
   bootLimitsContent = lib.concatStringsSep "\n" (
-    lib.mapAttrsToList (gpuName: gpu:
-      "POWER_boot_${gpuName}=${toString gpu.limit}"
-    ) cfg.gpus
+    lib.mapAttrsToList (
+      gpuName: gpu: "POWER_boot_${gpuName}=${toString gpu.limit}"
+    )
+    cfg.gpus
   );
 in {
   options.hardware.nvidia.powerLimits = {

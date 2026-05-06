@@ -7,7 +7,6 @@
   # activepieces: 0.37.2 (2026-04)
   # n8n: 1.97.1 (2026-04)
   # Both workloads currently scaled to 0 (not actively used).
-
   # ── Images ───────────────────────────────────────────────────────────
   # activepieces 0.37.2 → 0.82.1 (2026-04-24)
   # n8n 1.97.1 → 2.19.2 (2026-05-01), v2 has built-in TurboQuant
@@ -30,12 +29,14 @@
 in {
   config.kubernetes.objects = {
     none.Namespace.${ns} = {
-      metadata.labels = managed // {
-        name = ns;
-        "pod-security.kubernetes.io/enforce" = "baseline";
-        "pod-security.kubernetes.io/audit" = "restricted";
-        "pod-security.kubernetes.io/warn" = "restricted";
-      };
+      metadata.labels =
+        managed
+        // {
+          name = ns;
+          "pod-security.kubernetes.io/enforce" = "baseline";
+          "pod-security.kubernetes.io/audit" = "restricted";
+          "pod-security.kubernetes.io/warn" = "restricted";
+        };
     };
   };
 
@@ -75,14 +76,22 @@ in {
     };
 
     Deployment.postgres-activepieces = {
-      metadata.labels = managed // {"app.kubernetes.io/component" = "database"; "app" = "postgres-activepieces";};
+      metadata.labels =
+        managed
+        // {
+          "app.kubernetes.io/component" = "database";
+          "app" = "postgres-activepieces";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
         strategy.type = "Recreate";
         selector.matchLabels = {"app" = "postgres-activepieces";};
         template = {
-          metadata.labels = {"app" = "postgres-activepieces"; "app.kubernetes.io/component" = "database";};
+          metadata.labels = {
+            "app" = "postgres-activepieces";
+            "app.kubernetes.io/component" = "database";
+          };
           spec = {
             nodeSelector."kubernetes.io/hostname" = targetNode;
             securityContext = {
@@ -93,17 +102,44 @@ in {
               image = postgresImage;
               imagePullPolicy = "IfNotPresent";
               ports._namedlist = true;
-              ports.postgres = {containerPort = 5432; protocol = "TCP";};
+              ports.postgres = {
+                containerPort = 5432;
+                protocol = "TCP";
+              };
               env._namedlist = true;
               env = {
                 POSTGRES_DB.value = "activepieces";
                 POSTGRES_USER.value = "activepieces";
-                POSTGRES_PASSWORD.valueFrom.secretKeyRef = {name = "activepieces-secrets"; key = "postgres-password";};
+                POSTGRES_PASSWORD.valueFrom.secretKeyRef = {
+                  name = "activepieces-secrets";
+                  key = "postgres-password";
+                };
                 PGDATA.value = "/var/lib/postgresql/data/pgdata";
               };
-              resources = {requests = {cpu = "250m"; memory = "256Mi";}; limits = {cpu = "500m"; memory = "512Mi";};};
-              livenessProbe = {exec.command = ["pg_isready" "-U" "activepieces" "-d" "activepieces"]; initialDelaySeconds = 20; periodSeconds = 10; timeoutSeconds = 5; failureThreshold = 6;};
-              readinessProbe = {exec.command = ["pg_isready" "-U" "activepieces" "-d" "activepieces"]; initialDelaySeconds = 5; periodSeconds = 5; timeoutSeconds = 3; failureThreshold = 3;};
+              resources = {
+                requests = {
+                  cpu = "250m";
+                  memory = "256Mi";
+                };
+                limits = {
+                  cpu = "500m";
+                  memory = "512Mi";
+                };
+              };
+              livenessProbe = {
+                exec.command = ["pg_isready" "-U" "activepieces" "-d" "activepieces"];
+                initialDelaySeconds = 20;
+                periodSeconds = 10;
+                timeoutSeconds = 5;
+                failureThreshold = 6;
+              };
+              readinessProbe = {
+                exec.command = ["pg_isready" "-U" "activepieces" "-d" "activepieces"];
+                initialDelaySeconds = 5;
+                periodSeconds = 5;
+                timeoutSeconds = 3;
+                failureThreshold = 3;
+              };
               volumeMounts._namedlist = true;
               volumeMounts.data.mountPath = "/var/lib/postgresql/data";
             };
@@ -120,7 +156,11 @@ in {
         type = "ClusterIP";
         selector = {"app" = "postgres-activepieces";};
         ports._namedlist = true;
-        ports.postgres = {port = 5432; targetPort = 5432; protocol = "TCP";};
+        ports.postgres = {
+          port = 5432;
+          targetPort = 5432;
+          protocol = "TCP";
+        };
       };
     };
 
@@ -136,14 +176,22 @@ in {
     };
 
     Deployment.postgres-n8n = {
-      metadata.labels = managed // {"app.kubernetes.io/component" = "database"; "app" = "postgres-n8n";};
+      metadata.labels =
+        managed
+        // {
+          "app.kubernetes.io/component" = "database";
+          "app" = "postgres-n8n";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
         strategy.type = "Recreate";
         selector.matchLabels = {"app" = "postgres-n8n";};
         template = {
-          metadata.labels = {"app" = "postgres-n8n"; "app.kubernetes.io/component" = "database";};
+          metadata.labels = {
+            "app" = "postgres-n8n";
+            "app.kubernetes.io/component" = "database";
+          };
           spec = {
             nodeSelector."kubernetes.io/hostname" = targetNode;
             securityContext = {
@@ -154,17 +202,44 @@ in {
               image = postgresImage;
               imagePullPolicy = "IfNotPresent";
               ports._namedlist = true;
-              ports.postgres = {containerPort = 5432; protocol = "TCP";};
+              ports.postgres = {
+                containerPort = 5432;
+                protocol = "TCP";
+              };
               env._namedlist = true;
               env = {
                 POSTGRES_DB.value = "n8n";
                 POSTGRES_USER.value = "n8n";
-                POSTGRES_PASSWORD.valueFrom.secretKeyRef = {name = "n8n-secrets"; key = "postgres-password";};
+                POSTGRES_PASSWORD.valueFrom.secretKeyRef = {
+                  name = "n8n-secrets";
+                  key = "postgres-password";
+                };
                 PGDATA.value = "/var/lib/postgresql/data/pgdata";
               };
-              resources = {requests = {cpu = "250m"; memory = "256Mi";}; limits = {cpu = "500m"; memory = "512Mi";};};
-              livenessProbe = {exec.command = ["pg_isready" "-U" "n8n" "-d" "n8n"]; initialDelaySeconds = 20; periodSeconds = 10; timeoutSeconds = 5; failureThreshold = 6;};
-              readinessProbe = {exec.command = ["pg_isready" "-U" "n8n" "-d" "n8n"]; initialDelaySeconds = 5; periodSeconds = 5; timeoutSeconds = 3; failureThreshold = 3;};
+              resources = {
+                requests = {
+                  cpu = "250m";
+                  memory = "256Mi";
+                };
+                limits = {
+                  cpu = "500m";
+                  memory = "512Mi";
+                };
+              };
+              livenessProbe = {
+                exec.command = ["pg_isready" "-U" "n8n" "-d" "n8n"];
+                initialDelaySeconds = 20;
+                periodSeconds = 10;
+                timeoutSeconds = 5;
+                failureThreshold = 6;
+              };
+              readinessProbe = {
+                exec.command = ["pg_isready" "-U" "n8n" "-d" "n8n"];
+                initialDelaySeconds = 5;
+                periodSeconds = 5;
+                timeoutSeconds = 3;
+                failureThreshold = 3;
+              };
               volumeMounts._namedlist = true;
               volumeMounts.data.mountPath = "/var/lib/postgresql/data";
             };
@@ -181,7 +256,11 @@ in {
         type = "ClusterIP";
         selector = {"app" = "postgres-n8n";};
         ports._namedlist = true;
-        ports.postgres = {port = 5432; targetPort = 5432; protocol = "TCP";};
+        ports.postgres = {
+          port = 5432;
+          targetPort = 5432;
+          protocol = "TCP";
+        };
       };
     };
 
@@ -204,10 +283,30 @@ in {
               image = redisImage;
               imagePullPolicy = "IfNotPresent";
               ports._namedlist = true;
-              ports.redis = {containerPort = 6379; protocol = "TCP";};
-              resources = {requests = {cpu = "100m"; memory = "64Mi";}; limits = {cpu = "200m"; memory = "128Mi";};};
-              livenessProbe = {exec.command = ["redis-cli" "ping"]; initialDelaySeconds = 5; periodSeconds = 10;};
-              readinessProbe = {exec.command = ["redis-cli" "ping"]; initialDelaySeconds = 3; periodSeconds = 5;};
+              ports.redis = {
+                containerPort = 6379;
+                protocol = "TCP";
+              };
+              resources = {
+                requests = {
+                  cpu = "100m";
+                  memory = "64Mi";
+                };
+                limits = {
+                  cpu = "200m";
+                  memory = "128Mi";
+                };
+              };
+              livenessProbe = {
+                exec.command = ["redis-cli" "ping"];
+                initialDelaySeconds = 5;
+                periodSeconds = 10;
+              };
+              readinessProbe = {
+                exec.command = ["redis-cli" "ping"];
+                initialDelaySeconds = 3;
+                periodSeconds = 5;
+              };
             };
           };
         };
@@ -220,7 +319,11 @@ in {
         type = "ClusterIP";
         selector = {"app" = "redis-activepieces";};
         ports._namedlist = true;
-        ports.redis = {port = 6379; targetPort = 6379; protocol = "TCP";};
+        ports.redis = {
+          port = 6379;
+          targetPort = 6379;
+          protocol = "TCP";
+        };
       };
     };
 
@@ -243,12 +346,24 @@ in {
               image = activepiecesImage;
               imagePullPolicy = "IfNotPresent";
               ports._namedlist = true;
-              ports.http = {containerPort = 80; protocol = "TCP";};
+              ports.http = {
+                containerPort = 80;
+                protocol = "TCP";
+              };
               env._namedlist = true;
               env = {
-                AP_API_KEY.valueFrom.secretKeyRef = {name = "activepieces-secrets"; key = "ap-api-key";};
-                AP_ENCRYPTION_KEY.valueFrom.secretKeyRef = {name = "activepieces-secrets"; key = "ap-encryption-key";};
-                AP_JWT_SECRET.valueFrom.secretKeyRef = {name = "activepieces-secrets"; key = "ap-jwt-secret";};
+                AP_API_KEY.valueFrom.secretKeyRef = {
+                  name = "activepieces-secrets";
+                  key = "ap-api-key";
+                };
+                AP_ENCRYPTION_KEY.valueFrom.secretKeyRef = {
+                  name = "activepieces-secrets";
+                  key = "ap-encryption-key";
+                };
+                AP_JWT_SECRET.valueFrom.secretKeyRef = {
+                  name = "activepieces-secrets";
+                  key = "ap-jwt-secret";
+                };
                 AP_ENGINE_EXECUTABLE_PATH.value = "dist/packages/engine/main.js";
                 AP_EXECUTION_MODE.value = "UNSANDBOXED";
                 AP_NODE_EXECUTION_TIMEOUT.value = "300";
@@ -260,11 +375,23 @@ in {
                 AP_POSTGRES_HOST.value = "postgres-activepieces";
                 AP_POSTGRES_PORT.value = "5432";
                 AP_POSTGRES_USERNAME.value = "activepieces";
-                AP_POSTGRES_PASSWORD.valueFrom.secretKeyRef = {name = "activepieces-secrets"; key = "postgres-password";};
+                AP_POSTGRES_PASSWORD.valueFrom.secretKeyRef = {
+                  name = "activepieces-secrets";
+                  key = "postgres-password";
+                };
                 AP_REDIS_HOST.value = "redis-activepieces";
                 AP_REDIS_PORT.value = "6379";
               };
-              resources = {requests = {cpu = "250m"; memory = "512Mi";}; limits = {cpu = "500m"; memory = "1Gi";};};
+              resources = {
+                requests = {
+                  cpu = "250m";
+                  memory = "512Mi";
+                };
+                limits = {
+                  cpu = "500m";
+                  memory = "1Gi";
+                };
+              };
             };
           };
         };
@@ -277,7 +404,11 @@ in {
         type = "ClusterIP";
         selector = {"app" = "activepieces";};
         ports._namedlist = true;
-        ports.http = {port = 80; targetPort = 80; protocol = "TCP";};
+        ports.http = {
+          port = 80;
+          targetPort = 80;
+          protocol = "TCP";
+        };
       };
     };
 
@@ -300,7 +431,10 @@ in {
               image = n8nImage;
               imagePullPolicy = "IfNotPresent";
               ports._namedlist = true;
-              ports.http = {containerPort = 5678; protocol = "TCP";};
+              ports.http = {
+                containerPort = 5678;
+                protocol = "TCP";
+              };
               env._namedlist = true;
               env = {
                 N8N_HOST.value = "0.0.0.0";
@@ -312,14 +446,29 @@ in {
                 DB_POSTGRESDB_PORT.value = "5432";
                 DB_POSTGRESDB_DATABASE.value = "n8n";
                 DB_POSTGRESDB_USER.value = "n8n";
-                DB_POSTGRESDB_PASSWORD.valueFrom.secretKeyRef = {name = "n8n-secrets"; key = "postgres-password";};
-                N8N_ENCRYPTION_KEY.valueFrom.secretKeyRef = {name = "n8n-secrets"; key = "encryption-key";};
+                DB_POSTGRESDB_PASSWORD.valueFrom.secretKeyRef = {
+                  name = "n8n-secrets";
+                  key = "postgres-password";
+                };
+                N8N_ENCRYPTION_KEY.valueFrom.secretKeyRef = {
+                  name = "n8n-secrets";
+                  key = "encryption-key";
+                };
                 NODE_ENV.value = "production";
                 N8N_DIAGNOSTICS_ENABLED.value = "false";
                 N8N_PERSONALIZATION_ENABLED.value = "false";
                 N8N_VERSION_NOTIFICATIONS_ENABLED.value = "false";
               };
-              resources = {requests = {cpu = "250m"; memory = "512Mi";}; limits = {cpu = "500m"; memory = "1Gi";};};
+              resources = {
+                requests = {
+                  cpu = "250m";
+                  memory = "512Mi";
+                };
+                limits = {
+                  cpu = "500m";
+                  memory = "1Gi";
+                };
+              };
             };
           };
         };
@@ -332,7 +481,11 @@ in {
         type = "ClusterIP";
         selector = {"app" = "n8n";};
         ports._namedlist = true;
-        ports.http = {port = 5678; targetPort = 5678; protocol = "TCP";};
+        ports.http = {
+          port = 5678;
+          targetPort = 5678;
+          protocol = "TCP";
+        };
       };
     };
 
@@ -349,10 +502,21 @@ in {
     NetworkPolicy.allow-dns = {
       spec = {
         podSelector.matchLabels = {};
-        egress = [{
-          ports = [{protocol = "UDP"; port = 53;} {protocol = "TCP"; port = 53;}];
-          to = [{namespaceSelector.matchLabels.name = "kube-system";}];
-        }];
+        egress = [
+          {
+            ports = [
+              {
+                protocol = "UDP";
+                port = 53;
+              }
+              {
+                protocol = "TCP";
+                port = 53;
+              }
+            ];
+            to = [{namespaceSelector.matchLabels.name = "kube-system";}];
+          }
+        ];
       };
     };
 

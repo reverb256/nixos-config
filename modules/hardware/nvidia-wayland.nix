@@ -46,14 +46,10 @@ in {
     services.displayManager.sddm.wayland.enable = lib.mkDefault cfg.sddmWayland;
 
     environment.sessionVariables = {
-      VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
       __GLX_VENDOR_LIBRARY_NAME = "nvidia";
       GBM_BACKEND = "nvidia-drm";
       LIBVA_DRIVER_NAME = "nvidia";
-      __GL_GSYNC_ALLOWED = "0";
-      __GL_VRR_ALLOWED = "0";
       NVD_BACKEND = "direct";
-      __GL_SYNC_TO_VBLANK = "0";
     };
 
     environment.systemPackages = with pkgs; [
@@ -63,10 +59,8 @@ in {
     ];
 
     environment.etc = {
-      "vulkan/icd.d/nvidia_icd.json".source = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
-      "vulkan/icd.d/nvidia_icd.x86_64.json".source = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
+      "vulkan/icd.d/nvidia_icd.json".source = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json";
     };
-
     boot = {
       kernelParams = [
         "nvidia-drm.modeset=1"

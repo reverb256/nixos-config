@@ -210,7 +210,7 @@
         # on builtins.toJSON of 300 K8s objects (Nix evaluator bottleneck).
         # Re-enable once easykubenix supports streaming/lazy manifest generation,
         # or split into per-module manifests. Track: kubernetes eval ~300 objects.
-        k8sManifest = null;  # was: self.kubernetes.manifestYAMLFile
+        k8sManifest = null; # was: self.kubernetes.manifestYAMLFile
       };
       nexus = {
         hostName = "nexus";
@@ -260,6 +260,7 @@
     packages.x86_64-linux.privacy-filter = pkgsWithOverlay.privacy-filter;
     packages.x86_64-linux.kubernetes-mcp-server = pkgs.callPackage ./packages/kubernetes-mcp-server.nix {};
     packages.x86_64-linux.nixos-cluster-mcp = pkgs.callPackage ./packages/nixos-cluster-mcp {};
+    packages.x86_64-linux.luce-dflash = pkgs.callPackage ./packages/luce-dflash.nix {};
 
     packages.x86_64-linux.xmrig-proxy-image = pkgsWithOverlay.dockerTools.buildImage {
       name = "xmrig-proxy";
@@ -295,7 +296,7 @@
       };
     };
 
-            packages.x86_64-linux.xmrig-nixos-image = inputs.compute-market.packages.x86_64-linux.xmrig-nixos-image; # migrated
+    packages.x86_64-linux.xmrig-nixos-image = inputs.compute-market.packages.x86_64-linux.xmrig-nixos-image; # migrated
     packages.x86_64-linux.xmrig-alpine-image = inputs.compute-market.packages.x86_64-linux.xmrig-alpine-image; # migrated
     packages.x86_64-linux.xmrig-proxy-alpine-image = inputs.compute-market.packages.x86_64-linux.xmrig-proxy-alpine-image; # migrated
     packages.x86_64-linux.claude-code-image = pkgsWithOverlay.claude-code-image; # extracted to packages/claude-code-image.nix

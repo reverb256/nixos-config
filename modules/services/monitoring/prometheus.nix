@@ -158,23 +158,6 @@ in {
             token = ["garage_metrics_token"];
           };
         }
-
-        {
-          job_name = "caddy-ingress";
-          static_configs = [
-            {
-              targets = [
-                "caddy-ingress-controller-metrics.ingress-system.svc.cluster.local:9765"
-              ];
-              labels = {
-                role = "ingress";
-                tier = "kubernetes";
-              };
-            }
-          ];
-          metrics_path = "/metrics";
-          scheme = "http";
-        }
       ];
     };
 

@@ -3,8 +3,7 @@
   config,
   pkgs,
   ...
-}:
-let
+}: let
   currentHost = config.networking.hostName or "unknown";
   isZephyr = currentHost == "zephyr";
   cfg = {

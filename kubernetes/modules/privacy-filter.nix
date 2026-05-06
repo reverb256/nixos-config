@@ -3,8 +3,7 @@
   config,
   lib,
   ...
-}:
-let
+}: let
   # Privacy filter image - using the package we already have
   # The package builds a Python FastAPI server that runs on port 8081
   privacyFilterImage = "docker.io/python:3.12-slim";
@@ -15,8 +14,7 @@ let
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
-in
-{
+in {
   config.kubernetes.objects = {
     # ── Namespace ──────────────────────────────────────────────────────
     none.Namespace.privacy-filter = {
@@ -47,7 +45,7 @@ in
           rollingUpdate.maxUnavailable = 1;
         };
         template = {
-          metadata.labels = managed // { app = "privacy-filter"; };
+          metadata.labels = managed // {app = "privacy-filter";};
           spec = {
             nodeName = targetNode;
             automountServiceAccountToken = false;
@@ -68,9 +66,9 @@ in
                   "/bin/bash"
                   "-c"
                   ''
-                  pip install fastapi uvicorn transformers torch accelerate safetensors pydantic
-                  ${pkgs.privacy-filter}/bin/privacy-filter-server
-                  '';
+                    pip install fastapi uvicorn transformers torch accelerate safetensors pydantic
+                    ${pkgs.privacy-filter}/bin/privacy-filter-server
+                  ''
                 ];
                 ports = {
                   _namedlist = true;
@@ -97,7 +95,7 @@ in
                   };
                 };
                 livenessProbe = {
-                  exec.command = [ "/bin/bash" "-c" "curl -f http://localhost:8081/health || exit 1" ];
+                  exec.command = ["/bin/bash" "-c" "curl -f http://localhost:8081/health || exit 1"];
                   initialDelaySeconds = 60;
                   periodSeconds = 30;
                   timeoutSeconds = 10;
@@ -114,7 +112,7 @@ in
                 securityContext = {
                   allowPrivilegeEscalation = false;
                   readOnlyRootFilesystem = false;
-                  capabilities.drop = [ "ALL" ];
+                  capabilities.drop = ["ALL"];
                 };
               };
             };
@@ -139,17 +137,25 @@ in
       };
     };
 
-    # ── NetworkPolicy ───────────────────────────────────────────────────
+    # ── NetworkPolicy: default-deny-all ─────────────────────────────────
+    privacy-filter.NetworkPolicy.default-deny-all = {
+      spec = {
+        podSelector = {};
+        policyTypes = ["Ingress" "Egress"];
+      };
+    };
+
+    # ── NetworkPolicy: allow rules ────────────────────────────────────────────
     # Allow ingress from AI gateway (ai-inference namespace) and monitoring
     privacy-filter.NetworkPolicy.privacy-filter-allow = {
       spec = {
         podSelector.matchLabels.app = "privacy-filter";
-        policyTypes = [ "Ingress" "Egress" ];
+        policyTypes = ["Ingress" "Egress"];
         ingress = [
           {
             from = [
-              { namespaceSelector.matchLabels.name = "ai-inference"; }
-              { namespaceSelector.matchLabels.name = "ingress-system"; }
+              {namespaceSelector.matchLabels.name = "ai-inference";}
+              {namespaceSelector.matchLabels.name = "ingress-system";}
             ];
           }
         ];
@@ -161,8 +167,14 @@ in
               }
             ];
             ports = [
-              { protocol = "TCP"; port = 53; }
-              { protocol = "UDP"; port = 53; }
+              {
+                protocol = "TCP";
+                port = 53;
+              }
+              {
+                protocol = "UDP";
+                port = 53;
+              }
             ];
           }
         ];

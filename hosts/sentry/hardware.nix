@@ -11,7 +11,10 @@
   hardware.amdgpu.powerLimits = {
     enable = true;
     gpus = {
-      "rx5600xt-0" = { index = 0; limit = 120; };
+      "rx5600xt-0" = {
+        index = 0;
+        limit = 120;
+      };
     };
   };
 
@@ -39,7 +42,7 @@
     };
   };
 
-  boot.kernelModules = [ "msr" ];
+  boot.kernelModules = ["msr"];
   boot.kernelParams = [
     "hugepagesz=1G"
     "hugepages=3"

@@ -59,8 +59,6 @@ in {
             liberation_ttf
             dejavu_fonts
           ];
-          extraCompatPackages = [
-          ];
           package = pkgs.steam.override {
             extraLibraries = pkgs:
               with pkgs; [
@@ -94,7 +92,6 @@ in {
               unset TZ
               cd $HOME
               export PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1
-              export PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_RUNTIME_DIR/wivrn/comp_ipc
               export STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.local/share/Steam"
               export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata"
               export STEAM_EXTRA_COMPAT_TOOLS_PATHS="$HOME/.local/share/Steam/compatibilitytools.d"
@@ -112,14 +109,15 @@ in {
             __GL_ALLOW_FXAA_USAGE = "1";
             ENABLE_GAMESCOPE_WSI = "1";
             DXVK_HDR = "1";
+            __GL_SYNC_TO_VBLANK = "0";
           };
           args = [
             "--immediate-flips"
             "--rt"
             "--steam"
             "--xwayland-count 2"
-            "--force-composition"
             "--expose-wayland"
+            "--prefer-vk-device 10de:2204"
           ];
         };
         nix-ld = {
@@ -190,7 +188,6 @@ in {
           GAMEMODE_AUTO_RELOAD_CONFIG = "1";
           SDL_JOYSTICK_AXIS_DEADZONE = "30";
           SDL_GAMECONTROLLERDB = "/etc/sdl2-dualsense-db";
-          DXVK_FILTER_DEVICE_NAME = "NVIDIA GeForce RTX 3090";
         };
         systemPackages = with pkgs; [
           gamescope
@@ -294,6 +291,7 @@ in {
         };
         monadoEnvironment = {
           XRT_COMPOSITOR_COMPUTE = "1";
+          U_PACING_COMP_MIN_TIME_MS = "5";
         };
       };
 

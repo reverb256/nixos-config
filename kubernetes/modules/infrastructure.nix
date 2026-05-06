@@ -36,7 +36,7 @@ in {
         };
     };
     NetworkPolicy.default-deny-all = {
-      metadata.labels = managed // { policy = "default-deny"; };
+      metadata.labels = managed // {policy = "default-deny";};
       spec = {
         podSelector = {};
         policyTypes = [
@@ -46,7 +46,7 @@ in {
       };
     };
     NetworkPolicy.allow-dns = {
-      metadata.labels = managed // { policy = "allow-dns"; };
+      metadata.labels = managed // {policy = "allow-dns";};
       spec = {
         podSelector = {};
         policyTypes = ["Egress"];
@@ -83,14 +83,40 @@ in {
   config.kubernetes.objects.infra = {
     ServiceAccount.kubernetes-mcp = {};
     ClusterRole.kubernetes-mcp.rules = [
-      {apiGroups = [""]; resources = ["pods" "pods/log" "namespaces" "nodes" "services" "configmaps" "secrets" "events"]; verbs = ["get" "list" "watch"];}
-      {apiGroups = ["apps"]; resources = ["deployments" "statefulsets" "daemonsets" "replicasets"]; verbs = ["get" "list" "watch"];}
-      {apiGroups = ["batch"]; resources = ["jobs" "cronjobs"]; verbs = ["get" "list" "watch"];}
-      {apiGroups = ["networking.k8s.io"]; resources = ["ingresses" "networkpolicies"]; verbs = ["get" "list" "watch"];}
+      {
+        apiGroups = [""];
+        resources = ["pods" "pods/log" "namespaces" "nodes" "services" "configmaps" "secrets" "events"];
+        verbs = ["get" "list" "watch"];
+      }
+      {
+        apiGroups = ["apps"];
+        resources = ["deployments" "statefulsets" "daemonsets" "replicasets"];
+        verbs = ["get" "list" "watch"];
+      }
+      {
+        apiGroups = ["batch"];
+        resources = ["jobs" "cronjobs"];
+        verbs = ["get" "list" "watch"];
+      }
+      {
+        apiGroups = ["networking.k8s.io"];
+        resources = ["ingresses" "networkpolicies"];
+        verbs = ["get" "list" "watch"];
+      }
     ];
     ClusterRoleBinding.kubernetes-mcp = {
-      subjects = [{kind = "ServiceAccount"; name = "kubernetes-mcp"; namespace = "infra";}];
-      roleRef = {apiGroup = "rbac.authorization.k8s.io"; kind = "ClusterRole"; name = "kubernetes-mcp";};
+      subjects = [
+        {
+          kind = "ServiceAccount";
+          name = "kubernetes-mcp";
+          namespace = "infra";
+        }
+      ];
+      roleRef = {
+        apiGroup = "rbac.authorization.k8s.io";
+        kind = "ClusterRole";
+        name = "kubernetes-mcp";
+      };
     };
 
     # ── Kubernetes MCP Server (SSE + Streamable HTTP) ─────────────
@@ -98,7 +124,7 @@ in {
     # Streamable HTTP endpoint: POST /mcp (recommended for HTTP clients)
     # Health check: GET /healthz
     Deployment.kubernetes-mcp = {
-      metadata.labels = managed // { app = "kubernetes-mcp"; };
+      metadata.labels = managed // {app = "kubernetes-mcp";};
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -117,19 +143,36 @@ in {
                 image = "ghcr.io/containers/kubernetes-mcp-server:latest-linux-amd64";
                 imagePullPolicy = "IfNotPresent";
                 args = ["--port" "8080" "--toolsets" "core,helm" "--stateless"];
-                ports = [{containerPort = 8080; protocol = "TCP";}];
+                ports = [
+                  {
+                    containerPort = 8080;
+                    protocol = "TCP";
+                  }
+                ];
                 resources = {
-                  requests = {cpu = "100m"; memory = "128Mi";};
-                  limits = {cpu = "500m"; memory = "256Mi";};
+                  requests = {
+                    cpu = "100m";
+                    memory = "128Mi";
+                  };
+                  limits = {
+                    cpu = "500m";
+                    memory = "256Mi";
+                  };
                 };
                 readinessProbe = {
-                  httpGet = {path = "/healthz"; port = 8080;};
+                  httpGet = {
+                    path = "/healthz";
+                    port = 8080;
+                  };
                   initialDelaySeconds = 5;
                   periodSeconds = 10;
                   failureThreshold = 3;
                 };
                 livenessProbe = {
-                  httpGet = {path = "/healthz"; port = 8080;};
+                  httpGet = {
+                    path = "/healthz";
+                    port = 8080;
+                  };
                   initialDelaySeconds = 15;
                   periodSeconds = 30;
                   failureThreshold = 3;
@@ -141,18 +184,23 @@ in {
       };
     };
     Service.kubernetes-mcp = {
-      metadata.labels = managed // { app = "kubernetes-mcp"; };
+      metadata.labels = managed // {app = "kubernetes-mcp";};
       spec = {
         type = "ClusterIP";
-        clusterIP = "10.12.22.155";
-        ports = [{port = 8080; targetPort = 8080; protocol = "TCP";}];
+        ports = [
+          {
+            port = 8080;
+            targetPort = 8080;
+            protocol = "TCP";
+          }
+        ];
         selector.app = "kubernetes-mcp";
       };
     };
 
     # ── NixOS Cluster MCP (SSE) ──────────────────────────────────
     DaemonSet.nixos-cluster-mcp = {
-      metadata.labels = managed // { app = "nixos-cluster-mcp"; };
+      metadata.labels = managed // {app = "nixos-cluster-mcp";};
       spec = {
         selector.matchLabels.app = "nixos-cluster-mcp";
         template = {
@@ -164,9 +212,19 @@ in {
             serviceAccountName = "kubernetes-mcp";
             hostNetwork = true;
             tolerations = [
-              {key = "node-role.kubernetes.io/control-plane"; operator = "Exists"; effect = "NoSchedule";}
-              {key = "workstation"; operator = "Exists";}
-              {key = "interactive"; operator = "Exists";}
+              {
+                key = "node-role.kubernetes.io/control-plane";
+                operator = "Exists";
+                effect = "NoSchedule";
+              }
+              {
+                key = "workstation";
+                operator = "Exists";
+              }
+              {
+                key = "interactive";
+                operator = "Exists";
+              }
             ];
             containers = {
               _namedlist = true;
@@ -176,55 +234,78 @@ in {
                 command = ["${lib.getExe nixosClusterMcp}" "--transport" "sse" "--port" "8081"];
                 env = {HOME.value = "/tmp";};
                 resources = {
-                  requests = {cpu = "50m"; memory = "64Mi";};
-                  limits = {cpu = "200m"; memory = "128Mi";};
+                  requests = {
+                    cpu = "50m";
+                    memory = "64Mi";
+                  };
+                  limits = {
+                    cpu = "200m";
+                    memory = "128Mi";
+                  };
                 };
                 readinessProbe = {
-                  httpGet = {path = "/sse"; port = 8081;};
+                  httpGet = {
+                    path = "/sse";
+                    port = 8081;
+                  };
                   initialDelaySeconds = 5;
                   periodSeconds = 10;
                   failureThreshold = 3;
                 };
                 livenessProbe = {
-                  httpGet = {path = "/sse"; port = 8081;};
+                  httpGet = {
+                    path = "/sse";
+                    port = 8081;
+                  };
                   initialDelaySeconds = 15;
                   periodSeconds = 30;
                   failureThreshold = 3;
                 };
                 volumeMounts = {
                   _namedlist = true;
-                  nix = {mountPath = "/nix"; readOnly = true;};
-                  etc-nixos = {mountPath = "/etc/nixos"; readOnly = true;};
+                  nix = {
+                    mountPath = "/nix";
+                    readOnly = true;
+                  };
+                  etc-nixos = {
+                    mountPath = "/etc/nixos";
+                    readOnly = true;
+                  };
                 };
               };
             };
             volumes = {
               _namedlist = true;
-              nix.hostPath = {path = "/nix"; type = "Directory";};
-              etc-nixos.hostPath = {path = "/etc/nixos"; type = "Directory";};
+              nix.hostPath = {
+                path = "/nix";
+                type = "Directory";
+              };
+              etc-nixos.hostPath = {
+                path = "/etc/nixos";
+                type = "Directory";
+              };
             };
           };
         };
       };
-    NetworkPolicy.allow-mcp = {
-      metadata.labels = managed // { app = "kubernetes-mcp"; };
-      spec = {
-        podSelector.matchLabels.app = "kubernetes-mcp";
-        policyTypes = ["Ingress" "Egress"];
-        ingress = [{}];
-        egress = [{}];
+      NetworkPolicy.allow-mcp = {
+        metadata.labels = managed // {app = "kubernetes-mcp";};
+        spec = {
+          podSelector.matchLabels.app = "kubernetes-mcp";
+          policyTypes = ["Ingress" "Egress"];
+          ingress = [{}];
+          egress = [{}];
+        };
+      };
+      NetworkPolicy.allow-nixos-mcp = {
+        metadata.labels = managed // {app = "nixos-cluster-mcp";};
+        spec = {
+          podSelector.matchLabels.app = "nixos-cluster-mcp";
+          policyTypes = ["Ingress" "Egress"];
+          ingress = [{}];
+          egress = [{}];
+        };
       };
     };
-    NetworkPolicy.allow-nixos-mcp = {
-      metadata.labels = managed // { app = "nixos-cluster-mcp"; };
-      spec = {
-        podSelector.matchLabels.app = "nixos-cluster-mcp";
-        policyTypes = ["Ingress" "Egress"];
-        ingress = [{}];
-        egress = [{}];
-      };
-    };
-  };
-
   };
 }
