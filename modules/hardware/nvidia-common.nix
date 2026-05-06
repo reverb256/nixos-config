@@ -56,7 +56,7 @@ in {
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        ExecStart = "/run/current-system/sw/bin/nvidia-smi -pm 1";
+        ExecStart = "${config.hardware.nvidia.package.bin}/bin/nvidia-smi -pm 1";
       };
     };
   };

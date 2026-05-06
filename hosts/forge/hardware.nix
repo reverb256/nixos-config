@@ -12,6 +12,13 @@
 
   hardware = {
     nvidia-common.enable = true;
+    nvidia.powerLimits = {
+      enable = true;
+      gpus = {
+        "rtx4060-0" = { index = 0; limit = 90; };
+        "rtx4060-1" = { index = 1; limit = 90; };
+      };
+    };
     btrfs-compression.enable = true;
     monitoring = {
       enable = true;
@@ -116,28 +123,7 @@
       };
     };
 
-    nvidia-power-limit = {
-      description = "NVIDIA GPU Power Limit (90W for RTX 4060)";
-      wantedBy = ["multi-user.target"];
-      after = ["multi-user.target"];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStart = pkgs.writeShellScript "nvidia-power-limit-90w" ''
-          #!/usr/bin/env bash
-          set -eo pipefail
-          for i in $(seq 1 30); do
-            if /run/current-system/sw/bin/nvidia-smi &>/dev/null; then
-              break
-            fi
-            sleep 2
-          done
-          /run/current-system/sw/bin/nvidia-smi -i 0 -pl 90
-          /run/current-system/sw/bin/nvidia-smi -i 1 -pl 90
-          echo "NVIDIA GPUs capped at 90W"
-        '';
-      };
-    };
+
 
     amd-gpu-fan-curve = {
       description = "AMD GPU Dynamic Fan Curve Control";
