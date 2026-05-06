@@ -78,10 +78,12 @@ in {
       requires = ["k3s.service"];
       wants = ["k8s-nix-deploy.service"];
       wantedBy = ["multi-user.target"];
+      before = [];  # Don't block multi-user.target for other services
       serviceConfig = {
         Type = "oneshot";
         Environment = "KUBECONFIG=/etc/rancher/k3s/k3s.yaml";
         RemainAfterExit = true;
+        TimeoutStartSec = "30s";
       };
       path = [pkgs.kubectl pkgs.curl pkgs.coreutils pkgs.jq];
       script = ''
@@ -92,7 +94,7 @@ in {
         until kubectl get pods -n auth -l app=casdoor -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null | grep -q True; do
           sleep 5
           elapsed=$((elapsed + 5))
-          if [ $elapsed -ge 180 ]; then
+          if [ $elapsed -ge 25 ]; then
             echo "[casdoor-app-sync] Timed out waiting for Casdoor"
             exit 1
           fi

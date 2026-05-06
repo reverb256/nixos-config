@@ -37,6 +37,7 @@ in {
 
       set -g fish_greeting
 
+
       if test -z "$FASTFETCH_DONE"
         fastfetch
         set -gx FASTFETCH_DONE 1

@@ -1,0 +1,86 @@
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  cfg = config.services.initrd-ssh-recovery;
+  inherit (lib) mkEnableOption mkOption types mkIf;
+in {
+  options.services.initrd-ssh-recovery = {
+    enable = mkEnableOption "SSH access in initrd for remote boot recovery";
+
+    port = mkOption {
+      type = types.port;
+      default = 2222;
+      description = "SSH port in initrd (separate from main sshd on 22)";
+    };
+
+    networkDriver = mkOption {
+      type = types.str;
+      default = "r8169";
+      description = "Kernel module for the NIC (must be in initrd)";
+    };
+
+    interface = mkOption {
+      type = types.str;
+      default = "eth0";
+      description = "Network interface name for initrd IP config";
+    };
+
+    authorizedKeys = mkOption {
+      type = types.listOf types.str;
+      default = config.users.users.j_kro.openssh.authorizedKeys.keys;
+      description = "SSH public keys for initrd root login";
+    };
+  };
+
+  config = mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = config.boot.initrd.systemd.enable;
+        message = "initrd-ssh-recovery requires boot.initrd.systemd.enable = true";
+      }
+    ];
+
+    boot.initrd = {
+      availableKernelModules = [cfg.networkDriver];
+
+      network = {
+        enable = true;
+        ssh = {
+          enable = true;
+          port = cfg.port;
+          hostKeys = [
+            config.age.secrets.initrd-ssh-host-key.path
+          ];
+          authorizedKeys = cfg.authorizedKeys;
+        };
+      };
+
+      systemd = {
+        enable = true;
+        initrdBin = with pkgs; [
+          btrfs-progs
+          coreutils
+          findutils
+          util-linuxMinimal
+          gnugrep
+          gnused
+        ];
+      };
+    };
+
+    # Static IP via kernel param
+    boot.kernelParams = let
+      hostName = config.networking.hostName;
+      cluster = config.networking.cluster;
+      hostCfg = cluster.hosts.${hostName};
+    in [
+      "ip=${hostCfg.ip}::${cluster.gateway}:255.255.255.0:${hostName}:${cfg.interface}:none"
+    ];
+
+    # Open firewall for initrd SSH port
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
+  };
+}
