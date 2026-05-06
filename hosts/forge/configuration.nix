@@ -82,10 +82,7 @@
   services.ai-inference.backend.type = "llama-cpp";
 
   boot.kernelPackages =
-    let
-      kp = inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
-    in
-      kp.extend (self: super: { nvidia_x11 = kp.nvidiaPackages.beta; });
+    inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
 
   # Shared hermes + pi state via NFS (resilient: nofail, automount, soft)
   services.nfs-cluster-mounts = {
