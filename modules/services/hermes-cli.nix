@@ -64,20 +64,9 @@
         command: /data/agents/mcp-bridges/searxng-mcp.sh
         connect_timeout: 30
         timeout: 60
-      web-reader:
-        url: https://api.z.ai/api/mcp/web_reader/mcp
-        headers:
-          Authorization: Bearer __ZAI_API_KEY__
-        timeout: 60
-      web-search:
-        url: https://api.z.ai/api/mcp/web_search_prime/mcp
-        headers:
-          Authorization: Bearer __ZAI_API_KEY__
-        timeout: 60
-      zread:
-        url: https://api.z.ai/api/mcp/zread/mcp
-        headers:
-          Authorization: Bearer __ZAI_API_KEY__
+      selfhosted-tools:
+        command: /data/agents/mcp-bridges/selfhosted-mcp.sh
+        connect_timeout: 30
         timeout: 60
       casdoor:
         command: python3
