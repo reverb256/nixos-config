@@ -155,6 +155,19 @@ spec.template.spec.nodeName: nexus  # Force scheduling
 - Multiple nodes affected
 - `nix flake check` fails
 
+### Doc Rot Prevention (Pocock Rule)
+
+**Planning documents are living documents.** If reality has diverged from a plan doc, the plan is wrong — not reality.
+
+Rules:
+1. **Every plan doc** (`docs/plans/*.md`) MUST have a "Last Verified" date header
+2. **Before following any plan**, check if it was verified in the last 7 days. If not, re-verify against current cluster state before proceeding
+3. **After completing work described in a plan**, update the plan with actual outcomes (what changed vs what was planned)
+4. **Stale plans** (>14 days since verification) should be flagged, not followed blindly
+5. **AGENTS.md itself** — if you notice a section is wrong during work, fix it immediately. Don't file it for later
+
+Use the `doc-rot-guard` skill for systematic stale detection.
+
 ## Code Style
 
 - **2-space indentation**, trailing semicolons
