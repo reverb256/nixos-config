@@ -51,6 +51,7 @@
     ./hardware/nvidia-wayland.nix
     ./hardware/nvidia-power-limits.nix
     ./hardware/amdgpu-wayland.nix
+    ./hardware/amdgpu-power-limits.nix
 
     ./desktop/desktop.nix
     ./desktop/wayland-common.nix

@@ -8,6 +8,12 @@
     rocm.enable = true;
     vulkan.enable = true;
   };
+  hardware.amdgpu.powerLimits = {
+    enable = true;
+    gpus = {
+      "rx5600xt-0" = { index = 0; limit = 120; };
+    };
+  };
 
   hardware = {
     btrfs-compression.enable = true;
