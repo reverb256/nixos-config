@@ -116,12 +116,13 @@ in {
     services.k3s = {
       enable = true;
       inherit (cfg) role nodeName;
-      # Pin k3s to 1.34.5 — k3s 1.35.x has a broken re-exec loop that crashes
-      # even with wrappers. Override the package to fetch the 1.34.5 binary.
+      # k3s version — pin to specific release to avoid surprise upgrades
+      # Previous pin: 1.34.5 (1.35.0-1.35.3 had re-exec crash loop on NixOS)
+      # Upgraded: 1.35.4 — re-exec issue resolved, tested on forge first
       package = let
         k3sBin = pkgs.fetchurl {
-          url = "https://github.com/k3s-io/k3s/releases/download/v1.34.5+k3s1/k3s";
-          hash = "sha256-76qEQWz1nzb3wbRb0SmI3PARIoj1iKn9XA+8ptMJ6dk=";
+          url = "https://github.com/k3s-io/k3s/releases/download/v1.35.4+k3s1/k3s";
+          hash = "sha256-0nz8rq7rpwvlyaihamjfkal7dqhnqr0nywsxzqiszk8awpn9h108";
         };
       in
         pkgs.runCommand "k3s-with-agent" {
