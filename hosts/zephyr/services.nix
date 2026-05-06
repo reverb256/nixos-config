@@ -84,9 +84,9 @@ in {
 
     mining-inference-coordinator = {
       enable = true;
-      llamaPort = 1235; # monitor zephyr llama-server (3090 model)
+      llamaPort = 1237; # monitor zephyr 3090 llama-server (port 1237)
       primaryMiner = "deployment/gpu-miner-zephyr";
-      fallbackMiner = "";
+      fallbackMiner = ""; # 3060 Ti reserved for vLLM — no mining fallback
       namespace = "mining";
       checkInterval = 3;
       idleTimeout = 30;
