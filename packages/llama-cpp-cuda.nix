@@ -20,10 +20,10 @@
 in
 effectiveStdenv.mkDerivation rec {
   pname = "llama-cpp";
-  version = "b9006";
+  version = "b9048";
   src = fetchurl {
-    url = "https://github.com/ggml-org/llama.cpp/archive/refs/tags/b9006.tar.gz";
-    hash = "sha256-MbI/JBGYdMn0mT15QHKnWurQFyo6kU5plIT7eEhjHlY=";
+    url = "https://github.com/ggml-org/llama.cpp/archive/refs/tags/b9048.tar.gz";
+    hash = "sha256-SIu8R1TCYufGbaclhZGb2qdgBFZyY4ZFX9RlaxXYJX8=";
   };
   nativeBuildInputs = with cudaPackages; [
     cmake
