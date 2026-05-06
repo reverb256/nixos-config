@@ -120,6 +120,7 @@
       description = "NVIDIA GPU Power Limit (90W for RTX 4060)";
       wantedBy = ["multi-user.target"];
       after = ["multi-user.target"];
+      path = [ config.boot.kernelPackages.nvidia_x11.bin ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
