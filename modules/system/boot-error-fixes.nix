@@ -74,6 +74,13 @@ in {
       };
     };
 
+    # Fix cupsd infinite loop on DBus notifier with non-root ownership.
+    # Happens when nix store files are owned by uid 1000 (j_kro) instead of root
+    # because build-users-group was empty. cupsd logs "insecure permissions" in a loop.
+    systemd.tmpfiles.rules = lib.mkIf config.services.printing.enable [
+      "Z+ /nix/store/*-cups-progs/lib/cups/notifier/dbus 0555 root root - -"
+    ];
+
     # Fix ensure-printers failing when printer is offline (lpadmin timeout).
     # Set successExitStatus so the service doesn't report as failed.
     systemd.services.ensure-printers = {

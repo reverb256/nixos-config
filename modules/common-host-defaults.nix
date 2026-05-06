@@ -67,6 +67,7 @@
 
   nix.settings = {
     trusted-users = ["j_kro"];
+    build-users-group = "nixbld";
   };
 
   boot.loader = {
