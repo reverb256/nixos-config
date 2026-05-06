@@ -21,12 +21,6 @@ in {
       description = "K8s resource for the primary miner (3090)";
     };
 
-    fallbackMiner = lib.mkOption {
-      type = lib.types.str;
-      default = "deployment/gpu-miner-zephyr-3060ti";
-      description = "K8s resource for the fallback miner (3060 Ti)";
-    };
-
     namespace = lib.mkOption {
       type = lib.types.str;
       default = "mining";
@@ -48,7 +42,7 @@ in {
 
   config = lib.mkIf cfg.enable {
     systemd.services.mining-inference-coordinator = {
-      description = "Mining-Inference Coordinator - Shifts mining to 3060 Ti during inference";
+      description = "Mining-Inference Coordinator - Pauses 3090 mining during inference";
       after = ["network.target"];
       wantedBy = ["multi-user.target"];
 
@@ -111,19 +105,11 @@ in {
 
           shift_to_fallback() {
             scale "$PRIMARY" 0
-            if [ -n "$FALLBACK" ]; then
-              scale "$FALLBACK" 1
-              log "SHIFTED: 3090 -> inference | 3060 Ti -> mining"
-            else
-              log "PAUSED: 3090 miner stopped for inference"
-            fi
             mining_shifted=true
+            log "PAUSED: 3090 miner stopped for inference"
           }
 
           shift_to_primary() {
-            if [ -n "$FALLBACK" ]; then
-              scale "$FALLBACK" 0
-            fi
             scale "$PRIMARY" 1
             mining_shifted=false
             log "RESUMED: 3090 -> mining"
