@@ -12,10 +12,10 @@
 }:
 stdenv.mkDerivation rec {
   pname = "llama-cpp-vulkan";
-  version = "0-unstable-2026-04-14";
+  version = "0-unstable-2026-05-06";
   src = fetchurl {
-    url = "https://github.com/ggerganov/llama.cpp/archive/6a6780a232b73fe44799b0c0d5f01c61612f1b79.tar.gz";
-    hash = "sha256-RQXDx//OHJLTRytABGIY7E8AVAMQOmWcJ3czTsHEkGc=";
+    url = "https://github.com/ggerganov/llama.cpp/archive/5207d120eac2.tar.gz";
+    hash = "sha256-VCKlG8HfS/e7vn9h1BSV2HrL2+m1mTfjeqNmkjdPH5Q=";
   };
 
   nativeBuildInputs = [
