@@ -92,12 +92,6 @@ in {
       idleTimeout = 30;
     };
 
-    # Mask the systemd service — coordinator runs as K8s DaemonSet instead
-    systemd.services.mining-inference-coordinator = {
-      wantedBy = lib.mkForce [];
-      unitConfig.X-StopIfChanged = false;
-    };
-
     opencode.enable = true;
 
     binary-cache.enable = false; # unused, was burning CPU on crash-loop
@@ -451,6 +445,11 @@ in {
     networkDriver = "r8169";
     port = 2222;
   };
+  # Mask mining-inference-coordinator systemd service — runs as K8s DaemonSet instead
+  systemd.services.mining-inference-coordinator = {
+    wantedBy = lib.mkForce [];
+  };
+
   services.recovery-specialisation.enable = true;
   services.btrfs-boot-snapshot = {
       enable = true;
