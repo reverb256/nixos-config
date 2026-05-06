@@ -33,6 +33,7 @@
     };
   };
 
+  boot.kernelModules = [ "msr" ];
   boot.kernelParams = [
     "hugepagesz=1G"
     "hugepages=3"
