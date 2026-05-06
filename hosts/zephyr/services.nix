@@ -83,13 +83,19 @@ in {
     };
 
     mining-inference-coordinator = {
-      enable = true;
+      enable = true;  # script built here; runs as K8s DaemonSet (systemd masked)
       llamaPort = 1237; # monitor zephyr 3090 llama-server (port 1237)
       primaryMiner = "deployment/gpu-miner-zephyr";
       fallbackMiner = ""; # 3060 Ti reserved for vLLM — no mining fallback
       namespace = "mining";
       checkInterval = 3;
       idleTimeout = 30;
+    };
+
+    # Mask the systemd service — coordinator runs as K8s DaemonSet instead
+    systemd.services.mining-inference-coordinator = {
+      wantedBy = lib.mkForce [];
+      unitConfig.X-StopIfChanged = false;
     };
 
     opencode.enable = true;
