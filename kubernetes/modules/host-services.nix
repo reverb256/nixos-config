@@ -1101,13 +1101,14 @@ in {
                     export PATH=${pkgs.curl}/bin:${pkgs.gawk}/bin:${pkgs.kubectl}/bin:${pkgs.coreutils}/bin:$PATH
 
                     LLAMA_PORT="1237"
+                    COMFYUI_PORT="8188"
                     PRIMARY="deployment/gpu-miner-zephyr"
-                    FALLBACK=""
                     NS="mining"
                     CHECK_INTERVAL="3"
                     IDLE_TIMEOUT="30"
 
                     last_tokens_predicted=-1
+                    inference_source="unknown"
                     last_inference_time=0
                     mining_shifted=false
 
@@ -1150,38 +1151,61 @@ in {
                       return 1
                     }
 
-                    shift_to_fallback() {
-                      scale "$PRIMARY" 0
-                      if [ -n "$FALLBACK" ]; then
-                        scale "$FALLBACK" 1
-                        log "SHIFTED: 3090 -> inference | 3060 Ti -> mining"
-                      else
-                        log "PAUSED: 3090 miner stopped for inference"
+                    is_comfyui_active() {
+                      local queue_response
+                      queue_response=$(curl -sf "http://127.0.0.1:$COMFYUI_PORT/queue" 2>/dev/null)
+
+                      # ComfyUI not running or unreachable
+                      if [ -z "$queue_response" ]; then
+                        return 1
                       fi
+
+                      # Running jobs = GPU actively working
+                      # Pending jobs = GPU will be used next
+                      echo "$queue_response" | grep -qE '"queue_running":\s*\[[^]]' && return 0
+                      echo "$queue_response" | grep -qE '"queue_pending":\s*\[[^]]' && return 0
+
+                      return 1
+                    }
+
+                    any_inference_active() {
+                      inference_source="unknown"
+                      if is_inference_active; then
+                        inference_source="llama-server"
+                        return 0
+                      fi
+                      if is_comfyui_active; then
+                        inference_source="ComfyUI"
+                        return 0
+                      fi
+                      return 1
+                    }
+
+                    shift_to_fallback() {
+                      local source="''${1:-inference}"
+                      scale "$PRIMARY" 0
                       mining_shifted=true
+                      log "PAUSED: 3090 miner stopped ($source)"
                     }
 
                     shift_to_primary() {
-                      if [ -n "$FALLBACK" ]; then
-                        scale "$FALLBACK" 0
-                      fi
                       scale "$PRIMARY" 1
                       mining_shifted=false
                       log "RESUMED: 3090 -> mining"
                     }
 
-                    log "Coordinator started - monitoring :$LLAMA_PORT"
-                    log "Primary: $PRIMARY (3090) | Fallback: ''${FALLBACK:-none}"
+                    log "Coordinator started - monitoring :$LLAMA_PORT (llama-server), :$COMFYUI_PORT (ComfyUI)"
+                    log "Primary: $PRIMARY (3090)"
                     log "Check interval: ''${CHECK_INTERVAL}s, idle timeout: ''${IDLE_TIMEOUT}s"
 
                     while true; do
                       current_time=$(date +%s)
 
-                      if is_inference_active; then
+                      if any_inference_active; then
                         last_inference_time=$current_time
 
                         if [ "$mining_shifted" = false ]; then
-                          shift_to_fallback
+                          shift_to_fallback "$inference_source"
                         fi
                       else
                         if [ "$mining_shifted" = true ] && [ "$last_inference_time" -gt 0 ]; then
