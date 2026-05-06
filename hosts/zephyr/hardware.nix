@@ -13,8 +13,14 @@
   hardware.nvidia.powerLimits = {
     enable = true;
     gpus = {
-      "3060ti" = { index = 0; limit = 100; };
-      "3090" = { index = 1; limit = 250; };
+      "3060ti" = {
+        index = 0;
+        limit = 100;
+      };
+      "3090" = {
+        index = 1;
+        limit = 250;
+      };
     };
     profiles = {
       gaming = {

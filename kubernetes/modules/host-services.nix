@@ -4,10 +4,11 @@
   inputs,
   config,
   lib,
+  cluster,
   ...
 }: let
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
-  xmrigProxy = "stratum+tcp://10.1.1.120:3333";
+  xmrigProxy = "stratum+tcp://${cluster.hosts.nexus.ip}:3333";
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
@@ -57,10 +58,10 @@ in {
       metadata.labels.name = "infra";
     };
 
-    infra.NetworkPolicy.default-deny-infra = {
+    infra.NetworkPolicy.default-deny-all = {
       spec = {
         podSelector = {};
-        policyTypes = ["Ingress"];
+        policyTypes = ["Ingress" "Egress"];
       };
     };
 
@@ -879,82 +880,6 @@ in {
               scripts = {
                 hostPath.path = "/etc/ai-inference-monitor";
                 type = "DirectoryOrCreate";
-              };
-            };
-          };
-        };
-      };
-    };
-
-    # ── Gaming Detection (DaemonSet) ──────────────────────────────
-    # Replaces: gaming-detection.service on zephyr/sentry
-    # NOTE: Needs host D-Bus and /proc access for game process detection
-    infra.DaemonSet.gaming-detection = {
-      metadata.labels =
-        managed
-        // {
-          app = "gaming-detection";
-        };
-      spec = {
-        revisionHistoryLimit = 1;
-        selector.matchLabels.app = "gaming-detection";
-        template = {
-          metadata.labels =
-            managed
-            // {
-              app = "gaming-detection";
-            };
-          spec = {
-            hostNetwork = true;
-            hostPID = true;
-            dnsPolicy = "ClusterFirstWithHostNet";
-            automountServiceAccountToken = false;
-            tolerations = allTolerations;
-            containers = {
-              _namedlist = true;
-              detector = {
-                image = scratchImage;
-                imagePullPolicy = "IfNotPresent";
-                command = [
-                  "${pkgs.writeShellScriptBin "gaming-detection" ''
-                    #!/usr/bin/env bash
-                    set -euo pipefail
-                    # Placeholder - gaming detection is host-bound (needs D-Bus, GameMode)
-                    # Real detection runs via NixOS systemd service on the host
-                    echo "gaming-detection: running in K8s placeholder mode" >&2
-                    STATE_DIR="/run/gaming-detection"
-                    mkdir -p "$STATE_DIR"
-                    echo "GAMING_ACTIVE=0" > "$STATE_DIR/gaming_state"
-                    exec sleep infinity
-                  ''}/bin/gaming-detection"
-                ];
-                resources = {
-                  requests = {
-                    memory = "32Mi";
-                    cpu = "25m";
-                  };
-                  limits = {
-                    memory = "64Mi";
-                    cpu = "100m";
-                  };
-                };
-                securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                  nix = nixVolumeMount;
-                  proc = {
-                    mountPath = "/host/proc";
-                    readOnly = true;
-                  };
-                };
-              };
-            };
-            volumes = {
-              _namedlist = true;
-              nix = nixVolume;
-              proc.hostPath = {
-                path = "/proc";
-                type = "Directory";
               };
             };
           };

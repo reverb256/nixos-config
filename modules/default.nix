@@ -115,7 +115,8 @@
     ./services/self-healing-alerts.nix
 
     ./services/monitoring/default.nix
-    ./services/gpu-exporters.nix    ./multimedia/gstreamer.nix
+    ./services/gpu-exporters.nix
+    ./multimedia/gstreamer.nix
     ./desktop/spotify-spotx.nix
     ./system/distributed-builds.nix
     ./system/flake-lock-sync.nix

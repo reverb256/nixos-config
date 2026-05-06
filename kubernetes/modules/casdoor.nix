@@ -7,12 +7,14 @@
 in {
   config.kubernetes.objects = {
     none.Namespace.${namespace} = {
-      metadata.labels = managed // {
-        name = namespace;
-        "pod-security.kubernetes.io/enforce" = "baseline";
-        "pod-security.kubernetes.io/audit" = "restricted";
-        "pod-security.kubernetes.io/warn" = "restricted";
-      };
+      metadata.labels =
+        managed
+        // {
+          name = namespace;
+          "pod-security.kubernetes.io/enforce" = "baseline";
+          "pod-security.kubernetes.io/audit" = "restricted";
+          "pod-security.kubernetes.io/warn" = "restricted";
+        };
     };
 
     auth.ConfigMap.casdoor-postgres-config = {
@@ -63,19 +65,23 @@ in {
     };
 
     auth.StatefulSet.casdoor-postgres = {
-      metadata.labels = managed // {
-        app = "casdoor-postgres";
-        "app.kubernetes.io/component" = "database";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "casdoor-postgres";
+          "app.kubernetes.io/component" = "database";
+        };
       spec = {
         serviceName = "casdoor-postgres";
         replicas = 1;
         selector.matchLabels.app = "casdoor-postgres";
         template = {
-          metadata.labels = managed // {
-            app = "casdoor-postgres";
-            "app.kubernetes.io/component" = "database";
-          };
+          metadata.labels =
+            managed
+            // {
+              app = "casdoor-postgres";
+              "app.kubernetes.io/component" = "database";
+            };
           spec = {
             nodeSelector."kubernetes.io/hostname" = "zephyr";
             securityContext = {
@@ -90,63 +96,96 @@ in {
               image = "postgres:18.3-alpine";
               imagePullPolicy = "IfNotPresent";
               ports._namedlist = true;
-              ports.postgresql = {containerPort = 5432; protocol = "TCP";};
+              ports.postgresql = {
+                containerPort = 5432;
+                protocol = "TCP";
+              };
               env._namedlist = true;
               env = {
-                POSTGRES_DB.valueFrom.secretKeyRef = {name = "casdoor-postgres-config"; key = "POSTGRES_DB";};
-                POSTGRES_USER.valueFrom.secretKeyRef = {name = "casdoor-postgres-config"; key = "POSTGRES_USER";};
-                POSTGRES_PASSWORD.valueFrom.secretKeyRef = {name = "casdoor-postgres-secret"; key = "POSTGRES_PASSWORD";};
+                POSTGRES_DB.valueFrom.secretKeyRef = {
+                  name = "casdoor-postgres-config";
+                  key = "POSTGRES_DB";
+                };
+                POSTGRES_USER.valueFrom.secretKeyRef = {
+                  name = "casdoor-postgres-config";
+                  key = "POSTGRES_USER";
+                };
+                POSTGRES_PASSWORD.valueFrom.secretKeyRef = {
+                  name = "casdoor-postgres-secret";
+                  key = "POSTGRES_PASSWORD";
+                };
                 PGDATA.value = "/var/lib/postgresql/data/pgdata";
               };
               resources = {
-                requests = {cpu = "250m"; memory = "256Mi";};
-                limits = {cpu = "500m"; memory = "512Mi";};
+                requests = {
+                  cpu = "250m";
+                  memory = "256Mi";
+                };
+                limits = {
+                  cpu = "500m";
+                  memory = "512Mi";
+                };
               };
               livenessProbe = {
                 exec.command = ["pg_isready" "-U" "casdoor" "-d" "casdoor"];
-                initialDelaySeconds = 20; periodSeconds = 10; timeoutSeconds = 5; failureThreshold = 6;
+                initialDelaySeconds = 20;
+                periodSeconds = 10;
+                timeoutSeconds = 5;
+                failureThreshold = 6;
               };
             };
           };
         };
-        volumeClaimTemplates = [{
-          metadata.name = "data";
-          spec = {
-            accessModes = ["ReadWriteOnce"];
-            storageClassName = "local-path";
-            resources.requests.storage = "2Gi";
-          };
-        }];
+        volumeClaimTemplates = [
+          {
+            metadata.name = "data";
+            spec = {
+              accessModes = ["ReadWriteOnce"];
+              storageClassName = "local-path";
+              resources.requests.storage = "2Gi";
+            };
+          }
+        ];
       };
     };
 
     auth.Service.casdoor-postgres = {
-      metadata.labels = managed // {
-        app = "casdoor-postgres";
-        "app.kubernetes.io/component" = "database";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "casdoor-postgres";
+          "app.kubernetes.io/component" = "database";
+        };
       spec = {
         type = "ClusterIP";
         selector.app = "casdoor-postgres";
         ports._namedlist = true;
-        ports.postgresql = {port = 5432; targetPort = 5432; protocol = "TCP";};
+        ports.postgresql = {
+          port = 5432;
+          targetPort = 5432;
+          protocol = "TCP";
+        };
       };
     };
 
     auth.Deployment.casdoor = {
-      metadata.labels = managed // {
-        app = "casdoor";
-        "app.kubernetes.io/component" = "api";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "casdoor";
+          "app.kubernetes.io/component" = "api";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
         selector.matchLabels.app = "casdoor";
         template = {
-          metadata.labels = managed // {
-            app = "casdoor";
-            "app.kubernetes.io/component" = "api";
-          };
+          metadata.labels =
+            managed
+            // {
+              app = "casdoor";
+              "app.kubernetes.io/component" = "api";
+            };
           spec = {
             nodeSelector."kubernetes.io/hostname" = "zephyr";
             serviceAccountName = "casdoor";
@@ -158,7 +197,10 @@ in {
               image = "alpine:3.19";
               command = ["sh" "-c" "sed \"s/POSTGRES_PASSWORD_PLACEHOLDER/$POSTGRES_PASSWORD/g\" /template/app.conf.template > /config/app.conf"];
               env._namedlist = true;
-              env.POSTGRES_PASSWORD.valueFrom.secretKeyRef = {name = "casdoor-postgres-secret"; key = "POSTGRES_PASSWORD";};
+              env.POSTGRES_PASSWORD.valueFrom.secretKeyRef = {
+                name = "casdoor-postgres-secret";
+                key = "POSTGRES_PASSWORD";
+              };
               volumeMounts._namedlist = true;
               volumeMounts.template = {mountPath = "/template";};
               volumeMounts.config = {mountPath = "/config";};
@@ -170,25 +212,52 @@ in {
               env._namedlist = true;
               env.RUNNING_IN_DOCKER.value = "true";
               ports._namedlist = true;
-              ports.http = {containerPort = 8000; protocol = "TCP";};
+              ports.http = {
+                containerPort = 8000;
+                protocol = "TCP";
+              };
               resources = {
-                requests = {cpu = "100m"; memory = "256Mi";};
-                limits = {cpu = "500m"; memory = "1Gi";};
+                requests = {
+                  cpu = "100m";
+                  memory = "256Mi";
+                };
+                limits = {
+                  cpu = "500m";
+                  memory = "1Gi";
+                };
               };
               startupProbe = {
-                httpGet = {path = "/"; port = 8000;};
-                periodSeconds = 15; initialDelaySeconds = 30; failureThreshold = 10;
+                httpGet = {
+                  path = "/";
+                  port = 8000;
+                };
+                periodSeconds = 15;
+                initialDelaySeconds = 30;
+                failureThreshold = 10;
               };
               readinessProbe = {
-                httpGet = {path = "/"; port = 8000;};
-                periodSeconds = 10; initialDelaySeconds = 10;
+                httpGet = {
+                  path = "/";
+                  port = 8000;
+                };
+                periodSeconds = 10;
+                initialDelaySeconds = 10;
               };
               livenessProbe = {
-                httpGet = {path = "/"; port = 8000;};
-                periodSeconds = 30; initialDelaySeconds = 30; failureThreshold = 3;
+                httpGet = {
+                  path = "/";
+                  port = 8000;
+                };
+                periodSeconds = 30;
+                initialDelaySeconds = 30;
+                failureThreshold = 3;
               };
               volumeMounts._namedlist = true;
-              volumeMounts.config = {mountPath = "/conf/app.conf"; subPath = "app.conf"; readOnly = true;};
+              volumeMounts.config = {
+                mountPath = "/conf/app.conf";
+                subPath = "app.conf";
+                readOnly = true;
+              };
             };
             volumes._namedlist = true;
             volumes.template.configMap.name = "casdoor-config";
@@ -219,9 +288,33 @@ in {
         podSelector.matchLabels.app = "casdoor";
         policyTypes = ["Ingress"];
         ingress = [
-          {from = [{namespaceSelector.matchLabels.name = "kube-system";}]; ports = [{port = 8000; protocol = "TCP";}];}
-          {from = [{ipBlock.cidr = cluster.podCidr;}]; ports = [{port = 8000; protocol = "TCP";}];}
-          {from = [{ipBlock.cidr = cluster.subnet;}]; ports = [{port = 8000; protocol = "TCP";}];}
+          {
+            from = [{namespaceSelector.matchLabels.name = "kube-system";}];
+            ports = [
+              {
+                port = 8000;
+                protocol = "TCP";
+              }
+            ];
+          }
+          {
+            from = [{ipBlock.cidr = cluster.podCidr;}];
+            ports = [
+              {
+                port = 8000;
+                protocol = "TCP";
+              }
+            ];
+          }
+          {
+            from = [{ipBlock.cidr = cluster.subnet;}];
+            ports = [
+              {
+                port = 8000;
+                protocol = "TCP";
+              }
+            ];
+          }
         ];
       };
     };
@@ -232,8 +325,28 @@ in {
         podSelector.matchLabels.app = "casdoor";
         policyTypes = ["Egress"];
         egress = [
-          {to = [{namespaceSelector.matchLabels.name = "kube-system";}]; ports = [{port = 53; protocol = "UDP";} {port = 53; protocol = "TCP";}];}
-          {to = [{podSelector.matchLabels.app = "casdoor-postgres";}]; ports = [{port = 5432; protocol = "TCP";}];}
+          {
+            to = [{namespaceSelector.matchLabels.name = "kube-system";}];
+            ports = [
+              {
+                port = 53;
+                protocol = "UDP";
+              }
+              {
+                port = 53;
+                protocol = "TCP";
+              }
+            ];
+          }
+          {
+            to = [{podSelector.matchLabels.app = "casdoor-postgres";}];
+            ports = [
+              {
+                port = 5432;
+                protocol = "TCP";
+              }
+            ];
+          }
         ];
       };
     };
@@ -244,8 +357,26 @@ in {
         podSelector.matchLabels.app = "casdoor-postgres";
         policyTypes = ["Egress"];
         egress = [
-          {to = [{namespaceSelector.matchLabels.name = "kube-system";}]; ports = [{port = 53; protocol = "UDP";} {port = 53; protocol = "TCP";}];}
+          {
+            to = [{namespaceSelector.matchLabels.name = "kube-system";}];
+            ports = [
+              {
+                port = 53;
+                protocol = "UDP";
+              }
+              {
+                port = 53;
+                protocol = "TCP";
+              }
+            ];
+          }
         ];
+      };
+    };
+    auth.NetworkPolicy.default-deny-all = {
+      spec = {
+        podSelector = {};
+        policyTypes = ["Ingress" "Egress"];
       };
     };
   };

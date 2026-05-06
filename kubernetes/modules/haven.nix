@@ -10,12 +10,14 @@
 in {
   config.kubernetes.objects = {
     none.Namespace.haven = {
-      metadata.labels = managed // {
-        name = "haven";
-        "pod-security.kubernetes.io/enforce" = "baseline";
-        "pod-security.kubernetes.io/audit" = "restricted";
-        "pod-security.kubernetes.io/warn" = "restricted";
-      };
+      metadata.labels =
+        managed
+        // {
+          name = "haven";
+          "pod-security.kubernetes.io/enforce" = "baseline";
+          "pod-security.kubernetes.io/audit" = "restricted";
+          "pod-security.kubernetes.io/warn" = "restricted";
+        };
     };
 
     none.PersistentVolume.haven-data-nexus-pv = {
@@ -56,7 +58,7 @@ in {
     };
 
     haven.Deployment.haven = {
-      metadata.labels = managed // { app = "haven"; };
+      metadata.labels = managed // {app = "haven";};
       spec = {
         replicas = 1;
         revisionHistoryLimit = 3;
@@ -69,7 +71,7 @@ in {
           };
         };
         template = {
-          metadata.labels = managed // { app = "haven"; };
+          metadata.labels = managed // {app = "haven";};
           spec = {
             nodeSelector."kubernetes.io/hostname" = "nexus";
             schedulerName = "default-scheduler";
@@ -156,7 +158,7 @@ in {
     };
 
     haven.Service.haven = {
-      metadata.labels = managed // { app = "haven"; };
+      metadata.labels = managed // {app = "haven";};
       spec = {
         type = "NodePort";
         ports = {
@@ -172,11 +174,20 @@ in {
       };
     };
 
-    haven.NetworkPolicy.allow-haven-ingress = {
-      metadata.labels = managed // {
-        app = "haven";
-        policy = "allow-ingress";
+    haven.NetworkPolicy.default-deny-all = {
+      spec = {
+        podSelector = {};
+        policyTypes = ["Ingress" "Egress"];
       };
+    };
+
+    haven.NetworkPolicy.allow-haven-ingress = {
+      metadata.labels =
+        managed
+        // {
+          app = "haven";
+          policy = "allow-ingress";
+        };
       spec = {
         podSelector.matchLabels.app = "haven";
         policyTypes = ["Ingress"];
@@ -197,10 +208,12 @@ in {
     };
 
     haven.NetworkPolicy.allow-haven-egress = {
-      metadata.labels = managed // {
-        app = "haven";
-        policy = "allow-egress";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "haven";
+          policy = "allow-egress";
+        };
       spec = {
         podSelector.matchLabels.app = "haven";
         policyTypes = ["Egress"];

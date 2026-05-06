@@ -65,6 +65,28 @@
     cd "$SM_DATA"
     exec ${pkgs.steam-run}/bin/steam-run ${wrappedApp}/bin/${pname} "$@"
   '';
+  # Patches ComfyUI Manager prestartup_script.py to handle broken stderr pipe.
+  # Stability Matrix pipes stderr to its launcher; when SM exits or the pipe breaks,
+  # flush() on tqdm progress writes raises BrokenPipeError crashing the KSampler.
+  # See: https://github.com/Comfy-Org/ComfyUI-Manager/issues/28
+  comfyui-manager-patch = pkgs.writeShellScript "patch-comfyui-manager-pipe" ''
+    TARGET="$HOME/.stabilitymatrix/Packages/ComfyUI/venv/lib/python3.12/site-packages/comfyui_manager/prestartup_script.py"
+    [ ! -f "$TARGET" ] && exit 0
+    NEEDS_PATCH=0
+    # Check if bare write_stderr/flush exists without try/except
+    if grep -qn 'write_stderr(message)''$' "$TARGET" 2>/dev/null; then
+      if ! grep -B1 -A2 'write_stderr(message)''$' "$TARGET" | grep -q 'except.*BrokenPipeError'; then
+        NEEDS_PATCH=1
+      fi
+    fi
+    if [ "$NEEDS_PATCH" -eq 1 ]; then
+      ''${pkgs.gnused}/bin/sed -i \
+        -e '/^\(\s*\)write_stderr(message)''$/{ N; s/^\(\s*\)write_stderr(message)\n\(\s*\)original_stderr\.flush()''$/\1try:\n\1    write_stderr(message)\n\1    original_stderr.flush()\n\1except (OSError, ValueError, BrokenPipeError):\n\1    pass/; }' \
+        -e '/^\(\s*\)write_stdout(message)''$/{ N; s/^\(\s*\)write_stdout(message)\n\(\s*\)original_stdout\.flush()''$/\1try:\n\1    write_stdout(message)\n\1    original_stderr.flush()\n\1except (OSError, ValueError, BrokenPipeError):\n\1    pass/; }' \
+        "$TARGET"
+      echo "patch-comfyui-manager: applied BrokenPipeError patches"
+    fi
+  '';
 in {
   options.programs.stability-matrix = {
     enable = lib.mkEnableOption "StabilityMatrix - Package Manager for Stable Diffusion";
@@ -120,6 +142,22 @@ in {
     environment.variables = lib.mkIf cfg.enableCuda {
       CUDA_PATH = lib.mkDefault "/run/opengl-driver";
       CUDA_HOME = lib.mkDefault "/run/opengl-driver";
+    };
+
+    # Auto-patch ComfyUI Manager whenever it's updated (pip install overwrites prestartup_script.py)
+    systemd.user.services.patch-comfyui-manager = {
+      description = "Patch ComfyUI Manager BrokenPipeError fix";
+      serviceConfig.Type = "oneshot";
+      script = "${comfyui-manager-patch}";
+      # Run on login and after SM package updates
+      wantedBy = ["default.target"];
+      after = ["graphical-session.target"];
+    };
+    systemd.user.paths.patch-comfyui-manager = {
+      description = "Watch ComfyUI Manager prestartup_script.py for updates";
+      wantedBy = ["default.target"];
+      pathConfig.PathChanged = "%h/.stabilitymatrix/Packages/ComfyUI/venv/lib/python3.12/site-packages/comfyui_manager/prestartup_script.py";
+      pathConfig.Unit = "patch-comfyui-manager.service";
     };
   };
 }

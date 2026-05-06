@@ -195,10 +195,12 @@ in {
 
     # --- CronJob: profit switcher ---
     mining.CronJob.profit-switcher = {
-      metadata.labels = managed // {
-        app = "profit-switcher";
-        workload = "mining-infra";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "profit-switcher";
+          workload = "mining-infra";
+        };
       spec = {
         schedule = "*/5 * * * *";
         concurrencyPolicy = "Forbid";

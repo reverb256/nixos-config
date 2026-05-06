@@ -1,4 +1,4 @@
-{...}: let
+{cluster, ...}: let
   labels = {
     app = "searxng";
     "app.kubernetes.io/managed-by" = "easykubenix";
@@ -471,6 +471,13 @@ in {
     };
 
     # ── NetworkPolicies ───────────────────────────────────────────
+    search.NetworkPolicy.default-deny-all = {
+      spec = {
+        podSelector = {};
+        policyTypes = ["Ingress" "Egress"];
+      };
+    };
+
     search.NetworkPolicy.allow-searxng-ingress = {
       metadata.labels =
         labels
@@ -483,8 +490,8 @@ in {
         ingress = [
           {
             from = [
-              {ipBlock.cidr = "10.1.1.0/24";}
-              {ipBlock.cidr = "10.244.0.0/16";}
+              {ipBlock.cidr = cluster.kubernetes.subnet;}
+              {ipBlock.cidr = cluster.kubernetes.podCidr;}
             ];
             ports = [
               {

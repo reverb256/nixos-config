@@ -3,6 +3,7 @@
   pkgsWithOverlay,
   inputs,
   lib,
+  cluster,
   ...
 }: let
   # nix-csi scratch image (proven pattern from llama-servers)
@@ -15,7 +16,6 @@
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
-
   # AI Inference Gateway — derive paths from flake input, not hardcoded store paths
 in {
   config.kubernetes.objects.ai-inference = {
@@ -27,7 +27,7 @@ in {
     ConfigMap.ai-gateway-config.data = {
       AUTH_MODE = "none";
       BACKEND_TYPE = "llama-cpp";
-      BACKEND_URL = "http://10.1.1.110:1237";
+      BACKEND_URL = "http://${cluster.hosts.zephyr.ip}:1237";
       DEFAULT_MODEL = "Qwen3.6-35B-A3B-UD-IQ3_S.gguf";
       RAG_ENABLED = "true";
       RAG_TOP_K = "5";
@@ -41,56 +41,56 @@ in {
       CHUNK_SIZE = "512";
     };
 
-ConfigMap.ai-inference-gateway-config.data = {
-       AUTH_MODE = "api-key";
-       BACKEND_TYPE = "zai";
-       BACKEND_URL = "http://10.1.1.110:1237";
-       BACKEND_FALLBACK_URLS = "";  # Dead backends removed (see git log)
-       DEFAULT_MODEL = "glm-5-turbo";
-       GATEWAY_HOST = "0.0.0.0";
-       PORT = "8080";
-       PYTHONUNBUFFERED = "1";
-       ROUTING_ENABLED = "true";
-       RATE_LIMIT_ENABLED = "true";
-       RATE_LIMIT_RPM = "120";
-       SECURITY_PROXY_ENABLED = "false";
-       SENTRY_ENABLED = "false";
-       QDRANT_URL = "http://qdrant.ai-inference.svc.cluster.local:6333";
-       RAG_ENABLED = "true";
-       RAG_TOP_K = "10";
-       HYBRID_SEARCH_ENABLED = "true";
-       EMBEDDING_MODEL = "BidirLM/BidirLM-Omni-2.5B-Embedding";
-       EMBEDDING_DEVICE = "cpu";
-       EMBEDDING_DIMENSIONS = "2048";
-       EMBEDDING_TRUST_REMOTE_CODE = "true";
-       BM25_WEIGHT = "0.3";
-       CHUNK_OVERLAP = "50";
-       CHUNK_SIZE = "512";
-       MCP_ENABLED = "true";
-       SYSTEM_PROMPTS_ENABLED = "true";
-       TOKEN_SCOPED_COLLECTIONS = "true";
-       VECTOR_WEIGHT = "0.7";
-       HF_HOME = "/home/j_kro/.cache/huggingface";
-       HF_HUB_OFFLINE = "0";
-       HF_HUB_ENABLE_HF_TRANSFER = "1";
-       HF_HUB_CACHE = "/home/j_kro/.cache/huggingface/hub";
-       HF_HUB_DISABLE_TELEMETRY = "1";
-       HF_HUB_UPDATE_CHECK_DISABLED = "1";
-       TRANSFORMERS_CACHE = "/home/j_kro/.cache/huggingface";
-       CURL_CA_BUNDLE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
-       MAX_REQUEST_SIZE = "10485760";
-       CIRCUIT_BREAKER_ENABLED = "true";
-       REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
-SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
-        SECONDARY_BACKEND_MODEL = "qwen3.5-2b-awq";
-        DISCOVERY_BACKENDS = ''[{"url": "http://10.1.1.110:8040", "model": "qwen3.5-2b-awq", "name": "vLLM-3060Ti"}]'';  # vLLM Qwen3.5-2B-AWQ on 3060Ti (port 8040)
-       PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
-       PRIVACY_FILTER_ENABLED = "false";
-       MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
-       MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED = "true";
-       MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL = "http://searxng.search.svc.cluster.local:8080";
-       MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS = "10";
-       MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K = "60";
+    ConfigMap.ai-inference-gateway-config.data = {
+      AUTH_MODE = "api-key";
+      BACKEND_TYPE = "zai";
+      BACKEND_URL = "http://${cluster.hosts.zephyr.ip}:1237";
+      BACKEND_FALLBACK_URLS = ""; # Dead backends removed (see git log)
+      DEFAULT_MODEL = "glm-5-turbo";
+      GATEWAY_HOST = "0.0.0.0";
+      PORT = "8080";
+      PYTHONUNBUFFERED = "1";
+      ROUTING_ENABLED = "true";
+      RATE_LIMIT_ENABLED = "true";
+      RATE_LIMIT_RPM = "120";
+      SECURITY_PROXY_ENABLED = "false";
+      SENTRY_ENABLED = "false";
+      QDRANT_URL = "http://qdrant.ai-inference.svc.cluster.local:6333";
+      RAG_ENABLED = "true";
+      RAG_TOP_K = "10";
+      HYBRID_SEARCH_ENABLED = "true";
+      EMBEDDING_MODEL = "BidirLM/BidirLM-Omni-2.5B-Embedding";
+      EMBEDDING_DEVICE = "cpu";
+      EMBEDDING_DIMENSIONS = "2048";
+      EMBEDDING_TRUST_REMOTE_CODE = "true";
+      BM25_WEIGHT = "0.3";
+      CHUNK_OVERLAP = "50";
+      CHUNK_SIZE = "512";
+      MCP_ENABLED = "true";
+      SYSTEM_PROMPTS_ENABLED = "true";
+      TOKEN_SCOPED_COLLECTIONS = "true";
+      VECTOR_WEIGHT = "0.7";
+      HF_HOME = "/home/j_kro/.cache/huggingface";
+      HF_HUB_OFFLINE = "0";
+      HF_HUB_ENABLE_HF_TRANSFER = "1";
+      HF_HUB_CACHE = "/home/j_kro/.cache/huggingface/hub";
+      HF_HUB_DISABLE_TELEMETRY = "1";
+      HF_HUB_UPDATE_CHECK_DISABLED = "1";
+      TRANSFORMERS_CACHE = "/home/j_kro/.cache/huggingface";
+      CURL_CA_BUNDLE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+      MAX_REQUEST_SIZE = "10485760";
+      CIRCUIT_BREAKER_ENABLED = "true";
+      REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
+      SECONDARY_BACKEND_URL = "http://${cluster.hosts.zephyr.ip}:8040";
+      SECONDARY_BACKEND_MODEL = "qwen3.5-2b-awq";
+      DISCOVERY_BACKENDS = ''[{"url": "http://${cluster.hosts.zephyr.ip}:8040", "model": "qwen3.5-2b-awq", "name": "vLLM-3060Ti"}]''; # vLLM Qwen3.5-2B-AWQ on 3060Ti (port 8040)
+      PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
+      PRIVACY_FILTER_ENABLED = "false";
+      MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
+      MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED = "true";
+      MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL = "http://searxng.search.svc.cluster.local:8080";
+      MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS = "10";
+      MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K = "60";
       MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS = "[\"/etc/nixos\"]";
       MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED = "true";
@@ -118,7 +118,12 @@ SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
           spec = {
             serviceAccountName = "open-webui";
             nodeSelector."kubernetes.io/hostname" = "sentry";
-            hostAliases = [{ ip = "10.1.1.100"; hostnames = ["auth.lan" "openwebui.lan"]; }];
+            hostAliases = [
+              {
+                ip = cluster.kubernetes.vip;
+                hostnames = ["auth.lan" "openwebui.lan"];
+              }
+            ];
             containers = {
               _namedlist = true;
               open-webui = {
@@ -631,7 +636,6 @@ SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
       };
     };
 
-
     # ── Gateway HPA ───────────────────────────────────────────
     HorizontalPodAutoscaler.ai-inference-gateway-hpa = {
       spec = {
@@ -819,19 +823,23 @@ SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
 
     # ── Knowledge Fabric API ─────────────────────────────────────
     Deployment.knowledge-fabric-api = {
-      metadata.labels = managed // {
-        app = "knowledge-fabric-api";
-        component = "brain";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "knowledge-fabric-api";
+          component = "brain";
+        };
       spec = {
         replicas = 1;
         selector.matchLabels.app = "knowledge-fabric-api";
         strategy.type = "Recreate";
         template = {
-          metadata.labels = managed // {
-            app = "knowledge-fabric-api";
-            component = "brain";
-          };
+          metadata.labels =
+            managed
+            // {
+              app = "knowledge-fabric-api";
+              component = "brain";
+            };
           spec = {
             nodeName = "nexus";
             automountServiceAccountToken = false;
@@ -940,10 +948,12 @@ SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
 
     # ── llama-server (Qwen on Nexus) ─────────────────────────────
     Deployment.llama-server = {
-      metadata.labels = managed // {
-        app = "llama-cpp";
-        purpose = "llm-inference";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-cpp";
+          purpose = "llm-inference";
+        };
       spec = {
         replicas = 0;
         revisionHistoryLimit = 2;
@@ -1099,10 +1109,10 @@ SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
     };
 
     Endpoints.llama-cpp-qwen = {
-      metadata.labels = managed // { app = "llama-cpp"; };
+      metadata.labels = managed // {app = "llama-cpp";};
       subsets = [
         {
-          addresses = [{ip = "10.1.1.120";}];
+          addresses = [{ip = cluster.hosts.nexus.ip;}];
           ports = [
             {
               port = 8080;
@@ -1398,23 +1408,23 @@ SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
               }
             ];
           }
-           {
-             to = [{ipBlock.cidr = "10.1.1.0/24";}];
-             ports = [
-               {
-                 protocol = "TCP";
-                 port = 1235;
-               }
-               {
-                 protocol = "TCP";
-                 port = 8041;
-               }
-               {
-                 protocol = "TCP";
-                 port = 1237;
-               }
-             ];
-           }
+          {
+            to = [{ipBlock.cidr = cluster.kubernetes.subnet;}];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 1235;
+              }
+              {
+                protocol = "TCP";
+                port = 8041;
+              }
+              {
+                protocol = "TCP";
+                port = 1237;
+              }
+            ];
+          }
         ];
       };
     };
@@ -1654,19 +1664,23 @@ SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
     # Replaces: kubernetes-manifests/kb-mcp/deployment.yaml, service.yaml
     # Provides vector search over technical eBooks via FastMCP protocol
     Deployment.kb-mcp = {
-      metadata.labels = managed // {
-        app = "kb-mcp";
-        component = "rag";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "kb-mcp";
+          component = "rag";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
         selector.matchLabels.app = "kb-mcp";
         template = {
-          metadata.labels = managed // {
-            app = "kb-mcp";
-            component = "rag";
-          };
+          metadata.labels =
+            managed
+            // {
+              app = "kb-mcp";
+              component = "rag";
+            };
           spec = {
             nodeName = "nexus";
             containers = [
@@ -1785,10 +1799,12 @@ SECONDARY_BACKEND_URL = "http://10.1.1.110:8040";
     };
 
     Service.kb-mcp = {
-      metadata.labels = managed // {
-        app = "kb-mcp";
-        component = "rag";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "kb-mcp";
+          component = "rag";
+        };
       spec = {
         type = "ClusterIP";
         ports = [

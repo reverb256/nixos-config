@@ -1,4 +1,8 @@
-{lib, ...}: let
+{
+  cluster,
+  lib,
+  ...
+}: let
   copyConfigScript = ''
     if [ ! -f /data/config.json ]; then
       cp /config/config.json /data/config.json
@@ -201,8 +205,8 @@ in {
         ingress = [
           {
             from = [
-              {ipBlock.cidr = "10.1.1.0/24";}
-              {ipBlock.cidr = "10.244.0.0/16";}
+              {ipBlock.cidr = cluster.kubernetes.subnet;}
+              {ipBlock.cidr = cluster.kubernetes.podCidr;}
             ];
             ports = [
               {

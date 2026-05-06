@@ -13,11 +13,6 @@
       alertmanager.enable = false; # Consolidated to nexus
       alert-webhook.enable = false; # Consolidated to nexus
       alertmanager.email.enable = false;
-      loki = {
-        enable = false; # TODO: migrate to nexus if needed
-        listenAddress = "0.0.0.0";
-        dataDir = "/storage/loki";
-      };
 
       node-exporter.enable = true;
       smart-exporter.enable = true;

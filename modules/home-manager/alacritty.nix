@@ -29,16 +29,40 @@
 
       font = {
         size = 12;
-        normal = { family = "JetBrainsMono Nerd Font"; style = "Regular"; };
-        bold = { family = "JetBrainsMono Nerd Font"; style = "Bold"; };
-        italic = { family = "JetBrainsMono Nerd Font"; style = "Italic"; };
-        bold_italic = { family = "JetBrainsMono Nerd Font"; style = "Bold Italic"; };
+        normal = {
+          family = "JetBrainsMono Nerd Font";
+          style = "Regular";
+        };
+        bold = {
+          family = "JetBrainsMono Nerd Font";
+          style = "Bold";
+        };
+        italic = {
+          family = "JetBrainsMono Nerd Font";
+          style = "Italic";
+        };
+        bold_italic = {
+          family = "JetBrainsMono Nerd Font";
+          style = "Bold Italic";
+        };
       };
 
       keyboard.bindings = [
-        { key = "Insert"; mods = "Shift"; action = "Paste"; }
-        { key = "Insert"; mods = "Control"; action = "Copy"; }
-        { key = "Return"; mods = "Shift"; chars = "\\u001B\\r"; }
+        {
+          key = "Insert";
+          mods = "Shift";
+          action = "Paste";
+        }
+        {
+          key = "Insert";
+          mods = "Control";
+          action = "Copy";
+        }
+        {
+          key = "Return";
+          mods = "Shift";
+          chars = "\\u001B\\r";
+        }
       ];
     };
   };

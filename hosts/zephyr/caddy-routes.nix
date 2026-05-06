@@ -56,12 +56,14 @@ in
   redir https://{host}{uri} permanent
 }
 
-" + "\n" +
+"
+  + "\n"
+  +
   # === PUBLIC SERVICES (no auth) ===
   # SSO provider itself (hostNetwork on zephyr)
   # auth.lan — Casdoor SSO UI + oauth2-proxy callback.
   # MUST handle /oauth2/* so callbacks reach oauth2-proxy (redirect_uri=https://auth.lan/oauth2/callback).
-  ("auth.lan {
+  "auth.lan {
       ${tls}
       encode zstd gzip
 
@@ -75,17 +77,24 @@ in
           ${proxyHeader}
         }
       }
-    }") + "\n" +
+    }"
+  + "\n"
+  +
   # Vaultwarden via K8s service discovery (port 80) — has own auth
-  mkRoute "vaultwarden.lan" "http://vaultwarden.vaultwarden.svc.cluster.local:80" + "\n" +
+  mkRoute "vaultwarden.lan" "http://vaultwarden.vaultwarden.svc.cluster.local:80"
+  + "\n"
+  +
   # n8n automation — has own auth
-  mkRoute "n8n.lan" "http://n8n.automation.svc.cluster.local:5678" + "\n" +
+  mkRoute "n8n.lan" "http://n8n.automation.svc.cluster.local:5678"
+  + "\n"
+  +
   # Search (SearXNG via K8s service discovery) — public search tool
-  mkRoute "searxng.lan, search.lan" "http://searxng.search.svc.cluster.local:8080" + "\n" +
-
+  mkRoute "searxng.lan, search.lan" "http://searxng.search.svc.cluster.local:8080"
+  + "\n"
+  +
   # === PROTECTED SERVICES (central SSO) ===
   # Haven via K8s service discovery (HTTPS backend, skip verification)
-  ("haven.lan {
+  "haven.lan {
       ${tls}
       encode zstd gzip
 
@@ -111,21 +120,38 @@ in
           redir https://auth.lan/oauth2/start?rd={scheme}://{host}{uri} 302
         }
       }
-    }") + "\n" +
+    }"
+  + "\n"
+  +
   # AI Inference Gateway — OpenAI-compatible API
-  mkAuthRoute "ai-inference.lan" "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080" + "\n" +
+  mkAuthRoute "ai-inference.lan" "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080"
+  + "\n"
+  +
   # Brain / Knowledge Fabric API
-  mkAuthRoute "brain.lan" "http://knowledge-fabric-api.ai-inference.svc.cluster.local:3000" + "\n" +
+  mkAuthRoute "brain.lan" "http://knowledge-fabric-api.ai-inference.svc.cluster.local:3000"
+  + "\n"
+  +
   # Qdrant vector database
-  mkAuthRoute "qdrant.lan" "http://qdrant.ai-inference.svc.cluster.local:6333" + "\n" +
+  mkAuthRoute "qdrant.lan" "http://qdrant.ai-inference.svc.cluster.local:6333"
+  + "\n"
+  +
   # Mission Control via K8s service discovery
-  mkAuthRoute "mission-control.lan" "http://mission-control.orchestration.svc.cluster.local:3000" + "\n" +
+  mkAuthRoute "mission-control.lan" "http://mission-control.orchestration.svc.cluster.local:3000"
+  + "\n"
+  +
   # Kagent UI via K8s service discovery
-  mkAuthRoute "kagent.lan" "http://kagent-controller.kagent.svc.cluster.local:8083" + "\n" +
+  mkAuthRoute "kagent.lan" "http://kagent-controller.kagent.svc.cluster.local:8083"
+  + "\n"
+  +
   # Grafana via K8s service discovery
-  mkAuthRoute "grafana.lan" "http://grafana.monitoring.svc.cluster.local:3000" + "\n" +
+  mkAuthRoute "grafana.lan" "http://grafana.monitoring.svc.cluster.local:3000"
+  + "\n"
+  +
   # Open WebUI via K8s service discovery
-  mkAuthRoute "openwebui.lan" "http://open-webui.ai-inference.svc.cluster.local:8080" + "\n" +
+  mkAuthRoute "openwebui.lan" "http://open-webui.ai-inference.svc.cluster.local:8080"
+  + "\n"
+  +
   # Hermes Workspace (zephyr, port 3002)
-  mkAuthRoute "workspace.lan" "http://127.0.0.1:3002" + "\n" +
-  ""
+  mkAuthRoute "workspace.lan" "http://127.0.0.1:3002"
+  + "\n"
+  + ""
