@@ -1,76 +1,101 @@
-{ lib }:
-let
+{...}: let
   servers = {
+    # Local stdio servers (Nix packages providing mcp-<name> commands)
     filesystem = {
       type = "npm";
       package = "@modelcontextprotocol/server-filesystem";
-      args = [
-        "/etc/nixos"
-        "/home/j_kro"
-      ];
+      args = ["/etc/nixos" "/home/j_kro"];
     };
 
     git = {
       type = "uvx";
       package = "mcp-server-git";
-      entrypoint = "mcp-server-git";
     };
 
     fetch = {
       type = "uvx";
       package = "mcp-server-fetch";
-      entrypoint = "mcp-server-fetch";
-    };
-
-    playwright = {
-      type = "custom";
     };
 
     context7 = {
       type = "npm";
       package = "@upstash/context7-mcp";
-      env = {
-        CONTEXT7_API_KEY_FILE = "";
-      };
+      env = {CONTEXT7_API_KEY_FILE = "";};
     };
 
-    chrome-devtools = {
-      type = "npm";
-      package = "chrome-devtools-mcp@latest";
-    };
+    playwright = {type = "custom";};
+    chrome-devtools = {type = "custom";};
 
-    lightpanda = {
-      type = "custom";
-    };
-
+    # MCP gateway bridge to AI Inference Gateway
     gateway = {
       type = "custom";
+      command = "/etc/nixos/scripts/mcp-gateway-bridge";
+      env.GATEWAY_URL = "http://10.15.67.242:8080";
     };
 
-    puppeteer = {
-      type = "npm";
-      package = "@modelcontextprotocol/server-puppeteer";
+    # SearXNG search via local wrapper script
+    searxng = {
+      type = "custom";
+      command = "/data/agents/mcp-bridges/searxng-mcp.sh";
     };
 
-    brave-search = {
-      type = "npm";
-      package = "@modelcontextprotocol/server-brave-search";
-      env = {
-        BRAVE_API_KEY = "";
-      };
+    # Casdoor SSO bridge (temporary until native MCP Auth)
+    casdoor = {
+      type = "custom";
+      command = "python3";
+      args = ["/data/agents/mcp-bridges/casdoor-mcp-bridge.py"];
     };
 
-    github = {
-      type = "npm";
-      package = "@modelcontextprotocol/server-github";
-      env = {
-        GITHUB_API_TOKEN = "";
-      };
+    # NixOS helper (Claude Code only — uses uvx)
+    nixos = {
+      type = "custom";
+      claudeOnly = true;
+      command = "uvx";
+      args = ["mcp-nixos"];
+    };
+
+    # NixOS cluster management (built package; mainProgram = "nixos-cluster-mcp", not "mcp-nixos-cluster")
+    nixos-cluster = {
+      type = "nix";
+      package = "nixos-cluster-mcp";
+      command = "nixos-cluster-mcp";
+    };
+
+    # Kubernetes MCP (K8s deployment in infra namespace, streamable HTTP)
+    # Hermes connects via K8s service DNS; other tools use ClusterIP
+    kubernetes = {
+      type = "http";
+      url = "http://kubernetes-mcp.infra.svc.cluster.local:8080/mcp";
+    };
+
+    # Grafana MCP (K8s deployment in mcp namespace, SSE transport)
+    # Dashboards, metrics, alerts, datasources via natural language
+    grafana = {
+      type = "http";
+      url = "http://grafana-mcp.mcp.svc.cluster.local:8000/sse";
+    };
+
+    # Qdrant MCP (K8s deployment in mcp namespace, SSE transport)
+    # Vector search, semantic memory, document storage
+    qdrant = {
+      type = "http";
+      url = "http://qdrant-mcp.mcp.svc.cluster.local:8000/sse";
+    };
+
+    # Prometheus MCP (local bridge script, stdio transport)
+    prometheus = {
+      type = "custom";
+      command = "/data/agents/mcp-bridges/prometheus-mcp.sh";
+    };
+
+    # PostgreSQL MCP (local bridge script, stdio transport)
+    postgres = {
+      type = "custom";
+      command = "/data/agents/mcp-bridges/postgres-mcp.sh";
     };
   };
 
   mkCommand = name: "mcp-${name}";
-in
-{
+in {
   inherit servers mkCommand;
 }
