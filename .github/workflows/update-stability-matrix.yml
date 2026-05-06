@@ -32,6 +32,8 @@ jobs:
 
       - name: Get latest release
         id: latest
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           RELEASE=$(gh release view --repo LykosAI/StabilityMatrix \
             --json tagName,publishedAt --jq '.tagName')
