@@ -15,6 +15,12 @@ in {
       description = "Port the llama-server is listening on (3090 moved to 1237)";
     };
 
+    comfyuiPort = lib.mkOption {
+      type = lib.types.port;
+      default = 8188;
+      description = "Port ComfyUI is listening on (3090 GPU)";
+    };
+
     primaryMiner = lib.mkOption {
       type = lib.types.str;
       default = "deployment/gpu-miner-zephyr";
@@ -54,13 +60,14 @@ in {
           set -uo pipefail
 
           LLAMA_PORT="${toString cfg.llamaPort}"
+          COMFYUI_PORT="${toString cfg.comfyuiPort}"
           PRIMARY="${cfg.primaryMiner}"
-          FALLBACK="${cfg.fallbackMiner}"
           NS="${cfg.namespace}"
           CHECK_INTERVAL="${toString cfg.checkInterval}"
           IDLE_TIMEOUT="${toString cfg.idleTimeout}"
 
           last_tokens_predicted=-1
+          inference_source="unknown"
           last_inference_time=0
           mining_shifted=false
 
@@ -103,10 +110,42 @@ in {
             return 1
           }
 
+          is_comfyui_active() {
+            local queue_response
+            queue_response=$(curl -sf "http://127.0.0.1:$COMFYUI_PORT/queue" 2>/dev/null)
+
+            # ComfyUI not running or unreachable
+            if [ -z "$queue_response" ]; then
+              return 1
+            fi
+
+            # Running jobs = GPU actively working
+            # Pending jobs = GPU will be used next
+            # Both should pause mining
+            echo "$queue_response" | grep -qE '"queue_running":\s*\[[^]]' && return 0
+            echo "$queue_response" | grep -qE '"queue_pending":\s*\[[^]]' && return 0
+
+            return 1
+          }
+
+          any_inference_active() {
+            inference_source="unknown"
+            if is_inference_active; then
+              inference_source="llama-server"
+              return 0
+            fi
+            if is_comfyui_active; then
+              inference_source="ComfyUI"
+              return 0
+            fi
+            return 1
+          }
+
           shift_to_fallback() {
+            local source="''${1:-inference}"
             scale "$PRIMARY" 0
             mining_shifted=true
-            log "PAUSED: 3090 miner stopped for inference"
+            log "PAUSED: 3090 miner stopped ($source)"
           }
 
           shift_to_primary() {
@@ -115,18 +154,18 @@ in {
             log "RESUMED: 3090 -> mining"
           }
 
-          log "Coordinator started - monitoring :$LLAMA_PORT"
-          log "Primary: $PRIMARY (3090) | Fallback: ''${FALLBACK:-none}"
+          log "Coordinator started - monitoring :$LLAMA_PORT (llama-server), :$COMFYUI_PORT (ComfyUI)"
+          log "Primary: $PRIMARY (3090)"
           log "Check interval: ''${CHECK_INTERVAL}s, idle timeout: ''${IDLE_TIMEOUT}s"
 
           while true; do
             current_time=$(date +%s)
 
-            if is_inference_active; then
+            if any_inference_active; then
               last_inference_time=$current_time
 
               if [ "$mining_shifted" = false ]; then
-                shift_to_fallback
+                shift_to_fallback "$inference_source"
               fi
             else
               if [ "$mining_shifted" = true ] && [ "$last_inference_time" -gt 0 ]; then
