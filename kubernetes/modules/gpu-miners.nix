@@ -197,14 +197,16 @@
 in {
   config.kubernetes.objects = {
     mining.Deployment.gpu-miner-forge-nvidia-0 = {
-      metadata.labels = managed // {
-        app = "gpu-miner-forge-nvidia-0";
-        "gpu-vendor" = "nvidia";
-        host = "forge";
-        workload = "crypto-mining";
-        "mining-coin" = "rvn";
-        "mining-group" = "nvidia";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "gpu-miner-forge-nvidia-0";
+          "gpu-vendor" = "nvidia";
+          host = "forge";
+          workload = "crypto-mining";
+          "mining-coin" = "rvn";
+          "mining-group" = "nvidia";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -215,12 +217,14 @@ in {
         };
         strategy.type = "Recreate";
         template = {
-          metadata.labels = managed // {
-            app = "gpu-miner-forge-nvidia-0";
-            "gpu-vendor" = "nvidia";
-            host = "forge";
-            workload = "crypto-mining";
-          };
+          metadata.labels =
+            managed
+            // {
+              app = "gpu-miner-forge-nvidia-0";
+              "gpu-vendor" = "nvidia";
+              host = "forge";
+              workload = "crypto-mining";
+            };
           spec = {
             nodeName = "forge";
             hostNetwork = true;
@@ -291,14 +295,16 @@ in {
     };
 
     mining.Deployment.gpu-miner-forge-nvidia-1 = {
-      metadata.labels = managed // {
-        app = "gpu-miner-forge-nvidia-1";
-        "gpu-vendor" = "nvidia";
-        host = "forge";
-        workload = "crypto-mining";
-        "mining-coin" = "rvn";
-        "mining-group" = "nvidia";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "gpu-miner-forge-nvidia-1";
+          "gpu-vendor" = "nvidia";
+          host = "forge";
+          workload = "crypto-mining";
+          "mining-coin" = "rvn";
+          "mining-group" = "nvidia";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -309,12 +315,14 @@ in {
         };
         strategy.type = "Recreate";
         template = {
-          metadata.labels = managed // {
-            app = "gpu-miner-forge-nvidia-1";
-            "gpu-vendor" = "nvidia";
-            host = "forge";
-            workload = "crypto-mining";
-          };
+          metadata.labels =
+            managed
+            // {
+              app = "gpu-miner-forge-nvidia-1";
+              "gpu-vendor" = "nvidia";
+              host = "forge";
+              workload = "crypto-mining";
+            };
           spec = {
             nodeName = "forge";
             hostNetwork = true;
@@ -385,18 +393,20 @@ in {
     };
 
     mining.Deployment.gpu-miner-forge-amd-0 = {
-      metadata.labels = managed // {
-        app = "gpu-miner-forge-amd-0";
-        "mining-coin" = "rvn";
-        "mining-group" = "amd";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "gpu-miner-forge-amd-0";
+          "mining-coin" = "rvn";
+          "mining-group" = "amd";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels.app = "gpu-miner-forge-amd-0";
         strategy.type = "Recreate";
         template = {
-          metadata.labels = managed // { app = "gpu-miner-forge-amd-0"; };
+          metadata.labels = managed // {app = "gpu-miner-forge-amd-0";};
           spec = {
             nodeName = "forge";
             hostNetwork = true;
@@ -484,18 +494,20 @@ in {
     };
 
     mining.Deployment.gpu-miner-forge-amd-1 = {
-      metadata.labels = managed // {
-        app = "gpu-miner-forge-amd-1";
-        "mining-coin" = "rvn";
-        "mining-group" = "amd";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "gpu-miner-forge-amd-1";
+          "mining-coin" = "rvn";
+          "mining-group" = "amd";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels.app = "gpu-miner-forge-amd-1";
         strategy.type = "Recreate";
         template = {
-          metadata.labels = managed // { app = "gpu-miner-forge-amd-1"; };
+          metadata.labels = managed // {app = "gpu-miner-forge-amd-1";};
           spec = {
             nodeName = "forge";
             hostNetwork = true;
@@ -569,13 +581,15 @@ in {
     };
 
     mining.Deployment.gpu-miner-nexus = {
-      metadata.labels = managed // {
-        app = "gpu-miner-nexus";
-        host = "nexus";
-        workload = "crypto-mining";
-        "mining-coin" = "rvn";
-        "mining-group" = "nvidia";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "gpu-miner-nexus";
+          host = "nexus";
+          workload = "crypto-mining";
+          "mining-coin" = "rvn";
+          "mining-group" = "nvidia";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -585,11 +599,13 @@ in {
         };
         strategy.type = "Recreate";
         template = {
-          metadata.labels = managed // {
-            app = "gpu-miner-nexus";
-            host = "nexus";
-            workload = "crypto-mining";
-          };
+          metadata.labels =
+            managed
+            // {
+              app = "gpu-miner-nexus";
+              host = "nexus";
+              workload = "crypto-mining";
+            };
           spec = {
             nodeName = "nexus";
             hostNetwork = true;
@@ -667,13 +683,15 @@ in {
 
     mining.Deployment.gpu-miner-zephyr = {
       metadata = {
-        labels = managed // {
-          app = "gpu-miner-zephyr";
-          host = "zephyr";
-          workload = "crypto-mining";
-          "mining-coin" = "cfx";
-          "mining-group" = "nvidia-3090";
-        };
+        labels =
+          managed
+          // {
+            app = "gpu-miner-zephyr";
+            host = "zephyr";
+            workload = "crypto-mining";
+            "mining-coin" = "cfx";
+            "mining-group" = "nvidia-3090";
+          };
       };
       spec = {
         replicas = 1;
@@ -687,11 +705,13 @@ in {
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels = managed // {
-              app = "gpu-miner-zephyr";
-              host = "zephyr";
-              workload = "crypto-mining";
-            };
+            labels =
+              managed
+              // {
+                app = "gpu-miner-zephyr";
+                host = "zephyr";
+                workload = "crypto-mining";
+              };
           };
           spec = {
             nodeName = "zephyr";
@@ -781,11 +801,13 @@ in {
 
     # --- GPU Miner for Zephyr 3060 Ti (on-demand by coordinator, replicas: 0) ---
     mining.Deployment.gpu-miner-zephyr-3060ti = {
-      metadata.labels = managed // {
-        app = "gpu-miner-zephyr-3060ti";
-        host = "zephyr";
-        workload = "crypto-mining";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "gpu-miner-zephyr-3060ti";
+          host = "zephyr";
+          workload = "crypto-mining";
+        };
       spec = {
         replicas = 0;
         revisionHistoryLimit = 1;
@@ -795,11 +817,13 @@ in {
         };
         strategy.type = "Recreate";
         template = {
-          metadata.labels = managed // {
-            app = "gpu-miner-zephyr-3060ti";
-            host = "zephyr";
-            workload = "crypto-mining";
-          };
+          metadata.labels =
+            managed
+            // {
+              app = "gpu-miner-zephyr-3060ti";
+              host = "zephyr";
+              workload = "crypto-mining";
+            };
           spec = {
             nodeName = "zephyr";
             serviceAccountName = "gpu-miner-sa";

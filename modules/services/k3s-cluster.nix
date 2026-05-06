@@ -95,14 +95,6 @@ in {
       description = "Kubernetes node name (defaults to hostname)";
     };
 
-    calico = {
-      enable = mkOption {
-        type = types.bool;
-        default = false;
-        description = "Use Calico CNI. Disables flannel, network-policy, and kube-proxy.";
-      };
-    };
-
     nvidia = {
       enable = mkOption {
         type = types.bool;
@@ -163,10 +155,6 @@ in {
         lib.optionals isServer (
           disabledComponents
           ++ ["network-policy"]
-          ++ lib.optionals cfg.calico.enable [
-            "flannel"
-            "kube-proxy"
-          ]
         );
 
       extraFlags =
@@ -184,7 +172,6 @@ in {
             "--kube-controller-manager-arg=terminated-pod-gc-threshold=500"
           ]
           ++ map (san: "--tls-san=${san}") tlsSans
-          ++ lib.optional cfg.calico.enable "--flannel-backend=none"
         )
         ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"
         ++ lib.optional (config.hardware.gpu-compute.rocm.enable or false) "--node-label=gpu=amd"
@@ -336,10 +323,6 @@ in {
             2379
             2380
           ]
-          ++ lib.optionals cfg.calico.enable [
-            179
-            5473
-          ]
         );
         allowedTCPPortRanges = [
           {
@@ -347,14 +330,9 @@ in {
             to = 32767;
           }
         ];
-        allowedUDPPorts = mkOptionDefault (
-          lib.optionals (!cfg.calico.enable) [
-            8472
-          ]
-          ++ [
-            4789
-          ]
-        );
+        allowedUDPPorts = mkOptionDefault [
+          4789
+        ];
       }
     ];
 

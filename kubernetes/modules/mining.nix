@@ -2,10 +2,11 @@
   pkgs,
   config,
   lib,
+  cluster,
   ...
 }: let
   nixCsiScratch = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
-  nexusIP = "10.1.1.120";
+  nexusIP = cluster.hosts.nexus.ip;
   xmrigProxy = "${nexusIP}:3333";
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
@@ -13,10 +14,12 @@
 in {
   config.kubernetes.objects = {
     none.Namespace.mining = {
-      metadata.labels = managed // {
-        name = "mining";
-        workload = "crypto-mining";
-      };
+      metadata.labels =
+        managed
+        // {
+          name = "mining";
+          workload = "crypto-mining";
+        };
     };
 
     mining.ServiceAccount.gpu-miner-sa = {};
@@ -146,7 +149,7 @@ in {
             ];
           }
           {
-            to = [{ipBlock.cidr = "10.1.1.0/24";}];
+            to = [{ipBlock.cidr = cluster.kubernetes.subnet;}];
             ports = [
               {
                 protocol = "TCP";
@@ -185,7 +188,7 @@ in {
             ];
           }
           {
-            to = [{ipBlock.cidr = "10.1.1.0/24";}];
+            to = [{ipBlock.cidr = cluster.kubernetes.subnet;}];
             ports = [
               {
                 protocol = "TCP";
@@ -212,11 +215,13 @@ in {
 
     mining.Deployment.xmrig-zephyr = {
       metadata = {
-        labels = managed // {
-          app = "xmrig-zephyr";
-          host = "zephyr";
-          workload = "crypto-mining";
-        };
+        labels =
+          managed
+          // {
+            app = "xmrig-zephyr";
+            host = "zephyr";
+            workload = "crypto-mining";
+          };
         annotations = {
           "prometheus.io/scrape" = "true";
           "prometheus.io/port" = "8082";
@@ -230,11 +235,13 @@ in {
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels = managed // {
-              app = "xmrig-zephyr";
-              host = "zephyr";
-              workload = "crypto-mining";
-            };
+            labels =
+              managed
+              // {
+                app = "xmrig-zephyr";
+                host = "zephyr";
+                workload = "crypto-mining";
+              };
             annotations."nix-csi/discard" = "true";
           };
           spec = {
@@ -395,7 +402,7 @@ in {
         selector.matchLabels.app = "xmrig-nexus";
         strategy.type = "Recreate";
         template = {
-          metadata.labels = managed // { app = "xmrig-nexus"; };
+          metadata.labels = managed // {app = "xmrig-nexus";};
           spec = {
             nodeName = "nexus";
             hostNetwork = true;
@@ -519,10 +526,12 @@ in {
     };
 
     mining.ConfigMap.xmrig-proxy-config = {
-      metadata.labels = managed // {
-        app = "xmrig-proxy";
-        component = "stratum-proxy";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "xmrig-proxy";
+          component = "stratum-proxy";
+        };
       data."config.json" = builtins.toJSON {
         bind = [
           {
@@ -613,10 +622,12 @@ in {
     };
 
     mining.Secret.xmrig-proxy-secret = {
-      metadata.labels = managed // {
-        app = "xmrig-proxy";
-        component = "stratum-proxy";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "xmrig-proxy";
+          component = "stratum-proxy";
+        };
       type = "Opaque";
       stringData = {
         # Populated by kubectl-apply-k8s-secrets from agenix:
@@ -628,10 +639,12 @@ in {
 
     mining.Deployment.xmrig-proxy = {
       metadata = {
-        labels = managed // {
-          app = "xmrig-proxy";
-          component = "stratum-proxy";
-        };
+        labels =
+          managed
+          // {
+            app = "xmrig-proxy";
+            component = "stratum-proxy";
+          };
         annotations = {
           "prometheus.io/scrape" = "true";
           "prometheus.io/port" = "8081";
@@ -649,10 +662,12 @@ in {
           };
         };
         template = {
-          metadata.labels = managed // {
-            app = "xmrig-proxy";
-            component = "stratum-proxy";
-          };
+          metadata.labels =
+            managed
+            // {
+              app = "xmrig-proxy";
+              component = "stratum-proxy";
+            };
           spec = {
             nodeName = "nexus";
             hostNetwork = true;
@@ -756,7 +771,7 @@ in {
     };
 
     mining.Service.xmrig-proxy = {
-      metadata.labels = managed // { app = "xmrig-proxy"; };
+      metadata.labels = managed // {app = "xmrig-proxy";};
       spec = {
         type = "ClusterIP";
         selector.app = "xmrig-proxy";
@@ -780,7 +795,7 @@ in {
 
     # --- LimitRange for mining namespace ---
     mining.LimitRange.mining-limits = {
-      metadata.labels = managed // { app = "gpu-scheduler"; };
+      metadata.labels = managed // {app = "gpu-scheduler";};
       spec.limits = [
         {
           default = {
@@ -802,7 +817,7 @@ in {
 
     # --- ResourceQuota for mining namespace ---
     mining.ResourceQuota.mining-quota = {
-      metadata.labels = managed // { app = "mining"; };
+      metadata.labels = managed // {app = "mining";};
       spec.hard = {
         "requests.cpu" = "25";
         "limits.cpu" = "50";
@@ -835,7 +850,7 @@ in {
 
     # --- PodDisruptionBudget for xmrig-proxy ---
     mining.PodDisruptionBudget.xmrig-proxy-pdb = {
-      metadata.labels = managed // { app = "xmrig-proxy"; };
+      metadata.labels = managed // {app = "xmrig-proxy";};
       spec = {
         maxUnavailable = 1;
         selector.matchLabels.app = "xmrig-proxy";
@@ -849,11 +864,13 @@ in {
 
     # --- XMRig CPU Miner - sentry (8 cores, 8 threads = 50%) ---
     mining.Deployment.xmrig-sentry = {
-      metadata.labels = managed // {
-        app = "xmrig-sentry";
-        host = "sentry";
-        workload = "crypto-mining";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "xmrig-sentry";
+          host = "sentry";
+          workload = "crypto-mining";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
@@ -861,11 +878,13 @@ in {
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels = managed // {
-              app = "xmrig-sentry";
-              host = "sentry";
-              workload = "crypto-mining";
-            };
+            labels =
+              managed
+              // {
+                app = "xmrig-sentry";
+                host = "sentry";
+                workload = "crypto-mining";
+              };
             annotations = {
               "prometheus.io/scrape" = "true";
               "prometheus.io/port" = "8082";

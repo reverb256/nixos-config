@@ -41,11 +41,11 @@
   clusterNetworking = {
     enable = true;
     hostName = "forge";
-    ipAddress = "10.1.1.130";
+    ipAddress = config.networking.cluster.hosts.forge.ip;
     interfaceName = lib.mkForce "eno1";
     wireless.enable = false;
     unbound.enable = true;
-    unbound.listenAddress = "10.1.1.130";
+    unbound.listenAddress = config.networking.cluster.hosts.forge.ip;
   };
 
   networking.interfaces.eno1.ipv6.addresses = [

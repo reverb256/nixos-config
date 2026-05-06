@@ -52,20 +52,23 @@ in {
         done
 
         ${lib.concatMapStrings (secret: ''
-          if kubectl get secret ${secret.name} -n ${secret.namespace} &>/dev/null; then
-            echo "[k8s-secret-bootstrap] Secret ${secret.name} already exists"
-          else
-            echo "[k8s-secret-bootstrap] Generating secret ${secret.name}..."
-            ${lib.concatMapStrings (key: ''
-              ${key}=$(openssl rand -base64 32 | head -c 32)
-            '') secret.keys}
-            kubectl create secret generic ${secret.name} -n ${secret.namespace} \
+            if kubectl get secret ${secret.name} -n ${secret.namespace} &>/dev/null; then
+              echo "[k8s-secret-bootstrap] Secret ${secret.name} already exists"
+            else
+              echo "[k8s-secret-bootstrap] Generating secret ${secret.name}..."
               ${lib.concatMapStrings (key: ''
+                ${key}=$(openssl rand -base64 32 | head -c 32)
+              '')
+              secret.keys}
+              kubectl create secret generic ${secret.name} -n ${secret.namespace} \
+                ${lib.concatMapStrings (key: ''
                 --from-literal=${key}="$${key}" \
-              '') secret.keys}
-            echo "[k8s-secret-bootstrap] Created ${secret.name}"
-          fi
-        '') cfg.secrets}
+              '')
+              secret.keys}
+              echo "[k8s-secret-bootstrap] Created ${secret.name}"
+            fi
+          '')
+          cfg.secrets}
 
         echo "[k8s-secret-bootstrap] Done."
       '';
@@ -78,7 +81,7 @@ in {
       requires = ["k3s.service"];
       wants = ["k8s-nix-deploy.service"];
       wantedBy = ["multi-user.target"];
-      before = [];  # Don't block multi-user.target for other services
+      before = []; # Don't block multi-user.target for other services
       serviceConfig = {
         Type = "oneshot";
         Environment = "KUBECONFIG=/etc/rancher/k3s/k3s.yaml";

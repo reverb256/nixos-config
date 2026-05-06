@@ -1,4 +1,5 @@
 {
+  config,
   lib,
   pkgs,
   inputs,
@@ -44,11 +45,11 @@
   clusterNetworking = {
     enable = true;
     hostName = "sentry";
-    ipAddress = "10.1.1.140";
+    ipAddress = config.networking.cluster.hosts.sentry.ip;
     interfaceName = "eth0";
     wireless.enable = false;
     unbound.enable = true;
-    unbound.listenAddress = "10.1.1.140";
+    unbound.listenAddress = config.networking.cluster.hosts.sentry.ip;
   };
 
   # Declarative static IP for eth0 — NM connection persisted across rebuilds
@@ -64,7 +65,7 @@
 
       [ipv4]
       method=manual
-      addresses=10.1.1.140/24
+      addresses=${config.networking.cluster.hosts.sentry.ip}/24
       gateway=10.1.1.1
       dns=127.0.0.1
 

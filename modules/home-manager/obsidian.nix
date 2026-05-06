@@ -1,4 +1,8 @@
-{config, pkgs, ...}: let
+{
+  config,
+  pkgs,
+  ...
+}: let
   c = config.lib.stylix.colors;
   bg = "#" + c.base00;
   fg = "#" + c.base05;

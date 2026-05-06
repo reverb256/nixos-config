@@ -94,10 +94,12 @@ in {
     # Replaces: 10-claude-code-deployment.yaml, 10-claude-code-multi-node.yaml,
     #           10-claude-code-simple.yaml, 50-claude-code-containerized.yaml
     Deployment.claude-code = {
-      metadata.labels = managed // {
-        app = "claude-code";
-        component = "ai-coding-tool";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "claude-code";
+          component = "ai-coding-tool";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
@@ -111,10 +113,12 @@ in {
         };
         template = {
           metadata = {
-            labels = managed // {
-              app = "claude-code";
-              component = "ai-coding-tool";
-            };
+            labels =
+              managed
+              // {
+                app = "claude-code";
+                component = "ai-coding-tool";
+              };
             annotations = {
               "prometheus.io/scrape" = "true";
               "prometheus.io/port" = "9090";
@@ -309,10 +313,12 @@ in {
     # Replaces: 20-opencode-deployment.yaml, 20-opencode-multi-node.yaml,
     #           20-opencode-simple.yaml, 60-opencode-containerized.yaml
     Deployment.opencode = {
-      metadata.labels = managed // {
-        app = "opencode";
-        component = "ai-coding-tool";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "opencode";
+          component = "ai-coding-tool";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
@@ -326,10 +332,12 @@ in {
         };
         template = {
           metadata = {
-            labels = managed // {
-              app = "opencode";
-              component = "ai-coding-tool";
-            };
+            labels =
+              managed
+              // {
+                app = "opencode";
+                component = "ai-coding-tool";
+              };
             annotations = {
               "prometheus.io/scrape" = "true";
               "prometheus.io/port" = "9091";

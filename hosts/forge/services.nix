@@ -9,27 +9,27 @@
 in {
   services = {
     hermes-cli = {
-    enable = true;
+      enable = true;
       apiKeyFile = config.age.secrets.zai-api-key.path;
-  };
+    };
     k3s-cluster = {
-    enable = true;
+      enable = true;
       nvidia.enable = true;
       role = "agent";
       nodeName = "forge";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = cluster.hosts.forge.ip;
-  };
+    };
 
     spotify-spotx.enable = true;
 
     opencode.enable = true;
 
     nixos-share = {
-    enable = true;
+      enable = true;
       client.enable = true;
-  };
+    };
 
     mining.lolminer = {
       pool = "xtm-c29-us.kryptex.network:8040";
@@ -48,10 +48,10 @@ in {
           tls = true;
         }
       ];
-  };
+    };
 
     gpu-proxy-cpp = {
-    enable = true;
+      enable = true;
       listenPort = 3334;
       apiPort = 8083;
       logLevel = "INFO";
@@ -87,32 +87,32 @@ in {
           password = "x";
         }
       ];
-  };
+    };
 
     nfs-client = {
-    enable = true;
+      enable = true;
       mountShared = true;
       mountHome = true;
       mountMedia = false;
-  };
+    };
 
     syncthing-cluster = {
-    enable = true;
+      enable = true;
       deviceId = "FORGE-PLACEHOLDER";
-  };
+    };
 
     nixos-auto-update = {
-    enable = true;
+      enable = true;
       interval = "daily";
       updateFlakeInputs = ["nixpkgs"];
-  };
+    };
 
     agenix-secrets-registry = {
-    enable = true;
+      enable = true;
       kubernetes = true;
       initrdRecovery = true;
       aiServices = true;
-  };
+    };
   };
 
   environment.systemPackages = with pkgs; [
@@ -170,7 +170,7 @@ in {
   };
   services.recovery-specialisation.enable = true;
   services.btrfs-boot-snapshot = {
-      enable = true;
-      device = "/dev/disk/by-uuid/188a7c7c-fb81-4d48-96f6-3fd5f3a267df";
-    };
+    enable = true;
+    device = "/dev/disk/by-uuid/188a7c7c-fb81-4d48-96f6-3fd5f3a267df";
+  };
 }

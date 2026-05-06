@@ -1,6 +1,9 @@
-{ config, lib, pkgs, ... }:
-
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.central-auth;
   inherit (lib) mkEnableOption mkOption types mkIf;
 in {
@@ -59,16 +62,18 @@ in {
 
   config = mkIf cfg.enable {
     # Open firewall for localhost only
-    networking.firewall.interfaces."lo".allowedTCPPorts = [ cfg.port ];
+    networking.firewall.interfaces."lo".allowedTCPPorts = [cfg.port];
 
     systemd.services.central-auth = {
       description = "Central OAuth2 Proxy (Casdoor SSO)";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ];
+      wantedBy = ["multi-user.target"];
+      after = ["network.target"];
 
       serviceConfig = {
         Type = "simple";
-        ExecStart = lib.getExe pkgs.oauth2-proxy + " "
+        ExecStart =
+          lib.getExe pkgs.oauth2-proxy
+          + " "
           + lib.concatStringsSep " " [
             "--provider=oidc"
             "--oidc-issuer-url=${cfg.oidcIssuerUrl}"
@@ -104,7 +109,7 @@ in {
         ProtectSystem = "strict";
         ProtectHome = true;
         PrivateTmp = true;
-        ReadWritePaths = [ ];
+        ReadWritePaths = [];
         Environment = [
           "SSL_CERT_FILE=/etc/ssl/cluster-ca/ca.crt"
         ];

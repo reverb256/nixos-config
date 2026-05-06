@@ -125,7 +125,6 @@ in {
     bindServicesToLocalhost = true;
   };
 
-
   security.gpg.enable = true;
 
   systemd.user.services.gamemoded = {
@@ -316,5 +315,5 @@ in {
 
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
-# Enable Hermes RAM protection (mandatory pre-flight checks)
+  # Enable Hermes RAM protection (mandatory pre-flight checks)
 }

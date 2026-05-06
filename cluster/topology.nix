@@ -1,5 +1,9 @@
-{ config, lib, pkgs, ... }:
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   options.cluster = {
     config = lib.mkOption {
       type = lib.types.submodule {
