@@ -85,7 +85,7 @@
     let
       kp = inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
     in
-      kp.extend { nvidia_x11 = kp.nvidiaPackages.beta; };
+      kp.extend (self: super: { nvidia_x11 = kp.nvidiaPackages.beta; });
 
   # Shared hermes + pi state via NFS (resilient: nofail, automount, soft)
   services.nfs-cluster-mounts = {
