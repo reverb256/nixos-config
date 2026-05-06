@@ -20,7 +20,7 @@ effectiveStdenv.mkDerivation rec {
   src = fetchFromGitHub {
     owner = "spiritbuun";
     repo = "buun-llama-cpp";
-    rev = "6575873e9c486a3db93f14f1f8e3a7c65ad8b64a";
+    rev = "6575873e9c4872709d374d854b583cfaa270caff";
     hash = "sha256-KKMydTOgNB1LJxeFb99hx8NBvI3YdBbFWvaKIKWHmeE=";
   };
 
