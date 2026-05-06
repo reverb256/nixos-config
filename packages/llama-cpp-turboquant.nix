@@ -15,13 +15,13 @@ let
 in
 effectiveStdenv.mkDerivation rec {
   pname = "llama-cpp-turboquant";
-  version = "0.0.3-spiritbuun-aecbbd5da";
+  version = "0.0.3-spiritbuun-6575873e9";
 
   src = fetchFromGitHub {
     owner = "spiritbuun";
     repo = "buun-llama-cpp";
-    rev = "aecbbd5daa47abd4229fb2c0906e8f102d814022";
-    hash = "sha256-hXWS2R5GuRPTgmci4OxLkBNbmEHH84TmOhdeVYEnocM=";
+    rev = "6575873e9c486a3db93f14f1f8e3a7c65ad8b64a";
+    hash = "sha256-1qcrhyjj12pnbb2icx6qiny43hy7c7gnz18p4x5isd506dsk58r8";
   };
 
   nativeBuildInputs = with cudaPackages; [
