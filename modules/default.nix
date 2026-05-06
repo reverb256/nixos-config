@@ -35,6 +35,9 @@
     ./system/home-permissions-fix.nix
     ./system/xmrig-api-control.nix
     ./system/boot-emergency-diagnostics.nix
+    ./system/initrd-ssh-recovery.nix
+    ./system/recovery-specialisation.nix
+    ./system/btrfs-boot-snapshot.nix
     ./system/mining-inference-coordinator.nix
     ./system/status-auto-update.nix
 

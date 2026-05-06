@@ -40,7 +40,7 @@
 
   systemd.services = {
     amd-gpu-power-mgmt = {
-      description = "AMD GPU Power Limit (110W for RX 5700 XT)";
+      description = "AMD GPU Power Limit (120W for RX 5700 XT)";
       wantedBy = ["multi-user.target"];
       after = ["multi-user.target"];
       path = [pkgs.coreutils];
@@ -50,7 +50,7 @@
         ExecStart = pkgs.writeShellScript "amd-power-limit" ''
           #!/usr/bin/env bash
           set -eo pipefail
-          POWER_LIMIT_MICROWATTS=110000000
+          POWER_LIMIT_MICROWATTS=120000000
           log() {
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
           }
@@ -116,6 +116,30 @@
       };
     };
 
+    nvidia-power-limit = {
+      description = "NVIDIA GPU Power Limit (90W for RTX 4060)";
+      wantedBy = ["multi-user.target"];
+      after = ["multi-user.target"];
+      path = [pkgs.nvidia-persistenced];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = pkgs.writeShellScript "nvidia-power-limit-90w" ''
+          #!/usr/bin/env bash
+          set -eo pipefail
+          for i in $(seq 1 30); do
+            if nvidia-smi &>/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          nvidia-smi -i 0 -pl 90
+          nvidia-smi -i 1 -pl 90
+          echo "NVIDIA GPUs capped at 90W"
+        '';
+      };
+    };
+
     amd-gpu-fan-curve = {
       description = "AMD GPU Dynamic Fan Curve Control";
       wantedBy = ["multi-user.target"];
@@ -131,14 +155,15 @@
           set -eo pipefail
           PATH=/run/current-system/sw/bin:$PATH
           FAN_CURVE=(
-            "45:100"
-            "50:120"
-            "55:140"
-            "60:160"
-            "65:180"
-            "70:200"
-            "75:220"
-            "80:240"
+            "40:120"
+            "45:140"
+            "50:160"
+            "55:180"
+            "60:200"
+            "65:220"
+            "70:235"
+            "75:245"
+            "80:255"
           )
           HYSTERESIS=2
           MIN_ADJUST_INTERVAL=10

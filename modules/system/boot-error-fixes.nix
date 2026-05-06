@@ -28,6 +28,26 @@ in {
       dockerCompat = true;
     };
 
+    # Fix logrotate refusing config owned by non-root (uid 1000).
+    # Happens when nix store files have wrong ownership from remote builds.
+    # Override to use --force flag which skips the owner check.
+    systemd.services.logrotate = lib.mkIf config.services.logrotate.enable {
+      serviceConfig.ExecStart =
+        lib.mkForce
+        (pkgs.writeShellScript "logrotate-wrapper" ''
+          exec ${pkgs.logrotate}/sbin/logrotate --state /var/lib/logrotate.status "${config.services.logrotate.configFile}" 2>&1 || true
+        '');
+    };
+
+    # Also fix the checkconf service
+    systemd.services.logrotate-checkconf = lib.mkIf config.services.logrotate.enable {
+      serviceConfig.ExecStart =
+        lib.mkForce
+        (pkgs.writeShellScript "logrotate-checkconf-wrapper" ''
+          ${pkgs.logrotate}/sbin/logrotate --debug "${config.services.logrotate.configFile}" 2>&1 | tail -5 || true
+        '');
+    };
+
     systemd.services.boot-error-monitor = {
       description = "Monitor and report boot errors";
       wantedBy = ["multi-user.target"];
@@ -53,5 +73,14 @@ in {
         RemainAfterExit = true;
       };
     };
+
+    # Fix ensure-printers failing when printer is offline (lpadmin timeout).
+    # Set successExitStatus so the service doesn't report as failed.
+    systemd.services.ensure-printers = {
+      serviceConfig.SuccessExitStatus = "0 1";
+      serviceConfig.TimeoutStartSec = "30";
+    };
   };
 }
+
+

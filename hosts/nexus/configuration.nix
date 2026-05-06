@@ -108,6 +108,23 @@
   nix-mineral = {
     enable = true;
     preset = ["compatibility"];
+    # Fix: nix-mineral adds bind+nodev+nosuid+noexec over-itself mounts for
+    # /etc, /var, /var/lib, /var/log, /home, /root, /srv, /tmp, /var/tmp.
+    # With impermanence (tmpfs /), these bind-mount from initramfs paths that
+    # don't exist yet, preventing boot. Also conflicts with btrfs subvol= mounts.
+    # Disable per-path to prevent bind mount generation.
+    # https://github.com/cynicsketch/nix-mineral/issues/11
+    filesystems.normal = {
+      "/etc".enable = lib.mkForce false;
+      "/home".enable = lib.mkForce false;
+      "/root".enable = lib.mkForce false;
+      "/srv".enable = lib.mkForce false;
+      "/tmp".enable = lib.mkForce false;
+      "/var".enable = lib.mkForce false;
+      "/var/lib".enable = lib.mkForce false;
+      "/var/log".enable = lib.mkForce false;
+      "/var/tmp".enable = lib.mkForce false;
+    };
   };
 
   # Resolve gitconfig conflict between NixOS default and nix-mineral

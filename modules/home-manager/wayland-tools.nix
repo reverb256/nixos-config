@@ -20,11 +20,16 @@
 
   brightness-all = pkgs.writeShellScriptBin "brightness-all" ''
     SAMSUNG_OUTPUT="HDMI-A-2"
-    SDR_MIN=0.1
-    SDR_MAX=1.0
-    SDR_STEP=0.05
 
-    get_current() {
+    NIRI_SDR_MIN=0.1
+    NIRI_SDR_MAX=1.0
+    NIRI_SDR_STEP=0.05
+
+    HYPR_SDR_MIN=0.5
+    HYPR_SDR_MAX=2.0
+    HYPR_SDR_STEP=0.1
+
+    get_niri_current() {
       echo "''${NIRI_SAMSUNG_BRIGHTNESS:-1.0}"
     }
 
@@ -33,27 +38,62 @@
         noctalia-shell ipc call brightness increase 2>/dev/null || true
         COMPOSITOR=$(${compositorDetect})
         if [ "$COMPOSITOR" = "niri" ]; then
-          current=$(get_current)
-          new=$(echo "$current + $SDR_STEP" | bc 2>/dev/null)
+          current=$(get_niri_current)
+          new=$(echo "$current + $NIRI_SDR_STEP" | bc 2>/dev/null)
           [ -z "$new" ] && new="1.0"
-          if [ "$(echo "$new > $SDR_MAX" | bc)" = "1" ]; then new="$SDR_MAX"; fi
+          if [ "$(echo "$new > $NIRI_SDR_MAX" | bc)" = "1" ]; then new="$NIRI_SDR_MAX"; fi
           export NIRI_SAMSUNG_BRIGHTNESS="$new"
           niri msg output "$SAMSUNG_OUTPUT" sdr-brightness "$new" 2>/dev/null || true
+        elif [ "$COMPOSITOR" = "hyprland" ]; then
+          current=$(hyprctl monitors -j 2>/dev/null | ${lib.getExe pkgs.jq} -r '.[] | select(.name=="'$SAMSUNG_OUTPUT'") | .sdrBrightness // 1.3' 2>/dev/null || echo "1.3")
+          new=$(echo "$current + $HYPR_SDR_STEP" | bc 2>/dev/null)
+          [ -z "$new" ] && new="1.4"
+          if [ "$(echo "$new > $HYPR_SDR_MAX" | bc)" = "1" ]; then new="$HYPR_SDR_MAX"; fi
+          hypr-set-sdr-brightness "$SAMSUNG_OUTPUT" "$new" 2>/dev/null || true
         fi
         ;;
       down)
         noctalia-shell ipc call brightness decrease 2>/dev/null || true
         COMPOSITOR=$(${compositorDetect})
         if [ "$COMPOSITOR" = "niri" ]; then
-          current=$(get_current)
-          new=$(echo "$current - $SDR_STEP" | bc 2>/dev/null)
+          current=$(get_niri_current)
+          new=$(echo "$current - $NIRI_SDR_STEP" | bc 2>/dev/null)
           [ -z "$new" ] && new="0.95"
-          if [ "$(echo "$new < $SDR_MIN" | bc)" = "1" ]; then new="$SDR_MIN"; fi
+          if [ "$(echo "$new < $NIRI_SDR_MIN" | bc)" = "1" ]; then new="$NIRI_SDR_MIN"; fi
           export NIRI_SAMSUNG_BRIGHTNESS="$new"
           niri msg output "$SAMSUNG_OUTPUT" sdr-brightness "$new" 2>/dev/null || true
+        elif [ "$COMPOSITOR" = "hyprland" ]; then
+          current=$(hyprctl monitors -j 2>/dev/null | ${lib.getExe pkgs.jq} -r '.[] | select(.name=="'$SAMSUNG_OUTPUT'") | .sdrBrightness // 1.3' 2>/dev/null || echo "1.3")
+          new=$(echo "$current - $HYPR_SDR_STEP" | bc 2>/dev/null)
+          [ -z "$new" ] && new="1.2"
+          if [ "$(echo "$new < $HYPR_SDR_MIN" | bc)" = "1" ]; then new="$HYPR_SDR_MIN"; fi
+          hypr-set-sdr-brightness "$SAMSUNG_OUTPUT" "$new" 2>/dev/null || true
         fi
         ;;
     esac
+  '';
+
+  # Hyprland SDR brightness control — reads current monitor config, updates sdrbrightness
+  hypr-set-sdr-brightness = pkgs.writeShellScriptBin "hypr-set-sdr-brightness" ''
+    set -euo pipefail
+    OUTPUT="''${1:-HDMI-A-2}"
+    VALUE="''${2:-1.0}"
+
+    # Find the current monitor config line for this output
+    for CFG in "''${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.conf" "$HOME/.config/hypr/hyprland.conf"; do
+      if [ -f "$CFG" ]; then
+        LINE=$(grep "^monitor=$OUTPUT," "$CFG" | head -1 || true)
+        if [ -n "$LINE" ]; then
+          # Strip 'monitor=' prefix for hyprctl keyword
+          BASE="''${LINE#monitor=}"
+          # Replace sdrbrightness value
+          NEW=$(echo "$BASE" | sed "s/sdrbrightness,[^,]*/sdrbrightness,$VALUE/")
+          exec hyprctl keyword monitor "$NEW"
+        fi
+      fi
+    done
+    echo "No monitor config found for $OUTPUT" >&2
+    exit 1
   '';
 
   scratchpad-toggle = pkgs.writeShellScriptBin "scratchpad-toggle" ''
@@ -174,6 +214,7 @@ in {
     slurp
     ddcutil
     brightness-all
+    hypr-set-sdr-brightness
     launch-or-focus
     satty
     scratchpad-toggle

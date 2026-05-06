@@ -16,6 +16,38 @@
       "3060ti" = { index = 0; limit = 100; };
       "3090" = { index = 1; limit = 250; };
     };
+    profiles = {
+      gaming = {
+        "3060" = 200;
+        "3090" = 350;
+        "4060" = 110;
+      };
+      ai = {
+        "3060" = 110;
+        "3090" = 300;
+        "4060" = 90;
+      };
+      kubernetes-gpu = {
+        "3060" = 150;
+        "3090" = 280;
+        "4060" = 90;
+      };
+      builds = {
+        "3060" = 150;
+        "3090" = 250;
+        "4060" = 95;
+      };
+      mining = {
+        "3060" = 130;
+        "3090" = 250;
+        "4060" = 90;
+      };
+      idle = {
+        "3060" = 200;
+        "3090" = 350;
+        "4060" = 115;
+      };
+    };
   };
 
   services.udev.extraRules = ''
@@ -91,8 +123,6 @@
       "iommu=pt"
       "processor.max_cstate=1"
       "intel_idle.max_cstate=1"
-      "hugepagesz=1G"
-      "hugepages=3"
       "nvidia.NVreg_RegistryDwords=EnableBrightnessControl=1"
     ];
   };
