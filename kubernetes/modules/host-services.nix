@@ -1065,9 +1065,10 @@ in {
     };
 
     # ── Mining-Inference Coordinator (DaemonSet) ──────────────────
-    # Replaces: mining-inference-coordinator.service on zephyr/nexus/forge/sentry
-    # Needs curl, awk, nftables for network control + host proc access
-    infra.DaemonSet.mining-inference-coordinator = lib.mkIf (config.services.mining-inference-coordinator.enable or false) {
+    # Self-contained: monitors llama.cpp on 3090 (port 1237), pauses mining
+    # during inference. No 3060Ti fallback — 3060Ti reserved for vLLM.
+    # Needs kubectl for scaling, curl for metrics, hostNetwork for localhost.
+    infra.DaemonSet.mining-inference-coordinator = {
       metadata.labels =
         managed
         // {
@@ -1088,37 +1089,112 @@ in {
             dnsPolicy = "ClusterFirstWithHostNet";
             automountServiceAccountToken = false;
             tolerations = allTolerations;
-            initContainers = {
-              _namedlist = true;
-              init = {
-                image = scratchImage;
-                imagePullPolicy = "IfNotPresent";
-                command = [
-                  "${pkgs.writeShellScript "mining-coord-init" ''
-                    export PATH=${pkgs.iptables}/bin:${pkgs.coreutils}/bin:$PATH
-                    # Pre-create nftables ruleset placeholder
-                    mkdir -p /host/run/mining-coordinator
-                  ''}"
-                ];
-                securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                  nix = nixVolumeMount;
-                  host-run = {
-                    mountPath = "/host/run";
-                  };
-                };
-              };
-            };
+            nodeSelector."kubernetes.io/hostname" = "zephyr";
             containers = {
               _namedlist = true;
               coordinator = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
                 command = [
-                  "${pkgs.writeShellScript "mining-inference-coord-entrypoint" ''
-                    export PATH=${pkgs.curl}/bin:${pkgs.gawk}/bin:${pkgs.nftables}/bin:${pkgs.coreutils}/bin:$PATH
-                    exec ${config.systemd.services.mining-inference-coordinator.serviceConfig.ExecStart}
+                  "${pkgs.writeShellScript "mining-inference-coord" ''
+                    set -uo pipefail
+                    export PATH=${pkgs.curl}/bin:${pkgs.gawk}/bin:${pkgs.kubectl}/bin:${pkgs.coreutils}/bin:$PATH
+
+                    LLAMA_PORT="1237"
+                    PRIMARY="deployment/gpu-miner-zephyr"
+                    FALLBACK=""
+                    NS="mining"
+                    CHECK_INTERVAL="3"
+                    IDLE_TIMEOUT="30"
+
+                    last_tokens_predicted=-1
+                    last_inference_time=0
+                    mining_shifted=false
+
+                    log() {
+                      echo "[$(date '+%H:%M:%S')] $*" >&2
+                    }
+
+                    scale() {
+                      local resource="$1"
+                      local replicas="$2"
+                      kubectl scale "$resource" --replicas="$replicas" -n "$NS" 2>/dev/null || true
+                    }
+
+                    is_inference_active() {
+                      local processing
+                      processing=$(curl -sf "http://127.0.0.1:$LLAMA_PORT/metrics" 2>/dev/null \
+                        | grep "^llamacpp:requests_processing " \
+                        | awk '{print $2}')
+
+                      if [ -n "$processing" ] && [ "$processing" -gt 0 ]; then
+                        return 0
+                      fi
+
+                      local current_tokens
+                      current_tokens=$(curl -sf "http://127.0.0.1:$LLAMA_PORT/metrics" 2>/dev/null \
+                        | grep "^llamacpp:tokens_predicted_total " \
+                        | awk '{print $2}')
+
+                      if [ -n "$current_tokens" ] && [ "$last_tokens_predicted" -ge 0 ]; then
+                        if [ "$current_tokens" -gt "$last_tokens_predicted" ]; then
+                          last_tokens_predicted=$current_tokens
+                          return 0
+                        fi
+                      fi
+
+                      if [ -n "$current_tokens" ]; then
+                        last_tokens_predicted=$current_tokens
+                      fi
+
+                      return 1
+                    }
+
+                    shift_to_fallback() {
+                      scale "$PRIMARY" 0
+                      if [ -n "$FALLBACK" ]; then
+                        scale "$FALLBACK" 1
+                        log "SHIFTED: 3090 -> inference | 3060 Ti -> mining"
+                      else
+                        log "PAUSED: 3090 miner stopped for inference"
+                      fi
+                      mining_shifted=true
+                    }
+
+                    shift_to_primary() {
+                      if [ -n "$FALLBACK" ]; then
+                        scale "$FALLBACK" 0
+                      fi
+                      scale "$PRIMARY" 1
+                      mining_shifted=false
+                      log "RESUMED: 3090 -> mining"
+                    }
+
+                    log "Coordinator started - monitoring :$LLAMA_PORT"
+                    log "Primary: $PRIMARY (3090) | Fallback: ''${FALLBACK:-none}"
+                    log "Check interval: ''${CHECK_INTERVAL}s, idle timeout: ''${IDLE_TIMEOUT}s"
+
+                    while true; do
+                      current_time=$(date +%s)
+
+                      if is_inference_active; then
+                        last_inference_time=$current_time
+
+                        if [ "$mining_shifted" = false ]; then
+                          shift_to_fallback
+                        fi
+                      else
+                        if [ "$mining_shifted" = true ] && [ "$last_inference_time" -gt 0 ]; then
+                          idle_time=$((current_time - last_inference_time))
+
+                          if [ "$idle_time" -ge "$IDLE_TIMEOUT" ]; then
+                            shift_to_primary
+                          fi
+                        fi
+                      fi
+
+                      sleep "$CHECK_INTERVAL"
+                    done
                   ''}"
                 ];
                 env = {
@@ -1145,10 +1221,6 @@ in {
             volumes = {
               _namedlist = true;
               nix = nixVolume;
-              host-run.hostPath = {
-                path = "/run";
-                type = "Directory";
-              };
             };
           };
         };

@@ -15,8 +15,8 @@
 #   This means llama.cpp will only use the specified GPU, but the other GPU is still
 #   visible in /dev. For inference-only workloads this is safe.
 #
-# The mining-inference-coordinator watches :1235 on zephyr to detect inference
-# activity on the 3090 and shifts gpu-miner-zephyr to the 3060 Ti.
+# The mining-inference-coordinator watches :1237 on zephyr to detect inference
+# activity on the 3090 and pauses gpu-miner-zephyr (no 3060Ti fallback).
 #
 # Sentry:
 #   AMD RX 5600 XT (6GB, Vulkan/RADV, gfx1010) → 4B model
