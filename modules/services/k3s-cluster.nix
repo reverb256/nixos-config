@@ -122,7 +122,7 @@ in {
       package = let
         k3sBin = pkgs.fetchurl {
           url = "https://github.com/k3s-io/k3s/releases/download/v1.35.4+k3s1/k3s";
-          hash = "sha256-0nz8rq7rpwvlyaihamjfkal7dqhnqr0nywsxzqiszk8awpn9h108";
+          hash = "sha256-CASY7OUKza8j/l1zb0HGFuJ2qJpOVgWj8nTzmw/O6Fs=";
         };
       in
         pkgs.runCommand "k3s-with-agent" {
