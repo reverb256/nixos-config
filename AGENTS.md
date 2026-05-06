@@ -298,9 +298,22 @@ Secrets populated by `kubectl-apply-k8s-secrets` from agenix (`monitoring/grafan
 **Registry:** `modules/services/mcp-server-registry.nix` — single source of truth
 **Full plan:** `docs/plans/2026-05-01-mcp-system-plan.md`
 
+## AI Agent Coding Principles (Pocock/Matt Workshop)
+
+These apply to ALL agents (Hermes, Claude Code, OpenCode, OmP, Droid). Non-negotiable.
+
+1. **TDD is mandatory.** Tests written before implementation. No test = no merge. Spec reviewers must reject if no test exists.
+2. **Fresh context over compaction.** When context gets heavy, checkpoint to disk and start fresh. Do not push through degraded context.
+3. **Vertical slicing.** Every task cuts across all layers (DB → API → UI). Never "all models then all endpoints then all UI."
+4. **Two-stage review.** Spec compliance first (did you build the right thing?), code quality second (did you build it right?).
+5. **Push/pull standards.** Implementers pull conventions on demand. Reviewers get conventions pushed inline.
+6. **Alignment before planning.** Run grill-me before writing-plans. No plan without shared understanding of the problem.
+
+When Hermes dispatches to subagents (claude-code, opencode, omp), it enforces these via the dispatch context. Subagents don not need to know the skills — Hermes injects the rules.
+
 ## Codified Conventions (Hermes Skills)
 
-All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills/devops/` (~38 skills).
+All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills/devops/` (~277 total, 49 devops-specific).
 **Load this skill before ANY NixOS module or K8s manifest work.**
 
 ### Quick Reference: 12 Convention Categories
