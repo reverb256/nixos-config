@@ -109,7 +109,7 @@ deploy-bg target *args:
 
     if [ "{{target}}" = "all" ] || [ -z "{{target}}" ]; then
         tmux send-keys -t "$SESSION" "echo '▸ Deploying all hosts...'" Enter
-        tmux send-keys -t "$SESSION" "cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry --verbose {{args}} && sudo nixos-rebuild switch --flake .#zephyr {{args}}" Enter
+        tmux send-keys -t "$SESSION" "cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus --verbose {{args}} && nix run .#apps.x86_64-linux.colmena -- apply --on forge --verbose {{args}} && nix run .#apps.x86_64-linux.colmena -- apply --on sentry --verbose {{args}} && sudo nixos-rebuild switch --flake .#zephyr {{args}}" Enter
     elif [ "{{target}}" = "zephyr" ]; then
         tmux send-keys -t "$SESSION" "echo '▸ Deploying zephyr...'" Enter
         tmux send-keys -t "$SESSION" "cd {{FLAKE}} && sudo nixos-rebuild switch --flake .#zephyr {{args}}" Enter
