@@ -1,4 +1,5 @@
 {
+  cluster,
   config,
   lib,
   ...
@@ -124,24 +125,31 @@
 
   # ── RBAC rules (shared between getter and writer) ────────────────────
   crdResources = [
-    "agents" "sandboxagents" "modelconfigs" "modelproviderconfigs"
-    "toolservers" "memories" "remotemcpservers" "mcpservers"
+    "agents"
+    "sandboxagents"
+    "modelconfigs"
+    "modelproviderconfigs"
+    "toolservers"
+    "memories"
+    "remotemcpservers"
+    "mcpservers"
   ];
   crdStatuses = map (r: r + "/status") crdResources;
   crdFinalizers = map (r: r + "/finalizers") crdResources;
 in {
   config.kubernetes.objects = {
-
     # ══════════════════════════════════════════════════════════════════════
     # NAMESPACE (cluster-scoped, use 'none' prefix)
     # ══════════════════════════════════════════════════════════════════════
     none.Namespace.${ns} = {
-      metadata.labels = {
-        name = ns;
-        "pod-security.kubernetes.io/enforce" = "baseline";
-        "pod-security.kubernetes.io/audit" = "restricted";
-        "pod-security.kubernetes.io/warn" = "restricted";
-      } // managed;
+      metadata.labels =
+        {
+          name = ns;
+          "pod-security.kubernetes.io/enforce" = "baseline";
+          "pod-security.kubernetes.io/audit" = "restricted";
+          "pod-security.kubernetes.io/warn" = "restricted";
+        }
+        // managed;
     };
 
     # ══════════════════════════════════════════════════════════════════════
@@ -150,37 +158,105 @@ in {
     none.ClusterRole.kagent-getter = {
       metadata.labels = managed;
       rules = [
-        { apiGroups = ["kagent.dev"]; resources = crdResources; verbs = ["get" "list" "watch"]; }
-        { apiGroups = ["kagent.dev"]; resources = crdStatuses; verbs = ["get" "patch" "update"]; }
-        { apiGroups = ["kagent.dev"]; resources = crdFinalizers; verbs = ["update"]; }
-        { apiGroups = [""]; resources = ["*"]; verbs = ["get" "list" "watch"]; }
-        { apiGroups = ["apps"]; resources = ["*"]; verbs = ["get" "list" "watch"]; }
-        { apiGroups = ["batch"]; resources = ["*"]; verbs = ["get" "list" "watch"]; }
-        { apiGroups = ["rbac.authorization.k8s.io"]; resources = ["*"]; verbs = ["get" "list" "watch"]; }
+        {
+          apiGroups = ["kagent.dev"];
+          resources = crdResources;
+          verbs = ["get" "list" "watch"];
+        }
+        {
+          apiGroups = ["kagent.dev"];
+          resources = crdStatuses;
+          verbs = ["get" "patch" "update"];
+        }
+        {
+          apiGroups = ["kagent.dev"];
+          resources = crdFinalizers;
+          verbs = ["update"];
+        }
+        {
+          apiGroups = [""];
+          resources = ["*"];
+          verbs = ["get" "list" "watch"];
+        }
+        {
+          apiGroups = ["apps"];
+          resources = ["*"];
+          verbs = ["get" "list" "watch"];
+        }
+        {
+          apiGroups = ["batch"];
+          resources = ["*"];
+          verbs = ["get" "list" "watch"];
+        }
+        {
+          apiGroups = ["rbac.authorization.k8s.io"];
+          resources = ["*"];
+          verbs = ["get" "list" "watch"];
+        }
       ];
     };
 
     none.ClusterRoleBinding.kagent-getter = {
       metadata.labels = managed;
-      roleRef = { apiGroup = "rbac.authorization.k8s.io"; kind = "ClusterRole"; name = "kagent-getter"; };
-      subjects = [{ kind = "ServiceAccount"; name = "kagent-controller"; namespace = ns; }];
+      roleRef = {
+        apiGroup = "rbac.authorization.k8s.io";
+        kind = "ClusterRole";
+        name = "kagent-getter";
+      };
+      subjects = [
+        {
+          kind = "ServiceAccount";
+          name = "kagent-controller";
+          namespace = ns;
+        }
+      ];
     };
 
     none.ClusterRole.kagent-writer = {
       metadata.labels = managed;
       rules = [
-        { apiGroups = ["kagent.dev"]; resources = crdResources; verbs = ["create" "update" "patch" "delete"]; }
-        { apiGroups = ["kagent.dev"]; resources = crdFinalizers; verbs = ["update"]; }
-        { apiGroups = [""]; resources = ["*"]; verbs = ["create" "update" "patch" "delete"]; }
-        { apiGroups = ["apps"]; resources = ["*"]; verbs = ["create" "update" "patch" "delete"]; }
-        { apiGroups = ["batch"]; resources = ["*"]; verbs = ["create" "update" "patch" "delete"]; }
+        {
+          apiGroups = ["kagent.dev"];
+          resources = crdResources;
+          verbs = ["create" "update" "patch" "delete"];
+        }
+        {
+          apiGroups = ["kagent.dev"];
+          resources = crdFinalizers;
+          verbs = ["update"];
+        }
+        {
+          apiGroups = [""];
+          resources = ["*"];
+          verbs = ["create" "update" "patch" "delete"];
+        }
+        {
+          apiGroups = ["apps"];
+          resources = ["*"];
+          verbs = ["create" "update" "patch" "delete"];
+        }
+        {
+          apiGroups = ["batch"];
+          resources = ["*"];
+          verbs = ["create" "update" "patch" "delete"];
+        }
       ];
     };
 
     none.ClusterRoleBinding.kagent-writer = {
       metadata.labels = managed;
-      roleRef = { apiGroup = "rbac.authorization.k8s.io"; kind = "ClusterRole"; name = "kagent-writer"; };
-      subjects = [{ kind = "ServiceAccount"; name = "kagent-controller"; namespace = ns; }];
+      roleRef = {
+        apiGroup = "rbac.authorization.k8s.io";
+        kind = "ClusterRole";
+        name = "kagent-writer";
+      };
+      subjects = [
+        {
+          kind = "ServiceAccount";
+          name = "kagent-controller";
+          namespace = ns;
+        }
+      ];
     };
 
     # ══════════════════════════════════════════════════════════════════════
@@ -228,26 +304,60 @@ in {
             nodeSelector."kubernetes.io/hostname" = targetNode;
             serviceAccountName = "kagent-postgresql";
             securityContext = {
-              fsGroup = 999; runAsUser = 999; runAsGroup = 999;
-              runAsNonRoot = true; seccompProfile.type = "RuntimeDefault";
+              fsGroup = 999;
+              runAsUser = 999;
+              runAsGroup = 999;
+              runAsNonRoot = true;
+              seccompProfile.type = "RuntimeDefault";
             };
             containers._namedlist = true;
             containers.postgresql = {
               image = postgresImage;
               imagePullPolicy = "IfNotPresent";
               ports._namedlist = true;
-              ports.postgresql = { containerPort = 5432; protocol = "TCP"; };
+              ports.postgresql = {
+                containerPort = 5432;
+                protocol = "TCP";
+              };
               env._namedlist = true;
               env = {
                 POSTGRES_DB.value = "kagent";
                 POSTGRES_USER.value = "kagent";
-                POSTGRES_PASSWORD.valueFrom.secretKeyRef = { name = "kagent-postgresql"; key = "POSTGRES_PASSWORD"; };
+                POSTGRES_PASSWORD.valueFrom.secretKeyRef = {
+                  name = "kagent-postgresql";
+                  key = "POSTGRES_PASSWORD";
+                };
                 PGDATA.value = "/var/lib/postgresql/data/pgdata";
               };
-              resources = { requests = {cpu = "250m"; memory = "256Mi";}; limits = {cpu = "500m"; memory = "512Mi";}; };
-              livenessProbe = { exec.command = ["pg_isready" "-U" "kagent" "-d" "kagent"]; initialDelaySeconds = 20; periodSeconds = 10; timeoutSeconds = 5; failureThreshold = 6; };
-              readinessProbe = { exec.command = ["pg_isready" "-U" "kagent" "-d" "kagent"]; initialDelaySeconds = 5; periodSeconds = 5; timeoutSeconds = 3; failureThreshold = 3; };
-              securityContext = { allowPrivilegeEscalation = false; capabilities.drop = ["ALL"]; seccompProfile.type = "RuntimeDefault"; };
+              resources = {
+                requests = {
+                  cpu = "250m";
+                  memory = "256Mi";
+                };
+                limits = {
+                  cpu = "500m";
+                  memory = "512Mi";
+                };
+              };
+              livenessProbe = {
+                exec.command = ["pg_isready" "-U" "kagent" "-d" "kagent"];
+                initialDelaySeconds = 20;
+                periodSeconds = 10;
+                timeoutSeconds = 5;
+                failureThreshold = 6;
+              };
+              readinessProbe = {
+                exec.command = ["pg_isready" "-U" "kagent" "-d" "kagent"];
+                initialDelaySeconds = 5;
+                periodSeconds = 5;
+                timeoutSeconds = 3;
+                failureThreshold = 3;
+              };
+              securityContext = {
+                allowPrivilegeEscalation = false;
+                capabilities.drop = ["ALL"];
+                seccompProfile.type = "RuntimeDefault";
+              };
               volumeMounts._namedlist = true;
               volumeMounts.data.mountPath = "/var/lib/postgresql/data";
             };
@@ -264,7 +374,11 @@ in {
         type = "ClusterIP";
         selector = {"app.kubernetes.io/component" = "database";};
         ports._namedlist = true;
-        ports.postgresql = { port = 5432; targetPort = 5432; protocol = "TCP"; };
+        ports.postgresql = {
+          port = 5432;
+          targetPort = 5432;
+          protocol = "TCP";
+        };
       };
     };
 
@@ -308,27 +422,64 @@ in {
           spec = {
             nodeSelector."kubernetes.io/hostname" = targetNode;
             serviceAccountName = "kagent-controller";
-            securityContext = { runAsNonRoot = true; seccompProfile.type = "RuntimeDefault"; };
+            securityContext = {
+              runAsNonRoot = true;
+              seccompProfile.type = "RuntimeDefault";
+            };
             containers._namedlist = true;
             containers.controller = {
               image = controllerImage;
               imagePullPolicy = "IfNotPresent";
               ports._namedlist = true;
-              ports.http = { containerPort = 8083; protocol = "TCP"; };
+              ports.http = {
+                containerPort = 8083;
+                protocol = "TCP";
+              };
               env._namedlist = true;
               env = {
                 KAGENT_NAMESPACE.valueFrom.fieldRef.fieldPath = "metadata.namespace";
                 K8S_POD_NAME.valueFrom.fieldRef.fieldPath = "metadata.name";
                 K8S_NODE_NAME.valueFrom.fieldRef.fieldPath = "spec.nodeName";
                 AUTH_MODE.value = "trusted-proxy";
-                POSTGRES_PASSWORD.valueFrom.secretKeyRef = { name = "kagent-postgresql"; key = "POSTGRES_PASSWORD"; };
+                POSTGRES_PASSWORD.valueFrom.secretKeyRef = {
+                  name = "kagent-postgresql";
+                  key = "POSTGRES_PASSWORD";
+                };
                 POSTGRES_DATABASE_URL.value = "postgres://kagent:kagent@kagent-postgresql.${ns}.svc.cluster.local:5432/kagent?sslmode=disable";
               };
-              envFrom = [{ configMapRef.name = "kagent-controller"; }];
-              resources = { requests = {cpu = "200m"; memory = "256Mi";}; limits = {cpu = "2"; memory = "1Gi";}; };
-              securityContext = { readOnlyRootFilesystem = true; allowPrivilegeEscalation = false; capabilities.drop = ["ALL"]; seccompProfile.type = "RuntimeDefault"; };
-              startupProbe = { httpGet = {path = "/health"; port = 8083;}; periodSeconds = 15; initialDelaySeconds = 15; failureThreshold = 10; };
-              readinessProbe = { httpGet = {path = "/health"; port = 8083;}; periodSeconds = 30; };
+              envFrom = [{configMapRef.name = "kagent-controller";}];
+              resources = {
+                requests = {
+                  cpu = "200m";
+                  memory = "256Mi";
+                };
+                limits = {
+                  cpu = "2";
+                  memory = "1Gi";
+                };
+              };
+              securityContext = {
+                readOnlyRootFilesystem = true;
+                allowPrivilegeEscalation = false;
+                capabilities.drop = ["ALL"];
+                seccompProfile.type = "RuntimeDefault";
+              };
+              startupProbe = {
+                httpGet = {
+                  path = "/health";
+                  port = 8083;
+                };
+                periodSeconds = 15;
+                initialDelaySeconds = 15;
+                failureThreshold = 10;
+              };
+              readinessProbe = {
+                httpGet = {
+                  path = "/health";
+                  port = 8083;
+                };
+                periodSeconds = 30;
+              };
               volumeMounts._namedlist = true;
               volumeMounts.tmp.mountPath = "/tmp";
             };
@@ -345,7 +496,11 @@ in {
         type = "ClusterIP";
         selector = {"app.kubernetes.io/component" = "controller";};
         ports._namedlist = true;
-        ports.controller = { port = 8083; targetPort = 8083; protocol = "TCP"; };
+        ports.controller = {
+          port = 8083;
+          targetPort = 8083;
+          protocol = "TCP";
+        };
       };
     };
 
@@ -354,7 +509,10 @@ in {
     # ══════════════════════════════════════════════════════════════════════
     kagent.ConfigMap.kagent-ui-config = {
       metadata.labels = managed;
-      data = { "nginx.conf" = nginxConf; "supervisord.conf" = supervisordConf; };
+      data = {
+        "nginx.conf" = nginxConf;
+        "supervisord.conf" = supervisordConf;
+      };
     };
 
     kagent.Deployment.kagent-ui = {
@@ -368,28 +526,75 @@ in {
           spec = {
             nodeSelector."kubernetes.io/hostname" = targetNode;
             serviceAccountName = "kagent-ui";
-            hostAliases = [{ ip = "10.1.1.100"; hostnames = ["auth.lan" "kagent.lan"]; }];
-            securityContext = { runAsNonRoot = true; seccompProfile.type = "RuntimeDefault"; };
+            hostAliases = [
+              {
+                ip = cluster.kubernetes.vip;
+                hostnames = ["auth.lan" "kagent.lan"];
+              }
+            ];
+            securityContext = {
+              runAsNonRoot = true;
+              seccompProfile.type = "RuntimeDefault";
+            };
             containers._namedlist = true;
             containers.ui = {
               image = uiImage;
               imagePullPolicy = "IfNotPresent";
               ports._namedlist = true;
-              ports.http = { containerPort = 8080; protocol = "TCP"; };
+              ports.http = {
+                containerPort = 8080;
+                protocol = "TCP";
+              };
               env._namedlist = true;
               env = {
                 NEXT_PUBLIC_BACKEND_URL.value = "http://kagent-controller.${ns}.svc.cluster.local:8083/api";
               };
-              resources = { requests = {cpu = "100m"; memory = "256Mi";}; limits = {cpu = "1"; memory = "1Gi";}; };
-              securityContext = { readOnlyRootFilesystem = true; allowPrivilegeEscalation = false; capabilities.drop = ["ALL"]; seccompProfile.type = "RuntimeDefault"; };
-              startupProbe = { httpGet = {path = "/health"; port = 8080;}; periodSeconds = 2; initialDelaySeconds = 5; failureThreshold = 30; };
-              readinessProbe = { httpGet = {path = "/health"; port = 8080;}; periodSeconds = 30; };
+              resources = {
+                requests = {
+                  cpu = "100m";
+                  memory = "256Mi";
+                };
+                limits = {
+                  cpu = "1";
+                  memory = "1Gi";
+                };
+              };
+              securityContext = {
+                readOnlyRootFilesystem = true;
+                allowPrivilegeEscalation = false;
+                capabilities.drop = ["ALL"];
+                seccompProfile.type = "RuntimeDefault";
+              };
+              startupProbe = {
+                httpGet = {
+                  path = "/health";
+                  port = 8080;
+                };
+                periodSeconds = 2;
+                initialDelaySeconds = 5;
+                failureThreshold = 30;
+              };
+              readinessProbe = {
+                httpGet = {
+                  path = "/health";
+                  port = 8080;
+                };
+                periodSeconds = 30;
+              };
               volumeMounts._namedlist = true;
               volumeMounts = {
                 nextjs-cache.mountPath = "/app/ui/.next/cache";
                 tmp.mountPath = "/tmp";
-                nginx-conf = { mountPath = "/etc/nginx/nginx.conf"; subPath = "nginx.conf"; readOnly = true; };
-                supervisord-conf = { mountPath = "/etc/supervisor/conf.d/supervisord.conf"; subPath = "supervisord.conf"; readOnly = true; };
+                nginx-conf = {
+                  mountPath = "/etc/nginx/nginx.conf";
+                  subPath = "nginx.conf";
+                  readOnly = true;
+                };
+                supervisord-conf = {
+                  mountPath = "/etc/supervisor/conf.d/supervisord.conf";
+                  subPath = "supervisord.conf";
+                  readOnly = true;
+                };
               };
             };
             # Sidecar removed: auth handled by Caddy forward_auth → central-auth
@@ -397,8 +602,24 @@ in {
             volumes = {
               nextjs-cache.emptyDir.sizeLimit = "100Mi";
               tmp.emptyDir.sizeLimit = "50Mi";
-              nginx-conf.configMap = { name = "kagent-ui-config"; items = [{key = "nginx.conf"; path = "nginx.conf";}]; };
-              supervisord-conf.configMap = { name = "kagent-ui-config"; items = [{key = "supervisord.conf"; path = "supervisord.conf";}]; };
+              nginx-conf.configMap = {
+                name = "kagent-ui-config";
+                items = [
+                  {
+                    key = "nginx.conf";
+                    path = "nginx.conf";
+                  }
+                ];
+              };
+              supervisord-conf.configMap = {
+                name = "kagent-ui-config";
+                items = [
+                  {
+                    key = "supervisord.conf";
+                    path = "supervisord.conf";
+                  }
+                ];
+              };
             };
           };
         };
@@ -411,22 +632,73 @@ in {
         type = "ClusterIP";
         selector = {"app.kubernetes.io/component" = "ui";};
         ports._namedlist = true;
-        ports.http = { port = 8080; targetPort = 8080; protocol = "TCP"; };
+        ports.http = {
+          port = 8080;
+          targetPort = 8080;
+          protocol = "TCP";
+        };
       };
     };
 
     # ══════════════════════════════════════════════════════════════════════
     # NETWORK POLICIES
     # ══════════════════════════════════════════════════════════════════════
+    kagent.NetworkPolicy.default-deny-all = {
+      spec = {
+        podSelector = {};
+        policyTypes = ["Ingress" "Egress"];
+      };
+    };
+
     kagent.NetworkPolicy.allow-kagent-ingress = {
       metadata.labels = managed;
       spec = {
         podSelector.matchLabels = {"app.kubernetes.io/part-of" = "kagent";};
         policyTypes = ["Ingress"];
         ingress = [
-          { from = [{namespaceSelector.matchLabels.name = "ingress-system";}]; ports = [{protocol = "TCP"; port = 8080;} {protocol = "TCP"; port = 8083;}]; }
-          { from = [{ipBlock.cidr = "10.244.0.0/16";}]; ports = [{protocol = "TCP"; port = 8080;} {protocol = "TCP"; port = 8083;} {protocol = "TCP"; port = 5432;}]; }
-          { from = [{ipBlock.cidr = "10.1.1.0/24";}]; ports = [{protocol = "TCP"; port = 8080;} {protocol = "TCP"; port = 8083;}]; }
+          {
+            from = [{namespaceSelector.matchLabels.name = "ingress-system";}];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 8080;
+              }
+              {
+                protocol = "TCP";
+                port = 8083;
+              }
+            ];
+          }
+          {
+            from = [{ipBlock.cidr = cluster.kubernetes.podCidr;}];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 8080;
+              }
+              {
+                protocol = "TCP";
+                port = 8083;
+              }
+              {
+                protocol = "TCP";
+                port = 5432;
+              }
+            ];
+          }
+          {
+            from = [{ipBlock.cidr = cluster.kubernetes.subnet;}];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 8080;
+              }
+              {
+                protocol = "TCP";
+                port = 8083;
+              }
+            ];
+          }
         ];
       };
     };
@@ -437,7 +709,27 @@ in {
         podSelector.matchLabels = {"app.kubernetes.io/part-of" = "kagent";};
         policyTypes = ["Egress"];
         egress = [
-          { to = [{ipBlock.cidr = "0.0.0.0/0";}]; ports = [{protocol = "UDP"; port = 53;} {protocol = "TCP"; port = 53;} {protocol = "TCP"; port = 443;} {protocol = "TCP"; port = 80;}]; }
+          {
+            to = [{ipBlock.cidr = "0.0.0.0/0";}];
+            ports = [
+              {
+                protocol = "UDP";
+                port = 53;
+              }
+              {
+                protocol = "TCP";
+                port = 53;
+              }
+              {
+                protocol = "TCP";
+                port = 443;
+              }
+              {
+                protocol = "TCP";
+                port = 80;
+              }
+            ];
+          }
         ];
       };
     };

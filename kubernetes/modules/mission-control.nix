@@ -1,4 +1,5 @@
 {
+  cluster,
   config,
   lib,
   ...
@@ -20,12 +21,22 @@ in {
   config.kubernetes.objects = {
     # ── Namespace ──────────────────────────────────────────────────────
     none.Namespace.orchestration = {
-      metadata.labels = managed // {
-        name = "orchestration";
-        "pod-security.kubernetes.io/enforce" = "baseline";
-        "pod-security.kubernetes.io/audit" = "restricted";
-        "pod-security.kubernetes.io/warn" = "restricted";
-        "app.kubernetes.io/part-of" = "personal-corporation";
+      metadata.labels =
+        managed
+        // {
+          name = "orchestration";
+          "pod-security.kubernetes.io/enforce" = "baseline";
+          "pod-security.kubernetes.io/audit" = "restricted";
+          "pod-security.kubernetes.io/warn" = "restricted";
+          "app.kubernetes.io/part-of" = "personal-corporation";
+        };
+    };
+
+    # ── NetworkPolicy: default-deny-all ────────────────────────────
+    orchestration.NetworkPolicy.default-deny-all = {
+      spec = {
+        podSelector = {};
+        policyTypes = ["Ingress" "Egress"];
       };
     };
 
@@ -61,10 +72,12 @@ in {
 
     # ── Deployment ─────────────────────────────────────────────────────
     orchestration.Deployment.mission-control = {
-      metadata.labels = managed // {
-        app = "mission-control";
-        "app.kubernetes.io/part-of" = "personal-corporation";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "mission-control";
+          "app.kubernetes.io/part-of" = "personal-corporation";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 3;
@@ -73,7 +86,7 @@ in {
           type = "Recreate";
         };
         template = {
-          metadata.labels = managed // { app = "mission-control"; };
+          metadata.labels = managed // {app = "mission-control";};
           spec = {
             nodeSelector."kubernetes.io/hostname" = targetNode;
             automountServiceAccountToken = false;
@@ -107,7 +120,7 @@ in {
                   };
                   PORT.value = "3000";
                   NEXT_PUBLIC_GATEWAY_OPTIONAL.value = "true";
-                  MC_ALLOWED_HOSTS.value = "mission-control.lan,mc.cluster.local,10.1.1.100,10.1.1.110,10.244.0.0/16,localhost,127.0.0.1";
+                  MC_ALLOWED_HOSTS.value = "mission-control.lan,mc.cluster.local,${cluster.kubernetes.vip},${cluster.hosts.zephyr.ip},${cluster.podCidr},localhost,127.0.0.1";
                   MISSION_CONTROL_DATA_DIR.value = "/data";
                   SKIP_AUTH_FOR_PROBES.value = "true";
                 };
@@ -172,7 +185,7 @@ in {
 
     # ── Service ────────────────────────────────────────────────────────
     orchestration.Service.mission-control = {
-      metadata.labels = managed // { app = "mission-control"; };
+      metadata.labels = managed // {app = "mission-control";};
       spec = {
         type = "NodePort";
         selector.app = "mission-control";
@@ -190,10 +203,12 @@ in {
 
     # ── NetworkPolicy: ingress from caddy + cluster ────────────────────
     orchestration.NetworkPolicy.allow-mc-ingress = {
-      metadata.labels = managed // {
-        app = "mission-control";
-        policy = "allow-ingress";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "mission-control";
+          policy = "allow-ingress";
+        };
       spec = {
         podSelector.matchLabels.app = "mission-control";
         policyTypes = ["Ingress"];
@@ -211,7 +226,7 @@ in {
           }
           {
             from = [
-              {ipBlock.cidr = "10.244.0.0/16";}
+              {ipBlock.cidr = cluster.kubernetes.podCidr;}
             ];
             ports = [
               {
@@ -222,7 +237,7 @@ in {
           }
           {
             from = [
-              {ipBlock.cidr = "10.1.1.0/24";}
+              {ipBlock.cidr = cluster.kubernetes.subnet;}
             ];
             ports = [
               {
@@ -237,10 +252,12 @@ in {
 
     # ── NetworkPolicy: egress (DNS + internet) ─────────────────────────
     orchestration.NetworkPolicy.allow-mc-egress = {
-      metadata.labels = managed // {
-        app = "mission-control";
-        policy = "allow-egress";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "mission-control";
+          policy = "allow-egress";
+        };
       spec = {
         podSelector.matchLabels.app = "mission-control";
         policyTypes = ["Egress"];

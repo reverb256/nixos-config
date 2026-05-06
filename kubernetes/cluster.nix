@@ -8,8 +8,8 @@
 
   hosts = {
     zephyr.ip = "10.1.1.110";
-    nexus.ip  = "10.1.1.120";
-    forge.ip  = "10.1.1.130";
+    nexus.ip = "10.1.1.120";
+    forge.ip = "10.1.1.130";
     sentry.ip = "10.1.1.140";
   };
 

@@ -139,7 +139,7 @@
   # Fix stacked btrfs bind mounts on uid-map/gid-map.
   # The impermanence module creates file-level bind mounts that stack on each
   # failed nixos-rebuild switch, causing update-users-groups.pl rename() EBUSY.
-  system.activationScripts.fix-nixos-mount-stacking = lib.stringAfter [ "specialfs" ] ''
+  system.activationScripts.fix-nixos-mount-stacking = lib.stringAfter ["specialfs"] ''
     for f in /var/lib/nixos/uid-map /var/lib/nixos/gid-map; do
       while mountpoint -q "$f" 2>/dev/null; do
         umount -l "$f" 2>/dev/null || break

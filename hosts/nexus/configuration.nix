@@ -46,14 +46,14 @@
   clusterNetworking = {
     enable = true;
     hostName = "nexus";
-    ipAddress = "10.1.1.120";
+    ipAddress = config.networking.cluster.hosts.nexus.ip;
     interfaceName = "enp7s0";
     wireless = {
       enable = true;
       ipAddress = "10.1.1.125";
     };
     unbound.enable = true;
-    unbound.listenAddress = "10.1.1.120";
+    unbound.listenAddress = config.networking.cluster.hosts.nexus.ip;
   };
 
   # Prevent hardware-configuration from overriding interface naming

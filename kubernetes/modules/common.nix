@@ -22,5 +22,12 @@ in {
           "pod-security.kubernetes.io/warn" = "restricted";
         };
     };
+
+    ai-coding.NetworkPolicy.default-deny-all = {
+      spec = {
+        podSelector = {};
+        policyTypes = ["Ingress" "Egress"];
+      };
+    };
   };
 }

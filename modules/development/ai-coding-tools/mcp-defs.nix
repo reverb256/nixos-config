@@ -35,12 +35,16 @@
   };
 
   mkLocalServer = name: def:
-    if def ? command then {
-      # Servers with explicit command (custom, nix with remapped binary, etc.)
-      command = def.command;
-    } // (lib.optionalAttrs (def ? args) {args = def.args;})
+    if def ? command
+    then
+      {
+        # Servers with explicit command (custom, nix with remapped binary, etc.)
+        command = def.command;
+      }
+      // (lib.optionalAttrs (def ? args) {args = def.args;})
       // (lib.optionalAttrs (def ? env) {env = def.env;})
-    else if def.type == "custom" then {
+    else if def.type == "custom"
+    then {
       # Custom type without command → use mcp-<name> from PATH
       command = registry.mkCommand name;
     }

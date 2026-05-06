@@ -29,7 +29,6 @@ in {
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = cluster.hosts.zephyr.ip;
-      calico.enable = false;
     };
 
     k8s-secret-bootstrap = {
@@ -83,7 +82,7 @@ in {
     };
 
     mining-inference-coordinator = {
-      enable = true;  # script built here; runs as K8s DaemonSet (systemd masked)
+      enable = true; # script built here; runs as K8s DaemonSet (systemd masked)
       llamaPort = 1237; # monitor zephyr 3090 llama-server (port 1237)
       primaryMiner = "deployment/gpu-miner-zephyr";
       namespace = "mining";
@@ -92,8 +91,6 @@ in {
     };
 
     opencode.enable = true;
-
-    binary-cache.enable = false; # unused, was burning CPU on crash-loop
 
     xmrig-proxy = {
       enable = true;
@@ -231,14 +228,12 @@ in {
         '';
     };
 
-    redis.servers."".enable = false; # 0 keys, 1 client — unused, frees RAM on OOM-constrained host
-
     # ai-inference: Uses K8s gateway (30880) via Caddy routing
     # Keep config for declarative completeness but backend routes to K8s
     ai-inference = {
       enable = true;
       backend = {
-        url = "http://127.0.0.1:30880";  # Proxy to K8s gateway
+        url = "http://127.0.0.1:30880"; # Proxy to K8s gateway
         type = "llama-cpp";
         local = {
           url = "http://127.0.0.1:30880";
@@ -309,12 +304,6 @@ in {
 
     web-testing.enable = true;
 
-    ci-runner = {
-      enable = false;
-      repo = "username/nixos-config";
-      autoStart = false;
-    };
-
     mining = {
       lolminer = {
         pool = "stratum+tcp://${cluster.kubernetes.services.xmrig-proxy.host}:${toString cluster.kubernetes.services.xmrig-proxy.port}";
@@ -340,25 +329,9 @@ in {
           }
         ];
       };
-      lolminer.nvidia = {
-        enable = false; # Use K8s deployment gpu-miner-zephyr instead (coordinated with gaming/inference)
-        autostart = false;
-        devices = "1"; # RTX 3090 only (3060 Ti idle for power envelope)
-        perGpuPowerLimits = [
-          0 # unused
-          250 # RTX 3090
-        ];
-        apiPort = 4068;
-      };
+
       xmrigDual = {
         enable = true;
-        alwaysOn = {
-          enable = false;
-          threads = 4;
-          httpPort = 8081;
-          httpTokenFile = "/run/agenix/xmrig-always-api-token";
-          autostart = false;
-        };
         flexible = {
           enable = true;
           threads = 12;
@@ -373,17 +346,10 @@ in {
       };
     };
 
-    # Migrated to K8s auth namespace
-    central-auth.enable = false;
-    # Vaultwarden migrated to K8s on nexus (vaultwarden.lan via Caddy)
-    vaultwarden-module.enable = false;
-
     syncthing-cluster = {
       enable = true;
       deviceId = "ZEPHYR-PLACEHOLDER";
     };
-
-    garage-cluster.enable = false;
 
     status-auto-update.enable = true;
 
@@ -451,7 +417,7 @@ in {
 
   services.recovery-specialisation.enable = true;
   services.btrfs-boot-snapshot = {
-      enable = true;
-      device = "/dev/disk/by-uuid/b07258b9-b1a3-4540-ae34-69e441faba28";
-    };
+    enable = true;
+    device = "/dev/disk/by-uuid/b07258b9-b1a3-4540-ae34-69e441faba28";
+  };
 }

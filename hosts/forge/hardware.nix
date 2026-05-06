@@ -15,15 +15,27 @@
     nvidia.powerLimits = {
       enable = true;
       gpus = {
-        "rtx4060-0" = { index = 0; limit = 90; };
-        "rtx4060-1" = { index = 1; limit = 90; };
+        "rtx4060-0" = {
+          index = 0;
+          limit = 90;
+        };
+        "rtx4060-1" = {
+          index = 1;
+          limit = 90;
+        };
       };
     };
     amdgpu.powerLimits = {
       enable = true;
       gpus = {
-        "rx5700xt-0" = { index = 0; limit = 120; };
-        "rx5700xt-1" = { index = 1; limit = 120; };
+        "rx5700xt-0" = {
+          index = 0;
+          limit = 120;
+        };
+        "rx5700xt-1" = {
+          index = 1;
+          limit = 120;
+        };
       };
     };
     btrfs-compression.enable = true;
@@ -129,8 +141,6 @@
         '';
       };
     };
-
-
 
     amd-gpu-fan-curve = {
       description = "AMD GPU Dynamic Fan Curve Control";

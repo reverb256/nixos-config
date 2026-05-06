@@ -1,4 +1,5 @@
 {
+  cluster,
   config,
   lib,
   ...
@@ -13,16 +14,11 @@
 
   storageClass = "slow-hdd";
 
-  # Cluster host IPs for node affinity and scrape targets
-  hostIPs = {
-    zephyr = "10.1.1.110";
-    nexus = "10.1.1.120";
-    forge = "10.1.1.130";
-    sentry = "10.1.1.140";
-  };
+  # Cluster host IPs — single source of truth from cluster.nix
+  hostIPs = cluster.hosts;
 
   # Cluster DNS service IP (CoreDNS)
-  clusterDNS = "10.0.0.10";
+  clusterDNS = cluster.kubernetes.clusterDnsIP;
 
   # Loki config (monolithic mode, filesystem storage)
   # Reference: https://grafana.com/docs/loki/latest/configure/examples/
@@ -548,10 +544,10 @@ in {
     };
 
     # ── NetworkPolicies ────────────────────────────────────────
-    monitoring.NetworkPolicy.default-deny-ingress = {
+    monitoring.NetworkPolicy.default-deny-all = {
       spec = {
         podSelector = {};
-        policyTypes = ["Ingress"];
+        policyTypes = ["Ingress" "Egress"];
       };
     };
     monitoring.NetworkPolicy.allow-internal = {
@@ -608,7 +604,7 @@ in {
         policyTypes = ["Egress"];
         egress = [
           {
-            to = [{ipBlock.cidr = "10.1.1.0/24";}];
+            to = [{ipBlock.cidr = cluster.kubernetes.subnet;}];
             ports = [
               {
                 protocol = "TCP";
@@ -624,7 +620,7 @@ in {
     monitoring.ConfigMap.loki-config.data."loki.yaml" = lokiConfig;
 
     monitoring.StatefulSet.loki = {
-      metadata.labels = managed // { app = "loki"; };
+      metadata.labels = managed // {app = "loki";};
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -705,7 +701,7 @@ in {
     };
 
     monitoring.Service.loki = {
-      metadata.labels = managed // { app = "loki"; };
+      metadata.labels = managed // {app = "loki";};
       spec = {
         type = "ClusterIP";
         ports = [
@@ -726,7 +722,7 @@ in {
       };
     };
     monitoring.Service.loki-headless = {
-      metadata.labels = managed // { app = "loki"; };
+      metadata.labels = managed // {app = "loki";};
       spec = {
         type = "ClusterIP";
         clusterIP = "None";
@@ -746,7 +742,7 @@ in {
     monitoring.ConfigMap.mimir-config.data."mimir.yaml" = mimirConfig;
 
     monitoring.StatefulSet.mimir = {
-      metadata.labels = managed // { app = "mimir"; };
+      metadata.labels = managed // {app = "mimir";};
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -836,7 +832,7 @@ in {
     };
 
     monitoring.Service.mimir = {
-      metadata.labels = managed // { app = "mimir"; };
+      metadata.labels = managed // {app = "mimir";};
       spec = {
         type = "ClusterIP";
         ports = [
@@ -857,7 +853,7 @@ in {
       };
     };
     monitoring.Service.mimir-headless = {
-      metadata.labels = managed // { app = "mimir"; };
+      metadata.labels = managed // {app = "mimir";};
       spec = {
         type = "ClusterIP";
         clusterIP = "None";
@@ -877,7 +873,7 @@ in {
     monitoring.ConfigMap.tempo-config.data."tempo.yaml" = tempoConfig;
 
     monitoring.StatefulSet.tempo = {
-      metadata.labels = managed // { app = "tempo"; };
+      metadata.labels = managed // {app = "tempo";};
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -960,7 +956,7 @@ in {
     };
 
     monitoring.Service.tempo = {
-      metadata.labels = managed // { app = "tempo"; };
+      metadata.labels = managed // {app = "tempo";};
       spec = {
         type = "ClusterIP";
         ports = [
@@ -987,7 +983,7 @@ in {
       };
     };
     monitoring.Service.tempo-headless = {
-      metadata.labels = managed // { app = "tempo"; };
+      metadata.labels = managed // {app = "tempo";};
       spec = {
         type = "ClusterIP";
         clusterIP = "None";
@@ -1022,7 +1018,7 @@ in {
       builtins.toJSON grafanaDatasources;
 
     monitoring.Deployment.grafana = {
-      metadata.labels = managed // { app = "grafana"; };
+      metadata.labels = managed // {app = "grafana";};
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -1156,7 +1152,7 @@ in {
     };
 
     monitoring.Service.grafana = {
-      metadata.labels = managed // { app = "grafana"; };
+      metadata.labels = managed // {app = "grafana";};
       spec = {
         type = "NodePort";
         ports = [
@@ -1176,12 +1172,12 @@ in {
     monitoring.ConfigMap.alloy-config.data."config.alloy" = alloyConfig;
 
     monitoring.DaemonSet.alloy = {
-      metadata.labels = managed // { app = "alloy"; };
+      metadata.labels = managed // {app = "alloy";};
       spec = {
         revisionHistoryLimit = 1;
         selector.matchLabels.app = "alloy";
         template = {
-          metadata.labels = managed // { app = "alloy"; };
+          metadata.labels = managed // {app = "alloy";};
           spec = {
             serviceAccountName = "alloy-sa";
             hostNetwork = true;
@@ -1288,7 +1284,7 @@ in {
     monitoring.ConfigMap.prometheus-config.data."prometheus.yml" = prometheusConfig;
 
     monitoring.Deployment.prometheus = {
-      metadata.labels = managed // { app = "prometheus"; };
+      metadata.labels = managed // {app = "prometheus";};
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -1389,7 +1385,7 @@ in {
     };
 
     monitoring.Service.prometheus = {
-      metadata.labels = managed // { app = "prometheus"; };
+      metadata.labels = managed // {app = "prometheus";};
       spec = {
         type = "ClusterIP";
         ports = [
@@ -1406,7 +1402,7 @@ in {
 
     # ── AlertManager ───────────────────────────────────────
     monitoring.ConfigMap.alertmanager-config = {
-      metadata.labels = managed // { app = "alertmanager"; };
+      metadata.labels = managed // {app = "alertmanager";};
       data."alertmanager.yml" = ''
         global:
           resolve_timeout: 5m
@@ -1438,7 +1434,7 @@ in {
     monitoring.ServiceAccount.alertmanager-sa = {};
 
     monitoring.Deployment.alertmanager = {
-      metadata.labels = managed // { app = "alertmanager"; };
+      metadata.labels = managed // {app = "alertmanager";};
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -1513,7 +1509,7 @@ in {
     };
 
     monitoring.Service.alertmanager = {
-      metadata.labels = managed // { app = "alertmanager"; };
+      metadata.labels = managed // {app = "alertmanager";};
       spec = {
         type = "ClusterIP";
         ports = [
@@ -1621,13 +1617,13 @@ in {
       ];
     };
     monitoring.Deployment.kube-state-metrics = {
-      metadata.labels = managed // { app = "kube-state-metrics"; };
+      metadata.labels = managed // {app = "kube-state-metrics";};
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels.app = "kube-state-metrics";
         template = {
-          metadata.labels = managed // { app = "kube-state-metrics"; };
+          metadata.labels = managed // {app = "kube-state-metrics";};
           spec = {
             nodeSelector = {
               "kubernetes.io/hostname" = "sentry";
@@ -1694,7 +1690,7 @@ in {
       };
     };
     monitoring.Service.kube-state-metrics = {
-      metadata.labels = managed // { app = "kube-state-metrics"; };
+      metadata.labels = managed // {app = "kube-state-metrics";};
       spec = {
         type = "ClusterIP";
         ports = [
@@ -2020,7 +2016,7 @@ in {
     '';
 
     monitoring.CronJob.memory-monitor = {
-      metadata.labels = managed // { app = "memory-monitor"; };
+      metadata.labels = managed // {app = "memory-monitor";};
       spec = {
         schedule = "*/5 * * * *";
         concurrencyPolicy = "Forbid";
@@ -2096,7 +2092,7 @@ in {
         policyTypes = ["Egress"];
         egress = [
           {
-            to = [{ipBlock.cidr = "10.1.1.0/24";}];
+            to = [{ipBlock.cidr = cluster.kubernetes.subnet;}];
             ports = [
               {
                 protocol = "TCP";
@@ -2124,7 +2120,14 @@ in {
     # -- Prometheus Adapter (custom-metrics namespace) ---------------------
     # Source: prometheus-adapter-namespace.yaml
     none.Namespace.custom-metrics = {
-      metadata.labels = managed // { name = "custom-metrics"; };
+      metadata.labels = managed // {name = "custom-metrics";};
+    };
+
+    custom-metrics.NetworkPolicy.default-deny-all = {
+      spec = {
+        podSelector = {};
+        policyTypes = ["Ingress" "Egress"];
+      };
     };
 
     # Source: prometheus-adapter-rbac.yaml
@@ -2239,12 +2242,12 @@ in {
 
     # Source: prometheus-adapter-deployment.yaml
     custom-metrics.Deployment.prometheus-adapter = {
-      metadata.labels = managed // { name = "prometheus-adapter"; };
+      metadata.labels = managed // {name = "prometheus-adapter";};
       spec = {
         replicas = 1;
         selector.matchLabels.name = "prometheus-adapter";
         template = {
-          metadata.labels = managed // { name = "prometheus-adapter"; };
+          metadata.labels = managed // {name = "prometheus-adapter";};
           spec = {
             serviceAccountName = "prometheus-adapter";
             containers = {
@@ -2301,7 +2304,7 @@ in {
     };
 
     custom-metrics.Service.prometheus-adapter = {
-      metadata.labels = managed // { name = "prometheus-adapter"; };
+      metadata.labels = managed // {name = "prometheus-adapter";};
       spec = {
         ports = [
           {

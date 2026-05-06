@@ -1,10 +1,16 @@
-{lib, pkgs, ...}: {
+{
+  lib,
+  pkgs,
+  ...
+}: {
   nixpkgs.overlays = [
     (_final: prev: {
-      inherit (prev.lixPackageSets.stable)
+      inherit
+        (prev.lixPackageSets.stable)
         nix-eval-jobs
         nix-fast-build
-        colmena;
+        colmena
+        ;
 
       cuda_compat =
         prev.runCommand "cuda_compat-dummy"

@@ -19,6 +19,14 @@ in {
         };
     };
 
+    # ── NetworkPolicy: default-deny-all ─────────────────────────
+    mcp.NetworkPolicy.default-deny-all = {
+      spec = {
+        podSelector = {};
+        policyTypes = ["Ingress" "Egress"];
+      };
+    };
+
     # ── Grafana MCP Server ────────────────────────────────────────
     # Binary: gh release download v0.13.1 -R grafana/mcp-grafana
     # Installed at /opt/mcp-servers/grafana-mcp on nexus
@@ -61,8 +69,14 @@ in {
                     host-bin.mountPath = "/host-bin";
                   };
                   resources = {
-                    requests = {cpu = "100m"; memory = "128Mi";};
-                    limits = {cpu = "500m"; memory = "256Mi";};
+                    requests = {
+                      cpu = "100m";
+                      memory = "128Mi";
+                    };
+                    limits = {
+                      cpu = "500m";
+                      memory = "256Mi";
+                    };
                   };
                 };
               };
@@ -86,7 +100,10 @@ in {
           selector.app = "grafana-mcp";
           ports = {
             _namedlist = true;
-            http = {port = 8000; targetPort = 8000;};
+            http = {
+              port = 8000;
+              targetPort = 8000;
+            };
           };
         };
       };
@@ -130,8 +147,14 @@ in {
                     HOME.value = "/tmp";
                   };
                   resources = {
-                    requests = {cpu = "200m"; memory = "512Mi";};
-                    limits = {cpu = "1000m"; memory = "1Gi";};
+                    requests = {
+                      cpu = "200m";
+                      memory = "512Mi";
+                    };
+                    limits = {
+                      cpu = "1000m";
+                      memory = "1Gi";
+                    };
                   };
                 };
               };
@@ -148,7 +171,10 @@ in {
           selector.app = "qdrant-mcp";
           ports = {
             _namedlist = true;
-            http = {port = 8000; targetPort = 8000;};
+            http = {
+              port = 8000;
+              targetPort = 8000;
+            };
           };
         };
       };

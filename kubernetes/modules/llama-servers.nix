@@ -467,13 +467,15 @@ in {
             hostNetwork = true;
             automountServiceAccountToken = false;
             priorityClassName = "high-priority-ai";
-            tolerations = zephyrTolerations ++ [
-              {
-                key = "node.kubernetes.io/disk-pressure";
-                operator = "Exists";
-                effect = "NoSchedule";
-              }
-            ];
+            tolerations =
+              zephyrTolerations
+              ++ [
+                {
+                  key = "node.kubernetes.io/disk-pressure";
+                  operator = "Exists";
+                  effect = "NoSchedule";
+                }
+              ];
             containers = {
               _namedlist = true;
               llama-server = {
@@ -569,10 +571,12 @@ in {
                 };
               };
             };
-            volumes = zephyrVolumes // {
-              _namedlist = true;
-              dflash.hostPath.path = "/home/j_kro/.lmstudio/models/dflash";
-            };
+            volumes =
+              zephyrVolumes
+              // {
+                _namedlist = true;
+                dflash.hostPath.path = "/home/j_kro/.lmstudio/models/dflash";
+              };
           };
         };
       };
@@ -756,8 +760,6 @@ in {
         };
       };
     };
-
-
 
     # ── Sentry AMD RX 5600 XT (Vulkan/RADV, gfx1010) — Qwen3.5-4B ──────
     # Vulkan backend: RADV (Mesa) outperforms ROCm on RDNA1 for token generation.

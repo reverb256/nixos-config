@@ -94,7 +94,8 @@
         mapAttrsToList (_name: svc: ''
           proto=$(${lib.getExe pkgs.gnugrep} -q "protected" <<< "${optionalString (svc.protected or false) "protected"}" && echo "🔒" || echo "  ")
           echo "  $proto https://${svc.domain} -> ${svc.backend}"
-        '') services
+        '')
+        services
       )}
       echo ""
       echo "Total: ${toString (builtins.length (builtins.attrNames services))}"
