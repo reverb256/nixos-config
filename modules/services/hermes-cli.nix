@@ -265,31 +265,30 @@ in {
               fi
 
               # Write .env with API keys from agenix secrets
+              # This runs unconditionally — .env must always reflect current secrets
+              echo "# Hermes environment variables" > "$HERMES_HOME/.env"
               ${lib.optionalString (cfg.apiKeyFile != null) ''
-          echo "# Hermes environment variables" > "$HERMES_HOME/.env"
           if [ -f "${cfg.apiKeyFile}" ]; then
             echo -n "ZAI_API_KEY=" >> "$HERMES_HOME/.env"
             cat "${cfg.apiKeyFile}" >> "$HERMES_HOME/.env"
             echo "" >> "$HERMES_HOME/.env"
           fi
-          chmod 600 "$HERMES_HOME/.env"
         ''}
               ${lib.optionalString (cfg.nvidiaApiKeyFile != null) ''
-          echo -n "NVIDIA_API_KEY=" >> "$HERMES_HOME/.env"
           if [ -f "${cfg.nvidiaApiKeyFile}" ]; then
+            echo -n "NVIDIA_API_KEY=" >> "$HERMES_HOME/.env"
             cat "${cfg.nvidiaApiKeyFile}" >> "$HERMES_HOME/.env"
             echo "" >> "$HERMES_HOME/.env"
           fi
-          chmod 600 "$HERMES_HOME/.env"
         ''}
               ${lib.optionalString (cfg.openrouterApiKeyFile != null) ''
-          echo -n "OPENROUTER_API_KEY=" >> "$HERMES_HOME/.env"
           if [ -f "${cfg.openrouterApiKeyFile}" ]; then
+            echo -n "OPENROUTER_API_KEY=" >> "$HERMES_HOME/.env"
             cat "${cfg.openrouterApiKeyFile}" >> "$HERMES_HOME/.env"
             echo "" >> "$HERMES_HOME/.env"
           fi
-          chmod 600 "$HERMES_HOME/.env"
         ''}
+              chmod 600 "$HERMES_HOME/.env"
 
               # Write SOUL.md if it doesn't exist
               if [ ! -f "$HERMES_HOME/SOUL.md" ]; then

@@ -18,12 +18,12 @@ in {
 
   services = {
     hermes-cli = {
-      enable = true;
+    enable = true;
       apiKeyFile = config.age.secrets.zai-api-key.path;
       nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
-    };
+  };
     k3s-cluster = {
-      enable = true;
+    enable = true;
       nvidia.enable = true;
       role = "server";
       clusterInit = false; # Rejoining existing cluster, not bootstrapping
@@ -32,14 +32,14 @@ in {
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = cluster.hosts.nexus.ip;
       calico.enable = false;
-    };
+  };
 
     keepalived-vip = {
-      enable = false;
+    enable = false;
       vip = cluster.kubernetes.vip;
-      interface = "enp7s0";
+    interface = "enp7s0";
       priority = 100;
-    };
+  };
 
     gaming-detection.enable = lib.mkForce false;
 
@@ -54,29 +54,30 @@ in {
     spotify-spotx.enable = false; # NixOS module not available yet
 
     mining.lolminer.nvidia = {
-      enable = false;
+    enable = false;
       powerLimit = 120;
-    };
+  };
 
     nixos-share = {
-      enable = true;
+    enable = true;
       client.enable = true;
-    };
+  };
 
     nfs-data-server.enable = true;
 
     status-auto-update.enable = false; # NixOS module not available yet
 
     agenix-secrets-registry = {
-      enable = true;
+    enable = true;
       aiServices = true;
       monitoring = false;
       storage = true;
       mining = false;
       cloud = false;
       kubernetes = true;
+      initrdRecovery = true;
       selfHosting = false;
-    };
+  };
   };
 
   programs.steam = {
@@ -161,7 +162,7 @@ in {
         enabled = true;
         threshold = 0.9;
       };
-    };
+  };
 
     # Secrets loaded via ExecStartPre + EnvironmentFile override below
     mcpServers = {
@@ -169,7 +170,7 @@ in {
         command = "npx";
         args = ["-y" "@modelcontextprotocol/server-github"];
       };
-    };
+  };
 
     # Personality documents
     documents = {
@@ -179,7 +180,7 @@ in {
         For coding tasks, delegate to the pi-coder MCP server.
         Always prefer local, self-hosted solutions.
       '';
-    };
+  };
 
     extraPackages = with pkgs; [git ripgrep curl jq];
   };
@@ -294,9 +295,23 @@ in {
         domain = "knowledge-fabric.lan";
         backend = k8s.knowledge-fabric.dns;
       };
-    };
+  };
   };
 
   # SSO now handled by oauth2-proxy in K8s (auth namespace)
   services.central-auth.enable = false;
+
+  # Initrd SSH recovery + BTRFS snapshots
+  services.initrd-ssh-recovery = {
+    enable = true;
+    interface = "enp7s0";
+    networkDriver = "r8169";
+    port = 2222;
+  };
+  services.recovery-specialisation.enable = true;
+  services.btrfs-boot-snapshot = {
+      enable = true;
+      subvolume = "@root";
+      device = "/dev/disk/by-uuid/076e60fb-09b9-4f5c-9d9b-cdbb1f1f859b";
+    };
 }

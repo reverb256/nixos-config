@@ -7,6 +7,7 @@
     isNormalUser = true;
     description = "Jeremy Kroeker";
     shell = pkgs.fish;
+    initialHashedPassword = "$y$j9T$JXuhIoBxfLWWZ57CJXtwQ.$cYs3wivkMTdLIvfjng4hzRqQRRdUA2rfCsic6wjRL25";
     extraGroups = [
       "networkmanager"
       "wheel"

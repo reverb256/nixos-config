@@ -69,6 +69,44 @@
           PROFILE_REQUEST_FILE="${config.services.gpu-profile-manager.profileRequestFile}"
           CHECK_INTERVAL="${toString config.services.gpu-profile-manager.checkInterval}"
 
+          # Power limits config (read by _load_power_config, NOT sourced directly)
+          POWER_PROFILES_CONF="/etc/nvidia-power-profiles.conf"
+
+          # Look up power limit for a profile + GPU name pattern
+          # Falls back to nvidia-smi power.max_limit if no match
+          # Uses associative array populated from the sourced config
+          declare -A POWER_MAP
+          _load_power_config() {
+              if [[ ''${#POWER_MAP[@]} -eq 0 && -f "$POWER_PROFILES_CONF" ]]; then
+                  while IFS='=' read -r key val; do
+                      [[ -z "$key" || "$key" == \#* ]] && continue
+                      POWER_MAP["$key"]="$val"
+                  done < "$POWER_PROFILES_CONF"
+              fi
+          }
+
+          get_power_limit() {
+              local profile="$1"
+              local gpu_name="$2"
+              local gpu_id="$3"
+
+              _load_power_config
+
+              # Try matching GPU patterns from longest to shortest
+              for pattern in 3090 3060 4060 4070 4080 4090 3080 3070; do
+                  if [[ "$gpu_name" == *"$pattern"* ]]; then
+                      local key="POWER_''${profile}_''${pattern}"
+                      if [[ -n "''${POWER_MAP[$key]+x}" ]]; then
+                          echo "''${POWER_MAP[$key]}"
+                          return 0
+                      fi
+                  fi
+              done
+
+              # No match in config — query GPU max power limit
+              nvidia-smi -i "$gpu_id" --query-gpu=power.max_limit --format=csv,noheader,nounits 2>/dev/null | tr -d '.' || echo "300"
+          }
+
           log() {
               echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG_FILE"
           }
@@ -192,22 +230,25 @@
                           echo "  3060 Ti: Clock locks only (1800/6000 MHz), power limit unchanged"
                           ;;
                       *"3090"*)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 350
+                          local pw=$(get_power_limit gaming "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           nvidia_safe nvidia-smi -i "$gpu_id" -lgc 2050
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 7500
                           echo "  3090: 2050 MHz GPU (liquid-cooled), 7500 MHz mem, 350W limit (PRIMARY GAMING GPU)"
                           ;;
                       *"4060"*)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 110
+                          local pw=$(get_power_limit gaming "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           nvidia_safe nvidia-smi -i "$gpu_id" -lgc 2100
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6800
                           echo "  4060 (Ada): 2100 MHz GPU, 6800 MHz mem, 110W limit"
                           ;;
                       *)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 250
+                          local pw=$(get_power_limit gaming "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           nvidia_safe nvidia-smi -i "$gpu_id" -rgc
                           nvidia_safe nvidia-smi -i "$gpu_id" -rmc
-                          echo "  $gpu_name: Default max performance profile"
+                          echo "  $gpu_name: Default max performance profile (''${pw} W)"
                           ;;
                   esac
               done
@@ -234,28 +275,32 @@
 
                   case "$gpu_name" in
                       *"3060"*)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 150
+                          local pw=$(get_power_limit kubernetes-gpu "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1800
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6000
-                          echo "  3060 Ti: 1800 MHz GPU, 6000 MHz mem, 150W limit"
+                          echo "  3060 Ti: 1800 MHz GPU, 6000 MHz mem, ''${pw}W limit"
                           ;;
                       *"3090"*)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 280
+                          local pw=$(get_power_limit kubernetes-gpu "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1800
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6800
-                          echo "  3090: 1800 MHz GPU (liquid-cooled), 6800 MHz mem, 280W limit"
+                          echo "  3090: 1800 MHz GPU (liquid-cooled), 6800 MHz mem, ''${pw}W limit"
                           ;;
                       *"4060"*)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 90
+                          local pw=$(get_power_limit kubernetes-gpu "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1900
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6200
-                          echo "  4060 (Ada): 1900 MHz GPU, 6200 MHz mem, 90W limit"
+                          echo "  4060 (Ada): 1900 MHz GPU, 6200 MHz mem, ''${pw}W limit"
                           ;;
                       *)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 200
+                          local pw=$(get_power_limit kubernetes-gpu "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           nvidia_safe nvidia-smi -i "$gpu_id" -rgc
                           nvidia_safe nvidia-smi -i "$gpu_id" -rmc
-                          echo "  $gpu_name: Default balanced profile"
+                          echo "  $gpu_name: Default balanced profile (''${pw} W)"
                           ;;
                   esac
               done
@@ -282,28 +327,32 @@
 
                   case "$gpu_name" in
                       *"3060"*)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 110
+                          local pw=$(get_power_limit ai "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1950
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6200
                           echo "  3060 Ti: 1950 MHz GPU, 6200 MHz mem, 110W limit"
                           ;;
                       *"3090"*)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 300
+                          local pw=$(get_power_limit ai "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1900
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 7000
-                          echo "  3090: 1900 MHz GPU (liquid-cooled), 7000 MHz mem, 300W limit"
+                          echo "  3090: 1900 MHz GPU (liquid-cooled), 7000 MHz mem, ''${pw}W limit"
                           ;;
                       *"4060"*)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 90
+                          local pw=$(get_power_limit ai "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           nvidia_safe nvidia-smi -i "$gpu_id" -lgc 2000
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6400
-                          echo "  4060 (Ada): 2000 MHz GPU, 6400 MHz mem, 90W limit"
+                          echo "  4060 (Ada): 2000 MHz GPU, 6400 MHz mem, ''${pw}W limit"
                           ;;
                       *)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 200
+                          local pw=$(get_power_limit kubernetes-gpu "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           nvidia_safe nvidia-smi -i "$gpu_id" -rgc
                           nvidia_safe nvidia-smi -i "$gpu_id" -rmc
-                          echo "  $gpu_name: Default balanced profile"
+                          echo "  $gpu_name: Default balanced profile (''${pw} W)"
                           ;;
                   esac
               done
@@ -328,16 +377,20 @@
 
                   case "$gpu_name" in
                       *"3060"*)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 150
+                          local pw=$(get_power_limit builds "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           ;;
                       *"3090"*)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 250
+                          local pw=$(get_power_limit builds "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           ;;
                       *"4060"*)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 95
+                          local pw=$(get_power_limit builds "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           ;;
                       *)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 200
+                          local pw=$(get_power_limit builds "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           ;;
                   esac
               done
@@ -364,27 +417,32 @@
 
                   case "$gpu_name" in
                       *"3060"*)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 130
+                          local pw=$(get_power_limit mining "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1700
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 5200
-                          echo "  3060 Ti: 1700 MHz GPU, 5200 MHz mem (130W limit (mining-optimized)"
+                          echo "  3060 Ti: 1700 MHz GPU, 5200 MHz mem (''${pw}W limit (mining-optimized)"
                           ;;
                       *"3090"*)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 250
+                          local pw=$(get_power_limit mining "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1750
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6500
-                          echo "  3090: 1750 MHz GPU (liquid-cooled), 6500 MHz mem (250W limit (mining-optimized)"
+                          echo "  3090: 1750 MHz GPU (liquid-cooled), 6500 MHz mem (''${pw}W limit (mining-optimized)"
                           ;;
                       *"4060"*)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 80
+                          local pw=$(get_power_limit mining "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1800
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 5400
-                          echo "  4060 (Ada): 1800 MHz GPU, 5400 MHz mem, 80W limit (mining-optimized)"
+                          echo "  4060 (Ada): 1800 MHz GPU, 5400 MHz mem, ''${pw}W limit (mining-optimized)"
                           ;;
                       *)
+                          local pw=$(get_power_limit mining "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           nvidia_safe nvidia-smi -i "$gpu_id" -rgc
                           nvidia_safe nvidia-smi -i "$gpu_id" -rmc
-                          echo "  $gpu_name: Default efficiency profile (power limit from mining module)"
+                          echo "  $gpu_name: Default efficiency profile (''${pw} W)"
                           ;;
                   esac
               done
@@ -411,17 +469,20 @@
 
                   case "$gpu_name" in
                       *"3060"*)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 200
+                          local pw=$(get_power_limit idle "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           ;;
                       *"3090"*)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 350
+                          local pw=$(get_power_limit idle "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           ;;
                       *"4060"*)
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 115
+                          local pw=$(get_power_limit idle "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           ;;
                       *)
-                          local max_power=$(nvidia-smi -i "$gpu_id" --query-gpu=power.max_limit --format=csv,noheader,nounits 2>/dev/null | tr -d '.' || echo "300")
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "''${max_power%.*}"
+                          local pw=$(get_power_limit idle "$gpu_name" "$gpu_id")
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           ;;
                   esac
 

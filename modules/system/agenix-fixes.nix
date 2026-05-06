@@ -21,6 +21,17 @@ in {
   };
 
   config = mkIf config.services.agenix-fixes.enable {
+    # Fix: initrd creates /run/agenix/ as a real directory for initrd-ssh-host-key.
+    # This blocks agenix from symlinking /run/agenix -> /run/agenix.d/<gen>.
+    # Move the initrd key aside, remove the directory, so agenix can create the symlink.
+    system.activationScripts.agenix-dir-fix = lib.mkBefore ''
+      if [ -d /run/agenix ] && [ ! -L /run/agenix ]; then
+        mkdir -p /run/agenix.d/0
+        mv /run/agenix/* /run/agenix.d/0/ 2>/dev/null || true
+        rmdir /run/agenix 2>/dev/null || true
+      fi
+    '';
+
     environment.etc."agenix-rekey-wrapper.sh" = {
       mode = "0755";
       text = ''
@@ -52,8 +63,8 @@ in {
         fi
 
         if [ ! -d "$SECRETS_DIR" ]; then
-          echo "[agenix-rekey] ERROR: Secrets directory not found: $SECRETS_DIR"
-          exit 1
+          echo "[agenix-rekey] WARNING: Secrets directory not found: $SECRETS_DIR"
+          exit 0
         fi
 
         if [ -L "/run/agenix" ]; then

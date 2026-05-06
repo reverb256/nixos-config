@@ -1,11 +1,21 @@
 {
+  config,
   lib,
   pkgs,
+  utils,
   ...
-}: {
+}: let
+  # Stable device identifier — survives NVMe name reordering across reboots.
+  # Uses by-partlabel (set by disko during initial partitioning) which is
+  # available early in the initrd before udev fully settles.
+  # by-id symlinks were NOT available in systemd stage-1 initrd, causing
+  # the impermanence-root-rotate service to hang waiting for the device unit.
+  btrfsDevice = "/dev/disk/by-partlabel/disk-nvme1n1-root";
+  btrfsDeviceUnit = "${utils.escapeSystemdPath btrfsDevice}.device";
+in {
   disko.devices = {
     disk.nvme1n1 = {
-      device = "/dev/nvme1n1";
+      device = btrfsDevice;
       type = "disk";
       content = {
         type = "gpt";
@@ -94,29 +104,27 @@
     "/persistent" = {neededForBoot = true;};
     "/nix" = {neededForBoot = true;};
     "/home" = {neededForBoot = true;};
-    "/etc" = {neededForBoot = true;};
-    "/var" = {neededForBoot = true;};
-    "/var/lib" = {neededForBoot = true;};
   };
 
   # BTRFS impermanence: recreate root subvolume each boot via systemd service
   # (systemd stage 1 doesn't support boot.initrd.postResumeCommands)
   boot.initrd.systemd.enable = true;
-  boot.initrd.systemd.initrdBin = with pkgs; [btrfs-progs coreutils findutils util-linux];
+  boot.initrd.systemd.initrdBin = with pkgs; [btrfs-progs coreutils findutils util-linuxMinimal];
   boot.initrd.systemd.services.impermanence-root-rotate = {
     description = "Rotate ephemeral BTRFS root subvolume";
-    requiredBy = ["initrd-root-device.target"];
+    requiredBy = ["sysroot.mount"];
     before = ["sysroot.mount"];
-    after = ["dev-nvme1n1p3.device"];
+    after = [btrfsDeviceUnit];
     unitConfig.DefaultDependencies = "no";
-    serviceConfig.Type = "oneshot";
-    path = with pkgs; [btrfs-progs coreutils findutils util-linux];
-    preStart = ''
-      export PATH=${lib.makeBinPath [pkgs.btrfs-progs pkgs.coreutils pkgs.findutils pkgs.util-linux]}:$PATH
-    '';
+    serviceConfig = {
+      Type = "oneshot";
+      TimeoutStartSec = "300";
+      RemainAfterExit = true;
+    };
+    path = with pkgs; [btrfs-progs coreutils findutils util-linuxMinimal];
     script = ''
       mkdir -p /btrfs_tmp
-      ${lib.getExe' pkgs.util-linux "mount"} -t btrfs -o subvol=/ /dev/nvme1n1p3 /btrfs_tmp
+      mount -t btrfs -o subvol=/ ${btrfsDevice} /btrfs_tmp
 
       if [[ -e /btrfs_tmp/@root ]]; then
         mkdir -p /btrfs_tmp/old_roots
@@ -125,19 +133,24 @@
         mv /btrfs_tmp/@root "/btrfs_tmp/old_roots/$timestamp"
 
         # Delete old roots older than 30 days
+        # Only delete btrfs subvolumes (inode 256) — skip regular directories
         find /btrfs_tmp/old_roots/ -maxdepth 1 -mindepth 1 -mtime +30 -exec \
           sh -c '
             for subvol; do
-              btrfs subvolume list -o "$subvol" | cut -f 9- -d " " | \
+              inode=$(stat -c "%i" "$subvol" 2>/dev/null || echo 0)
+              if [ "$inode" -ne 256 ]; then
+                continue
+              fi
+              btrfs subvolume list -o "$subvol" 2>/dev/null | cut -f 9- -d " " | \
                 xargs -I{} btrfs subvolume delete "/btrfs_tmp/{}" 2>/dev/null
-              btrfs subvolume delete "$subvol"
+              btrfs subvolume delete "$subvol" 2>/dev/null
             done
           ' _ {} +
 
       fi
 
       btrfs subvolume create /btrfs_tmp/@root
-      ${lib.getExe' pkgs.util-linux "umount"} /btrfs_tmp
+      umount /btrfs_tmp
     '';
   };
 }

@@ -51,7 +51,7 @@ in {
     keepalived-vip = {
       enable = true;
       vip = cluster.kubernetes.vip;
-      interface = "eth1";
+      interface = "eth0";
       priority = 110;
     };
 
@@ -424,6 +424,7 @@ in {
     mining = true;
     cloud = true;
     kubernetes = true;
+    initrdRecovery = true;
     selfHosting = true;
   };
 
@@ -436,4 +437,17 @@ in {
       group = "root";
     };
   };
+
+  # Initrd SSH recovery + BTRFS snapshots
+  services.initrd-ssh-recovery = {
+    enable = true;
+    interface = "eth0";
+    networkDriver = "r8169";
+    port = 2222;
+  };
+  services.recovery-specialisation.enable = true;
+  services.btrfs-boot-snapshot = {
+      enable = true;
+      device = "/dev/disk/by-uuid/b07258b9-b1a3-4540-ae34-69e441faba28";
+    };
 }

@@ -52,6 +52,11 @@ in {
       default = false;
       description = "Enable Kubernetes cluster secrets";
     };
+    initrdRecovery = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Enable initrd SSH recovery host keys";
+    };
   };
   config = mkIf config.services.agenix-secrets-registry.enable {
     age.secrets = lib.mkMerge [
@@ -301,6 +306,14 @@ in {
         central-auth-cookie-secret = {
           file = "${inputs.self}/secrets/central-auth-cookie-secret.age";
           mode = "440";
+          owner = "root";
+          group = "root";
+        };
+      })
+      (lib.mkIf config.services.agenix-secrets-registry.initrdRecovery {
+        initrd-ssh-host-key = {
+          file = "${inputs.self}/secrets/initrd-ssh-host-key-${config.networking.hostName}.age";
+          mode = "400";
           owner = "root";
           group = "root";
         };

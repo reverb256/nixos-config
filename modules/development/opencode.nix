@@ -284,7 +284,6 @@ in {
           "/root/.config/opencode"
         ];
         ReadOnlyPaths = [
-          "/etc/nixos/scripts"
           "/run/agenix"
         ];
 

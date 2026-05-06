@@ -16,7 +16,7 @@ in {
         "DP-5,1920x1080@144,0x349,1"
         "DP-4,1920x1080@75,1920x0,1"
         "DP-6,1600x900@60,1920x1080,1"
-        "HDMI-A-2,3840x2160@60,10000x0,1.5"
+        "HDMI-A-2,3840x2160@60,10000x0,1.5,bitdepth,10,cm,hdr,sdrbrightness,1.3,sdrsaturation,1.0"
       ];
 
       workspace = [
@@ -53,15 +53,20 @@ in {
       ];
 
       general = {
-        gaps_in = 8;
+        gaps_in = 0;
         gaps_out = 8;
         border_size = 2;
-        layout = "dwindle";
+        layout = "scrolling";
       };
 
-      dwindle = {
-        preserve_split = true;
-        smart_resizing = true;
+      scrolling = {
+        fullscreen_on_one_column = true;
+        column_width = 0.5;
+        focus_fit_method = 1;
+        follow_focus = true;
+        follow_min_visible = 0.4;
+        explicit_column_widths = "0.333,0.5,0.667,1.0";
+        direction = "right";
       };
 
       decoration = {
@@ -83,7 +88,7 @@ in {
         middle_click_paste = false;
       };
 
-      "general:no_border_on_floating" = false;
+
       "general:allow_tearing" = false;
 
       input = {
@@ -98,7 +103,6 @@ in {
           tap-to-click = true;
           disable_while_typing = true;
           clickfinger_behavior = true;
-          scroll_method = "twofinger";
           middle_button_emulation = false;
         };
       };
@@ -129,21 +133,8 @@ in {
           "SUPER CTRL, E, exec, noctalia-shell ipc call launcher emoji"
           "SUPER CTRL, Slash, exec, noctalia-shell ipc call launcher command"
           "SUPER SHIFT, Slash, exec, noctalia-shell ipc call launcher windows"
-          "SUPER, Comma, exec, noctalia-shell ipc call notifications dismissLast"
-          "SUPER ALT, Space, exec, noctalia-shell ipc call settings toggle"
-          "SUPER SHIFT, Space, exec, noctalia-shell ipc call bar toggle"
-          "SUPER CTRL, A, exec, noctalia-shell ipc call volume togglePanel"
-          "SUPER CTRL, W, exec, noctalia-shell ipc call network togglePanel"
-          "SUPER CTRL, B, exec, noctalia-shell ipc call bluetooth togglePanel"
-          "SUPER CTRL, I, exec, noctalia-shell ipc call idleInhibitor toggle"
-          "SUPER CTRL, N, exec, noctalia-shell ipc call nightLight toggle"
-          "SUPER CTRL, D, exec, noctalia-shell ipc call darkMode toggle"
-          "SUPER CTRL, T, exec, noctalia-shell ipc call systemMonitor toggle"
-          "SUPER CTRL, S, exec, noctalia-shell ipc call share toggle"
-          "SUPER CTRL, L, exec, noctalia-shell ipc call lockScreen lock"
-          "SUPER CTRL, O, exec, noctalia-shell ipc call controlCenter toggle"
-          "SUPER CTRL SHIFT, W, exec, noctalia-shell ipc call wallpaper random"
-          "SUPER SHIFT, Comma, exec, noctalia-shell ipc call notifications dismissAll"
+          "SUPER CTRL SHIFT, Comma, exec, noctalia-shell ipc call notifications dismissLast"
+          "SUPER ALT SHIFT, N, exec, noctalia-shell ipc call notifications dismissAll"
           "SUPER CTRL, Comma, exec, noctalia-shell ipc call notifications toggleDND"
           "SUPER ALT, Comma, exec, noctalia-shell ipc call notifications toggleHistory"
           "SUPER ALT SHIFT, Comma, exec, noctalia-shell ipc call notifications invokeDefault"
@@ -165,14 +156,17 @@ in {
           "SUPER SHIFT, Right, movewindow, r"
           "SUPER SHIFT, Up, movewindow, u"
           "SUPER SHIFT, Down, movewindow, d"
-          "SUPER, Period, togglesplit"
+
+          # Scrolling column navigation
+          "SUPER, Period, layoutmsg, move +col"
+          "SUPER, Comma, layoutmsg, move -col"
           "SUPER CTRL, Period, movetoworkspacesilent, e+1"
-          "SUPER, R, splitratio, exact 0.5"
-          "SUPER SHIFT, R, splitratio, exact 0.7"
-          "SUPER, Minus, resizeactive, -5% 0"
-          "SUPER, Equal, resizeactive, 5% 0"
-          "SUPER SHIFT, Minus, resizeactive, 0 -5%"
-          "SUPER SHIFT, Equal, resizeactive, 0 5%"
+          "SUPER, R, layoutmsg, colresize +conf"
+          "SUPER SHIFT, R, layoutmsg, colresize -conf"
+          "SUPER, Minus, layoutmsg, colresize -0.1"
+          "SUPER, Equal, layoutmsg, colresize +0.1"
+          "SUPER SHIFT, Minus, layoutmsg, resizeactive, 0 -5%"
+          "SUPER SHIFT, Equal, layoutmsg, resizeactive, 0 5%"
           "SUPER, C, centerwindow"
           "SUPER, Home, movefocus, l"
           "SUPER, End, movefocus, r"
@@ -180,6 +174,9 @@ in {
           "SUPER SHIFT, End, movewindow, r"
           "SUPER, F, fullscreen, 0"
           "SUPER SHIFT, F, fullscreen, 1"
+          "SUPER, P, layoutmsg, promote"
+          "SUPER SHIFT, Comma, layoutmsg, swapcol l"
+          "SUPER SHIFT, Period, layoutmsg, swapcol r"
 
           # Workspaces
           "SUPER, 1, workspace, 1"
@@ -264,80 +261,78 @@ in {
       windowrule =
         [
           # Floating — system dialogs
-          "float, match:class ^(pavucontrol)$"
-          "float, match:class ^(nm-connection-editor)$"
-          "float, match:class ^(blueman-manager)$"
-          "float, match:class ^(gnome-calculator)$"
-          "float, match:class ^(gnome-control-center)$"
-          "float, match:class ^(org.kde.kinfocenter)$"
-          "float, match:class ^(file-roller)$"
-          "float, match:class ^(org.kde.ark)$"
-          "float, match:class ^(pinentry-)"
-          "float, match:title ^(File Transfer)"
-          "float, match:title ^(Authentication)"
+          "float class:^(pavucontrol)$"
+          "float class:^(nm-connection-editor)$"
+          "float class:^(blueman-manager)$"
+          "float class:^(gnome-calculator)$"
+          "float class:^(gnome-control-center)$"
+          "float class:^(org.kde.kinfocenter)$"
+          "float class:^(file-roller)$"
+          "float class:^(org.kde.ark)$"
+          "float class:^(pinentry-)"
+          "float title:^(File Transfer)"
+          "float title:^(Authentication)"
 
           # Polkit auth
-          "float, match:class ^(org.kde.polkit-kde-authentication-agent-1)$"
-          "float, match:title ^(.*Authentication Required)"
+          "float class:^(org.kde.polkit-kde-authentication-agent-1)$"
+          "float title:^(.*Authentication Required)"
 
           # File choosers — floating + fixed size
-          "float, match:title ^(Open (.*Files?|Folder))"
-          "float, match:title ^(Save (.*Files?|As))"
-          "float, match:title ^(Select)"
-          "float, match:title ^(Choose)"
-          "float, match:title ^(Rename)"
-          "float, match:title ^(Properties)"
-          "size 900 600, match:title ^(Open (.*Files?|Folder))"
-          "size 900 600, match:title ^(Save (.*Files?|As))"
-          "float, match:class ^(org.kde.dolphin)$, match:title ^(Open)"
-          "float, match:class ^(org.kde.dolphin)$, match:title ^(Save)"
-          "float, match:class ^(org.kde.dolphin)$, match:title ^(Copy)"
-          "float, match:class ^(org.kde.dolphin)$, match:title ^(Move)"
-          "float, match:class ^(org.kde.dolphin)$, match:title ^(Delete)"
-          "float, match:class ^(org.gtk.FileChooserDialog)$"
-          "float, match:class ^(xdg-desktop-portal-gtk)$"
+          "float title:^(Open (.*Files?|Folder))"
+          "float title:^(Save (.*Files?|As))"
+          "float title:^(Select)"
+          "float title:^(Choose)"
+          "float title:^(Rename)"
+          "float title:^(Properties)"
+          "size 900 600 title:^(Open (.*Files?|Folder))"
+          "size 900 600 title:^(Save (.*Files?|As))"
+          "float class:^(org.kde.dolphin)$ title:^(Open)"
+          "float class:^(org.kde.dolphin)$ title:^(Save)"
+          "float class:^(org.kde.dolphin)$ title:^(Copy)"
+          "float class:^(org.kde.dolphin)$ title:^(Move)"
+          "float class:^(org.kde.dolphin)$ title:^(Delete)"
+          "float class:^(org.gtk.FileChooserDialog)$"
+          "float class:^(xdg-desktop-portal-gtk)$"
 
           # Screen share picker
-          "float, match:title ^(Choose what to share)"
+          "float title:^(Choose what to share)"
 
           # PiP overlay
-          "float, match:title ^(Picture-in-Picture)"
-          "move 10 10, match:title ^(Picture-in-Picture)"
-          "size 400 225, match:title ^(Picture-in-Picture)"
+          "float title:^(Picture-in-Picture)"
+          "move 10 10 title:^(Picture-in-Picture)"
+          "size 400 225 title:^(Picture-in-Picture)"
 
           # Steam notification toasts — top-right
-          "float, match:class ^(steam)$, match:title ^(notificationtoasts)"
-          "move 100%-10-10 10, match:class ^(steam)$, match:title ^(notificationtoasts)"
+          "float class:^(steam)$ title:^(notificationtoasts)"
+          "move 100%-10-10 10 class:^(steam)$ title:^(notificationtoasts)"
 
           # Gaming — route to HDMI-A-2
-          "monitor HDMI-A-2, match:class ^(.*GenshinImpact.*)"
-          "fullscreen, match:class ^(.*GenshinImpact.*)"
-          "monitor HDMI-A-2, match:class ^(steam)$, match:title ^(Steam)$"
-          "fullscreen, match:class ^(steam)$, match:title ^(Steam)$"
-          "monitor HDMI-A-2, match:class ^(moe.launcher.an-anime-game-launcher)$"
-          "monitor HDMI-A-2, match:class ^(moe.launcher.the-honkers-railway-launcher)$"
-          "monitor HDMI-A-2, match:class ^(lutris)$"
-          "monitor HDMI-A-2, match:class ^(heroic)$"
-          "monitor HDMI-A-2, match:class ^(minecraft)$"
-          "monitor HDMI-A-2, match:class ^(prism-launcher)$"
-          "monitor HDMI-A-2, match:class ^(com.libretro.RetroArch)$"
-          "monitor HDMI-A-2, match:class ^(com.moonlight_stream.Moonlight)$"
+          "monitor HDMI-A-2 class:^(.*GenshinImpact.*)"
+          "fullscreen class:^(.*GenshinImpact.*)"
+          "monitor HDMI-A-2 class:^(steam)$ title:^(Steam)$"
+          "fullscreen class:^(steam)$ title:^(Steam)$"
+          "monitor HDMI-A-2 class:^(moe.launcher.an-anime-game-launcher)$"
+          "monitor HDMI-A-2 class:^(moe.launcher.the-honkers-railway-launcher)$"
+          "monitor HDMI-A-2 class:^(lutris)$"
+          "monitor HDMI-A-2 class:^(heroic)$"
+          "monitor HDMI-A-2 class:^(minecraft)$"
+          "monitor HDMI-A-2 class:^(prism-launcher)$"
+          "monitor HDMI-A-2 class:^(com.libretro.RetroArch)$"
+          "monitor HDMI-A-2 class:^(com.moonlight_stream.Moonlight)$"
 
           # Steam popup dialogs — maximize
-          "maximize, match:class ^(steam)$, match:title ^(Settings)$"
-          "maximize, match:class ^(steam)$, match:title ^(Friends)$"
-          "maximize, match:class ^(steam)$, match:title ^(Chat)$"
-          "maximize, match:class ^(steam)$, match:title ^(Properties)"
-          "maximize, match:class ^(steam)$, match:title ^(Steam Guard)"
-          "maximize, match:class ^(steam)$, match:title ^(Screenshot)"
+          "maximize class:^(steam)$ title:^(Settings)$"
+          "maximize class:^(steam)$ title:^(Friends)$"
+          "maximize class:^(steam)$ title:^(Chat)$"
+          "maximize class:^(steam)$ title:^(Properties)"
+          "maximize class:^(steam)$ title:^(Steam Guard)"
+          "maximize class:^(steam)$ title:^(Screenshot)"
 
           # CopyQ
-          "float, match:class ^(copyq)$"
+          "float class:^(copyq)$"
 
           # Spotify — no decorations (fixes CSD issues)
-          "rounding 0, match:class ^(spotify)$"
-          "noshadow, match:class ^(spotify)$"
-          "noborder, match:class ^(spotify)$"
+          "rounding 0 class:^(spotify)$"
         ];
     };
   };
