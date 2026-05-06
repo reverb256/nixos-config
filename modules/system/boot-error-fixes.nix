@@ -35,7 +35,7 @@ in {
       serviceConfig.ExecStart =
         lib.mkForce
         (pkgs.writeShellScript "logrotate-wrapper" ''
-          exec ${pkgs.logrotate}/sbin/logrotate --state /var/lib/logrotate.status "${config.services.logrotate.configFile}" 2>&1 || true
+          ${pkgs.logrotate}/sbin/logrotate --state /var/lib/logrotate.status "${config.services.logrotate.configFile}" 2>&1 || true
         '');
     };
 
