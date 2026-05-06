@@ -3,7 +3,7 @@
   lib,
   ...
 }: {
-  services.displayManager.sddm.enable = true;
+  services.displayManager.sddm.enable = lib.mkForce true;
   services.displayManager.sddm.wayland.enable = true;
 
   desktop.uwsm-sessions.enable = true;
@@ -12,7 +12,7 @@
 
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "j_kro";
-  services.displayManager.defaultSession = "hyprland-uwsm";
+  services.displayManager.defaultSession = "niri-uwsm";
 
   services.gaming.hdr.enable = true;
 

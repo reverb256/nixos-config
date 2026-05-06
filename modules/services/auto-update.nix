@@ -31,8 +31,8 @@
     elif [ -f /etc/nixos/flake.nix ]; then
       FLAKE_PATH=/etc/nixos
     else
-      echo "ERROR: Cannot find flake.nix in /etc/nixos or /run/nixos-shared"
-      exit 1
+      echo "WARNING: Cannot find flake.nix in /etc/nixos or /run/nixos-shared"
+      exit 0
     fi
 
     LOG_FILE=/var/log/nixos-auto-update.log
@@ -160,8 +160,8 @@ in {
   config = mkIf cfg.enable {
     systemd.services.nixos-auto-update = {
       description = "Automatic NixOS Update";
-      after = ["network-online.target"];
-      wants = ["network-online.target"];
+      after = ["network-online.target" "run-nixos\\x2dshared.mount"];
+      wants = ["network-online.target" "run-nixos\\x2dshared.mount"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = updateScript;

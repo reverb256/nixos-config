@@ -26,7 +26,7 @@
     "/home" = {
       device = "/dev/disk/by-uuid/8ed4264a-6837-4af8-876a-1111625d98d1";
       fsType = "btrfs";
-      options = ["subvol=@home"];
+      options = ["subvol=@home" "x-initrd.mount"];
     };
 
     "/boot" = {
@@ -38,7 +38,7 @@
     "/storage" = {
       device = "/dev/disk/by-uuid/4cc9468d-166d-4479-9846-6224c80d9566";
       fsType = "btrfs";
-      options = ["subvol=@data" "compress=zstd"];
+      options = ["subvol=@data" "compress=zstd" "nofail"];
     };
   };
 

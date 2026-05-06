@@ -106,7 +106,12 @@
   boot.kernelParams = [
     "amd_iommu=on"
     "iommu=pt"
-    "hugepagesz=1G"
-    "hugepages=3"
   ];
+
+  hardware.nvidia.powerLimits = {
+    enable = true;
+    gpus = {
+      "3060ti" = { index = 0; limit = 120; };
+    };
+  };
 }

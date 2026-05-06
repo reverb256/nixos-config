@@ -45,10 +45,32 @@
     enable = true;
     hostName = "sentry";
     ipAddress = "10.1.1.140";
-    interfaceName = "enp7s0";
+    interfaceName = "eth0";
     wireless.enable = false;
     unbound.enable = true;
     unbound.listenAddress = "10.1.1.140";
+  };
+
+  # Declarative static IP for eth0 — NM connection persisted across rebuilds
+  environment.etc."NetworkManager/system-connections/static-eth0.nmconnection" = {
+    mode = "0600";
+    text = ''
+      [connection]
+      id=static-eth0
+      type=ethernet
+      interface-name=eth0
+
+      [ethernet]
+
+      [ipv4]
+      method=manual
+      addresses=10.1.1.140/24
+      gateway=10.1.1.1
+      dns=127.0.0.1
+
+      [ipv6]
+      method=auto
+    '';
   };
 
   services.flake-lock-sync.enable = lib.mkForce false;
@@ -75,6 +97,24 @@
     enable = true;
     preset = ["compatibility"];
     settings.etc.kicksecure-module-blacklist = false;
+    # Fix: nix-mineral adds bind+nodev+nosuid+noexec over-itself mounts for
+    # /etc, /var, /var/lib, /var/log, /home, /root, /srv, /tmp, /var/tmp.
+    # On Sentry all these live on the same btrfs @ subvolume as /.
+    # The "bind" + "x-initrd.mount" combo causes initrd to bind-mount the
+    # initramfs paths over themselves before pivot_root, hiding the real root's
+    # content and preventing boot. Disable the entire filesystem hardening.
+    # https://github.com/cynicsketch/nix-mineral/issues/11
+    filesystems.normal = {
+      "/etc".enable = lib.mkForce false;
+      "/home".enable = lib.mkForce false;
+      "/root".enable = lib.mkForce false;
+      "/srv".enable = lib.mkForce false;
+      "/tmp".enable = lib.mkForce false;
+      "/var".enable = lib.mkForce false;
+      "/var/lib".enable = lib.mkForce false;
+      "/var/log".enable = lib.mkForce false;
+      "/var/tmp".enable = lib.mkForce false;
+    };
   };
 
   # Fix: nix-mineral sets hidepid=2 on /proc which blocks nfs-idmapd from

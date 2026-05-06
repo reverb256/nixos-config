@@ -8,32 +8,32 @@
 in {
   services = {
     hermes-cli = {
-      enable = true;
+    enable = true;
       apiKeyFile = config.age.secrets.zai-api-key.path;
-    };
+  };
     k3s-cluster = {
-      enable = true;
+    enable = true;
       role = "server";
       nodeName = "sentry";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = cluster.hosts.sentry.ip;
       calico.enable = false;
-    };
+  };
 
     keepalived-vip = {
-      enable = true;
+    enable = true;
       vip = cluster.kubernetes.vip;
-      interface = "enp7s0";
+    interface = "eth0";
       priority = 90;
-    };
+  };
 
     gaming-detection.enable = false;
     gpu-profile-manager.enable = false;
     mining-coordinator.enable = false;
 
     nginx = {
-      enable = true;
+    enable = true;
       recommendedProxySettings = true;
       recommendedGzipSettings = true;
       virtualHosts."_" = {
@@ -43,50 +43,51 @@ in {
           add_header Content-Type text/plain;
         '';
       };
-    };
+  };
 
     spotify-spotx.enable = true;
 
     tailscale.enable = true;
 
     nixos-share = {
-      enable = true;
+    enable = true;
       client.enable = true;
-    };
+  };
 
     nfs-client = {
-      enable = true;
+    enable = true;
       mountShared = true;
       mountHome = false;
       mountMedia = false;
-    };
+  };
 
     # Secondary NFS data server for failover (hermes + pi state)
     nfs-data-server = {
-      enable = true;
+    enable = true;
       exports = ''
         /data/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=105)
 
         /data/pi 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=106)
       '';
-    };
+  };
     nfs-state-sync = {
-      enable = true;
+    enable = true;
       sourceHost = "zephyr";
-    };
+  };
 
     syncthing-cluster = {
-      enable = true;
+    enable = true;
       deviceId = "SENTRY-PLACEHOLDER";
-    };
+  };
 
     garage-cluster.enable = false;
 
     agenix-secrets-registry = {
-      enable = true;
+    enable = true;
       kubernetes = true;
+      initrdRecovery = true;
       aiServices = true;
-    };
+  };
   };
 
   # Cluster DNS configuration
@@ -138,4 +139,17 @@ in {
     TS_ROUTES = "";
     TS_SSH = "true";
   };
+
+  # Initrd SSH recovery + BTRFS snapshots
+  services.initrd-ssh-recovery = {
+    enable = true;
+    interface = "eth0";
+    networkDriver = "r8169";
+    port = 2222;
+  };
+  services.recovery-specialisation.enable = true;
+  services.btrfs-boot-snapshot = {
+      enable = true;
+      device = "/dev/disk/by-uuid/8ed4264a-6837-4af8-876a-1111625d98d1";
+    };
 }
