@@ -575,5 +575,13 @@ in {
         ];
       };
     };
+
+    # ── Default deny all ──────────────────────────────────────────
+    search.NetworkPolicy.default-deny-all = {
+      spec = {
+        podSelector = {};
+        policyTypes = ["Ingress" "Egress"];
+      };
+    };
   };
 }

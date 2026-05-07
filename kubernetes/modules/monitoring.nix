@@ -2,6 +2,7 @@
   cluster,
   config,
   lib,
+  cluster,
   ...
 }: let
   # Pin versions for supply chain security
@@ -2345,6 +2346,14 @@ in {
         insecureSkipTLSVerify = true;
         groupPriorityMinimum = 100;
         versionPriority = 100;
+      };
+    };
+
+    # ── Custom Metrics default deny all ────────────────────────────
+    custom-metrics.NetworkPolicy.default-deny-all = {
+      spec = {
+        podSelector = {};
+        policyTypes = ["Ingress" "Egress"];
       };
     };
   };

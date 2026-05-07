@@ -298,7 +298,7 @@ in {
     };
 
     # ── AI Inference Gateway ──────────────────────────────────────
-    # Runs as systemd service on nexus (10.1.1.120:8080).
+    # Runs as systemd service on nexus (${cluster.hosts.nexus.ip}:8080).
     # Exposed to K8s via Endpoints so pods can reach it at:
     #   ai-inference-gateway.ai-inference.svc.cluster.local:8080
     #
