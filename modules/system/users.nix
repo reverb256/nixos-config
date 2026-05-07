@@ -2,8 +2,7 @@
   pkgs,
   lib,
   ...
-}:
-{
+}: {
   users.users.j_kro = {
     isNormalUser = true;
     description = "Jeremy Kroeker";
@@ -45,7 +44,7 @@
     '';
   };
 
-  users.groups.plugdev = { };
-  users.groups.gamemode = { };
-  users.groups.i2c = { };
+  users.groups.plugdev = {};
+  users.groups.gamemode = {};
+  users.groups.i2c = {};
 }

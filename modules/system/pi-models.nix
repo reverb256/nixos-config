@@ -3,9 +3,7 @@
   lib,
   pkgs,
   ...
-}:
-
-let
+}: let
   cfg = config.programs.pi-agent;
 
   zaiModels = [
@@ -13,7 +11,7 @@ let
       id = "glm-5.1";
       name = "GLM-5.1 (Z.AI)";
       reasoning = true;
-      input = [ "text" ];
+      input = ["text"];
       contextWindow = 200000;
       maxTokens = 128000;
     }
@@ -21,7 +19,7 @@ let
       id = "glm-5";
       name = "GLM-5 (Z.AI)";
       reasoning = true;
-      input = [ "text" ];
+      input = ["text"];
       contextWindow = 200000;
       maxTokens = 128000;
     }
@@ -29,7 +27,7 @@ let
       id = "glm-5-turbo";
       name = "GLM-5 Turbo (Z.AI)";
       reasoning = true;
-      input = [ "text" ];
+      input = ["text"];
       contextWindow = 200000;
       maxTokens = 128000;
     }
@@ -37,7 +35,7 @@ let
       id = "glm-4.7";
       name = "GLM-4.7 (Z.AI)";
       reasoning = false;
-      input = [ "text" ];
+      input = ["text"];
       contextWindow = 200000;
       maxTokens = 128000;
     }
@@ -45,7 +43,7 @@ let
       id = "glm-4.7-flash";
       name = "GLM-4.7 Flash (Z.AI)";
       reasoning = false;
-      input = [ "text" ];
+      input = ["text"];
       contextWindow = 131072;
       maxTokens = 8192;
     }
@@ -53,7 +51,7 @@ let
       id = "glm-4.5-air";
       name = "GLM-4.5 Air (Z.AI)";
       reasoning = false;
-      input = [ "text" ];
+      input = ["text"];
       contextWindow = 131100;
       maxTokens = 98304;
     }
@@ -64,7 +62,7 @@ let
       id = "deepseek-ai/deepseek-v3.2";
       name = "DeepSeek V3.2 (NVIDIA NIM)";
       reasoning = true;
-      input = [ "text" ];
+      input = ["text"];
       contextWindow = 131072;
       maxTokens = 16384;
     }
@@ -83,7 +81,7 @@ let
       id = "nvidia/nemotron-3-super-120b-a12b";
       name = "Nemotron 3 Super 120B (NVIDIA NIM)";
       reasoning = true;
-      input = [ "text" ];
+      input = ["text"];
       contextWindow = 1048576;
       maxTokens = 32768;
     }
@@ -91,7 +89,7 @@ let
       id = "moonshotai/kimi-k2-instruct";
       name = "Kimi K2 (NVIDIA NIM)";
       reasoning = true;
-      input = [ "text" ];
+      input = ["text"];
       contextWindow = 262144;
       maxTokens = 16384;
     }
@@ -99,7 +97,7 @@ let
       id = "moonshotai/kimi-k2-thinking";
       name = "Kimi K2 Thinking (NVIDIA NIM)";
       reasoning = true;
-      input = [ "text" ];
+      input = ["text"];
       contextWindow = 262144;
       maxTokens = 16384;
     }
@@ -129,7 +127,7 @@ let
       id = "bytedance/seed-oss-36b-instruct";
       name = "Seed OSS 36B (NVIDIA NIM)";
       reasoning = false;
-      input = [ "text" ];
+      input = ["text"];
       contextWindow = 131072;
       maxTokens = 16384;
     }
@@ -137,7 +135,7 @@ let
       id = "minimaxai/minimax-m2.5";
       name = "MiniMax M2.5 (NVIDIA NIM)";
       reasoning = true;
-      input = [ "text" ];
+      input = ["text"];
       contextWindow = 204800;
       maxTokens = 131072;
     }
@@ -145,7 +143,7 @@ let
       id = "mistralai/mistral-large-3-675b-instruct-2512";
       name = "Mistral Large 3 675B (NVIDIA NIM)";
       reasoning = true;
-      input = [ "text" ];
+      input = ["text"];
       contextWindow = 131072;
       maxTokens = 16384;
     }
@@ -156,7 +154,7 @@ let
       id = "qwen3.5-4b";
       name = "Qwen 3.5 4B (K8s Gateway)";
       reasoning = true;
-      input = [ "text" ];
+      input = ["text"];
       contextWindow = 262144;
       maxTokens = 16384;
     }
@@ -164,7 +162,7 @@ let
       id = "qwen3.5-32b";
       name = "Qwen 3.5 32B (K8s Gateway)";
       reasoning = true;
-      input = [ "text" ];
+      input = ["text"];
       contextWindow = 262144;
       maxTokens = 32768;
     }
@@ -172,7 +170,7 @@ let
       id = "deepseek-r1";
       name = "DeepSeek R1 (K8s Gateway)";
       reasoning = true;
-      input = [ "text" ];
+      input = ["text"];
       contextWindow = 131072;
       maxTokens = 16384;
     }
@@ -183,7 +181,7 @@ let
       id = "qwen3.5-4b";
       name = "Qwen 3.5 4B (LM Studio)";
       reasoning = true;
-      input = [ "text" ];
+      input = ["text"];
       contextWindow = 262144;
       maxTokens = 16384;
     }
@@ -203,20 +201,20 @@ let
     }
   ];
 
-  withCost =
-    models:
+  withCost = models:
     map (
       m:
-      m
-      // {
-        cost = {
-          input = 0;
-          output = 0;
-          cacheRead = 0;
-          cacheWrite = 0;
-        };
-      }
-    ) models;
+        m
+        // {
+          cost = {
+            input = 0;
+            output = 0;
+            cacheRead = 0;
+            cacheWrite = 0;
+          };
+        }
+    )
+    models;
 
   modelsJsonTemplate = builtins.toJSON {
     providers = {
@@ -289,8 +287,7 @@ let
     chmod 600 "$OUTPUT"
     echo "[pi-models] Written $OUTPUT ($(wc -c < "$OUTPUT") bytes)"
   '';
-in
-{
+in {
   options.programs.pi-agent = {
     enable = lib.mkEnableOption "pi coding agent model registry";
   };
@@ -298,9 +295,9 @@ in
   config = lib.mkIf cfg.enable {
     systemd.services.pi-models = {
       description = "Write pi agent models.json with API keys from agenix";
-      wantedBy = [ "multi-user.target" ];
-      requires = [ "agenix.service" ];
-      after = [ "agenix.service" ];
+      wantedBy = ["multi-user.target"];
+      requires = ["agenix.service"];
+      after = ["agenix.service"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = writeModelsJson;

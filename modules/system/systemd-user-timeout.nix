@@ -3,7 +3,7 @@
   lib,
   ...
 }: let
-    inherit (lib) mkEnableOption mkIf types;
+  inherit (lib) mkEnableOption mkIf types;
   cfg = config.services.systemd-user-timeout;
 in {
   options.services.systemd-user-timeout = {

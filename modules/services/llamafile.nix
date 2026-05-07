@@ -234,7 +234,6 @@ in {
 
         StandardOutput = "journal";
         StandardError = "journal";
-
       };
     };
 
@@ -288,6 +287,5 @@ in {
         fi
       '')
     ];
-
   };
 }

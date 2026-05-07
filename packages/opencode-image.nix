@@ -1,4 +1,12 @@
-{ dockerTools, buildEnv, bash, coreutils, fish, git, opencode }:
+{
+  dockerTools,
+  buildEnv,
+  bash,
+  coreutils,
+  fish,
+  git,
+  opencode,
+}:
 dockerTools.buildImage {
   name = "opencode";
   tag = "nixos";

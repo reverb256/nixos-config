@@ -1,5 +1,9 @@
-{ config, pkgs, lib, ... }:
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   services = {
     hermes-cli = {
       enable = true;
@@ -112,9 +116,8 @@
     nixos-auto-update = {
       enable = true;
       interval = "daily";
-      updateFlakeInputs = [ "nixpkgs" ];
+      updateFlakeInputs = ["nixpkgs"];
     };
-
 
     agenix-secrets-registry = {
       enable = true;

@@ -3,11 +3,9 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   inherit (lib) mkOption types mkIf;
-in
-{
+in {
   options.services.agenix-fixes = {
     enable = mkOption {
       type = types.bool;
@@ -23,7 +21,6 @@ in
   };
 
   config = mkIf config.services.agenix-fixes.enable {
-
     environment.etc."agenix-rekey-wrapper.sh" = {
       mode = "0755";
       text = ''
@@ -154,18 +151,18 @@ in
 
     systemd.services.agenix-rekey = {
       description = "Agenix secret verification and decryption";
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = ["multi-user.target"];
       after = [
         "run-agenix.d.mount"
         "local-fs.target"
       ];
-      requires = [ "run-agenix.d.mount" ];
+      requires = ["run-agenix.d.mount"];
       before = [
         "garage.service"
       ];
       environment.PATH = lib.mkForce (
         lib.makeBinPath (
-          [ pkgs.coreutils ] ++ lib.optionals config.services.cluster-storage.enable [ pkgs.util-linux ]
+          [pkgs.coreutils] ++ lib.optionals config.services.cluster-storage.enable [pkgs.util-linux]
         )
       );
 
@@ -185,9 +182,9 @@ in
       };
     };
 
-    environment.systemPackages = with pkgs; [ age ];
+    environment.systemPackages = with pkgs; [age];
 
-    system.activationScripts.copy-age-key = lib.stringAfter [ "users" ] ''
+    system.activationScripts.copy-age-key = lib.stringAfter ["users"] ''
       mkdir -p /etc/age /etc/nixos/.age
 
       NIXOS_KEY="/etc/nixos/.age/key.txt"

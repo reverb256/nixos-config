@@ -3,11 +3,9 @@
   lib,
   config,
   ...
-}:
-let
+}: let
   cfg = config.programs.hyprland.enable;
-in
-{
+in {
   config = {
     programs.hyprland = {
       enable = lib.mkDefault false;
@@ -17,8 +15,7 @@ in
     programs.hyprlock.enable = cfg;
 
     environment.systemPackages = lib.mkIf cfg (
-      with pkgs;
-      [
+      with pkgs; [
         hyprpicker
         hyprcursor
         hyprlock
@@ -29,13 +26,11 @@ in
       ]
     );
 
-
     environment.etc."uwsm/env-hyprland" = lib.mkIf cfg {
       text = ''
         WLR_DRM_DEVICES=/dev/dri/card2
       '';
     };
-
 
     systemd.user.services = lib.mkIf cfg {
       hyprpolkitagent = {

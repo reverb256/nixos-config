@@ -46,7 +46,6 @@
     pv
     progress
 
-
     screen
 
     steam-run
@@ -71,20 +70,17 @@
     headsetcontrol
     liquidctl
 
-
     nh
     home-manager
 
     xdg-desktop-portal
     flatpak
 
-
     nvidia-vaapi-driver
     vdpauinfo
     egl-wayland
     wayland-utils
     localsend
-
 
     xrdb
     xrandr
@@ -95,6 +91,5 @@
 
     ocl-icd
     libclc
-
   ];
 }

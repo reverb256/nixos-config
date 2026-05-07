@@ -1,34 +1,27 @@
-{
-  pkgs ? import <nixpkgs> { },
-}:
-let
+{pkgs ? import <nixpkgs> {}}: let
   lib = pkgs.lib;
 
   modules = {
     k3s = builtins.readFile ../modules/services/k3s-cluster.nix;
     caddy = builtins.readFile ../modules/services/caddy.nix;
     monitoring =
-      if builtins.pathExists ../modules/services/monitoring/default.nix then
-        builtins.readFile ../modules/services/monitoring/default.nix
-      else
-        "";
+      if builtins.pathExists ../modules/services/monitoring/default.nix
+      then builtins.readFile ../modules/services/monitoring/default.nix
+      else "";
     tailscale = builtins.readFile ../modules/system/tailscale.nix;
     containerScanning = builtins.readFile ../modules/services/container-scanning.nix;
     networkConstants = builtins.readFile ../modules/network-constants.nix;
     ssh = builtins.readFile ../modules/system/ssh.nix;
     nfsServer =
-      if builtins.pathExists ../modules/services/nfs-server.nix then
-        builtins.readFile ../modules/services/nfs-server.nix
-      else
-        "";
+      if builtins.pathExists ../modules/services/nfs-server.nix
+      then builtins.readFile ../modules/services/nfs-server.nix
+      else "";
   };
 
-  hasEnableOption =
-    source:
+  hasEnableOption = source:
     lib.strings.hasInfix "mkEnableOption" source || lib.strings.hasInfix "enable = mkOption" source;
 
-  hasConditionalConfig =
-    source: lib.strings.hasInfix "mkIf" source || lib.strings.hasInfix "mkMerge" source;
+  hasConditionalConfig = source: lib.strings.hasInfix "mkIf" source || lib.strings.hasInfix "mkMerge" source;
 
   checks = {
     k3s = {
@@ -90,22 +83,20 @@ let
     };
   };
 
-  flattenChecks =
-    attrs:
+  flattenChecks = attrs:
     lib.foldl' (
-      acc: name:
-      let
+      acc: name: let
         val = builtins.getAttr name attrs;
       in
-      if builtins.isAttrs val then acc // (flattenChecks val) else acc // { ${name} = val; }
-    ) { } (builtins.attrNames attrs);
+        if builtins.isAttrs val
+        then acc // (flattenChecks val)
+        else acc // {${name} = val;}
+    ) {} (builtins.attrNames attrs);
 
   flatChecks = flattenChecks checks;
   failures = lib.filterAttrs (_: v: v == false) flatChecks;
-
-in
-{
+in {
   services = builtins.mapAttrs (_: v: v) checks;
-  passed = failures == { };
+  passed = failures == {};
   failureCount = builtins.length (builtins.attrNames failures);
 }

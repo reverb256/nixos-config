@@ -3,10 +3,10 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.k3s-cluster;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
@@ -47,9 +47,7 @@ let
     "servicelb"
     "metrics-server"
   ];
-
-in
-{
+in {
   options.services.k3s-cluster = {
     enable = mkEnableOption "k3s lightweight Kubernetes cluster";
 
@@ -98,14 +96,6 @@ in
       description = "Kubernetes node name (defaults to hostname)";
     };
 
-    calico = {
-      enable = mkOption {
-        type = types.bool;
-        default = false;
-        description = "Use Calico CNI. Disables flannel, network-policy, and kube-proxy.";
-      };
-    };
-
     nvidia = {
       enable = mkOption {
         type = types.bool;
@@ -126,37 +116,44 @@ in
           url = "https://github.com/k3s-io/k3s/releases/download/v1.34.5+k3s1/k3s";
           hash = "sha256-76qEQWz1nzb3wbRb0SmI3PARIoj1iKn9XA+8ptMJ6dk=";
         };
-      in pkgs.runCommand "k3s-with-agent" {
-        nativeBuildInputs = [ pkgs.installShellFiles ];
-      } ''
-        mkdir -p $out/bin
-        cp ${k3sBin} $out/bin/.k3s-wrapped
-        chmod +x $out/bin/.k3s-wrapped
-        ln -s .k3s-wrapped $out/bin/k3s
-        ln -s .k3s-wrapped $out/bin/k3s-agent
-        ln -s .k3s-wrapped $out/bin/crictl
-        ln -s .k3s-wrapped $out/bin/ctr
-        ln -s .k3s-wrapped $out/bin/kubectl
-      '';
+      in
+        pkgs.runCommand "k3s-with-agent" {
+          nativeBuildInputs = [pkgs.installShellFiles];
+        } ''
+          mkdir -p $out/bin
+          cp ${k3sBin} $out/bin/.k3s-wrapped
+          chmod +x $out/bin/.k3s-wrapped
+          ln -s .k3s-wrapped $out/bin/k3s
+          ln -s .k3s-wrapped $out/bin/k3s-agent
+          ln -s .k3s-wrapped $out/bin/crictl
+          ln -s .k3s-wrapped $out/bin/ctr
+          ln -s .k3s-wrapped $out/bin/kubectl
+        '';
 
-      clusterInit = if isServer then cfg.clusterInit else false;
+      clusterInit =
+        if isServer
+        then cfg.clusterInit
+        else false;
 
-      serverAddr = if (!isServer || !cfg.clusterInit) then cfg.serverAddr else "";
+      serverAddr =
+        if (!isServer || !cfg.clusterInit)
+        then cfg.serverAddr
+        else "";
 
-      tokenFile = if cfg.clusterInit then null else cfg.tokenFile;
+      tokenFile =
+        if cfg.clusterInit
+        then null
+        else cfg.tokenFile;
 
-      nodeIP = if cfg.nodeIP != "" then cfg.nodeIP else null;
+      nodeIP =
+        if cfg.nodeIP != ""
+        then cfg.nodeIP
+        else null;
 
       disable =
         lib.optionals isServer disabledComponents
-        ++ lib.optionals (isServer && cfg.calico.enable) [
-          "flannel"
-          "network-policy"
-          "kube-proxy"
-        ];
-
-      extraFlags =
-        lib.optionals isServer (
+        lib.optionals
+        isServer (
           [
             "--cluster-cidr=${clusterCIDR}"
             "--service-cidr=${serviceCIDR}"
@@ -164,7 +161,6 @@ in
             "--write-kubeconfig-mode=644"
           ]
           ++ map (san: "--tls-san=${san}") tlsSans
-          ++ lib.optional cfg.calico.enable "--flannel-backend=none"
         )
         ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"
         ++ lib.optional (config.hardware.gpu-compute.rocm.enable or false) "--node-label=gpu=amd"
@@ -173,8 +169,8 @@ in
           "--kubelet-arg=authentication-token-webhook=true"
           "--kubelet-arg=authorization-mode=Webhook"
         ];
-        # --flannel-external-ip removed in k3s 1.34+ (upstream PR)
-        # Flannel now auto-detects external IP from --node-external-ip
+      # --flannel-external-ip removed in k3s 1.34+ (upstream PR)
+      # Flannel now auto-detects external IP from --node-external-ip
 
       containerdConfigTemplate = mkIf cfg.nvidia.enable ''
         {{ template "base" . }}
@@ -194,9 +190,9 @@ in
     # Override the broken nvidia-container-toolkit-cdi-generator with a working one
     # that sets LD_LIBRARY_PATH so nvidia-ctk can find libnvidia-ml.so.
     systemd.services.nvidia-container-toolkit-cdi-generator = mkIf cfg.nvidia.enable {
-      wantedBy = [ "multi-user.target" ];
-      after = [ "systemd-udev-settle.service" ];
-      path = with pkgs; [ nvidia-container-toolkit jq ];
+      wantedBy = ["multi-user.target"];
+      after = ["systemd-udev-settle.service"];
+      path = with pkgs; [nvidia-container-toolkit jq];
       serviceConfig.ExecStart = lib.mkForce (pkgs.writeShellScript "cdi-generate-static" ''
         mkdir -p /var/run/cdi
         cat > /var/run/cdi/nvidia-container-toolkit.json << 'CDispec'
@@ -304,15 +300,11 @@ in
     networking.firewall = mkMerge [
       {
         allowedTCPPorts = mkOptionDefault (
-          [ 10250 ]
+          [10250]
           ++ lib.optionals isServer [
             6443
             2379
             2380
-          ]
-          ++ lib.optionals cfg.calico.enable [
-            179
-            5473
           ]
         );
         allowedTCPPortRanges = [
@@ -321,19 +313,14 @@ in
             to = 32767;
           }
         ];
-        allowedUDPPorts = mkOptionDefault (
-          lib.optionals (!cfg.calico.enable) [
-            8472
-          ]
-          ++ [
-            4789
-          ]
-        );
+        allowedUDPPorts = mkOptionDefault [
+          8472
+          4789
+        ];
       }
     ];
 
-    environment.systemPackages =
-      with pkgs;
+    environment.systemPackages = with pkgs;
       [
         kubernetes
         cri-tools
@@ -373,7 +360,7 @@ in
     systemd.services.k3s = {
       environment.CONTAINERD_NRI_DISABLED = "1";
       # Start before keepalived so flannel detects the real IP, not the VIP
-      before = lib.mkIf config.services.keepalived.enable [ "keepalived.service" ];
+      before = lib.mkIf config.services.keepalived.enable ["keepalived.service"];
     };
 
     system.activationScripts.k3s-dirs = ''
@@ -385,8 +372,8 @@ in
     # cannot reach node IPs on other hosts (flannel VXLAN only handles pod CIDRs).
     systemd.services.k3s-node-route = {
       description = "Add static route for cross-node CNI pod traffic";
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
+      after = ["network-online.target"];
+      wants = ["network-online.target"];
       serviceConfig.Type = "oneshot";
       serviceConfig.RemainAfterExit = true;
       script = let
@@ -400,7 +387,7 @@ in
     };
     systemd.timers.k3s-node-route = {
       description = "Ensure node route exists after network changes";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnBootSec = "10s";
         OnUnitActiveSec = "60s";
@@ -410,7 +397,7 @@ in
 
     systemd.services.k3s-network-taint-fix = lib.mkIf isServer {
       description = "Fix NetworkUnavailable taint";
-      path = [ pkgs.kubectl ];
+      path = [pkgs.kubectl];
       serviceConfig.Type = "oneshot";
       serviceConfig.ExecStart = pkgs.writeShellScript "fix-network-taint" ''
         export KUBECONFIG="/etc/rancher/k3s/k3s.yaml"
@@ -424,7 +411,7 @@ in
     };
     systemd.timers.k3s-network-taint-fix = lib.mkIf isServer {
       description = "Periodically fix NetworkUnavailable taint";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnBootSec = "30s";
         OnUnitActiveSec = "30s";

@@ -3,9 +3,9 @@
   pkgsWithOverlay,
   inputs,
   lib,
+  cluster,
   ...
-}:
-let
+}: let
   # nix-csi scratch image (proven pattern from llama-servers)
   scratchImage = "docker.io/library/ai-inference-gateway:2.3.2";
 
@@ -16,15 +16,14 @@ let
 
   # AI Inference Gateway — derive paths from flake input, not hardcoded store paths
   gatewayPkg = inputs.ai-gateway.packages.x86_64-linux.ai-inference-gateway;
-  gatewayEnv = pkgs.python313.withPackages (ps: [ gatewayPkg ]);
+  gatewayEnv = pkgs.python313.withPackages (ps: [gatewayPkg]);
   gatewaySitePackages = "${gatewayEnv}/${gatewayEnv.python.sitePackages}";
-in
-{
+in {
   config.kubernetes.objects.ai-inference = {
-    ServiceAccount.default = { };
-    ServiceAccount.ai-inference-gateway = { };
-    ServiceAccount.open-webui = { };
-    ServiceAccount.prometheus = { };
+    ServiceAccount.default = {};
+    ServiceAccount.ai-inference-gateway = {};
+    ServiceAccount.open-webui = {};
+    ServiceAccount.prometheus = {};
     ServiceAccount.n8n-sa.automountServiceAccountToken = false;
 
     ConfigMap.ai-gateway-config.data = {
@@ -149,7 +148,7 @@ in
                   _namedlist = true;
                   OLLAMA_BASE_URLS = {
                     name = "OLLAMA_BASE_URLS";
-                    value = "http://10.1.1.120:8080/v1";
+                    value = "http://${cluster.hosts.nexus.ip}:8080/v1";
                   }; # AI inference gateway
                   ENABLE_OLLAMA = {
                     name = "ENABLE_OLLAMA";
@@ -173,7 +172,7 @@ in
                   };
                   OPENAI_API_BASE_URL = {
                     name = "OPENAI_API_BASE_URL";
-                    value = "http://10.1.1.120:8080/v1";
+                    value = "http://${cluster.hosts.nexus.ip}:8080/v1";
                   };
                 };
                 ports = [
@@ -328,7 +327,7 @@ in
 
     Role.n8n-role.rules = [
       {
-        apiGroups = [ "" ];
+        apiGroups = [""];
         resources = [
           "configmaps"
           "secrets"
@@ -361,8 +360,8 @@ in
     # Gateway needs ConfigMap access for GPU scheduler state (gpu_scheduler.py writes to kube-system)
     ClusterRole.ai-inference-gateway-configmap.rules = [
       {
-        apiGroups = [ "" ];
-        resources = [ "configmaps" ];
+        apiGroups = [""];
+        resources = ["configmaps"];
         verbs = [
           "get"
           "list"
@@ -390,7 +389,7 @@ in
     };
 
     # ── AI Inference Gateway ──────────────────────────────────────
-    # Runs as systemd service on nexus (10.1.1.120:8080).
+    # Runs as systemd service on nexus (${cluster.hosts.nexus.ip}:8080).
     # Exposed to K8s via Endpoints so pods can reach it at:
     #   ai-inference-gateway.ai-inference.svc.cluster.local:8080
     #
@@ -404,9 +403,11 @@ in
     #   - Knowledge Fabric middleware (SearXNG + RAG + brain wiki)
 
     Service.ai-inference-gateway = {
-      metadata.labels = managed // {
-        app = "ai-inference-gateway";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "ai-inference-gateway";
+        };
       spec = {
         type = "ClusterIP";
         ipFamilyPolicy = "SingleStack";
@@ -463,10 +464,12 @@ in
     # AI Inference Gateway - migrated from systemd to K8s
     # Uses nix-csi scratch pattern (proven with llama-servers)
     Deployment.ai-inference-gateway = {
-      metadata.labels = managed // {
-        app = "ai-inference-gateway";
-        component = "gateway";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "ai-inference-gateway";
+          component = "gateway";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
@@ -480,10 +483,12 @@ in
         };
         template = {
           metadata = {
-            labels = managed // {
-              app = "ai-inference-gateway";
-              component = "gateway";
-            };
+            labels =
+              managed
+              // {
+                app = "ai-inference-gateway";
+                component = "gateway";
+              };
             annotations."nix-csi/discard" = "true";
           };
           spec = {
@@ -737,7 +742,7 @@ in
     # ── NetworkPolicies ────────────────────────────────────────
     NetworkPolicy.default-deny = {
       spec = {
-        podSelector = { };
+        podSelector = {};
         policyTypes = [
           "Ingress"
           "Egress"
@@ -746,18 +751,18 @@ in
     };
     NetworkPolicy.allow-internal = {
       spec = {
-        podSelector = { };
+        podSelector = {};
         policyTypes = [
           "Ingress"
           "Egress"
         ];
-        ingress = [ { from = [ { namespaceSelector.matchLabels.name = "ai-inference"; } ]; } ];
+        ingress = [{from = [{namespaceSelector.matchLabels.name = "ai-inference";}];}];
         egress = [
-          { to = [ { namespaceSelector.matchLabels.name = "ai-inference"; } ]; }
+          {to = [{namespaceSelector.matchLabels.name = "ai-inference";}];}
           {
             to = [
               {
-                namespaceSelector = { };
+                namespaceSelector = {};
                 podSelector.matchLabels."k8s-app" = "kube-dns";
               }
             ];
@@ -773,7 +778,7 @@ in
             ];
           }
           {
-            to = [ { podSelector.matchLabels.app = "privacy-filter"; } ];
+            to = [{podSelector.matchLabels.app = "privacy-filter";}];
             ports = [
               {
                 protocol = "TCP";
@@ -844,7 +849,7 @@ in
           {
             metadata.name = "qdrant-data";
             spec = {
-              accessModes = [ "ReadWriteOnce" ];
+              accessModes = ["ReadWriteOnce"];
               resources.requests.storage = "10Gi";
             };
           }
@@ -1056,7 +1061,7 @@ in
               {
                 name = "llama-server";
                 image = "alpine:latest";
-                command = [ "/run/current-system/sw/bin/llama-server" ];
+                command = ["/run/current-system/sw/bin/llama-server"];
                 args = [
                   "--model=/models/Qwen3.5-0.8B.Q8_0.gguf"
                   "--host=0.0.0.0"
@@ -1194,7 +1199,7 @@ in
       metadata.labels.app = "llama-cpp";
       subsets = [
         {
-          addresses = [ { ip = "10.1.1.120"; } ];
+          addresses = [{ip = cluster.hosts.nexus.ip;}];
           ports = [
             {
               port = 8080;
@@ -1295,7 +1300,7 @@ in
 
     ClusterRole.prometheus.rules = [
       {
-        apiGroups = [ "" ];
+        apiGroups = [""];
         resources = [
           "nodes"
           "nodes/proxy"
@@ -1310,8 +1315,8 @@ in
         ];
       }
       {
-        nonResourceURLs = [ "/metrics" ];
-        verbs = [ "get" ];
+        nonResourceURLs = ["/metrics"];
+        verbs = ["get"];
       }
     ];
 
@@ -1507,7 +1512,7 @@ in
 
     Role.grafana-role.rules = [
       {
-        apiGroups = [ "" ];
+        apiGroups = [""];
         resources = [
           "configmaps"
           "secrets"
@@ -1561,7 +1566,7 @@ in
     NetworkPolicy.allow-search-to-gateway = {
       spec = {
         podSelector.matchLabels.app = "ai-inference-gateway";
-        policyTypes = [ "Ingress" ];
+        policyTypes = ["Ingress"];
         ingress = [
           {
             from = [
@@ -1585,10 +1590,10 @@ in
     NetworkPolicy.allow-gateway-ingress = {
       spec = {
         podSelector.matchLabels.app = "ai-inference-gateway";
-        policyTypes = [ "Ingress" ];
+        policyTypes = ["Ingress"];
         ingress = [
           {
-            from = [ { namespaceSelector.matchLabels.name = "ingress-system"; } ];
+            from = [{namespaceSelector.matchLabels.name = "ingress-system";}];
             ports = [
               {
                 protocol = "TCP";
@@ -1597,7 +1602,7 @@ in
             ];
           }
           {
-            from = [ { podSelector = { }; } ];
+            from = [{podSelector = {};}];
             ports = [
               {
                 protocol = "TCP";
@@ -1614,10 +1619,10 @@ in
     NetworkPolicy.allow-gateway-egress = {
       spec = {
         podSelector.matchLabels.app = "ai-inference-gateway";
-        policyTypes = [ "Egress" ];
+        policyTypes = ["Egress"];
         egress = [
           {
-            to = [ { namespaceSelector.matchLabels.name = "kube-system"; } ];
+            to = [{namespaceSelector.matchLabels.name = "kube-system";}];
             ports = [
               {
                 protocol = "UDP";
@@ -1634,7 +1639,7 @@ in
             ];
           }
           {
-            to = [ { namespaceSelector.matchLabels.name = "search"; } ];
+            to = [{namespaceSelector.matchLabels.name = "search";}];
             ports = [
               {
                 protocol = "TCP";
@@ -1643,7 +1648,7 @@ in
             ];
           }
           {
-            to = [ { podSelector.matchLabels.app = "qdrant"; } ];
+            to = [{podSelector.matchLabels.app = "qdrant";}];
             ports = [
               {
                 protocol = "TCP";
@@ -1652,7 +1657,7 @@ in
             ];
           }
           {
-            to = [ { podSelector.matchLabels.app = "redis"; } ];
+            to = [{podSelector.matchLabels.app = "redis";}];
             ports = [
               {
                 protocol = "TCP";
@@ -1661,7 +1666,7 @@ in
             ];
           }
           {
-            to = [ { podSelector.matchLabels.app = "llama-server-sentry"; } ];
+            to = [{podSelector.matchLabels.app = "llama-server-sentry";}];
             ports = [
               {
                 protocol = "TCP";
@@ -1670,7 +1675,7 @@ in
             ];
           }
           {
-            to = [ { podSelector.matchLabels.app = "llama-server-zephyr"; } ];
+            to = [{podSelector.matchLabels.app = "llama-server-zephyr";}];
             ports = [
               {
                 protocol = "TCP";
@@ -1679,7 +1684,7 @@ in
             ];
           }
           {
-            to = [ { podSelector.matchLabels.app = "llama-server-zephyr-3060ti"; } ];
+            to = [{podSelector.matchLabels.app = "llama-server-zephyr-3060ti";}];
             ports = [
               {
                 protocol = "TCP";
@@ -1688,7 +1693,7 @@ in
             ];
           }
           {
-            to = [ { podSelector.matchLabels.app = "privacy-filter"; } ];
+            to = [{podSelector.matchLabels.app = "privacy-filter";}];
             ports = [
               {
                 protocol = "TCP";
@@ -1697,7 +1702,7 @@ in
             ];
           }
           {
-            to = [ { ipBlock.cidr = "10.1.1.0/24"; } ];
+            to = [{ipBlock.cidr = cluster.kubernetes.subnet;}];
             ports = [
               {
                 protocol = "TCP";
@@ -1721,10 +1726,10 @@ in
     NetworkPolicy.privacy-filter-ingress = {
       spec = {
         podSelector.matchLabels.app = "privacy-filter";
-        policyTypes = [ "Ingress" ];
+        policyTypes = ["Ingress"];
         ingress = [
           {
-            from = [ { namespaceSelector.matchLabels.name = "ingress-system"; } ];
+            from = [{namespaceSelector.matchLabels.name = "ingress-system";}];
             ports = [
               {
                 protocol = "TCP";
@@ -1733,7 +1738,7 @@ in
             ];
           }
           {
-            from = [ { podSelector.matchLabels.name = "ai-inference"; } ];
+            from = [{podSelector.matchLabels.name = "ai-inference";}];
             ports = [
               {
                 protocol = "TCP";
@@ -1748,10 +1753,10 @@ in
     NetworkPolicy.privacy-filter-egress = {
       spec = {
         podSelector.matchLabels.app = "privacy-filter";
-        policyTypes = [ "Egress" ];
+        policyTypes = ["Egress"];
         egress = [
           {
-            to = [ { namespaceSelector.matchLabels.name = "kube-system"; } ];
+            to = [{namespaceSelector.matchLabels.name = "kube-system";}];
             ports = [
               {
                 protocol = "UDP";
@@ -1791,7 +1796,7 @@ in
         ];
         ingress = [
           {
-            from = [ { namespaceSelector.matchLabels."kubernetes.io/metadata.name" = "ingress-system"; } ];
+            from = [{namespaceSelector.matchLabels."kubernetes.io/metadata.name" = "ingress-system";}];
             ports = [
               {
                 port = 8080;
@@ -1799,9 +1804,9 @@ in
               }
             ];
           }
-          { from = [ { podSelector = { }; } ]; }
+          {from = [{podSelector = {};}];}
         ];
-        egress = [ { } ];
+        egress = [{}];
       };
     };
 
@@ -1810,10 +1815,12 @@ in
     # Requires transformers >= 5.6.0 (model uses openai_privacy_filter architecture)
     # Scale to 1 when nixpkgs has transformers 5.6.0+
     Deployment.privacy-filter = {
-      metadata.labels = managed // {
-        app = "privacy-filter";
-        component = "pii-detection";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "privacy-filter";
+          component = "pii-detection";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
@@ -1821,10 +1828,12 @@ in
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels = managed // {
-              app = "privacy-filter";
-              component = "pii-detection";
-            };
+            labels =
+              managed
+              // {
+                app = "privacy-filter";
+                component = "pii-detection";
+              };
             annotations."nix-csi/discard" = "true";
           };
           spec = {
@@ -1835,7 +1844,7 @@ in
               privacy-filter = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgsWithOverlay.privacy-filter}/bin/privacy-filter-server" ];
+                command = ["${pkgsWithOverlay.privacy-filter}/bin/privacy-filter-server"];
                 securityContext.privileged = true;
                 env = {
                   _namedlist = true;
@@ -1900,7 +1909,7 @@ in
                     mountPath = "/run/opengl-driver/lib";
                     readOnly = true;
                   };
-                  tmp = { mountPath = "/tmp"; };
+                  tmp = {mountPath = "/tmp";};
                 };
               };
             };
@@ -1923,9 +1932,11 @@ in
     };
 
     Service.privacy-filter = {
-      metadata.labels = managed // {
-        app = "privacy-filter";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "privacy-filter";
+        };
       spec = {
         type = "ClusterIP";
         selector.app = "privacy-filter";

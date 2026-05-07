@@ -19,6 +19,5 @@
     monitoring.smart-exporter.enable = true;
 
     mining-exporter.enable = true;
-
   };
 }

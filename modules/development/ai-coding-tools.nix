@@ -3,10 +3,10 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.ai-coding-tools;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     mkIf
@@ -14,7 +14,7 @@ let
     optionalString
     ;
 
-  mcpDefs = import ./ai-coding-tools/mcp-defs.nix { inherit lib; };
+  mcpDefs = import ./ai-coding-tools/mcp-defs.nix {inherit lib;};
 
   # Gateway URL from network-constants (single source of truth)
   # Use nodePort for host tools (ClusterIP only accessible from within K8s)
@@ -36,8 +36,7 @@ let
     inherit cfg pkgs gatewayUrl;
     inherit (mcpDefs) mkMcpServersJson;
   };
-in
-{
+in {
   options.services.ai-coding-tools = {
     enable = mkEnableOption "Harmonized MCP configuration for all AI coding tools (Droid, Claude Code, Crush, OpenCode)";
     user = mkOption {
@@ -119,8 +118,8 @@ in
         "agenix.service"
         "network.target"
       ];
-      wants = [ "agenix.service" ];
-      wantedBy = [ "multi-user.target" ];
+      wants = ["agenix.service"];
+      wantedBy = ["multi-user.target"];
       path = [
         pkgs.jq
         pkgs.coreutils
@@ -220,7 +219,7 @@ in
           "/home/${cfg.user}/.factory/mcp.json" \
           "/home/${cfg.user}/.config/claude/mcp.json" \
           "/home/${cfg.user}/.config/crush/crush.json" \
-          "/home/${cfg.user}/.opencode/config.json" 
+          "/home/${cfg.user}/.opencode/config.json"
         do
           if [ -f "$f" ]; then
             servers=$(${pkgs.jq}/bin/jq -r '[.mcpServers // .mcp | keys[]] | length' "$f" 2>/dev/null || echo "?")

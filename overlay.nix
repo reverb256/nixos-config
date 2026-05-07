@@ -1,4 +1,4 @@
-{ inputs }: _final: prev: {
+{inputs}: _final: prev: {
   lolminer = inputs.compute-market.packages.x86_64-linux.lolminer;
   xmrig = inputs.compute-market.packages.x86_64-linux.xmrig;
   lmstudio = prev.callPackage ./packages/lmstudio.nix {};

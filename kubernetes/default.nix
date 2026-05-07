@@ -2,16 +2,15 @@
   pkgs,
   pkgsWithOverlay,
   inputs,
-}:
-let
+}: let
   llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant;
   easykubenix = import inputs.easykubenix {
     inherit pkgs;
     modules = [
-      { _module.args.pkgsWithOverlay = pkgsWithOverlay; }
-      { _module.args.llama-cpp-turboquant = llama-cpp-turboquant; }
-      { _module.args.inputs = inputs; }
-      { _module.args.nix-csi = inputs.nix-csi; }
+      {_module.args.pkgsWithOverlay = pkgsWithOverlay;}
+      {_module.args.llama-cpp-turboquant = llama-cpp-turboquant;}
+      {_module.args.inputs = inputs;}
+      {_module.args.nix-csi = inputs.nix-csi;}
       # nix-csi - upstream module with builtins.currentSystem fix applied
       ./modules/nix-csi.nix
       ./modules/common.nix
@@ -34,4 +33,4 @@ let
     ];
   };
 in
-easykubenix
+  easykubenix

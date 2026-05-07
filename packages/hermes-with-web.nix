@@ -9,8 +9,7 @@
   pkgs,
   hermes-pkg,
   web-dist,
-}:
-let
+}: let
   # The hermes package wraps a venv. Find it from the binary.
   hermesVenv = pkgs.runCommand "hermes-venv-path" {} ''
     VENV_PATH=$(cat ${hermes-pkg}/bin/hermes | grep -oP '/nix/store/[a-z0-9]+-hermes-agent-env' | head -1)
@@ -57,52 +56,52 @@ let
     };
   };
 in
-pkgs.runCommand "hermes-agent-with-web-${hermes-pkg.version or "0.10.0"}" {
-  nativeBuildInputs = [ pkgs.makeWrapper pkgs.unzip ];
-  buildInputs = [ hermes-pkg ];
-} ''
-  mkdir -p $out/bin
+  pkgs.runCommand "hermes-agent-with-web-${hermes-pkg.version or "0.10.0"}" {
+    nativeBuildInputs = [pkgs.makeWrapper pkgs.unzip];
+    buildInputs = [hermes-pkg];
+  } ''
+    mkdir -p $out/bin
 
-  VENV=$(<${hermesVenv})
+    VENV=$(<${hermesVenv})
 
-  # Create our overlay site-packages directory
-  SITEPKG=$(find "$VENV/lib" -maxdepth 2 -name site-packages -type d | head -1)
-  OVERLAY="$out/lib/$(basename $(dirname "$SITEPKG"))/site-packages"
-  mkdir -p "$OVERLAY"
+    # Create our overlay site-packages directory
+    SITEPKG=$(find "$VENV/lib" -maxdepth 2 -name site-packages -type d | head -1)
+    OVERLAY="$out/lib/$(basename $(dirname "$SITEPKG"))/site-packages"
+    mkdir -p "$OVERLAY"
 
-  # Create a .pth file pointing to the original venv site-packages
-  echo "$SITEPKG" > "$OVERLAY/00-hermes-venv.pth"
+    # Create a .pth file pointing to the original venv site-packages
+    echo "$SITEPKG" > "$OVERLAY/00-hermes-venv.pth"
 
-  # Create the hermes_cli/web_dist directory with our built frontend
-  mkdir -p "$OVERLAY/hermes_cli/web_dist"
-  cp -r ${web-dist}/* "$OVERLAY/hermes_cli/web_dist/"
-  for f in $SITEPKG/hermes_cli/*; do
-    name=$(basename "$f")
-    if [ "$name" != "web_dist" ] && [ ! -e "$OVERLAY/hermes_cli/$name" ]; then
-      ln -s "$f" "$OVERLAY/hermes_cli/$name"
+    # Create the hermes_cli/web_dist directory with our built frontend
+    mkdir -p "$OVERLAY/hermes_cli/web_dist"
+    cp -r ${web-dist}/* "$OVERLAY/hermes_cli/web_dist/"
+    for f in $SITEPKG/hermes_cli/*; do
+      name=$(basename "$f")
+      if [ "$name" != "web_dist" ] && [ ! -e "$OVERLAY/hermes_cli/$name" ]; then
+        ln -s "$f" "$OVERLAY/hermes_cli/$name"
+      fi
+    done
+
+    # Install fastapi+uvicorn wheels into overlay
+    ${pkgs.unzip}/bin/unzip -qo ${wheels.fastapi} -d "$OVERLAY"
+    ${pkgs.unzip}/bin/unzip -qo ${wheels.uvicorn} -d "$OVERLAY"
+    ${pkgs.unzip}/bin/unzip -qo ${wheels.starlette} -d "$OVERLAY"
+    ${pkgs.unzip}/bin/unzip -qo ${wheels.anyio} -d "$OVERLAY"
+    ${pkgs.unzip}/bin/unzip -qo ${wheels.sniffio} -d "$OVERLAY"
+    ${pkgs.unzip}/bin/unzip -qo ${wheels.idna} -d "$OVERLAY"
+    ${pkgs.unzip}/bin/unzip -qo ${wheels.click} -d "$OVERLAY"
+    ${pkgs.unzip}/bin/unzip -qo ${wheels.h11} -d "$OVERLAY"
+
+    # Wrap hermes binaries with our overlay in PYTHONPATH (takes precedence)
+    for bin in ${hermes-pkg}/bin/*; do
+      name=$(basename "$bin")
+      makeWrapper "$bin" "$out/bin/$name" \
+        --prefix PYTHONPATH : "$OVERLAY" \
+        --set HERMES_HOME "/var/lib/hermes/.hermes"
+    done
+
+    # Copy share
+    if [ -d ${hermes-pkg}/share ]; then
+      cp -r ${hermes-pkg}/share $out/share
     fi
-  done
-
-  # Install fastapi+uvicorn wheels into overlay
-  ${pkgs.unzip}/bin/unzip -qo ${wheels.fastapi} -d "$OVERLAY"
-  ${pkgs.unzip}/bin/unzip -qo ${wheels.uvicorn} -d "$OVERLAY"
-  ${pkgs.unzip}/bin/unzip -qo ${wheels.starlette} -d "$OVERLAY"
-  ${pkgs.unzip}/bin/unzip -qo ${wheels.anyio} -d "$OVERLAY"
-  ${pkgs.unzip}/bin/unzip -qo ${wheels.sniffio} -d "$OVERLAY"
-  ${pkgs.unzip}/bin/unzip -qo ${wheels.idna} -d "$OVERLAY"
-  ${pkgs.unzip}/bin/unzip -qo ${wheels.click} -d "$OVERLAY"
-  ${pkgs.unzip}/bin/unzip -qo ${wheels.h11} -d "$OVERLAY"
-
-  # Wrap hermes binaries with our overlay in PYTHONPATH (takes precedence)
-  for bin in ${hermes-pkg}/bin/*; do
-    name=$(basename "$bin")
-    makeWrapper "$bin" "$out/bin/$name" \
-      --prefix PYTHONPATH : "$OVERLAY" \
-      --set HERMES_HOME "/var/lib/hermes/.hermes"
-  done
-
-  # Copy share
-  if [ -d ${hermes-pkg}/share ]; then
-    cp -r ${hermes-pkg}/share $out/share
-  fi
-''
+  ''

@@ -3,11 +3,9 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.programs.haven-desktop;
-in
-{
+in {
   options.programs.haven-desktop = {
     enable = lib.mkEnableOption "Haven Desktop - private chat with per-app audio sharing";
   };

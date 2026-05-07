@@ -1,5 +1,8 @@
-{ pkgs, lib, ... }:
 {
+  pkgs,
+  lib,
+  ...
+}: {
   hardware.gpu-compute = {
     enable = true;
     rocm.enable = true;
@@ -47,22 +50,20 @@
     ];
   };
 
-  systemd.tmpfiles.rules =
-    let
-      rocmEnv = pkgs.symlinkJoin {
-        name = "rocm-combined";
-        paths = with pkgs.rocmPackages; [
-          clr
-          clr.icd
-          rocblas
-          hipblas
-          rpp
-        ];
-      };
-    in
-    [
-      "R /var/lib/etcd - - - - -"
-      "L+ /opt/rocm - - - - ${rocmEnv}"
-      "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
-    ];
+  systemd.tmpfiles.rules = let
+    rocmEnv = pkgs.symlinkJoin {
+      name = "rocm-combined";
+      paths = with pkgs.rocmPackages; [
+        clr
+        clr.icd
+        rocblas
+        hipblas
+        rpp
+      ];
+    };
+  in [
+    "R /var/lib/etcd - - - - -"
+    "L+ /opt/rocm - - - - ${rocmEnv}"
+    "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
+  ];
 }

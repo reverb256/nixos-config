@@ -109,29 +109,98 @@
         ports = lib.mkOption {
           type = lib.types.submodule {
             options = {
-              wivrn-tcp = lib.mkOption { type = lib.types.int; default = 9757; };
-              wivrn-udp-start = lib.mkOption { type = lib.types.int; default = 9757; };
-              wivrn-udp-end = lib.mkOption { type = lib.types.int; default = 9760; };
-              mcp-api = lib.mkOption { type = lib.types.int; default = 18789; };
-              mcp-storage = lib.mkOption { type = lib.types.int; default = 18790; };
-              steam-tcp = lib.mkOption { type = lib.types.listOf lib.types.int; default = [27031 27036]; };
-              steam-udp = lib.mkOption { type = lib.types.listOf lib.types.int; default = [27031 27036]; };
-              mdns = lib.mkOption { type = lib.types.int; default = 5353; };
-              localsend = lib.mkOption { type = lib.types.int; default = 53317; };
-              xmrig-api = lib.mkOption { type = lib.types.int; default = 8081; };
-              lolminer-nvidia-api = lib.mkOption { type = lib.types.int; default = 4068; };
-              lolminer-amd-api = lib.mkOption { type = lib.types.int; default = 4069; };
-              nix-cache = lib.mkOption { type = lib.types.int; default = 8080; };
-              prometheus = lib.mkOption { type = lib.types.int; default = 9090; };
-              alertmanager = lib.mkOption { type = lib.types.int; default = 9093; };
-              grafana = lib.mkOption { type = lib.types.int; default = 3001; };
-              node-exporter = lib.mkOption { type = lib.types.int; default = 9100; };
-              nvidia-exporter = lib.mkOption { type = lib.types.int; default = 9400; };
-              caddy-admin = lib.mkOption { type = lib.types.int; default = 2019; };
-              caddy-http = lib.mkOption { type = lib.types.int; default = 80; };
-              caddy-https = lib.mkOption { type = lib.types.int; default = 443; };
-              caddy-nodeport-http = lib.mkOption { type = lib.types.int; default = 30080; };
-              caddy-nodeport-https = lib.mkOption { type = lib.types.int; default = 30443; };
+              wivrn-tcp = lib.mkOption {
+                type = lib.types.int;
+                default = 9757;
+              };
+              wivrn-udp-start = lib.mkOption {
+                type = lib.types.int;
+                default = 9757;
+              };
+              wivrn-udp-end = lib.mkOption {
+                type = lib.types.int;
+                default = 9760;
+              };
+              mcp-api = lib.mkOption {
+                type = lib.types.int;
+                default = 18789;
+              };
+              mcp-storage = lib.mkOption {
+                type = lib.types.int;
+                default = 18790;
+              };
+              steam-tcp = lib.mkOption {
+                type = lib.types.listOf lib.types.int;
+                default = [27031 27036];
+              };
+              steam-udp = lib.mkOption {
+                type = lib.types.listOf lib.types.int;
+                default = [27031 27036];
+              };
+              mdns = lib.mkOption {
+                type = lib.types.int;
+                default = 5353;
+              };
+              localsend = lib.mkOption {
+                type = lib.types.int;
+                default = 53317;
+              };
+              xmrig-api = lib.mkOption {
+                type = lib.types.int;
+                default = 8081;
+              };
+              lolminer-nvidia-api = lib.mkOption {
+                type = lib.types.int;
+                default = 4068;
+              };
+              lolminer-amd-api = lib.mkOption {
+                type = lib.types.int;
+                default = 4069;
+              };
+              nix-cache = lib.mkOption {
+                type = lib.types.int;
+                default = 8080;
+              };
+              prometheus = lib.mkOption {
+                type = lib.types.int;
+                default = 9090;
+              };
+              alertmanager = lib.mkOption {
+                type = lib.types.int;
+                default = 9093;
+              };
+              grafana = lib.mkOption {
+                type = lib.types.int;
+                default = 3001;
+              };
+              node-exporter = lib.mkOption {
+                type = lib.types.int;
+                default = 9100;
+              };
+              nvidia-exporter = lib.mkOption {
+                type = lib.types.int;
+                default = 9400;
+              };
+              caddy-admin = lib.mkOption {
+                type = lib.types.int;
+                default = 2019;
+              };
+              caddy-http = lib.mkOption {
+                type = lib.types.int;
+                default = 80;
+              };
+              caddy-https = lib.mkOption {
+                type = lib.types.int;
+                default = 443;
+              };
+              caddy-nodeport-http = lib.mkOption {
+                type = lib.types.int;
+                default = 30080;
+              };
+              caddy-nodeport-https = lib.mkOption {
+                type = lib.types.int;
+                default = 30443;
+              };
             };
           };
           default = {};

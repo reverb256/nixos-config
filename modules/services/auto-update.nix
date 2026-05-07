@@ -3,10 +3,10 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.nixos-auto-update;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkIf
     mkOption
@@ -99,8 +99,7 @@ let
 
     echo "$(date): Automatic update completed successfully"
   '';
-in
-{
+in {
   options.services.nixos-auto-update = {
     enable = mkEnableOption "Automatic NixOS updates";
 
@@ -115,7 +114,7 @@ in
 
     updateFlakeInputs = mkOption {
       type = types.listOf types.str;
-      default = [ "nixpkgs" ];
+      default = ["nixpkgs"];
       description = "List of flake inputs to update";
     };
 
@@ -129,7 +128,7 @@ in
     };
 
     rebuildMode = mkOption {
-      type = types.enum [ "switch" "boot" "test" "build" ];
+      type = types.enum ["switch" "boot" "test" "build"];
       default = "boot";
       description = ''
         How to apply the rebuild:
@@ -162,8 +161,8 @@ in
   config = mkIf cfg.enable {
     systemd.services.nixos-auto-update = {
       description = "Automatic NixOS Update";
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
+      after = ["network-online.target"];
+      wants = ["network-online.target"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = updateScript;
@@ -173,7 +172,7 @@ in
 
     systemd.timers.nixos-auto-update = {
       description = "Timer for Automatic NixOS Updates";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnCalendar = cfg.interval;
         Persistent = cfg.persistent;

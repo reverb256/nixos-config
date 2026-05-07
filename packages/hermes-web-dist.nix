@@ -1,4 +1,7 @@
-{ pkgs, hermesSrc }:
+{
+  pkgs,
+  hermesSrc,
+}:
 pkgs.buildNpmPackage {
   pname = "hermes-agent-web-dist";
   version = "0.10.0";
