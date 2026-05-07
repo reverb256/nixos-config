@@ -108,6 +108,7 @@ in {
             __GLX_FORCE_MONO = "0";
             __GL_ALLOW_FXAA_USAGE = "1";
             ENABLE_GAMESCOPE_WSI = "1";
+            __GL_SYNC_TO_VBLANK = "0";
             DXVK_HDR = "1";
             __GL_SYNC_TO_VBLANK = "0";
           };

@@ -107,12 +107,5 @@ in {
         RemainAfterExit = true;
         User = "j_kro";
       };
-      script = ''
-        mkdir -p /home/j_kro/.local/share/certificates
-        cp ${cfg.caCert} /home/j_kro/.local/share/certificates/cluster-ca.crt
-        chown j_kro:users /home/j_kro/.local/share/certificates/cluster-ca.crt
-        echo "CA certificate exported to /home/j_kro/.local/share/certificates/cluster-ca.crt"
-      '';
     };
-  };
 }
