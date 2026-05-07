@@ -21,6 +21,8 @@ in {
   };
 
   config = mkIf config.services.boot-error-fixes.enable {
+    services.printing.enable = true;
+
     users.groups.plugdev = {};
 
     virtualisation.podman = mkDefault {
@@ -80,6 +82,36 @@ in {
     systemd.tmpfiles.rules = lib.mkIf config.services.printing.enable [
       "Z+ /nix/store/*-cups-progs/lib/cups/notifier/dbus 0555 root root - -"
     ];
+
+    # HP Envy 7800 network printer (10.1.1.173)
+    # Custom service to add network printer after cups is ready
+    systemd.services.add-network-printer = {
+      description = "Add HP Envy 7800 network printer";
+      after = ["cups.service" "cups.socket"];
+      wantedBy = ["multi-user.target"];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = pkgs.writeShellScript "add-network-printer" ''
+          #!${pkgs.bash}/bin/bash
+          set -e
+          # Wait for cups to be ready
+          for i in 1 2 3 4 5; do
+            ${pkgs.cups}/bin/lpstat -r 2>/dev/null && break
+            sleep 1
+          done
+          # Add printer if not exists
+          if ! ${pkgs.cups}/bin/lpstat -p 2>/dev/null | grep -q "HP-Envy-7800"; then
+            ${pkgs.cups}/bin/lpadmin -p "HP-Envy-7800" -v "socket://10.1.1.173:9100" -E || true
+          fi
+          # Set as default
+          ${pkgs.cups}/bin/lpoptions -d HP-Envy-7800 || true
+        '';
+      };
+    };
+
+    # Set default printer
+    hardware.printers.ensureDefaultPrinter = "HP-Envy-7800";
 
     # Fix ensure-printers failing when printer is offline (lpadmin timeout).
     # Set successExitStatus so the service doesn't report as failed.
