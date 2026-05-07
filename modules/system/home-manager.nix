@@ -32,6 +32,8 @@ in {
         ../../modules/home-manager/icon-theme.nix
         ../../modules/home-manager/dolphin.nix
         ../../modules/home-manager/desktop-utilities.nix
+        ../../modules/home-manager/ghostty.nix
+        ../../modules/home-manager/alacritty.nix
       ];
 
       disabledModules = ["stylix/hm/opencode.nix"];
