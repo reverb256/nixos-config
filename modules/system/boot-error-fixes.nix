@@ -3,16 +3,15 @@
   lib,
   pkgs,
   ...
-}:
-let
-  inherit (lib)
+}: let
+  inherit
+    (lib)
     mkOption
     types
     mkIf
     mkDefault
     ;
-in
-{
+in {
   options.services.boot-error-fixes = {
     enable = mkOption {
       type = types.bool;
@@ -22,22 +21,21 @@ in
   };
 
   config = mkIf config.services.boot-error-fixes.enable {
-    users.groups.plugdev = { };
+    users.groups.plugdev = {};
 
     virtualisation.podman = mkDefault {
       enable = true;
       dockerCompat = true;
     };
 
-
     systemd.services.boot-error-monitor = {
       description = "Monitor and report boot errors";
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = ["multi-user.target"];
       after = [
         "systemd-sysusers.service"
         "multi-user.target"
       ];
-      wants = [ "systemd-sysusers.service" ];
+      wants = ["systemd-sysusers.service"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "boot-error-check" ''

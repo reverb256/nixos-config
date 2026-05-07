@@ -2,12 +2,10 @@
   config,
   lib,
   ...
-}:
-let
+}: let
   cfg = config.services.lm-studio-headless;
   lmsBin = "/home/${cfg.user}/.lmstudio/bin/lms";
-in
-{
+in {
   options.services.lm-studio-headless = {
     enable = lib.mkEnableOption "LM Studio headless service (llmster daemon)";
 
@@ -58,7 +56,7 @@ in
 
     modelLoadArgs = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ ];
+      default = [];
       example = [
         "--context-length"
         "262144"
@@ -115,55 +113,52 @@ in
       fi
     '';
 
-    systemd.services.lm-studio-headless =
-      let
-        gpuEnv = lib.optionalString (
-          cfg.gpuDevice != null
-        ) "CUDA_VISIBLE_DEVICES=${toString cfg.gpuDevice}";
+    systemd.services.lm-studio-headless = let
+      gpuEnv = lib.optionalString (
+        cfg.gpuDevice != null
+      ) "CUDA_VISIBLE_DEVICES=${toString cfg.gpuDevice}";
 
-        cudaSetup = "/etc/lm-studio/cuda-setup.sh";
-      in
-      {
-        description = "LM Studio Headless Service (llmster daemon)";
-        after = [ "network.target" ];
-        wantedBy = [ "multi-user.target" ];
+      cudaSetup = "/etc/lm-studio/cuda-setup.sh";
+    in {
+      description = "LM Studio Headless Service (llmster daemon)";
+      after = ["network.target"];
+      wantedBy = ["multi-user.target"];
 
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
 
-          Environment = [
-            "PATH=/run/current-system/sw/bin"
-          ];
+        Environment = [
+          "PATH=/run/current-system/sw/bin"
+        ];
 
+        ExecStartPre = lib.optionalString (cfg.preloadModel != null) ''
+          /bin/sh -c '. ${cudaSetup} && ${gpuEnv} su - ${cfg.user} -c "LD_LIBRARY_PATH=$LD_LIBRARY_PATH ${lmsBin} daemon up" &&
+                  . ${cudaSetup} && ${gpuEnv} su - ${cfg.user} -c "LD_LIBRARY_PATH=$LD_LIBRARY_PATH ${lmsBin} load ${cfg.preloadModel} --yes ${lib.escapeShellArgs cfg.modelLoadArgs}"'
+        '';
 
-          ExecStartPre = lib.optionalString (cfg.preloadModel != null) ''
-            /bin/sh -c '. ${cudaSetup} && ${gpuEnv} su - ${cfg.user} -c "LD_LIBRARY_PATH=$LD_LIBRARY_PATH ${lmsBin} daemon up" &&
-                    . ${cudaSetup} && ${gpuEnv} su - ${cfg.user} -c "LD_LIBRARY_PATH=$LD_LIBRARY_PATH ${lmsBin} load ${cfg.preloadModel} --yes ${lib.escapeShellArgs cfg.modelLoadArgs}"'
-          '';
+        ExecStart = ''
+          /bin/sh -c '. ${cudaSetup} && ${gpuEnv} su - ${cfg.user} -c "LD_LIBRARY_PATH=$LD_LIBRARY_PATH ${lmsBin} daemon up && ${lmsBin} server start --port ${toString cfg.port} --bind ${cfg.host}"'
+        '';
 
-          ExecStart = ''
-            /bin/sh -c '. ${cudaSetup} && ${gpuEnv} su - ${cfg.user} -c "LD_LIBRARY_PATH=$LD_LIBRARY_PATH ${lmsBin} daemon up && ${lmsBin} server start --port ${toString cfg.port} --bind ${cfg.host}"'
-          '';
+        ExecStop = "/bin/sh -c 'su - ${cfg.user} -c \"${lmsBin} daemon down\"'";
 
-          ExecStop = "/bin/sh -c 'su - ${cfg.user} -c \"${lmsBin} daemon down\"'";
+        Restart = "on-failure";
+        RestartSec = "10s";
 
-          Restart = "on-failure";
-          RestartSec = "10s";
+        TimeoutStartSec = "300";
+        TimeoutStopSec = "60";
 
-          TimeoutStartSec = "300";
-          TimeoutStopSec = "60";
+        NoNewPrivileges = true;
+        PrivateTmp = true;
 
-          NoNewPrivileges = true;
-          PrivateTmp = true;
+        StandardOutput = "journal";
+        StandardError = "journal";
 
-          StandardOutput = "journal";
-          StandardError = "journal";
-
-          WatchdogSec = "30s";
-        };
+        WatchdogSec = "30s";
       };
+    };
   };
 
-  meta.maintainers = with lib.maintainers; [ ];
+  meta.maintainers = with lib.maintainers; [];
 }

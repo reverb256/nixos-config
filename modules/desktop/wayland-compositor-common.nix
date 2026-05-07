@@ -3,13 +3,11 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   niriEnabled = config.programs.niri.enable or false;
   hyprlandEnabled = config.programs.hyprland.enable or false;
   anyCompositor = niriEnabled || hyprlandEnabled;
-in
-{
+in {
   config = lib.mkIf anyCompositor {
     environment.systemPackages = [
       pkgs.noctalia-shell

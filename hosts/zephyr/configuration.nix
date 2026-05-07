@@ -4,8 +4,7 @@
   lib,
   inputs,
   ...
-}:
-{
+}: {
   imports = [
     ./monitoring.nix
     ./firewall.nix
@@ -28,11 +27,11 @@
   nixpkgs.config.packageOverrides = pkgs: {
     llama-cpp-turboquant = pkgs.llama-cpp-turboquant.overrideAttrs (old: {
       CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=zen3";
-      cmakeFlags = (old.cmakeFlags or []) ++ [ "-DLLAMA_CUDA_ARCHITECTURES=86" ];
+      cmakeFlags = (old.cmakeFlags or []) ++ ["-DLLAMA_CUDA_ARCHITECTURES=86"];
     });
     llama-cpp = pkgs.llama-cpp.overrideAttrs (old: {
       CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=zen3";
-      cmakeFlags = (old.cmakeFlags or []) ++ [ "-DLLAMA_CUDA_ARCHITECTURES=86" ];
+      cmakeFlags = (old.cmakeFlags or []) ++ ["-DLLAMA_CUDA_ARCHITECTURES=86"];
     });
   };
 
@@ -70,7 +69,6 @@
     };
   };
 
-
   zramSwap = {
     enable = true;
     algorithm = "zstd";
@@ -83,7 +81,6 @@
     "net.core.wmem_default" = 262144;
     "net.core.rmem_max" = 16777216;
     "net.core.wmem_max" = 16777216;
-
   };
 
   stylix = {
@@ -114,11 +111,10 @@
 
   security.kubernetes.enable = true;
 
-
   security.gpg.enable = true;
 
   systemd.user.services.gamemoded = {
-    wantedBy = [ "default.target" ];
+    wantedBy = ["default.target"];
   };
 
   fileSystems = {
@@ -138,14 +134,14 @@
   fileSystems."/home/j_kro/.hermes" = {
     device = "nexus:/data/hermes";
     fsType = "nfs4";
-    options = [ "noatime" "nodiratime" "_netdev" ];
+    options = ["noatime" "nodiratime" "_netdev"];
   };
 
   # Shared pi agent config via NFS
   fileSystems."/home/j_kro/.pi/agent" = {
     device = "nexus:/data/pi";
     fsType = "nfs4";
-    options = [ "noatime" "nodiratime" "_netdev" ];
+    options = ["noatime" "nodiratime" "_netdev"];
   };
 
   i18n.defaultLocale = "en_CA.UTF-8";
@@ -297,9 +293,9 @@
 
   systemd.services.dnat-nfs = {
     description = "DNAT rule for NFS redirect (10.1.1.100:80 -> 10.1.1.120:30888)";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "network-online.target" ];
-    wants = [ "network-online.target" ];
+    wantedBy = ["multi-user.target"];
+    after = ["network-online.target"];
+    wants = ["network-online.target"];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;

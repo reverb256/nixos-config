@@ -2,46 +2,39 @@
   inputs,
   self,
   ...
-}:
-let
-
-
-  tunedNixpkgs =
-    system:
+}: let
+  tunedNixpkgs = system:
     import inputs.nixpkgs {
       inherit system;
       config.allowUnfree = true;
-      overlays = [ ((import ./overlay.nix) { inherit inputs; }) ];
+      overlays = [((import ./overlay.nix) {inherit inputs;})];
     };
-
 
   commonModules = import ./common-modules-list.nix {
     inherit inputs self;
   };
 
-
-  mkHost =
-    {
-      hostName,
-      targetHost,
-      tags ? [ ],
-    }:
-    { ... }:
-    {
-      imports = commonModules ++ [
+  mkHost = {
+    hostName,
+    targetHost,
+    tags ? [],
+  }: {...}: {
+    imports =
+      commonModules
+      ++ [
         ./hosts/${hostName}/configuration.nix
       ];
-      deployment = {
-        inherit targetHost;
-        targetUser = "j_kro";
-        inherit tags;
-        allowLocalDeployment = if targetHost == null then true else false;
-      };
+    deployment = {
+      inherit targetHost;
+      targetUser = "j_kro";
+      inherit tags;
+      allowLocalDeployment =
+        if targetHost == null
+        then true
+        else false;
     };
-
-
-in
-{
+  };
+in {
   meta = {
     nixpkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
     nodeNixpkgs = {
@@ -55,7 +48,6 @@ in
       inherit inputs self;
     };
   };
-
 
   zephyr = mkHost {
     hostName = "zephyr";

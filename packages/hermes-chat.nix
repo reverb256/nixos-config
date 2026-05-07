@@ -1,5 +1,12 @@
-{ lib, rustPlatform, fetchFromGitHub, pkg-config, openssl, fontconfig, git }:
-
+{
+  lib,
+  rustPlatform,
+  fetchFromGitHub,
+  pkg-config,
+  openssl,
+  fontconfig,
+  git,
+}:
 rustPlatform.buildRustPackage rec {
   pname = "hermes-chat";
   version = "0.1.0-unstable";
@@ -16,8 +23,8 @@ rustPlatform.buildRustPackage rec {
     allowBuiltinFetchGit = true;
   };
 
-  nativeBuildInputs = [ pkg-config git ];
-  buildInputs = [ openssl fontconfig ];
+  nativeBuildInputs = [pkg-config git];
+  buildInputs = [openssl fontconfig];
 
   buildNoBuildCargoCheck = true;
 
@@ -28,17 +35,17 @@ rustPlatform.buildRustPackage rec {
 
   # Post-install: add to path
   postInstall = ''
-    mkdir -p $out/share/applications
-    cat > $out/share/applications/hermes-chat.desktop <<EOF
-[Desktop Entry]
-Name=Hermes Chat
-Comment=Native desktop client for Hermes Agent
-Exec=$out/bin/hermes-chat
-Icon=hermes-chat
-Terminal=false
-Type=Application
-Categories=Network;InstantMessaging;
-EOF
+        mkdir -p $out/share/applications
+        cat > $out/share/applications/hermes-chat.desktop <<EOF
+    [Desktop Entry]
+    Name=Hermes Chat
+    Comment=Native desktop client for Hermes Agent
+    Exec=$out/bin/hermes-chat
+    Icon=hermes-chat
+    Terminal=false
+    Type=Application
+    Categories=Network;InstantMessaging;
+    EOF
   '';
 
   meta = with lib; {
@@ -47,6 +54,6 @@ EOF
     license = licenses.mit;
     mainProgram = "hermes-chat";
     platforms = platforms.linux;
-    maintainers = [ ];
+    maintainers = [];
   };
 }

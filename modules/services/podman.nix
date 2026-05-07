@@ -60,23 +60,23 @@ in {
       ++ lib.optional cfg.rootless pasta;
 
     environment.etc."containers/policy.json".text = builtins.toJSON {
-      default = [{ type = "reject"; }];
+      default = [{type = "reject";}];
       transports = {
         "docker-daemon" = {
-          "" = [{ type = "insecureAcceptAnything"; }];
+          "" = [{type = "insecureAcceptAnything";}];
         };
         "directory" = {
-          "" = [{ type = "insecureAcceptAnything"; }];
+          "" = [{type = "insecureAcceptAnything";}];
         };
         "docker" = {
-          "docker.io/library" = [{ type = "insecureAcceptAnything"; }];
-          "docker.io" = [{ type = "insecureAcceptAnything"; }];
-          "ghcr.io" = [{ type = "insecureAcceptAnything"; }];
-          "quay.io" = [{ type = "insecureAcceptAnything"; }];
-          "localhost" = [{ type = "insecureAcceptAnything"; }];
+          "docker.io/library" = [{type = "insecureAcceptAnything";}];
+          "docker.io" = [{type = "insecureAcceptAnything";}];
+          "ghcr.io" = [{type = "insecureAcceptAnything";}];
+          "quay.io" = [{type = "insecureAcceptAnything";}];
+          "localhost" = [{type = "insecureAcceptAnything";}];
         };
         "atomic" = {
-          "" = [{ type = "insecureAcceptAnything"; }];
+          "" = [{type = "insecureAcceptAnything";}];
         };
       };
     };

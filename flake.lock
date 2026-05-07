@@ -54,8 +54,8 @@
         ]
       },
       "locked": {
-        "lastModified": 1777179644,
-        "narHash": "sha256-iWYpw71jsv44Ij2uz38sMLvwe+jtZ6PE2+WpznwOB40=",
+        "lastModified": 1778108079,
+        "narHash": "sha256-f/S6MgreXWsgyDYSfVr8R2w5kUP2g99XpGQiGk+qVbg=",
         "path": "/data/projects/own/ai-inference-gateway",
         "type": "path"
       },

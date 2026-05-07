@@ -2,11 +2,9 @@
   config,
   lib,
   ...
-}:
-let
+}: let
   cfg = config.services.nfs.server;
-in
-{
+in {
   config = lib.mkIf cfg.enable {
     systemd.tmpfiles.rules = [
       "d /mnt/garage 0755 root root - -"

@@ -1,5 +1,4 @@
-{ lib, ... }:
-{
+{lib, ...}: {
   imports = [
     ../../modules/services/monitoring/default.nix
   ];
@@ -18,17 +17,10 @@
       alertmanager.enable = false; # Consolidated to nexus
       alert-webhook.enable = false; # Consolidated to nexus
       alertmanager.email.enable = false;
-      loki = {
-        enable = false; # TODO: migrate to nexus if needed
-        listenAddress = "0.0.0.0";
-        dataDir = "/storage/loki";
-      };
 
       node-exporter.enable = true;
       smart-exporter.enable = true;
-
     };
-
 
     mining-exporter.enable = true;
 
@@ -58,5 +50,5 @@
     };
   };
 
-  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ 9100 ];
+  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [9100];
 }

@@ -1,7 +1,4 @@
-{
-  pkgs ? import <nixpkgs> { },
-}:
-let
+{pkgs ? import <nixpkgs> {}}: let
   lib = pkgs.lib;
 
   flakeSource = builtins.readFile ../flake.nix;
@@ -25,14 +22,12 @@ let
     "easykubenix"
   ];
 
-  isInputReferenced =
-    input:
-    let
-      inFlakeOutputs =
-        lib.strings.hasInfix "inputs.${input}" flakeSource
-        || lib.strings.hasInfix "inherit inputs" flakeSource;
-      inCommonModules = lib.strings.hasInfix "inputs.${input}" commonSource;
-    in
+  isInputReferenced = input: let
+    inFlakeOutputs =
+      lib.strings.hasInfix "inputs.${input}" flakeSource
+      || lib.strings.hasInfix "inherit inputs" flakeSource;
+    inCommonModules = lib.strings.hasInfix "inputs.${input}" commonSource;
+  in
     inFlakeOutputs || inCommonModules;
 
   referencedInCommon = [
@@ -44,9 +39,11 @@ let
     "llm-agents"
   ];
 
-  commonModuleRefsValid = builtins.all (
-    input: lib.strings.hasInfix "inputs.${input}" commonSource
-  ) referencedInCommon;
+  commonModuleRefsValid =
+    builtins.all (
+      input: lib.strings.hasInfix "inputs.${input}" commonSource
+    )
+    referencedInCommon;
 
   hasSelfOverlay = lib.strings.hasInfix "self.overlays" commonSource;
 
@@ -54,10 +51,12 @@ let
     lib.strings.hasInfix "inherit inputs self" commonSource
     || (lib.strings.hasInfix "inputs" commonSource && lib.strings.hasInfix "self" commonSource);
 
-  allInputsHaveUrl = builtins.all (
-    input:
-    lib.strings.hasInfix "${input}.url" flakeSource || lib.strings.hasInfix "${input} =" flakeSource
-  ) declaredInputs;
+  allInputsHaveUrl =
+    builtins.all (
+      input:
+        lib.strings.hasInfix "${input}.url" flakeSource || lib.strings.hasInfix "${input} =" flakeSource
+    )
+    declaredInputs;
 
   followsNixpkgs = [
     "home-manager"
@@ -73,18 +72,19 @@ let
     "llm-agents"
   ];
 
-  missingFollows = builtins.filter (
-    input:
-    !(lib.strings.hasInfix "inputs.nixpkgs.follows" (
-      let
-        idx = lib.strings.findStringStart "${input}" flakeSource 0;
-      in
-      if idx < 0 then
-        ""
-      else
-        lib.substring idx (lib.min 500 (builtins.stringLength flakeSource - idx)) flakeSource
-    ))
-  ) followsNixpkgs;
+  missingFollows =
+    builtins.filter (
+      input:
+        !(lib.strings.hasInfix "inputs.nixpkgs.follows" (
+          let
+            idx = lib.strings.findStringStart "${input}" flakeSource 0;
+          in
+            if idx < 0
+            then ""
+            else lib.substring idx (lib.min 500 (builtins.stringLength flakeSource - idx)) flakeSource
+        ))
+    )
+    followsNixpkgs;
 
   allChecks = {
     commonModulesRefsValid = commonModuleRefsValid;
@@ -94,10 +94,8 @@ let
   };
 
   failures = lib.filterAttrs (_: v: v == false) allChecks;
-
-in
-{
+in {
   checks = allChecks;
   failures = builtins.attrNames failures;
-  passed = failures == { };
+  passed = failures == {};
 }

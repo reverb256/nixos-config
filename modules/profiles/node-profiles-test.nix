@@ -1,15 +1,12 @@
 let
   lib = import <nixpkgs/lib>;
 
-  mkTestConfig =
-    profileModule:
-    let
-      networkingHelper = import ./networking.nix { inherit lib; };
-      mkNetworkingConfig = networkingHelper.mkNetworkingConfig;
-    in
-    {
-      inherit mkNetworkingConfig;
-    };
+  mkTestConfig = profileModule: let
+    networkingHelper = import ./networking.nix {inherit lib;};
+    mkNetworkingConfig = networkingHelper.mkNetworkingConfig;
+  in {
+    inherit mkNetworkingConfig;
+  };
 
   helper = mkTestConfig null;
 
@@ -60,14 +57,14 @@ let
         unboundListenAddress = "10.1.1.120";
         wireless.enable = true;
       };
-      firewallExtraTCPPorts = [ 10250 ];
+      firewallExtraTCPPorts = [10250];
       firewallExtraTCPPortRanges = [
         {
           from = 30000;
           to = 32767;
         }
       ];
-      firewallExtraUDPPorts = [ ];
+      firewallExtraUDPPorts = [];
     };
 
     forge = {
@@ -87,14 +84,14 @@ let
         wireless.enable = false;
       };
       disableDHCP = true;
-      firewallExtraTCPPorts = [ 10250 ];
+      firewallExtraTCPPorts = [10250];
       firewallExtraTCPPortRanges = [
         {
           from = 30000;
           to = 32767;
         }
       ];
-      firewallExtraUDPPorts = [ ];
+      firewallExtraUDPPorts = [];
     };
 
     sentry = {
@@ -109,39 +106,42 @@ let
         unboundListenAddress = "10.1.1.140";
         wireless.enable = false;
       };
-      firewallExtraTCPPorts = [ 10250 ];
+      firewallExtraTCPPorts = [10250];
       firewallExtraTCPPortRanges = [
         {
           from = 30000;
           to = 32767;
         }
       ];
-      firewallExtraUDPPorts = [ ];
+      firewallExtraUDPPorts = [];
     };
   };
 
-  testNetworking =
-    let
-      mkTest =
-        name: profile:
-        let
-          result = helper.mkNetworkingConfig profile;
-          clusterNet = result.clusterNetworking.content or null;
-        in
-        {
-          ${name} = {
-            hasClusterNetworking = clusterNet != null;
-            correctIP =
-              if clusterNet != null then clusterNet.ipAddress == profile.networking.ipAddress else false;
-            correctInterface =
-              if clusterNet != null then clusterNet.interfaceName == profile.networking.interfaceName else false;
-            unboundEnabled = if clusterNet != null then clusterNet.unbound.enable == true else false;
-            hasFirewallTCPPorts = result.networking.firewall.allowedTCPPorts != [ ];
-            dhcpDisabled = result.networking.dhcpcd.enable.content or true != false || name != "forge";
-          };
-        };
-    in
-    lib.foldl' (acc: name: acc // (mkTest name testProfiles.${name})) { } (
+  testNetworking = let
+    mkTest = name: profile: let
+      result = helper.mkNetworkingConfig profile;
+      clusterNet = result.clusterNetworking.content or null;
+    in {
+      ${name} = {
+        hasClusterNetworking = clusterNet != null;
+        correctIP =
+          if clusterNet != null
+          then clusterNet.ipAddress == profile.networking.ipAddress
+          else false;
+        correctInterface =
+          if clusterNet != null
+          then clusterNet.interfaceName == profile.networking.interfaceName
+          else false;
+        unboundEnabled =
+          if clusterNet != null
+          then clusterNet.unbound.enable == true
+          else false;
+        hasFirewallTCPPorts = result.networking.firewall.allowedTCPPorts != [];
+        dhcpDisabled = result.networking.dhcpcd.enable.content or true != false || name != "forge";
+      };
+    };
+  in
+    lib.foldl' (acc: name: acc // (mkTest name testProfiles.${name})) {} (
       builtins.attrNames testProfiles
     );
 
@@ -167,4 +167,4 @@ let
     nexusSingleGpu = testProfiles.nexus.nvidia.multiGpu == false;
   };
 in
-allTests
+  allTests

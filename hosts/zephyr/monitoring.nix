@@ -1,5 +1,4 @@
-{ lib, ... }:
-{
+{lib, ...}: {
   imports = [
     ../../modules/services/monitoring/default.nix
   ];
@@ -17,7 +16,6 @@
       listenAddress = "0.0.0.0";
     };
 
-
     xmrig-metrics = {
       enable = true;
       targets = [
@@ -28,5 +26,5 @@
     };
   };
 
-  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ 9100 ];
+  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [9100];
 }

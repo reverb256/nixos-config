@@ -3,8 +3,7 @@
   lib,
   ...
 }:
-with lib;
-let
+with lib; let
   cfg = config.services.haproxy-kubernetes;
 
   haproxyConfig = {
@@ -51,7 +50,7 @@ let
     "frontend kubernetes-api" = {
       bind = "${cfg.vip}:6443";
       mode = "tcp";
-      option = [ "tcplog" ];
+      option = ["tcplog"];
       defaultBackend = "kubernetes-api-backend";
     };
 
@@ -79,8 +78,7 @@ let
       "http-check expect" = "string OK";
     };
   };
-in
-{
+in {
   options.services.haproxy-kubernetes = {
     enable = mkEnableOption "HAProxy load balancer for Kubernetes API";
 
@@ -145,49 +143,50 @@ in
       haproxy = {
         enable = true;
 
-        config =
-          let
-            mkSection =
-              name: settings:
-              concatStringsSep "\n" (
-                [ "${name}" ]
-                ++ (mapAttrsToList (
+        config = let
+          mkSection = name: settings:
+            concatStringsSep "\n" (
+              ["${name}"]
+              ++ (mapAttrsToList (
                   k: v:
-                  if isList v then
-                    "    ${concatStringsSep " " v}"
-                  else if isAttrs v then
-                    concatStringsSep "\n" (mapAttrsToList (k2: v2: "    ${k2} ${v2}") v)
-                  else
-                    "    ${k} ${v}"
-                ) settings)
-              );
+                    if isList v
+                    then "    ${concatStringsSep " " v}"
+                    else if isAttrs v
+                    then concatStringsSep "\n" (mapAttrsToList (k2: v2: "    ${k2} ${v2}") v)
+                    else "    ${k} ${v}"
+                )
+                settings)
+            );
 
-            backendSection =
-              let
-                baseSettings = haproxyConfig."backend kubernetes-api-backend";
-                serverLines = map (
-                  node: "    server ${node.name} ${node.ip}:6443 check check-ssl verify none inter 2s fall 3 rise 2"
-                ) cfg.masterNodes;
-              in
-              concatStringsSep "\n" (
-                [ "backend kubernetes-api-backend" ]
-                ++ (mapAttrsToList (k: v: if isList v then "    ${concatStringsSep " " v}" else "    ${k} ${v}") (
-                  filterAttrs (k: _v: k != "server") baseSettings
-                ))
-                ++ serverLines
-              );
+          backendSection = let
+            baseSettings = haproxyConfig."backend kubernetes-api-backend";
+            serverLines =
+              map (
+                node: "    server ${node.name} ${node.ip}:6443 check check-ssl verify none inter 2s fall 3 rise 2"
+              )
+              cfg.masterNodes;
           in
-          ''
-            ${concatStringsSep "\n\n" [
-              (mkSection "global" haproxyConfig.global)
-              (mkSection "defaults" haproxyConfig.defaults)
-              (mkSection "stats stats" haproxyConfig."stats stats")
-              (mkSection "frontend kubernetes-api" haproxyConfig."frontend kubernetes-api")
-              backendSection
-              (mkSection "frontend health" haproxyConfig."frontend health")
-              (mkSection "backend health-backend" haproxyConfig."backend health-backend")
-            ]}
-          '';
+            concatStringsSep "\n" (
+              ["backend kubernetes-api-backend"]
+              ++ (mapAttrsToList (k: v:
+                if isList v
+                then "    ${concatStringsSep " " v}"
+                else "    ${k} ${v}") (
+                filterAttrs (k: _v: k != "server") baseSettings
+              ))
+              ++ serverLines
+            );
+        in ''
+          ${concatStringsSep "\n\n" [
+            (mkSection "global" haproxyConfig.global)
+            (mkSection "defaults" haproxyConfig.defaults)
+            (mkSection "stats stats" haproxyConfig."stats stats")
+            (mkSection "frontend kubernetes-api" haproxyConfig."frontend kubernetes-api")
+            backendSection
+            (mkSection "frontend health" haproxyConfig."frontend health")
+            (mkSection "backend health-backend" haproxyConfig."backend health-backend")
+          ]}
+        '';
       };
 
       keepalived = {
@@ -195,11 +194,14 @@ in
 
         vrrpInstances = {
           kubernetes-vip = {
-            state = if cfg.priority >= 110 then "MASTER" else "BACKUP";
+            state =
+              if cfg.priority >= 110
+              then "MASTER"
+              else "BACKUP";
             inherit (cfg) interface;
             virtualRouterId = 51;
             inherit (cfg) priority;
-            trackInterface = [ cfg.interface ];
+            trackInterface = [cfg.interface];
 
             virtualIps = [
               {
@@ -235,7 +237,7 @@ in
         8404
         8080
       ];
-      allowedUDPPorts = [ 112 ];
+      allowedUDPPorts = [112];
       extraInputRules = ''
         ip protocol vrrp accept
         ip daddr 224.0.0.0/24 accept

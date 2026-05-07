@@ -4,9 +4,9 @@
   inputs,
   config,
   lib,
+  cluster,
   ...
-}:
-let
+}: let
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
@@ -24,7 +24,10 @@ let
   # Common host volume patterns
   hostVolume = path: {
     hostPath.path = path;
-    type = if lib.hasSuffix "/" path then "Directory" else "DirectoryOrCreate";
+    type =
+      if lib.hasSuffix "/" path
+      then "Directory"
+      else "DirectoryOrCreate";
   };
 
   # All cluster nodes for DaemonSets
@@ -47,10 +50,8 @@ let
       operator = "Exists";
     }
   ];
-in
-{
+in {
   config.kubernetes.objects = {
-
     # ── Namespace ──────────────────────────────────────────────────
     none.Namespace.infra = {
       metadata.labels.name = "infra";
@@ -58,26 +59,30 @@ in
 
     infra.NetworkPolicy.default-deny-infra = {
       spec = {
-        podSelector = { };
-        policyTypes = [ "Ingress" ];
+        podSelector = {};
+        policyTypes = ["Ingress" "Egress"];
       };
     };
 
     # ── Redis (StatefulSet) ────────────────────────────────────────
     # Replaces: redis.service + redis-ai-gateway.service on zephyr+nexus
     infra.StatefulSet.redis = {
-      metadata.labels = managed // {
-        app = "redis";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "redis";
+        };
       spec = {
         serviceName = "redis";
         replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels.app = "redis";
         template = {
-          metadata.labels = managed // {
-            app = "redis";
-          };
+          metadata.labels =
+            managed
+            // {
+              app = "redis";
+            };
           spec = {
             nodeName = "zephyr";
             hostNetwork = true;
@@ -90,7 +95,7 @@ in
               redis = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgs.redis}/bin/redis-server" ];
+                command = ["${pkgs.redis}/bin/redis-server"];
                 args = [
                   "--port"
                   "6379"
@@ -144,7 +149,7 @@ in
                     cpu = "500m";
                   };
                 };
-                securityContext.capabilities.drop = [ "ALL" ];
+                securityContext.capabilities.drop = ["ALL"];
                 volumeMounts = {
                   _namedlist = true;
                   nix = nixVolumeMount;
@@ -164,7 +169,7 @@ in
           {
             metadata.name = "data";
             spec = {
-              accessModes = [ "ReadWriteOncePod" ];
+              accessModes = ["ReadWriteOncePod"];
               storageClassName = "local-path";
               resources.requests.storage = "1Gi";
             };
@@ -174,9 +179,11 @@ in
     };
 
     infra.Service.redis = {
-      metadata.labels = managed // {
-        app = "redis";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "redis";
+        };
       spec = {
         type = "ClusterIP";
         selector.app = "redis";
@@ -194,18 +201,22 @@ in
     # ── Redis AI Gateway (StatefulSet) ─────────────────────────────
     # Separate Redis instance for AI gateway cache on zephyr
     infra.StatefulSet.redis-ai-gateway = {
-      metadata.labels = managed // {
-        app = "redis-ai-gateway";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "redis-ai-gateway";
+        };
       spec = {
         serviceName = "redis-ai-gateway";
         replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels.app = "redis-ai-gateway";
         template = {
-          metadata.labels = managed // {
-            app = "redis-ai-gateway";
-          };
+          metadata.labels =
+            managed
+            // {
+              app = "redis-ai-gateway";
+            };
           spec = {
             nodeName = "zephyr";
             hostNetwork = true;
@@ -218,7 +229,7 @@ in
               redis = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgs.redis}/bin/redis-server" ];
+                command = ["${pkgs.redis}/bin/redis-server"];
                 args = [
                   "--port"
                   "6380"
@@ -260,7 +271,7 @@ in
                     cpu = "500m";
                   };
                 };
-                securityContext.capabilities.drop = [ "ALL" ];
+                securityContext.capabilities.drop = ["ALL"];
                 volumeMounts = {
                   _namedlist = true;
                   nix = nixVolumeMount;
@@ -280,7 +291,7 @@ in
           {
             metadata.name = "data";
             spec = {
-              accessModes = [ "ReadWriteOncePod" ];
+              accessModes = ["ReadWriteOncePod"];
               storageClassName = "local-path";
               resources.requests.storage = "2Gi";
             };
@@ -290,9 +301,11 @@ in
     };
 
     infra.Service.redis-ai-gateway = {
-      metadata.labels = managed // {
-        app = "redis-ai-gateway";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "redis-ai-gateway";
+        };
       spec = {
         type = "ClusterIP";
         selector.app = "redis-ai-gateway";
@@ -310,17 +323,21 @@ in
     # ── Prometheus Node Exporter (DaemonSet) ───────────────────────
     # Replaces: prometheus-node-exporter.service on all 4 nodes
     infra.DaemonSet.node-exporter = {
-      metadata.labels = managed // {
-        app = "node-exporter";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "node-exporter";
+        };
       spec = {
         revisionHistoryLimit = 1;
         selector.matchLabels.app = "node-exporter";
         template = {
           metadata = {
-            labels = managed // {
-              app = "node-exporter";
-            };
+            labels =
+              managed
+              // {
+                app = "node-exporter";
+              };
             annotations."prometheus.io/scrape" = "true";
             annotations."prometheus.io/port" = "9100";
           };
@@ -335,7 +352,7 @@ in
               node-exporter = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgs.prometheus-node-exporter}/bin/node_exporter" ];
+                command = ["${pkgs.prometheus-node-exporter}/bin/node_exporter"];
                 args = [
                   "--web.listen-address=0.0.0.0:9100"
                   "--path.rootfs=/host/root"
@@ -416,17 +433,21 @@ in
     # ── NVIDIA GPU Exporter (DaemonSet) ────────────────────────────
     # Replaces: prometheus-nvidia-gpu-exporter.service on nvidia nodes
     infra.DaemonSet.nvidia-gpu-exporter = {
-      metadata.labels = managed // {
-        app = "nvidia-gpu-exporter";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "nvidia-gpu-exporter";
+        };
       spec = {
         revisionHistoryLimit = 1;
         selector.matchLabels.app = "nvidia-gpu-exporter";
         template = {
           metadata = {
-            labels = managed // {
-              app = "nvidia-gpu-exporter";
-            };
+            labels =
+              managed
+              // {
+                app = "nvidia-gpu-exporter";
+              };
             annotations."prometheus.io/scrape" = "true";
             annotations."prometheus.io/port" = "9400";
           };
@@ -441,7 +462,7 @@ in
               gpu-exporter = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgs.prometheus-nvidia-gpu-exporter}/bin/nvidia_gpu_exporter" ];
+                command = ["${pkgs.prometheus-nvidia-gpu-exporter}/bin/nvidia_gpu_exporter"];
                 args = [
                   "--web.listen-address=0.0.0.0:9400"
                   "--nvidia-smi-command=/run/opengl-driver/lib/nvidia-smi"
@@ -494,18 +515,22 @@ in
     # ── Vaultwarden (Deployment) ──────────────────────────────────
     # Replaces: vaultwarden.service (podman) on zephyr
     infra.Deployment.vaultwarden = {
-      metadata.labels = managed // {
-        app = "vaultwarden";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "vaultwarden";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels.app = "vaultwarden";
         strategy.type = "Recreate";
         template = {
-          metadata.labels = managed // {
-            app = "vaultwarden";
-          };
+          metadata.labels =
+            managed
+            // {
+              app = "vaultwarden";
+            };
           spec = {
             nodeName = "zephyr";
             hostNetwork = true;
@@ -556,7 +581,7 @@ in
                     cpu = "500m";
                   };
                 };
-                securityContext.capabilities.drop = [ "ALL" ];
+                securityContext.capabilities.drop = ["ALL"];
                 volumeMounts = {
                   _namedlist = true;
                   data = {
@@ -578,9 +603,11 @@ in
     };
 
     infra.Service.vaultwarden = {
-      metadata.labels = managed // {
-        app = "vaultwarden";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "vaultwarden";
+        };
       spec = {
         type = "ClusterIP";
         selector.app = "vaultwarden";
@@ -598,18 +625,22 @@ in
     # ── Claude Code Router (Deployment) ───────────────────────────
     # Replaces: claude-code-router.service on zephyr
     infra.Deployment.claude-code-router = {
-      metadata.labels = managed // {
-        app = "claude-code-router";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "claude-code-router";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels.app = "claude-code-router";
         strategy.type = "Recreate";
         template = {
-          metadata.labels = managed // {
-            app = "claude-code-router";
-          };
+          metadata.labels =
+            managed
+            // {
+              app = "claude-code-router";
+            };
           spec = {
             nodeName = "zephyr";
             hostNetwork = true;
@@ -621,7 +652,7 @@ in
               router = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgs.nodejs_22}/bin/npx" ];
+                command = ["${pkgs.nodejs_22}/bin/npx"];
                 args = [
                   "@musistudio/claude-code-router"
                   "start"
@@ -661,7 +692,7 @@ in
                     cpu = "500m";
                   };
                 };
-                securityContext.capabilities.drop = [ "ALL" ];
+                securityContext.capabilities.drop = ["ALL"];
                 volumeMounts = {
                   _namedlist = true;
                   nix = nixVolumeMount;
@@ -681,7 +712,7 @@ in
                 hostPath.path = "/var/lib/claude-code-router";
                 type = "DirectoryOrCreate";
               };
-              npm-cache.emptyDir = { };
+              npm-cache.emptyDir = {};
             };
           };
         };
@@ -689,9 +720,11 @@ in
     };
 
     infra.Service.claude-code-router = {
-      metadata.labels = managed // {
-        app = "claude-code-router";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "claude-code-router";
+        };
       spec = {
         type = "ClusterIP";
         selector.app = "claude-code-router";
@@ -709,17 +742,21 @@ in
     # ── AI Inference Monitor (DaemonSet) ──────────────────────────
     # Replaces: ai-inference-monitor.service on zephyr/nexus/sentry
     infra.DaemonSet.ai-inference-monitor = {
-      metadata.labels = managed // {
-        app = "ai-inference-monitor";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "ai-inference-monitor";
+        };
       spec = {
         revisionHistoryLimit = 1;
         selector.matchLabels.app = "ai-inference-monitor";
         template = {
           metadata = {
-            labels = managed // {
-              app = "ai-inference-monitor";
-            };
+            labels =
+              managed
+              // {
+                app = "ai-inference-monitor";
+              };
             annotations."prometheus.io/scrape" = "true";
             annotations."prometheus.io/port" = "9190";
           };
@@ -761,7 +798,7 @@ in
                     cpu = "100m";
                   };
                 };
-                securityContext.capabilities.drop = [ "ALL" ];
+                securityContext.capabilities.drop = ["ALL"];
                 volumeMounts = {
                   _namedlist = true;
                   nix = nixVolumeMount;
@@ -785,87 +822,15 @@ in
       };
     };
 
-    # ── Gaming Detection (DaemonSet) ──────────────────────────────
-    # Replaces: gaming-detection.service on zephyr/sentry
-    # NOTE: Needs host D-Bus and /proc access for game process detection
-    infra.DaemonSet.gaming-detection = {
-      metadata.labels = managed // {
-        app = "gaming-detection";
-      };
-      spec = {
-        revisionHistoryLimit = 1;
-        selector.matchLabels.app = "gaming-detection";
-        template = {
-          metadata.labels = managed // {
-            app = "gaming-detection";
-          };
-          spec = {
-            hostNetwork = true;
-            hostPID = true;
-            dnsPolicy = "ClusterFirstWithHostNet";
-            automountServiceAccountToken = false;
-            tolerations = allTolerations;
-            containers = {
-              _namedlist = true;
-              detector = {
-                image = scratchImage;
-                imagePullPolicy = "IfNotPresent";
-                command = [
-                  "${pkgs.writeShellScriptBin "gaming-detection" ''
-                    #!/usr/bin/env bash
-                    set -euo pipefail
-                    # Placeholder - gaming detection is host-bound (needs D-Bus, GameMode)
-                    # Real detection runs via NixOS systemd service on the host
-                    echo "gaming-detection: running in K8s placeholder mode" >&2
-                    STATE_DIR="/run/gaming-detection"
-                    mkdir -p "$STATE_DIR"
-                    echo "GAMING_ACTIVE=0" > "$STATE_DIR/gaming_state"
-                    exec sleep infinity
-                  ''}/bin/gaming-detection"
-                ];
-                resources = {
-                  requests = {
-                    memory = "32Mi";
-                    cpu = "25m";
-                  };
-                  limits = {
-                    memory = "64Mi";
-                    cpu = "100m";
-                  };
-                };
-                securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                  nix = nixVolumeMount;
-                  proc = {
-                    mountPath = "/host/proc";
-                    readOnly = true;
-                  };
-                };
-              };
-            };
-            volumes = {
-              _namedlist = true;
-              nix = nixVolume;
-              proc.hostPath = {
-                path = "/proc";
-                type = "Directory";
-              };
-            };
-          };
-        };
-      };
-    };
-
     # ── Mining Coordinator (Deployment) ───────────────────────────
     # Replaces: mining-coordinator.service on zephyr/sentry
     # Needs kubectl access to manage K8s mining pods
-    infra.ServiceAccount.mining-coordinator = { };
+    infra.ServiceAccount.mining-coordinator = {};
     infra.Role.mining-coordinator = {
       rules = [
         {
-          apiGroups = [ "apps" ];
-          resources = [ "deployments" ];
+          apiGroups = ["apps"];
+          resources = ["deployments"];
           verbs = [
             "get"
             "list"
@@ -874,8 +839,8 @@ in
           ];
         }
         {
-          apiGroups = [ "" ];
-          resources = [ "pods" ];
+          apiGroups = [""];
+          resources = ["pods"];
           verbs = [
             "get"
             "list"
@@ -899,18 +864,22 @@ in
       };
     };
     infra.Deployment.mining-coordinator = {
-      metadata.labels = managed // {
-        app = "mining-coordinator";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "mining-coordinator";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels.app = "mining-coordinator";
         strategy.type = "Recreate";
         template = {
-          metadata.labels = managed // {
-            app = "mining-coordinator";
-          };
+          metadata.labels =
+            managed
+            // {
+              app = "mining-coordinator";
+            };
           spec = {
             nodeName = "zephyr";
             hostNetwork = true;
@@ -959,16 +928,20 @@ in
     # Replaces: mining-inference-coordinator.service on zephyr/nexus/forge/sentry
     # Needs curl, awk, nftables for network control + host proc access
     infra.DaemonSet.mining-inference-coordinator = {
-      metadata.labels = managed // {
-        app = "mining-inference-coordinator";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "mining-inference-coordinator";
+        };
       spec = {
         revisionHistoryLimit = 1;
         selector.matchLabels.app = "mining-inference-coordinator";
         template = {
-          metadata.labels = managed // {
-            app = "mining-inference-coordinator";
-          };
+          metadata.labels =
+            managed
+            // {
+              app = "mining-inference-coordinator";
+            };
           spec = {
             hostNetwork = true;
             hostPID = true;
@@ -1046,22 +1019,26 @@ in
     # Replaces: lolminer-nvidia.service on zephyr (GPU 1, RTX 3090)
     # Supersedes the CrashLoopBackOff gpu-miner-zephyr pod
     mining.Deployment.lolminer-nvidia-zephyr = {
-      metadata.labels = managed // {
-        app = "lolminer-nvidia-zephyr";
-        host = "zephyr";
-        gpu = "rtx3090";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "lolminer-nvidia-zephyr";
+          host = "zephyr";
+          gpu = "rtx3090";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels.app = "lolminer-nvidia-zephyr";
         strategy.type = "Recreate";
         template = {
-          metadata.labels = managed // {
-            app = "lolminer-nvidia-zephyr";
-            host = "zephyr";
-            gpu = "rtx3090";
-          };
+          metadata.labels =
+            managed
+            // {
+              app = "lolminer-nvidia-zephyr";
+              host = "zephyr";
+              gpu = "rtx3090";
+            };
           spec = {
             nodeName = "zephyr";
             hostNetwork = true;
@@ -1079,7 +1056,7 @@ in
                   "--algo"
                   "CR29"
                   "--pool"
-                  "stratum+tcp://10.1.1.120:3333"
+                  "stratum+tcp://${cluster.hosts.nexus.ip}:3333"
                   "--user"
                   "krxXVNVMM7.zephyr-gpu"
                   "--pass"
@@ -1162,18 +1139,22 @@ in
     # Replaces: caddy.service on zephyr (local reverse proxy, NOT K8s ingress)
     # Stays on zephyr for local .ts.net domain TLS termination
     infra.Deployment.caddy-local = {
-      metadata.labels = managed // {
-        app = "caddy-local";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "caddy-local";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels.app = "caddy-local";
         strategy.type = "Recreate";
         template = {
-          metadata.labels = managed // {
-            app = "caddy-local";
-          };
+          metadata.labels =
+            managed
+            // {
+              app = "caddy-local";
+            };
           spec = {
             nodeName = "zephyr";
             hostNetwork = true;
@@ -1186,7 +1167,7 @@ in
               caddy = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgsWithOverlay.caddy-with-modules}/bin/caddy" ];
+                command = ["${pkgsWithOverlay.caddy-with-modules}/bin/caddy"];
                 args = [
                   "run"
                   "--config"
@@ -1262,16 +1243,20 @@ in
     # Replaces: syncthing.service on zephyr/forge/sentry
     # One instance per node for file sync
     infra.DaemonSet.syncthing = {
-      metadata.labels = managed // {
-        app = "syncthing";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "syncthing";
+        };
       spec = {
         revisionHistoryLimit = 1;
         selector.matchLabels.app = "syncthing";
         template = {
-          metadata.labels = managed // {
-            app = "syncthing";
-          };
+          metadata.labels =
+            managed
+            // {
+              app = "syncthing";
+            };
           spec = {
             hostNetwork = true;
             dnsPolicy = "ClusterFirstWithHostNet";
@@ -1282,7 +1267,7 @@ in
               syncthing = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgs.syncthing}/bin/syncthing" ];
+                command = ["${pkgs.syncthing}/bin/syncthing"];
                 args = [
                   "--config=/data/config"
                   "--data=/data/data"
@@ -1335,7 +1320,7 @@ in
                     cpu = "1000m";
                   };
                 };
-                securityContext.capabilities.drop = [ "ALL" ];
+                securityContext.capabilities.drop = ["ALL"];
                 volumeMounts = {
                   _namedlist = true;
                   nix = nixVolumeMount;
@@ -1352,7 +1337,7 @@ in
               _namedlist = true;
               nix = nixVolume;
               data = {
-                emptyDir = { sizeLimit = "1Gi"; };
+                emptyDir = {sizeLimit = "1Gi";};
               };
               host-sync.hostPath = {
                 path = "/var/lib/syncthing";
@@ -1363,6 +1348,5 @@ in
         };
       };
     };
-
   };
 }

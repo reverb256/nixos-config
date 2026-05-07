@@ -27,7 +27,6 @@ in {
 
     services.rpcbind.enable = true;
 
-
     fileSystems = lib.mkMerge [
       (lib.mkIf cfg.mountShared {
         "/data/shared" = {

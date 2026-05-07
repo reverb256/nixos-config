@@ -2,12 +2,10 @@
   config,
   lib,
   ...
-}:
-let
+}: let
   cfg = config.services.haproxy-ingress;
   caddyBackends = "nexus forge sentry";
-in
-{
+in {
   options.services.haproxy-ingress = {
     enable = lib.mkEnableOption "HAProxy ingress load balancer";
     vip = lib.mkOption {

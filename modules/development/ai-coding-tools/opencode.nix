@@ -3,12 +3,10 @@
   pkgs,
   gatewayUrl,
   mkMcpServersJson,
-}:
-let
+}: let
   zaiCodingBaseUrl = gatewayUrl + "/v1";
   nvidiaNimBaseUrl = gatewayUrl + "/v1";
-in
-{
+in {
   mkOpencodeConfig = pkgs.writeShellScript "generate-opencode-config" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
@@ -97,7 +95,7 @@ in
         "enabled_providers": ["zai-coding-plan", "nvidia-nim", "lmstudio", "llama-cpp"],
         "disabled_providers": ["openai", "anthropic", "google", "cohere"],
         "mcp": {
-          ${mkMcpServersJson { keyMode = "env"; }}
+          ${mkMcpServersJson {keyMode = "env";}}
         },
         "default_agent": "build",
         "logLevel": "INFO",

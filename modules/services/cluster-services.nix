@@ -3,10 +3,10 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.cluster-services;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
@@ -16,8 +16,7 @@ let
     ;
 
   # Build Caddy virtualHost blocks from the service registry
-  buildCaddyBlocks =
-    services:
+  buildCaddyBlocks = services:
     concatStringsSep "\n" (
       mapAttrsToList (name: svc: ''
         https://${svc.domain} {
@@ -25,26 +24,24 @@ let
           ${lib.optionalString (svc.compress or true) "encode zstd gzip"}
           reverse_proxy ${svc.backend}
         }
-      '') services
+      '')
+      services
     );
 
   # Build the full Caddyfile from registry + extra preamble
-  buildCaddyfile =
-    services:
-    let
-      preamble = ''
-        {
-          admin 127.0.0.1:2019
-          default_sni cluster.local
-        }
-      '';
-      blocks = buildCaddyBlocks services;
-    in
+  buildCaddyfile = services: let
+    preamble = ''
+      {
+        admin 127.0.0.1:2019
+        default_sni cluster.local
+      }
+    '';
+    blocks = buildCaddyBlocks services;
+  in
     preamble + "\n" + blocks;
 
   # Build the svc CLI tool
-  buildSvcScript =
-    services:
+  buildSvcScript = services:
     pkgs.writeShellScriptBin "svc" ''
       set -euo pipefail
       echo "=== Cluster Services (ingress: ${cfg.ingressIP}) ==="
@@ -52,13 +49,13 @@ let
       ${concatStringsSep "\n" (
         mapAttrsToList (name: svc: ''
           echo "  https://${svc.domain} -> ${svc.backend}"
-        '') services
+        '')
+        services
       )}
       echo ""
       echo "Total: ${toString (builtins.length (builtins.attrNames services))}"
     '';
-in
-{
+in {
   options.services.cluster-services = {
     enable = mkEnableOption "Cluster service registry — single source of truth for Caddy virtualHosts";
 
@@ -102,7 +99,7 @@ in
           };
         }
       );
-      default = { };
+      default = {};
       description = "Service registry — each entry generates a Caddy virtualHost";
     };
   };

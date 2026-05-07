@@ -1,7 +1,4 @@
-
-{ ... }:
-
-{
+{...}: {
   programs.niri.enable = true;
   desktop.uwsm-sessions.enable = true;
 

@@ -3,8 +3,7 @@
   pkgs,
   lib,
   ...
-}:
-{
+}: {
   hardware.gpu-compute = {
     enable = true;
     cuda.enable = true;
@@ -16,9 +15,9 @@
   # 3060Ti (GPU 0 = nvidia-smi index 0): 150W (default 200W)
   systemd.services.nvidia-power-limits = {
     description = "Set NVIDIA GPU power limits";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "nvidia-persistenced.service" ];
-    path = [ config.hardware.nvidia.package.bin ];
+    wantedBy = ["multi-user.target"];
+    after = ["nvidia-persistenced.service"];
+    path = [config.hardware.nvidia.package.bin];
     serviceConfig = {
       Type = "oneshot";
       ExecStartPre = "${pkgs.coreutils}/bin/sleep 5";
@@ -108,12 +107,10 @@
     ];
   };
 
-
   # BTRFS commit interval - merge with hardware-configuration.nix options
-  fileSystems."/".options = [ "commit=300" ];
-  fileSystems."/home".options = [ "commit=300" ];
+  fileSystems."/".options = ["commit=300"];
+  fileSystems."/home".options = ["commit=300"];
   environment.sessionVariables = {
-
     NCCL_P2P_LEVEL = "2";
     NCCL_P2P_DISABLE = "0";
     NCCL_IB_DISABLE = "1";

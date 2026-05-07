@@ -1,6 +1,10 @@
-{ config, lib, ... }:
-let
-  inherit (lib)
+{
+  config,
+  lib,
+  ...
+}: let
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
@@ -8,15 +12,13 @@ let
     mkMerge
     ;
 
-  networkingHelper = import ./networking.nix { inherit lib; };
+  networkingHelper = import ./networking.nix {inherit lib;};
   mkNetworkingConfig = networkingHelper.mkNetworkingConfig;
 
-  mkProfileConfig =
-    _profileName: profileCfg:
+  mkProfileConfig = _profileName: profileCfg:
     mkIf profileCfg.enable (
       (mkNetworkingConfig profileCfg)
       // {
-
         hardware.profiles = {
           nvidia.enable = profileCfg.nvidia.enable or false;
           nvidia.multiGpu = profileCfg.nvidia.multiGpu or false;
@@ -28,10 +30,8 @@ let
         profiles.network.tailscale.enable = true;
       }
     );
-in
-{
+in {
   options.profiles.node = {
-
     zephyr-workstation = {
       enable = mkEnableOption "Zephyr workstation profile (control plane + gaming + VR + mining + AI)";
 
@@ -111,7 +111,7 @@ in
 
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ 10250 ];
+        default = [10250];
         description = "Extra TCP ports";
       };
 
@@ -119,8 +119,8 @@ in
         type = types.listOf (
           types.submodule {
             options = {
-              from = mkOption { type = types.port; };
-              to = mkOption { type = types.port; };
+              from = mkOption {type = types.port;};
+              to = mkOption {type = types.port;};
             };
           }
         );
@@ -135,7 +135,7 @@ in
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ ];
+        default = [];
         description = "Extra UDP ports";
       };
     };
@@ -180,7 +180,7 @@ in
 
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ 10250 ];
+        default = [10250];
         description = "Extra TCP ports";
       };
 
@@ -188,8 +188,8 @@ in
         type = types.listOf (
           types.submodule {
             options = {
-              from = mkOption { type = types.port; };
-              to = mkOption { type = types.port; };
+              from = mkOption {type = types.port;};
+              to = mkOption {type = types.port;};
             };
           }
         );
@@ -204,7 +204,7 @@ in
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ ];
+        default = [];
         description = "Extra UDP ports";
       };
     };
@@ -234,7 +234,7 @@ in
 
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ 10250 ];
+        default = [10250];
         description = "Extra TCP ports";
       };
 
@@ -242,8 +242,8 @@ in
         type = types.listOf (
           types.submodule {
             options = {
-              from = mkOption { type = types.port; };
-              to = mkOption { type = types.port; };
+              from = mkOption {type = types.port;};
+              to = mkOption {type = types.port;};
             };
           }
         );
@@ -258,11 +258,10 @@ in
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ ];
+        default = [];
         description = "Extra UDP ports";
       };
     };
-
 
     kubernetes-control-plane = {
       enable = mkEnableOption "Kubernetes control plane node (legacy — use k3s-cluster instead)";
@@ -289,7 +288,7 @@ in
 
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ 10250 ];
+        default = [10250];
         description = "Extra TCP ports";
       };
 
@@ -297,8 +296,8 @@ in
         type = types.listOf (
           types.submodule {
             options = {
-              from = mkOption { type = types.port; };
-              to = mkOption { type = types.port; };
+              from = mkOption {type = types.port;};
+              to = mkOption {type = types.port;};
             };
           }
         );
@@ -313,7 +312,7 @@ in
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ ];
+        default = [];
         description = "Extra UDP ports";
       };
     };
@@ -326,7 +325,6 @@ in
     (mkProfileConfig "sentry-monitoring" config.profiles.node.sentry-monitoring)
     (mkProfileConfig "kubernetes-control-plane" config.profiles.node.kubernetes-control-plane)
     (mkProfileConfig "kubernetes-worker" config.profiles.node.kubernetes-worker)
-
 
     (mkIf config.profiles.node.zephyr-workstation.enable {
       profiles.role = {

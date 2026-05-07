@@ -1,6 +1,4 @@
-{ lib, ... }:
-{
-
+{lib, ...}: {
   services.earlyoom = {
     enable = true;
     freeMemThreshold = 12;

@@ -1,6 +1,8 @@
-{ pkgs, lib, ... }:
-
 {
+  pkgs,
+  lib,
+  ...
+}: {
   hardware = {
     printers = {
       ensurePrinters = [
@@ -20,16 +22,16 @@
 
     sane = {
       enable = true;
-      extraBackends = [ pkgs.sane-airscan ];
+      extraBackends = [pkgs.sane-airscan];
     };
   };
 
   # Scanner access for desktop users
-  users.users.j_kro.extraGroups = [ "scanner" "lp" ];
+  users.users.j_kro.extraGroups = ["scanner" "lp"];
 
   environment.systemPackages = with pkgs; [
     sane-backends # scanimage, scanadf CLI tools
-    xsane          # GUI scanner frontend
+    xsane # GUI scanner frontend
   ];
   # Static airscan config — eSCL on port 8080, bypasses broken mDNS
   environment.etc."sane.d/airscan.conf" = {
@@ -59,8 +61,8 @@
     printing = {
       enable = true;
       browsing = true;
-      listenAddresses = [ "*:631" ];
-      allowFrom = [ "all" ];
+      listenAddresses = ["*:631"];
+      allowFrom = ["all"];
       defaultShared = true;
     };
   };
@@ -70,7 +72,7 @@
   # Printer monitoring — ink levels and status via LEDM API
   systemd.services.hp-envy-monitor = {
     description = "HP ENVY 7800 Status Monitor";
-    path = with pkgs; [ curl bash coreutils ];
+    path = with pkgs; [curl bash coreutils];
     serviceConfig.Type = "oneshot";
     script = ''
       STATUS=$(curl -sk --max-time 5 'https://10.1.1.173/DevMgmt/ProductStatusDyn.xml' 2>/dev/null)
@@ -85,7 +87,7 @@
   };
 
   systemd.timers.hp-envy-monitor = {
-    wantedBy = [ "timers.target" ];
+    wantedBy = ["timers.target"];
     timerConfig = {
       OnCalendar = "hourly";
       Persistent = true;

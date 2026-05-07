@@ -3,8 +3,7 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   inherit (lib) mkIf mkBefore mkDefault;
   clusterCfg = config.clusterNetworking;
   # Cluster host IPs (hardcoded for reliability)
@@ -25,12 +24,11 @@ let
       "8.8.8.8@853"
       "8.8.4.4@853"
     ];
-    searchDomains = config.networking.search or [ ];
+    searchDomains = config.networking.search or [];
     enableLanRecords = true;
     enableServiceRecords = true;
   };
-in
-{
+in {
   config = mkIf dnsCfg.enable {
     # Disable systemd-resolved (conflicts with unbound)
     services.resolved.enable = mkDefault false;
@@ -44,10 +42,9 @@ in
           # Listen on localhost and cluster IP
           interface = [
             (
-              if dnsCfg.listenAddress != null && dnsCfg.listenAddress != "127.0.0.1" then
-                dnsCfg.listenAddress
-              else
-                clusterCfg.ipAddress
+              if dnsCfg.listenAddress != null && dnsCfg.listenAddress != "127.0.0.1"
+              then dnsCfg.listenAddress
+              else clusterCfg.ipAddress
             )
           ];
 
@@ -71,7 +68,7 @@ in
           tls-cert-bundle = "/etc/ssl/certs/ca-bundle.crt";
 
           # Include local DNS records
-          include = [ "/etc/unbound/local-dns.conf" ];
+          include = ["/etc/unbound/local-dns.conf"];
 
           # Don't query localhost (prevent loops)
           do-not-query-localhost = true;
@@ -98,73 +95,72 @@ in
     };
 
     # Generate local DNS records
-    environment.etc."unbound/local-dns.conf".text =
-      let
-        # Server section header (required for local-data lines to work)
-        serverSection = ''
-          server:
-            interface: 0.0.0.0
-            interface: ::0
-            access-control: 10.0.0.0/8 allow
-            access-control: 100.64.0.0/10 allow
-            access-control: 172.16.0.0/12 allow
-            verbosity: 1
-            local-zone: "lan." static
-            local-zone: "cluster.local." static
+    environment.etc."unbound/local-dns.conf".text = let
+      # Server section header (required for local-data lines to work)
+      serverSection = ''
+        server:
+          interface: 0.0.0.0
+          interface: ::0
+          access-control: 10.0.0.0/8 allow
+          access-control: 100.64.0.0/10 allow
+          access-control: 172.16.0.0/12 allow
+          verbosity: 1
+          local-zone: "lan." static
+          local-zone: "cluster.local." static
 
-        '';
+      '';
 
-        # All services route through Caddy on nexus (no fragile ClusterIPs)
+      # All services route through Caddy on nexus (no fragile ClusterIPs)
 
-        # Services via Caddy Ingress (accessed via NodePort on Nexus)
-        ingressServices = [
-          "search.lan. IN A ${hosts.nexus}"
-          "brain.lan. IN A ${hosts.nexus}"
-          "openwebui.lan. IN A ${hosts.nexus}"
-        ];
-        # Services proxied via Caddy on nexus (single stable entry point)
-        hostServices = [
-          "ai.lan. IN A ${hosts.nexus}"
-          "ai-inference.lan. IN A ${hosts.nexus}"
-          "qdrant.lan. IN A ${hosts.nexus}"
-          "knowledge-fabric.lan. IN A ${hosts.nexus}"
-          "haven.lan. IN A ${hosts.nexus}"
-          "hermes.lan. IN A ${hosts.nexus}"
-          "api.hermes.lan. IN A ${hosts.nexus}"
-          "n8n.lan. IN A ${hosts.nexus}"
-          "searxng.lan. IN A ${hosts.nexus}"
-          "activepieces.lan. IN A ${hosts.nexus}"
-        ];
-        # Optional forge services
-        forgeServices = [
-          "mining.lan. IN A ${hosts.forge}"
-        ];
+      # Services via Caddy Ingress (accessed via NodePort on Nexus)
+      ingressServices = [
+        "search.lan. IN A ${hosts.nexus}"
+        "brain.lan. IN A ${hosts.nexus}"
+        "openwebui.lan. IN A ${hosts.nexus}"
+      ];
+      # Services proxied via Caddy on nexus (single stable entry point)
+      hostServices = [
+        "ai.lan. IN A ${hosts.nexus}"
+        "ai-inference.lan. IN A ${hosts.nexus}"
+        "qdrant.lan. IN A ${hosts.nexus}"
+        "knowledge-fabric.lan. IN A ${hosts.nexus}"
+        "haven.lan. IN A ${hosts.nexus}"
+        "hermes.lan. IN A ${hosts.nexus}"
+        "api.hermes.lan. IN A ${hosts.nexus}"
+        "n8n.lan. IN A ${hosts.nexus}"
+        "searxng.lan. IN A ${hosts.nexus}"
+        "activepieces.lan. IN A ${hosts.nexus}"
+      ];
+      # Optional forge services
+      forgeServices = [
+        "mining.lan. IN A ${hosts.forge}"
+      ];
 
-        # Optional sentry services
-        sentryServices = [
-          "monitoring.lan. IN A ${hosts.sentry}"
-          "grafana.lan. IN A ${hosts.sentry}"
-          "prometheus.lan. IN A ${hosts.sentry}"
-        ];
+      # Optional sentry services
+      sentryServices = [
+        "monitoring.lan. IN A ${hosts.sentry}"
+        "grafana.lan. IN A ${hosts.sentry}"
+        "prometheus.lan. IN A ${hosts.sentry}"
+      ];
 
-        # All service records combined
-        allServices = ingressServices ++ hostServices ++ forgeServices ++ sentryServices;
+      # All service records combined
+      allServices = ingressServices ++ hostServices ++ forgeServices ++ sentryServices;
 
-        # Host records
-        hostRecords = lib.mapAttrsToList (name: ip: "${name}.lan. IN A ${ip}") hosts;
-      in
+      # Host records
+      hostRecords = lib.mapAttrsToList (name: ip: "${name}.lan. IN A ${ip}") hosts;
+    in
       # Host records section
       (lib.optionalString dnsCfg.enableLanRecords (
         lib.concatMapStrings (record: "local-data: \"${record}\"\n") hostRecords
       ))
       +
-        # Service records section
-        (lib.optionalString dnsCfg.enableServiceRecords (
-          lib.concatMapStrings (record: "local-data: \"${record}\"\n") allServices
-        ))
+      # Service records section
+      (lib.optionalString dnsCfg.enableServiceRecords (
+        lib.concatMapStrings (record: "local-data: \"${record}\"\n") allServices
+      ))
       +
-        # Tailscale mobile device
-        "local-data: \"seeker.lan. IN A 100.84.24.43\"\n";
+      # Tailscale mobile device
+      "local-data: \"seeker.lan. IN A 100.84.24.43\"\n";
 
     # Static resolv.conf (prevent DHCP overrides)
     environment.etc."resolv.conf".text = ''
@@ -181,8 +177,8 @@ in
 
     # Firewall: allow DNS traffic
     networking.firewall = {
-      allowedUDPPorts = lib.mkOptionDefault [ 53 ];
-      allowedTCPPorts = lib.mkOptionDefault [ 53 ];
+      allowedUDPPorts = lib.mkOptionDefault [53];
+      allowedTCPPorts = lib.mkOptionDefault [53];
       extraInputRules = lib.mkAfter ''
         ip saddr { 10.1.1.0/24, 10.244.0.0/16 } udp dport 53 accept
         ip saddr { 10.1.1.0/24, 10.244.0.0/16 } tcp dport 53 accept
@@ -192,28 +188,30 @@ in
     # Populate /etc/hosts for compatibility
     networking.extraHosts = lib.mkBefore (
       let
-        allHosts = hosts // {
-          ai-inference = hosts.nexus;
-          qdrant = hosts.nexus;
-          knowledge-fabric = hosts.nexus;
-          hermes = hosts.nexus;
-          brain = hosts.nexus;
-          search = hosts.nexus;
-          searxng = hosts.nexus;
-          n8n = hosts.nexus;
-          activepieces = hosts.nexus;
-          openwebui = hosts.nexus;
-          haven = hosts.nexus;
-          grafana = hosts.sentry;
-          prometheus = hosts.sentry;
-          monitoring = hosts.sentry;
-          mining = hosts.forge;
-        };
+        allHosts =
+          hosts
+          // {
+            ai-inference = hosts.nexus;
+            qdrant = hosts.nexus;
+            knowledge-fabric = hosts.nexus;
+            hermes = hosts.nexus;
+            brain = hosts.nexus;
+            search = hosts.nexus;
+            searxng = hosts.nexus;
+            n8n = hosts.nexus;
+            activepieces = hosts.nexus;
+            openwebui = hosts.nexus;
+            haven = hosts.nexus;
+            grafana = hosts.sentry;
+            prometheus = hosts.sentry;
+            monitoring = hosts.sentry;
+            mining = hosts.forge;
+          };
       in
-      lib.pipe allHosts [
-        (lib.mapAttrsToList (name: ip: "${ip} ${name}.lan ${name}"))
-        (lib.concatStringsSep "\n")
-      ]
+        lib.pipe allHosts [
+          (lib.mapAttrsToList (name: ip: "${ip} ${name}.lan ${name}"))
+          (lib.concatStringsSep "\n")
+        ]
     );
   };
 }

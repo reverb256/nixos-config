@@ -3,11 +3,9 @@
   config,
   lib,
   ...
-}:
-let
+}: let
   havenImage = "ghcr.io/ancsemi/haven:3.1.1";
-in
-{
+in {
   config.kubernetes.objects = {
     none.Namespace.haven = {
       metadata.labels = {
@@ -21,7 +19,7 @@ in
     none.PersistentVolume.haven-data-nexus-pv = {
       spec = {
         capacity.storage = "5Gi";
-        accessModes = [ "ReadWriteOnce" ];
+        accessModes = ["ReadWriteOnce"];
         persistentVolumeReclaimPolicy = "Retain";
         storageClassName = "fast-local-ssd";
         local.path = "/mnt/nixos-share/haven-data";
@@ -31,7 +29,7 @@ in
               {
                 key = "kubernetes.io/hostname";
                 operator = "In";
-                values = [ "nexus" ];
+                values = ["nexus"];
               }
             ];
           }
@@ -41,7 +39,7 @@ in
 
     haven.PersistentVolumeClaim.haven-data = {
       spec = {
-        accessModes = [ "ReadWriteOnce" ];
+        accessModes = ["ReadWriteOnce"];
         storageClassName = "fast-local-ssd";
         resources.requests.storage = "5Gi";
       };
@@ -169,11 +167,11 @@ in
       };
       spec = {
         podSelector.matchLabels.app = "haven";
-        policyTypes = [ "Ingress" ];
+        policyTypes = ["Ingress"];
         ingress = [
           {
             from = [
-              { namespaceSelector.matchLabels.name = "ingress-system"; }
+              {namespaceSelector.matchLabels.name = "ingress-system";}
             ];
             ports = [
               {
@@ -186,7 +184,6 @@ in
       };
     };
 
-    
     haven.Ingress.haven = {
       metadata.annotations = {
         "ingress.caddy.lblt.net/scheme" = "http";
@@ -231,16 +228,29 @@ in
       };
       spec = {
         podSelector.matchLabels.app = "haven";
-        policyTypes = [ "Egress" ];
+        policyTypes = ["Egress"];
         egress = [
           {
-            to = [ { ipBlock.cidr = "0.0.0.0/0"; } ];
+            to = [{ipBlock.cidr = "0.0.0.0/0";}];
             ports = [
-              { protocol = "UDP"; port = 53; }
-              { protocol = "TCP"; port = 53; }
+              {
+                protocol = "UDP";
+                port = 53;
+              }
+              {
+                protocol = "TCP";
+                port = 53;
+              }
             ];
           }
         ];
+      };
+    };
+
+    haven.NetworkPolicy.default-deny-all = {
+      spec = {
+        podSelector = {};
+        policyTypes = ["Ingress" "Egress"];
       };
     };
   };

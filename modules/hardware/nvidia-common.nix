@@ -3,11 +3,9 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.hardware.nvidia-common;
-in
-{
+in {
   options.hardware.nvidia-common.enable = lib.mkEnableOption "NVIDIA GPU support";
 
   config = lib.mkIf cfg.enable {
@@ -21,7 +19,7 @@ in
       ];
     };
 
-    services.xserver.videoDrivers = [ "nvidia" ];
+    services.xserver.videoDrivers = ["nvidia"];
 
     hardware.nvidia = {
       modesetting.enable = true;
@@ -53,7 +51,6 @@ in
       serviceConfig.SuccessExitStatus = "0 1";
     };
 
-
     systemd.services.nvidia-persistence-mode = {
       description = "Enable NVIDIA GPU persistence mode for AI workloads";
       serviceConfig = {
@@ -62,7 +59,5 @@ in
         ExecStart = "/run/current-system/sw/bin/nvidia-smi -pm 1";
       };
     };
-
-
   };
 }

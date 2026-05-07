@@ -3,10 +3,10 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.brain-critic;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
@@ -18,8 +18,7 @@ let
     exec ${pkgs.python3}/bin/python3 ${cfg.scriptPath} \
       "$@"
   '';
-in
-{
+in {
   options.services.brain-critic = {
     enable = mkEnableOption "Brain Critic — Reflexion agent for session extractions";
 
@@ -69,8 +68,8 @@ in
   config = mkIf cfg.enable {
     systemd.services.brain-critic = {
       description = "Brain Critic — Reflexion agent for session extractions";
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
+      after = ["network-online.target"];
+      wants = ["network-online.target"];
 
       serviceConfig = {
         Type = "oneshot";
@@ -101,7 +100,7 @@ in
 
     systemd.timers.brain-critic = {
       description = "Daily Brain Critic reflection run";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnCalendar = cfg.schedule;
         Persistent = true;

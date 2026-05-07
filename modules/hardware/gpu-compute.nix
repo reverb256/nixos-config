@@ -56,12 +56,10 @@ in {
       lib.mkMerge [
         (lib.mkIf cfg.cuda.enable {
           environment.systemPackages = cudaPackages;
-
         })
 
         (lib.mkIf cfg.rocm.enable {
           environment.systemPackages = rocmPackages;
-
 
           boot.kernelModules = ["amdgpu"];
         })
