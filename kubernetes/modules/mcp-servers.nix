@@ -1,4 +1,4 @@
-{...}: let
+{nexusPreferredAffinity, ...}: let
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
@@ -44,7 +44,7 @@ in {
           template = {
             metadata.labels.app = "grafana-mcp";
             spec = {
-              nodeName = "nexus";
+              affinity = nexusPreferredAffinity; # HA: prefer nexus, failover to sentry
               containers = {
                 _namedlist = true;
                 grafana-mcp = {
@@ -124,7 +124,7 @@ in {
           template = {
             metadata.labels.app = "qdrant-mcp";
             spec = {
-              nodeName = "nexus";
+              affinity = nexusPreferredAffinity; # HA: prefer nexus, failover to sentry
               containers = {
                 _namedlist = true;
                 qdrant-mcp = {

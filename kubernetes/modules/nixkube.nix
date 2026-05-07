@@ -12,8 +12,11 @@
         };
       };
     };
+  };
 
-    nixkube.NetworkPolicy.default-deny-all = {
+  config.kubernetes.objects.nixkube = {
+    # ── Default deny all ────────────────────────────────────────
+    NetworkPolicy.default-deny-all = {
       spec = {
         podSelector = {};
         policyTypes = ["Ingress" "Egress"];
@@ -25,15 +28,5 @@
     src = pkgs.runCommand "nixkube.yaml" {} ''
       cp ${../../kubernetes-manifests/nixkube/nixkube-clean.yaml} $out
     '';
-  };
-
-  config.kubernetes.objects.nixkube = {
-    # ── Default deny all ────────────────────────────────────────
-    nixkube.NetworkPolicy.default-deny-all = {
-      spec = {
-        podSelector = {};
-        policyTypes = ["Ingress" "Egress"];
-      };
-    };
   };
 }

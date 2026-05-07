@@ -1,5 +1,6 @@
 {
   cluster,
+  nexusPreferredAffinity,
   lib,
   ...
 }: let
@@ -76,7 +77,7 @@ in {
         template = {
           metadata.labels = labels;
           spec = {
-            nodeName = "nexus";
+            affinity = nexusPreferredAffinity; # HA: prefer nexus, failover to sentry
             enableServiceLinks = false;
             automountServiceAccountToken = false;
             securityContext = {
@@ -205,8 +206,8 @@ in {
         ingress = [
           {
             from = [
-              {ipBlock.cidr = cluster.kubernetes.subnet;}
-              {ipBlock.cidr = cluster.kubernetes.podCidr;}
+              {ipBlock.cidr = cluster.subnet;}
+              {ipBlock.cidr = cluster.podCidr;}
             ];
             ports = [
               {

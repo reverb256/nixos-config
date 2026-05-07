@@ -670,7 +670,7 @@ in {
             ];
           }
           {
-            from = [{ipBlock.cidr = cluster.kubernetes.podCidr;}];
+            from = [{ipBlock.cidr = cluster.podCidr;}];
             ports = [
               {
                 protocol = "TCP";
@@ -687,7 +687,7 @@ in {
             ];
           }
           {
-            from = [{ipBlock.cidr = cluster.kubernetes.subnet;}];
+            from = [{ipBlock.cidr = cluster.subnet;}];
             ports = [
               {
                 protocol = "TCP";

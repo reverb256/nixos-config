@@ -106,6 +106,14 @@ in {
         Type = "oneshot";
         RemainAfterExit = true;
         User = "j_kro";
+        ExecStart = pkgs.writeShellScript "cluster-ca-export" ''
+          # Export CA cert to user's trusted certificates directory
+          mkdir -p ~/.local/share/ca-certificates
+          cp ${cfg.caCert} ~/.local/share/ca-certificates/cluster-ca.crt
+          update-ca-certificates 2>/dev/null || true
+          echo "CA certificate exported to ~/.local/share/ca-certificates/"
+        '';
       };
     };
+  };
 }
