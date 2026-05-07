@@ -152,8 +152,7 @@ in {
 
       disable =
         lib.optionals isServer disabledComponents
-        lib.optionals
-        isServer (
+        ++ lib.optionals isServer (
           [
             "--cluster-cidr=${clusterCIDR}"
             "--service-cidr=${serviceCIDR}"
