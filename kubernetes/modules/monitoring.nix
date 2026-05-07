@@ -402,6 +402,11 @@
     "kubernetes.io/hostname" = "sentry";
   };
 
+  # Node selector for non-workstation nodes (exclude zephyr)
+  nonWorkstationSelector = {
+    "kubernetes.io/hostname" = "nexus";
+  };
+
   # Common security context
   securityContext = {
     runAsNonRoot = true;
@@ -1183,6 +1188,8 @@ in {
             serviceAccountName = "alloy-sa";
             hostNetwork = true;
             dnsPolicy = "ClusterFirstWithHostNet";
+            # Run on nexus only (exclude zephyr workstation)
+            nodeSelector = nonWorkstationSelector;
             tolerations = [
               {
                 key = "node-role.kubernetes.io/control-plane";

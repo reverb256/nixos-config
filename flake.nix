@@ -206,20 +206,22 @@
     hosts = {
       zephyr = {
         hostName = "zephyr";
-        # TODO: k8s-nix-deploy disabled — manifestYAMLFile evaluation hangs
+        # k8s-nix-deploy disabled — manifestYAMLFile evaluation hangs
         # on builtins.toJSON of 300 K8s objects (Nix evaluator bottleneck).
-        # Re-enable once easykubenix supports streaming/lazy manifest generation,
-        # or split into per-module manifests. Track: kubernetes eval ~300 objects.
-        k8sManifest = null; # was: self.kubernetes.manifestYAMLFile
+        # K8s changes must be applied manually via kubectl.
+        k8sManifest = null;
       };
       nexus = {
         hostName = "nexus";
+        k8sManifest = null;
       };
       forge = {
         hostName = "forge";
+        k8sManifest = null;
       };
       sentry = {
         hostName = "sentry";
+        k8sManifest = null;
       };
     };
   in {
