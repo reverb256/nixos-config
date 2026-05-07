@@ -171,7 +171,6 @@ in {
             "--etcd-expose-metrics"
             "--kube-controller-manager-arg=terminated-pod-gc-threshold=500"
             "--kube-controller-manager-arg=node-monitor-grace-period=40s"
-            "--kube-controller-manager-arg=pod-eviction-timeout=30s"
           ]
           ++ map (san: "--tls-san=${san}") tlsSans
         )
