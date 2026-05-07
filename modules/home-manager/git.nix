@@ -5,10 +5,10 @@
 }: {
   programs.git = {
     enable = true;
-    userName = "reverb256";
-    userEmail = "j_kroeker@reverb256.ca";
 
     settings = {
+      user.name = "reverb256";
+      user.email = "j_kroeker@reverb256.ca";
       init.defaultBranch = "main";
       push.autoSetupRemote = true;
       pull.rebase = true;
