@@ -8,24 +8,25 @@
     userName = "reverb256";
     userEmail = "j_kroeker@reverb256.ca";
 
-    delta = {
-      enable = true;
-      options = {
-        navigate = true;
-        side-by-side = true;
-        line-numbers = true;
-      };
-    };
-
-    lfs.enable = true;
-
-    extraConfig = {
+    settings = {
       init.defaultBranch = "main";
       push.autoSetupRemote = true;
       pull.rebase = true;
       rerere.enabled = true;
       core.pager = "delta";
       merge.conflictstyle = "diff3";
+    };
+
+    lfs.enable = true;
+  };
+
+  programs.delta = {
+    enable = true;
+    enableGitIntegration = true;
+    options = {
+      navigate = true;
+      side-by-side = true;
+      line-numbers = true;
     };
   };
 
