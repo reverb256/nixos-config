@@ -1,6 +1,4 @@
 {lib}: let
-  registry = import ../../services/mcp-server-registry.nix {inherit lib;};
-
   context7ApiKeyRef = "$CONTEXT7_API_KEY";
 
   zaiHttpServers = {
@@ -34,47 +32,24 @@
     };
   };
 
-  mkLocalServer = name: def:
-    if def ? command
-    then
-      {
-        # Servers with explicit command (custom, nix with remapped binary, etc.)
-        command = def.command;
-      }
-      // (lib.optionalAttrs (def ? args) {args = def.args;})
-      // (lib.optionalAttrs (def ? env) {env = def.env;})
-    else if def.type == "custom"
-    then {
-      # Custom type without command → use mcp-<name> from PATH
-      command = registry.mkCommand name;
-    }
-    else {
-      # npm/uvx/nix types → use mcp-<name> from PATH
-      command = registry.mkCommand name;
+  localStdioServers = {
+    filesystem = {
+      command = "mcp-filesystem";
+      args = ["/etc/nixos" "/home/j_kro"];
     };
-
-  # Filter out claudeOnly servers from local stdio (they go in extraServers)
-  localStdioServers =
-    lib.filterAttrs (name: _: !(registry.servers.${name}.claudeOnly or false))
-    (lib.mapAttrs mkLocalServer registry.servers)
-    // {
-      filesystem = {
-        command = "mcp-filesystem";
-        args = ["/etc/nixos" "/home/j_kro"];
-      };
-      context7 = {
-        command = "mcp-context7";
-        env.CONTEXT7_API_KEY = context7ApiKeyRef;
-      };
-      chrome-devtools = {
-        command = "npx";
-        args = ["-y" "chrome-devtools-mcp@latest"];
-      };
-      casdoor = {
-        command = "python3";
-        args = ["/data/agents/mcp-bridges/casdoor-mcp-bridge.py"];
-      };
+    context7 = {
+      command = "mcp-context7";
+      env.CONTEXT7_API_KEY = context7ApiKeyRef;
     };
+    chrome-devtools = {
+      command = "npx";
+      args = ["-y" "chrome-devtools-mcp@latest"];
+    };
+    casdoor = {
+      command = "python3";
+      args = ["/data/agents/mcp-bridges/casdoor-mcp-bridge.py"];
+    };
+  };
 
   fullMcpSet =
     localStdioServers
@@ -114,37 +89,37 @@
 
       resolveHeader = k: v:
         if k == "Authorization" && !resolveAuth
-        then "(\"Bearer \" + $zai_key)"
-        else "\"" + v + "\"";
+        then "(\\\"Bearer \\\" + $zai_key)"
+        else "\\\"" + v + "\\\"";
 
       fields = lib.filter (s: s != "") [
-        (lib.optionalString isHttp "\"type\": \"http\"")
+        (lib.optionalString isHttp "\\\"type\\\": \\\"http\\\"")
         (lib.optionalString (isHttp && server ? url)
-          ("\"url\": \"" + server.url + "\""))
+          ("\\\"url\\\": \\\"" + server.url + "\\\""))
         (lib.optionalString (server ? command && server.command != null)
-          ("\"command\": \"" + server.command + "\""))
+          ("\\\"command\\\": \\\"" + server.command + "\\\""))
         (lib.optionalString (server ? args && server.args != null)
-          ("\"args\": [" + (lib.concatStringsSep ", " (map (a: "\"" + a + "\"") server.args)) + "]"))
+          ("\\\"args\\\": [" + (lib.concatStringsSep ", " (map (a: "\\\"" + a + "\\\"") server.args)) + "]"))
         (lib.optionalString (server ? env && server.env != null)
-          ("\"env\": { "
+          ("\\\"env\\\": { "
             + lib.concatStringsSep ", " (
-              lib.mapAttrsToList (k: v: "\"" + k + "\": \"" + (resolveEnv k v) + "\"") server.env
+              lib.mapAttrsToList (k: v: "\\\"" + k + "\\\": \\\"" + (resolveEnv k v) + "\\\"") server.env
             )
             + " }"))
         (lib.optionalString (isHttp && server ? headers && server.headers != null)
-          ("\"headers\": { "
+          ("\\\"headers\\\": { "
             + lib.concatStringsSep ", " (
-              lib.mapAttrsToList (k: v: "\"" + k + "\": " + (resolveHeader k v)) server.headers
+              lib.mapAttrsToList (k: v: "\\\"" + k + "\\\": " + (resolveHeader k v)) server.headers
             )
             + " }"))
-        (lib.optionalString disabled "\"disabled\": false")
+        (lib.optionalString disabled "\\\"disabled\\\": false")
       ];
     in
-      "\"" + name + "\": {" + (lib.concatStringsSep ", " fields) + "}";
+      "\\\"" + name + "\\\": {" + (lib.concatStringsSep ", " fields) + "}";
 
     serverFragments = lib.mapAttrsToList mkServerFragment allServers;
   in
-    lib.concatStringsSep ",\n    " serverFragments;
+    lib.concatStringsSep ",\\n    " serverFragments;
 in {
   inherit mkMcpServersJson fullMcpSet;
 }
