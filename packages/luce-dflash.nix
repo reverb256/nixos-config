@@ -5,6 +5,7 @@
   fetchFromGitHub,
   cudaPackages,
   git,
+  makeWrapper,
   ninja,
   patchelf,
   stdenv,
@@ -34,6 +35,7 @@ effectiveStdenv.mkDerivation rec {
     ninja
     autoAddDriverRunpath
     patchelf
+    makeWrapper
   ];
 
   buildInputs = with cudaPackages; [
@@ -51,21 +53,24 @@ effectiveStdenv.mkDerivation rec {
     "-DCMAKE_BUILD_TYPE=Release"
     "-DCMAKE_CUDA_ARCHITECTURES=86"
     "-DDFLASH27B_FA_ALL_QUANTS=ON"
-    "-DCMAKE_INSTALL_RPATH=$ORIGIN/../lib"
-    "-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON"
   ];
 
   buildTargets = [ "test_dflash" ];
 
   installPhase = ''
     runHook preInstall
-    mkdir -p $out/bin $out/lib
+    mkdir -p $out/bin $out/lib $out/share
 
-    cp test_dflash $out/bin/
+    cp test_dflash $out/bin/.test_dflash-wrapped
     find . -name "*.so*" -exec cp -L {} $out/lib/ \;
 
-    # Fix RPATH: override build-tree paths with our lib dir
-    patchelf --set-rpath "/run/opengl-driver/lib:$ORIGIN/../lib:${lib.makeLibraryPath buildInputs}" $out/bin/test_dflash
+    # Copy the Python server script and config
+    cp -r scripts/* $out/share/ 2>/dev/null || true
+    cp -r configs/* $out/share/ 2>/dev/null || true
+
+    # Create wrapper that forces our libs first
+    makeWrapper $out/bin/.test_dflash-wrapped $out/bin/test_dflash \
+      --set LD_LIBRARY_PATH "$out/lib:/run/opengl-driver/lib"
 
     runHook postInstall
   '';
