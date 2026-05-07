@@ -226,7 +226,7 @@ in {
           }
           {
             from = [
-              {ipBlock.cidr = cluster.kubernetes.podCidr;}
+              {ipBlock.cidr = cluster.podCidr;}
             ];
             ports = [
               {
@@ -237,7 +237,7 @@ in {
           }
           {
             from = [
-              {ipBlock.cidr = cluster.kubernetes.subnet;}
+              {ipBlock.cidr = cluster.subnet;}
             ];
             ports = [
               {

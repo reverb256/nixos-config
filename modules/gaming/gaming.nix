@@ -110,7 +110,6 @@ in {
             ENABLE_GAMESCOPE_WSI = "1";
             __GL_SYNC_TO_VBLANK = "0";
             DXVK_HDR = "1";
-            __GL_SYNC_TO_VBLANK = "0";
           };
           args = [
             "--immediate-flips"

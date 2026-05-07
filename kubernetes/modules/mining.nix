@@ -149,7 +149,7 @@ in {
             ];
           }
           {
-            to = [{ipBlock.cidr = cluster.kubernetes.subnet;}];
+            to = [{ipBlock.cidr = cluster.subnet;}];
             ports = [
               {
                 protocol = "TCP";
@@ -188,7 +188,7 @@ in {
             ];
           }
           {
-            to = [{ipBlock.cidr = cluster.kubernetes.subnet;}];
+            to = [{ipBlock.cidr = cluster.subnet;}];
             ports = [
               {
                 protocol = "TCP";
