@@ -1,4 +1,5 @@
-{cluster, ...}: let
+{cluster,
+  nexusPreferredAffinity, ...}: let
   labels = {
     app = "searxng";
     "app.kubernetes.io/managed-by" = "easykubenix";
@@ -217,7 +218,7 @@ in {
         template = {
           metadata.labels = labels;
           spec = {
-            nodeName = "nexus";
+            affinity = nexusPreferredAffinity; # HA: prefer nexus, failover to sentry
             enableServiceLinks = false;
             automountServiceAccountToken = false;
             securityContext = {
@@ -368,7 +369,7 @@ in {
               component = "cache";
             };
           spec = {
-            nodeName = "nexus";
+            affinity = nexusPreferredAffinity; # HA: prefer nexus, failover to sentry
             automountServiceAccountToken = false;
             securityContext = {
               runAsNonRoot = true;
@@ -490,8 +491,8 @@ in {
         ingress = [
           {
             from = [
-              {ipBlock.cidr = cluster.kubernetes.subnet;}
-              {ipBlock.cidr = cluster.kubernetes.podCidr;}
+              {ipBlock.cidr = cluster.subnet;}
+              {ipBlock.cidr = cluster.podCidr;}
             ];
             ports = [
               {
@@ -573,14 +574,6 @@ in {
             ];
           }
         ];
-      };
-    };
-
-    # ── Default deny all ──────────────────────────────────────────
-    search.NetworkPolicy.default-deny-all = {
-      spec = {
-        podSelector = {};
-        policyTypes = ["Ingress" "Egress"];
       };
     };
   };
