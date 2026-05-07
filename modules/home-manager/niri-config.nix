@@ -229,7 +229,7 @@ in {
       };
 
       binds = with acts; {
-        "Mod+Return".action = spawn "uwsm" "app" "--" "ghostty";
+        "Mod+Return".action = spawn "uwsm" "app" "--" "alacritty";
         "Mod+B".action = spawn "launch-or-focus" "Zen" "uwsm" "app" "--" "zen-twilight";
         "Mod+Shift+B".action = spawn "uwsm" "app" "--" "zen-twilight" "--private-window";
         "Mod+E".action =
