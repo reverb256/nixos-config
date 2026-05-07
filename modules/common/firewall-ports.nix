@@ -1,7 +1,4 @@
-{
-  lib,
-  ...
-}: {
+{lib, ...}: {
   options.networking.ports = {
     monitoring = lib.mkOption {
       type = with lib.types; listOf port;
@@ -33,5 +30,4 @@
       description = "Syncthing file sharing ports";
     };
   };
-
 }

@@ -2,9 +2,9 @@
   pkgs,
   config,
   lib,
+  cluster,
   ...
-}:
-let
+}: let
   # Pin versions for supply chain security
   lokiImage = "docker.io/grafana/loki:3.6.10";
   mimirImage = "docker.io/grafana/mimir:2.17.9";
@@ -16,10 +16,10 @@ let
   storageClass = "slow-hdd";
 
   # Sentry internal IP for node affinity
-  sentryIP = "10.1.1.140";
+  sentryIP = cluster.hosts.sentry.ip;
 
   # Cluster DNS service IP
-  clusterDNS = "10.0.0.10";
+  clusterDNS = cluster.kubernetes.clusterDnsIP;
 
   # Loki config (monolithic mode, filesystem storage)
   # Reference: https://grafana.com/docs/loki/latest/configure/examples/
@@ -297,18 +297,18 @@ let
         scrape_interval: 15s
         static_configs:
           - targets:
-              - '10.1.1.110:9100'
-              - '10.1.1.120:9100'
-              - '10.1.1.130:9100'
-              - '10.1.1.140:9100'
+              - '${cluster.hosts.zephyr.ip}:9100'
+              - '${cluster.hosts.nexus.ip}:9100'
+              - '${cluster.hosts.forge.ip}:9100'
+              - '${cluster.hosts.sentry.ip}:9100'
 
       - job_name: 'nvidia-exporter'
         scrape_interval: 15s
         static_configs:
           - targets:
-              - '10.1.1.110:9400'
-              - '10.1.1.120:9400'
-              - '10.1.1.130:9400'
+              - '${cluster.hosts.zephyr.ip}:9400'
+              - '${cluster.hosts.nexus.ip}:9400'
+              - '${cluster.hosts.forge.ip}:9400'
 
 
       - job_name: 'kube-state-metrics'
@@ -395,19 +395,18 @@ let
   containerSecurity = {
     allowPrivilegeEscalation = false;
     readOnlyRootFilesystem = true;
-    capabilities.drop = [ "ALL" ];
+    capabilities.drop = ["ALL"];
   };
 
   # Common probes helper
   httpProbe = port: path: {
-    httpGet = { inherit port path; };
+    httpGet = {inherit port path;};
     initialDelaySeconds = 30;
     periodSeconds = 10;
     timeoutSeconds = 5;
     failureThreshold = 3;
   };
-in
-{
+in {
   config.kubernetes.objects = {
     # ── Namespace ──────────────────────────────────────────────
     none.Namespace.monitoring = {
@@ -417,18 +416,18 @@ in
     };
 
     # ── ServiceAccounts ────────────────────────────────────────
-    monitoring.ServiceAccount.loki-sa = { };
-    monitoring.ServiceAccount.mimir-sa = { };
-    monitoring.ServiceAccount.tempo-sa = { };
-    monitoring.ServiceAccount.grafana-sa = { };
-    monitoring.ServiceAccount.alloy-sa = { };
-    monitoring.ServiceAccount.prometheus-sa = { };
+    monitoring.ServiceAccount.loki-sa = {};
+    monitoring.ServiceAccount.mimir-sa = {};
+    monitoring.ServiceAccount.tempo-sa = {};
+    monitoring.ServiceAccount.grafana-sa = {};
+    monitoring.ServiceAccount.alloy-sa = {};
+    monitoring.ServiceAccount.prometheus-sa = {};
 
     # ── ClusterRole for Alloy (needs wide cluster access) ──────
     none.ClusterRole.alloy-cluster-role = {
       rules = [
         {
-          apiGroups = [ "" ];
+          apiGroups = [""];
           resources = [
             "nodes"
             "nodes/metrics"
@@ -449,7 +448,7 @@ in
             "extensions"
             "networking.k8s.io"
           ];
-          resources = [ "ingresses" ];
+          resources = ["ingresses"];
           verbs = [
             "get"
             "list"
@@ -461,7 +460,7 @@ in
             "/metrics"
             "/metrics/cadvisor"
           ];
-          verbs = [ "get" ];
+          verbs = ["get"];
         }
       ];
     };
@@ -484,7 +483,7 @@ in
     none.ClusterRole.prometheus-cluster-role = {
       rules = [
         {
-          apiGroups = [ "" ];
+          apiGroups = [""];
           resources = [
             "nodes"
             "nodes/metrics"
@@ -501,8 +500,8 @@ in
           ];
         }
         {
-          nonResourceURLs = [ "/metrics" ];
-          verbs = [ "get" ];
+          nonResourceURLs = ["/metrics"];
+          verbs = ["get"];
         }
       ];
     };
@@ -524,24 +523,24 @@ in
     # ── NetworkPolicies ────────────────────────────────────────
     monitoring.NetworkPolicy.default-deny-ingress = {
       spec = {
-        podSelector = { };
-        policyTypes = [ "Ingress" ];
+        podSelector = {};
+        policyTypes = ["Ingress" "Egress"];
       };
     };
     monitoring.NetworkPolicy.allow-internal = {
       spec = {
-        podSelector = { };
+        podSelector = {};
         policyTypes = [
           "Ingress"
           "Egress"
         ];
-        ingress = [ { from = [ { namespaceSelector.matchLabels.name = "monitoring"; } ]; } ];
+        ingress = [{from = [{namespaceSelector.matchLabels.name = "monitoring";}];}];
         egress = [
-          { to = [ { namespaceSelector.matchLabels.name = "monitoring"; } ]; }
+          {to = [{namespaceSelector.matchLabels.name = "monitoring";}];}
           {
             to = [
               {
-                namespaceSelector = { };
+                namespaceSelector = {};
                 podSelector.matchLabels."k8s-app" = "kube-dns";
               }
             ];
@@ -562,10 +561,10 @@ in
     monitoring.NetworkPolicy.allow-caddy-to-grafana = {
       spec = {
         podSelector.matchLabels.app = "grafana";
-        policyTypes = [ "Ingress" ];
+        policyTypes = ["Ingress"];
         ingress = [
           {
-            from = [ { namespaceSelector.matchLabels.name = "ingress-system"; } ];
+            from = [{namespaceSelector.matchLabels.name = "ingress-system";}];
             ports = [
               {
                 protocol = "TCP";
@@ -579,10 +578,10 @@ in
     monitoring.NetworkPolicy.allow-alloy-kubelet = {
       spec = {
         podSelector.matchLabels.app = "alloy";
-        policyTypes = [ "Egress" ];
+        policyTypes = ["Egress"];
         egress = [
           {
-            to = [ { ipBlock.cidr = "10.1.1.0/24"; } ];
+            to = [{ipBlock.cidr = cluster.kubernetes.subnet;}];
             ports = [
               {
                 protocol = "TCP";
@@ -669,7 +668,7 @@ in
           {
             metadata.name = "data";
             spec = {
-              accessModes = [ "ReadWriteOnce" ];
+              accessModes = ["ReadWriteOnce"];
               storageClassName = storageClass;
               resources.requests.storage = "50Gi";
             };
@@ -792,7 +791,7 @@ in
             volumes = {
               _namedlist = true;
               config.configMap.name = "mimir-config";
-              activity.emptyDir = { };
+              activity.emptyDir = {};
             };
           };
         };
@@ -800,7 +799,7 @@ in
           {
             metadata.name = "data";
             spec = {
-              accessModes = [ "ReadWriteOnce" ];
+              accessModes = ["ReadWriteOnce"];
               storageClassName = storageClass;
               resources.requests.storage = "100Gi";
             };
@@ -871,7 +870,7 @@ in
               tempo = {
                 image = tempoImage;
                 imagePullPolicy = "IfNotPresent";
-                args = [ "-config.file=/etc/tempo/tempo.yaml" ];
+                args = ["-config.file=/etc/tempo/tempo.yaml"];
                 ports = [
                   {
                     containerPort = 3200;
@@ -924,7 +923,7 @@ in
           {
             metadata.name = "data";
             spec = {
-              accessModes = [ "ReadWriteOnce" ];
+              accessModes = ["ReadWriteOnce"];
               storageClassName = storageClass;
               resources.requests.storage = "50Gi";
             };
@@ -1099,7 +1098,7 @@ in
 
     monitoring.PersistentVolumeClaim.grafana-data = {
       spec = {
-        accessModes = [ "ReadWriteOnce" ];
+        accessModes = ["ReadWriteOnce"];
         storageClassName = storageClass;
         resources.requests.storage = "10Gi";
       };
@@ -1220,7 +1219,7 @@ in
                 securityContext = {
                   allowPrivilegeEscalation = false;
                   readOnlyRootFilesystem = true;
-                  capabilities.drop = [ "ALL" ];
+                  capabilities.drop = ["ALL"];
                 };
                 volumeMounts = {
                   _namedlist = true;
@@ -1249,7 +1248,7 @@ in
             volumes = {
               _namedlist = true;
               config.configMap.name = "alloy-config";
-              data.emptyDir = { };
+              data.emptyDir = {};
               "var-log" = {
                 hostPath.path = "/var/log";
                 hostPath.type = "DirectoryOrCreate";
@@ -1347,7 +1346,7 @@ in
             volumes = {
               _namedlist = true;
               config.configMap.name = "prometheus-config";
-              data.emptyDir = { }; # Short retention — Mimir handles long-term
+              data.emptyDir = {}; # Short retention — Mimir handles long-term
             };
           };
         };
@@ -1407,7 +1406,7 @@ in
       '';
     };
 
-    monitoring.ServiceAccount.alertmanager-sa = { };
+    monitoring.ServiceAccount.alertmanager-sa = {};
 
     monitoring.Deployment.alertmanager = {
       metadata.labels.app = "alertmanager";
@@ -1501,7 +1500,7 @@ in
     };
 
     # ── Alert Webhook (receiver for alerts) ─────────────────────
-    monitoring.ServiceAccount.alert-webhook-sa = { };
+    monitoring.ServiceAccount.alert-webhook-sa = {};
 
     monitoring.Deployment.alert-webhook = {
       metadata.labels.app = "alert-webhook";
@@ -1554,11 +1553,11 @@ in
     };
 
     # ── Rest is unchanged, starting from kube-state-metrics
-    monitoring.ServiceAccount.kube-state-metrics-sa = { };
+    monitoring.ServiceAccount.kube-state-metrics-sa = {};
     none.ClusterRole.kube-state-metrics-role = {
       rules = [
         {
-          apiGroups = [ "" ];
+          apiGroups = [""];
           resources = [
             "configmaps"
             "secrets"
@@ -1575,7 +1574,7 @@ in
           ];
         }
         {
-          apiGroups = [ "apps" ];
+          apiGroups = ["apps"];
           resources = [
             "controllerrevisions"
             "daemonsets"
@@ -1589,7 +1588,7 @@ in
           ];
         }
         {
-          apiGroups = [ "batch" ];
+          apiGroups = ["batch"];
           resources = [
             "cronjobs"
             "jobs"
@@ -1600,23 +1599,23 @@ in
           ];
         }
         {
-          apiGroups = [ "autoscaling" ];
-          resources = [ "horizontalpodautoscalers" ];
+          apiGroups = ["autoscaling"];
+          resources = ["horizontalpodautoscalers"];
           verbs = [
             "list"
             "watch"
           ];
         }
         {
-          apiGroups = [ "policy" ];
-          resources = [ "poddisruptionbudgets" ];
+          apiGroups = ["policy"];
+          resources = ["poddisruptionbudgets"];
           verbs = [
             "list"
             "watch"
           ];
         }
         {
-          apiGroups = [ "storage.k8s.io" ];
+          apiGroups = ["storage.k8s.io"];
           resources = [
             "storageclasses"
             "volumeattachments"
@@ -1707,7 +1706,7 @@ in
                 securityContext = {
                   allowPrivilegeEscalation = false;
                   readOnlyRootFilesystem = true;
-                  capabilities.drop = [ "ALL" ];
+                  capabilities.drop = ["ALL"];
                 };
               };
             };
@@ -2012,10 +2011,10 @@ in
     kube-system.NetworkPolicy.allow-metrics-server-kubelet = {
       spec = {
         podSelector.matchLabels."k8s-app" = "metrics-server";
-        policyTypes = [ "Egress" ];
+        policyTypes = ["Egress"];
         egress = [
           {
-            to = [ { ipBlock.cidr = "10.1.1.0/24"; } ];
+            to = [{ipBlock.cidr = cluster.kubernetes.subnet;}];
             ports = [
               {
                 protocol = "TCP";
@@ -2024,7 +2023,7 @@ in
             ];
           }
           {
-            to = [ { namespaceSelector.matchLabels.name = "kube-system"; } ];
+            to = [{namespaceSelector.matchLabels.name = "kube-system";}];
             ports = [
               {
                 protocol = "UDP";
@@ -2047,12 +2046,12 @@ in
     };
 
     # Source: prometheus-adapter-rbac.yaml
-    custom-metrics.ServiceAccount.prometheus-adapter = { };
+    custom-metrics.ServiceAccount.prometheus-adapter = {};
 
     none.ClusterRole.prometheus-adapter-server-resources = {
       rules = [
         {
-          apiGroups = [ "" ];
+          apiGroups = [""];
           resources = [
             "namespaces"
             "pods"
@@ -2261,6 +2260,14 @@ in
         insecureSkipTLSVerify = true;
         groupPriorityMinimum = 100;
         versionPriority = 100;
+      };
+    };
+
+    # ── Custom Metrics default deny all ────────────────────────────
+    custom-metrics.NetworkPolicy.default-deny-all = {
+      spec = {
+        podSelector = {};
+        policyTypes = ["Ingress" "Egress"];
       };
     };
   };

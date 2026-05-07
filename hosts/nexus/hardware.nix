@@ -1,5 +1,8 @@
-{ pkgs, lib, ... }:
 {
+  pkgs,
+  lib,
+  ...
+}: {
   hardware.gpu-compute = {
     enable = true;
     cuda.enable = true;

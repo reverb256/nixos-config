@@ -3,12 +3,10 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   inherit (lib) mkIf mkOption types;
   cfg = config.services.unbound-common;
-in
-{
+in {
   options.services.unbound-common = {
     enable = lib.mkEnableOption "Unbound DNS resolver with DNS-over-TLS (cluster-wide config)";
   };
@@ -33,13 +31,13 @@ in
           hide-identity = true;
           hide-version = true;
           tls-cert-bundle = "/etc/ssl/certs/ca-bundle.crt";
-          include = [ "/etc/unbound/local-dns.conf" ];
+          include = ["/etc/unbound/local-dns.conf"];
         };
 
         forward-zone = [
           {
             name = "ts.net.";
-            forward-addr = [ "100.100.100.100" "fd7a:115c:a1e0::53" ];
+            forward-addr = ["100.100.100.100" "fd7a:115c:a1e0::53"];
           }
           {
             name = ".";
@@ -55,35 +53,34 @@ in
       };
     };
 
-    environment.etc."unbound/local-dns.conf".text =
-      lib.concatMapStrings (record: "local-data: \"${record}\"\n") (
-        # Cluster hosts
-        [
-          "zephyr.lan. IN A 10.1.1.110"
-          "nexus.lan. IN A 10.1.1.120"
-          "forge.lan. IN A 10.1.1.130"
-          "sentry.lan. IN A 10.1.1.140"
-          # Tailscale mobile device
-          "seeker.lan. IN A 100.84.24.43"
-          # Service DNS — Caddy terminates TLS on nexus
-          "search.lan. IN A 10.1.1.120"
-          "brain.lan. IN A 10.1.1.120"
-          "ai-inference.lan. IN A 10.1.1.110"
-          "qdrant.lan. IN A 10.1.1.120"
-          "knowledge-fabric.lan. IN A 10.1.1.120"
-          "ai.lan. IN A 10.1.1.120"
-          "openwebui.lan. IN A 10.1.1.120"
-          "haven.lan. IN A 10.1.1.120"
-          "hermes.lan. IN A 10.1.1.120"
-          "api.hermes.lan. IN A 10.1.1.120"
-          "n8n.lan. IN A 10.1.1.120"
-          "searxng.lan. IN A 10.1.1.120"
-          "activepieces.lan. IN A 10.1.1.120"
-        ]
-      );
+    environment.etc."unbound/local-dns.conf".text = lib.concatMapStrings (record: "local-data: \"${record}\"\n") (
+      # Cluster hosts
+      [
+        "zephyr.lan. IN A 10.1.1.110"
+        "nexus.lan. IN A 10.1.1.120"
+        "forge.lan. IN A 10.1.1.130"
+        "sentry.lan. IN A 10.1.1.140"
+        # Tailscale mobile device
+        "seeker.lan. IN A 100.84.24.43"
+        # Service DNS — Caddy terminates TLS on nexus
+        "search.lan. IN A 10.1.1.120"
+        "brain.lan. IN A 10.1.1.120"
+        "ai-inference.lan. IN A 10.1.1.110"
+        "qdrant.lan. IN A 10.1.1.120"
+        "knowledge-fabric.lan. IN A 10.1.1.120"
+        "ai.lan. IN A 10.1.1.120"
+        "openwebui.lan. IN A 10.1.1.120"
+        "haven.lan. IN A 10.1.1.120"
+        "hermes.lan. IN A 10.1.1.120"
+        "api.hermes.lan. IN A 10.1.1.120"
+        "n8n.lan. IN A 10.1.1.120"
+        "searxng.lan. IN A 10.1.1.120"
+        "activepieces.lan. IN A 10.1.1.120"
+      ]
+    );
 
-    networking.firewall.allowedUDPPorts = lib.mkOptionDefault [ 53 ];
-    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ 53 ];
+    networking.firewall.allowedUDPPorts = lib.mkOptionDefault [53];
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [53];
 
     networking.firewall.extraInputRules = lib.mkAfter ''
       ip saddr { 10.1.1.0/24, 10.244.0.0/16 } udp dport 53 accept

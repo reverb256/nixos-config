@@ -1,5 +1,4 @@
-{ lib, ... }:
-{
+{lib, ...}: {
   networking = {
     firewall = {
       extraInputRules = lib.mkAfter ''
@@ -14,7 +13,7 @@
       allowedUDPPorts = lib.mkOptionDefault [
         8472
       ];
-      interfaces."eth0".allowedTCPPorts = [ 3100 ];
+      interfaces."eth0".allowedTCPPorts = [3100];
     };
   };
 }

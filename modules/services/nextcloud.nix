@@ -3,10 +3,10 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.nextcloud-module;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
@@ -14,8 +14,7 @@ let
     mkMerge
     mkDefault
     ;
-in
-{
+in {
   options.services.nextcloud-module = {
     enable = mkEnableOption "Nextcloud - Self-hosted collaboration platform";
 
@@ -179,7 +178,7 @@ in
     services = {
       postgresql = mkIf cfg.database.create {
         enable = true;
-        ensureDatabases = [ cfg.database.name ];
+        ensureDatabases = [cfg.database.name];
         ensureUsers = [
           {
             name = cfg.database.user;

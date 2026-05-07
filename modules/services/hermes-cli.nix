@@ -11,18 +11,15 @@
 # Usage:
 #   services.hermes-cli.enable = true;
 #   services.hermes-cli.apiKeyFile = config.age.secrets.zai-api-key.path;
-
 {
   config,
   lib,
   pkgs,
   inputs,
   ...
-}:
-
-let
+}: let
   cfg = config.services.hermes-cli;
-  hermesAgentCfg = config.services.hermes-agent or { };
+  hermesAgentCfg = config.services.hermes-agent or {};
   hermesPkg = inputs.hermes-agent.packages.${pkgs.system}.default;
 
   # Build the WhatsApp bridge from the hermes-agent source
@@ -40,8 +37,7 @@ let
 
   # If hermes-agent is enabled, use its state dir. Otherwise, use user home.
   useAgentStateDir = hermesAgentCfg.enable or false;
-in
-{
+in {
   options.services.hermes-cli = {
     enable = lib.mkEnableOption "Hermes Agent CLI for interactive use";
 
@@ -92,7 +88,7 @@ in
 
   config = lib.mkIf cfg.enable {
     # Install hermes package system-wide
-    environment.systemPackages = [ hermes-with-whatsapp ];
+    environment.systemPackages = [hermes-with-whatsapp];
 
     # Only set HERMES_HOME if hermes-agent is NOT managing it
     # The hermes-agent module sets addToSystemPackages which also sets HERMES_HOME
@@ -100,7 +96,7 @@ in
 
     # Create hermes state directory with proper config (only if not using agent state)
     system.activationScripts.hermes-cli-setup = lib.mkIf (!useAgentStateDir) (
-      lib.stringAfter [ "users" ] ''
+      lib.stringAfter ["users"] ''
               HERMES_HOME="/home/${cfg.user}/.hermes"
 
               # Create directory structure
@@ -168,30 +164,30 @@ in
 
               # Write .env with API keys from agenix secrets
               ${lib.optionalString (cfg.apiKeyFile != null) ''
-                echo "# Hermes environment variables" > "$HERMES_HOME/.env"
-                if [ -f "${cfg.apiKeyFile}" ]; then
-                  echo -n "ZAI_API_KEY=" >> "$HERMES_HOME/.env"
-                  cat "${cfg.apiKeyFile}" >> "$HERMES_HOME/.env"
-                  echo "" >> "$HERMES_HOME/.env"
-                fi
-                chmod 600 "$HERMES_HOME/.env"
-              ''}
+          echo "# Hermes environment variables" > "$HERMES_HOME/.env"
+          if [ -f "${cfg.apiKeyFile}" ]; then
+            echo -n "ZAI_API_KEY=" >> "$HERMES_HOME/.env"
+            cat "${cfg.apiKeyFile}" >> "$HERMES_HOME/.env"
+            echo "" >> "$HERMES_HOME/.env"
+          fi
+          chmod 600 "$HERMES_HOME/.env"
+        ''}
               ${lib.optionalString (cfg.nvidiaApiKeyFile != null) ''
-                echo -n "NVIDIA_API_KEY=" >> "$HERMES_HOME/.env"
-                if [ -f "${cfg.nvidiaApiKeyFile}" ]; then
-                  cat "${cfg.nvidiaApiKeyFile}" >> "$HERMES_HOME/.env"
-                  echo "" >> "$HERMES_HOME/.env"
-                fi
-                chmod 600 "$HERMES_HOME/.env"
-              ''}
+          echo -n "NVIDIA_API_KEY=" >> "$HERMES_HOME/.env"
+          if [ -f "${cfg.nvidiaApiKeyFile}" ]; then
+            cat "${cfg.nvidiaApiKeyFile}" >> "$HERMES_HOME/.env"
+            echo "" >> "$HERMES_HOME/.env"
+          fi
+          chmod 600 "$HERMES_HOME/.env"
+        ''}
               ${lib.optionalString (cfg.openrouterApiKeyFile != null) ''
-                echo -n "OPENROUTER_API_KEY=" >> "$HERMES_HOME/.env"
-                if [ -f "${cfg.openrouterApiKeyFile}" ]; then
-                  cat "${cfg.openrouterApiKeyFile}" >> "$HERMES_HOME/.env"
-                  echo "" >> "$HERMES_HOME/.env"
-                fi
-                chmod 600 "$HERMES_HOME/.env"
-              ''}
+          echo -n "OPENROUTER_API_KEY=" >> "$HERMES_HOME/.env"
+          if [ -f "${cfg.openrouterApiKeyFile}" ]; then
+            cat "${cfg.openrouterApiKeyFile}" >> "$HERMES_HOME/.env"
+            echo "" >> "$HERMES_HOME/.env"
+          fi
+          chmod 600 "$HERMES_HOME/.env"
+        ''}
 
               # Write SOUL.md if it doesn't exist
               if [ ! -f "$HERMES_HOME/SOUL.md" ]; then

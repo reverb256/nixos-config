@@ -3,82 +3,79 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.mcp-servers;
 
-  registry = import ./mcp-server-registry.nix { inherit lib; };
+  registry = import ./mcp-server-registry.nix {inherit lib;};
 
-
-  mkNpmMcpServer =
-    {
-      name,
-      package,
-      args ? [ ],
-      env ? { },
-    }:
+  mkNpmMcpServer = {
+    name,
+    package,
+    args ? [],
+    env ? {},
+  }:
     pkgs.writeShellScriptBin "mcp-${name}" ''
       export npm_config_cache="/var/cache/ai-inference/npm"
       export PATH="${pkgs.nodejs_22}/bin:$PATH"
       ${lib.concatStringsSep "\n" (
         lib.mapAttrsToList (
           k: v:
-          if lib.hasSuffix "_FILE" k then
-            ''
+            if lib.hasSuffix "_FILE" k
+            then ''
               if [ -f "${v}" ]; then
                 export ${lib.substring 0 (lib.stringLength k - 5) k}="$(cat ${v})"
               else
                 echo "Warning: API key file not found: ${v}" >&2
               fi
             ''
-          else
-            ''
+            else ''
               export ${k}="${v}"
             ''
-        ) env
+        )
+        env
       )}
       exec ${pkgs.nodejs_22}/bin/npx -y ${package} ${lib.concatStringsSep " " args} "$@"
     '';
 
-  mkUvxMcpServer =
-    {
-      name,
-      package,
-      entrypoint,
-    }:
+  mkUvxMcpServer = {
+    name,
+    package,
+    entrypoint,
+  }:
     pkgs.writeShellScriptBin "mcp-${name}" ''
       export PATH="${pkgs.uv}/bin:$PATH"
       exec ${pkgs.uv}/bin/uvx --from ${package} ${entrypoint} "$@"
     '';
 
-  mkMcpServer =
-    name: def:
-    if def.type == "npm" then
+  mkMcpServer = name: def:
+    if def.type == "npm"
+    then
       mkNpmMcpServer {
         inherit name;
         inherit (def) package;
-        args = def.args or [ ];
-        env = def.env or { };
+        args = def.args or [];
+        env = def.env or {};
       }
-    else if def.type == "uvx" then
+    else if def.type == "uvx"
+    then
       mkUvxMcpServer {
         inherit name;
         inherit (def) package entrypoint;
       }
-    else
-      null;
+    else null;
 
   registryPackages = lib.filter (p: p != null) (lib.mapAttrsToList mkMcpServer registry.servers);
-in
-{
+in {
   options.services.mcp-servers = {
     enable = lib.mkEnableOption "MCP (Model Context Protocol) servers for all AI tools";
 
     servers = {
       filesystem = {
-        enable = lib.mkEnableOption "Filesystem MCP server" // {
-          default = true;
-        };
+        enable =
+          lib.mkEnableOption "Filesystem MCP server"
+          // {
+            default = true;
+          };
         allowedPaths = lib.mkOption {
           type = lib.types.listOf lib.types.str;
           default = [
@@ -90,15 +87,19 @@ in
       };
 
       git = {
-        enable = lib.mkEnableOption "Git MCP server" // {
-          default = true;
-        };
+        enable =
+          lib.mkEnableOption "Git MCP server"
+          // {
+            default = true;
+          };
       };
 
       playwright = {
-        enable = lib.mkEnableOption "Playwright MCP server for browser automation" // {
-          default = true;
-        };
+        enable =
+          lib.mkEnableOption "Playwright MCP server for browser automation"
+          // {
+            default = true;
+          };
         browser = lib.mkOption {
           type = lib.types.enum [
             "chrome"
@@ -116,7 +117,7 @@ in
               "pdf"
             ]
           );
-          default = [ ];
+          default = [];
           description = "Additional capabilities to enable (vision, pdf)";
         };
         headless = lib.mkOption {
@@ -171,27 +172,33 @@ in
         };
         grantPermissions = lib.mkOption {
           type = lib.types.listOf lib.types.str;
-          default = [ ];
+          default = [];
           description = "Permissions to grant";
         };
       };
 
       puppeteer = {
-        enable = lib.mkEnableOption "Puppeteer MCP server (deprecated, use Playwright)" // {
-          default = false;
-        };
+        enable =
+          lib.mkEnableOption "Puppeteer MCP server (deprecated, use Playwright)"
+          // {
+            default = false;
+          };
       };
 
       fetch = {
-        enable = lib.mkEnableOption "Fetch MCP server for web content" // {
-          default = true;
-        };
+        enable =
+          lib.mkEnableOption "Fetch MCP server for web content"
+          // {
+            default = true;
+          };
       };
 
       context7 = {
-        enable = lib.mkEnableOption "Context7 MCP server for documentation" // {
-          default = true;
-        };
+        enable =
+          lib.mkEnableOption "Context7 MCP server for documentation"
+          // {
+            default = true;
+          };
         apiKeyFile = lib.mkOption {
           type = lib.types.path;
           default = "/run/agenix/context7-api-key";
@@ -200,15 +207,19 @@ in
       };
 
       grep-app = {
-        enable = lib.mkEnableOption "Grep.app MCP server for code search" // {
-          default = false;
-        };
+        enable =
+          lib.mkEnableOption "Grep.app MCP server for code search"
+          // {
+            default = false;
+          };
       };
 
       brave-search = {
-        enable = lib.mkEnableOption "Brave Search MCP server" // {
-          default = false;
-        };
+        enable =
+          lib.mkEnableOption "Brave Search MCP server"
+          // {
+            default = false;
+          };
         apiKey = lib.mkOption {
           type = lib.types.str;
           default = "";
@@ -217,15 +228,19 @@ in
       };
 
       chrome-devtools = {
-        enable = lib.mkEnableOption "Chrome DevTools MCP server" // {
-          default = true;
-        };
+        enable =
+          lib.mkEnableOption "Chrome DevTools MCP server"
+          // {
+            default = true;
+          };
       };
 
       github = {
-        enable = lib.mkEnableOption "GitHub MCP server" // {
-          default = false;
-        };
+        enable =
+          lib.mkEnableOption "GitHub MCP server"
+          // {
+            default = false;
+          };
         apiKey = lib.mkOption {
           type = lib.types.str;
           default = "";
@@ -234,9 +249,11 @@ in
       };
 
       kubernetes = {
-        enable = lib.mkEnableOption "Kubernetes MCP server for cluster management" // {
-          default = false;
-        };
+        enable =
+          lib.mkEnableOption "Kubernetes MCP server for cluster management"
+          // {
+            default = false;
+          };
         kubeconfig = lib.mkOption {
           type = lib.types.path;
           default = "";
@@ -245,27 +262,35 @@ in
       };
 
       github-actions = {
-        enable = lib.mkEnableOption "GitHub Actions MCP server for CI/CD automation" // {
-          default = false;
-        };
+        enable =
+          lib.mkEnableOption "GitHub Actions MCP server for CI/CD automation"
+          // {
+            default = false;
+          };
       };
 
       terraform = {
-        enable = lib.mkEnableOption "Terraform MCP server for IaC automation" // {
-          default = false;
-        };
+        enable =
+          lib.mkEnableOption "Terraform MCP server for IaC automation"
+          // {
+            default = false;
+          };
       };
 
       ansible = {
-        enable = lib.mkEnableOption "Ansible MCP server for configuration management" // {
-          default = false;
-        };
+        enable =
+          lib.mkEnableOption "Ansible MCP server for configuration management"
+          // {
+            default = false;
+          };
       };
 
       n8n = {
-        enable = lib.mkEnableOption "n8n workflow automation MCP server" // {
-          default = false;
-        };
+        enable =
+          lib.mkEnableOption "n8n workflow automation MCP server"
+          // {
+            default = false;
+          };
         url = lib.mkOption {
           type = lib.types.str;
           default = "http://localhost:5678";
@@ -274,9 +299,11 @@ in
       };
 
       computer-use = {
-        enable = lib.mkEnableOption "Computer use MCP server for desktop automation" // {
-          default = false;
-        };
+        enable =
+          lib.mkEnableOption "Computer use MCP server for desktop automation"
+          // {
+            default = false;
+          };
         platform = lib.mkOption {
           type = lib.types.enum [
             "windows"
@@ -289,9 +316,11 @@ in
       };
 
       exa = {
-        enable = lib.mkEnableOption "Exa web search MCP server" // {
-          default = false;
-        };
+        enable =
+          lib.mkEnableOption "Exa web search MCP server"
+          // {
+            default = false;
+          };
         apiKey = lib.mkOption {
           type = lib.types.str;
           default = "";
@@ -300,15 +329,19 @@ in
       };
 
       google-drive = {
-        enable = lib.mkEnableOption "Google Drive MCP server for cloud storage" // {
-          default = false;
-        };
+        enable =
+          lib.mkEnableOption "Google Drive MCP server for cloud storage"
+          // {
+            default = false;
+          };
       };
 
       lightpanda = {
-        enable = lib.mkEnableOption "LightPanda headless browser MCP server (9x faster than Chrome)" // {
-          default = true;
-        };
+        enable =
+          lib.mkEnableOption "LightPanda headless browser MCP server (9x faster than Chrome)"
+          // {
+            default = true;
+          };
         obeyRobots = lib.mkOption {
           type = lib.types.bool;
           default = true;
@@ -319,8 +352,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages =
-      with pkgs;
+    environment.systemPackages = with pkgs;
       [
         nodejs_22
         (lib.optionalString (lib.hasAttr "uv" pkgs) uv)
@@ -356,7 +388,7 @@ in
             cfg.servers.playwright.saveVideo != ""
           ) "args+=(--save-video \"${cfg.servers.playwright.saveVideo}\")"}
           ${lib.optionalString (
-            cfg.servers.playwright.grantPermissions != [ ]
+            cfg.servers.playwright.grantPermissions != []
           ) "args+=(--grant-permissions ${lib.concatStringsSep " " cfg.servers.playwright.grantPermissions})"}
           exec ${pkgs.playwright-mcp}/bin/mcp-server-playwright "''${args[@]}" "$@"
         '')
@@ -390,10 +422,12 @@ in
           name = "brave-search";
           package = "@modelcontextprotocol/server-brave-search";
           env = lib.optionalAttrs (cfg.servers.brave-search.apiKey != "") (
-            lib.listToAttrs [{
-              name = "BRAVE_API_KEY";
-              value = cfg.servers.brave-search.apiKey;
-            }]
+            lib.listToAttrs [
+              {
+                name = "BRAVE_API_KEY";
+                value = cfg.servers.brave-search.apiKey;
+              }
+            ]
           );
         })
       ]

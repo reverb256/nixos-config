@@ -3,14 +3,12 @@
   config,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.programs.mining-plasmoid;
 
   plasmoidName = "org.revervos.mining-monitor";
   plasmoidSrc = ../../plasmoids/mining-monitor;
-in
-{
+in {
   options.programs.mining-plasmoid = {
     enable = lib.mkEnableOption "Mining Monitor Plasma Plasmoid - Multi-node GPU/CPU monitor";
 
@@ -35,7 +33,7 @@ in
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [
-      (pkgs.runCommand "mining-monitor-plasmoid" { } ''
+      (pkgs.runCommand "mining-monitor-plasmoid" {} ''
         mkdir -p $out/share/plasma/plasmoids/${plasmoidName}/config
         cp -r ${plasmoidSrc}/* $out/share/plasma/plasmoids/${plasmoidName}/
 

@@ -4,8 +4,7 @@
   pkgs,
   ...
 }:
-with lib;
-let
+with lib; let
   cfg = config.services.gaming;
   vrCfg = cfg.vr;
   set-evdev-deadzone = pkgs.stdenv.mkDerivation {
@@ -19,18 +18,15 @@ let
       mkdir -p $out/bin
       cp set-evdev-deadzone $out/bin/
     '';
-    nativeBuildInputs = [ pkgs.gcc ];
+    nativeBuildInputs = [pkgs.gcc];
   };
-in
-{
+in {
   options.services.gaming = {
     enable = mkEnableOption "Gaming support (Steam, GameMode, Gamescope)";
     vr.enable = mkEnableOption "VR support (WiVRn, SteamVR, OpenXR)";
   };
   config = mkMerge [
     (mkIf cfg.enable {
-
-
       programs = {
         gamemode = {
           enable = true;
@@ -66,8 +62,8 @@ in
           extraCompatPackages = [
           ];
           package = pkgs.steam.override {
-            extraLibraries =
-              pkgs: with pkgs; [
+            extraLibraries = pkgs:
+              with pkgs; [
                 freetype
                 fontconfig
                 libpng
@@ -123,7 +119,8 @@ in
             "--steam"
             "--xwayland-count 2"
             "--expose-wayland"
-            "--prefer-vk-device" "10de:2204"
+            "--prefer-vk-device"
+            "10de:2204"
           ];
         };
         nix-ld = {
@@ -157,8 +154,6 @@ in
       };
       hardware.steam-hardware.enable = true;
 
-
-
       services = {
         pipewire.extraConfig = lib.mkForce {
           pipewire."99-lowlatency"."context.properties" = {
@@ -181,13 +176,12 @@ in
 
         '';
       };
-      users.groups.plugdev = { };
-      boot.kernelModules = [ "hid_sony" ];
+      users.groups.plugdev = {};
+      boot.kernelModules = ["hid_sony"];
       systemd.tmpfiles.rules = [
         "d /var/cache/nvidia-shader-cache 0755 root root - -"
         "L /sbin/ldconfig - - - - ${lib.getBin pkgs.glibc}/sbin/ldconfig"
       ];
-
 
       environment = {
         sessionVariables = {
@@ -217,7 +211,7 @@ in
             comment = "Pause all GPU mining on this host";
             icon = "media-playback-pause";
             exec = "mining-pause";
-            categories = [ "System" ];
+            categories = ["System"];
             terminal = false;
           })
           (pkgs.makeDesktopItem {
@@ -274,8 +268,6 @@ in
           '';
         };
       };
-
-
     })
     (mkIf vrCfg.enable {
       # WiVRn OpenXR streaming — upstream module handles runtime
@@ -330,20 +322,22 @@ in
       services.gpu-profile-manager.enable = true;
 
       environment = {
-        systemPackages = with pkgs; [
-          xrizer
-          opencomposite
-          openxr-loader
-          openvr
-          motoc
-          wayvr
-          android-tools
-          ffmpeg
-        ] ++ [
-          (pkgs.writeShellScriptBin "gpu-profile" ''
-            exec ${./scripts/gpu-profiles/switch-profile} "$@"
-          '')
-        ];
+        systemPackages = with pkgs;
+          [
+            xrizer
+            opencomposite
+            openxr-loader
+            openvr
+            motoc
+            wayvr
+            android-tools
+            ffmpeg
+          ]
+          ++ [
+            (pkgs.writeShellScriptBin "gpu-profile" ''
+              exec ${./scripts/gpu-profiles/switch-profile} "$@"
+            '')
+          ];
       };
     })
   ];

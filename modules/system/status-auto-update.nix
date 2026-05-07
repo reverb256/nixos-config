@@ -1,6 +1,9 @@
-{ config, lib, pkgs, ... }:
-
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.status-auto-update;
   inherit (lib) mkEnableOption mkIf mkOption types;
 in {
@@ -29,9 +32,9 @@ in {
   config = mkIf cfg.enable {
     systemd.services.status-update = {
       description = "Update STATUS.md with current cluster state";
-      after = [ "network.target" "kubernetes.target" ];
-      wants = [ "network-online.target" ];
-      path = with pkgs; [ kubectl kubernetes-helm jq gawk ];
+      after = ["network.target" "kubernetes.target"];
+      wants = ["network-online.target"];
+      path = with pkgs; [kubectl kubernetes-helm jq gawk];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${cfg.scriptPath}";
@@ -47,7 +50,7 @@ in {
 
     systemd.timers.status-update = {
       description = "Timer for STATUS.md auto-update";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnBootSec = "5min";
         OnUnitActiveSec = cfg.interval;

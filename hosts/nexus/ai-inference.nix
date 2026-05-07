@@ -3,8 +3,7 @@
   pkgs,
   lib,
   ...
-}:
-{
+}: {
   services.ai-inference = {
     enable = true;
 
@@ -36,31 +35,6 @@
         enable = true;
         apiKeyFile = "/run/agenix/pollinations-api-key";
         baseUrl = "https://text.pollinations.ai";
-      };
-    };
-
-    gateway = {
-      enable = false; # disabled — K8s deployment handles gateway
-      host = "0.0.0.0";
-      port = 8080;
-      workers = 1;
-      middleware.redis = {
-        enable = true;
-        host = "valkey.search.svc.cluster.local"; # K8s service DNS (search namespace)
-        port = 6379;
-      };
-      middleware.knowledgeFabric = {
-        enable = true;
-        rrf_k = 60;
-        rag_enabled = true;
-        searxng_enabled = true;
-        searxng_url = "http://10.1.1.120:30888"; # NodePort — ClusterIP unreachable from host systemd
-        searxng_max_results = 10;
-        code_search_enabled = false;
-        brain_wiki_enabled = true;
-        brain_wiki_path = "/home/j_kro/brain/wiki";
-        web_search_enabled = false;
-        rag_top_k = 10;
       };
     };
 
@@ -96,7 +70,7 @@
 
     rag = {
       enable = true;
-      qdrantUrl = "http://10.5.93.32:6333"; # K8s service DNS
+      qdrantUrl = "http://qdrant.ai-inference.svc.cluster.local:6333"; # K8s service DNS
       embeddingModel = "BidirLM/BidirLM-Omni-2.5B-Embedding"; # 2048d, multimodal (text/image/audio)
       embeddingDevice = "cpu"; # nexus GPU occupied by lolMiner
       embeddingTrustRemoteCode = true; # BidirLM requires custom code
@@ -117,14 +91,6 @@
       reranker = {
         enable = true; # cross-encoder BGE-reranker-base on CPU
         model = "BAAI/bge-reranker-base";
-      };
-      qdrant = {
-        enable = false; # Qdrant runs as K8s StatefulSet, not local systemd
-        host = "0.0.0.0";
-        port = 6333;
-        grpcPort = 6334;
-        storagePath = "/var/lib/qdrant";
-        memoryLimit = "4G";
       };
     };
 

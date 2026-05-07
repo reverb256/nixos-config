@@ -12,24 +12,20 @@
 #
 # NOTE: No NAT configured here -- zephyr's existing firewall handles routing.
 # VMs communicate via the microvm0 bridge.
-
-{ inputs, ... }:
-
-{
-  imports = [ inputs.microvm.nixosModules.host ];
+{inputs, ...}: {
+  imports = [inputs.microvm.nixosModules.host];
 
   # No autostart -- VMs are created on-demand for CI testing
-  microvm.autostart = [ ];
+  microvm.autostart = [];
 
   # Network bridge for MicroVMs
-  networking.bridges.microvm0.interfaces = [ ];
+  networking.bridges.microvm0.interfaces = [];
 
   # Open firewall for MicroVM management
-  networking.firewall.interfaces.microvm0.allowedTCPPorts = [ 22 ];
+  networking.firewall.interfaces.microvm0.allowedTCPPorts = [22];
 
   # MicroVM definitions
   microvm.vms = {
-
     # ── CI Test Runner (on-demand, declarative deployment) ──
     # Disposable VM for pre-deploy integration testing
     # Spin up → run health checks → destroy

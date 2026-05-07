@@ -47,7 +47,6 @@ in {
     environment.systemPackages = with pkgs;
       [
         gst_all_1.gstreamer
-
       ]
       ++ optionals cfg.codecs.enableBase [
         gst_all_1.gst-plugins-base
@@ -72,7 +71,6 @@ in {
 
       GST_PLUGIN_PATH = "/run/current-system/sw/lib/gstreamer-1.0";
       GST_PLUGIN_SYSTEM_PATH = "/run/current-system/sw/lib/gstreamer-1.0";
-
     };
 
     services.pipewire = {
@@ -87,6 +85,5 @@ in {
     };
 
     documentation.doc.enable = true;
-
   };
 }

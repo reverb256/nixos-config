@@ -39,7 +39,6 @@ in {
     };
   };
 
-
   config = lib.mkMerge [
     # Assertion fires regardless of enable state
     {
@@ -47,80 +46,81 @@ in {
         {
           assertion =
             cfg.enable
-            || (cfg.autoDetect && !cfg.fanControl
+            || (cfg.autoDetect
+              && !cfg.fanControl
               && cfg.kernelModules == ["nct6775" "k10temp" "jc42"]);
           message = "hardware.monitoring: sub-options customized but enable = false. Add `enable = true` or remove the sub-options.";
         }
       ];
     }
     (lib.mkIf cfg.enable {
-    environment.systemPackages = with pkgs; [
-      lm_sensors
-      nvtopPackages.full
-    ];
+      environment.systemPackages = with pkgs; [
+        lm_sensors
+        nvtopPackages.full
+      ];
 
-    boot.kernelModules = cfg.kernelModules;
+      boot.kernelModules = cfg.kernelModules;
 
-    systemd = {
-      services = {
-        sensors = {
-          description = "Load hardware sensor drivers";
-          wantedBy = ["multi-user.target"];
-          serviceConfig = {
-            Type = "oneshot";
-            RemainAfterExit = true;
-            ExecStart = lib.getExe pkgs.lm_sensors + " -s";
-            NoNewPrivileges = true;
-            ProtectSystem = "strict";
-            ProtectHome = true;
-            PrivateTmp = true;
+      systemd = {
+        services = {
+          sensors = {
+            description = "Load hardware sensor drivers";
+            wantedBy = ["multi-user.target"];
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              ExecStart = lib.getExe pkgs.lm_sensors + " -s";
+              NoNewPrivileges = true;
+              ProtectSystem = "strict";
+              ProtectHome = true;
+              PrivateTmp = true;
+            };
           };
-        };
 
-        sensors-detect = lib.mkIf cfg.autoDetect {
-          description = "Auto-detect hardware sensors";
-          wantedBy = ["multi-user.target"];
-          before = ["sensors.service"];
-          serviceConfig = {
-            Type = "oneshot";
-            RemainAfterExit = true;
-            ExecStart = lib.getExe pkgs.lm_sensors + " --auto";
-            NoNewPrivileges = true;
-            ProtectSystem = "strict";
-            ProtectHome = true;
-            PrivateTmp = true;
-            RestrictRealtime = true;
+          sensors-detect = lib.mkIf cfg.autoDetect {
+            description = "Auto-detect hardware sensors";
+            wantedBy = ["multi-user.target"];
+            before = ["sensors.service"];
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              ExecStart = lib.getExe pkgs.lm_sensors + " --auto";
+              NoNewPrivileges = true;
+              ProtectSystem = "strict";
+              ProtectHome = true;
+              PrivateTmp = true;
+              RestrictRealtime = true;
+            };
           };
-        };
 
-        fancontrol = lib.mkIf cfg.fanControl {
-          description = "Fan speed regulator";
-          wantedBy = ["multi-user.target"];
-          after = ["multi-user.target" "sensors.service"];
-          wants = ["sensors.service"];
-          serviceConfig = {
-            ExecStart = lib.getExe pkgs.python3 + " /etc/nixos/scripts/simple-fancontrol.py";
-            Restart = "always";
-            RestartSec = "5s";
-            NoNewPrivileges = true;
-            ProtectSystem = "strict";
-            ProtectHome = true;
-            PrivateTmp = true;
-            RestrictRealtime = true;
+          fancontrol = lib.mkIf cfg.fanControl {
+            description = "Fan speed regulator";
+            wantedBy = ["multi-user.target"];
+            after = ["multi-user.target" "sensors.service"];
+            wants = ["sensors.service"];
+            serviceConfig = {
+              ExecStart = lib.getExe pkgs.python3 + " /etc/nixos/scripts/simple-fancontrol.py";
+              Restart = "always";
+              RestartSec = "5s";
+              NoNewPrivileges = true;
+              ProtectSystem = "strict";
+              ProtectHome = true;
+              PrivateTmp = true;
+              RestrictRealtime = true;
+            };
           };
         };
       };
-    };
 
-    services.udev.extraRules = ''
-      ACTION=="add|change", KERNEL=="hwmon*", ATTRS{name}=="nct6775*", SYMLINK+="sensors/fan_controller"
+      services.udev.extraRules = ''
+        ACTION=="add|change", KERNEL=="hwmon*", ATTRS{name}=="nct6775*", SYMLINK+="sensors/fan_controller"
 
-      ACTION=="add|change", KERNEL=="hwmon*", ATTRS{name}=="k10temp", SYMLINK+="sensors/cpu_temp"
+        ACTION=="add|change", KERNEL=="hwmon*", ATTRS{name}=="k10temp", SYMLINK+="sensors/cpu_temp"
 
-      ACTION=="add|change", KERNEL=="hwmon*", ATTRS{name}=="nvme", SYMLINK+="sensors/nvme%n"
-    '';
+        ACTION=="add|change", KERNEL=="hwmon*", ATTRS{name}=="nvme", SYMLINK+="sensors/nvme%n"
+      '';
 
-    hardware.sensor.iio.enable = lib.mkDefault true;
+      hardware.sensor.iio.enable = lib.mkDefault true;
     })
   ];
 }

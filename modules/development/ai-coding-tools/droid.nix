@@ -3,8 +3,7 @@
   pkgs,
   gatewayUrl,
   mkMcpServersJson,
-}:
-{
+}: {
   mkDroidMcpJson = pkgs.writeShellScript "generate-droid-mcp" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
@@ -12,9 +11,9 @@
       '{
         "mcpServers": {
           ${mkMcpServersJson {
-            keyMode = "env";
-            disabled = true;
-          }}
+      keyMode = "env";
+      disabled = true;
+    }}
         }
       }' > "/home/${cfg.user}/.factory/mcp.json"
     chown ${cfg.user}:users "/home/${cfg.user}/.factory/mcp.json"

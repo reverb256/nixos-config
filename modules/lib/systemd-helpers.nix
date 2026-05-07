@@ -136,7 +136,13 @@
     serviceConfig =
       {
         Type = "simple";
-        ExecStart = lib.getExe package + (if args != "" then " " + args else "");
+        ExecStart =
+          lib.getExe package
+          + (
+            if args != ""
+            then " " + args
+            else ""
+          );
         Restart = restart;
       }
       // (lib.optionalAttrs (user != null) {User = user;})
@@ -239,9 +245,9 @@
 
     sanitize = str:
       builtins.foldl'
-        (acc: pattern: lib.replaceStrings ["${pattern} = \"[^\"]*\""] ["${pattern} = \"***REDACTED***\""] acc)
-        prettyConfig
-        secretPatterns;
+      (acc: pattern: lib.replaceStrings ["${pattern} = \"[^\"]*\""] ["${pattern} = \"***REDACTED***\""] acc)
+      prettyConfig
+      secretPatterns;
   in {
     /*
     Get sanitized debug output as a string

@@ -1,9 +1,10 @@
-{ cfg, pkgs }:
-let
+{
+  cfg,
+  pkgs,
+}: let
   gatewayUrl = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080";
   nvidiaNimBaseUrl = "https://integrate.api.nvidia.com/v1";
-in
-{
+in {
   mkPiConfig = pkgs.writeShellScript "generate-pi-config" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail

@@ -9,7 +9,6 @@
 
   environment.variables.DBX_CONTAINER_MANAGER = "podman";
 
-
   environment.systemPackages = with pkgs; [
     nvidia-docker
     nerdctl

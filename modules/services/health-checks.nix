@@ -82,7 +82,6 @@ in {
           exit 1
         fi
       '';
-
     }
     // (systemd-helpers.mkTimerService {
       name = "health-checker";

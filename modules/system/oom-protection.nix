@@ -4,8 +4,7 @@
   ...
 }: let
   cfg = config.services.k3s-cluster.enable or false;
-in
-{
+in {
   systemd.services = lib.mkIf cfg {
     k3s.serviceConfig.OOMPolicy = lib.mkForce "continue";
 

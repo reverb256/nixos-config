@@ -1,5 +1,4 @@
-{ lib, ... }:
-{
+{lib, ...}: {
   imports = [
     ../../modules/services/monitoring/default.nix
   ];
@@ -21,7 +20,6 @@
 
     mining-exporter.enable = true;
 
-
     xmrig-metrics = {
       enable = true;
       targets = [
@@ -32,5 +30,5 @@
     };
   };
 
-  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ 9100 ];
+  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [9100];
 }

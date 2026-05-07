@@ -4,8 +4,7 @@
   lib,
   inputs,
   ...
-}:
-{
+}: {
   services = {
     voxtype = {
       enable = true;
@@ -26,7 +25,6 @@
       serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = "10.1.1.110";
-      calico.enable = false;
     };
 
     keepalived-vip = {
@@ -65,7 +63,7 @@
 
     mining-inference-coordinator = {
       enable = true;
-      llamaPort = 1235;  # monitor zephyr llama-server (3090 model)
+      llamaPort = 1235; # monitor zephyr llama-server (3090 model)
       primaryMiner = "deployment/gpu-miner-zephyr";
       fallbackMiner = "";
       namespace = "mining";
@@ -74,8 +72,6 @@
     };
 
     opencode.enable = true;
-
-    binary-cache.enable = false; # unused, was burning CPU on crash-loop
 
     compute-market = {
       enable = false;
@@ -243,8 +239,6 @@
       '';
     };
 
-    redis.servers."".enable = false; # 0 keys, 1 client — unused, frees RAM on OOM-constrained host
-
     ai-inference = {
       enable = true;
       backend = {
@@ -333,7 +327,7 @@
           nix-rebuild = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
               "/etc/nixos/skills/nix-rebuild-mcp/server.py"
             ];
             environment.NIX_HOST = "zephyr";
@@ -343,15 +337,15 @@
           add-service = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
               "/etc/nixos/skills/add-service-mcp/server.py"
             ];
-            environment = { };
+            environment = {};
             enabled = true;
           };
           context7 = {
             type = "local";
-            command = [ "/run/current-system/sw/bin/mcp-context7" ];
+            command = ["/run/current-system/sw/bin/mcp-context7"];
             environment.CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
             enabled = true;
           };
@@ -420,12 +414,6 @@
 
     web-testing.enable = true;
 
-    ci-runner = {
-      enable = false;
-      repo = "username/nixos-config";
-      autoStart = false;
-    };
-
     mining = {
       lolminer = {
         pool = "stratum+tcp://10.1.1.120:3333";
@@ -450,16 +438,6 @@
             tls = true;
           }
         ];
-      };
-      lolminer.nvidia = {
-        enable = false; # Use K8s deployment gpu-miner-zephyr instead (coordinated with gaming/inference)
-        autostart = false;
-        devices = "1"; # RTX 3090 only (3060 Ti idle for power envelope)
-        perGpuPowerLimits = [
-          0 # unused
-          250 # RTX 3090
-        ];
-        apiPort = 4068;
       };
       xmrigDual = {
         enable = true;
@@ -537,7 +515,6 @@
   };
 
   programs = {
-
     haven-desktop.enable = true;
   };
 
@@ -561,7 +538,7 @@
   };
 
   age = {
-    identityPaths = [ "/home/j_kro/.age/key.txt" ];
+    identityPaths = ["/home/j_kro/.age/key.txt"];
     secrets.cloudflared-token = lib.mkForce {
       file = "${inputs.self}/secrets/cloudflared-token.age";
       mode = "400";
