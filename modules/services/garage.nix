@@ -3,10 +3,9 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.garage-cluster;
-  hostIp = (config.networking.cluster.hosts.${config.networking.hostName}.ip or "127.0.0.1");
+  hostIp = config.networking.cluster.hosts.${config.networking.hostName}.ip or "127.0.0.1";
 
   # Template with placeholders that sed will replace at runtime
   garageConfigTemplate = pkgs.writeText "garage.toml.tpl" ''
@@ -43,8 +42,7 @@ let
       ${garageConfigTemplate} > /run/garage/garage.toml
     chmod 600 /run/garage/garage.toml
   '';
-in
-{
+in {
   options.services.garage-cluster = {
     enable = lib.mkEnableOption "Garage S3-compatible object storage";
 
@@ -114,7 +112,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = [ pkgs.garage ];
+    environment.systemPackages = [pkgs.garage];
 
     users.users.garage = {
       group = "garage";
@@ -122,24 +120,25 @@ in
       isSystemUser = true;
     };
 
-    users.groups.garage = { };
+    users.groups.garage = {};
 
     systemd = {
-      tmpfiles.rules = [
-        "d ${cfg.dataDir} 0750 garage garage -"
-        "d ${cfg.dataDir}/meta 0750 garage garage -"
-        "d ${cfg.dataDir}/data 0750 garage garage -"
-      ]
-      ++ lib.optional cfg.enableBackup ''
-        d ${cfg.backupDir} 0755 garage garage - -
-      '';
+      tmpfiles.rules =
+        [
+          "d ${cfg.dataDir} 0750 garage garage -"
+          "d ${cfg.dataDir}/meta 0750 garage garage -"
+          "d ${cfg.dataDir}/data 0750 garage garage -"
+        ]
+        ++ lib.optional cfg.enableBackup ''
+          d ${cfg.backupDir} 0755 garage garage - -
+        '';
 
       services = {
         garage = {
           description = "Garage S3-compatible object storage";
-          after = [ "network-online.target" ];
-          wants = [ "network-online.target" ];
-          wantedBy = [ "multi-user.target" ];
+          after = ["network-online.target"];
+          wants = ["network-online.target"];
+          wantedBy = ["multi-user.target"];
 
           # Generate config from template + agenix secrets before starting Garage.
           # Secrets are read at service start, never stored in /etc.
@@ -155,11 +154,12 @@ in
             ProtectSystem = "strict";
             ProtectHome = true;
 
-            ReadWritePaths = [
-              "${cfg.dataDir}"
-              "/run/garage"
-            ]
-            ++ lib.optional cfg.enableBackup cfg.backupDir;
+            ReadWritePaths =
+              [
+                "${cfg.dataDir}"
+                "/run/garage"
+              ]
+              ++ lib.optional cfg.enableBackup cfg.backupDir;
 
             ExecStart = "${pkgs.garage}/bin/garage -c /run/garage/garage.toml server";
 
@@ -171,8 +171,8 @@ in
             ];
 
             RuntimeDirectory = "garage";
-            CapabilityBoundingSet = [ "CAP_NET_BIND_SERVICE" ];
-            AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ];
+            CapabilityBoundingSet = ["CAP_NET_BIND_SERVICE"];
+            AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
             RestrictAddressFamilies = [
               "AF_INET"
               "AF_INET6"
@@ -192,8 +192,8 @@ in
 
         garage-backup = lib.mkIf cfg.enableBackup {
           description = "Garage metadata backup";
-          after = [ "garage.service" ];
-          requires = [ "garage.service" ];
+          after = ["garage.service"];
+          requires = ["garage.service"];
 
           serviceConfig = {
             Type = "oneshot";
@@ -214,7 +214,7 @@ in
 
       timers.garage-backup = lib.mkIf cfg.enableBackup {
         description = "Daily Garage metadata backup";
-        wantedBy = [ "timers.target" ];
+        wantedBy = ["timers.target"];
         timerConfig = {
           OnCalendar = cfg.backupInterval;
           Persistent = true;

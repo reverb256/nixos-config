@@ -1,7 +1,4 @@
-{
-  pkgs ? import <nixpkgs> { },
-}:
-let
+{pkgs ? import <nixpkgs> {}}: let
   lib = pkgs.lib;
 
   source = builtins.readFile ../modules/network-constants.nix;
@@ -13,8 +10,7 @@ let
     "sentry"
   ];
 
-  hostPresent =
-    host: lib.strings.hasInfix "${host} =" source || lib.strings.hasInfix "${host} =" source;
+  hostPresent = host: lib.strings.hasInfix "${host} =" source || lib.strings.hasInfix "${host} =" source;
 
   missingHosts = builtins.filter (h: !(hostPresent h)) expectedHosts;
 
@@ -57,24 +53,22 @@ let
   isReadOnly = lib.strings.hasInfix "readOnly = true" source;
 
   allChecks = {
-    allHostsPresent = missingHosts == [ ];
+    allHostsPresent = missingHosts == [];
     hasSubnet = hasSubnet;
     hasGateway = hasGateway;
-    allIPsPresent = missingIPs == { };
+    allIPsPresent = missingIPs == {};
     noDuplicateIPs = noDuplicateIPs;
     hasK8sVIP = hasK8sVIP;
     hasK8sPort = hasK8sPort;
     hasLocalDNS = hasLocalDNS;
     hasTailscaleDomain = hasTailscaleDomain;
-    allRequiredPortsPresent = missingPorts == [ ];
+    allRequiredPortsPresent = missingPorts == [];
     isReadOnly = isReadOnly;
   };
 
   failures = lib.filterAttrs (_: v: v == false) allChecks;
-
-in
-{
+in {
   checks = allChecks;
   failures = builtins.attrNames failures;
-  passed = failures == { };
+  passed = failures == {};
 }

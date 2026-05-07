@@ -1,16 +1,11 @@
-{
-  pkgs ? import <nixpkgs> { },
-}:
-let
+{pkgs ? import <nixpkgs> {}}: let
   lib = pkgs.lib;
 
   defaultNix = builtins.readFile ../modules/default.nix;
 
-  isImportLine =
-    line:
-    let
-      trimmed = lib.strings.trim line;
-    in
+  isImportLine = line: let
+    trimmed = lib.strings.trim line;
+  in
     lib.strings.hasPrefix "./" trimmed
     && lib.strings.hasSuffix ".nix" trimmed
     && !(lib.strings.hasPrefix "#" trimmed);
@@ -19,28 +14,25 @@ let
     builtins.filter isImportLine (lib.splitString "\n" defaultNix)
   );
 
-  resolvePath =
-    path:
-    let
-      isDir = builtins.pathExists ../modules/${path} && lib.pathIsDirectory ../modules/${path};
-    in
-    if isDir then ../modules/${path}/default.nix else ../modules/${path};
+  resolvePath = path: let
+    isDir = builtins.pathExists ../modules/${path} && lib.pathIsDirectory ../modules/${path};
+  in
+    if isDir
+    then ../modules/${path}/default.nix
+    else ../modules/${path};
 
   sorted = lib.naturalSort importLines;
   duplicates = lib.unique (
     builtins.filter (x: lib.lists.count (y: y == x) importLines > 1) importLines
   );
 
-  validateImport =
-    path:
-    let
-      resolved = resolvePath path;
-      exists = builtins.pathExists resolved;
-    in
-    {
-      path = path;
-      exists = exists;
-    };
+  validateImport = path: let
+    resolved = resolvePath path;
+    exists = builtins.pathExists resolved;
+  in {
+    path = path;
+    exists = exists;
+  };
 
   results = map validateImport importLines;
 
@@ -50,12 +42,10 @@ let
     totalImports = builtins.length importLines;
     duplicates = duplicates;
     missingFiles = map (r: r.path) missingFiles;
-    passed = missingFiles == [ ] && duplicates == [ ];
+    passed = missingFiles == [] && duplicates == [];
   };
-
 in
-assert
-  summary.passed
+  assert summary.passed
   || (builtins.trace "" (
     builtins.trace "=== Import Integrity Test FAILED ===" (
       builtins.trace "Missing files: ${builtins.toJSON summary.missingFiles}" (
@@ -64,5 +54,4 @@ assert
         )
       )
     )
-  ));
-summary
+  )); summary

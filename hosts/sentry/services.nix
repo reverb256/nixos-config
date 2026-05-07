@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }: {
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   services = {
     hermes-cli = {
       enable = true;
@@ -11,7 +16,6 @@
       serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = "10.1.1.140";
-      calico.enable = false;
     };
 
     keepalived-vip = {
@@ -73,8 +77,6 @@
       enable = true;
       deviceId = "SENTRY-PLACEHOLDER";
     };
-
-    garage-cluster.enable = false;
 
     llamafile = {
       enable = false; # Using K8s llama-server pod instead

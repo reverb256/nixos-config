@@ -1,7 +1,8 @@
-{ config
-, lib
-, pkgs
-, ...
+{
+  config,
+  lib,
+  pkgs,
+  ...
 }: let
   cfg = config.networking.networkmanager-dns;
   inherit
@@ -17,7 +18,7 @@ in {
 
     dnsServers = mkOption {
       type = types.listOf types.str;
-      default = [ "127.0.0.1" ];
+      default = ["127.0.0.1"];
       description = "DNS servers to use (default: local unbound)";
     };
 
@@ -38,6 +39,5 @@ in {
     networking.networkmanager = {
       dns = "none";
     };
-
   };
 }

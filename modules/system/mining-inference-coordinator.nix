@@ -1,9 +1,11 @@
-{ config, lib, pkgs, ... }:
-
-let
-  cfg = config.services.mining-inference-coordinator;
-in
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  cfg = config.services.mining-inference-coordinator;
+in {
   options.services.mining-inference-coordinator = {
     enable = lib.mkEnableOption "Mining-Inference Coordinator";
 
@@ -47,10 +49,10 @@ in
   config = lib.mkIf cfg.enable {
     systemd.services.mining-inference-coordinator = {
       description = "Mining-Inference Coordinator - Shifts mining to 3060 Ti during inference";
-      after = [ "network.target" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["network.target"];
+      wantedBy = ["multi-user.target"];
 
-      path = with pkgs; [ curl gawk kubectl ];
+      path = with pkgs; [curl gawk kubectl];
 
       serviceConfig = {
         Type = "simple";

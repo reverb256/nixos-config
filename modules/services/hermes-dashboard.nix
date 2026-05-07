@@ -9,9 +9,7 @@
   pkgs,
   inputs,
   ...
-}:
-
-let
+}: let
   cfg = config.services.hermes-dashboard;
   hermesCfg = config.services.hermes-agent;
 
@@ -25,10 +23,7 @@ let
     hermes-pkg = hermesCfg.package;
     web-dist = hermes-web-dist;
   };
-
-
-in
-{
+in {
   options.services.hermes-dashboard = {
     enable = lib.mkEnableOption "Hermes Agent web dashboard";
 
@@ -58,13 +53,13 @@ in
     # Dashboard systemd service
     systemd.services.hermes-dashboard = {
       description = "Hermes Agent Web Dashboard";
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = ["multi-user.target"];
       after = [
         "network-online.target"
         "hermes-agent.service"
       ];
-      wants = [ "network-online.target" ];
-      requires = [ "hermes-agent.service" ];
+      wants = ["network-online.target"];
+      requires = ["hermes-agent.service"];
 
       environment = {
         HOME = hermesCfg.stateDir;
@@ -92,12 +87,12 @@ in
         NoNewPrivileges = true;
         ProtectSystem = "strict";
         ProtectHome = false;
-        ReadWritePaths = [ hermesCfg.stateDir ];
+        ReadWritePaths = [hermesCfg.stateDir];
         PrivateTmp = true;
       };
     };
 
     # Open firewall
-    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ cfg.port ];
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
   };
 }

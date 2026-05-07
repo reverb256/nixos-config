@@ -18,7 +18,7 @@ in {
 
     bindAddress = mkOption {
       type = types.str;
-      default = 10.1.1.110;
+      default = 10.1 .1 .110;
       description = "Address to bind nix-serve to";
     };
   };

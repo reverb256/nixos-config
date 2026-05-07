@@ -3,11 +3,9 @@
   pkgs,
   gatewayUrl,
   mkMcpServersJson,
-}:
-let
+}: let
   nvidiaNimBaseUrl = gatewayUrl + "/v1";
-in
-{
+in {
   mkCrushConfig = pkgs.writeShellScript "generate-crush-config" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
@@ -50,7 +48,7 @@ in
           }
         },
         "mcp": {
-          ${mkMcpServersJson { keyMode = "resolved"; }}
+          ${mkMcpServersJson {keyMode = "resolved";}}
         }
       }' > "/home/${cfg.user}/.config/crush/crush.json"
     chown ${cfg.user}:users "/home/${cfg.user}/.config/crush/crush.json"

@@ -1,5 +1,10 @@
-{ config, pkgs, lib, inputs, ... }:
-let
+{
+  config,
+  pkgs,
+  lib,
+  inputs,
+  ...
+}: let
   # Build the hermes-agent Python venv (same derivation the flake uses for its wrappers)
   hermesVenv = pkgs.callPackage (inputs.hermes-agent.outPath + "/nix/python.nix") {
     inherit (inputs.hermes-agent.inputs) uv2nix pyproject-nix pyproject-build-systems;
@@ -24,7 +29,6 @@ in {
       serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = "10.1.1.120";
-      calico.enable = false;
     };
 
     keepalived-vip = {
@@ -35,16 +39,6 @@ in {
     };
 
     gaming-detection.enable = lib.mkForce false;
-
-    vane.enable = false; # Migrated to K8s (search namespace, easykubenix module)
-
-    gpu-profile-manager.enable = lib.mkForce false; # NixOS module not available yet
-    mining-coordinator.enable = false; # NixOS module not available yet
-
-    garnix.enable = false; # NixOS module not available yet
-    nixos-auto-update.enable = false; # NixOS module not available yet
-
-    spotify-spotx.enable = false; # NixOS module not available yet
 
     mining = {
       xmrigDual = {
@@ -67,11 +61,6 @@ in {
         wallet = "nexus-cpu";
         password = "x";
         tls = false;
-      };
-
-      lolminer.nvidia = {
-        enable = false;
-        powerLimit = 120;
       };
     };
 
@@ -101,9 +90,6 @@ in {
       enableMetrics = true;
       enableBackup = false;
     };
-
-    status-auto-update.enable = false; # NixOS module not available yet
-
 
     ai-coding-tools = {
       enable = false; # NixOS module not available yet
@@ -141,7 +127,7 @@ in {
   # Hermes Agent — primary user-facing agent
   services.hermes-agent = {
     enable = true;
-    addToSystemPackages = false;  # hermes-with-whatsapp (superset) added via hermes-cli.nix
+    addToSystemPackages = false; # hermes-with-whatsapp (superset) added via hermes-cli.nix
 
     settings = {
       providers = {
@@ -191,7 +177,7 @@ in {
           model = "Qwen3.5-4B.Q4_K_M.gguf";
         };
       };
-      toolsets = [ "all" ];
+      toolsets = ["all"];
       terminal = {
         backend = "local";
         timeout = 180;
@@ -217,7 +203,7 @@ in {
     mcpServers = {
       github = {
         command = "npx";
-        args = [ "-y" "@modelcontextprotocol/server-github" ];
+        args = ["-y" "@modelcontextprotocol/server-github"];
       };
     };
 
@@ -231,7 +217,7 @@ in {
       '';
     };
 
-    extraPackages = with pkgs; [ git ripgrep curl jq ];
+    extraPackages = with pkgs; [git ripgrep curl jq];
   };
 
   # Hermes WebUI — nesquena/hermes-webui
@@ -239,10 +225,10 @@ in {
   # Replaces: hermes-dashboard, hermes-merged-proxy, Hermes-Studio
   systemd.services.hermes-webui = {
     description = "Hermes Web UI";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "network.target" "hermes-agent.service" ];
-    wants = [ "hermes-agent.service" ];
-    path = with pkgs; [ git coreutils curl jq ];
+    wantedBy = ["multi-user.target"];
+    after = ["network.target" "hermes-agent.service"];
+    wants = ["hermes-agent.service"];
+    path = with pkgs; [git coreutils curl jq];
     environment = {
       AI_GATEWAY_API_KEY = "none";
       HERMES_HOME = "/home/j_kro/.hermes";
@@ -254,7 +240,7 @@ in {
       PYTHONPATH = "${hermesVenv}/lib/python3.11/site-packages";
     };
     serviceConfig = {
-      LoadCredential = [ "hermes-webui-password:${config.age.secrets.hermes-webui-password.path}" ];
+      LoadCredential = ["hermes-webui-password:${config.age.secrets.hermes-webui-password.path}"];
       ExecStart = pkgs.writeShellScript "hermes-webui-start" ''
         cd /data/projects/own/hermes-webui
         export HERMES_WEBUI_PASSWORD=$(cat $CREDENTIALS_DIRECTORY/hermes-webui-password)
@@ -276,7 +262,7 @@ in {
 
   # Auto-update hermes-webui repo daily
   systemd.timers.hermes-webui-update = {
-    wantedBy = [ "timers.target" ];
+    wantedBy = ["timers.target"];
     timerConfig = {
       OnCalendar = "daily";
       Persistent = true;
@@ -298,24 +284,26 @@ in {
   # The official module's environment option doesn't reliably set systemd env vars,
   # so we use a systemd override with ExecStartPre to generate an env file.
   systemd.services.hermes-agent = {
-    serviceConfig.ExecStartPre = "+" + (pkgs.writeShellScript "hermes-load-env" ''
-      mkdir -p /data/hermes/.hermes
-      cat > /data/hermes/.hermes/provider-env << 'ENVEOF'
-      API_SERVER_ENABLED=true
-      API_SERVER_HOST=0.0.0.0
-      API_SERVER_PORT=8642
-      GLM_BASE_URL=https://api.z.ai/api/coding/paas/v4
-      ENVEOF
-      echo -n "API_SERVER_KEY=" >> /data/hermes/.hermes/provider-env
-      cat /run/agenix/hermes-api-server-key >> /data/hermes/.hermes/provider-env
-      echo -n "ZAI_API_KEY="" " >> /data/hermes/.hermes/provider-env
-      cat /run/agenix/zai-api-key >> /data/hermes/.hermes/provider-env
-      echo "" >> /data/hermes/.hermes/provider-env
-      echo -n "NVIDIA_API_KEY=" >> /data/hermes/.hermes/provider-env
-      cat /run/agenix/nvidia-api-key >> /data/hermes/.hermes/provider-env
-      chmod 600 /data/hermes/.hermes/provider-env
-      chown j_kro:users /data/hermes/.hermes/provider-env
-    '');
+    serviceConfig.ExecStartPre =
+      "+"
+      + (pkgs.writeShellScript "hermes-load-env" ''
+        mkdir -p /data/hermes/.hermes
+        cat > /data/hermes/.hermes/provider-env << 'ENVEOF'
+        API_SERVER_ENABLED=true
+        API_SERVER_HOST=0.0.0.0
+        API_SERVER_PORT=8642
+        GLM_BASE_URL=https://api.z.ai/api/coding/paas/v4
+        ENVEOF
+        echo -n "API_SERVER_KEY=" >> /data/hermes/.hermes/provider-env
+        cat /run/agenix/hermes-api-server-key >> /data/hermes/.hermes/provider-env
+        echo -n "ZAI_API_KEY="" " >> /data/hermes/.hermes/provider-env
+        cat /run/agenix/zai-api-key >> /data/hermes/.hermes/provider-env
+        echo "" >> /data/hermes/.hermes/provider-env
+        echo -n "NVIDIA_API_KEY=" >> /data/hermes/.hermes/provider-env
+        cat /run/agenix/nvidia-api-key >> /data/hermes/.hermes/provider-env
+        chmod 600 /data/hermes/.hermes/provider-env
+        chown j_kro:users /data/hermes/.hermes/provider-env
+      '');
     # Use "-" prefix so systemd doesn't fail if file doesn't exist yet
     serviceConfig.EnvironmentFile = "-/data/hermes/.hermes/provider-env";
   };
@@ -335,11 +323,6 @@ in {
     "video"
     "render"
   ];
-
-  # Qdrant runs in K8s now — disable the systemd service
-  systemd.services.qdrant = {
-    enable = false;
-  };
 
   # Cluster service registry — single source of truth for DNS + Caddy
   # All .lan domains terminate TLS on nexus and proxy to backends
@@ -398,4 +381,3 @@ in {
     };
   };
 }
-

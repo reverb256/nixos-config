@@ -1,7 +1,4 @@
-{
-  lib,
-  ...
-}: {
+{lib, ...}: {
   nixpkgs.overlays = [
     (_final: prev: {
       cuda_compat =
@@ -33,7 +30,6 @@
   nix = {
     settings = {
       experimental-features = ["nix-command" "flakes"];
-
 
       trusted-public-keys = lib.mkOptionDefault [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="

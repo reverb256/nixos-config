@@ -20,7 +20,6 @@
     tumbler.enable = true;
 
     fwupd.enable = true;
-
   };
 
   programs = {

@@ -3,15 +3,13 @@
   config,
   lib,
   ...
-}:
-let
+}: let
   pssLabels = {
     "pod-security.kubernetes.io/enforce" = "baseline";
     "pod-security.kubernetes.io/audit" = "restricted";
     "pod-security.kubernetes.io/warn" = "restricted";
   };
-in
-{
+in {
   config.kubernetes.objects.none = {
     PriorityClass.high-priority-ai = {
       value = 1000;
@@ -27,14 +25,16 @@ in
 
   config.kubernetes.objects.default = {
     Namespace.default = {
-      metadata.labels = pssLabels // {
-        name = "default";
-      };
+      metadata.labels =
+        pssLabels
+        // {
+          name = "default";
+        };
     };
     NetworkPolicy.default-deny-all = {
       metadata.labels.policy = "default-deny";
       spec = {
-        podSelector = { };
+        podSelector = {};
         policyTypes = [
           "Ingress"
           "Egress"
@@ -44,11 +44,11 @@ in
     NetworkPolicy.allow-dns = {
       metadata.labels.policy = "allow-dns";
       spec = {
-        podSelector = { };
-        policyTypes = [ "Egress" ];
+        podSelector = {};
+        policyTypes = ["Egress"];
         egress = [
           {
-            to = [ { namespaceSelector.matchLabels.name = "kube-system"; } ];
+            to = [{namespaceSelector.matchLabels.name = "kube-system";}];
             ports = [
               {
                 protocol = "UDP";
@@ -75,5 +75,4 @@ in
       };
     };
   };
-
 }

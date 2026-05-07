@@ -157,7 +157,9 @@ in
 
     pam.loginLimits = [
       {
-        domain = "@users";
+        type = "-";
+        value = "-11";
+      }
         item = "rtprio";
         type = "-";
         value = "95";

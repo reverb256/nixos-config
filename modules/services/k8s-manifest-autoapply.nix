@@ -3,10 +3,10 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.k8s-manifest-autoapply;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
@@ -70,8 +70,7 @@ let
 
     echo "[k8s-manifests] All manifests applied."
   '';
-in
-{
+in {
   options.services.k8s-manifest-autoapply = {
     enable = mkEnableOption "Auto-apply Kubernetes manifests on boot";
   };
@@ -79,9 +78,9 @@ in
   config = mkIf cfg.enable {
     systemd.services.k8s-manifest-autoapply = {
       description = "Auto-apply Kubernetes manifests on boot";
-      after = [ "k3s.service" ];
-      requires = [ "k3s.service" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["k3s.service"];
+      requires = ["k3s.service"];
+      wantedBy = ["multi-user.target"];
       serviceConfig = {
         Type = "oneshot";
         Environment = "KUBECONFIG=/etc/rancher/k3s/k3s.yaml";

@@ -3,18 +3,16 @@
   lib,
   pkgs,
   ...
-}:
-
-let
+}: let
   cfg = config.services.dns-watchdog;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
     mkIf
     ;
-in
-{
+in {
   options.services.dns-watchdog = {
     enable = mkEnableOption "DNS Health Monitor and Self-Healing";
 
@@ -46,7 +44,7 @@ in
   config = mkIf cfg.enable {
     systemd.services.dns-watchdog = {
       description = "DNS Health Monitor and Self-Healing";
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = ["multi-user.target"];
       after = [
         "unbound.service"
         "network-online.target"
@@ -121,7 +119,7 @@ in
 
     systemd.timers.dns-watchdog = {
       description = "DNS Health Monitor Timer";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnBootSec = "30s";
         OnUnitActiveSec = "${toString cfg.checkInterval}s";

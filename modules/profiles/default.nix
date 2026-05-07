@@ -5,5 +5,4 @@
     ./network
     ./monitoring.nix
   ];
-
 }
