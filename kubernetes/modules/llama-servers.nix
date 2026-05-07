@@ -504,12 +504,16 @@ in {
                   "--parallel"
                   "1"
                   "--metrics"
+                  "-b"
+                  "256"
+                  "-ub"
+                  "64"
                 ];
                 env = {
                   _namedlist = true;
                   NVIDIA_VISIBLE_DEVICES = {
                     name = "NVIDIA_VISIBLE_DEVICES";
-                    value = "0";
+                    value = "1";
                   };
                   CUDA_VISIBLE_DEVICES = {
                     name = "CUDA_VISIBLE_DEVICES";
@@ -649,7 +653,7 @@ in {
                 command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
                 args = [
                   "--model"
-                  "/models/GestaltLabs/Ornstein-Hermes-3.6-27b-SABER-GGUF/Ornstein-Hermes-3.6-27b-SABER-Q5_K_M.gguf"
+                  "/models/Qwen3.6-27B-Q4_K_M.gguf"
                   "--host"
                   "0.0.0.0"
                   "--port"
@@ -657,7 +661,7 @@ in {
                   "-ngl"
                   "99"
                   "-c"
-                  "32768"
+                  "262144"
                   "-t"
                   "4"
                   "--flash-attn"
@@ -669,6 +673,10 @@ in {
                   "--parallel"
                   "1"
                   "--metrics"
+                  "-b"
+                  "256"
+                  "-ub"
+                  "64"
                 ];
                 env = {
                   _namedlist = true;
