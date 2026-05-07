@@ -2,7 +2,7 @@
   cluster,
   config,
   lib,
-  cluster,
+  nexusPreferredAffinity,
   ...
 }: let
   # Pin versions for supply chain security
@@ -297,18 +297,18 @@
         scrape_interval: 15s
         static_configs:
           - targets:
-              - '${hostIPs.zephyr}:9100'
-              - '${hostIPs.nexus}:9100'
-              - '${hostIPs.forge}:9100'
-              - '${hostIPs.sentry}:9100'
+              - '${hostIPs.zephyr.ip}:9100'
+              - '${hostIPs.nexus.ip}:9100'
+              - '${hostIPs.forge.ip}:9100'
+              - '${hostIPs.sentry.ip}:9100'
 
       - job_name: 'nvidia-exporter'
         scrape_interval: 15s
         static_configs:
           - targets:
-              - '${hostIPs.zephyr}:9400'
-              - '${hostIPs.nexus}:9400'
-              - '${hostIPs.forge}:9400'
+              - '${hostIPs.zephyr.ip}:9400'
+              - '${hostIPs.nexus.ip}:9400'
+              - '${hostIPs.forge.ip}:9400'
 
 
       - job_name: 'kube-state-metrics'
@@ -348,9 +348,9 @@
         scrape_interval: 30s
         static_configs:
           - targets:
-              - '${hostIPs.zephyr}:2379'
-              - '${hostIPs.nexus}:2379'
-              - '${hostIPs.sentry}:2379'
+              - '${hostIPs.zephyr.ip}:2379'
+              - '${hostIPs.nexus.ip}:2379'
+              - '${hostIPs.sentry.ip}:2379'
         scheme: https
         tls_config:
           insecure_skip_verify: true
@@ -605,7 +605,7 @@ in {
         policyTypes = ["Egress"];
         egress = [
           {
-            to = [{ipBlock.cidr = cluster.kubernetes.subnet;}];
+            to = [{ipBlock.cidr = cluster.subnet;}];
             ports = [
               {
                 protocol = "TCP";
@@ -2093,7 +2093,7 @@ in {
         policyTypes = ["Egress"];
         egress = [
           {
-            to = [{ipBlock.cidr = cluster.kubernetes.subnet;}];
+            to = [{ipBlock.cidr = cluster.subnet;}];
             ports = [
               {
                 protocol = "TCP";
@@ -2346,14 +2346,6 @@ in {
         insecureSkipTLSVerify = true;
         groupPriorityMinimum = 100;
         versionPriority = 100;
-      };
-    };
-
-    # ── Custom Metrics default deny all ────────────────────────────
-    custom-metrics.NetworkPolicy.default-deny-all = {
-      spec = {
-        podSelector = {};
-        policyTypes = ["Ingress" "Egress"];
       };
     };
   };

@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  nexusPreferredAffinity,
   ...
 }: let
   pssLabels = {
@@ -135,7 +136,7 @@ in {
             labels.app = "kubernetes-mcp";
           };
           spec = {
-            nodeName = "nexus";
+            affinity = nexusPreferredAffinity; # HA: prefer nexus, failover to sentry
             serviceAccountName = "kubernetes-mcp";
             containers = {
               _namedlist = true;

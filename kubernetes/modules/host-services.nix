@@ -5,6 +5,7 @@
   config,
   lib,
   cluster,
+  nexusPreferredAffinity,
   ...
 }: let
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
@@ -539,7 +540,7 @@ in {
               app = "vaultwarden";
             };
           spec = {
-            nodeName = "nexus";
+            affinity = nexusPreferredAffinity; # HA: prefer nexus, failover to sentry
             automountServiceAccountToken = false;
             tolerations = allTolerations;
             containers = {

@@ -4,6 +4,7 @@
   inputs,
   lib,
   cluster,
+  nexusPreferredAffinity,
   ...
 }: let
   # nix-csi scratch image (proven pattern from llama-servers)
@@ -362,7 +363,7 @@ in {
               };
           };
           spec = {
-            nodeName = "nexus"; # Non-infrastructure workloads default to Nexus (46GB RAM)
+            affinity = nexusPreferredAffinity; # HA: prefer nexus, failover to sentry
             hostNetwork = false;
             serviceAccountName = "ai-inference-gateway";
             automountServiceAccountToken = true; # needed by gpu_scheduler.py kubectl calls
@@ -841,7 +842,7 @@ in {
               component = "brain";
             };
           spec = {
-            nodeName = "nexus";
+            affinity = nexusPreferredAffinity; # HA: prefer nexus, failover to sentry
             automountServiceAccountToken = false;
             containers = [
               {
@@ -968,7 +969,7 @@ in {
         template = {
           metadata.labels.app = "llama-cpp";
           spec = {
-            nodeName = "nexus";
+            affinity = nexusPreferredAffinity; # HA: prefer nexus, failover to sentry
             hostNetwork = true;
             containers = [
               {
@@ -1409,7 +1410,7 @@ in {
             ];
           }
           {
-            to = [{ipBlock.cidr = cluster.kubernetes.subnet;}];
+            to = [{ipBlock.cidr = cluster.subnet;}];
             ports = [
               {
                 protocol = "TCP";
@@ -1682,7 +1683,7 @@ in {
               component = "rag";
             };
           spec = {
-            nodeName = "nexus";
+            affinity = nexusPreferredAffinity; # HA: prefer nexus, failover to sentry
             containers = [
               {
                 name = "kb-mcp";

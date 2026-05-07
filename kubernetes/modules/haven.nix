@@ -234,12 +234,5 @@ in {
         ];
       };
     };
-
-    haven.NetworkPolicy.default-deny-all = {
-      spec = {
-        podSelector = {};
-        policyTypes = ["Ingress" "Egress"];
-      };
-    };
   };
 }
