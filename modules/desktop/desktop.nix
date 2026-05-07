@@ -154,10 +154,16 @@ in {
 
     pam.loginLimits = [
       {
-        domain = "@users";
+        domain = "@audio";
         item = "rtprio";
         type = "-";
         value = "95";
+      }
+      {
+        domain = "@audio";
+        item = "nice";
+        type = "-";
+        value = "-11";
       }
       {
         domain = "@users";
