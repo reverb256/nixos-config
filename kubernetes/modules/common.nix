@@ -29,5 +29,13 @@ in {
         policyTypes = ["Ingress" "Egress"];
       };
     };
+
+    # ── Default deny all ────────────────────────────────────────
+    ai-coding.NetworkPolicy.default-deny-all = {
+      spec = {
+        podSelector = {};
+        policyTypes = ["Ingress" "Egress"];
+      };
+    };
   };
 }
