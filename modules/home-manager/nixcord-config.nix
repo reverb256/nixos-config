@@ -13,11 +13,29 @@
       vesktop = {
         enable = true;
         package = pkgs.vesktop;
+        settings = {
+          minimizeToTray = true;
+          tray = true;
+          trayIcon = true;
+          openHidden = true;
+          arRPC = true;
+          splashColor = "rgb(220, 220, 223)";
+          splashBackground = "rgb(17, 28, 24)";
+          autoStartMinimized = true;
+          hardwareVideoAcceleration = true;
+          hardwareAcceleration = true;
+          customTitleBar = false;
+          enableSplashScreen = false;
+          clickTrayToShowHide = true;
+          disableMinSize = true;
+          enableTaskbarFlashing = true;
+        };
       };
 
       config = {
         useQuickCss = true;
         plugins = {
+          # Existing plugins
           XSOverlay = {
             enable = true;
             dmNotifications = true;
@@ -43,6 +61,91 @@
             voiceBackground = true;
           };
           ReviewDB = {
+            enable = true;
+          };
+
+          # Quality of life
+          voiceMessages = {
+            enable = true;
+          };
+          pictureInPicture = {
+            enable = true;
+          };
+          callTimer = {
+            enable = true;
+          };
+          silentTyping = {
+            enable = true;
+          };
+          notificationVolume = {
+            enable = true;
+            notificationVolume = 0.5;
+          };
+          readAllNotificationsButton = {
+            enable = true;
+          };
+
+          # Privacy / security
+          ClearURLs = {
+            enable = true;
+          };
+          consoleJanitor = {
+            enable = true;
+          };
+          noDevtoolsWarning = {
+            enable = true;
+          };
+          crashHandler = {
+            enable = true;
+          };
+
+          # Media / embeds
+          fixYoutubeEmbeds = {
+            enable = true;
+          };
+          fixSpotifyEmbeds = {
+            enable = true;
+          };
+          dearrow = {
+            enable = true;
+          };
+          shikiCodeblocks = {
+            enable = true;
+          };
+          imageZoom = {
+            enable = true;
+            size = 500.0;
+            zoom = 1.0;
+          };
+
+          # UI improvements
+          betterFolders = {
+            enable = true;
+          };
+          memberCount = {
+            enable = true;
+          };
+          roleColorEverywhere = {
+            enable = true;
+          };
+          showTimeoutDuration = {
+            enable = true;
+          };
+          serverListIndicators = {
+            enable = true;
+          };
+          messageLinkEmbeds = {
+            enable = true;
+          };
+          replyTimestamp = {
+            enable = true;
+          };
+
+          # Game / streaming
+          streamerModeOnStream = {
+            enable = true;
+          };
+          gameActivityToggle = {
             enable = true;
           };
         };
