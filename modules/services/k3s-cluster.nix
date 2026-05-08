@@ -384,6 +384,23 @@ in {
 
     system.activationScripts.k3s-dirs = ''
       mkdir -p /var/lib/rancher/k3s/agent/etc/containerd
+
+    # Local container registry (nexus:5000) for cluster-built images.
+    # Required for HA pods that need to pull locally-built images on other nodes.
+    environment.etc."rancher/k3s/registries.yaml".text = lib.generators.toYAML {} {
+      mirrors = {
+        "nexus:5000" = {
+          endpoint = [ "http://nexus:5000" ];
+        };
+      };
+      configs = {
+        "nexus:5000" = {
+          tls = {
+            insecure_skip_verify = true;
+          };
+        };
+      };
+    };
     '';
 
     # Replace busybox mount with util-linux mount for NFS PV support.

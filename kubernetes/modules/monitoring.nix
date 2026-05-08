@@ -2412,4 +2412,73 @@ in {
       };
     };
   };
+    # === HA Infrastructure ===
+
+    # CoreDNS HA enforcer: k3s resets CoreDNS to 1 replica on server restart.
+    # This CronJob ensures 2 replicas every 5 minutes.
+    kube-system.ServiceAccount.coredns-ha-enforcer = {};
+    kube-system.Role.coredns-ha-enforcer.rules = [
+      { apiGroups = ["apps"]; resources = ["deployments"]; resourceNames = ["coredns"]; verbs = ["get" "patch"]; }
+    ];
+    kube-system.RoleBinding.coredns-ha-enforcer = {
+      subjects = [{ kind = "ServiceAccount"; name = "coredns-ha-enforcer"; }];
+      roleRef = { kind = "Role"; name = "coredns-ha-enforcer"; apiGroup = "rbac.authorization.k8s.io"; };
+    };
+    kube-system.CronJob.coredns-ha-enforcer = {
+      schedule = "*/5 * * * *";
+      concurrencyPolicy = "Forbid";
+      successfulJobsHistoryLimit = 1;
+      failedJobsHistoryLimit = 1;
+      jobTemplate.spec.template.spec = {
+        serviceAccountName = "coredns-ha-enforcer";
+        restartPolicy = "OnFailure";
+        containers = [{
+          name = "enforcer";
+          image = "bitnami/kubectl:latest";
+          command = ["bash" "-c" (builtins.readFile ./coredns-ha-enforcer.sh)];
+          resources = {
+            requests = { cpu = "10m"; memory = "32Mi"; };
+            limits = { cpu = "50m"; memory = "64Mi"; };
+          };
+        }];
+      };
+    };
+
+    # Local container registry on nexus for cluster-built images.
+    # Gateway HA pods on sentry pull from here instead of needing pre-loaded images.
+    kube-system.PersistentVolumeClaim.local-registry-data = {
+      accessModes = ["ReadWriteOnce"];
+      storageClassName = "local-path";
+      resources.requests.storage = "20Gi";
+    };
+    kube-system.Deployment.local-registry = {
+      replicas = 1;
+      selector.matchLabels.app = "local-registry";
+      template.metadata.labels.app = "local-registry";
+      template.spec = {
+        nodeSelector."kubernetes.io/hostname" = "nexus";
+        containers = [{
+          name = "registry";
+          image = "registry:2";
+          ports = [{ containerPort = 5000; hostPort = 5000; protocol = "TCP"; }];
+          env.REGISTRY_STORAGE_DELETE_ENABLED = "true";
+          volumeMounts = [{ name = "data"; mountPath = "/var/lib/registry"; }];
+          livenessProbe = {
+            httpGet = { path = "/v2/"; port = 5000; };
+            initialDelaySeconds = 5;
+            periodSeconds = 10;
+          };
+          readinessProbe = {
+            httpGet = { path = "/v2/"; port = 5000; };
+            initialDelaySeconds = 3;
+            periodSeconds = 5;
+          };
+          resources = {
+            requests = { cpu = "50m"; memory = "64Mi"; };
+            limits = { cpu = "200m"; memory = "256Mi"; };
+          };
+        }];
+        volumes = [{ name = "data"; persistentVolumeClaim.claimName = "local-registry-data"; }];
+      };
+    };
 }

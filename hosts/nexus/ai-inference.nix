@@ -110,5 +110,33 @@
       maxRequestSize = 10485760;
       enableProxy = false;
     };
+  
+  # Push gateway image to local container registry after k3s loads it.
+  # Needed for HA: sentry gateway pod pulls from nexus:5000 instead of needing pre-loaded image.
+  systemd.services.push-gateway-to-registry = {
+    description = "Push gateway container image to local registry";
+    after = [ "k3s.service" ];
+    wantedBy = [ "multi-user.target" ];
+    path = [ pkgs.podman ];
+    serviceConfig.Type = "oneshot";
+    script = let
+      gwImage = "nexus:5000/ai-inference-gateway:2.4.9";
+      srcImage = "docker.io/library/ai-inference-gateway:2.4.9";
+    in ''
+      # Wait for local registry to be ready
+      timeout 120 bash -c 'until curl -sf http://nexus:5000/v2/ > /dev/null 2>&1; do sleep 5; done'
+
+      # Export from containerd, load into podman, tag and push
+      sudo ctr -n k8s.io images export /tmp/gw-push.tar ${srcImage} 2>/dev/null || {
+        echo "Gateway image not found in containerd, skipping push"
+        exit 0
+      }
+      sudo podman load -i /tmp/gw-push.tar
+      sudo podman tag ${srcImage} ${gwImage}
+      sudo podman push --tls-verify=false ${gwImage}
+      sudo rm -f /tmp/gw-push.tar
+      echo "Gateway image pushed to local registry"
+    '';
   };
+};
 }
