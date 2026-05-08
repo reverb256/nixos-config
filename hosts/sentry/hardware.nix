@@ -77,4 +77,25 @@
     "L+ /opt/rocm - - - - ${rocmEnv}"
     "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
   ];
+
+  # Re-enable SMT — CachyOS kernel defaults to mitigations=auto,nosmt which
+  # offlines all sibling threads. We override mitigations but the kernel
+  # processes the first occurrence from initrd. This service re-enables SMT.
+  systemd.services.enable-smt = {
+    description = "Re-enable SMT (disabled by CachyOS kernel nosmt)";
+    wantedBy = [ "multi-user.target" ];
+    before = [ "k3s.service" ];
+    serviceConfig.Type = "oneshot";
+    script = ''
+      if [ "$(cat /sys/devices/system/cpu/smt/control)" = "off" ]; then
+        echo on > /sys/devices/system/cpu/smt/control
+        # Online any offlined sibling threads
+        for cpu in /sys/devices/system/cpu/cpu[0-9]*; do
+          if [ -f "$cpu/offline" ] && [ "$(cat "$cpu/offline")" = "1" ]; then
+            echo 1 > "$cpu/online"
+          fi
+        done
+      fi
+    '';
+  };
 }

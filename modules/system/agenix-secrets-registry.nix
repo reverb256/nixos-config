@@ -133,6 +133,12 @@ in {
           owner = "j_kro";
           group = "users";
         };
+        neocities-api-key = {
+          file = "${inputs.self}/secrets/neocities-api-key.age";
+          mode = "440";
+          owner = "j_kro";
+          group = "users";
+        };
       })
       (lib.mkIf config.services.agenix-secrets-registry.monitoring {
         grafana-admin = {
