@@ -206,22 +206,22 @@
     hosts = {
       zephyr = {
         hostName = "zephyr";
-        # k8s-nix-deploy disabled — manifestYAMLFile evaluation hangs
-        # on builtins.toJSON of 300 K8s objects (Nix evaluator bottleneck).
-        # K8s changes must be applied manually via kubectl.
-        k8sManifest = null;
+        # Split manifests to avoid eval bottleneck
+        k8sManifest = self.kubernetes.small.manifestYAMLFile;
       };
       nexus = {
         hostName = "nexus";
-        k8sManifest = null;
+        # Split manifests - nexus runs monitoring, ai-inference, llama-servers
+        k8sManifest = self.kubernetes.monitoring.manifestYAMLFile;
       };
       forge = {
         hostName = "forge";
-        k8sManifest = null;
+        # Forge runs mining workloads
+        k8sManifest = self.kubernetes.mining.manifestYAMLFile;
       };
       sentry = {
         hostName = "sentry";
-        k8sManifest = null;
+        k8sManifest = self.kubernetes.small.manifestYAMLFile;
       };
     };
   in {

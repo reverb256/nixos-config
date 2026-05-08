@@ -28,7 +28,7 @@ in {
     ConfigMap.ai-gateway-config.data = {
       AUTH_MODE = "none";
       BACKEND_TYPE = "llama-cpp";
-      BACKEND_URL = "http://${cluster.hosts.zephyr.ip}:1237";
+      BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
       DEFAULT_MODEL = "Qwen3.6-35B-A3B-UD-IQ3_S.gguf";
       RAG_ENABLED = "true";
       RAG_TOP_K = "5";
@@ -45,7 +45,7 @@ in {
     ConfigMap.ai-inference-gateway-config.data = {
       AUTH_MODE = "api-key";
       BACKEND_TYPE = "zai";
-      BACKEND_URL = "http://${cluster.hosts.zephyr.ip}:1237";
+      BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
       BACKEND_FALLBACK_URLS = ""; # Dead backends removed (see git log)
       DEFAULT_MODEL = "glm-5-turbo";
       GATEWAY_HOST = "0.0.0.0";
