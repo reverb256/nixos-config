@@ -494,7 +494,7 @@ in {
                   "-c"
                   "262144"
                   "-t"
-                  "4"
+                  "16"
                   "--flash-attn"
                   "on"
                   "-ctk"
@@ -502,12 +502,11 @@ in {
                   "-ctv"
                   "turbo4"
                   "--parallel"
-                  "1"
+                  "4"
                   "--metrics"
                   "-b"
                   "256"
-                  "-ub"
-                  "64"
+                  "--no-mmap"
                 ];
                 env = {
                   _namedlist = true;
