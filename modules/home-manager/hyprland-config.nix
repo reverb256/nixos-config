@@ -117,7 +117,7 @@ in {
         "SUPER, O, exec, launch-or-focus Obsidian uwsm app -- obsidian"
         "SUPER, T, exec, uwsm app -- alacritty -e btop"
         "SUPER, D, exec, uwsm app -- alacritty -e lazydocker"
-        "SUPER, G, exec, launch-or-focus Discord uwsm app -- discord"
+        "SUPER, G, exec, launch-or-focus Discord uwsm app -- vesktop"
         "SUPER SHIFT, G, exec, launch-or-focus Grok uwsm app -- firefoxpwa site launch grok"
         "SUPER, A, exec, launch-or-focus LM uwsm app -- lm-studio"
         "SUPER SHIFT, A, exec, launch-or-focus ChatGPT uwsm app -- firefoxpwa site launch chatgpt"
