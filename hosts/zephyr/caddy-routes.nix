@@ -105,9 +105,11 @@ in
         copy_headers X-Auth-Request-User X-Auth-Request-Email X-Auth-Request-Preferred-Username
       }
 
-      @notAuth status 401
-      handle_response @notAuth {
-        redir https://auth.lan/oauth2/start?rd={scheme}://{host}{uri} 302
+      handle_errors 4xx {
+        @is401 {
+          expression {http.error.status_code} == 401
+        }
+        redir @is401 https://auth.lan/oauth2/start?rd={scheme}://{host}{uri} 302
       }
 
       reverse_proxy https://haven.haven.svc.cluster.local:3000 {
