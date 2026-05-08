@@ -343,7 +343,7 @@ in {
           component = "gateway";
         };
       spec = {
-        replicas = 1;
+        replicas = 2;
         revisionHistoryLimit = 2;
         selector.matchLabels.app = "ai-inference-gateway";
         strategy = {
@@ -363,7 +363,17 @@ in {
               };
           };
           spec = {
-            affinity = nexusPreferredAffinity; # HA: prefer nexus, failover to sentry
+            affinity = {
+              nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms = [
+                { matchExpressions = [{ key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus" "sentry"]; }]; }
+              ];
+              nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution = [
+                { weight = 100; preference.matchExpressions = [{ key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus"]; }]; }
+              ];
+              podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution = [
+                { labelSelector.matchLabels.app = "ai-inference-gateway"; topologyKey = "kubernetes.io/hostname"; }
+              ];
+            }; # HA: nexus+sentry, anti-affinity
             hostNetwork = false;
             serviceAccountName = "ai-inference-gateway";
             automountServiceAccountToken = true; # needed by gpu_scheduler.py kubectl calls
@@ -842,7 +852,17 @@ in {
               component = "brain";
             };
           spec = {
-            affinity = nexusPreferredAffinity; # HA: prefer nexus, failover to sentry
+            affinity = {
+              nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms = [
+                { matchExpressions = [{ key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus" "sentry"]; }]; }
+              ];
+              nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution = [
+                { weight = 100; preference.matchExpressions = [{ key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus"]; }]; }
+              ];
+              podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution = [
+                { labelSelector.matchLabels.app = "ai-inference-gateway"; topologyKey = "kubernetes.io/hostname"; }
+              ];
+            }; # HA: nexus+sentry, anti-affinity
             automountServiceAccountToken = false;
             containers = [
               {
@@ -969,7 +989,17 @@ in {
         template = {
           metadata.labels.app = "llama-cpp";
           spec = {
-            affinity = nexusPreferredAffinity; # HA: prefer nexus, failover to sentry
+            affinity = {
+              nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms = [
+                { matchExpressions = [{ key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus" "sentry"]; }]; }
+              ];
+              nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution = [
+                { weight = 100; preference.matchExpressions = [{ key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus"]; }]; }
+              ];
+              podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution = [
+                { labelSelector.matchLabels.app = "ai-inference-gateway"; topologyKey = "kubernetes.io/hostname"; }
+              ];
+            }; # HA: nexus+sentry, anti-affinity
             hostNetwork = true;
             containers = [
               {
@@ -1683,7 +1713,17 @@ in {
               component = "rag";
             };
           spec = {
-            affinity = nexusPreferredAffinity; # HA: prefer nexus, failover to sentry
+            affinity = {
+              nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms = [
+                { matchExpressions = [{ key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus" "sentry"]; }]; }
+              ];
+              nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution = [
+                { weight = 100; preference.matchExpressions = [{ key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus"]; }]; }
+              ];
+              podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution = [
+                { labelSelector.matchLabels.app = "ai-inference-gateway"; topologyKey = "kubernetes.io/hostname"; }
+              ];
+            }; # HA: nexus+sentry, anti-affinity
             containers = [
               {
                 name = "kb-mcp";
