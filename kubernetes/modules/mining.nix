@@ -11,7 +11,26 @@
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
+  cfg = config.kubernetes.manifests.mining;
 in {
+  options.kubernetes.manifests.mining = {
+    enableZephyr = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable XMRig CPU miner on zephyr";
+    };
+    enableNexus = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable XMRig CPU miner on nexus";
+    };
+    enableSentry = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable XMRig CPU miner on sentry";
+    };
+  };
+
   config.kubernetes.objects = {
     none.Namespace.mining = {
       metadata.labels =
@@ -213,7 +232,7 @@ in {
       };
     };
 
-    mining.Deployment.xmrig-zephyr = {
+    mining.Deployment.xmrig-zephyr = lib.mkIf cfg.enableZephyr {
       metadata = {
         labels =
           managed
@@ -387,7 +406,7 @@ in {
       };
     };
 
-    mining.Deployment.xmrig-nexus = {
+    mining.Deployment.xmrig-nexus = lib.mkIf cfg.enableNexus {
       metadata = {
         labels.app = "xmrig-nexus";
         annotations = {
@@ -863,7 +882,7 @@ in {
     };
 
     # --- XMRig CPU Miner - sentry (8 cores, 8 threads = 50%) ---
-    mining.Deployment.xmrig-sentry = {
+    mining.Deployment.xmrig-sentry = lib.mkIf cfg.enableSentry {
       metadata.labels =
         managed
         // {
