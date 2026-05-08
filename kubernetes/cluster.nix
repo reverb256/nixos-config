@@ -20,9 +20,22 @@
   };
 
   # Per-host xmrig CPU miner toggles (default: all enabled)
+  # Set to false to exclude a host's miner from the manifest entirely.
   mining = {
     enableZephyr = true;
     enableNexus = true;
     enableSentry = true;
+
+    # Scheduled scaling (CronJobs). Set schedule to "" to disable.
+    # Cron format: "minute hour day month weekday" (UTC)
+    # Example: scale down at 9am UTC weekdays, scale up at 6pm UTC
+    scaleDown = {
+      schedule = "0 9 * * 1-5";  # Mon-Fri 09:00 UTC
+      replicas = 0;
+    };
+    scaleUp = {
+      schedule = "0 18 * * *";    # Every day 18:00 UTC
+      replicas = 1;
+    };
   };
 }
