@@ -17,6 +17,7 @@
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
   gatewayUrl = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080";
+  vllm3060Url = "http://llama-qwen-vllm-zephyr-3060ti.ai-inference.svc.cluster.local:8040";
 in {
   config.kubernetes.objects = {
     search.ConfigMap.vane-config = {
@@ -41,6 +42,14 @@ in {
               "config": {"baseURL": "${gatewayUrl}/v1", "apiKey": "sk-placeholder"}
             },
             {
+              "id": "vllm-direct",
+              "name": "vLLM Direct (3060Ti)",
+              "type": "openai",
+              "chatModels": [{"key": "qwen3.5-2b-awq", "name": "Qwen 3.5 2B AWQ Direct"}],
+              "embeddingModels": [],
+              "config": {"baseURL": "${vllm3060Url}/v1", "apiKey": "not-needed"}
+            },
+            {
               "id": "zai-cloud",
               "name": "ZAI Cloud",
               "type": "openai",
@@ -58,7 +67,7 @@ in {
             }
           ],
           "search": {"searxngURL": "http://searxng.search.svc.cluster.local:8080"},
-          "chatModel": {"providerId": "local-gateway", "key": "qwen3.5-2b-awq"},
+          "chatModel": {"providerId": "vllm-direct", "key": "qwen3.5-2b-awq"},
           "embeddingModel": {"providerId": "local-gateway", "key": "BAAI/bge-m3"}
         }
       '';
