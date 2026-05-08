@@ -19,27 +19,36 @@
     }
   '';
 
-  # Protected routes — Caddy forward_auth + oauth2-proxy (Casdoor SSO).
-  # forward_auth automatically sets X-Forwarded-Host/Proto/Uri on the auth request.
-  # copy_headers copies user identity headers from oauth2-proxy's 2xx response
-  # to the backend request, enabling downstream apps to trust upstream identity.
-  # 401 from oauth2-proxy is redirected to auth.lan login (same-origin for CSRF).
+  # Protected routes — Caddy reverse_proxy + oauth2-proxy (Casdoor SSO).
+  # Uses reverse_proxy to oauth2-proxy for auth check:
+  #   - 2xx: proxy to backend, forwarding user identity from oauth2-proxy
+  #         response headers via {rp.header.*} placeholders (Caddy 2.8+)
+  #   - 401: redirect to auth.lan login (same-origin for CSRF)
   mkAuthRoute = hosts: backend: ''
     ${hosts} {
       ${tls}
       encode zstd gzip
 
-      forward_auth oauth2-proxy.auth.svc.cluster.local:4180 {
-        uri /oauth2/auth
-        copy_headers X-Forwarded-User X-Forwarded-Email X-Forwarded-Preferred-Username
-      }
+      reverse_proxy oauth2-proxy.auth.svc.cluster.local:4180 {
+        method GET
+        rewrite /oauth2/auth
 
-      handle_errors 401 {
-        redir https://auth.lan/oauth2/start?rd={scheme}://{host}{uri} 302
-      }
+        # Auth successful (2xx) — proxy to backend with user identity
+        @auth_ok status 2xx
+        handle_response @auth_ok {
+          reverse_proxy ${backend} {
+            ${proxyHeader}
+            header_up X-Forwarded-User {rp.header.X-Forwarded-User}
+            header_up X-Forwarded-Email {rp.header.X-Forwarded-Email}
+            header_up X-Forwarded-Preferred-Username {rp.header.X-Forwarded-Preferred-Username}
+          }
+        }
 
-      reverse_proxy ${backend} {
-        ${proxyHeader}
+        # Auth failed (401) — redirect to login on auth.lan
+        @unauth status 401
+        handle_response @unauth {
+          redir https://auth.lan/oauth2/start?rd={scheme}://{host}{uri} 302
+        }
       }
     }
   '';
@@ -92,20 +101,27 @@ in
       ${tls}
       encode zstd gzip
 
-      forward_auth oauth2-proxy.auth.svc.cluster.local:4180 {
-        uri /oauth2/auth
-        copy_headers X-Forwarded-User X-Forwarded-Email X-Forwarded-Preferred-Username
-      }
+      reverse_proxy oauth2-proxy.auth.svc.cluster.local:4180 {
+        method GET
+        rewrite /oauth2/auth
 
-      handle_errors 401 {
-        redir https://auth.lan/oauth2/start?rd={scheme}://{host}{uri} 302
-      }
+        @auth_ok status 2xx
+        handle_response @auth_ok {
+          reverse_proxy https://haven.haven.svc.cluster.local:3000 {
+            ${proxyHeader}
+            header_up X-Forwarded-User {rp.header.X-Forwarded-User}
+            header_up X-Forwarded-Email {rp.header.X-Forwarded-Email}
+            header_up X-Forwarded-Preferred-Username {rp.header.X-Forwarded-Preferred-Username}
+            transport http {
+              tls
+              tls_insecure_skip_verify
+            }
+          }
+        }
 
-      reverse_proxy https://haven.haven.svc.cluster.local:3000 {
-        ${proxyHeader}
-        transport http {
-          tls
-          tls_insecure_skip_verify
+        @unauth status 401
+        handle_response @unauth {
+          redir https://auth.lan/oauth2/start?rd={scheme}://{host}{uri} 302
         }
       }
     }"
