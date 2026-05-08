@@ -425,6 +425,25 @@ in {
       };
     };
 
+    # Clean up stale kube-router nft rules that block cross-node pod traffic.
+    systemd.services.k3s-nft-cleanup = {
+      description = "Remove stale kube-router nftables rules";
+      after = ["k3s.service"];
+      bindsTo = ["k3s.service"];
+      serviceConfig.Type = "oneshot";
+      serviceConfig.RemainAfterExit = true;
+      serviceConfig.ExecStart = pkgs.writeShellScript "nft-cleanup" ''
+        handle=$(${pkgs.nftables}/bin/nft -a list chain ip filter FORWARD 2>/dev/null | grep "jump KUBE-ROUTER-FORWARD" | grep -oP 'handle \K\d+')
+        if [ -n "$handle" ]; then
+          ${pkgs.nftables}/bin/nft delete rule ip filter FORWARD handle "$handle" 2>/dev/null || true
+        fi
+        for chain in $(${pkgs.nftables}/bin/nft list table ip filter 2>/dev/null | grep -oP 'chain KUBE-POD-FW-\S+' | sed 's/chain //'); do
+          ${pkgs.nftables}/bin/nft delete chain ip filter "$chain" 2>/dev/null || true
+        done
+        ${pkgs.nftables}/bin/nft delete chain ip filter KUBE-ROUTER-FORWARD 2>/dev/null || true
+      '';
+    };
+
     systemd.services.k3s-network-taint-fix = lib.mkIf isServer {
       description = "Fix NetworkUnavailable taint";
       path = [pkgs.kubectl];
