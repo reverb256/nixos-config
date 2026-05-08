@@ -139,4 +139,4 @@
       echo "Gateway image pushed to local registry"
     '';
   };
-};
+}
