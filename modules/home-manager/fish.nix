@@ -42,6 +42,10 @@ in {
         end
       end
 
+      if test -f /run/agenix/localmaxxing-api-key
+        set -gx LOCALMAXXING_API_KEY (cat /run/agenix/localmaxxing-api-key)
+      end
+
       set -gx TZ America/Winnipeg
 
       set -g fish_greeting

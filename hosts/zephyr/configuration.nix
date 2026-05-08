@@ -26,14 +26,14 @@ in {
   # Enable Hermes RAM protection
 
   # Host-specific CPU/GPU optimization for llama.cpp (Zen3: 5950X + Ampere: RTX 3090/3060 Ti)
+  # Note: CUDA arch already set in package via CMAKE_CUDA_ARCHITECTURES.
+  # Only CPU tuning needed at host level.
   nixpkgs.config.packageOverrides = pkgs: {
     llama-cpp-turboquant = pkgs.llama-cpp-turboquant.overrideAttrs (old: {
       CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=zen3";
-      cmakeFlags = (old.cmakeFlags or []) ++ ["-DLLAMA_CUDA_ARCHITECTURES=86"];
     });
     llama-cpp = pkgs.llama-cpp.overrideAttrs (old: {
       CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=zen3";
-      cmakeFlags = (old.cmakeFlags or []) ++ ["-DLLAMA_CUDA_ARCHITECTURES=86"];
     });
   };
 
