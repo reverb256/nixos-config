@@ -1,11 +1,4 @@
 {pkgs, ...}: {
-  xdg.configFile."autostart/discord.desktop".text = ''
-    [Desktop Entry]
-    Hidden=true
-    X-GNOME-Autostart-enabled=false
-    X-KDE-autostart-after-panel=false
-  '';
-
   programs.zen-browser = {
     enable = true;
 
