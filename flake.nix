@@ -110,10 +110,6 @@
       url = "github:reverb256/knowledge-fabric";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    llama-turboquant = {
-      url = "github:reverb256/llama-cpp-turboquant";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     compute-market = {
       url = "github:reverb256/compute-market";
       inputs.nixpkgs.follows = "nixpkgs";

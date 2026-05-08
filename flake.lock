@@ -1041,26 +1041,6 @@
         "type": "github"
       }
     },
-    "llama-turboquant": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1776795482,
-        "narHash": "sha256-yNH/4+KDwyYU/Krbj7XC2v+r+UVD1ByZ5N87iK6kOso=",
-        "owner": "reverb256",
-        "repo": "llama-cpp-turboquant",
-        "rev": "1818bd47996da5e26edc1ac5b1a9b2543f36ff71",
-        "type": "github"
-      },
-      "original": {
-        "owner": "reverb256",
-        "repo": "llama-cpp-turboquant",
-        "type": "github"
-      }
-    },
     "llm-agents": {
       "inputs": {
         "blueprint": "blueprint",
@@ -1725,7 +1705,6 @@
         "home-manager": "home-manager",
         "impermanence": "impermanence",
         "knowledge-fabric": "knowledge-fabric",
-        "llama-turboquant": "llama-turboquant",
         "llm-agents": "llm-agents",
         "mcp-registry": "mcp-registry",
         "microvm": "microvm",
