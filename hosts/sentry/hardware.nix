@@ -46,6 +46,7 @@
   boot.kernelParams = [
     "hugepagesz=1G"
     "hugepages=3"
+    "mitigations=auto"
   ];
 
   environment = {

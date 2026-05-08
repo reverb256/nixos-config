@@ -35,11 +35,9 @@
   nixpkgs.config.packageOverrides = pkgs: {
     llama-cpp-turboquant = pkgs.llama-cpp-turboquant.overrideAttrs (old: {
       CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=zen2";
-      cmakeFlags = (old.cmakeFlags or []) ++ ["-DLLAMA_CUDA_ARCHITECTURES=86"];
     });
     llama-cpp = pkgs.llama-cpp.overrideAttrs (old: {
       CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=zen2";
-      cmakeFlags = (old.cmakeFlags or []) ++ ["-DLLAMA_CUDA_ARCHITECTURES=86"];
     });
   };
 
