@@ -152,10 +152,11 @@ in {
 
       disable =
         # --disable flags are only valid for k3s server, not agent
-        lib.optionals isServer (
-          disabledComponents
-          ++ ["network-policy"]
-        );
+        # NOTE: Do NOT add "network-policy" to disabledComponents.
+        # Disabling the NP controller on the server prevents kube-router
+        # agents from creating NWPLCY chains, which causes all cross-node
+        # pod traffic to be rejected by POD-FW default-deny rules.
+        lib.optionals isServer disabledComponents;
 
       extraFlags =
         lib.optionals isServer (
