@@ -20,32 +20,25 @@
   '';
 
   # Protected routes — Caddy forward_auth + oauth2-proxy (Casdoor SSO).
-  # ALL /oauth2/* lives on auth.lan only — ensures CSRF cookies are same-origin.
-  # 401 redirects to auth.lan/oauth2/start (never to per-service /oauth2/start).
+  # forward_auth copies auth response headers (X-Forwarded-User, X-Forwarded-Email,
+  # X-Forwarded-Preferred-Username) to the backend request, enabling downstream apps
+  # to trust upstream identity via MC_PROXY_AUTH_HEADER or similar.
+  # 401 redirects to auth.lan/oauth2/start (same-origin for CSRF cookies).
   mkAuthRoute = hosts: backend: ''
     ${hosts} {
       ${tls}
       encode zstd gzip
 
-      # Everything else — auth check with backend proxy
-      reverse_proxy oauth2-proxy.auth.svc.cluster.local:4180 {
-        method GET
-        rewrite /oauth2/auth
-        header_up X-Forwarded-Host {host}
-        header_up X-Forwarded-Proto {scheme}
-        header_up X-Forwarded-Uri {uri}
+      forward_auth oauth2-proxy.auth.svc.cluster.local:4180 {
+        uri /oauth2/auth
+        copy_headers X-Forwarded-User X-Forwarded-Email X-Forwarded-Preferred-Username
+        upstream X-Forwarded-Host {host}
+        upstream X-Forwarded-Proto {scheme}
+        upstream X-Forwarded-Uri {uri}
+      }
 
-        # Auth successful (2xx) - proxy to actual backend
-        @auth_ok status 2xx
-        handle_response @auth_ok {
-          reverse_proxy ${backend}
-        }
-
-        # Auth failed (401) - redirect to login on auth.lan (same-origin for CSRF)
-        @unauth status 401
-        handle_response @unauth {
-          redir https://auth.lan/oauth2/start?rd={scheme}://{host}{uri} 302
-        }
+      reverse_proxy ${backend} {
+        ${proxyHeader}
       }
     }
   '';
@@ -98,26 +91,19 @@ in
       ${tls}
       encode zstd gzip
 
-      reverse_proxy oauth2-proxy.auth.svc.cluster.local:4180 {
-        method GET
-        rewrite /oauth2/auth
-        header_up X-Forwarded-Host {host}
-        header_up X-Forwarded-Proto {scheme}
-        header_up X-Forwarded-Uri {uri}
+      forward_auth oauth2-proxy.auth.svc.cluster.local:4180 {
+        uri /oauth2/auth
+        copy_headers X-Forwarded-User X-Forwarded-Email X-Forwarded-Preferred-Username
+        upstream X-Forwarded-Host {host}
+        upstream X-Forwarded-Proto {scheme}
+        upstream X-Forwarded-Uri {uri}
+      }
 
-        @auth_ok status 2xx
-        handle_response @auth_ok {
-          reverse_proxy https://haven.haven.svc.cluster.local:3000 {
-            transport http {
-              tls
-              tls_insecure_skip_verify
-            }
-          }
-        }
-
-        @unauth status 401
-        handle_response @unauth {
-          redir https://auth.lan/oauth2/start?rd={scheme}://{host}{uri} 302
+      reverse_proxy https://haven.haven.svc.cluster.local:3000 {
+        ${proxyHeader}
+        transport http {
+          tls
+          tls_insecure_skip_verify
         }
       }
     }"
