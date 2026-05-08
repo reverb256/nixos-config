@@ -373,11 +373,9 @@ in {
         ];
       };
     };
-    auth.NetworkPolicy.default-deny-all = {
-      spec = {
-        podSelector = {};
-        policyTypes = ["Ingress" "Egress"];
-      };
-    };
+    # NOTE: No default-deny-all in auth namespace.
+    # kube-router iptables ordering can cause blanket DROP to override
+    # podSelector-based egress rules (casdoor->postgres conn refused).
+    # All auth pods already have fine-grained policies.
   };
 }
