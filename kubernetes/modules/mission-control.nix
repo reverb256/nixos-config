@@ -123,7 +123,7 @@ in {
                   MC_ALLOWED_HOSTS.value = "mission-control.lan,mc.cluster.local,${cluster.kubernetes.vip},${cluster.hosts.zephyr.ip},${cluster.podCidr},localhost,127.0.0.1";
                   MISSION_CONTROL_DATA_DIR.value = "/data";
                   SKIP_AUTH_FOR_PROBES.value = "true";
-                  MC_PROXY_AUTH_HEADER.value = "X-Forwarded-User";
+                  MC_PROXY_AUTH_HEADER.value = "X-Auth-Request-User";
                   MC_PROXY_AUTH_DEFAULT_ROLE.value = "admin";
                   MC_PROXY_AUTH_TRUSTED_IPS.value = "${cluster.podCidr},10.0.0.0/12,10.1.1.0/24";
                 };
