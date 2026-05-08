@@ -41,6 +41,9 @@
             header_up X-Auth-Request-User {rp.header.X-Auth-Request-User}
             header_up X-Auth-Request-Email {rp.header.X-Auth-Request-Email}
             header_up X-Auth-Request-Preferred-Username {rp.header.X-Auth-Request-Preferred-Username}
+            # Override XFF/X-Real-IP to Caddy IP (MC does exact string match, not CIDR)
+            header_up X-Forwarded-For 10.1.1.110
+            header_up X-Real-IP 10.1.1.110
           }
         }
 
@@ -112,6 +115,9 @@ in
             header_up X-Auth-Request-User {rp.header.X-Auth-Request-User}
             header_up X-Auth-Request-Email {rp.header.X-Auth-Request-Email}
             header_up X-Auth-Request-Preferred-Username {rp.header.X-Auth-Request-Preferred-Username}
+            # Override XFF/X-Real-IP to Caddy IP (MC does exact string match, not CIDR)
+            header_up X-Forwarded-For 10.1.1.110
+            header_up X-Real-IP 10.1.1.110
             transport http {
               tls
               tls_insecure_skip_verify
