@@ -33,6 +33,15 @@ in {
         set -gx GEMINI_API_KEY (cat /run/agenix/gemini-api-key)
       end
 
+      if test -f /run/agenix/huggingface-token
+        set -gx HF_TOKEN (cat /run/agenix/huggingface-token)
+        # Ensure hf CLI token cache is populated
+        if not test -f ~/.cache/huggingface/token; or test (cat ~/.cache/huggingface/token) != "$HF_TOKEN"
+          mkdir -p ~/.cache/huggingface
+          echo -n "$HF_TOKEN" > ~/.cache/huggingface/token
+        end
+      end
+
       set -gx TZ America/Winnipeg
 
       set -g fish_greeting

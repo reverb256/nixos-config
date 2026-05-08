@@ -69,7 +69,7 @@ in {
         "mimeapps.list".force = true;
       };
 
-      systemd.user.sessionVariables = {
+      home.sessionVariables = {
         HF_TOKEN = "/run/agenix/huggingface-token";
       };
     };

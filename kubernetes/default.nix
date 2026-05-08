@@ -3,13 +3,13 @@
   pkgsWithOverlay,
   inputs,
 }: let
-  llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant;
+
   cluster = import ./cluster.nix;
 
   # Common args passed to all modules
   commonModules = [
     {_module.args.pkgsWithOverlay = pkgsWithOverlay;}
-    {_module.args.llama-cpp-turboquant = llama-cpp-turboquant;}
+
     {_module.args.inputs = inputs;}
     {_module.args.cluster = cluster;}
     # HA affinity: prefer nexus, failover to sentry. Used by stateless deployments.

@@ -102,7 +102,7 @@ in {
                 command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
                 args = [
                   "--model"
-                  "/home/j_kro/.lmstudio/models/mradermacher/Qwen3.6-35B-A3B-abliterated-i1-GGUF/Qwen3.6-35B-A3B-abliterated.i1-IQ3_M.gguf"
+                  "/home/j_kro/.lmstudio/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-IQ3_S.gguf"
                   "--host"
                   "0.0.0.0"
                   "--port"
@@ -1144,7 +1144,7 @@ in {
                 command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
                 args = [
                   "--model"
-                  "/models/Qwen3.6-35B-A3B-UD-IQ3_S.gguf"
+                  "/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-IQ3_S.gguf"
                   "--host"
                   "0.0.0.0"
                   "--port"
