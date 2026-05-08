@@ -128,7 +128,9 @@
         otlp:
           protocols:
             http:
+              endpoint: 0.0.0.0:4318
             grpc:
+              endpoint: 0.0.0.0:4317
     ingester:
       max_block_duration: 5m
     compactor:
@@ -209,6 +211,15 @@
     loki.source.kubernetes "logs" {
       targets    = discovery.kubernetes.pods.targets
       forward_to = [loki.process.pii_strip.receiver]
+    }
+
+    // Collect host journald logs -> PII stripping -> Loki
+    loki.source.journal "host_journal" {
+      path       = "/var/log/journal"
+      forward_to = [loki.process.pii_strip.receiver]
+      labels     = {
+        job = "systemd-journal",
+      }
     }
 
     // Write logs to Loki
@@ -402,11 +413,6 @@
     "kubernetes.io/hostname" = "sentry";
   };
 
-  # Node selector for non-workstation nodes (exclude zephyr)
-  nonWorkstationSelector = {
-    "kubernetes.io/hostname" = "nexus";
-  };
-
   # Common security context
   securityContext = {
     runAsNonRoot = true;
@@ -462,6 +468,7 @@ in {
             "nodes/metrics"
             "nodes/proxy"
             "pods"
+            "pods/log"
             "services"
             "endpoints"
             "namespaces"
@@ -471,6 +478,11 @@ in {
             "list"
             "watch"
           ];
+        }
+        {
+          apiGroups = [""];
+          resources = ["events"];
+          verbs = ["get" "list" "watch"];
         }
         {
           apiGroups = [
@@ -1189,7 +1201,6 @@ in {
             hostNetwork = true;
             dnsPolicy = "ClusterFirstWithHostNet";
             # Run on nexus only (exclude zephyr workstation)
-            nodeSelector = nonWorkstationSelector;
             tolerations = [
               {
                 key = "node-role.kubernetes.io/control-plane";
@@ -1226,6 +1237,16 @@ in {
                     name = "http";
                     protocol = "TCP";
                   }
+                  {
+                    containerPort = 4317;
+                    name = "otlp-grpc";
+                    protocol = "TCP";
+                  }
+                  {
+                    containerPort = 4318;
+                    name = "otlp-http";
+                    protocol = "TCP";
+                  }
                 ];
                 resources = {
                   requests = {
@@ -1255,6 +1276,10 @@ in {
                     mountPath = "/var/log";
                     readOnly = true;
                   };
+                  "host-journal" = {
+                    mountPath = "/var/log/journal";
+                    readOnly = true;
+                  };
                   "docker-containers" = {
                     mountPath = "/var/lib/docker/containers";
                     readOnly = true;
@@ -1273,6 +1298,10 @@ in {
               "var-log" = {
                 hostPath.path = "/var/log";
                 hostPath.type = "DirectoryOrCreate";
+              "host-journal" = {
+                hostPath.path = "/var/log/journal";
+                hostPath.type = "DirectoryOrCreate";
+              };
               };
               "docker-containers" = {
                 hostPath.path = "/var/lib/docker/containers";
@@ -1288,6 +1317,28 @@ in {
       };
     };
 
+
+    monitoring.Service.alloy-otlp = {
+      metadata.labels.app = "alloy";
+      spec = {
+        clusterIP = "None";
+        selector.app = "alloy";
+        ports = [
+          {
+            name = "otlp-grpc";
+            port = 4317;
+            targetPort = 4317;
+            protocol = "TCP";
+          }
+          {
+            name = "otlp-http";
+            port = 4318;
+            targetPort = 4318;
+            protocol = "TCP";
+          }
+        ];
+      };
+    };
     # ── Prometheus (scrapes targets, remote_writes to Mimir) ───
     monitoring.ConfigMap.prometheus-config.data."prometheus.yml" = prometheusConfig;
 
