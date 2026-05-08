@@ -11,26 +11,19 @@
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
-  cfg = config.kubernetes.manifests.mining;
-in {
-  options.kubernetes.manifests.mining = {
-    enableZephyr = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Enable XMRig CPU miner on zephyr";
-    };
-    enableNexus = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Enable XMRig CPU miner on nexus";
-    };
-    enableSentry = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Enable XMRig CPU miner on sentry";
-    };
-  };
+  miningCfg = cluster.mining;
 
+  # Build list of enabled xmrig deployments for scheduled scaling
+  xmrigDeployments = lib.flatten (lib.optional miningCfg.enableZephyr ["xmrig-zephyr"]
+    ++ lib.optional miningCfg.enableNexus ["xmrig-nexus"]
+    ++ lib.optional miningCfg.enableSentry ["xmrig-sentry"]);
+  xmrigDeployList = lib.concatStringsSep " " (map (d: "deployment/${d}") xmrigDeployments);
+
+  scheduleCfg = {
+    scaleDown = miningCfg.scaleDown or { schedule = ""; replicas = 0; };
+    scaleUp = miningCfg.scaleUp or { schedule = ""; replicas = 1; };
+  };
+in {
   config.kubernetes.objects = {
     none.Namespace.mining = {
       metadata.labels =
@@ -232,7 +225,7 @@ in {
       };
     };
 
-    mining.Deployment.xmrig-zephyr = lib.mkIf cfg.enableZephyr {
+    mining.Deployment.xmrig-zephyr = lib.mkIf miningCfg.enableZephyr {
       metadata = {
         labels =
           managed
@@ -406,7 +399,7 @@ in {
       };
     };
 
-    mining.Deployment.xmrig-nexus = lib.mkIf cfg.enableNexus {
+    mining.Deployment.xmrig-nexus = lib.mkIf miningCfg.enableNexus {
       metadata = {
         labels.app = "xmrig-nexus";
         annotations = {
@@ -882,7 +875,7 @@ in {
     };
 
     # --- XMRig CPU Miner - sentry (8 cores, 8 threads = 50%) ---
-    mining.Deployment.xmrig-sentry = lib.mkIf cfg.enableSentry {
+    mining.Deployment.xmrig-sentry = lib.mkIf miningCfg.enableSentry {
       metadata.labels =
         managed
         // {
@@ -1037,6 +1030,100 @@ in {
           };
         };
       };
+    # --- Scheduled scaling Role ---
+    mining.Role.xmrig-scaler = {
+      rules = [
+        {
+          apiGroups = ["apps"];
+          resources = ["deployments"];
+          resourceNames = xmrigDeployments;
+          verbs = ["get" "update" "patch"];
+        }
+      ];
+    };
+    mining.RoleBinding.xmrig-scaler = {
+      subjects = [
+        {
+          kind = "ServiceAccount";
+          name = "gpu-miner-sa";
+          namespace = "mining";
+        }
+      ];
+      roleRef = {
+        kind = "Role";
+        name = "xmrig-scaler";
+        apiGroup = "rbac.authorization.k8s.io";
+      };
+    };
+
+    # --- CronJob: scale down xmrig (e.g., weekdays 09:00) ---
+    mining.CronJob.xmrig-scale-down = lib.mkIf (scheduleCfg.scaleDown.schedule != "" && xmrigDeployList != "") {
+      metadata.labels = managed // {app = "xmrig-scheduler";};
+      spec = {
+        schedule = scheduleCfg.scaleDown.schedule;
+        concurrencyPolicy = "Forbid";
+        successfulJobsHistoryLimit = 3;
+        failedJobsHistoryLimit = 1;
+        jobTemplate.spec = {
+          activeDeadlineSeconds = 60;
+          backoffLimit = 1;
+          template = {
+            metadata.labels = managed // {app = "xmrig-scheduler";};
+            spec = {
+              serviceAccountName = "gpu-miner-sa";
+              restartPolicy = "Never";
+              containers = {
+                _namedlist = true;
+                scaler = {
+                  image = "bitnami/kubectl:latest";
+                  args = [
+                    "scale"
+                    "--replicas=${toString scheduleCfg.scaleDown.replicas}"
+                    "-n" "mining"
+                    xmrigDeployList
+                  ];
+                };
+              };
+            };
+          };
+        };
+      };
+    };
+
+    # --- CronJob: scale up xmrig (e.g., every day 18:00) ---
+    mining.CronJob.xmrig-scale-up = lib.mkIf (scheduleCfg.scaleUp.schedule != "" && xmrigDeployList != "") {
+      metadata.labels = managed // {app = "xmrig-scheduler";};
+      spec = {
+        schedule = scheduleCfg.scaleUp.schedule;
+        concurrencyPolicy = "Forbid";
+        successfulJobsHistoryLimit = 3;
+        failedJobsHistoryLimit = 1;
+        jobTemplate.spec = {
+          activeDeadlineSeconds = 60;
+          backoffLimit = 1;
+          template = {
+            metadata.labels = managed // {app = "xmrig-scheduler";};
+            spec = {
+              serviceAccountName = "gpu-miner-sa";
+              restartPolicy = "Never";
+              containers = {
+                _namedlist = true;
+                scaler = {
+                  image = "bitnami/kubectl:latest";
+                  args = [
+                    "scale"
+                    "--replicas=${toString scheduleCfg.scaleUp.replicas}"
+                    "-n" "mining"
+                    xmrigDeployList
+                  ];
+                };
+              };
+            };
+          };
+        };
+      };
+    };
+
     };
   };
 }
