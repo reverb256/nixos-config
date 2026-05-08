@@ -1044,8 +1044,8 @@ in {
         strategy = {
           type = "RollingUpdate";
           rollingUpdate = {
-            maxSurge = 0;
-            maxUnavailable = 1;
+            maxSurge = 1;
+            maxUnavailable = 0;
           };
         };
         template = {
@@ -1054,7 +1054,12 @@ in {
             annotations."nix-csi/discard" = "true";
           };
           spec = {
-            nodeSelector = sentrySelector;
+            affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution = [
+              {
+                labelSelector.matchLabels.app = "grafana";
+                topologyKey = "kubernetes.io/hostname";
+              }
+            ];
             securityContext = {
               runAsNonRoot = true;
               runAsUser = 10001;
@@ -1154,7 +1159,7 @@ in {
               datasources.configMap.name = "grafana-datasources";
               dashboards-provider.configMap.name = "grafana-dashboards-provider";
               dashboards.configMap.name = "grafana-dashboards";
-              data.persistentVolumeClaim.claimName = "grafana-data";
+              data.emptyDir = {};
             };
           };
         };
