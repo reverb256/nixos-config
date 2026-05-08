@@ -23,6 +23,7 @@
   # forward_auth automatically sets X-Forwarded-Host/Proto/Uri on the auth request.
   # copy_headers copies user identity headers from oauth2-proxy's 2xx response
   # to the backend request, enabling downstream apps to trust upstream identity.
+  # 401 from oauth2-proxy is redirected to auth.lan login (same-origin for CSRF).
   mkAuthRoute = hosts: backend: ''
     ${hosts} {
       ${tls}
@@ -31,6 +32,10 @@
       forward_auth oauth2-proxy.auth.svc.cluster.local:4180 {
         uri /oauth2/auth
         copy_headers X-Forwarded-User X-Forwarded-Email X-Forwarded-Preferred-Username
+      }
+
+      handle_errors 401 {
+        redir https://auth.lan/oauth2/start?rd={scheme}://{host}{uri} 302
       }
 
       reverse_proxy ${backend} {
@@ -90,6 +95,10 @@ in
       forward_auth oauth2-proxy.auth.svc.cluster.local:4180 {
         uri /oauth2/auth
         copy_headers X-Forwarded-User X-Forwarded-Email X-Forwarded-Preferred-Username
+      }
+
+      handle_errors 401 {
+        redir https://auth.lan/oauth2/start?rd={scheme}://{host}{uri} 302
       }
 
       reverse_proxy https://haven.haven.svc.cluster.local:3000 {
