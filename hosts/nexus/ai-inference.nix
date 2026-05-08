@@ -110,7 +110,8 @@
       maxRequestSize = 10485760;
       enableProxy = false;
     };
-  
+  };
+
   # Push gateway image to local container registry after k3s loads it.
   # Needed for HA: sentry gateway pod pulls from nexus:5000 instead of needing pre-loaded image.
   systemd.services.push-gateway-to-registry = {
