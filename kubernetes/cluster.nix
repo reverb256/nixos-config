@@ -18,4 +18,11 @@
     apiPort = 6443;
     clusterDnsIP = "10.0.0.10";
   };
+
+  # Per-host xmrig CPU miner toggles (default: all enabled)
+  mining = {
+    enableZephyr = true;
+    enableNexus = true;
+    enableSentry = true;
+  };
 }
