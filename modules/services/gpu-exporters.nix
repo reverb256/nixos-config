@@ -71,7 +71,7 @@ in {
           DynamicUser = true;
           ExecStart =
             lib.getExe pkgs.prometheus-nvidia-gpu-exporter
-            + " --web.listen-address 0.0.0.0:${toString cfg.nvidia.port} --nvidia-smi-command ${lib.getExe config.hardware.nvidia.package.bin}";
+            + " --web.listen-address 0.0.0.0:${toString cfg.nvidia.port} --nvidia-smi-command ${config.hardware.nvidia.package.bin}/bin/nvidia-smi";
 
           Restart = "always";
           RestartSec = "10s";

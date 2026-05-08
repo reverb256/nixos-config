@@ -110,8 +110,9 @@ in {
       };
     };
 
-    # Set default printer
-    hardware.printers.ensureDefaultPrinter = "HP-Envy-7800";
+    # Set default printer — wayland-common.nix already sets this with correct name (HP_Envy_7800).
+    # Removed duplicate to fix conflicting definition values build error.
+    # hardware.printers.ensureDefaultPrinter = "HP-Envy-7800";
 
     # Fix ensure-printers failing when printer is offline (lpadmin timeout).
     # Set successExitStatus so the service doesn't report as failed.

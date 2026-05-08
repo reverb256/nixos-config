@@ -314,6 +314,10 @@ in {
   # with the host-level Caddy reverse proxy.
 
   system.stateVersion = "26.05";
-  services.unbound-common.enable = true;
+  # unbound-common disabled for zephyr — cluster-dns.nix (via clusterNetworking.unbound.enable)
+  # provides identical upstream forwarding PLUS cluster.local K8s DNS forwarding.
+  # Both active = duplicate forward zone errors on every boot.
+  # Other hosts (nexus, forge, sentry) still use unbound-common.
+  services.unbound-common.enable = false;
   # Enable Hermes RAM protection (mandatory pre-flight checks)
 }

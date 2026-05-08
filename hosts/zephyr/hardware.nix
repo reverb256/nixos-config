@@ -101,6 +101,9 @@
     bluetooth.enable = true;
   };
 
+  # Intel AX200 BT adapter needs firmware blobs (ibt-*.sfi, ibt-*.ddc)
+  hardware.enableAllFirmware = true;
+
   boot = {
     kernelModules = [
       "nvidia_uvm"
@@ -130,6 +133,9 @@
       "processor.max_cstate=1"
       "intel_idle.max_cstate=1"
       "nvidia.NVreg_RegistryDwords=EnableBrightnessControl=1"
+      # Override kernel-hardening.nix: user-space oops (Discord, llama-server)
+      # should NOT crash the whole workstation. Keep softlockup_panic for real kernel issues.
+      "panic_on_oops=0"
     ];
   };
 
