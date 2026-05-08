@@ -19,39 +19,35 @@
     }
   '';
 
-  # Protected routes — Caddy reverse_proxy + oauth2-proxy (Casdoor SSO).
-  # Uses reverse_proxy to oauth2-proxy for auth check:
-  #   - 2xx: proxy to backend, forwarding user identity from oauth2-proxy
-  #         response headers via {rp.header.*} placeholders (Caddy 2.8+)
-  #   - 401: redirect to auth.lan login (same-origin for CSRF)
+  # Protected routes — Caddy forward_auth + oauth2-proxy (Casdoor SSO).
+  # Uses forward_auth which natively copies X-Auth-Request-* response headers
+  # to the backend request. 401 → redirect to auth.lan login.
   mkAuthRoute = hosts: backend: ''
     ${hosts} {
       ${tls}
       encode zstd gzip
 
-      reverse_proxy oauth2-proxy.auth.svc.cluster.local:4180 {
-        method GET
-        rewrite /oauth2/auth
+      # forward_auth natively copies X-Auth-Request-* response headers
+      # to the backend request (unlike handle_response + reverse_proxy
+      # where {rp.header.*} is NOT available in the inner proxy context).
+      forward_auth oauth2-proxy.auth.svc.cluster.local:4180 {
+        uri /oauth2/auth
+        copy_headers X-Auth-Request-User X-Auth-Request-Email X-Auth-Request-Preferred-Username
+      }
 
-        # Auth successful (2xx) — proxy to backend with user identity
-        @auth_ok status 2xx
-        handle_response @auth_ok {
-          reverse_proxy ${backend} {
-            ${proxyHeader}
-            header_up X-Auth-Request-User {rp.header.X-Auth-Request-User}
-            header_up X-Auth-Request-Email {rp.header.X-Auth-Request-Email}
-            header_up X-Auth-Request-Preferred-Username {rp.header.X-Auth-Request-Preferred-Username}
-            # Override XFF/X-Real-IP to Caddy IP (MC does exact string match, not CIDR)
-            header_up X-Forwarded-For 10.1.1.110
-            header_up X-Real-IP 10.1.1.110
-          }
+      # forward_auth returns 401 to client — handle_errors catches it
+      handle_errors 4xx {
+        @is401 {
+          expression {http.error.status_code} == 401
         }
+        redir @is401 https://auth.lan/oauth2/start?rd={scheme}://{host}{uri} 302
+      }
 
-        # Auth failed (401) — redirect to login on auth.lan
-        @unauth status 401
-        handle_response @unauth {
-          redir https://auth.lan/oauth2/start?rd={scheme}://{host}{uri} 302
-        }
+      reverse_proxy ${backend} {
+        ${proxyHeader}
+        # Override XFF/X-Real-IP to Caddy IP (MC does exact string match, not CIDR)
+        header_up X-Forwarded-For 10.1.1.110
+        header_up X-Real-IP 10.1.1.110
       }
     }
   '';
@@ -104,30 +100,23 @@ in
       ${tls}
       encode zstd gzip
 
-      reverse_proxy oauth2-proxy.auth.svc.cluster.local:4180 {
-        method GET
-        rewrite /oauth2/auth
+      forward_auth oauth2-proxy.auth.svc.cluster.local:4180 {
+        uri /oauth2/auth
+        copy_headers X-Auth-Request-User X-Auth-Request-Email X-Auth-Request-Preferred-Username
+      }
 
-        @auth_ok status 2xx
-        handle_response @auth_ok {
-          reverse_proxy https://haven.haven.svc.cluster.local:3000 {
-            ${proxyHeader}
-            header_up X-Auth-Request-User {rp.header.X-Auth-Request-User}
-            header_up X-Auth-Request-Email {rp.header.X-Auth-Request-Email}
-            header_up X-Auth-Request-Preferred-Username {rp.header.X-Auth-Request-Preferred-Username}
-            # Override XFF/X-Real-IP to Caddy IP (MC does exact string match, not CIDR)
-            header_up X-Forwarded-For 10.1.1.110
-            header_up X-Real-IP 10.1.1.110
-            transport http {
-              tls
-              tls_insecure_skip_verify
-            }
-          }
-        }
+      @notAuth status 401
+      handle_response @notAuth {
+        redir https://auth.lan/oauth2/start?rd={scheme}://{host}{uri} 302
+      }
 
-        @unauth status 401
-        handle_response @unauth {
-          redir https://auth.lan/oauth2/start?rd={scheme}://{host}{uri} 302
+      reverse_proxy https://haven.haven.svc.cluster.local:3000 {
+        ${proxyHeader}
+        header_up X-Forwarded-For 10.1.1.110
+        header_up X-Real-IP 10.1.1.110
+        transport http {
+          tls
+          tls_insecure_skip_verify
         }
       }
     }"
