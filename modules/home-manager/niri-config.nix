@@ -213,7 +213,7 @@ in {
         "Mod+O".action = spawn "launch-or-focus" "Obsidian" "uwsm" "app" "--" "obsidian";
         "Mod+T".action = spawn "uwsm" "app" "--" "alacritty" "-e" "btop";
         "Mod+D".action = spawn "uwsm" "app" "--" "alacritty" "-e" "lazydocker";
-        "Mod+G".action = spawn "launch-or-focus" "Discord" "uwsm" "app" "--" "discord";
+        "Mod+G".action = spawn "launch-or-focus" "Discord" "uwsm" "app" "--" "vesktop";
         "Mod+Shift+G".action =
           spawn "launch-or-focus" "Grok" "uwsm" "app" "--" "firefoxpwa" "site" "launch"
           "grok";
@@ -560,7 +560,7 @@ in {
         # Chat/messaging — 50% (compact, chat doesn't need width)
         {
           matches = [
-            {app-id = "discord";}
+            {app-id = "vesktop";}
             {app-id = "caprine";}
             {app-id = "telegram.desktop";}
             {app-id = "org.telegram.desktop";}
