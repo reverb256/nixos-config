@@ -366,9 +366,6 @@
         tls_config:
           insecure_skip_verify: true
 
-    rule_files:
-      - /etc/prometheus/rules/*.yml
-
     alerting:
       alertmanagers:
         - static_configs:
@@ -1414,21 +1411,6 @@ in {
                     mountPath = "/etc/prometheus";
                     readOnly = true;
                   };
-                  rules-api-server = {
-                    mountPath = "/etc/prometheus/rules/api-server-alerts.yml";
-                    subPath = "api-server-alerts.yml";
-                    readOnly = true;
-                  };
-                  rules-kube-apiserver = {
-                    mountPath = "/etc/prometheus/rules/kube-apiserver-rules.yml";
-                    subPath = "kube-apiserver-rules.yml";
-                    readOnly = true;
-                  };
-                  rules-cluster-health = {
-                    mountPath = "/etc/prometheus/rules/cluster-health.yml";
-                    subPath = "cluster-health.yml";
-                    readOnly = true;
-                  };
                   data = {
                     mountPath = "/prometheus";
                   };
@@ -1438,9 +1420,6 @@ in {
             volumes = {
               _namedlist = true;
               config.configMap.name = "prometheus-config";
-              rules-api-server.configMap.name = "prometheus-api-server-rules";
-              rules-kube-apiserver.configMap.name = "prometheus-alert-rules-kube-apiserver";
-              rules-cluster-health.configMap.name = "prometheus-cluster-health-rules";
               data.emptyDir = {}; # Short retention — Mimir handles long-term
             };
           };
@@ -2266,7 +2245,7 @@ in {
     custom-metrics.ConfigMap.prometheus-adapter-config.data."config.yaml" = ''
       resourceRules:
         cpu:
-          container: true
+          containerLabel: container
           containerQuery: |
             sum by (container) (
               rate(container_cpu_usage_seconds_total{container!="", container!="POD"}[5m])
@@ -2280,11 +2259,13 @@ in {
               node:
                 resource: cpu
               namespace:
+              container:
+                resource: cpu
                 resource: cpu
               pod:
                 resource: cpu
         memory:
-          container: true
+          containerLabel: container
           containerQuery: |
             sum by (container) (
               container_memory_working_set_bytes{container!="", container!="POD"}
@@ -2301,6 +2282,8 @@ in {
                 resource: memory
               pod:
                 resource: memory
+              container:
+                resource: memory
         window: 5m
     '';
 
@@ -2314,6 +2297,7 @@ in {
           metadata.labels = managed // {name = "prometheus-adapter";};
           spec = {
             serviceAccountName = "prometheus-adapter";
+            hostNetwork = true;
             containers = {
               _namedlist = true;
               prometheus-adapter = {
