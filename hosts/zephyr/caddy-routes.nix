@@ -38,9 +38,9 @@
         handle_response @auth_ok {
           reverse_proxy ${backend} {
             ${proxyHeader}
-            header_up X-Forwarded-User {rp.header.X-Forwarded-User}
-            header_up X-Forwarded-Email {rp.header.X-Forwarded-Email}
-            header_up X-Forwarded-Preferred-Username {rp.header.X-Forwarded-Preferred-Username}
+            header_up X-Auth-Request-User {rp.header.X-Auth-Request-User}
+            header_up X-Auth-Request-Email {rp.header.X-Auth-Request-Email}
+            header_up X-Auth-Request-Preferred-Username {rp.header.X-Auth-Request-Preferred-Username}
           }
         }
 
@@ -109,9 +109,9 @@ in
         handle_response @auth_ok {
           reverse_proxy https://haven.haven.svc.cluster.local:3000 {
             ${proxyHeader}
-            header_up X-Forwarded-User {rp.header.X-Forwarded-User}
-            header_up X-Forwarded-Email {rp.header.X-Forwarded-Email}
-            header_up X-Forwarded-Preferred-Username {rp.header.X-Forwarded-Preferred-Username}
+            header_up X-Auth-Request-User {rp.header.X-Auth-Request-User}
+            header_up X-Auth-Request-Email {rp.header.X-Auth-Request-Email}
+            header_up X-Auth-Request-Preferred-Username {rp.header.X-Auth-Request-Preferred-Username}
             transport http {
               tls
               tls_insecure_skip_verify
