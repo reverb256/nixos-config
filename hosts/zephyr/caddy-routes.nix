@@ -20,10 +20,9 @@
   '';
 
   # Protected routes — Caddy forward_auth + oauth2-proxy (Casdoor SSO).
-  # forward_auth copies auth response headers (X-Forwarded-User, X-Forwarded-Email,
-  # X-Forwarded-Preferred-Username) to the backend request, enabling downstream apps
-  # to trust upstream identity via MC_PROXY_AUTH_HEADER or similar.
-  # 401 redirects to auth.lan/oauth2/start (same-origin for CSRF cookies).
+  # forward_auth automatically sets X-Forwarded-Host/Proto/Uri on the auth request.
+  # copy_headers copies user identity headers from oauth2-proxy's 2xx response
+  # to the backend request, enabling downstream apps to trust upstream identity.
   mkAuthRoute = hosts: backend: ''
     ${hosts} {
       ${tls}
@@ -32,9 +31,6 @@
       forward_auth oauth2-proxy.auth.svc.cluster.local:4180 {
         uri /oauth2/auth
         copy_headers X-Forwarded-User X-Forwarded-Email X-Forwarded-Preferred-Username
-        upstream X-Forwarded-Host {host}
-        upstream X-Forwarded-Proto {scheme}
-        upstream X-Forwarded-Uri {uri}
       }
 
       reverse_proxy ${backend} {
@@ -94,9 +90,6 @@ in
       forward_auth oauth2-proxy.auth.svc.cluster.local:4180 {
         uri /oauth2/auth
         copy_headers X-Forwarded-User X-Forwarded-Email X-Forwarded-Preferred-Username
-        upstream X-Forwarded-Host {host}
-        upstream X-Forwarded-Proto {scheme}
-        upstream X-Forwarded-Uri {uri}
       }
 
       reverse_proxy https://haven.haven.svc.cluster.local:3000 {
