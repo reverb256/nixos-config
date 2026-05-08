@@ -769,6 +769,192 @@ in {
       };
     };
 
+
+    };
+
+    # ── Zephyr RTX 3090 Burst ── DFlash Speculative Decoding (Qwen3.6-27B) ──
+    # Lucebox DFlash: speculative decoding with DDTree draft verification.
+    # Expected ~2-4x throughput vs autoregressive (69-78 tok/s vs 31 tok/s).
+    # Uses test_dflash binary + OpenAI-compatible server.py from lucebox-hub.
+    # Scaled to 0 by default ── scale up when mining is paused (shares GPU with dense).
+    Deployment.dflash-zephyr-3090 = {
+      metadata.labels =
+        managed
+        // {
+          app = "dflash-zephyr-3090";
+          host = "zephyr";
+          gpu = "rtx3090";
+        };
+      spec = {
+        replicas = 0;
+        revisionHistoryLimit = 1;
+        selector.matchLabels = {
+          app = "dflash-zephyr-3090";
+          host = "zephyr";
+        };
+        strategy.type = "Recreate";
+        template = {
+          metadata = {
+            labels =
+              managed
+              // {
+                app = "dflash-zephyr-3090";
+                host = "zephyr";
+                gpu = "rtx3090";
+              };
+            annotations."nix-csi/discard" = "true";
+          };
+          spec = {
+            nodeName = "zephyr";
+            hostNetwork = true;
+            automountServiceAccountToken = false;
+            priorityClassName = "high-priority-ai";
+            tolerations = zephyrTolerations;
+            containers = {
+              _namedlist = true;
+              dflash-server = {
+                image = scratchImage;
+                imagePullPolicy = "IfNotPresent";
+                command = ["/nix/store/nixpkgs/path/bin/bash"];
+                args = [
+                  "-c"
+                  ''
+                    export LD_LIBRARY_PATH=/run/opengl-driver/lib:/nix/store:/run/current-system/sw/lib
+                    export HOME=/tmp
+                    export USER=j_kro
+                    export TRANSFORMERS_CACHE=/tmp/hf-cache
+                    export HF_HOME=/tmp/hf-cache
+                    export HF_TOKEN=$(cat /run/agenix/huggingface-token 2>/dev/null || echo "")
+                    /nix/store/*coreutils*/bin/mkdir -p /tmp/hf-cache 2>/dev/null || true
+                    exec /home/j_kro/vllm-env/bin/python3 /home/j_kro/lucebox-hub/dflash/scripts/server.py \
+                      --host 0.0.0.0 \
+                      --port 1239 \
+                      --target /models/Qwen3.6-27B-Q4_K_M.gguf \
+                      --draft /models/draft \
+                      --bin /home/j_kro/lucebox-hub/dflash/build/test_dflash \
+                      --budget 22 \
+                      --max-ctx 16384 \
+                      --ctk tq3_0 \
+                      --ctv tq3_0
+                  ''
+                ];
+                env = {
+                  _namedlist = true;
+                  NVIDIA_VISIBLE_DEVICES = {
+                    name = "NVIDIA_VISIBLE_DEVICES";
+                    value = "1";
+                  };
+                  CUDA_VISIBLE_DEVICES = {
+                    name = "CUDA_VISIBLE_DEVICES";
+                    value = "0";
+                  };
+                  LD_LIBRARY_PATH = {
+                    name = "LD_LIBRARY_PATH";
+                    value = "/run/opengl-driver/lib:/nix/store:/run/current-system/sw/lib";
+                  };
+                };
+                ports = [
+                  {
+                    containerPort = 1239;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
+                livenessProbe = {
+                  httpGet = {
+                    path = "/health";
+                    port = 1239;
+                  };
+                  initialDelaySeconds = 180;
+                  periodSeconds = 30;
+                  failureThreshold = 5;
+                };
+                readinessProbe = {
+                  tcpSocket.port = 1239;
+                  initialDelaySeconds = 120;
+                  periodSeconds = 10;
+                  failureThreshold = 10;
+                };
+                resources = {
+                  requests = {
+                    memory = "4Gi";
+                    cpu = "500m";
+                  };
+                  limits = {
+                    memory = "24Gi";
+                    cpu = "4";
+                  };
+                };
+                securityContext.privileged = true;
+                volumeMounts = {
+                  _namedlist = true;
+                  nix = {
+                    mountPath = "/nix";
+                    readOnly = true;
+                  };
+                  nvidia-libs = {
+                    mountPath = "/run/opengl-driver/lib";
+                    readOnly = true;
+                  };
+                  nix-sw = {
+                    mountPath = "/run/current-system/sw";
+                    readOnly = true;
+                  };
+                  home-jkro = {
+                    mountPath = "/home/j_kro";
+                    readOnly = true;
+                  };
+                  models = {
+                    mountPath = "/models";
+                    readOnly = true;
+                  };
+                  etc = {
+                    mountPath = "/etc";
+                    readOnly = true;
+                  };
+                  lib = {
+                    mountPath = "/lib";
+                    readOnly = true;
+                  };
+                  lib64 = {
+                    mountPath = "/lib64";
+                    readOnly = true;
+                  };
+                  tmp = {
+                    mountPath = "/tmp";
+                  };
+                };
+              };
+            };
+            volumes = zephyrVolumes;
+          };
+        };
+      };
+    };
+
+    Service.dflash-zephyr-3090 = {
+      metadata.labels =
+        managed
+        // {
+          app = "dflash-zephyr-3090";
+        };
+      spec = {
+        type = "ClusterIP";
+        ports = [
+          {
+            name = "http";
+            port = 1239;
+            protocol = "TCP";
+            targetPort = 1239;
+          }
+        ];
+        selector = {
+          app = "dflash-zephyr-3090";
+          host = "zephyr";
+        };
+      };
+    };
+
     # ── Sentry AMD RX 5600 XT (Vulkan/RADV, gfx1010) — Qwen3.5-4B ──────
     # Vulkan backend: RADV (Mesa) outperforms ROCm on RDNA1 for token generation.
     # Flash attention required: quantized V cache (q4_0) needs flash_attn since llama.cpp b3880+.
