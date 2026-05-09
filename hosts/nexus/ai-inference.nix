@@ -118,7 +118,7 @@
     description = "Push gateway container image to local registry";
     after = [ "k3s.service" ];
     wantedBy = [ "multi-user.target" ];
-    path = [ pkgs.podman ];
+    path = [ pkgs.bash pkgs.podman pkgs.curl pkgs.coreutils ];
     serviceConfig.Type = "oneshot";
     script = let
       gwImage = "nexus:5000/ai-inference-gateway:2.4.9";

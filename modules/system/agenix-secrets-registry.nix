@@ -36,11 +36,11 @@ in {
       type = types.bool;
       default = false;
       description = "Enable cloud service secrets (Tailscale, Cloudflare)";
+    };
     automation = mkOption {
       type = types.bool;
       default = false;
       description = "Enable automation service secrets (n8n, Activepieces)";
-    };
     };
     selfHosting = mkOption {
       type = types.bool;

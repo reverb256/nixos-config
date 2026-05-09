@@ -69,7 +69,14 @@ in {
     algorithm = "zstd";
     memoryPercent = 25;
     priority = 999;
+
   };
+  # Encrypted swap - replaces unencrypted partition from hardware-configuration.nix
+  # systemd-cryptsetup opens with random key from /dev/urandom (no persistence needed)
+  swapDevices = [
+    { device = "/dev/mapper/cryptswap"; priority = -1; }
+  ];
+  environment.etc."crypttab".text = "cryptswap /dev/disk/by-uuid/b733be92-f327-4613-9530-a5380ed77216 /dev/urandom swap,cipher=aes-xts-plain64,size=512\n";
 
   boot.kernel.sysctl = {
     "net.core.rmem_default" = 262144;
