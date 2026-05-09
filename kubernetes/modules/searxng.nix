@@ -381,7 +381,7 @@ in {
             containers = {
               _namedlist = true;
               valkey = {
-                image = "valkey/valkey:8.1";
+                image = "valkey/valkey:9.0.4";
                 imagePullPolicy = "IfNotPresent";
                 command = [
                   "valkey-server"
