@@ -96,6 +96,11 @@ in {
       MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS = "[\"/etc/nixos\"]";
       MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K = "10";
+      JWT_AUTH_ENABLED = "true";
+      JWT_AUTH_JWKS_URL = "https://auth.lan/.well-known/jwks";
+      JWT_AUTH_ISSUER = "https://auth.lan";
+      JWT_AUTH_AUDIENCE = "3a331eeb195880d68d9a";
+      JWT_AUTH_REFRESH_INTERVAL = "300";
     };
 
     # NOTE: Prometheus + Grafana removed — see kubernetes/modules/monitoring.nix
@@ -580,6 +585,26 @@ in {
                   MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K.valueFrom.configMapKeyRef = {
                     name = "ai-inference-gateway-config";
                     key = "MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K";
+                  };
+                  JWT_AUTH_ENABLED.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "JWT_AUTH_ENABLED";
+                  };
+                  JWT_AUTH_JWKS_URL.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "JWT_AUTH_JWKS_URL";
+                  };
+                  JWT_AUTH_ISSUER.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "JWT_AUTH_ISSUER";
+                  };
+                  JWT_AUTH_AUDIENCE.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "JWT_AUTH_AUDIENCE";
+                  };
+                  JWT_AUTH_REFRESH_INTERVAL.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "JWT_AUTH_REFRESH_INTERVAL";
                   };
                 };
                 ports = [
