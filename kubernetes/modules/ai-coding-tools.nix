@@ -127,6 +127,14 @@ in {
           };
           spec = {
             nodeSelector."kubernetes.io/hostname" = "nexus";
+            initContainers = {
+              _namedlist = true;
+              setup-dirs = {
+                image = "docker.io/reverb256/claude-code:nixos";
+                command = ["/bin/sh" "-c" "mkdir -p /home/j_kro/.claude && chown -R j_kro:users /home/j_kro/.claude"];
+                volumeMounts.home-dir.mountPath = "/home/j_kro";
+              };
+            };
             containers = {
               _namedlist = true;
               claude-code = {
@@ -346,6 +354,14 @@ in {
           };
           spec = {
             nodeSelector."kubernetes.io/hostname" = "nexus";
+            initContainers = {
+              _namedlist = true;
+              setup-dirs = {
+                image = "docker.io/reverb256/opencode:nixos";
+                command = ["/bin/sh" "-c" "mkdir -p /home/j_kro/.opencode && chown -R j_kro:users /home/j_kro/.opencode"];
+                volumeMounts.home-dir.mountPath = "/home/j_kro";
+              };
+            };
             containers = {
               _namedlist = true;
               opencode = {
