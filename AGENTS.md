@@ -295,8 +295,36 @@ Secrets populated by `kubectl-apply-k8s-secrets` from agenix (`monitoring/grafan
 **In-cluster:** kubernetes-mcp (SSE :8080 on nexus) + nixos-cluster-mcp (DaemonSet, SSE :8081 on all nodes)
 **Claude Code:** `nix run /etc/nixos#kubernetes-mcp-server` and `nix run /etc/nixos#nixos-cluster-mcp` (stdio)
 **Hermes:** SSE URL for kubernetes, stdio for others (see `~/.hermes/config.yaml`)
+**OpenCode:** 7 MCP servers via `~/.config/opencode/opencode.json` (`type: "local"` + command array). GitHub uses `--toolsets repos,issues,pull_requests,actions,code_security,notifications`.
 **Registry:** `modules/services/mcp-server-registry.nix` — single source of truth
 **Full plan:** `docs/plans/2026-05-01-mcp-system-plan.md`
+
+### OpenCode MCP Server Verification (2026-05-09)
+
+| Server | Bridge Script | Tools | Status |
+|--------|--------------|-------|--------|
+| github | `/data/agents/mcp-bridges/github-mcp.sh` | 39 (repos, issues, PRs, actions, code_security) | ✅ Working |
+| nixos-cluster | `nix run /etc/nixos#nixos-cluster-mcp` | 15 (cluster_status, node_info, gpu_inventory, etc.) | ✅ Working |
+| kubernetes | `nix run /etc/nixos#kubernetes-mcp-server` | 14 (pods_list, events_list, resources_*) | ✅ Working |
+| searxng | `/data/agents/mcp-bridges/searxng-mcp.sh` | 15 (web_search, search_code, etc.) | ✅ Working |
+| selfhosted-tools | `/data/agents/mcp-bridges/selfhosted-mcp.sh` | 15 (web_reader, read_github_file, search_github_repo, etc.) | ✅ Working |
+| git | `/data/agents/mcp-bridges/git-mcp.sh` | 29 (git_log, git_diff, git_status, etc.) | ✅ Working |
+| casdoor | `/data/agents/mcp-bridges/opencode-casdoor-bridge.py` | 5 (get_applications, etc.) | ⚠️ Auth required |
+
+### Key Tool Names (correct for stdio JSON-RPC calls)
+
+| Server | Common Tool Calls |
+|--------|-----------------|
+| nixos-cluster | `cluster_status`, `node_info`, `gpu_inventory`, `gateway_health`, `pod_status`, `check_models` |
+| kubernetes | `pods_list`, `pods_get`, `pods_log`, `pods_exec`, `pods_run`, `events_list`, `resources_list` |
+| github | `list_repositories`, `search_repositories`, `get_file_contents`, `list_commits`, `list_issues`, `list_pull_requests`, `create_pull_request` |
+| searxng | `web_search`, `search_code`, `search_github`, `search_stackoverflow`, `search_nixos_options` |
+| selfhosted-tools | `web_reader`, `read_github_file`, `search_github_repo`, `get_github_repo_structure`, `get_github_commits` |
+| casdoor | `get_applications`, `get_application`, `add_application`, `update_application`, `delete_application` |
+
+### Casdoor Auth Note
+
+The `opencode-casdoor-bridge.py` uses OAuth2 `client_credentials` grant with scope `openid profile email`. Tool calls require the `mcp-client` app (client_id `3e6db9fe2befb4718ed5`) to have proper MCP scopes configured in Casdoor. Alternatively, `casdoor-mcp-bridge.py` uses password grant with admin credentials for full access.
 
 ## AI Agent Coding Principles (Pocock/Matt Workshop)
 
