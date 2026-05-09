@@ -389,6 +389,7 @@ in {
     mining = true;
     cloud = true;
     kubernetes = true;
+    automation = true;
     initrdRecovery = true;
     selfHosting = true;
   };
