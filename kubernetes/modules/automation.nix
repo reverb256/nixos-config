@@ -67,15 +67,7 @@ in {
     # ══════════════════════════════════════════════════════════════════════
     # POSTGRES — Activepieces database
     # ══════════════════════════════════════════════════════════════════════
-    PersistentVolumeClaim.postgres-activepieces = {
-      spec = {
-        accessModes = ["ReadWriteOnce"];
-        storageClassName = "local-path";
-        resources.requests.storage = "5Gi";
-      };
-    };
-
-    Deployment.postgres-activepieces = {
+    StatefulSet.postgres-activepieces = {
       metadata.labels =
         managed
         // {
@@ -83,9 +75,8 @@ in {
           "app" = "postgres-activepieces";
         };
       spec = {
+        serviceName = "postgres-activepieces";
         replicas = 1;
-        revisionHistoryLimit = 2;
-        strategy.type = "Recreate";
         selector.matchLabels = {"app" = "postgres-activepieces";};
         template = {
           metadata.labels = {
@@ -143,10 +134,18 @@ in {
               volumeMounts._namedlist = true;
               volumeMounts.data.mountPath = "/var/lib/postgresql/data";
             };
-            volumes._namedlist = true;
-            volumes.data.persistentVolumeClaim.claimName = "postgres-activepieces";
           };
         };
+        volumeClaimTemplates = [
+          {
+            metadata.name = "data";
+            spec = {
+              accessModes = ["ReadWriteOnce"];
+              storageClassName = "local-path";
+              resources.requests.storage = "5Gi";
+            };
+          }
+        ];
       };
     };
 
@@ -167,15 +166,7 @@ in {
     # ══════════════════════════════════════════════════════════════════════
     # POSTGRES — n8n database
     # ══════════════════════════════════════════════════════════════════════
-    PersistentVolumeClaim.postgres-n8n = {
-      spec = {
-        accessModes = ["ReadWriteOnce"];
-        storageClassName = "local-path";
-        resources.requests.storage = "5Gi";
-      };
-    };
-
-    Deployment.postgres-n8n = {
+    StatefulSet.postgres-n8n = {
       metadata.labels =
         managed
         // {
@@ -183,9 +174,8 @@ in {
           "app" = "postgres-n8n";
         };
       spec = {
+        serviceName = "postgres-n8n";
         replicas = 1;
-        revisionHistoryLimit = 2;
-        strategy.type = "Recreate";
         selector.matchLabels = {"app" = "postgres-n8n";};
         template = {
           metadata.labels = {
@@ -243,10 +233,18 @@ in {
               volumeMounts._namedlist = true;
               volumeMounts.data.mountPath = "/var/lib/postgresql/data";
             };
-            volumes._namedlist = true;
-            volumes.data.persistentVolumeClaim.claimName = "postgres-n8n";
           };
         };
+        volumeClaimTemplates = [
+          {
+            metadata.name = "data";
+            spec = {
+              accessModes = ["ReadWriteOnce"];
+              storageClassName = "local-path";
+              resources.requests.storage = "5Gi";
+            };
+          }
+        ];
       };
     };
 
@@ -478,11 +476,12 @@ in {
     Service.n8n = {
       metadata.labels = managed;
       spec = {
-        type = "ClusterIP";
+        type = "NodePort";
         selector = {"app" = "n8n";};
         ports._namedlist = true;
         ports.http = {
           port = 5678;
+          nodePort = 32127;
           targetPort = 5678;
           protocol = "TCP";
         };

@@ -493,12 +493,13 @@ in {
     kagent.Service.kagent-controller = {
       metadata.labels = managed // {"app.kubernetes.io/component" = "controller";};
       spec = {
-        type = "ClusterIP";
+        type = "NodePort";
         selector = {"app.kubernetes.io/component" = "controller";};
         ports._namedlist = true;
         ports.controller = {
           port = 8083;
           targetPort = 8083;
+          nodePort = 30794;
           protocol = "TCP";
         };
       };
@@ -629,12 +630,13 @@ in {
     kagent.Service.kagent-ui = {
       metadata.labels = managed // {"app.kubernetes.io/component" = "ui";};
       spec = {
-        type = "ClusterIP";
+        type = "NodePort";
         selector = {"app.kubernetes.io/component" = "ui";};
         ports._namedlist = true;
         ports.http = {
           port = 8080;
           targetPort = 8080;
+          nodePort = 32103;
           protocol = "TCP";
         };
       };

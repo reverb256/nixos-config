@@ -208,8 +208,14 @@ in {
         cloudflare-api-token = {
           file = "${inputs.self}/secrets/cloudflare-api-token.age";
           mode = "440";
-          owner = "root";
-          group = "root";
+          owner = "j_kro";
+          group = "users";
+        };
+        cloudflare-global-api-key = {
+          file = "${inputs.self}/secrets/cloudflare-global-api-key.age";
+          mode = "440";
+          owner = "j_kro";
+          group = "users";
         };
       })
       (lib.mkIf config.services.agenix-secrets-registry.ci {

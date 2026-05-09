@@ -516,7 +516,7 @@ in {
 
     # ── Vaultwarden (Deployment) ──────────────────────────────────
     # Replaces: vaultwarden.service (podman) on zephyr
-    infra.Deployment.vaultwarden = {
+    vaultwarden.Deployment.vaultwarden = {
       metadata.labels =
         managed
         // {
@@ -631,7 +631,7 @@ in {
       };
     };
 
-    infra.Service.vaultwarden = {
+    vaultwarden.Service.vaultwarden = {
       metadata.labels =
         managed
         // {
@@ -659,7 +659,7 @@ in {
       };
     };
 
-    infra.PersistentVolume.vaultwarden-data-nexus-pv = {
+    vaultwarden.PersistentVolume.vaultwarden-data-nexus-pv = {
       spec = {
         capacity.storage = "1Gi";
         accessModes = ["ReadWriteOnce"];
@@ -680,7 +680,7 @@ in {
       };
     };
 
-    infra.PersistentVolumeClaim.vaultwarden-data = {
+    vaultwarden.PersistentVolumeClaim.vaultwarden-data = {
       spec = {
         accessModes = ["ReadWriteOnce"];
         storageClassName = "fast-local-ssd";
