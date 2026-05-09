@@ -47,9 +47,9 @@ in {
     Secret.activepieces-secrets = {
       type = "Opaque";
       stringData = {
-        ap-api-key = "changeme-activepieces-api-key";
-        ap-encryption-key = "changeme-activepieces-encryption-key";
-        ap-jwt-secret = "changeme-activepieces-jwt-secret";
+        # Managed by agenix: apply_secret automation activepieces-secrets ap-api-key
+        # Managed by agenix: apply_secret automation activepieces-secrets ap-encryption-key
+        # Managed by agenix: apply_secret automation activepieces-secrets ap-jwt-secret
         postgres-password = "activepieces";
         redis-password = "activepieces";
       };
@@ -58,9 +58,17 @@ in {
     Secret.n8n-secrets = {
       type = "Opaque";
       stringData = {
-        admin-password = "changeme-n8n-admin";
-        encryption-key = "changeme-n8n-encryption-key";
+        # Managed by agenix: apply_secret automation n8n-secrets admin-password
+        # Managed by agenix: apply_secret automation n8n-secrets encryption-key
         postgres-password = "n8n";
+      };
+    };
+
+    Secret.hermes-automation-keys = {
+      type = "Opaque";
+      stringData = {
+        # Managed by agenix: apply_secret automation hermes-automation-keys n8n-api-key
+        # Managed by agenix: apply_secret automation hermes-automation-keys activepieces-api-key
       };
     };
 
