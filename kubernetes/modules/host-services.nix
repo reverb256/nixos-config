@@ -546,7 +546,7 @@ in {
             containers = {
               _namedlist = true;
               vaultwarden = {
-                image = "docker.io/vaultwarden/server:1.35.4";
+                image = "docker.io/vaultwarden/server:1.36.0";
                 imagePullPolicy = "IfNotPresent";
                 env = {
                   _namedlist = true;
