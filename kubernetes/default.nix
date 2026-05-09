@@ -60,6 +60,7 @@ in {
     ./modules/searxng.nix
     ./modules/haven.nix
     ./modules/casdoor.nix
+    ./modules/cert-manager.nix
     ./modules/oauth2-proxy.nix
     ./modules/monitoring.nix
     ./modules/monitoring-dashboards.nix
@@ -104,6 +105,7 @@ in {
     ./modules/searxng.nix
     ./modules/haven.nix
     ./modules/casdoor.nix
+    ./modules/cert-manager.nix
     ./modules/oauth2-proxy.nix
     ./modules/vane.nix
     ./modules/ai-coding-tools.nix

@@ -323,6 +323,7 @@
                     qdrant = lib.mkOption {
                       type = lib.types.submodule (svcOpts {
                         namespace = "ai-inference";
+                        nodePort = 30632;
                         port = 6333;
                       });
                       default = {};
@@ -345,20 +346,13 @@
                       });
                       default = {};
                       description = "Prometheus metrics";
-                    };
 
-                    grafana = lib.mkOption {
-                      type = lib.types.submodule (svcOpts {
-                        namespace = "ai-inference";
-                        port = 3000;
-                      });
-                      default = {};
-                      description = "Grafana dashboards";
                     };
 
                     searxng = lib.mkOption {
                       type = lib.types.submodule (svcOpts {
                         namespace = "search";
+                        nodePort = 32081;
                         port = 8080;
                       });
                       default = {};
@@ -378,6 +372,7 @@
                     knowledge-fabric = lib.mkOption {
                       type = lib.types.submodule (svcOpts {
                         namespace = "ai-inference";
+                        nodePort = 31180;
                         port = 3000;
                       });
                       default = {};
@@ -396,6 +391,7 @@
                     n8n = lib.mkOption {
                       type = lib.types.submodule (svcOpts {
                         namespace = "automation";
+                        nodePort = 32127;
                         port = 5678;
                       });
                       default = {};
@@ -415,21 +411,70 @@
                       type = lib.types.submodule (svcOpts {
                         namespace = "auth";
                         port = 8000;
-                        nodePort = 32106;
+                        nodePort = 32556;
                       });
                       default = {};
                       description = "Casdoor SSO / OIDC provider";
+                    };
+                    oauth2-proxy = lib.mkOption {
+                      type = lib.types.submodule (svcOpts {
+                        namespace = "auth";
+                        port = 4180;
+                        nodePort = 30890;
+                      });
+                      default = {};
+                      description = "OAuth2 proxy (auth middleware)";
                     };
 
                     haven = lib.mkOption {
                       type = lib.types.submodule (svcOpts {
                         namespace = "haven";
+                        nodePort = 32100;
                         port = 3000;
                       });
                       default = {};
                       description = "Haven dashboard";
                     };
 
+                    mission-control = lib.mkOption {
+                      type = lib.types.submodule (svcOpts {
+                        namespace = "orchestration";
+                        port = 3000;
+                        nodePort = 32101;
+                      });
+                      default = {};
+                      description = "Mission Control (builderz-labs)";
+                    };
+
+                    kagent-controller = lib.mkOption {
+                      type = lib.types.submodule (svcOpts {
+                        namespace = "kagent";
+                        port = 8083;
+                        nodePort = 30794;
+                      });
+                      default = {};
+                      description = "Kagent controller API";
+                    };
+
+                    kagent-ui = lib.mkOption {
+                      type = lib.types.submodule (svcOpts {
+                        namespace = "kagent";
+                        port = 8080;
+                        nodePort = 32103;
+                      });
+                      default = {};
+                      description = "Kagent UI dashboard";
+                    };
+
+                    grafana = lib.mkOption {
+                      type = lib.types.submodule (svcOpts {
+                        namespace = "monitoring";
+                        port = 3000;
+                        nodePort = 32102;
+                      });
+                      default = {};
+                      description = "Grafana dashboards";
+                    };
                     llama-zephyr = lib.mkOption {
                       type = lib.types.submodule (svcOpts {
                         namespace = "ai-inference";

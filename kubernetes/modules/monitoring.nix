@@ -1570,6 +1570,47 @@ in {
     # AlertManager logs alerts to stdout → Alloy → Loki.
     # No separate webhook deployment needed until real notification (Slack/Discord) is configured.
 
+
+    # ── Alert Webhook (placeholder) ─────────────────────────────────
+    # Receives alertmanager webhooks. Currently a placeholder (sleep infinity)
+    # on nexus. Will be replaced with real notification handler.
+    monitoring.Deployment.alert-webhook = {
+      metadata.labels = managed // {app = "alert-webhook";};
+      spec = {
+        replicas = 1;
+        revisionHistoryLimit = 2;
+        selector.matchLabels.app = "alert-webhook";
+        strategy.type = "Recreate";
+        template = {
+          metadata.labels.app = "alert-webhook";
+          spec = {
+            nodeName = "nexus";
+            automountServiceAccountToken = false;
+            containers = [
+              {
+                name = "webhook";
+                image = "docker.io/library/bash:5.2";
+                command = ["sleep" "infinity"];
+                ports = [{name = "http"; containerPort = 9093; protocol = "TCP";}];
+                resources = {
+                  requests = {cpu = "10m"; memory = "16Mi";};
+                  limits = {cpu = "100m"; memory = "64Mi";};
+                };
+              }
+            ];
+          };
+        };
+      };
+    };
+
+    monitoring.Service.alert-webhook = {
+      metadata.labels = managed // {app = "alert-webhook";};
+      spec = {
+        type = "ClusterIP";
+        ports = [{name = "http"; port = 9093; targetPort = 9093; protocol = "TCP";}];
+        selector.app = "alert-webhook";
+      };
+    };
     # ── Rest is unchanged, starting from kube-state-metrics
     monitoring.ServiceAccount.kube-state-metrics-sa = {};
     none.ClusterRole.kube-state-metrics-role = {
@@ -2257,13 +2298,11 @@ in {
           resources:
             overrides:
               node:
-                resource: cpu
+                resource: node
               namespace:
-              container:
-                resource: cpu
-                resource: cpu
+                resource: namespace
               pod:
-                resource: cpu
+                resource: pod
         memory:
           containerLabel: container
           containerQuery: |
@@ -2277,13 +2316,11 @@ in {
           resources:
             overrides:
               node:
-                resource: memory
+                resource: node
               namespace:
-                resource: memory
+                resource: namespace
               pod:
-                resource: memory
-              container:
-                resource: memory
+                resource: pod
         window: 5m
     '';
 

@@ -178,6 +178,91 @@ in {
           };
         };
       };
+
+      # ── Toolhive Operator ────────────────────────────────────────
+      # Manages MCP server runner pods via CRDs.
+      # CRDs + RBAC: kubernetes/static-manifests/toolhive-crds.yaml + toolhive-rbac.yaml
+      Deployment.toolhive-operator = {
+        metadata.labels =
+          managed
+          // {
+            app = "toolhive-operator";
+            "app.kubernetes.io/name" = "toolhive-operator";
+            "app.kubernetes.io/component" = "operator";
+          };
+        spec = {
+          replicas = 1;
+          revisionHistoryLimit = 2;
+          selector.matchLabels.app = "toolhive-operator";
+          strategy.type = "Recreate";
+          template = {
+            metadata.labels.app = "toolhive-operator";
+            spec = {
+              serviceAccountName = "toolhive-operator";
+              nodeSelector."kubernetes.io/hostname" = "nexus";
+              containers = [{
+                name = "toolhive-operator";
+                image = "ghcr.io/stacklok/toolhive/operator:v0.27.0";
+                args = [ "--leader-elect" ];
+                env = {
+                  POD_NAMESPACE.valueFrom.fieldRef.fieldPath = "metadata.namespace";
+                  GOMEMLIMIT = "110MiB";
+                  GOGC = "75";
+                  UNSTRUCTURED_LOGS = "false";
+                  TOOLHIVE_USE_CONFIGMAP = "true";
+                  ENABLE_EXPERIMENTAL_FEATURES = "false";
+                  ENABLE_SERVER = "true";
+                  ENABLE_REGISTRY = "true";
+                  ENABLE_VMCP = "false";
+                  WATCH_NAMESPACE = "mcp";
+                  TOOLHIVE_RUNNER_IMAGE = "ghcr.io/stacklok/toolhive/proxyrunner:v0.27.0";
+                  VMCP_IMAGE = "ghcr.io/stacklok/toolhive/vmcp:v0.27.0";
+                  TOOLHIVE_PROXY_HOST = "0.0.0.0";
+                  TOOLHIVE_REGISTRY_API_IMAGE = "ghcr.io/stacklok/thv-registry-api:v1.3.0";
+                };
+                ports = [
+                  { name = "metrics"; containerPort = 8080; protocol = "TCP"; }
+                  { name = "health"; containerPort = 8081; protocol = "TCP"; }
+                ];
+                resources = {
+                  requests = { cpu = "50m"; memory = "64Mi"; };
+                  limits = { cpu = "200m"; memory = "128Mi"; };
+                };
+              }];
+            };
+          };
+        };
+      };
+
+      Service.toolhive-operator = {
+        metadata.labels =
+          managed
+          // {
+            app = "toolhive-operator";
+            "app.kubernetes.io/name" = "toolhive-operator";
+          };
+        spec = {
+          selector.app = "toolhive-operator";
+          ports = {
+            _namedlist = true;
+            metrics = {
+              port = 8080;
+              targetPort = 8080;
+            };
+            health = {
+              port = 8081;
+              targetPort = 8081;
+            };
+          };
+        };
+      };
+
+      ServiceAccount.toolhive-operator = {
+        metadata.labels = managed // {
+          app = "toolhive-operator";
+          "app.kubernetes.io/name" = "toolhive-operator";
+        };
+      };
     };
   };
 }
