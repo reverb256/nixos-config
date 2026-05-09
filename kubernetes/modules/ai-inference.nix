@@ -128,7 +128,7 @@ in {
             containers = {
               _namedlist = true;
               open-webui = {
-                image = "ghcr.io/open-webui/open-webui:main";
+                image = "ghcr.io/open-webui/open-webui:v0.9.2";
                 imagePullPolicy = "IfNotPresent";
                 env = {
                   _namedlist = true;
@@ -747,7 +747,7 @@ in {
             containers = [
               {
                 name = "qdrant";
-                image = "docker.io/qdrant/qdrant:v1.13.4";
+                image = "docker.io/qdrant/qdrant:v1.17.1";
                 ports = [
                   {
                     containerPort = 6333;
