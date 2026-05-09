@@ -36,6 +36,11 @@ in {
       type = types.bool;
       default = false;
       description = "Enable cloud service secrets (Tailscale, Cloudflare)";
+    automation = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Enable automation service secrets (n8n, Activepieces)";
+    };
     };
     selfHosting = mkOption {
       type = types.bool;
@@ -329,6 +334,44 @@ in {
         };
         central-auth-cookie-secret = {
           file = "${inputs.self}/secrets/central-auth-cookie-secret.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
+      })
+      (lib.mkIf config.services.agenix-secrets-registry.automation {
+        n8n-admin-password = {
+          file = "${inputs.self}/secrets/n8n-admin-password.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
+        n8n-encryption-key = {
+          file = "${inputs.self}/secrets/n8n-encryption-key.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
+        n8n-api-key = {
+          file = "${inputs.self}/secrets/n8n-api-key.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
+        activepieces-api-key = {
+          file = "${inputs.self}/secrets/activepieces-api-key.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
+        activepieces-encryption-key = {
+          file = "${inputs.self}/secrets/activepieces-encryption-key.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
+        activepieces-jwt-secret = {
+          file = "${inputs.self}/secrets/activepieces-jwt-secret.age";
           mode = "440";
           owner = "root";
           group = "root";
