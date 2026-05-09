@@ -24,6 +24,22 @@ in {
       stringData."secret-key" = "";
     };
 
+    # ── ConfigMap: nsswitch (fix musl mdns timeout) ────────────────
+    search.ConfigMap.nsswitch-conf = {
+      metadata.labels = labels;
+      data."nsswitch.conf" = ''
+        passwd: files
+        group: files
+        shadow: files
+        hosts: files dns
+        networks: files
+        protocols: files
+        services: files
+        ethers: files
+        rpc: files
+      '';
+    };
+
     # ── ConfigMap: SearXNG settings (single source of truth) ──────
     search.ConfigMap.searxng-settings = {
       metadata.labels = labels;
@@ -303,6 +319,11 @@ in {
                   tmp = {
                     mountPath = "/tmp";
                   };
+                  nsswitch = {
+                    mountPath = "/etc/nsswitch.conf";
+                    subPath = "nsswitch.conf";
+                    readOnly = true;
+                  };
                 };
               };
             };
@@ -318,6 +339,7 @@ in {
                   }
                 ];
               };
+              nsswitch.configMap.name = "nsswitch-conf";
               data.emptyDir = {};
               tmp.emptyDir = {};
             };
