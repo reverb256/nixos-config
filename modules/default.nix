@@ -134,5 +134,6 @@
     ./services/k8s-nix-deploy.nix
     ./services/k8s-secret-bootstrap.nix
     ./services/brain-research.nix
+    ./services/secret-hygiene.nix
   ];
 }
