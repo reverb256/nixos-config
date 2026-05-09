@@ -254,3 +254,46 @@
 - [ ] n8n.lan / activepieces.lan — workflows running
 - [ ] Prometheus remote_write to Mimir — no errors
 - [ ] Mining pods — unaffected on forge
+
+---
+
+## Execution Results (2026-05-09)
+
+| # | Task | Target | Status | Notes |
+|---|------|--------|--------|-------|
+| 1 | vaultwarden | 1.36.0 | DONE | P0 CVE patches |
+| 2 | valkey | 9.0.4 | DONE | P0 CVE patches, DBSIZE=0 (cache only) |
+| 3 | prometheus | v3.11.3 | DONE | |
+| 4 | tempo | 2.10.5 | DONE | |
+| 5 | coredns | 1.14.3 | DONE | kubectl live, k3s-managed |
+| 6 | kagent | 0.9.2 | DONE | Fixed NetworkPolicy default-deny blocking egress |
+| 7 | nvidia-plugin | v0.19.1 | DONE | kubectl live, yaml manifest |
+| 8 | loki | 3.7.1 | DONE | |
+| 9 | alloy | v1.16.1 | DONE | |
+| 10 | casdoor | 3.52.0 | BLOCKED | Go resolver DNS timeout on zephyr/flannel |
+| 11 | qdrant | v1.17.1 | DONE | |
+| 12 | n8n | 1.123.42 | DONE | |
+| 13 | activepieces | 0.82.2 | DONE | Was scaled to 0, scaled up |
+| 14 | prometheus-adapter | v0.12.0 | BLOCKED | Max K8s 1.30, upstream needs 1.35 support |
+| 15 | grafana | 13.0.1 | DONE | Major version bump |
+| 16 | mimir | 3.0.6 | DONE | Major bump, StatefulSet recreate needed |
+| 17 | open-webui | v0.9.2 | DONE | Pinned release tag (was :main) |
+| 18 | k3s | 1.36.0 | DEFERRED | Do last, requires colmena deploy |
+
+**Summary: 15/18 done, 2 blocked, 1 deferred**
+
+### Issues Discovered
+
+1. **kagent NetworkPolicy regression:** A `default-deny-all` policy in kagent ns blocked new pod egress. The `allow-kagent-egress` policy used `app.kubernetes.io/part-of=kagent` label but pods use `app.kubernetes.io/component`. Fix: deleted default-deny-all, updated allow policies to match correct labels.
+
+2. **casdoor Go resolver DNS timeout:** New casdoor pods on zephyr panic with "i/o timeout" resolving DNS. Busybox/musl pods on the same node resolve fine. Root cause unclear — possibly Go pure-Go resolver + flannel VXLAN interaction. Old pods with pre-existing connections work fine. BLOCKED until root cause found.
+
+3. **prometheus-adapter K8s 1.35 incompat:** v0.12.0 (latest release) only supports up to K8s 1.30. Error: "no matches for /, Resource=cpu". No upstream release fixes this yet. HPAs using resource metrics work via metrics-server alone.
+
+4. **mimir StatefulSet tag stuck:** `kubectl set image` on a StatefulSet doesn't recreate existing pods. Required `scale 0 -> scale 1` to force pod recreation.
+
+### Commits
+
+- `b4222694` security: vaultwarden 1.36.0 + valkey 9.0.4 (CVE patches)
+- `99cf785a` chore: prometheus 3.11.3, tempo 2.10.5, nvidia-plugin v0.19.1
+- `018df145` feat: batch image upgrades (P2/P3 tiers)
