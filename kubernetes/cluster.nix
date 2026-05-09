@@ -14,6 +14,7 @@
   };
 
   kubernetes = {
+    gatewayUrl = "http://10.1.1.110:8080/v1";  # zephyr NodePort — used by host agents (Pi/OmP)
     vip = "10.1.1.100";
     apiPort = 6443;
     clusterDnsIP = "10.0.0.10";
