@@ -179,13 +179,16 @@ in {
         ++ lib.optional (config.hardware.gpu-compute.rocm.enable or false) "--node-label=gpu=amd"
         ++ lib.optional (cfg.nodeIP != "") "--node-external-ip=${cfg.nodeIP}"
         ++ [
+          "--flannel-iface=eth0"
           "--kubelet-arg=authentication-token-webhook=true"
           "--kubelet-arg=authorization-mode=Webhook"
         ];
-      # --flannel-external-ip removed in k3s 1.34+ (upstream PR)
-      # Flannel now auto-detects external IP from --node-external-ip
+        # --flannel-iface=eth0: explicitly bind flannel VXLAN to eth0 so it uses
+        # the real node IP (10.1.1.x), not the VIP (10.1.1.100) added by keepalived.
+        # Without this, k3s restarts while keepalived is running cause flannel to
+        # bind to the VIP, breaking all cross-node pod networking for zephyr.
 
-      containerdConfigTemplate = mkIf cfg.nvidia.enable ''
+        containerdConfigTemplate = mkIf cfg.nvidia.enable ''
         {{ template "base" . }}
         [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia]
           runtime_type = "io.containerd.runc.v2"
@@ -333,7 +336,7 @@ in {
           }
         ];
         allowedUDPPorts = mkOptionDefault [
-          4789
+          8472  # k3s flannel VXLAN (NOT 4789)
         ];
       }
     ];
@@ -377,11 +380,23 @@ in {
 
     systemd.services.k3s = {
       environment.CONTAINERD_NRI_DISABLED = "1";
-      # Start before keepalived so flannel detects the real IP, not the VIP
+      # Belt-and-suspenders: start before keepalived at boot (primary fix: --flannel-iface)
       before = lib.mkIf config.services.keepalived.enable ["keepalived.service"];
       # nfs-utils needed for kubelet to mount NFS PVs (mount.nfs binary)
       path = with pkgs; [nfs-utils];
     };
+
+    # Delete stale flannel.1 interface so k3s creates it fresh with --flannel-iface=eth0.
+    # Without this, k3s reuses the old interface bound to the VIP (10.1.1.100) instead of
+    # creating a new one bound to the real eth0 IP (10.1.1.110). This breaks cross-node
+    # VXLAN because remote nodes can't route back to the VIP.
+    system.activationScripts.k3s-flannel-clean = ''
+      if ip link show flannel.1 &>/dev/null; then
+        echo "[k3s-flannel-clean] Deleting stale flannel.1 (bound to old IP)..."
+        ip link del flannel.1 2>/dev/null || true
+        echo "[k3s-flannel-clean] flannel.1 deleted. k3s will create it with --flannel-iface=eth0."
+      fi
+    '';
 
     system.activationScripts.k3s-dirs = ''
       mkdir -p /var/lib/rancher/k3s/agent/etc/containerd
