@@ -226,7 +226,7 @@ in {
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
-        selector.matchLabels = labels;
+        selector.matchLabels.app = "searxng";
         strategy = {
           type = "Recreate";
           rollingUpdate = null;
@@ -352,12 +352,13 @@ in {
     search.Service.searxng = {
       metadata.labels = labels;
       spec = {
-        type = "ClusterIP";
+        type = "NodePort";
         selector.app = "searxng";
         ports = [
           {
             name = "http";
             port = 8080;
+            nodePort = 32081;
             targetPort = 8080;
             protocol = "TCP";
           }
@@ -375,11 +376,10 @@ in {
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
-        selector.matchLabels =
-          labels
-          // {
-            component = "cache";
-          };
+        selector.matchLabels = {
+          app = "searxng";
+          component = "cache";
+        };
         strategy = {
           type = "Recreate";
           rollingUpdate = null;
@@ -480,7 +480,7 @@ in {
           component = "cache";
         };
       spec = {
-        type = "ClusterIP";
+        type = "NodePort";
         selector.app = "valkey";
         ports = [
           {

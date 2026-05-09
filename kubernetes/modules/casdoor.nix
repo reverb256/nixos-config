@@ -276,7 +276,7 @@ in {
         ports.http = {
           port = 8000;
           targetPort = 8000;
-          nodePort = 32106;
+          nodePort = 32556;
           protocol = "TCP";
         };
       };

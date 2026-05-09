@@ -132,11 +132,12 @@ in {
           "app.kubernetes.io/component" = "auth-proxy";
         };
       spec = {
-        type = "ClusterIP";
+        type = "NodePort";
         selector.app = "oauth2-proxy";
         ports._namedlist = true;
         ports.http = {
           port = 4180;
+          nodePort = 30890;
           targetPort = 4180;
           protocol = "TCP";
         };

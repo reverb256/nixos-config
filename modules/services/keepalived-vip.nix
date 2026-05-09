@@ -39,6 +39,12 @@ in {
       default = false;
       description = "Enable kube-apiserver health check (reduces priority when unhealthy)";
     };
+
+    noPreempt = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Prevent BACKUP from preempting MASTER even with higher priority";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -54,6 +60,7 @@ in {
         inherit (cfg) interface;
         virtualRouterId = cfg.vrid;
         inherit (cfg) priority;
+        noPreempt = cfg.noPreempt;
 
         virtualIps = [
           {
@@ -78,6 +85,11 @@ in {
       };
     };
 
-    networking.firewall.allowedUDPPorts = lib.mkOptionDefault [112];
+    # VRRP uses IP protocol 112 (not UDP port 112). The NixOS firewall
+    # allowedUDPPorts option only handles UDP, so we need an explicit
+    # nft rule for the VRRP ip protocol.
+    networking.firewall.extraInputRules = ''
+      ip protocol vrrp accept
+    '';
   };
 }
