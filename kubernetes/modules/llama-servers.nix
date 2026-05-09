@@ -60,7 +60,7 @@ in {
   config.kubernetes.objects.ai-inference = {
     # ── Zephyr RTX 3090 (GPU 1) — Qwen3.6-35B-A3B MoE ──────────────────────
     #   MoE 35B (15B active) with A3B + IQ3_S quantization.
-    #   Target: /home/j_kro/.lmstudio/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf
+    #   Target: /home/j_kro/.lmstudio/models/Qwen3.6-35B-A3B-UD-IQ4_XS.gguf
     Deployment.llama-server-zephyr = {
       metadata.labels =
         managed
@@ -102,7 +102,7 @@ in {
                 command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
                 args = [
                   "--model"
-                  "/home/j_kro/.lmstudio/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf"
+                  "/home/j_kro/.lmstudio/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-IQ4_XS.gguf"
                   "--host"
                   "0.0.0.0"
                   "--port"
@@ -484,7 +484,7 @@ in {
                 command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
                 args = [
                   "--model"
-                  "/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf"
+                  "/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-IQ4_XS.gguf"
                   "--host"
                   "0.0.0.0"
                   "--port"
@@ -1329,7 +1329,7 @@ in {
                 command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
                 args = [
                   "--model"
-                  "/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf"
+                  "/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-IQ4_XS.gguf"
                   "--host"
                   "0.0.0.0"
                   "--port"
