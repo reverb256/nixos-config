@@ -11,8 +11,8 @@
   # activepieces 0.37.2 → 0.82.1 (2026-04-24)
   # n8n 1.97.1 → 2.19.2 (2026-05-01), v2 has built-in TurboQuant
   # Both workloads scaled to 0. Verify env vars on scale-up.
-  activepiecesImage = "activepieces/activepieces:0.37.2";
-  n8nImage = "n8nio/n8n:1.97.1";
+  activepiecesImage = "activepieces/activepieces:0.82.2";
+  n8nImage = "n8nio/n8n:1.123.42";
   postgresImage = "docker.io/library/postgres:15-alpine";
   redisImage = "docker.io/library/redis:7-alpine";
 

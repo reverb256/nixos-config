@@ -6,11 +6,11 @@
   ...
 }: let
   # Pin versions for supply chain security
-  lokiImage = "docker.io/grafana/loki:3.6.10";
-  mimirImage = "docker.io/grafana/mimir:2.17.9";
+  lokiImage = "docker.io/grafana/loki:3.7.1";
+  mimirImage = "docker.io/grafana/mimir:3.0.6";
   tempoImage = "docker.io/grafana/tempo:2.10.5";
-  grafanaImage = "docker.io/grafana/grafana:12.4.3";
-  alloyImage = "docker.io/grafana/alloy:v1.15.1";
+  grafanaImage = "docker.io/grafana/grafana:13.0.1";
+  alloyImage = "docker.io/grafana/alloy:v1.16.1";
   prometheusImage = "docker.io/prom/prometheus:v3.11.3";
 
   storageClass = "slow-hdd";
