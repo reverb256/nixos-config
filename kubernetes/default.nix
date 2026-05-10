@@ -98,6 +98,10 @@ in {
     ./modules/gpu-miners.nix
     ./modules/profit-switcher.nix
   ];
+  
+  frostbite = mkManifest "frostbite" [
+    ./modules/frostbite-gazette.nix
+  ];
 
   # Small modules combined
   small = mkManifest "small" [
