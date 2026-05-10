@@ -311,6 +311,21 @@ in {
               },
           },
           {
+              "name": "search_datasets",
+              "description": "Search pre-indexed Canadian government datasets across 18 sources. Full-text + trigram matching.",
+              "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                      "query": {"type": "string", "description": "Search query (title, description, tags)."},
+                      "jurisdiction": {"type": "string", "description": "Filter: federal, ontario, bc, alberta, quebec, manitoba, novascotia, saskatchewan, pei, newfoundland-labrador, new-brunswick, yukon, northwest-territories, municipal, multi-jurisdiction."},
+                      "source_id": {"type": "string", "description": "Filter by source ID (statcan-wds, ontario-ckan, bc-ckan, etc)."},
+                      "category": {"type": "string", "description": "Filter by category."},
+                      "limit": {"type": "integer", "description": "Max results (default 20)."},
+                  },
+                  "required": ["query"],
+              },
+          },
+{
               "name": "get_citation",
               "description": "Get citation hash information for an article from the database.",
               "inputSchema": {
