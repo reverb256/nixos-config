@@ -117,7 +117,7 @@ in {
             metadata.name = "data";
             spec = {
               accessModes = ["ReadWriteOnce"];
-              storageClassName = "local-path";
+              storageClassName = "local-path-immediate";
               resources.requests.storage = "5Gi";
             };
           }
