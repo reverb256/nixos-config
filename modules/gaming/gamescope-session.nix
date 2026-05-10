@@ -1,12 +1,42 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 with lib; let
   cfg = config.services.gaming.gamescopeSession;
   gamingCfg = config.services.gaming;
   gamescopeCfg = config.programs.gamescope;
+
+  envVars =
+    gamescopeCfg.env
+    // optionalAttrs (cfg.vkDeviceFilter != null) {
+      VK_LOADER_DEVICE_ID_FILTER = cfg.vkDeviceFilter;
+    };
+
+  steamArgs =
+    ["-tenfoot" "-pipewire-dmabuf"]
+    ++ optionals cfg.steamDeckMode ["-gamepadui" "-steamdeck"]
+    ++ cfg.extraSteamArgs;
+
+  steam-gamescope = pkgs.writeShellScriptBin "steam-gamescope" ''
+    ${builtins.concatStringsSep "\n" (builtins.mapAttrs (n: v: "export ${n}=${v}") envVars)}
+    gamescope --steam ${toString gamescopeCfg.args} -- steam ${toString steamArgs}
+  '';
+
+  # Session desktop file — self-contained derivation
+  gamescopeSessionPkg = pkgs.runCommand "gamescope-session" {} ''
+    mkdir -p $out/share/wayland-sessions
+    cat > $out/share/wayland-sessions/steam.desktop << EOF
+    [Desktop Entry]
+    Name=Steam (Gamescope)
+    Comment=Steam Big Picture in Gamescope — Steam Deck-like experience
+    Exec=${steam-gamescope}/bin/steam-gamescope
+    Type=Application
+    DesktopNames=Gamescope
+    EOF
+  '';
 in {
   options.services.gaming.gamescopeSession = {
     enable = mkEnableOption "Gamescope Session — Steam Big Picture as an SDDM session (Steam Deck-like experience)";
@@ -43,23 +73,13 @@ in {
       }
     ];
 
-    programs.steam.gamescopeSession = {
-      enable = true;
+    # Add wrapper script and session file to system packages
+    environment.systemPackages = [
+      steam-gamescope
+      gamescopeSessionPkg
+    ];
 
-      # Inherit args from programs.gamescope (HDR, NVIDIA device, --backend sdl, etc.)
-      args = gamescopeCfg.args;
-
-      # Inherit env from programs.gamescope + dual-GPU Vulkan device filter
-      env =
-        gamescopeCfg.env
-        // optionalAttrs (cfg.vkDeviceFilter != null) {
-          VK_LOADER_DEVICE_ID_FILTER = cfg.vkDeviceFilter;
-        };
-
-      steamArgs =
-        ["-tenfoot" "-pipewire-dmabuf"]
-        ++ optionals cfg.steamDeckMode ["-gamepadui" "-steamdeck"]
-        ++ cfg.extraSteamArgs;
-    };
+    # Ensure wayland-sessions directory is linked from the system environment
+    environment.pathsToLink = [ "/share/wayland-sessions" ];
   };
 }
