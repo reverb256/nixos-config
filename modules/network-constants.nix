@@ -398,14 +398,6 @@
                       description = "n8n workflow automation";
                     };
 
-                    activepieces = lib.mkOption {
-                      type = lib.types.submodule (svcOpts {
-                        namespace = "automation";
-                        port = 80;
-                      });
-                      default = {};
-                      description = "ActivePieces automation";
-                    };
 
                     casdoor = lib.mkOption {
                       type = lib.types.submodule (svcOpts {

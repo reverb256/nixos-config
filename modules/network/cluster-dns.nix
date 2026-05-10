@@ -159,7 +159,6 @@ in {
         "api.hermes.lan. IN A ${vip}"
         "n8n.lan. IN A ${vip}"
         "searxng.lan. IN A ${vip}"
-        "activepieces.lan. IN A ${vip}"
         "mission-control.lan. IN A ${vip}"
         "privacy-filter.lan. IN A ${vip}"
         "grafana.lan. IN A ${vip}"
@@ -247,7 +246,6 @@ in {
             search = vip;
             searxng = vip;
             n8n = vip;
-            activepieces = vip;
             openwebui = vip;
             haven = vip;
             grafana = vip;

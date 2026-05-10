@@ -4,17 +4,9 @@
   ...
 }: let
   # ── Version pinning ──────────────────────────────────────────────────
-  # activepieces: 0.37.2 (2026-04)
-  # n8n: 1.97.1 (2026-04)
-  # Both workloads currently scaled to 0 (not actively used).
-  # ── Images ───────────────────────────────────────────────────────────
-  # activepieces 0.37.2 → 0.82.1 (2026-04-24)
-  # n8n 1.97.1 → 2.19.2 (2026-05-01), v2 has built-in TurboQuant
-  # Both workloads scaled to 0. Verify env vars on scale-up.
-  activepiecesImage = "activepieces/activepieces:0.82.2";
+  # n8n: 1.123.42
   n8nImage = "n8nio/n8n:1.123.42";
   postgresImage = "docker.io/library/postgres:15-alpine";
-  redisImage = "docker.io/library/redis:7-alpine";
 
   # ── Cluster placement ────────────────────────────────────────────────
   # Default all non-infrastructure workloads to Nexus (46GB RAM).
@@ -44,17 +36,6 @@ in {
     # ══════════════════════════════════════════════════════════════════════
     # SECRETS
     # ══════════════════════════════════════════════════════════════════════
-    Secret.activepieces-secrets = {
-      type = "Opaque";
-      stringData = {
-        # Managed by agenix: apply_secret automation activepieces-secrets ap-api-key
-        # Managed by agenix: apply_secret automation activepieces-secrets ap-encryption-key
-        # Managed by agenix: apply_secret automation activepieces-secrets ap-jwt-secret
-        postgres-password = "activepieces";
-        redis-password = "activepieces";
-      };
-    };
-
     Secret.n8n-secrets = {
       type = "Opaque";
       stringData = {
@@ -68,106 +49,6 @@ in {
       type = "Opaque";
       stringData = {
         # Managed by agenix: apply_secret automation hermes-automation-keys n8n-api-key
-        # Managed by agenix: apply_secret automation hermes-automation-keys activepieces-api-key
-      };
-    };
-
-    # ══════════════════════════════════════════════════════════════════════
-    # POSTGRES — Activepieces database
-    # ══════════════════════════════════════════════════════════════════════
-    StatefulSet.postgres-activepieces = {
-      metadata.labels =
-        managed
-        // {
-          "app.kubernetes.io/component" = "database";
-          "app" = "postgres-activepieces";
-        };
-      spec = {
-        serviceName = "postgres-activepieces";
-        replicas = 1;
-        selector.matchLabels = {"app" = "postgres-activepieces";};
-        template = {
-          metadata.labels = {
-            "app" = "postgres-activepieces";
-            "app.kubernetes.io/component" = "database";
-          };
-          spec = {
-            nodeSelector."kubernetes.io/hostname" = targetNode;
-            securityContext = {
-              fsGroup = 999;
-            };
-            containers._namedlist = true;
-            containers.postgres = {
-              image = postgresImage;
-              imagePullPolicy = "IfNotPresent";
-              ports._namedlist = true;
-              ports.postgres = {
-                containerPort = 5432;
-                protocol = "TCP";
-              };
-              env._namedlist = true;
-              env = {
-                POSTGRES_DB.value = "activepieces";
-                POSTGRES_USER.value = "activepieces";
-                POSTGRES_PASSWORD.valueFrom.secretKeyRef = {
-                  name = "activepieces-secrets";
-                  key = "postgres-password";
-                };
-                PGDATA.value = "/var/lib/postgresql/data/pgdata";
-              };
-              resources = {
-                requests = {
-                  cpu = "250m";
-                  memory = "256Mi";
-                };
-                limits = {
-                  cpu = "500m";
-                  memory = "512Mi";
-                };
-              };
-              livenessProbe = {
-                exec.command = ["pg_isready" "-U" "activepieces" "-d" "activepieces"];
-                initialDelaySeconds = 20;
-                periodSeconds = 10;
-                timeoutSeconds = 5;
-                failureThreshold = 6;
-              };
-              readinessProbe = {
-                exec.command = ["pg_isready" "-U" "activepieces" "-d" "activepieces"];
-                initialDelaySeconds = 5;
-                periodSeconds = 5;
-                timeoutSeconds = 3;
-                failureThreshold = 3;
-              };
-              volumeMounts._namedlist = true;
-              volumeMounts.data.mountPath = "/var/lib/postgresql/data";
-            };
-          };
-        };
-        volumeClaimTemplates = [
-          {
-            metadata.name = "data";
-            spec = {
-              accessModes = ["ReadWriteOnce"];
-              storageClassName = "local-path";
-              resources.requests.storage = "5Gi";
-            };
-          }
-        ];
-      };
-    };
-
-    Service.postgres-activepieces = {
-      metadata.labels = managed // {"app.kubernetes.io/component" = "database";};
-      spec = {
-        type = "ClusterIP";
-        selector = {"app" = "postgres-activepieces";};
-        ports._namedlist = true;
-        ports.postgres = {
-          port = 5432;
-          targetPort = 5432;
-          protocol = "TCP";
-        };
       };
     };
 
@@ -265,154 +146,6 @@ in {
         ports.postgres = {
           port = 5432;
           targetPort = 5432;
-          protocol = "TCP";
-        };
-      };
-    };
-
-    # ══════════════════════════════════════════════════════════════════════
-    # REDIS — Activepieces cache
-    # ══════════════════════════════════════════════════════════════════════
-    Deployment.redis-activepieces = {
-      metadata.labels = managed // {"app" = "redis-activepieces";};
-      spec = {
-        replicas = 1;
-        revisionHistoryLimit = 2;
-        strategy.type = "Recreate";
-        selector.matchLabels = {"app" = "redis-activepieces";};
-        template = {
-          metadata.labels = {"app" = "redis-activepieces";};
-          spec = {
-            nodeSelector."kubernetes.io/hostname" = targetNode;
-            containers._namedlist = true;
-            containers.redis = {
-              image = redisImage;
-              imagePullPolicy = "IfNotPresent";
-              ports._namedlist = true;
-              ports.redis = {
-                containerPort = 6379;
-                protocol = "TCP";
-              };
-              resources = {
-                requests = {
-                  cpu = "100m";
-                  memory = "64Mi";
-                };
-                limits = {
-                  cpu = "200m";
-                  memory = "128Mi";
-                };
-              };
-              livenessProbe = {
-                exec.command = ["redis-cli" "ping"];
-                initialDelaySeconds = 5;
-                periodSeconds = 10;
-              };
-              readinessProbe = {
-                exec.command = ["redis-cli" "ping"];
-                initialDelaySeconds = 3;
-                periodSeconds = 5;
-              };
-            };
-          };
-        };
-      };
-    };
-
-    Service.redis-activepieces = {
-      metadata.labels = managed;
-      spec = {
-        type = "ClusterIP";
-        selector = {"app" = "redis-activepieces";};
-        ports._namedlist = true;
-        ports.redis = {
-          port = 6379;
-          targetPort = 6379;
-          protocol = "TCP";
-        };
-      };
-    };
-
-    # ══════════════════════════════════════════════════════════════════════
-    # ACTIVEPIECES — Workflow automation platform
-    # ══════════════════════════════════════════════════════════════════════
-    Deployment.activepieces = {
-      metadata.labels = managed // {"app" = "activepieces";};
-      spec = {
-        replicas = 1;
-        revisionHistoryLimit = 2;
-        strategy.type = "Recreate";
-        selector.matchLabels = {"app" = "activepieces";};
-        template = {
-          metadata.labels = {"app" = "activepieces";};
-          spec = {
-            nodeSelector."kubernetes.io/hostname" = targetNode;
-            containers._namedlist = true;
-            containers.activepieces = {
-              image = activepiecesImage;
-              imagePullPolicy = "IfNotPresent";
-              ports._namedlist = true;
-              ports.http = {
-                containerPort = 80;
-                protocol = "TCP";
-              };
-              env._namedlist = true;
-              env = {
-                AP_API_KEY.valueFrom.secretKeyRef = {
-                  name = "activepieces-secrets";
-                  key = "ap-api-key";
-                };
-                AP_ENCRYPTION_KEY.valueFrom.secretKeyRef = {
-                  name = "activepieces-secrets";
-                  key = "ap-encryption-key";
-                };
-                AP_JWT_SECRET.valueFrom.secretKeyRef = {
-                  name = "activepieces-secrets";
-                  key = "ap-jwt-secret";
-                };
-                AP_ENGINE_EXECUTABLE_PATH.value = "dist/packages/engine/main.js";
-                AP_EXECUTION_MODE.value = "UNSANDBOXED";
-                AP_NODE_EXECUTION_TIMEOUT.value = "300";
-                AP_TELEMETRY_ENABLED.value = "false";
-                AP_FRONTEND_URL.value = "http://activepieces.${ns}.svc.cluster.local:80";
-                AP_WEBHOOK_TIMEOUT_SECONDS.value = "30";
-                DB_TYPE.value = "POSTGRES";
-                AP_POSTGRES_DATABASE.value = "activepieces";
-                AP_POSTGRES_HOST.value = "postgres-activepieces";
-                AP_POSTGRES_PORT.value = "5432";
-                AP_POSTGRES_USERNAME.value = "activepieces";
-                AP_POSTGRES_PASSWORD.valueFrom.secretKeyRef = {
-                  name = "activepieces-secrets";
-                  key = "postgres-password";
-                };
-                AP_REDIS_HOST.value = "redis-activepieces";
-                AP_REDIS_PORT.value = "6379";
-              };
-              resources = {
-                requests = {
-                  cpu = "250m";
-                  memory = "512Mi";
-                };
-                limits = {
-                  cpu = "500m";
-                  memory = "1Gi";
-                };
-              };
-            };
-          };
-        };
-      };
-    };
-
-    Service.activepieces = {
-      metadata.labels = managed;
-      spec = {
-        type = "ClusterIP";
-        selector = {"app" = "activepieces";};
-        ports._namedlist = true;
-        ports.http = {
-          port = 80;
-          targetPort = 80;
           protocol = "TCP";
         };
       };

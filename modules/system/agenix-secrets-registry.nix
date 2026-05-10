@@ -358,24 +358,6 @@ in {
           owner = "root";
           group = "root";
         };
-        activepieces-api-key = {
-          file = "${inputs.self}/secrets/activepieces-api-key.age";
-          mode = "440";
-          owner = "root";
-          group = "root";
-        };
-        activepieces-encryption-key = {
-          file = "${inputs.self}/secrets/activepieces-encryption-key.age";
-          mode = "440";
-          owner = "root";
-          group = "root";
-        };
-        activepieces-jwt-secret = {
-          file = "${inputs.self}/secrets/activepieces-jwt-secret.age";
-          mode = "440";
-          owner = "root";
-          group = "root";
-        };
       })
       (lib.mkIf config.services.agenix-secrets-registry.initrdRecovery {
         initrd-ssh-host-key = {

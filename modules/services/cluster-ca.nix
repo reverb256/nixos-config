@@ -63,7 +63,7 @@ in {
             -subj "/C=US/ST=State/L=City/O=Cluster/CN=Cluster CA" \
             -addext "basicConstraints=critical,CA:TRUE" \
             -addext "keyUsage=critical,keyCertSign,cRLSign" \
-            -addext "subjectAltName=DNS:*.lan,DNS:*.cluster.local,DNS:auth.lan,DNS:mission-control.lan,DNS:kagent.lan,DNS:mc.cluster.local,DNS:privacy-filter.lan,DNS:search.lan,DNS:ai.lan,DNS:ai-inference.lan,DNS:openwebui.lan,DNS:haven.lan,DNS:hermes.lan,DNS:api.hermes.lan,DNS:n8n.lan,DNS:activepieces.lan,DNS:searxng.lan,DNS:vaultwarden.lan,DNS:brain.lan,DNS:qdrant.lan,DNS:knowledge-fabric.lan,DNS:monitoring.lan,DNS:grafana.lan,DNS:prometheus.lan,DNS:llama.zephyr.lan,DNS:llama.sentry.lan,DNS:workspace.lan,DNS:dashboard.lan" 2>/dev/null
+            -addext "subjectAltName=DNS:*.lan,DNS:*.cluster.local,DNS:auth.lan,DNS:mission-control.lan,DNS:kagent.lan,DNS:mc.cluster.local,DNS:privacy-filter.lan,DNS:search.lan,DNS:ai.lan,DNS:ai-inference.lan,DNS:openwebui.lan,DNS:haven.lan,DNS:hermes.lan,DNS:api.hermes.lan,DNS:n8n.lan,DNS:searxng.lan,DNS:vaultwarden.lan,DNS:brain.lan,DNS:qdrant.lan,DNS:knowledge-fabric.lan,DNS:monitoring.lan,DNS:grafana.lan,DNS:prometheus.lan,DNS:llama.zephyr.lan,DNS:llama.sentry.lan,DNS:workspace.lan,DNS:dashboard.lan" 2>/dev/null
 
           echo "Internal CA certificate generated at ${cfg.caCert}"
           chmod 644 ${cfg.caCert}
@@ -83,7 +83,7 @@ in {
           ${pkgs.openssl}/bin/openssl genrsa -out $LEAF_KEY 2048 2>/dev/null
           ${pkgs.openssl}/bin/openssl req -new -key $LEAF_KEY -out /tmp/leaf.csr \
             -subj "/CN=Cluster Ingress" \
-          -addext "subjectAltName=DNS:*.lan,DNS:*.cluster.local,DNS:auth.lan,DNS:mission-control.lan,DNS:kagent.lan,DNS:mc.cluster.local,DNS:privacy-filter.lan,DNS:search.lan,DNS:ai.lan,DNS:ai-inference.lan,DNS:openwebui.lan,DNS:haven.lan,DNS:hermes.lan,DNS:api.hermes.lan,DNS:n8n.lan,DNS:activepieces.lan,DNS:searxng.lan,DNS:vaultwarden.lan,DNS:brain.lan,DNS:qdrant.lan,DNS:knowledge-fabric.lan,DNS:monitoring.lan,DNS:grafana.lan,DNS:prometheus.lan,DNS:llama.zephyr.lan,DNS:llama.sentry.lan,DNS:workspace.lan,DNS:dashboard.lan" 2>/dev/null
+          -addext "subjectAltName=DNS:*.lan,DNS:*.cluster.local,DNS:auth.lan,DNS:mission-control.lan,DNS:kagent.lan,DNS:mc.cluster.local,DNS:privacy-filter.lan,DNS:search.lan,DNS:ai.lan,DNS:ai-inference.lan,DNS:openwebui.lan,DNS:haven.lan,DNS:hermes.lan,DNS:api.hermes.lan,DNS:n8n.lan,DNS:searxng.lan,DNS:vaultwarden.lan,DNS:brain.lan,DNS:qdrant.lan,DNS:knowledge-fabric.lan,DNS:monitoring.lan,DNS:grafana.lan,DNS:prometheus.lan,DNS:llama.zephyr.lan,DNS:llama.sentry.lan,DNS:workspace.lan,DNS:dashboard.lan" 2>/dev/null
           ${pkgs.openssl}/bin/openssl x509 -req -in /tmp/leaf.csr -CA ${cfg.caCert} -CAkey ${cfg.caKey} \
             -CAcreateserial -out $LEAF_CERT -days 365 -copy_extensions copyall 2>/dev/null
           rm -f /tmp/leaf.csr
