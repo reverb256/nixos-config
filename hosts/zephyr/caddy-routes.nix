@@ -184,6 +184,7 @@ in
 
   # Glance Dashboard (nexus, NodePort 32200)
   mkRoute "dashboard.lan" "http://${nexus}:32200"
+  mkRoute "frostbite-mcp.lan" "http://${nexus}:30531"
   + "\n"
   +
 

@@ -165,6 +165,7 @@ in {
         "vaultwarden.lan. IN A ${vip}"
         "workspace.lan. IN A ${vip}"
         "dashboard.lan. IN A ${vip}"
+        "frostbite-mcp.lan. IN A ${vip}"
       ];
       # Optional forge services
       forgeServices = [
