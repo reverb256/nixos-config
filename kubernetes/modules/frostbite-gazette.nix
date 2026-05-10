@@ -432,8 +432,11 @@ in {
             volumes = {
               _namedlist = true;
               scripts = {
-                configMap.name = "frostbite-data-ingest-script";
-                defaultMode = "0755";
+                name = "scripts";
+                configMap = {
+                  name = "frostbite-data-ingest-script";
+                  defaultMode = "0755";
+                };
               };
             };
           };
@@ -877,8 +880,11 @@ in {
             volumes = {
               _namedlist = true;
               scripts = {
-                configMap.name = "frostbite-mcp-scripts";
-                defaultMode = "0755";
+                name = "scripts";
+                configMap = {
+                  name = "frostbite-mcp-scripts";
+                  defaultMode = "0755";
+                };
               };
             };
           };
