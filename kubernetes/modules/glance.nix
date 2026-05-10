@@ -139,7 +139,7 @@ in {
             containers = {
               _namedlist = true;
               glance = {
-                image = "glanceapp/glance:latest";
+                image = "glanceapp/glance:v0.8.4";
                 imagePullPolicy = "IfNotPresent";
                 securityContext = {
                   allowPrivilegeEscalation = false;
