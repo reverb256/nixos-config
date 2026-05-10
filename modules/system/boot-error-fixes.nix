@@ -18,10 +18,15 @@ in {
       default = true;
       description = "Enable fixes for identified boot errors";
     };
+    includePrinting = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Enable CUPS printing subsystem (disable on headless servers with no printer)";
+    };
   };
 
   config = mkIf config.services.boot-error-fixes.enable {
-    services.printing.enable = true;
+    services.printing.enable = config.services.boot-error-fixes.includePrinting;
 
     users.groups.plugdev = {};
 
@@ -79,13 +84,12 @@ in {
     # Fix cupsd infinite loop on DBus notifier with non-root ownership.
     # Happens when nix store files are owned by uid 1000 (j_kro) instead of root
     # because build-users-group was empty. cupsd logs "insecure permissions" in a loop.
-    systemd.tmpfiles.rules = lib.mkIf config.services.printing.enable [
+    systemd.tmpfiles.rules = lib.mkIf config.services.boot-error-fixes.includePrinting [
       "Z+ /nix/store/*-cups-progs/lib/cups/notifier/dbus 0555 root root - -"
     ];
 
-    # HP Envy 7800 network printer (10.1.1.173)
-    # Custom service to add network printer after cups is ready
-    systemd.services.add-network-printer = {
+    # HP Envy 7800 network printer (10.1.1.173) — only when printing is enabled
+    systemd.services.add-network-printer = mkIf config.services.boot-error-fixes.includePrinting {
       description = "Add HP Envy 7800 network printer";
       after = ["cups.service" "cups.socket"];
       wantedBy = ["multi-user.target"];
@@ -116,7 +120,7 @@ in {
 
     # Fix ensure-printers failing when printer is offline (lpadmin timeout).
     # Set successExitStatus so the service doesn't report as failed.
-    systemd.services.ensure-printers = {
+    systemd.services.ensure-printers = mkIf config.services.boot-error-fixes.includePrinting {
       serviceConfig.SuccessExitStatus = "0 1";
       serviceConfig.TimeoutStartSec = "30";
     };
