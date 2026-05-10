@@ -82,6 +82,9 @@
 
   profiles.node.nexus-gaming.enable = true;
 
+  # Nexus is headless — no printer, disable CUPS to save resources
+  services.boot-error-fixes.includePrinting = false;
+
   # Hermes + pi state via NFS from zephyr (canonical server)
   services.nfs-cluster-mounts = {
     enable = true;
