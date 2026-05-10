@@ -16,6 +16,11 @@
 
   services.gaming.hdr.enable = true;
 
+  services.gaming.gamescopeSession = {
+    enable = true;
+    vkDeviceFilter = "10de:2204"; # RTX 3090 — prevents Vulkan from touching the 3060 Ti
+  };
+
   services.flatpak-kde = {
     enable = true;
     autoUpdate = true;

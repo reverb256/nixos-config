@@ -75,6 +75,7 @@
 
     ./gaming/gaming.nix
     ./gaming/gaming-hdr.nix
+    ./gaming/gamescope-session.nix
     ./gaming/scopebuddy.nix
 
     ./services/nfs-server.nix
