@@ -59,16 +59,16 @@ in {
                 ];
                 volumeMounts = [
                   {
-              }
-              {
-                name = "pvc-home";
-                persistentVolumeClaim.claimName = "ai-coding-configs";
-              }
+                    name = "pvc-home";
+                    persistentVolumeClaim.claimName = "ai-coding-configs";
+                  }
+                ];
+                restartPolicy = "Never";
+              };
             ];
-            restartPolicy = "Never";
           };
+          backoffLimit = 1;
         };
-        backoffLimit = 1;
       };
     };
 
