@@ -1,29 +1,32 @@
-{nexusPreferredAffinity, ...}: let
+{ nexusPreferredAffinity, ... }:
+let
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
 
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
-in {
+in
+{
   config.kubernetes.objects = {
     # ── Namespace ─────────────────────────────────────────────────
     # Privileged PSS required for hostPath mounts (scratch container pattern)
     none.Namespace.mcp = {
-      metadata.labels =
-        managed
-        // {
-          name = "mcp";
-          "pod-security.kubernetes.io/enforce" = "privileged";
-          "pod-security.kubernetes.io/audit" = "restricted";
-          "pod-security.kubernetes.io/warn" = "restricted";
-        };
+      metadata.labels = managed // {
+        name = "mcp";
+        "pod-security.kubernetes.io/enforce" = "privileged";
+        "pod-security.kubernetes.io/audit" = "restricted";
+        "pod-security.kubernetes.io/warn" = "restricted";
+      };
     };
 
     # ── NetworkPolicy: default-deny-all ─────────────────────────
     mcp.NetworkPolicy.default-deny-all = {
       spec = {
-        podSelector = {};
-        policyTypes = ["Ingress" "Egress"];
+        podSelector = { };
+        policyTypes = [
+          "Ingress"
+          "Egress"
+        ];
       };
     };
 
@@ -33,9 +36,9 @@ in {
     # Exposes SSE on :8000, connects to Grafana in monitoring namespace
     mcp = {
       Deployment.grafana-mcp = {
-        metadata.labels =
-          managed
-          // {app = "grafana-mcp";};
+        metadata.labels = managed // {
+          app = "grafana-mcp";
+        };
         spec = {
           replicas = 1;
           revisionHistoryLimit = 2;
@@ -44,14 +47,24 @@ in {
           template = {
             metadata.labels.app = "grafana-mcp";
             spec = {
+              securityContext = {
+                runAsNonRoot = true;
+                runAsUser = 1000;
+                fsGroup = 1000;
+              };
               affinity = nexusPreferredAffinity; # HA: prefer nexus, failover to sentry
               containers = {
                 _namedlist = true;
                 grafana-mcp = {
                   image = scratchImage;
                   imagePullPolicy = "IfNotPresent";
-                  command = ["/host-bin/grafana-mcp"];
-                  args = ["--transport" "sse" "--address" "0.0.0.0:8000"];
+                  command = [ "/host-bin/grafana-mcp" ];
+                  args = [
+                    "--transport"
+                    "sse"
+                    "--address"
+                    "0.0.0.0:8000"
+                  ];
                   ports = {
                     _namedlist = true;
                     http.containerPort = 8000;
@@ -77,6 +90,11 @@ in {
                       cpu = "500m";
                       memory = "256Mi";
                     };
+                    securityContext = {
+                      allowPrivilegeEscalation = false;
+                      capabilities.drop = [ "ALL" ];
+                      seccompProfile.type = "RuntimeDefault";
+                    };
                   };
                 };
               };
@@ -93,9 +111,9 @@ in {
       };
 
       Service.grafana-mcp = {
-        metadata.labels =
-          managed
-          // {app = "grafana-mcp";};
+        metadata.labels = managed // {
+          app = "grafana-mcp";
+        };
         spec = {
           selector.app = "grafana-mcp";
           ports = {
@@ -113,9 +131,9 @@ in {
       # Image: localhost/qdrant-mcp:latest (imported into k3s on nexus)
       # Exposes SSE on :8000, connects to Qdrant in ai-inference namespace
       Deployment.qdrant-mcp = {
-        metadata.labels =
-          managed
-          // {app = "qdrant-mcp";};
+        metadata.labels = managed // {
+          app = "qdrant-mcp";
+        };
         spec = {
           replicas = 1;
           revisionHistoryLimit = 2;
@@ -124,14 +142,22 @@ in {
           template = {
             metadata.labels.app = "qdrant-mcp";
             spec = {
+              securityContext = {
+                runAsNonRoot = true;
+                runAsUser = 1000;
+                fsGroup = 1000;
+              };
               affinity = nexusPreferredAffinity; # HA: prefer nexus, failover to sentry
               containers = {
                 _namedlist = true;
                 qdrant-mcp = {
                   image = "localhost/qdrant-mcp:latest";
                   imagePullPolicy = "Never";
-                  command = ["/usr/local/bin/mcp-server-qdrant"];
-                  args = ["--transport" "sse"];
+                  command = [ "/usr/local/bin/mcp-server-qdrant" ];
+                  args = [
+                    "--transport"
+                    "sse"
+                  ];
                   ports = {
                     _namedlist = true;
                     http.containerPort = 8000;
@@ -146,6 +172,13 @@ in {
                     HOME.name = "HOME";
                     HOME.value = "/tmp";
                   };
+                  securityContext = {
+                    allowPrivilegeEscalation = false;
+                    capabilities.drop = [ "ALL" ];
+                    runAsNonRoot = true;
+                    runAsUser = 1000;
+                    seccompProfile.type = "RuntimeDefault";
+                  };
                   resources = {
                     requests = {
                       cpu = "200m";
@@ -154,6 +187,11 @@ in {
                     limits = {
                       cpu = "1000m";
                       memory = "1Gi";
+                    };
+                    securityContext = {
+                      allowPrivilegeEscalation = false;
+                      capabilities.drop = [ "ALL" ];
+                      seccompProfile.type = "RuntimeDefault";
                     };
                   };
                 };
@@ -164,9 +202,9 @@ in {
       };
 
       Service.qdrant-mcp = {
-        metadata.labels =
-          managed
-          // {app = "qdrant-mcp";};
+        metadata.labels = managed // {
+          app = "qdrant-mcp";
+        };
         spec = {
           selector.app = "qdrant-mcp";
           ports = {
@@ -183,13 +221,11 @@ in {
       # Manages MCP server runner pods via CRDs.
       # CRDs + RBAC: kubernetes/static-manifests/toolhive-crds.yaml + toolhive-rbac.yaml
       Deployment.toolhive-operator = {
-        metadata.labels =
-          managed
-          // {
-            app = "toolhive-operator";
-            "app.kubernetes.io/name" = "toolhive-operator";
-            "app.kubernetes.io/component" = "operator";
-          };
+        metadata.labels = managed // {
+          app = "toolhive-operator";
+          "app.kubernetes.io/name" = "toolhive-operator";
+          "app.kubernetes.io/component" = "operator";
+        };
         spec = {
           replicas = 1;
           revisionHistoryLimit = 2;
@@ -200,47 +236,61 @@ in {
             spec = {
               serviceAccountName = "toolhive-operator";
               nodeSelector."kubernetes.io/hostname" = "nexus";
-              containers = [{
-                name = "toolhive-operator";
-                image = "ghcr.io/stacklok/toolhive/operator:v0.27.0";
-                args = [ "--leader-elect" ];
-                env = {
-                  POD_NAMESPACE.valueFrom.fieldRef.fieldPath = "metadata.namespace";
-                  GOMEMLIMIT = "110MiB";
-                  GOGC = "75";
-                  UNSTRUCTURED_LOGS = "false";
-                  TOOLHIVE_USE_CONFIGMAP = "true";
-                  ENABLE_EXPERIMENTAL_FEATURES = "false";
-                  ENABLE_SERVER = "true";
-                  ENABLE_REGISTRY = "true";
-                  ENABLE_VMCP = "false";
-                  WATCH_NAMESPACE = "mcp";
-                  TOOLHIVE_RUNNER_IMAGE = "ghcr.io/stacklok/toolhive/proxyrunner:v0.27.0";
-                  VMCP_IMAGE = "ghcr.io/stacklok/toolhive/vmcp:v0.27.0";
-                  TOOLHIVE_PROXY_HOST = "0.0.0.0";
-                  TOOLHIVE_REGISTRY_API_IMAGE = "ghcr.io/stacklok/thv-registry-api:v1.3.0";
-                };
-                ports = [
-                  { name = "metrics"; containerPort = 8080; protocol = "TCP"; }
-                  { name = "health"; containerPort = 8081; protocol = "TCP"; }
-                ];
-                resources = {
-                  requests = { cpu = "50m"; memory = "64Mi"; };
-                  limits = { cpu = "200m"; memory = "128Mi"; };
-                };
-              }];
+              containers = [
+                {
+                  name = "toolhive-operator";
+                  image = "ghcr.io/stacklok/toolhive/operator:v0.27.0";
+                  args = [ "--leader-elect" ];
+                  env = {
+                    POD_NAMESPACE.valueFrom.fieldRef.fieldPath = "metadata.namespace";
+                    GOMEMLIMIT = "110MiB";
+                    GOGC = "75";
+                    UNSTRUCTURED_LOGS = "false";
+                    TOOLHIVE_USE_CONFIGMAP = "true";
+                    ENABLE_EXPERIMENTAL_FEATURES = "false";
+                    ENABLE_SERVER = "true";
+                    ENABLE_REGISTRY = "true";
+                    ENABLE_VMCP = "false";
+                    WATCH_NAMESPACE = "mcp";
+                    TOOLHIVE_RUNNER_IMAGE = "ghcr.io/stacklok/toolhive/proxyrunner:v0.27.0";
+                    VMCP_IMAGE = "ghcr.io/stacklok/toolhive/vmcp:v0.27.0";
+                    TOOLHIVE_PROXY_HOST = "0.0.0.0";
+                    TOOLHIVE_REGISTRY_API_IMAGE = "ghcr.io/stacklok/thv-registry-api:v1.3.0";
+                  };
+                  ports = [
+                    {
+                      name = "metrics";
+                      containerPort = 8080;
+                      protocol = "TCP";
+                    }
+                    {
+                      name = "health";
+                      containerPort = 8081;
+                      protocol = "TCP";
+                    }
+                  ];
+                  resources = {
+                    requests = {
+                      cpu = "50m";
+                      memory = "64Mi";
+                    };
+                    limits = {
+                      cpu = "200m";
+                      memory = "128Mi";
+                    };
+                  };
+                }
+              ];
             };
           };
         };
       };
 
       Service.toolhive-operator = {
-        metadata.labels =
-          managed
-          // {
-            app = "toolhive-operator";
-            "app.kubernetes.io/name" = "toolhive-operator";
-          };
+        metadata.labels = managed // {
+          app = "toolhive-operator";
+          "app.kubernetes.io/name" = "toolhive-operator";
+        };
         spec = {
           selector.app = "toolhive-operator";
           ports = {
