@@ -86,9 +86,9 @@ in {
           },
           "llama-cpp": {
             "npm": "@ai-sdk/openai-compatible",
-            "name": "llama.cpp Server (Nix-built)",
+            "name": "llama.cpp Server (Zephyr 3090)",
             "options": {
-              "baseURL": "http://127.0.0.1:1235/v1"
+              "baseURL": "http://10.1.1.110:1237/v1"
             }
           }
         },

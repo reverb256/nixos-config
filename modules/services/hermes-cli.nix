@@ -227,7 +227,7 @@ in {
             base_url: https://integrate.api.nvidia.com/v1
             api_key_env: NVIDIA_API_KEY
           llama-cpp-zephyr:
-            base_url: http://llama-server-zephyr.ai-inference.svc.cluster.local:1235/v1
+            base_url: http://llama-server-zephyr.ai-inference.svc.cluster.local:1237/v1
             api_key: unused
           llama-cpp-sentry:
             base_url: http://llama-server-sentry.ai-inference.svc.cluster.local:1235/v1

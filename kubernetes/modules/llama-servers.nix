@@ -6,7 +6,7 @@
 #
 # Zephyr GPU layout:
 #   GPU 0 = RTX 3060 Ti (8GB)  → Qwen3.5-2B-AWQ via vLLM+TurboQuant (port 8040)
-#   GPU 1 = RTX 3090 (24GB)    → 35B MoE model (port 1235, coordinator-monitored)
+#   GPU 1 = RTX 3090 (24GB)    → 35B MoE model (port 1237, coordinator-monitored)
 #
 # GPU ISOLATION NOTE:
 #   nvidia-container-runtime on NixOS is broken (libnvidia-container dlopen can't find
@@ -106,7 +106,7 @@ in {
                   "--host"
                   "0.0.0.0"
                   "--port"
-                  "1235"
+                  "1237"
                   "-ngl"
                   "99"
                   "-c"
@@ -140,19 +140,19 @@ in {
                 };
                 ports = [
                   {
-                    containerPort = 1235;
+                    containerPort = 1237;
                     name = "http";
                     protocol = "TCP";
                   }
                 ];
                 livenessProbe = {
-                  tcpSocket.port = 1235;
+                  tcpSocket.port = 1237;
                   initialDelaySeconds = 120;
                   periodSeconds = 30;
                   failureThreshold = 5;
                 };
                 readinessProbe = {
-                  tcpSocket.port = 1235;
+                  tcpSocket.port = 1237;
                   initialDelaySeconds = 60;
                   periodSeconds = 10;
                   failureThreshold = 10;
@@ -203,9 +203,9 @@ in {
         ports = [
           {
             name = "http";
-            port = 1235;
+            port = 1237;
             protocol = "TCP";
-            targetPort = 1235;
+            targetPort = 1237;
           }
         ];
         selector = {
@@ -762,14 +762,11 @@ in {
           }
         ];
         selector = {
-          app = "llama-server-zephyr-3090-dense";
-          host = "zephyr";
-        };
-      };
+app = "llama-server-zephyr-3090-dense";
+      host = "zephyr";
     };
-
-
-    };
+  };
+  };
 
     # ── Zephyr RTX 3090 Burst ── DFlash Speculative Decoding (Qwen3.6-27B) ──
     # Lucebox DFlash: speculative decoding with DDTree draft verification.
@@ -1034,19 +1031,19 @@ in {
                 };
                 ports = [
                   {
-                    containerPort = 1235;
+                    containerPort = 1237;
                     name = "http";
                     protocol = "TCP";
                   }
                 ];
                 livenessProbe = {
-                  tcpSocket.port = 1235;
+                  tcpSocket.port = 1237;
                   initialDelaySeconds = 120;
                   periodSeconds = 30;
                   failureThreshold = 5;
                 };
                 readinessProbe = {
-                  tcpSocket.port = 1235;
+                  tcpSocket.port = 1237;
                   initialDelaySeconds = 60;
                   periodSeconds = 10;
                   failureThreshold = 10;
@@ -1120,9 +1117,9 @@ in {
         ports = [
           {
             name = "http";
-            port = 1235;
+            port = 1237;
             protocol = "TCP";
-            targetPort = 1235;
+            targetPort = 1237;
           }
         ];
         selector.app = "llama-server-sentry";
