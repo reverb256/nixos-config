@@ -890,7 +890,7 @@ in {
     Service.frostbite-mcp = {
       metadata.labels = managed // {app = "frostbite-mcp";};
       spec = {
-        type = "ClusterIP";
+        type = "NodePort";
         selector = {app = "frostbite-mcp";};
         ports._namedlist = true;
         ports.http = {
