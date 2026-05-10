@@ -613,6 +613,24 @@ in {
         ];
       };
     };
+
+    monitoring.NetworkPolicy.allow-dashboard-to-prometheus = {
+      spec = {
+        podSelector.matchLabels.app = "prometheus";
+        policyTypes = ["Ingress"];
+        ingress = [
+          {
+            from = [{namespaceSelector.matchLabels.name = "dashboard";}];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 9090;
+              }
+            ];
+          }
+        ];
+      };
+    };
     monitoring.NetworkPolicy.allow-alloy-kubelet = {
       spec = {
         podSelector.matchLabels.app = "alloy";
