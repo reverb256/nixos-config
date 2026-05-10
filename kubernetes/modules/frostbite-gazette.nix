@@ -61,7 +61,6 @@ in {
             "app.kubernetes.io/component" = "database";
           };
           spec = {
-            nodeSelector."kubernetes.io/hostname" = targetNode;
             securityContext = {
               fsGroup = 999;
             };
