@@ -432,8 +432,8 @@ in {
       };
     };
 
-    # ── Zephyr RTX 3090 Burst — hermes-qwen3.5-35b-a3b MoE (Speed) ──────────────
-    # MoE: 35B total / ~3B active per token. Blazing fast for agentic workloads.
+    # ── Zephyr RTX 3090 — Qwen3.6-35B-A3B MoE (Primary local model) ──────────
+    # MoE: 35B total / ~3B active per token. 256K context via turbo4 KV.
     # Scaled to 0 by default — scale up when mining is paused.
     Deployment.llama-server-zephyr-3090-moe = {
       metadata.labels =
@@ -492,7 +492,7 @@ in {
                   "-ngl"
                   "99"
                   "-c"
-                  "131072"
+                  "262144"
                   "-t"
                   "16"
                   "--flash-attn"
