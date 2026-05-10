@@ -72,6 +72,7 @@ in {
     ./modules/automation.nix
     ./modules/mcp-servers.nix
     ./modules/glance.nix
+    ./modules/frostbite-gazette.nix
   ];
 
   # Separate manifests for large modules (to avoid eval bottleneck)
@@ -115,5 +116,6 @@ in {
     ./modules/automation.nix
     ./modules/mcp-servers.nix
     ./modules/glance.nix
+    ./modules/frostbite-gazette.nix
   ];
 }
