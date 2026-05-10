@@ -251,10 +251,6 @@ in {
         domain = "n8n.lan";
         backend = k8s.n8n.dns;
       };
-      activepieces = {
-        domain = "activepieces.lan";
-        backend = k8s.activepieces.dns;
-      };
       auth = {
         domain = "auth.lan";
         backend = k8s.casdoor.dns;
