@@ -20,8 +20,13 @@ with lib; let
     ++ optionals cfg.steamDeckMode ["-gamepadui" "-steamdeck"]
     ++ cfg.extraSteamArgs;
 
+  # Build the env export lines from the attrset
+  envExports = concatStringsSep "\n" (
+    mapAttrsToList (n: v: "export ${n}=${v}") envVars
+  );
+
   steam-gamescope = pkgs.writeShellScriptBin "steam-gamescope" ''
-    ${builtins.concatStringsSep "\n" (builtins.mapAttrs (n: v: "export ${n}=${v}") envVars)}
+    ${envExports}
     gamescope --steam ${toString gamescopeCfg.args} -- steam ${toString steamArgs}
   '';
 
