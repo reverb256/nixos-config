@@ -43,8 +43,8 @@ in {
           },
           "llama-cpp": {
             "id": "llama-cpp",
-            "name": "llama.cpp Server (Nix)",
-            "base_url": "http://127.0.0.1:1235/v1"
+            "name": "llama.cpp Server (Zephyr 3090)",
+            "base_url": "http://10.1.1.110:1237/v1"
           }
         },
         "mcp": {

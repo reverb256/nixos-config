@@ -296,11 +296,13 @@ Secrets populated by `kubectl-apply-k8s-secrets` from agenix (`monitoring/grafan
 **In-cluster:** kubernetes-mcp (SSE :8080 on nexus) + nixos-cluster-mcp v0.1.1 (DaemonSet, SSE :8081 on all nodes)
 **Claude Code:** `nix run /etc/nixos#kubernetes-mcp-server` and `nix run /etc/nixos#nixos-cluster-mcp` (stdio)
 **Hermes:** SSE URL for kubernetes, stdio for others (see `~/.hermes/config.yaml`)
-**OpenCode:** 7 MCP servers via `~/.config/opencode/opencode.json` (`type: "local"` + command array). GitHub uses `--toolsets repos,issues,pull_requests,actions,code_security,notifications`.
+**OpenCode:** 8 MCP servers + 4 model providers via `~/.config/opencode/opencode.json` (`type: "local"` + command array). Local models: vLLM (8040), llama.cpp Zephyr (1237), llama.cpp Sentry (1235).
+**OmP:** MCP servers via `~/.omp/agent/mcp.json` — kubernetes, nixos-cluster, github, git, searxng, casdoor, gateway, context7, filesystem, fetch, lightpanda. Local models via `~/.omp/agent/models.json`.
+**PI:** MCP servers via `~/.pi/agent/mcp.json` — kubernetes, nixos-cluster, github, git, searxng, casdoor, selfhosted-tools. Local models via `~/.pi/agent/models.json`.
 **Registry:** `modules/services/mcp-server-registry.nix` — single source of truth
 **Full plan:** `docs/plans/2026-05-01-mcp-system-plan.md`
 
-### OpenCode MCP Server Verification (2026-05-09)
+### OpenCode MCP Server Verification (2026-05-10)
 
 | Server | Bridge Script | Tools | Status |
 |--------|--------------|-------|--------|
@@ -308,9 +310,19 @@ Secrets populated by `kubectl-apply-k8s-secrets` from agenix (`monitoring/grafan
 | nixos-cluster | `nix run /etc/nixos#nixos-cluster-mcp` | 15 (cluster_status, node_info, gpu_inventory, etc.) | ✅ Working |
 | kubernetes | `nix run /etc/nixos#kubernetes-mcp-server` | 14 (pods_list, events_list, resources_*) | ✅ Working |
 | searxng | `/data/agents/mcp-bridges/searxng-mcp.sh` | 15 (web_search, search_code, etc.) | ✅ Working |
-| selfhosted-tools | `/data/agents/mcp-bridges/selfhosted-mcp.sh` | 15 (web_reader, read_github_file, search_github_repo, etc.) | ✅ Working |
+| selfhosted-tools | `/data/agents/mcp-bridges/selfhosted-mcp.sh` | 15 (web_reader, read_github_file, etc.) | ✅ Working |
 | git | `/data/agents/mcp-bridges/git-mcp.sh` | 29 (git_log, git_diff, git_status, etc.) | ✅ Working |
-| casdoor | `/data/agents/mcp-bridges/opencode-casdoor-bridge.py` | 5 (get_applications, etc.) | ⚠️ Auth required |
+| casdoor | `/data/agents/mcp-bridges/opencode-casdoor-bridge.py` | 5 (get_applications, etc.) | ✅ Working |
+| gateway | `/etc/nixos/scripts/mcp-gateway-bridge` | MCP tool proxy via ai-inference-gateway | ✅ Working |
+
+### OpenCode Model Providers (2026-05-10)
+
+| Provider | Base URL | Models | Purpose |
+|----------|----------|--------|---------|
+| zai-coding-plan | api.z.ai | GLM-5.1, GLM-5, GLM-4.6, etc. | Primary cloud models |
+| local-vllm | 10.1.1.110:8040 | Qwen3.5-2B-AWQ | Fast local (Zephyr 3060Ti) |
+| local-llama-zephyr | 10.1.1.110:1237 | Qwen3.6-35B-A3B | Large local (Zephyr 3090) |
+| local-llama-sentry | 10.1.1.140:1235 | Qwen3.5-4B | Medium local (Sentry ROCm) |
 
 ### Key Tool Names (correct for stdio JSON-RPC calls)
 
