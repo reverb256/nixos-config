@@ -119,6 +119,7 @@
       RemainAfterExit = true;
     };
   };
+  systemd.services."NetworkManager-wait-online".serviceConfig.TimeoutStartSec = lib.mkForce "5s";
   systemd.targets.network-online.wantedBy = lib.mkForce ["network-online.target"];
 
   boot.kernel.sysctl = {
