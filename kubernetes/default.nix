@@ -71,6 +71,7 @@ in {
     ./modules/kagent.nix
     ./modules/automation.nix
     ./modules/mcp-servers.nix
+    ./modules/glance.nix
   ];
 
   # Separate manifests for large modules (to avoid eval bottleneck)
@@ -113,5 +114,6 @@ in {
     ./modules/kagent.nix
     ./modules/automation.nix
     ./modules/mcp-servers.nix
+    ./modules/glance.nix
   ];
 }

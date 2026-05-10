@@ -182,6 +182,11 @@ in
   + "\n"
   +
 
+  # Glance Dashboard (nexus, NodePort 32200)
+  mkRoute "dashboard.lan" "http://${nexus}:32200"
+  + "\n"
+  +
+
 
   # Hermes Workspace (zephyr, port 3002)
   mkAuthRoute "workspace.lan" "http://127.0.0.1:3002"
