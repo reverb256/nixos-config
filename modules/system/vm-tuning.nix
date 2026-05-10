@@ -6,6 +6,14 @@
     enableNotifications = true;
   };
 
+  # Override compute-market flake's hugepage allocations (hugepagesz=1G hugepages=3).
+  # Kernel processes cmdline left-to-right; last value wins.
+  # mkAfter ensures these come after compute-market's params in the final list.
+  boot.kernelParams = lib.mkAfter [
+    "hugepagesz=1G"
+    "hugepages=0"
+  ];
+
   boot.kernel.sysctl = {
     "vm.nr_hugepages" = lib.mkForce 0;
     "vm.overcommit_memory" = lib.mkForce 0;
