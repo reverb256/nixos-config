@@ -106,6 +106,8 @@
   boot.kernelParams = [
     "amd_iommu=on"
     "iommu=pt"
+    "nvme_core.timeout=30"
+    "rootdelay=5"
   ];
 
   hardware.nvidia.powerLimits = {
