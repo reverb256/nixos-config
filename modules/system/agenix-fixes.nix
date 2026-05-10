@@ -285,13 +285,10 @@ in {
           apply_secret ai-inference openwebui-oidc-secret client-secret /run/agenix/openwebui-oidc-client-secret
           apply_secret haven haven-oidc client-secret /run/agenix/haven-oidc-client-secret
 
-          # Automation namespace (n8n, Activepieces)
+          # Automation namespace (n8n)
           apply_secret automation n8n-secrets admin-password /run/agenix/n8n-admin-password
           apply_secret automation n8n-secrets encryption-key /run/agenix/n8n-encryption-key
           apply_secret automation hermes-automation-keys n8n-api-key /run/agenix/n8n-api-key
-          apply_secret automation activepieces-secrets ap-api-key /run/agenix/activepieces-api-key
-          apply_secret automation activepieces-secrets ap-encryption-key /run/agenix/activepieces-encryption-key
-          apply_secret automation activepieces-secrets ap-jwt-secret /run/agenix/activepieces-jwt-secret
 
           echo "[k8s-secrets] Done"
         '';
