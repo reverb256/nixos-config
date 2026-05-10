@@ -11,7 +11,7 @@
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
 
   # AI Inference Gateway — pre-built container image (loaded into containerd on target node)
-  gatewayImage = "nexus:5000/ai-inference-gateway:2.4.9";
+  gatewayImage = "docker.io/library/ai-inference-gateway:2.4.9";
 
   # Managed-by labels for easykubenix
   managed = {
