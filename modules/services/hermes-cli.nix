@@ -374,6 +374,11 @@ in {
           # Fix any corrupted [IP_ADDRESS] placeholders from previous sed failures
           sed -i "s|base_url: http://\[IP_ADDRESS\]:8080/v1|base_url: $GATEWAY_URL|g" "$HERMES_CONFIG"
 
+          # Enforce Z.AI coding plan endpoint (not pay-as-you-go /api/paas/v4)
+          sed -i "s|base_url: https://api\.z\.ai/api/paas/v4[^/]|base_url: https://api.z.ai/api/coding/paas/v4|g" "$HERMES_CONFIG"
+          # Also catch the exact pay-as-you-go path without trailing chars
+          sed -i "s|base_url: https://api\.z\.ai/api/paas/v4$|base_url: https://api.z.ai/api/coding/paas/v4|g" "$HERMES_CONFIG"
+
           chown ${cfg.user}:users "$HERMES_CONFIG" 2>/dev/null || true
           chmod 600 "$HERMES_CONFIG" 2>/dev/null || true
 
