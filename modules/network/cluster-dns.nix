@@ -51,6 +51,8 @@ in {
           ];
           # Listen on localhost and cluster IP
           interface = [
+            "127.0.0.1"
+            "::1"
             (
               if dnsCfg.listenAddress != null && dnsCfg.listenAddress != "127.0.0.1"
               then dnsCfg.listenAddress
@@ -163,6 +165,7 @@ in {
         "grafana.lan. IN A ${vip}"
         "vaultwarden.lan. IN A ${vip}"
         "workspace.lan. IN A ${vip}"
+        "dashboard.lan. IN A ${vip}"
       ];
       # Optional forge services
       forgeServices = [
