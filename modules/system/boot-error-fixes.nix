@@ -26,7 +26,7 @@ in {
   };
 
   config = mkIf config.services.boot-error-fixes.enable {
-    services.printing.enable = config.services.boot-error-fixes.includePrinting;
+    services.printing.enable = lib.mkForce config.services.boot-error-fixes.includePrinting;
 
     users.groups.plugdev = {};
 

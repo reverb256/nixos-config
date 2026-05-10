@@ -1,10 +1,12 @@
-{cluster, ...}: let
+{ cluster, ... }:
+let
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
 
   namespace = "auth";
-in {
+in
+{
   config.kubernetes.objects = {
     auth.ServiceAccount.oauth2-proxy = {
       automountServiceAccountToken = false;
@@ -14,23 +16,19 @@ in {
     # DO NOT define here — kubectl apply would overwrite real values with placeholders
 
     auth.Deployment.oauth2-proxy = {
-      metadata.labels =
-        managed
-        // {
-          app = "oauth2-proxy";
-          "app.kubernetes.io/component" = "auth-proxy";
-        };
+      metadata.labels = managed // {
+        app = "oauth2-proxy";
+        "app.kubernetes.io/component" = "auth-proxy";
+      };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
         selector.matchLabels.app = "oauth2-proxy";
         template = {
-          metadata.labels =
-            managed
-            // {
-              app = "oauth2-proxy";
-              "app.kubernetes.io/component" = "auth-proxy";
-            };
+          metadata.labels = managed // {
+            app = "oauth2-proxy";
+            "app.kubernetes.io/component" = "auth-proxy";
+          };
           spec = {
             nodeSelector."kubernetes.io/hostname" = "zephyr";
             serviceAccountName = "oauth2-proxy";
@@ -107,4 +105,12 @@ in {
                 mountPath = "/etc/oauth2/secrets";
                 readOnly = true;
               };
+            };
+            volumes._namedlist = true;
+            volumes.secrets.secret.secretName = "oauth2-proxy-secrets";
+          };
+        };
+      };
+    };
+  };
 }

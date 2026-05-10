@@ -106,7 +106,7 @@ in {
         };
         # Local llama-cpp endpoints
         llama-cpp-zephyr = {
-          base_url = "http://llama-server-zephyr.ai-inference.svc.cluster.local:1235/v1";
+          base_url = "http://llama-server-zephyr.ai-inference.svc.cluster.local:1237/v1";
           api_key = "unused";
           model = "Qwen3.6-35B-A3B-UD-Q3_K_M.gguf";
         };
