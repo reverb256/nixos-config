@@ -48,7 +48,6 @@ in {
                 protocol = "TCP";
               };
               env._namedlist = true;
-              env.SSL_CERT_FILE.value = "/etc/ssl/cluster-ca/ca.crt";
               args = [
                 "--provider=oidc"
                 "--oidc-issuer-url=https://auth.lan"
@@ -108,109 +107,4 @@ in {
                 mountPath = "/etc/oauth2/secrets";
                 readOnly = true;
               };
-              volumeMounts.ca-cert = {
-                mountPath = "/etc/ssl/cluster-ca";
-                readOnly = true;
-              };
-            };
-            volumes._namedlist = true;
-            volumes.secrets.secret.secretName = "oauth2-proxy-secrets";
-            volumes.ca-cert.hostPath = {
-              path = "/etc/ssl/cluster-ca";
-              type = "Directory";
-            };
-          };
-        };
-      };
-    };
-
-    auth.Service.oauth2-proxy = {
-      metadata.labels =
-        managed
-        // {
-          app = "oauth2-proxy";
-          "app.kubernetes.io/component" = "auth-proxy";
-        };
-      spec = {
-        type = "NodePort";
-        selector.app = "oauth2-proxy";
-        ports._namedlist = true;
-        ports.http = {
-          port = 4180;
-          nodePort = 30890;
-          targetPort = 4180;
-          protocol = "TCP";
-        };
-      };
-    };
-
-    auth.NetworkPolicy.oauth2-proxy-ingress = {
-      metadata.labels = managed;
-      spec = {
-        podSelector.matchLabels.app = "oauth2-proxy";
-        policyTypes = ["Ingress"];
-        ingress = [
-          {
-            from = [{ipBlock.cidr = cluster.podCidr;}];
-            ports = [
-              {
-                port = 4180;
-                protocol = "TCP";
-              }
-            ];
-          }
-          {
-            from = [{ipBlock.cidr = cluster.subnet;}];
-            ports = [
-              {
-                port = 4180;
-                protocol = "TCP";
-              }
-            ];
-          }
-        ];
-      };
-    };
-
-    auth.NetworkPolicy.oauth2-proxy-egress = {
-      metadata.labels = managed;
-      spec = {
-        podSelector.matchLabels.app = "oauth2-proxy";
-        policyTypes = ["Egress"];
-        egress = [
-          {
-            to = [{namespaceSelector.matchLabels.name = "kube-system";}];
-            ports = [
-              {
-                port = 53;
-                protocol = "UDP";
-              }
-              {
-                port = 53;
-                protocol = "TCP";
-              }
-            ];
-          }
-          {
-            to = [{podSelector.matchLabels.app = "casdoor";}];
-            ports = [
-              {
-                port = 8000;
-                protocol = "TCP";
-              }
-            ];
-          }
-          {
-            to = [{ipBlock.cidr = cluster.subnet;}];
-            ports = [
-              {
-                port = 443;
-                protocol = "TCP";
-              }
-            ];
-          }
-        ];
-      };
-    };
-  };
 }
