@@ -33,7 +33,7 @@ NODES = {
 
 # AI inference backends
 BACKENDS = {
-    "llama-3060ti": {"host": "zephyr", "port": 1236, "node_ip": "10.1.1.110"},
+    "llama-3060ti": {"host": "zephyr", "port": 8040, "node_ip": "10.1.1.110"},  # vLLM Qwen3.5-2B-AWQ,
     "llama-3090": {"host": "zephyr", "port": 1237, "node_ip": "10.1.1.110"},
     "llama-sentry": {"host": "sentry", "port": 1235, "node_ip": "10.1.1.140"},
 }

@@ -1,6 +1,6 @@
 # NixOS Cluster - Agent Guidelines
 
-**Generated:** 2026-04-26 | **Commit:** 29d0d02f | **Branch:** main
+**Generated:** 2026-05-10 | **Commit:** 7f8f68c8 | **Branch:** main
 
 ## Quick Start
 
@@ -27,6 +27,7 @@ just health             # Detailed health check
 
 **Resources**: 78 cores, 123GB RAM, 7 GPUs, 8.4TB storage
 **K3s**: v1.34.5+k3s1 — All 4 nodes functional, **Flannel CNI** (VXLAN, UDP 8472)
+**Sentry SMT**: Re-enabled via enable-smt systemd service (CachyOS kernel defaults nosmt)
 **AI Gateway**: Sovereign Service Mesh operational on Nexus (10.15.67.242:8080)
 
 ## Deployment Model (Hybrid NFS + Colmena)
@@ -263,7 +264,7 @@ in {
 
 | Type | Services |
 |------|----------|
-| Public (no auth) | searxng.lan, ai-inference.lan |
+| Public (no auth) | searxng.lan, ai-inference.lan, dashboard.lan (pending deploy) |
 | Protected (SSO) | haven.lan, openwebui.lan, kagent.lan, grafana.lan, mission-control.lan |
 
 ### Caddy Config
@@ -292,7 +293,7 @@ Secrets populated by `kubectl-apply-k8s-secrets` from agenix (`monitoring/grafan
 
 ## MCP Infrastructure
 
-**In-cluster:** kubernetes-mcp (SSE :8080 on nexus) + nixos-cluster-mcp (DaemonSet, SSE :8081 on all nodes)
+**In-cluster:** kubernetes-mcp (SSE :8080 on nexus) + nixos-cluster-mcp v0.1.1 (DaemonSet, SSE :8081 on all nodes)
 **Claude Code:** `nix run /etc/nixos#kubernetes-mcp-server` and `nix run /etc/nixos#nixos-cluster-mcp` (stdio)
 **Hermes:** SSE URL for kubernetes, stdio for others (see `~/.hermes/config.yaml`)
 **OpenCode:** 7 MCP servers via `~/.config/opencode/opencode.json` (`type: "local"` + command array). GitHub uses `--toolsets repos,issues,pull_requests,actions,code_security,notifications`.
@@ -376,6 +377,25 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 - **Import images on wrong K3s node** -- import on the node where the pod runs
 - **Build Nix containers without `git commit`** -- flakes only see tracked files
 
+## Known Issues / Pending Work
+
+| # | Issue | Status | Action |
+|---|-------|--------|--------|
+| 1 | **dashboard.lan (Glance)** | Nix config complete, namespace never deployed | Deploy via easykubenix, verify DNS + Caddy route |
+| 2 | **Casdoor MCP bridge scopes** | mcp-client OAuth app missing MCP scopes | Add MCP scopes to app 3e6db9fe2befb4718ed5 in Casdoor |
+| 3 | **Nexus NVMe boot timeout** | No kernel-level nvme_core.timeout set | Add nvme_core.timeout=30 + rootdelay=5 to nexus kernelParams |
+
+### Resolved (2026-05-10 loose-end audit)
+- gamescope-steam module: fully committed (5 commits, imported in default.nix)
+- cloudflared: fully migrated off and removed (commit 1c4a56c4)
+- NFS mounts: all converted to soft with aggressive timeouts
+- Z.AI endpoints: /api/coding/paas/v4 enforced across all configs
+- Hyprland config fixes: committed and working
+- Sentry boot repair: committed, node Ready 35d
+- Metrics-server: 1/1 pods healthy, 13d uptime
+- HPAs: 3 active autoscalers, all at minimum replicas
+- nixos-cluster-mcp: v0.1.1, backend port 1236->8040 (vLLM Qwen3.5-2B-AWQ)
+
 ## Reference
 
 | Document | Purpose |
@@ -388,5 +408,5 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 
 ---
 
-**Version**: 8.0 | **Last Updated:** 2026-05-02
-**Changes**: Documentation audit — fixed all file counts, module tree, CNI reference, secrets count, scripts count, Hermes skills count (~38), container-scanning import status
+**Version**: 9.0 | **Last Updated:** 2026-05-10
+**Changes**: Loose-end audit — updated MCP backend port (3060Ti: 1236->8040 vLLM), dashboard.lan pending, casdoor-bridge scopes warning, Sentry SMT note, nixos-cluster-mcp v0.1.1, known issues section, resolved items tracker
