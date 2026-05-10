@@ -59,24 +59,6 @@ in {
                 ];
                 volumeMounts = [
                   {
-                    name = "host-home";
-                    mountPath = "/host-home";
-                    readOnly = true;
-                  }
-                  {
-                    name = "pvc-home";
-                    mountPath = "/pvc-home";
-                  }
-                ];
-              }
-            ];
-            volumes = [
-              {
-                name = "host-home";
-                hostPath = {
-                  path = "/home/j_kro";
-                  type = "Directory";
-                };
               }
               {
                 name = "pvc-home";

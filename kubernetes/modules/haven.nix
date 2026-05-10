@@ -80,8 +80,6 @@ in {
               fsGroup = 1000;
               seccompProfile.type = "RuntimeDefault";
             };
-            hostNetwork = true;
-            dnsPolicy = "ClusterFirstWithHostNet";
             terminationGracePeriodSeconds = 30;
             containers = {
               _namedlist = true;
