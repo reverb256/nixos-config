@@ -6,6 +6,13 @@
 }: {
   system.stateVersion = "26.05";
 
+  # Auto-cleanup old nix generations
+  nix.gc = {
+    automatic = lib.mkDefault true;
+    dates = lib.mkDefault "daily";
+    options = lib.mkDefault "--delete-older-than 10d";
+  };
+
   time.timeZone = lib.mkDefault "UTC";
 
   services = {
@@ -70,21 +77,18 @@
     build-users-group = "nixbld";
   };
 
-  boot.loader = {
-    systemd-boot.enable = lib.mkDefault true;
-
-    efi.canTouchEfiVariables = lib.mkDefault true;
-
-    systemd-boot.graceful = lib.mkDefault false;
-
-    systemd-boot.configurationLimit = lib.mkDefault 20;
-
-    systemd-boot.editor = lib.mkDefault false;
-
-    systemd-boot.edk2-uefi-shell.enable = lib.mkDefault true;
-
-    systemd-boot.memtest86.enable = lib.mkDefault true;
+  # Prevent /boot partition from filling up
+  boot.loader.systemd-boot = {
+    enable = lib.mkDefault true;
+    configurationLimit = 6;
+    consoleMode = "auto";
+    graceful = lib.mkDefault false;
+    editor = lib.mkDefault false;
+    edk2-uefi-shell.enable = lib.mkDefault true;
+    memtest86.enable = lib.mkDefault true;
   };
+
+  boot.loader.efi.canTouchEfiVariables = lib.mkDefault true;
 
   boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_zen;
 
