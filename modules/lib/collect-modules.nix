@@ -23,6 +23,7 @@ let
     "scripts" = true;       # Shell scripts
     "js" = true;            # JavaScript runtime files
     "kubernetes" = true;    # K8s resource YAML files
+    "dashboards" = true;    # Grafana dashboard JSON templates (not NixOS modules)
   };
 
   # Relative paths (from modules/) to exclude.
