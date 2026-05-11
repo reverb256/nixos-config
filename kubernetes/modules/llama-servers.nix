@@ -26,7 +26,8 @@
   config,
   lib,
   ...
-}: let
+}:
+let
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
@@ -56,167 +57,12 @@
     nvidia-libs.hostPath.path = "/run/opengl-driver/lib";
     models.hostPath.path = "/home/j_kro/.lmstudio/models";
   };
-in {
+in
+{
   config.kubernetes.objects.ai-inference = {
     # ── Zephyr RTX 3090 (GPU 1) — Qwen3.6-35B-A3B MoE ──────────────────────
-    #   MoE 35B (15B active) with A3B + IQ3_S quantization.
+    #   MoE 35B (3B active) with A3B + IQ4_XS quantization.
     #   Target: /home/j_kro/.lmstudio/models/Qwen3.6-35B-A3B-UD-IQ4_XS.gguf
-    Deployment.llama-server-zephyr = {
-      metadata.labels =
-        managed
-        // {
-          app = "llama-server-zephyr";
-          host = "zephyr";
-          gpu = "rtx3090";
-        };
-      spec = {
-        replicas = 0;
-        revisionHistoryLimit = 1;
-        selector.matchLabels = {
-          app = "llama-server-zephyr";
-          host = "zephyr";
-        };
-        strategy.type = "Recreate";
-        template = {
-          metadata = {
-            labels =
-              managed
-              // {
-                app = "llama-server-zephyr";
-                host = "zephyr";
-                gpu = "rtx3090";
-              };
-            annotations."nix-csi/discard" = "true";
-          };
-          spec = {
-            nodeName = "zephyr";
-            hostNetwork = true;
-            automountServiceAccountToken = false;
-            priorityClassName = "high-priority-ai";
-            tolerations = zephyrTolerations;
-            containers = {
-              _namedlist = true;
-              llama-server = {
-                image = scratchImage;
-                imagePullPolicy = "IfNotPresent";
-command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
-args = [
-"--model"
-"/home/j_kro/.lmstudio/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-IQ4_XS.gguf"
-"--mmproj"
-"/home/j_kro/.lmstudio/models/unsloth/Qwen3.6-35B-A3B-GGUF/mmproj-BF16.gguf"
-"--host"
-"0.0.0.0"
-"--port"
-"1237"
-"-ngl"
-"99"
-"-c"
-"131072"
-"-t"
-"12"
-"--flash-attn"
-"on"
-"-ctk"
-"q8_0"
-"-ctv"
-"turbo4"
-"--temp"
-"0.0"
-"--metrics"
-];
-                env = {
-                  _namedlist = true;
-                  NVIDIA_VISIBLE_DEVICES = {
-                    name = "NVIDIA_VISIBLE_DEVICES";
-                    value = "1";
-                  };
-                  CUDA_VISIBLE_DEVICES = {
-                    name = "CUDA_VISIBLE_DEVICES";
-                    value = "0";
-                  };
-                  LD_LIBRARY_PATH = {
-                    name = "LD_LIBRARY_PATH";
-                    value = "$\{pkgsWithOverlay.llama-cpp-turboquant\}/lib:/run/opengl-driver/lib";
-                  };
-                };
-                ports = [
-                  {
-                    containerPort = 1237;
-                    name = "http";
-                    protocol = "TCP";
-                  }
-                ];
-                livenessProbe = {
-                  tcpSocket.port = 1237;
-                  initialDelaySeconds = 120;
-                  periodSeconds = 30;
-                  failureThreshold = 5;
-                };
-                readinessProbe = {
-                  tcpSocket.port = 1237;
-                  initialDelaySeconds = 60;
-                  periodSeconds = 10;
-                  failureThreshold = 10;
-                };
-                resources = {
-                  requests = {
-                    memory = "4Gi";
-                    cpu = "500m";
-                  };
-                  limits = {
-                    memory = "16Gi";
-                    cpu = "4";
-                  };
-                };
-                securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                  nix = {
-                    mountPath = "/nix";
-                    readOnly = true;
-                  };
-                  nvidia-libs = {
-                    mountPath = "/run/opengl-driver/lib";
-                    readOnly = true;
-                  };
-                  models = {
-                    mountPath = "/home/j_kro/.lmstudio/models";
-                    readOnly = true;
-                  };
-                  # dflash volume removed — draft model is in /models (already mounted)
-                };
-              };
-            };
-            volumes = zephyrVolumes;
-          };
-        };
-      };
-    };
-
-    Service.llama-server-zephyr = {
-      metadata.labels =
-        managed
-        // {
-          app = "llama-server-zephyr";
-        };
-      spec = {
-        type = "ClusterIP";
-        ports = [
-          {
-            name = "http";
-            port = 1237;
-            protocol = "TCP";
-            targetPort = 1237;
-          }
-        ];
-        selector = {
-          app = "llama-server-zephyr";
-          host = "zephyr";
-        };
-      };
-    };
-
     # ── Zephyr RTX 3060 Ti — Qwen3.5-2B-AWQ via vLLM + TurboQuant ──────
     # Scratch container with host mounts: venv python (torch 2.10, vllm 0.19.1)
     # + TurboQuant KV cache compression (key_bits=3, value_bits=4).
@@ -231,13 +77,11 @@ args = [
     #   /lib               — kernel modules
     #   USER=j_kro         — torch getpass.getuser() fails as uid 0
     Deployment.llama-qwen-vllm-zephyr-3060ti = {
-      metadata.labels =
-        managed
-        // {
-          app = "llama-qwen-vllm-zephyr-3060ti";
-          host = "zephyr";
-          gpu = "rtx3060ti";
-        };
+      metadata.labels = managed // {
+        app = "llama-qwen-vllm-zephyr-3060ti";
+        host = "zephyr";
+        gpu = "rtx3060ti";
+      };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -248,13 +92,11 @@ args = [
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels =
-              managed
-              // {
-                app = "llama-qwen-vllm-zephyr-3060ti";
-                host = "zephyr";
-                gpu = "rtx3060ti";
-              };
+            labels = managed // {
+              app = "llama-qwen-vllm-zephyr-3060ti";
+              host = "zephyr";
+              gpu = "rtx3060ti";
+            };
             annotations."nix-csi/discard" = "true";
           };
           spec = {
@@ -268,7 +110,7 @@ args = [
               vllm = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = ["${pkgs.bash}/bin/bash"];
+                command = [ "${pkgs.bash}/bin/bash" ];
                 args = [
                   "-c"
                   ''
@@ -415,11 +257,9 @@ args = [
     };
 
     Service.llama-qwen-vllm-zephyr-3060ti = {
-      metadata.labels =
-        managed
-        // {
-          app = "llama-qwen-vllm-zephyr-3060ti";
-        };
+      metadata.labels = managed // {
+        app = "llama-qwen-vllm-zephyr-3060ti";
+      };
       spec = {
         type = "ClusterIP";
         ports = [
@@ -434,19 +274,17 @@ args = [
       };
     };
 
-    # ── Zephyr RTX 3090 — Qwen3.6-35B-A3B MoE (Primary local model) ──────────
-    # MoE: 35B total / ~3B active per token. 256K context via turbo4 KV.
-    # Scaled to 0 by default — scale up when mining is paused.
+    # ── Zephyr RTX 3090 — Carnice Qwen3.6-MoE-35B-A3B (Primary local model) ──
+    # Carnice finetune of Qwen3.6-35B-A3B MoE. IQ4_XS quantization fits 24GB 3090.
+    # 256K context via turbo4 KV compression, 16 threads for Zen3 5950X.
     Deployment.llama-server-zephyr-3090-moe = {
-      metadata.labels =
-        managed
-        // {
-          app = "llama-server-zephyr-3090-moe";
-          host = "zephyr";
-          gpu = "rtx3090";
-        };
+      metadata.labels = managed // {
+        app = "llama-server-zephyr-3090-moe";
+        host = "zephyr";
+        gpu = "rtx3090";
+      };
       spec = {
-        replicas = 0;
+        replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels = {
           app = "llama-server-zephyr-3090-moe";
@@ -455,13 +293,11 @@ args = [
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels =
-              managed
-              // {
-                app = "llama-server-zephyr-3090-moe";
-                host = "zephyr";
-                gpu = "rtx3090";
-              };
+            labels = managed // {
+              app = "llama-server-zephyr-3090-moe";
+              host = "zephyr";
+              gpu = "rtx3090";
+            };
             annotations."nix-csi/discard" = "true";
           };
           spec = {
@@ -469,24 +305,24 @@ args = [
             hostNetwork = true;
             automountServiceAccountToken = false;
             priorityClassName = "high-priority-ai";
-            tolerations =
-              zephyrTolerations
-              ++ [
-                {
-                  key = "node.kubernetes.io/disk-pressure";
-                  operator = "Exists";
-                  effect = "NoSchedule";
-                }
-              ];
+            tolerations = zephyrTolerations ++ [
+              {
+                key = "node.kubernetes.io/disk-pressure";
+                operator = "Exists";
+                effect = "NoSchedule";
+              }
+            ];
             containers = {
               _namedlist = true;
               llama-server = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
+                command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
                 args = [
                   "--model"
-                  "/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-IQ4_XS.gguf"
+                  "/models/mradermacher/Carnice-Qwen3.6-MoE-35B-A3B-GGUF/Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf"
+                  "--mmproj"
+                  "/models/unsloth/Qwen3.6-35B-A3B-GGUF/mmproj-BF16.gguf"
                   "--host"
                   "0.0.0.0"
                   "--port"
@@ -588,23 +424,19 @@ args = [
                 };
               };
             };
-            volumes =
-              zephyrVolumes
-              // {
-                _namedlist = true;
-                dflash.hostPath.path = "/home/j_kro/.lmstudio/models/dflash";
-              };
+            volumes = zephyrVolumes // {
+              _namedlist = true;
+              dflash.hostPath.path = "/home/j_kro/.lmstudio/models/dflash";
+            };
           };
         };
       };
     };
 
     Service.llama-server-zephyr-3090-moe = {
-      metadata.labels =
-        managed
-        // {
-          app = "llama-server-zephyr-3090-moe";
-        };
+      metadata.labels = managed // {
+        app = "llama-server-zephyr-3090-moe";
+      };
       spec = {
         type = "ClusterIP";
         ports = [
@@ -622,349 +454,6 @@ args = [
       };
     };
 
-    # ── Zephyr RTX 3090 Burst — Ornstein-Hermes-3.6-27b-SABER (Quality) ────────
-    # Dense 27B with SABER refusal shaping, multimodal preserved.
-    # Scaled to 0 by default — scale up when mining is paused.
-    Deployment.llama-server-zephyr-3090-dense = {
-      metadata.labels =
-        managed
-        // {
-          app = "llama-server-zephyr-3090-dense";
-          host = "zephyr";
-          gpu = "rtx3090";
-        };
-      spec = {
-        replicas = 0;
-        revisionHistoryLimit = 1;
-        selector.matchLabels = {
-          app = "llama-server-zephyr-3090-dense";
-          host = "zephyr";
-        };
-        strategy.type = "Recreate";
-        template = {
-          metadata = {
-            labels =
-              managed
-              // {
-                app = "llama-server-zephyr-3090-dense";
-                host = "zephyr";
-                gpu = "rtx3090";
-              };
-            annotations."nix-csi/discard" = "true";
-          };
-          spec = {
-            nodeName = "zephyr";
-            hostNetwork = true;
-            automountServiceAccountToken = false;
-            priorityClassName = "high-priority-ai";
-            tolerations = zephyrTolerations;
-            containers = {
-              _namedlist = true;
-              llama-server = {
-                image = scratchImage;
-                imagePullPolicy = "IfNotPresent";
-                command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
-                args = [
-                  "--model"
-                  "/models/Qwen3.6-27B-Q4_K_M.gguf"
-                  "--host"
-                  "0.0.0.0"
-                  "--port"
-                  "1238"
-                  "-ngl"
-                  "99"
-                  "-c"
-                  "131072"
-                  "-t"
-                  "4"
-                  "--flash-attn"
-                  "on"
-                  "-ctk"
-                  "turbo4"
-                  "-ctv"
-                  "turbo4"
-                  "--parallel"
-                  "1"
-                  "--metrics"
-                  "-b"
-                  "256"
-                  "-ub"
-                  "64"
-                ];
-                env = {
-                  _namedlist = true;
-                  NVIDIA_VISIBLE_DEVICES = {
-                    name = "NVIDIA_VISIBLE_DEVICES";
-                    value = "1";
-                  };
-                  CUDA_VISIBLE_DEVICES = {
-                    name = "CUDA_VISIBLE_DEVICES";
-                    value = "0";
-                  };
-                  LD_LIBRARY_PATH = {
-                    name = "LD_LIBRARY_PATH";
-                    value = "/run/opengl-driver/lib:/nix/store";
-                  };
-                };
-                ports = [
-                  {
-                    containerPort = 1238;
-                    name = "http";
-                    protocol = "TCP";
-                  }
-                ];
-                livenessProbe = {
-                  tcpSocket.port = 1238;
-                  initialDelaySeconds = 120;
-                  periodSeconds = 30;
-                  failureThreshold = 5;
-                };
-                readinessProbe = {
-                  tcpSocket.port = 1238;
-                  initialDelaySeconds = 60;
-                  periodSeconds = 10;
-                  failureThreshold = 10;
-                };
-                resources = {
-                  requests = {
-                    memory = "4Gi";
-                    cpu = "500m";
-                  };
-                  limits = {
-                    memory = "24Gi";
-                    cpu = "4";
-                  };
-                };
-                securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                  nix = {
-                    mountPath = "/nix";
-                    readOnly = true;
-                  };
-                  nvidia-libs = {
-                    mountPath = "/run/opengl-driver/lib";
-                    readOnly = true;
-                  };
-                  models = {
-                    mountPath = "/models";
-                    readOnly = true;
-                  };
-                };
-              };
-            };
-            volumes = zephyrVolumes;
-          };
-        };
-      };
-    };
-
-    Service.llama-server-zephyr-3090-dense = {
-      metadata.labels =
-        managed
-        // {
-          app = "llama-server-zephyr-3090-dense";
-        };
-      spec = {
-        type = "ClusterIP";
-        ports = [
-          {
-            name = "http";
-            port = 1238;
-            protocol = "TCP";
-            targetPort = 1238;
-          }
-        ];
-        selector = {
-app = "llama-server-zephyr-3090-dense";
-      host = "zephyr";
-    };
-  };
-  };
-
-    # ── Zephyr RTX 3090 Burst ── DFlash Speculative Decoding (Qwen3.6-27B) ──
-    # Lucebox DFlash: speculative decoding with DDTree draft verification.
-    # Expected ~2-4x throughput vs autoregressive (69-78 tok/s vs 31 tok/s).
-    # Uses test_dflash binary + OpenAI-compatible server.py from lucebox-hub.
-    # Scaled to 0 by default ── scale up when mining is paused (shares GPU with dense).
-    Deployment.dflash-zephyr-3090 = {
-      metadata.labels =
-        managed
-        // {
-          app = "dflash-zephyr-3090";
-          host = "zephyr";
-          gpu = "rtx3090";
-        };
-      spec = {
-        replicas = 0;
-        revisionHistoryLimit = 1;
-        selector.matchLabels = {
-          app = "dflash-zephyr-3090";
-          host = "zephyr";
-        };
-        strategy.type = "Recreate";
-        template = {
-          metadata = {
-            labels =
-              managed
-              // {
-                app = "dflash-zephyr-3090";
-                host = "zephyr";
-                gpu = "rtx3090";
-              };
-            annotations."nix-csi/discard" = "true";
-          };
-          spec = {
-            nodeName = "zephyr";
-            hostNetwork = true;
-            automountServiceAccountToken = false;
-            priorityClassName = "high-priority-ai";
-            tolerations = zephyrTolerations;
-            containers = {
-              _namedlist = true;
-              dflash-server = {
-                image = scratchImage;
-                imagePullPolicy = "IfNotPresent";
-                command = ["/nix/store/nixpkgs/path/bin/bash"];
-                args = [
-                  "-c"
-                  ''
-                    export LD_LIBRARY_PATH=/run/opengl-driver/lib:/nix/store:/run/current-system/sw/lib
-                    export HOME=/tmp
-                    export USER=j_kro
-                    export TRANSFORMERS_CACHE=/tmp/hf-cache
-                    export HF_HOME=/tmp/hf-cache
-                    export HF_TOKEN=$(cat /run/agenix/huggingface-token 2>/dev/null || echo "")
-                    /nix/store/*coreutils*/bin/mkdir -p /tmp/hf-cache 2>/dev/null || true
-                    exec /home/j_kro/vllm-env/bin/python3 /home/j_kro/lucebox-hub/dflash/scripts/server.py \
-                      --host 0.0.0.0 \
-                      --port 1239 \
-                      --target /models/Qwen3.6-27B-Q4_K_M.gguf \
-                      --draft /models/draft \
-                      --bin /home/j_kro/lucebox-hub/dflash/build/test_dflash \
-                      --budget 22 \
-                      --max-ctx 16384 \
-                      --ctk tq3_0 \
-                      --ctv tq3_0
-                  ''
-                ];
-                env = {
-                  _namedlist = true;
-                  NVIDIA_VISIBLE_DEVICES = {
-                    name = "NVIDIA_VISIBLE_DEVICES";
-                    value = "1";
-                  };
-                  CUDA_VISIBLE_DEVICES = {
-                    name = "CUDA_VISIBLE_DEVICES";
-                    value = "0";
-                  };
-                  LD_LIBRARY_PATH = {
-                    name = "LD_LIBRARY_PATH";
-                    value = "/run/opengl-driver/lib:/nix/store:/run/current-system/sw/lib";
-                  };
-                };
-                ports = [
-                  {
-                    containerPort = 1239;
-                    name = "http";
-                    protocol = "TCP";
-                  }
-                ];
-                livenessProbe = {
-                  httpGet = {
-                    path = "/health";
-                    port = 1239;
-                  };
-                  initialDelaySeconds = 180;
-                  periodSeconds = 30;
-                  failureThreshold = 5;
-                };
-                readinessProbe = {
-                  tcpSocket.port = 1239;
-                  initialDelaySeconds = 120;
-                  periodSeconds = 10;
-                  failureThreshold = 10;
-                };
-                resources = {
-                  requests = {
-                    memory = "4Gi";
-                    cpu = "500m";
-                  };
-                  limits = {
-                    memory = "24Gi";
-                    cpu = "4";
-                  };
-                };
-                securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                  nix = {
-                    mountPath = "/nix";
-                    readOnly = true;
-                  };
-                  nvidia-libs = {
-                    mountPath = "/run/opengl-driver/lib";
-                    readOnly = true;
-                  };
-                  nix-sw = {
-                    mountPath = "/run/current-system/sw";
-                    readOnly = true;
-                  };
-                  home-jkro = {
-                    mountPath = "/home/j_kro";
-                    readOnly = true;
-                  };
-                  models = {
-                    mountPath = "/models";
-                    readOnly = true;
-                  };
-                  etc = {
-                    mountPath = "/etc";
-                    readOnly = true;
-                  };
-                  lib = {
-                    mountPath = "/lib";
-                    readOnly = true;
-                  };
-                  lib64 = {
-                    mountPath = "/lib64";
-                    readOnly = true;
-                  };
-                  tmp = {
-                    mountPath = "/tmp";
-                  };
-                };
-              };
-            };
-            volumes = zephyrVolumes;
-          };
-        };
-      };
-    };
-
-    Service.dflash-zephyr-3090 = {
-      metadata.labels =
-        managed
-        // {
-          app = "dflash-zephyr-3090";
-        };
-      spec = {
-        type = "ClusterIP";
-        ports = [
-          {
-            name = "http";
-            port = 1239;
-            protocol = "TCP";
-            targetPort = 1239;
-          }
-        ];
-        selector = {
-          app = "dflash-zephyr-3090";
-          host = "zephyr";
-        };
-      };
-    };
-
     # ── Sentry AMD RX 5600 XT (Vulkan/RADV, gfx1010) — Qwen3.5-4B ──────
     # Vulkan backend: RADV (Mesa) outperforms ROCm on RDNA1 for token generation.
     # Flash attention required: quantized V cache (q4_0) needs flash_attn since llama.cpp b3880+.
@@ -974,12 +463,10 @@ app = "llama-server-zephyr-3090-dense";
     #       that are enabled in the -Wrist-On- version. This is a non-thinking build.
 
     Deployment.llama-server-sentry = {
-      metadata.labels =
-        managed
-        // {
-          app = "llama-server-sentry";
-          host = "sentry";
-        };
+      metadata.labels = managed // {
+        app = "llama-server-sentry";
+        host = "sentry";
+      };
       spec = {
         replicas = 0;
         revisionHistoryLimit = 1;
@@ -990,12 +477,10 @@ app = "llama-server-zephyr-3090-dense";
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels =
-              managed
-              // {
-                app = "llama-server-sentry";
-                host = "sentry";
-              };
+            labels = managed // {
+              app = "llama-server-sentry";
+              host = "sentry";
+            };
             annotations."nix-csi/discard" = "true";
           };
           spec = {
@@ -1007,35 +492,35 @@ app = "llama-server-zephyr-3090-dense";
               llama-server = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-command = ["${pkgsWithOverlay.llama-cpp-vulkan}/bin/llama-server"];
-args = [
-"--model"
-"/models/unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf"
-"--mmproj"
-"/models/unsloth/Qwen3.5-4B-GGUF/mmproj-BF16.gguf"
-"--host"
-"0.0.0.0"
-"--port"
-"1235"
-"-ngl"
-"99"
-"-c"
-"131072"
-"-t"
-"2"
-"--parallel"
-"1"
-"--cont-batching"
-"--metrics"
-"--cache-type-k"
-"q4_0"
-"--cache-type-v"
-"q4_0"
-"--flash-attn"
-"on"
-"--reasoning"
-"off"
-];
+                command = [ "${pkgsWithOverlay.llama-cpp-vulkan}/bin/llama-server" ];
+                args = [
+                  "--model"
+                  "/models/unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf"
+                  "--mmproj"
+                  "/models/unsloth/Qwen3.5-4B-GGUF/mmproj-BF16.gguf"
+                  "--host"
+                  "0.0.0.0"
+                  "--port"
+                  "1235"
+                  "-ngl"
+                  "99"
+                  "-c"
+                  "262144"
+                  "-t"
+                  "2"
+                  "--parallel"
+                  "1"
+                  "--cont-batching"
+                  "--metrics"
+                  "--cache-type-k"
+                  "q4_0"
+                  "--cache-type-v"
+                  "q4_0"
+                  "--flash-attn"
+                  "on"
+                  "--reasoning"
+                  "off"
+                ];
                 env = {
                   _namedlist = true;
                   LD_LIBRARY_PATH = {
@@ -1049,19 +534,19 @@ args = [
                 };
                 ports = [
                   {
-                    containerPort = 1237;
+                    containerPort = 1235;
                     name = "http";
                     protocol = "TCP";
                   }
                 ];
                 livenessProbe = {
-                  tcpSocket.port = 1237;
+                  tcpSocket.port = 1235;
                   initialDelaySeconds = 120;
                   periodSeconds = 30;
                   failureThreshold = 5;
                 };
                 readinessProbe = {
-                  tcpSocket.port = 1237;
+                  tcpSocket.port = 1235;
                   initialDelaySeconds = 60;
                   periodSeconds = 10;
                   failureThreshold = 10;
@@ -1117,7 +602,7 @@ args = [
               models.hostPath.path = "/home/j_kro/.lmstudio/models";
               opengl.hostPath.path = "/run/opengl-driver/lib";
               vulkan-icd.hostPath.path = "/run/opengl-driver/share/vulkan/icd.d";
-              tmp.emptyDir = {};
+              tmp.emptyDir = { };
             };
           };
         };
@@ -1125,267 +610,25 @@ args = [
     };
 
     Service.llama-server-sentry = {
-      metadata.labels =
-        managed
-        // {
-          app = "llama-server-sentry";
-        };
+      metadata.labels = managed // {
+        app = "llama-server-sentry";
+      };
       spec = {
         type = "ClusterIP";
         ports = [
           {
             name = "http";
-            port = 1237;
+            port = 1235;
             protocol = "TCP";
-            targetPort = 1237;
+            targetPort = 1235;
           }
         ];
         selector.app = "llama-server-sentry";
       };
     };
 
-    # ── Zephyr RTX 3090 Burst — Ornstein-Hermes-3.6-27b-SABER (131K ctx) ──────
-    # Dense 27B with SABER refusal shaping, 131K context via turbo4 KV compression.
-    # Scaled to 0 by default — scale up when mining is paused.
-    Deployment.llama-server-zephyr-3090-ornstein = {
-      metadata.labels =
-        managed
-        // {
-          app = "llama-server-zephyr-3090-ornstein";
-          host = "zephyr";
-          gpu = "rtx3090";
-        };
-      spec = {
-        replicas = 0;
-        revisionHistoryLimit = 1;
-        selector.matchLabels = {
-          app = "llama-server-zephyr-3090-ornstein";
-          host = "zephyr";
-        };
-        strategy.type = "Recreate";
-        template = {
-          metadata = {
-            labels =
-              managed
-              // {
-                app = "llama-server-zephyr-3090-ornstein";
-                host = "zephyr";
-                gpu = "rtx3090";
-              };
-            annotations."nix-csi/discard" = "true";
-          };
-          spec = {
-            nodeName = "zephyr";
-            hostNetwork = true;
-            automountServiceAccountToken = false;
-            priorityClassName = "high-priority-ai";
-            tolerations = zephyrTolerations;
-            containers = {
-              _namedlist = true;
-              llama-server = {
-                image = scratchImage;
-                imagePullPolicy = "IfNotPresent";
-                command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
-                args = [
-                  "--model"
-                  "/models/GestaltLabs/Ornstein-Hermes-3.6-27b-SABER-GGUF/Ornstein-Hermes-3.6-27b-SABER-Q5_K_M.gguf"
-                  "--host"
-                  "0.0.0.0"
-                  "--port"
-                  "1237"
-                  "-ngl"
-                  "99"
-                  "-c"
-                  "131072"
-                  "-t"
-                  "4"
-                  "--flash-attn"
-                  "on"
-                  "-ctk"
-                  "turbo4"
-                  "-ctv"
-                  "turbo4"
-                  "--parallel"
-                  "1"
-                  "--metrics"
-                ];
-                env = {
-                  _namedlist = true;
-                  NVIDIA_VISIBLE_DEVICES = {
-                    name = "NVIDIA_VISIBLE_DEVICES";
-                    value = "1";
-                  };
-                  CUDA_VISIBLE_DEVICES = {
-                    name = "CUDA_VISIBLE_DEVICES";
-                    value = "0";
-                  };
-                  LD_LIBRARY_PATH = {
-                    name = "LD_LIBRARY_PATH";
-                    value = "/run/opengl-driver/lib:/nix/store";
-                  };
-                };
-                ports = [
-                  {
-                    containerPort = 1237;
-                    name = "http";
-                    protocol = "TCP";
-                  }
-                ];
-                livenessProbe = {
-                  tcpSocket.port = 1237;
-                  initialDelaySeconds = 120;
-                  periodSeconds = 30;
-                  failureThreshold = 5;
-                };
-                readinessProbe = {
-                  tcpSocket.port = 1237;
-                  initialDelaySeconds = 60;
-                  periodSeconds = 10;
-                  failureThreshold = 10;
-                };
-                resources = {
-                  requests = {
-                    memory = "4Gi";
-                    cpu = "500m";
-                  };
-                  limits = {
-                    memory = "16Gi";
-                    cpu = "4";
-                  };
-                };
-                securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                  nix = {
-                    mountPath = "/nix";
-                    readOnly = true;
-                  };
-                  nvidia-libs = {
-                    mountPath = "/run/opengl-driver/lib";
-                    readOnly = true;
-                  };
-                  models = {
-                    mountPath = "/models";
-                    readOnly = true;
-                  };
-                };
-              };
-            };
-            volumes = zephyrVolumes;
-          };
-        };
-      };
-    };
-
-    Service.llama-server-zephyr-3090-ornstein = {
-      metadata.labels =
-        managed
-        // {
-          app = "llama-server-zephyr-3090-ornstein";
-        };
-      spec = {
-        type = "ClusterIP";
-        ports = [
-          {
-            name = "http";
-            port = 1237;
-            protocol = "TCP";
-            targetPort = 1237;
-          }
-        ];
-        selector = {
-          app = "llama-server-zephyr-3090-ornstein";
-          host = "zephyr";
-        };
-      };
-    };
-
-    # ── Zephyr RTX 3090 Burst — hermes-qwen3.5-35b-a3b MoE (131K ctx) ────────
-    # MoE: 35B total / ~3B active per token. 131K context via turbo4 KV compression.
-    # Scaled to 0 by default — scale up when mining is paused.
-    Deployment.llama-server-zephyr-3090-hermes = {
-      metadata.labels =
-        managed
-        // {
-          app = "llama-server-zephyr-3090-hermes";
-          host = "zephyr";
-          gpu = "rtx3090";
-        };
-      spec = {
-        replicas = 0;
-        revisionHistoryLimit = 1;
-        selector.matchLabels = {
-          app = "llama-server-zephyr-3090-hermes";
-          host = "zephyr";
-        };
-        strategy.type = "Recreate";
-        template = {
-          metadata = {
-            labels =
-              managed
-              // {
-                app = "llama-server-zephyr-3090-hermes";
-                host = "zephyr";
-                gpu = "rtx3090";
-              };
-            annotations."nix-csi/discard" = "true";
-          };
-          spec = {
-            nodeName = "zephyr";
-            hostNetwork = true;
-            automountServiceAccountToken = false;
-            priorityClassName = "high-priority-ai";
-            tolerations = zephyrTolerations;
-            containers = {
-              _namedlist = true;
-              llama-server = {
-                image = scratchImage;
-                imagePullPolicy = "IfNotPresent";
-                command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
-                args = [
-                  "--model"
-                  "/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-IQ4_XS.gguf"
-                  "--host"
-                  "0.0.0.0"
-                  "--port"
-                  "1238"
-                  "-ngl"
-                  "99"
-                  "-c"
-                  "131072"
-                  "-t"
-                  "4"
-                  "--flash-attn"
-                  "on"
-                  "-ctk"
-                  "turbo4"
-                  "-ctv"
-                  "turbo4"
-                  "--parallel"
-                  "1"
-                  "--metrics"
-                ];
-                env = {
-                  _namedlist = true;
-                  NVIDIA_VISIBLE_DEVICES = {
-                    name = "NVIDIA_VISIBLE_DEVICES";
-                    value = "1";
-                  };
-                  CUDA_VISIBLE_DEVICES = {
-                    name = "CUDA_VISIBLE_DEVICES";
-                    value = "0";
-                  };
-                  LD_LIBRARY_PATH = {
-                    name = "LD_LIBRARY_PATH";
-                    value = "/run/opengl-driver/lib:/nix/store";
-                  };
-                };
-                ports = [
-                  {
-                    containerPort = 1238;
-                    name = "http";
-                    protocol = "TCP";
-                  }
+};
+}
                 ];
                 livenessProbe = {
                   tcpSocket.port = 1238;
@@ -1433,27 +676,5 @@ args = [
       };
     };
 
-    Service.llama-server-zephyr-3090-hermes = {
-      metadata.labels =
-        managed
-        // {
-          app = "llama-server-zephyr-3090-hermes";
-        };
-      spec = {
-        type = "ClusterIP";
-        ports = [
-          {
-            name = "http";
-            port = 1238;
-            protocol = "TCP";
-            targetPort = 1238;
-          }
-        ];
-        selector = {
-          app = "llama-server-zephyr-3090-hermes";
-          host = "zephyr";
-        };
-      };
     };
-  };
 }

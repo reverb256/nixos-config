@@ -15,7 +15,8 @@ in {
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
-      role = "agent";
+      role = "server";
+      clusterInit = false; # Rejoining existing cluster as server (for etcd quorum)
       nodeName = "forge";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";

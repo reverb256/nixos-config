@@ -26,6 +26,11 @@ in {
       globalDefault = false;
       description = "Low priority for cryptocurrency mining. Preempted by AI workloads.";
     };
+    Namespace.ingress-system = {
+      metadata.labels = managed // {
+        name = "ingress-system";
+      };
+    };
   };
 
   config.kubernetes.objects.default = {
@@ -141,7 +146,8 @@ in {
             containers = {
               _namedlist = true;
               mcp = {
-                image = "ghcr.io/containers/kubernetes-mcp-server:latest-linux-amd64";
+                # Tag pinned to v0.3.0 — check ghcr.io/containers/kubernetes-mcp-server for newer versions
+                image = "ghcr.io/containers/kubernetes-mcp-server:v0.3.0-linux-amd64";
                 imagePullPolicy = "IfNotPresent";
                 args = ["--port" "8080" "--toolsets" "core,helm" "--stateless"];
                 ports = [

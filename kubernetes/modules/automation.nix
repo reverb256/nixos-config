@@ -41,7 +41,8 @@ in {
       stringData = {
         # Managed by agenix: apply_secret automation n8n-secrets admin-password
         # Managed by agenix: apply_secret automation n8n-secrets encryption-key
-        postgres-password = "n8n";
+        # Managed by agenix: apply_secret automation n8n-secrets postgres-password
+        postgres-password = "";
       };
     };
 

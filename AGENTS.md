@@ -291,6 +291,22 @@ The NixOS `services.monitoring.grafana` module (`modules/services/monitoring/gra
 Grafana OAuth uses Casdoor via `GF_AUTH_GENERIC_OAUTH` env vars + Caddy `forward_auth` as a second layer.
 Secrets populated by `kubectl-apply-k8s-secrets` from agenix (`monitoring/grafana-oidc-secret`, `monitoring/grafana-admin-secret`).
 
+## ⚠️ CRITICAL: /data/projects/own/ Flake Inputs
+
+**Many cluster services live in `/data/projects/own/`, NOT in /etc/nixos modules!**
+
+These are **flake inputs** defined in `flake.nix` (line ~106), NOT NixOS modules. When you need to:
+- Find the **AI Inference Gateway** → `/data/projects/own/ai-inference-gateway/`
+- Find **GPU time-slicing** → `/data/projects/own/compute-market/`
+- Find **Knowledge base** → `/data/projects/own/knowledge-fabric/`
+
+**ALWAYS check this directory first** for service implementations, especially for AI/ML workloads.
+
+### How to identify flake-based services:
+- Look in `flake.nix` → `inputs` section for `path:/data/projects/own/*` entries
+- The flake outputs a `container` package which is pushed to local registry (`nexus:5000`)
+- K8s modules reference these via `inputs.<name>.packages.x86_64-linux.container`
+
 ## MCP Infrastructure
 
 **In-cluster:** kubernetes-mcp (SSE :8080 on nexus) + nixos-cluster-mcp v0.1.1 (DaemonSet, SSE :8081 on all nodes)

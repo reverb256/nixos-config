@@ -11,7 +11,9 @@
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
 
   # AI Inference Gateway — pre-built container image (loaded into containerd on target node)
-  gatewayImage = "docker.io/library/ai-inference-gateway:2.4.9";
+  # CRITICAL: Use local registry - docker.io requires auth and is slow
+  # Image pushed by nexus:push-gateway-to-registry service
+  gatewayImage = "nexus:5000/ai-inference-gateway:2.4.9";
 
   # Managed-by labels for easykubenix
   managed = {
@@ -857,290 +859,11 @@ in {
       ];
     };
 
-    # ── Knowledge Fabric API ─────────────────────────────────────
-    Deployment.knowledge-fabric-api = {
-      metadata.labels =
-        managed
-        // {
-          app = "knowledge-fabric-api";
-          component = "brain";
-        };
-      spec = {
-        replicas = 1;
-        selector.matchLabels.app = "knowledge-fabric-api";
-        strategy.type = "Recreate";
-        template = {
-          metadata.labels =
-            managed
-            // {
-              app = "knowledge-fabric-api";
-              component = "brain";
-            };
-          spec = {
-            affinity = {
-              nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms = [
-                { matchExpressions = [{ key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus" "sentry"]; }]; }
-              ];
-              nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution = [
-                { weight = 100; preference.matchExpressions = [{ key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus"]; }]; }
-              ];
-              podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution = [
-                { labelSelector.matchLabels.app = "ai-inference-gateway"; topologyKey = "kubernetes.io/hostname"; }
-              ];
-            }; # HA: nexus+sentry, anti-affinity
-            automountServiceAccountToken = false;
-            containers = [
-              {
-                name = "api";
-                image = "python:3.12-slim";
-                imagePullPolicy = "IfNotPresent";
-                command = [
-                  "python3"
-                  "-c"
-                  # Knowledge Fabric API stub - RRF middleware runs in gateway
-                  ''
-                    from http.server import HTTPServer, BaseHTTPRequestHandler
-                    import json
-                    class Handler(BaseHTTPRequestHandler):
-                      def do_GET(self):
-                        self.send_response(200)
-                        self.send_header('Content-Type', 'application/json')
-                        self.end_headers()
-                        self.wfile.write(b'{"status": "healthy", "service": "knowledge-fabric-api"}')
-                      def do_POST(self):
-                        if self.path == '/brain/query':
-                          content_length = int(self.headers.get('Content-Length', 0))
-                          body = self.rfile.read(content_length).decode() if content_length else '{}'
-                          self.send_response(200)
-                          self.send_header('Content-Type', 'application/json')
-                          self.end_headers()
-                          response = {"results": [], "status": "ready", "note": "RRF handled by gateway middleware"}
-                          self.wfile.write(json.dumps(response).encode())
-                        else:
-                          self.send_response(404)
-                          self.end_headers()
-                      def log_message(self, format, *args):
-                        print(f"[brain] {format % args}")
-                    print("Starting Knowledge Fabric API on port 3000")
-                    HTTPServer(('0.0.0.0', 3000), Handler).serve_forever()
-                  ''
-                ];
-                ports = [
-                  {
-                    containerPort = 3000;
-                    name = "http";
-                    protocol = "TCP";
-                  }
-                ];
-                resources = {
-                  requests = {
-                    cpu = "100m";
-                    memory = "128Mi";
-                  };
-                  limits = {
-                    cpu = "200m";
-                    memory = "128Mi";
-                  };
-                };
-                readinessProbe = {
-                  httpGet = {
-                    path = "/";
-                    port = 3000;
-                  };
-                  initialDelaySeconds = 5;
-                  periodSeconds = 10;
-                };
-              }
-            ];
-            tolerations = [
-              {
-                key = "workstation";
-                operator = "Equal";
-                value = "true";
-                effect = "NoSchedule";
-              }
-              {
-                key = "interactive";
-                operator = "Equal";
-                value = "true";
-                effect = "NoExecute";
-              }
-            ];
-          };
-        };
-      };
-    };
-
-    Service.knowledge-fabric-api = {
-      metadata.labels.app = "knowledge-fabric-api";
-      spec = {
-        type = "ClusterIP";
-        selector.app = "knowledge-fabric-api";
-        ports = [
-          {
-            name = "http";
-            port = 3000;
-            protocol = "TCP";
-            targetPort = 3000;
-          }
-        ];
-      };
-    };
-
     # ── Embed Server removed: gateway handles embeddings via BidirLM ──
     # Previously: HuggingFace TEI (nomic-embed-text-v2-moe) with CUDA driver
     # mismatch (compat layer 575.x vs host 595.x). Replaced by built-in
     # BidirLM-Omni-2.5B-Embedding endpoint at /v1/embeddings.
-
-    # ── llama-server (Qwen on Nexus) ─────────────────────────────
-    Deployment.llama-server = {
-      metadata.labels =
-        managed
-        // {
-          app = "llama-cpp";
-          purpose = "llm-inference";
-        };
-      spec = {
-        replicas = 0;
-        revisionHistoryLimit = 2;
-        selector.matchLabels.app = "llama-cpp";
-        strategy = {
-          type = "RollingUpdate";
-          rollingUpdate = {
-            maxSurge = 0;
-            maxUnavailable = 1;
-          };
-        };
-        template = {
-          metadata.labels.app = "llama-cpp";
-          spec = {
-            affinity = {
-              nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms = [
-                { matchExpressions = [{ key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus" "sentry"]; }]; }
-              ];
-              nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution = [
-                { weight = 100; preference.matchExpressions = [{ key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus"]; }]; }
-              ];
-              podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution = [
-                { labelSelector.matchLabels.app = "ai-inference-gateway"; topologyKey = "kubernetes.io/hostname"; }
-              ];
-            }; # HA: nexus+sentry, anti-affinity
-            hostNetwork = true;
-            containers = [
-              {
-                name = "llama-server";
-                image = "alpine:latest";
-                command = ["/run/current-system/sw/bin/llama-server"];
-                args = [
-                  "--model=/models/Qwen3.5-0.8B.Q8_0.gguf"
-                  "--host=0.0.0.0"
-                  "--port=8080"
-                  "--ctx-size=16384"
-                  "--threads=16"
-                  "--metrics"
-                ];
-                env = [
-                  {
-                    name = "CUDA_VISIBLE_DEVICES";
-                    value = "";
-                  }
-                ];
-                ports = [
-                  {
-                    name = "http";
-                    containerPort = 8080;
-                    hostPort = 8080;
-                    protocol = "TCP";
-                  }
-                ];
-                resources = {
-                  requests = {
-                    cpu = "2";
-                    memory = "2Gi";
-                  };
-                  limits = {
-                    cpu = "8";
-                    memory = "4Gi";
-                  };
-                };
-                volumeMounts = [
-                  {
-                    name = "models";
-                    mountPath = "/models";
-                    readOnly = true;
-                  }
-                  {
-                    name = "nixos-bin";
-                    mountPath = "/run/current-system/sw/bin";
-                    readOnly = true;
-                  }
-                  {
-                    name = "nixos-lib";
-                    mountPath = "/run/current-system/sw/lib";
-                    readOnly = true;
-                  }
-                ];
-                livenessProbe = {
-                  httpGet = {
-                    path = "/health";
-                    port = 8080;
-                  };
-                  initialDelaySeconds = 30;
-                  periodSeconds = 30;
-                };
-                readinessProbe = {
-                  httpGet = {
-                    path = "/health";
-                    port = 8080;
-                  };
-                  initialDelaySeconds = 10;
-                  periodSeconds = 10;
-                };
-              }
-            ];
-            volumes = [
-              {
-                name = "models";
-                hostPath = {
-                  path = "/home/j_kro/.lmstudio/models/Jackrong/Qwen3.5-0.8B-Claude-4.6-Opus-Reasoning-Distilled-GGUF";
-                  type = "Directory";
-                };
-              }
-              {
-                name = "nixos-bin";
-                hostPath = {
-                  path = "/run/current-system/sw/bin";
-                  type = "Directory";
-                };
-              }
-              {
-                name = "nixos-lib";
-                hostPath = {
-                  path = "/run/current-system/sw/lib";
-                  type = "Directory";
-                };
-              }
-            ];
-          };
-        };
-      };
-    };
-
-    Service.llama-server = {
-      metadata.labels.app = "llama-server";
-      spec = {
-        type = "ClusterIP";
-        selector.app = "llama-server";
-        ports = [
-          {
-            port = 8080;
-            targetPort = 8080;
-            protocol = "TCP";
-            name = "http";
-          }
-        ];
-      };
-    };
+    # Knowledge Fabric API stub removed — RRF middleware runs in gateway.
 
     # ── llama-cpp-qwen Service+Endpoints (Nexus hostNetwork) ─────
     Service.llama-cpp-qwen = {
@@ -1300,11 +1023,6 @@ in {
       stringData.NVIDIA_API_KEY = "";
     };
 
-    # OpenRouter API key — populated from agenix (secrets/openrouter-api-key.age)
-    Secret.openrouter-api-key = {
-      type = "Opaque";
-      stringData.OPENROUTER_API_KEY = "";
-    };
 
     # Pollinations API key — populated from agenix (secrets/pollinations-api-key.age)
     Secret.pollinations-api-key = {
@@ -1956,8 +1674,8 @@ CAT_NAMES = {
 def get_ctx(mid):
     for m in models["data"]:
         if m["id"] == mid:
-            return m.get("context_length") or 131072
-    return 131072
+            return m.get("context_length") or 262144
+    return 262144
 
 def is_vision(mid):
     return any(x in mid.lower() for x in ["vl", "vision", "5v"])
@@ -2002,7 +1720,7 @@ for line in CURATED.split("\n"):
         found += 1
         print(f"  OK   {mid}")
         ctx = get_ctx(mid)
-        max_tok = min(ctx, 131072)
+        max_tok = min(ctx, 262144)
         omp_models.append({
             "id": mid,
             "name": desc,
