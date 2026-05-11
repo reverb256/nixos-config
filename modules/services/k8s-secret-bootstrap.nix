@@ -57,12 +57,12 @@ in {
             else
               echo "[k8s-secret-bootstrap] Generating secret ${secret.name}..."
               ${lib.concatMapStrings (key: ''
-                ${key}=$(openssl rand -base64 32 | head -c 32)
+                ${lib.strings.replaceStrings ["-"] ["_"] key}=$(openssl rand -base64 32 | head -c 32)
               '')
               secret.keys}
               kubectl create secret generic ${secret.name} -n ${secret.namespace} \
                 ${lib.concatMapStrings (key: ''
-                --from-literal=${key}="$${key}" \
+                --from-literal=${key}="$${lib.strings.replaceStrings ["-"] ["_"] key}" \
               '')
               secret.keys}
               echo "[k8s-secret-bootstrap] Created ${secret.name}"
