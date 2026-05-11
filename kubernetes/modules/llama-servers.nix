@@ -348,15 +348,17 @@ in
                   "--reasoning"
                   "on"
                   "--chat-template-kwargs"
-                  ''{"preserve_thinking": true}''
+                  ''{"preserve_thinking": true, "enable_thinking": true}''
                   "--temp"
-                  "0.6"
+                  "0.7"
                   "--top-k"
                   "20"
                   "--top-p"
-                  "0.95"
+                  "0.8"
                   "--min-p"
                   "0.0"
+                  "--presence-penalty"
+                  "1.5"
                 ];
                 env = {
                   _namedlist = true;
@@ -518,114 +520,3 @@ in
                   "q4_0"
                   "--flash-attn"
                   "on"
-                  "--reasoning"
-                  "off"
-                ];
-                env = {
-                  _namedlist = true;
-                  LD_LIBRARY_PATH = {
-                    name = "LD_LIBRARY_PATH";
-                    value = "/run/opengl-driver/lib:/nix/store";
-                  };
-                  HSA_OVERRIDE_GFX_VERSION = {
-                    name = "HSA_OVERRIDE_GFX_VERSION";
-                    value = "10.3.0";
-                  };
-                };
-                ports = [
-                  {
-                    containerPort = 1235;
-                    name = "http";
-                    protocol = "TCP";
-                  }
-                ];
-                livenessProbe = {
-                  tcpSocket.port = 1235;
-                  initialDelaySeconds = 120;
-                  periodSeconds = 30;
-                  failureThreshold = 5;
-                };
-                readinessProbe = {
-                  tcpSocket.port = 1235;
-                  initialDelaySeconds = 60;
-                  periodSeconds = 10;
-                  failureThreshold = 10;
-                };
-                resources = {
-                  requests = {
-                    memory = "4Gi";
-                    cpu = "500m";
-                  };
-                  limits = {
-                    memory = "8Gi";
-                    cpu = "2";
-                  };
-                };
-                securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                  nix = {
-                    mountPath = "/nix";
-                    readOnly = true;
-                  };
-                  dev-dri = {
-                    mountPath = "/dev/dri";
-                  };
-                  models = {
-                    mountPath = "/models";
-                    readOnly = true;
-                  };
-                  opengl = {
-                    mountPath = "/run/opengl-driver/lib";
-                    readOnly = true;
-                  };
-                  vulkan-icd = {
-                    mountPath = "/run/opengl-driver/share/vulkan/icd.d";
-                    readOnly = true;
-                  };
-                  tmp = {
-                    mountPath = "/tmp";
-                  };
-                };
-              };
-            };
-            volumes = {
-              _namedlist = true;
-              nix.hostPath = {
-                path = "/nix";
-                type = "Directory";
-              };
-              dev-dri.hostPath = {
-                path = "/dev/dri";
-                type = "Directory";
-              };
-              models.hostPath.path = "/home/j_kro/.lmstudio/models";
-              opengl.hostPath.path = "/run/opengl-driver/lib";
-              vulkan-icd.hostPath.path = "/run/opengl-driver/share/vulkan/icd.d";
-              tmp.emptyDir = { };
-            };
-          };
-        };
-      };
-    };
-
-    Service.llama-server-sentry = {
-      metadata.labels = managed // {
-        app = "llama-server-sentry";
-      };
-      spec = {
-        type = "ClusterIP";
-        ports = [
-          {
-            name = "http";
-            port = 1235;
-            protocol = "TCP";
-            targetPort = 1235;
-          }
-        ];
-        selector.app = "llama-server-sentry";
-      };
-    };
-
-};
-}
