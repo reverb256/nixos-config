@@ -40,6 +40,16 @@ let
     "development/ai-coding-tools/mcp-defs.nix" = true;           # Submodule: imported by ai-coding-tools.nix
     "development/ai-coding-tools/opencode.nix" = true;           # Submodule: imported by ai-coding-tools.nix
     "profiles/networking.nix" = true;                            # Library: returns mkNetworkingConfig function
+    # system/network.nix and system/ssh-autodiscover.nix — fixed to use config.networking.cluster, now auto-imported
+
+    # Profile subdirectory default.nix files:
+    # These are already imported as directories by profiles/default.nix (e.g. ./role -> role/default.nix).
+    # The NixOS module system doesn't deduplicate directory vs file paths, so exclude to avoid double-declaration.
+    "profiles/hardware/default.nix" = true;
+    "profiles/role/default.nix" = true;
+    "profiles/network/default.nix" = true;
+    # implementations.nix files are imported by their respective subdirectory default.nix, and can be
+    # safely collected here too (file path dedup works when both refs are file paths).
   };
 
   # Recursively walk the directory tree, collecting .nix file paths.
