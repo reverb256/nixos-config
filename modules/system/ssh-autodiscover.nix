@@ -1,6 +1,6 @@
 { config, lib, pkgs, ... }:
 let
-  cfg = config.cluster.config;
+  cfg = config.networking.cluster;
   hosts = cfg.hosts;
 in {
   programs.ssh.knownHosts = lib.mapAttrs' (name: host:
