@@ -144,6 +144,12 @@ in {
           owner = "j_kro";
           group = "users";
         };
+        opencode-go-api-key = {
+          file = "${inputs.self}/secrets/opencode-go-api-key.age";
+          mode = "440";
+          owner = "j_kro";
+          group = "users";
+        };
       })
       (lib.mkIf config.services.agenix-secrets-registry.monitoring {
         grafana-admin = {

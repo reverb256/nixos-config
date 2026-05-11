@@ -20,6 +20,7 @@ in {
       apiKeyFile = config.age.secrets.zai-api-key.path;
       nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
       casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
+      opencodeGoApiKeyFile = "/run/agenix/opencode-go-api-key";
     };
     k3s-cluster = {
       enable = true;
@@ -310,6 +311,7 @@ in {
       enable = true;
       zaiApiKeyFile = config.age.secrets.zai-api-key.path;
       context7ApiKeyFile = "/run/agenix/context7-api-key";
+      opencodeGoApiKeyFile = "/run/agenix/opencode-go-api-key";
     };
 
     web-testing.enable = true;
