@@ -24,7 +24,7 @@
 
   # Build the WhatsApp bridge from the hermes-agent source
   # The upstream Nix package omits scripts/whatsapp-bridge/ — this fills the gap.
-  whatsapp-bridge = pkgs.callPackage ../../packages/hermes-whatsapp-bridge.nix {
+  whatsapp-bridge = pkgs.callPackage ../../packages/hermes-whatsapp-bridge-stub.nix {
     hermesSrc = inputs.hermes-agent;
   };
 
@@ -191,7 +191,8 @@ in {
 
   config = lib.mkIf cfg.enable {
     # Install hermes package system-wide
-    environment.systemPackages = [hermes-with-whatsapp];
+    # TEMP DISABLED: hermes-with-whatsapp broken due to npm protobufjs issue
+    # environment.systemPackages = [hermes-with-whatsapp];
 
     # Only set HERMES_HOME if hermes-agent is NOT managing it
     # The hermes-agent module sets addToSystemPackages which also sets HERMES_HOME
@@ -209,36 +210,35 @@ in {
               if [ ! -f "$HERMES_HOME/config.yaml" ] || grep -q "# Managed by NixOS" "$HERMES_HOME/config.yaml" 2>/dev/null; then
                 cat > "$HERMES_HOME/config.yaml" << YAML_EOF
         # Managed by NixOS - hermes-cli module
-        # All inference routed through AI Inference Gateway
+        # LOCAL MODELS AS DEFAULT - Cloud fallback available
         model:
-          provider: ai-gateway
-          base_url: http://${config.networking.cluster.hosts.zephyr.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-gateway}/v1
-          default: qwen/qwen3-coder-480b-a35b-instruct
-          api_key: none
+          provider: vllm-3060ti
+          default: qwen3.5-2b-awq
 
         providers:
-          ai-gateway:
-            base_url: http://${config.networking.cluster.hosts.zephyr.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-gateway}/v1
-            api_key: none
+          vllm-3060ti:
+            base_url: http://${config.networking.cluster.hosts.zephyr.ip}:8040/v1
+            model: qwen3.5-2b-awq
+          llama-zephyr-3090:
+            base_url: http://${config.networking.cluster.hosts.zephyr.ip}:1237/v1
+            model: Carnice-Qwen3.6-MoE-IQ4_XS.gguf
+          llama-sentry:
+            base_url: ${config.networking.cluster.hosts.sentry.ip}:1235/v1
+            model: Qwen3.5-4B-Q4_K_M.gguf
           zai:
             base_url: https://api.z.ai/api/coding/paas/v4
             api_key_env: ZAI_API_KEY
-          nvidia-nim:
-            base_url: https://integrate.api.nvidia.com/v1
-            api_key_env: NVIDIA_API_KEY
-          llama-cpp-zephyr:
-            base_url: http://llama-server-zephyr.ai-inference.svc.cluster.local:1237/v1
-            api_key: unused
-          llama-cpp-sentry:
-            base_url: http://llama-server-sentry.ai-inference.svc.cluster.local:1235/v1
-            api_key: unused
+glm-flash:
+base_url: http://${toString config.networking.cluster.kubernetes.nodePorts.ai-gateway}:8080/v1
+            model: glm-4.5-flash
+            api_key_env: ZAI_API_KEY
 
         fallback_providers:
-          - ai-gateway
+          - vllm-3060ti
+          - llama-zephyr-3090
+          - llama-sentry
+          - glm-flash
           - zai
-          - nvidia-nim
-          - llama-cpp-zephyr
-          - llama-cpp-sentry
 
         terminal:
           backend: local
@@ -254,13 +254,6 @@ in {
         compression:
           enabled: true
           threshold: 0.9
-
-        # WhatsApp bridge — point to Nix-built bridge since upstream
-        # package omits scripts/whatsapp-bridge/
-        platforms:
-          whatsapp:
-            extra:
-              bridge_script: ${whatsapp-bridge}/bridge.js
         YAML_EOF
                 chmod 644 "$HERMES_HOME/config.yaml"
               fi
