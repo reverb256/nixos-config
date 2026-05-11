@@ -66,7 +66,7 @@ in {
     ./modules/monitoring-dashboards.nix
     ./modules/vane.nix
     ./modules/host-services.nix
-    ./modules/ai-coding-tools.nix
+    # ./modules/ai-coding-tools.nix  # BROKEN - excluded temporarily
     ./modules/mission-control.nix
     ./modules/kagent.nix
     ./modules/automation.nix
@@ -114,7 +114,7 @@ in {
     ./modules/cert-manager.nix
     ./modules/oauth2-proxy.nix
     ./modules/vane.nix
-    ./modules/ai-coding-tools.nix
+    # ./modules/ai-coding-tools.nix  # BROKEN - excluded temporarily
     ./modules/mission-control.nix
     ./modules/kagent.nix
     ./modules/automation.nix
