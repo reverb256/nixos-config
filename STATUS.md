@@ -1,6 +1,6 @@
 # NixOS Cluster - Real-Time Status
 
-**Last Updated:** 2026-05-07 16:35:04 | **Auto-Generated:** Yes | **Refresh:** `./scripts/update-status.sh`
+**Last Updated:** 2026-05-11 19:12:47 | **Auto-Generated:** Yes | **Refresh:** `./scripts/update-status.sh`
 
 > **Quick Check:** Run `just cluster-status` to see current cluster state. This command works from any cluster host and proxies to zephyr for Kubernetes queries when needed.
 >
@@ -27,11 +27,11 @@
 ## Kubernetes Nodes
 
 ```
-NAME     STATUS   ROLES                AGE   VERSION
-forge    Ready    <none>               32d   v1.35.4+k3s1
-nexus    Ready    control-plane,etcd   8d    v1.35.4+k3s1
-sentry   Ready    control-plane,etcd   32d   v1.35.4+k3s1
-zephyr   Ready    control-plane,etcd   30d   v1.35.4+k3s1
+NAME     STATUS    ROLES                AGE   VERSION
+forge    Unknown   <none>               36d   v1.35.4+k3s1
+nexus    Unknown   control-plane,etcd   12d   v1.35.4+k3s1
+sentry   Unknown   control-plane,etcd   36d   v1.35.4+k3s1
+zephyr   Ready     control-plane,etcd   35d   v1.35.4+k3s1
 ```
 
 > **Note:** Node ages reflect CIDR fix + role label application. Roles describe node function for pod scheduling.
@@ -76,85 +76,88 @@ zephyr   Ready    control-plane,etcd   30d   v1.35.4+k3s1
 ### Kubernetes Pods by Namespace
 
 ```
-NAMESPACE       NAME                                             READY   STATUS      RESTARTS         AGE     IP             NODE     NOMINATED NODE   READINESS GATES
-ai-inference    ai-inference-gateway-599d8f8f5b-fppqs            1/1     Running     0                11h     10.244.1.30    nexus    <none>           <none>
-ai-inference    kb-mcp-55498b9b6b-htxvd                          1/1     Running     0                11h     10.244.1.31    nexus    <none>           <none>
-ai-inference    knowledge-fabric-api-849764dd66-cfscd            1/1     Running     3 (13h ago)      3d21h   10.244.1.15    nexus    <none>           <none>
-ai-inference    llama-qwen-vllm-zephyr-3060ti-7b98fd7f6b-ttv7x   0/1     Running     6 (4m36s ago)    25h     10.1.1.110     zephyr   <none>           <none>
-ai-inference    llama-server-sentry-7986889d74-4lzmd             1/1     Running     0                20h     10.1.1.140     sentry   <none>           <none>
-ai-inference    open-webui-65d8bb5fc7-7nhlz                      1/1     Running     0                13h     10.244.5.109   forge    <none>           <none>
-ai-inference    privacy-filter-6bd8fb75bc-4sbn8                  1/1     Running     0                11h     10.244.1.35    nexus    <none>           <none>
-ai-inference    qdrant-79cf48cccd-jmkts                          1/1     Running     0                11h     10.244.1.32    nexus    <none>           <none>
-ai-inference    redis-687b88d554-kbrp6                           1/1     Running     3 (13h ago)      3d21h   10.244.1.18    nexus    <none>           <none>
-auth            casdoor-5d6f88ff9b-kkj92                         1/1     Running     50 (4m36s ago)   3d12h   10.244.0.3     zephyr   <none>           <none>
-auth            casdoor-postgres-0                               1/1     Running     14 (4m36s ago)   3d14h   10.244.0.7     zephyr   <none>           <none>
-auth            oauth2-proxy-598df66f64-jkccz                    1/1     Running     15 (3m53s ago)   25h     10.244.0.5     zephyr   <none>           <none>
-automation      n8n-86bf9b6889-lfk8w                             1/1     Running     5 (13h ago)      3d20h   10.244.1.21    nexus    <none>           <none>
-automation      postgres-activepieces-0                          1/1     Running     5 (13h ago)      8d      10.244.1.4     nexus    <none>           <none>
-automation      postgres-n8n-0                                   1/1     Running     5 (13h ago)      8d      10.244.1.14    nexus    <none>           <none>
-automation      redis-activepieces-59f469df58-jbn6l              1/1     Running     5 (13h ago)      8d      10.244.1.2     nexus    <none>           <none>
-cert-manager    cert-manager-5f9ddb88b4-dcggc                    1/1     Running     11 (12h ago)     5d4h    10.244.1.11    nexus    <none>           <none>
-cert-manager    cert-manager-cainjector-9bb5d7d75-bhxww          1/1     Running     311 (12h ago)    5d4h    10.244.5.3     forge    <none>           <none>
-cert-manager    cert-manager-webhook-7fc8569958-6b9qs            1/1     Running     7 (23h ago)      5d4h    10.244.5.4     forge    <none>           <none>
-haven           haven-67bb686696-kvnwf                           1/1     Running     3 (13h ago)      5d18h   10.244.1.8     nexus    <none>           <none>
-infra           kubernetes-mcp-776d9bd6fd-jggk8                  1/1     Running     0                11h     10.244.1.33    nexus    <none>           <none>
-infra           mining-inference-coordinator-m8zzh               1/1     Running     6 (4m36s ago)    18h     10.1.1.110     zephyr   <none>           <none>
-infra           nixos-cluster-mcp-8294h                          1/1     Running     7 (23h ago)      5d21h   10.1.1.130     forge    <none>           <none>
-infra           nixos-cluster-mcp-bwkqx                          1/1     Running     3 (13h ago)      5d21h   10.1.1.120     nexus    <none>           <none>
-infra           nixos-cluster-mcp-nlhnp                          1/1     Running     16 (4m36s ago)   3d18h   10.1.1.110     zephyr   <none>           <none>
-infra           nixos-cluster-mcp-wp4rx                          1/1     Running     2 (40h ago)      3d18h   10.1.1.140     sentry   <none>           <none>
-kagent          kagent-controller-64d6d897fb-p272w               1/1     Running     6 (13h ago)      6d6h    10.244.1.6     nexus    <none>           <none>
-kagent          kagent-postgresql-c6b469cdf-lfz6m                1/1     Running     3 (13h ago)      6d20h   10.244.1.5     nexus    <none>           <none>
-kagent          kagent-ui-858585998b-fctw2                       1/1     Running     3 (13h ago)      5d7h    10.244.1.10    nexus    <none>           <none>
-kube-system     coredns-79bc876794-4jlng                         1/1     Running     0                12h     10.244.5.111   forge    <none>           <none>
-kube-system     local-path-provisioner-5688ffbd9c-8qt8n          1/1     Running     0                12h     10.244.5.110   forge    <none>           <none>
-kube-system     metrics-server-5c7475dbdc-b5zq9                  1/1     Running     23 (4m36s ago)   10d     10.1.1.110     zephyr   <none>           <none>
-kube-system     nvidia-device-plugin-daemonset-45qhf             1/1     Running     5 (13h ago)      8d      10.244.1.19    nexus    <none>           <none>
-kube-system     nvidia-device-plugin-daemonset-l7k28             1/1     Running     18 (4m36s ago)   17d     10.244.0.6     zephyr   <none>           <none>
-kube-system     nvidia-device-plugin-daemonset-sxp9b             1/1     Running     11 (23h ago)     17d     10.244.5.6     forge    <none>           <none>
-mcp             qdrant-mcp-585bb49b79-9s7cq                      1/1     Running     0                11h     10.244.1.34    nexus    <none>           <none>
-mining          gpu-miner-forge-amd-0-564cb5ddfd-75ckr           1/1     Running     7 (23h ago)      7d1h    10.1.1.130     forge    <none>           <none>
-mining          gpu-miner-forge-amd-1-7f75994566-q5w76           1/1     Running     7 (23h ago)      7d1h    10.1.1.130     forge    <none>           <none>
-mining          gpu-miner-forge-nvidia-0-64dc466655-9kplw        1/1     Running     7 (23h ago)      7d1h    10.1.1.130     forge    <none>           <none>
-mining          gpu-miner-forge-nvidia-1-c6c5b7d84-qh7vf         1/1     Running     7 (23h ago)      7d1h    10.1.1.130     forge    <none>           <none>
-mining          gpu-miner-nexus-6f6b479c7f-b2tdx                 1/1     Running     3 (13h ago)      7d1h    10.1.1.120     nexus    <none>           <none>
-mining          xmrig-nexus-85ff4774-2x46f                       1/1     Running     3 (13h ago)      7d1h    10.1.1.120     nexus    <none>           <none>
-mining          xmrig-proxy-5bf674695d-x4nqj                     1/1     Running     3 (13h ago)      7d1h    10.1.1.120     nexus    <none>           <none>
-mining          xmrig-sentry-858846975f-srl8d                    1/1     Running     0                20h     10.1.1.140     sentry   <none>           <none>
-monitoring      alert-webhook-7697fbdc76-5m87j                   1/1     Running     5 (13h ago)      8d      10.244.1.12    nexus    <none>           <none>
-monitoring      alloy-mqtwj                                      1/1     Running     0                10h     10.1.1.120     nexus    <none>           <none>
-monitoring      grafana-67bff79dfd-9vljc                         1/1     Running     3 (13h ago)      3d19h   10.244.1.20    nexus    <none>           <none>
-monitoring      loki-0                                           1/1     Running     3 (13h ago)      3d18h   10.244.1.27    nexus    <none>           <none>
-monitoring      memory-monitor-29636185-s74rm                    0/1     Completed   0                10m     <none>         zephyr   <none>           <none>
+NAMESPACE        NAME                                             READY   STATUS                   RESTARTS         AGE     IP             NODE     NOMINATED NODE   READINESS GATES
+ai-coding        claude-code-656765c5cd-mxbtj                     2/2     Running                  0                27h     10.244.1.142   nexus    <none>           <none>
+ai-coding        opencode-6cfddd9c47-tmfrs                        2/2     Running                  0                27h     10.244.1.144   nexus    <none>           <none>
+ai-inference     frostbite-mcp-f958696fd-2phlz                    1/1     Running                  0                24h     10.244.1.188   nexus    <none>           <none>
+ai-inference     frostbite-postgres-0                             1/1     Running                  0                27h     10.244.3.52    sentry   <none>           <none>
+ai-inference     knowledge-fabric-api-747b58b76c-gffwm            1/1     Running                  0                27h     10.244.1.141   nexus    <none>           <none>
+ai-inference     llama-qwen-vllm-zephyr-3060ti-7b7f5f5599-g5k54   0/1     Running                  5 (3m53s ago)    2d23h   10.1.1.110     zephyr   <none>           <none>
+ai-inference     llama-server-sentry-6bc49f7cd6-648gb             1/1     Running                  0                4h50m   10.1.1.140     sentry   <none>           <none>
+ai-inference     llama-server-zephyr-3090-moe-5c95cd5869-4xxlv    0/1     ContainerStatusUnknown   0                8m20s   10.1.1.110     zephyr   <none>           <none>
+ai-inference     llama-server-zephyr-3090-moe-5c95cd5869-5sgsm    0/1     ContainerStatusUnknown   0                8m13s   10.1.1.110     zephyr   <none>           <none>
+ai-inference     llama-server-zephyr-3090-moe-5c95cd5869-6vbqw    0/1     ContainerStatusUnknown   0                8m15s   10.1.1.110     zephyr   <none>           <none>
+ai-inference     llama-server-zephyr-3090-moe-5c95cd5869-8srd6    0/1     ContainerStatusUnknown   0                8m21s   10.1.1.110     zephyr   <none>           <none>
+ai-inference     llama-server-zephyr-3090-moe-5c95cd5869-9c6qp    0/1     ContainerStatusUnknown   0                8m21s   10.1.1.110     zephyr   <none>           <none>
+ai-inference     llama-server-zephyr-3090-moe-5c95cd5869-d2ffh    0/1     ContainerStatusUnknown   0                8m21s   10.1.1.110     zephyr   <none>           <none>
+ai-inference     llama-server-zephyr-3090-moe-5c95cd5869-d594f    0/1     ContainerStatusUnknown   0                8m21s   10.1.1.110     zephyr   <none>           <none>
+ai-inference     llama-server-zephyr-3090-moe-5c95cd5869-lsj8x    0/1     ContainerStatusUnknown   0                8m21s   10.1.1.110     zephyr   <none>           <none>
+ai-inference     llama-server-zephyr-3090-moe-5c95cd5869-mwndl    0/1     ContainerStatusUnknown   0                8m18s   10.1.1.110     zephyr   <none>           <none>
+ai-inference     llama-server-zephyr-3090-moe-5c95cd5869-sbx7b    0/1     ContainerStatusUnknown   0                8m21s   10.1.1.110     zephyr   <none>           <none>
+ai-inference     llama-server-zephyr-3090-moe-68fb564599-blgcf    0/1     Error                    9 (2m2s ago)     8m11s   10.1.1.110     zephyr   <none>           <none>
+ai-inference     open-webui-7bd89c8d8-lbbnn                       1/1     Running                  0                27h     10.244.5.23    forge    <none>           <none>
+ai-inference     privacy-filter-6bd8fb75bc-4sbn8                  1/1     Running                  0                4d14h   10.244.1.35    nexus    <none>           <none>
+ai-inference     qdrant-7dcc566f4c-wp98b                          1/1     Running                  0                2d18h   10.244.1.102   nexus    <none>           <none>
+ai-inference     redis-7d6fcf5ddc-qw764                           1/1     Running                  0                3d      10.244.1.59    nexus    <none>           <none>
+auth             casdoor-697fd868f5-7b6df                         1/1     Running                  0                18h     10.244.1.191   nexus    <none>           <none>
+auth             casdoor-697fd868f5-hcs7x                         1/1     Running                  0                17h     10.244.1.192   nexus    <none>           <none>
+auth             casdoor-postgres-0                               0/1     Pending                  0                17h     <none>         <none>   <none>           <none>
+auth             oauth2-proxy-c9478bcfb-cmpnw                     1/1     Running                  0                17h     10.244.1.193   nexus    <none>           <none>
+automation       n8n-c8cc98d7-2xv7s                               1/1     Running                  0                47h     10.244.1.129   nexus    <none>           <none>
+automation       postgres-n8n-0                                   1/1     Running                  0                47h     10.244.1.125   nexus    <none>           <none>
+cert-manager     cert-manager-6d886c975f-l5dnk                    1/1     Running                  0                3d      10.244.5.141   forge    <none>           <none>
+cert-manager     cert-manager-cainjector-79cbb85d4b-qmszj         1/1     Running                  0                3d      10.244.5.142   forge    <none>           <none>
+cert-manager     cert-manager-webhook-55d4ccb49b-d9bnv            1/1     Running                  0                3d      10.244.5.143   forge    <none>           <none>
+custom-metrics   prometheus-adapter-d486f945b-nlxm4               1/1     Running                  0                26h     10.1.1.130     forge    <none>           <none>
+dashboard        glance-54b9f6cf65-z46wc                          1/1     Running                  0                33h     10.244.1.136   nexus    <none>           <none>
+default          forge-dashboard-67ccc846fc-xnsp2                 1/1     Running                  0                3h36m   10.244.5.159   forge    <none>           <none>
+default          nexus-dashboard-7564d8df89-blfv2                 1/1     Running                  0                3h36m   10.244.1.213   nexus    <none>           <none>
+default          sentry-dashboard-5db4b848bf-4w8hl                1/1     Running                  0                3h36m   10.244.3.150   sentry   <none>           <none>
+default          zephyr-dashboard-5dc5f9df58-tf6t4                1/1     Running                  5 (3m53s ago)    3h36m   10.244.0.7     zephyr   <none>           <none>
+infra            kubernetes-mcp-7ddcbf546c-t628j                  1/1     Running                  0                26h     10.244.1.151   nexus    <none>           <none>
+infra            mining-inference-coordinator-m8zzh               1/1     Running                  13 (3m53s ago)   4d21h   10.1.1.110     zephyr   <none>           <none>
+infra            nixos-cluster-mcp-8294h                          1/1     Running                  7 (5d2h ago)     10d     10.1.1.130     forge    <none>           <none>
+infra            nixos-cluster-mcp-bwkqx                          1/1     Running                  3 (4d15h ago)    10d     10.1.1.120     nexus    <none>           <none>
+infra            nixos-cluster-mcp-nlhnp                          1/1     Running                  26 (3m53s ago)   7d21h   10.1.1.110     zephyr   <none>           <none>
+infra            nixos-cluster-mcp-wp4rx                          1/1     Running                  3 (2d22h ago)    7d21h   10.1.1.140     sentry   <none>           <none>
+kagent           kagent-controller-5cb9866b55-wzjfk               1/1     Running                  4 (2d16h ago)    2d16h   10.244.1.112   nexus    <none>           <none>
+kagent           kagent-postgresql-578b9b9f54-jnvgg               1/1     Running                  0                3d      10.244.1.63    nexus    <none>           <none>
+kagent           kagent-ui-869bcc5b57-5s7j6                       1/1     Running                  2 (2d16h ago)    2d16h   10.244.1.110   nexus    <none>           <none>
+kube-system      coredns-b7b6dc595-7qtmb                          1/1     Running                  0                2d16h   10.244.1.111   nexus    <none>           <none>
+kube-system      coredns-b7b6dc595-h8xwh                          1/1     Running                  0                2d16h   10.244.5.19    forge    <none>           <none>
+kube-system      coredns-ha-enforcer-29642105-sxx7z               0/1     Completed                0                7m48s   <none>         zephyr   <none>           <none>
 ```
 
 > **Note:** Showing first 50 pods. Run `kubectl get pods --all-namespaces` for full list.
 
 ### Pod Summary by Namespace
 ```
-      9 monitoring
-      9 ai-inference
-      8 mining
-      6 kube-system
+     20 ai-inference
+     13 monitoring
+     11 mcp
+     10 kube-system
+      9 mining
       6 infra
       5 nixkube
-      4 automation
+      4 default
+      4 auth
       3 search
       3 kagent
       3 cert-manager
-      3 auth
       2 tailscale
+      2 automation
+      2 ai-coding
       1 vaultwarden
       1 orchestration
-      1 mcp
-      1 haven
+      1 dashboard
+      1 custom-metrics
 ```
 
 ---
 
 ## Recent Changes
 
-**2026-05-07 16:35:04:**
+**2026-05-11 19:12:47:**
 - 🔄 **AUTO-UPDATED:** STATUS.md regenerated from current cluster state
 - 📊 **CLUSTER STATUS:** All nodes Ready, control plane operational
 
@@ -190,34 +193,34 @@ monitoring      memory-monitor-29636185-s74rm                    0/1     Complet
 ### Node Resource Usage
 ```
 NAME     CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)   
-forge    312m         5%       4953Mi          38%         
-nexus    7368m        30%      9050Mi          21%         
-sentry   8000m        100%     9747Mi          36%         
-zephyr   308m         0%       10467Mi         36%         
+forge    676m         11%      4370Mi          34%         
+nexus    7810m        32%      14477Mi         33%         
+sentry   9304m        58%      7349Mi          27%         
+zephyr   9204m        28%      13228Mi         45%         
 ```
 
 ### Pod Resource Usage
 ```
-NAMESPACE       NAME                                             CPU(cores)   MEMORY(bytes)   
-ai-inference    ai-inference-gateway-599d8f8f5b-fppqs            3m           520Mi           
-ai-inference    kb-mcp-55498b9b6b-htxvd                          1m           103Mi           
-ai-inference    knowledge-fabric-api-849764dd66-cfscd            1m           13Mi            
-ai-inference    llama-qwen-vllm-zephyr-3060ti-7b98fd7f6b-ttv7x   3m           3886Mi          
-ai-inference    llama-server-sentry-7986889d74-4lzmd             1m           2994Mi          
-ai-inference    open-webui-65d8bb5fc7-7nhlz                      2m           848Mi           
-ai-inference    privacy-filter-6bd8fb75bc-4sbn8                  1m           786Mi           
-ai-inference    qdrant-79cf48cccd-jmkts                          1m           131Mi           
-ai-inference    redis-687b88d554-kbrp6                           4m           12Mi            
-auth            casdoor-5d6f88ff9b-kkj92                         1m           22Mi            
-auth            casdoor-postgres-0                               3m           78Mi            
-auth            oauth2-proxy-598df66f64-jkccz                    1m           7Mi             
-automation      n8n-86bf9b6889-lfk8w                             1m           196Mi           
-automation      postgres-activepieces-0                          6m           26Mi            
-automation      postgres-n8n-0                                   5m           30Mi            
-automation      redis-activepieces-59f469df58-jbn6l              6m           14Mi            
-cert-manager    cert-manager-5f9ddb88b4-dcggc                    1m           94Mi            
-cert-manager    cert-manager-cainjector-9bb5d7d75-bhxww          1m           29Mi            
-cert-manager    cert-manager-webhook-7fc8569958-6b9qs            1m           60Mi            
+NAMESPACE        NAME                                             CPU(cores)   MEMORY(bytes)   
+ai-coding        claude-code-656765c5cd-mxbtj                     2m           15Mi            
+ai-coding        opencode-6cfddd9c47-tmfrs                        2m           19Mi            
+ai-inference     frostbite-mcp-f958696fd-2phlz                    1m           27Mi            
+ai-inference     frostbite-postgres-0                             16m          34Mi            
+ai-inference     knowledge-fabric-api-747b58b76c-gffwm            1m           13Mi            
+ai-inference     llama-qwen-vllm-zephyr-3060ti-7b7f5f5599-g5k54   6m           4155Mi          
+ai-inference     llama-server-sentry-6bc49f7cd6-648gb             1m           252Mi           
+ai-inference     open-webui-7bd89c8d8-lbbnn                       3m           786Mi           
+ai-inference     privacy-filter-6bd8fb75bc-4sbn8                  2m           786Mi           
+ai-inference     qdrant-7dcc566f4c-wp98b                          1m           146Mi           
+ai-inference     redis-7d6fcf5ddc-qw764                           4m           7Mi             
+auth             casdoor-697fd868f5-7b6df                         1m           84Mi            
+auth             casdoor-697fd868f5-hcs7x                         1m           46Mi            
+auth             oauth2-proxy-c9478bcfb-cmpnw                     1m           25Mi            
+automation       n8n-c8cc98d7-2xv7s                               1m           293Mi           
+automation       postgres-n8n-0                                   7m           35Mi            
+cert-manager     cert-manager-6d886c975f-l5dnk                    1m           81Mi            
+cert-manager     cert-manager-cainjector-79cbb85d4b-qmszj         2m           51Mi            
+cert-manager     cert-manager-webhook-55d4ccb49b-d9bnv            1m           20Mi            
 Pod metrics not available (metrics-server not deployed)
 ```
 
@@ -261,7 +264,7 @@ kubectl get endpoints <service-name> -n <namespace>
 
 ---
 
-**Auto-Generated:** 2026-05-07 16:35:04
+**Auto-Generated:** 2026-05-11 19:12:47
 **Update Script:** `scripts/update-status.sh`
 **Run Manually:** `sudo ./scripts/update-status.sh`
 **Auto-Refresh:** Hourly via systemd timer (status-update.timer)

@@ -1220,7 +1220,8 @@ in {
             serviceAccountName = "alloy-sa";
             hostNetwork = true;
             dnsPolicy = "ClusterFirstWithHostNet";
-            # Run on nexus only (exclude zephyr workstation)
+            # Run on all nodes — Alloy is the cluster-wide log/metric collector.
+            # Must tolerate workstation/interactive taints (zephyr) and control-plane.
             tolerations = [
               {
                 key = "node-role.kubernetes.io/control-plane";
@@ -1229,6 +1230,18 @@ in {
               {
                 key = "node-role.kubernetes.io/master";
                 effect = "NoSchedule";
+              }
+              {
+                key = "workstation";
+                operator = "Exists";
+              }
+              {
+                key = "interactive";
+                operator = "Exists";
+              }
+              {
+                key = "ram-constrained";
+                operator = "Exists";
               }
             ];
             securityContext = {
