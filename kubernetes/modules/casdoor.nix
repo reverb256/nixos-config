@@ -83,7 +83,7 @@ in {
               "app.kubernetes.io/component" = "database";
             };
           spec = {
-            nodeSelector."kubernetes.io/hostname" = "zephyr";
+            nodeSelector."kubernetes.io/hostname" = "nexus";
             securityContext = {
               fsGroup = 999;
               runAsUser = 999;
@@ -187,7 +187,7 @@ in {
               "app.kubernetes.io/component" = "api";
             };
           spec = {
-            nodeSelector."kubernetes.io/hostname" = "zephyr";
+            nodeSelector."kubernetes.io/hostname" = "nexus";
             serviceAccountName = "casdoor";
             securityContext = {
               seccompProfile.type = "RuntimeDefault";
