@@ -1075,7 +1075,7 @@ in {
               containers = {
                 _namedlist = true;
                 scaler = {
-                  image = "bitnami/kubectl:latest";
+                  image = "bitnami/kubectl:1.35.4";
                   args = [
                     "scale"
                     "--replicas=${toString scheduleCfg.scaleDown.replicas}"
@@ -1109,7 +1109,7 @@ in {
               containers = {
                 _namedlist = true;
                 scaler = {
-                  image = "bitnami/kubectl:latest";
+                  image = "bitnami/kubectl:1.35.4";
                   args = [
                     "scale"
                     "--replicas=${toString scheduleCfg.scaleUp.replicas}"

@@ -109,6 +109,21 @@ in {
         resources = ["ingresses" "networkpolicies"];
         verbs = ["get" "list" "watch"];
       }
+      {
+        apiGroups = ["metrics.k8s.io"];
+        resources = ["nodes" "pods"];
+        verbs = ["get" "list" "watch"];
+      }
+      {
+        apiGroups = [""];
+        resources = ["persistentvolumes" "persistentvolumeclaims"];
+        verbs = ["get" "list" "watch"];
+      }
+      {
+        apiGroups = ["autoscaling"];
+        resources = ["horizontalpodautoscalers"];
+        verbs = ["get" "list" "watch"];
+      }
     ];
     ClusterRoleBinding.kubernetes-mcp = {
       subjects = [
@@ -243,11 +258,11 @@ in {
                 resources = {
                   requests = {
                     cpu = "50m";
-                    memory = "64Mi";
+                    memory = "128Mi";
                   };
                   limits = {
-                    cpu = "200m";
-                    memory = "128Mi";
+                    cpu = "400m";
+                    memory = "256Mi";
                   };
                 };
                 readinessProbe = {
