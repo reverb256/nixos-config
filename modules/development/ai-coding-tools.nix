@@ -59,6 +59,11 @@ in {
       default = "/run/agenix/nvidia-api-key";
       description = "Path to NVIDIA NIM API key (agenix secret)";
     };
+    opencodeGoApiKeyFile = mkOption {
+      type = types.path;
+      default = "/run/agenix/opencode-go-api-key";
+      description = "Path to OpenCode Go API key (agenix secret)";
+    };
     tools = {
       droid = {
         enable = mkOption {
@@ -142,7 +147,7 @@ in {
         ];
         ExecStart = pkgs.writeShellScript "ai-coding-tools-generate" ''
           set -euo pipefail
-          for secret in ${cfg.zaiApiKeyFile} ${cfg.context7ApiKeyFile} ${cfg.nvidiaNimApiKeyFile}; do
+          for secret in ${cfg.zaiApiKeyFile} ${cfg.context7ApiKeyFile} ${cfg.nvidiaNimApiKeyFile} ${cfg.opencodeGoApiKeyFile}; do
             for i in {1..30}; do
               if [ -f "$secret" ] && [ -s "$secret" ]; then
                 break
@@ -159,6 +164,8 @@ in {
           CONTEXT7_API_KEY="$(cat $CTX7_KEY_PATH 2>/dev/null || echo)"
           export NVIDIA_NIM_KEY_PATH="${cfg.nvidiaNimApiKeyFile}"
           NVIDIA_NIM_API_KEY="$(cat $NVIDIA_NIM_KEY_PATH 2>/dev/null || echo)"
+          export OPENCODE_GO_KEY_PATH="${cfg.opencodeGoApiKeyFile}"
+          OPENCODE_GO_API_KEY="$(cat $OPENCODE_GO_KEY_PATH 2>/dev/null || echo)"
           echo "[ai-coding-tools] Generating harmonized MCP configs..."
           ${optionalString cfg.tools.droid.enable ''
             echo "[ai-coding-tools] Generating Droid settings..."

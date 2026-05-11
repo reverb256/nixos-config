@@ -182,6 +182,13 @@ in {
       example = "config.age.secrets.casdoor-hermes-jwt.path";
     };
 
+    opencodeGoApiKeyFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to agenix secret file containing OpenCode Go API key";
+      example = "config.age.secrets.opencode-go-api-key.path";
+    };
+
     gatewayUrl = lib.mkOption {
       type = lib.types.str;
       default = "http://${config.networking.cluster.hosts.zephyr.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-gateway}/v1";
@@ -192,7 +199,7 @@ in {
   config = lib.mkIf cfg.enable {
     # Install hermes package system-wide
     # TEMP DISABLED: hermes-with-whatsapp broken due to npm protobufjs issue
-    # environment.systemPackages = [hermes-with-whatsapp];
+    environment.systemPackages = [hermes-with-whatsapp];
 
     # Only set HERMES_HOME if hermes-agent is NOT managing it
     # The hermes-agent module sets addToSystemPackages which also sets HERMES_HOME
@@ -212,10 +219,14 @@ in {
         # Managed by NixOS - hermes-cli module
         # LOCAL MODELS AS DEFAULT - Cloud fallback available
         model:
-          provider: vllm-3060ti
-          default: qwen3.5-2b-awq
+          provider: opencode-go
+          default: deepseek-v4-flash
 
         providers:
+          opencode-go:
+            base_url: http://${config.networking.cluster.hosts.zephyr.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-gateway}/v1
+            model: deepseek-v4-flash
+            key_env: OPENCODE_GO_API_KEY
           vllm-3060ti:
             base_url: http://${config.networking.cluster.hosts.zephyr.ip}:8040/v1
             model: qwen3.5-2b-awq
@@ -228,12 +239,13 @@ in {
           zai:
             base_url: https://api.z.ai/api/coding/paas/v4
             api_key_env: ZAI_API_KEY
-glm-flash:
-base_url: http://${toString config.networking.cluster.kubernetes.nodePorts.ai-gateway}:8080/v1
+          glm-flash:
+            base_url: http://${toString config.networking.cluster.kubernetes.nodePorts.ai-gateway}:8080/v1
             model: glm-4.5-flash
             api_key_env: ZAI_API_KEY
 
         fallback_providers:
+          - opencode-go
           - vllm-3060ti
           - llama-zephyr-3090
           - llama-sentry
@@ -279,6 +291,13 @@ base_url: http://${toString config.networking.cluster.kubernetes.nodePorts.ai-ga
           if [ -f "${cfg.openrouterApiKeyFile}" ]; then
             echo -n "OPENROUTER_API_KEY=" >> "$HERMES_HOME/.env"
             cat "${cfg.openrouterApiKeyFile}" >> "$HERMES_HOME/.env"
+            echo "" >> "$HERMES_HOME/.env"
+          fi
+        ''}
+              ${lib.optionalString (cfg.opencodeGoApiKeyFile != null) ''
+          if [ -f "${cfg.opencodeGoApiKeyFile}" ]; then
+            echo -n "OPENCODE_GO_API_KEY=" >> "$HERMES_HOME/.env"
+            cat "${cfg.opencodeGoApiKeyFile}" >> "$HERMES_HOME/.env"
             echo "" >> "$HERMES_HOME/.env"
           fi
         ''}
