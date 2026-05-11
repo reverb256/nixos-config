@@ -43,15 +43,10 @@ in {
     systemd.services.flake-lock-sync = {
       description = "Sync flake.lock from NFS mount";
       wantedBy = ["multi-user.target"];
-      after = [
-        "nixos-shared.mount"
-        "network-online.target"
-      ];
-      wants = [
-        "nixos-shared.mount"
-        "network-online.target"
-      ];
-      requires = ["nixos-shared.mount"];
+      # NFS mount uses activation script, not systemd mount unit
+      # Script handles missing source gracefully
+      after = ["network-online.target"];
+      wants = ["network-online.target"];
 
       serviceConfig = {
         Type = "oneshot";
