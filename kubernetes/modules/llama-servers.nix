@@ -99,30 +99,32 @@ in {
               llama-server = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
-                args = [
-                  "--model"
-                  "/home/j_kro/.lmstudio/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-IQ4_XS.gguf"
-                  "--host"
-                  "0.0.0.0"
-                  "--port"
-                  "1237"
-                  "-ngl"
-                  "99"
-                  "-c"
-                  "131072"
-                  "-t"
-                  "12"
-                  "--flash-attn"
-                  "on"
-                  "-ctk"
-                  "q8_0"
-                  "-ctv"
-                  "turbo4"
-                  "--temp"
-                  "0.0"
-                  "--metrics"
-                ];
+command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
+args = [
+"--model"
+"/home/j_kro/.lmstudio/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-IQ4_XS.gguf"
+"--mmproj"
+"/home/j_kro/.lmstudio/models/unsloth/Qwen3.6-35B-A3B-GGUF/mmproj-BF16.gguf"
+"--host"
+"0.0.0.0"
+"--port"
+"1237"
+"-ngl"
+"99"
+"-c"
+"131072"
+"-t"
+"12"
+"--flash-attn"
+"on"
+"-ctk"
+"q8_0"
+"-ctv"
+"turbo4"
+"--temp"
+"0.0"
+"--metrics"
+];
                 env = {
                   _namedlist = true;
                   NVIDIA_VISIBLE_DEVICES = {
@@ -1005,33 +1007,35 @@ app = "llama-server-zephyr-3090-dense";
               llama-server = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = ["${pkgsWithOverlay.llama-cpp-vulkan}/bin/llama-server"];
-                args = [
-                  "--model"
-                  "/models/unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf"
-                  "--host"
-                  "0.0.0.0"
-                  "--port"
-                  "1235"
-                  "-ngl"
-                  "99"
-                  "-c"
-                  "131072"
-                  "-t"
-                  "2"
-                  "--parallel"
-                  "1"
-                  "--cont-batching"
-                  "--metrics"
-                  "--cache-type-k"
-                  "q4_0"
-                  "--cache-type-v"
-                  "q4_0"
-                  "--flash-attn"
-                  "on"
-                  "--reasoning"
-                  "off"
-                ];
+command = ["${pkgsWithOverlay.llama-cpp-vulkan}/bin/llama-server"];
+args = [
+"--model"
+"/models/unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf"
+"--mmproj"
+"/models/unsloth/Qwen3.5-4B-GGUF/mmproj-BF16.gguf"
+"--host"
+"0.0.0.0"
+"--port"
+"1235"
+"-ngl"
+"99"
+"-c"
+"131072"
+"-t"
+"2"
+"--parallel"
+"1"
+"--cont-batching"
+"--metrics"
+"--cache-type-k"
+"q4_0"
+"--cache-type-v"
+"q4_0"
+"--flash-attn"
+"on"
+"--reasoning"
+"off"
+];
                 env = {
                   _namedlist = true;
                   LD_LIBRARY_PATH = {
