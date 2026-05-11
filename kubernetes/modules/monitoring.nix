@@ -2485,7 +2485,7 @@ in {
             restartPolicy = "OnFailure";
             containers = [{
               name = "enforcer";
-              image = "bitnami/kubectl:latest";
+              image = "bitnami/kubectl:1.35.4";
               command = ["bash" "-c" (builtins.readFile ./coredns-ha-enforcer.sh)];
               resources = {
                 requests = { cpu = "10m"; memory = "32Mi"; };
