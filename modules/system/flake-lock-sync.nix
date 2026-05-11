@@ -78,7 +78,7 @@ in {
           mkdir -p "$(dirname "$STATE_FILE")"
           echo "$SOURCE_SUM" > "$STATE_FILE"
 
-          logger -t flake-lock-sync "Synced flake.lock from NFS (checksum: $SOURCE_SUM)"
+          echo "Synced flake.lock from NFS (checksum: $SOURCE_SUM)"
           echo "flake-lock-sync: Synced flake.lock from NFS"
         '';
         RemainAfterExit = false;
