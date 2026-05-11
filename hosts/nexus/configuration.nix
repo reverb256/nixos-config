@@ -67,8 +67,9 @@
     };
   };
 
-  services.flake-lock-sync.enable = lib.mkForce false;
-  systemd.timers.flake-lock-sync.enable = false;
+  # Flake lock sync enabled — nexus runs etcd and needs fresh inputs for reliable rebuilds
+  services.flake-lock-sync.enable = true;
+  systemd.timers.flake-lock-sync.enable = true;
 
   stylix = {
     base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";

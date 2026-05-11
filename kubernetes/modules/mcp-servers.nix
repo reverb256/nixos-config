@@ -20,7 +20,7 @@ in
     };
 
     # ── NetworkPolicy: default-deny-all ─────────────────────────
-    mcp.NetworkPolicy.default-deny-all = {
+    networking.k8s.io.NetworkPolicy.default-deny-all = {
       spec = {
         podSelector = { };
         policyTypes = [
@@ -69,13 +69,21 @@ in
                     _namedlist = true;
                     http.containerPort = 8000;
                   };
+                  # NOTE: grafana-admin-secret must exist in 'mcp' namespace
+                  # Populated by kubectl-apply-k8s-secrets from agenix (monitoring/grafana-admin-secret)
                   env = {
                     GRAFANA_URL.name = "GRAFANA_URL";
                     GRAFANA_URL.value = "http://grafana.monitoring.svc.cluster.local:3000";
                     GRAFANA_USERNAME.name = "GRAFANA_USERNAME";
-                    GRAFANA_USERNAME.value = "admin";
+                    GRAFANA_USERNAME.valueFrom.secretKeyRef = {
+                      name = "grafana-admin-secret";
+                      key = "admin-password";
+                    };
                     GRAFANA_PASSWORD.name = "GRAFANA_PASSWORD";
-                    GRAFANA_PASSWORD.value = "admin";
+                    GRAFANA_PASSWORD.valueFrom.secretKeyRef = {
+                      name = "grafana-admin-secret";
+                      key = "admin-password";
+                    };
                   };
                   volumeMounts = {
                     _namedlist = true;
@@ -216,6 +224,35 @@ in
           };
         };
       };
+
+      # ── ToolHive MCPServer: kb-mcp (kubernetes-mcp-server) ────────────
+      # NOTE: Commented out - easykubenix doesn't support toolhive API yet
+      # Apply manually: kubectl apply -f kubernetes-manifests/mcp/kb-mcp.yaml
+      # toolhive.stacklok.dev.MCPServer.kb-mcp = {
+      #   metadata.labels = managed // {
+      #     app = "kb-mcp";
+      #     "app.kubernetes.io/component" = "mcp-server";
+      #   };
+      #   spec = {
+      #     image = "ghcr.io/containers/kubernetes-mcp-server:latest-linux-amd64";
+      #     transport = "stdio";
+      #     proxyMode = "streamable-http";
+      #     proxyPort = 8080;
+      #     env = [
+      #       { name = "QDRANT_HOST"; value = "qdrant.ai-inference.svc.cluster.local"; }
+      #       { name = "QDRANT_PORT"; value = "6333"; }
+      #       { name = "KB_COLLECTION"; value = "knowledge_base"; }
+      #       { name = "KB_MODEL"; value = "all-MiniLM-L6-v2"; }
+      #       { name = "HOME"; value = "/tmp"; }
+      #     ];
+      #     resources = {
+      #       limits = { cpu = "1"; memory = "2Gi"; };
+      #       requests = { cpu = "200m"; memory = "512Mi"; };
+      #     };
+      #     sessionAffinity = "ClientIP";
+      #     trustProxyHeaders = false;
+      #   };
+      # };
 
       # ── Toolhive Operator ────────────────────────────────────────
       # Manages MCP server runner pods via CRDs.

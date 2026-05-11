@@ -74,8 +74,8 @@
     '';
   };
 
-  services.flake-lock-sync.enable = lib.mkForce false;
-  systemd.timers.flake-lock-sync.enable = false;
+  services.flake-lock-sync.enable = true;
+  systemd.timers.flake-lock-sync.enable = true;
 
   profiles.node.sentry-monitoring.enable = true;
 

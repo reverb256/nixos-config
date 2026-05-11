@@ -57,7 +57,8 @@
   boot.kernel.sysctl."net.ipv6.conf.default.disable_ipv6" = 0;
   boot.kernel.sysctl."net.ipv6.conf.eno1.disable_ipv6" = 0;
 
-  systemd.timers.flake-lock-sync.enable = false;
+  systemd.timers.flake-lock-sync.enable = true;
+  services.flake-lock-sync.enable = true;
 
   kernel-hardening.zswap.maxPoolPercent = 20;
 
