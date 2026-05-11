@@ -88,7 +88,7 @@ in {
       SECONDARY_BACKEND_MODEL = "qwen3.5-2b-awq";
       DISCOVERY_BACKENDS = ''[{"url": "http://${cluster.hosts.zephyr.ip}:8040", "model": "qwen3.5-2b-awq", "name": "vLLM-3060Ti"}]''; # vLLM Qwen3.5-2B-AWQ on 3060Ti (port 8040)
       PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
-      PRIVACY_FILTER_ENABLED = "false";
+      PRIVACY_FILTER_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL = "http://searxng.search.svc.cluster.local:8080";
@@ -631,10 +631,10 @@ in {
                     path = "/health";
                     port = 8080;
                   };
-                  initialDelaySeconds = 30;
+                  initialDelaySeconds = 60;
                   periodSeconds = 30;
-                  timeoutSeconds = 5;
-                  failureThreshold = 3;
+                  timeoutSeconds = 10;
+                  failureThreshold = 5;
                 };
                 readinessProbe = {
                   httpGet = {
