@@ -30,7 +30,7 @@ in
             "app.kubernetes.io/component" = "auth-proxy";
           };
           spec = {
-            nodeSelector."kubernetes.io/hostname" = "zephyr";
+            nodeSelector."kubernetes.io/hostname" = "nexus";
             serviceAccountName = "oauth2-proxy";
             securityContext = {
               runAsNonRoot = true;

@@ -502,11 +502,23 @@ in {
                   "-ctv"
                   "turbo4"
                   "--parallel"
-                  "4"
+                  "1"
                   "--metrics"
                   "-b"
                   "256"
                   "--no-mmap"
+                  "--reasoning"
+                  "on"
+                  "--chat-template-kwargs"
+                  ''{"preserve_thinking": true}''
+                  "--temp"
+                  "0.6"
+                  "--top-k"
+                  "20"
+                  "--top-p"
+                  "0.95"
+                  "--min-p"
+                  "0.0"
                 ];
                 env = {
                   _namedlist = true;
@@ -1006,7 +1018,7 @@ app = "llama-server-zephyr-3090-dense";
                   "-c"
                   "131072"
                   "-t"
-                  "4"
+                  "2"
                   "--parallel"
                   "1"
                   "--cont-batching"
@@ -1017,6 +1029,8 @@ app = "llama-server-zephyr-3090-dense";
                   "q4_0"
                   "--flash-attn"
                   "on"
+                  "--reasoning"
+                  "off"
                 ];
                 env = {
                   _namedlist = true;
