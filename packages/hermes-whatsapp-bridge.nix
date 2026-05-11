@@ -43,11 +43,13 @@ in
 
     src = patchedSrc;
 
-    npmDepsHash = "sha256-8V2tBE+z5BODS1dEauZyKzrjfulpfjWosHdJs6O7+98=";
+    npmDepsHash = "sha256-tc6ygFeY2PEpX4H9V9ENkjRtqIiHxT9mzkJHkTkYSuc=";
+    npmDepsFetcherVersion = 2;
 
     forceGitDeps = true;
     makeCacheWritable = true;
     dontNpmBuild = true;
+    npmFlags = [ "--legacy-peer-deps" ];
 
     installPhase = ''
       runHook preInstall
