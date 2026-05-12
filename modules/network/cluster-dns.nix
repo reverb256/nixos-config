@@ -95,24 +95,11 @@ in {
 
         # Forward zones
         forward-zone = [
-          # Tailscale DNS
-          {
-            name = "ts.net.";
-            forward-addr = [
-              "100.100.100.100"
-              "fd7a:115c:a1e0::53"
-            ];
-          }
           # K8s cluster DNS → CoreDNS (enables host-level K8s service resolution)
+          # NOTE: ts.net. and . (upstream) forward zones are defined in unbound-common.nix
           {
             name = "cluster.local.";
             forward-addr = [config.networking.cluster.kubernetes.clusterDnsIP];
-          }
-          # Everything else: use upstream DoT
-          {
-            name = ".";
-            forward-addr = dnsCfg.upstreamServers;
-            forward-tls-upstream = true;
           }
         ];
       };
@@ -172,9 +159,9 @@ in {
         "grafana.lan. IN A ${vip}"
         "vaultwarden.lan. IN A ${vip}"
         "workspace.lan. IN A ${vip}"
-        "civint.lan. IN A ${vip}"
         "dashboard.lan. IN A ${vip}"
         "frostbite-mcp.lan. IN A ${vip}"
+        "civint.lan. IN A ${vip}"
       ];
       # Optional forge services
       forgeServices = [
