@@ -135,20 +135,16 @@ in
                     value = "/run/current-system/sw/bin:/usr/bin:/bin";
                   };
                   VLLM_WORKER_MULTIPROCESSING_METHOD = {
-                    name = "VLLM_WORKER_MULTIPROCESSING_METHOD";
-                    value = "spawn";
-                  };
                   VLLM_MAX_MODEL_LEN = {
                     name = "VLLM_MAX_MODEL_LEN";
-                    value = "180000";
+                    value = "100000";
                   };
-                  VLLM_LANGUAGE_MODEL_ONLY = {
-                    name = "VLLM_LANGUAGE_MODEL_ONLY";
-                    value = "true";
+                    name = "VLLM_WORKER_MULTIPROCESSING_METHOD";
+                  VLLM_MAX_MODEL_LEN = {
+                    name = "VLLM_MAX_MODEL_LEN";
+                    value = "100000";
                   };
-                  VLLM_GPU_MEMORY_UTILIZATION = {
-                    name = "VLLM_GPU_MEMORY_UTILIZATION";
-                    value = "0.85";
+                    value = "spawn";
                   };
                 };
                 resources = {
