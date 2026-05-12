@@ -120,6 +120,12 @@ in {
     systemd.services.unbound = {
       reloadIfChanged = true;
       restartIfChanged = false;
+
+      # Protect from OOM killer — DNS is cluster-critical infrastructure.
+      # System has heavy memory pressure (27/31G used, 7.2/7.8G swap).
+      # With default OOMScoreAdjust=0, unbound's oom_score=666 makes it
+      # an easy kill target.  -1000 = immune to OOM killer.
+      serviceConfig.OOMScoreAdjust = -1000;
     };
 
     # Generate local DNS records

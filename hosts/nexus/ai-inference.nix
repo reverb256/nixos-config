@@ -15,7 +15,7 @@
         model = "Qwen3.5-4B.Q4_K_M.gguf";
       };
       secondary = {
-        url = "http://zephyr.lan:8040"; # zephyr 3060Ti Qwen3.5-2B-AWQ (vLLM, no thinking)
+        url = "http://nexus.lan:8040"; # zephyr 3060Ti Qwen3.5-2B-AWQ (vLLM, no thinking)
         model = "qwen3.5-2b-awq";
       };
       nvidia-nim = {
