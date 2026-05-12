@@ -531,3 +531,108 @@ in
                   "q4_0"
                   "--flash-attn"
                   "on"
+                ];
+                env = {
+                  _namedlist = true;
+                  HSA_OVERRIDE_GFX_VERSION = {
+                    name = "HSA_OVERRIDE_GFX_VERSION";
+                    value = "10.3.0";
+                  };
+                };
+                ports = [
+                  {
+                    containerPort = 1235;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
+                livenessProbe = {
+                  tcpSocket.port = 1235;
+                  initialDelaySeconds = 120;
+                  periodSeconds = 30;
+                  failureThreshold = 5;
+                };
+                readinessProbe = {
+                  tcpSocket.port = 1235;
+                  initialDelaySeconds = 60;
+                  periodSeconds = 10;
+                  failureThreshold = 10;
+                };
+                resources = {
+                  requests = {
+                    memory = "4Gi";
+                    cpu = "500m";
+                  };
+                  limits = {
+                    memory = "8Gi";
+                    cpu = "2";
+                  };
+                };
+                securityContext.privileged = true;
+                volumeMounts = {
+                  _namedlist = true;
+                  nix = {
+                    mountPath = "/nix";
+                    readOnly = true;
+                  };
+                  dev-dri = {
+                    mountPath = "/dev/dri";
+                  };
+                  models = {
+                    mountPath = "/models";
+                    readOnly = true;
+                  };
+                  opengl = {
+                    mountPath = "/run/opengl-driver/lib";
+                    readOnly = true;
+                  };
+                  vulkan-icd = {
+                    mountPath = "/run/opengl-driver/share/vulkan/icd.d";
+                    readOnly = true;
+                  };
+                  tmp = {
+                    mountPath = "/tmp";
+                  };
+                };
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              nix.hostPath = {
+                path = "/nix";
+                type = "Directory";
+              };
+              dev-dri.hostPath = {
+                path = "/dev/dri";
+                type = "Directory";
+              };
+              models.hostPath.path = "/home/j_kro/.lmstudio/models";
+              opengl.hostPath.path = "/run/opengl-driver/lib";
+              vulkan-icd.hostPath.path = "/run/opengl-driver/share/vulkan/icd.d";
+              tmp.emptyDir = { };
+            };
+          };
+        };
+      };
+    };
+
+    Service.llama-server-sentry = {
+      metadata.labels = managed // {
+        app = "llama-server-sentry";
+      };
+      spec = {
+        type = "ClusterIP";
+        ports = [
+          {
+            name = "http";
+            port = 1235;
+            protocol = "TCP";
+            targetPort = 1235;
+          }
+        ];
+        selector.app = "llama-server-sentry";
+      };
+    };
+
+  };
+}
