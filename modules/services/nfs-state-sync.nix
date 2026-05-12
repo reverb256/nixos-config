@@ -24,7 +24,7 @@ in {
     interval = lib.mkOption {
       type = lib.types.str;
       default = "15min";
-      description = "Systemd timer interval";
+      description = "Interval between syncs (used as OnUnitActiveSec)";
     };
   };
 
@@ -32,7 +32,7 @@ in {
     systemd.timers.nfs-state-sync = {
       wantedBy = ["timers.target"];
       timerConfig = {
-        OnCalendar = cfg.interval;
+        OnUnitActiveSec = cfg.interval;
         Persistent = true;
       };
     };
