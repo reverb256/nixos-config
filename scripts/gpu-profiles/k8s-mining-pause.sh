@@ -68,13 +68,6 @@ pause_mining() {
 		fi
 	done < <(get_local_deployments)
 
-	# Also stop any host-systemd mining services (legacy fallback)
-	for svc in lolminer-nvidia xmrig xmrig-flexible; do
-		if systemctl is-active --quiet "$svc" 2>/dev/null; then
-			log "Stopping host service: $svc"
-			systemctl stop "$svc" 2>/dev/null && log "✓ Stopped $svc" || log "✗ Failed to stop $svc"
-		fi
-	done
 
 	log "=== All mining paused ==="
 }
