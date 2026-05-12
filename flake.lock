@@ -876,6 +876,23 @@
         "type": "github"
       }
     },
+    "frostbite-data-pipeline": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1778561513,
+        "narHash": "sha256-E1f1TN+SXjkuAAdWK1rIvheQVD84TkgDyyIojiXI8mw=",
+        "path": "/data/projects/own/frostbite-data-pipeline",
+        "type": "path"
+      },
+      "original": {
+        "path": "/data/projects/own/frostbite-data-pipeline",
+        "type": "path"
+      }
+    },
     "gitignore": {
       "inputs": {
         "nixpkgs": [
@@ -1700,6 +1717,7 @@
         "dream2nix": "dream2nix",
         "easykubenix": "easykubenix",
         "firefox-addons": "firefox-addons",
+        "frostbite-data-pipeline": "frostbite-data-pipeline",
         "gpu-proxy": "gpu-proxy",
         "hermes-agent": "hermes-agent",
         "home-manager": "home-manager",
