@@ -46,9 +46,6 @@
     fsType = "btrfs";
     options = ["subvol=@archive" "compress=zstd" "nofail"];
   };
-  swapDevices = [
-    {device = "/dev/disk/by-uuid/b733be92-f327-4613-9530-a5380ed77216";}
-  ];
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 }
