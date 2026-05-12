@@ -128,25 +128,25 @@ in {
       ConnectTimeout 5
 
     Host zephyr ${hosts.zephyr.ip} ${hosts.zephyr.tailscale}
-      HostName ${hosts.zephyr.tailscale}
+      HostName ${hosts.zephyr.ip}
       User j_kro
       IdentityFile ~/.ssh/id_ed25519
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
     Host nexus ${hosts.nexus.ip} ${hosts.nexus.tailscale}
-      HostName ${hosts.nexus.tailscale}
+      HostName ${hosts.nexus.ip}
       User j_kro
       IdentityFile ~/.ssh/id_ed25519
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
     Host forge ${hosts.forge.ip} ${hosts.forge.tailscale}
-      HostName ${hosts.forge.tailscale}
+      HostName ${hosts.forge.ip}
       User j_kro
       IdentityFile ~/.ssh/id_ed25519
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
     Host sentry ${hosts.sentry.ip} ${hosts.sentry.tailscale}
-      HostName ${hosts.sentry.tailscale}
+      HostName ${hosts.sentry.ip}
       User j_kro
       IdentityFile ~/.ssh/id_ed25519
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
