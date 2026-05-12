@@ -268,16 +268,12 @@
               services = lib.mkOption {
                 type = lib.types.submodule {
                   options = let
-                    svcOpts = {
-                      namespace,
-                      port,
-                      nodePort ? null,
-                      ...
-                    }: {
+                    svcOpts = { namespace, port, nodePort ? null, ... }:
+                      { name, ... }: {
                       options = {
                         dns = lib.mkOption {
                           type = lib.types.str;
-                          default = "${namespace}.svc.cluster.local:${toString port}";
+                          default = "${name}.${namespace}.svc.cluster.local:${toString port}";
                           description = "K8s service DNS name (stable across recreations)";
                         };
                         namespace = lib.mkOption {
