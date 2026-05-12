@@ -13,7 +13,7 @@
   # AI Inference Gateway — pre-built container image (loaded into containerd on target node)
   # CRITICAL: Use local registry - docker.io requires auth and is slow
   # Image pushed by nexus:push-gateway-to-registry service
-  gatewayImage = "nexus:5000/ai-inference-gateway:2.4.9";
+  gatewayImage = "nexus:5000/ai-inference-gateway:2.4.15";
 
   # Managed-by labels for easykubenix
   managed = {
@@ -84,9 +84,9 @@ in {
       MAX_REQUEST_SIZE = "10485760";
       CIRCUIT_BREAKER_ENABLED = "true";
       REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
-      SECONDARY_BACKEND_URL = "http://${cluster.hosts.nexus.ip}:8040";
+      SECONDARY_BACKEND_URL = "http://llama-qwen-vllm-zephyr-3060ti.ai-inference.svc.cluster.local:8040";
       SECONDARY_BACKEND_MODEL = "qwen3.5-2b-awq";
-      DISCOVERY_BACKENDS = ''[{"url": "http://${cluster.hosts.nexus.ip}:8040", "model": "qwen3.5-2b-awq", "name": "vLLM-3060Ti"}]''; # vLLM Qwen3.5-2B-AWQ on 3060Ti (port 8040)
+      DISCOVERY_BACKENDS = ''[{"url": "http://llama-qwen-vllm-zephyr-3060ti.ai-inference.svc.cluster.local:8040/v1", "model": "qwen3.5-2b-awq", "name": "llama-vllm-3060ti"}]''; # vLLM Qwen3.5-2B-AWQ on 3060Ti via K8s service
       PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
       PRIVACY_FILTER_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
@@ -1352,11 +1352,11 @@ in {
                 resources = {
                   requests = {
                     cpu = "500m";
-                    memory = "512Mi";
+                    memory = "1Gi";
                   };
                   limits = {
                     cpu = "2";
-                    memory = "2Gi";
+                    memory = "4Gi";
                   };
                 };
                 livenessProbe = {
