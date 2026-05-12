@@ -34,10 +34,10 @@ in {
     };
 
     keepalived-vip = {
-      enable = false;
+      enable = true;
       vip = cluster.kubernetes.vip;
-      interface = "enp7s0";
-      priority = 100;
+      interface = "eth0";
+      priority = 110;
     };
 
     gaming-detection.enable = lib.mkForce false;
@@ -276,7 +276,7 @@ in {
   # Initrd SSH recovery + BTRFS snapshots
   services.initrd-ssh-recovery = {
     enable = true;
-    interface = "enp7s0";
+    interface = "eth0";
     networkDriver = "r8169";
     port = 2222;
   };

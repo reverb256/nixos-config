@@ -58,6 +58,9 @@ in {
               then dnsCfg.listenAddress
               else clusterCfg.ipAddress
             )
+            # VIP for HA DNS — Unbound must listen here so queries to
+            # 10.1.1.100:53 are answered by whichever node has the VIP.
+            cluster.kubernetes.vip
           ];
 
           # Allow queries from cluster network
@@ -118,8 +121,7 @@ in {
     # Survive failed nixos-rebuild: reload (SIGHUP) instead of stop/start.
     # If activation crashes mid-switch, unbound stays running.
     systemd.services.unbound = {
-      reloadIfChanged = true;
-      restartIfChanged = false;
+      restartIfChanged = true;  # Must restart (not just reload) to pick up new interface bindings like the VIP
 
       # Protect from OOM killer — DNS is cluster-critical infrastructure.
       # System has heavy memory pressure (27/31G used, 7.2/7.8G swap).
@@ -170,6 +172,7 @@ in {
         "grafana.lan. IN A ${vip}"
         "vaultwarden.lan. IN A ${vip}"
         "workspace.lan. IN A ${vip}"
+        "civint.lan. IN A ${vip}"
         "dashboard.lan. IN A ${vip}"
         "frostbite-mcp.lan. IN A ${vip}"
       ];

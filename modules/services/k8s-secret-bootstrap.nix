@@ -83,18 +83,32 @@ in {
         Type = "oneshot";
         Environment = "KUBECONFIG=/etc/rancher/k3s/k3s.yaml";
         RemainAfterExit = true;
-        TimeoutStartSec = "30s";
+        TimeoutStartSec = "180s";
+        Restart = "on-failure";
+        RestartSec = "30s";
       };
       path = [pkgs.kubectl pkgs.curl pkgs.coreutils pkgs.jq];
       script = ''
         set -euo pipefail
+
+        # First wait for K8s API to be available (k3s might still be starting).
+        echo "[casdoor-app-sync] Waiting for K8s API..."
+        elapsed=0
+        until kubectl get nodes &>/dev/null; do
+          sleep 5
+          elapsed=$((elapsed + 5))
+          if [ $elapsed -ge 120 ]; then
+            echo "[casdoor-app-sync] Timed out waiting for K8s API"
+            exit 1
+          fi
+        done
 
         echo "[casdoor-app-sync] Waiting for Casdoor to be ready..."
         elapsed=0
         until kubectl get pods -n auth -l app=casdoor -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null | grep -q True; do
           sleep 5
           elapsed=$((elapsed + 5))
-          if [ $elapsed -ge 25 ]; then
+          if [ $elapsed -ge 120 ]; then
             echo "[casdoor-app-sync] Timed out waiting for Casdoor"
             exit 1
           fi

@@ -305,34 +305,6 @@
 
               return 1
           }
-
-          scale_gaming_placeholder() {
-              local gaming_active=$1
-
-              if ! command -v kubectl >/dev/null 2>&1; then
-                  return 1
-              fi
-
-              if ! kubectl get nodes >/dev/null 2>&1; then
-                  return 1
-              fi
-
-              local replicas=0
-              if [[ "$gaming_active" == "1" ]]; then
-                  replicas=1
-                  log "K8s: Gaming detected - scaling up gaming-placeholder-volcano to preempt mining"
-              fi
-
-              if kubectl scale deployment gaming-placeholder-volcano -n mining --replicas=$replicas >/dev/null 2>&1; then
-                  log "K8s: Scaled gaming-placeholder-volcano to $replicas replica(s)"
-              else
-                  log "K8s: Failed to scale gaming-placeholder-volcano"
-                  return 1
-              fi
-
-              return 0
-          }
-
           detect_workload() {
 
               local gaming_active=$(read_gaming_state)
@@ -377,18 +349,9 @@
           mkdir -p /run/mining-coordinator
 
           CURRENT_WORKLOAD="idle"
-          PREVIOUS_GAMING_STATE="0"
 
           while true; do
               new_workload=$(detect_workload)
-
-              current_gaming_state=$(read_gaming_state)
-
-              if [[ "$PREVIOUS_GAMING_STATE" != "$current_gaming_state" ]]; then
-                  log "Gaming state changed: $PREVIOUS_GAMING_STATE -> $current_gaming_state"
-                  scale_gaming_placeholder "$current_gaming_state"
-                  PREVIOUS_GAMING_STATE="$current_gaming_state"
-              fi
 
               if [ "$new_workload" != "$CURRENT_WORKLOAD" ]; then
                   log "Workload changed: $CURRENT_WORKLOAD -> $new_workload"

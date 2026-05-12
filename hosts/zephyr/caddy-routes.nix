@@ -189,6 +189,11 @@ in
   + "\n"
   +
 
+  # CivInt Web Dashboard (nexus, NodePort 30964)
+  mkRoute "civint.lan" "http://${nexus}:30964"
+  + "\n"
+  +
+
 
   # Hermes Workspace (zephyr, port 3002)
   mkAuthRoute "workspace.lan" "http://127.0.0.1:3002"

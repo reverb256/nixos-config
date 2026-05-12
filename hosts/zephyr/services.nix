@@ -58,8 +58,10 @@ in {
       ];
     };
 
+    # Disabled: zephyr is now a k3s agent (not server), so the VIP
+    # should live on the server nodes (sentry) for k3s API access.
     keepalived-vip = {
-      enable = true;
+      enable = false;
       vip = cluster.kubernetes.vip;
       interface = "eth0";
       priority = 110;
@@ -97,14 +99,6 @@ in {
       psiCpuIdleThreshold = "2.0";
     };
 
-    mining-inference-coordinator = {
-      enable = true; # script built here; runs as K8s DaemonSet (systemd masked)
-      llamaPort = 1237; # monitor zephyr 3090 llama-server (port 1237)
-      primaryMiner = "deployment/gpu-miner-zephyr";
-      namespace = "mining";
-      checkInterval = 3;
-      idleTimeout = 30;
-    };
 
     opencode = {
       enable = true;
@@ -431,11 +425,6 @@ in {
     networkDriver = "r8169";
     port = 2222;
   };
-  # Mask mining-inference-coordinator systemd service — runs as K8s DaemonSet instead
-  systemd.services.mining-inference-coordinator = {
-    wantedBy = lib.mkForce [];
-  };
-
   services.recovery-specialisation.enable = true;
   services.secret-hygiene.enable = true;
   services.btrfs-boot-snapshot = {

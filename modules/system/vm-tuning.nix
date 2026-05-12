@@ -27,6 +27,25 @@
     "w /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages - - - - 0"
   ];
 
+  # Post-boot watchdog: 2MB hugepages can be re-allocated by kubelet/k3s after
+  # tmpfiles runs.  Timer fires every 30s to keep both pools at 0.
+  systemd.services.zero-hugepages = {
+    description = "Zero hugepage pools";
+    serviceConfig.Type = "oneshot";
+    script = ''
+      echo 0 > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages 2>/dev/null
+    '';
+  };
+  systemd.timers.zero-hugepages = {
+    description = "Periodic hugepage pool zeroing";
+    wantedBy = ["timers.target"];
+    timerConfig = {
+      OnBootSec = "5s";
+      OnUnitActiveSec = "30s";
+      AccuracySec = "1s";
+    };
+  };
+
   boot.kernel.sysctl = {
     "vm.nr_hugepages" = lib.mkForce 0;
     "vm.overcommit_memory" = lib.mkForce 0;
