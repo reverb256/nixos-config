@@ -40,7 +40,8 @@ let
     "development/ai-coding-tools/mcp-defs.nix" = true;           # Submodule: imported by ai-coding-tools.nix
     "development/ai-coding-tools/opencode.nix" = true;           # Submodule: imported by ai-coding-tools.nix
     "profiles/networking.nix" = true;                            # Library: returns mkNetworkingConfig function
-    # system/network.nix and system/ssh-autodiscover.nix — fixed to use config.networking.cluster, now auto-imported
+    "system/network.nix" = true;                                 # Dead code: references missing config.cluster.config
+    "system/ssh-autodiscover.nix" = true;                        # Dead code: references missing config.cluster.config
 
     # Profile subdirectory default.nix files:
     # These are already imported as directories by profiles/default.nix (e.g. ./role -> role/default.nix).
