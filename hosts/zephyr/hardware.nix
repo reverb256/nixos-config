@@ -125,6 +125,7 @@
       "appletalk"
       "ipx"
       "decnet"
+      "razermouse"
     ];
 
     kernelParams = [
@@ -136,6 +137,9 @@
       # Override kernel-hardening.nix: user-space oops (Discord, llama-server)
       # should NOT crash the whole workstation. Keep softlockup_panic for real kernel issues.
       "panic_on_oops=0"
+      # Fix Intel AX200 Bluetooth FW download failure (-19 ENODEV) — USB autosuspend
+      # causes the device to be unresponsive during firmware loading.
+      "btusb.enable_autosuspend=0"
     ];
   };
 

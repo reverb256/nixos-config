@@ -56,13 +56,10 @@ in {
               echo "[k8s-secret-bootstrap] Secret ${secret.name} already exists"
             else
               echo "[k8s-secret-bootstrap] Generating secret ${secret.name}..."
-              ${lib.concatMapStrings (key: ''
-                ${lib.strings.replaceStrings ["-"] ["_"] key}=$(openssl rand -base64 32 | head -c 32)
-              '')
-              secret.keys}
+              # Generate all key-values inline — avoids bash variable naming issues with hyphens
               kubectl create secret generic ${secret.name} -n ${secret.namespace} \
                 ${lib.concatMapStrings (key: ''
-                --from-literal=${key}="$${lib.strings.replaceStrings ["-"] ["_"] key}" \
+                --from-literal=${key}="$(openssl rand -base64 32 | head -c 32)" \
               '')
               secret.keys}
               echo "[k8s-secret-bootstrap] Created ${secret.name}"

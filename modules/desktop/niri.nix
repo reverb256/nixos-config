@@ -146,20 +146,6 @@ in {
             xdg-desktop-portal-gtk = {
               after = ["xdg-desktop-autostart.target"];
             };
-            polkit-gnome-authentication-agent-1 = {
-              description = "Polkit Authentication Agent (Niri)";
-              wantedBy = ["graphical-session.target"];
-              after = ["graphical-session.target"];
-              requisite = ["graphical-session.target"];
-              partOf = ["graphical-session.target"];
-              serviceConfig = {
-                Type = "simple";
-                ExecCondition = "${pkgs.systemd}/lib/systemd/systemd-xdg-autostart-condition niri ''";
-                ExecStart = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";
-                Restart = "on-failure";
-                Slice = "session-graphical.slice";
-              };
-            };
             niri-idle = lib.mkIf false {
               description = "Idle management for Niri (swayidle)";
               wantedBy = ["graphical-session.target"];
