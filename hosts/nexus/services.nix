@@ -42,6 +42,8 @@ in {
 
     gaming-detection.enable = lib.mkForce false;
 
+    nexus-exec.enable = true;
+
     nixos-share = {
       enable = true;
       client.enable = true;

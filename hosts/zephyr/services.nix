@@ -80,6 +80,11 @@ in {
       checkInterval = 10;
     };
 
+    nexus-exec = {
+      enable = true;
+      enableTunnel = true;
+    };
+
     gpu-profile-manager = {
       enable = true;
       checkInterval = 10;

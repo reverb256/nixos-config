@@ -111,54 +111,52 @@ in {
 
   users.users.j_kro.openssh.authorizedKeys.keys = [j_kroPublicKey];
 
-  environment.etc."ssh/config" = {
-    source = pkgs.writeText "ssh-config" ''
-      ControlMaster auto
-      ControlPersist 600
-      ServerAliveInterval 60
-      ServerAliveCountMax 3
-      Compression yes
-      TCPKeepAlive yes
-      UserKnownHostsFile ~/.ssh/known_hosts
+  programs.ssh.extraConfig = ''
+    ControlMaster auto
+    ControlPersist 600
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    Compression yes
+    TCPKeepAlive yes
+    UserKnownHostsFile ~/.ssh/known_hosts
 
-      Host *
-        User j_kro
-        IdentityFile ~/.ssh/id_ed25519
-        IdentitiesOnly yes
-        StrictHostKeyChecking yes
-        ConnectTimeout 5
+    Host *
+      User j_kro
+      IdentityFile ~/.ssh/id_ed25519
+      IdentitiesOnly yes
+      StrictHostKeyChecking yes
+      ConnectTimeout 5
 
-      Host zephyr ${hosts.zephyr.ip} ${hosts.zephyr.tailscale}
-        HostName ${hosts.zephyr.tailscale}
-        User j_kro
-        IdentityFile ~/.ssh/id_ed25519
-        ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
+    Host zephyr ${hosts.zephyr.ip} ${hosts.zephyr.tailscale}
+      HostName ${hosts.zephyr.tailscale}
+      User j_kro
+      IdentityFile ~/.ssh/id_ed25519
+      ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
-      Host nexus ${hosts.nexus.ip} ${hosts.nexus.tailscale}
-        HostName ${hosts.nexus.tailscale}
-        User j_kro
-        IdentityFile ~/.ssh/id_ed25519
-        ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
+    Host nexus ${hosts.nexus.ip} ${hosts.nexus.tailscale}
+      HostName ${hosts.nexus.tailscale}
+      User j_kro
+      IdentityFile ~/.ssh/id_ed25519
+      ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
-      Host forge ${hosts.forge.ip} ${hosts.forge.tailscale}
-        HostName ${hosts.forge.tailscale}
-        User j_kro
-        IdentityFile ~/.ssh/id_ed25519
-        ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
+    Host forge ${hosts.forge.ip} ${hosts.forge.tailscale}
+      HostName ${hosts.forge.tailscale}
+      User j_kro
+      IdentityFile ~/.ssh/id_ed25519
+      ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
-      Host sentry ${hosts.sentry.ip} ${hosts.sentry.tailscale}
-        HostName ${hosts.sentry.tailscale}
-        User j_kro
-        IdentityFile ~/.ssh/id_ed25519
-        ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
+    Host sentry ${hosts.sentry.ip} ${hosts.sentry.tailscale}
+      HostName ${hosts.sentry.tailscale}
+      User j_kro
+      IdentityFile ~/.ssh/id_ed25519
+      ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
-      Host github.com
-        HostName github.com
-        User git
-        IdentityFile ~/.ssh/id_deploy
-        IdentitiesOnly yes
-    '';
-  };
+    Host github.com
+      HostName github.com
+      User git
+      IdentityFile ~/.ssh/id_deploy
+      IdentitiesOnly yes
+  '';
 
   systemd.tmpfiles.rules = [
     "d /home/j_kro/.ssh/sockets 0700 j_kro users -"
