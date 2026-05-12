@@ -24,8 +24,7 @@ in {
       enable = true;
       vip = cluster.kubernetes.vip;
       interface = "eth0";
-      priority = 90;
-      noPreempt = true;
+      priority = 100;
     };
 
     gaming-detection.enable = false;

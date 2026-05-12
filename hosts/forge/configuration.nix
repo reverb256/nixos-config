@@ -16,6 +16,7 @@
     ../../modules/hardware/rgb-control.nix
     ../../modules/services/podman-support.nix
     ../../modules/services/k3s-cluster.nix
+    ../../modules/services/keepalived-vip.nix
   ];
 
   # Host-specific CPU/GPU optimization for llama.cpp (Zen1 + Ada: RTX 4060)
