@@ -25,7 +25,7 @@ in {
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
-      role = "server";
+      role = "agent";
       nodeName = "zephyr";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";
@@ -106,7 +106,10 @@ in {
       idleTimeout = 30;
     };
 
-    opencode.enable = true;
+    opencode = {
+      enable = true;
+      clusterSync.enable = false;  # skip SSH sync to cluster nodes on every activation
+    };
 
     xmrig-proxy = {
       enable = true;

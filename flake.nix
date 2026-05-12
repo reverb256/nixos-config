@@ -118,6 +118,10 @@
       url = "github:reverb256/mcp-registry";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    frostbite-data-pipeline = {
+      url = "path:/data/projects/own/frostbite-data-pipeline";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     caddy-ingress = {
       url = "github:reverb256/caddy-ingress";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -300,7 +304,8 @@
     packages.x86_64-linux.xmrig-proxy-alpine-image = inputs.compute-market.packages.x86_64-linux.xmrig-proxy-alpine-image; # migrated
     packages.x86_64-linux.claude-code-image = pkgsWithOverlay.claude-code-image; # extracted to packages/claude-code-image.nix
     packages.x86_64-linux.ai-inference-gateway-image = inputs.ai-gateway.packages.x86_64-linux.container; # migrated from local pkgs/
-    packages.x86_64-linux.opencode-image = pkgsWithOverlay.opencode-image; # extracted to packages/opencode-image.nix
+    packages.x86_64-linux.opencode-image = pkgsWithOverlay.opencode-image;
+    packages.x86_64-linux.civint-mcp-image = pkgsWithOverlay.civint-mcp-image; # extracted to packages/opencode-image.nix
     overlays.default = (import ./overlay.nix) {inherit inputs;};
     kubernetes = import ./kubernetes {inherit pkgs pkgsWithOverlay inputs;};
 

@@ -5,9 +5,12 @@ let
   daemonScript = ./../../scripts/nexus-exec-daemon.py;
   clientScript = ./../../scripts/nexus-exec.sh;
 
-  daemon = pkgs.runCommand "nexus-exec-daemon" { } ''
-    cp ${daemonScript} $out
-    chmod +x $out
+  daemon = pkgs.runCommand "nexus-exec-daemon" { buildInputs = [pkgs.python3]; } ''
+    mkdir -p $out/bin
+    cp ${daemonScript} $out/bin/nexus-exec-daemon
+    chmod +x $out/bin/nexus-exec-daemon
+    substituteInPlace $out/bin/nexus-exec-daemon \
+      --replace-fail "/usr/bin/env python3" "${pkgs.python3}/bin/python3"
   '';
 
   client = pkgs.runCommand "nexus-exec" { } ''
