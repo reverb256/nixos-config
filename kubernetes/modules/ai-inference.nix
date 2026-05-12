@@ -84,9 +84,9 @@ in {
       MAX_REQUEST_SIZE = "10485760";
       CIRCUIT_BREAKER_ENABLED = "true";
       REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
-      SECONDARY_BACKEND_URL = "http://llama-qwen-vllm-zephyr-3060ti.ai-inference.svc.cluster.local:8040";
+      SECONDARY_BACKEND_URL = "http://llama-vllm-3060ti.ai-inference.svc.cluster.local:8040";
       SECONDARY_BACKEND_MODEL = "qwen3.5-2b-awq";
-      DISCOVERY_BACKENDS = ''[{"url": "http://llama-qwen-vllm-zephyr-3060ti.ai-inference.svc.cluster.local:8040/v1", "model": "qwen3.5-2b-awq", "name": "llama-vllm-3060ti"}]''; # vLLM Qwen3.5-2B-AWQ on 3060Ti via K8s service
+      DISCOVERY_BACKENDS = ''[{"url": "http://llama-vllm-3060ti.ai-inference.svc.cluster.local:8040/v1", "model": "qwen3.5-2b-awq", "name": "llama-vllm-3060ti"}]''; # vLLM Qwen3.5-2B-AWQ on 3060Ti via K8s service
       PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
       PRIVACY_FILTER_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
@@ -1165,7 +1165,7 @@ in {
             ];
           }
           {
-            to = [{podSelector.matchLabels.app = "llama-qwen-vllm-zephyr-3060ti";}];
+            to = [{podSelector.matchLabels.app = "llama-vllm-3060ti";}];
             ports = [
               {
                 protocol = "TCP";

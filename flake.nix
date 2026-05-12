@@ -252,6 +252,7 @@
 
     packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
     packages.x86_64-linux.llama-cpp = pkgsWithOverlay.llama-cpp;
+    packages.x86_64-linux.llama-cpp-ik = pkgsWithOverlay.llama-cpp-ik;
     packages.x86_64-linux.caddy-with-modules = inputs.caddy-ingress.packages.x86_64-linux.caddy-with-modules;
     packages.x86_64-linux.caddy-ingress-image = inputs.caddy-ingress.packages.x86_64-linux.caddy-ingress-image;
     packages.x86_64-linux.hermes-chat = pkgsWithOverlay.hermes-chat;
