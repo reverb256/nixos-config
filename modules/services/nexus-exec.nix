@@ -48,7 +48,7 @@ in {
       after = [ "network.target" ];
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
-        ExecStart = "${daemon}";
+        ExecStart = "${daemon}/bin/nexus-exec-daemon";
         User = "j_kro";
         RuntimeDirectory = "nexus-exec";
         RuntimeDirectoryMode = "0700";

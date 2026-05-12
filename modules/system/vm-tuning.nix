@@ -9,9 +9,22 @@
   # Override compute-market flake's hugepage allocations (hugepagesz=1G hugepages=3).
   # Kernel processes cmdline left-to-right; last value wins.
   # mkAfter ensures these come after compute-market's params in the final list.
+  # BOTH 1G and 2M pools must be explicitly zeroed — the kernel only zeros the
+  # pool matching the current hugepagesz.  vm.nr_hugepages alone is insufficient
+  # because it only controls the default pool (which becomes 1G after hugepagesz=1G).
   boot.kernelParams = lib.mkAfter [
     "hugepagesz=1G"
     "hugepages=0"
+    "hugepagesz=2M"
+    "hugepages=0"
+  ];
+
+  # Safety net: ensure both hugepage pools stay zeroed at boot via tmpfiles.
+  # The kernel cmdline should handle it, but in case it doesn't, this runs
+  # early in boot and explicitly writes 0 to both pools.
+  systemd.tmpfiles.rules = [
+    "w /sys/kernel/mm/hugepages/hugepages-1048576kB/nr_hugepages - - - - 0"
+    "w /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages - - - - 0"
   ];
 
   boot.kernel.sysctl = {
