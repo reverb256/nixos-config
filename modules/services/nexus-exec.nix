@@ -19,7 +19,7 @@ let
   tunnel = pkgs.writeShellScript "nexus-exec-tunnel" ''
     set -euo pipefail
     mkdir -p $(dirname ${cfg.clientSocketPath})
-    exec ssh -NL ${cfg.clientSocketPath}:${cfg.listenSocket} nexus
+    exec ${pkgs.openssh}/bin/ssh -NL ${cfg.clientSocketPath}:${cfg.listenSocket} nexus
   '';
 
 in {
