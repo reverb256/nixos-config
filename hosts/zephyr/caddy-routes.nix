@@ -190,7 +190,7 @@ in
   +
 
   # CivInt Web Dashboard (nexus, NodePort 30964)
-  mkRoute "civint.lan" "http://${nexus}:30964"
+  mkRoute "civint.lan" "http://${zephyr}:3001"
   + "\n"
   +
 
