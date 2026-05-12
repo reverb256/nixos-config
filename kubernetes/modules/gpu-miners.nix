@@ -595,7 +595,7 @@ in {
         revisionHistoryLimit = 1;
         selector.matchLabels = {
           app = "gpu-miner-nexus";
-          host = "nexus";
+          host = "zephyr";
         };
         strategy.type = "Recreate";
         template = {
@@ -603,11 +603,11 @@ in {
             managed
             // {
               app = "gpu-miner-nexus";
-              host = "nexus";
+              host = "zephyr";
               workload = "crypto-mining";
             };
           spec = {
-            nodeName = "nexus";
+            nodeName = "zephyr";
             hostNetwork = true;
             automountServiceAccountToken = false;
             serviceAccountName = "gpu-miner-sa";

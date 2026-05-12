@@ -1,0 +1,31 @@
+--- /dev/null
++++ /dev/null
+@@ -130,22 +130,18 @@
+                 ];
+                 env = {
+                   _namedlist = true;
+                   PATH = {
+                     name = "PATH";
+                     value = "/run/current-system/sw/bin:/usr/bin:/bin";
+                   };
+-                  VLLM_WORKER_MULTIPROCESSING_METHOD = {
+-                  VLLM_MAX_MODEL_LEN = {
+-                    name = "VLLM_MAX_MODEL_LEN";
+-                    value = "100000";
+-                  };
+-                    name = "VLLM_WORKER_MULTIPROCESSING_METHOD";
+-                  VLLM_MAX_MODEL_LEN = {
+-                    name = "VLLM_MAX_MODEL_LEN";
+-                    value = "100000";
++                  VLLM_WORKER_MULTIPROCESSING_METHOD = {
++                    name = "VLLM_WORKER_MULTIPROCESSING_METHOD";
++                    value = "spawn";
+                   };
+-                    value = "spawn";
++                  VLLM_MAX_MODEL_LEN = {
++                    name = "VLLM_MAX_MODEL_LEN";
++                    value = "100000";
+                   };
+                 };
+                 resources = {
+ 
