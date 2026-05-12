@@ -17,7 +17,7 @@
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
   gatewayUrl = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080";
-  vllm3060Url = "http://llama-qwen-vllm-zephyr-3060ti.ai-inference.svc.cluster.local:8040";
+  vllm3060Url = "http://llama-vllm-3060ti.ai-inference.svc.cluster.local:8040";
 in {
   config.kubernetes.objects = {
     search.ConfigMap.vane-config = {

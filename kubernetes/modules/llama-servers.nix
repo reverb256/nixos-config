@@ -4,9 +4,9 @@
 # The Nix-built llama-server binary runs directly - no Docker image build needed.
 # Binary auto-updates when NixOS is rebuilt (reads live /nix/store).
 #
-# Zephyr GPU layout:
-#   GPU 0 = RTX 3060 Ti (8GB)  → Qwen3.5-2B-AWQ via vLLM+TurboQuant (port 8040)
-#   GPU 1 = RTX 3090 (24GB)    → 35B MoE model (port 1237, coordinator-monitored)
+# GPU layout:
+#   Nexus GPU 0 = RTX 3060 Ti (8GB)  → Qwen3.5-2B-AWQ via vLLM+TurboQuant (port 8040)
+#   Zephyr GPU 1 = RTX 3090 (24GB)   → 35B MoE model (port 1237, coordinator-monitored)
 #
 # GPU ISOLATION NOTE:
 #   nvidia-container-runtime on NixOS is broken (libnvidia-container dlopen can't find
@@ -76,9 +76,9 @@ in
     #   /lib64             — ELF interpreter (nix-ld) for FHS python
     #   /lib               — kernel modules
     #   USER=j_kro         — torch getpass.getuser() fails as uid 0
-    Deployment.llama-qwen-vllm-zephyr-3060ti = {
+    Deployment.llama-vllm-3060ti = {
       metadata.labels = managed // {
-        app = "llama-qwen-vllm-zephyr-3060ti";
+        app = "llama-vllm-3060ti";
         host = "nexus";
         gpu = "rtx3060ti";
       };
@@ -86,14 +86,14 @@ in
         replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels = {
-          app = "llama-qwen-vllm-zephyr-3060ti";
+          app = "llama-vllm-3060ti";
           host = "nexus";
         };
         strategy.type = "Recreate";
         template = {
           metadata = {
             labels = managed // {
-              app = "llama-qwen-vllm-zephyr-3060ti";
+              app = "llama-vllm-3060ti";
               host = "nexus";
               gpu = "rtx3060ti";
             };
@@ -268,9 +268,9 @@ in
       };
     };
 
-    Service.llama-qwen-vllm-zephyr-3060ti = {
+    Service.llama-vllm-3060ti = {
       metadata.labels = managed // {
-        app = "llama-qwen-vllm-zephyr-3060ti";
+        app = "llama-vllm-3060ti";
       };
       spec = {
         type = "ClusterIP";
@@ -282,7 +282,7 @@ in
             targetPort = 8040;
           }
         ];
-        selector.app = "llama-qwen-vllm-zephyr-3060ti";
+        selector.app = "llama-vllm-3060ti";
       };
     };
 
