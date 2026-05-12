@@ -75,7 +75,7 @@
           # Look up power limit for a profile + GPU name pattern
           # Falls back to nvidia-smi power.max_limit if no match
           # Uses associative array populated from the sourced config
-          declare -A POWER_MAP
+          declare -A POWER_MAP=()
           _load_power_config() {
               if [[ ''${#POWER_MAP[@]} -eq 0 && -f "$POWER_PROFILES_CONF" ]]; then
                   while IFS='=' read -r key val; do

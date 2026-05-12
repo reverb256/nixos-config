@@ -8,6 +8,13 @@
   cluster = config.networking.cluster;
 in {
   services = {
+    keepalived-vip = {
+      enable = true;
+      vip = cluster.kubernetes.vip;
+      interface = "eth0";
+      priority = 90;
+    };
+
     hermes-cli = {
       enable = true;
       apiKeyFile = config.age.secrets.zai-api-key.path;
@@ -165,7 +172,7 @@ in {
   # Initrd SSH recovery + BTRFS snapshots
   services.initrd-ssh-recovery = {
     enable = true;
-    interface = "eno1";
+    interface = "eth0";
     networkDriver = "r8169";
     port = 2222;
   };
