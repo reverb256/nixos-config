@@ -234,16 +234,16 @@ in {
       openwebui = {
         domain = "openwebui.lan";
         backend = k8s.open-webui.dns;
-        protected = true;
+
       };
       haven = {
         domain = "haven.lan";
         backend = k8s.haven.dns;
-        protected = true;
+
       };
       hermes = {
         domain = "hermes.lan";
-        backend = "127.0.0.1:8787";
+        backend = "127.0.0.1:8642";
       };
       api-hermes = {
         domain = "api.hermes.lan";
@@ -260,15 +260,15 @@ in {
 
       ai-inference = {
         domain = "ai-inference.lan";
-        backend = k8s.ai-gateway.dns;
+        backend = "ai-inference-gateway.ai-inference.svc.cluster.local:8080";
       };
       qdrant = {
         domain = "qdrant.lan";
         backend = k8s.qdrant.dns;
       };
-      knowledge-fabric = {
-        domain = "knowledge-fabric.lan";
-        backend = k8s.knowledge-fabric.dns;
+      civint = {
+        domain = "civint.lan";
+        backend = "10.1.1.110:3001";
       };
     };
   };

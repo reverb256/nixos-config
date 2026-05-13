@@ -27,7 +27,7 @@
 
   ipPresent = host: ip: lib.strings.hasInfix "ip = \"${ip}\"" source;
 
-  missingIPs = lib.filterAttrs (_host: ip: !(ipPresent host ip)) expectedIPs;
+  missingIPs = lib.filterAttrs (_host: ip: !(ipPresent _host ip)) expectedIPs;
 
   allIPs = lib.attrValues expectedIPs;
   uniqueIPs = lib.unique allIPs;
@@ -50,6 +50,10 @@
 
   missingPorts = builtins.filter (port: !(lib.strings.hasInfix "${port}" source)) requiredPorts;
 
+  # svcOpts DNS uses service name (prevent regression of hostname-mismatch bug)
+  hasSvcOptsSubmoduleFn = lib.strings.hasInfix "{ name, ... }:" source;
+  hasDnsWithServiceName = lib.strings.hasInfix ''"''${name}.''${namespace}.svc.cluster.local:''${toString port}";'' source;
+
   isReadOnly = lib.strings.hasInfix "readOnly = true" source;
 
   allChecks = {
@@ -59,7 +63,8 @@
     allIPsPresent = missingIPs == {};
     noDuplicateIPs = noDuplicateIPs;
     hasK8sVIP = hasK8sVIP;
-    hasK8sPort = hasK8sPort;
+    hasSvcOptsSubmoduleFn = hasSvcOptsSubmoduleFn;
+    hasDnsWithServiceName = hasDnsWithServiceName;
     hasLocalDNS = hasLocalDNS;
     hasTailscaleDomain = hasTailscaleDomain;
     allRequiredPortsPresent = missingPorts == [];

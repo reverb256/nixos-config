@@ -64,7 +64,7 @@ in {
       enable = false;
       vip = cluster.kubernetes.vip;
       interface = "eth0";
-      priority = 110;
+      priority = 80;
     };
 
     backup-to-garage = {

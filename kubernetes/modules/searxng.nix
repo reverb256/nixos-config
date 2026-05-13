@@ -261,7 +261,7 @@ in {
                     key = "secret-key";
                   };
                   SEARXNG_PORT.value = "8080";
-                  SEARXNG_BASE_URL.value = "https://search.lan/";
+                  SEARXNG_BASE_URL.value = "https://searxng.lan/";
                   INSTANCE_NAME.value = "searxng-cluster";
                 };
                 ports = [
