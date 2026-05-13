@@ -797,9 +797,8 @@
             definedAliases = ["@mdn"];
           };
           searxng = {
-            # Fast engines only (drops duckduckgo ~960ms, github ~1.6s from browser bar)
-            urls = [{template = "https://searxng.lan/search?q={searchTerms}&engines=brave,wikipedia,stackoverflow,hackernews,bing,startpage,reuters";}];
-            icon = "https://searxng.org/static/img/logo_small.svg";
+            urls = [{template = "https://searxng.lan/search?q={searchTerms}";}];
+            icon = "https://searxng.lan/static/themes/simple/img/favicon.svg";
             definedAliases = [
               "@sx"
               "@searxng"

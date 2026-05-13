@@ -180,14 +180,14 @@ in
   # Open WebUI — has own auth (does NOT consume X-Auth-Request-* headers)
   mkRoute "openwebui.lan" "http://${nexus}:32080"
   + "\n"
+  +
+
   # Glance Dashboard (nexus, NodePort 32200)
-  + mkRoute "dashboard.lan" "http://${nexus}:32200"
+  mkRoute "dashboard.lan" "http://${nexus}:32200"
   + "\n"
   + mkRoute "frostbite-mcp.lan" "http://${nexus}:30760"
   + "\n"
-  + mkRoute "civint.lan" "http://127.0.0.1:3001"
-  + "\n"
   # Hermes Workspace (zephyr, port 3002)
-  + mkAuthRoute "workspace.lan" "http://127.0.0.1:3002"
+  mkAuthRoute "workspace.lan" "http://127.0.0.1:3002"
   + "\n"
   + ""

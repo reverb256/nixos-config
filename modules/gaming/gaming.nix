@@ -43,11 +43,13 @@ in {
                 ${pkgs.libnotify}/bin/notify-send 'GameMode activated' 'Performance optimizations enabled'
                 /etc/nixos/scripts/gpu-profiles/gaming.sh 2>/dev/null || true
                 /etc/nixos/scripts/gpu-profiles/k8s-mining-pause.sh start 2>/dev/null || true
+                /etc/nixos/scripts/gpu-profiles/k8s-ai-pause.sh start 2>/dev/null || true
               ''}";
               end = "${pkgs.writeShellScript "gamemode-end" ''
                 ${pkgs.libnotify}/bin/notify-send 'GameMode deactivated' 'Normal performance restored'
                 /etc/nixos/scripts/gpu-profiles/ai-inference.sh 2>/dev/null || true
                 /etc/nixos/scripts/gpu-profiles/k8s-mining-pause.sh end 2>/dev/null || true
+                /etc/nixos/scripts/gpu-profiles/k8s-ai-pause.sh end 2>/dev/null || true
               ''}";
             };
           };
