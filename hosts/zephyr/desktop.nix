@@ -15,6 +15,7 @@
   services.displayManager.defaultSession = "niri-uwsm";
 
   services.gaming.hdr.enable = true;
+  services.gaming.vr.enable = true;
 
   services.gaming.gamescopeSession = {
     enable = true;
