@@ -53,22 +53,38 @@ in {
         StateDirectoryMode = "0755";
       };
       script = ''
+        STATIC_CA="${./../../certs/cluster-ca.crt}"
+
         if [ ! -f ${cfg.caCert} ]; then
           mkdir -p /etc/ssl/cluster-ca
-          ${pkgs.openssl}/bin/openssl req -x509 -newkey rsa:4096 \
-            -keyout ${cfg.caKey} \
-            -out ${cfg.caCert} \
-            -days 3650 \
-            -nodes \
-            -subj "/C=US/ST=State/L=City/O=Cluster/CN=Cluster CA" \
-            -addext "basicConstraints=critical,CA:TRUE" \
-            -addext "keyUsage=critical,keyCertSign,cRLSign" \
-            -addext "subjectAltName=DNS:*.lan,DNS:*.cluster.local,DNS:auth.lan,DNS:mission-control.lan,DNS:kagent.lan,DNS:mc.cluster.local,DNS:privacy-filter.lan,DNS:search.lan,DNS:ai.lan,DNS:ai-inference.lan,DNS:openwebui.lan,DNS:haven.lan,DNS:hermes.lan,DNS:api.hermes.lan,DNS:n8n.lan,DNS:searxng.lan,DNS:vaultwarden.lan,DNS:brain.lan,DNS:qdrant.lan,DNS:knowledge-fabric.lan,DNS:monitoring.lan,DNS:grafana.lan,DNS:prometheus.lan,DNS:llama.zephyr.lan,DNS:llama.sentry.lan,DNS:workspace.lan,DNS:dashboard.lan,DNS:frostbite-mcp.lan,DNS:civint.lan" 2>/dev/null
 
-          echo "Internal CA certificate generated at ${cfg.caCert}"
-          chmod 644 ${cfg.caCert}
-          chmod 640 ${cfg.caKey}
-          chown root:caddy ${cfg.caKey}
+          # First, try repo-stored CA so all nodes converge on the same cert
+          if [ -f "$STATIC_CA" ]; then
+            echo "Using static CA from repo"
+            cp "$STATIC_CA" ${cfg.caCert}
+            chmod 644 ${cfg.caCert}
+            if [ ! -f ${cfg.caKey} ]; then
+              ${pkgs.openssl}/bin/openssl genrsa -out ${cfg.caKey} 4096 2>/dev/null
+            fi
+            chmod 640 ${cfg.caKey}
+            chown root:caddy ${cfg.caKey}
+          else
+            # No static CA — first-boot recovery path
+            ${pkgs.openssl}/bin/openssl req -x509 -newkey rsa:4096 \
+              -keyout ${cfg.caKey} \
+              -out ${cfg.caCert} \
+              -days 3650 \
+              -nodes \
+              -subj "/C=US/ST=State/L=City/O=Cluster/CN=Cluster CA" \
+              -addext "basicConstraints=critical,CA:TRUE" \
+              -addext "keyUsage=critical,keyCertSign,cRLSign" \
+              -addext "subjectAltName=DNS:*.lan,DNS:*.cluster.local,DNS:auth.lan,DNS:mission-control.lan,DNS:kagent.lan,DNS:mc.cluster.local,DNS:privacy-filter.lan,DNS:search.lan,DNS:ai.lan,DNS:ai-inference.lan,DNS:openwebui.lan,DNS:haven.lan,DNS:hermes.lan,DNS:api.hermes.lan,DNS:n8n.lan,DNS:searxng.lan,DNS:vaultwarden.lan,DNS:brain.lan,DNS:qdrant.lan,DNS:knowledge-fabric.lan,DNS:monitoring.lan,DNS:grafana.lan,DNS:prometheus.lan,DNS:llama.zephyr.lan,DNS:llama.sentry.lan,DNS:workspace.lan,DNS:dashboard.lan,DNS:frostbite-mcp.lan,DNS:civint.lan" 2>/dev/null
+
+            echo "Internal CA certificate generated at ${cfg.caCert}"
+            chmod 644 ${cfg.caCert}
+            chmod 640 ${cfg.caKey}
+            chown root:caddy ${cfg.caKey}
+          fi
         else
           echo "CA certificate already exists at ${cfg.caCert}"
           # Ensure permissions are correct on existing key
