@@ -227,6 +227,14 @@ in {
           }
 
           ai.zephyr.taila21e09.ts.net:9002 {
+            forward_auth 127.0.0.1:30890 {
+              uri /oauth2/auth
+              copy_headers X-Auth-Request-User X-Auth-Request-Email X-Auth-Request-Preferred-Username
+              handle_response {
+                @is401 expression {http.reverse_proxy.status_code} == 401
+                redir @is401 https://auth.lan/oauth2/start?rd={scheme}://{host}{uri} temporary
+              }
+            }
             header {
               Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
               X-Content-Type-Options "nosniff"
@@ -235,7 +243,7 @@ in {
               -Server
             }
             encode zstd gzip
-            reverse_proxy 127.0.0.1:8080
+            reverse_proxy 127.0.0.1:30880
           }
           ${lanRoutes}
         '';

@@ -54,8 +54,8 @@
         ]
       },
       "locked": {
-        "lastModified": 1778463972,
-        "narHash": "sha256-OnaNHyCdepZWb1B3uNxLKRr2me8wPmwExf0AvkDa/6w=",
+        "lastModified": 1778748826,
+        "narHash": "sha256-/vta5LnrXLwKEKGt2qiFJrTvTqWts8/cWs4Xd8qbbgE=",
         "path": "/data/projects/own/ai-inference-gateway",
         "type": "path"
       },
@@ -1058,6 +1058,23 @@
         "type": "github"
       }
     },
+    "llama-turboquant": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1778790801,
+        "narHash": "sha256-jq3FVYnukUpNuLNFMGdAVZBBs46GdqYGPGeAAuMveoU=",
+        "path": "/data/projects/own/llama-cpp-turboquant",
+        "type": "path"
+      },
+      "original": {
+        "path": "/data/projects/own/llama-cpp-turboquant",
+        "type": "path"
+      }
+    },
     "llm-agents": {
       "inputs": {
         "blueprint": "blueprint",
@@ -1723,6 +1740,7 @@
         "home-manager": "home-manager",
         "impermanence": "impermanence",
         "knowledge-fabric": "knowledge-fabric",
+        "llama-turboquant": "llama-turboquant",
         "llm-agents": "llm-agents",
         "mcp-registry": "mcp-registry",
         "microvm": "microvm",
@@ -1737,6 +1755,7 @@
         "process-compose": "process-compose",
         "scopebuddy": "scopebuddy",
         "stylix": "stylix",
+        "vllm": "vllm",
         "zen-browser": "zen-browser"
       }
     },
@@ -2149,6 +2168,23 @@
         "owner": "pyproject-nix",
         "repo": "uv2nix",
         "type": "github"
+      }
+    },
+    "vllm": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1778790796,
+        "narHash": "sha256-p1yh4o8Lv8kBipdVQ/rmh8xzn7INvvKFy0uH0RTkhec=",
+        "path": "/data/projects/own/vllm",
+        "type": "path"
+      },
+      "original": {
+        "path": "/data/projects/own/vllm",
+        "type": "path"
       }
     },
     "xwayland-satellite-stable": {

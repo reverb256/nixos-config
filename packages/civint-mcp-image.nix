@@ -1,17 +1,30 @@
-{ dockerTools, buildEnv, nodejs_22, bash, coreutils, stdenvNoCC
-, src ? builtins.path { path = /data/projects/own/frostbite-data-pipeline; name = "civint-mcp-source"; }
+{ dockerTools, buildEnv, nodejs_22, bash, coreutils, stdenvNoCC, pnpm
+, src ? builtins.path { path = /data/projects/own/civint; name = "civint-mcp-source"; }
 }:
 
 let
-  # Bundle app + installed node_modules into a clean app directory
   civintDist = stdenvNoCC.mkDerivation {
     name = "civint-mcp-dist";
     inherit src;
+    buildInputs = [ nodejs_22 pnpm ];
+    buildPhase = ''
+      export HOME=$TMPDIR
+      corepack enable
+      pnpm install --frozen-lockfile --dir $src
+      cd $src
+      pnpm --filter @civint/pipeline-core build
+      pnpm --filter @civint/mcp-server build
+    '';
     installPhase = ''
       mkdir -p $out/app
-      cp -r $src/package.json $src/package-lock.json $out/app/
-      cp -r $src/packages $out/app/
-      cp -r $src/dist $out/app/
+      cp -r $src/package.json $out/app/
+      cp -r $src/pnpm-lock.yaml $out/app/
+      cp -r $src/packages/pipeline-core/dist $out/app/packages/pipeline-core/
+      cp -r $src/packages/pipeline-core/package.json $out/app/packages/pipeline-core/
+      cp -r $src/packages/mcp-server/dist $out/app/packages/mcp-server/
+      cp -r $src/packages/mcp-server/package.json $out/app/packages/mcp-server/
+      cp -r $src/packages/engine/dist $out/app/packages/engine/
+      cp -r $src/packages/engine/package.json $out/app/packages/engine/
       cp -r $src/node_modules $out/app/
     '';
   };
@@ -42,12 +55,13 @@ dockerTools.buildImage {
       "HOME=/tmp"
       "PATH=/bin"
       "PORT=3002"
+      "NODE_ENV=production"
     ];
     ExposedPorts = { "3002/tcp" = {}; };
     Labels = {
       "org.opencontainers.image.title" = "CivInt MCP Server";
       "org.opencontainers.image.description" = "Canadian sovereign data pipeline MCP server";
-      "org.opencontainers.image.source" = "https://github.com/reverb256/frostbite-data-pipeline";
+      "org.opencontainers.image.source" = "https://github.com/reverb256/civint";
     };
   };
 }
