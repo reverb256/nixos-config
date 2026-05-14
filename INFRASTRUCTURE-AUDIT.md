@@ -251,46 +251,55 @@ OAuth via Casdoor SSO (Caddy forward_auth). Grafana also has native `GF_AUTH_GEN
 
 ---
 
-## Tailscale Funnel State — 2026-05-14
+## Tailscale Funnel State — 2026-05-14 (LIVE)
 
 ### Architecture
 
 ```
-Internet -> Tailscale Funnel :443 -> zephyr:9002 -> Caddy srv2 -> reverse_proxy -> K8s backend
+Internet → Tailscale Funnel :443 → K8s Operator ProxyGroup → reverse_proxy → backend Pod
 ```
+
+Funnel is managed entirely through the K8s Tailscale operator. Host-level funnel is disabled.
 
 ### Current State
 
 | Component | Status |
 |-----------|--------|
-| ProxyClass `ha-funnel` | Created (anti-affinity, resource limits) |
-| ProxyGroup `funnel-proxies` | 2/2 pods running (sentry) |
-| K8s Funnel Ingresses (prod) | maplespike-api-funnel, maplespike-portal-funnel, maplespike-status-funnel |
-| K8s Funnel Ingresses (dev) | maplespike-api-dev, maplespike-portal-dev, maplespike-mcp-dev |
-| Host funnel command (`tailscale funnel 9002`) | NOT YET EXECUTED |
-| Operator pod | Was restarting (ContainerCreating) at last check |
+| Operator | 1/1 Running on sentry |
+| ProxyClass ha-funnel | Anti-affinity, mining toleration, resource limits |
+| ProxyGroup funnel-proxies | 2/2 pods, ProxyGroupReady: True |
+| Host funnel | Disabled (`tailscale funnel --https=443 off`) |
+| Manifests location | `/etc/nixos/kubernetes-manifests/tailscale/` |
 
-### Known Bug
+### Funnel Ingresses (5 total)
 
-`ingress-pg-reconciler` in `tailscale/k8s-operator:stable` logs "ProxyGroup is not (yet) ready" despite `ProxyGroupAvailable=True` and `ProxyGroupReady=True` with matching `observedGeneration`. Root cause: optimistic lock errors on state Secrets cause the ProxyGroup reconciler to cycle Ready/Not-Ready. The ingress reconciler caches a stale version.
+| Namespace | Ingress | Type |
+|-----------|---------|------|
+| maplespike-dev | maplespike-api | Dev API |
+| maplespike-dev | maplespike-portal | Dev Portal |
+| maplespike-dev | maplespike-mcp | Dev MCP |
+| maplespike | maplespike-api | Prod API |
+| maplespike | maplespike-portal | Prod Portal |
 
-### Resolution
+### Manifests in Nix Source of Truth
 
-Funnel will terminate on zephyr host (not K8s proxy pods). Caddy on zephyr already has `srv2` listening on `:9002` for `*.taila21e09.ts.net` with TLS from cluster CA. Only missing piece: `tailscale funnel 9002` command.
-
----
+| File | Purpose |
+|------|---------|
+| `operator.yaml` | Tailscale k8s-operator deployment |
+| `funnel-proxyclass.yaml` | ha-funnel ProxyClass (anti-affinity) |
+| `funnel-proxygroup.yaml` | funnel-proxies ProxyGroup (2 replicas) |
+| `funnel-dev.yaml` | Dev namespace ingresses (api, portal, mcp) |
+| `funnel-prod.yaml` | Prod namespace ingresses (api, portal) |
 
 ## Recent Infrastructure Changes — 2026-05-14
 
 | Change | Description |
 |--------|-------------|
 | Open WebUI Casdoor OIDC wired | `app-openwebui` Casdoor app, env vars deployed, GPU rollout fix |
-| CivInt Web Dashboard deployed | https://civint.lan/ — Next.js on K8s nginx, NodePort 30964 |
 | Gitea DNS fixed | Missing `gitea.lan. A` record added to unbound |
 | Unbound config improved | Added `local-dns-extra.conf` include for manual overrides |
 | Dev funnel Ingresses affinity | Spread across nexus/sentry/forge, zephyr excluded |
 | Corporate + influence ingestion modules | 2,850 lines built across lobbying, procurement, execs, actors |
-| civic-intel repo merged | engine/web/pretext-civic packages absorbed into civint monorepo |
 | Katzilla references purged | All code + docs references removed |
 
 **Last Updated:** 2026-05-14
