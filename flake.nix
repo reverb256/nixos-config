@@ -119,9 +119,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     frostbite-data-pipeline = {
-      url = "path:/data/projects/own/frostbite-data-pipeline";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     caddy-ingress = {
       url = "github:reverb256/caddy-ingress";
       inputs.nixpkgs.follows = "nixpkgs";
