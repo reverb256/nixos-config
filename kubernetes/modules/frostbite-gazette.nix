@@ -311,7 +311,7 @@ in {
         type = "NodePort";
         selector = {app = "frostbite-mcp";};
         ports._namedlist = true;
-        ports.http = { port = 3002; targetPort = 3002; protocol = "TCP"; };
+        ports.http = { port = 3002; targetPort = 3002; nodePort = 30760; protocol = "TCP"; };
       };
     };
   };

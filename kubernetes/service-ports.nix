@@ -57,6 +57,7 @@
 
   # ── search (namespace: search) ─────────────────────────────
   searxng = 32081;
+  privacy-filter = 30935;
   vane    = 30900;
 
   # ── vaultwarden (namespace: vaultwarden) ───────────────────
