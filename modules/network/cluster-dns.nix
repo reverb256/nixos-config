@@ -148,16 +148,13 @@ in {
         "ai-inference.lan. IN A ${vip}"
         "auth.lan. IN A ${vip}"
         "qdrant.lan. IN A ${vip}"
-        "knowledge-fabric.lan. IN A ${vip}"
         "haven.lan. IN A ${vip}"
         "kagent.lan. IN A ${vip}"
-        "hermes.lan. IN A ${vip}"
-        "api.hermes.lan. IN A ${vip}"
         "n8n.lan. IN A ${vip}"
         "searxng.lan. IN A ${vip}"
         "mission-control.lan. IN A ${vip}"
-        "privacy-filter.lan. IN A ${vip}"
         "grafana.lan. IN A ${vip}"
+        "privacy-filter.lan. IN A ${vip}"
         "vaultwarden.lan. IN A ${vip}"
         "workspace.lan. IN A ${vip}"
         "dashboard.lan. IN A ${vip}"
@@ -166,6 +163,7 @@ in {
         "maplespike-api.lan. IN A ${vip}"
         "maplespike-mcp.lan. IN A ${vip}"
         "status.maplespike.lan. IN A ${vip}"
+        "uptime.maplespike.lan. IN A ${vip}"
         "dev.maplespike.lan. IN A ${vip}"
         "dev-maplespike-api.lan. IN A ${vip}"
         "dev-maplespike-mcp.lan. IN A ${vip}"
@@ -246,8 +244,6 @@ in {
           // {
             ai-inference = vip;
             qdrant = vip;
-            knowledge-fabric = vip;
-            hermes = vip;
             search = vip;
             searxng = vip;
             n8n = vip;
