@@ -1,0 +1,15 @@
+# NixOS repo author consolidation
+# Canonical identity
+Reverb <j_kroeker@reverb256.ca>
+
+# Jeremy Kroeker variants
+Jeremy Kroeker <j_kroeker@reverb256.ca> <j_kro@local>
+Jeremy Kroeker <j_kroeker@reverb256.ca> <j_kro@zephyr>
+Jeremy Kroeker <j_kroeker@reverb256.ca> <j_kro@forge>
+Jeremy Kroeker <j_kroeker@reverb256.ca> <j_kroeker@reverb256.ca>
+Reverb <j_kroeker@reverb256.ca> <129622142+reverb256@users.noreply.github.com>
+Reverb <j_kroeker@reverb256.ca> <reverb256@users.noreply.github.com>
+Reverb <j_kroeker@reverb256.ca> <reverb256@j_kroeker@reverb256.ca>
+# Preserve bots as-is
+Claude Sonnet 4.6 <noreply@anthropic.com>
+kiloconnect[bot] <240665456+kiloconnect[bot]@users.noreply.github.com>

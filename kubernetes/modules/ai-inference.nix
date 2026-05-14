@@ -137,6 +137,12 @@ in {
               open-webui = {
                 image = "ghcr.io/open-webui/open-webui:v0.9.2";
                 imagePullPolicy = "IfNotPresent";
+                securityContext = {
+                  runAsNonRoot = true;
+                  allowPrivilegeEscalation = false;
+                  capabilities.drop = [ "ALL" ];
+                  seccompProfile.type = "RuntimeDefault";
+                };
                 env = {
                   _namedlist = true;
                   OLLAMA_BASE_URLS = {
@@ -418,6 +424,12 @@ in {
               ai-gateway = {
                 image = gatewayImage;
                 imagePullPolicy = "IfNotPresent";
+                securityContext = {
+                  runAsNonRoot = true;
+                  allowPrivilegeEscalation = false;
+                  capabilities.drop = [ "ALL" ];
+                  seccompProfile.type = "RuntimeDefault";
+                };
                 # Container image has default Cmd: python -m uvicorn ... --workers 4
                 # Override workers to 4 for stability
                 command = [
@@ -614,6 +626,16 @@ in {
               {
                 name = "redis";
                 image = "redis:7-alpine";
+                securityContext = {
+                  runAsNonRoot = true;
+                  allowPrivilegeEscalation = false;
+                  capabilities = {
+                    drop = ["ALL"];
+                  };
+                  seccompProfile = {
+                    type = "RuntimeDefault";
+                  };
+                };
                 command = [
                   "redis-server"
                   "--save"
@@ -1162,6 +1184,16 @@ in {
                 name = "kb-mcp";
                 image = "localhost/kb-mcp:latest";
                 imagePullPolicy = "IfNotPresent";
+                securityContext = {
+                  runAsNonRoot = true;
+                  allowPrivilegeEscalation = false;
+                  capabilities = {
+                    drop = ["ALL"];
+                  };
+                  seccompProfile = {
+                    type = "RuntimeDefault";
+                  };
+                };
                 ports = [
                   {
                     containerPort = 8080;
@@ -1538,6 +1570,12 @@ print(f"Sync complete: {deployed} configs deployed")
               sync = {
                 image = "docker.io/library/python:3.13-alpine";
                 command = ["python3" "/scripts/sync.py"];
+                securityContext = {
+                  runAsNonRoot = true;
+                  allowPrivilegeEscalation = false;
+                  capabilities.drop = [ "ALL" ];
+                  seccompProfile.type = "RuntimeDefault";
+                };
                 env = {
                   _namedlist = true;
                   GATEWAY_URL = {
