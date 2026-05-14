@@ -307,7 +307,7 @@ All CI workflows (`.github/workflows/`) pin actions to immutable commit SHAs ins
 Architecture: Casdoor OIDC (auth.lan) → oauth2-proxy (central-auth.service) → Caddy forward_auth.
 Deployed on Zephyr + Nexus. Do NOT deploy oauth2-proxy as K8s sidecars.
 Native OIDC audit completed 2026-05-14: Grafana, AI Gateway, Gitea, Open WebUI wired to Casdoor.
-Open WebUI supports OIDC but not yet wired. Haven, MC, Kagent have no native OIDC — proxy auth correct.
+Haven, MC, Kagent have no native OIDC — proxy auth correct.
 
 ---
 

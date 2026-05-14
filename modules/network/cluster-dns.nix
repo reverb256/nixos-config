@@ -87,6 +87,8 @@ in {
             "lan. static"
             "cluster.local. transparent"
           ];
+          # All records generated below in environment.etc."unbound/local-dns.conf"
+          # Do NOT add a separate extra file — see cluster-dns.nix for the full list
           include = ["/etc/unbound/local-dns.conf"];
 
           # Don't query localhost (prevent loops)
@@ -139,7 +141,6 @@ in {
       # Services via Caddy Ingress (accessed via VIP)
       ingressServices = [
         "search.lan. IN A ${vip}"
-        "brain.lan. IN A ${vip}"
         "openwebui.lan. IN A ${vip}"
       ];
       # Services proxied via Caddy via VIP (single stable entry point)
@@ -168,6 +169,8 @@ in {
         "dev.maplespike.lan. IN A ${vip}"
         "dev-maplespike-api.lan. IN A ${vip}"
         "dev-maplespike-mcp.lan. IN A ${vip}"
+        "gitea.lan. IN A ${vip}"
+        "uptime.maplespike.lan. IN A ${vip}"
       ];
       # Optional forge services
       forgeServices = [
@@ -245,7 +248,6 @@ in {
             qdrant = vip;
             knowledge-fabric = vip;
             hermes = vip;
-            brain = vip;
             search = vip;
             searxng = vip;
             n8n = vip;

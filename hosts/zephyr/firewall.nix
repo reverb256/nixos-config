@@ -24,11 +24,10 @@
         9100
         9101 # Hermes agent Prometheus exporter
         1235 # llama-server (Qwen3.6-27B Dense + DFlash)
-        3001 # CivInt Portal SaaS Website
       ];
       # Workaround: list merge is broken for this host. Ensure critical ports via nft rules.
       extraInputRules = ''
-        tcp dport { 80, 443, 1235, 1237, 3001, 53317, 8080, 8040, 8041, 8888, 3900, 3901, 50000, 9100, 9101, 9400 } accept
+        tcp dport { 80, 443, 1235, 1237, 53317, 8080, 8040, 8041, 8888, 3900, 3901, 50000, 9100, 9101, 9400 } accept
       '';
       allowedUDPPorts = lib.mkOptionDefault [
         9757

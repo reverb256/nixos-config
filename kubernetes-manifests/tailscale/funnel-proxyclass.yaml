@@ -1,0 +1,34 @@
+# Tailscale Funnel ProxyClass — HA funnel proxies for MapleSpike
+# Managed through /etc/nixos/ as source of truth
+# Apply: kubectl apply -f funnel-proxyclass.yaml
+---
+apiVersion: tailscale.com/v1alpha1
+kind: ProxyClass
+metadata:
+  name: ha-funnel
+spec:
+  metrics:
+    enable: true
+  statefulSet:
+    pod:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: funnel-proxies
+                topologyKey: kubernetes.io/hostname
+      tailscaleContainer:
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+      tolerations:
+        - key: node.forge/mining
+          operator: Exists
+          effect: NoSchedule

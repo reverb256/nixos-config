@@ -124,10 +124,6 @@ in
   mkAuthRoute "ai-inference.lan" "http://${nexus}:30880"
   + "\n"
   +
-  # Brain / Knowledge Fabric API
-  mkAuthRoute "brain.lan" "http://${nexus}:31180"
-  + "\n"
-  +
   # Qdrant vector database
   mkAuthRoute "qdrant.lan" "http://${nexus}:30632"
   + "\n"
