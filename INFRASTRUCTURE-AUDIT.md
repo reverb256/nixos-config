@@ -223,3 +223,74 @@ OAuth via Casdoor SSO (Caddy forward_auth). Grafana also has native `GF_AUTH_GEN
 ---
 
 **Last Updated:** 2026-05-14
+
+---
+
+## Security Audit — 2026-05-14
+
+### Blind Spots (10 items)
+
+| # | Issue | Severity | Fix |
+|---|-------|----------|-----|
+| 1 | 72 secrets in etcd plaintext | P0 | Enable etcd encryption + rotate all |
+| 2 | 30+ pods running as root | P0 | runAsNonRoot + drop ALL capabilities |
+| 3 | 17 NodePort services bypass Caddy auth | P1 | Firewall NodePort range or ClusterIP migration |
+| 4 | Zero runtime security (Falco) | P1 | Deploy Falco DaemonSet |
+| 5 | No mTLS, plaintext pod traffic | P2 | Service mesh evaluation |
+| 6 | No K8s audit policy | P2 | Enable + ship to Loki |
+| 7 | No image scanning | P3 | Trivy admission webhook |
+| 8 | No model file integrity | P3 | SHA-256 verification before loading |
+| 9 | ai-inference namespace privileged | P3 | Lock to baseline after GPU isolation fixed |
+| 10 | No SBOM for any image | P3 | Generate SBOMs |
+
+### Decision Log
+
+| Decision | Rationale | Date |
+|----------|-----------|------|
+| NodePort restriction (P1) prioritized over secrets encryption (P0) | 17 NodePorts actively bypass auth today. Secrets are high blast radius but lower immediate risk in single-operator homelab. | May 14 |
+
+---
+
+## Tailscale Funnel State — 2026-05-14
+
+### Architecture
+
+```
+Internet -> Tailscale Funnel :443 -> zephyr:9002 -> Caddy srv2 -> reverse_proxy -> K8s backend
+```
+
+### Current State
+
+| Component | Status |
+|-----------|--------|
+| ProxyClass `ha-funnel` | Created (anti-affinity, resource limits) |
+| ProxyGroup `funnel-proxies` | 2/2 pods running (sentry) |
+| K8s Funnel Ingresses (prod) | maplespike-api-funnel, maplespike-portal-funnel, maplespike-status-funnel |
+| K8s Funnel Ingresses (dev) | maplespike-api-dev, maplespike-portal-dev, maplespike-mcp-dev |
+| Host funnel command (`tailscale funnel 9002`) | NOT YET EXECUTED |
+| Operator pod | Was restarting (ContainerCreating) at last check |
+
+### Known Bug
+
+`ingress-pg-reconciler` in `tailscale/k8s-operator:stable` logs "ProxyGroup is not (yet) ready" despite `ProxyGroupAvailable=True` and `ProxyGroupReady=True` with matching `observedGeneration`. Root cause: optimistic lock errors on state Secrets cause the ProxyGroup reconciler to cycle Ready/Not-Ready. The ingress reconciler caches a stale version.
+
+### Resolution
+
+Funnel will terminate on zephyr host (not K8s proxy pods). Caddy on zephyr already has `srv2` listening on `:9002` for `*.taila21e09.ts.net` with TLS from cluster CA. Only missing piece: `tailscale funnel 9002` command.
+
+---
+
+## Recent Infrastructure Changes — 2026-05-14
+
+| Change | Description |
+|--------|-------------|
+| Open WebUI Casdoor OIDC wired | `app-openwebui` Casdoor app, env vars deployed, GPU rollout fix |
+| CivInt Web Dashboard deployed | https://civint.lan/ — Next.js on K8s nginx, NodePort 30964 |
+| Gitea DNS fixed | Missing `gitea.lan. A` record added to unbound |
+| Unbound config improved | Added `local-dns-extra.conf` include for manual overrides |
+| Dev funnel Ingresses affinity | Spread across nexus/sentry/forge, zephyr excluded |
+| Corporate + influence ingestion modules | 2,850 lines built across lobbying, procurement, execs, actors |
+| civic-intel repo merged | engine/web/pretext-civic packages absorbed into civint monorepo |
+| Katzilla references purged | All code + docs references removed |
+
+**Last Updated:** 2026-05-14
