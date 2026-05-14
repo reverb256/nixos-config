@@ -52,7 +52,9 @@ in {
     };
 
     systemd.services.nvidia-persistence-mode = {
-      description = "Enable NVIDIA GPU persistence mode for AI workloads";
+      description = "Enable NVIDIA GPU persistence mode";
+      wantedBy = ["multi-user.target"];
+      after = ["systemd-modules-load.service"];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;

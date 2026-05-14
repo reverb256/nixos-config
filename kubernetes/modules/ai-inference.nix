@@ -1131,7 +1131,7 @@ in {
           app = "privacy-filter";
         };
       spec = {
-        type = "ClusterIP";
+        type = "NodePort";
         selector.app = "privacy-filter";
         ports = [
           {
@@ -1139,6 +1139,7 @@ in {
             port = 8080;
             protocol = "TCP";
             targetPort = 8080;
+            nodePort = 30935;
           }
         ];
       };
