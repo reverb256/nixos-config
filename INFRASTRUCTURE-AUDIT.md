@@ -1,4 +1,4 @@
-# Infrastructure Audit — 2026-05-02
+# Infrastructure Audit — 2026-05-14
 
 ## Cluster Overview
 
@@ -43,9 +43,27 @@ All protected services use Caddy `forward_auth` to enforce authentication. No pe
 
 | Type | Services | Expected Status |
 |------|----------|-----------------|
-| Public (no auth) | searxng.lan, ai-inference.lan | 200 |
-| Protected (SSO) | haven.lan, openwebui.lan, kagent.lan, grafana.lan, mission-control.lan | 401 → login redirect |
+| Public (no auth) | searxng.lan, openwebui.lan, dashboard.lan, gitea.lan, vaultwarden.lan, n8n.lan | 200 |
+| Protected (SSO) | haven.lan, kagent.lan, grafana.lan, mission-control.lan, qdrant.lan, brain.lan, ai-inference.lan, workspace.lan | 401 → login redirect |
+| Native OIDC | grafana.lan (dual), ai-inference.lan (JWT), gitea.lan (direct Casdoor app) | Direct Casdoor auth |
 | Auth endpoint | auth.lan (Casdoor) | 200 |
+
+### Native OIDC Audit (2026-05-14)
+
+| Service | Native OIDC | In Use? | Notes |
+|---------|-------------|---------|-------|
+| Grafana | ✅ Supported | ✅ Wired | `GF_AUTH_GENERIC_OAUTH_*` → Casdoor. Also behind forward_auth. |
+| AI Gateway | ✅ JWKS/JWT | ✅ Wired | JWT auth with JWKS from Casdoor. |
+| Gitea | ✅ Supported | ✅ Wired | Direct Casdoor app `app-gitea`. |
+| Open WebUI | ✅ Supported | ✅ Wired (May 14) | Casdoor app `app-openwebui`. OIDC env vars deployed. |
+| n8n | ⚠️ Enterprise | ❌ | Requires license key. |
+| Haven, MC, Kagent | ❌ No support | — | Proxy auth is correct approach. |
+| Qdrant, Vaultwarden, Workspace | ❌ No support | — | Proxy auth correct. |
+
+### Stale OIDC Secrets
+
+Three K8s secrets defined in Nix modules but **never mounted** (removed sidecar remnants):
+`haven-oidc`, `mission-control-oidc`, `kagent-oidc`. Safe to clean up.
 
 ### Routing
 
@@ -204,4 +222,4 @@ OAuth via Casdoor SSO (Caddy forward_auth). Grafana also has native `GF_AUTH_GEN
 
 ---
 
-**Last Updated:** 2026-05-02
+**Last Updated:** 2026-05-14

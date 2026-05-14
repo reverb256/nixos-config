@@ -322,4 +322,5 @@ in {
   # Other hosts (nexus, forge, sentry) still use unbound-common.
   services.unbound-common.enable = false;
   # Enable Hermes RAM protection (mandatory pre-flight checks)
+  services.ai-inference.enable = lib.mkForce false;
 }

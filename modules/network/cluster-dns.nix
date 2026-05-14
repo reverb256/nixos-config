@@ -164,6 +164,10 @@ in {
         "maplespike.lan. IN A ${vip}"
         "maplespike-api.lan. IN A ${vip}"
         "maplespike-mcp.lan. IN A ${vip}"
+        "status.maplespike.lan. IN A ${vip}"
+        "dev.maplespike.lan. IN A ${vip}"
+        "dev-maplespike-api.lan. IN A ${vip}"
+        "dev-maplespike-mcp.lan. IN A ${vip}"
       ];
       # Optional forge services
       forgeServices = [

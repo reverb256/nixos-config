@@ -28,7 +28,7 @@ in {
     ServiceAccount.n8n-sa.automountServiceAccountToken = false;
 
     ConfigMap.ai-gateway-config.data = {
-      AUTH_MODE = "none";
+      AUTH_MODE="***";
       BACKEND_TYPE = "llama-cpp";
       BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
       DEFAULT_MODEL = "Qwen3.6-35B-A3B-UD-IQ3_S.gguf";
@@ -45,7 +45,7 @@ in {
     };
 
     ConfigMap.ai-inference-gateway-config.data = {
-      AUTH_MODE = "api-key";
+      AUTH_MODE="***";
       BACKEND_TYPE = "zai";
       BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
       BACKEND_FALLBACK_URLS = ""; # Dead backends removed (see git log)
@@ -71,7 +71,7 @@ in {
       CHUNK_SIZE = "512";
       MCP_ENABLED = "true";
       SYSTEM_PROMPTS_ENABLED = "true";
-      TOKEN_SCOPED_COLLECTIONS = "true";
+      TOKEN_SCOPED_COLLECTIONS="***";
       VECTOR_WEIGHT = "0.7";
       HF_HOME = "/home/j_kro/.cache/huggingface";
       HF_HUB_OFFLINE = "0";
@@ -98,11 +98,11 @@ in {
       MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS = "[\"/etc/nixos\"]";
       MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K = "10";
-      JWT_AUTH_ENABLED = "true";
-      JWT_AUTH_JWKS_URL = "https://auth.lan/.well-known/jwks";
-      JWT_AUTH_ISSUER = "https://auth.lan";
-      JWT_AUTH_AUDIENCE = "3a331eeb195880d68d9a";
-      JWT_AUTH_REFRESH_INTERVAL = "300";
+      JWT_AUTH_ENABLED="***";
+      JWT_AUTH_JWKS_URL="https:...jwks";
+      JWT_AUTH_ISSUER="***";
+      JWT_AUTH_AUDIENCE="3a331e...8d9a";
+      JWT_AUTH_REFRESH_INTERVAL="***";
     };
 
     # NOTE: Prometheus + Grafana removed — see kubernetes/modules/monitoring.nix
@@ -166,6 +166,35 @@ in {
                   OPENAI_API_BASE_URL = {
                     name = "OPENAI_API_BASE_URL";
                     value = "http://ai-inference.ai-inference.svc.cluster.local:11434";
+                  };
+                  # Casdoor OIDC
+                  OAUTH_CLIENT_ID = {
+                    name = "OAUTH_CLIENT_ID";
+                    value = "openwebui";
+                  };
+                  OAUTH_CLIENT_SECRET = {
+                    name = "OAUTH_CLIENT_SECRET";
+                    value = "f73abe187c8976c4b9d376a1dc9e4ec71cfaf3d6";
+                  };
+                  OPENID_PROVIDER_URL = {
+                    name = "OPENID_PROVIDER_URL";
+                    value = "https://auth.lan/.well-known/openid-configuration";
+                  };
+                  OPENID_REDIRECT_URI = {
+                    name = "OPENID_REDIRECT_URI";
+                    value = "https://openwebui.lan/oauth/oidc/callback";
+                  };
+                  OAUTH_PROVIDER_NAME = {
+                    name = "OAUTH_PROVIDER_NAME";
+                    value = "Casdoor";
+                  };
+                  OAUTH_SCOPES = {
+                    name = "OAUTH_SCOPES";
+                    value = "openid email profile";
+                  };
+                  ENABLE_OAUTH_SIGNUP = {
+                    name = "ENABLE_OAUTH_SIGNUP";
+                    value = "true";
                   };
                 };
                 ports = [
@@ -390,7 +419,7 @@ in {
                 image = gatewayImage;
                 imagePullPolicy = "IfNotPresent";
                 # Container image has default Cmd: python -m uvicorn ... --workers 4
-                # Override workers to 1 for stability
+                # Override workers to 4 for stability
                 command = [
                   "python"
                   "-m"
@@ -401,7 +430,7 @@ in {
                   "--port"
                   "8080"
                   "--workers"
-                  "1"
+                  "4"
                   "--log-level"
                   "info"
                 ];
@@ -538,350 +567,11 @@ in {
                   };
                   NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
                     name = "nvidia-api-key";
-                    key = "NVIDIA_API_KEY";
-                  };
-                  OPENROUTER_API_KEY.valueFrom.secretKeyRef = {
-                    name = "openrouter-api-key";
-                    key = "OPENROUTER_API_KEY";
-                  };
-                  POLLINATIONS_API_KEY.valueFrom.secretKeyRef = {
-                    name = "pollinations-api-key";
-                    key = "POLLINATIONS_API_KEY";
-                  };
-                  KILO_API_KEY.valueFrom.secretKeyRef = {
-                    name = "kilo-api-key";
-                    key = "KILO_API_KEY";
-                  };
-                  OPENCODE_API_KEY.valueFrom.secretKeyRef = {
-                    name = "opencode-api-key";
-                    key = "OPENCODE_API_KEY";
-                  };
-                  MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED.valueFrom.configMapKeyRef = {
-                    name = "ai-inference-gateway-config";
-                    key = "MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED";
-                  };
-                  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED.valueFrom.configMapKeyRef = {
-                    name = "ai-inference-gateway-config";
-                    key = "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED";
-                  };
-                  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL.valueFrom.configMapKeyRef = {
-                    name = "ai-inference-gateway-config";
-                    key = "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL";
-                  };
-                  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS.valueFrom.configMapKeyRef = {
-                    name = "ai-inference-gateway-config";
-                    key = "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS";
-                  };
-                  MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K.valueFrom.configMapKeyRef = {
-                    name = "ai-inference-gateway-config";
-                    key = "MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K";
-                  };
-                  MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED.valueFrom.configMapKeyRef = {
-                    name = "ai-inference-gateway-config";
-                    key = "MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED";
-                  };
-                  MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED.valueFrom.configMapKeyRef = {
-                    name = "ai-inference-gateway-config";
-                    key = "MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED";
-                  };
-                  MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K.valueFrom.configMapKeyRef = {
-                    name = "ai-inference-gateway-config";
-                    key = "MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K";
-                  };
-                  JWT_AUTH_ENABLED.valueFrom.configMapKeyRef = {
-                    name = "ai-inference-gateway-config";
-                    key = "JWT_AUTH_ENABLED";
-                  };
-                  JWT_AUTH_JWKS_URL.valueFrom.configMapKeyRef = {
-                    name = "ai-inference-gateway-config";
-                    key = "JWT_AUTH_JWKS_URL";
-                  };
-                  JWT_AUTH_ISSUER.valueFrom.configMapKeyRef = {
-                    name = "ai-inference-gateway-config";
-                    key = "JWT_AUTH_ISSUER";
-                  };
-                  JWT_AUTH_AUDIENCE.valueFrom.configMapKeyRef = {
-                    name = "ai-inference-gateway-config";
-                    key = "JWT_AUTH_AUDIENCE";
-                  };
-                  JWT_AUTH_REFRESH_INTERVAL.valueFrom.configMapKeyRef = {
-                    name = "ai-inference-gateway-config";
-                    key = "JWT_AUTH_REFRESH_INTERVAL";
-                  };
-                };
-                ports = [
-                  {
-                    containerPort = 8080;
-                    name = "http";
-                    protocol = "TCP";
-                  }
-                ];
-                resources = {
-                  requests = {
-                    cpu = "500m";
-                    memory = "512Mi";
-                  };
-                  limits = {
-                    cpu = "2";
-                    memory = "2Gi";
-                  };
-                };
-                livenessProbe = {
-                  httpGet = {
-                    path = "/health";
-                    port = 8080;
-                  };
-                  initialDelaySeconds = 60;
-                  periodSeconds = 30;
-                  timeoutSeconds = 10;
-                  failureThreshold = 5;
-                };
-                readinessProbe = {
-                  httpGet = {
-                    path = "/health";
-                    port = 8080;
-                  };
-                  initialDelaySeconds = 10;
-                  periodSeconds = 10;
-                  timeoutSeconds = 3;
-                  failureThreshold = 3;
-                };
-                volumeMounts = {
-                  _namedlist = true;
-                  "hf-cache" = {
-                    mountPath = "/home/j_kro/.cache/huggingface";
-                  };
-                  tmp = {
-                    mountPath = "/tmp";
-                  };
-                  ai-memory = {
-                    mountPath = "/run/ai-inference/memory";
-                  };
-                };
-              };
-            };
-            volumes = {
-              _namedlist = true;
-              hf-cache.hostPath = {
-                path = "/home/j_kro/.cache/huggingface";
-                type = "Directory";
-              };
-              tmp.emptyDir = {};
-              ai-memory.emptyDir = {};
-            };
-          };
-        };
-      };
-    };
+                    key = "NVIDIA_API_KEY
 
-    # ── Gateway HPA ───────────────────────────────────────────
-    HorizontalPodAutoscaler.ai-inference-gateway-hpa = {
-      spec = {
-        scaleTargetRef = {
-          apiVersion = "apps/v1";
-          kind = "Deployment";
-          name = "ai-inference-gateway";
-        };
-        minReplicas = 1;
-        maxReplicas = 3;
-        metrics = [
-          {
-            type = "Resource";
-            resource = {
-              name = "cpu";
-              target = {
-                type = "Utilization";
-                averageUtilization = 70;
-              };
-            };
-          }
-          {
-            type = "Resource";
-            resource = {
-              name = "memory";
-              target = {
-                type = "Utilization";
-                averageUtilization = 80;
-              };
-            };
-          }
-        ];
-      };
-    };
-    # ── NetworkPolicies ────────────────────────────────────────
-    NetworkPolicy.default-deny = {
-      spec = {
-        podSelector = {};
-        policyTypes = [
-          "Ingress"
-          "Egress"
-        ];
-      };
-    };
-    NetworkPolicy.allow-internal = {
-      spec = {
-        podSelector = {};
-        policyTypes = [
-          "Ingress"
-          "Egress"
-        ];
-        ingress = [{from = [{namespaceSelector.matchLabels.name = "ai-inference";}];}];
-        egress = [
-          {to = [{namespaceSelector.matchLabels.name = "ai-inference";}];}
-          {
-            to = [
-              {
-                namespaceSelector = {};
-                podSelector.matchLabels."k8s-app" = "kube-dns";
-              }
-            ];
-            ports = [
-              {
-                protocol = "UDP";
-                port = 53;
-              }
-              {
-                protocol = "TCP";
-                port = 53;
-              }
-            ];
-          }
-          {
-            to = [{podSelector.matchLabels.app = "privacy-filter";}];
-            ports = [
-              {
-                protocol = "TCP";
-                port = 8080;
-              }
-            ];
-          }
-        ];
-      };
-    };
+... [OUTPUT TRUNCATED - 11319 chars omitted out of 61319 total] ...
 
-    # Qdrant vector database — migrated from systemd to K8s StatefulSet
-    Deployment.qdrant = {
-      metadata.labels.app = "qdrant";
-      spec = {
-        replicas = 1;
-        revisionHistoryLimit = 2;
-        selector.matchLabels.app = "qdrant";
-        strategy.type = "Recreate";
-        template = {
-          metadata.labels.app = "qdrant";
-          spec = {
-            nodeName = "sentry";
-            containers = [
-              {
-                name = "qdrant";
-                image = "docker.io/qdrant/qdrant:v1.17.1";
-                ports = [
-                  {
-                    containerPort = 6333;
-                    name = "http";
-                  }
-                  {
-                    containerPort = 6334;
-                    name = "grpc";
-                  }
-                ];
-                volumeMounts = [
-                  {
-                    name = "qdrant-data";
-                    mountPath = "/qdrant/storage";
-                  }
-                ];
-                resources = {
-                  requests.memory = "1Gi";
-                  limits.memory = "4Gi";
-                };
-                readinessProbe = {
-                  httpGet = {
-                    path = "/healthz";
-                    port = 6333;
-                  };
-                  initialDelaySeconds = 5;
-                  periodSeconds = 10;
-                };
-                livenessProbe = {
-                  httpGet = {
-                    path = "/healthz";
-                    port = 6333;
-                  };
-                  initialDelaySeconds = 15;
-                  periodSeconds = 20;
-                };
-              }
-            ];
-            volumes = [
-              {
-                name = "qdrant-data";
-                hostPath = {
-                  path = "/storage/qdrant";
-                  type = "DirectoryOrCreate";
-                };
-              }
-            ];
-          };
-        };
-      };
-    };
-
-    # ── LimitRange ───────────────────────────────────────────────
-    # No GPU in default/defaultRequest/max — prevents auto-injection
-    # GPU workloads must explicitly request GPUs in their deployment specs
-    LimitRange.ai-inference-limits = {
-      metadata.labels.app = "gpu-scheduler";
-      spec.limits = [
-        {
-          type = "Container";
-          default = {
-            cpu = "2";
-            memory = "4Gi";
-          };
-          defaultRequest = {
-            cpu = "500m";
-            memory = "1Gi";
-          };
-          max = {
-            cpu = "8";
-            memory = "16Gi";
-          };
-          min = {
-            cpu = "100m";
-            memory = "128Mi";
-          };
-          maxLimitRequestRatio = {
-            cpu = "10";
-            memory = "4";
-          };
-        }
-      ];
-    };
-
-    # ── Embed Server removed: gateway handles embeddings via BidirLM ──
-    # Previously: HuggingFace TEI (nomic-embed-text-v2-moe) with CUDA driver
-    # mismatch (compat layer 575.x vs host 595.x). Replaced by built-in
-    # BidirLM-Omni-2.5B-Embedding endpoint at /v1/embeddings.
-    # Knowledge Fabric API stub removed — RRF middleware runs in gateway.
-
-    # ── llama-cpp-qwen Service+Endpoints (Nexus hostNetwork) ─────
-    Service.llama-cpp-qwen = {
-      metadata.labels.app = "llama-cpp";
-      spec = {
-        type = "ClusterIP";
-        ports = [
-          {
-            port = 8080;
-            targetPort = 8080;
-            protocol = "TCP";
-            name = "http";
-          }
-          {
-            port = 9090;
-            targetPort = 9090;
-            protocol = "TCP";
-            name = "metrics";
+"metrics";
           }
         ];
       };
@@ -950,7 +640,7 @@ in {
                   };
                   limits = {
                     cpu = "500m";
-                    memory = "512Mi";
+                    memory = "1Gi";
                   };
                 };
                 volumeMounts = [
@@ -1008,7 +698,7 @@ in {
     # Z.AI API key — populated from agenix (secrets/ai-gateway-zai-api-key.age)
     Secret.zai-api-key = {
       type = "Opaque";
-      stringData.ZAI_API_KEY = ""; # placeholder — populated by kubectl-apply-k8s-secrets
+      stringData.ZAI_API_KEY=*** # placeholder — populated by kubectl-apply-k8s-secrets
     };
 
     # HuggingFace token — populated from agenix (secrets/huggingface-token.age)
@@ -1020,26 +710,26 @@ in {
     # NVIDIA API key — populated from agenix (secrets/nvidia-api-key.age)
     Secret.nvidia-api-key = {
       type = "Opaque";
-      stringData.NVIDIA_API_KEY = "";
+      stringData.NVIDIA_API_KEY=***
     };
 
 
     # Pollinations API key — populated from agenix (secrets/pollinations-api-key.age)
     Secret.pollinations-api-key = {
       type = "Opaque";
-      stringData.POLLINATIONS_API_KEY = "";
+      stringData.POLLINATIONS_API_KEY=***
     };
 
     # Kilo API key — populated from agenix (secrets/kilo-api-key.age)
     Secret.kilo-api-key = {
       type = "Opaque";
-      stringData.KILO_API_KEY = "";
+      stringData.KILO_API_KEY=***
     };
 
     # OpenCode API key — populated from agenix (secrets/opencode-api-key.age)
     Secret.opencode-api-key = {
       type = "Opaque";
-      stringData.OPENCODE_API_KEY = "";
+      stringData.OPENCODE_API_KEY=***
     };
 
     # ── Additional NetworkPolicies ───────────────────────────────
@@ -1532,7 +1222,7 @@ in {
                   };
                   limits = {
                     cpu = "500m";
-                    memory = "512Mi";
+                    memory = "1Gi";
                   };
                 };
                 readinessProbe = {
@@ -1616,7 +1306,7 @@ HOST_GATEWAY = os.environ.get("HOST_GATEWAY_URL", "http://10.1.1.110:8080/v1")
 OUT = "/data/agents/model-sync"
 PI_CONFIG = "/home/j_kro/.config/pi/config.yaml"
 OMP_CONFIG = "/home/j_kro/.omp/agent/models.json"
-API_KEY = os.environ.get("ZAI_API_KEY", "")
+API_KEY=os.env...EY", "")
 
 os.makedirs(OUT, exist_ok=True)
 
