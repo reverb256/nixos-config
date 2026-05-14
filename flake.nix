@@ -118,7 +118,6 @@
       url = "github:reverb256/mcp-registry";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    frostbite-data-pipeline = {
     caddy-ingress = {
       url = "github:reverb256/caddy-ingress";
       inputs.nixpkgs.follows = "nixpkgs";
