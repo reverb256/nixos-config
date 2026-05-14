@@ -73,6 +73,8 @@ in {
     ./modules/mcp-servers.nix
     ./modules/glance.nix
     ./modules/frostbite-gazette.nix
+    ./modules/maplespike.nix
+    ./modules/tailscale.nix
   ];
 
   # Separate manifests for large modules (to avoid eval bottleneck)
@@ -121,5 +123,7 @@ in {
     ./modules/mcp-servers.nix
     ./modules/glance.nix
     ./modules/frostbite-gazette.nix
+    ./modules/maplespike.nix
+    ./modules/tailscale.nix
   ];
 }
