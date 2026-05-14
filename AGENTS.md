@@ -1,6 +1,6 @@
 # NixOS Cluster - Agent Guidelines
 
-**Generated:** 2026-05-10 | **Commit:** 7f8f68c8 | **Branch:** main
+**Generated:** 2026-05-14 | **Commit:** bd0f15eb | **Branch:** main
 
 ## Quick Start
 
@@ -53,6 +53,8 @@ Non-system projects live in `/data/projects/own/` as standalone flakes:
 | llama-cpp-turboquant | `llama-turboquant` | TurboQuant + DFlash llama.cpp |
 | hermes-chat | (local package) | Hermes Agent desktop client |
 | mcp-registry | `mcp-registry` | MCP server management |
+| civint-ca | (external) | CivInt Canada data pipeline |
+| vllm-turboquant | `vllm-turboquant` | vLLM + TurboQuant container build |
 
 > NOTE: `searxng-cluster` is NOT extracted — not in flake.nix inputs. Lives in `kubernetes/modules/searxng.nix` via easykubenix.
 
@@ -452,26 +454,29 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 - **Import images on wrong K3s node** -- import on the node where the pod runs
 - **Build Nix containers without `git commit`** -- flakes only see tracked files
 
-## Known Issues / Pending Work
+## Known Issues (audited 2026-05-14)
 
 | # | Issue | Status | Action |
 |---|-------|--------|--------|
 | 1 | **dashboard.lan (Glance)** | Nix config complete, namespace never deployed | Deploy via easykubenix, verify DNS + Caddy route |
-| 2 | **Casdoor MCP bridge scopes** | mcp-client OAuth app missing MCP scopes | Add MCP scopes to app 3e6db9fe2befb4718ed5 in Casdoor |
+| 2 | **Casdoor MCP bridge scopes** | mcp-client OAuth app missing MCP scopes | Add MCP scopes to app mcp-client in Casdoor |
 | 3 | **Nexus NVMe boot timeout** | No kernel-level nvme_core.timeout set | Add nvme_core.timeout=30 + rootdelay=5 to nexus kernelParams |
+| 4 | **CivInt Web Dashboard on mock data** | Dashboard renders seed data, not live pipeline | Provision DB, deploy ingestion cron, connect API |
+| 5 | **Tailscale Funnel host command not executed** | `tailscale funnel 9002` never run on zephyr | Run command to activate host-level funnel |
+| 6 | **vLLM container image waiting on CI** | GHCR image not built yet | Wait for github.com/reverb256/vllm-turboquant CI build |
 
-### Resolved (2026-05-10 loose-end audit)
-- gamescope-steam module: fully committed (5 commits, imported in default.nix)
-- cloudflared: fully migrated off and removed (commit 1c4a56c4)
-- NFS mounts: all converted to soft with aggressive timeouts
-- Z.AI endpoints: /api/coding/paas/v4 enforced across all configs
-- Hyprland config fixes: committed and working
-- Sentry boot repair: committed, node Ready 35d
-- Metrics-server: 1/1 pods healthy, 13d uptime
-- HPAs: 3 active autoscalers, all at minimum replicas
-- nixos-cluster-mcp: v0.1.1, backend port 1236->8040 (vLLM Qwen3.5-2B-AWQ)
+### Resolved (2026-05-14)
+- JCCF influence actor added with RSS feed
+- Katzilla references purged from code + docs
+- CivInt Web Dashboard deployed at https://civint.lan/
+- civic-intel repo history merged into civint monorepo
+- Media executives expanded to 17 tracked execs
+- Corporate + influence ingestion modules built (2,850 lines)
+- Dev Funnel Ingresses created with proper affinity rules
+- Data source expansion plan written (7 modules, 4 phases)
 
 ## Reference
+
 
 | Document | Purpose |
 |----------|---------|
@@ -483,5 +488,5 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 
 ---
 
-**Version**: 9.0 | **Last Updated:** 2026-05-10
+**Version**: 9.0 | **Last Updated:** 2026-05-14
 **Changes**: Loose-end audit — updated MCP backend port (3060Ti: 1236->8040 vLLM), dashboard.lan pending, casdoor-bridge scopes warning, Sentry SMT note, nixos-cluster-mcp v0.1.1, known issues section, resolved items tracker
