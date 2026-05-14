@@ -90,6 +90,12 @@ in {
           owner = "j_kro";
           group = "users";
         };
+        katzilla-api-key = {
+          file = "${inputs.self}/secrets/katzilla-api-key.age";
+          mode = "440";
+          owner = "j_kro";
+          group = "users";
+        };
         nvidia-api-key = {
           file = "${inputs.self}/secrets/nvidia-api-key.age";
           mode = "440";

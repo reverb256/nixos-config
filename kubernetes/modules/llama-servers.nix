@@ -29,6 +29,9 @@
 }:
 let
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
+  # vLLM+TurboQuant container (built via CI/CD, image on GHCR after first push)
+  # TODO: Switch from venv mount to this image after CI/CD completes once
+  vllmImage = "ghcr.io/reverb256/vllm-turboquant:0.20.0";
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
