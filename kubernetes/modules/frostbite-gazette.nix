@@ -249,7 +249,7 @@ in {
     };
 
     # MCP server - image deprecated and removed, replace with new MCP server image
- = {
+    frostbite.Deployment.frostbite-mcp = {
       metadata.labels = managed // {
         app = "frostbite-mcp";
         "app.kubernetes.io/component" = "mcp-server";
