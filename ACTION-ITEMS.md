@@ -1,7 +1,7 @@
 # Action Items — Consolidated
 
 > **Last Updated:** 2026-05-14
-> **Source:** Cross-session audit of cluster infrastructure, security posture, Tailscale Funnel, vLLM containerization, CivInt pipeline, and NixOS config.
+> **Source:** Cross-session audit of cluster infrastructure, security posture, vLLM containerization, NixOS config.
 
 ---
 
@@ -20,8 +20,6 @@
 
 | # | Item | Blocked By | Why |
 |---|------|-----------|-----|
-| **B1** | Tailscale Funnel: run `tailscale funnel 9002` on zephyr | Manual sudo command | Activates host-level tunnel for `*.taila21e09.ts.net` -> Caddy :9002 -> K8s backends. Not yet executed. |
-| **B2** | Verify operator syncs Dev Funnel Ingresses | B1 + operator restart finishing | Operator pod `operator-8674c4bc66-jr8f8` was in `ContainerCreating` when last checked. Need to confirm it's `Running` and has synced ADDRESS + TLS certs. |
 | **B3** | Switch llama-server image to vLLM container | First CI build of `ghcr.io/reverb256/vllm-turboquant:0.20.0` | Image doesn't exist yet. CI build at github.com/reverb256/vllm-turboquant must complete first. |
 
 ---
@@ -42,8 +40,6 @@
 |---|------|------|---------|
 | **P1-1** | Restrict NodePort access (17 services) | 17 K8s services in `ai-inference` expose NodePorts bypassing Caddy auth. Any 10.x device can reach llama-server, Qdrant, Redis directly. | Options: (a) Firewall NodePort range on all nodes except zephyr; (b) Migrate to ClusterIP; (c) NetworkPolicy source restriction. Option (a) is simplest. |
 | **P1-2** | Deploy Falco runtime security | Zero runtime security monitoring. Container breakout has no detection. | Falco DaemonSet with default + custom rules. Start audit-only, no blocking. |
-| **P1-3** | Clean up K8s Tailscale Funnel resources | `funnel-proxies` ProxyGroup, `ha-funnel` ProxyClass, 6 Ingresses created but funnel terminates on host now. | Delete after B1 is verified: ProxyGroup, ProxyClass, prod Ingresses. Keep dev ones if operator approach is preferred. |
-| **P1-4** | Wire CivInt dashboard to live pipeline data | Dashboard renders mock/seed data. Pipeline modules built but not connected. | Need: DB provision, ingest cron, API endpoints, swap mock for real. |
 
 ---
 
@@ -78,24 +74,6 @@
 
 | # | Item | Status |
 |---|------|--------|
-| T1 | Execute `tailscale funnel 9002` on zephyr | **BLOCKED** |
-| T2 | Verify operator pod started and synced Dev Ingresses | Pending |
-| T3 | Clean up K8s funnel resources | Pending T1+T2 |
-| T4 | Remove `funnel-proxies` if host-funnel is final | Deferred |
-
-### CivInt Canada Pipeline
-
-| # | Item | Status |
-|---|------|--------|
-| C1 | Provision database | Pending |
-| C2 | Deploy ingestion cron job | Pending |
-| C3 | Wire MCP tools (search_transcripts, search_lobbying, track_executive, etc.) | Pending |
-| C4 | Canada Gazette ingestion module | Planned Phase 1 |
-| C5 | GIC Appointments ingestion module | Planned Phase 1 |
-| C6 | Senate committees ingestion module | Planned Phase 1 |
-| C7 | Oversight bodies module (OAG, PBO, Ethics, etc.) | Planned Phase 3 |
-| C8 | SEDI insider trading scraper | Backlog |
-| C9 | Connect dashboard to live pipeline data | P1-4 |
 
 ### vLLM / TurboQuant
 
@@ -129,14 +107,12 @@
 |---|------|------|
 | ✅ | JCCF actor + RSS added | Influence module: canadian-ngo, RSS wired |
 | ✅ | Katzilla references removed | 5 docs, 3 code files, competitive analysis |
-| ✅ | CivInt Web Dashboard deployed | Next.js -> nginx -> K8s Pod -> NodePort 30964 -> Caddy civint.lan |
-| ✅ | NixOS DNS + Caddy + SAN cert applied | civint.lan resolves, HTTPS works, cert includes SAN |
-| ✅ | Git init + push civint monorepo | github.com/reverb256/civint (private) |
-| ✅ | civic-intel history merged | engine, web, pretext-civic packages preserved |
 | ✅ | Dev funnel Ingresses created + affinity fixed | Spread nexus/sentry/forge, zephyr excluded |
 | ✅ | Corporate + influence modules built | 2,850 lines: lobbying, procurement, execs, actors |
 | ✅ | Media execs expanded | 17 tracked execs across 3 sectors |
 | ✅ | Data source expansion plan written | 7 modules + oversight, 4 phases |
+| ✅ | K8s Tailscale Funnel live | 5 ingresses (3 dev, 2 prod) via operator, ProxyGroup 2/2, host funnel disabled |
+| ✅ | Funnel manifests committed to Nix | /etc/nixos/kubernetes-manifests/tailscale/ — all 5 YAML files |
 
 ---
 
@@ -144,11 +120,10 @@
 
 | Decision | Rationale | Date |
 |----------|-----------|------|
-| **Funnel terminates on host (zephyr), not in K8s proxy pods** | K8s operator `ingress-pg-reconciler` has stale-cache bug. Host-side `tailscale funnel 9002` -> Caddy :9002 is simpler and Caddy already has the route. | May 14 |
+| **K8s Tailscale Funnel via operator (not host)** | Operator resolved — ProxyGroup synced, 5 ingresses working, all manifests in Nix source of truth. Host funnel disabled. | May 14 |
 | **Security: NodePort restriction (P1) prioritized over secrets encryption (P0)** | 17 NodePorts actively bypass auth today. Secrets in plaintext are higher blast radius but lower immediate risk in single-operator homelab. | May 14 |
 | **Dev Ingresses exclude zephyr** | zephyr 31GB RAM, constant OOM risk. Dev instances belong on nexus/sentry/forge. | May 14 |
-| **CivInt monorepo includes both pipeline and analysis layers** | pipeline-core + engine + web in one repo for solo-dev velocity. Split later if needed. | May 14 |
 
 ---
 
-*Generated 2026-05-14. Last items completed: JCCF integration, Katzilla purge, CivInt dashboard deploy.*
+*Generated 2026-05-14. Last items completed: JCCF integration, Katzilla purge, Funnel live, Nix funnel manifests.*
