@@ -248,7 +248,7 @@ in {
       };
     };
 
-    # MCP server code is now bundled in the civint-mcp image (nexus:5000/civint-mcp:nixos)
+    # MCP server - image deprecated and removed, replace with new MCP server image
  = {
       metadata.labels = managed // {
         app = "frostbite-mcp";
@@ -268,7 +268,7 @@ in {
             containers = {
               _namedlist = true;
               mcp = {
-                image = "nexus:5000/civint-mcp:nixos";
+                image = "none"; # FIXME: MCP server image removed, replace with new image
                 imagePullPolicy = "IfNotPresent";
                 ports._namedlist = true;
                 ports.http = { containerPort = 3002; protocol = "TCP"; };
@@ -280,7 +280,6 @@ in {
                   PG_PASSWORD.valueFrom.secretKeyRef = { name = "frostbite-secrets"; key = "postgres-password"; };
                   STATCAN_WDS_URL = { name = "STATCAN_WDS_URL"; value = "https://www150.statcan.gc.ca/t1/wds/rest"; };
                   PORT = { name = "PORT"; value = "3002"; };
-                  CIVINT_API_KEY = { name = "CIVINT_API_KEY"; value = "frostbite-dev-key"; };
                 };
                 resources = {
                   requests = {cpu = "100m"; memory = "128Mi";};

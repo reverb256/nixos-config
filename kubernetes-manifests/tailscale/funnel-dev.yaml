@@ -1,0 +1,64 @@
+# Dev Tailscale Funnel Ingresses
+# Exposes maplespike-dev services via Tailscale Funnel
+# Managed through /etc/nixos/ as source of truth
+# Apply: kubectl apply -f funnel-dev.yaml
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: maplespike-api
+  namespace: maplespike-dev
+  annotations:
+    tailscale.com/funnel: "true"
+spec:
+  ingressClassName: tailscale
+  rules:
+  - http:
+      paths:
+      - backend:
+          service:
+            name: maplespike-api
+            port:
+              number: 8082
+        path: /
+        pathType: Prefix
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: maplespike-portal
+  namespace: maplespike-dev
+  annotations:
+    tailscale.com/funnel: "true"
+spec:
+  ingressClassName: tailscale
+  rules:
+  - http:
+      paths:
+      - backend:
+          service:
+            name: maplespike-portal
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: maplespike-mcp
+  namespace: maplespike-dev
+  annotations:
+    tailscale.com/funnel: "true"
+spec:
+  ingressClassName: tailscale
+  rules:
+  - http:
+      paths:
+      - backend:
+          service:
+            name: maplespike-mcp
+            port:
+              number: 3001
+        path: /
+        pathType: Prefix
