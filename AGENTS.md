@@ -53,7 +53,6 @@ Non-system projects live in `/data/projects/own/` as standalone flakes:
 | llama-cpp-turboquant | `llama-turboquant` | TurboQuant + DFlash llama.cpp |
 | hermes-chat | (local package) | Hermes Agent desktop client |
 | mcp-registry | `mcp-registry` | MCP server management |
-| civint-ca | (external) | CivInt Canada data pipeline |
 | vllm-turboquant | `vllm-turboquant` | vLLM + TurboQuant container build |
 
 > NOTE: `searxng-cluster` is NOT extracted — not in flake.nix inputs. Lives in `kubernetes/modules/searxng.nix` via easykubenix.
@@ -461,15 +460,12 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 | 1 | **dashboard.lan (Glance)** | Nix config complete, namespace never deployed | Deploy via easykubenix, verify DNS + Caddy route |
 | 2 | **Casdoor MCP bridge scopes** | mcp-client OAuth app missing MCP scopes | Add MCP scopes to app mcp-client in Casdoor |
 | 3 | **Nexus NVMe boot timeout** | No kernel-level nvme_core.timeout set | Add nvme_core.timeout=30 + rootdelay=5 to nexus kernelParams |
-| 4 | **CivInt Web Dashboard on mock data** | Dashboard renders seed data, not live pipeline | Provision DB, deploy ingestion cron, connect API |
-| 5 | **Tailscale Funnel host command not executed** | `tailscale funnel 9002` never run on zephyr | Run command to activate host-level funnel |
-| 6 | **vLLM container image waiting on CI** | GHCR image not built yet | Wait for github.com/reverb256/vllm-turboquant CI build |
 
 ### Resolved (2026-05-14)
+- K8s Tailscale Funnel live: 5 ingresses via operator, ProxyGroup 2/2, host funnel disabled
+- Funnel manifests committed to Nix at kubernetes-manifests/tailscale/
 - JCCF influence actor added with RSS feed
 - Katzilla references purged from code + docs
-- CivInt Web Dashboard deployed at https://civint.lan/
-- civic-intel repo history merged into civint monorepo
 - Media executives expanded to 17 tracked execs
 - Corporate + influence ingestion modules built (2,850 lines)
 - Dev Funnel Ingresses created with proper affinity rules
