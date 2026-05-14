@@ -262,27 +262,74 @@ in {
 
 ### Service Classification
 
-| Type | Services |
-|------|----------|
-| Public (no auth) | searxng.lan, ai-inference.lan, dashboard.lan (pending deploy) |
-| Protected (SSO) | haven.lan, openwebui.lan, kagent.lan, grafana.lan, mission-control.lan |
+| Type | Services | Auth Method |
+|------|----------|-------------|
+| Public (no auth) | searxng.lan, dashboard.lan, gitea.lan, vaultwarden.lan, n8n.lan | Own auth or none |
+| Proxy SSO (forward_auth) | haven.lan, kagent.lan, grafana.lan, mission-control.lan, qdrant.lan, brain.lan, ai-inference.lan, workspace.lan | Caddy -> oauth2-proxy -> Casdoor |
+| Native OIDC (direct to Casdoor) | grafana.lan (also behind forward_auth), ai-inference.lan (JWT/JWKS for API), gitea.lan, openwebui.lan | Direct Casdoor app |
+
+### Native OIDC Support Matrix (audited 2026-05-14)
+
+| Service | Native OIDC | In Use? | Notes |
+|---------|-------------|---------|-------|
+| Grafana | ✅ Supported | ✅ Wired | `GF_AUTH_GENERIC_OAUTH_*` env vars, client-id `fa39ccce16fbc8ad4d23`. Also behind Caddy forward_auth as second layer. |
+| AI Gateway | ✅ JWKS/JWT | ✅ Wired | JWT auth with JWKS from Casdoor for API. Admin UI behind forward_auth. |
+| Gitea | ✅ Supported | ✅ Wired | Direct Casdoor app `app-gitea`. On `mkRoute` (no forward_auth). |
+| Open WebUI | ✅ Supported | ✅ Wired (May 14) | Casdoor app `app-openwebui` (client-id `openwebui`). OIDC env vars deployed to pod + persisted in `ai-inference.nix`. "Sign in with Casdoor" on login page. |
+| n8n | ⚠️ Enterprise | ❌ | OIDC requires enterprise license. Not available on self-hosted instance. |
+| Haven | ❌ No support | — | Own JWT+bcrypt auth. No OIDC config options. Proxy auth is correct. |
+| Mission Control | ❌ No support | — | Auth providers: session, API key, Google Sign-In, proxy header. No generic OIDC. |
+| Kagent | ❌ No support | — | `AUTH_MODE=trusted-proxy` only. Open OIDC feature request (#476) unimplemented. |
+| Qdrant | ❌ No user auth | — | API-key only. Proxy auth correct. |
+| Vaultwarden | ❌ No support | — | Bitwarden SSO enterprise-only. |
+| Workspace | ❌ No auth at all | — | Headless service. Proxy auth correct. |
+
+### Stale OIDC Secrets (dead code — 2026-05-14)
+
+Three K8s secrets defined in Nix modules but **never mounted or referenced** by any pod — remnants of removed sidecars:
+- `haven-oidc` (haven namespace)
+- `mission-control-oidc` (orchestration namespace)
+- `kagent-oidc` (kagent namespace)
+
+Safe to clean up. The `casdoor-app-sync` systemd service (in `k8s-secret-bootstrap.nix`) handles the real oauth2-proxy Casdoor app with auto-synced client secrets.
+
+## Service ↔ Network Bridge
+
+The bridge between NixOS system config and K8s workloads is `/etc/nixos/kubernetes/service-ports.nix`.  
+This file is the **single source of truth for all static NodePort assignments**. Every `.lan` service that routes through Caddy gets its port defined here.
+
+**Flow:**
+```
+service-ports.nix  ──import──► caddy-routes.nix (zephyr host Caddy)
+                   ──import──► services.nix (nexus cluster Caddy)
+                   ──consume──► K8s Helm charts (nodePort must match)
+```
+
+**To add a new service:**
+1. Pick an unused port in the 30xxx range, add to `service-ports.nix`
+2. Add `.lan` DNS record in `cluster-dns.nix` (DNS -> VIP 10.1.1.100)
+3. Add Caddy route in `caddy-routes.nix` or `services.nix` using `ports.my-service`
+4. Deploy K8s Service with `nodePort: <same port>`
+
+The NixOS rebuild atomically updates DNS + Caddy. Ports are guaranteed to match because both sides read the same file.  
+**NixOS defines the contract (ports, hostnames, TLS). K8s deploys into that contract.**
 
 ### Caddy Config
 
 - **Zephyr** (`hosts/zephyr/caddy-routes.nix`): `mkAuthRoute` for protected, `mkRoute` for public
 - **Nexus** (`modules/services/cluster-services.nix`): `protected = true` per service in registry
-- Both proxy auth to local oauth2-proxy on port 4180
+- Both proxy auth to local oauth2-proxy on port 4180 (K8s oauth2-proxy also runs in `auth` namespace as fallback)
 
 ### DNS
 
-All `.lan` domains → VIP 10.1.1.100 (keepalived MASTER on zephyr).
+All `.lan` domains -> VIP 10.1.1.100 (keepalived MASTER on zephyr).
 Unbound on all nodes with `local-zone "lan." static`.
 
 ### ⚠️ No K8s Sidecars
 
 Do NOT deploy oauth2-proxy as K8s sidecar containers. Use the `central-auth` NixOS service instead.
 Sidecars were removed 2026-05-02 from: haven, openwebui, kagent-ui, mission-control, llama-server-sentry, llama-server-zephyr-3090-moe.
-Auth is handled exclusively by Caddy `forward_auth` → local `central-auth` (oauth2-proxy) on zephyr + nexus.
+Auth is handled exclusively by Caddy `forward_auth` -> local `central-auth` (oauth2-proxy) on zephyr + nexus.
 
 ### Grafana Deployment
 

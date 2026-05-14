@@ -5,6 +5,8 @@
   inputs,
   ...
 }: let
+  ports = import /etc/nixos/kubernetes/service-ports.nix;
+
   # Build the hermes-agent Python venv (same derivation the flake uses for its wrappers)
   hermesVenv = pkgs.callPackage (inputs.hermes-agent.outPath + "/nix/python.nix") {
     inherit (inputs.hermes-agent.inputs) uv2nix pyproject-nix pyproject-build-systems;
@@ -188,10 +190,10 @@ in {
         ENVEOF
         echo -n "API_SERVER_KEY=" >> /data/hermes/.hermes/provider-env
         cat /run/agenix/hermes-api-server-key >> /data/hermes/.hermes/provider-env
-        echo -n "ZAI_API_KEY=" >> /data/hermes/.hermes/provider-env
+        echo -n "ZAI_API_KEY=*** >> /data/hermes/.hermes/provider-env
         cat /run/agenix/zai-api-key >> /data/hermes/.hermes/provider-env
         echo "" >> /data/hermes/.hermes/provider-env
-        echo -n "NVIDIA_API_KEY=" >> /data/hermes/.hermes/provider-env
+        echo -n "NVIDIA_API_KEY=*** >> /data/hermes/.hermes/provider-env
         cat /run/agenix/nvidia-api-key >> /data/hermes/.hermes/provider-env
         chmod 600 /data/hermes/.hermes/provider-env
         chown j_kro:users /data/hermes/.hermes/provider-env
@@ -266,13 +268,36 @@ in {
         domain = "qdrant.lan";
         backend = k8s.qdrant.dns;
       };
-      civint = {
-        domain = "civint.lan";
-        backend = "10.1.1.110:3001";
+      maplespike = {
+        domain = "maplespike.lan";
+        backend = "127.0.0.1:${toString ports.maplespike-portal}";
+      };
+      maplespike-api = {
+        domain = "maplespike-api.lan";
+        backend = "127.0.0.1:${toString ports.maplespike-api}";
+      };
+      maplespike-mcp = {
+        domain = "maplespike-mcp.lan";
+        backend = "127.0.0.1:${toString ports.maplespike-mcp}";
+      };
+      maplespike-status = {
+        domain = "status.maplespike.lan";
+        backend = "127.0.0.1:${toString ports.maplespike-status}";
+      };
+      dev-maplespike = {
+        domain = "dev.maplespike.lan";
+        backend = "127.0.0.1:${toString ports.dev-maplespike-portal}";
+      };
+      dev-maplespike-api = {
+        domain = "dev-maplespike-api.lan";
+        backend = "127.0.0.1:${toString ports.dev-maplespike-api}";
+      };
+      dev-maplespike-mcp = {
+        domain = "dev-maplespike-mcp.lan";
+        backend = "127.0.0.1:${toString ports.dev-maplespike-mcp}";
       };
     };
   };
-
   # Initrd SSH recovery + BTRFS snapshots
   services.initrd-ssh-recovery = {
     enable = true;

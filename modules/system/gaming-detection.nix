@@ -47,7 +47,7 @@
         }:/run/current-system/sw/bin";
         ExecStart = "${pkgs.writeShellScriptBin "gaming-detection" ''
 
-          set -euo pipefail
+          set -uo pipefail
 
           LOG_FILE="${config.services.gaming-detection.logFile}"
           STATE_DIR="/run/gaming-detection"

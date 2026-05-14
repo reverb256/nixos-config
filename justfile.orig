@@ -199,45 +199,6 @@ test-apply:
     echo "▸ Testing $(hostname -s) (rollback on next boot)..."
     cd {{FLAKE}} && sudo nixos-rebuild test --flake .#$(hostname -s)
 
-# Full system upgrade: update flake → check → switch → gc
-# Idempotent — safe to run from any directory
-topgrade:
-    #!/usr/bin/env bash
-    set -e
-    HOST=$(hostname -s)
-    FLAKE="/etc/nixos"
-
-    echo "▸ Topgrade: $HOST"
-    echo ""
-
-    echo "1/4 ▸ Updating flake.lock..."
-    cd "$FLAKE" && nix flake update 2>&1 || echo "  ⚠ Update skipped (non-fatal, check flake inputs)"
-
-    echo ""
-    echo "2/4 ▸ Validating flake..."
-    cd "$FLAKE" && nix flake check 2>&1 || echo "  ⚠ Check skipped (non-fatal, may OOM on Zephyr)"
-
-    echo ""
-    echo "3/4 ▸ Switching $HOST..."
-    cd "$FLAKE"
-    set +e
-    sudo nixos-rebuild switch --flake .#$HOST; rc=$?
-    set -e
-    if [ $rc -eq 4 ]; then
-        echo "  ⚠ Some units failed (non-fatal)"
-    elif [ $rc -ne 0 ]; then
-        echo "  ✗ Switch failed (exit $rc)"
-        exit $rc
-    fi
-
-    echo ""
-    echo "4/4 ▸ Cleaning old generations..."
-    sudo nix-collect-garbage -d || echo "  ⚠ GC failed (non-fatal)"
-
-    echo ""
-    echo "✓ Topgrade complete ($HOST)"
-
-
 # ──────────────────────────────────────────────────────────────────────────────
 #  FLAKE MANAGEMENT
 # ──────────────────────────────────────────────────────────────────────────────
@@ -326,7 +287,7 @@ gc:
     #!/usr/bin/env bash
     set -e
     echo "▸ Garbage collecting..."
-    sudo nix-collect-garbage -d || echo "  ⚠ GC failed (non-fatal)"
+    sudo nix-collect-garbage -d
 
 # Optimize nix store
 optimize:

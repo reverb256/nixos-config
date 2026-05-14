@@ -1,4 +1,10 @@
-{pkgs, ...}: {
+{pkgs, lib, ...}: let
+  clusterCA = "/etc/ssl/cluster-ca/ca.crt";
+  nssTools = "${pkgs.nss.tools}/bin/certutil";
+  zenProfiles = [
+    "default"
+  ];
+in {
   programs.zen-browser = {
     enable = true;
 
@@ -124,6 +130,8 @@
         user_pref("dom.security.https_only_mode", true);
         user_pref("dom.security.https_only_mode_ever_enabled", true);
         user_pref("dom.security.https_only_mode_send_http_background_request", false);
+        // Load OS root certificates (cluster CA for *.lan domains)
+        user_pref("security.enterprise_roots.enabled", true);
 
         // Cookie behavior - BALANCED for normal use
         // 0 = Allow all cookies
@@ -808,4 +816,17 @@
       };
     };
   };
+
+  # Ensure cluster CA is trusted in Zen NSS databases
+  # Certificates.Install policy imports the cert but with C,, trust flags.
+  # This activation script corrects them to CT,C,C after every HM rebuild.
+  home.activation.ensureClusterCATrust = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    for p in ${builtins.toString zenProfiles}; do
+      NSSDB="$HOME/.config/zen/$p"
+      if [ -f "$NSSDB/cert9.db" ]; then
+        ${nssTools} -d "sql:$NSSDB" -M -n "Cluster CA" -t "CT,C,C" >/dev/null 2>&1           || ${nssTools} -d "sql:$NSSDB" -A -n "Cluster CA" -t "CT,C,C" -i ${clusterCA}
+      fi
+    done
+  '';
+
 }

@@ -17,22 +17,14 @@ in {
       enable = true;
 
       settings = {
+        # Minimal server block — cluster-dns.nix (on zephyr) extends this with
+        # additional interfaces, access-control ranges, and local DNS records.
         server = {
-          interface = [
-            "127.0.0.1"
-          ];
-          access-control = [
-            "127.0.0.0/8 allow"
-            "10.1.1.0/24 allow"
-            "10.244.0.0/16 allow"
-          ];
-          num-threads = 4;
-          msg-cache-size = "128m";
-          rrset-cache-size = "128m";
+          interface = ["127.0.0.1"];
+          access-control = ["127.0.0.0/8 allow"];
           hide-identity = true;
           hide-version = true;
           tls-cert-bundle = "/etc/ssl/certs/ca-bundle.crt";
-          include = ["/etc/unbound/local-dns.conf"];
         };
 
         forward-zone = [
@@ -53,9 +45,6 @@ in {
         ];
       };
     };
-
-    # DNS records for .lan zones are managed by cluster-dns.nix (VIP-based routing)
-    # This module only provides the unbound server config and upstream forwarding.
 
     networking.firewall.allowedUDPPorts = lib.mkOptionDefault [53];
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [53];
