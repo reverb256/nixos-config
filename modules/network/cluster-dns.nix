@@ -161,7 +161,9 @@ in {
         "workspace.lan. IN A ${vip}"
         "dashboard.lan. IN A ${vip}"
         "frostbite-mcp.lan. IN A ${vip}"
-        "civint.lan. IN A ${vip}"
+        "maplespike.lan. IN A ${vip}"
+        "maplespike-api.lan. IN A ${vip}"
+        "maplespike-mcp.lan. IN A ${vip}"
       ];
       # Optional forge services
       forgeServices = [
