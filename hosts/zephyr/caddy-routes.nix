@@ -112,47 +112,48 @@ in
   + "\n"
   +
   # Search (SearXNG) — public search tool
-  mkRoute "searxng.lan, search.lan" "http://${zephyr}:32081"
+  mkRoute "searxng.lan, search.lan" "http://${nexus}:${toString ports.searxng}"
   + "\n"
   +
   # === PROTECTED SERVICES (central SSO) ===
   # Haven (HTTPS backend, self-signed cert — needs tls_insecure_skip_verify)
-  mkAuthRouteTLS "haven.lan" "https://${nexus}:32100"
+  mkAuthRouteTLS "haven.lan" "https://${nexus}:${toString ports.haven}"
   + "\n"
   +
   # AI Inference Gateway — OpenAI-compatible API
-  mkAuthRoute "ai-inference.lan" "http://${nexus}:30880"
+  mkAuthRoute "ai-inference.lan" "http://${nexus}:${toString ports.ai-inference-gateway}"
   + "\n"
   +
   # Qdrant vector database
-  mkAuthRoute "qdrant.lan" "http://${nexus}:30632"
+  mkAuthRoute "qdrant.lan" "http://${nexus}:${toString ports.qdrant}"
   + "\n"
   +
   # Mission Control
-  mkAuthRoute "mission-control.lan" "http://${nexus}:32101"
+  mkAuthRoute "mission-control.lan" "http://${nexus}:${toString ports.mission-control}"
   + "\n"
   +
   # Kagent controller
-  mkAuthRoute "kagent.lan" "http://${nexus}:30794"
+  mkAuthRoute "kagent.lan" "http://${nexus}:${toString ports.kagent-controller}"
   + "\n"
   +
   # Grafana
-  mkAuthRoute "grafana.lan" "http://${nexus}:32102"
+  mkAuthRoute "grafana.lan" "http://${nexus}:${toString ports.grafana}"
   + "\n"
   +
   # Open WebUI — has own auth (does NOT consume X-Auth-Request-* headers)
-  mkRoute "openwebui.lan" "http://${nexus}:32080"
+  mkRoute "openwebui.lan" "http://${nexus}:${toString ports.open-webui}"
   + "\n"
   # Glance Dashboard (nexus, NodePort 32200)
   + mkRoute "dashboard.lan" "http://${nexus}:${toString ports.glance}"
   + "\n"
   + mkRoute "frostbite-mcp.lan" "http://${nexus}:${toString ports.frostbite-mcp}"
+  + mkRoute "privacy-filter.lan" "http://${nexus}:${toString ports.privacy-filter}"
   + mkRoute "maplespike-mcp.lan" "http://${nexus}:${toString ports.maplespike-mcp}"
   + "\n"
   + mkRoute "maplespike-api.lan" "http://${nexus}:${toString ports.maplespike-api}"
   + "\n"
 + mkRoute "maplespike.lan" "http://${nexus}:${toString ports.maplespike-portal}"
-  + mkRoute "status.maplespike.lan" "http://${nexus}:${toString ports.maplespike-status}"
+  + mkRoute "status.maplespike.lan, uptime.maplespike.lan" "http://${nexus}:${toString ports.maplespike-status}"
   + mkRoute "gitea.lan" "http://${nexus}:${toString ports.gitea}"
   # Hermes Workspace (zephyr, port 3002)
   # Dev environment
