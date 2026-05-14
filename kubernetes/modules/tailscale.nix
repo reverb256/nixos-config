@@ -1,4 +1,4 @@
-{ ... }: let
+{ pkgs, ... }: let
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
@@ -67,7 +67,9 @@
 in {
   config = {
     importyaml.tailscale-crds = {
-      src = /etc/nixos/kubernetes-manifests/tailscale/crds.yaml;
+      src = pkgs.runCommand "tailscale-crds.yaml" {} ''
+        cp ${../../kubernetes-manifests/tailscale/crds.yaml} $out
+      '';
     };
 
     kubernetes.objects = {
