@@ -315,7 +315,6 @@
     packages.x86_64-linux.claude-code-image = pkgsWithOverlay.claude-code-image; # extracted to packages/claude-code-image.nix
     packages.x86_64-linux.ai-inference-gateway-image = inputs.ai-gateway.packages.x86_64-linux.container; # migrated from local pkgs/
     packages.x86_64-linux.opencode-image = pkgsWithOverlay.opencode-image;
-    packages.x86_64-linux.civint-mcp-image = pkgsWithOverlay.civint-mcp-image; # extracted to packages/opencode-image.nix
     packages.x86_64-linux.maplespike-mcp-image = pkgsWithOverlay.maplespike-mcp-image;
     overlays.default = (import ./overlay.nix) {inherit inputs;};
     kubernetes = import ./kubernetes {inherit pkgs pkgsWithOverlay inputs;};

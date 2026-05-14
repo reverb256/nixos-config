@@ -114,8 +114,7 @@
   };
   claude-code-image = prev.callPackage ./packages/claude-code-image.nix {};
   opencode-image = prev.callPackage ./packages/opencode-image.nix {};
-  civint-mcp-image = prev.callPackage ./packages/civint-mcp-image.nix {
-  maplespike-mcp-image = prev.callPackage ./packages/maplespike-mcp-image.nix { };
+  maplespike-mcp-image = prev.callPackage ./packages/maplespike-mcp-image.nix {
     src = inputs.frostbite-data-pipeline.outPath;
   };
   hermes-chat = prev.callPackage ./packages/hermes-chat.nix {};
