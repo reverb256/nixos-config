@@ -26,6 +26,51 @@ in {
       globalDefault = false;
       description = "Low priority for cryptocurrency mining. Preempted by AI workloads.";
     };
+
+    # ── Require resource limits on all pods ──────────────────────
+    # Audit mode: warns but does not block. Lets us find non-compliant workloads first.
+    ValidatingAdmissionPolicy.require-resource-limits = {
+      metadata.annotations = {
+        "description" = "Requires all containers to define resource requests and limits (cpu, memory)";
+      };
+      spec = {
+        failurePolicy = "Fail";
+        matchConstraints = {
+          resourceRules = [
+            {
+              apiGroups = [""];
+              apiVersions = ["v1"];
+              operations = ["CREATE" "UPDATE"];
+              resources = ["pods"];
+            }
+          ];
+        };
+        validations = [
+          {
+            expression = "self.containers.all(c, has(c.resources) && has(c.resources.requests) && has(c.resources.limits) && has(c.resources.requests.cpu) && has(c.resources.requests.memory) && has(c.resources.limits.cpu) && has(c.resources.limits.memory))";
+            message = "Every container must define resources.requests and resources.limits with cpu and memory";
+          }
+          {
+            expression = "self.initContainers.all(c, has(c.resources) && has(c.resources.requests) && has(c.resources.limits) && has(c.resources.requests.cpu) && has(c.resources.requests.memory) && has(c.resources.limits.cpu) && has(c.resources.limits.memory))";
+            message = "Every initContainer must define resources.requests and resources.limits with cpu and memory";
+          }
+        ];
+      };
+    };
+    ValidatingAdmissionPolicyBinding.require-resource-limits = {
+      spec = {
+        policyName = "require-resource-limits";
+        validationActions = ["Audit"];
+        matchResources = {
+          namespaceSelector.matchExpressions = [
+            {
+              key = "kubernetes.io/metadata.name";
+              operator = "Exists";
+            }
+          ];
+        };
+      };
+    };
     Namespace.ingress-system = {
       metadata.labels = managed // {
         name = "ingress-system";
