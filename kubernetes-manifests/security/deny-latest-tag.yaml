@@ -12,19 +12,44 @@ spec:
   failurePolicy: Fail
   matchConstraints:
     resourceRules:
-      - apiGroups: [""]
-        apiVersions: ["v1"]
-        operations: ["CREATE", "UPDATE"]
-        resources: ["pods"]
-      - apiGroups: ["apps"]
-        apiVersions: ["v1"]
-        operations: ["CREATE", "UPDATE"]
-        resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    - apiGroups: [""]
+      apiVersions: ["v1"]
+      operations: ["CREATE", "UPDATE"]
+      resources: ["pods"]
   validations:
-    - expression: >-
-        !object.spec.containers.exists(c, c.image.endsWith(":latest")) &&
-        !object.spec.initContainers.or([]).exists(c, c.image.endsWith(":latest"))
-      message: "Supply chain security: Using :latest tag is forbidden. Pin to a specific version (e.g., image:1.2.3-alpine)."
+  # Check Pod containers
+  - expression: >
+      object.spec.containers.all(c, !c.image.endsWith(":latest"))
+    message: "Supply chain security: Using :latest tag is forbidden. Pin to a specific version."
+  # Check Pod init containers
+  - expression: >
+      object.spec.initContainers.all(c, !c.image.endsWith(":latest"))
+    message: "Supply chain security: Using :latest tag in initContainers is forbidden."
+---
+# Separate policy for Deployments (needs different path)
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: deny-latest-tag-deployments
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: supply-chain-security
+    app.kubernetes.io/component: admission-policy
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups: ["apps"]
+      apiVersions: ["v1"]
+      operations: ["CREATE", "UPDATE"]
+      resources: ["deployments"]
+  validations:
+  - expression: >
+      object.spec.template.spec.containers.all(c, !c.image.endsWith(":latest"))
+    message: "Supply chain security: Using :latest tag is forbidden in deployments."
+  - expression: >
+      object.spec.template.spec.initContainers.all(c, !c.image.endsWith(":latest"))
+    message: "Supply chain security: Using :latest tag in initContainers is forbidden in deployments."
 ---
 # Binding: Apply the policy cluster-wide
 apiVersion: admissionregistration.k8s.io/v1
@@ -34,4 +59,13 @@ metadata:
   namespace: kube-system
 spec:
   policyName: deny-latest-tag
+  validationActions: [Deny]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: deny-latest-tag-deployments-binding
+  namespace: kube-system
+spec:
+  policyName: deny-latest-tag-deployments
   validationActions: [Deny]
