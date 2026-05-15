@@ -19,20 +19,39 @@
     ;
 
   # Build a public (no auth) Caddy virtualHost block
+  # Rate limited: 100 req/min per IP (defense-in-depth for funnel-exposed routes).
+  # Requires caddy-with-modules (mholt/caddy-ratelimit plugin).
   mkPublicBlock = svc: ''
     https://${svc.domain} {
       tls ${cfg.tlsCert} ${cfg.tlsKey}
       ${optionalString (svc.compress or true) "encode zstd gzip"}
+      rate_limit {
+        zone ${svc.domain}_per_ip {
+          key    {remote_host}
+          events 100
+          window 1m
+        }
+      }
       reverse_proxy ${svc.backend}
     }
   '';
 
   # Build a protected Caddy virtualHost block with forward_auth
   # Uses the expanded form from Caddy docs: reverse_proxy with handle_response
+  # Rate limited: 100 req/min per IP (defense-in-depth for funnel-exposed routes).
+  # Requires caddy-with-modules (mholt/caddy-ratelimit plugin).
   mkProtectedBlock = svc: ''
     https://${svc.domain} {
       tls ${cfg.tlsCert} ${cfg.tlsKey}
       ${optionalString (svc.compress or true) "encode zstd gzip"}
+
+      rate_limit {
+        zone ${svc.domain}_auth_per_ip {
+          key    {remote_host}
+          events 100
+          window 1m
+        }
+      }
 
       handle /oauth2/* {
         reverse_proxy 127.0.0.1:${toString authCfg.port}
@@ -70,7 +89,10 @@
 
   # Route each service to the correct block builder
   buildCaddyBlock = _name: svc:
-    if svc.rawBlock != null then svc.rawBlock else if svc.protected or false
+    if svc.rawBlock != null
+    then svc.rawBlock
+    else if svc.protected or false
+
     then mkProtectedBlock svc
     else mkPublicBlock svc;
 
@@ -164,6 +186,8 @@ in {
   config = mkIf cfg.enable {
     services.caddy = {
       enable = true;
+      # Uses caddy-with-modules for rate limiting (mholt/caddy-ratelimit plugin)
+      package = pkgs.caddy-with-modules;
       configFile = pkgs.writeText "Caddyfile" (buildCaddyfile cfg.services);
     };
 
