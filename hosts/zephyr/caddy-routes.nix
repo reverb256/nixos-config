@@ -1,6 +1,12 @@
 {cluster}: let
   # Import the centralized port registry (single source of truth)
   ports = import ../../kubernetes/service-ports.nix;
+
+  # Node IPs — derived from the cluster option (set by network-constants.nix from cluster.nix)
+  zephyr = cluster.hosts.zephyr.ip or "10.1.1.110";
+  nexus   = cluster.hosts.nexus.ip or "10.1.1.120";
+  forge   = cluster.hosts.forge.ip or "10.1.1.130";
+
   tls = "tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key";
   proxyHeader = ''
     header_up Host {host}
@@ -47,7 +53,7 @@
           window 1m
         }
       }
-      forward_auth 127.0.0.1:30890 {
+      forward_auth 127.0.0.1:${toString ports.oauth2-proxy} {
         uri /oauth2/auth
         copy_headers X-Auth-Request-User X-Auth-Request-Email X-Auth-Request-Preferred-Username
         handle_response {
@@ -58,8 +64,8 @@
       reverse_proxy ${backend} {
         ${proxyHeader}
         # Override XFF/X-Real-IP to Caddy IP (MC does exact string match, not CIDR)
-        header_up X-Forwarded-For 10.1.1.110
-        header_up X-Real-IP 10.1.1.110
+        header_up X-Forwarded-For ${zephyr}
+        header_up X-Real-IP ${zephyr}
       }
     }
   '';
@@ -77,7 +83,7 @@
           window 1m
         }
       }
-      forward_auth 127.0.0.1:30890 {
+      forward_auth 127.0.0.1:${toString ports.oauth2-proxy} {
         uri /oauth2/auth
         copy_headers X-Auth-Request-User X-Auth-Request-Email X-Auth-Request-Preferred-Username
         handle_response {
@@ -87,8 +93,8 @@
       }
       reverse_proxy ${backend} {
         ${proxyHeader}
-        header_up X-Forwarded-For 10.1.1.110
-        header_up X-Real-IP 10.1.1.110
+        header_up X-Forwarded-For ${zephyr}
+        header_up X-Real-IP ${zephyr}
         transport http {
           tls
           tls_insecure_skip_verify
@@ -96,10 +102,6 @@
       }
     }
   '';
-  # Node IPs
-  nexus = "10.1.1.120";
-  forge = "10.1.1.130";
-  zephyr = "10.1.1.110";
 in
   # HTTP → HTTPS redirect for all .lan domains
   # Caddy skips auto-redirect when using manual TLS
@@ -127,10 +129,10 @@ in
       }
       # OAuth2 callback — proxy to oauth2-proxy (NOT Casdoor)
       handle /oauth2/* {
-        reverse_proxy ${zephyr}:30890
+        reverse_proxy ${zephyr}:${toString ports.oauth2-proxy}
       }
       handle {
-        reverse_proxy ${zephyr}:32556 {
+        reverse_proxy ${zephyr}:${toString ports.casdoor} {
           ${proxyHeader}
         }
       }
