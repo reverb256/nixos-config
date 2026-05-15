@@ -1,0 +1,36 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: security-audit
+  labels:
+    app.kubernetes.io/name: security-audit
+    app.kubernetes.io/component: rbac
+rules:
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["clusterroles", "clusterrolebindings", "roles", "rolebindings"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods", "services", "namespaces", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "daemonsets", "statefulsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies", "ingresses"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: security-audit-mcp
+  labels:
+    app.kubernetes.io/name: security-audit
+    app.kubernetes.io/component: rbac
+subjects:
+- kind: ServiceAccount
+  name: kubernetes-mcp
+  namespace: infra
+roleRef:
+  kind: ClusterRole
+  name: security-audit
+  apiGroup: rbac.authorization.k8s.io
