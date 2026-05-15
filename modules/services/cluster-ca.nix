@@ -4,7 +4,7 @@
   pkgs,
   ...
 }: let
-  cfg = config.services.cluster-c
+  cfg = config.services.cluster-ca;
   # Shared Subject Alternative Names for all services
   COMMON_SANS = "DNS:*.lan,DNS:*.cluster.local,DNS:auth.lan,DNS:mission-control.lan,DNS:kagent.lan,DNS:mc.cluster.local,DNS:privacy-filter.lan,DNS:search.lan,DNS:ai.lan,DNS:ai-inference.lan,DNS:openwebui.lan,DNS:haven.lan,DNS:hermes.lan,DNS:api.hermes.lan,DNS:n8n.lan,DNS:searxng.lan,DNS:vaultwarden.lan,DNS:brain.lan,DNS:qdrant.lan,DNS:knowledge-fabric.lan,DNS:monitoring.lan,DNS:grafana.lan,DNS:prometheus.lan,DNS:llama.zephyr.lan,DNS:llama.sentry.lan,DNS:workspace.lan,DNS:dashboard.lan,DNS:maplespike.lan,DNS:maplespike-api.lan,DNS:maplespike-mcp.lan,DNS:status.maplespike.lan,DNS:gitea.lan,DNS:dev.maplespike.lan,DNS:dev-maplespike-api.lan,DNS:dev-maplespike-mcp.lan";
   inherit (lib) mkEnableOption mkOption types mkIf;
