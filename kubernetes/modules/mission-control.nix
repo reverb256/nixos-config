@@ -62,13 +62,6 @@ in {
         api-key = "";
       };
     };
-    orchestration.Secret.mission-control-oidc = {
-      type = "Opaque";
-      stringData = {
-        client-id = "8600c54d3e2177f24f43";
-        cookie-secret = "a3f1d9c7b8e04562a1b3c4d5e6f78901";
-      };
-    };
 
     # ── Deployment ─────────────────────────────────────────────────────
     orchestration.Deployment.mission-control = {

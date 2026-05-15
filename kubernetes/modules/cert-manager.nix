@@ -8,7 +8,12 @@ in {
   config.kubernetes.objects = {
     # ── Namespace ─────────────────────────────────────────────────
     none.Namespace.cert-manager = {
-      metadata.labels = managed // { name = "cert-manager"; };
+      metadata.labels = managed // {
+        name = "cert-manager";
+        "pod-security.kubernetes.io/enforce" = "baseline";
+        "pod-security.kubernetes.io/audit" = "restricted";
+        "pod-security.kubernetes.io/warn" = "restricted";
+      };
     };
 
     # ── ServiceAccounts ──────────────────────────────────────────

@@ -15,6 +15,24 @@ in
     # Secret managed imperatively: kubectl create secret generic oauth2-proxy-secrets ...
     # DO NOT define here — kubectl apply would overwrite real values with placeholders
 
+    auth.Service.oauth2-proxy = {
+      metadata.labels = managed // {
+        app = "oauth2-proxy";
+        "app.kubernetes.io/component" = "auth-proxy";
+      };
+      spec = {
+        selector.app = "oauth2-proxy";
+        type = "NodePort";
+        ports._namedlist = true;
+        ports.http = {
+          port = 4180;
+          targetPort = 4180;
+          protocol = "TCP";
+          nodePort = 30890;
+        };
+      };
+    };
+
     auth.Deployment.oauth2-proxy = {
       metadata.labels = managed // {
         app = "oauth2-proxy";
