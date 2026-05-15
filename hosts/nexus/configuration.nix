@@ -136,6 +136,14 @@
       email = jkroeker@proton.me
   '');
 
+  # System hardening (Phase 1: Cluster Security)
+  security.clusterAudit = {
+    enable = true;
+    enableFirewall = true;
+    enableTailscaleSSH = true;
+    bindServicesToLocalhost = true;
+  };
+
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
 }

@@ -19,6 +19,20 @@
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
+
+  # AI Model Registry - Read from single source of truth
+  aiModels = lib.importTOML /etc/nixos/ai-models.toml;
+  defaultModel = aiModels.defaults.primary;
+  fallbackModel = aiModels.defaults.fallback;
+
+  # Model name mapping (aliases to full model identifiers)
+  modelNames = {
+    qwen3.5-2b-awq = aiModels.models.qwen3_5-2b-awq.name or "qwen3.5-2b-awq";
+    qwen3.6-35b-iq3-s = aiModels.models.qwen3_6-35b-iq3-s.name or "Qwen3.6-35B-A3B-UD-IQ3_S.gguf";
+    glm-5-turbo = aiModels.models.glm-5-turbo.name or "glm-5-turbo";
+    glm-5.1 = aiModels.models.glm-5_1.name or "glm-5.1";
+  };
+
   # AI Inference Gateway — derive paths from flake input, not hardcoded store paths
 in {
   config.kubernetes.objects.ai-inference = {
@@ -31,7 +45,7 @@ in {
       AUTH_MODE=""; # TODO: fill in value
       BACKEND_TYPE = "llama-cpp";
       BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
-      DEFAULT_MODEL = "Qwen3.6-35B-A3B-UD-IQ3_S.gguf";
+      DEFAULT_MODEL = modelNames.qwen3.6-35b-iq3-s;
       RAG_ENABLED = "true";
       RAG_TOP_K = "5";
       QDRANT_URL = "http://qdrant.ai-inference.svc.cluster.local:6333";
@@ -49,7 +63,7 @@ in {
       BACKEND_TYPE = "zai";
       BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
       BACKEND_FALLBACK_URLS = ""; # Dead backends removed (see git log)
-      DEFAULT_MODEL = "glm-5-turbo";
+      DEFAULT_MODEL = fallbackModel;
       GATEWAY_HOST = "0.0.0.0";
       PORT = "8080";
       PYTHONUNBUFFERED = "1";
@@ -85,8 +99,8 @@ in {
       CIRCUIT_BREAKER_ENABLED = "true";
       REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
       SECONDARY_BACKEND_URL = "http://llama-vllm-3060ti.ai-inference.svc.cluster.local:8040";
-      SECONDARY_BACKEND_MODEL = "qwen3.5-2b-awq";
-      DISCOVERY_BACKENDS = ''[{"url": "http://llama-vllm-3060ti.ai-inference.svc.cluster.local:8040/v1", "model": "qwen3.5-2b-awq", "name": "llama-vllm-3060ti"}]''; # vLLM Qwen3.5-2B-AWQ on 3060Ti via K8s service
+      SECONDARY_BACKEND_MODEL = defaultModel;
+      DISCOVERY_BACKENDS = ''[{"url": "http://llama-vllm-3060ti.ai-inference.svc.cluster.local:8040/v1", "model": "${defaultModel}", "name": "llama-vllm-3060ti"}]''; # vLLM Qwen3.5-2B-AWQ on 3060Ti via K8s service
       PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
       PRIVACY_FILTER_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
@@ -202,6 +216,14 @@ in {
                     name = "ENABLE_OAUTH_SIGNUP";
                     value = "true";
                   };
+                  WEBUI_SECRET_KEY = {
+                    name = "WEBUI_SECRET_KEY";
+                    value = "maplespike-openwebui-secret-k8s-declarative";
+                  };
+                  DATA_DIR = {
+                    name = "DATA_DIR";
+                    value = "/app/backend/data";
+                  };
                 };
                 ports = [
                   {
@@ -274,6 +296,110 @@ in {
           }
         ];
         selector.app = "open-webui";
+      };
+    };
+
+    # ── Qdrant Vector Database ──────────────────────────────────
+    # Persistent vector store for RAG, knowledge base, embeddings
+    # Storage: hostPath at /storage/qdrant (data) + /storage/qdrant-snapshots
+    Deployment.qdrant = {
+      metadata.labels.app = "qdrant";
+      spec = {
+        replicas = 1;
+        revisionHistoryLimit = 2;
+        selector.matchLabels.app = "qdrant";
+        strategy = {
+          type = "RollingUpdate";
+          rollingUpdate = {
+            maxSurge = 0;
+            maxUnavailable = 1;
+          };
+        };
+        template = {
+          metadata.labels.app = "qdrant";
+          spec = {
+            affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution = [
+              { weight = 100; preference.matchExpressions = [{ key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus"]; }]; }
+            ];
+            securityContext = {
+              runAsNonRoot = true;
+              runAsUser = 1000;
+              fsGroup = 100;
+            };
+            containers = {
+              _namedlist = true;
+              qdrant = {
+                image = "qdrant/qdrant:v1.13.7";
+                imagePullPolicy = "IfNotPresent";
+                securityContext = {
+                  runAsNonRoot = true;
+                  runAsUser = 1000;
+                  runAsGroup = 100;
+                  allowPrivilegeEscalation = false;
+                  capabilities.drop = [ "ALL" ];
+                  seccompProfile.type = "RuntimeDefault";
+                };
+                ports = [
+                  {
+                    containerPort = 6333;
+                    name = "http";
+                    protocol = "TCP";
+                  }
+                ];
+                volumeMounts = {
+                  _namedlist = true;
+                  qdrant-storage = {
+                    mountPath = "/qdrant/storage";
+                  };
+                  qdrant-snapshots = {
+                    mountPath = "/qdrant/snapshots";
+                  };
+                };
+                resources = {
+                  requests = {
+                    cpu = "250m";
+                    memory = "512Mi";
+                  };
+                  limits = {
+                    cpu = "2";
+                    memory = "4Gi";
+                  };
+                };
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              qdrant-storage = {
+                hostPath = {
+                  path = "/storage/qdrant";
+                  type = "DirectoryOrCreate";
+                };
+              };
+              qdrant-snapshots = {
+                hostPath = {
+                  path = "/storage/qdrant-snapshots";
+                  type = "DirectoryOrCreate";
+                };
+              };
+            };
+          };
+        };
+      };
+    };
+
+    Service.qdrant = {
+      metadata.labels.app = "qdrant";
+      spec = {
+        type = "ClusterIP";
+        ports = [
+          {
+            name = "http";
+            port = 6333;
+            protocol = "TCP";
+            targetPort = 6333;
+          }
+        ];
+        selector.app = "qdrant";
       };
     };
 
@@ -1484,7 +1610,7 @@ omp = {
         }
     },
     "modelRoles": {
-        "default": "glm-5.1",
+        "default": modelNames.glm-5.1,
         "smol": "glm-4.5-air",
         "slow": "mistralai/mistral-large-3-675b-instruct-2512",
         "plan": "nvidia/llama-3.3-nemotron-super-49b-v1",

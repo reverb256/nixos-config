@@ -276,7 +276,7 @@ in {
               containers = {
                 _namedlist = true;
                 operator = {
-                  image = "tailscale/k8s-operator:unstable";
+                  image = "tailscale/k8s-operator:v1.96.5";
                   imagePullPolicy = "Always";
                   name = "operator";
                   env = {
@@ -290,7 +290,7 @@ in {
                     OPERATOR_INGRESS_CLASS_NAME.value = "tailscale";
                     CLIENT_ID_FILE.value = "/oauth/client_id";
                     CLIENT_SECRET_FILE.value = "/oauth/client_secret";
-                    PROXY_IMAGE.value = "tailscale/tailscale:unstable";
+                    PROXY_IMAGE.value = "tailscale/tailscale:v1.96.5";
                     PROXY_TAGS.value = "tag:k8s";
                     APISERVER_PROXY.value = "false";
                     PROXY_FIREWALL_MODE.value = "auto";
