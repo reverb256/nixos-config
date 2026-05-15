@@ -5,9 +5,33 @@
   ...
 }: let
   cfg = config.services.cluster-ca;
-  # Shared Subject Alternative Names for all services
-  COMMON_SANS = "DNS:*.lan,DNS:*.cluster.local,DNS:auth.lan,DNS:mission-control.lan,DNS:kagent.lan,DNS:mc.cluster.local,DNS:privacy-filter.lan,DNS:search.lan,DNS:ai.lan,DNS:ai-inference.lan,DNS:openwebui.lan,DNS:haven.lan,DNS:hermes.lan,DNS:api.hermes.lan,DNS:n8n.lan,DNS:searxng.lan,DNS:vaultwarden.lan,DNS:brain.lan,DNS:qdrant.lan,DNS:knowledge-fabric.lan,DNS:monitoring.lan,DNS:grafana.lan,DNS:prometheus.lan,DNS:llama.zephyr.lan,DNS:llama.sentry.lan,DNS:workspace.lan,DNS:dashboard.lan,DNS:maplespike.lan,DNS:maplespike-api.lan,DNS:maplespike-mcp.lan,DNS:status.maplespike.lan,DNS:gitea.lan,DNS:dev.maplespike.lan,DNS:dev-maplespike-api.lan,DNS:dev-maplespike-mcp.lan";
-  inherit (lib) mkEnableOption mkOption types mkIf;
+
+  inherit (lib) mkEnableOption mkOption types mkIf mkDefault;
+
+  # ── Derive SANs from clusterNetworking.lanDomains (SSOT) ──
+  # cluster-dns.nix populates lanDomains from its service lists.
+  # Adding a domain in cluster-dns.nix automatically adds it to
+  # DNS records AND the leaf certificate SANs. No manual duplication.
+  lanDomains = config.clusterNetworking.lanDomains or [];
+
+  # Base domains that always appear in SANs (wildcards + K8s)
+  baseDomains = [ "*.lan" "*.cluster.local" ];
+
+  # Combine base + service domains + any extra per-host domains
+  allDomains = baseDomains ++ lanDomains ++ cfg.extraDomains;
+
+  # Build the SAN string: "DNS:*.lan,DNS:auth.lan,..."
+  commonSANS = lib.concatStringsSep "," (
+    map (d: "DNS:${d}") allDomains
+  );
+
+  openssl = "${pkgs.openssl}/bin/openssl";
+
+  # Hash of the current SAN list — changes when domains are added/removed.
+  # Stored in /etc/ssl/cluster-ca/.san-hash to detect drift.
+  # If the hash doesn't match, the leaf cert is regenerated automatically.
+  sanHash = builtins.hashString "sha256" commonSANS;
+
 in {
   options.services.cluster-ca = {
     enable = mkEnableOption "Internal CA for cluster services";
@@ -29,25 +53,66 @@ in {
       default = "/etc/ssl/cluster-ca/ca.key";
       description = "Path to CA private key";
     };
+
+    leafCert = mkOption {
+      type = types.path;
+      default = "/etc/ssl/cluster-ca/leaf.crt";
+      description = "Path to leaf certificate";
+    };
+
+    leafKey = mkOption {
+      type = types.path;
+      default = "/etc/ssl/cluster-ca/leaf.key";
+      description = "Path to leaf private key";
+    };
+
+    # Extra domains beyond what cluster-dns.nix provides
+    extraDomains = mkOption {
+      type = types.listOf types.str;
+      default = [];
+      example = [ "llama.zephyr.lan" "brain.lan" ];
+      description = "Additional domains to include in leaf cert SANs (beyond auto-derived list from cluster-dns.nix)";
+    };
+
+    # Whether to install the CA into the system trust store
+    installTrust = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Install CA certificate into system trust store";
+    };
+
+    # Whether to generate a leaf cert (only needed on Caddy hosts)
+    generateLeaf = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Generate leaf certificate signed by the CA (needed for Caddy/TLS termination)";
+    };
+
+    # Group that should own the private keys
+    keyGroup = mkOption {
+      type = types.str;
+      default = "caddy";
+      description = "Group that should have read access to private keys";
+    };
   };
 
   config = mkIf cfg.enable {
+
     # Install CA into system trust store via NixOS declarative mechanism
-    # (runtime approaches like /etc/pki/ca-trust fail on NixOS — /etc is read-only)
-    security.pki.certificateFiles = [./../../certs/cluster-ca.crt];
+    # This makes all .lan HTTPS endpoints trusted on this host
+    security.pki.certificateFiles = mkIf cfg.installTrust [ ./../../certs/cluster-ca.crt ];
 
     # Point Python (certifi/requests/httpx) at the system CA bundle so that
     # apps like Hermes Agent trust the Cluster CA for *.lan endpoints.
-    # The system bundle is a superset of certifi's own CAs + our Cluster CA.
-    environment.variables = {
+    environment.variables = mkIf cfg.installTrust {
       SSL_CERT_FILE = "/etc/ssl/certs/ca-bundle.crt";
       REQUESTS_CA_BUNDLE = "/etc/ssl/certs/ca-bundle.crt";
     };
 
     systemd.services.cluster-ca-init = {
-      description = "Generate internal CA certificate and update trust store";
-      wantedBy = ["multi-user.target"];
-      before = ["caddy.service"];
+      description = "Generate internal CA certificate and leaf cert";
+      wantedBy = [ "multi-user.target" ];
+      before = [ "caddy.service" ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -56,76 +121,94 @@ in {
       };
       script = ''
         STATIC_CA="${./../../certs/cluster-ca.crt}"
+        SAN_HASH="${sanHash}"
+        SAN_FILE="/etc/ssl/cluster-ca/.san-hash"
 
+        mkdir -p /etc/ssl/cluster-ca
+
+        # ── CA Certificate ──────────────────────────────────────
         if [ ! -f ${cfg.caCert} ]; then
-          mkdir -p /etc/ssl/cluster-ca
-
           # First, try repo-stored CA so all nodes converge on the same cert
           if [ -f "$STATIC_CA" ]; then
             echo "Using static CA from repo"
             cp "$STATIC_CA" ${cfg.caCert}
             chmod 644 ${cfg.caCert}
             if [ ! -f ${cfg.caKey} ]; then
-              ${pkgs.openssl}/bin/openssl genrsa -out ${cfg.caKey} 4096 2>/dev/null
+              ${openssl} genrsa -out ${cfg.caKey} 4096 2>/dev/null
             fi
             chmod 640 ${cfg.caKey}
-            chown root:caddy ${cfg.caKey}
+            chown root:${cfg.keyGroup} ${cfg.caKey}
           else
             # No static CA — first-boot recovery path
-            ${pkgs.openssl}/bin/openssl req -x509 -newkey rsa:4096 \
+            ${openssl} req -x509 -newkey rsa:4096 \
               -keyout ${cfg.caKey} \
               -out ${cfg.caCert} \
               -days 3650 \
               -nodes \
-              -subj "/C=US/ST=State/L=City/O=Cluster/CN=Cluster CA" \
+              -subj "/C=CA/ST=Ontario/L=Ottawa/O=Cluster/CN=Cluster CA" \
               -addext "basicConstraints=critical,CA:TRUE" \
-              -addext "keyUsage=critical,keyCertSign,cRLSign" \
-              -addext "subjectAltName=${COMMON_SANS}" 2>/dev/null
+              -addext "keyUsage=critical,keyCertSign,cRLSign" 2>/dev/null
 
             echo "Internal CA certificate generated at ${cfg.caCert}"
             chmod 644 ${cfg.caCert}
             chmod 640 ${cfg.caKey}
-            chown root:caddy ${cfg.caKey}
+            chown root:${cfg.keyGroup} ${cfg.caKey}
           fi
         else
           echo "CA certificate already exists at ${cfg.caCert}"
-          # Ensure permissions are correct on existing key
-          chmod 640 ${cfg.caKey}
-          chown root:caddy ${cfg.caKey} 2>/dev/null || true
+          chmod 640 ${cfg.caKey} 2>/dev/null || true
+          chown root:${cfg.keyGroup} ${cfg.caKey} 2>/dev/null || true
         fi
 
-        # Generate leaf certificate for Caddy (covers all .lan domains)
-        LEAF_CERT=/etc/ssl/cluster-ca/leaf.crt
-        LEAF_KEY=/etc/ssl/cluster-ca/leaf.key
-        if [ ! -f $LEAF_CERT ] || ! ${pkgs.openssl}/bin/openssl x509 -in $LEAF_CERT -noout -checkend 2592000 2>/dev/null; then
-          ${pkgs.openssl}/bin/openssl genrsa -out $LEAF_KEY 2048 2>/dev/null
-          ${pkgs.openssl}/bin/openssl req -new -key $LEAF_KEY -out /tmp/leaf.csr \
+        # ── Leaf Certificate ────────────────────────────────────
+        ${lib.optionalString cfg.generateLeaf ''
+        LEAF_CERT=${cfg.leafCert}
+        LEAF_KEY=${cfg.leafKey}
+        REGEN=false
+
+        # Regenerate if: cert missing, expiring within 30 days, OR SANs changed
+        if [ ! -f $LEAF_CERT ]; then
+          echo "Leaf cert missing — generating"
+          REGEN=true
+        elif ! ${openssl} x509 -in $LEAF_CERT -noout -checkend 2592000 2>/dev/null; then
+          echo "Leaf cert expiring soon — regenerating"
+          REGEN=true
+        elif [ ! -f "$SAN_FILE" ] || [ "$(cat $SAN_FILE)" != "$SAN_HASH" ]; then
+          echo "SANs changed — regenerating leaf cert"
+          REGEN=true
+        else
+          echo "Leaf certificate still valid and SANs unchanged"
+        fi
+
+        if [ "$REGEN" = true ]; then
+          ${openssl} genrsa -out $LEAF_KEY 2048 2>/dev/null
+          ${openssl} req -new -key $LEAF_KEY -out /tmp/leaf.csr \
             -subj "/CN=Cluster Ingress" \
-          -addext "subjectAltName=${COMMON_SANS}" 2>/dev/null
-          ${pkgs.openssl}/bin/openssl x509 -req -in /tmp/leaf.csr -CA ${cfg.caCert} -CAkey ${cfg.caKey} \
-            -CAcreateserial -out $LEAF_CERT -days 365 -copy_extensions copyall 2>/dev/null
+            -addext "subjectAltName=${commonSANS}" 2>/dev/null
+          ${openssl} x509 -req -in /tmp/leaf.csr \
+            -CA ${cfg.caCert} -CAkey ${cfg.caKey} \
+            -CAcreateserial -out $LEAF_CERT \
+            -days 365 -copy_extensions copyall 2>/dev/null
           rm -f /tmp/leaf.csr
           chmod 644 $LEAF_CERT
           chmod 640 $LEAF_KEY
-          chown root:caddy $LEAF_KEY
+          chown root:${cfg.keyGroup} $LEAF_KEY
+          echo "$SAN_HASH" > "$SAN_FILE"
           echo "Leaf certificate generated at $LEAF_CERT"
-        else
-          echo "Leaf certificate still valid"
         fi
-
+        ''}
       '';
     };
 
     systemd.services.cluster-ca-export = {
       description = "Export CA certificate to user home";
-      wantedBy = ["multi-user.target"];
-      after = ["cluster-ca-init.service"];
+      wantedBy = [ "multi-user.target" ];
+      after = [ "cluster-ca-init.service" ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
         User = "j_kro";
         ExecStart = pkgs.writeShellScript "cluster-ca-export" ''
-          # Export CA cert to user's trusted certificates directory
           mkdir -p ~/.local/share/ca-certificates
           cp ${cfg.caCert} ~/.local/share/ca-certificates/cluster-ca.crt
           update-ca-certificates 2>/dev/null || true

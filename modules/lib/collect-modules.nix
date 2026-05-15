@@ -50,6 +50,7 @@ let
     "profiles/role/default.nix" = true;
     "profiles/network/default.nix" = true;
     "port-helpers.nix" = true;                                          # Library: helper functions, NOT a NixOS module
+    "services/oauth2-proxy-config.nix" = true;                          # Library: shared oauth2 config data, NOT a module
     # implementations.nix files are imported by their respective subdirectory default.nix, and can be
     # safely collected here too (file path dedup works when both refs are file paths).
   };

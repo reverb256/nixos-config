@@ -1,7 +1,8 @@
 {
-  # Shared cluster constants — single source of truth for K8s modules.
-  # Network-constants.nix mirrors these as NixOS options via config.networking.cluster.
-  # If you change something here, update network-constants.nix too.
+  # Shared cluster constants — single source of truth for BOTH
+  # K8s module evaluation (imported by kubernetes/default.nix) and
+  # NixOS options (imported by modules/network-constants.nix for defaults).
+  # Edit here to change subnet, VIP, API port, or cluster DNS IP.
 
   subnet = "10.1.1.0/24";
   podCidr = "10.244.0.0/16";
