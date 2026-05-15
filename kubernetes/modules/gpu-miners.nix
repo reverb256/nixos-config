@@ -580,12 +580,14 @@ in {
       };
     };
 
-    mining.Deployment.gpu-miner-nexus = {
+    # --- GPU Miner for Zephyr 3060 Ti (always-on, RTX 3060 Ti on device 0) ---
+    # NOTE: Renamed from gpu-miner-nexus (was misnamed — runs on zephyr, not nexus)
+    mining.Deployment.gpu-miner-zephyr-3060ti-gpu = {
       metadata.labels =
         managed
         // {
-          app = "gpu-miner-nexus";
-          host = "nexus";
+          app = "gpu-miner-zephyr-3060ti-gpu";
+          host = "zephyr";
           workload = "crypto-mining";
           "mining-coin" = "rvn";
           "mining-group" = "nvidia";
@@ -594,7 +596,7 @@ in {
         replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels = {
-          app = "gpu-miner-nexus";
+          app = "gpu-miner-zephyr-3060ti-gpu";
           host = "zephyr";
         };
         strategy.type = "Recreate";
@@ -602,7 +604,7 @@ in {
           metadata.labels =
             managed
             // {
-              app = "gpu-miner-nexus";
+              app = "gpu-miner-zephyr-3060ti-gpu";
               host = "zephyr";
               workload = "crypto-mining";
             };
@@ -624,29 +626,30 @@ in {
               _namedlist = true;
               miner = {
                 image = nvidiaBaseImage;
+                imagePullPolicy = "IfNotPresent";
                 command = ["/bin/sh" "/opt/wrapper/mining-wrapper.sh"];
                 env = mkWrapperEnv {
                   group = "nvidia";
-                  worker = "nexus-gpu";
+                  worker = "zephyr-3060ti-gpu";
                   device = 0;
-                  apiPort = 4068;
+                  apiPort = 4072;
                   gpuProfile = "rtx3060ti";
                 };
                 ports = [
                   {
-                    containerPort = 4068;
+                    containerPort = 4072;
                     name = "api";
                     protocol = "TCP";
                   }
                 ];
                 livenessProbe = {
-                  tcpSocket.port = 4068;
+                  tcpSocket.port = 4072;
                   initialDelaySeconds = 120;
                   periodSeconds = 60;
                   failureThreshold = 5;
                 };
                 readinessProbe = {
-                  tcpSocket.port = 4068;
+                  tcpSocket.port = 4072;
                   initialDelaySeconds = 60;
                   periodSeconds = 15;
                   failureThreshold = 10;

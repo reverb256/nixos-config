@@ -155,6 +155,20 @@
       url = "github:Mic92/nix-fast-build";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # ── Newly extracted project flakes ───────────────────────
+    hermes-workspace = {
+      url = "path:/data/projects/own/hermes-workspace";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    hermes-webui = {
+      url = "path:/data/projects/own/hermes-webui";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    maplespike = {
+      url = "path:/data/projects/own/maplespike";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
   outputs = inputs @ {
     self,
@@ -312,6 +326,11 @@
     packages.x86_64-linux.ai-inference-gateway-image = inputs.ai-gateway.packages.x86_64-linux.container; # migrated from local pkgs/
     packages.x86_64-linux.opencode-image = pkgsWithOverlay.opencode-image;
     packages.x86_64-linux.maplespike-mcp-image = pkgsWithOverlay.maplespike-mcp-image;
+    packages.x86_64-linux.maplespike-api-image = pkgsWithOverlay.maplespike-api-image;
+    packages.x86_64-linux.maplespike-ingest-image = pkgsWithOverlay.maplespike-ingest-image;
+    packages.x86_64-linux.maplespike-engine-image = pkgsWithOverlay.maplespike-engine-image;
+    packages.x86_64-linux.hermes-workspace-image = pkgsWithOverlay.hermes-workspace-image;
+    packages.x86_64-linux.hermes-webui-image = pkgsWithOverlay.hermes-webui-image;
     overlays.default = (import ./overlay.nix) {inherit inputs;};
     kubernetes = import ./kubernetes {inherit pkgs pkgsWithOverlay inputs;};
 
