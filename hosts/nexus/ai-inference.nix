@@ -96,8 +96,8 @@
 
     # Phase 2 hybrid search features
     queryExpansion = {
-      enable = true;
-      model = "Qwen3.5-9B.Q4_K_M.gguf";
+      enable = false; # No host currently serving Qwen3.5-9B
+      model = "Qwen3.5-4B.Q4_K_M.gguf"; # Fallback to sentry 4B if re-enabled
     };
 
     semanticCache = {
