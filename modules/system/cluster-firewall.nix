@@ -60,13 +60,15 @@ in {
   networking.firewall.extraInputRules = mkAfter ''
     ip saddr { ${podCidr} } accept
 
-    ip saddr { ${clusterSubnet} } tcp dport { 6443, 10443 } accept
+    # SECURITY: K3s API restricted to control plane nodes only
+  ip saddr { 10.1.1.120,10.1.1.130,10.1.1.140 } tcp dport { 6443, 10443 } accept
     iifname "tailscale0" tcp dport { 6443, 10443 } accept
 
     ip saddr { ${clusterSubnet} } tcp dport 10250 accept
     iifname "tailscale0" tcp dport 10250 accept
 
-    ip saddr { ${clusterSubnet} } tcp dport { 2379, 2380 } accept
+    # SECURITY: etcd restricted to control plane nodes only
+  ip saddr { 10.1.1.120,10.1.1.130,10.1.1.140 } tcp dport { 2379, 2380 } accept
 
     ip saddr { ${clusterSubnet} } tcp dport { 2049, 111, 20048 } accept
     ip saddr { ${clusterSubnet} } udp dport { 2049, 111, 20048 } accept
