@@ -100,6 +100,7 @@
     preamble = ''
       {
         admin 127.0.0.1:2019
+        auto_https off
         default_sni cluster.local
       }
     '';
@@ -190,6 +191,9 @@ in {
       package = pkgs.caddy-with-modules;
       configFile = pkgs.writeText "Caddyfile" (buildCaddyfile cfg.services);
     };
+
+    # Allow Caddy to bind privileged ports (<1024) when running as non-root
+    systemd.services.caddy.serviceConfig.AmbientCapabilities = "CAP_NET_BIND_SERVICE";
 
     environment.systemPackages = [
       (buildSvcScript cfg.services)
