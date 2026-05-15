@@ -169,16 +169,4 @@ in {
     ip saddr 10.1.1.0/24 tcp dport 22 accept
     iifname "lo" tcp dport 22 accept
   '';
-
-  services.fail2ban = {
-    enable = true;
-    jails.sshd.settings = {
-      enabled = true;
-      port = "ssh";
-      backend = "systemd";
-      bantime = "1h";
-      findtime = "10m";
-      maxretry = 5;
-    };
-  };
 }
