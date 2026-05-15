@@ -225,6 +225,7 @@ in {
         pkgs.writeText "Caddyfile" ''
           {
             admin 127.0.0.1:2019
+            auto_https off
             default_sni cluster.local
           }
 
@@ -402,6 +403,9 @@ in {
       };
     };
   };
+
+  # Allow Caddy to bind privileged ports (<1024) when running as non-root
+  systemd.services.caddy.serviceConfig.AmbientCapabilities = "CAP_NET_BIND_SERVICE";
 
   programs = {
     haven-desktop.enable = true;
