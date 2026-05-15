@@ -1,6 +1,6 @@
 {cluster}: let
   # Import the centralized port registry (single source of truth)
-  ports = import /etc/nixos/kubernetes/service-ports.nix;
+  ports = import ../../kubernetes/service-ports.nix;
   tls = "tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key";
   proxyHeader = ''
     header_up Host {host}
@@ -10,10 +10,19 @@
     header_up X-Forwarded-Proto {scheme}
   '';
   # Public routes — no auth required
+  # Rate limited: 100 req/min per IP (defense-in-depth for funnel-exposed routes).
+  # Requires caddy-with-modules (mholt/caddy-ratelimit plugin).
   mkRoute = hosts: backend: ''
     ${hosts} {
       ${tls}
       encode zstd gzip
+      rate_limit {
+        zone lan_per_ip {
+          key    {remote_host}
+          events 100
+          window 1m
+        }
+      }
       reverse_proxy ${backend} {
         ${proxyHeader}
       }
@@ -25,10 +34,19 @@
   # handle_response inside forward_auth intercepts 401 BEFORE it reaches the client.
   # handle_errors does NOT work here — forward_auth 401 goes through the normal
   # response path, not the error path.
+  # Rate limited: 100 req/min per IP (defense-in-depth for funnel-exposed routes).
+  # Requires caddy-with-modules (mholt/caddy-ratelimit plugin).
   mkAuthRoute = hosts: backend: ''
     ${hosts} {
       ${tls}
       encode zstd gzip
+      rate_limit {
+        zone lan_auth_per_ip {
+          key    {remote_host}
+          events 100
+          window 1m
+        }
+      }
       forward_auth 127.0.0.1:30890 {
         uri /oauth2/auth
         copy_headers X-Auth-Request-User X-Auth-Request-Email X-Auth-Request-Preferred-Username
@@ -46,10 +64,19 @@
     }
   '';
   # Protected route for HTTPS backends (haven uses self-signed cert).
+  # Rate limited: 100 req/min per IP (defense-in-depth for funnel-exposed routes).
+  # Requires caddy-with-modules (mholt/caddy-ratelimit plugin).
   mkAuthRouteTLS = hosts: backend: ''
     ${hosts} {
       ${tls}
       encode zstd gzip
+      rate_limit {
+        zone lan_tls_per_ip {
+          key    {remote_host}
+          events 100
+          window 1m
+        }
+      }
       forward_auth 127.0.0.1:30890 {
         uri /oauth2/auth
         copy_headers X-Auth-Request-User X-Auth-Request-Email X-Auth-Request-Preferred-Username
@@ -91,6 +118,13 @@ in
   "auth.lan {
       ${tls}
       encode zstd gzip
+      rate_limit {
+        zone auth_per_ip {
+          key    {remote_host}
+          events 100
+          window 1m
+        }
+      }
       # OAuth2 callback — proxy to oauth2-proxy (NOT Casdoor)
       handle /oauth2/* {
         reverse_proxy ${zephyr}:30890
@@ -146,14 +180,10 @@ in
   # Glance Dashboard (nexus, NodePort 32200)
   + mkRoute "dashboard.lan" "http://${nexus}:${toString ports.glance}"
   + "\n"
-  + mkRoute "frostbite-mcp.lan" "http://${nexus}:${toString ports.frostbite-mcp}"
   + mkRoute "privacy-filter.lan" "http://${nexus}:${toString ports.privacy-filter}"
-  + mkRoute "maplespike-mcp.lan" "http://${nexus}:${toString ports.maplespike-mcp}"
-  + "\n"
-  + mkRoute "maplespike-api.lan" "http://${nexus}:${toString ports.maplespike-api}"
-  + "\n"
-+ mkRoute "maplespike.lan" "http://${nexus}:${toString ports.maplespike-portal}"
-  + mkRoute "status.maplespike.lan, uptime.maplespike.lan" "http://${nexus}:${toString ports.maplespike-status}"
+  # NOTE: MapleSpike routes handled by Nexus (VIP 10.1.1.100)
+  # See /etc/nixos/hosts/nexus/services.nix cluster-services.maplespike-*
+
   + mkRoute "gitea.lan" "http://${nexus}:${toString ports.gitea}"
   # Hermes Workspace (zephyr, port 3002)
   # Dev environment
