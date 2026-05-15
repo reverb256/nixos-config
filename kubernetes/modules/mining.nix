@@ -31,6 +31,9 @@ in {
         // {
           name = "mining";
           workload = "crypto-mining";
+          "pod-security.kubernetes.io/enforce" = "baseline";
+          "pod-security.kubernetes.io/audit" = "restricted";
+          "pod-security.kubernetes.io/warn" = "restricted";
         };
     };
 
@@ -254,7 +257,6 @@ in {
                 host = "zephyr";
                 workload = "crypto-mining";
               };
-            annotations."nix-csi/discard" = "true";
           };
           spec = {
             nodeName = "zephyr";
@@ -645,7 +647,8 @@ in {
         # Populated by kubectl-apply-k8s-secrets from agenix:
         #   api-token ← /run/agenix/xmrig-proxy-api-token
         "api-token" = "";
-        "kryptex-password" = "x";
+        # TODO: Fill from agenix key `xmrig-proxy-api-token` or create dedicated agenix key for kryptex password
+        "kryptex-password" = "";
       };
     };
 
