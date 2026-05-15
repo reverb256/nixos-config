@@ -1,0 +1,96 @@
+# ValidatingAdmissionPolicy: Require resource limits and security context
+# Fixed to properly handle both Pod and workload controllers (Deployment, StatefulSet, etc.)
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: require-resources-and-security
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: pod-security-enforcement
+    app.kubernetes.io/component: admission-policy
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [""]
+      apiVersions: ["v1"]
+      operations: ["CREATE", "UPDATE"]
+      resources: ["pods"]
+  validations:
+  # Require CPU and memory limits on Pod containers
+  - expression: >-
+      object.spec.containers.all(c, has(c.resources.limits) && has(c.resources.limits.cpu) && has(c.resources.limits.memory))
+    message: "All containers must specify CPU and memory limits in resources.limits"
+  # Require CPU and memory requests on Pod containers
+  - expression: >-
+      object.spec.containers.all(c, has(c.resources.requests) && has(c.resources.requests.cpu) && has(c.resources.requests.memory))
+    message: "All containers must specify CPU and memory requests in resources.requests"
+  # Require non-root security context on Pod containers
+  - expression: >-
+      object.spec.containers.all(c, has(c.securityContext) && c.securityContext.runAsNonRoot == true)
+    message: "All containers must run as non-root (securityContext.runAsNonRoot: true)"
+  # Prevent privilege escalation on Pod containers
+  - expression: >-
+      object.spec.containers.all(c, !has(c.securityContext.allowPrivilegeEscalation) || c.securityContext.allowPrivilegeEscalation == false)
+    message: "Containers must not allow privilege escalation (securityContext.allowPrivilegeEscalation: false)"
+---
+# Separate validation for Deployments
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: require-resources-and-security-deployments
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: pod-security-enforcement
+    app.kubernetes.io/component: admission-policy
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups: ["apps"]
+      apiVersions: ["v1"]
+      operations: ["CREATE", "UPDATE"]
+      resources: ["deployments"]
+  validations:
+  - expression: >-
+      object.spec.template.spec.containers.all(c, has(c.resources.limits) && has(c.resources.limits.cpu) && has(c.resources.limits.memory))
+    message: "All containers must specify CPU and memory limits"
+  - expression: >-
+      object.spec.template.spec.containers.all(c, has(c.resources.requests) && has(c.resources.requests.cpu) && has(c.resources.requests.memory))
+    message: "All containers must specify CPU and memory requests"
+  - expression: >-
+      object.spec.template.spec.containers.all(c, has(c.securityContext) && c.securityContext.runAsNonRoot == true)
+    message: "All containers must run as non-root"
+  - expression: >-
+      object.spec.template.spec.containers.all(c, !has(c.securityContext.allowPrivilegeEscalation) || c.securityContext.allowPrivilegeEscalation == false)
+    message: "Containers must not allow privilege escalation"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: require-resources-and-security-binding
+  namespace: kube-system
+spec:
+  policyName: require-resources-and-security
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchExpressions:
+      - key: kubernetes.io/metadata.name
+        operator: NotIn
+        values: ["kube-system", "kube-public", "kube-node-lease"]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: require-resources-and-security-deployments-binding
+  namespace: kube-system
+spec:
+  policyName: require-resources-and-security-deployments
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchExpressions:
+      - key: kubernetes.io/metadata.name
+        operator: NotIn
+        values: ["kube-system", "kube-public", "kube-node-lease"]
