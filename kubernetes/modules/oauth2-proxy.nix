@@ -5,6 +5,8 @@ let
   };
 
   namespace = "auth";
+  # Import shared oauth2-proxy config (SSOT for all oauth2-proxy settings)
+  oauth2Cfg = import ../../modules/services/oauth2-proxy-config.nix;
 in
 {
   config.kubernetes.objects = {
@@ -66,18 +68,18 @@ in
               env._namedlist = true;
               args = [
                 "--provider=oidc"
-                "--oidc-issuer-url=https://auth.lan"
-                "--client-id=5bf72a094f75c6f5729e"
+                "--oidc-issuer-url=${oauth2Cfg.oidcIssuerUrl}"
+                "--client-id=${oauth2Cfg.clientId}"
                 "--client-secret-file=/etc/oauth2/secrets/client-secret"
                 "--cookie-secret-file=/etc/oauth2/secrets/cookie-secret"
                 "--http-address=0.0.0.0:4180"
-                "--redirect-url=https://auth.lan/oauth2/callback"
-                "--cookie-domain=.lan"
+                "--redirect-url=${oauth2Cfg.redirectUrl}"
+                "--cookie-domain=${oauth2Cfg.cookieDomain}"
                 "--cookie-secure=true"
                 "--cookie-samesite=lax"
                 "--cookie-httponly=true"
                 "--email-domain=*"
-                "--scope=openid profile email"
+                "--scope=${oauth2Cfg.scope}"
                 "--ssl-insecure-skip-verify=true"
                 "--reverse-proxy=true"
                 "--set-xauthrequest=true"
@@ -85,7 +87,7 @@ in
                 "--skip-provider-button=false"
                 "--pass-access-token=true"
                 "--pass-user-headers=true"
-                "--skip-auth-route=^/health$,^/healthz$,^/api/health$,^/ready$,^/metrics$,^/favicon$,^/assets/,^/public/,^/static/"
+                "--skip-auth-route=${builtins.concatStringsSep "," oauth2Cfg.skipAuthRoutes}"
                 "--whitelist-domain=.lan"
                 "--insecure-oidc-allow-unverified-email=true"
                 "--insecure-oidc-skip-issuer-verification=true"
