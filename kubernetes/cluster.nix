@@ -23,7 +23,7 @@
   # Per-host xmrig CPU miner toggles (default: all enabled)
   # Set to false to exclude a host's miner from the manifest entirely.
   mining = {
-    enableZephyr = false;  # Disabled: OOM evictions + hostNetwork port conflicts on zephyr (31GB)
+    enableZephyr = true;
     enableNexus = true;
     enableSentry = true;
 
