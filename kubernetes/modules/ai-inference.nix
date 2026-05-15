@@ -194,7 +194,10 @@ in {
                   };
                   OAUTH_CLIENT_SECRET = {
                     name = "OAUTH_CLIENT_SECRET";
-                    value = "f73abe187c8976c4b9d376a1dc9e4ec71cfaf3d6";
+                    valueFrom.secretKeyRef = {
+                      name = "openwebui-oidc-secret";
+                      key = "client-secret";
+                    };
                   };
                   OPENID_PROVIDER_URL = {
                     name = "OPENID_PROVIDER_URL";
