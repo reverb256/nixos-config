@@ -13,8 +13,10 @@
   assimp = prev.assimp.overrideAttrs (_old: {
     doCheck = false;
   });
-  llama-cpp = prev.callPackage ./packages/llama-cpp-cuda.nix {
+  llama-cpp = prev.callPackage ./packages/llama-cpp.nix {
     inherit (prev) config;
+    cudaSupport = true;
+    cudaPackages = prev.cudaPackages;
   };
   llama-cpp-ik = prev.callPackage ./packages/llama-cpp-ik.nix {};
   llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant;
@@ -114,10 +116,15 @@
   };
   claude-code-image = prev.callPackage ./packages/claude-code-image.nix {};
   opencode-image = prev.callPackage ./packages/opencode-image.nix {};
-  maplespike-mcp-image = prev.callPackage ./packages/maplespike-mcp-image.nix {
-    src = inputs.frostbite-data-pipeline.outPath;
-  };
+  maplespike-mcp-image = inputs.maplespike.packages.x86_64-linux.maplespike-mcp-image;
+  maplespike-api-image = inputs.maplespike.packages.x86_64-linux.maplespike-api-image;
+  maplespike-ingest-image = inputs.maplespike.packages.x86_64-linux.maplespike-ingest-image;
+  maplespike-engine-image = inputs.maplespike.packages.x86_64-linux.maplespike-engine-image;
   hermes-chat = prev.callPackage ./packages/hermes-chat.nix {};
+  hermes-workspace = inputs.hermes-workspace.packages.x86_64-linux.default;
+  hermes-workspace-image = inputs.hermes-workspace.packages.x86_64-linux.container-image;
+  hermes-webui = inputs.hermes-webui.packages.x86_64-linux.default;
+  hermes-webui-image = inputs.hermes-webui.packages.x86_64-linux.container-image;
   privacy-filter = prev.callPackage ./packages/privacy-filter.nix {
     transformers-dev = prev.callPackage ./packages/transformers-dev.nix {};
   };
