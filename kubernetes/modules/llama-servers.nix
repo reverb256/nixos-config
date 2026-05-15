@@ -100,7 +100,6 @@ in
               host = "nexus";
               gpu = "rtx3060ti";
             };
-            annotations."nix-csi/discard" = "true";
           };
           spec = {
             nodeName = "nexus";
@@ -313,7 +312,6 @@ in
               host = "zephyr";
               gpu = "rtx3090";
             };
-            annotations."nix-csi/discard" = "true";
           };
           spec = {
             nodeName = "zephyr";
@@ -497,7 +495,6 @@ in
               app = "llama-server-sentry";
               host = "sentry";
             };
-            annotations."nix-csi/discard" = "true";
           };
           spec = {
             nodeName = "sentry";
