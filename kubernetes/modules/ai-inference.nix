@@ -28,7 +28,7 @@ in {
     ServiceAccount.n8n-sa.automountServiceAccountToken = false;
 
     ConfigMap.ai-gateway-config.data = {
-      AUTH_MODE="***";
+      AUTH_MODE=""; # TODO: fill in value
       BACKEND_TYPE = "llama-cpp";
       BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
       DEFAULT_MODEL = "Qwen3.6-35B-A3B-UD-IQ3_S.gguf";
@@ -45,7 +45,7 @@ in {
     };
 
     ConfigMap.ai-inference-gateway-config.data = {
-      AUTH_MODE="***";
+      AUTH_MODE=""; # TODO: fill in value
       BACKEND_TYPE = "zai";
       BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
       BACKEND_FALLBACK_URLS = ""; # Dead backends removed (see git log)
@@ -71,7 +71,7 @@ in {
       CHUNK_SIZE = "512";
       MCP_ENABLED = "true";
       SYSTEM_PROMPTS_ENABLED = "true";
-      TOKEN_SCOPED_COLLECTIONS="***";
+      TOKEN_SCOPED_COLLECTIONS=""; # TODO: fill in value
       VECTOR_WEIGHT = "0.7";
       HF_HOME = "/home/j_kro/.cache/huggingface";
       HF_HUB_OFFLINE = "0";
@@ -98,11 +98,11 @@ in {
       MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS = "[\"/etc/nixos\"]";
       MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K = "10";
-      JWT_AUTH_ENABLED="***";
+      JWT_AUTH_ENABLED=""; # TODO: fill in value
       JWT_AUTH_JWKS_URL="https:...jwks";
-      JWT_AUTH_ISSUER="***";
+      JWT_AUTH_ISSUER=""; # TODO: fill in value
       JWT_AUTH_AUDIENCE="3a331e...8d9a";
-      JWT_AUTH_REFRESH_INTERVAL="***";
+      JWT_AUTH_REFRESH_INTERVAL=""; # TODO: fill in value
     };
 
     # NOTE: Prometheus + Grafana removed — see kubernetes/modules/monitoring.nix
@@ -710,17 +710,16 @@ in {
 
     Secret.ai-inference-gateway-secrets = {
       type = "Opaque";
+      # TODO: Fill from agenix key `ai-gateway-zai-api-key` (see modules/system/agenix-secrets-registry.nix)
       stringData = {
-        "api-keys" = ''
-          default=sk-rep...-key
-        '';
+        "api-keys" = "";
       };
     };
 
     # Z.AI API key — populated from agenix (secrets/ai-gateway-zai-api-key.age)
     Secret.zai-api-key = {
       type = "Opaque";
-      stringData.ZAI_API_KEY=*** # placeholder — populated by kubectl-apply-k8s-secrets
+      stringData.ZAI_API_KEY="" # TODO: fill in value
     };
 
     # HuggingFace token — populated from agenix (secrets/huggingface-token.age)
@@ -732,26 +731,26 @@ in {
     # NVIDIA API key — populated from agenix (secrets/nvidia-api-key.age)
     Secret.nvidia-api-key = {
       type = "Opaque";
-      stringData.NVIDIA_API_KEY=***
+      stringData.NVIDIA_API_KEY="" # TODO: fill in value
     };
 
 
     # Pollinations API key — populated from agenix (secrets/pollinations-api-key.age)
     Secret.pollinations-api-key = {
       type = "Opaque";
-      stringData.POLLINATIONS_API_KEY=***
+      stringData.POLLINATIONS_API_KEY="" # TODO: fill in value
     };
 
     # Kilo API key — populated from agenix (secrets/kilo-api-key.age)
     Secret.kilo-api-key = {
       type = "Opaque";
-      stringData.KILO_API_KEY=***
+      stringData.KILO_API_KEY="" # TODO: fill in value
     };
 
     # OpenCode API key — populated from agenix (secrets/opencode-api-key.age)
     Secret.opencode-api-key = {
       type = "Opaque";
-      stringData.OPENCODE_API_KEY=***
+      stringData.OPENCODE_API_KEY="" # TODO: fill in value
     };
 
     # ── Additional NetworkPolicies ───────────────────────────────
@@ -1027,7 +1026,6 @@ in {
                 app = "privacy-filter";
                 component = "pii-detection";
               };
-            annotations."nix-csi/discard" = "true";
           };
           spec = {
             nodeName = "sentry";
@@ -1339,7 +1337,7 @@ HOST_GATEWAY = os.environ.get("HOST_GATEWAY_URL", "http://10.1.1.110:8080/v1")
 OUT = "/data/agents/model-sync"
 PI_CONFIG = "/home/j_kro/.config/pi/config.yaml"
 OMP_CONFIG = "/home/j_kro/.omp/agent/models.json"
-API_KEY=os.env...EY", "")
+API_KEY = os.environ.get("API_KEY", "")
 
 os.makedirs(OUT, exist_ok=True)
 
