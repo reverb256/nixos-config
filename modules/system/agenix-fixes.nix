@@ -273,17 +273,14 @@ in {
           # Orchestration namespace
           apply_secret orchestration mission-control-secrets auth-pass /run/agenix/mission-control-auth-pass
           apply_secret orchestration mission-control-secrets api-key /run/agenix/mission-control-api-key
-          apply_secret orchestration mission-control-oidc client-secret /run/agenix/mission-control-oidc-client-secret
 
           # Mining namespace
           apply_secret mining xmrig-proxy-secret api-token /run/agenix/xmrig-proxy-api-token
 
           # Monitoring namespace
           apply_secret monitoring grafana-admin-secret admin-password /run/agenix/grafana-admin-password
-          apply_secret orchestration kagent-oidc client-secret /run/agenix/kagent-oidc-client-secret
           apply_secret monitoring grafana-oidc-secret client-secret /run/agenix/grafana-oidc-client-secret
           apply_secret ai-inference openwebui-oidc-secret client-secret /run/agenix/openwebui-oidc-client-secret
-          apply_secret haven haven-oidc client-secret /run/agenix/haven-oidc-client-secret
 
           # Automation namespace (n8n)
           apply_secret automation n8n-secrets admin-password /run/agenix/n8n-admin-password
