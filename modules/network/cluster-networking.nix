@@ -11,6 +11,7 @@
     mkOption
     types
     mkIf
+    mkDefault
     ;
   cfg = config.clusterNetworking;
 in {
@@ -83,6 +84,19 @@ in {
         default = "127.0.0.1";
         description = "IP address for Unbound to listen on (in addition to localhost)";
       };
+    };
+
+    # ── Single source of truth for all .lan service domains ──
+    # Populated by cluster-dns.nix, consumed by cluster-ca.nix.
+    # Adding a domain here automatically adds it to:
+    #   1. Unbound DNS records (via cluster-dns.nix)
+    #   2. Leaf certificate SANs (via cluster-ca.nix)
+    # Do NOT add domains to cluster-ca.nix directly — add them here.
+    lanDomains = mkOption {
+      type = types.listOf types.str;
+      default = [];
+      example = ["auth.lan" "maplespike.lan"];
+      description = "List of all .lan service domain FQDNs. Single source of truth for DNS + TLS certs.";
     };
   };
 

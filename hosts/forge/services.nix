@@ -170,6 +170,11 @@ in {
   ];
 
   # Initrd SSH recovery + BTRFS snapshots
+  services.cluster-ca = {
+    enable = true;
+    generateLeaf = false;
+  };
+
   services.initrd-ssh-recovery = {
     enable = true;
     interface = "eth0";

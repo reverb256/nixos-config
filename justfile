@@ -432,3 +432,82 @@ validate-k8s:
         echo "  ⚠ kubernetesManifests not available, trying k8s-validate..."
         nix run .#k8s-validate
     fi
+
+# ──────────────────────────────────────────────────────────────────────────────
+
+# CA CERTIFICATE MANAGEMENT
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Verify CA cert distribution across all hosts (declarative check)
+ca-verify:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "▸ Verifying CA certificate distribution..."
+    CA_CERT="/etc/ssl/cluster-ca/ca.crt"
+    ALL_OK=true
+    for host in zephyr nexus forge sentry; do
+        echo "  $host:"
+        if [ "$host" = "zephyr" ]; then
+            # Local checks
+            if [ -f "$CA_CERT" ]; then echo "    ✓ CA cert present"; else echo "    ✗ CA cert MISSING"; ALL_OK=false; fi
+            if grep -q 'Cluster CA' /etc/ssl/certs/ca-bundle.crt 2>/dev/null; then echo "    ✓ CA trusted in system bundle"; else echo "    ✗ CA NOT trusted"; ALL_OK=false; fi
+            if [ -f /etc/ssl/cluster-ca/leaf.crt ]; then echo "    ✓ Leaf cert present"; else echo "    ✗ Leaf cert MISSING"; ALL_OK=false; fi
+            if [ -f /etc/ssl/cluster-ca/.san-hash ]; then echo "    ✓ SAN hash file present"; else echo "    ⚠ SAN hash file missing (will regen on next boot)"; fi
+        else
+            # Remote checks via SSH
+            CA_EXISTS=$(ssh -o ConnectTimeout=5 "$host" "test -f $CA_CERT && echo yes || echo no" 2>/dev/null || echo "no")
+            if [ "$CA_EXISTS" = "yes" ]; then echo "    ✓ CA cert present"; else echo "    ✗ CA cert MISSING"; ALL_OK=false; fi
+            TRUSTED=$(ssh -o ConnectTimeout=5 "$host" "grep -c 'Cluster CA' /etc/ssl/certs/ca-bundle.crt 2>/dev/null || true" 2>/dev/null || echo "0")
+            if [ "${TRUSTED:-0}" -gt 0 ] 2>/dev/null; then echo "    ✓ CA trusted in system bundle"; else echo "    ✗ CA NOT trusted"; ALL_OK=false; fi
+            LEAF=$(ssh -o ConnectTimeout=5 "$host" "test -f /etc/ssl/cluster-ca/leaf.crt && echo yes || echo no" 2>/dev/null || echo "no")
+            if [ "$LEAF" = "yes" ]; then echo "    ✓ Leaf cert present"; else echo "    ℹ No leaf cert (not a Caddy host)"; fi
+        fi
+    done
+    if [ "$ALL_OK" = true ]; then echo "▸ All hosts OK"; else echo "▸ Some hosts need attention — deploy to fix"; fi
+
+# Regenerate leaf certificates on all Caddy hosts (emergency use only)
+# Normal flow: just deploy (cluster-ca-init auto-detects SAN changes)
+ca-regen-leaf:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "▸ Regenerating leaf certificates on Caddy hosts..."
+    for host in zephyr nexus; do
+        echo "  $host:"
+        if [ "$host" = "zephyr" ]; then
+            sudo rm -f /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key /etc/ssl/cluster-ca/.san-hash
+            sudo systemctl restart cluster-ca-init.service
+            sleep 2
+            sudo systemctl restart caddy.service
+        else
+            ssh -o ConnectTimeout=5 "$host" "sudo rm -f /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key /etc/ssl/cluster-ca/.san-hash && sudo systemctl restart cluster-ca-init.service && sleep 2 && sudo systemctl restart caddy.service"
+        fi
+        echo "    ✓ Leaf cert regenerated and Caddy restarted"
+    done
+    echo "▸ Done. Use 'just ca-verify' to check status."
+
+# Export CA cert for installation on external devices (phones, laptops, etc.)
+ca-export path="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    DEST="${1:-$HOME/cluster-ca.crt}"
+    cp /etc/nixos/certs/cluster-ca.crt "$DEST"
+    echo "▸ CA certificate exported to $DEST"
+    echo ""
+    echo "Install on devices:"
+    echo "  Linux:   sudo cp $DEST /usr/local/share/ca-certificates/ && sudo update-ca-certificates"
+    echo "  macOS:   sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain $DEST"
+    echo "  Windows: Import into 'Trusted Root Certification Authorities' store"
+    echo "  Android: Settings → Security → Install from storage"
+    echo "  iOS:     AirDrop file → Install profile → Settings → General → About → Cert Trust Settings"
+
+# Show all .lan domains (from SSOT in cluster-dns.nix)
+
+
+# Show all .lan domains (from SSOT in cluster-dns.nix)
+ca-domains:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "All .lan domains (SSOT from cluster-dns.nix):"
+    cd /etc/nixos
+    nix eval '.#nixosConfigurations.zephyr.config.clusterNetworking.lanDomains' --json 2>/dev/null \
+      | python3 -c "import json,sys;domains=json.loads(sys.stdin.read());[print(f'  {i:2d}. {d}') for i,d in enumerate(sorted(domains),1)];print(f'\n  Total: {len(domains)} domains');print('  + *.lan wildcard (covers everything else)')"

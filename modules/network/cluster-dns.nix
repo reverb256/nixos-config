@@ -13,7 +13,6 @@
     nexus = "${cluster.hosts.nexus.ip}";
     forge = cluster.hosts.forge.ip;
     sentry = "${cluster.hosts.sentry.ip}";
-    # K8s service ClusterIPs
   };
   # Get DNS config - use or {} for safety in case the option doesn't exist
   dnsCfg = {
@@ -30,13 +29,97 @@
     enableServiceRecords = true;
   };
 
-  # K8s service CIDR - same value as in k3s-cluster. nix (10.0.0.0/12)
+  # K8s service CIDR - same value as in k3s-cluster.nix (10.0.0.0/12)
   serviceCIDR = "10.0.0.0/12";
 
   # Flannel gateway IP for this node (gateway of the pod subnet)
   kubeFlannelGateway = "10.244.0.1";
+
+  # ── Service domain definitions (SSOT for .lan domains) ──────────────────
+  # These lists define ALL .lan domains. They feed into:
+  #   1. Unbound DNS records (local-data)
+  #   2. clusterNetworking.lanDomains (consumed by cluster-ca.nix for TLS SANs)
+  #   3. /etc/hosts compatibility entries
+  # To add a new .lan service: add it to the appropriate list below.
+  # The domain will automatically appear in DNS, TLS certs, and /etc/hosts.
+
+  # All ingress services route through Caddy via VIP (10.1.1.100)
+  vip = "10.1.1.100";
+
+  # Services via Caddy Ingress (accessed via VIP)
+  ingressServiceDomains = [ "search.lan" "openwebui.lan" ];
+
+  # Services proxied via Caddy via VIP (single stable entry point)
+  hostServiceDomains = [
+    "ai-inference.lan"
+    "auth.lan"
+    "qdrant.lan"
+    "haven.lan"
+    "kagent.lan"
+    "n8n.lan"
+    "searxng.lan"
+    "mission-control.lan"
+    "grafana.lan"
+    "privacy-filter.lan"
+    "vaultwarden.lan"
+    "workspace.lan"
+    "dashboard.lan"
+    "maplespike.lan"
+    "maplespike-api.lan"
+    "maplespike-mcp.lan"
+    "status.maplespike.lan"
+    "uptime.maplespike.lan"
+    "dev.maplespike.lan"
+    "dev-maplespike-api.lan"
+    "dev-maplespike-mcp.lan"
+    "gitea.lan"
+  ];
+
+  # Forge-specific services
+  forgeServiceDomains = [ "mining.lan" ];
+
+  # Sentry-specific services
+  sentryServiceDomains = [ "monitoring.lan" "prometheus.lan" "alertmanager.lan" ];
+
+  # Hermes Agent services (runs on nexus as systemd)
+  hermesServiceDomains = [ "hermes.lan" "api.hermes.lan" ];
+
+  # Tailscale mobile devices
+  tailscaleDomains = [ "seeker.lan" ];
+
+  # All .lan domains combined — this is the SSOT list
+  allLanDomains = ingressServiceDomains ++ hostServiceDomains ++ forgeServiceDomains
+    ++ sentryServiceDomains ++ hermesServiceDomains ++ tailscaleDomains;
+
+  # Convert domain list to Unbound local-data records
+  # Maps domain → IP based on which list it belongs to
+  domainToIp = domain:
+    if builtins.elem domain ingressServiceDomains then vip
+    else if builtins.elem domain hostServiceDomains then vip
+    else if builtins.elem domain forgeServiceDomains then hosts.forge
+    else if builtins.elem domain sentryServiceDomains then hosts.sentry
+    else if builtins.elem domain hermesServiceDomains then hosts.nexus
+    else if domain == "seeker.lan" then "100.84.24.43"
+    else vip; # fallback
+
+  # Generate Unbound local-data records from domain lists
+  ingressServices = map (d: "${d}. IN A ${domainToIp d}") ingressServiceDomains;
+  hostServices = map (d: "${d}. IN A ${domainToIp d}") hostServiceDomains;
+  forgeServices = map (d: "${d}. IN A ${domainToIp d}") forgeServiceDomains;
+  sentryServices = map (d: "${d}. IN A ${domainToIp d}") sentryServiceDomains;
+  hermesServices = map (d: "${d}. IN A ${domainToIp d}") hermesServiceDomains;
+
+  # All service records combined
+  allServices = ingressServices ++ hostServices ++ forgeServices ++ sentryServices ++ hermesServices;
+
+  # Host records
+  hostRecords = lib.mapAttrsToList (name: ip: "${name}.lan. IN A ${ip}") hosts;
+
 in {
+
   config = mkIf dnsCfg.enable {
+    # Export .lan domain list (SSOT for cluster-ca.nix TLS SANs)
+    clusterNetworking.lanDomains = allLanDomains;
     # Disable systemd-resolved (conflicts with unbound)
     services.resolved.enable = mkDefault false;
 
@@ -69,7 +152,7 @@ in {
             "10.1.1.0/24 allow"
             "10.244.0.0/16 allow"
             "::1 allow"
-            "fd00::/8 allow"
+            "fd00::8 allow"
           ];
 
           # Performance tuning
@@ -110,89 +193,30 @@ in {
     # Survive failed nixos-rebuild: reload (SIGHUP) instead of stop/start.
     # If activation crashes mid-switch, unbound stays running.
     systemd.services.unbound = {
-      restartIfChanged = true;  # Must restart (not just reload) to pick up new interface bindings like the VIP
+      restartIfChanged = true; # Must restart (not just reload) to pick up new interface bindings like the VIP
 
       # Protect from OOM killer — DNS is cluster-critical infrastructure.
       # System has heavy memory pressure (27/31G used, 7.2/7.8G swap).
       # With default OOMScoreAdjust=0, unbound's oom_score=666 makes it
-      # an easy kill target.  -1000 = immune to OOM killer.
+      # an easy kill target. -1000 = immune to OOM killer.
       serviceConfig.OOMScoreAdjust = -1000;
     };
 
     # Generate local DNS records
-    environment.etc."unbound/local-dns.conf".text = let
+    environment.etc."unbound/local-dns.conf".text =
       # Server section header (required for local-data lines to work)
-      serverSection = ''
-        server:
-          interface: 0.0.0.0
-          interface: ::0
-          access-control: 10.0.0.0/8 allow
-          access-control: 100.64.0.0/10 allow
-          access-control: 172.16.0.0/12 allow
-          verbosity: 1
-          local-zone: "lan." static
+      ''
+      server:
+        interface: 0.0.0.0
+        interface: ::0
+        access-control: 10.0.0.0/8 allow
+        access-control: 100.64.0.0/10 allow
+        access-control: 172.16.0.0/12 allow
+        verbosity: 1
+        local-zone: "lan." static
 
-      '';
-
-      # All ingress services route through Caddy via VIP (10.1.1.100)
-      # VIP is keepalived: zephyr MASTER, survives node failures
-      vip = "10.1.1.100";
-
-      # Services via Caddy Ingress (accessed via VIP)
-      ingressServices = [
-        "search.lan. IN A ${vip}"
-        "openwebui.lan. IN A ${vip}"
-      ];
-      # Services proxied via Caddy via VIP (single stable entry point)
-      hostServices = [
-        "ai-inference.lan. IN A ${vip}"
-        "auth.lan. IN A ${vip}"
-        "qdrant.lan. IN A ${vip}"
-        "haven.lan. IN A ${vip}"
-        "kagent.lan. IN A ${vip}"
-        "n8n.lan. IN A ${vip}"
-        "searxng.lan. IN A ${vip}"
-        "mission-control.lan. IN A ${vip}"
-        "grafana.lan. IN A ${vip}"
-        "privacy-filter.lan. IN A ${vip}"
-        "vaultwarden.lan. IN A ${vip}"
-        "workspace.lan. IN A ${vip}"
-        "dashboard.lan. IN A ${vip}"
-        "maplespike.lan. IN A ${vip}"
-        "maplespike-api.lan. IN A ${vip}"
-        "maplespike-mcp.lan. IN A ${vip}"
-        "status.maplespike.lan. IN A ${vip}"
-        "uptime.maplespike.lan. IN A ${vip}"
-        "dev.maplespike.lan. IN A ${vip}"
-        "dev-maplespike-api.lan. IN A ${vip}"
-        "dev-maplespike-mcp.lan. IN A ${vip}"
-        "gitea.lan. IN A ${vip}"
-      ];
-      # Optional forge services
-      forgeServices = [
-        "mining.lan. IN A ${hosts.forge}"
-      ];
-
-      # Optional sentry services
-      sentryServices = [
-        "monitoring.lan. IN A ${hosts.sentry}"
-        "prometheus.lan. IN A ${hosts.sentry}"
-        "alertmanager.lan. IN A ${hosts.sentry}"
-      ];
-
-      # Hermes Agent services (runs on nexus as systemd)
-      hermesServices = [
-        "hermes.lan. IN A ${hosts.nexus}"
-        "api.hermes.lan. IN A ${hosts.nexus}"
-        "ai.lan. IN A ${hosts.nexus}"
-      ];
-
-      # All service records combined
-      allServices = ingressServices ++ hostServices ++ forgeServices ++ sentryServices ++ hermesServices;
-
-      # Host records
-      hostRecords = lib.mapAttrsToList (name: ip: "${name}.lan. IN A ${ip}") hosts;
-    in
+      ''
+      +
       # Host records section
       (lib.optionalString dnsCfg.enableLanRecords (
         lib.concatMapStrings (record: "local-data: \"${record}\"\n") hostRecords
@@ -233,9 +257,6 @@ in {
     };
 
     # Route K8s service CIDR via Flannel so ClusterIP traffic stays local
-    # Problem: kube-proxy runs as container (not host binary), so iptables rules don't
-    # exist on host. Without this route, traffic to 10.0.0.0/12 (ClusterIPs) goes to
-    # default gateway (10.1.1.1) and is lost.
     networking.localCommands = ''
       # Add route to K8s service CIDR via Flannel gateway
       ip route add 10.0.0.0/12 via 10.244.0.1 dev flannel.1 2>/dev/null || true
@@ -244,7 +265,6 @@ in {
     # Populate /etc/hosts for compatibility
     networking.extraHosts = lib.mkBefore (
       let
-        vip = "10.1.1.100";
         allHosts =
           hosts
           // {
@@ -264,10 +284,10 @@ in {
             privacy-filter = vip;
           };
       in
-        lib.pipe allHosts [
-          (lib.mapAttrsToList (name: ip: "${ip} ${name}.lan ${name}"))
-          (lib.concatStringsSep "\n")
-        ]
+      lib.pipe allHosts [
+        (lib.mapAttrsToList (name: ip: "${ip} ${name}.lan ${name}"))
+        (lib.concatStringsSep "\n")
+      ]
     );
   };
 }
