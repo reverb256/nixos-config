@@ -154,6 +154,50 @@ in
           memory = "256Mi";
         };
       };
+    } // {
+      spec.template.spec.serviceAccountName = "maplespike-mcp";
+    };
+
+    # ── MCP ServiceAccount & RBAC ───────────────────────────
+    "maplespike".ServiceAccount.maplespike-mcp = {
+      metadata.labels = managed;
+    };
+
+    none.ClusterRole.maplespike-mcp-audit = {
+      metadata.labels = managed;
+      rules = [
+        {
+          apiGroups = ["rbac.authorization.k8s.io"];
+          resources = ["clusterroles" "clusterrolebindings" "roles" "rolebindings"];
+          verbs = ["get" "list" "watch"];
+        }
+        {
+          apiGroups = [""];
+          resources = ["namespaces" "serviceaccounts"];
+          verbs = ["get" "list"];
+        }
+        {
+          apiGroups = ["authorization.k8s.io"];
+          resources = ["selfsubjectaccessreviews" "selfsubjectrulesreviews"];
+          verbs = ["create"];
+        }
+      ];
+    };
+
+    none.ClusterRoleBinding.maplespike-mcp-audit = {
+      metadata.labels = managed;
+      roleRef = {
+        apiGroup = "rbac.authorization.k8s.io";
+        kind = "ClusterRole";
+        name = "maplespike-mcp-audit";
+      };
+      subjects = [
+        {
+          kind = "ServiceAccount";
+          name = "maplespike-mcp";
+          namespace = "maplespike";
+        }
+      ];
     };
 
     # ── Portal ──────────────────────────────────────────────
