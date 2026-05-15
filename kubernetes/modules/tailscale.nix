@@ -147,8 +147,9 @@ in {
         metadata.labels = managed;
         type = "Opaque";
         stringData = {
-          client_id = "kyAKNGYSH211CNTRL";
-          client_secret = "tskey-client-kyAKNGYSH211CNTRL-kA6tCLYkeDQfpYk2mTS8DQpoWppD2i9U5";
+          # TODO: Fill from agenix key `tailscale-oauth` (see modules/system/agenix-secrets-registry.nix)
+          client_id = "";
+          client_secret = "";
         };
       };
 

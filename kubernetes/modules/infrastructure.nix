@@ -29,6 +29,9 @@ in {
     Namespace.ingress-system = {
       metadata.labels = managed // {
         name = "ingress-system";
+        "pod-security.kubernetes.io/enforce" = "baseline";
+        "pod-security.kubernetes.io/audit" = "restricted";
+        "pod-security.kubernetes.io/warn" = "restricted";
       };
     };
   };
@@ -228,7 +231,6 @@ in {
         template = {
           metadata = {
             labels.app = "nixos-cluster-mcp";
-            annotations."nix-csi/discard" = "true";
           };
           spec = {
             serviceAccountName = "kubernetes-mcp";

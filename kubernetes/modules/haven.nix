@@ -49,13 +49,6 @@ in {
       };
     };
 
-    haven.Secret.haven-oidc = {
-      type = "Opaque";
-      stringData = {
-        client-id = "a2e029b7c29bc2912dc1";
-        cookie-secret = "e7f2cb9404807a4e1e2be8ccad503775";
-      };
-    };
 
     haven.Deployment.haven = {
       metadata.labels = managed // {app = "haven";};
