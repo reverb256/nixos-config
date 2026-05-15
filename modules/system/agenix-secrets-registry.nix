@@ -332,12 +332,6 @@ in {
           owner = "root";
           group = "root";
         };
-        kagent-oidc-client-secret = {
-          file = "${inputs.self}/secrets/kagent-oidc-client-secret.age";
-          mode = "440";
-          owner = "root";
-          group = "root";
-        };
         central-auth-client-secret = {
           file = "${inputs.self}/secrets/central-auth-client-secret.age";
           mode = "440";
@@ -357,13 +351,6 @@ in {
           owner = "root";
           group = "root";
         };
-        # Mission Control OIDC client secret & cookie — migrated from hardcoded in kubernetes/modules/mission-control.nix
-        mission-control-oidc = {
-          file = "${inputs.self}/secrets/mission-control-oidc.age";
-          mode = "440";
-          owner = "root";
-          group = "root";
-        };
         # Frostbite Gazette postgres password — migrated from hardcoded in kubernetes/modules/frostbite-gazette.nix
         frostbite-postgres = {
           file = "${inputs.self}/secrets/frostbite-postgres.age";
@@ -374,13 +361,6 @@ in {
         # Kagent postgres password — migrated from hardcoded in kubernetes/modules/kagent.nix
         kagent-postgres = {
           file = "${inputs.self}/secrets/kagent-postgres.age";
-          mode = "440";
-          owner = "root";
-          group = "root";
-        };
-        # Haven OIDC client secret & cookie — migrated from hardcoded in kubernetes/modules/haven.nix
-        haven-oidc = {
-          file = "${inputs.self}/secrets/haven-oidc.age";
           mode = "440";
           owner = "root";
           group = "root";
