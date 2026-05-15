@@ -215,8 +215,10 @@ in {
 
     # Caddy — only Tailscale ingress for this host
     # All .lan services moved to nexus (OOM prevention)
+    # Uses caddy-with-modules (includes caddy-ratelimit, caddy-security, caddy-cache)
     caddy = {
       enable = true;
+      package = pkgs.caddy-with-modules;
       configFile = let
         lanRoutes = import ./caddy-routes.nix {inherit cluster;};
       in
@@ -226,7 +228,17 @@ in {
             default_sni cluster.local
           }
 
+          # ── Tailscale Funnel Route (public-facing) ──────────────
+          # Rate limited: 100 req/min per IP to protect against brute force/DDoS.
+          # Requires caddy-with-modules (mholt/caddy-ratelimit plugin).
           ai.zephyr.taila21e09.ts.net:9002 {
+            rate_limit {
+              zone funnel_per_ip {
+                key    {remote_host}
+                events 100
+                window 1m
+              }
+            }
             forward_auth 127.0.0.1:30890 {
               uri /oauth2/auth
               copy_headers X-Auth-Request-User X-Auth-Request-Email X-Auth-Request-Preferred-Username
