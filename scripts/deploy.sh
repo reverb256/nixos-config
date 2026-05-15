@@ -43,6 +43,7 @@ SKIP_CHECK=0
 SKIP_OS=0
 SKIP_COPY=0
 SKIP_K8S=0
+SKIP_CA=0
 NO_ROLLBACK=0
 TARGET="all"
 
@@ -174,9 +175,74 @@ else
   log "Phase 4/4: Skipping K8s deployment (--skip-k8s)"
 fi
 
-# ── Summary ──────────────────────────────────────────────────────────────────
-log "=== Deployment Complete ==="
-log "Target: $TARGET | Timestamp: $TIMESTAMP"
-if [[ "$NO_ROLLBACK" -eq 0 ]]; then
-  log "Rollback: sudo $FLAKE/scripts/rollback.sh $TIMESTAMP"
+
+if [[ "$SKIP_CA" -eq 0 ]]; then
+# ── Phase 5: CA certificate verification ─────────────────────────────────────
+CA_CERT="/etc/ssl/cluster-ca/ca.crt"
+REPO_CERT="$FLAKE/certs/cluster-ca.crt"
+
+log "Phase 5/5: Verifying CA certificate distribution..."
+
+# Determine which hosts to check
+case "$TARGET" in
+  all) CA_HOSTS="zephyr nexus forge sentry" ;;
+  zephyr) CA_HOSTS="zephyr" ;;
+  *) CA_HOSTS="$TARGET" ;;
+esac
+
+for host in $CA_HOSTS; do
+  log "  Checking $host..."
+
+  if [ "$host" = "zephyr" ]; then
+    # Local host
+    if [ ! -f "$CA_CERT" ]; then
+      log "    ⚠ CA cert missing — triggering cluster-ca-init"
+      sudo systemctl restart cluster-ca-init.service
+    fi
+    # Check leaf cert SAN hash (auto-regen mechanism)
+    SAN_HASH_FILE="/etc/ssl/cluster-ca/.san-hash"
+    if [ -f "$SAN_HASH_FILE" ]; then
+      log "    ✓ CA + leaf cert present (SAN hash tracked)"
+    else
+      log "    ⚠ SAN hash missing — leaf cert will regenerate on next boot"
+    fi
+    # Check system trust
+    if grep -q 'Cluster CA' /etc/ssl/certs/ca-bundle.crt 2>/dev/null; then
+      log "    ✓ CA trusted in system bundle"
+    else
+      log "    ⚠ CA NOT trusted — deploy should fix this"
+    fi
+  else
+    # Remote host
+    CA_EXISTS=$(ssh -o ConnectTimeout=5 "$host" "test -f $CA_CERT && echo yes || echo no" 2>/dev/null || echo "no")
+    if [ "$CA_EXISTS" = "no" ]; then
+      log "    ⚠ CA cert missing — triggering cluster-ca-init"
+      ssh -o ConnectTimeout=5 "$host" "sudo systemctl restart cluster-ca-init.service" 2>/dev/null || true
+    else
+      log "    ✓ CA cert present"
+    fi
+
+    # Check if CA is in system trust store
+    TRUSTED=$(ssh -o ConnectTimeout=5 "$host" "grep -c 'Cluster CA' /etc/ssl/certs/ca-bundle.crt 2>/dev/null || true" 2>/dev/null || echo "0")
+    if [ "${TRUSTED:-0}" -gt 0 ] 2>/dev/null; then
+      log "    ✓ CA trusted in system bundle"
+    else
+      log "    ⚠ CA NOT trusted — deploy should fix this"
+    fi
+
+    # Check leaf cert (Caddy hosts only)
+    HAS_LEAF=$(ssh -o ConnectTimeout=5 "$host" "test -f /etc/ssl/cluster-ca/leaf.crt && echo yes || echo no" 2>/dev/null || echo "no")
+    if [ "$HAS_LEAF" = "yes" ]; then
+      log "    ✓ Leaf cert present"
+    else
+      log "    ℹ No leaf cert (expected if not a Caddy host)"
+    fi
+  fi
+done
+
+# ── Final Summary ────────────────────────────────────────────────────────────
+
+else
+  log "Phase 5/5: Skipping CA verification (--skip-ca)"
 fi
+log "=== Deployment Complete ==="

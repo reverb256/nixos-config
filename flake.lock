@@ -2356,8 +2356,8 @@
         ]
       },
       "locked": {
-        "lastModified": 1778790796,
-        "narHash": "sha256-p1yh4o8Lv8kBipdVQ/rmh8xzn7INvvKFy0uH0RTkhec=",
+        "lastModified": 1778842029,
+        "narHash": "sha256-Z2J2MxvxBovoxH+aiUyJB13dPhWnuilm+xMN5vYXhe4=",
         "path": "/data/projects/own/vllm",
         "type": "path"
       },
