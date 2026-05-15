@@ -6,8 +6,8 @@
   ...
 }: let
   # Base OS images (provide /bin/sh, wget, tar)
-  nvidiaBaseImage = "docker.io/swamp7/bzminer:latest";
-  amdBaseImage = "docker.io/swamp7/teamredminer:latest";
+  nvidiaBaseImage = "docker.io/swamp7/bzminer@sha256:9e4332ef0065b876b558f81cbbf802452960740f207506a4326df2d5cba17de3";
+  amdBaseImage = "docker.io/swamp7/teamredminer@sha256:09c1e8fcb6dab19b6996d116f8588ef6cb6a365863a33eb9b793a0535894115a";
 
   # All Kryptex-hosted miner binaries (profit switching compatible)
   minerUrls = {

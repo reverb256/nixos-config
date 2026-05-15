@@ -14,12 +14,12 @@
     doCheck = false;
   });
   llama-cpp = prev.callPackage ./packages/llama-cpp.nix {
-    inherit (prev) config;
     cudaSupport = true;
     cudaPackages = prev.cudaPackages;
   };
   llama-cpp-ik = prev.callPackage ./packages/llama-cpp-ik.nix {};
   llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant;
+  vllm-turboquant-env = inputs.vllm.packages.x86_64-linux.vllm-turboquant-env;
   llama-cpp-rocm = prev.callPackage ./packages/llama-cpp-rocm.nix {};
   llama-cpp-vulkan = prev.callPackage ./packages/llama-cpp-vulkan.nix {};
   # TODO: broken placeholder rev/hash — re-enable when source is valid

@@ -148,6 +148,14 @@
     }
   ];
 
+  # System hardening (Phase 1: Cluster Security)
+  security.clusterAudit = {
+    enable = true;
+    enableFirewall = true;
+    enableTailscaleSSH = true;
+    bindServicesToLocalhost = true;
+  };
+
   environment.systemPackages = with pkgs; [
     nvtopPackages.full
   ];

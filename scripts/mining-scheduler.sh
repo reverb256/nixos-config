@@ -16,17 +16,10 @@ STATE_FILE="/tmp/mining-paused"
 # Map host → miner deployments on that node
 # xmrig-proxy on nexus is never paused (it's infra, not compute)
 declare -A HOST_MINERS
-HOST_MINERS[nexus]="xmrig-nexus gpu-miner-nexus"
-HOST_MINERS[sentry]="xmrig-sentry"
-HOST_MINERS[forge]="xmrig-sentry gpu-miner-forge-amd-0 gpu-miner-forge-amd-1 gpu-miner-forge-nvidia-0 gpu-miner-forge-nvidia-1"
-HOST_MINERS[zephyr]="xmrig-zephyr gpu-miner-zephyr gpu-miner-zephyr-3060ti"
-
-# Note: forge doesn't have xmrig, only gpu-miners. sentry has no gpu-miners, only xmrig.
-# Correct the map:
-HOST_MINERS[nexus]="xmrig-nexus gpu-miner-nexus"
+HOST_MINERS[nexus]="xmrig-nexus"
 HOST_MINERS[sentry]="xmrig-sentry"
 HOST_MINERS[forge]="gpu-miner-forge-amd-0 gpu-miner-forge-amd-1 gpu-miner-forge-nvidia-0 gpu-miner-forge-nvidia-1"
-HOST_MINERS[zephyr]="xmrig-zephyr gpu-miner-zephyr gpu-miner-zephyr-3060ti"
+HOST_MINERS[zephyr]="gpu-miner-zephyr-nvidia gpu-miner-zephyr-3060ti-gpu"
 
 get_miners_for_host() {
     local host="$1"

@@ -172,13 +172,13 @@ in {
 
   services.fail2ban = {
     enable = true;
-    jails.sshd = ''
-      enabled = true
-      port = ssh
-      backend = systemd
-      bantime = 1h
-      findtime = 10m
-      maxretry = 5
-    '';
+    jails.sshd.settings = {
+      enabled = true;
+      port = "ssh";
+      backend = "systemd";
+      bantime = "1h";
+      findtime = "10m";
+      maxretry = 5;
+    };
   };
 }
