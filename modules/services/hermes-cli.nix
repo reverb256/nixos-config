@@ -220,7 +220,7 @@ in {
         # LOCAL MODELS AS DEFAULT - Cloud fallback available
         model:
           provider: opencode-go
-          default: deepseek-v4-flash
+          default: qwen3.5-2b-awq
 
         providers:
           opencode-go:
