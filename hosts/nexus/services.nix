@@ -231,10 +231,6 @@ in {
         backend = k8s.vane.dns;
         compress = false;
       };
-      ai = {
-        domain = "ai.lan";
-        backend = "127.0.0.1:8080";
-      };
       openwebui = {
         domain = "openwebui.lan";
         backend = k8s.open-webui.dns;
