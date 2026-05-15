@@ -112,12 +112,12 @@ in {
         llama-cpp-zephyr = {
           base_url = "http://llama-server-zephyr.ai-inference.svc.cluster.local:1237/v1";
           api_key = "unused";
-          model = "Qwen3.6-35B-A3B-UD-Q3_K_M.gguf";
+          model = "Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf";
         };
         llama-cpp-sentry = {
           base_url = "http://llama-server-sentry.ai-inference.svc.cluster.local:1235/v1";
           api_key = "unused";
-          model = "Qwen3.5-4B.Q4_K_M.gguf";
+          model = "Qwen3.5-4B-Q4_K_M.gguf";
         };
       };
       fallback_providers = [
@@ -132,7 +132,7 @@ in {
         max_simple_words = 28;
         cheap_model = {
           provider = "llama-cpp-sentry";
-          model = "Qwen3.5-4B.Q4_K_M.gguf";
+          model = "Qwen3.5-4B-Q4_K_M.gguf";
         };
       };
       toolsets = ["all"];

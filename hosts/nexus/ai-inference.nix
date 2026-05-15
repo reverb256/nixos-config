@@ -12,11 +12,7 @@
       type = "llama-cpp";
       local = {
         url = "http://sentry.lan:1235"; # sentry ROCm Qwen3.5-4B (K8s pod)
-        model = "Qwen3.5-4B.Q4_K_M.gguf";
-      };
-      secondary = {
-        url = "http://nexus.lan:8040"; # zephyr 3060Ti Qwen3.5-2B-AWQ (vLLM, no thinking)
-        model = "qwen3.5-2b-awq";
+        model = "Qwen3.5-4B-Q4_K_M.gguf";
       };
       nvidia-nim = {
         enable = true;
