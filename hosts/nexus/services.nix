@@ -315,6 +315,10 @@ in {
         domain = "dev-maplespike-mcp.lan";
         backend = "127.0.0.1:${toString ports.dev-maplespike-mcp}";
       };
+      dev-maplespike = {
+        domain = "dev.maplespike.lan";
+        backend = "127.0.0.1:${toString ports.dev-maplespike-portal}";
+      };
     };
   };
   # Initrd SSH recovery + BTRFS snapshots
