@@ -1,0 +1,205 @@
+# AI Models Registry — SINGLE SOURCE OF TRUTH
+# All consumers read from here. DO NOT hardcode model names elsewhere.
+# Generated: 2026-05-14T19:53:00-05:00
+#
+# Sources consolidated from:
+#   - /etc/nixos/modules/services/hermes-cli.nix
+#   - /etc/nixos/hosts/nexus/ai-inference.nix
+#   - /etc/nixos/hosts/nexus/services.nix
+#   - /etc/nixos/kubernetes/modules/ai-inference.nix
+#   - /etc/nixos/kubernetes/modules/llama-servers.nix
+#   - /home/j_kro/.hermes/config.yaml
+#   - /data/projects/own/maplespike/packages/api-server/src/config.ts
+#   - /data/projects/own/maplespike/packages/mcp-server/src/ai/gateway.ts
+#   - /data/projects/own/maplespike/.env.example
+#   - /etc/nixos/hosts/usb/configuration.nix
+
+# ── DEFAULTS — High-level model role assignments ──
+[defaults]
+primary   = "glm-5.1"
+chat      = "glm-5-turbo"
+fast      = "glm-4.5-air"
+vision    = "z-ai/glm-5v-turbo"
+embedding = "BidirLM/BidirLM-Omni-2.5B-Embedding"
+reasoning = "mistralai/mistral-large-3-675b-instruct-2512"
+code      = "qwen/qwen3-coder-480b-a35b-instruct"
+context   = "qwen/qwen3.5-plus-02-15"
+
+# ── LOCAL INFERENCE BACKENDS ──
+
+[llama-cpp.zephyr-3090]
+model     = "Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf"
+path      = "/home/j_kro/.lmstudio/models/mradermacher/Carnice-Qwen3.6-MoE-35B-A3B-GGUF/Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf"
+mmproj    = "/home/j_kro/.lmstudio/models/unsloth/Qwen3.6-35B-A3B-GGUF/mmproj-BF16.gguf"
+port      = 1237
+node      = "zephyr"
+gpu       = 1
+gpu_type  = "RTX 3090 (24GB)"
+engine    = "llama-cpp-turboquant"
+context   = 262144
+backend   = "llama-cpp"
+quant     = "IQ4_XS"
+tags      = ["primary", "local", "reasoning", "vision"]
+
+[llama-cpp.sentry]
+model     = "Qwen3.5-4B-Q4_K_M.gguf"
+path      = "/home/j_kro/.lmstudio/models/unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf"
+mmproj    = "/home/j_kro/.lmstudio/models/unsloth/Qwen3.5-4B-GGUF/mmproj-BF16.gguf"
+port      = 1235
+node      = "sentry"
+gpu       = 0
+gpu_type  = "RX 5600 XT (6GB, Vulkan)"
+engine    = "llama-cpp-vulkan"
+context   = 262144
+backend   = "llama-cpp"
+quant     = "Q4_K_M"
+tags      = ["fast", "local", "cheap"]
+
+[llama-cpp.sentry-qwen35-9b]
+model     = "Qwen3.5-9B-abliterated.i1-IQ2_M.gguf"
+path      = "/home/j_kro/.lmstudio/models/Qwen3.5-9B-abliterated.i1-IQ2_M.gguf"
+port      = 1235
+node      = "sentry"
+gpu       = 0
+gpu_type  = "RX 5600 XT (6GB, Vulkan)"
+engine    = "llama-cpp-vulkan"
+context   = 262144
+backend   = "llama-cpp"
+quant     = "IQ2_M"
+tags      = ["local", "usb-rescue"]
+enabled   = false
+
+[llama-cpp.usb-qwen36]
+model     = "Qwen3.6-35B-A3B-abliterated.i1-IQ3_M.gguf"
+path      = "/home/j_kro/.lmstudio/models/Qwen3.6-35B-A3B-abliterated.i1-IQ3_M.gguf"
+port      = 1237
+node      = "zephyr"
+gpu       = 1
+gpu_type  = "RTX 3090 (24GB)"
+engine    = "llama-cpp"
+context   = 262144
+backend   = "llama-cpp"
+quant     = "IQ3_M"
+tags      = ["local", "usb-rescue"]
+enabled   = false
+
+[vllm.nexus-3060ti]
+model     = "qwen3.5-2b-awq"
+path      = "/models/QuantTrio/Qwen3.5-2B-AWQ"
+port      = 8040
+node      = "nexus"
+gpu       = 0
+gpu_type  = "RTX 3060 Ti (8GB)"
+engine    = "vllm-turboquant"
+context   = 180000
+backend   = "vllm"
+quant     = "AWQ"
+tags      = ["fast", "local", "cheap", "vision", "all-agents"]
+
+# ── GATEWAY — AI Inference Gateway ──
+[gateway]
+default_model    = "glm-5-turbo"
+primary_backend  = { type = "zai", url = "https://api.z.ai/api/coding/paas/v4" }
+local_backend    = { type = "llama-cpp", url = "http://llama-server-sentry.ai-inference.svc.cluster.local:1235" }
+secondary_backend = { type = "vllm", url = "http://llama-vllm-3060ti.ai-inference.svc.cluster.local:8040", model = "qwen3.5-2b-awq" }
+backend_type     = "zai"
+rag_embedding    = "BidirLM/BidirLM-Omni-2.5B-Embedding"
+rag_reranker     = "BAAI/bge-reranker-base"
+query_expansion  = "Qwen3.5-9B.Q4_K_M.gguf"
+
+# ── CLOUD PROVIDERS ──
+[cloud-providers.zai]
+base_url    = "https://api.z.ai/api/coding/paas/v4"
+api_key_env = "ZAI_API_KEY"
+type        = "openai-compatible"
+tags        = ["primary", "cloud"]
+
+[cloud-providers.nvidia-nim]
+base_url    = "https://integrate.api.nvidia.com/v1"
+api_key_env = "NVIDIA_API_KEY"
+type        = "openai-compatible"
+tags        = ["cloud", "fallback"]
+
+[cloud-providers.pollinations]
+base_url    = "https://text.pollinations.ai"
+type        = "openai-compatible"
+tags        = ["cloud", "free", "fallback"]
+
+[cloud-providers.opencode-go]
+base_url    = "http://zephyr.lan:30880/v1"
+api_key_env = "OPENCODE_GO_API_KEY"
+type        = "opencode-go"
+model       = "deepseek-ai/deepseek-v4-flash"
+tags        = ["cloud", "coding", "fast"]
+
+# ── CURATED CLOUD MODELS (25 total from model-sync CronJob) ──
+[curated.cloud]
+"glm-5.1"                                    = { category = "primary",  description = "GLM-5.1 744B MoE orchestrator",                 provider = "zai",       context = 131072 }
+"glm-5-turbo"                                 = { category = "primary",  description = "GLM-5 Turbo fast agentic",                     provider = "zai",       context = 131072 }
+"glm-4.7"                                     = { category = "primary",  description = "GLM-4.7 358B MoE coding",                     provider = "zai",       context = 131072 }
+"glm-4.5-air"                                 = { category = "fast",    description = "GLM-4.5 Air ultra-fast",                      provider = "zai",       context = 131072 }
+"glm-4.7-flash"                               = { category = "fast",    description = "GLM-4.7 Flash fast vision",                   provider = "zai",       context = 131072 }
+"z-ai/glm-5v-turbo"                           = { category = "vision",  description = "GLM-5V Turbo vision",                         provider = "zai",       context = 131072 }
+"nvidia/nemotron-3-nano-30b-a3b"              = { category = "fast",    description = "Nemotron Nano 30B reasoning",                 provider = "nvidia-nim", context = 131072 }
+"nvidia/nemotron-nano-9b-v2"                  = { category = "fast",    description = "Nemotron Nano 9B",                            provider = "nvidia-nim", context = 131072 }
+"nvidia/llama-3.3-nemotron-super-49b-v1"      = { category = "code",    description = "Nemotron Super 49B coding",                   provider = "nvidia-nim", context = 131072 }
+"qwen/qwen3-coder"                            = { category = "code",    description = "Qwen3 Coder 262K context",                    provider = "zai",       context = 262144 }
+"qwen/qwen3-coder-480b-a35b-instruct"         = { category = "code",    description = "Qwen3 Coder 480B",                           provider = "zai",       context = 262144 }
+"qwen/qwen3.5-flash-02-23"                    = { category = "context", description = "Qwen3.5 Flash 1M context",                    provider = "zai",       context = 1048576 }
+"qwen/qwen3.5-plus-02-15"                     = { category = "context", description = "Qwen3.5 Plus 1M context",                     provider = "zai",       context = 1048576 }
+"qwen/qwen3.5-35b-a3b"                        = { category = "reasoning", description = "Qwen3.5 35B MoE",                          provider = "zai",       context = 262144 }
+"qwen/qwen3-next-80b-a3b-instruct"            = { category = "reasoning", description = "Qwen3 Next 80B",                           provider = "zai",       context = 262144 }
+"mistralai/mistral-large-3-675b-instruct-2512" = { category = "reasoning", description = "Mistral Large 3 675B",                    provider = "zai",       context = 262144 }
+"mistralai/mistral-small-4-119b-2603"         = { category = "code",    description = "Mistral Small 4 119B",                       provider = "zai",       context = 262144 }
+"meta/llama-3.1-405b-instruct"                = { category = "general", description = "LLaMA 3.1 405B",                             provider = "zai",       context = 131072 }
+"deepseek-ai/deepseek-v4-pro"                 = { category = "reasoning", description = "DeepSeek V4 Pro 1M ctx",                   provider = "zai",       context = 1048576 }
+"google/gemma-4-26b-a4b-it:free"              = { category = "free",    description = "Gemma 4 26B free",                           provider = "zai",       context = 32768 }
+"qwen/qwen3-next-80b-a3b-instruct:free"       = { category = "free",    description = "Qwen3 Next 80B free",                        provider = "zai",       context = 32768 }
+"kilo-auto/free"                               = { category = "free",    description = "Kilo auto free router",                      provider = "zai",       context = 32768 }
+"openrouter/free"                              = { category = "free",    description = "OpenRouter free router",                     provider = "zai",       context = 32768 }
+"nvidia/nemotron-3-super-120b-a12b:free"       = { category = "free",    description = "Nemotron 120B free",                         provider = "nvidia-nim", context = 32768 }
+"meta-llama/llama-3.3-70b-instruct:free"       = { category = "free",    description = "LLaMA 3.3 70B free",                         provider = "zai",       context = 32768 }
+
+# ── AGENT MODEL ROLE ASSIGNMENTS ──
+
+[agents.hermes-cli]
+provider           = "opencode-go"
+model              = "deepseek-v4-flash"
+fallback_providers = ["opencode-go", "vllm.nexus-3060ti", "llama-cpp.zephyr-3090", "llama-cpp.sentry", "zai"]
+
+[agents.hermes-agent-nexus]
+default_model      = "qwen/qwen3-coder-480b-a35b-instruct"
+fallback_providers = ["zai", "nvidia-nim", "llama-cpp.zephyr-3090", "llama-cpp.sentry"]
+cheap_model        = { provider = "llama-cpp.sentry", model = "Qwen3.5-4B-Q4_K_M.gguf" }
+
+[agents.hermes-live-config]
+default_model      = "qwen3.5-2b-awq"
+fallback_providers = ["opencode-go", "llama-cpp.zephyr-3090", "vllm.nexus-3060ti", "llama-cpp.sentry"]
+
+[agents.usb-rescue]
+default_model      = "qwen/qwen3-coder-480b-a35b-instruct"
+fallback_providers = ["llama-cpp.usb-qwen36", "vllm.nexus-3060ti", "llama-cpp.sentry-qwen35-9b"]
+
+# ── MAPLESPIKE DEFAULTS ──
+
+[maplespike.api-server]
+ai_model    = "qwen3.5-27b"
+ai_endpoint = "http://127.0.0.1:8080/v1"
+
+[maplespike.mcp-server]
+chat_model  = "qwen/qwen3-coder-30b-a3b-instruct"
+embed_model = "nvidia/llama-3.2-nv-embedqa-1b-v2"
+endpoint    = "http://nexus:30880/v1"
+
+# ── HERMES AGENT AUXILIARY (live config, all use same model) ──
+[agents.hermes-auxiliary]
+vision           = { provider = "vllm.nexus-3060ti", model = "qwen3.5-2b-awq" }
+web_extract      = { provider = "vllm.nexus-3060ti", model = "qwen3.5-2b-awq" }
+compression      = { provider = "vllm.nexus-3060ti", model = "qwen3.5-2b-awq" }
+session_search   = { provider = "vllm.nexus-3060ti", model = "qwen3.5-2b-awq" }
+skills_hub       = { provider = "vllm.nexus-3060ti", model = "qwen3.5-2b-awq" }
+approval         = { provider = "vllm.nexus-3060ti", model = "qwen3.5-2b-awq" }
+mcp              = { provider = "vllm.nexus-3060ti", model = "qwen3.5-2b-awq" }
+title_generation = { provider = "vllm.nexus-3060ti", model = "qwen3.5-2b-awq" }
+triage_specifier = { provider = "vllm.nexus-3060ti", model = "qwen3.5-2b-awq" }
+curator          = { provider = "vllm.nexus-3060ti", model = "qwen3.5-2b-awq" }
