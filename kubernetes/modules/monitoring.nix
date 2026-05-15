@@ -444,6 +444,9 @@ in {
     none.Namespace.monitoring = {
       metadata.labels = {
         name = "monitoring";
+        "pod-security.kubernetes.io/enforce" = "baseline";
+        "pod-security.kubernetes.io/audit" = "restricted";
+        "pod-security.kubernetes.io/warn" = "restricted";
       };
     };
 
@@ -483,7 +486,6 @@ in {
         }
         {
           apiGroups = [
-            "extensions"
             "networking.k8s.io"
           ];
           resources = ["ingresses"];
@@ -662,7 +664,6 @@ in {
         template = {
           metadata = {
             labels.app = "loki";
-            annotations."nix-csi/discard" = "true";
           };
           spec = {
             nodeSelector = sentrySelector;
@@ -784,7 +785,6 @@ in {
         template = {
           metadata = {
             labels.app = "mimir";
-            annotations."nix-csi/discard" = "true";
           };
           spec = {
             nodeSelector = sentrySelector;
@@ -915,7 +915,6 @@ in {
         template = {
           metadata = {
             labels.app = "tempo";
-            annotations."nix-csi/discard" = "true";
           };
           spec = {
             nodeSelector = sentrySelector;
@@ -1066,7 +1065,6 @@ in {
         template = {
           metadata = {
             labels.app = "grafana";
-            annotations."nix-csi/discard" = "true";
           };
           spec = {
             affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution = [
@@ -1391,7 +1389,6 @@ in {
         template = {
           metadata = {
             labels.app = "prometheus";
-            annotations."nix-csi/discard" = "true";
           };
           spec = {
             nodeSelector = sentrySelector;
@@ -1523,7 +1520,6 @@ in {
         template = {
           metadata = {
             labels.app = "alertmanager";
-            annotations."nix-csi/discard" = "true";
           };
           spec = {
             nodeSelector = sentrySelector;
@@ -2235,7 +2231,12 @@ in {
     # -- Prometheus Adapter (custom-metrics namespace) ---------------------
     # Source: prometheus-adapter-namespace.yaml
     none.Namespace.custom-metrics = {
-      metadata.labels = managed // {name = "custom-metrics";};
+      metadata.labels = managed // {
+        name = "custom-metrics";
+        "pod-security.kubernetes.io/enforce" = "baseline";
+        "pod-security.kubernetes.io/audit" = "restricted";
+        "pod-security.kubernetes.io/warn" = "restricted";
+      };
     };
 
     custom-metrics.NetworkPolicy.default-deny-all = {

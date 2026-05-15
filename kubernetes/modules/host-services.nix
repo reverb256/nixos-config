@@ -56,7 +56,12 @@ in {
   config.kubernetes.objects = {
     # ── Namespace ──────────────────────────────────────────────────
     none.Namespace.infra = {
-      metadata.labels.name = "infra";
+      metadata.labels = {
+        name = "infra";
+        "pod-security.kubernetes.io/enforce" = "baseline";
+        "pod-security.kubernetes.io/audit" = "restricted";
+        "pod-security.kubernetes.io/warn" = "restricted";
+      };
     };
 
     infra.NetworkPolicy.default-deny-all = {

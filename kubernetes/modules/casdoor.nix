@@ -102,11 +102,11 @@ in {
               };
               env._namedlist = true;
               env = {
-                POSTGRES_DB.valueFrom.secretKeyRef = {
+                POSTGRES_DB.valueFrom.configMapKeyRef = {
                   name = "casdoor-postgres-config";
                   key = "POSTGRES_DB";
                 };
-                POSTGRES_USER.valueFrom.secretKeyRef = {
+                POSTGRES_USER.valueFrom.configMapKeyRef = {
                   name = "casdoor-postgres-config";
                   key = "POSTGRES_USER";
                 };

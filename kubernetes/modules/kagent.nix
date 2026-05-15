@@ -271,16 +271,10 @@ in {
     # ══════════════════════════════════════════════════════════════════════
     kagent.Secret.kagent-postgresql = {
       type = "Opaque";
-      stringData.POSTGRES_PASSWORD = "kagent";
+      # TODO: Fill from agenix key `kagent-postgres` (see modules/system/agenix-secrets-registry.nix)
+      stringData.POSTGRES_PASSWORD = "";
     };
 
-    kagent.Secret.kagent-oidc = {
-      type = "Opaque";
-      stringData = {
-        client-id = "151887e1a35f8692a65e";
-        cookie-secret = "8b7fa9a5fea12fd01b2c6e7294f79672";
-      };
-    };
 
     kagent.PersistentVolumeClaim.kagent-postgresql = {
       metadata.labels = managed // {"app.kubernetes.io/component" = "database";};

@@ -23,6 +23,8 @@ in {
         // {
           name = "privacy-filter";
           "pod-security.kubernetes.io/enforce" = "baseline";
+          "pod-security.kubernetes.io/audit" = "restricted";
+          "pod-security.kubernetes.io/warn" = "restricted";
           "app.kubernetes.io/part-of" = "ai-inference";
         };
     };
