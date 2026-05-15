@@ -14,7 +14,8 @@ in {
   config.kubernetes.objects.${ns} = {
     Secret.frostbite-secrets = {
       type = "Opaque";
-      stringData = { postgres-password = "frostbite"; };
+      # TODO: Fill from agenix key `frostbite-postgres` (see modules/system/agenix-secrets-registry.nix)
+      stringData = { postgres-password = ""; };
     };
 
     StatefulSet.frostbite-postgres = {
