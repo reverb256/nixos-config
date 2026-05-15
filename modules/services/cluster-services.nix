@@ -70,7 +70,7 @@
 
   # Route each service to the correct block builder
   buildCaddyBlock = _name: svc:
-    if svc.protected or false
+    if svc.rawBlock != null then svc.rawBlock else if svc.protected or false
     then mkProtectedBlock svc
     else mkPublicBlock svc;
 

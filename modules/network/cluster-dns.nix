@@ -168,7 +168,6 @@ in {
         "dev-maplespike-api.lan. IN A ${vip}"
         "dev-maplespike-mcp.lan. IN A ${vip}"
         "gitea.lan. IN A ${vip}"
-        "uptime.maplespike.lan. IN A ${vip}"
       ];
       # Optional forge services
       forgeServices = [
@@ -179,10 +178,18 @@ in {
       sentryServices = [
         "monitoring.lan. IN A ${hosts.sentry}"
         "prometheus.lan. IN A ${hosts.sentry}"
+        "alertmanager.lan. IN A ${hosts.sentry}"
+      ];
+
+      # Hermes Agent services (runs on nexus as systemd)
+      hermesServices = [
+        "hermes.lan. IN A ${hosts.nexus}"
+        "api.hermes.lan. IN A ${hosts.nexus}"
+        "ai.lan. IN A ${hosts.nexus}"
       ];
 
       # All service records combined
-      allServices = ingressServices ++ hostServices ++ forgeServices ++ sentryServices;
+      allServices = ingressServices ++ hostServices ++ forgeServices ++ sentryServices ++ hermesServices;
 
       # Host records
       hostRecords = lib.mapAttrsToList (name: ip: "${name}.lan. IN A ${ip}") hosts;
