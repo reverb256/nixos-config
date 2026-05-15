@@ -147,6 +147,12 @@ in {
               default = false;
               description = "Require SSO authentication via central-auth";
             };
+
+            rawBlock = mkOption {
+              type = types.nullOr types.lines;
+              default = null;
+              description = "Complete Caddy virtualHost block (replaces auto-generated block). Use for path-based routing or other custom config.";
+            };
           };
         }
       );
