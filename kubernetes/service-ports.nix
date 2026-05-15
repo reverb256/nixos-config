@@ -62,4 +62,5 @@
 
   # ── vaultwarden (namespace: vaultwarden) ───────────────────
   vaultwarden = 32110;
+  vaultwarden-ws = 32111;  # WebSocket port
 }
