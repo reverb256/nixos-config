@@ -107,6 +107,14 @@ in
         "pod-security.kubernetes.io/warn" = "restricted";
       };
     };
+        none.Namespace.maplespike-staging = {
+      metadata.labels = managed // {
+        name = "maplespike-staging";
+        "pod-security.kubernetes.io/enforce" = "baseline";
+        "pod-security.kubernetes.io/audit" = "restricted";
+        "pod-security.kubernetes.io/warn" = "restricted";
+      };
+    };
     none.Namespace.maplespike-dev = {
       metadata.labels = managed // {
         name = "maplespike-dev";
