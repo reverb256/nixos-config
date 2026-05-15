@@ -1,16 +1,21 @@
-{lib, ...}: {
+{lib, ...}: let
+  # Import helpers that route to the SSOT (kubernetes/service-ports.nix + cluster.nix)
+  helpers = import ./port-helpers.nix {inherit lib;};
+  ports = helpers.ports;
+  cluster = helpers.cluster;
+in {
   options.networking.cluster = lib.mkOption {
     type = lib.types.submodule {
       options = {
         subnet = lib.mkOption {
           type = lib.types.str;
-          default = "10.1.1.0/24";
+          default = cluster.subnet;
           description = "Cluster subnet";
         };
 
         gateway = lib.mkOption {
           type = lib.types.str;
-          default = "10.1.1.1";
+          default = cluster.gateway or "10.1.1.1";
           description = "Cluster gateway";
         };
 
@@ -52,7 +57,7 @@
           });
           default = {
             zephyr = {
-              ip = "10.1.1.110";
+              ip = cluster.hosts.zephyr.ip;
               tailscale = "100.81.182.5";
               description = "Master Workstation - 32 cores, RTX 3090";
               roles = ["desktop" "gaming" "vr" "mining" "build" "ai"];
@@ -60,7 +65,7 @@
             };
 
             nexus = {
-              ip = "10.1.1.120";
+              ip = cluster.hosts.nexus.ip;
               tailscale = "100.86.158.18";
               description = "Build/AIStor Server - 24 cores, 1x RTX 3060 Ti";
               roles = ["desktop" "gaming" "vr" "mining" "build" "storage"];
@@ -68,7 +73,7 @@
             };
 
             forge = {
-              ip = "10.1.1.130";
+              ip = cluster.hosts.forge.ip;
               tailscale = "100.95.222.45";
               description = "GPU Mining - 6 cores, 2x RTX 4060 + 2x RX 5700 XT";
               roles = ["mining" "build"];
@@ -76,7 +81,7 @@
             };
 
             sentry = {
-              ip = "10.1.1.140";
+              ip = cluster.hosts.sentry.ip;
               tailscale = "100.82.210.39";
               description = "Monitoring Server - 16 cores, RX 5600 XT";
               roles = ["monitoring" "build"];
@@ -212,57 +217,29 @@
             options = {
               vip = lib.mkOption {
                 type = lib.types.str;
-                default = "10.1.1.100";
+                default = cluster.kubernetes.vip;
                 description = "Kubernetes VIP address";
               };
 
               apiPort = lib.mkOption {
                 type = lib.types.int;
-                default = 6443;
+                default = cluster.kubernetes.apiPort;
                 description = "Kubernetes API port";
               };
 
               clusterDnsIP = lib.mkOption {
                 type = lib.types.str;
-                default = "10.0.0.10";
+                default = cluster.kubernetes.clusterDnsIP;
                 description = "CoreDNS service ClusterIP for cluster.local resolution";
               };
 
+              # NodePort values derived from service-ports.nix (SSOT).
+              # Read-only convenience accessor for NixOS modules.
               nodePorts = lib.mkOption {
-                type = lib.types.submodule {
-                  options = {
-                    ai-gateway = lib.mkOption {
-                      type = lib.types.int;
-                      default = 30880;
-                    };
-                    open-webui = lib.mkOption {
-                      type = lib.types.int;
-                      default = 32080;
-                    };
-                    caddy-http = lib.mkOption {
-                      type = lib.types.int;
-                      default = 30080;
-                    };
-                    caddy-https = lib.mkOption {
-                      type = lib.types.int;
-                      default = 30443;
-                    };
-                    vane = lib.mkOption {
-                      type = lib.types.int;
-                      default = 30900;
-                    };
-                    nginx-http = lib.mkOption {
-                      type = lib.types.int;
-                      default = 32095;
-                    };
-                    nginx-https = lib.mkOption {
-                      type = lib.types.int;
-                      default = 31021;
-                    };
-                  };
-                };
-                default = {};
-                description = "K8s NodePort allocations";
+                type = lib.types.attrsOf lib.types.int;
+                default = ports;
+                readOnly = true;
+                description = "K8s NodePort allocations (derived from kubernetes/service-ports.nix)";
               };
 
               services = lib.mkOption {
@@ -300,7 +277,6 @@
                       type = lib.types.submodule (svcOpts {
                         namespace = "ai-inference";
                         port = 8080;
-                        nodePort = 30880;
                       });
                       default = {};
                       description = "AI Inference Gateway";
@@ -310,7 +286,6 @@
                       type = lib.types.submodule (svcOpts {
                         namespace = "ai-inference";
                         port = 8080;
-                        nodePort = 32080;
                       });
                       default = {};
                       description = "Open WebUI";
@@ -319,7 +294,6 @@
                     qdrant = lib.mkOption {
                       type = lib.types.submodule (svcOpts {
                         namespace = "ai-inference";
-                        nodePort = 30632;
                         port = 6333;
                       });
                       default = {};
@@ -348,7 +322,6 @@
                     searxng = lib.mkOption {
                       type = lib.types.submodule (svcOpts {
                         namespace = "search";
-                        nodePort = 32081;
                         port = 8080;
                       });
                       default = {};
@@ -359,7 +332,6 @@
                       type = lib.types.submodule (svcOpts {
                         namespace = "search";
                         port = 30900;
-                        nodePort = 30900;
                       });
                       default = {};
                       description = "Vane search cache";
@@ -368,7 +340,6 @@
                     knowledge-fabric = lib.mkOption {
                       type = lib.types.submodule (svcOpts {
                         namespace = "ai-inference";
-                        nodePort = 31180;
                         port = 3000;
                       });
                       default = {};
@@ -387,7 +358,6 @@
                     n8n = lib.mkOption {
                       type = lib.types.submodule (svcOpts {
                         namespace = "automation";
-                        nodePort = 32127;
                         port = 5678;
                       });
                       default = {};
@@ -399,7 +369,6 @@
                       type = lib.types.submodule (svcOpts {
                         namespace = "auth";
                         port = 8000;
-                        nodePort = 32556;
                       });
                       default = {};
                       description = "Casdoor SSO / OIDC provider";
@@ -408,7 +377,6 @@
                       type = lib.types.submodule (svcOpts {
                         namespace = "auth";
                         port = 4180;
-                        nodePort = 30890;
                       });
                       default = {};
                       description = "OAuth2 proxy (auth middleware)";
@@ -417,7 +385,6 @@
                     haven = lib.mkOption {
                       type = lib.types.submodule (svcOpts {
                         namespace = "haven";
-                        nodePort = 32100;
                         port = 3000;
                       });
                       default = {};
@@ -428,7 +395,6 @@
                       type = lib.types.submodule (svcOpts {
                         namespace = "orchestration";
                         port = 3000;
-                        nodePort = 32101;
                       });
                       default = {};
                       description = "Mission Control (builderz-labs)";
@@ -438,7 +404,6 @@
                       type = lib.types.submodule (svcOpts {
                         namespace = "kagent";
                         port = 8083;
-                        nodePort = 30794;
                       });
                       default = {};
                       description = "Kagent controller API";
@@ -448,7 +413,6 @@
                       type = lib.types.submodule (svcOpts {
                         namespace = "kagent";
                         port = 8080;
-                        nodePort = 32103;
                       });
                       default = {};
                       description = "Kagent UI dashboard";
@@ -458,7 +422,6 @@
                       type = lib.types.submodule (svcOpts {
                         namespace = "monitoring";
                         port = 3000;
-                        nodePort = 32102;
                       });
                       default = {};
                       description = "Grafana dashboards";
@@ -515,8 +478,8 @@
             };
           };
           default = {
-            vip = "10.1.1.100";
-            apiPort = 6443;
+            vip = cluster.kubernetes.vip;
+            apiPort = cluster.kubernetes.apiPort;
           };
           description = "Kubernetes cluster configuration";
         };
