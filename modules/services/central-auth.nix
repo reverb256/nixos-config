@@ -6,6 +6,8 @@
 }: let
   cfg = config.services.central-auth;
   inherit (lib) mkEnableOption mkOption types mkIf;
+  # Import shared oauth2-proxy config (SSOT for all oauth2-proxy settings)
+  oauth2Cfg = import ./oauth2-proxy-config.nix;
 in {
   options.services.central-auth = {
     enable = mkEnableOption "Central OAuth2 proxy for SSO";
@@ -16,46 +18,40 @@ in {
       description = "Port for oauth2-proxy to listen on";
     };
 
+    # Override defaults from shared config if needed
     clientID = mkOption {
       type = types.str;
+      default = oauth2Cfg.clientId;
       description = "Casdoor OAuth2 client ID";
     };
 
     clientSecretFile = mkOption {
       type = types.path;
+      default = oauth2Cfg.clientSecretFile;
       description = "Path to file containing Casdoor client secret";
     };
 
     cookieSecretFile = mkOption {
       type = types.path;
+      default = oauth2Cfg.cookieSecretFile;
       description = "Path to file containing cookie secret";
     };
 
     oidcIssuerUrl = mkOption {
       type = types.str;
-      default = "https://auth.lan";
+      default = oauth2Cfg.oidcIssuerUrl;
       description = "OIDC issuer URL";
     };
 
     cookieDomain = mkOption {
       type = types.str;
-      default = ".lan";
+      default = oauth2Cfg.cookieDomain;
       description = "Cookie domain for SSO";
     };
 
     skipAuthRoutes = mkOption {
       type = types.listOf types.str;
-      default = [
-        "^/health$"
-        "^/healthz$"
-        "^/api/health$"
-        "^/ready$"
-        "^/metrics$"
-        "^/favicon"
-        "^/assets/"
-        "^/public/"
-        "^/static/"
-      ];
+      default = oauth2Cfg.skipAuthRoutes;
       description = "Routes to skip authentication for (regex)";
     };
   };
@@ -83,7 +79,7 @@ in {
             "--cookie-domain=${cfg.cookieDomain}"
             "--http-address=127.0.0.1:${toString cfg.port}"
             "--redirect-url=https://auth.lan/oauth2/callback"
-            "--cookie-secure=false"
+            "--cookie-secure=true"
             "--cookie-samesite=lax"
             "--cookie-httponly=true"
             "--email-domain=*"
