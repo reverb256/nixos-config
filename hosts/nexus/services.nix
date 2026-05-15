@@ -268,10 +268,6 @@ in {
         domain = "qdrant.lan";
         backend = k8s.qdrant.dns;
       };
-      maplespike = {
-        domain = "maplespike.lan";
-        backend = "127.0.0.1:${toString ports.maplespike-portal}";
-      };
       maplespike-api = {
         domain = "maplespike-api.lan";
         backend = "127.0.0.1:${toString ports.maplespike-api}";
@@ -284,9 +280,30 @@ in {
         domain = "status.maplespike.lan";
         backend = "127.0.0.1:${toString ports.maplespike-status}";
       };
-      dev-maplespike = {
-        domain = "dev.maplespike.lan";
-        backend = "127.0.0.1:${toString ports.dev-maplespike-portal}";
+      maplespike = {
+        domain = "maplespike.lan";
+        backend = "127.0.0.1:${toString ports.maplespike-portal}";
+        rawBlock = ''
+          https://maplespike.lan {
+            tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
+            encode zstd gzip
+            handle /v1/* {
+              reverse_proxy 127.0.0.1:${toString ports.maplespike-api}
+            }
+            handle /sse {
+              reverse_proxy 127.0.0.1:${toString ports.maplespike-mcp}
+            }
+            handle /messages {
+              reverse_proxy 127.0.0.1:${toString ports.maplespike-mcp}
+            }
+            handle /health {
+              reverse_proxy 127.0.0.1:${toString ports.maplespike-mcp}
+            }
+            handle {
+              reverse_proxy 127.0.0.1:${toString ports.maplespike-portal}
+            }
+          }
+        '';
       };
       dev-maplespike-api = {
         domain = "dev-maplespike-api.lan";
