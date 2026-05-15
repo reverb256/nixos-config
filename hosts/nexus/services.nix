@@ -5,7 +5,7 @@
   inputs,
   ...
 }: let
-  ports = import /etc/nixos/kubernetes/service-ports.nix;
+  ports = import ../../kubernetes/service-ports.nix;
 
   # Build the hermes-agent Python venv (same derivation the flake uses for its wrappers)
   hermesVenv = pkgs.callPackage (inputs.hermes-agent.outPath + "/nix/python.nix") {
@@ -289,7 +289,7 @@ in {
           https://maplespike.lan {
             tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
             encode zstd gzip
-            handle /v1/* {
+            handle /api/v1/* {
               reverse_proxy 127.0.0.1:${toString ports.maplespike-api}
             }
             handle /sse {

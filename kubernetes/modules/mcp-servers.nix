@@ -77,7 +77,7 @@ in
                     GRAFANA_USERNAME.name = "GRAFANA_USERNAME";
                     GRAFANA_USERNAME.valueFrom.secretKeyRef = {
                       name = "grafana-admin-secret";
-                      key = "admin-password";
+                      key = "admin-user";
                     };
                     GRAFANA_PASSWORD.name = "GRAFANA_PASSWORD";
                     GRAFANA_PASSWORD.valueFrom.secretKeyRef = {

@@ -5,7 +5,7 @@
 # Binary auto-updates when NixOS is rebuilt (reads live /nix/store).
 #
 # GPU layout:
-#   Nexus GPU 0 = RTX 3060 Ti (8GB)  → Qwen3.5-2B-AWQ via vLLM+TurboQuant (port 8040)
+#   Nexus GPU 0 = RTX 3060 Ti (8GB)  → Qwen3.5-2B-AWQ via vLLM+TurboQuant (port 8040, nix-csi)
 #   Zephyr GPU 1 = RTX 3090 (24GB)   → 35B MoE model (port 1237, coordinator-monitored)
 #
 # GPU ISOLATION NOTE:
@@ -29,9 +29,6 @@
 }:
 let
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
-  # vLLM+TurboQuant container (built via CI/CD, image on GHCR after first push)
-  # TODO: Switch from venv mount to this image after CI/CD completes once
-  vllmImage = "ghcr.io/reverb256/vllm-turboquant:0.20.0";
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
@@ -66,22 +63,14 @@ in
     # ── Zephyr RTX 3090 (GPU 1) — Qwen3.6-35B-A3B MoE ──────────────────────
     #   MoE 35B (3B active) with A3B + IQ4_XS quantization.
     #   Target: /home/j_kro/.lmstudio/models/Qwen3.6-35B-A3B-UD-IQ4_XS.gguf
-    # ── Zephyr RTX 3060 Ti — Qwen3.5-2B-AWQ via vLLM + TurboQuant ──────
-    # Scratch container with host mounts: venv python (torch 2.10, vllm 0.19.1)
-    # + TurboQuant KV cache compression (key_bits=3, value_bits=4).
-    # Startup script sets CUDA_DEVICE_ORDER=PCI_BUS_ID + CUDA_VISIBLE_DEVICES=0
-    # (PCI bus 0 = 3060Ti by address order).
-    #
-    # Required host mounts beyond standard /nix + nvidia-libs:
-    #   /home/j_kro        — venv + startup script + models (ro)
-    #   /data/.../Python   — venv python symlink target (ro)
-    #   /data/.../turboquant — TurboQuant source (ro)
-    #   /lib64             — ELF interpreter (nix-ld) for FHS python
-    #   /lib               — kernel modules
-    #   USER=j_kro         — torch getpass.getuser() fails as uid 0
-    Deployment.llama-vllm-3060ti = {
+    # ── Nexus RTX 3060 Ti — Qwen3.5-2B-AWQ via vLLM + TurboQuant (nix-csi) ─
+    # Nix store path: vllm-turboquant-env (pip-installed vLLM + TurboQuant)
+    # Entrypoint: vllm-tq-wrapper (applies TurboQuant monkey-patch, runs API server)
+    # Volumes: /nix (nix-csi), /run/opengl-driver/lib (NVIDIA), /models, /tmp
+    # No Docker registry dependency - served from host Nix store via nix-csi
+    Deployment.llama-qwen-vllm-nexus = {
       metadata.labels = managed // {
-        app = "llama-vllm-3060ti";
+        app = "llama-qwen-vllm-nexus";
         host = "nexus";
         gpu = "rtx3060ti";
       };
@@ -89,14 +78,14 @@ in
         replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels = {
-          app = "llama-vllm-3060ti";
+          app = "llama-qwen-vllm-nexus";
           host = "nexus";
         };
         strategy.type = "Recreate";
         template = {
           metadata = {
             labels = managed // {
-              app = "llama-vllm-3060ti";
+              app = "llama-qwen-vllm-nexus";
               host = "nexus";
               gpu = "rtx3060ti";
             };
@@ -112,45 +101,40 @@ in
               vllm = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgs.bash}/bin/bash" ];
+                command = [ "${pkgsWithOverlay.vllm-turboquant-env}/bin/vllm-tq-wrapper" ];
                 args = [
-                  "-c"
-                  ''
-                    export LD_LIBRARY_PATH=/run/opengl-driver/lib:/nix/store:/run/current-system/sw/lib
-                    export PYTHONPATH=/data/projects/own/turboquant
-                    export HOME=/tmp
-                    export USER=j_kro
-                    export VLLM_CACHE_ROOT=/tmp/vllm-cache
-                    export TORCHINDUCTOR_CACHE_DIR=/tmp/torch-cache
-                    export TRITON_CACHE_DIR=/tmp/triton-cache
-                    export TRANSFORMERS_CACHE=/tmp/hf-cache
-                    export HF_HOME=/tmp/hf-cache
-                    export CC=/run/current-system/sw/bin/gcc
-                    /nix/store/*coreutils*/bin/mkdir -p /tmp/vllm-cache /tmp/torch-cache /tmp/triton-cache /tmp/hf-cache 2>/dev/null || true
-                    exec /home/j_kro/vllm-env/bin/python3 /home/j_kro/vllm-start-tq.sh
-                  ''
+                  "--model"
+                  "/models/QuantTrio/Qwen3.5-2B-AWQ"
+                  "--served-model-name"
+                  "qwen3.5-2b-awq"
+                  "--host"
+                  "0.0.0.0"
+                  "--port"
+                  "8040"
+                  "--gpu-memory-utilization"
+                  "0.85"
+                  "--max-num-seqs"
+                  "16"
+                  "--max-model-len"
+                  "180000"
+                  "--quantization"
+                  "awq"
+                  "--enable-prefix-caching"
+                  "--enforce-eager"
                 ];
                 env = {
                   _namedlist = true;
-                  PATH = {
-                    name = "PATH";
-                    value = "/run/current-system/sw/bin:/usr/bin:/bin";
+                  VLLM_CACHE_ROOT = {
+                    name = "VLLM_CACHE_ROOT";
+                    value = "/tmp/vllm-cache";
                   };
-                  VLLM_WORKER_MULTIPROCESSING_METHOD = {
-                    name = "VLLM_WORKER_MULTIPROCESSING_METHOD";
-                    value = "spawn";
+                  NVIDIA_VISIBLE_DEVICES = {
+                    name = "NVIDIA_VISIBLE_DEVICES";
+                    value = "0";
                   };
-                  VLLM_MAX_MODEL_LEN = {
-                    name = "VLLM_MAX_MODEL_LEN";
-                    value = "180000";
-                  };
-                  VLLM_LANGUAGE_MODEL_ONLY = {
-                    name = "VLLM_LANGUAGE_MODEL_ONLY";
-                    value = "true";
-                  };
-                  VLLM_GPU_MEMORY_UTILIZATION = {
-                    name = "VLLM_GPU_MEMORY_UTILIZATION";
-                    value = "0.85";
+                  CUDA_VISIBLE_DEVICES = {
+                    name = "CUDA_VISIBLE_DEVICES";
+                    value = "0";
                   };
                 };
                 resources = {
@@ -199,27 +183,9 @@ in
                     mountPath = "/run/opengl-driver/lib";
                     readOnly = true;
                   };
-                  home-jkro = {
-                    mountPath = "/home/j_kro";
+                  models = {
+                    mountPath = "/models";
                     readOnly = true;
-                  };
-                  turboquant = {
-                    mountPath = "/data/projects/own/turboquant";
-                    readOnly = true;
-                  };
-                  python-runtime = {
-                    mountPath = "/data/AI/Assets/Python";
-                    readOnly = true;
-                  };
-                  nix-sw = {
-                    mountPath = "/run/current-system/sw";
-                    readOnly = true;
-                  };
-                  lib64 = {
-                    mountPath = "/lib64";
-                  };
-                  lib = {
-                    mountPath = "/lib";
                   };
                   tmp = {
                     mountPath = "/tmp";
@@ -238,24 +204,7 @@ in
                 type = "Directory";
               };
               nvidia-libs.hostPath.path = "/run/opengl-driver/lib";
-              home-jkro.hostPath = {
-                path = "/home/j_kro";
-                type = "Directory";
-              };
-              turboquant.hostPath = {
-                path = "/data/projects/own/turboquant";
-                type = "Directory";
-              };
-              python-runtime.hostPath = {
-                path = "/data/AI/Assets/Python";
-                type = "Directory";
-              };
-              nix-sw.hostPath = {
-                path = "/run/current-system/sw";
-                type = "Directory";
-              };
-              lib64.hostPath.path = "/lib64";
-              lib.hostPath.path = "/lib";
+              models.hostPath.path = "/home/j_kro/.lmstudio/models";
               tmp.hostPath = {
                 path = "/tmp";
                 type = "Directory";
@@ -270,9 +219,9 @@ in
       };
     };
 
-    Service.llama-vllm-3060ti = {
+    Service.llama-qwen-vllm-nexus = {
       metadata.labels = managed // {
-        app = "llama-vllm-3060ti";
+        app = "llama-qwen-vllm-nexus";
       };
       spec = {
         type = "ClusterIP";
@@ -284,7 +233,10 @@ in
             targetPort = 8040;
           }
         ];
-        selector.app = "llama-vllm-3060ti";
+        selector = {
+          app = "llama-qwen-vllm-nexus";
+          host = "nexus";
+        };
       };
     };
 

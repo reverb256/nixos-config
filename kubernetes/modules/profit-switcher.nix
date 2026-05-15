@@ -46,7 +46,7 @@
       deployments = [
         "gpu-miner-forge-nvidia-0"
         "gpu-miner-forge-nvidia-1"
-        "gpu-miner-nexus"
+        "gpu-miner-zephyr-3060ti-gpu"
       ];
       profile = "rtx4060"; # simplified; forge=4060, nexus=3060ti
       miner = "rigel";

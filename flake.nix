@@ -276,7 +276,8 @@
     packages.x86_64-linux.llama-cpp = pkgsWithOverlay.llama-cpp;
     packages.x86_64-linux.llama-cpp-ik = pkgsWithOverlay.llama-cpp-ik;
     packages.x86_64-linux.llama-cpp-turboquant = pkgsWithOverlay.llama-cpp-turboquant;
-    packages.x86_64-linux.vllm-image = inputs.vllm.packages.x86_64-linux.container;
+    # vllm-turboquant-env: Nix store path for nix-csi scratch containers
+    packages.x86_64-linux.vllm-turboquant-env = inputs.vllm.packages.x86_64-linux.vllm-turboquant-env;
     packages.x86_64-linux.caddy-with-modules = inputs.caddy-ingress.packages.x86_64-linux.caddy-with-modules;
     packages.x86_64-linux.caddy-ingress-image = inputs.caddy-ingress.packages.x86_64-linux.caddy-ingress-image;
     packages.x86_64-linux.hermes-chat = pkgsWithOverlay.hermes-chat;
