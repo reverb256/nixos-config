@@ -254,40 +254,6 @@ in {
         domain = "n8n.lan";
         backend = k8s.n8n.dns;
       };
-      # auth.lan — Casdoor SSO + oauth2-proxy callback.
-      # Uses rawBlock to handle /oauth2/* → oauth2-proxy NodePort (K8s),
-      # and /* → Casdoor NodePort. Matches Zephyr's caddy-routes.nix.
-      auth = {
-        domain = "auth.lan";
-        backend = k8s.casdoor.dns;
-        rawBlock = ''
-          https://auth.lan {
-            tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
-            encode zstd gzip
-            rate_limit {
-              zone auth_per_ip {
-                key    {remote_host}
-                events 100
-                window 1m
-              }
-            }
-            # OAuth2 callback — proxy to oauth2-proxy K8s NodePort
-            handle /oauth2/* {
-              reverse_proxy 127.0.0.1:${toString ports.oauth2-proxy}
-            }
-            # Everything else → Casdoor K8s NodePort
-            handle {
-              reverse_proxy 127.0.0.1:${toString ports.casdoor} {
-                header_up Host {host}
-                header_up X-Real-IP {remote_host}
-                header_up X-Forwarded-For {remote_host}
-                header_up X-Forwarded-Host {host}
-                header_up X-Forwarded-Proto {scheme}
-              }
-            }
-          }
-        '';
-      };
       ai-inference = {
         domain = "ai-inference.lan";
         backend = "ai-inference-gateway.ai-inference.svc.cluster.local:8080";
