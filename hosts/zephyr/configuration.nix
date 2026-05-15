@@ -84,6 +84,9 @@ in {
     "net.ipv4.conf.all.log_martians" = lib.mkForce false;
   };
 
+  # Enable i686 emulation so local builds can compile 32-bit packages (Steam, Wine)
+  boot.binfmt.emulatedSystems = ["i686-linux"];
+
   stylix = {
     base16Scheme = {
       base00 = "111c18";
