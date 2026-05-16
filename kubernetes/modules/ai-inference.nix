@@ -97,7 +97,7 @@ in {
       CHUNK_SIZE = "512";
       MCP_ENABLED = "true";
       SYSTEM_PROMPTS_ENABLED = "true";
-      TOKEN_SCOPED_COLLECTIONS=""; # TODO: fill in value
+      TOKEN_SCOPED_COLLECTIONS="";
       VECTOR_WEIGHT = "0.7";
       HF_HOME = "/home/j_kro/.cache/huggingface";
       HF_HUB_OFFLINE = "0";
@@ -860,7 +860,7 @@ in {
     # Z.AI API key — populated from agenix (secrets/ai-gateway-zai-api-key.age)
     ai-inference.Secret.zai-api-key = {
       type = "Opaque";
-      stringData.ZAI_API_KEY = ""; # TODO: fill in value
+      stringData.ZAI_API_KEY = "";
     };
 
     # HuggingFace token — populated from agenix (secrets/huggingface-token.age)
@@ -872,32 +872,32 @@ in {
     # NVIDIA API key — populated from agenix (secrets/nvidia-api-key.age)
     ai-inference.Secret.nvidia-api-key = {
       type = "Opaque";
-      stringData.NVIDIA_API_KEY = ""; # TODO: fill in value
+      stringData.NVIDIA_API_KEY = "";
     };
 
 
     # Pollinations API key — populated from agenix (secrets/pollinations-api-key.age)
     ai-inference.Secret.pollinations-api-key = {
       type = "Opaque";
-      stringData.POLLINATIONS_API_KEY = ""; # TODO: fill in value
+      stringData.POLLINATIONS_API_KEY = "";
     };
 
     # Kilo API key — populated from agenix (secrets/kilo-api-key.age)
     ai-inference.Secret.kilo-api-key = {
       type = "Opaque";
-      stringData.KILO_API_KEY = ""; # TODO: fill in value
+      stringData.KILO_API_KEY = "";
     };
 
     # OpenCode API key — populated from agenix (secrets/opencode-api-key.age)
     ai-inference.Secret.opencode-api-key = {
       type = "Opaque";
-      stringData.OPENCODE_API_KEY = ""; # TODO: fill in value
+      stringData.OPENCODE_API_KEY = "";
     };
 
     # Gateway API token — populated from agenix (secrets/ai-gateway-token.age)
     ai-inference.Secret.ai-gateway-token = {
       type = "Opaque";
-      stringData.GATEWAY_TOKEN = ""; # TODO: fill in value
+      stringData.GATEWAY_TOKEN = "";
     };
 
     # ── Additional NetworkPolicies ───────────────────────────────
