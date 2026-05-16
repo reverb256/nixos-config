@@ -146,7 +146,7 @@ in
     };
 
     # ── Prod Deployments (maplespike-prod namespace) ──────────
-    apps.Deployment.maplespike-api-prod = mkDeployment {
+    "maplespike-prod".Deployment.maplespike-api = mkDeployment {
       name = "maplespike-api";
       namespace = "maplespike-prod";
       cmd = "node packages/api-server/dist/dev-server.js";
@@ -159,7 +159,7 @@ in
       };
     };
 
-    apps.Deployment.maplespike-mcp-prod = mkDeployment {
+    "maplespike-prod".Deployment.maplespike-mcp = mkDeployment {
       name = "maplespike-mcp";
       namespace = "maplespike-prod";
       cmd = "node packages/mcp-server/dist/index.js";
@@ -170,9 +170,9 @@ in
         requests = { cpu = "100m"; memory = "128Mi"; };
         limits = { cpu = "300m"; memory = "256Mi"; };
       };
-    } // { spec.template.spec.serviceAccountName = "maplespike-mcp-prod"; };
+    } // { spec.template.spec.serviceAccountName = "maplespike-mcp-maplespike-prod"; };
 
-    apps.Deployment.maplespike-portal-prod = mkDeployment {
+    "maplespike-prod".Deployment.maplespike-portal = mkDeployment {
       name = "maplespike-portal";
       namespace = "maplespike-prod";
       cmd = "nginx -g 'daemon off;'";
@@ -186,7 +186,7 @@ in
     };
 
     # ── Staging Deployments (maplespike-staging namespace) ─────
-    apps.Deployment.maplespike-api-staging = mkDeployment {
+    "maplespike-staging".Deployment.maplespike-api = mkDeployment {
       name = "maplespike-api";
       namespace = "maplespike-staging";
       cmd = "node packages/api-server/dist/dev-server.js";
@@ -199,7 +199,7 @@ in
       };
     };
 
-    apps.Deployment.maplespike-mcp-staging = mkDeployment {
+    "maplespike-staging".Deployment.maplespike-mcp = mkDeployment {
       name = "maplespike-mcp";
       namespace = "maplespike-staging";
       cmd = "node packages/mcp-server/dist/index.js";
@@ -210,9 +210,9 @@ in
         requests = { cpu = "100m"; memory = "128Mi"; };
         limits = { cpu = "300m"; memory = "256Mi"; };
       };
-    } // { spec.template.spec.serviceAccountName = "maplespike-mcp-staging"; };
+    } // { spec.template.spec.serviceAccountName = "maplespike-mcp-maplespike-staging"; };
 
-    apps.Deployment.maplespike-portal-staging = mkDeployment {
+    "maplespike-staging".Deployment.maplespike-portal = mkDeployment {
       name = "maplespike-portal";
       namespace = "maplespike-staging";
       cmd = "nginx -g 'daemon off;'";
@@ -294,8 +294,7 @@ in
     };
 
     # ── Services (per namespace) ──────────────────────────────
-    core.Service."maplespike-api-maplespike-prod" = {
-      namespace = "maplespike-prod";
+    "maplespike-prod".Service.maplespike-api = {
       metadata.labels = managed // { app = "maplespike-api"; };
       spec = {
         selector = { app = "maplespike-api"; };
@@ -307,8 +306,7 @@ in
       };
     };
 
-    core.Service."maplespike-mcp-maplespike-prod" = {
-      namespace = "maplespike-prod";
+    "maplespike-prod".Service.maplespike-mcp = {
       metadata.labels = managed // { app = "maplespike-mcp"; };
       spec = {
         selector = { app = "maplespike-mcp"; };
@@ -317,18 +315,16 @@ in
       };
     };
 
-    core.Service."maplespike-portal-maplespike-prod" = {
-      namespace = "maplespike-prod";
+    "maplespike-prod".Service.maplespike-portal = {
       metadata.labels = managed // { app = "maplespike-portal"; };
       spec = {
         selector = { app = "maplespike-portal"; };
-        ports = [{ port = 80; targetPort = 8080; protocol = "TCP"; name = "http"; }];
+        ports = [{ port = 80; targetPort = 80; protocol = "TCP"; name = "http"; }];
         type = "ClusterIP";
       };
     };
 
-    core.Service."maplespike-api-maplespike-staging" = {
-      namespace = "maplespike-staging";
+    "maplespike-staging".Service.maplespike-api = {
       metadata.labels = managed // { app = "maplespike-api"; };
       spec = {
         selector = { app = "maplespike-api"; };
@@ -340,8 +336,7 @@ in
       };
     };
 
-    core.Service."maplespike-mcp-maplespike-staging" = {
-      namespace = "maplespike-staging";
+    "maplespike-staging".Service.maplespike-mcp = {
       metadata.labels = managed // { app = "maplespike-mcp"; };
       spec = {
         selector = { app = "maplespike-mcp"; };
@@ -350,8 +345,7 @@ in
       };
     };
 
-    core.Service."maplespike-portal-maplespike-staging" = {
-      namespace = "maplespike-staging";
+    "maplespike-staging".Service.maplespike-portal = {
       metadata.labels = managed // { app = "maplespike-portal"; };
       spec = {
         selector = { app = "maplespike-portal"; };
