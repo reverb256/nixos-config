@@ -1873,7 +1873,7 @@ print(f"Sync complete: {deployed} configs deployed")
                   };
                   HOST_GATEWAY_URL = {
                     name = "HOST_GATEWAY_URL";
-                    value = cluster.gatewayUrl;
+                    value = cluster.kubernetes.gatewayUrl;
                   };
                   ZAI_API_KEY.valueFrom.secretKeyRef = {
                     name = "zai-api-key";
