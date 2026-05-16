@@ -1,6 +1,6 @@
 # Action Items — Consolidated
 
-> **Last Updated:** 2026-05-14
+> **Last Updated:** 2026-05-16
 > **Source:** Cross-session audit of cluster infrastructure, security posture, vLLM containerization, NixOS config.
 
 ---
@@ -18,9 +18,11 @@
 
 ## Blocked Items (must be unblocked first)
 
-| # | Item | Blocked By | Why |
-|---|------|-----------|-----|
-| **B3** | Switch llama-server image to vLLM container | First CI build of `ghcr.io/reverb256/vllm-turboquant:0.20.0` | Image doesn't exist yet. CI build at github.com/reverb256/vllm-turboquant must complete first. |
+~~| # | Item | Blocked By | Why |~~
+~~|---|------|-----------|-----|~~
+~~| **B3** | Switch llama-server image to vLLM container | First CI build of `ghcr.io/reverb256/vllm-turboquant:0.20.0` | Image doesn't exist yet. CI build at github.com/reverb256/vllm-turboquant must complete first. |~~
+
+**B3 RESOLVED**: Restored nix-csi scratch container deployment using `vllm-turboquant-env` from `/data/projects/own/vllm`. No OCI image needed - uses host `/nix` store mount.
 
 ---
 
@@ -79,9 +81,9 @@
 
 | # | Item | Status |
 |---|------|--------|
-| V1 | Wait for GHCR CI build of vllm-turboquant:0.20.0 | **BLOCKED** |
-| V2 | Switch llama-servers.nix to vLLM image | Pending V1 |
-| V3 | Remove 4 host mounts from llama-servers.nix | Pending V2 |
+| ✅ V1 | Wait for GHCR CI build of vllm-turboquant:0.20.0 | **RESOLVED** - Using nix-csi instead |
+| ✅ V2 | Switch llama-servers.nix to vLLM image | **COMPLETE** - Restored working nix-csi config |
+| ✅ V3 | Remove 4 host mounts from llama-servers.nix | **NA** - Not needed with nix-csi approach |
 
 ### NixOS Config
 
@@ -113,6 +115,7 @@
 | ✅ | Data source expansion plan written | 7 modules + oversight, 4 phases |
 | ✅ | K8s Tailscale Funnel live | 5 ingresses (3 dev, 2 prod) via operator, ProxyGroup 2/2, host funnel disabled |
 | ✅ | Funnel manifests committed to Nix | /etc/nixos/kubernetes-manifests/tailscale/ — all 5 YAML files |
+| ✅ | **vLLM on Nexus fixed** | Restored nix-csi scratch container deployment using vllm-turboquant-env from /data/projects/own/vllm |
 
 ---
 
@@ -123,6 +126,7 @@
 | **K8s Tailscale Funnel via operator (not host)** | Operator resolved — ProxyGroup synced, 5 ingresses working, all manifests in Nix source of truth. Host funnel disabled. | May 14 |
 | **Security: NodePort restriction (P1) prioritized over secrets encryption (P0)** | 17 NodePorts actively bypass auth today. Secrets in plaintext are higher blast radius but lower immediate risk in single-operator homelab. | May 14 |
 | **Dev Ingresses exclude zephyr** | zephyr 31GB RAM, constant OOM risk. Dev instances belong on nexus/sentry/forge. | May 14 |
+| **Use nix-csi for vLLM instead of OCI image** | OCI image `nexus:5000/vllm-turboquant:0.20.0` never built. nix-csi scratch container with host `/nix` store mount works immediately with existing vllm-turboquant-env derivation. | May 16 |
 
 ---
 
