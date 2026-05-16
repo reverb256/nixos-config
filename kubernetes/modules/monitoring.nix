@@ -2535,3 +2535,20 @@ in {
         };
     };
 }
+    monitoring.NetworkPolicy.allow-monitoring-api-server = {
+      spec = {
+        podSelector.matchLabels.app = "alloy";
+        policyTypes = ["Egress"];
+        egress = [
+          {
+            to = [{ipBlock.cidr = cluster.subnet;}];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 6443;
+              }
+            ];
+          }
+        ];
+      };
+    };
