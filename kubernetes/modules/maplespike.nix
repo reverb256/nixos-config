@@ -6,8 +6,11 @@ with lib; let
 
   cfg = config.services.maplespike;
 
+  # Get short commit SHA for image pinning
+  imageTag = "2026-05-16";
+
   # Common deployment builder
-  mkDeployment = { name, namespace, cmd, port, replicaCount, image, resources, envExtra ? [], nodeName ? "nexus" }:
+  mkDeployment = { name, namespace, cmd, port, replicaCount, image, resources, envExtra ? [], nodeName ? "nexus", runAsUser ? 1001, runAsGroup ? 1001 }:
     let
       labels = {
         app = "maplespike-${name}";
@@ -39,11 +42,15 @@ with lib; let
           metadata.labels = labels;
           spec = {
             nodeName = nodeName;
-            securityContext = {};
+            securityContext = {
+              runAsUser = runAsUser;
+              runAsGroup = runAsGroup;
+              fsGroup = runAsGroup;
+            };
             terminationGracePeriodSeconds = 30;
             containers = [{
               inherit name image;
-              imagePullPolicy = "Always";
+              imagePullPolicy = "IfNotPresent";
               ports = lib.mkIf (port > 0) [{
                 containerPort = port;
               }];
@@ -58,6 +65,7 @@ with lib; let
                   drop = ["ALL"];
                 };
                 runAsNonRoot = true;
+                runAsUser = runAsUser;
                 seccompProfile = {
                   type = "RuntimeDefault";
                 };
@@ -75,36 +83,36 @@ in
     images = {
       api = mkOption {
         type = types.str;
-        default = "ghcr.io/reverb256/maplespike-api:latest";
-        description = "Maplespike API container image";
+        default = "ghcr.io/reverb256/maplespike-api:${imageTag}";
+        description = "Maplespike API container image (pinned version)";
       };
       mcp = mkOption {
         type = types.str;
-        default = "ghcr.io/reverb256/maplespike-mcp:latest";
-        description = "Maplespike MCP server container image";
+        default = "ghcr.io/reverb256/maplespike-mcp:${imageTag}";
+        description = "Maplespike MCP server container image (pinned version)";
       };
       portal = mkOption {
         type = types.str;
-        default = "ghcr.io/reverb256/maplespike-portal:latest";
-        description = "Maplespike portal container image";
+        default = "ghcr.io/reverb256/maplespike-portal:${imageTag}";
+        description = "Maplespike portal container image (pinned version)";
       };
     };
 
     stagingImages = {
       api = mkOption {
         type = types.str;
-        default = "ghcr.io/reverb256/maplespike-api:staging";
-        description = "Maplespike API staging container image";
+        default = "ghcr.io/reverb256/maplespike-api:${imageTag}-staging";
+        description = "Maplespike API staging container image (pinned version)";
       };
       mcp = mkOption {
         type = types.str;
-        default = "ghcr.io/reverb256/maplespike-mcp:staging";
-        description = "Maplespike MCP staging container image";
+        default = "ghcr.io/reverb256/maplespike-mcp:${imageTag}-staging";
+        description = "Maplespike MCP staging container image (pinned version)";
       };
       portal = mkOption {
         type = types.str;
-        default = "ghcr.io/reverb256/maplespike-portal:staging";
-        description = "Maplespike portal staging container image";
+        default = "ghcr.io/reverb256/maplespike-portal:${imageTag}-staging";
+        description = "Maplespike portal staging container image (pinned version)";
       };
     };
 
@@ -167,7 +175,7 @@ in
     apps.Deployment.maplespike-portal-prod = mkDeployment {
       name = "maplespike-portal";
       namespace = "maplespike-prod";
-      cmd = "python3 server.py";
+      cmd = "nginx -g 'daemon off;'";
       port = 8080;
       replicaCount = cfg.replicas.portal;
       image = cfg.images.portal;
@@ -207,7 +215,7 @@ in
     apps.Deployment.maplespike-portal-staging = mkDeployment {
       name = "maplespike-portal";
       namespace = "maplespike-staging";
-      cmd = "python3 server.py";
+      cmd = "nginx -g 'daemon off;'";
       port = 8080;
       replicaCount = 1;
       image = cfg.stagingImages.portal;
@@ -221,6 +229,9 @@ in
     for namespace in ["maplespike-prod" "maplespike-staging"]; {
       "${namespace}".ServiceAccount."maplespike-mcp-${namespace}" = {
         metadata.labels = managed;
+        metadata.annotations = {
+          "kubernetes.io/enforce-no-automount-token" = "false";
+        };
       };
     }
 
