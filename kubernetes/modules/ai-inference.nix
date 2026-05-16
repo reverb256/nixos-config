@@ -54,7 +54,7 @@ in {
     ai-inference.ServiceAccount.n8n-sa.automountServiceAccountToken = false;
 
     ai-inference.ConfigMap.ai-gateway-config.data = {
-      AUTH_MODE=""; # TODO: fill in value
+      AUTH_MODE="token"; # Token-based authentication
       BACKEND_TYPE = "llama-cpp";
       BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
       DEFAULT_MODEL = modelNames."qwen3.6-35b-iq3-s";
