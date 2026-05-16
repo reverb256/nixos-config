@@ -5,7 +5,7 @@
 # Binary auto-updates when NixOS is rebuilt (reads live /nix/store).
 #
 # GPU layout:
-#   Nexus GPU 0 = RTX 3060 Ti (8GB)  → Qwen3.5-2B-AWQ via vLLM+TurboQuant (port 8040, nix-csi)
+#   Nexus GPU 0 = RTX 3060 Ti (8GB)  → Qwen3.5-2B-AWQ via vLLM+TurboQuant (port 8040, OCI image)
 #   Zephyr GPU 1 = RTX 3090 (24GB)   → 35B MoE model (port 1237, coordinator-monitored)
 #
 # GPU ISOLATION NOTE:
@@ -29,6 +29,7 @@
 }:
 let
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
+  vllmImage = "nexus:5000/vllm-turboquant:0.20.0";
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
@@ -63,11 +64,11 @@ in
     # ── Zephyr RTX 3090 (GPU 1) — Qwen3.6-35B-A3B MoE ──────────────────────
     #   MoE 35B (3B active) with A3B + IQ4_XS quantization.
     #   Target: /home/j_kro/.lmstudio/models/Qwen3.6-35B-A3B-UD-IQ4_XS.gguf
-    # ── Nexus RTX 3060 Ti — Qwen3.5-2B-AWQ via vLLM + TurboQuant (nix-csi) ─
-    # Nix store path: vllm-turboquant-env (pip-installed vLLM + TurboQuant)
-    # Entrypoint: vllm-tq-wrapper (applies TurboQuant monkey-patch, runs API server)
-    # Volumes: /nix (nix-csi), /run/opengl-driver/lib (NVIDIA), /models, /tmp
-    # No Docker registry dependency - served from host Nix store via nix-csi
+    # ── Nexus RTX 3060 Ti — Qwen3.5-2B-AWQ via vLLM + TurboQuant (OCI) ────
+    # Image: nexus:5000/vllm-turboquant:0.20.0 (torch 2.6, vllm 0.8.3, turboquant 0.1.0)
+    # Entrypoint: /usr/local/bin/vllm serve (direct, no wrapper needed)
+    # Volumes: /models (ro), /tmp
+    # OCI image - no nix-csi or nvidia-libs mounts needed
     Deployment.llama-qwen-vllm-nexus = {
       metadata.labels = managed // {
         app = "llama-qwen-vllm-nexus";
@@ -99,28 +100,26 @@ in
             containers = {
               _namedlist = true;
               vllm = {
-                image = scratchImage;
-                imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgsWithOverlay.vllm-turboquant-env}/bin/vllm-tq-wrapper" ];
+                image = vllmImage;
+                imagePullPolicy = "Always";
+                command = [ "/bin/bash" ];
                 args = [
-                  "--model"
-                  "/models/QuantTrio/Qwen3.5-2B-AWQ"
-                  "--served-model-name"
-                  "qwen3.5-2b-awq"
-                  "--host"
-                  "0.0.0.0"
-                  "--port"
-                  "8040"
-                  "--gpu-memory-utilization"
-                  "0.85"
-                  "--max-num-seqs"
-                  "16"
-                  "--max-model-len"
-                  "180000"
-                  "--quantization"
-                  "awq"
-                  "--enable-prefix-caching"
-                  "--enforce-eager"
+                  "-c"
+                  ''
+                    set -e
+                    mkdir -p /tmp/vllm-cache /tmp/torch-cache /tmp/triton-cache /tmp/hf-cache || true
+                    exec /usr/local/bin/vllm serve \
+                      "/models/QuantTrio/Qwen3.5-2B-AWQ" \
+                      --served-model-name "qwen3.5-2b-awq" \
+                      --host "0.0.0.0" \
+                      --port 8040 \
+                      --gpu-memory-utilization 0.85 \
+                      --max-num-seqs 16 \
+                      --max-model-len 180000 \
+                      --quantization awq \
+                      --enable-prefix-caching \
+                      --enforce-eager
+                  ''
                 ];
                 env = {
                   _namedlist = true;
@@ -175,14 +174,6 @@ in
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  nix = {
-                    mountPath = "/nix";
-                    readOnly = true;
-                  };
-                  nvidia-libs = {
-                    mountPath = "/run/opengl-driver/lib";
-                    readOnly = true;
-                  };
                   models = {
                     mountPath = "/models";
                     readOnly = true;
@@ -199,11 +190,6 @@ in
             };
             volumes = {
               _namedlist = true;
-              nix.hostPath = {
-                path = "/nix";
-                type = "Directory";
-              };
-              nvidia-libs.hostPath.path = "/run/opengl-driver/lib";
               models.hostPath.path = "/home/j_kro/.lmstudio/models";
               tmp.hostPath = {
                 path = "/tmp";

@@ -191,7 +191,7 @@ in {
 
     gatewayUrl = lib.mkOption {
       type = lib.types.str;
-      default = "http://${config.networking.cluster.hosts.zephyr.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-gateway}/v1";
+      default = "http://${config.networking.cluster.hosts.zephyr.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-inference-gateway}/v1";
       description = "AI Inference Gateway URL for routing";
     };
   };
@@ -219,38 +219,43 @@ in {
         # Managed by NixOS - hermes-cli module
         # LOCAL MODELS AS DEFAULT - Cloud fallback available
         model:
-          provider: opencode-go
+          provider: local-vllm
           default: qwen3.5-2b-awq
 
         providers:
+          local-vllm:
+            base_url: http://10.1.1.120:8040/v1
+            model: qwen3.5-2b-awq
+          local-zephyr-3090:
+            base_url: http://10.1.1.110:1237/v1
+            model: Carnice-Qwen3.6-MoE-35B-A3B-IQ4_XS.gguf
+            supports_vision: true
+          local-sentry:
+            base_url: http://10.1.1.140:1235/v1
+            model: Qwen3.5-4B-Q4_K_M.gguf
+            supports_vision: true
           opencode-go:
-            base_url: http://${config.networking.cluster.hosts.zephyr.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-gateway}/v1
+            base_url: http://10.1.1.110:8080/v1
             model: deepseek-v4-flash
             key_env: OPENCODE_GO_API_KEY
-          vllm-3060ti:
-            base_url: http://${config.networking.cluster.hosts.zephyr.ip}:8040/v1
-            model: qwen3.5-2b-awq
-          llama-zephyr-3090:
-            base_url: http://${config.networking.cluster.hosts.zephyr.ip}:1237/v1
-            model: Carnice-Qwen3.6-MoE-IQ4_XS.gguf
-          llama-sentry:
-            base_url: ${config.networking.cluster.hosts.sentry.ip}:1235/v1
-            model: Qwen3.5-4B-Q4_K_M.gguf
           zai:
             base_url: https://api.z.ai/api/coding/paas/v4
             api_key_env: ZAI_API_KEY
-          glm-flash:
-            base_url: http://${toString config.networking.cluster.kubernetes.nodePorts.ai-gateway}:8080/v1
-            model: glm-4.5-flash
+          nvidia:
+            base_url: https://integrate.api.nvidia.com/v1
+            api_key_env: NVIDIA_API_KEY
+          gateway:
+            base_url: http://10.1.1.110:8080/v1
             api_key_env: ZAI_API_KEY
 
         fallback_providers:
+          - local-vllm
+          - local-zephyr-3090
+          - local-sentry
           - opencode-go
-          - vllm-3060ti
-          - llama-zephyr-3090
-          - llama-sentry
-          - glm-flash
+          - gateway
           - zai
+          - nvidia
 
         terminal:
           backend: local
@@ -268,6 +273,27 @@ in {
           threshold: 0.9
         YAML_EOF
                 chmod 644 "$HERMES_HOME/config.yaml"
+              else
+                # Inject essential providers into manually-managed config
+                # This ensures zai/nvidia endpoints are correct even if user edits config
+                if ! grep -q "^zai:" "$HERMES_HOME/config.yaml" 2>/dev/null; then
+                  cat >> "$HERMES_HOME/config.yaml" << 'YAI_EOF'
+
+# Essential providers injected by NixOS (hermes-cli module)
+zai:
+  base_url: https://api.z.ai/api/coding/paas/v4
+  api_key_env: ZAI_API_KEY
+nvidia:
+  base_url: https://integrate.api.nvidia.com/v1
+  api_key_env: NVIDIA_API_KEY
+YAI_EOF
+                fi
+                # Ensure fallback includes cloud providers
+                if grep -q "^fallback_providers:" "$HERMES_HOME/config.yaml" 2>/dev/null; then
+                  if ! grep -A 10 "^fallback_providers:" "$HERMES_HOME/config.yaml" | grep -q "zai"; then
+                    sed -i '/^fallback_providers:/a\  - zai\n  - nvidia' "$HERMES_HOME/config.yaml" 2>/dev/null || true
+                  fi
+                fi
               fi
 
               # Write .env with API keys from agenix secrets
@@ -284,13 +310,6 @@ in {
           if [ -f "${cfg.nvidiaApiKeyFile}" ]; then
             echo -n "NVIDIA_API_KEY=" >> "$HERMES_HOME/.env"
             cat "${cfg.nvidiaApiKeyFile}" >> "$HERMES_HOME/.env"
-            echo "" >> "$HERMES_HOME/.env"
-          fi
-        ''}
-              ${lib.optionalString (cfg.openrouterApiKeyFile != null) ''
-          if [ -f "${cfg.openrouterApiKeyFile}" ]; then
-            echo -n "OPENROUTER_API_KEY=" >> "$HERMES_HOME/.env"
-            cat "${cfg.openrouterApiKeyFile}" >> "$HERMES_HOME/.env"
             echo "" >> "$HERMES_HOME/.env"
           fi
         ''}
