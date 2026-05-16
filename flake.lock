@@ -412,29 +412,6 @@
         "type": "github"
       }
     },
-    "dream2nix_2": {
-      "inputs": {
-        "nixpkgs": [
-          "hermes-workspace",
-          "nixpkgs"
-        ],
-        "purescript-overlay": "purescript-overlay_2",
-        "pyproject-nix": "pyproject-nix_5"
-      },
-      "locked": {
-        "lastModified": 1765953015,
-        "narHash": "sha256-5FBZbbWR1Csp3Y2icfRkxMJw/a/5FGg8hCXej2//bbI=",
-        "owner": "nix-community",
-        "repo": "dream2nix",
-        "rev": "69eb01fa0995e1e90add49d8ca5bcba213b0416f",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "repo": "dream2nix",
-        "type": "github"
-      }
-    },
     "easykubenix": {
       "locked": {
         "lastModified": 1771374020,
@@ -577,22 +554,6 @@
     "flake-compat_5": {
       "flake": false,
       "locked": {
-        "lastModified": 1696426674,
-        "narHash": "sha256-kvjfFW7WAETZlt09AgDn1MrtKzP7t90Vf7vypd3OL1U=",
-        "owner": "edolstra",
-        "repo": "flake-compat",
-        "rev": "0f9255e01c2351cc7d116c072cb317785dd33b33",
-        "type": "github"
-      },
-      "original": {
-        "owner": "edolstra",
-        "repo": "flake-compat",
-        "type": "github"
-      }
-    },
-    "flake-compat_6": {
-      "flake": false,
-      "locked": {
         "lastModified": 1767039857,
         "narHash": "sha256-vNpUSpF5Nuw8xvDLj2KCwwksIbjua2LZCqhV1LNRDns=",
         "owner": "NixOS",
@@ -606,7 +567,7 @@
         "type": "github"
       }
     },
-    "flake-compat_7": {
+    "flake-compat_6": {
       "locked": {
         "lastModified": 1733328505,
         "narHash": "sha256-NeCCThCEP3eCl2l/+27kNNK7QrwZB1IJCrXfrbv5oqU=",
@@ -620,7 +581,7 @@
         "url": "https://flakehub.com/f/edolstra/flake-compat/1.tar.gz"
       }
     },
-    "flake-compat_8": {
+    "flake-compat_7": {
       "locked": {
         "lastModified": 1733328505,
         "narHash": "sha256-NeCCThCEP3eCl2l/+27kNNK7QrwZB1IJCrXfrbv5oqU=",
@@ -634,7 +595,7 @@
         "url": "https://flakehub.com/f/edolstra/flake-compat/1.tar.gz"
       }
     },
-    "flake-compat_9": {
+    "flake-compat_8": {
       "flake": false,
       "locked": {
         "lastModified": 1767039857,
@@ -1038,41 +999,6 @@
         "type": "github"
       }
     },
-    "hermes-webui": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1778807828,
-        "narHash": "sha256-Z/vzfJbOEAcqkOu/Qst79L+anVZYERyTMw3dDu04Ruk=",
-        "path": "/data/projects/own/hermes-webui",
-        "type": "path"
-      },
-      "original": {
-        "path": "/data/projects/own/hermes-webui",
-        "type": "path"
-      }
-    },
-    "hermes-workspace": {
-      "inputs": {
-        "dream2nix": "dream2nix_2",
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1778807931,
-        "narHash": "sha256-cvxaXKYWHBWuczt2k8rDUaQnObqzko06U/SVTyvQadc=",
-        "path": "/data/projects/own/hermes-workspace",
-        "type": "path"
-      },
-      "original": {
-        "path": "/data/projects/own/hermes-workspace",
-        "type": "path"
-      }
-    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -1315,7 +1241,7 @@
       "inputs": {
         "cachyos-kernel": "cachyos-kernel",
         "cachyos-kernel-patches": "cachyos-kernel-patches",
-        "flake-compat": "flake-compat_6",
+        "flake-compat": "flake-compat_5",
         "flake-parts": "flake-parts_4",
         "nixpkgs": [
           "nixpkgs"
@@ -1381,7 +1307,7 @@
     },
     "nix-mineral": {
       "inputs": {
-        "flake-compat": "flake-compat_7",
+        "flake-compat": "flake-compat_6",
         "flake-parts": "flake-parts_6",
         "ndg": "ndg",
         "nixpkgs": "nixpkgs_2"
@@ -1402,7 +1328,7 @@
     },
     "nixcord": {
       "inputs": {
-        "flake-compat": "flake-compat_8",
+        "flake-compat": "flake-compat_7",
         "flake-parts": "flake-parts_7",
         "nixpkgs": [
           "nixpkgs"
@@ -1640,7 +1566,7 @@
     },
     "pre-commit-hooks_2": {
       "inputs": {
-        "flake-compat": "flake-compat_9",
+        "flake-compat": "flake-compat_8",
         "gitignore": "gitignore_2",
         "nixpkgs": [
           "nixpkgs"
@@ -1689,30 +1615,6 @@
           "nixpkgs"
         ],
         "slimlock": "slimlock"
-      },
-      "locked": {
-        "lastModified": 1728546539,
-        "narHash": "sha256-Sws7w0tlnjD+Bjck1nv29NjC5DbL6nH5auL9Ex9Iz2A=",
-        "owner": "thomashoneyman",
-        "repo": "purescript-overlay",
-        "rev": "4ad4c15d07bd899d7346b331f377606631eb0ee4",
-        "type": "github"
-      },
-      "original": {
-        "owner": "thomashoneyman",
-        "repo": "purescript-overlay",
-        "type": "github"
-      }
-    },
-    "purescript-overlay_2": {
-      "inputs": {
-        "flake-compat": "flake-compat_5",
-        "nixpkgs": [
-          "hermes-workspace",
-          "dream2nix",
-          "nixpkgs"
-        ],
-        "slimlock": "slimlock_2"
       },
       "locked": {
         "lastModified": 1728546539,
@@ -1837,28 +1739,6 @@
         "type": "github"
       }
     },
-    "pyproject-nix_5": {
-      "inputs": {
-        "nixpkgs": [
-          "hermes-workspace",
-          "dream2nix",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1763017646,
-        "narHash": "sha256-Z+R2lveIp6Skn1VPH3taQIuMhABg1IizJd8oVdmdHsQ=",
-        "owner": "pyproject-nix",
-        "repo": "pyproject.nix",
-        "rev": "47bd6f296502842643078d66128f7b5e5370790c",
-        "type": "github"
-      },
-      "original": {
-        "owner": "pyproject-nix",
-        "repo": "pyproject.nix",
-        "type": "github"
-      }
-    },
     "root": {
       "inputs": {
         "aagl": "aagl",
@@ -1875,8 +1755,6 @@
         "firefox-addons": "firefox-addons",
         "gpu-proxy": "gpu-proxy",
         "hermes-agent": "hermes-agent",
-        "hermes-webui": "hermes-webui",
-        "hermes-workspace": "hermes-workspace",
         "home-manager": "home-manager",
         "impermanence": "impermanence",
         "knowledge-fabric": "knowledge-fabric",
@@ -1961,29 +1839,6 @@
     "slimlock": {
       "inputs": {
         "nixpkgs": [
-          "dream2nix",
-          "purescript-overlay",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1688756706,
-        "narHash": "sha256-xzkkMv3neJJJ89zo3o2ojp7nFeaZc2G0fYwNXNJRFlo=",
-        "owner": "thomashoneyman",
-        "repo": "slimlock",
-        "rev": "cf72723f59e2340d24881fd7bf61cb113b4c407c",
-        "type": "github"
-      },
-      "original": {
-        "owner": "thomashoneyman",
-        "repo": "slimlock",
-        "type": "github"
-      }
-    },
-    "slimlock_2": {
-      "inputs": {
-        "nixpkgs": [
-          "hermes-workspace",
           "dream2nix",
           "purescript-overlay",
           "nixpkgs"

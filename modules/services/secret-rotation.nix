@@ -108,7 +108,7 @@ let
     TIER1[mission-control-auth-pass]="32:Mission Control auth password"
     TIER1[mission-control-api-key]="32:Mission Control API key"
     TIER1[vaultwarden-admin-token]="32:Vaultwarden admin panel token"
-    TIER1[hermes-webui-password]="24:Hermes WebUI admin password"
+    # hermes-webui-password -- archived (2026-05-16)
     TIER1[hermes-api-server-key]="64:Hermes API server signing key"
     TIER1[garnix-password]="24:Garnix CI password"
     TIER1[switch-admin]="24:TP-Link switch admin password"

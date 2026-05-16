@@ -157,14 +157,7 @@
     };
 
     # ── Newly extracted project flakes ───────────────────────
-    hermes-workspace = {
-      url = "path:/data/projects/own/hermes-workspace";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    hermes-webui = {
-      url = "path:/data/projects/own/hermes-webui";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # hermes-workspace and hermes-webui archived (2026-05-16)
     maplespike = {
       url = "path:/data/projects/own/maplespike";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -329,10 +322,9 @@
     packages.x86_64-linux.maplespike-mcp-image = pkgsWithOverlay.maplespike-mcp-image;
     packages.x86_64-linux.maplespike-api-image = pkgsWithOverlay.maplespike-api-image;
     packages.x86_64-linux.maplespike-ingest-image = pkgsWithOverlay.maplespike-ingest-image;
-    packages.x86_64-linux.maplespike-engine-image = pkgsWithOverlay.maplespike-engine-image;
-    packages.x86_64-linux.hermes-workspace-image = pkgsWithOverlay.hermes-workspace-image;
-    packages.x86_64-linux.hermes-webui-image = pkgsWithOverlay.hermes-webui-image;
-    overlays.default = (import ./overlay.nix) {inherit inputs;};
+packages.x86_64-linux.maplespike-engine-image = pkgsWithOverlay.maplespike-engine-image;
+     # hermes-workspace-image and hermes-webui-image archived (2026-05-16)
+     overlays.default = (import ./overlay.nix) {inherit inputs;};
     kubernetes = import ./kubernetes {inherit pkgs pkgsWithOverlay inputs;};
 
     apps.x86_64-linux.k8s-validate = {
