@@ -5,6 +5,7 @@
   lib,
   cluster,
   nexusPreferredAffinity,
+  aiModelsToml,
   ...
 }: let
   # nix-csi scratch image (proven pattern from llama-servers)
@@ -21,7 +22,7 @@
   };
 
   # AI Model Registry - Read from single source of truth
-  aiModels = lib.importTOML /etc/nixos/ai-models.toml;
+  aiModels = lib.importTOML aiModelsToml;
   defaultModel = aiModels.defaults.primary;
   fallbackModel = aiModels.defaults.fallback;
 
@@ -35,17 +36,28 @@
 
   # AI Inference Gateway — derive paths from flake input, not hardcoded store paths
 in {
-  config.kubernetes.objects.ai-inference = {
-    ServiceAccount.default = {};
-    ServiceAccount.ai-inference-gateway = {};
-    ServiceAccount.open-webui = {};
-    ServiceAccount.n8n-sa.automountServiceAccountToken = false;
+  config.kubernetes.objects = {
+    # ── Namespace ──────────────────────────────────────────────
+    none.Namespace.ai-inference = {
+      metadata.labels = managed // {
+        name = "ai-inference";
+        "pod-security.kubernetes.io/enforce" = "baseline";
+        "pod-security.kubernetes.io/audit" = "restricted";
+        "pod-security.kubernetes.io/warn" = "restricted";
+      };
+    };
 
-    ConfigMap.ai-gateway-config.data = {
+    # ── AI Inference ───────────────────────────────────────────
+    ai-inference.ServiceAccount.default = {};
+    ai-inference.ServiceAccount.ai-inference-gateway = {};
+    ai-inference.ServiceAccount.open-webui = {};
+    ai-inference.ServiceAccount.n8n-sa.automountServiceAccountToken = false;
+
+    ai-inference.ConfigMap.ai-gateway-config.data = {
       AUTH_MODE=""; # TODO: fill in value
       BACKEND_TYPE = "llama-cpp";
       BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
-      DEFAULT_MODEL = modelNames.qwen3.6-35b-iq3-s;
+      DEFAULT_MODEL = modelNames."qwen3.6-35b-iq3-s";
       RAG_ENABLED = "true";
       RAG_TOP_K = "5";
       QDRANT_URL = "http://qdrant.ai-inference.svc.cluster.local:6333";
@@ -58,7 +70,7 @@ in {
       CHUNK_SIZE = "512";
     };
 
-    ConfigMap.ai-inference-gateway-config.data = {
+    ai-inference.ConfigMap.ai-inference-gateway-config.data = {
       AUTH_MODE=""; # TODO: fill in value
       BACKEND_TYPE = "zai";
       BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
@@ -125,7 +137,7 @@ in {
     # NOTE: Prometheus + Grafana removed — see kubernetes/modules/monitoring.nix
     # for the canonical monitoring stack (monitoring namespace).
 
-    Deployment.open-webui = {
+    ai-inference.Deployment.open-webui = {
       metadata.labels.app = "open-webui";
       spec = {
         replicas = 1;
@@ -288,7 +300,7 @@ in {
       };
     };
 
-    Service.open-webui = {
+    ai-inference.Service.open-webui = {
       metadata.labels.app = "open-webui";
       spec = {
         type = "NodePort";
@@ -308,7 +320,7 @@ in {
     # ── Qdrant Vector Database ──────────────────────────────────
     # Persistent vector store for RAG, knowledge base, embeddings
     # Storage: hostPath at /storage/qdrant (data) + /storage/qdrant-snapshots
-    Deployment.qdrant = {
+    ai-inference.Deployment.qdrant = {
       metadata.labels.app = "qdrant";
       spec = {
         replicas = 1;
@@ -393,7 +405,7 @@ in {
       };
     };
 
-    Service.qdrant = {
+    ai-inference.Service.qdrant = {
       metadata.labels.app = "qdrant";
       spec = {
         type = "ClusterIP";
@@ -409,40 +421,42 @@ in {
       };
     };
 
-    Role.n8n-role.rules = [
-      {
-        apiGroups = [""];
-        resources = [
-          "configmaps"
-          "secrets"
-          "persistentvolumeclaims"
-        ];
-        verbs = [
-          "get"
-          "list"
-          "watch"
-          "create"
-          "update"
-        ];
-      }
-    ];
+    ai-inference.Role.n8n-role = {
+      rules = [
+        {
+          apiGroups = [""];
+          resources = [
+            "configmaps"
+            "secrets"
+            "persistentvolumeclaims"
+          ];
+          verbs = [
+            "get"
+            "list"
+            "watch"
+            "create"
+            "update"
+          ];
+        }
+      ];
+    };
 
-    RoleBinding.n8n-rolebinding = {
-      roleRef = {
-        apiGroup = "rbac.authorization.k8s.io";
-        kind = "Role";
-        name = "n8n-role";
-      };
+    ai-inference.RoleBinding.n8n-rolebinding = {
       subjects = [
         {
           kind = "ServiceAccount";
           name = "n8n-sa";
         }
       ];
+      roleRef = {
+        kind = "Role";
+        name = "n8n-role";
+        apiGroup = "rbac.authorization.k8s.io";
+      };
     };
 
     # Gateway needs ConfigMap access for GPU scheduler state (gpu_scheduler.py writes to kube-system)
-    ClusterRole.ai-inference-gateway-configmap.rules = [
+    none.ClusterRole.ai-inference-gateway-configmap.rules = [
       {
         apiGroups = [""];
         resources = ["configmaps"];
@@ -457,7 +471,7 @@ in {
       }
     ];
 
-    ClusterRoleBinding.ai-inference-gateway-configmap = {
+    none.ClusterRoleBinding.ai-inference-gateway-configmap = {
       roleRef = {
         apiGroup = "rbac.authorization.k8s.io";
         kind = "ClusterRole";
@@ -486,7 +500,7 @@ in {
     #   - Security filter (rate limiting, PII redaction)
     #   - Knowledge Fabric middleware (SearXNG + RAG + brain wiki)
 
-    Service.ai-inference-gateway = {
+    ai-inference.Service.ai-inference-gateway = {
       metadata.labels =
         managed
         // {
@@ -509,7 +523,7 @@ in {
 
     # AI Inference Gateway - migrated from systemd to K8s
     # Uses nix-csi scratch pattern (proven with llama-servers)
-    Deployment.ai-inference-gateway = {
+    ai-inference.Deployment.ai-inference-gateway = {
       metadata.labels =
         managed
         // {
@@ -709,20 +723,19 @@ in {
                     name = "nvidia-api-key";
                     key = "NVIDIA_API_KEY";
                   };
-NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
-                     name = "nvidia-api-key";
-                     key = "NVIDIA_API_KEY";
-                   };
-
-... [OUTPUT TRUNCATED - 11319 chars omitted out of 61319 total] ...
-
-"metrics";
-          }
-        ];
+                  NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
+                    name = "nvidia-api-key";
+                    key = "NVIDIA_API_KEY";
+                  };
+                };
+              };
+            };
+          };
+        };
       };
     };
 
-    Endpoints.llama-cpp-qwen = {
+    ai-inference.Endpoints.llama-cpp-qwen = {
       metadata.labels = managed // {app = "llama-cpp";};
       subsets = [
         {
@@ -746,7 +759,7 @@ NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
     # ── MCP Gateway Proxy removed (was forwarding localhost:8080 -> embed-server:30880) ──
 
     # ── Redis for AI Gateway ─────────────────────────────────────
-    Deployment.redis = {
+    ai-inference.Deployment.redis = {
       metadata.labels.app = "redis";
       spec = {
         replicas = 1;
@@ -817,7 +830,7 @@ NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
       };
     };
 
-    Service.redis-service = {
+    ai-inference.Service.redis-service = {
       metadata.labels.app = "redis";
       spec = {
         type = "ClusterIP";
@@ -836,12 +849,12 @@ NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
     # Secrets are populated by kubectl-apply-k8s-secrets systemd service
     # from agenix-decrypted files at /run/agenix/. These placeholder
     # definitions ensure the Secret objects exist for secretKeyRef lookups.
-    Secret.open-webui-secrets = {
+    ai-inference.Secret.open-webui-secrets = {
       type = "Opaque";
       stringData.webui-secret-key = "";
     };
 
-    Secret.ai-inference-gateway-secrets = {
+    ai-inference.Secret.ai-inference-gateway-secrets = {
       type = "Opaque";
       # TODO: Fill from agenix key `ai-gateway-zai-api-key` (see modules/system/agenix-secrets-registry.nix)
       stringData = {
@@ -850,45 +863,45 @@ NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
     };
 
     # Z.AI API key — populated from agenix (secrets/ai-gateway-zai-api-key.age)
-    Secret.zai-api-key = {
+    ai-inference.Secret.zai-api-key = {
       type = "Opaque";
-      stringData.ZAI_API_KEY="" # TODO: fill in value
+      stringData.ZAI_API_KEY = ""; # TODO: fill in value
     };
 
     # HuggingFace token — populated from agenix (secrets/huggingface-token.age)
-    Secret.hf-token = {
+    ai-inference.Secret.hf-token = {
       type = "Opaque";
       stringData.token = "";
     };
 
     # NVIDIA API key — populated from agenix (secrets/nvidia-api-key.age)
-    Secret.nvidia-api-key = {
+    ai-inference.Secret.nvidia-api-key = {
       type = "Opaque";
-      stringData.NVIDIA_API_KEY="" # TODO: fill in value
+      stringData.NVIDIA_API_KEY = ""; # TODO: fill in value
     };
 
 
     # Pollinations API key — populated from agenix (secrets/pollinations-api-key.age)
-    Secret.pollinations-api-key = {
+    ai-inference.Secret.pollinations-api-key = {
       type = "Opaque";
-      stringData.POLLINATIONS_API_KEY="" # TODO: fill in value
+      stringData.POLLINATIONS_API_KEY = ""; # TODO: fill in value
     };
 
     # Kilo API key — populated from agenix (secrets/kilo-api-key.age)
-    Secret.kilo-api-key = {
+    ai-inference.Secret.kilo-api-key = {
       type = "Opaque";
-      stringData.KILO_API_KEY="" # TODO: fill in value
+      stringData.KILO_API_KEY = ""; # TODO: fill in value
     };
 
     # OpenCode API key — populated from agenix (secrets/opencode-api-key.age)
-    Secret.opencode-api-key = {
+    ai-inference.Secret.opencode-api-key = {
       type = "Opaque";
-      stringData.OPENCODE_API_KEY="" # TODO: fill in value
+      stringData.OPENCODE_API_KEY = ""; # TODO: fill in value
     };
 
     # ── Additional NetworkPolicies ───────────────────────────────
     # Allow SearXNG pods to reach AI Inference Gateway
-    NetworkPolicy.allow-search-to-gateway = {
+    ai-inference.NetworkPolicy.allow-search-to-gateway = {
       spec = {
         podSelector.matchLabels.app = "ai-inference-gateway";
         policyTypes = ["Ingress"];
@@ -912,7 +925,7 @@ NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
     };
 
     # Allow gateway ingress from ingress-system and intra-namespace
-    NetworkPolicy.allow-gateway-ingress = {
+    ai-inference.NetworkPolicy.allow-gateway-ingress = {
       spec = {
         podSelector.matchLabels.app = "ai-inference-gateway";
         policyTypes = ["Ingress"];
@@ -941,7 +954,7 @@ NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
 
     # Allow gateway egress to dependencies
     # Includes ipBlock for hostNetwork pods (llama-servers use hostNetwork)
-    NetworkPolicy.allow-gateway-egress = {
+    ai-inference.NetworkPolicy.allow-gateway-egress = {
       spec = {
         podSelector.matchLabels.app = "ai-inference-gateway";
         policyTypes = ["Egress"];
@@ -1048,7 +1061,7 @@ NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
     };
 
     # Privacy filter network policies
-    NetworkPolicy.privacy-filter-ingress = {
+    ai-inference.NetworkPolicy.privacy-filter-ingress = {
       spec = {
         podSelector.matchLabels.app = "privacy-filter";
         policyTypes = ["Ingress"];
@@ -1075,7 +1088,7 @@ NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
       };
     };
 
-    NetworkPolicy.privacy-filter-egress = {
+    ai-inference.NetworkPolicy.privacy-filter-egress = {
       spec = {
         podSelector.matchLabels.app = "privacy-filter";
         policyTypes = ["Egress"];
@@ -1112,7 +1125,7 @@ NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
     };
 
     # Open WebUI network policy
-    NetworkPolicy.open-webui = {
+    ai-inference.NetworkPolicy.open-webui = {
       spec = {
         podSelector.matchLabels.app = "open-webui";
         policyTypes = [
@@ -1139,7 +1152,7 @@ NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
     # PII detection and masking using openai/privacy-filter model
     # Requires transformers >= 5.6.0 (model uses openai_privacy_filter architecture)
     # Scale to 1 when nixpkgs has transformers 5.6.0+
-    Deployment.privacy-filter = {
+    ai-inference.Deployment.privacy-filter = {
       metadata.labels =
         managed
         // {
@@ -1255,7 +1268,7 @@ NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
       };
     };
 
-    Service.privacy-filter = {
+    ai-inference.Service.privacy-filter = {
       metadata.labels =
         managed
         // {
@@ -1281,7 +1294,7 @@ NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
     # 0 replicas, no pods running. Disabled until image is built.
     # Replaces: kubernetes-manifests/kb-mcp/deployment.yaml, service.yaml
     # Provides vector search over technical eBooks via FastMCP protocol
-    Deployment.kb-mcp = {
+    ai-inference.Deployment.kb-mcp = {
       metadata.labels =
         managed
         // {
@@ -1436,7 +1449,7 @@ NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
       };
     };
 
-    Service.kb-mcp = {
+    ai-inference.Service.kb-mcp = {
       metadata.labels =
         managed
         // {

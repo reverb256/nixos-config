@@ -226,14 +226,19 @@ in
     };
 
     # ── MCP ServiceAccounts & RBAC (per namespace) ───────────
-    for namespace in ["maplespike-prod" "maplespike-staging"]; {
-      "${namespace}".ServiceAccount."maplespike-mcp-${namespace}" = {
-        metadata.labels = managed;
-        metadata.annotations = {
-          "kubernetes.io/enforce-no-automount-token" = "false";
-        };
+    "maplespike-prod".ServiceAccount."maplespike-mcp-maplespike-prod" = {
+      metadata.labels = managed;
+      metadata.annotations = {
+        "kubernetes.io/enforce-no-automount-token" = "false";
       };
-    }
+    };
+
+    "maplespike-staging".ServiceAccount."maplespike-mcp-maplespike-staging" = {
+      metadata.labels = managed;
+      metadata.annotations = {
+        "kubernetes.io/enforce-no-automount-token" = "false";
+      };
+    };
 
     none.ClusterRole.maplespike-mcp-audit = {
       metadata.labels = managed;
@@ -256,57 +261,103 @@ in
       ];
     };
 
-    for namespace in ["maplespike-prod" "maplespike-staging"]; {
-      none.ClusterRoleBinding."maplespike-mcp-audit-${namespace}" = {
-        metadata.labels = managed;
-        roleRef = {
-          apiGroup = "rbac.authorization.k8s.io";
-          kind = "ClusterRole";
-          name = "maplespike-mcp-audit";
-        };
-        subjects = [
-          {
-            kind = "ServiceAccount";
-            name = "maplespike-mcp-${namespace}";
-            inherit namespace;
-          }
-        ];
+    none.ClusterRoleBinding."maplespike-mcp-audit-maplespike-prod" = {
+      metadata.labels = managed;
+      roleRef = {
+        apiGroup = "rbac.authorization.k8s.io";
+        kind = "ClusterRole";
+        name = "maplespike-mcp-audit";
       };
+      subjects = [
+        {
+          kind = "ServiceAccount";
+          name = "maplespike-mcp-maplespike-prod";
+          namespace = "maplespike-prod";
+        }
+      ];
+    };
+
+    none.ClusterRoleBinding."maplespike-mcp-audit-maplespike-staging" = {
+      metadata.labels = managed;
+      roleRef = {
+        apiGroup = "rbac.authorization.k8s.io";
+        kind = "ClusterRole";
+        name = "maplespike-mcp-audit";
+      };
+      subjects = [
+        {
+          kind = "ServiceAccount";
+          name = "maplespike-mcp-maplespike-staging";
+          namespace = "maplespike-staging";
+        }
+      ];
     };
 
     # ── Services (per namespace) ──────────────────────────────
-    for namespace in ["maplespike-prod" "maplespike-staging"]; {
-      core.Service."maplespike-api-${namespace}" = {
-        inherit namespace;
-        metadata.labels = managed // { app = "maplespike-api"; };
-        spec = {
-          selector = { app = "maplespike-api"; };
-          ports = [
-            { port = 8080; targetPort = 8082; protocol = "TCP"; name = "http"; }
-            { port = 8082; targetPort = 8082; protocol = "TCP"; name = "api"; }
-          ];
-          type = "ClusterIP";
-        };
+    core.Service."maplespike-api-maplespike-prod" = {
+      namespace = "maplespike-prod";
+      metadata.labels = managed // { app = "maplespike-api"; };
+      spec = {
+        selector = { app = "maplespike-api"; };
+        ports = [
+          { port = 8080; targetPort = 8082; protocol = "TCP"; name = "http"; }
+          { port = 8082; targetPort = 8082; protocol = "TCP"; name = "api"; }
+        ];
+        type = "ClusterIP";
       };
+    };
 
-      core.Service."maplespike-mcp-${namespace}" = {
-        inherit namespace;
-        metadata.labels = managed // { app = "maplespike-mcp"; };
-        spec = {
-          selector = { app = "maplespike-mcp"; };
-          ports = [{ port = 3001; targetPort = 3001; protocol = "TCP"; name = "mcp"; }];
-          type = "ClusterIP";
-        };
+    core.Service."maplespike-mcp-maplespike-prod" = {
+      namespace = "maplespike-prod";
+      metadata.labels = managed // { app = "maplespike-mcp"; };
+      spec = {
+        selector = { app = "maplespike-mcp"; };
+        ports = [{ port = 3001; targetPort = 3001; protocol = "TCP"; name = "mcp"; }];
+        type = "ClusterIP";
       };
+    };
 
-      core.Service."maplespike-portal-${namespace}" = {
-        inherit namespace;
-        metadata.labels = managed // { app = "maplespike-portal"; };
-        spec = {
-          selector = { app = "maplespike-portal"; };
-          ports = [{ port = 80; targetPort = 8080; protocol = "TCP"; name = "http"; }];
-          type = "ClusterIP";
-        };
+    core.Service."maplespike-portal-maplespike-prod" = {
+      namespace = "maplespike-prod";
+      metadata.labels = managed // { app = "maplespike-portal"; };
+      spec = {
+        selector = { app = "maplespike-portal"; };
+        ports = [{ port = 80; targetPort = 8080; protocol = "TCP"; name = "http"; }];
+        type = "ClusterIP";
+      };
+    };
+
+    core.Service."maplespike-api-maplespike-staging" = {
+      namespace = "maplespike-staging";
+      metadata.labels = managed // { app = "maplespike-api"; };
+      spec = {
+        selector = { app = "maplespike-api"; };
+        ports = [
+          { port = 8080; targetPort = 8082; protocol = "TCP"; name = "http"; }
+          { port = 8082; targetPort = 8082; protocol = "TCP"; name = "api"; }
+        ];
+        type = "ClusterIP";
+      };
+    };
+
+    core.Service."maplespike-mcp-maplespike-staging" = {
+      namespace = "maplespike-staging";
+      metadata.labels = managed // { app = "maplespike-mcp"; };
+      spec = {
+        selector = { app = "maplespike-mcp"; };
+        ports = [{ port = 3001; targetPort = 3001; protocol = "TCP"; name = "mcp"; }];
+        type = "ClusterIP";
+      };
+    };
+
+    core.Service."maplespike-portal-maplespike-staging" = {
+      namespace = "maplespike-staging";
+      metadata.labels = managed // { app = "maplespike-portal"; };
+      spec = {
+        selector = { app = "maplespike-portal"; };
+        ports = [{ port = 80; targetPort = 8080; protocol = "TCP"; name = "http"; }];
+        type = "ClusterIP";
+      };
     };
   };
 }
