@@ -100,7 +100,10 @@ in {
       REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
       SECONDARY_BACKEND_URL = "http://llama-vllm-3060ti.ai-inference.svc.cluster.local:8040";
       SECONDARY_BACKEND_MODEL = defaultModel;
-      DISCOVERY_BACKENDS = ''[{"url": "http://llama-vllm-3060ti.ai-inference.svc.cluster.local:8040/v1", "model": "${defaultModel}", "name": "llama-vllm-3060ti"}]''; # vLLM Qwen3.5-2B-AWQ on 3060Ti via K8s service
+      DISCOVERY_BACKENDS = ''[
+        {"url": "http://llama-vllm-3060ti.ai-inference.svc.cluster.local:8040/v1", "model": "${defaultModel}", "name": "llama-vllm-3060ti"},
+        {"url": "http://10.1.1.110:8080/v1", "model": "opencode/deepseek-v4-flash", "name": "opencode-go", "provider": "opencode-go"}
+      ]'';
       PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
       PRIVACY_FILTER_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
@@ -1468,6 +1471,16 @@ PI_CONFIG = "/home/j_kro/.config/pi/config.yaml"
 OMP_CONFIG = "/home/j_kro/.omp/agent/models.json"
 API_KEY = os.environ.get("API_KEY", "")
 
+# Direct URLs for local models (bypass gateway catalog)
+LOCAL_URLS = {
+    "local/qwen3.5-2b-awq": "http://10.1.1.120:8040/v1",
+    "local/qwen3.6-moe-35b": "http://10.1.1.110:1237/v1",
+    "local/qwen3.5-4b": "http://10.1.1.140:1235/v1",
+}
+
+# OpenCode Go middleware for NIM models
+OPENCODE_URL = "http://10.1.1.110:8080/v1"
+
 os.makedirs(OUT, exist_ok=True)
 
 # Retry gateway fetch (handles transient failures)
@@ -1488,31 +1501,23 @@ gw_ids = {m["id"] for m in models["data"]}
 print(f"Gateway: {len(models['data'])} models")
 
 CURATED = """
-glm-5.1|primary|GLM-5.1 744B MoE orchestrator
-glm-5-turbo|primary|GLM-5 Turbo fast agentic
-glm-4.7|primary|GLM-4.7 358B MoE coding
-glm-4.5-air|fast|GLM-4.5 Air ultra-fast
-glm-4.7-flash|fast|GLM-4.7 Flash fast vision
-z-ai/glm-5v-turbo|vision|GLM-5V Turbo vision
-nvidia/nemotron-3-nano-30b-a3b|fast|Nemotron Nano 30B reasoning
-nvidia/nemotron-nano-9b-v2|fast|Nemotron Nano 9B
-nvidia/llama-3.3-nemotron-super-49b-v1|code|Nemotron Super 49B coding
-qwen/qwen3-coder|code|Qwen3 Coder 262K context
-qwen/qwen3-coder-480b-a35b-instruct|code|Qwen3 Coder 480B
-qwen/qwen3.5-flash-02-23|context|Qwen3.5 Flash 1M context
-qwen/qwen3.5-plus-02-15|context|Qwen3.5 Plus 1M context
-qwen/qwen3.5-35b-a3b|reasoning|Qwen3.5 35B MoE
-qwen/qwen3-next-80b-a3b-instruct|reasoning|Qwen3 Next 80B
-mistralai/mistral-large-3-675b-instruct-2512|reasoning|Mistral Large 3 675B
-mistralai/mistral-small-4-119b-2603|code|Mistral Small 4 119B
-meta/llama-3.1-405b-instruct|general|LLaMA 3.1 405B
-deepseek-ai/deepseek-v4-pro|reasoning|DeepSeek V4 Pro 1M ctx
-google/gemma-4-26b-a4b-it:free|free|Gemma 4 26B free
-qwen/qwen3-next-80b-a3b-instruct:free|free|Qwen3 Next 80B free
+glm-5.1|primary|GLM-5.1 744B MoE orchestrator (2x/3x quota)
+glm-5-turbo|primary|GLM-5 Turbo fast agentic (2x/3x quota)
+glm-4.7|primary|GLM-4.7 358B MoE (1x quota)
+glm-4.5-air|fast|GLM-4.5 Air ultra-fast (1x quota)
+local/qwen3.5-2b-awq|fast|Qwen3.5 2B AWQ (Nexus 3060Ti, local)
+local/qwen3.6-moe-35b|reasoning|Carnice Qwen3.6 35B MoE IQ4_XS (Zephyr 3090, local, vision)
+local/qwen3.5-4b|fast|Qwen3.5 4B Q4 (Sentry AMD, local, vision)
+deepseek-ai/deepseek-v4-flash|code|DeepSeek V4 Flash (NIM, rate-limited, 1M ctx)
+opencode/deepseek-v4-flash|code|DeepSeek V4 Flash (OpenCode Go, 5h+weekly cap, fallback)
+qwen/qwen3.5-397b-a17b|code|Qwen3.5 397B A17B (NIM, rate-limited, vision)
+qwen/qwen3.5-122b-a10b|code|Qwen3.5 122B A10B (NIM, rate-limited)
+qwen/qwen3.5-flash-02-23|fast|Qwen3.5 Flash 1M context (rate-limited)
+qwen/qwen3-next-80b-a3b-instruct|reasoning|Qwen3 Next 80B (NIM, rate-limited)
+mistralai/mistral-large-3-675b-instruct-2512|reasoning|Mistral Large 3 675B (rate-limited)
+deepseek-ai/deepseek-v4-pro|reasoning|DeepSeek V4 Pro 1M ctx (NIM, rate-limited)
 kilo-auto/free|free|Kilo auto free router
 openrouter/free|free|OpenRouter free router
-nvidia/nemotron-3-super-120b-a12b:free|free|Nemotron 120B free
-meta-llama/llama-3.3-70b-instruct:free|free|LLaMA 3.3 70B free
 """.strip()
 
 CAT_NAMES = {
@@ -1528,12 +1533,12 @@ def get_ctx(mid):
     return 262144
 
 def is_vision(mid):
-    return any(x in mid.lower() for x in ["vl", "vision", "5v"])
+    return any(x in mid.lower() for x in ["vl", "vision", "5v", "3.6", "3.5-4b"])
 
 def is_reasoning(mid, cat):
     if cat in ("reasoning", "primary"):
         return True
-    return any(x in mid.lower() for x in ["reasoning", "large", "675b", "405b", "340b", "deepseek", "next-80"])
+    return any(x in mid.lower() for x in ["reasoning", "large", "675b", "405b", "340b", "deepseek", "next-80", "moe-35b", "v4-flash"])
 
 def backup(path):
     if os.path.exists(path):
@@ -1543,22 +1548,54 @@ def backup(path):
         return True
     return False
 
-# Build model lists
-omp_models = []
+# Build model lists and providers
+omp_providers = {"gateway": {
+    "baseUrl": HOST_GATEWAY,
+    "api": "openai-completions",
+    "compat": {
+        "supportsUsageInStreaming": True,
+        "maxTokensField": "max_tokens",
+    },
+    "models": [],
+}}
+omp_models_local = []  # Local models need separate providers
+omp_models_opencode = []  # OpenCode models through middleware
+
 pi_lines = [
     "# Pi config - Auto-synced from AI Inference Gateway",
     "# DO NOT EDIT — regenerated by model-sync CronJob every 6h",
     "# Edits will be lost on next sync. Change CURATED list in ai-inference.nix instead.",
     "",
     "model: glm-5.1",
-    "smol: glm-4.5-air",
+    "smol: local/qwen3.5-2b-awq",
     "plan: glm-4.7",
-    "slow: glm-5-turbo",
+    "slow: local/qwen3.6-moe-35b",
+    "",
+    "providers:",
+    "  gateway:",
+    "    type: openai-compatible",
+    f"    baseURL: {HOST_GATEWAY}",
+    "    apiKey: ''${ZAI_API_KEY}",
+    "  local-vllm:",
+    "    type: openai-compatible",
+    "    baseURL: http://10.1.1.120:8040/v1",
+    "  local-zephyr-3090:",
+    "    type: openai-compatible",
+    "    baseURL: http://10.1.1.110:1237/v1",
+    "  local-sentry:",
+    "    type: openai-compatible",
+    "    baseURL: http://10.1.1.140:1235/v1",
+    "  opencode-go:",
+    "    type: openai-compatible",
+    f"    baseURL: {OPENCODE_URL}",
+    "    apiKey: ''${OPENCODE_GO_API_KEY}",
     "",
     "models:",
 ]
 found = 0
 missing = 0
+local_found = 0
+opencode_found = 0
 last_cat = ""
 
 for line in CURATED.split("\n"):
@@ -1566,12 +1603,86 @@ for line in CURATED.split("\n"):
     if len(parts) != 3 or not parts[0]:
         continue
     mid, cat, desc = parts
+
+    # Handle local/ prefixed models
+    if mid.startswith("local/"):
+        local_found += 1
+        print(f"  LOC  {mid}")
+        url = LOCAL_URLS.get(mid)
+        if not url:
+            print(f"  ERROR: No URL for {mid}")
+            continue
+        # Extract provider name from URL
+        if "8040" in url:
+            provider = "local-vllm"
+        elif "1237" in url:
+            provider = "local-zephyr-3090"
+        else:
+            provider = "local-sentry"
+        ctx = 262144  # Default for local models
+        omp_models_local.append({
+            "id": mid,
+            "name": desc,
+            "provider": provider,
+            "reasoning": is_reasoning(mid, cat),
+            "input": ["text", "image"] if is_vision(mid) else ["text"],
+            "contextWindow": ctx,
+            "maxTokens": min(ctx, 262144),
+        })
+        if cat != last_cat:
+            pi_lines.append(f"  # === {CAT_NAMES.get(cat, cat.upper())} ===")
+            last_cat = cat
+        clean = mid.replace("local/", "")
+        pi_lines.extend([
+            f"  - id: {mid}",
+            f"    name: {clean}",
+            f"    provider: {provider}",
+            f"    description: {desc}",
+            "",
+        ])
+        continue
+
+    # Handle opencode/ prefixed models (via middleware)
+    if mid.startswith("opencode/"):
+        opencode_found += 1
+        print(f"  OPE  {mid}")
+        # Remove opencode/ prefix for gateway model name
+        gw_mid = mid.replace("opencode/", "")
+        if gw_mid in gw_ids:
+            found += 1
+            ctx = get_ctx(gw_mid)
+            omp_models_opencode.append({
+                "id": mid,
+                "name": desc,
+                "provider": "opencode-go",
+                "reasoning": is_reasoning(mid, cat),
+                "input": ["text", "image"] if is_vision(mid) else ["text"],
+                "contextWindow": ctx,
+                "maxTokens": min(ctx, 262144),
+            })
+            if cat != last_cat:
+                pi_lines.append(f"  # === {CAT_NAMES.get(cat, cat.upper())} ===")
+                last_cat = cat
+            clean = mid.replace("opencode/", "")
+            pi_lines.extend([
+                f"  - id: {mid}",
+                f"    name: {clean}",
+                "    provider: opencode-go",
+                f"    description: {desc}",
+                "",
+            ])
+        else:
+            missing += 1
+            print(f"  MISS {mid} (not in gateway)")
+        continue
+
+    # Handle gateway models
     if mid in gw_ids:
         found += 1
         print(f"  OK   {mid}")
         ctx = get_ctx(mid)
         max_tok = min(ctx, 262144)
-        omp_models.append({
+        omp_providers["gateway"]["models"].append({
             "id": mid,
             "name": desc,
             "reasoning": is_reasoning(mid, cat),
@@ -1599,27 +1710,62 @@ if missing > 0:
 else:
     print(f"All {found} curated models found on gateway")
 
-# Generate OmP JSON
-omp = {
-    "providers": {
-        "gateway": {
-            "baseUrl": HOST_GATEWAY,
-            "api": "openai-completions",
-            "compat": {
-                "supportsUsageInStreaming": True,
-                "maxTokensField": "max_tokens",
-            },
-            "models": omp_models,
-        }
+if local_found > 0:
+    print(f"Local models: {local_found} (direct URLs)")
+
+if opencode_found > 0:
+    print(f"OpenCode models: {opencode_found} (via middleware)")
+
+print(f"Total: {found + local_found + opencode_found} models configured")
+
+# Generate OmP JSON with all providers
+omp_providers["local-vllm"] = {
+    "baseUrl": LOCAL_URLS["local/qwen3.5-2b-awq"],
+    "api": "openai-completions",
+    "compat": {
+        "supportsUsageInStreaming": True,
+        "maxTokensField": "max_tokens",
     },
+    "models": [m for m in omp_models_local if m["provider"] == "local-vllm"],
+}
+omp_providers["local-zephyr-3090"] = {
+    "baseUrl": LOCAL_URLS["local/qwen3.6-moe-35b"],
+    "api": "openai-completions",
+    "compat": {
+        "supportsUsageInStreaming": True,
+        "maxTokensField": "max_tokens",
+    },
+    "models": [m for m in omp_models_local if m["provider"] == "local-zephyr-3090"],
+}
+omp_providers["local-sentry"] = {
+    "baseUrl": LOCAL_URLS["local/qwen3.5-4b"],
+    "api": "openai-completions",
+    "compat": {
+        "supportsUsageInStreaming": True,
+        "maxTokensField": "max_tokens",
+    },
+    "models": [m for m in omp_models_local if m["provider"] == "local-sentry"],
+}
+omp_providers["opencode-go"] = {
+    "baseUrl": OPENCODE_URL,
+    "api": "openai-completions",
+    "compat": {
+        "supportsUsageInStreaming": True,
+        "maxTokensField": "max_tokens",
+    },
+    "models": omp_models_opencode,
+}
+
+omp = {
+    "providers": omp_providers,
     "modelRoles": {
-        "default": modelNames.glm-5.1,
-        "smol": "glm-4.5-air",
-        "slow": "mistralai/mistral-large-3-675b-instruct-2512",
-        "plan": "nvidia/llama-3.3-nemotron-super-49b-v1",
-        "commit": "qwen/qwen3-coder-480b-a35b-instruct",
-        "code": "qwen/qwen3-coder-480b-a35b-instruct",
-        "vision": "z-ai/glm-5v-turbo",
+        "default": "glm-4.7",  # 1x quota, always cheap
+        "smol": "local/qwen3.5-2b-awq",  # Unlimited, fastest local
+        "slow": "local/qwen3.6-moe-35b",  # Unlimited, best reasoning
+        "plan": "deepseek-ai/deepseek-v4-flash",  # NIM, rate-limited fallback
+        "commit": "local/qwen3.6-moe-35b",  # Unlimited primary
+        "code": "deepseek-ai/deepseek-v4-flash",  # NIM, rate-limited
+        "vision": "local/qwen3.6-moe-35b",  # Unlimited, local vision
     },
 }
 
@@ -1655,8 +1801,9 @@ with open(omp_path, "w") as f:
 with open(pi_path, "w") as f:
     f.write("\n".join(pi_lines) + "\n")
 
-print(f"Staging: {omp_path} ({len(omp_models)} models)")
-print(f"Staging: {pi_path} ({len(omp_models)} models)")
+total_models = len(omp_providers["gateway"]["models"]) + len(omp_models_local) + len(omp_models_opencode)
+print(f"Staging: {omp_path} ({total_models} models)")
+print(f"Staging: {pi_path} ({total_models} models)")
 
 # Deploy to agent config paths with backup
 deployed = 0
@@ -1715,8 +1862,12 @@ print(f"Sync complete: {deployed} configs deployed")
                     value = cluster.gatewayUrl;
                   };
                   ZAI_API_KEY.valueFrom.secretKeyRef = {
-                    name = "ai-inference-gateway-secrets";
-                    key = "zai-api-key";
+                    name = "zai-api-key";
+                    key = "ZAI_API_KEY";
+                  };
+                  OPENCODE_GO_API_KEY.valueFrom.secretKeyRef = {
+                    name = "opencode-api-key";
+                    key = "OPENCODE_API_KEY";
                   };
                 };
                 resources = {

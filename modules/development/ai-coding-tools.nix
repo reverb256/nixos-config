@@ -18,7 +18,7 @@
 
   # Gateway URL from network-constants (single source of truth)
   # Use nodePort for host tools (ClusterIP only accessible from within K8s)
-  gatewayUrl = "http://${config.networking.cluster.hosts.zephyr.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-gateway}";
+  gatewayUrl = "http://${config.networking.cluster.hosts.zephyr.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-inference-gateway}";
 
   droidGen = import ./ai-coding-tools/droid.nix {
     inherit cfg pkgs gatewayUrl;
