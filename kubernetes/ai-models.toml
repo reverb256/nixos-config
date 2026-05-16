@@ -1,0 +1,105 @@
+# AI Model Registry - Single Source of Truth
+# Last Updated: 2026-05-14
+
+[defaults]
+# Primary default model for all backends
+primary = "qwen3.5-2b-awq"
+# Fallback model for secondary backends
+fallback = "glm-5-turbo"
+
+[models]
+# Model registry with aliases and metadata
+
+[models.qwen3.5-2b-awq]
+name = "Qwen3.5-2B-AWQ"
+description = "Fast 2B AWQ-quantized model for agentic work"
+context_length = 200000
+capabilities = ["chat", "completion", "vision", "fast"]
+backends = ["llama-vllm-3060ti", "llama-zephyr-3090", "llama-sentry"]
+
+[models.qwen3.6-35b-iq3-s]
+name = "Qwen3.6-35B-A3B-UD-IQ3_S.gguf"
+description = "35B IQ3_S quantized for quality reasoning"
+context_length = 262144
+capabilities = ["chat", "completion", "vision", "reasoning"]
+backends = ["llama-sentry"]
+
+[models.carnice-qwen3.6-moe-35b]
+name = "Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf"
+description = "35B MoE for high-end reasoning"
+context_length = 262144
+capabilities = ["chat", "completion", "vision", "reasoning"]
+backends = ["llama-zephyr-3090"]
+
+[models.glm-5-turbo]
+name = "glm-5-turbo"
+description = "GLM-5 Turbo fast agentic"
+context_length = 128000
+capabilities = ["chat", "completion", "fast"]
+backends = ["zai"]
+
+[models.glm-5.1]
+name = "glm-5.1"
+description = "GLM-5.1 744B MoE orchestrator"
+context_length = 128000
+capabilities = ["chat", "completion", "reasoning"]
+backends = ["zai"]
+
+[models.glm-4.7]
+name = "glm-4.7"
+description = "GLM-4.7 358B MoE coding"
+context_length = 128000
+capabilities = ["chat", "completion", "coding"]
+backends = ["zai"]
+
+[models.glm-4.5-air]
+name = "glm-4.5-air"
+description = "GLM-4.5 Air ultra-fast"
+context_length = 128000
+capabilities = ["chat", "completion", "fast"]
+backends = ["zai"]
+
+[models.glm-4.7-flash]
+name = "glm-4.7-flash"
+description = "GLM-4.7 Flash fast vision"
+context_length = 128000
+capabilities = ["chat", "completion", "vision", "fast"]
+backends = ["zai"]
+
+[models.deepseek-v4-flash]
+name = "deepseek-ai/deepseek-v4-flash"
+description = "DeepSeek V4 Flash for coding"
+context_length = 1048576
+capabilities = ["chat", "completion", "coding"]
+backends = ["opencode-go"]
+
+[backends]
+# Backend configuration
+
+[backends.llama-vllm-3060ti]
+type = "vllm"
+url = "http://10.1.1.120:8040/v1"
+host = "nexus"
+gpu = "RTX 3060 Ti 8GB"
+
+[backends.llama-zephyr-3090]
+type = "llama-cpp"
+url = "http://10.1.1.110:1237/v1"
+host = "zephyr"
+gpu = "RTX 3090 24GB"
+
+[backends.llama-sentry]
+type = "llama-cpp"
+url = "http://10.1.1.140:1235/v1"
+host = "sentry"
+gpu = "Radeon RX 5600 XT 6GB (Vulkan)"
+
+[backends.zai]
+type = "zai"
+url = "http://10.1.1.140:8080"
+host = "sentry"
+
+[backends.opencode-go]
+type = "openai-compatible"
+url = "https://api.opencode.go/v1"
+host = "external"
