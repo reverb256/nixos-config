@@ -1,4 +1,4 @@
-{
+rec {
   # Shared cluster constants — single source of truth for BOTH
   # K8s module evaluation (imported by kubernetes/default.nix) and
   # NixOS options (imported by modules/network-constants.nix for defaults).
@@ -7,19 +7,27 @@
   subnet = "10.1.1.0/24";
   podCidr = "10.244.0.0/16";
 
+  zephyrIp = "10.1.1.110";
+  nexusIp = "10.1.1.120";
+  forgeIp = "10.1.1.130";
+  sentryIp = "10.1.1.140";
+
   hosts = {
-    zephyr.ip = "10.1.1.110";
-    nexus.ip = "10.1.1.120";
-    forge.ip = "10.1.1.130";
-    sentry.ip = "10.1.1.140";
+    zephyr.ip = zephyrIp;
+    nexus.ip = nexusIp;
+    forge.ip = forgeIp;
+    sentry.ip = sentryIp;
   };
 
   kubernetes = {
-    gatewayUrl = "http://10.1.1.110:8080/v1";  # zephyr NodePort — used by host agents (Pi/OmP)
+    gatewayUrl = "http://${zephyrIp}:8080/v1";  # zephyr AI Inference Gateway
     vip = "10.1.1.100";
     apiPort = 6443;
     clusterDnsIP = "10.0.0.10";
   };
+
+  # Import service-ports for use in other modules
+  nodePorts = import ./service-ports.nix;
 
   # Per-host xmrig CPU miner toggles (default: all enabled)
   # Set to false to exclude a host's miner from the manifest entirely.
