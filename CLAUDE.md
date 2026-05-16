@@ -311,6 +311,66 @@ Haven, MC, Kagent have no native OIDC — proxy auth correct.
 
 ---
 
+## GITHUB ISSUES WORKFLOW (MANDATORY)
+
+**ALL non-trivial work MUST be tracked in GitHub Issues.**
+
+### When to Create an Issue
+
+- Any task taking >15 minutes
+- Security hardening work (P1)
+- Features or polish (P2)
+- Bug fixes with cross-file impact
+- Module expansion or data integration
+- Infrastructure changes
+
+### Workflow
+
+```bash
+# Before starting work — check for existing issues
+gh issue list --repo reverb256/nixos-config
+gh issue list --repo reverb256/maplespike
+
+# Create new issue if needed
+gh issue create --repo <repo> --title "Title" --body "Description" --label "p1,p2"
+
+# Claim work
+gh issue edit --repo <repo> <number> --assignee "@me"
+
+# Mark in progress
+gh issue edit --repo <repo> <number> --add-label "in-progress"
+
+# Reference in commits ( closes #<number> auto-closes)
+git commit -m "feat: description
+
+Fixes #<number>"
+
+# Close when done
+gh issue close --repo <repo> <number>
+```
+
+### Labels
+
+| Label | Color | Meaning |
+|-------|-------|---------|
+| `p1` | orange | High priority — security, stabilization |
+| `p2` | blue | Medium priority — features, polish |
+| `security` | red | Security-related |
+| `k8s` | cyan | Kubernetes work |
+| `frontend` | yellow | UI/portal work |
+| `module` | teal | Data module work |
+
+### Repositories
+
+| Repo | Purpose | Issues Enabled |
+|------|---------|----------------|
+| `reverb256/nixos-config` | NixOS cluster, K8s manifests | ❌ Disabled — use MapleSpike |
+| `reverb256/maplespike` | MapleSpike app, data modules | ✅ Enabled — ALL issues here |
+
+**IMPORTANT:** Create ALL issues in `maplespike` repo, even for cluster work.
+
+---
+
 ## REFERENCE DOCUMENTS
 
 | Document | Purpose |
