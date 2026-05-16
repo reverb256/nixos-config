@@ -303,15 +303,15 @@ in {
       };
       dev-maplespike-api = {
         domain = "dev-maplespike-api.lan";
-        backend = "127.0.0.1:${toString ports.dev-maplespike-api}";
+        backend = "10.1.1.120:${toString ports.dev-maplespike-api}";
       };
       dev-maplespike-mcp = {
         domain = "dev-maplespike-mcp.lan";
-        backend = "127.0.0.1:${toString ports.dev-maplespike-mcp}";
+        backend = "10.1.1.120:${toString ports.dev-maplespike-mcp}";
       };
       dev-maplespike = {
         domain = "dev.maplespike.lan";
-        backend = "127.0.0.1:${toString ports.dev-maplespike-portal}";
+        backend = "10.1.1.120:${toString ports.dev-maplespike-portal}";
       };
     };
   };
