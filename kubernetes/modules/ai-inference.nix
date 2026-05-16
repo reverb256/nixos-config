@@ -27,10 +27,10 @@
 
   # Model name mapping (aliases to full model identifiers)
   modelNames = {
-    qwen3.5-2b-awq = aiModels.models.qwen3_5-2b-awq.name or "qwen3.5-2b-awq";
-    qwen3.6-35b-iq3-s = aiModels.models.qwen3_6-35b-iq3-s.name or "Qwen3.6-35B-A3B-UD-IQ3_S.gguf";
-    glm-5-turbo = aiModels.models.glm-5-turbo.name or "glm-5-turbo";
-    glm-5.1 = aiModels.models.glm-5_1.name or "glm-5.1";
+    "qwen3.5-2b-awq" = aiModels.models.qwen3_5-2b-awq.name or "qwen3.5-2b-awq";
+    "qwen3.6-35b-iq3-s" = aiModels.models.qwen3_6-35b-iq3-s.name or "Qwen3.6-35B-A3B-UD-IQ3_S.gguf";
+    "glm-5-turbo" = aiModels.models.glm-5-turbo.name or "glm-5-turbo";
+    "glm-5.1" = aiModels.models.glm-5_1.name or "glm-5.1";
   };
 
   # AI Inference Gateway — derive paths from flake input, not hardcoded store paths
@@ -709,9 +709,10 @@ in {
                     name = "nvidia-api-key";
                     key = "NVIDIA_API_KEY";
                   };
-                  NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
-                    name = "nvidia-api-key";
-                    key = "NVIDIA_API_KEY
+NVIDIA_NIM_API_KEY.valueFrom.secretKeyRef = {
+                     name = "nvidia-api-key";
+                     key = "NVIDIA_API_KEY";
+                   };
 
 ... [OUTPUT TRUNCATED - 11319 chars omitted out of 61319 total] ...
 

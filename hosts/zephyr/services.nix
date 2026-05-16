@@ -14,7 +14,7 @@ in {
       language = "en";
     };
 
-    hermes-workspace.enable = true;
+    # hermes-workspace — archived (project deleted 2026-05-16)
     hermes-cli = {
       enable = true;
       apiKeyFile = config.age.secrets.zai-api-key.path;
