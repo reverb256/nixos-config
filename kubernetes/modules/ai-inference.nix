@@ -71,7 +71,7 @@ in {
     };
 
     ai-inference.ConfigMap.ai-inference-gateway-config.data = {
-      AUTH_MODE=""; # TODO: fill in value
+      AUTH_MODE="token"; # Token-based authentication (set GATEWAY_TOKEN via Secret)
       BACKEND_TYPE = "zai";
       BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
       BACKEND_FALLBACK_URLS = ""; # Dead backends removed (see git log)
@@ -110,10 +110,10 @@ in {
       MAX_REQUEST_SIZE = "10485760";
       CIRCUIT_BREAKER_ENABLED = "true";
       REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
-      SECONDARY_BACKEND_URL = "http://llama-vllm-3060ti.ai-inference.svc.cluster.local:8040";
+      SECONDARY_BACKEND_URL = "http://llama-qwen-vllm-nexus.ai-inference.svc.cluster.local:8040";
       SECONDARY_BACKEND_MODEL = defaultModel;
       DISCOVERY_BACKENDS = ''[
-        {"url": "http://llama-vllm-3060ti.ai-inference.svc.cluster.local:8040/v1", "model": "${defaultModel}", "name": "llama-vllm-3060ti"},
+        {"url": "http://llama-qwen-vllm-nexus.ai-inference.svc.cluster.local:8040/v1", "model": "${defaultModel}", "name": "llama-qwen-vllm-nexus"},
         {"url": "http://10.1.1.110:8080/v1", "model": "opencode/deepseek-v4-flash", "name": "opencode-go", "provider": "opencode-go"}
       ]'';
       PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
@@ -127,11 +127,6 @@ in {
       MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS = "[\"/etc/nixos\"]";
       MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K = "10";
-      JWT_AUTH_ENABLED=""; # TODO: fill in value
-      JWT_AUTH_JWKS_URL="https:...jwks";
-      JWT_AUTH_ISSUER=""; # TODO: fill in value
-      JWT_AUTH_AUDIENCE="3a331e...8d9a";
-      JWT_AUTH_REFRESH_INTERVAL=""; # TODO: fill in value
     };
 
     # NOTE: Prometheus + Grafana removed — see kubernetes/modules/monitoring.nix
@@ -899,6 +894,12 @@ in {
       stringData.OPENCODE_API_KEY = ""; # TODO: fill in value
     };
 
+    # Gateway API token — populated from agenix (secrets/ai-gateway-token.age)
+    ai-inference.Secret.ai-gateway-token = {
+      type = "Opaque";
+      stringData.GATEWAY_TOKEN = ""; # TODO: fill in value
+    };
+
     # ── Additional NetworkPolicies ───────────────────────────────
     # Allow SearXNG pods to reach AI Inference Gateway
     ai-inference.NetworkPolicy.allow-search-to-gateway = {
@@ -1022,7 +1023,7 @@ in {
             ];
           }
           {
-            to = [{podSelector.matchLabels.app = "llama-vllm-3060ti";}];
+            to = [{podSelector.matchLabels.app = "llama-qwen-vllm-nexus";}];
             ports = [
               {
                 protocol = "TCP";
