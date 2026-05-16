@@ -270,13 +270,7 @@ in
             hostNetwork = true;
             automountServiceAccountToken = false;
             priorityClassName = "high-priority-ai";
-            tolerations = zephyrTolerations ++ [
-              {
-                key = "node.kubernetes.io/disk-pressure";
-                operator = "Exists";
-                effect = "NoSchedule";
-              }
-            ];
+      tolerations = zephyrTolerations;
             containers = {
               _namedlist = true;
               llama-server = {
@@ -332,7 +326,7 @@ in
                   };
                   CUDA_VISIBLE_DEVICES = {
                     name = "CUDA_VISIBLE_DEVICES";
-                    value = "0";
+                    value = "1";
                   };
                   LD_LIBRARY_PATH = {
                     name = "LD_LIBRARY_PATH";
@@ -415,7 +409,7 @@ in
         ];
         selector = {
           app = "llama-server-zephyr-3090-moe";
-          host = "sentry";
+          host = "zephyr"; # Fix: match deployment label (was incorrectly "sentry")
         };
       };
     };
@@ -431,21 +425,21 @@ in
     Deployment.llama-server-sentry = {
       metadata.labels = managed // {
         app = "llama-server-sentry";
-        host = "sentry";
+      host = "sentry";
       };
       spec = {
-        replicas = 0;
+        replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels = {
           app = "llama-server-sentry";
-          host = "sentry";
+      host = "sentry";
         };
         strategy.type = "Recreate";
         template = {
           metadata = {
             labels = managed // {
               app = "llama-server-sentry";
-              host = "sentry";
+      host = "sentry";
             };
           };
           spec = {
