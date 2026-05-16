@@ -71,7 +71,7 @@ in
 {
   options.services.maplespike = {
     enable = mkEnableOption "MapleSpike deployments";
-    
+
     images = {
       api = mkOption {
         type = types.str;
@@ -90,24 +90,45 @@ in
       };
     };
 
+    stagingImages = {
+      api = mkOption {
+        type = types.str;
+        default = "ghcr.io/reverb256/maplespike-api:staging";
+        description = "Maplespike API staging container image";
+      };
+      mcp = mkOption {
+        type = types.str;
+        default = "ghcr.io/reverb256/maplespike-mcp:staging";
+        description = "Maplespike MCP staging container image";
+      };
+      portal = mkOption {
+        type = types.str;
+        default = "ghcr.io/reverb256/maplespike-portal:staging";
+        description = "Maplespike portal staging container image";
+      };
+    };
+
     replicas = {
       api = mkOption { type = types.int; default = 2; };
       mcp = mkOption { type = types.int; default = 1; };
       portal = mkOption { type = types.int; default = 1; };
+      stagingApi = mkOption { type = types.int; default = 1; };
+      stagingMcp = mkOption { type = types.int; default = 1; };
     };
   };
 
   config.kubernetes.objects = mkIf cfg.enable {
     # ── Namespaces ──────────────────────────────────────────
-    none.Namespace.maplespike = {
+    none.Namespace.maplespike-prod = {
       metadata.labels = managed // {
-        name = "maplespike";
+        name = "maplespike-prod";
         "pod-security.kubernetes.io/enforce" = "baseline";
         "pod-security.kubernetes.io/audit" = "restricted";
         "pod-security.kubernetes.io/warn" = "restricted";
       };
     };
-        none.Namespace.maplespike-staging = {
+
+    none.Namespace.maplespike-staging = {
       metadata.labels = managed // {
         name = "maplespike-staging";
         "pod-security.kubernetes.io/enforce" = "baseline";
@@ -115,61 +136,93 @@ in
         "pod-security.kubernetes.io/warn" = "restricted";
       };
     };
-    none.Namespace.maplespike-dev = {
-      metadata.labels = managed // {
-        name = "maplespike-dev";
-        "pod-security.kubernetes.io/enforce" = "baseline";
-        "pod-security.kubernetes.io/audit" = "restricted";
-        "pod-security.kubernetes.io/warn" = "restricted";
-      };
-    };
 
-    # ── API Server ──────────────────────────────────────────
-    apps.Deployment.maplespike-api = mkDeployment {
+    # ── Prod Deployments (maplespike-prod namespace) ──────────
+    apps.Deployment.maplespike-api-prod = mkDeployment {
       name = "maplespike-api";
-      namespace = "maplespike";
+      namespace = "maplespike-prod";
       cmd = "node packages/api-server/dist/dev-server.js";
       port = 8082;
       replicaCount = cfg.replicas.api;
       image = cfg.images.api;
       resources = {
-        requests = {
-          cpu = "100m";
-          memory = "128Mi";
-        };
-        limits = {
-          cpu = "500m";
-          memory = "512Mi";
-        };
+        requests = { cpu = "100m"; memory = "128Mi"; };
+        limits = { cpu = "500m"; memory = "512Mi"; };
       };
     };
 
-    # ── MCP Server ──────────────────────────────────────────
-    apps.Deployment.maplespike-mcp = mkDeployment {
+    apps.Deployment.maplespike-mcp-prod = mkDeployment {
       name = "maplespike-mcp";
-      namespace = "maplespike";
+      namespace = "maplespike-prod";
       cmd = "node packages/mcp-server/dist/index.js";
       port = 3001;
       replicaCount = cfg.replicas.mcp;
       image = cfg.images.mcp;
       resources = {
-        requests = {
-          cpu = "100m";
-          memory = "128Mi";
-        };
-        limits = {
-          cpu = "300m";
-          memory = "256Mi";
-        };
+        requests = { cpu = "100m"; memory = "128Mi"; };
+        limits = { cpu = "300m"; memory = "256Mi"; };
       };
-    } // {
-      spec.template.spec.serviceAccountName = "maplespike-mcp";
+    } // { spec.template.spec.serviceAccountName = "maplespike-mcp-prod"; };
+
+    apps.Deployment.maplespike-portal-prod = mkDeployment {
+      name = "maplespike-portal";
+      namespace = "maplespike-prod";
+      cmd = "python3 server.py";
+      port = 8080;
+      replicaCount = cfg.replicas.portal;
+      image = cfg.images.portal;
+      resources = {
+        requests = { cpu = "50m"; memory = "64Mi"; };
+        limits = { cpu = "100m"; memory = "128Mi"; };
+      };
     };
 
-    # ── MCP ServiceAccount & RBAC ───────────────────────────
-    "maplespike".ServiceAccount.maplespike-mcp = {
-      metadata.labels = managed;
+    # ── Staging Deployments (maplespike-staging namespace) ─────
+    apps.Deployment.maplespike-api-staging = mkDeployment {
+      name = "maplespike-api";
+      namespace = "maplespike-staging";
+      cmd = "node packages/api-server/dist/dev-server.js";
+      port = 8082;
+      replicaCount = cfg.replicas.stagingApi;
+      image = cfg.stagingImages.api;
+      resources = {
+        requests = { cpu = "100m"; memory = "128Mi"; };
+        limits = { cpu = "300m"; memory = "256Mi"; };
+      };
     };
+
+    apps.Deployment.maplespike-mcp-staging = mkDeployment {
+      name = "maplespike-mcp";
+      namespace = "maplespike-staging";
+      cmd = "node packages/mcp-server/dist/index.js";
+      port = 3001;
+      replicaCount = cfg.replicas.stagingMcp;
+      image = cfg.stagingImages.mcp;
+      resources = {
+        requests = { cpu = "100m"; memory = "128Mi"; };
+        limits = { cpu = "300m"; memory = "256Mi"; };
+      };
+    } // { spec.template.spec.serviceAccountName = "maplespike-mcp-staging"; };
+
+    apps.Deployment.maplespike-portal-staging = mkDeployment {
+      name = "maplespike-portal";
+      namespace = "maplespike-staging";
+      cmd = "python3 server.py";
+      port = 8080;
+      replicaCount = 1;
+      image = cfg.stagingImages.portal;
+      resources = {
+        requests = { cpu = "50m"; memory = "64Mi"; };
+        limits = { cpu = "100m"; memory = "128Mi"; };
+      };
+    };
+
+    # ── MCP ServiceAccounts & RBAC (per namespace) ───────────
+    for namespace in ["maplespike-prod" "maplespike-staging"]; {
+      "${namespace}".ServiceAccount."maplespike-mcp-${namespace}" = {
+        metadata.labels = managed;
+      };
+    }
 
     none.ClusterRole.maplespike-mcp-audit = {
       metadata.labels = managed;
@@ -192,40 +245,57 @@ in
       ];
     };
 
-    none.ClusterRoleBinding.maplespike-mcp-audit = {
-      metadata.labels = managed;
-      roleRef = {
-        apiGroup = "rbac.authorization.k8s.io";
-        kind = "ClusterRole";
-        name = "maplespike-mcp-audit";
+    for namespace in ["maplespike-prod" "maplespike-staging"]; {
+      none.ClusterRoleBinding."maplespike-mcp-audit-${namespace}" = {
+        metadata.labels = managed;
+        roleRef = {
+          apiGroup = "rbac.authorization.k8s.io";
+          kind = "ClusterRole";
+          name = "maplespike-mcp-audit";
+        };
+        subjects = [
+          {
+            kind = "ServiceAccount";
+            name = "maplespike-mcp-${namespace}";
+            inherit namespace;
+          }
+        ];
       };
-      subjects = [
-        {
-          kind = "ServiceAccount";
-          name = "maplespike-mcp";
-          namespace = "maplespike";
-        }
-      ];
     };
 
-    # ── Portal ──────────────────────────────────────────────
-    apps.Deployment.maplespike-portal = mkDeployment {
-      name = "maplespike-portal";
-      namespace = "maplespike";
-      cmd = "python3 server.py";
-      port = 8080;
-      replicaCount = cfg.replicas.portal;
-      image = cfg.images.portal;
-      resources = {
-        requests = {
-          cpu = "50m";
-          memory = "64Mi";
-        };
-        limits = {
-          cpu = "100m";
-          memory = "128Mi";
+    # ── Services (per namespace) ──────────────────────────────
+    for namespace in ["maplespike-prod" "maplespike-staging"]; {
+      core.Service."maplespike-api-${namespace}" = {
+        inherit namespace;
+        metadata.labels = managed // { app = "maplespike-api"; };
+        spec = {
+          selector = { app = "maplespike-api"; };
+          ports = [
+            { port = 8080; targetPort = 8082; protocol = "TCP"; name = "http"; }
+            { port = 8082; targetPort = 8082; protocol = "TCP"; name = "api"; }
+          ];
+          type = "ClusterIP";
         };
       };
+
+      core.Service."maplespike-mcp-${namespace}" = {
+        inherit namespace;
+        metadata.labels = managed // { app = "maplespike-mcp"; };
+        spec = {
+          selector = { app = "maplespike-mcp"; };
+          ports = [{ port = 3001; targetPort = 3001; protocol = "TCP"; name = "mcp"; }];
+          type = "ClusterIP";
+        };
+      };
+
+      core.Service."maplespike-portal-${namespace}" = {
+        inherit namespace;
+        metadata.labels = managed // { app = "maplespike-portal"; };
+        spec = {
+          selector = { app = "maplespike-portal"; };
+          ports = [{ port = 80; targetPort = 8080; protocol = "TCP"; name = "http"; }];
+          type = "ClusterIP";
+        };
     };
   };
 }
