@@ -98,8 +98,8 @@ in
             tolerations = zephyrTolerations;
             containers = {
               _namedlist = true;
-              vllm = {
-                image = "nexus:5000/vllm-turboquant:0.20.0";
+vllm = {
+                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
                 command = [ "${pkgsWithOverlay.vllm-turboquant-env}/bin/vllm-tq-wrapper" ];
                 args = [
