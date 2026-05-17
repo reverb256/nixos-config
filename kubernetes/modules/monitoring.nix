@@ -2533,22 +2533,22 @@ in {
             volumes = [{ name = "data"; persistentVolumeClaim.claimName = "local-registry-data"; }];
           };
         };
-    };
-}
-    monitoring.NetworkPolicy.allow-monitoring-api-server = {
-      spec = {
-        podSelector.matchLabels.app = "alloy";
-        policyTypes = ["Egress"];
-        egress = [
-          {
-            to = [{ipBlock.cidr = cluster.subnet;}];
-            ports = [
+        monitoring.NetworkPolicy.allow-monitoring-api-server = {
+          spec = {
+            podSelector.matchLabels.app = "alloy";
+            policyTypes = ["Egress"];
+            egress = [
               {
-                protocol = "TCP";
-                port = 6443;
+                to = [{ipBlock.cidr = cluster.subnet;}];
+                ports = [
+                  {
+                    protocol = "TCP";
+                    port = 6443;
+                  }
+                ];
               }
             ];
-          }
-        ];
-      };
+          };
+        };
     };
+}
