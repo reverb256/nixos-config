@@ -12,6 +12,7 @@
 
     {_module.args.inputs = inputs;}
     {_module.args.cluster = cluster;}
+    {_module.args.aiModelsToml = ./ai-models.toml;}
     # HA affinity: prefer nexus, failover to sentry. Used by stateless deployments.
     {_module.args.nexusPreferredAffinity = {
       nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution = [
@@ -72,7 +73,7 @@ in {
     ./modules/automation.nix
     ./modules/mcp-servers.nix
     ./modules/glance.nix
-    ./modules/frostbite-gazette.nix
+    # ./modules/frostbite-gazette.nix  # TODO: fix namespace conflict with ai-inference
     ./modules/maplespike.nix
     ./modules/tailscale.nix
   ];
@@ -117,13 +118,13 @@ in {
     ./modules/oauth2-proxy.nix
     ./modules/vane.nix
     # ./modules/ai-coding-tools.nix  # BROKEN - excluded temporarily
+    # ./modules/frostbite-gazette.nix  # TODO: fix namespace conflict with ai-inference
+    ./modules/maplespike.nix
     ./modules/mission-control.nix
     ./modules/kagent.nix
     ./modules/automation.nix
     ./modules/mcp-servers.nix
     ./modules/glance.nix
-    ./modules/frostbite-gazette.nix
-    ./modules/maplespike.nix
     ./modules/tailscale.nix
   ];
 }
