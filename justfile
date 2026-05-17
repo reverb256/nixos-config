@@ -318,6 +318,59 @@ rollback-remote host:
     ssh {{host}} "sudo nixos-rebuild rollback"
 
 # ──────────────────────────────────────────────────────────────────────────────
+#  GITHUB ISSUES WORKFLOW
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Create a new GitHub issue interactively
+issue-create title="" label="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    TITLE="{{title}}"
+    LABEL="{{label}}"
+    if [ -z "$TITLE" ]; then
+        read -r -p "Issue title: " TITLE
+    fi
+    if [ -z "$LABEL" ]; then
+        read -r -p "Labels (comma-separated, e.g. p2,infra): " LABEL
+    fi
+    gh issue create \
+      --title "$TITLE" \
+      --label "$LABEL" \
+      --body "## Context\n\n## Task\n\n## Priority\n\n## Estimate\n" \
+      --assignee "@me"
+
+# List open issues with labels
+issue-list:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    gh issue list --limit 20 --json number,title,state,labels,assignees \
+      | jq -r '.[] | "#\(.number | tostring | " " * (3 - (. | tostring | length)) + .) [" + .state + "] " + .title + " " + (.labels | map(.name) | join(" "))'
+
+# Close an issue with a comment referencing the PR
+issue-close number pr_url="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    N="{{number}}"
+    PR="{{pr_url}}"
+    if [ -n "$PR" ]; then
+        gh issue close "$N" --comment "Closed by $PR"
+    else
+        gh issue close "$N" --comment "Completed."
+    fi
+
+# Create a branch from an issue number
+branch-from number:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    N="{{number}}"
+    TITLE=$(gh issue view "$N" --json title --jq '.title' 2>/dev/null || echo "issue-$N")
+    # Slugify the title
+    SLUG=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//' | cut -c1-60)
+    BRANCH="issue-$N-$SLUG"
+    git checkout -b "$BRANCH"
+    echo "→ Switched to branch: $BRANCH"
+
+# ──────────────────────────────────────────────────────────────────────────────
 #  UTILITIES
 # ──────────────────────────────────────────────────────────────────────────────
 
