@@ -1,6 +1,6 @@
 # NixOS Cluster - Agent Guidelines
 
-**Generated:** 2026-05-14 | **Commit:** bd0f15eb | **Branch:** main
+**Generated:** 2026-05-16 | **Commit:** `git log -1 --oneline` | **Branch:** main
 
 ## Quick Start
 
@@ -416,6 +416,62 @@ These apply to ALL agents (Hermes, Claude Code, OpenCode, OmP, Droid). Non-negot
 
 When Hermes dispatches to subagents (claude-code, opencode, omp), it enforces these via the dispatch context. Subagents don not need to know the skills — Hermes injects the rules.
 
+## GitHub Issues Workflow (MANDATORY)
+
+**Every change MUST be tracked through a GitHub issue.** This applies to ALL agents and human contributors. No issue = no code.
+
+### Workflow (6 Layers)
+
+| Layer | What | Enforced By |
+|-------|------|-------------|
+| 1 | **Issue Templates** (`.github/ISSUE_TEMPLATE/`) | PR review — bug, feature, task templates pre-filled |
+| 2 | **PR Template** (`.github/PULL_REQUEST_TEMPLATE.md`) | PR submission — MUST reference `Closes #NNN` |
+| 3 | **AGENTS.md Mandate** | Agent session start — check/create issue first |
+| 4 | **Git Hooks** (`.githooks/prepare-commit-msg`) | `git commit` — warns if `(#NNN)` missing from message |
+| 5 | **CI Integration** | Workflow posts deploy status to linked issue |
+| 6 | **justfile Commands** | `just issue-*` — quick issue operations |
+
+### Agent Protocol (Every Session)
+
+Before writing any code, agents MUST:
+
+1. **Check existing issues:** `gh issue list --limit 10` (or via GitHub MCP: `list_issues`)
+2. **If no issue exists** for the task → create one using the appropriate template:
+   - `gh issue create --title "..." --label "p1,k8s" --body "$(cat .github/ISSUE_TEMPLATE/feature_request.md)"`
+   - Or via GitHub MCP: `create_pull_request` with `list_issues` first
+3. **Create a branch** named `issue-NNN-short-description`:
+   - `git checkout -b issue-42-fix-dns-timeout`
+4. **Commit with issue reference**: Every commit message MUST include `(#NNN)`:
+   ```
+   fix(caddy): resolve TLS handshake timeout on nexus (#42)
+   ```
+5. **Open PR with `Closes #NNN`**:
+   ```
+   gh pr create --title "Fix DNS timeout" --body "Closes #42"
+   ```
+
+### justfile Commands
+
+```
+just issue-create           # Interactive issue creation
+just issue-list             # List open issues with status
+just issue-close N          # Close issue #N with comment
+just branch-from N          # Create + switch to issue-NNN-description
+```
+
+### Labels
+
+Use the existing label system:
+- **Priority**: `priority:critical`, `priority:high`, `priority:medium`, `p1`, `p2`
+- **Domain**: `infra`, `k8s`, `security`, `ai-inference`, `config-drift`
+- **Type**: `bug`, `enhancement`, `documentation`, `cleanup`
+
+### Verification
+
+- `git log --oneline -5` should show `(#NNN)` in every non-merge commit
+- Every open PR's body should contain `Closes #NNN` or `Related to #NNN`
+- Every issue should have appropriate labels (priority + domain)
+
 ## Codified Conventions (Hermes Skills)
 
 All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills/devops/` (~277 total, 49 devops-specific).
@@ -484,5 +540,5 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 
 ---
 
-**Version**: 9.0 | **Last Updated:** 2026-05-14
-**Changes**: Loose-end audit — updated MCP backend port (3060Ti: 1236->8040 vLLM), dashboard.lan pending, casdoor-bridge scopes warning, Sentry SMT note, nixos-cluster-mcp v0.1.1, known issues section, resolved items tracker
+**Version**: 9.1 | **Last Updated:** 2026-05-16
+**Changes**: Added GitHub Issues Workflow (6 layers) — templates, PR template, AGENTS.md mandate, git hooks, justfile commands, CI integration
