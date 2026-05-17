@@ -217,7 +217,7 @@ in {
         namespace = "maplespike";
         port = 8082;
         lan = "maplespike-api.lan";
-        auth = "none";
+        auth = "forward_auth";
       };
 
       maplespike-mcp = mkService {
@@ -225,7 +225,7 @@ in {
         namespace = "maplespike";
         port = 3001;
         lan = "maplespike-mcp.lan";
-        auth = "none";
+        auth = "forward_auth";
       };
 
       maplespike-portal = mkService {
@@ -233,7 +233,7 @@ in {
         namespace = "maplespike";
         port = 8080;
         lan = "maplespike.lan";
-        auth = "none";
+        auth = "forward_auth";
       };
 
       maplespike-status = mkService {
@@ -250,7 +250,7 @@ in {
         namespace = "maplespike-dev";
         port = 8082;
         lan = "dev-maplespike-api.lan";
-        auth = "none";
+        auth = "forward_auth";
       };
 
       dev-maplespike-mcp = mkService {
@@ -258,7 +258,7 @@ in {
         namespace = "maplespike-dev";
         port = 3001;
         lan = "dev-maplespike-mcp.lan";
-        auth = "none";
+        auth = "forward_auth";
       };
 
       dev-maplespike-portal = mkService {
@@ -266,7 +266,57 @@ in {
         namespace = "maplespike-dev";
         port = 8080;
         lan = "dev.maplespike.lan";
-        auth = "none";
+        auth = "forward_auth";
+      };
+
+      # ── Prod Environment (maplespike-prod) ──────────────────────
+      maplespike-prod-api = mkService {
+        name = "maplespike-api";
+        namespace = "maplespike-prod";
+        port = 8082;
+        lan = "maplespike-api.lan";
+        auth = "forward_auth";
+      };
+
+      maplespike-prod-mcp = mkService {
+        name = "maplespike-mcp";
+        namespace = "maplespike-prod";
+        port = 3001;
+        lan = "maplespike-mcp.lan";
+        auth = "forward_auth";
+      };
+
+      maplespike-prod-portal = mkService {
+        name = "maplespike-portal";
+        namespace = "maplespike-prod";
+        port = 8080;
+        lan = "maplespike.lan";
+        auth = "forward_auth";
+      };
+
+      # ── Staging Environment (maplespike-staging) ─────────────────
+      maplespike-staging-api = mkService {
+        name = "maplespike-api";
+        namespace = "maplespike-staging";
+        port = 8082;
+        lan = "staging.maplespike.lan";
+        auth = "forward_auth";
+      };
+
+      maplespike-staging-mcp = mkService {
+        name = "maplespike-mcp";
+        namespace = "maplespike-staging";
+        port = 3001;
+        lan = "staging.maplespike-mcp.lan";
+        auth = "forward_auth";
+      };
+
+      maplespike-staging-portal = mkService {
+        name = "maplespike-portal";
+        namespace = "maplespike-staging";
+        port = 8080;
+        lan = "staging.maplespike.lan";
+        auth = "forward_auth";
       };
 
       # ── K8s API (hostNetwork) ─────────────────────────────────────
