@@ -70,6 +70,276 @@ def _curl(url: str, timeout: int = 5) -> tuple[int, str]:
         return -1, f"curl timed out after {timeout}s"
 
 
+def _ssh(host: str, command: str, timeout: int = 60) -> tuple[int, str]:
+    """Run a command on a remote host via SSH and return (exit_code, output)."""
+    if host not in NODES:
+        return -1, f"Unknown host '{host}'. Valid: {list(NODES.keys())}"
+    ip = NODES[host]["ip"]
+    try:
+        result = subprocess.run(
+            ["ssh", "-o", "ConnectTimeout=10", "-o", "StrictHostKeyChecking=no",
+             f"root@{ip}", "bash", "-c", command],
+            capture_output=True, text=True, timeout=timeout
+        )
+        output = (result.stdout + result.stderr).strip()
+        return result.returncode, output
+    except subprocess.TimeoutExpired:
+        return -1, f"SSH to {host} timed out after {timeout}s"
+
+
+# ──────────────────────────────────────────────
+# NixOS Host Operations
+# ──────────────────────────────────────────────
+
+@mcp.tool
+def rollback_host(host: str) -> dict[str, Any]:
+    """Rollback a NixOS host to the previous generation via SSH.
+    Runs 'sudo nixos-rebuild rollback' on the target host."""
+    rc, out = _ssh(host, "sudo nixos-rebuild rollback", timeout=120)
+    if rc != 0:
+        return {"error": f"Rollback failed on {host}: {out[:500]}"}
+    return {"host": host, "action": "rollback", "output": out[:500]}
+
+
+@mcp.tool
+def config_diff(host: str) -> dict[str, Any]:
+    """Show the configuration diff before deploying to a host.
+    Runs 'cd /etc/nixos && sudo nixos-rebuild build --dry-run' to show what would change."""
+    cmd = "cd /etc/nixos && sudo nixos-rebuild build --dry-run 2>&1"
+    rc, out = _ssh(host, cmd, timeout=180)
+    if rc != 0:
+        return {"error": f"Config diff failed on {host}: {out[:500]}"}
+    return {"host": host, "dry_run": True, "output": out[:2000]}
+
+
+# ──────────────────────────────────────────────
+# Storage Check Tools
+# ──────────────────────────────────────────────
+
+@mcp.tool
+def check_storage() -> dict[str, Any]:
+    """Check Kubernetes storage health: PVC usage, PV status, and storage class info."""
+    results: dict[str, Any] = {}
+
+    # PVC status
+    rc, pvc_out = _kubectl("get", "pvc", "-A", "-o", "wide", "--no-headers", timeout="15")
+    pvcs = []
+    if rc == 0:
+        for line in pvc_out.splitlines():
+            parts = line.split()
+            if len(parts) >= 7:
+                pvcs.append({
+                    "namespace": parts[0],
+                    "name": parts[1],
+                    "status": parts[2],
+                    "volume": parts[3],
+                    "capacity": parts[4],
+                    "access_mode": parts[5],
+                    "storage_class": parts[6],
+                })
+    results["pvcs"] = {"count": len(pvcs), "items": pvcs}
+
+    # PV status
+    rc, pv_out = _kubectl("get", "pv", "-o", "wide", "--no-headers", timeout="15")
+    pvs = []
+    if rc == 0:
+        for line in pv_out.splitlines():
+            parts = line.split()
+            if len(parts) >= 8:
+                pvs.append({
+                    "name": parts[0],
+                    "capacity": parts[1],
+                    "access_mode": parts[2],
+                    "reclaim_policy": parts[3],
+                    "status": parts[4],
+                    "storage_class": parts[5],
+                    "reason": parts[6] if len(parts) > 6 else "",
+                })
+    results["persistent_volumes"] = {"count": len(pvs), "items": pvs}
+
+    # Storage classes
+    rc, sc_out = _kubectl("get", "sc", "-o", "wide", "--no-headers", timeout="15")
+    storage_classes = []
+    if rc == 0:
+        for line in sc_out.splitlines():
+            parts = line.split()
+            if len(parts) >= 4:
+                storage_classes.append({
+                    "name": parts[0],
+                    "provisioner": parts[1],
+                    "reclaim_policy": parts[2],
+                    "volume_binding_mode": parts[3],
+                    "is_default": parts[4] == "(default)" if len(parts) > 4 else False,
+                })
+    results["storage_classes"] = {"count": len(storage_classes), "items": storage_classes}
+
+    # Check for PVCs in Pending state
+    pending_pvcs = [p for p in pvcs if p["status"] == "Pending"]
+    if pending_pvcs:
+        results["warnings"] = [
+            f"PVC {p['namespace']}/{p['name']} is Pending (storage class: {p['storage_class']})"
+            for p in pending_pvcs
+        ]
+
+    return results
+
+
+# ──────────────────────────────────────────────
+# Network Check Tools
+# ──────────────────────────────────────────────
+
+@mcp.tool
+def check_network(
+    namespace: str | None = None,
+    dns_test: str | None = None,
+    pod_connectivity: str | None = None,
+) -> dict[str, Any]:
+    """Check Kubernetes network health: DNS resolution, pod-to-pod connectivity,
+    and network policy audit.
+
+    Args:
+        namespace: Namespace to check network policies for (all namespaces if None).
+        dns_test: Domain to test DNS resolution (e.g. 'kubernetes.default.svc.cluster.local').
+        pod_connectivity: Pod to test connectivity from (format: 'namespace/pod-name').
+    """
+    results: dict[str, Any] = {}
+
+    # Network policies
+    ns_flag = ["-A"] if not namespace else ["-n", namespace]
+    rc, np_out = _kubectl("get", "networkpolicies", *ns_flag, "-o", "wide", "--no-headers", timeout="15")
+    network_policies = []
+    if rc == 0:
+        for line in np_out.splitlines():
+            parts = line.split()
+            if len(parts) >= 5:
+                network_policies.append({
+                    "namespace": parts[0] if len(parts) > 0 else "",
+                    "name": parts[1] if len(parts) > 1 else "",
+                    "pod_selector": parts[2] if len(parts) > 2 else "",
+                    "policy_types": parts[3] if len(parts) > 3 else "",
+                    "age": parts[4] if len(parts) > 4 else "",
+                })
+    results["network_policies"] = {"count": len(network_policies), "items": network_policies}
+
+    # DNS resolution test
+    if dns_test:
+        rc, dns_out = _kubectl("run", "dns-test", "--image=busybox:1.36", "--restart=Never",
+                               "--rm", "-i", "--", "nslookup", dns_test,
+                               timeout="30")
+        results["dns_test"] = {
+            "domain": dns_test,
+            "resolved": rc == 0,
+            "output": dns_out[:500] if dns_out else "no output",
+        }
+
+    # Pod-to-pod connectivity test
+    if pod_connectivity:
+        parts = pod_connectivity.split("/", 1)
+        if len(parts) == 2:
+            test_ns, test_pod = parts
+            rc, conn_out = _kubectl("exec", test_pod, "-n", test_ns, "--",
+                                    "wget", "--spider", "-T", "5",
+                                    "http://kubernetes.default.svc.cluster.local",
+                                    timeout="30")
+            results["pod_connectivity"] = {
+                "source_pod": pod_connectivity,
+                "target": "kubernetes.default.svc.cluster.local",
+                "reachable": rc == 0,
+                "output": conn_out[:500] if conn_out else "no output",
+            }
+        else:
+            results["pod_connectivity"] = {
+                "error": f"Invalid format: '{pod_connectivity}'. Use 'namespace/pod-name'.",
+            }
+
+    # Check for pods with network-related issues
+    rc, pods_out = _kubectl("get", "pods", "-A", "--field-selector",
+                            "status.phase=Running", "-o",
+                            "jsonpath={range .items[*]}{.metadata.namespace}{' '}{.metadata.name}{' '}{.status.conditions[?(@.type=='Ready')].reason}{'\\n'}{end}",
+                            timeout="15")
+    not_ready = []
+    if rc == 0:
+        for line in pods_out.splitlines():
+            if line.strip() and "ContainersNotReady" in line:
+                ns, name, _ = line.split(None, 2)
+                not_ready.append({"namespace": ns, "pod": name})
+    results["not_ready_pods"] = not_ready
+
+    # CoreDNS status
+    rc, coredns_out = _kubectl("get", "deploy", "coredns", "-n", "kube-system",
+                               "-o", "jsonpath={.status.readyReplicas}/{.status.replicas}",
+                               timeout="10")
+    results["coredns"] = {
+        "ready": rc == 0,
+        "replicas": coredns_out if rc == 0 else "unknown",
+    }
+
+    return results
+
+
+# ──────────────────────────────────────────────
+# Secrets Check Tools
+# ──────────────────────────────────────────────
+
+@mcp.tool
+def check_secrets() -> dict[str, Any]:
+    """Check agenix decryption status across all cluster hosts.
+    Verifies that encrypted secrets can be decrypted and are accessible."""
+    results: dict[str, Any] = {}
+
+    for host, info in NODES.items():
+        host_result: dict[str, Any] = {"ip": info["ip"], "role": info["role"]}
+
+        # Check if agenix secrets directory exists and has files
+        cmd = "ls /run/agenix/ 2>/dev/null || echo 'NO_AGENIX_DIR'"
+        rc, out = _ssh(host, cmd, timeout=30)
+        if rc != 0 or "NO_AGENIX_DIR" in out:
+            host_result["agenix_status"] = "not_available"
+            host_result["error"] = out[:200] if out else "agenix not running"
+        else:
+            secret_files = [f.strip() for f in out.splitlines() if f.strip()]
+            host_result["agenix_status"] = "available"
+            host_result["secret_count"] = len(secret_files)
+            host_result["secrets"] = secret_files[:20]  # Limit output
+
+        # Check if /etc/nixos/secrets directory has .age files
+        cmd2 = "ls /etc/nixos/secrets/*.age 2>/dev/null | wc -l"
+        rc2, out2 = _ssh(host, cmd2, timeout=15)
+        if rc2 == 0:
+            try:
+                host_result["encrypted_secret_count"] = int(out2.strip())
+            except ValueError:
+                host_result["encrypted_secret_count"] = 0
+
+        # Test decryption of a sample secret (if any exist)
+        cmd3 = """
+if [ -d /etc/nixos/secrets ] && ls /etc/nixos/secrets/*.age 1>/dev/null 2>&1; then
+  first_age=$(ls /etc/nixos/secrets/*.age | head -1)
+  age -d "$first_age" 2>&1 | head -5
+else
+  echo "NO_SECRETS_TO_TEST"
+fi
+"""
+        rc3, out3 = _ssh(host, cmd3, timeout=30)
+        if rc3 == 0 and "NO_SECRETS_TO_TEST" not in out3:
+            host_result["sample_decryption"] = "success" if rc3 == 0 else "failed"
+            host_result["sample_output"] = out3[:200]
+        elif rc3 == 0:
+            host_result["sample_decryption"] = "no_secrets"
+
+        results[host] = host_result
+
+    # Summary
+    available = sum(1 for h in results.values() if h.get("agenix_status") == "available")
+    results["_summary"] = {
+        "total_hosts": len(NODES),
+        "agenix_available": available,
+        "agenix_unavailable": len(NODES) - available,
+    }
+
+    return results
+
+
 # ──────────────────────────────────────────────
 # Cluster Status Tools
 # ──────────────────────────────────────────────
