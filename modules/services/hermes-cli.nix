@@ -268,10 +268,10 @@ in {
           memory_enabled: true
           user_profile_enabled: true
 
-        compression:
-          enabled: true
-          threshold: 0.9
-        YAML_EOF
+  compression:
+    enabled: true
+    threshold: 0.9
+YAML_EOF
                 chmod 644 "$HERMES_HOME/config.yaml"
               else
                 # Inject essential providers into manually-managed config
@@ -324,9 +324,9 @@ YAI_EOF
 
               # Write SOUL.md if it doesn't exist
               if [ ! -f "$HERMES_HOME/SOUL.md" ]; then
-                cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
-        ${cfg.personality}
-        SOUL_EOF
+  cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
+  ${cfg.personality}
+SOUL_EOF
                 chmod 644 "$HERMES_HOME/SOUL.md"
               fi
 

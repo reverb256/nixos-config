@@ -400,13 +400,13 @@ in {
       max_turns: 90
       gateway_timeout: 1800
       api_max_retries: 3
-      tool_use_enforcement: auto
-    YAML_EOF
+  tool_use_enforcement: auto
+YAML_EOF
 
-    cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
-    You are Hermes Agent, an intelligent AI assistant. You are helpful,
-    knowledgeable, and direct. You are running from a NixOS rescue USB.
-    SOUL_EOF
+  cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
+  You are Hermes Agent, an intelligent AI assistant. You are helpful,
+  knowledgeable, and direct. You are running from a NixOS rescue USB.
+SOUL_EOF
 
     chown -R j_kro:j_kro "$HERMES_HOME"
     chmod 750 "$HERMES_HOME"
