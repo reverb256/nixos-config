@@ -97,16 +97,13 @@ spec:
         - name: PATH
           value: /opt/cuda/bin:/usr/bin:/bin:/sbin
         - name: CUDA_HOME
+          value: /opt/cuda
         - name: TRITON_PTXAS_PATH
-        - name: TRITON_INTERPRET
-          value: "0"
+          value: /opt/cuda/bin/ptxas
         - name: TRITON_CACHE_DIR
+          value: /tmp/triton-cache
         - name: TRITON_MOCK_PTX_VERSION
           value: "12.9"
-          value: /tmp/triton-cache
-          value: "1"
-          value: /opt/cuda/bin/ptxas
-          value: /opt/cuda
         resources:
           requests:
             cpu: "2"
