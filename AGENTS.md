@@ -569,3 +569,49 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 
 **Version**: 9.1 | **Last Updated:** 2026-05-16
 **Changes**: Added GitHub Issues Workflow (6 layers) — templates, PR template, AGENTS.md mandate, git hooks, justfile commands, CI integration
+
+## Known Frictions & Workarounds (2026-05-18)
+
+### SSH to Remote Nodes
+Fish shell + devenv startup on remotes pollutes command output:
+```
+Error: × IO error: not a terminal
+Changes that will be made to bash/devenv.nix: ...
+```
+**Fix:** Always use bash explicitly for SSH commands:
+```bash
+ssh nexus 'bash --norc --noprofile -c "cd /data/projects/own/maplespike && git status"'
+```
+For multi-line:
+```bash
+ssh nexus 'bash --norc --noprofile 2>/dev/null' << 'REMOTE'
+cd /data/projects/own/maplespike
+git status --short
+REMOTE
+```
+
+### Worktree Staleness
+After PR merge, clean up the worktree:
+```bash
+git worktree remove /data/projects/own/<repo>-NNN && git branch -d issue-NNN-desc
+```
+If permissions block: `sudo rm -rf /data/projects/own/<repo>-NNN`
+
+### Branch Visibility Across Nodes
+Push to origin (GitHub) not bare for all-node visibility:
+- `git push origin issue-NNN-desc` — visible on all 4 nodes
+- `git push bare issue-NNN-desc` — Zephyr only
+
+### Template Activation Gap
+Hermes Nix template only applies to fresh configs. To reapply:
+```bash
+rm ~/.hermes/config.yaml && just switch
+```
+
+### After-Cleanup Verification
+Verify all 4 nodes after any cleanup:
+```bash
+for host in zephyr nexus forge sentry; do
+  echo "$host: $(ssh $host 'bash --norc --noprofile -c "cd /data/projects/own/maplespike && git log --oneline -1"' 2>/dev/null)"
+done
+```
