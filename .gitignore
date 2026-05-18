@@ -61,3 +61,10 @@ sbom/
 # Diff review artifacts (false positives on infra configs)
 .diff-scores.json
 .firecrawl/
+
+# Hermes / AI agent artifacts
+.agents/
+.claude/
+.hermes/
+skills-lock.json
+skills/
