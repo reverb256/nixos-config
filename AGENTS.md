@@ -637,3 +637,5 @@ for host in zephyr nexus forge sentry; do
   echo "$host: $(ssh $host 'bash --norc --noprofile -c "cd /data/projects/own/maplespike && git log --oneline -1"' 2>/dev/null)"
 done
 ```
+
+# Multi-node test: nexus
