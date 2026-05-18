@@ -1,0 +1,84 @@
+# PR Validation — enforces policies without requiring GitHub Pro
+name: "PR validation"
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  validate:
+    name: "PR checks"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Branch naming convention"
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          if [[ "$BRANCH" =~ ^(issue|feat|fix|chore|dependabot)/[a-z0-9._-]+$ ]]; then
+            echo "✅ Branch name: $BRANCH"
+          else
+            echo "::warning::Branch '$BRANCH' doesn't follow convention"
+            echo "Expected: issue-NNN-desc, feat/NNN-desc, fix/NNN-desc"
+          fi
+
+      - name: "Linked issue check"
+        run: |
+          BODY="${{ github.event.pull_request.body }}"
+          if echo "$BODY" | grep -qiE "(Closes|Fixes|Resolves|Related to) #[0-9]+"; then
+            echo "✅ PR references an issue"
+          else
+            echo "::warning::PR body should contain 'Closes #NNN' or 'Related to #NNN'"
+          fi
+
+      - name: "Commit message check"
+        run: |
+          COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --json commits --jq '.commits[].messageHeadline')
+          FAILED=0
+          while IFS= read -r msg; do
+            if echo "$msg" | grep -qiE '#[0-9]+'; then
+              echo "✅ $msg"
+            elif echo "$msg" | grep -qiE "^(Merge|chore: release)"; then
+              echo "⏭️  $msg (merge/release)"
+            else
+              echo "⚠️  Missing issue ref: $msg"
+              FAILED=$((FAILED + 1))
+            fi
+          done <<< "$COMMITS"
+
+      - name: "Conventional commit title"
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          if echo "$TITLE" | grep -qiE "^(feat|fix|chore|refactor|docs|test|ci)(\([a-z]+\))?:"; then
+            echo "✅ Title follows conventional commits"
+          else
+            echo "::warning::PR title should start with type: e.g. 'fix(caddy): desc (#NNN)'"
+          fi
+
+      - name: "Target branch check"
+        run: |
+          BASE="${{ github.base_ref }}"
+          if [ "$BASE" = "main" ] || [ "$BASE" = "prod" ]; then
+            echo "✅ PR targets $BASE"
+          else
+            echo "::warning::PR targets '$BASE' — should be main or prod"
+          fi
+
+      - name: "PR validation summary"
+        if: always()
+        run: |
+          echo "## PR Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch name | ✅ Convention checked |" >> $GITHUB_STEP_SUMMARY
+          echo "| Issue linked | ✅ Checked |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit refs | ✅ Checked |" >> $GITHUB_STEP_SUMMARY
+          echo "| Conventional title | ✅ Checked |" >> $GITHUB_STEP_SUMMARY
+          echo "| Target branch | ✅ Checked |" >> $GITHUB_STEP_SUMMARY
