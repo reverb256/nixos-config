@@ -114,7 +114,10 @@ in {
       SECONDARY_BACKEND_MODEL = defaultModel;
       DISCOVERY_BACKENDS = ''[
         {"url": "http://llama-qwen-vllm-nexus.ai-inference.svc.cluster.local:8040/v1", "model": "${defaultModel}", "name": "llama-qwen-vllm-nexus"},
-        {"url": "http://10.1.1.110:8080/v1", "model": "opencode/deepseek-v4-flash", "name": "opencode-go", "provider": "opencode-go"}
+        {"url": "http://10.1.1.110:8080/v1", "model": "opencode/deepseek-v4-flash", "name": "opencode-go", "provider": "opencode-go"},
+        {"url": "https://integrate.api.nvidia.com/v1", "model": "nvidia/nemotron-3-super-120b-a12b", "name": "nemotron-super", "provider": "nvidia"},
+        {"url": "https://integrate.api.nvidia.com/v1", "model": "nvidia/nemotron-3-nano-30b-a3b", "name": "nemotron-nano", "provider": "nvidia"},
+        {"url": "https://integrate.api.nvidia.com/v1", "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", "name": "nemotron-omni", "provider": "nvidia"}
       ]'';
       PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
       PRIVACY_FILTER_ENABLED = "true";

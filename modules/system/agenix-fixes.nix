@@ -267,6 +267,10 @@ in {
           apply_secret ai-inference kilo-api-key KILO_API_KEY /run/agenix/kilo-api-key
           apply_secret ai-inference opencode-api-key OPENCODE_API_KEY /run/agenix/opencode-api-key
 
+          # Kelos namespace
+          apply_secret kelos-system opencode-credentials OPENCODE_API_KEY /run/agenix/opencode-api-key
+          apply_secret kelos-system opencode-credentials NVIDIA_API_KEY /run/agenix/nvidia-api-key
+
           # Search namespace
           apply_secret search searxng-secret secret-key /run/agenix/searxng-secret-key
 

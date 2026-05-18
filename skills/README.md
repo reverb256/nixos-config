@@ -30,6 +30,12 @@ Custom skills for managing the NixOS multi-host cluster.
 | `sla-tracker` | Cluster uptime monitoring and SLA compliance tracking |
 | `capacity-planner` | GPU/CPU capacity forecasting for AI vs. mining workloads |
 
+### Agent Dispatch
+
+| Skill | Description |
+|-------|-------------|
+| `agent-dispatch` | Routes tasks to appropriate AI agent (Kelos, OMP, Claude Code) based on task type |
+
 ### Secrets Management
 
 | Skill | Description |
