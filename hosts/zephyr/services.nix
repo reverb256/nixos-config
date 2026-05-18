@@ -21,6 +21,12 @@ in {
       nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
       casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
       opencodeGoApiKeyFile = "/run/agenix/opencode-go-api-key";
+      opencodeZenApiKeyFile = "/run/agenix/opencode-api-key";
+      openrouterApiKeyFile = config.age.secrets.openrouter-api-key.path;
+      kilocodeApiKeyFile = config.age.secrets.kilo-api-key.path;
+      geminiApiKeyFile = config.age.secrets.gemini-api-key.path;
+      hfTokenFile = config.age.secrets.huggingface-token.path;
+      githubTokenFile = config.age.secrets.github-token.path;
     };
     k3s-cluster = {
       enable = true;
