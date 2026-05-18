@@ -36,6 +36,14 @@
     inherit cfg pkgs gatewayUrl;
     inherit (mcpDefs) mkMcpServersJson;
   };
+  piGen = import ./ai-coding-tools/pi.nix {
+    inherit cfg pkgs gatewayUrl;
+    inherit (mcpDefs) mkMcpServersJson;
+  };
+  ompGen = import ./ai-coding-tools/omp.nix {
+    inherit cfg pkgs gatewayUrl;
+    inherit (mcpDefs) mkMcpServersJson;
+  };
 in {
   options.services.ai-coding-tools = {
     enable = mkEnableOption "Harmonized MCP configuration for all AI coding tools (Droid, Claude Code, Crush, OpenCode)";
@@ -93,6 +101,20 @@ in {
           description = "Generate OpenCode config with MCP servers (~/.opencode/config.json)";
         };
       };
+      pi = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Generate Pi agent config (~/.pi/agent/)";
+        };
+      };
+      omp = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Generate OMP agent config (~/.omp/agent/)";
+        };
+      };
     };
     enableShellEnv = mkOption {
       type = types.bool;
@@ -112,6 +134,8 @@ in {
       "d /home/${cfg.user}/.config/crush 0755 ${cfg.user} users -"
       "d /home/${cfg.user}/.config/crush/commands 0755 ${cfg.user} users -"
       "d /home/${cfg.user}/.opencode 0755 ${cfg.user} users -"
+      "d /home/${cfg.user}/.pi/agent 0755 ${cfg.user} users -"
+      "d /home/${cfg.user}/.omp/agent 0755 ${cfg.user} users -"
     ];
     environment.sessionVariables = mkIf cfg.enableShellEnv {
       ZAI_API_KEY_FILE = cfg.zaiApiKeyFile;
@@ -144,6 +168,8 @@ in {
           "/home/${cfg.user}/.config/claude"
           "/home/${cfg.user}/.config/crush"
           "/home/${cfg.user}/.opencode"
+          "/home/${cfg.user}/.pi"
+          "/home/${cfg.user}/.omp"
         ];
         ExecStart = pkgs.writeShellScript "ai-coding-tools-generate" ''
           set -euo pipefail
@@ -184,6 +210,14 @@ in {
           ${optionalString cfg.tools.opencode.enable ''
             echo "[ai-coding-tools] Generating OpenCode config..."
             ${opencodeGen.mkOpencodeConfig}
+          ''}
+          ${optionalString cfg.tools.pi.enable ''
+            echo "[ai-coding-tools] Generating Pi config..."
+            ${piGen.mkPiConfig}
+          ''}
+          ${optionalString cfg.tools.omp.enable ''
+            echo "[ai-coding-tools] Generating OMP config..."
+            ${ompGen.mkOmpConfig}
           ''}
           echo "[ai-coding-tools] All configs generated successfully"
         '';
@@ -226,7 +260,7 @@ in {
           "/home/${cfg.user}/.factory/mcp.json" \
           "/home/${cfg.user}/.config/claude/mcp.json" \
           "/home/${cfg.user}/.config/crush/crush.json" \
-          "/home/${cfg.user}/.opencode/config.json"
+          "/home/${cfg.user}/.opencode/config.json"           "/home/${cfg.user}/.pi/agent/mcp.json"           "/home/${cfg.user}/.omp/agent/mcp.json"
         do
           if [ -f "$f" ]; then
             servers=$(${pkgs.jq}/bin/jq -r '[.mcpServers // .mcp | keys[]] | length' "$f" 2>/dev/null || echo "?")
