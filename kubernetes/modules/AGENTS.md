@@ -1,5 +1,7 @@
 # Kubernetes Nix Modules - Agent Context
 
+# Kelos test - 2026-05-18 - pipeline verified
+
 **Parent:** `../../AGENTS.md` | **Domain:** K8s Nix modules via easykubenix (21 .nix files)
 
 ## Overview
