@@ -210,52 +210,6 @@ in {
     };
 
     # ══════════════════════════════════════════════════════════════════════
-    # WORKSPACE RESOURCES (git repos agents operate on)
-    # ══════════════════════════════════════════════════════════════════════
-
-    # nixos-config workspace — our main cluster configuration repo
-    ${ns}.Resource.workspace-nixos-config = {
-      apiVersion = "kelos.dev/v1alpha1";
-      kind = "Workspace";
-      metadata = {
-        name = "nixos-config";
-        labels = managed;
-      };
-      spec = {
-        repo = "https://github.com/reverb256/nixos-config.git";
-        ref = "main";
-      };
-    };
-
-    # ai-inference-gateway workspace — AI gateway project
-    ${ns}.Resource.workspace-ai-inference = {
-      apiVersion = "kelos.dev/v1alpha1";
-      kind = "Workspace";
-      metadata = {
-        name = "ai-inference-gateway";
-        labels = managed;
-      };
-      spec = {
-        repo = "https://github.com/reverb256/ai-inference-gateway.git";
-        ref = "main";
-      };
-    };
-
-    # maplespike workspace — monorepo
-    ${ns}.Resource.workspace-maplespike = {
-      apiVersion = "kelos.dev/v1alpha1";
-      kind = "Workspace";
-      metadata = {
-        name = "maplespike";
-        labels = managed;
-      };
-      spec = {
-        repo = "https://github.com/reverb256/maplespike.git";
-        ref = "main";
-      };
-    };
-
-    # ══════════════════════════════════════════════════════════════════════
     # AGENT CONFIG — cluster agent with context/instructions
     # ══════════════════════════════════════════════════════════════════════
     ${ns}.Resource.agentconfig-cluster-coder = {
@@ -300,24 +254,117 @@ in {
         labels = managed;
       };
       spec = {
-        triggers = [
-          {
-            type = "github";
-            events = ["issues" "issue_comment"];
-            secretRef.name = "github-webhook-secret";
-          }
-        ];
-        workspaceRef.name = "nixos-config";
-        agentConfigRef.name = "cluster-coder";
-        promptTemplate = ''
-          GitHub issue #{{ .Event.Number }}: {{ .Event.Title }}
+        when.githubIssues = {
+          repo = "reverb256/nixos-config";
+          labels = ["agent-ready"];
+          state = "open";
+          pollInterval = "5m";
+        };
+        taskTemplate = {
+          type = "opencode";
+          credentials = {
+            type = "api-key";
+            secretRef.name = "opencode-credentials";
+          };
+          workspaceRef.name = "nixos-config";
+          agentConfigRef.name = "cluster-coder";
+          branch = "kelos-task-{{.Number}}";
+          promptTemplate = ''
+            GitHub issue #{{.Number}}: {{.Title}}
 
-          Description:
-          {{ .Event.Body }}
+            Description:
+            {{.Body}}
 
-          Create a branch named issue-{{ .Event.Number }}-{{ .Event.Title | lower | replace " " "-" | trunc 30 }},
-          implement the required changes, and open a PR against main.
-        '';
+            Create a branch named issue-{{.Number}}-{{.Title | lower | replace " " "-" | trunc 30}},
+            implement the required changes, push the branch, and open a PR against main.
+          '';
+          ttlSecondsAfterFinished = 3600;
+          podOverrides = {
+            podSecurityContext = {
+              runAsNonRoot = true;
+              runAsUser = 1000;
+              runAsGroup = 1000;
+              fsGroup = 1000;
+            };
+            resources = {
+              requests = {
+                cpu = "250m";
+                memory = "512Mi";
+              };
+              limits = {
+                cpu = "1";
+                memory = "1Gi";
+              };
+            };
+            containerSecurityContext = {
+              runAsNonRoot = true;
+              allowPrivilegeEscalation = false;
+              capabilities.drop = ["ALL"];
+              seccompProfile.type = "RuntimeDefault";
+            };
+          };
+        };
+        maxConcurrency = 2;
+      };
+    };
+    # Credential secret for OpenCode agent
+    ${ns}.Secret.opencode-credentials = {
+      type = "Opaque";
+      # Populate via agenix or manual secret creation:
+      # kubectl create secret generic -n kelos-system opencode-credentials \
+      #   --from-literal=OPENCODE_API_KEY="${YOUR_OPENCODE_KEY}"
+    };
+    # GitHub token for workspace git operations
+    ${ns}.Secret.github-token = {
+      type = "Opaque";
+      # Populate via agenix or manual secret creation:
+      # kubectl create secret generic -n kelos-system github-token \
+      #   --from-literal=GITHUB_TOKEN="${YOUR_GITHUB_TOKEN}"
+    };
+
+    # ══════════════════════════════════════════════════════════════════════
+    # WORKSPACE RESOURCES (git repos agents operate on)
+    # ══════════════════════════════════════════════════════════════════════
+    ${ns}.Resource.workspace-nixos-config = {
+      apiVersion = "kelos.dev/v1alpha1";
+      kind = "Workspace";
+      metadata = {
+        name = "nixos-config";
+        labels = managed;
+      };
+      spec = {
+        repo = "https://github.com/reverb256/nixos-config.git";
+        ref = "main";
+        secretRef.name = "github-token";
+        setupCommand = ["sh" "-c" "chown -R 1000:1000 /workspace/repo"];
+      };
+    };
+    ${ns}.Resource.workspace-ai-inference = {
+      apiVersion = "kelos.dev/v1alpha1";
+      kind = "Workspace";
+      metadata = {
+        name = "ai-inference-gateway";
+        labels = managed;
+      };
+      spec = {
+        repo = "https://github.com/reverb256/ai-inference-gateway.git";
+        ref = "main";
+        secretRef.name = "github-token";
+        setupCommand = ["sh" "-c" "chown -R 1000:1000 /workspace/repo"];
+      };
+    };
+    ${ns}.Resource.workspace-maplespike = {
+      apiVersion = "kelos.dev/v1alpha1";
+      kind = "Workspace";
+      metadata = {
+        name = "maplespike";
+        labels = managed;
+      };
+      spec = {
+        repo = "https://github.com/reverb256/maplespike.git";
+        ref = "main";
+        secretRef.name = "github-token";
+        setupCommand = ["sh" "-c" "chown -R 1000:1000 /workspace/repo"];
       };
     };
   };
