@@ -25,8 +25,8 @@
   podOverrides = {
     podSecurityContext = {
       runAsNonRoot = true;
-      runAsUser = 1000;
-      runAsGroup = 1000;
+      runAsUser = 61100;
+      runAsGroup = 61100;
       fsGroup = 1000;
     };
     resources = {
