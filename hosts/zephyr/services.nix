@@ -329,6 +329,9 @@ in {
       servers.playwright.enable = true;
       servers.context7.apiKeyFile = "/run/agenix/context7-api-key";
     };
+    cachix-auth = {
+      enable = true;
+    };
 
   ai-coding-tools = {
     enable = true;

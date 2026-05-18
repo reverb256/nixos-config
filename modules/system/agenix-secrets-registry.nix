@@ -151,6 +151,12 @@ in {
           owner = "j_kro";
           group = "users";
         };
+        cachix-token = {
+          file = "${inputs.self}/secrets/cachix-token.age";
+          mode = "440";
+          owner = "j_kro";
+          group = "users";
+        };
       })
       (lib.mkIf config.services.agenix-secrets-registry.monitoring {
         grafana-admin = {
