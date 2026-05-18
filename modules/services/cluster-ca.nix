@@ -91,7 +91,7 @@ in {
     # Group that should own the private keys
     keyGroup = mkOption {
       type = types.str;
-      default = "caddy";
+      default = "root";
       description = "Group that should have read access to private keys";
     };
   };
@@ -112,7 +112,7 @@ in {
     systemd.services.cluster-ca-init = {
       description = "Generate internal CA certificate and leaf cert";
       wantedBy = [ "multi-user.target" ];
-      before = [ "caddy.service" ];
+  before = [ "caddy.service" ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -137,7 +137,7 @@ in {
               ${openssl} genrsa -out ${cfg.caKey} 4096 2>/dev/null
             fi
             chmod 640 ${cfg.caKey}
-            chown root:${cfg.keyGroup} ${cfg.caKey}
+            chown root:${cfg.keyGroup} ${cfg.caKey} 2>/dev/null || true
           else
             # No static CA — first-boot recovery path
             ${openssl} req -x509 -newkey rsa:4096 \
@@ -152,7 +152,7 @@ in {
             echo "Internal CA certificate generated at ${cfg.caCert}"
             chmod 644 ${cfg.caCert}
             chmod 640 ${cfg.caKey}
-            chown root:${cfg.keyGroup} ${cfg.caKey}
+            chown root:${cfg.keyGroup} ${cfg.caKey} 2>/dev/null || true
           fi
         else
           echo "CA certificate already exists at ${cfg.caCert}"
