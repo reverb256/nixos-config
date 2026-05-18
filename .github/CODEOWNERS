@@ -1,0 +1,18 @@
+# NixOS Cluster — Code Owners
+* @reverb256
+/flake.nix @reverb256
+/colmena.nix @reverb256
+/justfile @reverb256
+/hosts/zephyr/ @reverb256
+/hosts/nexus/ @reverb256
+/hosts/forge/ @reverb256
+/hosts/sentry/ @reverb256
+/modules/system/ @reverb256
+/modules/services/ @reverb256
+/modules/kubernetes/ @reverb256
+/modules/hardware/ @reverb256
+/modules/security/ @reverb256
+/kubernetes/ @reverb256
+/kubernetes/modules/ @reverb256
+/.github/ @reverb256
+/.github/workflows/ @reverb256
