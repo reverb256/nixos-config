@@ -39,6 +39,24 @@
       capabilities.drop = ["ALL"];
       seccompProfile.type = "RuntimeDefault";
     };
+    affinity = {
+      nodeAffinity = {
+        preferredDuringSchedulingIgnoredDuringExecution = [
+          {
+            weight = 100;
+            preference.matchExpressions = [
+              { key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus"]; }
+            ];
+          }
+          {
+            weight = 50;
+            preference.matchExpressions = [
+              { key = "kubernetes.io/hostname"; operator = "In"; values = ["sentry"]; }
+            ];
+          }
+        ];
+      };
+    };
   };
 
   # ── Workspace factory ────────────────────────────────────────────────
