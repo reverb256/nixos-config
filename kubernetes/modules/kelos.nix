@@ -201,7 +201,7 @@ EOFOP
         agentConfigRef.name = "cluster-coder";
         branch = "kelos-task-{{.Number}}";
         inherit promptTemplate;
-        ttlSecondsAfterFinished = 3600;
+        ttlSecondsAfterFinished = 900;
         inherit podOverrides;
       };
       maxConcurrency = 2;
