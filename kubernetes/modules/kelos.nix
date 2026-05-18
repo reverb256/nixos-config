@@ -58,7 +58,7 @@
   "provider": {
     "nvidia": {
       "options": {
-        "baseURL": "https://integrate.api.nvidia.com/v1"
+        "baseURL": "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1"
       },
       "models": {
         "nvidia/nemotron-3-super-120b-a12b": { "name": "Nemotron 3 Super 120B" },
