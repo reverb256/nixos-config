@@ -50,7 +50,24 @@
       repo = "https://github.com/reverb256/${repo}.git";
       ref = "main";
       secretRef.name = "github-token";
-      setupCommand = ["sh" "-c" "chmod -R g+rw /workspace/repo"];
+      setupCommand = ["sh" "-c" "chmod -R g+rw /workspace/repo && cat > /workspace/repo/opencode.json << 'EOFOP'
+{
+  "\$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "nvidia": {
+      "options": {
+        "baseURL": "https://integrate.api.nvidia.com/v1"
+      },
+      "models": {
+        "nvidia/nemotron-3-super-120b-a12b": { "name": "Nemotron 3 Super 120B", "default": true },
+        "nvidia/nemotron-3-nano-30b-a3b": { "name": "Nemotron 3 Nano 30B" },
+        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning": { "name": "Nemotron 3 Nano Omni 30B" }
+      }
+    }
+  }
+}
+EOFOP
+" ];
     };
   };
 
@@ -195,8 +212,10 @@ in {
             - K3s cluster with Flannel CNI
             - AI Inference Gateway at 10.15.67.242:8080
 
-            ## Model
-            - deepseek-v4-flash (fast, 1M context) — default for most tasks
+            ## Models
+            - NVIDIA Nemotron 3 Super (120B) — default model for most tasks
+            - NVIDIA Nemotron 3 Nano (30B) — lightweight model
+            - NVIDIA Nemotron 3 Nano Omni (30B) — reasoning/vision model
 
             ## Critical Rules
             - lib.mkOptionDefault for all list/attr options in Nix
