@@ -21,24 +21,8 @@
     "app.kubernetes.io/part-of" = "kelos";
   };
 
-  # ── Workspace base spec ──────────────────────────────────────────────
-  mkWorkspace = name: repo: {
-    apiVersion = "kelos.dev/v1alpha1";
-    kind = "Workspace";
-    metadata = {
-      inherit name;
-      labels = managed;
-    };
-    spec = {
-      repo = "https://github.com/reverb256/${repo}.git";
-      ref = "main";
-      secretRef.name = "github-token";
-      setupCommand = ["sh" "-c" "chmod -R g+rw /workspace/repo"];
-    };
-  };
-
-  # ── Task base spec ──────────────────────────────────────────────────
-  taskOverrides = {
+  # ── Shared pod overrides ─────────────────────────────────────────────
+  podOverrides = {
     podSecurityContext = {
       runAsNonRoot = true;
       runAsUser = 1000;
@@ -57,14 +41,24 @@
     };
   };
 
-  # ── TaskSpawner generator ────────────────────────────────────────────
-  mkTaskSpawner = name: repo: workspace: {
+  # ── Workspace factory ────────────────────────────────────────────────
+  mkWorkspace = name: repo: {
+    apiVersion = "kelos.dev/v1alpha1";
+    kind = "Workspace";
+    metadata = { inherit name; labels = managed; };
+    spec = {
+      repo = "https://github.com/reverb256/${repo}.git";
+      ref = "main";
+      secretRef.name = "github-token";
+      setupCommand = ["sh" "-c" "chmod -R g+rw /workspace/repo"];
+    };
+  };
+
+  # ── TaskSpawner factory ─────────────────────────────────────────────
+  mkSpawner = name: repo: workspace: {
     apiVersion = "kelos.dev/v1alpha1";
     kind = "TaskSpawner";
-    metadata = {
-      inherit name;
-      labels = managed;
-    };
+    metadata = { name = "github-issues-${name}"; labels = managed; };
     spec = {
       when.githubIssues = {
         repo = "reverb256/${repo}";
@@ -87,90 +81,28 @@
           Description:
           {{.Body}}
 
-          Implement the required changes on branch issue-{{.Number}}-{{.Title | lower | replace " " "-" | trunc 40}},
-          push the branch, and open a PR against main.
+          Implement the required changes, push the branch, and open a PR against main.
+          Branch: kelos-task-{{.Number}}
           Every commit message must include #{{.Number}}.
+          The workspace at /workspace/repo is writable — work directly there.
         '';
         ttlSecondsAfterFinished = 3600;
-        podOverrides = {
-          podSecurityContext = {
-            runAsNonRoot = true;
-            runAsUser = 1000;
-            runAsGroup = 1000;
-            fsGroup = 1000;
-          };
-          resources = {
-            requests = { cpu = "250m"; memory = "512Mi"; };
-            limits = { cpu = "1"; memory = "1Gi"; };
-          };
-          containerSecurityContext = {
-            runAsNonRoot = true;
-            allowPrivilegeEscalation = false;
-            capabilities.drop = ["ALL"];
-            seccompProfile.type = "RuntimeDefault";
-          };
-        };
+        inherit podOverrides;
       };
       maxConcurrency = 2;
     };
   };
-
-  # ── Workspace list ───────────────────────────────────────────────────
-  workspaceList = [
-    { name = "nixos-config"; repo = "nixos-config"; }
-    { name = "ai-inference-gateway"; repo = "ai-inference-gateway"; }
-    { name = "maplespike"; repo = "maplespike"; }
-    { name = "knowledge-fabric"; repo = "knowledge-fabric"; }
-    { name = "compute-market"; repo = "compute-market"; }
-    { name = "mcp-registry"; repo = "mcp-registry"; }
-    { name = "gpu-proxy"; repo = "gpu-proxy"; }
-    { name = "llama-cpp-turboquant"; repo = "llama-cpp-turboquant"; }
-    { name = "vllm-turboquant"; repo = "vllm-turboquant"; }
-    { name = "searxng-cluster"; repo = "searxng-cluster"; }
-    { name = "caddy-ingress"; repo = "caddy-ingress"; }
-    { name = "vane"; repo = "Vane"; }
-  ];
-
-  # ── Build workspace resources ────────────────────────────────────────
-  workspaceResources = builtins.listToAttrs (map (w: {
-    name = "${ns}.Resource.workspace-${w.name}";
-    value = mkWorkspace w.name w.repo;
-  }) workspaceList);
-
-  # ── Build TaskSpawner resources ──────────────────────────────────────
-  spawnerResources = builtins.listToAttrs (map (w: {
-    name = "${ns}.Resource.taskspawner-${w.name}";
-    value = mkTaskSpawner "github-issues-${w.name}" w.repo w.name;
-  }) workspaceList);
-
 in {
-  config.kubernetes.objects =
-    {
-      # ══════════════════════════════════════════════════════════════════
-      # NAMESPACE
-      # ══════════════════════════════════════════════════════════════════
-      none.Namespace.${ns} = {
-        metadata.labels =
-          {
-            name = ns;
-            "pod-security.kubernetes.io/enforce" = "baseline";
-            "pod-security.kubernetes.io/audit" = "restricted";
-            "pod-security.kubernetes.io/warn" = "restricted";
-          }
-          // managed;
+  config.kubernetes.objects = {
+    # ════════════════════════════════════════════════════════════════════
+    # CLUSTER-SCOPED RESOURCES (none namespace)
+    # ════════════════════════════════════════════════════════════════════
+    none = {
+      Namespace.${ns} = {
+        metadata.labels = { name = ns; } // managed;
       };
 
-      # ══════════════════════════════════════════════════════════════════
-      # SERVICE ACCOUNT
-      # ══════════════════════════════════════════════════════════════════
-      ${ns}.ServiceAccount.kelos-controller = {
-        metadata.labels = managed;
-      };
-
-      # ══════════════════════════════════════════════════════════════════
-      # RBAC
-      # ══════════════════════════════════════════════════════════════════
-      none.ClusterRole.kelos-controller = {
+      ClusterRole."kelos-controller" = {
         metadata.labels = managed;
         rules = [
           {
@@ -215,7 +147,7 @@ in {
         ];
       };
 
-      none.ClusterRoleBinding.kelos-controller = {
+      ClusterRoleBinding."kelos-controller" = {
         metadata.labels = managed;
         roleRef = {
           apiGroup = "rbac.authorization.k8s.io";
@@ -230,19 +162,69 @@ in {
           }
         ];
       };
+    };
 
-      # ══════════════════════════════════════════════════════════════════
-      # CONTROLLER DEPLOYMENT
-      # ══════════════════════════════════════════════════════════════════
-      ${ns}.Deployment.kelos-controller-manager = {
-        metadata.labels = managed // {"app.kubernetes.io/component" = "controller";};
+    # ════════════════════════════════════════════════════════════════════
+    # NAMESPACE-SCOPED RESOURCES (kelos-system)
+    # ════════════════════════════════════════════════════════════════════
+    # IMPORTANT: Nix forbids multiple ${ns} dynamic attribute keys at the
+    # same scope level. All namespace resources must be in ONE block.
+    ${ns} = {
+      # ── Service account ───────────────────────────
+      ServiceAccount."kelos-controller" = {
+        metadata.labels = managed;
+      };
+
+      # ── Secrets ───────────────────────────────────
+      Secret."opencode-credentials" = { type = "Opaque"; };
+      Secret."github-token" = { type = "Opaque"; };
+
+      # ── Agent config ──────────────────────────────
+      Resource."agentconfig-cluster-coder" = {
+        apiVersion = "kelos.dev/v1alpha1";
+        kind = "AgentConfig";
+        metadata = { name = "cluster-coder"; labels = managed; };
+        spec = {
+          agentsMD = ''
+            # NixOS Cluster — Agent Guidelines (via Kelos)
+
+            You were spawned by Kelos because this issue has the "agent-ready" label.
+
+            ## Cluster Overview
+            - 4 nodes: Zephyr (31GB), Nexus (46GB), Forge (16GB), Sentry (31GB)
+            - K3s cluster with Flannel CNI
+            - AI Inference Gateway at 10.15.67.242:8080
+
+            ## Model
+            - deepseek-v4-flash (fast, 1M context) — default for most tasks
+
+            ## Critical Rules
+            - lib.mkOptionDefault for all list/attr options in Nix
+            - Default ALL workloads to Nexus (46GB) — avoid Zephyr OOM
+            - GPU NOT isolated per-pod — nvidia-container-runtime broken on NixOS
+            - Stop if SSH breaks or `nix flake check` fails
+
+            ## Workflow
+            - The workspace at /workspace/repo is writable
+            - Implement the issue, push branch, open PR against main
+            - Branch: kelos-task-NNN
+            - Every commit references #NNN
+            - PR body: "Closes #NNN"
+          '';
+          mcpServers = [];
+        };
+      };
+
+      # ── Controller deployment ─────────────────────
+      Deployment."kelos-controller-manager" = {
+        metadata.labels = managed // { "app.kubernetes.io/component" = "controller"; };
         spec = {
           replicas = 1;
           revisionHistoryLimit = 2;
           strategy.type = "Recreate";
-          selector.matchLabels = {"control-plane" = "controller-manager";};
+          selector.matchLabels = { "control-plane" = "controller-manager"; };
           template = {
-            metadata.labels = {"control-plane" = "controller-manager";};
+            metadata.labels = { "control-plane" = "controller-manager"; };
             spec = {
               nodeSelector."kubernetes.io/hostname" = targetNode;
               serviceAccountName = "kelos-controller";
@@ -300,66 +282,33 @@ in {
         };
       };
 
-      # ══════════════════════════════════════════════════════════════════
-      # AGENT CONFIG
-      # ══════════════════════════════════════════════════════════════════
-      ${ns}.Resource.agentconfig-cluster-coder = {
-        apiVersion = "kelos.dev/v1alpha1";
-        kind = "AgentConfig";
-        metadata = {
-          name = "cluster-coder";
-          labels = managed;
-        };
-        spec = {
-          agentsMD = ''
-            # NixOS Cluster — Agent Guidelines (via Kelos)
+      # ── Workspaces (12 repos) ────────────────────
+      Resource."workspace-nixos-config" = mkWorkspace "nixos-config" "nixos-config";
+      Resource."workspace-ai-inference-gateway" = mkWorkspace "ai-inference-gateway" "ai-inference-gateway";
+      Resource."workspace-maplespike" = mkWorkspace "maplespike" "maplespike";
+      Resource."workspace-knowledge-fabric" = mkWorkspace "knowledge-fabric" "knowledge-fabric";
+      Resource."workspace-compute-market" = mkWorkspace "compute-market" "compute-market";
+      Resource."workspace-mcp-registry" = mkWorkspace "mcp-registry" "mcp-registry";
+      Resource."workspace-gpu-proxy" = mkWorkspace "gpu-proxy" "gpu-proxy";
+      Resource."workspace-llama-cpp-turboquant" = mkWorkspace "llama-cpp-turboquant" "llama-cpp-turboquant";
+      Resource."workspace-vllm-turboquant" = mkWorkspace "vllm-turboquant" "vllm-turboquant";
+      Resource."workspace-searxng-cluster" = mkWorkspace "searxng-cluster" "searxng-cluster";
+      Resource."workspace-caddy-ingress" = mkWorkspace "caddy-ingress" "caddy-ingress";
+      Resource."workspace-vane" = mkWorkspace "vane" "Vane";
 
-            You were spawned by Kelos because this issue has the "agent-ready" label.
-
-            ## Cluster Overview
-            - 4 nodes: Zephyr (31GB), Nexus (46GB), Forge (16GB), Sentry (31GB)
-            - K3s cluster with Flannel CNI
-            - AI Inference Gateway at 10.15.67.242:8080
-
-            ## Model
-            - deepseek-v4-flash (fast, 1M context) — default for most tasks
-            - Use it efficiently: small context windows for simple edits
-
-            ## Critical Rules
-            - lib.mkOptionDefault for all list/attr options in Nix
-            - Default ALL workloads to Nexus (46GB) — avoid Zephyr OOM
-            - GPU NOT isolated per-pod — nvidia-container-runtime broken on NixOS
-            - Stop if SSH breaks or `nix flake check` fails
-
-            ## Workflow
-            - Implement the issue, push branch, open PR against main
-            - Branch: issue-NNN-short-description
-            - Every commit references #NNN
-            - PR body: "Closes #NNN"
-          '';
-          mcpServers = [];
-        };
-      };
-
-      # ══════════════════════════════════════════════════════════════════
-      # SECRETS
-      # ══════════════════════════════════════════════════════════════════
-      ${ns}.Secret.opencode-credentials = {
-        type = "Opaque";
-        # Populate via: kubectl create secret generic -n kelos-system opencode-credentials
-        #   --from-literal=OPENCODE_API_KEY="${YOUR_KEY}"
-      };
-      ${ns}.Secret.github-token = {
-        type = "Opaque";
-        # Populate via: kubectl create secret generic -n kelos-system github-token
-        #   --from-literal=GITHUB_TOKEN="${YOUR_TOKEN}"
-      };
-
-      # ══════════════════════════════════════════════════════════════════
-      # WORKSPACES (one per active repo)
-      # ══════════════════════════════════════════════════════════════════
-    }
-    // workspaceResources
-    // spawnerResources
-  ;
+      # ── TaskSpawners (12 repos) ──────────────────
+      Resource."taskspawner-nixos-config" = mkSpawner "nixos-config" "nixos-config" "nixos-config";
+      Resource."taskspawner-ai-inference-gateway" = mkSpawner "ai-inference-gateway" "ai-inference-gateway" "ai-inference-gateway";
+      Resource."taskspawner-maplespike" = mkSpawner "maplespike" "maplespike" "maplespike";
+      Resource."taskspawner-knowledge-fabric" = mkSpawner "knowledge-fabric" "knowledge-fabric" "knowledge-fabric";
+      Resource."taskspawner-compute-market" = mkSpawner "compute-market" "compute-market" "compute-market";
+      Resource."taskspawner-mcp-registry" = mkSpawner "mcp-registry" "mcp-registry" "mcp-registry";
+      Resource."taskspawner-gpu-proxy" = mkSpawner "gpu-proxy" "gpu-proxy" "gpu-proxy";
+      Resource."taskspawner-llama-cpp-turboquant" = mkSpawner "llama-cpp-turboquant" "llama-cpp-turboquant" "llama-cpp-turboquant";
+      Resource."taskspawner-vllm-turboquant" = mkSpawner "vllm-turboquant" "vllm-turboquant" "vllm-turboquant";
+      Resource."taskspawner-searxng-cluster" = mkSpawner "searxng-cluster" "searxng-cluster" "searxng-cluster";
+      Resource."taskspawner-caddy-ingress" = mkSpawner "caddy-ingress" "caddy-ingress" "caddy-ingress";
+      Resource."taskspawner-vane" = mkSpawner "vane" "Vane" "vane";
+    };
+  };
 }
