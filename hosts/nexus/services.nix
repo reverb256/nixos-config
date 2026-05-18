@@ -24,6 +24,8 @@ in {
       enable = true;
       apiKeyFile = config.age.secrets.zai-api-key.path;
       nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
+      casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
+      opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
     };
     k3s-cluster = {
       enable = true;
@@ -265,11 +267,11 @@ in {
         backend = k8s.qdrant.dns;
       };
       maplespike-api = {
-        domain = "maplespike-api.lan";
+        domain = "api.maplespike.lan";
         backend = "127.0.0.1:${toString ports.maplespike-api}";
       };
       maplespike-mcp = {
-        domain = "maplespike-mcp.lan";
+        domain = "mcp.maplespike.lan";
         backend = "127.0.0.1:${toString ports.maplespike-mcp}";
       };
       maplespike-status = {
@@ -302,11 +304,11 @@ in {
         '';
       };
       dev-maplespike-api = {
-        domain = "dev-maplespike-api.lan";
+        domain = "dev-api.maplespike.lan";
         backend = "10.1.1.120:${toString ports.dev-maplespike-api}";
       };
       dev-maplespike-mcp = {
-        domain = "dev-maplespike-mcp.lan";
+        domain = "dev-mcp.maplespike.lan";
         backend = "10.1.1.120:${toString ports.dev-maplespike-mcp}";
       };
       dev-maplespike = {
@@ -328,4 +330,23 @@ in {
     subvolume = "@root";
     device = "/dev/disk/by-uuid/076e60fb-09b9-4f5c-9d9b-cdbb1f1f859b";
   };
+
+  services.ai-coding-tools = {
+    enable = true;
+    user = "j_kro";
+    zaiApiKeyFile = config.age.secrets.zai-api-key.path;
+    context7ApiKeyFile = config.age.secrets.context7-api-key.path;
+    nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
+    opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
+    tools = {
+      claude = { enable = true; };
+      opencode = { enable = true; };
+      droid = { enable = true; };
+      crush = { enable = true; };
+      pi = { enable = true; };
+      omp = { enable = true; };
+    };
+    enableShellEnv = true;
+  };
 }
+
