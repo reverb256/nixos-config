@@ -158,6 +158,7 @@ in {
     device = "/dev/disk/by-uuid/8ed4264a-6837-4af8-876a-1111625d98d1";
   };
 
+  services.cachix-auth.enable = true;
   services.ai-coding-tools = {
     enable = true;
     user = "j_kro";
