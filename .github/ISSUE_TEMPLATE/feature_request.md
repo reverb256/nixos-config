@@ -1,6 +1,6 @@
 ---
-name: Feature request / Task
-about: Suggest an idea, improvement, or track a defined piece of work
+name: Feature / Enhancement
+about: Suggest an improvement or new cluster capability
 title: ''
 labels: ''
 assignees: ''
@@ -8,18 +8,34 @@ assignees: ''
 
 ## Context
 What area does this affect?
-[e.g., Infrastructure, Security, K8s, Monitoring, CI/CD, Documentation]
+[e.g., Infrastructure, Security, K8s, Monitoring, CI/CD, Documentation, AI Gateway]
 
 ## Problem / Opportunity
 What's the current situation? Why is this change needed?
 
 ## Proposed Solution
-What should be done? Be specific enough for someone to pick up and execute.
+What should be done? Be specific enough to execute.
+
+## Hosts Affected
+- [ ] Zephyr
+- [ ] Nexus
+- [ ] Forge
+- [ ] Sentry
+- [ ] All
+
+## Workflow Checklist
+- [ ] Single PR per feature
+- [ ] Work in worktree on the primary affected host
+- [ ] Branch: `issue-NNN-short-description`
+- [ ] Commit messages reference `(#NNN)`
+- [ ] PR body contains `Closes #NNN`
+- [ ] `just check` passes before PR
+- [ ] Tested on all affected hosts
 
 ## Acceptance Criteria
 - [ ] Criterion 1
 - [ ] Criterion 2
-- [ ] Tests/verification pass
+- [ ] Verified on affected hosts
 
 ## Priority
 [CRITICAL / HIGH / P1 / P2 / LOW]
@@ -28,7 +44,5 @@ What should be done? Be specific enough for someone to pick up and execute.
 [Optional: e.g., 30m, 2h, 1d]
 
 ## Reference
-Link to relevant docs, plan files, or previous issues:
-- `docs/plans/...`
+- Plan file: `docs/plans/...`
 - Related issue: #
-- PR: #
