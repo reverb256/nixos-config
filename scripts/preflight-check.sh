@@ -58,21 +58,21 @@ fi
 echo "  Checking for duplicate processes..."
 
 # Check for multiple llama-server instances (memory hungry)
-LLAMA_COUNT=$(pgrep -f "llama-server" | wc -l)
+LLAMA_COUNT=$(set +o pipefail; pgrep -f "llama-server" | wc -l)
 if [ "$LLAMA_COUNT" -gt 2 ]; then
     log_warn "DUPLICATE: Found $LLAMA_COUNT llama-server processes (expected: 1-2)"
     pgrep -fa "llama-server" | sed 's/^/    /'
 fi
 
 # Check for hermes-agent duplicates
-HERMES_COUNT=$(pgrep -f "hermes-agent" | wc -l)
+HERMES_COUNT=$(set +o pipefail; pgrep -f "hermes-agent" | wc -l)
 if [ "$HERMES_COUNT" -gt 2 ]; then
     log_warn "DUPLICATE: Found $HERMES_COUNT hermes-agent processes (expected: 0-2)"
     pgrep -fa "hermes-agent" | sed 's/^/    /'
 fi
 
 # Check for alloy duplicates (observability stack)
-ALLOY_COUNT=$(pgrep -f "alloy run" | wc -l)
+ALLOY_COUNT=$(set +o pipefail; pgrep -f "alloy run" | wc -l)
 if [ "$ALLOY_COUNT" -gt 1 ]; then
     log_warn "DUPLICATE: Found $ALLOY_COUNT alloy processes (expected: 1 or K8s only)"
     pgrep -fa "alloy run" | sed 's/^/    /'
