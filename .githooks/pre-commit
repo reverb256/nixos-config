@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Pre-commit hook for nixos-config
+set -euo pipefail
+
+BRANCH=$(git symbolic-ref HEAD 2>/dev/null | sed 's|refs/heads/||')
+
+if [ "$BRANCH" = "prod" ]; then
+  echo "ERROR: Direct commits to 'prod' are blocked."
+  echo "All changes flow: main -> CI -> deploy-dev -> auto-merge to prod."
+  exit 1
+fi
+
+UNTRACKED_AGE=$(git status --short | grep "??" | grep "\.age$" || true)
+if [ -n "$UNTRACKED_AGE" ]; then
+  echo "WARNING: Untracked .age files detected (should be committed):"
+  echo "$UNTRACKED_AGE"
+fi
