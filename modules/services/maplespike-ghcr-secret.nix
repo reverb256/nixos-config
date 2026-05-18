@@ -9,15 +9,6 @@
 }: let
   cfg = config.services.maplespike-ghcr-secret;
   
-  # Helper to create secret data
-  mkDockerConfig = {username, password, email, server}: {
-    auths."${server}" = {
-      username = "${username}";
-      password = "${password}";
-      email = "${email}";
-      auth = builtins.substring 0 100 (pkgs.lib.strings.concatStringsSep ":" [username password]) |> (s: builtins.readFile "/dev/stdin" |> pkgs.lib.strings.splitString ":" |> head 1) |> (s: pkgs.lib.strings.stringToBase64 s);
-    };
-  };
 in {
   options.services.maplespike-ghcr-secret = {
     enable = lib.mkEnableOption "MapleSpike GHCR image pull secret management";
