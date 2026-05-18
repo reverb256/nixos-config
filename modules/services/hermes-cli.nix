@@ -39,9 +39,13 @@
   # If hermes-agent is enabled, use its state dir. Otherwise, use user home.
   useAgentStateDir = hermesAgentCfg.enable or false;
 
-  # Declarative MCP server configuration for Hermes
-  # API keys are injected at runtime via __PLACEHOLDER__ tokens
-  mcpServersBlock = pkgs.writeText "hermes-mcp-servers.yaml" ''
+  # Declarative MCP server configuration — sourced from mcp-server-registry
+  # If registry is enabled, use its generated config; otherwise fall back to inline defaults
+  registryCfg = config.services.mcp-registry or {};
+  useRegistry = registryCfg.enable or false;
+
+  # Inline fallback MCP servers (used when registry is not enabled)
+  fallbackMcpServersBlock = pkgs.writeText "hermes-mcp-servers.yaml" ''
     mcp_servers:
       kubernetes:
         url: http://kubernetes-mcp.infra.svc.cluster.local:8080/mcp
@@ -88,6 +92,8 @@
         timeout: 60
         description: Casdoor SSO/OIDC - application management (5 tools, Bearer auth)
   '';
+
+  mcpServersBlock = if useRegistry then registryCfg.lib.mcp-registry.hermesMcpYaml else fallbackMcpServersBlock;
 
   # Python script to merge mcp_servers section into Hermes config.yaml
   # Uses line-by-line parsing to avoid regex escape issues with Nix multiline strings
