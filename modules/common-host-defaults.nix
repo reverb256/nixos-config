@@ -66,6 +66,7 @@
     gaming-detection.enable = lib.mkDefault false;
     gpu-profile-manager.enable = lib.mkDefault false;
     mining-coordinator.enable = lib.mkDefault false;
+    oom-protect.enable = lib.mkDefault true;
   };
 
   hardware.gpu-compute.enable = lib.mkDefault false;
