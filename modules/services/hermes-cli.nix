@@ -217,45 +217,37 @@ in {
               if [ ! -f "$HERMES_HOME/config.yaml" ] || grep -q "# Managed by NixOS" "$HERMES_HOME/config.yaml" 2>/dev/null; then
                 cat > "$HERMES_HOME/config.yaml" << YAML_EOF
         # Managed by NixOS - hermes-cli module
-        # LOCAL MODELS AS DEFAULT - Cloud fallback available
+        # GATEWAY-CENTRIC - AI Inference Gateway routes all model traffic
         model:
-          provider: local-vllm
-          default: qwen3.5-2b-awq
+          provider: gateway
+          default: opencode-go/deepseek-v4-flash
 
         providers:
-          local-vllm:
-            base_url: http://10.1.1.120:8040/v1
-            model: qwen3.5-2b-awq
-          local-zephyr-3090:
-            base_url: http://10.1.1.110:1237/v1
-            model: Carnice-Qwen3.6-MoE-35B-A3B-IQ4_XS.gguf
-            supports_vision: true
-          local-sentry:
-            base_url: http://10.1.1.140:1235/v1
-            model: Qwen3.5-4B-Q4_K_M.gguf
-            supports_vision: true
-          opencode-go:
-            base_url: http://10.1.1.110:8080/v1
-            model: deepseek-v4-flash
-            key_env: OPENCODE_GO_API_KEY
+          gateway:
+            base_url: http://${config.networking.cluster.hosts.nexus.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-inference-gateway}/v1
+            model: opencode-go/deepseek-v4-flash
+            key_env: ZAI_API_KEY
           zai:
             base_url: https://api.z.ai/api/coding/paas/v4
-            api_key_env: ZAI_API_KEY
+            key_env: ZAI_API_KEY
           nvidia:
             base_url: https://integrate.api.nvidia.com/v1
-            api_key_env: NVIDIA_API_KEY
-          gateway:
-            base_url: http://10.1.1.110:8080/v1
-            api_key_env: ZAI_API_KEY
+            key_env: NVIDIA_API_KEY
+          opencode-go:
+            base_url: http://${config.networking.cluster.hosts.nexus.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-inference-gateway}/v1
+            model: deepseek-v4-flash
+            key_env: OPENCODE_GO_API_KEY
+          local-sentry:
+            base_url: http://${config.networking.cluster.hosts.sentry.ip}:1235/v1
+            model: Qwen3.5-4B-Q4_K_M.gguf
+            supports_vision: true
 
         fallback_providers:
-          - local-vllm
-          - local-zephyr-3090
-          - local-sentry
-          - opencode-go
           - gateway
           - zai
           - nvidia
+          - opencode-go
+          - local-sentry
 
         terminal:
           backend: local

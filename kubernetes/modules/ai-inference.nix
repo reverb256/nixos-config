@@ -135,7 +135,7 @@ in {
     ai-inference.Deployment.open-webui = {
       metadata.labels.app = "open-webui";
       spec = {
-        replicas = 1;
+        replicas = 2;
         revisionHistoryLimit = 2;
         selector.matchLabels.app = "open-webui";
         strategy = {
@@ -149,7 +149,7 @@ in {
           metadata.labels.app = "open-webui";
           spec = {
             serviceAccountName = "open-webui";
-            nodeSelector."kubernetes.io/hostname" = "sentry";
+            nodeSelector."kubernetes.io/hostname" = "nexus";
             hostAliases = [
               {
                 ip = cluster.kubernetes.vip;
@@ -358,6 +358,11 @@ in {
                     name = "http";
                     protocol = "TCP";
                   }
+                  {
+                    containerPort = 6334;
+                    name = "grpc";
+                    protocol = "TCP";
+                  }
                 ];
                 volumeMounts = {
                   _namedlist = true;
@@ -410,6 +415,12 @@ in {
             port = 6333;
             protocol = "TCP";
             targetPort = 6333;
+          }
+          {
+            name = "grpc";
+            port = 6334;
+            protocol = "TCP";
+            targetPort = 6334;
           }
         ];
         selector.app = "qdrant";
