@@ -416,6 +416,33 @@ These apply to ALL agents (Hermes, Claude Code, OpenCode, OmP, Droid). Non-negot
 
 When Hermes dispatches to subagents (claude-code, opencode, omp), it enforces these via the dispatch context. Subagents don not need to know the skills — Hermes injects the rules.
 
+## Primary Workflow (MANDATORY — ALL AGENTS)
+
+**This applies to Hermes, Claude Code, Pi, OMP, OpenCode, and ALL delegated agents.**
+
+### Golden Rule
+**Issue → Branch/Worktree → PR → Merge → Close Issue**. No direct pushes to main. Ever.
+
+### Worktree-First Development
+
+Work on the cluster node closest to your workload using git worktrees:
+
+```bash
+# Create a worktree on the right node
+git worktree add /data/projects/own/<repo>-NNN issue-NNN-short-description
+
+# Or create from main
+git worktree add -b issue-NNN-short-description /data/projects/own/<repo>-NNN main
+```
+
+**Node selection by workload:**
+- AI/GPU changes → Sentry (Vulkan) or Nexus (46GB)
+- K8s/infrastructure → Zephyr
+- Data-heavy → Nexus (46GB RAM)
+- Light work → any node
+
+Every /data/projects/own/ repo has this workflow.
+
 ## GitHub Issues Workflow (MANDATORY)
 
 **Every change MUST be tracked through a GitHub issue.** This applies to ALL agents and human contributors. No issue = no code.

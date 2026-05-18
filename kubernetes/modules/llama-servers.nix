@@ -136,6 +136,10 @@ vllm = {
                     name = "CUDA_VISIBLE_DEVICES";
                     value = "0";
                   };
+                  TORCHINDUCTOR_CACHE_DIR = {
+                    name = "TORCHINDUCTOR_CACHE_DIR";
+                    value = "/tmp/vllm-cache";
+                  };
                 };
                 resources = {
                   requests = {
@@ -287,7 +291,7 @@ vllm = {
                   "--port"
                   "1237"
                   "-ngl"
-                  "99"
+                  "60"
                   "--split-mode"
                   "none"
                   "--main-gpu"
