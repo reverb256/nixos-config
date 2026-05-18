@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Something isn't working — create a report to help us fix it
+about: Something isn't working in the cluster
 title: ''
 labels: bug
 assignees: ''
@@ -16,21 +16,29 @@ Steps to reproduce the behavior:
 3. See error
 
 ## Expected behavior
-A clear and concise description of what you expected to happen.
+What you expected to happen.
 
 ## Environment
-**Host affected:** [e.g., zephyr, nexus, forge, sentry, all]
-**Service affected:** [e.g., caddy, k3s, llama-server, gateway, maplespike-api]
-**Flake commit:** [e.g., `git log -1 --oneline`]
-**K8s namespace:** [if applicable]
+- **Host affected:** [zephyr / nexus / forge / sentry / all]
+- **Service affected:** [e.g., caddy, k3s, llama-server, gateway, maplespike-api]
+- **Flake commit:** `git log -1 --oneline`
+- **Worktree:** `/data/projects/own/nixos-config-<NNN>` (if applicable)
+- **K8s namespace:** [if applicable]
 
-## Logs / Screenshots
+## Logs
 ```
-Paste relevant logs, error messages, or output here
+Paste relevant output
 ```
+
+## Workflow Check
+- [ ] Issue created before any code changes
+- [ ] Work in a worktree on the affected host
+- [ ] Branch follows `issue-NNN-short-description`
+- [ ] PR will be created before merge
+- [ ] Tested on all affected hosts before PR
 
 ## Additional context
-- Is this a regression? (was it working before?)
-- Does `just check` pass?
-- Any recent changes that might be related?
-- Link to related GitHub issue: #
+- Regression? (was it working before?)
+- `just check` passes?
+- Recent changes?
+- Related issue: #
