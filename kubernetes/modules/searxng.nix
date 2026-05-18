@@ -250,6 +250,7 @@ in {
                 image = "searxng/searxng@sha256:dda1ea3a106b448f5e18ef9b3bb8448e92fc7ecccc3f4a0c82b0106f3dfca23b";
                 imagePullPolicy = "IfNotPresent";
                 securityContext = {
+                  runAsNonRoot = true;
                   allowPrivilegeEscalation = false;
                   readOnlyRootFilesystem = true;
                   capabilities.drop = ["ALL"];
@@ -417,6 +418,7 @@ in {
                   "6379"
                 ];
                 securityContext = {
+                  runAsNonRoot = true;
                   allowPrivilegeEscalation = false;
                   readOnlyRootFilesystem = true;
                   capabilities.drop = ["ALL"];
