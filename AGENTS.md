@@ -16,6 +16,28 @@ just health             # Detailed health check
 
 > NOTE: `just test` does NOT exist. Use `just test-apply` or `just check`.
 
+## Workflow
+
+### Default: Kelos-Powered (delegated to AI agents)
+
+1. **Create an issue** — with clear acceptance criteria
+2. **Label it `agent-ready`** — Kelos picks it up within ~5min
+3. **Kelos handles the rest** — agent implements, pushes branch, opens PR
+4. **Review the PR** — human reviews, requests changes via comments
+5. **Merge** — squash-merge via GitHub UI
+
+### Manual Fallback (exploratory/architectural work)
+
+```bash
+git worktree add -b issue-NNN-desc /data/projects/own/nixos-config-NNN main
+# ... edit, test, commit ...
+git push origin issue-NNN-desc
+gh pr create --base main --head issue-NNN-desc --title "type: description (#NNN)" --body "Closes #NNN"
+```
+
+Then clean up.
+
+
 ## Cluster Overview
 
 | Host | IP | Role | RAM | GPUs |
