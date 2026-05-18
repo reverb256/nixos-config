@@ -330,12 +330,23 @@ in {
       servers.context7.apiKeyFile = "/run/agenix/context7-api-key";
     };
 
-    ai-coding-tools = {
-      enable = true;
-      zaiApiKeyFile = config.age.secrets.zai-api-key.path;
-      context7ApiKeyFile = "/run/agenix/context7-api-key";
-      opencodeGoApiKeyFile = "/run/agenix/opencode-go-api-key";
+  ai-coding-tools = {
+    enable = true;
+    user = "j_kro";
+    zaiApiKeyFile = config.age.secrets.zai-api-key.path;
+    context7ApiKeyFile = config.age.secrets.context7-api-key.path;
+    nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
+    opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
+    tools = {
+      claude = { enable = true; };
+      opencode = { enable = true; };
+      droid = { enable = true; };
+      crush = { enable = true; };
+      pi = { enable = true; };
+      omp = { enable = true; };
     };
+    enableShellEnv = true;
+  };
 
     web-testing.enable = true;
 

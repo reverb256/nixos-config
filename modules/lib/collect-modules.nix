@@ -39,6 +39,8 @@ let
     "development/ai-coding-tools/droid.nix" = true;              # Submodule: imported by ai-coding-tools.nix
     "development/ai-coding-tools/mcp-defs.nix" = true;           # Submodule: imported by ai-coding-tools.nix
     "development/ai-coding-tools/opencode.nix" = true;           # Submodule: imported by ai-coding-tools.nix
+    "development/ai-coding-tools/pi.nix" = true;                  # Submodule: imported by ai-coding-tools.nix
+    "development/ai-coding-tools/omp.nix" = true;                 # Submodule: imported by ai-coding-tools.nix
     "profiles/networking.nix" = true;                            # Library: returns mkNetworkingConfig function
     "system/network.nix" = true;                                 # Dead code: references missing config.cluster.config
     "system/ssh-autodiscover.nix" = true;                        # Dead code: references missing config.cluster.config

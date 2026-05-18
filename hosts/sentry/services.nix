@@ -10,6 +10,9 @@ in {
     hermes-cli = {
       enable = true;
       apiKeyFile = config.age.secrets.zai-api-key.path;
+      nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
+      casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
+      opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
     };
     k3s-cluster = {
       enable = true;
@@ -154,4 +157,23 @@ in {
     enable = true;
     device = "/dev/disk/by-uuid/8ed4264a-6837-4af8-876a-1111625d98d1";
   };
+
+  services.ai-coding-tools = {
+    enable = true;
+    user = "j_kro";
+    zaiApiKeyFile = config.age.secrets.zai-api-key.path;
+    context7ApiKeyFile = config.age.secrets.context7-api-key.path;
+    nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
+    opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
+    tools = {
+      claude = { enable = true; };
+      opencode = { enable = true; };
+      droid = { enable = true; };
+      crush = { enable = true; };
+      pi = { enable = true; };
+      omp = { enable = true; };
+    };
+    enableShellEnv = true;
+  };
 }
+
