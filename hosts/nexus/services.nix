@@ -67,6 +67,13 @@ in {
       initrdRecovery = true;
       selfHosting = false;
     };
+
+    nfs-state-sync = {
+      enable = true;
+      sourceHost = "zephyr";
+      paths = ["/data/hermes" "/data/pi"];
+      interval = "15min";
+    };
   };
 
   programs.steam = {
