@@ -96,6 +96,7 @@ in {
       keep-build-log = true;
       log-lines = 2000;
       auto-optimise-store = true;
+      extra-platforms = lib.mkBefore ["i686-linux"];
       extra-sandbox-paths = [
         "/var/cache/ccache"
       ];
@@ -155,7 +156,7 @@ in {
           }
           {
             hostName = "nexus";
-            system = "x86_64-linux";
+            system = "x86_64-linux,i686-linux";
             sshUser = "j_kro";
             sshKey = "/etc/nixos/ssh/id_ed25519";
             maxJobs = 10;
@@ -168,7 +169,7 @@ in {
           }
           {
             hostName = "sentry";
-            system = "x86_64-linux";
+            system = "x86_64-linux,i686-linux";
             sshUser = "j_kro";
             sshKey = "/etc/nixos/ssh/id_ed25519";
             maxJobs = 4;
