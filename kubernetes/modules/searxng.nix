@@ -483,7 +483,7 @@ in {
         };
       spec = {
         type = "NodePort";
-        selector.app = "searxng";
+        selector.app = "valkey";
         selector.component = "cache";
         ports = [
           {
