@@ -14,7 +14,7 @@
 # route to it.
 # ─────────────────────────────────────────────────────────────────
 {
-  # ── maplespike (namespace: maplespike) ─────────────────────
+  # ── maplespike (namespace: maplespike-prod) ─────────────────
   maplespike-api    = 31283;  # API server (8082 → 31283)
   maplespike-mcp    = 31745;  # MCP server (3001 → 31745)
   maplespike-portal = 30964;  # Static portal (8080 → 30964)

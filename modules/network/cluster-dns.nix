@@ -65,13 +65,13 @@
     "workspace.lan"
     "dashboard.lan"
     "maplespike.lan"
-    "maplespike-api.lan"
-    "maplespike-mcp.lan"
+    "api.maplespike.lan"
+    "mcp.maplespike.lan"
     "status.maplespike.lan"
     "uptime.maplespike.lan"
     "dev.maplespike.lan"
-    "dev-maplespike-api.lan"
-    "dev-maplespike-mcp.lan"
+    "dev-api.maplespike.lan"
+    "dev-mcp.maplespike.lan"
     "gitea.lan"
   ];
 
