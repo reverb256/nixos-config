@@ -1,0 +1,24 @@
+# Weekly git health check for nixos-config
+name: "Weekly git health"
+on:
+  schedule:
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Check status"
+        run: |
+          echo "## Git Health Report" >> $GITHUB_STEP_SUMMARY
+          echo "**Flake:** $(git log --oneline -1)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Stale branches (merged to main)" >> $GITHUB_STEP_SUMMARY
+          git branch -r --merged origin/main | grep -v "origin/main\|origin/HEAD\|origin/prod" | while read b; do
+            echo "- $b" >> $GITHUB_STEP_SUMMARY
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Node SSH check required" >> $GITHUB_STEP_SUMMARY
+          echo 'Run: `for h in zephyr nexus forge sentry; do echo "$h: $(ssh $h \"cd /etc/nixos && git log --oneline -1\" 2>/dev/null)"; done`' >> $GITHUB_STEP_SUMMARY
