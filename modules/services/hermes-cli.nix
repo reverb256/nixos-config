@@ -189,6 +189,41 @@ in {
       example = "config.age.secrets.opencode-go-api-key.path";
     };
 
+    opencodeZenApiKeyFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to agenix secret file containing OpenCode Zen API key";
+      example = "config.age.secrets.opencode-api-key.path";
+    };
+
+    kilocodeApiKeyFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to agenix secret file containing Kilo Code API key";
+      example = "config.age.secrets.kilo-api-key.path";
+    };
+
+    geminiApiKeyFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to agenix secret file containing Gemini API key";
+      example = "config.age.secrets.gemini-api-key.path";
+    };
+
+    hfTokenFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to agenix secret file containing HuggingFace token";
+      example = "config.age.secrets.huggingface-token.path";
+    };
+
+    githubTokenFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to agenix secret file containing GitHub token";
+      example = "config.age.secrets.github-token.path";
+    };
+
     gatewayUrl = lib.mkOption {
       type = lib.types.str;
       default = "http://${config.networking.cluster.hosts.zephyr.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-inference-gateway}/v1";
@@ -309,6 +344,48 @@ YAI_EOF
           if [ -f "${cfg.opencodeGoApiKeyFile}" ]; then
             echo -n "OPENCODE_GO_API_KEY=" >> "$HERMES_HOME/.env"
             cat "${cfg.opencodeGoApiKeyFile}" >> "$HERMES_HOME/.env"
+            echo "" >> "$HERMES_HOME/.env"
+          fi
+        ''}
+              ${lib.optionalString (cfg.opencodeZenApiKeyFile != null) ''
+          if [ -f "${cfg.opencodeZenApiKeyFile}" ]; then
+            echo -n "OPENCODE_ZEN_API_KEY=" >> "$HERMES_HOME/.env"
+            cat "${cfg.opencodeZenApiKeyFile}" >> "$HERMES_HOME/.env"
+            echo "" >> "$HERMES_HOME/.env"
+          fi
+        ''}
+              ${lib.optionalString (cfg.openrouterApiKeyFile != null) ''
+          if [ -f "${cfg.openrouterApiKeyFile}" ]; then
+            echo -n "OPENROUTER_API_KEY=" >> "$HERMES_HOME/.env"
+            cat "${cfg.openrouterApiKeyFile}" >> "$HERMES_HOME/.env"
+            echo "" >> "$HERMES_HOME/.env"
+          fi
+        ''}
+              ${lib.optionalString (cfg.kilocodeApiKeyFile != null) ''
+          if [ -f "${cfg.kilocodeApiKeyFile}" ]; then
+            echo -n "KILOCODE_API_KEY=" >> "$HERMES_HOME/.env"
+            cat "${cfg.kilocodeApiKeyFile}" >> "$HERMES_HOME/.env"
+            echo "" >> "$HERMES_HOME/.env"
+          fi
+        ''}
+              ${lib.optionalString (cfg.geminiApiKeyFile != null) ''
+          if [ -f "${cfg.geminiApiKeyFile}" ]; then
+            echo -n "GEMINI_API_KEY=" >> "$HERMES_HOME/.env"
+            cat "${cfg.geminiApiKeyFile}" >> "$HERMES_HOME/.env"
+            echo "" >> "$HERMES_HOME/.env"
+          fi
+        ''}
+              ${lib.optionalString (cfg.hfTokenFile != null) ''
+          if [ -f "${cfg.hfTokenFile}" ]; then
+            echo -n "HF_TOKEN=" >> "$HERMES_HOME/.env"
+            cat "${cfg.hfTokenFile}" >> "$HERMES_HOME/.env"
+            echo "" >> "$HERMES_HOME/.env"
+          fi
+        ''}
+              ${lib.optionalString (cfg.githubTokenFile != null) ''
+          if [ -f "${cfg.githubTokenFile}" ]; then
+            echo -n "GITHUB_TOKEN=" >> "$HERMES_HOME/.env"
+            cat "${cfg.githubTokenFile}" >> "$HERMES_HOME/.env"
             echo "" >> "$HERMES_HOME/.env"
           fi
         ''}

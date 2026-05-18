@@ -70,6 +70,7 @@ in {
     # ./modules/ai-coding-tools.nix  # BROKEN - excluded temporarily
     ./modules/mission-control.nix
     ./modules/kagent.nix
+    ./modules/kelos.nix
     ./modules/automation.nix
     ./modules/mcp-servers.nix
     ./modules/glance.nix
@@ -122,6 +123,7 @@ in {
     ./modules/maplespike.nix
     ./modules/mission-control.nix
     ./modules/kagent.nix
+    ./modules/kelos.nix
     ./modules/automation.nix
     ./modules/mcp-servers.nix
     ./modules/glance.nix

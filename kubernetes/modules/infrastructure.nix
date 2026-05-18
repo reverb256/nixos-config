@@ -16,6 +16,64 @@
   };
 in {
   config.kubernetes.objects.none = {
+    # ── Require security context on all pods (Deny mode) ───────────
+    # Prevents pods without runAsNonRoot, allowPrivilegeEscalation=false, and resource limits
+    ValidatingAdmissionPolicy.require-resources-and-security = {
+      metadata.annotations = {
+        "description" = "Requires all containers to define runAsNonRoot=true, no privilege escalation, and resource limits";
+      };
+      spec = {
+        failurePolicy = "Fail";
+        matchConstraints = {
+          resourceRules = [{
+            apiGroups = [""];
+            apiVersions = ["v1"];
+            operations = ["CREATE" "UPDATE"];
+            resources = ["pods"];
+          }];
+        };
+        validations = [
+          {
+            expression = "object.spec.containers.all(c, has(c.resources.limits) && has(c.resources.limits.cpu) && has(c.resources.limits.memory))";
+            message = "All containers must specify CPU and memory limits in resources.limits";
+          }
+          {
+            expression = "object.spec.containers.all(c, has(c.resources.requests) && has(c.resources.requests.cpu) && has(c.resources.requests.memory))";
+            message = "All containers must specify CPU and memory requests in resources.requests";
+          }
+          {
+            expression = "object.spec.containers.all(c, has(c.securityContext) && c.securityContext.runAsNonRoot == true)";
+            message = "All containers must run as non-root (securityContext.runAsNonRoot: true)";
+          }
+          {
+            expression = "object.spec.containers.all(c, !has(c.securityContext.allowPrivilegeEscalation) || c.securityContext.allowPrivilegeEscalation == false)";
+            message = "Containers must not allow privilege escalation (securityContext.allowPrivilegeEscalation: false)";
+          }
+        ];
+      };
+    };
+    ValidatingAdmissionPolicyBinding.require-resources-and-security = {
+      spec = {
+        policyName = "require-resources-and-security";
+        validationActions = ["Deny"];
+        matchResources = {
+          namespaceSelector.matchExpressions = [{
+            key = "kubernetes.io/metadata.name";
+            operator = "NotIn";
+            values = [
+              "kube-system"
+              "kube-public"
+              "kube-node-lease"
+              "ai-inference"
+              "mining"
+              "mcp"
+              "kelos-system"
+            ];
+          }];
+        };
+      };
+    };
+
     PriorityClass.high-priority-ai = {
       value = 1000;
       globalDefault = false;
