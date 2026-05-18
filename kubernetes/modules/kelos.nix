@@ -54,15 +54,103 @@
     };
   };
 
-  # ── TaskSpawner factory ─────────────────────────────────────────────
-  mkSpawner = name: repo: workspace: {
+  # ── Prompt templates by label type ───────────────────────────────────
+  promptTemplates = {
+    bug = ''
+      GitHub issue #{{.Number}}: {{.Title}}
+
+      Description:
+      {{.Body}}
+
+      This is a BUG fix. Focus on:
+      - Identifying and fixing the root cause
+      - Adding tests to verify the fix and prevent regression
+      - Verifying the fix works as expected
+
+      Implement the required changes, push the branch, and open a PR against main.
+      Branch: kelos-task-{{.Number}}
+      Every commit message must include #{{.Number}}.
+      The workspace at /workspace/repo is writable — work directly there.
+    '';
+
+    enhancement = ''
+      GitHub issue #{{.Number}}: {{.Title}}
+
+      Description:
+      {{.Body}}
+
+      This is an ENHANCEMENT. Focus on:
+      - Clean implementation following existing patterns
+      - Adding documentation for new functionality
+      - Considering edge cases and error handling
+
+      Implement the required changes, push the branch, and open a PR against main.
+      Branch: kelos-task-{{.Number}}
+      Every commit message must include #{{.Number}}.
+      The workspace at /workspace/repo is writable — work directly there.
+    '';
+
+    security = ''
+      GitHub issue #{{.Number}}: {{.Title}}
+
+      Description:
+      {{.Body}}
+
+      This is a SECURITY issue. Focus on:
+      - Hardening the code against vulnerabilities
+      - Auditing for potential security issues
+      - Adding security-focused tests
+
+      Implement the required changes, push the branch, and open a PR against main.
+      Branch: kelos-task-{{.Number}}
+      Every commit message must include #{{.Number}}.
+      The workspace at /workspace/repo is writable — work directly there.
+    '';
+
+    refactor = ''
+      GitHub issue #{{.Number}}: {{.Title}}
+
+      Description:
+      {{.Body}}
+
+      This is a REFACTOR. Focus on:
+      - Improving code structure and maintainability
+      - Maintaining backward compatibility
+      - Preserving existing behavior while improving internals
+
+      Implement the required changes, push the branch, and open a PR against main.
+      Branch: kelos-task-{{.Number}}
+      Every commit message must include #{{.Number}}.
+      The workspace at /workspace/repo is writable — work directly there.
+    '';
+
+    cleanup = ''
+      GitHub issue #{{.Number}}: {{.Title}}
+
+      Description:
+      {{.Body}}
+
+      This is a CLEANUP task. Focus on:
+      - Making minimal, targeted changes
+      - Not breaking existing behavior
+      - Removing dead code, fixing formatting, or simplifying logic
+
+      Implement the required changes, push the branch, and open a PR against main.
+      Branch: kelos-task-{{.Number}}
+      Every commit message must include #{{.Number}}.
+      The workspace at /workspace/repo is writable — work directly there.
+    '';
+  };
+
+  # ── TaskSpawner factory (multi-label) ────────────────────────────────
+  mkSpawner = name: repo: workspace: labelType: promptTemplate: {
     apiVersion = "kelos.dev/v1alpha1";
     kind = "TaskSpawner";
     metadata = { name = "github-issues-${name}"; labels = managed; };
     spec = {
       when.githubIssues = {
         repo = "reverb256/${repo}";
-        labels = ["agent-ready"];
+        labels = ["agent-ready" labelType];
         state = "open";
         pollInterval = "5m";
       };
@@ -75,23 +163,45 @@
         workspaceRef.name = workspace;
         agentConfigRef.name = "cluster-coder";
         branch = "kelos-task-{{.Number}}";
-        promptTemplate = ''
-          GitHub issue #{{.Number}}: {{.Title}}
-
-          Description:
-          {{.Body}}
-
-          Implement the required changes, push the branch, and open a PR against main.
-          Branch: kelos-task-{{.Number}}
-          Every commit message must include #{{.Number}}.
-          The workspace at /workspace/repo is writable — work directly there.
-        '';
+        inherit promptTemplate;
         ttlSecondsAfterFinished = 3600;
         inherit podOverrides;
       };
       maxConcurrency = 2;
     };
   };
+
+  # ── Label types ──────────────────────────────────────────────────────
+  labelTypes = [ "bug" "enhancement" "security" "refactor" "cleanup" ];
+
+  # ── Repos ────────────────────────────────────────────────────────────
+  repos = [
+    { name = "nixos-config"; workspace = "nixos-config"; }
+    { name = "ai-inference-gateway"; workspace = "ai-inference-gateway"; }
+    { name = "maplespike"; workspace = "maplespike"; }
+    { name = "knowledge-fabric"; workspace = "knowledge-fabric"; }
+    { name = "compute-market"; workspace = "compute-market"; }
+    { name = "mcp-registry"; workspace = "mcp-registry"; }
+    { name = "gpu-proxy"; workspace = "gpu-proxy"; }
+    { name = "llama-cpp-turboquant"; workspace = "llama-cpp-turboquant"; }
+    { name = "vllm-turboquant"; workspace = "vllm-turboquant"; }
+    { name = "searxng-cluster"; workspace = "searxng-cluster"; }
+    { name = "caddy-ingress"; workspace = "caddy-ingress"; }
+    { name = "vane"; workspace = "vane"; }
+  ];
+
+  # ── Generate all spawner resources ───────────────────────────────────
+  allSpawners = lib.listToAttrs (
+    lib.concatMap (r:
+      lib.concatMap (labelType:
+        let name = "${r.name}-${labelType}"; in
+        [{
+          name = "taskspawner-${name}";
+          value = mkSpawner name r.name r.workspace labelType promptTemplates.${labelType};
+        }]
+      ) labelTypes
+    ) repos
+  );
 in {
   config.kubernetes.objects = {
     # ════════════════════════════════════════════════════════════════════
@@ -179,42 +289,6 @@ in {
       Secret."opencode-credentials" = { type = "Opaque"; };
       Secret."github-token" = { type = "Opaque"; };
 
-      # ── Agent config ──────────────────────────────
-      Resource."agentconfig-cluster-coder" = {
-        apiVersion = "kelos.dev/v1alpha1";
-        kind = "AgentConfig";
-        metadata = { name = "cluster-coder"; labels = managed; };
-        spec = {
-          agentsMD = ''
-            # NixOS Cluster — Agent Guidelines (via Kelos)
-
-            You were spawned by Kelos because this issue has the "agent-ready" label.
-
-            ## Cluster Overview
-            - 4 nodes: Zephyr (31GB), Nexus (46GB), Forge (16GB), Sentry (31GB)
-            - K3s cluster with Flannel CNI
-            - AI Inference Gateway at 10.15.67.242:8080
-
-            ## Model
-            - deepseek-v4-flash (fast, 1M context) — default for most tasks
-
-            ## Critical Rules
-            - lib.mkOptionDefault for all list/attr options in Nix
-            - Default ALL workloads to Nexus (46GB) — avoid Zephyr OOM
-            - GPU NOT isolated per-pod — nvidia-container-runtime broken on NixOS
-            - Stop if SSH breaks or `nix flake check` fails
-
-            ## Workflow
-            - The workspace at /workspace/repo is writable
-            - Implement the issue, push branch, open PR against main
-            - Branch: kelos-task-NNN
-            - Every commit references #NNN
-            - PR body: "Closes #NNN"
-          '';
-          mcpServers = [];
-        };
-      };
-
       # ── Controller deployment ─────────────────────
       Deployment."kelos-controller-manager" = {
         metadata.labels = managed // { "app.kubernetes.io/component" = "controller"; };
@@ -282,33 +356,58 @@ in {
         };
       };
 
-      # ── Workspaces (12 repos) ────────────────────
-      Resource."workspace-nixos-config" = mkWorkspace "nixos-config" "nixos-config";
-      Resource."workspace-ai-inference-gateway" = mkWorkspace "ai-inference-gateway" "ai-inference-gateway";
-      Resource."workspace-maplespike" = mkWorkspace "maplespike" "maplespike";
-      Resource."workspace-knowledge-fabric" = mkWorkspace "knowledge-fabric" "knowledge-fabric";
-      Resource."workspace-compute-market" = mkWorkspace "compute-market" "compute-market";
-      Resource."workspace-mcp-registry" = mkWorkspace "mcp-registry" "mcp-registry";
-      Resource."workspace-gpu-proxy" = mkWorkspace "gpu-proxy" "gpu-proxy";
-      Resource."workspace-llama-cpp-turboquant" = mkWorkspace "llama-cpp-turboquant" "llama-cpp-turboquant";
-      Resource."workspace-vllm-turboquant" = mkWorkspace "vllm-turboquant" "vllm-turboquant";
-      Resource."workspace-searxng-cluster" = mkWorkspace "searxng-cluster" "searxng-cluster";
-      Resource."workspace-caddy-ingress" = mkWorkspace "caddy-ingress" "caddy-ingress";
-      Resource."workspace-vane" = mkWorkspace "vane" "Vane";
+      # ── Resources: agentconfig, workspaces, spawners ──
+      Resource = {
+        # ── Agent config ──────────────────────────────
+        "agentconfig-cluster-coder" = {
+          apiVersion = "kelos.dev/v1alpha1";
+          kind = "AgentConfig";
+          metadata = { name = "cluster-coder"; labels = managed; };
+          spec = {
+            agentsMD = ''
+              # NixOS Cluster — Agent Guidelines (via Kelos)
 
-      # ── TaskSpawners (12 repos) ──────────────────
-      Resource."taskspawner-nixos-config" = mkSpawner "nixos-config" "nixos-config" "nixos-config";
-      Resource."taskspawner-ai-inference-gateway" = mkSpawner "ai-inference-gateway" "ai-inference-gateway" "ai-inference-gateway";
-      Resource."taskspawner-maplespike" = mkSpawner "maplespike" "maplespike" "maplespike";
-      Resource."taskspawner-knowledge-fabric" = mkSpawner "knowledge-fabric" "knowledge-fabric" "knowledge-fabric";
-      Resource."taskspawner-compute-market" = mkSpawner "compute-market" "compute-market" "compute-market";
-      Resource."taskspawner-mcp-registry" = mkSpawner "mcp-registry" "mcp-registry" "mcp-registry";
-      Resource."taskspawner-gpu-proxy" = mkSpawner "gpu-proxy" "gpu-proxy" "gpu-proxy";
-      Resource."taskspawner-llama-cpp-turboquant" = mkSpawner "llama-cpp-turboquant" "llama-cpp-turboquant" "llama-cpp-turboquant";
-      Resource."taskspawner-vllm-turboquant" = mkSpawner "vllm-turboquant" "vllm-turboquant" "vllm-turboquant";
-      Resource."taskspawner-searxng-cluster" = mkSpawner "searxng-cluster" "searxng-cluster" "searxng-cluster";
-      Resource."taskspawner-caddy-ingress" = mkSpawner "caddy-ingress" "caddy-ingress" "caddy-ingress";
-      Resource."taskspawner-vane" = mkSpawner "vane" "Vane" "vane";
+              You were spawned by Kelos because this issue has the "agent-ready" label.
+
+              ## Cluster Overview
+              - 4 nodes: Zephyr (31GB), Nexus (46GB), Forge (16GB), Sentry (31GB)
+              - K3s cluster with Flannel CNI
+              - AI Inference Gateway at 10.15.67.242:8080
+
+              ## Model
+              - deepseek-v4-flash (fast, 1M context) — default for most tasks
+
+              ## Critical Rules
+              - lib.mkOptionDefault for all list/attr options in Nix
+              - Default ALL workloads to Nexus (46GB) — avoid Zephyr OOM
+              - GPU NOT isolated per-pod — nvidia-container-runtime broken on NixOS
+              - Stop if SSH breaks or `nix flake check` fails
+
+              ## Workflow
+              - The workspace at /workspace/repo is writable
+              - Implement the issue, push branch, open PR against main
+              - Branch: kelos-task-NNN
+              - Every commit references #NNN
+              - PR body: "Closes #NNN"
+            '';
+            mcpServers = [];
+          };
+        };
+
+        # ── Workspaces (12 repos) ────────────────────
+        "workspace-nixos-config" = mkWorkspace "nixos-config" "nixos-config";
+        "workspace-ai-inference-gateway" = mkWorkspace "ai-inference-gateway" "ai-inference-gateway";
+        "workspace-maplespike" = mkWorkspace "maplespike" "maplespike";
+        "workspace-knowledge-fabric" = mkWorkspace "knowledge-fabric" "knowledge-fabric";
+        "workspace-compute-market" = mkWorkspace "compute-market" "compute-market";
+        "workspace-mcp-registry" = mkWorkspace "mcp-registry" "mcp-registry";
+        "workspace-gpu-proxy" = mkWorkspace "gpu-proxy" "gpu-proxy";
+        "workspace-llama-cpp-turboquant" = mkWorkspace "llama-cpp-turboquant" "llama-cpp-turboquant";
+        "workspace-vllm-turboquant" = mkWorkspace "vllm-turboquant" "vllm-turboquant";
+        "workspace-searxng-cluster" = mkWorkspace "searxng-cluster" "searxng-cluster";
+        "workspace-caddy-ingress" = mkWorkspace "caddy-ingress" "caddy-ingress";
+        "workspace-vane" = mkWorkspace "vane" "Vane";
+      } // allSpawners;
     };
   };
 }
