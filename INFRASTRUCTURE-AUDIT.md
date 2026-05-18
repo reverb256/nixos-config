@@ -133,9 +133,9 @@ Three K8s secrets defined in Nix modules but **never mounted** (removed sidecar 
 |-----------|--------|-------|
 | Casdoor SSO | Running | Central SSO operational, OIDC auth for all protected services |
 | mcp-gateway-bridge | Not deployed | Superseded by direct NixOS Caddy routes |
-| mcp-server-registry.nix | Partial | 13 servers defined, not generating downstream configs |
+| mcp-server-registry.nix | Complete | 17 servers defined, generates Claude Code, Hermes, Kagent CRDs, NetworkPolicies, Casdoor apps |
 | nixkube CSI | Running | nix-node DaemonSet on all 4 nodes |
-| RemoteMCPServer CRD | Installed | 0 instances |
+| RemoteMCPServer CRD | Installed | 5 instances (kubernetes, nixos-cluster, searxng, lightpanda, casdoor) |
 | mcp-proxy | Not deployed | Needed for Casdoor tool sync with stdio servers |
 
 **Full plan:** `docs/plans/2026-05-01-mcp-system-plan.md`
