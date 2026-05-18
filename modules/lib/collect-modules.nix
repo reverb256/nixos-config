@@ -34,6 +34,13 @@ let
     "default.nix" = true;                                        # This file itself — circular import prevention
     "desktop/lib/spotify-common.nix" = true;                     # Library: returns function set
     "services/monitoring/dashboards/lib.nix" = true;             # Library: returns Grafana dashboard helpers
+    "development/ai-coding-tools/claude.nix" = true;     # Submodule: imported by parent
+    "development/ai-coding-tools/crush.nix" = true;      # Submodule: imported by parent
+    "development/ai-coding-tools/droid.nix" = true;      # Submodule: imported by parent
+    "development/ai-coding-tools/mcp-defs.nix" = true;   # Submodule: imported by parent
+    "development/ai-coding-tools/omp.nix" = true;        # Submodule: imported by parent
+    "development/ai-coding-tools/opencode.nix" = true;   # Submodule: imported by parent
+    "development/ai-coding-tools/pi.nix" = true;         # Submodule: imported by parent
 
 
 
