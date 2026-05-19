@@ -96,7 +96,7 @@ in
           setupCommand = ["sh" "-c" "chmod -R g+rw /workspace/repo && cat > /workspace/repo/opencode.json << 'EOFOP'
 {
   \"$schema\": \"https://opencode.ai/config.json\",
-  \"model\": \"auto\",
+  \"model\": \"nvidia/nemotron-3-super-120b-a12b\",
   \"enabled_providers\": [\"nvidia\"],
   \"provider\": {
     \"nvidia\": {
@@ -104,9 +104,9 @@ in
         \"baseURL\": \"http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1\"
       },
       \"models\": {
-        \"nemotron-3-super-120b-a12b\": { \"name\": \"Nemotron 3 Super 120B\", \"id\": \"nvidia/nemotron-3-super-120b-a12b\" },
-        \"nemotron-3-nano-30b-a3b\": { \"name\": \"Nemotron 3 Nano 30B\", \"id\": \"nvidia/nemotron-3-nano-30b-a3b\" },
-        \"nemotron-3-nano-omni-30b-a3b-reasoning\": { \"name\": \"Nemotron 3 Nano Omni 30B\", \"id\": \"nvidia/nemotron-3-nano-omni-30b-a3b-reasoning\" }
+        \"nvidia/nemotron-3-super-120b-a12b\": { \"name\": \"Nemotron 3 Super 120B\" },
+        \"nvidia/nemotron-3-nano-30b-a3b\": { \"name\": \"Nemotron 3 Nano 30B\" },
+        \"nvidia/nemotron-3-nano-omni-30b-a3b-reasoning\": { \"name\": \"Nemotron 3 Nano Omni 30B\" }
       }
     }
   }
@@ -129,28 +129,25 @@ EOFOP
         };
         spec = {
           agentsMD = ''
-            # NixOS Cluster — Agent Guidelines (via Kelos)
+            # Kelos Agent — Task Instructions
 
             You were spawned by Kelos because this issue has the "agent-ready" label.
 
-            ## Cluster Overview
-            - 4 nodes: Zephyr (31GB), Nexus (46GB), Forge (16GB), Sentry (31GB)
-            - K3s cluster with Flannel CNI
-            - AI Inference Gateway at http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1
+            ## Your Job
+            Implement the GitHub issue that spawned you. Read the issue body, make the changes, push the branch, and open a PR against main.
+            DO NOT stop until you have created a pull request. If you hit an error, try a different approach.
+            The task is not complete until a PR exists at github.com/reverb256/maplespike.
 
-            ## Models
-            - NVIDIA Nemotron 3 Super (120B) — default model for code tasks
-            - NVIDIA Nemotron 3 Nano Omni (30B) — vision/reasoning tasks
-            - Model selection is automatic via the AI Inference Gateway
+            ## Before implementing
+            1. Read the issue body thoroughly — it contains the exact requirements and acceptance criteria
+            2. Check for ## Previous Attempt Feedback in the body — if present, fix those problems first
 
-            ## Critical Rules
-            - Default ALL workloads to Nexus (46GB) — avoid Zephyr OOM
-            - GPU NOT isolated per-pod — nvidia-container-runtime broken on NixOS
-            - Stop if SSH breaks or `nix flake check` fails
+            ## Gateway verification
+            The AI Inference Gateway is at http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1.
+            The model in opencode.json is configured and valid. Use webfetch (not bash/curl) if you need to check the gateway.
 
             ## Workflow
             - The workspace at /workspace/repo is writable
-            - Implement the issue, push branch, open PR against main
             - Branch: kelos-task-NNN
             - Every commit references #NNN
             - PR body: "Closes #NNN"
