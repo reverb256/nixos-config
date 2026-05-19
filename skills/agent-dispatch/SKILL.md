@@ -1,13 +1,52 @@
 ---
 name: agent-dispatch
-description: Routes tasks to the appropriate AI agent (Kelos, OMP, Claude Code) based on task type, complexity, and required tooling.
+description: Routes tasks to the appropriate AI agent (Kelos, OMP, Claude Code) based on task type, complexity, and required tooling. Manages context bridge for inter-agent state passing.
 type: devops
-version: "1.0.0"
+version: "1.1.0"
 ---
 
 # Agent Dispatch
 
 Routes work to the most appropriate AI agent based on task characteristics.
+Manages the context bridge at `/data/agents/context/` for inter-agent handoff.
+
+## Context Bridge
+
+All agents share state via `/data/agents/context/<issue-number>/`:
+
+| File | Purpose |
+|------|---------|
+| `analysis.md` | Problem analysis from stage 1 |
+| `plan.md` | Implementation plan from stage 2 |
+| `review.md` | Review findings from stage 3 |
+| `results.json` | Structured machine-readable results |
+| `handoff.md` | Free-form notes for next agent |
+
+**Agent startup:** Check for existing context before starting work:
+```bash
+CONTEXT_DIR="/data/agents/context/$ISSUE_NUMBER"
+if [ -d "$CONTEXT_DIR" ]; then
+  for f in "$CONTEXT_DIR"/*.md; do
+    [ -f "$f" ] && echo "--- $(basename "$f") ---" && cat "$f"
+  done
+fi
+```
+
+**Stage completion:** Update `results.json` with structured output:
+```json
+{
+  "stage": "analysis | implementation | review | deploy",
+  "agent": "hermes | kelos | opencode | omp | pi",
+  "issue": 42,
+  "branch": "kelos-task-42",
+  "commit": "abc123",
+  "pr": "https://github.com/reverb256/nixos-config/pull/43",
+  "status": "completed | failed | blocked",
+  "timestamp": "2026-05-19T10:30:00Z"
+}
+```
+
+See `context/README.md` for full conventions.
 
 ## Agents Overview
 
@@ -133,3 +172,32 @@ User: "Add a new monitoring dashboard with custom Prometheus metrics and Grafana
 | Update documentation | Kelos | Simple, straightforward |
 | Migrate deprecated syntax | OMP | Pattern matching across files |
 | Fix SSH/firewall config | Kelos | Safety-critical, needs NixOS expertise |
+
+## Agent Handoff Protocol
+
+When dispatching tasks through multiple stages, use the context bridge:
+
+```
+Issue created & labeled agent-ready
+  │
+  └─→ Kelos (stage 1: analysis)
+      ├── Reads GitHub issue
+      ├── Writes /data/agents/context/NNN/analysis.md
+      └── Updates results.json
+  │
+  └─→ Kelos (stage 2: implementation)
+      ├── Reads analysis.md for context
+      ├── Implements changes, opens PR
+      ├── Writes plan.md, results.json
+      └── Updates dispatch task status
+  │
+  └─→ Hermes (stage 3: review)
+      ├── Reads results.json for PR URL
+      ├── Reviews PR, writes review.md
+      └── Merges or requests changes
+```
+
+**Tools:**
+- `scripts/dispatch.py` — task queue with context directory creation
+- `scripts/kelos.py` — Kelos CRD generation with initial context writing
+- `/data/agents/context/` — shared NFS workspace (all 4 nodes)

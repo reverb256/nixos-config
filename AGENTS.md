@@ -37,6 +37,27 @@ gh pr create --base main --head issue-NNN-desc --title "type: description (#NNN)
 
 Then clean up.
 
+## Agent Context Bridge
+
+Agents pass state between stages via `/data/agents/context/<issue-number>/`:
+
+| File | Purpose |
+|------|---------|
+| `analysis.md` | Problem analysis from stage 1 |
+| `plan.md` | Implementation plan from stage 2 |
+| `review.md` | Review findings from stage 3 |
+| `results.json` | Structured: `{branch, commit, pr, status}` |
+| `handoff.md` | Notes for the next agent |
+
+**Protocol:**
+1. **Read** existing context before starting work — prior agents may have critical info
+2. **Write** analysis/plan before implementation — don't skip stages
+3. **Update** `results.json` on completion — enables automated handoff
+
+**Location:** Shared NFS at `/data/agents/context/` (all 4 nodes).
+**Conventions:** See `context/README.md` in this repo.
+**Tools:** `scripts/dispatch.py` (task queue + context creation), `scripts/kelos.py` (CRD generation + initial context).
+
 
 ## Cluster Overview
 
