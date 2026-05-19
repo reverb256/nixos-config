@@ -36,7 +36,6 @@
 
   # nftables script to apply agent firewall rules
   nftApplyScript = pkgs.writeShellScript "agent-firewall-apply" ''
-    #!/usr/bin/env bash
     set -euo pipefail
 
     NFT="${pkgs.nftables}/bin/nft"
@@ -44,108 +43,68 @@
     # Flush existing agent firewall table if present
     $NFT delete table inet agent-firewall 2>/dev/null || true
 
-    # Create the agent firewall table
-    $NFT add table inet agent-firewall
+    # Apply all nftables rules via stdin to avoid bash brace-group parsing
+    $NFT -f - << 'RULES'
+delete table inet agent-firewall 2>/dev/null;
+add table inet agent-firewall;
 
-    # ── Sets ──────────────────────────────────────────────────────
+# ── Sets ──────────────────────────────────────────────────────
 
-    # Allowed external destinations for agents (AI APIs, GitHub, etc.)
-    # These IPs are resolved at deploy time. If endpoints change, update
-    # this set or add via allowedExternalIPs option.
-    $NFT add set inet agent-firewall allowed_external_ips {
-      type ipv4_addr
-      flags interval
-      elements = {
-        # Z.AI (api.z.ai) — primary cloud provider
-        104.18.0.0/15,
-        # OpenRouter (openrouter.ai)
-        104.18.35.159,
-        # GitHub API
-        140.82.112.0/20,
-        # NVIDIA API
-        34.160.0.0/16
-      }
-    }
+add set inet agent-firewall allowed_external_ips {
+  type ipv4_addr;
+  flags interval;
+  elements = { 104.18.0.0/15, 104.18.35.159, 140.82.112.0/20, 34.160.0.0/16 };
+}
 
-    # Local service IPs agents need to reach
-    $NFT add set inet agent-firewall local_services {
-      type ipv4_addr
-      elements = { ${clusterSubnet} }
-    }
+add set inet agent-firewall local_services {
+  type ipv4_addr;
+  elements = { ${clusterSubnet} };
+}
 
-    # Allowed TCP destination ports for external traffic
-    $NFT add set inet agent-firewall allowed_external_ports {
-      type inet_service
-      elements = { 80, 443 }
-    }
+add set inet agent-firewall allowed_external_ports {
+  type inet_service;
+  elements = { 80, 443 };
+}
 
-    # Allowed TCP destination ports for local services
-    $NFT add set inet agent-firewall allowed_local_ports {
-      type inet_service
-      elements = { 53, 80, 443, 8080, 6443, 3456, 8040, 1235, 1237 }
-    }
+add set inet agent-firewall allowed_local_ports {
+  type inet_service;
+  elements = { 53, 80, 443, 8080, 6443, 3456, 8040, 1235, 1237 };
+}
 
-    # ── Chains ────────────────────────────────────────────────────
+# ── Chains ────────────────────────────────────────────────────
 
-    # Agent egress chain — matches traffic from agent cgroup slices
-    $NFT add chain inet agent-firewall agent-egress {
-      type filter hook output priority -150
-    }
+add chain inet agent-firewall agent-egress {
+  type filter hook output priority -150;
+}
 
-    # Allow loopback — agents need localhost for MCP stdio bridges
-    $NFT add rule inet agent-firewall agent-egress oifname "lo" accept
+add rule inet agent-firewall agent-egress oifname "lo" accept;
+add rule inet agent-firewall agent-egress ct state established,related accept;
+add rule inet agent-firewall agent-egress udp dport 53 accept;
+add rule inet agent-firewall agent-egress tcp dport 53 accept;
+add rule inet agent-firewall agent-egress ip protocol icmp accept;
+add rule inet agent-firewall agent-egress ip6 nexthop icmpv6 accept;
+add rule inet agent-firewall agent-egress ip daddr @local_services tcp dport @allowed_local_ports accept;
+add rule inet agent-firewall agent-egress ip daddr ${podCidr} accept;
+add rule inet agent-firewall agent-egress ip daddr @allowed_external_ips tcp dport @allowed_external_ports accept;
+add rule inet agent-firewall agent-egress oifname "tailscale0" accept;
+${lib.optionalString cfg.auditLog "add rule inet agent-firewall agent-egress log prefix \"AGENT-DROP: \" level info counter;"}
+add rule inet agent-firewall agent-egress drop;
 
-    # Allow established/related connections
-    $NFT add rule inet agent-firewall agent-egress ct state established,related accept
+add chain inet agent-firewall cgroup-classify {
+  type filter hook output priority -151;
+}
 
-    # Allow DNS (UDP + TCP) — agents need DNS resolution
-    $NFT add rule inet agent-firewall agent-egress udp dport 53 accept
-    $NFT add rule inet agent-firewall agent-egress tcp dport 53 accept
-
-    # Allow ICMP (ping for diagnostics)
-    $NFT add rule inet agent-firewall agent-egress ip protocol icmp accept
-    $NFT add rule inet agent-firewall agent-egress ip6 nexthop icmpv6 accept
-
-    # Allow traffic to local cluster services on allowed ports
-    $NFT add rule inet agent-firewall agent-egress ip daddr @local_services tcp dport @allowed_local_ports accept
-
-    # Allow traffic to pod CIDR (K8s services, MCP servers)
-    $NFT add rule inet agent-firewall agent-egress ip daddr ${podCidr} accept
-
-    # Allow traffic to external AI APIs on HTTPS only
-    $NFT add rule inet agent-firewall agent-egress ip daddr @allowed_external_ips tcp dport @allowed_external_ports accept
-
-    # Allow Tailscale (agents may need remote access via VPN)
-    $NFT add rule inet agent-firewall agent-egress oifname "tailscale0" accept
-
-    # ── Audit logging ─────────────────────────────────────────────
-    ${lib.optionalString cfg.auditLog ''
-    # Log all denied agent traffic before dropping
-    $NFT add rule inet agent-firewall agent-egress log prefix \"AGENT-DROP: \" level info counter
-    ''}
-
-    # Default deny — drop everything else
-    $NFT add rule inet agent-firewall agent-egress drop
-
-    # ── Cgroup classification chain ───────────────────────────────
-    # Matches agent cgroup slices and jumps to agent-egress
-    $NFT add chain inet agent-firewall cgroup-classify {
-      type filter hook output priority -151
-    }
-
-    # Match agent cgroup slices (cgroupv2 path format)
-    $NFT add rule inet agent-firewall cgroup-classify meta cgroup "agent-hermes.slice" jump agent-egress
-    $NFT add rule inet agent-firewall cgroup-classify meta cgroup "agent-opencode.slice" jump agent-egress
-    $NFT add rule inet agent-firewall cgroup-classify meta cgroup "agent-claude.slice" jump agent-egress
-    $NFT add rule inet agent-firewall cgroup-classify meta cgroup "agent-omp.slice" jump agent-egress
-    $NFT add rule inet agent-firewall cgroup-classify meta cgroup "agent-pi.slice" jump agent-egress
-
-    # Match child cgroups (systemd creates sub-slices for services)
-    $NFT add rule inet agent-firewall cgroup-classify meta cgroup "agent-hermes.slice/" jump agent-egress
-    $NFT add rule inet agent-firewall cgroup-classify meta cgroup "agent-opencode.slice/" jump agent-egress
-    $NFT add rule inet agent-firewall cgroup-classify meta cgroup "agent-claude.slice/" jump agent-egress
-    $NFT add rule inet agent-firewall cgroup-classify meta cgroup "agent-omp.slice/" jump agent-egress
-    $NFT add rule inet agent-firewall cgroup-classify meta cgroup "agent-pi.slice/" jump agent-egress
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-hermes.slice" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-opencode.slice" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-claude.slice" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-omp.slice" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-pi.slice" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-hermes.slice/" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-opencode.slice/" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-claude.slice/" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-omp.slice/" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-pi.slice/" jump agent-egress;
+RULES
 
     echo "agent-firewall: nftables rules applied"
   '';
