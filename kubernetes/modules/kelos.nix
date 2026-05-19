@@ -179,10 +179,35 @@ Without it, bash calls fail with SchemaError. Retry with description if you forg
             }
             {
               name = "sequential-thinking";
+            {
+              name = "skills-mcp";
               type = "sse";
+              url = "http://mcp-skills-mcp-proxy.mcp.svc.cluster.local:8080/mcp";
+            }
+              type = "sse";
+            {
+              name = "skills-mcp";
+              type = "sse";
+              url = "http://mcp-skills-mcp-proxy.mcp.svc.cluster.local:8080/mcp";
+            }
               url = "http://mcp-sequential-thinking-proxy.mcp.svc.cluster.local:8080/mcp";
+            {
+              name = "skills-mcp";
+              type = "sse";
+              url = "http://mcp-skills-mcp-proxy.mcp.svc.cluster.local:8080/mcp";
+            }
+            }
+            {
+              name = "skills-mcp";
+              type = "sse";
+              url = "http://mcp-skills-mcp-proxy.mcp.svc.cluster.local:8080/mcp";
             }
           ];
+            {
+              name = "skills-mcp";
+              type = "sse";
+              url = "http://mcp-skills-mcp-proxy.mcp.svc.cluster.local:8080/mcp";
+            }
         };
       }
     ];
