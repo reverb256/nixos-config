@@ -10,7 +10,8 @@
     \"kimi-k2.6\": { \"name\": \"Kimi K2.6 (NIM)\" },
     \"minimax-m2.7\": { \"name\": \"MiniMax M2.7 (Go/NIM)\" },
     \"deepseek-v4-flash\": { \"name\": \"DeepSeek V4 Flash (NIM)\" },
-    \"deepseek-v4-pro\": { \"name\": \"DeepSeek V4 Pro (NIM)\" }}:
+    \"deepseek-v4-pro\": { \"name\": \"DeepSeek V4 Pro (NIM)\" },
+    \"nemotron-3-nano-omni-30b-a3b-reasoning\": { \"name\": \"Nemotron 3 Nano Omni 30B (NIM)\" }}:
 
 with lib;
 
@@ -104,7 +105,6 @@ in
           secretRef.name = "github-token";
           setupCommand = ["sh" "-c" "chmod -R g+rw /workspace/repo && cat > /workspace/repo/opencode.json << 'EOFOP'
 {
-  \"$schema\": \"https://opencode.ai/config.json\",
   \"model\": \"deepseek-v4-flash-free\",
   \"enabled_providers\": [\"nvidia\"],
   \"agent\": {
@@ -126,7 +126,8 @@ in
         \"kimi-k2.6\": { \"name\": \"Kimi K2.6\", \"id\": \"kimi-k2.6\" },
         \"minimax-m2.7\": { \"name\": \"MiniMax M2.7\", \"id\": \"minimax-m2.7\" },
         \"deepseek-v4-flash\": { \"name\": \"DeepSeek V4 Flash\", \"id\": \"deepseek-ai/deepseek-v4-flash\" },
-        \"deepseek-v4-pro\": { \"name\": \"DeepSeek V4 Pro\", \"id\": \"deepseek-ai/deepseek-v4-pro\" }
+        \"deepseek-v4-pro\": { \"name\": \"DeepSeek V4 Pro\", \"id\": \"deepseek-ai/deepseek-v4-pro\" },
+        \"nemotron-3-nano-omni-30b-a3b-reasoning\": { \"name\": \"Nemotron 3 Nano Omni 30B Reasoning\", \"id\": \"nvidia/nemotron-3-nano-omni-30b-a3b-reasoning\" }
       }
     }
   }
