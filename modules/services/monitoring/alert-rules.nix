@@ -84,18 +84,44 @@
               summary: "High AI request latency"
               description: "95th percentile latency is {{ $value }}s"
 
-      - name: prometheus_health
-        interval: 30s
-        rules:
-          - alert: PrometheusTargetMissing
-            expr: up == 0
-            for: 5m
-            labels:
-              severity: warning
-              cluster: reverb-os
-            annotations:
-              summary: "Prometheus target missing"
-              description: "Target {{ $labels.job }} on {{ $labels.instance }} is down"
+       - name: prometheus_health
+         interval: 30s
+         rules:
+           - alert: PrometheusTargetMissing
+             expr: up == 0
+             for: 5m
+             labels:
+               severity: warning
+               cluster: reverb-os
+             annotations:
+               summary: "Prometheus target missing"
+               description: "Target {{ $labels.job }} on {{ $labels.instance }} is down"
+
+       - name: oom_protection
+         interval: 30s
+         rules:
+           - alert: OOMKillDetected
+             expr: increase(node_vmstat_oom_kill[5m]) > 0
+             for: 0m
+             labels:
+               severity: critical
+               cluster: reverb-os
+             annotations:
+               summary: "OOM killer detected on {{ $labels.instance }}"
+               description: "The OOM killer has been activated {{ $value }} times in the last 5 minutes on {{ $labels.instance }}"
+
+           - alert: OOMProtectedProcessScoreDrift
+             expr: |
+               avg by (instance, process) (
+                 node_process_oomscoreadj{process=~"opencode|hermes|claude|llama-server|llama-cli|llama.cpp|k3s-server|k3s-agent|prometheus|grafana|alloy|postgres|mysql|nix-daemon|sshd"}
+               ) != -500
+             for: 2m
+             labels:
+               severity: warning
+               cluster: reverb-os
+             annotations:
+               summary: "OOM protection score drift detected on {{ $labels.instance }}"
+               description: "Protected process {{ $labels.process }} has oom_score_adj of {{ $value }} instead of -500 on {{ $labels.instance }}"
 
   '';
 

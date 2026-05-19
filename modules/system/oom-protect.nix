@@ -46,7 +46,14 @@ in
         "llama-server"
         "llama-cli"
         "llama.cpp"
-        "k3s"
+        "k3s-server"
+        "k3s-agent"
+        "prometheus"
+        "grafana"
+        "alloy"
+        "postgres"
+        "mysql"
+        "nix-daemon"
         "sshd"
       ];
       description = "Process patterns to protect from OOM killer";

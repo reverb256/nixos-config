@@ -73,72 +73,108 @@ in {
         colorMode = "value";
       })
 
-      (panels.row "📊 Resource Overview" false)
-      (panels.gauge {
-        title = "Cluster CPU Usage";
-        expr = "avg(100 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)";
-        gridPos = {
-          h = 8;
-          w = 6;
-          x = 0;
-          y = 5;
-        };
-        thresholds = thresholds.percentage;
-        unit = "percent";
-      })
-      (panels.gauge {
-        title = "Cluster Memory Usage";
-        expr = "avg((1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100)";
-        gridPos = {
-          h = 8;
-          w = 6;
-          x = 6;
-          y = 5;
-        };
-        thresholds = thresholds.percentage;
-        unit = "percent";
-      })
-      (panels.gauge {
-        title = "Cluster Disk Usage";
-        expr = "avg((1 - node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"}) * 100)";
-        gridPos = {
-          h = 8;
-          w = 6;
-          x = 12;
-          y = 5;
-        };
-        thresholds = thresholds.percentage;
-        unit = "percent";
-      })
-      (panels.gauge {
-        title = "GPU Utilization (Avg)";
-        expr = "avg(nvidia_smi_utilization_gpu_ratio) * 100";
-        gridPos = {
-          h = 8;
-          w = 6;
-          x = 18;
-          y = 5;
-        };
-        thresholds = [
-          {
-            color = "red";
-            value = null;
-          }
-          {
-            color = "yellow";
-            value = 20;
-          }
-          {
-            color = "orange";
-            value = 50;
-          }
-          {
-            color = "green";
-            value = 80;
-          }
-        ];
-        unit = "percent";
-      })
+       (panels.row "📊 Resource Overview" false)
+       (panels.gauge {
+         title = "Cluster CPU Usage";
+         expr = "avg(100 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)";
+         gridPos = {
+           h = 8;
+           w = 6;
+           x = 0;
+           y = 5;
+         };
+         thresholds = thresholds.percentage;
+         unit = "percent";
+       })
+       (panels.gauge {
+         title = "Cluster Memory Usage";
+         expr = "avg((1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100)";
+         gridPos = {
+           h = 8;
+           w = 6;
+           x = 6;
+           y = 5;
+         };
+         thresholds = thresholds.percentage;
+         unit = "percent";
+       })
+       (panels.gauge {
+         title = "Cluster Disk Usage";
+         expr = "avg((1 - node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"}) * 100)";
+         gridPos = {
+           h = 8;
+           w = 6;
+           x = 12;
+           y = 5;
+         };
+         thresholds = thresholds.percentage;
+         unit = "percent";
+       })
+       (panels.gauge {
+         title = "GPU Utilization (Avg)";
+         expr = "avg(nvidia_smi_utilization_gpu_ratio) * 100";
+         gridPos = {
+           h = 8;
+           w = 6;
+           x = 18;
+           y = 5;
+         };
+         thresholds = [
+           {
+             color = "red";
+             value = null;
+           }
+           {
+             color = "yellow";
+             value = 20;
+           }
+           {
+             color = "orange";
+             value = 50;
+           }
+           {
+             color = "green";
+             value = 80;
+           }
+         ];
+         unit = "percent";
+       })
+       
+       (panels.row "🛡️ OOM Protection" false)
+       (panels.statPanel {
+         title = "OOM Kills (5m)";
+         expr = "increase(node_vmstat_oom_kill[5m])";
+         gridPos = {
+           h = 4;
+           w = 6;
+           x = 0;
+           y = 13;
+         };
+         thresholds = [
+           {
+             color = "green";
+             value = 0;
+           }
+           {
+             color = "red";
+             value = 1;
+           }
+         ];
+         colorMode = "background";
+         unit = "count";
+       })
+       (panels.statPanel {
+         title = "Protected Processes OK";
+         expr = "100 * (count(node_process_oomscoreadj{process=~\"opencode|hermes|claude|llama-server|llama-cli|llama.cpp|k3s-server|k3s-agent|prometheus|grafana|alloy|postgres|mysql|nix-daemon|sshd\", oomscoreadj=-500}) / count(node_process_oomscoreadj{process=~\"opencode|hermes|claude|llama-server|llama-cli|llama.cpp|k3s-server|k3s-agent|prometheus|grafana|alloy|postgres|mysql|nix-daemon|sshd\"}))";
+         gridPos = {
+           h = 4;
+           w = 6;
+           x = 6;
+           y = 13;
+         };
+         thresholds = thresholds.percentage;
+         unit = "percent";
+       })
 
       (panels.row "🖥️ Per-Node Status" false)
       {
