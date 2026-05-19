@@ -4,7 +4,13 @@
 { config, lib, pkgs, ... ,
     \"deepseek-v4-flash-free\": { \"name\": \"DeepSeek V4 Flash (Zen Free)\" },
     \"nemotron-3-super-free\": { \"name\": \"Nemotron 3 Super (Zen Free)\" },
-    \"qwen3.6-plus-free\": { \"name\": \"Qwen 3.6 Plus (Zen Free)\" }}:
+    \"nemotron-3-super-120b-a12b\": { \"name\": \"Nemotron 3 Super 120B (NIM)\" },
+    \"nemotron-3-nano-30b-a3b\": { \"name\": \"Nemotron 3 Nano 30B (NIM)\" },
+    \"nemotron-3-super-120b-a12b-free\": { \"name\": \"Nemotron 3 Super Free (Kilo)\" },
+    \"kimi-k2.6\": { \"name\": \"Kimi K2.6 (NIM)\" },
+    \"minimax-m2.7\": { \"name\": \"MiniMax M2.7 (Go/NIM)\" },
+    \"deepseek-v4-flash\": { \"name\": \"DeepSeek V4 Flash (NIM)\" },
+    \"deepseek-v4-pro\": { \"name\": \"DeepSeek V4 Pro (NIM)\" }}:
 
 with lib;
 
@@ -112,9 +118,15 @@ in
         \"baseURL\": \"http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1\"
       },
       \"models\": {
-        \"nvidia/nemotron-3-super-120b-a12b\": { \"name\": \"Nemotron 3 Super 120B\" },
-        \"nvidia/nemotron-3-nano-30b-a3b\": { \"name\": \"Nemotron 3 Nano 30B\" },
-        \"nvidia/nemotron-3-nano-omni-30b-a3b-reasoning\": { \"name\": \"Nemotron 3 Nano Omni 30B\" }
+        \"deepseek-v4-flash-free\": { \"name\": \"DeepSeek V4 Flash Free\", \"id\": \"deepseek-v4-flash-free\" },
+        \"nemotron-3-super-free\": { \"name\": \"Nemotron 3 Super Free\", \"id\": \"nemotron-3-super-free\" },
+        \"nemotron-3-nano-30b-a3b\": { \"name\": \"Nemotron 3 Nano 30B\", \"id\": \"nvidia/nemotron-3-nano-30b-a3b\" },
+        \"nemotron-3-super-120b-a12b\": { \"name\": \"Nemotron 3 Super 120B\", \"id\": \"nvidia/nemotron-3-super-120b-a12b\" },
+        \"nemotron-3-super-120b-a12b-free\": { \"name\": \"Nemotron 3 Super Free (Kilo)\", \"id\": \"nvidia/nemotron-3-super-120b-a12b:free\" },
+        \"kimi-k2.6\": { \"name\": \"Kimi K2.6\", \"id\": \"kimi-k2.6\" },
+        \"minimax-m2.7\": { \"name\": \"MiniMax M2.7\", \"id\": \"minimax-m2.7\" },
+        \"deepseek-v4-flash\": { \"name\": \"DeepSeek V4 Flash\", \"id\": \"deepseek-ai/deepseek-v4-flash\" },
+        \"deepseek-v4-pro\": { \"name\": \"DeepSeek V4 Pro\", \"id\": \"deepseek-ai/deepseek-v4-pro\" }
       }
     }
   }
