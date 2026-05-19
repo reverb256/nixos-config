@@ -194,6 +194,41 @@ in {
           echo "[casdoor-app-sync] Created oauth2-proxy application"
         fi
 
+        # ── Gitea application (native OIDC) ──
+        # Gitea uses direct Casdoor OIDC (not forward_auth).
+        # Callback: https://gitea.lan/user/oauth2/Casdoor/callback
+        GITEA_APP=$(curl -sk "$AUTH_URL/api/get-application/app-gitea" \
+          -H "Authorization: Bearer $TOKEN" 2>/dev/null | jq -r '.data.name // empty')
+
+        if [ -z "$GITEA_APP" ]; then
+          curl -sk "$AUTH_URL/api/add-application" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "owner": "admin",
+              "name": "app-gitea",
+              "createdTime": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
+              "displayName": "Gitea",
+              "enablePassword": false,
+              "enableCodeSignin": false,
+              "clientId": "app-gitea",
+              "clientSecret": "'"$CLIENT_SECRET"'",
+              "redirectUris": [
+                "https://gitea.lan/user/oauth2/Casdoor/callback"
+              ],
+              "tokenFormat": "JWT",
+              "expireInHours": 24,
+              "refreshExpireInHours": 168,
+              "grantTypes": ["authorization_code"],
+              "organization": "built-in",
+              "isEnabled": true
+            }' >/dev/null 2>&1
+
+          echo "[casdoor-app-sync] Created app-gitea application"
+        else
+          echo "[casdoor-app-sync] app-gitea application exists"
+        fi
+
         # Ensure j_kro admin user exists (idempotent)
         EXISTING_USER=$(curl -sk "$AUTH_URL/api/get-user/j_kro" \
           -H "Authorization: Bearer $TOKEN" 2>/dev/null | jq -r '.data.name // empty')
