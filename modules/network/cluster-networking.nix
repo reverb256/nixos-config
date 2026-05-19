@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }: let
   cluster = config.networking.cluster;
@@ -128,19 +127,8 @@ in {
       };
     };
 
-    services = {
-      tailscale.enable = true;
-
-      avahi = {
-        enable = true;
-        nssmdns4 = true;
-        publish = {
-          enable = true;
-          addresses = true;
-          workstation = true;
-        };
-      };
-    };
+    # Avahi/mDNS removed — all name resolution via static Unbound + /etc/hosts.
+    # See docs/plans/2026-05-19-static-dns-mapping.md for DNS mapping.
 
     networking.networkmanager.dns = "none";
 

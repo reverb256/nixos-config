@@ -1,6 +1,5 @@
 {
   lib,
-  pkgs,
   ...
 }: {
   networking = {
@@ -66,36 +65,6 @@
   };
 
   services = {
-    avahi = {
-      enable = true;
-      nssmdns4 = true;
-      publish = {
-        enable = true;
-        addresses = true;
-        workstation = true;
-        userServices = true;
-      };
-      allowInterfaces = [
-        "lan0"
-        "enp*"
-        "eno*"
-      ];
-      denyInterfaces = [
-        "tailscale0"
-        "wlan*"
-        "docker*"
-        "virbr*"
-        "wg*"
-      ];
-      extraConfig = ''
-        [wide-area]
-        enable-wide-area=no
-
-        [publish]
-        disable-user-service-publishing=no
-      '';
-    };
-
     timesyncd = {
       enable = true;
       servers = [
@@ -106,13 +75,6 @@
 
     tailscale.enable = true;
   };
-
-  systemd.tmpfiles.rules = [
-    "d /run/avahi-daemon 755 avahi avahi -"
-  ];
-  systemd.services.avahi-daemon.serviceConfig.ExecStartPre = [
-    "${pkgs.coreutils}/bin/rm -f /run/avahi-daemon/pid"
-  ];
 
   systemd.services.systemd-networkd-wait-online = {
     serviceConfig = {

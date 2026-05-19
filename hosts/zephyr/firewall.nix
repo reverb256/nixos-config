@@ -42,7 +42,6 @@
       ];
       interfaces = {
         "eth0".allowedUDPPorts = [
-          5353
           111
           2049
           20048
