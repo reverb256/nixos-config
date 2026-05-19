@@ -322,8 +322,16 @@ in {
         domain = "dev.maplespike.lan";
         backend = "10.1.1.120:${toString ports.dev-maplespike-portal}";
       };
+      gitea = {
+        domain = "gitea.lan";
+        backend = "gitea.gitea.svc.cluster.local:3000";
+        protected = true;
+      };
     };
   };
+
+  # Sync cluster-ca TLS certs to Gitea K8s secret (auto-renew on cert change)
+  services.gitea-cert-sync.enable = true;
   # Initrd SSH recovery + BTRFS snapshots
   services.initrd-ssh-recovery = {
     enable = true;

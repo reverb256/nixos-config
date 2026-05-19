@@ -127,6 +127,7 @@ in {
     ./modules/automation.nix
     ./modules/mcp-servers.nix
     ./modules/glance.nix
+    ./modules/gitea.nix
     ./modules/tailscale.nix
   ];
 }

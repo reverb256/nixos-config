@@ -186,7 +186,7 @@ in
   # NOTE: MapleSpike routes handled by Nexus (VIP 10.1.1.100)
   # See /etc/nixos/hosts/nexus/services.nix cluster-services.maplespike-*
 
-  + mkRoute "gitea.lan" "http://${nexus}:${toString ports.gitea}"
+  + mkAuthRouteTLS "gitea.lan" "https://${nexus}:${toString ports.gitea}"
   # Hermes Workspace (zephyr, port 3002)
   # Dev environment
   + mkRoute "dev.maplespike.lan" "http://${nexus}:${toString ports.dev-maplespike-portal}"

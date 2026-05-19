@@ -206,9 +206,10 @@ in {
       # ── Communication ─────────────────────────────────────────────
       gitea = mkService {
         name = "gitea";
-        namespace = "ai-inference";
+        namespace = "gitea";
         port = 3000;
         auth = "forward_auth";
+        tlsBackend = true;  # Self-signed cluster CA cert
       };
 
       # ── maplespike (external/edge) ─────────────────────────────────
