@@ -68,26 +68,61 @@
       repo = "https://github.com/reverb256/${repo}.git";
       ref = "main";
       secretRef.name = "github-token";
-      setupCommand = ["sh" "-c" "chmod -R g+rw /workspace/repo && cat > /workspace/repo/opencode.json << 'EOFOP'
+      setupCommand = [\"sh\" \"-c\" ''
+  set -euo pipefail
+
+  # Infer issue number from KELOS_BRANCH (e.g. \"kelos-task-278\" => \"278\")
+  ISSUE=''${KELOS_BRANCH##*-}
+
+  # Fetch labels from GitHub API
+  REPO=''${KELOS_UPSTREAM_REPO:-reverb256/maplespike}
+  LABELS=$(curl -sf --max-time 10 \
+    -H \"Authorization: Bearer $GITHUB_TOKEN\" \
+    \"https://api.github.com/repos/$REPO/issues/$ISSUE/labels\" \
+    | jq -r '.[].name' 2>/dev/null || echo \"\")
+
+  # Explicit model labels take precedence
+  if echo \"$LABELS\" | grep -q \"model:reasoning\"; then
+    MODEL=\"nvidia/nemotron-3-nano-omni-30b-a3b-reasoning\"
+  elif echo \"$LABELS\" | grep -q \"model:nano\"; then
+    MODEL=\"nvidia/nemotron-3-nano-30b-a3b\"
+  elif echo \"$LABELS\" | grep -q \"model:super\"; then
+    MODEL=\"nvidia/nemotron-3-super-120b-a12b\"
+  # Heuristic based on issue type
+  elif echo \"$LABELS\" | grep -qE \"^(bug|cleanup)$\"; then
+    MODEL=\"nvidia/nemotron-3-nano-30b-a3b\"
+  elif echo \"$LABELS\" | grep -qE \"^(enhancement|refactor|security)$\"; then
+    MODEL=\"nvidia/nemotron-3-super-120b-a12b\"
+  else
+    MODEL=\"nvidia/nemotron-3-super-120b-a12b\"
+  fi
+
+  cat > /workspace/repo/opencode.json << EOFOP
 {
-  "$schema": "https://opencode.ai/config.json",
-  "model": "nvidia/nemotron-3-super-120b-a12b",
-  "enabled_providers": ["nvidia"],
-  "provider": {
-    "nvidia": {
-      "options": {
-        "baseURL": "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1"
+  \"$schema\": \"https://opencode.ai/config.json\",
+  \"model\": \"$MODEL\",
+  \"enabled_providers\": [\"nvidia\"],
+  \"provider\": {
+    \"nvidia\": {
+      \"options\": {
+        \"baseURL\": \"http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1\"
       },
-      "models": {
-        "nvidia/nemotron-3-super-120b-a12b": { "name": "Nemotron 3 Super 120B" },
-        "nvidia/nemotron-3-nano-30b-a3b": { "name": "Nemotron 3 Nano 30B" },
-        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning": { "name": "Nemotron 3 Nano Omni 30B" }
+      \"models\": {
+        \"nemotron-3-super-120b-a12b\": { \"name\": \"Nemotron 3 Super 120B\", \"id\": \"nvidia/nemotron-3-super-120b-a12b\" },
+        \"nemotron-3-nano-30b-a3b\": { \"name\": \"Nemotron 3 Nano 30B\", \"id\": \"nvidia/nemotron-3-nano-30b-a3b\" },
+        \"nemotron-3-nano-omni-30b-a3b-reasoning\": { \"name\": \"Nemotron 3 Nano Omni 30B\", \"id\": \"nvidia/nemotron-3-nano-omni-30b-a3b-reasoning\" }
       }
     }
+  },
+  \"agents\": {
+    \"title\": { \"model\": \"nvidia/nemotron-3-nano-omni-30b-a3b-reasoning\", \"maxTokens\": 128 },
+    \"summarizer\": { \"model\": \"nvidia/nemotron-3-nano-omni-30b-a3b-reasoning\", \"maxTokens\": 4096 }
   }
 }
 EOFOP
-" ];
+
+  chmod -R g+rw /workspace/repo
+''];
     };
   };
 
