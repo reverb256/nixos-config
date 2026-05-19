@@ -146,6 +146,10 @@ EOFOP
             The AI Inference Gateway is at http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1.
             The model in opencode.json is configured and valid. Use webfetch (not bash/curl) if you need to check the gateway.
 
+## Critical: bash tool requires description
+Every bash call MUST include a description parameter (e.g., bash(command: "find .", description: "Find files")).
+Without it, bash calls fail with SchemaError. Retry with description if you forget.
+
             ## Workflow
             - The workspace at /workspace/repo is writable
             - Branch: kelos-task-NNN
