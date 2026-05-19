@@ -98,6 +98,11 @@ in
   \"$schema\": \"https://opencode.ai/config.json\",
   \"model\": \"nvidia/nemotron-3-super-120b-a12b\",
   \"enabled_providers\": [\"nvidia\"],
+  \"agent\": {
+    \"build\": {
+      \"steps\": 100
+    }
+  },
   \"provider\": {
     \"nvidia\": {
       \"options\": {
