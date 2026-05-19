@@ -106,15 +106,15 @@ in
           setupCommand = ["sh" "-c" "chmod -R g+rw /workspace/repo && cat > /workspace/repo/opencode.json << 'EOFOP'
 {
   \"model\": \"deepseek-v4-flash-free\",
-  \"enabled_providers\": [\"nvidia\"],
+  \"enabled_providers\": [\"openai\"],
   \"agent\": {
     \"build\": {
       \"steps\": 100
     }
   },
-  \"provider\": {
-    \"nvidia\": {
-      \"options\": {
+  "provider": {
+    "openai": {
+      "options": {
         \"baseURL\": \"http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1\"
       },
       \"models\": {
