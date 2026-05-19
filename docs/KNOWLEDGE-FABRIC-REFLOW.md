@@ -140,11 +140,20 @@ Pi tools:
 3. Deprecate separate brain_query/kb_query
 ```
 
-### Phase 4: Autonomous Ingestion (P1)
+### Phase 4: Autonomous Ingestion (P1) ✅ Implemented 2026-05-19
 ```
-1. Cron job: scan Valkey for high-quality searx results
-2. Auto-ingest to Qdrant
-3. Weekly: re-index stale documents
+1. Cron job: scan Valkey for high-quality searx results ✅
+   - search.CronJob.searxng-ingest: runs every 4 hours
+   - Calculates quality score (position, content length, trusted domains, engine count)
+   - Threshold: 0.6 (configurable via QUALITY_THRESHOLD env var)
+2. Auto-ingest to Qdrant ✅
+   - Creates searxng-results collection with 2048-dim Cosine vectors
+   - Uses AI Gateway embedding endpoint (BidirLM-Omni-2.5B)
+   - Payload: title, url, content, source, quality_score, engines, query, ingested_at
+3. Weekly: re-index stale documents ✅
+   - search.CronJob.searxng-stale-reindex: runs Sunday at 03:00
+   - Re-fetches content and re-embeds documents older than 30 days
+   - Tracks reindex_count in payload
 ```
 
 ### Phase 5: Cleanup (P2)

@@ -59,6 +59,7 @@ in {
     ./modules/llama-servers.nix
     ./modules/nixkube.nix
     ./modules/searxng.nix
+    ./modules/searxng-ingest.nix
     ./modules/haven.nix
     ./modules/casdoor.nix
     ./modules/cert-manager.nix
@@ -113,6 +114,7 @@ in {
     ./modules/gpu-tuning.nix
     ./modules/nixkube.nix
     ./modules/searxng.nix
+    ./modules/searxng-ingest.nix
     ./modules/haven.nix
     ./modules/casdoor.nix
     ./modules/cert-manager.nix
