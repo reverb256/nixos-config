@@ -119,6 +119,71 @@ EOFOP
           };
         };
       }
+
+      {
+        apiVersion = "kelos.reverb256.ca/v1";
+        kind = "AgentConfig";
+        metadata = {
+          name = "cluster-coder";
+          namespace = "kelos";
+        };
+        spec = {
+          agentsMD = ''
+            # NixOS Cluster — Agent Guidelines (via Kelos)
+
+            You were spawned by Kelos because this issue has the "agent-ready" label.
+
+            ## Cluster Overview
+            - 4 nodes: Zephyr (31GB), Nexus (46GB), Forge (16GB), Sentry (31GB)
+            - K3s cluster with Flannel CNI
+            - AI Inference Gateway at http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1
+
+            ## Models
+            - NVIDIA Nemotron 3 Super (120B) — default model for code tasks
+            - NVIDIA Nemotron 3 Nano Omni (30B) — vision/reasoning tasks
+            - Model selection is automatic via the AI Inference Gateway
+
+            ## Critical Rules
+            - Default ALL workloads to Nexus (46GB) — avoid Zephyr OOM
+            - GPU NOT isolated per-pod — nvidia-container-runtime broken on NixOS
+            - Stop if SSH breaks or `nix flake check` fails
+
+            ## Workflow
+            - The workspace at /workspace/repo is writable
+            - Implement the issue, push branch, open PR against main
+            - Branch: kelos-task-NNN
+            - Every commit references #NNN
+            - PR body: "Closes #NNN"
+          '';
+          mcpServers = [
+            {
+              name = "searxng";
+              type = "sse";
+              url = "http://mcp-searxng-proxy.mcp.svc.cluster.local:8080/mcp";
+            }
+            {
+              name = "kb-mcp";
+              type = "sse";
+              url = "http://mcp-kb-mcp-proxy.mcp.svc.cluster.local:8080/mcp";
+            }
+            {
+              name = "memory";
+              type = "sse";
+              url = "http://mcp-memory-proxy.mcp.svc.cluster.local:8080/mcp";
+            }
+            {
+              name = "selfhosted-tools";
+              type = "sse";
+              url = "http://mcp-selfhosted-tools-proxy.mcp.svc.cluster.local:8080/mcp";
+            }
+            {
+              name = "sequential-thinking";
+              type = "sse";
+              url = "http://mcp-sequential-thinking-proxy.mcp.svc.cluster.local:8080/mcp";
+            }
+          ];
+        };
+      }
     ];
   };
 }
