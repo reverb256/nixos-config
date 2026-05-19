@@ -96,7 +96,7 @@ in
           setupCommand = ["sh" "-c" "chmod -R g+rw /workspace/repo && cat > /workspace/repo/opencode.json << 'EOFOP'
 {
   \"$schema\": \"https://opencode.ai/config.json\",
-  \"model\": \"nvidia/nemotron-3-super-120b-a12b\",
+  \"model\": \"nvidia/nemotron-3-super-120b-a12b:free\",
   \"enabled_providers\": [\"nvidia\"],
   \"agent\": {
     \"build\": {
