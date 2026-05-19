@@ -185,7 +185,7 @@ in {
    # Runs on zephyr only. Dead code and timer removed.
 
    # Agent network restrictions — restrict AI agents to allowed destinations only
-   agent-firewall = {
+   services.agent-firewall = {
      enable = true;
      auditLog = true;
    };
