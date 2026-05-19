@@ -293,10 +293,11 @@ in {
         strategy.type = "Recreate";
         selector.matchLabels = {"app.kubernetes.io/component" = "database";};
         template = {
-          metadata.labels = {"app.kubernetes.io/component" = "database";};
+          metadata.labels = managed // {"app.kubernetes.io/component" = "database";};
           spec = {
             nodeSelector."kubernetes.io/hostname" = targetNode;
             serviceAccountName = "kagent-postgresql";
+            imagePullSecrets = [{name = "ghcr-pull";}];
             securityContext = {
               fsGroup = 999;
               runAsUser = 999;
@@ -412,10 +413,11 @@ in {
         revisionHistoryLimit = 2;
         selector.matchLabels = {"app.kubernetes.io/component" = "controller";};
         template = {
-          metadata.labels = {"app.kubernetes.io/component" = "controller";};
+          metadata.labels = managed // {"app.kubernetes.io/component" = "controller";};
           spec = {
             nodeSelector."kubernetes.io/hostname" = targetNode;
             serviceAccountName = "kagent-controller";
+            imagePullSecrets = [{name = "ghcr-pull";}];
             securityContext = {
               runAsNonRoot = true;
               seccompProfile.type = "RuntimeDefault";
@@ -517,10 +519,11 @@ in {
         revisionHistoryLimit = 2;
         selector.matchLabels = {"app.kubernetes.io/component" = "ui";};
         template = {
-          metadata.labels = {"app.kubernetes.io/component" = "ui";};
+          metadata.labels = managed // {"app.kubernetes.io/component" = "ui";};
           spec = {
             nodeSelector."kubernetes.io/hostname" = targetNode;
             serviceAccountName = "kagent-ui";
+            imagePullSecrets = [{name = "ghcr-pull";}];
             hostAliases = [
               {
                 ip = cluster.kubernetes.vip;
