@@ -360,16 +360,16 @@ vllm = {
                   periodSeconds = 10;
                   failureThreshold = 10;
                 };
-                resources = {
-                  requests = {
-                    memory = "4Gi";
-                    cpu = "500m";
-                  };
-                  limits = {
-                    memory = "16Gi";
-                    cpu = "4";
-                  };
-                };
+                 resources = {
+                   requests = {
+                     memory = "4Gi";
+                     cpu = "500m";
+                   };
+                   limits = {
+                     memory = "20Gi";
+                     cpu = "4";
+                   };
+                 };
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
