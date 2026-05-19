@@ -1,7 +1,10 @@
 # This module is managed by the Kelos controller.
 # See: https://github.com/reverb256/kelos-controller
 
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, ... ,
+    \"deepseek-v4-flash-free\": { \"name\": \"DeepSeek V4 Flash (Zen Free)\" },
+    \"nemotron-3-super-free\": { \"name\": \"Nemotron 3 Super (Zen Free)\" },
+    \"qwen3.6-plus-free\": { \"name\": \"Qwen 3.6 Plus (Zen Free)\" }}:
 
 with lib;
 
@@ -96,7 +99,7 @@ in
           setupCommand = ["sh" "-c" "chmod -R g+rw /workspace/repo && cat > /workspace/repo/opencode.json << 'EOFOP'
 {
   \"$schema\": \"https://opencode.ai/config.json\",
-  \"model\": \"nvidia/nemotron-3-super-120b-a12b:free\",
+  \"model\": \"deepseek-v4-flash-free\",
   \"enabled_providers\": [\"nvidia\"],
   \"agent\": {
     \"build\": {
