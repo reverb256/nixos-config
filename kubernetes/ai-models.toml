@@ -1,5 +1,5 @@
 # AI Model Registry - Single Source of Truth
-# Last Updated: 2026-05-14
+# Last Updated: 2026-05-19
 
 [defaults]
 # Primary default model for all backends
@@ -67,11 +67,81 @@ capabilities = ["chat", "completion", "vision", "fast"]
 backends = ["zai"]
 
 [models.deepseek-v4-flash]
-name = "deepseek-ai/deepseek-v4-flash"
-description = "DeepSeek V4 Flash for coding"
+name = "deepseek-v4-flash"
+description = "DeepSeek V4 Flash — OpenCode Go (paid, 1M ctx)"
 context_length = 1048576
 capabilities = ["chat", "completion", "coding"]
 backends = ["opencode-go"]
+
+[models.deepseek-ai-v4-flash]
+name = "deepseek-ai/deepseek-v4-flash"
+description = "DeepSeek V4 Flash — Nvidia NIM (rate-limited, 1M ctx)"
+context_length = 1048576
+capabilities = ["chat", "completion", "coding"]
+backends = ["nvidia-nim"]
+
+[models.deepseek-ai-v4-pro]
+name = "deepseek-ai/deepseek-v4-pro"
+description = "DeepSeek V4 Pro — Nvidia NIM (rate-limited, 1M ctx)"
+context_length = 1048576
+capabilities = ["chat", "completion", "reasoning", "coding"]
+backends = ["nvidia-nim"]
+
+[models.minimax-m2.7]
+name = "minimaxai/minimax-m2.7"
+description = "MiniMax M2.7 — Nvidia NIM (131K ctx, reasoning)"
+context_length = 131072
+capabilities = ["chat", "completion", "reasoning"]
+backends = ["nvidia-nim"]
+
+[models.kimi-k2.6]
+name = "moonshotai/kimi-k2.6"
+description = "Kimi K2.6 — Nvidia NIM (262K ctx, reasoning)"
+context_length = 262144
+capabilities = ["chat", "completion", "reasoning"]
+backends = ["nvidia-nim"]
+
+[models.deepseek-v4-flash-free]
+name = "deepseek-v4-flash:free"
+description = "DeepSeek V4 Flash Free — Kilo/Zen (1M ctx, daily quota)"
+context_length = 1048576
+capabilities = ["chat", "completion", "coding", "free"]
+backends = ["kilo"]
+
+[models.nemotron-3-super-free]
+name = "nvidia/nemotron-3-super-120b-a12b:free"
+description = "Nemotron 3 Super Free — Kilo/Zen (128K ctx, half of NIM)"
+context_length = 128000
+capabilities = ["chat", "completion", "reasoning", "free"]
+backends = ["kilo"]
+
+[models.nemotron-3-nano-free]
+name = "nvidia/nemotron-3-nano-30b-a3b:free"
+description = "Nemotron 3 Nano Free — Kilo/Zen (128K ctx, half of NIM)"
+context_length = 128000
+capabilities = ["chat", "completion", "free"]
+backends = ["kilo"]
+
+[models.nemotron-3-super]
+name = "nvidia/nemotron-3-super-120b-a12b"
+description = "Nemotron 3 Super — Nvidia NIM (262K ctx)"
+context_length = 262144
+capabilities = ["chat", "completion", "reasoning"]
+backends = ["nvidia-nim"]
+
+[models.nemotron-3-nano]
+name = "nvidia/nemotron-3-nano-30b-a3b"
+description = "Nemotron 3 Nano — Nvidia NIM (262K ctx)"
+context_length = 262144
+capabilities = ["chat", "completion"]
+backends = ["nvidia-nim"]
+
+[models.nemotron-omni]
+name = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"
+description = "Nemotron 3 Nano Omni — Nvidia NIM (256K ctx)"
+context_length = 256000
+capabilities = ["chat", "completion", "vision", "audio", "reasoning"]
+backends = ["nvidia-nim"]
 
 [backends]
 # Backend configuration
@@ -101,5 +171,18 @@ host = "sentry"
 
 [backends.opencode-go]
 type = "openai-compatible"
-url = "https://api.opencode.go/v1"
+url = "http://10.1.1.110:8080/v1"
+host = "zephyr"
+models = ["deepseek-v4-flash"]
+
+[backends.nvidia-nim]
+type = "nvidia-nim"
+url = "https://integrate.api.nvidia.com/v1"
 host = "external"
+models = ["nvidia/nemotron-3-super-120b-a12b", "nvidia/nemotron-3-nano-30b-a3b", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"]
+
+[backends.kilo]
+type = "kilo"
+url = "https://api.kilo.ai/api/gateway"
+host = "external"
+models = ["kilo-auto/free", "nvidia/nemotron-3-super-120b-a12b:free", "nvidia/nemotron-3-nano-30b-a3b:free"]
