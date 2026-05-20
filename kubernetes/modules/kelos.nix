@@ -53,6 +53,7 @@ with lib; let
 
   # Repos that get Kelos task automation
   repos = [
+    "frostbite-gazette"
     "ai-inference-gateway"
     "caddy-ingress"
     "compute-market"
