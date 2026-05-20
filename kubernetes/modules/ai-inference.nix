@@ -10,22 +10,18 @@
 }: let
   # nix-csi scratch image (proven pattern from llama-servers)
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
-
   # AI Inference Gateway — pre-built container image (loaded into containerd on target node)
   # CRITICAL: Use local registry - docker.io requires auth and is slow
   # Image pushed by nexus:push-gateway-to-registry service
-  gatewayImage = "nexus:5000/ai-inference-gateway:2.4.20";
-
+  gatewayImage = "nexus:5000/ai-inference-gateway:2.4.27";
   # Managed-by labels for easykubenix
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
-
   # AI Model Registry - Read from single source of truth
   aiModels = lib.importTOML aiModelsToml;
   defaultModel = aiModels.defaults.primary;
   fallbackModel = aiModels.defaults.fallback;
-
   # Model name mapping (aliases to full model identifiers)
   modelNames = {
     "qwen3.5-2b-awq" = aiModels.models.qwen3_5-2b-awq.name or "qwen3.5-2b-awq";
@@ -33,7 +29,6 @@
     "glm-5-turbo" = aiModels.models.glm-5-turbo.name or "glm-5-turbo";
     "glm-5.1" = aiModels.models.glm-5_1.name or "glm-5.1";
   };
-
   # AI Inference Gateway — derive paths from flake input, not hardcoded store paths
 in {
   config.kubernetes.objects = {
@@ -46,13 +41,11 @@ in {
         "pod-security.kubernetes.io/warn" = "restricted";
       };
     };
-
     # ── AI Inference ───────────────────────────────────────────
     ai-inference.ServiceAccount.default = {};
     ai-inference.ServiceAccount.ai-inference-gateway = {};
     ai-inference.ServiceAccount.open-webui = {};
     ai-inference.ServiceAccount.n8n-sa.automountServiceAccountToken = false;
-
     ai-inference.ConfigMap.ai-gateway-config.data = {
       AUTH_MODE="token"; # Token-based authentication
       BACKEND_TYPE = "llama-cpp";
@@ -69,13 +62,12 @@ in {
       CHUNK_OVERLAP = "50";
       CHUNK_SIZE = "512";
     };
-
     ai-inference.ConfigMap.ai-inference-gateway-config.data = {
       AUTH_MODE="token"; # Token-based authentication (set GATEWAY_TOKEN via Secret)
       BACKEND_TYPE = "zai";
       BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
       BACKEND_FALLBACK_URLS = ""; # Dead backends removed (see git log)
-      DEFAULT_MODEL = fallbackModel;
+      DEFAULT_MODEL = "nvidia/nemotron-3-super-120b-a12b";
       GATEWAY_HOST = "0.0.0.0";
       PORT = "8080";
       PYTHONUNBUFFERED = "1";
@@ -114,11 +106,25 @@ in {
       SECONDARY_BACKEND_MODEL = defaultModel;
       DISCOVERY_BACKENDS = ''[
         {"url": "http://llama-qwen-vllm-nexus.ai-inference.svc.cluster.local:8040/v1", "name": "llama-qwen-vllm-nexus"},
-        {"url": "http://10.1.1.110:8080/v1", "name": "opencode-go"},
         {"url": "https://integrate.api.nvidia.com/v1", "name": "nemotron-super"},
         {"url": "https://integrate.api.nvidia.com/v1", "name": "nemotron-nano"},
         {"url": "https://integrate.api.nvidia.com/v1", "name": "nemotron-omni"},
-        {"url": "https://api.kilo.ai/api/gateway", "name": "kilo"},
+      ]'';
+      DISABLED_MODELS = ''[
+        "glm-5.1","glm-5-turbo","glm-5","glm-4.7","glm-4.6v","glm-4.6",
+        "glm-4.7-flash","glm-4.5","glm-4.5-flash","glm-4.5-air",
+        "meta/llama-3.1-405b-instruct","deepseek-ai/deepseek-coder-6.7b-instruct",
+        "moonshotai/kimi-k2-instruct","moonshotai/kimi-k2-thinking",
+        "mistralai/devstral-2-123b-instruct-2512","mistralai/magistral-small-2506",
+        "minimaxai/minimax-m2.5","z-ai/glm4.7","google/gemma-3-27b-it",
+        "bytedance-seed/dola-seed-2.0-pro:free","x-ai/grok-code-fast-1:optimized:free",
+        "arcee-ai/trinity-large-thinking:free","z-ai/glm-5v-turbo","z-ai/glm-4.5v",
+        "z-ai/glm-4.6v","nvidia/nemotron-4-340b-instruct","nvidia/nemotron-nano-9b-v2",
+        "nvidia/llama-3.1-nemotron-70b-instruct","moonshotai/kimi-k2.5",
+        "google/gemma-4-26b-a4b-it","microsoft/phi-4",
+        "qwen/qwen3-coder-plus","qwen/qwen3-coder-next","qwen/qwen3-coder-flash",
+        "qwen/qwen3-coder-30b-a3b-instruct","qwen/qwen3.5-35b-a3b","qwen/qwen3.5-27b",
+        "qwen/qwen3.5-9b","qwen/qwen3.5-plus-20260420","openrouter/owl-alpha"
       ]'';
 PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
       PRIVACY_FILTER_ENABLED = "true";
@@ -132,10 +138,8 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
       MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K = "10";
     };
-
     # NOTE: Prometheus + Grafana removed — see kubernetes/modules/monitoring.nix
     # for the canonical monitoring stack (monitoring namespace).
-
     ai-inference.Deployment.open-webui = {
       metadata.labels.app = "open-webui";
       spec = {
@@ -298,7 +302,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         };
       };
     };
-
     ai-inference.Service.open-webui = {
       metadata.labels.app = "open-webui";
       spec = {
@@ -315,7 +318,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         selector.app = "open-webui";
       };
     };
-
     # ── Qdrant Vector Database ──────────────────────────────────
     # Persistent vector store for RAG, knowledge base, embeddings
     # Storage: hostPath at /storage/qdrant (data) + /storage/qdrant-snapshots
@@ -408,7 +410,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         };
       };
     };
-
     ai-inference.Service.qdrant = {
       metadata.labels.app = "qdrant";
       spec = {
@@ -430,7 +431,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         selector.app = "qdrant";
       };
     };
-
     ai-inference.Role.n8n-role = {
       rules = [
         {
@@ -450,7 +450,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         }
       ];
     };
-
     ai-inference.RoleBinding.n8n-rolebinding = {
       subjects = [
         {
@@ -464,7 +463,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         apiGroup = "rbac.authorization.k8s.io";
       };
     };
-
     # Gateway needs ConfigMap access for GPU scheduler state (gpu_scheduler.py writes to kube-system)
     none.ClusterRole.ai-inference-gateway-configmap.rules = [
       {
@@ -480,7 +478,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         ];
       }
     ];
-
     none.ClusterRoleBinding.ai-inference-gateway-configmap = {
       roleRef = {
         apiGroup = "rbac.authorization.k8s.io";
@@ -495,7 +492,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         }
       ];
     };
-
     # ── AI Inference Gateway ──────────────────────────────────────
     # Runs as systemd service on nexus (${cluster.hosts.nexus.ip}:8080).
     # Exposed to K8s via Endpoints so pods can reach it at:
@@ -509,7 +505,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
     #   - MCP broker (SearXNG, etc.)
     #   - Security filter (rate limiting, PII redaction)
     #   - Knowledge Fabric middleware (SearXNG + RAG + brain wiki)
-
     ai-inference.Service.ai-inference-gateway = {
       metadata.labels =
         managed
@@ -530,7 +525,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         ];
       };
     };
-
     # AI Inference Gateway - migrated from systemd to K8s
     # Uses nix-csi scratch pattern (proven with llama-servers)
     ai-inference.Deployment.ai-inference-gateway = {
@@ -708,6 +702,10 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
                     name = "ai-inference-gateway-config";
                     key = "DISCOVERY_BACKENDS";
                   };
+                  DISABLED_MODELS.valueFrom.configMapKeyRef = {
+                    name = "ai-inference-gateway-config";
+                    key = "DISABLED_MODELS";
+                  };
                   SSL_CERT_FILE.value = "/etc/ssl/certs/ca-bundle.crt";
                   REQUESTS_CA_BUNDLE.value = "/etc/ssl/certs/ca-bundle.crt";
                   HF_TOKEN.valueFrom.secretKeyRef = {
@@ -738,10 +736,8 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
                     key = "NVIDIA_API_KEY";
                   };
                   KILO_API_KEY.valueFrom.secretKeyRef = {
-                    name = "kilo-api-key";
                     key = "KILO_API_KEY";
                   };
-                  
                 };
               };
             };
@@ -749,7 +745,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         };
       };
     };
-
     ai-inference.Endpoints.llama-cpp-qwen = {
       metadata.labels = managed // {app = "llama-cpp";};
       subsets = [
@@ -770,9 +765,7 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         }
       ];
     };
-
     # ── MCP Gateway Proxy removed (was forwarding localhost:8080 -> embed-server:30880) ──
-
     # ── Redis for AI Gateway ─────────────────────────────────────
     ai-inference.Deployment.redis = {
       metadata.labels.app = "redis";
@@ -844,7 +837,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         };
       };
     };
-
     ai-inference.Service.redis-service = {
       metadata.labels.app = "redis";
       spec = {
@@ -859,7 +851,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         ];
       };
     };
-
     # ── Secrets ──────────────────────────────────────────────────
     # Secrets are populated by kubectl-apply-k8s-secrets systemd service
     # from agenix-decrypted files at /run/agenix/. These placeholder
@@ -868,7 +859,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
       type = "Opaque";
       stringData.webui-secret-key = "";
     };
-
     ai-inference.Secret.ai-inference-gateway-secrets = {
       type = "Opaque";
       # TODO: Fill from agenix key `ai-gateway-zai-api-key` (see modules/system/agenix-secrets-registry.nix)
@@ -876,46 +866,35 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         "api-keys" = "";
       };
     };
-
     # Z.AI API key — populated from agenix (secrets/ai-gateway-zai-api-key.age)
     ai-inference.Secret.zai-api-key = {
       type = "Opaque";
       stringData.ZAI_API_KEY = "";
     };
-
     # HuggingFace token — populated from agenix (secrets/huggingface-token.age)
     ai-inference.Secret.hf-token = {
       type = "Opaque";
       stringData.token = "";
     };
-
     # NVIDIA API key — populated from agenix (secrets/nvidia-api-key.age)
     ai-inference.Secret.nvidia-api-key = {
       type = "Opaque";
       stringData.NVIDIA_API_KEY = "";
     };
-
-
     };
-
-    # Kilo API key — populated from agenix (secrets/kilo-api-key.age)
-    ai-inference.Secret.kilo-api-key = {
       type = "Opaque";
       stringData.KILO_API_KEY = "";
     };
-
     # OpenCode API key — populated from agenix (secrets/opencode-api-key.age)
     ai-inference.Secret.opencode-api-key = {
       type = "Opaque";
       stringData.OPENCODE_API_KEY = "";
     };
-
     # Gateway API token — populated from agenix (secrets/ai-gateway-token.age)
     ai-inference.Secret.ai-gateway-token = {
       type = "Opaque";
       stringData.GATEWAY_TOKEN = "";
     };
-
     # ── Additional NetworkPolicies ───────────────────────────────
     # Allow SearXNG pods to reach AI Inference Gateway
     ai-inference.NetworkPolicy.allow-search-to-gateway = {
@@ -940,7 +919,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         ];
       };
     };
-
     # Allow gateway ingress from ingress-system and intra-namespace
     ai-inference.NetworkPolicy.allow-gateway-ingress = {
       spec = {
@@ -968,7 +946,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         ];
       };
     };
-
     # Allow gateway egress to dependencies
     # Includes ipBlock for hostNetwork pods (llama-servers use hostNetwork)
     ai-inference.NetworkPolicy.allow-gateway-egress = {
@@ -1076,7 +1053,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         ];
       };
     };
-
     # Privacy filter network policies
     ai-inference.NetworkPolicy.privacy-filter-ingress = {
       spec = {
@@ -1104,7 +1080,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         ];
       };
     };
-
     ai-inference.NetworkPolicy.privacy-filter-egress = {
       spec = {
         podSelector.matchLabels.app = "privacy-filter";
@@ -1140,7 +1115,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         ];
       };
     };
-
     # Open WebUI network policy
     ai-inference.NetworkPolicy.open-webui = {
       spec = {
@@ -1164,10 +1138,9 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         egress = [{}];
       };
     };
-
     # ── OpenAI Privacy Filter ───────────────────────────────────────
-    # PII detection and masking using privacy-filter model
-    # Requires transformers >= 5.6.0 (model uses privacy_filter architecture)
+    # PII detection and masking using openai/privacy-filter model
+    # Requires transformers >= 5.6.0 (model uses openai_privacy_filter architecture)
     # Scale to 1 when nixpkgs has transformers 5.6.0+
     ai-inference.Deployment.privacy-filter = {
       metadata.labels =
@@ -1284,7 +1257,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         };
       };
     };
-
     ai-inference.Service.privacy-filter = {
       metadata.labels =
         managed
@@ -1305,7 +1277,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         ];
       };
     };
-
     # ── KB MCP Server (Knowledge Base RAG) ─────────────────────────
     # STUB: Image not built (localhost/kb-mcp:latest doesn't exist).
     # 0 replicas, no pods running. Disabled until image is built.
@@ -1465,7 +1436,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         };
       };
     };
-
     ai-inference.Service.kb-mcp = {
       metadata.labels =
         managed
@@ -1494,26 +1464,21 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
 #!/usr/bin/env python3
 """Model sync: validates curated models against gateway, writes Pi/OmP configs."""
 import json, os, shutil, subprocess, sys, time, urllib.request
-
 GATEWAY = os.environ.get("GATEWAY_URL", "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1/models")
 HOST_GATEWAY = os.environ.get("HOST_GATEWAY_URL", "http://10.1.1.110:8080/v1")
 OUT = "/data/agents/model-sync"
 PI_CONFIG = "/home/j_kro/.config/pi/config.yaml"
 OMP_CONFIG = "/home/j_kro/.omp/agent/models.json"
 API_KEY = os.environ.get("API_KEY", "")
-
 # Direct URLs for local models (bypass gateway catalog)
 LOCAL_URLS = {
     "local/qwen3.5-2b-awq": "http://10.1.1.120:8040/v1",
     "local/qwen3.6-moe-35b": "http://10.1.1.110:1237/v1",
     "local/qwen3.5-4b": "http://10.1.1.140:1235/v1",
 }
-
 # OpenCode Go middleware for NIM models
 OPENCODE_URL = "http://10.1.1.110:8080/v1"
-
 os.makedirs(OUT, exist_ok=True)
-
 # Retry gateway fetch (handles transient failures)
 for attempt in range(3):
     try:
@@ -1527,10 +1492,8 @@ for attempt in range(3):
         else:
             print(f"ERROR: gateway unreachable after 3 attempts")
             raise SystemExit(1)
-
 gw_ids = {m["id"] for m in models["data"]}
 print(f"Gateway: {len(models['data'])} models")
-
 CURATED = """
 glm-5.1|primary|GLM-5.1 744B MoE orchestrator (2x/3x quota)
 glm-5-turbo|primary|GLM-5 Turbo fast agentic (2x/3x quota)
@@ -1550,30 +1513,24 @@ deepseek-ai/deepseek-v4-pro|reasoning|DeepSeek V4 Pro 1M ctx (NIM, rate-limited)
 deepseek-v4-flash:free|free|DeepSeek V4 Flash Free (Kilo/Zen, 1M, daily quota)
 nvidia/nemotron-3-super-120b-a12b:free|free|Nemotron 3 Super Free (128K, half NIM ctx)
 nvidia/nemotron-3-nano-30b-a3b:free|free|Nemotron 3 Nano Free (128K, half NIM ctx)
-kilo-auto/free|free|Kilo auto free router
 openrouter/free|free|OpenRouter free router
 """.strip()
-
 CAT_NAMES = {
     "primary": "PRIMARY", "fast": "FAST", "code": "CODING",
     "context": "LARGE CONTEXT", "reasoning": "REASONING",
     "vision": "VISION", "general": "GENERAL", "free": "FREE TIER",
 }
-
 def get_ctx(mid):
     for m in models["data"]:
         if m["id"] == mid:
             return m.get("context_length") or 262144
     return 262144
-
 def is_vision(mid):
     return any(x in mid.lower() for x in ["vl", "vision", "5v", "3.6", "3.5-4b"])
-
 def is_reasoning(mid, cat):
     if cat in ("reasoning", "primary"):
         return True
     return any(x in mid.lower() for x in ["reasoning", "large", "675b", "405b", "340b", "deepseek", "next-80", "moe-35b", "v4-flash"])
-
 def backup(path):
     if os.path.exists(path):
         bak = path + ".bak"
@@ -1581,7 +1538,6 @@ def backup(path):
         print(f"  Backup: {bak}")
         return True
     return False
-
 # Build model lists and providers
 omp_providers = {"gateway": {
     "baseUrl": HOST_GATEWAY,
@@ -1594,7 +1550,6 @@ omp_providers = {"gateway": {
 }}
 omp_models_local = []  # Local models need separate providers
 omp_models_opencode = []  # OpenCode models through middleware
-
 pi_lines = [
     "# Pi config - Auto-synced from AI Inference Gateway",
     "# DO NOT EDIT — regenerated by model-sync CronJob every 6h",
@@ -1619,7 +1574,6 @@ pi_lines = [
     "  local-sentry:",
     "    type: openai-compatible",
     "    baseURL: http://10.1.1.140:1235/v1",
-    "  opencode-go:",
     "    type: openai-compatible",
     f"    baseURL: {OPENCODE_URL}",
     "    apiKey: ''${OPENCODE_GO_API_KEY}",
@@ -1631,13 +1585,11 @@ missing = 0
 local_found = 0
 opencode_found = 0
 last_cat = ""
-
 for line in CURATED.split("\n"):
     parts = line.strip().split("|", 2)
     if len(parts) != 3 or not parts[0]:
         continue
     mid, cat, desc = parts
-
     # Handle local/ prefixed models
     if mid.startswith("local/"):
         local_found += 1
@@ -1675,7 +1627,6 @@ for line in CURATED.split("\n"):
             "",
         ])
         continue
-
     # Handle opencode/ prefixed models (via middleware)
     if mid.startswith("opencode/"):
         opencode_found += 1
@@ -1688,7 +1639,6 @@ for line in CURATED.split("\n"):
             omp_models_opencode.append({
                 "id": mid,
                 "name": desc,
-                "provider": "opencode-go",
                 "reasoning": is_reasoning(mid, cat),
                 "input": ["text", "image"] if is_vision(mid) else ["text"],
                 "contextWindow": ctx,
@@ -1701,7 +1651,6 @@ for line in CURATED.split("\n"):
             pi_lines.extend([
                 f"  - id: {mid}",
                 f"    name: {clean}",
-                "    provider: opencode-go",
                 f"    description: {desc}",
                 "",
             ])
@@ -1709,7 +1658,6 @@ for line in CURATED.split("\n"):
             missing += 1
             print(f"  MISS {mid} (not in gateway)")
         continue
-
     # Handle gateway models
     if mid in gw_ids:
         found += 1
@@ -1738,20 +1686,15 @@ for line in CURATED.split("\n"):
     else:
         missing += 1
         print(f"  MISS {mid}")
-
 if missing > 0:
     print(f"WARNING: {missing} curated models missing from gateway!")
 else:
     print(f"All {found} curated models found on gateway")
-
 if local_found > 0:
     print(f"Local models: {local_found} (direct URLs)")
-
 if opencode_found > 0:
     print(f"OpenCode models: {opencode_found} (via middleware)")
-
 print(f"Total: {found + local_found + opencode_found} models configured")
-
 # Generate OmP JSON with all providers
 omp_providers["local-vllm"] = {
     "baseUrl": LOCAL_URLS["local/qwen3.5-2b-awq"],
@@ -1780,7 +1723,6 @@ omp_providers["local-sentry"] = {
     },
     "models": [m for m in omp_models_local if m["provider"] == "local-sentry"],
 }
-omp_providers["opencode-go"] = {
     "baseUrl": OPENCODE_URL,
     "api": "openai-completions",
     "compat": {
@@ -1789,7 +1731,6 @@ omp_providers["opencode-go"] = {
     },
     "models": omp_models_opencode,
 }
-
 omp = {
     "providers": omp_providers,
     "modelRoles": {
@@ -1802,7 +1743,6 @@ omp = {
         "vision": "local/qwen3.6-moe-35b",  # Unlimited, local vision
     },
 }
-
 # Generate Pi YAML (NO plaintext API key — Pi reads ZAI_API_KEY from env)
 pi_lines.extend([
     "providers:",
@@ -1825,20 +1765,16 @@ pi_lines.extend([
     "  showThinking: false",
     "  streaming: true",
 ])
-
 # Write to staging area
 omp_path = os.path.join(OUT, "models-omp.json")
 pi_path = os.path.join(OUT, "models-pi.yaml")
-
 with open(omp_path, "w") as f:
     json.dump(omp, f, indent=2)
 with open(pi_path, "w") as f:
     f.write("\n".join(pi_lines) + "\n")
-
 total_models = len(omp_providers["gateway"]["models"]) + len(omp_models_local) + len(omp_models_opencode)
 print(f"Staging: {omp_path} ({total_models} models)")
 print(f"Staging: {pi_path} ({total_models} models)")
-
 # Deploy to agent config paths with backup
 deployed = 0
 for src, dst in [(omp_path, OMP_CONFIG), (pi_path, PI_CONFIG)]:
@@ -1853,10 +1789,8 @@ for src, dst in [(omp_path, OMP_CONFIG), (pi_path, PI_CONFIG)]:
             print(f"  WARNING: chown failed for {dst}: {e}")
         deployed += 1
         print(f"  Deployed: {dst}")
-
 print(f"Sync complete: {deployed} configs deployed")
 '';
-
     ai-inference.CronJob.model-sync = {
       metadata.labels = managed // {app = "model-sync";};
       spec = {
