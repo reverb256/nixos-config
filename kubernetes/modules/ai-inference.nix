@@ -1166,8 +1166,8 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
     };
 
     # ── OpenAI Privacy Filter ───────────────────────────────────────
-    # PII detection and masking using openai/privacy-filter model
-    # Requires transformers >= 5.6.0 (model uses openai_privacy_filter architecture)
+    # PII detection and masking using privacy-filter model
+    # Requires transformers >= 5.6.0 (model uses privacy_filter architecture)
     # Scale to 1 when nixpkgs has transformers 5.6.0+
     ai-inference.Deployment.privacy-filter = {
       metadata.labels =
