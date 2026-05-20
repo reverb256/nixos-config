@@ -14,7 +14,7 @@
   # AI Inference Gateway — pre-built container image (loaded into containerd on target node)
   # CRITICAL: Use local registry - docker.io requires auth and is slow
   # Image pushed by nexus:push-gateway-to-registry service
-  gatewayImage = "nexus:5000/ai-inference-gateway:2.4.19";
+  gatewayImage = "nexus:5000/ai-inference-gateway:2.4.20";
 
   # Managed-by labels for easykubenix
   managed = {
@@ -114,11 +114,13 @@ in {
       SECONDARY_BACKEND_MODEL = defaultModel;
       DISCOVERY_BACKENDS = ''[
         {"url": "http://llama-qwen-vllm-nexus.ai-inference.svc.cluster.local:8040/v1", "model": "${defaultModel}", "name": "llama-qwen-vllm-nexus"},
-        {"url": "http://10.1.1.110:8080/v1", "model": "opencode/deepseek-v4-flash", "name": "opencode-go", "provider": "opencode-go"},
-        {"url": "https://integrate.api.nvidia.com/v1", "model": "nvidia/nemotron-3-super-120b-a12b", "name": "nemotron-super", "provider": "nvidia"},
-        {"url": "https://integrate.api.nvidia.com/v1", "model": "nvidia/nemotron-3-nano-30b-a3b", "name": "nemotron-nano", "provider": "nvidia"},
-        {"url": "https://integrate.api.nvidia.com/v1", "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", "name": "nemotron-omni", "provider": "nvidia"}
+        {"url": "http://10.1.1.110:8080/v1", "name": "opencode-go"},
+        {"url": "https://integrate.api.nvidia.com/v1", "name": "nemotron-super"},
+        {"url": "https://integrate.api.nvidia.com/v1", "name": "nemotron-nano"},
+        {"url": "https://integrate.api.nvidia.com/v1", "name": "nemotron-omni"}
+        {"url": "https://api.kilo.ai/api/gateway", "name": "kilo"},
       ]'';
+      MODEL_BACKEND_MAP = ''{"minimax-m2.7":"nvidia","kimi-k2.6":"nvidia","deepseek-v4-pro":"nvidia","qwen3.6-plus":"nvidia"}'';
       PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
       PRIVACY_FILTER_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
@@ -736,6 +738,11 @@ in {
                     name = "nvidia-api-key";
                     key = "NVIDIA_API_KEY";
                   };
+                  KILO_API_KEY.valueFrom.secretKeyRef = {
+                    name = "kilo-api-key";
+                    key = "KILO_API_KEY";
+                  };
+                  
                 };
               };
             };
@@ -890,10 +897,6 @@ in {
     };
 
 
-    # Pollinations API key — populated from agenix (secrets/pollinations-api-key.age)
-    ai-inference.Secret.pollinations-api-key = {
-      type = "Opaque";
-      stringData.POLLINATIONS_API_KEY = "";
     };
 
     # Kilo API key — populated from agenix (secrets/kilo-api-key.age)
@@ -1545,6 +1548,9 @@ qwen/qwen3.5-flash-02-23|fast|Qwen3.5 Flash 1M context (rate-limited)
 qwen/qwen3-next-80b-a3b-instruct|reasoning|Qwen3 Next 80B (NIM, rate-limited)
 mistralai/mistral-large-3-675b-instruct-2512|reasoning|Mistral Large 3 675B (rate-limited)
 deepseek-ai/deepseek-v4-pro|reasoning|DeepSeek V4 Pro 1M ctx (NIM, rate-limited)
+deepseek-v4-flash:free|free|DeepSeek V4 Flash Free (Kilo/Zen, 1M, daily quota)
+nvidia/nemotron-3-super-120b-a12b:free|free|Nemotron 3 Super Free (128K, half NIM ctx)
+nvidia/nemotron-3-nano-30b-a3b:free|free|Nemotron 3 Nano Free (128K, half NIM ctx)
 kilo-auto/free|free|Kilo auto free router
 openrouter/free|free|OpenRouter free router
 """.strip()
