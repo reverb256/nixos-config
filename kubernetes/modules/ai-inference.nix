@@ -75,9 +75,12 @@ in {
       RATE_LIMIT_ENABLED = "true";
       RATE_LIMIT_RPM = "120";
       SECURITY_PROXY_ENABLED = "false";
-      SENTRY_ENABLED = "false";
-      QDRANT_URL = "http://qdrant.ai-inference.svc.cluster.local:6333";
-      RAG_ENABLED = "true";
+                   SENTRY_ENABLED = "false";
+                   QDRANT_URL = "http://qdrant.ai-inference.svc.cluster.local:6333";
+                   RAG_ENABLED = "true";
+
+
+
       RAG_TOP_K = "10";
       HYBRID_SEARCH_ENABLED = "true";
       EMBEDDING_MODEL = "BidirLM/BidirLM-Omni-2.5B-Embedding";
@@ -723,10 +726,15 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
                     name = "ai-inference-gateway-config";
                     key = "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL";
                   };
-                  ZAI_API_KEY.valueFrom.secretKeyRef = {
-                    name = "zai-api-key";
-                    key = "ZAI_API_KEY";
-                  };
+                   GOOGLE_API_KEY.valueFrom.secretKeyRef = {
+                     name = "google-api-key";
+                     key = "google-api-key";
+                   };
+                   ZAI_API_KEY.valueFrom.secretKeyRef = {
+                     name = "zai-api-key";
+                     key = "ZAI_API_KEY";
+                   };
+
                   NVIDIA_API_KEY.valueFrom.secretKeyRef = {
                     name = "nvidia-api-key";
                     key = "NVIDIA_API_KEY";
@@ -870,6 +878,10 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
     ai-inference.Secret.zai-api-key = {
       type = "Opaque";
       stringData.ZAI_API_KEY = "";
+    };
+    ai-inference.Secret.google-api-key = {
+      type = "Opaque";
+      stringData.GOOGLE_API_KEY = "";
     };
     # HuggingFace token — populated from agenix (secrets/huggingface-token.age)
     ai-inference.Secret.hf-token = {
@@ -1829,10 +1841,15 @@ print(f"Sync complete: {deployed} configs deployed")
                     name = "HOST_GATEWAY_URL";
                     value = cluster.kubernetes.gatewayUrl;
                   };
-                  ZAI_API_KEY.valueFrom.secretKeyRef = {
-                    name = "zai-api-key";
-                    key = "ZAI_API_KEY";
-                  };
+                   GOOGLE_API_KEY.valueFrom.secretKeyRef = {
+                     name = "google-api-key";
+                     key = "google-api-key";
+                   };
+                   ZAI_API_KEY.valueFrom.secretKeyRef = {
+                     name = "zai-api-key";
+                     key = "ZAI_API_KEY";
+                   };
+
                   OPENCODE_GO_API_KEY.valueFrom.secretKeyRef = {
                     name = "opencode-api-key";
                     key = "OPENCODE_API_KEY";
