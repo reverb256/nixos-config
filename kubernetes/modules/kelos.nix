@@ -112,7 +112,7 @@ in {
             secretRef.name = "github-token";
             setupCommand = ["sh" "-c" "chmod -R g+rw /workspace/repo && cat > /workspace/repo/opencode.json << 'EOFOP'
 {
-  \"model\": \"nemotron-3-super-120b-a12b\",
+  \"model\": \"nvidia/nemotron-3-super-120b-a12b\",
   \"enabled_providers\": [\"openai\"],
   \"agent\": {
     \"build\": {
