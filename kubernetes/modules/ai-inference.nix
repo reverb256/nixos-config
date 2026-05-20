@@ -113,15 +113,14 @@ in {
       SECONDARY_BACKEND_URL = "http://llama-qwen-vllm-nexus.ai-inference.svc.cluster.local:8040";
       SECONDARY_BACKEND_MODEL = defaultModel;
       DISCOVERY_BACKENDS = ''[
-        {"url": "http://llama-qwen-vllm-nexus.ai-inference.svc.cluster.local:8040/v1", "model": "${defaultModel}", "name": "llama-qwen-vllm-nexus"},
+        {"url": "http://llama-qwen-vllm-nexus.ai-inference.svc.cluster.local:8040/v1", "name": "llama-qwen-vllm-nexus"},
         {"url": "http://10.1.1.110:8080/v1", "name": "opencode-go"},
         {"url": "https://integrate.api.nvidia.com/v1", "name": "nemotron-super"},
         {"url": "https://integrate.api.nvidia.com/v1", "name": "nemotron-nano"},
-        {"url": "https://integrate.api.nvidia.com/v1", "name": "nemotron-omni"}
+        {"url": "https://integrate.api.nvidia.com/v1", "name": "nemotron-omni"},
         {"url": "https://api.kilo.ai/api/gateway", "name": "kilo"},
       ]'';
-      MODEL_BACKEND_MAP = ''{"minimax-m2.7":"nvidia","kimi-k2.6":"nvidia","deepseek-v4-pro":"nvidia","qwen3.6-plus":"nvidia"}'';
-      PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
+PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
       PRIVACY_FILTER_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED = "true";
