@@ -13,7 +13,9 @@ with lib; let
 
   # Shared opencode.json config with NIM models via AI Inference Gateway
   opencodeConfig = lib.generators.toJSON {} {
+    "$schema" = "https://opencode.ai/config.json";
     model = "openai/nvidia/nemotron-3-super-120b-a12b";
+    enabled_providers = ["openai"];
     provider.openai = {
       options = {
         baseURL = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1";
@@ -271,6 +273,15 @@ in {
   };
 
   config = mkIf cfg.enable {
-    kubernetes.rawResources = workspaces ++ taskSpawners ++ [agentConfig];
+    
+  # ---- Pipeline Maintenance (applied imperatively, not via Nix) ----
+  # pipeline-maintenance CronJob runs every 15min on nexus.
+  # It deletes failed tasks older than 15min and checks for Zephyr pods.
+  # Created imperatively via kubectl apply -f /tmp/pipeline-maintenance-cronjob.yaml
+  # Resources: SA/ClusterRole/CRB pipeline-operator + CronJob in kelos-system
+  # NOTE: maplespike-prod ImagePullBackOff and coredns-ha-enforcer are
+  # pre-existing egress issues, not pipeline-related.
+
+  kubernetes.rawResources = workspaces ++ taskSpawners ++ [agentConfig];
   };
 }
