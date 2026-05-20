@@ -1,11 +1,11 @@
 # AI Model Registry - Single Source of Truth
-# Last Updated: 2026-05-14
+# Last Updated: 2026-05-19
 
 [defaults]
 # Primary default model for all backends
 primary = "qwen3.5-2b-awq"
-# Fallback model for secondary backends
-fallback = "glm-5-turbo"
+# Fallback model for secondary backends (NVIDIA NIM Nemotron)
+fallback = "nvidia/nemotron-3-super-120b-a12b"
 
 [models]
 # Model registry with aliases and metadata
@@ -73,6 +73,13 @@ context_length = 1048576
 capabilities = ["chat", "completion", "coding"]
 backends = ["opencode-go"]
 
+[models.nemotron-super]
+name = "nvidia/nemotron-3-super-120b-a12b"
+description = "NVIDIA Nemotron 3 Super 120B - default model"
+context_length = 131072
+capabilities = ["chat", "completion", "tool_calling", "agentic"]
+backends = ["nvidia-nim"]
+
 [backends]
 # Backend configuration
 
@@ -102,4 +109,9 @@ host = "sentry"
 [backends.opencode-go]
 type = "openai-compatible"
 url = "https://api.opencode.go/v1"
+host = "external"
+
+[backends.nvidia-nim]
+type = "nvidia-nim"
+url = "https://integrate.api.nvidia.com/v1"
 host = "external"

@@ -49,6 +49,23 @@ with lib; let
     chmod -R g+rw /workspace/repo && cat > /workspace/repo/opencode.json << 'EOFOP'
     ${opencodeConfig}
     EOFOP
+    cat > /workspace/repo/AGENTS.md << 'EOFAG'
+# Agent Instructions
+
+## Caveman Communication
+- Terse. Drop articles, filler, hedging, preamble.
+- Start with answer. One fact per line.
+- GitHub issues: terse title, bullet evidence, no fluff.
+- Never narrate before doing.
+
+## Cavecrew Work Pattern
+- Decompose complex work into sub-tasks.
+- Scout first (investigate), then build, then verify.
+- Verification required after every change.
+- Report findings as path:line tables.
+- If task too big, break into smaller issues.
+
+EOFAG
   ''];
 
   # Repos that get Kelos task automation
