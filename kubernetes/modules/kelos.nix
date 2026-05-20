@@ -13,24 +13,24 @@ with lib; let
 
   # Shared opencode.json config with NIM models via AI Inference Gateway
   opencodeConfig = lib.generators.toJSON {} {
-    model = "nvidia/nemotron-3-super-120b-a12b";
+    model = "openai/nvidia/nemotron-3-super-120b-a12b";
     provider.openai = {
       options = {
         baseURL = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1";
         apiKey = "\$OPENCODE_API_KEY";
       };
       models = {
-        "nvidia/nemotron-3-super-120b-a12b" = {
+        "openai/nvidia/nemotron-3-super-120b-a12b" = {
           context_length = 131072;
           max_tokens = 16384;
-          id = "nvidia/nemotron-3-super-120b-a12b";
-          name = "nvidia/nemotron-3-super-120b-a12b";
+          id = "openai/nvidia/nemotron-3-super-120b-a12b";
+          name = "openai/nvidia/nemotron-3-super-120b-a12b";
         };
-        "nvidia/nemotron-3-super-120b-a12b:free" = {
+        "openai/nvidia/nemotron-3-super-120b-a12b:free" = {
           context_length = 131072;
           max_tokens = 16384;
-          id = "nvidia/nemotron-3-super-120b-a12b:free";
-          name = "nvidia/nemotron-3-super-120b-a12b:free";
+          id = "openai/nvidia/nemotron-3-super-120b-a12b:free";
+          name = "openai/nvidia/nemotron-3-super-120b-a12b:free";
         };
         "nvidia/llama-3.3-nemotron-super-49b-v1" = {
           context_length = 131072;
