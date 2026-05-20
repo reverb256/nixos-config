@@ -113,20 +113,20 @@ in {
             setupCommand = ["sh" "-c" "chmod -R g+rw /workspace/repo && cat > /workspace/repo/opencode.json << 'EOFOP'
 {
   \"model\": \"nvidia/nemotron-3-super-120b-a12b\",
-  \"enabled_providers\": [\"openai\"],
+  \"enabled_providers\": [\"nvidia\"],
   \"agent\": {
     \"build\": {
       \"steps\": 100
     }
   },
   \"provider\": {
-    \"openai\": {
+    \"nvidia\": {
       \"options\": {
         \"baseURL\": \"http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1\"
       },
       \"models\": {
-        \"deepseek-v4-flash-free\": { \"name\": \"DeepSeek V4 Flash Free\", \"id\": \"deepseek-v4-flash-free\" },
-        \"nemotron-3-super-free\": { \"name\": \"Nemotron 3 Super Free\", \"id\": \"nemotron-3-super-free\" },
+        \"nvidia/nemotron-3-super-120b-a12b\": { \"name\": \"Nemotron 3 Super 120B\", \"id\": \"nvidia/nemotron-3-super-120b-a12b\" },
+        \"nvidia/nemotron-3-nano-30b-a3b\": { \"name\": \"Nemotron 3 Super Free\", \"id\": \"nemotron-3-super-free\" },
         \"nemotron-3-nano-30b-a3b\": { \"name\": \"Nemotron 3 Nano 30B\", \"id\": \"nvidia/nemotron-3-nano-30b-a3b\" },
         \"nemotron-3-super-120b-a12b\": { \"name\": \"Nemotron 3 Super 120B\", \"id\": \"nvidia/nemotron-3-super-120b-a12b\" },
         \"nemotron-3-super-120b-a12b-free\": { \"name\": \"Nemotron 3 Super Free (Kilo)\", \"id\": \"nvidia/nemotron-3-super-120b-a12b:free\" },
