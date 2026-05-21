@@ -262,7 +262,7 @@ vllm = {
     Deployment.llama-server-zephyr-3090-moe = {
       metadata.labels = managed // {
         app = "llama-server-zephyr-3090-moe";
-        host = "zephyr";
+        host = "nexus";
         gpu = "rtx3090";
       };
       spec = {
@@ -270,19 +270,19 @@ vllm = {
         revisionHistoryLimit = 1;
         selector.matchLabels = {
           app = "llama-server-zephyr-3090-moe";
-          host = "zephyr";
+          host = "nexus";
         };
         strategy.type = "Recreate";
         template = {
-          metadata = {
-            labels = managed // {
-              app = "llama-server-zephyr-3090-moe";
-              host = "zephyr";
-              gpu = "rtx3090";
-            };
-          };
+           metadata = {
+             labels = managed // {
+               app = "llama-server-zephyr-3090-moe";
+               host = "nexus";
+               gpu = "rtx3090";
+             };
+           };
           spec = {
-            nodeName = "zephyr";
+            nodeName = "nexus";
             hostNetwork = true;
             automountServiceAccountToken = false;
             priorityClassName = "high-priority-ai";
