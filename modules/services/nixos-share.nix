@@ -22,10 +22,12 @@ in {
         description = "IP addresses allowed to mount the NFS share";
       };
       exports = lib.mkOption {
-        type = lib.types.listOf {
-          path = lib.types.path;
-          description = lib.types.str;
-        };
+        type = lib.types.listOf (lib.types.submodule {
+          options = {
+            path = lib.mkOption { type = lib.types.path; };
+            description = lib.mkOption { type = lib.types.str; default = ""; };
+          };
+        });
         default = [
           { path = "/etc/nixos"; description = "NixOS configuration"; }
         ];
