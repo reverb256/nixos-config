@@ -26,10 +26,10 @@ The "v1" implementation suffers from four critical systemic frictions:
 
 ### 2.3 Orchestration Layer: Agent Soup
 - **Symptom**: Overlapping responsibilities between Hermes, Kelos, and Kagent. No clear state tracking across complex tasks.
-- **Inefficiency**: Linear "A $\rightarrow$ B $\rightarrow$ C" pipelines. Lack of an "Executive" layer that can plan, delegate, and critique.
+- **Inefficiency**: Linear "A → B → C" pipelines. Lack of an "Executive" layer that can plan, delegate, and critique.
 
 ### 2.4 Infra Layer: The Deployment Gap
-- **Symptom**: The loop `Nix $\rightarrow$ Colmena $\rightarrow$ K8s` is too slow for rapid agentic iteration.
+- **Symptom**: The loop `Nix → Colmena → K8s` is too slow for rapid agentic iteration.
 - **Friction**: To change a single environment variable in a pod, the entire system config often needs to be evaluated and deployed.
 
 ---
@@ -57,16 +57,16 @@ The "v1" implementation suffers from four critical systemic frictions:
     - Final synthesis and quality control.
     - *Constraint*: Never executes bash or writes code directly.
 - **The Workers (Specialists)**:
-    - **Kelos**: Dedicated to the "Issue $\rightarrow$ Branch $\rightarrow$ PR" coding loop.
+    - **Kelos**: Dedicated to the "Issue → Branch → PR" coding loop.
     - **Kagent**: Dedicated to NixOS/K8s infrastructure operations.
     - **Explorer/Librarian**: Pure research and discovery.
-- **Stateful Graph**: Implementation of a **LangGraph-style state machine**. The Executive tracks the global state of a task, allowing for iterative loops (Plan $\rightarrow$ Execute $\rightarrow$ Critique $\rightarrow$ Refine).
+- **Stateful Graph**: Implementation of a **LangGraph-style state machine**. The Executive tracks the global state of a task, allowing for iterative loops (Plan → Execute → Critique → Refine).
 - **Visual Planning Loop**: Shift the token budget toward planning. Use HTML artifacts to create "throwaway UIs" for spec editing and system visualization, ensuring human alignment before implementation.
 
 ### 3.4 Pure Declarative Infra Loop
 **The Reflow: Rendered Manifests & Fast-Paths**
 - **Rendered Manifests Pattern**: 
-    - Nix evaluates the high-level config $\rightarrow$ Generates plain YAML manifests $\rightarrow$ Committed to Git $\rightarrow$ Applied by **ArgoCD**.
+    - Nix evaluates the high-level config → Generates plain YAML manifests → Committed to Git → Applied by **ArgoCD**.
     - This separates the *generation* of the desired state (Nix) from the *reconciliation* (ArgoCD), providing instant visibility and auditability.
 - **The "Fast-Path"**: Introduce a restricted MCP toolset that allows agents to make "Ephemeral Changes" (e.g., updating a ConfigMap or scaling a deployment) for rapid tuning, which are later formalized into Nix config.
 
@@ -87,7 +87,7 @@ The "v1" implementation suffers from four critical systemic frictions:
 ### Phase 3: Orchestration Reflow (The "Intelligence" Phase)
 - [ ] Formalize "Executive" role for Hermes (update `AGENTS.md`).
 - [ ] Implement the stateful graph for multi-agent task tracking.
-- [ ] Move from linear pipelines to "Plan $\rightarrow$ Critique" loops.
+- [ ] Move from linear pipelines to "Plan → Critique" loops.
 
 ### Phase 4: Infra Modernization (The "Scale" Phase)
 - [ ] Set up ArgoCD for manifest reconciliation.
