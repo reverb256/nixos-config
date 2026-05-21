@@ -114,16 +114,16 @@ in
           metadata = {
             labels = managed // {
               app = "llama-qwen-vllm-nexus";
-              host = "nexus";
+        host = "zephyr";
               gpu = "rtx3060ti";
             };
           };
           spec = {
-            nodeName = "nexus";
-            hostNetwork = true;
-            automountServiceAccountToken = false;
-            priorityClassName = "high-priority-ai";
-            tolerations = zephyrTolerations;
+        nodeName = "zephyr";
+        hostNetwork = true;
+        automountServiceAccountToken = false;
+        priorityClassName = "high-priority-ai";
+        tolerations = zephyrTolerations;
             containers = {
               _namedlist = true;
 vllm = {
@@ -277,7 +277,7 @@ vllm = {
            metadata = {
              labels = managed // {
                app = "llama-server-zephyr-3090-moe";
-               host = "nexus";
+        host = "zephyr";
                gpu = "rtx3090";
              };
            };
