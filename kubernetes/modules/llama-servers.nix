@@ -48,14 +48,42 @@ let
       effect = "NoSchedule";
     }
   ];
-  zephyrVolumes = {
+
+  baseVolumes = {
     _namedlist = true;
     nix.hostPath = {
       path = "/nix";
       type = "Directory";
     };
     nvidia-libs.hostPath.path = "/run/opengl-driver/lib";
-    models.hostPath.path = "/home/j_kro/.lmstudio/models";
+    models.persistentVolumeClaim = {
+      claimName = "nfs-models-pvc";
+      readOnly = true;
+    };
+  };
+
+  nexusVolumes = baseVolumes // {
+    tmp.hostPath = {
+      path = "/tmp";
+      type = "Directory";
+    };
+    etc.hostPath = {
+      path = "/etc";
+      type = "Directory";
+    };
+  };
+
+  zephyrVolumes = baseVolumes // {
+    dflash.hostPath.path = "/home/j_kro/.lmstudio/models/dflash";
+  };
+
+  sentryVolumes = baseVolumes // {
+    dev-dri.hostPath = {
+      path = "/dev/dri";
+      type = "Directory";
+    };
+    vulkan-icd.hostPath.path = "/run/opengl-driver/share/vulkan/icd.d";
+    tmp.emptyDir = { };
   };
 in
 {
@@ -201,23 +229,7 @@ vllm = {
                 };
               };
             };
-            volumes = {
-              _namedlist = true;
-              nix.hostPath = {
-                path = "/nix";
-                type = "Directory";
-              };
-              nvidia-libs.hostPath.path = "/run/opengl-driver/lib";
-              models.hostPath.path = "/home/j_kro/.lmstudio/models";
-              tmp.hostPath = {
-                path = "/tmp";
-                type = "Directory";
-              };
-              etc.hostPath = {
-                path = "/etc";
-                type = "Directory";
-              };
-            };
+            volumes = nexusVolumes;
           };
         };
       };
@@ -392,10 +404,7 @@ vllm = {
                 };
               };
             };
-            volumes = zephyrVolumes // {
-              _namedlist = true;
-              dflash.hostPath.path = "/home/j_kro/.lmstudio/models/dflash";
-            };
+            volumes = zephyrVolumes;
           };
         };
       };
@@ -536,7 +545,7 @@ vllm = {
                     mountPath = "/models";
                     readOnly = true;
                   };
-                  opengl = {
+                  nvidia-libs = {
                     mountPath = "/run/opengl-driver/lib";
                     readOnly = true;
                   };
@@ -550,21 +559,7 @@ vllm = {
                 };
               };
             };
-            volumes = {
-              _namedlist = true;
-              nix.hostPath = {
-                path = "/nix";
-                type = "Directory";
-              };
-              dev-dri.hostPath = {
-                path = "/dev/dri";
-                type = "Directory";
-              };
-              models.hostPath.path = "/home/j_kro/.lmstudio/models";
-              opengl.hostPath.path = "/run/opengl-driver/lib";
-              vulkan-icd.hostPath.path = "/run/opengl-driver/share/vulkan/icd.d";
-              tmp.emptyDir = { };
-            };
+            volumes = sentryVolumes;
           };
         };
       };
