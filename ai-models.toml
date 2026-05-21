@@ -1,128 +1,239 @@
 # AI Model Registry - Single Source of Truth
-# Last Updated: 2026-05-19
+# Last Updated: 2026-05-21
+# Strategy: NIM (Primary, Unlimited) -> Google Gemma (Fast, Privacy) -> Local Models (Private/Baseline) 
+#           -> ZAI (Subscription, Quota-limited) -> OpenCode Go (Daily reset 7PM)
+# Disabled models are explicitly blocked at the gateway level
 
 [defaults]
-# Primary default model for all backends
-primary = "nemotron-nano"
-# Fallback model for secondary backends (NVIDIA NIM Nemotron)
-fallback = "nemotron-nano"
+# Primary default model for all backends when no specific model requested
+primary = "nemotron-3-nano"
+# Fallback model for secondary backends when primary unavailable
+fallback = "gemma-2b"
 
 [models]
-# Model registry with aliases and metadata
+# ── NVIDIA NIM (Unlimited / Primary) ──────────────────────────────────
+[models.nemotron-3-super]
+name = "nvidia/nemotron-3-super-120b-a12b"
+description = "Nemotron 3 Super — Primary High-IQ Reasoning"
+context_length = 262144
+capabilities = ["chat", "completion", "reasoning", "tool_calling", "agentic"]
+backends = ["nvidia-nim"]
 
-[models.qwen3.5-2b-awq]
-name = "Qwen3.5-2B-AWQ"
-description = "Fast 2B AWQ-quantized model for agentic work"
+[models.nemotron-3-nano]
+name = "nvidia/nemotron-3-nano-30b-a3b"
+description = "Nemotron 3 Nano — Fast High-IQ (Default)"
+context_length = 262144
+capabilities = ["chat", "completion"]
+backends = ["nvidia-nim"]
+
+[models.nemotron-3-nano-reasoning]
+name = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"
+description = "Nemotron 3 Nano Omni — Vision/Audio/Reasoning"
+context_length = 256000
+capabilities = ["chat", "completion", "vision", "audio", "reasoning"]
+backends = ["nvidia-nim"]
+
+# ── GOOGLE GEMMA (Fast / Privacy-Conscious) ──────────────────────────
+[models.gemma-4-31b]
+name = "google/gemma-4-31b-it"
+description = "Gemma 4 31B — Fast, high-quality"
+context_length = 131072
+capabilities = ["chat", "completion", "coding"]
+backends = ["google"]
+
+[models.gemma-4-26b]
+name = "google/gemma-4-26b-a4b-it"
+description = "Gemma 4 26B — Efficient high-quality"
+context_length = 131072
+capabilities = ["chat", "completion", "coding"]
+backends = ["google"]
+
+[models.gemma-3-12b]
+name = "google/gemma-3-12b-it"
+description = "Gemma 3 12B — Fast and lightweight"
+context_length = 131072
+capabilities = ["chat", "completion"]
+backends = ["google"]
+
+[models.gemma-3-4b]
+name = "google/gemma-3-4b-it"
+description = "Gemma 3 4B — Ultra-fast"
+context_length = 131072
+capabilities = ["chat", "completion"]
+backends = ["google"]
+
+[models.gemma-2b]
+name = "google/gemma-2b"
+description = "Gemma 2B — Baseline fast"
+context_length = 131072
+capabilities = ["chat", "completion"]
+backends = ["google"]
+
+# ── LOCAL MODELS (Private / Baseline) ────────────────────────────────
+[models.local-qwen-2b]
+name = "qwen3.5-2b-awq"
+description = "Local Qwen 3.5 2B AWQ-quantized (vLLM on Nexus)"
 context_length = 200000
 capabilities = ["chat", "completion", "vision", "fast"]
-backends = ["llama-vllm-3060ti", "llama-zephyr-3090", "llama-sentry"]
+backends = ["llama-vllm-3060ti"]
 
-[models.qwen3.6-35b-iq3-s]
-name = "Qwen3.6-35B-A3B-UD-IQ3_S.gguf"
-description = "35B IQ3_S quantized for quality reasoning"
+[models.local-qwen-4b]
+name = "Qwen3.5-4B-Q4_K_M.gguf"
+description = "Local Qwen 3.5 4B (llama.cpp on Sentry - Vulkan)"
 context_length = 262144
-capabilities = ["chat", "completion", "vision", "reasoning"]
+capabilities = ["chat", "completion"]
 backends = ["llama-sentry"]
 
-[models.carnice-qwen3.6-moe-35b]
-name = "Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf"
-description = "35B MoE for high-end reasoning"
+[models.local-qwen-27b]
+name = "qwen3.5-27b-q4-k-m.gguf"
+description = "Local Qwen 3.5 27B (llama.cpp on Zephyr 3090)"
 context_length = 262144
-capabilities = ["chat", "completion", "vision", "reasoning"]
+capabilities = ["chat", "completion", "reasoning"]
 backends = ["llama-zephyr-3090"]
 
-[models.glm-5-turbo]
+[models.local-qwen-35b-moe]
+name = "Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf"
+description = "Local Qwen 3.6 35B MoE (llama.cpp on Zephyr 3090)"
+context_length = 262144
+capabilities = ["chat", "completion", "reasoning", "vision"]
+backends = ["llama-zephyr-3090"]
+
+# ── ZAI (Subscription / Quota Exhausted - Last Resort) ──────────────────
+[models.zai-glm-5-turbo]
 name = "glm-5-turbo"
-description = "GLM-5 Turbo fast agentic"
+description = "GLM-5 Turbo — Fast Agentic (Z.AI)"
 context_length = 128000
 capabilities = ["chat", "completion", "fast"]
 backends = ["zai"]
 
-[models.glm-5.1]
+[models.zai-glm-5-1]
 name = "glm-5.1"
-description = "GLM-5.1 744B MoE orchestrator"
+description = "GLM-5.1 744B MoE — Orchestrator (Z.AI)"
 context_length = 128000
 capabilities = ["chat", "completion", "reasoning"]
 backends = ["zai"]
 
-[models.glm-4.7]
+[models.zai-glm-4-7]
 name = "glm-4.7"
-description = "GLM-4.7 358B MoE coding"
+description = "GLM-4.7 358B MoE — Coding (Z.AI)"
 context_length = 128000
 capabilities = ["chat", "completion", "coding"]
 backends = ["zai"]
 
-[models.glm-4.5-air]
-name = "glm-4.5-air"
-description = "GLM-4.5 Air ultra-fast"
-context_length = 128000
-capabilities = ["chat", "completion", "fast"]
-backends = ["zai"]
-
-[models.glm-4.7-flash]
+[models.zai-glm-4-7-flash]
 name = "glm-4.7-flash"
-description = "GLM-4.7 Flash fast vision"
+description = "GLM-4.7 Flash 30B vision model (Z.AI)"
 context_length = 128000
 capabilities = ["chat", "completion", "vision", "fast"]
 backends = ["zai"]
 
-[models.deepseek-v4-flash]
+[models.zai-glm-4-5-air]
+name = "glm-4.5-air"
+description = "GLM-4.5 Air lightweight model (Z.AI)"
+context_length = 128000
+capabilities = ["chat", "completion", "fast"]
+backends = ["zai"]
+
+# ── OPENCODE GO (Daily Reset 7PM UTC) ─────────────────────────────────
+[models.opencode-deepseek-v4-flash]
 name = "deepseek-ai/deepseek-v4-flash"
-description = "DeepSeek V4 Flash for coding"
+description = "DeepSeek V4 Flash — OpenCode Go (Daily reset)"
 context_length = 1048576
-capabilities = ["chat", "completion", "coding"]
+capabilities = ["chat", "completion", "coding", "long_context"]
 backends = ["opencode-go"]
 
-[models.nemotron-super]
-name = "nvidia/nemotron-3-super-120b-a12b"
-description = "NVIDIA Nemotron 3 Super 120B - default model"
-context_length = 131072
-capabilities = ["chat", "completion", "tool_calling", "agentic"]
-backends = ["nvidia-nim"]
-
-[backends]
-# Backend configuration
-
-[backends.llama-vllm-3060ti]
-type = "vllm"
-url = "http://10.1.1.120:8040/v1"
-host = "nexus"
-gpu = "RTX 3060 Ti 8GB"
-
-[backends.llama-zephyr-3090]
-type = "llama-cpp"
-url = "http://10.1.1.110:1237/v1"
-host = "zephyr"
-gpu = "RTX 3090 24GB"
-
-[backends.llama-sentry]
-type = "llama-cpp"
-url = "http://10.1.1.140:1235/v1"
-host = "sentry"
-gpu = "Radeon RX 5600 XT 6GB (Vulkan)"
-
-[backends.zai]
-type = "zai"
-url = "http://10.1.1.140:8080"
-host = "sentry"
-
-[backends.opencode-go]
-type = "openai-compatible"
-url = "https://api.opencode.go/v1"
-host = "external"
-
-[backends.nvidia-nim]
-type = "nvidia-nim"
-url = "https://integrate.api.nvidia.com/v1"
-host = "external"
-[backends.google]
-type = "google"
-url = "https://generativelanguage.googleapis.com/v1beta"
-host = "external"
-
-[models.gemma-2b]
+# ── EXTERNAL BACKUPS (Only if all above fail/exhausted) ───────────────
+[models.external-gemma-2b]
 name = "Gemma-2B"
 description = "Google Gemma 2B for fast, small tasks"
 context_length = 8192
 capabilities = ["chat", "completion", "fast"]
 backends = ["google"]
+
+[backends]
+# ── NIM Backend (Primary - Unlimited) ────────────────────────────────
+[backends.nvidia-nim]
+type = "nvidia-nim"
+url = "https://integrate.api.nvidia.com/v1"
+host = "external"
+priority = 1
+models = [
+  "nvidia/nemotron-3-super-120b-a12b",
+  "nvidia/nemotron-3-nano-30b-a3b", 
+  "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"
+]
+
+# ── Google Backend (Via AI Gateway - Fast/Privacy) ───────────────────
+[backends.google]
+type = "openai-compatible"
+url = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1"
+host = "cluster"
+priority = 2
+models = [
+  "google/gemma-4-31b-it",
+  "google/gemma-4-26b-a4b-it",
+  "google/gemma-3-12b-it",
+  "google/gemma-3-4b-it",
+  "google/gemma-2b"
+]
+
+# ── Local Backends (Private/Baseline) ────────────────────────────────
+[backends.llama-vllm-3060ti]
+type = "vllm"
+url = "http://10.1.1.120:8040/v1"
+host = "nexus"
+priority = 3
+gpu = "RTX 3060 Ti 8GB"
+models = [
+  "qwen3.5-2b-awq"
+]
+
+[backends.llama-sentry]
+type = "llama-cpp"
+url = "http://10.1.1.140:1235/v1"
+host = "sentry"
+priority = 3
+gpu = "Radeon RX 5600 XT 6GB (Vulkan)"
+models = [
+  "Qwen3.5-4B-Q4_K_M.gguf"
+]
+
+[backends.llama-zephyr-3090]
+type = "llama-cpp"
+url = "http://10.1.1.110:1237/v1"
+host = "zephyr"
+priority = 3
+gpu = "RTX 3090 24GB"
+models = [
+  "qwen3.5-27b-q4-k-m.gguf",
+  "Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf"
+]
+
+# ── ZAI Backend (Subscription - Quota Limited) ───────────────────────
+[backends.zai]
+type = "zai"
+url = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1"
+host = "cluster"
+priority = 4
+models = [
+  "glm-5-turbo",
+  "glm-5.1",
+  "glm-4.7",
+  "glm-4.7-flash",
+  "glm-4.5-air"
+]
+
+# ── OpenCode Go Backend (Daily Reset) ────────────────────────────────
+[backends.opencode-go]
+type = "openai-compatible"
+url = "https://api.opencode.go/v1"
+host = "external"
+priority = 5
+models = [
+  "deepseek-ai/deepseek-v4-flash"
+]
+
+# Disable specific models at the gateway level (handled by AI Gateway config)
+[disabled_models]
+# These are blocked regardless of backend - handled by AI Gateway policies
+# List maintained for reference/audit purposes
