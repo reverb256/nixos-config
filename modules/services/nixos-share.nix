@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }: let
   cluster = config.networking.cluster;
@@ -10,7 +11,7 @@ in {
     enable = lib.mkEnableOption "NixOS configuration sharing";
 
     server = {
-      enable = lib.mkEnableOption "NFS server for sharing /etc/nixos";
+      enable = lib.mkEnableOption "NFS server for sharing";
       allowedHosts = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [
@@ -19,6 +20,16 @@ in {
           cluster.hosts.sentry.ip # sentry
         ];
         description = "IP addresses allowed to mount the NFS share";
+      };
+      exports = lib.mkOption {
+        type = lib.types.listOf {
+          path = lib.types.path;
+          description = lib.types.str;
+        };
+        default = [
+          { path = "/etc/nixos"; description = "NixOS configuration"; }
+        ];
+        description = "List of directories to export via NFS";
       };
     };
 
@@ -40,12 +51,16 @@ in {
   config = lib.mkIf cfg.enable {
     services.nfs.server = lib.mkIf cfg.server.enable {
       enable = true;
-      # Use mkDefault so both nixos-share and nfs-data-server exports coexist
-      # at the same priority level (1000). types.lines merge concatenates them.
-      exports = lib.mkDefault (lib.concatMapStringsSep "\n" (host: ''
-          /etc/nixos ${host}(ro,no_subtree_check,async,nohide,insecure)
-        '')
-        cfg.server.allowedHosts);
+      exports = lib.mkDefault (
+        let
+          combinations = lib.concatMap (export: 
+            map (host: { path = export.path; host = host; }) cfg.server.allowedHosts
+          ) cfg.server.exports;
+        in
+        lib.concatMapStringsSep "\n" (combo: ''
+            ${combo.path} ${combo.host}(ro,no_subtree_check,async,nohide,insecure)
+          '') combinations
+      );
     };
 
     networking.firewall = lib.mkIf cfg.server.enable {
