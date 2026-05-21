@@ -3,9 +3,9 @@
 
 [defaults]
 # Primary default model for all backends
-primary = "qwen3.5-2b-awq"
+primary = "nemotron-nano"
 # Fallback model for secondary backends (NVIDIA NIM Nemotron)
-fallback = "nvidia/nemotron-3-super-120b-a12b"
+fallback = "nemotron-nano"
 
 [models]
 # Model registry with aliases and metadata
@@ -115,3 +115,14 @@ host = "external"
 type = "nvidia-nim"
 url = "https://integrate.api.nvidia.com/v1"
 host = "external"
+[backends.google]
+type = "google"
+url = "https://generativelanguage.googleapis.com/v1beta"
+host = "external"
+
+[models.gemma-2b]
+name = "Gemma-2B"
+description = "Google Gemma 2B for fast, small tasks"
+context_length = 8192
+capabilities = ["chat", "completion", "fast"]
+backends = ["google"]

@@ -8,7 +8,7 @@
   # kagent v0.9.0 (2026-04-22) — latest stable release
   # Registry: cr.kagent.dev (kagent's official container registry)
   # Check: https://github.com/kagent-dev/kagent/releases
-  version = "0.9.2";
+  version = "0.9.4";
   registry = "cr.kagent.dev";
 
   # ── Image references ─────────────────────────────────────────────────

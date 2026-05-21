@@ -22,6 +22,33 @@
   aiModels = lib.importTOML aiModelsToml;
   defaultModel = aiModels.defaults.primary;
   fallbackModel = aiModels.defaults.fallback;
+  disabledModels = aiModels.defaults.disabled_models or [ ];
+
+  # Generate DISCOVERY_BACKENDS JSON array.
+  # Special handling for NVIDIA NIM: since it's one URL for multiple models,
+  # we expand it into multiple entries to maintain the original discovery pattern.
+  discoveryBackends = builtins.toJSON (
+    lib.concatMap (name: info: 
+      if name == "nvidia-nim" then 
+        lib.map (modelId: {
+          url = info.url;
+          # Use a shorthand name for NIM models (e.g., "nemotron-super")
+          name = lib.pipe modelId [
+            (builtins.replace "nvidia/" "")
+            (builtins.replace "nemotron-3-super-120b-a12b" "nemotron-super")
+            (builtins.replace "nemotron-3-nano-30b-a3b" "nemotron-nano")
+            (builtins.replace "nemotron-3-nano-omni-30b-a3b-reasoning" "nemotron-omni")
+          ];
+        } (info.models or [ ]))
+      else [
+        {
+          url = info.url;
+          name = name;
+        }
+      ]
+    ) (lib.attrToList aiModels.backends)
+  );
+
   # Model name mapping (aliases to full model identifiers)
   modelNames = {
     "qwen3.5-2b-awq" = aiModels.models.qwen3_5-2b-awq.name or "qwen3.5-2b-awq";
@@ -64,10 +91,10 @@ in {
     };
     ai-inference.ConfigMap.ai-inference-gateway-config.data = {
       AUTH_MODE="token"; # Token-based authentication (set GATEWAY_TOKEN via Secret)
-      BACKEND_TYPE = "zai";
+      BACKEND_TYPE = "llama-cpp";
       BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
       BACKEND_FALLBACK_URLS = ""; # Dead backends removed (see git log)
-      DEFAULT_MODEL = "nvidia/nemotron-3-super-120b-a12b";
+       DEFAULT_MODEL = "Qwen3.5-4B-Q4_K_M.gguf";
       GATEWAY_HOST = "0.0.0.0";
       PORT = "8080";
       PYTHONUNBUFFERED = "1";
@@ -103,29 +130,9 @@ in {
       CIRCUIT_BREAKER_ENABLED = "true";
       REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
       SECONDARY_BACKEND_URL = "http://llama-qwen-vllm-nexus.ai-inference.svc.cluster.local:8040";
-      SECONDARY_BACKEND_MODEL = defaultModel;
-      DISCOVERY_BACKENDS = ''[
-        {"url": "http://llama-qwen-vllm-nexus.ai-inference.svc.cluster.local:8040/v1", "name": "llama-qwen-vllm-nexus"},
-        {"url": "https://integrate.api.nvidia.com/v1", "name": "nemotron-super"},
-        {"url": "https://integrate.api.nvidia.com/v1", "name": "nemotron-nano"},
-        {"url": "https://integrate.api.nvidia.com/v1", "name": "nemotron-omni"},
-      ]'';
-      DISABLED_MODELS = ''[
-        "glm-5.1","glm-5-turbo","glm-5","glm-4.7","glm-4.6v","glm-4.6",
-        "glm-4.7-flash","glm-4.5","glm-4.5-flash","glm-4.5-air",
-        "meta/llama-3.1-405b-instruct","deepseek-ai/deepseek-coder-6.7b-instruct",
-        "moonshotai/kimi-k2-instruct","moonshotai/kimi-k2-thinking",
-        "mistralai/devstral-2-123b-instruct-2512","mistralai/magistral-small-2506",
-        "minimaxai/minimax-m2.5","z-ai/glm4.7","google/gemma-3-27b-it",
-        "bytedance-seed/dola-seed-2.0-pro:free","x-ai/grok-code-fast-1:optimized:free",
-        "arcee-ai/trinity-large-thinking:free","z-ai/glm-5v-turbo","z-ai/glm-4.5v",
-        "z-ai/glm-4.6v","nvidia/nemotron-4-340b-instruct","nvidia/nemotron-nano-9b-v2",
-        "nvidia/llama-3.1-nemotron-70b-instruct","moonshotai/kimi-k2.5",
-        "google/gemma-4-26b-a4b-it","microsoft/phi-4",
-        "qwen/qwen3-coder-plus","qwen/qwen3-coder-next","qwen/qwen3-coder-flash",
-        "qwen/qwen3-coder-30b-a3b-instruct","qwen/qwen3.5-35b-a3b","qwen/qwen3.5-27b",
-        "qwen/qwen3.5-9b","qwen/qwen3.5-plus-20260420","openrouter/owl-alpha"
-      ]'';
+       SECONDARY_BACKEND_MODEL = "qwen3.5-2b-awq";
+      DISCOVERY_BACKENDS = ''${discoveryBackends} '';
+      DISABLED_MODELS = ''${builtins.toJSON disabledModels} '';
 PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
       PRIVACY_FILTER_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
@@ -137,21 +144,16 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
       MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS = "[\"/etc/nixos\"]";
       MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K = "10";
+      MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS = "[\"/etc/nixos\"]";
+      MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED = "true";
+      MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K = "10";
+      MIDDLEWARE__JWT_AUTH__ENABLED = "true";
+      MIDDLEWARE__JWT_AUTH__JWKS_URL = "https://auth.lan/.well-known/jwks";
+      MIDDLEWARE__JWT_AUTH__ISSUER = "https://auth.lan";
+      MIDDLEWARE__JWT_AUTH__AUDIENCE = "3a331eeb195880d68d9a";
+      MIDDLEWARE__JWT_AUTH__SYSTEM_TOKEN = "sovereign-system-token-2026-internal";
     };
-    # NOTE: Prometheus + Grafana removed — see kubernetes/modules/monitoring.nix
-    # for the canonical monitoring stack (monitoring namespace).
-    ai-inference.Deployment.open-webui = {
-      metadata.labels.app = "open-webui";
-      spec = {
-        replicas = 2;
-        revisionHistoryLimit = 2;
-        selector.matchLabels.app = "open-webui";
-        strategy = {
-          type = "RollingUpdate";
-          rollingUpdate = {
-            maxSurge = 0;
-            maxUnavailable = 1;
-          };
+
         };
         template = {
           metadata.labels.app = "open-webui";
