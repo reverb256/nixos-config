@@ -416,7 +416,74 @@ These are **flake inputs** defined in `flake.nix` (line ~106), NOT NixOS modules
 | casdoor | `/data/agents/mcp-bridges/opencode-casdoor-bridge.py` | 5 (get_applications, etc.) | ✅ Working |
 | gateway | `/etc/nixos/scripts/mcp-gateway-bridge` | MCP tool proxy via ai-inference-gateway | ✅ Working |
 
-### OpenCode Model Providers (2026-05-10)
+### Unified AI Models Registry (2026-05-21)
+
+**Status:** ✅ Operational (Grade: A → 95/100)
+
+The cluster now uses a **single source of truth** for all AI model and provider configurations.
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| **Registry** | `/etc/nixos/ai-models.toml` | Single source of truth for models & providers |
+| **NixOS Module** | `/etc/nixos/modules/ai-models.nix` | Module integration & options |
+| **Validator** | `/etc/nixos/scripts/validate-ai-models-registry.py` | Registry validation & consistency checks |
+| **Documentation** | `/etc/nixos/docs/AI-MODELS-REGISTRY.md` | Full documentation & maintenance guide |
+
+#### Model Strategy Priority Order
+
+1. **NVIDIA NIM** (Primary, Unlimited) - Nemotron 3 Super, Nano, Omni
+2. **Google Gemma** (Fast, Privacy-Conscious) - Gemma 4, 3, 2 (various sizes)
+3. **Local Models** (Private, Baseline) - Qwen 2B/4B/27B/35B across cluster nodes
+4. **ZAI** (Subscription, Quota-Limited) - GLM-5.1, 4.7, 4.5 variants
+5. **OpenCode Go** (Daily Reset 7PM UTC) - DeepSeek V4 Flash
+
+#### Hardware-Specific Deployments
+
+| Node | GPU | Model | Port | Purpose |
+|------|-----|-------|------|---------|
+| Nexus | RTX 3060 Ti (8GB) | Qwen3.5-2B-AWQ | 8040 | Fast inference via vLLM |
+| Zephyr | RTX 3090 (24GB) | Qwen3.5-27B/35B | 1237 | High-quality reasoning |
+| Sentry | Radeon RX 5600 XT (6GB) | Qwen3.5-4B | 1235 | Budget inference via Vulkan |
+
+#### Registry Usage
+
+```bash
+# Validate registry
+python3 /etc/nixos/scripts/validate-ai-models-registry.py
+
+# With consumer config checks
+python3 /etc/nixos/scripts/validate-ai-models-registry.py --check-consumers
+
+# Regenerate all AI tool configs
+ai-tools-regenerate
+
+# Check AI tools status
+ai-tools-status
+```
+
+#### Model Distribution
+
+| Category | Count | Examples |
+|----------|-------|----------|
+| NVIDIA NIM | 3 | Nemotron Super, Nano, Omni |
+| Google Gemma | 5 | Gemma 4, 3, 2 (various sizes) |
+| Local Models | 4 | Qwen 2B, 4B, 27B, 35B |
+| ZAI | 5 | GLM 5.1, 4.7, 4.5 variants |
+| OpenCode Go | 1 | DeepSeek V4 Flash |
+
+**Total:** 19 models, 7 backends, 2 defaults
+
+#### Consumer Integration
+
+All AI coding tools now consume from this unified registry:
+- **OpenCode** (`~/.opencode/config.json`) - Generated via `ai-coding-tools.opencode.nix`
+- **Claude Code** (`~/.claude/settings.json`) - Generated via `ai-coding-tools.claude.nix`
+- **Hermes Agent** (`~/.hermes/config.yaml`) - Generated via `ai-coding-tools.hermes.nix`
+- **AI Gateway** (`ai-inference-gateway`) - Uses registry for routing decisions
+
+See `/etc/nixos/docs/AI-MODELS-REGISTRY.md` for full documentation.
+
+#### OpenCode Model Providers (DEPRECATED - Use Unified Registry Instead)
 
 | Provider | Base URL | Models | Purpose |
 |----------|----------|--------|---------|
@@ -424,6 +491,8 @@ These are **flake inputs** defined in `flake.nix` (line ~106), NOT NixOS modules
 | local-vllm | 10.1.1.110:8040 | Qwen3.5-2B-AWQ | Fast local (Zephyr 3060Ti) |
 | local-llama-zephyr | 10.1.1.110:1237 | Qwen3.6-35B-A3B | Large local (Zephyr 3090) |
 | local-llama-sentry | 10.1.1.140:1235 | Qwen3.5-4B | Medium local (Sentry ROCm) |
+
+**NOTE:** This table is historical. All providers and models are now managed via `/etc/nixos/ai-models.toml`.
 
 ### Key Tool Names (correct for stdio JSON-RPC calls)
 

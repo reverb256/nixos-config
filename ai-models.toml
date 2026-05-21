@@ -6,9 +6,9 @@
 
 [defaults]
 # Primary default model for all backends when no specific model requested
-primary = "nemotron-3-nano"
+primary = "nvidia/nemotron-3-nano-30b-a3b"
 # Fallback model for secondary backends when primary unavailable
-fallback = "gemma-2b"
+fallback = "google/gemma-2b"
 
 [models]
 # ── NVIDIA NIM (Unlimited / Primary) ──────────────────────────────────
