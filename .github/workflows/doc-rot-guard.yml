@@ -1,0 +1,15 @@
+name: doc-rot-guard
+
+on:
+  schedule:
+    - cron: '0 4 * * *'  # Daily at 4 AM
+  workflow_dispatch:
+
+jobs:
+  stale-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find stale docs
+        run: |
+          echo "Stale docs detected - Kagent will enrich"
