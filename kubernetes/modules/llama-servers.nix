@@ -295,7 +295,9 @@ vllm = {
                 command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
         args = [
           "--model"
-          "/models/unsloth/Qwen3.6-35B-A3B-GGUF/Qwen3.6-35B-A3B-UD-IQ4_XS.gguf"
+          "/models/mradermacher/Carnice-Qwen3.6-MoE-35B-A3B-GGUF/Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf"
+          "--mmproj"
+          "/models/unsloth/Qwen3.6-35B-A3B-GGUF/mmproj-BF16.gguf"
           "--host"
           "0.0.0.0"
           "--port"
@@ -312,6 +314,10 @@ vllm = {
           "16"
           "--flash-attn"
           "on"
+          "-ctk"
+          "turbo4"
+          "-ctv"
+          "turbo4"
           "--parallel"
           "1"
           "--metrics"
