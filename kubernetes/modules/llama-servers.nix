@@ -426,7 +426,7 @@ vllm = {
         ];
         selector = {
           app = "llama-server-zephyr-3090-moe";
-          host = "zephyr"; # Fix: match deployment label (was incorrectly "sentry")
+          host = "nexus";
         };
       };
     };
