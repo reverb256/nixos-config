@@ -114,16 +114,16 @@ in
           metadata = {
             labels = managed // {
               app = "llama-qwen-vllm-nexus";
-              host = "nexus";
+        host = "zephyr";
               gpu = "rtx3060ti";
             };
           };
           spec = {
-            nodeName = "nexus";
-            hostNetwork = true;
-            automountServiceAccountToken = false;
-            priorityClassName = "high-priority-ai";
-            tolerations = zephyrTolerations;
+        nodeName = "zephyr";
+        hostNetwork = true;
+        automountServiceAccountToken = false;
+        priorityClassName = "high-priority-ai";
+        tolerations = zephyrTolerations;
             containers = {
               _namedlist = true;
 vllm = {
@@ -262,7 +262,7 @@ vllm = {
     Deployment.llama-server-zephyr-3090-moe = {
       metadata.labels = managed // {
         app = "llama-server-zephyr-3090-moe";
-        host = "zephyr";
+        host = "nexus";
         gpu = "rtx3090";
       };
       spec = {
@@ -270,19 +270,19 @@ vllm = {
         revisionHistoryLimit = 1;
         selector.matchLabels = {
           app = "llama-server-zephyr-3090-moe";
-          host = "zephyr";
+          host = "nexus";
         };
         strategy.type = "Recreate";
         template = {
-          metadata = {
-            labels = managed // {
-              app = "llama-server-zephyr-3090-moe";
-              host = "zephyr";
-              gpu = "rtx3090";
-            };
-          };
+           metadata = {
+             labels = managed // {
+               app = "llama-server-zephyr-3090-moe";
+        host = "zephyr";
+               gpu = "rtx3090";
+             };
+           };
           spec = {
-            nodeName = "zephyr";
+            nodeName = "nexus";
             hostNetwork = true;
             automountServiceAccountToken = false;
             priorityClassName = "high-priority-ai";
@@ -293,51 +293,51 @@ vllm = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
                 command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
-                args = [
-                  "--model"
-                  "/models/mradermacher/Carnice-Qwen3.6-MoE-35B-A3B-GGUF/Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf"
-                  "--mmproj"
-                  "/models/unsloth/Qwen3.6-35B-A3B-GGUF/mmproj-BF16.gguf"
-                  "--host"
-                  "0.0.0.0"
-                  "--port"
-                  "1237"
-                  "-ngl"
-                  "60"
-                  "--split-mode"
-                  "none"
-                  "--main-gpu"
-                  "1"
-                  "-c"
-                  "262144"
-                  "-t"
-                  "16"
-                  "--flash-attn"
-                  "on"
-                  "-ctk"
-                  "turbo4"
-                  "-ctv"
-                  "turbo4"
-                  "--parallel"
-                  "1"
-                  "--metrics"
-                  "-b"
-                  "256"
-                  "--reasoning"
-                  "on"
-                  "--chat-template-kwargs"
-                  ''{"preserve_thinking": true, "enable_thinking": true}''
-                  "--temp"
-                  "0.7"
-                  "--top-k"
-                  "20"
-                  "--top-p"
-                  "0.8"
-                  "--min-p"
-                  "0.0"
-                  "--presence-penalty"
-                  "1.5"
-                ];
+        args = [
+          "--model"
+          "/models/mradermacher/Carnice-Qwen3.6-MoE-35B-A3B-GGUF/Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf"
+          "--mmproj"
+          "/models/unsloth/Qwen3.6-35B-A3B-GGUF/mmproj-BF16.gguf"
+          "--host"
+          "0.0.0.0"
+          "--port"
+          "1237"
+          "-ngl"
+          "60"
+          "--split-mode"
+          "none"
+          "--main-gpu"
+          "1"
+          "-c"
+          "262144"
+          "-t"
+          "16"
+          "--flash-attn"
+          "on"
+          "-ctk"
+          "turbo4"
+          "-ctv"
+          "turbo4"
+          "--parallel"
+          "1"
+          "--metrics"
+          "-b"
+          "256"
+          "--reasoning"
+          "on"
+          "--chat-template-kwargs"
+          ''{"preserve_thinking": true, "enable_thinking": true}''
+          "--temp"
+          "0.7"
+          "--top-k"
+          "20"
+          "--top-p"
+          "0.8"
+          "--min-p"
+          "0.0"
+          "--presence-penalty"
+          "1.5"
+        ];
                 env = {
                   _namedlist = true;
                   NVIDIA_VISIBLE_DEVICES = {
@@ -426,7 +426,7 @@ vllm = {
         ];
         selector = {
           app = "llama-server-zephyr-3090-moe";
-          host = "zephyr"; # Fix: match deployment label (was incorrectly "sentry")
+          host = "nexus";
         };
       };
     };

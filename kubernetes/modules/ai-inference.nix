@@ -13,7 +13,7 @@
   # AI Inference Gateway — pre-built container image (loaded into containerd on target node)
   # CRITICAL: Use local registry - docker.io requires auth and is slow
   # Image pushed by nexus:push-gateway-to-registry service
-  gatewayImage = "nexus:5000/ai-inference-gateway:2.4.27";
+  gatewayImage = "nexus:5000/ai-inference-gateway:2.4.28";
   # Managed-by labels for easykubenix
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";

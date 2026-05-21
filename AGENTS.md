@@ -66,13 +66,13 @@ Then clean up.
 The cluster uses a high-performance declarative pipeline to bridge NixOS and Kubernetes:
 
 **easykubenix → nix-csi → nix-oci**
-
 - **easykubenix**: A manifest engine that uses the NixOS module system to generate Kubernetes resources. It avoids slow codegen by using JSON types for the K8s API, allowing fast evaluation of complex manifests.
 - **nix-csi**: A CSI driver that mounts Nix store paths directly into pods. This enables the **"Scratch Pattern"**: pods run a minimal scratch image and mount their entire runtime environment (binaries, libs, venvs) from the Nix store, ensuring 100% reproducibility and zero-bloat images.
 - **nix-oci**: Handles the packaging and delivery of OCI-compliant containers built via Nix, ensuring the container lifecycle is managed by the same flake that manages the host OS.
 
 **Sovereign Registry Flow:**
 `ai-models.toml` (SSOT) → `ai-inference.nix` (Easykubenix Module) → K8s Resources (Deployment/Service/ConfigMap)
+
 
 This ensures that adding a model to the registry automatically updates the AI Gateway's routing, discovery, and resource allocation without manual manifest edits.
 
