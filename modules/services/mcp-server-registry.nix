@@ -486,7 +486,7 @@ in {
                   in_mcp = True
                   continue
               if in_mcp:
-                  if line.startswith(" ") or line.startswith(chr(9)) or line.strip() == "":
+                  if line.startswith(" ") or \t in line or line.strip() == "":
                       continue
                   in_mcp = False
               filtered.append(line)
