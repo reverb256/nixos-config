@@ -54,8 +54,8 @@
         ]
       },
       "locked": {
-        "lastModified": 1779159233,
-        "narHash": "sha256-opSIoliTyuoN9MQcqszzSIlv8YvUqkjPzYiNRuDflxE=",
+        "lastModified": 1778788418,
+        "narHash": "sha256-3XnCN23sVaTjPoFLNfM9fIP1hYQrYrv3sLq62wD/JNE=",
         "path": "/data/projects/own/ai-inference-gateway",
         "type": "path"
       },
@@ -219,11 +219,11 @@
     "cachyos-kernel": {
       "flake": false,
       "locked": {
-        "lastModified": 1779034201,
-        "narHash": "sha256-KINz+P9ds2XV+jIhPKbWtpXD27K/vZT0FN87GkMBDKM=",
+        "lastModified": 1778649404,
+        "narHash": "sha256-LwRT4Wn48IPn674TMnrckayCioF0iMGYqE7bi/256/k=",
         "owner": "CachyOS",
         "repo": "linux-cachyos",
-        "rev": "791fb8ea6d3cf7c85e596678c25c56fa140591be",
+        "rev": "6544eeb1694d6790292156dc300f149d14bc5210",
         "type": "github"
       },
       "original": {
@@ -235,11 +235,11 @@
     "cachyos-kernel-patches": {
       "flake": false,
       "locked": {
-        "lastModified": 1778864443,
-        "narHash": "sha256-3OIBgFPMab0avw5A0OcnGrmRTAbw573aAIgYERYRZ8g=",
+        "lastModified": 1778649239,
+        "narHash": "sha256-dNaGAK1lcop+yLsJzjlzSEF2YqBQYvIAKMxhaSqtxB0=",
         "owner": "CachyOS",
         "repo": "kernel-patches",
-        "rev": "a62c86e5d6ce4efcd4f3be9526adfa52aa7286af",
+        "rev": "ba7b8b92f1906de3742dadcbe2d032b5275da891",
         "type": "github"
       },
       "original": {
@@ -1248,11 +1248,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1779043214,
-        "narHash": "sha256-//+01ZthfM8AHz4vGEIvMpEOG6jh5nt3XGR0h3alJwk=",
+        "lastModified": 1778786644,
+        "narHash": "sha256-Nmacd0dSaHA6L35fTa6aXXoQUhoFa7+Z1k13Y9G3DPY=",
         "owner": "xddxdd",
         "repo": "nix-cachyos-kernel",
-        "rev": "35ce1ffcf034260e4213442ae4e0b5820f529331",
+        "rev": "f2004296fc7cf75fccfa1028a6253dd5f42456a8",
         "type": "github"
       },
       "original": {
@@ -2211,8 +2211,8 @@
         ]
       },
       "locked": {
-        "lastModified": 1779141880,
-        "narHash": "sha256-SSt4o6PEOZ7Vs6Wrs31fXpC6HZhC662aiq8Cb9weY0Y=",
+        "lastModified": 1778842029,
+        "narHash": "sha256-Z2J2MxvxBovoxH+aiUyJB13dPhWnuilm+xMN5vYXhe4=",
         "path": "/data/projects/own/vllm",
         "type": "path"
       },

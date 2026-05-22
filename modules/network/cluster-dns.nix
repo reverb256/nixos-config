@@ -85,7 +85,7 @@
   hermesServiceDomains = [ "hermes.lan" "api.hermes.lan" ];
 
   # Tailscale mobile devices
-  tailscaleDomains = [ "seeker.lan" "reverb256.lan"];
+  tailscaleDomains = [ "seeker.lan" ];
 
   # All .lan domains combined — this is the SSOT list
   allLanDomains = ingressServiceDomains ++ hostServiceDomains ++ forgeServiceDomains
@@ -100,7 +100,6 @@
     else if builtins.elem domain sentryServiceDomains then hosts.sentry
     else if builtins.elem domain hermesServiceDomains then hosts.nexus
     else if domain == "seeker.lan" then "100.84.24.43"
-    else if domain == "reverb256.lan" then "10.15.39.199"
     else vip; # fallback
 
   # Generate Unbound local-data records from domain lists

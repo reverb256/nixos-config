@@ -85,7 +85,7 @@
     rgb-control = {
       enable = true;
       openrgb.enable = true;
-      openrazer.enable = false;
+      openrazer.enable = true;
       temperatureReactive = {
         enable = true;
         sensor = "both";
