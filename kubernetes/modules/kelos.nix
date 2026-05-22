@@ -119,7 +119,7 @@ EOFAG
       };
     };
     spec = {
-      maxConcurrency = 2;
+      maxConcurrency = 8;
       taskTemplate = {
         type = "opencode";
         workspaceRef.name = r;
