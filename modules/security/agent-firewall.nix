@@ -53,11 +53,12 @@ add table inet agent-firewall;
 add set inet agent-firewall allowed_external_ips {
   type ipv4_addr;
   flags interval;
-  elements = { 104.18.0.0/15, 104.18.35.159, 140.82.112.0/20, 34.160.0.0/16 };
+  elements = { 104.18.0.0/15, 140.82.112.0/20, 34.160.0.0/16 };
 }
 
 add set inet agent-firewall local_services {
   type ipv4_addr;
+  flags interval;
   elements = { ${clusterSubnet} };
 }
 
@@ -82,7 +83,7 @@ add rule inet agent-firewall agent-egress ct state established,related accept;
 add rule inet agent-firewall agent-egress udp dport 53 accept;
 add rule inet agent-firewall agent-egress tcp dport 53 accept;
 add rule inet agent-firewall agent-egress ip protocol icmp accept;
-add rule inet agent-firewall agent-egress ip6 nexthop icmpv6 accept;
+add rule inet agent-firewall agent-egress ip6 nexthdr icmpv6 accept;
 add rule inet agent-firewall agent-egress ip daddr @local_services tcp dport @allowed_local_ports accept;
 add rule inet agent-firewall agent-egress ip daddr ${podCidr} accept;
 add rule inet agent-firewall agent-egress ip daddr @allowed_external_ips tcp dport @allowed_external_ports accept;
