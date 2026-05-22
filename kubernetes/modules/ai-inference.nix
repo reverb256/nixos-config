@@ -93,7 +93,9 @@ in {
       AUTH_MODE="token"; # Token-based authentication (set GATEWAY_TOKEN via Secret)
       BACKEND_TYPE = "llama-cpp";
       BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
-      BACKEND_FALLBACK_URLS = ""; # Dead backends removed (see git log)
+      BACKEND_FALLBACK_URLS = "https://api.z.ai/api/coding/paas/v4,https://integrate.api.nvidia.com/v1";
+  ZAI_API_KEY_FILE = "/run/agenix/zai-api-key";
+  NVIDIA_NIM_API_KEY_FILE = "/run/agenix/nvidia-api-key";
        DEFAULT_MODEL = "Qwen3.5-4B-Q4_K_M.gguf";
       GATEWAY_HOST = "0.0.0.0";
       PORT = "8080";
