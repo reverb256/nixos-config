@@ -278,15 +278,22 @@ in {
     # ── Firewall: Rate limiting + port blocking ──────────────────────────
     networking.firewall = {
       # Rate limit DNS queries (UDP port 53) per source IP
-      extraInputRules = mkIf cfg.enableRateLimiting (mkOptionDefault ''
-        # DNS rate limiting — drop excess queries per source IP
-        ip protocol udp udp dport 53 limit rate ${dnsQueryRate}/second burst ${dnsBurst} packets accept
-        ip protocol udp udp dport 53 counter drop
+      extraInputRules = lib.concatStrings [
+        (mkIf cfg.enableRateLimiting (mkOptionDefault ''
+          # DNS rate limiting — drop excess queries per source IP
+          ip protocol udp udp dport 53 limit rate ${dnsQueryRate}/second burst ${dnsBurst} packets accept
+          ip protocol udp udp dport 53 counter drop
 
-        # DNS rate limiting — TCP (zone transfers, large responses)
-        ip protocol tcp tcp dport 53 limit rate ${dnsQueryRate}/second burst ${dnsBurst} packets accept
-        ip protocol tcp tcp dport 53 counter drop
-      '');
+          # DNS rate limiting — TCP (zone transfers, large responses)
+          ip protocol tcp tcp dport 53 limit rate ${dnsQueryRate}/second burst ${dnsBurst} packets accept
+          ip protocol tcp tcp dport 53 counter drop
+        ''))
+        ''
+          # Allow DNS from cluster and pod networks (rate limited by rules above)
+          ip saddr { ${clusterSubnet}, ${podSubnet} } udp dport 53 accept
+          ip saddr { ${clusterSubnet}, ${podSubnet} } tcp dport 53 accept
+        ''
+      ];
 
       # Block outbound DNS on non-standard ports (prevents tunneling via alternate ports)
       extraOutputRules = mkIf cfg.enablePortBlocking (mkOptionDefault ''
@@ -307,13 +314,6 @@ in {
         # Allow DNS-over-TLS to authorized upstreams
         ip daddr { ${lib.concatStringsSep ", " allowedUpstreamDns} } tcp dport 853 accept
       '');
-
-      # Allow legitimate DNS traffic from cluster networks
-      extraInputRules = mkOptionDefault ''
-        # Allow DNS from cluster and pod networks (rate limited by rules above)
-        ip saddr { ${clusterSubnet}, ${podSubnet} } udp dport 53 accept
-        ip saddr { ${clusterSubnet}, ${podSubnet} } tcp dport 53 accept
-      '';
     };
 
     # ── Unbound: Enable query logging for detection ─────────────────────

@@ -340,11 +340,9 @@ in {
       };
     };
 
-    mcp-servers = {
-      enable = true;
-      servers.playwright.enable = true;
-      servers.context7.apiKeyFile = "/run/agenix/context7-api-key";
-    };
+     mcp-servers = {
+       enable = true;
+     };
     cachix-auth = {
       enable = true;
     };

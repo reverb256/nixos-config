@@ -176,7 +176,6 @@ in {
                 "https://auth.lan/oauth2/callback",
                 "http://auth.lan/oauth2/callback",
                 "https://mission-control.lan/oauth2/callback",
-                "https://haven.lan/oauth2/callback",
                 "https://grafana.lan/oauth2/callback",
                 "https://openwebui.lan/oauth2/callback",
                 "https://kagent.lan/oauth2/callback",
