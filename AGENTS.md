@@ -637,11 +637,3 @@ for host in zephyr nexus forge sentry; do
   echo "$host: $(ssh $host 'bash --norc --noprofile -c "cd /data/projects/own/maplespike && git log --oneline -1"' 2>/dev/null)"
 done
 ```
-
-## NVIDIA Nemotron Models
-
-| Model | Purpose |
-|-------|---------|
-| `nvidia/nemotron-3-super-120b-a12b` | Main coding model |
-| `nvidia/nemotron-3-nano-30b-a3b` | Lightweight model |
-| `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` | Reasoning/vision model |

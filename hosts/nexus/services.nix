@@ -54,14 +54,7 @@ in {
       client.enable = true;
     };
 
-    nfs-data-server = {
-      enable = true;
-      exports = ''
-        /data/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=105)
-
-        /data/pi 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=106)
-      '';
-    };
+    nfs-data-server.enable = true;
 
     agenix-secrets-registry = {
       enable = true;
@@ -76,17 +69,11 @@ in {
     };
 
     nfs-state-sync = {
-      enable = false;
+      enable = true;
       sourceHost = "zephyr";
       paths = ["/data/hermes" "/data/pi"];
       interval = "15min";
     };
-
-    # Create directories for hermes/pi state on Nexus
-    systemd.tmpfiles.rules = [
-      "d /data/hermes 0775 j_kro j_kro -"
-      "d /data/pi 0775 j_kro j_kro -"
-    ];
   };
 
   programs.steam = {

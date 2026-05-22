@@ -8,7 +8,7 @@
   # kagent v0.9.0 (2026-04-22) — latest stable release
   # Registry: cr.kagent.dev (kagent's official container registry)
   # Check: https://github.com/kagent-dev/kagent/releases
-  version = "0.9.4";
+  version = "0.9.2";
   registry = "cr.kagent.dev";
 
   # ── Image references ─────────────────────────────────────────────────
@@ -624,17 +624,255 @@ in {
       };
     };
 
-    kagent.Service.kagent-ui = {
-      metadata.labels = managed // {"app.kubernetes.io/component" = "ui";};
+    # ══════════════════════════════════════════════════════════════════════
+    # KAGENT AGENTS (Declarative)
+    # ══════════════════════════════════════════════════════════════════════
+    none.Agent.ci-cd-watcher = {
+      apiVersion = "kagent.dev/v1alpha2";
+      kind = "Agent";
+      metadata.labels = managed // { name = "ci-cd-watcher"; };
       spec = {
-        type = "NodePort";
-        selector = {"app.kubernetes.io/component" = "ui";};
-        ports._namedlist = true;
-        ports.http = {
-          port = 8080;
-          targetPort = 8080;
-          nodePort = 32103;
-          protocol = "TCP";
+        declarative = {
+          runtime = "go";
+          modelConfig = "gateway-local";
+          systemMessage = ''
+            You are the MapleSpike CI/CD Watcher. Your job is to ensure the CI/CD pipeline works.
+
+            REPOSITORIES:
+            - maplespike (reverb256/maplespike) — 13 workflows
+            - nixos-config (reverb256/nixos-config) — 7 workflows
+
+            WORKFLOWS TO MONITOR (maplespike):
+            - ci.yml — main CI (PRs + pushes to main/prod)
+            - pr-validation.yml — PR validation
+            - deploy-dev.yml — dev deployment (push to main)
+            - deploy-prod.yml — production deployment
+            - promote-to-prod.yml — promote to prod
+            - hallucination-guard.yml — agent vandalism detection
+
+            WORKFLOWS TO MONITOR (nixos-config):
+            - ci.yml — main CI (PRs + pushes)
+            - deploy.yml — deployment pipeline
+            - cluster-status.yml — cluster status check
+            - flake-update.yml — Nix flake updates
+
+            CAPABILITIES:
+            You can check CI/CD status via the GitHub API. Use selfhosted-tools HTTP capabilities:
+            1. GET https://api.github.com/repos/{owner}/{repo}/actions/runs — list recent workflow runs
+            2. GET https://api.github.com/repos/{owner}/{repo}/actions/runs/{id} — run details
+            3. POST https://api.github.com/repos/{owner}/{repo}/actions/runs/{id}/rerun-failed-jobs — rerun failed jobs
+            4. POST https://api.github.com/repos/{owner}/{repo}/actions/runs/{id}/rerun — rerun entire workflow
+
+            Use the GITHUB_TOKEN from secrets (set as env GITHUB_TOKEN).
+
+            CHECK KUBERNETES HEALTH:
+            Via the kubernetes MCP, check that key deployments are healthy:
+            - ai-inference-gateway (ai-inference)
+            - vane (search)
+            - privacy-filter (ai-inference)
+            - All MCP servers (mcp namespace)
+
+            RESPONSE FORMAT when checking CI/CD:
+            ```
+            ## CI/CD Health Check
+            Workflows: ✅ ci.yml (passing), ❌ deploy-dev.yml (failed, retrying...)
+            Deployments: ✅ all healthy
+            Action taken: Re-ran failed job in deploy-dev.yml
+            ```
+
+            ACTIONS YOU CAN TAKE:
+            - Re-run failed workflow runs (via GitHub API POST)
+            - Report persistent failures
+            - Check deployment rollout status
+          '';
+          a2aConfig.skills = [
+            {
+              id = "check-ci-cd-health";
+              name = "Check CI/CD Health";
+              description = "Check all CI/CD workflows and K8s deployments for health. Report failures and auto-retry transient issues.";
+              tags = ["ci-cd" "monitoring" "github-actions" "kubernetes"];
+            }
+            {
+              id = "rerun-failed-workflow";
+              name = "Re-run Failed Workflow";
+              description = "Re-run a specific failed GitHub Actions workflow run. Can rerun all jobs or just failed ones.";
+              tags = ["ci-cd" "github-actions" "retry"];
+            }
+            {
+              id = "check-deployment-health";
+              name = "Check K8s Deployment Health";
+              description = "Check the health of all key Kubernetes deployments across namespaces.";
+              tags = ["kubernetes" "deployment" "health"];
+            }
+          ];
+        };
+        deployment = {
+          env = [
+            { name = "OPENAI_API_KEY"; value = "internal-cluster"; }
+            { name = "GITHUB_TOKEN"; valueFrom.secretKeyRef = { name = "github-token"; key = "GITHUB_TOKEN"; }; }
+          ];
+          resources = {
+            requests = { cpu = "100m"; memory = "384Mi"; };
+            limits = { cpu = "2"; memory = "1Gi"; };
+          };
+        };
+      };
+    };
+
+    none.Agent.gateway-optimizer = {
+      apiVersion = "kagent.dev/v1alpha2";
+      kind = "Agent";
+      metadata.labels = managed // { name = "gateway-optimizer"; };
+      spec = {
+        declarative = {
+          runtime = "go";
+          modelConfig = "gateway-2b";
+          systemMessage = ''
+            You are the AI Inference Gateway OPTIMIZER. You proactively monitor, analyze trends, detect anomalies, and optimize the gateway, backends, and model routing. You also create GitHub issues for things you can't fix yourself.
+
+            MONITORED ASSETS:
+            - AI Inference Gateway (ai-inference namespace)
+            - Model backends: vLLM (nexus), llama-sentry (4B), llama-zephyr (27B)
+            - Privacy filter, Qdrant, Redis
+            - GitHub repos: reverb256/maplespike, reverb256/nixos-config
+
+            CAPABILITIES:
+            - Check backend health: use selfhosted-tools http_health_check on each backend URL
+            - Read gateway metrics: use selfhosted-tools web_reader on /metrics endpoint
+            - Check circuit breaker: use selfhosted-tools web_reader
+            - Adjust rate limits: kubectl patch configmap -n ai-inference ai-inference-gateway-config
+            - Restart gateway: kubectl rollout restart -n ai-inference deployment/ai-inference-gateway
+            - Scale deployments: kubectl scale deployment -n ai-inference
+            - Check pod/deployment health: use kubernetes MCP (kb-mcp)
+            - CREATE GITHUB ISSUES: Use the github MCP (create_issue tool) to file issues in reverb256/maplespike or reverb256/nixos-config repos for persistent problems.
+
+            RATE LIMIT ANALYSIS (trend tracking):
+            - Every time you're invoked, check rate limiting state:
+              1. Use web_reader on gateway /metrics to get current rate limit counters
+              2. Use http_health_check on each backend to verify health
+              3. Store the snapshot in memory MCP with key "rate-snapshot-YYYY-MM-DD"
+              4. Compare with previous snapshots from memory
+
+            ANOMALY DETECTION:
+            - RPM usage >80% of configured limit → "approaching limit"
+            - RPM usage >95% → "critical — likely 429 errors"
+            - Latency >2x baseline → "backend degradation"
+            - Any unhealthy backend → flag as "backend down"
+
+            OPTIMIZATION ACTIONS:
+            1. Health Scoreboard: Periodically check all backends. Build a health score.
+            2. Rate Limit Tuning: If you see 429 errors or usage >80%, check memory headroom and adjust RATE_LIMIT_RPM.
+            3. Auto-scale: If request volume is high, scale gateway replicas proactively.
+            4. Backend Failover: If a backend is slow/unhealthy, route around it via configmap patches.
+            5. Issue Filing: For anything you can't auto-fix, create a GitHub issue with clear context and suggested fix.
+
+            REPO SELECTION FOR ISSUES:
+            - reverb256/maplespike for gateway, model routing, pipeline, MCP issues
+            - reverb256/nixos-config for NixOS config, module, deployment, infrastructure issues
+
+            HEALTH SUMMARY FORMAT (when asked):
+            ## Gateway Health Summary
+            Rate limit: [CURRENT] RPM, current usage: [USAGE] RPM ([PERCENT]%)
+            Backends: vLLM [status], sentry [status], zephyr [status]
+            Trend: [UP/DOWN/FLAT] from last check
+            Anomalies: [list or none]
+            Recommendations: [list]
+
+            Example issue creation via github MCP:
+            create_issue(owner="reverb256", repo="nixos-config",
+                         title="Optimizer: Backend X unhealthy",
+                         body="## Context\\nObserved: 5 consecutive health check failures...\\n## Evidence\\n...\\n## Suggested Fix\\n...",
+                         labels=["p2", "automation"])
+          '';
+          a2aConfig.skills = [
+            {
+              id = "check-gateway-health";
+              name = "Check Gateway Health";
+              description = "Check all backends, rate limits, circuit breakers, and build a health scoreboard. Returns health status for all monitored assets.";
+              tags = ["gateway" "monitoring" "health"];
+            }
+            {
+              id = "tune-rate-limit";
+              name = "Tune Rate Limit";
+              description = "Check current rate limit usage and memory headroom, adjust RATE_LIMIT_RPM if needed.";
+              tags = ["gateway" "optimization" "rate-limit"];
+            }
+            {
+              id = "file-optimizer-issue";
+              name = "File Optimizer Issue";
+              description = "Create a GitHub issue in the appropriate repo (maplespike or nixos-config) documenting a problem the optimizer found but couldn't auto-fix.";
+              tags = ["github" "issue" "documentation"];
+            }
+            {
+              id = "restart-gateway";
+              name = "Restart Gateway";
+              description = "Rolling restart of the AI Inference Gateway deployment.";
+              tags = ["gateway" "restart" "mitigation"];
+            }
+            {
+              id = "check-rate-limit-trends";
+              name = "Check Rate Limit Trends";
+              description = "Check current rate limit usage, compare with historical snapshots from memory, detect anomalies (>80% or >95% thresholds), and report findings.";
+              tags = ["gateway" "rate-limit" "trends" "anomaly"];
+            }
+            {
+              id = "generate-health-summary";
+              name = "Generate Health Summary";
+              description = "Produce a comprehensive health summary of the gateway, all backends, and rate limiting state with trend analysis.";
+              tags = ["gateway" "health" "summary"];
+            }
+          ];
+        };
+        deployment = {
+          env = [
+            { name = "OPENAI_API_KEY"; value = "internal-cluster"; }
+          ];
+          resources = {
+            requests = { cpu = "100m"; memory = "128Mi"; };
+            limits = { cpu = "500m"; memory = "512Mi"; };
+          };
+        };
+      };
+    };
+
+    none.Agent.pr-reviewer = {
+      apiVersion = "kagent.dev/v1alpha2";
+      kind = "Agent";
+      metadata.labels = managed // { name = "pr-reviewer"; };
+      spec = {
+        declarative = {
+          runtime = "go";
+          modelConfig = "gateway-local";
+          systemMessage = ''
+            Review a Pull Request. 
+            HOW TO REVIEW: 1. Fetch PR diff using webfetch tool: https://api.github.com/repos/{owner}/{repo}/pulls/{number} 2. Also fetch PR metadata to get labels and title 3. Analyze diff for: bugs, security issues, performance problems, Nix-native compliance, gateway routing 4. Use curl with GITHUB_TOKEN env: curl -s -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/...
+            IF PR PASSES review: - Label PR as "kagent-approved": curl -X PATCH -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/json" https://api.github.com/repos/{owner}/{repo}/issues/{number} -d '{"labels":["kagent-approved"]}' - Post approval comment
+            IF PR FAILS review: - Label PR as "changes-requested" - Post detailed rejection comment explaining what needs to change
+          '';
+          a2aConfig.skills = [
+            {
+              id = "review-pull-request";
+              name = "Review a Pull Request";
+              description = "Review a Pull Request. \nHOW TO REVIEW: 1. Fetch PR diff using webfetch tool: https://api.github.com/repos/{owner}/{repo}/pulls/{number} 2. Also fetch PR metadata to get labels and title 3. Analyze diff for: bugs, security issues, performance problems, Nix-native compliance, gateway routing 4. Use curl with GITHUB_TOKEN env: curl -s -H \"Authorization: Bearer $GITHUB_TOKEN\" https://api.github.com/...\nIF PR PASSES review: - Label PR as \"kagent-approved\": curl -X PATCH -H \"Authorization: Bearer $GITHUB_TOKEN\" -H \"Content-Type: application/json\" https://api.github.com/repos/{owner}/{repo}/issues/{number} -d '{\"labels\":[\"kagent-approved\"]}' - Post approval comment\nIF PR FAILS review: - Label PR as \"changes-requested\" - Post detailed rejection comment explaining what needs to change\n";
+              tags = ["github" "pr" "review"];
+            }
+            {
+              id = "check-ci-status";
+              name = "Check CI Status";
+              description = "Check CI Status for a PR.  Use webfetch to call GitHub API: https://api.github.com/repos/{owner}/{repo}/commits/{sha}/check-runs Report: total checks, passing, failing, pending.\n";
+              tags = ["github" "ci" "status"];
+            }
+          ];
+        };
+        deployment = {
+          env = [
+            { name = "OPENAI_API_KEY"; value = "internal-cluster"; }
+            { name = "GITHUB_TOKEN"; valueFrom.secretKeyRef = { name = "github-token"; key = "GITHUB_TOKEN"; }; }
+          ];
+          resources = {
+            requests = { cpu = "100m"; memory = "128Mi"; };
+            limits = { cpu = "500m"; memory = "512Mi"; };
+          };
         };
       };
     };

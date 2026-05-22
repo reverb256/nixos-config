@@ -94,11 +94,16 @@ add chain inet agent-firewall cgroup-classify {
   type filter hook output priority -151;
 }
 
-add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-hermes.slice" jump agent-egress;
-add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-opencode.slice" jump agent-egress;
-add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-claude.slice" jump agent-egress;
-add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-omp.slice" jump agent-egress;
-add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-pi.slice" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-hermes.slice" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-opencode.slice" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-claude.slice" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-omp.slice" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-pi.slice" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-hermes.slice/" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-opencode.slice/" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-claude.slice/" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-omp.slice/" jump agent-egress;
+add rule inet agent-firewall cgroup-classify meta cgroup "agent-pi.slice/" jump agent-egress;
 RULES
 
     echo "agent-firewall: nftables rules applied"

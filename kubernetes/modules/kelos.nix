@@ -15,50 +15,30 @@ with lib; let
   opencodeConfig = lib.generators.toJSON {} {
     "$schema" = "https://opencode.ai/config.json";
     model = "nvidia/nemotron-3-super-120b-a12b";
-    enabled_providers = ["nvidia"];
-    mcpServers = [
-      {
-        name = "searxng";
-        type = "sse";
-        url = "http://mcp-searxng-proxy.mcp.svc.cluster.local:8080/mcp";
-      }
-      {
-        name = "kb-mcp";
-        type = "sse";
-        url = "http://mcp-kb-mcp-proxy.mcp.svc.cluster.local:8080/mcp";
-      }
-      {
-        name = "memory";
-        type = "sse";
-        url = "http://mcp-memory-proxy.mcp.svc.cluster.local:8080/mcp";
-      }
-      {
-        name = "selfhosted-tools";
-        type = "sse";
-        url = "http://mcp-selfhosted-tools-proxy.mcp.svc.cluster.local:8080/mcp";
-      }
-      {
-        name = "sequential-thinking";
-        type = "sse";
-        url = "http://mcp-sequential-thinking-proxy.mcp.svc.cluster.local:8080/mcp";
-      }
-    ];
-    provider.nvidia = {
+    enabled_providers = ["openai"];
+    provider.openai = {
       options = {
         baseURL = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1";
+        apiKey = "\$OPENCODE_API_KEY";
       };
       models = {
-        "nemotron-3-super-120b-a12b" = {
-          name = "Nemotron 3 Super 120B";
-          id = "nvidia/nemotron-3-super-120b-a12b";
+         "nvidia/nemotron-3-super-120b-a12b" = {
+          context_length = 131072;
+          max_tokens = 16384;
+           id = "nvidia/nemotron-3-super-120b-a12b";
+           name = "nvidia/nemotron-3-super-120b-a12b";
         };
-        "nemotron-3-nano-30b-a3b" = {
-          name = "Nemotron 3 Nano 30B";
-          id = "nvidia/nemotron-3-nano-30b-a3b";
+         "nvidia/nemotron-3-super-120b-a12b:free" = {
+          context_length = 131072;
+          max_tokens = 16384;
+           id = "nvidia/nemotron-3-super-120b-a12b:free";
+           name = "nvidia/nemotron-3-super-120b-a12b:free";
         };
-        "nemotron-3-nano-omni-30b-a3b-reasoning" = {
-          name = "Nemotron 3 Nano Omni 30B";
-          id = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
+        "nvidia/llama-3.3-nemotron-super-49b-v1" = {
+          context_length = 131072;
+          max_tokens = 16384;
+          id = "nvidia/llama-3.3-nemotron-super-49b-v1";
+          name = "nvidia/llama-3.3-nemotron-super-49b-v1";
         };
       };
     };
@@ -66,61 +46,26 @@ with lib; let
 
   # Shared setup command for all Workspaces
   setupCommand = ["/bin/sh" "-c" ''
-    chmod -R g+rw /workspace/repo && mkdir -p /workspace/repo/.opencode/commands && REPO=''${KELOS_UPSTREAM_REPO:-unknown}
+    chmod -R g+rw /workspace/repo && cat > /workspace/repo/opencode.json << 'EOFOP'
+    ${opencodeConfig}
+    EOFOP
+    cat > /workspace/repo/AGENTS.md << 'EOFAG'
+# Agent Instructions
 
-    case "$REPO" in
-      *nixos-config*)
-        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
-# Validate the NixOS configuration
-RUN nix flake check
-RUN just check
-CMDEOF
-        cat > /workspace/repo/.opencode/commands/deploy.md << 'CMDEOF'
-# Deploy to a specific host
-## Usage
-Use this to apply configuration changes to a cluster node.
-Make sure `nix flake check` passes first, then run:
-RUN just deploy
-CMDEOF
-        ;;
-      *maplespike*)
-        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
-# Validate the MapleSpike monorepo
-RUN pnpm install --frozen-lockfile
-RUN pnpm -r build
-RUN pnpm test
-CMDEOF
-        cat > /workspace/repo/.opencode/commands/build.md << 'CMDEOF'
-# Build all packages
-RUN pnpm build
-CMDEOF
-        ;;
-      *ai-inference-gateway*)
-        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
-# Validate the AI Inference Gateway
-RUN pip install -e . -q
-RUN pytest tests/ -x -q
-CMDEOF
-        ;;
-      *knowledge-fabric*)
-        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
-# Validate the Knowledge Fabric
-RUN npx tsc --noEmit
-CMDEOF
-        ;;
-      *)
-        # Generic fallback
-        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
-# Validate the project
-## Run the appropriate validation for this repo
-RUN echo "No repo-specific validate command defined"
-CMDEOF
-        ;;
-    esac
+## Caveman Communication
+- Terse. Drop articles, filler, hedging, preamble.
+- Start with answer. One fact per line.
+- GitHub issues: terse title, bullet evidence, no fluff.
+- Never narrate before doing.
 
-    cat > /workspace/repo/opencode.json << 'EOFOP'
-${opencodeConfig}
-EOFOP
+## Cavecrew Work Pattern
+- Decompose complex work into sub-tasks.
+- Scout first (investigate), then build, then verify.
+- Verification required after every change.
+- Report findings as path:line tables.
+- If task too big, break into smaller issues.
+
+EOFAG
   ''];
 
   # Repos that get Kelos task automation
@@ -160,118 +105,6 @@ EOFOP
       inherit setupCommand;
     };
   }) repos;
-
-  # TaskSpawner template applied per repo
-  taskSpawnerTemplate = r: {
-    apiVersion = "kelos.dev/v1alpha1";
-    kind = "TaskSpawner";
-    metadata = {
-      name = "github-issues-${r}";
-      namespace = "kelos-system";
-      labels = {
-        "app.kubernetes.io/managed-by" = "easykubenix";
-        "app.kubernetes.io/part-of" = "kelos";
-      };
-    };
-    spec = {
-      maxConcurrency = 8;
-      taskTemplate = {
-        type = "opencode";
-        workspaceRef.name = r;
-        agentConfigRef.name = "cluster-coder";
-        branch = "kelos-task-{{.Number}}";
-        credentials = {
-          type = "api-key";
-          secretRef.name = "opencode-credentials";
-        };
-        promptTemplate = ''
-          GitHub issue #{{.Number}}: {{.Title}}
-
-          Description:
-          {{.Body}}
-
-          CRITICAL: Read the issue body above carefully. Implement the changes, push the branch, and open a PR against main.
-          DO NOT stop until the PR is created. The task is not complete until a PR exists.
-
-          You have up to 100 tool-calling steps available. Use them. Do not stop early.
-
-          If you hit errors, retry with a different approach.
-
-          IMPORTANT: Every bash tool call MUST include a "description" parameter describing what the command does.
-          Correct: bash(command: "find .", description: "Search for files")
-          Wrong:   bash(command: "find .") — this will FAIL with SchemaError
-
-          Branch: kelos-task-{{.Number}}
-          Every commit message must include #{{.Number}}.
-          The workspace at /workspace/repo is writable — work directly there.
-        '';
-        podOverrides = {
-          env = [
-            {
-              name = "OPENAI_API_KEY";
-              valueFrom.secretKeyRef = {
-                name = "opencode-credentials";
-                key = "OPENAI_API_KEY";
-              };
-            }
-            {
-              name = "NVIDIA_API_KEY";
-              valueFrom.secretKeyRef = {
-                name = "opencode-credentials";
-                key = "NVIDIA_API_KEY";
-              };
-            }
-          ];
-          resources = {
-            limits = {
-              cpu = "1";
-              memory = "1Gi";
-            };
-            requests = {
-              cpu = "250m";
-              memory = "512Mi";
-            };
-          };
-          podSecurityContext = {
-            fsGroup = 1000;
-            runAsGroup = 1000;
-            runAsNonRoot = true;
-            runAsUser = 1000;
-          };
-          containerSecurityContext = {
-            allowPrivilegeEscalation = false;
-            capabilities.drop = ["ALL"];
-            runAsNonRoot = true;
-            seccompProfile.type = "RuntimeDefault";
-          };
-          affinity.nodeAffinity = {
-            requiredDuringSchedulingIgnoredDuringExecution = {
-              nodeSelectorTerms = [
-                {
-                  matchExpressions = [
-                    {
-                      key = "kubernetes.io/hostname";
-                      operator = "In";
-                      values = ["nexus" "sentry"];
-                    };
-                  ];
-                };
-              ];
-            };
-          };
-        };
-        ttlSecondsAfterFinished = 900;
-      };
-      when.githubIssues = {
-        repo = "reverb256/${r}";
-        state = "open";
-        labels = ["agent-ready"];
-        pollInterval = "5m";
-      };
-    };
-  };
-
-  taskSpawners = map taskSpawnerTemplate repos;
 
   # Pipeline maintenance CronJob - runs every 15min on nexus
   pipelineMaintenance = {
@@ -397,7 +230,125 @@ EOFOP
         };
       };
     };
+
+    apiVersion = "kelos.dev/v1alpha1";
+    kind = "TaskSpawner";
+    metadata = {
+      name = "github-issues-${r}";
+      namespace = "kelos-system";
+      labels = {
+        "app.kubernetes.io/managed-by" = "easykubenix";
+        "app.kubernetes.io/part-of" = "kelos";
+      };
+    };
+    spec = {
+      maxConcurrency = 2;
+      taskTemplate = {
+        type = "opencode";
+        workspaceRef.name = r;
+        agentConfigRef.name = "cluster-coder";
+        branch = "kelos-task-\{\{.Number\}\}";
+        credentials = {
+          type = "api-key";
+          secretRef.name = "opencode-credentials";
+        };
+        promptTemplate = ''
+          GitHub issue #{{.Number}}: {{.Title}}
+
+          Description:
+          {{.Body}}
+
+          CRITICAL: Read the issue body above carefully. Implement the changes, push the branch, and open a PR against main.
+          DO NOT stop until the PR is created. The task is not complete until a PR exists.
+
+          You have up to 100 tool-calling steps available. Use them. Do not stop early.
+
+          If you hit errors, retry with a different approach.
+
+          IMPORTANT: Every bash tool call MUST include a "description" parameter describing what the command does.
+          Correct: bash(command: "find .", description: "Search for files")
+          Wrong:   bash(command: "find .") — this will FAIL with SchemaError
+
+          Branch: kelos-task-{{.Number}}
+          Every commit message must include #{{.Number}}.
+          The workspace at /workspace/repo is writable — work directly there.
+        '';
+        podOverrides = {
+          env = [
+            {
+              name = "OPENAI_API_KEY";
+              valueFrom.secretKeyRef = {
+                name = "opencode-credentials";
+                key = "OPENAI_API_KEY";
+              };
+            }
+            {
+              name = "NVIDIA_API_KEY";
+              valueFrom.secretKeyRef = {
+                name = "opencode-credentials";
+                key = "NVIDIA_API_KEY";
+              };
+            }
+          ];
+          resources = {
+            limits = {
+              cpu = "1";
+              memory = "1Gi";
+            };
+            requests = {
+              cpu = "250m";
+              memory = "512Mi";
+            };
+          };
+          podSecurityContext = {
+            fsGroup = 1000;
+            runAsGroup = 1000;
+            runAsNonRoot = true;
+            runAsUser = 1000;
+          };
+          containerSecurityContext = {
+            allowPrivilegeEscalation = false;
+            capabilities.drop = ["ALL"];
+            runAsNonRoot = true;
+            seccompProfile.type = "RuntimeDefault";
+          };
+          affinity.nodeAffinity = {
+            preferredDuringSchedulingIgnoredDuringExecution = [
+              {
+                weight = 100;
+                preference.matchExpressions = [
+                  {
+                    key = "kubernetes.io/hostname";
+                    operator = "In";
+                    values = ["nexus"];
+                  }
+                ];
+              }
+              {
+                weight = 50;
+                preference.matchExpressions = [
+                  {
+                    key = "kubernetes.io/hostname";
+                    operator = "In";
+                    values = ["sentry"];
+                  }
+                ];
+              }
+            ];
+          };
+        };
+        ttlSecondsAfterFinished = 900;
+      };
+      when.githubIssues = {
+        repo = "reverb256/${r}";
+        state = "open";
+        labels = ["agent-ready"];
+        pollInterval = "5m";
+      };
+    };
   };
+
+  taskSpawners = map taskSpawnerTemplate repos;
 
   # AgentConfig for task execution
   agentConfig = {
@@ -431,7 +382,7 @@ EOFOP
         The model in opencode.json is configured and valid. Use webfetch (not bash/curl) if you need to check the gateway.
 
         ## Critical: bash tool requires description
-        Every bash call MUST include a description parameter (e.g., bash(command: "find .", description: "Search for files")).
+        Every bash call MUST include a description parameter (e.g., bash(command: "find .", description: "Find files")).
         Without it, bash calls fail with SchemaError. Retry with description if you forget.
 
         ## Workflow
@@ -450,6 +401,7 @@ EOFOP
       ];
     };
   };
+
 in {
   options.kubernetes.kelos = {
     enable = mkEnableOption "Kelos task orchestration";
@@ -462,7 +414,15 @@ in {
   };
 
   config = mkIf cfg.enable {
+    
+  # ---- Pipeline Maintenance (applied imperatively, not via Nix) ----
+  # pipeline-maintenance CronJob runs every 15min on nexus.
+  # It deletes failed tasks older than 15min and checks for Zephyr pods.
+  # Created imperatively via kubectl apply -f /tmp/pipeline-maintenance-cronjob.yaml
+  # Resources: SA/ClusterRole/CRB pipeline-operator + CronJob in kelos-system
+  # NOTE: maplespike-prod ImagePullBackOff and coredns-ha-enforcer are
+  # pre-existing egress issues, not pipeline-related.
 
-    kubernetes.rawResources = workspaces ++ taskSpawners ++ [agentConfig pipelineMaintenance];
+  kubernetes.rawResources = workspaces ++ taskSpawners ++ [agentConfig pipelineMaintenance];
   };
 }
