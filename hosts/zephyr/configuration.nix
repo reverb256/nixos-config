@@ -149,9 +149,8 @@ in {
     ];
   };
 
-  # Bind mounts for NFS export paths (hermes + pi + models state)
+  # Bind mounts for NFS export paths (hermes + pi state)
   # /data/hermes and /data/pi are exported via NFS but data lives in ~/
-  # /data/models is exported via NFS and points to LM Studio models
   fileSystems."/data/hermes" = {
     device = "/home/j_kro/.hermes";
     fsType = "none";
@@ -162,19 +161,6 @@ in {
     fsType = "none";
     options = ["bind" "rw"];
   };
-  fileSystems."/data/models" = {
-    device = "/home/j_kro/.lmstudio/models";
-    fsType = "none";
-    options = ["bind" "rw"];
-  };
-
-   services.nixos-share = {
-     enable = true;
-     server.enable = true;
-     server.exports = [
-       { path = "/etc/nixos"; description = "NixOS configuration"; }
-     ];
-   };
 
   i18n.defaultLocale = "en_CA.UTF-8";
 

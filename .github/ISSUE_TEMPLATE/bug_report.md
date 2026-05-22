@@ -25,10 +25,6 @@ What you expected to happen.
 - **Worktree:** `/data/projects/own/nixos-config-<NNN>` (if applicable)
 - **K8s namespace:** [if applicable]
 
-## Kagent / Autonomous Enrichment
-- **Triggered By:** [Kelos task ID or agent]
-- **Auto-Enrich:** [ ] Let Kagent add context (logs, metrics, related items)
-
 ## Logs
 ```
 Paste relevant output
