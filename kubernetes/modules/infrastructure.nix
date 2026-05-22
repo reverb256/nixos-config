@@ -79,6 +79,12 @@ in {
       globalDefault = false;
       description = "High priority for AI inference workloads. Preempts mining pods.";
     };
+
+    PriorityClass.medium-priority-ai = {
+      value = 500;
+      globalDefault = false;
+      description = "Medium priority AI workloads (Nexus RTX 3060 Ti)";
+    };
     PriorityClass.low-priority-mining = {
       value = 100;
       globalDefault = false;
