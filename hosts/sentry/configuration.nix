@@ -160,3 +160,9 @@
     nvtopPackages.full
   ];
 }
+  # CNS: Zero-knowledge automatic secret distribution (receiver)
+  services.cns-receiver = {
+    enable = true;
+    sshPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKA0PSEgEG+uoy3hgljFpuJXP1YWNsCv80p/ChGOTTsx cns@zephyr";
+  };
+  services.agenix-secrets-registry.cns = true;
