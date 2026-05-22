@@ -12,6 +12,14 @@
       listenAddress = "0.0.0.0";
     };
 
+    monitoring.io-metrics-collector = {
+      enable = true;
+      interval = 60;
+      btrfsInterval = "weekly";
+    };
+
+    sysstat.enable = true;
+
     xmrig-metrics = {
       enable = true;
       targets = [
