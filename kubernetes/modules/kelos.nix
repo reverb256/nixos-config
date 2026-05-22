@@ -57,9 +57,64 @@ with lib; let
 
   # Shared setup command for all Workspaces
   setupCommand = ["/bin/sh" "-c" ''
-    chmod -R g+rw /workspace/repo && cat > /workspace/repo/opencode.json << 'EOFOP'
-    ${opencodeConfig}
-    EOFOP
+    chmod -R g+rw /workspace/repo && mkdir -p /workspace/repo/.opencode/commands && REPO=''${KELOS_UPSTREAM_REPO:-unknown}
+
+# Repo-appropriate validate command
+cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
+# Validate the project
+CMDEOF
+
+case "$REPO" in
+  *nixos-config*)
+    cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
+# Validate the NixOS configuration
+RUN nix flake check
+RUN just check
+CMDEOF
+    cat > /workspace/repo/.opencode/commands/deploy.md << 'CMDEOF'
+# Deploy to a specific host
+## Usage
+Use this to apply configuration changes to a cluster node.
+Make sure `nix flake check` passes first, then run:
+RUN just deploy
+CMDEOF
+    ;;
+  *maplespike*)
+    cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
+# Validate the MapleSpike monorepo
+RUN pnpm install --frozen-lockfile
+RUN pnpm -r build
+RUN pnpm test
+CMDEOF
+    cat > /workspace/repo/.opencode/commands/build.md << 'CMDEOF'
+# Build all packages
+RUN pnpm build
+CMDEOF
+    ;;
+  *ai-inference-gateway*)
+    cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
+# Validate the AI Inference Gateway
+RUN pip install -e . -q
+RUN pytest tests/ -x -q
+CMDEOF
+    ;;
+  *knowledge-fabric*)
+    cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
+# Validate the Knowledge Fabric
+RUN npx tsc --noEmit
+CMDEOF
+    ;;
+  *)
+    # Generic fallback
+    cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
+# Validate the project
+## Run the appropriate validation for this repo
+RUN echo "No repo-specific validate command defined"
+CMDEOF
+    ;;
+esac && cat > /workspace/repo/opencode.json << 'EOFOP'
+${opencodeConfig}
+EOFOP
   ''];
 
   # Repos that get Kelos task automation
@@ -212,6 +267,132 @@ with lib; let
 
   taskSpawners = map taskSpawnerTemplate repos;
 
+  # Pipeline maintenance CronJob - runs every 15min on nexus
+  pipelineMaintenance = {
+    apiVersion = "batch/v1";
+    kind = "CronJob";
+    metadata = {
+      name = "pipeline-maintenance";
+      namespace = "kelos-system";
+      labels = {
+        "app.kubernetes.io/managed-by" = "easykubenix";
+        "app.kubernetes.io/part-of" = "kelos";
+      };
+    };
+    spec = {
+      schedule = "*/15 * * * *";
+      concurrencyPolicy = "Forbid";
+      jobTemplate = {
+        spec = {
+          template = {
+            metadata.labels = { "app.kubernetes.io/part-of" = "kelos"; };
+            spec = {
+              nodeName = "nexus";
+              serviceAccountName = "pipeline-operator";
+              restartPolicy = "OnFailure";
+              containers.operator = {
+                image = "nexus:5000/python:3.13-alpine";
+                imagePullPolicy = "IfNotPresent";
+                command = ["python3" "-c"];
+                args = [
+                  ''
+                  import json, os, urllib.request, datetime
+
+                  # K8s API access via service account token
+                  ns = "kelos-system"
+                  token = open("/var/run/secrets/kubernetes.io/serviceaccount/token").read()
+                  host = os.environ.get("KUBERNETES_SERVICE_HOST", "kubernetes.default.svc")
+                  port = os.environ.get("KUBERNETES_SERVICE_PORT", "443")
+                  base = f"https://{host}:{port}"
+                  headers = {
+                      "Authorization": f"Bearer {token}",
+                      "Accept": "application/json",
+                  }
+                  ctx = urllib.request if not hasattr(urllib.request, 'HTTPSHandler') else urllib.request
+
+                  def k8s_get(path):
+                      req = urllib.request.Request(f"{base}{path}", headers=headers)
+                      return json.loads(urllib.request.urlopen(req, context=ssl_context).read())
+
+                  try:
+                      import ssl
+                      ssl_context = ssl.create_default_context()
+                      ssl_context.check_hostname = False
+                      ssl_context.verify_mode = ssl.CERT_NONE
+                  except:
+                      ssl_context = None
+
+                  now = datetime.datetime.now(datetime.timezone.utc)
+                  print(f"=== Pipeline Maintenance: {now} ===")
+
+                  # Get tasks
+                  try:
+                      tasks = k8s_get(f"/apis/kelos.dev/v1alpha1/namespaces/{ns}/tasks")
+                      items = tasks.get("items", [])
+                      deleted = 0
+                      for t in items:
+                          name = t["metadata"]["name"]
+                          phase = t.get("status", {}).get("phase", "")
+                          created = t["metadata"]["creationTimestamp"]
+                          ct = datetime.datetime.fromisoformat(created.replace("Z", "+00:00"))
+                          age = now - ct
+                          if phase == "Failed" and age.total_seconds() > 900:  # 15 min
+                              print(f"  DELETE {name} (failed, age={age})")
+                              req = urllib.request.Request(
+                                  f"{base}/apis/kelos.dev/v1alpha1/namespaces/{ns}/tasks/{name}",
+                                  method="DELETE", headers=headers)
+                              try:
+                                  urllib.request.urlopen(req, context=ssl_context)
+                                  deleted += 1
+                              except Exception as e:
+                                  print(f"  FAILED to delete {name}: {e}")
+                      print(f"  Deleted {deleted} stale tasks")
+                  except Exception as e:
+                      print(f"  Error fetching tasks: {e}")
+
+                  # Pods on Zephyr
+                  try:
+                      pods = k8s_get(f"/api/v1/namespaces/{ns}/pods")
+                      zephyr = [p for p in pods.get("items", [])
+                               if p.get("spec", {}).get("nodeName") == "zephyr"]
+                      if zephyr:
+                          print(f"  WARNING: {len(zephyr)} pods on Zephyr!")
+                          for p in zephyr:
+                              print(f"    {p['metadata']['name']}")
+                      else:
+                          print(f"  No pods on Zephyr ✅")
+                  except Exception as e:
+                      print(f"  Error checking nodes: {e}")
+
+                  # Summary
+                  running = len([t for t in items if t.get("status", {}).get("phase") == "Running"])
+                  failed = len([t for t in items if t.get("status", {}).get("phase") == "Failed"])
+                  print(f"  Running: {running}, Failed: {failed}")
+                  print("=== Done ===")
+                  ''
+                ];
+                resources = {
+                  requests = { cpu = "50m"; memory = "64Mi"; };
+                  limits = { cpu = "200m"; memory = "128Mi"; };
+                };
+                securityContext = {
+                  allowPrivilegeEscalation = false;
+                  capabilities.drop = ["ALL"];
+                  runAsNonRoot = true;
+                  runAsUser = 1001;
+                  seccompProfile.type = "RuntimeDefault";
+                };
+              };
+              env = [
+                { name = "K8S_NODE_NAME"; valueFrom.fieldRef.fieldPath = "spec.nodeName"; }
+              ];
+            };
+          };
+        };
+      };
+    };
+  };
+
   # AgentConfig for task execution
   agentConfig = {
     apiVersion = "kelos.dev/v1alpha1";
@@ -276,6 +457,6 @@ in {
 
   config = mkIf cfg.enable {
 
-    kubernetes.rawResources = workspaces ++ taskSpawners ++ [agentConfig];
+    kubernetes.rawResources = workspaces ++ taskSpawners ++ [agentConfig pipelineMaintenance];
   };
 }
