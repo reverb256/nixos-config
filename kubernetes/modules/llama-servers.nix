@@ -132,7 +132,7 @@ vllm = {
                 command = [ "${pkgsWithOverlay.vllm-turboquant-env}/bin/vllm-tq-wrapper" ];
                 args = [
                   "--model"
-                  "/models/QuantTrio/Qwen3.5-2B-AWQ"
+                  "/models/from-zephyr/QuantTrio/Qwen3.5-2B-AWQ"
                   "--served-model-name"
                   "qwen3.5-2b-awq"
                   "--host"
@@ -140,11 +140,11 @@ vllm = {
                   "--port"
                   "8040"
                   "--gpu-memory-utilization"
-                  "0.85"
+                  "0.70"
                   "--max-num-seqs"
-                  "16"
+                  "8"
                   "--max-model-len"
-                  "180000"
+                  "32768"
                   "--quantization"
                   "awq"
                   "--enable-prefix-caching"

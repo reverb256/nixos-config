@@ -1735,6 +1735,22 @@ omp_providers["local-sentry"] = {
     },
     "models": omp_models_opencode,
 }
+
+    NetworkPolicy.vllm-nexus-ingress = {
+      spec = {
+        podSelector.matchLabels.app = "llama-qwen-vllm-nexus";
+        policyTypes = ["Ingress"];
+        ingress = [
+          {
+            from = [{podSelector.matchLabels.app = "ai-inference-gateway";}];
+            ports = [{
+              protocol = "TCP";
+              port = 8040;
+            }];
+          }
+        ];
+      };
+    };
 omp = {
     "providers": omp_providers,
     "modelRoles": {
