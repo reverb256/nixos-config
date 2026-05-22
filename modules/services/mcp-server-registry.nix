@@ -530,7 +530,6 @@ in {
         ) allServers)}
       '')
     ];
-  };
 
     # Public helpers for use by other modules (via config.lib.mcp-registry)
     lib.mcp-registry = {

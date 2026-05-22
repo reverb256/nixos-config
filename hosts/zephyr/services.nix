@@ -223,12 +223,6 @@ in {
       mountMedia = false;
     };
 
-    # Create directories for hermes/pi bind mounts on Zephyr
-    systemd.tmpfiles.rules = [
-      "d /data/hermes 0775 j_kro j_kro -"
-      "d /data/pi 0775 j_kro j_kro -"
-    ];
-
     # Caddy — only Tailscale ingress for this host
     # All .lan services moved to nexus (OOM prevention)
     # Uses caddy-with-modules (includes caddy-ratelimit, caddy-security, caddy-cache)
@@ -334,15 +328,25 @@ in {
           kubernetes = "You are a Kubernetes expert. Use best practices for manifests, deployments, and troubleshooting.";
         };
       };
-      security = {
-        maxRequestSize = 10485760;
-        enableProxy = false;
-      };
+       security = {
+         maxRequestSize = 10485760;
+         enableProxy = false;
+       };
+     };
+
+    mcp-servers = {
+      enable = true;
     };
 
-     mcp-servers = {
-       enable = true;
-     };
+    mcp-registry = {
+      enable = true;
+      generateHermes = true;
+      generateClaudeCode = true;
+      generateKagentCRDs = true;
+      generateNetworkPolicies = true;
+      generateCasdoorApps = true;
+    };
+
     cachix-auth = {
       enable = true;
     };
@@ -489,4 +493,10 @@ in {
     enable = true;
     device = "/dev/disk/by-uuid/b07258b9-b1a3-4540-ae34-69e441faba28";
   };
+
+  # Create directories for hermes/pi bind mounts on Zephyr
+  systemd.tmpfiles.rules = [
+    "d /data/hermes 0775 j_kro j_kro -"
+    "d /data/pi 0775 j_kro j_kro -"
+  ];
 }
