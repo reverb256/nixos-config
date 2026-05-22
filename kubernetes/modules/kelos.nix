@@ -174,7 +174,7 @@ EOFOP
       };
     };
     spec = {
-      maxConcurrency = 8;
+      maxConcurrency = 12;
       taskTemplate = {
         type = "opencode";
         workspaceRef.name = r;

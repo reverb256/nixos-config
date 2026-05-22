@@ -12,7 +12,7 @@
 
     hosts = {
       "10.1.1.110" = ["zephyr"];
-      "10.1.1.120" = ["nexus" "haven.lan" "haven.cluster.local"];
+      "10.1.1.120" = ["nexus"];
       "10.1.1.130" = ["forge"];
       "10.1.1.150" = ["krash3"];
       "10.1.1.173" = ["hp-envy7800" "printer"];
