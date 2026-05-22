@@ -12,6 +12,8 @@
       listenAddress = "0.0.0.0";
     };
 
+    sysstat.enable = true;
+
     xmrig-metrics = {
       enable = true;
       targets = [
