@@ -41,8 +41,8 @@
 
   # Declarative MCP server configuration — sourced from mcp-server-registry
   # If registry is enabled, use its generated config; otherwise fall back to inline defaults
-  registryCfg = config.services.mcp-registry or {};
-  useRegistry = registryCfg.enable or false;
+  registryCfg = config.services.mcp-servers or {};
+  useRegistry = false; # Disabled until mcp-servers exports hermesMcpYaml
 
   # Inline fallback MCP servers (used when registry is not enabled)
   fallbackMcpServersBlock = pkgs.writeText "hermes-mcp-servers.yaml" ''
