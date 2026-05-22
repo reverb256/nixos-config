@@ -278,7 +278,7 @@ in {
     # ── Firewall: Rate limiting + port blocking ──────────────────────────
     networking.firewall = {
       # Rate limit DNS queries (UDP port 53) per source IP
-      extraInputRules_disabled = lib.concatStrings [
+      extraInputRules = lib.concatStrings [
         (mkIf cfg.enableRateLimiting (mkOptionDefault ''
           # DNS rate limiting — drop excess queries per source IP
           ip protocol udp udp dport 53 limit rate ${dnsQueryRate}/second burst ${dnsBurst} packets accept
