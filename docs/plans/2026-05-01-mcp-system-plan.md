@@ -103,7 +103,7 @@ This means our DIY casdoor-mcp-bridge.py is **redundant**. The correct approach 
 | nixkube CSI driver | Running (nix-node DaemonSet, all 4 nodes) |
 | Casdoor SSO | Running (systemd on Zephyr), 4 MCP servers registered, tool sync failing (401s) |
 | mcp-gateway-bridge | Exists but broken (ClusterIP routing) |
-| mcp-server-registry.nix | 13 servers defined, not generating downstream configs |
+| mcp-server-registry.nix | Complete | 17 servers defined, generates Claude Code, Hermes, Kagent CRDs, NetworkPolicies, Casdoor apps |
 | RemoteMCPServer CRD | Installed, 0 instances |
 | casdoor-mcp-bridge.py | Custom bridge at `/data/agents/mcp-bridges/`, hitting 401s — should be replaced by native Casdoor MCP Auth |
 
@@ -113,7 +113,7 @@ This means our DIY casdoor-mcp-bridge.py is **redundant**. The correct approach 
 2. **DaemonSet hardcoded /nix/store path** — requires manual `nix copy` on rebuild.
 3. **All nodes show Unknown** — kubelet not reporting Ready (cosmetic, pods run fine).
 4. **Casdoor tool sync 500/401** — stdio servers need HTTP proxy + auth tokens stale.
-5. **Duplicate nixos-cluster-mcp** — `/etc/nixos/packages/` AND `/data/projects/own/`.
+5. **Duplicate nixos-cluster-mcp** — `packages/nixos-cluster-mcp/` is canonical. Registry references it.
 6. **easykubenix manifestYAMLFile hangs** — `toYAMLFile` + `builtins.readFile` on unbuilt derivation.
 7. **Casdoor admin password** — needs agenix-managed bcrypt hash.
 8. **SearXNG endpoint** — `http://10.4.98.141:8080` is SearXNG web UI, NOT MCP endpoint.
@@ -347,13 +347,13 @@ NOTE: G1 (supergateway) + G3 (Casdoor native MCP auth) is the critical path. Wit
 ## Architecture
 
 ```
-mcp-server-registry.nix (source of truth)
+mcp-server-registry.nix (source of truth — modules/services/)
   |
-  +--> Claude Code settings.json (stdio)
-  +--> Hermes config.yaml (stdio + SSE URLs)
-  +--> Kagent RemoteMCPServer CRDs (SSE discovery)
-  +--> NetworkPolicy rules (per namespace)
-  +--> Casdoor MCP gateway registration
+  +--> Claude Code settings.json (stdio) — activationScripts.claude-code-mcp-config
+  +--> Hermes config.yaml (stdio + SSE URLs) — systemd.hermes-mcp-registry
+  +--> Kagent RemoteMCPServer CRDs (SSE discovery) — kubernetes/modules/mcp-servers.nix
+  +--> NetworkPolicy rules (per namespace) — kubernetes/modules/mcp-servers.nix
+  +--> Casdoor MCP gateway registration — /etc/mcp-registry/casdoor-apps.json
 
 Casdoor (MCP Auth Provider — OAuth 2.1)
   |
@@ -412,13 +412,14 @@ In-Cluster:
 | — | Critical | Updated dependency from `mcp` to `fastmcp>=2.0.0` |
 | D | D1 | Converted nixos-cluster-mcp DaemonSet from hostPath to nixkube CSI volumes |
 | — | — | Fixed syntax error in agenix-secrets-registry.nix (missing attribute name) |
+| C | C1-C6 | **mcp-server-registry.nix created** (modules/services/) — single source of truth for 17 MCP servers. Generates: Claude Code settings.json (C2), Hermes config.yaml (C3), Kagent RemoteMCPServer CRDs (C4), NetworkPolicy per server (C5), Casdoor app registration data (C6). hermes-cli.nix updated to use registry. .mcp.json updated. kubernetes/modules/mcp-servers.nix updated with RemoteMCPServer CRDs + NetworkPolicies. |
 
-### Remaining (20 tasks)
+### Remaining (14 tasks)
 
 | Workstream | Tasks | Status |
 |------------|-------|--------|
 | B | B1-B2 | Sentry/GitLab OAuth not completed |
-| C | C1-C6 | Registry not generating configs; duplicate nixos-cluster-mcp not deduped |
+| C | — | C1-C6 completed (registry + generation) |
 | D | D2 | Verify pods start on all 4 nodes without manual nix copy |
 | E | E2 | Node Unknown status not investigated |
 | F | F2-F6 | Missing: rollback_host, config_diff, check_storage, check_network, check_secrets |
