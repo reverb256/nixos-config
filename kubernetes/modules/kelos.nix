@@ -14,7 +14,7 @@ with lib; let
   # Shared opencode.json config with NIM models via AI Inference Gateway
   opencodeConfig = lib.generators.toJSON {} {
     "$schema" = "https://opencode.ai/config.json";
-    model = "Qwen3.5-2B-Q4_K_M.gguf";
+    model = "meta/llama-3.1-70b-instruct";
     enabled_providers = ["nvidia"];
     mcpServers = [
       {
@@ -48,11 +48,11 @@ with lib; let
         baseURL = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1";
       };
       models = {
-        "Qwen3.5-2B-Q4_K_M.gguf" = {
-          name = "Qwen 3.5 2B Q4";
-          id = "Qwen3.5-2B-Q4_K_M.gguf";
-          context_length = 262144;
+        "llama-3.1-70b-instruct" = {
+          name = "Llama 3.1 70B";
+          id = "meta/llama-3.1-70b-instruct";
         };
+      };
     };
   };
 
