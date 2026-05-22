@@ -1,5 +1,7 @@
 # NixOS Cluster - Agent Guidelines
 
+<!-- PR pipeline verification: issue #55 -- test comment added 2026-05-18 -->
+
 **Generated:** 2026-05-16 | **Commit:** `git log -1 --oneline` | **Branch:** main
 
 ## Quick Start
