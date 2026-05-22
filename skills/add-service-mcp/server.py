@@ -116,6 +116,14 @@ async def register_module_in_default(
 ) -> Dict[str, Any]:
     """Register module in modules/default.nix."""
     try:
+        # Validate service name against SLUG_RE to prevent Nix injection
+        if not SLUG_RE.match(service_name):
+            return {
+                "success": False,
+                "error": (f"Invalid service name '{service_name}': must start with a letter, "
+                          f"contain only lowercase letters, digits, and hyphens"),
+            }
+
         default_file = MODULES_DIR / "default.nix"
 
         if not default_file.exists():
@@ -166,6 +174,14 @@ async def enable_service_on_host(
 ) -> Dict[str, Any]:
     """Enable service on host configuration."""
     try:
+        # Validate service name against SLUG_RE to prevent Nix injection
+        if not SLUG_RE.match(service_name):
+            return {
+                "success": False,
+                "error": (f"Invalid service name '{service_name}': must start with a letter, "
+                          f"contain only lowercase letters, digits, and hyphens"),
+            }
+
         host_file = HOSTS_DIR / hostname / "configuration.nix"
 
         if not host_file.exists():
