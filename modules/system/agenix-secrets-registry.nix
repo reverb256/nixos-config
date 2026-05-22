@@ -57,6 +57,11 @@ in {
       default = false;
       description = "Enable Kubernetes cluster secrets";
     };
+    cns = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Enable CNS (Central NixOS Secret) SSH key for automatic secret distribution";
+    };
     initrdRecovery = mkOption {
       type = types.bool;
       default = false;
@@ -389,6 +394,14 @@ in {
         n8n-api-key = {
           file = "${inputs.self}/secrets/n8n-api-key.age";
           mode = "440";
+          owner = "root";
+          group = "root";
+        };
+      })
+      (lib.mkIf config.services.agenix-secrets-registry.cns {
+        cns-ssh-key = {
+          file = "${inputs.self}/secrets/cns-ssh-key.age";
+          mode = "400";
           owner = "root";
           group = "root";
         };

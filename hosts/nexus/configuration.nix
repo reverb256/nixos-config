@@ -5,31 +5,31 @@
   inputs,
   ...
 }: {
-  imports = [
-    ./monitoring.nix
-    ./firewall.nix
-    ./hardware.nix
-    ./desktop.nix
-    ./services.nix
-    ./hardware-configuration.nix
-    ./disko.nix
-    ./impermanence.nix
-    ./nfs-allow.nix
+    imports = [
+      ./monitoring.nix
+      ./firewall.nix
+      ./hardware.nix
+      ./desktop.nix
+      ./services.nix
+      ./hardware-configuration.nix
+      ./disko.nix
+      ./impermanence.nix
+      ./nfs-allow.nix
 
-    ./ai-inference.nix
+      ./ai-inference.nix
 
-    ../../modules/default.nix
+      ../../modules/default.nix
 
-    ../../modules/hardware/rgb-control.nix
+      ../../modules/hardware/rgb-control.nix
 
-    ../../modules/security/aistor-secrets.nix
-    ../../modules/services/podman-support.nix
+      ../../modules/security/aistor-secrets.nix
+      ../../modules/services/podman-support.nix
 
-    ../../modules/services/k3s-cluster.nix
-    ../../modules/services/keepalived-vip.nix
-    inputs.disko.nixosModules.disko
-    inputs.nix-mineral.nixosModules.nix-mineral
-  ];
+      ../../modules/services/k3s-cluster.nix
+      ../../modules/services/keepalived-vip.nix
+      inputs.disko.nixosModules.disko
+      inputs.nix-mineral.nixosModules.nix-mineral
+    ];
 
   # Host-specific CPU/GPU optimization for llama.cpp (Zen2 + Ampere: RTX 3060 Ti)
   nixpkgs.config.packageOverrides = pkgs: {
@@ -151,3 +151,9 @@
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
 }
+  # CNS: Zero-knowledge automatic secret distribution (receiver)
+  services.cns-receiver = {
+    enable = true;
+    sshPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKA0PSEgEG+uoy3hgljFpuJXP1YWNsCv80p/ChGOTTsx cns@zephyr";
+  };
+  services.agenix-secrets-registry.cns = true;
