@@ -1,5 +1,7 @@
 # NixOS Cluster - Agent Guidelines
 
+<!-- PR pipeline verification: issue #55 -- test comment added 2026-05-18 -->
+
 **Generated:** 2026-05-16 | **Commit:** `git log -1 --oneline` | **Branch:** main
 
 ## Quick Start
@@ -81,6 +83,21 @@ Agents pass state between stages via `/data/agents/context/<issue-number>/`:
 4. **Only Zephyr modifies config** — remotes mount read-only
 
 > See `modules/services/nixos-share.nix` for NFS server/client setup.
+
+## Declarative Infrastructure Stack (Sovereign AI OS)
+
+The cluster uses a high-performance declarative pipeline to bridge NixOS and Kubernetes:
+
+**easykubenix → nix-csi → nix-oci**
+- **easykubenix**: A manifest engine that uses the NixOS module system to generate Kubernetes resources. It avoids slow codegen by using JSON types for the K8s API, allowing fast evaluation of complex manifests.
+- **nix-csi**: A CSI driver that mounts Nix store paths directly into pods. This enables the **"Scratch Pattern"**: pods run a minimal scratch image and mount their entire runtime environment (binaries, libs, venvs) from the Nix store, ensuring 100% reproducibility and zero-bloat images.
+- **nix-oci**: Handles the packaging and delivery of OCI-compliant containers built via Nix, ensuring the container lifecycle is managed by the same flake that manages the host OS.
+
+**Sovereign Registry Flow:**
+`kubernetes/curated-models.nix` (Primary SSOT, Nix format) $\rightarrow$ NixOS modules + validators
+`kubernetes/ai-models.toml` (K8s Schema) $\rightarrow$ `ai-inference.nix` (Easykubenix Module) $\rightarrow$ K8s Resources (Deployment/Service/ConfigMap)
+
+This ensures that adding a model to the registry automatically updates the AI Gateway's routing, discovery, and resource allocation without manual manifest edits.
 
 ## Extracted Projects (7)
 
@@ -422,14 +439,85 @@ These are **flake inputs** defined in `flake.nix` (line ~106), NOT NixOS modules
 | casdoor | `/data/agents/mcp-bridges/opencode-casdoor-bridge.py` | 5 (get_applications, etc.) | ✅ Working |
 | gateway | `/etc/nixos/scripts/mcp-gateway-bridge` | MCP tool proxy via ai-inference-gateway | ✅ Working |
 
-### OpenCode Model Providers (2026-05-10)
+### Unified AI Models Registry (2026-05-21)
 
-| Provider | Base URL | Models | Purpose |
-|----------|----------|--------|---------|
-| zai-coding-plan | api.z.ai | GLM-5.1, GLM-5, GLM-4.6, etc. | Primary cloud models |
-| local-vllm | 10.1.1.110:8040 | Qwen3.5-2B-AWQ | Fast local (Zephyr 3060Ti) |
-| local-llama-zephyr | 10.1.1.110:1237 | Qwen3.6-35B-A3B | Large local (Zephyr 3090) |
-| local-llama-sentry | 10.1.1.140:1235 | Qwen3.5-4B | Medium local (Sentry ROCm) |
+**Status:** ✅ Operational (Grade: A → 95/100)
+
+The cluster now uses a **single source of truth** in Nix format for all AI model and provider configurations.
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| **Registry (Nix SSOT)** | `/etc/nixos/kubernetes/curated-models.nix` | Primary SSOT: 30 models, 8 providers, 8 roles, categories, quota |
+| **K8s TOML (Routing)** | `/etc/nixos/kubernetes/ai-models.toml` | K8s AI Gateway routing (capabilities/backends schema) |
+| **Derived TOML** | `/etc/nixos/ai-models.toml` | Generated artifact for external tools |
+| **NixOS Module** | `/etc/nixos/modules/ai-models.nix` | Module integration, auto-discovered by collect-modules |
+| **Validator** | `/etc/nixos/scripts/validate-ai-models-registry.py` | 6-phase validator: import, structure, defaults, models, providers, TOML cross-ref |
+| **Documentation** | `/etc/nixos/docs/AI-MODELS-REGISTRY.md` | Full documentation & maintenance guide |
+
+**Architecture:** `kubernetes/curated-models.nix` is the primary SSOT (Nix format, supports rich structure like roles, categories, quota multipliers, provider URLs, host IP map). The TOML files serve specific consumers: `kubernetes/ai-models.toml` supplies the AI Gateway (capabilities/backends schema), and `ai-models.toml` is a derived artifact for validation/external tools.
+
+#### Model Strategy Priority Order
+
+1. **Local Models** (Private, Baseline, Priority 1) - Zero latency, complete privacy. Qwen 2B/4B/27B/35B across cluster nodes
+2. **NVIDIA NIM** (Primary, Unlimited, Priority 2) - Nemotron 3 Super, Nano, Omni
+3. **Google Gemma** (Fast, Privacy-Conscious, Priority 3) - Gemma 4, 3, 2 variants
+4. **Gateway** (Priority 4) - GLM-5.1, GLM-4.7, Qwen3.5, DeepSeek V4, Mistral Large
+5. **Free Tier** (Priority 6) - Kilo auto, OpenRouter free routers
+
+#### Hardware-Specific Deployments
+
+| Node | GPU | Model | Port | Purpose |
+|------|-----|-------|------|---------|
+| Nexus | RTX 3060 Ti (8GB) | Qwen3.5-2B-AWQ | 8040 | Fast inference via vLLM |
+| Zephyr | RTX 3090 (24GB) | Qwen3.5-27B/35B | 1237 | High-quality reasoning |
+| Sentry | Radeon RX 5600 XT (6GB) | Qwen3.5-4B | 1235 | Budget inference via Vulkan |
+
+#### Registry Usage
+
+```bash
+# Validate Nix registry (6-phase check)
+python3 /etc/nixos/scripts/validate-ai-models-registry.py
+
+# With consumer config checks
+python3 /etc/nixos/scripts/validate-ai-models-registry.py --check-consumers
+
+# Verbose output
+python3 /etc/nixos/scripts/validate-ai-models-registry.py --verbose
+
+# Regenerate all AI tool configs
+ai-tools-regenerate
+
+# Check AI tools status
+ai-tools-status
+```
+
+#### Model Distribution
+
+| Category | Count | Examples |
+|----------|-------|----------|
+| Local (Priority 1) | 4 | Qwen 2B, 4B, 27B, 35B |
+| NVIDIA NIM (Priority 2) | 3 | Nemotron Super, Nano, Omni |
+| Google Gemma (Priority 3) | 5 | Gemma 4/3/2 variants |
+| Gateway (Priority 4) | 16 | GLM, Qwen, DeepSeek, Mistral |
+| Free Tier (Priority 6) | 2 | Kilo auto, OpenRouter free |
+
+**Total:** 30 models, 8 providers, 8 roles, 3 hosts
+
+#### Consumer Integration
+
+AI coding tools consume from the unified registry via module args:
+- **`config.ai-models.models`** — model definitions with providers, categories, priority
+- **`config.ai-models.providers`** — backend configurations (URLs, hosts, types)
+- **`config.ai-models.defaults`** — role-based default model assignments
+- **`config.ai-models.registry`** — full registry data
+
+Consumers:
+- **OpenCode** (`~/.opencode/config.json`) - Generated via `ai-coding-tools.opencode.nix`
+- **Claude Code** (`~/.claude/settings.json`) - Generated via `ai-coding-tools.claude.nix`
+- **Hermes Agent** (`~/.hermes/config.yaml`) - Generated via `ai-coding-tools.hermes.nix`
+- **AI Gateway** (`ai-inference-gateway`) - Uses `kubernetes/ai-models.toml` for routing decisions
+
+See `/etc/nixos/docs/AI-MODELS-REGISTRY.md` for full documentation.
 
 ### Key Tool Names (correct for stdio JSON-RPC calls)
 
@@ -658,3 +746,5 @@ for host in zephyr nexus forge sentry; do
   echo "$host: $(ssh $host 'bash --norc --noprofile -c "cd /data/projects/own/maplespike && git log --oneline -1"' 2>/dev/null)"
 done
 ```
+
+# Nexus scheduled test

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Kelos / Kagent Discussions
+    url: https://github.com/reverb256/nixos-config/discussions
+    about: Ask questions or discuss agentic workflows
+  - name: Sovereign AI Stack Docs
+    url: https://github.com/reverb256/nixos-config/wiki
+    about: Architecture, pipelines, and best practices
