@@ -8,15 +8,15 @@
 {
   # ── Defaults ─────────────────────────────────────────────────────────
   defaults = {
-    primary = "nvidia/nemotron-3-nano-30b-a3b";
+    primary = "nvidia/nemorton-3-nano-30b-a3b";
     fallback = "google/gemma-2b";
     default = "glm-4.7"; # 1x quota, cheapest primary
     smol = "local/qwen3.5-2b-awq"; # Local, no external dependency
     slow = "local/qwen3.6-moe-35b"; # Local, best reasoning
-    plan = "deepseek-ai/deepseek-v4-flash"; # NIM, rate-limited
+    plan = "nvidia/deepseek-v4-flash"; # NIM
     commit = "local/qwen3.6-moe-35b"; # Local primary
-    code = "deepseek-ai/deepseek-v4-flash"; # NIM, rate-limited
-    vision = "qwen/qwen3.5-397b-a17b"; # NIM, vision
+    code = "nvidia/deepseek-v4-flash"; # NIM
+    vision = "nvidia/qwen3.5-397b-a17b"; # NIM, vision
   };
 
   # ── Models ─────────────────────────────────────────────────────────
@@ -92,7 +92,7 @@
       priority = 2;
     };
     nemotron-3-nano-omni = {
-      id = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
+      id = "nvidia/nemorton-3-nano-omni-30b-a3b-reasoning";
       name = "Nemotron 3 Nano Omni";
       category = "reasoning";
       contextWindow = 256000;
@@ -101,7 +101,36 @@
       capabilities = ["chat" "completion" "vision" "audio" "reasoning"];
       priority = 2;
     };
-
+    glm-5-1-nim = {
+      id = "nvidia/glm-5.1";
+      name = "GLM-5.1 (NIM, 131K)";
+      category = "primary";
+      contextWindow = 131072;
+      provider = "nvidia-nim";
+      quotaMultiplier = 2;
+      priority = 2;
+    };
+    nemorton-3-super-zen-free = {
+      id = "nemotron-3-super-free";
+      name = "Nemorton 3 Super 120B (OpenCode Zen Free, 1M)";
+      category = "reasoning";
+      contextWindow = 1000000;
+      provider = "opencode-zen-free";
+      quotaMultiplier = 0;
+      capabilities = ["chat" "completion" "reasoning" "agentic"];
+      priority = 6;
+    };
+    nemorton-3-nano-omni-zen-free = {
+      id = "nemorton-3-nano-omni-free";
+      name = "Nemorton 3 Nano Omni (OpenCode Zen Free, 256K)";
+      category = "reasoning";
+      contextWindow = 256000;
+      provider = "opencode-zen-free";
+      quotaMultiplier = 0;
+      capabilities = ["chat" "completion" "vision" "audio" "reasoning"];
+      priority = 6;
+    };
+ 
     # ── GOOGLE GEMMA (Fast / Privacy-Conscious) ─────────────────────
     gemma-4-31b = {
       id = "google/gemma-4-31b-it";
@@ -205,47 +234,54 @@
       priority = 4;
     };
 
-    # ── QWEN MODELS (NIM / Gateway) ──────────────────────────────
-    qwen3-5-397b = {
-      id = "qwen/qwen3.5-397b-a17b";
-      name = "Qwen3.5 397B A17B";
+    # ── QWEN MODELS (NIM) ──────────────────────────────────────────
+    qwen3-5-397b-nim = {
+      id = "nvidia/qwen3.5-397b-a17b";
+      name = "Qwen3.5 397B A17B (NIM, 262K)";
       category = "reasoning";
-      contextWindow = 1000000;
-      provider = "gateway";
+      contextWindow = 262144;
+      provider = "nvidia-nim";
+      quotaMultiplier = 1;
       vision = true;
-      priority = 4;
+      priority = 2;
     };
-    qwen3-5-122b = {
-      id = "qwen/qwen3.5-122b-a10b";
-      name = "Qwen3.5 122B A10B";
+    qwen3-5-122b-nim = {
+      id = "nvidia/qwen3.5-122b-a10b";
+      name = "Qwen3.5 122B A10B (NIM, 262K→1M)";
       category = "reasoning";
-      provider = "gateway";
-      priority = 4;
+      contextWindow = 262144;
+      provider = "nvidia-nim";
+      quotaMultiplier = 1;
+      priority = 2;
     };
-    qwen3-next-80b = {
-      id = "qwen/qwen3-next-80b-a3b-instruct";
-      name = "Qwen3 Next 80B";
+    qwen3-next-80b-nim = {
+      id = "nvidia/qwen3-next-80b-a3b-instruct";
+      name = "Qwen3 Next 80B (NIM, 262K→1M)";
       category = "reasoning";
-      provider = "gateway";
-      priority = 4;
+      contextWindow = 262144;
+      provider = "nvidia-nim";
+      quotaMultiplier = 1;
+      priority = 2;
     };
 
-    # ── DEEPSEEK MODELS ─────────────────────────────────────────────
-    deepseek-v4-pro = {
-      id = "deepseek-ai/deepseek-v4-pro";
-      name = "DeepSeek V4 Pro 1M context";
+    # ── DEEPSEEK MODELS (NIM) ───────────────────────────────────────
+    deepseek-v4-pro-nim = {
+      id = "nvidia/deepseek-v4-pro";
+      name = "DeepSeek V4 Pro (NIM, 1M)";
       category = "reasoning";
       contextWindow = 1000000;
-      provider = "gateway";
-      priority = 4;
+      provider = "nvidia-nim";
+      quotaMultiplier = 1;
+      priority = 2;
     };
-    deepseek-v4-flash = {
-      id = "deepseek-ai/deepseek-v4-flash";
-      name = "DeepSeek V4 Flash (NIM)";
+    deepseek-v4-flash-nim = {
+      id = "nvidia/deepseek-v4-flash";
+      name = "DeepSeek V4 Flash (NIM, 1M)";
       category = "code";
       contextWindow = 1000000;
-      provider = "gateway";
-      priority = 4;
+      provider = "nvidia-nim";
+      quotaMultiplier = 1;
+      priority = 2;
     };
     deepseek-v4-flash-opencode = {
       id = "opencode/deepseek-v4-flash";
@@ -292,10 +328,10 @@
     default = "glm-4.7";
     smol = "local/qwen3.5-2b-awq";
     slow = "local/qwen3.6-moe-35b";
-    plan = "deepseek-ai/deepseek-v4-flash";
+    plan = "nvidia/deepseek-v4-flash";
     commit = "local/qwen3.6-moe-35b";
-    code = "deepseek-ai/deepseek-v4-flash";
-    vision = "qwen/qwen3.5-397b-a17b";
+    code = "nvidia/deepseek-v4-flash";
+    vision = "nvidia/qwen3.5-397b-a17b";
   };
 
   # ── Backend Providers ──────────────────────────────────────────────
@@ -332,6 +368,11 @@
     opencode-go = {
       type = "openai-compatible";
       url = "https://api.opencode.go/v1";
+      host = "external";
+    };
+    opencode-zen-free = {
+      type = "openai-compatible";
+      url = "https://opencode.ai/zen/v1/chat/completions";
       host = "external";
     };
     google = {
