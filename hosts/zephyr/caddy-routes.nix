@@ -152,10 +152,6 @@ in
   + "\n"
   +
   # === PROTECTED SERVICES (central SSO) ===
-  # Haven (HTTPS backend, self-signed cert — needs tls_insecure_skip_verify)
-  mkAuthRouteTLS "haven.lan" "https://${nexus}:${toString ports.haven}"
-  + "\n"
-  +
   # AI Inference Gateway — OpenAI-compatible API
   mkAuthRoute "ai-inference.lan" "http://${nexus}:${toString ports.ai-inference-gateway}"
   + "\n"

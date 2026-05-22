@@ -264,12 +264,7 @@ in {
       };
       openwebui = {
         domain = "openwebui.lan";
-        backend = k8s.open-webui.dns;
-
-      };
-      haven = {
-        domain = "haven.lan";
-        backend = k8s.haven.dns;
+        backend = k8s.open-web-ui.dns;
 
       };
       hermes = {

@@ -230,15 +230,19 @@
     lib.concatStringsSep ",\n    " (
       lib.mapAttrsToList (name: server:
         let
-          fields = [
+          argsStr = if (builtins.hasAttr "args" server) && (server.args != []) then
+            ''"args": [${lib.concatStringsSep ", " (map (a: ''"${a}"'') server.args)}]"''
+          else null;
+          envStr = if (builtins.hasAttr "env" server) && (server.env != {}) then
+            ''"env": {${lib.concatStringsSep ", " (lib.mapAttrsToList (k: v: ''"${k}": "${v}"'') server.env)}}''
+          else null;
+          finalFields = lib.filter (s: s != null) [
             ''"command": "${server.command}"''
-          ] ++
-          lib.optional (server ? args && server.args != [])
-            ('"args": [' + (lib.concatStringsSep ", " (map (a: ''"${a}"'') server.args)) + ']') ++
-          lib.optional (server ? env && server.env != {})
-            ('"env": { ' + (lib.concatStringsSep ", " (lib.mapAttrsToList (k: v: ''"${k}": "${v}"'') server.env)) + ' }');
+            argsStr
+            envStr
+          ];
         in
-          ''"${name}": { ${lib.concatStringsSep ", " fields} }''
+          ''"${name}": { ${lib.concatStringsSep ", " finalFields} }''
       ) servers
     );
 
@@ -482,12 +486,12 @@ in {
                   in_mcp = True
                   continue
               if in_mcp:
-                  if line.startswith(' ') or line.startswith(chr(9)) or line.strip() == '':
+                  if line.startswith(" ") or line.startswith(chr(9)) or line.strip() == "":
                       continue
                   in_mcp = False
               filtered.append(line)
-          content = ''.join(filtered).rstrip()
-          marker = 'smart_model_routing:'
+          content = "".join(filtered).rstrip()
+          marker = "smart_model_routing:"
           full = content.split(marker, 1)
           if len(full) == 2:
               result = full[0] + mcp_block + chr(10) + chr(10) + marker + full[1]
@@ -528,10 +532,11 @@ in {
     ];
   };
 
-  # Public outputs for use by other modules
-  config.lib.mcp-registry = {
-    inherit allServers stdioServers sseServers httpServers localServers clusterServers;
-    inherit mkClaudeCodeMcpServers mkHermesMcpServers mkRemoteMCPServerCRD mkNetworkPolicy;
-    inherit claudeCodeJson hermesMcpYaml kagentCRDs networkPolicies;
+    # Public helpers for use by other modules (via config.lib.mcp-registry)
+    lib.mcp-registry = {
+      inherit allServers stdioServers sseServers httpServers localServers clusterServers;
+      inherit mkClaudeCodeMcpServers mkHermesMcpServers mkRemoteMCPServerCRD mkNetworkPolicy;
+      inherit claudeCodeJson hermesMcpYaml kagentCRDs networkPolicies;
+    };
   };
 }
