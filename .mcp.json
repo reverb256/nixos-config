@@ -1,14 +1,10 @@
 {
   "mcpServers": {
-    "filesystem": {
-      "command": "mcp-filesystem",
-      "args": [
-        "/etc/nixos",
-        "/home/j_kro"
-      ]
+    "github": {
+      "command": "/data/agents/mcp-bridges/github-mcp.sh"
     },
     "git": {
-      "command": "mcp-git"
+      "command": "/data/agents/mcp-bridges/git-mcp.sh"
     },
     "fetch": {
       "command": "mcp-fetch"
@@ -16,31 +12,61 @@
     "context7": {
       "command": "mcp-context7"
     },
-    "grep-app": {
-      "command": "mcp-grep-app"
-    },
     "chrome-devtools": {
-      "command": "mcp-chrome-devtools"
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest"]
     },
     "playwright": {
-      "command": "mcp-playwright"
-    },
-    "nixos": {
-      "command": "uvx",
-      "args": [
-        "mcp-nixos"
-      ]
-    },
-    "gateway": {
-      "command": "mcp-gateway-bridge",
-      "env": {
-        "GATEWAY_URL": "http://ai.cluster.local"
-      }
+      "command": "npx",
+      "args": ["-y", "@anthropic-ai/playwright-mcp@latest"]
     },
     "searxng": {
-      "command": "/etc/nixos/modules/services/ai-inference/bin/searxng-mcp-wrapper",
+      "command": "/data/agents/mcp-bridges/searxng-mcp.sh",
       "env": {
         "SEARXNG_URL": "http://searxng.search.svc.cluster.local:8080"
+      }
+    },
+    "nixos-cluster": {
+      "command": "nix",
+      "args": ["run", "/etc/nixos#nixos-cluster-mcp"]
+    },
+    "kubernetes": {
+      "command": "nix",
+      "args": ["run", "/etc/nixos#kubernetes-mcp-server"]
+    },
+    "filesystem": {
+      "command": "mcp-filesystem",
+      "args": ["/etc/nixos", "/home/j_kro"]
+    },
+    "selfhosted-tools": {
+      "command": "/data/agents/mcp-bridges/selfhosted-mcp.sh"
+    },
+    "casdoor": {
+      "command": "python3",
+      "args": ["/data/agents/mcp-bridges/casdoor-mcp-bridge.py"]
+    },
+    "sequential-thinking": {
+      "command": "/data/agents/mcp-bridges/sequential-thinking.sh"
+    },
+    "web-search-prime": {
+      "type": "http",
+      "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
+      "headers": {
+        "Authorization": "Bearer $ZAI_API_KEY"
+      }
+    },
+    "web-reader": {
+      "type": "http",
+      "url": "https://api.z.ai/api/mcp/web_reader/mcp",
+      "headers": {
+        "Authorization": "Bearer $ZAI_API_KEY"
+      }
+    },
+    "zread": {
+      "type": "http",
+      "url": "https://api.z.ai/api/mcp/zread/mcp",
+      "headers": {
+        "Authorization": "Bearer $ZAI_API_KEY"
       }
     }
   }
