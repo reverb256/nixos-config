@@ -19,6 +19,19 @@ in {
     # ── Require security context on all pods (Deny mode) ───────────
     # Prevents pods without runAsNonRoot, allowPrivilegeEscalation=false, and resource limits
     ValidatingAdmissionPolicy.require-resources-and-security = {
+
+    # ── NFS Client StorageClass ───────────────────────────────────────
+    # NFS server: Nexus (10.1.1.120) exporting /home/j_kro/models
+    StorageClass.nfs-client = {
+      metadata.annotations."storageclass.kubernetes.io/is-default-class" = "true";
+      provisioner = "nfs-client";
+      parameters = {
+        archiveOnDelete = "true";
+      };
+      mountOptions = ["vers=4.1", "hard", "noatime"];
+      reclaimPolicy = "Delete";
+      volumeBindingMode = "Immediate";
+    };
       metadata.annotations = {
         "description" = "Requires all containers to define runAsNonRoot=true, no privilege escalation, and resource limits";
       };
@@ -84,6 +97,16 @@ in {
       value = 500;
       globalDefault = false;
       description = "Medium priority AI workloads (Nexus RTX 3060 Ti)";
+    };
+
+    # ── NFS Models PVC (shared across all AI nodes) ───────────────────────
+    # Mount point: /models → /home/j_kro/models on Nexus (NFS export)
+    PersistentVolumeClaim.nfs-models-pvc = {
+      spec = {
+        accessModes = ["ReadWriteMany"];
+        storageClassName = "nfs-client";
+        resources.requests.storage = "500Gi";
+      };
     };
     PriorityClass.low-priority-mining = {
       value = 100;
