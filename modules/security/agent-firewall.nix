@@ -95,8 +95,10 @@ add chain inet agent-firewall cgroup-classify {
 }
 
 add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-hermes.slice" jump agent-egress;
-add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-opencode.slice" jump agent-egress;
-add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-claude.slice" jump agent-egress;
+# TEMPORARILY DISABLED - slices do not exist
+#add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-opencode.slice" jump agent-egress;
+# TEMPORARILY DISABLED - slices do not exist
+#add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-claude.slice" jump agent-egress;
 # TEMPORARILY DISABLED - slices do not exist
 #add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-omp.slice" jump agent-egress;
 # TEMPORARILY DISABLED - slices do not exist

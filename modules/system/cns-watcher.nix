@@ -212,12 +212,12 @@ in {
             exit 1
           }
 
-          local expected=$(cat "$EXPECTED_CHECKSUM")
-          local failures=0
+          expected=$(cat "$EXPECTED_CHECKSUM")
+          failures=0
 
           # Check each node
           for node in ${concatStringsSep " " cfg.remoteNodes}; do
-            local node_checksum=$(${pkgs.openssh}/bin/ssh -i "${cfg.sshKeyFile}" -o StrictHostKeyChecking=no \
+            node_checksum=$(${pkgs.openssh}/bin/ssh -i "${cfg.sshKeyFile}" -o StrictHostKeyChecking=no \
               "root@$node" "cat /run/cns/current-checksum.txt 2>/dev/null" || echo "")
 
             if [ "$node_checksum" = "$expected" ]; then
