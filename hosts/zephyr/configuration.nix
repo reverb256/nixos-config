@@ -168,16 +168,13 @@ in {
     options = ["bind" "rw"];
   };
 
-  services.nixos-share = {
-    enable = true;
-    server.enable = true;
-    server.exports = [
-      { path = "/etc/nixos"; description = "NixOS configuration"; }
-      { path = "/data/hermes"; description = "Hermes state"; }
-      { path = "/data/pi"; description = "Pi state"; }
-      { path = "/data/models"; description = "LLM Models Cache"; }
-    ];
-  };
+   services.nixos-share = {
+     enable = true;
+     server.enable = true;
+     server.exports = [
+       { path = "/etc/nixos"; description = "NixOS configuration"; }
+     ];
+   };
 
   i18n.defaultLocale = "en_CA.UTF-8";
 
