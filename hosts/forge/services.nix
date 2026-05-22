@@ -35,7 +35,13 @@ in {
 
     spotify-spotx.enable = true;
 
-    opencode.enable = true;
+     opencode.enable = true;
+
+     # Agent network restrictions — restrict AI agents to allowed destinations only
+     agent-firewall = {
+       enable = true;
+       auditLog = true;
+     };
 
     nixos-share = {
       enable = true;
