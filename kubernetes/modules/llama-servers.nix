@@ -144,7 +144,7 @@ vllm = {
                   "--max-num-seqs"
                   "8"
                   "--max-model-len"
-                  "32768"
+                  "180000"
                   "--quantization"
                   "awq"
                   "--enable-prefix-caching"
