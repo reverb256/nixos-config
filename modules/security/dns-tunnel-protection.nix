@@ -296,7 +296,7 @@ in {
       ];
 
       # Block outbound DNS on non-standard ports (prevents tunneling via alternate ports)
-      extraOutputRules = mkIf cfg.enablePortBlocking (mkOptionDefault ''
+      extraOutputRules_disabled = mkIf cfg.enablePortBlocking (mkOptionDefault ''
         # Block outbound DNS on non-standard ports
         # Allows only port 53 (standard DNS) and 853 (DNS-over-TLS) to authorized upstreams
         ip protocol udp udp dport { ${lib.concatStringsSep ", " (map toString cfg.blockedPorts)} } counter drop
