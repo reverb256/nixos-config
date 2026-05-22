@@ -13,10 +13,10 @@
     default = "glm-4.7"; # 1x quota, cheapest primary
     smol = "local/qwen3.5-2b-awq"; # Local, no external dependency
     slow = "local/qwen3.6-moe-35b"; # Local, best reasoning
-    plan = "nvidia/deepseek-v4-flash"; # NIM
+    plan = "nvidia/deepseek-v4-flash"; # NIM, 1M context
     commit = "local/qwen3.6-moe-35b"; # Local primary
-    code = "nvidia/deepseek-v4-flash"; # NIM
-    vision = "nvidia/qwen3.5-397b-a17b"; # NIM, vision
+    code = "nvidia/deepseek-v4-flash"; # NIM, 1M context
+    vision = "nvidia/qwen3.5-397b-a17b"; # NIM, 262K
   };
 
   # ── Models ─────────────────────────────────────────────────────────
@@ -69,6 +69,20 @@
       reasoning = true;
       priority = 1;
     };
+
+    # ── STUB: 27B Dense (Future Use, not yet downloaded) ───────
+    # Commented out until model is available. Same endpoint as 35B MoE.
+    # local-qwen-27b-dense = {
+    #   id = "local/qwen3.5-27b-dense";
+    #   name = "Qwen3.5 27B Dense (STUB - not downloaded)";
+    #   category = "reasoning";
+    #   contextWindow = 262144;
+    #   url = "http://10.1.1.110:1237/v1";
+    #   provider = "local-zephyr-3090";
+    #   gpu = "RTX 3090 24GB";
+    #   host = "zephyr";
+    #   priority = 1;  # Comment out when enabling
+    # };
 
     # ── NVIDIA NIM (Primary / Unlimited) ──────────────────────────
     nemotron-3-super = {
