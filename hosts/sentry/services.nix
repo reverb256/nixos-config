@@ -74,8 +74,14 @@ in {
     };
     nfs-state-sync = {
       enable = true;
-      sourceHost = "zephyr";
+      sourceHost = "nexus";
     };
+
+    # Create directories for hermes/pi bind mounts on Sentry
+    systemd.tmpfiles.rules = [
+      "d /data/hermes 0775 j_kro j_kro -"
+      "d /data/pi 0775 j_kro j_kro -"
+    ];
 
     syncthing-cluster = {
       enable = true;
