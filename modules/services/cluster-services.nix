@@ -21,7 +21,12 @@
   # Build a public (no auth) Caddy virtualHost block
   # Rate limited: 100 req/min per IP (defense-in-depth for funnel-exposed routes).
   # Requires caddy-with-modules (mholt/caddy-ratelimit plugin).
+  # HTTP redirect: force HTTPS for all public services.
   mkPublicBlock = svc: ''
+    http://${svc.domain} {
+      redir https://{host}{uri} permanent
+    }
+
     https://${svc.domain} {
       tls ${cfg.tlsCert} ${cfg.tlsKey}
       ${optionalString (svc.compress or true) "encode zstd gzip"}
