@@ -132,7 +132,7 @@ in {
       tailscale.enable = true;
 
       # DNS tunnel protection — enabled by default on all cluster nodes
-      dns-tunnel-protection.enable = mkDefault false # Temporarily disabled - extraOutputRules option does not exist;
+      dns-tunnel-protection.enable = mkDefault false; # Temporarily disabled - extraOutputRules option does not exist
 
       avahi = {
         enable = true;
