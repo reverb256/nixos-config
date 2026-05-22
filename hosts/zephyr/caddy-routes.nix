@@ -169,7 +169,7 @@ in
   + "\n"
   +
   # Kagent controller
-  mkAuthRoute "kagent.lan" "http://${nexus}:${toString ports.kagent-controller}"
+  mkAuthRoute "kagent.lan" "http://${nexus}:${toString ports.kagent-ui}"
   + "\n"
   +
   # Grafana
