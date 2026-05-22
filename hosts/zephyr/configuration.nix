@@ -7,21 +7,21 @@
 }: let
   cluster = config.networking.cluster;
 in {
-  imports = [
-    ./monitoring.nix
-    ./firewall.nix
-    ./hardware.nix
-    ./desktop.nix
-    ./services.nix
-    ./hardware-configuration.nix
-    ../../modules/services/k3s-cluster.nix
-    ../../modules/services/keepalived-vip.nix
-    ../../modules/system/systemd-user-timeout.nix
+    imports = [
+      ./monitoring.nix
+      ./firewall.nix
+      ./hardware.nix
+      ./desktop.nix
+      ./services.nix
+      ./hardware-configuration.nix
+      ../../modules/services/k3s-cluster.nix
+      ../../modules/services/keepalived-vip.nix
+      ../../modules/system/systemd-user-timeout.nix
 
-    ../../modules/default.nix
+      ../../modules/default.nix
 
-    ../../modules/hardware/rgb-control.nix
-  ];
+      ../../modules/hardware/rgb-control.nix
+    ];
 
   # Enable Hermes RAM protection
 
@@ -339,5 +339,9 @@ in {
   # Other hosts (nexus, forge, sentry) still use unbound-common.
   services.unbound-common.enable = false;
   # Enable Hermes RAM protection (mandatory pre-flight checks)
+  # CNS: Zero-knowledge automatic secret distribution
+  services.cns-setup.enable = true;
+  services.cns-watcher.enable = true;
+  services.agenix-secrets-registry.cns = true;
   services.ai-inference.enable = lib.mkForce false;
 }
