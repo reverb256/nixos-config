@@ -74,7 +74,7 @@ in {
             cd "$WATCH_DIR"
 
             # Create package
-            tar czf "$output" *.age
+            ${pkgs.gnutar}/bin/tar czf "$output" *.age
 
             # Generate checksum
             local new_checksum=$(sha256sum "$output" | cut -d' ' -f1)
