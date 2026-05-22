@@ -159,22 +159,28 @@ in {
   };
 
   services.cachix-auth.enable = true;
-  services.ai-coding-tools = {
-    enable = true;
-    user = "j_kro";
-    zaiApiKeyFile = config.age.secrets.zai-api-key.path;
-    context7ApiKeyFile = config.age.secrets.context7-api-key.path;
-    nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
-    opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
-    tools = {
-      claude = { enable = true; };
-      opencode = { enable = true; };
-      droid = { enable = true; };
-      crush = { enable = true; };
-      pi = { enable = true; };
-      omp = { enable = true; };
-    };
-    enableShellEnv = true;
-  };
-}
+   services.ai-coding-tools = {
+     enable = true;
+     user = "j_kro";
+     zaiApiKeyFile = config.age.secrets.zai-api-key.path;
+     context7ApiKeyFile = config.age.secrets.context7-api-key.path;
+     nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
+     opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
+     tools = {
+       claude = { enable = true; };
+       opencode = { enable = true; };
+       droid = { enable = true; };
+       crush = { enable = true; };
+       pi = { enable = true; };
+       omp = { enable = true; };
+     };
+     enableShellEnv = true;
+   };
+
+   # Agent network restrictions — restrict AI agents to allowed destinations only
+   services.agent-firewall = {
+     enable = true;
+     auditLog = true;
+   };
+ }
 

@@ -151,12 +151,12 @@ in {
           owner = "j_kro";
           group = "users";
         };
-        opencode-api-key = {
-          file = "${inputs.self}/secrets/opencode-api-key.age";
-          mode = "440";
-          owner = "j_kro";
-          group = "users";
-        };
+opencode-api-key = {
+  file = "/run/agenix/opencode-api-key";
+  mode = "440";
+  owner = "j_kro";
+  group = "users";
+};
         cachix-token = {
           file = "${inputs.self}/secrets/cachix-token.age";
           mode = "440";
