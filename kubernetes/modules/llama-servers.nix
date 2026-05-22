@@ -141,8 +141,9 @@ vllm = {
                   "8040"
                   "--gpu-memory-utilization"
                   "0.70"
+                  
                   "--max-num-seqs"
-                  "8"
+                  "16"
                   "--max-model-len"
                   "180000"
                   "--quantization"
@@ -172,11 +173,11 @@ vllm = {
                 resources = {
                   requests = {
                     cpu = "2";
-                    memory = "6Gi";
+                    memory = "12Gi";
                   };
                   limits = {
                     cpu = "4";
-                    memory = "10Gi";
+                    memory = "16Gi";
                   };
                 };
                 ports = [
