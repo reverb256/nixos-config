@@ -441,7 +441,7 @@ in {
     );
 
     # ── C3: Hermes config.yaml mcp_servers generation ─────────────────────
-    systemd.services.hermes-mcp-registry = mkIf cfg.generateHermes {
+    systemd.services.hermes-mcp-registry = mkIf false {
       description = "Inject MCP registry servers into Hermes config";
       after = [ "network.target" ];
       wantedBy = [ "multi-user.target" ];
