@@ -99,7 +99,7 @@ in
     Deployment.llama-qwen-vllm-nexus = {
       metadata.labels = managed // {
         app = "llama-qwen-vllm-nexus";
-        host = "nexus";
+        host = "zephyr";
         gpu = "rtx3060ti";
       };
       spec = {
@@ -107,23 +107,23 @@ in
         revisionHistoryLimit = 1;
         selector.matchLabels = {
           app = "llama-qwen-vllm-nexus";
-          host = "nexus";
+          host = "zephyr";
         };
         strategy.type = "Recreate";
         template = {
           metadata = {
             labels = managed // {
               app = "llama-qwen-vllm-nexus";
-        host = "zephyr";
+                host = "nexus";
               gpu = "rtx3060ti";
             };
           };
           spec = {
-        nodeName = "zephyr";
+        nodeName = "nexus";
         hostNetwork = true;
         automountServiceAccountToken = false;
-        priorityClassName = "high-priority-ai";
-        tolerations = zephyrTolerations;
+        priorityClassName = "medium-priority-ai";
+        tolerations = [];
             containers = {
               _namedlist = true;
 vllm = {
@@ -262,7 +262,7 @@ vllm = {
     Deployment.llama-server-zephyr-3090-moe = {
       metadata.labels = managed // {
         app = "llama-server-zephyr-3090-moe";
-        host = "nexus";
+        host = "zephyr";
         gpu = "rtx3090";
       };
       spec = {
@@ -270,19 +270,19 @@ vllm = {
         revisionHistoryLimit = 1;
         selector.matchLabels = {
           app = "llama-server-zephyr-3090-moe";
-          host = "nexus";
+          host = "zephyr";
         };
         strategy.type = "Recreate";
         template = {
            metadata = {
              labels = managed // {
                app = "llama-server-zephyr-3090-moe";
-        host = "zephyr";
+                host = "zephyr";
                gpu = "rtx3090";
              };
            };
           spec = {
-            nodeName = "nexus";
+            nodeName = "zephyr";
             hostNetwork = true;
             automountServiceAccountToken = false;
             priorityClassName = "high-priority-ai";
@@ -426,7 +426,7 @@ vllm = {
         ];
         selector = {
           app = "llama-server-zephyr-3090-moe";
-          host = "nexus";
+          host = "zephyr";
         };
       };
     };
