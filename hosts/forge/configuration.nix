@@ -100,8 +100,6 @@
 
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
-  system.stateVersion = "26.05";
-  services.unbound-common.enable = true;
 
   # CNS: Zero-knowledge automatic secret distribution (receiver)
   services.cns-receiver = {
