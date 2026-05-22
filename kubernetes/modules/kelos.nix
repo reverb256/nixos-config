@@ -190,28 +190,19 @@ EOFAG
             seccompProfile.type = "RuntimeDefault";
           };
           affinity.nodeAffinity = {
-            preferredDuringSchedulingIgnoredDuringExecution = [
-              {
-                weight = 100;
-                preference.matchExpressions = [
-                  {
-                    key = "kubernetes.io/hostname";
-                    operator = "In";
-                    values = ["nexus"];
-                  }
-                ];
-              }
-              {
-                weight = 50;
-                preference.matchExpressions = [
-                  {
-                    key = "kubernetes.io/hostname";
-                    operator = "In";
-                    values = ["sentry"];
-                  }
-                ];
-              }
-            ];
+            requiredDuringSchedulingIgnoredDuringExecution = {
+              nodeSelectorTerms = [
+                {
+                  matchExpressions = [
+                    {
+                      key = "kubernetes.io/hostname";
+                      operator = "In";
+                      values = ["nexus" "sentry"];
+                    };
+                  ];
+                };
+              ];
+            };
           };
         };
         ttlSecondsAfterFinished = 900;

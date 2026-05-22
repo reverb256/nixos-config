@@ -1,128 +1,243 @@
-# AI Model Registry - Single Source of Truth
-# Last Updated: 2026-05-19
+# AI Model Registry — Derived from kubernetes/curated-models.nix
+# Last Updated: 2026-05-21
+# This is a derived artifact for tools that need TOML format.
+# The single source of truth is: /etc/nixos/kubernetes/curated-models.nix
+#
+# Generate (after Nix registry changes):
+#   python3 /etc/nixos/scripts/generate-ai-models-toml.py
+# Validate:
+#   python3 /etc/nixos/scripts/validate-ai-models-registry.py
 
 [defaults]
-# Primary default model for all backends
-primary = "nemotron-nano"
-# Fallback model for secondary backends (NVIDIA NIM Nemotron)
-fallback = "nemotron-nano"
+primary = "nvidia/nemotron-3-nano-30b-a3b"
+fallback = "google/gemma-2b"
+default = "glm-4.7"
+smol = "local/qwen3.5-2b-awq"
+slow = "local/qwen3.6-moe-35b"
+plan = "deepseek-ai/deepseek-v4-flash"
+commit = "local/qwen3.6-moe-35b"
+code = "deepseek-ai/deepseek-v4-flash"
+vision = "qwen/qwen3.5-397b-a17b"
 
 [models]
-# Model registry with aliases and metadata
-
-[models.qwen3.5-2b-awq]
-name = "Qwen3.5-2B-AWQ"
-description = "Fast 2B AWQ-quantized model for agentic work"
-context_length = 200000
-capabilities = ["chat", "completion", "vision", "fast"]
-backends = ["llama-vllm-3060ti", "llama-zephyr-3090", "llama-sentry"]
-
-[models.qwen3.6-35b-iq3-s]
-name = "Qwen3.6-35B-A3B-UD-IQ3_S.gguf"
-description = "35B IQ3_S quantized for quality reasoning"
-context_length = 262144
-capabilities = ["chat", "completion", "vision", "reasoning"]
-backends = ["llama-sentry"]
-
-[models.carnice-qwen3.6-moe-35b]
-name = "Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf"
-description = "35B MoE for high-end reasoning"
-context_length = 262144
-capabilities = ["chat", "completion", "vision", "reasoning"]
-backends = ["llama-zephyr-3090"]
-
-[models.glm-5-turbo]
-name = "glm-5-turbo"
-description = "GLM-5 Turbo fast agentic"
-context_length = 128000
-capabilities = ["chat", "completion", "fast"]
-backends = ["zai"]
-
-[models.glm-5.1]
-name = "glm-5.1"
-description = "GLM-5.1 744B MoE orchestrator"
-context_length = 128000
-capabilities = ["chat", "completion", "reasoning"]
-backends = ["zai"]
-
-[models.glm-4.7]
-name = "glm-4.7"
-description = "GLM-4.7 358B MoE coding"
-context_length = 128000
-capabilities = ["chat", "completion", "coding"]
-backends = ["zai"]
-
-[models.glm-4.5-air]
-name = "glm-4.5-air"
-description = "GLM-4.5 Air ultra-fast"
-context_length = 128000
-capabilities = ["chat", "completion", "fast"]
-backends = ["zai"]
-
-[models.glm-4.7-flash]
-name = "glm-4.7-flash"
-description = "GLM-4.7 Flash fast vision"
-context_length = 128000
-capabilities = ["chat", "completion", "vision", "fast"]
-backends = ["zai"]
-
-[models.deepseek-v4-flash]
-name = "deepseek-ai/deepseek-v4-flash"
-description = "DeepSeek V4 Flash for coding"
-context_length = 1048576
-capabilities = ["chat", "completion", "coding"]
-backends = ["opencode-go"]
-
-[models.nemotron-super]
-name = "nvidia/nemotron-3-super-120b-a12b"
-description = "NVIDIA Nemotron 3 Super 120B - default model"
-context_length = 131072
-capabilities = ["chat", "completion", "tool_calling", "agentic"]
-backends = ["nvidia-nim"]
-
-[backends]
-# Backend configuration
-
-[backends.llama-vllm-3060ti]
-type = "vllm"
+# ── LOCAL MODELS (Private / Baseline) ────────────────────────────────
+[models.local-qwen-2b]
+name = "Qwen3.5 2B AWQ"
+category = "fast"
+contextWindow = 180000
 url = "http://10.1.1.120:8040/v1"
-host = "nexus"
+provider = "local-vllm"
 gpu = "RTX 3060 Ti 8GB"
+host = "nexus"
+priority = 1
 
-[backends.llama-zephyr-3090]
-type = "llama-cpp"
-url = "http://10.1.1.110:1237/v1"
-host = "zephyr"
-gpu = "RTX 3090 24GB"
-
-[backends.llama-sentry]
-type = "llama-cpp"
+[models.local-qwen-4b]
+name = "Qwen3.5 4B Q4_K_M"
+category = "fast"
+contextWindow = 262144
 url = "http://10.1.1.140:1235/v1"
-host = "sentry"
+provider = "local-sentry"
 gpu = "Radeon RX 5600 XT 6GB (Vulkan)"
-
-[backends.zai]
-type = "zai"
-url = "http://10.1.1.140:8080"
 host = "sentry"
+vision = true
+priority = 1
 
-[backends.opencode-go]
-type = "openai-compatible"
-url = "https://api.opencode.go/v1"
-host = "external"
+[models.local-qwen-27b]
+name = "Qwen3.5 27B Q4_K_M"
+category = "reasoning"
+contextWindow = 262144
+url = "http://10.1.1.110:1237/v1"
+provider = "local-zephyr-3090"
+gpu = "RTX 3090 24GB"
+host = "zephyr"
+priority = 1
 
-[backends.nvidia-nim]
-type = "nvidia-nim"
-url = "https://integrate.api.nvidia.com/v1"
-host = "external"
-[backends.google]
-type = "google"
-url = "https://generativelanguage.googleapis.com/v1beta"
-host = "external"
+[models.local-qwen-35b-moe]
+name = "Carnice Qwen3.6 35B MoE IQ4_XS"
+category = "reasoning"
+contextWindow = 262144
+url = "http://10.1.1.110:1237/v1"
+provider = "local-zephyr-3090"
+gpu = "RTX 3090 24GB"
+host = "zephyr"
+vision = true
+reasoning = true
+priority = 1
+
+# ── NVIDIA NIM (Primary / Unlimited) ─────────────────────────────────
+[models.nemotron-3-super]
+name = "Nemotron 3 Super 120B"
+category = "reasoning"
+contextWindow = 262144
+provider = "nvidia-nim"
+priority = 2
+
+[models.nemotron-3-nano]
+name = "Nemotron 3 Nano 30B"
+category = "fast"
+contextWindow = 262144
+provider = "nvidia-nim"
+priority = 2
+
+[models.nemotron-3-nano-omni]
+name = "Nemotron 3 Nano Omni"
+category = "reasoning"
+contextWindow = 256000
+provider = "nvidia-nim"
+priority = 2
+
+# ── GOOGLE GEMMA (Fast / Privacy) ────────────────────────────────────
+[models.gemma-4-31b]
+name = "Gemma 4 31B"
+category = "reasoning"
+contextWindow = 131072
+provider = "google"
+priority = 3
+
+[models.gemma-4-26b]
+name = "Gemma 4 26B A4B"
+category = "fast"
+contextWindow = 131072
+provider = "google"
+priority = 3
+
+[models.gemma-3-12b]
+name = "Gemma 3 12B"
+category = "fast"
+contextWindow = 131072
+provider = "google"
+priority = 3
+
+[models.gemma-3-4b]
+name = "Gemma 3 4B"
+category = "fast"
+contextWindow = 131072
+provider = "google"
+priority = 3
 
 [models.gemma-2b]
-name = "Gemma-2B"
-description = "Google Gemma 2B for fast, small tasks"
-context_length = 8192
-capabilities = ["chat", "completion", "fast"]
-backends = ["google"]
+name = "Gemma 2B"
+category = "fast"
+contextWindow = 131072
+provider = "google"
+priority = 3
+
+# ── GLM MODELS (Z.AI / Quota-Managed) ──────────────────────────────
+[models.glm-5-1]
+name = "GLM-5.1 744B MoE orchestrator"
+category = "primary"
+contextWindow = 128000
+provider = "gateway"
+quotaMultiplier = 2
+priority = 4
+
+[models.glm-5-turbo]
+name = "GLM-5 Turbo fast agentic"
+category = "primary"
+contextWindow = 128000
+provider = "gateway"
+quotaMultiplier = 2
+priority = 4
+
+[models.glm-4-7]
+name = "GLM-4.7 358B MoE"
+category = "primary"
+contextWindow = 128000
+provider = "gateway"
+quotaMultiplier = 1
+priority = 4
+
+[models.glm-4-7-flash]
+name = "GLM-4.7 Flash 30B vision"
+category = "fast"
+contextWindow = 128000
+provider = "gateway"
+priority = 4
+
+[models.glm-4-5-air]
+name = "GLM-4.5 Air ultra-fast"
+category = "fast"
+contextWindow = 128000
+provider = "gateway"
+quotaMultiplier = 1
+priority = 4
+
+[models.qwen3-5-flash]
+name = "Qwen3.5 Flash 1M context"
+category = "fast"
+contextWindow = 1000000
+provider = "gateway"
+priority = 4
+
+# ── QWEN MODELS (NIM / Gateway) ─────────────────────────────────────
+[models.qwen3-5-397b]
+name = "Qwen3.5 397B A17B"
+category = "reasoning"
+contextWindow = 1000000
+provider = "gateway"
+vision = true
+priority = 4
+
+[models.qwen3-5-122b]
+name = "Qwen3.5 122B A10B"
+category = "reasoning"
+provider = "gateway"
+priority = 4
+
+[models.qwen3-next-80b]
+name = "Qwen3 Next 80B"
+category = "reasoning"
+provider = "gateway"
+priority = 4
+
+# ── DEEPSEEK MODELS ──────────────────────────────────────────────
+[models.deepseek-v4-pro]
+name = "DeepSeek V4 Pro 1M context"
+category = "reasoning"
+contextWindow = 1000000
+provider = "gateway"
+priority = 4
+
+[models.deepseek-v4-flash]
+name = "DeepSeek V4 Flash (NIM)"
+category = "code"
+contextWindow = 1000000
+provider = "gateway"
+priority = 4
+
+[models.deepseek-v4-flash-opencode]
+name = "DeepSeek V4 Flash (OpenCode Go)"
+category = "code"
+contextWindow = 1000000
+provider = "opencode-go"
+priority = 5
+
+# ── EXTERNAL PROVIDERS ─────────────────────────────────────────────
+[models.mistral-large-3]
+name = "Mistral Large 3 675B"
+category = "reasoning"
+contextWindow = 128000
+provider = "gateway"
+priority = 4
+
+# ── FREE TIER ROUTERS ────────────────────────────────────────────
+[models.kilo-auto]
+name = "Kilo auto free router"
+category = "free"
+provider = "gateway"
+priority = 6
+
+[models.openrouter-free]
+name = "OpenRouter free router"
+category = "free"
+provider = "gateway"
+priority = 6
+
+[backends]
+gateway = { type = "openai-compatible", url = "http://10.1.1.110:8080/v1", host = "zephyr" }
+local-vllm = { type = "vllm", url = "http://10.1.1.120:8040/v1", host = "nexus", gpu = "RTX 3060 Ti 8GB" }
+local-zephyr-3090 = { type = "llama-cpp", url = "http://10.1.1.110:1237/v1", host = "zephyr", gpu = "RTX 3090 24GB" }
+local-sentry = { type = "llama-cpp", url = "http://10.1.1.140:1235/v1", host = "sentry", gpu = "Radeon RX 5600 XT 6GB (Vulkan)" }
+nvidia-nim = { type = "nvidia-nim", url = "https://integrate.api.nvidia.com/v1", host = "external" }
+opencode-go = { type = "openai-compatible", url = "https://api.opencode.go/v1", host = "external" }
+google = { type = "openai-compatible", url = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1", host = "cluster" }
