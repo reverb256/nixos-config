@@ -103,11 +103,7 @@
   services.cluster-ca.enable = true;
 
   boot.kernelPackages =
-    (inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3).extend (_: super: {
-      openrazer = super.openrazer.overrideAttrs (old: {
-        patches = (old.patches or []) ++ [../../patches/openrazer-hid-report-6args.patch];
-      });
-    });
+    inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
 
   # System hardening (Phase 0: Security Baseline)
   # Preset: compatibility (desktop + AI gateway)

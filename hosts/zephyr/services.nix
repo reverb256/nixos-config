@@ -202,18 +202,14 @@ in {
       server.enable = true;
     };
 
-    # NFS server for /etc/nixos only — hermes/pi moved to Nexus to break I/O loop on root NVMe
+    # Canonical NFS server for hermes + pi agent state
     nfs-data-server = {
       enable = true;
-      exports = "";
-    };
+      exports = ''
+        /data/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=105)
 
-    # Sync hermes/pi state FROM Nexus (Nexus is now canonical source)
-    nfs-state-sync = {
-      enable = true;
-      sourceHost = "nexus";
-      paths = ["/data/hermes" "/data/pi"];
-      interval = "15min";
+        /data/pi 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=106)
+      '';
     };
 
     nfs-client = {
@@ -222,12 +218,6 @@ in {
       mountHome = false;
       mountMedia = false;
     };
-
-    # Create directories for hermes/pi bind mounts on Zephyr
-    systemd.tmpfiles.rules = [
-      "d /data/hermes 0775 j_kro j_kro -"
-      "d /data/pi 0775 j_kro j_kro -"
-    ];
 
     # Caddy — only Tailscale ingress for this host
     # All .lan services moved to nexus (OOM prevention)

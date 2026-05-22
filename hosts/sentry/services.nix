@@ -74,14 +74,8 @@ in {
     };
     nfs-state-sync = {
       enable = true;
-      sourceHost = "nexus";
+      sourceHost = "zephyr";
     };
-
-    # Create directories for hermes/pi bind mounts on Sentry
-    systemd.tmpfiles.rules = [
-      "d /data/hermes 0775 j_kro j_kro -"
-      "d /data/pi 0775 j_kro j_kro -"
-    ];
 
     syncthing-cluster = {
       enable = true;
@@ -184,7 +178,7 @@ in {
    };
 
    # Agent network restrictions — restrict AI agents to allowed destinations only
-   services.agent-firewall = {
+   agent-firewall = {
      enable = true;
      auditLog = true;
    };
