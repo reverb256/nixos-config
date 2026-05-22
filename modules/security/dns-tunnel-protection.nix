@@ -295,25 +295,25 @@ in {
         ''
       ];
 
-      # Block outbound DNS on non-standard ports (prevents tunneling via alternate ports)
-      extraOutputRules = mkIf cfg.enablePortBlocking (mkOptionDefault ''
-        # Block outbound DNS on non-standard ports
-        # Allows only port 53 (standard DNS) and 853 (DNS-over-TLS) to authorized upstreams
-        ip protocol udp udp dport { ${lib.concatStringsSep ", " (map toString cfg.blockedPorts)} } counter drop
-        ip protocol tcp tcp dport { ${lib.concatStringsSep ", " (map toString cfg.blockedPorts)} } counter drop
-
-        # Block all outbound DNS to non-authorized destinations (except local unbound)
-        # This prevents pods/containers from bypassing the local resolver
-        ip daddr != { 127.0.0.1, ${lib.concatStringsSep ", " allowedUpstreamDns} } ip protocol udp udp dport 53 counter drop
-        ip daddr != { 127.0.0.1, ${lib.concatStringsSep ", " allowedUpstreamDns} } ip protocol tcp tcp dport 53 counter drop
-
-        # Allow DNS to localhost (our unbound resolver)
-        ip daddr 127.0.0.1 udp dport 53 accept
-        ip daddr 127.0.0.1 tcp dport 53 accept
-
-        # Allow DNS-over-TLS to authorized upstreams
-        ip daddr { ${lib.concatStringsSep ", " allowedUpstreamDns} } tcp dport 853 accept
-      '');
+#      # Block outbound DNS on non-standard ports (prevents tunneling via alternate ports)
+#      extraOutputRules = mkIf cfg.enablePortBlocking (mkOptionDefault ''
+#        # Block outbound DNS on non-standard ports
+#        # Allows only port 53 (standard DNS) and 853 (DNS-over-TLS) to authorized upstreams
+#        ip protocol udp udp dport { ${lib.concatStringsSep ", " (map toString cfg.blockedPorts)} } counter drop
+#        ip protocol tcp tcp dport { ${lib.concatStringsSep ", " (map toString cfg.blockedPorts)} } counter drop
+#
+#        # Block all outbound DNS to non-authorized destinations (except local unbound)
+#        # This prevents pods/containers from bypassing the local resolver
+#        ip daddr != { 127.0.0.1, ${lib.concatStringsSep ", " allowedUpstreamDns} } ip protocol udp udp dport 53 counter drop
+#        ip daddr != { 127.0.0.1, ${lib.concatStringsSep ", " allowedUpstreamDns} } ip protocol tcp tcp dport 53 counter drop
+#
+#        # Allow DNS to localhost (our unbound resolver)
+#        ip daddr 127.0.0.1 udp dport 53 accept
+#        ip daddr 127.0.0.1 tcp dport 53 accept
+#
+#        # Allow DNS-over-TLS to authorized upstreams
+#        ip daddr { ${lib.concatStringsSep ", " allowedUpstreamDns} } tcp dport 853 accept
+#      '');
     };
 
     # ── Unbound: Enable query logging for detection ─────────────────────
