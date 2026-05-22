@@ -48,9 +48,18 @@ with lib; let
         baseURL = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1";
       };
       models = {
-        "nemotron-3-super-120b-a12b" = { "name": "Nemotron 3 Super 120B", "id": "nvidia/nemotron-3-super-120b-a12b" };
-        "nemotron-3-nano-30b-a3b" = { "name": "Nemotron 3 Nano 30B", "id": "nvidia/nemotron-3-nano-30b-a3b" };
-        "nemotron-3-nano-omni-30b-a3b-reasoning" = { "name": "Nemotron 3 Nano Omni 30B", "id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning" };
+        "nemotron-3-super-120b-a12b" = {
+          name = "Nemotron 3 Super 120B";
+          id = "nvidia/nemotron-3-super-120b-a12b";
+        };
+        "nemotron-3-nano-30b-a3b" = {
+          name = "Nemotron 3 Nano 30B";
+          id = "nvidia/nemotron-3-nano-30b-a3b";
+        };
+        "nemotron-3-nano-omni-30b-a3b-reasoning" = {
+          name = "Nemotron 3 Nano Omni 30B";
+          id = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
+        };
       };
     };
   };
@@ -59,60 +68,57 @@ with lib; let
   setupCommand = ["/bin/sh" "-c" ''
     chmod -R g+rw /workspace/repo && mkdir -p /workspace/repo/.opencode/commands && REPO=''${KELOS_UPSTREAM_REPO:-unknown}
 
-# Repo-appropriate validate command
-cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
-# Validate the project
-CMDEOF
-
-case "$REPO" in
-  *nixos-config*)
-    cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
+    case "$REPO" in
+      *nixos-config*)
+        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
 # Validate the NixOS configuration
 RUN nix flake check
 RUN just check
 CMDEOF
-    cat > /workspace/repo/.opencode/commands/deploy.md << 'CMDEOF'
+        cat > /workspace/repo/.opencode/commands/deploy.md << 'CMDEOF'
 # Deploy to a specific host
 ## Usage
 Use this to apply configuration changes to a cluster node.
 Make sure `nix flake check` passes first, then run:
 RUN just deploy
 CMDEOF
-    ;;
-  *maplespike*)
-    cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
+        ;;
+      *maplespike*)
+        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
 # Validate the MapleSpike monorepo
 RUN pnpm install --frozen-lockfile
 RUN pnpm -r build
 RUN pnpm test
 CMDEOF
-    cat > /workspace/repo/.opencode/commands/build.md << 'CMDEOF'
+        cat > /workspace/repo/.opencode/commands/build.md << 'CMDEOF'
 # Build all packages
 RUN pnpm build
 CMDEOF
-    ;;
-  *ai-inference-gateway*)
-    cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
+        ;;
+      *ai-inference-gateway*)
+        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
 # Validate the AI Inference Gateway
 RUN pip install -e . -q
 RUN pytest tests/ -x -q
 CMDEOF
-    ;;
-  *knowledge-fabric*)
-    cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
+        ;;
+      *knowledge-fabric*)
+        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
 # Validate the Knowledge Fabric
 RUN npx tsc --noEmit
 CMDEOF
-    ;;
-  *)
-    # Generic fallback
-    cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
+        ;;
+      *)
+        # Generic fallback
+        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
 # Validate the project
 ## Run the appropriate validation for this repo
 RUN echo "No repo-specific validate command defined"
 CMDEOF
-    ;;
-esac && cat > /workspace/repo/opencode.json << 'EOFOP'
+        ;;
+    esac
+
+    cat > /workspace/repo/opencode.json << 'EOFOP'
 ${opencodeConfig}
 EOFOP
   ''];
@@ -425,7 +431,7 @@ EOFOP
         The model in opencode.json is configured and valid. Use webfetch (not bash/curl) if you need to check the gateway.
 
         ## Critical: bash tool requires description
-        Every bash call MUST include a description parameter (e.g., bash(command: "find .", description: "Find files")).
+        Every bash call MUST include a description parameter (e.g., bash(command: "find .", description: "Search for files")).
         Without it, bash calls fail with SchemaError. Retry with description if you forget.
 
         ## Workflow
