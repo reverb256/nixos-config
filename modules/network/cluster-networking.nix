@@ -131,6 +131,9 @@ in {
     services = {
       tailscale.enable = true;
 
+      # DNS tunnel protection — enabled by default on all cluster nodes
+      dns-tunnel-protection.enable = mkDefault true;
+
       avahi = {
         enable = true;
         nssmdns4 = true;
