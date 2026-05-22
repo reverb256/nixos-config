@@ -278,9 +278,8 @@ in {
     # ── Firewall: Rate limiting + port blocking ──────────────────────────
     networking.firewall = {
       # Rate limit DNS queries (UDP port 53) per source IP
-      # Rate limit DNS queries (UDP port 53) per source IP
-      extraInputRules = lib.concatStrings (
-        lib.optional cfg.enableRateLimiting (mkOptionDefault '
+      extraInputRules_disabled = lib.concatStrings [
+        (mkIf cfg.enableRateLimiting (mkOptionDefault ''
           # DNS rate limiting — drop excess queries per source IP
           ip protocol udp udp dport 53 limit rate ${dnsQueryRate}/second burst ${dnsBurst} packets accept
           ip protocol udp udp dport 53 counter drop
@@ -288,12 +287,33 @@ in {
           # DNS rate limiting — TCP (zone transfers, large responses)
           ip protocol tcp tcp dport 53 limit rate ${dnsQueryRate}/second burst ${dnsBurst} packets accept
           ip protocol tcp tcp dport 53 counter drop
-        ') ++ ['
+        ''))
+        ''
           # Allow DNS from cluster and pod networks (rate limited by rules above)
           ip saddr { ${clusterSubnet}, ${podSubnet} } udp dport 53 accept
           ip saddr { ${clusterSubnet}, ${podSubnet} } tcp dport 53 accept
-        ']
-      );
+        ''
+      ];
+
+      # Block outbound DNS on non-standard ports (prevents tunneling via alternate ports)
+      extraOutputRules = mkIf cfg.enablePortBlocking (mkOptionDefault ''
+        # Block outbound DNS on non-standard ports
+        # Allows only port 53 (standard DNS) and 853 (DNS-over-TLS) to authorized upstreams
+        ip protocol udp udp dport { ${lib.concatStringsSep ", " (map toString cfg.blockedPorts)} } counter drop
+        ip protocol tcp tcp dport { ${lib.concatStringsSep ", " (map toString cfg.blockedPorts)} } counter drop
+
+        # Block all outbound DNS to non-authorized destinations (except local unbound)
+        # This prevents pods/containers from bypassing the local resolver
+        ip daddr != { 127.0.0.1, ${lib.concatStringsSep ", " allowedUpstreamDns} } ip protocol udp udp dport 53 counter drop
+        ip daddr != { 127.0.0.1, ${lib.concatStringsSep ", " allowedUpstreamDns} } ip protocol tcp tcp dport 53 counter drop
+
+        # Allow DNS to localhost (our unbound resolver)
+        ip daddr 127.0.0.1 udp dport 53 accept
+        ip daddr 127.0.0.1 tcp dport 53 accept
+
+        # Allow DNS-over-TLS to authorized upstreams
+        ip daddr { ${lib.concatStringsSep ", " allowedUpstreamDns} } tcp dport 853 accept
+      '');
     };
 
     # ── Unbound: Enable query logging for detection ─────────────────────
@@ -358,16 +378,17 @@ in {
     };
 
     # ── Log rotation for DNS tunnel alerts ───────────────────────────────
-    services.logrotate.settings."dns-tunnel-alerts" = mkIf cfg.enableDetection {
-      files = [ "/var/log/dns-tunnel-alerts.log" ];
-      rotate = 4;
-      weekly = true;
-      compress = true;
-      delaycompress = true;
-      missingok = true;
-      notifempty = true;
-      create = "0640 root root";
-    };
+    services.logrotate.extraConfig = mkIf cfg.enableDetection ''
+      /var/log/dns-tunnel-alerts.log {
+        weekly
+        rotate 4
+        compress
+        delaycompress
+        missingok
+        notifempty
+        create 0640 root root
+      }
+    '';
 
     # ── Required directories ─────────────────────────────────────────────
     systemd.tmpfiles.rules = mkIf cfg.enableDetection [
