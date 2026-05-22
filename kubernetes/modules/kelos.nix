@@ -14,7 +14,7 @@ with lib; let
   # Shared opencode.json config with NIM models via AI Inference Gateway
   opencodeConfig = lib.generators.toJSON {} {
     "$schema" = "https://opencode.ai/config.json";
-    model = "openai/nvidia/nemotron-3-super-120b-a12b";
+    model = "nvidia/nemotron-3-super-120b-a12b";
     enabled_providers = ["openai"];
     provider.openai = {
       options = {
