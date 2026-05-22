@@ -13,6 +13,8 @@
     {_module.args.inputs = inputs;}
     {_module.args.cluster = cluster;}
     {_module.args.aiModelsToml = ./ai-models.toml;}
+    # Unified AI model registry (single source of truth)
+    {_module.args.aiModelRegistry = ./curated-models.nix;}
     # HA affinity: prefer nexus, failover to sentry. Used by stateless deployments.
     {_module.args.nexusPreferredAffinity = {
       nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution = [

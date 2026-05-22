@@ -181,8 +181,14 @@ in {
     extraPackages = with pkgs; [git ripgrep curl jq];
   };
 
-  # Hermes WebUI — disabled on nexus (no /data/projects/own/hermes-webui)
-  # Runs on zephyr only. Dead code and timer removed.
+   # Hermes WebUI — disabled on nexus (no /data/projects/own/hermes-webui)
+   # Runs on zephyr only. Dead code and timer removed.
+
+   # Agent network restrictions — restrict AI agents to allowed destinations only
+   services.agent-firewall = {
+     enable = true;
+     auditLog = true;
+   };
 
   # Load Z.AI and NVIDIA API keys for hermes-agent
   # The official module's environment option doesn't reliably set systemd env vars,
