@@ -159,7 +159,6 @@
   environment.systemPackages = with pkgs; [
     nvtopPackages.full
   ];
-  system.stateVersion = "26.05";
 
   # CNS: Zero-knowledge automatic secret distribution (receiver)
   services.cns-receiver = {
