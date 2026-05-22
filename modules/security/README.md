@@ -9,7 +9,6 @@ and cluster-wide security hardening across the NixOS cluster.
 
 | Module | Purpose | Used By |
 |--------|---------|---------|
-| `agent-firewall.nix` | nftables cgroup-based network restrictions for AI agents | Zephyr |
 | `caddy-ca.nix` | Trust Caddy internal CA for cluster ingress TLS | Zephyr, Nexus |
 | `pam-vaultwarden.nix` | PAM auth using Vaultwarden credentials | Reserved (not active) |
 | `aistor-secrets.nix` | Declarative AIStor/MinIO credential management | Nexus |

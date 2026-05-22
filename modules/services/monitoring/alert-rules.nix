@@ -84,49 +84,6 @@
               summary: "High AI request latency"
               description: "95th percentile latency is {{ $value }}s"
 
-      - name: dns_tunnel_protection
-        interval: 30s
-        rules:
-          - alert: DNSQueryRateAnomaly
-            expr: dns_queries_total > 500
-            for: 2m
-            labels:
-              severity: warning
-              cluster: reverb-os
-            annotations:
-              summary: "High DNS query rate on {{ $labels.instance }}"
-              description: "{{ $value }} DNS queries detected in current window — possible tunneling or exfiltration"
-
-          - alert: DNSLongDomainDetected
-            expr: dns_long_domains_total > 10
-            for: 2m
-            labels:
-              severity: warning
-              cluster: reverb-os
-            annotations:
-              summary: "DNS tunneling suspected on {{ $labels.instance }}"
-              description: "{{ $value }} queries with abnormally long domain names detected — potential DNS tunnel"
-
-          - alert: DNSHighEntropyQueries
-            expr: dns_high_entropy_total > 10
-            for: 2m
-            labels:
-              severity: warning
-              cluster: reverb-os
-            annotations:
-              summary: "High-entropy DNS queries on {{ $labels.instance }}"
-              description: "{{ $value }} queries with high-entropy subdomains — possible encoded data exfiltration"
-
-          - alert: DNSTunnelAlertActive
-            expr: dns_tunnel_alerts_active > 0
-            for: 1m
-            labels:
-              severity: critical
-              cluster: reverb-os
-            annotations:
-              summary: "DNS tunneling alert active on {{ $labels.instance }}"
-              description: "DNS tunnel detector has flagged {{ $value }} anomaly condition(s) on this node"
-
       - name: prometheus_health
         interval: 30s
         rules:

@@ -28,7 +28,6 @@ in {
         "loadavg"
         "meminfo"
         "netdev"
-        "pressure"
         "time"
         "uname"
         "netclass"

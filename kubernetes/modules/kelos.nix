@@ -1,468 +1,452 @@
-# Kelos task orchestration module.
-# Controller self-manages Workspaces, TaskSpawners, AgentConfigs.
-# This module bootstraps the initial config and provides fallback definitions.
-# See: https://github.com/reverb256/kelos-controller
 {
+  cluster,
   config,
   lib,
   ...
-}:
-with lib; let
-  cfg = config.kubernetes.kelos;
-  inherit (cfg) repo;
+}: let
+  # ── Version pinning ──────────────────────────────────────────────────
+  version = "v0.33.0";
+  registry = "ghcr.io/kelos-dev";
 
-  # Shared opencode.json config with NIM models via AI Inference Gateway
-  opencodeConfig = lib.generators.toJSON {} {
-    "$schema" = "https://opencode.ai/config.json";
-    model = "nvidia/nemotron-3-super-120b-a12b";
-    enabled_providers = ["nvidia"];
-    mcpServers = [
-      {
-        name = "searxng";
-        type = "sse";
-        url = "http://mcp-searxng-proxy.mcp.svc.cluster.local:8080/mcp";
-      }
-      {
-        name = "kb-mcp";
-        type = "sse";
-        url = "http://mcp-kb-mcp-proxy.mcp.svc.cluster.local:8080/mcp";
-      }
-      {
-        name = "memory";
-        type = "sse";
-        url = "http://mcp-memory-proxy.mcp.svc.cluster.local:8080/mcp";
-      }
-      {
-        name = "selfhosted-tools";
-        type = "sse";
-        url = "http://mcp-selfhosted-tools-proxy.mcp.svc.cluster.local:8080/mcp";
-      }
-      {
-        name = "sequential-thinking";
-        type = "sse";
-        url = "http://mcp-sequential-thinking-proxy.mcp.svc.cluster.local:8080/mcp";
-      }
-    ];
-    provider.nvidia = {
-      options = {
-        baseURL = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1";
-      };
-      models = {
-        "nemotron-3-super-120b-a12b" = {
-          name = "Nemotron 3 Super 120B";
-          id = "nvidia/nemotron-3-super-120b-a12b";
-        };
-        "nemotron-3-nano-30b-a3b" = {
-          name = "Nemotron 3 Nano 30B";
-          id = "nvidia/nemotron-3-nano-30b-a3b";
-        };
-        "nemotron-3-nano-omni-30b-a3b-reasoning" = {
-          name = "Nemotron 3 Nano Omni 30B";
-          id = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
-        };
+  # ── Image references ─────────────────────────────────────────────────
+  controllerImage = "${registry}/kelos-controller:${version}";
+
+  # ── Cluster placement ────────────────────────────────────────────────
+  targetNode = "nexus";
+  ns = "kelos-system";
+
+  # ── Labels ───────────────────────────────────────────────────────────
+  managed = {
+    "app.kubernetes.io/managed-by" = "easykubenix";
+    "app.kubernetes.io/part-of" = "kelos";
+  };
+
+  # ── Shared pod overrides ─────────────────────────────────────────────
+  podOverrides = {
+    podSecurityContext = {
+      runAsNonRoot = true;
+      runAsUser = 61100;
+      runAsGroup = 61100;
+      fsGroup = 1000;
+    };
+    resources = {
+      requests = { cpu = "250m"; memory = "512Mi"; };
+      limits = { cpu = "1"; memory = "1Gi"; };
+    };
+    containerSecurityContext = {
+      runAsNonRoot = true;
+      allowPrivilegeEscalation = false;
+      capabilities.drop = ["ALL"];
+      seccompProfile.type = "RuntimeDefault";
+    };
+    affinity = {
+      nodeAffinity = {
+        preferredDuringSchedulingIgnoredDuringExecution = [
+          {
+            weight = 100;
+            preference.matchExpressions = [
+              { key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus"]; }
+            ];
+          }
+          {
+            weight = 50;
+            preference.matchExpressions = [
+              { key = "kubernetes.io/hostname"; operator = "In"; values = ["sentry"]; }
+            ];
+          }
+        ];
       };
     };
   };
 
-  # Shared setup command for all Workspaces
-  setupCommand = ["/bin/sh" "-c" ''
-    chmod -R g+rw /workspace/repo && mkdir -p /workspace/repo/.opencode/commands && REPO=''${KELOS_UPSTREAM_REPO:-unknown}
-
-    case "$REPO" in
-      *nixos-config*)
-        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
-# Validate the NixOS configuration
-RUN nix flake check
-RUN just check
-CMDEOF
-        cat > /workspace/repo/.opencode/commands/deploy.md << 'CMDEOF'
-# Deploy to a specific host
-## Usage
-Use this to apply configuration changes to a cluster node.
-Make sure `nix flake check` passes first, then run:
-RUN just deploy
-CMDEOF
-        ;;
-      *maplespike*)
-        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
-# Validate the MapleSpike monorepo
-RUN pnpm install --frozen-lockfile
-RUN pnpm -r build
-RUN pnpm test
-CMDEOF
-        cat > /workspace/repo/.opencode/commands/build.md << 'CMDEOF'
-# Build all packages
-RUN pnpm build
-CMDEOF
-        ;;
-      *ai-inference-gateway*)
-        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
-# Validate the AI Inference Gateway
-RUN pip install -e . -q
-RUN pytest tests/ -x -q
-CMDEOF
-        ;;
-      *knowledge-fabric*)
-        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
-# Validate the Knowledge Fabric
-RUN npx tsc --noEmit
-CMDEOF
-        ;;
-      *)
-        # Generic fallback
-        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
-# Validate the project
-## Run the appropriate validation for this repo
-RUN echo "No repo-specific validate command defined"
-CMDEOF
-        ;;
-    esac
-
-    cat > /workspace/repo/opencode.json << 'EOFOP'
-${opencodeConfig}
-EOFOP
-  ''];
-
-  # Repos that get Kelos task automation
-  repos = [
-    "frostbite-gazette"
-    "ai-inference-gateway"
-    "caddy-ingress"
-    "compute-market"
-    "gpu-proxy"
-    "knowledge-fabric"
-    "llama-cpp-turboquant"
-    "maplespike"
-    "mcp-registry"
-    "nixos-config"
-    "searxng-cluster"
-    "vane"
-    "vllm-turboquant"
-  ];
-
-  # Create a workspace for each repo
-  workspaces = map (r: {
+  # ── Workspace factory ────────────────────────────────────────────────
+  mkWorkspace = name: repo: {
     apiVersion = "kelos.dev/v1alpha1";
     kind = "Workspace";
-    metadata = {
-      name = r;
-      namespace = "kelos-system";
-      labels = {
-        "app.kubernetes.io/managed-by" = "easykubenix";
-        "app.kubernetes.io/part-of" = "kelos";
-      };
-    };
+    metadata = { inherit name; labels = managed; };
     spec = {
-      repo = "https://github.com/reverb256/${r}.git";
+      repo = "https://github.com/reverb256/${repo}.git";
       ref = "main";
       secretRef.name = "github-token";
-      files = [];
-      inherit setupCommand;
+      setupCommand = ["sh" "-c" "chmod -R g+rw /workspace/repo && cat > /workspace/repo/opencode.json << 'EOFOP'
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "nvidia/nemotron-3-super-120b-a12b",
+  "enabled_providers": ["nvidia"],
+  "provider": {
+    "nvidia": {
+      "options": {
+        "baseURL": "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1"
+      },
+      "models": {
+        "nemotron-3-super-120b-a12b": { "name": "Nemotron 3 Super 120B", "id": "nvidia/nemotron-3-super-120b-a12b" },
+        "nemotron-3-nano-30b-a3b": { "name": "Nemotron 3 Nano 30B", "id": "nvidia/nemotron-3-nano-30b-a3b" },
+        "nemotron-3-nano-omni-30b-a3b-reasoning": { "name": "Nemotron 3 Nano Omni 30B", "id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning" }
+      }
+    }
+  }
+}
+EOFOP
+" ];
     };
-  }) repos;
+  };
 
-  # TaskSpawner template applied per repo
-  taskSpawnerTemplate = r: {
+  # ── Prompt templates by label type ───────────────────────────────────
+  promptTemplates = {
+    bug = ''
+      GitHub issue #{{.Number}}: {{.Title}}
+
+      Description:
+      {{.Body}}
+
+      This is a BUG fix. Focus on:
+      - Identifying and fixing the root cause
+      - Adding tests to verify the fix and prevent regression
+      - Verifying the fix works as expected
+
+      Implement the required changes, push the branch, and open a PR against main.
+      Branch: kelos-task-{{.Number}}
+      Every commit message must include #{{.Number}}.
+      The workspace at /workspace/repo is writable — work directly there.
+    '';
+
+    enhancement = ''
+      GitHub issue #{{.Number}}: {{.Title}}
+
+      Description:
+      {{.Body}}
+
+      This is an ENHANCEMENT. Focus on:
+      - Clean implementation following existing patterns
+      - Adding documentation for new functionality
+      - Considering edge cases and error handling
+
+      Implement the required changes, push the branch, and open a PR against main.
+      Branch: kelos-task-{{.Number}}
+      Every commit message must include #{{.Number}}.
+      The workspace at /workspace/repo is writable — work directly there.
+    '';
+
+    security = ''
+      GitHub issue #{{.Number}}: {{.Title}}
+
+      Description:
+      {{.Body}}
+
+      This is a SECURITY issue. Focus on:
+      - Hardening the code against vulnerabilities
+      - Auditing for potential security issues
+      - Adding security-focused tests
+
+      Implement the required changes, push the branch, and open a PR against main.
+      Branch: kelos-task-{{.Number}}
+      Every commit message must include #{{.Number}}.
+      The workspace at /workspace/repo is writable — work directly there.
+    '';
+
+    refactor = ''
+      GitHub issue #{{.Number}}: {{.Title}}
+
+      Description:
+      {{.Body}}
+
+      This is a REFACTOR. Focus on:
+      - Improving code structure and maintainability
+      - Maintaining backward compatibility
+      - Preserving existing behavior while improving internals
+
+      Implement the required changes, push the branch, and open a PR against main.
+      Branch: kelos-task-{{.Number}}
+      Every commit message must include #{{.Number}}.
+      The workspace at /workspace/repo is writable — work directly there.
+    '';
+
+    cleanup = ''
+      GitHub issue #{{.Number}}: {{.Title}}
+
+      Description:
+      {{.Body}}
+
+      This is a CLEANUP task. Focus on:
+      - Making minimal, targeted changes
+      - Not breaking existing behavior
+      - Removing dead code, fixing formatting, or simplifying logic
+
+      Implement the required changes, push the branch, and open a PR against main.
+      Branch: kelos-task-{{.Number}}
+      Every commit message must include #{{.Number}}.
+      The workspace at /workspace/repo is writable — work directly there.
+    '';
+  };
+
+  # ── TaskSpawner factory (multi-label) ────────────────────────────────
+  mkSpawner = name: repo: workspace: labelType: promptTemplate: {
     apiVersion = "kelos.dev/v1alpha1";
     kind = "TaskSpawner";
-    metadata = {
-      name = "github-issues-${r}";
-      namespace = "kelos-system";
-      labels = {
-        "app.kubernetes.io/managed-by" = "easykubenix";
-        "app.kubernetes.io/part-of" = "kelos";
-      };
-    };
+    metadata = { name = "github-issues-${name}"; labels = managed; };
     spec = {
-      maxConcurrency = 8;
+      when.githubIssues = {
+        repo = "reverb256/${repo}";
+        labels = ["agent-ready" labelType];
+        state = "open";
+        pollInterval = "5m";
+      };
       taskTemplate = {
         type = "opencode";
-        workspaceRef.name = r;
-        agentConfigRef.name = "cluster-coder";
-        branch = "kelos-task-{{.Number}}";
         credentials = {
           type = "api-key";
           secretRef.name = "opencode-credentials";
         };
-        promptTemplate = ''
-          GitHub issue #{{.Number}}: {{.Title}}
-
-          Description:
-          {{.Body}}
-
-          CRITICAL: Read the issue body above carefully. Implement the changes, push the branch, and open a PR against main.
-          DO NOT stop until the PR is created. The task is not complete until a PR exists.
-
-          You have up to 100 tool-calling steps available. Use them. Do not stop early.
-
-          If you hit errors, retry with a different approach.
-
-          IMPORTANT: Every bash tool call MUST include a "description" parameter describing what the command does.
-          Correct: bash(command: "find .", description: "Search for files")
-          Wrong:   bash(command: "find .") — this will FAIL with SchemaError
-
-          Branch: kelos-task-{{.Number}}
-          Every commit message must include #{{.Number}}.
-          The workspace at /workspace/repo is writable — work directly there.
-        '';
-        podOverrides = {
-          env = [
-            {
-              name = "OPENAI_API_KEY";
-              valueFrom.secretKeyRef = {
-                name = "opencode-credentials";
-                key = "OPENAI_API_KEY";
-              };
-            }
-            {
-              name = "NVIDIA_API_KEY";
-              valueFrom.secretKeyRef = {
-                name = "opencode-credentials";
-                key = "NVIDIA_API_KEY";
-              };
-            }
-          ];
-          resources = {
-            limits = {
-              cpu = "1";
-              memory = "1Gi";
-            };
-            requests = {
-              cpu = "250m";
-              memory = "512Mi";
-            };
-          };
-          podSecurityContext = {
-            fsGroup = 1000;
-            runAsGroup = 1000;
-            runAsNonRoot = true;
-            runAsUser = 1000;
-          };
-          containerSecurityContext = {
-            allowPrivilegeEscalation = false;
-            capabilities.drop = ["ALL"];
-            runAsNonRoot = true;
-            seccompProfile.type = "RuntimeDefault";
-          };
-          affinity.nodeAffinity = {
-            requiredDuringSchedulingIgnoredDuringExecution = {
-              nodeSelectorTerms = [
-                {
-                  matchExpressions = [
-                    {
-                      key = "kubernetes.io/hostname";
-                      operator = "In";
-                      values = ["nexus" "sentry"];
-                    };
-                  ];
-                };
-              ];
-            };
-          };
-        };
+        workspaceRef.name = workspace;
+        agentConfigRef.name = "cluster-coder";
+        branch = "kelos-task-{{.Number}}";
+        inherit promptTemplate;
         ttlSecondsAfterFinished = 900;
+        inherit podOverrides;
       };
-      when.githubIssues = {
-        repo = "reverb256/${r}";
-        state = "open";
-        labels = ["agent-ready"];
-        pollInterval = "5m";
-      };
+      maxConcurrency = 2;
     };
   };
 
-  taskSpawners = map taskSpawnerTemplate repos;
+  # ── Label types ──────────────────────────────────────────────────────
+  labelTypes = [ "bug" "enhancement" "security" "refactor" "cleanup" ];
 
-  # Pipeline maintenance CronJob - runs every 15min on nexus
-  pipelineMaintenance = {
-    apiVersion = "batch/v1";
-    kind = "CronJob";
-    metadata = {
-      name = "pipeline-maintenance";
-      namespace = "kelos-system";
-      labels = {
-        "app.kubernetes.io/managed-by" = "easykubenix";
-        "app.kubernetes.io/part-of" = "kelos";
+  # ── Repos ────────────────────────────────────────────────────────────
+  repos = [
+    { name = "nixos-config"; workspace = "nixos-config"; }
+    { name = "ai-inference-gateway"; workspace = "ai-inference-gateway"; }
+    { name = "maplespike"; workspace = "maplespike"; }
+    { name = "knowledge-fabric"; workspace = "knowledge-fabric"; }
+    { name = "compute-market"; workspace = "compute-market"; }
+    { name = "mcp-registry"; workspace = "mcp-registry"; }
+    { name = "gpu-proxy"; workspace = "gpu-proxy"; }
+    { name = "llama-cpp-turboquant"; workspace = "llama-cpp-turboquant"; }
+    { name = "vllm-turboquant"; workspace = "vllm-turboquant"; }
+    { name = "searxng-cluster"; workspace = "searxng-cluster"; }
+    { name = "caddy-ingress"; workspace = "caddy-ingress"; }
+    { name = "vane"; workspace = "vane"; }
+  ];
+
+  # ── Generate all spawner resources ───────────────────────────────────
+  allSpawners = lib.listToAttrs (
+    lib.concatMap (r:
+      lib.concatMap (labelType:
+        let name = "${r.name}-${labelType}"; in
+        [{
+          name = "taskspawner-${name}";
+          value = mkSpawner name r.name r.workspace labelType promptTemplates.${labelType};
+        }]
+      ) labelTypes
+    ) repos
+  );
+in {
+  config.kubernetes.objects = {
+    # ════════════════════════════════════════════════════════════════════
+    # CLUSTER-SCOPED RESOURCES (none namespace)
+    # ════════════════════════════════════════════════════════════════════
+    none = {
+      Namespace.${ns} = {
+        metadata.labels = { name = ns; } // managed;
+      };
+
+      ClusterRole."kelos-controller" = {
+        metadata.labels = managed;
+        rules = [
+          {
+            apiGroups = [""];
+            resources = [
+              "pods" "pods/log" "pods/status"
+              "secrets" "configmaps" "serviceaccounts" "services"
+              "events" "namespaces"
+            ];
+            verbs = ["get" "list" "watch" "create" "update" "patch" "delete"];
+          }
+          {
+            apiGroups = ["apps"];
+            resources = ["deployments" "deployments/status" "deployments/scale" "replicasets" "statefulsets"];
+            verbs = ["get" "list" "watch" "create" "update" "patch" "delete"];
+          }
+          {
+            apiGroups = ["batch"];
+            resources = ["jobs" "jobs/status" "cronjobs"];
+            verbs = ["get" "list" "watch" "create" "update" "patch" "delete"];
+          }
+          {
+            apiGroups = ["kelos.dev"];
+            resources = ["tasks" "tasks/status" "tasks/finalizers" "workspaces" "workspaces/status" "agentconfigs" "agentconfigs/status" "taskspawners" "taskspawners/status"];
+            verbs = ["get" "list" "watch" "create" "update" "patch" "delete"];
+          }
+          {
+            apiGroups = ["rbac.authorization.k8s.io"];
+            resources = ["roles" "rolebindings" "clusterroles" "clusterrolebindings"];
+            verbs = ["get" "list" "watch" "create" "update" "patch" "delete"];
+          }
+          {
+            apiGroups = ["coordination.k8s.io"];
+            resources = ["leases"];
+            verbs = ["get" "list" "watch" "create" "update" "patch" "delete"];
+          }
+          {
+            apiGroups = ["networking.k8s.io"];
+            resources = ["networkpolicies"];
+            verbs = ["get" "list" "watch" "create" "update" "patch" "delete"];
+          }
+        ];
+      };
+
+      ClusterRoleBinding."kelos-controller" = {
+        metadata.labels = managed;
+        roleRef = {
+          apiGroup = "rbac.authorization.k8s.io";
+          kind = "ClusterRole";
+          name = "kelos-controller";
+        };
+        subjects = [
+          {
+            kind = "ServiceAccount";
+            name = "kelos-controller";
+            namespace = ns;
+          }
+        ];
       };
     };
-    spec = {
-      schedule = "*/15 * * * *";
-      concurrencyPolicy = "Forbid";
-      jobTemplate = {
+
+    # ════════════════════════════════════════════════════════════════════
+    # NAMESPACE-SCOPED RESOURCES (kelos-system)
+    # ════════════════════════════════════════════════════════════════════
+    # IMPORTANT: Nix forbids multiple ${ns} dynamic attribute keys at the
+    # same scope level. All namespace resources must be in ONE block.
+    ${ns} = {
+      # ── Service account ───────────────────────────
+      ServiceAccount."kelos-controller" = {
+        metadata.labels = managed;
+      };
+
+      # ── Secrets ───────────────────────────────────
+      Secret."opencode-credentials" = { type = "Opaque"; };
+      Secret."github-token" = { type = "Opaque"; };
+
+      # ── Controller deployment ─────────────────────
+      Deployment."kelos-controller-manager" = {
+        metadata.labels = managed // { "app.kubernetes.io/component" = "controller"; };
         spec = {
+          replicas = 1;
+          revisionHistoryLimit = 2;
+          strategy.type = "Recreate";
+          selector.matchLabels = { "control-plane" = "controller-manager"; };
           template = {
-            metadata.labels = { "app.kubernetes.io/part-of" = "kelos"; };
+            metadata.labels = { "control-plane" = "controller-manager"; };
             spec = {
-              nodeName = "nexus";
-              serviceAccountName = "pipeline-operator";
-              restartPolicy = "OnFailure";
-              containers.operator = {
-                image = "nexus:5000/python:3.13-alpine";
+              nodeSelector."kubernetes.io/hostname" = targetNode;
+              serviceAccountName = "kelos-controller";
+              securityContext = {
+                runAsNonRoot = true;
+                seccompProfile.type = "RuntimeDefault";
+              };
+              containers._namedlist = true;
+              containers.manager = {
+                image = controllerImage;
                 imagePullPolicy = "IfNotPresent";
-                command = ["python3" "-c"];
+                command = ["/manager"];
                 args = [
-                  ''
-                  import json, os, urllib.request, datetime
-
-                  # K8s API access via service account token
-                  ns = "kelos-system"
-                  token = open("/var/run/secrets/kubernetes.io/serviceaccount/token").read()
-                  host = os.environ.get("KUBERNETES_SERVICE_HOST", "kubernetes.default.svc")
-                  port = os.environ.get("KUBERNETES_SERVICE_PORT", "443")
-                  base = f"https://{host}:{port}"
-                  headers = {
-                      "Authorization": f"Bearer {token}",
-                      "Accept": "application/json",
-                  }
-                  ctx = urllib.request if not hasattr(urllib.request, 'HTTPSHandler') else urllib.request
-
-                  def k8s_get(path):
-                      req = urllib.request.Request(f"{base}{path}", headers=headers)
-                      return json.loads(urllib.request.urlopen(req, context=ssl_context).read())
-
-                  try:
-                      import ssl
-                      ssl_context = ssl.create_default_context()
-                      ssl_context.check_hostname = False
-                      ssl_context.verify_mode = ssl.CERT_NONE
-                  except:
-                      ssl_context = None
-
-                  now = datetime.datetime.now(datetime.timezone.utc)
-                  print(f"=== Pipeline Maintenance: {now} ===")
-
-                  # Get tasks
-                  try:
-                      tasks = k8s_get(f"/apis/kelos.dev/v1alpha1/namespaces/{ns}/tasks")
-                      items = tasks.get("items", [])
-                      deleted = 0
-                      for t in items:
-                          name = t["metadata"]["name"]
-                          phase = t.get("status", {}).get("phase", "")
-                          created = t["metadata"]["creationTimestamp"]
-                          ct = datetime.datetime.fromisoformat(created.replace("Z", "+00:00"))
-                          age = now - ct
-                          if phase == "Failed" and age.total_seconds() > 900:  # 15 min
-                              print(f"  DELETE {name} (failed, age={age})")
-                              req = urllib.request.Request(
-                                  f"{base}/apis/kelos.dev/v1alpha1/namespaces/{ns}/tasks/{name}",
-                                  method="DELETE", headers=headers)
-                              try:
-                                  urllib.request.urlopen(req, context=ssl_context)
-                                  deleted += 1
-                              except Exception as e:
-                                  print(f"  FAILED to delete {name}: {e}")
-                      print(f"  Deleted {deleted} stale tasks")
-                  except Exception as e:
-                      print(f"  Error fetching tasks: {e}")
-
-                  # Pods on Zephyr
-                  try:
-                      pods = k8s_get(f"/api/v1/namespaces/{ns}/pods")
-                      zephyr = [p for p in pods.get("items", [])
-                               if p.get("spec", {}).get("nodeName") == "zephyr"]
-                      if zephyr:
-                          print(f"  WARNING: {len(zephyr)} pods on Zephyr!")
-                          for p in zephyr:
-                              print(f"    {p['metadata']['name']}")
-                      else:
-                          print(f"  No pods on Zephyr ✅")
-                  except Exception as e:
-                      print(f"  Error checking nodes: {e}")
-
-                  # Summary
-                  running = len([t for t in items if t.get("status", {}).get("phase") == "Running"])
-                  failed = len([t for t in items if t.get("status", {}).get("phase") == "Failed"])
-                  print(f"  Running: {running}, Failed: {failed}")
-                  print("=== Done ===")
-                  ''
+                  "--leader-elect"
+                  "--health-probe-bind-address=:8081"
+                  "--metrics-bind-address=127.0.0.1:8080"
                 ];
+                ports._namedlist = true;
+                ports.http = { containerPort = 9443; protocol = "TCP"; };
+                env._namedlist = true;
+                env = {
+                  KELOS_NAMESPACE.valueFrom.fieldRef.fieldPath = "metadata.namespace";
+                  IMAGE_PULL_POLICY.value = "IfNotPresent";
+                  SPAWNER_IMAGE.value = "${registry}/opencode:${version}";
+                  AGENT_TYPE.value = "opencode";
+                };
                 resources = {
-                  requests = { cpu = "50m"; memory = "64Mi"; };
-                  limits = { cpu = "200m"; memory = "128Mi"; };
+                  requests = { cpu = "100m"; memory = "128Mi"; };
+                  limits = { cpu = "500m"; memory = "256Mi"; };
                 };
                 securityContext = {
                   allowPrivilegeEscalation = false;
                   capabilities.drop = ["ALL"];
-                  runAsNonRoot = true;
-                  runAsUser = 1001;
+                  readOnlyRootFilesystem = true;
                   seccompProfile.type = "RuntimeDefault";
+                  runAsNonRoot = true;
                 };
+                livenessProbe = {
+                  httpGet = { path = "/healthz"; port = 8081; };
+                  initialDelaySeconds = 15;
+                  periodSeconds = 20;
+                };
+                readinessProbe = {
+                  httpGet = { path = "/readyz"; port = 8081; };
+                  initialDelaySeconds = 5;
+                  periodSeconds = 10;
+                };
+                volumeMounts._namedlist = true;
+                volumeMounts.tmp.mountPath = "/tmp";
               };
-              env = [
-                { name = "K8S_NODE_NAME"; valueFrom.fieldRef.fieldPath = "spec.nodeName"; }
-              ];
+              volumes._namedlist = true;
+              volumes.tmp.emptyDir = {};
             };
           };
         };
       };
+
+      # ── Resources: agentconfig, workspaces, spawners ──
+      Resource = {
+        # ── Agent config ──────────────────────────────
+        "agentconfig-cluster-coder" = {
+          apiVersion = "kelos.dev/v1alpha1";
+          kind = "AgentConfig";
+          metadata = { name = "cluster-coder"; labels = managed; };
+          spec = {
+            agentsMD = ''
+              # NixOS Cluster — Agent Guidelines (via Kelos)
+
+              You were spawned by Kelos because this issue has the "agent-ready" label.
+
+              ## Cluster Overview
+              - 4 nodes: Zephyr (31GB), Nexus (46GB), Forge (16GB), Sentry (31GB)
+              - K3s cluster with Flannel CNI
+              - AI Inference Gateway at 10.15.67.242:8080
+
+              ## Models
+              - NVIDIA Nemotron 3 Super (120B) — default model for most tasks
+              - NVIDIA Nemotron 3 Nano (30B) — lightweight model
+              - NVIDIA Nemotron 3 Nano Omni (30B) — reasoning/vision model
+
+              ## Critical Rules
+              - lib.mkOptionDefault for all list/attr options in Nix
+              - Default ALL workloads to Nexus (46GB) — avoid Zephyr OOM
+              - GPU NOT isolated per-pod — nvidia-container-runtime broken on NixOS
+              - Stop if SSH breaks or `nix flake check` fails
+
+              ## Workflow
+              - The workspace at /workspace/repo is writable
+              - Implement the issue, push branch, open PR against main
+              - Branch: kelos-task-NNN
+              - Every commit references #NNN
+              - PR body: "Closes #NNN"
+            '';
+            mcpServers = [];
+          };
+        };
+
+        # ── Workspaces (12 repos) ────────────────────
+        "workspace-nixos-config" = mkWorkspace "nixos-config" "nixos-config";
+        "workspace-ai-inference-gateway" = mkWorkspace "ai-inference-gateway" "ai-inference-gateway";
+        "workspace-maplespike" = mkWorkspace "maplespike" "maplespike";
+        "workspace-knowledge-fabric" = mkWorkspace "knowledge-fabric" "knowledge-fabric";
+        "workspace-compute-market" = mkWorkspace "compute-market" "compute-market";
+        "workspace-mcp-registry" = mkWorkspace "mcp-registry" "mcp-registry";
+        "workspace-gpu-proxy" = mkWorkspace "gpu-proxy" "gpu-proxy";
+        "workspace-llama-cpp-turboquant" = mkWorkspace "llama-cpp-turboquant" "llama-cpp-turboquant";
+        "workspace-vllm-turboquant" = mkWorkspace "vllm-turboquant" "vllm-turboquant";
+        "workspace-searxng-cluster" = mkWorkspace "searxng-cluster" "searxng-cluster";
+        "workspace-caddy-ingress" = mkWorkspace "caddy-ingress" "caddy-ingress";
+        "workspace-vane" = mkWorkspace "vane" "Vane";
+      } // allSpawners;
     };
-  };
-
-  # AgentConfig for task execution
-  agentConfig = {
-    apiVersion = "kelos.dev/v1alpha1";
-    kind = "AgentConfig";
-    metadata = {
-      name = "cluster-coder";
-      namespace = "kelos-system";
-      labels = {
-        "app.kubernetes.io/managed-by" = "easykubenix";
-        "app.kubernetes.io/part-of" = "kelos";
-      };
-    };
-    spec = {
-      agentsMD = ''
-        # Kelos Agent — Task Instructions
-
-        You were spawned by Kelos because this issue has the "agent-ready" label.
-
-        ## Your Job
-        Implement the GitHub issue that spawned you. Read the issue body, make the changes, push the branch, and open a PR against main.
-        DO NOT stop until you have created a pull request. If you hit an error, try a different approach.
-        The task is not complete until a PR exists at github.com/reverb256/maplespike.
-
-        ## Before implementing
-        1. Read the issue body thoroughly — it contains the exact requirements and acceptance criteria
-        2. Check for ## Previous Attempt Feedback in the body — if present, fix those problems first
-
-        ## Gateway verification
-        The AI Inference Gateway is at http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1.
-        The model in opencode.json is configured and valid. Use webfetch (not bash/curl) if you need to check the gateway.
-
-        ## Critical: bash tool requires description
-        Every bash call MUST include a description parameter (e.g., bash(command: "find .", description: "Search for files")).
-        Without it, bash calls fail with SchemaError. Retry with description if you forget.
-
-        ## Workflow
-        - The workspace at /workspace/repo is writable
-        - Branch: kelos-task-NNN
-        - Every commit references #NNN
-        - PR body: "Closes #NNN"
-      '';
-      mcpServers = [
-        { name = "searxng"; type = "sse"; url = "http://mcp-searxng-proxy.mcp.svc.cluster.local:8080/mcp"; }
-        { name = "kb-mcp"; type = "sse"; url = "http://mcp-kb-mcp-proxy.mcp.svc.cluster.local:8080/mcp"; }
-        { name = "memory"; type = "sse"; url = "http://mcp-memory-proxy.mcp.svc.cluster.local:8080/mcp"; }
-        { name = "selfhosted-tools"; type = "sse"; url = "http://mcp-selfhosted-tools-proxy.mcp.svc.cluster.local:8080/mcp"; }
-        { name = "sequential-thinking"; type = "sse"; url = "http://mcp-sequential-thinking-proxy.mcp.svc.cluster.local:8080/mcp"; }
-        { name = "skills-mcp"; type = "sse"; url = "http://mcp-skills-mcp-proxy.mcp.svc.cluster.local:8080/mcp"; }
-      ];
-    };
-  };
-in {
-  options.kubernetes.kelos = {
-    enable = mkEnableOption "Kelos task orchestration";
-
-    repo = mkOption {
-      type = types.str;
-      default = "maplespike";
-      description = "Default repository for Kelos tasks";
-    };
-  };
-
-  config = mkIf cfg.enable {
-
-    kubernetes.rawResources = workspaces ++ taskSpawners ++ [agentConfig pipelineMaintenance];
   };
 }
