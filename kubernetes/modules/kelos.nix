@@ -22,17 +22,17 @@ with lib; let
         apiKey = "\$OPENCODE_API_KEY";
       };
       models = {
-        "openai/nvidia/nemotron-3-super-120b-a12b" = {
+        "nvidia/nemotron-3-super-120b-a12b" = {
           context_length = 131072;
           max_tokens = 16384;
-          id = "openai/nvidia/nemotron-3-super-120b-a12b";
-          name = "openai/nvidia/nemotron-3-super-120b-a12b";
+          id = "nvidia/nemotron-3-super-120b-a12b";
+          name = "Nemotron 3 Super 120B A12B";
         };
-        "openai/nvidia/nemotron-3-super-120b-a12b:free" = {
+        "nvidia/nemotron-3-super-120b-a12b:free" = {
           context_length = 131072;
           max_tokens = 16384;
-          id = "openai/nvidia/nemotron-3-super-120b-a12b:free";
-          name = "openai/nvidia/nemotron-3-super-120b-a12b:free";
+          id = "nvidia/nemotron-3-super-120b-a12b:free";
+          name = "Nemotron 3 Super 120B A12B (Free)";
         };
         "nvidia/llama-3.3-nemotron-super-49b-v1" = {
           context_length = 131072;
@@ -190,28 +190,19 @@ EOFAG
             seccompProfile.type = "RuntimeDefault";
           };
           affinity.nodeAffinity = {
-            preferredDuringSchedulingIgnoredDuringExecution = [
-              {
-                weight = 100;
-                preference.matchExpressions = [
-                  {
-                    key = "kubernetes.io/hostname";
-                    operator = "In";
-                    values = ["nexus"];
-                  }
-                ];
-              }
-              {
-                weight = 50;
-                preference.matchExpressions = [
-                  {
-                    key = "kubernetes.io/hostname";
-                    operator = "In";
-                    values = ["sentry"];
-                  }
-                ];
-              }
-            ];
+            requiredDuringSchedulingIgnoredDuringExecution = {
+              nodeSelectorTerms = [
+                {
+                  matchExpressions = [
+                    {
+                      key = "kubernetes.io/hostname";
+                      operator = "In";
+                      values = ["nexus" "sentry"];
+                    };
+                  ];
+                };
+              ];
+            };
           };
         };
         ttlSecondsAfterFinished = 900;
