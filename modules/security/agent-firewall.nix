@@ -94,7 +94,7 @@ add chain inet agent-firewall cgroup-classify {
   type filter hook output priority -151;
 }
 
-add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-hermes.slice" jump agent-egress;
+#add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-hermes.slice" jump agent-egress;
 # TEMPORARILY DISABLED - slices do not exist
 #add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-opencode.slice" jump agent-egress;
 # TEMPORARILY DISABLED - slices do not exist
