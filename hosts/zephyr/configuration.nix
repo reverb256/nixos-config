@@ -35,12 +35,6 @@ in {
     llama-cpp = pkgs.llama-cpp.overrideAttrs (old: {
       CXXFLAGS = (old.CXXFLAGS or "") + "march=x86_64-v3 -mtune=zen3";
     });
-    # Fix: pipx 1.8.0 test failures (spaces around @)
-    python3 = pkgs.python3.override {
-      packageOverrides = pySelf: pySuper: {
-        pipx = pySuper.pipx.overridePythonAttrs { doCheck = false; };
-      };
-    };
   };
 
   clusterNetworking = {
