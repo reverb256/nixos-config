@@ -28,7 +28,7 @@ in {
       parameters = {
         archiveOnDelete = "true";
       };
-      mountOptions = ["vers=4.1", "hard", "noatime"];
+      mountOptions = ["vers=4.1" "hard" "noatime"];
       reclaimPolicy = "Delete";
       volumeBindingMode = "Immediate";
     };
