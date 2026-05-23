@@ -99,7 +99,7 @@ in
     Deployment.llama-qwen-vllm-nexus = {
       metadata.labels = managed // {
         app = "llama-qwen-vllm-nexus";
-        host = "zephyr";
+        host = "nexus";
         gpu = "rtx3060ti";
       };
       spec = {
@@ -141,9 +141,8 @@ vllm = {
                   "8040"
                   "--gpu-memory-utilization"
                   "0.70"
-                  
                   "--max-num-seqs"
-                  "16"
+                  "8"
                   "--max-model-len"
                   "180000"
                   "--quantization"
