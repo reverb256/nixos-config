@@ -1,4 +1,4 @@
-# LLM inference deployments - llama-server via hostPath /nix/store
+# LLM inference deployments - llama-server via nix-csi /nix/store
 #
 # Uses minimal scratch image with /nix/store bind-mounted from host.
 # The Nix-built llama-server binary runs directly - no Docker image build needed.
@@ -51,9 +51,9 @@ let
 
   baseVolumes = {
     _namedlist = true;
-    nix.hostPath = {
-      path = "/nix";
-      type = "Directory";
+    nix.persistentVolumeClaim = {
+      claimName = "nix-store";
+      readOnly = true;
     };
     nvidia-libs.hostPath.path = "/run/opengl-driver/lib";
     models.persistentVolumeClaim = {
