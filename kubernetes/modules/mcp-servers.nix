@@ -7,7 +7,7 @@ let
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
 in
 {
-  config.kubernetes.objects = {
+  config = { kubernetes.objects = {
     # ── Namespace ─────────────────────────────────────────────────
     # Privileged PSS required for hostPath mounts (scratch container pattern)
     none.Namespace.mcp = {
@@ -466,4 +466,8 @@ in
       };
     };
   };
+
+    # Register apiMapping for kagent RemoteMCPServer CRD
+    kubernetes.apiMappings.RemoteMCPServer = "kagent.dev/v1alpha1";
+};  # close config
 }
