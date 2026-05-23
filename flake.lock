@@ -54,8 +54,8 @@
         ]
       },
       "locked": {
-        "lastModified": 1779159233,
-        "narHash": "sha256-opSIoliTyuoN9MQcqszzSIlv8YvUqkjPzYiNRuDflxE=",
+        "lastModified": 1779497119,
+        "narHash": "sha256-OZZTFQJw4erzbbX5VC8CKu0jGVsm//lU3L46ywCeR9U=",
         "path": "/data/projects/own/ai-inference-gateway",
         "type": "path"
       },
@@ -2211,8 +2211,8 @@
         ]
       },
       "locked": {
-        "lastModified": 1779141880,
-        "narHash": "sha256-SSt4o6PEOZ7Vs6Wrs31fXpC6HZhC662aiq8Cb9weY0Y=",
+        "lastModified": 1779411941,
+        "narHash": "sha256-EFTPDbdpL4jttlJgtGNMH7DMhDA78bMYHUR4C34D6BY=",
         "path": "/data/projects/own/vllm",
         "type": "path"
       },
