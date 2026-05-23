@@ -584,20 +584,8 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
                 };
                 # Container image has default Cmd: python -m uvicorn ... --workers 4
                 # Override workers to 4 for stability
-                command = [
-                  "python"
-                  "-m"
-                  "uvicorn"
-                  "ai_inference_gateway.main:app"
-                  "--host"
-                  "0.0.0.0"
-                  "--port"
-                  "8080"
-                  "--workers"
-                  "4"
-                  "--log-level"
-                  "info"
-                ];
+                 # Removed --workers override to fix uvicorn parent process issue
+                 # Container image default command (single worker) will be used
                 env = {
                   _namedlist = true;
                   AUTH_MODE.valueFrom.configMapKeyRef = {
