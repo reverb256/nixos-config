@@ -584,20 +584,8 @@ in {
                 };
                 # Container image has default Cmd: python -m uvicorn ... --workers 4
                 # Override workers to 4 for stability
-                command = [
-                  "python"
-                  "-m"
-                  "uvicorn"
-                  "ai_inference_gateway.main:app"
-                  "--host"
-                  "0.0.0.0"
-                  "--port"
-                  "8080"
-                  "--workers"
-                  "4"
-                  "--log-level"
-                  "info"
-                ];
+                 # Removed --workers override to fix uvicorn parent process issue
+                 # Container image default command (single worker) will be used
                 env = {
                   _namedlist = true;
                   AUTH_MODE.valueFrom.configMapKeyRef = {
@@ -1138,6 +1126,43 @@ in {
           {from = [{podSelector = {};}];}
         ];
         egress = [{}];
+      };
+    };
+    # ── vLLM Network Policies ─────────────────────────────────────────
+    # Restrict access to vLLM endpoints to gateway only
+    ai-inference.NetworkPolicy.llama-qwen-vllm-nexus-ingress = {
+      spec = {
+        podSelector.matchLabels.app = "llama-qwen-vllm-nexus";
+        policyTypes = ["Ingress"];
+        ingress = [
+          {
+            from = [{podSelector.matchLabels.app = "ai-inference-gateway";}];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 8040;
+              }
+            ];
+          }
+        ];
+      };
+    };
+    # ── Zephyr 3090 llama-server Network Policies ─────────────────────
+    ai-inference.NetworkPolicy.llama-server-zephyr-3090-moe-ingress = {
+      spec = {
+        podSelector.matchLabels.app = "llama-server-zephyr-3090-moe";
+        policyTypes = ["Ingress"];
+        ingress = [
+          {
+            from = [{podSelector.matchLabels.app = "ai-inference-gateway";}];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 1237;
+              }
+            ];
+          }
+        ];
       };
     };
     # ── OpenAI Privacy Filter ───────────────────────────────────────

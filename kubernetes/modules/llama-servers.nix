@@ -110,20 +110,20 @@ in
           host = "zephyr";
         };
         strategy.type = "Recreate";
-        template = {
-          metadata = {
-            labels = managed // {
-              app = "llama-qwen-vllm-nexus";
+          template = {
+            metadata = {
+              labels = managed // {
+                app = "llama-qwen-vllm-nexus";
                 host = "nexus";
-              gpu = "rtx3060ti";
+                gpu = "rtx3060ti";
+              };
             };
-          };
-          spec = {
-        nodeName = "nexus";
-        hostNetwork = true;
-        automountServiceAccountToken = false;
-        priorityClassName = "medium-priority-ai";
-        tolerations = [];
+            spec = {
+              nodeName = "nexus";
+              hostNetwork = true;
+              automountServiceAccountToken = false;
+              priorityClassName = "medium-priority-ai";
+              tolerations = [  ];
             containers = {
               _namedlist = true;
 vllm = {
