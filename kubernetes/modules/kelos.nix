@@ -245,9 +245,9 @@ EOFOP
                       key = "kubernetes.io/hostname";
                       operator = "In";
                       values = ["nexus" "sentry"];
-                    };
+                    }
                   ];
-                };
+                }
               ];
             };
           };
@@ -453,8 +453,63 @@ in {
     };
   };
 
-  config = mkIf cfg.enable {
 
-    kubernetes.rawResources = workspaces ++ taskSpawners ++ [agentConfig pipelineMaintenance];
+  config = mkIf cfg.enable {
+    # Register apiMappings for kelos.dev CRDs
+    kubernetes.apiMappings = {
+      Workspace = "kelos.dev/v1alpha1";
+      TaskSpawner = "kelos.dev/v1alpha1";
+      AgentConfig = "kelos.dev/v1alpha1";
+    };
+
+    # Define resources via the objects system (replaces old rawResources)
+    kubernetes.objects.kelos-system = {
+      # Workspaces: one per repo, generated from the `repos` list
+      Workspace = listToAttrs (map (r: {
+        name = r;
+        value = {
+          metadata.labels = {
+            "app.kubernetes.io/managed-by" = "easykubenix";
+            "app.kubernetes.io/part-of" = "kelos";
+          };
+          spec = {
+            repo = "https://github.com/reverb256/${r}.git";
+            ref = "main";
+            secretRef.name = "github-token";
+            files = [];
+            inherit setupCommand;
+          };
+        };
+      }) repos);
+
+      # TaskSpawners: one per repo, uses taskSpawnerTemplate
+      TaskSpawner = listToAttrs (map (r: let
+        tpl = taskSpawnerTemplate r;
+      in {
+        name = tpl.metadata.name;
+        value = {
+          metadata.labels = tpl.metadata.labels or {};
+          spec = tpl.spec;
+        };
+      }) repos);
+
+      # AgentConfig: cluster-coder profile
+      AgentConfig."cluster-coder" = {
+        metadata.labels = {
+          "app.kubernetes.io/managed-by" = "easykubenix";
+          "app.kubernetes.io/part-of" = "kelos";
+        };
+        spec = agentConfig.spec;
+      };
+
+      # Pipeline maintenance CronJob
+      CronJob."pipeline-maintenance" = {
+        metadata.labels = {
+          "app.kubernetes.io/managed-by" = "easykubenix";
+          "app.kubernetes.io/part-of" = "kelos";
+        };
+        spec = pipelineMaintenance.spec;
+      };
+    };
   };
 }
