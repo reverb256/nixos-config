@@ -1128,6 +1128,43 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
         egress = [{}];
       };
     };
+    # ── vLLM Network Policies ─────────────────────────────────────────
+    # Restrict access to vLLM endpoints to gateway only
+    ai-inference.NetworkPolicy.llama-qwen-vllm-nexus-ingress = {
+      spec = {
+        podSelector.matchLabels.app = "llama-qwen-vllm-nexus";
+        policyTypes = ["Ingress"];
+        ingress = [
+          {
+            from = [{podSelector.matchLabels.app = "ai-inference-gateway";}];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 8040;
+              }
+            ];
+          }
+        ];
+      };
+    };
+    # ── Zephyr 3090 llama-server Network Policies ─────────────────────
+    ai-inference.NetworkPolicy.llama-server-zephyr-3090-moe-ingress = {
+      spec = {
+        podSelector.matchLabels.app = "llama-server-zephyr-3090-moe";
+        policyTypes = ["Ingress"];
+        ingress = [
+          {
+            from = [{podSelector.matchLabels.app = "ai-inference-gateway";}];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 1237;
+              }
+            ];
+          }
+        ];
+      };
+    };
     # ── OpenAI Privacy Filter ───────────────────────────────────────
     # PII detection and masking using openai/privacy-filter model
     # Requires transformers >= 5.6.0 (model uses openai_privacy_filter architecture)
