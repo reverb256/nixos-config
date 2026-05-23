@@ -216,7 +216,7 @@ in {
           failures=0
 
           # Check each node
-          for node in "${REMOTE_NODES[@]}"; do
+          for node in ${REMOTE_NODES[*]}; do
             node_checksum=$(${pkgs.openssh}/bin/ssh -i "${cfg.sshKeyFile}" -o StrictHostKeyChecking=no \
               "root@$node" "cat /run/cns/current-checksum.txt 2>/dev/null || echo "")
 
