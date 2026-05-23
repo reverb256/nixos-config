@@ -1,5 +1,13 @@
 {
   description = "NixOS configuration with Garage and Syncthing storage";
+  nixConfig = {
+    extra-substituters = [
+      "https://nix-community.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    ];
+  };
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     home-manager = {
@@ -153,6 +161,10 @@
       url = "github:Mic92/nix-fast-build";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    bun2nix = {
+      url = "github:nix-community/bun2nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     # ── Newly extracted project flakes ───────────────────────
     # hermes-workspace and hermes-webui archived (2026-05-16)
@@ -184,7 +196,10 @@
       inherit system;
       config.allowUnfree = true;
       config.cudaSupport = true;
-      overlays = [((import ./overlay.nix) {inherit inputs;})];
+      overlays = [
+        inputs.bun2nix.overlays.default
+        ((import ./overlay.nix) {inherit inputs;})
+      ];
     };
 
     commonModules = import ./common-modules-list.nix {

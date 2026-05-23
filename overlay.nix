@@ -112,10 +112,14 @@
           license = prev.lib.licenses.mit;
         };
       };
+      # Fix: pipx 1.8.0 test failures (spaces around @)
+      pipx = py-super.pipx.overridePythonAttrs { doCheck = false; };
     };
   };
   claude-code-image = prev.callPackage ./packages/claude-code-image.nix {};
-  opencode-image = prev.callPackage ./packages/opencode-image.nix {};
+  opencode-image = final.callPackage ./packages/opencode-image.nix {
+    inherit (final) bun;
+  };
   maplespike-mcp-image = inputs.maplespike.packages.x86_64-linux.maplespike-mcp-image;
   maplespike-api-image = inputs.maplespike.packages.x86_64-linux.maplespike-api-image;
   maplespike-ingest-image = inputs.maplespike.packages.x86_64-linux.maplespike-ingest-image;
