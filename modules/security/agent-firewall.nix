@@ -98,8 +98,6 @@
     }
   '';
 
-    echo "agent-firewall: nftables rules configured"
-  '';
 
   # Script to verify agent firewall status
   agentStatusScript = pkgs.writeShellScriptBin "agent-firewall-status" ''
@@ -251,7 +249,7 @@ in {
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        ExecStart = "${pkgs.nftables}/bin/nft -f ${config.environment.etc."nftables/agent-firewall.conf}";
+        ExecStart = "${pkgs.nftables}/bin/nft -f /etc/nftables/agent-firewall.conf";
       };
     };
 
