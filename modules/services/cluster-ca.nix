@@ -91,8 +91,8 @@ in {
     # Group that should own the private keys
     keyGroup = mkOption {
       type = types.str;
-      default = "root";
-      description = "Group that should have read access to private keys";
+      default = "caddy";
+      description = "Group that gets read access to private keys";
     };
   };
 
@@ -192,13 +192,18 @@ in {
           rm -f /tmp/leaf.csr
           chmod 644 $LEAF_CERT
           chmod 640 $LEAF_KEY
-          chown root:${cfg.keyGroup} $LEAF_KEY
-          echo "$SAN_HASH" > "$SAN_FILE"
+            chown root:${cfg.keyGroup} $LEAF_KEY
+            chmod 640 $LEAF_CERT
+            chmod 640 $LEAF_KEY
+            echo "$SAN_HASH" > "$SAN_FILE"
           echo "Leaf certificate generated at $LEAF_CERT"
         fi
         ''}
       '';
     };
+
+    # Add caddy to keyGroup for cert access
+    users.users.caddy.extraGroups = [ cfg.keyGroup ];
 
     systemd.services.cluster-ca-export = {
       description = "Export CA certificate to user home";
@@ -216,5 +221,11 @@ in {
         '';
       };
     };
+    # Ensure cert directory exists and has correct permissions
+    systemd.tmpfiles.rules = [
+      "d /etc/ssl/cluster-ca 0755 root root -"
+      "f /etc/ssl/cluster-ca/leaf.key 0640 root ${cfg.keyGroup} -"
+      "f /etc/ssl/cluster-ca/leaf.crt 0644 root root -"
+    ];
   };
 }

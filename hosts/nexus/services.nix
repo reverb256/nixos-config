@@ -17,6 +17,8 @@
 in {
   systemd.tmpfiles.rules = [
     "R /var/lib/etcd - - - - -"
+    "d /data/hermes 0775 j_kro j_kro -"
+    "d /data/pi 0775 j_kro j_kro -"
   ];
 
   services = {
@@ -82,11 +84,6 @@ in {
       interval = "15min";
     };
 
-    # Create directories for hermes/pi state on Nexus
-    systemd.tmpfiles.rules = [
-      "d /data/hermes 0775 j_kro j_kro -"
-      "d /data/pi 0775 j_kro j_kro -"
-    ];
   };
 
   programs.steam = {
@@ -264,7 +261,7 @@ in {
       };
       openwebui = {
         domain = "openwebui.lan";
-        backend = k8s.open-web-ui.dns;
+        backend = k8s.open-webui.dns;
 
       };
       hermes = {
@@ -371,7 +368,7 @@ in {
      enableShellEnv = true;
    };
 
-   mcp-registry = {
+   services.mcp-registry = {
      enable = true;
      generateHermes = true;
      generateClaudeCode = true;
