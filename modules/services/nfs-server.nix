@@ -35,6 +35,7 @@ in {
     systemd.tmpfiles.rules = [
       "d /mnt/garage 0755 root root - -"
       "d /mnt/garage/hermes 0775 root wheel - -"
+      "d /data/models 1777 root root - -"
     ];
 
     # Base data exports -- only applied when nfs-data-server is enabled

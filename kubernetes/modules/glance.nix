@@ -140,10 +140,7 @@ in {
                         url: https://kagent.lan
                         allow-insecure: true
                         alt-status-codes: [301, 302]
-                      - title: Haven
-                        url: https://haven.lan
-                        allow-insecure: true
-                        alt-status-codes: [301, 302]
+
                       - title: Hermes
                         url: https://hermes.lan
                         allow-insecure: true

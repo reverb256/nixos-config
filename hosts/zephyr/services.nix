@@ -202,18 +202,16 @@ in {
       server.enable = true;
     };
 
-    # NFS server for /etc/nixos only — hermes/pi moved to Nexus to break I/O loop on root NVMe
+    # Canonical NFS server for hermes + pi agent state + shared model cache
     nfs-data-server = {
       enable = true;
-      exports = "";
-    };
+      exports = ''
+        /data/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=105)
 
-    # Sync hermes/pi state FROM Nexus (Nexus is now canonical source)
-    nfs-state-sync = {
-      enable = true;
-      sourceHost = "nexus";
-      paths = ["/data/hermes" "/data/pi"];
-      interval = "15min";
+        /data/pi 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=106)
+
+        /data/models 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=108)
+      '';
     };
 
     nfs-client = {
@@ -328,25 +326,17 @@ in {
           kubernetes = "You are a Kubernetes expert. Use best practices for manifests, deployments, and troubleshooting.";
         };
       };
-       security = {
-         maxRequestSize = 10485760;
-         enableProxy = false;
-       };
-     };
+      security = {
+        maxRequestSize = 10485760;
+        enableProxy = false;
+      };
+    };
 
     mcp-servers = {
       enable = true;
+      servers.playwright.enable = true;
+      servers.context7.apiKeyFile = "/run/agenix/context7-api-key";
     };
-
-    mcp-registry = {
-      enable = true;
-      generateHermes = true;
-      generateClaudeCode = true;
-      generateKagentCRDs = true;
-      generateNetworkPolicies = true;
-      generateCasdoorApps = true;
-    };
-
     cachix-auth = {
       enable = true;
     };
@@ -369,77 +359,77 @@ in {
     enableShellEnv = true;
   };
 
-  # Agent network restrictions — restrict AI agents to allowed destinations only
-  agent-firewall = {
-    enable = true;
-    auditLog = true;
-  };
-
-  web-testing.enable = true;
-
-  mining = {
-    lolminer = {
-      pool = "stratum+tcp://${cluster.kubernetes.services.xmrig-proxy.host}:${toString cluster.kubernetes.services.xmrig-proxy.port}";
-      wallet = "krxXVNVMM7.zephyr-gpu";
-      pools = [
-        {
-          url = "stratum+tcp://${cluster.kubernetes.services.xmrig-proxy.host}:${toString cluster.kubernetes.services.xmrig-proxy.port}";
-          wallet = "krxXVNVMM7.zephyr-gpu";
-          password = "x";
-          tls = false;
-        }
-        {
-          url = "xtm-c29-us.kryptex.network:8040";
-          wallet = "krxXVNVMM7.zephyr-gpu";
-          password = "x";
-          tls = true;
-        }
-        {
-          url = "xtm-c29-eu.kryptex.network:8040";
-          wallet = "krxXVNVMM7.zephyr-gpu";
-          password = "x";
-          tls = true;
-        }
-      ];
-    };
-
-    xmrigDual = {
+    # Agent network restrictions — restrict AI agents to allowed destinations only
+    agent-firewall = {
       enable = true;
-      flexible = {
-        enable = true;
-        threads = 12;
-        httpPort = 8082;
-        httpTokenFile = "/run/agenix/xmrig-flexible-api-token";
-        autostart = false;
+      auditLog = true;
+    };
+
+    web-testing.enable = true;
+
+    mining = {
+      lolminer = {
+        pool = "stratum+tcp://${cluster.kubernetes.services.xmrig-proxy.host}:${toString cluster.kubernetes.services.xmrig-proxy.port}";
+        wallet = "krxXVNVMM7.zephyr-gpu";
+        pools = [
+          {
+            url = "stratum+tcp://${cluster.kubernetes.services.xmrig-proxy.host}:${toString cluster.kubernetes.services.xmrig-proxy.port}";
+            wallet = "krxXVNVMM7.zephyr-gpu";
+            password = "x";
+            tls = false;
+          }
+          {
+            url = "xtm-c29-us.kryptex.network:8040";
+            wallet = "krxXVNVMM7.zephyr-gpu";
+            password = "x";
+            tls = true;
+          }
+          {
+            url = "xtm-c29-eu.kryptex.network:8040";
+            wallet = "krxXVNVMM7.zephyr-gpu";
+            password = "x";
+            tls = true;
+          }
+        ];
       };
-      pool = "${cluster.hosts.zephyr.ip}:3333";
-      wallet = "zephyr-cpu";
-      password = "x";
-      tls = false;
+
+      xmrigDual = {
+        enable = true;
+        flexible = {
+          enable = true;
+          threads = 12;
+          httpPort = 8082;
+          httpTokenFile = "/run/agenix/xmrig-flexible-api-token";
+          autostart = false;
+        };
+        pool = "${cluster.hosts.zephyr.ip}:3333";
+        wallet = "zephyr-cpu";
+        password = "x";
+        tls = false;
+      };
     };
-  };
 
-  syncthing-cluster = {
-    enable = true;
-    deviceId = "ZEPHYR-PLACEHOLDER";
-  };
-
-  status-auto-update.enable = true;
-
-  systemd-user-timeout.enable = true;
-
-  cluster-ca.enable = true;
-
-  claude-code-router = {
-    enable = true;
-    port = 3456;
-    openFirewall = false;
-    zai = {
-      apiKeyFile = config.age.secrets.zai-api-key.path;
-      defaultModel = "glm-4.7";
-      thinkModel = "glm-4.7";
+    syncthing-cluster = {
+      enable = true;
+      deviceId = "ZEPHYR-PLACEHOLDER";
     };
-  };
+
+    status-auto-update.enable = true;
+
+    systemd-user-timeout.enable = true;
+
+    cluster-ca.enable = true;
+
+    claude-code-router = {
+      enable = true;
+      port = 3456;
+      openFirewall = false;
+      zai = {
+        apiKeyFile = config.age.secrets.zai-api-key.path;
+        defaultModel = "glm-4.7";
+        thinkModel = "glm-4.7";
+      };
+    };
   };
 
   # Allow Caddy to bind privileged ports (<1024) when running as non-root
@@ -493,10 +483,4 @@ in {
     enable = true;
     device = "/dev/disk/by-uuid/b07258b9-b1a3-4540-ae34-69e441faba28";
   };
-
-  # Create directories for hermes/pi bind mounts on Zephyr
-  systemd.tmpfiles.rules = [
-    "d /data/hermes 0775 j_kro j_kro -"
-    "d /data/pi 0775 j_kro j_kro -"
-  ];
 }
