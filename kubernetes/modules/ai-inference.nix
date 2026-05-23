@@ -28,25 +28,25 @@
   # Special handling for NVIDIA NIM: since it's one URL for multiple models,
   # we expand it into multiple entries to maintain the original discovery pattern.
   discoveryBackends = builtins.toJSON (
-    lib.concatMap (name: info: 
+    lib.concatMap ({name, value}: 
       if name == "nvidia-nim" then 
         lib.map (modelId: {
-          url = info.url;
+          url = value.url;
           # Use a shorthand name for NIM models (e.g., "nemotron-super")
           name = lib.pipe modelId [
-            (builtins.replace "nvidia/" "")
-            (builtins.replace "nemotron-3-super-120b-a12b" "nemotron-super")
-            (builtins.replace "nemotron-3-nano-30b-a3b" "nemotron-nano")
-            (builtins.replace "nemotron-3-nano-omni-30b-a3b-reasoning" "nemotron-omni")
+            (builtins.replaceStrings ["nvidia/"] [""])
+            (builtins.replaceStrings ["nemotron-3-super-120b-a12b"] ["nemotron-super"])
+            (builtins.replaceStrings ["nemotron-3-nano-30b-a3b"] ["nemotron-nano"])
+            (builtins.replaceStrings ["nemotron-3-nano-omni-30b-a3b-reasoning"] ["nemotron-omni"])
           ];
-        } (info.models or [ ]))
+        }) (value.models or [ ])
       else [
         {
-          url = info.url;
+          url = value.url;
           name = name;
         }
       ]
-    ) (lib.attrToList aiModels.backends)
+    ) (lib.attrsToList aiModels.backends)
   );
 
   # Model name mapping (aliases to full model identifiers)
@@ -153,7 +153,8 @@ in {
       MIDDLEWARE__JWT_AUTH__SYSTEM_TOKEN = "sovereign-system-token-2026-internal";
     };
 
-        };
+    ai-inference.Deployment.open-webui = {
+      spec = {
         template = {
           metadata.labels.app = "open-webui";
           spec = {
@@ -882,7 +883,7 @@ in {
       type = "Opaque";
       stringData.NVIDIA_API_KEY = "";
     };
-    };
+    ai-inference.Secret.kilo-api-key = {
       type = "Opaque";
       stringData.KILO_API_KEY = "";
     };
