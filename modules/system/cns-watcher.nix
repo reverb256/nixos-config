@@ -51,7 +51,7 @@ in {
           set -euo pipefail
 
           WATCH_DIR="${cfg.watchPath}"
-          REMOTE_NODES=(${concatStringsSep " " cfg.remoteNodes})
+          REMOTE_NODES=(${lib.concatStringsSep " " cfg.remoteNodes})
           SSH_KEY="${cfg.sshKeyFile}"
           STAGING_DIR="/var/lib/cns/staging"
           STATE_DIR="/var/lib/cns/state"
