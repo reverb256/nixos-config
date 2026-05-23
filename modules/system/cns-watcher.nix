@@ -193,7 +193,7 @@ in {
     systemd.services.cns-health = {
       description = "CNS: Check secret distribution health";
       serviceConfig = {
-        ExecStart = pkgs.writeShellScript "cns-health" ''
+      ExecStart = pkgs.writeShellScript "cns-health" ''
           set -euo pipefail
 
           LOG_FILE="/var/log/cns/health.log"
@@ -218,7 +218,7 @@ in {
           # Check each node
           for node in ${concatStringsSep " " cfg.remoteNodes}; do
             node_checksum=$(${pkgs.openssh}/bin/ssh -i "${cfg.sshKeyFile}" -o StrictHostKeyChecking=no \
-              "root@$node" "cat /run/cns/current-checksum.txt 2>/dev/null" || echo "")
+              "root@$node" "cat /run/cns/current-checksum.txt 2>/dev/null || echo "")
 
             if [ "$node_checksum" = "$expected" ]; then
               log "$node: OK"
@@ -231,9 +231,9 @@ in {
           if [ $failures -gt 0 ]; then
             log "Health check failed: $failures nodes out of sync"
             exit 1
-          else
-            log "Health check passed: All nodes in sync"
           fi
+
+          log "All nodes in sync"
         '';
         Type = "oneshot";
         User = "root";
