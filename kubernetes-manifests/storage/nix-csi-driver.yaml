@@ -200,7 +200,6 @@ spec:
             - name: nix-store
               mountPath: /nix
               mountPropagation: Bidirectional
-              subPath: nix
           resources:
             requests:
               memory: "128Mi"
@@ -225,7 +224,7 @@ spec:
               mountPath: /registration
           resources:
             requests:
-              memory: "10Mi"
+              memory: "32Mi"
               cpu: "10m"
         - name: livenessprobe
           image: registry.k8s.io/sig-storage/livenessprobe:v2.17.0
@@ -238,7 +237,7 @@ spec:
               mountPath: /registration
           resources:
             requests:
-              memory: "10Mi"
+              memory: "32Mi"
               cpu: "10m"
       volumes:
         - name: nix-config
@@ -250,7 +249,7 @@ spec:
             type: DirectoryOrCreate
         - name: nix-store
           hostPath:
-            path: /var/lib/nix-csi
+            path: /nix
             type: DirectoryOrCreate
         - name: csi-socket
           hostPath:
