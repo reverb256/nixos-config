@@ -14,7 +14,7 @@ with lib; let
   # Shared opencode.json config with NIM models via AI Inference Gateway
   opencodeConfig = lib.generators.toJSON {} {
     "$schema" = "https://opencode.ai/config.json";
-    model = "meta/llama-3.1-70b-instruct";
+    model = "auto";
     enabled_providers = ["nvidia"];
     mcpServers = [
       {
@@ -48,9 +48,17 @@ with lib; let
         baseURL = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1";
       };
       models = {
-        "llama-3.1-70b-instruct" = {
-          name = "Llama 3.1 70B";
-          id = "meta/llama-3.1-70b-instruct";
+        "nemotron-3-super-120b-a12b" = {
+          name = "Nemotron 3 Super 120B";
+          id = "nvidia/nemotron-3-super-120b-a12b";
+        };
+        "nemotron-3-nano-30b-a3b" = {
+          name = "Nemotron 3 Nano 30B";
+          id = "nvidia/nemotron-3-nano-30b-a3b";
+        };
+        "nemotron-3-nano-omni-30b-a3b-reasoning" = {
+          name = "Nemotron 3 Nano Omni 30B";
+          id = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
         };
       };
     };
