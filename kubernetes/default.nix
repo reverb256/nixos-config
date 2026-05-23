@@ -57,6 +57,7 @@ in {
     ./modules/gpu-miners.nix
     ./modules/profit-switcher.nix
     ./modules/gpu-tuning.nix
+    ./modules/nix-csi.nix
     ./modules/ai-inference.nix
     ./modules/llama-servers.nix
     ./modules/nixkube.nix
@@ -113,6 +114,7 @@ in {
   small = mkManifest "small" [
     ./modules/infrastructure.nix
     ./modules/gpu-tuning.nix
+    ./modules/nix-csi.nix
     ./modules/nixkube.nix
     ./modules/searxng.nix
     ./modules/haven.nix
@@ -126,7 +128,6 @@ in {
     ./modules/mission-control.nix
     ./modules/kagent.nix
     ./modules/kelos.nix
-    ./modules/automation.nix
     ./modules/mcp-servers.nix
     ./modules/glance.nix
     ./modules/tailscale.nix
