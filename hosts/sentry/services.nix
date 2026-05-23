@@ -77,12 +77,6 @@ in {
       sourceHost = "nexus";
     };
 
-    # Create directories for hermes/pi bind mounts on Sentry
-    systemd.tmpfiles.rules = [
-      "d /data/hermes 0775 j_kro j_kro -"
-      "d /data/pi 0775 j_kro j_kro -"
-    ];
-
     syncthing-cluster = {
       enable = true;
       deviceId = "SENTRY-PLACEHOLDER";
@@ -95,6 +89,12 @@ in {
       aiServices = true;
     };
   };
+
+  # Create directories for hermes/pi bind mounts on Sentry
+  systemd.tmpfiles.rules = [
+    "d /data/hermes 0775 j_kro j_kro -"
+    "d /data/pi 0775 j_kro j_kro -"
+  ];
 
   # Cluster DNS configuration
   networking.cluster.dns.enable = true;
