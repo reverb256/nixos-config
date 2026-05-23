@@ -62,6 +62,7 @@ in {
     ./modules/llama-servers.nix
     ./modules/nixkube.nix
     ./modules/searxng.nix
+    ./modules/vane.nix
     ./modules/haven.nix
     ./modules/casdoor.nix
     ./modules/cert-manager.nix
