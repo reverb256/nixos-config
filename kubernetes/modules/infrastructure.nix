@@ -92,11 +92,15 @@ in {
       globalDefault = false;
       description = "High priority for AI inference workloads. Preempts mining pods.";
     };
-
     PriorityClass.medium-priority-ai = {
       value = 500;
       globalDefault = false;
-      description = "Medium priority AI workloads (Nexus RTX 3060 Ti)";
+      description = "Medium priority for AI workloads (Nexus RTX 3060 Ti). Lower than high-priority AI, above mining.";
+    };
+    PriorityClass.low-priority-mining = {
+      value = 100;
+      globalDefault = false;
+      description = "Low priority for cryptocurrency mining. Preempted by AI workloads.";
     };
 
     # ── NFS Models PVC (shared across all AI nodes) ───────────────────────
@@ -107,11 +111,6 @@ in {
         storageClassName = "nfs-client";
         resources.requests.storage = "500Gi";
       };
-    };
-    PriorityClass.low-priority-mining = {
-      value = 100;
-      globalDefault = false;
-      description = "Low priority for cryptocurrency mining. Preempted by AI workloads.";
     };
 
     # ── Require resource limits on all pods ──────────────────────
