@@ -33,7 +33,7 @@ in {
       CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=zen3";
     });
     llama-cpp = pkgs.llama-cpp.overrideAttrs (old: {
-      CXXFLAGS = (old.CXXFLAGS or "") + "march=x86_64-v3 -mtune=zen3";
+      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=zen3";
     });
   };
 
