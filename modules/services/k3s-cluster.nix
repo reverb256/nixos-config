@@ -110,11 +110,11 @@ in {
       inherit (cfg) role nodeName;
       # k3s version — pin to specific release to avoid surprise upgrades
       # Previous pin: 1.34.5 (1.35.0-1.35.3 had re-exec crash loop on NixOS)
-      # Upgraded: 1.35.4 — re-exec issue resolved, tested on forge first
+      # Upgraded: 1.35.4 → 1.36.1 (CSI driver fixes, better RBAC support)
       package = let
         k3sBin = pkgs.fetchurl {
-          url = "https://github.com/k3s-io/k3s/releases/download/v1.35.4+k3s1/k3s";
-          hash = "sha256-CASY7OUKza8j/l1zb0HGFuJ2qJpOVgWj8nTzmw/O6Fs=";
+          url = "https://github.com/k3s-io/k3s/releases/download/v1.36.1+k3s1/k3s";
+          hash = "sha256-a443db3fe9820cd93617ae67e4386d87c1514c1e96ceb30f4c2791c39065653c";
         };
       in
         pkgs.runCommand "k3s-with-agent" {
