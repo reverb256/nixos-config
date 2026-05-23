@@ -236,6 +236,19 @@ EOFOP
             runAsNonRoot = true;
             seccompProfile.type = "RuntimeDefault";
           };
+          # Override alpine/git entrypoint (defaults to "git") which breaks shell commands
+          initContainers = [
+            {
+              name = "git-clone";
+              image = "alpine/git:latest";
+              entrypoint = [];
+            }
+            {
+              name = "branch-setup";
+              image = "alpine/git:latest";
+              entrypoint = [];
+            }
+          ];
           affinity.nodeAffinity = {
             requiredDuringSchedulingIgnoredDuringExecution = {
               nodeSelectorTerms = [
