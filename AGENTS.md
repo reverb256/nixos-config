@@ -316,6 +316,67 @@ Three K8s secrets defined in Nix modules but **never mounted or referenced** by 
 
 Safe to clean up. The `casdoor-app-sync` systemd service (in `k8s-secret-bootstrap.nix`) handles the real oauth2-proxy Casdoor app with auto-synced client secrets.
 
+## Cluster Mesh SSH Account
+
+**Purpose:** Dedicated service account for inter-node SSH mesh (health checks, exec tunneling).
+
+**Policy:** Cluster does NOT use root SSH. All automated inter-node communication uses `cluster-mesh@10.1.1.x`.
+
+### Architecture
+
+```
+cluster-mesh service account
+├── User: cluster-mesh (system user, no shell)
+├── Group: cluster-mesh
+├── SSH key: cns-ssh-key (agenix, owned cluster-mesh:cluster-mesh 0600)
+├── Key location: /var/lib/cluster-mesh/.ssh/id_ed25519
+└── Authorized keys: Restricted via command=
+```
+
+### Services Using Cluster-Mesh SSH
+
+| Service | Purpose | Command |
+|---------|---------|---------|
+| `cns-watcher.service` | CNS secret distribution to nodes | `ssh -i /var/lib/cluster-mesh/.ssh/id_ed25519 cluster-mesh@10.1.1.x` |
+| `nexus-exec-tunnel.service` | Nexus exec tunnel (Zephyr→Nexus) | `ssh -i /var/lib/cluster-mesh/.ssh/id_ed25519 cluster-mesh@nexus` |
+| `cns-health.timer` | CNS health check verification | `ssh -i /var/lib/cluster-mesh/.ssh/id_ed25519 cluster-mesh@10.1.1.x` |
+
+### Configuration
+
+Enable on hosts that participate in SSH mesh:
+
+```nix
+services.cluster-mesh.enable = true;
+```
+
+Module: `modules/security/cluster-mesh.nix`
+
+### SSH Key Management
+
+1. **Agenix Secret:** `secrets/cns-ssh-key.age`
+2. **Owner:** `cluster-mesh:cluster-mesh 0600`
+3. **Copy Service:** `cluster-mesh-key-setup.service` copies from `/run/agenix/cns-ssh-key` → `/var/lib/cluster-mesh/.ssh/id_ed25519`
+4. **Deployment:** Auto-applied on all hosts via module auto-discovery
+
+### Usage Pattern
+
+For service-to-service SSH in systemd units:
+
+```bash
+ssh -i /var/lib/cluster-mesh/.ssh/id_ed25519 cluster-mesh@10.1.1.120 <command>
+```
+
+Never use `root@10.1.1.x` in automated services.
+
+### Node IPs
+
+| Host | IP |
+|------|-----|
+| Zephyr | 10.1.1.110 |
+| Nexus | 10.1.1.120 |
+| Forge | 10.1.1.130 |
+| Sentry | 10.1.1.140 |
+
 ## Service ↔ Network Bridge
 
 The bridge between NixOS system config and K8s workloads is `/etc/nixos/kubernetes/service-ports.nix`.  

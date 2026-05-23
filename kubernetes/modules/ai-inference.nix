@@ -28,25 +28,25 @@
   # Special handling for NVIDIA NIM: since it's one URL for multiple models,
   # we expand it into multiple entries to maintain the original discovery pattern.
   discoveryBackends = builtins.toJSON (
-    lib.concatMap (name: info: 
+    lib.concatMap ({name, value}: 
       if name == "nvidia-nim" then 
         lib.map (modelId: {
-          url = info.url;
+          url = value.url;
           # Use a shorthand name for NIM models (e.g., "nemotron-super")
           name = lib.pipe modelId [
-            (builtins.replace "nvidia/" "")
-            (builtins.replace "nemotron-3-super-120b-a12b" "nemotron-super")
-            (builtins.replace "nemotron-3-nano-30b-a3b" "nemotron-nano")
-            (builtins.replace "nemotron-3-nano-omni-30b-a3b-reasoning" "nemotron-omni")
+            (builtins.replaceStrings ["nvidia/"] [""])
+            (builtins.replaceStrings ["nemotron-3-super-120b-a12b"] ["nemotron-super"])
+            (builtins.replaceStrings ["nemotron-3-nano-30b-a3b"] ["nemotron-nano"])
+            (builtins.replaceStrings ["nemotron-3-nano-omni-30b-a3b-reasoning"] ["nemotron-omni"])
           ];
-        } (info.models or [ ]))
+        }) (value.models or [ ])
       else [
         {
-          url = info.url;
+          url = value.url;
           name = name;
         }
       ]
-    ) (lib.attrToList aiModels.backends)
+    ) (lib.attrsToList aiModels.backends)
   );
 
   # Model name mapping (aliases to full model identifiers)
@@ -135,7 +135,7 @@ in {
        SECONDARY_BACKEND_MODEL = "qwen3.5-2b-awq";
       DISCOVERY_BACKENDS = ''${discoveryBackends} '';
       DISABLED_MODELS = ''${builtins.toJSON disabledModels} '';
-PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
+      PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
       PRIVACY_FILTER_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED = "true";
@@ -146,9 +146,6 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
       MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS = "[\"/etc/nixos\"]";
       MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K = "10";
-      MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS = "[\"/etc/nixos\"]";
-      MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED = "true";
-      MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K = "10";
       MIDDLEWARE__JWT_AUTH__ENABLED = "true";
       MIDDLEWARE__JWT_AUTH__JWKS_URL = "https://auth.lan/.well-known/jwks";
       MIDDLEWARE__JWT_AUTH__ISSUER = "https://auth.lan";
@@ -156,7 +153,8 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
       MIDDLEWARE__JWT_AUTH__SYSTEM_TOKEN = "sovereign-system-token-2026-internal";
     };
 
-        };
+    ai-inference.Deployment.open-webui = {
+      spec = {
         template = {
           metadata.labels.app = "open-webui";
           spec = {
@@ -885,7 +883,7 @@ PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080"
       type = "Opaque";
       stringData.NVIDIA_API_KEY = "";
     };
-    };
+    ai-inference.Secret.kilo-api-key = {
       type = "Opaque";
       stringData.KILO_API_KEY = "";
     };

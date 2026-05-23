@@ -46,6 +46,16 @@ in {
       volumeBindingMode = "Immediate";
     };
 
+
+    PersistentVolumeClaim.nix-store = {
+      metadata.labels = labels;
+      spec = {
+        accessModes = ["ReadWriteMany"];
+        resources.requests.storage = "50Gi";
+        storageClassName = "nix-store";
+        volumeMode = "Filesystem";
+      };
+    };
     ServiceAccount.nix-csi-controller = {
       metadata = {
         namespace = "nix-csi";
