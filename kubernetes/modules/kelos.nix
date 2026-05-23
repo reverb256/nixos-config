@@ -245,9 +245,9 @@ EOFOP
                       key = "kubernetes.io/hostname";
                       operator = "In";
                       values = ["nexus" "sentry"];
-                    };
+                    }
                   ];
-                };
+                }
               ];
             };
           };
@@ -455,6 +455,6 @@ in {
 
   config = mkIf cfg.enable {
 
-    kubernetes.rawResources = workspaces ++ taskSpawners ++ [agentConfig pipelineMaintenance];
+    kubernetes.resources = workspaces ++ taskSpawners ++ [agentConfig pipelineMaintenance];
   };
 }
