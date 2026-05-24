@@ -344,4 +344,5 @@ in {
   services.cns-watcher.enable = true;
   services.agenix-secrets-registry.cns = true;
   services.ai-inference.enable = lib.mkForce false;
+  services.cluster-mesh.enable = true;
 }
