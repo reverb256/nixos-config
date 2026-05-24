@@ -239,7 +239,7 @@
           inherit inputs;
         };
         modules =
-          commonModules
+          modules
           ++ [
             ./hosts/${hostName}/configuration.nix
           ]
