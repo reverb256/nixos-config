@@ -1,5 +1,7 @@
 # Infrastructure Audit — 2026-05-14
 
+> **⚠️ 9 days old, approaching staleness threshold (7 days). Re-verify key metrics before relying.**
+
 ## Cluster Overview
 
 | Host | CPU | RAM (used/total) | GPUs | Disk | Load | K8s Status |

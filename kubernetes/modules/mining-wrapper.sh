@@ -46,6 +46,10 @@ get_pool_args() {
             RIGEL=$(find "$MINERS_DIR" -name rigel -type f 2>/dev/null | head -1)
             [ -n "$RIGEL" ] && echo "exec $RIGEL -a xelishashv3 -o stratum+tcp://xel-us.kryptex.network:7055 -u ${WALLET}.${worker} -p x -w ${worker} -d ${DEVICE_INDEX:-0} --api-bind 0.0.0.0:${API_PORT:-4068}"
             ;;
+        xtm)
+            RIGEL=$(find "$MINERS_DIR" -name rigel -type f 2>/dev/null | head -1)
+            [ -n "$RIGEL" ] && echo "exec $RIGEL -a sha3x --coin xtm -o stratum+ssl://xtm-c29.kryptex.network:8040 -u ${WALLET}.${worker} -p x -w ${worker} -d ${DEVICE_INDEX:-0} --api-bind 0.0.0.0:${API_PORT:-4068}"
+            ;;
         *)
             echo "# Unknown coin: $coin" >&2
             ;;
@@ -104,6 +108,7 @@ start_miner() {
         nexa)     ALGO="nexapow" ;;
         iron)     ALGO="fishhash" ;;
         xel)      ALGO="xelishashv3" ;;
+        xtm)      ALGO="sha3x" ;;
         *)        ALGO="kawpow" ;;
     esac
     tune_gpu "$ALGO"
@@ -115,11 +120,11 @@ start_miner() {
     fi
 
     if [ -z "$cmd" ] || echo "$cmd" | grep -q "^# "; then
-        echo "[wrapper] No compatible miner for ${coin}, falling back to rvn"
+        echo "[wrapper] No compatible miner for ${coin}, falling back to ${DEFAULT_COIN:-xtm}"
         if [ "$MINER_TYPE" = "teamredminer" ]; then
-            cmd=$(get_trm_pool_args "rvn" "$WORKER_NAME")
+            cmd=$(get_trm_pool_args "${DEFAULT_COIN:-xtm}" "$WORKER_NAME")
         else
-            cmd=$(get_pool_args "rvn" "$WORKER_NAME")
+            cmd=$(get_pool_args "${DEFAULT_COIN:-xtm}" "$WORKER_NAME")
         fi
     fi
 
@@ -132,12 +137,10 @@ stop_miner() {
     if [ -n "$MINER_PID" ] && kill -0 "$MINER_PID" 2>/dev/null; then
         echo "[wrapper] Stopping miner (PID=$MINER_PID)"
         kill -TERM "$MINER_PID" 2>/dev/null || true
-        # Wait up to 15 seconds for graceful shutdown
         for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
             kill -0 "$MINER_PID" 2>/dev/null || break
             sleep 1
         done
-        # Force kill if still running
         kill -0 "$MINER_PID" 2>/dev/null && kill -KILL "$MINER_PID" 2>/dev/null || true
         wait "$MINER_PID" 2>/dev/null || true
         MINER_PID=""
@@ -146,7 +149,6 @@ stop_miner() {
 
 # --- Main loop ---
 
-# Download all miners first (from gpu-miners.nix downloadAllMiners integration)
 if [ -d "$MINERS_DIR" ] && [ "$(ls -A "$MINERS_DIR" 2>/dev/null)" ]; then
     echo "[wrapper] Miners already available in ${MINERS_DIR}"
 else
@@ -167,8 +169,7 @@ while true; do
     COIN=$(get_current_coin)
 
     if [ -z "$COIN" ]; then
-        # No config yet, use default
-        COIN="${DEFAULT_COIN:-rvn}"
+        COIN="${DEFAULT_COIN:-xtm}"
         echo "[wrapper] No config found, using default: ${COIN}"
     fi
 

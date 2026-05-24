@@ -1,5 +1,7 @@
 # NixOS Config Simplification Plan
 
+> **⚠️ STALE (24 days old, last verified 2026-04-29)** — Verify against current cluster state before following. Reality may have diverged.
+
 > **For Hermes:** Use subagent-driven-development skill to implement this plan task-by-task.
 
 **Goal:** Remove ~500 lines of dead config, 42 dead module files, 173 archived K8s manifests, and deduplicate ~170 lines of repeated code across hosts.

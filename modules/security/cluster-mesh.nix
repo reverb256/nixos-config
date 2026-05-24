@@ -15,7 +15,7 @@
 # SSH usage (service contexts):
 #   ssh -i /var/lib/cluster-mesh/.ssh/id_ed25519 cluster-mesh@10.1.1.X <command>
 #
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 let
   cfg = config.services.cluster-mesh;
   inherit (lib) mkEnableOption mkIf mkOption types;

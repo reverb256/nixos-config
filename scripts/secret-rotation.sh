@@ -67,7 +67,7 @@ TIER2_SECRETS=(
   "zai-api-key:quarterly:Z.AI (ZhipuAI) API key"
   "ai-gateway-zai-api-key:quarterly:AI Gateway Z.AI key"
   "nvidia-api-key:quarterly:NVIDIA API key"
-  "openrouter-api-key:quarterly:OpenRouter API key"
+  # "openrouter-api-key:quarterly:OpenRouter API key" - REMOVED
   "gemini-api-key:quarterly:Google Gemini API key"
   "cloudflare-api-token:quarterly:Cloudflare API token"
   "cloudflare-global-api-key:quarterly:Cloudflare global API key"

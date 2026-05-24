@@ -324,14 +324,7 @@
       quotaMultiplier = 0;
       priority = 6;
     };
-    openrouter-free = {
-      id = "openrouter/free";
-      name = "OpenRouter free router";
-      category = "free";
-      provider = "gateway";
-      quotaMultiplier = 0;
-      priority = 6;
-    };
+    # openrouter-free removed — no longer used
   };
 
   # ── Model Roles ─────────────────────────────────────────────────────

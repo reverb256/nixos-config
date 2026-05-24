@@ -174,13 +174,6 @@ in {
       example = "config.age.secrets.nvidia-api-key.path";
     };
 
-    openrouterApiKeyFile = lib.mkOption {
-      type = lib.types.nullOr lib.types.path;
-      default = null;
-      description = "Path to agenix secret file containing OPENROUTER_API_KEY";
-      example = "config.age.secrets.openrouter-api-key.path";
-    };
-
     casdoorJwtFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
@@ -357,13 +350,6 @@ YAI_EOF
           if [ -f "${cfg.opencodeZenApiKeyFile}" ]; then
             echo -n "OPENCODE_ZEN_API_KEY=" >> "$HERMES_HOME/.env"
             cat "${cfg.opencodeZenApiKeyFile}" >> "$HERMES_HOME/.env"
-            echo "" >> "$HERMES_HOME/.env"
-          fi
-        ''}
-              ${lib.optionalString (cfg.openrouterApiKeyFile != null) ''
-          if [ -f "${cfg.openrouterApiKeyFile}" ]; then
-            echo -n "OPENROUTER_API_KEY=" >> "$HERMES_HOME/.env"
-            cat "${cfg.openrouterApiKeyFile}" >> "$HERMES_HOME/.env"
             echo "" >> "$HERMES_HOME/.env"
           fi
         ''}
