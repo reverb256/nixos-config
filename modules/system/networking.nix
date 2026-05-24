@@ -96,8 +96,8 @@
       '';
     };
 
-    timesyncd = {
-      enable = true;
+  timesyncd = {
+    enable = lib.mkDefault true;
       servers = [
         "time.cloudflare.com"
         "time.google.com"
