@@ -166,6 +166,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # WSL — NixOS on Windows Subsystem for Linux (krash3)
+    NixOS-WSL = {
+      url = "github:nix-community/NixOS-WSL";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # ── Newly extracted project flakes ───────────────────────
     # hermes-workspace and hermes-webui archived (2026-05-16)
     maplespike = {
@@ -246,6 +252,10 @@
       sentry = {
         hostName = "sentry";
         k8sManifest = self.kubernetes.small.manifestYAMLFile;
+      };
+      krash3 = {
+        hostName = "krash3";
+        k8sManifest = null;  # No K8s manifests
       };
     };
   in {
