@@ -227,11 +227,7 @@ category = "free"
 provider = "gateway"
 priority = 6
 
-[models.openrouter-free]
-name = "OpenRouter free router"
-category = "free"
-provider = "gateway"
-priority = 6
+# openrouter-free removed 2026-05-23
 
 [backends]
 gateway = { type = "openai-compatible", url = "http://10.1.1.110:8080/v1", host = "zephyr" }

@@ -19,7 +19,7 @@ disabled_models = [
   "microsoft/phi-4",
   "qwen/qwen3-coder-plus","qwen/qwen3-coder-next","qwen/qwen3-coder-flash",
   "qwen/qwen3-coder-30b-a3b-instruct","qwen/qwen3.5-35b-a3b","qwen/qwen3.5-27b",
-  "qwen/qwen3.5-9b","qwen/qwen3.5-plus-20260420","openrouter/owl-alpha"
+  "qwen/qwen3.5-9b","qwen/qwen3.5-plus-20260420"
 ]
 
 [models]

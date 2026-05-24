@@ -1,6 +1,6 @@
 # NixOS Cluster - Real-Time Status
 
-**Last Updated:** 2026-05-18 05:49:40 | **Auto-Generated:** Yes | **Refresh:** `./scripts/update-status.sh`
+**Last Updated:** 2026-05-24 04:27:12 | **Auto-Generated:** Yes | **Refresh:** `./scripts/update-status.sh`
 
 > **Quick Check:** Run `just cluster-status` to see current cluster state. This command works from any cluster host and proxies to zephyr for Kubernetes queries when needed.
 >
@@ -28,10 +28,10 @@
 
 ```
 NAME     STATUS   ROLES                AGE   VERSION
-forge    Ready    control-plane,etcd   43d   v1.35.4+k3s1
-nexus    Ready    control-plane,etcd   18d   v1.35.4+k3s1
-sentry   Ready    control-plane,etcd   43d   v1.35.4+k3s1
-zephyr   Ready    <none>               41d   v1.35.4+k3s1
+forge    Ready    control-plane,etcd   49d   v1.35.4+k3s1
+nexus    Ready    control-plane,etcd   24d   v1.35.4+k3s1
+sentry   Ready    control-plane,etcd   49d   v1.35.4+k3s1
+zephyr   Ready    <none>               47d   v1.36.1+k3s1
 ```
 
 > **Note:** Node ages reflect CIDR fix + role label application. Roles describe node function for pod scheduling.
@@ -76,93 +76,93 @@ zephyr   Ready    <none>               41d   v1.35.4+k3s1
 ### Kubernetes Pods by Namespace
 
 ```
-NAMESPACE         NAME                                                        READY   STATUS              RESTARTS         AGE     IP             NODE     NOMINATED NODE   READINESS GATES
-ai-coding         claude-code-656765c5cd-mxbtj                                2/2     Running             0                7d13h   10.244.1.142   nexus    <none>           <none>
-ai-coding         opencode-6cfddd9c47-tmfrs                                   2/2     Running             0                7d13h   10.244.1.144   nexus    <none>           <none>
-ai-inference      ai-inference-gateway-59864f947f-9qgnd                       1/1     Running             11 (46h ago)     3d8h    10.244.1.36    nexus    <none>           <none>
-ai-inference      frostbite-data-ingest-29650320-b2sns                        0/1     Completed           0                17h     10.244.1.30    nexus    <none>           <none>
-ai-inference      frostbite-data-ingest-29650680-c6dzh                        0/1     Completed           0                11h     10.244.1.35    nexus    <none>           <none>
-ai-inference      frostbite-data-ingest-29651040-cwnnl                        0/1     Completed           0                5h49m   10.244.1.43    nexus    <none>           <none>
-ai-inference      frostbite-postgres-0                                        1/1     Running             0                6d4h    10.244.3.59    sentry   <none>           <none>
-ai-inference      gitea-657cd8f5bc-5bc6x                                      1/1     Running             0                29h     10.244.1.190   nexus    <none>           <none>
-ai-inference      gitea-runner-776549857f-c9dqs                               1/1     Running             0                5h44m   10.244.1.45    nexus    <none>           <none>
-ai-inference      llama-qwen-vllm-nexus-644dd6d68d-r4dfx                      0/1     CrashLoopBackOff    5 (2m13s ago)    14m     10.1.1.120     nexus    <none>           <none>
-ai-inference      llama-server-sentry-6bc49f7cd6-2mksc                        1/1     Running             1 (45h ago)      6d4h    10.1.1.140     sentry   <none>           <none>
-ai-inference      llama-server-zephyr-3090-moe-5c6564c966-w27nj               1/1     Running             261 (93s ago)    29h     10.1.1.110     zephyr   <none>           <none>
-ai-inference      maplespike-ingest-canlii-29647080-htw72                     0/1     Completed           0                2d23h   <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-canlii-29649960-h49k6                     0/1     Completed           0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-cmhc-29649960-8bcnp                       0/1     Error               0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-cmhc-29649960-k85fl                       0/1     Error               0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-cmhc-29649960-lmv47                       0/1     Error               0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-committee-29647080-nbcrr                  0/1     Completed           0                2d23h   <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-committee-29649960-5zkdx                  0/1     Completed           0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-corporate-29649960-fbh4s                  0/1     Completed           0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-cra-charity-29649960-bs8kf                0/1     Completed           0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-defence-29649960-dmcbt                    0/1     Completed           0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-education-research-29649960-mhj6r         0/1     Completed           0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-federal-budget-29649960-vcl25             0/1     Completed           0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-gazette-29649960-dfp9w                    0/1     Completed           0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-gic-29649960-2btq5                        0/1     Completed           0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-health-canada-29649960-2pt72              0/1     Error               0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-health-canada-29649960-68ggv              0/1     Error               0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-health-canada-29649960-nh6tn              0/1     Error               0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-immigration-29647080-f7rsw                0/1     Completed           0                2d23h   <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-immigration-29649960-prt76                0/1     Completed           0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-indigenous-relations-29649960-2659g       0/1     Error               0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-indigenous-relations-29649960-fm27q       0/1     Error               0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-indigenous-relations-29649960-nk6t4       0/1     Error               0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-influence-29647080-zkhb9                  0/1     Completed           0                2d23h   <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-influence-29649960-kt7lp                  0/1     Completed           0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-lmia-29647080-xpchj                       0/1     Completed           0                2d23h   <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-lmia-29649960-fsvhb                       0/1     Completed           0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-provincial-legislatures-29650320-rnls9    0/1     Completed           0                17h     10.244.1.32    nexus    <none>           <none>
-ai-inference      maplespike-ingest-provincial-legislatures-29650680-l4jwv    0/1     Completed           0                11h     10.244.1.37    nexus    <none>           <none>
-ai-inference      maplespike-ingest-provincial-legislatures-29651040-bvl96    0/1     Completed           0                5h49m   10.244.1.42    nexus    <none>           <none>
-ai-inference      maplespike-ingest-provincial-lobbying-29647080-qfrq9        0/1     Completed           0                2d23h   <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-provincial-lobbying-29649960-9zml8        0/1     Completed           0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-science-research-29649960-cn7kx           0/1     Error               0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-science-research-29649960-dbk2k           0/1     Error               0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-science-research-29649960-swwkk           0/1     Error               0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-social-programs-29647080-q9gmf            0/1     Completed           0                2d23h   <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-social-programs-29649960-v4rhc            0/1     Completed           0                23h     <none>         nexus    <none>           <none>
-ai-inference      maplespike-ingest-statcan-29650320-tnn5j                    0/1     Completed           0                17h     10.244.1.31    nexus    <none>           <none>
+NAMESPACE         NAME                                                  READY   STATUS             RESTARTS          AGE     IP             NODE     NOMINATED NODE   READINESS GATES
+ai-coding         claude-code-656765c5cd-mxbtj                          2/2     Running            0                 13d     10.244.1.142   nexus    <none>           <none>
+ai-coding         opencode-6cfddd9c47-tmfrs                             2/2     Running            0                 13d     10.244.1.144   nexus    <none>           <none>
+ai-inference      ai-inference-gateway-577d9c855-cvjvd                  1/1     Running            0                 6h49m   10.244.1.174   nexus    <none>           <none>
+ai-inference      frostbite-postgres-0                                  1/1     Running            0                 6h48m   10.244.3.68    sentry   <none>           <none>
+ai-inference      gitea-657cd8f5bc-5bc6x                                1/1     Running            8 (5h56m ago)     7d4h    10.244.1.190   nexus    <none>           <none>
+ai-inference      gitea-runner-776549857f-c9dqs                         1/1     Running            0                 6d4h    10.244.1.45    nexus    <none>           <none>
+ai-inference      maplespike-portal-bd77dd554-5bmlv                     1/1     Running            0                 7d4h    10.244.1.187   nexus    <none>           <none>
+ai-inference      open-webui-84cccc585c-knx2x                           1/1     Running            0                 8d      10.244.1.169   nexus    <none>           <none>
+ai-inference      privacy-filter-5444bc8f4-hhln7                        1/1     Running            0                 4d12h   10.244.1.66    nexus    <none>           <none>
+ai-inference      qdrant-796c7f5b69-f9jcw                               1/1     Running            5 (5d9h ago)      5d9h    10.244.1.94    nexus    <none>           <none>
+ai-inference      redis-5cc876554d-d8w64                                1/1     Running            0                 9d      10.244.1.39    nexus    <none>           <none>
+auth              casdoor-697fd868f5-fqv2g                              1/1     Running            9 (47h ago)       12d     10.244.1.242   nexus    <none>           <none>
+auth              casdoor-postgres-0                                    1/1     Running            0                 12d     10.244.1.222   nexus    <none>           <none>
+auth              oauth2-proxy-c9478bcfb-cmpnw                          0/1     Error              73 (5m17s ago)    13d     10.244.1.193   nexus    <none>           <none>
+automation        n8n-c8cc98d7-2xv7s                                    1/1     Running            0                 14d     10.244.1.129   nexus    <none>           <none>
+automation        postgres-n8n-0                                        1/1     Running            0                 14d     10.244.1.125   nexus    <none>           <none>
+cert-manager      cert-manager-6d886c975f-l5dnk                         1/1     Running            5 (6h17m ago)     15d     10.244.5.141   forge    <none>           <none>
+cert-manager      cert-manager-cainjector-79cbb85d4b-qmszj              1/1     Running            5 (6h17m ago)     15d     10.244.5.142   forge    <none>           <none>
+cert-manager      cert-manager-webhook-55d4ccb49b-d9bnv                 1/1     Running            0                 15d     10.244.5.143   forge    <none>           <none>
+custom-metrics    prometheus-adapter-d486f945b-nlxm4                    1/1     Running            0                 13d     10.1.1.130     forge    <none>           <none>
+dashboard         glance-545c4c65c8-gx4fm                               1/1     Running            0                 6h47m   10.244.1.175   nexus    <none>           <none>
+default           forge-dashboard-67ccc846fc-xnsp2                      1/1     Running            0                 12d     10.244.5.159   forge    <none>           <none>
+default           nexus-dashboard-7564d8df89-blfv2                      1/1     Running            0                 12d     10.244.1.213   nexus    <none>           <none>
+default           sentry-dashboard-5db4b848bf-4w8hl                     1/1     Running            1                 12d     10.244.3.118   sentry   <none>           <none>
+default           zephyr-dashboard-5d48dbff77-bdw9v                     1/1     Running            81 (4m33s ago)    5d8h    10.244.0.2     zephyr   <none>           <none>
+infra             nixos-cluster-mcp-sbkqt                               1/1     Running            0                 12d     10.1.1.130     forge    <none>           <none>
+infra             nixos-cluster-mcp-xqh9v                               1/1     Running            0                 12d     10.1.1.120     nexus    <none>           <none>
+kagent            ci-cd-watcher-77548cb9c-c7s4q                         1/1     Running            1                 21h     10.244.3.172   sentry   <none>           <none>
+kagent            ci-cd-watcher-trigger-29659860-5wcpr                  0/1     Completed          0                 87m     10.244.1.23    nexus    <none>           <none>
+kagent            ci-cd-watcher-trigger-29659890-llxq4                  0/1     Completed          0                 57m     10.244.1.29    nexus    <none>           <none>
+kagent            ci-cd-watcher-trigger-29659920-rfxgw                  0/1     Completed          0                 27m     10.244.1.34    nexus    <none>           <none>
+kagent            gateway-health-check-29659860-dqssl                   0/1     Completed          0                 87m     10.244.3.173   sentry   <none>           <none>
+kagent            gateway-health-check-29659890-9pgj7                   0/1     Completed          0                 57m     10.244.3.90    sentry   <none>           <none>
+kagent            gateway-health-check-29659920-kvqn8                   0/1     Completed          0                 27m     10.244.3.33    sentry   <none>           <none>
+kagent            gateway-optimizer-84447f67c4-w8457                    1/1     Running            6                 21h     10.244.3.170   sentry   <none>           <none>
+kagent            github-issue-enricher-84cc46dc76-x4sxc                1/1     Running            6                 7h27m   10.244.3.141   sentry   <none>           <none>
+kagent            kagent-controller-7c5b9475d5-qq994                    1/1     Running            0                 18h     10.244.1.62    nexus    <none>           <none>
+kagent            kagent-postgresql-7fd9c9b8fd-5b7rh                    1/1     Running            0                 24h     10.244.1.35    nexus    <none>           <none>
+kagent            kagent-ui-56546c48bb-5wrmb                            1/1     Running            0                 19h     10.244.1.58    nexus    <none>           <none>
+kagent            pipeline-operator-5f7f89fc66-25n26                    1/1     Running            5                 21h     10.244.3.159   sentry   <none>           <none>
+kagent            pr-architect-7dc5c96855-zxq42                         1/1     Running            4                 21h     10.244.3.197   sentry   <none>           <none>
+kagent            pr-qa-685597ccb-m2swk                                 1/1     Running            5                 21h     10.244.3.142   sentry   <none>           <none>
+kagent            pr-reviewer-5d656c47c5-m7tkx                          1/1     Running            5                 21h     10.244.3.177   sentry   <none>           <none>
+kagent            pr-secops-7cc645b899-lhgsj                            1/1     Running            7                 21h     10.244.3.171   sentry   <none>           <none>
+kagent            pr-skeptic-54ccfcc94f-c8vlz                           1/1     Running            4                 21h     10.244.3.181   sentry   <none>           <none>
+kelos-system      benchmark-clean-run-nsnvc                             0/1     Completed          0                 153m    10.244.1.4     nexus    <none>           <none>
+kelos-system      ghproxy-ai-inference-gateway-5866f888f-cfqv7          1/1     Running            0                 4d7h    10.244.1.155   nexus    <none>           <none>
+kelos-system      ghproxy-caddy-ingress-7684c94697-878kp                1/1     Running            1                 4d7h    10.244.3.165   sentry   <none>           <none>
+kelos-system      ghproxy-compute-market-777f85d458-4fthx               1/1     Running            1                 4d7h    10.244.3.127   sentry   <none>           <none>
 ```
 
 > **Note:** Showing first 50 pods. Run `kubectl get pods --all-namespaces` for full list.
 
 ### Pod Summary by Namespace
 ```
-     59 ai-inference
-     13 monitoring
-     11 kube-system
-      9 mcp
-      7 mining
-      7 default
-      6 maplespike-dev
-      5 tailscale
-      5 nixkube
-      5 maplespike-prod
-      3 kagent
-      3 infra
+    137 kelos-system
+     50 mining
+     19 mcp
+     18 kagent
+     10 monitoring
+      9 ai-inference
+      7 kube-system
+      6 tailscale
+      4 maplespike-dev
+      4 default
+      3 search
+      3 nixkube
       3 cert-manager
       3 auth
+      2 infra
       2 automation
       2 ai-coding
       1 vaultwarden
-      1 search
+      1 reverb256
       1 orchestration
       1 observability
-      1 haven
+      1 maplespike-prod
       1 dashboard
       1 custom-metrics
-      1 ci-runner
 ```
 
 ---
 
 ## Recent Changes
 
-**2026-05-18 05:49:40:**
+**2026-05-24 04:27:12:**
 - 🔄 **AUTO-UPDATED:** STATUS.md regenerated from current cluster state
 - 📊 **CLUSTER STATUS:** All nodes Ready, control plane operational
 
@@ -198,34 +198,34 @@ ai-inference      maplespike-ingest-statcan-29650320-tnn5j                    0/
 ### Node Resource Usage
 ```
 NAME     CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)   
-forge    2326m        38%      4259Mi          26%         
-nexus    7976m        33%      13081Mi         27%         
-sentry   9133m        57%      8377Mi          26%         
-zephyr   3550m        11%      18019Mi         56%         
+forge    2292m        38%      3744Mi          23%         
+nexus    3709m        15%      18517Mi         38%         
+sentry   3536m        22%      8975Mi          28%         
+zephyr   229m         0%       13223Mi         41%         
 ```
 
 ### Pod Resource Usage
 ```
-NAMESPACE         NAME                                            CPU(cores)   MEMORY(bytes)   
-ai-coding         claude-code-656765c5cd-mxbtj                    2m           15Mi            
-ai-coding         opencode-6cfddd9c47-tmfrs                       2m           15Mi            
-ai-inference      ai-inference-gateway-59864f947f-9qgnd           8m           2543Mi          
-ai-inference      frostbite-postgres-0                            11m          39Mi            
-ai-inference      gitea-657cd8f5bc-5bc6x                          3m           131Mi           
-ai-inference      gitea-runner-776549857f-c9dqs                   1m           7Mi             
-ai-inference      llama-server-sentry-6bc49f7cd6-2mksc            1m           185Mi           
-ai-inference      llama-server-zephyr-3090-moe-5c6564c966-w27nj   940m         2067Mi          
-ai-inference      maplespike-portal-bd77dd554-5bmlv               1m           12Mi            
-ai-inference      open-webui-84cccc585c-knx2x                     2m           654Mi           
-ai-inference      privacy-filter-86d9d65bd7-6c5qs                 2m           994Mi           
-ai-inference      qdrant-bf988f5c8-vzqcm                          1m           87Mi            
-ai-inference      redis-5cc876554d-d8w64                          4m           8Mi             
-auth              casdoor-697fd868f5-fqv2g                        1m           79Mi            
-auth              casdoor-postgres-0                              6m           45Mi            
-auth              oauth2-proxy-c9478bcfb-cmpnw                    1m           17Mi            
-automation        n8n-c8cc98d7-2xv7s                              1m           282Mi           
-automation        postgres-n8n-0                                  6m           33Mi            
-cert-manager      cert-manager-6d886c975f-l5dnk                   1m           79Mi            
+NAMESPACE         NAME                                                  CPU(cores)   MEMORY(bytes)   
+ai-coding         claude-code-656765c5cd-mxbtj                          2m           18Mi            
+ai-coding         opencode-6cfddd9c47-tmfrs                             2m           16Mi            
+ai-inference      ai-inference-gateway-577d9c855-cvjvd                  7m           2043Mi          
+ai-inference      frostbite-postgres-0                                  8m           22Mi            
+ai-inference      gitea-657cd8f5bc-5bc6x                                1m           94Mi            
+ai-inference      gitea-runner-776549857f-c9dqs                         1m           16Mi            
+ai-inference      maplespike-portal-bd77dd554-5bmlv                     1m           11Mi            
+ai-inference      open-webui-84cccc585c-knx2x                           2m           654Mi           
+ai-inference      privacy-filter-5444bc8f4-hhln7                        2m           932Mi           
+ai-inference      qdrant-796c7f5b69-f9jcw                               1m           85Mi            
+ai-inference      redis-5cc876554d-d8w64                                4m           7Mi             
+auth              casdoor-697fd868f5-fqv2g                              1m           136Mi           
+auth              casdoor-postgres-0                                    3m           57Mi            
+automation        n8n-c8cc98d7-2xv7s                                    1m           270Mi           
+automation        postgres-n8n-0                                        5m           29Mi            
+cert-manager      cert-manager-6d886c975f-l5dnk                         1m           28Mi            
+cert-manager      cert-manager-cainjector-79cbb85d4b-qmszj              1m           32Mi            
+cert-manager      cert-manager-webhook-55d4ccb49b-d9bnv                 1m           59Mi            
+custom-metrics    prometheus-adapter-d486f945b-nlxm4                    4m           79Mi            
 Pod metrics not available (metrics-server not deployed)
 ```
 
@@ -269,7 +269,7 @@ kubectl get endpoints <service-name> -n <namespace>
 
 ---
 
-**Auto-Generated:** 2026-05-18 05:49:40
+**Auto-Generated:** 2026-05-24 04:27:12
 **Update Script:** `scripts/update-status.sh`
 **Run Manually:** `sudo ./scripts/update-status.sh`
 **Auto-Refresh:** Hourly via systemd timer (status-update.timer)
