@@ -4,7 +4,7 @@
   pkgs,
   ...
 }: {
-  system.stateVersion = "26.05";
+  system.stateVersion = lib.mkDefault "26.05";
 
   # Auto-cleanup old nix generations
   nix.gc = {
