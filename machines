@@ -1,1 +1,2 @@
-builders = 
+ssh-ng://j_kro@nexus x86_64-linux /root/.ssh/id_ed25519 10 2 kvm,big-parallel
+ssh-ng://j_kro@sentry x86_64-linux /root/.ssh/id_ed25519 4 1 big-parallel
