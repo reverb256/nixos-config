@@ -15,7 +15,7 @@ with lib; let
   opencodeConfig = lib.generators.toJSON {} {
     "$schema" = "https://opencode.ai/config.json";
     model = "$KELOS_MODEL";  # Dynamic — set by model-routing-controller
-    enabled_providers = ["nvidia"];
+    enabled_providers = ["openai"];
     mcpServers = [
       {
         name = "searxng";
@@ -43,34 +43,34 @@ with lib; let
         url = "http://mcp-sequential-thinking-proxy.mcp.svc.cluster.local:8080/mcp";
       }
     ];
-    provider.nvidia = {
+    provider.openai = {
       options = {
         baseURL = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1";
       };
       models = {
         "llama-3.1-70b-instruct" = {
-          name = "Llama 3.1 70B";
-          id = "meta/llama-3.1-70b-instruct";
+          name = "Nemotron 70B";
+          id = "nvidia/llama-3.1-nemotron-70b-instruct";
         };
         "nemotron-3-nano-30b-a3b" = {
-          name = "Llama 3.1 70B (fast)";
-          id = "meta/llama-3.1-70b-instruct";
+          name = "Nemotron 3 Nano 30B";
+          id = "nvidia/nemotron-3-nano-30b-a3b";
         };
         "nemotron-3-super-120b-a12b" = {
-          name = "Llama 3.1 70B (best)";
-          id = "meta/llama-3.1-70b-instruct";
+          name = "Nemotron 3 Super 120B";
+          id = "nvidia/nemotron-3-super-120b-a12b";
         };
         "nemotron-3-nano-omni-30b-a3b-reasoning" = {
-          name = "Gemma 3 12B IT (reasoning)";
-          id = "google/gemma-3-12b-it";
+          name = "Nemotron 3 Nano Omni";
+          id = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
         };
         "llama-3.3-nemotron-super-49b-v1" = {
-          name = "Llama 3.1 8B (fast)";
-          id = "meta/llama-3.1-8b-instruct";
+          name = "Nemotron Super 49B";
+          id = "nvidia/llama-3.3-nemotron-super-49b-v1.5";
         };
         "llama-3.1-70b-instruct-direct" = {
-          name = "Llama 3.1 70B (direct)";
-          id = "meta/llama-3.1-70b-instruct";
+          name = "Nemotron 70B Direct";
+          id = "nvidia/llama-3.1-nemotron-70b-instruct";
         };
       };
     };
@@ -132,14 +132,14 @@ CMDEOF
 
     # Generate opencode.json using KELOS_MODEL env var (set by model-routing-controller)
     # Falls back to default model if env var not set (e.g., first-run or manual)
-    MODEL="''${KELOS_MODEL:-nvidia/nemotron-3-nano-30b-a3b}"
-    FALLBACKS="''${KELOS_MODEL_FALLBACKS:-qwen/qwen3-coder-480b-a35b-instruct}"
+    MODEL="''${KELOS_MODEL:-openai/nvidia/nemotron-3-nano-30b-a3b}"
+    FALLBACKS="''${KELOS_MODEL_FALLBACKS:-openai/qwen/qwen3-coder-480b-a35b-instruct}"
     cat > /workspace/repo/opencode.json << EOFOP
 ${opencodeConfig}
 EOFOP
     # Patch the opencode.json with the actual model from env var
     sed -i 's/"\$KELOS_MODEL"/"'"$MODEL"'"/g' /workspace/repo/opencode.json
-    # Fallback models: pre-configured in opencodeConfig provider.nvidia.models above.
+    # Fallback models: pre-configured in opencodeConfig provider.openai.models above.
     # Add new fallbacks from KELOS_MODEL_FALLBACKS env var if they aren't already configured.
     # Note: sed targeting nested JSON keys doesn't work here — models are pre-configured statically.
     true
@@ -196,11 +196,11 @@ EOFOP
       };
     };
     spec = {
-      maxConcurrency = 12;
+      maxConcurrency = 3;
       taskTemplate = {
         type = "opencode";
         workspaceRef.name = r;
-        model = "nvidia/nemotron-3-nano-30b-a3b";  # Default — overridden by model-routing-controller
+        model = "openai/nvidia/nemotron-3-nano-30b-a3b";  # Default — overridden by model-routing-controller
         agentConfigRef.name = "cluster-coder";
         branch = "kelos-task-{{.Number}}";
         credentials = {
@@ -226,13 +226,13 @@ EOFOP
 
           MODEL ROUTING: The model in opencode.json was selected by the model-routing-controller
           based on the issue labels. Available models per task type:
-          - coding: nvidia/nemotron-3-super-120b-a12b (best for code)
-          - analysis: nvidia/nemotron-3-nano-30b-a3b (fast, cost-effective)
-          - reasoning: nvidia/nemotron-3-nano-omni-30b-a3b-reasoning (optimized reasoning)
-          - batch: nvidia/nemotron-3-nano-30b-a3b (cheapest)
-          - urgent: nvidia/nemotron-3-super-120b-a12b (best quality)
-          - vision: nvidia/nemotron-3-nano-omni-30b-a3b-reasoning
-          - documentation: qwen/qwen3-coder-480b-a35b-instruct
+          - coding: openai/nvidia/nemotron-3-super-120b-a12b (best for code)
+          - analysis: openai/nvidia/nemotron-3-nano-30b-a3b (fast, cost-effective)
+          - reasoning: openai/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning (optimized reasoning)
+          - batch: openai/nvidia/nemotron-3-nano-30b-a3b (cheapest)
+          - urgent: openai/nvidia/nemotron-3-super-120b-a12b (best quality)
+          - vision: openai/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning
+          - documentation: openai/qwen/qwen3-coder-480b-a35b-instruct
           Fallback: if your model is slow/unavailable, the gateway auto-routes.
 
           Branch: kelos-task-{{.Number}}
@@ -259,11 +259,11 @@ EOFOP
             # Overrides the default model in opencode.json
             {
               name = "KELOS_MODEL";
-              value = "nvidia/nemotron-3-nano-30b-a3b";
+              value = "openai/nvidia/nemotron-3-nano-30b-a3b";
             }
             {
               name = "KELOS_MODEL_FALLBACKS";
-              value = "qwen/qwen3-coder-480b-a35b-instruct,meta/llama-3.3-70b-instruct";
+              value = "openai/qwen/qwen3-coder-480b-a35b-instruct,openai/nvidia/llama-3.1-nemotron-70b-instruct";
             }
           ];
           resources = {
@@ -301,17 +301,58 @@ EOFOP
               entrypoint = [];
             }
           ];
-          affinity.nodeAffinity = {
-            requiredDuringSchedulingIgnoredDuringExecution = {
-              nodeSelectorTerms = [
+          affinity = {
+            nodeAffinity = {
+              requiredDuringSchedulingIgnoredDuringExecution = {
+                nodeSelectorTerms = [
+                  {
+                    matchExpressions = [
+                      {
+                        key = "kubernetes.io/hostname";
+                        operator = "In";
+                        values = ["nexus" "sentry"];
+                      }
+                    ];
+                  }
+                ];
+              };
+              preferredDuringSchedulingIgnoredDuringExecution = [
                 {
-                  matchExpressions = [
+                  weight = 50;
+                  preference.matchExpressions = [
                     {
                       key = "kubernetes.io/hostname";
                       operator = "In";
-                      values = ["nexus" "sentry"];
+                      values = ["nexus"];
                     }
                   ];
+                }
+                {
+                  weight = 30;
+                  preference.matchExpressions = [
+                    {
+                      key = "kubernetes.io/hostname";
+                      operator = "In";
+                      values = ["sentry"];
+                    }
+                  ];
+                }
+              ];
+            };
+            podAntiAffinity = {
+              preferredDuringSchedulingIgnoredDuringExecution = [
+                {
+                  weight = 100;
+                  podAffinityTerm = {
+                    labelSelector.matchExpressions = [
+                      {
+                        key = "kelos.dev/taskspawner";
+                        operator = "In";
+                        values = ["github-issues-${r}"];
+                      }
+                    ];
+                    topologyKey = "kubernetes.io/hostname";
+                  };
                 }
               ];
             };
@@ -465,50 +506,50 @@ EOFOP
   # Reliability tiers: gold (most reliable) > silver > bronze (experimental)
   modelRoutingConfig = {
     default = {
-      model = "nvidia/nemotron-3-nano-30b-a3b";
-      fallback = "qwen/qwen3-coder-480b-a35b-instruct";
+      model = "openai/nvidia/nemotron-3-nano-30b-a3b";
+      fallback = "openai/qwen/qwen3-coder-480b-a35b-instruct";
       reliability = "gold";
       reason = "General purpose — reliable, fast, always available";
     };
     coding = {
-      model = "nvidia/nemotron-3-super-120b-a12b";
-      fallback = "qwen/qwen3-coder-480b-a35b-instruct";
+      model = "openai/nvidia/nemotron-3-super-120b-a12b";
+      fallback = "openai/qwen/qwen3-coder-480b-a35b-instruct";
       reliability = "silver";
       reason = "Best code generation — Nemotron Super 120B";
     };
     analysis = {
-      model = "nvidia/nemotron-3-nano-30b-a3b";
-      fallback = "meta/llama-3.3-70b-instruct";
+      model = "openai/nvidia/nemotron-3-nano-30b-a3b";
+      fallback = "openai/nvidia/llama-3.1-nemotron-70b-instruct";
       reliability = "gold";
       reason = "Good balance of speed/cost — Nano 30B";
     };
     reasoning = {
-      model = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
-      fallback = "nvidia/nemotron-3-super-120b-a12b";
+      model = "openai/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
+      fallback = "openai/nvidia/nemotron-3-super-120b-a12b";
       reliability = "silver";
       reason = "Optimized reasoning — Omni 30B";
     };
     batch = {
-      model = "nvidia/nemotron-3-nano-30b-a3b";
-      fallback = "qwen/qwen3-coder-480b-a35b-instruct";
+      model = "openai/nvidia/nemotron-3-nano-30b-a3b";
+      fallback = "openai/qwen/qwen3-coder-480b-a35b-instruct";
       reliability = "gold";
       reason = "Cheapest and most reliable — Nano 30B";
     };
     urgent = {
-      model = "nvidia/nemotron-3-super-120b-a12b";
-      fallback = "nvidia/nemotron-3-nano-30b-a3b";
+      model = "openai/nvidia/nemotron-3-super-120b-a12b";
+      fallback = "openai/nvidia/nemotron-3-nano-30b-a3b";
       reliability = "silver";
       reason = "Best quality at good speed — Super 120B";
     };
     vision = {
-      model = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
-      fallback = "nvidia/nemotron-3-super-120b-a12b";
+      model = "openai/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
+      fallback = "openai/nvidia/nemotron-3-super-120b-a12b";
       reliability = "bronze";
       reason = "Only vision-capable NIM model — Omni 30B";
     };
     documentation = {
-      model = "qwen/qwen3-coder-480b-a35b-instruct";
-      fallback = "nvidia/nemotron-3-nano-30b-a3b";
+      model = "openai/qwen/qwen3-coder-480b-a35b-instruct";
+      fallback = "openai/nvidia/nemotron-3-nano-30b-a3b";
       reliability = "silver";
       reason = "Fast with good prose — Qwen 3 Coder 480B";
     };
