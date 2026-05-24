@@ -50,7 +50,7 @@ in {
       description = "Cluster mesh service account for inter-node SSH";
       isSystemUser = true;
       group = "cluster-mesh";
-      shell = pkgs.shadow.nologin;
+      shell = "${pkgs.shadow}/bin/nologin";
     };
 
     users.groups.cluster-mesh = { };
