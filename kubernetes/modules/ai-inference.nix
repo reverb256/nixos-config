@@ -1540,7 +1540,7 @@ deepseek-ai/deepseek-v4-pro|reasoning|DeepSeek V4 Pro 1M ctx (NIM, rate-limited)
 deepseek-v4-flash:free|free|DeepSeek V4 Flash Free (Kilo/Zen, 1M, daily quota)
 nvidia/nemotron-3-super-120b-a12b:free|free|Nemotron 3 Super Free (128K, half NIM ctx)
 nvidia/nemotron-3-nano-30b-a3b:free|free|Nemotron 3 Nano Free (128K, half NIM ctx)
-openrouter/free|free|OpenRouter free router
+#openrouter/free|free|OpenRouter free router (REMOVED — no longer used)
 """.strip()
 CAT_NAMES = {
     "primary": "PRIMARY", "fast": "FAST", "code": "CODING",

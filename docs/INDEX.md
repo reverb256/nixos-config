@@ -1,6 +1,6 @@
 # NixOS Config Documentation Index
 
-**Last Reality-Checked**: 2026-05-06
+**Last Reality-Checked**: 2026-05-23
 
 ## Active / Living Documents
 

@@ -1,5 +1,7 @@
 # K8s MCP Server Implementation Plan
 
+> **⚠️ STALE (22 days old, last verified 2026-05-01)** — Verify against current cluster state before following. Reality may have diverged.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Deploy `containers/kubernetes-mcp-server` (base K8s ops) + custom `nixos-cluster-mcp` (cluster-specific tools) accessible from all AI tools via stdio (local) and SSE (in-cluster).

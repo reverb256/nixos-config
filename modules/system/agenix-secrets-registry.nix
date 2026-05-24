@@ -119,12 +119,7 @@ in {
           owner = "j_kro";
           group = "users";
         };
-        openrouter-api-key = {
-          file = "${inputs.self}/secrets/openrouter-api-key.age";
-          mode = "440";
-          owner = "j_kro";
-          group = "users";
-        };
+        # openrouter-api-key removed — no longer used
         localmaxxing-api-key = {
           file = "${inputs.self}/secrets/localmaxxing-api-key.age";
           mode = "440";
@@ -401,9 +396,9 @@ in {
       (lib.mkIf config.services.agenix-secrets-registry.cns {
         cns-ssh-key = {
           file = "${inputs.self}/secrets/cns-ssh-key.age";
-          mode = "400";
-          owner = "root";
-          group = "root";
+          mode = "600";
+          owner = "cluster-mesh";
+          group = "cluster-mesh";
         };
       })
       (lib.mkIf config.services.agenix-secrets-registry.initrdRecovery {
