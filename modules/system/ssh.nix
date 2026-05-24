@@ -62,6 +62,7 @@ in {
       AllowUsers = [
         "j_kro"
         "nixbuild"
+        "cluster-mesh"
       ];
       AllowGroups = [
         "wheel"
