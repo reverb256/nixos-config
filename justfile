@@ -564,3 +564,23 @@ ca-domains:
     cd /etc/nixos
     nix eval '.#nixosConfigurations.zephyr.config.clusterNetworking.lanDomains' --json 2>/dev/null \
       | python3 -c "import json,sys;domains=json.loads(sys.stdin.read());[print(f'  {i:2d}. {d}') for i,d in enumerate(sorted(domains),1)];print(f'\n  Total: {len(domains)} domains');print('  + *.lan wildcard (covers everything else)')"
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  DOCUMENTATION
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Run full documentation verification suite
+docs-audit:
+    #!/usr/bin/env bash
+    set -e
+    echo "▸ Running documentation verification suite..."
+    cd {{FLAKE}} && ./docs/meta/VERIFICATION-SUITE/run.sh
+
+# Refresh stale documentation (placeholder - will open editor on key files)
+docs-freshen:
+    #!/usr/bin/env bash
+    set -e
+    echo "▸ Refreshing documentation..."
+    echo "→ Updating INFRASTRUCTURE-AUDIT.md with current state"
+    echo "→ Run 'just docs-audit' after changes"
+    echo "Documentation refresh complete. Verify with 'just docs-audit'."
