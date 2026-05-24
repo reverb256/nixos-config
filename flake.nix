@@ -208,15 +208,32 @@
       ];
     };
 
-    commonModules = import ./common-modules-list.nix {
-      inherit inputs self;
-    };
+  commonModules = import ./common-modules-list.nix {
+    inherit inputs self;
+  };
 
-    mkNixosSystem = {
-      hostName,
-      extraModules ? [],
-      k8sManifest ? null,
-    }:
+  # Slim module set for WSL/remote hosts — no desktop/GPU/cluster modules
+  slimModules = [
+    inputs.home-manager.nixosModules.home-manager
+    inputs.agenix.nixosModules.default
+    ./modules/default.nix
+    {
+      nixpkgs.overlays = [ self.overlays.default ];
+      age.identityPaths = [
+        "/persistent/etc/age/key.txt"
+        "/etc/nixos/.age/key.txt"
+        "/etc/age/key.txt"
+        "/home/j_kro/.age/key.txt"
+      ];
+    }
+  ];
+
+  mkNixosSystem = {
+    hostName,
+    extraModules ? [],
+    k8sManifest ? null,
+    modules ? commonModules,
+  }:
       nixpkgs.lib.nixosSystem {
         specialArgs = {
           inherit inputs;
@@ -253,18 +270,19 @@
         hostName = "sentry";
         k8sManifest = self.kubernetes.small.manifestYAMLFile;
       };
-      krash3 = {
-        hostName = "krash3";
-        k8sManifest = null;  # No K8s manifests
-      };
+    krash3 = {
+      hostName = "krash3";
+      k8sManifest = null; # No K8s manifests
+      modules = slimModules; # WSL — no desktop/GPU/cluster
+    };
     };
   in {
     checks.x86_64-linux = {};
 
-    nixosConfigurations =
-      (builtins.mapAttrs (
-          _name: value: mkNixosSystem {inherit (value) hostName;}
-        )
+  nixosConfigurations =
+  (builtins.mapAttrs (
+    _name: value: mkNixosSystem {inherit (value) hostName modules;}
+  )
         hosts)
       // {
         # Phase 3: MicroVM configurations (not regular hosts, not managed by Colmena)

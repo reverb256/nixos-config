@@ -130,6 +130,12 @@ in {
     ./modules/kelos.nix
     ./modules/mcp-servers.nix
     ./modules/glance.nix
-    ./modules/tailscale.nix
+  ./modules/tailscale.nix
+  ];
+
+  # CSI-based miners (separate from hostPath miners - activates after nix-csi driver is verified)
+  # Toggle useNixCsi in miners-csi.nix to switch between hostPath and CSI volumes
+  miners-csi = mkManifest "miners-csi" [
+    ./modules/miners-csi.nix
   ];
 }
