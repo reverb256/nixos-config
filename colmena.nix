@@ -91,4 +91,18 @@ in {
       "remote"
     ];
   };
+
+  # krash3 — NixOS on WSL (reachable via SSH config Port 2222)
+  krash3 = { ... }: {
+    imports = [
+      ./hosts/krash3/configuration.nix
+    ];
+    deployment = {
+      targetHost = "krash3";
+      targetUser = "j_kro";
+      tags = ["wsl" "workstation"];
+      allowLocalDeployment = false;
+      buildOnTarget = false;
+    };
+  };
 }
