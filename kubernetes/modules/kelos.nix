@@ -53,24 +53,24 @@ with lib; let
           id = "meta/llama-3.1-70b-instruct";
         };
         "nemotron-3-nano-30b-a3b" = {
-          name = "Nemotron 3 Nano";
-          id = "nvidia/nemotron-3-nano-30b-a3b";
+          name = "Llama 3.1 70B (fast)";
+          id = "meta/llama-3.1-70b-instruct";
         };
         "nemotron-3-super-120b-a12b" = {
-          name = "Nemotron 3 Super";
-          id = "nvidia/nemotron-3-super-120b-a12b";
+          name = "Llama 3.1 70B (best)";
+          id = "meta/llama-3.1-70b-instruct";
         };
         "nemotron-3-nano-omni-30b-a3b-reasoning" = {
-          name = "Nemotron 3 Nano Omni";
-          id = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
+          name = "Gemma 3 12B IT (reasoning)";
+          id = "google/gemma-3-12b-it";
         };
-        "qwen3-coder-480b-a35b-instruct" = {
-          name = "Qwen 3 Coder 480B";
-          id = "qwen/qwen3-coder-480b-a35b-instruct";
+        "llama-3.3-nemotron-super-49b-v1" = {
+          name = "Llama 3.1 8B (fast)";
+          id = "meta/llama-3.1-8b-instruct";
         };
-        "llama-3.3-70b-instruct" = {
-          name = "Llama 3.3 70B";
-          id = "meta/llama-3.3-70b-instruct";
+        "llama-3.1-70b-instruct-direct" = {
+          name = "Llama 3.1 70B (direct)";
+          id = "meta/llama-3.1-70b-instruct";
         };
       };
     };

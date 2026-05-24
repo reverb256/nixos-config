@@ -60,7 +60,7 @@ kubernetes/curated-models.nix  (Single Source of Truth)
    - Models: GLM-5.1, GLM-4.7, Qwen3.5, DeepSeek V4, Mistral Large
 
 5. **Free Tier** (Priority 6)
-   - Kilo auto, OpenRouter free routers
+   - Kilo auto free router
 
 ### Hardware Deployments
 
@@ -211,7 +211,7 @@ python3 scripts/validate-ai-models-registry.py --check-consumers
 | NVIDIA NIM | 3 | Nemotron Super, Nano, Omni |
 | Google Gemma | 5 | Gemma 4/3/2 variants |
 | Gateway | 16 | GLM, Qwen, DeepSeek, Mistral |
-| Free Tier | 2 | Kilo auto, OpenRouter free |
+| Free Tier | 1 | Kilo auto free |
 
 ## Related Files
 

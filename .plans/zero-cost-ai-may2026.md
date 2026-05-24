@@ -5,7 +5,7 @@
 
 ## Goal
 
-Replace all Z.AI-dependent AI routing with a fully free stack: local models + NVIDIA NIM + OpenRouter + Gemini Flash, all routed through the AI Inference Gateway. Maximum cost: $0/month.
+Replace all Z.AI-dependent AI routing with a fully free stack: local models + NVIDIA NIM + Gemini Flash, all routed through the AI Inference Gateway. Maximum cost: $0/month. OpenRouter removed 2026-05-23.
 
 ---
 
@@ -21,12 +21,12 @@ Replace all Z.AI-dependent AI routing with a fully free stack: local models + NV
 ### Gateway (Healthy -- Nexus, 10.15.67.242:8080)
 - **Health**: healthy, version 2.0.0
 - **Primary**: zephyr-3060ti:1236 (Qwen3.5-9B)
-- **BACKEND_FALLBACK_URLS**: sentry:1235, zephyr-3060ti:1236, openrouter.ai/api/v1
-  - WARNING: NIM is NOT in fallback chain. Only OpenRouter as cloud fallback.
+- **BACKEND_FALLBACK_URLS**: sentry:1235, zephyr-3060ti:1236
+  - WARNING: NIM is NOT in fallback chain.
 - **ZAI in router.py**: Still present. Lines 514-515 (base URL), 637-638 (health), 987-993 (streaming offload). Commit c0998ae partially removed it.
 - **Cloud discovery**: 53 models from nvidia (27), zai (6), qwen (10), pollinations (3), minimaxai (2)
   - NIM gap FIXED: qwen3-coder-480b, deepseek-v4-flash, kimi-k2, llama-3.3-70b, etc. all visible
-- **K8s secrets**: zai-api-key, nvidia-api-key, hf-token, openrouter-api-key (NEW, age 6h52m)
+- **K8s secrets**: zai-api-key, nvidia-api-key, hf-token
 - **Anthropic endpoint**: NEW -- `/v1/messages` (main.py:1937) with streaming + thinking support
   - Has bug: injection detection disabled due to event loop error (commit 806d37b)
 - **Streaming**: SSE supported
@@ -69,12 +69,10 @@ Replace all Z.AI-dependent AI routing with a fully free stack: local models + NV
 - [ ] 1.6 Verify MCP broker initializes
 
 ### Phase 2: Wire Cloud Fallback
-- [x] 2.1 OpenRouter K8s secret created
-- [ ] 2.2 Wire OPENROUTER_API_KEY into pod env (check if actually mounted)
-- [x] 2.3 OpenRouter added to BACKEND_FALLBACK_URLS
-- [ ] 2.4 Add NIM to BACKEND_FALLBACK_URLS (currently MISSING -- only OpenRouter is cloud fallback)
+- ~~2.1-2.3 OpenRouter removed 2026-05-23~~
+- [ ] 2.4 Add NIM to BACKEND_FALLBACK_URLS (currently MISSING)
 - [x] 2.5 NIM model discovery working (53 models visible)
-- [ ] 2.6 Test full fallback chain: local -> sentry -> NIM -> OpenRouter
+- [ ] 2.6 Test full fallback chain: local -> sentry -> NIM
 - [ ] 2.7 Set up virtual keys with budget caps per agent
 
 ### Phase 3: Deploy 3090
@@ -83,7 +81,7 @@ Replace all Z.AI-dependent AI routing with a fully free stack: local models + NV
   - Fallback: Qwen3.6-27B-Q4_K_M (16GB dense) if MoE OOMs
 - [ ] 3.2 Verify pod starts, model loads, :1237 healthy
 - [ ] 3.3 Make 3090 primary BACKEND_URL
-- [ ] 3.4 Update fallback: 3090 -> 3060Ti -> sentry -> NIM -> OpenRouter
+- [ ] 3.4 Update fallback: 3090 -> 3060Ti -> sentry -> NIM
 - [ ] 3.5 Verify mining-inference-coordinator handles GPU sharing
 
 ### Phase 4: Rewire All Tools
@@ -124,10 +122,10 @@ Replace all Z.AI-dependent AI routing with a fully free stack: local models + NV
 - [ ] 7.2 Full fallback chain test:
   - Local up -> verify local
   - Kill local -> verify sentry
-  - Kill sentry -> verify NIM/OpenRouter
+  - Kill sentry -> verify NIM
   - Restore -> verify traffic returns
 - [ ] 7.3 E2E test each tool: Hermes, Claude Code, OpenCode, OMP, Pi
-- [ ] 7.4 Verify free tier sustainability (NIM credits, OpenRouter limits, Gemini RPM)
+- [ ] 7.4 Verify free tier sustainability (NIM credits, Gemini RPM)
 - [ ] 7.5 Check cost tracker: $0.00 across all agents
 - [ ] 7.6 Verify middleware adds value (RAG context present)
 - [ ] 7.7 Record baseline latency
@@ -138,7 +136,7 @@ Replace all Z.AI-dependent AI routing with a fully free stack: local models + NV
 
 - [ ] All tools route through gateway (zero direct Z.AI calls)
 - [ ] Local models primary (35B MoE -> 9B -> 4B)
-- [ ] Cloud fallback works: local -> NIM -> OpenRouter -> Gemini
+- [ ] Cloud fallback works: local -> NIM -> Gemini
 - [ ] Claude Code operational via gateway Anthropic endpoint
 - [ ] Hermes operational via gateway
 - [ ] OpenCode/OMP operational via gateway
@@ -156,7 +154,7 @@ Replace all Z.AI-dependent AI routing with a fully free stack: local models + NV
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| NIM not in fallback chain | High | Phase 2.4 -- only OpenRouter as cloud fallback currently |
+| NIM not in fallback chain | High | Phase 2.4 |
 | ZAI still in router.py streaming | High | Lines 987-993 still offload to ZAI -- breaks May 8 |
 | CCR stale (ZAI-only) | Medium | Decide in Phase 4.2 -- reconfigure or drop |
 | Feature branches not merged | Medium | Phase 7.1 -- both repos on zero-cost-ai-complete |

@@ -114,8 +114,8 @@ Browser → Caddy (.lan) ──→ forward_auth ──→ oauth2-proxy (:4180)
 │                                                                     │
 │  100+ models from:                                                  │
 │  ┌─────────────┐ ┌──────────────┐ ┌──────────┐ ┌───────────────┐  │
-│  │ Local LLMs  │ │  Z.AI API    │ │ NVIDIA   │ │ OpenRouter    │  │
-│  │ (llama.cpp) │ │  (cloud)     │ │ NIM      │ │ (multi-model) │  │
+ │  │ Local LLMs  │ │  Z.AI API    │ │ NVIDIA   │                  │  │
+ │  │ (llama.cpp) │ │  (cloud)     │ │ NIM      │                  │  │
 │  └──────┬──────┘ └──────────────┘ └──────────┘ └───────────────┘  │
 │         │                                                           │
 │    ┌────┴────────────────────────────────────┐                      │
