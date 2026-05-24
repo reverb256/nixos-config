@@ -67,17 +67,21 @@
   };
 
   amdVolumeMounts = {
+    tmp = {
+      mountPath = "/tmp";
+    };
     opengl-driver = {
       mountPath = "/run/opengl-driver/lib";
     };
-    dri = {
-      mountPath = "/dev/dri";
-    };
-    kfd = {
-      mountPath = "/dev/kfd";
+    dev = {
+      mountPath = "/dev";
     };
     opencl-icd = {
       mountPath = "/etc/OpenCL/vendors";
+    };
+    etc-static = {
+      mountPath = "/etc/static";
+      readOnly = true;
     };
     nix-store = {
       mountPath = "/nix/store";
@@ -85,24 +89,27 @@
   };
 
   amdVolumes = {
+    tmp = {
+      emptyDir = {};
+    };
     opengl-driver = {
       hostPath.path = "/run/opengl-driver/lib";
     };
-    dri = {
+    dev = {
       hostPath = {
-        path = "/dev/dri";
+        path = "/dev";
         type = "Directory";
-      };
-    };
-    kfd = {
-      hostPath = {
-        path = "/dev/kfd";
-        type = "CharDevice";
       };
     };
     opencl-icd = {
       hostPath = {
         path = openclIcd;
+        type = "Directory";
+      };
+    };
+    etc-static = {
+      hostPath = {
+        path = "/etc/static";
         type = "Directory";
       };
     };
@@ -123,11 +130,15 @@
     _namedlist = true;
     LD_LIBRARY_PATH = {
       name = "LD_LIBRARY_PATH";
-      value = "/run/opengl-driver/lib";
+      value = "${pkgs.ocl-icd}/lib:/run/opengl-driver/lib";
     };
     OCL_ICD_VENDORS = {
       name = "OCL_ICD_VENDORS";
       value = "/etc/OpenCL/vendors/";
+    };
+    CUDA_VISIBLE_DEVICES = {
+      name = "CUDA_VISIBLE_DEVICES";
+      value = "";
     };
   };
 
@@ -422,31 +433,11 @@ in {
                 image = "docker.io/library/ubuntu:24.04";
                 imagePullPolicy = "IfNotPresent";
                 command = [
-                  "${pkgs.lolminer}/bin/.lolMiner-wrapped"
+                  "/bin/sh"
+                  "-c"
+                  "apt-get update && apt-get install -y curl ca-certificates && mkdir -p /opt/lolminer && curl -sL https://github.com/kryptex-miners-org/kryptex-miners/releases/download/lolminer-1-98a/lolMiner_v1.98a_Lin64.tar.gz -o /tmp/lol.tar.gz && tar xzf /tmp/lol.tar.gz -C /opt/lolminer && chmod +x /opt/lolminer/lolMiner && exec /opt/lolminer/lolMiner --algo CR29 --pool stratum+ssl://xtm-c29.kryptex.network:8040 --user krxXVNVMM7.forge-a0 --pass x --tls on --devices 0 --apiport 4070";
                 ];
-                args = [
-                  "--algo" "CR29"
-                  "--pool" "stratum+ssl://xtm-c29.kryptex.network:8040"
-                  "--user" "krxXVNVMM7.forge-a0"
-                  "--pass" "x"
-                  "--tls" "on"
-                  "--devices" "0"
-                  "--apiport" "4070"
-                ];
-                env = {
-                  _namedlist = true;
-                  OCL_ICD_VENDORS = {
-                    name = "OCL_ICD_VENDORS";
-                    value = "/etc/OpenCL/vendors/";
-                  };
-                };
-                ports = [
-                  {
-                    containerPort = 4070;
-                    name = "api";
-                    protocol = "TCP";
-                  }
-                ];
+                env = amdEnv;
                 livenessProbe = {
                   tcpSocket.port = 4070;
                   initialDelaySeconds = 60;
@@ -470,44 +461,10 @@ in {
                   };
                 };
                 securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                  nix = {
-                    mountPath = "/nix";
-                    readOnly = true;
-                  };
-                  dri = {
-                    mountPath = "/dev/dri";
-                  };
-                  kfd = {
-                    mountPath = "/dev/kfd";
-                  };
-                  opencl-icd = {
-                    mountPath = "/etc/OpenCL/vendors";
-                    readOnly = true;
-                  };
-                };
+                volumeMounts = amdVolumeMounts;
               };
             };
-            volumes = {
-              _namedlist = true;
-              nix.persistentVolumeClaim = {
-                claimName = "nix-store";
-                readOnly = true;
-              };
-              dri.hostPath = {
-                path = "/dev/dri";
-                type = "Directory";
-              };
-              kfd.hostPath = {
-                path = "/dev/kfd";
-                type = "CharDevice";
-              };
-              opencl-icd.hostPath = {
-                path = "/etc/OpenCL/vendors";
-                type = "Directory";
-              };
-            };
+            volumes = { _namedlist = true; } // amdVolumes;
           };
         };
       };
@@ -543,31 +500,11 @@ in {
                 image = "docker.io/library/ubuntu:24.04";
                 imagePullPolicy = "IfNotPresent";
                 command = [
-                  "${pkgs.lolminer}/bin/.lolMiner-wrapped"
+                  "/bin/sh"
+                  "-c"
+                  "apt-get update && apt-get install -y curl ca-certificates && mkdir -p /opt/lolminer && curl -sL https://github.com/kryptex-miners-org/kryptex-miners/releases/download/lolminer-1-98a/lolMiner_v1.98a_Lin64.tar.gz -o /tmp/lol.tar.gz && tar xzf /tmp/lol.tar.gz -C /opt/lolminer && chmod +x /opt/lolminer/lolMiner && exec /opt/lolminer/lolMiner --algo CR29 --pool stratum+ssl://xtm-c29.kryptex.network:8040 --user krxXVNVMM7.forge-a1 --pass x --tls on --devices 1 --apiport 4071";
                 ];
-                args = [
-                  "--algo" "CR29"
-                  "--pool" "stratum+ssl://xtm-c29.kryptex.network:8040"
-                  "--user" "krxXVNVMM7.forge-a1"
-                  "--pass" "x"
-                  "--tls" "on"
-                  "--devices" "1"
-                  "--apiport" "4071"
-                ];
-                env = {
-                  _namedlist = true;
-                  OCL_ICD_VENDORS = {
-                    name = "OCL_ICD_VENDORS";
-                    value = "/etc/OpenCL/vendors/";
-                  };
-                };
-                ports = [
-                  {
-                    containerPort = 4071;
-                    name = "api";
-                    protocol = "TCP";
-                  }
-                ];
+                env = amdEnv;
                 livenessProbe = {
                   tcpSocket.port = 4071;
                   initialDelaySeconds = 60;
@@ -591,44 +528,10 @@ in {
                   };
                 };
                 securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                  nix = {
-                    mountPath = "/nix";
-                    readOnly = true;
-                  };
-                  dri = {
-                    mountPath = "/dev/dri";
-                  };
-                  kfd = {
-                    mountPath = "/dev/kfd";
-                  };
-                  opencl-icd = {
-                    mountPath = "/etc/OpenCL/vendors";
-                    readOnly = true;
-                  };
-                };
+                volumeMounts = amdVolumeMounts;
               };
             };
-            volumes = {
-              _namedlist = true;
-              nix.persistentVolumeClaim = {
-                claimName = "nix-store";
-                readOnly = true;
-              };
-              dri.hostPath = {
-                path = "/dev/dri";
-                type = "Directory";
-              };
-              kfd.hostPath = {
-                path = "/dev/kfd";
-                type = "CharDevice";
-              };
-              opencl-icd.hostPath = {
-                path = "/etc/OpenCL/vendors";
-                type = "Directory";
-              };
-            };
+            volumes = { _namedlist = true; } // amdVolumes;
           };
         };
       };

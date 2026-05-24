@@ -3,6 +3,7 @@ let
   meshKeys = import ../../mesh-keys.nix;
 in {
   imports = [
+    ./hardware-configuration.nix
     inputs.NixOS-WSL.nixosModules.wsl
     inputs.home-manager.nixosModules.home-manager
     ../../modules/security/cluster-mesh.nix
@@ -15,7 +16,16 @@ in {
   wsl.wslConf.automount.options = "metadata,uid=1000,gid=100";
   wsl.wslConf.network.generateHosts = false;
 
+  # Required by home-manager xdg.portal integration
+  environment.pathsToLink = [
+    "/share/applications"
+    "/share/xdg-desktop-portal"
+  ];
+
   # ── System ──────────────────────────────────────────────
+  boot.loader.systemd-boot.enable = false;
+  boot.loader.efi.canTouchEfiVariables = false;
+
   system.stateVersion = "25.11";
   networking.hostName = "krash3";
   networking.hostId = "deadbeef";
@@ -112,18 +122,18 @@ in {
     useGlobalPkgs = true;
     useUserPackages = true;
     users.j_kro = { pkgs, ... }: {
-      home = {
-        stateVersion = "25.11";
-        username = "j_kro";
+          home = {
+          stateVersion = lib.mkForce "25.11";
+          username = "j_kro";
         homeDirectory = "/home/j_kro";
       };
       programs = {
         bash.enable = true;
-        git = {
-          enable = true;
-          userName = "j_kro";
-          userEmail = "j_kro@lan";
-        };
+              git = {
+                enable = true;
+                userName = lib.mkForce "j_kro";
+                userEmail = lib.mkForce "j_kro@lan";
+              };
         htop.enable = true;
         tmux.enable = true;
       };

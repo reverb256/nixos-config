@@ -247,7 +247,6 @@ in {
       wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
-        ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /etc/nftables";
         Type = "oneshot";
         RemainAfterExit = true;
         ExecStart = "${pkgs.nftables}/bin/nft -f /etc/nftables/agent-firewall.conf";
@@ -260,7 +259,6 @@ in {
       path = with pkgs; [ coreutils gnugrep jq ];
 
       serviceConfig = {
-        ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /etc/nftables";
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "agent-firewall-audit" ''
           set -euo pipefail
