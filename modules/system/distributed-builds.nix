@@ -156,7 +156,7 @@ in {
           }
           {
             hostName = "nexus";
-            system = "x86_64-linux i686-linux";
+            system = "x86_64-linux";
             sshUser = "j_kro";
             sshKey = "/etc/nixos/ssh/id_ed25519";
             maxJobs = 10;
@@ -169,7 +169,7 @@ in {
           }
           {
             hostName = "sentry";
-            system = "x86_64-linux i686-linux";
+            system = "x86_64-linux";
             sshUser = "j_kro";
             sshKey = "/etc/nixos/ssh/id_ed25519";
             maxJobs = 4;
