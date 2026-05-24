@@ -1,7 +1,7 @@
 # NixOS Cluster Kubernetes Migration Roadmap
 
 **Status:** K3s migration COMPLETE (Phase 1-7) — Sovereign Service Mesh OPERATIONAL — Post-migration hardening in progress
-**Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-05-02
+**Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-05-23 (stale — see INFRASTRUCTURE-AUDIT.md for current state)
 
 > **See `INFRASTRUCTURE-AUDIT.md` for current cluster state, issues, and next steps.**
 > **See `docs/plans/2026-05-01-mcp-system-plan.md` for MCP system plan.**

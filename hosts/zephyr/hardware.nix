@@ -19,7 +19,7 @@
       };
       "3090" = {
         index = 1;
-        limit = 220;
+        limit = 230;
       };
     };
     profiles = {

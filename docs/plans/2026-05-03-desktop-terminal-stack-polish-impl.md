@@ -1,5 +1,7 @@
 # Desktop & Terminal Stack Polish — Implementation Plan
 
+> **⚠️ STALE (20 days old, last verified 2026-05-03)** — Verify against current cluster state before following.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Polish the NixOS desktop/terminal stack with Stylix deep integration, Fish abbreviations, declarative git/tmux/lazygit, mimetype associations, and Omarchy feature parity.

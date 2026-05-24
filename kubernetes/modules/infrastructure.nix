@@ -81,6 +81,9 @@ in {
               "mining"
               "mcp"
               "kelos-system"
+              "kagent"
+              "tailscale"
+              "nix-csi"
             ];
           }];
         };
@@ -351,6 +354,154 @@ in {
           }
         ];
         selector.app = "kubernetes-mcp";
+      };
+    };
+
+    # ── AMD GPU Device Plugin ────────────────────────────────────
+    # Registers AMD GPUs (gpu:amd nodes) with K8s via the ROCm device plugin
+    kube-system.DaemonSet.amd-gpu-device-plugin = {
+      metadata = {
+        labels = managed // {
+          app = "amd-gpu-device-plugin";
+          name = "amd-gpu-device-plugin-ds";
+        };
+      };
+      spec = {
+        selector.matchLabels.name = "amd-gpu-device-plugin-ds";
+        template = {
+          metadata.labels.name = "amd-gpu-device-plugin-ds";
+          spec = {
+            priorityClassName = "system-node-critical";
+            nodeSelector.gpu = "amd";
+            tolerations = [
+              {
+                key = "node.forge/mining";
+                operator = "Equal";
+                value = "true";
+                effect = "NoSchedule";
+              }
+            ];
+            containers = {
+              _namedlist = true;
+              amd-gpu-plugin = {
+                image = "rocm/k8s-device-plugin:latest";
+                imagePullPolicy = "IfNotPresent";
+                securityContext.privileged = true;
+                env.ROCM_VISIBLE_DEVICES.value = "all";
+                volumeMounts = {
+                  _namedlist = true;
+                  kubelet-root = {
+                    mountPath = "/var/lib/kubelet/device-plugins";
+                  };
+                  dev-dri = {
+                    mountPath = "/dev/dri";
+                  };
+                  host-dev = {
+                    mountPath = "/dev";
+                  };
+                };
+                resources = {
+                  requests = {
+                    cpu = "100m";
+                    memory = "100Mi";
+                  };
+                  limits = {
+                    cpu = "500m";
+                    memory = "200Mi";
+                  };
+                };
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              kubelet-root.hostPath = {
+                path = "/var/lib/kubelet/device-plugins";
+                type = "DirectoryOrCreate";
+              };
+              dev-dri.hostPath = {
+                path = "/dev/dri";
+              };
+              host-dev.hostPath = {
+                path = "/dev";
+              };
+            };
+          };
+        };
+        updateStrategy = {
+          type = "RollingUpdate";
+          rollingUpdate.maxUnavailable = 1;
+        };
+        revisionHistoryLimit = 2;
+      };
+    };
+
+    # ── NVIDIA GPU Device Plugin ──────────────────────────────────
+    # Registers NVIDIA GPUs (accelerator:nvidia-gpu nodes) with K8s
+    kube-system.DaemonSet.nvidia-device-plugin = {
+      metadata = {
+        labels = managed // {
+          k8s-app = "nvidia-device-plugin";
+        };
+      };
+      spec = {
+        selector.matchLabels.k8s-app = "nvidia-device-plugin";
+        template = {
+          metadata.labels.k8s-app = "nvidia-device-plugin";
+          spec = {
+            priorityClassName = "system-node-critical";
+            affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution = {
+              nodeSelectorTerms = [{
+                matchExpressions = [{
+                  key = "accelerator";
+                  operator = "In";
+                  values = ["nvidia-gpu"];
+                }];
+              }];
+            };
+            tolerations = [
+              {
+                key = "node.forge/mining";
+                operator = "Equal";
+                value = "true";
+                effect = "NoSchedule";
+              }
+              {
+                key = "node.zephyr/workstation";
+                operator = "Equal";
+                value = "true";
+                effect = "NoSchedule";
+              }
+            ];
+            containers = {
+              _namedlist = true;
+              nvidia-device-plugin = {
+                image = "nvcr.io/nvidia/k8s-device-plugin:v0.19.1";
+                imagePullPolicy = "IfNotPresent";
+                securityContext.privileged = true;
+                command = ["/bin/sh" "-c" "export LD_LIBRARY_PATH=/host-driver/lib; exec /usr/bin/nvidia-device-plugin --config-file=/config/config.yaml"];
+                volumeMounts = {
+                  _namedlist = true;
+                  device-plugin = { mountPath = "/var/lib/kubelet/device-plugins"; };
+                  host-dev = { mountPath = "/dev"; };
+                  host-driver = { mountPath = "/host-driver"; readOnly = true; };
+                  config = { mountPath = "/config"; };
+                  nix-store = { mountPath = "/nix/store"; readOnly = true; };
+                };
+                resources = {};
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              device-plugin.hostPath = { path = "/var/lib/kubelet/device-plugins"; type = "DirectoryOrCreate"; };
+              host-dev.hostPath = { path = "/dev"; };
+              host-driver.hostPath = { path = "/run/opengl-driver"; };
+              config.configMap = { name = "nvidia-device-plugin-config"; };
+              nix-store.hostPath = { path = "/nix/store"; };
+            };
+          };
+        };
+        updateStrategy.rollingUpdate.maxUnavailable = 1;
+        revisionHistoryLimit = 2;
       };
     };
 
