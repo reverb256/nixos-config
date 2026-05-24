@@ -117,9 +117,7 @@
     };
   };
   claude-code-image = prev.callPackage ./packages/claude-code-image.nix {};
-  opencode-image = prev.callPackage ./packages/opencode-image.nix {
-    inherit (prev) bun;
-  };
+  opencode-image = prev.callPackage ./packages/opencode-image.nix {};
   maplespike-mcp-image = inputs.maplespike.packages.x86_64-linux.maplespike-mcp-image;
   maplespike-api-image = inputs.maplespike.packages.x86_64-linux.maplespike-api-image;
   maplespike-ingest-image = inputs.maplespike.packages.x86_64-linux.maplespike-ingest-image;
