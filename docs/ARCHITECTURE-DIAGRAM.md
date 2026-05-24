@@ -2,6 +2,8 @@
 
 **Generated:** 2026-05-02 | **4 Nodes** | **78 Cores / 123GB RAM / 7 GPUs / 8.4TB Storage**
 
+> **⚠️ STALE (21 days old). Resource counts, host roles, and topology may have drifted. Verify before following.**
+
 ## Physical Topology
 
 ```

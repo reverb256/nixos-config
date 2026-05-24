@@ -1,6 +1,7 @@
 # Desktop & Terminal Stack Polish — Full Enhancement Plan
 
 **Date**: 2026-05-03
+**Last Verified**: 2026-05-23 — ⚠️ STALE (20 days old). Verify before following.
 **Scope**: NixOS Stylix deep integration, terminal/CLI polish, desktop polish, dev workflow, system hardening, Omarchy feature parity
 **Status**: Design complete, pending implementation
 

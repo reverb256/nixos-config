@@ -1,6 +1,6 @@
 # Secret Rotation Guide
 
-**Last Verified:** 2026-05-14
+**Last Verified:** 2026-05-14 — ⚠️ 9 days old, approaching staleness threshold (7 days). Re-verify before relying.
 **Purpose:** Document how to rotate each secret that was previously hardcoded in git plaintext in Nix K8s modules.
 
 ## Overview

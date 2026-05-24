@@ -1,5 +1,7 @@
 # MCP System Plan — Complete Coverage
 
+> **⚠️ STALE (22 days old, last verified 2026-05-01)** — Verify against current cluster state before following. Reality may have diverged.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Fix all broken MCP servers, unify the registry across 3 consumers (Claude Code, Hermes, in-cluster agents), harden with auth/observability, and add operational tools.

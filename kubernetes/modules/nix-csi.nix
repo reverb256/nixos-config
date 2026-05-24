@@ -222,6 +222,16 @@ in {
                 imagePullPolicy = "IfNotPresent";
                 args = ["node"];
                 securityContext = {
+                resources = {
+                  requests = {
+                    cpu = "50m";
+                    memory = "64Mi";
+                  };
+                  limits = {
+                    cpu = "200m";
+                    memory = "256Mi";
+                  };
+                };
                   privileged = true;
                   capabilities.add = ["SYS_ADMIN"];
                 };
@@ -291,6 +301,16 @@ in {
                   "--kubelet-registration-path=/var/lib/kubelet/plugins/nix-csi.csi.k8s.io/csi.sock"
                 ];
                 securityContext = {
+                resources = {
+                  requests = {
+                    cpu = "50m";
+                    memory = "64Mi";
+                  };
+                  limits = {
+                    cpu = "200m";
+                    memory = "256Mi";
+                  };
+                };
                   privileged = true;
                 };
                 volumeMounts = {

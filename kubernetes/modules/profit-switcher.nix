@@ -130,6 +130,14 @@
       coinFlag = "";
       walletFmt = "${wallet}";
     };
+    xtm = {
+      host = "xtm-c29.kryptex.network";
+      port = 8040;
+      tlsPort = 8040;
+      algo = "sha3x";
+      coinFlag = "--coin xtm";
+      walletFmt = "${wallet}";
+    };
   };
 
   # WhatToMine coin name mapping
@@ -141,6 +149,7 @@
     xna = "Neoxa";
     iron = "IronFish";
     xel = "Xelis";
+    xtm = "Tari";
   };
 
   profitSwitcherScript = pkgs.writePythonApplication "profit-switcher" {
@@ -154,9 +163,9 @@ in {
     # --- ConfigMap: current profit switching state ---
     mining.ConfigMap.mining-profit-config = {
       data = {
-        nvidia-best = "rvn";
-        nvidia-3090-best = "cfx";
-        amd-best = "rvn";
+        nvidia-best = "xtm";
+        nvidia-3090-best = "xtm";
+        amd-best = "xtm";
         last-updated = "never";
       };
     };

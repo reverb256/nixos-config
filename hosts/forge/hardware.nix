@@ -30,11 +30,11 @@
       gpus = {
         "rx5700xt-0" = {
           index = 0;
-          limit = 120;
+          limit = 110;
         };
         "rx5700xt-1" = {
           index = 1;
-          limit = 120;
+          limit = 110;
         };
       };
     };

@@ -1,6 +1,6 @@
 # NixOS Cluster - Agent Guidelines
 
-**Generated:** 2026-05-16 | **Commit:** `git log -1 --oneline` | **Branch:** main
+**Generated:** 2026-05-23 | **Commit:** `f636096a` | **Branch:** main
 
 ## Quick Start
 
@@ -650,8 +650,8 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 
 ---
 
-**Version**: 9.1 | **Last Updated:** 2026-05-16
-**Changes**: Added GitHub Issues Workflow (6 layers) — templates, PR template, AGENTS.md mandate, git hooks, justfile commands, CI integration
+**Version**: 9.2 | **Last Updated:** 2026-05-23
+**Changes**: Updated from 2026-05-16 to 2026-05-23. Fresh commit ref. Added cluster-mesh SSH key ownership fix (agenix-secrets-registry). Added cns-watcher bash syntax fixes. Added SRI hash format fix for k3s-cluster. Stale plan docs flagged per Pocock Rule. INDEX.md reality-check refreshed.
 
 ## Known Frictions & Workarounds (2026-05-18)
 
