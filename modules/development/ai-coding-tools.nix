@@ -123,11 +123,6 @@ in {
     };
   };
   config = mkIf cfg.enable {
-    services.mcp-servers = {
-      enable = true;
-      servers.playwright.enable = true;
-      servers.context7.apiKeyFile = cfg.context7ApiKeyFile;
-    };
     systemd.tmpfiles.rules = [
       "d /home/${cfg.user}/.factory 0700 ${cfg.user} users -"
       "d /home/${cfg.user}/.config/claude 0755 ${cfg.user} users -"

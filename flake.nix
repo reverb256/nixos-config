@@ -281,7 +281,7 @@
 
   nixosConfigurations =
   (builtins.mapAttrs (
-    _name: value: mkNixosSystem {inherit (value) hostName modules;}
+    _name: value: mkNixosSystem {inherit (value) hostName; modules = value.modules or commonModules;}
   )
         hosts)
       // {

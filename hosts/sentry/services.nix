@@ -52,12 +52,12 @@ in {
     tailscale.enable = true;
 
     nixos-share = {
-      enable = true;
+      enable = false;
       client.enable = true;
     };
 
     nfs-client = {
-      enable = true;
+      enable = false;
       mountShared = true;
       mountHome = false;
       mountMedia = false;
@@ -90,6 +90,7 @@ in {
     };
   };
 
+  services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
   # Create directories for hermes/pi bind mounts on Sentry
   systemd.tmpfiles.rules = [
     "d /data/hermes 0775 j_kro j_kro -"
