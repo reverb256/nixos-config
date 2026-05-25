@@ -192,7 +192,6 @@ in {
     };
 
     anime-game-launcher.enable = true;
-    sleepy-launcher.enable = true;
     honkers-railway-launcher.enable = true;
     wavey-launcher.enable = true;
 

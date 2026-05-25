@@ -70,7 +70,7 @@ in {
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         ExecStart = "${tunnel}";
-        User = "j_kro";
+        User = "cluster-mesh";
         Restart = "always";
         RestartSec = "5";
         StandardOutput = "journal";

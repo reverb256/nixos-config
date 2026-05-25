@@ -33,7 +33,8 @@ in {
       enable = true;
       nvidia.enable = true;
       role = "server";
-      clusterInit = false; # Rejoining existing cluster, not bootstrapping
+      clusterInit = false; # Rejoining existing cluster (forge + sentry already running)
+  clusterReset = true; # Wipe stale local state from failed bootstrap, then set false
       nodeName = "nexus";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";

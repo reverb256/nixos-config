@@ -95,7 +95,7 @@ in {
         hosts.nexus.ip
         hosts.nexus.tailscale
       ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKdiAhjCoZkeC5Ck4M9qPfTRWc6yz4jul6gQD5FI5Cx8";
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPzZJzpL8jVY8LCXO70DB+FwbAaFjp61KEej1V6Wei5U";
     };
     forge = {
       hostNames = [

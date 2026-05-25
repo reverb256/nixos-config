@@ -178,6 +178,7 @@ in {
         ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"
         ++ lib.optional (config.hardware.gpu-compute.rocm.enable or false) "--node-label=gpu=amd"
         ++ lib.optional (cfg.nodeIP != "") "--node-external-ip=${cfg.nodeIP}"
+ ++ lib.optional cfg.clusterReset "--cluster-reset"
         ++ [
           "--flannel-iface=eth0"
           "--kubelet-arg=authentication-token-webhook=true"

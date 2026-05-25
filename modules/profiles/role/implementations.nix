@@ -23,7 +23,6 @@ in {
     })
 
     (lib.mkIf cfg.aiInference {
-      services.ai-inference.enable = true;
       services.opencode.enable = true;
     })
 
