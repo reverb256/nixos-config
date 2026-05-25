@@ -19,7 +19,7 @@
     rgb-control = {
       enable = true;
       openrgb.enable = true;
-      openrazer.enable = true;
+      openrazer.enable = false; // Disabled: CachyOS 7.0.9 kABI breaks OpenRazer build, Nexus has no Razer hardware
       temperatureReactive = {
         enable = true;
         sensor = "cpu";
