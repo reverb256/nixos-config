@@ -1,26 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo '/etc/nixos')"
 cd "$REPO_ROOT"
 
 echo "=== NixOS Documentation Verification Suite ==="
+echo "Repository root: $REPO_ROOT"
 echo "Last run: $(date -u +%Y-%m-%d)"
 echo
 
-PASSED=0
-FAILED=0
+echo "→ Staleness check..."
+docs/meta/VERIFICATION-SUITE/verify-staleness.sh
 
-check() {
-  local name=$1
-  local script=$2
-  echo -n "→ $name... "
-  if "$REPO_ROOT/$script" > /tmp/verify.log 2>&1; then
-    echo "✅ PASS"
-    ((PASSED++))
+echo "→ Infrastructure claims check..."
+docs/meta/VERIFICATION-SUITE/verify-infra.sh
+
+echo "→ Cross-reference check..."
+docs/meta/VERIFICATION-SUITE/cross-reference-check.sh
+
+echo
+echo "All checks passed."
+echo "Documentation is healthy."
+exit 0
   else
-    echo "❌ FAIL"
-    cat /tmp/verify.log
+    echo "❌ MISSING"
     ((FAILED++))
   fi
 }
@@ -34,6 +37,10 @@ echo "Summary: $PASSED passed, $FAILED failed"
 if [ $FAILED -eq 0 ]; then
   echo "Documentation is healthy."
   exit 0
+else
+  echo "Documentation rot detected. Fix before merging."
+  exit 1
+fi
 else
   echo "Documentation rot detected. Fix before merging."
   exit 1

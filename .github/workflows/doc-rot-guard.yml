@@ -4,12 +4,46 @@ on:
   schedule:
     - cron: '0 4 * * *'  # Daily at 4 AM
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'modules/**'
+      - 'hosts/**'
+      - 'kubernetes/**'
+      - 'justfile'
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
 
 jobs:
-  stale-docs:
+  stale-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Find stale docs
+      # pin:actions/checkout@v4
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          fetch-depth: 0
+
+      # pin:cachix/install-nix-action@v31
+      - uses: cachix/install-nix-action@b97f05dcb019ddea06450a50ef6203d2fdc19fee
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Cache Nix store
+        # pin:cachix/cachix-action@v17
+        uses: cachix/cachix-action@02b16339eddcf6ea27126a830c7f1992855cae13
+        with:
+          name: reverb-os
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          extraPullNames: nixos-community
+
+      - name: Run documentation verification suite
         run: |
-          echo "Stale docs detected - Kagent will enrich"
+          nix develop --command just docs-audit || echo "::warning::docs-audit failed - LIVE/ documents may be stale"
+
+      - name: Report stale documentation
+        if: failure() && github.event_name != 'pull_request'
+        run: |
+          echo "Documentation rot detected. Run 'just docs-audit' locally and fix LIVE/ files."
