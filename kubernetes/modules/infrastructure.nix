@@ -356,10 +356,11 @@ in {
         selector.app = "kubernetes-mcp";
       };
     };
+  };
 
-    # ── AMD GPU Device Plugin ────────────────────────────────────
-    # Registers AMD GPUs (gpu:amd nodes) with K8s via the ROCm device plugin
-    kube-system.DaemonSet.amd-gpu-device-plugin = {
+  # ── AMD GPU Device Plugin ────────────────────────────────────
+  # Registers AMD GPUs (gpu:amd nodes) with K8s via the ROCm device plugin
+  config.kubernetes.objects.kube-system.DaemonSet.amd-gpu-device-plugin = {
       metadata = {
         labels = managed // {
           app = "amd-gpu-device-plugin";
@@ -435,9 +436,9 @@ in {
       };
     };
 
-    # ── NVIDIA GPU Device Plugin ──────────────────────────────────
-    # Registers NVIDIA GPUs (accelerator:nvidia-gpu nodes) with K8s
-    kube-system.DaemonSet.nvidia-device-plugin = {
+  # ── NVIDIA GPU Device Plugin ──────────────────────────────────
+  # Registers NVIDIA GPUs (accelerator:nvidia-gpu nodes) with K8s
+  config.kubernetes.objects.kube-system.DaemonSet.nvidia-device-plugin = {
       metadata = {
         labels = managed // {
           k8s-app = "nvidia-device-plugin";
@@ -505,7 +506,8 @@ in {
       };
     };
 
-    # ── NixOS Cluster MCP (SSE) ──────────────────────────────────
+  # ── NixOS Cluster MCP (SSE) ──────────────────────────────────
+  config.kubernetes.objects.infra = {
     DaemonSet.nixos-cluster-mcp = {
       metadata.labels = managed // {app = "nixos-cluster-mcp";};
       spec = {
@@ -631,6 +633,5 @@ in {
       };
     };
 
-    };
   };
 }
