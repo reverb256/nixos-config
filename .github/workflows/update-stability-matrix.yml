@@ -13,7 +13,7 @@ permissions:
 jobs:
   update-stability-matrix:
     name: Check for new Stability Matrix release
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
