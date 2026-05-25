@@ -58,8 +58,6 @@ Closes #   <!-- or: Related to # -->
 - [ ] `lib.mkOptionDefault` used for extensible lists (ports, packages)
 - [ ] No `:latest` tags (SHA-pinned or versioned)
 - [ ] GPU workloads default to Nexus (not Zephyr)
-- [ ] Documentation updated in `docs/LIVE/` if infrastructure changed
-- [ ] `just docs-audit` passes cleanly
 - [ ] Commit messages reference issue number: `(#NNN)`
 - [ ] Branch name: `issue-NNN-short-description`
 - [ ] Worktree cleaned up after merge: `git worktree remove /data/projects/own/nixos-config-NNN`

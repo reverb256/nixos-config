@@ -1,20 +1,34 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "Checking for stale documentation..."
+echo "Checking for stale documentation in LIVE/ and PATTERNS/..."
 
-find docs/LIVE docs/PATTERNS -name "*.md" -exec grep -l "last-verified:" {} + | while read -r file; do
-  date_str=$(grep "last-verified:" "$file" | head -1 | cut -d: -f2 | tr -d ' ')
-  if [ -n "$date_str" ]; then
-    last=$(date -d "$date_str" +%s)
-    now=$(date +%s)
-    days=$(( (now - last) / 86400 ))
-    if [ "$days" -gt 14 ]; then
-      echo "STALE: $file ($days days old)"
-      exit 1
+STALE_FOUND=0
+
+for file in $(find docs/LIVE docs/PATTERNS -name "*.md" 2>/dev/null || true); do
+  if grep -q "last-verified:" "$file"; then
+    DATE=$(grep "last-verified:" "$file" | head -1 | sed 's/.*last-verified: *//')
+    if [ -n "$DATE" ]; then
+      LAST=$(date -d "$DATE" +%s 2>/dev/null || echo "0")
+      NOW=$(date +%s)
+      DAYS=$(( (NOW - LAST) / 86400 ))
+      if [ "$DAYS" -gt 14 ]; then
+        echo "STALE: $file ($DAYS days old, last-verified $DATE)"
+        STALE_FOUND=1
+      else
+        echo "  OK: $file ($DAYS days old)"
+      fi
     fi
+  else
+    echo "WARNING: $file has no last-verified date"
+    STALE_FOUND=1
   fi
 done
 
-echo "No stale LIVE/PATTERNS documents found."
-exit 0
+if [ $STALE_FOUND -eq 0 ]; then
+  echo "No stale documents found."
+  exit 0
+else
+  echo "Stale documentation found."
+  exit 1
+fi

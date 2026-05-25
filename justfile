@@ -569,18 +569,18 @@ ca-domains:
 #  DOCUMENTATION
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Run full documentation verification suite
+# Run full documentation verification suite (part of CI/CD)
 docs-audit:
     #!/usr/bin/env bash
     set -e
     echo "▸ Running documentation verification suite..."
-    cd {{FLAKE}} && ./docs/meta/VERIFICATION-SUITE/run.sh
+    docs/meta/VERIFICATION-SUITE/run.sh
 
-# Refresh stale documentation (placeholder - will open editor on key files)
+# Refresh stale documentation sections
 docs-freshen:
     #!/usr/bin/env bash
     set -e
     echo "▸ Refreshing documentation..."
-    echo "→ Updating INFRASTRUCTURE-AUDIT.md with current state"
+    echo "→ Check LIVE/ documents for accuracy"
     echo "→ Run 'just docs-audit' after changes"
-    echo "Documentation refresh complete. Verify with 'just docs-audit'."
+    echo "Documentation refresh complete."
