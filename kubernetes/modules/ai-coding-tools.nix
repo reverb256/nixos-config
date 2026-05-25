@@ -60,15 +60,21 @@ in {
                 volumeMounts = [
                   {
                     name = "pvc-home";
-                    persistentVolumeClaim.claimName = "ai-coding-configs";
+                    mountPath = "/pvc-home";
                   }
                 ];
-                restartPolicy = "Never";
-              };
+              }
+            ];
+            restartPolicy = "Never";
+            volumes = [
+              {
+                name = "pvc-home";
+                persistentVolumeClaim.claimName = "ai-coding-configs";
+              }
             ];
           };
-          backoffLimit = 1;
         };
+        backoffLimit = 1;
       };
     };
 
