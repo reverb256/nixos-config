@@ -82,3 +82,32 @@ jobs:
           echo "| Commit refs | ✅ Checked |" >> $GITHUB_STEP_SUMMARY
           echo "| Conventional title | ✅ Checked |" >> $GITHUB_STEP_SUMMARY
           echo "| Target branch | ✅ Checked |" >> $GITHUB_STEP_SUMMARY
+
+      - name: "Documentation freshness check"
+        if: >-
+          contains(github.event.pull_request.files.*.filename, 'docs/') ||
+          contains(github.event.pull_request.files.*.filename, 'modules/') ||
+          contains(github.event.pull_request.files.*.filename, 'hosts/') ||
+          contains(github.event.pull_request.files.*.filename, 'kubernetes/') ||
+          contains(github.event.pull_request.files.*.filename, 'justfile')
+        run: |
+          echo "Checking LIVE/ document freshness..."
+          FAILED=0
+          for f in docs/LIVE/*.md; do
+            if [ ! -f "$f" ]; then
+              echo "::warning::Missing LIVE document: $f"
+              FAILED=$((FAILED + 1))
+              continue
+            fi
+            DATE=$(grep "last-verified:" "$f" 2>/dev/null | sed 's/.*last-verified: *//')
+            if [ -z "$DATE" ]; then
+              echo "::warning::$f has no last-verified date"
+              FAILED=$((FAILED + 1))
+              continue
+            fi
+            echo "  OK: $f (last-verified: $DATE)"
+          done
+          if [ $FAILED -gt 0 ]; then
+            echo "::warning::$FAILED LIVE document(s) need attention. Run 'just docs-audit' after merge."
+          fi
+          exit 0  # Non-blocking — warn only on PRs
