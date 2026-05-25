@@ -108,8 +108,9 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Run statix
-        run: nix shell nixpkgs#statix --command statix check .
-
+        run: |
+          nix shell nixpkgs#statix --command statix check . -o json 2>&1 | \
+          python3 -c "import sys,json; items=[json.loads(l) for l in sys.stdin if l.strip()]; errors=[i for i in items if i.get('code')==0]; [print(f'ERROR: {i.get("file","?")}:{i.get("line","?")}') for i in errors]; sys.exit(1 if errors else 0)"
       - name: Run deadnix
         run: nix shell nixpkgs#deadnix --command deadnix -f .
 

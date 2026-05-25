@@ -26,7 +26,6 @@ in {
         ../../modules/home-manager/nixcord-config.nix
         ../../modules/home-manager/caprine.nix
         ../../modules/home-manager/niri-config.nix
-        ../../modules/home-manager/hyprland-config.nix
         ../../modules/home-manager/obsidian.nix
         ../../modules/home-manager/opencode.nix
         ../../modules/home-manager/firefox-pwa-apps.nix
@@ -50,7 +49,6 @@ in {
       stylix.targets = {
         zen-browser.profileNames = ["default"];
         qt.platform = "qtct";
-        hyprland.hyprpaper.enable = false;
       };
 
       nixcord-config.enable = lib.mkForce (hostName == "zephyr");
