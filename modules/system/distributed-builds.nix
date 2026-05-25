@@ -177,6 +177,19 @@ in {
             supportedFeatures = ["big-parallel"];
             mandatoryFeatures = [];
           }
+      {
+        hostName = "krash3";
+        system = "x86_64-linux";
+        sshUser = "j_kro";
+        sshKey = "/etc/nixos/ssh/id_ed25519";
+        maxJobs = 8;
+        speedFactor = 4;
+        supportedFeatures = [
+          "big-parallel"
+          "kvm"
+        ];
+        mandatoryFeatures = [];
+      }
         ];
         machines = builtins.filter (m: m.hostName != currentHost) allMachines;
         formatMachine = m: ''
