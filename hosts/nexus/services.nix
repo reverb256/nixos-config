@@ -339,14 +339,14 @@ in {
   };
   # Initrd SSH recovery + BTRFS snapshots
   services.initrd-ssh-recovery = {
-    enable = false; # Disabled: agenix secret not available at build time
+    enable = true; # Fixed: key generated at build time
     interface = "eth1";
     networkDriver = "r8169";
     port = 2222;
   };
-  services.recovery-specialisation.enable = false; # depends on initrd-ssh
+  services.recovery-specialisation.enable = true; # depends on initrd-ssh
   services.btrfs-boot-snapshot = {
-    enable = false; # depends on initrd-ssh
+    enable = true; # depends on initrd-ssh
     subvolume = "@root";
     device = "/dev/disk/by-uuid/076e60fb-09b9-4f5c-9d9b-cdbb1f1f859b";
   };
