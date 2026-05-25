@@ -33,18 +33,19 @@ in {
       enable = true;
       nvidia.enable = true;
       role = "server";
-      clusterInit = false; # Rejoining existing cluster (forge + sentry already running)
-  clusterReset = true; # Wipe stale local state from failed bootstrap, then set false
+      clusterInit = true; # Primary server, bootstrapping new cluster
+  clusterReset = false; # Already reset, running clean
       nodeName = "nexus";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = cluster.hosts.nexus.ip;
+    flannelIface = "eth1"; # Nexus primary interface (eth0 has NO-CARRIER)
     };
 
     keepalived-vip = {
       enable = true;
       vip = cluster.kubernetes.vip;
-      interface = "eth0";
+      interface = "eth1";
       priority = 110;
     };
 
@@ -339,7 +340,7 @@ in {
   # Initrd SSH recovery + BTRFS snapshots
   services.initrd-ssh-recovery = {
     enable = true;
-    interface = "eth0";
+    interface = "eth1";
     networkDriver = "r8169";
     port = 2222;
   };
