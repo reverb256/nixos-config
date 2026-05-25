@@ -44,7 +44,7 @@ in {
      };
 
     nixos-share = {
-      enable = true;
+      enable = false;
       client.enable = true;
     };
 
@@ -107,7 +107,7 @@ in {
     };
 
     nfs-client = {
-      enable = true;
+      enable = false;
       mountShared = true;
       mountHome = true;
       mountMedia = false;
@@ -132,6 +132,7 @@ in {
     };
   };
 
+  services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
   environment.systemPackages = with pkgs; [
     rocmPackages.rocm-smi
     clinfo

@@ -12,8 +12,8 @@ in {
 
   config = mkIf cfg.enable {
     systemd.user.extraConfig = ''
-      DefaultTimeoutStartSec=180s
-      DefaultTimeoutStopSec=180s
+      DefaultTimeoutStartSec=90s
+      DefaultTimeoutStopSec=90s
     '';
   };
 }

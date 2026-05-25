@@ -106,7 +106,6 @@
   };
 
   programs = {
-    sleepy-launcher.enable = lib.mkDefault true;
     git = {
       enable = lib.mkDefault true;
       config = {

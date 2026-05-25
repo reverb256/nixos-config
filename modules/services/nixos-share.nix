@@ -92,6 +92,7 @@ in {
           "nofail"
           "bg"
           "x-systemd.mount-timeout=10s"
+          "x-systemd.umount-timeout=10s"
         ];
       };
     };

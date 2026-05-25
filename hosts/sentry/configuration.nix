@@ -91,8 +91,8 @@
 
   services.nfs-cluster-mounts = {
     enable = true;
-    mountHermes = true;
-    mountPi = true;
+    mountHermes = false;
+    mountPi = false;
   };
 
   # System hardening (Phase 0: Security Baseline)

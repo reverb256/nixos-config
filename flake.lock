@@ -96,10 +96,12 @@
         ]
       },
       "locked": {
-        "lastModified": 1779497119,
-        "narHash": "sha256-OZZTFQJw4erzbbX5VC8CKu0jGVsm//lU3L46ywCeR9U=",
-        "path": "/data/projects/own/ai-inference-gateway",
-        "type": "path"
+        "lastModified": 1779665330,
+        "narHash": "sha256-kKd4EBS/IWXBxAHS96zGNDRgr6uYxpZUcecpgn6kiWc=",
+        "owner": "reverb256",
+        "repo": "ai-inference-gateway",
+        "rev": "96497a4227147d96d7ccc721ab293302a61fe13d",
+        "type": "github"
       },
       "original": {
         "path": "/data/projects/own/ai-inference-gateway",
