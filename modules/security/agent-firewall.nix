@@ -250,7 +250,7 @@ in {
         ExecStart = pkgs.writeShellScript "agent-firewall-apply" ''
           ${pkgs.nftables}/bin/nft delete table inet agent-firewall 2>/dev/null || true
           ${pkgs.nftables}/bin/nft -f /etc/nftables/agent-firewall.conf
-        ''
+        '';
       };
     };
 
