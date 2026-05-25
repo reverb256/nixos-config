@@ -16,7 +16,7 @@ in {
     };
     k3s-cluster = {
       enable = true;
-      role = "agent";
+      role = "server";
       nodeName = "sentry";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";
