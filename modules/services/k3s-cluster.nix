@@ -95,6 +95,11 @@ in {
       description = "Kubernetes node name (defaults to hostname)";
     };
 
+  flannelIface = mkOption {
+    type = types.str;
+    default = "eth0";
+    description = "Network interface for flannel VXLAN (must have node IP)";
+  };
     nvidia = {
       enable = mkOption {
         type = types.bool;
@@ -178,8 +183,9 @@ in {
         ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"
         ++ lib.optional (config.hardware.gpu-compute.rocm.enable or false) "--node-label=gpu=amd"
         ++ lib.optional (cfg.nodeIP != "") "--node-external-ip=${cfg.nodeIP}"
+ ++ lib.optional cfg.clusterReset "--cluster-reset"
         ++ [
-          "--flannel-iface=eth0"
+          "--flannel-iface=${cfg.flannelIface}"
           "--kubelet-arg=authentication-token-webhook=true"
           "--kubelet-arg=authorization-mode=Webhook"
         ];

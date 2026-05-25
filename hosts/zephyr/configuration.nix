@@ -169,11 +169,7 @@ in {
   };
 
    services.nixos-share = {
-     enable = true;
-     server.enable = true;
-     server.exports = [
-       { path = "/etc/nixos"; description = "NixOS configuration"; }
-     ];
+     enable = false;
    };
 
   i18n.defaultLocale = "en_CA.UTF-8";
@@ -192,7 +188,6 @@ in {
     };
 
     anime-game-launcher.enable = true;
-    sleepy-launcher.enable = true;
     honkers-railway-launcher.enable = true;
     wavey-launcher.enable = true;
 
