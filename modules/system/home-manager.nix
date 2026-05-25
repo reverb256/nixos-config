@@ -43,13 +43,7 @@ in {
         ../../modules/home-manager/btop.nix
       ];
 
-      disabledModules = ["stylix/hm/opencode.nix"];
-      stylix.targets.opencode.enable = false;
 
-      stylix.targets = {
-        zen-browser.profileNames = ["default"];
-        qt.platform = "qtct";
-      };
 
       nixcord-config.enable = lib.mkForce (hostName == "zephyr");
       caprine.enable = lib.mkForce (hostName == "zephyr");
