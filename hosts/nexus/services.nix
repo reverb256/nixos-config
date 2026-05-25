@@ -354,6 +354,7 @@ in {
 
   # ---- External HA etcd cluster ------------------------------
   services.etcd-cluster.enable = true;
+  services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
   services.recovery-specialisation.enable = true; # depends on initrd-ssh
   services.btrfs-boot-snapshot = {
     enable = true; # depends on initrd-ssh

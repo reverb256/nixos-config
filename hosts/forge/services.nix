@@ -140,6 +140,7 @@ in {
 
   # ── External HA etcd cluster ──────────────────────────────
   services.etcd-cluster.enable = true;
+  services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
 
   environment.systemPackages = with pkgs; [
     rocmPackages.rocm-smi

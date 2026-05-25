@@ -98,6 +98,7 @@ in {
 
   # ── External HA etcd cluster ──────────────────────────────
   services.etcd-cluster.enable = true;
+  services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
 
   # Create directories for hermes/pi bind mounts on Sentry
   systemd.tmpfiles.rules = [
