@@ -1,6 +1,10 @@
+---
+last-verified: 2026-05-24
+verified-by: Sisyphus
+verification-method: just docs-audit
+expires: 2026-05-31
+---
 # Architecture
-
-**Last Verified:** 2026-05-24
 
 See INFRASTRUCTURE-AUDIT.md for current state.
 

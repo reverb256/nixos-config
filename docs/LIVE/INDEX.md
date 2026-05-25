@@ -1,7 +1,10 @@
+---
+last-verified: 2026-05-24
+verified-by: Sisyphus
+verification-method: just docs-audit
+expires: 2026-05-31
+---
 # Documentation Index
-
-**Last Verified:** 2026-05-24  
-**Single Source of Truth:** `docs/LIVE/`
 
 ## LIVE Documents (Canonical)
 

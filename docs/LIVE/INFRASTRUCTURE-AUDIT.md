@@ -1,9 +1,10 @@
+---
+last-verified: 2026-05-24
+verified-by: Sisyphus
+verification-method: just docs-audit + cluster inspection
+expires: 2026-05-31
+---
 # Infrastructure Audit — 2026-05-24
-
-**Last Verified:** 2026-05-24  
-**Verified By:** Sisyphus (this PR)  
-**Verification Method:** just status + manual inspection  
-**Expires:** 2026-05-31
 
 ## Cluster Overview
 
