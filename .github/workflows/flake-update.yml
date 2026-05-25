@@ -92,7 +92,7 @@ jobs:
   update-nixpkgs:
     name: Update nixpkgs
     if: github.event.inputs.target == 'nixpkgs' || github.event.inputs.target == 'all'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
