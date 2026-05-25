@@ -22,7 +22,7 @@ let
   tunnel = pkgs.writeShellScript "nexus-exec-tunnel" ''
     set -euo pipefail
     mkdir -p $(dirname ${cfg.clientSocketPath})
-    exec ${pkgs.openssh}/bin/ssh -i /var/lib/cluster-mesh/.ssh/id_ed25519 -NL ${cfg.clientSocketPath}:${cfg.listenSocket} cluster-mesh@nexus
+    exec ${pkgs.openssh}/bin/ssh -i /run/agenix/cns-ssh-key -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null -NL ${cfg.clientSocketPath}:${cfg.listenSocket} cluster-mesh@nexus
   '';
 
 in {
