@@ -52,7 +52,7 @@ in {
           set -euo pipefail
 
           WATCH_DIR="${cfg.watchPath}"
-          REMOTE_NODES=(${concatStringsSep " " cfg.remoteNodes})
+          REMOTE_NODES=(${lib.concatStringsSep " " cfg.remoteNodes})
           SSH_KEY="${cfg.sshKeyFile}"
           STAGING_DIR="/var/lib/cns/staging"
           STATE_DIR="/var/lib/cns/state"
@@ -217,7 +217,7 @@ in {
           failures=0
 
           # Check each node
-          for node in ${concatStringsSep " " cfg.remoteNodes}; do
+          for node in "''${REMOTE_NODES[@]}"; do
             node_checksum=$(${pkgs.openssh}/bin/ssh -i "${cfg.sshKeyFile}" -o StrictHostKeyChecking=no \
               "cluster-mesh@$node" "cat /run/cns/current-checksum.txt 2>/dev/null || echo")
 
