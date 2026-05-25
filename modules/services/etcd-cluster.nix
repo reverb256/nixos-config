@@ -6,6 +6,7 @@ let
 
   openssl = "${pkgs.openssl}/bin/openssl";
 
+  # ── Cluster topology ──────────────────────────────────────────
   cluster = config.networking.cluster;
 
   members = [
@@ -15,10 +16,13 @@ let
   ];
 
   hostName = config.networking.hostName;
-  selfMember = lib.findFirst (m: m.name == "etcd-${hostName}")
-    { name = null; ip = null; } members;
+  selfMember = lib.head (
+    builtins.filter (m: m.name == "etcd-${hostName}") members
+  );
 
-  initialClusterList = map (m: "${m.name}=https://${m.ip}:2380") members;
+  initialClusterStr = lib.concatStringsSep "," (
+    map (m: "${m.name}=https://${m.ip}:2380") members
+  );
 
   serverSANs = lib.concatStringsSep "," (
     map (m: "IP:${m.ip}") members ++ [ "DNS:localhost" "IP:127.0.0.1" ]
@@ -28,7 +32,7 @@ let
 
   tlsDir = "/var/lib/etcd/secrets";
 
-  isEtcdMember = selfMember.name != null;
+  isEtcdMember = builtins.elem selfMember members;
 
 in {
   options.services.etcd-cluster = {
@@ -41,51 +45,56 @@ in {
   };
 
   config = mkIf cfg.enable {
-    assertions = [{
-      assertion = isEtcdMember;
-      message = "etcd-cluster: host ${hostName} is not in the etcd member list. "
-        + "Members: ${lib.concatStringsSep ", " (map (m: m.name) members)}";
-    }];
+    assertions = [
+      {
+        assertion = isEtcdMember;
+        message = "etcd-cluster: host ${hostName} is not in the etcd member list. "
+          + "Members: ${lib.concatStringsSep ", " (map (m: m.name) members)}";
+      }
+    ];
 
-    services.etcd = mkIf isEtcdMember {
-      enable = true;
-      name = selfMember.name;
-      dataDir = cfg.dataDir;
+    services = mkIf isEtcdMember {
+      etcd = {
+        enable = true;
+        name = selfMember.name;
+        dataDir = cfg.dataDir;
 
-      initialCluster = initialClusterList;
-      initialClusterToken = "nixos-cluster-etcd-quorum";
-      initialClusterState = "new";
+        initialCluster = initialClusterStr;
+        initialClusterToken = "nixos-cluster-etcd-quorum";
+        initialClusterState = "new";
 
-      listenPeerUrls = [ "https://${selfMember.ip}:2380" ];
-      initialAdvertisePeerUrls = [ "https://${selfMember.ip}:2380" ];
+        listenPeerUrls = [ "https://${selfMember.ip}:2380" ];
+        initialAdvertisePeerUrls = [ "https://${selfMember.ip}:2380" ];
 
-      listenClientUrls = [ "https://${selfMember.ip}:2379" "https://127.0.0.1:2379" ];
-      advertiseClientUrls = [ "https://${selfMember.ip}:2379" ];
+        listenClientUrls = [ "https://${selfMember.ip}:2379" "https://127.0.0.1:2379" ];
+        advertiseClientUrls = [ "https://${selfMember.ip}:2379" ];
 
-      # mTLS: Peer authentication
-      peerClientCertAuth = true;
-      peerTrustedCaFile = "${tlsDir}/etcd-ca.crt";
-      peerCertFile = "${tlsDir}/peer.crt";
-      peerKeyFile = "${tlsDir}/peer.key";
+        # mTLS: Peer authentication
+        peerCertAuth = true;
+        peerTrustedCaFile = "${tlsDir}/etcd-ca.crt";
+        peerCertFile = "${tlsDir}/peer.crt";
+        peerKeyFile = "${tlsDir}/peer.key";
 
-      # mTLS: Client authentication
-      clientCertAuth = true;
-      trustedCaFile = "${tlsDir}/etcd-ca.crt";
-      certFile = "${tlsDir}/server.crt";
-      keyFile = "${tlsDir}/server.key";
+        # mTLS: Client authentication
+        clientCertAuth = true;
+        trustedCaFile = "${tlsDir}/etcd-ca.crt";
+        certFile = "${tlsDir}/server.crt";
+        keyFile = "${tlsDir}/server.key";
 
-      extraConf = {
-        auto-compaction-mode = "periodic";
-        auto-compaction-retention = "5m";
-        quota-backend-bytes = "8589934592";
-        heartbeat-interval = "250";
-        election-timeout = "1250";
-        snapshot-count = "10000";
+        extraConf = {
+          auto-compaction-mode = "periodic";
+          auto-compaction-retention = "5m";
+          quota-backend-bytes = 8589934592;  # 8 GB
+          heartbeat-interval = 250;
+          election-timeout = 1250;
+          snapshot-count = 10000;
+        };
       };
+
+      networking.firewall.allowedTCPPorts = [ 2379 2380 ];
     };
 
-    networking.firewall.allowedTCPPorts = mkIf isEtcdMember [ 2379 2380 ];
-
+    # ── TLS certificate generator ─────────────────────────────
     systemd.services.etcd-tls-setup = mkIf isEtcdMember {
       description = "Generate etcd mTLS certificates";
       wantedBy = [ "etcd.service" ];
@@ -158,11 +167,12 @@ in {
       '';
     };
 
+    # ── Systemd tuning for etcd ────────────────────────────
     systemd.services.etcd = mkIf isEtcdMember {
       after = [ "etcd-tls-setup.service" ];
       wants = [ "etcd-tls-setup.service" ];
       serviceConfig = {
-        LimitNOFILE = lib.mkForce 65536;
+        LimitNOFILE = 65536;
         CPUSchedulingPolicy = "rr";
         CPUSchedulingPriority = 99;
         IOSchedulingPriority = 1;
