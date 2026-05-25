@@ -7,7 +7,7 @@ on:
 jobs:
   delete-head:
     if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     steps:
       - name: Delete head branch
         uses: actions/github-script@v6

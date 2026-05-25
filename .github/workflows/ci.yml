@@ -18,7 +18,7 @@ jobs:
 
   parse-check:
     name: Parse Check
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
@@ -60,7 +60,7 @@ jobs:
 
   quick-check:
     name: Quick Check
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
@@ -89,7 +89,7 @@ jobs:
 
   lint:
     name: Lint Nix
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
@@ -121,7 +121,7 @@ jobs:
 
   tests:
     name: Test Suite
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     needs: [parse-check]
     steps:
       - name: Checkout
@@ -189,7 +189,7 @@ jobs:
 
   security:
     name: Security Scan
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, nixos]
     steps:
       - name: Checkout
         # pin:actions/checkout@v5
