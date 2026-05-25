@@ -21,6 +21,12 @@ in {
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = cluster.hosts.sentry.ip;
+      # External etcd datastore
+      etcdServers = "https://${cluster.hosts.nexus.ip}:2379,https://${cluster.hosts.forge.ip}:2379,https://${cluster.hosts.sentry.ip}:2379";
+      etcdCAFile = "/var/lib/etcd/secrets/etcd-ca.crt";
+      etcdCertFile = "/var/lib/etcd/secrets/k3s-client.crt";
+      etcdKeyFile = "/var/lib/etcd/secrets/k3s-client.key";
+      disableEmbeddedEtcd = true;
     };
 
     keepalived-vip = {
@@ -89,6 +95,9 @@ in {
       aiServices = true;
     };
   };
+
+  # ── External HA etcd cluster ──────────────────────────────
+  services.etcd-cluster.enable = true;
 
   # Create directories for hermes/pi bind mounts on Sentry
   systemd.tmpfiles.rules = [
