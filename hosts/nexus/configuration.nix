@@ -89,8 +89,8 @@
   # Hermes + pi state via NFS from zephyr (canonical server)
   services.nfs-cluster-mounts = {
     enable = true;
-    mountHermes = true;
-    mountPi = true;
+    mountHermes = false;
+    mountPi = false;
   };
 
   profiles.monitoring = {

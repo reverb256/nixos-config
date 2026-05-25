@@ -90,8 +90,8 @@
 
   services.nfs-cluster-mounts = {
     enable = true;
-    mountHermes = true;
-    mountPi = true;
+    mountHermes = false;
+    mountPi = false;
   };
 
   # Override noexec on /var (nix-mineral remnant) for k3s re-exec

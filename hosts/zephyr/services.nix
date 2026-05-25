@@ -198,13 +198,13 @@ in {
     };
 
     nixos-share = {
-      enable = true;
-      server.enable = true;
+      enable = false;
+      server.enable = false;
     };
 
     # NFS server for /etc/nixos only — hermes/pi moved to Nexus to break I/O loop on root NVMe
     nfs-data-server = {
-      enable = true;
+      enable = false;
       exports = "";
     };
 

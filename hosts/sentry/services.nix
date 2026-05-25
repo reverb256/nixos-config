@@ -52,12 +52,12 @@ in {
     tailscale.enable = true;
 
     nixos-share = {
-      enable = true;
+      enable = false;
       client.enable = true;
     };
 
     nfs-client = {
-      enable = true;
+      enable = false;
       mountShared = true;
       mountHome = false;
       mountMedia = false;

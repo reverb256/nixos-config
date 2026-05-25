@@ -44,7 +44,7 @@ in {
      };
 
     nixos-share = {
-      enable = true;
+      enable = false;
       client.enable = true;
     };
 
@@ -107,7 +107,7 @@ in {
     };
 
     nfs-client = {
-      enable = true;
+      enable = false;
       mountShared = true;
       mountHome = true;
       mountMedia = false;

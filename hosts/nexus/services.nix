@@ -54,7 +54,7 @@ in {
     nexus-exec.enable = true;
 
     nixos-share = {
-      enable = true;
+      enable = false;
       client.enable = true;
     };
 
