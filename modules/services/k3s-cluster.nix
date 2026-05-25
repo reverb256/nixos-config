@@ -62,7 +62,7 @@ in {
     clusterInit = mkOption {
       type = types.bool;
       default = false;
-      description = "Set true on the first server to bootstrap a new HA cluster (embedded etcd; ignored when external etcd is configured)";
+      description = "Set true on the first server to bootstrap a new HA cluster with embedded etcd";
     };
 
     clusterReset = mkOption {
@@ -107,37 +107,6 @@ in {
         description = "Configure NVIDIA containerd runtime for GPU workloads";
       };
     };
-
-    # ---- External datastore (params for external etcd) ----------
-    disableEmbeddedEtcd = mkOption {
-      type = types.bool;
-      default = false;
-      description = "Disable k3s embedded etcd when using external datastore";
-    };
-
-    etcdServers = mkOption {
-      type = types.nullOr types.str;
-      default = null;
-      description = "Comma-separated external etcd server endpoints for k3s datastore";
-    };
-
-    etcdCAFile = mkOption {
-      type = types.nullOr types.path;
-      default = null;
-      description = "Path to etcd CA certificate for datastore TLS";
-    };
-
-    etcdCertFile = mkOption {
-      type = types.nullOr types.path;
-      default = null;
-      description = "Path to etcd client certificate for datastore TLS";
-    };
-
-    etcdKeyFile = mkOption {
-      type = types.nullOr types.path;
-      default = null;
-      description = "Path to etcd client key for datastore TLS";
-    };
   };
 
   config = mkIf cfg.enable {
@@ -172,18 +141,12 @@ in {
         else false;
 
       serverAddr =
-        # External etcd: no --server needed, all connect to datastore
-        if cfg.etcdServers != null
-        then ""
-        else if (!isServer || !cfg.clusterInit)
+        if (!isServer || !cfg.clusterInit)
         then cfg.serverAddr
         else "";
 
       tokenFile =
-        # External etcd: all servers need the token for node auth
-        if cfg.etcdServers != null
-        then cfg.tokenFile
-        else if cfg.clusterInit
+        if cfg.clusterInit
         then null
         else cfg.tokenFile;
 
@@ -201,47 +164,26 @@ in {
         lib.optionals isServer disabledComponents;
 
       extraFlags =
-        # External etcd: --datastore-endpoint + --disable-etcd
-        lib.optionals (isServer && cfg.etcdServers != null) [
-          "--cluster-cidr=${clusterCIDR}"
-          "--service-cidr=${serviceCIDR}"
-          "--cluster-dns=${clusterDNS}"
-          "--write-kubeconfig-mode=644"
-          "--datastore-endpoint=${cfg.etcdServers}"
-          "--disable-etcd"
-          "--kube-controller-manager-arg=terminated-pod-gc-threshold=500"
-          "--kube-controller-manager-arg=node-monitor-grace-period=40s"
-        ]
-        # Embedded etcd (default)
-        ++ lib.optionals (isServer && cfg.etcdServers == null) [
-          "--cluster-cidr=${clusterCIDR}"
-          "--service-cidr=${serviceCIDR}"
-          "--cluster-dns=${clusterDNS}"
-          "--write-kubeconfig-mode=644"
-          "--etcd-arg=auto-compaction-mode=periodic"
-          "--etcd-arg=auto-compaction-retention=5m"
-          "--etcd-snapshot-retention=10"
-          "--etcd-snapshot-compress"
-          "--etcd-expose-metrics"
-          "--kube-controller-manager-arg=terminated-pod-gc-threshold=500"
-          "--kube-controller-manager-arg=node-monitor-grace-period=40s"
-        ]
-        # TLS SANs for all servers
-        ++ lib.optionals isServer (map (san: "--tls-san=${san}") tlsSans)
+        lib.optionals isServer (
+          [
+            "--cluster-cidr=${clusterCIDR}"
+            "--service-cidr=${serviceCIDR}"
+            "--cluster-dns=${clusterDNS}"
+            "--write-kubeconfig-mode=644"
+            "--etcd-arg=auto-compaction-mode=periodic"
+            "--etcd-arg=auto-compaction-retention=5m"
+            "--etcd-snapshot-retention=10"
+            "--etcd-snapshot-compress"
+            "--etcd-expose-metrics"
+            "--kube-controller-manager-arg=terminated-pod-gc-threshold=500"
+            "--kube-controller-manager-arg=node-monitor-grace-period=40s"
+          ]
+          ++ map (san: "--tls-san=${san}") tlsSans
+        )
         ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"
         ++ lib.optional (config.hardware.gpu-compute.rocm.enable or false) "--node-label=gpu=amd"
         ++ lib.optional (cfg.nodeIP != "") "--node-external-ip=${cfg.nodeIP}"
-        ++ lib.optional cfg.clusterReset "--cluster-reset"
-        # Datastore TLS flags (only when external etcd)
-        ++ lib.optionals (cfg.etcdServers != null && cfg.etcdCAFile != null) [
-          "--datastore-cafile=${cfg.etcdCAFile}"
-        ]
-        ++ lib.optionals (cfg.etcdServers != null && cfg.etcdCertFile != null) [
-          "--datastore-certfile=${cfg.etcdCertFile}"
-        ]
-        ++ lib.optionals (cfg.etcdServers != null && cfg.etcdKeyFile != null) [
-          "--datastore-keyfile=${cfg.etcdKeyFile}"
-        ]
+ ++ lib.optional cfg.clusterReset "--cluster-reset"
         ++ [
           "--flannel-iface=${cfg.flannelIface}"
           "--kubelet-arg=authentication-token-webhook=true"

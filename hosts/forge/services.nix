@@ -26,17 +26,11 @@ in {
       enable = true;
       nvidia.enable = true;
       role = "server";
-      clusterInit = false;
+      clusterInit = false; # Rejoining existing cluster as server (for etcd quorum)
       nodeName = "forge";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = cluster.hosts.forge.ip;
-      # External etcd datastore
-      etcdServers = "https://${cluster.hosts.nexus.ip}:2379,https://${cluster.hosts.forge.ip}:2379,https://${cluster.hosts.sentry.ip}:2379";
-      etcdCAFile = "/var/lib/etcd/secrets/etcd-ca.crt";
-      etcdCertFile = "/var/lib/etcd/secrets/k3s-client.crt";
-      etcdKeyFile = "/var/lib/etcd/secrets/k3s-client.key";
-      disableEmbeddedEtcd = true;
     };
 
     spotify-spotx.enable = true;
@@ -138,10 +132,7 @@ in {
     };
   };
 
-  # ── External HA etcd cluster ──────────────────────────────
-  services.etcd-cluster.enable = true;
   services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
-
   environment.systemPackages = with pkgs; [
     rocmPackages.rocm-smi
     clinfo

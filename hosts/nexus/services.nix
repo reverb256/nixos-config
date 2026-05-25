@@ -16,8 +16,7 @@
   cluster = config.networking.cluster;
 in {
   systemd.tmpfiles.rules = [
-    # Keep /var/lib/etcd for the native etcd cluster
-    "d /var/lib/etcd 0700 etcd etcd -"
+    "R /var/lib/etcd - - - - -"
     "d /data/hermes 0775 j_kro j_kro -"
     "d /data/pi 0775 j_kro j_kro -"
   ];
@@ -34,19 +33,13 @@ in {
       enable = true;
       nvidia.enable = true;
       role = "server";
-      clusterInit = true; # Bootstrap k3s into external etcd
-  clusterReset = false;
+      clusterInit = true; # Primary server, bootstrapping new cluster
+  clusterReset = false; # Already reset, running clean
       nodeName = "nexus";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = cluster.hosts.nexus.ip;
     flannelIface = "eth1"; # Nexus primary interface (eth0 has NO-CARRIER)
-      # External etcd datastore
-      etcdServers = "https://${cluster.hosts.nexus.ip}:2379,https://${cluster.hosts.forge.ip}:2379,https://${cluster.hosts.sentry.ip}:2379";
-      etcdCAFile = "/var/lib/etcd/secrets/etcd-ca.crt";
-      etcdCertFile = "/var/lib/etcd/secrets/k3s-client.crt";
-      etcdKeyFile = "/var/lib/etcd/secrets/k3s-client.key";
-      disableEmbeddedEtcd = true;
     };
 
     keepalived-vip = {
