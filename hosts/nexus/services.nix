@@ -351,9 +351,6 @@ in {
     networkDriver = "r8169";
     port = 2222;
   };
-
-  # ---- External HA etcd cluster ------------------------------
-  services.etcd-cluster.enable = true;
   services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
   services.recovery-specialisation.enable = true; # depends on initrd-ssh
   services.btrfs-boot-snapshot = {
