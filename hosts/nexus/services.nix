@@ -351,6 +351,9 @@ in {
     networkDriver = "r8169";
     port = 2222;
   };
+
+  # ---- External HA etcd cluster ------------------------------
+  services.etcd-cluster.enable = true;
   services.recovery-specialisation.enable = true; # depends on initrd-ssh
   services.btrfs-boot-snapshot = {
     enable = true; # depends on initrd-ssh
