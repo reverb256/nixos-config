@@ -20,7 +20,7 @@
 
   inputs.gpu-proxy.nixosModules.default
 
-  inputs.stylix.nixosModules.stylix
+  inputs.stylix.nixosModules.default
 
   ./modules/default.nix
 

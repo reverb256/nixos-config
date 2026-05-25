@@ -612,6 +612,25 @@ in {
           egress = [{}];
         };
       };
+
+    # ── Local-path config: per-node storage paths ─────────────────
+    # Sentry 1TB HDD at /storage should be used for bulk PVCs.
+    ConfigMap.local-path-config = {
+      metadata.namespace = "kube-system";
+      data."config.json" = builtins.toJSON {
+        nodePathMap = [
+          {
+            node = "DEFAULT";
+            paths = ["/var/lib/rancher/k3s/storage"];
+          }
+          {
+            node = "sentry";
+            paths = ["/storage/k3s-storage"];
+          }
+        ];
+      };
+    };
+
     };
   };
 }
