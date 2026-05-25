@@ -83,6 +83,12 @@ in {
           owner = "j_kro";
           group = "users";
         };
+        xai-access-token = {
+          file = "${inputs.self}/secrets/xai-access-token.age";
+          mode = "440";
+          owner = "j_kro";
+          group = "users";
+        };
         pollinations-api-key = {
           file = "${inputs.self}/secrets/pollinations-api-key.age";
           mode = "440";

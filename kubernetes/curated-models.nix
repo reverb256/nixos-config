@@ -269,74 +269,93 @@
     };
     deepseek-v4-flash-zen = {
       id = "deepseek-v4-flash";
-      name = "DeepSeek V4 Flash (OpenCode Zen Free, daily quota)";
+      name = "DeepSeek V4 Flash — OpenCode Zen Free";
       category = "code";
-      contextWindow = 1000000;
+      contextWindow = 1048576;
       provider = "opencode-zen";
-      quotaMultiplier = 0;
-      priority = 6;
-    };
-
-    # ── NIM MODELS (Multi-Provider) ───────────────────────────────
-    nemotron-3-super-opencode = {
-      id = "opencode/nemotron-3-super-120b-a12b";
-      name = "Nemotron 3 Super (OpenCode Go)";
-      category = "reasoning";
-      contextWindow = 1000000;
-      provider = "opencode-go";
       priority = 5;
     };
-    nemotron-3-super-zen-free = {
-      id = "nvidia/nemotron-3-super-120b-a12b:free";
-      name = "Nemotron 3 Super (OpenCode Zen Free, 128K cap)";
-      category = "free";
-      contextWindow = 128000;
-      provider = "opencode-zen";
-      quotaMultiplier = 0;
-      priority = 6;
-    };
-    nemotron-3-nano-zen-free = {
-      id = "nvidia/nemotron-3-nano-30b-a3b:free";
-      name = "Nemotron 3 Nano (OpenCode Zen Free, 128K cap)";
-      category = "free";
-      contextWindow = 128000;
-      provider = "opencode-zen";
-      quotaMultiplier = 0;
-      priority = 6;
+
+    # ── xAI GROK (Direct OAuth via ~/.local/share/opencode/auth.json) ─────
+    grok-4.20-reasoning = {
+      id = "grok-4.20-0309-reasoning";
+      name = "Grok-4.20-0309 Reasoning";
+      category = "reasoning";
+      contextWindow = 2000000;
+      maxOutputTokens = 2000000;
+      provider = "xai";
+      priority = 1;
     };
 
-    # ── EXTERNAL PROVIDERS ───────────────────────────────────────────
-    mistral-large-3 = {
-      id = "mistralai/mistral-large-3-675b-instruct-2512";
-      name = "Mistral Large 3 675B";
+    grok-4.20-non-reasoning = {
+      id = "grok-4.20-0309-non-reasoning";
+      name = "Grok-4.20-0309 Non-Reasoning";
+      category = "fast";
+      contextWindow = 2000000;
+      maxOutputTokens = 2000000;
+      provider = "xai";
+      priority = 2;
+    };
+
+    grok-4.20-multi-agent = {
+      id = "grok-4.20-multi-agent-0309";
+      name = "Grok-4.20 Multi-Agent 0309";
       category = "reasoning";
-      contextWindow = 128000;
-      provider = "gateway";
+      contextWindow = 2000000;
+      maxOutputTokens = 2000000;
+      provider = "xai";
+      priority = 3;
+    };
+
+    grok-4.3 = {
+      id = "grok-4.3";
+      name = "Grok-4.3";
+      category = "reasoning";
+      contextWindow = 1000000;
+      maxOutputTokens = 1000000;
+      provider = "xai";
       priority = 4;
     };
 
-    # ── FREE TIER ROUTERS ──────────────────────────────────────────
-    kilo-auto = {
-      id = "kilo-auto/free";
-      name = "Kilo auto free router";
-      category = "free";
-      provider = "gateway";
-      quotaMultiplier = 0;
-      priority = 6;
+    grok-build-0.1 = {
+      id = "grok-build-0.1";
+      name = "Grok Build 0.1";
+      category = "code";
+      contextWindow = 2000000;
+      maxOutputTokens = 2000000;
+      provider = "xai";
+      priority = 5;
     };
-    # openrouter-free removed — no longer used
-  };
 
-  # ── Model Roles ─────────────────────────────────────────────────────
-  # Priority: local > GLM-4.7 (1x) > NIM (rate-limited) > GLM-5 (2x/3x) > free
-  roles = {
-    default = "glm-4.7";
-    smol = "local/qwen3.5-2b-awq";
-    slow = "local/qwen3.6-moe-35b";
-    plan = "deepseek-ai/deepseek-v4-flash";
-    commit = "local/qwen3.6-moe-35b";
-    code = "deepseek-ai/deepseek-v4-flash";
-    vision = "qwen/qwen3.5-397b-a17b";
+    grok-imagine-image = {
+      id = "grok-imagine-image";
+      name = "Grok Imagine Image";
+      category = "image";
+      contextWindow = 0;
+      maxOutputTokens = 0;
+      provider = "xai";
+      priority = 10;
+    };
+
+    grok-imagine-image-quality = {
+      id = "grok-imagine-image-quality";
+      name = "Grok Imagine Image Quality";
+      category = "image";
+      contextWindow = 0;
+      maxOutputTokens = 0;
+      provider = "xai";
+      priority = 10;
+    };
+
+    grok-imagine-video = {
+      id = "grok-imagine-video";
+      name = "Grok Imagine Video";
+      category = "video";
+      contextWindow = 0;
+      maxOutputTokens = 0;
+      provider = "xai";
+      priority = 10;
+    };
   };
 
   # ── Backend Providers ──────────────────────────────────────────────
@@ -384,6 +403,11 @@
       type = "openai-compatible";
       url = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1";
       host = "cluster";
+    };
+    xai = {
+      type = "openai-compatible";
+      url = "https://api.x.ai/v1";
+      host = "external";
     };
   };
 

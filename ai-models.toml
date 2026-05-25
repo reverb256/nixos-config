@@ -19,6 +19,7 @@ commit = "local/qwen3.6-moe-35b"
 code = "deepseek-ai/deepseek-v4-flash"
 vision = "qwen/qwen3.5-397b-a17b"
 
+
 [models]
 # ── LOCAL MODELS (Private / Baseline) ────────────────────────────────
 [models.local-qwen-2b]
@@ -229,6 +230,72 @@ priority = 6
 
 # openrouter-free removed 2026-05-23
 
+# xAI Grok models (direct OAuth token via ~/.local/share/opencode/auth.json)
+[models.grok-4.20-reasoning]
+name = "Grok-4.20-0309 Reasoning"
+category = "reasoning"
+contextWindow = 2000000
+maxOutputTokens = 2000000
+provider = "xai"
+priority = 1
+
+[models.grok-4.20-non-reasoning]
+name = "Grok-4.20-0309 Non-Reasoning"
+category = "fast"
+contextWindow = 2000000
+maxOutputTokens = 2000000
+provider = "xai"
+priority = 2
+
+[models.grok-4.20-multi-agent]
+name = "Grok-4.20 Multi-Agent 0309"
+category = "reasoning"
+contextWindow = 2000000
+maxOutputTokens = 2000000
+provider = "xai"
+priority = 3
+
+[models.grok-4.3]
+name = "Grok-4.3"
+category = "reasoning"
+contextWindow = 1000000
+maxOutputTokens = 1000000
+provider = "xai"
+priority = 4
+
+[models.grok-build-0.1]
+name = "Grok Build 0.1"
+category = "code"
+contextWindow = 2000000
+maxOutputTokens = 2000000
+provider = "xai"
+priority = 5
+
+# Imagine models (use separate image/video generation endpoints)
+[models.grok-imagine-image]
+name = "Grok Imagine Image"
+category = "image"
+contextWindow = 0
+maxOutputTokens = 0
+provider = "xai"
+priority = 10
+
+[models.grok-imagine-image-quality]
+name = "Grok Imagine Image Quality"
+category = "image"
+contextWindow = 0
+maxOutputTokens = 0
+provider = "xai"
+priority = 10
+
+[models.grok-imagine-video]
+name = "Grok Imagine Video"
+category = "video"
+contextWindow = 0
+maxOutputTokens = 0
+provider = "xai"
+priority = 10
+
 [backends]
 gateway = { type = "openai-compatible", url = "http://10.1.1.110:8080/v1", host = "zephyr" }
 local-vllm = { type = "vllm", url = "http://10.1.1.120:8040/v1", host = "nexus", gpu = "RTX 3060 Ti 8GB" }
@@ -237,3 +304,4 @@ local-sentry = { type = "llama-cpp", url = "http://10.1.1.140:1235/v1", host = "
 nvidia-nim = { type = "nvidia-nim", url = "https://integrate.api.nvidia.com/v1", host = "external" }
 opencode-go = { type = "openai-compatible", url = "https://api.opencode.go/v1", host = "external" }
 google = { type = "openai-compatible", url = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1", host = "cluster" }
+xai = { type = "openai-compatible", url = "https://api.x.ai/v1", host = "external" }

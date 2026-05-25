@@ -141,6 +141,63 @@ context_length = 1048576
 capabilities = ["chat", "completion", "coding"]
 backends = ["opencode-zen"]
 
+# ── xAI Grok (direct OAuth) ─────────────────────────────────────────
+[models.grok-4.20-reasoning]
+name = "grok-4.20-0309-reasoning"
+description = "Grok-4.20 Reasoning (xAI)"
+context_length = 256000
+capabilities = ["chat", "completion", "reasoning"]
+backends = ["xai"]
+
+[models.grok-4.20-non-reasoning]
+name = "grok-4.20-0309-non-reasoning"
+description = "Grok-4.20 Non-Reasoning (xAI)"
+context_length = 256000
+capabilities = ["chat", "completion"]
+backends = ["xai"]
+
+[models.grok-4.3]
+name = "grok-4.3"
+description = "Grok-4.3 (xAI)"
+context_length = 256000
+capabilities = ["chat", "completion", "reasoning"]
+backends = ["xai"]
+
+[models.grok-build-0.1]
+name = "grok-build-0.1"
+description = "Grok Build 0.1 (xAI)"
+context_length = 256000
+capabilities = ["chat", "completion"]
+backends = ["xai"]
+
+[models.grok-4.20-multi-agent]
+name = "grok-4.20-multi-agent-0309"
+description = "Grok-4.20 Multi-Agent (xAI)"
+context_length = 256000
+capabilities = ["chat", "completion", "reasoning"]
+backends = ["xai"]
+
+[models.grok-imagine-image]
+name = "grok-imagine-image"
+description = "Grok Imagine Image (xAI)"
+context_length = 0
+capabilities = ["image"]
+backends = ["xai"]
+
+[models.grok-imagine-image-quality]
+name = "grok-imagine-image-quality"
+description = "Grok Imagine Image Quality (xAI)"
+context_length = 0
+capabilities = ["image"]
+backends = ["xai"]
+
+[models.grok-imagine-video]
+name = "grok-imagine-video"
+description = "Grok Imagine Video (xAI)"
+context_length = 0
+capabilities = ["video"]
+backends = ["xai"]
+
 [backends]
 # ── NIM Backend ──────────────────────────────────────────────────────
 [backends.nvidia-nim]
