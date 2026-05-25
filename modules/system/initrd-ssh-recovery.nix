@@ -6,6 +6,16 @@
 }: let
   cfg = config.services.initrd-ssh-recovery;
   inherit (lib) mkEnableOption mkOption types mkIf;
+
+  # Generate SSH host key at build time.
+  # NixOS's initrd-ssh.nix handles derivation paths natively:
+  # it creates boot.initrd.secrets entries automatically.
+  initrdHostKey = pkgs.runCommand "initrd-ssh-host-key" {
+    nativeBuildInputs = [pkgs.openssh];
+  } ''
+    ssh-keygen -t ed25519 -f $out -N "" >/dev/null 2>&1
+    chmod 600 $out
+  '';
 in {
   options.services.initrd-ssh-recovery = {
     enable = mkEnableOption "SSH access in initrd for remote boot recovery";
@@ -51,9 +61,8 @@ in {
         ssh = {
           enable = true;
           port = cfg.port;
-          hostKeys = [
-            config.age.secrets.initrd-ssh-host-key.path
-          ];
+          # Pass derivation directly - NixOS handles secrets mapping natively
+          hostKeys = [ initrdHostKey ];
           authorizedKeys = cfg.authorizedKeys;
         };
       };
@@ -71,7 +80,6 @@ in {
       };
     };
 
-    # Static IP via kernel param
     boot.kernelParams = let
       hostName = config.networking.hostName;
       cluster = config.networking.cluster;
@@ -80,7 +88,6 @@ in {
       "ip=${hostCfg.ip}::${cluster.gateway}:255.255.255.0:${hostName}:${cfg.interface}:none"
     ];
 
-    # Open firewall for initrd SSH port
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
   };
 }

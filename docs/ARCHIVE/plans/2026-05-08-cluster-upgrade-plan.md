@@ -1,5 +1,7 @@
 # Cluster-Wide Component Upgrade Plan
 
+> **⚠️ STALE (15 days old, last verified 2026-05-08)** — Verify against current cluster state before following.
+
 > **For Hermes:** Use subagent-driven-development skill to implement this plan task-by-task.
 
 **Goal:** Upgrade all outdated components across the NixOS k3s cluster (4 nodes, K8s 1.35.4).

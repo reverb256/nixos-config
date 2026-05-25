@@ -36,8 +36,6 @@
 
   # nftables rules configuration file
   environment.etc."nftables/agent-firewall.conf".text = ''
-    # Clean delete - never let shell syntax reach nft
-    delete table inet agent-firewall 2>/dev/null || true
 
     table inet agent-firewall {
       # ── Sets ──────────────────────────────────────────────────────
@@ -58,7 +56,7 @@
         elements = { 80, 443 };
       }
 
-      add set inet-agent-firewall allowed_local_ports {
+      add set inet agent-firewall allowed_local_ports {
         type inet_service;
         elements = { 53, 80, 443, 8080, 6443, 3456, 8040, 1235, 1237 };
       };
@@ -73,14 +71,14 @@
       add rule inet agent-firewall agent-egress ct state established,related accept;
       add rule inet agent-firewall agent-egress udp dport 53 accept;
       add rule inet agent-firewall agent-egress tcp dport 53 accept;
-      add rule inet-agent-firewall agent-egress ip protocol icmp accept;
-      add rule inet-agent-firewall agentegress ip6 nexthdr icmpv6 accept;
-      add rule inet-agent-firewall agentegress ip daddr @local_services tcp dport @allowed_local_ports accept;
-      add rule inet-agent-firewall agentegress ip daddr ${podCidr} accept;
-      add rule inet-agent-firewall agentegress ip daddr @allowed_external_ips tcp dport @allowed_external_ports accept;
-      add rule inet-agent-firewall agentegress oifname "tailscale0" accept;
+      add rule inet agent-firewall agent-egress ip protocol icmp accept;
+      add rule inet agent-firewall agent-egress ip6 nexthdr icmpv6 accept;
+      add rule inet agent-firewall agent-egress ip daddr @local_services tcp dport @allowed_local_ports accept;
+      add rule inet agent-firewall agent-egress ip daddr ${podCidr} accept;
+      add rule inet agent-firewall agent-egress ip daddr @allowed_external_ips tcp dport @allowed_external_ports accept;
+      add rule inet agent-firewall agent-egress oifname "tailscale0" accept;
       ${lib.optionalString cfg.auditLog "add rule inet agent-firewall agent-egress log prefix \"AGENT-DROP: \" level info counter;"}
-      add rule inet-agent-firewall agent-egress drop;
+      add rule inet agent-firewall agent-egress drop;
 
       add chain inet agent-firewall cgroup-classify {
         type filter hook output priority -151;
@@ -92,7 +90,7 @@
       # TEMPORARILY DISABLED - slices do not exist
       #add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-claude.slice" jump agent-egress;
       # TEMPORARILY DISABLED - slices do not exist
-      #add rule inet-agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-omp.slice" jump agent-egress;
+      #add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-omp.slice" jump agent-egress;
       # TEMPORARILY DISABLED - slices do not exist
       #add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-pi.slice" jump agent-egress;
     }
@@ -249,7 +247,10 @@ in {
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        ExecStart = "${pkgs.nftables}/bin/nft -f /etc/nftables/agent-firewall.conf";
+        ExecStart = pkgs.writeShellScript "agent-firewall-apply" ''
+          ${pkgs.nftables}/bin/nft delete table inet agent-firewall 2>/dev/null || true
+          ${pkgs.nftables}/bin/nft -f /etc/nftables/agent-firewall.conf
+        '';
       };
     };
 

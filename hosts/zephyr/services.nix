@@ -22,7 +22,7 @@ in {
       casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
       opencodeGoApiKeyFile = "/run/agenix/opencode-go-api-key";
       opencodeZenApiKeyFile = "/run/agenix/opencode-api-key";
-      openrouterApiKeyFile = config.age.secrets.openrouter-api-key.path;
+      # openrouterApiKeyFile removed — no longer used
       kilocodeApiKeyFile = config.age.secrets.kilo-api-key.path;
       geminiApiKeyFile = config.age.secrets.gemini-api-key.path;
       hfTokenFile = config.age.secrets.huggingface-token.path;
@@ -198,13 +198,13 @@ in {
     };
 
     nixos-share = {
-      enable = true;
-      server.enable = true;
+      enable = false;
+      server.enable = false;
     };
 
     # NFS server for /etc/nixos only — hermes/pi moved to Nexus to break I/O loop on root NVMe
     nfs-data-server = {
-      enable = true;
+      enable = false;
       exports = "";
     };
 
@@ -371,7 +371,7 @@ in {
 
   # Agent network restrictions — restrict AI agents to allowed destinations only
   agent-firewall = {
-    enable = true;
+    enable = false;
     auditLog = true;
   };
 

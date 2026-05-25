@@ -95,6 +95,11 @@ in {
       description = "Kubernetes node name (defaults to hostname)";
     };
 
+  flannelIface = mkOption {
+    type = types.str;
+    default = "eth0";
+    description = "Network interface for flannel VXLAN (must have node IP)";
+  };
     nvidia = {
       enable = mkOption {
         type = types.bool;
@@ -110,11 +115,11 @@ in {
       inherit (cfg) role nodeName;
       # k3s version — pin to specific release to avoid surprise upgrades
       # Previous pin: 1.34.5 (1.35.0-1.35.3 had re-exec crash loop on NixOS)
-      # Upgraded: 1.35.4 — re-exec issue resolved, tested on forge first
+      # Upgraded: 1.35.4 → 1.36.1 (CSI driver fixes, better RBAC support)
       package = let
         k3sBin = pkgs.fetchurl {
-          url = "https://github.com/k3s-io/k3s/releases/download/v1.35.4+k3s1/k3s";
-          hash = "sha256-CASY7OUKza8j/l1zb0HGFuJ2qJpOVgWj8nTzmw/O6Fs=";
+          url = "https://github.com/k3s-io/k3s/releases/download/v1.36.1+k3s1/k3s";
+          hash = "sha256-pEPbP+mCDNk2F65n5Dhth8FRTB6WzrMPTCeRw5BlZTw=";
         };
       in
         pkgs.runCommand "k3s-with-agent" {
@@ -178,8 +183,9 @@ in {
         ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"
         ++ lib.optional (config.hardware.gpu-compute.rocm.enable or false) "--node-label=gpu=amd"
         ++ lib.optional (cfg.nodeIP != "") "--node-external-ip=${cfg.nodeIP}"
+ ++ lib.optional cfg.clusterReset "--cluster-reset"
         ++ [
-          "--flannel-iface=eth0"
+          "--flannel-iface=${cfg.flannelIface}"
           "--kubelet-arg=authentication-token-webhook=true"
           "--kubelet-arg=authorization-mode=Webhook"
         ];

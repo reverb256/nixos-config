@@ -16,7 +16,11 @@
 
     /mnt/garage/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=104)
 
+    /data/models 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=108)
+
     /data/qdrant 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=107)
+
+    /data/models 10.1.1.0/24(ro,sync,no_subtree_check,fsid=108)
   '';
 in {
   options.services.nfs-data-server = {
@@ -35,6 +39,7 @@ in {
     systemd.tmpfiles.rules = [
       "d /mnt/garage 0755 root root - -"
       "d /mnt/garage/hermes 0775 root wheel - -"
+      "d /data/models 1777 root root - -"
     ];
 
     # Base data exports -- only applied when nfs-data-server is enabled

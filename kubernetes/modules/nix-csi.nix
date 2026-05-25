@@ -1,17 +1,12 @@
-# nix-csi: CSI driver + StorageClass for dynamic Nix store provisioning
+# nix-csi: CSI driver for dynamic Nix store provisioning
 #
-# Generates Kubernetes manifests directly for the nix-csi CSI driver
-# (github:Lillecarl/nix-csi). The upstream kubenix module has internal
-# config recursion issues when imported via easykubenix, so we generate
-# resources directly here.
-#
+# Built from upstream github:Lillecarl/nix-csi with local images.
 # Provides:
-#   - nix-store StorageClass (points to nix-csi CSI driver)
-#   - CSI driver DaemonSet + StatefulSet (cache, builder)
-#   - RBAC (ServiceAccount, ClusterRole, ClusterRoleBinding)
-#   - nix-csi namespace
+#   - nix-store StorageClass
+#   - CSI driver DaemonSet (node plugin with init container)
+#   - RBAC, config, namespace
 #
-# See upstream: https://github.com/Lillecarl/nix-csi
+# Images pulled from ghcr.io/lillecarl/nix-csi/ and mirrored to nexus:5000
 {
   config,
   lib,
@@ -19,9 +14,14 @@
   inputs,
   ...
 }: let
-  # nix-csi scratch image for init containers
-  scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
-  nixCsiVersion = "0.4.3";
+  # Container images - mirrored from ghcr.io/lillecarl/nix-csi/
+  scratchImage = "nexus:5000/nix-csi/scratch:1.0.1";
+  lixImage = "nexus:5000/nix-csi/lix:latest";
+  csiRegistrarImage = "registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.15.0";
+  livenessProbeImage = "registry.k8s.io/sig-storage/livenessprobe:v2.17.0";
+
+  nixCsiVersion = "0.5.0";
+  hostMountPath = "/var/lib/nix-csi";
 
   labels = {
     "app.kubernetes.io/managed-by" = "easykubenix";
@@ -36,39 +36,25 @@ in {
 
     StorageClass.nix-store = {
       metadata.labels = labels;
-      provisioner = "nix-csi.csi.k8s.io";
+      provisioner = "nix.csi.store";
       parameters = {
-        # Store Nix artifacts at this host path
-        storePath = "/var/lib/nix-csi/store";
+        storePath = hostMountPath;
       };
-      mountOptions = ["vers=4.1" "hard" "noatime"];
-      reclaimPolicy = "Delete";
+      reclaimPolicy = "Retain";
       volumeBindingMode = "Immediate";
     };
 
-
-    PersistentVolumeClaim.nix-store = {
+    ServiceAccount.nix-csi = {
+      metadata.namespace = "nix-csi";
       metadata.labels = labels;
-      spec = {
-        accessModes = ["ReadWriteMany"];
-        resources.requests.storage = "50Gi";
-        storageClassName = "nix-store";
-        volumeMode = "Filesystem";
-      };
-    };
-    ServiceAccount.nix-csi-controller = {
-      metadata = {
-        namespace = "nix-csi";
-        labels = labels;
-      };
     };
 
-    ClusterRole.nix-csi-controller = {
+    ClusterRole.nix-csi = {
       metadata.labels = labels;
       rules = [
         {
           apiGroups = [""];
-          resources = ["nodes" "persistentvolumes" "events" "configmaps"];
+          resources = ["persistentvolumes" "nodes" "pods" "events" "configmaps"];
           verbs = ["get" "list" "watch" "create" "update" "patch"];
         }
         {
@@ -89,278 +75,171 @@ in {
       ];
     };
 
-    ClusterRoleBinding.nix-csi-controller = {
+    ClusterRoleBinding.nix-csi = {
       metadata.labels = labels;
       roleRef = {
         apiGroup = "rbac.authorization.k8s.io";
         kind = "ClusterRole";
-        name = "nix-csi-controller";
+        name = "nix-csi";
       };
       subjects = [
         {
           kind = "ServiceAccount";
-          name = "nix-csi-controller";
+          name = "nix-csi";
           namespace = "nix-csi";
         }
       ];
     };
 
-    # CSI controller StatefulSet (manages volume lifecycle)
-    StatefulSet.nix-csi-controller = {
-      metadata = {
-        namespace = "nix-csi";
-        labels = labels // {
-          app = "nix-csi-controller";
-        };
-      };
+    Service.nix-csi = {
+      metadata.namespace = "nix-csi";
+      metadata.labels = labels;
       spec = {
-        replicas = 1;
-        serviceName = "nix-csi";
-        selector.matchLabels = {
-          app = "nix-csi-controller";
-        };
+        clusterIP = "None";
+        ports = [{
+          port = 9810;
+          targetPort = 9810;
+          name = "health";
+        }];
+      };
+    };
+
+    # CSI node DaemonSet
+    DaemonSet.nix-csi = {
+      metadata.namespace = "nix-csi";
+      metadata.labels = labels // {app = "nix-csi-node";};
+      spec = {
+        updateStrategy.type = "RollingUpdate";
+        updateStrategy.rollingUpdate.maxUnavailable = 1;
+        selector.matchLabels = {app = "nix-csi";};
         template = {
-          metadata.labels = labels // {
-            app = "nix-csi-controller";
-          };
+          metadata.labels = labels // {app = "nix-csi";};
           spec = {
-            serviceAccountName = "nix-csi-controller";
-            containers = {
-              _namedlist = true;
-              nix-csi = {
-                image = "quay.io/lillecarl/nix-csi:${nixCsiVersion}";
+            hostNetwork = true;
+            hostPID = true;
+            serviceAccountName = "nix-csi";
+            priorityClassName = "system-node-critical";
+            tolerations = [
+              {key = "node-role.kubernetes.io/control-plane"; operator = "Exists"; effect = "NoSchedule";}
+            ];
+            initContainers = [
+              {
+                name = "initcopy";
+                image = lixImage;
                 imagePullPolicy = "IfNotPresent";
-                args = ["controller"];
+                securityContext.privileged = true;
                 env = [
-                  {
-                    name = "POD_NAMESPACE";
-                    valueFrom = {
-                      fieldRef.fieldPath = "metadata.namespace";
-                    };
-                  }
-                  {
-                    name = "NIX_CSI_NODE_NAME";
-                    valueFrom = {
-                      fieldRef.fieldPath = "spec.nodeName";
-                    };
-                  }
+                  {name = "ARCH"; value = "amd64";}
                 ];
-                ports = [
-                  {
-                    containerPort = 9810;
-                    name = "health";
-                    protocol = "TCP";
-                  }
+                volumeMounts = [
+                  {name = "nix-store"; mountPath = "/nix-volume";}
+                  {name = "nix-config"; mountPath = "/etc/nix";}
+                ];
+                resources = {
+                  requests = {memory = "128Mi"; cpu = "100m";};
+                };
+              }
+            ];
+            containers = [
+              {
+                name = "nix-node";
+                image = scratchImage;
+                imagePullPolicy = "IfNotPresent";
+                command = ["dinit" "--log-file" "/var/log/dinit.log" "--quiet" "csi"];
+                securityContext.privileged = true;
+                env = [
+                  {name = "BUILDERS_ENABLED"; value = "false";}
+                  {name = "CACHE_ENABLED"; value = "true";}
+                  {name = "CSI_ENDPOINT"; value = "unix:///csi/csi.sock";}
+                  {name = "HOME"; value = "/nix/var/nix-csi/root";}
+                  {name = "KUBE_NAMESPACE"; valueFrom = {fieldRef.fieldPath = "metadata.namespace";};}
+                  {name = "KUBE_NODE_NAME"; valueFrom = {fieldRef.fieldPath = "spec.nodeName";};}
+                  {name = "KUBE_POD_IP"; valueFrom = {fieldRef.fieldPath = "status.podIP";};}
+                  {name = "KUBE_POD_NAME"; valueFrom = {fieldRef.fieldPath = "metadata.name";};}
+                  {name = "KUBE_POD_UID"; valueFrom = {fieldRef.fieldPath = "metadata.uid";};}
+                  {name = "NIX_BUILD_TIMEOUT"; value = "300";}
+                  {name = "RSYNC_CONCURRENCY"; value = "1";}
+                  {name = "USER"; value = "root";}
+                ];
+                volumeMounts = [
+                  {name = "csi-socket"; mountPath = "/csi";}
+                  {name = "nix-config"; mountPath = "/etc/nix";}
+                  {name = "registration"; mountPath = "/registration";}
+                  {name = "kubelet"; mountPath = "/var/lib/kubelet"; mountPropagation = "Bidirectional";}
+                  {name = "nix-store"; mountPath = "/nix"; mountPropagation = "Bidirectional"; subPath = "nix";}
                 ];
                 livenessProbe = {
-                  httpGet = {
-                    path = "/healthz";
-                    port = 9810;
-                  };
+                  httpGet = {path = "/healthz"; port = 9810;};
                   initialDelaySeconds = 10;
                   periodSeconds = 30;
                 };
                 readinessProbe = {
-                  httpGet = {
-                    path = "/readyz";
-                    port = 9810;
-                  };
+                  httpGet = {path = "/readyz"; port = 9810;};
                   initialDelaySeconds = 5;
                   periodSeconds = 10;
                 };
                 resources = {
-                  requests = {
-                    cpu = "100m";
-                    memory = "128Mi";
-                  };
-                  limits = {
-                    cpu = "500m";
-                    memory = "512Mi";
-                  };
+                  requests = {memory = "128Mi"; cpu = "100m";};
+                  limits = {memory = "512Mi"; cpu = "500m";};
                 };
-              };
-            };
-          };
-        };
-      };
-    };
-
-    # CSI node DaemonSet (runs on every node, handles mount operations)
-    DaemonSet.nix-csi-node = {
-      metadata = {
-        namespace = "nix-csi";
-        labels = labels // {
-          app = "nix-csi-node";
-        };
-      };
-      spec = {
-        selector.matchLabels = {
-          app = "nix-csi-node";
-        };
-        template = {
-          metadata.labels = labels // {
-            app = "nix-csi-node";
-          };
-          spec = {
-            hostNetwork = true;
-            hostPID = true;
-            serviceAccountName = "nix-csi-controller";
-            tolerations = [
-              {
-                operator = "Exists";
-                effect = "NoSchedule";
               }
               {
-                operator = "Exists";
-                effect = "NoExecute";
-              }
-            ];
-            containers = {
-              _namedlist = true;
-              nix-csi = {
-                image = "quay.io/lillecarl/nix-csi:${nixCsiVersion}";
-                imagePullPolicy = "IfNotPresent";
-                args = ["node"];
-                securityContext = {
-                  privileged = true;
-                  capabilities.add = ["SYS_ADMIN"];
-                };
-                env = [
-                  {
-                    name = "NIX_CSI_NODE_NAME";
-                    valueFrom = {
-                      fieldRef.fieldPath = "spec.nodeName";
-                    };
-                  }
-                ];
-                ports = [
-                  {
-                    containerPort = 9810;
-                    name = "health";
-                    protocol = "TCP";
-                  }
-                ];
-                livenessProbe = {
-                  httpGet = {
-                    path = "/healthz";
-                    port = 9810;
-                  };
-                  initialDelaySeconds = 10;
-                  periodSeconds = 30;
-                };
-                volumeMounts = {
-                  _namedlist = true;
-                  plugin-dir = {
-                    mountPath = "/var/lib/kubelet/plugins/nix-csi.csi.k8s.io";
-                    mountPropagation = "Bidirectional";
-                  };
-                  pods-dir = {
-                    mountPath = "/var/lib/kubelet/pods";
-                    mountPropagation = "Bidirectional";
-                  };
-                  registration-dir = {
-                    mountPath = "/var/lib/kubelet/plugins_registry";
-                    mountPropagation = "Bidirectional";
-                  };
-                  host-nix = {
-                    mountPath = "/nix/host";
-                    mountPropagation = "Bidirectional";
-                  };
-                  host-dev = {
-                    mountPath = "/dev";
-                    mountPropagation = "Bidirectional";
-                  };
-                };
-                resources = {
-                  requests = {
-                    cpu = "100m";
-                    memory = "128Mi";
-                  };
-                  limits = {
-                    cpu = "500m";
-                    memory = "512Mi";
-                  };
-                };
-              };
-              registrar = {
-                image = "registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.0";
+                name = "registrar";
+                image = csiRegistrarImage;
                 imagePullPolicy = "IfNotPresent";
                 args = [
                   "--v=5"
                   "--csi-address=/csi/csi.sock"
-                  "--kubelet-registration-path=/var/lib/kubelet/plugins/nix-csi.csi.k8s.io/csi.sock"
+                  "--kubelet-registration-path=/var/lib/kubelet/plugins/nix.csi.store/csi.sock"
                 ];
-                securityContext = {
-                  privileged = true;
+                securityContext.privileged = true;
+                volumeMounts = [
+                  {name = "csi-socket"; mountPath = "/csi";}
+                  {name = "kubelet"; mountPath = "/var/lib/kubelet";}
+                  {name = "registration"; mountPath = "/registration";}
+                ];
+                resources = {
+                  requests = {memory = "10Mi"; cpu = "10m";};
+                  limits = {memory = "64Mi"; cpu = "100m";};
                 };
-                volumeMounts = {
-                  _namedlist = true;
-                  plugin-dir = {
-                    mountPath = "/csi";
-                  };
-                  registration-dir = {
-                    mountPath = "/registration";
-                  };
+              }
+              {
+                name = "liveness-probe";
+                image = livenessProbeImage;
+                imagePullPolicy = "IfNotPresent";
+                args = ["--csi-address=/csi/csi.sock"];
+                volumeMounts = [
+                  {name = "csi-socket"; mountPath = "/csi";}
+                ];
+                resources = {
+                  requests = {memory = "10Mi"; cpu = "10m";};
+                  limits = {memory = "32Mi"; cpu = "50m";};
                 };
-              };
-            };
-            volumes = {
-              _namedlist = true;
-              plugin-dir.hostPath = {
-                path = "/var/lib/kubelet/plugins/nix-csi.csi.k8s.io";
-                type = "DirectoryOrCreate";
-              };
-              pods-dir.hostPath = {
-                path = "/var/lib/kubelet/pods";
-                type = "Directory";
-              };
-              registration-dir.hostPath = {
-                path = "/var/lib/kubelet/plugins_registry";
-                type = "DirectoryOrCreate";
-              };
-              host-nix.hostPath = {
-                path = "/nix";
-                type = "Directory";
-              };
-              host-dev.hostPath = {
-                path = "/dev";
-                type = "Directory";
-              };
-            };
+              }
+            ];
+            volumes = [
+              {name = "nix-config"; configMap = {name = "nix-node";};}
+              {name = "registration"; hostPath = {path = "/var/lib/kubelet/plugins_registry"; type = "DirectoryOrCreate";};}
+              {name = "nix-store"; hostPath = {path = hostMountPath; type = "DirectoryOrCreate";};}
+              {name = "csi-socket"; hostPath = {path = "/var/lib/kubelet/plugins/nix.csi.store/"; type = "DirectoryOrCreate";};}
+              {name = "kubelet"; hostPath = {path = "/var/lib/kubelet"; type = "Directory";};}
+            ];
           };
         };
       };
     };
 
-    # CSI driver registration
-    CSIDriver.nix-csi.csi.k8s.io = {
+    # Nix config ConfigMap
+    ConfigMap.nix-node = {
+      metadata.namespace = "nix-csi";
       metadata.labels = labels;
-      spec = {
-        attachRequired = false;
-        podInfoOnMount = true;
-        volumeLifecycleModes = ["Persistent" "Ephemeral"];
-      };
-    };
-
-    # Service for nix-csi controller (headless for StatefulSet)
-    Service.nix-csi = {
-      metadata = {
-        namespace = "nix-csi";
-        labels = labels;
-      };
-      spec = {
-        clusterIP = "None";
-        ports = [
-          {
-            name = "health";
-            port = 9810;
-            protocol = "TCP";
-          }
-        ];
-        selector = {
-          app = "nix-csi-controller";
-        };
-      };
+      data."nix.conf" = ''
+        max-jobs = 4
+        cores = 4
+        sandbox = false
+        extra-sandbox-paths = /nix
+        builders = @/etc/nix/machines
+      '';
     };
   };
 }

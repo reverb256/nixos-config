@@ -21,6 +21,7 @@
 
     ../../modules/services/k3s-cluster.nix
     ../../modules/services/keepalived-vip.nix
+    ../../modules/services/sshfs-projects-mount.nix
     inputs.nix-mineral.nixosModules.nix-mineral
   ];
 
@@ -86,10 +87,12 @@
   boot.loader.timeout = lib.mkDefault 5;
 
   # Shared hermes + pi state via NFS (resilient: nofail, automount, soft)
+  services.sshfs-projects-mount.enable = true;
+
   services.nfs-cluster-mounts = {
     enable = true;
-    mountHermes = true;
-    mountPi = true;
+    mountHermes = false;
+    mountPi = false;
   };
 
   # System hardening (Phase 0: Security Baseline)

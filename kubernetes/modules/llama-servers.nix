@@ -110,20 +110,20 @@ in
           host = "zephyr";
         };
         strategy.type = "Recreate";
-        template = {
-          metadata = {
-            labels = managed // {
-              app = "llama-qwen-vllm-nexus";
+          template = {
+            metadata = {
+              labels = managed // {
+                app = "llama-qwen-vllm-nexus";
                 host = "nexus";
-              gpu = "rtx3060ti";
+                gpu = "rtx3060ti";
+              };
             };
-          };
-          spec = {
-        nodeName = "nexus";
-        hostNetwork = true;
-        automountServiceAccountToken = false;
-        priorityClassName = "medium-priority-ai";
-        tolerations = [];
+            spec = {
+              nodeName = "nexus";
+              hostNetwork = true;
+              automountServiceAccountToken = false;
+              priorityClassName = "medium-priority-ai";
+              tolerations = [  ];
             containers = {
               _namedlist = true;
 vllm = {
@@ -132,7 +132,7 @@ vllm = {
                 command = [ "${pkgsWithOverlay.vllm-turboquant-env}/bin/vllm-tq-wrapper" ];
                 args = [
                   "--model"
-                  "/models/from-zephyr/QuantTrio/Qwen3.5-2B-AWQ"
+                  "/data/models/QuantTrio/Qwen3.5-2B-AWQ"
                   "--served-model-name"
                   "qwen3.5-2b-awq"
                   "--host"
@@ -140,9 +140,9 @@ vllm = {
                   "--port"
                   "8040"
                   "--gpu-memory-utilization"
-                  "0.70"
+                  "0.85"
                   "--max-num-seqs"
-                  "8"
+                  "16"
                   "--max-model-len"
                   "180000"
                   "--quantization"

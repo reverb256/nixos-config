@@ -1,6 +1,7 @@
 # Plan: Boot Recoverability for NixOS Cluster
 
 **Date:** 2026-05-05
+**Last Verified**: 2026-05-23 — ⚠️ STALE (18 days old). Verify before following.
 **Status:** Draft
 **Motivation:** Sentry was down 11+ hours because boot failures required physical USB access. All 4 nodes are headless servers — remote recovery is essential.
 

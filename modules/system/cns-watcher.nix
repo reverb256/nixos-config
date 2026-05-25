@@ -20,10 +20,11 @@ in {
       default = ["nexus" "forge" "sentry"];
       description = "Remote hostnames to sync secrets to";
     };
+    # SSH key path (now owned by cluster-mesh via cluster-mesh module)
     sshKeyFile = mkOption {
       type = types.path;
-      default = "/run/agenix/cns-ssh-key";
-      description = "SSH private key for mTLS authentication to remote nodes";
+      default = "/var/lib/cluster-mesh/.ssh/id_ed25519";
+      description = "SSH private key for mTLS authentication to remote nodes (cluster-mesh)";
     };
     healthCheckInterval = mkOption {
       type = types.int;
@@ -33,12 +34,12 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # CNS SSH key (auto-generated if missing via cns-setup)
+    # CNS SSH key (owned by cluster-mesh via cluster-mesh module)
     age.secrets.cns-ssh-key = {
       file = "${inputs.self}/secrets/cns-ssh-key.age";
-      mode = "400";
-      owner = "root";
-      group = "root";
+      mode = "600";
+      owner = "cluster-mesh";
+      group = "cluster-mesh";
     };
 
     systemd.services.cns-watcher = {
@@ -94,15 +95,15 @@ in {
 
             # Copy package
             ${pkgs.openssh}/bin/scp -i "$SSH_KEY" -o StrictHostKeyChecking=no \
-              "$package" "root@$node:/tmp/cns-package.tar.gz" 2>/dev/null || {
+              "$package" "cluster-mesh@$node:/tmp/cns-package.tar.gz" 2>/dev/null || {
               log "Failed to copy package to $node"
               return 1
             }
 
             # Trigger receiver and wait for ACK
             ${pkgs.openssh}/bin/ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no \
-              "root@$node" "echo '$checksum' > /tmp/cns-checksum.txt && \
-               systemctl start cns-receive@$node.socket" 2>/dev/null || {
+              "cluster-mesh@$node" "echo '$checksum' > /tmp/cns-checksum.txt && \
+                systemctl start cns-receive@$node.socket" 2>/dev/null || {
               log "Failed to trigger receiver on $node"
               return 1
             }
@@ -112,7 +113,7 @@ in {
             local elapsed=0
             while [ $elapsed -lt $timeout ]; do
               if ${pkgs.openssh}/bin/ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no \
-                 "root@$node" "cat /tmp/cns-ack.txt 2>/dev/null | grep -q '$checksum'"; then
+                 "cluster-mesh@$node" "cat /tmp/cns-ack.txt 2>/dev/null | grep -q '$checksum'"; then
                 log "Successfully synced to $node"
                 return 0
               fi
@@ -218,7 +219,7 @@ in {
           # Check each node
           for node in "''${REMOTE_NODES[@]}"; do
             node_checksum=$(${pkgs.openssh}/bin/ssh -i "${cfg.sshKeyFile}" -o StrictHostKeyChecking=no \
-              "root@$node" "cat /run/cns/current-checksum.txt 2>/dev/null || echo "")
+              "cluster-mesh@$node" "cat /run/cns/current-checksum.txt 2>/dev/null || echo")
 
             if [ "$node_checksum" = "$expected" ]; then
               log "$node: OK"

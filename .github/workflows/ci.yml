@@ -230,6 +230,11 @@ jobs:
           cd /etc/nixos
           ./scripts/pre-deploy-check.sh all
 
+      - name: Documentation verification
+        run: |
+          cd /etc/nixos
+          just docs-audit || echo "::warning::just docs-audit failed — LIVE/ documents may need updates"
+
       - name: Build all hosts
         run: |
           for host in zephyr nexus forge sentry; do

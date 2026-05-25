@@ -18,12 +18,8 @@ in {
       services.gaming.vr.enable = true;
     })
 
-    (lib.mkIf cfg.mining {
-      services.mining.enable = true;
-    })
 
     (lib.mkIf cfg.aiInference {
-      services.ai-inference.enable = true;
       services.opencode.enable = true;
     })
 

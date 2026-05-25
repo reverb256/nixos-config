@@ -22,7 +22,7 @@ let
   tunnel = pkgs.writeShellScript "nexus-exec-tunnel" ''
     set -euo pipefail
     mkdir -p $(dirname ${cfg.clientSocketPath})
-    exec ${pkgs.openssh}/bin/ssh -NL ${cfg.clientSocketPath}:${cfg.listenSocket} nexus
+    exec ${pkgs.openssh}/bin/ssh -i /run/agenix/cns-ssh-key -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/dev/null -NL ${cfg.clientSocketPath}:${cfg.listenSocket} cluster-mesh@nexus
   '';
 
 in {
@@ -70,7 +70,7 @@ in {
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         ExecStart = "${tunnel}";
-        User = "j_kro";
+        User = "cluster-mesh";
         Restart = "always";
         RestartSec = "5";
         StandardOutput = "journal";

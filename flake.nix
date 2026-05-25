@@ -1,5 +1,13 @@
 {
   description = "NixOS configuration with Garage and Syncthing storage";
+  nixConfig = {
+    extra-substituters = [
+      "https://nix-community.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    ];
+  };
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     home-manager = {
@@ -153,6 +161,16 @@
       url = "github:Mic92/nix-fast-build";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    bun2nix = {
+      url = "github:nix-community/bun2nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # WSL — NixOS on Windows Subsystem for Linux (krash3)
+    NixOS-WSL = {
+      url = "github:nix-community/NixOS-WSL";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     # ── Newly extracted project flakes ───────────────────────
     # hermes-workspace and hermes-webui archived (2026-05-16)
@@ -184,24 +202,44 @@
       inherit system;
       config.allowUnfree = true;
       config.cudaSupport = true;
-      overlays = [((import ./overlay.nix) {inherit inputs;})];
+      overlays = [
+        inputs.bun2nix.overlays.default
+        ((import ./overlay.nix) {inherit inputs;})
+      ];
     };
 
-    commonModules = import ./common-modules-list.nix {
-      inherit inputs self;
-    };
+  commonModules = import ./common-modules-list.nix {
+    inherit inputs self;
+  };
 
-    mkNixosSystem = {
-      hostName,
-      extraModules ? [],
-      k8sManifest ? null,
-    }:
+  # Slim module set for WSL/remote hosts — no desktop/GPU/cluster modules
+  slimModules = [
+    inputs.home-manager.nixosModules.home-manager
+    inputs.agenix.nixosModules.default
+    ./modules/default.nix
+    {
+      nixpkgs.overlays = [ self.overlays.default ];
+      age.identityPaths = [
+        "/persistent/etc/age/key.txt"
+        "/etc/nixos/.age/key.txt"
+        "/etc/age/key.txt"
+        "/home/j_kro/.age/key.txt"
+      ];
+    }
+  ];
+
+  mkNixosSystem = {
+    hostName,
+    extraModules ? [],
+    k8sManifest ? null,
+    modules ? commonModules,
+  }:
       nixpkgs.lib.nixosSystem {
         specialArgs = {
           inherit inputs;
         };
         modules =
-          commonModules
+          modules
           ++ [
             ./hosts/${hostName}/configuration.nix
           ]
@@ -232,14 +270,19 @@
         hostName = "sentry";
         k8sManifest = self.kubernetes.small.manifestYAMLFile;
       };
+    krash3 = {
+      hostName = "krash3";
+      k8sManifest = null; # No K8s manifests
+      modules = slimModules; # WSL — no desktop/GPU/cluster
+    };
     };
   in {
     checks.x86_64-linux = {};
 
-    nixosConfigurations =
-      (builtins.mapAttrs (
-          _name: value: mkNixosSystem {inherit (value) hostName;}
-        )
+  nixosConfigurations =
+  (builtins.mapAttrs (
+    _name: value: mkNixosSystem {inherit (value) hostName; modules = value.modules or commonModules;}
+  )
         hosts)
       // {
         # Phase 3: MicroVM configurations (not regular hosts, not managed by Colmena)

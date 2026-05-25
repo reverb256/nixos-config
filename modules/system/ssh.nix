@@ -16,9 +16,14 @@
       ip = "10.1.1.140";
       tailscale = "100.82.210.39";
     };
+    krash3 = {
+      ip = "10.1.1.150";
+      tailscale = null;
+    };
   };
 
-  j_kroPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEvekxGk1YR/eF8llVmNk3C59BtgB+9DNvxLy2WjPEyb j_kro@zephyr";
+  # All mesh SSH keys for round-trip distributed builds
+  meshKeys = import ../../mesh-keys.nix;
 in {
   services.openssh = {
     enable = true;
@@ -57,6 +62,7 @@ in {
       AllowUsers = [
         "j_kro"
         "nixbuild"
+        "cluster-mesh"
       ];
       AllowGroups = [
         "wheel"
@@ -89,7 +95,7 @@ in {
         hosts.nexus.ip
         hosts.nexus.tailscale
       ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJGs56/CuegQVRivduaIY7tHhT2aYBsIXBosNb/k8uLh";
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPzZJzpL8jVY8LCXO70DB+FwbAaFjp61KEej1V6Wei5U";
     };
     forge = {
       hostNames = [
@@ -107,9 +113,14 @@ in {
       ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGZCgbZR/+B3H6Z8VnRSkNbG9ta/yk0qJro1focrOfl7";
     };
+    # krash3 — WSL host key changes on rebuild; accept-new handles it
+    krash3 = {
+      hostNames = ["krash3" hosts.krash3.ip];
+      publicKey = "*";  # Accept any key (WSL host key changes each rebuild)
+    };
   };
 
-  users.users.j_kro.openssh.authorizedKeys.keys = [j_kroPublicKey];
+  users.users.j_kro.openssh.authorizedKeys.keys = meshKeys;
 
   programs.ssh.extraConfig = ''
     ControlMaster auto
@@ -148,6 +159,14 @@ in {
     Host sentry ${hosts.sentry.ip} ${hosts.sentry.tailscale}
       HostName ${hosts.sentry.ip}
       User j_kro
+      IdentityFile ~/.ssh/id_ed25519
+      ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
+
+    Host krash3 ${hosts.krash3.ip}
+      HostName ${hosts.krash3.ip}
+      Port 2222
+      User j_kro
+      StrictHostKeyChecking accept-new
       IdentityFile ~/.ssh/id_ed25519
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 

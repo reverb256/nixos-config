@@ -112,6 +112,8 @@
           license = prev.lib.licenses.mit;
         };
       };
+      # Fix: pipx 1.8.0 test failures (spaces around @)
+      pipx = py-super.pipx.overridePythonAttrs { doCheck = false; };
     };
   };
   claude-code-image = prev.callPackage ./packages/claude-code-image.nix {};

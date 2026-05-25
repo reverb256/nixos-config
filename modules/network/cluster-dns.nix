@@ -137,10 +137,12 @@ in {
             "127.0.0.1"
             "::1"
             (
-              if dnsCfg.listenAddress != null && dnsCfg.listenAddress != "127.0.0.1"
-              then dnsCfg.listenAddress
-              else clusterCfg.ipAddress
-            )
+    if dnsCfg.listenAddress != null && dnsCfg.listenAddress != "127.0.0.1"
+    then dnsCfg.listenAddress
+    else if clusterCfg.ipAddress != null
+    then clusterCfg.ipAddress
+    else "127.0.0.1"
+  )
             # VIP for HA DNS — Unbound must listen here so queries to
             # 10.1.1.100:53 are answered by whichever node has the VIP.
             cluster.kubernetes.vip

@@ -1,41 +1,52 @@
 # NixOS Cluster - Agent Guidelines
 
-**Generated:** 2026-05-16 | **Commit:** `git log -1 --oneline` | **Branch:** main
+**Generated:** 2026-05-25 | **Commit:** `83524727` | **Branch:** main
 
 ## Quick Start
 
 ```bash
 just check              # Quick flake validation (no build)
-just switch             # Apply to local host (via tmux deploy session)
-just test-apply         # Test configuration without persisting
-just deploy [<host>]    # Deploy to all or specific host (Colmena + NFS)
+just switch             # Apply to local host
+just deploy [<host>]    # Build + deploy to all or specific host
 just rollback           # Rollback local host
-just status             # Cluster health overview
-just health             # Detailed health check
+just status             # Git status + prod alignment
+just health             # Cluster connectivity overview
+just new-worktree <NNN> # Create worktree for issue NNN
 ```
 
 > NOTE: `just test` does NOT exist. Use `just test-apply` or `just check`.
 
 ## Workflow
 
+### Branch Model
+
+```
+main — Integration branch (PRs land here, CI validates)
+prod  — Stable deployment branch (what the cluster actually runs)
+issue-NNN-* — All new work, only in worktrees under /data/projects/own/
+```
+
+- /etc/nixos on ALL nodes stays on `main` (never a feature branch)
+- The deployed cluster state = `prod` branch
+- All changes go through PR → main (CI validates) → prod (deploy gate) → cluster
+
 ### Default: Kelos-Powered (delegated to AI agents)
 
-1. **Create an issue** — with clear acceptance criteria
-2. **Label it `agent-ready`** — Kelos picks it up within ~5min
-3. **Kelos handles the rest** — agent implements, pushes branch, opens PR
-4. **Review the PR** — human reviews, requests changes via comments
-5. **Merge** — squash-merge via GitHub UI
+1. **Create an issue** — with clear acceptance criteria, label `agent-ready`
+2. **Kelos handles the rest** — agent creates worktree, implements, pushes branch, opens PR
+3. **Review the PR** — human reviews, requests changes via comments
+4. **Merge** — squash-merge via GitHub UI into `main`
+5. **Deploy** — merge `main` → `prod`, then `just deploy`
 
 ### Manual Fallback (exploratory/architectural work)
 
 ```bash
-git worktree add -b issue-NNN-desc /data/projects/own/nixos-config-NNN main
+just new-worktree NNN    # Creates /data/projects/own/nixos-config-NNN
+cd /data/projects/own/nixos-config-NNN
 # ... edit, test, commit ...
 git push origin issue-NNN-desc
 gh pr create --base main --head issue-NNN-desc --title "type: description (#NNN)" --body "Closes #NNN"
 ```
-
-Then clean up.
 
 
 ## Cluster Overview
@@ -52,14 +63,15 @@ Then clean up.
 **Sentry SMT**: Re-enabled via enable-smt systemd service (CachyOS kernel defaults nosmt)
 **AI Gateway**: Sovereign Service Mesh operational on Nexus (10.15.67.242:8080)
 
-## Deployment Model (Hybrid NFS + Colmena)
+## Deployment Model (GitOps + nix-copy-closure)
 
-1. **Zephyr** exports `/etc/nixos` via NFS (read-only) to remote hosts
-2. Remote hosts mount `/etc/nixos` from Zephyr — config is already there
-3. `just deploy` uses Colmena to orchestrate `nixos-rebuild switch` across hosts
-4. **Only Zephyr modifies config** — remotes mount read-only
+1. **Zephyr** is the sole development host — all config is authored here
+2. **Worktrees** under `/data/projects/own/` are the ONLY development target
+3. `/etc/nixos` tracks `main` on all hosts (never a feature branch)
+4. `just deploy` builds closures and copies them to remote hosts via `nix-copy-closure` + `switch-to-configuration`
+5. The `prod` branch tracks the deployed cluster state
 
-> See `modules/services/nixos-share.nix` for NFS server/client setup.
+> NFS has been removed cluster-wide. See `modules/services/k8s-nix-deploy.nix` for the remote deployment mechanism.
 
 ## Extracted Projects (7)
 
@@ -302,7 +314,7 @@ in {
 | n8n | ⚠️ Enterprise | ❌ | OIDC requires enterprise license. Not available on self-hosted instance. |
 | Haven | ❌ No support | — | Own JWT+bcrypt auth. No OIDC config options. Proxy auth is correct. |
 | Mission Control | ❌ No support | — | Auth providers: session, API key, Google Sign-In, proxy header. No generic OIDC. |
-| Kagent | ❌ No support | — | `AUTH_MODE=trusted-proxy` only. Open OIDC feature request (#476) unimplemented. |
+| Kagent | ❌ No support | — | `AUTH_MODE=*** only. Open OIDC feature request (#476) unimplemented. |
 | Qdrant | ❌ No user auth | — | API-key only. Proxy auth correct. |
 | Vaultwarden | ❌ No support | — | Bitwarden SSO enterprise-only. |
 | Workspace | ❌ No auth at all | — | Headless service. Proxy auth correct. |
@@ -315,6 +327,67 @@ Three K8s secrets defined in Nix modules but **never mounted or referenced** by 
 - `kagent-oidc` (kagent namespace)
 
 Safe to clean up. The `casdoor-app-sync` systemd service (in `k8s-secret-bootstrap.nix`) handles the real oauth2-proxy Casdoor app with auto-synced client secrets.
+
+## Cluster Mesh SSH Account
+
+**Purpose:** Dedicated service account for inter-node SSH mesh (health checks, exec tunneling).
+
+**Policy:** Cluster does NOT use root SSH. All automated inter-node communication uses `cluster-mesh@10.1.1.x`.
+
+### Architecture
+
+```
+cluster-mesh service account
+├── User: cluster-mesh (system user, no shell)
+├── Group: cluster-mesh
+├── SSH key: cns-ssh-key (agenix, owned cluster-mesh:cluster-mesh 0600)
+├── Key location: /var/lib/cluster-mesh/.ssh/id_ed25519
+└── Authorized keys: Restricted via command=
+```
+
+### Services Using Cluster-Mesh SSH
+
+| Service | Purpose | Command |
+|---------|---------|---------|
+| `cns-watcher.service` | CNS secret distribution to nodes | `ssh -i /var/lib/cluster-mesh/.ssh/id_ed25519 cluster-mesh@10.1.1.x` |
+| `nexus-exec-tunnel.service` | Nexus exec tunnel (Zephyr→Nexus) | `ssh -i /var/lib/cluster-mesh/.ssh/id_ed25519 cluster-mesh@nexus` |
+| `cns-health.timer` | CNS health check verification | `ssh -i /var/lib/cluster-mesh/.ssh/id_ed25519 cluster-mesh@10.1.1.x` |
+
+### Configuration
+
+Enable on hosts that participate in SSH mesh:
+
+```nix
+services.cluster-mesh.enable = true;
+```
+
+Module: `modules/security/cluster-mesh.nix`
+
+### SSH Key Management
+
+1. **Agenix Secret:** `secrets/cns-ssh-key.age`
+2. **Owner:** `cluster-mesh:cluster-mesh 0600`
+3. **Copy Service:** `cluster-mesh-key-setup.service` copies from `/run/agenix/cns-ssh-key` → `/var/lib/cluster-mesh/.ssh/id_ed25519`
+4. **Deployment:** Auto-applied on all hosts via module auto-discovery
+
+### Usage Pattern
+
+For service-to-service SSH in systemd units:
+
+```bash
+ssh -i /var/lib/cluster-mesh/.ssh/id_ed25519 cluster-mesh@10.1.1.120 <command>
+```
+
+Never use `root@10.1.1.x` in automated services.
+
+### Node IPs
+
+| Host | IP |
+|------|-----|
+| Zephyr | 10.1.1.110 |
+| Nexus | 10.1.1.120 |
+| Forge | 10.1.1.130 |
+| Sentry | 10.1.1.140 |
 
 ## Service ↔ Network Bridge
 
@@ -589,8 +662,8 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 
 ---
 
-**Version**: 9.1 | **Last Updated:** 2026-05-16
-**Changes**: Added GitHub Issues Workflow (6 layers) — templates, PR template, AGENTS.md mandate, git hooks, justfile commands, CI integration
+**Version**: 9.2 | **Last Updated:** 2026-05-23
+**Changes**: Updated from 2026-05-16 to 2026-05-23. Fresh commit ref. Added cluster-mesh SSH key ownership fix (agenix-secrets-registry). Added cns-watcher bash syntax fixes. Added SRI hash format fix for k3s-cluster. Stale plan docs flagged per Pocock Rule. INDEX.md reality-check refreshed.
 
 ## Known Frictions & Workarounds (2026-05-18)
 

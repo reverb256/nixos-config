@@ -2,6 +2,8 @@
 
 **Generated:** 2026-05-02 | **4 Nodes** | **78 Cores / 123GB RAM / 7 GPUs / 8.4TB Storage**
 
+> **⚠️ STALE (21 days old). Resource counts, host roles, and topology may have drifted. Verify before following.**
+
 ## Physical Topology
 
 ```
@@ -112,8 +114,8 @@ Browser → Caddy (.lan) ──→ forward_auth ──→ oauth2-proxy (:4180)
 │                                                                     │
 │  100+ models from:                                                  │
 │  ┌─────────────┐ ┌──────────────┐ ┌──────────┐ ┌───────────────┐  │
-│  │ Local LLMs  │ │  Z.AI API    │ │ NVIDIA   │ │ OpenRouter    │  │
-│  │ (llama.cpp) │ │  (cloud)     │ │ NIM      │ │ (multi-model) │  │
+ │  │ Local LLMs  │ │  Z.AI API    │ │ NVIDIA   │                  │  │
+ │  │ (llama.cpp) │ │  (cloud)     │ │ NIM      │                  │  │
 │  └──────┬──────┘ └──────────────┘ └──────────┘ └───────────────┘  │
 │         │                                                           │
 │    ┌────┴────────────────────────────────────┐                      │

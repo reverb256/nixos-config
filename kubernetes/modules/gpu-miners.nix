@@ -67,17 +67,21 @@
   };
 
   amdVolumeMounts = {
+    tmp = {
+      mountPath = "/tmp";
+    };
     opengl-driver = {
       mountPath = "/run/opengl-driver/lib";
     };
-    dri = {
-      mountPath = "/dev/dri";
-    };
-    kfd = {
-      mountPath = "/dev/kfd";
+    dev = {
+      mountPath = "/dev";
     };
     opencl-icd = {
       mountPath = "/etc/OpenCL/vendors";
+    };
+    etc-static = {
+      mountPath = "/etc/static";
+      readOnly = true;
     };
     nix-store = {
       mountPath = "/nix/store";
@@ -85,24 +89,27 @@
   };
 
   amdVolumes = {
+    tmp = {
+      emptyDir = {};
+    };
     opengl-driver = {
       hostPath.path = "/run/opengl-driver/lib";
     };
-    dri = {
+    dev = {
       hostPath = {
-        path = "/dev/dri";
+        path = "/dev";
         type = "Directory";
-      };
-    };
-    kfd = {
-      hostPath = {
-        path = "/dev/kfd";
-        type = "CharDevice";
       };
     };
     opencl-icd = {
       hostPath = {
         path = openclIcd;
+        type = "Directory";
+      };
+    };
+    etc-static = {
+      hostPath = {
+        path = "/etc/static";
         type = "Directory";
       };
     };
@@ -123,11 +130,15 @@
     _namedlist = true;
     LD_LIBRARY_PATH = {
       name = "LD_LIBRARY_PATH";
-      value = "/run/opengl-driver/lib";
+      value = "${pkgs.ocl-icd}/lib:/run/opengl-driver/lib";
     };
     OCL_ICD_VENDORS = {
       name = "OCL_ICD_VENDORS";
       value = "/etc/OpenCL/vendors/";
+    };
+    CUDA_VISIBLE_DEVICES = {
+      name = "CUDA_VISIBLE_DEVICES";
+      value = "";
     };
   };
 
@@ -150,7 +161,7 @@
     device,
     apiPort,
     minerType ? "rigel",
-    defaultCoin ? "rvn",
+    defaultCoin ? "xtm",
     gpuProfile ? "rtx4060",
   }: {
     _namedlist = true;
@@ -204,7 +215,7 @@ in {
           "gpu-vendor" = "nvidia";
           host = "forge";
           workload = "crypto-mining";
-          "mining-coin" = "rvn";
+          "mining-coin" = "xtm";
           "mining-group" = "nvidia";
         };
       spec = {
@@ -302,7 +313,7 @@ in {
           "gpu-vendor" = "nvidia";
           host = "forge";
           workload = "crypto-mining";
-          "mining-coin" = "rvn";
+          "mining-coin" = "xtm";
           "mining-group" = "nvidia";
         };
       spec = {
@@ -397,8 +408,11 @@ in {
         managed
         // {
           app = "gpu-miner-forge-amd-0";
-          "mining-coin" = "rvn";
+          "mining-coin" = "xtm";
           "mining-group" = "amd";
+          "gpu-vendor" = "amd";
+          host = "forge";
+          workload = "crypto-mining";
         };
       spec = {
         replicas = 1;
@@ -411,83 +425,46 @@ in {
             nodeName = "forge";
             hostNetwork = true;
             automountServiceAccountToken = false;
-            serviceAccountName = "gpu-miner-sa";
             priorityClassName = "mining-low";
             terminationGracePeriodSeconds = 30;
             containers = {
               _namedlist = true;
-              teamredminer = {
-                image = amdBaseImage;
-                args = [
-                  "-a"
-                  "kawpow"
-                  "-o"
-                  rvnPool
-                  "-u"
-                  "${rvnWallet}.forge-a0"
-                  "-p"
-                  "x"
-                  "--api_listen=0.0.0.0:4070"
-                  "-d"
-                  "0"
-                  # Fan control format: core:junc:mem:init:min:max (empty values use defaults)
-                  # Target mem temp 70C, start at 50%, min 40%, max 80%
-                  # NOTE: AMDGPU driver on Linux often blocks fan control via sysfs.
-                  # If fan stays at 10%, use rocm-smi on host: rocm-smi --setfan 0,60
-                  "--fan_control=::70:50:40:80"
+              miner = {
+                image = "docker.io/library/ubuntu:24.04";
+                imagePullPolicy = "IfNotPresent";
+                command = [
+                  "/bin/sh"
+                  "-c"
+                  "apt-get update && apt-get install -y curl ca-certificates && mkdir -p /opt/lolminer && curl -sL https://github.com/kryptex-miners-org/kryptex-miners/releases/download/lolminer-1-98a/lolMiner_v1.98a_Lin64.tar.gz -o /tmp/lol.tar.gz && tar xzf /tmp/lol.tar.gz -C /opt/lolminer && chmod +x /opt/lolminer/lolMiner && exec /opt/lolminer/lolMiner --algo CR29 --pool stratum+ssl://xtm-c29.kryptex.network:8040 --user krxXVNVMM7.forge-a0 --pass x --tls on --devices 0 --apiport 4070";
                 ];
                 env = amdEnv;
-                ports = [
-                  {
-                    containerPort = 4070;
-                    name = "api";
-                    protocol = "TCP";
-                  }
-                ];
                 livenessProbe = {
                   tcpSocket.port = 4070;
-                  initialDelaySeconds = 30;
+                  initialDelaySeconds = 60;
                   periodSeconds = 30;
-                  failureThreshold = 3;
+                  failureThreshold = 5;
                 };
                 readinessProbe = {
                   tcpSocket.port = 4070;
-                  initialDelaySeconds = 10;
-                  periodSeconds = 10;
-                  failureThreshold = 3;
+                  initialDelaySeconds = 30;
+                  periodSeconds = 15;
+                  failureThreshold = 10;
                 };
                 resources = {
                   requests = {
-                    memory = "512Mi";
+                    memory = "2Gi";
                     cpu = "500m";
                   };
                   limits = {
-                    memory = "2Gi";
+                    memory = "4Gi";
                     cpu = "2";
                   };
                 };
                 securityContext.privileged = true;
-                lifecycle.postStart = {
-                  exec.command = [
-                    "/run/current-system/sw/bin/rocm-smi"
-                    "-d"
-                    "0"
-                    "--setpoweroverdrive"
-                    "115"
-                  ];
-                };
-                volumeMounts =
-                  {
-                    _namedlist = true;
-                  }
-                  // amdVolumeMounts;
+                volumeMounts = amdVolumeMounts;
               };
             };
-            volumes =
-              {
-                _namedlist = true;
-              }
-              // amdVolumes;
+            volumes = { _namedlist = true; } // amdVolumes;
           };
         };
       };
@@ -498,8 +475,11 @@ in {
         managed
         // {
           app = "gpu-miner-forge-amd-1";
-          "mining-coin" = "rvn";
+          "mining-coin" = "xtm";
           "mining-group" = "amd";
+          "gpu-vendor" = "amd";
+          host = "forge";
+          workload = "crypto-mining";
         };
       spec = {
         replicas = 1;
@@ -512,69 +492,46 @@ in {
             nodeName = "forge";
             hostNetwork = true;
             automountServiceAccountToken = false;
-            serviceAccountName = "gpu-miner-sa";
             priorityClassName = "mining-low";
             terminationGracePeriodSeconds = 30;
             containers = {
               _namedlist = true;
-              teamredminer = {
-                image = amdBaseImage;
-                args = [
-                  "-a"
-                  "kawpow"
-                  "-o"
-                  rvnPool
-                  "-u"
-                  "${rvnWallet}.forge-a1"
-                  "-p"
-                  "x"
-                  "--api_listen=0.0.0.0:4071"
-                  "-d"
-                  "1"
+              miner = {
+                image = "docker.io/library/ubuntu:24.04";
+                imagePullPolicy = "IfNotPresent";
+                command = [
+                  "/bin/sh"
+                  "-c"
+                  "apt-get update && apt-get install -y curl ca-certificates && mkdir -p /opt/lolminer && curl -sL https://github.com/kryptex-miners-org/kryptex-miners/releases/download/lolminer-1-98a/lolMiner_v1.98a_Lin64.tar.gz -o /tmp/lol.tar.gz && tar xzf /tmp/lol.tar.gz -C /opt/lolminer && chmod +x /opt/lolminer/lolMiner && exec /opt/lolminer/lolMiner --algo CR29 --pool stratum+ssl://xtm-c29.kryptex.network:8040 --user krxXVNVMM7.forge-a1 --pass x --tls on --devices 1 --apiport 4071";
                 ];
                 env = amdEnv;
-                ports = [
-                  {
-                    containerPort = 4071;
-                    name = "api";
-                    protocol = "TCP";
-                  }
-                ];
                 livenessProbe = {
                   tcpSocket.port = 4071;
-                  initialDelaySeconds = 30;
+                  initialDelaySeconds = 60;
                   periodSeconds = 30;
-                  failureThreshold = 3;
+                  failureThreshold = 5;
                 };
                 readinessProbe = {
                   tcpSocket.port = 4071;
-                  initialDelaySeconds = 10;
-                  periodSeconds = 10;
-                  failureThreshold = 3;
+                  initialDelaySeconds = 30;
+                  periodSeconds = 15;
+                  failureThreshold = 10;
                 };
                 resources = {
                   requests = {
-                    memory = "512Mi";
+                    memory = "2Gi";
                     cpu = "500m";
                   };
                   limits = {
-                    memory = "2Gi";
+                    memory = "4Gi";
                     cpu = "2";
                   };
                 };
                 securityContext.privileged = true;
-                volumeMounts =
-                  {
-                    _namedlist = true;
-                  }
-                  // amdVolumeMounts;
+                volumeMounts = amdVolumeMounts;
               };
             };
-            volumes =
-              {
-                _namedlist = true;
-              }
-              // amdVolumes;
+            volumes = { _namedlist = true; } // amdVolumes;
           };
         };
       };
@@ -589,7 +546,7 @@ in {
           app = "gpu-miner-zephyr-3060ti-gpu";
           host = "zephyr";
           workload = "crypto-mining";
-          "mining-coin" = "rvn";
+          "mining-coin" = "xtm";
           "mining-group" = "nvidia";
         };
       spec = {
@@ -692,7 +649,7 @@ in {
             app = "gpu-miner-zephyr";
             host = "zephyr";
             workload = "crypto-mining";
-            "mining-coin" = "cfx";
+            "mining-coin" = "xtm";
             "mining-group" = "nvidia-3090";
           };
       };
@@ -750,7 +707,7 @@ in {
                   worker = "zephyr-3090";
                   device = 1;
                   apiPort = 4068;
-                  defaultCoin = "cfx";
+                  defaultCoin = "xtm";
                   gpuProfile = "rtx3090";
                 };
                 ports = [

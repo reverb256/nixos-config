@@ -584,20 +584,8 @@ in {
                 };
                 # Container image has default Cmd: python -m uvicorn ... --workers 4
                 # Override workers to 4 for stability
-                command = [
-                  "python"
-                  "-m"
-                  "uvicorn"
-                  "ai_inference_gateway.main:app"
-                  "--host"
-                  "0.0.0.0"
-                  "--port"
-                  "8080"
-                  "--workers"
-                  "4"
-                  "--log-level"
-                  "info"
-                ];
+                 # Removed --workers override to fix uvicorn parent process issue
+                 # Container image default command (single worker) will be used
                 env = {
                   _namedlist = true;
                   AUTH_MODE.valueFrom.configMapKeyRef = {
@@ -1140,6 +1128,43 @@ in {
         egress = [{}];
       };
     };
+    # ── vLLM Network Policies ─────────────────────────────────────────
+    # Restrict access to vLLM endpoints to gateway only
+    ai-inference.NetworkPolicy.llama-qwen-vllm-nexus-ingress = {
+      spec = {
+        podSelector.matchLabels.app = "llama-qwen-vllm-nexus";
+        policyTypes = ["Ingress"];
+        ingress = [
+          {
+            from = [{podSelector.matchLabels.app = "ai-inference-gateway";}];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 8040;
+              }
+            ];
+          }
+        ];
+      };
+    };
+    # ── Zephyr 3090 llama-server Network Policies ─────────────────────
+    ai-inference.NetworkPolicy.llama-server-zephyr-3090-moe-ingress = {
+      spec = {
+        podSelector.matchLabels.app = "llama-server-zephyr-3090-moe";
+        policyTypes = ["Ingress"];
+        ingress = [
+          {
+            from = [{podSelector.matchLabels.app = "ai-inference-gateway";}];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 1237;
+              }
+            ];
+          }
+        ];
+      };
+    };
     # ── OpenAI Privacy Filter ───────────────────────────────────────
     # PII detection and masking using openai/privacy-filter model
     # Requires transformers >= 5.6.0 (model uses openai_privacy_filter architecture)
@@ -1515,7 +1540,7 @@ deepseek-ai/deepseek-v4-pro|reasoning|DeepSeek V4 Pro 1M ctx (NIM, rate-limited)
 deepseek-v4-flash:free|free|DeepSeek V4 Flash Free (Kilo/Zen, 1M, daily quota)
 nvidia/nemotron-3-super-120b-a12b:free|free|Nemotron 3 Super Free (128K, half NIM ctx)
 nvidia/nemotron-3-nano-30b-a3b:free|free|Nemotron 3 Nano Free (128K, half NIM ctx)
-openrouter/free|free|OpenRouter free router
+#openrouter/free|free|OpenRouter free router (REMOVED — no longer used)
 """.strip()
 CAT_NAMES = {
     "primary": "PRIMARY", "fast": "FAST", "code": "CODING",

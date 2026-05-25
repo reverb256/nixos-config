@@ -17,6 +17,7 @@
     ../../modules/services/podman-support.nix
     ../../modules/services/k3s-cluster.nix
     ../../modules/services/keepalived-vip.nix
+    ../../modules/services/sshfs-projects-mount.nix
   ];
 
   # Host-specific CPU/GPU optimization for llama.cpp (Zen1 + Ada: RTX 4060)
@@ -85,10 +86,12 @@
     inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
 
   # Shared hermes + pi state via NFS (resilient: nofail, automount, soft)
+  services.sshfs-projects-mount.enable = true;
+
   services.nfs-cluster-mounts = {
     enable = true;
-    mountHermes = true;
-    mountPi = true;
+    mountHermes = false;
+    mountPi = false;
   };
 
   # Override noexec on /var (nix-mineral remnant) for k3s re-exec
