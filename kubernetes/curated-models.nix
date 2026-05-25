@@ -121,15 +121,6 @@
       capabilities = ["chat" "completion" "coding"];
       priority = 3;
     };
-    gemma-4-26b = {
-      id = "google/gemma-4-26b-a4b-it";
-      name = "Gemma 4 26B A4B";
-      category = "fast";
-      contextWindow = 131072;
-      provider = "google";
-      capabilities = ["chat" "completion" "coding"];
-      priority = 3;
-    };
     gemma-3-12b = {
       id = "google/gemma-3-12b-it";
       name = "Gemma 3 12B";
@@ -277,7 +268,7 @@
     };
 
     # ── xAI GROK (Direct OAuth via ~/.local/share/opencode/auth.json) ─────
-    grok-4.20-reasoning = {
+    "grok-4.20-reasoning" = {
       id = "grok-4.20-0309-reasoning";
       name = "Grok-4.20-0309 Reasoning";
       category = "reasoning";
@@ -287,7 +278,7 @@
       priority = 1;
     };
 
-    grok-4.20-non-reasoning = {
+    "grok-4.20-non-reasoning" = {
       id = "grok-4.20-0309-non-reasoning";
       name = "Grok-4.20-0309 Non-Reasoning";
       category = "fast";
@@ -297,7 +288,7 @@
       priority = 2;
     };
 
-    grok-4.20-multi-agent = {
+    "grok-4.20-multi-agent" = {
       id = "grok-4.20-multi-agent-0309";
       name = "Grok-4.20 Multi-Agent 0309";
       category = "reasoning";
@@ -307,7 +298,7 @@
       priority = 3;
     };
 
-    grok-4.3 = {
+    "grok-4.3" = {
       id = "grok-4.3";
       name = "Grok-4.3";
       category = "reasoning";
@@ -317,7 +308,7 @@
       priority = 4;
     };
 
-    grok-build-0.1 = {
+    "grok-build-0.1" = {
       id = "grok-build-0.1";
       name = "Grok Build 0.1";
       category = "code";
