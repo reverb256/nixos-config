@@ -1,149 +1,97 @@
-# NixOS Cluster Deployment — NFS-Based Architecture
+# NixOS Cluster Deployment — GitOps-Based Architecture
 #
 # Architecture:
-#   • Zephyr: Local /etc/nixos (source of truth)
-#   • Remote hosts: Read-only NFS mount at /run/nixos-shared
-#   • No config sync needed - all hosts share same flake
+#   • /etc/nixos on all hosts tracks prod (deployed state)
+#   • All development in worktrees under /data/projects/own/nixos-config-NNN
+#   • PR → main (CI validates) → prod (deploy gate) → cluster
+#   • Config deployed via nix-copy-closure + SSH switch-to-configuration
 #
 # Quick start:
-#   just check         # Validate flake (quick, no build)
-#   just check-nfs     # Verify NFS mount health
-#   just deploy        # Build + deploy to all hosts
-#   just deploy <host> # Build + deploy single host
-#   just switch        # Apply to current host (local)
-#   just status        # Show cluster status
+#   just check             # Validate flake (quick, no build)
+#   just build             # Build for this host
+#   just switch            # Apply to local host
+#   just deploy            # Build + deploy to all 4 hosts
+#   just status            # Show git + cluster overview
+#   just new-worktree NNN  # Create worktree for issue NNN
 
 export FLAKE := "/etc/nixos"
 
 _default:
     @just --list
 
-# ──────────────────────────────────────────────────────────────────────────────
-#  NFS MOUNT HEALTH
-# ──────────────────────────────────────────────────────────────────────────────
+# ── DEVELOPMENT WORKFLOW ──────────────────────────────────────────────────────
 
-# Check NFS mount health on all remote hosts
-# Architecture: All remote hosts read from /run/nixos-shared (NFS from Zephyr)
-check-nfs:
+# Create a worktree for a new issue
+new-worktree number:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    N="{{number}}"
+    TITLE=$(gh issue view "$N" --json title --jq .title 2>/dev/null || echo "issue-$N")
+    SLUG=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//' | cut -c1-60)
+    BRANCH="issue-$N-$SLUG"
+    WT_PATH="/data/projects/own/nixos-config-$N"
+    if [ -d "$WT_PATH" ]; then
+        echo "Worktree already exists at $WT_PATH"
+        exit 1
+    fi
+    cd {{FLAKE}}
+    git worktree add -b "$BRANCH" "$WT_PATH" main
+    echo "Worktree: $WT_PATH"
+    echo "Branch:   $BRANCH"
+
+# Remove a completed worktree
+rm-worktree number:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    N="{{number}}"
+    WT_PATH="/data/projects/own/nixos-config-$N"
+    cd {{FLAKE}}
+    if [ -d "$WT_PATH" ]; then
+        BRANCH=$(cd "$WT_PATH" && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+        git worktree remove "$WT_PATH" 2>/dev/null || git worktree remove --force "$WT_PATH"
+        echo "Worktree removed: $WT_PATH"
+    else
+        BRANCH=$(git branch -l "issue-$N-*" 2>/dev/null | head -1 | tr -d ' ')
+        echo "No worktree at $WT_PATH"
+    fi
+    if [ -n "$BRANCH" ] && git branch -l "$BRANCH" | grep -q .; then
+        git branch -D "$BRANCH" 2>/dev/null || true
+        git push origin --delete "$BRANCH" 2>/dev/null || echo "(remote branch gone)"
+        echo "Branch deleted: $BRANCH"
+    fi
+
+# ── DEPLOYMENT ────────────────────────────────────────────────────────────────
+
+HOSTS := "zephyr nexus forge sentry"
+
+# Deploy to all hosts or a specific host
+deploy host="all":
     #!/usr/bin/env bash
     set -e
-    echo "▸ Checking NFS mount health..."
-    for host in nexus forge sentry; do
-        echo "  → $host"
-        if ssh -o ConnectTimeout=5 $host "mountpoint -q /run/nixos-shared"; then
-            # Check if flake.nix is readable
-            if ssh -o ConnectTimeout=5 $host "test -f /run/nixos-shared/flake.nix"; then
-                echo "    ✓ NFS mount healthy, flake.nix accessible"
-            else
-                echo "    ⚠ NFS mounted but flake.nix not accessible"
-            fi
-            # Check fallback cache status
-            if ssh -o ConnectTimeout=5 $host "test -f /var/cache/nixos-config/.last-sync"; then
-                LAST_SYNC=$(ssh -o ConnectTimeout=5 $host "cat /var/cache/nixos-config/.last-sync")
-                echo "    ℹ Fallback cache last sync: $LAST_SYNC"
-            fi
+    echo "Deploying from $(cd {{FLAKE}} && git rev-parse --abbrev-ref HEAD) ($(cd {{FLAKE}} && git rev-parse --short HEAD))"
+    echo ""
+    if [ "{{host}}" = "all" ]; then
+        TARGETS="{{HOSTS}}"
+    else
+        TARGETS="{{host}}"
+    fi
+    for host in $TARGETS; do
+        echo "=== $host ==="
+        if [ "$host" = "zephyr" ]; then
+            sudo nixos-rebuild switch --flake {{FLAKE}}#$host 2>&1
+            echo "done"
         else
-            echo "    ✗ NFS mount not available"
-            # Check if fallback cache exists
-            if ssh -o ConnectTimeout=5 $host "test -f /var/cache/nixos-config/flake.nix"; then
-                echo "    ℹ Fallback cache available"
-            else
-                echo "    ✗ No fallback cache either - host cannot rebuild!"
-            fi
+            OUT=$(nix build --no-link --print-out-paths {{FLAKE}}#$host.config.system.build.toplevel 2>&1) || {
+                echo "Build failed for $host"; echo "$OUT"; exit 1
+            }
+            nix-copy-closure --to j_kro@$host "$OUT" 2>&1 | grep -v "copying path" | grep -v "already exists"
+            ssh j_kro@$host "sudo nix-env -p /nix/var/nix/profiles/system --set $OUT && sudo $OUT/bin/switch-to-configuration switch" 2>&1 | tail -5
+            echo "done"
         fi
     done
-
-# Show current NFS architecture status
-nfs-status:
-    #!/usr/bin/env bash
-    echo "▸ NixOS Cluster NFS Architecture"
     echo ""
-    echo "  Zephyr (10.1.1.110):"
-    echo "    • Local /etc/nixos (source of truth)"
-    echo "    • Exports via NFS to /run/nixos-shared"
-    echo ""
-    echo "  Remote hosts (nexus, forge, sentry):"
-    echo "    • Read-only mount: /run/nixos-shared (from Zephyr)"
-    echo "    • Fallback cache: /var/cache/nixos-config (hourly sync)"
-    echo "    • No local config files"
-    echo ""
-    echo "  Commands:"
-    echo "    just check-nfs    # Verify NFS mount health"
-    echo "    just deploy       # Uses NFS, no sync needed"
+    echo "Deploy complete. Verify with 'just health'"
 
-# ──────────────────────────────────────────────────────────────────────────────
-#  DEPLOYMENT
-# ──────────────────────────────────────────────────────────────────────────────
-
-# Deploy to all hosts or specific host via tmux session (non-blocking for agents)
-# Use 'just attach' to view progress, Ctrl+B D to detach when attached
-deploy target *args:
-    @just deploy-bg {{target}} {{args}}
-
-# Attach to running deploy session
-attach:
-    #!/usr/bin/env bash
-    SESSION="deploy"
-    if tmux has-session -t "$SESSION" 2>/dev/null; then
-        exec tmux attach -t "$SESSION"
-    else
-        echo "No active deploy session. Use 'just deploy' to start one."
-        exit 1
-    fi
-
-# Non-blocking deploy (for agents) - runs in tmux without attaching
-deploy-bg target *args:
-    #!/usr/bin/env bash
-    set -e
-
-    SESSION="deploy"
-    if tmux has-session -t "$SESSION" 2>/dev/null; then
-        echo "▸ Deploy session already running — use 'just attach' to view"
-        exit 1
-    fi
-
-    tmux new-session -d -s "$SESSION" -c {{FLAKE}} -x 200 -y 50
-    tmux set-option -t "$SESSION" status-style "bg=#1e1e2e fg=#cdd6f4"
-    tmux set-option -t "$SESSION" status-left " #[fg=#89b4fa]⬢ NixOS #[fg=#a6adc8]│ #[fg=#f9e2af]#{session_name} "
-    tmux set-option -t "$SESSION" status-right " #[fg=#a6adc8]#{pane_current_path} #[fg=#6c7086]│ #[fg=#a6e3a1]%H:%M "
-
-    if [ "{{target}}" = "all" ] || [ -z "{{target}}" ]; then
-        tmux send-keys -t "$SESSION" "echo '▸ Deploying all hosts...'" Enter
-        tmux send-keys -t "$SESSION" "cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus --verbose {{args}} && nix run .#apps.x86_64-linux.colmena -- apply --on forge --verbose {{args}} && nix run .#apps.x86_64-linux.colmena -- apply --on sentry --verbose {{args}} && sudo nixos-rebuild switch --flake .#zephyr {{args}}" Enter
-    elif [ "{{target}}" = "zephyr" ]; then
-        tmux send-keys -t "$SESSION" "echo '▸ Deploying zephyr...'" Enter
-        tmux send-keys -t "$SESSION" "cd {{FLAKE}} && sudo nixos-rebuild switch --flake .#zephyr {{args}}" Enter
-    else
-        tmux send-keys -t "$SESSION" "echo '▸ Deploying {{target}}...'" Enter
-        tmux send-keys -t "$SESSION" "cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on {{target}} --verbose {{args}}" Enter
-    fi
-
-    echo "▸ Deploy started in tmux session '$SESSION' (non-blocking)"
-    echo "  → Use 'just attach' to view progress"
-    echo "  → Use 'tmux kill-session -t deploy' to cancel"
-
-# Non-blocking local switch (for agents) - runs in tmux without attaching
-switch-bg:
-    #!/usr/bin/env bash
-    set -e
-
-    SESSION="deploy"
-    if tmux has-session -t "$SESSION" 2>/dev/null; then
-        echo "▸ Deploy session already running — use 'just attach' to view"
-        exit 1
-    fi
-
-    tmux new-session -d -s "$SESSION" -c {{FLAKE}} -x 200 -y 50
-    tmux set-option -t "$SESSION" status-style "bg=#1e1e2e fg=#cdd6f4"
-    tmux set-option -t "$SESSION" status-left " #[fg=#89b4fa]⬢ NixOS #[fg=#a6adc8]│ #[fg=#f9e2af]#{session_name} "
-    tmux set-option -t "$SESSION" status-right " #[fg=#a6e3a1]%H:%M "
-    tmux send-keys -t "$SESSION" "echo '▸ Switching $(hostname -s)...'" Enter
-    tmux send-keys -t "$SESSION" "cd {{FLAKE}} && sudo nixos-rebuild switch --flake .#$(hostname -s)" Enter
-
-    echo "▸ Switch started in tmux session '$SESSION' (non-blocking)"
-    echo "  → Use 'just attach' to view progress"
-
-# Convenience aliases
 zephyr:
     just deploy zephyr
 nexus:
@@ -152,435 +100,244 @@ forge:
     just deploy forge
 sentry:
     just deploy sentry
-all:
-    just deploy all
 
-# ──────────────────────────────────────────────────────────────────────────────
-#  VALIDATION
-# ──────────────────────────────────────────────────────────────────────────────
+deploy-bg target="all":
+    #!/usr/bin/env bash
+    set -e
+    SESSION="deploy"
+    if tmux has-session -t "$SESSION" 2>/dev/null; then
+        echo "Deploy session already running - use 'just attach'"
+        exit 1
+    fi
+    tmux new-session -d -s "$SESSION" -c {{FLAKE}} -x 200 -y 50
+    tmux send-keys -t "$SESSION" "just deploy {{target}}" Enter
+    echo "Deploy started (tmux: $SESSION)"
+    echo "use 'just attach' to view"
 
-# Check flake (quick validation, no build)
+attach:
+    #!/usr/bin/env bash
+    SESSION="deploy"
+    if tmux has-session -t "$SESSION" 2>/dev/null; then
+        exec tmux attach -t "$SESSION"
+    else
+        echo "No active deploy session"
+        exit 1
+    fi
+
+# ── VALIDATION & LOCAL OPS ────────────────────────────────────────────────────
+
 check:
     #!/usr/bin/env bash
     set -e
-    echo "▸ Checking flake..."
     cd {{FLAKE}} && nix flake check
 
-# ──────────────────────────────────────────────────────────────────────────────
-#  LOCAL OPERATIONS
-# ──────────────────────────────────────────────────────────────────────────────
-
-# Pre-flight check (run before switch/deploy to prevent OOM)
-preflight:
-    #!/usr/bin/env bash
-    set -e
-    /etc/nixos/scripts/preflight-check.sh
-
-# Apply to current host (uses nixos-rebuild switch — colmena apply-local has NixOS sudo PATH issue)
-# Runs in tmux for visibility — runs non-blocking for agents
-switch:
-    #!/usr/bin/env bash
-    set -e
-    echo "▸ Running pre-flight check..."
-    /etc/nixos/scripts/preflight-check.sh
-    just switch-bg
-
-# Build without applying (local host only)
 build:
     #!/usr/bin/env bash
     set -e
-    echo "▸ Building $(hostname -s)..."
     cd {{FLAKE}} && sudo nixos-rebuild build --flake .#$(hostname -s)
 
-# Test rollback-safe switch
+switch:
+    #!/usr/bin/env bash
+    set -e
+    {{FLAKE}}/scripts/preflight-check.sh 2>/dev/null || true
+    cd {{FLAKE}} && sudo nixos-rebuild switch --flake .#$(hostname -s)
+
 test-apply:
     #!/usr/bin/env bash
     set -e
-    echo "▸ Testing $(hostname -s) (rollback on next boot)..."
     cd {{FLAKE}} && sudo nixos-rebuild test --flake .#$(hostname -s)
 
-# Full system upgrade: update flake → check → switch → gc
-# Idempotent — safe to run from any directory
+preflight:
+    #!/usr/bin/env bash
+    set -e
+    {{FLAKE}}/scripts/preflight-check.sh
+
 topgrade:
     #!/usr/bin/env bash
     set -e
     HOST=$(hostname -s)
-    FLAKE="/etc/nixos"
+    echo "Topgrade: $HOST"
+    echo "1/4 Updating flake.lock..."
+    cd {{FLAKE}} && nix flake update 2>&1 || echo "skip (non-fatal)"
+    echo "2/4 Validating..."
+    cd {{FLAKE}} && nix flake check 2>&1 || echo "skip (non-fatal)"
+    echo "3/4 Switching..."
+    cd {{FLAKE}} && sudo nixos-rebuild switch --flake .#$HOST; rc=$?
+    if [ $rc -ne 0 ] && [ $rc -ne 4 ]; then exit $rc; fi
+    echo "4/4 GC..."
+    sudo nix-collect-garbage -d || true
+    echo "done"
 
-    echo "▸ Topgrade: $HOST"
+# ── CLUSTER STATUS ────────────────────────────────────────────────────────────
+
+status:
+    #!/usr/bin/env bash
+    cd {{FLAKE}}
+    echo "Branch: $(git rev-parse --abbrev-ref HEAD)"
+    echo "Commit: $(git log -1 --oneline)"
     echo ""
-
-    echo "1/4 ▸ Updating flake.lock..."
-    cd "$FLAKE" && nix flake update 2>&1 || echo "  ⚠ Update skipped (non-fatal, check flake inputs)"
-
-    echo ""
-    echo "2/4 ▸ Validating flake..."
-    cd "$FLAKE" && nix flake check 2>&1 || echo "  ⚠ Check skipped (non-fatal, may OOM on Zephyr)"
-
-    echo ""
-    echo "3/4 ▸ Switching $HOST..."
-    cd "$FLAKE"
-    set +e
-    sudo nixos-rebuild switch --flake .#$HOST; rc=$?
-    set -e
-    if [ $rc -eq 4 ]; then
-        echo "  ⚠ Some units failed (non-fatal)"
-    elif [ $rc -ne 0 ]; then
-        echo "  ✗ Switch failed (exit $rc)"
-        exit $rc
+    echo "Prod alignment:"
+    PROD=$(git rev-parse origin/prod 2>/dev/null || echo "")
+    MAIN=$(git rev-parse origin/main 2>/dev/null || echo "")
+    if [ "$PROD" = "$MAIN" ]; then
+        echo "  prod = main"
+    elif [ -n "$PROD" ]; then
+        echo "  prod is $(git rev-list --count $PROD..$MAIN) commit(s) behind main"
+    else
+        echo "  no prod branch"
     fi
-
     echo ""
-    echo "4/4 ▸ Cleaning old generations..."
-    sudo nix-collect-garbage -d || echo "  ⚠ GC failed (non-fatal)"
-
+    echo "Worktrees:"
+    git worktree list | sed 's/^/  /'
     echo ""
-    echo "✓ Topgrade complete ($HOST)"
+    echo "Uncommitted:"
+    git status --short | sed 's/^/  /' || echo "  clean"
 
+health:
+    #!/usr/bin/env bash
+    echo "Connectivity:"
+    for host in {{HOSTS}}; do
+        if [ "$host" = "$(hostname -s)" ]; then
+            echo "  $host: local"
+        elif ssh -o ConnectTimeout=2 "$host" "true" >/dev/null 2>&1; then
+            echo "  $host: up"
+        else
+            echo "  $host: down"
+        fi
+    done
+    echo ""
+    echo "Kubernetes:"
+    kubectl get nodes 2>/dev/null | sed 's/^/  /' || echo "  not responding"
 
-# ──────────────────────────────────────────────────────────────────────────────
-#  FLAKE MANAGEMENT
-# ──────────────────────────────────────────────────────────────────────────────
+# ── ROLLBACK ──────────────────────────────────────────────────────────────────
 
-# Update flake.lock
+rollback:
+    #!/usr/bin/env bash
+    set -e
+    sudo nixos-rebuild rollback
+
+rollback-remote host:
+    #!/usr/bin/env bash
+    set -e
+    ssh {{host}} "sudo nixos-rebuild rollback"
+
+# ── FLAKE MANAGEMENT ──────────────────────────────────────────────────────────
+
 update:
     #!/usr/bin/env bash
     set -e
-    echo "▸ Updating flake.lock..."
     cd {{FLAKE}} && nix flake update
 
-# Show flake metadata
 info:
     #!/usr/bin/env bash
     set -e
     cd {{FLAKE}} && nix flake metadata
 
-# ──────────────────────────────────────────────────────────────────────────────
-#  CLUSTER STATUS
-# ──────────────────────────────────────────────────────────────────────────────
+# ── GITHUB ISSUES ─────────────────────────────────────────────────────────────
 
-# Git status across all nodes
-# Note: Remote hosts use NFS mount, so we check Zephyr's git status
-status:
-    #!/usr/bin/env bash
-    echo "▸ Git status (all hosts read from Zephyr via NFS):"
-    commit=$(cd {{FLAKE}} && git log -1 --oneline)
-    branch=$(cd {{FLAKE}} && git branch --show-current)
-    echo "  ● Zephyr (source): $branch | $commit"
-    echo "  ● Remote hosts: read from /run/nixos-shared (NFS)"
-    echo ""
-    echo "▸ Uncommitted changes:"
-    if cd {{FLAKE}} && git status --short | grep -q .; then
-        cd {{FLAKE}} && git status --short | sed 's/^/  /'
-    else
-        echo "  ✓ Working tree clean"
-    fi
-
-# Cluster health check
-health:
-    #!/usr/bin/env bash
-    echo "▸ Cluster connectivity:"
-    for host in zephyr nexus forge sentry; do
-        if [ "$host" = "$(hostname -s)" ]; then
-            echo "  ● $host: local"
-        elif ssh -o ConnectTimeout=2 "$host" "true" >/dev/null 2>&1; then
-            echo "  ● $host: up"
-        else
-            echo "  ● $host: down"
-        fi
-    done
-    echo ""
-    echo "▸ Kubernetes:"
-    if [ "$(hostname -s)" = "zephyr" ] && command -v kubectl >/dev/null 2>&1; then
-        kubectl get nodes 2>/dev/null | sed 's/^/  /' || echo "  ⚠ Kubernetes not responding"
-    elif [ "$(hostname -s)" != "zephyr" ]; then
-        ssh zephyr "kubectl get nodes" 2>/dev/null | sed 's/^/  /' || echo "  ⚠ Cannot query Kubernetes"
-    else
-        echo "  ⚠ kubectl not found"
-    fi
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  ROLLBACK
-# ──────────────────────────────────────────────────────────────────────────────
-
-# Rollback local host
-rollback:
-    #!/usr/bin/env bash
-    set -e
-    echo "▸ Rolling back $(hostname -s)..."
-    sudo nixos-rebuild rollback
-
-# Rollback remote host
-rollback-remote host:
-    #!/usr/bin/env bash
-    set -e
-    echo "▸ Rolling back {{host}}..."
-    ssh {{host}} "sudo nixos-rebuild rollback"
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  GITHUB ISSUES WORKFLOW
-# ──────────────────────────────────────────────────────────────────────────────
-
-# Create a new GitHub issue interactively
 issue-create title="" label="":
     #!/usr/bin/env bash
     set -euo pipefail
-    TITLE="{{title}}"
-    LABEL="{{label}}"
-    if [ -z "$TITLE" ]; then
-        read -r -p "Issue title: " TITLE
-    fi
-    if [ -z "$LABEL" ]; then
-        read -r -p "Labels (comma-separated, e.g. p2,infra): " LABEL
-    fi
-    gh issue create \
-      --title "$TITLE" \
-      --label "$LABEL" \
-      --body "## Context\n\n## Task\n\n## Priority\n\n## Estimate\n" \
-      --assignee "@me"
+    TITLE="{{title}}"; LABEL="{{label}}"
+    [ -z "$TITLE" ] && read -r -p "Title: " TITLE
+    [ -z "$LABEL" ] && read -r -p "Labels: " LABEL
+    gh issue create --title "$TITLE" --label "$LABEL" \
+      --body "## Context\n## Task\n## Priority\n" --assignee @me
 
-# List open issues with labels
 issue-list:
     #!/usr/bin/env bash
     set -euo pipefail
-    gh issue list --limit 20 --json number,title,state,labels,assignees \
-      | jq -r '.[] | "#\(.number | tostring | " " * (3 - (. | tostring | length)) + .) [" + .state + "] " + .title + " " + (.labels | map(.name) | join(" "))'
+    gh issue list --limit 20 --json number,title,state,labels \
+      | jq -r '.[] | "#\(.number) [\(.state)] \(.title)"'
 
-# Close an issue with a comment referencing the PR
-issue-close number pr_url="":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    N="{{number}}"
-    PR="{{pr_url}}"
-    if [ -n "$PR" ]; then
-        gh issue close "$N" --comment "Closed by $PR"
-    else
-        gh issue close "$N" --comment "Completed."
-    fi
-
-# Create a branch from an issue number
 branch-from number:
     #!/usr/bin/env bash
     set -euo pipefail
-    N="{{number}}"
-    TITLE=$(gh issue view "$N" --json title --jq '.title' 2>/dev/null || echo "issue-$N")
-    # Slugify the title
-    SLUG=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//' | cut -c1-60)
-    BRANCH="issue-$N-$SLUG"
-    git checkout -b "$BRANCH"
-    echo "→ Switched to branch: $BRANCH"
+    N={{number}}
+    TITLE=$(gh issue view "$N" --json title --jq .title 2>/dev/null || echo "issue-$N")
+    SLUG=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g;s/^-//;s/-$//' | cut -c1-60)
+    git checkout -b "issue-$N-$SLUG"
 
-# ──────────────────────────────────────────────────────────────────────────────
-#  UTILITIES
-# ──────────────────────────────────────────────────────────────────────────────
+# ── UTILITIES ─────────────────────────────────────────────────────────────────
 
-# Garbage collect (aggressive)
 gc:
     #!/usr/bin/env bash
     set -e
-    echo "▸ Garbage collecting..."
-    sudo nix-collect-garbage -d || echo "  ⚠ GC failed (non-fatal)"
+    sudo nix-collect-garbage -d || true
 
-# Optimize nix store
-optimize:
+optimise:
     #!/usr/bin/env bash
     set -e
-    echo "▸ Optimizing store..."
-    nix-store --optimize
+    nix-store --optimise
 
-# Show generations
 generations:
     #!/usr/bin/env bash
     nix-env --list-generations --profile /nix/var/nix/profiles/system
 
-# Prune stale nix-store/colmena processes (fixes lock contention)
 prune-stale:
     #!/usr/bin/env bash
     set -e
-    echo "▸ Pruning stale nix-store/colmena processes..."
+    pgrep -af colmena | while read p c; do cpu=$(ps -p ${p%% *} -o %cpu= 2>/dev/null || echo 0); [ "${cpu%.*}" = 0 ] && kill -9 ${p%% *} 2>/dev/null; done
+    pgrep -af "nix-store.*--realise" | while read p c; do cpu=$(ps -p ${p%% *} -o %cpu= 2>/dev/null || echo 0); [ "${cpu%.*}" = 0 ] && kill -9 ${p%% *} 2>/dev/null; done
 
-    # Kill stale colmena processes (older than 30 minutes with 0% CPU)
-    echo "  Checking for stale colmena..."
-    pgrep -af colmena | while read pid cmdline; do
-        cpu=$(ps -p "${pid%% *}" -o %cpu= 2>/dev/null || echo "0")
-        if [ "${cpu%.*}" = "0" ]; then
-            echo "    Killing stale colmena PID ${pid%% *}"
-            kill -9 "${pid%% *}" 2>/dev/null || true
-        fi
-    done
+# ── VALIDATION / K8s ──────────────────────────────────────────────────────────
 
-    # Kill stale nix-store --realise processes (stuck waiting for locks)
-    echo "  Checking for stale nix-store processes..."
-    pgrep -af "nix-store.*--realise" | while read pid cmdline; do
-        # Check if process has been running over 1 hour with 0% CPU
-        cpu=$(ps -p "${pid%% *}" -o %cpu= 2>/dev/null || echo "0")
-        if [ "${cpu%.*}" = "0" ]; then
-            echo "    Killing stale nix-store PID ${pid%% *}"
-            kill -9 "${pid%% *}" 2>/dev/null || true
-        fi
-    done
-
-    echo "✓ Prune complete"
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  MODEL MANAGEMENT
-# ──────────────────────────────────────────────────────────────────────────────
-
-# List available models
-models-list:
-    curl -s http://127.0.0.1:1234/v1/models 2>/dev/null | jq '.data[].id' 2>/dev/null || echo "LM Studio not responding"
-
-# Gateway models
-models-gateway:
-    curl -s http://127.0.0.1:8080/v1/models 2>/dev/null | jq '.data[].id' 2>/dev/null || echo "Gateway not responding"
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  UNIFIED DEPLOYMENT PIPELINE (Phase 5)
-# ──────────────────────────────────────────────────────────────────────────────
-
-# Unified deploy: validate + OS + copy closures + K8s (all hosts)
-unified-deploy target="all" *args:
-    #!/usr/bin/env bash
-    set -e
-    echo "▸ Running unified deployment pipeline..."
-    cd {{FLAKE}} && sudo bash scripts/deploy.sh {{target}} {{args}}
-
-# Unified rollback: OS + K8s
-unified-rollback *args:
-    #!/usr/bin/env bash
-    set -e
-    echo "▸ Running unified rollback..."
-    cd {{FLAKE}} && sudo bash scripts/rollback.sh {{args}}
-
-# Full validation suite (flake check + colmena build + K8s dry-run + connectivity)
-full-check *args:
-    #!/usr/bin/env bash
-    set -e
-    echo "▸ Running full validation suite..."
-    cd {{FLAKE}} && sudo bash scripts/check.sh {{args}}
-
-# Validate K8s manifests only (via k8s-validate app or nix build)
 validate-k8s:
     #!/usr/bin/env bash
     set -e
-    echo "▸ Validating Kubernetes manifests..."
     cd {{FLAKE}}
-    if nix build .#kubernetesManifests 2>/dev/null; then
-        if [ -d result ]; then
-            echo "  ✓ Kubernetes manifests built successfully"
-            if command -v kubectl >/dev/null 2>&1; then
-                if kubectl apply --dry-run=client -f result/ --recursive; then
-                    echo "  ✓ Kubectl dry-run passed"
-                else
-                    echo "  ✗ Kubectl dry-run failed"
-                    exit 1
-                fi
-            else
-                echo "  ⚠ kubectl not found, skipping dry-run"
-            fi
-        else
-            echo "  ✓ K8s manifest built (single file)"
-        fi
-    else
-        echo "  ⚠ kubernetesManifests not available, trying k8s-validate..."
-        nix run .#k8s-validate
-    fi
+    nix build .#kubernetesManifests 2>/dev/null && echo "K8s manifests built" || nix run .#k8s-validate 2>/dev/null || echo "k8s-validate not available"
 
-# ──────────────────────────────────────────────────────────────────────────────
+full-check *args:
+    #!/usr/bin/env bash
+    set -e
+    cd {{FLAKE}} && sudo bash scripts/check.sh {{args}}
 
-# CA CERTIFICATE MANAGEMENT
-# ──────────────────────────────────────────────────────────────────────────────
+# ── CA MANAGEMENT ─────────────────────────────────────────────────────────────
 
-# Verify CA cert distribution across all hosts (declarative check)
 ca-verify:
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "▸ Verifying CA certificate distribution..."
-    CA_CERT="/etc/ssl/cluster-ca/ca.crt"
     ALL_OK=true
-    for host in zephyr nexus forge sentry; do
-        echo "  $host:"
-        if [ "$host" = "zephyr" ]; then
-            # Local checks
-            if [ -f "$CA_CERT" ]; then echo "    ✓ CA cert present"; else echo "    ✗ CA cert MISSING"; ALL_OK=false; fi
-            if grep -q 'Cluster CA' /etc/ssl/certs/ca-bundle.crt 2>/dev/null; then echo "    ✓ CA trusted in system bundle"; else echo "    ✗ CA NOT trusted"; ALL_OK=false; fi
-            if [ -f /etc/ssl/cluster-ca/leaf.crt ]; then echo "    ✓ Leaf cert present"; else echo "    ✗ Leaf cert MISSING"; ALL_OK=false; fi
-            if [ -f /etc/ssl/cluster-ca/.san-hash ]; then echo "    ✓ SAN hash file present"; else echo "    ⚠ SAN hash file missing (will regen on next boot)"; fi
+    for host in {{HOSTS}}; do
+        if [ "$host" = "$(hostname -s)" ]; then
+            [ -f /etc/ssl/cluster-ca/ca.crt ] && echo "  $host: OK" || { echo "  $host: MISSING"; ALL_OK=false; }
         else
-            # Remote checks via SSH
-            CA_EXISTS=$(ssh -o ConnectTimeout=5 "$host" "test -f $CA_CERT && echo yes || echo no" 2>/dev/null || echo "no")
-            if [ "$CA_EXISTS" = "yes" ]; then echo "    ✓ CA cert present"; else echo "    ✗ CA cert MISSING"; ALL_OK=false; fi
-            TRUSTED=$(ssh -o ConnectTimeout=5 "$host" "grep -c 'Cluster CA' /etc/ssl/certs/ca-bundle.crt 2>/dev/null || true" 2>/dev/null || echo "0")
-            if [ "${TRUSTED:-0}" -gt 0 ] 2>/dev/null; then echo "    ✓ CA trusted in system bundle"; else echo "    ✗ CA NOT trusted"; ALL_OK=false; fi
-            LEAF=$(ssh -o ConnectTimeout=5 "$host" "test -f /etc/ssl/cluster-ca/leaf.crt && echo yes || echo no" 2>/dev/null || echo "no")
-            if [ "$LEAF" = "yes" ]; then echo "    ✓ Leaf cert present"; else echo "    ℹ No leaf cert (not a Caddy host)"; fi
+            ssh "$host" "test -f /etc/ssl/cluster-ca/ca.crt" 2>/dev/null && echo "  $host: OK" || { echo "  $host: MISSING"; ALL_OK=false; }
         fi
     done
-    if [ "$ALL_OK" = true ]; then echo "▸ All hosts OK"; else echo "▸ Some hosts need attention — deploy to fix"; fi
+    $ALL_OK && echo "All OK" || echo "Some hosts need deploy"
 
-# Regenerate leaf certificates on all Caddy hosts (emergency use only)
-# Normal flow: just deploy (cluster-ca-init auto-detects SAN changes)
 ca-regen-leaf:
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "▸ Regenerating leaf certificates on Caddy hosts..."
     for host in zephyr nexus; do
-        echo "  $host:"
-        if [ "$host" = "zephyr" ]; then
-            sudo rm -f /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key /etc/ssl/cluster-ca/.san-hash
-            sudo systemctl restart cluster-ca-init.service
-            sleep 2
-            sudo systemctl restart caddy.service
-        else
-            ssh -o ConnectTimeout=5 "$host" "sudo rm -f /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key /etc/ssl/cluster-ca/.san-hash && sudo systemctl restart cluster-ca-init.service && sleep 2 && sudo systemctl restart caddy.service"
-        fi
-        echo "    ✓ Leaf cert regenerated and Caddy restarted"
+        [ "$host" = "$(hostname -s)" ] && local=1 || local=0
+        [ $local -eq 1 ] && sudo rm -f /etc/ssl/cluster-ca/leaf.{crt,key} && sudo systemctl restart cluster-ca-init.service
+        [ $local -eq 0 ] && ssh "$host" "sudo rm -f /etc/ssl/cluster-ca/leaf.{crt,key} && sudo systemctl restart cluster-ca-init.service"
+        sleep 2
+        [ $local -eq 1 ] && sudo systemctl restart caddy.service || ssh "$host" "sudo systemctl restart caddy.service"
+        echo "$host done"
     done
-    echo "▸ Done. Use 'just ca-verify' to check status."
 
-# Export CA cert for installation on external devices (phones, laptops, etc.)
 ca-export path="":
     #!/usr/bin/env bash
-    set -euo pipefail
-    DEST="${1:-$HOME/cluster-ca.crt}"
-    cp /etc/nixos/certs/cluster-ca.crt "$DEST"
-    echo "▸ CA certificate exported to $DEST"
-    echo ""
-    echo "Install on devices:"
-    echo "  Linux:   sudo cp $DEST /usr/local/share/ca-certificates/ && sudo update-ca-certificates"
-    echo "  macOS:   sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain $DEST"
-    echo "  Windows: Import into 'Trusted Root Certification Authorities' store"
-    echo "  Android: Settings → Security → Install from storage"
-    echo "  iOS:     AirDrop file → Install profile → Settings → General → About → Cert Trust Settings"
+    cp /etc/nixos/certs/cluster-ca.crt "{{path}}"
 
-# Show all .lan domains (from SSOT in cluster-dns.nix)
-
-
-# Show all .lan domains (from SSOT in cluster-dns.nix)
 ca-domains:
     #!/usr/bin/env bash
-    set -euo pipefail
-    echo "All .lan domains (SSOT from cluster-dns.nix):"
-    cd /etc/nixos
+    cd {{FLAKE}}
     nix eval '.#nixosConfigurations.zephyr.config.clusterNetworking.lanDomains' --json 2>/dev/null \
-      | python3 -c "import json,sys;domains=json.loads(sys.stdin.read());[print(f'  {i:2d}. {d}') for i,d in enumerate(sorted(domains),1)];print(f'\n  Total: {len(domains)} domains');print('  + *.lan wildcard (covers everything else)')"
+      | python3 -c "import json,sys;d=json.loads(sys.stdin.read());[print(f'  {i}. {x}') for i,x in enumerate(sorted(d),1)]"
 
-# ──────────────────────────────────────────────────────────────────────────────
-#  DOCUMENTATION
-# ──────────────────────────────────────────────────────────────────────────────
+# ── DOCUMENTATION ─────────────────────────────────────────────────────────────
 
-# Run full documentation verification suite (part of CI/CD)
 docs-audit:
     #!/usr/bin/env bash
     set -e
-    echo "▸ Running documentation verification suite..."
     docs/meta/VERIFICATION-SUITE/run.sh
 
-# Refresh stale documentation sections
 docs-freshen:
     #!/usr/bin/env bash
     set -e
-    echo "▸ Refreshing documentation..."
-    echo "→ Check LIVE/ documents for accuracy"
-    echo "→ Run 'just docs-audit' after changes"
-    echo "Documentation refresh complete."
+    echo "Check LIVE/ docs for accuracy, run 'docs-audit' after"
