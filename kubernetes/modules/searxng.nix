@@ -76,10 +76,27 @@ in {
               - rss
             language: en
             safe_search: 0
+            autocomplete: ""  # Disable autocomplete for API/agent use
+            default_on_categories: [general, science, it, files]
+
+          # Caching: Valkey-backed with extended TTL for better hit rate
+          server:
+            limiter: false
+            secret_key: "@SEARXNG_SECRET_KEY@"
+            image_proxy: true
+            method: "GET"
+            port: 8080
+            bind_address: "0.0.0.0"
+            default_http_headers:
+              Cache-Control: max-age=600
+
+          ui:
+            static_use_hash: true
+            default_theme: simple
 
           outgoing:
             request_timeout: 10.0
-            max_request_timeout: 15.0
+            max_request_timeout: 20.0
             pool_connections: 100
             pool_maxsize: 50
             enable_http2: true
