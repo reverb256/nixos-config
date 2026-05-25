@@ -435,7 +435,7 @@ in {
                 command = [
                   "/bin/sh"
                   "-c"
-                  "apt-get update && apt-get install -y curl ca-certificates && mkdir -p /opt/lolminer && curl -sL https://github.com/kryptex-miners-org/kryptex-miners/releases/download/lolminer-1-98a/lolMiner_v1.98a_Lin64.tar.gz -o /tmp/lol.tar.gz && tar xzf /tmp/lol.tar.gz -C /opt/lolminer && chmod +x /opt/lolminer/lolMiner && exec /opt/lolminer/lolMiner --algo CR29 --pool stratum+ssl://xtm-c29.kryptex.network:8040 --user krxXVNVMM7.forge-a0 --pass x --tls on --devices 0 --apiport 4070";
+                  "apt-get update && apt-get install -y curl ca-certificates && mkdir -p /opt/lolminer && curl -sL https://github.com/kryptex-miners-org/kryptex-miners/releases/download/lolminer-1-98a/lolMiner_v1.98a_Lin64.tar.gz -o /tmp/lol.tar.gz && tar xzf /tmp/lol.tar.gz -C /opt/lolminer && chmod +x /opt/lolminer/lolMiner && exec /opt/lolminer/lolMiner --algo CR29 --pool stratum+ssl://xtm-c29.kryptex.network:8040 --user krxXVNVMM7.forge-a0 --pass x --tls on --devices 0 --apiport 4070"
                 ];
                 env = amdEnv;
                 livenessProbe = {
@@ -502,7 +502,7 @@ in {
                 command = [
                   "/bin/sh"
                   "-c"
-                  "apt-get update && apt-get install -y curl ca-certificates && mkdir -p /opt/lolminer && curl -sL https://github.com/kryptex-miners-org/kryptex-miners/releases/download/lolminer-1-98a/lolMiner_v1.98a_Lin64.tar.gz -o /tmp/lol.tar.gz && tar xzf /tmp/lol.tar.gz -C /opt/lolminer && chmod +x /opt/lolminer/lolMiner && exec /opt/lolminer/lolMiner --algo CR29 --pool stratum+ssl://xtm-c29.kryptex.network:8040 --user krxXVNVMM7.forge-a1 --pass x --tls on --devices 1 --apiport 4071";
+                  "apt-get update && apt-get install -y curl ca-certificates && mkdir -p /opt/lolminer && curl -sL https://github.com/kryptex-miners-org/kryptex-miners/releases/download/lolminer-1-98a/lolMiner_v1.98a_Lin64.tar.gz -o /tmp/lol.tar.gz && tar xzf /tmp/lol.tar.gz -C /opt/lolminer && chmod +x /opt/lolminer/lolMiner && exec /opt/lolminer/lolMiner --algo CR29 --pool stratum+ssl://xtm-c29.kryptex.network:8040 --user krxXVNVMM7.forge-a1 --pass x --tls on --devices 1 --apiport 4071"
                 ];
                 env = amdEnv;
                 livenessProbe = {
