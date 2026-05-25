@@ -614,6 +614,7 @@ in {
           egress = [{}];
         };
       };
+    };
 
     # ── Local-path config: per-node storage paths ─────────────────
     # Sentry 1TB HDD at /storage should be used for bulk PVCs.
