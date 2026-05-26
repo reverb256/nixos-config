@@ -7,9 +7,9 @@
   inherit (lib) mkDefault mkIf;
   niriHmAvailable = config.lib ? niri;
 in {
-  programs.niri.settings = mkIf niriHmAvailable (
-    let
-      acts = config.lib.niri.actions;
+  programs.niri.settings = mkIf niriHmAvailable (lib.mkMerge [
+    (let
+      acts = if niriHmAvailable then config.lib.niri.actions else {};
     in {
       spawn-at-startup = [
         {
@@ -714,5 +714,20 @@ in {
         }
       ];
     }
-  );
+  )
+    (mkIf ((config.stylix.enable or false) && (config.lib.stylix ? colors)) {
+      cursor = mkIf (config.stylix.cursor or null != null) {
+        size = mkDefault config.stylix.cursor.size;
+        theme = mkDefault config.stylix.cursor.name;
+      };
+      layout = with (config.lib.stylix.colors.withHashtag or {}); {
+        focus-ring.enable = mkDefault false;
+        border = {
+          enable = mkDefault true;
+          active = { color = mkDefault (base0D or "#7aa2f7"); };
+          inactive = { color = mkDefault (base03 or "#3b4261"); };
+        };
+      };
+    })
+  ]);
 }
