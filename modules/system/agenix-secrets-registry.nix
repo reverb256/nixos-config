@@ -256,6 +256,12 @@ in {
           owner = "root";
           group = "root";
         };
+        npm-token = {
+          file = "${inputs.self}/secrets/npm-token.age";
+          mode = "440";
+          owner = "j_kro";
+          group = "users";
+        };
       })
       (lib.mkIf config.services.agenix-secrets-registry.selfHosting {
         nextcloud-admin = {

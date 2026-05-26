@@ -466,6 +466,7 @@ in {
     cloud = true;
     kubernetes = true;
     automation = true;
+    ci = true;
     initrdRecovery = true;
     selfHosting = true;
   };
