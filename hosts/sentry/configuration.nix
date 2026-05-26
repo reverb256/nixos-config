@@ -99,14 +99,14 @@
   fileSystems."/nix" = {
     device = "/dev/disk/by-id/ata-ST1000DM010-2EP102_ZN1AMQLC";
     fsType = "btrfs";
-    options = ["subvol=@nix" "compress=zstd" "noatime" "nofail"];
+    options = ["subvol=@nix" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
   };
 
-  # /home on HDD — frees ~5.6G on the system SSD
+  # Mount /home on the HDD — frees ~5.6G on the system SSD
   fileSystems."/home" = {
     device = "/dev/disk/by-id/ata-ST1000DM010-2EP102_ZN1AMQLC";
     fsType = "btrfs";
-    options = ["subvol=@home" "compress=zstd" "noatime" "nofail"];
+    options = ["subvol=@home" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
   };
 
   # k3s data on HDD

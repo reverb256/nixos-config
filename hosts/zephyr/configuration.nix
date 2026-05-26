@@ -358,6 +358,6 @@ in {
   fileSystems."/nix" = {
     device = "/dev/disk/by-id/nvme-XPG_GAMMIX_S11_Pro_2J2520059477-part2";
     fsType = "btrfs";
-    options = ["subvol=@nix" "compress=zstd" "noatime" "nofail"];
+    options = ["subvol=@nix" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
   };
 }
