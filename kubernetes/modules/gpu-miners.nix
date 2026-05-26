@@ -239,7 +239,6 @@ in {
           spec = {
             nodeName = "forge";
             hostNetwork = true;
-            runtimeClassName = "nvidia";
             automountServiceAccountToken = false;
             serviceAccountName = "gpu-miner-sa";
             priorityClassName = "mining-low";
@@ -247,14 +246,22 @@ in {
             containers = {
               _namedlist = true;
               miner = {
-                image = nvidiaBaseImage;
-                command = ["/bin/sh" "/opt/wrapper/mining-wrapper.sh"];
-                env = mkWrapperEnv {
-                  group = "nvidia";
-                  worker = "forge-n0";
-                  device = 0;
-                  apiPort = 4068;
-                  gpuProfile = "rtx4060";
+                image = "docker.io/library/ubuntu:24.04";
+                command = [
+                  "/bin/sh"
+                  "-c"
+                  "apt-get update && apt-get install -y curl ca-certificates && mkdir -p /opt/lolminer && curl -sL https://github.com/kryptex-miners-org/kryptex-miners/releases/download/lolminer-1-98a/lolMiner_v1.98a_Lin64.tar.gz -o /tmp/lol.tar.gz && tar xzf /tmp/lol.tar.gz -C /opt/lolminer && chmod +x /opt/lolminer/lolMiner && exec /opt/lolminer/lolMiner --algo CR29 --pool stratum+ssl://xtm-c29.kryptex.network:8040 --user krxXVNVMM7.forge-n0 --pass x --tls on --devices 0 --apiport 4068"
+                ];
+                env = {
+                  _namedlist = true;
+                  LD_LIBRARY_PATH = {
+                    name = "LD_LIBRARY_PATH";
+                    value = "/run/opengl-driver/lib";
+                  };
+                  CUDA_VISIBLE_DEVICES = {
+                    name = "CUDA_VISIBLE_DEVICES";
+                    value = "0";
+                  };
                 };
                 ports = [
                   {
@@ -290,7 +297,11 @@ in {
                   {
                     _namedlist = true;
                   }
-                  // wrapperVolumeMounts
+                  // {
+                    tmp = {
+                      mountPath = "/tmp";
+                    };
+                  }
                   // nvidiaVolumeMounts;
               };
             };
@@ -298,7 +309,11 @@ in {
               {
                 _namedlist = true;
               }
-              // wrapperVolumes
+              // {
+                tmp = {
+                  emptyDir = {};
+                };
+              }
               // nvidiaVolumes;
           };
         };
@@ -317,7 +332,7 @@ in {
           "mining-group" = "nvidia";
         };
       spec = {
-        replicas = 1;
+        replicas = 0;
         revisionHistoryLimit = 1;
         selector.matchLabels = {
           app = "gpu-miner-forge-nvidia-1";
@@ -337,7 +352,6 @@ in {
           spec = {
             nodeName = "forge";
             hostNetwork = true;
-            runtimeClassName = "nvidia";
             automountServiceAccountToken = false;
             serviceAccountName = "gpu-miner-sa";
             priorityClassName = "mining-low";
@@ -345,14 +359,22 @@ in {
             containers = {
               _namedlist = true;
               miner = {
-                image = nvidiaBaseImage;
-                command = ["/bin/sh" "/opt/wrapper/mining-wrapper.sh"];
-                env = mkWrapperEnv {
-                  group = "nvidia";
-                  worker = "forge-n1";
-                  device = 1;
-                  apiPort = 4069;
-                  gpuProfile = "rtx4060";
+                image = "docker.io/library/ubuntu:24.04";
+                command = [
+                  "/bin/sh"
+                  "-c"
+                  "apt-get update && apt-get install -y curl ca-certificates && mkdir -p /opt/lolminer && curl -sL https://github.com/kryptex-miners-org/kryptex-miners/releases/download/lolminer-1-98a/lolMiner_v1.98a_Lin64.tar.gz -o /tmp/lol.tar.gz && tar xzf /tmp/lol.tar.gz -C /opt/lolminer && chmod +x /opt/lolminer/lolMiner && exec /opt/lolminer/lolMiner --algo CR29 --pool stratum+ssl://xtm-c29.kryptex.network:8040 --user krxXVNVMM7.forge-n1 --pass x --tls on --devices 1 --apiport 4069"
+                ];
+                env = {
+                  _namedlist = true;
+                  LD_LIBRARY_PATH = {
+                    name = "LD_LIBRARY_PATH";
+                    value = "/run/opengl-driver/lib";
+                  };
+                  CUDA_VISIBLE_DEVICES = {
+                    name = "CUDA_VISIBLE_DEVICES";
+                    value = "1";
+                  };
                 };
                 ports = [
                   {
@@ -388,7 +410,11 @@ in {
                   {
                     _namedlist = true;
                   }
-                  // wrapperVolumeMounts
+                  // {
+                    tmp = {
+                      mountPath = "/tmp";
+                    };
+                  }
                   // nvidiaVolumeMounts;
               };
             };
@@ -396,7 +422,11 @@ in {
               {
                 _namedlist = true;
               }
-              // wrapperVolumes
+              // {
+                tmp = {
+                  emptyDir = {};
+                };
+              }
               // nvidiaVolumes;
           };
         };
@@ -676,7 +706,6 @@ in {
           spec = {
             nodeName = "zephyr";
             hostNetwork = true;
-            runtimeClassName = "nvidia";
             automountServiceAccountToken = false;
             serviceAccountName = "gpu-miner-sa";
             priorityClassName = "mining-low";
@@ -789,7 +818,6 @@ in {
             serviceAccountName = "gpu-miner-sa";
             automountServiceAccountToken = false;
             hostNetwork = true;
-            runtimeClassName = "nvidia";
             priorityClassName = "mining-low";
             tolerations = [
               {
