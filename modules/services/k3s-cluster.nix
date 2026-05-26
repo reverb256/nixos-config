@@ -107,6 +107,12 @@ in {
         description = "Configure NVIDIA containerd runtime for GPU workloads";
       };
     };
+
+    dataDir = mkOption {
+      type = types.str;
+      default = "/var/lib/rancher/k3s";
+      description = "k3s data directory for storing state, etcd, etc.";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -185,6 +191,7 @@ in {
         ++ lib.optional (cfg.nodeIP != "") "--node-external-ip=${cfg.nodeIP}"
  ++ lib.optional cfg.clusterReset "--cluster-reset"
         ++ [
+          "--data-dir=${cfg.dataDir}"
           "--flannel-iface=${cfg.flannelIface}"
           "--kubelet-arg=authentication-token-webhook=true"
           "--kubelet-arg=authorization-mode=Webhook"
@@ -405,7 +412,7 @@ in {
     '';
 
     system.activationScripts.k3s-dirs = ''
-      mkdir -p /var/lib/rancher/k3s/agent/etc/containerd
+      mkdir -p ${cfg.dataDir}/agent/etc/containerd
     '';
 
     # Local container registry (nexus:5000) for cluster-built images.
@@ -429,7 +436,7 @@ in {
     # k3s bundles busybox mount which does not support NFS protocol.
     # The real util-linux mount calls mount.nfs as a helper.
     system.activationScripts.k3s-fix-mount = lib.stringAfter ["k3s-dirs"] ''
-      for aux in /var/lib/rancher/k3s/data/*/bin/aux; do
+      for aux in ${cfg.dataDir}/data/*/bin/aux; do
         if [ -L "$aux/mount" ] && readlink "$aux/mount" | grep -q busybox; then
           ln -sf ${pkgs.util-linux.mount}/bin/mount "$aux/mount"
         fi
@@ -515,7 +522,7 @@ in {
       serviceConfig.Type = "oneshot";
       script = ''
         ETCD_ENDPOINT="https://127.0.0.1:2379"
-        CERT_DIR="/var/lib/rancher/k3s/server/tls/etcd"
+        CERT_DIR="${cfg.dataDir}/server/tls/etcd"
         if [ ! -d "$CERT_DIR" ]; then
           echo "etcd TLS dir not found, skipping defrag"
           exit 0

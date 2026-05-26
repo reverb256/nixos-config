@@ -82,11 +82,47 @@
 
   services.ai-inference.enable = lib.mkForce false;
 
+  # ═══════════════════════════════════════════════════════════════════
+  # STORAGE REDIRECT — Use HDD (/storage) for all heavy data
+  # System SSD: Micron 1100 SATA 256GB (sdb, /dev/disk/by-id/ata-Micron_1100_SATA_256GB_18361E518AB4)
+  # Storage HDD: ST1000DM010 1TB (sda, /dev/disk/by-id/ata-ST1000DM010-2EP102_ZN1AMQLC)
+  # ═══════════════════════════════════════════════════════════════════
+
+  # /nix on HDD — frees ~137G on the system SSD
+  # Pre-reboot setup (run once):
+  #   btrfs subvolume create /storage/@nix
+  #   mkdir -p /mnt/nix-tmp
+  #   mount -o subvol=@nix /dev/disk/by-id/ata-ST1000DM010-2EP102_ZN1AMQLC /mnt/nix-tmp
+  #   cp -a /nix/store /mnt/nix-tmp/ && cp -a /nix/var /mnt/nix-tmp/
+  #   umount /mnt/nix-tmp
+  #   nixos-rebuild boot && reboot
+  fileSystems."/nix" = {
+    device = "/dev/disk/by-id/ata-ST1000DM010-2EP102_ZN1AMQLC";
+    fsType = "btrfs";
+    options = ["subvol=@nix" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
+  };
+
+  # Mount /home on the HDD — frees ~5.6G on the system SSD
+  fileSystems."/home" = {
+    device = "/dev/disk/by-id/ata-ST1000DM010-2EP102_ZN1AMQLC";
+    fsType = "btrfs";
+    options = ["subvol=@home" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
+  };
+
+  # Mount /var on the HDD — frees ~1.3G on the system SSD
+  fileSystems."/var" = {
+    device = "/dev/disk/by-id/ata-ST1000DM010-2EP102_ZN1AMQLC";
+    fsType = "btrfs";
+    options = ["subvol=@var" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
+  };
+
+  # k3s data on HDD via @var subvolume (in /var/lib/rancher/k3s)
+  # No dataDir override needed — /var covers it all
+
   boot.kernelPackages =
     inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
   boot.loader.timeout = lib.mkDefault 5;
 
-  # Shared hermes + pi state via NFS (resilient: nofail, automount, soft)
   services.sshfs-projects-mount.enable = true;
 
   services.nfs-cluster-mounts = {
@@ -95,19 +131,11 @@
     mountPi = false;
   };
 
-  # System hardening (Phase 0: Security Baseline)
-  # Preset: compatibility (desktop + monitoring)
+  # System hardening
   nix-mineral = {
     enable = true;
     preset = ["compatibility"];
     settings.etc.kicksecure-module-blacklist = false;
-    # Fix: nix-mineral adds bind+nodev+nosuid+noexec over-itself mounts for
-    # /etc, /var, /var/lib, /var/log, /home, /root, /srv, /tmp, /var/tmp.
-    # On Sentry all these live on the same btrfs @ subvolume as /.
-    # The "bind" + "x-initrd.mount" combo causes initrd to bind-mount the
-    # initramfs paths over themselves before pivot_root, hiding the real root's
-    # content and preventing boot. Disable the entire filesystem hardening.
-    # https://github.com/cynicsketch/nix-mineral/issues/11
     filesystems.normal = {
       "/etc".enable = lib.mkForce false;
       "/home".enable = lib.mkForce false;
@@ -121,15 +149,9 @@
     };
   };
 
-  # Fix: nix-mineral sets hidepid=2 on /proc which blocks nfs-idmapd from
-  # reading /proc/net/rpc/nfs4.* channels. Add it to the proc group instead.
   systemd.services.nfs-idmapd.serviceConfig.SupplementaryGroups = ["proc"];
-
-  # nfs-idmapd needs /var/lib/nfs/rpc_pipefs/nfs to exist (created by nfsd
-  # normally, but can race on boot with nix-mineral's hardened /proc).
   systemd.tmpfiles.rules = ["d /var/lib/nfs/rpc_pipefs/nfs 0755 root root -"];
 
-  # Resolve gitconfig conflict between NixOS default and nix-mineral
   environment.etc.gitconfig.source = lib.mkForce (pkgs.writeText "gitconfig" ''
     [user]
       name = Jeremy Kroeker
@@ -139,7 +161,6 @@
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
 
-  # nix-mineral breaks DoT (TLS to port 853) — override with plain DNS
   services.unbound.settings.forward-zone = lib.mkForce [
     {
       name = "ts.net.";
@@ -151,7 +172,6 @@
     }
   ];
 
-  # System hardening (Phase 1: Cluster Security)
   security.clusterAudit = {
     enable = true;
     enableFirewall = true;
@@ -162,5 +182,4 @@
   environment.systemPackages = with pkgs; [
     nvtopPackages.full
   ];
-
 }
