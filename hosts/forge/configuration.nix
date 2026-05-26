@@ -103,5 +103,32 @@
 
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
+  # ═══════════════════════════════════════════════════════════════════
+  # STORAGE REDIRECT — Use secondary HDD for heavy data
+  # System SSD: TEAM T253X2256G 256GB (sdb, ata-TEAM_T253X2256G_TM701907310240040386)
+  # Storage HDD: ADATA SU635 240GB (sda, ata-ADATA_SU635_2L40291DQ5CE)
+  #   sda2 (215.6G) at /home — 206G free. Nix store: 86G.
+  # Pre-reboot setup:
+  #   sudo mount /dev/disk/by-id/ata-ADATA_SU635_2L40291DQ5CE-part2 /mnt
+  #   sudo btrfs subvolume create /mnt/@nix
+  #   sudo mkdir -p /mnt/@nix/store /mnt/@nix/var
+  #   sudo cp -a /nix/store/* /mnt/@nix/store/
+  #   sudo cp -a /nix/var/* /mnt/@nix/var/
+  #   sudo umount /mnt
+  #   sudo nixos-rebuild boot && reboot
+  # ═══════════════════════════════════════════════════════════════════
+  fileSystems."/nix" = {
+    device = "/dev/disk/by-id/ata-ADATA_SU635_2L40291DQ5CE-part2";
+    fsType = "btrfs";
+    options = ["subvol=@nix" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
+  };
+
+  # Mount /var on the secondary HDD — frees ~29G on the system SSD
+  # Covers: /var/lib/rancher (k3s), /var/lib/vllm-models, /var/lib/nix-csi, /var/lib/flatpak
+  fileSystems."/var" = {
+    device = "/dev/disk/by-id/ata-ADATA_SU635_2L40291DQ5CE-part2";
+    fsType = "btrfs";
+    options = ["subvol=@var" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
+  };
 
 }
