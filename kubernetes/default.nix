@@ -13,9 +13,7 @@
     {_module.args.inputs = inputs;}
     {_module.args.cluster = cluster;}
     {_module.args.aiModelsToml = ./ai-models.toml;}
-    # Unified AI model registry (single source of truth)
     {_module.args.aiModelRegistry = ./curated-models.nix;}
-    # HA affinity: prefer nexus, failover to sentry. Used by stateless deployments.
     {_module.args.nexusPreferredAffinity = {
       nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution = [
         {
@@ -53,9 +51,7 @@ in {
   # Legacy combined manifest (for backwards compatibility)
   combined = mkManifest "combined" [
     ./modules/infrastructure.nix
-    ./modules/mining.nix
-    ./modules/gpu-miners.nix
-    ./modules/profit-switcher.nix
+    inputs.mining-infra.kubernetes.modules
     ./modules/gpu-tuning.nix
     ./modules/nix-csi.nix
     ./modules/ai-inference.nix
@@ -71,14 +67,12 @@ in {
     ./modules/monitoring-dashboards.nix
     ./modules/vane.nix
     ./modules/host-services.nix
-    # ./modules/ai-coding-tools.nix  # BROKEN - excluded temporarily
     ./modules/mission-control.nix
     ./modules/kagent.nix
     ./modules/kelos.nix
     ./modules/automation.nix
     ./modules/mcp-servers.nix
     ./modules/glance.nix
-    # ./modules/frostbite-gazette.nix  # TODO: fix namespace conflict with ai-inference
     ./modules/maplespike.nix
     ./modules/tailscale.nix
   ];
@@ -101,12 +95,11 @@ in {
     ./modules/llama-servers.nix
   ];
 
-  mining = mkManifest "mining" [
-    ./modules/mining.nix
-    ./modules/gpu-miners.nix
+  # Mining from isolated flake
+  mining = mkManifest "mining" (inputs.mining-infra.kubernetes.modules ++ [
     ./modules/profit-switcher.nix
-  ];
-  
+  ]);
+
   frostbite = mkManifest "frostbite" [
     ./modules/frostbite-gazette.nix
   ];
@@ -123,8 +116,6 @@ in {
     ./modules/cert-manager.nix
     ./modules/oauth2-proxy.nix
     ./modules/vane.nix
-    # ./modules/ai-coding-tools.nix  # BROKEN - excluded temporarily
-    # ./modules/frostbite-gazette.nix  # TODO: fix namespace conflict with ai-inference
     ./modules/maplespike.nix
     ./modules/mission-control.nix
     ./modules/kagent.nix
@@ -135,7 +126,6 @@ in {
   ];
 
   # CSI-based miners (separate from hostPath miners - activates after nix-csi driver is verified)
-  # Toggle useNixCsi in miners-csi.nix to switch between hostPath and CSI volumes
   miners-csi = mkManifest "miners-csi" [
     ./modules/miners-csi.nix
   ];

@@ -36,6 +36,13 @@ rec {
     enableNexus = true;
     enableSentry = true;
 
+    # GPU miner toggles
+    enableGpuForgeNvidia0 = true;
+    enableGpuForgeNvidia1 = true;
+    enableGpuForgeAmd0 = true;
+    enableGpuForgeAmd1 = true;
+    enableGpuZephyr = false;  # 3060Ti reserved for AI inference
+
     # Scheduled scaling (CronJobs). Set schedule to "" to disable.
     # Cron format: "minute hour day month weekday" (UTC)
     # Example: scale down at 9am UTC weekdays, scale up at 6pm UTC
