@@ -123,4 +123,12 @@
     options = ["subvol=@nix" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
   };
 
+  # Mount /var on the secondary HDD — frees ~29G on the system SSD
+  # Covers: /var/lib/rancher (k3s), /var/lib/vllm-models, /var/lib/nix-csi, /var/lib/flatpak
+  fileSystems."/var" = {
+    device = "/dev/disk/by-id/ata-ADATA_SU635_2L40291DQ5CE-part2";
+    fsType = "btrfs";
+    options = ["subvol=@var" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
+  };
+
 }

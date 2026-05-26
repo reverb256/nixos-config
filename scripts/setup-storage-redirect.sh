@@ -1,120 +1,131 @@
 #!/usr/bin/env bash
 # Pre-reboot storage migration script for cluster nodes
 # Run BEFORE nixos-rebuild boot on each node
-# Usage: ssh <host> 'bash -s' < setup-storage-redirect.sh
+# Usage: ssh <host> 'sudo bash -s' < setup-storage-redirect.sh
 #
 set -euo pipefail
 
 HOST=$(hostname)
 
-echo "=== Storage Redirect Setup: $HOST ==="
+echo "=========================================="
+echo " Storage Redirect Setup: $HOST"
+echo "=========================================="
+echo ""
 
 setup_nix_subvolume() {
-  local device="$1"   # by-id path
-  local mount_opts="$2"
-
-  echo "  Device: $device"
-  echo "  Mount opts: $mount_opts"
-
-  # Extract the subvol name from options
-  local subvol
-  subvol=$(echo "$mount_opts" | grep -oP 'subvol=\K[^, ]+')
-
-  # Check if subvolume already exists
-  local tmp_mnt
-  tmp_mnt=$(mktemp -d)
-  mount -o subvol=/ "$device" "$tmp_mnt"
-
-  if btrfs subvolume show "$tmp_mnt/$subvol" &>/dev/null; then
-    echo "  [OK] Subvolume @$subvol already exists on $device"
-  else
-    echo "  [CREATE] Creating subvolume @$subvol on $device..."
-    btrfs subvolume create "$tmp_mnt/$subvol"
-    mkdir -p "$tmp_mnt/$subvol/store" "$tmp_mnt/$subvol/var"
-  fi
-
-  # Check if store has data
-  if [ -d "$tmp_mnt/$subvol/store" ] && [ "$(ls -A "$tmp_mnt/$subvol/store" 2>/dev/null)" ]; then
-    echo "  [OK] /nix/store already populated on $device"
-  else
-    echo "  [COPY] Copying /nix/store to $device... (this may take a while)"
-    cp -a /nix/store/* "$tmp_mnt/$subvol/store/"
-
-    echo "  [COPY] Copying /nix/var to $device..."
-    cp -a /nix/var/* "$tmp_mnt/$subvol/var/"
-    echo "  [OK] Copy complete"
-  fi
-
-  umount "$tmp_mnt"
-  rmdir "$tmp_mnt"
-}
-
-setup_home_subvolume() {
   local device="$1"
-  local mount_opts="$2"
-
-  local subvol
-  subvol=$(echo "$mount_opts" | grep -oP 'subvol=\K[^, ]+')
+  echo "  Device: $device"
 
   local tmp_mnt
   tmp_mnt=$(mktemp -d)
   mount -o subvol=/ "$device" "$tmp_mnt"
 
-  if btrfs subvolume show "$tmp_mnt/$subvol" &>/dev/null; then
-    echo "  [OK] Subvolume @$subvol already exists on $device"
+  if btrfs subvolume show "$tmp_mnt/@nix" &>/dev/null; then
+    echo "  [OK] @nix already exists"
   else
-    echo "  [CREATE] Creating subvolume @$subvol on $device..."
-    btrfs subvolume create "$tmp_mnt/$subvol"
+    btrfs subvolume create "$tmp_mnt/@nix"
+    mkdir -p "$tmp_mnt/@nix/store" "$tmp_mnt/@nix/var"
+    echo "  [CREATE] @nix created"
   fi
 
-  # Only copy if the subvolume is empty
-  if [ -d "$tmp_mnt/$subvol" ] && [ "$(ls -A "$tmp_mnt/$subvol" 2>/dev/null | grep -v 'lost+found')" ]; then
-    echo "  [OK] /home already populated on $device"
+  if [ -d "$tmp_mnt/@nix/store" ] && [ "$(ls -A "$tmp_mnt/@nix/store" 2>/dev/null)" ]; then
+    echo "  [OK] /nix/store already populated"
   else
-    echo "  [COPY] Copying /home to $device... (may take a while)"
-    cp -a /home/* "$tmp_mnt/$subvol/"
-    echo "  [OK] Copy complete"
+    echo "  [COPY] /nix/store... (this will take a while)"
+    cp -a /nix/store/* "$tmp_mnt/@nix/store/"
+    cp -a /nix/var/* "$tmp_mnt/@nix/var/"
+    echo "  [OK] /nix copied"
   fi
 
   umount "$tmp_mnt"
   rmdir "$tmp_mnt"
+  echo "  [DONE] @nix ready"
+  echo ""
 }
 
+setup_subvolume() {
+  local name="$1"     # e.g. @home, @var
+  local device="$2"
+  local src="$3"      # source path to copy from
+
+  echo "  Setting up $name from $src"
+  local tmp_mnt
+  tmp_mnt=$(mktemp -d)
+  mount -o subvol=/ "$device" "$tmp_mnt"
+
+  if btrfs subvolume show "$tmp_mnt/$name" &>/dev/null; then
+    echo "  [OK] $name already exists"
+  else
+    btrfs subvolume create "$tmp_mnt/$name"
+    echo "  [CREATE] $name created"
+  fi
+
+  # Check if already populated (ignore lost+found)
+  if [ -d "$tmp_mnt/$name" ] && [ "$(ls -A "$tmp_mnt/$name" 2>/dev/null | grep -v 'lost+found')" ]; then
+    echo "  [OK] $name already populated"
+  elif [ -d "$src" ] && [ "$(ls -A "$src" 2>/dev/null)" ]; then
+    echo "  [COPY] $src -> $name... (may take a while)"
+    cp -a "$src"/* "$tmp_mnt/$name/"
+    echo "  [OK] $name copied"
+  else
+    echo "  [INFO] $src is empty, leaving $name empty"
+  fi
+
+  umount "$tmp_mnt"
+  rmdir "$tmp_mnt"
+  echo "  [DONE] $name ready"
+  echo ""
+}
+
+# ─────────────────────────────────────────────────
 # Per-node setup
+# ─────────────────────────────────────────────────
 case "$HOST" in
   sentry)
-    echo ""
-    echo "--- Setting up /nix on HDD (sda /storage) ---"
-    setup_nix_subvolume "/dev/disk/by-id/ata-ST1000DM010-2EP102_ZN1AMQLC" "subvol=@nix"
+    HDD="/dev/disk/by-id/ata-ST1000DM010-2EP102_ZN1AMQLC"
 
-    echo ""
-    echo "--- Setting up /home on HDD (sda /storage) ---"
-    setup_home_subvolume "/dev/disk/by-id/ata-ST1000DM010-2EP102_ZN1AMQLC" "subvol=@home"
+    echo "[1/4] @nix — nix store (137G)"
+    setup_nix_subvolume "$HDD"
 
-    echo ""
-    echo "--- Checking k3s data dir ---"
-    if [ -d "/storage/k3s-storage" ]; then
-      echo "  [OK] /storage/k3s-storage exists"
-    else
-      echo "  [CREATE] Creating /storage/k3s-storage..."
-      mkdir -p /storage/k3s-storage
-    fi
+    echo "[2/4] @home — user home (5.6G)"
+    setup_subvolume "@home" "$HDD" "/home"
+
+    echo "[3/4] @var — /var (1.3G: k3s, logs, etc.)"
+    setup_subvolume "@var" "$HDD" "/var"
+
+    echo "[4/4] Verify"
+    echo "  /storage/k3s-storage exists: $(test -d /storage/k3s-storage && echo YES || echo NO)"
+    echo "  Note: @var covers k3s data now (/var/lib/rancher/k3s)"
     ;;
 
   zephyr)
-    echo ""
-    echo "--- Setting up /nix on secondary NVMe (nvme1n1) ---"
-    setup_nix_subvolume "/dev/disk/by-id/nvme-XPG_GAMMIX_S11_Pro_2J2520059477-part2" "subvol=@nix"
+    NVME="/dev/disk/by-id/nvme-XPG_GAMMIX_S11_Pro_2J2520059477-part2"
+
+    echo "[1/3] @nix — nix store (186G)"
+    setup_nix_subvolume "$NVME"
+
+    echo "[2/3] @var — /var (22G: flatpak, nix-csi, k3s)"
+    setup_subvolume "@var" "$NVME" "/var"
+
+    echo "[3/3] Verify"
+    echo "  /data/projects unaffected (stays on @projects subvolume)"
     ;;
 
   forge)
-    echo ""
-    echo "--- Setting up /nix on secondary HDD (sda) ---"
-    setup_nix_subvolume "/dev/disk/by-id/ata-ADATA_SU635_2L40291DQ5CE-part2" "subvol=@nix"
+    HDD="/dev/disk/by-id/ata-ADATA_SU635_2L40291DQ5CE-part2"
+
+    echo "[1/3] @nix — nix store (86G)"
+    setup_nix_subvolume "$HDD"
+
+    echo "[2/3] @var — /var (29G: vllm-models, nix-csi, flatpak, k3s)"
+    setup_subvolume "@var" "$HDD" "/var"
+
+    echo "[3/3] Verify"
+    echo "  /home stays on this drive (already there)"
     ;;
 
   nexus)
-    echo "  [SKIP] Nexus usage at 58% — not critical, skipping"
+    echo "[SKIP] Nexus at 58% — not critical"
     ;;
 
   *)
@@ -124,9 +135,17 @@ case "$HOST" in
 esac
 
 echo ""
-echo "=== Setup complete for $HOST ==="
+echo "=========================================="
+echo " Setup complete for $HOST"
+echo "=========================================="
+echo ""
+echo "Verify mounts will work:"
+echo "  sudo mount -o subvol=@nix <device> /mnt && ls /mnt/store && umount /mnt"
+echo "  sudo mount -o subvol=@var <device> /mnt && ls /mnt/lib && umount /mnt"
+echo ""
 echo "Next steps:"
 echo "  1. sudo nixos-rebuild boot"
 echo "  2. sudo reboot"
-echo "  3. After reboot, verify: df -h /nix"
-echo "  4. sudo nixos-rebuild switch (to rebuild nix store on new location)"
+echo "  3. After reboot: df -h /nix /var"
+echo "  4. sudo nixos-rebuild switch"
+echo ""

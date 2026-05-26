@@ -360,4 +360,12 @@ in {
     fsType = "btrfs";
     options = ["subvol=@nix" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
   };
+
+  # Mount /var on the secondary NVMe — frees ~22G on the system drive
+  # Covers: /var/lib/rancher (k3s), /var/lib/flatpak, /var/lib/nix-csi
+  fileSystems."/var" = {
+    device = "/dev/disk/by-id/nvme-XPG_GAMMIX_S11_Pro_2J2520059477-part2";
+    fsType = "btrfs";
+    options = ["subvol=@var" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
+  };
 }

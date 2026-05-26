@@ -109,10 +109,15 @@
     options = ["subvol=@home" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
   };
 
-  # k3s data on HDD
-  services.k3s-cluster.dataDir = "/storage/k3s-storage";
+  # Mount /var on the HDD — frees ~1.3G on the system SSD
+  fileSystems."/var" = {
+    device = "/dev/disk/by-id/ata-ST1000DM010-2EP102_ZN1AMQLC";
+    fsType = "btrfs";
+    options = ["subvol=@var" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
+  };
 
-  # ═══════════════════════════════════════════════════════════════════
+  # k3s data on HDD via @var subvolume (in /var/lib/rancher/k3s)
+  # No dataDir override needed — /var covers it all
 
   boot.kernelPackages =
     inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
