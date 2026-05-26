@@ -340,4 +340,24 @@ in {
   services.agenix-secrets-registry.cns = true;
   services.ai-inference.enable = lib.mkForce false;
   services.cluster-mesh.enable = true;
+
+  # ═══════════════════════════════════════════════════════════════════
+  # STORAGE REDIRECT — Use secondary NVMe for heavy data
+  # System: Samsung SSD 980 1TB (nvme0n1, nvme-Samsung_SSD_980_1TB_S64ANJ0R712954W) — 95%
+  # Secondary: XPG GAMMIX S11 Pro 1TB (nvme1n1, nvme-XPG_GAMMIX_S11_Pro_2J2520059477)
+  #   nvme1n1p2 (921.9G) at /data/projects — 69%, 288G free
+  # Pre-reboot setup:
+  #   sudo mount /dev/disk/by-id/nvme-XPG_GAMMIX_S11_Pro_2J2520059477-part2 /mnt
+  #   sudo btrfs subvolume create /mnt/@nix
+  #   sudo mkdir -p /mnt/@nix/store /mnt/@nix/var
+  #   sudo cp -a /nix/store/* /mnt/@nix/store/
+  #   sudo cp -a /nix/var/* /mnt/@nix/var/
+  #   sudo umount /mnt
+  #   sudo nixos-rebuild boot && reboot
+  # ═══════════════════════════════════════════════════════════════════
+  fileSystems."/nix" = {
+    device = "/dev/disk/by-id/nvme-XPG_GAMMIX_S11_Pro_2J2520059477-part2";
+    fsType = "btrfs";
+    options = ["subvol=@nix" "compress=zstd" "noatime" "nofail"];
+  };
 }
