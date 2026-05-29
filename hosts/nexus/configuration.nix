@@ -146,4 +146,9 @@
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
 
+  services.ci-runner = {
+    enable = true;
+    repo = "reverb256/nixos-config";
+    token = "A646A7WLTEN467UA2A4UFYDKDG322";
+  };
 }
