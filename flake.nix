@@ -76,6 +76,10 @@
       inputs.nixpkgs.follows = "";
       inputs.home-manager.follows = "";
     };
+    preservation = {
+      url = "github:nix-community/preservation";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     niri = {
       url = "github:sodiboo/niri-flake";
       inputs.nixpkgs.follows = "nixpkgs";
