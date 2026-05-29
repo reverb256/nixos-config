@@ -1,7 +1,7 @@
 { config, lib, pkgs, utils, ... }: {
   disko.devices = {
-    disk.nvme0n1 = {
-      device = "/dev/disk/by-id/nvme-WDC_WDS100T2B0C-00PXH0_203797800744";
+    disk.sdb = {
+      device = "/dev/disk/by-id/ata-TEAM_T253X2256G_TM701907310240040386";
       type = "disk";
       content = {
         type = "gpt";
@@ -17,8 +17,8 @@
             };
           };
           swap = {
-            size = "16G";
-            content = { type = "swap"; discardPolicy = "both"; };
+            size = "8G";
+            content = { type = "swap"; };
           };
           root = {
             size = "100%";
@@ -34,16 +34,39 @@
                   mountpoint = "/persistent";
                   mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
                 };
-                "@home" = {
-                  mountpoint = "/home";
-                  mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
-                };
                 "@nix" = {
                   mountpoint = "/nix";
                   mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
                 };
-                "@games" = {
-                  mountpoint = "/games";
+              };
+            };
+          };
+        };
+      };
+    };
+
+    disk.sda = {
+      device = "/dev/disk/by-id/ata-ADATA_SU635_2L40291DQ5CE";
+      type = "disk";
+      content = {
+        type = "gpt";
+        partitions = {
+          swap = {
+            size = "8G";
+            content = { type = "swap"; };
+          };
+          data = {
+            size = "100%";
+            content = {
+              type = "btrfs";
+              extraArgs = ["-f"];
+              subvolumes = {
+                "@home" = {
+                  mountpoint = "/home";
+                  mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
+                };
+                "@var" = {
+                  mountpoint = "/var";
                   mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
                 };
               };
@@ -54,14 +77,9 @@
     };
   };
 
-  # Keep existing bcache0 array unchanged (managed outside disko)
-  # /data/backups, /data/media, /data/shared, /var/lib/containers
-  # These mount via fileSystems."..." in hardware.nix
-
   fileSystems = {
     "/persistent" = { neededForBoot = true; };
     "/nix" = { neededForBoot = true; };
-    "/home" = { neededForBoot = true; };
-    "/games" = { neededForBoot = false; };
+    "/var" = { neededForBoot = true; };
   };
 }

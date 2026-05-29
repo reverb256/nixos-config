@@ -1,7 +1,7 @@
 { config, lib, pkgs, utils, ... }: {
   disko.devices = {
-    disk.nvme0n1 = {
-      device = "/dev/disk/by-id/nvme-WDC_WDS100T2B0C-00PXH0_203797800744";
+    disk.sdb = {
+      device = "/dev/disk/by-id/ata-Micron_1100_SATA_256GB_18361E518AB4";
       type = "disk";
       content = {
         type = "gpt";
@@ -17,8 +17,8 @@
             };
           };
           swap = {
-            size = "16G";
-            content = { type = "swap"; discardPolicy = "both"; };
+            size = "8G";
+            content = { type = "swap"; };
           };
           root = {
             size = "100%";
@@ -34,17 +34,32 @@
                   mountpoint = "/persistent";
                   mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
                 };
-                "@home" = {
-                  mountpoint = "/home";
-                  mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
-                };
                 "@nix" = {
                   mountpoint = "/nix";
                   mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
                 };
-                "@games" = {
-                  mountpoint = "/games";
-                  mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
+              };
+            };
+          };
+        };
+      };
+    };
+
+    disk.sda = {
+      device = "/dev/disk/by-id/ata-ST1000DM010-2EP102_ZN1AMQLC";
+      type = "disk";
+      content = {
+        type = "gpt";
+        partitions = {
+          data = {
+            size = "100%";
+            content = {
+              type = "btrfs";
+              extraArgs = ["-f"];
+              subvolumes = {
+                "@home" = {
+                  mountpoint = "/home";
+                  mountOptions = ["compress=zstd:3" "noatime" "ssd" "discard=async"];
                 };
               };
             };
@@ -54,14 +69,9 @@
     };
   };
 
-  # Keep existing bcache0 array unchanged (managed outside disko)
-  # /data/backups, /data/media, /data/shared, /var/lib/containers
-  # These mount via fileSystems."..." in hardware.nix
-
   fileSystems = {
     "/persistent" = { neededForBoot = true; };
     "/nix" = { neededForBoot = true; };
-    "/home" = { neededForBoot = true; };
-    "/games" = { neededForBoot = false; };
+    "/home" = { neededForBoot = false; };
   };
 }

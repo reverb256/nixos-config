@@ -12,6 +12,8 @@
     ./desktop.nix
     ./services.nix
     ./hardware-configuration.nix
+      ./disko.nix
+      ./preservation.nix
     ../../modules/default.nix
     ../../modules/hardware/rgb-control.nix
     ../../modules/services/podman-support.nix
