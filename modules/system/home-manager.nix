@@ -31,7 +31,7 @@ in {
         ../../modules/home-manager/nixcord-config.nix
         ../../modules/home-manager/caprine.nix
         ../../modules/home-manager/niri-config.nix
-        ../../modules/home-manager/obsidian.nix
+        # ../../modules/home-manager/obsidian.nix  # Temporarily disabled - stylix integration issue
         ../../modules/home-manager/opencode.nix
         ../../modules/home-manager/firefox-pwa-apps.nix
         ../../modules/home-manager/alacritty.nix
@@ -45,7 +45,7 @@ in {
         ../../modules/home-manager/mime-apps.nix
         ../../modules/home-manager/tui-apps.nix
         ../../modules/home-manager/editorconfig.nix
-        ../../modules/home-manager/btop.nix
+        # ../../modules/home-manager/btop.nix  # Temporarily disabled - stylix integration issue
       ];
 
 
