@@ -1,17 +1,18 @@
 {config, ...}: let
-  c = config.lib.stylix.colors;
-  bg = "#" + c.base00;
-  fg = "#" + c.base05;
-  accent = "#" + c.base0D;
-  color0 = "#" + c.base00;
-  color1 = "#" + c.base08;
-  color2 = "#" + c.base0B;
-  color3 = "#" + c.base0A;
-  color4 = "#" + c.base0D;
-  color5 = "#" + c.base0E;
-  color6 = "#" + c.base0C;
-  color7 = "#" + c.base05;
-  color8 = "#" + c.base03;
+  c = config.stylix.base16Scheme.palette;
+  toHex = hex: "#" + hex;
+  bg = toHex c.base00;
+  fg = toHex c.base05;
+  accent = toHex c.base0D;
+  color0 = toHex c.base00;
+  color1 = toHex c.base08;
+  color2 = toHex c.base0B;
+  color3 = toHex c.base0A;
+  color4 = toHex c.base0D;
+  color5 = toHex c.base0E;
+  color6 = toHex c.base0C;
+  color7 = toHex c.base05;
+  color8 = toHex c.base03;
 in {
   xdg.configFile."btop/themes/stylix.theme".text = ''
     theme[main_bg]="${bg}"
