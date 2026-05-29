@@ -21,7 +21,7 @@ in {
         inputs.zen-browser.homeModules.twilight
         inputs.nixcord.homeModules.nixcord
         ../../modules/home-manager/fish.nix
-        ../../modules/home-manager/starship.nix
+        # ../../modules/home-manager/starship.nix  # Temporarily disabled - stylix integration issue
         ../../modules/home-manager/wayland-tools.nix
         ../../modules/home-manager/zen-browser.nix
         ../../modules/home-manager/nixcord-config.nix
