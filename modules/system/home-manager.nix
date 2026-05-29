@@ -21,11 +21,12 @@ in {
 
     users.j_kro = {...}: {
       imports = [
+        inputs.stylix.homeManagerModules.stylix
         inputs.niri.homeModules.config
         inputs.zen-browser.homeModules.twilight
         inputs.nixcord.homeModules.nixcord
         ../../modules/home-manager/fish.nix
-        # ../../modules/home-manager/starship.nix  # Temporarily disabled - stylix integration issue
+        ../../modules/home-manager/starship.nix
         ../../modules/home-manager/wayland-tools.nix
         ../../modules/home-manager/zen-browser.nix
         ../../modules/home-manager/nixcord-config.nix
@@ -45,7 +46,7 @@ in {
         ../../modules/home-manager/mime-apps.nix
         ../../modules/home-manager/tui-apps.nix
         ../../modules/home-manager/editorconfig.nix
-        # ../../modules/home-manager/btop.nix  # Temporarily disabled - stylix integration issue
+        ../../modules/home-manager/btop.nix
       ];
 
 
