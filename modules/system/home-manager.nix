@@ -15,6 +15,10 @@ in {
     # This prevents the "existing backup would be clobbered" error
     backupFileExtension = "hm-backup";
 
+    extraSpecialArgs = {
+      inherit inputs;
+    };
+
     users.j_kro = {...}: {
       imports = [
         inputs.niri.homeModules.config
