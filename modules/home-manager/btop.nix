@@ -1,5 +1,5 @@
 {config, ...}: let
-  c = config.stylix.base16Scheme.palette;
+  c = config.lib.stylix.colors;
   toHex = hex: "#" + hex;
   bg = toHex c.base00;
   fg = toHex c.base05;
