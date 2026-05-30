@@ -1,4 +1,5 @@
 {
+  lib,
   pkgs,
   pkgsWithOverlay,
   inputs,
@@ -51,7 +52,7 @@ in {
   # Legacy combined manifest (for backwards compatibility)
   combined = mkManifest "combined" [
     ./modules/infrastructure.nix
-    inputs.mining-infra.kubernetes.modules
+  ] ++ lib.optional (inputs ? mining-infra) inputs.mining-infra.kubernetes.modules ++ [
     ./modules/gpu-tuning.nix
     ./modules/nix-csi.nix
     ./modules/ai-inference.nix
@@ -96,7 +97,7 @@ in {
   ];
 
   # Mining from isolated flake
-  mining = mkManifest "mining" (inputs.mining-infra.kubernetes.modules ++ [
+  mining = mkManifest "mining" ((lib.optional (inputs ? mining-infra) inputs.mining-infra.kubernetes.modules) ++ [
     ./modules/profit-switcher.nix
   ]);
 
