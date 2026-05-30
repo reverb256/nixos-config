@@ -7,7 +7,7 @@
   currentHost = config.networking.hostName or "unknown";
 in {
   nix = {
-    distributedBuilds = lib.mkDefault true;
+    distributedBuilds = lib.mkDefault false;
 
     settings = {
       builders = lib.mkDefault "@/etc/nix/machines";
