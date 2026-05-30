@@ -35,6 +35,9 @@
       url = "github:ryoppippi/claude-code-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # ai-gateway = {
+    #   url = "path:/data/projects/own/ai-inference-gateway";
+    # };
     scopebuddy = {
       url = "github:OpenGamingCollective/ScopeBuddy";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -363,15 +366,20 @@
     packages.x86_64-linux.xmrig-alpine-image = inputs.compute-market.packages.x86_64-linux.xmrig-alpine-image; # migrated
     packages.x86_64-linux.xmrig-proxy-alpine-image = inputs.compute-market.packages.x86_64-linux.xmrig-proxy-alpine-image; # migrated
     packages.x86_64-linux.claude-code-image = pkgsWithOverlay.claude-code-image; # extracted to packages/claude-code-image.nix
-    packages.x86_64-linux.ai-inference-gateway-image = inputs.ai-gateway.packages.x86_64-linux.container; # migrated from local pkgs/
+    # packages.x86_64-linux.ai-inference-gateway-image = inputs.ai-gateway.packages.x86_64-linux.container; # migrated from local pkgs/ - REMOVED
     packages.x86_64-linux.opencode-image = pkgsWithOverlay.opencode-image;
     packages.x86_64-linux.maplespike-mcp-image = pkgsWithOverlay.maplespike-mcp-image;
     packages.x86_64-linux.maplespike-api-image = pkgsWithOverlay.maplespike-api-image;
-    packages.x86_64-linux.maplespike-ingest-image = pkgsWithOverlay.maplespike-ingest-image;
-packages.x86_64-linux.maplespike-engine-image = pkgsWithOverlay.maplespike-engine-image;
-     # hermes-workspace-image and hermes-webui-image archived (2026-05-16)
+  packages.x86_64-linux = {
+    # ai-inference-gateway-image = lib.mkIf (inputs ? ai-gateway) inputs.ai-gateway.packages.x86_64-linux.container; # migrated from local pkgs/
+    inherit (pkgsWithOverlay)
+      maplespike-ingest-image
+      maplespike-engine-image;
+  };
+
+      # hermes-workspace-image and hermes-webui-image archived (2026-05-16)
       overlays.default = (import ./overlay.nix) {inherit inputs;};
-      kubernetes = import ./kubernetes {
+     kubernetes = import ./kubernetes {
         lib = inputs.nixpkgs.lib;
         inherit pkgs pkgsWithOverlay inputs;
       };
