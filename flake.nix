@@ -31,15 +31,11 @@
       url = "github:nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    claude-native = {
-      url = "github:ryoppippi/nix-claude-code/6b5a0e9bee689f0f21ad9f19c19a359ebe0593e0";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    # ai-gateway = {
-    #   url = "github:reverb256/ai-inference-gateway/96497a4227147d96d7ccc721ab293302a61fe13d";
+    # claude-native = { # REMOVED - GitHub redirect issue preventing builds
+    #   url = "github:ryoppippi/nix-claude-code/6b5a0e9bee689f0f21ad9f19c19a359ebe0593e0";
     #   inputs.nixpkgs.follows = "nixpkgs";
     # };
-      scopebuddy = {
+    scopebuddy = {
         url = "github:OpenGamingCollective/ScopeBuddy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
@@ -315,7 +311,7 @@
 
     colmenaHive = colmena.lib.makeHive self.outputs.colmena;
 
-    packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
+    # packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude; # REMOVED - GitHub redirect issue
     packages.x86_64-linux.llama-cpp = pkgsWithOverlay.llama-cpp;
     packages.x86_64-linux.llama-cpp-ik = pkgsWithOverlay.llama-cpp-ik;
     packages.x86_64-linux.llama-cpp-turboquant = pkgsWithOverlay.llama-cpp-turboquant;
