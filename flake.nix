@@ -32,7 +32,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     claude-native = {
-      url = "github:ryoppippi/claude-code-overlay";
+      url = "github:ryoppippi/nix-claude-code/6b5a0e9bee689f0f21ad9f19c19a359ebe0593e0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # ai-gateway = {
