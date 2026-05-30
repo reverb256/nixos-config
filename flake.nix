@@ -132,7 +132,7 @@
       url = "github:reverb256/gpu-proxy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    mining-infra = lib.mkIf (builtins.pathExists "/data/projects/infra/mining-infra") {
+    mining-infra = mkIf (builtins.pathExists "/data/projects/infra/mining-infra") {
       url = "path:/data/projects/infra/mining-infra";
       inputs.nixpkgs.follows = "nixpkgs";
     };
