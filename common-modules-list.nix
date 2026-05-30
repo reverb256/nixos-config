@@ -13,8 +13,6 @@
   inputs.caddy-ingress.nixosModules.caddy
   inputs.caddy-ingress.nixosModules.caddy-common
 
-  (inputs.nixpkgs.lib.optional (inputs ? ai-gateway) inputs.ai-gateway.nixosModules.default)
-
   inputs.compute-market.nixosModules.default
 
   inputs.gpu-proxy.nixosModules.default
