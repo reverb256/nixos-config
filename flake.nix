@@ -371,7 +371,7 @@
 packages.x86_64-linux.maplespike-engine-image = pkgsWithOverlay.maplespike-engine-image;
      # hermes-workspace-image and hermes-webui-image archived (2026-05-16)
      overlays.default = (import ./overlay.nix) {inherit inputs;};
-     kubernetes = import ./kubernetes {inherit lib pkgs pkgsWithOverlay inputs;};
+     kubernetes = import ./kubernetes {inherit pkgs pkgsWithOverlay inputs lib = inputs.nixpkgs.lib;};
 
     apps.x86_64-linux.k8s-validate = {
       type = "app";
