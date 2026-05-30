@@ -25,6 +25,8 @@
       ../../modules/security/aistor-secrets.nix
       ../../modules/services/podman-support.nix
 
+      ../../modules/services/ci-runner.nix
+
       ../../modules/services/k3s-cluster.nix
       ../../modules/services/keepalived-vip.nix
       inputs.disko.nixosModules.disko
