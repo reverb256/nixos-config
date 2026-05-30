@@ -148,4 +148,10 @@
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
 
+  # CI runner for GitHub Actions
+  services.ci-runner = {
+    enable = true;
+    repo = "reverb256/nixos-config";
+    autoStart = true;
+  };
 }
