@@ -54,9 +54,9 @@ in {
       nixcord-config.enable = lib.mkForce (hostName == "zephyr");
       caprine.enable = lib.mkForce (hostName == "zephyr");
 
-      # Stylix - inherit from system config for home-manager
+      # Stylix - inherit image from system config for home-manager
+      # base16Scheme is handled by styx.homeManagerModules.stylix automatically
       stylix = {
-        inherit (config.stylix) base16Scheme;
         inherit (config.stylix) image;
       };
 
