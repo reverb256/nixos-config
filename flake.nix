@@ -132,10 +132,7 @@
       url = "github:reverb256/gpu-proxy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    mining-infra = mkIf (builtins.pathExists "/data/projects/infra/mining-infra") {
-      url = "path:/data/projects/infra/mining-infra";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # mining-infra removed - only exists on zephyr at /data/projects/infra/mining-infra
     astral-key = {
       url = "github:reverb256/astral-key";
       inputs.nixpkgs.follows = "nixpkgs";
