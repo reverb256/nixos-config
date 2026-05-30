@@ -36,9 +36,9 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # ai-gateway = {
-    #   url = "path:/data/projects/own/ai-inference-gateway";
+    #   url = "github:reverb256/ai-inference-gateway/96497a4227147d96d7ccc721ab293302a61fe13d";
+    #   inputs.nixpkgs.follows = "nixpkgs";
     # };
-    scopebuddy = {
       url = "github:OpenGamingCollective/ScopeBuddy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
