@@ -132,10 +132,10 @@
       url = "github:reverb256/gpu-proxy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-  mining-infra = {
-    url = "path:/data/projects/infra/mining-infra";
-    inputs.nixpkgs.follows = "nixpkgs";
-  };
+    mining-infra = lib.mkIf (builtins.pathExists "/data/projects/infra/mining-infra") {
+      url = "path:/data/projects/infra/mining-infra";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     astral-key = {
       url = "github:reverb256/astral-key";
       inputs.nixpkgs.follows = "nixpkgs";
