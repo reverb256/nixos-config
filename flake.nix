@@ -120,7 +120,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     compute-market = {
-      url = "github:reverb256/compute-market";
+      url = "github:reverb256/compute-market/02eb54874adf8a0887a4878a99d33274af9d5404";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     mcp-registry = {
