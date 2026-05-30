@@ -344,13 +344,13 @@
         "lastModified": 1779569414,
         "narHash": "sha256-6Tgl9dIDkHa7KX7MID0hkVEaryR8OMWrcV43bdWEOmw=",
         "owner": "ryoppippi",
-        "repo": "claude-code-overlay",
+        "repo": "nix-claude-code",
         "rev": "6b5a0e9bee689f0f21ad9f19c19a359ebe0593e0",
         "type": "github"
       },
       "original": {
         "owner": "ryoppippi",
-        "repo": "claude-code-overlay",
+        "repo": "nix-claude-code",
         "type": "github"
       }
     },
