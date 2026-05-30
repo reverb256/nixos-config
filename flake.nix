@@ -186,7 +186,6 @@
     home-manager,
     aagl,
     nur,
-    claude-native,
     agenix,
     nix-mineral,
     colmena,
