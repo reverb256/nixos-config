@@ -1,6 +1,7 @@
 {
   inputs,
   self,
+  lib,
 }: [
   inputs.home-manager.nixosModules.home-manager
   inputs.aagl.nixosModules.default
@@ -13,7 +14,7 @@
   inputs.caddy-ingress.nixosModules.caddy
   inputs.caddy-ingress.nixosModules.caddy-common
 
-  inputs.ai-gateway.nixosModules.default
+  (lib.optional (inputs ? ai-gateway) inputs.ai-gateway.nixosModules.default)
 
   inputs.compute-market.nixosModules.default
 
