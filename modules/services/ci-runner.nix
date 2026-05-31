@@ -3,6 +3,11 @@ with lib;
 let
   cfg = config.services.ci-runner;
 in {
+  # Import the nixpkgs github-runners module (must be top-level)
+  imports = [
+    "${toString pkgs.path}/nixos/modules/services/continuous-integration/github-runners.nix"
+  ];
+
   options.services.ci-runner = {
     enable = mkEnableOption "GitHub Actions self-hosted runner";
     repo = mkOption {
@@ -22,14 +27,9 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # Import the nixpkgs github-runners module
-    imports = [
-      "${toString pkgs.path}/nixos/modules/services/continuous-integration/github-runners.nix"
-    ];
-
     # Configure a runner named after the host
     services.github-runners."${config.networking.hostName}" = {
-      enable = cfg.enable;
+      enable = true;
       url = "https://github.com/${cfg.repo}";
       tokenFile = cfg.tokenFile;
       name = "${config.networking.hostName}-runner";
@@ -37,14 +37,14 @@ in {
       replace = true;
 
       # Auto-start if requested
-      serviceOverrides = lib.mkIf cfg.autoStart {
+      serviceOverrides = mkIf cfg.autoStart {
         wantedBy = [ "multi-user.target" ];
+      };
+
+      # Apply nodeRuntimes override
+      package = pkgs.github-runner.override {
+        nodeRuntimes = [ "node24" ];
       };
     };
   };
-
-  # Apply nodeRuntimes override at module level
-  services.github-runners."${config.networking.hostName}".package = lib.mkIf cfg.enable (pkgs.github-runner.override {
-    nodeRuntimes = [ "node24" ];
-  });
 }
