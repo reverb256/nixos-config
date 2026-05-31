@@ -42,6 +42,7 @@
       CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=zen2";
     });
   };
+  nixpkgs.config.permittedInsecurePackages = [ "nodejs-20.20.2" ];
 
   clusterNetworking = {
     enable = true;
@@ -152,6 +153,7 @@
   services.ci-runner = {
     enable = true;
     repo = "reverb256/nixos-config";
+    tokenFile = "/var/lib/ci-runner-token";
     autoStart = true;
   };
 }

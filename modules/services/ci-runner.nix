@@ -1,18 +1,20 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 with lib; let
   cfg = config.services.ci-runner;
   runnerHome = "/var/lib/${cfg.user}";
+  runnerPackage = pkgs.github-runners.${cfg.repo}.nexus or pkgs.github-runner;
 in {
   options.services.ci-runner = {
     enable = mkEnableOption "GitHub Actions self-hosted runner";
 
     user = mkOption {
       type = types.str;
-      default = "actions-runner";
+      default = "runner";
       description = "User to run the runner as";
     };
 
@@ -22,15 +24,17 @@ in {
       description = "GitHub repository (owner/repo)";
     };
 
+    tokenFile = mkOption {
+      type = types.str;
+      description = "Path to file containing GitHub runner token";
+    };
+
     autoStart = mkOption {
       type = types.bool;
       default = false;
       description = ''
         Automatically start the runner service.
-        NOTE: The runner must be manually configured first by running:
-        sudo /etc/nixos/scripts/ci/setup-runner.sh owner/repo
-
-        Set to true only after completing the setup script.
+        NOTE: The runner must be configured first by placing the token in tokenFile.
       '';
     };
   };
@@ -50,23 +54,42 @@ in {
       description = "GitHub Actions Self-Hosted Runner";
       after = ["network-online.target"];
       wants = ["network-online.target"];
+      wantedBy = ["multi-user.target"];
 
       serviceConfig = {
         Type = "simple";
         User = cfg.user;
         WorkingDirectory = runnerHome;
-        ExecStart = "${runnerHome}/run.sh";
+        ExecStart = "${pkgs.github-runner}/bin/runsvc.sh";
         Restart = "always";
         RestartSec = "10s";
-        ConditionPathExists = "${runnerHome}/run.sh";
-
         ProtectSystem = "strict";
         PrivateTmp = true;
         NoNewPrivileges = true;
         ReadWritePaths = [runnerHome];
       };
+    };
 
-      wantedBy = ["multi-user.target"];
+    # Setup script to register the runner
+    systemd.services.github-actions-runner-setup = {
+      description = "GitHub Actions Runner Setup";
+      before = ["github-actions-runner.service"];
+      requiredBy = ["github-actions-runner.service"];
+      script = ''
+        if [ ! -f "${runnerHome}/.runner" ]; then
+          ${pkgs.github-runner}/bin/config.sh \
+            --url "https://github.com/${cfg.repo}" \
+            --token "$(cat ${cfg.tokenFile})" \
+            --name "${config.networking.hostName}-runner" \
+            --labels "nixos" \
+            --unattended
+        fi
+      '';
+      serviceConfig = {
+        Type = "oneshot";
+        User = cfg.user;
+        WorkingDirectory = runnerHome;
+      };
     };
   };
 }
