@@ -197,6 +197,9 @@ in {
           goverlay
           gamemode
           scx.full
+          # Hoyoverse game launchers (from ezKEA AAGL flake)
+          an-anime-game-launcher
+          honkers-railway-launcher
           # Mining pause/resume for desktop launcher
           (pkgs.writeShellScriptBin "mining-pause" ''
             exec /etc/nixos/scripts/gpu-profiles/k8s-mining-pause.sh start
