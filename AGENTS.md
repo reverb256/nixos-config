@@ -73,6 +73,51 @@ gh pr create --base main --head issue-NNN-desc --title "type: description (#NNN)
 
 > NFS has been removed cluster-wide. See `modules/services/k8s-nix-deploy.nix` for the remote deployment mechanism.
 
+
+## Self-Hosted GitHub Actions Runner
+
+**Host:** nexus (ID: 28) | **Binary:** Official runner v2.334.0 | **Status:** Online
+
+### Runner Location
+- **Directory:** `/home/j_kro/actions-runner-official/`
+- **Wrapper Script:** `/home/j_kro/actions-runner-official/start-runner.sh` (sets ICU env vars for dotnet)
+- **Systemd Service:** `github-actions-runner.service` (auto-start on boot)
+- **Work Directory:** `_work/` within runner directory
+
+### Environment (NixOS-specific)
+The runner requires these environment variables for dotnet 6.0 and HTTPS on NixOS:
+```nix
+LD_LIBRARY_PATH=/nix/store/.../icu4c-74.2/lib
+NIX_ICU_DATA=/nix/store/.../icu4c-74.2/share/icu/74.2
+SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt
+REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt
+NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-bundle.crt
+```
+
+### CI/CD Workflows
+| Workflow | Purpose | Trigger |
+|----------|---------|---------|
+| `ci.yml` | Parse check, quick check, lint, test suite, security scan, build | PR, push, manual |
+| `deploy.yml` | Colmena deployment to cluster nodes | Manual dispatch |
+| `flake-update.yml` | Automatic flake lock updates | Schedule |
+| `stale.yml` | Close stale issues/PRs | Schedule |
+
+### CI Tools
+Tool packages available on nexus via `environment.systemPackages`:
+- `statix` — Nix code linter
+- `deadnix` — Dead Nix code detector
+- `osv-scanner` — Vulnerability scanner (v2.3.3)
+
+### Troubleshooting
+- **Runner not connecting:** Check systemd: `systemctl status github-actions-runner`
+- **dotnet ICU errors:** Ensure LD_LIBRARY_PATH and NIX_ICU_DATA are set in the environment
+- **Job failures:** Check `runner.log` in the runner directory and `_diag/` for diagnostics
+- **SSL errors:** Ensure SSL_CERT_FILE points to the NixOS ca-bundle
+
+### Registration
+The runner is registered with GitHub for `reverb256/nixos-config` using the official runner configuration script. Re-registration requires a fresh token from GitHub Actions settings.
+
+
 ## Extracted Projects (7)
 
 Non-system projects live in `/data/projects/own/` as standalone flakes:
