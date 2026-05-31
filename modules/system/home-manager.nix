@@ -18,6 +18,7 @@ in {
 
     extraSpecialArgs = {
       inherit inputs;
+      hostName = hostName;
     };
 
     users.j_kro = {...}: {
