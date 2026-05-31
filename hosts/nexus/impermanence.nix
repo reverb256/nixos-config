@@ -24,6 +24,9 @@
       "/etc/NetworkManager/system-connections"
       "/var/lib/NetworkManager"
 
+      # SSH host keys - persist entire directory to avoid file conflicts
+      "/etc/ssh"
+
       # Bluetooth
       "/var/lib/bluetooth"
 
@@ -44,14 +47,6 @@
 
       # Container storage is on bcache0 (/var/lib/containers in hardware.nix)
       # so it's NOT here — it's on a separate disk
-    ];
-
-    files = [
-      # SSH host keys (persisted to avoid regenerating every boot)
-      "/etc/ssh/ssh_host_ed25519_key"
-      "/etc/ssh/ssh_host_ed25519_key.pub"
-      "/etc/ssh/ssh_host_rsa_key"
-      "/etc/ssh/ssh_host_rsa_key.pub"
     ];
 
     # User-level persistence (j_kro)

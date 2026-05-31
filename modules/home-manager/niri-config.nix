@@ -2,6 +2,8 @@
   config,
   lib,
   pkgs,
+  inputs,
+  hostName,
   ...
 }: let
   inherit (lib) mkDefault mkIf;
@@ -726,6 +728,14 @@ in {
           enable = mkDefault true;
           active = { color = mkDefault (base0D or "#7aa2f7"); };
           inactive = { color = mkDefault (base03 or "#3b4261"); };
+        };
+      };
+    })
+    (mkIf (hostName == "nexus") {
+      # Nexus-specific display configuration
+      outputs = {
+        "*" = {
+          scale = 1.5;
         };
       };
     })
