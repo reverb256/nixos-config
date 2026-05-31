@@ -219,13 +219,11 @@ jobs:
 
       - name: Pre-deploy validation
         run: |
-          cd /etc/nixos
           ./scripts/pre-deploy-check.sh all
 
       - name: Documentation verification
         run: |
-          cd /etc/nixos
-          just docs-audit || echo "::warning::just docs-audit failed — LIVE/ documents may need updates"
+          just docs-audit 2>/dev/null || echo "::warning::just docs-audit failed — LIVE/ documents may need updates"
 
       - name: Build all hosts
         run: |
@@ -242,7 +240,7 @@ jobs:
         run: |
           for host in zephyr nexus forge sentry; do
             echo "Verifying $host build output..."
-            if [ ! -f "/nix/var/nix/profiles/system-$host" ]; then
+            if [ ! -L "/nix/var/nix/profiles/system-$host" ]; then
               echo "ERROR: Build output not found for $host"
               exit 1
             fi
