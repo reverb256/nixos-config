@@ -111,7 +111,6 @@
     ai-gateway = {
       url = "github:reverb256/ai-inference-gateway/96497a4227147d96d7ccc721ab293302a61fe13d";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.claude-native.follows = "claude-native";
     };
     knowledge-fabric = {
       url = "github:reverb256/knowledge-fabric";
@@ -187,7 +186,6 @@
     home-manager,
     aagl,
     nur,
-    claude-native,
     agenix,
     nix-mineral,
     colmena,
@@ -312,7 +310,6 @@
 
     colmenaHive = colmena.lib.makeHive self.outputs.colmena;
 
-    packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
     packages.x86_64-linux.llama-cpp = pkgsWithOverlay.llama-cpp;
     packages.x86_64-linux.llama-cpp-ik = pkgsWithOverlay.llama-cpp-ik;
     packages.x86_64-linux.llama-cpp-turboquant = pkgsWithOverlay.llama-cpp-turboquant;

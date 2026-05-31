@@ -33,19 +33,19 @@ in {
       enable = true;
       nvidia.enable = true;
       role = "server";
-      clusterInit = true; # Primary server, bootstrapping new cluster
+      clusterInit = false; # Rejoining existing cluster via VIP (fixed 2026-05-30)
   clusterReset = false; # Already reset, running clean
       nodeName = "nexus";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = cluster.hosts.nexus.ip;
-    flannelIface = "eth1"; # Nexus primary interface (eth0 has NO-CARRIER)
+    flannelIface = "eth0"; # Nexus primary interface (eth0 has NO-CARRIER)
     };
 
     keepalived-vip = {
       enable = true;
       vip = cluster.kubernetes.vip;
-      interface = "eth1";
+      interface = "eth0";
       priority = 110;
     };
 
@@ -340,7 +340,7 @@ in {
   # Initrd SSH recovery + BTRFS snapshots
   services.initrd-ssh-recovery = {
     enable = true; # Fixed: key generated at build time
-    interface = "eth1";
+    interface = "eth0";
     networkDriver = "r8169";
     port = 2222;
   };
