@@ -104,8 +104,10 @@
         "type": "github"
       },
       "original": {
-        "path": "/data/projects/own/ai-inference-gateway",
-        "type": "path"
+        "owner": "reverb256",
+        "repo": "ai-inference-gateway",
+        "rev": "96497a4227147d96d7ccc721ab293302a61fe13d",
+        "type": "github"
       }
     },
     "astral-key": {
@@ -334,6 +336,23 @@
         "type": "github"
       }
     },
+    "claude-native": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1779569414,
+        "narHash": "sha256-6Tgl9dIDkHa7KX7MID0hkVEaryR8OMWrcV43bdWEOmw=",
+        "type": "tarball",
+        "url": "https://codeload.github.com/ryoppippi/nix-claude-code/tar.gz/6b5a0e9bee689f0f21ad9f19c19a359ebe0593e0"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://codeload.github.com/ryoppippi/nix-claude-code/tar.gz/6b5a0e9bee689f0f21ad9f19c19a359ebe0593e0"
+      }
+    },
     "colmena": {
       "inputs": {
         "flake-compat": "flake-compat_4",
@@ -376,6 +395,7 @@
       "original": {
         "owner": "reverb256",
         "repo": "compute-market",
+        "rev": "02eb54874adf8a0887a4878a99d33274af9d5404",
         "type": "github"
       }
     },
@@ -509,6 +529,7 @@
       "original": {
         "owner": "Lillecarl",
         "repo": "easykubenix",
+        "rev": "88a025fc04889f25b702f79030c6220c3ec48f9b",
         "type": "github"
       }
     },
@@ -1979,6 +2000,7 @@
         "astral-key": "astral-key",
         "bun2nix": "bun2nix",
         "caddy-ingress": "caddy-ingress",
+        "claude-native": "claude-native",
         "colmena": "colmena",
         "compute-market": "compute-market",
         "disko": "disko",
@@ -2579,6 +2601,7 @@
       "original": {
         "owner": "0xc000022070",
         "repo": "zen-browser-flake",
+        "rev": "5bcdfcef664bf62831dcb4b947004d9c5fbf7201",
         "type": "github"
       }
     }
