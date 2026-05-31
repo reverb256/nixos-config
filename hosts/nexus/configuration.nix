@@ -42,7 +42,7 @@
       CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=zen2";
     });
   };
-  nixpkgs.config.permittedInsecurePackages = [ "nodejs-20.20.2" ];
+  nixpkgs.config.permittedInsecurePackages = [ "nodejs-slim-20.20.2" "nodejs-20.20.2" ];
 
   clusterNetworking = {
     enable = true;
