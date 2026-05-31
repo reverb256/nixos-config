@@ -195,7 +195,7 @@ jobs:
 
       - name: Run osv-scanner
         run: |
-          nix-shell -p osv-scanner --run 'osv-scanner --skip-git --recursive --format=sarif --output=results.sarif .'
+          nix-shell -p osv-scanner --run 'osv-scanner --recursive --format=sarif --output=results.sarif .'
 
       - name: Upload SARIF
         if: always()
