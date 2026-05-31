@@ -3,6 +3,11 @@ with lib;
 let
   cfg = config.services.ci-runner;
 in {
+  # import must be at top level, not inside config
+  imports = [
+    "${toString pkgs.path}/nixos/modules/services/continuous-integration/github-runners.nix"
+  ];
+
   options.services.ci-runner = {
     enable = mkEnableOption "GitHub Actions self-hosted runner";
     repo = mkOption {
@@ -22,24 +27,14 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # Import the nixpkgs github-runners module
-    imports = [
-      "${toString pkgs.path}/nixos/modules/services/continuous-integration/github-runners.nix"
-    ];
-
-    # Configure a runner named after the host
     services.github-runners."${config.networking.hostName}" = {
-      enable = cfg.enable;
+      enable = true;
       url = "https://github.com/${cfg.repo}";
       tokenFile = cfg.tokenFile;
       name = "${config.networking.hostName}-runner";
       extraLabels = [ "nixos" ];
       replace = true;
-
-      # Only use node24 to avoid building nodejs_20 from source
       nodeRuntimes = [ "node24" ];
-
-      # Auto-start if requested
       serviceOverrides = lib.mkIf cfg.autoStart {
         wantedBy = [ "multi-user.target" ];
       };
