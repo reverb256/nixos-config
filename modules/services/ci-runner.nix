@@ -2,12 +2,9 @@
 with lib;
 let
   cfg = config.services.ci-runner;
-  hostName = config.networking.hostName;
+  runner = pkgs.github-runner.override { nodeRuntimes = [ "node24" ]; };
+  runnerHome = "/var/lib/github-runner";
 in {
-  imports = [
-    "${toString pkgs.path}/nixos/modules/services/continuous-integration/github-runners.nix"
-  ];
-
   options.services.ci-runner = {
     enable = mkEnableOption "GitHub Actions self-hosted runner";
     repo = mkOption {
@@ -26,16 +23,47 @@ in {
   };
 
   config = mkIf cfg.enable {
-    services.github-runners."${hostName}" = {
-      enable = true;
-      url = "https://github.com/${cfg.repo}";
-      tokenFile = cfg.tokenFile;
-      name = "${hostName}-runner";
-      extraLabels = [ "nixos" ];
-      replace = true;
-      nodeRuntimes = [ "node24" ];
-      serviceOverrides = lib.mkIf cfg.autoStart {
-        wantedBy = [ "multi-user.target" ];
+    users.users.github-runner = {
+      isSystemUser = true;
+      group = "github-runner";
+      home = runnerHome;
+      createHome = true;
+    };
+    users.groups.github-runner = {};
+
+    systemd.services.github-runner-setup = {
+      description = "GitHub Actions Runner Setup";
+      before = [ "github-runner.service" ];
+      requiredBy = [ "github-runner.service" ];
+      script = ''
+        if [ ! -f "${runnerHome}/.runner" ]; then
+          ${runner}/bin/config.sh \
+            --url "https://github.com/${cfg.repo}" \
+            --token "$(cat ${cfg.tokenFile})" \
+            --name "${config.networking.hostName}" \
+            --labels "nixos" \
+            --unattended
+        fi
+      '';
+      serviceConfig = {
+        Type = "oneshot";
+        User = "github-runner";
+        WorkingDirectory = runnerHome;
+      };
+    };
+
+    systemd.services.github-runner = mkIf cfg.autoStart {
+      description = "GitHub Actions Self-Hosted Runner";
+      after = [ "network-online.target" "github-runner-setup.service" ];
+      wants = [ "network-online.target" ];
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        Type = "simple";
+        User = "github-runner";
+        WorkingDirectory = runnerHome;
+        ExecStart = "${runner}/bin/Runner.Listener run --startuptype service";
+        Restart = "always";
+        RestartSec = "10s";
       };
     };
   };
