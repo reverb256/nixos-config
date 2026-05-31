@@ -69,7 +69,7 @@ in {
 
     agenix-secrets-registry = {
       enable = true;
-      aiServices = false;
+      aiServices = true;
       monitoring = false;
       storage = true;
       mining = false;
