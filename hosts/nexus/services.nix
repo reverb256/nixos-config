@@ -190,7 +190,7 @@ in {
       '';
     };
 
-    extraPackages = with pkgs; [git ripgrep curl jq];
+    extraPackages = with pkgs; [git ripgrep curl jq statix deadnix osv-scanner];
   };
 
    # Hermes WebUI — disabled on nexus (no /data/projects/own/hermes-webui)
@@ -353,6 +353,32 @@ in {
   };
 
   services.cachix-auth.enable = true;
+
+  # GitHub Actions self-hosted runner on nexus (official binary)
+  systemd.services.github-actions-runner = {
+    description = "GitHub Actions Runner";
+    after = [ "network.target" ];
+    wants = [ "network-online.target" ];
+    wantedBy = [ "multi-user.target" ];
+    
+    serviceConfig = {
+      Type = "simple";
+      User = "j_kro";
+      WorkingDirectory = "/home/j_kro/actions-runner-official";
+      Environment = [
+        "LD_LIBRARY_PATH=/nix/store/6hxbkpp01pgf9gsx9a0gaxv024dv8ihf-icu4c-74.2/lib"
+        "NIX_ICU_DATA=/nix/store/6hxbkpp01pgf9gsx9a0gaxv024dv8ihf-icu4c-74.2/share/icu/74.2"
+        "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
+        "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt"
+        "NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-bundle.crt"
+      ];
+      ExecStart = "/home/j_kro/actions-runner-official/start-runner.sh";
+      Restart = "always";
+      RestartSec = "10s";
+      TimeoutStartSec = "180s";
+    };
+  };
+
    services.ai-coding-tools = {
      enable = true;
      user = "j_kro";
