@@ -102,9 +102,15 @@ in {
     # This makes all .lan HTTPS endpoints trusted on this host
     security.pki.certificateFiles = mkIf cfg.installTrust [ ./../../certs/cluster-ca.crt ];
 
-    # Point Python (certifi/requests/httpx) at the system CA bundle so that
-    # apps like Hermes Agent trust the Cluster CA for *.lan endpoints.
+    # Point Python (certifi/requests/httpx) and Go at the system CA bundle so that
+    # apps (Hermes Agent, kubectl) trust the Cluster CA for *.lan endpoints.
     environment.variables = mkIf cfg.installTrust {
+      SSL_CERT_FILE = "/etc/ssl/certs/ca-bundle.crt";
+      REQUESTS_CA_BUNDLE = "/etc/ssl/certs/ca-bundle.crt";
+    };
+
+    # Also set via PAM so sudo/kubectl inherit these — sudo strips environment.variables
+    environment.sessionVariables = mkIf cfg.installTrust {
       SSL_CERT_FILE = "/etc/ssl/certs/ca-bundle.crt";
       REQUESTS_CA_BUNDLE = "/etc/ssl/certs/ca-bundle.crt";
     };

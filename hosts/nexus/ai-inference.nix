@@ -162,11 +162,3 @@
   # Jitterentropy is killed by seccomp (SIGSYS) - CachyOS kernel blocks the syscalls it needs
   systemd.services.jitterentropy.enable = false;
 }
-      sudo podman load -i /tmp/gw-push.tar
-      sudo podman tag ${srcImage} ${gwImage}
-      sudo podman push --tls-verify=false ${gwImage}
-      sudo rm -f /tmp/gw-push.tar
-      echo "Gateway image pushed to local registry"
-    '';
-  };
-}

@@ -100,54 +100,6 @@ in {
         "*" = {
           scale = 1.0;
         };
-        "DP-5" = {
-          mode = {
-            width = 1920;
-            height = 1080;
-            refresh = 144.0;
-          };
-          position = {
-            x = 0;
-            y = 349;
-          };
-          scale = 1.0;
-        };
-        "DP-4" = {
-          mode = {
-            width = 1920;
-            height = 1080;
-            refresh = 75.0;
-          };
-          position = {
-            x = 1920;
-            y = 0;
-          };
-          scale = 1.0;
-        };
-        "DP-6" = {
-          mode = {
-            width = 1600;
-            height = 900;
-            refresh = 60.0;
-          };
-          position = {
-            x = 1920;
-            y = 1080;
-          };
-          scale = 1.0;
-        };
-        "HDMI-A-2" = {
-          mode = {
-            width = 3840;
-            height = 2160;
-            refresh = 60.0;
-          };
-          position = {
-            x = 10000;
-            y = 0;
-          };
-          scale = 1.5;
-        };
       };
 
       input = {
@@ -731,10 +683,80 @@ in {
         };
       };
     })
-    (mkIf (hostName == "nexus") {
-      # Nexus-specific display configuration
+    (mkIf (hostName == "zephyr") {
+      # Zephyr: 4 monitors (main + secondary + tertiary + TV)
+      outputs = {
+        "DP-5" = {
+          mode = {
+            width = 1920;
+            height = 1080;
+            refresh = 144.0;
+          };
+          position = {
+            x = 0;
+            y = 349;
+          };
+          scale = 1.0;
+        };
+        "DP-4" = {
+          mode = {
+            width = 1920;
+            height = 1080;
+            refresh = 75.0;
+          };
+          position = {
+            x = 1920;
+            y = 0;
+          };
+          scale = 1.0;
+        };
+        "DP-6" = {
+          mode = {
+            width = 1600;
+            height = 900;
+            refresh = 60.0;
+          };
+          position = {
+            x = 1920;
+            y = 1080;
+          };
+          scale = 1.0;
+        };
+        "HDMI-A-2" = {
+          mode = {
+            width = 3840;
+            height = 2160;
+            refresh = 60.0;
+          };
+          position = {
+            x = 10000;
+            y = 0;
+          };
+          scale = 1.5;
+        };
+      };
+    })
+    (mkIf (hostName == "sentry" || hostName == "forge") {
+      # Sentry/Forge: single 900p monitor
       outputs = {
         "*" = {
+          scale = 1.0;
+        };
+      };
+    })
+    (mkIf (hostName == "nexus") {
+      # Nexus: single 4K monitor (3840x2160@60)
+      outputs = {
+        "HDMI-A-1" = {
+          mode = {
+            width = 3840;
+            height = 2160;
+            refresh = 60.0;
+          };
+          position = {
+            x = 0;
+            y = 0;
+          };
           scale = 1.5;
         };
       };

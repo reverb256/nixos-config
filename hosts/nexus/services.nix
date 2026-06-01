@@ -86,6 +86,8 @@ in {
       interval = "15min";
     };
 
+    # Local nix binary cache for cluster (serves built closures to all hosts)
+    binary-cache.enable = true;
   };
 
   programs.steam = {

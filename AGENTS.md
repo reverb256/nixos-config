@@ -763,3 +763,53 @@ done
 | `nvidia/nemotron-3-super-120b-a12b` | Main coding model |
 | `nvidia/nemotron-3-nano-30b-a3b` | Lightweight model |
 | `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` | Reasoning/vision model |
+## Deployment Protocol (CRITICAL — Learned from Sentry)
+
+NEVER use `nixos-anywhere` for hosts with existing data — it's a provisioning tool for fresh bare metal.
+
+### Correct Deployment Flow
+
+```bash
+# 1. Build closure locally (on Nexus)
+sudo nix build "path:/etc/nixos#nixosConfigurations.<host>.config.system.build.toplevel" --no-link --print-out-paths
+
+# 2. Copy closure to target
+nix copy --to "ssh://j_kro@<ip>" /nix/store/<hash>-nixos-system-<host>-...
+
+# 3. Activate with FULL switch (not boot)
+ssh j_kro@<ip> "sudo nix-env -p /nix/var/nix/profiles/system --set /nix/store/<hash>... && sudo /nix/store/<hash>.../bin/switch-to-configuration switch"
+```
+
+### Post-Deployment Verification
+
+```bash
+# 1. Check generation (should be > 1 after first deployment)
+ssh j_kro@<ip> "readlink /nix/var/nix/profiles/system && sudo nix-env -p /nix/var/nix/profiles/system --list-generations | tail -3"
+
+# 2. Check failed services (0 or known-minor only)
+ssh j_kro@<ip> "systemctl list-units --state=failed"
+
+# 3. Verify recovery specialisation exists in boot menu
+ssh j_kro@<ip> "sudo bootctl list | grep recovery"
+
+# 4. Check agenix secrets are decrypted
+ssh j_kro@<ip> "ls /run/agenix/"
+
+# 5. Boot performance
+ssh j_kro@<ip> "systemd-analyze time"
+```
+
+### Also ship this script: `scripts/deploy-host.sh`
+
+```bash
+./scripts/deploy-host.sh <hostname>
+```
+
+See `DEPLOYMENT-LESSONS.md` for the full postmortem.
+
+### Cross-Host Config Rule
+
+Shared modules (`modules/system/home-manager.nix`, `modules/home-manager/*.nix`) must:
+- Use generic defaults (e.g., `"*"` for monitor wildcard)
+- Use `mkIf (hostName == "...")` for per-host overrides
+- **Never** assume Zephyr's config is universal
