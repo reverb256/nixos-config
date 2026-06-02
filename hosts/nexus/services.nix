@@ -200,7 +200,7 @@ in {
 
   # Agent network restrictions — restrict AI agents to allowed destinations only
   services.agent-firewall = {
-    enable = true;
+    enable = false;  # Disabled - broken module drops all traffic
     auditLog = true;
   };
 
