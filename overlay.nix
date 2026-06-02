@@ -118,10 +118,8 @@
   };
   claude-code-image = prev.callPackage ./packages/claude-code-image.nix {};
   opencode-image = prev.callPackage ./packages/opencode-image.nix {};
-  maplespike-mcp-image = inputs.maplespike.packages.x86_64-linux.maplespike-mcp-image;
-  maplespike-api-image = inputs.maplespike.packages.x86_64-linux.maplespike-api-image;
-  maplespike-ingest-image = inputs.maplespike.packages.x86_64-linux.maplespike-ingest-image;
-  maplespike-engine-image = inputs.maplespike.packages.x86_64-linux.maplespike-engine-image;
+  # maplespike images are built locally in nixos-config/packages/maplespike-*.nix
+  # (maplespike repo is self-contained source; nixos-config is the OS)
   hermes-chat = prev.callPackage ./packages/hermes-chat.nix {};
   # hermes-workspace and hermes-webui archived (2026-05-16)
   privacy-filter = prev.callPackage ./packages/privacy-filter.nix {
