@@ -63,6 +63,7 @@ with lib; let
             fsGroup = runAsGroup;
           };
           terminationGracePeriodSeconds = 30;
+          imagePullSecrets = [{ name = "ghcr-pull"; }];
           containers = [
             {
               inherit name image;
