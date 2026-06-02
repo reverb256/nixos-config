@@ -36,6 +36,9 @@
     unbound.listenAddress = config.networking.cluster.hosts.forge.ip;
   };
 
+  # Block Hoyoverse telemetry domains (Genshin Impact, Honkai Star Rail, Zenless Zone Zero)
+  networking.hoyoverse-telemetry-block.enable = true;
+
   networking.interfaces.eno1.ipv6.addresses = [
     {
       address = "fd00::130";
