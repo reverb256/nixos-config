@@ -105,10 +105,9 @@ in {
       psiCpuIdleThreshold = "2.0";
     };
 
-
     opencode = {
       enable = true;
-      clusterSync.enable = false;  # skip SSH sync to cluster nodes on every activation
+      clusterSync.enable = false; # skip SSH sync to cluster nodes on every activation
     };
 
     xmrig-proxy = {
@@ -328,11 +327,11 @@ in {
           kubernetes = "You are a Kubernetes expert. Use best practices for manifests, deployments, and troubleshooting.";
         };
       };
-       security = {
-         maxRequestSize = 10485760;
-         enableProxy = false;
-       };
-     };
+      security = {
+        maxRequestSize = 10485760;
+        enableProxy = false;
+      };
+    };
 
     mcp-servers = {
       enable = true;
@@ -351,95 +350,95 @@ in {
       enable = true;
     };
 
-  ai-coding-tools = {
-    enable = true;
-    user = "j_kro";
-    zaiApiKeyFile = config.age.secrets.zai-api-key.path;
-    context7ApiKeyFile = config.age.secrets.context7-api-key.path;
-    nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
-    opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
-    tools = {
-      claude = { enable = true; };
-      opencode = { enable = true; };
-      droid = { enable = true; };
-      crush = { enable = true; };
-      pi = { enable = true; };
-      omp = { enable = true; };
-    };
-    enableShellEnv = true;
-  };
-
-  # Agent network restrictions — restrict AI agents to allowed destinations only
-  agent-firewall = {
-    enable = false;
-    auditLog = true;
-  };
-
-  web-testing.enable = true;
-
-  mining = {
-    lolminer = {
-      pool = "stratum+tcp://${cluster.kubernetes.services.xmrig-proxy.host}:${toString cluster.kubernetes.services.xmrig-proxy.port}";
-      wallet = "krxXVNVMM7.zephyr-gpu";
-      pools = [
-        {
-          url = "stratum+tcp://${cluster.kubernetes.services.xmrig-proxy.host}:${toString cluster.kubernetes.services.xmrig-proxy.port}";
-          wallet = "krxXVNVMM7.zephyr-gpu";
-          password = "x";
-          tls = false;
-        }
-        {
-          url = "xtm-c29-us.kryptex.network:8040";
-          wallet = "krxXVNVMM7.zephyr-gpu";
-          password = "x";
-          tls = true;
-        }
-        {
-          url = "xtm-c29-eu.kryptex.network:8040";
-          wallet = "krxXVNVMM7.zephyr-gpu";
-          password = "x";
-          tls = true;
-        }
-      ];
-    };
-
-    xmrigDual = {
+    ai-coding-tools = {
       enable = true;
-      flexible = {
-        enable = true;
-        threads = 12;
-        httpPort = 8082;
-        httpTokenFile = "/run/agenix/xmrig-flexible-api-token";
-        autostart = false;
+      user = "j_kro";
+      zaiApiKeyFile = config.age.secrets.zai-api-key.path;
+      context7ApiKeyFile = config.age.secrets.context7-api-key.path;
+      nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
+      opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
+      tools = {
+        claude = {enable = true;};
+        opencode = {enable = true;};
+        droid = {enable = true;};
+        crush = {enable = true;};
+        pi = {enable = true;};
+        omp = {enable = true;};
       };
-      pool = "${cluster.hosts.zephyr.ip}:3333";
-      wallet = "zephyr-cpu";
-      password = "x";
-      tls = false;
+      enableShellEnv = true;
     };
-  };
 
-  syncthing-cluster = {
-    enable = true;
-    deviceId = "ZEPHYR-PLACEHOLDER";
-  };
-
-  status-auto-update.enable = true;
-
-  systemd-user-timeout.enable = true;
-
-  cluster-ca.enable = true;
-
-  claude-code-router = {
-    enable = true;
-    port = 3456;
-    openFirewall = false;
-    zai = {
-      apiKeyFile = config.age.secrets.zai-api-key.path;
-      defaultModel = "glm-4.7";
-      thinkModel = "glm-4.7";
+    # Agent network restrictions — restrict AI agents to allowed destinations only
+    agent-firewall = {
+      enable = false;
+      auditLog = true;
     };
-  };
+
+    web-testing.enable = true;
+
+    mining = {
+      lolminer = {
+        pool = "stratum+tcp://${cluster.kubernetes.services.xmrig-proxy.host}:${toString cluster.kubernetes.services.xmrig-proxy.port}";
+        wallet = "krxXVNVMM7.zephyr-gpu";
+        pools = [
+          {
+            url = "stratum+tcp://${cluster.kubernetes.services.xmrig-proxy.host}:${toString cluster.kubernetes.services.xmrig-proxy.port}";
+            wallet = "krxXVNVMM7.zephyr-gpu";
+            password = "x";
+            tls = false;
+          }
+          {
+            url = "xtm-c29-us.kryptex.network:8040";
+            wallet = "krxXVNVMM7.zephyr-gpu";
+            password = "x";
+            tls = true;
+          }
+          {
+            url = "xtm-c29-eu.kryptex.network:8040";
+            wallet = "krxXVNVMM7.zephyr-gpu";
+            password = "x";
+            tls = true;
+          }
+        ];
+      };
+
+      xmrigDual = {
+        enable = true;
+        flexible = {
+          enable = true;
+          threads = 12;
+          httpPort = 8082;
+          httpTokenFile = "/run/agenix/xmrig-flexible-api-token";
+          autostart = false;
+        };
+        pool = "${cluster.hosts.zephyr.ip}:3333";
+        wallet = "zephyr-cpu";
+        password = "x";
+        tls = false;
+      };
+    };
+
+    syncthing-cluster = {
+      enable = true;
+      deviceId = "ZEPHYR-PLACEHOLDER";
+    };
+
+    status-auto-update.enable = true;
+
+    systemd-user-timeout.enable = true;
+
+    cluster-ca.enable = true;
+
+    claude-code-router = {
+      enable = true;
+      port = 3456;
+      openFirewall = false;
+      zai = {
+        apiKeyFile = config.age.secrets.zai-api-key.path;
+        defaultModel = "glm-4.7";
+        thinkModel = "glm-4.7";
+      };
+    };
   };
 
   # Allow Caddy to bind privileged ports (<1024) when running as non-root

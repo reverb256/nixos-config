@@ -26,8 +26,7 @@
   config,
   lib,
   ...
-}:
-let
+}: let
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
@@ -62,31 +61,36 @@ let
     };
   };
 
-  nexusVolumes = baseVolumes // {
-    tmp.hostPath = {
-      path = "/tmp";
-      type = "Directory";
+  nexusVolumes =
+    baseVolumes
+    // {
+      tmp.hostPath = {
+        path = "/tmp";
+        type = "Directory";
+      };
+      etc.hostPath = {
+        path = "/etc";
+        type = "Directory";
+      };
     };
-    etc.hostPath = {
-      path = "/etc";
-      type = "Directory";
-    };
-  };
 
-  zephyrVolumes = baseVolumes // {
-    dflash.hostPath.path = "/home/j_kro/.lmstudio/models/dflash";
-  };
-
-  sentryVolumes = baseVolumes // {
-    dev-dri.hostPath = {
-      path = "/dev/dri";
-      type = "Directory";
+  zephyrVolumes =
+    baseVolumes
+    // {
+      dflash.hostPath.path = "/home/j_kro/.lmstudio/models/dflash";
     };
-    vulkan-icd.hostPath.path = "/run/opengl-driver/share/vulkan/icd.d";
-    tmp.emptyDir = { };
-  };
-in
-{
+
+  sentryVolumes =
+    baseVolumes
+    // {
+      dev-dri.hostPath = {
+        path = "/dev/dri";
+        type = "Directory";
+      };
+      vulkan-icd.hostPath.path = "/run/opengl-driver/share/vulkan/icd.d";
+      tmp.emptyDir = {};
+    };
+in {
   config.kubernetes.objects.ai-inference = {
     # ── Zephyr RTX 3090 (GPU 1) — Qwen3.6-35B-A3B MoE ──────────────────────
     #   MoE 35B (3B active) with A3B + IQ4_XS quantization.
@@ -97,11 +101,13 @@ in
     # Volumes: /nix (nix-csi), /run/opengl-driver/lib (NVIDIA), /models, /tmp
     # No Docker registry dependency - served from host Nix store via nix-csi
     Deployment.llama-qwen-vllm-nexus = {
-      metadata.labels = managed // {
-        app = "llama-qwen-vllm-nexus";
-        host = "nexus";
-        gpu = "rtx3060ti";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-qwen-vllm-nexus";
+          host = "nexus";
+          gpu = "rtx3060ti";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -110,26 +116,28 @@ in
           host = "zephyr";
         };
         strategy.type = "Recreate";
-          template = {
-            metadata = {
-              labels = managed // {
+        template = {
+          metadata = {
+            labels =
+              managed
+              // {
                 app = "llama-qwen-vllm-nexus";
                 host = "nexus";
                 gpu = "rtx3060ti";
               };
-            };
-            spec = {
-              nodeName = "nexus";
-              hostNetwork = true;
-              automountServiceAccountToken = false;
-              priorityClassName = "medium-priority-ai";
-              tolerations = [  ];
+          };
+          spec = {
+            nodeName = "nexus";
+            hostNetwork = true;
+            automountServiceAccountToken = false;
+            priorityClassName = "medium-priority-ai";
+            tolerations = [];
             containers = {
               _namedlist = true;
-vllm = {
-                 image = scratchImage;
+              vllm = {
+                image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgsWithOverlay.vllm-turboquant-env}/bin/vllm-tq-wrapper" ];
+                command = ["${pkgsWithOverlay.vllm-turboquant-env}/bin/vllm-tq-wrapper"];
                 args = [
                   "--model"
                   "/data/models/QuantTrio/Qwen3.5-2B-AWQ"
@@ -236,9 +244,11 @@ vllm = {
     };
 
     Service.llama-qwen-vllm-nexus = {
-      metadata.labels = managed // {
-        app = "llama-qwen-vllm-nexus";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-qwen-vllm-nexus";
+        };
       spec = {
         type = "ClusterIP";
         ports = [
@@ -260,11 +270,13 @@ vllm = {
     # Carnice finetune of Qwen3.6-35B-A3B MoE. IQ4_XS quantization fits 24GB 3090.
     # 256K context via turbo4 KV compression, 16 threads for Zen3 5950X.
     Deployment.llama-server-zephyr-3090-moe = {
-      metadata.labels = managed // {
-        app = "llama-server-zephyr-3090-moe";
-        host = "zephyr";
-        gpu = "rtx3090";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-server-zephyr-3090-moe";
+          host = "zephyr";
+          gpu = "rtx3090";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
@@ -274,70 +286,72 @@ vllm = {
         };
         strategy.type = "Recreate";
         template = {
-           metadata = {
-             labels = managed // {
-               app = "llama-server-zephyr-3090-moe";
+          metadata = {
+            labels =
+              managed
+              // {
+                app = "llama-server-zephyr-3090-moe";
                 host = "zephyr";
-               gpu = "rtx3090";
-             };
-           };
+                gpu = "rtx3090";
+              };
+          };
           spec = {
             nodeName = "zephyr";
             hostNetwork = true;
             automountServiceAccountToken = false;
             priorityClassName = "high-priority-ai";
-      tolerations = zephyrTolerations;
+            tolerations = zephyrTolerations;
             containers = {
               _namedlist = true;
               llama-server = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server" ];
-        args = [
-          "--model"
-          "/models/mradermacher/Carnice-Qwen3.6-MoE-35B-A3B-GGUF/Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf"
-          "--mmproj"
-          "/models/unsloth/Qwen3.6-35B-A3B-GGUF/mmproj-BF16.gguf"
-          "--host"
-          "0.0.0.0"
-          "--port"
-          "1237"
-          "-ngl"
-          "60"
-          "--split-mode"
-          "none"
-          "--main-gpu"
-          "1"
-          "-c"
-          "262144"
-          "-t"
-          "16"
-          "--flash-attn"
-          "on"
-          "-ctk"
-          "turbo4"
-          "-ctv"
-          "turbo4"
-          "--parallel"
-          "1"
-          "--metrics"
-          "-b"
-          "256"
-          "--reasoning"
-          "on"
-          "--chat-template-kwargs"
-          ''{"preserve_thinking": true, "enable_thinking": true}''
-          "--temp"
-          "0.7"
-          "--top-k"
-          "20"
-          "--top-p"
-          "0.8"
-          "--min-p"
-          "0.0"
-          "--presence-penalty"
-          "1.5"
-        ];
+                command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
+                args = [
+                  "--model"
+                  "/models/mradermacher/Carnice-Qwen3.6-MoE-35B-A3B-GGUF/Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf"
+                  "--mmproj"
+                  "/models/unsloth/Qwen3.6-35B-A3B-GGUF/mmproj-BF16.gguf"
+                  "--host"
+                  "0.0.0.0"
+                  "--port"
+                  "1237"
+                  "-ngl"
+                  "60"
+                  "--split-mode"
+                  "none"
+                  "--main-gpu"
+                  "1"
+                  "-c"
+                  "262144"
+                  "-t"
+                  "16"
+                  "--flash-attn"
+                  "on"
+                  "-ctk"
+                  "turbo4"
+                  "-ctv"
+                  "turbo4"
+                  "--parallel"
+                  "1"
+                  "--metrics"
+                  "-b"
+                  "256"
+                  "--reasoning"
+                  "on"
+                  "--chat-template-kwargs"
+                  ''{"preserve_thinking": true, "enable_thinking": true}''
+                  "--temp"
+                  "0.7"
+                  "--top-k"
+                  "20"
+                  "--top-p"
+                  "0.8"
+                  "--min-p"
+                  "0.0"
+                  "--presence-penalty"
+                  "1.5"
+                ];
                 env = {
                   _namedlist = true;
                   NVIDIA_VISIBLE_DEVICES = {
@@ -411,9 +425,11 @@ vllm = {
     };
 
     Service.llama-server-zephyr-3090-moe = {
-      metadata.labels = managed // {
-        app = "llama-server-zephyr-3090-moe";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-server-zephyr-3090-moe";
+        };
       spec = {
         type = "ClusterIP";
         ports = [
@@ -440,24 +456,28 @@ vllm = {
     #       that are enabled in the -Wrist-On- version. This is a non-thinking build.
 
     Deployment.llama-server-sentry = {
-      metadata.labels = managed // {
-        app = "llama-server-sentry";
-      host = "sentry";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-server-sentry";
+          host = "sentry";
+        };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
         selector.matchLabels = {
           app = "llama-server-sentry";
-      host = "sentry";
+          host = "sentry";
         };
         strategy.type = "Recreate";
         template = {
           metadata = {
-            labels = managed // {
-              app = "llama-server-sentry";
-      host = "sentry";
-            };
+            labels =
+              managed
+              // {
+                app = "llama-server-sentry";
+                host = "sentry";
+              };
           };
           spec = {
             nodeName = "sentry";
@@ -468,7 +488,7 @@ vllm = {
               llama-server = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
-                command = [ "${pkgsWithOverlay.llama-cpp-vulkan}/bin/llama-server" ];
+                command = ["${pkgsWithOverlay.llama-cpp-vulkan}/bin/llama-server"];
                 args = [
                   "--model"
                   "/models/unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf"
@@ -566,9 +586,11 @@ vllm = {
     };
 
     Service.llama-server-sentry = {
-      metadata.labels = managed // {
-        app = "llama-server-sentry";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "llama-server-sentry";
+        };
       spec = {
         type = "ClusterIP";
         ports = [
@@ -582,6 +604,5 @@ vllm = {
         selector.app = "llama-server-sentry";
       };
     };
-
   };
 }

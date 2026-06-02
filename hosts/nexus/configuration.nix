@@ -5,33 +5,33 @@
   inputs,
   ...
 }: {
-    imports = [
-      ./monitoring.nix
-      ./firewall.nix
-      ./hardware.nix
-      ./desktop.nix
-      ./services.nix
-      ./hardware-configuration.nix
-      ./disko.nix
-      ./impermanence.nix
-      ./nfs-allow.nix
+  imports = [
+    ./monitoring.nix
+    ./firewall.nix
+    ./hardware.nix
+    ./desktop.nix
+    ./services.nix
+    ./hardware-configuration.nix
+    ./disko.nix
+    ./impermanence.nix
+    ./nfs-allow.nix
 
-      ./ai-inference.nix
+    ./ai-inference.nix
 
-      ../../modules/default.nix
+    ../../modules/default.nix
 
-      ../../modules/hardware/rgb-control.nix
+    ../../modules/hardware/rgb-control.nix
 
-      ../../modules/security/aistor-secrets.nix
-      ../../modules/services/podman-support.nix
+    ../../modules/security/aistor-secrets.nix
+    ../../modules/services/podman-support.nix
 
-      ../../modules/services/ci-runner.nix
+    ../../modules/services/ci-runner.nix
 
-      ../../modules/services/k3s-cluster.nix
-      ../../modules/services/keepalived-vip.nix
-      inputs.disko.nixosModules.disko
-      inputs.nix-mineral.nixosModules.nix-mineral
-    ];
+    ../../modules/services/k3s-cluster.nix
+    ../../modules/services/keepalived-vip.nix
+    inputs.disko.nixosModules.disko
+    inputs.nix-mineral.nixosModules.nix-mineral
+  ];
 
   # Host-specific CPU/GPU optimization for llama.cpp (Zen2 + Ampere: RTX 3060 Ti)
   nixpkgs.config.packageOverrides = pkgs: {
@@ -42,7 +42,7 @@
       CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=zen2";
     });
   };
-  nixpkgs.config.permittedInsecurePackages = [ "nodejs-slim-20.20.2" "nodejs-20.20.2" ];
+  nixpkgs.config.permittedInsecurePackages = ["nodejs-slim-20.20.2" "nodejs-20.20.2"];
 
   clusterNetworking = {
     enable = true;

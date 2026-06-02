@@ -34,12 +34,12 @@ in {
       nvidia.enable = true;
       role = "server";
       clusterInit = false; # Rejoining existing cluster via VIP (fixed 2026-05-30)
-  clusterReset = false; # Already reset, running clean
+      clusterReset = false; # Already reset, running clean
       nodeName = "nexus";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = cluster.hosts.nexus.ip;
-    flannelIface = "eth0"; # Nexus primary interface (eth0 has NO-CARRIER)
+      flannelIface = "eth0"; # Nexus primary interface (eth0 has NO-CARRIER)
     };
 
     keepalived-vip = {
@@ -86,6 +86,8 @@ in {
       interval = "15min";
     };
 
+    # Local nix binary cache for cluster (serves built closures to all hosts)
+    binary-cache.enable = true;
   };
 
   programs.steam = {
@@ -193,14 +195,14 @@ in {
     extraPackages = with pkgs; [git ripgrep curl jq statix deadnix osv-scanner];
   };
 
-   # Hermes WebUI — disabled on nexus (no /data/projects/own/hermes-webui)
-   # Runs on zephyr only. Dead code and timer removed.
+  # Hermes WebUI — disabled on nexus (no /data/projects/own/hermes-webui)
+  # Runs on zephyr only. Dead code and timer removed.
 
-   # Agent network restrictions — restrict AI agents to allowed destinations only
-   services.agent-firewall = {
-     enable = true;
-     auditLog = true;
-   };
+  # Agent network restrictions — restrict AI agents to allowed destinations only
+  services.agent-firewall = {
+    enable = true;
+    auditLog = true;
+  };
 
   # Load Z.AI and NVIDIA API keys for hermes-agent
   # The official module's environment option doesn't reliably set systemd env vars,
@@ -264,7 +266,6 @@ in {
       openwebui = {
         domain = "openwebui.lan";
         backend = k8s.open-webui.dns;
-
       };
       hermes = {
         domain = "hermes.lan";
@@ -357,10 +358,10 @@ in {
   # GitHub Actions self-hosted runner on nexus (official binary)
   systemd.services.github-actions-runner = {
     description = "GitHub Actions Runner";
-    after = [ "network.target" ];
-    wants = [ "network-online.target" ];
-    wantedBy = [ "multi-user.target" ];
-    
+    after = ["network.target"];
+    wants = ["network-online.target"];
+    wantedBy = ["multi-user.target"];
+
     serviceConfig = {
       Type = "simple";
       User = "j_kro";
@@ -379,31 +380,30 @@ in {
     };
   };
 
-   services.ai-coding-tools = {
-     enable = true;
-     user = "j_kro";
-     zaiApiKeyFile = config.age.secrets.zai-api-key.path;
-     context7ApiKeyFile = config.age.secrets.context7-api-key.path;
-     nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
-     opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
-     tools = {
-       claude = { enable = true; };
-       opencode = { enable = true; };
-       droid = { enable = true; };
-       crush = { enable = true; };
-       pi = { enable = true; };
-       omp = { enable = true; };
-     };
-     enableShellEnv = true;
-   };
+  services.ai-coding-tools = {
+    enable = true;
+    user = "j_kro";
+    zaiApiKeyFile = config.age.secrets.zai-api-key.path;
+    context7ApiKeyFile = config.age.secrets.context7-api-key.path;
+    nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
+    opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
+    tools = {
+      claude = {enable = true;};
+      opencode = {enable = true;};
+      droid = {enable = true;};
+      crush = {enable = true;};
+      pi = {enable = true;};
+      omp = {enable = true;};
+    };
+    enableShellEnv = true;
+  };
 
-   services.mcp-registry = {
-     enable = true;
-     generateHermes = true;
-     generateClaudeCode = true;
-     generateKagentCRDs = true;
-     generateNetworkPolicies = true;
-     generateCasdoorApps = true;
-   };
- }
-
+  services.mcp-registry = {
+    enable = true;
+    generateHermes = true;
+    generateClaudeCode = true;
+    generateKagentCRDs = true;
+    generateNetworkPolicies = true;
+    generateCasdoorApps = true;
+  };
+}

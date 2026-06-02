@@ -132,7 +132,7 @@ in {
           owner = "j_kro";
           group = "users";
         };
-# hermes-webui-password — archived (hermes-webui project deleted 2026-05-16)
+        # hermes-webui-password — archived (hermes-webui project deleted 2026-05-16)
         hermes-api-server-key = {
           file = "${inputs.self}/secrets/hermes-api-server-key.age";
           mode = "440";

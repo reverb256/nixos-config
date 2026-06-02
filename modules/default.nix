@@ -10,6 +10,9 @@
 # To add a new module: create a .nix file anywhere under modules/.
 # To add a new library: put it in a lib/ subdirectory or add to the
 # excludeFiles list in lib/collect-modules.nix.
-{ lib, ... }: {
-  imports = import ./lib/collect-modules.nix { inherit lib; basePath = ./.; };
+{lib, ...}: {
+  imports = import ./lib/collect-modules.nix {
+    inherit lib;
+    basePath = ./.;
+  };
 }

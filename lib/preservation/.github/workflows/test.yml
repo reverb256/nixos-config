@@ -1,0 +1,27 @@
+name: Tests
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: Flake Check
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@ab6bcb2d5af0e904d04aea750e2089e9dc4cbfdd
+        with:
+          diagnostic-endpoint: ""
+          source-url: "https://install.lix.systems/lix/lix-installer-x86_64-linux"
+
+      - name: flake-check --no-build
+        run: nix flake check --log-format raw-with-logs --no-build ./tests
+      - name: default test
+        run: nix build --log-format raw-with-logs -L ./tests#checks.x86_64-linux.default
+      - name: firstboot test
+        run: nix build --log-format raw-with-logs -L ./tests#checks.x86_64-linux.firstboot
+
+env:
+  FORCE_COLOR: 1

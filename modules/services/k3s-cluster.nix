@@ -95,11 +95,11 @@ in {
       description = "Kubernetes node name (defaults to hostname)";
     };
 
-  flannelIface = mkOption {
-    type = types.str;
-    default = "eth0";
-    description = "Network interface for flannel VXLAN (must have node IP)";
-  };
+    flannelIface = mkOption {
+      type = types.str;
+      default = "eth0";
+      description = "Network interface for flannel VXLAN (must have node IP)";
+    };
     nvidia = {
       enable = mkOption {
         type = types.bool;
@@ -189,19 +189,19 @@ in {
         ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"
         ++ lib.optional (config.hardware.gpu-compute.rocm.enable or false) "--node-label=gpu=amd"
         ++ lib.optional (cfg.nodeIP != "") "--node-external-ip=${cfg.nodeIP}"
- ++ lib.optional cfg.clusterReset "--cluster-reset"
+        ++ lib.optional cfg.clusterReset "--cluster-reset"
         ++ [
           "--data-dir=${cfg.dataDir}"
           "--flannel-iface=${cfg.flannelIface}"
           "--kubelet-arg=authentication-token-webhook=true"
           "--kubelet-arg=authorization-mode=Webhook"
         ];
-        # --flannel-iface=eth0: explicitly bind flannel VXLAN to eth0 so it uses
-        # the real node IP (10.1.1.x), not the VIP (10.1.1.100) added by keepalived.
-        # Without this, k3s restarts while keepalived is running cause flannel to
-        # bind to the VIP, breaking all cross-node pod networking for zephyr.
+      # --flannel-iface=eth0: explicitly bind flannel VXLAN to eth0 so it uses
+      # the real node IP (10.1.1.x), not the VIP (10.1.1.100) added by keepalived.
+      # Without this, k3s restarts while keepalived is running cause flannel to
+      # bind to the VIP, breaking all cross-node pod networking for zephyr.
 
-        containerdConfigTemplate = mkIf cfg.nvidia.enable ''
+      containerdConfigTemplate = mkIf cfg.nvidia.enable ''
         {{ template "base" . }}
         [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia]
           runtime_type = "io.containerd.runc.v2"
@@ -349,7 +349,7 @@ in {
           }
         ];
         allowedUDPPorts = mkOptionDefault [
-          8472  # k3s flannel VXLAN (NOT 4789)
+          8472 # k3s flannel VXLAN (NOT 4789)
         ];
       }
     ];
@@ -420,7 +420,7 @@ in {
     environment.etc."rancher/k3s/registries.yaml".text = lib.generators.toYAML {} {
       mirrors = {
         "nexus:5000" = {
-          endpoint = [ "http://nexus:5000" ];
+          endpoint = ["http://nexus:5000"];
         };
       };
       configs = {

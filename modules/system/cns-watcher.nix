@@ -194,7 +194,7 @@ in {
     systemd.services.cns-health = {
       description = "CNS: Check secret distribution health";
       serviceConfig = {
-      ExecStart = pkgs.writeShellScript "cns-health" ''
+        ExecStart = pkgs.writeShellScript "cns-health" ''
           set -euo pipefail
 
           LOG_FILE="/var/log/cns/health.log"

@@ -1,5 +1,9 @@
-{ config, pkgs, lib, ... }:
-
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 # OOM Protection — Mission-Critical Processes
 #
 # Protects opencode, hermes, claude, and LLM inference from the
@@ -10,7 +14,6 @@
 #
 # Imperative: sudo bash -c 'for pid in $(pgrep -f "opencode|hermes|claude|llama-server"); do echo -500 > /proc/$pid/oom_score_adj; done'
 # Verify: cat /proc/<pid>/oom_score_adj
-
 let
   # Processes to protect, matched by comm/pid pattern
   protectedProcesses = [
@@ -41,13 +44,13 @@ let
     done
   '';
 in {
-  environment.systemPackages = [ oomProtectScript ];
+  environment.systemPackages = [oomProtectScript];
 
   # Systemd timer: run oom-protect every 30 seconds
   systemd.services.oom-protect = {
     description = "OOM Protection for mission-critical processes";
-    after = [ "multi-user.target" ];
-    wantedBy = [ "multi-user.target" ];
+    after = ["multi-user.target"];
+    wantedBy = ["multi-user.target"];
     serviceConfig = {
       Type = "oneshot";
       ExecStart = "${oomProtectScript}/bin/oom-protect";
@@ -63,7 +66,7 @@ in {
       OnBootSec = "10s";
       OnUnitActiveSec = "30s";
     };
-    wantedBy = [ "timers.target" ];
+    wantedBy = ["timers.target"];
   };
 
   # Global OOM tuning
@@ -81,8 +84,8 @@ in {
   # Notify user when OOM protection activates
   systemd.services.oom-protect-oneshot = {
     description = "One-time OOM protection at boot";
-    after = [ "multi-user.target" ];
-    wantedBy = [ "multi-user.target" ];
+    after = ["multi-user.target"];
+    wantedBy = ["multi-user.target"];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;

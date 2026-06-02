@@ -51,8 +51,6 @@ in {
         ../../modules/home-manager/btop.nix
       ];
 
-
-
       nixcord-config.enable = lib.mkForce (hostName == "zephyr");
       caprine.enable = lib.mkForce (hostName == "zephyr");
 

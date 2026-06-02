@@ -1,5 +1,9 @@
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.cachix-auth;
   inherit (lib) mkEnableOption mkOption types mkIf;
 in {

@@ -23,12 +23,12 @@ in {
       description = "Hostname for this node";
     };
 
-  ipAddress = mkOption {
-    type = types.nullOr types.str;
-    default = null;
-    example = cluster.hosts.zephyr.ip;
-    description = "Static IPv4 address for wired interface (null = not a cluster node)";
-  };
+    ipAddress = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      example = cluster.hosts.zephyr.ip;
+      description = "Static IPv4 address for wired interface (null = not a cluster node)";
+    };
 
     interfaceName = mkOption {
       type = types.str;

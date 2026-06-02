@@ -66,22 +66,70 @@
         # Numpad: force plain characters (fixes raw-mode TUI apps like OpenCode)
         # Without these, Alacritty sends application keypad escape sequences
         # in raw mode which most Go/Rust TUI frameworks silently drop.
-        { key = "Numpad0"; chars = "0"; }
-        { key = "Numpad1"; chars = "1"; }
-        { key = "Numpad2"; chars = "2"; }
-        { key = "Numpad3"; chars = "3"; }
-        { key = "Numpad4"; chars = "4"; }
-        { key = "Numpad5"; chars = "5"; }
-        { key = "Numpad6"; chars = "6"; }
-        { key = "Numpad7"; chars = "7"; }
-        { key = "Numpad8"; chars = "8"; }
-        { key = "Numpad9"; chars = "9"; }
-        { key = "NumpadDecimal"; chars = "."; }
-        { key = "NumpadDivide"; chars = "/"; }
-        { key = "NumpadMultiply"; chars = "*"; }
-        { key = "NumpadSubtract"; chars = "-"; }
-        { key = "NumpadAdd"; chars = "+"; }
-        { key = "NumpadEnter"; chars = "\\r"; }
+        {
+          key = "Numpad0";
+          chars = "0";
+        }
+        {
+          key = "Numpad1";
+          chars = "1";
+        }
+        {
+          key = "Numpad2";
+          chars = "2";
+        }
+        {
+          key = "Numpad3";
+          chars = "3";
+        }
+        {
+          key = "Numpad4";
+          chars = "4";
+        }
+        {
+          key = "Numpad5";
+          chars = "5";
+        }
+        {
+          key = "Numpad6";
+          chars = "6";
+        }
+        {
+          key = "Numpad7";
+          chars = "7";
+        }
+        {
+          key = "Numpad8";
+          chars = "8";
+        }
+        {
+          key = "Numpad9";
+          chars = "9";
+        }
+        {
+          key = "NumpadDecimal";
+          chars = ".";
+        }
+        {
+          key = "NumpadDivide";
+          chars = "/";
+        }
+        {
+          key = "NumpadMultiply";
+          chars = "*";
+        }
+        {
+          key = "NumpadSubtract";
+          chars = "-";
+        }
+        {
+          key = "NumpadAdd";
+          chars = "+";
+        }
+        {
+          key = "NumpadEnter";
+          chars = "\\r";
+        }
       ];
     };
   };

@@ -22,30 +22,35 @@
   aiModels = lib.importTOML aiModelsToml;
   defaultModel = aiModels.defaults.primary;
   fallbackModel = aiModels.defaults.fallback;
-  disabledModels = aiModels.defaults.disabled_models or [ ];
+  disabledModels = aiModels.defaults.disabled_models or [];
 
   # Generate DISCOVERY_BACKENDS JSON array.
   # Special handling for NVIDIA NIM: since it's one URL for multiple models,
   # we expand it into multiple entries to maintain the original discovery pattern.
   discoveryBackends = builtins.toJSON (
-    lib.concatMap ({name, value}: 
-      if name == "nvidia-nim" then 
-        lib.map (modelId: {
-          url = value.url;
-          # Use a shorthand name for NIM models (e.g., "nemotron-super")
-          name = lib.pipe modelId [
-            (builtins.replaceStrings ["nvidia/"] [""])
-            (builtins.replaceStrings ["nemotron-3-super-120b-a12b"] ["nemotron-super"])
-            (builtins.replaceStrings ["nemotron-3-nano-30b-a3b"] ["nemotron-nano"])
-            (builtins.replaceStrings ["nemotron-3-nano-omni-30b-a3b-reasoning"] ["nemotron-omni"])
-          ];
-        }) (value.models or [ ])
-      else [
-        {
-          url = value.url;
-          name = name;
-        }
-      ]
+    lib.concatMap (
+      {
+        name,
+        value,
+      }:
+        if name == "nvidia-nim"
+        then
+          lib.map (modelId: {
+            url = value.url;
+            # Use a shorthand name for NIM models (e.g., "nemotron-super")
+            name = lib.pipe modelId [
+              (builtins.replaceStrings ["nvidia/"] [""])
+              (builtins.replaceStrings ["nemotron-3-super-120b-a12b"] ["nemotron-super"])
+              (builtins.replaceStrings ["nemotron-3-nano-30b-a3b"] ["nemotron-nano"])
+              (builtins.replaceStrings ["nemotron-3-nano-omni-30b-a3b-reasoning"] ["nemotron-omni"])
+            ];
+          }) (value.models or [])
+        else [
+          {
+            url = value.url;
+            name = name;
+          }
+        ]
     ) (lib.attrsToList aiModels.backends)
   );
 
@@ -61,12 +66,14 @@ in {
   config.kubernetes.objects = {
     # ── Namespace ──────────────────────────────────────────────
     none.Namespace.ai-inference = {
-      metadata.labels = managed // {
-        name = "ai-inference";
-        "pod-security.kubernetes.io/enforce" = "baseline";
-        "pod-security.kubernetes.io/audit" = "restricted";
-        "pod-security.kubernetes.io/warn" = "restricted";
-      };
+      metadata.labels =
+        managed
+        // {
+          name = "ai-inference";
+          "pod-security.kubernetes.io/enforce" = "baseline";
+          "pod-security.kubernetes.io/audit" = "restricted";
+          "pod-security.kubernetes.io/warn" = "restricted";
+        };
     };
     # ── AI Inference ───────────────────────────────────────────
     ai-inference.ServiceAccount.default = {};
@@ -74,7 +81,7 @@ in {
     ai-inference.ServiceAccount.open-webui = {};
     ai-inference.ServiceAccount.n8n-sa.automountServiceAccountToken = false;
     ai-inference.ConfigMap.ai-gateway-config.data = {
-      AUTH_MODE="token"; # Token-based authentication
+      AUTH_MODE = "token"; # Token-based authentication
       BACKEND_TYPE = "llama-cpp";
       BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
       DEFAULT_MODEL = modelNames."qwen3.6-35b-iq3-s";
@@ -90,13 +97,13 @@ in {
       CHUNK_SIZE = "512";
     };
     ai-inference.ConfigMap.ai-inference-gateway-config.data = {
-      AUTH_MODE="token"; # Token-based authentication (set GATEWAY_TOKEN via Secret)
+      AUTH_MODE = "token"; # Token-based authentication (set GATEWAY_TOKEN via Secret)
       BACKEND_TYPE = "llama-cpp";
       BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
       BACKEND_FALLBACK_URLS = "https://api.z.ai/api/coding/paas/v4,https://integrate.api.nvidia.com/v1";
-  ZAI_API_KEY_FILE = "/run/agenix/zai-api-key";
-  NVIDIA_NIM_API_KEY_FILE = "/run/agenix/nvidia-api-key";
-       DEFAULT_MODEL = "Qwen3.5-4B-Q4_K_M.gguf";
+      ZAI_API_KEY_FILE = "/run/agenix/zai-api-key";
+      NVIDIA_NIM_API_KEY_FILE = "/run/agenix/nvidia-api-key";
+      DEFAULT_MODEL = "Qwen3.5-4B-Q4_K_M.gguf";
       GATEWAY_HOST = "0.0.0.0";
       PORT = "8080";
       PYTHONUNBUFFERED = "1";
@@ -118,7 +125,7 @@ in {
       CHUNK_SIZE = "512";
       MCP_ENABLED = "true";
       SYSTEM_PROMPTS_ENABLED = "true";
-      TOKEN_SCOPED_COLLECTIONS="";
+      TOKEN_SCOPED_COLLECTIONS = "";
       VECTOR_WEIGHT = "0.7";
       HF_HOME = "/home/j_kro/.cache/huggingface";
       HF_HUB_OFFLINE = "0";
@@ -132,7 +139,7 @@ in {
       CIRCUIT_BREAKER_ENABLED = "true";
       REDIS_URL = "redis://redis-service.ai-inference.svc.cluster.local:6379";
       SECONDARY_BACKEND_URL = "http://llama-qwen-vllm-nexus.ai-inference.svc.cluster.local:8040";
-       SECONDARY_BACKEND_MODEL = "qwen3.5-2b-awq";
+      SECONDARY_BACKEND_MODEL = "qwen3.5-2b-awq";
       DISCOVERY_BACKENDS = ''${discoveryBackends} '';
       DISABLED_MODELS = ''${builtins.toJSON disabledModels} '';
       PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
@@ -174,7 +181,7 @@ in {
                 securityContext = {
                   runAsNonRoot = true;
                   allowPrivilegeEscalation = false;
-                  capabilities.drop = [ "ALL" ];
+                  capabilities.drop = ["ALL"];
                   seccompProfile.type = "RuntimeDefault";
                 };
                 env = {
@@ -340,7 +347,16 @@ in {
           metadata.labels.app = "qdrant";
           spec = {
             affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution = [
-              { weight = 100; preference.matchExpressions = [{ key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus"]; }]; }
+              {
+                weight = 100;
+                preference.matchExpressions = [
+                  {
+                    key = "kubernetes.io/hostname";
+                    operator = "In";
+                    values = ["nexus"];
+                  }
+                ];
+              }
             ];
             securityContext = {
               runAsNonRoot = true;
@@ -357,7 +373,7 @@ in {
                   runAsUser = 1000;
                   runAsGroup = 100;
                   allowPrivilegeEscalation = false;
-                  capabilities.drop = [ "ALL" ];
+                  capabilities.drop = ["ALL"];
                   seccompProfile.type = "RuntimeDefault";
                 };
                 ports = [
@@ -559,13 +575,33 @@ in {
           spec = {
             affinity = {
               nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms = [
-                { matchExpressions = [{ key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus" "sentry"]; }]; }
+                {
+                  matchExpressions = [
+                    {
+                      key = "kubernetes.io/hostname";
+                      operator = "In";
+                      values = ["nexus" "sentry"];
+                    }
+                  ];
+                }
               ];
               nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution = [
-                { weight = 100; preference.matchExpressions = [{ key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus"]; }]; }
+                {
+                  weight = 100;
+                  preference.matchExpressions = [
+                    {
+                      key = "kubernetes.io/hostname";
+                      operator = "In";
+                      values = ["nexus"];
+                    }
+                  ];
+                }
               ];
               podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution = [
-                { labelSelector.matchLabels.app = "ai-inference-gateway"; topologyKey = "kubernetes.io/hostname"; }
+                {
+                  labelSelector.matchLabels.app = "ai-inference-gateway";
+                  topologyKey = "kubernetes.io/hostname";
+                }
               ];
             }; # HA: nexus+sentry, anti-affinity
             hostNetwork = false;
@@ -579,13 +615,13 @@ in {
                 securityContext = {
                   runAsNonRoot = true;
                   allowPrivilegeEscalation = false;
-                  capabilities.drop = [ "ALL" ];
+                  capabilities.drop = ["ALL"];
                   seccompProfile.type = "RuntimeDefault";
                 };
                 # Container image has default Cmd: python -m uvicorn ... --workers 4
                 # Override workers to 4 for stability
-                 # Removed --workers override to fix uvicorn parent process issue
-                 # Container image default command (single worker) will be used
+                # Removed --workers override to fix uvicorn parent process issue
+                # Container image default command (single worker) will be used
                 env = {
                   _namedlist = true;
                   AUTH_MODE.valueFrom.configMapKeyRef = {
@@ -1330,13 +1366,33 @@ in {
           spec = {
             affinity = {
               nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms = [
-                { matchExpressions = [{ key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus" "sentry"]; }]; }
+                {
+                  matchExpressions = [
+                    {
+                      key = "kubernetes.io/hostname";
+                      operator = "In";
+                      values = ["nexus" "sentry"];
+                    }
+                  ];
+                }
               ];
               nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution = [
-                { weight = 100; preference.matchExpressions = [{ key = "kubernetes.io/hostname"; operator = "In"; values = ["nexus"]; }]; }
+                {
+                  weight = 100;
+                  preference.matchExpressions = [
+                    {
+                      key = "kubernetes.io/hostname";
+                      operator = "In";
+                      values = ["nexus"];
+                    }
+                  ];
+                }
               ];
               podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution = [
-                { labelSelector.matchLabels.app = "ai-inference-gateway"; topologyKey = "kubernetes.io/hostname"; }
+                {
+                  labelSelector.matchLabels.app = "ai-inference-gateway";
+                  topologyKey = "kubernetes.io/hostname";
+                }
               ];
             }; # HA: nexus+sentry, anti-affinity
             containers = [
@@ -1488,352 +1544,352 @@ in {
     # Source of truth for curated model list. Runs every 6h on zephyr.
     # Output: /data/agents/model-sync/ (staging) + ~/.config/pi + ~/.omp/agent (deployed)
     ai-inference.ConfigMap.model-sync-script.data."sync.py" = ''
-#!/usr/bin/env python3
-"""Model sync: validates curated models against gateway, writes Pi/OmP configs."""
-import json, os, shutil, subprocess, sys, time, urllib.request
-GATEWAY = os.environ.get("GATEWAY_URL", "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1/models")
-HOST_GATEWAY = os.environ.get("HOST_GATEWAY_URL", "http://10.1.1.110:8080/v1")
-OUT = "/data/agents/model-sync"
-PI_CONFIG = "/home/j_kro/.config/pi/config.yaml"
-OMP_CONFIG = "/home/j_kro/.omp/agent/models.json"
-API_KEY = os.environ.get("API_KEY", "")
-# Direct URLs for local models (bypass gateway catalog)
-LOCAL_URLS = {
-    "local/qwen3.5-2b-awq": "http://10.1.1.120:8040/v1",
-    "local/qwen3.6-moe-35b": "http://10.1.1.110:1237/v1",
-    "local/qwen3.5-4b": "http://10.1.1.140:1235/v1",
-}
-# OpenCode Go middleware for NIM models
-OPENCODE_URL = "http://10.1.1.110:8080/v1"
-os.makedirs(OUT, exist_ok=True)
-# Retry gateway fetch (handles transient failures)
-for attempt in range(3):
-    try:
-        with urllib.request.urlopen(GATEWAY, timeout=10) as r:
-            models = json.loads(r.read())
-        break
-    except Exception as e:
-        print(f"WARNING: gateway attempt {attempt+1}/3 failed: {e}")
-        if attempt < 2:
-            time.sleep(5)
-        else:
-            print(f"ERROR: gateway unreachable after 3 attempts")
-            raise SystemExit(1)
-gw_ids = {m["id"] for m in models["data"]}
-print(f"Gateway: {len(models['data'])} models")
-CURATED = """
-glm-5.1|primary|GLM-5.1 744B MoE orchestrator (2x/3x quota)
-glm-5-turbo|primary|GLM-5 Turbo fast agentic (2x/3x quota)
-glm-4.7|primary|GLM-4.7 358B MoE (1x quota)
-glm-4.5-air|fast|GLM-4.5 Air ultra-fast (1x quota)
-local/qwen3.5-2b-awq|fast|Qwen3.5 2B AWQ (Nexus 3060Ti, local)
-local/qwen3.6-moe-35b|reasoning|Carnice Qwen3.6 35B MoE IQ4_XS (Zephyr 3090, local, vision)
-local/qwen3.5-4b|fast|Qwen3.5 4B Q4 (Sentry AMD, local, vision)
-deepseek-ai/deepseek-v4-flash|code|DeepSeek V4 Flash (NIM, rate-limited, 1M ctx)
-opencode/deepseek-v4-flash|code|DeepSeek V4 Flash (OpenCode Go, 5h+weekly cap, fallback)
-qwen/qwen3.5-397b-a17b|code|Qwen3.5 397B A17B (NIM, rate-limited, vision)
-qwen/qwen3.5-122b-a10b|code|Qwen3.5 122B A10B (NIM, rate-limited)
-qwen/qwen3.5-flash-02-23|fast|Qwen3.5 Flash 1M context (rate-limited)
-qwen/qwen3-next-80b-a3b-instruct|reasoning|Qwen3 Next 80B (NIM, rate-limited)
-mistralai/mistral-large-3-675b-instruct-2512|reasoning|Mistral Large 3 675B (rate-limited)
-deepseek-ai/deepseek-v4-pro|reasoning|DeepSeek V4 Pro 1M ctx (NIM, rate-limited)
-deepseek-v4-flash:free|free|DeepSeek V4 Flash Free (Kilo/Zen, 1M, daily quota)
-nvidia/nemotron-3-super-120b-a12b:free|free|Nemotron 3 Super Free (128K, half NIM ctx)
-nvidia/nemotron-3-nano-30b-a3b:free|free|Nemotron 3 Nano Free (128K, half NIM ctx)
-#openrouter/free|free|OpenRouter free router (REMOVED — no longer used)
-""".strip()
-CAT_NAMES = {
-    "primary": "PRIMARY", "fast": "FAST", "code": "CODING",
-    "context": "LARGE CONTEXT", "reasoning": "REASONING",
-    "vision": "VISION", "general": "GENERAL", "free": "FREE TIER",
-}
-def get_ctx(mid):
-    for m in models["data"]:
-        if m["id"] == mid:
-            return m.get("context_length") or 262144
-    return 262144
-def is_vision(mid):
-    return any(x in mid.lower() for x in ["vl", "vision", "5v", "3.6", "3.5-4b"])
-def is_reasoning(mid, cat):
-    if cat in ("reasoning", "primary"):
-        return True
-    return any(x in mid.lower() for x in ["reasoning", "large", "675b", "405b", "340b", "deepseek", "next-80", "moe-35b", "v4-flash"])
-def backup(path):
-    if os.path.exists(path):
-        bak = path + ".bak"
-        shutil.copy2(path, bak)
-        print(f"  Backup: {bak}")
-        return True
-    return False
-# Build model lists and providers
-omp_providers = {"gateway": {
-    "baseUrl": HOST_GATEWAY,
-    "api": "openai-completions",
-    "compat": {
-        "supportsUsageInStreaming": True,
-        "maxTokensField": "max_tokens",
-    },
-    "models": [],
-}}
-omp_models_local = []  # Local models need separate providers
-omp_models_opencode = []  # OpenCode models through middleware
-pi_lines = [
-    "# Pi config - Auto-synced from AI Inference Gateway",
-    "# DO NOT EDIT — regenerated by model-sync CronJob every 6h",
-    "# Edits will be lost on next sync. Change CURATED list in ai-inference.nix instead.",
-    "",
-    "model: glm-5.1",
-    "smol: local/qwen3.5-2b-awq",
-    "plan: glm-4.7",
-    "slow: local/qwen3.6-moe-35b",
-    "",
-    "providers:",
-    "  gateway:",
-    "    type: openai-compatible",
-    f"    baseURL: {HOST_GATEWAY}",
-    "    apiKey: ''${ZAI_API_KEY}",
-    "  local-vllm:",
-    "    type: openai-compatible",
-    "    baseURL: http://10.1.1.120:8040/v1",
-    "  local-zephyr-3090:",
-    "    type: openai-compatible",
-    "    baseURL: http://10.1.1.110:1237/v1",
-    "  local-sentry:",
-    "    type: openai-compatible",
-    "    baseURL: http://10.1.1.140:1235/v1",
-    "    type: openai-compatible",
-    f"    baseURL: {OPENCODE_URL}",
-    "    apiKey: ''${OPENCODE_GO_API_KEY}",
-    "",
-    "models:",
-]
-found = 0
-missing = 0
-local_found = 0
-opencode_found = 0
-last_cat = ""
-for line in CURATED.split("\n"):
-    parts = line.strip().split("|", 2)
-    if len(parts) != 3 or not parts[0]:
-        continue
-    mid, cat, desc = parts
-    # Handle local/ prefixed models
-    if mid.startswith("local/"):
-        local_found += 1
-        print(f"  LOC  {mid}")
-        url = LOCAL_URLS.get(mid)
-        if not url:
-            print(f"  ERROR: No URL for {mid}")
-            continue
-        # Extract provider name from URL
-        if "8040" in url:
-            provider = "local-vllm"
-        elif "1237" in url:
-            provider = "local-zephyr-3090"
-        else:
-            provider = "local-sentry"
-        ctx = 262144  # Default for local models
-        omp_models_local.append({
-            "id": mid,
-            "name": desc,
-            "provider": provider,
-            "reasoning": is_reasoning(mid, cat),
-            "input": ["text", "image"] if is_vision(mid) else ["text"],
-            "contextWindow": ctx,
-            "maxTokens": min(ctx, 262144),
-        })
-        if cat != last_cat:
-            pi_lines.append(f"  # === {CAT_NAMES.get(cat, cat.upper())} ===")
-            last_cat = cat
-        clean = mid.replace("local/", "")
-        pi_lines.extend([
-            f"  - id: {mid}",
-            f"    name: {clean}",
-            f"    provider: {provider}",
-            f"    description: {desc}",
-            "",
-        ])
-        continue
-    # Handle opencode/ prefixed models (via middleware)
-    if mid.startswith("opencode/"):
-        opencode_found += 1
-        print(f"  OPE  {mid}")
-        # Remove opencode/ prefix for gateway model name
-        gw_mid = mid.replace("opencode/", "")
-        if gw_mid in gw_ids:
-            found += 1
-            ctx = get_ctx(gw_mid)
-            omp_models_opencode.append({
-                "id": mid,
-                "name": desc,
-                "reasoning": is_reasoning(mid, cat),
-                "input": ["text", "image"] if is_vision(mid) else ["text"],
-                "contextWindow": ctx,
-                "maxTokens": min(ctx, 262144),
-            })
-            if cat != last_cat:
-                pi_lines.append(f"  # === {CAT_NAMES.get(cat, cat.upper())} ===")
-                last_cat = cat
-            clean = mid.replace("opencode/", "")
-            pi_lines.extend([
-                f"  - id: {mid}",
-                f"    name: {clean}",
-                f"    description: {desc}",
-                "",
-            ])
-        else:
-            missing += 1
-            print(f"  MISS {mid} (not in gateway)")
-        continue
-    # Handle gateway models
-    if mid in gw_ids:
-        found += 1
-        print(f"  OK   {mid}")
-        ctx = get_ctx(mid)
-        max_tok = min(ctx, 262144)
-        omp_providers["gateway"]["models"].append({
-            "id": mid,
-            "name": desc,
-            "reasoning": is_reasoning(mid, cat),
-            "input": ["text", "image"] if is_vision(mid) else ["text"],
-            "contextWindow": ctx,
-            "maxTokens": max_tok,
-        })
-        if cat != last_cat:
-            pi_lines.append(f"  # === {CAT_NAMES.get(cat, cat.upper())} ===")
-            last_cat = cat
-        clean = mid.replace(":free", "")
-        pi_lines.extend([
-            f"  - id: {mid}",
-            f"    name: {clean}",
-            "    provider: gateway",
-            f"    description: {desc}",
-            "",
-        ])
-    else:
-        missing += 1
-        print(f"  MISS {mid}")
-if missing > 0:
-    print(f"WARNING: {missing} curated models missing from gateway!")
-else:
-    print(f"All {found} curated models found on gateway")
-if local_found > 0:
-    print(f"Local models: {local_found} (direct URLs)")
-if opencode_found > 0:
-    print(f"OpenCode models: {opencode_found} (via middleware)")
-print(f"Total: {found + local_found + opencode_found} models configured")
-# Generate OmP JSON with all providers
-omp_providers["local-vllm"] = {
-    "baseUrl": LOCAL_URLS["local/qwen3.5-2b-awq"],
-    "api": "openai-completions",
-    "compat": {
-        "supportsUsageInStreaming": True,
-        "maxTokensField": "max_tokens",
-    },
-    "models": [m for m in omp_models_local if m["provider"] == "local-vllm"],
-}
-omp_providers["local-zephyr-3090"] = {
-    "baseUrl": LOCAL_URLS["local/qwen3.6-moe-35b"],
-    "api": "openai-completions",
-    "compat": {
-        "supportsUsageInStreaming": True,
-        "maxTokensField": "max_tokens",
-    },
-    "models": [m for m in omp_models_local if m["provider"] == "local-zephyr-3090"],
-}
-omp_providers["local-sentry"] = {
-    "baseUrl": LOCAL_URLS["local/qwen3.5-4b"],
-    "api": "openai-completions",
-    "compat": {
-        "supportsUsageInStreaming": True,
-        "maxTokensField": "max_tokens",
-    },
-    "models": [m for m in omp_models_local if m["provider"] == "local-sentry"],
-}
-    "baseUrl": OPENCODE_URL,
-    "api": "openai-completions",
-    "compat": {
-        "supportsUsageInStreaming": True,
-        "maxTokensField": "max_tokens",
-    },
-    "models": omp_models_opencode,
-}
+      #!/usr/bin/env python3
+      """Model sync: validates curated models against gateway, writes Pi/OmP configs."""
+      import json, os, shutil, subprocess, sys, time, urllib.request
+      GATEWAY = os.environ.get("GATEWAY_URL", "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1/models")
+      HOST_GATEWAY = os.environ.get("HOST_GATEWAY_URL", "http://10.1.1.110:8080/v1")
+      OUT = "/data/agents/model-sync"
+      PI_CONFIG = "/home/j_kro/.config/pi/config.yaml"
+      OMP_CONFIG = "/home/j_kro/.omp/agent/models.json"
+      API_KEY = os.environ.get("API_KEY", "")
+      # Direct URLs for local models (bypass gateway catalog)
+      LOCAL_URLS = {
+          "local/qwen3.5-2b-awq": "http://10.1.1.120:8040/v1",
+          "local/qwen3.6-moe-35b": "http://10.1.1.110:1237/v1",
+          "local/qwen3.5-4b": "http://10.1.1.140:1235/v1",
+      }
+      # OpenCode Go middleware for NIM models
+      OPENCODE_URL = "http://10.1.1.110:8080/v1"
+      os.makedirs(OUT, exist_ok=True)
+      # Retry gateway fetch (handles transient failures)
+      for attempt in range(3):
+          try:
+              with urllib.request.urlopen(GATEWAY, timeout=10) as r:
+                  models = json.loads(r.read())
+              break
+          except Exception as e:
+              print(f"WARNING: gateway attempt {attempt+1}/3 failed: {e}")
+              if attempt < 2:
+                  time.sleep(5)
+              else:
+                  print(f"ERROR: gateway unreachable after 3 attempts")
+                  raise SystemExit(1)
+      gw_ids = {m["id"] for m in models["data"]}
+      print(f"Gateway: {len(models['data'])} models")
+      CURATED = """
+      glm-5.1|primary|GLM-5.1 744B MoE orchestrator (2x/3x quota)
+      glm-5-turbo|primary|GLM-5 Turbo fast agentic (2x/3x quota)
+      glm-4.7|primary|GLM-4.7 358B MoE (1x quota)
+      glm-4.5-air|fast|GLM-4.5 Air ultra-fast (1x quota)
+      local/qwen3.5-2b-awq|fast|Qwen3.5 2B AWQ (Nexus 3060Ti, local)
+      local/qwen3.6-moe-35b|reasoning|Carnice Qwen3.6 35B MoE IQ4_XS (Zephyr 3090, local, vision)
+      local/qwen3.5-4b|fast|Qwen3.5 4B Q4 (Sentry AMD, local, vision)
+      deepseek-ai/deepseek-v4-flash|code|DeepSeek V4 Flash (NIM, rate-limited, 1M ctx)
+      opencode/deepseek-v4-flash|code|DeepSeek V4 Flash (OpenCode Go, 5h+weekly cap, fallback)
+      qwen/qwen3.5-397b-a17b|code|Qwen3.5 397B A17B (NIM, rate-limited, vision)
+      qwen/qwen3.5-122b-a10b|code|Qwen3.5 122B A10B (NIM, rate-limited)
+      qwen/qwen3.5-flash-02-23|fast|Qwen3.5 Flash 1M context (rate-limited)
+      qwen/qwen3-next-80b-a3b-instruct|reasoning|Qwen3 Next 80B (NIM, rate-limited)
+      mistralai/mistral-large-3-675b-instruct-2512|reasoning|Mistral Large 3 675B (rate-limited)
+      deepseek-ai/deepseek-v4-pro|reasoning|DeepSeek V4 Pro 1M ctx (NIM, rate-limited)
+      deepseek-v4-flash:free|free|DeepSeek V4 Flash Free (Kilo/Zen, 1M, daily quota)
+      nvidia/nemotron-3-super-120b-a12b:free|free|Nemotron 3 Super Free (128K, half NIM ctx)
+      nvidia/nemotron-3-nano-30b-a3b:free|free|Nemotron 3 Nano Free (128K, half NIM ctx)
+      #openrouter/free|free|OpenRouter free router (REMOVED — no longer used)
+      """.strip()
+      CAT_NAMES = {
+          "primary": "PRIMARY", "fast": "FAST", "code": "CODING",
+          "context": "LARGE CONTEXT", "reasoning": "REASONING",
+          "vision": "VISION", "general": "GENERAL", "free": "FREE TIER",
+      }
+      def get_ctx(mid):
+          for m in models["data"]:
+              if m["id"] == mid:
+                  return m.get("context_length") or 262144
+          return 262144
+      def is_vision(mid):
+          return any(x in mid.lower() for x in ["vl", "vision", "5v", "3.6", "3.5-4b"])
+      def is_reasoning(mid, cat):
+          if cat in ("reasoning", "primary"):
+              return True
+          return any(x in mid.lower() for x in ["reasoning", "large", "675b", "405b", "340b", "deepseek", "next-80", "moe-35b", "v4-flash"])
+      def backup(path):
+          if os.path.exists(path):
+              bak = path + ".bak"
+              shutil.copy2(path, bak)
+              print(f"  Backup: {bak}")
+              return True
+          return False
+      # Build model lists and providers
+      omp_providers = {"gateway": {
+          "baseUrl": HOST_GATEWAY,
+          "api": "openai-completions",
+          "compat": {
+              "supportsUsageInStreaming": True,
+              "maxTokensField": "max_tokens",
+          },
+          "models": [],
+      }}
+      omp_models_local = []  # Local models need separate providers
+      omp_models_opencode = []  # OpenCode models through middleware
+      pi_lines = [
+          "# Pi config - Auto-synced from AI Inference Gateway",
+          "# DO NOT EDIT — regenerated by model-sync CronJob every 6h",
+          "# Edits will be lost on next sync. Change CURATED list in ai-inference.nix instead.",
+          "",
+          "model: glm-5.1",
+          "smol: local/qwen3.5-2b-awq",
+          "plan: glm-4.7",
+          "slow: local/qwen3.6-moe-35b",
+          "",
+          "providers:",
+          "  gateway:",
+          "    type: openai-compatible",
+          f"    baseURL: {HOST_GATEWAY}",
+          "    apiKey: ''${ZAI_API_KEY}",
+          "  local-vllm:",
+          "    type: openai-compatible",
+          "    baseURL: http://10.1.1.120:8040/v1",
+          "  local-zephyr-3090:",
+          "    type: openai-compatible",
+          "    baseURL: http://10.1.1.110:1237/v1",
+          "  local-sentry:",
+          "    type: openai-compatible",
+          "    baseURL: http://10.1.1.140:1235/v1",
+          "    type: openai-compatible",
+          f"    baseURL: {OPENCODE_URL}",
+          "    apiKey: ''${OPENCODE_GO_API_KEY}",
+          "",
+          "models:",
+      ]
+      found = 0
+      missing = 0
+      local_found = 0
+      opencode_found = 0
+      last_cat = ""
+      for line in CURATED.split("\n"):
+          parts = line.strip().split("|", 2)
+          if len(parts) != 3 or not parts[0]:
+              continue
+          mid, cat, desc = parts
+          # Handle local/ prefixed models
+          if mid.startswith("local/"):
+              local_found += 1
+              print(f"  LOC  {mid}")
+              url = LOCAL_URLS.get(mid)
+              if not url:
+                  print(f"  ERROR: No URL for {mid}")
+                  continue
+              # Extract provider name from URL
+              if "8040" in url:
+                  provider = "local-vllm"
+              elif "1237" in url:
+                  provider = "local-zephyr-3090"
+              else:
+                  provider = "local-sentry"
+              ctx = 262144  # Default for local models
+              omp_models_local.append({
+                  "id": mid,
+                  "name": desc,
+                  "provider": provider,
+                  "reasoning": is_reasoning(mid, cat),
+                  "input": ["text", "image"] if is_vision(mid) else ["text"],
+                  "contextWindow": ctx,
+                  "maxTokens": min(ctx, 262144),
+              })
+              if cat != last_cat:
+                  pi_lines.append(f"  # === {CAT_NAMES.get(cat, cat.upper())} ===")
+                  last_cat = cat
+              clean = mid.replace("local/", "")
+              pi_lines.extend([
+                  f"  - id: {mid}",
+                  f"    name: {clean}",
+                  f"    provider: {provider}",
+                  f"    description: {desc}",
+                  "",
+              ])
+              continue
+          # Handle opencode/ prefixed models (via middleware)
+          if mid.startswith("opencode/"):
+              opencode_found += 1
+              print(f"  OPE  {mid}")
+              # Remove opencode/ prefix for gateway model name
+              gw_mid = mid.replace("opencode/", "")
+              if gw_mid in gw_ids:
+                  found += 1
+                  ctx = get_ctx(gw_mid)
+                  omp_models_opencode.append({
+                      "id": mid,
+                      "name": desc,
+                      "reasoning": is_reasoning(mid, cat),
+                      "input": ["text", "image"] if is_vision(mid) else ["text"],
+                      "contextWindow": ctx,
+                      "maxTokens": min(ctx, 262144),
+                  })
+                  if cat != last_cat:
+                      pi_lines.append(f"  # === {CAT_NAMES.get(cat, cat.upper())} ===")
+                      last_cat = cat
+                  clean = mid.replace("opencode/", "")
+                  pi_lines.extend([
+                      f"  - id: {mid}",
+                      f"    name: {clean}",
+                      f"    description: {desc}",
+                      "",
+                  ])
+              else:
+                  missing += 1
+                  print(f"  MISS {mid} (not in gateway)")
+              continue
+          # Handle gateway models
+          if mid in gw_ids:
+              found += 1
+              print(f"  OK   {mid}")
+              ctx = get_ctx(mid)
+              max_tok = min(ctx, 262144)
+              omp_providers["gateway"]["models"].append({
+                  "id": mid,
+                  "name": desc,
+                  "reasoning": is_reasoning(mid, cat),
+                  "input": ["text", "image"] if is_vision(mid) else ["text"],
+                  "contextWindow": ctx,
+                  "maxTokens": max_tok,
+              })
+              if cat != last_cat:
+                  pi_lines.append(f"  # === {CAT_NAMES.get(cat, cat.upper())} ===")
+                  last_cat = cat
+              clean = mid.replace(":free", "")
+              pi_lines.extend([
+                  f"  - id: {mid}",
+                  f"    name: {clean}",
+                  "    provider: gateway",
+                  f"    description: {desc}",
+                  "",
+              ])
+          else:
+              missing += 1
+              print(f"  MISS {mid}")
+      if missing > 0:
+          print(f"WARNING: {missing} curated models missing from gateway!")
+      else:
+          print(f"All {found} curated models found on gateway")
+      if local_found > 0:
+          print(f"Local models: {local_found} (direct URLs)")
+      if opencode_found > 0:
+          print(f"OpenCode models: {opencode_found} (via middleware)")
+      print(f"Total: {found + local_found + opencode_found} models configured")
+      # Generate OmP JSON with all providers
+      omp_providers["local-vllm"] = {
+          "baseUrl": LOCAL_URLS["local/qwen3.5-2b-awq"],
+          "api": "openai-completions",
+          "compat": {
+              "supportsUsageInStreaming": True,
+              "maxTokensField": "max_tokens",
+          },
+          "models": [m for m in omp_models_local if m["provider"] == "local-vllm"],
+      }
+      omp_providers["local-zephyr-3090"] = {
+          "baseUrl": LOCAL_URLS["local/qwen3.6-moe-35b"],
+          "api": "openai-completions",
+          "compat": {
+              "supportsUsageInStreaming": True,
+              "maxTokensField": "max_tokens",
+          },
+          "models": [m for m in omp_models_local if m["provider"] == "local-zephyr-3090"],
+      }
+      omp_providers["local-sentry"] = {
+          "baseUrl": LOCAL_URLS["local/qwen3.5-4b"],
+          "api": "openai-completions",
+          "compat": {
+              "supportsUsageInStreaming": True,
+              "maxTokensField": "max_tokens",
+          },
+          "models": [m for m in omp_models_local if m["provider"] == "local-sentry"],
+      }
+          "baseUrl": OPENCODE_URL,
+          "api": "openai-completions",
+          "compat": {
+              "supportsUsageInStreaming": True,
+              "maxTokensField": "max_tokens",
+          },
+          "models": omp_models_opencode,
+      }
 
-    NetworkPolicy.vllm-nexus-ingress = {
-      spec = {
-        podSelector.matchLabels.app = "llama-qwen-vllm-nexus";
-        policyTypes = ["Ingress"];
-        ingress = [
-          {
-            from = [{podSelector.matchLabels.app = "ai-inference-gateway";}];
-            ports = [{
-              protocol = "TCP";
-              port = 8040;
-            }];
-          }
-        ];
-      };
-    };
-omp = {
-    "providers": omp_providers,
-    "modelRoles": {
-        "default": "glm-4.7",  # 1x quota, always cheap
-        "smol": "local/qwen3.5-2b-awq",  # Unlimited, fastest local
-        "slow": "local/qwen3.6-moe-35b",  # Unlimited, best reasoning
-        "plan": "deepseek-ai/deepseek-v4-flash",  # NIM, rate-limited fallback
-        "commit": "local/qwen3.6-moe-35b",  # Unlimited primary
-        "code": "deepseek-ai/deepseek-v4-flash",  # NIM, rate-limited
-        "vision": "local/qwen3.6-moe-35b",  # Unlimited, local vision
-    },
-}
-# Generate Pi YAML (NO plaintext API key — Pi reads ZAI_API_KEY from env)
-pi_lines.extend([
-    "providers:",
-    "  gateway:",
-    "    type: openai-compatible",
-    f"    baseURL: {HOST_GATEWAY}",
-    "    apiKey: ''${ZAI_API_KEY}",
-    "context:",
-    "  maxTokens: 200000",
-    "  timeout: 180",
-    "tools:",
-    "  - bash",
-    "  - read",
-    "  - write",
-    "  - edit",
-    "  - glob",
-    "  - grep",
-    "ui:",
-    "  theme: dark",
-    "  showThinking: false",
-    "  streaming: true",
-])
-# Write to staging area
-omp_path = os.path.join(OUT, "models-omp.json")
-pi_path = os.path.join(OUT, "models-pi.yaml")
-with open(omp_path, "w") as f:
-    json.dump(omp, f, indent=2)
-with open(pi_path, "w") as f:
-    f.write("\n".join(pi_lines) + "\n")
-total_models = len(omp_providers["gateway"]["models"]) + len(omp_models_local) + len(omp_models_opencode)
-print(f"Staging: {omp_path} ({total_models} models)")
-print(f"Staging: {pi_path} ({total_models} models)")
-# Deploy to agent config paths with backup
-deployed = 0
-for src, dst in [(omp_path, OMP_CONFIG), (pi_path, PI_CONFIG)]:
-    if os.path.exists(src):
-        backup(dst)
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        shutil.copy2(src, dst)
-        # Fix ownership to j_kro:users (runs as root in pod)
-        try:
-            subprocess.run(["chown", "1000:100", dst], check=True, capture_output=True)
-        except Exception as e:
-            print(f"  WARNING: chown failed for {dst}: {e}")
-        deployed += 1
-        print(f"  Deployed: {dst}")
-print(f"Sync complete: {deployed} configs deployed")
-'';
+          NetworkPolicy.vllm-nexus-ingress = {
+            spec = {
+              podSelector.matchLabels.app = "llama-qwen-vllm-nexus";
+              policyTypes = ["Ingress"];
+              ingress = [
+                {
+                  from = [{podSelector.matchLabels.app = "ai-inference-gateway";}];
+                  ports = [{
+                    protocol = "TCP";
+                    port = 8040;
+                  }];
+                }
+              ];
+            };
+          };
+      omp = {
+          "providers": omp_providers,
+          "modelRoles": {
+              "default": "glm-4.7",  # 1x quota, always cheap
+              "smol": "local/qwen3.5-2b-awq",  # Unlimited, fastest local
+              "slow": "local/qwen3.6-moe-35b",  # Unlimited, best reasoning
+              "plan": "deepseek-ai/deepseek-v4-flash",  # NIM, rate-limited fallback
+              "commit": "local/qwen3.6-moe-35b",  # Unlimited primary
+              "code": "deepseek-ai/deepseek-v4-flash",  # NIM, rate-limited
+              "vision": "local/qwen3.6-moe-35b",  # Unlimited, local vision
+          },
+      }
+      # Generate Pi YAML (NO plaintext API key — Pi reads ZAI_API_KEY from env)
+      pi_lines.extend([
+          "providers:",
+          "  gateway:",
+          "    type: openai-compatible",
+          f"    baseURL: {HOST_GATEWAY}",
+          "    apiKey: ''${ZAI_API_KEY}",
+          "context:",
+          "  maxTokens: 200000",
+          "  timeout: 180",
+          "tools:",
+          "  - bash",
+          "  - read",
+          "  - write",
+          "  - edit",
+          "  - glob",
+          "  - grep",
+          "ui:",
+          "  theme: dark",
+          "  showThinking: false",
+          "  streaming: true",
+      ])
+      # Write to staging area
+      omp_path = os.path.join(OUT, "models-omp.json")
+      pi_path = os.path.join(OUT, "models-pi.yaml")
+      with open(omp_path, "w") as f:
+          json.dump(omp, f, indent=2)
+      with open(pi_path, "w") as f:
+          f.write("\n".join(pi_lines) + "\n")
+      total_models = len(omp_providers["gateway"]["models"]) + len(omp_models_local) + len(omp_models_opencode)
+      print(f"Staging: {omp_path} ({total_models} models)")
+      print(f"Staging: {pi_path} ({total_models} models)")
+      # Deploy to agent config paths with backup
+      deployed = 0
+      for src, dst in [(omp_path, OMP_CONFIG), (pi_path, PI_CONFIG)]:
+          if os.path.exists(src):
+              backup(dst)
+              os.makedirs(os.path.dirname(dst), exist_ok=True)
+              shutil.copy2(src, dst)
+              # Fix ownership to j_kro:users (runs as root in pod)
+              try:
+                  subprocess.run(["chown", "1000:100", dst], check=True, capture_output=True)
+              except Exception as e:
+                  print(f"  WARNING: chown failed for {dst}: {e}")
+              deployed += 1
+              print(f"  Deployed: {dst}")
+      print(f"Sync complete: {deployed} configs deployed")
+    '';
     ai-inference.CronJob.model-sync = {
       metadata.labels = managed // {app = "model-sync";};
       spec = {
@@ -1859,7 +1915,7 @@ print(f"Sync complete: {deployed} configs deployed")
                 securityContext = {
                   runAsNonRoot = true;
                   allowPrivilegeEscalation = false;
-                  capabilities.drop = [ "ALL" ];
+                  capabilities.drop = ["ALL"];
                   seccompProfile.type = "RuntimeDefault";
                 };
                 env = {
@@ -1882,8 +1938,14 @@ print(f"Sync complete: {deployed} configs deployed")
                   };
                 };
                 resources = {
-                  requests = {cpu = "100m"; memory = "128Mi";};
-                  limits = {cpu = "200m"; memory = "256Mi";};
+                  requests = {
+                    cpu = "100m";
+                    memory = "128Mi";
+                  };
+                  limits = {
+                    cpu = "200m";
+                    memory = "256Mi";
+                  };
                 };
                 volumeMounts = {
                   _namedlist = true;

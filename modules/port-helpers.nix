@@ -1,5 +1,4 @@
-{lib, ...}:
-let
+{lib, ...}: let
   # Import the service port registry (SSOT)
   rawPorts = import ../kubernetes/service-ports.nix;
   # Import cluster constants (SSOT for subnet, VIP, host IPs, etc)
@@ -13,7 +12,13 @@ in {
   getPort = name: rawPorts.${name} or (builtins.trace "Port ${name} not found" null);
 
   # Get multiple ports as an attrset
-  getPorts = names: builtins.intersectAttrs (builtins.listToAttrs (map (n: { name = n; value = n; }) names)) rawPorts;
+  getPorts = names:
+    builtins.intersectAttrs (builtins.listToAttrs (map (n: {
+        name = n;
+        value = n;
+      })
+      names))
+    rawPorts;
 
   # Get port for a service with fallback
   getPortWithFallback = name: fallback: rawPorts.${name} or fallback;

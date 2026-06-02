@@ -20,7 +20,7 @@ rec {
   };
 
   kubernetes = {
-    gatewayUrl = "http://${zephyrIp}:8080/v1";  # zephyr AI Inference Gateway
+    gatewayUrl = "http://${zephyrIp}:8080/v1"; # zephyr AI Inference Gateway
     vip = "10.1.1.100";
     apiPort = 6443;
     clusterDnsIP = "10.0.0.10";
@@ -41,17 +41,17 @@ rec {
     enableGpuForgeNvidia1 = true;
     enableGpuForgeAmd0 = true;
     enableGpuForgeAmd1 = true;
-    enableGpuZephyr = false;  # 3060Ti reserved for AI inference
+    enableGpuZephyr = false; # 3060Ti reserved for AI inference
 
     # Scheduled scaling (CronJobs). Set schedule to "" to disable.
     # Cron format: "minute hour day month weekday" (UTC)
     # Example: scale down at 9am UTC weekdays, scale up at 6pm UTC
     scaleDown = {
-      schedule = "0 9 * * 1-5";  # Mon-Fri 09:00 UTC
+      schedule = "0 9 * * 1-5"; # Mon-Fri 09:00 UTC
       replicas = 0;
     };
     scaleUp = {
-      schedule = "0 18 * * *";    # Every day 18:00 UTC
+      schedule = "0 18 * * *"; # Every day 18:00 UTC
       replicas = 1;
     };
   };

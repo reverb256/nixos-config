@@ -81,8 +81,8 @@
   # processes the first occurrence from initrd. This service re-enables SMT.
   systemd.services.enable-smt = {
     description = "Re-enable SMT (disabled by CachyOS kernel nosmt)";
-    wantedBy = [ "multi-user.target" ];
-    before = [ "k3s.service" ];
+    wantedBy = ["multi-user.target"];
+    before = ["k3s.service"];
     serviceConfig.Type = "oneshot";
     script = ''
       if [ "$(cat /sys/devices/system/cpu/smt/control)" = "off" ]; then

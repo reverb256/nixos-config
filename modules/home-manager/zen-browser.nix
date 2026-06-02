@@ -1,4 +1,8 @@
-{pkgs, lib, ...}: let
+{
+  pkgs,
+  lib,
+  ...
+}: let
   clusterCA = "/etc/ssl/cluster-ca/ca.crt";
   nssTools = "${pkgs.nss.tools}/bin/certutil";
   zenProfiles = [
@@ -828,5 +832,4 @@ in {
       fi
     done
   '';
-
 }
