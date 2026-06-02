@@ -311,7 +311,6 @@ in {
     backupFileExtension = "hm-backup";
     users.j_kro = {pkgs, ...}: {
       imports = [
-        ../../modules/home-manager/niri-config.nix
         ../../modules/home-manager/fish.nix
         ../../modules/home-manager/starship.nix
         ../../modules/home-manager/alacritty.nix
@@ -476,7 +475,6 @@ in {
       # Compression
       unzip
       zip
-      tar
       gzip
       xz
       bzip2
@@ -489,16 +487,8 @@ in {
       ffmpeg
 
       # Monitoring
-      nvtop
     ]);
 
-  # Fonts
-  fonts.fonts = with pkgs.nerdfonts; [
-    JetBrainsMono
-    FiraCode
-    Hack
-    SourceCodePro
-  ];
 
   # ZRAM (reduce writes on flash)
   zramSwap = {

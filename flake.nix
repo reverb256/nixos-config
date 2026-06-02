@@ -303,7 +303,7 @@
         # Rescue USB — standalone live ISO (no mining/gaming/K8s)
         usb = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
-          specialArgs = {inherit inputs; hostName = "usb";};
+          specialArgs = {inherit inputs;};
           modules = [./hosts/usb/configuration.nix];
         };
       };
