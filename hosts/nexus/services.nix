@@ -366,13 +366,14 @@ in {
       Type = "simple";
       User = "j_kro";
       WorkingDirectory = "/home/j_kro/actions-runner-official";
-  Environment = [
-      "LD_LIBRARY_PATH=${lib.makeLibraryPath [pkgs.icu]}"
-      "NIX_ICU_DATA=${pkgs.icu}/share/icu/${pkgs.icu.version}"
-      "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
-      "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt"
-      "NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-bundle.crt"
-    ];
+        Environment = [
+          "DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1"
+          "LD_LIBRARY_PATH=${lib.makeLibraryPath [pkgs.icu]}"
+          "NIX_ICU_DATA=${pkgs.icu}/share/icu/${pkgs.icu.version}"
+          "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
+          "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt"
+          "NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-bundle.crt"
+        ];
       ExecStart = "/home/j_kro/actions-runner-official/start-runner.sh";
       Restart = "always";
       RestartSec = "10s";
