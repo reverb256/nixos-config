@@ -1,21 +1,31 @@
 version: 2
 updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "America/Toronto"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "ci"
-  - package-ecosystem: "docker"
-    directory: "/"
-    schedule:
-      interval: "monthly"
-    open-pull-requests-limit: 3
-    labels:
-      - "dependencies"
-      - "docker"
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+    day: "monday"
+    time: "04:00"
+    timezone: "America/Toronto"
+  open-pull-requests-limit: 5
+  labels:
+  - "dependencies"
+  - "ci"
+  groups:
+    actions:
+      patterns:
+      - "actions/*"
+      - "cachix/*"
+      - "github/*"
+- package-ecosystem: "docker"
+  directory: "/"
+  schedule:
+    interval: "monthly"
+  open-pull-requests-limit: 3
+  labels:
+  - "dependencies"
+  - "docker"
+  groups:
+    docker-images:
+      patterns:
+      - "*"
