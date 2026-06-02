@@ -301,9 +301,9 @@
           specialArgs = {inherit inputs;};
         };
         # Rescue USB — standalone live ISO (no mining/gaming/K8s)
-        usb-rescue = nixpkgs.lib.nixosSystem {
+        usb = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
-          specialArgs = {inherit inputs; hostName = "usb-rescue";};
+          specialArgs = {inherit inputs; hostName = "usb";};
           modules = [./hosts/usb/configuration.nix];
         };
       };
