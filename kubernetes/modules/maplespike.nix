@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 with lib; let
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
@@ -10,54 +15,75 @@ with lib; let
   imageTag = "2026-05-16";
 
   # Common deployment builder
-  mkDeployment = { name, namespace, cmd, port, replicaCount, image, resources, envExtra ? [], nodeName ? "nexus", runAsUser ? 1001, runAsGroup ? 1001 }:
-    let
-      labels = {
-        app = "maplespike-${name}";
-        component = name;
-        tier = "backend";
-      };
-    in
-    {
-      apiVersion = "apps/v1";
-      kind = "Deployment";
-      metadata = {
-        inherit name namespace labels;
-      };
-      spec = {
-        replicas = replicaCount;
-        revisionHistoryLimit = 2;
-        selector = {
-          matchLabels = {
-            app = labels.app;
-          };
+  mkDeployment = {
+    name,
+    namespace,
+    cmd,
+    port,
+    replicaCount,
+    image,
+    resources,
+    envExtra ? [],
+    nodeName ? "nexus",
+    runAsUser ? 1001,
+    runAsGroup ? 1001,
+  }: let
+    labels = {
+      app = "maplespike-${name}";
+      component = name;
+      tier = "backend";
+    };
+  in {
+    apiVersion = "apps/v1";
+    kind = "Deployment";
+    metadata = {
+      inherit name namespace labels;
+    };
+    spec = {
+      replicas = replicaCount;
+      revisionHistoryLimit = 2;
+      selector = {
+        matchLabels = {
+          app = labels.app;
         };
-        strategy = {
-          rollingUpdate = {
-            maxSurge = 1;
-            maxUnavailable = 0;
-          };
+      };
+      strategy = {
+        rollingUpdate = {
+          maxSurge = 1;
+          maxUnavailable = 0;
         };
-        template = {
-          metadata.labels = labels;
-          spec = {
-            nodeName = nodeName;
-            securityContext = {
-              runAsUser = runAsUser;
-              runAsGroup = runAsGroup;
-              fsGroup = runAsGroup;
-            };
-            terminationGracePeriodSeconds = 30;
-            containers = [{
+      };
+      template = {
+        metadata.labels = labels;
+        spec = {
+          nodeName = nodeName;
+          securityContext = {
+            runAsUser = runAsUser;
+            runAsGroup = runAsGroup;
+            fsGroup = runAsGroup;
+          };
+          terminationGracePeriodSeconds = 30;
+          containers = [
+            {
               inherit name image;
               imagePullPolicy = "IfNotPresent";
-              ports = lib.mkIf (port > 0) [{
-                containerPort = port;
-              }];
-              env = [
-                { name = "PORT"; value = toString port; }
-                { name = "NODE_ENV"; value = "production"; }
-              ] ++ envExtra;
+              ports = lib.mkIf (port > 0) [
+                {
+                  containerPort = port;
+                }
+              ];
+              env =
+                [
+                  {
+                    name = "PORT";
+                    value = toString port;
+                  }
+                  {
+                    name = "NODE_ENV";
+                    value = "production";
+                  }
+                ]
+                ++ envExtra;
               resources = resources;
               securityContext = {
                 allowPrivilegeEscalation = false;
@@ -70,13 +96,13 @@ with lib; let
                   type = "RuntimeDefault";
                 };
               };
-            }];
-          };
+            }
+          ];
         };
       };
     };
-in
-{
+  };
+in {
   options.services.maplespike = {
     enable = mkEnableOption "MapleSpike deployments";
 
@@ -117,32 +143,51 @@ in
     };
 
     replicas = {
-      api = mkOption { type = types.int; default = 2; };
-      mcp = mkOption { type = types.int; default = 1; };
-      portal = mkOption { type = types.int; default = 1; };
-      stagingApi = mkOption { type = types.int; default = 1; };
-      stagingMcp = mkOption { type = types.int; default = 1; };
+      api = mkOption {
+        type = types.int;
+        default = 2;
+      };
+      mcp = mkOption {
+        type = types.int;
+        default = 1;
+      };
+      portal = mkOption {
+        type = types.int;
+        default = 1;
+      };
+      stagingApi = mkOption {
+        type = types.int;
+        default = 1;
+      };
+      stagingMcp = mkOption {
+        type = types.int;
+        default = 1;
+      };
     };
   };
 
   config.kubernetes.objects = mkIf cfg.enable {
     # ── Namespaces ──────────────────────────────────────────
     none.Namespace.maplespike-prod = {
-      metadata.labels = managed // {
-        name = "maplespike-prod";
-        "pod-security.kubernetes.io/enforce" = "baseline";
-        "pod-security.kubernetes.io/audit" = "restricted";
-        "pod-security.kubernetes.io/warn" = "restricted";
-      };
+      metadata.labels =
+        managed
+        // {
+          name = "maplespike-prod";
+          "pod-security.kubernetes.io/enforce" = "baseline";
+          "pod-security.kubernetes.io/audit" = "restricted";
+          "pod-security.kubernetes.io/warn" = "restricted";
+        };
     };
 
     none.Namespace.maplespike-staging = {
-      metadata.labels = managed // {
-        name = "maplespike-staging";
-        "pod-security.kubernetes.io/enforce" = "baseline";
-        "pod-security.kubernetes.io/audit" = "restricted";
-        "pod-security.kubernetes.io/warn" = "restricted";
-      };
+      metadata.labels =
+        managed
+        // {
+          name = "maplespike-staging";
+          "pod-security.kubernetes.io/enforce" = "baseline";
+          "pod-security.kubernetes.io/audit" = "restricted";
+          "pod-security.kubernetes.io/warn" = "restricted";
+        };
     };
 
     # ── Prod Deployments (maplespike-prod namespace) ──────────
@@ -154,23 +199,37 @@ in
       replicaCount = cfg.replicas.api;
       image = cfg.images.api;
       resources = {
-        requests = { cpu = "100m"; memory = "128Mi"; };
-        limits = { cpu = "500m"; memory = "512Mi"; };
+        requests = {
+          cpu = "100m";
+          memory = "128Mi";
+        };
+        limits = {
+          cpu = "500m";
+          memory = "512Mi";
+        };
       };
     };
 
-    "maplespike-prod".Deployment.maplespike-mcp = mkDeployment {
-      name = "maplespike-mcp";
-      namespace = "maplespike-prod";
-      cmd = "node packages/mcp-server/dist/index.js";
-      port = 3001;
-      replicaCount = cfg.replicas.mcp;
-      image = cfg.images.mcp;
-      resources = {
-        requests = { cpu = "100m"; memory = "128Mi"; };
-        limits = { cpu = "300m"; memory = "256Mi"; };
-      };
-    } // { spec.template.spec.serviceAccountName = "maplespike-mcp-maplespike-prod"; };
+    "maplespike-prod".Deployment.maplespike-mcp =
+      mkDeployment {
+        name = "maplespike-mcp";
+        namespace = "maplespike-prod";
+        cmd = "node packages/mcp-server/dist/index.js";
+        port = 3001;
+        replicaCount = cfg.replicas.mcp;
+        image = cfg.images.mcp;
+        resources = {
+          requests = {
+            cpu = "100m";
+            memory = "128Mi";
+          };
+          limits = {
+            cpu = "300m";
+            memory = "256Mi";
+          };
+        };
+      }
+      // {spec.template.spec.serviceAccountName = "maplespike-mcp-maplespike-prod";};
 
     "maplespike-prod".Deployment.maplespike-portal = mkDeployment {
       name = "maplespike-portal";
@@ -180,8 +239,14 @@ in
       replicaCount = cfg.replicas.portal;
       image = cfg.images.portal;
       resources = {
-        requests = { cpu = "50m"; memory = "64Mi"; };
-        limits = { cpu = "100m"; memory = "128Mi"; };
+        requests = {
+          cpu = "50m";
+          memory = "64Mi";
+        };
+        limits = {
+          cpu = "100m";
+          memory = "128Mi";
+        };
       };
     };
 
@@ -194,23 +259,37 @@ in
       replicaCount = cfg.replicas.stagingApi;
       image = cfg.stagingImages.api;
       resources = {
-        requests = { cpu = "100m"; memory = "128Mi"; };
-        limits = { cpu = "300m"; memory = "256Mi"; };
+        requests = {
+          cpu = "100m";
+          memory = "128Mi";
+        };
+        limits = {
+          cpu = "300m";
+          memory = "256Mi";
+        };
       };
     };
 
-    "maplespike-staging".Deployment.maplespike-mcp = mkDeployment {
-      name = "maplespike-mcp";
-      namespace = "maplespike-staging";
-      cmd = "node packages/mcp-server/dist/index.js";
-      port = 3001;
-      replicaCount = cfg.replicas.stagingMcp;
-      image = cfg.stagingImages.mcp;
-      resources = {
-        requests = { cpu = "100m"; memory = "128Mi"; };
-        limits = { cpu = "300m"; memory = "256Mi"; };
-      };
-    } // { spec.template.spec.serviceAccountName = "maplespike-mcp-maplespike-staging"; };
+    "maplespike-staging".Deployment.maplespike-mcp =
+      mkDeployment {
+        name = "maplespike-mcp";
+        namespace = "maplespike-staging";
+        cmd = "node packages/mcp-server/dist/index.js";
+        port = 3001;
+        replicaCount = cfg.replicas.stagingMcp;
+        image = cfg.stagingImages.mcp;
+        resources = {
+          requests = {
+            cpu = "100m";
+            memory = "128Mi";
+          };
+          limits = {
+            cpu = "300m";
+            memory = "256Mi";
+          };
+        };
+      }
+      // {spec.template.spec.serviceAccountName = "maplespike-mcp-maplespike-staging";};
 
     "maplespike-staging".Deployment.maplespike-portal = mkDeployment {
       name = "maplespike-portal";
@@ -220,8 +299,14 @@ in
       replicaCount = 1;
       image = cfg.stagingImages.portal;
       resources = {
-        requests = { cpu = "50m"; memory = "64Mi"; };
-        limits = { cpu = "100m"; memory = "128Mi"; };
+        requests = {
+          cpu = "50m";
+          memory = "64Mi";
+        };
+        limits = {
+          cpu = "100m";
+          memory = "128Mi";
+        };
       };
     };
 
@@ -295,61 +380,109 @@ in
 
     # ── Services (per namespace) ──────────────────────────────
     "maplespike-prod".Service.maplespike-api = {
-      metadata.labels = managed // { app = "maplespike-api"; };
+      metadata.labels = managed // {app = "maplespike-api";};
       spec = {
-        selector = { app = "maplespike-api"; };
+        selector = {app = "maplespike-api";};
         ports = [
-          { port = 8080; targetPort = 8082; protocol = "TCP"; name = "http"; }
-          { port = 8082; targetPort = 8082; protocol = "TCP"; name = "api"; }
+          {
+            port = 8080;
+            targetPort = 8082;
+            protocol = "TCP";
+            name = "http";
+          }
+          {
+            port = 8082;
+            targetPort = 8082;
+            protocol = "TCP";
+            name = "api";
+          }
         ];
         type = "ClusterIP";
       };
     };
 
     "maplespike-prod".Service.maplespike-mcp = {
-      metadata.labels = managed // { app = "maplespike-mcp"; };
+      metadata.labels = managed // {app = "maplespike-mcp";};
       spec = {
-        selector = { app = "maplespike-mcp"; };
-        ports = [{ port = 3001; targetPort = 3001; protocol = "TCP"; name = "mcp"; }];
+        selector = {app = "maplespike-mcp";};
+        ports = [
+          {
+            port = 3001;
+            targetPort = 3001;
+            protocol = "TCP";
+            name = "mcp";
+          }
+        ];
         type = "ClusterIP";
       };
     };
 
     "maplespike-prod".Service.maplespike-portal = {
-      metadata.labels = managed // { app = "maplespike-portal"; };
+      metadata.labels = managed // {app = "maplespike-portal";};
       spec = {
-        selector = { app = "maplespike-portal"; };
-        ports = [{ port = 80; targetPort = 80; protocol = "TCP"; name = "http"; }];
+        selector = {app = "maplespike-portal";};
+        ports = [
+          {
+            port = 80;
+            targetPort = 80;
+            protocol = "TCP";
+            name = "http";
+          }
+        ];
         type = "ClusterIP";
       };
     };
 
     "maplespike-staging".Service.maplespike-api = {
-      metadata.labels = managed // { app = "maplespike-api"; };
+      metadata.labels = managed // {app = "maplespike-api";};
       spec = {
-        selector = { app = "maplespike-api"; };
+        selector = {app = "maplespike-api";};
         ports = [
-          { port = 8080; targetPort = 8082; protocol = "TCP"; name = "http"; }
-          { port = 8082; targetPort = 8082; protocol = "TCP"; name = "api"; }
+          {
+            port = 8080;
+            targetPort = 8082;
+            protocol = "TCP";
+            name = "http";
+          }
+          {
+            port = 8082;
+            targetPort = 8082;
+            protocol = "TCP";
+            name = "api";
+          }
         ];
         type = "ClusterIP";
       };
     };
 
     "maplespike-staging".Service.maplespike-mcp = {
-      metadata.labels = managed // { app = "maplespike-mcp"; };
+      metadata.labels = managed // {app = "maplespike-mcp";};
       spec = {
-        selector = { app = "maplespike-mcp"; };
-        ports = [{ port = 3001; targetPort = 3001; protocol = "TCP"; name = "mcp"; }];
+        selector = {app = "maplespike-mcp";};
+        ports = [
+          {
+            port = 3001;
+            targetPort = 3001;
+            protocol = "TCP";
+            name = "mcp";
+          }
+        ];
         type = "ClusterIP";
       };
     };
 
     "maplespike-staging".Service.maplespike-portal = {
-      metadata.labels = managed // { app = "maplespike-portal"; };
+      metadata.labels = managed // {app = "maplespike-portal";};
       spec = {
-        selector = { app = "maplespike-portal"; };
-        ports = [{ port = 80; targetPort = 8080; protocol = "TCP"; name = "http"; }];
+        selector = {app = "maplespike-portal";};
+        ports = [
+          {
+            port = 80;
+            targetPort = 8080;
+            protocol = "TCP";
+            name = "http";
+          }
+        ];
         type = "ClusterIP";
       };
     };

@@ -85,6 +85,6 @@ in {
     ];
 
     # Ensure wayland-sessions directory is linked from the system environment
-    environment.pathsToLink = [ "/share/wayland-sessions" ];
+    environment.pathsToLink = ["/share/wayland-sessions"];
   };
 }

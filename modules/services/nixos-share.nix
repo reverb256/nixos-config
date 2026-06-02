@@ -24,12 +24,18 @@ in {
       exports = lib.mkOption {
         type = lib.types.listOf (lib.types.submodule {
           options = {
-            path = lib.mkOption { type = lib.types.path; };
-            description = lib.mkOption { type = lib.types.str; default = ""; };
+            path = lib.mkOption {type = lib.types.path;};
+            description = lib.mkOption {
+              type = lib.types.str;
+              default = "";
+            };
           };
         });
         default = [
-          { path = "/etc/nixos"; description = "NixOS configuration"; }
+          {
+            path = "/etc/nixos";
+            description = "NixOS configuration";
+          }
         ];
         description = "List of directories to export via NFS";
       };
@@ -55,13 +61,21 @@ in {
       enable = true;
       exports = lib.mkDefault (
         let
-          combinations = lib.concatMap (export: 
-            map (host: { path = export.path; host = host; }) cfg.server.allowedHosts
-          ) cfg.server.exports;
+          combinations =
+            lib.concatMap (
+              export:
+                map (host: {
+                  path = export.path;
+                  host = host;
+                })
+                cfg.server.allowedHosts
+            )
+            cfg.server.exports;
         in
-        lib.concatMapStringsSep "\n" (combo: ''
+          lib.concatMapStringsSep "\n" (combo: ''
             ${combo.path} ${combo.host}(ro,no_subtree_check,async,nohide,insecure)
-          '') combinations
+          '')
+          combinations
       );
     };
 

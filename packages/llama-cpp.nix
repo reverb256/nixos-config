@@ -37,18 +37,23 @@
   # src defined as let binding above
 
   # Determine which backend stdenv to use
-  effectiveStdenv = if cudaSupport && cudaPackages != null
+  effectiveStdenv =
+    if cudaSupport && cudaPackages != null
     then cudaPackages.backendStdenv
     else if rocmSupport && rocmPackages != null
     then rocmPackages.backendStdenv
     else stdenv;
 
   # Helper functions for cmake flags
-  cmakeBool = option: value: "-D${option}=${if value then "ON" else "OFF"}";
+  cmakeBool = option: value: "-D${option}=${
+    if value
+    then "ON"
+    else "OFF"
+  }";
   cmakeFeature = feature: value: "-D${feature}=${value}";
 
   # Base build inputs
-  baseNativeBuildInputs = [ cmake ninja pkg-config ];
+  baseNativeBuildInputs = [cmake ninja pkg-config];
   baseBuildInputs = [];
 
   # CUDA-specific inputs
@@ -105,51 +110,52 @@
 
   rocmCmakeFlags = lib.optionals rocmSupport [
     (cmakeBool "GGML_HIPBLAS" true)
-    (cmakeBool "GGML_CUDA" false)  # Ensure CUDA is disabled for ROCm
+    (cmakeBool "GGML_CUDA" false) # Ensure CUDA is disabled for ROCm
   ];
 
   # Combine all cmake flags
   cmakeFlags = baseCmakeFlags ++ cudaCmakeFlags ++ vulkanCmakeFlags ++ rocmCmakeFlags ++ extraCmakeFlags;
 in
-effectiveStdenv.mkDerivation {
-  pname = "llama-cpp";
-  inherit version;
-  src = defaultSrc;
+  effectiveStdenv.mkDerivation {
+    pname = "llama-cpp";
+    inherit version;
+    src = defaultSrc;
 
-  inherit nativeBuildInputs buildInputs cmakeFlags;
+    inherit nativeBuildInputs buildInputs cmakeFlags;
 
-  postInstall = ''
-    # Install binaries (use || true for optional ones that may not exist in all versions)
-    install -Dm755 bin/llama-server $out/bin/llama-server
-    install -Dm755 bin/llama-cli $out/bin/llama-cli
-    install -Dm755 bin/llama-perplexity $out/bin/llama-perplexity  || true
-    install -Dm755 bin/llama-quantize $out/bin/llama-quantize      || true
-    install -Dm755 bin/llama-evaluate $out/bin/llama-evaluate      || true
-    
-    # Create convenience symlinks
-    ln -sf llama-cli $out/bin/llama
-    
-    # Install any additional llama-* binaries that exist
-    for bin in bin/llama-*; do
-      if [ -f "$bin" ]; then
-        install -Dm755 "$bin" "$out/bin/$(basename $bin)" || true
-      fi
-    done
-  '';
+    postInstall = ''
+      # Install binaries (use || true for optional ones that may not exist in all versions)
+      install -Dm755 bin/llama-server $out/bin/llama-server
+      install -Dm755 bin/llama-cli $out/bin/llama-cli
+      install -Dm755 bin/llama-perplexity $out/bin/llama-perplexity  || true
+      install -Dm755 bin/llama-quantize $out/bin/llama-quantize      || true
+      install -Dm755 bin/llama-evaluate $out/bin/llama-evaluate      || true
 
-  postFixup = lib.optionalString (stdenv.isLinux) ''
-    # Shrink RPATH for smaller binaries
-    find $out/bin -type f -executable -exec patchelf --shrink-rpath {} \; || true
-  '';
+      # Create convenience symlinks
+      ln -sf llama-cli $out/bin/llama
 
-  meta = {
-    description = "Inference of Meta's LLaMA model (and others) in pure C/C++" +
-      lib.optionalString cudaSupport " with CUDA support" +
-      lib.optionalString vulkanSupport " with Vulkan support" +
-      lib.optionalString rocmSupport " with ROCm support";
-    homepage = "https://github.com/ggml-org/llama.cpp";
-    license = lib.licenses.mit;
-    platforms = lib.platforms.linux;
-    mainProgram = "llama-cli";
-  };
-}
+      # Install any additional llama-* binaries that exist
+      for bin in bin/llama-*; do
+        if [ -f "$bin" ]; then
+          install -Dm755 "$bin" "$out/bin/$(basename $bin)" || true
+        fi
+      done
+    '';
+
+    postFixup = lib.optionalString (stdenv.isLinux) ''
+      # Shrink RPATH for smaller binaries
+      find $out/bin -type f -executable -exec patchelf --shrink-rpath {} \; || true
+    '';
+
+    meta = {
+      description =
+        "Inference of Meta's LLaMA model (and others) in pure C/C++"
+        + lib.optionalString cudaSupport " with CUDA support"
+        + lib.optionalString vulkanSupport " with Vulkan support"
+        + lib.optionalString rocmSupport " with ROCm support";
+      homepage = "https://github.com/ggml-org/llama.cpp";
+      license = lib.licenses.mit;
+      platforms = lib.platforms.linux;
+      mainProgram = "llama-cli";
+    };
+  }

@@ -97,7 +97,6 @@
     if svc.rawBlock != null
     then svc.rawBlock
     else if svc.protected or false
-
     then mkProtectedBlock svc
     else mkPublicBlock svc;
 

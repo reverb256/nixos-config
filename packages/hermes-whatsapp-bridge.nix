@@ -49,7 +49,7 @@ in
     forceGitDeps = true;
     makeCacheWritable = true;
     dontNpmBuild = true;
-    npmFlags = [ "--legacy-peer-deps" ];
+    npmFlags = ["--legacy-peer-deps"];
 
     installPhase = ''
       runHook preInstall

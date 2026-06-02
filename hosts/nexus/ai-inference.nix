@@ -112,9 +112,9 @@
   # Needed for HA: sentry gateway pod pulls from nexus:5000 instead of needing pre-loaded image.
   systemd.services.push-gateway-to-registry = {
     description = "Push gateway image to local container registry";
-    after = [ "k3s.service" ];
-    wantedBy = [ "multi-user.target" ];
-    path = [ pkgs.bash pkgs.podman pkgs.curl pkgs.coreutils ];
+    after = ["k3s.service"];
+    wantedBy = ["multi-user.target"];
+    path = [pkgs.bash pkgs.podman pkgs.curl pkgs.coreutils];
     serviceConfig.ExecStart = pkgs.writeShellScript "push-gateway-to-registry-start" ''
       set -euo pipefail
 
@@ -161,12 +161,4 @@
   # Disable jitterentropy service (CachyOS seccomp incompatibility)
   # Jitterentropy is killed by seccomp (SIGSYS) - CachyOS kernel blocks the syscalls it needs
   systemd.services.jitterentropy.enable = false;
-}
-      sudo podman load -i /tmp/gw-push.tar
-      sudo podman tag ${srcImage} ${gwImage}
-      sudo podman push --tls-verify=false ${gwImage}
-      sudo rm -f /tmp/gw-push.tar
-      echo "Gateway image pushed to local registry"
-    '';
-  };
 }

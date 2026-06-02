@@ -27,7 +27,10 @@ in {
           };
           swap = {
             size = "16G";
-            content = { type = "swap"; discardPolicy = "both"; };
+            content = {
+              type = "swap";
+              discardPolicy = "both";
+            };
           };
           root = {
             size = "100%";

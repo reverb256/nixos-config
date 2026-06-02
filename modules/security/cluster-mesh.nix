@@ -15,8 +15,13 @@
 # SSH usage (service contexts):
 #   ssh -i /var/lib/cluster-mesh/.ssh/id_ed25519 cluster-mesh@10.1.1.X <command>
 #
-{ config, lib, pkgs, inputs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}: let
   cfg = config.services.cluster-mesh;
   inherit (lib) mkEnableOption mkIf mkOption types;
 
@@ -53,7 +58,7 @@ in {
       shell = "${pkgs.shadow}/bin/nologin";
     };
 
-    users.groups.cluster-mesh = { };
+    users.groups.cluster-mesh = {};
 
     # Agenix secret: cns-ssh-key owned by cluster-mesh
     age.secrets.cns-ssh-key = {
@@ -66,8 +71,8 @@ in {
     # Systemd service: copy key from /run/agenix to persistent location
     systemd.services.cluster-mesh-key-setup = {
       description = "Setup cluster-mesh SSH key from agenix";
-      after = [ "agenix.service" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["agenix.service"];
+      wantedBy = ["multi-user.target"];
 
       serviceConfig = {
         Type = "oneshot";

@@ -96,11 +96,13 @@ in {
       metadata.labels = labels;
       spec = {
         clusterIP = "None";
-        ports = [{
-          port = 9810;
-          targetPort = 9810;
-          name = "health";
-        }];
+        ports = [
+          {
+            port = 9810;
+            targetPort = 9810;
+            name = "health";
+          }
+        ];
       };
     };
 
@@ -120,7 +122,11 @@ in {
             serviceAccountName = "nix-csi";
             priorityClassName = "system-node-critical";
             tolerations = [
-              {key = "node-role.kubernetes.io/control-plane"; operator = "Exists"; effect = "NoSchedule";}
+              {
+                key = "node-role.kubernetes.io/control-plane";
+                operator = "Exists";
+                effect = "NoSchedule";
+              }
             ];
             initContainers = [
               {
@@ -129,14 +135,26 @@ in {
                 imagePullPolicy = "IfNotPresent";
                 securityContext.privileged = true;
                 env = [
-                  {name = "ARCH"; value = "amd64";}
+                  {
+                    name = "ARCH";
+                    value = "amd64";
+                  }
                 ];
                 volumeMounts = [
-                  {name = "nix-store"; mountPath = "/nix-volume";}
-                  {name = "nix-config"; mountPath = "/etc/nix";}
+                  {
+                    name = "nix-store";
+                    mountPath = "/nix-volume";
+                  }
+                  {
+                    name = "nix-config";
+                    mountPath = "/etc/nix";
+                  }
                 ];
                 resources = {
-                  requests = {memory = "128Mi"; cpu = "100m";};
+                  requests = {
+                    memory = "128Mi";
+                    cpu = "100m";
+                  };
                 };
               }
             ];
@@ -148,39 +166,105 @@ in {
                 command = ["dinit" "--log-file" "/var/log/dinit.log" "--quiet" "csi"];
                 securityContext.privileged = true;
                 env = [
-                  {name = "BUILDERS_ENABLED"; value = "false";}
-                  {name = "CACHE_ENABLED"; value = "true";}
-                  {name = "CSI_ENDPOINT"; value = "unix:///csi/csi.sock";}
-                  {name = "HOME"; value = "/nix/var/nix-csi/root";}
-                  {name = "KUBE_NAMESPACE"; valueFrom = {fieldRef.fieldPath = "metadata.namespace";};}
-                  {name = "KUBE_NODE_NAME"; valueFrom = {fieldRef.fieldPath = "spec.nodeName";};}
-                  {name = "KUBE_POD_IP"; valueFrom = {fieldRef.fieldPath = "status.podIP";};}
-                  {name = "KUBE_POD_NAME"; valueFrom = {fieldRef.fieldPath = "metadata.name";};}
-                  {name = "KUBE_POD_UID"; valueFrom = {fieldRef.fieldPath = "metadata.uid";};}
-                  {name = "NIX_BUILD_TIMEOUT"; value = "300";}
-                  {name = "RSYNC_CONCURRENCY"; value = "1";}
-                  {name = "USER"; value = "root";}
+                  {
+                    name = "BUILDERS_ENABLED";
+                    value = "false";
+                  }
+                  {
+                    name = "CACHE_ENABLED";
+                    value = "true";
+                  }
+                  {
+                    name = "CSI_ENDPOINT";
+                    value = "unix:///csi/csi.sock";
+                  }
+                  {
+                    name = "HOME";
+                    value = "/nix/var/nix-csi/root";
+                  }
+                  {
+                    name = "KUBE_NAMESPACE";
+                    valueFrom = {fieldRef.fieldPath = "metadata.namespace";};
+                  }
+                  {
+                    name = "KUBE_NODE_NAME";
+                    valueFrom = {fieldRef.fieldPath = "spec.nodeName";};
+                  }
+                  {
+                    name = "KUBE_POD_IP";
+                    valueFrom = {fieldRef.fieldPath = "status.podIP";};
+                  }
+                  {
+                    name = "KUBE_POD_NAME";
+                    valueFrom = {fieldRef.fieldPath = "metadata.name";};
+                  }
+                  {
+                    name = "KUBE_POD_UID";
+                    valueFrom = {fieldRef.fieldPath = "metadata.uid";};
+                  }
+                  {
+                    name = "NIX_BUILD_TIMEOUT";
+                    value = "300";
+                  }
+                  {
+                    name = "RSYNC_CONCURRENCY";
+                    value = "1";
+                  }
+                  {
+                    name = "USER";
+                    value = "root";
+                  }
                 ];
                 volumeMounts = [
-                  {name = "csi-socket"; mountPath = "/csi";}
-                  {name = "nix-config"; mountPath = "/etc/nix";}
-                  {name = "registration"; mountPath = "/registration";}
-                  {name = "kubelet"; mountPath = "/var/lib/kubelet"; mountPropagation = "Bidirectional";}
-                  {name = "nix-store"; mountPath = "/nix"; mountPropagation = "Bidirectional"; subPath = "nix";}
+                  {
+                    name = "csi-socket";
+                    mountPath = "/csi";
+                  }
+                  {
+                    name = "nix-config";
+                    mountPath = "/etc/nix";
+                  }
+                  {
+                    name = "registration";
+                    mountPath = "/registration";
+                  }
+                  {
+                    name = "kubelet";
+                    mountPath = "/var/lib/kubelet";
+                    mountPropagation = "Bidirectional";
+                  }
+                  {
+                    name = "nix-store";
+                    mountPath = "/nix";
+                    mountPropagation = "Bidirectional";
+                    subPath = "nix";
+                  }
                 ];
                 livenessProbe = {
-                  httpGet = {path = "/healthz"; port = 9810;};
+                  httpGet = {
+                    path = "/healthz";
+                    port = 9810;
+                  };
                   initialDelaySeconds = 10;
                   periodSeconds = 30;
                 };
                 readinessProbe = {
-                  httpGet = {path = "/readyz"; port = 9810;};
+                  httpGet = {
+                    path = "/readyz";
+                    port = 9810;
+                  };
                   initialDelaySeconds = 5;
                   periodSeconds = 10;
                 };
                 resources = {
-                  requests = {memory = "128Mi"; cpu = "100m";};
-                  limits = {memory = "512Mi"; cpu = "500m";};
+                  requests = {
+                    memory = "128Mi";
+                    cpu = "100m";
+                  };
+                  limits = {
+                    memory = "512Mi";
+                    cpu = "500m";
+                  };
                 };
               }
               {
@@ -194,13 +278,28 @@ in {
                 ];
                 securityContext.privileged = true;
                 volumeMounts = [
-                  {name = "csi-socket"; mountPath = "/csi";}
-                  {name = "kubelet"; mountPath = "/var/lib/kubelet";}
-                  {name = "registration"; mountPath = "/registration";}
+                  {
+                    name = "csi-socket";
+                    mountPath = "/csi";
+                  }
+                  {
+                    name = "kubelet";
+                    mountPath = "/var/lib/kubelet";
+                  }
+                  {
+                    name = "registration";
+                    mountPath = "/registration";
+                  }
                 ];
                 resources = {
-                  requests = {memory = "10Mi"; cpu = "10m";};
-                  limits = {memory = "64Mi"; cpu = "100m";};
+                  requests = {
+                    memory = "10Mi";
+                    cpu = "10m";
+                  };
+                  limits = {
+                    memory = "64Mi";
+                    cpu = "100m";
+                  };
                 };
               }
               {
@@ -209,20 +308,56 @@ in {
                 imagePullPolicy = "IfNotPresent";
                 args = ["--csi-address=/csi/csi.sock"];
                 volumeMounts = [
-                  {name = "csi-socket"; mountPath = "/csi";}
+                  {
+                    name = "csi-socket";
+                    mountPath = "/csi";
+                  }
                 ];
                 resources = {
-                  requests = {memory = "10Mi"; cpu = "10m";};
-                  limits = {memory = "32Mi"; cpu = "50m";};
+                  requests = {
+                    memory = "10Mi";
+                    cpu = "10m";
+                  };
+                  limits = {
+                    memory = "32Mi";
+                    cpu = "50m";
+                  };
                 };
               }
             ];
             volumes = [
-              {name = "nix-config"; configMap = {name = "nix-node";};}
-              {name = "registration"; hostPath = {path = "/var/lib/kubelet/plugins_registry"; type = "DirectoryOrCreate";};}
-              {name = "nix-store"; hostPath = {path = hostMountPath; type = "DirectoryOrCreate";};}
-              {name = "csi-socket"; hostPath = {path = "/var/lib/kubelet/plugins/nix.csi.store/"; type = "DirectoryOrCreate";};}
-              {name = "kubelet"; hostPath = {path = "/var/lib/kubelet"; type = "Directory";};}
+              {
+                name = "nix-config";
+                configMap = {name = "nix-node";};
+              }
+              {
+                name = "registration";
+                hostPath = {
+                  path = "/var/lib/kubelet/plugins_registry";
+                  type = "DirectoryOrCreate";
+                };
+              }
+              {
+                name = "nix-store";
+                hostPath = {
+                  path = hostMountPath;
+                  type = "DirectoryOrCreate";
+                };
+              }
+              {
+                name = "csi-socket";
+                hostPath = {
+                  path = "/var/lib/kubelet/plugins/nix.csi.store/";
+                  type = "DirectoryOrCreate";
+                };
+              }
+              {
+                name = "kubelet";
+                hostPath = {
+                  path = "/var/lib/kubelet";
+                  type = "Directory";
+                };
+              }
             ];
           };
         };

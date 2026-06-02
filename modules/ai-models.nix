@@ -1,5 +1,8 @@
-{ lib, config, ... }:
-let
+{
+  lib,
+  config,
+  ...
+}: let
   # Primary registry (single source of truth)
   nixRegistry = import ../kubernetes/curated-models.nix;
 
@@ -7,8 +10,7 @@ let
   tomlModels = builtins.fromTOML (builtins.readFile ../ai-models.toml);
 
   cfg = config.ai-models;
-in
-{
+in {
   options.ai-models = {
     enable = lib.mkEnableOption "AI Models Registry";
     registry = lib.mkOption {

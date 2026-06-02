@@ -4,8 +4,8 @@
 
   # Node IPs — derived from the cluster option (set by network-constants.nix from cluster.nix)
   zephyr = cluster.hosts.zephyr.ip or "10.1.1.110";
-  nexus   = cluster.hosts.nexus.ip or "10.1.1.120";
-  forge   = cluster.hosts.forge.ip or "10.1.1.130";
+  nexus = cluster.hosts.nexus.ip or "10.1.1.120";
+  forge = cluster.hosts.forge.ip or "10.1.1.130";
 
   tls = "tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key";
   proxyHeader = ''
@@ -181,7 +181,6 @@ in
   + mkRoute "privacy-filter.lan" "http://${nexus}:${toString ports.privacy-filter}"
   # NOTE: MapleSpike routes handled by Nexus (VIP 10.1.1.100)
   # See /etc/nixos/hosts/nexus/services.nix cluster-services.maplespike-*
-
   + mkRoute "gitea.lan" "http://${nexus}:${toString ports.gitea}"
   # Hermes Workspace (zephyr, port 3002)
   # Dev environment

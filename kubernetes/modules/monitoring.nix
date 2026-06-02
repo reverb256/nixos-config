@@ -1329,10 +1329,10 @@ in {
               "var-log" = {
                 hostPath.path = "/var/log";
                 hostPath.type = "DirectoryOrCreate";
-              "host-journal" = {
-                hostPath.path = "/var/log/journal";
-                hostPath.type = "DirectoryOrCreate";
-              };
+                "host-journal" = {
+                  hostPath.path = "/var/log/journal";
+                  hostPath.type = "DirectoryOrCreate";
+                };
               };
               "docker-containers" = {
                 hostPath.path = "/var/lib/docker/containers";
@@ -1347,7 +1347,6 @@ in {
         };
       };
     };
-
 
     monitoring.Service.alloy-otlp = {
       metadata.labels.app = "alloy";
@@ -1597,7 +1596,6 @@ in {
     # AlertManager logs alerts to stdout → Alloy → Loki.
     # No separate webhook deployment needed until real notification (Slack/Discord) is configured.
 
-
     # ── Alert Webhook (placeholder) ─────────────────────────────────
     # Receives alertmanager webhooks. Currently a placeholder (sleep infinity)
     # on nexus. Will be replaced with real notification handler.
@@ -1618,10 +1616,22 @@ in {
                 name = "webhook";
                 image = "docker.io/library/bash:5.2";
                 command = ["sleep" "infinity"];
-                ports = [{name = "http"; containerPort = 9093; protocol = "TCP";}];
+                ports = [
+                  {
+                    name = "http";
+                    containerPort = 9093;
+                    protocol = "TCP";
+                  }
+                ];
                 resources = {
-                  requests = {cpu = "10m"; memory = "16Mi";};
-                  limits = {cpu = "100m"; memory = "64Mi";};
+                  requests = {
+                    cpu = "10m";
+                    memory = "16Mi";
+                  };
+                  limits = {
+                    cpu = "100m";
+                    memory = "64Mi";
+                  };
                 };
               }
             ];
@@ -1634,7 +1644,14 @@ in {
       metadata.labels = managed // {app = "alert-webhook";};
       spec = {
         type = "ClusterIP";
-        ports = [{name = "http"; port = 9093; targetPort = 9093; protocol = "TCP";}];
+        ports = [
+          {
+            name = "http";
+            port = 9093;
+            targetPort = 9093;
+            protocol = "TCP";
+          }
+        ];
         selector.app = "alert-webhook";
       };
     };
@@ -2231,12 +2248,14 @@ in {
     # -- Prometheus Adapter (custom-metrics namespace) ---------------------
     # Source: prometheus-adapter-namespace.yaml
     none.Namespace.custom-metrics = {
-      metadata.labels = managed // {
-        name = "custom-metrics";
-        "pod-security.kubernetes.io/enforce" = "baseline";
-        "pod-security.kubernetes.io/audit" = "restricted";
-        "pod-security.kubernetes.io/warn" = "restricted";
-      };
+      metadata.labels =
+        managed
+        // {
+          name = "custom-metrics";
+          "pod-security.kubernetes.io/enforce" = "baseline";
+          "pod-security.kubernetes.io/audit" = "restricted";
+          "pod-security.kubernetes.io/warn" = "restricted";
+        };
     };
 
     custom-metrics.NetworkPolicy.default-deny-all = {
@@ -2463,92 +2482,144 @@ in {
         groupPriorityMinimum = 100;
         versionPriority = 100;
       };
+    };
+    # === HA Infrastructure ===
+
+    # CoreDNS HA enforcer: k3s resets CoreDNS to 1 replica on server restart.
+    # This CronJob ensures 2 replicas every 5 minutes.
+    kube-system.ServiceAccount.coredns-ha-enforcer = {};
+    kube-system.Role.coredns-ha-enforcer.rules = [
+      {
+        apiGroups = ["apps"];
+        resources = ["deployments"];
+        resourceNames = ["coredns"];
+        verbs = ["get" "patch"];
+      }
+    ];
+    kube-system.RoleBinding.coredns-ha-enforcer = {
+      subjects = [
+        {
+          kind = "ServiceAccount";
+          name = "coredns-ha-enforcer";
+        }
+      ];
+      roleRef = {
+        kind = "Role";
+        name = "coredns-ha-enforcer";
+        apiGroup = "rbac.authorization.k8s.io";
       };
-        # === HA Infrastructure ===
-    
-        # CoreDNS HA enforcer: k3s resets CoreDNS to 1 replica on server restart.
-        # This CronJob ensures 2 replicas every 5 minutes.
-        kube-system.ServiceAccount.coredns-ha-enforcer = {};
-        kube-system.Role.coredns-ha-enforcer.rules = [
-          { apiGroups = ["apps"]; resources = ["deployments"]; resourceNames = ["coredns"]; verbs = ["get" "patch"]; }
+    };
+    kube-system.CronJob.coredns-ha-enforcer = {
+      schedule = "*/5 * * * *";
+      concurrencyPolicy = "Forbid";
+      successfulJobsHistoryLimit = 1;
+      failedJobsHistoryLimit = 1;
+      jobTemplate.spec.template.spec = {
+        serviceAccountName = "coredns-ha-enforcer";
+        restartPolicy = "OnFailure";
+        containers = [
+          {
+            name = "enforcer";
+            image = "bitnami/kubectl:1.35.4";
+            command = ["bash" "-c" (builtins.readFile ./coredns-ha-enforcer.sh)];
+            resources = {
+              requests = {
+                cpu = "10m";
+                memory = "32Mi";
+              };
+              limits = {
+                cpu = "50m";
+                memory = "64Mi";
+              };
+            };
+          }
         ];
-        kube-system.RoleBinding.coredns-ha-enforcer = {
-          subjects = [{ kind = "ServiceAccount"; name = "coredns-ha-enforcer"; }];
-          roleRef = { kind = "Role"; name = "coredns-ha-enforcer"; apiGroup = "rbac.authorization.k8s.io"; };
-        };
-        kube-system.CronJob.coredns-ha-enforcer = {
-          schedule = "*/5 * * * *";
-          concurrencyPolicy = "Forbid";
-          successfulJobsHistoryLimit = 1;
-          failedJobsHistoryLimit = 1;
-          jobTemplate.spec.template.spec = {
-            serviceAccountName = "coredns-ha-enforcer";
-            restartPolicy = "OnFailure";
-            containers = [{
-              name = "enforcer";
-              image = "bitnami/kubectl:1.35.4";
-              command = ["bash" "-c" (builtins.readFile ./coredns-ha-enforcer.sh)];
-              resources = {
-                requests = { cpu = "10m"; memory = "32Mi"; };
-                limits = { cpu = "50m"; memory = "64Mi"; };
-              };
-            }];
-          };
-        };
-    
-        # Local container registry on nexus for cluster-built images.
-        # Gateway HA pods on sentry pull from here instead of needing pre-loaded images.
-        kube-system.PersistentVolumeClaim.local-registry-data = {
-          accessModes = ["ReadWriteOnce"];
-          storageClassName = "local-path";
-          resources.requests.storage = "20Gi";
-        };
-        kube-system.Deployment.local-registry = {
-          replicas = 1;
-          selector.matchLabels.app = "local-registry";
-          template.metadata.labels.app = "local-registry";
-          template.spec = {
-            nodeSelector."kubernetes.io/hostname" = "nexus";
-            containers = [{
-              name = "registry";
-              image = "registry:2";
-              ports = [{ containerPort = 5000; hostPort = 5000; protocol = "TCP"; }];
-              env.REGISTRY_STORAGE_DELETE_ENABLED = "true";
-              volumeMounts = [{ name = "data"; mountPath = "/var/lib/registry"; }];
-              livenessProbe = {
-                httpGet = { path = "/v2/"; port = 5000; };
-                initialDelaySeconds = 5;
-                periodSeconds = 10;
-              };
-              readinessProbe = {
-                httpGet = { path = "/v2/"; port = 5000; };
-                initialDelaySeconds = 3;
-                periodSeconds = 5;
-              };
-              resources = {
-                requests = { cpu = "50m"; memory = "64Mi"; };
-                limits = { cpu = "200m"; memory = "256Mi"; };
-              };
-            }];
-            volumes = [{ name = "data"; persistentVolumeClaim.claimName = "local-registry-data"; }];
-          };
-        };
-        monitoring.NetworkPolicy.allow-monitoring-api-server = {
-          spec = {
-            podSelector.matchLabels.app = "alloy";
-            policyTypes = ["Egress"];
-            egress = [
+      };
+    };
+
+    # Local container registry on nexus for cluster-built images.
+    # Gateway HA pods on sentry pull from here instead of needing pre-loaded images.
+    kube-system.PersistentVolumeClaim.local-registry-data = {
+      accessModes = ["ReadWriteOnce"];
+      storageClassName = "local-path";
+      resources.requests.storage = "20Gi";
+    };
+    kube-system.Deployment.local-registry = {
+      replicas = 1;
+      selector.matchLabels.app = "local-registry";
+      template.metadata.labels.app = "local-registry";
+      template.spec = {
+        nodeSelector."kubernetes.io/hostname" = "nexus";
+        containers = [
+          {
+            name = "registry";
+            image = "registry:2";
+            ports = [
               {
-                to = [{ipBlock.cidr = cluster.subnet;}];
-                ports = [
-                  {
-                    protocol = "TCP";
-                    port = 6443;
-                  }
-                ];
+                containerPort = 5000;
+                hostPort = 5000;
+                protocol = "TCP";
               }
             ];
-          };
-        };
+            env.REGISTRY_STORAGE_DELETE_ENABLED = "true";
+            volumeMounts = [
+              {
+                name = "data";
+                mountPath = "/var/lib/registry";
+              }
+            ];
+            livenessProbe = {
+              httpGet = {
+                path = "/v2/";
+                port = 5000;
+              };
+              initialDelaySeconds = 5;
+              periodSeconds = 10;
+            };
+            readinessProbe = {
+              httpGet = {
+                path = "/v2/";
+                port = 5000;
+              };
+              initialDelaySeconds = 3;
+              periodSeconds = 5;
+            };
+            resources = {
+              requests = {
+                cpu = "50m";
+                memory = "64Mi";
+              };
+              limits = {
+                cpu = "200m";
+                memory = "256Mi";
+              };
+            };
+          }
+        ];
+        volumes = [
+          {
+            name = "data";
+            persistentVolumeClaim.claimName = "local-registry-data";
+          }
+        ];
+      };
     };
+    monitoring.NetworkPolicy.allow-monitoring-api-server = {
+      spec = {
+        podSelector.matchLabels.app = "alloy";
+        policyTypes = ["Egress"];
+        egress = [
+          {
+            to = [{ipBlock.cidr = cluster.subnet;}];
+            ports = [
+              {
+                protocol = "TCP";
+                port = 6443;
+              }
+            ];
+          }
+        ];
+      };
+    };
+  };
 }

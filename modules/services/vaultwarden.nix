@@ -107,7 +107,6 @@ in {
       };
     };
 
-
     networking.firewall.interfaces."tailscale0".allowedTCPPorts = [cfg.port];
 
     environment.systemPackages = with pkgs; [vaultwarden];

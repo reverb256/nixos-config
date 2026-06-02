@@ -269,7 +269,7 @@ in {
 
     blockedPorts = mkOption {
       type = types.listOf types.int;
-      default = [ 5353 5354 5355 ];
+      default = [5353 5354 5355];
       description = "Non-standard DNS ports to block (mDNS, LLMNR, etc.)";
     };
   };
@@ -295,25 +295,25 @@ in {
         ''
       ];
 
-#      # Block outbound DNS on non-standard ports (prevents tunneling via alternate ports)
-#      extraOutputRules = mkIf cfg.enablePortBlocking (mkOptionDefault ''
-#        # Block outbound DNS on non-standard ports
-#        # Allows only port 53 (standard DNS) and 853 (DNS-over-TLS) to authorized upstreams
-#        ip protocol udp udp dport { ${lib.concatStringsSep ", " (map toString cfg.blockedPorts)} } counter drop
-#        ip protocol tcp tcp dport { ${lib.concatStringsSep ", " (map toString cfg.blockedPorts)} } counter drop
-#
-#        # Block all outbound DNS to non-authorized destinations (except local unbound)
-#        # This prevents pods/containers from bypassing the local resolver
-#        ip daddr != { 127.0.0.1, ${lib.concatStringsSep ", " allowedUpstreamDns} } ip protocol udp udp dport 53 counter drop
-#        ip daddr != { 127.0.0.1, ${lib.concatStringsSep ", " allowedUpstreamDns} } ip protocol tcp tcp dport 53 counter drop
-#
-#        # Allow DNS to localhost (our unbound resolver)
-#        ip daddr 127.0.0.1 udp dport 53 accept
-#        ip daddr 127.0.0.1 tcp dport 53 accept
-#
-#        # Allow DNS-over-TLS to authorized upstreams
-#        ip daddr { ${lib.concatStringsSep ", " allowedUpstreamDns} } tcp dport 853 accept
-#      '');
+      #      # Block outbound DNS on non-standard ports (prevents tunneling via alternate ports)
+      #      extraOutputRules = mkIf cfg.enablePortBlocking (mkOptionDefault ''
+      #        # Block outbound DNS on non-standard ports
+      #        # Allows only port 53 (standard DNS) and 853 (DNS-over-TLS) to authorized upstreams
+      #        ip protocol udp udp dport { ${lib.concatStringsSep ", " (map toString cfg.blockedPorts)} } counter drop
+      #        ip protocol tcp tcp dport { ${lib.concatStringsSep ", " (map toString cfg.blockedPorts)} } counter drop
+      #
+      #        # Block all outbound DNS to non-authorized destinations (except local unbound)
+      #        # This prevents pods/containers from bypassing the local resolver
+      #        ip daddr != { 127.0.0.1, ${lib.concatStringsSep ", " allowedUpstreamDns} } ip protocol udp udp dport 53 counter drop
+      #        ip daddr != { 127.0.0.1, ${lib.concatStringsSep ", " allowedUpstreamDns} } ip protocol tcp tcp dport 53 counter drop
+      #
+      #        # Allow DNS to localhost (our unbound resolver)
+      #        ip daddr 127.0.0.1 udp dport 53 accept
+      #        ip daddr 127.0.0.1 tcp dport 53 accept
+      #
+      #        # Allow DNS-over-TLS to authorized upstreams
+      #        ip daddr { ${lib.concatStringsSep ", " allowedUpstreamDns} } tcp dport 853 accept
+      #      '');
     };
 
     # ── Unbound: Enable query logging for detection ─────────────────────
@@ -328,9 +328,9 @@ in {
     # ── DNS Tunnel Detection Service ─────────────────────────────────────
     systemd.services.dns-tunnel-detector = mkIf cfg.enableDetection {
       description = "DNS Tunneling Pattern Detector";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "unbound.service" ];
-      requires = [ "unbound.service" ];
+      wantedBy = ["multi-user.target"];
+      after = ["unbound.service"];
+      requires = ["unbound.service"];
 
       serviceConfig = {
         Type = "simple";
@@ -344,16 +344,16 @@ in {
         NoNewPrivileges = false; # Needs to read unbound logs
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = [ "/var/run/dns-tunnel-protection" "/var/log/dns-tunnel-alerts.log" ];
-        ReadOnlyPaths = [ "/var/log/unbound" ];
+        ReadWritePaths = ["/var/run/dns-tunnel-protection" "/var/log/dns-tunnel-alerts.log"];
+        ReadOnlyPaths = ["/var/log/unbound"];
       };
     };
 
     # ── Metrics collector (runs via systemd timer for node_exporter) ─────
     systemd.services.dns-metrics-collector = mkIf cfg.enableDetection {
       description = "Collect DNS tunnel metrics for Prometheus";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "dns-tunnel-detector.service" ];
+      wantedBy = ["multi-user.target"];
+      after = ["dns-tunnel-detector.service"];
 
       serviceConfig = {
         Type = "oneshot";
@@ -363,13 +363,13 @@ in {
         NoNewPrivileges = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = [ "/var/lib/node_exporter/textfile_collector" ];
-        ReadOnlyPaths = [ "/var/run/dns-tunnel-protection" ];
+        ReadWritePaths = ["/var/lib/node_exporter/textfile_collector"];
+        ReadOnlyPaths = ["/var/run/dns-tunnel-protection"];
       };
     };
 
     systemd.timers.dns-metrics-collector = mkIf cfg.enableDetection {
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnBootSec = "30s";
         OnUnitActiveSec = "${toString cfg.detectionIntervalSeconds}s";
