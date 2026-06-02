@@ -147,15 +147,3 @@ in {
     enableShellEnv = true;
   };
 
-  # Agent network restrictions — disabled on Sentry (monitoring node, no agents)
-  services.agent-firewall.enable = lib.mkForce false;
-
-  # Jitterentropy not supported on Sentry's CPU
-  systemd.services.jitterentropy.enable = lib.mkForce false;
-
-  # SpotX flatpak not installed on Sentry
-  systemd.services.spotx-patch.enable = lib.mkForce false;
-  systemd.services.spotx-patch.wantedBy = lib.mkForce [];
-  systemd.timers.spotx-patch.wantedBy = lib.mkForce [];
-  systemd.services.spotify-spotx.wantedBy = lib.mkForce [];
-}
