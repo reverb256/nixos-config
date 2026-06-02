@@ -1,14 +1,16 @@
-# Rescue USB — NixOS Live ISO with Niri desktop + Hermes agent
+# Unified USB — Portable NixOS + Rescue Operations
 #
 # Boots on any x86_64 machine. Provides:
-#   - Niri Wayland desktop with noctalia-shell
+#   - Full Niri desktop for daily work (niri, fish, starship, git, vim, tmux)
+#   - Rescue tools (btrfs-progs, lvm2, cryptsetup, mdadm, smartmontools)
+#   - Rescue scripts (detect-hosts, mount-cluster, rebuild-host, hardware-scan, boot-diagnostics, fix-btrfs-default)
 #   - Hermes agent pointing at AI gateway
 #   - SSH access via j_kro user
-#   - Rescue tools (btrfs-progs, lvm2, cryptsetup)
 #   - Network access (NetworkManager, DHCP)
+#   - NFS client for mounting config from Zephyr
 #
-# Build:  nix build .#nixosConfigurations.usb-rescue.config.system.build.isoImage
-# Flash:  sudo dd if=result/iso/*.iso of=/dev/sda bs=4M status=progress
+# Build:  nix build .#nixosConfigurations.usb.config.system.build.isoImage
+# Flash:  sudo dd if=result/iso/*.iso of=/dev/sdX bs=4M status=progress
 #
 {
   config,
@@ -49,7 +51,7 @@
     while true; do
       clear
       echo -e "''${BLU}╔═══════════════════════════════════════════════════════════╗''${NC}"
-      echo -e "''${BLU}║         NixOS Cluster Rescue USB v2.0                    ║''${NC}"
+      echo -e "''${BLU}║      Unified NixOS USB — Workstation + Rescue v2.0        ║''${NC}"
       echo -e "''${BLU}╠═══════════════════════════════════════════════════════════╣''${NC}"
       echo -e "''${BLU}║ 1) Detect cluster hosts (network scan)                   ║''${NC}"
       echo -e "''${BLU}║ 2) Mount NFS share from Zephyr                           ║''${NC}"
@@ -103,16 +105,7 @@
           clear
           echo -e "''${YEL}==> Rebuild host from NFS''${NC}"
           echo ""
-          echo "Available hosts: nexus, zephyr, forge, sentry"
-          echo -n "Target host: "
-          read -r host
-          echo -n "Root device (blank to auto-detect): "
-          read -r dev
-          if [ -z "$dev" ]; then
-            rescue-rebuild-host "$host"
-          else
-            rescue-rebuild-host "$host" "$dev"
-          fi
+          echo "Usage: rescue-rebuild-host <hostname> [path-to-config]"
           echo ""
           read -p "Press Enter to continue..."
           ;;
@@ -120,12 +113,7 @@
           clear
           echo -e "''${YEL}==> Fix btrfs default subvolume''${NC}"
           echo ""
-          echo -n "Device (e.g. /dev/nvme1n1p2): "
-          read -r dev
-          echo -n "Subvolume ID (default 256 for @): "
-          read -r subvol
-          subvol=''${subvol:-256}
-          rescue-fix-btrfs-default "$dev" "$subvol" || echo "Script failed"
+          echo "Usage: rescue-fix-btrfs-default <device> <subvolume>"
           echo ""
           read -p "Press Enter to continue..."
           ;;
@@ -133,70 +121,54 @@
           clear
           echo -e "''${YEL}==> Manual mount/chroot''${NC}"
           echo ""
-          echo "Available filesystems:"
-          lsblk -f
+          echo "Steps:"
+          echo "1. Identify target disk: lsblk -f"
+          echo "2. Mount root: mount /dev/sdX2 /mnt"
+          echo "3. Mount boot: mount /dev/sdX1 /mnt/boot"
+          echo "4. Enter chroot: nixos-enter /mnt"
           echo ""
-          echo -n "Device to mount (e.g. /dev/nvme0n1p2): "
-          read -r dev
-          echo -n "Mount point (default /mnt): "
-          read -r mnt
-          mnt=''${mnt:-/mnt}
-          sudo mkdir -p "$mnt"
-          sudo mount "$dev" "$mnt"
-          echo -e "''${GRN}Mounted $dev at $mnt''${NC}"
-          echo ""
-          echo "Mount ESP (boot)?"
-          echo -n "  Device (blank to skip): "
-          read -r esp_dev
-          if [ -n "$esp_dev" ]; then
-            sudo mkdir -p "$mnt/boot"
-            sudo mount "$esp_dev" "$mnt/boot"
-            echo -e "''${GRN}Mounted $esp_dev at $mnt/boot''${NC}"
-          fi
-          echo ""
-          echo "Starting nixos-enter chroot..."
-          echo "  Inside chroot: cd /mnt/nixos-shared && nixos-rebuild switch --flake .#<host>"
-          echo "  Exit with: exit or Ctrl-D"
-          echo ""
-          sudo nixos-enter --root "$mnt" || echo "nixos-enter failed"
+          read -p "Press Enter to continue..."
           ;;
         8)
           clear
           echo -e "''${YEL}==> SSH to cluster host''${NC}"
           echo ""
-          echo "Available hosts: zephyr, nexus, forge, sentry"
-          echo -n "Target host: "
-          read -r host
-          ssh "$host"
+          echo "Available hosts:"
+          echo "  zephyr (10.1.1.110)"
+          echo "  nexus (10.1.1.120)"
+          echo "  forge (10.1.1.130)"
+          echo "  sentry (10.1.1.140)"
+          echo ""
+          read -p "Enter hostname: " host
+          ssh "j_kro@$host" || true
           ;;
         9)
           clear
-          echo -e "''${YEL}==> Launching Hermes AI assistant''${NC}"
+          echo -e "''${YEL}==> Launch Hermes AI assistant''${NC}"
           echo ""
-          echo "Ask for help with recovery, diagnostics, or any issue."
-          echo "Exit with: exit or Ctrl-D"
+          echo "Run: hermes"
           echo ""
-          hermes || echo "Hermes not available"
+          read -p "Press Enter to continue..."
           ;;
         0)
           clear
-          echo -e "''${YEL}Rebooting...''${NC}"
-          sudo systemctl reboot
-          exit 0
+          echo -e "''${YEL}==> Rebooting''${NC}"
+          echo ""
+          sudo reboot || poweroff
           ;;
         *)
-          echo "Invalid selection."
-          sleep 1
+          echo -e "''${RED}Invalid option''${NC}"
+          sleep 2
           ;;
       esac
     done
   '';
+
 in {
   imports = [
-    # Live ISO base (graphical — X/Wayland, gparted, firefox)
-    "${inputs.nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-graphical-base.nix"
+    # ISO image base
+    "${inputs.nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-graphical-calamares.nix"
 
-    # USB-specific hardware (broad driver support)
     ./hardware-usb.nix
 
     # Selective module imports (NOT modules/default.nix — too heavy)
@@ -247,7 +219,7 @@ in {
 
   # Networking
   networking = {
-    hostName = "usb-rescue";
+    hostName = "usb";
     networkmanager.enable = true;
     wireless.enable = true;
     useDHCP = lib.mkDefault true;
@@ -412,25 +384,34 @@ in {
         chmod 750 "$HERMES_HOME"
   '';
 
-  # System Packages
+  # System Packages — Workstation + Rescue tools
   environment.systemPackages =
     [
       inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.default
       rescue-scripts
     ]
     ++ (with pkgs; [
-      # Shell
+      # Shell & Terminal
       fish
+      starship
       zoxide
       fzf
       eza
       btop
+      htop
       tmux
       mosh
+      bat
+      ripgrep
+      fd
 
       # Git + GitHub
       git
       gh
+
+      # Development
+      vim
+      nano
 
       # Networking
       nmap
@@ -440,9 +421,12 @@ in {
       net-tools
       curl
       wget
+      httpie
       jq
+      yq
       tcpdump
       mtr
+      whois
 
       # NFS client for mounting config from Zephyr
       nfs-utils
@@ -466,17 +450,12 @@ in {
       # Additional recovery tools
       efibootmgr
       gptfdisk
-      htop
       iotop
       pciutils
       usbutils
 
       # NixOS tools
       inputs.colmena.packages.${pkgs.stdenv.hostPlatform.system}.colmena
-
-      # Editors
-      vim
-      nano
 
       # Browser
       firefox
@@ -486,7 +465,40 @@ in {
 
       # Rescue script
       rescue-script
+
+      # Shell utilities
+      bc
+      rsync
+      tree
+      tokei
+      dust
+
+      # Compression
+      unzip
+      zip
+      tar
+      gzip
+      xz
+      bzip2
+      p7zip
+
+      # Media
+      feh
+      mpv
+      imagemagick
+      ffmpeg
+
+      # Monitoring
+      nvtop
     ]);
+
+  # Fonts
+  fonts.fonts = with pkgs.nerdfonts; [
+    JetBrainsMono
+    FiraCode
+    Hack
+    SourceCodePro
+  ];
 
   # ZRAM (reduce writes on flash)
   zramSwap = {
@@ -503,5 +515,5 @@ in {
     options = ["size=2G" "mode=1777" "nosuid" "nodev"];
   };
 
-  system.stateVersion = "25.11";
+  system.stateVersion = "26.05";
 }
