@@ -42,7 +42,7 @@ in {
     package = mkOption {
       type = types.nullOr types.package;
       default = scopebuddyPkg;
-      defaultText = literalExpression "inputs.scopebuddy.packages.\${system}.default";
+      defaultText = literalExpression "inputs.scopebuddy.packages.\${pkgs.stdenv.hostPlatform.system}.default";
       description = "ScopeBuddy package (from flake input). Null if input not available.";
     };
 
