@@ -368,6 +368,7 @@ in {
       WorkingDirectory = "/home/j_kro/actions-runner-official";
         Environment = [
           "DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1"
+          "PATH=${lib.makeBinPath [pkgs.coreutils pkgs.gnutar pkgs.gzip pkgs.git pkgs.bash pkgs.gnugrep pkgs.findutils pkgs.curl pkgs.openssl]}"
           "LD_LIBRARY_PATH=${lib.makeLibraryPath [pkgs.icu]}"
           "NIX_ICU_DATA=${pkgs.icu}/share/icu/${pkgs.icu.version}"
           "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
