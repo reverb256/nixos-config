@@ -105,6 +105,8 @@ in {
       enable = true;
       populateLocal = true;
     };
+    # Block Hoyoverse telemetry domains (Genshin Impact, Honkai Star Rail, Zenless Zone Zero)
+    hoyoverse-telemetry-block.enable = true;
   };
 
   profiles.node.zephyr-workstation.enable = true;

@@ -43,6 +43,9 @@
     unbound.listenAddress = config.networking.cluster.hosts.sentry.ip;
   };
 
+  # Block Hoyoverse telemetry domains (Genshin Impact, Honkai Star Rail, Zenless Zone Zero)
+  networking.hoyoverse-telemetry-block.enable = true;
+
   # Declarative static IP for eth0 — NM connection persisted across rebuilds
   environment.etc."NetworkManager/system-connections/static-eth0.nmconnection" = {
     mode = "0600";
