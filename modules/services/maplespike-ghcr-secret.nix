@@ -8,23 +8,22 @@
   ...
 }: let
   cfg = config.services.maplespike-ghcr-secret;
-  
 in {
   options.services.maplespike-ghcr-secret = {
     enable = lib.mkEnableOption "MapleSpike GHCR image pull secret management";
-    
+
     githubTokenPath = lib.mkOption {
       type = lib.types.str;
       default = "/run/agenix/github-token";
       description = "Path to GitHub PAT in agenix";
     };
-    
+
     secretName = lib.mkOption {
       type = lib.types.str;
       default = "ghcr-pull";
       description = "Name of the Kubernetes secret";
     };
-    
+
     namespaces = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = ["maplespike-prod" "maplespike-dev"];
@@ -48,7 +47,7 @@ in {
       path = [pkgs.kubectl pkgs.coreutils pkgs.jq];
       script = ''
         set -euo pipefail
-        
+
         echo "[maplespike-ghcr-secret] Waiting for K8s API..."
         elapsed=0
         until kubectl get nodes &>/dev/null; do
@@ -59,34 +58,35 @@ in {
             exit 1
           fi
         done
-        
+
         # Read GitHub token from agenix
         GITHUB_TOKEN=$(cat ${cfg.githubTokenPath} 2>/dev/null || echo "")
-        
+
         if [ -z "$GITHUB_TOKEN" ]; then
           echo "[maplespike-ghcr-secret] ERROR: Could not read GitHub token from ${cfg.githubTokenPath}"
           exit 1
         fi
-        
+
         # Create/update secrets in each namespace
         ${lib.concatMapStrings (ns: ''
-          echo "[maplespike-ghcr-secret] Processing namespace: ${ns}"
-          
-          if kubectl get secret ${cfg.secretName} -n ${ns} &>/dev/null; then
-            echo "[maplespike-ghcr-secret] Secret ${cfg.secretName} exists in ${ns}, updating..."
-            kubectl delete secret ${cfg.secretName} -n ${ns}
-          fi
-          
-          kubectl create secret docker-registry ${cfg.secretName} \
-            -n ${ns} \
-            --docker-server=ghcr.io \
-            --docker-username=reverb256 \
-            --docker-password="$GITHUB_TOKEN" \
-            --docker-email=j_kroeker@reverb256.ca
-          
-          echo "[maplespike-ghcr-secret] Created/updated secret in ${ns}"
-        '') cfg.namespaces}
-        
+            echo "[maplespike-ghcr-secret] Processing namespace: ${ns}"
+
+            if kubectl get secret ${cfg.secretName} -n ${ns} &>/dev/null; then
+              echo "[maplespike-ghcr-secret] Secret ${cfg.secretName} exists in ${ns}, updating..."
+              kubectl delete secret ${cfg.secretName} -n ${ns}
+            fi
+
+            kubectl create secret docker-registry ${cfg.secretName} \
+              -n ${ns} \
+              --docker-server=ghcr.io \
+              --docker-username=reverb256 \
+              --docker-password="$GITHUB_TOKEN" \
+              --docker-email=j_kroeker@reverb256.ca
+
+            echo "[maplespike-ghcr-secret] Created/updated secret in ${ns}"
+          '')
+          cfg.namespaces}
+
         echo "[maplespike-ghcr-secret] Done."
       '';
     };
@@ -112,23 +112,24 @@ in {
       path = [pkgs.kubectl pkgs.coreutils];
       script = ''
         set -euo pipefail
-        
+
         GITHUB_TOKEN=$(cat ${cfg.githubTokenPath} 2>/dev/null || echo "")
         if [ -z "$GITHUB_TOKEN" ]; then
           echo "[maplespike-ghcr-secret-sync] Could not read token, skipping"
           exit 0
         fi
-        
+
         ${lib.concatMapStrings (ns: ''
-          kubectl delete secret ${cfg.secretName} -n ${ns} --ignore-not-found
-          kubectl create secret docker-registry ${cfg.secretName} \
-            -n ${ns} \
-            --docker-server=ghcr.io \
-            --docker-username=reverb256 \
-            --docker-password="$GITHUB_TOKEN" \
-            --docker-email=j_kroeker@reverb256.ca || true
-        '') cfg.namespaces}
-        
+            kubectl delete secret ${cfg.secretName} -n ${ns} --ignore-not-found
+            kubectl create secret docker-registry ${cfg.secretName} \
+              -n ${ns} \
+              --docker-server=ghcr.io \
+              --docker-username=reverb256 \
+              --docker-password="$GITHUB_TOKEN" \
+              --docker-email=j_kroeker@reverb256.ca || true
+          '')
+          cfg.namespaces}
+
         echo "[maplespike-ghcr-secret-sync] Synced secrets"
       '';
     };

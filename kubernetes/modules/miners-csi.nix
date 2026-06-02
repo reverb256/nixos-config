@@ -5,7 +5,7 @@
 # for hardware devices (/dev, /run/opengl-driver/lib, /etc/static).
 #
 # Requires nix-csi CSI driver deployed (nix-csi.nix).
-# 
+#
 # Phase 0: hostPath /nix/store (works immediately)
 # Phase 1: CSI ephemeral volumes (after nix-csi driver is verified)
 {
@@ -47,7 +47,10 @@
     opengl-driver = {mountPath = "/run/opengl-driver/lib";};
     dev = {mountPath = "/dev";};
     opencl-icd = {mountPath = "/etc/OpenCL/vendors";};
-    etc-static = {mountPath = "/etc/static"; readOnly = true;};
+    etc-static = {
+      mountPath = "/etc/static";
+      readOnly = true;
+    };
   };
 
   # Shared volumes for AMD miners
@@ -55,35 +58,71 @@
     _namedlist = true;
     tmp = {emptyDir = {};};
     opengl-driver = {hostPath.path = "/run/opengl-driver/lib";};
-    dev = {hostPath = {path = "/dev"; type = "Directory";};};
-    opencl-icd = {hostPath = {path = "/etc/OpenCL/vendors"; type = "Directory";};};
-    etc-static = {hostPath = {path = "/etc/static"; type = "Directory";};};
+    dev = {
+      hostPath = {
+        path = "/dev";
+        type = "Directory";
+      };
+    };
+    opencl-icd = {
+      hostPath = {
+        path = "/etc/OpenCL/vendors";
+        type = "Directory";
+      };
+    };
+    etc-static = {
+      hostPath = {
+        path = "/etc/static";
+        type = "Directory";
+      };
+    };
   };
 
   # Add nix-store to volumes/mounts based on mode
   amdVolumeMountsFinal =
     if useNixCsi
-    then amdVolumeMounts // {nix-store = {mountPath = "/nix/store"; readOnly = true;};}
-    else amdVolumeMounts // {nix-store = {mountPath = "/nix/store"; readOnly = true;};};
+    then
+      amdVolumeMounts
+      // {
+        nix-store = {
+          mountPath = "/nix/store";
+          readOnly = true;
+        };
+      }
+    else
+      amdVolumeMounts
+      // {
+        nix-store = {
+          mountPath = "/nix/store";
+          readOnly = true;
+        };
+      };
 
   amdVolumesFinal =
     if useNixCsi
-    then amdVolumes // {
-      nix-store = {
-        csi = {
-          driver = "nix.csi.store";
-          readOnly = true;
-          volumeAttributes = {
-            storePath = "/nix/store";
+    then
+      amdVolumes
+      // {
+        nix-store = {
+          csi = {
+            driver = "nix.csi.store";
+            readOnly = true;
+            volumeAttributes = {
+              storePath = "/nix/store";
+            };
+          };
+        };
+      }
+    else
+      amdVolumes
+      // {
+        nix-store = {
+          hostPath = {
+            path = "/nix/store";
+            type = "Directory";
           };
         };
       };
-    }
-    else amdVolumes // {
-      nix-store = {
-        hostPath = {path = "/nix/store"; type = "Directory";};
-      };
-    };
 
   # Script to download and run lolMiner (for ubuntu base image)
   mkAmdScript = user: device: apiport: ''
@@ -108,15 +147,14 @@
     device,
     apiport,
   }: {
-    metadata.labels =
-      {
-        app = name;
-        "mining-coin" = "xtm";
-        "mining-group" = "amd";
-        "gpu-vendor" = "amd";
-        host = "forge";
-        workload = "crypto-mining";
-      };
+    metadata.labels = {
+      app = name;
+      "mining-coin" = "xtm";
+      "mining-group" = "amd";
+      "gpu-vendor" = "amd";
+      host = "forge";
+      workload = "crypto-mining";
+    };
     spec = {
       replicas = 1;
       revisionHistoryLimit = 1;
@@ -151,8 +189,14 @@
                 failureThreshold = 10;
               };
               resources = {
-                requests = {memory = "2Gi"; cpu = "500m";};
-                limits = {memory = "4Gi"; cpu = "2";};
+                requests = {
+                  memory = "2Gi";
+                  cpu = "500m";
+                };
+                limits = {
+                  memory = "4Gi";
+                  cpu = "2";
+                };
               };
               securityContext.privileged = true;
               volumeMounts = amdVolumeMountsFinal;

@@ -34,69 +34,6 @@
   clusterSubnet = "10.1.1.0/24";
   podCidr = "10.244.0.0/16";
 
-  # nftables rules configuration file
-  environment.etc."nftables/agent-firewall.conf".text = ''
-
-    table inet agent-firewall {
-      # ── Sets ──────────────────────────────────────────────────────
-      add set inet agent-firewall allowed_external_ips {
-        type ipv4_addr;
-        flags interval;
-        elements = { 104.18.0.0/15, 140.82.112.0/20, 34.160.0.0/16 };
-      }
-
-      add set inet agent-firewall local_services {
-        type ipv4_addr;
-        flags interval;
-        elements = { ${clusterSubnet} };
-      }
-
-      add set inet agent-firewall allowed_external_ports {
-        type inet_service;
-        elements = { 80, 443 };
-      }
-
-      add set inet agent-firewall allowed_local_ports {
-        type inet_service;
-        elements = { 53, 80, 443, 8080, 6443, 3456, 8040, 1235, 1237 };
-      };
-
-      # ── Chains ────────────────────────────────────────────────────
-
-      add chain inet agent-firewall agent-egress {
-        type filter hook output priority -150;
-      }
-
-      add rule inet agent-firewall agent-egress oifname "lo" accept;
-      add rule inet agent-firewall agent-egress ct state established,related accept;
-      add rule inet agent-firewall agent-egress udp dport 53 accept;
-      add rule inet agent-firewall agent-egress tcp dport 53 accept;
-      add rule inet agent-firewall agent-egress ip protocol icmp accept;
-      add rule inet agent-firewall agent-egress ip6 nexthdr icmpv6 accept;
-      add rule inet agent-firewall agent-egress ip daddr @local_services tcp dport @allowed_local_ports accept;
-      add rule inet agent-firewall agent-egress ip daddr ${podCidr} accept;
-      add rule inet agent-firewall agent-egress ip daddr @allowed_external_ips tcp dport @allowed_external_ports accept;
-      add rule inet agent-firewall agent-egress oifname "tailscale0" accept;
-      ${lib.optionalString cfg.auditLog "add rule inet agent-firewall agent-egress log prefix \"AGENT-DROP: \" level info counter;"}
-      add rule inet agent-firewall agent-egress drop;
-
-      add chain inet agent-firewall cgroup-classify {
-        type filter hook output priority -151;
-      };
-
-      #add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-hermes.slice" jump agent-egress;
-      # TEMPORARILY DISABLED - slices do not exist
-      #add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-opencode.slice" jump agent-egress;
-      # TEMPORARILY DISABLED - slices do not exist
-      #add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-claude.slice" jump agent-egress;
-      # TEMPORARILY DISABLED - slices do not exist
-      #add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-omp.slice" jump agent-egress;
-      # TEMPORARILY DISABLED - slices do not exist
-      #add rule inet agent-firewall cgroup-classify socket cgroupv2 level 1 "agent-pi.slice" jump agent-egress;
-    }
-  '';
-
-
   # Script to verify agent firewall status
   agentStatusScript = pkgs.writeShellScriptBin "agent-firewall-status" ''
     #!/usr/bin/env bash
@@ -125,13 +62,13 @@
 
     # Show recent drops
     ${lib.optionalString cfg.auditLog ''
-    echo "--- Recent AGENT-DROP log entries (last 20) ---"
-    journalctl -k --grep="AGENT-DROP" --no-pager -n 20 2>/dev/null || echo "No drops logged"
-    echo ""
+      echo "--- Recent AGENT-DROP log entries (last 20) ---"
+      journalctl -k --grep="AGENT-DROP" --no-pager -n 20 2>/dev/null || echo "No drops logged"
+      echo ""
 
-    echo "--- Drop count (last 24h) ---"
-    COUNT=$(journalctl -k --grep="AGENT-DROP" --since "24 hours ago" --no-pager 2>/dev/null | wc -l)
-    echo "Total: $COUNT drops"
+      echo "--- Drop count (last 24h) ---"
+      COUNT=$(journalctl -k --grep="AGENT-DROP" --since "24 hours ago" --no-pager 2>/dev/null | wc -l)
+      echo "Total: $COUNT drops"
     ''}
   '';
 
@@ -210,8 +147,57 @@ in {
     # Enable nftables if not already enabled
     networking.nftables.enable = true;
 
+    # nftables rules configuration file
+    environment.etc."nftables/agent-firewall.conf".text = ''
+      add table inet agent-firewall
+      delete table inet agent-firewall
+      table inet agent-firewall {
+        set allowed_external_ips {
+          type ipv4_addr;
+          flags interval;
+          elements = { 104.18.0.0/15, 140.82.112.0/20, 34.160.0.0/16 };
+        }
+
+        set local_services {
+          type ipv4_addr;
+          flags interval;
+          elements = { ${clusterSubnet} };
+        }
+
+        set allowed_external_ports {
+          type inet_service;
+          elements = { 80, 443 };
+        }
+
+        set allowed_local_ports {
+          type inet_service;
+          elements = { 53, 80, 443, 8080, 6443, 3456, 8040, 1235, 1237 };
+        }
+
+        chain agent-egress {
+          type filter hook output priority -150;
+          oifname "lo" accept
+          ct state established,related accept
+          udp dport 53 accept
+          tcp dport 53 accept
+          ip protocol icmp accept
+          ip6 nexthdr icmpv6 accept
+          ip daddr @local_services tcp dport @allowed_local_ports accept
+          ip daddr ${podCidr} accept
+          ip daddr @allowed_external_ips tcp dport @allowed_external_ports accept
+          oifname "tailscale0" accept
+          ${lib.optionalString cfg.auditLog "log prefix \"AGENT-DROP: \" level info counter"}
+          drop
+        }
+
+        chain cgroup-classify {
+          type filter hook output priority -151;
+        }
+      }
+    '';
+
     # Install helper scripts
-    environment.systemPackages = [ agentStatusScript agentRunScript ];
+    environment.systemPackages = [agentStatusScript agentRunScript];
 
     # Create agent cgroup slices
     systemd.slices = {
@@ -240,9 +226,9 @@ in {
     # Apply nftables rules at boot
     systemd.services.agent-firewall = {
       description = "Apply agent network restriction nftables rules";
-      after = [ "nftables.service" "network-online.target" ];
-      wants = [ "network-online.target" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["nftables.service" "network-online.target"];
+      wants = ["network-online.target"];
+      wantedBy = ["multi-user.target"];
 
       serviceConfig = {
         Type = "oneshot";
@@ -257,7 +243,7 @@ in {
     # Periodic audit: log agent network policy violations summary
     systemd.services.agent-firewall-audit = mkIf cfg.auditLog {
       description = "Agent firewall audit summary";
-      path = with pkgs; [ coreutils gnugrep jq ];
+      path = with pkgs; [coreutils gnugrep jq];
 
       serviceConfig = {
         Type = "oneshot";
@@ -313,7 +299,7 @@ in {
 
     systemd.timers.agent-firewall-audit = mkIf cfg.auditLog {
       description = "Agent firewall audit timer";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnCalendar = "daily";
         Persistent = true;

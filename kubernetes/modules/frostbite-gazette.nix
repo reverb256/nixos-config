@@ -15,14 +15,16 @@ in {
     Secret.frostbite-secrets = {
       type = "Opaque";
       # TODO: Fill from agenix key `frostbite-postgres` (see modules/system/agenix-secrets-registry.nix)
-      stringData = { postgres-password = ""; };
+      stringData = {postgres-password = "";};
     };
 
     StatefulSet.frostbite-postgres = {
-      metadata.labels = managed // {
-        "app.kubernetes.io/component" = "database";
-        "app" = "frostbite-postgres";
-      };
+      metadata.labels =
+        managed
+        // {
+          "app.kubernetes.io/component" = "database";
+          "app" = "frostbite-postgres";
+        };
       spec = {
         serviceName = "frostbite-postgres";
         replicas = 1;
@@ -33,13 +35,16 @@ in {
             "app.kubernetes.io/component" = "database";
           };
           spec = {
-            securityContext = { fsGroup = 999; };
+            securityContext = {fsGroup = 999;};
             containers._namedlist = true;
             containers.postgres = {
               image = postgresImage;
               imagePullPolicy = "IfNotPresent";
               ports._namedlist = true;
-              ports.postgres = { containerPort = 5432; protocol = "TCP"; };
+              ports.postgres = {
+                containerPort = 5432;
+                protocol = "TCP";
+              };
               env._namedlist = true;
               env = {
                 POSTGRES_DB.value = "frostbite";
@@ -51,8 +56,14 @@ in {
                 PGDATA.value = "/var/lib/postgresql/data/pgdata";
               };
               resources = {
-                requests = { cpu = "250m"; memory = "256Mi"; };
-                limits = { cpu = "500m"; memory = "512Mi"; };
+                requests = {
+                  cpu = "250m";
+                  memory = "256Mi";
+                };
+                limits = {
+                  cpu = "500m";
+                  memory = "512Mi";
+                };
               };
               livenessProbe = {
                 exec.command = ["pg_isready" "-U" "frostbite" "-d" "frostbite"];
@@ -92,13 +103,17 @@ in {
         type = "ClusterIP";
         selector = {"app" = "frostbite-postgres";};
         ports._namedlist = true;
-        ports.postgres = { port = 5432; targetPort = 5432; protocol = "TCP"; };
+        ports.postgres = {
+          port = 5432;
+          targetPort = 5432;
+          protocol = "TCP";
+        };
       };
     };
 
     # Init SQL removed — tables already exist in the live DB.
 
-      # v4: pg8000 with IP caching
+    # v4: pg8000 with IP caching
     ConfigMap.frostbite-data-ingest-script.data."ingest.py" = ''
       #!/usr/bin/env python3
       """Frostbite Gazette: civic data ingest."""
@@ -217,7 +232,11 @@ in {
           spec = {
             nodeName = "nexus";
             restartPolicy = "OnFailure";
-            securityContext = { runAsUser = 0; runAsGroup = 0; fsGroup = 100; };
+            securityContext = {
+              runAsUser = 0;
+              runAsGroup = 0;
+              fsGroup = 100;
+            };
             containers = {
               _namedlist = true;
               ingest = {
@@ -225,23 +244,47 @@ in {
                 command = ["sh" "-c" "pip install --quiet pg8000 && python3 /scripts/ingest.py"];
                 env = {
                   _namedlist = true;
-                  PG_HOST = { name = "PG_HOST"; value = "frostbite-postgres"; };
-                  PG_DB   = { name = "PG_DB";   value = "frostbite"; };
-                  PG_USER = { name = "PG_USER"; value = "frostbite"; };
-                  PG_PASSWORD.valueFrom.secretKeyRef = { name = "frostbite-secrets"; key = "postgres-password"; };
+                  PG_HOST = {
+                    name = "PG_HOST";
+                    value = "frostbite-postgres";
+                  };
+                  PG_DB = {
+                    name = "PG_DB";
+                    value = "frostbite";
+                  };
+                  PG_USER = {
+                    name = "PG_USER";
+                    value = "frostbite";
+                  };
+                  PG_PASSWORD.valueFrom.secretKeyRef = {
+                    name = "frostbite-secrets";
+                    key = "postgres-password";
+                  };
                 };
                 resources = {
-                  requests = {cpu = "100m"; memory = "128Mi";};
-                  limits = {cpu = "500m"; memory = "512Mi";};
+                  requests = {
+                    cpu = "100m";
+                    memory = "128Mi";
+                  };
+                  limits = {
+                    cpu = "500m";
+                    memory = "512Mi";
+                  };
                 };
-                volumeMounts = { _namedlist = true; scripts = {mountPath = "/scripts";}; };
+                volumeMounts = {
+                  _namedlist = true;
+                  scripts = {mountPath = "/scripts";};
+                };
               };
             };
             volumes = {
               _namedlist = true;
               scripts = {
                 name = "scripts";
-                configMap = { name = "frostbite-data-ingest-script"; defaultMode = 493; };
+                configMap = {
+                  name = "frostbite-data-ingest-script";
+                  defaultMode = 493;
+                };
               };
             };
           };
@@ -251,10 +294,12 @@ in {
 
     # MCP server - image deprecated and removed, replace with new MCP server image
     frostbite.Deployment.frostbite-mcp = {
-      metadata.labels = managed // {
-        app = "frostbite-mcp";
-        "app.kubernetes.io/component" = "mcp-server";
-      };
+      metadata.labels =
+        managed
+        // {
+          app = "frostbite-mcp";
+          "app.kubernetes.io/component" = "mcp-server";
+        };
       spec = {
         replicas = 1;
         selector.matchLabels = {app = "frostbite-mcp";};
@@ -265,34 +310,71 @@ in {
           };
           spec = {
             nodeName = targetNode;
-            securityContext = { runAsUser = 0; runAsGroup = 0; fsGroup = 100; };
+            securityContext = {
+              runAsUser = 0;
+              runAsGroup = 0;
+              fsGroup = 100;
+            };
             containers = {
               _namedlist = true;
               mcp = {
                 image = "none"; # FIXME: MCP server image removed, replace with new image
                 imagePullPolicy = "IfNotPresent";
                 ports._namedlist = true;
-                ports.http = { containerPort = 3002; protocol = "TCP"; };
+                ports.http = {
+                  containerPort = 3002;
+                  protocol = "TCP";
+                };
                 env = {
                   _namedlist = true;
-                  PG_HOST = { name = "PG_HOST"; value = "frostbite-postgres"; };
-                  PG_DB   = { name = "PG_DB";   value = "frostbite"; };
-                  PG_USER = { name = "PG_USER"; value = "frostbite"; };
-                  PG_PASSWORD.valueFrom.secretKeyRef = { name = "frostbite-secrets"; key = "postgres-password"; };
-                  STATCAN_WDS_URL = { name = "STATCAN_WDS_URL"; value = "https://www150.statcan.gc.ca/t1/wds/rest"; };
-                  PORT = { name = "PORT"; value = "3002"; };
+                  PG_HOST = {
+                    name = "PG_HOST";
+                    value = "frostbite-postgres";
+                  };
+                  PG_DB = {
+                    name = "PG_DB";
+                    value = "frostbite";
+                  };
+                  PG_USER = {
+                    name = "PG_USER";
+                    value = "frostbite";
+                  };
+                  PG_PASSWORD.valueFrom.secretKeyRef = {
+                    name = "frostbite-secrets";
+                    key = "postgres-password";
+                  };
+                  STATCAN_WDS_URL = {
+                    name = "STATCAN_WDS_URL";
+                    value = "https://www150.statcan.gc.ca/t1/wds/rest";
+                  };
+                  PORT = {
+                    name = "PORT";
+                    value = "3002";
+                  };
                 };
                 resources = {
-                  requests = {cpu = "100m"; memory = "128Mi";};
-                  limits = {cpu = "500m"; memory = "512Mi";};
+                  requests = {
+                    cpu = "100m";
+                    memory = "128Mi";
+                  };
+                  limits = {
+                    cpu = "500m";
+                    memory = "512Mi";
+                  };
                 };
                 livenessProbe = {
-                  httpGet = { path = "/health"; port = 3002; };
+                  httpGet = {
+                    path = "/health";
+                    port = 3002;
+                  };
                   initialDelaySeconds = 30;
                   periodSeconds = 60;
                 };
                 readinessProbe = {
-                  httpGet = { path = "/health"; port = 3002; };
+                  httpGet = {
+                    path = "/health";
+                    port = 3002;
+                  };
                   initialDelaySeconds = 60;
                   periodSeconds = 10;
                 };
@@ -312,7 +394,12 @@ in {
         type = "NodePort";
         selector = {app = "frostbite-mcp";};
         ports._namedlist = true;
-        ports.http = { port = 3002; targetPort = 3002; nodePort = 30760; protocol = "TCP"; };
+        ports.http = {
+          port = 3002;
+          targetPort = 3002;
+          nodePort = 30760;
+          protocol = "TCP";
+        };
       };
     };
   };

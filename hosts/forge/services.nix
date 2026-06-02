@@ -35,13 +35,13 @@ in {
 
     spotify-spotx.enable = true;
 
-     opencode.enable = true;
+    opencode.enable = true;
 
-     # Agent network restrictions — restrict AI agents to allowed destinations only
-     agent-firewall = {
-       enable = true;
-       auditLog = true;
-     };
+    # Agent network restrictions — restrict AI agents to allowed destinations only
+    agent-firewall = {
+      enable = true;
+      auditLog = true;
+    };
 
     nixos-share = {
       enable = false;
@@ -140,45 +140,6 @@ in {
     inputs.claude-native.packages.x86_64-linux.claude
   ];
 
-  programs.nix-ld.libraries = with pkgs; [
-    rocmPackages.clr
-    rocmPackages.clr.icd
-    rocmPackages.rocminfo
-    rocmPackages.rocm-smi
-    rocmPackages.rocm-runtime
-    rocmPackages.rocblas
-    rocmPackages.hipblas
-    rocmPackages.hipsparse
-    rocmPackages.rocfft
-    rocmPackages.rocrand
-    rocmPackages.rocthrust
-    ocl-icd
-    opencl-headers
-    clinfo
-    libGL
-    libGLU
-    libglvnd
-    vulkan-loader
-    nvidia-vaapi-driver
-    zlib
-    libpng
-    libjpeg
-    freetype
-    fontconfig
-    libx11
-    libxext
-    libxrender
-    libxcb
-    libxau
-    libxdmcp
-    SDL2
-    alsa-lib
-    systemd
-    libusb1
-    curl
-    openssl
-  ];
-
   # Initrd SSH recovery + BTRFS snapshots
   services.cluster-ca = {
     enable = true;
@@ -206,14 +167,13 @@ in {
     nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
     opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
     tools = {
-      claude = { enable = true; };
-      opencode = { enable = true; };
-      droid = { enable = true; };
-      crush = { enable = true; };
-      pi = { enable = true; };
-      omp = { enable = true; };
+      claude = {enable = true;};
+      opencode = {enable = true;};
+      droid = {enable = true;};
+      crush = {enable = true;};
+      pi = {enable = true;};
+      omp = {enable = true;};
     };
     enableShellEnv = true;
   };
 }
-

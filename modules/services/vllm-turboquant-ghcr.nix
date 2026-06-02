@@ -11,8 +11,7 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.vllm-turboquant-ghcr;
 in {
   options.services.vllm-turboquant-ghcr = {
@@ -51,7 +50,7 @@ in {
     # comma-separated list of ns where the pull secret gets created
     namespaces = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ "ai-inference" "maplespike-prod" ];
+      default = ["ai-inference" "maplespike-prod"];
       description = "Namespaces for GHCR pull secret";
     };
 
@@ -68,15 +67,15 @@ in {
     # Run manually: systemctl start vllm-ghcr-push
     systemd.services.vllm-ghcr-push = {
       description = "Push vLLM TurboQuant image to GHCR";
-      after = [ "network-online.target" ];
-      requires = [ "network-online.target" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["network-online.target"];
+      requires = ["network-online.target"];
+      wantedBy = ["multi-user.target"];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
         Environment = "XDG_RUNTIME_DIR=/run/user/1000";
       };
-      path = [ pkgs.podman ];
+      path = [pkgs.podman];
       script = ''
         set -euo pipefail
 
@@ -104,17 +103,17 @@ in {
     # ── GHCR Pull Secret Bootstrap (same pattern as maplespike-ghcr-secret) ──
     systemd.services.vllm-ghcr-secret = {
       description = "Bootstrap vLLM GHCR image pull secret in K8s";
-      after = [ "k3s.service" ];
-      requires = [ "k3s.service" ];
-      before = [ "k8s-nix-deploy.service" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["k3s.service"];
+      requires = ["k3s.service"];
+      before = ["k8s-nix-deploy.service"];
+      wantedBy = ["multi-user.target"];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
         Restart = "on-failure";
         RestartSec = 10;
       };
-      path = [ pkgs.kubectl pkgs.coreutils ];
+      path = [pkgs.kubectl pkgs.coreutils];
       script = ''
         set -euo pipefail
 
@@ -136,20 +135,21 @@ in {
         fi
 
         ${lib.concatMapStrings (ns: ''
-          echo "[vllm-ghcr-secret] Creating pull secret in ${ns}..."
-          kubectl delete secret ${cfg.pullSecretName} -n ${ns} --ignore-not-found
+            echo "[vllm-ghcr-secret] Creating pull secret in ${ns}..."
+            kubectl delete secret ${cfg.pullSecretName} -n ${ns} --ignore-not-found
 
-          kubectl create secret docker-registry ${cfg.pullSecretName} \
-            -n ${ns} \
-            --docker-server=ghcr.io \
-            --docker-username=${cfg.ghcrUser} \
-            --docker-password="$GITHUB_TOKEN" \
-            --docker-email=${cfg.ghcrEmail}
+            kubectl create secret docker-registry ${cfg.pullSecretName} \
+              -n ${ns} \
+              --docker-server=ghcr.io \
+              --docker-username=${cfg.ghcrUser} \
+              --docker-password="$GITHUB_TOKEN" \
+              --docker-email=${cfg.ghcrEmail}
 
-          # Annotate to prevent easykubenix from deleting
-          kubectl annotate secret ${cfg.pullSecretName} -n ${ns} \
-            "managed-by=vllm-ghcr-secret" --overwrite
-        '') cfg.namespaces}
+            # Annotate to prevent easykubenix from deleting
+            kubectl annotate secret ${cfg.pullSecretName} -n ${ns} \
+              "managed-by=vllm-ghcr-secret" --overwrite
+          '')
+          cfg.namespaces}
 
         echo "[vllm-ghcr-secret] Done."
       '';
@@ -158,7 +158,7 @@ in {
     # Daily sync to keep secrets fresh
     systemd.timers.vllm-ghcr-secret-sync = {
       description = "Daily vLLM GHCR secret sync";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnCalendar = "daily";
         Persistent = true;
@@ -167,9 +167,9 @@ in {
 
     systemd.services.vllm-ghcr-secret-sync = {
       description = "Sync vLLM GHCR pull secrets";
-      after = [ "k3s.service" ];
-      requires = [ "k3s.service" ];
-      path = [ pkgs.kubectl pkgs.coreutils ];
+      after = ["k3s.service"];
+      requires = ["k3s.service"];
+      path = [pkgs.kubectl pkgs.coreutils];
       script = ''
         set -euo pipefail
 
@@ -180,16 +180,17 @@ in {
         fi
 
         ${lib.concatMapStrings (ns: ''
-          kubectl delete secret ${cfg.pullSecretName} -n ${ns} --ignore-not-found
-          kubectl create secret docker-registry ${cfg.pullSecretName} \
-            -n ${ns} \
-            --docker-server=ghcr.io \
-            --docker-username=${cfg.ghcrUser} \
-            --docker-password="$GITHUB_TOKEN" \
-            --docker-email=${cfg.ghcrEmail} || true
-          kubectl annotate secret ${cfg.pullSecretName} -n ${ns} \
-            "managed-by=vllm-ghcr-secret" --overwrite || true
-        '') cfg.namespaces}
+            kubectl delete secret ${cfg.pullSecretName} -n ${ns} --ignore-not-found
+            kubectl create secret docker-registry ${cfg.pullSecretName} \
+              -n ${ns} \
+              --docker-server=ghcr.io \
+              --docker-username=${cfg.ghcrUser} \
+              --docker-password="$GITHUB_TOKEN" \
+              --docker-email=${cfg.ghcrEmail} || true
+            kubectl annotate secret ${cfg.pullSecretName} -n ${ns} \
+              "managed-by=vllm-ghcr-secret" --overwrite || true
+          '')
+          cfg.namespaces}
 
         echo "[vllm-ghcr-secret-sync] Synced."
       '';

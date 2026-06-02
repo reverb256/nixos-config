@@ -1,4 +1,4 @@
-{ pkgs, ... }: let
+{pkgs, ...}: let
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
@@ -75,12 +75,14 @@ in {
     kubernetes.objects = {
       # ── Tailscale Operator Namespace ─────────────────────────
       none.Namespace.tailscale-prod = {
-        metadata.labels = managed // {
-          name = "tailscale-prod";
-          "pod-security.kubernetes.io/enforce" = "baseline";
-          "pod-security.kubernetes.io/audit" = "restricted";
-          "pod-security.kubernetes.io/warn" = "restricted";
-        };
+        metadata.labels =
+          managed
+          // {
+            name = "tailscale-prod";
+            "pod-security.kubernetes.io/enforce" = "baseline";
+            "pod-security.kubernetes.io/audit" = "restricted";
+            "pod-security.kubernetes.io/warn" = "restricted";
+          };
       };
 
       # ── Ingress Class ────────────────────────────────────────
@@ -110,13 +112,20 @@ in {
           {
             apiGroups = ["tailscale.com"];
             resources = [
-              "connectors" "connectors/status"
-              "proxyclasses" "proxyclasses/status"
-              "proxygroups" "proxygroups/status"
-              "dnsconfigs" "dnsconfigs/status"
-              "tailnets" "tailnets/status"
-              "proxygrouppolicies" "proxygrouppolicies/status"
-              "recorders" "recorders/status"
+              "connectors"
+              "connectors/status"
+              "proxyclasses"
+              "proxyclasses/status"
+              "proxygroups"
+              "proxygroups/status"
+              "dnsconfigs"
+              "dnsconfigs/status"
+              "tailnets"
+              "tailnets/status"
+              "proxygrouppolicies"
+              "proxygrouppolicies/status"
+              "recorders"
+              "recorders/status"
             ];
             verbs = ["get" "list" "watch" "update"];
           }

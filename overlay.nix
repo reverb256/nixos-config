@@ -113,7 +113,7 @@
         };
       };
       # Fix: pipx 1.8.0 test failures (spaces around @)
-      pipx = py-super.pipx.overridePythonAttrs { doCheck = false; };
+      pipx = py-super.pipx.overridePythonAttrs {doCheck = false;};
     };
   };
   claude-code-image = prev.callPackage ./packages/claude-code-image.nix {};
@@ -122,9 +122,9 @@
   maplespike-api-image = inputs.maplespike.packages.x86_64-linux.maplespike-api-image;
   maplespike-ingest-image = inputs.maplespike.packages.x86_64-linux.maplespike-ingest-image;
   maplespike-engine-image = inputs.maplespike.packages.x86_64-linux.maplespike-engine-image;
-hermes-chat = prev.callPackage ./packages/hermes-chat.nix {};
-   # hermes-workspace and hermes-webui archived (2026-05-16)
-   privacy-filter = prev.callPackage ./packages/privacy-filter.nix {
-     transformers-dev = prev.callPackage ./packages/transformers-dev.nix {};
-   };
- }
+  hermes-chat = prev.callPackage ./packages/hermes-chat.nix {};
+  # hermes-workspace and hermes-webui archived (2026-05-16)
+  privacy-filter = prev.callPackage ./packages/privacy-filter.nix {
+    transformers-dev = prev.callPackage ./packages/transformers-dev.nix {};
+  };
+}

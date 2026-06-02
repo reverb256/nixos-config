@@ -71,7 +71,6 @@
     dioxus-cli
     trunk
 
-
     mise
 
     sqlx-cli

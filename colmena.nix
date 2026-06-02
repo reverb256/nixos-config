@@ -93,7 +93,7 @@ in {
   };
 
   # krash3 — NixOS on WSL (reachable via SSH config Port 2222)
-  krash3 = { ... }: {
+  krash3 = {...}: {
     imports = [
       ./hosts/krash3/configuration.nix
     ];

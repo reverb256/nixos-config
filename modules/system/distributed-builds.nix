@@ -80,11 +80,11 @@ in {
 
       max-jobs = lib.mkForce (
         if currentHost == "zephyr"
-        then 0   # zero local builds — offload everything to nexus/sentry
+        then 0 # zero local builds — offload everything to nexus/sentry
         else if currentHost == "nexus"
-        then 10  # primary builder
+        then 10 # primary builder
         else if currentHost == "sentry"
-        then 4   # secondary builder
+        then 4 # secondary builder
         else if currentHost == "forge"
         then 3
         else 2

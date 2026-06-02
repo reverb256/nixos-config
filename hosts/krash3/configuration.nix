@@ -1,5 +1,10 @@
-{ config, lib, pkgs, inputs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}: let
   meshKeys = import ../../mesh-keys.nix;
 in {
   imports = [
@@ -121,19 +126,19 @@ in {
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
-    users.j_kro = { pkgs, ... }: {
-          home = {
-          stateVersion = lib.mkForce "25.11";
-          username = "j_kro";
+    users.j_kro = {pkgs, ...}: {
+      home = {
+        stateVersion = lib.mkForce "25.11";
+        username = "j_kro";
         homeDirectory = "/home/j_kro";
       };
       programs = {
         bash.enable = true;
-              git = {
-                enable = true;
-                userName = lib.mkForce "j_kro";
-                userEmail = lib.mkForce "j_kro@lan";
-              };
+        git = {
+          enable = true;
+          userName = lib.mkForce "j_kro";
+          userEmail = lib.mkForce "j_kro@lan";
+        };
         htop.enable = true;
         tmux.enable = true;
       };

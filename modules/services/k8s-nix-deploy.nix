@@ -56,11 +56,11 @@ in {
           # Build kubectl command — use server+token auth if configured, else fall back to kubeconfig
           KUBECTL="${pkgs.kubectl}/bin/kubectl"
           ${lib.optionalString (cfg.tokenFile != null) ''
-          TOKEN=$(cat ${cfg.tokenFile})
-          KUBECTL="$KUBECTL --server=${cfg.apiServerAddress} --token=$TOKEN --insecure-skip-tls-verify"
+            TOKEN=$(cat ${cfg.tokenFile})
+            KUBECTL="$KUBECTL --server=${cfg.apiServerAddress} --token=$TOKEN --insecure-skip-tls-verify"
           ''}
           ${lib.optionalString (cfg.tokenFile == null) ''
-          export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
           ''}
 
           echo "[k8s-nix-deploy] Waiting for K3s API..."
@@ -76,11 +76,15 @@ in {
           echo "[k8s-nix-deploy] K3s API ready."
 
           echo "[k8s-nix-deploy] Applying manifests from: $MANIFEST"
-          ${if cfg.prune then ''
-          $KUBECTL apply --prune -l managed-by=easykubenix -f "$MANIFEST" 2>&1
-          '' else ''
-          $KUBECTL apply -f "$MANIFEST" 2>&1
-          ''}
+          ${
+            if cfg.prune
+            then ''
+              $KUBECTL apply --prune -l managed-by=easykubenix -f "$MANIFEST" 2>&1
+            ''
+            else ''
+              $KUBECTL apply -f "$MANIFEST" 2>&1
+            ''
+          }
 
           echo "[k8s-nix-deploy] Done."
         '';

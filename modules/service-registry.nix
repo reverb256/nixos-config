@@ -1,5 +1,8 @@
-{ lib, config, ... }:
-let
+{
+  lib,
+  config,
+  ...
+}: let
   # Import port registry (SSOT for NodePort values)
   ports = import ../kubernetes/service-ports.nix;
 
@@ -7,17 +10,37 @@ let
   cluster = import ../kubernetes/cluster.nix;
 
   # Helper: build a service entry with consistent defaults
-  mkService = { name, namespace, port, nodePort ? null, lan ? "", protocol ? "http", backend ? null }: let
-    effectiveNodePort = if nodePort != null then nodePort else ports.${name} or null;
+  mkService = {
+    name,
+    namespace,
+    port,
+    nodePort ? null,
+    lan ? "",
+    protocol ? "http",
+    backend ? null,
+  }: let
+    effectiveNodePort =
+      if nodePort != null
+      then nodePort
+      else ports.${name} or null;
   in {
     inherit name namespace port protocol;
     nodePort = effectiveNodePort;
-    lan = if lan != "" then lan else "${name}.lan";
-    backend = if backend != null then backend else "${name}.${namespace}.svc.cluster.local:${toString port}";
-    url = "${protocol}://127.0.0.1:${toString (if effectiveNodePort != null then effectiveNodePort else port)}";
+    lan =
+      if lan != ""
+      then lan
+      else "${name}.lan";
+    backend =
+      if backend != null
+      then backend
+      else "${name}.${namespace}.svc.cluster.local:${toString port}";
+    url = "${protocol}://127.0.0.1:${toString (
+      if effectiveNodePort != null
+      then effectiveNodePort
+      else port
+    )}";
     dns = "${name}.${namespace}.svc.cluster.local";
   };
-
   # ── Service Registry ──────────────────────────────────────────────
   # Each entry defines how a service is accessed both inside and outside
   # the cluster. The Caddy router uses these definitions to generate
@@ -35,17 +58,41 @@ let
   #   tlsBackend  - Whether backend requires TLS (e.g., self-signed certs)
 in {
   options.services.registry = lib.mkOption {
-    type = lib.types.attrsOf (lib.types.submodule ({ name, ... }: {
+    type = lib.types.attrsOf (lib.types.submodule ({name, ...}: {
       options = {
-        name = lib.mkOption { type = lib.types.str; default = name; };
-        namespace = lib.mkOption { type = lib.types.str; default = "default"; };
-        port = lib.mkOption { type = lib.types.int; };
-        nodePort = lib.mkOption { type = lib.types.nullOr lib.types.int; default = null; };
-        lan = lib.mkOption { type = lib.types.str; default = ""; };
-        protocol = lib.mkOption { type = lib.types.str; default = "http"; };
-        backend = lib.mkOption { type = lib.types.nullOr lib.types.str; default = null; };
-        auth = lib.mkOption { type = lib.types.str; default = "none"; };
-        tlsBackend = lib.mkOption { type = lib.types.bool; default = false; };
+        name = lib.mkOption {
+          type = lib.types.str;
+          default = name;
+        };
+        namespace = lib.mkOption {
+          type = lib.types.str;
+          default = "default";
+        };
+        port = lib.mkOption {type = lib.types.int;};
+        nodePort = lib.mkOption {
+          type = lib.types.nullOr lib.types.int;
+          default = null;
+        };
+        lan = lib.mkOption {
+          type = lib.types.str;
+          default = "";
+        };
+        protocol = lib.mkOption {
+          type = lib.types.str;
+          default = "http";
+        };
+        backend = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+        };
+        auth = lib.mkOption {
+          type = lib.types.str;
+          default = "none";
+        };
+        tlsBackend = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+        };
       };
     }));
     default = {};
@@ -59,14 +106,14 @@ in {
         name = "casdoor";
         namespace = "auth";
         port = 8000;
-        auth = "none";  # Auth endpoint itself — no forward_auth
+        auth = "none"; # Auth endpoint itself — no forward_auth
       };
 
       oauth2-proxy = mkService {
         name = "oauth2-proxy";
         namespace = "auth";
         port = 4180;
-        auth = "none";  # Proxy endpoint — called by Caddy forward_auth
+        auth = "none"; # Proxy endpoint — called by Caddy forward_auth
       };
 
       # ── AI / Inference ────────────────────────────────────────────
@@ -95,7 +142,7 @@ in {
         name = "redis";
         namespace = "ai-inference";
         port = 6379;
-        auth = "none";  # Internal only, accessed via ClusterIP DNS
+        auth = "none"; # Internal only, accessed via ClusterIP DNS
       };
 
       privacy-filter = mkService {
@@ -140,14 +187,14 @@ in {
         namespace = "haven";
         port = 3000;
         auth = "forward_auth";
-        tlsBackend = true;  # Self-signed cert
+        tlsBackend = true; # Self-signed cert
       };
 
       vaultwarden = mkService {
         name = "vaultwarden";
         namespace = "vaultwarden";
         port = 80;
-        auth = "none";  # Has its own OIDC auth
+        auth = "none"; # Has its own OIDC auth
       };
 
       # ── Search ────────────────────────────────────────────────────
@@ -155,7 +202,7 @@ in {
         name = "searxng";
         namespace = "search";
         port = 8080;
-        auth = "none";  # Public search
+        auth = "none"; # Public search
       };
 
       vane = mkService {
@@ -335,7 +382,7 @@ in {
         port = 3333;
         lan = "xmrig-proxy.lan";
         auth = "none";
-        protocol = "stratum+tcp";  # Non-HTTP protocol
+        protocol = "stratum+tcp"; # Non-HTTP protocol
       };
     };
   };

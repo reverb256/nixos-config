@@ -15,7 +15,7 @@
   lanDomains = config.clusterNetworking.lanDomains or [];
 
   # Base domains that always appear in SANs (wildcards + K8s)
-  baseDomains = [ "*.lan" "*.cluster.local" ];
+  baseDomains = ["*.lan" "*.cluster.local"];
 
   # Combine base + service domains + any extra per-host domains
   allDomains = baseDomains ++ lanDomains ++ cfg.extraDomains;
@@ -31,7 +31,6 @@
   # Stored in /etc/ssl/cluster-ca/.san-hash to detect drift.
   # If the hash doesn't match, the leaf cert is regenerated automatically.
   sanHash = builtins.hashString "sha256" commonSANS;
-
 in {
   options.services.cluster-ca = {
     enable = mkEnableOption "Internal CA for cluster services";
@@ -70,7 +69,7 @@ in {
     extraDomains = mkOption {
       type = types.listOf types.str;
       default = [];
-      example = [ "llama.zephyr.lan" "brain.lan" ];
+      example = ["llama.zephyr.lan" "brain.lan"];
       description = "Additional domains to include in leaf cert SANs (beyond auto-derived list from cluster-dns.nix)";
     };
 
@@ -97,22 +96,27 @@ in {
   };
 
   config = mkIf cfg.enable {
-
     # Install CA into system trust store via NixOS declarative mechanism
     # This makes all .lan HTTPS endpoints trusted on this host
-    security.pki.certificateFiles = mkIf cfg.installTrust [ ./../../certs/cluster-ca.crt ];
+    security.pki.certificateFiles = mkIf cfg.installTrust [./../../certs/cluster-ca.crt];
 
-    # Point Python (certifi/requests/httpx) at the system CA bundle so that
-    # apps like Hermes Agent trust the Cluster CA for *.lan endpoints.
+    # Point Python (certifi/requests/httpx) and Go at the system CA bundle so that
+    # apps (Hermes Agent, kubectl) trust the Cluster CA for *.lan endpoints.
     environment.variables = mkIf cfg.installTrust {
+      SSL_CERT_FILE = "/etc/ssl/certs/ca-bundle.crt";
+      REQUESTS_CA_BUNDLE = "/etc/ssl/certs/ca-bundle.crt";
+    };
+
+    # Also set via PAM so sudo/kubectl inherit these — sudo strips environment.variables
+    environment.sessionVariables = mkIf cfg.installTrust {
       SSL_CERT_FILE = "/etc/ssl/certs/ca-bundle.crt";
       REQUESTS_CA_BUNDLE = "/etc/ssl/certs/ca-bundle.crt";
     };
 
     systemd.services.cluster-ca-init = {
       description = "Generate internal CA certificate and leaf cert";
-      wantedBy = [ "multi-user.target" ];
-  before = [ "caddy.service" ];
+      wantedBy = ["multi-user.target"];
+      before = ["caddy.service"];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -162,55 +166,55 @@ in {
 
         # ── Leaf Certificate ────────────────────────────────────
         ${lib.optionalString cfg.generateLeaf ''
-        LEAF_CERT=${cfg.leafCert}
-        LEAF_KEY=${cfg.leafKey}
-        REGEN=false
+          LEAF_CERT=${cfg.leafCert}
+          LEAF_KEY=${cfg.leafKey}
+          REGEN=false
 
-        # Regenerate if: cert missing, expiring within 30 days, OR SANs changed
-        if [ ! -f $LEAF_CERT ]; then
-          echo "Leaf cert missing — generating"
-          REGEN=true
-        elif ! ${openssl} x509 -in $LEAF_CERT -noout -checkend 2592000 2>/dev/null; then
-          echo "Leaf cert expiring soon — regenerating"
-          REGEN=true
-        elif [ ! -f "$SAN_FILE" ] || [ "$(cat $SAN_FILE)" != "$SAN_HASH" ]; then
-          echo "SANs changed — regenerating leaf cert"
-          REGEN=true
-        else
-          echo "Leaf certificate still valid and SANs unchanged"
-        fi
+          # Regenerate if: cert missing, expiring within 30 days, OR SANs changed
+          if [ ! -f $LEAF_CERT ]; then
+            echo "Leaf cert missing — generating"
+            REGEN=true
+          elif ! ${openssl} x509 -in $LEAF_CERT -noout -checkend 2592000 2>/dev/null; then
+            echo "Leaf cert expiring soon — regenerating"
+            REGEN=true
+          elif [ ! -f "$SAN_FILE" ] || [ "$(cat $SAN_FILE)" != "$SAN_HASH" ]; then
+            echo "SANs changed — regenerating leaf cert"
+            REGEN=true
+          else
+            echo "Leaf certificate still valid and SANs unchanged"
+          fi
 
-        if [ "$REGEN" = true ]; then
-          ${openssl} genrsa -out $LEAF_KEY 2048 2>/dev/null
-          ${openssl} req -new -key $LEAF_KEY -out /tmp/leaf.csr \
-            -subj "/CN=Cluster Ingress" \
-            -addext "subjectAltName=${commonSANS}" 2>/dev/null
-          ${openssl} x509 -req -in /tmp/leaf.csr \
-            -CA ${cfg.caCert} -CAkey ${cfg.caKey} \
-            -CAcreateserial -out $LEAF_CERT \
-            -days 365 -copy_extensions copyall 2>/dev/null
-          rm -f /tmp/leaf.csr
-          chmod 644 $LEAF_CERT
-          chmod 640 $LEAF_KEY
-            chown root:${cfg.keyGroup} $LEAF_KEY
-            chmod 640 $LEAF_CERT
+          if [ "$REGEN" = true ]; then
+            ${openssl} genrsa -out $LEAF_KEY 2048 2>/dev/null
+            ${openssl} req -new -key $LEAF_KEY -out /tmp/leaf.csr \
+              -subj "/CN=Cluster Ingress" \
+              -addext "subjectAltName=${commonSANS}" 2>/dev/null
+            ${openssl} x509 -req -in /tmp/leaf.csr \
+              -CA ${cfg.caCert} -CAkey ${cfg.caKey} \
+              -CAcreateserial -out $LEAF_CERT \
+              -days 365 -copy_extensions copyall 2>/dev/null
+            rm -f /tmp/leaf.csr
+            chmod 644 $LEAF_CERT
             chmod 640 $LEAF_KEY
-            echo "$SAN_HASH" > "$SAN_FILE"
-          echo "Leaf certificate generated at $LEAF_CERT"
-        fi
+              chown root:${cfg.keyGroup} $LEAF_KEY
+              chmod 640 $LEAF_CERT
+              chmod 640 $LEAF_KEY
+              echo "$SAN_HASH" > "$SAN_FILE"
+            echo "Leaf certificate generated at $LEAF_CERT"
+          fi
         ''}
       '';
     };
 
     # Add caddy to keyGroup for cert access (only if caddy service is enabled)
     users.users.caddy = lib.mkIf (config.services.caddy.enable or false) {
-      extraGroups = [ cfg.keyGroup ];
+      extraGroups = [cfg.keyGroup];
     };
 
     systemd.services.cluster-ca-export = {
       description = "Export CA certificate to user home";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "cluster-ca-init.service" ];
+      wantedBy = ["multi-user.target"];
+      after = ["cluster-ca-init.service"];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;

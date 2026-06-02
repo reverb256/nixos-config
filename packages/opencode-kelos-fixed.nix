@@ -1,18 +1,25 @@
-{ dockerTools, buildEnv, bash, coreutils, fish, git, opencode, }:
-
+{
+  dockerTools,
+  buildEnv,
+  bash,
+  coreutils,
+  fish,
+  git,
+  opencode,
+}:
 # Fixed opencode image for kelos - recognizes nvidia and meta providers
 dockerTools.buildImage {
   name = "opencode";
   tag = "v1.14.46-fixed";
-  
+
   copyToRoot = buildEnv {
     name = "opencode-root";
-    paths = [ opencode bash coreutils fish git ];
-    pathsToLink = [ "/bin" "/etc" "/lib" "/home/j_kro/.nix-profile" ];
+    paths = [opencode bash coreutils fish git];
+    pathsToLink = ["/bin" "/etc" "/lib" "/home/j_kro/.nix-profile"];
   };
-  
+
   config = {
-    Cmd = [ "${bash}/bin/bash" "-c" "mkdir -p /home/j_kro/.opencode && tail -f /dev/null" ];
+    Cmd = ["${bash}/bin/bash" "-c" "mkdir -p /home/j_kro/.opencode && tail -f /dev/null"];
     WorkingDir = "/home/j_kro";
     Env = [
       "HOME=/home/j_kro"
@@ -26,8 +33,8 @@ dockerTools.buildImage {
       "org.opencontainers.image.description" = "OpenCode AI coding assistant (Fixed for NVIDIA NIM)";
     };
   };
-  
+
   # Override entrypoint to recognize nvidia and meta providers
   # This is the kelos_entrypoint.sh that gets mounted
-  config.Entrypoint = [ "/kelos_entrypoint.sh" ];
+  config.Entrypoint = ["/kelos_entrypoint.sh"];
 }

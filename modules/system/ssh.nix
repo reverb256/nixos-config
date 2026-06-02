@@ -95,7 +95,7 @@ in {
         hosts.nexus.ip
         hosts.nexus.tailscale
       ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPzZJzpL8jVY8LCXO70DB+FwbAaFjp61KEej1V6Wei5U";
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINttvGn4etQX6AbyT2HpXrmyGaTFL3gur/2ImHTLzBOl";
     };
     forge = {
       hostNames = [
@@ -111,12 +111,12 @@ in {
         hosts.sentry.ip
         hosts.sentry.tailscale
       ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGZCgbZR/+B3H6Z8VnRSkNbG9ta/yk0qJro1focrOfl7";
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHh8FHzxFAk+brIs8nGhgg9BcGdtgr6of9MsbQctYHuE";
     };
     # krash3 — WSL host key changes on rebuild; accept-new handles it
     krash3 = {
       hostNames = ["krash3" hosts.krash3.ip];
-      publicKey = "*";  # Accept any key (WSL host key changes each rebuild)
+      publicKey = "*"; # Accept any key (WSL host key changes each rebuild)
     };
   };
 
