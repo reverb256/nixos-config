@@ -247,11 +247,11 @@ in {
     enable32Bit = true;
   };
 
-  # Nix overlays
-  nixpkgs.overlays = [
-    inputs.niri.overlays.niri
-    inputs.llm-agents.overlays.default
-  ];
+  # Nix overlays - disabled for useGlobalPkgs compatibility
+  # nixpkgs.overlays = [
+  #   inputs.niri.overlays.niri
+  #   inputs.llm-agents.overlays.default
+  # ];
 
   # User — override ISO base's "nixos" auto-login to use j_kro
   users.users.j_kro = {
@@ -306,7 +306,6 @@ in {
 
   # Home Manager — j_kro desktop setup (niri config + noctalia-shell)
   home-manager = {
-    useGlobalPkgs = true;
     useUserPackages = true;
     backupFileExtension = "hm-backup";
     users.j_kro = {pkgs, ...}: {

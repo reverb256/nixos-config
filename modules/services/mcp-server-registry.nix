@@ -420,14 +420,12 @@ in {
 
         mkdir -p "/home/${cfg.claudeCodeUser}/.claude"
 
-        # Generate mcpServers block from registry
-        MCP_BLOCK='${mkClaudeCodeMcpServers stdioServers}'
+        # Generate mcpServers block from registry (wrapped in {} for valid JSON)
+        MCP_BLOCK='{${mkClaudeCodeMcpServers stdioServers}}'
 
         if [ -f "$CLAUDE_CONFIG" ]; then
           # Merge mcpServers into existing settings.json
-          ${pkgs.jq}/bin/jq --argjson mcp "{$MCP_BLOCK}" '
-            .mcpServers = $mcp
-          ' "$CLAUDE_CONFIG" > "$CLAUDE_CONFIG.tmp" && mv "$CLAUDE_CONFIG.tmp" "$CLAUDE_CONFIG"
+          ${pkgs.jq}/bin/jq '.mcpServers |= (.mcpServers // {}) + $mcp' --argjson mcp "$MCP_BLOCK" "$CLAUDE_CONFIG" > "$CLAUDE_CONFIG.tmp" && mv "$CLAUDE_CONFIG.tmp" "$CLAUDE_CONFIG"
         else
           # Create new settings.json with mcpServers
           echo "{

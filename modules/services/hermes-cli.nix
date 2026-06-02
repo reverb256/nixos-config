@@ -20,7 +20,7 @@
 }: let
   cfg = config.services.hermes-cli;
   hermesAgentCfg = config.services.hermes-agent or {};
-  hermesPkg = inputs.hermes-agent.packages.${pkgs.system}.default;
+  hermesPkg = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.default;
 
   # Build the WhatsApp bridge from the hermes-agent source
   # The upstream Nix package omits scripts/whatsapp-bridge/ — this fills the gap.

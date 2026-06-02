@@ -78,7 +78,6 @@
     };
     preservation = {
       url = "path:/etc/nixos/lib/preservation";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
     niri = {
       url = "tarball+https://codeload.github.com/sodiboo/niri-flake/tar.gz/b5f81cf03d90bcf2efd20d12fe933a0790b4722b";
