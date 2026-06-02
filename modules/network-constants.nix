@@ -245,8 +245,12 @@ in {
               services = lib.mkOption {
                 type = lib.types.submodule {
                   options = let
-                    svcOpts = { namespace, port, nodePort ? null, ... }:
-                      { name, ... }: {
+                    svcOpts = {
+                      namespace,
+                      port,
+                      nodePort ? null,
+                      ...
+                    }: {name, ...}: {
                       options = {
                         dns = lib.mkOption {
                           type = lib.types.str;
@@ -316,7 +320,6 @@ in {
                       });
                       default = {};
                       description = "Prometheus metrics";
-
                     };
 
                     searxng = lib.mkOption {
@@ -363,7 +366,6 @@ in {
                       default = {};
                       description = "n8n workflow automation";
                     };
-
 
                     casdoor = lib.mkOption {
                       type = lib.types.submodule (svcOpts {

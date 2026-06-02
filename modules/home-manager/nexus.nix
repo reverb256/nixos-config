@@ -1,9 +1,12 @@
 # Nexus Home-Manager Configuration
 # Primary server, AI, monitoring
-
-{ config, lib, pkgs, ... }:
 {
-  home-manager.users.j_kro = { pkgs, ... }: {
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
+  home-manager.users.j_kro = {pkgs, ...}: {
     # AI tools configuration
     home.packages = with pkgs; [
       # Terminal

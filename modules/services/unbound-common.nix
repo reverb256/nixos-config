@@ -20,7 +20,7 @@ in {
         # Minimal server block — cluster-dns.nix (on zephyr) extends this with
         # additional interfaces, access-control ranges, and local DNS records.
         server = {
-          interface = ["127.0.0.1"];
+          # interface not set here — cluster-dns.nix provides per-host interfaces
           access-control = ["127.0.0.0/8 allow"];
           hide-identity = true;
           hide-version = true;

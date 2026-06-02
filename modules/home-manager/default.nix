@@ -24,12 +24,15 @@
 #   - SSH keys (already in preservation)
 #   - GPG keys (already in preservation)
 #   - User data (~/models, ~/projects, downloads)
-
-{ config, lib, pkgs, inputs, ... }:
-let
-  inherit (lib) mkDefault mkIf mkMerge;
-in
 {
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}: let
+  inherit (lib) mkDefault mkIf mkMerge;
+in {
   # Home-Manager is already imported via common-modules-list.nix
   # This module configures j_kro's declarative home
 
@@ -52,7 +55,7 @@ in
   systemd.services.home-manager-j_kro = {
     enable = true;
     description = "Home Manager for j_kro";
-    wantedBy = [ "multi-user.target" ];
+    wantedBy = ["multi-user.target"];
     serviceConfig.Type = "oneshot";
   };
 }

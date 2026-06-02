@@ -1,9 +1,12 @@
 # Forge Home-Manager Configuration
 # GPU computing, mining
-
-{ config, lib, pkgs, ... }:
 {
-  home-manager.users.j_kro = { pkgs, ... }: {
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
+  home-manager.users.j_kro = {pkgs, ...}: {
     # Mining tools configuration
     home.packages = with pkgs; [
       # GPU monitoring

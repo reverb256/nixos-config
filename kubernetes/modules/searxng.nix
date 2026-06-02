@@ -1,5 +1,8 @@
-{cluster,
-  nexusPreferredAffinity, ...}: let
+{
+  cluster,
+  nexusPreferredAffinity,
+  ...
+}: let
   labels = {
     app = "searxng";
     "app.kubernetes.io/managed-by" = "easykubenix";

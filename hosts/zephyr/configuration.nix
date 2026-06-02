@@ -7,35 +7,27 @@
 }: let
   cluster = config.networking.cluster;
 in {
-    imports = [
-      ./monitoring.nix
-      ./firewall.nix
-      ./hardware.nix
-      ./desktop.nix
-      ./services.nix
-      ./hardware-configuration.nix
-      ../../modules/services/k3s-cluster.nix
-      ../../modules/services/keepalived-vip.nix
-      ../../modules/system/systemd-user-timeout.nix
+  imports = [
+    ./monitoring.nix
+    ./firewall.nix
+    ./hardware.nix
+    ./desktop.nix
+    ./services.nix
+    ./hardware-configuration.nix
+    ../../modules/services/k3s-cluster.nix
+    ../../modules/services/keepalived-vip.nix
+    ../../modules/system/systemd-user-timeout.nix
 
-      ../../modules/default.nix
+    ../../modules/default.nix
 
-      ../../modules/hardware/rgb-control.nix
-    ];
+    ../../modules/hardware/rgb-control.nix
+  ];
 
   # Enable Hermes RAM protection
 
   # Host-specific CPU/GPU optimization for llama.cpp (Zen3: 5950X + Ampere: RTX 3090/3060 Ti)
   # Note: CUDA arch already set in package via CMAKE_CUDA_ARCHITECTURES.
   # Only CPU tuning needed at host level.
-  nixpkgs.config.packageOverrides = pkgs: {
-    llama-cpp-turboquant = pkgs.llama-cpp-turboquant.overrideAttrs (old: {
-      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=zen3";
-    });
-    llama-cpp = pkgs.llama-cpp.overrideAttrs (old: {
-      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=zen3";
-    });
-  };
 
   clusterNetworking = {
     enable = true;
@@ -69,7 +61,6 @@ in {
     algorithm = "zstd";
     memoryPercent = 35;
     priority = 999;
-
   };
   # systemd-cryptsetup opens with random key from /dev/urandom (no persistence needed)
 
@@ -168,9 +159,9 @@ in {
     options = ["bind" "rw"];
   };
 
-   services.nixos-share = {
-     enable = false;
-   };
+  services.nixos-share = {
+    enable = false;
+  };
 
   i18n.defaultLocale = "en_CA.UTF-8";
 

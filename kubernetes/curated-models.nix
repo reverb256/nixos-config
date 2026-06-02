@@ -4,7 +4,6 @@
 #           → GLM (Quota-limited) → OpenCode Go (Daily reset 7PM) → Free routers
 # This file is imported by model-sync CronJob to generate Pi/OmP configs
 # and consumed by ai-coding-tools module for tool config generation.
-
 {
   # ── Defaults ─────────────────────────────────────────────────────────
   defaults = {

@@ -1,9 +1,12 @@
 # Zephyr Home-Manager Configuration
 # Workstation, control plane, gaming
-
-{ config, lib, pkgs, ... }:
 {
-  home-manager.users.j_kro = { pkgs, ... }: {
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
+  home-manager.users.j_kro = {pkgs, ...}: {
     # Gaming desktop environment
     xdg.configFile."wayfire/wayfire.ini".source = ../../desktop/wayfire.ini;
     xdg.configFile."wlogout/layout".source = ../../desktop/wlogout-layout;

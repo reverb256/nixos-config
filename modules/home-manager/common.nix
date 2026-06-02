@@ -4,16 +4,18 @@
 # Scope: .config/* and dotfiles (NOT user data like ~/models, ~/projects)
 # Data persistence: Handled by preservation module
 # Per-host configs: Separate files for each host
-
-{ config, lib, pkgs, ... }:
-let
-  inherit (lib) mkDefault mkIf;
-in
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  inherit (lib) mkDefault mkIf;
+in {
   # Home-Manager is already imported in common-modules-list.nix
   # This module configures j_kro's declarative home
 
-  home-manager.users.j_kro = { pkgs, ... }: {
+  home-manager.users.j_kro = {pkgs, ...}: {
     home.stateVersion = "26.05";
 
     # Shell configuration

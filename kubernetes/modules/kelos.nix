@@ -14,7 +14,7 @@ with lib; let
   # Shared opencode.json config with NIM models via AI Inference Gateway
   opencodeConfig = lib.generators.toJSON {} {
     "$schema" = "https://opencode.ai/config.json";
-    model = "$KELOS_MODEL";  # Dynamic — set by model-routing-controller
+    model = "$KELOS_MODEL"; # Dynamic — set by model-routing-controller
     enabled_providers = ["openai"];
     mcpServers = [
       {
@@ -77,73 +77,77 @@ with lib; let
   };
 
   # Shared setup command for all Workspaces
-  setupCommand = ["/bin/sh" "-c" ''
-    chmod -R g+rw /workspace/repo && mkdir -p /workspace/repo/.opencode/commands && REPO=''${KELOS_UPSTREAM_REPO:-unknown}
+  setupCommand = [
+    "/bin/sh"
+    "-c"
+    ''
+          chmod -R g+rw /workspace/repo && mkdir -p /workspace/repo/.opencode/commands && REPO=''${KELOS_UPSTREAM_REPO:-unknown}
 
-    case "$REPO" in
-      *nixos-config*)
-        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
-# Validate the NixOS configuration
-RUN nix flake check
-RUN just check
-CMDEOF
-        cat > /workspace/repo/.opencode/commands/deploy.md << 'CMDEOF'
-# Deploy to a specific host
-## Usage
-Use this to apply configuration changes to a cluster node.
-Make sure `nix flake check` passes first, then run:
-RUN just deploy
-CMDEOF
-        ;;
-      *maplespike*)
-        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
-# Validate the MapleSpike monorepo
-RUN pnpm install --frozen-lockfile
-RUN pnpm -r build
-RUN pnpm test
-CMDEOF
-        cat > /workspace/repo/.opencode/commands/build.md << 'CMDEOF'
-# Build all packages
-RUN pnpm build
-CMDEOF
-        ;;
-      *ai-inference-gateway*)
-        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
-# Validate the AI Inference Gateway
-RUN pip install -e . -q
-RUN pytest tests/ -x -q
-CMDEOF
-        ;;
-      *knowledge-fabric*)
-        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
-# Validate the Knowledge Fabric
-RUN npx tsc --noEmit
-CMDEOF
-        ;;
-      *)
-        # Generic fallback
-        cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
-# Validate the project
-## Run the appropriate validation for this repo
-RUN echo "No repo-specific validate command defined"
-CMDEOF
-        ;;
-    esac
+          case "$REPO" in
+            *nixos-config*)
+              cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
+      # Validate the NixOS configuration
+      RUN nix flake check
+      RUN just check
+      CMDEOF
+              cat > /workspace/repo/.opencode/commands/deploy.md << 'CMDEOF'
+      # Deploy to a specific host
+      ## Usage
+      Use this to apply configuration changes to a cluster node.
+      Make sure `nix flake check` passes first, then run:
+      RUN just deploy
+      CMDEOF
+              ;;
+            *maplespike*)
+              cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
+      # Validate the MapleSpike monorepo
+      RUN pnpm install --frozen-lockfile
+      RUN pnpm -r build
+      RUN pnpm test
+      CMDEOF
+              cat > /workspace/repo/.opencode/commands/build.md << 'CMDEOF'
+      # Build all packages
+      RUN pnpm build
+      CMDEOF
+              ;;
+            *ai-inference-gateway*)
+              cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
+      # Validate the AI Inference Gateway
+      RUN pip install -e . -q
+      RUN pytest tests/ -x -q
+      CMDEOF
+              ;;
+            *knowledge-fabric*)
+              cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
+      # Validate the Knowledge Fabric
+      RUN npx tsc --noEmit
+      CMDEOF
+              ;;
+            *)
+              # Generic fallback
+              cat > /workspace/repo/.opencode/commands/validate.md << 'CMDEOF'
+      # Validate the project
+      ## Run the appropriate validation for this repo
+      RUN echo "No repo-specific validate command defined"
+      CMDEOF
+              ;;
+          esac
 
-    # Generate opencode.json using KELOS_MODEL env var (set by model-routing-controller)
-    # Falls back to default model if env var not set (e.g., first-run or manual)
-    MODEL="''${KELOS_MODEL:-openai/nvidia/nemotron-3-nano-30b-a3b}"
-    FALLBACKS="''${KELOS_MODEL_FALLBACKS:-openai/qwen/qwen3-coder-480b-a35b-instruct}"
-    cat > /workspace/repo/opencode.json << EOFOP
-${opencodeConfig}
-EOFOP
-    # Patch the opencode.json with the actual model from env var
-    sed -i 's/"\$KELOS_MODEL"/"'"$MODEL"'"/g' /workspace/repo/opencode.json
-    # Fallback models: pre-configured in opencodeConfig provider.openai.models above.
-    # Add new fallbacks from KELOS_MODEL_FALLBACKS env var if they aren't already configured.
-    # Note: sed targeting nested JSON keys doesn't work here — models are pre-configured statically.
-    true
-  ''];
+          # Generate opencode.json using KELOS_MODEL env var (set by model-routing-controller)
+          # Falls back to default model if env var not set (e.g., first-run or manual)
+          MODEL="''${KELOS_MODEL:-openai/nvidia/nemotron-3-nano-30b-a3b}"
+          FALLBACKS="''${KELOS_MODEL_FALLBACKS:-openai/qwen/qwen3-coder-480b-a35b-instruct}"
+          cat > /workspace/repo/opencode.json << EOFOP
+      ${opencodeConfig}
+      EOFOP
+          # Patch the opencode.json with the actual model from env var
+          sed -i 's/"\$KELOS_MODEL"/"'"$MODEL"'"/g' /workspace/repo/opencode.json
+          # Fallback models: pre-configured in opencodeConfig provider.openai.models above.
+          # Add new fallbacks from KELOS_MODEL_FALLBACKS env var if they aren't already configured.
+          # Note: sed targeting nested JSON keys doesn't work here — models are pre-configured statically.
+          true
+    ''
+  ];
 
   # Repos that get Kelos task automation
   repos = [
@@ -163,25 +167,27 @@ EOFOP
   ];
 
   # Create a workspace for each repo
-  workspaces = map (r: {
-    apiVersion = "kelos.dev/v1alpha1";
-    kind = "Workspace";
-    metadata = {
-      name = r;
-      namespace = "kelos-system";
-      labels = {
-        "app.kubernetes.io/managed-by" = "easykubenix";
-        "app.kubernetes.io/part-of" = "kelos";
+  workspaces =
+    map (r: {
+      apiVersion = "kelos.dev/v1alpha1";
+      kind = "Workspace";
+      metadata = {
+        name = r;
+        namespace = "kelos-system";
+        labels = {
+          "app.kubernetes.io/managed-by" = "easykubenix";
+          "app.kubernetes.io/part-of" = "kelos";
+        };
       };
-    };
-    spec = {
-      repo = "https://github.com/reverb256/${r}.git";
-      ref = "main";
-      secretRef.name = "github-token";
-      files = [];
-      inherit setupCommand;
-    };
-  }) repos;
+      spec = {
+        repo = "https://github.com/reverb256/${r}.git";
+        ref = "main";
+        secretRef.name = "github-token";
+        files = [];
+        inherit setupCommand;
+      };
+    })
+    repos;
 
   # TaskSpawner template applied per repo
   taskSpawnerTemplate = r: {
@@ -200,7 +206,7 @@ EOFOP
       taskTemplate = {
         type = "opencode";
         workspaceRef.name = r;
-        model = "openai/nvidia/nemotron-3-nano-30b-a3b";  # Default — overridden by model-routing-controller
+        model = "openai/nvidia/nemotron-3-nano-30b-a3b"; # Default — overridden by model-routing-controller
         agentConfigRef.name = "cluster-coder";
         branch = "kelos-task-{{.Number}}";
         credentials = {
@@ -389,7 +395,7 @@ EOFOP
       jobTemplate = {
         spec = {
           template = {
-            metadata.labels = { "app.kubernetes.io/part-of" = "kelos"; };
+            metadata.labels = {"app.kubernetes.io/part-of" = "kelos";};
             spec = {
               nodeName = "nexus";
               serviceAccountName = "pipeline-operator";
@@ -400,84 +406,90 @@ EOFOP
                 command = ["python3" "-c"];
                 args = [
                   ''
-                  import json, os, urllib.request, datetime
+                    import json, os, urllib.request, datetime
 
-                  # K8s API access via service account token
-                  ns = "kelos-system"
-                  token = open("/var/run/secrets/kubernetes.io/serviceaccount/token").read()
-                  host = os.environ.get("KUBERNETES_SERVICE_HOST", "kubernetes.default.svc")
-                  port = os.environ.get("KUBERNETES_SERVICE_PORT", "443")
-                  base = f"https://{host}:{port}"
-                  headers = {
-                      "Authorization": f"Bearer {token}",
-                      "Accept": "application/json",
-                  }
-                  ctx = urllib.request if not hasattr(urllib.request, 'HTTPSHandler') else urllib.request
+                    # K8s API access via service account token
+                    ns = "kelos-system"
+                    token = open("/var/run/secrets/kubernetes.io/serviceaccount/token").read()
+                    host = os.environ.get("KUBERNETES_SERVICE_HOST", "kubernetes.default.svc")
+                    port = os.environ.get("KUBERNETES_SERVICE_PORT", "443")
+                    base = f"https://{host}:{port}"
+                    headers = {
+                        "Authorization": f"Bearer {token}",
+                        "Accept": "application/json",
+                    }
+                    ctx = urllib.request if not hasattr(urllib.request, 'HTTPSHandler') else urllib.request
 
-                  def k8s_get(path):
-                      req = urllib.request.Request(f"{base}{path}", headers=headers)
-                      return json.loads(urllib.request.urlopen(req, context=ssl_context).read())
+                    def k8s_get(path):
+                        req = urllib.request.Request(f"{base}{path}", headers=headers)
+                        return json.loads(urllib.request.urlopen(req, context=ssl_context).read())
 
-                  try:
-                      import ssl
-                      ssl_context = ssl.create_default_context()
-                      ssl_context.check_hostname = False
-                      ssl_context.verify_mode = ssl.CERT_NONE
-                  except:
-                      ssl_context = None
+                    try:
+                        import ssl
+                        ssl_context = ssl.create_default_context()
+                        ssl_context.check_hostname = False
+                        ssl_context.verify_mode = ssl.CERT_NONE
+                    except:
+                        ssl_context = None
 
-                  now = datetime.datetime.now(datetime.timezone.utc)
-                  print(f"=== Pipeline Maintenance: {now} ===")
+                    now = datetime.datetime.now(datetime.timezone.utc)
+                    print(f"=== Pipeline Maintenance: {now} ===")
 
-                  # Get tasks
-                  try:
-                      tasks = k8s_get(f"/apis/kelos.dev/v1alpha1/namespaces/{ns}/tasks")
-                      items = tasks.get("items", [])
-                      deleted = 0
-                      for t in items:
-                          name = t["metadata"]["name"]
-                          phase = t.get("status", {}).get("phase", "")
-                          created = t["metadata"]["creationTimestamp"]
-                          ct = datetime.datetime.fromisoformat(created.replace("Z", "+00:00"))
-                          age = now - ct
-                          if phase == "Failed" and age.total_seconds() > 900:  # 15 min
-                              print(f"  DELETE {name} (failed, age={age})")
-                              req = urllib.request.Request(
-                                  f"{base}/apis/kelos.dev/v1alpha1/namespaces/{ns}/tasks/{name}",
-                                  method="DELETE", headers=headers)
-                              try:
-                                  urllib.request.urlopen(req, context=ssl_context)
-                                  deleted += 1
-                              except Exception as e:
-                                  print(f"  FAILED to delete {name}: {e}")
-                      print(f"  Deleted {deleted} stale tasks")
-                  except Exception as e:
-                      print(f"  Error fetching tasks: {e}")
+                    # Get tasks
+                    try:
+                        tasks = k8s_get(f"/apis/kelos.dev/v1alpha1/namespaces/{ns}/tasks")
+                        items = tasks.get("items", [])
+                        deleted = 0
+                        for t in items:
+                            name = t["metadata"]["name"]
+                            phase = t.get("status", {}).get("phase", "")
+                            created = t["metadata"]["creationTimestamp"]
+                            ct = datetime.datetime.fromisoformat(created.replace("Z", "+00:00"))
+                            age = now - ct
+                            if phase == "Failed" and age.total_seconds() > 900:  # 15 min
+                                print(f"  DELETE {name} (failed, age={age})")
+                                req = urllib.request.Request(
+                                    f"{base}/apis/kelos.dev/v1alpha1/namespaces/{ns}/tasks/{name}",
+                                    method="DELETE", headers=headers)
+                                try:
+                                    urllib.request.urlopen(req, context=ssl_context)
+                                    deleted += 1
+                                except Exception as e:
+                                    print(f"  FAILED to delete {name}: {e}")
+                        print(f"  Deleted {deleted} stale tasks")
+                    except Exception as e:
+                        print(f"  Error fetching tasks: {e}")
 
-                  # Pods on Zephyr
-                  try:
-                      pods = k8s_get(f"/api/v1/namespaces/{ns}/pods")
-                      zephyr = [p for p in pods.get("items", [])
-                               if p.get("spec", {}).get("nodeName") == "zephyr"]
-                      if zephyr:
-                          print(f"  WARNING: {len(zephyr)} pods on Zephyr!")
-                          for p in zephyr:
-                              print(f"    {p["metadata"]["name"]}")
-                      else:
-                          print(f"  No pods on Zephyr ✅")
-                  except Exception as e:
-                      print(f"  Error checking nodes: {e}")
+                    # Pods on Zephyr
+                    try:
+                        pods = k8s_get(f"/api/v1/namespaces/{ns}/pods")
+                        zephyr = [p for p in pods.get("items", [])
+                                 if p.get("spec", {}).get("nodeName") == "zephyr"]
+                        if zephyr:
+                            print(f"  WARNING: {len(zephyr)} pods on Zephyr!")
+                            for p in zephyr:
+                                print(f"    {p["metadata"]["name"]}")
+                        else:
+                            print(f"  No pods on Zephyr ✅")
+                    except Exception as e:
+                        print(f"  Error checking nodes: {e}")
 
-                  # Summary
-                  running = len([t for t in items if t.get("status", {}).get("phase") == "Running"])
-                  failed = len([t for t in items if t.get("status", {}).get("phase") == "Failed"])
-                  print(f"  Running: {running}, Failed: {failed}")
-                  print("=== Done ===")
+                    # Summary
+                    running = len([t for t in items if t.get("status", {}).get("phase") == "Running"])
+                    failed = len([t for t in items if t.get("status", {}).get("phase") == "Failed"])
+                    print(f"  Running: {running}, Failed: {failed}")
+                    print("=== Done ===")
                   ''
                 ];
                 resources = {
-                  requests = { cpu = "50m"; memory = "64Mi"; };
-                  limits = { cpu = "200m"; memory = "128Mi"; };
+                  requests = {
+                    cpu = "50m";
+                    memory = "64Mi";
+                  };
+                  limits = {
+                    cpu = "200m";
+                    memory = "128Mi";
+                  };
                 };
                 securityContext = {
                   allowPrivilegeEscalation = false;
@@ -488,7 +500,10 @@ EOFOP
                 };
               };
               env = [
-                { name = "K8S_NODE_NAME"; valueFrom.fieldRef.fieldPath = "spec.nodeName"; }
+                {
+                  name = "K8S_NODE_NAME";
+                  valueFrom.fieldRef.fieldPath = "spec.nodeName";
+                }
               ];
             };
           };
@@ -595,152 +610,164 @@ EOFOP
       schedule = "*/15 * * * *";
       concurrencyPolicy = "Forbid";
       jobTemplate.spec.template = {
-        metadata.labels = { "app.kubernetes.io/part-of" = "kelos"; };
+        metadata.labels = {"app.kubernetes.io/part-of" = "kelos";};
         spec = {
           nodeName = "nexus";
           serviceAccountName = "pipeline-operator";
           restartPolicy = "OnFailure";
-          containers = [{
-            name = "controller";
-            image = "nexus:5000/python:3.13-alpine";
-            imagePullPolicy = "IfNotPresent";
-            command = ["python3" "-c"];
-            args = [''
-import json, os, urllib.request, datetime, ssl, time
+          containers = [
+            {
+              name = "controller";
+              image = "nexus:5000/python:3.13-alpine";
+              imagePullPolicy = "IfNotPresent";
+              command = ["python3" "-c"];
+              args = [
+                ''
+                  import json, os, urllib.request, datetime, ssl, time
 
-ns = "kelos-system"
-token = open("/var/run/secrets/kubernetes.io/serviceaccount/token").read()
-host = os.environ.get("KUBERNETES_SERVICE_HOST", "kubernetes.default.svc")
-port = os.environ.get("KUBERNETES_SERVICE_PORT", "443")
-base = f"https://{host}:{port}"
-ctx = ssl.create_default_context()
-ctx.check_hostname = False
-ctx.verify_mode = ssl.CERT_NONE
+                  ns = "kelos-system"
+                  token = open("/var/run/secrets/kubernetes.io/serviceaccount/token").read()
+                  host = os.environ.get("KUBERNETES_SERVICE_HOST", "kubernetes.default.svc")
+                  port = os.environ.get("KUBERNETES_SERVICE_PORT", "443")
+                  base = f"https://{host}:{port}"
+                  ctx = ssl.create_default_context()
+                  ctx.check_hostname = False
+                  ctx.verify_mode = ssl.CERT_NONE
 
-headers = {
-    "Authorization": f"Bearer {token}",
-    "Accept": "application/json",
-    "Content-Type": "application/json",
-}
+                  headers = {
+                      "Authorization": f"Bearer {token}",
+                      "Accept": "application/json",
+                      "Content-Type": "application/json",
+                  }
 
-def k8s_get(path):
-    req = urllib.request.Request(f"{base}{path}", headers=headers)
-    return json.loads(urllib.request.urlopen(req, context=ctx).read())
+                  def k8s_get(path):
+                      req = urllib.request.Request(f"{base}{path}", headers=headers)
+                      return json.loads(urllib.request.urlopen(req, context=ctx).read())
 
-def k8s_patch(path, body):
-    data = json.dumps(body).encode()
-    req = urllib.request.Request(f"{base}{path}", data=data, headers=headers, method="PATCH")
-    req.add_header("Content-Type", "application/merge-patch+json")
-    return json.loads(urllib.request.urlopen(req, context=ctx).read())
+                  def k8s_patch(path, body):
+                      data = json.dumps(body).encode()
+                      req = urllib.request.Request(f"{base}{path}", data=data, headers=headers, method="PATCH")
+                      req.add_header("Content-Type", "application/merge-patch+json")
+                      return json.loads(urllib.request.urlopen(req, context=ctx).read())
 
-now = datetime.datetime.now(datetime.timezone.utc)
-print(f"=== Model Routing Controller: {now} ===")
+                  now = datetime.datetime.now(datetime.timezone.utc)
+                  print(f"=== Model Routing Controller: {now} ===")
 
-# 1. Load routing config
-try:
-    cm = k8s_get(f"/api/v1/namespaces/{ns}/configmaps/kelos-model-routing")
-    routing = json.loads(cm["data"]["routing.json"])
-    print(f"  Loaded routing: {len(routing)} task types")
-    for t, c in routing.items():
-        if isinstance(c, dict):
-            m = c.get("model", "?")
-            r = c.get("reliability", "?")
-            print(f"    {t}: {m} ({r})")
-except Exception as e:
-    print(f"  WARN: Cannot read ConfigMap: {e}")
-    routing = {}
+                  # 1. Load routing config
+                  try:
+                      cm = k8s_get(f"/api/v1/namespaces/{ns}/configmaps/kelos-model-routing")
+                      routing = json.loads(cm["data"]["routing.json"])
+                      print(f"  Loaded routing: {len(routing)} task types")
+                      for t, c in routing.items():
+                          if isinstance(c, dict):
+                              m = c.get("model", "?")
+                              r = c.get("reliability", "?")
+                              print(f"    {t}: {m} ({r})")
+                  except Exception as e:
+                      print(f"  WARN: Cannot read ConfigMap: {e}")
+                      routing = {}
 
-# 2. Patch TaskSpawners
-try:
-    items = k8s_get(f"/apis/kelos.dev/v1alpha1/namespaces/{ns}/taskspawners").get("items", [])
-    print(f"
-  Found {len(items)} TaskSpawners")
+                  # 2. Patch TaskSpawners
+                  try:
+                      items = k8s_get(f"/apis/kelos.dev/v1alpha1/namespaces/{ns}/taskspawners").get("items", [])
+                      print(f"
+                    Found {len(items)} TaskSpawners")
 
-    for sp in items:
-        name = sp["metadata"]["name"]
-        labels = sp.get("spec", {}).get("when", {}).get("githubIssues", {}).get("labels", [])
-        cur = sp.get("spec", {}).get("taskTemplate", {}).get("model", "")
+                      for sp in items:
+                          name = sp["metadata"]["name"]
+                          labels = sp.get("spec", {}).get("when", {}).get("githubIssues", {}).get("labels", [])
+                          cur = sp.get("spec", {}).get("taskTemplate", {}).get("model", "")
 
-        # Detect task type
-        ttype = "default"
-        name_lower = name.lower()
-        if any(x in name_lower for x in ["fix", "bug"]): ttype = "reasoning"
-        elif "doc" in name_lower: ttype = "documentation"
-        elif "data" in name_lower: ttype = "analysis"
-        elif "cron" in name_lower or "batch" in name_lower: ttype = "batch"
-        for lbl in labels:
-            l = lbl.lower()
-            if l in routing: ttype = l; break
+                          # Detect task type
+                          ttype = "default"
+                          name_lower = name.lower()
+                          if any(x in name_lower for x in ["fix", "bug"]): ttype = "reasoning"
+                          elif "doc" in name_lower: ttype = "documentation"
+                          elif "data" in name_lower: ttype = "analysis"
+                          elif "cron" in name_lower or "batch" in name_lower: ttype = "batch"
+                          for lbl in labels:
+                              l = lbl.lower()
+                              if l in routing: ttype = l; break
 
-        route = routing.get(ttype, routing.get("default", {}))
-        if isinstance(route, str): route = {"model": route}
-        target = route.get("model", "")
-        fallback = route.get("fallback", "")
+                          route = routing.get(ttype, routing.get("default", {}))
+                          if isinstance(route, str): route = {"model": route}
+                          target = route.get("model", "")
+                          fallback = route.get("fallback", "")
 
-        if target and target != cur:
-            reliability = route.get("reliability", "unknown") if isinstance(route, dict) else "unknown"
+                          if target and target != cur:
+                              reliability = route.get("reliability", "unknown") if isinstance(route, dict) else "unknown"
 
-            # Skip re-patching if model was already degraded
-            if cur and reliability == "degraded" and cur == target:
-                print(f"  {name}: {cur} (degraded, skipping re-patch)")
-                continue
+                              # Skip re-patching if model was already degraded
+                              if cur and reliability == "degraded" and cur == target:
+                                  print(f"  {name}: {cur} (degraded, skipping re-patch)")
+                                  continue
 
-            print(f"  {name}: {cur} -> {target} ({ttype}, rel:{reliability})")
-            env = sp.get("spec", {}).get("taskTemplate", {}).get("podOverrides", {}).get("env", [])
-            env = [e for e in env if e.get("name") not in ("KELOS_MODEL", "KELOS_MODEL_FALLBACKS", "KELOS_MODEL_RELIABILITY")]
-            env.append({"name": "KELOS_MODEL", "value": target})
-            if fallback:
-                env.append({"name": "KELOS_MODEL_FALLBACKS", "value": fallback})
-            env.append({"name": "KELOS_MODEL_RELIABILITY", "value": reliability})
+                              print(f"  {name}: {cur} -> {target} ({ttype}, rel:{reliability})")
+                              env = sp.get("spec", {}).get("taskTemplate", {}).get("podOverrides", {}).get("env", [])
+                              env = [e for e in env if e.get("name") not in ("KELOS_MODEL", "KELOS_MODEL_FALLBACKS", "KELOS_MODEL_RELIABILITY")]
+                              env.append({"name": "KELOS_MODEL", "value": target})
+                              if fallback:
+                                  env.append({"name": "KELOS_MODEL_FALLBACKS", "value": fallback})
+                              env.append({"name": "KELOS_MODEL_RELIABILITY", "value": reliability})
 
-            patch = {
-                "metadata": {
-                    "annotations": {
-                        "kelos.dev/model-routing-last-update": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                        "kelos.dev/model-routing-reliability": reliability,
-                    }
-                },
-                "spec": {"taskTemplate": {"model": target, "podOverrides": {"env": env}}},
+                              patch = {
+                                  "metadata": {
+                                      "annotations": {
+                                          "kelos.dev/model-routing-last-update": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                                          "kelos.dev/model-routing-reliability": reliability,
+                                      }
+                                  },
+                                  "spec": {"taskTemplate": {"model": target, "podOverrides": {"env": env}}},
+                              }
+                              time.sleep(2)
+                              k8s_patch(f"/apis/kelos.dev/v1alpha1/namespaces/{ns}/taskspawners/{name}", patch)
+                          else:
+                              print(f"  {name}: {cur} (up-to-date, {ttype})")
+
+                      print(f"
+                    Updated: {sum(1 for sp in items if sp["spec"]["taskTemplate"]["model"] != sp["spec"]["taskTemplate"].get("model", ""))}/{len(items)} spawners")
+
+                      # Persist circuit breaker state to ConfigMap
+                      if cb_state:
+                          try:
+                              r = dict(routing)
+                              r["__circuit_breaker__"] = cb_state
+                              cb_patch = {"data": {"routing.json": json.dumps(r)}}
+                              k8s_patch(f"/api/v1/namespaces/{ns}/configmaps/kelos-model-routing", cb_patch)
+                              print(f"  CB state saved ({len(cb_state)} entries)")
+                          except Exception as e:
+                              print(f"  WARN: CB state save failed: {e}")
+                  except Exception as e:
+                      print(f"  ERROR: {e}")
+
+                  print("=== Model Routing Controller Complete ===")
+                ''
+              ];
+              resources = {
+                requests = {
+                  cpu = "50m";
+                  memory = "64Mi";
+                };
+                limits = {
+                  cpu = "200m";
+                  memory = "128Mi";
+                };
+              };
+              securityContext = {
+                allowPrivilegeEscalation = false;
+                capabilities.drop = ["ALL"];
+                runAsNonRoot = true;
+                runAsUser = 1001;
+                seccompProfile.type = "RuntimeDefault";
+              };
+              env = [
+                {
+                  name = "K8S_NODE_NAME";
+                  valueFrom.fieldRef.fieldPath = "spec.nodeName";
+                }
+              ];
             }
-            time.sleep(2)
-            k8s_patch(f"/apis/kelos.dev/v1alpha1/namespaces/{ns}/taskspawners/{name}", patch)
-        else:
-            print(f"  {name}: {cur} (up-to-date, {ttype})")
-
-    print(f"
-  Updated: {sum(1 for sp in items if sp["spec"]["taskTemplate"]["model"] != sp["spec"]["taskTemplate"].get("model", ""))}/{len(items)} spawners")
-
-    # Persist circuit breaker state to ConfigMap
-    if cb_state:
-        try:
-            r = dict(routing)
-            r["__circuit_breaker__"] = cb_state
-            cb_patch = {"data": {"routing.json": json.dumps(r)}}
-            k8s_patch(f"/api/v1/namespaces/{ns}/configmaps/kelos-model-routing", cb_patch)
-            print(f"  CB state saved ({len(cb_state)} entries)")
-        except Exception as e:
-            print(f"  WARN: CB state save failed: {e}")
-except Exception as e:
-    print(f"  ERROR: {e}")
-
-print("=== Model Routing Controller Complete ===")
-              ''
-            ];
-            resources = {
-              requests = { cpu = "50m"; memory = "64Mi"; };
-              limits = { cpu = "200m"; memory = "128Mi"; };
-            };
-            securityContext = {
-              allowPrivilegeEscalation = false;
-              capabilities.drop = ["ALL"];
-              runAsNonRoot = true;
-              runAsUser = 1001;
-              seccompProfile.type = "RuntimeDefault";
-            };
-            env = [
-              { name = "K8S_NODE_NAME"; valueFrom.fieldRef.fieldPath = "spec.nodeName"; }
-            ];
-          }];
+          ];
         };
       };
     };
@@ -785,7 +812,7 @@ print("=== Model Routing Controller Complete ===")
         - Labels containing "documentation" or "doc" → documentation model
         - Labels containing "enhancement" or "feature" → coding model
         - No specific label → default (analysis) model
-        
+
         ## Gateway verification
         Check gateway: http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1
 
@@ -800,12 +827,36 @@ print("=== Model Routing Controller Complete ===")
         - PR body: "Closes #NNN"
       '';
       mcpServers = [
-        { name = "searxng"; type = "sse"; url = "http://mcp-searxng-proxy.mcp.svc.cluster.local:8080/mcp"; }
-        { name = "kb-mcp"; type = "sse"; url = "http://mcp-kb-mcp-proxy.mcp.svc.cluster.local:8080/mcp"; }
-        { name = "memory"; type = "sse"; url = "http://mcp-memory-proxy.mcp.svc.cluster.local:8080/mcp"; }
-        { name = "selfhosted-tools"; type = "sse"; url = "http://mcp-selfhosted-tools-proxy.mcp.svc.cluster.local:8080/mcp"; }
-        { name = "sequential-thinking"; type = "sse"; url = "http://mcp-sequential-thinking-proxy.mcp.svc.cluster.local:8080/mcp"; }
-        { name = "skills-mcp"; type = "sse"; url = "http://mcp-skills-mcp-proxy.mcp.svc.cluster.local:8080/mcp"; }
+        {
+          name = "searxng";
+          type = "sse";
+          url = "http://mcp-searxng-proxy.mcp.svc.cluster.local:8080/mcp";
+        }
+        {
+          name = "kb-mcp";
+          type = "sse";
+          url = "http://mcp-kb-mcp-proxy.mcp.svc.cluster.local:8080/mcp";
+        }
+        {
+          name = "memory";
+          type = "sse";
+          url = "http://mcp-memory-proxy.mcp.svc.cluster.local:8080/mcp";
+        }
+        {
+          name = "selfhosted-tools";
+          type = "sse";
+          url = "http://mcp-selfhosted-tools-proxy.mcp.svc.cluster.local:8080/mcp";
+        }
+        {
+          name = "sequential-thinking";
+          type = "sse";
+          url = "http://mcp-sequential-thinking-proxy.mcp.svc.cluster.local:8080/mcp";
+        }
+        {
+          name = "skills-mcp";
+          type = "sse";
+          url = "http://mcp-skills-mcp-proxy.mcp.svc.cluster.local:8080/mcp";
+        }
       ];
     };
   };
@@ -820,7 +871,6 @@ in {
     };
   };
 
-
   config = mkIf cfg.enable {
     # Register apiMappings for kelos.dev CRDs
     kubernetes.apiMappings = {
@@ -833,32 +883,34 @@ in {
     kubernetes.objects.kelos-system = {
       # Workspaces: one per repo, generated from the `repos` list
       Workspace = listToAttrs (map (r: {
-        name = r;
-        value = {
-          metadata.labels = {
-            "app.kubernetes.io/managed-by" = "easykubenix";
-            "app.kubernetes.io/part-of" = "kelos";
+          name = r;
+          value = {
+            metadata.labels = {
+              "app.kubernetes.io/managed-by" = "easykubenix";
+              "app.kubernetes.io/part-of" = "kelos";
+            };
+            spec = {
+              repo = "https://github.com/reverb256/${r}.git";
+              ref = "main";
+              secretRef.name = "github-token";
+              files = [];
+              inherit setupCommand;
+            };
           };
-          spec = {
-            repo = "https://github.com/reverb256/${r}.git";
-            ref = "main";
-            secretRef.name = "github-token";
-            files = [];
-            inherit setupCommand;
-          };
-        };
-      }) repos);
+        })
+        repos);
 
       # TaskSpawners: one per repo, uses taskSpawnerTemplate
       TaskSpawner = listToAttrs (map (r: let
-        tpl = taskSpawnerTemplate r;
-      in {
-        name = tpl.metadata.name;
-        value = {
-          metadata.labels = tpl.metadata.labels or {};
-          spec = tpl.spec;
-        };
-      }) repos);
+          tpl = taskSpawnerTemplate r;
+        in {
+          name = tpl.metadata.name;
+          value = {
+            metadata.labels = tpl.metadata.labels or {};
+            spec = tpl.spec;
+          };
+        })
+        repos);
 
       # AgentConfig: cluster-coder profile
       AgentConfig."cluster-coder" = {
@@ -897,36 +949,48 @@ in {
           schedule = "0 */6 * * *";
           concurrencyPolicy = "Forbid";
           jobTemplate.spec.template = {
-            metadata.labels = { "app.kubernetes.io/part-of" = "kelos"; };
+            metadata.labels = {"app.kubernetes.io/part-of" = "kelos";};
             spec = {
               nodeName = "nexus";
               serviceAccountName = "pipeline-operator";
               restartPolicy = "OnFailure";
-              containers = [{
-                name = "benchmarker";
-                image = "nexus:5000/python:3.13-alpine";
-                imagePullPolicy = "IfNotPresent";
-                command = ["python3" "/scripts/benchmark.py"];
-                volumeMounts = [{
+              containers = [
+                {
+                  name = "benchmarker";
+                  image = "nexus:5000/python:3.13-alpine";
+                  imagePullPolicy = "IfNotPresent";
+                  command = ["python3" "/scripts/benchmark.py"];
+                  volumeMounts = [
+                    {
+                      name = "script";
+                      mountPath = "/scripts";
+                    }
+                  ];
+                  resources = {
+                    requests = {
+                      cpu = "100m";
+                      memory = "128Mi";
+                    };
+                    limits = {
+                      cpu = "500m";
+                      memory = "256Mi";
+                    };
+                  };
+                  securityContext = {
+                    allowPrivilegeEscalation = false;
+                    capabilities.drop = ["ALL"];
+                    runAsNonRoot = true;
+                    runAsUser = 1001;
+                    seccompProfile.type = "RuntimeDefault";
+                  };
+                }
+              ];
+              volumes = [
+                {
                   name = "script";
-                  mountPath = "/scripts";
-                }];
-                resources = {
-                  requests = { cpu = "100m"; memory = "128Mi"; };
-                  limits = { cpu = "500m"; memory = "256Mi"; };
-                };
-                securityContext = {
-                  allowPrivilegeEscalation = false;
-                  capabilities.drop = ["ALL"];
-                  runAsNonRoot = true;
-                  runAsUser = 1001;
-                  seccompProfile.type = "RuntimeDefault";
-                };
-              }];
-              volumes = [{
-                name = "script";
-                configMap.name = "model-benchmark-script";
-              }];
+                  configMap.name = "model-benchmark-script";
+                }
+              ];
             };
           };
         };

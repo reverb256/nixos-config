@@ -89,7 +89,7 @@
       type = "stdio";
       scope = "local";
       command = "nix";
-      args = [ "run" "/etc/nixos#nixos-cluster-mcp" ];
+      args = ["run" "/etc/nixos#nixos-cluster-mcp"];
       description = "NixOS cluster management (15 tools: cluster_status, node_info, gpu_inventory, etc.)";
       connectTimeout = 30;
       timeout = 60;
@@ -102,7 +102,7 @@
       type = "stdio";
       scope = "local";
       command = "python3";
-      args = [ "/data/agents/mcp-bridges/casdoor-mcp-bridge.py" ];
+      args = ["/data/agents/mcp-bridges/casdoor-mcp-bridge.py"];
       description = "Casdoor SSO/OIDC - application management (5 tools, Bearer auth)";
       connectTimeout = 30;
       timeout = 60;
@@ -162,7 +162,7 @@
       type = "stdio";
       scope = "local";
       command = "lightpanda";
-      args = [ "mcp" ];
+      args = ["mcp"];
       description = "Lightpanda web browser automation";
       connectTimeout = 30;
       timeout = 60;
@@ -174,7 +174,7 @@
       type = "stdio";
       scope = "local";
       command = "mcp-filesystem";
-      args = [ "/etc/nixos" "/home/j_kro" ];
+      args = ["/etc/nixos" "/home/j_kro"];
       description = "Filesystem access (read/write, deferred tools)";
       connectTimeout = 30;
       timeout = 60;
@@ -196,7 +196,7 @@
       type = "stdio";
       scope = "local";
       command = "npx";
-      args = [ "-y" "chrome-devtools-mcp@latest" ];
+      args = ["-y" "chrome-devtools-mcp@latest"];
       description = "Chrome DevTools (deferred tools)";
       connectTimeout = 30;
       timeout = 60;
@@ -207,7 +207,7 @@
       type = "stdio";
       scope = "local";
       command = "npx";
-      args = [ "-y" "@anthropic-ai/playwright-mcp@latest" ];
+      args = ["-y" "@anthropic-ai/playwright-mcp@latest"];
       description = "Playwright browser automation (deferred tools)";
       connectTimeout = 30;
       timeout = 60;
@@ -228,22 +228,24 @@
   # ── C2: Generate Claude Code settings.json mcpServers ───────────────────
   mkClaudeCodeMcpServers = servers:
     lib.concatStringsSep ",\n    " (
-      lib.mapAttrsToList (name: server:
-        let
-          argsStr = if (builtins.hasAttr "args" server) && (server.args != []) then
-            ''"args": [${lib.concatStringsSep ", " (map (a: ''"${a}"'') server.args)}]"''
-          else null;
-          envStr = if (builtins.hasAttr "env" server) && (server.env != {}) then
-            ''"env": {${lib.concatStringsSep ", " (lib.mapAttrsToList (k: v: ''"${k}": "${v}"'') server.env)}}''
-          else null;
+      lib.mapAttrsToList (
+        name: server: let
+          argsStr =
+            if (builtins.hasAttr "args" server) && (server.args != [])
+            then ''"args": [${lib.concatStringsSep ", " (map (a: ''"${a}"'') server.args)}]"''
+            else null;
+          envStr =
+            if (builtins.hasAttr "env" server) && (server.env != {})
+            then ''"env": {${lib.concatStringsSep ", " (lib.mapAttrsToList (k: v: ''"${k}": "${v}"'') server.env)}}''
+            else null;
           finalFields = lib.filter (s: s != null) [
             ''"command": "${server.command}"''
             argsStr
             envStr
           ];
-        in
-          ''"${name}": { ${lib.concatStringsSep ", " finalFields} }''
-      ) servers
+        in ''"${name}": { ${lib.concatStringsSep ", " finalFields} }''
+      )
+      servers
     );
 
   claudeCodeJson = pkgs.writeText "claude-code-mcp-servers.json" ''
@@ -255,116 +257,116 @@
   '';
 
   # ── C3: Generate Hermes config.yaml mcp_servers ─────────────────────────
-  mkHermesMcpServers = servers:
-    let
-      mkServerBlock = name: server:
-        let
-          lines = [ "    ${name}:" ];
-          addLine = line: lines ++ [ line ];
-        in
-          lib.concatStringsSep "\n" (
-            if server.type == "sse" then
-              addLine "      url: ${server.url}"
-              ++ addLine "      connect_timeout: ${toString (server.connectTimeout or 30)}"
-              ++ addLine "      timeout: ${toString (server.timeout or 60)}"
-            else if server.type == "http" then
-              addLine "      url: ${server.url}"
-              ++ addLine "      connect_timeout: ${toString (server.connectTimeout or 30)}"
-              ++ addLine "      timeout: ${toString (server.timeout or 60)}"
-            else
-              # stdio
-              addLine "      command: ${server.command}"
-              ++ lib.optional (server ? args && server.args != [])
-                ("      args:\n" + lib.concatStringsSep "\n" (map (a: "        - ${a}") server.args))
-              ++ addLine "      connect_timeout: ${toString (server.connectTimeout or 30)}"
-              ++ addLine "      timeout: ${toString (server.timeout or 60)}"
-              ++ lib.optional (server ? description)
-                "      description: ${server.description}"
-          );
+  mkHermesMcpServers = servers: let
+    mkServerBlock = name: server: let
+      lines = ["    ${name}:"];
+      addLine = line: lines ++ [line];
     in
-      lib.concatStringsSep "\n" (lib.mapAttrsToList mkServerBlock servers);
+      lib.concatStringsSep "\n" (
+        if server.type == "sse"
+        then
+          addLine "      url: ${server.url}"
+          ++ addLine "      connect_timeout: ${toString (server.connectTimeout or 30)}"
+          ++ addLine "      timeout: ${toString (server.timeout or 60)}"
+        else if server.type == "http"
+        then
+          addLine "      url: ${server.url}"
+          ++ addLine "      connect_timeout: ${toString (server.connectTimeout or 30)}"
+          ++ addLine "      timeout: ${toString (server.timeout or 60)}"
+        else
+          # stdio
+          addLine "      command: ${server.command}"
+          ++ lib.optional (server ? args && server.args != [])
+          ("      args:\n" + lib.concatStringsSep "\n" (map (a: "        - ${a}") server.args))
+          ++ addLine "      connect_timeout: ${toString (server.connectTimeout or 30)}"
+          ++ addLine "      timeout: ${toString (server.timeout or 60)}"
+          ++ lib.optional (server ? description)
+          "      description: ${server.description}"
+      );
+  in
+    lib.concatStringsSep "\n" (lib.mapAttrsToList mkServerBlock servers);
 
   hermesMcpYaml = pkgs.writeText "hermes-mcp-servers.yaml" ''
-    mcp_servers:
-${mkHermesMcpServers allServers}
+        mcp_servers:
+    ${mkHermesMcpServers allServers}
   '';
 
   # ── C4: Generate Kagent RemoteMCPServer CRDs ────────────────────────────
   mkRemoteMCPServerCRD = name: server:
-    if server.scope == "cluster" then
-      {
-        "kagent.dev/v1alpha1".RemoteMCPServer.${name} = {
-          metadata.labels = {
-            "app.kubernetes.io/managed-by" = "easykubenix";
-            "app.kubernetes.io/component" = "mcp-server";
-            "mcp-server" = name;
-          };
-          spec = {
-            inherit name;
-            url = server.url;
-            transport = server.type;
-            description = server.description or "";
-            connectTimeout = "PT${toString (server.connectTimeout or 30)}S";
-            timeout = "PT${toString (server.timeout or 60)}S";
-          };
+    if server.scope == "cluster"
+    then {
+      "kagent.dev/v1alpha1".RemoteMCPServer.${name} = {
+        metadata.labels = {
+          "app.kubernetes.io/managed-by" = "easykubenix";
+          "app.kubernetes.io/component" = "mcp-server";
+          "mcp-server" = name;
         };
-      }
+        spec = {
+          inherit name;
+          url = server.url;
+          transport = server.type;
+          description = server.description or "";
+          connectTimeout = "PT${toString (server.connectTimeout or 30)}S";
+          timeout = "PT${toString (server.timeout or 60)}S";
+        };
+      };
+    }
     else {};
 
   kagentCRDs = lib.mkMerge (lib.mapAttrsToList mkRemoteMCPServerCRD clusterServers);
 
   # ── C5: Generate NetworkPolicy per server ───────────────────────────────
   mkNetworkPolicy = name: server:
-    if server ? ssePort then
-      {
-        "mcp".NetworkPolicy."allow-${name}-ingress" = {
-          metadata.labels = {
-            "app.kubernetes.io/managed-by" = "easykubenix";
-            "mcp-server" = name;
-          };
-          spec = {
-            podSelector.matchLabels.app = name;
-            policyTypes = [ "Ingress" ];
-            ingress = [
-              {
-                from = [
-                  { namespaceSelector.matchLabels.name = "ingress-system"; }
-                  { ipBlock.cidr = "10.1.1.0/24"; }
-                ];
-                ports = [
-                  {
-                    protocol = "TCP";
-                    port = server.ssePort;
-                  }
-                ];
-              }
-            ];
-          };
+    if server ? ssePort
+    then {
+      "mcp".NetworkPolicy."allow-${name}-ingress" = {
+        metadata.labels = {
+          "app.kubernetes.io/managed-by" = "easykubenix";
+          "mcp-server" = name;
         };
-      }
+        spec = {
+          podSelector.matchLabels.app = name;
+          policyTypes = ["Ingress"];
+          ingress = [
+            {
+              from = [
+                {namespaceSelector.matchLabels.name = "ingress-system";}
+                {ipBlock.cidr = "10.1.1.0/24";}
+              ];
+              ports = [
+                {
+                  protocol = "TCP";
+                  port = server.ssePort;
+                }
+              ];
+            }
+          ];
+        };
+      };
+    }
     else {};
 
   networkPolicies = lib.mkMerge (lib.mapAttrsToList mkNetworkPolicy allServers);
 
   # ── C6: Casdoor gateway registration data ───────────────────────────────
   # Generates a JSON file with Casdoor app registration data for MCP servers
-  mkCasdoorAppData = servers:
-    let
-      serversWithApps = lib.filterAttrs (_: s: s.casdoorApp != null) servers;
-    in
-      pkgs.writeText "casdoor-mcp-apps.json" (
-        builtins.toJSON (
-          lib.mapAttrsToList (name: server: {
-            inherit name;
-            appName = server.casdoorApp;
-            displayName = "${name} MCP Server";
-            description = server.description or "";
-            redirectUris = [ "http://localhost:${toString (server.ssePort or 0)}/oauth2/callback" ];
-            grantTypes = [ "authorization_code" "client_credentials" ];
-            scopes = [ "openid" "profile" "email" "mcp" ];
-          }) serversWithApps
-        )
-      );
+  mkCasdoorAppData = servers: let
+    serversWithApps = lib.filterAttrs (_: s: s.casdoorApp != null) servers;
+  in
+    pkgs.writeText "casdoor-mcp-apps.json" (
+      builtins.toJSON (
+        lib.mapAttrsToList (name: server: {
+          inherit name;
+          appName = server.casdoorApp;
+          displayName = "${name} MCP Server";
+          description = server.description or "";
+          redirectUris = ["http://localhost:${toString (server.ssePort or 0)}/oauth2/callback"];
+          grantTypes = ["authorization_code" "client_credentials"];
+          scopes = ["openid" "profile" "email" "mcp"];
+        })
+        serversWithApps
+      )
+    );
 in {
   options.services.mcp-registry = {
     enable = mkEnableOption "MCP Server Registry — single source of truth for all MCP servers";
@@ -413,7 +415,7 @@ in {
   config = mkIf cfg.enable {
     # ── C2: Claude Code settings.json generation ──────────────────────────
     system.activationScripts.claude-code-mcp-config = mkIf cfg.generateClaudeCode (
-      lib.stringAfter [ "users" ] ''
+      lib.stringAfter ["users"] ''
         CLAUDE_CONFIG="/home/${cfg.claudeCodeUser}/.claude/settings.json"
 
         mkdir -p "/home/${cfg.claudeCodeUser}/.claude"
@@ -443,10 +445,10 @@ in {
     # ── C3: Hermes config.yaml mcp_servers generation ─────────────────────
     systemd.services.hermes-mcp-registry = mkIf false {
       description = "Inject MCP registry servers into Hermes config";
-      after = [ "network.target" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["network.target"];
+      wantedBy = ["multi-user.target"];
 
-      path = with pkgs; [ python3 coreutils ];
+      path = with pkgs; [python3 coreutils];
 
       serviceConfig = {
         Type = "oneshot";
@@ -457,7 +459,7 @@ in {
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = "read-only";
-        ReadWritePaths = [ "/home/${cfg.hermesUser}/.hermes" ];
+        ReadWritePaths = ["/home/${cfg.hermesUser}/.hermes"];
 
         ExecStart = pkgs.writeShellScript "hermes-mcp-registry" ''
           set -euo pipefail
@@ -525,9 +527,10 @@ in {
         echo "http: ${toString (builtins.length (builtins.attrNames httpServers))}"
         echo ""
         echo "=== Servers ==="
-        ${lib.concatStringsSep "\n" (lib.mapAttrsToList (name: server:
-          "echo '${name}: ${server.type} (${server.scope}) - ${server.description or "no description"}'"
-        ) allServers)}
+        ${lib.concatStringsSep "\n" (lib.mapAttrsToList (
+            name: server: "echo '${name}: ${server.type} (${server.scope}) - ${server.description or "no description"}'"
+          )
+          allServers)}
       '')
     ];
 

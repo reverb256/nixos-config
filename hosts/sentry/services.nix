@@ -102,40 +102,6 @@ in {
 
   services.xserver.videoDrivers = ["amdgpu"];
 
-  programs.nix-ld.libraries = with pkgs; [
-    rocmPackages.clr
-    rocmPackages.clr.icd
-    rocmPackages.rocminfo
-    rocmPackages.rocm-smi
-    rocmPackages.rocm-runtime
-    rocmPackages.rocblas
-    rocmPackages.hipblas
-    rocmPackages.hipsparse
-    rocmPackages.rocfft
-    rocmPackages.rocrand
-    rocmPackages.rocthrust
-    ocl-icd
-    opencl-headers
-    clinfo
-    zlib
-    libpng
-    libjpeg
-    freetype
-    fontconfig
-    libx11
-    libxext
-    libxrender
-    libxcb
-    libxau
-    libxdmcp
-    SDL2
-    alsa-lib
-    systemd
-    libusb1
-    curl
-    openssl
-  ];
-
   systemd.services.ai-inference-monitor = {
     wantedBy = lib.mkForce [];
     enable = false;
@@ -160,41 +126,36 @@ in {
     port = 2222;
   };
   services.recovery-specialisation.enable = true;
-  services.btrfs-boot-snapshot = {
-    enable = true;
-    device = "/dev/disk/by-uuid/e1eee7b0-ba13-40b1-b147-6e544c92b302";
-    subvolume = "@root";
-  };
+  services.btrfs-boot-snapshot.enable = lib.mkForce false;
 
   services.cachix-auth.enable = true;
-   services.ai-coding-tools = {
-     enable = true;
-     user = "j_kro";
-     zaiApiKeyFile = config.age.secrets.zai-api-key.path;
-     context7ApiKeyFile = config.age.secrets.context7-api-key.path;
-     nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
-     opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
-     tools = {
-       claude = { enable = true; };
-       opencode = { enable = true; };
-       droid = { enable = true; };
-       crush = { enable = true; };
-       pi = { enable = true; };
-       omp = { enable = true; };
-     };
-     enableShellEnv = true;
-   };
+  services.ai-coding-tools = {
+    enable = true;
+    user = "j_kro";
+    zaiApiKeyFile = config.age.secrets.zai-api-key.path;
+    context7ApiKeyFile = config.age.secrets.context7-api-key.path;
+    nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
+    opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
+    tools = {
+      claude = {enable = true;};
+      opencode = {enable = true;};
+      droid = {enable = true;};
+      crush = {enable = true;};
+      pi = {enable = true;};
+      omp = {enable = true;};
+    };
+    enableShellEnv = true;
+  };
 
-   # Agent network restrictions — disabled on Sentry (monitoring node, no agents)
-   services.agent-firewall.enable = lib.mkForce false;
+  # Agent network restrictions — disabled on Sentry (monitoring node, no agents)
+  services.agent-firewall.enable = lib.mkForce false;
 
-   # Jitterentropy not supported on Sentry's CPU
-   systemd.services.jitterentropy.enable = lib.mkForce false;
+  # Jitterentropy not supported on Sentry's CPU
+  systemd.services.jitterentropy.enable = lib.mkForce false;
 
-   # SpotX flatpak not installed on Sentry
-   systemd.services.spotx-patch.enable = lib.mkForce false;
-   systemd.services.spotx-patch.wantedBy = lib.mkForce [];
-   systemd.timers.spotx-patch.wantedBy = lib.mkForce [];
-   systemd.services.spotify-spotx.wantedBy = lib.mkForce [];
- }
-
+  # SpotX flatpak not installed on Sentry
+  systemd.services.spotx-patch.enable = lib.mkForce false;
+  systemd.services.spotx-patch.wantedBy = lib.mkForce [];
+  systemd.timers.spotx-patch.wantedBy = lib.mkForce [];
+  systemd.services.spotify-spotx.wantedBy = lib.mkForce [];
+}

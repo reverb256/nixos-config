@@ -1,5 +1,9 @@
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.sshfs-projects-mount;
 in {
   options.services.sshfs-projects-mount = {
@@ -37,7 +41,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = [ pkgs.sshfs ];
+    environment.systemPackages = [pkgs.sshfs];
 
     # FUSE config: allow_other required for SSHFS mounts owned by root
     environment.etc."fuse.conf".text = ''

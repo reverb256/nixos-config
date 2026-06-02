@@ -112,9 +112,9 @@
   # Needed for HA: sentry gateway pod pulls from nexus:5000 instead of needing pre-loaded image.
   systemd.services.push-gateway-to-registry = {
     description = "Push gateway image to local container registry";
-    after = [ "k3s.service" ];
-    wantedBy = [ "multi-user.target" ];
-    path = [ pkgs.bash pkgs.podman pkgs.curl pkgs.coreutils ];
+    after = ["k3s.service"];
+    wantedBy = ["multi-user.target"];
+    path = [pkgs.bash pkgs.podman pkgs.curl pkgs.coreutils];
     serviceConfig.ExecStart = pkgs.writeShellScript "push-gateway-to-registry-start" ''
       set -euo pipefail
 

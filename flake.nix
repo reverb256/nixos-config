@@ -36,7 +36,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     scopebuddy = {
-        url = "tarball+https://codeload.github.com/OpenGamingCollective/ScopeBuddy/tar.gz/150051976a2a1e64179edc7265175ba4e5f62f62";
+      url = "tarball+https://codeload.github.com/OpenGamingCollective/ScopeBuddy/tar.gz/150051976a2a1e64179edc7265175ba4e5f62f62";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nixcord = {
@@ -212,32 +212,32 @@
       ];
     };
 
-  commonModules = import ./common-modules-list.nix {
-    inherit inputs self;
-  };
+    commonModules = import ./common-modules-list.nix {
+      inherit inputs self;
+    };
 
-  # Slim module set for WSL/remote hosts — no desktop/GPU/cluster modules
-  slimModules = [
-    inputs.home-manager.nixosModules.home-manager
-    inputs.agenix.nixosModules.default
-    ./modules/default.nix
-    {
-      nixpkgs.overlays = [ self.overlays.default ];
-      age.identityPaths = [
-        "/persistent/etc/age/key.txt"
-        "/etc/nixos/.age/key.txt"
-        "/etc/age/key.txt"
-        "/home/j_kro/.age/key.txt"
-      ];
-    }
-  ];
+    # Slim module set for WSL/remote hosts — no desktop/GPU/cluster modules
+    slimModules = [
+      inputs.home-manager.nixosModules.home-manager
+      inputs.agenix.nixosModules.default
+      ./modules/default.nix
+      {
+        nixpkgs.overlays = [self.overlays.default];
+        age.identityPaths = [
+          "/persistent/etc/age/key.txt"
+          "/etc/nixos/.age/key.txt"
+          "/etc/age/key.txt"
+          "/home/j_kro/.age/key.txt"
+        ];
+      }
+    ];
 
-  mkNixosSystem = {
-    hostName,
-    extraModules ? [],
-    k8sManifest ? null,
-    modules ? commonModules,
-  }:
+    mkNixosSystem = {
+      hostName,
+      extraModules ? [],
+      k8sManifest ? null,
+      modules ? commonModules,
+    }:
       nixpkgs.lib.nixosSystem {
         specialArgs = {
           inherit inputs;
@@ -274,23 +274,24 @@
         hostName = "sentry";
         k8sManifest = self.kubernetes.small.manifestYAMLFile;
       };
-    krash3 = {
-      hostName = "krash3";
-      k8sManifest = null; # No K8s manifests
-      modules = slimModules; # WSL — no desktop/GPU/cluster
-    };
+      krash3 = {
+        hostName = "krash3";
+        k8sManifest = null; # No K8s manifests
+        modules = slimModules; # WSL — no desktop/GPU/cluster
+      };
     };
   in {
     checks.x86_64-linux = {};
 
-  nixosConfigurations =
-  (builtins.mapAttrs (
-    _name: value: mkNixosSystem {
-      inherit (value) hostName;
-      k8sManifest = value.k8sManifest or null;
-      modules = value.modules or commonModules;
-    }
-  )
+    nixosConfigurations =
+      (builtins.mapAttrs (
+          _name: value:
+            mkNixosSystem {
+              inherit (value) hostName;
+              k8sManifest = value.k8sManifest or null;
+              modules = value.modules or commonModules;
+            }
+        )
         hosts)
       // {
         # Phase 3: MicroVM configurations (not regular hosts, not managed by Colmena)
@@ -302,7 +303,7 @@
         # Rescue USB — standalone live ISO (no mining/gaming/K8s)
         usb-rescue = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
-          specialArgs = {inherit inputs;};
+          specialArgs = {inherit inputs; hostName = "usb-rescue";};
           modules = [./hosts/usb/configuration.nix];
         };
       };
@@ -369,21 +370,23 @@
     packages.x86_64-linux.opencode-image = pkgsWithOverlay.opencode-image;
     packages.x86_64-linux.maplespike-mcp-image = pkgsWithOverlay.maplespike-mcp-image;
     packages.x86_64-linux.maplespike-api-image = pkgsWithOverlay.maplespike-api-image;
-  packages.x86_64-linux = {
-    # ai-inference-gateway-image = lib.mkIf (inputs ? ai-gateway) inputs.ai-gateway.packages.x86_64-linux.container; # migrated from local pkgs/
-    inherit (pkgsWithOverlay)
-      maplespike-ingest-image
-      maplespike-engine-image;
-  };
+    packages.x86_64-linux = {
+      # ai-inference-gateway-image = lib.mkIf (inputs ? ai-gateway) inputs.ai-gateway.packages.x86_64-linux.container; # migrated from local pkgs/
+      inherit
+        (pkgsWithOverlay)
+        maplespike-ingest-image
+        maplespike-engine-image
+        ;
+    };
 
-      # hermes-workspace-image and hermes-webui-image archived (2026-05-16)
-      overlays.default = (import ./overlay.nix) {inherit inputs;};
-     kubernetes = import ./kubernetes {
-        lib = inputs.nixpkgs.lib;
-        inherit pkgs pkgsWithOverlay inputs;
-      };
+    # hermes-workspace-image and hermes-webui-image archived (2026-05-16)
+    overlays.default = (import ./overlay.nix) {inherit inputs;};
+    kubernetes = import ./kubernetes {
+      lib = inputs.nixpkgs.lib;
+      inherit pkgs pkgsWithOverlay inputs;
+    };
 
-     apps.x86_64-linux.k8s-validate = {
+    apps.x86_64-linux.k8s-validate = {
       type = "app";
       program = "${self.kubernetes.validationScript}/bin/kubeval";
       meta.description = "Validate K8s manifests against ephemeral apiserver";

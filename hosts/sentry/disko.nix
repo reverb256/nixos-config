@@ -1,4 +1,10 @@
-{ config, lib, pkgs, utils, ... }: {
+{
+  config,
+  lib,
+  pkgs,
+  utils,
+  ...
+}: {
   disko.devices = {
     disk.sdb = {
       device = "/dev/disk/by-id/ata-Micron_1100_SATA_256GB_18361E518AB4";
@@ -18,7 +24,7 @@
           };
           swap = {
             size = "8G";
-            content = { type = "swap"; };
+            content = {type = "swap";};
           };
           root = {
             size = "100%";
@@ -65,7 +71,7 @@
             size = "100%";
             content = {
               type = "btrfs";
-              extraArgs = ["-f"];  # Formats the partition - DATA LOSS
+              extraArgs = ["-f"]; # Formats the partition - DATA LOSS
               subvolumes = {
                 "@" = {
                   mountpoint = "/storage";
@@ -88,10 +94,10 @@
   };
 
   fileSystems = {
-    "/persistent" = { neededForBoot = true; };
-    "/nix" = { neededForBoot = true; };
-    "/home" = { neededForBoot = false; };
-    "/storage" = { neededForBoot = false; };
-    "/var/storage" = { neededForBoot = false; };
+    "/persistent" = {neededForBoot = true;};
+    "/nix" = {neededForBoot = true;};
+    "/home" = {neededForBoot = false;};
+    "/storage" = {neededForBoot = false;};
+    "/var/storage" = {neededForBoot = false;};
   };
 }

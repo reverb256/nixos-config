@@ -351,65 +351,65 @@ in {
   # Hermes Agent — self-contained config matching live setup
   environment.variables.HERMES_HOME = "/home/j_kro/.hermes";
   system.activationScripts.hermes-usb-setup = lib.stringAfter ["users"] ''
-    HERMES_HOME="/home/j_kro/.hermes"
-    mkdir -p "$HERMES_HOME"/{sessions,memories,skills,cron,logs}
+        HERMES_HOME="/home/j_kro/.hermes"
+        mkdir -p "$HERMES_HOME"/{sessions,memories,skills,cron,logs}
 
-    cat > "$HERMES_HOME/config.yaml" << 'YAML_EOF'
-    model:
-      provider: ai-gateway
-      base_url: http://10.1.1.110:30880/v1
-      default: qwen/qwen3-coder-480b-a35b-instruct
-      api_key: none
+        cat > "$HERMES_HOME/config.yaml" << 'YAML_EOF'
+        model:
+          provider: ai-gateway
+          base_url: http://10.1.1.110:30880/v1
+          default: qwen/qwen3-coder-480b-a35b-instruct
+          api_key: none
 
-    providers:
-      ai-gateway:
-        base_url: http://10.1.1.110:30880/v1
-        api_key: none
-      local-qwen36:
-        base_url: http://10.1.1.110:1237/v1
-        model: Qwen3.6-35B-A3B-abliterated.i1-IQ3_M.gguf
-      zephyr-3060ti:
-        base_url: http://10.1.1.110:8040/v1
-        model: qwen3.5-2b-awq
-      sentry-qwen35:
-        base_url: http://10.1.1.140:1235/v1
-        model: Qwen3.5-9B-abliterated.i1-IQ2_M.gguf
+        providers:
+          ai-gateway:
+            base_url: http://10.1.1.110:30880/v1
+            api_key: none
+          local-qwen36:
+            base_url: http://10.1.1.110:1237/v1
+            model: Qwen3.6-35B-A3B-abliterated.i1-IQ3_M.gguf
+          zephyr-3060ti:
+            base_url: http://10.1.1.110:8040/v1
+            model: qwen3.5-2b-awq
+          sentry-qwen35:
+            base_url: http://10.1.1.140:1235/v1
+            model: Qwen3.5-9B-abliterated.i1-IQ2_M.gguf
 
-    fallback_providers:
-      - ai-gateway
-      - local-qwen36
-      - zephyr-3060ti
-      - sentry-qwen35
+        fallback_providers:
+          - ai-gateway
+          - local-qwen36
+          - zephyr-3060ti
+          - sentry-qwen35
 
-    terminal:
-      backend: local
-      timeout: 180
+        terminal:
+          backend: local
+          timeout: 180
 
-    toolsets:
-      - all
+        toolsets:
+          - all
 
-    memory:
-      memory_enabled: true
-      user_profile_enabled: true
+        memory:
+          memory_enabled: true
+          user_profile_enabled: true
 
-    compression:
-      enabled: true
-      threshold: 0.9
+        compression:
+          enabled: true
+          threshold: 0.9
 
-    agent:
-      max_turns: 90
-      gateway_timeout: 1800
-      api_max_retries: 3
-  tool_use_enforcement: auto
-YAML_EOF
+        agent:
+          max_turns: 90
+          gateway_timeout: 1800
+          api_max_retries: 3
+      tool_use_enforcement: auto
+    YAML_EOF
 
-  cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
-  You are Hermes Agent, an intelligent AI assistant. You are helpful,
-  knowledgeable, and direct. You are running from a NixOS rescue USB.
-SOUL_EOF
+      cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
+      You are Hermes Agent, an intelligent AI assistant. You are helpful,
+      knowledgeable, and direct. You are running from a NixOS rescue USB.
+    SOUL_EOF
 
-    chown -R j_kro:j_kro "$HERMES_HOME"
-    chmod 750 "$HERMES_HOME"
+        chown -R j_kro:j_kro "$HERMES_HOME"
+        chmod 750 "$HERMES_HOME"
   '';
 
   # System Packages

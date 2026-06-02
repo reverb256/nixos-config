@@ -9,5 +9,4 @@ in {
   config.kluctl.files.".templateignore" = ''
     default/easykubenix.yaml
   '';
-
 }

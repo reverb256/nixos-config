@@ -1,5 +1,8 @@
-{cluster,
- nexusPreferredAffinity, ...}: let
+{
+  cluster,
+  nexusPreferredAffinity,
+  ...
+}: let
   labels = {
     app = "glance";
     "app.kubernetes.io/managed-by" = "easykubenix";
@@ -410,8 +413,14 @@ in {
           {
             to = [{namespaceSelector.matchLabels.name = "kube-system";}];
             ports = [
-              {port = 53; protocol = "UDP";}
-              {port = 53; protocol = "TCP";}
+              {
+                port = 53;
+                protocol = "UDP";
+              }
+              {
+                port = 53;
+                protocol = "TCP";
+              }
             ];
           }
         ];
@@ -427,7 +436,12 @@ in {
         ingress = [
           {
             from = [{ipBlock.cidr = cluster.subnet;}];
-            ports = [{port = 8080; protocol = "TCP";}];
+            ports = [
+              {
+                port = 8080;
+                protocol = "TCP";
+              }
+            ];
           }
         ];
       };
