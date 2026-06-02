@@ -1,5 +1,9 @@
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   # Import port registry for direct NodePort access
   ports = import ../kubernetes/service-ports.nix;
 

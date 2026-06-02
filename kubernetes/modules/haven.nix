@@ -49,7 +49,6 @@ in {
       };
     };
 
-
     haven.Deployment.haven = {
       metadata.labels = managed // {app = "haven";};
       spec = {

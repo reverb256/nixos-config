@@ -16,32 +16,10 @@
     extraModulePackages = [];
   };
 
-  fileSystems = {
-    "/" = {
-      device = "/dev/disk/by-uuid/8ed4264a-6837-4af8-876a-1111625d98d1";
-      fsType = "btrfs";
-      options = ["subvol=@"];
-    };
+  # Note: fileSystems for "/", "/home", "/boot", "/nix", "/persistent" are managed by disko.nix
+  # /storage mount is handled by disko nodev (preserves existing data)
 
-    "/home" = {
-      device = "/dev/disk/by-uuid/8ed4264a-6837-4af8-876a-1111625d98d1";
-      fsType = "btrfs";
-      options = ["subvol=@home" "x-initrd.mount"];
-    };
-
-    "/boot" = {
-      device = "/dev/disk/by-uuid/68A4-1A49";
-      fsType = "vfat";
-      options = ["fmask=0077" "dmask=0077"];
-    };
-
-    "/storage" = {
-      device = "/dev/disk/by-uuid/4cc9468d-166d-4479-9846-6224c80d9566";
-      fsType = "btrfs";
-      options = ["subvol=@data" "compress=zstd" "nofail"];
-    };
-  };
-
+  # Use existing swap partition on SSD (sdb2)
   swapDevices = [
     {device = "/dev/disk/by-uuid/b708afe1-3cde-43e1-a047-03b5a1c1c5ac";}
   ];

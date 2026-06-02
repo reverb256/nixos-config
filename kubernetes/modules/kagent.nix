@@ -275,7 +275,6 @@ in {
       stringData.POSTGRES_PASSWORD = "";
     };
 
-
     kagent.PersistentVolumeClaim.kagent-postgresql = {
       metadata.labels = managed // {"app.kubernetes.io/component" = "database";};
       spec = {

@@ -93,7 +93,10 @@
         description: Casdoor SSO/OIDC - application management (5 tools, Bearer auth)
   '';
 
-  mcpServersBlock = if useRegistry then registryCfg.lib.mcp-registry.hermesMcpYaml else fallbackMcpServersBlock;
+  mcpServersBlock =
+    if useRegistry
+    then registryCfg.lib.mcp-registry.hermesMcpYaml
+    else fallbackMcpServersBlock;
 
   # Python script to merge mcp_servers section into Hermes config.yaml
   # Uses line-by-line parsing to avoid regex escape issues with Nix multiline strings
@@ -242,158 +245,158 @@ in {
     # Create hermes state directory with proper config (only if not using agent state)
     system.activationScripts.hermes-cli-setup = lib.mkIf (!useAgentStateDir) (
       lib.stringAfter ["users"] ''
-              HERMES_HOME="/home/${cfg.user}/.hermes"
+                      HERMES_HOME="/home/${cfg.user}/.hermes"
 
-              # Create directory structure
-              mkdir -p "$HERMES_HOME"/{sessions,memories,skills,cron,logs}
+                      # Create directory structure
+                      mkdir -p "$HERMES_HOME"/{sessions,memories,skills,cron,logs}
 
-              # Write config.yaml if it doesn't exist or is managed by us
-              if [ ! -f "$HERMES_HOME/config.yaml" ] || grep -q "# Managed by NixOS" "$HERMES_HOME/config.yaml" 2>/dev/null; then
-                cat > "$HERMES_HOME/config.yaml" << YAML_EOF
-        # Managed by NixOS - hermes-cli module
-        # GATEWAY-CENTRIC - AI Inference Gateway routes all model traffic
-        model:
-          provider: gateway
-          default: opencode-go/deepseek-v4-flash
+                      # Write config.yaml if it doesn't exist or is managed by us
+                      if [ ! -f "$HERMES_HOME/config.yaml" ] || grep -q "# Managed by NixOS" "$HERMES_HOME/config.yaml" 2>/dev/null; then
+                        cat > "$HERMES_HOME/config.yaml" << YAML_EOF
+                # Managed by NixOS - hermes-cli module
+                # GATEWAY-CENTRIC - AI Inference Gateway routes all model traffic
+                model:
+                  provider: gateway
+                  default: opencode-go/deepseek-v4-flash
 
-        providers:
-          gateway:
-            base_url: http://${config.networking.cluster.hosts.nexus.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-inference-gateway}/v1
-            model: opencode-go/deepseek-v4-flash
-            key_env: ZAI_API_KEY
-          zai:
-            base_url: https://api.z.ai/api/coding/paas/v4
-            key_env: ZAI_API_KEY
-          nvidia:
-            base_url: https://integrate.api.nvidia.com/v1
-            key_env: NVIDIA_API_KEY
-          opencode-go:
-            base_url: http://${config.networking.cluster.hosts.nexus.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-inference-gateway}/v1
-            model: deepseek-v4-flash
-            key_env: OPENCODE_GO_API_KEY
-          local-sentry:
-            base_url: http://${config.networking.cluster.hosts.sentry.ip}:1235/v1
-            model: Qwen3.5-4B-Q4_K_M.gguf
-            supports_vision: true
+                providers:
+                  gateway:
+                    base_url: http://${config.networking.cluster.hosts.nexus.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-inference-gateway}/v1
+                    model: opencode-go/deepseek-v4-flash
+                    key_env: ZAI_API_KEY
+                  zai:
+                    base_url: https://api.z.ai/api/coding/paas/v4
+                    key_env: ZAI_API_KEY
+                  nvidia:
+                    base_url: https://integrate.api.nvidia.com/v1
+                    key_env: NVIDIA_API_KEY
+                  opencode-go:
+                    base_url: http://${config.networking.cluster.hosts.nexus.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-inference-gateway}/v1
+                    model: deepseek-v4-flash
+                    key_env: OPENCODE_GO_API_KEY
+                  local-sentry:
+                    base_url: http://${config.networking.cluster.hosts.sentry.ip}:1235/v1
+                    model: Qwen3.5-4B-Q4_K_M.gguf
+                    supports_vision: true
 
-        fallback_providers:
-          - gateway
-          - zai
-          - nvidia
-          - opencode-go
-          - local-sentry
+                fallback_providers:
+                  - gateway
+                  - zai
+                  - nvidia
+                  - opencode-go
+                  - local-sentry
 
-        terminal:
-          backend: local
-          timeout: 180
+                terminal:
+                  backend: local
+                  timeout: 180
 
-        toolsets:
-          - all
+                toolsets:
+                  - all
 
-        memory:
-          memory_enabled: true
-          user_profile_enabled: true
+                memory:
+                  memory_enabled: true
+                  user_profile_enabled: true
 
-  compression:
-    enabled: true
-    threshold: 0.9
-YAML_EOF
-                chmod 644 "$HERMES_HOME/config.yaml"
-              else
-                # Inject essential providers into manually-managed config
-                # This ensures zai/nvidia endpoints are correct even if user edits config
-                if ! grep -q "^zai:" "$HERMES_HOME/config.yaml" 2>/dev/null; then
-                  cat >> "$HERMES_HOME/config.yaml" << 'YAI_EOF'
+          compression:
+            enabled: true
+            threshold: 0.9
+        YAML_EOF
+                        chmod 644 "$HERMES_HOME/config.yaml"
+                      else
+                        # Inject essential providers into manually-managed config
+                        # This ensures zai/nvidia endpoints are correct even if user edits config
+                        if ! grep -q "^zai:" "$HERMES_HOME/config.yaml" 2>/dev/null; then
+                          cat >> "$HERMES_HOME/config.yaml" << 'YAI_EOF'
 
-# Essential providers injected by NixOS (hermes-cli module)
-zai:
-  base_url: https://api.z.ai/api/coding/paas/v4
-  api_key_env: ZAI_API_KEY
-nvidia:
-  base_url: https://integrate.api.nvidia.com/v1
-  api_key_env: NVIDIA_API_KEY
-YAI_EOF
-                fi
-                # Ensure fallback includes cloud providers
-                if grep -q "^fallback_providers:" "$HERMES_HOME/config.yaml" 2>/dev/null; then
-                  if ! grep -A 10 "^fallback_providers:" "$HERMES_HOME/config.yaml" | grep -q "zai"; then
-                    sed -i '/^fallback_providers:/a\  - zai\n  - nvidia' "$HERMES_HOME/config.yaml" 2>/dev/null || true
-                  fi
-                fi
-              fi
+        # Essential providers injected by NixOS (hermes-cli module)
+        zai:
+          base_url: https://api.z.ai/api/coding/paas/v4
+          api_key_env: ZAI_API_KEY
+        nvidia:
+          base_url: https://integrate.api.nvidia.com/v1
+          api_key_env: NVIDIA_API_KEY
+        YAI_EOF
+                        fi
+                        # Ensure fallback includes cloud providers
+                        if grep -q "^fallback_providers:" "$HERMES_HOME/config.yaml" 2>/dev/null; then
+                          if ! grep -A 10 "^fallback_providers:" "$HERMES_HOME/config.yaml" | grep -q "zai"; then
+                            sed -i '/^fallback_providers:/a\  - zai\n  - nvidia' "$HERMES_HOME/config.yaml" 2>/dev/null || true
+                          fi
+                        fi
+                      fi
 
-              # Write .env with API keys from agenix secrets
-              # This runs unconditionally — .env must always reflect current secrets
-              echo "# Hermes environment variables" > "$HERMES_HOME/.env"
-              ${lib.optionalString (cfg.apiKeyFile != null) ''
+                      # Write .env with API keys from agenix secrets
+                      # This runs unconditionally — .env must always reflect current secrets
+                      echo "# Hermes environment variables" > "$HERMES_HOME/.env"
+                      ${lib.optionalString (cfg.apiKeyFile != null) ''
           if [ -f "${cfg.apiKeyFile}" ]; then
             echo -n "ZAI_API_KEY=" >> "$HERMES_HOME/.env"
             cat "${cfg.apiKeyFile}" >> "$HERMES_HOME/.env"
             echo "" >> "$HERMES_HOME/.env"
           fi
         ''}
-              ${lib.optionalString (cfg.nvidiaApiKeyFile != null) ''
+                      ${lib.optionalString (cfg.nvidiaApiKeyFile != null) ''
           if [ -f "${cfg.nvidiaApiKeyFile}" ]; then
             echo -n "NVIDIA_API_KEY=" >> "$HERMES_HOME/.env"
             cat "${cfg.nvidiaApiKeyFile}" >> "$HERMES_HOME/.env"
             echo "" >> "$HERMES_HOME/.env"
           fi
         ''}
-              ${lib.optionalString (cfg.opencodeGoApiKeyFile != null) ''
+                      ${lib.optionalString (cfg.opencodeGoApiKeyFile != null) ''
           if [ -f "${cfg.opencodeGoApiKeyFile}" ]; then
             echo -n "OPENCODE_GO_API_KEY=" >> "$HERMES_HOME/.env"
             cat "${cfg.opencodeGoApiKeyFile}" >> "$HERMES_HOME/.env"
             echo "" >> "$HERMES_HOME/.env"
           fi
         ''}
-              ${lib.optionalString (cfg.opencodeZenApiKeyFile != null) ''
+                      ${lib.optionalString (cfg.opencodeZenApiKeyFile != null) ''
           if [ -f "${cfg.opencodeZenApiKeyFile}" ]; then
             echo -n "OPENCODE_ZEN_API_KEY=" >> "$HERMES_HOME/.env"
             cat "${cfg.opencodeZenApiKeyFile}" >> "$HERMES_HOME/.env"
             echo "" >> "$HERMES_HOME/.env"
           fi
         ''}
-              ${lib.optionalString (cfg.kilocodeApiKeyFile != null) ''
+                      ${lib.optionalString (cfg.kilocodeApiKeyFile != null) ''
           if [ -f "${cfg.kilocodeApiKeyFile}" ]; then
             echo -n "KILOCODE_API_KEY=" >> "$HERMES_HOME/.env"
             cat "${cfg.kilocodeApiKeyFile}" >> "$HERMES_HOME/.env"
             echo "" >> "$HERMES_HOME/.env"
           fi
         ''}
-              ${lib.optionalString (cfg.geminiApiKeyFile != null) ''
+                      ${lib.optionalString (cfg.geminiApiKeyFile != null) ''
           if [ -f "${cfg.geminiApiKeyFile}" ]; then
             echo -n "GEMINI_API_KEY=" >> "$HERMES_HOME/.env"
             cat "${cfg.geminiApiKeyFile}" >> "$HERMES_HOME/.env"
             echo "" >> "$HERMES_HOME/.env"
           fi
         ''}
-              ${lib.optionalString (cfg.hfTokenFile != null) ''
+                      ${lib.optionalString (cfg.hfTokenFile != null) ''
           if [ -f "${cfg.hfTokenFile}" ]; then
             echo -n "HF_TOKEN=" >> "$HERMES_HOME/.env"
             cat "${cfg.hfTokenFile}" >> "$HERMES_HOME/.env"
             echo "" >> "$HERMES_HOME/.env"
           fi
         ''}
-              ${lib.optionalString (cfg.githubTokenFile != null) ''
+                      ${lib.optionalString (cfg.githubTokenFile != null) ''
           if [ -f "${cfg.githubTokenFile}" ]; then
             echo -n "GITHUB_TOKEN=" >> "$HERMES_HOME/.env"
             cat "${cfg.githubTokenFile}" >> "$HERMES_HOME/.env"
             echo "" >> "$HERMES_HOME/.env"
           fi
         ''}
-              chmod 600 "$HERMES_HOME/.env"
+                      chmod 600 "$HERMES_HOME/.env"
 
-              # Write SOUL.md if it doesn't exist
-              if [ ! -f "$HERMES_HOME/SOUL.md" ]; then
-  cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
-  ${cfg.personality}
-SOUL_EOF
-                chmod 644 "$HERMES_HOME/SOUL.md"
-              fi
+                      # Write SOUL.md if it doesn't exist
+                      if [ ! -f "$HERMES_HOME/SOUL.md" ]; then
+          cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
+          ${cfg.personality}
+        SOUL_EOF
+                        chmod 644 "$HERMES_HOME/SOUL.md"
+                      fi
 
-              # Set ownership (skip on NFS where root-squash blocks chown)
-              chown -R ${cfg.user}:users "$HERMES_HOME" 2>/dev/null || true
-              chmod 750 "$HERMES_HOME" 2>/dev/null || true
+                      # Set ownership (skip on NFS where root-squash blocks chown)
+                      chown -R ${cfg.user}:users "$HERMES_HOME" 2>/dev/null || true
+                      chmod 750 "$HERMES_HOME" 2>/dev/null || true
       ''
     );
 

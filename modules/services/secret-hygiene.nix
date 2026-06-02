@@ -186,7 +186,7 @@ in {
     # Monthly scan timer -- 1st of each month at 3AM
     systemd.timers.secret-hygiene-scan = {
       description = "Monthly secret hygiene scan timer";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnCalendar = "*-*-01 03:00:00";
         Persistent = true;
@@ -274,7 +274,7 @@ in {
     # Weekly cleanup timer -- every Monday at 4AM
     systemd.timers.secret-hygiene-cleanup = {
       description = "Weekly session cleanup timer";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnCalendar = "Mon *-*-* 04:00:00";
         Persistent = true;

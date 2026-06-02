@@ -1,0 +1,44 @@
+{
+  lib,
+  pkgs,
+  ...
+}: {
+  programs.nix-ld.libraries = with pkgs; [
+    rocmPackages.clr
+    rocmPackages.clr.icd
+    rocmPackages.rocminfo
+    rocmPackages.rocm-smi
+    rocmPackages.rocm-runtime
+    rocmPackages.rocblas
+    rocmPackages.hipblas
+    rocmPackages.hipsparse
+    rocmPackages.rocfft
+    rocmPackages.rocrand
+    rocmPackages.rocthrust
+    ocl-icd
+    opencl-headers
+    clinfo
+    libGL
+    libGLU
+    libglvnd
+    vulkan-loader
+    nvidia-vaapi-driver
+    zlib
+    libpng
+    libjpeg
+    freetype
+    fontconfig
+    libx11
+    libxext
+    libxrender
+    libxcb
+    libxau
+    libxdmcp
+    SDL2
+    alsa-lib
+    systemd
+    libusb1
+    curl
+    openssl
+  ];
+}

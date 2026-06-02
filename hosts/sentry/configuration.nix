@@ -6,12 +6,15 @@
   ...
 }: {
   imports = [
+    inputs.disko.nixosModules.disko
     ./monitoring.nix
     ./firewall.nix
     ./hardware.nix
     ./desktop.nix
     ./services.nix
     ./hardware-configuration.nix
+    ./disko.nix
+    ./preservation.nix
 
     ../../modules/default.nix
 
@@ -24,19 +27,6 @@
     ../../modules/services/sshfs-projects-mount.nix
     inputs.nix-mineral.nixosModules.nix-mineral
   ];
-
-  # Host-specific CPU/GPU optimization for llama.cpp (Intel 9500f + AMD RX 5600 XT)
-  nixpkgs.config.packageOverrides = pkgs: {
-    llama-cpp-turboquant = pkgs.llama-cpp-turboquant.overrideAttrs (old: {
-      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=haswell";
-    });
-    llama-cpp = pkgs.llama-cpp.overrideAttrs (old: {
-      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=haswell";
-    });
-    llama-cpp-vulkan = pkgs.llama-cpp-vulkan.overrideAttrs (old: {
-      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=haswell";
-    });
-  };
 
   stylix = {
     base16Scheme = "${pkgs.base16-schemes}/share/themes/dracula.yaml";
@@ -83,41 +73,14 @@
   services.ai-inference.enable = lib.mkForce false;
 
   # ═══════════════════════════════════════════════════════════════════
-  # STORAGE REDIRECT — Use HDD (/storage) for all heavy data
+  # STORAGE — Managed by disko.nix
   # System SSD: Micron 1100 SATA 256GB (sdb, /dev/disk/by-id/ata-Micron_1100_SATA_256GB_18361E518AB4)
   # Storage HDD: ST1000DM010 1TB (sda, /dev/disk/by-id/ata-ST1000DM010-2EP102_ZN1AMQLC)
   # ═══════════════════════════════════════════════════════════════════
-
-  # /nix on HDD — frees ~137G on the system SSD
-  # Pre-reboot setup (run once):
-  #   btrfs subvolume create /storage/@nix
-  #   mkdir -p /mnt/nix-tmp
-  #   mount -o subvol=@nix /dev/disk/by-id/ata-ST1000DM010-2EP102_ZN1AMQLC /mnt/nix-tmp
-  #   cp -a /nix/store /mnt/nix-tmp/ && cp -a /nix/var /mnt/nix-tmp/
-  #   umount /mnt/nix-tmp
-  #   nixos-rebuild boot && reboot
-  fileSystems."/nix" = {
-    device = "/dev/disk/by-id/ata-ST1000DM010-2EP102_ZN1AMQLC";
-    fsType = "btrfs";
-    options = ["subvol=@nix" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
-  };
-
-  # Mount /home on the HDD — frees ~5.6G on the system SSD
-  fileSystems."/home" = {
-    device = "/dev/disk/by-id/ata-ST1000DM010-2EP102_ZN1AMQLC";
-    fsType = "btrfs";
-    options = ["subvol=@home" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
-  };
-
-  # Mount /var on the HDD — frees ~1.3G on the system SSD
-  fileSystems."/var" = {
-    device = "/dev/disk/by-id/ata-ST1000DM010-2EP102_ZN1AMQLC";
-    fsType = "btrfs";
-    options = ["subvol=@var" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
-  };
-
-  # k3s data on HDD via @var subvolume (in /var/lib/rancher/k3s)
-  # No dataDir override needed — /var covers it all
+  # Subvolumes on SSD: @root (/), @persistent (/persistent), @nix (/nix)
+  # Subvolumes on HDD: @home (/home)
+  # /storage is manually mounted in hardware-configuration.nix
+  # /var is on SSD (default)
 
   boot.kernelPackages =
     inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;

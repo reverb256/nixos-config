@@ -11,11 +11,11 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     home-manager = {
-      url = "github:nix-community/home-manager";
+      url = "tarball+https://codeload.github.com/nix-community/home-manager/tar.gz/509ed3c603349a9d43de9e2ae6613baea6bd5b34";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zen-browser = {
-      url = "github:0xc000022070/zen-browser-flake/5bcdfcef664bf62831dcb4b947004d9c5fbf7201";
+      url = "tarball+https://codeload.github.com/0xc000022070/zen-browser-flake/tar.gz/5bcdfcef664bf62831dcb4b947004d9c5fbf7201";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
@@ -24,11 +24,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     aagl = {
-      url = "github:ezKEa/aagl-gtk-on-nix";
+      url = "tarball+https://codeload.github.com/ezKEa/aagl-gtk-on-nix/tar.gz/1e9a8def348c046a626d087998782c2ae7779434";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nur = {
-      url = "github:nix-community/NUR";
+      url = "tarball+https://codeload.github.com/nix-community/NUR/tar.gz/0eb436e129c6a77d5e0ac3ac9af4219ddfc8167e";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     claude-native = {
@@ -36,15 +36,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     scopebuddy = {
-        url = "github:OpenGamingCollective/ScopeBuddy";
+      url = "tarball+https://codeload.github.com/OpenGamingCollective/ScopeBuddy/tar.gz/150051976a2a1e64179edc7265175ba4e5f62f62";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nixcord = {
-      url = "github:FlameFlag/nixcord";
+      url = "tarball+https://codeload.github.com/FlameFlag/nixcord/tar.gz/45a98c17b0d9e695bdee92ab00c76657eddf47e7";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     agenix = {
-      url = "github:ryantm/agenix";
+      url = "tarball+https://codeload.github.com/ryantm/agenix/tar.gz/b027ee29d959fda4b60b57566d64c98a202e0feb";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
@@ -54,7 +54,7 @@
     # Phase 3: MicroVM isolation (Qubes-like compartmentalization)
     # https://github.com/microvm-nix/microvm.nix
     microvm = {
-      url = "github:microvm-nix/microvm.nix";
+      url = "tarball+https://codeload.github.com/microvm-nix/microvm.nix/tar.gz/9755fd345bd64d1c75ba12b63089c926dd5d886e";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -63,34 +63,38 @@
     };
 
     colmena = {
-      url = "github:zhaofengli/colmena";
+      url = "tarball+https://codeload.github.com/zhaofengli/colmena/tar.gz/349b035a5027f23d88eeb3bc41085d7ee29f18ed";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     disko = {
-      url = "github:nix-community/disko";
+      url = "tarball+https://codeload.github.com/nix-community/disko/tar.gz/65fb947964bd44fc0008faf77d1fcb7a9f40bb32";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     impermanence = {
-      url = "github:nix-community/impermanence";
+      url = "tarball+https://codeload.github.com/nix-community/impermanence/tar.gz/7b1d382faf603b6d264f58627330f9faa5cba149";
       inputs.nixpkgs.follows = "";
       inputs.home-manager.follows = "";
     };
+    preservation = {
+      url = "path:/etc/nixos/lib/preservation";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     niri = {
-      url = "github:sodiboo/niri-flake";
+      url = "tarball+https://codeload.github.com/sodiboo/niri-flake/tar.gz/b5f81cf03d90bcf2efd20d12fe933a0790b4722b";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     llm-agents = {
-      url = "github:numtide/llm-agents.nix";
+      url = "tarball+https://codeload.github.com/numtide/llm-agents.nix/tar.gz/6371ebfe504b61b7f029797c07bfe65db39c4163";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-cachyos-kernel = {
-      url = "github:xddxdd/nix-cachyos-kernel/release";
+      url = "tarball+https://codeload.github.com/xddxdd/nix-cachyos-kernel/tar.gz/release";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     stylix = {
-      url = "github:nix-community/stylix";
+      url = "tarball+https://codeload.github.com/nix-community/stylix/tar.gz/c1456cc4ba3c9485e7b4158c909eeca5a752cd59";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -98,7 +102,7 @@
 
     nix-csi.url = "github:Lillecarl/nix-csi";
     hermes-agent = {
-      url = "github:NousResearch/hermes-agent";
+      url = "tarball+https://codeload.github.com/NousResearch/hermes-agent/tar.gz/874c2b1fe6ec185f9d1da17d31d2c7885d58c35c";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -109,32 +113,32 @@
     # ═══════════════════════════════════════════════════════════════════
 
     ai-gateway = {
-      url = "github:reverb256/ai-inference-gateway/96497a4227147d96d7ccc721ab293302a61fe13d";
+      url = "tarball+https://codeload.github.com/reverb256/ai-inference-gateway/tar.gz/96497a4227147d96d7ccc721ab293302a61fe13d";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     knowledge-fabric = {
-      url = "github:reverb256/knowledge-fabric";
+      url = "tarball+https://codeload.github.com/reverb256/knowledge-fabric/tar.gz/9f3e90153be35a31a047693404ccea084a868138";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     compute-market = {
-      url = "github:reverb256/compute-market/02eb54874adf8a0887a4878a99d33274af9d5404";
+      url = "tarball+https://codeload.github.com/reverb256/compute-market/tar.gz/02eb54874adf8a0887a4878a99d33274af9d5404";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     mcp-registry = {
-      url = "github:reverb256/mcp-registry";
+      url = "tarball+https://codeload.github.com/reverb256/mcp-registry/tar.gz/d2d5daafaa9cd8f99feff39f8c18bbda014033b1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     caddy-ingress = {
-      url = "github:reverb256/caddy-ingress";
+      url = "tarball+https://codeload.github.com/reverb256/caddy-ingress/tar.gz/a6bc19374ed68da7c769473e2b36cefc3355ac39";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     gpu-proxy = {
-      url = "github:reverb256/gpu-proxy";
+      url = "tarball+https://codeload.github.com/reverb256/gpu-proxy/tar.gz/d17e8fa40d5f539714f05b7387b30a0e831c1c12";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # mining-infra removed - only exists on zephyr at /data/projects/infra/mining-infra
     astral-key = {
-      url = "github:reverb256/astral-key";
+      url = "tarball+https://codeload.github.com/reverb256/astral-key/tar.gz/b269cc69718f3a902ea61aaf29459cae98d96592";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     llama-turboquant = {
@@ -147,29 +151,29 @@
     };
     # NOTE: astral-key has nixos-module.nix for systemd service — can be imported in host configs
     dream2nix = {
-      url = "github:nix-community/dream2nix";
+      url = "tarball+https://codeload.github.com/nix-community/dream2nix/tar.gz/69eb01fa0995e1e90add49d8ca5bcba213b0416f";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     pre-commit-hooks = {
-      url = "github:cachix/pre-commit-hooks.nix";
+      url = "tarball+https://codeload.github.com/cachix/pre-commit-hooks.nix/tar.gz/61ab0e80d9c7ab14c256b5b453d8b3fb0189ba0a";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     process-compose = {
-      url = "github:F1bonacc1/process-compose";
+      url = "tarball+https://codeload.github.com/F1bonacc1/process-compose/tar.gz/5e62578ad443ccb5ea5761119305335528f0cf10";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-fast-build = {
-      url = "github:Mic92/nix-fast-build";
+      url = "tarball+https://codeload.github.com/Mic92/nix-fast-build/tar.gz/ab8dadc27c73855a958198c6f994398f0e84d2ab";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     bun2nix = {
-      url = "github:nix-community/bun2nix";
+      url = "tarball+https://codeload.github.com/nix-community/bun2nix/tar.gz/f2bc12af1a6369648aac41041ceeaa0b866599c6";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # WSL — NixOS on Windows Subsystem for Linux (krash3)
     NixOS-WSL = {
-      url = "github:nix-community/NixOS-WSL";
+      url = "tarball+https://codeload.github.com/nix-community/NixOS-WSL/tar.gz/5482f113fd31ebac131d1ebeb2ae90bf0d5e41f5";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -208,32 +212,32 @@
       ];
     };
 
-  commonModules = import ./common-modules-list.nix {
-    inherit inputs self;
-  };
+    commonModules = import ./common-modules-list.nix {
+      inherit inputs self;
+    };
 
-  # Slim module set for WSL/remote hosts — no desktop/GPU/cluster modules
-  slimModules = [
-    inputs.home-manager.nixosModules.home-manager
-    inputs.agenix.nixosModules.default
-    ./modules/default.nix
-    {
-      nixpkgs.overlays = [ self.overlays.default ];
-      age.identityPaths = [
-        "/persistent/etc/age/key.txt"
-        "/etc/nixos/.age/key.txt"
-        "/etc/age/key.txt"
-        "/home/j_kro/.age/key.txt"
-      ];
-    }
-  ];
+    # Slim module set for WSL/remote hosts — no desktop/GPU/cluster modules
+    slimModules = [
+      inputs.home-manager.nixosModules.home-manager
+      inputs.agenix.nixosModules.default
+      ./modules/default.nix
+      {
+        nixpkgs.overlays = [self.overlays.default];
+        age.identityPaths = [
+          "/persistent/etc/age/key.txt"
+          "/etc/nixos/.age/key.txt"
+          "/etc/age/key.txt"
+          "/home/j_kro/.age/key.txt"
+        ];
+      }
+    ];
 
-  mkNixosSystem = {
-    hostName,
-    extraModules ? [],
-    k8sManifest ? null,
-    modules ? commonModules,
-  }:
+    mkNixosSystem = {
+      hostName,
+      extraModules ? [],
+      k8sManifest ? null,
+      modules ? commonModules,
+    }:
       nixpkgs.lib.nixosSystem {
         specialArgs = {
           inherit inputs;
@@ -270,23 +274,24 @@
         hostName = "sentry";
         k8sManifest = self.kubernetes.small.manifestYAMLFile;
       };
-    krash3 = {
-      hostName = "krash3";
-      k8sManifest = null; # No K8s manifests
-      modules = slimModules; # WSL — no desktop/GPU/cluster
-    };
+      krash3 = {
+        hostName = "krash3";
+        k8sManifest = null; # No K8s manifests
+        modules = slimModules; # WSL — no desktop/GPU/cluster
+      };
     };
   in {
     checks.x86_64-linux = {};
 
-  nixosConfigurations =
-  (builtins.mapAttrs (
-    _name: value: mkNixosSystem {
-      inherit (value) hostName;
-      k8sManifest = value.k8sManifest or null;
-      modules = value.modules or commonModules;
-    }
-  )
+    nixosConfigurations =
+      (builtins.mapAttrs (
+          _name: value:
+            mkNixosSystem {
+              inherit (value) hostName;
+              k8sManifest = value.k8sManifest or null;
+              modules = value.modules or commonModules;
+            }
+        )
         hosts)
       // {
         # Phase 3: MicroVM configurations (not regular hosts, not managed by Colmena)
@@ -298,7 +303,7 @@
         # Rescue USB — standalone live ISO (no mining/gaming/K8s)
         usb-rescue = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
-          specialArgs = {inherit inputs;};
+          specialArgs = {inherit inputs; hostName = "usb-rescue";};
           modules = [./hosts/usb/configuration.nix];
         };
       };
@@ -365,21 +370,23 @@
     packages.x86_64-linux.opencode-image = pkgsWithOverlay.opencode-image;
     packages.x86_64-linux.maplespike-mcp-image = pkgsWithOverlay.maplespike-mcp-image;
     packages.x86_64-linux.maplespike-api-image = pkgsWithOverlay.maplespike-api-image;
-  packages.x86_64-linux = {
-    # ai-inference-gateway-image = lib.mkIf (inputs ? ai-gateway) inputs.ai-gateway.packages.x86_64-linux.container; # migrated from local pkgs/
-    inherit (pkgsWithOverlay)
-      maplespike-ingest-image
-      maplespike-engine-image;
-  };
+    packages.x86_64-linux = {
+      # ai-inference-gateway-image = lib.mkIf (inputs ? ai-gateway) inputs.ai-gateway.packages.x86_64-linux.container; # migrated from local pkgs/
+      inherit
+        (pkgsWithOverlay)
+        maplespike-ingest-image
+        maplespike-engine-image
+        ;
+    };
 
-      # hermes-workspace-image and hermes-webui-image archived (2026-05-16)
-      overlays.default = (import ./overlay.nix) {inherit inputs;};
-     kubernetes = import ./kubernetes {
-        lib = inputs.nixpkgs.lib;
-        inherit pkgs pkgsWithOverlay inputs;
-      };
+    # hermes-workspace-image and hermes-webui-image archived (2026-05-16)
+    overlays.default = (import ./overlay.nix) {inherit inputs;};
+    kubernetes = import ./kubernetes {
+      lib = inputs.nixpkgs.lib;
+      inherit pkgs pkgsWithOverlay inputs;
+    };
 
-     apps.x86_64-linux.k8s-validate = {
+    apps.x86_64-linux.k8s-validate = {
       type = "app";
       program = "${self.kubernetes.validationScript}/bin/kubeval";
       meta.description = "Validate K8s manifests against ephemeral apiserver";

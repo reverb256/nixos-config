@@ -47,7 +47,7 @@
   vip = "10.1.1.100";
 
   # Services via Caddy Ingress (accessed via VIP)
-  ingressServiceDomains = [ "search.lan" "openwebui.lan" ];
+  ingressServiceDomains = ["search.lan" "openwebui.lan"];
 
   # Services proxied via Caddy via VIP (single stable entry point)
   hostServiceDomains = [
@@ -75,31 +75,41 @@
   ];
 
   # Forge-specific services
-  forgeServiceDomains = [ "mining.lan" ];
+  forgeServiceDomains = ["mining.lan"];
 
   # Sentry-specific services
-  sentryServiceDomains = [ "monitoring.lan" "prometheus.lan" "alertmanager.lan" ];
+  sentryServiceDomains = ["monitoring.lan" "prometheus.lan" "alertmanager.lan"];
 
   # Hermes Agent services (runs on nexus as systemd)
-  hermesServiceDomains = [ "hermes.lan" "api.hermes.lan" ];
+  hermesServiceDomains = ["hermes.lan" "api.hermes.lan"];
 
   # Tailscale mobile devices
-  tailscaleDomains = [ "seeker.lan" "reverb256.lan"];
+  tailscaleDomains = ["seeker.lan" "reverb256.lan"];
 
   # All .lan domains combined — this is the SSOT list
-  allLanDomains = ingressServiceDomains ++ hostServiceDomains ++ forgeServiceDomains
+  allLanDomains =
+    ingressServiceDomains
+    ++ hostServiceDomains
+    ++ forgeServiceDomains
     ++ sentryServiceDomains ++ hermesServiceDomains ++ tailscaleDomains;
 
   # Convert domain list to Unbound local-data records
   # Maps domain → IP based on which list it belongs to
   domainToIp = domain:
-    if builtins.elem domain ingressServiceDomains then vip
-    else if builtins.elem domain hostServiceDomains then vip
-    else if builtins.elem domain forgeServiceDomains then hosts.forge
-    else if builtins.elem domain sentryServiceDomains then hosts.sentry
-    else if builtins.elem domain hermesServiceDomains then hosts.nexus
-    else if domain == "seeker.lan" then "100.84.24.43"
-    else if domain == "reverb256.lan" then "10.15.39.199"
+    if builtins.elem domain ingressServiceDomains
+    then vip
+    else if builtins.elem domain hostServiceDomains
+    then vip
+    else if builtins.elem domain forgeServiceDomains
+    then hosts.forge
+    else if builtins.elem domain sentryServiceDomains
+    then hosts.sentry
+    else if builtins.elem domain hermesServiceDomains
+    then hosts.nexus
+    else if domain == "seeker.lan"
+    then "100.84.24.43"
+    else if domain == "reverb256.lan"
+    then "10.15.39.199"
     else vip; # fallback
 
   # Generate Unbound local-data records from domain lists
@@ -114,9 +124,7 @@
 
   # Host records
   hostRecords = lib.mapAttrsToList (name: ip: "${name}.lan. IN A ${ip}") hosts;
-
 in {
-
   config = mkIf dnsCfg.enable {
     # Export .lan domain list (SSOT for cluster-ca.nix TLS SANs)
     clusterNetworking.lanDomains = allLanDomains;
@@ -137,12 +145,12 @@ in {
             "127.0.0.1"
             "::1"
             (
-    if dnsCfg.listenAddress != null && dnsCfg.listenAddress != "127.0.0.1"
-    then dnsCfg.listenAddress
-    else if clusterCfg.ipAddress != null
-    then clusterCfg.ipAddress
-    else "127.0.0.1"
-  )
+              if dnsCfg.listenAddress != null && dnsCfg.listenAddress != "127.0.0.1"
+              then dnsCfg.listenAddress
+              else if clusterCfg.ipAddress != null
+              then clusterCfg.ipAddress
+              else "127.0.0.1"
+            )
             # VIP for HA DNS — Unbound must listen here so queries to
             # 10.1.1.100:53 are answered by whichever node has the VIP.
             cluster.kubernetes.vip
@@ -208,14 +216,14 @@ in {
     environment.etc."unbound/local-dns.conf".text =
       # Server section header (required for local-data lines to work)
       ''
-      server:
-        interface: 0.0.0.0
-        interface: ::0
-        access-control: 10.0.0.0/8 allow
-        access-control: 100.64.0.0/10 allow
-        access-control: 172.16.0.0/12 allow
-        verbosity: 1
-        local-zone: "lan." static
+        server:
+          interface: 0.0.0.0
+          interface: ::0
+          access-control: 10.0.0.0/8 allow
+          access-control: 100.64.0.0/10 allow
+          access-control: 172.16.0.0/12 allow
+          verbosity: 1
+          local-zone: "lan." static
 
       ''
       +
@@ -286,10 +294,10 @@ in {
             privacy-filter = vip;
           };
       in
-      lib.pipe allHosts [
-        (lib.mapAttrsToList (name: ip: "${ip} ${name}.lan ${name}"))
-        (lib.concatStringsSep "\n")
-      ]
+        lib.pipe allHosts [
+          (lib.mapAttrsToList (name: ip: "${ip} ${name}.lan ${name}"))
+          (lib.concatStringsSep "\n")
+        ]
     );
   };
 }

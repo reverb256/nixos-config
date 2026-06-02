@@ -68,3 +68,5 @@ sbom/
 .hermes/
 skills-lock.json
 skills/
+void-config/
+void-mklive/
