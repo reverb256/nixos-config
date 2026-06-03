@@ -23,7 +23,7 @@ in {
 
     users.j_kro = {...}: {
       imports = [
-        inputs.stylix.homeManagerModules.stylix
+        inputs.stylix.homeModules.stylix
         inputs.niri.homeModules.config
         inputs.zen-browser.homeModules.twilight
         inputs.nixcord.homeModules.nixcord
@@ -55,7 +55,8 @@ in {
       caprine.enable = lib.mkForce (hostName == "zephyr");
 
       # Stylix - set the scheme directly so home-manager stylix module can parse it
-      stylix.base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+      # Set scheme here for HM stylix module (NixOS-level stylix also has it per-host)
+    stylix.base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
 
       # CopyQ clipboard manager (replaces cliphist)
       programs.copyq = {
