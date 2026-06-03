@@ -393,6 +393,8 @@ in {
 
     systemd.services.k3s = {
       environment.CONTAINERD_NRI_DISABLED = "1";
+      # Do NOT block multi-user.target - k3s can take 5+ minutes to start with etcd
+      wantedBy = lib.mkForce [];
       # Belt-and-suspenders: start before keepalived at boot (primary fix: --flannel-iface)
       before = lib.mkIf config.services.keepalived.enable ["keepalived.service"];
       # nfs-utils needed for kubelet to mount NFS PVs (mount.nfs binary)
