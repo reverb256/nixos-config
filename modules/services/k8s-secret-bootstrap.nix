@@ -30,7 +30,7 @@ in {
       after = ["k3s.service"];
       requires = ["k3s.service"];
       before = ["k8s-nix-deploy.service"];
-      wantedBy = ["multi-user.target"];
+      wantedBy = [];
       serviceConfig = {
         Type = "oneshot";
         Environment = "KUBECONFIG=/etc/rancher/k3s/k3s.yaml";
@@ -77,7 +77,7 @@ in {
       after = ["k8s-nix-deploy.service" "k3s.service"];
       requires = ["k3s.service"];
       wants = ["k8s-nix-deploy.service"];
-      wantedBy = ["multi-user.target"];
+      wantedBy = [];
       before = []; # Don't block multi-user.target for other services
       serviceConfig = {
         Type = "oneshot";

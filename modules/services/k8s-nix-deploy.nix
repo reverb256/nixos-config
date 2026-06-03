@@ -45,7 +45,7 @@ in {
       description = "Deploy Kubernetes manifests from Nix store";
       after = ["k3s.service"];
       requires = ["k3s.service"];
-      wantedBy = ["multi-user.target"];
+      wantedBy = [];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "k8s-nix-deploy" ''

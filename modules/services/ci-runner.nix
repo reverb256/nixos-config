@@ -54,7 +54,7 @@ in {
       description = "GitHub Actions Self-Hosted Runner";
       after = ["network-online.target"];
       wants = ["network-online.target"];
-      wantedBy = ["multi-user.target"];
+      wantedBy = [];
 
       serviceConfig = {
         Type = "simple";

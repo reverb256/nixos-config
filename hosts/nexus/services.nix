@@ -30,7 +30,7 @@ in {
       opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
     };
     k3s-cluster = {
-      enable = false;  # Temporarily disabled to unblock rebuild
+      enable = true;  # Re-enabled 2026-06-02 for NIM connectivity
       nvidia.enable = true;
       role = "server";
       clusterInit = false; # Rejoining existing cluster via VIP (fixed 2026-05-30)
@@ -351,7 +351,7 @@ in {
     description = "GitHub Actions Runner";
     after = ["network.target"];
     wants = ["network-online.target"];
-    wantedBy = ["multi-user.target"];
+    wantedBy = [];
 
     serviceConfig = {
       Type = "simple";
