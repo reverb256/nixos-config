@@ -158,7 +158,4 @@
     '';
   };
 
-  # Disable jitterentropy service (CachyOS seccomp incompatibility)
-  # Jitterentropy is killed by seccomp (SIGSYS) - CachyOS kernel blocks the syscalls it needs
-  systemd.services.jitterentropy.enable = false;
 }
