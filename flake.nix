@@ -178,10 +178,6 @@
 
     # ── Newly extracted project flakes ───────────────────────
     # hermes-workspace and hermes-webui archived (2026-05-16)
-    maplespike = {
-      url = "github:reverb256/maplespike";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
   outputs = inputs @ {
     self,
