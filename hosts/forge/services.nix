@@ -102,8 +102,6 @@ in {
         }
       ];
     };
-  departments = ["compute"];
-  priorities = { compute = 100; };
 
     nfs-client = {
       enable = false;
