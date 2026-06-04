@@ -1,0 +1,18 @@
+# Machine-specific directories
+.venv/
+.git/
+.stfolder/
+*.swp
+*~
+
+# Build artifacts
+result
+result-*
+
+void-config
+
+# Large build artifacts and old projects  
+void-mklive/
+lucebox-hub.git/
+sbom/
+docs/ARCHIVE/
