@@ -12,13 +12,9 @@
       availableKernelModules = ["xhci_pci" "ahci" "sd_mod" "usb_storage" "btrfs"];
       kernelModules = [];
     };
-    kernelModules = ["kvm-intel" "amdgpu"];
+    kernelModules = ["kvm-amd" "amdgpu"];
     extraModulePackages = [];
   };
-
-  # Minimal: disko declares all fileSystems and swapDevices.
-  # This file only provides hardware detection (USB, SATA, BTRFS)
-  # and boot configuration that disko doesn't cover.
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }
