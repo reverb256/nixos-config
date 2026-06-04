@@ -1,21 +1,12 @@
-{
-  config,
-  lib,
-  pkgs,
-  utils,
-  ...
-}: let
-  btrfsDevice = "/dev/disk/by-partlabel/disk-nvme1n1-root";
-  btrfsDeviceUnit = "${utils.escapeSystemdPath btrfsDevice}.device";
-in {
+{ config, lib, pkgs, utils, ... }: {
   disko.devices = {
-    disk.nvme1n1 = {
-      device = btrfsDevice;
+    disk.nvme0n1 = {
+      device = "/dev/disk/by-id/nvme-WDC_WDS100T2B0C-00PXH0_203797800744";
       type = "disk";
       content = {
         type = "gpt";
         partitions = {
-          ESP = {
+          boot = {
             size = "1G";
             type = "EF00";
             content = {
@@ -46,12 +37,16 @@ in {
                   mountpoint = "/persistent";
                   mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
                 };
+                "@home" = {
+                  mountpoint = "/home";
+                  mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
+                };
                 "@nix" = {
                   mountpoint = "/nix";
                   mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
                 };
-                "@home" = {
-                  mountpoint = "/home";
+                "@games" = {
+                  mountpoint = "/games";
                   mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
                 };
               };
@@ -62,13 +57,14 @@ in {
     };
   };
 
-  fileSystems = {
-    "/persistent" = {neededForBoot = true;};
-    "/nix" = {neededForBoot = true;};
-    "/home" = {neededForBoot = true;};
-  };
+  # Keep existing bcache0 array unchanged (managed outside disko)
+  # /data/backups, /data/media, /data/shared, /var/lib/containers
+  # These mount via fileSystems."..." in hardware.nix
 
-  # Root rotation DISABLED — @root is now persistent.
-  # The rd.systemd.mask kernel parameter prevents the old initrd service from running.
-  # Next nixos-rebuild switch will remove the service entirely from the initrd.
+  fileSystems = {
+    "/persistent" = { neededForBoot = true; };
+    "/nix" = { neededForBoot = true; };
+    "/home" = { neededForBoot = true; };
+    "/games" = { neededForBoot = false; };
+  };
 }
