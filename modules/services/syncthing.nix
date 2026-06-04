@@ -7,12 +7,6 @@
 in {
   options.services.syncthing-cluster = {
     enable = lib.mkEnableOption "Syncthing P2P file sync for cluster";
-
-    deviceId = lib.mkOption {
-      type = lib.types.str;
-      default = "PLACEHOLDER-DEVICE-ID";
-      description = "This node's Syncthing device ID";
-    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -25,21 +19,41 @@ in {
       openDefaultPorts = true;
 
       settings = {
+        # Devices: attrset where key is name, value has id = deviceID
         devices = {
-          "zephyr" = {id = "ZEPYR-PLACEHOLDER";};
-          "nexus" = {id = "NEXUS-PLACEHOLDER";};
-          "forge" = {id = "FORGE-PLACEHOLDER";};
-          "sentry" = {id = "SENTRY-PLACEHOLDER";};
+          zephyr = { 
+            id = "MDKNXAJ-J4FMVYX-RT67UO5-JRDGPLV-7ZJF772-NX24DLW-BIRHGQ7-RUTILAO";
+            addresses = ["dynamic"];
+            autoAcceptFolders = false;
+          };
+          nexus = { 
+            id = "GLYKX2M-6Q3TM3W-FJ727N5-76OHMGB-5BDVI7R-A6VXEFO-E32XYRP-YVWNSQ5";
+            addresses = ["dynamic"];
+            autoAcceptFolders = false;
+          };
+          sentry = { 
+            id = "C6H7ICX-5QYPNFO-ORD4A3M-S2BEQRZ-CK2YDJM-XXW7TOX-JAAKSOT-JWF5UAK";
+            addresses = ["dynamic"];
+            autoAcceptFolders = false;
+          };
         };
 
+        # Folders: attrset where key is folder ID
         folders = {
-          "nixos-configs" = {
+          "nixos-config" = {
             path = "/etc/nixos";
-            devices = ["zephyr" "nexus" "forge" "sentry"];
+            devices = ["zephyr" "nexus" "sentry"];
+            type = "sendreceive";
             ignorePerms = false;
+            fsWatcherEnabled = true;
+            autoNormalize = true;
+            rescanIntervalS = 60;
             versioning = {
-              type = "simple";
-              params = {keep = "10";};
+              type = "staggered";
+              params = {
+                cleanInterval = "3600";
+                maxAge = "86400";
+              };
             };
           };
         };

@@ -68,6 +68,10 @@ in {
       '';
     };
 
+    syncthing-cluster = {
+      enable = true;
+    };
+
     agenix-secrets-registry = {
       enable = true;
       aiServices = true;

@@ -80,7 +80,7 @@ in {
 
     syncthing-cluster = {
       enable = true;
-      deviceId = "SENTRY-PLACEHOLDER";
+
     };
 
     agenix-secrets-registry = {
