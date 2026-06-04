@@ -102,6 +102,8 @@ in {
         }
       ];
     };
+  departments = ["compute"];
+  priorities = { compute = 100; };
 
     nfs-client = {
       enable = false;
@@ -112,7 +114,6 @@ in {
 
     syncthing-cluster = {
       enable = true;
-      deviceId = "FORGE-PLACEHOLDER";
     };
 
     nixos-auto-update = {
@@ -202,7 +203,6 @@ in {
     context7ApiKeyFile = config.age.secrets.context7-api-key.path;
     nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
     opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
-  opencodeZenApiKeyFile = config.age.secrets.opencode-api-key.path;
     tools = {
       claude = { enable = true; };
       opencode = { enable = true; };
