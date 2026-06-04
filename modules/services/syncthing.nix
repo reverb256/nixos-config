@@ -19,7 +19,7 @@ in {
       openDefaultPorts = true;
 
       settings = {
-        # Devices: attrset where key is name, value has id = deviceID
+        # Devices: attrset (forge device ID will be generated on first boot)
         devices = {
           zephyr = { 
             id = "MDKNXAJ-J4FMVYX-RT67UO5-JRDGPLV-7ZJF772-NX24DLW-BIRHGQ7-RUTILAO";
@@ -36,13 +36,16 @@ in {
             addresses = ["dynamic"];
             autoAcceptFolders = false;
           };
+          # Forge: device ID will be generated when it boots from USB recovery
+          # Add to folder list once online
         };
 
         # Folders: attrset where key is folder ID
+        # Currently syncing between sentry and nexus (zephyr down, forge in recovery)
         folders = {
           "nixos-config" = {
             path = "/etc/nixos";
-            devices = ["zephyr" "nexus" "sentry"];
+            devices = ["nexus" "sentry"];  # zephyr down, forge in recovery
             type = "sendreceive";
             ignorePerms = false;
             fsWatcherEnabled = true;
