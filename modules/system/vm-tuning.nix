@@ -53,7 +53,7 @@
 
     "vm.min_free_kbytes" = lib.mkDefault 1048576;
 
-    "vm.swappiness" = lib.mkForce 10;
+    "vm.swappiness" = lib.mkForce 60;
 
     "vm.dirty_ratio" = lib.mkForce 10;
     "vm.dirty_background_ratio" = lib.mkForce 5;

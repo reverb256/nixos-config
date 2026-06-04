@@ -118,7 +118,7 @@ in {
                   SKIP_AUTH_FOR_PROBES.value = "true";
                   MC_PROXY_AUTH_HEADER.value = "X-Auth-Request-User";
                   MC_PROXY_AUTH_DEFAULT_ROLE.value = "admin";
-                  MC_PROXY_AUTH_TRUSTED_IPS.value = "${cluster.podCidr},10.0.0.0/12,10.1.1.0/24";
+                  MC_PROXY_AUTH_TRUSTED_IPS.value = "${cluster.podCidr},10.43.0.0/16,10.1.1.0/24";
                 };
                 resources = {
                   requests = {

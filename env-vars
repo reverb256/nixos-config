@@ -121,7 +121,7 @@ declare -x NoDefaultCurrentDirectoryInExePath="1"
 declare -x OBJCOPY="objcopy"
 declare -x OBJDUMP="objdump"
 declare -x OLDPWD
-declare -x OPENCODE_GATEWAY_URL="http://127.0.0.1:8080"
+
 declare -x OPENCODE_MCP_SCHEMA_FIX="1"
 declare -x OPENCODE_PATH_FIX="1"
 declare -x OPENCODE_TOOL_STRUCTURED_OUTPUT="1"

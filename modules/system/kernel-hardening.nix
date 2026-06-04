@@ -83,5 +83,10 @@
       "net.ipv4.conf.all.rp_filter" = lib.mkForce 2;
       "net.ipv4.conf.default.rp_filter" = lib.mkForce 2;
     };
+  # Disable jitterentropy service — CachyOS kernel seccomp kills it with SIGSYS.
+  # The kernel RNG provides sufficient entropy (256+ avail); this userspace
+  # daemon is redundant and crashes on every boot.
+  systemd.services.jitterentropy.enable = false;
   };
 }
+

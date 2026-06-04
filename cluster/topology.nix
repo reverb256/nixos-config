@@ -12,7 +12,7 @@
       default = {
         name = "j_kro-homelab";
         domain = "cluster.local";
-        podCidr = "10.244.0.0/16";
+        podCidr = "10.42.0.0/16";
         serviceCidr = "10.96.0.0/12";
         kubeVip = "10.1.1.100";
         hosts = {};
