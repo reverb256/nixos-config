@@ -23,7 +23,14 @@
     "virtio_pci"
   ];
 
+  # GPU kernel modules loaded after rootfs is mounted (not in initrd, so they
+  # don	 block builds on kernels that don't ship every module)
   boot.initrd.kernelModules = [
+    "amdgpu"
+    "i915"
+  ];
+
+  boot.kernelModules = [
     "amdgpu"
     "nvidia"
     "nvidia_modeset"
