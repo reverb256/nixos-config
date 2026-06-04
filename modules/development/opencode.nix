@@ -217,13 +217,12 @@ in {
     };
   };
 
-  config = mkIf cfg.enable {
-    environment.sessionVariables = {
-      OPENCODE_MCP_SCHEMA_FIX = "1";
-      OPENCODE_TOOL_STRUCTURED_OUTPUT = "1";
-      OPENCODE_PATH_FIX = "1";
-      OPENCODE_GATEWAY_URL = "${cfg.gatewayUrl}";
-    };
+    config = mkIf cfg.enable {
+      environment.sessionVariables = {
+        OPENCODE_MCP_SCHEMA_FIX = "1";
+        OPENCODE_TOOL_STRUCTURED_OUTPUT = "1";
+        OPENCODE_PATH_FIX = "1";
+      };
 
     environment.systemPackages = with pkgs; [
       updateScript

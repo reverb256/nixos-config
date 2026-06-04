@@ -19,9 +19,9 @@
 
   isServer = cfg.role == "server";
 
-  clusterCIDR = "10.244.0.0/16";
-  serviceCIDR = "10.0.0.0/12";
-  clusterDNS = "10.0.0.10";
+  clusterCIDR = "10.42.0.0/16";
+  serviceCIDR = "10.43.0.0/16";
+  clusterDNS = "10.43.0.10";
 
   tlsSans = [
     "${cluster.kubernetes.vip}"

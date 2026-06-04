@@ -6,6 +6,12 @@
   openssl,
   fontconfig,
   git,
+  wayland,
+  libxkbcommon,
+  xorg,
+  libGL,
+  vulkan-loader,
+  makeWrapper,
 }:
 rustPlatform.buildRustPackage rec {
   pname = "hermes-chat";
@@ -23,10 +29,14 @@ rustPlatform.buildRustPackage rec {
     allowBuiltinFetchGit = true;
   };
 
-  nativeBuildInputs = [pkg-config git];
-  buildInputs = [openssl fontconfig];
+  nativeBuildInputs = [pkg-config git makeWrapper];
+  buildInputs = [openssl fontconfig wayland libxkbcommon xorg.libX11 xorg.libXcursor xorg.libXi xorg.libXrandr libGL vulkan-loader];
 
   buildNoBuildCargoCheck = true;
+  postFixup = ''
+    wrapProgram $out/bin/hermes-chat \
+      --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath buildInputs}"
+  '';
 
   # Use LTO and strip like upstream
   CARGO_PROFILE_RELEASE_LTO = "thin";

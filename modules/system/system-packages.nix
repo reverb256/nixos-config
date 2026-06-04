@@ -90,5 +90,6 @@
 
     ocl-icd
     libclc
+    hermes-chat
   ];
 }

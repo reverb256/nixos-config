@@ -5,7 +5,7 @@
 }: let
   inherit (lib) mkAfter mkDefault;
   clusterSubnet = "10.1.1.0/24";
-  podCidr = "10.244.0.0/16";
+  podCidr = "10.42.0.0/16";
 
   nft-wrapper-script = pkgs.writeShellScript "nft-wrapper" ''
     if echo "$@" | grep -qE "(^|[[:space:]])(list)" && echo "$@" | grep -qE "(map|calico)"; then
@@ -32,7 +32,7 @@ in {
   # Force pod CIDR traffic to use main routing table (eth0) instead of flannel VXLAN.
   # Fixes K3s hostNetwork pods that get CNI default route but need to reach node IPs.
   networking.localCommands = ''
-    ip rule add from 10.244.0.0/16 table main priority 100 2>/dev/null || true
+    ip rule add from 10.42.0.0/16 table main priority 100 2>/dev/null || true
   '';
 
   boot.blacklistedKernelModules = ["br_netfilter"];

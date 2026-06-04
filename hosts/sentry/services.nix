@@ -13,6 +13,7 @@ in {
       nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
       casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
       opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
+      opencodeZenApiKeyFile = config.age.secrets.opencode-api-key.path;
     };
     k3s-cluster = {
       enable = true;
@@ -146,4 +147,5 @@ in {
     };
     enableShellEnv = true;
   };
+}
 
