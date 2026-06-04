@@ -34,6 +34,9 @@ in {
       nodeIP = cluster.hosts.forge.ip;
     };
 
+    syncthing-cluster = {
+      enable = true;
+    };
     spotify-spotx.enable = true;
 
     opencode.enable = true;
