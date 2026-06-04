@@ -5,7 +5,7 @@ rec {
   # Edit here to change subnet, VIP, API port, or cluster DNS IP.
 
   subnet = "10.1.1.0/24";
-  podCidr = "10.244.0.0/16";
+  podCidr = "10.42.0.0/16";
 
   zephyrIp = "10.1.1.110";
   nexusIp = "10.1.1.120";
@@ -23,7 +23,7 @@ rec {
     gatewayUrl = "http://${zephyrIp}:8080/v1"; # zephyr AI Inference Gateway
     vip = "10.1.1.100";
     apiPort = 6443;
-    clusterDnsIP = "10.0.0.10";
+    clusterDnsIP = "10.43.0.10";
   };
 
   # Import service-ports for use in other modules

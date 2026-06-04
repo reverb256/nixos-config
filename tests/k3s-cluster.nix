@@ -11,9 +11,9 @@
       )
       lines;
   in {
-    hasClusterCIDR = lib.strings.hasInfix "10.244.0.0/16" k3sSource;
-    hasServiceCIDR = lib.strings.hasInfix "10.0.0.0/12" k3sSource;
-    hasClusterDNS = lib.strings.hasInfix "10.0.0.10" k3sSource;
+    hasClusterCIDR = lib.strings.hasInfix "10.42.0.0/16" k3sSource;
+    hasServiceCIDR = lib.strings.hasInfix "10.43.0.0/16" k3sSource;
+    hasClusterDNS = lib.strings.hasInfix "10.43.0.10" k3sSource;
   };
 
   requiredSans = [

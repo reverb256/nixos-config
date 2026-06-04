@@ -162,8 +162,8 @@ in {
         41641
       ];
       extraInputRules = ''
-        ip saddr 10.244.0.0/16 udp dport 53 accept
-        ip saddr 10.244.0.0/16 tcp dport 53 accept
+        ip saddr 10.42.0.0/16 udp dport 53 accept
+        ip saddr 10.42.0.0/16 tcp dport 53 accept
       '';
       interfaces."tailscale0".allowedTCPPorts = [6443];
     };

@@ -9,8 +9,8 @@
 
   # Cluster network ranges
   clusterSubnet = "10.1.1.0/24";
-  podSubnet = "10.244.0.0/16";
-  serviceCIDR = "10.0.0.0/12";
+  podSubnet = "10.42.0.0/16";
+  serviceCIDR = "10.43.0.0/16";
 
   # Allowed upstream DNS (DoT on 853)
   allowedUpstreamDns = [
