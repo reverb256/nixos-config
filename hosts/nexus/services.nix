@@ -40,7 +40,6 @@ in {
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = cluster.hosts.nexus.ip;
-  clusterReset = false; # Already reset, running clean
     };
 
     keepalived-vip = {
