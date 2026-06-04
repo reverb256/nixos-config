@@ -238,10 +238,10 @@ in {
   i18n.defaultLocale = "en_CA.UTF-8";
   time.timeZone = "America/Winnipeg";
 
-  # GPU / Graphics
-  hardware.nvidia = {
-    open = true;
-    modesetting.enable = true;
+  # GPU / Graphics — no specific GPU enabled (USB boots on any hardware)
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true;
   };
   hardware.graphics = {
     enable = true;
