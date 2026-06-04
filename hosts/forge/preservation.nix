@@ -1,15 +1,10 @@
-{
-  config,
-  lib,
-  pkgs,
-  inputs,
-  ...
-}: {
+{ config, lib, pkgs, inputs, ... }: {
   imports = [
     inputs.preservation.nixosModules.preservation
   ];
 
   preservation.preserveAt."/persistent" = {
+    # System state — survives generation rollback
     directories = [
       "/etc/ssh"
       "/var/log"
@@ -24,36 +19,24 @@
       "/var/lib/fwupd"
     ];
     files = [
-      {
-        file = "/etc/machine-id";
-        inInitrd = true;
-      }
+      { file = "/etc/machine-id"; inInitrd = true; }
     ];
 
     users.j_kro = {
       directories = [
-        {
-          directory = ".ssh";
-          mode = "0700";
-        }
-        {
-          directory = ".gnupg";
-          mode = "0700";
-        }
+        { directory = ".ssh"; mode = "0700"; }
+        { directory = ".gnupg"; mode = "0700"; }
         ".local/share/keyrings"
         ".cache/huggingface"
         ".local/share/direnv"
-        ".config"
-        ".local/share"
-        ".agents"
       ];
       files = [
         ".screenrc"
-        ".gtkrc-2.0.backup"
       ];
     };
   };
 
+  # machine-id and age key: symlink to persistent storage
   system.activationScripts.persist-symlinks = lib.stringAfter ["etc" "users"] ''
     if [ -f /persistent/etc/machine-id ]; then
       rm -f /etc/machine-id

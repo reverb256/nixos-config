@@ -1,14 +1,6 @@
-{
-  config,
-  lib,
-  pkgs,
-  utils,
-  ...
-}: {
+{ config, lib, pkgs, utils, ... }: {
   disko.devices = {
-    # System SSD: TEAM T253X2256G (sda, 238.5G)
-    # Full OS — EFI, swap, root + nix + persistent + srv + var/tmp
-    disk.sda = {
+    disk.sdb = {
       device = "/dev/disk/by-id/ata-TEAM_T253X2256G_TM701907310240040386";
       type = "disk";
       content = {
@@ -26,7 +18,7 @@
           };
           swap = {
             size = "8G";
-            content = {type = "swap";};
+            content = { type = "swap"; };
           };
           root = {
             size = "100%";
@@ -46,14 +38,6 @@
                   mountpoint = "/nix";
                   mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
                 };
-                "@srv" = {
-                  mountpoint = "/srv";
-                  mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
-                };
-                "@var/tmp" = {
-                  mountpoint = "/var/tmp";
-                  mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
-                };
               };
             };
           };
@@ -61,31 +45,29 @@
       };
     };
 
-    # Storage HDD: ADATA SU635 (sdb, 223.6G)
-    # /home and /storage (non-critical, nofail)
-    disk.sdb = {
+    disk.sda = {
       device = "/dev/disk/by-id/ata-ADATA_SU635_2L40291DQ5CE";
       type = "disk";
       content = {
         type = "gpt";
         partitions = {
+          swap = {
+            size = "8G";
+            content = { type = "swap"; };
+          };
           data = {
             size = "100%";
             content = {
               type = "btrfs";
               extraArgs = ["-f"];
               subvolumes = {
-                "@" = {
-                  mountpoint = "/storage";
-                  mountOptions = ["compress=zstd" "nofail"];
-                };
                 "@home" = {
                   mountpoint = "/home";
-                  mountOptions = ["compress=zstd" "nofail"];
+                  mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
                 };
                 "@var" = {
-                  mountpoint = "/var/storage";
-                  mountOptions = ["compress=zstd" "nofail"];
+                  mountpoint = "/var";
+                  mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
                 };
               };
             };
@@ -96,10 +78,8 @@
   };
 
   fileSystems = {
-    "/persistent" = {neededForBoot = true;};
-    "/nix" = {neededForBoot = true;};
-    "/home" = {neededForBoot = false;};
-    "/storage" = {neededForBoot = false;};
-    "/var/storage" = {neededForBoot = false;};
+    "/persistent" = { neededForBoot = true; };
+    "/nix" = { neededForBoot = true; };
+    "/var" = { neededForBoot = true; };
   };
 }
