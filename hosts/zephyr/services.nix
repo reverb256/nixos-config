@@ -21,7 +21,6 @@ in {
       nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
       casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
       opencodeGoApiKeyFile = "/run/agenix/opencode-go-api-key";
-      opencodeZenApiKeyFile = "/run/agenix/opencode-api-key";
       # openrouterApiKeyFile removed — no longer used
       kilocodeApiKeyFile = config.age.secrets.kilo-api-key.path;
       geminiApiKeyFile = config.age.secrets.gemini-api-key.path;
@@ -368,6 +367,7 @@ in {
       enableShellEnv = true;
     };
 
+  };
   programs = {
     haven-desktop.enable = true;
   };

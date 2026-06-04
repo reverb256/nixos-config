@@ -24,7 +24,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     aagl = {
-      url = "tarball+https://codeload.github.com/ezKEa/aagl-gtk-on-nix/tar.gz/1e9a8def348c046a626d087998782c2ae7779434";
+      url = "github:ezKEa/aagl-gtk-on-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nur = {
@@ -140,14 +140,14 @@
       url = "tarball+https://codeload.github.com/reverb256/astral-key/tar.gz/b269cc69718f3a902ea61aaf29459cae98d96592";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    llama-turboquant = {
-      url = "path:/data/projects/own/llama-cpp-turboquant";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    vllm = {
-      url = "path:/data/projects/own/vllm";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    #     llama-turboquant = {
+    #       url = "path:/data/projects/own/llama-cpp-turboquant";
+    #       inputs.nixpkgs.follows = "nixpkgs";
+    #     };
+    #     vllm = {
+    #       url = "path:/data/projects/own/vllm";
+    #       inputs.nixpkgs.follows = "nixpkgs";
+    #     };
     # NOTE: astral-key has nixos-module.nix for systemd service — can be imported in host configs
     dream2nix = {
       url = "tarball+https://codeload.github.com/nix-community/dream2nix/tar.gz/69eb01fa0995e1e90add49d8ca5bcba213b0416f";
@@ -316,9 +316,9 @@
 
     packages.x86_64-linux.llama-cpp = pkgsWithOverlay.llama-cpp;
     packages.x86_64-linux.llama-cpp-ik = pkgsWithOverlay.llama-cpp-ik;
-    packages.x86_64-linux.llama-cpp-turboquant = pkgsWithOverlay.llama-cpp-turboquant;
+    #     packages.x86_64-linux.llama-cpp-turboquant = pkgsWithOverlay.llama-cpp-turboquant;
     # vllm-turboquant-env: Nix store path for nix-csi scratch containers
-    packages.x86_64-linux.vllm-turboquant-env = inputs.vllm.packages.x86_64-linux.vllm-turboquant-env;
+    #     packages.x86_64-linux.vllm-turboquant-env = inputs.vllm.packages.x86_64-linux.vllm-turboquant-env;
     packages.x86_64-linux.caddy-with-modules = inputs.caddy-ingress.packages.x86_64-linux.caddy-with-modules;
     packages.x86_64-linux.caddy-ingress-image = inputs.caddy-ingress.packages.x86_64-linux.caddy-ingress-image;
     packages.x86_64-linux.hermes-chat = pkgsWithOverlay.hermes-chat;
@@ -367,14 +367,14 @@
     packages.x86_64-linux.claude-code-image = pkgsWithOverlay.claude-code-image; # extracted to packages/claude-code-image.nix
     # packages.x86_64-linux.ai-inference-gateway-image = inputs.ai-gateway.packages.x86_64-linux.container; # migrated from local pkgs/ - REMOVED
     packages.x86_64-linux.opencode-image = pkgsWithOverlay.opencode-image;
-    packages.x86_64-linux.maplespike-mcp-image = pkgsWithOverlay.maplespike-mcp-image;
-    packages.x86_64-linux.maplespike-api-image = pkgsWithOverlay.maplespike-api-image;
+    #     packages.x86_64-linux.maplespike-mcp-image = pkgsWithOverlay.maplespike-mcp-image;
+    #     packages.x86_64-linux.maplespike-api-image = pkgsWithOverlay.maplespike-api-image;
     packages.x86_64-linux = {
       # ai-inference-gateway-image = lib.mkIf (inputs ? ai-gateway) inputs.ai-gateway.packages.x86_64-linux.container; # migrated from local pkgs/
       inherit
         (pkgsWithOverlay)
-        maplespike-ingest-image
-        maplespike-engine-image
+        #         maplespike-ingest-image
+        #         maplespike-engine-image
         ;
     };
 
