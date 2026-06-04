@@ -77,7 +77,7 @@
       inputs.home-manager.follows = "";
     };
     preservation = {
-      url = "path:/etc/nixos/lib/preservation";
+      url = "path:./lib/preservation";
     };
     niri = {
       url = "tarball+https://codeload.github.com/sodiboo/niri-flake/tar.gz/b5f81cf03d90bcf2efd20d12fe933a0790b4722b";
@@ -179,7 +179,7 @@
     # ── Newly extracted project flakes ───────────────────────
     # hermes-workspace and hermes-webui archived (2026-05-16)
     maplespike = {
-      url = "path:/data/projects/own/maplespike";
+      url = "github:reverb256/maplespike";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
