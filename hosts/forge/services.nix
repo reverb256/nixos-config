@@ -33,18 +33,150 @@ in {
       nodeIP = cluster.hosts.forge.ip;
     };
 
-    syncthing-cluster = {
-      enable = true;
-    };
     spotify-spotx.enable = true;
 
-    opencode.enable = true;
+     opencode.enable = true;
+
+     # Agent network restrictions — restrict AI agents to allowed destinations only
+     agent-firewall = {
+       enable = true;
+       auditLog = true;
+     };
+
+    nixos-share = {
+      enable = false;
+      client.enable = true;
+    };
+
+    mining.lolminer = {
+      pool = "xtm-c29-us.kryptex.network:8040";
+      wallet = "krxXVNVMM7.forge-gpu";
+      pools = [
+        {
+          url = "xtm-c29-us.kryptex.network:8040";
+          wallet = "krxXVNVMM7.forge-gpu";
+          password = "x";
+          tls = true;
+        }
+        {
+          url = "xtm-c29-eu.kryptex.network:8040";
+          wallet = "krxXVNVMM7.forge-gpu";
+          password = "x";
+          tls = true;
+        }
+      ];
+    };
+
+    gpu-proxy-cpp = {
+      enable = true;
+      listenPort = 3334;
+      apiPort = 8083;
+      logLevel = "INFO";
+      pools = [
+        {
+          name = "Kryptex US";
+          url = "xtm-c29-us.kryptex.network:8040";
+          wallet = "krxXVNVMM7";
+          password = "x";
+          priority = 1;
+          tls = true;
+        }
+        {
+          name = "Kryptex EU";
+          url = "xtm-c29-eu.kryptex.network:8040";
+          wallet = "krxXVNVMM7";
+          password = "x";
+          priority = 2;
+          tls = true;
+        }
+      ];
+      workers = [
+        {
+          id = "krxXVNVMM7.forge-gpu";
+          password = "x";
+        }
+        {
+          id = "krxXVNVMM7.zephyr-gpu";
+          password = "x";
+        }
+        {
+          id = "krxXVNVMM7.nexus-gpu";
+          password = "x";
+        }
+      ];
+    };
+
+    nfs-client = {
+      enable = false;
+      mountShared = true;
+      mountHome = true;
+      mountMedia = false;
+    };
+
+    syncthing-cluster = {
+      enable = true;
+      deviceId = "FORGE-PLACEHOLDER";
+    };
+
+    nixos-auto-update = {
+      enable = true;
+      interval = "daily";
+      updateFlakeInputs = ["nixpkgs"];
+    };
+
+    agenix-secrets-registry = {
+      enable = true;
+      kubernetes = true;
+      initrdRecovery = true;
+      aiServices = true;
+    };
   };
 
+  services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
   environment.systemPackages = with pkgs; [
+    rocmPackages.rocm-smi
     clinfo
     nvtopPackages.full
     inputs.claude-native.packages.x86_64-linux.claude
+  ];
+
+  programs.nix-ld.libraries = with pkgs; [
+    rocmPackages.clr
+    rocmPackages.clr.icd
+    rocmPackages.rocminfo
+    rocmPackages.rocm-smi
+    rocmPackages.rocm-runtime
+    rocmPackages.rocblas
+    rocmPackages.hipblas
+    rocmPackages.hipsparse
+    rocmPackages.rocfft
+    rocmPackages.rocrand
+    rocmPackages.rocthrust
+    ocl-icd
+    opencl-headers
+    clinfo
+    libGL
+    libGLU
+    libglvnd
+    vulkan-loader
+    nvidia-vaapi-driver
+    zlib
+    libpng
+    libjpeg
+    freetype
+    fontconfig
+    libx11
+    libxext
+    libxrender
+    libxcb
+    libxau
+    libxdmcp
+    SDL2
+    alsa-lib
+    systemd
+    libusb1
+    curl
+    openssl
   ];
 
   # Initrd SSH recovery + BTRFS snapshots
@@ -66,19 +198,6 @@ in {
   };
 
   services.cachix-auth.enable = true;
-  services.agenix-secrets-registry = {
-    enable = true;
-    aiServices = true;
-    monitoring = false;
-    storage = true;
-    mining = true;
-    cloud = true;
-    kubernetes = true;
-    automation = true;
-    ci = true;
-    initrdRecovery = true;
-    selfHosting = true;
-  };
   services.ai-coding-tools = {
     enable = true;
     user = "j_kro";
@@ -87,13 +206,14 @@ in {
     nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
     opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
     tools = {
-      claude = {enable = true;};
-      opencode = {enable = true;};
-      droid = {enable = true;};
-      crush = {enable = true;};
-      pi = {enable = true;};
-      omp = {enable = true;};
+      claude = { enable = true; };
+      opencode = { enable = true; };
+      droid = { enable = true; };
+      crush = { enable = true; };
+      pi = { enable = true; };
+      omp = { enable = true; };
     };
     enableShellEnv = true;
   };
 }
+
