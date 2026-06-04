@@ -186,6 +186,7 @@ in {
     inputs.niri.nixosModules.niri
     inputs.home-manager.nixosModules.home-manager
     inputs.stylix.nixosModules.stylix
+    inputs.agenix.nixosModules.age
   ];
 
   # ISO Settings
@@ -318,6 +319,11 @@ in {
     };
   };
 
+  # NVIDIA NIM API key — for Hermes autonomous operation
+  age.secrets.nvidia-api-key = {
+    file = ../../secrets/nvidia-api-key.age;
+    owner = "j_kro";
+  };
   # Hermes Agent — self-contained config matching live setup
   environment.variables.HERMES_HOME = "/home/j_kro/.hermes";
   system.activationScripts.hermes-usb-setup = lib.stringAfter ["users"] ''
@@ -326,30 +332,16 @@ in {
 
         cat > "$HERMES_HOME/config.yaml" << 'YAML_EOF'
         model:
-          provider: ai-gateway
-          base_url: http://10.1.1.110:30880/v1
-          default: qwen/qwen3-coder-480b-a35b-instruct
-          api_key: none
+          default: qwen/qwen3.5-397b-a17b
+          provider: nvidia
 
         providers:
-          ai-gateway:
-            base_url: http://10.1.1.110:30880/v1
-            api_key: none
-          local-qwen36:
-            base_url: http://10.1.1.110:1237/v1
-            model: Qwen3.6-35B-A3B-abliterated.i1-IQ3_M.gguf
-          zephyr-3060ti:
-            base_url: http://10.1.1.110:8040/v1
-            model: qwen3.5-2b-awq
-          sentry-qwen35:
-            base_url: http://10.1.1.140:1235/v1
-            model: Qwen3.5-9B-abliterated.i1-IQ2_M.gguf
+          nvidia:
+            base_url: https://integrate.api.nvidia.com/v1
+            key_env: NVIDIA_API_KEY
 
         fallback_providers:
-          - ai-gateway
-          - local-qwen36
-          - zephyr-3060ti
-          - sentry-qwen35
+          - nvidia
 
         terminal:
           backend: local
@@ -372,6 +364,12 @@ in {
           api_max_retries: 3
       tool_use_enforcement: auto
     YAML_EOF
+
+        # Load NVIDIA API key from agenix-decrypted secret into .env
+        if [ -f "/run/agenix/nvidia-api-key" ]; then
+          echo "NVIDIA_API_KEY=*** /run/agenix/nvidia-api-key)" > "$HERMES_HOME/.env"
+          chmod 600 "$HERMES_HOME/.env"
+        fi
 
       cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
       You are Hermes Agent, an intelligent AI assistant. You are helpful,
