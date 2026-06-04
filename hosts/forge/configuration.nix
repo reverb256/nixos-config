@@ -6,12 +6,16 @@
   ...
 }: {
   imports = [
+    inputs.disko.nixosModules.disko
     ./monitoring.nix
     ./firewall.nix
     ./hardware.nix
     ./desktop.nix
     ./services.nix
     ./hardware-configuration.nix
+    ./disko.nix
+    ./preservation.nix
+
     ../../modules/default.nix
     ../../modules/hardware/rgb-control.nix
     ../../modules/services/podman-support.nix
@@ -21,6 +25,18 @@
   ];
 
   # Host-specific CPU/GPU optimization for llama.cpp (Zen1 + Ada: RTX 4060)
+  nixpkgs.config.packageOverrides = pkgs: {
+    llama-cpp-turboquant = pkgs.llama-cpp-turboquant.overrideAttrs (old: {
+      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3";
+    });
+    llama-cpp = pkgs.llama-cpp.overrideAttrs (old: {
+      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3";
+    });
+    llama-cpp-vulkan = pkgs.llama-cpp-vulkan.overrideAttrs (old: {
+      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3";
+    });
+  };
+
   stylix = {
     base16Scheme = "${pkgs.base16-schemes}/share/themes/gruvbox-dark-medium.yaml";
     image = ../../modules/desktop/wallpapers/gruvbox-dark-bg.png;
@@ -76,7 +92,6 @@
   boot.kernelPackages =
     inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
 
-  # Shared hermes + pi state via NFS (resilient: nofail, automount, soft)
   services.sshfs-projects-mount.enable = true;
 
   services.nfs-cluster-mounts = {
@@ -85,7 +100,7 @@
     mountPi = false;
   };
 
-  # Override noexec on /var (nix-mineral remnant) for k3s re-exec
+  # Override noexec on /var for k3s re-exec
   fileSystems."/var/lib/rancher/k3s" = {
     device = "/var/lib/rancher/k3s";
     fsType = "none";
@@ -94,31 +109,11 @@
 
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
-  # ═══════════════════════════════════════════════════════════════════
-  # STORAGE REDIRECT — Use secondary HDD for heavy data
-  # System SSD: TEAM T253X2256G 256GB (sdb, ata-TEAM_T253X2256G_TM701907310240040386)
-  # Storage HDD: ADATA SU635 240GB (sda, ata-ADATA_SU635_2L40291DQ5CE)
-  #   sda2 (215.6G) at /home — 206G free. Nix store: 86G.
-  # Pre-reboot setup:
-  #   sudo mount /dev/disk/by-id/ata-ADATA_SU635_2L40291DQ5CE-part2 /mnt
-  #   sudo btrfs subvolume create /mnt/@nix
-  #   sudo mkdir -p /mnt/@nix/store /mnt/@nix/var
-  #   sudo cp -a /nix/store/* /mnt/@nix/store/
-  #   sudo cp -a /nix/var/* /mnt/@nix/var/
-  #   sudo umount /mnt
-  #   sudo nixos-rebuild boot && reboot
-  # ═══════════════════════════════════════════════════════════════════
-  fileSystems."/nix" = {
-    device = "/dev/disk/by-id/ata-ADATA_SU635_2L40291DQ5CE-part2";
-    fsType = "btrfs";
-    options = ["subvol=@nix" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
-  };
 
-  # Mount /var on the secondary HDD — frees ~29G on the system SSD
-  # Covers: /var/lib/rancher (k3s), /var/lib/vllm-models, /var/lib/nix-csi, /var/lib/flatpak
-  fileSystems."/var" = {
-    device = "/dev/disk/by-id/ata-ADATA_SU635_2L40291DQ5CE-part2";
-    fsType = "btrfs";
-    options = ["subvol=@var" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
-  };
+  # STORAGE — Managed by disko.nix
+  # System SSD: TEAM T253X2256G 256GB (sdb) — @root, @persistent, @nix
+  # Storage HDD: ADATA SU635 240GB (sda) — @home, @var, @games
+
+  nix.settings.auto-optimise-store = true;
+  boot.resumeDevice = "/dev/disk/by-id/ata-TEAM_T253X2256G_TM701907310240040386-part2";
 }
