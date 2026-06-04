@@ -243,10 +243,6 @@ in {
     enable = true;
     enable32Bit = true;
   };
-  hardware.graphics = {
-    enable = true;
-    enable32Bit = true;
-  };
 
   # Nix overlays - disabled for useGlobalPkgs compatibility
   # nixpkgs.overlays = [
