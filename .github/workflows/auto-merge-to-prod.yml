@@ -1,0 +1,101 @@
+name: Auto-Merge Main to Prod
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: read
+
+jobs:
+  wait-for-checks:
+    name: Wait for CI Checks
+    runs-on: ubuntu-latest
+    outputs:
+      all_passed: ${{ steps.check-status.outputs.all_passed }}
+    steps:
+      - name: Wait for required checks
+        run: |
+          echo "Waiting for CI checks to complete..."
+          sleep 30  # Give checks time to start
+
+      - name: Check status
+        id: check-status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const { sha } = context;
+            
+            // Get all check runs and statuses
+            const checks = await github.rest.checks.listForRef({
+              owner,
+              repo,
+              ref: sha,
+            });
+            
+            const statuses = await github.rest.repos.getCombinedStatusForRef({
+              owner,
+              repo,
+              ref: sha,
+            });
+            
+            // Check if all are successful
+            const checkRuns = checks.data.check_runs;
+            const allChecksPassed = checkRuns.every(run => 
+              run.conclusion === 'success' || run.status === 'in_progress'
+            );
+            
+            const allStatusesPassed = statuses.data.state === 'success';
+            
+            const allPassed = allChecksPassed && allStatusesPassed;
+            console.log(`All checks passed: ${allPassed}`);
+            console.log(`Check runs: ${checkRuns.length}, State: ${statuses.data.state}`);
+            
+            core.setOutput('all_passed', allPassed.toString());
+
+  merge-to-prod:
+    name: Merge to Prod
+    runs-on: ubuntu-latest
+    needs: wait-for-checks
+    if: needs.wait-for-checks.outputs.all_passed == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Merge to prod
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          git fetch origin prod
+          git checkout prod
+          
+          # Merge main into prod
+          git merge origin/main --no-ff -m "Auto-merge: main → prod $(date +%Y-%m-%d)"
+          
+          # Push to prod
+          git push origin prod
+          
+          echo "✓ Successfully merged main → prod"
+
+  notify-failure:
+    name: Notify on Merge Failure
+    runs-on: ubuntu-latest
+    needs: merge-to-prod
+    if: failure()
+    steps:
+      - name: Notify failure
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "❌ Auto-merge to prod failed"
+          echo "Check the workflow logs for details"
+          echo "SHA: ${{ github.sha }}"
