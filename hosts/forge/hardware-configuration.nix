@@ -12,34 +12,13 @@
       availableKernelModules = ["xhci_pci" "ahci" "sd_mod" "usb_storage" "btrfs"];
       kernelModules = [];
     };
-    kernelModules = ["kvm-intel"];
+    kernelModules = ["kvm-intel" "amdgpu"];
     extraModulePackages = [];
   };
 
-  fileSystems = {
-    "/" = {
-      device = "/dev/disk/by-uuid/188a7c7c-fb81-4d48-96f6-3fd5f3a267df";
-      fsType = "btrfs";
-      options = ["subvol=@" "compress=zstd" "ssd"];
-    };
-
-    "/home" = {
-      device = "/dev/disk/by-uuid/bf41f3c2-85e0-4b91-a183-5db5267a1ba1";
-      fsType = "btrfs";
-      options = ["compress=zstd" "ssd"];
-    };
-
-    "/boot" = {
-      device = "/dev/disk/by-uuid/0038-09DB";
-      fsType = "vfat";
-      options = ["fmask=0077" "dmask=0077"];
-    };
-  };
-
-  swapDevices = [
-    {device = "/dev/disk/by-uuid/f7a53df0-2f25-4202-bdb6-e1a25d55f13c";}
-    {device = "/dev/disk/by-uuid/d57dc02f-ad7c-494e-9800-adf217beb64a";}
-  ];
+  # Minimal: disko declares all fileSystems and swapDevices.
+  # This file only provides hardware detection (USB, SATA, BTRFS)
+  # and boot configuration that disko doesn't cover.
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }
