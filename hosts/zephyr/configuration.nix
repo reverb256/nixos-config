@@ -337,9 +337,10 @@ in {
 
   # ═══════════════════════════════════════════════════════════════════
   # STORAGE REDIRECT — Use secondary NVMe for heavy data
-  # System: Samsung SSD 980 1TB (nvme0n1, nvme-Samsung_SSD_980_1TB_S64ANJ0R712954W) — 95%
-  # Secondary: XPG GAMMIX S11 Pro 1TB (nvme1n1, nvme-XPG_GAMMIX_S11_Pro_2J2520059477)
-  #   nvme1n1p2 (921.9G) at /data/projects — 69%, 288G free
+  # System: Samsung SSD 980 1TB (nvme1n1, nvme-Samsung_SSD_980_1TB_S64ANJ0R712954W) — 95%
+  #   /boot (part1), / + /home (part2)
+  # Secondary: XPG GAMMIX S11 Pro 1TB (nvme0n1, nvme-XPG_GAMMIX_S11_Pro_2J2520059477)
+  #   swap (part1), /nix + /var (part2) — has slower PCIe init, rootdelay=5 in kernelParams
   # Pre-reboot setup:
   #   sudo mount /dev/disk/by-id/nvme-XPG_GAMMIX_S11_Pro_2J2520059477-part2 /mnt
   #   sudo btrfs subvolume create /mnt/@nix

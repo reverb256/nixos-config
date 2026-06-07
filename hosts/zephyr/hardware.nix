@@ -140,6 +140,12 @@
       # Fix Intel AX200 Bluetooth FW download failure (-19 ENODEV) — USB autosuspend
       # causes the device to be unresponsive during firmware loading.
       "btusb.enable_autosuspend=0"
+      # NVMe init race on cold boot: XPG GAMMIX S11 Pro (nvme0, 2nd M.2 slot) occasionally
+      # finishes PCIe enumeration after initrd tries to mount /nix. rootdelay=5 gives all
+      # block devices 5s extra to appear. default_ps_max_latency_us=0 prevents APST deep
+      # sleep on NVMe drives, reducing link-training delay.
+      "rootdelay=5"
+      "nvme_core.default_ps_max_latency_us=0"
     ];
   };
 
