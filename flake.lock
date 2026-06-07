@@ -963,14 +963,14 @@
         ]
       },
       "locked": {
-        "lastModified": 1779507042,
-        "narHash": "sha256-7wOwi8B6D0BYsieZCnHZZj2sNUzgJhLoIVSfkwB7lxQ=",
+        "lastModified": 1780361225,
+        "narHash": "sha256-wnV9ttf4fPWNonBIQmvlrSlNpQYgx5HgWWd007mwIFA=",
         "type": "tarball",
-        "url": "https://codeload.github.com/nix-community/home-manager/tar.gz/509ed3c603349a9d43de9e2ae6613baea6bd5b34"
+        "url": "https://codeload.github.com/nix-community/home-manager/tar.gz/e28654b71096e08c019d4861ca26acb646f583d8"
       },
       "original": {
         "type": "tarball",
-        "url": "https://codeload.github.com/nix-community/home-manager/tar.gz/509ed3c603349a9d43de9e2ae6613baea6bd5b34"
+        "url": "https://codeload.github.com/nix-community/home-manager/tar.gz/e28654b71096e08c019d4861ca26acb646f583d8"
       }
     },
     "impermanence": {
