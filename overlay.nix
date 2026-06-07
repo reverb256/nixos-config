@@ -118,7 +118,7 @@ _final: prev:
       };
       # Fix: pipx 1.8.0 test failures (spaces around @)
       pipx = py-super.pipx.overridePythonAttrs { doCheck = false; };
-      gradio = py-super.gradio.overridePythonAttrs { doCheck = false; };
+      gradio = py-super.gradio.overrideAttrs (_old: { doCheck = false; });
     };
   };
 
