@@ -181,6 +181,26 @@ jobs:
             --arg pkgs 'import <nixpkgs> {}' \
             tests/flake-input-consistency.nix
 
+      - name: Host Configuration Test
+        run: |
+          nix-instantiate --eval             --arg pkgs 'import <nixpkgs> {}'             tests/host-configuration.nix
+
+      - name: Options Consistency Test
+        run: |
+          nix-instantiate --eval             --arg pkgs 'import <nixpkgs> {}'             tests/options-consistency.nix
+
+      - name: Secrets Integrity Test
+        run: |
+          nix-instantiate --eval             --arg pkgs 'import <nixpkgs> {}'             tests/secrets-integrity.nix
+
+      - name: K8s Manifest Validation Test
+        run: |
+          nix-instantiate --eval             --arg pkgs 'import <nixpkgs> {}'             tests/k8s-manifest-validation.nix
+
+      - name: NixOS Evaluation Test
+        run: |
+          nix-instantiate --eval             --arg pkgs 'import <nixpkgs> {}'             tests/nixos-eval.nix
+
   # ============================================================================
   # STAGE 4: Security scanning
   # ============================================================================
