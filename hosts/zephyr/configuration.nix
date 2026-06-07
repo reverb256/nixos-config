@@ -8,12 +8,14 @@
   cluster = config.networking.cluster;
 in {
   imports = [
+    inputs.disko.nixosModules.disko
     ./monitoring.nix
     ./firewall.nix
     ./hardware.nix
     ./desktop.nix
     ./services.nix
     ./hardware-configuration.nix
+    ./disko.nix
     ../../modules/services/k3s-cluster.nix
     ../../modules/services/keepalived-vip.nix
     ../../modules/system/systemd-user-timeout.nix
@@ -348,20 +350,6 @@ in {
   #   sudo cp -a /nix/var/* /mnt/@nix/var/
   #   sudo umount /mnt
   #   sudo nixos-rebuild boot && reboot
-  # ═══════════════════════════════════════════════════════════════════
-  fileSystems."/nix" = lib.mkForce {
-    device = "/dev/disk/by-id/nvme-XPG_GAMMIX_S11_Pro_2J2520059477-part2";
-    fsType = "btrfs";
-    options = ["subvol=@nix" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
-  };
-
-  # Mount /var on the secondary NVMe — frees ~22G on the system drive
-  # Covers: /var/lib/rancher (k3s), /var/lib/flatpak, /var/lib/nix-csi
-  fileSystems."/var" = lib.mkForce {
-    device = "/dev/disk/by-id/nvme-XPG_GAMMIX_S11_Pro_2J2520059477-part2";
-    fsType = "btrfs";
-    options = ["subvol=@var" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
-  };
 
   # System fonts - enable fontconfig and install packages
   fonts = {
