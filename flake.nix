@@ -134,22 +134,17 @@
     gpu-proxy = {
       url = "tarball+https://codeload.github.com/reverb256/gpu-proxy/tar.gz/d17e8fa40d5f539714f05b7387b30a0e831c1c12";
       inputs.nixpkgs.follows = "nixpkgs";
-    };
-    # mining-infra removed - only exists on zephyr at /data/projects/infra/mining-infra
-    astral-key = {
-      url = "tarball+https://codeload.github.com/reverb256/astral-key/tar.gz/b269cc69718f3a902ea61aaf29459cae98d96592";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    #     llama-turboquant = {
-    #       url = "path:/data/projects/own/llama-cpp-turboquant";
-    #       inputs.nixpkgs.follows = "nixpkgs";
-    #     };
-    #     vllm = {
-    #       url = "path:/data/projects/own/vllm";
-    #       inputs.nixpkgs.follows = "nixpkgs";
-    #     };
-    # NOTE: astral-key has nixos-module.nix for systemd service — can be imported in host configs
-    dream2nix = {
+     };
+     # mining-infra removed - only exists on zephyr at /data/projects/infra/mining-infra
+     #     llama-turboquant = {
+     #       url = "path:/data/projects/own/llama-cpp-turboquant";
+     #       inputs.nixpkgs.follows = "nixpkgs";
+     #     };
+     #     vllm = {
+     #       url = "path:/data/projects/own/vllm";
+     #       inputs.nixpkgs.follows = "nixpkgs";
+     #     };
+     dream2nix = {
       url = "tarball+https://codeload.github.com/nix-community/dream2nix/tar.gz/69eb01fa0995e1e90add49d8ca5bcba213b0416f";
       inputs.nixpkgs.follows = "nixpkgs";
     };
