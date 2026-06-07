@@ -6,7 +6,7 @@
   ...
 }: let
   portHelpers = import ../../modules/port-helpers.nix {inherit lib;};
-  inherit (portHelpers) ports;
+  ports = portHelpers.ports;
 
   # Build the hermes-agent Python venv (same derivation the flake uses for its wrappers)
   hermesVenv = pkgs.callPackage (inputs.hermes-agent.outPath + "/nix/python.nix") {
@@ -28,18 +28,18 @@ in {
       nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
       casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
       opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
-      opencodeZenApiKeyFile = config.age.secrets.opencode-api-key.path;
     };
     k3s-cluster = {
-      enable = true; # Re-enabled 2026-06-02 for NIM connectivity
+      enable = true;
       nvidia.enable = true;
       role = "server";
       clusterInit = false; # Rejoining existing cluster via VIP (fixed 2026-05-30)
-      clusterReset = false; # Already reset, running clean
+  clusterReset = false; # Already reset, running clean
       nodeName = "nexus";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = cluster.hosts.nexus.ip;
+    flannelIface = "eth0"; # Nexus primary interface (eth0 has NO-CARRIER)
     };
 
     keepalived-vip = {
@@ -62,12 +62,9 @@ in {
       enable = true;
       exports = ''
         /data/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=105)
+
         /data/pi 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=106)
       '';
-    };
-
-    syncthing-cluster = {
-      enable = true;
     };
 
     agenix-secrets-registry = {
@@ -75,7 +72,7 @@ in {
       aiServices = true;
       monitoring = false;
       storage = true;
-      mining = true;
+      mining = false;
       cloud = false;
       kubernetes = true;
       initrdRecovery = false; # Disabled: agenix build-time dependency issue
@@ -89,22 +86,6 @@ in {
       interval = "15min";
     };
 
-    # Local nix binary cache for cluster (serves built closures to all hosts)
-    binary-cache.enable = true;
-
-    srbminer = {
-      enable = true;
-      instances = [
-        {
-          name = "3060ti";
-          gpuId = 0;
-          wallet = "krxXVNVMM7.nexus-3060ti";
-          pool = "stratum+ssl://prl-us.kryptex.network:8048";
-          apiPort = 21554;
-          powerLimit = 100;
-        }
-      ];
-    };
   };
 
   programs.steam = {
@@ -209,12 +190,21 @@ in {
       '';
     };
 
-    extraPackages = with pkgs; [git ripgrep curl jq statix deadnix osv-scanner];
+    extraPackages = with pkgs; [git ripgrep curl jq];
   };
 
-  # Hermes WebUI — disabled on nexus (no /data/projects/own/hermes-webui)
-  # Runs on zephyr only. Dead code and timer removed.
+   # Hermes WebUI — disabled on nexus (no /data/projects/own/hermes-webui)
+   # Runs on zephyr only. Dead code and timer removed.
 
+   # Agent network restrictions — restrict AI agents to allowed destinations only
+   services.agent-firewall = {
+     enable = true;
+     auditLog = true;
+   };
+
+  # Load Z.AI and NVIDIA API keys for hermes-agent
+  # The official module's environment option doesn't reliably set systemd env vars,
+  # so we use a systemd override with ExecStartPre to generate an env file.
   systemd.services.hermes-agent = {
     serviceConfig.ExecStartPre =
       "+"
@@ -274,6 +264,7 @@ in {
       openwebui = {
         domain = "openwebui.lan";
         backend = k8s.open-webui.dns;
+
       };
       hermes = {
         domain = "hermes.lan";
@@ -362,58 +353,31 @@ in {
   };
 
   services.cachix-auth.enable = true;
+   services.ai-coding-tools = {
+     enable = true;
+     user = "j_kro";
+     zaiApiKeyFile = config.age.secrets.zai-api-key.path;
+     context7ApiKeyFile = config.age.secrets.context7-api-key.path;
+     nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
+     opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
+     tools = {
+       claude = { enable = true; };
+       opencode = { enable = true; };
+       droid = { enable = true; };
+       crush = { enable = true; };
+       pi = { enable = true; };
+       omp = { enable = true; };
+     };
+     enableShellEnv = true;
+   };
 
-  # GitHub Actions self-hosted runner on nexus (official binary)
-  systemd.services.github-actions-runner = {
-    description = "GitHub Actions Runner";
-    after = ["network.target"];
-    wants = ["network-online.target"];
-    wantedBy = [];
+   services.mcp-registry = {
+     enable = true;
+     generateHermes = true;
+     generateClaudeCode = true;
+     generateKagentCRDs = true;
+     generateNetworkPolicies = true;
+     generateCasdoorApps = true;
+   };
+ }
 
-    serviceConfig = {
-      Type = "simple";
-      User = "j_kro";
-      WorkingDirectory = "/home/j_kro/actions-runner-official";
-      Environment = [
-        "DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1"
-        "PATH=/run/wrappers/bin:/run/current-system/sw/bin:${lib.makeBinPath [pkgs.coreutils pkgs.gnutar pkgs.gzip pkgs.git pkgs.bash pkgs.gnugrep pkgs.findutils pkgs.curl pkgs.openssl]}"
-        "LD_LIBRARY_PATH=${lib.makeLibraryPath [pkgs.icu]}"
-        "NIX_ICU_DATA=${pkgs.icu}/share/icu/${pkgs.icu.version}"
-        "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
-        "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt"
-        "NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-bundle.crt"
-      ];
-      ExecStart = "/home/j_kro/actions-runner-official/start-runner.sh";
-      Restart = "always";
-      RestartSec = "10s";
-      TimeoutStartSec = "180s";
-    };
-  };
-
-  services.ai-coding-tools = {
-    enable = true;
-    user = "j_kro";
-    zaiApiKeyFile = config.age.secrets.zai-api-key.path;
-    context7ApiKeyFile = config.age.secrets.context7-api-key.path;
-    nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
-    opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
-    tools = {
-      claude = {enable = true;};
-      opencode = {enable = true;};
-      droid = {enable = true;};
-      crush = {enable = true;};
-      pi = {enable = true;};
-      omp = {enable = true;};
-    };
-    enableShellEnv = true;
-  };
-
-  services.mcp-registry = {
-    enable = true;
-    generateHermes = true;
-    generateClaudeCode = true;
-    generateKagentCRDs = true;
-    generateNetworkPolicies = true;
-    generateCasdoorApps = true;
-  };
-}
