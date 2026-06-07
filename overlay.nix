@@ -14,6 +14,10 @@ _final: prev:
   assimp = prev.assimp.overrideAttrs (_old: {
     doCheck = false;
   });
+  # gradio tests fail due to missing matplotlib; disable globally
+  gradio = prev.gradio.overrideAttrs (_old: {
+    doCheck = false;
+  });
   llama-cpp = prev.callPackage ./packages/llama-cpp.nix {
     cudaSupport = true;
     inherit (prev) cudaPackages;

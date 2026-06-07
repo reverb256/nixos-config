@@ -363,3 +363,17 @@ in {
     options = ["subvol=@var" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
   };
 }
+  # System fonts - enable fontconfig and install packages
+  fonts = {
+    fontconfig.enable = true;
+    packages = [
+      pkgs.inter
+      pkgs.nerd-fonts.jetbrains-mono
+      pkgs.dejavu_fonts
+      pkgs.noto-fonts-color-emoji
+      pkgs.source-sans
+      pkgs.source-serif
+      pkgs.source-han-sans
+      pkgs.source-han-serif
+    ];
+  };

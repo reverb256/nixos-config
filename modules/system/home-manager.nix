@@ -54,9 +54,11 @@ in {
       nixcord-config.enable = lib.mkForce (hostName == "zephyr");
       caprine.enable = lib.mkForce (hostName == "zephyr");
 
-      # Stylix - set the scheme directly so home-manager stylix module can parse it
-      # Set scheme here for HM stylix module (NixOS-level stylix also has it per-host)
-      stylix.base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+      # Stylix - inherit from system config for home-manager
+      stylix = {
+        inherit (config.stylix) base16Scheme;
+        inherit (config.stylix) image;
+      };
 
       # CopyQ clipboard manager (replaces cliphist)
       programs.copyq = {
