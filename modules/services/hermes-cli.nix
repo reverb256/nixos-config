@@ -236,11 +236,12 @@ in {
   config = lib.mkIf cfg.enable {
     # Install hermes package system-wide
     # TEMP DISABLED: hermes-with-whatsapp broken due to npm protobufjs issue
-    environment.systemPackages = [hermes-with-whatsapp];
+    environment.systemPackages = [hermes-with-whatsapp pkgs.portaudio];
 
     # Only set HERMES_HOME if hermes-agent is NOT managing it
     # The hermes-agent module sets addToSystemPackages which also sets HERMES_HOME
     environment.variables.HERMES_HOME = lib.mkIf (!useAgentStateDir) "/home/${cfg.user}/.hermes";
+    environment.variables.LD_LIBRARY_PATH = "${pkgs.portaudio}/lib";
 
     # Create hermes state directory with proper config (only if not using agent state)
     system.activationScripts.hermes-cli-setup = lib.mkIf (!useAgentStateDir) (

@@ -64,10 +64,10 @@
             Type = "simple";
             User = config.services.lpminer.user;
             Environment = [
-              "LD_LIBRARY_PATH=${pkgs.nvidia_x11}/lib"
+              "LD_LIBRARY_PATH=/run/opengl-driver/lib"
               "CUDA_VISIBLE_DEVICES=${toString instance.gpuId}"
             ];
-            ExecStartPre = "${pkgs.nvidia_x11}/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}";
+            ExecStartPre = "${config.hardware.nvidia.package}/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}";
             ExecStart = "${pkgs.writeShellScriptBin "lpminer-${instance.name}" ''
               /data/lpminer/lpminer \
                 --algo pearlhash \
