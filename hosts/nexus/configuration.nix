@@ -59,7 +59,6 @@
     unbound.listenAddress = config.networking.cluster.hosts.nexus.ip;
   };
 
-  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 
   # Prevent hardware-configuration from overriding interface naming
   # while preserving the cluster-networking keep-names policy
