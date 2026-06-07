@@ -4,37 +4,32 @@
   pkgs,
   inputs,
   ...
-
 }: {
-  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+    imports = [
+      ./monitoring.nix
+      ./firewall.nix
+      ./hardware.nix
+      ./desktop.nix
+      ./services.nix
+      ./hardware-configuration.nix
+      ./disko.nix
+      ./preservation.nix
+      ./nfs-allow.nix
 
-  imports = [
-    inputs.disko.nixosModules.disko
-    ./monitoring.nix
-    ./firewall.nix
-    ./hardware.nix
-    ./desktop.nix
-    ./services.nix
-    ./disko.nix
-    ./impermanence.nix
-    ./nfs-allow.nix
+      ./ai-inference.nix
 
-    ./ai-inference.nix
+      ../../modules/default.nix
 
-    ../../modules/default.nix
+      ../../modules/hardware/rgb-control.nix
 
-    ../../modules/hardware/rgb-control.nix
-    ../../modules/system/ssh.nix
+      ../../modules/security/aistor-secrets.nix
+      ../../modules/services/podman-support.nix
 
-    ../../modules/security/aistor-secrets.nix
-    ../../modules/services/podman-support.nix
-
-    ../../modules/services/ci-runner.nix
-
-    ../../modules/services/k3s-cluster.nix
-    ../../modules/services/keepalived-vip.nix
-    inputs.nix-mineral.nixosModules.nix-mineral
-  ];
+      ../../modules/services/k3s-cluster.nix
+      ../../modules/services/keepalived-vip.nix
+      inputs.disko.nixosModules.disko
+      inputs.nix-mineral.nixosModules.nix-mineral
+    ];
 
   # Host-specific CPU/GPU optimization for llama.cpp (Zen2 + Ampere: RTX 3060 Ti)
   nixpkgs.config.packageOverrides = pkgs: {
@@ -45,7 +40,6 @@
       CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3 -mtune=zen2";
     });
   };
-  nixpkgs.config.permittedInsecurePackages = ["nodejs-slim-20.20.2" "nodejs-20.20.2"];
 
   clusterNetworking = {
     enable = true;
@@ -59,7 +53,6 @@
     unbound.enable = true;
     unbound.listenAddress = config.networking.cluster.hosts.nexus.ip;
   };
-
 
   # Prevent hardware-configuration from overriding interface naming
   # while preserving the cluster-networking keep-names policy
@@ -87,8 +80,6 @@
     enable = true;
     populateLocal = true;
   };
-  # Block Hoyoverse telemetry domains (Genshin Impact, Honkai Star Rail, Zenless Zone Zero)
-  networking.hoyoverse-telemetry-block.enable = true;
 
   profiles.node.nexus-gaming.enable = true;
 
@@ -155,11 +146,4 @@
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
 
-  # CI runner for GitHub Actions (disabled: using official binary in services.nix)
-  services.ci-runner = {
-    enable = false;
-    repo = "reverb256/nixos-config";
-    tokenFile = "/var/lib/ci-runner-token";
-    autoStart = true;
-  };
 }
