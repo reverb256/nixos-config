@@ -14,7 +14,6 @@ HDR support, and application integration across the cluster.
 | `uwsm-sessions.nix` | UWSM session wrapper for SDDM compositor selection | Niri/Hyprland hosts |
 | `niri.nix` | Niri scroll-tiling compositor config, NVIDIA support | Zephyr, Forge |
 | `niri-settings.nix` | Niri KConfig-based settings (keybinds, layout) | Niri hosts |
-| `hyprland.nix` | Hyprland compositor with Noctalia shell ecosystem | Zephyr |
 | `gamescope-tty.nix` | Steam Gamescope session on tty3 for dedicated gaming | Nexus |
 | `flatpak.nix` | Flatpak with Discover integration and Flathub | Zephyr |
 | `spotify-spotx.nix` | Spotify Flatpak with SpotX ad-removal patch | Zephyr, Forge, Sentry |
@@ -71,5 +70,5 @@ enabled on Zephyr (connected to 4K HDR TV). Requires:
 
 The `noctalia-shell` package is a unified desktop shell that auto-detects
 the running compositor (Niri or Hyprland) at runtime via environment
-variables (`NIRI_SOCKET`, `HYPRLAND_INSTANCE_SIGNATURE`). Shared packages
+variables (`NIRI_SOCKET`). Shared packages
 are installed by `wayland-compositor-common.nix` to avoid duplication.
