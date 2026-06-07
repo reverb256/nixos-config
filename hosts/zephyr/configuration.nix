@@ -362,7 +362,7 @@ in {
     fsType = "btrfs";
     options = ["subvol=@var" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
   };
-}
+
   # System fonts - enable fontconfig and install packages
   fonts = {
     fontconfig.enable = true;
@@ -376,4 +376,4 @@ in {
       pkgs.source-han-sans
       pkgs.source-han-serif
     ];
-  };
+  };}

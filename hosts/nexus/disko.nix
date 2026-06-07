@@ -6,8 +6,8 @@
   ...
 }: {
   disko.devices = {
-    disk.nvme1n1 = {
-      device = "/dev/disk/by-id/nvme-WDC_WDS100T2B0C-00PXH0_203797800744";
+    disk.nvme0n1 = {
+      device = "/dev/nvme0n1";
       type = "disk";
       content = {
         type = "gpt";

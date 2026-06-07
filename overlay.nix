@@ -144,6 +144,7 @@ _final: prev:
   # dufs tests require CA certificates for reqwest-based HTTP client
   # Provide cacert and set SSL_CERT_FILE during test phase
   dufs = prev.dufs.overrideAttrs (old: {
+    nativeBuildInputs = (old.nativeBuildInputs or []) ++ [ prev.cacert ];
     env = (old.env or {}) // {
       SSL_CERT_FILE = "${prev.cacert}/etc/ssl/certs/ca-bundle.crt";
       REQUESTS_CA_BUNDLE = "${prev.cacert}/etc/ssl/certs/ca-bundle.crt";
