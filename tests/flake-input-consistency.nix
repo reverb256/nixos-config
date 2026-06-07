@@ -1,5 +1,5 @@
 {pkgs ? import <nixpkgs> {}}: let
-  lib = pkgs.lib;
+  inherit (pkgs) lib;
 
   flakeSource = builtins.readFile ../flake.nix;
   commonSource = builtins.readFile ../common-modules-list.nix;
@@ -80,9 +80,9 @@
 
   allChecks = {
     commonModulesRefsValid = commonModuleRefsValid;
-    hasSelfOverlay = hasSelfOverlay;
-    passesInputs = passesInputs;
-    allInputsHaveUrl = allInputsHaveUrl;
+    inherit hasSelfOverlay;
+    inherit passesInputs;
+    inherit allInputsHaveUrl;
   };
 
   failures = lib.filterAttrs (_: v: v == false) allChecks;

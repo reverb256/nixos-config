@@ -13,7 +13,6 @@
     mkOption
     types
     mkIf
-    optionalString
     ;
 in {
   options.services.k8s-nix-deploy = {

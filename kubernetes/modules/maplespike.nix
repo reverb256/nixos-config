@@ -44,7 +44,7 @@ with lib; let
       revisionHistoryLimit = 2;
       selector = {
         matchLabels = {
-          app = labels.app;
+          inherit (labels) app;
         };
       };
       strategy = {
@@ -56,14 +56,14 @@ with lib; let
       template = {
         metadata.labels = labels;
         spec = {
-          nodeName = nodeName;
+          inherit nodeName;
           securityContext = {
-            runAsUser = runAsUser;
-            runAsGroup = runAsGroup;
+            inherit runAsUser;
+            inherit runAsGroup;
             fsGroup = runAsGroup;
           };
           terminationGracePeriodSeconds = 30;
-          imagePullSecrets = [{ name = "ghcr-pull"; }];
+          imagePullSecrets = [{name = "ghcr-pull";}];
           containers = [
             {
               inherit name image;
@@ -85,14 +85,14 @@ with lib; let
                   }
                 ]
                 ++ envExtra;
-              resources = resources;
+              inherit resources;
               securityContext = {
                 allowPrivilegeEscalation = false;
                 capabilities = {
                   drop = ["ALL"];
                 };
                 runAsNonRoot = true;
-                runAsUser = runAsUser;
+                inherit runAsUser;
                 seccompProfile = {
                   type = "RuntimeDefault";
                 };

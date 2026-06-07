@@ -4,14 +4,17 @@
   pkgs,
   inputs,
   ...
+
 }: {
+  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+
   imports = [
+    inputs.disko.nixosModules.disko
     ./monitoring.nix
     ./firewall.nix
     ./hardware.nix
     ./desktop.nix
     ./services.nix
-    ./hardware-configuration.nix
     ./disko.nix
     ./impermanence.nix
     ./nfs-allow.nix
@@ -30,7 +33,6 @@
 
     ../../modules/services/k3s-cluster.nix
     ../../modules/services/keepalived-vip.nix
-    inputs.disko.nixosModules.disko
     inputs.nix-mineral.nixosModules.nix-mineral
   ];
 
@@ -57,6 +59,7 @@
     unbound.enable = true;
     unbound.listenAddress = config.networking.cluster.hosts.nexus.ip;
   };
+
 
   # Prevent hardware-configuration from overriding interface naming
   # while preserving the cluster-networking keep-names policy

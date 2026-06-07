@@ -22,19 +22,8 @@
   hermesAgentCfg = config.services.hermes-agent or {};
   hermesPkg = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.default;
 
-  # Build the WhatsApp bridge from the hermes-agent source
-  # The upstream Nix package omits scripts/whatsapp-bridge/ — this fills the gap.
-  whatsapp-bridge = pkgs.callPackage ../../packages/hermes-whatsapp-bridge-stub.nix {
-    hermesSrc = inputs.hermes-agent;
-  };
-
-  # Wrap hermes-agent with WhatsApp bridge injected into site-packages/
-  # This makes both `hermes whatsapp` (CLI pairing) and the gateway adapter work.
-  hermes-with-whatsapp = pkgs.callPackage ../../packages/hermes-with-whatsapp.nix {
-    inherit lib;
-    hermes-pkg = hermesPkg;
-    inherit whatsapp-bridge;
-  };
+  # Use base hermes-agent package without WhatsApp bridge (stub removed)
+  # WhatsApp functionality temporarily disabled
 
   # If hermes-agent is enabled, use its state dir. Otherwise, use user home.
   useAgentStateDir = hermesAgentCfg.enable or false;
@@ -235,12 +224,13 @@ in {
 
   config = lib.mkIf cfg.enable {
     # Install hermes package system-wide
-    # TEMP DISABLED: hermes-with-whatsapp broken due to npm protobufjs issue
-    environment.systemPackages = [hermes-with-whatsapp];
+    environment.systemPackages = [hermesPkg pkgs.portaudio];
 
     # Only set HERMES_HOME if hermes-agent is NOT managing it
     # The hermes-agent module sets addToSystemPackages which also sets HERMES_HOME
     environment.variables.HERMES_HOME = lib.mkIf (!useAgentStateDir) "/home/${cfg.user}/.hermes";
+    # LD_LIBRARY_PATH managed by host-specific hardware.nix (ROCm + audio)
+    # hermes-cli no longer sets it directly to avoid conflicts
 
     # Create hermes state directory with proper config (only if not using agent state)
     system.activationScripts.hermes-cli-setup = lib.mkIf (!useAgentStateDir) (

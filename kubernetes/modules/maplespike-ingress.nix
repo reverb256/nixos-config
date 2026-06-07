@@ -1,15 +1,17 @@
 # MapleSpike Ingress — Nginx/NGINX Ingress Controller (for non-NixOS K8s clusters)
 # This provides ingress for clusters without NixOS + Caddy
 # For NixOS clusters, Caddy in `hosts/nexus/services.nix` provides ingress instead
-
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.maplespike-ingress;
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
-in
-{
+in {
   options.services.maplespike-ingress = {
     enable = lib.mkEnableOption "MapleSpike Ingress (NGINX Ingress Controller)";
 
@@ -38,7 +40,7 @@ in
     };
 
     ingressAnnotations = lib.mkOption {
-      type = lib.types.attrsOf (lib.types.str);
+      type = lib.types.attrsOf lib.types.str;
       default = {
         "cert-manager.io/cluster-issuer" = "letsencrypt-prod";
         "nginx.ingress.kubernetes.io/permanent-redirect" = "true";
@@ -52,7 +54,7 @@ in
       metadata.labels = managed;
       annotations = cfg.ingressAnnotations;
       spec = {
-        ingressClassName = cfg.ingressClassName;
+        inherit (cfg) ingressClassName;
         rules = [
           {
             host = cfg.domain;
@@ -115,7 +117,7 @@ in
       metadata.labels = managed;
       annotations = cfg.ingressAnnotations;
       spec = {
-        ingressClassName = cfg.ingressClassName;
+        inherit (cfg) ingressClassName;
         rules = [
           {
             host = "dev." + cfg.domain;

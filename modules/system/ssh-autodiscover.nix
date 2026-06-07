@@ -5,7 +5,7 @@
   ...
 }: let
   cfg = config.networking.cluster;
-  hosts = cfg.hosts;
+  inherit (cfg) hosts;
 
   # Build SSH config for each host
   hostConfigs =

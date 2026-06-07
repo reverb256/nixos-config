@@ -4,6 +4,7 @@
   pkgs,
   inputs,
   ...
+
 }: {
   imports = [
     inputs.disko.nixosModules.disko
@@ -12,7 +13,6 @@
     ./hardware.nix
     ./desktop.nix
     ./services.nix
-    ./hardware-configuration.nix
     ./disko.nix
     ./preservation.nix
 
@@ -116,4 +116,6 @@
 
   nix.settings.auto-optimise-store = true;
   boot.resumeDevice = "/dev/disk/by-id/ata-TEAM_T253X2256G_TM701907310240040386-part2";
+  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+
 }

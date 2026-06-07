@@ -190,14 +190,21 @@ in {
 
   config = mkIf cfg.enable {
     services.caddy = {
-      enable = true;
-      # Uses caddy-with-modules for rate limiting (mholt/caddy-ratelimit plugin)
+      enable = lib.mkForce false;  # Temporarily disabled due to port binding issues
       package = pkgs.caddy-with-modules;
       configFile = pkgs.writeText "Caddyfile" (buildCaddyfile cfg.services);
+      user = lib.mkForce "root";
+      group = lib.mkForce "root";
     };
 
     # Allow Caddy to bind privileged ports (<1024) when running as non-root
-    systemd.services.caddy.serviceConfig.AmbientCapabilities = "CAP_NET_BIND_SERVICE";
+    systemd.services.caddy = {
+      serviceConfig = lib.mkForce {
+        User = "root";
+        Group = "root";
+        NoNewPrivileges = false;
+      };
+    };
 
     environment.systemPackages = [
       (buildSvcScript cfg.services)

@@ -42,9 +42,9 @@ in {
   config = lib.mkIf cfg.enable {
     ai-models = {
       registry = nixRegistry;
-      models = nixRegistry.models;
-      providers = nixRegistry.providers;
-      defaults = nixRegistry.defaults;
+      inherit (nixRegistry) models;
+      inherit (nixRegistry) providers;
+      inherit (nixRegistry) defaults;
     };
   };
 }

@@ -7,7 +7,6 @@
 with lib; let
   cfg = config.services.ci-runner;
   runnerHome = "/var/lib/${cfg.user}";
-  runnerPackage = pkgs.github-runners.${cfg.repo}.nexus or pkgs.github-runner;
 in {
   options.services.ci-runner = {
     enable = mkEnableOption "GitHub Actions self-hosted runner";

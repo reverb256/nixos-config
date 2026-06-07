@@ -1,15 +1,9 @@
+{ pkgs, lib, config, ... }:
 {
-  pkgs,
-  lib,
-  ...
-}: {
   stylix = {
     enable = true;
-
     base16Scheme = lib.mkDefault "${pkgs.base16-schemes}/share/themes/nord.yaml";
     polarity = "dark";
-
-    image = lib.mkDefault ./wallpapers/nord-bg.png;
 
     fonts = {
       serif = {
@@ -28,6 +22,13 @@
         package = pkgs.noto-fonts-color-emoji;
         name = "Noto Color Emoji";
       };
+      # Install font packages to the system
+      packages = [
+        pkgs.inter
+        pkgs.nerd-fonts.jetbrains-mono
+        pkgs.dejavu_fonts
+        pkgs.noto-fonts-color-emoji
+      ];
     };
 
     cursor = {
@@ -44,5 +45,25 @@
     };
 
     autoEnable = true;
+
+    homeManagerIntegration = {
+      followSystem = true;
+      autoImport = true;
+    };
+
+    targets = {
+      alacritty.enable = true;
+      bat.enable = true;
+      btop.enable = true;
+      fzf.enable = true;
+      fish.enable = true;
+      ghostty.enable = true;
+      helix.enable = true;
+      lazygit.enable = true;
+      neovim.enable = true;
+      starship.enable = true;
+      tmux.enable = true;
+      gtk.enable = true;
+    };
   };
 }

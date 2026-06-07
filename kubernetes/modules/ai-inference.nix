@@ -36,7 +36,7 @@
         if name == "nvidia-nim"
         then
           lib.map (modelId: {
-            url = value.url;
+            inherit (value) url;
             # Use a shorthand name for NIM models (e.g., "nemotron-super")
             name = lib.pipe modelId [
               (builtins.replaceStrings ["nvidia/"] [""])
@@ -47,8 +47,8 @@
           }) (value.models or [])
         else [
           {
-            url = value.url;
-            name = name;
+            inherit (value) url;
+            inherit name;
           }
         ]
     ) (lib.attrsToList aiModels.backends)

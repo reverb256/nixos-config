@@ -14,7 +14,7 @@
     ;
 
   networkingHelper = import ./networking.nix {inherit lib;};
-  mkNetworkingConfig = networkingHelper.mkNetworkingConfig;
+  inherit (networkingHelper) mkNetworkingConfig;
 
   mkProfileConfig = _profileName: profileCfg:
     mkIf profileCfg.enable (

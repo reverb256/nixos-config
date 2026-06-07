@@ -21,17 +21,17 @@ in {
       settings = {
         # Devices: attrset (forge device ID will be generated on first boot)
         devices = {
-          zephyr = { 
+          zephyr = {
             id = "MDKNXAJ-J4FMVYX-RT67UO5-JRDGPLV-7ZJF772-NX24DLW-BIRHGQ7-RUTILAO";
             addresses = ["dynamic"];
             autoAcceptFolders = false;
           };
-          nexus = { 
+          nexus = {
             id = "GLYKX2M-6Q3TM3W-FJ727N5-76OHMGB-5BDVI7R-A6VXEFO-E32XYRP-YVWNSQ5";
             addresses = ["dynamic"];
             autoAcceptFolders = false;
           };
-          sentry = { 
+          sentry = {
             id = "C6H7ICX-5QYPNFO-ORD4A3M-S2BEQRZ-CK2YDJM-XXW7TOX-JAAKSOT-JWF5UAK";
             addresses = ["dynamic"];
             autoAcceptFolders = false;
@@ -45,7 +45,7 @@ in {
         folders = {
           "nixos-config" = {
             path = "/etc/nixos";
-            devices = ["nexus" "sentry"];  # zephyr down, forge in recovery
+            devices = ["nexus" "sentry"]; # zephyr down, forge in recovery
             type = "sendreceive";
             ignorePerms = false;
             fsWatcherEnabled = true;

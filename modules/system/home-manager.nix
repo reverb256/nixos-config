@@ -8,7 +8,7 @@
   hostName = config.networking.hostName;
 in {
   home-manager = {
-    useGlobalPkgs = true;
+    useGlobalPkgs = false;
 
     useUserPackages = true;
 
@@ -18,7 +18,7 @@ in {
 
     extraSpecialArgs = {
       inherit inputs;
-      hostName = hostName;
+      inherit hostName;
     };
 
     users.j_kro = {...}: {
@@ -29,7 +29,7 @@ in {
         inputs.nixcord.homeModules.nixcord
         ../../modules/home-manager/fish.nix
         ../../modules/home-manager/starship.nix
-        ../../modules/home-manager/wayland-tools.nix
+        # ../../modules/home-manager/wayland-tools.nix
         ../../modules/home-manager/zen-browser.nix
         ../../modules/home-manager/nixcord-config.nix
         ../../modules/home-manager/caprine.nix
@@ -54,9 +54,11 @@ in {
       nixcord-config.enable = lib.mkForce (hostName == "zephyr");
       caprine.enable = lib.mkForce (hostName == "zephyr");
 
-      # Stylix - set the scheme directly so home-manager stylix module can parse it
-      # Set scheme here for HM stylix module (NixOS-level stylix also has it per-host)
-    stylix.base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+      # Stylix - inherit from system config for home-manager
+      stylix = {
+        inherit (config.stylix) base16Scheme;
+        inherit (config.stylix) image;
+      };
 
       # CopyQ clipboard manager (replaces cliphist)
       programs.copyq = {
@@ -66,6 +68,7 @@ in {
       home.sessionVariables.BAT_THEME = "base16";
 
       home.stateVersion = "26.05";
+      home.enableNixpkgsReleaseCheck = false;
 
       xdg.configFile = {
         "mimeapps.list".force = true;

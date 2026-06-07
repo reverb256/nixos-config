@@ -5,7 +5,6 @@
   ...
 }: let
   inherit (lib) mkIf mkOption types;
-  cluster = config.networking.cluster;
   cfg = config.services.unbound-common;
 in {
   options.services.unbound-common = {

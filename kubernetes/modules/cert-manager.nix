@@ -1,4 +1,4 @@
-{...}: let
+_: let
   version = "v1.20.2";
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
