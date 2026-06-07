@@ -89,10 +89,10 @@
     "/var" = { neededForBoot = true; };
   };
 
-  systemd.extraConfig = ''
-    DefaultTimeoutStartSec=120s
-    DefaultTimeoutStopSec=90s
-  '';
+  systemd.settings = {
+    Manager.DefaultTimeoutStartSec = 120;
+    Manager.DefaultTimeoutStopSec = 90;
+  };
 
   boot.loader.systemd-boot.configurationLimit = 8;
 }
