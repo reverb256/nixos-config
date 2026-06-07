@@ -94,5 +94,5 @@
     Manager.DefaultTimeoutStopSec = 90;
   };
 
-  boot.loader.systemd-boot.configurationLimit = 8;
+  # boot.loader.systemd-boot.configurationLimit = 8;  # Handled by common-host-defaults.nix
 }
