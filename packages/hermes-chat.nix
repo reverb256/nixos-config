@@ -9,7 +9,6 @@
   libxkbcommon,
   makeWrapper,
 }:
-
 rustPlatform.buildRustPackage rec {
   pname = "hermes-chat";
   version = "0.1.0-unstable";

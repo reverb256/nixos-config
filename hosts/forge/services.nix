@@ -21,7 +21,7 @@ in {
       nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
       casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
       opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
-  opencodeZenApiKeyFile = config.age.secrets.opencode-api-key.path;
+      opencodeZenApiKeyFile = config.age.secrets.opencode-api-key.path;
     };
     k3s-cluster = {
       enable = true;
@@ -36,69 +36,33 @@ in {
 
     spotify-spotx.enable = true;
 
-     opencode.enable = true;
+    opencode.enable = true;
 
-     # Agent network restrictions — restrict AI agents to allowed destinations only
+    # Agent network restrictions — restrict AI agents to allowed destinations only
 
     nixos-share = {
       enable = false;
       client.enable = true;
     };
 
-    mining.lolminer = {
-      pool = "xtm-c29-us.kryptex.network:8040";
-      wallet = "krxXVNVMM7.forge-gpu";
-      pools = [
-        {
-          url = "xtm-c29-us.kryptex.network:8040";
-          wallet = "krxXVNVMM7.forge-gpu";
-          password = "x";
-          tls = true;
-        }
-        {
-          url = "xtm-c29-eu.kryptex.network:8040";
-          wallet = "krxXVNVMM7.forge-gpu";
-          password = "x";
-          tls = true;
-        }
-      ];
-    };
-
-    gpu-proxy-cpp = {
+    srbminer = {
       enable = true;
-      listenPort = 3334;
-      apiPort = 8083;
-      logLevel = "INFO";
-      pools = [
+      instances = [
         {
-          name = "Kryptex US";
-          url = "xtm-c29-us.kryptex.network:8040";
-          wallet = "krxXVNVMM7";
-          password = "x";
-          priority = 1;
-          tls = true;
+          name = "4060-0";
+          gpuId = 0;
+          wallet = "krxXVNVMM7.forge-gpu";
+          pool = "stratum+ssl://prl-us.kryptex.network:8048";
+          apiPort = 21550;
+          powerLimit = 118;
         }
         {
-          name = "Kryptex EU";
-          url = "xtm-c29-eu.kryptex.network:8040";
-          wallet = "krxXVNVMM7";
-          password = "x";
-          priority = 2;
-          tls = true;
-        }
-      ];
-      workers = [
-        {
-          id = "krxXVNVMM7.forge-gpu";
-          password = "x";
-        }
-        {
-          id = "krxXVNVMM7.zephyr-gpu";
-          password = "x";
-        }
-        {
-          id = "krxXVNVMM7.nexus-gpu";
-          password = "x";
+          name = "4060-1";
+          gpuId = 1;
+          wallet = "krxXVNVMM7.forge-gpu";
+          pool = "stratum+ssl://prl-us.kryptex.network:8048";
+          apiPort = 21551;
+          powerLimit = 118;
         }
       ];
     };
@@ -202,14 +166,13 @@ in {
     nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
     opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
     tools = {
-      claude = { enable = true; };
-      opencode = { enable = true; };
-      droid = { enable = true; };
-      crush = { enable = true; };
-      pi = { enable = true; };
-      omp = { enable = true; };
+      claude = {enable = true;};
+      opencode = {enable = true;};
+      droid = {enable = true;};
+      crush = {enable = true;};
+      pi = {enable = true;};
+      omp = {enable = true;};
     };
     enableShellEnv = true;
   };
 }
-

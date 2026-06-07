@@ -1,5 +1,5 @@
 {pkgs ? import <nixpkgs> {}}: let
-  lib = pkgs.lib;
+  inherit (pkgs) lib;
 
   k3sSource = builtins.readFile ../modules/services/k3s-cluster.nix;
 
@@ -70,22 +70,22 @@
   cidrs = extractCIDRs;
 
   allChecks = {
-    hasClusterCIDR = cidrs.hasClusterCIDR;
-    hasServiceCIDR = cidrs.hasServiceCIDR;
-    hasClusterDNS = cidrs.hasClusterDNS;
+    inherit (cidrs) hasClusterCIDR;
+    inherit (cidrs) hasServiceCIDR;
+    inherit (cidrs) hasClusterDNS;
 
     allSansPresent = missingSans == [];
 
     allDisabledPresent = missingDisabled == [];
 
     allServerPortsPresent = missingServerPorts == [];
-    usesMkOptionDefault = usesMkOptionDefault;
+    inherit usesMkOptionDefault;
 
-    hasServerRole = hasServerRole;
-    hasAgentRole = hasAgentRole;
+    inherit hasServerRole;
+    inherit hasAgentRole;
 
-    hasNvidiaOption = hasNvidiaOption;
-    hasCalicoOption = hasCalicoOption;
+    inherit hasNvidiaOption;
+    inherit hasCalicoOption;
   };
 
   failures = lib.filterAttrs (_: v: v == false) allChecks;

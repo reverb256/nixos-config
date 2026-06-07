@@ -61,10 +61,10 @@ in {
         enable = true;
         ssh = {
           enable = true;
-          port = cfg.port;
+          inherit (cfg) port;
           # Pass derivation directly - NixOS handles secrets mapping natively
           hostKeys = [initrdHostKey];
-          authorizedKeys = cfg.authorizedKeys;
+          inherit (cfg) authorizedKeys;
         };
       };
 

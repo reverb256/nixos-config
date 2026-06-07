@@ -53,7 +53,7 @@
                 pathType = "Prefix";
                 backend = {
                   service = {
-                    name = name;
+                    inherit name;
                     port.number = port;
                   };
                 };

@@ -1,33 +1,37 @@
-{inputs}: _final: prev: {
-  inherit
-    (inputs.compute-market.packages.x86_64-linux)
+{ inputs }:
+_final: prev:
+{
+  inherit (inputs.compute-market.packages.x86_64-linux)
     lolminer
     xmrig
     ;
-  lmstudio = prev.callPackage ./packages/lmstudio.nix {};
-  haven-desktop = prev.callPackage ./packages/haven-desktop.nix {};
+  lmstudio = prev.callPackage ./packages/lmstudio.nix { };
+  haven-desktop = prev.callPackage ./packages/haven-desktop.nix { };
   wivrn = prev.wivrn.overrideAttrs (old: {
-    cmakeFlags = old.cmakeFlags ++ ["-DWIVRN_FEATURE_STEAMVR_LIGHTHOUSE=ON"];
+    cmakeFlags = old.cmakeFlags ++ [ "-DWIVRN_FEATURE_STEAMVR_LIGHTHOUSE=ON" ];
   });
   # assimp tests fail on musl; disable globally since nothing in this config needs them
   assimp = prev.assimp.overrideAttrs (_old: {
     doCheck = false;
   });
+  # gradio tests fail due to missing matplotlib; disable globally
+  gradio = prev.gradio.overrideAttrs (_old: {
+    doCheck = false;
+  });
   llama-cpp = prev.callPackage ./packages/llama-cpp.nix {
     cudaSupport = true;
-    cudaPackages = prev.cudaPackages;
+    inherit (prev) cudaPackages;
   };
-  llama-cpp-ik = prev.callPackage ./packages/llama-cpp-ik.nix {};
+  llama-cpp-ik = prev.callPackage ./packages/llama-cpp-ik.nix { };
   llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant;
   vllm-turboquant-env = inputs.vllm.packages.x86_64-linux.vllm-turboquant-env;
-  llama-cpp-rocm = prev.callPackage ./packages/llama-cpp-rocm.nix {};
-  llama-cpp-vulkan = prev.callPackage ./packages/llama-cpp-vulkan.nix {};
+  llama-cpp-rocm = prev.callPackage ./packages/llama-cpp-rocm.nix { };
+  llama-cpp-vulkan = prev.callPackage ./packages/llama-cpp-vulkan.nix { };
   # TODO: broken placeholder rev/hash — re-enable when source is valid
   # llama-cpp-dflash = prev.callPackage ./packages/llama-cpp-dflash.nix {};
   # dflash-server = prev.callPackage ./packages/dflash-server.nix {};
   ai-inference-gateway = inputs.ai-gateway.packages.x86_64-linux.default;
-  inherit
-    (inputs.caddy-ingress.packages.x86_64-linux)
+  inherit (inputs.caddy-ingress.packages.x86_64-linux)
     caddy-with-modules
     ;
   python3 = prev.python3.override {
@@ -113,16 +117,37 @@
         };
       };
       # Fix: pipx 1.8.0 test failures (spaces around @)
-      pipx = py-super.pipx.overridePythonAttrs {doCheck = false;};
+      pipx = py-super.pipx.overridePythonAttrs { doCheck = false; };
+      gradio = py-super.gradio.overrideAttrs (_old: { doCheck = false; checkPhase = false; });
     };
   };
-  claude-code-image = prev.callPackage ./packages/claude-code-image.nix {};
-  opencode-image = prev.callPackage ./packages/opencode-image.nix {};
+
+  # Fix firefoxpwa - create missing lib/firefoxpwa directory
+  firefoxpwa-unwrapped = prev.firefoxpwa-unwrapped.overrideAttrs (old: {
+    postInstall = old.postInstall + ''
+      # Create empty `lib/firefoxpwa` directory so the Firefox wrapper won\x27t fail
+      # trying to disable the update checks. It will try to write to
+      # `$out/lib/firefoxpwa/is-packaged-app`, which doesn\x27t exist by default.
+      mkdir -p $out/lib/firefoxpwa
+    '';
+  });
+
+  claude-code-image = prev.callPackage ./packages/claude-code-image.nix { };
+  opencode-image = prev.callPackage ./packages/opencode-image.nix { };
   # maplespike images are built locally in nixos-config/packages/maplespike-*.nix
   # (maplespike repo is self-contained source; nixos-config is the OS)
-  hermes-chat = prev.callPackage ./packages/hermes-chat.nix {};
+  hermes-chat = prev.callPackage ./packages/hermes-chat.nix { };
   # hermes-workspace and hermes-webui archived (2026-05-16)
   privacy-filter = prev.callPackage ./packages/privacy-filter.nix {
-    transformers-dev = prev.callPackage ./packages/transformers-dev.nix {};
+    transformers-dev = prev.callPackage ./packages/transformers-dev.nix { };
   };
+  # dufs tests require CA certificates for reqwest-based HTTP client
+  # Provide cacert and set SSL_CERT_FILE during test phase
+  dufs = prev.dufs.overrideAttrs (old: {
+    nativeBuildInputs = (old.nativeBuildInputs or []) ++ [ prev.cacert ];
+    env = (old.env or {}) // {
+      SSL_CERT_FILE = "${prev.cacert}/etc/ssl/certs/ca-bundle.crt";
+      REQUESTS_CA_BUNDLE = "${prev.cacert}/etc/ssl/certs/ca-bundle.crt";
+    };
+  });
 }

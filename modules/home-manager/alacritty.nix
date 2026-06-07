@@ -5,6 +5,7 @@
     settings = {
       env.TERM = "xterm-256color";
 
+      shell.program = "fish";
       terminal.osc52 = "CopyPaste";
 
       window = {

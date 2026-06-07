@@ -1,6 +1,5 @@
 # CUDA backend wrapper for consolidated llama-cpp package
 {
-  lib,
   llama-cpp,
   cudaPackages,
 }: (llama-cpp.overrideAttrs (old: {

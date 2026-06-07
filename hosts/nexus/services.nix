@@ -6,7 +6,7 @@
   ...
 }: let
   portHelpers = import ../../modules/port-helpers.nix {inherit lib;};
-  ports = portHelpers.ports;
+  inherit (portHelpers) ports;
 
   # Build the hermes-agent Python venv (same derivation the flake uses for its wrappers)
   hermesVenv = pkgs.callPackage (inputs.hermes-agent.outPath + "/nix/python.nix") {
@@ -31,11 +31,11 @@ in {
       opencodeZenApiKeyFile = config.age.secrets.opencode-api-key.path;
     };
     k3s-cluster = {
-      enable = true;  # Re-enabled 2026-06-02 for NIM connectivity
+      enable = true; # Re-enabled 2026-06-02 for NIM connectivity
       nvidia.enable = true;
       role = "server";
-  clusterInit = false; # Rejoining existing cluster via VIP (fixed 2026-05-30)
-  clusterReset = false; # Already reset, running clean
+      clusterInit = false; # Rejoining existing cluster via VIP (fixed 2026-05-30)
+      clusterReset = false; # Already reset, running clean
       nodeName = "nexus";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/agenix/k3s-cluster-token";
@@ -62,7 +62,6 @@ in {
       enable = true;
       exports = ''
         /data/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=105)
-
         /data/pi 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=106)
       '';
     };
@@ -76,7 +75,7 @@ in {
       aiServices = true;
       monitoring = false;
       storage = true;
-      mining = false;
+      mining = true;
       cloud = false;
       kubernetes = true;
       initrdRecovery = false; # Disabled: agenix build-time dependency issue
@@ -92,6 +91,20 @@ in {
 
     # Local nix binary cache for cluster (serves built closures to all hosts)
     binary-cache.enable = true;
+
+    srbminer = {
+      enable = true;
+      instances = [
+        {
+          name = "3060ti";
+          gpuId = 0;
+          wallet = "krxXVNVMM7.nexus-3060ti";
+          pool = "stratum+ssl://prl-us.kryptex.network:8048";
+          apiPort = 21554;
+          powerLimit = 100;
+        }
+      ];
+    };
   };
 
   programs.steam = {
@@ -361,15 +374,15 @@ in {
       Type = "simple";
       User = "j_kro";
       WorkingDirectory = "/home/j_kro/actions-runner-official";
-        Environment = [
-          "DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1"
-          "PATH=/run/wrappers/bin:/run/current-system/sw/bin:${lib.makeBinPath [pkgs.coreutils pkgs.gnutar pkgs.gzip pkgs.git pkgs.bash pkgs.gnugrep pkgs.findutils pkgs.curl pkgs.openssl]}"
-          "LD_LIBRARY_PATH=${lib.makeLibraryPath [pkgs.icu]}"
-          "NIX_ICU_DATA=${pkgs.icu}/share/icu/${pkgs.icu.version}"
-          "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
-          "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt"
-          "NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-bundle.crt"
-        ];
+      Environment = [
+        "DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1"
+        "PATH=/run/wrappers/bin:/run/current-system/sw/bin:${lib.makeBinPath [pkgs.coreutils pkgs.gnutar pkgs.gzip pkgs.git pkgs.bash pkgs.gnugrep pkgs.findutils pkgs.curl pkgs.openssl]}"
+        "LD_LIBRARY_PATH=${lib.makeLibraryPath [pkgs.icu]}"
+        "NIX_ICU_DATA=${pkgs.icu}/share/icu/${pkgs.icu.version}"
+        "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
+        "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-bundle.crt"
+        "NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-bundle.crt"
+      ];
       ExecStart = "/home/j_kro/actions-runner-official/start-runner.sh";
       Restart = "always";
       RestartSec = "10s";

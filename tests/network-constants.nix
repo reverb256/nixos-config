@@ -1,5 +1,5 @@
 {pkgs ? import <nixpkgs> {}}: let
-  lib = pkgs.lib;
+  inherit (pkgs) lib;
 
   source = builtins.readFile ../modules/network-constants.nix;
 
@@ -58,17 +58,17 @@
 
   allChecks = {
     allHostsPresent = missingHosts == [];
-    hasSubnet = hasSubnet;
-    hasGateway = hasGateway;
+    inherit hasSubnet;
+    inherit hasGateway;
     allIPsPresent = missingIPs == {};
-    noDuplicateIPs = noDuplicateIPs;
-    hasK8sVIP = hasK8sVIP;
-    hasSvcOptsSubmoduleFn = hasSvcOptsSubmoduleFn;
-    hasDnsWithServiceName = hasDnsWithServiceName;
-    hasLocalDNS = hasLocalDNS;
-    hasTailscaleDomain = hasTailscaleDomain;
+    inherit noDuplicateIPs;
+    inherit hasK8sVIP;
+    inherit hasSvcOptsSubmoduleFn;
+    inherit hasDnsWithServiceName;
+    inherit hasLocalDNS;
+    inherit hasTailscaleDomain;
     allRequiredPortsPresent = missingPorts == [];
-    isReadOnly = isReadOnly;
+    inherit isReadOnly;
   };
 
   failures = lib.filterAttrs (_: v: v == false) allChecks;

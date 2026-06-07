@@ -21,7 +21,7 @@
   ...
 }: let
   cfg = config.services.mcp-registry;
-  inherit (lib) mkEnableOption mkOption types mkIf mkOptionDefault;
+  inherit (lib) mkEnableOption mkOption types mkIf;
 
   # ── MCP Server Definitions ──────────────────────────────────────────────
   # Each server: { type, transport, command, args, env, url, headers, ... }
@@ -303,7 +303,7 @@
         };
         spec = {
           inherit name;
-          url = server.url;
+          inherit (server) url;
           transport = server.type;
           description = server.description or "";
           connectTimeout = "PT${toString (server.connectTimeout or 30)}S";

@@ -5,8 +5,7 @@
   ...
 }: let
   niriEnabled = config.programs.niri.enable or false;
-  hyprlandEnabled = config.programs.hyprland.enable or false;
-  anyCompositor = niriEnabled || hyprlandEnabled;
+  anyCompositor = niriEnabled;
 in {
   config = lib.mkIf anyCompositor {
     environment.systemPackages = [

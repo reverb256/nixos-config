@@ -11,7 +11,7 @@ in {
   config.kubernetes.objects = {
     # ── Vane Service (AI search synthesis) ─────────────────────────
     ai-inference.Deployment.vane = {
-      metadata = {labels = labels;};
+      metadata = {inherit labels;};
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;

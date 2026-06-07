@@ -12,7 +12,6 @@
     ./hardware.nix
     ./desktop.nix
     ./services.nix
-    ./hardware-configuration.nix
     ./disko.nix
     ./preservation.nix
 

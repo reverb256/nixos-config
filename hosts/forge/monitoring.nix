@@ -1,4 +1,4 @@
-{...}: {
+_: {
   services = {
     gpu-exporters.enable = true;
 

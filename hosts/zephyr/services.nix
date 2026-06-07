@@ -97,102 +97,27 @@ in {
       checkInterval = 10;
     };
 
-    mining-coordinator = {
+    lpminer = {
       enable = true;
-      checkInterval = 10;
-      psiCpuBuildThreshold = "5.0";
-      psiCpuIdleThreshold = "2.0";
+      instances = [
+        {
+          name = "3060ti";
+          gpuId = 0;
+          wallet = "krxXVNVMM7.zephyr-3060ti";
+          pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
+        }
+        {
+          name = "3090";
+          gpuId = 1;
+          wallet = "krxXVNVMM7.zephyr-3090";
+          pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
+        }
+      ];
     };
 
     opencode = {
       enable = true;
       clusterSync.enable = false; # skip SSH sync to cluster nodes on every activation
-    };
-
-    xmrig-proxy = {
-      enable = true;
-
-      config = builtins.toJSON {
-        pools = [
-          {
-            id = "kryptex-rx-primary";
-            algo = "rx/0";
-            url = "xtm-rx-us.kryptex.network:8038";
-            user = "krxXVNVMM7.cpu-proxy";
-            pass = "x";
-            tls = true;
-            keepalive = true;
-            priority = 1;
-          }
-          {
-            id = "kryptex-rx-eu";
-            algo = "rx/0";
-            url = "xtm-rx-eu.kryptex.network:8038";
-            user = "krxXVNVMM7.cpu-proxy";
-            pass = "x";
-            tls = true;
-            keepalive = true;
-            priority = 2;
-          }
-          {
-            id = "kryptex-cr29-us";
-            algo = "cn/cc29";
-            url = "xtm-c29-us.kryptex.network:8040";
-            user = "krxXVNVMM7.gpu-proxy";
-            pass = "x";
-            tls = true;
-            keepalive = true;
-            priority = 1;
-          }
-          {
-            id = "kryptex-cr29-eu";
-            algo = "cn/cc29";
-            url = "xtm-c29-eu.kryptex.network:8040";
-            user = "krxXVNVMM7.gpu-proxy";
-            pass = "x";
-            tls = true;
-            keepalive = true;
-            priority = 2;
-          }
-        ];
-
-        workers = [
-          {
-            id = "zephyr-cpu";
-            password = "x";
-          }
-          {
-            id = "nexus-cpu";
-            password = "x";
-          }
-          {
-            id = "sentry-cpu";
-            password = "x";
-          }
-          {
-            id = "zephyr-gpu";
-            password = "x";
-          }
-          {
-            id = "nexus-gpu";
-            password = "x";
-          }
-          {
-            id = "forge-gpu";
-            password = "x";
-          }
-        ];
-
-        api = {
-          port = 8081;
-          restricted = true;
-          tokenFile = "/run/agenix/xmrig-api-token";
-        };
-
-        log = {
-          level = 5;
-        };
-      };
     };
 
     nixos-share = {
@@ -287,7 +212,7 @@ in {
         };
         zai = {
           enable = true;
-          apiKeyFile = "/run/agenix/zai-api-key";
+          apiKeyFile = config.age.secrets.zai-api-key.path;
           baseUrl = "https://api.z.ai/api/coding/paas/v4";
           enableRetry = true;
           maxRetries = 3;
@@ -296,7 +221,7 @@ in {
         };
         pollinations = {
           enable = true;
-          apiKeyFile = "/run/agenix/pollinations-api-key";
+          apiKeyFile = config.age.secrets.pollinations-api-key.path;
           baseUrl = "https://text.pollinations.ai";
         };
       };
@@ -366,7 +291,6 @@ in {
       };
       enableShellEnv = true;
     };
-
   };
   programs = {
     haven-desktop.enable = true;
@@ -393,6 +317,15 @@ in {
     initrdRecovery = true;
     selfHosting = true;
   };
+
+  # Mining user for secret ownership (ZEPHYR monitors mining but doesn't run workers)
+  users.users.mining = {
+    isSystemUser = true;
+    group = "mining";
+    description = "Mining service user";
+  };
+
+  users.groups.mining = {};
 
   age = {
     identityPaths = ["/home/j_kro/.age/key.txt"];

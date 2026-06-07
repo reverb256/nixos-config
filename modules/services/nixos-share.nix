@@ -65,8 +65,8 @@ in {
             lib.concatMap (
               export:
                 map (host: {
-                  path = export.path;
-                  host = host;
+                  inherit (export) path;
+                  inherit host;
                 })
                 cfg.server.allowedHosts
             )

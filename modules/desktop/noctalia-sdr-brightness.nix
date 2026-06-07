@@ -1,10 +1,9 @@
 {
   lib,
-  pkgs,
   config,
   ...
 }: let
-  needsPatch = config.programs.niri.enable || config.programs.hyprland.enable;
+  needsPatch = config.programs.niri.enable;
 in {
   nixpkgs.overlays = lib.mkIf needsPatch [
     (final: prev: {
