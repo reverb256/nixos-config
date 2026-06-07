@@ -126,4 +126,3 @@ _final: prev:
     transformers-dev = prev.callPackage ./packages/transformers-dev.nix { };
   };
 }
-// (import ./overlay.d { inherit inputs; })
