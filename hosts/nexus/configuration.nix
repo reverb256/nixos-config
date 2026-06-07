@@ -21,6 +21,7 @@
     ../../modules/default.nix
 
     ../../modules/hardware/rgb-control.nix
+    ../../modules/system/ssh.nix
 
     ../../modules/security/aistor-secrets.nix
     ../../modules/services/podman-support.nix
