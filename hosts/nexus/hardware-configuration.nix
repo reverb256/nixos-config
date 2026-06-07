@@ -40,17 +40,7 @@
   };
 
   # NVMe1n1 (nix btrfs) - Nix, Var
-  fileSystems."/nix" = {
-    device = "/dev/disk/by-uuid/4bd91588-d1ed-4cd9-9cdd-86d515a12cb3";
-    fsType = "btrfs";
-    options = ["subvol=@nix" "compress=zstd:3" "ssd" "discard=async" "noatime"];
-  };
 
-  fileSystems."/var" = {
-    device = "/dev/disk/by-uuid/4bd91588-d1ed-4cd9-9cdd-86d515a12cb3";
-    fsType = "btrfs";
-    options = ["subvol=@var" "compress=zstd:3" "ssd" "discard=async" "noatime"];
-  };
 
   # Boot partition (NVMe0n1)
 
