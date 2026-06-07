@@ -15,31 +15,31 @@
 
   # NVMe0n1 (root btrfs) - Root, Home, Data mounts
   fileSystems."/" = {
-    device = "/dev/disk/by-uuid/b07258b9-b1a3-4540-ae34-69e441faba28";
+    device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
     fsType = "btrfs";
     options = ["subvol=@" "ssd" "discard=async" "noatime" "commit=300"];
   };
 
   fileSystems."/home" = {
-    device = "/dev/disk/by-uuid/b07258b9-b1a3-4540-ae34-69e441faba28";
+    device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
     fsType = "btrfs";
     options = ["subvol=@home" "ssd" "discard=async" "noatime" "commit=300"];
   };
 
   fileSystems."/data/hermes" = {
-    device = "/dev/disk/by-uuid/b07258b9-b1a3-4540-ae34-69e441faba28";
+    device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
     fsType = "btrfs";
     options = ["subvol=@home" "ssd" "discard=async" "noatime" "commit=300"];
   };
 
   fileSystems."/data/models" = {
-    device = "/dev/disk/by-uuid/b07258b9-b1a3-4540-ae34-69e441faba28";
+    device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
     fsType = "btrfs";
     options = ["subvol=@home" "ssd" "discard=async" "noatime" "commit=300"];
   };
 
   fileSystems."/data/pi" = {
-    device = "/dev/disk/by-uuid/b07258b9-b1a3-4540-ae34-69e441faba28";
+    device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
     fsType = "btrfs";
     options = ["subvol=@home" "ssd" "discard=async" "noatime" "commit=300"];
   };
