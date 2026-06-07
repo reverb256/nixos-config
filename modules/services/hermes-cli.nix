@@ -241,7 +241,7 @@ in {
     # Only set HERMES_HOME if hermes-agent is NOT managing it
     # The hermes-agent module sets addToSystemPackages which also sets HERMES_HOME
     environment.variables.HERMES_HOME = lib.mkIf (!useAgentStateDir) "/home/${cfg.user}/.hermes";
-    environment.variables.LD_LIBRARY_PATH = lib.mkBefore (lib.makeSearchPath "lib" [pkgs.portaudio "/run/current-system/sw/lib/pipewire-0.3" "/etc/sane-libs"]);
+    environment.variables.LD_LIBRARY_PATH = lib.mkForce (lib.makeSearchPath "lib" [pkgs.portaudio "/run/current-system/sw/lib/pipewire-0.3" "/etc/sane-libs"]);
 
     # Create hermes state directory with proper config (only if not using agent state)
     system.activationScripts.hermes-cli-setup = lib.mkIf (!useAgentStateDir) (
