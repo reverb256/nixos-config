@@ -28,6 +28,26 @@ in {
       nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
       casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
       opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
+      settings = {
+        model = {
+          provider = "gateway";
+          default = "opencode-go/deepseek-v4-flash";
+        };
+        toolsets = ["all"];
+        terminal = {
+          backend = "local";
+          timeout = 180;
+        };
+        memory = {
+          memory_enabled = true;
+          user_profile_enabled = true;
+        };
+        compression = {
+          enabled = true;
+          threshold = 0.9;
+        };
+      };
+>>>>>>> f406a880 (hermes-cli: Make config fully declarative (Phase 1))
     };
     k3s-cluster = {
       enable = true;
