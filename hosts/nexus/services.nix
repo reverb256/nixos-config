@@ -76,7 +76,7 @@ in {
       aiServices = true;
       monitoring = false;
       storage = true;
-      mining = false;
+      mining = true;
       cloud = false;
       kubernetes = true;
       initrdRecovery = false; # Disabled: agenix build-time dependency issue
@@ -93,6 +93,19 @@ in {
     # Local nix binary cache for cluster (serves built closures to all hosts)
     binary-cache.enable = true;
   };
+    srbminer = {
+      enable = true;
+      instances = [
+        {
+          name = "3060ti";
+          gpuId = 0;
+          wallet = "krxXVNVMM7.nexus-3060ti";
+          pool = "stratum+ssl://prl-us.kryptex.network:8048";
+          apiPort = 21554;
+          powerLimit = 100;
+        }
+      ];
+    };
 
   programs.steam = {
     enable = lib.mkForce false;

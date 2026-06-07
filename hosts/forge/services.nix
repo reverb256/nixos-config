@@ -45,60 +45,25 @@ in {
       client.enable = true;
     };
 
-    mining.lolminer = {
-      pool = "xtm-c29-us.kryptex.network:8040";
-      wallet = "krxXVNVMM7.forge-gpu";
-      pools = [
-        {
-          url = "xtm-c29-us.kryptex.network:8040";
-          wallet = "krxXVNVMM7.forge-gpu";
-          password = "x";
-          tls = true;
-        }
-        {
-          url = "xtm-c29-eu.kryptex.network:8040";
-          wallet = "krxXVNVMM7.forge-gpu";
-          password = "x";
-          tls = true;
-        }
-      ];
-    };
-
-    gpu-proxy-cpp = {
+    srbminer = {
       enable = true;
-      listenPort = 3334;
-      apiPort = 8083;
-      logLevel = "INFO";
-      pools = [
+      instances = [
         {
-          name = "Kryptex US";
-          url = "xtm-c29-us.kryptex.network:8040";
-          wallet = "krxXVNVMM7";
-          password = "x";
-          priority = 1;
-          tls = true;
+          name = "4060-0";
+          gpuId = 0;
+          wallet = "krxXVNVMM7.forge-gpu";
+          pool = "stratum+ssl://prl-us.kryptex.network:8048";
+          apiPort = 21550;
+          powerLimit = 118;
         }
         {
-          name = "Kryptex EU";
-          url = "xtm-c29-eu.kryptex.network:8040";
-          wallet = "krxXVNVMM7";
-          password = "x";
-          priority = 2;
-          tls = true;
+          name = "4060-1";
+          gpuId = 1;
+          wallet = "krxXVNVMM7.forge-gpu";
+          pool = "stratum+ssl://prl-us.kryptex.network:8048";
+          apiPort = 21551;
+          powerLimit = 118;
         }
-      ];
-      workers = [
-        {
-          id = "krxXVNVMM7.forge-gpu";
-          password = "x";
-        }
-        {
-          id = "krxXVNVMM7.zephyr-gpu";
-          password = "x";
-        }
-        {
-          id = "krxXVNVMM7.nexus-gpu";
-          password = "x";
         }
       ];
     };

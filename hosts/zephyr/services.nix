@@ -97,11 +97,26 @@ in {
       checkInterval = 10;
     };
 
-    mining-coordinator = {
+    srbminer = {
       enable = true;
-      checkInterval = 10;
-      psiCpuBuildThreshold = "5.0";
-      psiCpuIdleThreshold = "2.0";
+      instances = [
+        {
+          name = "3060ti";
+          gpuId = 0;
+          wallet = "krxXVNVMM7.zephyr-3060ti";
+          pool = "stratum+ssl://prl-us.kryptex.network:8048";
+          apiPort = 21552;
+          powerLimit = 100;
+        }
+        {
+          name = "3090";
+          gpuId = 1;
+          wallet = "krxXVNVMM7.zephyr-3090";
+          pool = "stratum+ssl://prl-us.kryptex.network:8048";
+          apiPort = 21553;
+          powerLimit = 250;
+        }
+      ];
     };
 
     opencode = {
@@ -109,91 +124,6 @@ in {
       clusterSync.enable = false; # skip SSH sync to cluster nodes on every activation
     };
 
-    xmrig-proxy = {
-      enable = true;
-
-      config = builtins.toJSON {
-        pools = [
-          {
-            id = "kryptex-rx-primary";
-            algo = "rx/0";
-            url = "xtm-rx-us.kryptex.network:8038";
-            user = "krxXVNVMM7.cpu-proxy";
-            pass = "x";
-            tls = true;
-            keepalive = true;
-            priority = 1;
-          }
-          {
-            id = "kryptex-rx-eu";
-            algo = "rx/0";
-            url = "xtm-rx-eu.kryptex.network:8038";
-            user = "krxXVNVMM7.cpu-proxy";
-            pass = "x";
-            tls = true;
-            keepalive = true;
-            priority = 2;
-          }
-          {
-            id = "kryptex-cr29-us";
-            algo = "cn/cc29";
-            url = "xtm-c29-us.kryptex.network:8040";
-            user = "krxXVNVMM7.gpu-proxy";
-            pass = "x";
-            tls = true;
-            keepalive = true;
-            priority = 1;
-          }
-          {
-            id = "kryptex-cr29-eu";
-            algo = "cn/cc29";
-            url = "xtm-c29-eu.kryptex.network:8040";
-            user = "krxXVNVMM7.gpu-proxy";
-            pass = "x";
-            tls = true;
-            keepalive = true;
-            priority = 2;
-          }
-        ];
-
-        workers = [
-          {
-            id = "zephyr-cpu";
-            password = "x";
-          }
-          {
-            id = "nexus-cpu";
-            password = "x";
-          }
-          {
-            id = "sentry-cpu";
-            password = "x";
-          }
-          {
-            id = "zephyr-gpu";
-            password = "x";
-          }
-          {
-            id = "nexus-gpu";
-            password = "x";
-          }
-          {
-            id = "forge-gpu";
-            password = "x";
-          }
-        ];
-
-        api = {
-          port = 8081;
-          restricted = true;
-          tokenFile = "/run/agenix/xmrig-api-token";
-        };
-
-        log = {
-          level = 5;
-        };
-      };
-    };
 
     nixos-share = {
       enable = false;
