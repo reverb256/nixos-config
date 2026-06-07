@@ -125,4 +125,12 @@ _final: prev:
   privacy-filter = prev.callPackage ./packages/privacy-filter.nix {
     transformers-dev = prev.callPackage ./packages/transformers-dev.nix { };
   };
+  # dufs tests require CA certificates for reqwest-based HTTP client
+  # Provide cacert and set SSL_CERT_FILE during test phase
+  dufs = prev.dufs.overrideAttrs (old: {
+    env = (old.env or {}) // {
+      SSL_CERT_FILE = "${prev.cacert}/etc/ssl/certs/ca-bundle.crt";
+      REQUESTS_CA_BUNDLE = "${prev.cacert}/etc/ssl/certs/ca-bundle.crt";
+    };
+  });
 }
