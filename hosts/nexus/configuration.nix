@@ -6,7 +6,10 @@
   ...
 
 }: {
+  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+
   imports = [
+    inputs.disko.nixosModules.disko
     ./monitoring.nix
     ./firewall.nix
     ./hardware.nix
