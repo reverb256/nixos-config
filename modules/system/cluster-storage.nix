@@ -35,33 +35,27 @@ in {
 
           case "${config.networking.hostName}" in
             nexus)
-                if mountpoint -q "$mount"; then
-                  echo "[cluster-storage] ✓ $mount is active"
-                else
-                  echo "[cluster-storage] ✗ $mount is NOT mounted, attempting to mount..."
-                  mount "$mount" 2>/dev/null || echo "[cluster-storage] WARNING: Failed to mount $mount"
-                fi
-              done
-              ;;
+                echo "[cluster-storage] ✓ No special storage checks for nexus"
+                ;;
             sentry)
-              if mountpoint -q /storage; then
-                echo "[cluster-storage] ✓ /storage is active"
-              else
-                echo "[cluster-storage] ✗ /storage is NOT mounted, attempting to mount..."
-                mount /storage 2>/dev/null || echo "[cluster-storage] WARNING: Failed to mount /storage"
-              fi
-              ;;
+                if mountpoint -q /storage; then
+                  echo "[cluster-storage] ✓ /storage is active"
+                else
+                  echo "[cluster-storage] ✗ /storage is NOT mounted, attempting to mount..."
+                  mount /storage 2>/dev/null || echo "[cluster-storage] WARNING: Failed to mount /storage"
+                fi
+                ;;
             zephyr)
-              if mountpoint -q /data; then
-                echo "[cluster-storage] ✓ /data is active"
-              else
-                echo "[cluster-storage] ✗ /data is NOT mounted, attempting to mount..."
-                mount /data 2>/dev/null || echo "[cluster-storage] WARNING: Failed to mount /data"
-              fi
-              ;;
+                if mountpoint -q /data; then
+                  echo "[cluster-storage] ✓ /data is active"
+                else
+                  echo "[cluster-storage] ✗ /data is NOT mounted, attempting to mount..."
+                  mount /data 2>/dev/null || echo "[cluster-storage] WARNING: Failed to mount /data"
+                fi
+                ;;
             forge)
-              echo "[cluster-storage] ✓ No special storage mounts for forge"
-              ;;
+                echo "[cluster-storage] ✓ No special storage mounts for forge"
+                ;;
           esac
 
           echo "[cluster-storage] Storage verification complete"
