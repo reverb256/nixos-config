@@ -307,6 +307,7 @@
 
     packages.x86_64-linux.llama-cpp = pkgsWithOverlay.llama-cpp;
     packages.x86_64-linux.llama-cpp-ik = pkgsWithOverlay.llama-cpp-ik;
+    packages.x86_64-linux.srbminer-multi = pkgsWithOverlay.srbminer-multi;
     #     packages.x86_64-linux.llama-cpp-turboquant = pkgsWithOverlay.llama-cpp-turboquant;
     # vllm-turboquant-env: Nix store path for nix-csi scratch containers
     #     packages.x86_64-linux.vllm-turboquant-env = inputs.vllm.packages.x86_64-linux.vllm-turboquant-env;
