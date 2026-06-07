@@ -116,6 +116,17 @@ _final: prev:
       pipx = py-super.pipx.overridePythonAttrs { doCheck = false; };
     };
   };
+
+  # Fix firefoxpwa - create missing lib/firefoxpwa directory
+  firefoxpwa-unwrapped = prev.firefoxpwa-unwrapped.overrideAttrs (old: {
+    postInstall = old.postInstall + ''
+      # Create empty `lib/firefoxpwa` directory so the Firefox wrapper won\x27t fail
+      # trying to disable the update checks. It will try to write to
+      # `$out/lib/firefoxpwa/is-packaged-app`, which doesn\x27t exist by default.
+      mkdir -p $out/lib/firefoxpwa
+    '';
+  });
+
   claude-code-image = prev.callPackage ./packages/claude-code-image.nix { };
   opencode-image = prev.callPackage ./packages/opencode-image.nix { };
   # maplespike images are built locally in nixos-config/packages/maplespike-*.nix

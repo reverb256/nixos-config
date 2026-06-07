@@ -97,24 +97,20 @@ in {
       checkInterval = 10;
     };
 
-    srbminer = {
+    lpminer = {
       enable = true;
       instances = [
         {
           name = "3060ti";
           gpuId = 0;
           wallet = "krxXVNVMM7.zephyr-3060ti";
-          pool = "stratum+ssl://prl-us.kryptex.network:8048";
-          apiPort = 21552;
-          powerLimit = 100;
+          pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
         }
         {
           name = "3090";
           gpuId = 1;
           wallet = "krxXVNVMM7.zephyr-3090";
-          pool = "stratum+ssl://prl-us.kryptex.network:8048";
-          apiPort = 21553;
-          powerLimit = 250;
+          pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
         }
       ];
     };
@@ -216,7 +212,7 @@ in {
         };
         zai = {
           enable = true;
-          apiKeyFile = "/run/agenix/zai-api-key";
+          apiKeyFile = config.age.secrets.zai-api-key.path;
           baseUrl = "https://api.z.ai/api/coding/paas/v4";
           enableRetry = true;
           maxRetries = 3;
@@ -225,7 +221,7 @@ in {
         };
         pollinations = {
           enable = true;
-          apiKeyFile = "/run/agenix/pollinations-api-key";
+          apiKeyFile = config.age.secrets.pollinations-api-key.path;
           baseUrl = "https://text.pollinations.ai";
         };
       };
