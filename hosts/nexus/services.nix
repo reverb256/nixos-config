@@ -226,15 +226,15 @@ in {
         API_SERVER_PORT=8642
         GLM_BASE_URL=https://api.z.ai/api/coding/paas/v4
         ENVEOF
-        echo -n "API_SERVER_KEY=*** >> /data/hermes/.hermes/provider-env
+        echo -n "API_SERVER_KEY=" >> /data/hermes/.hermes/provider-env
         cat /run/agenix/hermes-api-server-key >> /data/hermes/.hermes/provider-env
         echo "" >> /data/hermes/.hermes/provider-env
         # TODO: agenix - populate before deploy
-        echo -n "ZAI_API_KEY=*** >> /data/hermes/.hermes/provider-env
+        echo -n "ZAI_API_KEY=" >> /data/hermes/.hermes/provider-env
         cat /run/agenix/zai-api-key >> /data/hermes/.hermes/provider-env
         echo "" >> /data/hermes/.hermes/provider-env
         # TODO: agenix - populate before deploy
-        echo -n "NVIDIA_API_KEY=*** >> /data/hermes/.hermes/provider-env
+        echo -n "NVIDIA_API_KEY=" >> /data/hermes/.hermes/provider-env
         cat /run/agenix/nvidia-api-key >> /data/hermes/.hermes/provider-env
         echo "" >> /data/hermes/.hermes/provider-env
         chmod 600 /data/hermes/.hermes/provider-env
