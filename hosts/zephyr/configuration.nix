@@ -183,6 +183,7 @@ in {
     anime-game-launcher.enable = true;
     honkers-railway-launcher.enable = true;
     wavey-launcher.enable = true;
+    sleepy-launcher.enable = true;
 
     lm-studio.enable = true;
     stability-matrix.enable = true;
