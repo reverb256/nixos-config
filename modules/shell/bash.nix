@@ -58,7 +58,6 @@
       alias cat="bat --paging=never"
       alias top="btop"
       alias du="dust"
-      alias df="dufs"
 
       alias gs="git status"
       alias ga="git add"
@@ -90,7 +89,6 @@
     bat
     btop
     dust
-    dufs
     fastfetch
   ];
 }

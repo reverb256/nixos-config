@@ -71,7 +71,6 @@ in {
       alias cat "bat --paging=never"
       alias top "btop"
       alias du "dust"
-      alias df "dufs"
 
       alias swl "grim - | wl-copy"
       alias swlr 'grim -g (slurp) - | wl-copy'
@@ -232,7 +231,6 @@ in {
     bat
     btop
     dust
-    dufs
     fastfetch
     zoxide
     ripgrep
