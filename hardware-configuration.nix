@@ -13,52 +13,42 @@
   boot.kernelModules = ["kvm-amd"];
   boot.extraModulePackages = [];
 
-  # TEAM SSD (sdb) - Root, Persistent, Nix
+  # Samsung SSD 980 1TB (nvme0n1) - Root, Home, Boot
   fileSystems."/" = {
-    device = "/dev/disk/by-uuid/f7acac70-18fc-483a-b960-3c991c5124cf";
+    device = "/dev/disk/by-id/nvme-Samsung_SSD_980_1TB_S64ANJ0R712954W-part2";
     fsType = "btrfs";
-    options = ["subvol=@root" "compress=zstd:3" "ssd" "discard=async" "noatime"];
+    options = ["subvol=@" "compress=zstd:3" "ssd" "discard=async" "noatime"];
   };
 
-  fileSystems."/persistent" = {
-    device = "/dev/disk/by-uuid/f7acac70-18fc-483a-b960-3c991c5124cf";
-    fsType = "btrfs";
-    options = ["subvol=@persistent" "compress=zstd:3" "ssd" "discard=async" "noatime" "x-initrd.mount"];
-  };
-
-  fileSystems."/nix" = {
-    device = "/dev/disk/by-uuid/f7acac70-18fc-483a-b960-3c991c5124cf";
-    fsType = "btrfs";
-    options = ["subvol=@nix" "compress=zstd:3" "ssd" "discard=async" "noatime" "x-initrd.mount"];
-  };
-
-  # ADATA HDD (sda) - Home and Var
   fileSystems."/home" = {
-    device = "/dev/disk/by-uuid/4b0c9ba4-1cb5-4e9a-b750-191c2bd16c51";
+    device = "/dev/disk/by-id/nvme-Samsung_SSD_980_1TB_S64ANJ0R712954W-part2";
     fsType = "btrfs";
     options = ["subvol=@home" "compress=zstd:3" "noatime"];
   };
 
-  fileSystems."/var" = {
-    device = "/dev/disk/by-uuid/4b0c9ba4-1cb5-4e9a-b750-191c2bd16c51";
-    fsType = "btrfs";
-    options = ["subvol=@var" "compress=zstd:3" "noatime" "x-initrd.mount"];
-  };
-
-  # Boot partition (TEAM SSD)
   fileSystems."/boot" = {
-    device = "/dev/disk/by-uuid/EB7C-E7CC";
+    device = "/dev/disk/by-id/nvme-Samsung_SSD_980_1TB_S64ANJ0R712954W-part1";
     fsType = "vfat";
     options = ["fmask=0077" "dmask=0077"];
+  };
+
+  # XPG GAMMIX S11 Pro 2TB (nvme1n1) - Nix, Var
+  fileSystems."/nix" = {
+    device = "/dev/disk/by-id/nvme-XPG_GAMMIX_S11_Pro_2J2520059477-part2";
+    fsType = "btrfs";
+    options = ["subvol=@nix" "compress=zstd:3" "ssd" "discard=async" "noatime" "x-initrd.mount"];
+  };
+
+  fileSystems."/var" = {
+    device = "/dev/disk/by-id/nvme-XPG_GAMMIX_S11_Pro_2J2520059477-part2";
+    fsType = "btrfs";
+    options = ["subvol=@var" "compress=zstd:3" "noatime" "x-initrd.mount"];
   };
 
   # Swap partitions
   swapDevices = [
     {
-      device = "/dev/disk/by-uuid/b4655d1d-1abf-4c0f-a5f1-4fa5ba8d7d43";
-    }
-    {
-      device = "/dev/disk/by-uuid/5f83b842-3e30-47f2-8274-8db86b7f7124";
+      device = "/dev/disk/by-id/nvme-XPG_GAMMIX_S11_Pro_2J2520059477-part1";
     }
   ];
 
