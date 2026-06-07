@@ -28,14 +28,14 @@ in
       pkgs.pipewire
       pkgs.pulseaudio
       # X11 fallback
-      pkgs.xorg.libX11
-      pkgs.xorg.libXcomposite
-      pkgs.xorg.libXdamage
-      pkgs.xorg.libXext
-      pkgs.xorg.libXfixes
-      pkgs.xorg.libXrandr
-      pkgs.xorg.libxcb
-      pkgs.xorg.libxshmfence
+      pkgs.libx11
+      pkgs.libxcomposite
+      pkgs.libxdamage
+      pkgs.libxext
+      pkgs.libxfixes
+      pkgs.libxrandr
+      pkgs.libxcb
+      pkgs.libxshmfence
       # Font rendering
       pkgs.fontconfig
       pkgs.freetype
