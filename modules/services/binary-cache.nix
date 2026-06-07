@@ -5,7 +5,6 @@
   ...
 }: let
   inherit (lib) types mkEnableOption mkOption mkIf;
-  cluster = config.networking.cluster;
   cfg = config.services.binary-cache;
 in {
   options.services.binary-cache = {

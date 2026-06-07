@@ -172,13 +172,14 @@ in {
           "Mod+T".action = spawn "uwsm" "app" "--" "alacritty" "-e" "btop";
           "Mod+D".action = spawn "uwsm" "app" "--" "alacritty" "-e" "lazydocker";
           "Mod+G".action = spawn "launch-or-focus" "Discord" "uwsm" "app" "--" "vesktop";
-          "Mod+Shift+G".action =
-            spawn "launch-or-focus" "Grok" "uwsm" "app" "--" "firefoxpwa" "site" "launch"
-            "grok";
+          # firefoxpwa shortcuts disabled
+          # "Mod+Shift+G".action =
+          #   spawn "launch-or-focus" "Grok" "uwsm" "app" "--" "firefoxpwa" "site" "launch"
+          #   "grok";
           "Mod+A".action = spawn "launch-or-focus" "LM" "uwsm" "app" "--" "lm-studio";
-          "Mod+Shift+A".action =
-            spawn "launch-or-focus" "ChatGPT" "uwsm" "app" "--" "firefoxpwa" "site" "launch"
-            "chatgpt";
+          # "Mod+Shift+A".action =
+          #   spawn "launch-or-focus" "ChatGPT" "uwsm" "app" "--" "firefoxpwa" "site" "launch"
+          #   "chatgpt";
           "Mod+M".action =
             spawn "launch-or-focus" "Spotify" "uwsm" "app" "--" "flatpak" "run"
             "com.spotify.Client";

@@ -1,5 +1,5 @@
 {pkgs ? import <nixpkgs> {}}: let
-  lib = pkgs.lib;
+  inherit (pkgs) lib;
 
   scanDirs = [
     ../modules/system
@@ -57,8 +57,8 @@
     relPath = lib.strings.removePrefix (toString ../.. + "/") file;
   in {
     file = relPath;
-    unsafeLines = unsafeLines;
-    hasViolation = hasViolation;
+    inherit unsafeLines;
+    inherit hasViolation;
   };
 
   results = map checkFile nixFiles;
@@ -68,7 +68,7 @@ in {
   filesScanned = builtins.length nixFiles;
   violations =
     map (r: {
-      file = r.file;
+      inherit (r) file;
       lines = r.unsafeLines;
     })
     violations;

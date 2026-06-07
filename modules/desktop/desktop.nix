@@ -137,6 +137,8 @@ in {
     pulseaudio.enable = false;
 
     blueman.enable = true;
+
+    upower.enable = true;
   };
 
   # Fix: blueman-applet has duplicate ExecStart from systemd.packages install + NixOS auto-override

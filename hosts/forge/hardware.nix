@@ -333,7 +333,15 @@
 
   environment = {
     variables = {
-      LD_LIBRARY_PATH = lib.mkForce "${pkgs.rocmPackages.clr}/lib:${pkgs.rocmPackages.clr.icd}/lib:${pkgs.mesa.opencl}/lib";
+      # ROCm/Mesa OpenCL (for compute mining) + Portaudio/PipeWire (for hermes audio)
+      LD_LIBRARY_PATH = lib.mkForce (lib.makeSearchPath "lib" [
+        pkgs.rocmPackages.clr
+        pkgs.rocmPackages.clr.icd
+        pkgs.mesa.opencl
+        pkgs.portaudio
+        "/run/current-system/sw/lib/pipewire-0.3"
+        "/etc/sane-libs"
+      ]);
       OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
     };
     etc."OpenCL/vendors/amdocl64.icd".source = "${pkgs.rocmPackages.clr.icd}/etc/OpenCL/vendors/amdocl64.icd";

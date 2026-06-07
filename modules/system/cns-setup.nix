@@ -4,7 +4,7 @@
   pkgs,
   ...
 }: let
-  inherit (lib) mkEnableOption mkIf getExe;
+  inherit (lib) mkEnableOption mkIf;
 in {
   options.services.cns-setup = {
     enable = mkEnableOption "CNS initial setup helper (Zephyr only)";

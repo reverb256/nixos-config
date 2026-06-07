@@ -1,8 +1,8 @@
 {lib, ...}: let
   # Import helpers that route to the SSOT (kubernetes/service-ports.nix + cluster.nix)
   helpers = import ./port-helpers.nix {inherit lib;};
-  ports = helpers.ports;
-  cluster = helpers.cluster;
+  inherit (helpers) ports;
+  inherit (helpers) cluster;
 in {
   options.networking.cluster = lib.mkOption {
     type = lib.types.submodule {

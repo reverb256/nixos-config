@@ -60,7 +60,7 @@ in {
         inherit (cfg) interface;
         virtualRouterId = cfg.vrid;
         inherit (cfg) priority;
-        noPreempt = cfg.noPreempt;
+        inherit (cfg) noPreempt;
 
         virtualIps = [
           {

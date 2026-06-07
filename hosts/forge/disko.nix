@@ -1,4 +1,10 @@
-{ config, lib, pkgs, utils, ... }: {
+{
+  config,
+  lib,
+  pkgs,
+  utils,
+  ...
+}: {
   disko.devices = {
     disk.sdb = {
       device = "/dev/disk/by-id/ata-TEAM_T253X2256G_TM701907310240040386";
@@ -18,7 +24,7 @@
           };
           swap = {
             size = "8G";
-            content = { type = "swap"; };
+            content = {type = "swap";};
           };
           root = {
             size = "100%";
@@ -53,7 +59,7 @@
         partitions = {
           swap = {
             size = "8G";
-            content = { type = "swap"; };
+            content = {type = "swap";};
           };
           data = {
             size = "100%";
@@ -78,8 +84,8 @@
   };
 
   fileSystems = {
-    "/persistent" = { neededForBoot = true; };
-    "/nix" = { neededForBoot = true; };
-    "/var" = { neededForBoot = true; };
+    "/persistent" = {neededForBoot = true;};
+    "/nix" = {neededForBoot = true;};
+    "/var" = {neededForBoot = true;};
   };
 }

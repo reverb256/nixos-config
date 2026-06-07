@@ -6,7 +6,7 @@
 }: let
   cfg = config.services.cluster-ca;
 
-  inherit (lib) mkEnableOption mkOption types mkIf mkDefault;
+  inherit (lib) mkEnableOption mkOption types mkIf;
 
   # ── Derive SANs from clusterNetworking.lanDomains (SSOT) ──
   # cluster-dns.nix populates lanDomains from its service lists.

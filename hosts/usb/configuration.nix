@@ -163,7 +163,6 @@
       esac
     done
   '';
-
 in {
   imports = [
     # ISO image base
@@ -481,7 +480,6 @@ in {
 
       # Monitoring
     ]);
-
 
   # ZRAM (reduce writes on flash)
   zramSwap = {

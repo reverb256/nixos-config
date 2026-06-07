@@ -1,84 +1,50 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}: let
-  pwaApps = {
-    "grok" = {
-      name = "Grok";
-      url = "https://grok.com";
-      icon = "https://grok.com/favicon.ico";
-      description = "xAI Grok - AI Assistant";
-      categories = "AI;Chat;Network";
-    };
-    "chatgpt" = {
-      name = "ChatGPT";
-      url = "https://chatgpt.com";
-      icon = "https://cdn.oaistatic.com/assets/apple-touch-icon-mz9nytnj.webp";
-      description = "OpenAI ChatGPT - AI Assistant";
-      categories = "AI;Chat;Network";
-    };
+{ config, pkgs, lib, ... }:
+
+let
+  cfg = config.programs.firefoxpwa;
+  enabledApps = {
+    grok = "https://grok.com";
+    chatgpt = "https://chatgpt.com";
   };
+in
+{
+  config = lib.mkIf cfg.enable {
+    # Install PWA apps on first login
+    home.activation.installFirefoxPWA = lib.mkIf (!config.wayland.windowManager.niri.enable) ''
+      if ! command -v firefoxpwa &>/dev/null; then
+        echo "firefoxpwa not found in PATH"
+        exit 0
+      fi
 
-  installPwaScript = pkgs.writeShellScriptBin "install-pwa-apps" ''
-    set -euo pipefail
+      if ! firefoxpwa runtime status 2>/dev/null | grep -q "installed"; then
+        echo "Installing firefoxpwa runtime..."
+        firefoxpwa runtime install --silent 2>/dev/null || true
+      fi
 
-    if ! command -v firefoxpwa &>/dev/null; then
-      echo "firefoxpwa not found in PATH"
-      exit 1
-    fi
-
-    if ! firefoxpwa runtime status 2>/dev/null | grep -q "installed"; then
-      echo "Installing firefoxpwa runtime..."
-      firefoxpwa runtime install --silent 2>/dev/null || true
-    fi
-
-    ${lib.concatStringsSep "\n" (lib.mapAttrsToList (id: app: ''
+      ${lib.concatStringsSep "\n" (lib.mapAttrsToList (id: url: ''
         if firefoxpwa site list 2>/dev/null | grep -q "^${id}$"; then
           echo "PWA ${id} already installed"
         else
-          echo "Installing PWA: ${app.name} (${app.url})"
+          echo "Installing PWA ${id}..."
           firefoxpwa site install \
-            --document-url "${app.url}" \
-            --name "${app.name}" \
-            --description "${app.description}" \
-            --categories "${app.categories}" \
-            --icon-url "${app.icon}" \
-            --launch-now=false \
-            "${app.url}" 2>/dev/null || echo "Note: ${id} may need manual install via browser extension"
+            --name "${id}" \
+            --id "${id}" \
+            "${url}" 2>/dev/null || true
         fi
-      '')
-      pwaApps)}
+      '') enabledApps)}
+    '';
 
-    echo "PWA installation check complete"
-  '';
-in {
-  home.packages = with pkgs; [
-    firefoxpwa
-    installPwaScript
-  ];
-
-  home.activation.installPwaApps = lib.hm.dag.entryAfter ["writeBoundary"] ''
-    ${installPwaScript}/bin/install-pwa-apps 2>/dev/null || true &
-  '';
-
-  xdg.dataFile =
-    lib.mapAttrs' (id: app: {
-      name = "applications/pwa-${id}.desktop";
-      value.text = ''
-        [Desktop Entry]
-        Version=1.0
-        Name=${app.name}
-        Comment=${app.description}
-        Exec=firefoxpwa site launch ${id}
-        Icon=pwa-${id}
-        Terminal=false
-        Type=Application
-        Categories=${app.categories}
-        StartupWMClass=${app.name}
-        MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;
-      '';
-    })
-    pwaApps;
+    # Create desktop entries for PWA apps
+    xdg.dataFile."applications" = lib.mkIf config.wayland.windowManager.niri.enable (
+      lib.mapAttrs' (id: url: lib.nameValuePair "${id}.desktop" (
+        pkgs.makeDesktopItem {
+          name = id;
+          exec = "firefoxpwa site launch ${id}";
+          icon = "firefox";
+          desktopName = lib.strings.toUpper (builtins.substring 0 1 id) + builtins.substring 1 (-1) id;
+          categories = ["Network" "WebBrowser"];
+        }
+      ))
+    ) enabledApps;
+  };
 }
