@@ -8,7 +8,7 @@
   hostName = config.networking.hostName;
 in {
   home-manager = {
-    useGlobalPkgs = true;
+    useGlobalPkgs = false;
 
     useUserPackages = true;
 
@@ -66,6 +66,7 @@ in {
       home.sessionVariables.BAT_THEME = "base16";
 
       home.stateVersion = "26.05";
+      home.enableNixpkgsReleaseCheck = false;
 
       xdg.configFile = {
         "mimeapps.list".force = true;
