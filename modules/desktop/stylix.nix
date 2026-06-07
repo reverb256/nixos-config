@@ -58,9 +58,7 @@
       tmux.enable = true;
       gtk.enable = true;
       fontconfig.enable = true;
+      font-packages.enable = true;
     };
   };
-
-  # Add fonts to system packages for availability
-  fonts.packages = lib.mkDefault [ pkgs.inter pkgs.nerd-fonts.jetbrains-mono ];
 }
