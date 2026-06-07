@@ -11,7 +11,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/9b696460ac78b5ccfc17c854d8c976f20456e943";
     home-manager = {
-      url = "tarball+https://codeload.github.com/nix-community/home-manager/tar.gz/509ed3c603349a9d43de9e2ae6613baea6bd5b34";
+      url = "tarball+https://codeload.github.com/nix-community/home-manager/tar.gz/e28654b71096e08c019d4861ca26acb646f583d8";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zen-browser = {
