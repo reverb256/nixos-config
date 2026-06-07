@@ -1,18 +1,13 @@
 { config, pkgs, lib, ... }:
 
 let
-  cfg = config.programs.firefoxpwa;
   enabledApps = {
     grok = "https://grok.com";
     chatgpt = "https://chatgpt.com";
   };
 in
 {
-  options.programs.firefoxpwa = {
-    enable = lib.mkEnableOption "Firefox PWA apps";
-  };
-
-  config = lib.mkIf cfg.enable {
+  config = lib.mkIf config.programs.firefoxpwa.enable {
     home.packages = [ pkgs.firefoxpwa ];
 
     # Install PWA apps on first login
@@ -27,14 +22,14 @@ in
         firefoxpwa runtime install --silent 2>/dev/null || true
       fi
 
-      ${lib.concatStringsSep "\n" (lib.mapAttrsToList (id: url: ''
+      ${lib.concatStringsSep "\\n" (lib.mapAttrsToList (id: url: ''
         if firefoxpwa site list 2>/dev/null | grep -q "^${id}$"; then
           echo "PWA ${id} already installed"
         else
           echo "Installing PWA ${id}..."
-          firefoxpwa site install \
-            --name "${id}" \
-            --id "${id}" \
+          firefoxpwa site install \\
+            --name "${id}" \\
+            --id "${id}" \\
             "${url}" 2>/dev/null || true
         fi
       '') enabledApps)}
