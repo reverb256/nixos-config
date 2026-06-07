@@ -1,5 +1,5 @@
 {pkgs ? import <nixpkgs> {}}: let
-  lib = pkgs.lib;
+  inherit (pkgs) lib;
 
   defaultNix = builtins.readFile ../modules/default.nix;
 
@@ -51,12 +51,12 @@
       || lib.strings.hasInfix "overlay" path
       || lib.strings.hasSuffix "/default.nix" path;
   in {
-    path = path;
+    inherit path;
     exists = builtins.pathExists resolved;
     hasEnableOption = hasEnableOption || isExempt;
     hasMkIf = hasMkIf || isExempt;
-    hasUnsafePortAssignment = hasUnsafePortAssignment;
-    isExempt = isExempt;
+    inherit hasUnsafePortAssignment;
+    inherit isExempt;
     compliant = (hasEnableOption || isExempt) && !hasUnsafePortAssignment;
   };
 
@@ -69,7 +69,7 @@ in {
   compliant = builtins.length results - builtins.length nonCompliant;
   nonCompliant =
     map (r: {
-      path = r.path;
+      inherit (r) path;
       reason =
         if !r.hasEnableOption
         then "missing-enable-option"

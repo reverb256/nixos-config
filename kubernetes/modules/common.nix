@@ -1,4 +1,4 @@
-{...}: let
+_: let
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };

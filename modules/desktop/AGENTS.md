@@ -3,7 +3,7 @@
 **Parent:** `../../AGENTS.md` | **Domain:** Wayland compositors and desktop (14 .nix files)
 
 ## Overview
-Wayland desktop environment with 3 compositors managed via UWSM.
+Wayland desktop environment with 2 compositors managed via UWSM.
 Only enabled on Zephyr (workstation) and optionally Nexus/Forge.
 
 ## Compositor Setup (UWSM)
@@ -12,7 +12,6 @@ Only enabled on Zephyr (workstation) and optionally Nexus/Forge.
 |-----|-----------|--------|
 | tty1 | KDE Plasma 6 | `plasma6.nix` |
 | tty2 | Niri (scrollable tiling) | `niri.nix`, `home-manager/niri-config.nix` |
-| tty3 | Hyprland (dynamic tiling) | `hyprland.nix` |
 
 Session registration: `uwsm-sessions.nix` handles all 3.
 Portal routing: `desktop.nix` routes per-compositor (KDE→kde, Niri→gnome+gtk).
@@ -23,7 +22,6 @@ Portal routing: `desktop.nix` routes per-compositor (KDE→kde, Niri→gnome+gtk
 |------|----------|
 | Plasma 6 config | `plasma6.nix` (841 lines — largest desktop file) |
 | Niri config | `niri.nix`, `home-manager/niri-config.nix` (392 lines) |
-| Hyprland config | `hyprland.nix` |
 | Wayland common settings | `wayland-common.nix` |
 | Shared compositor packages | `wayland-compositor-common.nix` |
 | Flatpak support | `flatpak.nix` |

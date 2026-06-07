@@ -8,7 +8,6 @@
 
   desktop.uwsm-sessions.enable = true;
   programs.niri.enable = true;
-  programs.hyprland.enable = true;
 
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "j_kro";

@@ -3,7 +3,7 @@
   pkgs,
   ...
 }: let
-  inherit (lib) mkAfter mkDefault;
+  inherit (lib) mkAfter;
   clusterSubnet = "10.1.1.0/24";
   podCidr = "10.42.0.0/16";
 

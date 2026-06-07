@@ -177,9 +177,7 @@ in {
         )
       );
 
-      environment.NIXOS_SHARED_PATH = lib.mkIf config.services.nixos-share.client.enable (
-        config.services.nixos-share.client.mountPoint
-      );
+      environment.NIXOS_SHARED_PATH = lib.mkIf config.services.nixos-share.client.enable config.services.nixos-share.client.mountPoint;
 
       serviceConfig = {
         Type = "oneshot";

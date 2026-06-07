@@ -80,7 +80,6 @@ in {
 
     syncthing-cluster = {
       enable = true;
-
     };
 
     agenix-secrets-registry = {
@@ -148,4 +147,3 @@ in {
     enableShellEnv = true;
   };
 }
-

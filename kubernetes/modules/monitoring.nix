@@ -667,7 +667,7 @@ in {
           };
           spec = {
             nodeSelector = sentrySelector;
-            securityContext = securityContext;
+            inherit securityContext;
             serviceAccountName = "loki-sa";
             containers = {
               _namedlist = true;
@@ -788,7 +788,7 @@ in {
           };
           spec = {
             nodeSelector = sentrySelector;
-            securityContext = securityContext;
+            inherit securityContext;
             serviceAccountName = "mimir-sa";
             containers = {
               _namedlist = true;
@@ -918,7 +918,7 @@ in {
           };
           spec = {
             nodeSelector = sentrySelector;
-            securityContext = securityContext;
+            inherit securityContext;
             serviceAccountName = "tempo-sa";
             containers = {
               _namedlist = true;

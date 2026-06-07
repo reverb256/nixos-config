@@ -1,5 +1,5 @@
 {pkgs}: let
-  lib = pkgs.lib;
+  inherit (pkgs) lib;
 
   evalModule = {
     modulePath ? null,
@@ -17,7 +17,7 @@
       specialArgs = {
         inherit pkgs;
         config = {};
-        lib = lib;
+        inherit lib;
         options = {};
       };
     };
@@ -31,7 +31,7 @@
     });
   in {
     inherit name;
-    success = result.success;
+    inherit (result) success;
   };
 
   collectNixFiles = dir: builtins.filter (f: lib.strings.hasSuffix ".nix" f) (lib.filesystem.listFilesRecursive dir);

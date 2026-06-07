@@ -1,5 +1,5 @@
 {pkgs ? import <nixpkgs> {}}: let
-  lib = pkgs.lib;
+  inherit (pkgs) lib;
 
   defaultNix = builtins.readFile ../modules/default.nix;
 
@@ -29,8 +29,8 @@
     resolved = resolvePath path;
     exists = builtins.pathExists resolved;
   in {
-    path = path;
-    exists = exists;
+    inherit path;
+    inherit exists;
   };
 
   results = map validateImport importLines;
@@ -39,7 +39,7 @@
 
   summary = {
     totalImports = builtins.length importLines;
-    duplicates = duplicates;
+    inherit duplicates;
     missingFiles = map (r: r.path) missingFiles;
     passed = missingFiles == [] && duplicates == [];
   };

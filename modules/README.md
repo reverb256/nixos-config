@@ -372,7 +372,6 @@ Hyprland tty3).
 | `desktop.nix` | `xdg.portal` | Portal routing per-desktop (KDE→kde, Niri→gnome+gtk) |
 | `plasma6.nix` | `services.desktop.plasma6` | KDE Plasma 6 desktop |
 | `niri.nix` | `programs.niri` | Scrollable-tiling Wayland compositor |
-| `hyprland.nix` | `programs.hyprland` | Dynamic tiling Wayland compositor |
 | `uwsm-sessions.nix` | `programs.uwsm` | UWSM Wayland session registrations |
 | `wayland-compositor-common.nix` | - | Shared packages (noctalia-shell, cliphist, wf-recorder) |
 | `wayland-common.nix` | - | Wayland base settings |
