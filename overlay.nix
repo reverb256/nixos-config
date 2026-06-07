@@ -141,3 +141,11 @@ _final: prev:
   privacy-filter = prev.callPackage ./packages/privacy-filter.nix {
     transformers-dev = prev.callPackage ./packages/transformers-dev.nix { };
   };
+  srbminer-multi = prev.callPackage ./packages/srbminer.nix {};
+  # dufs tests require CA certificates for reqwest-based HTTP client
+  # Disabled tests - they fail with network requirements
+  dufs = prev.dufs.overrideAttrs (old: {
+    doCheck = false;
+    checkPhase = "";
+  });
+}
