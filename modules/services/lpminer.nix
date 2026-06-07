@@ -64,7 +64,6 @@
             Type = "simple";
             User = config.services.lpminer.user;
             Environment = [
-              "LD_LIBRARY_PATH=/run/opengl-driver/lib"
               "CUDA_VISIBLE_DEVICES=${toString instance.gpuId}"
             ];
             ExecStartPre = "${config.hardware.nvidia.package}/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}";

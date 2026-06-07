@@ -68,12 +68,9 @@
           serviceConfig = {
             Type = "simple";
             User = config.services.srbminer.user;
-            Environment = [
-              "LD_LIBRARY_PATH=/run/opengl-driver/lib"
-              "CUDA_VISIBLE_DEVICES=${toString instance.gpuId}"
-            ];
             ExecStartPre = "${config.hardware.nvidia.package}/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}";
             ExecStart = "${pkgs.writeShellScriptBin "srbminer-${instance.name}" ''
+              export CUDA_VISIBLE_DEVICES=${toString instance.gpuId}
               /home/j_kro/SRBMiner-MULTI \
                 --disable-cpu \
                 --disable-gpu-amd \
