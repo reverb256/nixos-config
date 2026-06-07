@@ -26,6 +26,25 @@ in {
       geminiApiKeyFile = config.age.secrets.gemini-api-key.path;
       hfTokenFile = config.age.secrets.huggingface-token.path;
       githubTokenFile = config.age.secrets.github-token.path;
+      settings = {
+        model = {
+          provider = "gateway";
+          default = "opencode-go/deepseek-v4-flash";
+        };
+        toolsets = ["all"];
+        terminal = {
+          backend = "local";
+          timeout = 180;
+        };
+        memory = {
+          memory_enabled = true;
+          user_profile_enabled = true;
+        };
+        compression = {
+          enabled = true;
+          threshold = 0.9;
+        };
+      };
     };
     k3s-cluster = {
       enable = true;

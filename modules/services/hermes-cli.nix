@@ -136,6 +136,55 @@
       "    f.write(result)"
     ]
   );
+
+  # Python script to generate config.yaml from NixOS settings (deep merge)
+  # Use Python with PyYAML available
+  pythonWithYaml = pkgs.python3.withPackages (ps: [ps.pyyaml]);
+  configGenerateScript = pkgs.writeText "hermes-config-generate" (
+    builtins.concatStringsSep "\n" [
+      "#!/usr/bin/env ${pythonWithYaml}/bin/python3"
+      "import sys, json, os, tempfile, yaml"
+      "config_path = sys.argv[1]"
+      "settings_json = sys.argv[2]"
+      "with open(settings_json) as f:"
+      "    settings = json.load(f)"
+      "# Base config managed by NixOS"
+      "base = {"
+      "  'model': {'provider': 'gateway', 'default': 'opencode-go/deepseek-v4-flash'},"
+      "  'providers': {"
+      "    'gateway': {'base_url': 'http://${config.networking.cluster.hosts.nexus.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-inference-gateway}/v1', 'model': 'opencode-go/deepseek-v4-flash', 'key_env': 'ZAI_API_KEY'},"
+      "    'zai': {'base_url': 'https://api.z.ai/api/coding/paas/v4', 'key_env': 'ZAI_API_KEY'},"
+      "    'nvidia': {'base_url': 'https://integrate.api.nvidia.com/v1', 'key_env': 'NVIDIA_API_KEY'},"
+      "    'opencode-go': {'base_url': 'http://${config.networking.cluster.hosts.nexus.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-inference-gateway}/v1', 'model': 'deepseek-v4-flash', 'key_env': 'OPENCODE_GO_API_KEY'},"
+      "    'local-sentry': {'base_url': 'http://${config.networking.cluster.hosts.sentry.ip}:1235/v1', 'model': 'Qwen3.5-4B-Q4_K_M.gguf', 'supports_vision': True},"
+      "  },"
+      "  'fallback_providers': ['gateway', 'zai', 'nvidia', 'opencode-go', 'local-sentry'],"
+      "  'terminal': {'backend': 'local', 'timeout': 180},"
+      "  'toolsets': ['all'],"
+      "  'memory': {'memory_enabled': True, 'user_profile_enabled': True},"
+      "  'compression': {'enabled': True, 'threshold': 0.9}"
+      "}"
+      "# Deep merge settings into base"
+      "def deep_merge(base_dict, override_dict):"
+      "    for key, value in override_dict.items():"
+      "        if key in base_dict and isinstance(base_dict[key], dict) and isinstance(value, dict):"
+      "            deep_merge(base_dict[key], value)"
+      "        else:"
+      "            base_dict[key] = value"
+      "deep_merge(base, settings)"
+      "# Write atomically"
+      "with tempfile.NamedTemporaryFile(mode='w', dir=os.path.dirname(config_path), delete=False) as tmp:"
+      "    tmp.write('# Managed by NixOS - DO NOT EDIT\\n')"
+      "    tmp.write('# Generated from services.hermes-cli.settings\\n\\n')"
+      "    yaml.dump(base, tmp, default_flow_style=False, sort_keys=False, width=120)"
+      "    tmp_path = tmp.name"
+      "os.replace(tmp_path, config_path)"
+      "os.chmod(config_path, 0o644)"
+    ]
+  );
+
+  # Convert settings to JSON for the generation script (lib.toYAML not available)
+  settingsJson = pkgs.writeText "hermes-settings.json" (builtins.toJSON cfg.settings);
 in {
   options.services.hermes-cli = {
     enable = lib.mkEnableOption "Hermes Agent CLI for interactive use";
@@ -144,23 +193,6 @@ in {
       type = lib.types.str;
       default = "j_kro";
       description = "User who will run hermes CLI";
-    };
-
-    model = lib.mkOption {
-      type = lib.types.str;
-      default = "glm-5.1";
-      description = "Default model to use";
-    };
-
-    personality = lib.mkOption {
-      type = lib.types.lines;
-      default = ''
-        You are Hermes Agent, an intelligent AI assistant created by Nous Research.
-        You are helpful, knowledgeable, and direct. You assist users with a wide range
-        of tasks including answering questions, writing and editing code, analyzing
-        information, and creative work.
-      '';
-      description = "Agent personality (written to SOUL.md)";
     };
 
     apiKeyFile = lib.mkOption {
@@ -231,6 +263,13 @@ in {
       default = "http://${config.networking.cluster.hosts.zephyr.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-inference-gateway}/v1";
       description = "AI Inference Gateway URL for routing";
     };
+
+    # Fully declarative Hermes settings - all config.yaml keys managed by NixOS
+    settings = lib.mkOption {
+      type = lib.types.attrsOf (lib.types.anything);
+      default = { };
+      description = "Declarative Hermes configuration. Deep-merged and written as config.yaml. Supports all Hermes config keys: model, providers, fallback_providers, toolsets, terminal, memory, compression, smart_model_routing, display, plugins, etc.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -251,80 +290,9 @@ in {
                       # Create directory structure
                       mkdir -p "$HERMES_HOME"/{sessions,memories,skills,cron,logs}
 
-                      # Write config.yaml if it doesn't exist or is managed by us
-                      if [ ! -f "$HERMES_HOME/config.yaml" ] || grep -q "# Managed by NixOS" "$HERMES_HOME/config.yaml" 2>/dev/null; then
-                        cat > "$HERMES_HOME/config.yaml" << YAML_EOF
-                # Managed by NixOS - hermes-cli module
-                # GATEWAY-CENTRIC - AI Inference Gateway routes all model traffic
-                model:
-                  provider: gateway
-                  default: opencode-go/deepseek-v4-flash
-
-                providers:
-                  gateway:
-                    base_url: http://${config.networking.cluster.hosts.nexus.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-inference-gateway}/v1
-                    model: opencode-go/deepseek-v4-flash
-                    key_env: ZAI_API_KEY
-                  zai:
-                    base_url: https://api.z.ai/api/coding/paas/v4
-                    key_env: ZAI_API_KEY
-                  nvidia:
-                    base_url: https://integrate.api.nvidia.com/v1
-                    key_env: NVIDIA_API_KEY
-                  opencode-go:
-                    base_url: http://${config.networking.cluster.hosts.nexus.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-inference-gateway}/v1
-                    model: deepseek-v4-flash
-                    key_env: OPENCODE_GO_API_KEY
-                  local-sentry:
-                    base_url: http://${config.networking.cluster.hosts.sentry.ip}:1235/v1
-                    model: Qwen3.5-4B-Q4_K_M.gguf
-                    supports_vision: true
-
-                fallback_providers:
-                  - gateway
-                  - zai
-                  - nvidia
-                  - opencode-go
-                  - local-sentry
-
-                terminal:
-                  backend: local
-                  timeout: 180
-
-                toolsets:
-                  - all
-
-                memory:
-                  memory_enabled: true
-                  user_profile_enabled: true
-
-          compression:
-            enabled: true
-            threshold: 0.9
-        YAML_EOF
-                        chmod 644 "$HERMES_HOME/config.yaml"
-                      else
-                        # Inject essential providers into manually-managed config
-                        # This ensures zai/nvidia endpoints are correct even if user edits config
-                        if ! grep -q "^zai:" "$HERMES_HOME/config.yaml" 2>/dev/null; then
-                          cat >> "$HERMES_HOME/config.yaml" << 'YAI_EOF'
-
-        # Essential providers injected by NixOS (hermes-cli module)
-        zai:
-          base_url: https://api.z.ai/api/coding/paas/v4
-          api_key_env: ZAI_API_KEY
-        nvidia:
-          base_url: https://integrate.api.nvidia.com/v1
-          api_key_env: NVIDIA_API_KEY
-        YAI_EOF
-                        fi
-                        # Ensure fallback includes cloud providers
-                        if grep -q "^fallback_providers:" "$HERMES_HOME/config.yaml" 2>/dev/null; then
-                          if ! grep -A 10 "^fallback_providers:" "$HERMES_HOME/config.yaml" | grep -q "zai"; then
-                            sed -i '/^fallback_providers:/a\  - zai\n  - nvidia' "$HERMES_HOME/config.yaml" 2>/dev/null || true
-                          fi
-                        fi
-                      fi
+                      # ALWAYS regenerate config.yaml from NixOS settings (atomic write)
+                      # This overwrites any manual edits - config is fully declarative
+                      python3 ${configGenerateScript} "$HERMES_HOME/config.yaml" ${settingsJson}
 
                       # Write .env with API keys from agenix secrets
                       # This runs unconditionally — .env must always reflect current secrets
@@ -387,13 +355,14 @@ in {
         ''}
                       chmod 600 "$HERMES_HOME/.env"
 
-                      # Write SOUL.md if it doesn't exist
-                      if [ ! -f "$HERMES_HOME/SOUL.md" ]; then
-          cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
-          ${cfg.personality}
-        SOUL_EOF
-                        chmod 644 "$HERMES_HOME/SOUL.md"
-                      fi
+                      # Write SOUL.md from personality setting
+                      cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
+You are Hermes Agent, an intelligent AI assistant created by Nous Research.
+You are helpful, knowledgeable, and direct. You assist users with a wide range
+of tasks including answering questions, writing and editing code, analyzing
+information, and creative work.
+SOUL_EOF
+                      chmod 644 "$HERMES_HOME/SOUL.md"
 
                       # Set ownership (skip on NFS where root-squash blocks chown)
                       chown -R ${cfg.user}:users "$HERMES_HOME" 2>/dev/null || true

@@ -29,6 +29,25 @@ in {
       casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
       opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
       opencodeZenApiKeyFile = config.age.secrets.opencode-api-key.path;
+      settings = {
+        model = {
+          provider = "gateway";
+          default = "opencode-go/deepseek-v4-flash";
+        };
+        toolsets = ["all"];
+        terminal = {
+          backend = "local";
+          timeout = 180;
+        };
+        memory = {
+          memory_enabled = true;
+          user_profile_enabled = true;
+        };
+        compression = {
+          enabled = true;
+          threshold = 0.9;
+        };
+      };
     };
     k3s-cluster = {
       enable = true;  # Re-enabled 2026-06-02 for NIM connectivity
