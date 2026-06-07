@@ -35,7 +35,6 @@ in {
 
           case "${config.networking.hostName}" in
             nexus)
-              for mount in /data/worn /data/home /data/shared /data/backups /data/media /var/lib/containers; do
                 if mountpoint -q "$mount"; then
                   echo "[cluster-storage] ✓ $mount is active"
                 else
