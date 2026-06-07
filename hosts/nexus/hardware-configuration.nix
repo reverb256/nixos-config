@@ -14,11 +14,6 @@
   boot.extraModulePackages = [];
 
   # NVMe0n1 (root btrfs) - Root, Home, Data mounts
-  fileSystems."/" = {
-    device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
-    fsType = "btrfs";
-    options = ["subvol=@" "ssd" "discard=async" "noatime" "commit=300"];
-  };
 
   fileSystems."/home" = {
     device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
@@ -58,11 +53,6 @@
   };
 
   # Boot partition (NVMe0n1)
-  fileSystems."/boot" = {
-    device = "/dev/disk/by-uuid/EB7C-E7CC";
-    fsType = "vfat";
-    options = ["fmask=0077" "dmask=0077"];
-  };
 
   # Swap partition
   swapDevices = [
