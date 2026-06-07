@@ -45,6 +45,11 @@
   boot.kernelModules = ["msr"];
   boot.kernelParams = [
     "mitigations=auto"
+    # AMD GPU Navi 10 stability: enable GPU recovery, disable SDMA fence timeout issues
+    "amdgpu.gpu_recovery=1"
+    "amdgpu.fence_timeout=10000"
+    "amdgpu.noretry=0"
+    "amdgpu.ppfeaturemask=0xffffffff"
   ];
 
   environment = {
@@ -95,5 +100,17 @@
         done
       fi
     '';
+  };
+
+  # AMD GPU: force performance profile to prevent idle clock-gating hangs
+  systemd.services.amdgpu-performance-profile = {
+    description = "Set AMD GPU to performance profile (prevent idle clock-gating hangs)";
+    wantedBy = ["multi-user.target"];
+    after = ["systemd-udev-settle.service"];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "/bin/sh -c 'echo high > /sys/class/drm/card0/device/power_dpm_force_performance_level'";
+      RemainAfterExit = true;
+    };
   };
 }
