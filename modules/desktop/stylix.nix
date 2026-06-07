@@ -22,6 +22,13 @@
         package = pkgs.noto-fonts-color-emoji;
         name = "Noto Color Emoji";
       };
+      # Install font packages to the system
+      packages = [
+        pkgs.inter
+        pkgs.nerd-fonts.jetbrains-mono
+        pkgs.dejavu_fonts
+        pkgs.noto-fonts-color-emoji
+      ];
     };
 
     cursor = {
@@ -57,8 +64,6 @@
       starship.enable = true;
       tmux.enable = true;
       gtk.enable = true;
-      fontconfig.enable = true;
-      font-packages.enable = true;
     };
   };
 }

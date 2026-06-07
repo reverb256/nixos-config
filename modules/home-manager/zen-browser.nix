@@ -13,7 +13,7 @@ in {
     enable = true;
 
     nativeMessagingHosts = with pkgs; [
-      firefoxpwa
+      # firefoxpwa  # disabled due to broken derivation
     ];
 
     policies = {
