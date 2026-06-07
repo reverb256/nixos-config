@@ -26,26 +26,6 @@
     fsType = "vfat";
     options = ["fmask=0077" "dmask=0077"];
   };
-  fileSystems."/data" = {
-    device = "/dev/disk/by-uuid/4c249712-3c96-44dd-bab0-0b077a168670";
-    fsType = "btrfs";
-    options = ["subvol=@" "compress=zstd"];
-  };
-  fileSystems."/data/games" = {
-    device = "/dev/disk/by-uuid/4c249712-3c96-44dd-bab0-0b077a168670";
-    fsType = "btrfs";
-    options = ["subvol=@games" "compress=zstd" "nofail"];
-  };
-  fileSystems."/data/projects" = {
-    device = "/dev/disk/by-uuid/4c249712-3c96-44dd-bab0-0b077a168670";
-    fsType = "btrfs";
-    options = ["subvol=@projects" "compress=zstd" "nofail"];
-  };
-  fileSystems."/data/archive" = {
-    device = "/dev/disk/by-uuid/4c249712-3c96-44dd-bab0-0b077a168670";
-    fsType = "btrfs";
-    options = ["subvol=@archive" "compress=zstd" "nofail"];
-  };
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 }

@@ -55,7 +55,7 @@ in {
     services.caddy-router.helpers = {
       inherit ports cluster tlsCert tlsKey;
       mkForwardAuth = mkForwardAuth ports.oauth2-proxy;
-      mkProxyHeader = mkProxyHeader;
+      inherit mkProxyHeader;
       mkAuthRoute = hosts: backend: ''
         ${hosts} {
           tls ${tlsCert} ${tlsKey}

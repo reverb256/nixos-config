@@ -124,7 +124,6 @@ in {
       clusterSync.enable = false; # skip SSH sync to cluster nodes on every activation
     };
 
-
     nixos-share = {
       enable = false;
       server.enable = false;
@@ -296,7 +295,6 @@ in {
       };
       enableShellEnv = true;
     };
-
   };
   programs = {
     haven-desktop.enable = true;
@@ -323,6 +321,15 @@ in {
     initrdRecovery = true;
     selfHosting = true;
   };
+
+  # Mining user for secret ownership (ZEPHYR monitors mining but doesn't run workers)
+  users.users.mining = {
+    isSystemUser = true;
+    group = "mining";
+    description = "Mining service user";
+  };
+
+  users.groups.mining = {};
 
   age = {
     identityPaths = ["/home/j_kro/.age/key.txt"];

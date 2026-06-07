@@ -18,7 +18,7 @@ in {
 
     extraSpecialArgs = {
       inherit inputs;
-      hostName = hostName;
+      inherit hostName;
     };
 
     users.j_kro = {...}: {
@@ -29,7 +29,7 @@ in {
         inputs.nixcord.homeModules.nixcord
         ../../modules/home-manager/fish.nix
         ../../modules/home-manager/starship.nix
-        ../../modules/home-manager/wayland-tools.nix
+        # ../../modules/home-manager/wayland-tools.nix
         ../../modules/home-manager/zen-browser.nix
         ../../modules/home-manager/nixcord-config.nix
         ../../modules/home-manager/caprine.nix
@@ -56,7 +56,7 @@ in {
 
       # Stylix - set the scheme directly so home-manager stylix module can parse it
       # Set scheme here for HM stylix module (NixOS-level stylix also has it per-host)
-    stylix.base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+      stylix.base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
 
       # CopyQ clipboard manager (replaces cliphist)
       programs.copyq = {

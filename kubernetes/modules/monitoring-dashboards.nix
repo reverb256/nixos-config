@@ -1,4 +1,4 @@
-{...}: let
+_: let
   dashboardProvider = builtins.toJSON {
     apiVersion = 1;
     providers = [

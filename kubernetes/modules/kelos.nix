@@ -907,7 +907,7 @@ in {
           name = tpl.metadata.name;
           value = {
             metadata.labels = tpl.metadata.labels or {};
-            spec = tpl.spec;
+            inherit (tpl) spec;
           };
         })
         repos);
@@ -918,7 +918,7 @@ in {
           "app.kubernetes.io/managed-by" = "easykubenix";
           "app.kubernetes.io/part-of" = "kelos";
         };
-        spec = agentConfig.spec;
+        inherit (agentConfig) spec;
       };
 
       # Model routing ConfigMap — per-task-type model routing rules
@@ -927,7 +927,7 @@ in {
           "app.kubernetes.io/managed-by" = "easykubenix";
           "app.kubernetes.io/part-of" = "kelos";
         };
-        data = modelRoutingConfigMap.data;
+        inherit (modelRoutingConfigMap) data;
       };
 
       # Model routing controller — keeps TaskSpawner models in sync
@@ -936,7 +936,7 @@ in {
           "app.kubernetes.io/managed-by" = "easykubenix";
           "app.kubernetes.io/part-of" = "kelos";
         };
-        spec = modelRoutingController.spec;
+        inherit (modelRoutingController) spec;
       };
 
       # Model benchmark & quality evaluator — measures tok/s, evaluates PRs, optimizes routing
@@ -1002,7 +1002,7 @@ in {
           "app.kubernetes.io/managed-by" = "easykubenix";
           "app.kubernetes.io/part-of" = "kelos";
         };
-        spec = pipelineMaintenance.spec;
+        inherit (pipelineMaintenance) spec;
       };
     };
   };

@@ -1,4 +1,10 @@
-{ config, lib, pkgs, utils, ... }: {
+{
+  config,
+  lib,
+  pkgs,
+  utils,
+  ...
+}: {
   disko.devices = {
     disk.nvme1n1 = {
       device = "/dev/disk/by-id/nvme-WDC_WDS100T2B0C-00PXH0_203797800744";
@@ -62,9 +68,9 @@
   # These mount via fileSystems."..." in hardware.nix
 
   fileSystems = {
-    "/persistent" = { neededForBoot = true; };
-    "/nix" = { neededForBoot = true; };
-    "/home" = { neededForBoot = true; };
-    "/games" = { neededForBoot = false; };
+    "/persistent" = {neededForBoot = true;};
+    "/nix" = {neededForBoot = true;};
+    "/home" = {neededForBoot = true;};
+    "/games" = {neededForBoot = false;};
   };
 }

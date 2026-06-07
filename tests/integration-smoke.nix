@@ -1,5 +1,5 @@
 {pkgs ? import <nixpkgs> {}}: let
-  lib = pkgs.lib;
+  inherit (pkgs) lib;
 
   modules = {
     k3s = builtins.readFile ../modules/services/k3s-cluster.nix;

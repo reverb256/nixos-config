@@ -15,7 +15,7 @@
   });
   llama-cpp = prev.callPackage ./packages/llama-cpp.nix {
     cudaSupport = true;
-    cudaPackages = prev.cudaPackages;
+    inherit (prev) cudaPackages;
   };
   llama-cpp-ik = prev.callPackage ./packages/llama-cpp-ik.nix {};
   llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant;

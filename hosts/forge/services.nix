@@ -21,7 +21,7 @@ in {
       nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
       casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
       opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
-  opencodeZenApiKeyFile = config.age.secrets.opencode-api-key.path;
+      opencodeZenApiKeyFile = config.age.secrets.opencode-api-key.path;
     };
     k3s-cluster = {
       enable = true;
@@ -36,9 +36,9 @@ in {
 
     spotify-spotx.enable = true;
 
-     opencode.enable = true;
+    opencode.enable = true;
 
-     # Agent network restrictions — restrict AI agents to allowed destinations only
+    # Agent network restrictions — restrict AI agents to allowed destinations only
 
     nixos-share = {
       enable = false;
@@ -63,7 +63,6 @@ in {
           pool = "stratum+ssl://prl-us.kryptex.network:8048";
           apiPort = 21551;
           powerLimit = 118;
-        }
         }
       ];
     };
@@ -167,14 +166,13 @@ in {
     nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
     opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
     tools = {
-      claude = { enable = true; };
-      opencode = { enable = true; };
-      droid = { enable = true; };
-      crush = { enable = true; };
-      pi = { enable = true; };
-      omp = { enable = true; };
+      claude = {enable = true;};
+      opencode = {enable = true;};
+      droid = {enable = true;};
+      crush = {enable = true;};
+      pi = {enable = true;};
+      omp = {enable = true;};
     };
     enableShellEnv = true;
   };
 }
-

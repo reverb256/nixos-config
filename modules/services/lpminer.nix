@@ -79,7 +79,8 @@
             RestartSec = "10";
           };
         };
-      }) config.services.lpminer.instances
+      })
+      config.services.lpminer.instances
     );
   };
 }

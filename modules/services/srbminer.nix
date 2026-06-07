@@ -68,7 +68,6 @@
           serviceConfig = {
             Type = "simple";
             User = config.services.srbminer.user;
-            ExecStartPre = "${config.hardware.nvidia.package}/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}";
             ExecStart = "${pkgs.writeShellScriptBin "srbminer-${instance.name}" ''
               export CUDA_VISIBLE_DEVICES=${toString instance.gpuId}
               /home/j_kro/SRBMiner-MULTI \
@@ -86,7 +85,8 @@
             RestartSec = "10";
           };
         };
-      }) config.services.srbminer.instances
+      })
+      config.services.srbminer.instances
     );
   };
 }
