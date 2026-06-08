@@ -77,7 +77,7 @@
       inputs.home-manager.follows = "";
     };
     preservation = {
-      url = "path:./lib/preservation";
+      url = "path:/etc/nixos/lib/preservation";
     };
     niri = {
       url = "tarball+https://codeload.github.com/sodiboo/niri-flake/tar.gz/b5f81cf03d90bcf2efd20d12fe933a0790b4722b";
@@ -88,7 +88,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-cachyos-kernel = {
-      url = "tarball+https://codeload.github.com/xddxdd/nix-cachyos-kernel/tar.gz/release";
+      url = "github:xddxdd/nix-cachyos-kernel/86d7051a5694db99f4db6165bcaf15e7bba8672a";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
