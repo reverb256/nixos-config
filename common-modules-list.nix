@@ -38,4 +38,8 @@
       "/etc/age/key.txt"
     ];
   }
+
+  {
+    aagl.enableNixpkgsReleaseBranchCheck = false;
+  }
 ]
