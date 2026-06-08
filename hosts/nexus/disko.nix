@@ -7,6 +7,7 @@
         type = "gpt";
         partitions = {
           boot = {
+            name = "ESP";
             size = "1G";
             type = "EF00";
             content = {
