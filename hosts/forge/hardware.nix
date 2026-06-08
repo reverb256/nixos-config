@@ -17,11 +17,11 @@
       gpus = {
         "rtx4060-0" = {
           index = 0;
-          limit = 105; # Tuned for efficiency
+          limit = 110; # Balanced
         };
         "rtx4060-1" = {
           index = 1;
-          limit = 105; # Tuned for efficiency
+          limit = 110; # Balanced
         };
       };
     };

@@ -19,38 +19,38 @@
       };
       "3090" = {
         index = 1;
-        limit = 130; # Tuned for efficiency
+        limit = 150; # Balanced
       };
     };
     profiles = {
       gaming = {
         "3060" = 200;
-        "3090" = 130; # Tuned
+        "3090" = 150; # Balanced
         "4060" = 110;
       };
       ai = {
         "3060" = 110;
-        "3090" = 130; # Tuned
-        "4060" = 105; # Tuned
+        "3090" = 150; # Balanced
+        "4060" = 110; # Balanced
       };
       kubernetes-gpu = {
         "3060" = 150;
-        "3090" = 130; # Tuned
-        "4060" = 105; # Tuned
+        "3090" = 150; # Balanced
+        "4060" = 110; # Balanced
       };
       builds = {
         "3060" = 150;
-        "3090" = 130; # Tuned
+        "3090" = 150; # Balanced
         "4060" = 95;
       };
       mining = {
         "3060" = 100; # Tuned
-        "3090" = 130; # Tuned
-        "4060" = 105; # Tuned
+        "3090" = 150; # Balanced
+        "4060" = 110; # Balanced
       };
       idle = {
         "3060" = 200;
-        "3090" = 130; # Tuned
+        "3090" = 150; # Balanced
         "4060" = 115;
       };
     };
