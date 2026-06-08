@@ -10,6 +10,13 @@
       overlays = [((import ./overlay.nix) {inherit inputs;})];
     };
 
+  tunedNixpkgs2605 = system:
+    import inputs.nixpkgs-2605 {
+      inherit system;
+      config.allowUnfree = true;
+      overlays = [((import ./overlay.nix) {inherit inputs;})];
+    };
+
   commonModules = import ./common-modules-list.nix {
     inherit inputs self;
   };
@@ -42,6 +49,9 @@ in {
       nexus = tunedNixpkgs "x86_64-linux";
       forge = tunedNixpkgs "x86_64-linux";
       sentry = tunedNixpkgs "x86_64-linux";
+      # WSL hosts use 26.05 stable
+      krash3 = tunedNixpkgs2605 "x86_64-linux";
+      krash3-krash = tunedNixpkgs2605 "x86_64-linux";
     };
     machinesFile = ./machines;
     specialArgs = {
@@ -92,7 +102,7 @@ in {
     ];
   };
 
-  # krash3 — NixOS on WSL (reachable via SSH config Port 2222)
+  # krash3 — NixOS on WSL (j_kro's Windows account)
   krash3 = {...}: {
     imports = [
       ./hosts/krash3/configuration.nix
@@ -103,6 +113,26 @@ in {
       tags = ["wsl" "workstation"];
       allowLocalDeployment = false;
       buildOnTarget = false;
+    };
+  };
+
+  # krash3-krash — NixOS on WSL (krash's Windows account)
+  krash3-krash = {...}: {
+    imports = [
+      ./hosts/krash3-krash/configuration.nix
+    ];
+    deployment = {
+      targetHost = "10.1.1.150";
+      targetUser = "krash";
+      tags = ["wsl" "workstation"];
+      allowLocalDeployment = false;
+      buildOnTarget = false;
+      # Deploy via Windows SSH → wsl -d NixOS
+      # Requires manual: wsl -d NixOS bash -c "nixos-rebuild switch"
+      sshOpts = [
+        "-p"
+        "22"
+      ];
     };
   };
 }

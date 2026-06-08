@@ -25,7 +25,12 @@
           pool = lib.mkOption {
             type = lib.types.str;
             default = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
-            description = "Mining pool URL";
+            description = "Mining pool URL(s), comma-separated";
+          };
+          powerLimit = lib.mkOption {
+            type = lib.types.nullOr lib.types.int;
+            default = null;
+            description = "GPU power limit in watts (null = no change)";
           };
         };
       });
@@ -42,28 +47,39 @@
 
   config = lib.mkIf config.services.lpminer.enable {
     systemd.services = lib.listToAttrs (
-      builtins.map (instance: {
+      builtins.map (instance: let
+        powerLimitArgs = if instance.powerLimit != null then
+          "${config.hardware.nvidia.package}/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
+        else "";
+        in {
         name = "lpminer-${instance.name}";
         value = {
           description = "LPMiner - ${instance.name}";
-          wantedBy = ["multi-user.target"];
-          after = ["network-online.target"];
-          wants = ["network-online.target"];
+          wantedBy = [ "multi-user.target" ];
+          after = [ "network-online.target" ];
+          wants = [ "network-online.target" ];
 
           serviceConfig = {
             Type = "simple";
             User = config.services.lpminer.user;
-            Environment = ["CUDA_VISIBLE_DEVICES=${toString instance.gpuId}"];
+            ExecStartPre = lib.mkIf (instance.powerLimit != null) (
+              lib.mkBefore powerLimitArgs
+            );
             ExecStart = pkgs.writeShellScript "lpminer-${instance.name}" ''
+              export CUDA_DEVICE_ORDER=PCI_BUS_ID
+              export CUDA_VISIBLE_DEVICES=${toString instance.gpuId}
+              export LD_LIBRARY_PATH=/run/opengl-driver/lib
               cd /home/j_kro/lpminer-${instance.name}
-              exec ./lpminer --pearl-mine --pool "${instance.pool}" --wallet "${instance.wallet}" --device 0
+              exec ./lpminer --pearl-mine \
+                --pool "${instance.pool}" \
+                --wallet "${instance.wallet}" \
+                --device 0
             '';
             Restart = "always";
             RestartSec = "5";
           };
         };
-      })
-      config.services.lpminer.instances
+      }) config.services.lpminer.instances
     );
   };
 }

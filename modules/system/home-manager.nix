@@ -8,7 +8,7 @@
   hostName = config.networking.hostName;
 in {
   home-manager = {
-    useGlobalPkgs = false;
+    useGlobalPkgs = lib.mkDefault false;
 
     useUserPackages = true;
 

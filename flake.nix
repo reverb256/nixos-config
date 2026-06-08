@@ -10,6 +10,8 @@
   };
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Stable fallback — 26.05 for hosts that can't run unstable
+    nixpkgs-2605.url = "github:NixOS/nixpkgs/nixos-26.05";
     home-manager = {
       url = "tarball+https://codeload.github.com/nix-community/home-manager/tar.gz/509ed3c603349a9d43de9e2ae6613baea6bd5b34";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -172,7 +174,7 @@
 
     # WSL — NixOS on Windows Subsystem for Linux (krash3)
     NixOS-WSL = {
-      url = "tarball+https://codeload.github.com/nix-community/NixOS-WSL/tar.gz/5482f113fd31ebac131d1ebeb2ae90bf0d5e41f5";
+      url = "github:nix-community/NixOS-WSL/main";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -182,6 +184,7 @@
   outputs = inputs @ {
     self,
     nixpkgs,
+    nixpkgs-2605,
     home-manager,
     aagl,
     nur,
@@ -215,7 +218,7 @@
     slimModules = [
       inputs.home-manager.nixosModules.home-manager
       inputs.agenix.nixosModules.default
-      ./modules/default.nix
+      inputs.stylix.nixosModules.default
       {
         nixpkgs.overlays = [self.overlays.default];
         age.identityPaths = [
@@ -232,8 +235,9 @@
       extraModules ? [],
       k8sManifest ? null,
       modules ? commonModules,
+      nixpkgsInput ? nixpkgs,
     }:
-      nixpkgs.lib.nixosSystem {
+      nixpkgsInput.lib.nixosSystem {
         specialArgs = {
           inherit inputs;
         };
@@ -243,7 +247,7 @@
             ./hosts/${hostName}/configuration.nix
           ]
           ++ extraModules
-          ++ nixpkgs.lib.optional (k8sManifest != null) {
+          ++ nixpkgsInput.lib.optional (k8sManifest != null) {
             services.k8s-nix-deploy.enable = true;
             services.k8s-nix-deploy.manifestPackage = k8sManifest;
           };
@@ -271,10 +275,17 @@
       };
       krash3 = {
         hostName = "krash3";
-        k8sManifest = null; # No K8s manifests
-        modules = slimModules; # WSL — no desktop/GPU/cluster
+        k8sManifest = null;
+        modules = slimModules;
+        nixpkgsInput = inputs.nixpkgs-2605;
       };
-    };
+      krash3-krash = {
+        hostName = "krash3-krash";
+        k8sManifest = null;
+        modules = slimModules;
+        nixpkgsInput = inputs.nixpkgs-2605;
+      };
+  };
   in {
     checks.x86_64-linux = {};
 
@@ -285,6 +296,7 @@
               inherit (value) hostName;
               k8sManifest = value.k8sManifest or null;
               modules = value.modules or commonModules;
+              nixpkgsInput = value.nixpkgsInput or nixpkgs;
             }
         )
         hosts)
