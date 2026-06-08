@@ -10,7 +10,7 @@ in {
     distributedBuilds = lib.mkDefault false;
 
     settings = {
-      builders = lib.mkDefault "@/etc/nix/machines";
+      builders = lib.mkDefault "@/etc/nix/machines.toml";
       builders-use-substitutes = true;
       require-sigs = lib.mkForce false;
       trusted-users = lib.mkForce [
