@@ -13,7 +13,7 @@
       ./services.nix
       ./hardware-configuration.nix
       ./disko.nix
-      ./preservation.nix
+      ./impermanence.nix
       ./nfs-allow.nix
 
       ./ai-inference.nix
