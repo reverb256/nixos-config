@@ -135,7 +135,7 @@ in {
     nfs-state-sync = {
       enable = true;
       sourceHost = "nexus";
-      paths = ["/data/hermes" "/data/pi"];
+      paths = ["/data/hermes"];
       interval = "15min";
     };
 
@@ -354,6 +354,5 @@ in {
   # Create directories for hermes/pi bind mounts on Zephyr
   systemd.tmpfiles.rules = [
     "d /data/hermes 0775 j_kro j_kro -"
-    "d /data/pi 0775 j_kro j_kro -"
   ];
 }
