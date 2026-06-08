@@ -1,6 +1,6 @@
 { config, lib, pkgs, utils, ... }: {
   disko.devices = {
-    disk.nvme0n1 = {
+    disk.nvme1n1 = {
       device = "/dev/disk/by-id/nvme-WDC_WDS100T2B0C-00PXH0_203797800744";
       type = "disk";
       content = {
