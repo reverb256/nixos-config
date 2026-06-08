@@ -228,10 +228,9 @@ in {
       };
     };
     # Ensure cert directory exists and has correct permissions
-    systemd.tmpfiles.rules = [
-      "d /etc/ssl/cluster-ca 0755 root root -"
-      "f /etc/ssl/cluster-ca/leaf.key 0640 root ${cfg.keyGroup} -"
-      "f /etc/ssl/cluster-ca/leaf.crt 0644 root root -"
-    ];
+    systemd.tmpfiles.rules =
+      [ "d /etc/ssl/cluster-ca 0755 root root -" ]
+      ++ lib.optional cfg.generateLeaf "f /etc/ssl/cluster-ca/leaf.key 0640 root ${cfg.keyGroup} -"
+      ++ [ "f /etc/ssl/cluster-ca/leaf.crt 0644 root root -" ];
   };
 }
