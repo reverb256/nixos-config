@@ -22,12 +22,6 @@
         package = pkgs.noto-fonts-color-emoji;
         name = "Noto Color Emoji";
       };
-      packages = [
-        pkgs.inter
-        pkgs.nerd-fonts.jetbrains-mono
-        pkgs.dejavu_fonts
-        pkgs.noto-fonts-color-emoji
-      ];
     };
 
     cursor = {
