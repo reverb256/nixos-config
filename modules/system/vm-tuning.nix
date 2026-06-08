@@ -60,13 +60,11 @@
 
     "vm.vfs_cache_pressure" = lib.mkForce 150;
 
-    "vm.page-cache-limit" = lib.mkForce 1073741824;
 
     "vm.page-cluster" = lib.mkForce 3;
 
     "vm.watermark_scale_factor" = lib.mkForce 150;
 
-    "vm.extra_free_kbytes" = lib.mkForce 524288;
   };
 
   boot.kernel.sysctl."kernel.core_pattern" = "/dev/null";
