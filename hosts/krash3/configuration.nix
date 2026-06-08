@@ -11,7 +11,6 @@ in {
     ./hardware-configuration.nix
     inputs.NixOS-WSL.nixosModules.wsl
     inputs.home-manager.nixosModules.home-manager
-    ../../modules/security/cluster-mesh.nix
   ];
 
   # ── WSL ─────────────────────────────────────────────────
@@ -31,7 +30,7 @@ in {
   boot.loader.systemd-boot.enable = false;
   boot.loader.efi.canTouchEfiVariables = false;
 
-  system.stateVersion = "25.11";
+  system.stateVersion = "26.05";
   networking.hostName = "krash3";
   networking.hostId = "deadbeef";
 
@@ -39,6 +38,7 @@ in {
 
   # ── Users ───────────────────────────────────────────────
   users.users.j_kro = {
+uid = 1001;
     isNormalUser = true;
     extraGroups = ["wheel" "networkmanager"];
     openssh.authorizedKeys.keys = meshKeys;
@@ -56,15 +56,16 @@ in {
       PubkeyAuthentication = true;
       PermitRootLogin = "no";
     };
-    ports = [2222];
+    ports = [22222];
     openFirewall = true;
-    startWhenNeeded = true;
+    startWhenNeeded = false;
   };
 
-  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [2222];
+  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22222];
 
   # ── Nix ─────────────────────────────────────────────────
   nix = {
+    registry.nixpkgs.to.path = lib.mkForce inputs.nixpkgs-2605.outPath;
     settings = {
       trusted-users = ["j_kro" "root"];
       experimental-features = ["nix-command" "flakes"];
@@ -128,7 +129,7 @@ in {
     useUserPackages = true;
     users.j_kro = {pkgs, ...}: {
       home = {
-        stateVersion = lib.mkForce "25.11";
+        stateVersion = lib.mkForce "26.05";
         username = "j_kro";
         homeDirectory = "/home/j_kro";
       };
@@ -146,5 +147,4 @@ in {
   };
 
   # ── Cluster mesh ────────────────────────────────────────
-  services.cluster-mesh.enable = true;
 }
