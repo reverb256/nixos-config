@@ -36,10 +36,11 @@
   # bcache0 needs the bcache kernel module in initrd so it assembles at boot
   boot.initrd.kernelModules = [ "bcache" ];
 
-  # /, /home, swap, /boot managed by disko.nix (nvme1n1)
-  # Only bcache0 mounts here — using by-label for stable identification
+  # /, /home, /boot, /nix, /persistent, /games, swap managed by disko.nix
+  # Only bcache0 and extra data mounts here
 
   fileSystems = {
+    # --- bcache0 (nexus-storage) subvol mounts ---
     "/data/home" = {
       device = "/dev/disk/by-label/nexus-storage";
       fsType = "btrfs";
@@ -100,6 +101,49 @@
         "compress=zstd"
         "ssd"
         "discard=async"
+        "nofail"
+        "x-systemd.device-timeout=10s"
+      ];
+    };
+
+    # --- NVMe data mounts (on @home subvol, sharing space with /home) ---
+    "/data/hermes" = {
+      device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
+      fsType = "btrfs";
+      options = [
+        "subvol=@home"
+        "compress=zstd"
+        "ssd"
+        "discard=async"
+        "noatime"
+        "nofail"
+        "x-systemd.device-timeout=10s"
+      ];
+    };
+
+    "/data/models" = {
+      device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
+      fsType = "btrfs";
+      options = [
+        "subvol=@home"
+        "compress=zstd"
+        "ssd"
+        "discard=async"
+        "noatime"
+        "nofail"
+        "x-systemd.device-timeout=10s"
+      ];
+    };
+
+    "/data/pi" = {
+      device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
+      fsType = "btrfs";
+      options = [
+        "subvol=@home"
+        "compress=zstd"
+        "ssd"
+        "discard=async"
+        "noatime"
         "nofail"
         "x-systemd.device-timeout=10s"
       ];
