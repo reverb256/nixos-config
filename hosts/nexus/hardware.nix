@@ -162,7 +162,7 @@
     gpus = {
       "3060ti" = {
         index = 0;
-        limit = 120;
+        limit = 100; # Tuned for efficiency (min floor)
       };
     };
   };
