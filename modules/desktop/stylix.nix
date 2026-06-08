@@ -51,19 +51,5 @@
       autoImport = true;
     };
 
-    targets = {
-      alacritty.enable = true;
-      bat.enable = true;
-      btop.enable = true;
-      fzf.enable = true;
-      fish.enable = true;
-      ghostty.enable = true;
-      helix.enable = true;
-      lazygit.enable = true;
-      neovim.enable = true;
-      starship.enable = true;
-      tmux.enable = true;
-      gtk.enable = true;
-    };
   };
 }
