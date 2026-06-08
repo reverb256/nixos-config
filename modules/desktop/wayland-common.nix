@@ -63,7 +63,7 @@ in {
     printing = {
       enable = true;
       browsing = true;
-      listenAddresses = ["*:631"];
+      # systemd cups.socket handles port binding; explicit listen causes "Address already in use"
       allowFrom = ["all"];
       defaultShared = true;
     };
