@@ -196,11 +196,6 @@ in {
    # Hermes WebUI — disabled on nexus (no /data/projects/own/hermes-webui)
    # Runs on zephyr only. Dead code and timer removed.
 
-   # Agent network restrictions — restrict AI agents to allowed destinations only
-   services.agent-firewall = {
-     enable = true;
-     auditLog = true;
-   };
 
   # Load Z.AI and NVIDIA API keys for hermes-agent
   # The official module's environment option doesn't reliably set systemd env vars,
@@ -349,7 +344,7 @@ in {
   services.btrfs-boot-snapshot = {
     enable = true; # depends on initrd-ssh
     subvolume = "@root";
-    device = "/dev/disk/by-uuid/076e60fb-09b9-4f5c-9d9b-cdbb1f1f859b";
+    device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
   };
 
   services.cachix-auth.enable = true;
@@ -379,5 +374,21 @@ in {
      generateNetworkPolicies = true;
      generateCasdoorApps = true;
    };
+
+  # GitHub Actions self-hosted runner for CI/CD
+  services.ci-runner = {
+    enable = true;
+    repo = "reverb256/nixos-config";
+    tokenFile = "/run/agenix/github-runner-pat";
+    autoStart = true;
+    extraLabels = ["nexus"];
+  };
+
+  age.secrets.github-runner-pat = {
+    file = "${inputs.self}/secrets/github-runner-pat.age";
+    mode = "440";
+    owner = "runner";
+    group = "runner";
+  };
  }
 

@@ -2,7 +2,7 @@
   config,
   lib,
   pkgs,
-  ...
+  inputs, ...
 }: let
   cluster = config.networking.cluster;
 in {
@@ -145,5 +145,20 @@ in {
       omp = {enable = true;};
     };
     enableShellEnv = true;
+  };
+
+  services.ci-runner = {
+    enable = true;
+    repo = "reverb256/nixos-config";
+    tokenFile = "/run/agenix/github-runner-pat";
+    autoStart = true;
+    extraLabels = ["sentry"];
+  };
+
+  age.secrets.github-runner-pat = {
+    file = "${inputs.self}/secrets/github-runner-pat.age";
+    mode = "440";
+    owner = "runner";
+    group = "runner";
   };
 }
