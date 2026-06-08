@@ -117,7 +117,7 @@
     after = ["systemd-udev-settle.service"];
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "/bin/sh -c 'echo high > /sys/class/drm/card0/device/power_dpm_force_performance_level'";
+      ExecStart = "/bin/sh -c 'for c in /sys/class/drm/card*/device; do [ "$(cat "$c/vendor" 2>/dev/null)" = "0x1002" ] && echo high > "$c/power_dpm_force_performance_level" 2>/dev/null && break; done'";
       RemainAfterExit = true;
     };
   };
