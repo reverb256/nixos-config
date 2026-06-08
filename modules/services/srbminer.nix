@@ -1,92 +1,144 @@
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}: {
-  options.services.srbminer = {
-    enable = lib.mkEnableOption "SRBMiner-Multi GPU mining";
+{ config, lib, pkgs, inputs, ... }:
 
-    instances = lib.mkOption {
-      type = lib.types.listOf (lib.types.submodule {
-        options = {
-          name = lib.mkOption {
-            type = lib.types.str;
-            description = "Service name suffix";
-          };
-          gpuId = lib.mkOption {
-            type = lib.types.int;
-            description = "GPU ID to use";
-          };
-          wallet = lib.mkOption {
-            type = lib.types.str;
-            description = "Wallet address";
-          };
-          pool = lib.mkOption {
-            type = lib.types.str;
-            default = "stratum+ssl://prl-us.kryptex.network:8048";
-            description = "Mining pool URL";
-          };
-          apiPort = lib.mkOption {
-            type = lib.types.int;
-            default = 21550;
-            description = "API port";
-          };
-          powerLimit = lib.mkOption {
-            type = lib.types.int;
-            default = 100;
-            description = "Power limit in watts";
-          };
-        };
-      });
-      default = [];
-      description = "List of SRBMiner instances";
+let
+  cfg = config.services.srbminer;
+  defaultBinary = "/home/j_kro/SRBMiner-MULTI";
+
+  # Resolve pool/algorithm - use GPU override if non-null, otherwise global
+  resolvePool = gpu: if gpu.pool != null then gpu.pool else cfg.pool;
+  resolveAlgo = gpu: if gpu.algorithm != null then gpu.algorithm else cfg.algorithm;
+in {
+  options.services.srbminer = {
+    enable = lib.mkEnableOption "SRBMiner-MULTI GPU miners";
+
+    binary = lib.mkOption {
+      type = lib.types.path;
+      default = defaultBinary;
+      description = "Path to SRBMiner-MULTI binary";
     };
 
-    user = lib.mkOption {
+    pool = lib.mkOption {
       type = lib.types.str;
-      default = "j_kro";
-      description = "User to run miner as";
+      default = "stratum+ssl://prl-us.kryptex.network:8048";
+      description = "Mining pool URL";
+    };
+
+    wallet = lib.mkOption {
+      type = lib.types.str;
+      default = "krxXVNVMM7";
+      description = "Base wallet address";
+    };
+
+    algorithm = lib.mkOption {
+      type = lib.types.str;
+      default = "pearlhash";
+      description = "Mining algorithm";
+    };
+
+    tls = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable TLS for pool connection";
+    };
+
+    extraArgs = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ "--disable-cpu" "--disable-gpu-amd" ];
+      description = "Common extra arguments for all miners";
+    };
+
+    restart = lib.mkOption {
+      type = lib.types.str;
+      default = "always";
+      description = "Systemd Restart policy";
+    };
+    restartSec = lib.mkOption {
+      type = lib.types.int;
+      default = 10;
+      description = "Systemd RestartSec in seconds";
+    };
+
+    gpu0 = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          enable = lib.mkEnableOption "Enable GPU 0 miner";
+          apiPort = lib.mkOption {
+            type = lib.types.port;
+            default = 21550;
+          };
+          workerSuffix = lib.mkOption {
+            type = lib.types.str;
+            default = "forge-4060-0";
+          };
+          pool = lib.mkOption {
+            type = lib.types.nullOr lib.types.str;
+            default = null;
+          };
+          algorithm = lib.mkOption {
+            type = lib.types.nullOr lib.types.str;
+            default = null;
+          };
+          extraArgs = lib.mkOption {
+            type = lib.types.listOf lib.types.str;
+            default = [ ];
+          };
+        };
+      };
+      default = { enable = true; };
+    };
+
+    gpu1 = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          enable = lib.mkEnableOption "Enable GPU 1 miner";
+          apiPort = lib.mkOption {
+            type = lib.types.port;
+            default = 21551;
+          };
+          workerSuffix = lib.mkOption {
+            type = lib.types.str;
+            default = "forge-4060-1";
+          };
+          pool = lib.mkOption {
+            type = lib.types.nullOr lib.types.str;
+            default = null;
+          };
+          algorithm = lib.mkOption {
+            type = lib.types.nullOr lib.types.str;
+            default = null;
+          };
+          extraArgs = lib.mkOption {
+            type = lib.types.listOf lib.types.str;
+            default = [ ];
+          };
+        };
+      };
+      default = { enable = true; };
     };
   };
 
-  config = lib.mkIf config.services.srbminer.enable {
-    systemd.tmpfiles.rules = [
-      "d /data/SRBMiner-MULTI 0755 j_kro j_kro - -"
-      "C! /data/SRBMiner-MULTI/SRBMiner-MULTI 0755 j_kro j_kro - /home/j_kro/SRBMiner-MULTI"
-    ];
-
-    systemd.services = lib.listToAttrs (
-      builtins.map (instance: {
-        name = "srbminer-${instance.name}";
-        value = {
-          description = "SRBMiner-Multi - ${instance.name}";
-          wantedBy = ["multi-user.target"];
-          after = ["network-online.target"];
-          wants = ["network-online.target"];
-
-          serviceConfig = {
-            Type = "simple";
-            User = config.services.srbminer.user;
-            ExecStart = "${pkgs.writeShellScriptBin "srbminer-${instance.name}" ''
-              export CUDA_VISIBLE_DEVICES=${toString instance.gpuId}
-              /home/j_kro/SRBMiner-MULTI \
-                --disable-cpu \
-                --disable-gpu-amd \
-                --algorithm pearlhash \
-                --pool ${instance.pool} \
-                --wallet ${instance.wallet} \
-                --gpu-id 0 \
-                --tls true \
-                --api-enable \
-                --api-port ${toString instance.apiPort}
-            ''}/bin/srbminer-${instance.name}";
-            Restart = "always";
-            RestartSec = "10";
-          };
+  config = lib.mkIf cfg.enable {
+    systemd.services = {
+      srbminer-gpu0 = lib.mkIf cfg.gpu0.enable {
+        description = "SRBMiner-MULTI GPU 0";
+        after = [ "network.target" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          ExecStart = lib.getExe cfg.binary + " --pool ${resolvePool cfg.gpu0} --wallet ${cfg.wallet}.${cfg.gpu0.workerSuffix} --algorithm ${resolveAlgo cfg.gpu0} ${lib.concatStringsSep " " (cfg.extraArgs ++ cfg.gpu0.extraArgs)}";
+          Restart = cfg.restart;
+          RestartSec = cfg.restartSec;
         };
-      })
-      config.services.srbminer.instances
-    );
+      };
+      srbminer-gpu1 = lib.mkIf cfg.gpu1.enable {
+        description = "SRBMiner-MULTI GPU 1";
+        after = [ "network.target" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          ExecStart = lib.getExe cfg.binary + " --pool ${resolvePool cfg.gpu1} --wallet ${cfg.wallet}.${cfg.gpu1.workerSuffix} --algorithm ${resolveAlgo cfg.gpu1} ${lib.concatStringsSep " " (cfg.extraArgs ++ cfg.gpu1.extraArgs)}";
+          Restart = cfg.restart;
+          RestartSec = cfg.restartSec;
+        };
+      };
+    };
   };
 }
