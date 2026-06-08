@@ -13,43 +13,8 @@
   boot.kernelModules = ["kvm-amd"];
   boot.extraModulePackages = [];
 
-  # NVMe0n1 (root btrfs) - Root, Home, Data mounts
-
-  fileSystems."/home" = {
-    device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
-    fsType = "btrfs";
-    options = ["subvol=@home" "ssd" "discard=async" "noatime" "commit=300"];
-  };
-
-  fileSystems."/data/hermes" = {
-    device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
-    fsType = "btrfs";
-    options = ["subvol=@home" "ssd" "discard=async" "noatime" "commit=300"];
-  };
-
-  fileSystems."/data/models" = {
-    device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
-    fsType = "btrfs";
-    options = ["subvol=@home" "ssd" "discard=async" "noatime" "commit=300"];
-  };
-
-  fileSystems."/data/pi" = {
-    device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
-    fsType = "btrfs";
-    options = ["subvol=@home" "ssd" "discard=async" "noatime" "commit=300"];
-  };
-
-  # NVMe1n1 (nix btrfs) - Nix, Var
-
-
-  # Boot partition (NVMe0n1)
-
-  # Swap partition
-  swapDevices = [
-    {
-      device = "/dev/disk/by-partlabel/disk-nvme1n1-swap";
-    }
-  ];
+  # Storage managed by disko.nix (NVMe) and hardware.nix (bcache0)
+  # No fileSystems or swapDevices here — those would conflict with disko
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
