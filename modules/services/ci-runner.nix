@@ -2,6 +2,28 @@
 with lib; let
   cfg = config.services.ci-runner;
   runnerHome = "/var/lib/${cfg.user}";
+  # Build script fragments conditionally to avoid null interpolation
+  getTokenCmd = if cfg.tokenFile != null then ''
+    TOKEN=$(cat "${cfg.tokenFile}")
+    echo "Using pre-generated runner token from ${cfg.tokenFile}"
+  '' else if cfg.patFile != null then ''
+    echo "Generating runner registration token from PAT..."
+    PAT=$(cat "${cfg.patFile}")
+    API_RESPONSE=$(curl -s -X POST \
+      -H "Authorization: Bearer $PAT" \
+      -H "Accept: application/vnd.github+json" \
+      "https://api.github.com/repos/${cfg.repo}/actions/runners/registration-token")
+    TOKEN=$(echo "$API_RESPONSE" | jq -r '.token // empty')
+    if [ -z "$TOKEN" ]; then
+      echo "ERROR: Failed to generate runner token from PAT"
+      echo "API response: $API_RESPONSE"
+      exit 1
+    fi
+    echo "Successfully generated runner token"
+  '' else ''
+    echo "ERROR: Neither tokenFile nor patFile is provided/available"
+    exit 1
+  '';
 in {
   options.services.ci-runner = {
     enable = mkEnableOption "GitHub Actions self-hosted runner";
@@ -85,28 +107,7 @@ in {
           echo "Runner already configured, skipping setup"
           exit 0
         fi
-        TOKEN=""
-        if [ -n "${cfg.tokenFile}" ] && [ -f "${cfg.tokenFile}" ]; then
-          TOKEN=$(cat "${cfg.tokenFile}")
-          echo "Using pre-generated runner token from ${cfg.tokenFile}"
-        elif [ -n "${cfg.patFile}" ] && [ -f "${cfg.patFile}" ]; then
-          echo "Generating runner registration token from PAT..."
-          PAT=$(cat "${cfg.patFile}")
-          API_RESPONSE=$(curl -s -X POST \
-            -H "Authorization: Bearer $PAT" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${cfg.repo}/actions/runners/registration-token")
-          TOKEN=$(echo "$API_RESPONSE" | jq -r '.token // empty')
-          if [ -z "$TOKEN" ]; then
-            echo "ERROR: Failed to generate runner token from PAT"
-            echo "API response: $API_RESPONSE"
-            exit 1
-          fi
-          echo "Successfully generated runner token"
-        else
-          echo "ERROR: Neither tokenFile nor patFile is provided/available"
-          exit 1
-        fi
+        ${getTokenCmd}
         ${pkgs.github-runner}/bin/config.sh \
           --url "https://github.com/${cfg.repo}" \
           --token "$TOKEN" \
