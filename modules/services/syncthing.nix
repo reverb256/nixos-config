@@ -12,7 +12,7 @@ in {
   config = lib.mkIf cfg.enable {
     services.syncthing = {
       enable = true;
-      user = "root";
+      user = "j_kro";
       dataDir = "/var/lib/syncthing";
       configDir = "/var/lib/syncthing/.config/syncthing";
 
