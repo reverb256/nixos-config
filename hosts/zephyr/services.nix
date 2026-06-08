@@ -27,14 +27,11 @@ in {
       hfTokenFile = config.age.secrets.huggingface-token.path;
       githubTokenFile = config.age.secrets.github-token.path;
     };
+    # k3s-cluster disabled — zephyr is NOT a K8s node
+    # zephyr is a workstation/gaming node only, not part of the 3-node K3s cluster
+    # Cluster nodes: nexus (control plane), forge (server+etcd), sentry (server+etcd)
     k3s-cluster = {
-      enable = true;
-      nvidia.enable = true;
-      role = "agent";
-      nodeName = "zephyr";
-      serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
-      tokenFile = "/run/agenix/k3s-cluster-token";
-      nodeIP = cluster.hosts.zephyr.ip;
+      enable = false;
     };
 
     k8s-secret-bootstrap = {
@@ -348,7 +345,7 @@ in {
   services.secret-hygiene.enable = true;
   services.btrfs-boot-snapshot = {
     enable = true;
-    device = "/dev/disk/by-uuid/b07258b9-b1a3-4540-ae34-69e441faba28";
+    device = "/dev/disk/by-id/nvme-Samsung_SSD_980_1TB_S64ANJ0R712954W-part2";
   };
 
   # Create directories for hermes/pi bind mounts on Zephyr
