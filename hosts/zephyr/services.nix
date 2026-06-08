@@ -355,4 +355,5 @@ in {
   systemd.tmpfiles.rules = [
     "d /data/hermes 0775 j_kro j_kro -"
   ];
+  services.syncthing-cluster.enable = true;
 }
