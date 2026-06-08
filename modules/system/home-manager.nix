@@ -58,6 +58,7 @@ in {
       stylix = {
         inherit (config.stylix) base16Scheme;
         inherit (config.stylix) image;
+        targets.zen-browser.profileNames = ["default"];
       };
 
       # CopyQ clipboard manager (replaces cliphist)
@@ -77,6 +78,13 @@ in {
       home.sessionVariables = {
         HF_TOKEN = "/run/agenix/huggingface-token";
       };
+
+      # Remove stale HM backup files before activation to prevent clobber errors
+      home.activation.removeStaleBackups = ''
+        rm -f "$HOME/.config/alacritty/alacritty.toml.hm-backup"
+        rm -f "$HOME/.config/starship.toml.hm-backup"
+        rm -f "$HOME/.config/fish/config.fish.hm-backup"
+      '';
     };
   };
 }

@@ -39,7 +39,7 @@ in {
       description = "Set AMD GPU power limits via rocm-smi";
       wantedBy = ["multi-user.target"];
       after = ["systemd-modules-load.service"];
-      path = [config.hardware.opengl.package] ++ (with pkgs.rocmPackages; [rocm-smi clr]);
+      path = [config.hardware.graphics.package] ++ (with pkgs.rocmPackages; [rocm-smi clr]);
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
