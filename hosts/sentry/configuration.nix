@@ -71,6 +71,29 @@
   services.flake-lock-sync.enable = true;
   systemd.timers.flake-lock-sync.enable = true;
 
+  # Kanban automation — execute ready tasks every 15 minutes
+  systemd.services.kanban-execute = {
+    description = "MapleSpike Kanban Task Executor";
+    path = [ pkgs.bash pkgs.jq ];
+    script = ''
+      exec /home/j_kro/projects/maplespike/scripts/kanban-execute.sh
+    '';
+    serviceConfig = {
+      User = "j_kro";
+      Group = "users";
+      Type = "oneshot";
+      WorkingDirectory = "/home/j_kro/projects/maplespike";
+    };
+  };
+  systemd.timers.kanban-execute = {
+    description = "Run kanban executor every 15 minutes";
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "minute:0/15";
+      Persistent = true;
+    };
+  };
+
   profiles.node.sentry-monitoring.enable = true;
 
   services.ai-inference.enable = lib.mkForce false;
