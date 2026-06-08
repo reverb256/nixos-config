@@ -19,7 +19,7 @@
     rgb-control = {
       enable = true;
       openrgb.enable = true;
-      openrazer.enable = false; # CachyOS 7.0.9 kABI breaks OpenRazer build, Nexus has no Razer hardware
+      openrazer.enable = false;
       temperatureReactive = {
         enable = true;
         sensor = "cpu";
@@ -33,12 +33,15 @@
     };
   };
 
-  # /, /home, swap, /boot are managed by disko.nix (nvme0n1)
-  # Only bcache0 and nvme1n1 mounts here
+  # bcache0 needs the bcache kernel module in initrd so it assembles at boot
+  boot.initrd.kernelModules = [ "bcache" ];
+
+  # /, /home, swap, /boot managed by disko.nix (nvme1n1)
+  # Only bcache0 mounts here — using by-label for stable identification
 
   fileSystems = {
     "/data/home" = {
-      device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
+      device = "/dev/disk/by-label/nexus-storage";
       fsType = "btrfs";
       options = [
         "subvol=home"
@@ -51,7 +54,7 @@
     };
 
     "/data/shared" = {
-      device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
+      device = "/dev/disk/by-label/nexus-storage";
       fsType = "btrfs";
       options = [
         "subvol=shared"
@@ -64,7 +67,7 @@
     };
 
     "/data/backups" = {
-      device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
+      device = "/dev/disk/by-label/nexus-storage";
       fsType = "btrfs";
       options = [
         "subvol=backups"
@@ -77,7 +80,7 @@
     };
 
     "/data/media" = {
-      device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
+      device = "/dev/disk/by-label/nexus-storage";
       fsType = "btrfs";
       options = [
         "subvol=media"
@@ -90,7 +93,7 @@
     };
 
     "/var/lib/containers" = {
-      device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
+      device = "/dev/disk/by-label/nexus-storage";
       fsType = "btrfs";
       options = [
         "subvol=containers"

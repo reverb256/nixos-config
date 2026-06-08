@@ -348,7 +348,7 @@ in {
   services.secret-hygiene.enable = true;
   services.btrfs-boot-snapshot = {
     enable = true;
-    device = "/dev/disk/by-uuid/b07258b9-b1a3-4540-ae34-69e441faba28";
+    device = "/dev/disk/by-label/root";
   };
 
   # Create directories for hermes/pi bind mounts on Zephyr
