@@ -1,53 +1,54 @@
-{config, ...}: let
+{ config, lib, ... }:
+let
   c = config.lib.stylix.colors.withHashtag;
 in {
   programs.starship = {
     enable = true;
 
     settings = {
+      # ── Three-line layout ──────────────────────────────────────
+      # L1: time · hostname
+      # L2: directory · git · nix-shell ── cmd_duration
+      # L3: ╰─❯
+      format = ''
+        $time$hostname
+        $directory$git_branch$git_status$nix_shell$fill$cmd_duration
+        $character'';
+
       add_newline = false;
 
-      character = {
-        success_symbol = "[❯](bold ${c.base0D})";
-        error_symbol = "[✗](bold ${c.base08})";
-        vicmd_symbol = "[❮](bold ${c.base0B})";
+      # ── Time ────────────────────────────────────────────────────
+      time = {
+        disabled = false;
+        format = "[$time] ";
+        style = "italic ${c.base03}";
+        use_12hr = false;
+        time_format = "%T";
       };
 
-      format = "$hostname$git_branch$git_status$nix_shell$character";
-
-      command_timeout = 10000;
-
+      # ── Hostname ────────────────────────────────────────────────
       hostname = {
         ssh_only = false;
-        format = "[$hostname]($style) ";
-        style = "bold ${c.base0B}";
+        format = "[$hostname](bold ${c.base0B}) ";
         disabled = false;
       };
 
-      username = {
-        show_always = false;
-        disabled = true;
-      };
-
+      # ── Directory ──────────────────────────────────────────────
       directory = {
         truncation_length = 3;
         truncation_symbol = "…/";
-        repo_root_style = "bold ${c.base0D}";
-        repo_root_format = "[$path]($style)[$read_only]($read_only_style) ";
-        read_only = " 🔒";
         style = "bold ${c.base0D}";
         fish_style_pwd_rooted = "bold ${c.base0D}";
       };
 
+      # ── Git ────────────────────────────────────────────────────
       git_branch = {
-        format = "[$branch ]($style)";
-        style = "italic ${c.base0D}";
-        symbol = "";
+        format = "on [$branch](italic ${c.base0D}) ";
+        symbol = " ";
       };
 
       git_status = {
-        format = "[$all_status]($style) ";
-        style = "${c.base0D}";
+        format = "[($all_status$ahead_behind)](bold ${c.base0D}) ";
         ahead = "⇡";
         behind = "⇣";
         diverged = "⇕";
@@ -58,15 +59,38 @@ in {
         stashed = "≡";
       };
 
+      # ── Nix Shell ─────────────────────────────────────────────
       nix_shell = {
-        symbol = "";
-        format = "[local ]($style)";
-        style = "bold dimmed white";
+        format = "[❄ $state($name)](bold ${c.base0A}) ";
         disabled = false;
         heuristic = true;
       };
 
+      # ── Command Duration ──────────────────────────────────────
+      cmd_duration = {
+        format = "[⏱ $duration](italic ${c.base03})";
+        show_milliseconds = false;
+        min_time = 2000;
+      };
+
+      # ── Prompt Character ──────────────────────────────────────
+      character = {
+        success_symbol = "[╰─❯](bold ${c.base0D})";
+        error_symbol = "[╰─✗](bold ${c.base08})";
+        vicmd_symbol = "[╰─❮](bold ${c.base0B})";
+      };
+
+      # ── Fill line ─────────────────────────────────────────────
+      fill = {
+        symbol = "─";
+        style = "${c.base02}";
+      };
+
+      # ── Misc ──────────────────────────────────────────────────
+      command_timeout = 10000;
+
       sudo.disabled = true;
+      username.disabled = true;
       python.disabled = true;
       ruby.disabled = true;
       golang.disabled = true;
@@ -79,6 +103,17 @@ in {
       kubernetes.disabled = true;
       docker_context.disabled = true;
       nodejs.disabled = true;
+      package.disabled = true;
+      dart.disabled = true;
+      elixir.disabled = true;
+      haxe.disabled = true;
+      julia.disabled = true;
+      lua.disabled = true;
+      perl.disabled = true;
+      php.disabled = true;
+      scala.disabled = true;
+      swift.disabled = true;
+      zig.disabled = true;
     };
   };
 }
