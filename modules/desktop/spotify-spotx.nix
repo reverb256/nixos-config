@@ -239,8 +239,8 @@ in {
         spotx-patch = lib.mkIf cfg.autoPatch {
           description = "Spotify SpotX Patch Service (Flatpak)";
           wantedBy = ["multi-user.target"];
-          after = ["network-online.target" "flatpak-update.service"];
-          wants = ["network-online.target"];
+          after = ["network-online.target"];
+          wants = ["network-online.target" "flatpak-update.service"];
           serviceConfig = {
             Type = "oneshot";
             ExecStart = "/etc/spotx/patch-service.sh";
