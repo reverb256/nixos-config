@@ -47,7 +47,7 @@
   # Swap partition
   swapDevices = [
     {
-      device = "/dev/disk/by-uuid/5ade035b-22d7-46e0-88d1-cd876d0cbd81";
+      device = "/dev/disk/by-partlabel/disk-nvme1n1-swap";
     }
   ];
 

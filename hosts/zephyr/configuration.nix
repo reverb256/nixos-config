@@ -341,7 +341,7 @@ in {
   # Secondary: XPG GAMMIX S11 Pro 1TB (nvme1n1, nvme-XPG_GAMMIX_S11_Pro_2J2520059477)
   #   nvme1n1p2 (921.9G) at /data/projects — 69%, 288G free
   # Pre-reboot setup:
-  #   sudo mount /dev/disk/by-id/nvme-XPG_GAMMIX_S11_Pro_2J2520059477-part2 /mnt
+  #   sudo mount /dev/disk/by-label/nix /mnt
   #   sudo btrfs subvolume create /mnt/@nix
   #   sudo mkdir -p /mnt/@nix/store /mnt/@nix/var
   #   sudo cp -a /nix/store/* /mnt/@nix/store/
@@ -350,7 +350,7 @@ in {
   #   sudo nixos-rebuild boot && reboot
   # ═══════════════════════════════════════════════════════════════════
   fileSystems."/nix" = lib.mkForce {
-    device = "/dev/disk/by-id/nvme-XPG_GAMMIX_S11_Pro_2J2520059477-part2";
+    device = "/dev/disk/by-label/nix";
     fsType = "btrfs";
     options = ["subvol=@nix" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
   };
@@ -358,7 +358,7 @@ in {
   # Mount /var on the secondary NVMe — frees ~22G on the system drive
   # Covers: /var/lib/rancher (k3s), /var/lib/flatpak, /var/lib/nix-csi
   fileSystems."/var" = lib.mkForce {
-    device = "/dev/disk/by-id/nvme-XPG_GAMMIX_S11_Pro_2J2520059477-part2";
+    device = "/dev/disk/by-label/nix";
     fsType = "btrfs";
     options = ["subvol=@var" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
   };
