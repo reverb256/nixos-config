@@ -142,23 +142,24 @@ in {
     ];
   };
 
-  # Bind mounts for NFS export paths (hermes + pi + models state)
-  # /data/hermes and /data/pi are exported via NFS but data lives in ~/
-  # /data/models is exported via NFS and points to LM Studio models
+  # Bind mount for NFS export (hermes state lives in ~/)
   fileSystems."/data/hermes" = {
     device = "/home/j_kro/.hermes";
     fsType = "none";
     options = ["bind" "rw"];
   };
-  fileSystems."/data/pi" = {
-    device = "/home/j_kro/.pi";
-    fsType = "none";
-    options = ["bind" "rw"];
+
+  # Gammix subvolume mounts for games + projects
+  # XPG GAMMIX S11 Pro (nvme1n1p2, 938G, 457G free)
+  fileSystems."/data/games" = {
+    device = "/dev/disk/by-partlabel/disk-xpg-nix";
+    fsType = "btrfs";
+    options = ["subvol=@games" "compress=zstd:3" "ssd" "discard=async" "noatime" "nofail"];
   };
-  fileSystems."/data/models" = {
-    device = "/home/j_kro/.lmstudio/models";
-    fsType = "none";
-    options = ["bind" "rw"];
+  fileSystems."/data/projects" = {
+    device = "/dev/disk/by-partlabel/disk-xpg-nix";
+    fsType = "btrfs";
+    options = ["subvol=@projects" "compress=zstd:3" "ssd" "discard=async" "noatime" "nofail"];
   };
 
   services.nixos-share = {
