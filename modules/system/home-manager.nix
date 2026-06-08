@@ -23,7 +23,6 @@ in {
 
     users.j_kro = {...}: {
       imports = [
-        inputs.stylix.homeModules.stylix
         inputs.niri.homeModules.config
         inputs.zen-browser.homeModules.twilight
         inputs.nixcord.homeModules.nixcord
