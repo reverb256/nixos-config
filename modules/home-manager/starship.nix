@@ -1,18 +1,62 @@
-{ config, lib, ... }:
+{ config, pkgs, lib, ... }:
 let
   c = config.lib.stylix.colors.withHashtag;
+
+  minerScript = pkgs.writeShellScriptBin "miner-status" ''
+    set -euo pipefail
+    for port in 21550 21551; do
+      if data=$(curl -sf --max-time 1 "http://localhost:$port/" 2>/dev/null); then
+        hash=$(echo "$data" | python3 -c "
+    import sys, json
+    try:
+        d = json.loads(sys.stdin.read())
+        hr = d.get('hashrate_total', d.get('hashrate', 0))
+        if hr >= 1000000:
+            print(f'{hr/1000000:.1f} GH/s')
+        elif hr >= 1000:
+            print(f'{hr/1000:.1f} MH/s')
+        else:
+            print(f'{hr:.0f} KH/s')
+    except:
+        print('?')" 2>/dev/null)
+        if [ -n "$hash" ]; then
+          echo "⛏ $hash"
+          exit 0
+        fi
+      fi
+    done
+    if data=$(curl -sf --max-time 1 "http://localhost:3333/api/v1/status" 2>/dev/null); then
+      hash=$(echo "$data" | python3 -c "
+    import sys, json
+    try:
+        d = json.loads(sys.stdin.read())
+        hr = d.get('hashrate', 0) or 0
+        if hr >= 1000000:
+            print(f'{hr/1000000:.1f} GH/s')
+        elif hr >= 1000:
+            print(f'{hr/1000:.1f} MH/s')
+        else:
+            print(f'{hr:.0f} KH/s')
+    except:
+        print('?')" 2>/dev/null)
+      if [ -n "$hash" ]; then
+        echo "⛏ $hash"
+        exit 0
+      fi
+    fi
+    exit 1
+  '';
 in {
+  home.packages = [minerScript];
+
   programs.starship = {
     enable = true;
 
     settings = {
       # ── Three-line layout ──────────────────────────────────────
-      # L1: time · hostname
-      # L2: directory · git · nix-shell ── cmd_duration
-      # L3: ╰─❯
       format = ''
         $time$hostname
-        $directory$git_branch$git_status$nix_shell$fill$cmd_duration
+        $directory$git_branch$git_status$nix_shell$custom.miner$fill$cmd_duration
         $character'';
 
       add_newline = false;
@@ -23,7 +67,7 @@ in {
         format = "[$time] ";
         style = "italic ${c.base03}";
         use_12hr = false;
-        time_format = "%T";
+        time_format = "%R";
       };
 
       # ── Hostname ────────────────────────────────────────────────
@@ -71,6 +115,15 @@ in {
         format = "[⏱ $duration](italic ${c.base03})";
         show_milliseconds = false;
         min_time = 2000;
+      };
+
+      # ── Mining Status ─────────────────────────────────────────
+      custom.miner = {
+        command = "miner-status";
+        description = "GPU mining hashrate";
+        format = "[$output](bold ${c.base0C}) ";
+        when = true;
+        require_commands = ["curl" "python3"];
       };
 
       # ── Prompt Character ──────────────────────────────────────
