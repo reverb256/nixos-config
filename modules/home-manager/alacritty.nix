@@ -1,4 +1,5 @@
-{
+{ config, pkgs, lib, ... }: {
+
   programs.alacritty = {
     enable = true;
 
@@ -29,7 +30,7 @@
       mouse.hide_when_typing = true;
 
       font = {
-        size = 11;
+        size = lib.mkDefault 11;
         normal = {
           family = "JetBrainsMono Nerd Font";
           style = "Regular";
