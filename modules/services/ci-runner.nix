@@ -4,16 +4,16 @@ with lib; let
   runnerHome = "/var/lib/${cfg.user}";
   # Build script fragments conditionally to avoid null interpolation
   getTokenCmd = if cfg.tokenFile != null then ''
-    TOKEN=*** "${cfg.tokenFile}")
+    TOKEN=$(cat "${cfg.tokenFile}")
     echo "Using pre-generated runner token from ${cfg.tokenFile}"
   '' else if cfg.patFile != null then ''
     echo "Generating runner registration token from PAT..."
     PAT=$(cat "${cfg.patFile}")
     API_RESPONSE=$(curl -s -X POST \
-      -H "Authorization: Bearer *** \
+      -H "Authorization: Bearer ${PAT}" \
       -H "Accept: application/vnd.github+json" \
       "https://api.github.com/repos/${cfg.repo}/actions/runners/registration-token")
-    TOKEN=*** "$API_RESPONSE" | jq -r '.token // empty')
+    TOKEN=$(echo "$API_RESPONSE" | jq -r '.token // empty')
     if [ -z "$TOKEN" ]; then
       echo "ERROR: Failed to generate runner token from PAT"
       echo "API response: $API_RESPONSE"
