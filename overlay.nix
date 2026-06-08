@@ -138,15 +138,6 @@ _final: prev:
   # (maplespike repo is self-contained source; nixos-config is the OS)
   hermes-chat = prev.callPackage ./packages/hermes-chat.nix { };
   # hermes-workspace and hermes-webui archived (2026-05-16)
-  # firefoxpwa-unwrapped: add lib/firefoxpwa dir needed by wrapFirefox wrapper
-  # The wrapper's build script does `touch "$out/lib/firefoxpwa/is-packaged-app"`
-  # but the unwrapped package doesn't have that directory, causing build failure
-  # when __structuredAttrs = true.
-  firefoxpwa-unwrapped = prev.firefoxpwa-unwrapped.overrideAttrs (old: {
-    postInstall = (old.postInstall or "") + ''
-      mkdir -p $out/lib/firefoxpwa
-    '';
-  });
   privacy-filter = prev.callPackage ./packages/privacy-filter.nix {
     transformers-dev = prev.callPackage ./packages/transformers-dev.nix { };
   };
