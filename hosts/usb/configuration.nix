@@ -180,6 +180,7 @@ in {
     ../../modules/desktop/desktop.nix
     ../../modules/desktop/stylix.nix
     ../../modules/network-constants.nix
+    ../../modules/system/home-manager.nix
 
     # Flake inputs
     inputs.niri.nixosModules.niri
@@ -300,19 +301,6 @@ in {
   };
   services.displayManager.sddm.enable = lib.mkForce true;
 
-  # Home Manager — j_kro desktop setup (niri config + noctalia-shell)
-  home-manager = {
-    useUserPackages = true;
-    backupFileExtension = "hm-backup";
-    users.j_kro = {pkgs, ...}: {
-      imports = [
-        ../../modules/home-manager/fish.nix
-        ../../modules/home-manager/starship.nix
-        ../../modules/home-manager/alacritty.nix
-      ];
-      home.stateVersion = "26.05";
-    };
-  };
 
   # NVIDIA NIM API key — for Hermes autonomous operation
   age.secrets.nvidia-api-key = {
