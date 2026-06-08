@@ -24,7 +24,12 @@ just new-worktree <NNN> # Create worktree for issue NNN
 main — Integration branch (PRs land here, CI validates)
 prod  — Stable deployment branch (what the cluster actually runs)
 issue-NNN-* — All new work, only in worktrees under /data/projects/own/
-```
+
+
+│ Zephyr | 10.1.1.110 | Workstation, gaming, mining (NOT in K8s cluster) | 31GB | 2x NVIDIA | DISABLED │
+│ Nexus | 10.1.1.120 | Primary server, AI Gateway, monitoring | 46GB | 1x NVIDIA | control-plane │
+│ Forge | 10.1.1.130 | GPU computing, mining | 15GB | 2x NVIDIA | server+etcd │
+│ Sentry | 10.1.1.140 | Monitoring, logging | 31GB | 1x AMD | server+etcd │
 
 - /etc/nixos on ALL nodes stays on `main` (never a feature branch)
 - The deployed cluster state = `prod` branch
