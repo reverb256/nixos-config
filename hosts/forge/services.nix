@@ -45,27 +45,6 @@ in {
       client.enable = true;
     };
 
-    srbminer = {
-      enable = true;
-      instances = [
-        {
-          name = "4060-0";
-          gpuId = 0;
-          wallet = "krxXVNVMM7.forge-gpu";
-          pool = "stratum+ssl://prl-us.kryptex.network:8048";
-          apiPort = 21550;
-          powerLimit = 118;
-        }
-        {
-          name = "4060-1";
-          gpuId = 1;
-          wallet = "krxXVNVMM7.forge-gpu";
-          pool = "stratum+ssl://prl-us.kryptex.network:8048";
-          apiPort = 21551;
-          powerLimit = 118;
-        }
-      ];
-    };
 
     nfs-client = {
       enable = false;
