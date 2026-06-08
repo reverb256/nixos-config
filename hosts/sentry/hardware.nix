@@ -43,14 +43,22 @@
   };
 
   boot.kernelModules = ["msr"];
-  boot.kernelParams = [
-    "mitigations=auto"
+  boot.kernelParams = lib.mkBefore [
     # AMD GPU Navi 10 stability: enable GPU recovery, disable SDMA fence timeout issues
+    # Must come before mitigations to avoid being overridden
     "amdgpu.gpu_recovery=1"
     "amdgpu.fence_timeout=10000"
     "amdgpu.noretry=0"
     "amdgpu.ppfeaturemask=0xffffffff"
+    "amdgpu.lockup_timeout=1000"
+    "mitigations=auto"
   ];
+  boot.extraModprobeConfig = ''
+    # Force GPU recovery even if kernel params get lost
+    options amdgpu gpu_recovery=1
+    options amdgpu fence_timeout=10000
+    options amdgpu noretry=0
+  '';
 
   environment = {
     variables = {
