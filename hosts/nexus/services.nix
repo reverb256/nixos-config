@@ -390,5 +390,5 @@ in {
     owner = "runner";
     group = "runner";
   };
- }
-
+  services.syncthing-cluster.enable = true;
+}

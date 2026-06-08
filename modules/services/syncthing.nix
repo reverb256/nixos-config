@@ -19,10 +19,9 @@ in {
       openDefaultPorts = true;
 
       settings = {
-        # Devices: attrset (forge device ID will be generated on first boot)
         devices = {
           zephyr = {
-            id = "MDKNXAJ-J4FMVYX-RT67UO5-JRDGPLV-7ZJF772-NX24DLW-BIRHGQ7-RUTILAO";
+            id = "SLDVJQT-WB37JTE-UWIXCZW-3A6HZFK-MJ5CAFC-MV5AQXV-25PM6AC-WZSVBAC";
             addresses = ["dynamic"];
             autoAcceptFolders = false;
           };
@@ -31,21 +30,22 @@ in {
             addresses = ["dynamic"];
             autoAcceptFolders = false;
           };
+          forge = {
+            id = "ZITBGH3-PK3SE37-P4FH7WG-ZS6OQKY-FWAN73V-XWBI6C3-VUSX42H-HT24ZAE";
+            addresses = ["dynamic"];
+            autoAcceptFolders = false;
+          };
           sentry = {
             id = "C6H7ICX-5QYPNFO-ORD4A3M-S2BEQRZ-CK2YDJM-XXW7TOX-JAAKSOT-JWF5UAK";
             addresses = ["dynamic"];
             autoAcceptFolders = false;
           };
-          # Forge: device ID will be generated when it boots from USB recovery
-          # Add to folder list once online
         };
 
-        # Folders: attrset where key is folder ID
-        # Currently syncing between sentry and nexus (zephyr down, forge in recovery)
         folders = {
           "nixos-config" = {
             path = "/etc/nixos";
-            devices = ["nexus" "sentry"]; # zephyr down, forge in recovery
+            devices = ["zephyr" "nexus" "forge" "sentry"];
             type = "sendreceive";
             ignorePerms = false;
             fsWatcherEnabled = true;
@@ -79,8 +79,6 @@ in {
     systemd.services.syncthing.after = ["network-online.target"];
     systemd.services.syncthing.wants = ["network-online.target"];
 
-    # Make syncthing-init non-fatal during activation
-    # CSRF errors from stale API keys don't affect our Nix changes
     systemd.services.syncthing-init = {
       serviceConfig = {
         SuccessExitStatus = "0 5";
