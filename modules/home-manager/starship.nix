@@ -64,7 +64,7 @@ in {
       # ── Time ────────────────────────────────────────────────────
       time = {
         disabled = false;
-        format = "[$time] ";
+        format = ''\[$time\]($style)'';
         style = "italic ${c.base03}";
         use_12hr = false;
         time_format = "%R";
@@ -82,7 +82,7 @@ in {
         truncation_length = 3;
         truncation_symbol = "…/";
         style = "bold ${c.base0D}";
-        fish_style_pwd_rooted = "bold ${c.base0D}";
+        fish_style_pwd_dir_length = 0;
       };
 
       # ── Git ────────────────────────────────────────────────────
@@ -123,7 +123,6 @@ in {
         description = "GPU mining hashrate";
         format = "[$output](bold ${c.base0C}) ";
         when = true;
-        require_commands = ["curl" "python3"];
       };
 
       # ── Prompt Character ──────────────────────────────────────
