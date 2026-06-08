@@ -10,7 +10,7 @@ with lib; let
     echo "Generating runner registration token from PAT..."
     PAT=$(cat "${cfg.patFile}")
     API_RESPONSE=$(curl -s -X POST \
-      -H "Authorization: Bearer ${PAT}" \
+      -H "Authorization: Bearer $PAT" \
       -H "Accept: application/vnd.github+json" \
       "https://api.github.com/repos/${cfg.repo}/actions/runners/registration-token")
     TOKEN=$(echo "$API_RESPONSE" | jq -r '.token // empty')
