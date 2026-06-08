@@ -189,7 +189,7 @@ in {
       GTK_USE_PORTAL = "1";
 
       QT_MEDIA_BACKEND = "pipewire";
-      LD_LIBRARY_PATH = lib.mkBefore ["/run/current-system/sw/lib/pipewire-0.3"];
+      # LD_LIBRARY_PATH = lib.mkBefore "/run/current-system/sw/lib/pipewire-0.3";
 
       QT_QPA_PLATFORM = lib.mkOptionDefault "wayland;xcb";
       QT_AUTO_SCREEN_SCALE_FACTOR = "1";

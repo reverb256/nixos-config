@@ -29,7 +29,7 @@
       mouse.hide_when_typing = true;
 
       font = {
-        size = 12;
+        size = 9;
         normal = {
           family = "JetBrainsMono Nerd Font";
           style = "Regular";

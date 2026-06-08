@@ -58,6 +58,8 @@ in {
       stylix = {
         inherit (config.stylix) base16Scheme;
         inherit (config.stylix) image;
+        inherit (config.stylix) fonts;
+        inherit (config.stylix) cursor;
       };
 
       # CopyQ clipboard manager (replaces cliphist)
