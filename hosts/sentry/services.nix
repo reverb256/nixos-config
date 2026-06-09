@@ -147,13 +147,6 @@ in {
     extraLabels = ["sentry"];
   };
 
-  age.secrets.github-runner-pat = {
-    file = "${inputs.self}/secrets/github-runner-pat.age";
-    mode = "440";
-    owner = "runner";
-    group = "runner";
-  };
-
   # Caddy reverse proxy — same routes as Nexus for HA
   services.cluster-services = {
     enable = true;

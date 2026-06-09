@@ -11,12 +11,6 @@ in {
     voxtype = {
       enable = true;
       model = "base.en";
-      language = "en";
-    };
-
-    # hermes-workspace — archived (project deleted 2026-05-16)
-    hermes-cli = {
-      enable = true;
       apiKeyFile = "/run/secrets/zai-api-key";
       nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
       casdoorJwtFile = "/run/secrets/casdoor-hermes-jwt";
@@ -324,7 +318,6 @@ in {
 
   services.appimage-updater.enable = true;
 
-  services.agenix-secrets-registry = {
     enable = true;
     aiServices = true;
     monitoring = false;
@@ -347,12 +340,6 @@ in {
 
   users.groups.mining = {};
 
-  age = {
-    identityPaths = ["/home/j_kro/.age/key.txt"];
-    secrets.cloudflared-token = lib.mkForce {
-      file = "${inputs.self}/secrets/cloudflared-token.age";
-      mode = "400";
-      owner = "root";
       group = "root";
     };
   };
