@@ -7,14 +7,6 @@
   cluster = config.networking.cluster;
 in {
   services = {
-    hermes-cli = {
-      enable = true;
-      apiKeyFile = config.age.secrets.zai-api-key.path;
-      nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
-      casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
-      opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
-      opencodeZenApiKeyFile = config.age.secrets.opencode-api-key.path;
-    };
     k3s-cluster = {
       enable = true;
       role = "server";
