@@ -60,6 +60,28 @@ in {
       '';
     };
 
+    agenix-secrets-registry = {
+      enable = true;
+      aiServices = true;
+      monitoring = false;
+      storage = true;
+      mining = false;
+      cloud = false;
+      kubernetes = true;
+      initrdRecovery = false; # Disabled: agenix build-time dependency issue
+      selfHosting = false;
+    };
+
+    nfs-state-sync = {
+      enable = false;
+      sourceHost = "zephyr";
+      paths = ["/data/hermes" "/data/pi"];
+      interval = "15min";
+    };
+
+  };
+
+  programs.steam = {
     enable = lib.mkForce false;
     gamescopeSession.enable = lib.mkForce false;
   };
@@ -385,6 +407,11 @@ in {
     extraLabels = ["nexus"];
   };
 
+  age.secrets.github-runner-pat = {
+    file = "${inputs.self}/secrets/github-runner-pat.age";
+    mode = "440";
+    owner = "runner";
+    group = "runner";
   };
   
   
