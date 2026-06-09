@@ -10,7 +10,7 @@
 #
 # Usage:
 #   services.hermes-cli.enable = true;
-#   services.hermes-cli.apiKeyFile = config.age.secrets.zai-api-key.path;
+#   services.hermes-cli.apiKeyFile = "/run/secrets/zai-api-key";
 {
   config,
   lib,
@@ -188,63 +188,63 @@ in {
       type = lib.types.nullOr lib.types.path;
       default = null;
       description = "Path to agenix secret file containing ZAI_API_KEY";
-      example = "config.age.secrets.zai-api-key.path";
+      example = ""/run/secrets/zai-api-key"";
     };
 
     nvidiaApiKeyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
       description = "Path to agenix secret file containing NVIDIA_API_KEY";
-      example = "config.age.secrets.nvidia-api-key.path";
+      example = ""/run/secrets/nvidia-api-key"";
     };
 
     casdoorJwtFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
       description = "Path to agenix secret file containing Casdoor JWT for MCP";
-      example = "config.age.secrets.casdoor-hermes-jwt.path";
+      example = ""/run/secrets/casdoor-hermes-jwt"";
     };
 
     opencodeGoApiKeyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
       description = "Path to agenix secret file containing OpenCode Go API key";
-      example = "config.age.secrets.opencode-go-api-key.path";
+      example = ""/run/secrets/opencode-go-api-key"";
     };
 
     opencodeZenApiKeyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
       description = "Path to agenix secret file containing OpenCode Zen API key";
-      example = "config.age.secrets.opencode-api-key.path";
+      example = ""/run/secrets/opencode-api-key"";
     };
 
     kilocodeApiKeyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
       description = "Path to agenix secret file containing Kilo Code API key";
-      example = "config.age.secrets.kilo-api-key.path";
+      example = ""/run/secrets/kilo-api-key"";
     };
 
     geminiApiKeyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
       description = "Path to agenix secret file containing Gemini API key";
-      example = "config.age.secrets.gemini-api-key.path";
+      example = ""/run/secrets/gemini-api-key"";
     };
 
     hfTokenFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
       description = "Path to agenix secret file containing HuggingFace token";
-      example = "config.age.secrets.huggingface-token.path";
+      example = ""/run/secrets/huggingface-token"";
     };
 
     githubTokenFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
       description = "Path to agenix secret file containing GitHub token";
-      example = "config.age.secrets.github-token.path";
+      example = ""/run/secrets/github-token"";
     };
 
     gatewayUrl = lib.mkOption {

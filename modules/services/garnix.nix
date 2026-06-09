@@ -24,7 +24,7 @@ in {
     #     login reverb256
     #     password <your-password>
     environment.etc."nix/netrc" = {
-      source = config.age.secrets.garnix-password.path;
+      source = "/run/secrets/garnix-password";
       mode = "0600";
     };
 
