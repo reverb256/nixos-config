@@ -380,7 +380,7 @@ in {
   };
   # WiFi failover — wlan0 only activates when ethernet drops
   networking.networkmanager.dispatcherScripts = [{
-    source = pkgs.writeText "90-wifi-failover" ''
+    source = "${pkgs.writeText "90-wifi-failover" ''
       if [ "$CONNECTION" = "enp38s0" ]; then
         case "$2" in
           down)
@@ -391,7 +391,7 @@ in {
             ;;
         esac
       fi
-    '';
+    ''}";
     type = "basic";
   }];
 }
