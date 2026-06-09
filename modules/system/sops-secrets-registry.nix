@@ -563,5 +563,18 @@ in {
         })
       ];
     };
+  systemd.tmpfiles.rules = [
+    "Z /run/secrets/ai/* 0440 j_kro users -"
+    "Z /run/secrets/k8s/* 0440 j_kro users -"
+    "Z /run/secrets/cloud/* 0440 j_kro users -"
+    "Z /run/secrets/monitoring/* 0440 j_kro users -"
+    "Z /run/secrets/mining/* 0440 j_kro users -"
+    "Z /run/secrets/storage/* 0440 j_kro users -"
+    "Z /run/secrets/automation/* 0440 j_kro users -"
+    "Z /run/secrets/selfhosting/* 0440 j_kro users -"
+    "Z /run/secrets/ci/* 0440 j_kro users -"
+    "Z /run/secrets/default/* 0440 j_kro users -"
+    "Z /run/secrets/infra/* 0440 j_kro users -"
+  ];
   };
 }
