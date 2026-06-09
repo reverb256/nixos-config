@@ -216,18 +216,8 @@
     # Slim module set for WSL/remote hosts — no desktop/GPU/cluster modules
     slimModules = [
       inputs.home-manager.nixosModules.home-manager
-      inputs.agenix.nixosModules.default
       inputs.sops-nix.nixosModules.default
       inputs.stylix.nixosModules.default
-      {
-        nixpkgs.overlays = [self.overlays.default];
-        age.identityPaths = [
-          "/persistent/etc/age/key.txt"
-          "/etc/nixos/.age/key.txt"
-          "/etc/age/key.txt"
-          "/home/j_kro/.age/key.txt"
-        ];
-      }
     ];
 
     mkNixosSystem = {
