@@ -17,15 +17,15 @@ in {
     # hermes-workspace — archived (project deleted 2026-05-16)
     hermes-cli = {
       enable = true;
-      apiKeyFile = config.age.secrets.zai-api-key.path;
-      nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
-      casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
+      apiKeyFile = "/run/secrets/zai-api-key";
+      nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
+      casdoorJwtFile = "/run/secrets/casdoor-hermes-jwt";
       opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
       # openrouterApiKeyFile removed — no longer used
-      kilocodeApiKeyFile = config.age.secrets.kilo-api-key.path;
-      geminiApiKeyFile = config.age.secrets.gemini-api-key.path;
-      hfTokenFile = config.age.secrets.huggingface-token.path;
-      githubTokenFile = config.age.secrets.github-token.path;
+      kilocodeApiKeyFile = "/run/secrets/kilo-api-key";
+      geminiApiKeyFile = "/run/secrets/gemini-api-key";
+      hfTokenFile = "/run/secrets/huggingface-token";
+      githubTokenFile = "/run/secrets/github-token";
       settings = {
         model = {
           provider = "gateway";
@@ -232,7 +232,7 @@ in {
         };
         zai = {
           enable = true;
-          apiKeyFile = config.age.secrets.zai-api-key.path;
+          apiKeyFile = "/run/secrets/zai-api-key";
           baseUrl = "https://api.z.ai/api/coding/paas/v4";
           enableRetry = true;
           maxRetries = 3;
@@ -241,7 +241,7 @@ in {
         };
         pollinations = {
           enable = true;
-          apiKeyFile = config.age.secrets.pollinations-api-key.path;
+          apiKeyFile = "/run/secrets/pollinations-api-key";
           baseUrl = "https://text.pollinations.ai";
         };
       };
@@ -297,10 +297,10 @@ in {
     ai-coding-tools = {
       enable = true;
       user = "j_kro";
-      zaiApiKeyFile = config.age.secrets.zai-api-key.path;
-      context7ApiKeyFile = config.age.secrets.context7-api-key.path;
-      nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
-      opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
+      zaiApiKeyFile = "/run/secrets/zai-api-key";
+      context7ApiKeyFile = "/run/secrets/context7-api-key";
+      nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
+      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
       tools = {
         claude = {enable = true;};
         opencode = {enable = true;};
