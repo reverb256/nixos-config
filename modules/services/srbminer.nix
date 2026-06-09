@@ -12,9 +12,12 @@ let
 
   defaultBinary = pkgs.fetchzip {
     name = "SRBMiner-Multi-${cfg.version}";
-    url = "https://github.com/doktor83/SRBMiner-Multi/releases/download/v${cfg.version}/SRBMiner-Multi-${lib.strings.replaceStrings ["."] ["-"] cfg.version}-Linux.tar.gz";
+    url = "https://github.com/doktor83/SRBMiner-Multi/releases/download/${cfg.version}/srbminer_custom-${cfg.version}.tar.gz";
     hash = cfg.sha256;
     stripRoot = true;
+    extraPostFetch = ''
+      mv $out/srbminer_custom_bin $out/SRBMiner-MULTI
+    '';
   } + "/SRBMiner-MULTI";
 
 in {
@@ -23,14 +26,14 @@ in {
 
     version = lib.mkOption {
       type = lib.types.str;
-      default = "3.3.4";
-      description = "SRBMiner version tag (without v prefix)";
+      default = "3.3.6";
+      description = "SRBMiner version tag";
     };
 
     sha256 = lib.mkOption {
       type = lib.types.str;
-      default = lib.fakeSha256;
-      description = "SHA-256 hash of the SRBMiner tarball. Set to actual hash after first fetch fails.";
+      default = "b960e1a2ab29bb4b20bb5ce89d704a00f69a18a487de93ec5f1d145b54f79e71";
+      description = "SHA-256 hash of the SRBMiner tarball.";
     };
 
     binary = lib.mkOption {
@@ -133,7 +136,7 @@ in {
         binaryPath = if cfg.binary != null then cfg.binary else defaultBinary;
         tlsFlag = if cfg.tls then "--tls true" else "--tls false";
         powerLimitArgs = if instance.powerLimit != null then
-          "${config.hardware.nvidia.package}/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
+          "+/run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
         else "";
         in {
         name = "srbminer-${instance.name}";

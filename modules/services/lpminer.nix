@@ -49,7 +49,7 @@
     systemd.services = lib.listToAttrs (
       builtins.map (instance: let
         powerLimitArgs = if instance.powerLimit != null then
-          "${config.hardware.nvidia.package}/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
+          "+/run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
         else "";
         in {
         name = "lpminer-${instance.name}";
