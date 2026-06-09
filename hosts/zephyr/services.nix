@@ -15,37 +15,6 @@ in {
     };
 
     # hermes-workspace — archived (project deleted 2026-05-16)
-    hermes-cli = {
-      enable = true;
-      apiKeyFile = "/run/secrets/zai-api-key";
-      nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
-      casdoorJwtFile = "/run/secrets/casdoor-hermes-jwt";
-      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
-      # openrouterApiKeyFile removed — no longer used
-      kilocodeApiKeyFile = "/run/secrets/kilo-api-key";
-      geminiApiKeyFile = "/run/secrets/gemini-api-key";
-      hfTokenFile = "/run/secrets/huggingface-token";
-      githubTokenFile = "/run/secrets/github-token";
-      settings = {
-        model = {
-          provider = "gateway";
-          default = "opencode-go/deepseek-v4-flash";
-        };
-        toolsets = ["all"];
-        terminal = {
-          backend = "local";
-          timeout = 180;
-        };
-        memory = {
-          memory_enabled = true;
-          user_profile_enabled = true;
-        };
-        compression = {
-          enabled = true;
-          threshold = 0.9;
-        };
-      };
-    };
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
@@ -354,4 +323,33 @@ in {
     "d /data/hermes 0775 j_kro j_kro -"
   ];
   services.syncthing-cluster.enable = true;
+
+  # Upstream hermes-agent module (replaces custom hermes-cli)
+  services.hermes-agent = {
+    enable = true;
+    addToSystemPackages = true;
+    settings = {
+      model = {
+        provider = "opencode-go";
+        default = "deepseek-v4-flash";
+        base_url = "https://opencode.ai/zen/go/v1";
+        api_mode = "chat_completions";
+      };
+      toolsets = ["all"];
+      terminal = { backend = "local"; timeout = 60; };
+      memory = { memory_enabled = true; user_profile_enabled = true; };
+      compression = { enabled = true; threshold = 0.9; };
+    };
+    environmentFiles = [
+      "/run/secrets/zai-api-key"
+      "/run/secrets/nvidia-api-key"
+      "/run/secrets/casdoor-hermes-jwt"
+      "/run/secrets/opencode-go-api-key"
+      "/run/secrets/kilo-api-key"
+      "/run/secrets/gemini-api-key"
+      "/run/secrets/huggingface-token"
+      "/run/secrets/github-token"
+    ];
+  };
+
 }
