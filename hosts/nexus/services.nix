@@ -395,13 +395,6 @@ in {
     autoStart = true;
     extraLabels = ["nexus"];
   };
-
-  age.secrets.github-runner-pat = {
-    file = "${inputs.self}/secrets/github-runner-pat.age";
-    mode = "440";
-    owner = "runner";
-    group = "runner";
-  };
   
   
 }
