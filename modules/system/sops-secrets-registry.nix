@@ -16,6 +16,8 @@ in {
 
   config = mkIf config.services.sops-secrets-registry.enable {
     sops = {
+      defaultSopsFile = "${inputs.self}/secrets/ai/nvidia-api-key.yaml";
+      defaultSopsFormat = "binary";
       age.keyFile = "/etc/nixos/.age/key.txt";
       secrets = lib.mkMerge [
         (mkIf config.services.sops-secrets-registry.aiServices {
