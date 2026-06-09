@@ -67,11 +67,6 @@
       url = "tarball+https://codeload.github.com/nix-community/disko/tar.gz/65fb947964bd44fc0008faf77d1fcb7a9f40bb32";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    impermanence = {
-      url = "tarball+https://codeload.github.com/nix-community/impermanence/tar.gz/7b1d382faf603b6d264f58627330f9faa5cba149";
-      inputs.nixpkgs.follows = "";
-      inputs.home-manager.follows = "";
-    };
     preservation = {
       url = "path:/etc/nixos/lib/preservation";
     };
