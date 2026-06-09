@@ -111,7 +111,7 @@
     "d /run/avahi-daemon 755 avahi avahi -"
   ];
   systemd.services.avahi-daemon.serviceConfig.ExecStartPre = [
-    "${pkgs.coreutils}/bin/rm -f /run/avahi-daemon/pid"
+    "${lib.getExe' pkgs.coreutils "rm"} -f /run/avahi-daemon/pid"
   ];
 
   systemd.services.systemd-networkd-wait-online = {

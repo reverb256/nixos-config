@@ -234,7 +234,7 @@ in {
         ProtectSystem = "strict";
         ReadWritePaths = [cfg.stateDir "/root/.npm" "/tmp"];
 
-        ExecStart = "${pkgs.nodejs_22}/bin/npx @musistudio/claude-code-router start --port ${toString cfg.port} --config ${cfg.stateDir}/config.json";
+        ExecStart = "${lib.getExe' pkgs.nodejs_22 "npx"} @musistudio/claude-code-router start --port ${toString cfg.port} --config ${cfg.stateDir}/config.json";
       };
     };
 
@@ -254,7 +254,7 @@ in {
       wants = ["claude-code-router.service"];
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${pkgs.curl}/bin/curl -sf http://localhost:${toString cfg.port}/health";
+        ExecStart = "${lib.getExe pkgs.curl} -sf http://localhost:${toString cfg.port}/health";
         StandardOutput = "journal";
         StandardError = "journal";
       };

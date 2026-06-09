@@ -12,7 +12,7 @@ in {
       role = "server";
       nodeName = "sentry";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
-      tokenFile = "/run/agenix/k3s-cluster-token";
+      tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = cluster.hosts.sentry.ip;
     };
 
@@ -23,12 +23,12 @@ in {
       priority = 100;
     };
 
-    gaming-detection.enable = false;
-    gpu-profile-manager.enable = false;
-    mining-coordinator.enable = false;
+    gaming-detection.enable = true;
+    gpu-profile-manager.enable = true;
+    mining-coordinator.enable = true;
 
     nginx = {
-      enable = true;
+      enable = false;
       recommendedProxySettings = true;
       recommendedGzipSettings = true;
       virtualHosts."_" = {
@@ -45,12 +45,12 @@ in {
     tailscale.enable = true;
 
     nixos-share = {
-      enable = false;
+      enable = true;
       client.enable = true;
     };
 
     nfs-client = {
-      enable = false;
+      enable = true;
       mountShared = true;
       mountHome = false;
       mountMedia = false;
@@ -96,7 +96,7 @@ in {
 
   systemd.services.ai-inference-monitor = {
     wantedBy = lib.mkForce [];
-    enable = false;
+    enable = true;
   };
 
   systemd.services.tailscaled.environment = {
@@ -108,7 +108,7 @@ in {
   # Initrd SSH recovery + BTRFS snapshots
   services.cluster-ca = {
     enable = true;
-    generateLeaf = false;
+    generateLeaf = true;
   };
 
   services.initrd-ssh-recovery = {
@@ -142,7 +142,7 @@ in {
   services.ci-runner = {
     enable = true;
     repo = "reverb256/nixos-config";
-    tokenFile = "/run/agenix/github-runner-pat";
+    tokenFile = "/run/secrets/github-runner-pat";
     autoStart = true;
     extraLabels = ["sentry"];
   };
@@ -152,5 +152,69 @@ in {
     mode = "440";
     owner = "runner";
     group = "runner";
+  };
+
+  # Caddy reverse proxy — same routes as Nexus for HA
+  services.cluster-services = {
+    enable = true;
+    services = {
+      vaultwarden = {
+        domain = "vaultwarden.lan";
+        backend = "vaultwarden.vaultwarden.svc.cluster.local:8080";
+      };
+      glance = {
+        domain = "dashboard.lan";
+        backend = "glance.dashboard.svc.cluster.local:8080";
+      };
+      grafana = {
+        domain = "grafana.lan";
+        backend = "grafana.monitoring.svc.cluster.local:3000";
+        protected = true;
+      };
+      gitea = {
+        domain = "gitea.lan";
+        backend = "gitea.ai-inference.svc.cluster.local:3000";
+      };
+      privacy-filter = {
+        domain = "privacy-filter.lan";
+        backend = "privacy-filter.search.svc.cluster.local:8080";
+      };
+      mission-control = {
+        domain = "mission-control.lan";
+        backend = "mission-control.orchestration.svc.cluster.local:8080";
+        protected = true;
+      };
+      kagent = {
+        domain = "kagent.lan";
+        backend = "kagent-ui.kagent.svc.cluster.local:8080";
+      };
+      workspace = {
+        domain = "workspace.lan";
+        backend = "127.0.0.1:3002";
+      };
+      auth = {
+        domain = "auth.lan";
+        backend = "127.0.0.1:32556";
+        rawBlock = ''
+          https://auth.lan {
+            tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
+            encode zstd gzip
+            rate_limit {
+              zone auth_per_ip {
+                key    {remote_host}
+                events 100
+                window 1m
+              }
+            }
+            handle /oauth2/* {
+              reverse_proxy 127.0.0.1:30890
+            }
+            handle {
+              reverse_proxy 127.0.0.1:32556
+            }
+          }
+        '';
+      };
+    };
   };
 }

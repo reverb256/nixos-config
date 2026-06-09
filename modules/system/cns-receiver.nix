@@ -105,7 +105,7 @@ in {
             [ -f "$secret" ] || continue
 
             local secret_name=$(basename "$secret" .age)
-            local output="/run/agenix/$secret_name"
+            local output="/run/secrets/$secret_name"
 
             log "Decrypting: $secret_name"
 
