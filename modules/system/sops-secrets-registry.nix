@@ -261,10 +261,6 @@ in {
             group = "users";
           };
           "k8s/openwebui-oidc-client-secret" = {
-            sopsFile = "${inputs.self}/secrets/k8s/openwebui-oidc-client-secret.yaml";
-            path = "/run/secrets/openwebui-oidc-client-secret";
-            mode = "0440";
-            owner = "root";
             group = "root";
           };
           "k8s/searxng-secret-key" = {
