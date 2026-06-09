@@ -85,3 +85,41 @@ See `/data/projects/AGENTS.md` for full project inventory.
 - [NixOS Manual](https://nixos.org/manual/nixos/stable/)
 - [Home Manager Manual](https://nix-community.github.io/home-manager/)
 - [Flakes Guide](https://nixos.wiki/wiki/Flakes)
+
+## Kanban & Agent Orchestration
+
+The cluster uses **Hermes Kanban** as the multi-agent coordination layer. A centralized gateway on sentry dispatches tasks to agent profiles, tracks state in SQLite, and provides CI/review monitoring.
+
+### Architecture
+
+```
+GitHub Issues  ->  Reactions Poller (sentry, 60s)  ->  Kanban Task (fix/rework)
+Pipeline Engine  ->  PipelineEngine.dedup/score/route  ->  Kanban Task (triage/research)
+Hermes Gateway  ->  Dispatcher (60s tick)  ->  Agent Profile -> Worktree -> PR
+
+WORKFLOW.md (canonical agent contract)
+  |  feeds into
+Agent prompt -> implements -> nix flake check -> git push -> gh pr create
+```
+
+### Live Components
+
+| Component | Host | Purpose | Frequency |
+|-----------|------|---------|-----------|
+| hermes-agent.service | sentry | Gateway + kanban dispatcher | 60s tick |
+| hermes-reactions.service | sentry | CI/review monitoring (nixos-config) | 60s poll |
+| hermes-reactions-maplespike.service | sentry | CI/review monitoring (maplespike) | 60s poll |
+| Pipeline engine skill | sentry | dedup/score/route/chain creation | On demand |
+
+### Boards
+
+| Board | Repo | Purpose |
+|-------|------|---------|
+| nixos-config | reverb256/nixos-config | Cluster infrastructure tasks |
+| maplespike | reverb256/maplespike | Data ingestion module dev |
+
+### Key Files
+
+- WORKFLOW.md - Canonical agent contract (YAML frontmatter + prompt template)
+- AGENTS.md - Universal cluster patterns and safety rules
+- Pipeline engine: Hermes skill pipeline-engine (23 scripts)
