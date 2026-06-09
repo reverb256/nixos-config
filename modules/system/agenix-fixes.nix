@@ -21,13 +21,13 @@ in {
   };
 
   config = mkIf config.services.agenix-fixes.enable {
-    # Fix: initrd creates /run/agenix/ as a real directory for initrd-ssh-host-key.
+    # Fix: initrd creates /run/secrets/ as a real directory for initrd-ssh-host-key.
     # This blocks agenix from symlinking /run/agenix -> /run/agenix.d/<gen>.
     # Move the initrd key aside, remove the directory, so agenix can create the symlink.
     system.activationScripts.agenix-dir-fix = lib.mkBefore ''
       if [ -d /run/agenix ] && [ ! -L /run/agenix ]; then
         mkdir -p /run/agenix.d/0
-        mv /run/agenix/* /run/agenix.d/0/ 2>/dev/null || true
+        mv /run/secrets/* /run/agenix.d/0/ 2>/dev/null || true
         rmdir /run/agenix 2>/dev/null || true
       fi
     '';
@@ -258,36 +258,36 @@ in {
           echo "[k8s-secrets] Applying agenix secrets to Kubernetes..."
 
           # AI Inference namespace
-          apply_secret ai-inference zai-api-key ZAI_API_KEY /run/agenix/ai-gateway-zai-api-key
-          apply_secret ai-inference hf-token token /run/agenix/huggingface-token
-          apply_secret ai-inference nvidia-api-key NVIDIA_API_KEY /run/agenix/nvidia-api-key
+          apply_secret ai-inference zai-api-key ZAI_API_KEY /run/secrets/ai-gateway-zai-api-key
+          apply_secret ai-inference hf-token token /run/secrets/huggingface-token
+          apply_secret ai-inference nvidia-api-key NVIDIA_API_KEY /run/secrets/nvidia-api-key
           # openrouter-api-key removed — no longer used
-          apply_secret ai-inference kilo-api-key KILO_API_KEY /run/agenix/kilo-api-key
-          apply_secret ai-inference opencode-api-key OPENCODE_API_KEY /run/agenix/opencode-api-key
+          apply_secret ai-inference kilo-api-key KILO_API_KEY /run/secrets/kilo-api-key
+          apply_secret ai-inference opencode-api-key OPENCODE_API_KEY /run/secrets/opencode-api-key
 
           # Kelos namespace
-          apply_secret kelos-system opencode-credentials OPENCODE_API_KEY /run/agenix/opencode-api-key
-          apply_secret kelos-system opencode-credentials NVIDIA_API_KEY /run/agenix/nvidia-api-key
+          apply_secret kelos-system opencode-credentials OPENCODE_API_KEY /run/secrets/opencode-api-key
+          apply_secret kelos-system opencode-credentials NVIDIA_API_KEY /run/secrets/nvidia-api-key
 
           # Search namespace
-          apply_secret search searxng-secret secret-key /run/agenix/searxng-secret-key
+          apply_secret search searxng-secret secret-key /run/secrets/searxng-secret-key
 
           # Orchestration namespace
-          apply_secret orchestration mission-control-secrets auth-pass /run/agenix/mission-control-auth-pass
-          apply_secret orchestration mission-control-secrets api-key /run/agenix/mission-control-api-key
+          apply_secret orchestration mission-control-secrets auth-pass /run/secrets/mission-control-auth-pass
+          apply_secret orchestration mission-control-secrets api-key /run/secrets/mission-control-api-key
 
           # Mining namespace
-          apply_secret mining xmrig-proxy-secret api-token /run/agenix/xmrig-proxy-api-token
+          apply_secret mining xmrig-proxy-secret api-token /run/secrets/xmrig-proxy-api-token
 
           # Monitoring namespace
-          apply_secret monitoring grafana-admin-secret admin-password /run/agenix/grafana-admin-password
-          apply_secret monitoring grafana-oidc-secret client-secret /run/agenix/grafana-oidc-client-secret
-          apply_secret ai-inference openwebui-oidc-secret client-secret /run/agenix/openwebui-oidc-client-secret
+          apply_secret monitoring grafana-admin-secret admin-password /run/secrets/grafana-admin-password
+          apply_secret monitoring grafana-oidc-secret client-secret /run/secrets/grafana-oidc-client-secret
+          apply_secret ai-inference openwebui-oidc-secret client-secret /run/secrets/openwebui-oidc-client-secret
 
           # Automation namespace (n8n)
-          apply_secret automation n8n-secrets admin-password /run/agenix/n8n-admin-password
-          apply_secret automation n8n-secrets encryption-key /run/agenix/n8n-encryption-key
-          apply_secret automation hermes-automation-keys n8n-api-key /run/agenix/n8n-api-key
+          apply_secret automation n8n-secrets admin-password /run/secrets/n8n-admin-password
+          apply_secret automation n8n-secrets encryption-key /run/secrets/n8n-encryption-key
+          apply_secret automation hermes-automation-keys n8n-api-key /run/secrets/n8n-api-key
 
           echo "[k8s-secrets] Done"
         '';

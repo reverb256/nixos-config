@@ -7,10 +7,38 @@
   currentHost = config.networking.hostName or "unknown";
 in {
   nix = {
-    distributedBuilds = lib.mkDefault false;
+    distributedBuilds = currentHost == "zephyr";
+
+    # Structured build machines — NixOS generates /etc/nix/machines + builders config
+    buildMachines =
+      if currentHost == "zephyr"
+      then [
+        {
+          hostName = "nexus";
+          protocol = "ssh-ng";
+          systems = ["x86_64-linux"];
+          sshUser = "j_kro";
+          sshKey = "/etc/nixos/ssh/id_ed25519";
+          maxJobs = 10;
+          speedFactor = 5;
+          supportedFeatures = ["big-parallel" "kvm"];
+          mandatoryFeatures = [];
+        }
+        {
+          hostName = "sentry";
+          protocol = "ssh-ng";
+          systems = ["x86_64-linux"];
+          sshUser = "j_kro";
+          sshKey = "/etc/nixos/ssh/id_ed25519";
+          maxJobs = 4;
+          speedFactor = 3;
+          supportedFeatures = ["big-parallel"];
+          mandatoryFeatures = [];
+        }
+      ]
+      else [];
 
     settings = {
-      builders = lib.mkDefault "@/etc/nix/machines";
       builders-use-substitutes = true;
       require-sigs = lib.mkForce false;
       trusted-users = lib.mkForce [
@@ -129,67 +157,6 @@ in {
   };
 
   environment = {
-    etc = {
-      "ssh/ssh_config.d/50-build-machines.conf".text = ''
-        Host zephyr nexus sentry
-          User j_kro
-          IdentityFile /etc/nixos/ssh/id_ed25519
-          IdentitiesOnly yes
-          StrictHostKeyChecking accept-new
-          ConnectTimeout 30
-      '';
-
-      "nix/machines".text = let
-        allMachines = [
-          {
-            hostName = "zephyr";
-            system = "x86_64-linux";
-            sshUser = "j_kro";
-            sshKey = "/etc/nixos/ssh/id_ed25519";
-            maxJobs = 0;
-            speedFactor = 4;
-            supportedFeatures = [
-              "big-parallel"
-              "kvm"
-            ];
-            mandatoryFeatures = [];
-          }
-          {
-            hostName = "nexus";
-            system = "x86_64-linux";
-            sshUser = "j_kro";
-            sshKey = "/etc/nixos/ssh/id_ed25519";
-            maxJobs = 10;
-            speedFactor = 5;
-            supportedFeatures = [
-              "big-parallel"
-              "kvm"
-            ];
-            mandatoryFeatures = [];
-          }
-          {
-            hostName = "sentry";
-            system = "x86_64-linux";
-            sshUser = "j_kro";
-            sshKey = "/etc/nixos/ssh/id_ed25519";
-            maxJobs = 4;
-            speedFactor = 3;
-            supportedFeatures = ["big-parallel"];
-            mandatoryFeatures = [];
-          }
-        ];
-        machines = builtins.filter (m: m.hostName != currentHost) allMachines;
-        formatMachine = m: ''
-          ssh-ng://${m.sshUser}@${m.hostName} ${m.system} ${
-            if m.sshKey != null
-            then m.sshKey
-            else "-"
-          } ${toString m.maxJobs} ${toString m.speedFactor} ${lib.concatStringsSep "," m.supportedFeatures} ${lib.concatStringsSep "," m.mandatoryFeatures}
-        '';
-      in
-        lib.concatMapStrings formatMachine machines;
-    };
-
     variables = {
       CCACHE_DIR = "/var/cache/ccache";
       CCACHE_SIZE = "20G";

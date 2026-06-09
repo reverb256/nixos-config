@@ -12,7 +12,7 @@ in {
 
     tokenFile = mkOption {
       type = types.path;
-      default = "/run/agenix/cachix-token";
+      default = "/run/secrets/cachix-token";
       description = "Path to the Cachix authentication token file (agenix secret)";
     };
   };

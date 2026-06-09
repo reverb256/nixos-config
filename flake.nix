@@ -107,6 +107,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # ═══════════════════════════════════════════════════════════════════
     # EXTRACTED PROJECTS — Migration in progress (see EXTRACTION-PLAN.md)
     # Uncomment each input after verifying the project builds independently.
@@ -189,6 +194,7 @@
     aagl,
     nur,
     agenix,
+    sops-nix,
     nix-mineral,
     colmena,
     pre-commit-hooks,
@@ -218,6 +224,7 @@
     slimModules = [
       inputs.home-manager.nixosModules.home-manager
       inputs.agenix.nixosModules.default
+      inputs.sops-nix.nixosModules.default
       inputs.stylix.nixosModules.default
       {
         nixpkgs.overlays = [self.overlays.default];

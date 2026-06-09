@@ -5,6 +5,10 @@ let
 
   minerScript = pkgs.writeShellScriptBin "miner-status" ''
     set -euo pipefail
+    # Fast process check - exit instantly (~0ms) if no miner is running
+    if ! pgrep -x "xmrig" >/dev/null 2>&1 && ! pgrep -x "lolMiner" >/dev/null 2>&1; then
+      exit 1
+    fi
     for port in 21550 21551; do
       if data=$(curl -sf --max-time 2 "http://localhost:$port/" 2>/dev/null); then
         hash=$(echo "$data" | python3 -c "

@@ -161,7 +161,7 @@ in {
               ]
               ++ lib.optional cfg.enableBackup cfg.backupDir;
 
-            ExecStart = "${pkgs.garage}/bin/garage -c /run/garage/garage.toml server";
+            ExecStart = "${lib.getExe pkgs.garage} -c /run/garage/garage.toml server";
 
             # Access agenix secret files for config generation in preStart
             ReadOnlyPaths = [
@@ -199,7 +199,7 @@ in {
             Type = "oneshot";
             User = "garage";
             Group = "garage";
-            ExecStart = "${pkgs.bash}/bin/bash -c '${pkgs.garage}/bin/garage -c /run/garage/garage.toml meta snapshot ${cfg.backupDir}/meta-$(date +%%Y-%%m-%%d_%%H-%%M-%%S).db && cp ${cfg.dataDir}/meta/db.lmdb ${cfg.backupDir}/db.lmdb-$(date +%%Y-%%m-%%d_%%H-%%M-%%S)'";
+            ExecStart = "${lib.getExe' pkgs.bash "bash"} -c '${lib.getExe pkgs.garage} -c /run/garage/garage.toml meta snapshot ${cfg.backupDir}/meta-$(date +%%Y-%%m-%%d_%%H-%%M-%%S).db && cp ${cfg.dataDir}/meta/db.lmdb ${cfg.backupDir}/db.lmdb-$(date +%%Y-%%m-%%d_%%H-%%M-%%S)'";
             IOSchedulingClass = "idle";
             IOSchedulingPriority = "7";
             ProtectSystem = "strict";

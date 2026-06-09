@@ -184,7 +184,7 @@ in {
         VLANS = ${builtins.toJSON cfg.vlans}
         HEADLESS = ${lib.boolToString cfg.automation.headless}
 
-        SECRET_PATH = "/run/agenix/switch-admin"
+        SECRET_PATH = "/run/secrets/switch-admin"
         try:
             with open(SECRET_PATH, "r") as f:
                 DEFAULT_PASSWORD = f.read().strip()

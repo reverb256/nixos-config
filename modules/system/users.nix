@@ -30,7 +30,6 @@
 
   users.groups.j_kro = {};
 
-  # Declarative root password (same as j_kro for consistency)
   users.users.root.initialHashedPassword = "$y$j9T$JXuhIoBxfLWWZ57CJXtwQ.$cYs3wivkMTdLIvfjng4hzRqQRRdUA2rfCsic6wjRL25";
 
   environment.sessionVariables = lib.mkOptionDefault {
@@ -38,10 +37,6 @@
   };
 
   security.pam.services.login.setEnvironment = true;
-
-  environment.etc."environment".text = ''
-    TZ=America/Winnipeg
-  '';
 
   security.sudo = {
     enable = true;
