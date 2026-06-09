@@ -247,7 +247,7 @@
       WorkingDirectory = "/var/lib/hermes";
     };
     environment = {
-      HERMES_HOME = "/var/lib/hermes";
+      HERMES_HOME = "/var/lib/hermes/.hermes";
       REACTIONS_BOARD = "nixos-config";
     };
     wantedBy = [ "multi-user.target" ];
