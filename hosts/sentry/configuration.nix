@@ -208,4 +208,10 @@
     };
   };
 
+
+  # Resolve conflict between nix-mineral and NixOS default gitconfig sources
+  environment.etc.gitconfig.source = lib.mkForce (pkgs.writeText "gitconfig" ''
+    [safe]
+      directory = /etc/nixos
+  '');
 }
