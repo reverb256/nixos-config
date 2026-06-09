@@ -7,6 +7,7 @@
   inputs.nur.modules.nixos.default
   inputs.sops-nix.nixosModules.default
   ./modules/system/sops-secrets-registry.nix
+  ./modules/system/k8s-secret-pusher.nix
   inputs.hermes-agent.nixosModules.default
 
   inputs.mcp-registry.nixosModules.default
