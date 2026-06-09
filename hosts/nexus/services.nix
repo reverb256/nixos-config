@@ -33,7 +33,7 @@ in {
       enable = true;
       nvidia.enable = true;
       role = "server";
-      clusterInit = true; # First node - bootstrapping new cluster # Rejoining existing cluster via VIP (fixed 2026-05-30)
+      clusterInit = false; # Cluster already bootstrapped
   clusterReset = false; # Already reset, running clean
       nodeName = "nexus";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
