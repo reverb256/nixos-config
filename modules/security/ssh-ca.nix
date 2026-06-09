@@ -19,11 +19,6 @@ in {
   };
 
   config = mkIf cfg.enable {
-    age.secrets.ssh-ca-key = {
-      file = "${inputs.self}/secrets/ssh-ca-key.age";
-      mode = "600";
-    };
-
     systemd.services.ssh-ca-sign-host = {
       description = "Sign SSH host key with cluster CA";
       wantedBy = ["multi-user.target"];
