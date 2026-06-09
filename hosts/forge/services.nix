@@ -62,20 +62,6 @@ in {
           apiPort = 21551;
           powerLimit = 105;
         }
-          {
-            name = "5600xt-0";
-            gpuId = 2;
-            wallet = "krxXVNVMM7.forge-5600xt-0";
-            apiPort = 21552;
-            extraArgs = ["--enable-gpu-amd" "--disable-gpu-nvidia"];
-          }
-          {
-            name = "5600xt-1";
-            gpuId = 3;
-            wallet = "krxXVNVMM7.forge-5600xt-1";
-            apiPort = 21553;
-            extraArgs = ["--enable-gpu-amd" "--disable-gpu-nvidia"];
-          }
       ];
     };
 
