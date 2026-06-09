@@ -26,6 +26,7 @@
   meshKeys = import ../../mesh-keys.nix;
 in {
   services.openssh = {
+    settings.HostCertificate = "/etc/ssh/ssh_host_ed25519_key-cert.pub";
     enable = true;
     settings = {
       PasswordAuthentication = false;
