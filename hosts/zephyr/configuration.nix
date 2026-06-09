@@ -377,4 +377,20 @@ in {
       pkgs.source-han-sans
       pkgs.source-han-serif
     ];
-  };}
+  };
+
+  # WiFi failover — wlan0 only activates when ethernet drops
+  networking.networkmanager.dispatcherScripts."90-wifi-failover" = ''
+    if [ "$CONNECTION" = "enp38s0" ]; then
+      case "$2" in
+        down)
+          nmcli connection up WIFI-42F4
+          ;;
+        up)
+          nmcli connection down WIFI-42F4
+          ;;
+      esac
+    fi
+  '';
+
+}
