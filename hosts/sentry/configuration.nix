@@ -171,4 +171,39 @@
   environment.systemPackages = with pkgs; [
     nvtopPackages.full
   ];
+
+  services.hermes-agent = {
+    enable = true;
+    addToSystemPackages = true;
+
+    settings = {
+      model = {
+        default = "deepseek-v4-flash";
+        provider = "opencode-go";
+        base_url = "https://opencode.ai/zen/go/v1";
+        api_mode = "chat_completions";
+      };
+      memory = {
+        memory_enabled = true;
+        user_profile_enabled = true;
+        memory_char_limit = 2200;
+        user_char_limit = 1375;
+        provider = "openviking";
+      };
+      terminal = {
+        backend = "local";
+        timeout = 60;
+      };
+      kanban = {
+        dispatch_in_gateway = true;
+        dispatch_interval_seconds = 60;
+        failure_limit = 2;
+      };
+      display = {
+        compact = false;
+        interface = "cli";
+      };
+    };
+  };
+
 }
