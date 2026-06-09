@@ -146,4 +146,18 @@
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
 
+
+  # sops-nix secrets registry (dual-run with agenix during migration)
+  services.sops-secrets-registry = {
+    enable = true;
+    aiServices = true;
+    kubernetes = true;
+    monitoring = true;
+    storage = true;
+    mining = true;
+    cloud = true;
+    automation = true;
+    selfHosting = true;
+    ci = true;
+  };
 }
