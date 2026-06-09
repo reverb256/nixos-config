@@ -31,12 +31,4 @@
       self.overlays.default
     ];
   }
-
-  {
-    age.identityPaths = [
-      "/persistent/etc/age/key.txt"
-      "/etc/nixos/.age/key.txt"
-      "/etc/age/key.txt"
-    ];
-  }
 ]

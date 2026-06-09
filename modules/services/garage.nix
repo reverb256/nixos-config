@@ -34,8 +34,8 @@
   # Script that generates the actual config by reading secrets
   generateConfig = pkgs.writeShellScriptBin "garage-generate-config" ''
     set -euo pipefail
-    rpc_secret="$(cat ${config.age.secrets.garage-rpc-secret.path})"
-    metrics_token="$(cat ${config.age.secrets.garage-metrics-token.path})"
+    rpc_secret="$(cat ${"/run/secrets/garage-rpc-secret"})"
+    metrics_token="$(cat ${"/run/secrets/garage-metrics-token"})"
     sed \
       -e "s|@RPC_SECRET@|$rpc_secret|g" \
       -e "s|@METRICS_TOKEN@|$metrics_token|g" \
@@ -165,8 +165,8 @@ in {
 
             # Access agenix secret files for config generation in preStart
             ReadOnlyPaths = [
-              config.age.secrets.garage-rpc-secret.path
-              config.age.secrets.garage-metrics-token.path
+              "/run/secrets/garage-rpc-secret"
+              "/run/secrets/garage-metrics-token"
               "${garageConfigTemplate}"
             ];
 
