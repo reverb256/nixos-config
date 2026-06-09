@@ -26,7 +26,6 @@
       ../../modules/services/podman-support.nix
 
       ../../modules/services/k3s-cluster.nix
-    ../../modules/services/srbminer.nix
       ../../modules/services/keepalived-vip.nix
       inputs.disko.nixosModules.disko
       inputs.nix-mineral.nixosModules.nix-mineral
