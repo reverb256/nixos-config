@@ -15,14 +15,6 @@ in {
       priority = 90;
     };
 
-    hermes-cli = {
-      enable = true;
-      apiKeyFile = "/run/secrets/zai-api-key";
-      nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
-      casdoorJwtFile = "/run/secrets/casdoor-hermes-jwt";
-      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
-      opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
-    };
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
@@ -166,4 +158,23 @@ in {
     };
     enableShellEnv = true;
   };
+
+  services.hermes-agent = {
+    enable = true;
+    addToSystemPackages = true;
+    settings = {
+      model.default = "deepseek-v4-flash";
+      model.provider = "opencode-go";
+      toolsets = ["all"];
+      terminal = { backend = "local"; timeout = 60; };
+    };
+    environmentFiles = [
+      "/run/secrets/zai-api-key"
+      "/run/secrets/nvidia-api-key"
+      "/run/secrets/casdoor-hermes-jwt"
+      "/run/secrets/opencode-go-api-key"
+      "/run/secrets/gemini-api-key"
+    ];
+  };
+
 }
