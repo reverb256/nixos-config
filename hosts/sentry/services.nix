@@ -124,10 +124,10 @@ in {
   services.ai-coding-tools = {
     enable = true;
     user = "j_kro";
-    zaiApiKeyFile = config.age.secrets.zai-api-key.path;
-    context7ApiKeyFile = config.age.secrets.context7-api-key.path;
-    nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
-    opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
+    zaiApiKeyFile = "/run/secrets/zai-api-key";
+    context7ApiKeyFile = "/run/secrets/context7-api-key";
+    nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
+    opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
     tools = {
       claude = {enable = true;};
       opencode = {enable = true;};

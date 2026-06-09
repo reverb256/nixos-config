@@ -301,7 +301,7 @@ in {
     # The rclone config should contain all remote definitions with credentials.
     # Remove individual remote credential options when migrating fully to agenix.
     environment.etc."rclone/rclone.conf" = {
-      source = config.age.secrets.rclone-config.path;
+      source = "/run/secrets/rclone-config";
       mode = "0400";
       user = "root";
       group = "root";
