@@ -353,8 +353,7 @@ in {
   };
   services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
   services.recovery-specialisation.enable = true; # depends on initrd-ssh
-  services.btrfs-boot-snapshot = {
-    enable = true; # depends on initrd-ssh
+  services.btrfs-boot-snapshot.enable = false; # depends on initrd-ssh
     subvolume = "@root";
     device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
   };
