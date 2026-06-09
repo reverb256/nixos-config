@@ -1,0 +1,6 @@
+keys:
+  - &cluster_age age1p98yp8w64rdugp03332gxnz5q2vcnucn69cs5qm6s2l2u7epqfcqmu2pqe
+creation_rules:
+  - key_groups:
+      - age:
+          - *cluster_age
