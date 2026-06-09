@@ -189,7 +189,6 @@ in {
         ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"
         ++ lib.optional (config.hardware.gpu-compute.rocm.enable or false) "--node-label=gpu=amd"
         ++ lib.optional (cfg.nodeIP != "") "--node-external-ip=${cfg.nodeIP}"
-        ++ lib.optional (cfg.nodeIP != "") "--node-ip=${cfg.nodeIP}"
         ++ lib.optional cfg.clusterReset "--cluster-reset"
         ++ [
           "--data-dir=${cfg.dataDir}"
