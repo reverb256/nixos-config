@@ -9,15 +9,15 @@
 in {
   services = {
     keepalived-vip = {
-      enable = true;
+      enable = false;
       vip = cluster.kubernetes.vip;
       interface = "eth0";
       priority = 90;
     };
 
     k3s-cluster = {
-      enable = true;
-      nvidia.enable = true;
+      enable = false;
+      nvidia.enable = false;
       role = "server";
       clusterInit = false; # Rejoining existing cluster as server (for etcd quorum)
       nodeName = "forge";
@@ -26,15 +26,15 @@ in {
       nodeIP = cluster.hosts.forge.ip;
     };
 
-    spotify-spotx.enable = true;
+    spotify-spotx.enable = false;
 
-    opencode.enable = true;
+    opencode.enable = false;
 
     # Agent network restrictions — restrict AI agents to allowed destinations only
 
     nixos-share = {
       enable = false;
-      client.enable = true;
+      client.enable = false;
     };
 
 
@@ -62,23 +62,37 @@ in {
           apiPort = 21551;
           powerLimit = 105;
         }
+          {
+            name = "5600xt-0";
+            gpuId = 2;
+            wallet = "krxXVNVMM7.forge-5600xt-0";
+            apiPort = 21552;
+            extraArgs = ["--enable-gpu-amd" "--disable-gpu-nvidia"];
+          }
+          {
+            name = "5600xt-1";
+            gpuId = 3;
+            wallet = "krxXVNVMM7.forge-5600xt-1";
+            apiPort = 21553;
+            extraArgs = ["--enable-gpu-amd" "--disable-gpu-nvidia"];
+          }
       ];
     };
 
 
     syncthing-cluster = {
-      enable = true;
+      enable = false;
     };
 
     nixos-auto-update = {
-      enable = true;
+      enable = false;
       interval = "daily";
       updateFlakeInputs = ["nixpkgs"];
     };
 
   };
 
-  services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
+  services.cluster-mesh.enable = false; # SSH service account for inter-node mesh
   environment.systemPackages = with pkgs; [
     rocmPackages.rocm-smi
     clinfo
@@ -127,36 +141,37 @@ in {
 
   # Initrd SSH recovery + BTRFS snapshots
   services.cluster-ca = {
-    enable = true;
+    enable = false;
     generateLeaf = false;
   };
 
   services.initrd-ssh-recovery = {
-    enable = true;
+    enable = false;
     interface = "eth0";
     networkDriver = "r8169";
     port = 2222;
   };
-  services.recovery-specialisation.enable = true;
-  services.btrfs-boot-snapshot.enable = false;
+  services.recovery-specialisation.enable = false;
+  services.btrfs-boot-snapshot = {
+    enable = false;
     device = "/dev/disk/by-uuid/188a7c7c-fb81-4d48-96f6-3fd5f3a267df";
   };
 
-  services.cachix-auth.enable = true;
+  services.cachix-auth.enable = false;
   services.ai-coding-tools = {
-    enable = true;
+    enable = false;
     user = "j_kro";
     zaiApiKeyFile = "/run/secrets/zai-api-key";
     context7ApiKeyFile = "/run/secrets/context7-api-key";
     nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
     opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
     tools = {
-      claude = {enable = true;};
-      opencode = {enable = true;};
-      droid = {enable = true;};
-      crush = {enable = true;};
-      pi = {enable = true;};
-      omp = {enable = true;};
+      claude = {enable = false;};
+      opencode = {enable = false;};
+      droid = {enable = false;};
+      crush = {enable = false;};
+      pi = {enable = false;};
+      omp = {enable = false;};
     };
     enableShellEnv = true;
   };

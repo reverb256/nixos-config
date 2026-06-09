@@ -171,9 +171,9 @@ in {
         backend = "mission-control.orchestration.svc.cluster.local:8080";
         protected = true;
       };
-      kagent = {
-        domain = "kagent.lan";
-        backend = "kagent-ui.kagent.svc.cluster.local:8080";
+      removed = {
+        domain = "removed.lan";
+        backend = "removed-ui.removed.svc.cluster.local:8080";
       };
       workspace = {
         domain = "workspace.lan";

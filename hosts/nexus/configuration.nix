@@ -111,8 +111,8 @@
     preset = ["compatibility"];
     # Fix: nix-mineral adds bind+nodev+nosuid+noexec over-itself mounts for
     # /etc, /var, /var/lib, /var/log, /home, /root, /srv, /tmp, /var/tmp.
-    # These paths sit on an ephemeral subvolume;
-# Symlink to /persistent in the activation script above.
+    # With impermanence (tmpfs /), these bind-mount from initramfs paths that
+    # don't exist yet, preventing boot. Also conflicts with btrfs subvol= mounts.
     # Disable per-path to prevent bind mount generation.
     # https://github.com/cynicsketch/nix-mineral/issues/11
     filesystems.normal = {

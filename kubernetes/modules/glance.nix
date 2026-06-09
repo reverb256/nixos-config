@@ -139,8 +139,6 @@ in {
                         url: https://mission-control.lan
                         allow-insecure: true
                         alt-status-codes: [301, 302]
-                      - title: kAgent
-                        url: https://kagent.lan
                         allow-insecure: true
                         alt-status-codes: [301, 302]
                       - title: Hermes

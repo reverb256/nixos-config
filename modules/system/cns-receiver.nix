@@ -118,7 +118,6 @@ in {
 
             # Set permissions based on registry
             case "$secret_name" in
-              k3s-cluster-token|kagent-postgres)
                 chmod 440 "$output"
                 ;;
               *)
