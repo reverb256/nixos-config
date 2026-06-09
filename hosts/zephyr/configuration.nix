@@ -19,6 +19,7 @@ in {
     ../../modules/system/systemd-user-timeout.nix
 
     ../../modules/default.nix
+    ../../modules/system/sops-secrets-registry.nix
 
     ../../modules/hardware/rgb-control.nix
   ];
@@ -394,4 +395,18 @@ in {
     ''}";
     type = "basic";
   }];
+
+  # sops-nix secrets registry (dual-run with agenix during migration)
+  services.sops-secrets-registry = {
+    enable = true;
+    aiServices = true;
+    kubernetes = true;
+    monitoring = true;
+    storage = true;
+    mining = true;
+    cloud = true;
+    automation = true;
+    selfHosting = true;
+    ci = true;
+  };
 }
