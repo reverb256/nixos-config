@@ -164,11 +164,18 @@ in {
 
     Host krash3 ${hosts.krash3.ip}
       HostName ${hosts.krash3.ip}
-      Port 2222
+      Port 22
       User j_kro
       StrictHostKeyChecking accept-new
       IdentityFile ~/.ssh/id_ed25519
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
+
+    Host krash3-wsl
+      HostName 10.1.1.90
+      Port 22222
+      User j_kro
+      StrictHostKeyChecking accept-new
+      IdentityFile ~/.ssh/id_ed25519
 
     Host github.com
       HostName github.com
