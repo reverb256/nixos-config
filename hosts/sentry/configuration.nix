@@ -120,6 +120,12 @@
     mountPi = false;
   };
 
+  # Hardware watchdog — auto-reboot after 60s of system hang
+  # SP5100 TCO timer feeds via systemd, recovers from GPU/PCIe lockups
+  systemd.extraConfig = ''
+    RuntimeWatchdogSec=60
+  '';
+
   # System hardening
   nix-mineral = {
     enable = true;
