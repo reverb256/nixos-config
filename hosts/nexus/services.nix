@@ -22,32 +22,6 @@ in {
   ];
 
   services = {
-    hermes-cli = {
-      enable = true;
-      apiKeyFile = "/run/secrets/zai-api-key";
-      nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
-      casdoorJwtFile = "/run/secrets/casdoor-hermes-jwt";
-      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
-      settings = {
-        model = {
-          provider = "gateway";
-          default = "opencode-go/deepseek-v4-flash";
-        };
-        toolsets = ["all"];
-        terminal = {
-          backend = "local";
-          timeout = 180;
-        };
-        memory = {
-          memory_enabled = true;
-          user_profile_enabled = true;
-        };
-        compression = {
-          enabled = true;
-          threshold = 0.9;
-        };
-      };
-    };
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
@@ -197,34 +171,6 @@ in {
   # Load Z.AI and NVIDIA API keys for hermes-agent
   # The official module's environment option doesn't reliably set systemd env vars,
   # so we use a systemd override with ExecStartPre to generate an env file.
-  systemd.services.hermes-agent = {
-    serviceConfig.ExecStartPre =
-      "+"
-      + (pkgs.writeShellScript "hermes-load-env" ''
-        mkdir -p /data/hermes/.hermes
-        cat > /data/hermes/.hermes/provider-env << 'ENVEOF'
-        API_SERVER_ENABLED=true
-        API_SERVER_HOST=0.0.0.0
-        API_SERVER_PORT=8642
-        GLM_BASE_URL=https://api.z.ai/api/coding/paas/v4
-        ENVEOF
-        echo -n "API_SERVER_KEY=" >> /data/hermes/.hermes/provider-env
-        cat /run/secrets/hermes-api-server-key >> /data/hermes/.hermes/provider-env
-        echo "" >> /data/hermes/.hermes/provider-env
-        # TODO: agenix - populate before deploy
-        echo -n "ZAI_API_KEY=" >> /data/hermes/.hermes/provider-env
-        cat /run/secrets/zai-api-key >> /data/hermes/.hermes/provider-env
-        echo "" >> /data/hermes/.hermes/provider-env
-        # TODO: agenix - populate before deploy
-        echo -n "NVIDIA_API_KEY=" >> /data/hermes/.hermes/provider-env
-        cat /run/secrets/nvidia-api-key >> /data/hermes/.hermes/provider-env
-        echo "" >> /data/hermes/.hermes/provider-env
-        chmod 600 /data/hermes/.hermes/provider-env
-        chown hermes:hermes /data/hermes/.hermes/provider-env
-      '');
-    # Use "-" prefix so systemd doesn't fail if file doesn't exist yet
-    serviceConfig.EnvironmentFile = "-/data/hermes/.hermes/provider-env";
-  };
 
   users.users.j_kro.extraGroups = [
     "hermes"
