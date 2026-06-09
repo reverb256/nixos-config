@@ -45,12 +45,6 @@
       url = "tarball+https://codeload.github.com/FlameFlag/nixcord/tar.gz/45a98c17b0d9e695bdee92ab00c76657eddf47e7";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    agenix = {
-      url = "tarball+https://codeload.github.com/ryantm/agenix/tar.gz/b027ee29d959fda4b60b57566d64c98a202e0feb";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.home-manager.follows = "home-manager";
-    };
-
     # System hardening (Phase 0: Security Baseline)
     # https://github.com/cynicsketch/nix-mineral
     # Phase 3: MicroVM isolation (Qubes-like compartmentalization)
@@ -193,7 +187,6 @@
     home-manager,
     aagl,
     nur,
-    agenix,
     sops-nix,
     nix-mineral,
     colmena,
