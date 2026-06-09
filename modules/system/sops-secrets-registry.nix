@@ -23,6 +23,7 @@ in {
           "default/activepieces-api-key" = {
             sopsFile = "${inputs.self}/secrets/default/activepieces-api-key.yaml";
             path = "/run/secrets/activepieces-api-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -30,6 +31,7 @@ in {
           "default/activepieces-encryption-key" = {
             sopsFile = "${inputs.self}/secrets/default/activepieces-encryption-key.yaml";
             path = "/run/secrets/activepieces-encryption-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -37,6 +39,7 @@ in {
           "default/activepieces-jwt-secret" = {
             sopsFile = "${inputs.self}/secrets/default/activepieces-jwt-secret.yaml";
             path = "/run/secrets/activepieces-jwt-secret";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -44,6 +47,7 @@ in {
           "ai/cachix-token" = {
             sopsFile = "${inputs.self}/secrets/ai/cachix-token.yaml";
             path = "/run/secrets/cachix-token";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -51,6 +55,7 @@ in {
           "ai/context7-api-key" = {
             sopsFile = "${inputs.self}/secrets/ai/context7-api-key.yaml";
             path = "/run/secrets/context7-api-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -58,6 +63,7 @@ in {
           "default/garnix-password" = {
             sopsFile = "${inputs.self}/secrets/default/garnix-password.yaml";
             path = "/run/secrets/garnix-password";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -65,6 +71,7 @@ in {
           "ai/gemini-api-key" = {
             sopsFile = "${inputs.self}/secrets/ai/gemini-api-key.yaml";
             path = "/run/secrets/gemini-api-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -72,6 +79,7 @@ in {
           "ai/hermes-api-server-key" = {
             sopsFile = "${inputs.self}/secrets/ai/hermes-api-server-key.yaml";
             path = "/run/secrets/hermes-api-server-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -79,6 +87,7 @@ in {
           "ai/hermes-webui-password" = {
             sopsFile = "${inputs.self}/secrets/ai/hermes-webui-password.yaml";
             path = "/run/secrets/hermes-webui-password";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -86,6 +95,7 @@ in {
           "ai/huggingface-token" = {
             sopsFile = "${inputs.self}/secrets/ai/huggingface-token.yaml";
             path = "/run/secrets/huggingface-token";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -93,6 +103,7 @@ in {
           "ai/katzilla-api-key" = {
             sopsFile = "${inputs.self}/secrets/ai/katzilla-api-key.yaml";
             path = "/run/secrets/katzilla-api-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -100,6 +111,7 @@ in {
           "ai/kilo-api-key" = {
             sopsFile = "${inputs.self}/secrets/ai/kilo-api-key.yaml";
             path = "/run/secrets/kilo-api-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -107,6 +119,7 @@ in {
           "ai/localmaxxing-api-key" = {
             sopsFile = "${inputs.self}/secrets/ai/localmaxxing-api-key.yaml";
             path = "/run/secrets/localmaxxing-api-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -114,6 +127,7 @@ in {
           "ai/neocities-api-key" = {
             sopsFile = "${inputs.self}/secrets/ai/neocities-api-key.yaml";
             path = "/run/secrets/neocities-api-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -121,6 +135,7 @@ in {
           "ai/nvidia-api-key" = {
             sopsFile = "${inputs.self}/secrets/ai/nvidia-api-key.yaml";
             path = "/run/secrets/nvidia-api-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -128,6 +143,7 @@ in {
           "ai/opencode-api-key" = {
             sopsFile = "${inputs.self}/secrets/ai/opencode-api-key.yaml";
             path = "/run/secrets/opencode-api-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -135,6 +151,7 @@ in {
           "ai/opencode-go-api-key" = {
             sopsFile = "${inputs.self}/secrets/ai/opencode-go-api-key.yaml";
             path = "/run/secrets/opencode-go-api-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -142,6 +159,7 @@ in {
           "ai/pollinations-api-key" = {
             sopsFile = "${inputs.self}/secrets/ai/pollinations-api-key.yaml";
             path = "/run/secrets/pollinations-api-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -149,6 +167,7 @@ in {
           "ai/xai-access-token" = {
             sopsFile = "${inputs.self}/secrets/ai/xai-access-token.yaml";
             path = "/run/secrets/xai-access-token";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -156,6 +175,7 @@ in {
           "ai/zai-api-key" = {
             sopsFile = "${inputs.self}/secrets/ai/zai-api-key.yaml";
             path = "/run/secrets/zai-api-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -165,6 +185,7 @@ in {
           "k8s/ai-gateway-zai-api-key" = {
             sopsFile = "${inputs.self}/secrets/k8s/ai-gateway-zai-api-key.yaml";
             path = "/run/secrets/ai-gateway-zai-api-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -172,6 +193,7 @@ in {
           "k8s/casdoor-hermes-jwt" = {
             sopsFile = "${inputs.self}/secrets/k8s/casdoor-hermes-jwt.yaml";
             path = "/run/secrets/casdoor-hermes-jwt";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -179,6 +201,7 @@ in {
           "k8s/central-auth-client-secret" = {
             sopsFile = "${inputs.self}/secrets/k8s/central-auth-client-secret.yaml";
             path = "/run/secrets/central-auth-client-secret";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -186,6 +209,7 @@ in {
           "k8s/central-auth-cookie-secret" = {
             sopsFile = "${inputs.self}/secrets/k8s/central-auth-cookie-secret.yaml";
             path = "/run/secrets/central-auth-cookie-secret";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -193,6 +217,7 @@ in {
           "infra/cns-ssh-key" = {
             sopsFile = "${inputs.self}/secrets/infra/cns-ssh-key.yaml";
             path = "/run/secrets/cns-ssh-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -200,6 +225,7 @@ in {
           "k8s/frostbite-postgres" = {
             sopsFile = "${inputs.self}/secrets/k8s/frostbite-postgres.yaml";
             path = "/run/secrets/frostbite-postgres";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -207,6 +233,7 @@ in {
           "infra/initrd-ssh-host-key-forge" = {
             sopsFile = "${inputs.self}/secrets/infra/initrd-ssh-host-key-forge.yaml";
             path = "/run/secrets/initrd-ssh-host-key-forge";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -214,6 +241,7 @@ in {
           "infra/initrd-ssh-host-key-nexus" = {
             sopsFile = "${inputs.self}/secrets/infra/initrd-ssh-host-key-nexus.yaml";
             path = "/run/secrets/initrd-ssh-host-key-nexus";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -221,6 +249,7 @@ in {
           "infra/initrd-ssh-host-key-sentry" = {
             sopsFile = "${inputs.self}/secrets/infra/initrd-ssh-host-key-sentry.yaml";
             path = "/run/secrets/initrd-ssh-host-key-sentry";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -228,6 +257,7 @@ in {
           "infra/initrd-ssh-host-key-zephyr" = {
             sopsFile = "${inputs.self}/secrets/infra/initrd-ssh-host-key-zephyr.yaml";
             path = "/run/secrets/initrd-ssh-host-key-zephyr";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -235,6 +265,7 @@ in {
           "k8s/k3s-cluster-token" = {
             sopsFile = "${inputs.self}/secrets/k8s/k3s-cluster-token.yaml";
             path = "/run/secrets/k3s-cluster-token";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -242,6 +273,7 @@ in {
           "k8s/kagent-postgres" = {
             sopsFile = "${inputs.self}/secrets/k8s/kagent-postgres.yaml";
             path = "/run/secrets/kagent-postgres";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -249,6 +281,7 @@ in {
           "k8s/mission-control-api-key" = {
             sopsFile = "${inputs.self}/secrets/k8s/mission-control-api-key.yaml";
             path = "/run/secrets/mission-control-api-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -256,6 +289,7 @@ in {
           "k8s/mission-control-auth-pass" = {
             sopsFile = "${inputs.self}/secrets/k8s/mission-control-auth-pass.yaml";
             path = "/run/secrets/mission-control-auth-pass";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -266,6 +300,7 @@ in {
           "k8s/searxng-secret-key" = {
             sopsFile = "${inputs.self}/secrets/k8s/searxng-secret-key.yaml";
             path = "/run/secrets/searxng-secret-key";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -273,6 +308,7 @@ in {
           "infra/ssh-ca-key" = {
             sopsFile = "${inputs.self}/secrets/infra/ssh-ca-key.yaml";
             path = "/run/secrets/ssh-ca-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -280,6 +316,7 @@ in {
           "infra/switch-admin" = {
             sopsFile = "${inputs.self}/secrets/infra/switch-admin.yaml";
             path = "/run/secrets/switch-admin";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -289,6 +326,7 @@ in {
           "cloud/cloudflare-api-token" = {
             sopsFile = "${inputs.self}/secrets/cloud/cloudflare-api-token.yaml";
             path = "/run/secrets/cloudflare-api-token";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -296,6 +334,7 @@ in {
           "cloud/cloudflare-global-api-key" = {
             sopsFile = "${inputs.self}/secrets/cloud/cloudflare-global-api-key.yaml";
             path = "/run/secrets/cloudflare-global-api-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -303,6 +342,7 @@ in {
           "cloud/cloudflared-token" = {
             sopsFile = "${inputs.self}/secrets/cloud/cloudflared-token.yaml";
             path = "/run/secrets/cloudflared-token";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -310,6 +350,7 @@ in {
           "cloud/tailscale-api-key" = {
             sopsFile = "${inputs.self}/secrets/cloud/tailscale-api-key.yaml";
             path = "/run/secrets/tailscale-api-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -317,6 +358,7 @@ in {
           "cloud/tailscale-oauth" = {
             sopsFile = "${inputs.self}/secrets/cloud/tailscale-oauth.yaml";
             path = "/run/secrets/tailscale-oauth";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -326,6 +368,7 @@ in {
           "monitoring/grafana-admin" = {
             sopsFile = "${inputs.self}/secrets/monitoring/grafana-admin.yaml";
             path = "/run/secrets/grafana-admin";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -333,6 +376,7 @@ in {
           "monitoring/grafana-admin-password" = {
             sopsFile = "${inputs.self}/secrets/monitoring/grafana-admin-password.yaml";
             path = "/run/secrets/grafana-admin-password";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -340,6 +384,7 @@ in {
           "monitoring/grafana-oidc-client-secret" = {
             sopsFile = "${inputs.self}/secrets/monitoring/grafana-oidc-client-secret.yaml";
             path = "/run/secrets/grafana-oidc-client-secret";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -349,6 +394,7 @@ in {
           "mining/xmrig-always-api-token" = {
             sopsFile = "${inputs.self}/secrets/mining/xmrig-always-api-token.yaml";
             path = "/run/secrets/xmrig-always-api-token";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -356,6 +402,7 @@ in {
           "mining/xmrig-api-token" = {
             sopsFile = "${inputs.self}/secrets/mining/xmrig-api-token.yaml";
             path = "/run/secrets/xmrig-api-token";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -363,6 +410,7 @@ in {
           "mining/xmrig-flexible-api-token" = {
             sopsFile = "${inputs.self}/secrets/mining/xmrig-flexible-api-token.yaml";
             path = "/run/secrets/xmrig-flexible-api-token";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -370,6 +418,7 @@ in {
           "mining/xmrig-proxy-api-token" = {
             sopsFile = "${inputs.self}/secrets/mining/xmrig-proxy-api-token.yaml";
             path = "/run/secrets/xmrig-proxy-api-token";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -379,6 +428,7 @@ in {
           "storage/garage-metrics-token" = {
             sopsFile = "${inputs.self}/secrets/storage/garage-metrics-token.yaml";
             path = "/run/secrets/garage-metrics-token";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -386,6 +436,7 @@ in {
           "storage/garage-rpc-secret" = {
             sopsFile = "${inputs.self}/secrets/storage/garage-rpc-secret.yaml";
             path = "/run/secrets/garage-rpc-secret";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -393,6 +444,7 @@ in {
           "storage/garage-s3-access-key-id" = {
             sopsFile = "${inputs.self}/secrets/storage/garage-s3-access-key-id.yaml";
             path = "/run/secrets/garage-s3-access-key-id";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -400,6 +452,7 @@ in {
           "storage/garage-s3-secret-key" = {
             sopsFile = "${inputs.self}/secrets/storage/garage-s3-secret-key.yaml";
             path = "/run/secrets/garage-s3-secret-key";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -409,6 +462,7 @@ in {
           "automation/n8n-admin-password" = {
             sopsFile = "${inputs.self}/secrets/automation/n8n-admin-password.yaml";
             path = "/run/secrets/n8n-admin-password";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -416,6 +470,7 @@ in {
           "automation/n8n-api-key" = {
             sopsFile = "${inputs.self}/secrets/automation/n8n-api-key.yaml";
             path = "/run/secrets/n8n-api-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -423,6 +478,7 @@ in {
           "automation/n8n-encryption-key" = {
             sopsFile = "${inputs.self}/secrets/automation/n8n-encryption-key.yaml";
             path = "/run/secrets/n8n-encryption-key";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -432,6 +488,7 @@ in {
           "selfhosting/nextcloud-admin" = {
             sopsFile = "${inputs.self}/secrets/selfhosting/nextcloud-admin.yaml";
             path = "/run/secrets/nextcloud-admin";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -439,6 +496,7 @@ in {
           "selfhosting/rclone-config" = {
             sopsFile = "${inputs.self}/secrets/selfhosting/rclone-config.yaml";
             path = "/run/secrets/rclone-config";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -446,6 +504,7 @@ in {
           "selfhosting/vaultwarden-admin-token" = {
             sopsFile = "${inputs.self}/secrets/selfhosting/vaultwarden-admin-token.yaml";
             path = "/run/secrets/vaultwarden-admin-token";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -453,6 +512,7 @@ in {
           "selfhosting/vaultwarden-oidc-client-secret" = {
             sopsFile = "${inputs.self}/secrets/selfhosting/vaultwarden-oidc-client-secret.yaml";
             path = "/run/secrets/vaultwarden-oidc-client-secret";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -462,6 +522,7 @@ in {
           "ci/gitea-runner-token" = {
             sopsFile = "${inputs.self}/secrets/ci/gitea-runner-token.yaml";
             path = "/run/secrets/gitea-runner-token";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -469,6 +530,7 @@ in {
           "ci/gitea-runner-url" = {
             sopsFile = "${inputs.self}/secrets/ci/gitea-runner-url.yaml";
             path = "/run/secrets/gitea-runner-url";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -476,6 +538,7 @@ in {
           "ci/github-runner-pat" = {
             sopsFile = "${inputs.self}/secrets/ci/github-runner-pat.yaml";
             path = "/run/secrets/github-runner-pat";
+            format = "binary";
             mode = "0440";
             owner = "j_kro";
             group = "users";
@@ -483,6 +546,7 @@ in {
           "ci/github-token" = {
             sopsFile = "${inputs.self}/secrets/ci/github-token.yaml";
             path = "/run/secrets/github-token";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
@@ -490,6 +554,7 @@ in {
           "ci/npm-token" = {
             sopsFile = "${inputs.self}/secrets/ci/npm-token.yaml";
             path = "/run/secrets/npm-token";
+            format = "binary";
             mode = "0440";
             owner = "root";
             group = "root";
