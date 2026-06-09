@@ -32,7 +32,7 @@ in {
 
     sha256 = lib.mkOption {
       type = lib.types.str;
-      default = "sha256-uWDhoqspu0sgu1zonXBKAPaaGKSH3pPsXx0UW1T3nnE=";
+      default = "sha256-b960e1a2ab29bb4b20bb5ce89d704a00f69a18a487de93ec5f1d145b54f79e71";
       description = "SHA-256 hash of the SRBMiner tarball.";
     };
 
