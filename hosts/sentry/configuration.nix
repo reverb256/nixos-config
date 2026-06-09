@@ -141,11 +141,13 @@
   systemd.services.nfs-idmapd.serviceConfig.SupplementaryGroups = ["proc"];
   systemd.tmpfiles.rules = ["d /var/lib/nfs/rpc_pipefs/nfs 0755 root root -"];
 
-  environment.etc.gitconfig.source = lib.mkForce (pkgs.writeText "gitconfig" ''
-    [user]
-      name = Jeremy Kroeker
-      email = jkroeker@proton.me
-  '');
+
+  programs.git.config = {
+    user = {
+      name = lib.mkForce "Jeremy Kroeker";
+      email = "jkroeker@proton.me";
+    };
+  };
 
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
