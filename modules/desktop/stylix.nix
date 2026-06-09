@@ -43,5 +43,8 @@
       followSystem = true;
       autoImport = true;
     };
+
+    # Console TTY: theme virtual terminals (Ctrl+Alt+F{1..6}) with base16 palette
+    targets.console.enable = lib.mkDefault true;
   };
 }

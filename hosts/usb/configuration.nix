@@ -349,8 +349,8 @@ in {
     YAML_EOF
 
         # Load NVIDIA API key from agenix-decrypted secret into .env
-        if [ -f "/run/agenix/nvidia-api-key" ]; then
-          echo "NVIDIA_API_KEY=*** /run/agenix/nvidia-api-key)" > "$HERMES_HOME/.env"
+        if [ -f "/run/secrets/nvidia-api-key" ]; then
+          echo "NVIDIA_API_KEY=*** /run/secrets/nvidia-api-key)" > "$HERMES_HOME/.env"
           chmod 600 "$HERMES_HOME/.env"
         fi
 

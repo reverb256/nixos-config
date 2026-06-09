@@ -36,7 +36,7 @@ in {
         after = ["sysroot.mount"];
         unitConfig.DefaultDependencies = false;
         serviceConfig.Type = "idle";
-        serviceConfig.ExecStart = "${pkgs.systemd}/bin/reboot -f";
+        serviceConfig.ExecStart = "${lib.getExe' pkgs.systemd "reboot"} -f";
       };
     };
   };

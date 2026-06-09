@@ -14,7 +14,7 @@ in {
 
     githubTokenPath = lib.mkOption {
       type = lib.types.str;
-      default = "/run/agenix/github-token";
+      default = "/run/secrets/github-token";
       description = "Path to GitHub PAT in agenix";
     };
 

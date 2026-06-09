@@ -189,21 +189,16 @@ in {
   };
 
   config = mkIf cfg.enable {
+    users.groups.caddy = {};
+    users.users.caddy.group = "caddy";
+    users.users.caddy.isSystemUser = true;
+
     services.caddy = {
-      enable = lib.mkForce false;  # Temporarily disabled due to port binding issues
+      user = "root";
+      group = "root";
+      enable = true;
       package = pkgs.caddy-with-modules;
       configFile = pkgs.writeText "Caddyfile" (buildCaddyfile cfg.services);
-      user = lib.mkForce "root";
-      group = lib.mkForce "root";
-    };
-
-    # Allow Caddy to bind privileged ports (<1024) when running as non-root
-    systemd.services.caddy = {
-      serviceConfig = lib.mkForce {
-        User = "root";
-        Group = "root";
-        NoNewPrivileges = false;
-      };
     };
 
     environment.systemPackages = [

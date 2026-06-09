@@ -53,8 +53,8 @@ in {
 
     # ── Secret ─────────────────────────────────────────────────────────
     # Populated by kubectl-apply-k8s-secrets from agenix:
-    #   auth-pass ← /run/agenix/mission-control-auth-pass
-    #   api-key   ← /run/agenix/mission-control-api-key
+    #   auth-pass ← /run/secrets/mission-control-auth-pass
+    #   api-key   ← /run/secrets/mission-control-api-key
     orchestration.Secret.mission-control-secrets = {
       type = "Opaque";
       stringData = {
