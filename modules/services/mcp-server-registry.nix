@@ -313,7 +313,6 @@
     }
     else {};
 
-  kagentCRDs = lib.mkMerge (lib.mapAttrsToList mkRemoteMCPServerCRD clusterServers);
 
   # ── C5: Generate NetworkPolicy per server ───────────────────────────────
   mkNetworkPolicy = name: server:
@@ -536,7 +535,6 @@ in {
     lib.mcp-registry = {
       inherit allServers stdioServers sseServers httpServers localServers clusterServers;
       inherit mkClaudeCodeMcpServers mkHermesMcpServers mkRemoteMCPServerCRD mkNetworkPolicy;
-      inherit claudeCodeJson hermesMcpYaml kagentCRDs networkPolicies;
     };
   };
 }

@@ -31,12 +31,12 @@ in {
     settings.HostCertificate = "/etc/ssh/ssh_host_ed25519_key-cert.pub";
     enable = true;
     settings = {
-      PasswordAuthentication = false;
-      KbdInteractiveAuthentication = false;
+      PasswordAuthentication = true;
+      KbdInteractiveAuthentication = true;
       PubkeyAuthentication = true;
       PermitRootLogin = "no";
       PermitEmptyPasswords = false;
-      ChallengeResponseAuthentication = false;
+      ChallengeResponseAuthentication = true;
 
       Ciphers = [
         "chacha20-poly1305@openssh.com"
