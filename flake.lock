@@ -1068,14 +1068,17 @@
         "uv2nix": "uv2nix_2"
       },
       "locked": {
-        "lastModified": 1779561066,
-        "narHash": "sha256-ChL0HArRIaYFyx3cSugt2kb/FDppk1ZfwZftf2S2Gzk=",
-        "type": "tarball",
-        "url": "https://codeload.github.com/NousResearch/hermes-agent/tar.gz/874c2b1fe6ec185f9d1da17d31d2c7885d58c35c"
+        "lastModified": 1781000232,
+        "narHash": "sha256-deQnxQDyQVdBJqC+qS25/Bw2skcj551sQAgd6dbGceM=",
+        "owner": "NousResearch",
+        "repo": "hermes-agent",
+        "rev": "57775e9e161087dbe55e096c038f512233c03381",
+        "type": "github"
       },
       "original": {
-        "type": "tarball",
-        "url": "https://codeload.github.com/NousResearch/hermes-agent/tar.gz/874c2b1fe6ec185f9d1da17d31d2c7885d58c35c"
+        "owner": "NousResearch",
+        "repo": "hermes-agent",
+        "type": "github"
       }
     },
     "home-manager": {
