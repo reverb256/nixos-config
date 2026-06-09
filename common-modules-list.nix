@@ -5,7 +5,6 @@
   inputs.home-manager.nixosModules.home-manager
   inputs.aagl.nixosModules.default
   inputs.nur.modules.nixos.default
-  inputs.agenix.nixosModules.default
   inputs.sops-nix.nixosModules.default
   ./modules/system/sops-secrets-registry.nix
   inputs.hermes-agent.nixosModules.default

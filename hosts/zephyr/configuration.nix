@@ -19,7 +19,6 @@ in {
     ../../modules/system/systemd-user-timeout.nix
 
     ../../modules/default.nix
-    ../../modules/system/sops-secrets-registry.nix
 
     ../../modules/hardware/rgb-control.nix
   ];
