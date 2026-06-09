@@ -391,7 +391,6 @@ in {
     group = "runner";
   };
   services.syncthing-cluster.enable = true;
-  srbminer = {
     enable = true;
     instances = [
       {
