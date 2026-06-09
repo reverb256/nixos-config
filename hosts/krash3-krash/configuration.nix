@@ -81,6 +81,9 @@ in {
   };
   # ── Packages ────────────────────────────────────────────
   environment.systemPackages = with pkgs; [
+    # Zen Browser twilight (WSLg -> Windows Start Menu)
+    inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.twilight
+
     # Core
     git
     curl
@@ -98,7 +101,6 @@ in {
     file
     which
     # Shell & interop
-    wslu
     # Nix tooling
     nix-output-monitor
     nvd
@@ -144,7 +146,7 @@ in {
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
-    users.nixos = {pkgs, inputs, ...}: {
+    users.nixos = {pkgs, ...}: {
       imports = [ ./zen-browser.nix ];
       home = {
         stateVersion = lib.mkForce "26.05";

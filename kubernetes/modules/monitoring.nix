@@ -1033,7 +1033,7 @@ in {
 
     # ── Grafana admin secret ──────────────────────────────────
     # Populated by kubectl-apply-k8s-secrets from agenix:
-    #   admin-password ← /run/agenix/grafana-admin-password
+    #   admin-password ← /run/secrets/grafana-admin-password
     # grafana-oidc-secret populated by kubectl-apply-k8s-secrets from agenix
     monitoring.Secret.grafana-oidc-secret = {
       type = "Opaque";

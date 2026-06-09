@@ -29,12 +29,12 @@ in {
       set -gx EDITOR nvim
       set -gx VISUAL nvim
 
-      if test -f /run/agenix/gemini-api-key
-        set -gx GEMINI_API_KEY (cat /run/agenix/gemini-api-key)
+      if test -f /run/secrets/gemini-api-key
+        set -gx GEMINI_API_KEY (cat /run/secrets/gemini-api-key)
       end
 
-      if test -f /run/agenix/huggingface-token
-        set -gx HF_TOKEN (cat /run/agenix/huggingface-token)
+      if test -f /run/secrets/huggingface-token
+        set -gx HF_TOKEN (cat /run/secrets/huggingface-token)
         # Ensure hf CLI token cache is populated
         if not test -f ~/.cache/huggingface/token; or test (cat ~/.cache/huggingface/token) != "$HF_TOKEN"
           mkdir -p ~/.cache/huggingface
@@ -42,8 +42,8 @@ in {
         end
       end
 
-      if test -f /run/agenix/localmaxxing-api-key
-        set -gx LOCALMAXXING_API_KEY (cat /run/agenix/localmaxxing-api-key)
+      if test -f /run/secrets/localmaxxing-api-key
+        set -gx LOCALMAXXING_API_KEY (cat /run/secrets/localmaxxing-api-key)
       end
 
       set -gx TZ America/Winnipeg
@@ -132,7 +132,7 @@ in {
 
       # System
       s = "sudo";
-      su = "systemctl user";
+      # su = "systemctl user";  # removed — conflicts with switch-user command
       ss = "systemctl --user";
 
       # Clipboard

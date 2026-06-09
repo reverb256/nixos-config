@@ -39,12 +39,12 @@ in {
       requires = ["podman.service"];
       wantedBy = ["multi-user.target"];
       preStart = ''
-        ${pkgs.podman}/bin/podman rm -f vane 2>/dev/null || true
+        ${lib.getExe pkgs.podman} rm -f vane 2>/dev/null || true
       '';
       serviceConfig = {
         Type = "exec";
-        ExecStart = "${pkgs.podman}/bin/podman run --name vane --network=host -e SEARXNG_API_URL=${cfg.searxngUrl} -e PORT=${toString cfg.port} -e HOSTNAME=0.0.0.0 -v ${cfg.dataDir}:/home/vane/data --restart=no ${cfg.image}";
-        ExecStop = "${pkgs.podman}/bin/podman stop -t 10 vane";
+        ExecStart = "${lib.getExe pkgs.podman} run --name vane --network=host -e SEARXNG_API_URL=${cfg.searxngUrl} -e PORT=${toString cfg.port} -e HOSTNAME=0.0.0.0 -v ${cfg.dataDir}:/home/vane/data --restart=no ${cfg.image}";
+        ExecStop = "${lib.getExe pkgs.podman} stop -t 10 vane";
         Restart = "on-failure";
         RestartSec = 5;
         TimeoutStartSec = "120";

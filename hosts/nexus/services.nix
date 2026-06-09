@@ -231,15 +231,15 @@ in {
         GLM_BASE_URL=https://api.z.ai/api/coding/paas/v4
         ENVEOF
         echo -n "API_SERVER_KEY=" >> /data/hermes/.hermes/provider-env
-        cat /run/agenix/hermes-api-server-key >> /data/hermes/.hermes/provider-env
+        cat /run/secrets/hermes-api-server-key >> /data/hermes/.hermes/provider-env
         echo "" >> /data/hermes/.hermes/provider-env
         # TODO: agenix - populate before deploy
         echo -n "ZAI_API_KEY=" >> /data/hermes/.hermes/provider-env
-        cat /run/agenix/zai-api-key >> /data/hermes/.hermes/provider-env
+        cat /run/secrets/zai-api-key >> /data/hermes/.hermes/provider-env
         echo "" >> /data/hermes/.hermes/provider-env
         # TODO: agenix - populate before deploy
         echo -n "NVIDIA_API_KEY=" >> /data/hermes/.hermes/provider-env
-        cat /run/agenix/nvidia-api-key >> /data/hermes/.hermes/provider-env
+        cat /run/secrets/nvidia-api-key >> /data/hermes/.hermes/provider-env
         echo "" >> /data/hermes/.hermes/provider-env
         chmod 600 /data/hermes/.hermes/provider-env
         chown hermes:hermes /data/hermes/.hermes/provider-env
@@ -349,6 +349,64 @@ in {
         domain = "dev.maplespike.lan";
         backend = "10.1.1.120:${toString ports.dev-maplespike-portal}";
       };
+      vaultwarden = {
+        domain = "vaultwarden.lan";
+        backend = "vaultwarden.vaultwarden.svc.cluster.local:8080";
+      };
+      glance = {
+        domain = "dashboard.lan";
+        backend = "glance.dashboard.svc.cluster.local:8080";
+      };
+      grafana = {
+        domain = "grafana.lan";
+        backend = "grafana.monitoring.svc.cluster.local:3000";
+        protected = true;
+      };
+      gitea = {
+        domain = "gitea.lan";
+        backend = "gitea.ai-inference.svc.cluster.local:3000";
+      };
+      privacy-filter = {
+        domain = "privacy-filter.lan";
+        backend = "privacy-filter.search.svc.cluster.local:8080";
+      };
+      mission-control = {
+        domain = "mission-control.lan";
+        backend = "mission-control.orchestration.svc.cluster.local:8080";
+        protected = true;
+      };
+      kagent = {
+        domain = "kagent.lan";
+        backend = "kagent-ui.kagent.svc.cluster.local:8080";
+      };
+      workspace = {
+        domain = "workspace.lan";
+        backend = "127.0.0.1:3002";
+      };
+      auth = {
+        domain = "auth.lan";
+        backend = "127.0.0.1:32556";
+        rawBlock = ''
+          https://auth.lan {
+            tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
+            encode zstd gzip
+            rate_limit {
+              zone auth_per_ip {
+                key    {remote_host}
+                events 100
+                window 1m
+              }
+            }
+            handle /oauth2/* {
+              reverse_proxy 127.0.0.1:30890
+            }
+            handle {
+              reverse_proxy 127.0.0.1:32556
+            }
+          }
+        '';
+      };
+
     };
   };
   # Initrd SSH recovery + BTRFS snapshots
@@ -398,7 +456,7 @@ in {
   services.ci-runner = {
     enable = true;
     repo = "reverb256/nixos-config";
-    tokenFile = "/run/agenix/github-runner-pat";
+    tokenFile = "/run/secrets/github-runner-pat";
     autoStart = true;
     extraLabels = ["nexus"];
   };

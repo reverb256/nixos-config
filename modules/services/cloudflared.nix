@@ -15,7 +15,7 @@
 
     credentialsFile = lib.mkOption {
       type = lib.types.path;
-      default = "/run/agenix/cloudflared-token";
+      default = "/run/secrets/cloudflared-token";
       description = "Path to tunnel credentials file (JSON with AccountID, TunnelID, TunnelSecret)";
     };
 

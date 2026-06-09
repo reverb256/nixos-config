@@ -1,52 +1,26 @@
-{ inputs, lib, ... }:
+{ lib, pkgs, ... }:
 {
-  imports = [ inputs.zen-browser.homeModules.twilight-official ];
+  # Symlink ~/.config/zen -> Windows profile so WSLg Zen uses
+  # krash's existing Windows Zen profile directly.
+  home.activation.createZenSymlink = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    if [ ! -L "''${HOME}/.config/zen" ] && [ -d "/mnt/c/Users/krash/AppData/Roaming/Zen" ]; then
+      if [ -d "''${HOME}/.config/zen" ]; then
+        rm -rf "''${HOME}/.config/zen"
+      fi
+      ln -sf "/mnt/c/Users/krash/AppData/Roaming/Zen" "''${HOME}/.config/zen"
+      $VERBOSE_ECHO "zen: symlinked ~/.config/zen -> Windows profile"
+    fi
+  '';
 
-  programs.zen-browser = {
-    enable = true;
-    setAsDefaultBrowser = true;
-
-    # Policies (baked into the package, not the profile)
-    policies = {
-      DisableAppUpdate = true;
-      DisableTelemetry = true;
-      DisablePocket = true;
-      DisableFirefoxSync = true;
-      DisableFirefoxAccounts = true;
-      SanitizeOnShutdown = {
-        Cache = true;
-        Cookies = true;
-        History = false;
-        Sessions = false;
-        OfflineApps = true;
-      };
-    };
-
-    # No declarative profile config — we use the Windows profile directly
-    # via the symlink below (home.file.".config/zen"). This means:
-    #   - krash's existing Windows Zen profile (extensions, bookmarks,
-    #     history, settings) is shared between Windows Zen and WSLg Zen
-    #   - Changes made in either are visible in the other
-    #   - Do NOT run both simultaneously (profile locking)
-    profiles."Default (release)" = {
-      id = 0;
-
-      # Only accessibility prefs — these adapt the Windows profile
-      # for the larger WSLg display and krash's needs
-      settings = {
-        "layout.css.devPixelsPerPx" = "1.33";
-        "font.size.variable.x-western" = 18;
-        "font.size.fixed.x-western" = 16;
-        "browser.zoom.full" = true;
-      };
-    };
-  };
-
-  # Symlink ~/.config/zen -> Windows Zen roaming profile
-  # This makes the WSLg Zen browser use the exact same profile data as
-  # krash's native Windows Zen browser
-  home.file.".config/zen" = {
-    source = "/mnt/c/Users/krash/AppData/Roaming/Zen";
+  # Accessibility — larger UI for krash (older person)
+  home.file.".config/zen/user-overrides.js" = {
+    text = ''
+      // Krash accessibility overrides
+      user_pref("layout.css.devPixelsPerPx", "1.33");
+      user_pref("font.size.variable.x-western", 18);
+      user_pref("font.size.fixed.x-western", 16);
+      user_pref("browser.zoom.full", true);
+    '';
     force = true;
   };
 }

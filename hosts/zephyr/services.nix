@@ -20,7 +20,7 @@ in {
       apiKeyFile = config.age.secrets.zai-api-key.path;
       nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
       casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
-      opencodeGoApiKeyFile = "/run/agenix/opencode-go-api-key";
+      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
       # openrouterApiKeyFile removed — no longer used
       kilocodeApiKeyFile = config.age.secrets.kilo-api-key.path;
       geminiApiKeyFile = config.age.secrets.gemini-api-key.path;
@@ -52,7 +52,7 @@ in {
       role = "agent";
       nodeName = "zephyr";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
-      tokenFile = "/run/agenix/k3s-cluster-token";
+      tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = cluster.hosts.zephyr.ip;
     };
 
@@ -96,7 +96,7 @@ in {
       endpoint = "http://${cluster.hosts.zephyr.ip}:3900";
       region = "garage";
       bucket = "backups";
-      secretKeyFile = "/run/agenix/garage-s3-secret-key";
+      secretKeyFile = "/run/secrets/garage-s3-secret-key";
       retentionDays = 30;
       startAt = "02:00";
     };
@@ -107,8 +107,7 @@ in {
     };
 
     nexus-exec = {
-      enable = true;
-      enableTunnel = true;
+      enable = false;
     };
 
     gpu-profile-manager = {
@@ -171,7 +170,7 @@ in {
     # All .lan services moved to nexus (OOM prevention)
     # Uses caddy-with-modules (includes caddy-ratelimit, caddy-security, caddy-cache)
     caddy = {
-      enable = true;
+      enable = false;
       package = pkgs.caddy-with-modules;
       configFile = let
         lanRoutes = import ./caddy-routes.nix {inherit cluster;};
@@ -229,7 +228,7 @@ in {
         };
         nvidia-nim = {
           enable = true;
-          apiKeyFile = "/run/agenix/nvidia-api-key";
+          apiKeyFile = "/run/secrets/nvidia-api-key";
         };
         zai = {
           enable = true;

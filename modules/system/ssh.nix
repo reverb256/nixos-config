@@ -1,4 +1,6 @@
-{pkgs, ...}: let
+{pkgs, lib, ...}: let
+  inherit (lib) mkOptionDefault;
+
   hosts = {
     zephyr = {
       ip = "10.1.1.110";
@@ -81,9 +83,7 @@ in {
     };
   };
 
-  # SSH CA — single trust anchor for all cluster hosts
-  # See modules/security/ssh-ca.nix for @cert-authority setup
-  programs.ssh.knownHosts = {};
+  # SSH CA known hosts — populated by modules/security/ssh-ca.nix via services.openssh.knownHosts
 
   users.users.j_kro.openssh.authorizedKeys.keys = meshKeys;
 
@@ -103,25 +103,25 @@ in {
       StrictHostKeyChecking yes
       ConnectTimeout 5
 
-    Host zephyr ${hosts.zephyr.ip} ${hosts.zephyr.tailscale}
+    Host zephyr ${hosts.zephyr.ip}
       HostName ${hosts.zephyr.ip}
       User j_kro
       IdentityFile ~/.ssh/id_ed25519
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
-    Host nexus ${hosts.nexus.ip} ${hosts.nexus.tailscale}
+    Host nexus ${hosts.nexus.ip}
       HostName ${hosts.nexus.ip}
       User j_kro
       IdentityFile ~/.ssh/id_ed25519
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
-    Host forge ${hosts.forge.ip} ${hosts.forge.tailscale}
+    Host forge ${hosts.forge.ip}
       HostName ${hosts.forge.ip}
       User j_kro
       IdentityFile ~/.ssh/id_ed25519
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
-    Host sentry ${hosts.sentry.ip} ${hosts.sentry.tailscale}
+    Host sentry ${hosts.sentry.ip}
       HostName ${hosts.sentry.ip}
       User j_kro
       IdentityFile ~/.ssh/id_ed25519
@@ -147,6 +147,16 @@ in {
       User git
       IdentityFile ~/.ssh/id_deploy
       IdentitiesOnly yes
+  '';
+
+  # System-level SSH config for distributed build machines (used by nix-daemon)
+  environment.etc."ssh/ssh_config.d/50-build-machines.conf".text = ''
+    Host zephyr nexus sentry
+      User j_kro
+      IdentityFile /etc/nixos/ssh/id_ed25519
+      IdentitiesOnly yes
+      StrictHostKeyChecking accept-new
+      ConnectTimeout 30
   '';
 
   systemd.tmpfiles.rules = [
