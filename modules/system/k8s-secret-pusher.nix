@@ -4,9 +4,9 @@ let
   pwsh = pkgs.writeShellScript "k8s-push-secrets" ''
     set -euo pipefail
     echo "[k8s-secrets] Waiting for K8s API..."
-    for i in $(seq 1 60); do
+    for _ in $(seq 1 60); do
       if kubectl get nodes >/dev/null 2>&1; then
-        echo "[k8s-secrets] K8s API ready after ${i}s"
+        echo "[k8s-secrets] K8s API ready"
         break
       fi
       sleep 2
