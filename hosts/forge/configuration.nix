@@ -119,4 +119,18 @@
   disabledModules = [ "services/kmscon" ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+
+  # sops-nix secrets registry (dual-run with agenix during migration)
+  services.sops-secrets-registry = {
+    enable = true;
+    aiServices = true;
+    kubernetes = true;
+    monitoring = true;
+    storage = true;
+    mining = true;
+    cloud = true;
+    automation = true;
+    selfHosting = true;
+    ci = true;
+  };
 }
