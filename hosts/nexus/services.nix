@@ -47,7 +47,6 @@ in {
           threshold = 0.9;
         };
       };
->>>>>>> f406a880 (hermes-cli: Make config fully declarative (Phase 1))
     };
     k3s-cluster = {
       enable = true;
