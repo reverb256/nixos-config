@@ -391,16 +391,3 @@ in {
     group = "runner";
   };
   services.syncthing-cluster.enable = true;
-    enable = true;
-    instances = [
-      {
-        name = "3060ti";
-        gpuId = 0;
-        wallet = "krxXVNVMM7.nexus-3060ti";
-        apiPort = 21554;
-        powerLimit = 100;
-      }
-    ];
-  };
-
-}
