@@ -118,7 +118,5 @@
   boot.resumeDevice = "/dev/disk/by-id/ata-TEAM_T253X2256G_TM701907310240040386-part2";
   disabledModules = [ "services/kmscon" ];
 
-  nix.settings.auto-optimise-store = true;
-  boot.resumeDevice = "/dev/disk/by-id/ata-TEAM_T253X2256G_TM701907310240040386-part2";
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }
