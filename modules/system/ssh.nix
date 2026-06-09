@@ -80,45 +80,9 @@ in {
     };
   };
 
-  programs.ssh.knownHosts = {
-    zephyr = {
-      hostNames = [
-        "zephyr"
-        hosts.zephyr.ip
-        hosts.zephyr.tailscale
-      ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA0/pTXa/H7mvy3+YPJq9U2mFKO4+YrLSOYd8sPU44+q";
-    };
-    nexus = {
-      hostNames = [
-        "nexus"
-        hosts.nexus.ip
-        hosts.nexus.tailscale
-      ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINttvGn4etQX6AbyT2HpXrmyGaTFL3gur/2ImHTLzBOl";
-    };
-    forge = {
-      hostNames = [
-        "forge"
-        hosts.forge.ip
-        hosts.forge.tailscale
-      ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINhHtW56M3KuMH/qCwamdGKQe22NuemFQaYV7LhJXdUz";
-    };
-    sentry = {
-      hostNames = [
-        "sentry"
-        hosts.sentry.ip
-        hosts.sentry.tailscale
-      ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHh8FHzxFAk+brIs8nGhgg9BcGdtgr6of9MsbQctYHuE";
-    };
-    # krash3 — WSL host key changes on rebuild; accept-new handles it
-    krash3 = {
-      hostNames = ["krash3" hosts.krash3.ip];
-      publicKey = "*"; # Accept any key (WSL host key changes each rebuild)
-    };
-  };
+  # SSH CA — single trust anchor for all cluster hosts
+  # See modules/security/ssh-ca.nix for @cert-authority setup
+  programs.ssh.knownHosts = {};
 
   users.users.j_kro.openssh.authorizedKeys.keys = meshKeys;
 
