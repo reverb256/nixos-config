@@ -6,6 +6,7 @@
   inputs.aagl.nixosModules.default
   inputs.nur.modules.nixos.default
   inputs.agenix.nixosModules.default
+  inputs.sops-nix.nixosModules.default
   inputs.hermes-agent.nixosModules.default
 
   inputs.mcp-registry.nixosModules.default
