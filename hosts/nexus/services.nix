@@ -60,17 +60,6 @@ in {
       '';
     };
 
-    agenix-secrets-registry = {
-      enable = true;
-      aiServices = true;
-      monitoring = false;
-      storage = true;
-      mining = false;
-      cloud = false;
-      kubernetes = true;
-      initrdRecovery = false; # Disabled: agenix build-time dependency issue
-      selfHosting = false;
-    };
 
     nfs-state-sync = {
       enable = false;
