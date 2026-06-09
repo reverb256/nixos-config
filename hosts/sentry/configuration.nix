@@ -146,7 +146,13 @@
 
   # Hardware watchdog — auto-reboot after 60s of system hang
   # SP5100 TCO timer feeds via systemd, recovers from GPU/PCIe lockups
+<<<<<<< HEAD
   systemd.settings.Manager.RuntimeWatchdogSec = 60;
+=======
+  systemd.extraConfig = ''
+    RuntimeWatchdogSec=60
+  '';
+>>>>>>> 98f35df4 (sentry: enable hardware watchdog (RuntimeWatchdogSec=60) to auto-reboot on system hang)
 
   # System hardening
   nix-mineral = {
