@@ -973,3 +973,36 @@ The following items in this roadmap are stale and no longer reflect current infr
 - NVIDIA device plugin Forge 0 GPUs: Forge now has NVIDIA GPUs registered
 
 Current verified state: See ~/brain/STATUS.md (2026-04-24 audit)
+
+---
+
+## Agent Orchestration System (2026-06-09)
+
+**Status:** Phase 1-7 Complete (see #268)
+
+### Completed Components
+
+| Component | Phase | Status |
+|-----------|-------|--------|
+| nixos-config kanban board + nixos-eng profile | 1 | Deployed |
+| WORKFLOW.md in /etc/nixos/ (Symphony spec format) | 2 | Committed |
+| Worktree workspace manager (worktree_manager.py) | 3 | Deployed |
+| Continuation turns (goal_max_turns + {{ attempt }} in prompts) | 4 | Schema ready |
+| Reconciliation (pre-action GitHub state check) | 5 | Deployed |
+| Pipeline engine auto-discovers WORKFLOW.md | 6 | Deployed |
+| Reactions poller (CI + review monitoring, 2 boards) | 7 | Live on sentry |
+
+### Live Services
+
+| Service | Host | Purpose |
+|---------|------|---------|
+| hermes-agent.service | sentry | Gateway + dispatcher (60s) |
+| hermes-reactions.service | sentry | CI/review poller - nixos-config (60s) |
+| hermes-reactions-maplespike.service | sentry | CI/review poller - maplespike (60s) |
+
+### Remaining
+
+- [ ] `hermes dashboard` companion service on sentry (port 9119, behind hermes.lan)
+- [ ] NixOS rebuild to make systemd services permanent (currently on /run/systemd/system/)
+- [ ] Frostbite content pipeline (pipeline.yaml + board + profiles)
+- [ ] Expand reactions to Frostbite repo
