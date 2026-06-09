@@ -52,7 +52,7 @@
         fi
 
         # Read access key from agenix secret
-        GARAGE_ACCESS_KEY="$(cat ${config.age.secrets.garage-s3-access-key-id.path})"
+        GARAGE_ACCESS_KEY="$(cat ${"/run/secrets/garage-s3-access-key-id"})"
         export AWS_ACCESS_KEY_ID="$GARAGE_ACCESS_KEY"
         export AWS_SECRET_ACCESS_KEY="$GARAGE_SECRET_KEY"
         export AWS_DEFAULT_REGION="$GARAGE_REGION"
