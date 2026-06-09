@@ -402,22 +402,22 @@ in {
                       description = "Mission Control (builderz-labs)";
                     };
 
-                    kagent-controller = lib.mkOption {
+                    removed-controller = lib.mkOption {
                       type = lib.types.submodule (svcOpts {
-                        namespace = "kagent";
+                        namespace = "removed";
                         port = 8083;
                       });
                       default = {};
-                      description = "Kagent controller API";
+                      description = "removed controller API";
                     };
 
-                    kagent-ui = lib.mkOption {
+                    removed-ui = lib.mkOption {
                       type = lib.types.submodule (svcOpts {
-                        namespace = "kagent";
+                        namespace = "removed";
                         port = 8080;
                       });
                       default = {};
-                      description = "Kagent UI dashboard";
+                      description = "removed UI dashboard";
                     };
 
                     grafana = lib.mkOption {

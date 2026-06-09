@@ -38,7 +38,6 @@ let
     push_secret ai-inference nvidia-api-key NVIDIA_API_KEY /run/secrets/nvidia-api-key
     push_secret ai-inference kilo-api-key KILO_API_KEY /run/secrets/kilo-api-key
     push_secret ai-inference opencode-api-key OPENCODE_API_KEY /run/secrets/opencode-api-key
-    push_secret kelos-system opencode-credentials OPENCODE_API_KEY /run/secrets/opencode-api-key
     push_secret search searxng-secret secret-key /run/secrets/searxng-secret-key
     push_secret orchestration mission-control-secrets auth-pass /run/secrets/mission-control-auth-pass
     push_secret orchestration mission-control-secrets api-key /run/secrets/mission-control-api-key

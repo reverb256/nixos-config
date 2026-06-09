@@ -24,7 +24,7 @@ in {
   services = {
     k3s-cluster = {
       enable = true;
-      nvidia.enable = true;
+      nvidia.enable = false;
       role = "server";
       clusterInit = false; # Cluster already bootstrapped
   clusterReset = false; # Already reset, running clean
@@ -36,7 +36,7 @@ in {
     };
 
     keepalived-vip = {
-      enable = true;
+      enable = false;
       vip = cluster.kubernetes.vip;
       interface = "eth0";
       priority = 110;
@@ -44,15 +44,15 @@ in {
 
     gaming-detection.enable = lib.mkForce false;
 
-    nexus-exec.enable = true;
+    nexus-exec.enable = false;
 
     nixos-share = {
       enable = false;
-      client.enable = true;
+      client.enable = false;
     };
 
     nfs-data-server = {
-      enable = true;
+      enable = false;
       exports = ''
         /data/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=105)
 
@@ -88,7 +88,7 @@ in {
 
   # Hermes Agent — primary user-facing agent
   services.hermes-agent = {
-    enable = true;
+    enable = false;
     addToSystemPackages = false; # hermes-with-whatsapp (superset) added via hermes-cli.nix
 
     settings = {
@@ -203,16 +203,16 @@ in {
     services = {
       searxng = {
         domain = "searxng.lan";
-        backend = k8s.searxng.dns;
+        backend = "127.0.0.1:32081";
       };
       search = {
         domain = "search.lan";
-        backend = k8s.vane.dns;
+        backend = "127.0.0.1:30900";
         compress = false;
       };
       openwebui = {
         domain = "openwebui.lan";
-        backend = k8s.open-webui.dns;
+        backend = "127.0.0.1:32080";
 
       };
       hermes = {
@@ -225,7 +225,7 @@ in {
       };
       n8n = {
         domain = "n8n.lan";
-        backend = k8s.n8n.dns;
+        backend = "127.0.0.1:32127";
       };
       ai-inference = {
         domain = "ai-inference.lan";
@@ -233,7 +233,7 @@ in {
       };
       qdrant = {
         domain = "qdrant.lan";
-        backend = k8s.qdrant.dns;
+        backend = "127.0.0.1:30632";
       };
       maplespike-api = {
         domain = "api.maplespike.lan";
@@ -310,9 +310,9 @@ in {
         backend = "mission-control.orchestration.svc.cluster.local:8080";
         protected = true;
       };
-      kagent = {
-        domain = "kagent.lan";
-        backend = "kagent-ui.kagent.svc.cluster.local:8080";
+      removed = {
+        domain = "removed.lan";
+        backend = "removed-ui.removed.svc.cluster.local:8080";
       };
       workspace = {
         domain = "workspace.lan";
@@ -346,39 +346,52 @@ in {
   };
   # Initrd SSH recovery + BTRFS snapshots
   services.initrd-ssh-recovery = {
-    enable = true; # Fixed: key generated at build time
+    enable = false; # Fixed: key generated at build time
     interface = "eth0";
     networkDriver = "r8169";
     port = 2222;
   };
-  services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
-  services.recovery-specialisation.enable = true; # depends on initrd-ssh
-  services.btrfs-boot-snapshot.enable = false; # depends on initrd-ssh
+  services.lpminer = {
+    enable = true;
+    instances = [
+      {
+        name = "nexus";
+        gpuId = 0;
+        wallet = "krxXVNVMM7.nexus-3060ti";
+        pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
+        powerLimit = 100;
+      }
+    ];
+  };
+  services.cluster-mesh.enable = false; # SSH service account for inter-node mesh
+  services.recovery-specialisation.enable = false; # depends on initrd-ssh
+  services.btrfs-boot-snapshot = {
+    enable = false; # depends on initrd-ssh
     subvolume = "@root";
     device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
   };
 
-  services.cachix-auth.enable = true;
+  services.cachix-auth.enable = false;
    services.ai-coding-tools = {
-     enable = true;
+     enable = false;
      user = "j_kro";
      zaiApiKeyFile = "/run/secrets/zai-api-key";
      context7ApiKeyFile = "/run/secrets/context7-api-key";
      nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
      tools = {
-       claude = { enable = true; };
-       opencode = { enable = true; };
-       droid = { enable = true; };
-       crush = { enable = true; };
-       pi = { enable = true; };
-       omp = { enable = true; };
+       claude = { enable = false; };
+       opencode = { enable = false; };
+       droid = { enable = false; };
+       crush = { enable = false; };
+       pi = { enable = false; };
+       omp = { enable = false; };
      };
      enableShellEnv = true;
    };
 
    services.mcp-registry = {
-     enable = true;
+     enable = false;
      generateHermes = true;
      generateClaudeCode = true;
      generateKagentCRDs = true;
@@ -388,7 +401,7 @@ in {
 
   # GitHub Actions self-hosted runner for CI/CD
   services.ci-runner = {
-    enable = true;
+    enable = false;
     repo = "reverb256/nixos-config";
     tokenFile = "/run/secrets/github-runner-pat";
     autoStart = true;

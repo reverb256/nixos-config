@@ -271,14 +271,6 @@ in {
             owner = "root";
             group = "root";
           };
-          "k8s/kagent-postgres" = {
-            sopsFile = "${inputs.self}/secrets/k8s/kagent-postgres.yaml";
-            path = "/run/secrets/kagent-postgres";
-            format = "binary";
-            mode = "0440";
-            owner = "j_kro";
-            group = "users";
-          };
           "k8s/mission-control-api-key" = {
             sopsFile = "${inputs.self}/secrets/k8s/mission-control-api-key.yaml";
             path = "/run/secrets/mission-control-api-key";

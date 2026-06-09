@@ -365,11 +365,11 @@ in {
           };
       };
 
-      # ── C4: Kagent RemoteMCPServer CRDs ─────────────────────────────────
+      # ── C4: removed RemoteMCPServer CRDs ─────────────────────────────────
       # Generated from mcp-server-registry for in-cluster MCP discovery.
-      # Each cluster-scoped MCP server gets a RemoteMCPServer CRD so Kagent
+      # Each cluster-scoped MCP server gets a RemoteMCPServer CRD so removed
       # agents can discover and use them via SSE endpoints.
-      kagent.RemoteMCPServer.kubernetes-mcp = {
+      removed.RemoteMCPServer.kubernetes-mcp = {
         metadata.labels =
           managed
           // {
@@ -384,7 +384,7 @@ in {
         };
       };
 
-      kagent.RemoteMCPServer.nixos-cluster = {
+      removed.RemoteMCPServer.nixos-cluster = {
         metadata.labels =
           managed
           // {
@@ -399,7 +399,7 @@ in {
         };
       };
 
-      kagent.RemoteMCPServer.searxng = {
+      removed.RemoteMCPServer.searxng = {
         metadata.labels =
           managed
           // {
@@ -414,7 +414,7 @@ in {
         };
       };
 
-      kagent.RemoteMCPServer.lightpanda = {
+      removed.RemoteMCPServer.lightpanda = {
         metadata.labels =
           managed
           // {
@@ -429,7 +429,7 @@ in {
         };
       };
 
-      kagent.RemoteMCPServer.casdoor = {
+      removed.RemoteMCPServer.casdoor = {
         metadata.labels =
           managed
           // {
@@ -525,7 +525,7 @@ in {
       };
     };
 
-    # Register apiMapping for kagent RemoteMCPServer CRD
-    kubernetes.apiMappings.RemoteMCPServer = "kagent.dev/v1alpha1";
+    # Register apiMapping for removed RemoteMCPServer CRD
+    kubernetes.apiMappings.RemoteMCPServer = "removed.dev/v1alpha1";
   }; # close config
 }
