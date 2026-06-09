@@ -113,6 +113,7 @@ in {
       tags = ["wsl" "workstation"];
       allowLocalDeployment = false;
       buildOnTarget = false;
+      sshOpts = ["-J" "krash@10.1.1.150:22"];
     };
   };
 
@@ -127,6 +128,7 @@ in {
       tags = ["wsl" "workstation"];
       allowLocalDeployment = false;
       buildOnTarget = false;
+      sshOpts = ["-J" "krash@10.1.1.150:22"];
       # Deploy via Windows SSH → wsl -d NixOS
       # Requires manual: wsl -d NixOS bash -c "nixos-rebuild switch"
     };
