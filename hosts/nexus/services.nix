@@ -290,7 +290,7 @@ in {
       };
       glance = {
         domain = "dashboard.lan";
-        backend = "glance.dashboard.svc.cluster.local:8080";
+        backend = "127.0.0.1:32200";
       };
       grafana = {
         domain = "grafana.lan";
