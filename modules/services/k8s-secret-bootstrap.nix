@@ -178,7 +178,6 @@ in {
                 "https://mission-control.lan/oauth2/callback",
                 "https://grafana.lan/oauth2/callback",
                 "https://openwebui.lan/oauth2/callback",
-                "https://kagent.lan/oauth2/callback",
                 "https://llama.zephyr.lan/oauth2/callback",
                 "https://llama.sentry.lan/oauth2/callback"
               ],
