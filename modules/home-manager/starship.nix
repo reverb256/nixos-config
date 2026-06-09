@@ -1,15 +1,15 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, hostName, ... }:
 let
   c = config.lib.stylix.colors.withHashtag;
 
   # Mining host logic
-  isMiner = config.networking.hostName == "forge";
+  isMiner = hostName == "forge";
   minerHost = if isMiner then "localhost" else "10.1.1.130";
   minerPrefix = if isMiner then "" else "forge: ";
 
   minerScript = pkgs.writeShellScriptBin "miner-status" ''
     set -euo pipefail
-    ${lib.optionalString (!isMiner && config.networking.hostName != "sentry") ''
+    ${lib.optionalString (!isMiner && hostName != "sentry") ''
       for port in 21550 21551; do
         if data=$(curl -sf --max-time 2 "http://${minerHost}:$port/" 2>/dev/null); then
           hash=$(echo "$data" | python3 -c "
@@ -56,13 +56,13 @@ let
     exit 1
   '';
 in {
-  home.packages = lib.mkIf (config.networking.hostName != "sentry") [minerScript];
+  home.packages = lib.mkIf (hostName != "sentry") [minerScript];
 
   programs.starship = {
     enable = true;
 
     settings = {
-      format = if config.networking.hostName == "sentry" then ''
+      format = if hostName == "sentry" then ''
         $time$hostname
         $directory$git_branch$git_status$nix_shell$fill$cmd_duration
         $character'' else ''
@@ -121,11 +121,11 @@ in {
         min_time = 2000;
       };
 
-      custom.miner = lib.mkIf (config.networking.hostName != "sentry") {
+      custom.miner = lib.mkIf (hostName != "sentry") {
         command = "miner-status";
         description = "GPU mining hashrate";
         format = "[$output](bold ${c.base0C}) ";
-        when = config.networking.hostName != "sentry";
+        when = hostName != "sentry";
       };
 
       character = {
