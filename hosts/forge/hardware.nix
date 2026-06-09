@@ -133,7 +133,7 @@
             log "Waiting for NVIDIA driver... ($i/30)"
             sleep 2
           done
-          /run/current-system/sw/bin/nvidia-smi -c 3
+          /run/current-system/sw/bin/nvidia-smi -c 0
           /run/current-system/sw/bin/nvidia-smi --query-gpu=name,compute_mode --format=csv,noheader | while IFS=, read -r name mode; do
             log "NVIDIA GPU ''${name// /}: Compute mode = ''${mode// /}"
           done
