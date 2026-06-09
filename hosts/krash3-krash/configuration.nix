@@ -54,12 +54,12 @@ in {
       PubkeyAuthentication = true;
       PermitRootLogin = "no";
     };
-    ports = [2223];
+    ports = [22224];
     openFirewall = true;
     startWhenNeeded = true;
   };
 
-  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [2223];
+  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22224];
 
   # ── Nix ─────────────────────────────────────────────────
   nix = {
