@@ -103,7 +103,7 @@
 
     nix-csi.url = "github:Lillecarl/nix-csi";
     hermes-agent = {
-      url = "tarball+https://codeload.github.com/NousResearch/hermes-agent/tar.gz/874c2b1fe6ec185f9d1da17d31d2c7885d58c35c";
+      url = "github:NousResearch/hermes-agent";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
