@@ -228,4 +228,24 @@
     selfHosting = true;
     ci = true;
   };
+  # Hermes reactions poller - CI/review monitoring for nixos-config board
+  systemd.services.hermes-reactions = {
+    description = "Hermes Reactions Poller - CI/review monitoring";
+    after = [ "hermes-agent.service" ];
+    wants = [ "hermes-agent.service" ];
+    serviceConfig = {
+      Type = "simple";
+      User = "hermes";
+      Group = "hermes";
+      Restart = "on-failure";
+      RestartSec = 10;
+      ExecStart = "/nix/store/xy4vsc1v7m4q913wsg3yziiiqibcd3gi-hermes-agent-env/bin/python3 /var/lib/hermes/.hermes/skills/devops/pipeline-engine/scripts/reactions_poller.py";
+      WorkingDirectory = "/var/lib/hermes";
+    };
+    environment = {
+      HERMES_HOME = "/var/lib/hermes";
+      REACTIONS_BOARD = "nixos-config";
+    };
+    wantedBy = [ "multi-user.target" ];
+  };
 }
