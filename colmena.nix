@@ -108,7 +108,7 @@ in {
       ./hosts/krash3/configuration.nix
     ];
     deployment = {
-      targetHost = "krash3";
+      targetHost = "krash3-wsl";
       targetUser = "j_kro";
       tags = ["wsl" "workstation"];
       allowLocalDeployment = false;
@@ -122,17 +122,13 @@ in {
       ./hosts/krash3-krash/configuration.nix
     ];
     deployment = {
-      targetHost = "10.1.1.150";
-      targetUser = "krash";
+      targetHost = "krash3-krash";
+      targetUser = "nixos";
       tags = ["wsl" "workstation"];
       allowLocalDeployment = false;
       buildOnTarget = false;
       # Deploy via Windows SSH → wsl -d NixOS
       # Requires manual: wsl -d NixOS bash -c "nixos-rebuild switch"
-      sshOpts = [
-        "-p"
-        "22"
-      ];
     };
   };
 }
