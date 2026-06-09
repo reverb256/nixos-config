@@ -76,6 +76,15 @@ in {
       updateFlakeInputs = ["nixpkgs"];
     };
 
+    agenix-secrets-registry = {
+      enable = true;
+      kubernetes = true;
+      initrdRecovery = true;
+      aiServices = true;
+    };
+  };
+
+  services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
   environment.systemPackages = with pkgs; [
     rocmPackages.rocm-smi
     clinfo
@@ -158,23 +167,4 @@ in {
     };
     enableShellEnv = true;
   };
-
-  services.hermes-agent = {
-    enable = true;
-    addToSystemPackages = true;
-    settings = {
-      model.default = "deepseek-v4-flash";
-      model.provider = "opencode-go";
-      toolsets = ["all"];
-      terminal = { backend = "local"; timeout = 60; };
-    };
-    environmentFiles = [
-      "/run/secrets/zai-api-key"
-      "/run/secrets/nvidia-api-key"
-      "/run/secrets/casdoor-hermes-jwt"
-      "/run/secrets/opencode-go-api-key"
-      "/run/secrets/gemini-api-key"
-    ];
-  };
-
 }
