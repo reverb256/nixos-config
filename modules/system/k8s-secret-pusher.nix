@@ -3,6 +3,7 @@ let
   inherit (lib) mkIf;
   pwsh = pkgs.writeShellScript "k8s-push-secrets" ''
     set -euo pipefail
+    export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
     echo "[k8s-secrets] Waiting for K8s API..."
     for _ in $(seq 1 60); do
       if kubectl get nodes >/dev/null 2>&1; then
