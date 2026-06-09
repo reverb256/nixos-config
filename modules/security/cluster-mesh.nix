@@ -60,18 +60,10 @@ in {
 
     users.groups.cluster-mesh = {};
 
-    # Agenix secret: cns-ssh-key owned by cluster-mesh
-    age.secrets.cns-ssh-key = {
-      file = "${inputs.self}/secrets/cns-ssh-key.age";
-      mode = "600";
-      owner = "cluster-mesh";
-      group = "cluster-mesh";
-    };
-
-    # Systemd service: copy key from /run/agenix to persistent location
+    # Systemd service: copy key from sops /run/secrets to persistent location
     systemd.services.cluster-mesh-key-setup = {
       description = "Setup cluster-mesh SSH key from agenix";
-      after = ["agenix.service"];
+      after = [];
       wantedBy = ["multi-user.target"];
 
       serviceConfig = {
