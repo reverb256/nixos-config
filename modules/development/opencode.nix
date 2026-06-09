@@ -283,11 +283,11 @@ in {
           "/root/.config/opencode"
         ];
         ReadOnlyPaths = [
-          "/run/agenix"
+          "/run/secrets"
         ];
 
-        BindPaths = lib.mkIf (config.age ? secrets) [
-          "/run/agenix"
+        BindPaths = lib.mkIf (config.sops ? secrets) [
+          "/run/secrets"
         ];
 
         StandardOutput = "journal";

@@ -11,6 +11,12 @@ in {
     voxtype = {
       enable = true;
       model = "base.en";
+      language = "en";
+    };
+
+    # hermes-workspace — archived (project deleted 2026-05-16)
+    hermes-cli = {
+      enable = true;
       apiKeyFile = "/run/secrets/zai-api-key";
       nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
       casdoorJwtFile = "/run/secrets/casdoor-hermes-jwt";
@@ -318,18 +324,6 @@ in {
 
   services.appimage-updater.enable = true;
 
-    enable = true;
-    aiServices = true;
-    monitoring = false;
-    storage = true;
-    mining = true;
-    cloud = true;
-    kubernetes = true;
-    automation = true;
-    ci = true;
-    initrdRecovery = true;
-    selfHosting = true;
-  };
 
   # Mining user for secret ownership (ZEPHYR monitors mining but doesn't run workers)
   users.users.mining = {
@@ -340,9 +334,6 @@ in {
 
   users.groups.mining = {};
 
-      group = "root";
-    };
-  };
 
   # Initrd SSH recovery + BTRFS snapshots
   services.initrd-ssh-recovery = {

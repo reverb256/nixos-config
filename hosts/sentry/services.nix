@@ -74,12 +74,6 @@ in {
       enable = true;
     };
 
-    agenix-secrets-registry = {
-      enable = true;
-      kubernetes = true;
-      initrdRecovery = true;
-      aiServices = true;
-    };
   };
 
   services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
