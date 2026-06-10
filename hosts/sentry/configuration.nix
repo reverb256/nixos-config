@@ -94,6 +94,30 @@
     };
   };
 
+
+  # Fix system clock on boot if RTC is not battery-backed and time is wildly wrong.
+  # NTP cannot correct a 9-year skew, so we pre-set to the build time of the current
+  # NixOS generation first, then let timesyncd fine-tune from there.
+  systemd.services.fix-system-clock = {
+    description = "Fix system clock if wildly inaccurate (no battery-backed RTC)";
+    after = [ "systemd-timesyncd.service" ];
+    wants = [ "systemd-timesyncd.service" ];
+    before = [ "unbound.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      if [ "$(date +%Y)" -lt 2026 ]; then
+        BUILD_TIME="$(stat -c %Y /run/current-system 2>/dev/null || echo 0)"
+        if [ "$BUILD_TIME" -gt 0 ]; then
+          date -s "@$BUILD_TIME"
+        fi
+      fi
+    '';
+  };
+
   profiles.node.sentry-monitoring.enable = true;
 
   services.ai-inference.enable = lib.mkForce false;
@@ -155,6 +179,14 @@
 
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
+
+
+  # Mark CDN domains with broken DNSSEC as domain-insecure so unbound
+  # doesnt reject their CNAME-chained A records (e.g. cache.nixos.org -> fastly.net)
+  services.unbound.settings.server.domain-insecure = [
+    "fastly.net"
+    "nixos.org"
+  ];
 
   services.unbound.settings.forward-zone = lib.mkForce [
     {
