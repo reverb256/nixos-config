@@ -323,6 +323,10 @@ in {
   ];
   services.syncthing-cluster.enable = lib.mkForce false;
 
+  users.users.j_kro.extraGroups = [
+    "hermes"
+  ];
+
   # Upstream hermes-agent module (replaces custom hermes-cli)
   services.hermes-agent = {
     enable = lib.mkForce false;

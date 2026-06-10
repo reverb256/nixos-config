@@ -181,6 +181,7 @@
   services.unbound-common.enable = true;
 
 
+
   # Mark CDN domains with broken DNSSEC as domain-insecure so unbound
   # doesnt reject their CNAME-chained A records (e.g. cache.nixos.org -> fastly.net)
   services.unbound.settings.server.domain-insecure = [
@@ -208,6 +209,10 @@
 
   environment.systemPackages = with pkgs; [
     nvtopPackages.full
+  ];
+
+  users.users.j_kro.extraGroups = [
+    "hermes"
   ];
 
   services.hermes-agent = {
