@@ -70,6 +70,23 @@ in {
       enable = false;
     };
 
+    hermes-agent = {
+      enable = true;
+      addToSystemPackages = true;
+      settings = {
+        model = {
+          provider = "opencode-go";
+          default = "deepseek-v4-flash";
+          base_url = "https://opencode.ai/zen/go/v1";
+          api_mode = "chat_completions";
+        };
+        toolsets = ["all"];
+        terminal = { backend = "local"; timeout = 60; };
+        memory = { memory_enabled = true; user_profile_enabled = true; };
+        compression = { enabled = true; threshold = 0.9; };
+      };
+    };
+
     nixos-auto-update = {
       enable = false;
       interval = "daily";
@@ -77,6 +94,10 @@ in {
     };
 
   };
+
+  users.users.j_kro.extraGroups = [
+    "hermes"
+  ];
 
   services.cluster-mesh.enable = false; # SSH service account for inter-node mesh
   environment.systemPackages = with pkgs; [
