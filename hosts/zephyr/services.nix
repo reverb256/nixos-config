@@ -327,7 +327,6 @@ in {
     kubernetes = true;
     automation = true;
     ci = true;
-    initrdRecovery = true;
     selfHosting = true;
   };
 
@@ -339,10 +338,6 @@ in {
   };
 
   users.groups.mining = {};
-
-      group = "root";
-    };
-  };
 
   # Initrd SSH recovery + BTRFS snapshots
   services.initrd-ssh-recovery = {
