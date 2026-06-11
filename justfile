@@ -60,9 +60,71 @@ rm-worktree number:
         echo "Branch deleted: $BRANCH"
     fi
 
-# ── DEPLOYMENT ────────────────────────────────────────────────────────────────
+# ── GIT MANAGEMENT ────────────────────────────────────────────────────────────────
+# Sync all hosts to central/main
 
 HOSTS := "zephyr nexus forge sentry"
+
+# Show git status on all hosts
+git-status:
+    #!/usr/bin/env bash
+    set -e
+    for host in {{HOSTS}}; do
+        echo "=== $host ==="
+        if [ "$host" = "$(hostname -s)" ]; then
+            cd {{FLAKE}} && git log -1 --oneline && git status --short | head -5 || echo "  clean"
+        else
+            ssh "$host" "cd /etc/nixos && echo \"Commit: \\$(git log -1 --oneline)\" && git status --short | head -5 || echo \"  clean\""
+        fi
+        echo ""
+    done
+
+# Pull latest on all hosts (stashes local changes first)
+git-pull:
+    #!/usr/bin/env bash
+    set -e
+    for host in {{HOSTS}}; do
+        echo "=== $host ==="
+        if [ "$host" = "$(hostname -s)" ]; then
+            cd {{FLAKE}} && git stash 2>/dev/null; git pull --rebase origin main; git stash pop 2>/dev/null || true
+        else
+            ssh "$host" "cd /etc/nixos && git stash 2>/dev/null; git pull --rebase central main 2>&1 | tail -2; git stash pop 2>/dev/null || true"
+        fi
+        echo ""
+    done
+    echo "All hosts synced"
+
+# Show last 5 commits on each host
+git-log:
+    #!/usr/bin/env bash
+    set -e
+    for host in {{HOSTS}}; do
+        echo "=== $host ==="
+        if [ "$host" = "$(hostname -s)" ]; then
+            cd {{FLAKE}} && git log --oneline -5
+        else
+            ssh "$host" "cd /etc/nixos && git log --oneline -5"
+        fi
+        echo ""
+    done
+
+# Push local commits to origin + central, then pull on all hosts
+git-push:
+    #!/usr/bin/env bash
+    set -e
+    cd {{FLAKE}}
+    echo "=== Pushing ==="
+    git push origin main 2>&1 | tail -2 || echo "push to origin failed"
+    git push central main 2>&1 | tail -2 || echo "push to central failed"
+    echo ""
+    echo "=== Pulling to remotes ==="
+    for host in nexus forge sentry; do
+        echo -n "$host: "
+        ssh "$host" "cd /etc/nixos && git stash 2>/dev/null; git pull --rebase central main 2>&1 | tail -1; git stash pop 2>/dev/null || true"
+    done
+    echo "All hosts synced"
+
+# ── DEPLOYMENT ────────────────────────────────────────────────────────────────
 
 # Deploy to all hosts or a specific host
 deploy host="all":
