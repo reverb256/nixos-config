@@ -24,6 +24,12 @@
 
   ./modules/default.nix
 
+  # Disable kmscon module — stylix sets deprecated options (extraConfig, fonts)
+  # that cause build failures with current nixpkgs. Nobody uses kmscon.
+  {
+    disabledModules = [ "services/kmscon" ];
+  }
+
   {
     nixpkgs.overlays = [
       inputs.niri.overlays.niri
