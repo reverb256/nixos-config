@@ -143,7 +143,7 @@ in {
 
   # Fix: blueman-applet has duplicate ExecStart from systemd.packages install + NixOS auto-override
   # Clear ExecStart explicitly to replace (not add to) the packaged unit.
-  systemd.user.services.blueman-applet.serviceConfig.ExecStart = lib.mkForce ["" "${lib.getExe' pkgs.blueman "blueman-applet"}"];
+  systemd.user.services.blueman-applet.serviceConfig.ExecStart = lib.mkForce ["" "${pkgs.blueman}/bin/blueman-applet"];
 
   xdg.portal = lib.mkIf config.services.desktopManager.plasma6.enable {
     extraPortals = with pkgs; [pkgs.kdePackages.xdg-desktop-portal-kde];

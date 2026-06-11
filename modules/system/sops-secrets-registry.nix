@@ -271,6 +271,14 @@ in {
             owner = "root";
             group = "root";
           };
+          "k8s/kagent-postgres" = {
+            sopsFile = "${inputs.self}/secrets/k8s/kagent-postgres.yaml";
+            path = "/run/secrets/kagent-postgres";
+            format = "binary";
+            mode = "0440";
+            owner = "j_kro";
+            group = "users";
+          };
           "k8s/mission-control-api-key" = {
             sopsFile = "${inputs.self}/secrets/k8s/mission-control-api-key.yaml";
             path = "/run/secrets/mission-control-api-key";
@@ -555,18 +563,5 @@ in {
         })
       ];
     };
-  systemd.tmpfiles.rules = [
-    "Z /run/secrets/ai/* 0440 j_kro users -"
-    "Z /run/secrets/k8s/* 0440 j_kro users -"
-    "Z /run/secrets/cloud/* 0440 j_kro users -"
-    "Z /run/secrets/monitoring/* 0440 j_kro users -"
-    "Z /run/secrets/mining/* 0440 j_kro users -"
-    "Z /run/secrets/storage/* 0440 j_kro users -"
-    "Z /run/secrets/automation/* 0440 j_kro users -"
-    "Z /run/secrets/selfhosting/* 0440 j_kro users -"
-    "Z /run/secrets/ci/* 0440 j_kro users -"
-    "Z /run/secrets/default/* 0440 j_kro users -"
-    "Z /run/secrets/infra/* 0440 j_kro users -"
-  ];
   };
 }

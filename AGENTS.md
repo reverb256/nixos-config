@@ -14,8 +14,6 @@ just health             # Cluster connectivity overview
 just new-worktree <NNN> # Create worktree for issue NNN
 ```
 
-> Agents: read `WORKFLOW.md` first — it is the canonical agent contract for working on this repo.
-
 > NOTE: `just test` does NOT exist. Use `just test-apply` or `just check`.
 
 ## Workflow

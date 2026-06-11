@@ -38,7 +38,7 @@ in {
 
     sshKey = mkOption {
       type = types.str;
-      default = "/run/secrets/cns-ssh-key";
+      default = "/run/agenix/cns-ssh-key";
       description = "Path to CNS SSH key (agenix-deployed)";
     };
 
@@ -60,10 +60,18 @@ in {
 
     users.groups.cluster-mesh = {};
 
-    # Systemd service: copy key from sops /run/secrets to persistent location
+    # Agenix secret: cns-ssh-key owned by cluster-mesh
+    age.secrets.cns-ssh-key = {
+      file = "${inputs.self}/secrets/cns-ssh-key.age";
+      mode = "600";
+      owner = "cluster-mesh";
+      group = "cluster-mesh";
+    };
+
+    # Systemd service: copy key from /run/agenix to persistent location
     systemd.services.cluster-mesh-key-setup = {
       description = "Setup cluster-mesh SSH key from agenix";
-      after = [];
+      after = ["agenix.service"];
       wantedBy = ["multi-user.target"];
 
       serviceConfig = {

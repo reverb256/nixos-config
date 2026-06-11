@@ -82,6 +82,8 @@ in {
                 "ai-inference"
                 "mining"
                 "mcp"
+                "kelos-system"
+                "kagent"
                 "tailscale"
                 "nix-csi"
               ];

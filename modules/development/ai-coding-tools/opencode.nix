@@ -4,21 +4,21 @@
   gatewayUrl,
   mkMcpServersJson,
 }: let
-  nvidiaNimBaseUrl = "https://integrate.api.nvidia.com/v1";
   zaiCodingBaseUrl = gatewayUrl + "/v1";
+  nvidiaNimBaseUrl = gatewayUrl + "/v1";
   opencodeGoBaseUrl = gatewayUrl + "/v1";
 in {
   mkOpencodeConfig = pkgs.writeShellScript "generate-opencode-config" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
     ZAI_KEY_PATH="${cfg.zaiApiKeyFile}"
-    ZAI_API_KEY=$(< "$ZAI_KEY_PATH" 2>/dev/null || true)
+    ZAI_API_KEY="$(cat $ZAI_KEY_PATH 2>/dev/null || echo)"
     CTX7_KEY_PATH="${cfg.context7ApiKeyFile}"
-    CONTEXT7_API_KEY=$(< "$CTX7_KEY_PATH" 2>/dev/null || true)
+    CONTEXT7_API_KEY="$(cat $CTX7_KEY_PATH 2>/dev/null || echo)"
     NVIDIA_NIM_KEY_PATH="${cfg.nvidiaNimApiKeyFile}"
-    NVIDIA_NIM_API_KEY=$(< "$NVIDIA_NIM_KEY_PATH" 2>/dev/null || true)
+    NVIDIA_NIM_API_KEY="$(cat $NVIDIA_NIM_KEY_PATH 2>/dev/null || echo)"
     OPENCODE_GO_KEY_PATH="${cfg.opencodeGoApiKeyFile}"
-    OPENCODE_GO_API_KEY=$(< "$OPENCODE_GO_KEY_PATH" 2>/dev/null || true)
+    OPENCODE_GO_API_KEY="$(cat $OPENCODE_GO_KEY_PATH 2>/dev/null || echo)"
     ${pkgs.jq}/bin/jq -n \
       --arg zai_key "$ZAI_API_KEY" \
       --arg ctx7_key "$CONTEXT7_API_KEY" \
@@ -31,43 +31,9 @@ in {
       '{
         "$schema": "https://opencode.ai/config.json",
         "comment": "Harmonized config - managed by NixOS ai-coding-tools module",
-        "model": "nvidia-nim/nvidia/nemotron-3-super-120b-a12b",
-        "small_model": "nvidia-nim/mistralai/mistral-small-4-119b-2603",
+        "model": "opencode-go/deepseek-v4-flash",
+        "small_model": "nvidia-nim/nvidia/nemotron-3-nano-30b-a3b",
         "provider": {
-          "nvidia-nim": {
-            "npm": "@ai-sdk/openai-compatible",
-            "name": "NVIDIA NIM (Primary)",
-            "options": {
-              "baseURL": $nvidia_base,
-              "apiKey": $nvidia_key
-            },
-            "models": {
-              "nvidia-nim/nvidia/nemotron-3-super-120b-a12b": {
-                "name": "Nemotron 3 Super 120B",
-                "description": "NVIDIA NIM primary model, 1M context"
-              },
-              "nvidia-nim/nvidia/nemotron-3-ultra-550b-a55b": {
-                "name": "Nemotron 3 Ultra 550B",
-                "description": "NVIDIA NIM flagship, 1M context, best reasoning"
-              },
-              "nvidia-nim/mistralai/mistral-small-4-119b-2603": {
-                "name": "Mistral Small 4 119B",
-                "description": "Fast 256K context model, good for cheap tasks"
-              },
-              "nvidia-nim/mistralai/mistral-large-3-675b-instruct-2512": {
-                "name": "Mistral Large 3 675B",
-                "description": "256K context, heavy reasoning"
-              },
-              "nvidia-nim/meta/llama-3.2-90b-vision-instruct": {
-                "name": "Llama 3.2 90B Vision",
-                "description": "Vision-capable model"
-              },
-              "nvidia-nim/nvidia/llama-3.3-nemotron-super-49b-v1.5": {
-                "name": "Llama 3.3 Nemotron Super 49B",
-                "description": "Good fallback, 64K context"
-              }
-            }
-          },
           "zai-coding-plan": {
             "npm": "@ai-sdk/openai-compatible",
             "name": "Z.AI Coding Plan (GLM Models)",
@@ -102,23 +68,51 @@ in {
               }
             }
           },
-          "opencode-go": {
+          "nvidia-nim": {
             "npm": "@ai-sdk/openai-compatible",
-            "name": "OpenCode Go (DeepSeek V4 Flash)",
+            "name": "NVIDIA NIM (100+ Free LLM Models)",
             "options": {
-              "baseURL": $opencode_go_base,
-              "apiKey": $opencode_go_key
+              "baseURL": $nvidia_base,
+              "apiKey": $nvidia_key
             },
             "models": {
-              "opencode-go/deepseek-v4-flash": {
-                "name": "DeepSeek V4 Flash",
-                "description": "DeepSeek V4 Flash via OpenCode Go middleware"
-              }
+          "nvidia-nim/nvidia/nemotron-3-nano-30b-a3b": {
+            "name": "Nemotron 3 Nano 30B (NVIDIA NIM)",
+            "description": "Lightweight 30B reasoning model, good for small tasks"
+          }
+        }
+      },
+      "opencode-go": {
+        "npm": "@ai-sdk/openai-compatible",
+        "name": "OpenCode Go (DeepSeek V4 Flash)",
+        "options": {
+          "baseURL": $opencode_go_base,
+          "apiKey": $opencode_go_key
+        },
+        "models": {
+          "opencode-go/deepseek-v4-flash": {
+            "name": "DeepSeek V4 Flash",
+            "description": "DeepSeek V4 Flash via OpenCode Go middleware"
+          }
+        }
+      },
+      "lmstudio": {
+            "npm": "@ai-sdk/openai-compatible",
+            "name": "LM Studio (Local)",
+            "options": {
+              "baseURL": "http://127.0.0.1:1234/v1"
+            }
+          },
+          "llama-cpp": {
+            "npm": "@ai-sdk/openai-compatible",
+            "name": "llama.cpp Server (Zephyr 3090)",
+            "options": {
+              "baseURL": "http://10.1.1.110:1237/v1"
             }
           }
         },
-        "enabled_providers": ["nvidia-nim", "zai-coding-plan", "opencode-go"],
-        "disabled_providers": ["openai", "anthropic", "google", "cohere", "lmstudio", "llama-cpp"],
+        "enabled_providers": ["zai-coding-plan", "opencode-go", "nvidia-nim", "lmstudio", "llama-cpp"],
+        "disabled_providers": ["openai", "anthropic", "google", "cohere"],
         "mcp": {
           ${mkMcpServersJson {keyMode = "env";}}
         },

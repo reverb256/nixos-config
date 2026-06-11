@@ -63,4 +63,3 @@ void-config/
 .yarn/*
 .yarn-integrity
 void-mklive/
-certs/ssh-ca.key

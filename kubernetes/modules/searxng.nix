@@ -21,7 +21,7 @@ in {
 
     # ── Secret ────────────────────────────────────────────────────
     # Populated by kubectl-apply-k8s-secrets from agenix:
-    #   secret-key ← /run/secrets/searxng-secret-key
+    #   secret-key ← /run/agenix/searxng-secret-key
     search.Secret.searxng-secret = {
       type = "Opaque";
       stringData."secret-key" = "";

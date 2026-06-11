@@ -8,43 +8,6 @@
 }: let
   inherit (lib) mkDefault mkIf;
   niriHmAvailable = config.lib ? niri;
-
-  # Launch or focus a window by title/app-id pattern
-  # Usage: launch-or-focus <window-pattern> [launch-command-with-args...]
-  # If a matching window exists, focuses it. Otherwise runs the launch command.
-  launch-or-focus = pkgs.writeShellScriptBin "launch-or-focus" ''
-    set -euo pipefail
-
-    if [ $# -lt 1 ]; then
-      echo "Usage: launch-or-focus <window-pattern> [launch-command] [args...]" >&2
-      exit 1
-    fi
-
-    PATTERN="$1"
-    shift || true
-    LAUNCH_CMD="''${@:-$PATTERN}"
-
-    # Find window by title or app-id (case-insensitive) via niri JSON IPC
-    find_window_id() {
-      local json_out
-      json_out=$(niri msg windows --json 2>/dev/null) || true
-      if [ -n "$json_out" ] && echo "$json_out" | jq -e '.[0].id' >/dev/null 2>&1; then
-        echo "$json_out" | jq -r ".[] | select(
-          (.title // "") | test("$PATTERN"; "i")
-          or (."app-id" // "") | test("$PATTERN"; "i")
-        ) | .id" | head -1
-        return
-      fi
-    }
-
-    WINDOW_ID=$(find_window_id) || true
-
-    if [ -n "$WINDOW_ID" ]; then
-      niri msg action focus-window --id "$WINDOW_ID" 2>/dev/null || true
-    else
-      exec $LAUNCH_CMD
-    fi
-  '';
 in {
   programs.niri.settings = mkIf niriHmAvailable (lib.mkMerge [
     (
@@ -804,5 +767,4 @@ in {
       };
     })
   ]);
-  home.packages = [launch-or-focus];
 }

@@ -6,7 +6,7 @@
     settings = {
       env.TERM = "xterm-256color";
 
-      terminal.shell = { program = "fish"; };
+      shell.program = "fish";
       terminal.osc52 = "CopyPaste";
 
       window = {
@@ -30,6 +30,7 @@
       mouse.hide_when_typing = true;
 
       font = {
+        size = lib.mkDefault 11;
         normal = {
           family = "JetBrainsMono Nerd Font";
           style = "Regular";

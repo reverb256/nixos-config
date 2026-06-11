@@ -85,7 +85,7 @@ in {
         Type = "simple";
         User = cfg.user;
         WorkingDirectory = runnerHome;
-        ExecStart = "${lib.getExe' pkgs.github-runner "runsvc.sh"}";
+        ExecStart = "${pkgs.github-runner}/bin/runsvc.sh";
         Restart = "always";
         RestartSec = "10s";
         ProtectSystem = "strict";
