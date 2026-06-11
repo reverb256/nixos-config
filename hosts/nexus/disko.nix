@@ -43,10 +43,10 @@
                   mountpoint = "/nix";
                   mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
                 };
-                "@games" = {
-                  mountpoint = "/games";
-                  mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
-                };
+#                "@games" = {
+#                  mountpoint = "/games";
+#                  mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
+#                };
               };
             };
           };
