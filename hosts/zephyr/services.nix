@@ -98,7 +98,7 @@ in {
           name = "3090";
           gpuId = 1;
           wallet = "krxXVNVMM7.zephyr-3090";
-          powerLimit = 150;
+          powerLimit = 200;
           pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
         }
       ];

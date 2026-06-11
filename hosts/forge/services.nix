@@ -45,22 +45,22 @@ in {
       mountMedia = false;
     };
 
-    srbminer = {
+    lpminer = {
       enable = true;
       instances = [
         {
           name = "4060-0";
           gpuId = 0;
           wallet = "krxXVNVMM7.forge-4060-0";
-          apiPort = 21550;
-          powerLimit = 105;
+          pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
+          powerLimit = 100;
         }
         {
           name = "4060-1";
           gpuId = 1;
           wallet = "krxXVNVMM7.forge-4060-1";
-          apiPort = 21551;
-          powerLimit = 105;
+          pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
+          powerLimit = 100;
         }
       ];
     };
