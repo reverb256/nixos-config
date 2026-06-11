@@ -52,6 +52,7 @@
 
       trusted-public-keys = lib.mkOptionDefault [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+        "zephyr-cache-1:2Tqq4OUEZrz6DEXurUPrAQBjh1VoiQ0jZhrGYozHq5c="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
         "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
       ];
