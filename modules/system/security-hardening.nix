@@ -54,7 +54,7 @@ in {
           PasswordAuthentication = lib.mkForce true;
           KbdInteractiveAuthentication = lib.mkForce true;
 
-          AuthenticationMethods = "publickey,password";
+          AuthenticationMethods = "publickey";
 
           PermitRootLogin = "no";
           PermitEmptyPasswords = false;
@@ -77,7 +77,6 @@ in {
         extraConfig = ''
           PermitTunnel = yes
 
-          AuthenticationMethods publickey password
 
           GatewayPorts no
 

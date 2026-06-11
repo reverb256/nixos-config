@@ -52,6 +52,10 @@
     "amdgpu.gpu_recovery=0"
     "amdgpu.noretry=0"
     "amdgpu.ppfeaturemask=0xfffd7fff"  # Disable Overdrive for stability
+    # Disable display power-saving features (prevents DPMS-related GPU hangs on RDNA1/Navi10)
+    "amdgpu.dcdebugmask=0x10"
+    # Disable runtime power management (prevents GPU from entering buggy low-power states)
+    "amdgpu.runpm=0"
     # lockup_timeout intentionally NOT set — use driver default (-1 = disabled)
     # Setting it to 1000ms caused aggressive GPU resets that hang RDNA1.
     "mitigations=auto"
