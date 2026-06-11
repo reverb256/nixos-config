@@ -207,6 +207,10 @@
     bindServicesToLocalhost = true;
   };
 
+  # Resolve gitconfig conflict
+  environment.etc.gitconfig.source = lib.mkForce (pkgs.writeText "gitconfig" "'[safe]
+  directory = /etc/nixos
+'");
   environment.systemPackages = with pkgs; [
     nvtopPackages.full
   ];
@@ -218,13 +222,10 @@
   services.hermes-agent = {
     enable = true;
     addToSystemPackages = true;
-
     settings = {
       model = {
-        default = "deepseek-v4-flash";
-        provider = "opencode-go";
-        base_url = "https://opencode.ai/zen/go/v1";
-        api_mode = "chat_completions";
+        default = "nvidia/nemotron-3-super-120b-a12b";
+        provider = "nvidia";
       };
       memory = {
         memory_enabled = true;
@@ -249,44 +250,110 @@
     };
   };
 
-
-  # Resolve conflict between nix-mineral and NixOS default gitconfig sources
-  environment.etc.gitconfig.source = lib.mkForce (pkgs.writeText "gitconfig" ''
-    [safe]
-      directory = /etc/nixos
-  '');
-
-  # sops-nix secrets registry (dual-run with agenix during migration)
-  services.sops-secrets-registry = {
-    enable = true;
-    aiServices = true;
-    kubernetes = true;
-    monitoring = true;
-    storage = true;
-    mining = true;
-    cloud = true;
-    automation = true;
-    selfHosting = true;
-    ci = true;
-  };
-  # Hermes reactions poller - CI/review monitoring for nixos-config board
-  systemd.services.hermes-reactions = {
-    description = "Hermes Reactions Poller - CI/review monitoring";
-    after = [ "hermes-agent.service" ];
-    wants = [ "hermes-agent.service" ];
-    serviceConfig = {
-      Type = "simple";
-      User = "hermes";
-      Group = "hermes";
-      Restart = "on-failure";
-      RestartSec = 10;
-      ExecStart = "/nix/store/xy4vsc1v7m4q913wsg3yziiiqibcd3gi-hermes-agent-env/bin/python3 /var/lib/hermes/.hermes/skills/devops/pipeline-engine/scripts/reactions_poller.py";
-      WorkingDirectory = "/var/lib/hermes";
+  services.hermes-agent.settings = {
+    providers = {
+      nvidia = {
+        base_url = "https://integrate.api.nvidia.com/v1";
+        api_key_env = "NVIDIA_API_KEY";
+        context_length = 1048576;
+        discover_models = true;
+      };
+      zai = {
+        base_url = "https://api.z.ai/api/coding/paas/v4";
+        api_key_env = "ZAI_API_KEY";
+        context_length = 131072;
+        discover_models = true;
+      };
+      kilocode = {
+        base_url = "https://api.kilocode.ai/v1";
+      };
     };
-    environment = {
-      HERMES_HOME = "/var/lib/hermes/.hermes";
-      REACTIONS_BOARD = "nixos-config";
+    fallback_providers = [
+      "nvidia"
+      "zai"
+    ];
+    auxiliary = {
+      vision = {
+        provider = "nvidia";
+        model = "meta/llama-3.2-90b-vision-instruct";
+        base_url = "https://integrate.api.nvidia.com/v1";
+        timeout = 120;
+      };
+      web_extract = {
+        provider = "nvidia";
+        model = "nvidia/nemotron-3-super-120b-a12b";
+        base_url = "https://integrate.api.nvidia.com/v1";
+        timeout = 120;
+      };
+      compression = {
+        provider = "nvidia";
+        model = "nvidia/nemotron-3-super-120b-a12b";
+        base_url = "https://integrate.api.nvidia.com/v1";
+        timeout = 60;
+      };
+      skills_hub = {
+        provider = "nvidia";
+        model = "nvidia/nemotron-3-super-120b-a12b";
+        base_url = "https://integrate.api.nvidia.com/v1";
+        timeout = 30;
+      };
+      approval = {
+        provider = "nvidia";
+        model = "nvidia/nemotron-3-super-120b-a12b";
+        base_url = "https://integrate.api.nvidia.com/v1";
+        timeout = 30;
+      };
+      mcp = {
+        provider = "nvidia";
+        model = "mistralai/ministral-14b-instruct-2512";
+        base_url = "https://integrate.api.nvidia.com/v1";
+        timeout = 30;
+      };
+      title_generation = {
+        provider = "nvidia";
+        model = "nvidia/nemotron-3-super-120b-a12b";
+        base_url = "https://integrate.api.nvidia.com/v1";
+        timeout = 30;
+      };
+      triage_specifier = {
+        provider = "nvidia";
+        model = "nvidia/nemotron-3-super-120b-a12b";
+        base_url = "https://integrate.api.nvidia.com/v1";
+        timeout = 120;
+      };
+      kanban_decomposer = {
+        provider = "nvidia";
+        model = "qwen/qwen3.5-122b-a10b";
+        base_url = "https://integrate.api.nvidia.com/v1";
+        timeout = 180;
+      };
+      profile_describer = {
+        provider = "nvidia";
+        model = "nvidia/nemotron-3-super-120b-a12b";
+        base_url = "https://integrate.api.nvidia.com/v1";
+        timeout = 30;
+      };
+      curator = {
+        provider = "nvidia";
+        model = "nvidia/nemotron-3-super-120b-a12b";
+        base_url = "https://integrate.api.nvidia.com/v1";
+        timeout = 300;
+      };
     };
-    wantedBy = [ "multi-user.target" ];
   };
+
+  # Disable all forms of suspend
+  powerManagement.enable = false;
+  services.logind.settings = {
+    Login = {
+      HandleLidSwitch = "ignore";
+      HandleLidSwitchExternalPower = "ignore";
+      HandleLidSwitchDocked = "ignore";
+      IdleAction = "ignore";
+    };
+  };
+  systemd.targets.sleep.enable = false;
+  systemd.targets.suspend.enable = false;
+  systemd.targets.hibernate.enable = false;
+  systemd.targets.hybrid-sleep.enable = false;
 }

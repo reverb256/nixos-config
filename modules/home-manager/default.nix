@@ -37,13 +37,6 @@ in {
   # This module configures j_kro's declarative home
 
   # Import per-host configuration
-  imports = [
-    ./common.nix
-    ./zephyr.nix
-    ./nexus.nix
-    ./forge.nix
-    ./sentry.nix
-  ];
 
   # Make home-manager state persistent across NixOS generations
   users.users.j_kro = {
