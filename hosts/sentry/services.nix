@@ -7,12 +7,20 @@
   cluster = config.networking.cluster;
 in {
   services = {
+    hermes-cli = {
+      enable = true;
+      apiKeyFile = config.age.secrets.zai-api-key.path;
+      nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
+      casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
+      opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
+      opencodeZenApiKeyFile = config.age.secrets.opencode-api-key.path;
+    };
     k3s-cluster = {
       enable = true;
       role = "server";
       nodeName = "sentry";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
-      tokenFile = "/run/secrets/k3s-cluster-token";
+      tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = cluster.hosts.sentry.ip;
     };
 
@@ -23,12 +31,12 @@ in {
       priority = 100;
     };
 
-    gaming-detection.enable = true;
-    gpu-profile-manager.enable = true;
-    mining-coordinator.enable = true;
+    gaming-detection.enable = false;
+    gpu-profile-manager.enable = false;
+    mining-coordinator.enable = false;
 
     nginx = {
-      enable = false;
+      enable = true;
       recommendedProxySettings = true;
       recommendedGzipSettings = true;
       virtualHosts."_" = {
@@ -45,12 +53,12 @@ in {
     tailscale.enable = true;
 
     nixos-share = {
-      enable = true;
+      enable = false;
       client.enable = true;
     };
 
     nfs-client = {
-      enable = true;
+      enable = false;
       mountShared = true;
       mountHome = false;
       mountMedia = false;
@@ -74,6 +82,12 @@ in {
       enable = true;
     };
 
+    agenix-secrets-registry = {
+      enable = true;
+      kubernetes = true;
+      initrdRecovery = true;
+      aiServices = true;
+    };
   };
 
   services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
@@ -90,7 +104,7 @@ in {
 
   systemd.services.ai-inference-monitor = {
     wantedBy = lib.mkForce [];
-    enable = true;
+    enable = false;
   };
 
   systemd.services.tailscaled.environment = {
@@ -102,7 +116,7 @@ in {
   # Initrd SSH recovery + BTRFS snapshots
   services.cluster-ca = {
     enable = true;
-    generateLeaf = true;
+    generateLeaf = false;
   };
 
   services.initrd-ssh-recovery = {
@@ -118,10 +132,10 @@ in {
   services.ai-coding-tools = {
     enable = true;
     user = "j_kro";
-    zaiApiKeyFile = "/run/secrets/zai-api-key";
-    context7ApiKeyFile = "/run/secrets/context7-api-key";
-    nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
-    opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
+    zaiApiKeyFile = config.age.secrets.zai-api-key.path;
+    context7ApiKeyFile = config.age.secrets.context7-api-key.path;
+    nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
+    opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
     tools = {
       claude = {enable = true;};
       opencode = {enable = true;};
@@ -136,73 +150,15 @@ in {
   services.ci-runner = {
     enable = true;
     repo = "reverb256/nixos-config";
-    tokenFile = "/run/secrets/github-runner-pat";
+    tokenFile = "/run/agenix/github-runner-pat";
     autoStart = true;
     extraLabels = ["sentry"];
   };
 
-  # Caddy reverse proxy — same routes as Nexus for HA
-  services.cluster-services = {
-    enable = true;
-    services = {
-      vaultwarden = {
-        domain = "vaultwarden.lan";
-        backend = "vaultwarden.vaultwarden.svc.cluster.local:8080";
-      };
-      glance = {
-        domain = "dashboard.lan";
-        backend = "glance.dashboard.svc.cluster.local:8080";
-      };
-      grafana = {
-        domain = "grafana.lan";
-        backend = "grafana.monitoring.svc.cluster.local:3000";
-        protected = true;
-      };
-      gitea = {
-        domain = "gitea.lan";
-        backend = "gitea.ai-inference.svc.cluster.local:3000";
-      };
-      privacy-filter = {
-        domain = "privacy-filter.lan";
-        backend = "privacy-filter.search.svc.cluster.local:8080";
-      };
-      mission-control = {
-        domain = "mission-control.lan";
-        backend = "mission-control.orchestration.svc.cluster.local:8080";
-        protected = true;
-      };
-      removed = {
-        domain = "removed.lan";
-        backend = "removed-ui.removed.svc.cluster.local:8080";
-      };
-      workspace = {
-        domain = "workspace.lan";
-        backend = "127.0.0.1:3002";
-      };
-      auth = {
-        domain = "auth.lan";
-        backend = "127.0.0.1:32556";
-        rawBlock = ''
-          https://auth.lan {
-            tls /etc/ssl/cluster-ca/leaf.crt /etc/ssl/cluster-ca/leaf.key
-            encode zstd gzip
-            rate_limit {
-              zone auth_per_ip {
-                key    {remote_host}
-                events 100
-                window 1m
-              }
-            }
-            handle /oauth2/* {
-              reverse_proxy 127.0.0.1:30890
-            }
-            handle {
-              reverse_proxy 127.0.0.1:32556
-            }
-          }
-        '';
-      };
-    };
+  age.secrets.github-runner-pat = {
+    file = "${inputs.self}/secrets/github-runner-pat.age";
+    mode = "440";
+    owner = "runner";
+    group = "runner";
   };
 }
-

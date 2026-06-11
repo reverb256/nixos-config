@@ -54,6 +54,7 @@
     "ai-inference.lan"
     "auth.lan"
     "qdrant.lan"
+    "kagent.lan"
     "n8n.lan"
     "searxng.lan"
     "mission-control.lan"

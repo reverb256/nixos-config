@@ -3,7 +3,7 @@
 # Defines all MCP servers in one place and generates configs for:
 #   C2: Claude Code settings.json (mcpServers)
 #   C3: Hermes config.yaml (mcp_servers)
-#   C4: removed RemoteMCPServer CRDs
+#   C4: Kagent RemoteMCPServer CRDs
 #   C5: NetworkPolicy per server
 #   C6: Casdoor gateway registration
 #
@@ -291,11 +291,11 @@
     ${mkHermesMcpServers allServers}
   '';
 
-  # ── C4: Generate removed RemoteMCPServer CRDs ────────────────────────────
+  # ── C4: Generate Kagent RemoteMCPServer CRDs ────────────────────────────
   mkRemoteMCPServerCRD = name: server:
     if server.scope == "cluster"
     then {
-      "removed.dev/v1alpha1".RemoteMCPServer.${name} = {
+      "kagent.dev/v1alpha1".RemoteMCPServer.${name} = {
         metadata.labels = {
           "app.kubernetes.io/managed-by" = "easykubenix";
           "app.kubernetes.io/component" = "mcp-server";
@@ -313,6 +313,7 @@
     }
     else {};
 
+  kagentCRDs = lib.mkMerge (lib.mapAttrsToList mkRemoteMCPServerCRD clusterServers);
 
   # ── C5: Generate NetworkPolicy per server ───────────────────────────────
   mkNetworkPolicy = name: server:
@@ -401,8 +402,8 @@ in {
       description = "User whose Hermes config to manage";
     };
 
-    # C4: removed CRD generation
-    generateKagentCRDs = mkEnableOption "Generate removed RemoteMCPServer CRDs from registry";
+    # C4: Kagent CRD generation
+    generateKagentCRDs = mkEnableOption "Generate Kagent RemoteMCPServer CRDs from registry";
 
     # C5: NetworkPolicy generation
     generateNetworkPolicies = mkEnableOption "Generate NetworkPolicy per MCP server";
@@ -535,6 +536,7 @@ in {
     lib.mcp-registry = {
       inherit allServers stdioServers sseServers httpServers localServers clusterServers;
       inherit mkClaudeCodeMcpServers mkHermesMcpServers mkRemoteMCPServerCRD mkNetworkPolicy;
+      inherit claudeCodeJson hermesMcpYaml kagentCRDs networkPolicies;
     };
   };
 }

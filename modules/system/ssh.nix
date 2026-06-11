@@ -1,6 +1,4 @@
-{pkgs, lib, ...}: let
-  inherit (lib) mkOptionDefault;
-
+{pkgs, ...}: let
   hosts = {
     zephyr = {
       ip = "10.1.1.110";
@@ -28,17 +26,14 @@
   meshKeys = import ../../mesh-keys.nix;
 in {
   services.openssh = {
-    settings.HostCertificate = "/etc/ssh/ssh_host_ed25519_key-cert.pub";
     enable = true;
     settings = {
-      PasswordAuthentication = true;
-      KbdInteractiveAuthentication = true;
+      PasswordAuthentication = false;
+      KbdInteractiveAuthentication = false;
       PubkeyAuthentication = true;
       PermitRootLogin = "no";
       PermitEmptyPasswords = false;
-      ChallengeResponseAuthentication = true;
-      AuthenticationMethods = lib.mkForce "publickey";
-      TrustedUserCAKeys = "/etc/ssh/ca.pub";
+      ChallengeResponseAuthentication = false;
 
       Ciphers = [
         "chacha20-poly1305@openssh.com"
@@ -85,7 +80,45 @@ in {
     };
   };
 
-  # SSH CA known hosts — populated by modules/security/ssh-ca.nix via services.openssh.knownHosts
+  programs.ssh.knownHosts = {
+    zephyr = {
+      hostNames = [
+        "zephyr"
+        hosts.zephyr.ip
+        hosts.zephyr.tailscale
+      ];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA0/pTXa/H7mvy3+YPJq9U2mFKO4+YrLSOYd8sPU44+q";
+    };
+    nexus = {
+      hostNames = [
+        "nexus"
+        hosts.nexus.ip
+        hosts.nexus.tailscale
+      ];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINttvGn4etQX6AbyT2HpXrmyGaTFL3gur/2ImHTLzBOl";
+    };
+    forge = {
+      hostNames = [
+        "forge"
+        hosts.forge.ip
+        hosts.forge.tailscale
+      ];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINhHtW56M3KuMH/qCwamdGKQe22NuemFQaYV7LhJXdUz";
+    };
+    sentry = {
+      hostNames = [
+        "sentry"
+        hosts.sentry.ip
+        hosts.sentry.tailscale
+      ];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHh8FHzxFAk+brIs8nGhgg9BcGdtgr6of9MsbQctYHuE";
+    };
+    # krash3 — WSL host key changes on rebuild; accept-new handles it
+    krash3 = {
+      hostNames = ["krash3" hosts.krash3.ip];
+      publicKey = "*"; # Accept any key (WSL host key changes each rebuild)
+    };
+  };
 
   users.users.j_kro.openssh.authorizedKeys.keys = meshKeys;
 
@@ -105,25 +138,25 @@ in {
       StrictHostKeyChecking yes
       ConnectTimeout 5
 
-    Host zephyr ${hosts.zephyr.ip}
+    Host zephyr ${hosts.zephyr.ip} ${hosts.zephyr.tailscale}
       HostName ${hosts.zephyr.ip}
       User j_kro
       IdentityFile ~/.ssh/id_ed25519
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
-    Host nexus ${hosts.nexus.ip}
+    Host nexus ${hosts.nexus.ip} ${hosts.nexus.tailscale}
       HostName ${hosts.nexus.ip}
       User j_kro
       IdentityFile ~/.ssh/id_ed25519
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
-    Host forge ${hosts.forge.ip}
+    Host forge ${hosts.forge.ip} ${hosts.forge.tailscale}
       HostName ${hosts.forge.ip}
       User j_kro
       IdentityFile ~/.ssh/id_ed25519
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
-    Host sentry ${hosts.sentry.ip}
+    Host sentry ${hosts.sentry.ip} ${hosts.sentry.tailscale}
       HostName ${hosts.sentry.ip}
       User j_kro
       IdentityFile ~/.ssh/id_ed25519
@@ -131,34 +164,17 @@ in {
 
     Host krash3 ${hosts.krash3.ip}
       HostName ${hosts.krash3.ip}
-      Port 22
+      Port 2222
       User j_kro
       StrictHostKeyChecking accept-new
       IdentityFile ~/.ssh/id_ed25519
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
-
-    Host krash3-wsl
-      HostName 10.1.1.90
-      Port 22222
-      User j_kro
-      StrictHostKeyChecking accept-new
-      IdentityFile ~/.ssh/id_ed25519
 
     Host github.com
       HostName github.com
       User git
       IdentityFile ~/.ssh/id_deploy
       IdentitiesOnly yes
-  '';
-
-  # System-level SSH config for distributed build machines (used by nix-daemon)
-  environment.etc."ssh/ssh_config.d/50-build-machines.conf".text = ''
-    Host zephyr nexus sentry
-      User j_kro
-      IdentityFile /etc/nixos/ssh/id_ed25519
-      IdentitiesOnly yes
-      StrictHostKeyChecking accept-new
-      ConnectTimeout 30
   '';
 
   systemd.tmpfiles.rules = [

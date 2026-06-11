@@ -34,11 +34,19 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # CNS SSH key — provided by sops-secrets-registry as /run/secrets/cns-ssh-key
+    # CNS SSH key (owned by cluster-mesh via cluster-mesh module)
+    age.secrets.cns-ssh-key = {
+      file = "${inputs.self}/secrets/cns-ssh-key.age";
+      mode = "600";
+      owner = "cluster-mesh";
+      group = "cluster-mesh";
+    };
+
     systemd.services.cns-watcher = {
       description = "CNS: Watch and distribute secrets to cluster nodes";
       wantedBy = ["multi-user.target"];
-      after = ["cns-setup.service"];
+      after = ["agenix.service" "cns-setup.service"];
+      requires = ["agenix.service"];
       serviceConfig = {
         ExecStart = pkgs.writeShellScript "cns-watcher" ''
           set -euo pipefail

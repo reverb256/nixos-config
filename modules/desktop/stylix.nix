@@ -22,10 +22,6 @@
         package = pkgs.noto-fonts-color-emoji;
         name = "Noto Color Emoji";
       };
-
-      sizes = {
-        terminal = 10;
-      };
     };
 
     cursor = {
@@ -42,14 +38,10 @@
     };
 
     autoEnable = true;
-    enableReleaseChecks = false;
 
     homeManagerIntegration = {
       followSystem = true;
       autoImport = true;
     };
-
-    # Console TTY: theme virtual terminals (Ctrl+Alt+F{1..6}) with base16 palette
-    targets.console.enable = lib.mkDefault true;
   };
 }

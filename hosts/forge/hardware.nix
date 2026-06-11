@@ -133,7 +133,7 @@
             log "Waiting for NVIDIA driver... ($i/30)"
             sleep 2
           done
-          /run/current-system/sw/bin/nvidia-smi -c 0
+          /run/current-system/sw/bin/nvidia-smi -c 3
           /run/current-system/sw/bin/nvidia-smi --query-gpu=name,compute_mode --format=csv,noheader | while IFS=, read -r name mode; do
             log "NVIDIA GPU ''${name// /}: Compute mode = ''${mode// /}"
           done
@@ -299,7 +299,7 @@
       after = ["basic.target"];
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${lib.getExe pkgs.bash} -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo 2>/dev/null || echo \"AMD GPU detection failed\"'";
+        ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo 2>/dev/null || echo \"AMD GPU detection failed\"'";
         RemainAfterExit = true;
       };
     };
@@ -310,7 +310,7 @@
       after = ["basic.target"];
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${lib.getExe pkgs.bash} -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo > /tmp/amd-gpu-info.log 2>&1 || true'";
+        ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo > /tmp/amd-gpu-info.log 2>&1 || true'";
         RemainAfterExit = true;
       };
     };

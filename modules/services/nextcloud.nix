@@ -54,7 +54,7 @@ in {
       passwordFile = mkOption {
         type = types.nullOr types.path;
         default = null;
-        example = "/run/secrets/nextcloud-admin-pass";
+        example = "/run/agenix/nextcloud-admin-pass";
         description = "Path to file containing admin password (use Agenix)";
       };
     };
