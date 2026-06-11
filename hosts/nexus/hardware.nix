@@ -42,7 +42,7 @@
   fileSystems = {
     # --- bcache0 (nexus-storage) subvol mounts ---
     "/home" = {
-      device = "/dev/disk/by-label/nexus-storage";
+      device = lib.mkForce "/dev/disk/by-label/nexus-storage";
       fsType = "btrfs";
       options = [
         "subvol=home"
