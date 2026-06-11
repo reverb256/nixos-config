@@ -9,9 +9,9 @@
     set -euo pipefail
 
     ZAI_KEY_PATH="${cfg.zaiApiKeyFile}"
-    ZAI_API_KEY=*** $ZAI_KEY_PATH 2>/dev/null || echo)"
+    ZAI_API_KEY=$(< "$ZAI_KEY_PATH" 2>/dev/null || true)
     NVIDIA_KEY_PATH="${cfg.nvidiaNimApiKeyFile}"
-    NVIDIA_NIM_API_KEY=*** $NVIDIA_KEY_PATH 2>/dev/null || echo)"
+    NVIDIA_NIM_API_KEY=$(< "$NVIDIA_KEY_PATH" 2>/dev/null || true)
 
     mkdir -p "/home/${cfg.user}/.omp/agent"
 
