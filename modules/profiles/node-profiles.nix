@@ -262,14 +262,6 @@ in {
         default = [];
         description = "Extra UDP ports";
       };
-    };
-
-        description = "Networking configuration";
-      };
-    };
-
-        description = "Networking configuration";
-      };
 
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
