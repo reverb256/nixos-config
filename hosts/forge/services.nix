@@ -17,11 +17,11 @@ in {
 
     hermes-cli = {
       enable = true;
-      apiKeyFile = config.age.secrets.zai-api-key.path;
-      nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
-      casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
-      opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
-      opencodeZenApiKeyFile = config.age.secrets.opencode-api-key.path;
+      apiKeyFile = "/run/secrets/zai-api-key";
+      nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
+      casdoorJwtFile = "/run/secrets/casdoor-hermes-jwt";
+      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
+      opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
     };
     k3s-cluster = {
       enable = true;
@@ -161,10 +161,10 @@ in {
   services.ai-coding-tools = {
     enable = true;
     user = "j_kro";
-    zaiApiKeyFile = config.age.secrets.zai-api-key.path;
-    context7ApiKeyFile = config.age.secrets.context7-api-key.path;
-    nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
-    opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
+    zaiApiKeyFile = "/run/secrets/zai-api-key";
+    context7ApiKeyFile = "/run/secrets/context7-api-key";
+    nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
+    opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
     tools = {
       claude = {enable = true;};
       opencode = {enable = true;};
