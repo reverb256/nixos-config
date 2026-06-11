@@ -41,7 +41,7 @@
 
   fileSystems = {
     # --- bcache0 (nexus-storage) subvol mounts ---
-    "/data/home" = {
+    "/home" = {
       device = "/dev/disk/by-label/nexus-storage";
       fsType = "btrfs";
       options = [
@@ -49,9 +49,10 @@
         "compress=zstd"
         "ssd"
         "discard=async"
-        "nofail"
+        "x-initrd.mount"
         "x-systemd.device-timeout=10s"
       ];
+      neededForBoot = true;
     };
 
     "/data/shared" = {
