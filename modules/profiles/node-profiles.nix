@@ -262,6 +262,30 @@ in {
         default = [];
         description = "Extra UDP ports";
       };
+    };
+
+    kubernetes-control-plane = {
+      enable = mkEnableOption "Kubernetes control plane node (legacy — use k3s-cluster instead)";
+
+      networking = mkOption {
+        type = types.attrs;
+        default = {
+          unboundListenAddress = cluster.hosts.zephyr.ip;
+        };
+        description = "Networking configuration";
+      };
+    };
+
+    kubernetes-worker = {
+      enable = mkEnableOption "Kubernetes worker node (legacy — use k3s-cluster instead)";
+
+      networking = mkOption {
+        type = types.attrs;
+        default = {
+          unboundListenAddress = cluster.hosts.nexus.ip;
+        };
+        description = "Networking configuration";
+      };
 
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
@@ -300,6 +324,7 @@ in {
     (mkProfileConfig "nexus-gaming" config.profiles.node.nexus-gaming)
     (mkProfileConfig "forge-mining" config.profiles.node.forge-mining)
     (mkProfileConfig "sentry-monitoring" config.profiles.node.sentry-monitoring)
+
 
     (mkIf config.profiles.node.zephyr-workstation.enable {
       profiles.role = {
