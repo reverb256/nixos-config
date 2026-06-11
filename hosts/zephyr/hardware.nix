@@ -19,7 +19,7 @@
       };
       "3090" = {
         index = 1;
-        limit = 150; # Balanced
+        limit = 250; # Performance
       };
     };
     profiles = {
