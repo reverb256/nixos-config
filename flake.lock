@@ -1454,8 +1454,8 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1780749050,
-        "narHash": "sha256-3av0pIjlOWQ6rDbNOmpUSvbNnJkGORQKKjb4LtCZsIY=",
+        "lastModified": 1751900000,
+        "narHash": "",
         "owner": "NixOS",
         "repo": "nixpkgs",
         "rev": "a799d3e3886da994fa307f817a6bc705ae538eeb",
@@ -1916,7 +1916,7 @@
         "flake-parts": "flake-parts_10",
         "gnome-shell": "gnome-shell",
         "nixpkgs": [
-          "nixpkgs"
+          "nixpkgs_3"
         ],
         "nur": "nur_2",
         "systems": "systems_6",
