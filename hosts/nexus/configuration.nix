@@ -163,7 +163,5 @@
     selfHosting = true;
     ci = true;
   };
-
-  # Disable legacy agenix secrets (migrated to sops-nix)
-  services.agenix-secrets-registry.enable = false;}
+}
   # Disable legacy agenix secrets (migrated to sops-nix)
