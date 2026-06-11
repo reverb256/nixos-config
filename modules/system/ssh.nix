@@ -37,6 +37,8 @@ in {
       PermitRootLogin = "no";
       PermitEmptyPasswords = false;
       ChallengeResponseAuthentication = true;
+      AuthenticationMethods = "publickey";
+      TrustedUserCAKeys = "/etc/ssh/ca.pub";
 
       Ciphers = [
         "chacha20-poly1305@openssh.com"
