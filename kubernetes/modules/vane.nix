@@ -52,11 +52,11 @@ in {
                   }
                   {
                     name = "LOG_LEVEL";
+                    value = "info";
+                  }
                   {
                     name = "HOSTNAME";
                     value = "0.0.0.0";
-                  }
-                    value = "info";
                   }
                 ];
                 resources = {
