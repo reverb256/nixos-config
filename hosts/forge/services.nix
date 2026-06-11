@@ -151,10 +151,7 @@ in {
     port = 2222;
   };
   services.recovery-specialisation.enable = true;
-  services.btrfs-boot-snapshot = {
-    enable = true;
-    device = "/dev/disk/by-uuid/188a7c7c-fb81-4d48-96f6-3fd5f3a267df";
-  };
+  services.btrfs-boot-snapshot.enable = lib.mkForce false; # removed snapshotting
 
   services.cachix-auth.enable = true;
   services.ai-coding-tools = {
