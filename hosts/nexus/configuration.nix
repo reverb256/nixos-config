@@ -102,6 +102,9 @@
 
   services.cluster-ca.enable = true;
 
+  # Nix binary cache — serves /nix/store via HTTP for all cluster nodes
+  services.binary-cache.enable = true;
+
   boot.kernelPackages = inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
 
   # System hardening (Phase 0: Security Baseline)
