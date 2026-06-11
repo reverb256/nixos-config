@@ -24,16 +24,6 @@
 
   ./modules/default.nix
 
-  # Disable kmscon from ALL sources — stylix sets deprecated options
-  # (extraConfig, fonts) that fail with current nixpkgs. Nobody uses kmscon.
-  # Uses absolute flake path to match the stylix kmscon module key.
-  {
-    disabledModules = [
-      "services/kmscon"
-      "${inputs.stylix}/modules/kmscon/nixos.nix"
-    ];
-  }
-
   {
     nixpkgs.overlays = [
       inputs.niri.overlays.niri

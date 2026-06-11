@@ -322,8 +322,6 @@ in {
   # via NodePort (30080). Old DNAT rules pointed to stale pod IPs and conflicted
   # with the host-level Caddy reverse proxy.
 
-  time.timeZone = "America/Winnipeg";
-
   system.stateVersion = "26.05";
   # unbound-common disabled for zephyr — cluster-dns.nix (via clusterNetworking.unbound.enable)
   # provides identical upstream forwarding PLUS cluster.local K8s DNS forwarding.
@@ -334,15 +332,29 @@ in {
   # CNS: Zero-knowledge automatic secret distribution
   services.cns-setup.enable = true;
   services.cns-watcher.enable = true;
+  services.agenix-secrets-registry.cns = true;
+  services.ai-inference.enable = lib.mkForce false;
+  services.cluster-mesh.enable = true;
 
-  # Mount /nix on the secondary NVMe — contains the nix store
-  # CRITICAL for early boot: without this, the kernel can't find the nixos closure
-  fileSystems."/nix" = {
+  # ═══════════════════════════════════════════════════════════════════
+  # STORAGE REDIRECT — Use secondary NVMe for heavy data
+  # System: Samsung SSD 980 1TB (nvme0n1, nvme-Samsung_SSD_980_1TB_S64ANJ0R712954W) — 95%
+  # Secondary: XPG GAMMIX S11 Pro 1TB (nvme1n1, nvme-XPG_GAMMIX_S11_Pro_2J2520059477)
+  #   nvme1n1p2 (921.9G) at /data/projects — 69%, 288G free
+  # Pre-reboot setup:
+  #   sudo mount /dev/disk/by-label/nix /mnt
+  #   sudo btrfs subvolume create /mnt/@nix
+  #   sudo mkdir -p /mnt/@nix/store /mnt/@nix/var
+  #   sudo cp -a /nix/store/* /mnt/@nix/store/
+  #   sudo cp -a /nix/var/* /mnt/@nix/var/
+  #   sudo umount /mnt
+  #   sudo nixos-rebuild boot && reboot
+  # ═══════════════════════════════════════════════════════════════════
+  fileSystems."/nix" = lib.mkForce {
     device = "/dev/disk/by-label/nix";
     fsType = "btrfs";
-    options = ["subvol=@nix" "compress=zstd:3" "ssd" "discard=async" "noatime" "x-initrd.mount"];
+    options = ["subvol=@nix" "compress=zstd" "noatime" "x-initrd.mount" "nofail"];
   };
-
 
   # Mount /var on the secondary NVMe — frees ~22G on the system drive
   # Covers: /var/lib/rancher (k3s), /var/lib/flatpak, /var/lib/nix-csi
@@ -365,35 +377,4 @@ in {
       pkgs.source-han-sans
       pkgs.source-han-serif
     ];
-  };
-  # WiFi failover — wlan0 only activates when ethernet drops
-  networking.networkmanager.dispatcherScripts = [{
-    source = "${pkgs.writeText "90-wifi-failover" ''
-      if [ "$CONNECTION" = "enp38s0" ]; then
-        case "$2" in
-          down)
-            nmcli connection up WIFI-42F4
-            ;;
-          up)
-            nmcli connection down WIFI-42F4
-            ;;
-        esac
-      fi
-    ''}";
-    type = "basic";
-  }];
-
-  # sops-nix secrets registry (dual-run with agenix during migration)
-  services.sops-secrets-registry = {
-    enable = true;
-    aiServices = true;
-    kubernetes = true;
-    monitoring = true;
-    storage = true;
-    mining = true;
-    cloud = true;
-    automation = true;
-    selfHosting = true;
-    ci = true;
-  };
-}
+  };}

@@ -44,24 +44,17 @@
 
   boot.kernelModules = ["msr"];
   boot.kernelParams = lib.mkBefore [
-    # AMD GPU Navi 10 (RX 5600 XT) stability
-    # NOTE: gpu_recovery is intentionally DISABLED — on RDNA1/Navi10 the GPU
-    # recovery path is buggy and often hard-locks the system instead of
-    # recovering. See: https://gitlab.freedesktop.org/drm/amd/-/issues/3574
-    # Keep noretry=0 so VM faults are retried instead of immediately faulting.
-    "amdgpu.gpu_recovery=0"
+    # AMD GPU Navi 10 stability: enable GPU recovery, lockup detection at 1s
+    # Must come before mitigations to avoid being overridden
+    "amdgpu.gpu_recovery=1"
     "amdgpu.noretry=0"
     "amdgpu.ppfeaturemask=0xfffd7fff"  # Disable Overdrive for stability
-    # Disable display power-saving features (prevents DPMS-related GPU hangs on RDNA1/Navi10)
-    "amdgpu.dcdebugmask=0x10"
-    # Disable runtime power management (prevents GPU from entering buggy low-power states)
-    "amdgpu.runpm=0"
-    # lockup_timeout intentionally NOT set — use driver default (-1 = disabled)
-    # Setting it to 1000ms caused aggressive GPU resets that hang RDNA1.
+    "amdgpu.lockup_timeout=1000"
     "mitigations=auto"
   ];
   boot.extraModprobeConfig = ''
-    options amdgpu gpu_recovery=0
+    # Force GPU recovery even if kernel params get lost
+    options amdgpu gpu_recovery=1
     options amdgpu noretry=0
   '';
 

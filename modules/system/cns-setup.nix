@@ -19,7 +19,7 @@ in {
         ExecStart = pkgs.writeShellScript "cns-setup" ''
           set -euo pipefail
 
-          SSH_KEY="/run/secrets/cns-ssh-key"
+          SSH_KEY="/run/agenix/cns-ssh-key"
 
           if [ ! -f "$SSH_KEY" ]; then
             echo "Generating CNS SSH key..."

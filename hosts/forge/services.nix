@@ -9,32 +9,40 @@
 in {
   services = {
     keepalived-vip = {
-      enable = false;
+      enable = true;
       vip = cluster.kubernetes.vip;
       interface = "eth0";
       priority = 90;
     };
 
+    hermes-cli = {
+      enable = true;
+      apiKeyFile = config.age.secrets.zai-api-key.path;
+      nvidiaApiKeyFile = config.age.secrets.nvidia-api-key.path;
+      casdoorJwtFile = config.age.secrets.casdoor-hermes-jwt.path;
+      opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
+      opencodeZenApiKeyFile = config.age.secrets.opencode-api-key.path;
+    };
     k3s-cluster = {
-      enable = false;
-      nvidia.enable = false;
+      enable = true;
+      nvidia.enable = true;
       role = "server";
       clusterInit = false; # Rejoining existing cluster as server (for etcd quorum)
       nodeName = "forge";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
-      tokenFile = "/run/secrets/k3s-cluster-token";
+      tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = cluster.hosts.forge.ip;
     };
 
-    spotify-spotx.enable = false;
+    spotify-spotx.enable = true;
 
-    opencode.enable = false;
+    opencode.enable = true;
 
     # Agent network restrictions — restrict AI agents to allowed destinations only
 
     nixos-share = {
       enable = false;
-      client.enable = false;
+      client.enable = true;
     };
 
 
@@ -45,61 +53,46 @@ in {
       mountMedia = false;
     };
 
-    lpminer = {
+    srbminer = {
       enable = true;
       instances = [
         {
           name = "4060-0";
           gpuId = 0;
           wallet = "krxXVNVMM7.forge-4060-0";
-          pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
-          powerLimit = 100;
+          apiPort = 21550;
+          powerLimit = 105;
         }
         {
           name = "4060-1";
           gpuId = 1;
           wallet = "krxXVNVMM7.forge-4060-1";
-          pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
-          powerLimit = 100;
+          apiPort = 21551;
+          powerLimit = 105;
         }
       ];
     };
 
 
     syncthing-cluster = {
-      enable = false;
-    };
-
-    hermes-agent = {
       enable = true;
-      addToSystemPackages = true;
-      settings = {
-        model = {
-          provider = "opencode-go";
-          default = "deepseek-v4-flash";
-          base_url = "https://opencode.ai/zen/go/v1";
-          api_mode = "chat_completions";
-        };
-        toolsets = ["all"];
-        terminal = { backend = "local"; timeout = 60; };
-        memory = { memory_enabled = true; user_profile_enabled = true; };
-        compression = { enabled = true; threshold = 0.9; };
-      };
     };
 
     nixos-auto-update = {
-      enable = false;
+      enable = true;
       interval = "daily";
       updateFlakeInputs = ["nixpkgs"];
     };
 
+    agenix-secrets-registry = {
+      enable = true;
+      kubernetes = true;
+      initrdRecovery = true;
+      aiServices = true;
+    };
   };
 
-  users.users.j_kro.extraGroups = [
-    "hermes"
-  ];
-
-  services.cluster-mesh.enable = false; # SSH service account for inter-node mesh
+  services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
   environment.systemPackages = with pkgs; [
     rocmPackages.rocm-smi
     clinfo
@@ -148,37 +141,37 @@ in {
 
   # Initrd SSH recovery + BTRFS snapshots
   services.cluster-ca = {
-    enable = false;
+    enable = true;
     generateLeaf = false;
   };
 
   services.initrd-ssh-recovery = {
-    enable = false;
+    enable = true;
     interface = "eth0";
     networkDriver = "r8169";
     port = 2222;
   };
-  services.recovery-specialisation.enable = false;
+  services.recovery-specialisation.enable = true;
   services.btrfs-boot-snapshot = {
-    enable = false;
+    enable = true;
     device = "/dev/disk/by-uuid/188a7c7c-fb81-4d48-96f6-3fd5f3a267df";
   };
 
-  services.cachix-auth.enable = false;
+  services.cachix-auth.enable = true;
   services.ai-coding-tools = {
-    enable = false;
+    enable = true;
     user = "j_kro";
-    zaiApiKeyFile = "/run/secrets/zai-api-key";
-    context7ApiKeyFile = "/run/secrets/context7-api-key";
-    nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
-    opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
+    zaiApiKeyFile = config.age.secrets.zai-api-key.path;
+    context7ApiKeyFile = config.age.secrets.context7-api-key.path;
+    nvidiaNimApiKeyFile = config.age.secrets.nvidia-api-key.path;
+    opencodeGoApiKeyFile = config.age.secrets.opencode-go-api-key.path;
     tools = {
-      claude = {enable = false;};
-      opencode = {enable = false;};
-      droid = {enable = false;};
-      crush = {enable = false;};
-      pi = {enable = false;};
-      omp = {enable = false;};
+      claude = {enable = true;};
+      opencode = {enable = true;};
+      droid = {enable = true;};
+      crush = {enable = true;};
+      pi = {enable = true;};
+      omp = {enable = true;};
     };
     enableShellEnv = true;
   };

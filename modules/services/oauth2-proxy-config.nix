@@ -34,6 +34,6 @@
 
   # Secret file paths (NixOS systemd service only)
   # K8s deployment uses volume-mounted secrets at /etc/oauth2/secrets/
-  clientSecretFile = "/run/secrets/central-auth-client-secret";
-  cookieSecretFile = "/run/secrets/central-auth-cookie-secret";
+  clientSecretFile = "/run/agenix/central-auth-client-secret";
+  cookieSecretFile = "/run/agenix/central-auth-cookie-secret";
 }

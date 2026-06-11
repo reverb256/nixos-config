@@ -235,17 +235,17 @@ in {
         auth = "forward_auth";
       };
 
-      # ── removed ────────────────────────────────────────────────────
-      removed-controller = mkService {
-        name = "removed-controller";
-        namespace = "removed";
+      # ── Kagent ────────────────────────────────────────────────────
+      kagent-controller = mkService {
+        name = "kagent-controller";
+        namespace = "kagent";
         port = 8083;
         auth = "forward_auth";
       };
 
-      removed-ui = mkService {
-        name = "removed-ui";
-        namespace = "removed";
+      kagent-ui = mkService {
+        name = "kagent-ui";
+        namespace = "kagent";
         port = 8080;
         auth = "forward_auth";
       };

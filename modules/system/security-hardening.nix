@@ -51,8 +51,8 @@ in {
 
       openssh = mkIf cfg.enableTailscaleSSH {
         settings = {
-          PasswordAuthentication = lib.mkForce true;
-          KbdInteractiveAuthentication = lib.mkForce true;
+          PasswordAuthentication = lib.mkForce false;
+          KbdInteractiveAuthentication = lib.mkForce false;
 
           AuthenticationMethods = "publickey";
 
@@ -77,6 +77,7 @@ in {
         extraConfig = ''
           PermitTunnel = yes
 
+          AuthenticationMethods publickey
 
           GatewayPorts no
 

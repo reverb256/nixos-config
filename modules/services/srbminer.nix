@@ -155,7 +155,6 @@ in {
             ExecStart = pkgs.writeShellScript "srbminer-${instance.name}" ''
               export CUDA_DEVICE_ORDER=PCI_BUS_ID
               export CUDA_VISIBLE_DEVICES=${toString instance.gpuId}
-              export PATH="${pkgs.wget}/bin:$PATH"
               export LD_LIBRARY_PATH=/run/opengl-driver/lib
               exec ${binaryPath} \
                 ${toString cfg.extraArgs} \
