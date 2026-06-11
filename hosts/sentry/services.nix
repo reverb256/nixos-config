@@ -85,7 +85,6 @@ in {
     sops-secrets-registry = {
       enable = true;
       kubernetes = true;
-      initrdRecovery = true;
       aiServices = true;
     };
   };
