@@ -4,10 +4,15 @@
   pkgs,
   ...
 }: let
-  inherit (lib) mkIf mkEnableOption;
+  inherit (lib) mkIf mkEnableOption mkOption;
+  # Disable telemetry block for zephyr (workstation) to allow hoyoverse game launchers
+  # Zephyr users need full telemetry functionality for anime game launchers
+  isZephyr = config.networking.cluster.hosts.zephyr.enable == true;
 in {
   options.networking.hoyoverse-telemetry-block = {
     enable = mkEnableOption "block Hoyoverse telemetry domains in /etc/hosts";
+    # For zephyr (workstation), always disable telemetry block to allow anime game launchers
+    default = if isZephyr then false else config.networking.hoyoverse-telemetry-block.enable;
   };
 
   config = mkIf config.networking.hoyoverse-telemetry-block.enable {
