@@ -84,7 +84,7 @@ in {
       updateFlakeInputs = ["nixpkgs"];
     };
 
-    agenix-secrets-registry = {
+    sops-secrets-registry = {
       enable = true;
       kubernetes = true;
       initrdRecovery = true;
