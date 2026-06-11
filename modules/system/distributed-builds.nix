@@ -71,25 +71,25 @@ in {
 
       cores = lib.mkForce (
         if currentHost == "zephyr"
-        then 4
+        then 16
         else if currentHost == "nexus"
-        then 4
+        then 12
         else if currentHost == "sentry"
-        then 2
+        then 8
         else if currentHost == "forge"
-        then 2
+        then 6
         else 4
       );
 
       max-jobs = lib.mkForce (
         if currentHost == "zephyr"
-        then 0 # zero local builds — offload everything to nexus/sentry
+        then 0 # zero local builds — offload everything to builders
         else if currentHost == "nexus"
-        then 10 # primary builder
+        then 12 # primary builder — 12C/24T, binary cache host
         else if currentHost == "sentry"
-        then 4 # secondary builder
+        then 8 # secondary builder — 8C/16T
         else if currentHost == "forge"
-        then 3
+        then 4 # tertiary builder — 6C/6T
         else 2
       );
 
@@ -162,7 +162,7 @@ in {
             system = "x86_64-linux";
             sshUser = "j_kro";
             sshKey = "/etc/nixos/ssh/id_ed25519";
-            maxJobs = 10;
+            maxJobs = 12;
             speedFactor = 5;
             supportedFeatures = [
               "big-parallel"
@@ -175,7 +175,7 @@ in {
             system = "x86_64-linux";
             sshUser = "j_kro";
             sshKey = "/etc/nixos/ssh/id_ed25519";
-            maxJobs = 4;
+            maxJobs = 8;
             speedFactor = 3;
             supportedFeatures = ["big-parallel"];
             mandatoryFeatures = [];
