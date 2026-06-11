@@ -35,10 +35,10 @@
                   mountpoint = "/persistent";
                   mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
                 };
-                "@home" = {
-                  mountpoint = "/home";
-                  mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
-                };
+#                "@home" = {
+#                  mountpoint = "/home";
+#                  mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
+#                };
                 "@nix" = {
                   mountpoint = "/nix";
                   mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
@@ -62,7 +62,7 @@
   fileSystems = {
     "/persistent" = { neededForBoot = true; };
     "/nix" = { neededForBoot = true; };
-    "/home" = { neededForBoot = true; };
+    # "/home" moved to bcache - see hardware.nix
     "/games" = { neededForBoot = false; };
   };
 }
