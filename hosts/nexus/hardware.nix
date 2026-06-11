@@ -209,3 +209,16 @@
     };
   };
 }
+
+    # nvme0n1 (KINGSTON 223.6G) — optional ephemeral cache
+    # Label: nexus-cache. No-op if disk dies (nofail).
+    "/var/cache" = {
+      device = "/dev/disk/by-label/nexus-cache";
+      fsType = "btrfs";
+      options = [
+        "nofail"
+        "noatime"
+        "compress=zstd"
+        "space_cache=v2"
+      ];
+    };
