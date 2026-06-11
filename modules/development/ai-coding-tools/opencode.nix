@@ -12,13 +12,13 @@ in {
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
     ZAI_KEY_PATH="${cfg.zaiApiKeyFile}"
-    ZAI_API_KEY=*** $ZAI_KEY_PATH 2>/dev/null || echo)"
+    ZAI_API_KEY=$(< "$ZAI_KEY_PATH" 2>/dev/null || true)
     CTX7_KEY_PATH="${cfg.context7ApiKeyFile}"
-    CONTEXT7_API_KEY=*** $CTX7_KEY_PATH 2>/dev/null || echo)"
+    CONTEXT7_API_KEY=$(< "$CTX7_KEY_PATH" 2>/dev/null || true)
     NVIDIA_NIM_KEY_PATH="${cfg.nvidiaNimApiKeyFile}"
-    NVIDIA_NIM_API_KEY=*** $NVIDIA_NIM_KEY_PATH 2>/dev/null || echo)"
+    NVIDIA_NIM_API_KEY=$(< "$NVIDIA_NIM_KEY_PATH" 2>/dev/null || true)
     OPENCODE_GO_KEY_PATH="${cfg.opencodeGoApiKeyFile}"
-    OPENCODE_GO_API_KEY=*** $OPENCODE_GO_KEY_PATH 2>/dev/null || echo)"
+    OPENCODE_GO_API_KEY=$(< "$OPENCODE_GO_KEY_PATH" 2>/dev/null || true)
     ${pkgs.jq}/bin/jq -n \
       --arg zai_key "$ZAI_API_KEY" \
       --arg ctx7_key "$CONTEXT7_API_KEY" \
