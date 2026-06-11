@@ -83,7 +83,7 @@ in {
 
       max-jobs = lib.mkForce (
         if currentHost == "zephyr"
-        then 0 # zero local builds — offload everything to builders
+        then 3 # lightweight local builds
         else if currentHost == "nexus"
         then 12 # primary builder — 12C/24T, binary cache host
         else if currentHost == "sentry"
