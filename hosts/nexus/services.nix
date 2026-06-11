@@ -24,7 +24,7 @@ in {
   services = {
     k3s-cluster = {
       enable = true;
-      nvidia.enable = false;
+      nvidia.enable = true;
       role = "server";
       clusterInit = false; # Stable cluster running
   clusterReset = false; # Already reset, running clean
@@ -36,7 +36,7 @@ in {
     };
 
     keepalived-vip = {
-      enable = false;
+      enable = true;
       vip = cluster.kubernetes.vip;
       interface = "eth0";
       priority = 110;
@@ -44,15 +44,15 @@ in {
 
     gaming-detection.enable = lib.mkForce false;
 
-    nexus-exec.enable = false;
+    nexus-exec.enable = true;
 
     nixos-share = {
-      enable = false;
-      client.enable = false;
+      enable = true;
+      client.enable = true;
     };
 
     nfs-data-server = {
-      enable = false;
+      enable = true;
       exports = ''
         /data/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=105)
 
@@ -62,7 +62,7 @@ in {
 
 
     nfs-state-sync = {
-      enable = false;
+      enable = true;
       sourceHost = "zephyr";
       paths = ["/data/hermes" "/data/pi"];
       interval = "15min";
@@ -88,7 +88,7 @@ in {
 
   # Hermes Agent — primary user-facing agent
   services.hermes-agent = {
-    enable = false;
+    enable = true;
     addToSystemPackages = false; # hermes-with-whatsapp (superset) added via hermes-cli.nix
 
     settings = {
@@ -346,7 +346,7 @@ in {
   };
   # Initrd SSH recovery + BTRFS snapshots
   services.initrd-ssh-recovery = {
-    enable = false; # Fixed: key generated at build time
+    enable = true; # Fixed: key generated at build time
     interface = "eth0";
     networkDriver = "r8169";
     port = 2222;
@@ -363,35 +363,35 @@ in {
       }
     ];
   };
-  services.cluster-mesh.enable = false; # SSH service account for inter-node mesh
-  services.recovery-specialisation.enable = false; # depends on initrd-ssh
+  services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
+  services.recovery-specialisation.enable = true; # depends on initrd-ssh
   services.btrfs-boot-snapshot = {
-    enable = false; # depends on initrd-ssh
+    enable = true; # depends on initrd-ssh
     subvolume = "@root";
     device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
   };
 
-  services.cachix-auth.enable = false;
+  services.cachix-auth.enable = true;
    services.ai-coding-tools = {
-     enable = false;
+     enable = true;
      user = "j_kro";
      zaiApiKeyFile = "/run/secrets/zai-api-key";
      context7ApiKeyFile = "/run/secrets/context7-api-key";
      nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
      tools = {
-       claude = { enable = false; };
-       opencode = { enable = false; };
-       droid = { enable = false; };
-       crush = { enable = false; };
-       pi = { enable = false; };
-       omp = { enable = false; };
+       claude = { enable = true; };
+       opencode = { enable = true; };
+       droid = { enable = true; };
+       crush = { enable = true; };
+       pi = { enable = true; };
+       omp = { enable = true; };
      };
      enableShellEnv = true;
    };
 
    services.mcp-registry = {
-     enable = false;
+     enable = true;
      generateHermes = true;
      generateClaudeCode = true;
      generateKagentCRDs = true;
@@ -401,7 +401,7 @@ in {
 
   # GitHub Actions self-hosted runner for CI/CD
   services.ci-runner = {
-    enable = false;
+    enable = true;
     repo = "reverb256/nixos-config";
     tokenFile = "/run/secrets/github-runner-pat";
     autoStart = true;
