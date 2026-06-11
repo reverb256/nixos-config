@@ -33,7 +33,7 @@ in {
     };
   };
 
-  config = mkIf cfg.enable {
+  config = mkIf (cfg.enable && config ? age) {
     # CNS SSH key is provisioned by cluster-mesh module
     systemd.services.cns-watcher = {
       description = "CNS: Watch and distribute secrets to cluster nodes";

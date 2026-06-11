@@ -68,7 +68,7 @@ in {
       description = "Enable initrd SSH recovery host keys";
     };
   };
-  config = mkIf config.services.agenix-secrets-registry.enable {
+  config = mkIf (config.services.agenix-secrets-registry.enable && config ? age) {
     age.secrets = lib.mkMerge [
       (lib.mkIf config.services.agenix-secrets-registry.aiServices {
         huggingface-token = {
