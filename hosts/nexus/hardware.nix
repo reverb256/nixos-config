@@ -81,74 +81,115 @@
       ];
     };
 
-    "/data/media" = {
-      device = "/dev/disk/by-label/nexus-storage";
-      fsType = "btrfs";
-      options = [
-        "subvol=media"
-        "compress=zstd"
-        "ssd"
-        "discard=async"
-        "nofail"
-        "x-systemd.device-timeout=10s"
-      ];
-    };
+      "/data/media" = {
+        device = "/dev/disk/by-label/nexus-storage";
+        fsType = "btrfs";
+        options = [
+          "subvol=media"
+          "compress=zstd"
+          "ssd"
+          "discard=async"
+          "nofail"
+          "x-systemd.device-timeout=10s"
+        ];
+      };
 
-    "/var/lib/containers" = {
-      device = "/dev/disk/by-label/nexus-storage";
-      fsType = "btrfs";
-      options = [
-        "subvol=containers"
-        "compress=zstd"
-        "ssd"
-        "discard=async"
-        "nofail"
-        "x-systemd.device-timeout=10s"
-      ];
-    };
+      "/data/hermes" = {
+        device = "/dev/disk/by-label/nexus-storage";
+        fsType = "btrfs";
+        options = [
+          "subvol=hermes"
+          "compress=zstd"
+          "ssd"
+          "discard=async"
+          "nofail"
+          "x-systemd.device-timeout=10s"
+        ];
+      };
 
-    # --- NVMe data mounts (on @home subvol, sharing space with /home) ---
-    "/data/hermes" = {
-      device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
-      fsType = "btrfs";
-      options = [
-        "subvol=@home"
-        "compress=zstd"
-        "ssd"
-        "discard=async"
-        "noatime"
-        "nofail"
-        "x-systemd.device-timeout=10s"
-      ];
-    };
+      "/data/models" = {
+        device = "/dev/disk/by-label/nexus-storage";
+        fsType = "btrfs";
+        options = [
+          "subvol=models"
+          "compress=zstd"
+          "ssd"
+          "discard=async"
+          "nofail"
+          "x-systemd.device-timeout=10s"
+        ];
+      };
 
-    "/data/models" = {
-      device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
-      fsType = "btrfs";
-      options = [
-        "subvol=@home"
-        "compress=zstd"
-        "ssd"
-        "discard=async"
-        "noatime"
-        "nofail"
-        "x-systemd.device-timeout=10s"
-      ];
-    };
+      "/data/pi" = {
+        device = "/dev/disk/by-label/nexus-storage";
+        fsType = "btrfs";
+        options = [
+          "subvol=pi"
+          "compress=zstd"
+          "ssd"
+          "discard=async"
+          "nofail"
+          "x-systemd.device-timeout=10s"
+        ];
+      };
 
-    "/data/pi" = {
-      device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
-      fsType = "btrfs";
-      options = [
-        "subvol=@home"
-        "compress=zstd"
-        "ssd"
-        "discard=async"
-        "noatime"
-        "nofail"
-        "x-systemd.device-timeout=10s"
-      ];
-    };
+      "/var/lib/containers" = {
+        device = "/dev/disk/by-label/nexus-storage";
+        fsType = "btrfs";
+        options = [
+          "subvol=containers"
+          "compress=zstd"
+          "ssd"
+          "discard=async"
+          "nofail"
+          "x-systemd.device-timeout=10s"
+        ];
+      };
+
+      # --- NVMe data mounts (legacy, for backward compatibility) ---
+      # Note: These services have been moved to bcache0 for better performance
+      # and to reduce pressure on the NVMe root filesystem
+      "/data/hermes-legacy" = {
+        device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
+        fsType = "btrfs";
+        options = [
+          "subvol=@home"
+          "compress=zstd"
+          "ssd"
+          "discard=async"
+          "noatime"
+          "nofail"
+          "x-systemd.device-timeout=10s"
+        ];
+      };
+
+      "/data/models-legacy" = {
+        device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
+        fsType = "btrfs";
+        options = [
+          "subvol=@home"
+          "compress=zstd"
+          "ssd"
+          "discard=async"
+          "noatime"
+          "nofail"
+          "x-systemd.device-timeout=10s"
+        ];
+      };
+
+      "/data/pi-legacy" = {
+        device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
+        fsType = "btrfs";
+        options = [
+          "subvol=@home"
+          "compress=zstd"
+          "ssd"
+          "discard=async"
+          "noatime"
+          "nofail"
+          "x-systemd.device-timeout=10s"
+        ];
+      };
   };
 
   boot.kernelParams = [
