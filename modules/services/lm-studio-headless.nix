@@ -155,7 +155,6 @@ in {
         StandardOutput = "journal";
         StandardError = "journal";
 
-        WatchdogSec = "30s";
       };
     };
   };
