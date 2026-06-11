@@ -26,7 +26,7 @@ in {
       enable = true;
       nvidia.enable = false;
       role = "server";
-      clusterInit = false; # Cluster already bootstrapped
+      clusterInit = false; # Stable cluster running
   clusterReset = false; # Already reset, running clean
       nodeName = "nexus";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
