@@ -8,7 +8,7 @@
   cluster = config.networking.cluster;
 in {
   services = {
-    voxtype = {
+    hermes-cli = {
       enable = true;
       model = "base.en";
       apiKeyFile = "/run/secrets/zai-api-key";
@@ -318,6 +318,7 @@ in {
 
   services.appimage-updater.enable = true;
 
+  services.sops-secrets-registry = {
     enable = true;
     aiServices = true;
     monitoring = false;
