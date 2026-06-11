@@ -106,7 +106,8 @@ in {
       populateLocal = true;
     };
     # Block Hoyoverse telemetry domains (Genshin Impact, Honkai Star Rail, Zenless Zone Zero)
-    hoyoverse-telemetry-block.enable = true;
+    # Disabled for zephyr (workstation) to allow anime game launchers with telemetry
+    # hoyoverse-telemetry-block.enable = true;
   };
 
   profiles.node.zephyr-workstation.enable = true;
