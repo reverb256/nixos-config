@@ -60,7 +60,6 @@ in {
     ++ lib.optional (inputs ? mining-infra) inputs.mining-infra.kubernetes.modules
     ++ [
       ./modules/gpu-tuning.nix
-      ./modules/nix-csi.nix
       ./modules/ai-inference.nix
       ./modules/llama-servers.nix
       ./modules/nixkube.nix
@@ -116,7 +115,6 @@ in {
   small = mkManifest "small" [
     ./modules/infrastructure.nix
     ./modules/gpu-tuning.nix
-    ./modules/nix-csi.nix
     ./modules/nixkube.nix
     ./modules/searxng.nix
     ./modules/haven.nix
@@ -133,7 +131,6 @@ in {
     ./modules/tailscale.nix
   ];
 
-  # CSI-based miners (separate from hostPath miners - activates after nix-csi driver is verified)
   miners-csi = mkManifest "miners-csi" [
     ./modules/miners-csi.nix
   ];

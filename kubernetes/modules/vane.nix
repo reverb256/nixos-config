@@ -52,6 +52,10 @@ in {
                   }
                   {
                     name = "LOG_LEVEL";
+                  {
+                    name = "HOSTNAME";
+                    value = "0.0.0.0";
+                  }
                     value = "info";
                   }
                 ];

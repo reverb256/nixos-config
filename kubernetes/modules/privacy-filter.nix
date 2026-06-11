@@ -165,7 +165,7 @@ in {
           {
             to = [
               {
-                namespaceSelector.matchLabels.name = "kube-system";
+                namespaceSelector.matchLabels."kubernetes.io/metadata.name" = "kube-system";
               }
             ];
             ports = [
