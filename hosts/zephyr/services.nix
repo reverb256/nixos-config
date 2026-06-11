@@ -353,10 +353,7 @@ in {
   };
   services.recovery-specialisation.enable = true;
   services.secret-hygiene.enable = true;
-  services.btrfs-boot-snapshot = {
-    enable = true;
-    device = "/dev/disk/by-label/root";
-  };
+  services.btrfs-boot-snapshot.enable = lib.mkForce false; # NixOS generations sufficient
 
   # Create directories for hermes/pi bind mounts on Zephyr
   systemd.tmpfiles.rules = [
