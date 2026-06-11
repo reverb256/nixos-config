@@ -7,7 +7,7 @@
   currentHost = config.networking.hostName or "unknown";
 in {
   nix = {
-    distributedBuilds = lib.mkDefault false;
+    distributedBuilds = lib.mkDefault true;
 
     settings = {
       builders = lib.mkDefault "@/etc/nix/machines";
@@ -22,6 +22,7 @@ in {
       substituters = lib.mkForce (
         if currentHost == "zephyr"
         then [
+          "http://10.1.1.120:50000"
           "https://cache.nixos.org"
           "https://nix-community.cachix.org"
           "https://cache.garnix.io"
@@ -32,6 +33,7 @@ in {
           "https://attic.xuyh0120.win/lantian"
         ]
         else [
+          "http://10.1.1.120:50000"
           "https://cache.nixos.org"
           "https://nix-community.cachix.org"
           "https://cache.garnix.io"
@@ -45,6 +47,7 @@ in {
       trusted-public-keys = lib.mkForce (
         if currentHost == "zephyr"
         then [
+          "zephyr-cache-1:2Tqq4OUEZrz6DEXurUPrAQBjh1VoiQ0jZhrGYozHq5c="
           "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
           "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
           "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
@@ -174,6 +177,16 @@ in {
             sshKey = "/etc/nixos/ssh/id_ed25519";
             maxJobs = 4;
             speedFactor = 3;
+            supportedFeatures = ["big-parallel"];
+            mandatoryFeatures = [];
+          }
+          {
+            hostName = "forge";
+            system = "x86_64-linux";
+            sshUser = "j_kro";
+            sshKey = "/etc/nixos/ssh/id_ed25519";
+            maxJobs = 4;
+            speedFactor = 2;
             supportedFeatures = ["big-parallel"];
             mandatoryFeatures = [];
           }
