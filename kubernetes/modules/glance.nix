@@ -411,7 +411,7 @@ in {
             to = [{ipBlock.cidr = "0.0.0.0/0";}];
           }
           {
-            to = [{namespaceSelector.matchLabels.name = "kube-system";}];
+            to = [{namespaceSelector.matchLabels."kubernetes.io/metadata.name" = "kube-system";}];
             ports = [
               {
                 port = 53;
