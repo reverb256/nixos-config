@@ -1,21 +1,17 @@
-{ lib, python313, pkgs }:
+{
+  lib,
+  python313,
+}:
 python313.pkgs.buildPythonApplication {
   pname = "nixos-cluster-mcp";
-  version = "0.1.2";
+  version = "0.1.1";
   pyproject = true;
 
   src = ./.;
 
-  build-system = with python313.pkgs; [ setuptools ];
+  build-system = with python313.pkgs; [setuptools];
 
-  nativeBuildInputs = [ pkgs.makeWrapper ];
-
-  dependencies = with python313.pkgs; [ fastmcp ];
-
-  postInstall = ''
-    wrapProgram $out/bin/nixos-cluster-mcp \
-      --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.kubectl ]}
-  '';
+  dependencies = with python313.pkgs; [fastmcp];
 
   meta = with lib; {
     description = "MCP server for NixOS cluster management";

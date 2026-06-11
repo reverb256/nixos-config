@@ -45,6 +45,9 @@
   # ── haven (namespace: haven) ───────────────────────────────
   haven = 32100;
 
+  # ── kagent (namespace: kagent) ─────────────────────────────
+  kagent-controller = 30794;
+  kagent-ui = 32103;
 
   # ── monitoring (namespace: monitoring) ─────────────────────
   grafana = 32102;

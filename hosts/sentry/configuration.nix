@@ -94,30 +94,6 @@
     };
   };
 
-
-  # Fix system clock on boot if RTC is not battery-backed and time is wildly wrong.
-  # NTP cannot correct a 9-year skew, so we pre-set to the build time of the current
-  # NixOS generation first, then let timesyncd fine-tune from there.
-  systemd.services.fix-system-clock = {
-    description = "Fix system clock if wildly inaccurate (no battery-backed RTC)";
-    after = [ "systemd-timesyncd.service" ];
-    wants = [ "systemd-timesyncd.service" ];
-    before = [ "unbound.service" ];
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-    };
-    script = ''
-      if [ "$(date +%Y)" -lt 2026 ]; then
-        BUILD_TIME="$(stat -c %Y /run/current-system 2>/dev/null || echo 0)"
-        if [ "$BUILD_TIME" -gt 0 ]; then
-          date -s "@$BUILD_TIME"
-        fi
-      fi
-    '';
-  };
-
   profiles.node.sentry-monitoring.enable = true;
 
   services.ai-inference.enable = lib.mkForce false;
@@ -144,10 +120,6 @@
     mountPi = false;
   };
 
-  # Hardware watchdog — auto-reboot after 60s of system hang
-  # SP5100 TCO timer feeds via systemd, recovers from GPU/PCIe lockups
-  systemd.settings.Manager.RuntimeWatchdogSec = 60;
-
   # System hardening
   nix-mineral = {
     enable = true;
@@ -169,25 +141,14 @@
   systemd.services.nfs-idmapd.serviceConfig.SupplementaryGroups = ["proc"];
   systemd.tmpfiles.rules = ["d /var/lib/nfs/rpc_pipefs/nfs 0755 root root -"];
 
-
-  programs.git.config = {
-    user = {
-      name = lib.mkForce "Jeremy Kroeker";
-      email = "jkroeker@proton.me";
-    };
-  };
+  environment.etc.gitconfig.source = lib.mkForce (pkgs.writeText "gitconfig" ''
+    [user]
+      name = Jeremy Kroeker
+      email = jkroeker@proton.me
+  '');
 
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
-
-
-
-  # Mark CDN domains with broken DNSSEC as domain-insecure so unbound
-  # doesnt reject their CNAME-chained A records (e.g. cache.nixos.org -> fastly.net)
-  services.unbound.settings.server.domain-insecure = [
-    "fastly.net"
-    "nixos.org"
-  ];
 
   services.unbound.settings.forward-zone = lib.mkForce [
     {
@@ -207,153 +168,7 @@
     bindServicesToLocalhost = true;
   };
 
-  # Resolve gitconfig conflict
-  environment.etc.gitconfig.source = lib.mkForce (pkgs.writeText "gitconfig" "'[safe]
-  directory = /etc/nixos
-'");
   environment.systemPackages = with pkgs; [
     nvtopPackages.full
   ];
-
-  users.users.j_kro.extraGroups = [
-    "hermes"
-  ];
-
-  services.hermes-agent = {
-    enable = true;
-    addToSystemPackages = true;
-    settings = {
-      model = {
-        default = "nvidia/nemotron-3-super-120b-a12b";
-        provider = "nvidia";
-      };
-      memory = {
-        memory_enabled = true;
-        user_profile_enabled = true;
-        memory_char_limit = 2200;
-        user_char_limit = 1375;
-        provider = "openviking";
-      };
-      terminal = {
-        backend = "local";
-        timeout = 60;
-      };
-      kanban = {
-        dispatch_in_gateway = true;
-        dispatch_interval_seconds = 60;
-        failure_limit = 2;
-      };
-      display = {
-        compact = false;
-        interface = "cli";
-      };
-    };
-  };
-
-  services.hermes-agent.settings = {
-    providers = {
-      nvidia = {
-        base_url = "https://integrate.api.nvidia.com/v1";
-        api_key_env = "NVIDIA_API_KEY";
-        context_length = 1048576;
-        discover_models = true;
-      };
-      zai = {
-        base_url = "https://api.z.ai/api/coding/paas/v4";
-        api_key_env = "ZAI_API_KEY";
-        context_length = 131072;
-        discover_models = true;
-      };
-      kilocode = {
-        base_url = "https://api.kilocode.ai/v1";
-      };
-    };
-    fallback_providers = [
-      "nvidia"
-      "zai"
-    ];
-    auxiliary = {
-      vision = {
-        provider = "nvidia";
-        model = "meta/llama-3.2-90b-vision-instruct";
-        base_url = "https://integrate.api.nvidia.com/v1";
-        timeout = 120;
-      };
-      web_extract = {
-        provider = "nvidia";
-        model = "nvidia/nemotron-3-super-120b-a12b";
-        base_url = "https://integrate.api.nvidia.com/v1";
-        timeout = 120;
-      };
-      compression = {
-        provider = "nvidia";
-        model = "nvidia/nemotron-3-super-120b-a12b";
-        base_url = "https://integrate.api.nvidia.com/v1";
-        timeout = 60;
-      };
-      skills_hub = {
-        provider = "nvidia";
-        model = "nvidia/nemotron-3-super-120b-a12b";
-        base_url = "https://integrate.api.nvidia.com/v1";
-        timeout = 30;
-      };
-      approval = {
-        provider = "nvidia";
-        model = "nvidia/nemotron-3-super-120b-a12b";
-        base_url = "https://integrate.api.nvidia.com/v1";
-        timeout = 30;
-      };
-      mcp = {
-        provider = "nvidia";
-        model = "mistralai/ministral-14b-instruct-2512";
-        base_url = "https://integrate.api.nvidia.com/v1";
-        timeout = 30;
-      };
-      title_generation = {
-        provider = "nvidia";
-        model = "nvidia/nemotron-3-super-120b-a12b";
-        base_url = "https://integrate.api.nvidia.com/v1";
-        timeout = 30;
-      };
-      triage_specifier = {
-        provider = "nvidia";
-        model = "nvidia/nemotron-3-super-120b-a12b";
-        base_url = "https://integrate.api.nvidia.com/v1";
-        timeout = 120;
-      };
-      kanban_decomposer = {
-        provider = "nvidia";
-        model = "qwen/qwen3.5-122b-a10b";
-        base_url = "https://integrate.api.nvidia.com/v1";
-        timeout = 180;
-      };
-      profile_describer = {
-        provider = "nvidia";
-        model = "nvidia/nemotron-3-super-120b-a12b";
-        base_url = "https://integrate.api.nvidia.com/v1";
-        timeout = 30;
-      };
-      curator = {
-        provider = "nvidia";
-        model = "nvidia/nemotron-3-super-120b-a12b";
-        base_url = "https://integrate.api.nvidia.com/v1";
-        timeout = 300;
-      };
-    };
-  };
-
-  # Disable all forms of suspend
-  powerManagement.enable = false;
-  services.logind.settings = {
-    Login = {
-      HandleLidSwitch = "ignore";
-      HandleLidSwitchExternalPower = "ignore";
-      HandleLidSwitchDocked = "ignore";
-      IdleAction = "ignore";
-    };
-  };
-  systemd.targets.sleep.enable = false;
-  systemd.targets.suspend.enable = false;
-  systemd.targets.hibernate.enable = false;
-  systemd.targets.hybrid-sleep.enable = false;
 }

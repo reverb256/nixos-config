@@ -43,7 +43,7 @@ in {
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        ExecStartPre = "${lib.getExe' pkgs.coreutils "sleep"} 5";
+        ExecStartPre = "${pkgs.coreutils}/bin/sleep 5";
         ExecStart = pkgs.writeShellScript "set-amd-gpu-power" (
           lib.concatStringsSep "\n"
           (lib.mapAttrsToList

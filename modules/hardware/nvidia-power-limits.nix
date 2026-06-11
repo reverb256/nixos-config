@@ -83,7 +83,7 @@ in {
       path = [config.hardware.nvidia.package.bin];
       serviceConfig = {
         Type = "oneshot";
-        ExecStartPre = "${lib.getExe' pkgs.coreutils "sleep"} 5";
+        ExecStartPre = "${pkgs.coreutils}/bin/sleep 5";
         ExecStart = pkgs.writeShellScript "set-gpu-power-boot" (
           lib.concatStringsSep "\n"
           (lib.mapAttrsToList

@@ -54,22 +54,22 @@ in {
     };
     zaiApiKeyFile = mkOption {
       type = types.path;
-      default = "/run/secrets/zai-api-key";
+      default = "/run/agenix/zai-api-key";
       description = "Path to Z.AI API key (agenix secret)";
     };
     context7ApiKeyFile = mkOption {
       type = types.path;
-      default = "/run/secrets/context7-api-key";
+      default = "/run/agenix/context7-api-key";
       description = "Path to Context7 API key (agenix secret)";
     };
     nvidiaNimApiKeyFile = mkOption {
       type = types.path;
-      default = "/run/secrets/nvidia-api-key";
+      default = "/run/agenix/nvidia-api-key";
       description = "Path to NVIDIA NIM API key (agenix secret)";
     };
     opencodeGoApiKeyFile = mkOption {
       type = types.path;
-      default = "/run/secrets/opencode-go-api-key";
+      default = "/run/agenix/opencode-go-api-key";
       description = "Path to OpenCode Go API key (agenix secret)";
     };
     tools = {
@@ -320,9 +320,9 @@ in {
       |------|---------|--------|
       | Crush | `crush` | npx @charmland/crush@latest |
       All keys managed via agenix secrets:
-      - zai-api-key → /run/secrets/zai-api-key
-      - context7-api-key → /run/secrets/context7-api-key
-      - nvidia-api-key → /run/secrets/nvidia-api-key
+      - zai-api-key → /run/agenix/zai-api-key
+      - context7-api-key → /run/agenix/context7-api-key
+      - nvidia-api-key → /run/agenix/nvidia-api-key
       Keys are loaded into shell environment (fish/bash) and referenced
       in configs at generation time. Z.AI HTTP servers use Bearer tokens.
     '';

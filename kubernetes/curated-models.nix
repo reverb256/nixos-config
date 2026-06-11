@@ -1,26 +1,21 @@
 # Unified AI Model Registry — Single Source of Truth
-# Last Updated: 2026-06-10
-# Strategy: NVIDIA NIM (Primary, unlimited) → xAI Grok (OAuth) → OpenCode Go (Daily reset)
-#           → Z.AI GLM (quota-limited) → OpenCode Zen (free tier)
-# Local models removed. All agent configs derive from this registry.
+# Last Updated: 2026-05-21
+# Strategy: Local (Private) → NIM (Unlimited) → Gemma (Fast/Privacy)
+#           → GLM (Quota-limited) → OpenCode Go (Daily reset 7PM) → Free routers
 # This file is imported by model-sync CronJob to generate Pi/OmP configs
 # and consumed by ai-coding-tools module for tool config generation.
 {
   # ── Defaults ─────────────────────────────────────────────────────────
   defaults = {
-    primary = "nvidia/nemotron-3-super-120b-a12b"; # 1M context, fast, reliable
-    fallback = "nvidia/llama-3.3-nemotron-super-49b-v1.5"; # NIM, good content handling
-    default = "nvidia/nemotron-3-super-120b-a12b"; # General purpose
-    smol = "mistralai/mistral-small-4-119b-2603"; # Fast 256K cap, good for cheap tasks
-    slow = "nvidia/nemotron-3-super-120b-a12b"; # 1M context, heavy reasoning
-    plan = "nvidia/nemotron-3-ultra-550b-a55b"; # Best reasoning, 1M context
-    commit = "nvidia/nemotron-3-super-120b-a12b"; # Reliable for commits
-    code = "nvidia/nemotron-3-super-120b-a12b"; # Fast coding
-    vision = "meta/llama-3.2-90b-vision-instruct"; # NIM vision
-    disabled_models = [
-      "nvidia/nemotron-3-nano-30b-a3b" # content:null on NIM
-      "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning" # content:null on NIM
-    ];
+    primary = "nvidia/nemotron-3-nano-30b-a3b";
+    fallback = "google/gemma-2b";
+    default = "glm-4.7"; # 1x quota, cheapest primary
+    smol = "local/qwen3.5-2b-awq"; # Local, no external dependency
+    slow = "local/qwen3.6-moe-35b"; # Local, best reasoning
+    plan = "deepseek-ai/deepseek-v4-flash"; # NIM, rate-limited
+    commit = "local/qwen3.6-moe-35b"; # Local primary
+    code = "deepseek-ai/deepseek-v4-flash"; # NIM, rate-limited
+    vision = "qwen/qwen3.5-397b-a17b"; # NIM, vision
   };
 
   # ── Models ─────────────────────────────────────────────────────────
@@ -35,7 +30,7 @@
       provider = "local-vllm";
       gpu = "RTX 3060 Ti 8GB";
       host = "nexus";
-      priority = 99; # DEPRECATED: offline
+      priority = 1;
     };
     local-qwen-4b = {
       id = "local/qwen3.5-4b";
@@ -47,11 +42,7 @@
       gpu = "Radeon RX 5600 XT 6GB (Vulkan)";
       host = "sentry";
       vision = true;
-    disabled_models = [
-      "nvidia/nemotron-3-nano-30b-a3b" # content:null on NIM
-      "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning" # content:null on NIM
-    ];
-      priority = 99; # DEPRECATED: offline
+      priority = 1;
     };
     local-qwen-27b = {
       id = "local/qwen3.5-27b";
@@ -62,7 +53,7 @@
       provider = "local-zephyr-3090";
       gpu = "RTX 3090 24GB";
       host = "zephyr";
-      priority = 99; # DEPRECATED: offline
+      priority = 1;
     };
     local-qwen-35b-moe = {
       id = "local/qwen3.6-moe-35b";
@@ -74,12 +65,8 @@
       gpu = "RTX 3090 24GB";
       host = "zephyr";
       vision = true;
-    disabled_models = [
-      "nvidia/nemotron-3-nano-30b-a3b" # content:null on NIM
-      "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning" # content:null on NIM
-    ];
       reasoning = true;
-      priority = 99; # DEPRECATED: offline
+      priority = 1;
     };
 
     # ── NVIDIA NIM (Primary / Unlimited) ──────────────────────────
@@ -225,10 +212,6 @@
       contextWindow = 1000000;
       provider = "gateway";
       vision = true;
-    disabled_models = [
-      "nvidia/nemotron-3-nano-30b-a3b" # content:null on NIM
-      "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning" # content:null on NIM
-    ];
       priority = 4;
     };
     qwen3-5-122b = {
@@ -291,7 +274,7 @@
       contextWindow = 2000000;
       maxOutputTokens = 2000000;
       provider = "xai";
-      priority = 99; # DEPRECATED: offline
+      priority = 1;
     };
 
     "grok-4.20-non-reasoning" = {

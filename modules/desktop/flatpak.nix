@@ -53,18 +53,17 @@ in {
 
     system.activationScripts.flatpak-setup = ''
       echo "Setting up Flatpak remotes..."
-      ${lib.getExe pkgs.flatpak} remote-list --system | grep -q flathub || \
-        ${lib.getExe pkgs.flatpak} remote-add --if-not-exists --system flathub https://flathub.org/repo/flathub.flatpakrepo
+      ${pkgs.flatpak}/bin/flatpak remote-list --system | grep -q flathub || \
+        ${pkgs.flatpak}/bin/flatpak remote-add --if-not-exists --system flathub https://flathub.org/repo/flathub.flatpakrepo
 
       ${lib.concatMapStrings (remote: ''
-          ${lib.getExe pkgs.flatpak} remote-list --system | grep -q ${remote.name} || \
-            ${lib.getExe pkgs.flatpak} remote-add --if-not-exists --system ${remote.name} ${remote.location}
+          ${pkgs.flatpak}/bin/flatpak remote-list --system | grep -q ${remote.name} || \
+            ${pkgs.flatpak}/bin/flatpak remote-add --if-not-exists --system ${remote.name} ${remote.location}
         '')
         cfg.extraRemotes}
     '';
 
-    # Flatpak polkit rules via structured option (not raw file write)
-    security.polkit.extraConfig = ''
+    environment.etc."polkit-1/rules.d/org.flathub.flatpak.rules".text = ''
       // Allow users to manage Flatpak installations without password
       polkit.addRule(function(action, subject) {
         if ((action.id == "org.freedesktop.flatpak.system-helper" ||

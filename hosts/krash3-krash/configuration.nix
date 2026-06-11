@@ -12,30 +12,39 @@ in {
     inputs.NixOS-WSL.nixosModules.wsl
     inputs.home-manager.nixosModules.home-manager
   ];
+
   # ── WSL ─────────────────────────────────────────────────
   wsl.enable = true;
   wsl.defaultUser = "nixos";
+
   # Share Windows SSH agent with WSL (no separate key management)
   wsl.ssh-agent.enable = true;
+
   # Add NixOS to Windows Start menu
   wsl.startMenuLaunchers = true;
+
   wsl.wslConf = {
     automount.root = "/mnt";
     network.generateHosts = false;
     interop.appendWindowsPath = false; # Clean PATH — no Windows cruft
   };
+
   # Required by home-manager xdg.portal integration
   environment.pathsToLink = [
     "/share/applications"
     "/share/xdg-desktop-portal"
   ];
+
   # ── System ──────────────────────────────────────────────
   boot.loader.systemd-boot.enable = false;
   boot.loader.efi.canTouchEfiVariables = false;
+
   system.stateVersion = "26.05";
   networking.hostName = "krash3-krash";
   networking.hostId = "cafebabe";
+
   time.timeZone = "America/Winnipeg";
+
   # ── Users ───────────────────────────────────────────────
   users.users.nixos = {
     isNormalUser = true;
@@ -44,7 +53,9 @@ in {
     initialPassword = "nixos";
     shell = pkgs.zsh;
   };
+
   security.sudo.wheelNeedsPassword = false;
+
   # ── SSH ─────────────────────────────────────────────────
   services.openssh = {
     enable = true;
@@ -58,7 +69,9 @@ in {
     openFirewall = true;
     startWhenNeeded = false;
   };
+
   networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22224];
+
   # ── Nix ─────────────────────────────────────────────────
   nix = {
     settings = {
@@ -79,11 +92,9 @@ in {
       keep-derivations = true
     '';
   };
+
   # ── Packages ────────────────────────────────────────────
   environment.systemPackages = with pkgs; [
-    # Zen Browser twilight (WSLg -> Windows Start Menu)
-    inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.twilight
-
     # Core
     git
     curl
@@ -100,12 +111,16 @@ in {
     xz
     file
     which
+
     # Shell & interop
+    wslu
+
     # Nix tooling
     nix-output-monitor
     nvd
     nix-tree
     nh
+
     # Network
     bind.dnsutils
     mtr
@@ -113,6 +128,7 @@ in {
     traceroute
     tcpdump
     nmap
+
     # Dev
     gh
     ripgrep
@@ -124,12 +140,14 @@ in {
     rsync
     fastfetch
   ];
+
   # ── Programs ────────────────────────────────────────────
   programs.zsh = {
     enable = true;
     enableCompletion = true;
     autosuggestions.enable = true;
     syntaxHighlighting.enable = true;
+
     ohMyZsh = {
       enable = true;
       theme = "robbyrussell";
@@ -142,17 +160,18 @@ in {
       ];
     };
   };
+
   # ── Home Manager ────────────────────────────────────────
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
     users.nixos = {pkgs, ...}: {
-      imports = [ ./zen-browser.nix ];
       home = {
         stateVersion = lib.mkForce "26.05";
         username = "nixos";
         homeDirectory = "/home/nixos";
       };
+
       programs = {
         bash.enable = true;
         zsh.enable = true;
@@ -174,17 +193,21 @@ in {
           };
         };
       };
+
       home.packages = with pkgs; [
         wl-clipboard
         _7zz
       ];
+
       home.sessionVariables = {
         EDITOR = "vim";
         VISUAL = "vim";
       };
+
       # Link .ssh from Windows for seamless key access
     };
   };
+
   # ── SSH key from Windows ────────────────────────────
   # Copy SSH private key from Windows mounted drive for seamless auth
   systemd.services.copy-wsl-ssh-key = {

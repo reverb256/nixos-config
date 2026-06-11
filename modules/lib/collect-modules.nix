@@ -47,7 +47,6 @@
     "profiles/networking.nix" = true; # Library: returns mkNetworkingConfig function
     "system/network.nix" = true; # Dead code: references missing config.cluster.config
     "system/ssh-autodiscover.nix" = true; # Dead code: references missing config.cluster.config
-    "system/k8s-secret-pusher.nix" = true; # Submodule: imported by k3s cluster hosts only
 
     # Profile subdirectory default.nix files:
     # These are already imported as directories by profiles/default.nix (e.g. ./role -> role/default.nix).
