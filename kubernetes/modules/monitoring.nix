@@ -2229,7 +2229,7 @@ in {
             ];
           }
           {
-            to = [{namespaceSelector.matchLabels.name = "kube-system";}];
+            to = [{namespaceSelector.matchLabels."kubernetes.io/metadata.name" = "kube-system";}];
             ports = [
               {
                 protocol = "UDP";

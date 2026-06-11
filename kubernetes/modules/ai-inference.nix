@@ -980,7 +980,7 @@ in {
         policyTypes = ["Egress"];
         egress = [
           {
-            to = [{namespaceSelector.matchLabels.name = "kube-system";}];
+            to = [{namespaceSelector.matchLabels."kubernetes.io/metadata.name" = "kube-system";}];
             ports = [
               {
                 protocol = "UDP";
@@ -1112,7 +1112,7 @@ in {
         policyTypes = ["Egress"];
         egress = [
           {
-            to = [{namespaceSelector.matchLabels.name = "kube-system";}];
+            to = [{namespaceSelector.matchLabels."kubernetes.io/metadata.name" = "kube-system";}];
             ports = [
               {
                 protocol = "UDP";
