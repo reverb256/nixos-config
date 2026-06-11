@@ -42,6 +42,7 @@
     };
 
     autoEnable = true;
+    enableReleaseChecks = false;
 
     homeManagerIntegration = {
       followSystem = true;
