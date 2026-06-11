@@ -255,7 +255,7 @@ in {
                 port = 53;
               }
             ];
-            to = [{namespaceSelector.matchLabels.name = "kube-system";}];
+            to = [{namespaceSelector.matchLabels."kubernetes.io/metadata.name" = "kube-system";}];
           }
         ];
       };
