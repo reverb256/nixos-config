@@ -82,7 +82,7 @@ in {
       enable = true;
     };
 
-    agenix-secrets-registry = {
+    sops-secrets-registry = {
       enable = true;
       kubernetes = true;
       initrdRecovery = true;
