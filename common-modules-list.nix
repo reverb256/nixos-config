@@ -26,10 +26,12 @@
 
   # Disable kmscon from ALL sources — stylix sets deprecated options
   # (extraConfig, fonts) that fail with current nixpkgs. Nobody uses kmscon.
-  # Uses "kmscon/nixos.nix" suffix to match both nixpkgs (services/kmscon/...)
-  # and stylix (modules/kmscon/...) paths.
+  # Uses absolute flake path to match the stylix kmscon module key.
   {
-    disabledModules = [ "kmscon/nixos.nix" ];
+    disabledModules = [
+      "services/kmscon"
+      "${inputs.stylix}/modules/kmscon/nixos.nix"
+    ];
   }
 
   {
