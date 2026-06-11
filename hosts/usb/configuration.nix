@@ -303,7 +303,7 @@ in {
 
 
   # NVIDIA NIM API key — for Hermes autonomous operation
-  age.secrets.nvidia-api-key = {
+  # age.secrets.nvidia-api-key = {  # sops-nix migration
     file = ../../secrets/nvidia-api-key.age;
     owner = "j_kro";
   };
