@@ -45,6 +45,9 @@ in {
       '';
     };
 
+    # Deploy CA public key for TrustedUserCAKeys (user cert auth)
+    environment.etc."ssh/ca.pub".text = caPubKey;
+
     # @cert-authority via structured option
     programs.ssh.knownHosts = {
       "cluster-ca" = {
