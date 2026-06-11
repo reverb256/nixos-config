@@ -37,7 +37,7 @@ in {
       PermitRootLogin = "no";
       PermitEmptyPasswords = false;
       ChallengeResponseAuthentication = true;
-      AuthenticationMethods = "publickey";
+      AuthenticationMethods = lib.mkForce "publickey";
       TrustedUserCAKeys = "/etc/ssh/ca.pub";
 
       Ciphers = [

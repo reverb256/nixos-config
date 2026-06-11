@@ -322,6 +322,8 @@ in {
   # via NodePort (30080). Old DNAT rules pointed to stale pod IPs and conflicted
   # with the host-level Caddy reverse proxy.
 
+  time.timeZone = "America/Winnipeg";
+
   system.stateVersion = "26.05";
   # unbound-common disabled for zephyr — cluster-dns.nix (via clusterNetworking.unbound.enable)
   # provides identical upstream forwarding PLUS cluster.local K8s DNS forwarding.
@@ -332,6 +334,15 @@ in {
   # CNS: Zero-knowledge automatic secret distribution
   services.cns-setup.enable = true;
   services.cns-watcher.enable = true;
+
+  # Mount /nix on the secondary NVMe — contains the nix store
+  # CRITICAL for early boot: without this, the kernel can't find the nixos closure
+  fileSystems."/nix" = {
+    device = "/dev/disk/by-label/nix";
+    fsType = "btrfs";
+    options = ["subvol=@nix" "compress=zstd:3" "ssd" "discard=async" "noatime" "x-initrd.mount"];
+  };
+
 
   # Mount /var on the secondary NVMe — frees ~22G on the system drive
   # Covers: /var/lib/rancher (k3s), /var/lib/flatpak, /var/lib/nix-csi
