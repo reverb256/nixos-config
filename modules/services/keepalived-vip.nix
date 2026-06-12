@@ -49,7 +49,7 @@ in {
 
   config = lib.mkIf cfg.enable {
     services.keepalived = {
-      enable = true;
+      enable = lib.mkDefault true;
 
       vrrpInstances.kubernetes-api = {
         state =

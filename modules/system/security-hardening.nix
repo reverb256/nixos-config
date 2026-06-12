@@ -37,7 +37,7 @@ in {
 
   config = mkIf cfg.enable {
     networking.firewall = mkIf cfg.enableFirewall {
-      enable = true;
+      enable = lib.mkDefault true;
 
       trustedInterfaces = ["tailscale0"];
 
@@ -46,7 +46,7 @@ in {
 
     services = {
       tailscale = mkIf cfg.enableTailscaleSSH {
-        enable = true;
+        enable = lib.mkDefault true;
       };
 
       openssh = mkIf cfg.enableTailscaleSSH {
@@ -87,7 +87,7 @@ in {
       };
 
       fail2ban = mkIf cfg.enableTailscaleSSH {
-        enable = true;
+        enable = lib.mkDefault true;
         jails.sshd = {
           enabled = true;
           filter = "sshd";
@@ -103,7 +103,7 @@ in {
       };
 
       prometheus.exporters.node = {
-        enable = true;
+        enable = lib.mkDefault true;
         listenAddress = lib.mkDefault "127.0.0.1";
       };
     };

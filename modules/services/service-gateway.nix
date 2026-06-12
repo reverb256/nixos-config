@@ -150,7 +150,7 @@ in {
 
   config = mkIf cfg.enable {
     services.caddy = {
-      enable = true;
+      enable = lib.mkDefault true;
 
       globalConfig = ''
         auto_https off

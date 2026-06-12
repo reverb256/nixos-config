@@ -44,7 +44,7 @@ in {
     ];
 
     xdg.portal = {
-      enable = true;
+      enable = lib.mkDefault true;
       xdgOpenUsePortal = true;
       extraPortals = with pkgs; [
         xdg-desktop-portal-gtk

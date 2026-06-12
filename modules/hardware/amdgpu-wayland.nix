@@ -39,7 +39,7 @@ in {
     };
 
     hardware.graphics = {
-      enable = true;
+      enable = lib.mkDefault true;
       inherit (cfg) enable32Bit;
 
       extraPackages = with pkgs; [

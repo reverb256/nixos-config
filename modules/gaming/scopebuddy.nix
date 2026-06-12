@@ -162,7 +162,7 @@ in {
     # GameMode integration (avoid duplicate with gaming.nix which also enables it)
     (mkIf (cfg.performance.enableGameMode && !gamingCfg.enable) {
       programs.gamemode = {
-        enable = true;
+        enable = lib.mkDefault true;
         settings = {
           general = {
             desiredgov = "performance";
