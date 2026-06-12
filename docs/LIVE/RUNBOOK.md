@@ -1,8 +1,8 @@
 ---
-last-verified: 2026-05-24
+last-verified: 2026-06-12
 verified-by: Sisyphus
 verification-method: just docs-audit
-expires: 2026-05-31
+expires: 2026-06-19
 ---
 # Runbook
 
