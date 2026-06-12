@@ -20,22 +20,6 @@
 
     mining-exporter.enable = true;
 
-    self-healing-alerts = {
-      enable = true;
-      monitoredServices = [
-        "kubelet"
-        "kube-apiserver"
-        "containerd"
-        "etcd"
-        "keepalived"
-      ];
-      enableCircuitBreakerAlerts = false;
-      enableVIPFailoverAlerts = true;
-      enableResourceAlerts = true;
-      memoryThreshold = 90;
-      diskThreshold = 90;
-    };
-
     xmrig-metrics = {
       enable = true;
       targets = [
