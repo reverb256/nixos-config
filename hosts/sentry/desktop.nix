@@ -14,15 +14,17 @@
     "hybrid-sleep".enable = false;
   };
 
-  services.logind.extraConfig = ''
-    HandleLidSwitch=ignore
-    HandleLidSwitchExternalPower=ignore
-    HandleLidSwitchDocked=ignore
-    HandleSuspendKey=ignore
-    HandleHibernateKey=ignore
-    HandlePowerKey=ignore
-    IdleAction=ignore
-  '';
+  services.logind.settings = {
+    Login = {
+      HandleLidSwitch = "ignore";
+      HandleLidSwitchExternalPower = "ignore";
+      HandleLidSwitchDocked = "ignore";
+      HandleSuspendKey = "ignore";
+      HandleHibernateKey = "ignore";
+      HandlePowerKey = "ignore";
+      IdleAction = "ignore";
+    };
+  };
 
   security.polkit.extraConfig = ''
     polkit.addRule(function(action, subject) {
