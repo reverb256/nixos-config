@@ -30,7 +30,7 @@
       mouse.hide_when_typing = true;
 
       font = {
-        size = lib.mkDefault 11;
+        size = lib.mkDefault config.stylix.fonts.sizes.terminal;
         normal = {
           family = "JetBrainsMono Nerd Font";
           style = "Regular";
