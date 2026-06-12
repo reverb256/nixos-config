@@ -13,7 +13,7 @@ in {
 
   config = mkIf cfg.enable {
     services.unbound = {
-      enable = true;
+      enable = lib.mkDefault true;
 
       settings = {
         # Minimal server block — cluster-dns.nix (on zephyr) extends this with

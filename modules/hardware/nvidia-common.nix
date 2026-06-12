@@ -10,7 +10,7 @@ in {
 
   config = lib.mkIf cfg.enable {
     hardware.graphics = {
-      enable = true;
+      enable = lib.mkDefault true;
       enable32Bit = lib.mkDefault false;
 
       extraPackages = with pkgs; [
@@ -40,7 +40,7 @@ in {
     '';
 
     hardware.nvidia-container-toolkit = {
-      enable = true;
+      enable = lib.mkDefault true;
       mount-nvidia-executables = true;
     };
 
