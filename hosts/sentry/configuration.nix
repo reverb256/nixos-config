@@ -172,3 +172,6 @@
     nvtopPackages.full
   ];
 }
+
+  # Override CachyOS kernel loglevel=0 to capture crash diagnostics
+  boot.kernelParams = lib.mkAfter [ "loglevel=4" ];
