@@ -38,7 +38,7 @@ in {
 
     sshKey = mkOption {
       type = types.str;
-      default = "/run/agenix/cns-ssh-key";
+      default = "/run/secrets/cns-ssh-key";
       description = "Path to CNS SSH key (agenix-deployed)";
     };
 
