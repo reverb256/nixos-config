@@ -6,7 +6,7 @@
 with lib; {
   config = {
     virtualisation.podman = {
-      enable = lib.mkDefault true;
+      enable = true;
       dockerCompat = true;
     };
 
