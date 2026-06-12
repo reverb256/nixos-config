@@ -219,6 +219,7 @@ in {
   systemd.tmpfiles.rules = [
     "d /home/j_kro/.ssh 0700 j_kro users -"
     "d /root/.ssh 0700 root root -"
+    "d /root/.ssh/sockets 0700 root root -"
     "d /etc/nixos/ssh 0755 root root -"
     "d /var/cache/ccache 0755 root root -"
     "f /var/log/ccache.log 0644 root root -"
