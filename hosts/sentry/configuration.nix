@@ -181,7 +181,7 @@
       chmod 000 /sys/power/state /sys/power/mem_sleep
     '';
   };
-}
-
-  # Override CachyOS kernel loglevel=0 to capture crash diagnostics
   boot.kernelParams = lib.mkAfter [ "loglevel=4" ];
+  # Override CachyOS kernel loglevel=0 to capture crash diagnostics
+
+}
