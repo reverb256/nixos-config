@@ -6,6 +6,8 @@
   ...
 
 }: {
+  environment.sessionVariables.TZ = "America/Winnipeg";
+
   imports = [
     inputs.disko.nixosModules.disko
     ./monitoring.nix

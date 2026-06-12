@@ -20,7 +20,7 @@ in {
       role = "server";
       nodeName = "sentry";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
-      tokenFile = "/run/agenix/k3s-cluster-token";
+      tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = cluster.hosts.sentry.ip;
     };
 
