@@ -151,7 +151,7 @@ in {
           ];
         };
       };
-      hardware.steam-hardware.enable = true;
+      hardware.steam-hardware.enable = lib.mkDefault true;
 
       services = {
         pipewire.extraConfig = lib.mkForce {
@@ -279,12 +279,12 @@ in {
         openFirewall = true;
         autoStart = false;
         highPriority = true;
-        steam.enable = true;
+        steam.enable = lib.mkDefault true;
         steam.importOXRRuntimes = true;
         package = pkgs.wivrn.override {
           cudaSupport = true;
         };
-        config.enable = true;
+        config.enable = lib.mkDefault true;
         config.json = {
           encoder = {
             encoder = "nvenc";
@@ -320,7 +320,7 @@ in {
       ];
 
       # GPU workload detection and profile management
-      services.gaming-detection.enable = true;
+      services.gaming-detection.enable = lib.mkDefault true;
       services.gpu-profile-manager.enable = lib.mkDefault true;
 
       environment = {
