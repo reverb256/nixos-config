@@ -110,7 +110,7 @@ in {
     };
 
     lpminer = {
-      enable = lib.mkForce false;
+      enable = true;
       instances = [
         {
           name = "3060ti";
@@ -313,7 +313,7 @@ in {
   virtualisation.podman = {
     enable = lib.mkForce false;
     dockerCompat = true;
-    dockerSocket.enable = false;
+    dockerSocket.enable = lib.mkForce false;
   };
 
   services.appimage-updater.enable = lib.mkForce false;

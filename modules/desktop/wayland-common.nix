@@ -1,4 +1,5 @@
 {
+  lib,
   config,
   pkgs,
   ...
@@ -23,7 +24,7 @@ in {
     };
 
     sane = {
-      enable = true;
+      enable = lib.mkDefault true;
       extraBackends = [pkgs.sane-airscan];
     };
   };
@@ -45,7 +46,7 @@ in {
 
   services = {
     pipewire = {
-      enable = true;
+      enable = lib.mkDefault true;
       alsa.enable = true;
       alsa.support32Bit = true;
       pulse.enable = true;
@@ -56,12 +57,12 @@ in {
     libinput.enable = true;
 
     dbus = {
-      enable = true;
+      enable = lib.mkDefault true;
       implementation = "broker";
     };
 
     printing = {
-      enable = true;
+      enable = lib.mkDefault true;
       browsing = true;
       # systemd cups.socket handles port binding; explicit listen causes "Address already in use"
       allowFrom = ["all"];

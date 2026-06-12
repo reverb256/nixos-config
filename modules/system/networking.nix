@@ -50,7 +50,7 @@
     ];
 
     firewall = {
-      enable = true;
+      enable = lib.mkDefault true;
       allowedTCPPorts = lib.mkOptionDefault [
         22
         6443
@@ -67,10 +67,10 @@
 
   services = {
     avahi = {
-      enable = true;
+      enable = lib.mkDefault true;
       nssmdns4 = true;
       publish = {
-        enable = true;
+        enable = lib.mkDefault true;
         addresses = true;
         workstation = true;
         userServices = true;

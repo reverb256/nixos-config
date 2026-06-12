@@ -1,6 +1,6 @@
 {lib, ...}: {
   services.earlyoom = {
-    enable = true;
+    enable = lib.mkDefault true;
     freeMemThreshold = 12;
     freeSwapThreshold = 10;
     enableNotifications = true;
