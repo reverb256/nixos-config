@@ -171,6 +171,16 @@
   environment.systemPackages = with pkgs; [
     nvtopPackages.full
   ];
+
+  # Lock /sys/power/state to prevent ACPI sleep bypassing systemd/logind
+  systemd.services.lock-power-state = {
+    description = "Lock /sys/power/state read-only to prevent rogue ACPI sleep";
+    wantedBy = ["multi-user.target"];
+    serviceConfig.Type = "oneshot";
+    script = ''
+      chmod 000 /sys/power/state /sys/power/mem_sleep
+    '';
+  };
 }
 
   # Override CachyOS kernel loglevel=0 to capture crash diagnostics
