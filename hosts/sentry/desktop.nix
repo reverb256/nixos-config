@@ -1,7 +1,7 @@
 { config, pkgs, lib, ... }: {
   programs.niri = {
     enable = true;
-    settings.disable-power-key-handling = true;
+    # settings removed — niri version mismatch
   };
 
   desktop.uwsm-sessions.enable = true;
