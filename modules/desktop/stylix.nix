@@ -24,6 +24,10 @@
       };
     };
 
+    sizes = {
+      terminal = 10;
+    };
+
     cursor = {
       package = pkgs.bibata-cursors;
       name = "Bibata-Modern-Ice";
