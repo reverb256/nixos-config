@@ -63,6 +63,5 @@
     "/persistent" = { neededForBoot = true; };
     "/nix" = { neededForBoot = true; };
     # "/home" moved to bcache - see hardware.nix
-    "/games" = { neededForBoot = false; };
   };
 }
