@@ -60,6 +60,7 @@ in {
         $character'';
 
       add_newline = false;
+      scan_timeout = 50;
 
       # ── Time ────────────────────────────────────────────────────
       time = {
