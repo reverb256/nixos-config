@@ -40,7 +40,7 @@ in {
       lib.mkMerge [
         {
           programs.uwsm = {
-            enable = true;
+            enable = lib.mkDefault true;
             waylandCompositors.niri = {
               prettyName = "Niri";
               comment = "A scrollable-tiling Wayland compositor";
