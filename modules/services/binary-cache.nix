@@ -27,7 +27,7 @@ in {
     environment.systemPackages = with pkgs; [openssl];
 
     services.nix-serve = {
-      enable = true;
+      enable = lib.mkDefault true;
       secretKeyFile = "/etc/nix/cache-priv.key";
       inherit (cfg) port;
       inherit (cfg) bindAddress;

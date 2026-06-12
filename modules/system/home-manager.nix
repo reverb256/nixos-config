@@ -63,7 +63,7 @@ in {
 
       # CopyQ clipboard manager (replaces cliphist)
       programs.copyq = {
-        enable = true;
+        enable = lib.mkDefault true;
       };
 
       home.sessionVariables.BAT_THEME = "base16";

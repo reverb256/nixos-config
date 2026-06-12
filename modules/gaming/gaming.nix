@@ -29,7 +29,7 @@ in {
     (mkIf cfg.enable {
       programs = {
         gamemode = {
-          enable = true;
+          enable = lib.mkDefault true;
           settings = {
             general = {
               desiredgov = "performance";
@@ -55,7 +55,7 @@ in {
           };
         };
         steam = {
-          enable = true;
+          enable = lib.mkDefault true;
           fontPackages = with pkgs; [
             noto-fonts
             liberation_ttf
@@ -101,7 +101,7 @@ in {
           };
         };
         gamescope = {
-          enable = true;
+          enable = lib.mkDefault true;
           capSysNice = true;
           env = {
             __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
@@ -123,7 +123,7 @@ in {
           ];
         };
         nix-ld = {
-          enable = true;
+          enable = lib.mkDefault true;
           libraries = with pkgs; [
             freetype
             fontconfig
@@ -275,7 +275,7 @@ in {
       # WiVRn OpenXR streaming — upstream module handles runtime
       # registration, avahi, firewall, and OpenComposite paths
       services.wivrn = {
-        enable = true;
+        enable = lib.mkDefault true;
         openFirewall = true;
         autoStart = false;
         highPriority = true;

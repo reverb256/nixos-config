@@ -31,7 +31,7 @@ in {
     users.groups.plugdev = {};
 
     virtualisation.podman = mkDefault {
-      enable = true;
+      enable = lib.mkDefault true;
       dockerCompat = true;
     };
 

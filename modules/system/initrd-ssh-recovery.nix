@@ -58,9 +58,9 @@ in {
       availableKernelModules = [cfg.networkDriver];
 
       network = {
-        enable = true;
+        enable = lib.mkDefault true;
         ssh = {
-          enable = true;
+          enable = lib.mkDefault true;
           inherit (cfg) port;
           # Pass derivation directly - NixOS handles secrets mapping natively
           hostKeys = [initrdHostKey];
@@ -69,7 +69,7 @@ in {
       };
 
       systemd = {
-        enable = true;
+        enable = lib.mkDefault true;
         initrdBin = with pkgs; [
           btrfs-progs
           coreutils

@@ -26,7 +26,7 @@
   meshKeys = import ../../mesh-keys.nix;
 in {
   services.openssh = {
-    enable = true;
+    enable = lib.mkDefault true;
     settings = {
       PasswordAuthentication = false;
       KbdInteractiveAuthentication = false;
