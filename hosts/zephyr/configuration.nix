@@ -331,8 +331,6 @@ in {
   services.unbound-common.enable = false;
   # Enable Hermes RAM protection (mandatory pre-flight checks)
   # CNS: Zero-knowledge automatic secret distribution
-  services.cns-setup.enable = true;
-  services.cns-watcher.enable = true;
   services.ai-inference.enable = lib.mkForce false;
   services.cluster-mesh.enable = true;
 
