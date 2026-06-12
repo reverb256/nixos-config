@@ -79,6 +79,7 @@ in {
       ./modules/automation.nix
       ./modules/mcp-servers.nix
       ./modules/glance.nix
+      ./modules/hermes-workspace.nix
       ./modules/maplespike.nix
       ./modules/tailscale.nix
     ];
@@ -128,6 +129,7 @@ in {
     ./modules/kelos.nix
     ./modules/mcp-servers.nix
     ./modules/glance.nix
+      ./modules/hermes-workspace.nix
     ./modules/tailscale.nix
   ];
 

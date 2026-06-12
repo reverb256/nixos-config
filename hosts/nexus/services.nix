@@ -68,6 +68,13 @@ in {
       interval = "15min";
     };
 
+    # Garage S3-compatible object storage — single-node cluster on large HDD
+    garage-cluster = {
+      enable = true;
+      dataDir = "/mnt/garage";
+      replicationFactor = 1;
+    };
+
   };
 
   programs.steam = {
