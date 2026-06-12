@@ -29,6 +29,9 @@ in {
   # Note: CUDA arch already set in package via CMAKE_CUDA_ARCHITECTURES.
   # Only CPU tuning needed at host level.
 
+
+  environment.sessionVariables.TZ = "America/Winnipeg";
+
   clusterNetworking = {
     enable = true;
     hostName = "zephyr";
@@ -376,3 +379,4 @@ in {
       pkgs.source-han-serif
     ];
   };}
+
