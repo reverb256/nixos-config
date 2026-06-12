@@ -9,7 +9,7 @@
 in {
   services = {
 #    hermes-cli = {
-#      enable = true;
+#      enable = false;
 #      model = "base.en";
 #      apiKeyFile = "/run/secrets/zai-api-key";
 #      nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
@@ -41,8 +41,8 @@ in {
 #      };
 #    };
     k3s-cluster = {
-      enable = true;
-      nvidia.enable = true;
+      enable = false;
+      nvidia.enable = false;
       role = "agent";
       nodeName = "zephyr";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
@@ -51,7 +51,7 @@ in {
     };
 
     k8s-secret-bootstrap = {
-      enable = true;
+      enable = false;
       secrets = [
         {
           namespace = "auth";
@@ -86,7 +86,7 @@ in {
     };
 
     backup-to-garage = {
-      enable = true;
+      enable = false;
       endpoint = "http://${cluster.hosts.zephyr.ip}:3900";
       region = "garage";
       bucket = "backups";
@@ -96,7 +96,7 @@ in {
     };
 
     gaming-detection = {
-      enable = true;
+      enable = false;
       checkInterval = 10;
     };
 
@@ -105,12 +105,12 @@ in {
     };
 
     gpu-profile-manager = {
-      enable = true;
+      enable = false;
       checkInterval = 10;
     };
 
     lpminer = {
-      enable = true;
+      enable = false;
       instances = [
         {
           name = "3060ti";
@@ -130,7 +130,7 @@ in {
     };
 
     opencode = {
-      enable = true;
+      enable = false;
       clusterSync.enable = false; # skip SSH sync to cluster nodes on every activation
     };
 
@@ -147,14 +147,14 @@ in {
 
     # Sync hermes/pi state FROM Nexus (Nexus is now canonical source)
     nfs-state-sync = {
-      enable = true;
+      enable = false;
       sourceHost = "nexus";
       paths = ["/data/hermes"];
       interval = "15min";
     };
 
     nfs-client = {
-      enable = true;
+      enable = false;
       mountShared = false;
       mountHome = false;
       mountMedia = false;
@@ -212,7 +212,7 @@ in {
     # ai-inference: Uses K8s gateway (30880) via Caddy routing
     # Keep config for declarative completeness but backend routes to K8s
     ai-inference = {
-      enable = true;
+      enable = false;
       backend = {
         url = "http://127.0.0.1:30880"; # Proxy to K8s gateway
         type = "llama-cpp";
@@ -221,11 +221,11 @@ in {
           model = "qwen3.6-35b-a3b";
         };
         nvidia-nim = {
-          enable = true;
+          enable = false;
           apiKeyFile = "/run/secrets/nvidia-api-key";
         };
         zai = {
-          enable = true;
+          enable = false;
           apiKeyFile = "/run/secrets/zai-api-key";
           baseUrl = "https://api.z.ai/api/coding/paas/v4";
           enableRetry = true;
@@ -234,13 +234,13 @@ in {
           timeout = 300.0;
         };
         pollinations = {
-          enable = true;
+          enable = false;
           apiKeyFile = "/run/secrets/pollinations-api-key";
           baseUrl = "https://text.pollinations.ai";
         };
       };
       routing = {
-        enable = true;
+        enable = false;
         defaultModel = "qwen3.5-35b-a3b";
         fallbackChain = [
           "vllm"
@@ -249,11 +249,11 @@ in {
         ];
       };
       auth.mode = "none";
-      monitoring.enable = true;
-      rateLimit.enable = true;
+      monitoring.enable = false;
+      rateLimit.enable = false;
       rateLimit.requestsPerMinute = 120;
       systemPrompts = {
-        enable = true;
+        enable = false;
         default = "You are a helpful AI assistant with access to comprehensive knowledge sources.";
         coding = "You are an expert coding assistant. Write clean, efficient, and well-documented code. Use the retrieved knowledge to provide accurate implementations.";
         reasoning = "You are an expert reasoning assistant. Think step-by-step and provide clear explanations backed by retrieved information.";
@@ -272,11 +272,11 @@ in {
     };
 
     mcp-servers = {
-      enable = true;
+      enable = false;
     };
 
     mcp-registry = {
-      enable = true;
+      enable = false;
       generateHermes = true;
       generateClaudeCode = true;
       generateKagentCRDs = true;
@@ -285,41 +285,41 @@ in {
     };
 
     cachix-auth = {
-      enable = true;
+      enable = false;
     };
 
     ai-coding-tools = {
-      enable = true;
+      enable = false;
       user = "j_kro";
       zaiApiKeyFile = "/run/secrets/zai-api-key";
       context7ApiKeyFile = "/run/secrets/context7-api-key";
       nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
       opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
       tools = {
-        claude = {enable = true;};
-        opencode = {enable = true;};
-        droid = {enable = true;};
-        crush = {enable = true;};
-        pi = {enable = true;};
-        omp = {enable = true;};
+        claude = {enable = false;};
+        opencode = {enable = false;};
+        droid = {enable = false;};
+        crush = {enable = false;};
+        pi = {enable = false;};
+        omp = {enable = false;};
       };
       enableShellEnv = true;
     };
   };
   programs = {
-    haven-desktop.enable = true;
+    haven-desktop.enable = false;
   };
 
   virtualisation.podman = {
-    enable = true;
+    enable = false;
     dockerCompat = true;
-    dockerSocket.enable = true;
+    dockerSocket.enable = false;
   };
 
-  services.appimage-updater.enable = true;
+  services.appimage-updater.enable = false;
 
   services.sops-secrets-registry = {
-    enable = true;
+    enable = false;
     aiServices = true;
     monitoring = false;
     storage = true;
@@ -342,18 +342,18 @@ in {
 
   # Initrd SSH recovery + BTRFS snapshots
   services.initrd-ssh-recovery = {
-    enable = true;
+    enable = false;
     interface = "eth0";
     networkDriver = "r8169";
     port = 2222;
   };
-  services.recovery-specialisation.enable = true;
-  services.secret-hygiene.enable = true;
+  services.recovery-specialisation.enable = false;
+  services.secret-hygiene.enable = false;
   services.btrfs-boot-snapshot.enable = lib.mkForce false; # NixOS generations sufficient
 
   # Create directories for hermes/pi bind mounts on Zephyr
   systemd.tmpfiles.rules = [
     "d /data/hermes 0775 j_kro j_kro -"
   ];
-  services.syncthing-cluster.enable = true;
+  services.syncthing-cluster.enable = false;
 }
