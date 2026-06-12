@@ -101,7 +101,6 @@ in {
           };
         };
         gamescope = {
-          enable = lib.mkDefault true;
           capSysNice = true;
           env = {
             __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
