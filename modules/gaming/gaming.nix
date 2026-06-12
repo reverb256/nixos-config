@@ -321,7 +321,7 @@ in {
 
       # GPU workload detection and profile management
       services.gaming-detection.enable = true;
-      services.gpu-profile-manager.enable = true;
+      services.gpu-profile-manager.enable = lib.mkDefault true;
 
       environment = {
         systemPackages = with pkgs;
