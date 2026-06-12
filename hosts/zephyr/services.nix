@@ -9,7 +9,7 @@
 in {
   services = {
 #    hermes-cli = {
-#      enable = false;
+#      enable = lib.mkForce false;
 #      model = "base.en";
 #      apiKeyFile = "/run/secrets/zai-api-key";
 #      nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
@@ -41,8 +41,8 @@ in {
 #      };
 #    };
     k3s-cluster = {
-      enable = false;
-      nvidia.enable = false;
+      enable = lib.mkForce false;
+      nvidia.enable = lib.mkForce false;
       role = "agent";
       nodeName = "zephyr";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
@@ -51,7 +51,7 @@ in {
     };
 
     k8s-secret-bootstrap = {
-      enable = false;
+      enable = lib.mkForce false;
       secrets = [
         {
           namespace = "auth";
@@ -79,14 +79,14 @@ in {
     # Disabled: zephyr is now a k3s agent (not server), so the VIP
     # should live on the server nodes (sentry) for k3s API access.
     keepalived-vip = {
-      enable = false;
+      enable = lib.mkForce false;
       vip = cluster.kubernetes.vip;
       interface = "eth0";
       priority = 80;
     };
 
     backup-to-garage = {
-      enable = false;
+      enable = lib.mkForce false;
       endpoint = "http://${cluster.hosts.zephyr.ip}:3900";
       region = "garage";
       bucket = "backups";
@@ -96,21 +96,21 @@ in {
     };
 
     gaming-detection = {
-      enable = false;
+      enable = lib.mkForce false;
       checkInterval = 10;
     };
 
     nexus-exec = {
-      enable = false;
+      enable = lib.mkForce false;
     };
 
     gpu-profile-manager = {
-      enable = false;
+      enable = lib.mkForce false;
       checkInterval = 10;
     };
 
     lpminer = {
-      enable = false;
+      enable = lib.mkForce false;
       instances = [
         {
           name = "3060ti";
@@ -130,31 +130,31 @@ in {
     };
 
     opencode = {
-      enable = false;
-      clusterSync.enable = false; # skip SSH sync to cluster nodes on every activation
+      enable = lib.mkForce false;
+      clusterSync.enable = lib.mkForce false; # skip SSH sync to cluster nodes on every activation
     };
 
     nixos-share = {
-      enable = false;
-      server.enable = false;
+      enable = lib.mkForce false;
+      server.enable = lib.mkForce false;
     };
 
     # NFS server for /etc/nixos only — hermes/pi moved to Nexus to break I/O loop on root NVMe
     nfs-data-server = {
-      enable = false;
+      enable = lib.mkForce false;
       exports = "";
     };
 
     # Sync hermes/pi state FROM Nexus (Nexus is now canonical source)
     nfs-state-sync = {
-      enable = false;
+      enable = lib.mkForce false;
       sourceHost = "nexus";
       paths = ["/data/hermes"];
       interval = "15min";
     };
 
     nfs-client = {
-      enable = false;
+      enable = lib.mkForce false;
       mountShared = false;
       mountHome = false;
       mountMedia = false;
@@ -164,7 +164,7 @@ in {
     # All .lan services moved to nexus (OOM prevention)
     # Uses caddy-with-modules (includes caddy-ratelimit, caddy-security, caddy-cache)
     caddy = {
-      enable = false;
+      enable = lib.mkForce false;
       package = pkgs.caddy-with-modules;
       configFile = let
         lanRoutes = import ./caddy-routes.nix {inherit cluster;};
@@ -212,7 +212,7 @@ in {
     # ai-inference: Uses K8s gateway (30880) via Caddy routing
     # Keep config for declarative completeness but backend routes to K8s
     ai-inference = {
-      enable = false;
+      enable = lib.mkForce false;
       backend = {
         url = "http://127.0.0.1:30880"; # Proxy to K8s gateway
         type = "llama-cpp";
@@ -221,11 +221,11 @@ in {
           model = "qwen3.6-35b-a3b";
         };
         nvidia-nim = {
-          enable = false;
+          enable = lib.mkForce false;
           apiKeyFile = "/run/secrets/nvidia-api-key";
         };
         zai = {
-          enable = false;
+          enable = lib.mkForce false;
           apiKeyFile = "/run/secrets/zai-api-key";
           baseUrl = "https://api.z.ai/api/coding/paas/v4";
           enableRetry = true;
@@ -234,13 +234,13 @@ in {
           timeout = 300.0;
         };
         pollinations = {
-          enable = false;
+          enable = lib.mkForce false;
           apiKeyFile = "/run/secrets/pollinations-api-key";
           baseUrl = "https://text.pollinations.ai";
         };
       };
       routing = {
-        enable = false;
+        enable = lib.mkForce false;
         defaultModel = "qwen3.5-35b-a3b";
         fallbackChain = [
           "vllm"
@@ -249,11 +249,11 @@ in {
         ];
       };
       auth.mode = "none";
-      monitoring.enable = false;
-      rateLimit.enable = false;
+      monitoring.enable = lib.mkForce false;
+      rateLimit.enable = lib.mkForce false;
       rateLimit.requestsPerMinute = 120;
       systemPrompts = {
-        enable = false;
+        enable = lib.mkForce false;
         default = "You are a helpful AI assistant with access to comprehensive knowledge sources.";
         coding = "You are an expert coding assistant. Write clean, efficient, and well-documented code. Use the retrieved knowledge to provide accurate implementations.";
         reasoning = "You are an expert reasoning assistant. Think step-by-step and provide clear explanations backed by retrieved information.";
@@ -272,11 +272,11 @@ in {
     };
 
     mcp-servers = {
-      enable = false;
+      enable = lib.mkForce false;
     };
 
     mcp-registry = {
-      enable = false;
+      enable = lib.mkForce false;
       generateHermes = true;
       generateClaudeCode = true;
       generateKagentCRDs = true;
@@ -285,41 +285,41 @@ in {
     };
 
     cachix-auth = {
-      enable = false;
+      enable = lib.mkForce false;
     };
 
     ai-coding-tools = {
-      enable = false;
+      enable = lib.mkForce false;
       user = "j_kro";
       zaiApiKeyFile = "/run/secrets/zai-api-key";
       context7ApiKeyFile = "/run/secrets/context7-api-key";
       nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
       opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
       tools = {
-        claude = {enable = false;};
-        opencode = {enable = false;};
-        droid = {enable = false;};
-        crush = {enable = false;};
-        pi = {enable = false;};
-        omp = {enable = false;};
+        claude = {enable = lib.mkForce false;};
+        opencode = {enable = lib.mkForce false;};
+        droid = {enable = lib.mkForce false;};
+        crush = {enable = lib.mkForce false;};
+        pi = {enable = lib.mkForce false;};
+        omp = {enable = lib.mkForce false;};
       };
       enableShellEnv = true;
     };
   };
   programs = {
-    haven-desktop.enable = false;
+    haven-desktop.enable = lib.mkForce false;
   };
 
   virtualisation.podman = {
-    enable = false;
+    enable = lib.mkForce false;
     dockerCompat = true;
     dockerSocket.enable = false;
   };
 
-  services.appimage-updater.enable = false;
+  services.appimage-updater.enable = lib.mkForce false;
 
   services.sops-secrets-registry = {
-    enable = false;
+    enable = lib.mkForce false;
     aiServices = true;
     monitoring = false;
     storage = true;
@@ -342,18 +342,18 @@ in {
 
   # Initrd SSH recovery + BTRFS snapshots
   services.initrd-ssh-recovery = {
-    enable = false;
+    enable = lib.mkForce false;
     interface = "eth0";
     networkDriver = "r8169";
     port = 2222;
   };
-  services.recovery-specialisation.enable = false;
-  services.secret-hygiene.enable = false;
+  services.recovery-specialisation.enable = lib.mkForce false;
+  services.secret-hygiene.enable = lib.mkForce false;
   services.btrfs-boot-snapshot.enable = lib.mkForce false; # NixOS generations sufficient
 
   # Create directories for hermes/pi bind mounts on Zephyr
   systemd.tmpfiles.rules = [
     "d /data/hermes 0775 j_kro j_kro -"
   ];
-  services.syncthing-cluster.enable = false;
+  services.syncthing-cluster.enable = lib.mkForce false;
 }
