@@ -2,53 +2,8 @@
 let
   c = config.lib.stylix.colors.withHashtag;
 
-  minerScript = pkgs.writeShellScriptBin "miner-status" ''
-    set -euo pipefail
-    for port in 21550 21551; do
-      if data=$(curl -sf --max-time 1 "http://localhost:$port/" 2>/dev/null); then
-        hash=$(echo "$data" | python3 -c "
-    import sys, json
-    try:
-        d = json.loads(sys.stdin.read())
-        hr = d.get('hashrate_total', d.get('hashrate', 0))
-        if hr >= 1000000:
-            print(f'{hr/1000000:.1f} GH/s')
-        elif hr >= 1000:
-            print(f'{hr/1000:.1f} MH/s')
-        else:
-            print(f'{hr:.0f} KH/s')
-    except:
-        print('?')" 2>/dev/null)
-        if [ -n "$hash" ]; then
-          echo "⛏ $hash"
-          exit 0
-        fi
-      fi
-    done
-    if data=$(curl -sf --max-time 1 "http://localhost:3333/api/v1/status" 2>/dev/null); then
-      hash=$(echo "$data" | python3 -c "
-    import sys, json
-    try:
-        d = json.loads(sys.stdin.read())
-        hr = d.get('hashrate', 0) or 0
-        if hr >= 1000000:
-            print(f'{hr/1000000:.1f} GH/s')
-        elif hr >= 1000:
-            print(f'{hr/1000:.1f} MH/s')
-        else:
-            print(f'{hr:.0f} KH/s')
-    except:
-        print('?')" 2>/dev/null)
-      if [ -n "$hash" ]; then
-        echo "⛏ $hash"
-        exit 0
-      fi
-    fi
-    exit 1
-  '';
+  # miner script removed — was broken
 in {
-  home.packages = [minerScript];
-
   programs.starship = {
     enable = true;
 
@@ -118,13 +73,6 @@ in {
         min_time = 2000;
       };
 
-      # ── Mining Status ─────────────────────────────────────────
-      custom.miner = {
-        command = "miner-status";
-        description = "GPU mining hashrate";
-        format = "[$output](bold ${c.base0C}) ";
-        when = true;
-      };
 
       # ── Prompt Character ──────────────────────────────────────
       character = {
