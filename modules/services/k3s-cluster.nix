@@ -117,7 +117,7 @@ in {
 
   config = mkIf cfg.enable {
     services.k3s = {
-      enable = true;
+      enable = lib.mkDefault true;
       inherit (cfg) role nodeName;
       # k3s version — pin to specific release to avoid surprise upgrades
       # Previous pin: 1.34.5 (1.35.0-1.35.3 had re-exec crash loop on NixOS)

@@ -72,7 +72,7 @@ in {
 
   config = mkIf cfg.enable {
     zramSwap = {
-      enable = true;
+      enable = lib.mkDefault true;
       algorithm = cfg.zram.algorithm;
       memoryPercent = cfg.zram.memoryPercent;
       priority = cfg.zram.priority;

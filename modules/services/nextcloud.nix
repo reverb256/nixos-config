@@ -177,7 +177,7 @@ in {
   config = mkIf cfg.enable {
     services = {
       postgresql = mkIf cfg.database.create {
-        enable = true;
+        enable = lib.mkDefault true;
         ensureDatabases = [cfg.database.name];
         ensureUsers = [
           {
@@ -188,7 +188,7 @@ in {
       };
 
       nextcloud = {
-        enable = true;
+        enable = lib.mkDefault true;
 
         inherit (cfg) hostName https;
 
@@ -251,7 +251,7 @@ in {
       };
 
       redis.servers.nextcloud = {
-        enable = true;
+        enable = lib.mkDefault true;
         bind = "127.0.0.1";
         port = 6379;
       };
@@ -283,14 +283,14 @@ in {
       };
 
       cron = {
-        enable = true;
+        enable = lib.mkDefault true;
         systemCronJobs = [
           "*/5 * * * * nextcloud php -f ${config.services.nextcloud.package}/occ system:cron"
         ];
       };
 
       prometheus.exporters.nextcloud = mkIf config.services.prometheus.enable {
-        enable = true;
+        enable = lib.mkDefault true;
         url = "https://${cfg.hostName}";
         username = cfg.admin.user;
         inherit (cfg.admin) passwordFile;

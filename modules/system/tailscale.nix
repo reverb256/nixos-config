@@ -1,7 +1,7 @@
 {lib, ...}:
 with lib; {
   services.tailscale = {
-    enable = true;
+    enable = lib.mkDefault true;
     openFirewall = true;
     extraSetFlags = [
       "--ssh"

@@ -89,7 +89,7 @@
 in {
   services = {
     xserver = {
-      enable = true;
+      enable = lib.mkDefault true;
       xkb = {
         layout = "us";
         variant = "";
@@ -101,7 +101,7 @@ in {
     };
 
     pipewire = {
-      enable = true;
+      enable = lib.mkDefault true;
       alsa.enable = true;
       alsa.support32Bit = true;
       pulse.enable = true;
@@ -151,7 +151,7 @@ in {
   };
 
   hardware.bluetooth = {
-    enable = true;
+    enable = lib.mkDefault true;
     powerOnBoot = true;
   };
 
