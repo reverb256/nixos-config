@@ -1,5 +1,8 @@
 {pkgs, ...}: {
-  programs.niri.enable = true;
+  programs.niri = {
+    enable = true;
+    settings.disable-power-key-handling = true;
+  };
   desktop.uwsm-sessions.enable = true;
 
   services.displayManager.defaultSession = "niri-uwsm";
