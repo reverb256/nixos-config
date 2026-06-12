@@ -5,7 +5,9 @@
   inputs,
   ...
 }: {
-    imports = [
+    environment.sessionVariables.TZ = "America/Winnipeg";
+
+  imports = [
       ./monitoring.nix
       ./firewall.nix
       ./hardware.nix
