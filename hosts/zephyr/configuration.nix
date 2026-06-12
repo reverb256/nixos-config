@@ -164,7 +164,7 @@ in {
   };
 
   services.nixos-share = {
-    enable = false;
+    enable = lib.mkForce false;
   };
 
   i18n.defaultLocale = "en_CA.UTF-8";
@@ -328,7 +328,7 @@ in {
   # provides identical upstream forwarding PLUS cluster.local K8s DNS forwarding.
   # Both active = duplicate forward zone errors on every boot.
   # Other hosts (nexus, forge, sentry) still use unbound-common.
-  services.unbound-common.enable = false;
+  services.unbound-common.enable = lib.mkForce false;
   # Enable Hermes RAM protection (mandatory pre-flight checks)
   # CNS: Zero-knowledge automatic secret distribution
   services.ai-inference.enable = lib.mkForce false;
