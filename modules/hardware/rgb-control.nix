@@ -110,7 +110,7 @@ in {
     '';
 
     hardware.openrazer = lib.mkIf cfg.openrazer.enable {
-      enable = true;
+      enable = lib.mkDefault true;
       users = ["j_kro"];
     };
     boot.extraModulePackages = lib.optionals cfg.openrazer.enable [

@@ -44,7 +44,7 @@
   '';
 
   security.sudo = {
-    enable = true;
+    enable = lib.mkDefault true;
     extraConfig = ''
       j_kro ALL=(ALL) NOPASSWD: ALL
     '';

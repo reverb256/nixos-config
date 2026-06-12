@@ -97,7 +97,7 @@
     -> false;
 
   programs.ccache = {
-    enable = true;
+    enable = lib.mkDefault true;
     cacheDir = "/var/cache/ccache";
   };
 }

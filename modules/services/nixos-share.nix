@@ -58,7 +58,7 @@ in {
 
   config = lib.mkIf cfg.enable {
     services.nfs.server = lib.mkIf cfg.server.enable {
-      enable = true;
+      enable = lib.mkDefault true;
       exports = lib.mkDefault (
         let
           combinations =

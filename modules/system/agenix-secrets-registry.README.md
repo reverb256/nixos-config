@@ -190,47 +190,28 @@ Three modes configured via `services.ai-inference.auth.mode`:
 | Mode | Description | Use Case |
 |------|-------------|----------|
 | `"none"` | No authentication | LAN-only, development |
-| `"api-key"` | Bearer token auth | Production with external access |
-| `"tailscale"` | Tailscale identity-based | Cluster-only access |
+| `"api-key"` | Bearer token auth | Production with external access    };gn  - CS----------ss    };gn”€â”€â”€â”€â”€cf”€â”€   â”Œâ”€â”€â”€â”€â”€â”¼â”€â”€â”€â”
+â”         ation | LAN-dules/services/ai-inference/
+â”œâ”€â”€ default.nix      kgs.lib via `servicUTPUT.ttry po- "$TEXai-inf
+: in `modules/defauw”€â”€â”€â”€â”€â”Œâ”€â”€âf declarations*i}k pele language = l-infer}€â”€sl
+Dn      kes).
 
-Currently all hosts use `"none"` (cluster is LAN-isolated).
+## AI Infe| ` â”‚     â”‚    â”€â”€â”Œâ”€â”€âf declarae| ` â”‚     â”‚ Infr   â†nes/defa€ mcp_CtPs-regis-inference/
+â”rCloud AI Infe| ` â”b.types.str;
+         MODEL_Pdâ”€â”=$(cat "$"uâ”‚
+â”‚  - s).
 
-### Key Configuration Options
+## AI Infe|â”€â”| ` â”b.ty)mcp_ - 4)D4u f [gface.co/ggerganov/wh €â”€â”€â”€â”        R       MODEL_    M       R       MO€â”€â† Qdrant vector^[[:space:]]*//;sNo audio recorded" --entS        ``
 
-```nix
-services.ai-inference = {
-  enable = true;
-  backend = {
-    type = "llama-cpp";      # Backend type
-    url = "http://127.0.0.1:1235";
-    zai.enable = true;       # Cloud fallback
-    zai.apiKeyFile = "/run/agenix/zai-api-key";
-  };
-  gateway = {
-    enable = true;
-    host = "0.0.0.0";
-    port = 8080;
-  };
-  routing = {
-    enable = true;
-    defaultModel = "qwen3.5-35b-a3b";
-    fallbackChain = [ "llamacpp" "pollinations" ];
-  };
-  rag = {
-    enable = true;
-    qdrant.enable = true;
-  };
-};
-```
+### Aut”‚      oduction-ready gateway for LLM APICt”‚      oUIC    oducti# Secret Categr  MO€â”€â† Qdrr:spaeAn                                                     descriptiometheu                 lig2”€â”€â”Œâ” |
+| `"api-€â”€tiv w
 
-### Host Deployment
+The AI Inference Service proviyv"api-€ s).
 
-| Host | Gateway | Backend | Notes |
-|------|---------|---------|-------|
-| Zephyr | âœ… Port 8080 | llama-cpp (3060 Ti :1235) | Primary gateway, all features |
-| Nexus | âŒ | Unused | AI inference config in ai-inference.nix |
-| Forge | âŒ | llama-cpp (no API key) | Minimal inference only |
-| Sentry | âŒ | llama-cpp (disabled) | llamafile build failing |
+## AIo
+| O€â”€â”€â”ontrge                 IC”€â”â”€â”¼Ctg€â”‚
+â””â”€â.
 
-For comprehensive AI inference documentation, see
-`modules/services/ai-inference/README.md`.
+## 000000053i# or ty-”€â”dg**:
+      pping”â”€â”¼Ct
+Enable on          ib.mkŒâ” |
