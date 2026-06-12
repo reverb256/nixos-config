@@ -311,7 +311,7 @@ in {
   };
 
   virtualisation.podman = {
-    enable = false;
+    enable = lib.mkForce false;
     dockerCompat = true;
     dockerSocket.enable = false;
   };
