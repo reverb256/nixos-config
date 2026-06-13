@@ -24,8 +24,9 @@ jobs:
           if [[ "$BRANCH" =~ ^(issue|feat|fix|chore|dependabot)/[a-z0-9._-]+$ ]]; then
             echo "✅ Branch name: $BRANCH"
           else
-            echo "::warning::Branch '$BRANCH' doesn't follow convention"
+            echo "::error::Branch '$BRANCH' doesn't follow convention"
             echo "Expected: issue-NNN-desc, feat/NNN-desc, fix/NNN-desc"
+            exit 1
           fi
 
       - name: "Linked issue check"
@@ -47,10 +48,14 @@ jobs:
             elif echo "$msg" | grep -qiE "^(Merge|chore: release)"; then
               echo "⏭️  $msg (merge/release)"
             else
-              echo "⚠️  Missing issue ref: $msg"
+              echo "::error::Missing issue ref: $msg"
               FAILED=$((FAILED + 1))
             fi
           done <<< "$COMMITS"
+          if [ $FAILED -gt 0 ]; then
+            echo "::error::$FAILED commit(s) missing issue references"
+            exit 1
+          fi
 
       - name: "Conventional commit title"
         run: |
@@ -58,7 +63,8 @@ jobs:
           if echo "$TITLE" | grep -qiE "^(feat|fix|chore|refactor|docs|test|ci)(\([a-z]+\))?:"; then
             echo "✅ Title follows conventional commits"
           else
-            echo "::warning::PR title should start with type: e.g. 'fix(caddy): desc (#NNN)'"
+            echo "::error::PR title should start with type: e.g. 'fix(caddy): desc (#NNN)'"
+            exit 1
           fi
 
       - name: "Target branch check"
@@ -67,7 +73,7 @@ jobs:
           if [ "$BASE" = "main" ] || [ "$BASE" = "prod" ]; then
             echo "✅ PR targets $BASE"
           else
-            echo "::warning::PR targets '$BASE' — should be main or prod"
+            echo "::error::PR targets '$BASE' — should be main or prod"
           fi
 
       - name: "PR validation summary"

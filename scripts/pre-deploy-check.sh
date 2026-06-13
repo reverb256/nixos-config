@@ -80,37 +80,49 @@ check_flake() {
 }
 
 check_secrets() {
-    section "Agenix Secrets Validation"
+    section "sops-nix Secrets Validation"
 
-    log_info "Checking agenix secrets..."
+    log_info "Checking sops-nix secrets..."
 
-    # Check if agenix is available
-    if ! command -v agenix &>/dev/null; then
-        log_warning "agenix not found in PATH, skipping secrets validation"
-        return 0
+    # Check if sops is available
+    if ! command -v sops &>/dev/null; then
+        log_warning "sops not found in PATH, checking common locations..."
+        if [ -x /run/current-system/sw/bin/sops ]; then
+            log_success "sops found in system path"
+        else
+            log_warning "sops not found anywhere, skipping secrets validation"
+            return 0
+        fi
     fi
 
-    # Check if secrets exist
+    # Check if secrets directory exists
     local secrets_dir="/etc/nixos/secrets"
     if [ ! -d "$secrets_dir" ]; then
         log_error "Secrets directory not found: $secrets_dir"
         return 1
     fi
 
-    # Check if age key exists
-    if [ ! -f "/home/j_kro/.age/key.txt" ] && [ ! -f "/root/.age/key.txt" ]; then
-        log_warning "Age identity key not found (secrets won't be decrypted on target hosts)"
-        log_info "Expected: /home/j_kro/.age/key.txt or /root/.age/key.txt"
+    # Check if sops-nix age key exists
+    if [ ! -f "/etc/nixos/.age/key.txt" ]; then
+        log_warning "sops-nix age key not found at /etc/nixos/.age/key.txt"
+        log_info "Secrets won't be decrypted on target hosts without this key"
     else
-        log_success "Age identity key found"
+        log_success "sops-nix age key found"
     fi
 
-    # Count encrypted secrets
-    local secret_count=$(find "$secrets_dir" -name "*.age" 2>/dev/null | wc -l)
-    if [ "$secret_count" -gt 0 ]; then
-        log_success "Found $secret_count encrypted secrets"
+    # Check .sops.yaml config
+    if [ -f "/etc/nixos/.sops.yaml" ]; then
+        log_success ".sops.yaml configuration found"
     else
-        log_warning "No encrypted secrets found in $secrets_dir"
+        log_warning ".sops.yaml not found - sops decryption rules missing"
+    fi
+
+    # Count sops-encrypted secrets
+    local secret_count=$(find "$secrets_dir" -name "*.yaml" 2>/dev/null | wc -l)
+    if [ "$secret_count" -gt 0 ]; then
+        log_success "Found $secret_count sops-encrypted secrets"
+    else
+        log_warning "No sops-encrypted secrets found in $secrets_dir"
     fi
 }
 
