@@ -310,7 +310,7 @@ in {
     xmrig
     lolminer
 
-    inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.twilight
+    pkgs.zen-twilight
 
     python3Packages.playwright
 

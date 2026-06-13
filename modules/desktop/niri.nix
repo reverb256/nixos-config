@@ -105,7 +105,6 @@ in {
             BROWSER = mkDefault "zen-twilight";
             ELECTRON_OZONE_PLATFORM_HINT = mkDefault "auto";
             NIXOS_OZONE_WL = mkDefault "1";
-            MOZ_LEGACY_PROFILES = mkDefault "0";
             MOZ_ENABLE_WAYLAND = mkDefault "1";
             QT_QPA_PLATFORM = mkDefault "wayland;xcb";
             QT_AUTO_SCREEN_SCALE_FACTOR = mkDefault "1";
