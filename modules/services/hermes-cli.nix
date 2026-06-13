@@ -240,68 +240,7 @@ in {
                       # Create directory structure
                       mkdir -p "$HERMES_HOME"/{sessions,memories,skills,cron,logs}
 
-                      # Write .env with API keys from agenix secrets
-                      # This runs unconditionally — .env must always reflect current secrets
-                      echo "# Hermes environment variables" > "$HERMES_HOME/.env"
-                      ${lib.optionalString (cfg.apiKeyFile != null) ''
-          if [ -f "${cfg.apiKeyFile}" ]; then
-            echo -n "ZAI_API_KEY=" >> "$HERMES_HOME/.env"
-            cat "${cfg.apiKeyFile}" >> "$HERMES_HOME/.env"
-            echo "" >> "$HERMES_HOME/.env"
-          fi
-        ''}
-                      ${lib.optionalString (cfg.nvidiaApiKeyFile != null) ''
-          if [ -f "${cfg.nvidiaApiKeyFile}" ]; then
-            echo -n "NVIDIA_API_KEY=" >> "$HERMES_HOME/.env"
-            cat "${cfg.nvidiaApiKeyFile}" >> "$HERMES_HOME/.env"
-            echo "" >> "$HERMES_HOME/.env"
-          fi
-        ''}
-                      ${lib.optionalString (cfg.opencodeGoApiKeyFile != null) ''
-          if [ -f "${cfg.opencodeGoApiKeyFile}" ]; then
-            echo -n "OPENCODE_GO_API_KEY=" >> "$HERMES_HOME/.env"
-            cat "${cfg.opencodeGoApiKeyFile}" >> "$HERMES_HOME/.env"
-            echo "" >> "$HERMES_HOME/.env"
-          fi
-        ''}
-                      ${lib.optionalString (cfg.opencodeZenApiKeyFile != null) ''
-          if [ -f "${cfg.opencodeZenApiKeyFile}" ]; then
-            echo -n "OPENCODE_ZEN_API_KEY=" >> "$HERMES_HOME/.env"
-            cat "${cfg.opencodeZenApiKeyFile}" >> "$HERMES_HOME/.env"
-            echo "" >> "$HERMES_HOME/.env"
-          fi
-        ''}
-                      ${lib.optionalString (cfg.kilocodeApiKeyFile != null) ''
-          if [ -f "${cfg.kilocodeApiKeyFile}" ]; then
-            echo -n "KILOCODE_API_KEY=" >> "$HERMES_HOME/.env"
-            cat "${cfg.kilocodeApiKeyFile}" >> "$HERMES_HOME/.env"
-            echo "" >> "$HERMES_HOME/.env"
-          fi
-        ''}
-                      ${lib.optionalString (cfg.geminiApiKeyFile != null) ''
-          if [ -f "${cfg.geminiApiKeyFile}" ]; then
-            echo -n "GEMINI_API_KEY=" >> "$HERMES_HOME/.env"
-            cat "${cfg.geminiApiKeyFile}" >> "$HERMES_HOME/.env"
-            echo "" >> "$HERMES_HOME/.env"
-          fi
-        ''}
-                      ${lib.optionalString (cfg.hfTokenFile != null) ''
-          if [ -f "${cfg.hfTokenFile}" ]; then
-            echo -n "HF_TOKEN=" >> "$HERMES_HOME/.env"
-            cat "${cfg.hfTokenFile}" >> "$HERMES_HOME/.env"
-            echo "" >> "$HERMES_HOME/.env"
-          fi
-        ''}
-                      ${lib.optionalString (cfg.githubTokenFile != null) ''
-          if [ -f "${cfg.githubTokenFile}" ]; then
-            echo -n "GITHUB_TOKEN=" >> "$HERMES_HOME/.env"
-            cat "${cfg.githubTokenFile}" >> "$HERMES_HOME/.env"
-            echo "" >> "$HERMES_HOME/.env"
-          fi
-        ''}
-                      chmod 600 "$HERMES_HOME/.env"
-
-                      # Write SOUL.md if it doesn't exist
+                                            # Write SOUL.md if it doesn't exist
                       if [ ! -f "$HERMES_HOME/SOUL.md" ]; then
           cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
           ${cfg.personality}
