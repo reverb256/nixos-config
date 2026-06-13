@@ -359,16 +359,7 @@ in {
     port = 2222;
   };
   services.lpminer = {
-    enable = true;
-    instances = [
-      {
-        name = "nexus";
-        gpuId = 0;
-        wallet = "krxXVNVMM7.nexus-3060ti";
-        pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
-        powerLimit = 100;
-      }
-    ];
+    enable = lib.mkForce false;
   };
   services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
   services.recovery-specialisation.enable = true; # depends on initrd-ssh

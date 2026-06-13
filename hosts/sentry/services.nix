@@ -15,6 +15,23 @@ in {
       opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
       opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
     };
+
+    hermes-agent = {
+      addToSystemPackages = true;
+      settings = {
+        providers.zai = {
+          base_url = "https://api.z.ai/api/coding/paas/v4";
+          api_key_env = "ZAI_API_KEY";
+          discover_models = true;
+        };
+        providers.nvidia = {
+          base_url = "https://integrate.api.nvidia.com/v1";
+          api_key_env = "NVIDIA_API_KEY";
+          discover_models = true;
+        };
+      };
+    };
+
     k3s-cluster = {
       enable = true;
       role = "server";
