@@ -20,6 +20,8 @@
 
     /data/qdrant 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=107)
 
+    /etc/nixos 10.1.1.0/24(ro,sync,no_subtree_check,fsid=109)
+
     /data/models 10.1.1.0/24(ro,sync,no_subtree_check,fsid=108)
   '';
 in {
