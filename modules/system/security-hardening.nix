@@ -36,6 +36,15 @@ in {
   };
 
   config = mkIf cfg.enable {
+    # FIDO2/U2F for console login and sudo
+    security.pam.u2f = {
+      enable = true;
+      settings = {
+        cue = true;
+        authfile = "/home/j_kro/.config/Yubico/u2f_keys";
+      };
+    };
+
     networking.firewall = mkIf cfg.enableFirewall {
       enable = lib.mkDefault true;
 
