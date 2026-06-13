@@ -68,6 +68,7 @@
     "mcp.maplespike.lan"
     "status.maplespike.lan"
     "uptime.maplespike.lan"
+    "haven.lan"
     "dev.maplespike.lan"
     "dev-api.maplespike.lan"
     "dev-mcp.maplespike.lan"
