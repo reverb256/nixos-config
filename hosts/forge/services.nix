@@ -23,13 +23,29 @@ in {
       opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
       opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
     };
+
+    hermes-agent = {
+      addToSystemPackages = true;
+      settings = {
+        providers.zai = {
+          base_url = "https://api.z.ai/api/coding/paas/v4";
+          api_key_env = "ZAI_API_KEY";
+          discover_models = true;
+        };
+        providers.nvidia = {
+          base_url = "https://integrate.api.nvidia.com/v1";
+          api_key_env = "NVIDIA_API_KEY";
+          discover_models = true;
+        };
+      };
+    };
+
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
       role = "server";
       clusterInit = false; # Rejoining existing cluster as server (for etcd quorum)
       nodeName = "forge";
-      serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = cluster.hosts.forge.ip;
     };
@@ -53,21 +69,21 @@ in {
       mountMedia = false;
     };
 
-    srbminer = {
+    lpminer = {
       enable = true;
       instances = [
         {
           name = "4060-0";
           gpuId = 0;
           wallet = "krxXVNVMM7.forge-4060-0";
-          apiPort = 21550;
+          pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
           powerLimit = 105;
         }
         {
           name = "4060-1";
           gpuId = 1;
           wallet = "krxXVNVMM7.forge-4060-1";
-          apiPort = 21551;
+          pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
           powerLimit = 105;
         }
       ];
