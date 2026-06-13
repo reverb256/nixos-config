@@ -190,5 +190,9 @@ in
   + "\n"
   + mkRoute "dev-mcp.maplespike.lan" "http://${nexus}:${toString ports.dev-maplespike-mcp}"
   + "\n"
+  # Haven chat — public, runs on nexus NodePort 32100 (has own auth)
+  + mkRoute "haven.lan" "http://${nexus}:${toString ports.haven}"
+  + "\n"
+
   + mkRoute "workspace.lan" "http://${zephyr}:32000"
   + "\n"
