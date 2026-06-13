@@ -51,7 +51,19 @@ jobs:
         if: steps.target.outputs.target == 'zephyr' || steps.target.outputs.target == 'all'
         run: |
           RUNNER_NAME=$(hostname)-runner
-          echo "Runner: $RUNNER_NAME — marking best-effort drain (runner will reconnect after reboot)"
+          echo "Runner: $RUNNER_NAME — attempting to de-register via API..."
+          # De-register so new jobs route to nexus runner during zephyr reboot
+          if command -v gh >/dev/null 2>&1 && [ -n "${{ secrets.GITHUB_TOKEN }}" ]; then
+            RUNNER_ID=$(gh api repos/${{ github.repository }}/actions/runners               --jq '.runners[] | select(.name == env.RUNNER_NAME) | .id' 2>/dev/null || echo '')
+            if [ -n "$RUNNER_ID" ]; then
+              gh api -X DELETE "repos/${{ github.repository }}/actions/runners/$RUNNER_ID" >/dev/null 2>&1 || true
+              echo "De-registered runner $RUNNER_NAME (ID: $RUNNER_ID)"
+            else
+              echo "Runner not found via API — will reconnect after reboot"
+            fi
+          else
+            echo "gh CLI not available — runner will reconnect after reboot"
+          fi
 
       - name: Pre-build validation
         run: |
