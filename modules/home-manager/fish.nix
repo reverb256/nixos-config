@@ -57,6 +57,14 @@ in {
       end
 
       fish_add_path ~/.lmstudio/bin
+     
+      # Auto-load YubiKey SSH keys into agent - touch once per session
+      if not ssh-add -l 2>/dev/null | grep -q 'j_kro-cluster'
+        ssh-add -q ~/.ssh/id_ed25519_sk 2>/dev/null
+      end
+      if not ssh-add -l 2>/dev/null | grep -q 'j_kro@zephyr.*ED25519-SK'
+        ssh-add -q ~/.ssh/id_ed25519_sk_nfc 2>/dev/null
+      end
 
       fish_add_path ~/.local/bin
 
