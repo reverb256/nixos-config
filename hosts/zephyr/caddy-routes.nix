@@ -190,5 +190,5 @@ in
   + "\n"
   + mkRoute "dev-mcp.maplespike.lan" "http://${nexus}:${toString ports.dev-maplespike-mcp}"
   + "\n"
-  + mkAuthRoute "workspace.lan" "http://127.0.0.1:3002"
+  + mkRoute "workspace.lan" "http://${zephyr}:32000"
   + "\n"
