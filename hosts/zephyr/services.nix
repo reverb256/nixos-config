@@ -8,6 +8,24 @@
   cluster = config.networking.cluster;
 in {
   services = {
+    hermes-agent = {
+      addToSystemPackages = true;
+      settings = {
+        model.default = "glm-4.7";
+        model.provider = "zai";
+        providers.zai = {
+          base_url = "https://api.z.ai/api/coding/paas/v4";
+          api_key_env = "ZAI_API_KEY";
+          discover_models = true;
+        };
+        providers.nvidia = {
+          base_url = "https://integrate.api.nvidia.com/v1";
+          api_key_env = "NVIDIA_API_KEY";
+          discover_models = true;
+        };
+      };
+    environmentFiles = [ "/run/secrets/hermes-env" ];
+    };
 #    hermes-cli = {
 #      enable = lib.mkForce false;
 #      model = "base.en";
@@ -79,10 +97,13 @@ in {
     # Disabled: zephyr is now a k3s agent (not server), so the VIP
     # should live on the server nodes (sentry) for k3s API access.
     keepalived-vip = {
+    # Override: zephyr hosts Caddy for .lan services, so VIP must stay here
+    # VRRP multicast is broken between nodes; VIP is set statically
+    # Instead of relying on keepalived election, add VIP at boot via localCommands
       enable = true;
       vip = cluster.kubernetes.vip;
       interface = "eth0";
-      priority = 80;
+      priority = 110;
     };
 
     backup-to-garage = {
@@ -177,8 +198,8 @@ in {
             admin 127.0.0.1:2019
             auto_https off
             default_sni cluster.local
-            http_port 8080
-            https_port 4430
+            http_port 80
+            https_port 443
           }
 
           # ── Tailscale Funnel Route (public-facing) ──────────────
@@ -367,4 +388,9 @@ in {
     "d /data/hermes 0775 j_kro j_kro -"
   ];
   services.syncthing-cluster.enable = true;
+  # Zephyr hosts Caddy for .lan services — VIP must stay here statically
+  # VRRP keepalived election is unreliable between nodes (multicast issues)
+  networking.localCommands = ''
+    ip addr add 10.1.1.100/24 dev eth0 2>/dev/null || true
+  '';
 }
