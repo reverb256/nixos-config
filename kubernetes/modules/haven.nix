@@ -184,12 +184,14 @@ in {
         ingress = [
           {
             from = [
+              {ipBlock.cidr = "10.1.1.0/24";}
+              
               {namespaceSelector.matchLabels.name = "ingress-system";}
             ];
             ports = [
               {
                 protocol = "TCP";
-                port = 4180;
+                port = 3000;
               }
             ];
           }
