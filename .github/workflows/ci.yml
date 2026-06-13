@@ -243,7 +243,7 @@ jobs:
 
       - name: Documentation verification
         run: |
-          just docs-audit 2>/dev/null || echo "::warning::just docs-audit failed — LIVE/ documents may need updates"
+          just docs-audit
 
       - name: Build all hosts
         run: |
