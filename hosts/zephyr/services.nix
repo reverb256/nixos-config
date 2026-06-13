@@ -174,6 +174,8 @@ in {
             admin 127.0.0.1:2019
             auto_https off
             default_sni cluster.local
+            http_port 8080
+            https_port 4430
           }
 
           # ── Tailscale Funnel Route (public-facing) ──────────────
@@ -329,6 +331,12 @@ in {
     automation = true;
     ci = true;
     selfHosting = true;
+  };
+
+  systemd.services.caddy.serviceConfig = {
+    AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
+    CapabilityBoundingSet = ["CAP_NET_BIND_SERVICE"];
+    NoNewPrivileges = lib.mkForce false;
   };
 
   # Mining user for secret ownership (ZEPHYR monitors mining but doesn't run workers)
