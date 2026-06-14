@@ -98,7 +98,6 @@ TIER3_SECRETS=(
   "grafana-oidc-client-secret:OIDC client secret — rotation needs Casdoor + Grafana restart"
   "openwebui-oidc-client-secret:OIDC client secret — rotation needs Casdoor + OUI restart"
   "vaultwarden-oidc-client-secret:OIDC client secret — rotation needs Casdoor + VW restart"
-  "kagent-oidc-client-secret:OIDC client secret — rotation needs Casdoor + kagent restart"
   "haven-oidc-client-secret:OIDC client secret — rotation needs Casdoor + Haven restart"
   "casdoor-hermes-jwt:Casdoor API JWT — rotation needs Casdoor admin reissue"
   "rclone-config:Rclone remote config — rotation needs re-auth with cloud provider"

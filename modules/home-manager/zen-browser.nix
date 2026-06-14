@@ -365,13 +365,6 @@ in {
           container = 5;
           position = 200;
         };
-        "Open WebUI" = {
-          id = "pin-ai-002";
-          url = "https://openwebui.lan";
-          workspace = "ai-2b9d4c41-6a8e-4c9b-9a44-6d1c7f2e8b02";
-          container = 5;
-          position = 200;
-        };
         "Hermes Agent" = {
           id = "pin-ai-002c";
           url = "https://hermes.lan";

@@ -78,7 +78,6 @@ in {
     # ── AI Inference ───────────────────────────────────────────
     ai-inference.ServiceAccount.default = {};
     ai-inference.ServiceAccount.ai-inference-gateway = {};
-    ai-inference.ServiceAccount.open-webui = {};
     ai-inference.ServiceAccount.n8n-sa.automountServiceAccountToken = false;
     ai-inference.ConfigMap.ai-gateway-config.data = {
       AUTH_MODE = "token"; # Token-based authentication
@@ -160,171 +159,6 @@ in {
       MIDDLEWARE__JWT_AUTH__SYSTEM_TOKEN = "sovereign-system-token-2026-internal";
     };
 
-    ai-inference.Deployment.open-webui = {
-      spec = {
-        template = {
-          metadata.labels.app = "open-webui";
-          spec = {
-            serviceAccountName = "open-webui";
-            nodeSelector."kubernetes.io/hostname" = "nexus";
-            hostAliases = [
-              {
-                ip = cluster.kubernetes.vip;
-                hostnames = ["auth.lan" "openwebui.lan"];
-              }
-            ];
-            containers = {
-              _namedlist = true;
-              open-webui = {
-                image = "ghcr.io/open-webui/open-webui:v0.9.2";
-                imagePullPolicy = "IfNotPresent";
-                securityContext = {
-                  runAsNonRoot = true;
-                  allowPrivilegeEscalation = false;
-                  capabilities.drop = ["ALL"];
-                  seccompProfile.type = "RuntimeDefault";
-                };
-                env = {
-                  _namedlist = true;
-                  OLLAMA_BASE_URLS = {
-                    name = "OLLAMA_BASE_URLS";
-                    value = "http://ai-inference.ai-inference.svc.cluster.local:11434";
-                  }; # AI inference gateway
-                  ENABLE_OLLAMA = {
-                    name = "ENABLE_OLLAMA";
-                    value = "true";
-                  };
-                  ENABLE_OPENAI_API = {
-                    name = "ENABLE_OPENAI_API";
-                    value = "true";
-                  };
-                  ENABLE_LLM = {
-                    name = "ENABLE_LLM";
-                    value = "true";
-                  };
-                  ENABLE_SIGNUP = {
-                    name = "ENABLE_SIGNUP";
-                    value = "true";
-                  };
-                  ENABLE_LDAP_LOGIN = {
-                    name = "ENABLE_LDAP_LOGIN";
-                    value = "false";
-                  };
-                  OPENAI_API_BASE_URL = {
-                    name = "OPENAI_API_BASE_URL";
-                    value = "http://ai-inference.ai-inference.svc.cluster.local:11434";
-                  };
-                  # Casdoor OIDC
-                  OAUTH_CLIENT_ID = {
-                    name = "OAUTH_CLIENT_ID";
-                    value = "openwebui";
-                  };
-                  OAUTH_CLIENT_SECRET = {
-                    name = "OAUTH_CLIENT_SECRET";
-                    valueFrom.secretKeyRef = {
-                      name = "openwebui-oidc-secret";
-                      key = "client-secret";
-                    };
-                  };
-                  OPENID_PROVIDER_URL = {
-                    name = "OPENID_PROVIDER_URL";
-                    value = "https://auth.lan/.well-known/openid-configuration";
-                  };
-                  OPENID_REDIRECT_URI = {
-                    name = "OPENID_REDIRECT_URI";
-                    value = "https://openwebui.lan/oauth/oidc/callback";
-                  };
-                  OAUTH_PROVIDER_NAME = {
-                    name = "OAUTH_PROVIDER_NAME";
-                    value = "Casdoor";
-                  };
-                  OAUTH_SCOPES = {
-                    name = "OAUTH_SCOPES";
-                    value = "openid email profile";
-                  };
-                  ENABLE_OAUTH_SIGNUP = {
-                    name = "ENABLE_OAUTH_SIGNUP";
-                    value = "true";
-                  };
-                  WEBUI_SECRET_KEY = {
-                    name = "WEBUI_SECRET_KEY";
-                    value = "maplespike-openwebui-secret-k8s-declarative";
-                  };
-                  DATA_DIR = {
-                    name = "DATA_DIR";
-                    value = "/app/backend/data";
-                  };
-                };
-                ports = [
-                  {
-                    containerPort = 8080;
-                    name = "http";
-                    protocol = "TCP";
-                  }
-                ];
-                livenessProbe = {
-                  httpGet = {
-                    path = "/";
-                    port = 8080;
-                  };
-                  initialDelaySeconds = 60;
-                  periodSeconds = 30;
-                  failureThreshold = 3;
-                };
-                readinessProbe = {
-                  httpGet = {
-                    path = "/";
-                    port = 8080;
-                  };
-                  initialDelaySeconds = 30;
-                  periodSeconds = 10;
-                  failureThreshold = 3;
-                };
-                volumeMounts = {
-                  _namedlist = true;
-                  webui-data = {
-                    mountPath = "/app/backend/data";
-                  };
-                };
-                resources = {
-                  requests = {
-                    cpu = "500m";
-                    memory = "768Mi";
-                  };
-                  limits = {
-                    cpu = "2";
-                    memory = "3Gi";
-                  };
-                };
-              };
-            };
-            volumes = {
-              _namedlist = true;
-              webui-data = {
-                hostPath = {
-                  path = "/storage/open-webui";
-                  type = "DirectoryOrCreate";
-                };
-              };
-            };
-          };
-        };
-      };
-    };
-    ai-inference.Service.open-webui = {
-      metadata.labels.app = "open-webui";
-      spec = {
-        type = "NodePort";
-        ports = [
-          {
-            name = "http";
-            port = 8080;
-            protocol = "TCP";
-            targetPort = 8080;
-            nodePort = 32080;
-          }
-        ];
-        selector.app = "open-webui";
       };
     };
     # ── Qdrant Vector Database ──────────────────────────────────
@@ -881,10 +715,6 @@ in {
     # Secrets are populated by kubectl-apply-k8s-secrets systemd service
     # from agenix-decrypted files at /run/agenix/. These placeholder
     # definitions ensure the Secret objects exist for secretKeyRef lookups.
-    ai-inference.Secret.open-webui-secrets = {
-      type = "Opaque";
-      stringData.webui-secret-key = "";
-    };
     ai-inference.Secret.ai-inference-gateway-secrets = {
       type = "Opaque";
       # TODO: Fill from agenix key `ai-gateway-zai-api-key` (see modules/system/agenix-secrets-registry.nix)
@@ -1142,28 +972,6 @@ in {
       };
     };
     # Open WebUI network policy
-    ai-inference.NetworkPolicy.open-webui = {
-      spec = {
-        podSelector.matchLabels.app = "open-webui";
-        policyTypes = [
-          "Ingress"
-          "Egress"
-        ];
-        ingress = [
-          {
-            from = [{namespaceSelector.matchLabels."kubernetes.io/metadata.name" = "ingress-system";}];
-            ports = [
-              {
-                port = 8080;
-                protocol = "TCP";
-              }
-            ];
-          }
-          {from = [{podSelector = {};}];}
-        ];
-        egress = [{}];
-      };
-    };
     # ── vLLM Network Policies ─────────────────────────────────────────
     # Restrict access to vLLM endpoints to gateway only
     ai-inference.NetworkPolicy.llama-qwen-vllm-nexus-ingress = {

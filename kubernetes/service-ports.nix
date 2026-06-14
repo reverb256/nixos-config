@@ -29,7 +29,6 @@
   frostbite-mcp = 30760; # Data ingestion MCP
   gitea = 30954; # Gitea git service
   llama-server-sentry = 30793; # llama.cpp on sentry
-  open-webui = 32080; # Open WebUI
   qdrant = 30632; # Vector database
 
   # ── auth (namespace: auth) ─────────────────────────────────
@@ -44,10 +43,8 @@
 
   # ── haven (namespace: haven) ───────────────────────────────
   haven = 32100;
+  mosiac = 32101;
 
-  # ── kagent (namespace: kagent) ─────────────────────────────
-  kagent-controller = 30794;
-  kagent-ui = 32103;
 
   # ── monitoring (namespace: monitoring) ─────────────────────
   grafana = 32102;

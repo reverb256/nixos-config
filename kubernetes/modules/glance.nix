@@ -125,7 +125,6 @@ in {
                         allow-insecure: true
                         alt-status-codes: [301, 302]
                       - title: Open WebUI
-                        url: https://openwebui.lan
                         allow-insecure: true
                         alt-status-codes: [301, 302]
                       - title: Vaultwarden
@@ -137,10 +136,6 @@ in {
                         alt-status-codes: [301, 302]
                       - title: Mission Control
                         url: https://mission-control.lan
-                        allow-insecure: true
-                        alt-status-codes: [301, 302]
-                      - title: kAgent
-                        url: https://kagent.lan
                         allow-insecure: true
                         alt-status-codes: [301, 302]
                       - title: Hermes
@@ -251,7 +246,6 @@ in {
                           - title: AI Gateway
                             url: https://ai-inference.lan
                           - title: Open WebUI
-                            url: https://openwebui.lan
                           - title: Brain
                             url: https://brain.lan
                       - title: Platform
