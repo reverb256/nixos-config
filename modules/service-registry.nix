@@ -124,12 +124,6 @@ in {
         auth = "forward_auth";
       };
 
-      open-webui = mkService {
-        name = "open-webui";
-        namespace = "ai-inference";
-        port = 8080;
-        auth = "forward_auth";
-      };
 
       qdrant = mkService {
         name = "qdrant";
@@ -232,21 +226,6 @@ in {
         name = "mission-control";
         namespace = "orchestration";
         port = 3000;
-        auth = "forward_auth";
-      };
-
-      # ── Kagent ────────────────────────────────────────────────────
-      kagent-controller = mkService {
-        name = "kagent-controller";
-        namespace = "kagent";
-        port = 8083;
-        auth = "forward_auth";
-      };
-
-      kagent-ui = mkService {
-        name = "kagent-ui";
-        namespace = "kagent";
-        port = 8080;
         auth = "forward_auth";
       };
 

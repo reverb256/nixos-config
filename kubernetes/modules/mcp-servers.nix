@@ -365,85 +365,6 @@ in {
           };
       };
 
-      # ── C4: Kagent RemoteMCPServer CRDs ─────────────────────────────────
-      # Generated from mcp-server-registry for in-cluster MCP discovery.
-      # Each cluster-scoped MCP server gets a RemoteMCPServer CRD so Kagent
-      # agents can discover and use them via SSE endpoints.
-      kagent.RemoteMCPServer.kubernetes-mcp = {
-        metadata.labels =
-          managed
-          // {
-            "app.kubernetes.io/component" = "mcp-server";
-            "mcp-server" = "kubernetes";
-          };
-        spec = {
-          name = "kubernetes";
-          url = "http://kubernetes-mcp.infra.svc.cluster.local:8080/mcp";
-          transport = "sse";
-          description = "Kubernetes cluster management (14 tools: pods, events, resources)";
-        };
-      };
-
-      kagent.RemoteMCPServer.nixos-cluster = {
-        metadata.labels =
-          managed
-          // {
-            "app.kubernetes.io/component" = "mcp-server";
-            "mcp-server" = "nixos-cluster";
-          };
-        spec = {
-          name = "nixos-cluster";
-          url = "http://nixos-cluster-mcp.mcp.svc.cluster.local:9004/sse";
-          transport = "sse";
-          description = "NixOS cluster management (15 tools: cluster_status, node_info, gpu_inventory, etc.)";
-        };
-      };
-
-      kagent.RemoteMCPServer.searxng = {
-        metadata.labels =
-          managed
-          // {
-            "app.kubernetes.io/component" = "mcp-server";
-            "mcp-server" = "searxng";
-          };
-        spec = {
-          name = "searxng";
-          url = "http://searxng-mcp.mcp.svc.cluster.local:9001/sse";
-          transport = "sse";
-          description = "SearXNG web search (15 tools)";
-        };
-      };
-
-      kagent.RemoteMCPServer.lightpanda = {
-        metadata.labels =
-          managed
-          // {
-            "app.kubernetes.io/component" = "mcp-server";
-            "mcp-server" = "lightpanda";
-          };
-        spec = {
-          name = "lightpanda";
-          url = "http://lightpanda-mcp.mcp.svc.cluster.local:9003/sse";
-          transport = "sse";
-          description = "Lightpanda web browser automation";
-        };
-      };
-
-      kagent.RemoteMCPServer.casdoor = {
-        metadata.labels =
-          managed
-          // {
-            "app.kubernetes.io/component" = "mcp-server";
-            "mcp-server" = "casdoor";
-          };
-        spec = {
-          name = "casdoor";
-          url = "http://casdoor-mcp.mcp.svc.cluster.local:9005/sse";
-          transport = "sse";
-          description = "Casdoor SSO/OIDC - application management (5 tools, Bearer auth)";
-        };
-      };
-
       # ── C5: NetworkPolicy per MCP server ────────────────────────────────
       # Allow ingress to MCP SSE endpoints from ingress-system and cluster subnet
       mcp.NetworkPolicy.allow-mcp-sse-ingress = {
@@ -525,7 +446,5 @@ in {
       };
     };
 
-    # Register apiMapping for kagent RemoteMCPServer CRD
-    kubernetes.apiMappings.RemoteMCPServer = "kagent.dev/v1alpha1";
   }; # close config
 }

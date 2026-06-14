@@ -129,10 +129,10 @@ in
       }
       # OAuth2 callback — proxy to oauth2-proxy (NOT Casdoor)
       handle /oauth2/* {
-        reverse_proxy ${zephyr}:${toString ports.oauth2-proxy}
+        reverse_proxy ${nexus}:${toString ports.oauth2-proxy}
       }
       handle {
-        reverse_proxy ${zephyr}:${toString ports.casdoor} {
+        reverse_proxy ${nexus}:${toString ports.casdoor} {
           ${proxyHeader}
         }
       }
@@ -163,20 +163,7 @@ in
   # Mission Control
   mkAuthRoute "mission-control.lan" "http://${nexus}:${toString ports.mission-control}"
   + "\n"
-  +
-  # Kagent controller
-  mkAuthRoute "kagent.lan" "http://${nexus}:${toString ports.kagent-ui}"
-  + "\n"
-  +
   # Grafana
-  mkAuthRoute "grafana.lan" "http://${nexus}:${toString ports.grafana}"
-  + "\n"
-  +
-  # Open WebUI — has own auth (does NOT consume X-Auth-Request-* headers)
-  mkRoute "openwebui.lan" "http://${nexus}:${toString ports.open-webui}"
-  + "\n"
-  # Glance Dashboard (nexus, NodePort 32200)
-  + mkRoute "dashboard.lan" "http://${nexus}:${toString ports.glance}"
   + "\n"
   + mkRoute "privacy-filter.lan" "http://${nexus}:${toString ports.privacy-filter}"
   # NOTE: MapleSpike routes handled by Nexus (VIP 10.1.1.100)
@@ -192,6 +179,7 @@ in
   + "\n"
   # Haven chat — public, runs on nexus NodePort 32100 (has own auth)
   + mkRoute "haven.lan" "http://${nexus}:${toString ports.haven}"
+  + mkRoute "mosiac.lan" "http://${nexus}:${toString ports.mosiac}"
   + "\n"
 
   + mkRoute "workspace.lan" "http://${zephyr}:32000"
