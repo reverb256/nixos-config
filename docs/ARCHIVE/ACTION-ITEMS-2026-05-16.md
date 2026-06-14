@@ -66,7 +66,6 @@
 | **P3-3** | Generate SBOMs for all container images | No software bill of materials. | `docker sbom` or `syft` on each built image. |
 | **P3-4** | ai-inference namespace lockdown | Privileged namespace. Tighten after GPU isolation fixed. | Change PSS label to `baseline` after P0-3. |
 | **P3-5** | Remove stale NixOS Grafana module | `services.monitoring.grafana` disabled but config exists. | Delete or archive `grafana-v2.nix`. |
-| **P3-6** | Clean up stale OIDC K8s secrets | `haven-oidc`, `mission-control-oidc`, `kagent-oidc` never mounted. | Delete secrets + Nix references. |
 
 ---
 
