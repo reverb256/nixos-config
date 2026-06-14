@@ -19,6 +19,8 @@ in {
     hermes-agent = {
       addToSystemPackages = true;
       settings = {
+        model.default = "glm-4.7";
+        model.provider = "zai";
         providers.zai = {
           base_url = "https://api.z.ai/api/coding/paas/v4";
           api_key_env = "ZAI_API_KEY";
@@ -30,6 +32,7 @@ in {
           discover_models = true;
         };
       };
+    environmentFiles = [ "/run/secrets/hermes-env" ];
     };
 
     k3s-cluster = {

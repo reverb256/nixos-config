@@ -291,29 +291,6 @@
     ${mkHermesMcpServers allServers}
   '';
 
-  # ── C4: Generate Kagent RemoteMCPServer CRDs ────────────────────────────
-  mkRemoteMCPServerCRD = name: server:
-    if server.scope == "cluster"
-    then {
-      "kagent.dev/v1alpha1".RemoteMCPServer.${name} = {
-        metadata.labels = {
-          "app.kubernetes.io/managed-by" = "easykubenix";
-          "app.kubernetes.io/component" = "mcp-server";
-          "mcp-server" = name;
-        };
-        spec = {
-          inherit name;
-          inherit (server) url;
-          transport = server.type;
-          description = server.description or "";
-          connectTimeout = "PT${toString (server.connectTimeout or 30)}S";
-          timeout = "PT${toString (server.timeout or 60)}S";
-        };
-      };
-    }
-    else {};
-
-  kagentCRDs = lib.mkMerge (lib.mapAttrsToList mkRemoteMCPServerCRD clusterServers);
 
   # ── C5: Generate NetworkPolicy per server ───────────────────────────────
   mkNetworkPolicy = name: server:
@@ -535,8 +512,8 @@ in {
     # Public helpers for use by other modules (via config.lib.mcp-registry)
     lib.mcp-registry = {
       inherit allServers stdioServers sseServers httpServers localServers clusterServers;
-      inherit mkClaudeCodeMcpServers mkHermesMcpServers mkRemoteMCPServerCRD mkNetworkPolicy;
-      inherit claudeCodeJson hermesMcpYaml kagentCRDs networkPolicies;
+      inherit mkClaudeCodeMcpServers mkHermesMcpServers mkNetworkPolicy;
+      inherit claudeCodeJson hermesMcpYaml networkPolicies;
     };
   };
 }

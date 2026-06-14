@@ -3,7 +3,7 @@
   lib,
   ...
 }: let
-  havenImage = "ghcr.io/ancsemi/haven:3.1.1";
+  havenImage = "ghcr.io/ancsemi/haven:3.24.0";
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
@@ -96,6 +96,8 @@ in {
                   HAVEN_DATA_DIR.value = "/data";
                   NODE_ENV.value = "production";
                   FORCE_HTTP.value = "true";
+                  MOSIAC_RP_ID.value = "10.1.1.120";
+                  MOSIAC_ORIGIN.value = "http://10.1.1.120:32100";
                 };
                 resources = {
                   requests = {
@@ -220,6 +222,14 @@ in {
               {
                 protocol = "TCP";
                 port = 53;
+              }
+              {
+                protocol = "TCP";
+                port = 80;
+              }
+              {
+                protocol = "TCP";
+                port = 443;
               }
             ];
           }

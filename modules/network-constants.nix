@@ -286,15 +286,6 @@ in {
                       description = "AI Inference Gateway";
                     };
 
-                    open-webui = lib.mkOption {
-                      type = lib.types.submodule (svcOpts {
-                        namespace = "ai-inference";
-                        port = 8080;
-                      });
-                      default = {};
-                      description = "Open WebUI";
-                    };
-
                     qdrant = lib.mkOption {
                       type = lib.types.submodule (svcOpts {
                         namespace = "ai-inference";
@@ -400,24 +391,6 @@ in {
                       });
                       default = {};
                       description = "Mission Control (builderz-labs)";
-                    };
-
-                    kagent-controller = lib.mkOption {
-                      type = lib.types.submodule (svcOpts {
-                        namespace = "kagent";
-                        port = 8083;
-                      });
-                      default = {};
-                      description = "Kagent controller API";
-                    };
-
-                    kagent-ui = lib.mkOption {
-                      type = lib.types.submodule (svcOpts {
-                        namespace = "kagent";
-                        port = 8080;
-                      });
-                      default = {};
-                      description = "Kagent UI dashboard";
                     };
 
                     grafana = lib.mkOption {

@@ -336,6 +336,7 @@ in {
   # CNS: Zero-knowledge automatic secret distribution
   services.ai-inference.enable = lib.mkForce false;
   services.cluster-mesh.enable = true;
+  services.cluster-ca.enable = true;
 
   # ═══════════════════════════════════════════════════════════════════
   # STORAGE REDIRECT — Use secondary NVMe for heavy data

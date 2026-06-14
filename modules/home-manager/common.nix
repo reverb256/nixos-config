@@ -72,7 +72,6 @@ in {
     programs.gpg.enable = true;
 
     # Common .config entries (shared across hosts)
-    xdg.configFile."alacritty/alacritty.yml".source = ./alacritty.yml;
     xdg.configFile."fastfetch/config.conf".source = ./fastfetch.conf;
 
     # Files in home directory (not .config)

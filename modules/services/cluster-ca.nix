@@ -197,7 +197,8 @@ in {
             chmod 644 $LEAF_CERT
             chmod 640 $LEAF_KEY
               chown root:${cfg.keyGroup} $LEAF_KEY
-              chmod 640 $LEAF_CERT
+              chown root:${cfg.keyGroup} $LEAF_CERT
+              chmod 644 $LEAF_CERT
               chmod 640 $LEAF_KEY
               echo "$SAN_HASH" > "$SAN_FILE"
             echo "Leaf certificate generated at $LEAF_CERT"
