@@ -3,32 +3,36 @@
   pkgs,
   lib,
   ...
-}: {
+}:
+let
+  cfg = config.services.lpminer;
+  inherit (lib) mkEnableOption mkOption types mkIf mkBefore;
+in {
   options.services.lpminer = {
-    enable = lib.mkEnableOption "LPMiner GPU mining";
+    enable = mkEnableOption "LPMiner GPU mining";
 
-    instances = lib.mkOption {
-      type = lib.types.listOf (lib.types.submodule {
+    instances = mkOption {
+      type = types.listOf (types.submodule {
         options = {
-          name = lib.mkOption {
-            type = lib.types.str;
+          name = mkOption {
+            type = types.str;
             description = "Service name suffix";
           };
-          gpuId = lib.mkOption {
-            type = lib.types.int;
+          gpuId = mkOption {
+            type = types.int;
             description = "GPU ID to use";
           };
-          wallet = lib.mkOption {
-            type = lib.types.str;
+          wallet = mkOption {
+            type = types.str;
             description = "Wallet address";
           };
-          pool = lib.mkOption {
-            type = lib.types.str;
+          pool = mkOption {
+            type = types.str;
             default = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
             description = "Mining pool URL(s), comma-separated";
           };
-          powerLimit = lib.mkOption {
-            type = lib.types.nullOr lib.types.int;
+          powerLimit = mkOption {
+            type = types.nullOr types.int;
             default = null;
             description = "GPU power limit in watts (null = no change)";
           };
@@ -38,20 +42,20 @@
       description = "List of LPMiner instances";
     };
 
-    user = lib.mkOption {
-      type = lib.types.str;
+    user = mkOption {
+      type = types.str;
       default = "j_kro";
       description = "User to run miner as";
     };
   };
 
-  config = lib.mkIf config.services.lpminer.enable {
+  config = mkIf cfg.enable {
     systemd.services = lib.listToAttrs (
       builtins.map (instance: let
         powerLimitArgs = if instance.powerLimit != null then
           "+/run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
         else "";
-        in {
+      in {
         name = "lpminer-${instance.name}";
         value = {
           description = "LPMiner - ${instance.name}";
@@ -61,16 +65,15 @@
 
           serviceConfig = {
             Type = "simple";
-            User = config.services.lpminer.user;
-            ExecStartPre = lib.mkIf (instance.powerLimit != null) (
-              lib.mkBefore powerLimitArgs
+            User = cfg.user;
+            ExecStartPre = mkIf (instance.powerLimit != null) (
+              mkBefore powerLimitArgs
             );
             ExecStart = pkgs.writeShellScript "lpminer-${instance.name}" ''
               export CUDA_DEVICE_ORDER=PCI_BUS_ID
               export CUDA_VISIBLE_DEVICES=${toString instance.gpuId}
               export LD_LIBRARY_PATH=/run/opengl-driver/lib
-              cd /home/j_kro/lpminer-${instance.name}
-              exec ./lpminer --pearl-mine \
+              exec ${pkgs.lpminer-pearl}/bin/lpminer --pearl-mine \
                 --pool "${instance.pool}" \
                 --wallet "${instance.wallet}" \
                 --device 0
@@ -79,7 +82,7 @@
             RestartSec = "5";
           };
         };
-      }) config.services.lpminer.instances
+      }) cfg.instances
     );
   };
 }

@@ -80,14 +80,14 @@ in {
           gpuId = 0;
           wallet = "krxXVNVMM7.forge-4060-0";
           pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
-          powerLimit = 105;
+          powerLimit = 118;
         }
         {
           name = "4060-1";
           gpuId = 1;
           wallet = "krxXVNVMM7.forge-4060-1";
           pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
-          powerLimit = 105;
+          powerLimit = 118;
         }
       ];
     };

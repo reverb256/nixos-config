@@ -1612,7 +1612,7 @@
     },
     "preservation": {
       "locked": {
-        "lastModified": 1780373179,
+        "lastModified": 1780809578,
         "narHash": "sha256-JfD+sES5PzVDJHN8XedawzDU1MaVbMyWGyjjZEJsWzA=",
         "path": "/etc/nixos/lib/preservation",
         "type": "path"
