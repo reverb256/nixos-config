@@ -4,10 +4,10 @@
   lib,
   runCommandLocal,
 }: let
-  version = "0.4.16-1";
+  version = "0.4.16-2";
   src = fetchurl {
     url = "https://installers.lmstudio.ai/linux/x64/${version}/LM-Studio-${version}-x64.AppImage";
-    sha256 = "sha256-DLB1V7dSkHKlJz6CDaHgFkJxjptdGPL9e33w7ZXR3a8=";
+    sha256 = "sha256-faLtj/9M59KRdEMHHgTCPLG4Gl5C7hkdAgmaS/O5rOk=";
   };
   appimageContents = appimageTools.extractType2 {
     pname = "lmstudio";

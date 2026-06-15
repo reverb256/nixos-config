@@ -309,28 +309,17 @@ in {
           "Mod+0".action =
             spawn-sh "niri msg action focus-monitor HDMI-A-2 && niri msg action focus-workspace 2";
 
-          # Move window to workspace on specific monitor
-          "Mod+Shift+1".action =
-            spawn-sh "niri msg action focus-monitor DP-5 && niri msg action move-column-to-workspace 1";
-          "Mod+Shift+2".action =
-            spawn-sh "niri msg action focus-monitor DP-5 && niri msg action move-column-to-workspace 2";
-          "Mod+Shift+3".action =
-            spawn-sh "niri msg action focus-monitor DP-5 && niri msg action move-column-to-workspace 3";
-          "Mod+Shift+4".action =
-            spawn-sh "niri msg action focus-monitor DP-5 && niri msg action move-column-to-workspace 4";
-          "Mod+Shift+5".action =
-            spawn-sh "niri msg action focus-monitor DP-4 && niri msg action move-column-to-workspace 1";
-          "Mod+Shift+6".action =
-            spawn-sh "niri msg action focus-monitor DP-4 && niri msg action move-column-to-workspace 2";
-          "Mod+Shift+7".action =
-            spawn-sh "niri msg action focus-monitor DP-6 && niri msg action move-column-to-workspace 1";
-          "Mod+Shift+8".action =
-            spawn-sh "niri msg action focus-monitor DP-6 && niri msg action move-column-to-workspace 2";
-          "Mod+Shift+9".action =
-            spawn-sh "niri msg action focus-monitor HDMI-A-2 && niri msg action move-column-to-workspace 1";
-          "Mod+Shift+0".action =
-            spawn-sh "niri msg action focus-monitor HDMI-A-2 && niri msg action move-column-to-workspace 2";
-
+          # Move column to workspace N on a specific monitor (cross-monitor)
+          "Mod+Shift+1".action = spawn-sh "niri-move-to-workspace.sh DP-5 1";
+          "Mod+Shift+2".action = spawn-sh "niri-move-to-workspace.sh DP-5 2";
+          "Mod+Shift+3".action = spawn-sh "niri-move-to-workspace.sh DP-5 3";
+          "Mod+Shift+4".action = spawn-sh "niri-move-to-workspace.sh DP-5 4";
+          "Mod+Shift+5".action = spawn-sh "niri-move-to-workspace.sh DP-4 1";
+          "Mod+Shift+6".action = spawn-sh "niri-move-to-workspace.sh DP-4 2";
+          "Mod+Shift+7".action = spawn-sh "niri-move-to-workspace.sh DP-6 1";
+          "Mod+Shift+8".action = spawn-sh "niri-move-to-workspace.sh DP-6 2";
+          "Mod+Shift+9".action = spawn-sh "niri-move-to-workspace.sh HDMI-A-2 1";
+          "Mod+Shift+0".action = spawn-sh "niri-move-to-workspace.sh HDMI-A-2 2";
           "Mod+Page_Down".action = focus-workspace-down;
           "Mod+Page_Up".action = focus-workspace-up;
           "Mod+Shift+Page_Down".action = move-column-to-workspace-down;

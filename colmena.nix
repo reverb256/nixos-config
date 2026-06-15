@@ -66,11 +66,6 @@ in {
   krash3 = {...}: {
     imports = [ ./hosts/krash3/configuration.nix ];
     deployment = {
-      targetHost = "krash3";
-      targetPort = 22;
-  krash3 = {...}: {
-    imports = [ ./hosts/krash3/configuration.nix ];
-    deployment = {
       targetHost = "127.0.0.1";
       targetPort = 22222;
       targetUser = "j_kro";
