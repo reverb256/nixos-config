@@ -5,6 +5,8 @@ _final: prev:
     lolminer
     xmrig
     ;
+  srbminer-multi = prev.callPackage ./packages/srbminer.nix { };
+  lpminer-pearl = prev.callPackage ./packages/lpminer-pearl.nix { tag = "lpminer-0-1-10"; };
   lmstudio = prev.callPackage ./packages/lmstudio.nix { };
   haven-desktop = prev.callPackage ./packages/haven-desktop.nix { };
   wivrn = prev.wivrn.overrideAttrs (old: {

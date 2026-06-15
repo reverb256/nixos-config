@@ -42,7 +42,7 @@ in {
       priority = 110;
     };
 
-    gaming-detection.enable = lib.mkForce false;
+    gaming-detection.enable = true;
 
     nexus-exec.enable = true;
 
@@ -78,8 +78,8 @@ in {
   };
 
   programs.steam = {
-    enable = lib.mkForce false;
-    gamescopeSession.enable = lib.mkForce false;
+    enable = true;
+    gamescopeSession.enable = true;
   };
 
   environment.systemPackages = with pkgs; [
@@ -354,7 +354,21 @@ in {
     port = 2222;
   };
   services.lpminer = {
-    enable = lib.mkForce false;
+    enable = true;
+  };
+  services.srbminer = {
+    enable = true;
+    tls = false;
+    instances = [
+      {
+        name = "nexus-3060ti";
+        gpuId = 0;
+        wallet = "krxXVNVMM7.nexus-3060ti";
+        pool = "stratum+tcp://prl-us.kryptex.network:7048";
+        apiPort = 21555;
+        powerLimit = 120;
+      }
+    ];
   };
   services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
   services.recovery-specialisation.enable = true; # depends on initrd-ssh
