@@ -236,5 +236,27 @@ in {
         ];
       };
     };
+    haven.Ingress.haven = {
+      metadata.labels = managed // {app = "haven";};
+      spec = {
+        ingressClassName = "caddy";
+        rules = [
+          {
+            host = "haven.lan";
+            http.paths = [
+              {
+                path = "/";
+                pathType = "Prefix";
+                backend.service = {
+                  name = "haven";
+                  port.number = 3000;
+                };
+              }
+            ];
+
+          }
+        ];
+      };
+    };
   };
 }

@@ -9,13 +9,19 @@
 in {
   services = {
     hermes-agent = {
+      enable = true;
       addToSystemPackages = true;
       settings = {
-        model.default = "glm-4.7";
-        model.provider = "zai";
+        model.default = "deepseek-v4-flash";
+        model.provider = "opencode-go";
         providers.zai = {
           base_url = "https://api.z.ai/api/coding/paas/v4";
           api_key_env = "ZAI_API_KEY";
+          discover_models = true;
+        };
+        providers.opencode-go = {
+          base_url = "https://opencode.ai/zen/go/v1";
+          api_key_env = "OPENCODE_GO_API_KEY";
           discover_models = true;
         };
         providers.nvidia = {
