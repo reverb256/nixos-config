@@ -73,7 +73,7 @@
       inputs.home-manager.follows = "";
     };
     preservation = {
-      url = "path:/etc/nixos/lib/preservation";
+      url = "./lib/preservation";
     };
     niri = {
       url = "tarball+https://codeload.github.com/sodiboo/niri-flake/tar.gz/b5f81cf03d90bcf2efd20d12fe933a0790b4722b";
