@@ -119,7 +119,7 @@ in {
 
           serviceConfig = {
             Type = "simple";
-            User = cfg.user;
+            User = "root"; # MUST be root - SRBMiner segfaults under non-root without PAM session
             ExecStartPre = mkIf (instance.powerLimit != null) (
               mkBefore powerLimitArgs
             );
