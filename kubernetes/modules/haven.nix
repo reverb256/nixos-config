@@ -3,7 +3,7 @@
   lib,
   ...
 }: let
-  havenImage = "ghcr.io/ancsemi/haven:3.24.0";
+  havenImage = "nexus:5000/mosiac:v0.1.6-forum";
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
