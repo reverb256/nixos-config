@@ -89,6 +89,13 @@ in {
                     protocol = "TCP";
                   };
                 };
+                lifecycle = {
+                  postStart = {
+                    exec = {
+                      command = ["sh" "-c" "sed -i s/const maxAttempts = 20;/const maxAttempts = 200;/ /app/src/auth.js && sed -i s/const maxAttempts = 5;/const maxAttempts = 50;/ /app/src/auth.js"];
+                    };
+                  };
+                };
                 env = {
                   _namedlist = true;
                   PORT.value = "3000";
