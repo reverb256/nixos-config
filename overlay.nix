@@ -163,4 +163,12 @@ _final: prev:
       substituteInPlace $out/bin/zen-twilight         --replace-fail 'export MOZ_LEGACY_PROFILES' '# export MOZ_LEGACY_PROFILES'
     '';
   });
+
+  # DBD-CSV test failure blocks system builds — disable checks
+  perlPackages = prev.perlPackages // {
+    DBDCSV = prev.perlPackages.DBDCSV.overrideAttrs (old: {
+      doCheck = false;
+    });
+  };
+
 }

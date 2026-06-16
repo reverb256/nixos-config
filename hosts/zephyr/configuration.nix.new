@@ -11,14 +11,14 @@
   };
 
   # Gammix subvolume mounts for games + projects
-  # XPG GAMMIX S11 Pro (nvme1n1p2, 938G, 457G free)
+  # XPG GAMMIX S11 Pro DIED — redirected to Samsung
   fileSystems."/data/games" = {
-    device = "/dev/disk/by-partlabel/disk-xpg-nix";
+    device = "/dev/disk/by-label/root";
     fsType = "btrfs";
     options = ["subvol=@games" "compress=zstd:3" "ssd" "discard=async" "noatime" "nofail"];
   };
   fileSystems."/data/projects" = {
-    device = "/dev/disk/by-partlabel/disk-xpg-nix";
+    device = "/dev/disk/by-label/root";
     fsType = "btrfs";
     options = ["subvol=@nix/@projects" "compress=zstd:3" "ssd" "discard=async" "noatime" "nofail"];
   };

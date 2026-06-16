@@ -3,12 +3,12 @@
   stdenv,
   fetchurl,
   python3,
-  version ? "3.3.8",
+  version ? "3.3.9",
 }: let
   tag = "srbminer-${builtins.replaceStrings ["."] ["-"] version}";
   src = fetchurl {
     url = "https://github.com/kryptex-miners-org/kryptex-miners/releases/download/${tag}/SRBMiner-Multi-${builtins.replaceStrings ["."] ["-"] version}-Linux.tar.gz";
-    hash = "sha256-UVr931JXRG20gbFqsV1evoG2biTWzcjNu0Z9RFS709A=";
+    hash = "sha256-m6JlIicpvamjS0rtbM2XjCyYUwQK4kwLiBANSs0HXHQ=";
   };
 in
   stdenv.mkDerivation {
