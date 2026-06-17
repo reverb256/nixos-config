@@ -143,11 +143,11 @@ deploy host="all":
             sudo nixos-rebuild switch --flake {{FLAKE}}#$host 2>&1
             echo "done"
         else
-            OUT=$(nix build --no-link --print-out-paths {{FLAKE}}#nixosConfigurations.$host.config.system.build.toplevel 2>&1) || {
-                echo "Build failed for $host"; echo "$OUT"; exit 1
+            OUT=$(nix build --no-link --print-out-paths {{FLAKE}}#nixosConfigurations.$host.config.system.build.toplevel) || {
+                echo "Build failed for $host"; exit 1
             }
             nix-copy-closure --to j_kro@$host "$OUT" 2>&1 | grep -v "copying path" | grep -v "already exists"
-            ssh j_kro@$host "sudo nix-env -p /nix/var/nix/profiles/system --set $OUT && sudo $OUT/bin/switch-to-configuration switch" 2>&1 | tail -5
+            ssh j_kro@$host "bash --norc --noprofile -c 'sudo nix-env -p /nix/var/nix/profiles/system --set $OUT && sudo $OUT/bin/switch-to-configuration switch && echo OK'" 2>&1 | tail -3
             echo "done"
         fi
     done
