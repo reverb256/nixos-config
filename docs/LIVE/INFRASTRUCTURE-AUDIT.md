@@ -51,6 +51,33 @@ Multiple MCP servers (kubernetes, nixos-cluster, searxng, casdoor, git, etc.) av
 - Contradictions must be resolved immediately.
 - Pocock Rule: If cluster reality diverges from a plan, update the plan.
 
+
+## Security Posture
+
+**Audit Date:** 2026-06-17  
+**Status:** Remediated (structural fixes applied, keys pending rotation)
+
+### Credential Management
+- Secrets encrypted with sops-nix/agenix (age key at `/etc/nixos/.age/key.txt`)
+- SSH key lives at `~/.ssh/id_ed25519` -- not inside the repo
+- Pre-commit `gitleaks` hook blocks credential commits
+- `.gitignore` hardened against plaintext secret files
+
+### Exposed Credentials (Found in Audit, Pending Rotation)
+- `env-vars` -- live API keys (Anthropic, ZAI, Gemini, Context7) -- removed from tracking
+- `secrets/context7/api-key.age` -- plaintext Context7 key -- removed from tracking
+- `secrets/casdoor/mcp-gateway-credentials.env` -- plaintext Casdoor SSO creds -- removed
+
+### Firewall
+- NFS ports restricted to eth0 (cluster subnet)
+- Tailscale trusted interface
+- SSH hardened: no passwords, no root, fail2ban, key-only
+- Kernel hardening: rp_filter, syncookies, source routing disabled
+
+### Next Steps
+1. Rotate all exposed credentials
+2. Run `git filter-repo` to purge secrets from git history
+3. Force push to all remotes (origin, central, gitea)
 ## Verification
 
 Run `just docs-audit` (which runs `docs/meta/VERIFICATION-SUITE/run.sh`).
