@@ -34,6 +34,32 @@ just docs-freshen    # Refresh stale sections
 - All PRs touching modules/ or hosts/ must pass `just docs-audit`
 - If cluster reality diverges from docs, update the docs (Pocock Rule)
 
+
+## Security
+
+### Before committing
+```bash
+gitleaks protect --staged          # Check for credentials in staged changes
+```
+
+### If credentials are accidentally committed
+1. Immediately rotate the exposed credential
+2. Remove file from git: `git rm --cached <file>`
+3. Update `.gitignore` to prevent recurrence
+4. Run `git filter-repo --path <file> --invert-paths` to purge history
+5. Force push to all remotes
+6. Notify collaborators to re-clone
+
+### Verify no secrets in working tree
+```bash
+gitleaks detect --source . --no-git  # Scan entire working tree
+```
+
+### Key paths
+- Age key: `/etc/nixos/.age/key.txt` (600, gitignored)
+- SSH key: `~/.ssh/id_ed25519` (outside repo)
+- Encrypted secrets: `secrets/*.age` and `secrets/*.yaml`
+
 ## Emergency Procedures
 
 **NFS Issues**

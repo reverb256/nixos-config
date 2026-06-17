@@ -653,7 +653,7 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 | 6 | **Nix Module Boilerplate** | No | `services.*` namespace, `mkEnableOption`, `mkIf cfg.enable`, register in `modules/default.nix`, `git add` new files. |
 | 7 | **Lib Helpers** | No | `lib.getExe` for ExecStart, `writeShellScript` for multi-line scripts, `makeBinPath` for PATH, `pipe` for transforms. |
 | 8 | **Network Policies** | No | `default-deny-all` per namespace + `allow-dns` egress + specific allow policies. |
-| 9 | **Agenix Secrets** | No | `/run/agenix/<name>` paths, `config.age.secrets.*.path` references, never hardcode secrets. |
+| 9 | **Agenix Secrets** | **YES** | `/run/secrets/<name>` paths (sops-nix), `config.sops.secrets.*.path` references. **NEVER hardcode secrets** -- plaintext secrets in git = CRITICAL. Pre-commit gitleaks blocks accidental commits. |
 | 10 | **Systemd Services** | No | `wantedBy = ["multi-user.target"]`, `Restart = "on-failure"`, `writeShellScript` over `bash -c`. |
 | 11 | **Pod Security Standards** | No | PSS labels: `enforce=baseline`, `audit=restricted`, `warn=restricted` on all namespaces. |
 | 12 | **Managed-By Labels** | No | `"app.kubernetes.io/managed-by" = "easykubenix"` on all K8s resources. |
@@ -673,7 +673,8 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 - **Import images on wrong K3s node** -- import on the node where the pod runs
 - **Build Nix containers without `git commit`** -- flakes only see tracked files
 
-## Known Issues (audited 2026-05-14)
+## Known Issues (audited 2026-06-17)
+
 
 | # | Issue | Status | Action |
 |---|-------|--------|--------|
