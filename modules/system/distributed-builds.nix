@@ -122,13 +122,11 @@ in {
     serviceConfig.Type = "oneshot";
     serviceConfig.RemainAfterExit = true;
     script = ''
-      if [ ! -f /etc/nixos/ssh/id_ed25519 ] && [ -f /home/j_kro/.ssh/id_ed25519 ]; then
-        install -m 600 /home/j_kro/.ssh/id_ed25519 /etc/nixos/ssh/id_ed25519
-        install -m 644 /home/j_kro/.ssh/id_ed25519.pub /etc/nixos/ssh/id_ed25519.pub
-      elif [ ! -f /etc/nixos/ssh/id_ed25519 ]; then
-        echo "copy-build-ssh-key: No SSH key found, remote builds unavailable"
+      if [ ! -f /home/j_kro/.ssh/id_ed25519 ]; then
+        echo "copy-build-ssh-key: No SSH key at ~/.ssh/id_ed25519 — remote builds unavailable"
       fi
-    '';
+    ';
+
   };
 
   environment = {
@@ -136,7 +134,7 @@ in {
       "ssh/ssh_config.d/50-build-machines.conf".text = ''
         Host zephyr nexus sentry
           User j_kro
-          IdentityFile /etc/nixos/ssh/id_ed25519
+          IdentityFile ~/.ssh/id_ed25519
           IdentitiesOnly yes
           StrictHostKeyChecking accept-new
           ConnectTimeout 30
@@ -148,7 +146,7 @@ in {
             hostName = "zephyr";
             system = "x86_64-linux";
             sshUser = "j_kro";
-            sshKey = "/etc/nixos/ssh/id_ed25519";
+            sshKey = "~/.ssh/id_ed25519";
             maxJobs = 0;
             speedFactor = 4;
             supportedFeatures = [
@@ -161,7 +159,7 @@ in {
             hostName = "nexus";
             system = "x86_64-linux";
             sshUser = "j_kro";
-            sshKey = "/etc/nixos/ssh/id_ed25519";
+            sshKey = "~/.ssh/id_ed25519";
             maxJobs = 12;
             speedFactor = 5;
             supportedFeatures = [
@@ -174,7 +172,7 @@ in {
             hostName = "sentry";
             system = "x86_64-linux";
             sshUser = "j_kro";
-            sshKey = "/etc/nixos/ssh/id_ed25519";
+            sshKey = "~/.ssh/id_ed25519";
             maxJobs = 8;
             speedFactor = 3;
             supportedFeatures = ["big-parallel"];
@@ -184,7 +182,7 @@ in {
             hostName = "forge";
             system = "x86_64-linux";
             sshUser = "j_kro";
-            sshKey = "/etc/nixos/ssh/id_ed25519";
+            sshKey = "~/.ssh/id_ed25519";
             maxJobs = 4;
             speedFactor = 2;
             supportedFeatures = ["big-parallel"];
