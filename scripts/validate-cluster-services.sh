@@ -42,7 +42,7 @@ echo "=== CA: All nodes share the same CA cert ==="
 LOCAL_FP=$(nix run nixpkgs#openssl -- x509 -in /etc/nixos/certs/cluster-ca.crt -noout -fingerprint -sha1 2>/dev/null | cut -d= -f2 || echo "ERROR")
 pass "Local CA: $LOCAL_FP"
 for node in 10.1.1.110 10.1.1.120; do
-  remote_fp=$(timeout 10 ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i /etc/nixos/ssh/id_ed25519 "j_kro@$node" \
+  remote_fp=$(timeout 10 ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i ~/.ssh/id_ed25519 "j_kro@$node" \
     "sudo cat /etc/ssl/cluster-ca/ca.crt 2>/dev/null" 2>/dev/null \
     | nix run nixpkgs#openssl -- x509 -noout -fingerprint -sha1 2>/dev/null | cut -d= -f2 || echo "UNREACHABLE")
   if [ "$remote_fp" = "UNREACHABLE" ]; then

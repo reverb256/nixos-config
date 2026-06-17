@@ -8,58 +8,56 @@ cat
 .claude/
 # Diff review artifacts (false positives on infra configs)
 .diff-scores.json
-# ✅ DO commit: .age files are encrypted and safe to track for reproducibility
-# ✅ DO commit: secrets.nix contains only public keys
-# Don't commit git worktrees (they're temporary branches)
-# Don't commit junk files containing leaked API keys
-# Don't commit temporary analysis files
-# Don't commit upstream vendor documentation
+# SAFE: .age files are encrypted and safe to track for reproducibility
+
+# Dont commit junk files containing leaked API keys
 echo
-# Emergency cleanup additions - 2026-03-19
 .firecrawl/
-# Git worktrees - isolated development workspaces
 .hermes/
-# Hermes / AI agent artifacts
 .hive/
 istio-1.29.1/
-/kubernetes/modules/monitoring.nix.bak
 lucebox-hub
 lucebox-hub.git/
-modules/services/secrets/kubernetes/encryption-config.yaml
-# ❌ NEVER commit: decrypted files or private keys
-# Never ignore encrypted secrets - they should be tracked
-# Node.js/npm artifacts (NixOS config should be declarative, not npm-managed)
 node_modules/
-# Only ignore decrypted/plaintext variants (if they exist)
 package.json
 package-lock.json
 .pi/
-# pi agent local state
 .pi-lens/
 .pipeline-guard-disable
-.pi/secrets.yaml
 .pnpm-debug.log*
 __pycache__/
 result
 sbom/
-# secrets/*.age
 secrets/*.key
 secrets/*.plaintext
 secrets/*.secret
-# secrets/secrets.nix
 secrets/*.txt
-# Security cleanup - 2026-03-30
+
+# SECURITY: Do NOT track plaintext secrets
+env-vars
+.env
+secrets/*.env
+secrets/casdoor/
+secrets/context7/
+
 .serena/
 .sisyphus/
 skills/
 skills-lock.json
 ssh/
-territory_map.json
 tmp/
-Updated API key file
 vllm-env/
 void-config/
 .worktrees/
 .yarn/*
 .yarn-integrity
-void-mklive/
+
+# Working tree artifacts
+nohup.out
+records/
+*.bak
+*.backup
+*.rej
+*.orig
+configuration.nix.new
+
