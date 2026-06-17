@@ -44,6 +44,8 @@
 
   # Load all common GPU drivers — works on any host in the cluster
   services.xserver.videoDrivers = ["amdgpu" "nvidia" "modesetting"];
+  # NixOS >=560 requires explicit open/closed choice
+  hardware.nvidia.open = false;
 
   hardware.enableRedistributableFirmware = true;
 

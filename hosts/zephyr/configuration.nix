@@ -40,7 +40,7 @@ in {
       enable = true;
       ipAddress = "10.1.1.115";
     };
-    usbEthernet.enable = true;
+    usbEthernet.enable = false;
     interfaceName = "eth0";
     unbound.enable = true;
     unbound.listenAddress = cluster.hosts.zephyr.ip;

@@ -183,10 +183,10 @@ in {
     ../../modules/system/home-manager.nix
 
     # Flake inputs
-    inputs.niri.nixosModules.niri
     inputs.home-manager.nixosModules.home-manager
     inputs.stylix.nixosModules.stylix
-    inputs.agenix.nixosModules.age
+    # Stylix kmscon module removed in NixOS 26.11
+    ({ disabledModules = [ "${inputs.stylix}/modules/kmscon/nixos.nix" ]; })
   ];
 
   # ISO Settings
@@ -243,6 +243,7 @@ in {
     enable = true;
     enable32Bit = true;
   };
+
 
   # Nix overlays - disabled for useGlobalPkgs compatibility
   # nixpkgs.overlays = [
@@ -304,9 +305,9 @@ in {
 
   # NVIDIA NIM API key — for Hermes autonomous operation
   # age.secrets.nvidia-api-key = {  # sops-nix migration
-    file = ../../secrets/nvidia-api-key.age;
-    owner = "j_kro";
-  };
+  #   file = ../../secrets/nvidia-api-key.age;
+  #   owner = "j_kro";
+  # };
   # Hermes Agent — self-contained config matching live setup
   environment.variables.HERMES_HOME = "/home/j_kro/.hermes";
   system.activationScripts.hermes-usb-setup = lib.stringAfter ["users"] ''
@@ -348,11 +349,8 @@ in {
       tool_use_enforcement: auto
     YAML_EOF
 
-        # Load NVIDIA API key from agenix-decrypted secret into .env
-        if [ -f "/run/agenix/nvidia-api-key" ]; then
-          echo "NVIDIA_API_KEY=*** /run/agenix/nvidia-api-key)" > "$HERMES_HOME/.env"
-          chmod 600 "$HERMES_HOME/.env"
-        fi
+        # NVIDIA API key — manual copy from host config
+        # (agenix removed from repo; supply nvidia-api-key.age manually if needed)
 
       cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
       You are Hermes Agent, an intelligent AI assistant. You are helpful,
