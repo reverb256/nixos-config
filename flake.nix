@@ -215,6 +215,7 @@
 
     # Slim module set for WSL/remote hosts — no desktop/GPU/cluster modules
     slimModules = [
+      ./modules/system/ssh-ca.nix
       inputs.home-manager.nixosModules.home-manager
       inputs.sops-nix.nixosModules.default
       inputs.stylix.nixosModules.default
