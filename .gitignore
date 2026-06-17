@@ -37,7 +37,7 @@ secrets/*.txt
 env-vars
 .env
 secrets/*.env
-secrets/casdoor/
+secrets/casdoor/*.env
 secrets/context7/
 
 .serena/
