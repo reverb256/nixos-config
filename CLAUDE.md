@@ -213,6 +213,14 @@ kubectl apply -f kubernetes-manifests/glitchtip/
 kubectl apply -f kubernetes-manifests/ai-inference/
 ```
 
+
+**7. Never Commit Secrets**
+- Plaintext secrets in git = CRITICAL security incident
+- Run `gitleaks protect --staged` before every commit
+- Secrets go in `secrets/*.age` (sops-nix encrypted) or `secrets/*.yaml`
+- SSH key is at `~/.ssh/id_ed25519`, NOT in the repo
+- If you see plaintext credentials in the working tree, stop and encrypt them
+
 **6. Control plane restart order (if absolutely necessary)**
 1. kube-apiserver (last to stop, first to start)
 2. kube-scheduler
