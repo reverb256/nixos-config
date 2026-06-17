@@ -17,6 +17,7 @@ repos:
         entry: deadnix -f
         language: system
         files: \.nix$
+
       # Syntax validation (fast - ~1 second per file)
       - id: nix-parse-check
         name: Nix syntax check
@@ -25,6 +26,12 @@ repos:
         files: \.nix$
         pass_filenames: true
 
+      # Secret scanning - prevent committing credentials
+      - id: gitleaks-detect
+        name: Secret scan (gitleaks)
+        entry: gitleaks protect --staged --verbose
+        language: system
+        pass_filenames: false
 
       # Text formatting (very fast - ~0.1 seconds)
       - id: trailing-whitespace
