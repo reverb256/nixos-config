@@ -45,17 +45,16 @@
 
   # All ingress services route through Caddy via VIP (10.1.1.100)
   vip = "10.1.1.100";
-  # Services via Caddy Ingress (accessed via VIP)
-  ingressServiceDomains = ["search.lan"];
-
 
   # Services via Caddy Ingress (accessed via VIP)
+  ingressServiceDomains = ["search.lan" "openwebui.lan"];
 
   # Services proxied via Caddy via VIP (single stable entry point)
   hostServiceDomains = [
     "ai-inference.lan"
     "auth.lan"
     "qdrant.lan"
+    "kagent.lan"
     "n8n.lan"
     "searxng.lan"
     "mission-control.lan"
@@ -70,7 +69,6 @@
     "status.maplespike.lan"
     "uptime.maplespike.lan"
     "haven.lan"
-    "mosiac.lan"
     "dev.maplespike.lan"
     "dev-api.maplespike.lan"
     "dev-mcp.maplespike.lan"
@@ -286,6 +284,7 @@ in {
             search = vip;
             searxng = vip;
             n8n = vip;
+            openwebui = vip;
             haven = vip;
             grafana = vip;
             prometheus = hosts.sentry;
