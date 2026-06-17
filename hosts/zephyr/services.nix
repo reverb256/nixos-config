@@ -32,38 +32,15 @@ in {
       };
     environmentFiles = [ "/run/secrets/hermes-env" ];
     };
-#    hermes-cli = {
-#      enable = lib.mkForce false;
-#      model = "base.en";
-#      apiKeyFile = "/run/secrets/zai-api-key";
-#      nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
-#      casdoorJwtFile = "/run/secrets/casdoor-hermes-jwt";
-#      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
-#      # openrouterApiKeyFile removed — no longer used
-#      kilocodeApiKeyFile = "/run/secrets/kilo-api-key";
-#      geminiApiKeyFile = "/run/secrets/gemini-api-key";
-#      hfTokenFile = "/run/secrets/huggingface-token";
-#      githubTokenFile = "/run/secrets/github-token";
-#      settings = {
-#        model = {
-#          provider = "gateway";
-#          default = "opencode-go/deepseek-v4-flash";
-#        };
-#        toolsets = ["all"];
-#        terminal = {
-#          backend = "local";
-#          timeout = 180;
-#        };
-#        memory = {
-#          memory_enabled = true;
-#          user_profile_enabled = true;
-#        };
-#        compression = {
-#          enabled = true;
-#          threshold = 0.9;
-#        };
-#      };
-#    };
+    hermes-cli = {
+      enable = true;
+      casdoorJwtFile = "/run/secrets/casdoor-hermes-jwt";
+      # apiKeyFile intentionally null — MCP servers are already configured
+      # in user's existing config.yaml. Systemd service disabled below
+      # to prevent overwrite with template.
+      # model = "opencode-go/deepseek-v4-flash" not mapped to module
+      # options; hermes-cli module only provides JWT/MCP/package mgmt.
+    };
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
@@ -363,6 +340,11 @@ in {
     selfHosting = true;
   };
 
+  # Disable hermes-mcp-servers — user's config.yaml already has correct MCP
+  # setup. Running the template merge would overwrite working config with
+  # placeholder API keys (null apiKeyFile → "missing" injected into every MCP).
+  systemd.services.hermes-mcp-servers.enable = false;
+
   systemd.services.caddy.serviceConfig = {
     AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
     CapabilityBoundingSet = ["CAP_NET_BIND_SERVICE"];
@@ -394,6 +376,64 @@ in {
     "d /data/hermes 0775 j_kro j_kro -"
   ];
   services.syncthing-cluster.enable = true;
+
+  # Override HERMES_HOME for user sessions — upstream hermes-agent module
+  # sets it to /var/lib/hermes/.hermes globally (for the systemd service).
+  # User CLI needs /home/j_kro/.hermes to read their own config / secrets.
+  environment.variables.HERMES_HOME = lib.mkForce "/home/j_kro/.hermes";
+
+  # Ensure eth0 has persistent static NM profile on every activation.
+  # Prevents the "no IP on boot" issue caused by stale DHCP profiles
+  # (enp38s0, ethernet-enp38s0) matching the same MAC 2C:F0:5D:A1:B8:EF.
+  system.activationScripts.eth0-static-profile = ''
+    # Clean up any auto-created DHCP profiles for this MAC
+    for p in /etc/NetworkManager/system-connections/*.nmconnection; do
+      [ -f "$p" ] || continue
+      mac=$(grep 'mac-address=' "$p" 2>/dev/null | head -1 | cut -d= -f2)
+      method=$(grep 'method=' "$p" 2>/dev/null | head -1 | cut -d= -f2)
+      if [ "$mac" = "2C:F0:5D:A1:B8:EF" ] && [ "$method" = "auto" ]; then
+        rm -f "$p"
+      fi
+    done
+    # Create static profile if missing
+    if [ ! -f /etc/NetworkManager/system-connections/eth0.nmconnection ]; then
+      cat > /etc/NetworkManager/system-connections/eth0.nmconnection << 'NMKEYFILE'
+[connection]
+id=eth0
+uuid=ecda2be0-391b-466f-8d38-90d707212a9d
+type=ethernet
+interface-name=eth0
+autoconnect=true
+
+[ethernet]
+mac-address=2C:F0:5D:A1:B8:EF
+
+[ipv4]
+address1=10.1.1.110/24
+gateway=10.1.1.1
+method=manual
+
+[ipv6]
+method=disabled
+
+[proxy]
+NMKEYFILE
+      chmod 600 /etc/NetworkManager/system-connections/eth0.nmconnection
+    fi
+  '';
+
+  # Sync hermes-env sops secret → user .env on every activation.
+  # The hermes-agent systemd service loads hermes-env via environmentFiles,
+  # but user CLI reads ~/.hermes/.env directly. This keeps them in sync.
+  system.activationScripts.hermes-dotenv = lib.stringAfter ["users"] ''
+    if [ -f /run/secrets/hermes-env ] && [ -s /run/secrets/hermes-env ]; then
+      cp /run/secrets/hermes-env /home/j_kro/.hermes/.env
+      chown j_kro:users /home/j_kro/.hermes/.env
+      chmod 600 /home/j_kro/.hermes/.env
+      echo "[hermes-dotenv] Synced .env from hermes-env"
+    fi
+  '';
+
   # Zephyr hosts Caddy for .lan services — VIP must stay here statically
   # VRRP keepalived election is unreliable between nodes (multicast issues)
   networking.localCommands = ''

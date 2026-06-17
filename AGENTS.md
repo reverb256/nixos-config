@@ -768,13 +768,17 @@ NEVER use `nixos-anywhere` for hosts with existing data — it's a provisioning 
 
 ```bash
 # 1. Build closure locally (on Nexus)
+#    NEVER use 2>&1 with --print-out-paths — build warnings corrupt the path!
 sudo nix build "path:/etc/nixos#nixosConfigurations.<host>.config.system.build.toplevel" --no-link --print-out-paths
 
 # 2. Copy closure to target
 nix copy --to "ssh://j_kro@<ip>" /nix/store/<hash>-nixos-system-<host>-...
 
 # 3. Activate with FULL switch (not boot)
-ssh j_kro@<ip> "sudo nix-env -p /nix/var/nix/profiles/system --set /nix/store/<hash>... && sudo /nix/store/<hash>.../bin/switch-to-configuration switch"
+#    CRITICAL: Always use bash --norc --noprofile for remote SSH commands!
+#    Remote hosts have fish as default shell, which chokes on long store paths
+#    and pollutes output with devenv error messages.
+ssh j_kro@<ip> "bash --norc --noprofile -c 'sudo nix-env -p /nix/var/nix/profiles/system --set /nix/store/<hash>... && sudo /nix/store/<hash>.../bin/switch-to-configuration switch && echo OK'"
 ```
 
 ### Post-Deployment Verification
