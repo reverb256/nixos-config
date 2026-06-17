@@ -106,6 +106,7 @@ in {
       enable = true;
       kubernetes = true;
       aiServices = true;
+      ci = true;
     };
   };
 
