@@ -1578,11 +1578,11 @@
       "locked": {
         "lastModified": 1,
         "narHash": "sha256-JfD+sES5PzVDJHN8XedawzDU1MaVbMyWGyjjZEJsWzA=",
-        "path": "/nix/store/myh5njhn7sn7d33jsj4q7psjv4rnf53l-source/lib/preservation",
+        "path": "./lib/preservation",
         "type": "path"
       },
       "original": {
-        "path": "/nix/store/myh5njhn7sn7d33jsj4q7psjv4rnf53l-source/lib/preservation",
+        "path": "./lib/preservation",
         "type": "path"
       }
     },
