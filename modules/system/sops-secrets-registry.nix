@@ -515,14 +515,6 @@ in {
             owner = "root";
             group = "root";
           };
-          "selfhosting/casdoor-mcp-credentials" = {
-            sopsFile = "${inputs.self}/secrets/casdoor/mcp-gateway-credentials.yaml";
-            path = "/run/secrets/casdoor-mcp-credentials";
-            format = "binary";
-            mode = "0444";
-            owner = "j_kro";
-            group = "users";
-          };
         })
         (mkIf config.services.sops-secrets-registry.ci {
           "ci/gitea-runner-token" = {
