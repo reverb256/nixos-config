@@ -350,7 +350,6 @@ in {
     CapabilityBoundingSet = ["CAP_NET_BIND_SERVICE"];
     NoNewPrivileges = lib.mkForce false;
   };
-
   # Mining user for secret ownership (ZEPHYR monitors mining but doesn't run workers)
   users.users.mining = {
     isSystemUser = true;

@@ -27,8 +27,6 @@ in {
     hermes-agent = {
       addToSystemPackages = true;
       settings = {
-        model.default = "glm-4.7";
-        model.provider = "zai";
         providers.zai = {
           base_url = "https://api.z.ai/api/coding/paas/v4";
           api_key_env = "ZAI_API_KEY";
@@ -40,13 +38,12 @@ in {
           discover_models = true;
         };
       };
-    environmentFiles = [ "/run/secrets/hermes-env" ];
     };
 
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
-      role = "agent";
+      role = "server";
       clusterInit = false; # Rejoining existing cluster as server (for etcd quorum)
       nodeName = "forge";
       tokenFile = "/run/secrets/k3s-cluster-token";
@@ -80,14 +77,14 @@ in {
           gpuId = 0;
           wallet = "krxXVNVMM7.forge-4060-0";
           pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
-          powerLimit = 118;
+          powerLimit = 105;
         }
         {
           name = "4060-1";
           gpuId = 1;
           wallet = "krxXVNVMM7.forge-4060-1";
           pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
-          powerLimit = 118;
+          powerLimit = 105;
         }
       ];
     };
