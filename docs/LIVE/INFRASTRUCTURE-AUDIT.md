@@ -74,6 +74,121 @@ Multiple MCP servers (kubernetes, nixos-cluster, searxng, casdoor, git, etc.) av
 - SSH hardened: no passwords, no root, fail2ban, key-only
 - Kernel hardening: rp_filter, syncookies, source routing disabled
 
+
+## YubiKey PIV Layout
+
+Two YubiKeys, both provisioned identically:
+
+| Slot | Purpose | YubiKey Nano (in zephyr) | YubiKey NFC (daily carry) |
+|------|---------|--------------------------|---------------------------|
+| **9a** | age-plugin-yubikey (encryption) | `nano` -- no PIN, cached touch | `nfc` -- PIN once, cached touch |
+| **9c** | SSH CA (certificate signing) | ECC P-256 -- no PIN, touch always | ECC P-256 -- PIN once, touch always |
+| **mgmt** | PIV admin | Changed + PIN-protected | Changed + PIN-protected |
+
+**Backups (age-encrypted in repo):**
+- `secrets/infra/yubikey-nano-mgmt-key.age` / `yubikey-nfc-mgmt-key.age`
+- `secrets/infra/yubikey-ca-key-backup.age` (encrypted to both YubiKeys + cluster key)
+- `secrets/infra/sealed-secrets-controller-key.age` (same 3 recipients)
+
+## Sealed Secrets
+
+Sealed Secrets controller v0.37.0 deployed to `kube-system`. Controller key backed up with 3 age recipients (Nano, NFC, cluster key).
+
+**K8s secrets workflow:**
+```bash
+kubeseal --cert cert.pem --format yaml < secret.yaml > sealed.yaml
+kubectl apply -f sealed.yaml
+# No NixOS rebuild needed
+```
+
+Current SealedSecrets:
+- `kubernetes-manifests/auth/casdoor-mcp-sealed.yaml` (MCP gateway credentials)
+
+## Dual SSH CA
+
+Two CAs trusted on all cluster hosts:
+1. **ed25519** at `/etc/ssh/ca_key` (file-based, sops-nix backed, legacy)
+2. **ECC P-256** in YubiKey PIV slot 9c (hardware-backed, requires touch)
+
+Sign with the file key:
+```bash
+/etc/nixos/scripts/ssh-sign-cert.sh
+```
+Decrypt the YubiKey CA backup (if needed):
+```bash
+age -d secrets/infra/yubikey-ca-key-backup.age > /tmp/ca-key.pem
+```
+### Next Steps
+1. Rotate all exposed credentials
+2. Run `git filter-repo` to purge secrets from git history
+3. Force push to all remotes (origin, central, gitea)
+
+## Security Posture
+
+**Audit Date:** 2026-06-17  
+**Status:** Remediated (structural fixes applied, keys pending rotation)
+
+### Credential Management
+- Secrets encrypted with sops-nix/agenix (age key at `/etc/nixos/.age/key.txt`)
+- SSH key lives at `~/.ssh/id_ed25519` -- not inside the repo
+- Pre-commit `gitleaks` hook blocks credential commits
+- `.gitignore` hardened against plaintext secret files
+
+### Exposed Credentials (Found in Audit, Pending Rotation)
+- `env-vars` -- live API keys (Anthropic, ZAI, Gemini, Context7) -- removed from tracking
+- `secrets/context7/api-key.age` -- plaintext Context7 key -- removed from tracking
+- `secrets/casdoor/mcp-gateway-credentials.env` -- plaintext Casdoor SSO creds -- removed
+
+### Firewall
+- NFS ports restricted to eth0 (cluster subnet)
+- Tailscale trusted interface
+- SSH hardened: no passwords, no root, fail2ban, key-only
+- Kernel hardening: rp_filter, syncookies, source routing disabled
+
+
+## YubiKey PIV Layout
+
+Two YubiKeys, both provisioned identically:
+
+| Slot | Purpose | YubiKey Nano (in zephyr) | YubiKey NFC (daily carry) |
+|------|---------|--------------------------|---------------------------|
+| **9a** | age-plugin-yubikey (encryption) | `nano` -- no PIN, cached touch | `nfc` -- PIN once, cached touch |
+| **9c** | SSH CA (certificate signing) | ECC P-256 -- no PIN, touch always | ECC P-256 -- PIN once, touch always |
+| **mgmt** | PIV admin | Changed + PIN-protected | Changed + PIN-protected |
+
+**Backups (age-encrypted in repo):**
+- `secrets/infra/yubikey-nano-mgmt-key.age` / `yubikey-nfc-mgmt-key.age`
+- `secrets/infra/yubikey-ca-key-backup.age` (encrypted to both YubiKeys + cluster key)
+- `secrets/infra/sealed-secrets-controller-key.age` (same 3 recipients)
+
+## Sealed Secrets
+
+Sealed Secrets controller v0.37.0 deployed to `kube-system`. Controller key backed up with 3 age recipients (Nano, NFC, cluster key).
+
+**K8s secrets workflow:**
+```bash
+kubeseal --cert cert.pem --format yaml < secret.yaml > sealed.yaml
+kubectl apply -f sealed.yaml
+# No NixOS rebuild needed
+```
+
+Current SealedSecrets:
+- `kubernetes-manifests/auth/casdoor-mcp-sealed.yaml` (MCP gateway credentials)
+
+## Dual SSH CA
+
+Two CAs trusted on all cluster hosts:
+1. **ed25519** at `/etc/ssh/ca_key` (file-based, sops-nix backed, legacy)
+2. **ECC P-256** in YubiKey PIV slot 9c (hardware-backed, requires touch)
+
+Sign with the file key:
+```bash
+/etc/nixos/scripts/ssh-sign-cert.sh
+```
+Decrypt the YubiKey CA backup (if needed):
+```bash
+age -d secrets/infra/yubikey-ca-key-backup.age > /tmp/ca-key.pem
+```
 ### Next Steps
 1. Rotate all exposed credentials
 2. Run `git filter-repo` to purge secrets from git history
