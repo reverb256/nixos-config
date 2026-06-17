@@ -6,7 +6,12 @@
 }: let
   inherit (lib) mkOption types mkIf;
 
+  # File-based ed25519 CA (backup, at /etc/ssh/ca_key)
   caPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIINREWq2TwFSGaDxTBDv7xaFGw7fniE10i91sn6Xqhkg cluster-CA@zephyr";
+
+  # Hardware CA in YubiKey PIV slot 9c (primary, requires touch)
+  # Backed up encrypted at secrets/infra/yubikey-ca-key-backup.age
+  yubikeyCaPublicKey = "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEa3NkzrDIEecwgki4V5pSGaH3cgqhSJIw9+KRsKDwmmIQyZORa7vwul6BT7j57lsw6UeQWhlb9+m3N+phe8ml4=";
 in {
   options.services.ssh-ca = {
     enable = mkOption {
@@ -36,7 +41,7 @@ in {
 
   config = mkIf config.services.ssh-ca.enable {
     services.openssh.extraConfig = ''
-      TrustedUserCAKeys ${pkgs.writeText "ssh-ca.pub" caPublicKey}
+      TrustedUserCAKeys ${pkgs.writeText "ssh-ca.pub" (caPublicKey + "\n" + yubikeyCaPublicKey)}
 
       AuthorizedPrincipalsFile ${pkgs.writeText "authorized_principals" ''
         j_kro
