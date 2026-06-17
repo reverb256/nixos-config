@@ -20,6 +20,10 @@
       ip = "10.1.1.150";
       tailscale = null;
     };
+    krash15 = {
+      ip = "10.1.1.79";
+      tailscale = null;
+    };
   };
 
   # All mesh SSH keys for round-trip distributed builds
@@ -118,6 +122,10 @@ in {
       hostNames = ["krash3" hosts.krash3.ip];
       publicKey = "*"; # Accept any key (WSL host key changes each rebuild)
     };
+    krash15 = {
+      hostNames = ["krash15" hosts.krash15.ip];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA5ioQaftrkEOGFW3Xs/Db9r8tf5TcegVbzwPDknbFzS";
+    };
   };
 
   users.users.j_kro.openssh.authorizedKeys.keys = meshKeys;
@@ -169,6 +177,15 @@ in {
       StrictHostKeyChecking accept-new
       IdentityFile ~/.ssh/id_ed25519
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
+
+    Host krash15 ${hosts.krash15.ip}
+      HostName ${hosts.krash15.ip}
+      Port 22
+      User krash
+      IdentityFile ~/.ssh/id_ed25519_sk
+      IdentityFile ~/.ssh/id_ed25519_sk_nfc
+      IdentitiesOnly yes
+      StrictHostKeyChecking accept-new
 
     Host github.com
       HostName github.com
