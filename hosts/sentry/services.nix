@@ -15,7 +15,6 @@ in {
       opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
       opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
     };
-
     hermes-agent = {
       addToSystemPackages = true;
       settings = {
@@ -34,7 +33,6 @@ in {
       };
     environmentFiles = [ "/run/secrets/hermes-env" ];
     };
-
     k3s-cluster = {
       enable = true;
       role = "server";

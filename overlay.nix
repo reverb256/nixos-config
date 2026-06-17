@@ -5,8 +5,6 @@ _final: prev:
     lolminer
     xmrig
     ;
-  srbminer-multi = prev.callPackage ./packages/srbminer.nix { };
-  lpminer-pearl = prev.callPackage ./packages/lpminer-pearl.nix { tag = "lpminer-0-1-10"; };
   lmstudio = prev.callPackage ./packages/lmstudio.nix { };
   haven-desktop = prev.callPackage ./packages/haven-desktop.nix { };
   wivrn = prev.wivrn.overrideAttrs (old: {
@@ -163,12 +161,4 @@ _final: prev:
       substituteInPlace $out/bin/zen-twilight         --replace-fail 'export MOZ_LEGACY_PROFILES' '# export MOZ_LEGACY_PROFILES'
     '';
   });
-
-  # DBD-CSV test failure blocks system builds — disable checks
-  perlPackages = prev.perlPackages // {
-    DBDCSV = prev.perlPackages.DBDCSV.overrideAttrs (old: {
-      doCheck = false;
-    });
-  };
-
 }
