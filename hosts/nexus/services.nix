@@ -388,7 +388,6 @@ in {
      enable = true;
      generateHermes = true;
      generateClaudeCode = true;
-     generateKagentCRDs = true;
      generateNetworkPolicies = true;
      generateCasdoorApps = true;
    };

@@ -6,6 +6,13 @@ _final: prev:
     xmrig
     ;
   lmstudio = prev.callPackage ./packages/lmstudio.nix { };
+  srbminer-multi = prev.callPackage ./packages/srbminer.nix { };
+  # DBD-CSV 0.60 test failures in sandbox (Using data files in /build... is unsafe)
+  perlPackages = prev.perlPackages // {
+    DBDCSV = prev.perlPackages.DBDCSV.overrideAttrs (old: {
+      doCheck = false;
+    });
+  };
   haven-desktop = prev.callPackage ./packages/haven-desktop.nix { };
   wivrn = prev.wivrn.overrideAttrs (old: {
     cmakeFlags = old.cmakeFlags ++ [ "-DWIVRN_FEATURE_STEAMVR_LIGHTHOUSE=ON" ];

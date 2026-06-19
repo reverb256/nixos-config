@@ -136,5 +136,5 @@ Browser → .lan domain → VIP 10.1.1.100 (keepalived)
 | Type | Services | Pattern |
 |------|----------|---------|
 | Public | searxng.lan, ai-inference.lan | `mkRoute` |
-| Protected (SSO) | haven.lan, openwebui.lan, grafana.lan, kagent.lan, mission-control.lan | `mkAuthRoute` |
+| Protected (SSO) | haven.lan, openwebui.lan, grafana.lan, mission-control.lan | `mkAuthRoute` |
 | Auth provider | auth.lan | `mkRoute` (special — must be public) |

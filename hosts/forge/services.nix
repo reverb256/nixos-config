@@ -76,14 +76,14 @@ in {
           name = "4060-0";
           gpuId = 0;
           wallet = "krxXVNVMM7.forge-4060-0";
-          pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
+          pool = "stratum+tcp://prl-us.kryptex.network:7048,stratum+tcp://prl.kryptex.network:7048";
           powerLimit = 105;
         }
         {
           name = "4060-1";
           gpuId = 1;
           wallet = "krxXVNVMM7.forge-4060-1";
-          pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
+          pool = "stratum+tcp://prl-us.kryptex.network:7048,stratum+tcp://prl.kryptex.network:7048";
           powerLimit = 105;
         }
       ];

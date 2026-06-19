@@ -125,7 +125,7 @@ in {
       if [ ! -f /home/j_kro/.ssh/id_ed25519 ]; then
         echo "copy-build-ssh-key: No SSH key at ~/.ssh/id_ed25519 — remote builds unavailable"
       fi
-    ';
+    '';
 
   };
 
@@ -190,15 +190,18 @@ in {
           }
         ];
         machines = builtins.filter (m: m.hostName != currentHost) allMachines;
-        formatMachine = m: ''
-          ssh-ng://${m.sshUser}@${m.hostName} ${m.system} ${
-            if m.sshKey != null
-            then m.sshKey
-            else "-"
-          } ${toString m.maxJobs} ${toString m.speedFactor} ${lib.concatStringsSep "," m.supportedFeatures} ${lib.concatStringsSep "," m.mandatoryFeatures}
-        '';
+        formatMachine = m: with builtins;
+          concatStringsSep " " [
+            ("ssh-ng:" + "//${m.sshUser}@${m.hostName}")
+            m.system
+            (if m.sshKey != null then m.sshKey else "-")
+            (toString m.maxJobs)
+            (toString m.speedFactor)
+            (concatStringsSep "," m.supportedFeatures)
+            (concatStringsSep "," m.mandatoryFeatures)
+          ];
       in
-        lib.concatMapStrings formatMachine machines;
+        lib.concatStringsSep "\n" (map formatMachine machines) + "\n";
     };
 
     variables = {

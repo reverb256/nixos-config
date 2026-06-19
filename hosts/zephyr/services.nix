@@ -288,7 +288,6 @@ in {
       enable = true;
       generateHermes = true;
       generateClaudeCode = true;
-      generateKagentCRDs = true;
       generateNetworkPolicies = true;
       generateCasdoorApps = true;
     };
@@ -376,10 +375,9 @@ in {
   ];
   services.syncthing-cluster.enable = true;
 
-  # Override HERMES_HOME for user sessions — upstream hermes-agent module
-  # sets it to /var/lib/hermes/.hermes globally (for the systemd service).
-  # User CLI needs /home/j_kro/.hermes to read their own config / secrets.
-  environment.variables.HERMES_HOME = lib.mkForce "/home/j_kro/.hermes";
+  # Add j_kro to the hermes group so the interactive CLI can read the
+  # shared state under /var/lib/hermes/.hermes/ (config, .env, sessions).
+  users.users.j_kro.extraGroups = [ "hermes" ];
 
   # Ensure eth0 has persistent static NM profile on every activation.
   # Prevents the "no IP on boot" issue caused by stale DHCP profiles
