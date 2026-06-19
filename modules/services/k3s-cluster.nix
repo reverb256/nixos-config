@@ -403,6 +403,21 @@ in {
       path = with pkgs; [nfs-utils];
     };
 
+    # Auto-start k3s at boot WITHOUT blocking multi-user.target.
+    # k3s is deliberately excluded from multi-user.target (wantedBy = mkForce []) above
+    # because server nodes can take 5+ minutes to start etcd and hang the boot path.
+    # This boot timer starts k3s shortly after boot completes so it survives reboots.
+    # k3s.service already has Restart=always, so once started it stays up.
+    # Safe for all roles (agent + server) and decoupled from boot-critical targets.
+    systemd.timers.k3s-autostart = {
+      description = "Start k3s after boot (decoupled from multi-user.target to avoid blocking boot)";
+      wantedBy = ["timers.target"];
+      timerConfig = {
+        OnBootSec = "30s";
+        Unit = "k3s.service";
+      };
+    };
+
     # Delete stale flannel.1 interface so k3s creates it fresh with --flannel-iface=eth0.
     # Without this, k3s reuses the old interface bound to the VIP (10.1.1.100) instead of
     # creating a new one bound to the real eth0 IP (10.1.1.110). This breaks cross-node

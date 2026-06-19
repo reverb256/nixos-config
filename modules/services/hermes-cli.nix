@@ -80,6 +80,10 @@
         connect_timeout: 30
         timeout: 60
         description: Casdoor SSO/OIDC - application management (5 tools, Bearer auth)
+      context7:
+        command: /data/agents/mcp-bridges/context7-mcp.sh
+        connect_timeout: 30
+        timeout: 60
   '';
 
   mcpServersBlock =
@@ -340,6 +344,7 @@ in {
     # Merges Nix-defined mcp_servers into Hermes config.yaml at boot.
     # API keys are injected from agenix secrets (ZAI_API_KEY).
     systemd.services.hermes-mcp-servers = {
+      restartIfChanged = true;
       description = "Inject declarative MCP servers into Hermes config";
       after = ["agenix.service" "network.target"];
       wants = ["agenix.service"];

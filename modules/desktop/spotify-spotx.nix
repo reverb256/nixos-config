@@ -12,6 +12,11 @@
   spotifyFlatpakId = "com.spotify.Client";
   spotifyStateDir = spotify-common.mkSpotifyStateDir "spotx";
   patchMarker = "${spotifyStateDir}/.spotx_patched";
+
+  spotxBash = pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/SpotX-Official/SpotX-Bash/main/spotx.sh";
+    hash = "sha256-ziknP/O5IZnejOqiljbHxNoZtXoNsUFZigY19gQIQVA=";
+  };
 in {
   options.services.spotify-spotx = {
     enable = mkEnableOption "Spotify Flatpak with SpotX patch (ad-free, premium features)";
@@ -141,7 +146,7 @@ in {
             ${pkgs.flatpak}/bin/flatpak kill "$SPOTIFY_ID" 2>/dev/null || true
 
             log "Applying SpotX-Bash patch..."
-            if ${pkgs.bash}/bin/bash <(${pkgs.curl}/bin/curl -sSL https://raw.githubusercontent.com/SpotX-Official/SpotX-Bash/main/spotx.sh) -P "$SPOTIFY_DIR" -f; then
+            if ${pkgs.bash}/bin/bash /etc/spotx/spotx.sh -P "$SPOTIFY_DIR" -f; then
               log "✓ SpotX patch applied successfully!"
 
               ${lib.optionalString cfg.forceX11 ''
@@ -277,6 +282,7 @@ in {
       fi
     '';
 
+    environment.etc."spotx/spotx.sh" = { source = spotxBash; mode = "0555"; };
     environment.etc."spotx/patch-service.sh".source = pkgs.writeShellScript "spotx-patch-service" ''
       set -euo pipefail
 
@@ -322,7 +328,7 @@ in {
       ${pkgs.flatpak}/bin/flatpak kill "$SPOTIFY_ID" 2>/dev/null || true
 
       log "Applying SpotX-Bash patch to $SPOTIFY_DIR..."
-      if ${pkgs.bash}/bin/bash <(${pkgs.curl}/bin/curl -sSL https://raw.githubusercontent.com/SpotX-Official/SpotX-Bash/main/spotx.sh) -P "$SPOTIFY_DIR" -f; then
+      if ${pkgs.bash}/bin/bash /etc/spotx/spotx.sh -P "$SPOTIFY_DIR" -f; then
         log "SpotX patch applied successfully"
 
         ${lib.optionalString cfg.forceX11 ''
