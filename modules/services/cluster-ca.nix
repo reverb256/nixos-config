@@ -182,6 +182,11 @@ in {
             REGEN=true
           else
             echo "Leaf certificate still valid and SANs unchanged"
+            # Ensure fullchain exists even if leaf was not regenerated
+            if [ ! -f /etc/ssl/cluster-ca/fullchain.crt ]; then
+              cat $LEAF_CERT ${cfg.caCert} > /etc/ssl/cluster-ca/fullchain.crt
+              chmod 644 /etc/ssl/cluster-ca/fullchain.crt
+            fi
           fi
 
           if [ "$REGEN" = true ]; then
@@ -202,6 +207,11 @@ in {
               chmod 640 $LEAF_KEY
               echo "$SAN_HASH" > "$SAN_FILE"
             echo "Leaf certificate generated at $LEAF_CERT"
+
+            # Generate fullchain (leaf + CA) for proper TLS chain
+            cat $LEAF_CERT ${cfg.caCert} > /etc/ssl/cluster-ca/fullchain.crt
+            chmod 644 /etc/ssl/cluster-ca/fullchain.crt
+            echo "Full chain generated at /etc/ssl/cluster-ca/fullchain.crt"
           fi
         ''}
       '';

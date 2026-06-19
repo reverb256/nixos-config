@@ -35,6 +35,13 @@ Every change follows: **Issue → Branch/Worktree → PR → Merge → Close Iss
 - [ ] Secrets encrypted with sops-nix/agenix, not hardcoded
 - [ ] `docs/LIVE/` updated if infrastructure changed
 
+
+## Security
+- [ ] `gitleaks protect --staged` passes (blocks credential leaks)
+- [ ] No plaintext secrets in commit (`.gitignore` covers `env-vars`, `.env`, `secrets/*.env`)
+- [ ] Secrets encrypted with sops-nix/agenix, not hardcoded
+- [ ] `docs/LIVE/` updated if infrastructure changed
+
 - [ ] No :latest tags
 - [ ] GPU workloads pinned to Nexus
 - [ ] Worktree cleaned up after merge

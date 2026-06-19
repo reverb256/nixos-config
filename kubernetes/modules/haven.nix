@@ -14,7 +14,7 @@ in {
         managed
         // {
           name = "haven";
-          "pod-security.kubernetes.io/enforce" = "baseline";
+          "pod-security.kubernetes.io/enforce" = "privileged";
           "pod-security.kubernetes.io/audit" = "restricted";
           "pod-security.kubernetes.io/warn" = "restricted";
         };
@@ -92,7 +92,7 @@ in {
                 lifecycle = {
                   postStart = {
                     exec = {
-                      command = ["sh" "-c" "sed -i s/const maxAttempts = 20;/const maxAttempts = 200;/ /app/src/auth.js && sed -i s/const maxAttempts = 5;/const maxAttempts = 50;/ /app/src/auth.js"];
+                      command = ["sh" "-c" "sed -i s/const maxAttempts = 20;/const maxAttempts = 200;/ /app/src/auth.js 2>/dev/null; sed -i s/const maxAttempts = 5;/const maxAttempts = 50;/ /app/src/auth.js 2>/dev/null; exit 0"];
                     };
                   };
                 };

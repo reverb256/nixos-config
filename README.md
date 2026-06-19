@@ -116,6 +116,23 @@ See `/data/projects/AGENTS.md` for full project inventory.
 - `secrets/*.env` -- plaintext env secret files
 - `nohup.out`, `records/` -- log/conversation artifacts
 - `*.bak`, `*.backup`, `*.rej`, `*.orig` -- stale backup files
+
+## Security
+
+**Security Audit (2026-06-17):** See `docs/ARCHIVE/SECURITY-AUDIT-2026-06-17.md` for full report.
+
+**Credential Rules:**
+- NEVER commit plaintext secrets -- `.gitignore` blocks `env-vars`, `.env`, `secrets/*.env`
+- ALWAYS use sops-nix/agenix encryption for secrets (`secrets/*.age`, `secrets/*.yaml`)
+- PRE-COMMIT hook runs `gitleaks protect --staged` to block secrets
+- SSH key at `~/.ssh/id_ed25519` -- outside the repo (moved during audit)
+
+**Files never to track:**
+- `env-vars` -- runtime env dumps with live API keys
+- `.env` -- environment variable files
+- `secrets/*.env` -- plaintext env secret files
+- `nohup.out`, `records/` -- log/conversation artifacts
+- `*.bak`, `*.backup`, `*.rej`, `*.orig` -- stale backup files
 ## See Also
 
 - [NixOS Manual](https://nixos.org/manual/nixos/stable/)

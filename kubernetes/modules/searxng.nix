@@ -392,13 +392,14 @@ in {
       metadata.labels =
         labels
         // {
+          app = "valkey";
           component = "cache";
         };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 2;
         selector.matchLabels = {
-          app = "searxng";
+          app = "valkey";
           component = "cache";
         };
         strategy = {
@@ -409,6 +410,7 @@ in {
           metadata.labels =
             labels
             // {
+              app = "valkey";
               component = "cache";
             };
           spec = {
