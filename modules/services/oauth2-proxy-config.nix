@@ -4,10 +4,10 @@
 # deployment. Edit here, both sides stay in sync.
 # ─────────────────────────────────────────────────────────────────
 {
-  # Casdoor OAuth2 application
-  clientId = "5bf72a094f75c6f5729e";
+  # Authelia OAuth2 application
+  clientId = "authelia-oidc";
 
-  # OIDC issuer (Casdoor public URL)
+  # OIDC issuer (Authelia public URL)
   oidcIssuerUrl = "https://auth.lan";
 
   # OAuth2 callback redirect
@@ -16,7 +16,7 @@
   # Cookie domain for cross-service SSO
   cookieDomain = ".lan";
 
-  # Scopes to request from Casdoor
+  # Scopes to request from Authelia
   scope = "openid profile email";
 
   # Routes that skip authentication (regex, comma-separated for K8s)

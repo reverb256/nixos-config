@@ -10,4 +10,6 @@ expires: 2026-06-19
 
 **Security Remediation (2026-06-17):** Structural fixes applied -- plaintext secrets removed from git tracking, SSH key moved out of repo, gitleaks pre-commit hook added. Credentials pending rotation -- see SECURITY-AUDIT-2026-06-17.md for details.
 
+**Security Remediation (2026-06-17):** Structural fixes applied -- plaintext secrets removed from git tracking, SSH key moved out of repo, gitleaks pre-commit hook added. Credentials pending rotation -- see SECURITY-AUDIT-2026-06-17.md for details.
+
 Run `just status` and `just docs-audit` for latest.

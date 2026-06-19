@@ -4,8 +4,8 @@
 #   C2: Claude Code settings.json (mcpServers)
 #   C3: Hermes config.yaml (mcp_servers)
 #   C4: Kagent RemoteMCPServer CRDs
-#   C5: NetworkPolicy per server
-#   C6: Casdoor gateway registration
+#   C4: NetworkPolicy per server
+#   C5: Casdoor gateway registration
 #
 # Usage:
 #   services.mcp-registry.enable = true;
@@ -379,8 +379,6 @@ in {
       description = "User whose Hermes config to manage";
     };
 
-    # C4: Kagent CRD generation
-    generateKagentCRDs = mkEnableOption "Generate Kagent RemoteMCPServer CRDs from registry";
 
     # C5: NetworkPolicy generation
     generateNetworkPolicies = mkEnableOption "Generate NetworkPolicy per MCP server";

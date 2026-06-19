@@ -139,7 +139,7 @@ in {
 
     tlsCert = mkOption {
       type = types.str;
-      default = "/etc/ssl/cluster-ca/leaf.crt";
+      default = "/etc/ssl/cluster-ca/fullchain.crt";
       description = "Path to TLS leaf certificate";
     };
 
