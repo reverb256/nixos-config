@@ -25,6 +25,16 @@ in {
           discover_models = true;
         };
         providers.nvidia = {
+        };
+        smart_model_routing = {
+          enabled = true;
+          max_simple_chars = 160;
+          max_simple_words = 28;
+          cheap_model = {
+            provider = "llama-cpp-sentry";
+            model = "Qwen3.5-4B-Q4_K_M.gguf";
+          };
+        };
           base_url = "https://integrate.api.nvidia.com/v1";
           api_key_env = "NVIDIA_API_KEY";
           discover_models = true;
