@@ -44,18 +44,20 @@
 
   boot.kernelModules = ["msr"];
   boot.kernelParams = lib.mkBefore [
-    # AMD GPU Navi 10 stability: enable GPU recovery, lockup detection at 1s
-    # Must come before mitigations to avoid being overridden
+    # RDNA1/Navi10 stability for Vulkan compute:
+    # - lockup_timeout=10000: 10s ring timeout before GPU reset
+    # - runpm=0: disable runtime PM (P-state transitions crash under compute)
+    # - ppfeaturemask removed: stock p-states are stable, overdrive is not
     "amdgpu.gpu_recovery=1"
     "amdgpu.noretry=0"
-    "amdgpu.ppfeaturemask=0xfffd7fff"  # Disable Overdrive for stability
-    "amdgpu.lockup_timeout=1000"
+    "amdgpu.lockup_timeout=10000"
+    "amdgpu.runpm=0"
     "mitigations=auto"
   ];
   boot.extraModprobeConfig = ''
-    # Force GPU recovery even if kernel params get lost
     options amdgpu gpu_recovery=1
     options amdgpu noretry=0
+    options amdgpu runpm=0
   '';
 
   environment = {
