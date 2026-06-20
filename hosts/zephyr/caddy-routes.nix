@@ -132,7 +132,7 @@ in
         reverse_proxy ${zephyr}:${toString ports.oauth2-proxy}
       }
       handle {
-        reverse_proxy ${nexus}:30991 {
+        reverse_proxy ${nexus}:30880 {
           ${proxyHeader}
         }
       }
