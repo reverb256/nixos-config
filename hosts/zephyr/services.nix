@@ -42,6 +42,13 @@ in {
 
       };
     environmentFiles = [ "/run/secrets/hermes-env" ];
+    extraDependencyGroups = ["messaging" "voice"];
+    extraPackages = with pkgs; [ripgrep jq curl];
+    documents = {
+      "USER.md" = ''
+        NixOS/k3s homelab operator and developer.
+      '';
+    };
     mcpServers = {
       git = {
         command = "/data/agents/mcp-bridges/git-mcp.sh";
