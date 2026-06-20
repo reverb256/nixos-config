@@ -183,7 +183,7 @@
       chmod 000 /sys/power/state /sys/power/mem_sleep
     '';
   };
-  boot.kernelParams = lib.mkAfter [ "loglevel=4" ];
+  boot.kernelParams = lib.mkAfter [ "loglevel=4" "amdgpu.lockup_timeout=-1" ];
   # Override CachyOS kernel loglevel=0 to capture crash diagnostics
 
 }
