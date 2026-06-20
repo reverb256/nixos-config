@@ -65,6 +65,7 @@
     "maplespike.lan"
     "api.maplespike.lan"
     "mcp.maplespike.lan"
+    "auth.maplespike.lan"
     "status.maplespike.lan"
     "uptime.maplespike.lan"
     "haven.lan"
