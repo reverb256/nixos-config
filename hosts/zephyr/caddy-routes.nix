@@ -179,8 +179,9 @@ in
   + "
 "
   + mkRoute "mcp.maplespike.lan" "http://${nexus}:31746"
-  + "
-"
+  + "\n"
+  + mkRoute "auth.maplespike.lan" "http://${nexus}:30088"
+  + "\n"
   + mkRoute "gitea.lan" "http://${nexus}:${toString ports.gitea}"
   # Hermes Workspace (zephyr, port 3002)
   # Dev environment
