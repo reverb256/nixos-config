@@ -25,6 +25,7 @@
           nvidia.multiGpu = profileCfg.nvidia.multiGpu or false;
           amdgpu.enable = profileCfg.amdgpu.enable or false;
           amdgpu.wayland = profileCfg.amdgpu.wayland or false;
+          amd.enable = true;
           monitoring.enable = true;
         };
 
