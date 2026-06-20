@@ -366,36 +366,44 @@ in {
         ExecStart = pkgs.writeShellScript "hermes-mcp-servers" ''
           set -euo pipefail
 
-          HERMES_CONFIG="/home/${cfg.user}/.hermes/config.yaml"
+          for profile in "" analyst backend-eng frontend-eng maplespike-eng-1 maplespike-eng-2 maplespike-eng-3 ops researcher writer; do
+            if [ -z "$profile" ]; then
+              HERMES_CONFIG="/home/${cfg.user}/.hermes/config.yaml"
+            else
+              HERMES_CONFIG="/home/${cfg.user}/.hermes/profiles/$profile/config.yaml"
+            fi
 
-          if [ ! -f "$HERMES_CONFIG" ]; then
-            echo "[hermes-mcp] No config.yaml found, skipping"
-            exit 0
-          fi
+            if [ ! -f "$HERMES_CONFIG" ]; then
+              echo "[hermes-mcp] No config.yaml for profile '$profile', skipping"
+              continue
+            fi
 
-          # Wait for ZAI API key
-          ${lib.optionalString (cfg.apiKeyFile != null) ''
-            for i in $(seq 1 30); do
-              if [ -f "${cfg.apiKeyFile}" ] && [ -s "${cfg.apiKeyFile}" ]; then
-                break
-              fi
-              sleep 1
-            done
-          ''}
+            echo "[hermes-mcp] Processing profile: $profile"
 
-          # Build mcp_servers block with injected API key
-          ZAI_KEY="$(if [ -n "${cfg.apiKeyFile}" ]; then cat "${cfg.apiKeyFile}" 2>/dev/null; else echo missing; fi)"
-          MCP_TMP=$(mktemp /tmp/hermes-mcp-XXXXXX.yaml)
-          sed "s/__ZAI_API_KEY__/$ZAI_KEY/g" ${mcpServersBlock} > "$MCP_TMP"
+            # Wait for ZAI API key
+            ${lib.optionalString (cfg.apiKeyFile != null) ''
+              for i in $(seq 1 30); do
+                if [ -f "${cfg.apiKeyFile}" ] && [ -s "${cfg.apiKeyFile}" ]; then
+                  break
+                fi
+                sleep 1
+              done
+            ''}
 
-          # Merge into config.yaml using Python3
-          python3 ${mcpMergeScript} "$HERMES_CONFIG" "$MCP_TMP"
-          rm -f "$MCP_TMP"
+            # Build mcp_servers block with injected API key
+            ZAI_KEY="$(if [ -n "${cfg.apiKeyFile}" ]; then cat "${cfg.apiKeyFile}" 2>/dev/null; else echo missing; fi)"
+            MCP_TMP=$(mktemp /tmp/hermes-mcp-XXXXXX.yaml)
+            sed "s/__ZAI_API_KEY__/$ZAI_KEY/g" ${mcpServersBlock} > "$MCP_TMP"
 
-          chown ${cfg.user}:users "$HERMES_CONFIG" 2>/dev/null || true
-          chmod 600 "$HERMES_CONFIG" 2>/dev/null || true
+            # Merge into config.yaml using Python3
+            python3 ${mcpMergeScript} "$HERMES_CONFIG" "$MCP_TMP"
+            rm -f "$MCP_TMP"
 
-          echo "[hermes-mcp] ✓ MCP servers configured"
+            chown ${cfg.user}:users "$HERMES_CONFIG" 2>/dev/null || true
+            chmod 600 "$HERMES_CONFIG" 2>/dev/null || true
+
+            echo "[hermes-mcp] ✓ MCP servers configured for profile: $profile"
+          done
         '';
       };
     };
