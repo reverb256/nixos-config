@@ -25,6 +25,9 @@ in {
           discover_models = true;
         };
         providers.nvidia = {
+          base_url = "https://integrate.api.nvidia.com/v1";
+          api_key_env = "NVIDIA_API_KEY";
+          discover_models = true;
         };
         smart_model_routing = {
           enabled = true;
@@ -35,9 +38,59 @@ in {
             model = "Qwen3.5-4B-Q4_K_M.gguf";
           };
         };
-          base_url = "https://integrate.api.nvidia.com/v1";
-          api_key_env = "NVIDIA_API_KEY";
-          discover_models = true;
+        mcp_servers = {
+          git = {
+            command = "/data/agents/mcp-bridges/git-mcp.sh";
+            connect_timeout = 5;
+            timeout = 30;
+          };
+          github = {
+            command = "/data/agents/mcp-bridges/github-mcp.sh";
+            connect_timeout = 5;
+            timeout = 60;
+          };
+          searxng = {
+            command = "/data/agents/mcp-bridges/searxng-mcp.sh";
+            connect_timeout = 30;
+            timeout = 60;
+          };
+          sequential-thinking = {
+            command = "/data/agents/mcp-bridges/sequential-thinking.sh";
+            connect_timeout = 10;
+            timeout = 60;
+          };
+          nixos-cluster = {
+            command = "nix";
+            args = ["run" "/etc/nixos#nixos-cluster-mcp"];
+            connect_timeout = 30;
+            timeout = 60;
+          };
+          lightpanda = {
+            command = "lightpanda";
+            args = ["mcp"];
+            connect_timeout = 30;
+            timeout = 60;
+          };
+          kubernetes = {
+            command = "kubernetes-mcp-server";
+            connect_timeout = 30;
+            timeout = 120;
+          };
+          context7 = {
+            command = "/data/agents/mcp-bridges/context7-mcp.sh";
+            connect_timeout = 30;
+            timeout = 60;
+          };
+          prometheus = {
+            command = "prometheus-mcp-server";
+            connect_timeout = 30;
+            timeout = 60;
+          };
+          selfhosted-tools = {
+            command = "/data/agents/mcp-bridges/selfhosted-mcp.sh";
+            connect_timeout = 30;
+            timeout = 60;
+          };
         };
       };
     environmentFiles = [ "/run/secrets/hermes-env" ];
