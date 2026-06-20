@@ -3,8 +3,6 @@
   lib,
   ...
 }: {
-  hardware.enableRedistributableFirmware = true;
-
   hardware.gpu-compute = {
     enable = true;
     cuda.enable = true;
