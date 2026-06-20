@@ -38,6 +38,7 @@ in {
             model = "Qwen3.5-4B-Q4_K_M.gguf";
           };
         };
+        toolsets = ["all"];
 
       };
     environmentFiles = [ "/run/secrets/hermes-env" ];
@@ -97,6 +98,8 @@ in {
     };
 
     };
+    extraDependencyGroups = ["messaging" "voice"];
+    extraPackages = with pkgs; [ripgrep jq curl];
     hermes-cli = {
       enable = true;
       casdoorJwtFile = "/run/secrets/casdoor-hermes-jwt";
