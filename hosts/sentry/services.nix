@@ -174,4 +174,37 @@ in {
   };
 
 
+  # ── llama.cpp inference server (auto-start on boot) ──────────────
+  systemd.services.llama-server = {
+    enable = true;
+    description = "llama.cpp Vulkan inference server (Qwen3.5-4B on RX 5600 XT)";
+    wantedBy = ["multi-user.target"];
+    after = ["network.target" "systemd-modules-load.service"];
+    
+    serviceConfig = {
+      Type = "simple";
+      User = "j_kro";
+      ExecStartPre = "${pkgs.coreutils}/bin/sleep 5";  # Wait for GPU to settle
+      ExecStart = ''
+        ${pkgs.llama-cpp}/bin/llama-server \
+          --model /home/j_kro/models/Qwen3.5-4B-Q4_K_M.gguf \
+          --host 0.0.0.0 \
+          --port 8001 \
+          --ctx-size 16384 \
+          --n-gpu-layers 99 \
+          --parallel 2 \
+          --no-mmap \
+          --temp 0.7
+      '';
+      Restart = "on-failure";
+      RestartSec = 10;
+      TimeoutStartSec = 120;
+    };
+  };
+
+  # ── Fix IPv6 DAD flood — disable privacy extensions that cause conflicts ──
+  boot.kernel.sysctl = {
+    "net.ipv6.conf.eth0.accept_ra_defrtr" = lib.mkForce 0;
+    "net.ipv6.conf.eth0.use_tempaddr" = lib.mkForce 0;
+  };
 }
