@@ -42,6 +42,14 @@ in {
 
       };
     environmentFiles = [ "/run/secrets/hermes-env" ];
+    extraDependencyGroups = ["messaging" "voice"];
+    extraPackages = with pkgs; [ripgrep jq curl];
+    documents = {
+      "USER.md" = ''
+        NixOS/k3s homelab operator. Maintains a cluster of 4 machines
+        (zephyr, nexus, forge, sentry) and manages infrastructure declaratively.
+      '';
+    };
     mcpServers = {
       git = {
         command = "/data/agents/mcp-bridges/git-mcp.sh";
