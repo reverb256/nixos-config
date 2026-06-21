@@ -165,5 +165,8 @@ in {
     fi
   '';
 
+  # ── Lix (Nix implementation fork) ─────────────────────────
+  services.lix.enable = true;
+
   system.stateVersion = "26.05";
 }
