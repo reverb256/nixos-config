@@ -279,20 +279,20 @@ in {
         allHosts =
           hosts
           // {
-            ai-inference = vip;
-            qdrant = vip;
-            search = vip;
-            searxng = vip;
-            n8n = vip;
-            openwebui = vip;
-            haven = vip;
-            grafana = vip;
+            ai-inference = hosts.zephyr; # zephyr HTTPS
+            qdrant = hosts.zephyr; # zephyr HTTPS
+            search = hosts.zephyr; # zephyr HTTPS
+            searxng = hosts.zephyr; # zephyr HTTPS
+            n8n = hosts.zephyr; # zephyr HTTPS
+            openwebui = hosts.zephyr; # zephyr HTTPS
+            haven = hosts.zephyr; # zephyr HTTPS
+            grafana = hosts.zephyr; # zephyr HTTPS
             prometheus = hosts.sentry;
             monitoring = hosts.sentry;
             mining = hosts.forge;
-            mission-control = vip;
-            workspace = vip;
-            privacy-filter = vip;
+            mission-control = hosts.zephyr; # zephyr HTTPS
+            workspace = hosts.zephyr; # zephyr HTTPS
+            privacy-filter = hosts.zephyr; # zephyr HTTPS
           };
       in
         lib.pipe allHosts [
