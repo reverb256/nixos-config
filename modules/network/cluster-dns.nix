@@ -100,7 +100,7 @@
     if builtins.elem domain ingressServiceDomains
     then vip
     else if builtins.elem domain hostServiceDomains
-    then vip
+    then hosts.zephyr # zephyr terminates HTTPS for all .lan services
     else if builtins.elem domain forgeServiceDomains
     then hosts.forge
     else if builtins.elem domain sentryServiceDomains
