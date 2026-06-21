@@ -14,6 +14,7 @@ in {
   boot.kernelPackages = pkgs.linuxPackages_zen;
   boot.kernelParams = [
     "amd_iommu=on" "iommu=pt" "kvm.ignore_msrs=1"
+    "video=efifb:off"
     "console=ttyS0,115200"
   ];
   boot.initrd.kernelModules = [ "vfio" "vfio_iommu_type1" "virtio_pci" "virtio_blk" ];
