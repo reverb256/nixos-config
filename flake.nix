@@ -241,7 +241,7 @@
       zephyr = {
         hostName = "zephyr";
         # Split manifests to avoid eval bottleneck
-        k8sManifest = self.kubernetes.small.manifestYAMLFile;
+        k8sManifest = null;
       };
       nexus = {
         hostName = "nexus";
@@ -255,11 +255,11 @@
       };
       sentry = {
         hostName = "sentry";
-        k8sManifest = self.kubernetes.small.manifestYAMLFile;
+        k8sManifest = null;
       };
       krash3 = {
         hostName = "krash3";
-        k8sManifest = self.kubernetes.small.manifestYAMLFile;
+        k8sManifest = null;
         modules = [
           # Headless VM host — no DE, no desktop services
           inputs.hermes-agent.nixosModules.default
