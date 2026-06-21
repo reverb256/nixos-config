@@ -1,195 +1,169 @@
-{
-  config,
-  lib,
-  pkgs,
-  inputs,
-  ...
-}: let
-  meshKeys = import ../../mesh-keys.nix;
+{ config, pkgs, lib, inputs, ... }:
+let
+  inherit (import ../../mesh-keys.nix) meshKeys;
 in {
   imports = [
     ./hardware-configuration.nix
-    inputs.NixOS-WSL.nixosModules.wsl
-    inputs.home-manager.nixosModules.home-manager
   ];
 
-  # ── WSL ─────────────────────────────────────────────────
-  wsl.enable = true;
-  wsl.defaultUser = "j_kro";
-  wsl.wslConf.automount.root = "/mnt";
-  wsl.wslConf.automount.options = "metadata";
-  wsl.wslConf.network.generateHosts = false;
-
-  # Required by home-manager xdg.portal integration
-  environment.pathsToLink = [
-    "/share/applications"
-    "/share/xdg-desktop-portal"
+  # ── Boot ────────────────────────────────────────────────
+  boot.loader = {
+    efi.canTouchEfiVariables = true;
+    systemd-boot.enable = true;
+  };
+  boot.kernelPackages = pkgs.linuxPackages_zen;
+  boot.kernelParams = [
+    "amd_iommu=on" "iommu=pt" "kvm.ignore_msrs=1"
+    "console=ttyS0,115200"
   ];
-
-  # ── System ──────────────────────────────────────────────
-  boot.loader.systemd-boot.enable = false;
-  boot.loader.efi.canTouchEfiVariables = false;
-
-  system.stateVersion = "26.05";
-  networking.hostName = "krash3";
-  networking.hostId = "deadbeef";
-
-  networking.extraHosts = ''
-    search.lan 10.1.1.100
-    ai-inference.lan 10.1.1.100
-    auth.lan 10.1.1.100
-    qdrant.lan 10.1.1.100
-    n8n.lan 10.1.1.100
-    searxng.lan 10.1.1.100
-    mission-control.lan 10.1.1.100
-    grafana.lan 10.1.1.100
-    privacy-filter.lan 10.1.1.100
-    vaultwarden.lan 10.1.1.100
-    workspace.lan 10.1.1.100
-    dashboard.lan 10.1.1.100
-    maplespike.lan 10.1.1.100
-    api.maplespike.lan 10.1.1.100
-    mcp.maplespike.lan 10.1.1.100
-    status.maplespike.lan 10.1.1.100
-    uptime.maplespike.lan 10.1.1.100
-    haven.lan 10.1.1.100
-    mosiac.lan 10.1.1.100
-    mining.lan 10.1.1.100
-    gitea.lan 10.1.1.100
-    hermes.lan 10.1.1.100
-    api.hermes.lan 10.1.1.100
-    monitoring.lan 10.1.1.100
-    prometheus.lan 10.1.1.100
-    alertmanager.lan 10.1.1.100
-    vane.lan 10.1.1.100
+  boot.initrd.kernelModules = [ "vfio" "vfio_iommu_type1" "virtio_pci" "virtio_blk" ];
+  boot.blacklistedKernelModules = [ "nvidia" "nvidia_drm" "nvidia_modeset" "nvidia_uvm" ];
+  boot.initrd.systemd.enable = false;
+  boot.initrd.postMountCommands = ''
+    stage2InitRel=''${stage2Init#/}
+    if [ ! -e "$targetRoot/$stage2InitRel" ]; then
+      mkdir -m 0755 -p $targetRoot/proc $targetRoot/sys $targetRoot/dev $targetRoot/run 2>/dev/null
+      mount --move /proc $targetRoot/proc 2>/dev/null
+      mount --move /sys $targetRoot/sys 2>/dev/null
+      mount --move /dev $targetRoot/dev 2>/dev/null
+      mount --move /run $targetRoot/run 2>/dev/null
+      exec env -i $(type -P switch_root) "$targetRoot" "/$stage2InitRel"
+    fi
+    stage2Init="/$stage2InitRel"
   '';
 
-  time.timeZone = "America/Winnipeg";
-
-  # ── Users ───────────────────────────────────────────────
-  users.users.j_kro = {
-    uid = 1001;
-    isNormalUser = true;
-    extraGroups = ["wheel" "networkmanager"];
-    openssh.authorizedKeys.keys = meshKeys;
-    initialPassword = "nixos";
+  systemd.services."serial-getty@ttyS0" = {
+    enable = true;
+    wantedBy = [ "getty.target" ];
   };
 
-  users.users.krash = {
-    uid = 1002;
-    isNormalUser = true;
-    extraGroups = ["wheel" "networkmanager"];
-    openssh.authorizedKeys.keys = meshKeys;
-    initialPassword = "nixos";
+  zramSwap.enable = true;
+
+  networking.hostName = "krash3";
+  networking.hostId = "deadbeef";
+  networking.useDHCP = true;
+  networking.bridges.br0 = { interfaces = [ "enp6s0" ]; };
+  networking.interfaces = {
+    enp6s0.useDHCP = false;
+    br0 = {
+      ipv4.addresses = [{
+        address = "10.1.1.150";
+        prefixLength = 24;
+      }];
+    };
+  };
+  networking.defaultGateway = "10.1.1.1";
+  networking.nameservers = [ "127.0.0.1" "::1" ];
+  networking.search = [ "lan" ];
+  networking.dhcpcd.extraConfig = "nooption domain_name_servers";
+
+  services.unbound = {
+    enable = true;
+    settings = {
+      server = {
+        interface = [ "127.0.0.1" "::1" "10.1.1.150" ];
+        access-control = [ "127.0.0.0/8 allow" "10.1.1.0/24 allow" "::1 allow" ];
+        private-domain = "lan";
+        local-zone = "\"lan.\" static";
+        local-data = [
+          "\"maplespike.lan. A 10.1.1.150\""
+          "\"searxng.lan. A 127.0.0.1\""
+          "\"vane.lan. A 127.0.0.1\""
+          "\"haven.lan. A 10.1.1.100\""
+        ];
+      };
+      forward-zone = [{
+        name = ".";
+        forward-addr = [ "10.1.1.100" ];
+      }];
+    };
   };
 
-  security.sudo.wheelNeedsPassword = false;
+  virtualisation.libvirtd = {
+    enable = true;
+    qemu.package = pkgs.qemu_kvm;
+    onBoot = "start";
+    onShutdown = "shutdown";
+  };
+  virtualisation.spiceUSBRedirection.enable = true;
 
-  # ── SSH ─────────────────────────────────────────────────
+  systemd.tmpfiles.rules = [
+    "f /var/lib/libvirt/images/c.raw 0640 root libvirtd - -"
+  ];
+
+  systemd.services.assemble-games-raid = {
+    wantedBy = [ "local-fs.target" ];
+    before = [ "local-fs.target" ];
+    path = [ pkgs.mdadm pkgs.util-linux ];
+    script = ''
+      offset=$((1069056 * 512))
+      ${pkgs.util-linux}/bin/losetup -o $offset /dev/loop10 /dev/sdb
+      ${pkgs.util-linux}/bin/losetup -o $offset /dev/loop11 /dev/sda
+      ${pkgs.mdadm}/bin/mdadm --build /dev/md0 --level=raid0 --chunk=64 \
+        --raid-devices=2 /dev/loop10 /dev/loop11
+    '';
+    serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };
+  };
+
+  systemd.services.libvirt-autostart-windows = {
+    wantedBy = [ "multi-user.target" ];
+    after = [ "libvirtd.service" "assemble-games-raid.service" ];
+    script = ''
+      if [ -f /var/lib/libvirt/images/windows-domain.xml ]; then
+        ${pkgs.libvirt}/bin/virsh define /var/lib/libvirt/images/windows-domain.xml
+      elif [ -f /etc/nixos/windows-domain.xml ]; then
+        ${pkgs.libvirt}/bin/virsh define /etc/nixos/windows-domain.xml
+      fi
+      ${pkgs.libvirt}/bin/virsh start windows 2>/dev/null || true
+    '';
+    serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };
+  };
+
+  environment.systemPackages = with pkgs; [
+    virt-manager libvirt virtio-win
+  ];
+
+  networking.firewall.allowedTCPPorts = [ 22 ];
   services.openssh = {
     enable = true;
     settings = {
       PasswordAuthentication = false;
-      KbdInteractiveAuthentication = false;
-      PubkeyAuthentication = true;
-      PermitRootLogin = "no";
-    };
-    ports = [22222 22224];
-    openFirewall = true;
-    startWhenNeeded = false;
-  };
-
-  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22222 22224];
-
-  # ── SSH key from Windows (for krash user) ───────────────
-  systemd.services.copy-wsl-ssh-key = {
-    description = "Copy SSH key from Windows to WSL";
-    wantedBy = ["multi-user.target"];
-    after = ["local-fs.target"];
-    before = ["sshd.service"];
-    serviceConfig.Type = "oneshot";
-    serviceConfig.RemainAfterExit = true;
-    script = ''
-      mkdir -p /home/krash/.ssh
-      if [ -f /mnt/c/Users/krash/.ssh/id_ed25519 ] && [ ! -f /home/krash/.ssh/id_ed25519 ]; then
-        cp /mnt/c/Users/krash/.ssh/id_ed25519 /home/krash/.ssh/id_ed25519
-        chmod 600 /home/krash/.ssh/id_ed25519
-        cp /mnt/c/Users/krash/.ssh/id_ed25519.pub /home/krash/.ssh/id_ed25519.pub 2>/dev/null || true
-        chown -R krash:users /home/krash/.ssh
-        echo "SSH key copied from Windows krash user"
-      fi
-    '';
-  };
-
-  # ── Nix ─────────────────────────────────────────────────
-  nix = {
-    registry.nixpkgs.to.path = lib.mkForce inputs.nixpkgs-2605.outPath;
-    settings = {
-      trusted-users = ["j_kro" "krash" "root"];
-      experimental-features = ["nix-command" "flakes"];
-      accept-flake-config = true;
-      auto-optimise-store = true;
-    };
-    gc = {
-      automatic = true;
-      dates = "weekly";
-      options = "--delete-older-than 30d";
-    };
-    optimise.automatic = true;
-    nixPath = lib.mkForce [];
-    registry.nixpkgs.flake = inputs.nixpkgs;
-    extraOptions = ''
-      keep-outputs = true
-      keep-derivations = true
-    '';
-  };
-
-  # ── Packages ────────────────────────────────────────────
-  environment.systemPackages = with pkgs; [
-    git curl wget vim htop jq bash coreutils findutils gnused gawk
-    nix-output-monitor nvd nix-tree nh
-    bind.dnsutils mtr iperf3 traceroute
-    gh ripgrep fd bat eza delta tmux
-  ];
-
-  # ── Home Manager (j_kro) ────────────────────────────────
-  home-manager = {
-    useGlobalPkgs = true;
-    useUserPackages = true;
-    users.j_kro = {pkgs, ...}: {
-      home = {
-        stateVersion = lib.mkForce "26.05";
-        username = "j_kro";
-        homeDirectory = "/home/j_kro";
-      };
-      programs = {
-        bash.enable = true;
-        git = {
-          enable = true;
-          userName = lib.mkForce "j_kro";
-          userEmail = lib.mkForce "j_kro@lan";
-        };
-        htop.enable = true;
-        tmux.enable = true;
-      };
-    };
-
-    users.krash = {pkgs, ...}: {
-      home = {
-        stateVersion = lib.mkForce "26.05";
-        username = "krash";
-        homeDirectory = "/home/krash";
-      };
-      programs = {
-        bash.enable = true;
-        git = {
-          enable = true;
-          userName = lib.mkForce "krash";
-          userEmail = lib.mkForce "krash@lan";
-        };
-        htop.enable = true;
-        tmux.enable = true;
-      };
+      PermitRootLogin = "prohibit-password";
     };
   };
+
+  services.xserver.enable = false;
+  services.displayManager.enable = false;
+
+  users.mutableUsers = false;
+  users.users = {
+    root.openssh.authorizedKeys.keys = meshKeys.root;
+    krash = {
+      isNormalUser = true;
+      extraGroups = [ "wheel" "libvirtd" ];
+      password = "0818";
+      openssh.authorizedKeys.keys = meshKeys.krash or [];
+    };
+    j_kro = {
+      isNormalUser = true;
+      extraGroups = [ "wheel" "libvirtd" ];
+      password = "50161";
+      openssh.authorizedKeys.keys = meshKeys.j_kro;
+    };
+  };
+
+  security.sudo = {
+    enable = true;
+    wheelNeedsPassword = false;
+  };
+
+  system.activationScripts.windows-vm = ''
+    if [ -f /etc/nixos/windows-domain.xml ]; then
+      cp /etc/nixos/windows-domain.xml /var/lib/libvirt/images/windows-domain.xml
+      chown root:libvirtd /var/lib/libvirt/images/windows-domain.xml
+      chmod 640 /var/lib/libvirt/images/windows-domain.xml
+    fi
+  '';
+
+  system.stateVersion = "26.05";
 }
