@@ -261,7 +261,7 @@
         hostName = "krash3";
         k8sManifest = null;
         modules = commonModules;
-        
+      };
   };
   in {
     checks.x86_64-linux = {
