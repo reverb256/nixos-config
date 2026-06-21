@@ -482,6 +482,7 @@ mac-address=2C:F0:5D:A1:B8:EF
 address1=10.1.1.110/24
 gateway=10.1.1.1
 method=manual
+route-metric=100
 
 [ipv6]
 method=disabled
