@@ -4,6 +4,8 @@ let
 in {
   imports = [
     ./hardware-configuration.nix
+    ../../modules/network-constants.nix
+    ../../modules/services/k3s-cluster.nix
   ];
 
   # ── Boot ────────────────────────────────────────────────
@@ -168,6 +170,19 @@ in {
 
   # ── Lix (Nix implementation fork) ─────────────────────────
   services.lix.enable = true;
+
+  # ── k3s Agent ──────────────────────────────────────────
+  services.k3s-cluster = {
+    enable = true;
+    role = "agent";
+    nvidia.enable = true;
+    nodeName = "krash3";
+    tokenFile = "/run/secrets/k3s-cluster-token";
+    clusterCIDR = "10.42.0.0/16";
+    serviceCIDR = "10.43.0.0/16";
+    clusterDNS = "10.43.0.10";
+    serverAddr = "https://${config.networking.cluster.kubernetes.vip}:${toString config.networking.cluster.kubernetes.apiPort}";
+  };
 
   system.stateVersion = "26.05";
 }
