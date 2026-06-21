@@ -119,7 +119,7 @@ in {
       nvidia.enable = true;
       role = "agent";
       nodeName = "zephyr";
-      serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
+      serverAddr = "https://${cluster.hosts.nexus.ip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = cluster.hosts.zephyr.ip;
     };
