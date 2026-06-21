@@ -171,13 +171,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # WSL — NixOS on Windows Subsystem for Linux (krash3)
-    NixOS-WSL = {
-      url = "github:nix-community/NixOS-WSL/main";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    # ── Newly extracted project flakes ───────────────────────
     # hermes-workspace and hermes-webui archived (2026-05-16)
   };
   outputs = inputs @ {
@@ -267,15 +260,8 @@
       krash3 = {
         hostName = "krash3";
         k8sManifest = null;
-        modules = slimModules;
-        nixpkgsInput = inputs.nixpkgs-2605;
-      };
-      krash3-krash = {
-        hostName = "krash3-krash";
-        k8sManifest = null;
-        modules = slimModules;
-        nixpkgsInput = inputs.nixpkgs-2605;
-      };
+        modules = commonModules;
+        
   };
   in {
     checks.x86_64-linux = {
