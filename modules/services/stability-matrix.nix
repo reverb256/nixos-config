@@ -6,11 +6,11 @@
 }: let
   cfg = config.programs.stability-matrix;
   inherit (pkgs) appimageTools fetchzip;
-  version = "2.16.0";
+  version = "2.16.1";
   pname = "stability-matrix";
   extracted-zip = fetchzip {
     url = "https://github.com/LykosAI/StabilityMatrix/releases/download/v${version}/StabilityMatrix-linux-x64.zip";
-    sha256 = "sha256-RIqcKJDXEYZ2pk6hM5dJGKH9Gmn7T/H50zjMexvjQ5E=";
+    sha256 = "sha256-B69QCmndiP+ug20NFZPosympOcHJw69MWhZi56ekD7s=";
   };
   src = "${extracted-zip}/StabilityMatrix.AppImage";
   appimageContents = appimageTools.extract {
