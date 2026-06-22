@@ -36,7 +36,7 @@ in {
       if test -f /run/secrets/huggingface-token
         set -gx HF_TOKEN (cat /run/secrets/huggingface-token)
         # Ensure hf CLI token cache is populated
-        if not test -f ~/.cache/huggingface/token; or test (cat ~/.cache/huggingface/token) != "$HF_TOKEN"
+        if not test -f ~/.cache/huggingface/token; or test "(cat ~/.cache/huggingface/token)" != "$HF_TOKEN"
           mkdir -p ~/.cache/huggingface
           echo -n "$HF_TOKEN" > ~/.cache/huggingface/token
         end
