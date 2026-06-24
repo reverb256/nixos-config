@@ -267,6 +267,9 @@
           inputs.stylix.nixosModules.default
           ./modules/system/ssh-ca.nix
           ./modules/default.nix
+          {
+            nixpkgs.overlays = [ self.overlays.default ];
+          }
         ];
       };
   };
