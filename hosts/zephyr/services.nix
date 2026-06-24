@@ -56,7 +56,7 @@ in {
         };
         terminal = {
           backend = "local";
-          timeout = 60;
+          timeout = 120;
         };
         display = {
           skin = "slate";
@@ -113,29 +113,29 @@ in {
         github = {
           command = "/data/agents/mcp-bridges/github-mcp.sh";
           connect_timeout = 5;
-          timeout = 60;
+          timeout = 120;
         };
         searxng = {
           command = "/data/agents/mcp-bridges/searxng-mcp.sh";
           connect_timeout = 30;
-          timeout = 60;
+          timeout = 120;
         };
         sequential-thinking = {
           command = "/data/agents/mcp-bridges/sequential-thinking.sh";
           connect_timeout = 10;
-          timeout = 60;
+          timeout = 120;
         };
         nixos-cluster = {
           command = "nix";
           args = ["run" "/etc/nixos#nixos-cluster-mcp"];
           connect_timeout = 30;
-          timeout = 60;
+          timeout = 120;
         };
         lightpanda = {
           command = "lightpanda";
           args = ["mcp"];
           connect_timeout = 30;
-          timeout = 60;
+          timeout = 120;
         };
         kubernetes = {
           command = "kubernetes-mcp-server";
@@ -145,22 +145,27 @@ in {
         context7 = {
           command = "/data/agents/mcp-bridges/context7-mcp.sh";
           connect_timeout = 30;
-          timeout = 60;
+          timeout = 120;
         };
         prometheus = {
           command = "prometheus-mcp-server";
           connect_timeout = 30;
-          timeout = 60;
+          timeout = 120;
         };
         selfhosted-tools = {
           command = "/data/agents/mcp-bridges/selfhosted-mcp.sh";
           connect_timeout = 30;
-          timeout = 60;
+          timeout = 120;
         };
         cua-driver = {
           command = "/data/agents/mcp-bridges/cua-driver-mcp.sh";
           connect_timeout = 30;
-          timeout = 60;
+          timeout = 120;
+        };
+        maplespike = {
+          command = "/data/agents/mcp-bridges/maplespike-mcp-std.sh";
+          connect_timeout = 30;
+          timeout = 120;
         };
       };
     };
