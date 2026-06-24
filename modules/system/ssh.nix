@@ -35,7 +35,7 @@ in {
       PasswordAuthentication = false;
       KbdInteractiveAuthentication = false;
       PubkeyAuthentication = true;
-      PermitRootLogin = "no";
+      PermitRootLogin = lib.mkDefault "no";
       PermitEmptyPasswords = false;
       ChallengeResponseAuthentication = false;
 
