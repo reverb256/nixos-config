@@ -260,10 +260,6 @@
       krash3 = {
         hostName = "krash3";
         k8sManifest = null;
-        modules = [
-          # Headless VM host — no DE, no desktop services
-          inputs.hermes-agent.nixosModules.default
-        ];
       };
   };
   in {
