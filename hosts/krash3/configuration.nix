@@ -98,11 +98,11 @@ in {
   # ── Network ─────────────────────────────────────────────
   networking.hostName = "krash3";
   networking.hostId = "deadbeef";
-  networking.useDHCP = true;
+  networking.useDHCP = lib.mkForce true;
   networking.interfaces.enp7s0.useDHCP = true;
   networking.nameservers = [ "127.0.0.1" ];
   networking.search = [ "lan" ];
-  networking.networkmanager.enable = false;
+  networking.networkmanager.enable = lib.mkForce false;
   networking.dhcpcd.extraConfig = "nooption domain_name_servers";
 
   # ── Firewall ────────────────────────────────────────────
