@@ -84,6 +84,10 @@
         command: /data/agents/mcp-bridges/context7-mcp.sh
         connect_timeout: 30
         timeout: 60
+      cua-driver:
+        command: /data/agents/mcp-bridges/cua-driver-mcp.sh
+        connect_timeout: 30
+        timeout: 60
   '';
 
   mcpServersBlock =
