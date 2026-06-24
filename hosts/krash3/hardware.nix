@@ -4,13 +4,14 @@
     ./hardware-configuration.nix
   ];
 
-  # ── Boot ────────────────────────────────────────────────
+  # ── Boot ──
   boot.loader = {
     efi.canTouchEfiVariables = true;
     systemd-boot.enable = true;
   };
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  boot.loader.grub.enable = lib.mkForce false;
 
+  boot.kernelPackages = pkgs.linuxPackages_latest;
   boot.kernelParams = [
     "amd_iommu=on" "iommu=pt" "kvm.ignore_msrs=1" "vfio-pci.ids=10de:2882,10de:22be"
     "video=efifb:off"
