@@ -12,22 +12,28 @@ in {
       enable = true;
       addToSystemPackages = true;
       settings = {
-        model.default = "deepseek-v4-flash";
-        model.provider = "opencode-go";
-        providers.zai = {
-          base_url = "https://api.z.ai/api/coding/paas/v4";
-          api_key_env = "ZAI_API_KEY";
-          discover_models = true;
-        };
-        providers.opencode-go = {
+        model = {
+          api_mode = "chat_completions";
           base_url = "https://opencode.ai/zen/go/v1";
-          api_key_env = "OPENCODE_GO_API_KEY";
-          discover_models = true;
+          default = "deepseek-v4-flash";
+          provider = "opencode-go";
         };
-        providers.nvidia = {
-          base_url = "https://integrate.api.nvidia.com/v1";
-          api_key_env = "NVIDIA_API_KEY";
-          discover_models = true;
+        providers = {
+          zai = {
+            base_url = "https://api.z.ai/api/coding/paas/v4";
+            api_key_env = "ZAI_API_KEY";
+            discover_models = true;
+          };
+          opencode-go = {
+            base_url = "https://opencode.ai/zen/go/v1";
+            api_key_env = "OPENCODE_GO_API_KEY";
+            discover_models = true;
+          };
+          nvidia = {
+            base_url = "https://integrate.api.nvidia.com/v1";
+            api_key_env = "NVIDIA_API_KEY";
+            discover_models = true;
+          };
         };
         smart_model_routing = {
           enabled = true;
@@ -39,78 +45,132 @@ in {
           };
         };
         toolsets = ["all"];
-
+        compression = {
+          enabled = true;
+          threshold = 0.9;
+        };
+        memory = {
+          memory_enabled = true;
+          user_profile_enabled = true;
+          provider = "holographic";
+        };
+        terminal = {
+          backend = "local";
+          timeout = 60;
+        };
+        display = {
+          skin = "slate";
+        };
+        onboarding = {
+          seen = {
+            busy_input_prompt = true;
+            tool_progress_prompt = true;
+          };
+        };
+        tts = {
+          provider = "edge-uv";
+          providers = {
+            "edge-uv" = {
+              type = "command";
+              command = "uv run edge-tts -f {input_path} -v {voice} --write-media {output_path}";
+              output_format = "mp3";
+              voice = "en-US-BrianNeural";
+            };
+          };
+        };
+        voice = {
+          record_key = "ctrl+b";
+          max_recording_seconds = 120;
+          auto_tts = true;
+          beep_enabled = true;
+          silence_threshold = 200;
+          silence_duration = 3.0;
+        };
+        stt = {
+          provider = "local";
+          local = {
+            model = "base";
+          };
+        };
+        approvals = {
+          mcp_reload_confirm = false;
+        };
       };
-    environmentFiles = [ "/run/secrets/hermes-env" ];
-    extraDependencyGroups = ["messaging" "voice"];
-    extraPackages = with pkgs; [ripgrep jq curl];
-    documents = {
-      "USER.md" = ''
-        NixOS/k3s homelab operator and developer.
-      '';
-    };
-    mcpServers = {
-      git = {
-        command = "/data/agents/mcp-bridges/git-mcp.sh";
-        connect_timeout = 5;
-        timeout = 30;
+      environmentFiles = [ "/run/secrets/hermes-env" ];
+      extraDependencyGroups = ["messaging" "voice"];
+      extraPackages = with pkgs; [ripgrep jq curl];
+      documents = {
+        "USER.md" = ''
+          NixOS/k3s homelab operator and developer.
+        '';
       };
-      github = {
-        command = "/data/agents/mcp-bridges/github-mcp.sh";
-        connect_timeout = 5;
-        timeout = 60;
+      mcpServers = {
+        git = {
+          command = "/data/agents/mcp-bridges/git-mcp.sh";
+          connect_timeout = 5;
+          timeout = 30;
+        };
+        github = {
+          command = "/data/agents/mcp-bridges/github-mcp.sh";
+          connect_timeout = 5;
+          timeout = 60;
+        };
+        searxng = {
+          command = "/data/agents/mcp-bridges/searxng-mcp.sh";
+          connect_timeout = 30;
+          timeout = 60;
+        };
+        sequential-thinking = {
+          command = "/data/agents/mcp-bridges/sequential-thinking.sh";
+          connect_timeout = 10;
+          timeout = 60;
+        };
+        nixos-cluster = {
+          command = "nix";
+          args = ["run" "/etc/nixos#nixos-cluster-mcp"];
+          connect_timeout = 30;
+          timeout = 60;
+        };
+        lightpanda = {
+          command = "lightpanda";
+          args = ["mcp"];
+          connect_timeout = 30;
+          timeout = 60;
+        };
+        kubernetes = {
+          command = "kubernetes-mcp-server";
+          connect_timeout = 30;
+          timeout = 120;
+        };
+        context7 = {
+          command = "/data/agents/mcp-bridges/context7-mcp.sh";
+          connect_timeout = 30;
+          timeout = 60;
+        };
+        prometheus = {
+          command = "prometheus-mcp-server";
+          connect_timeout = 30;
+          timeout = 60;
+        };
+        selfhosted-tools = {
+          command = "/data/agents/mcp-bridges/selfhosted-mcp.sh";
+          connect_timeout = 30;
+          timeout = 60;
+        };
+        cua-driver = {
+          command = "/data/agents/mcp-bridges/cua-driver-mcp.sh";
+          connect_timeout = 30;
+          timeout = 60;
+        };
       };
-      searxng = {
-        command = "/data/agents/mcp-bridges/searxng-mcp.sh";
-        connect_timeout = 30;
-        timeout = 60;
-      };
-      sequential-thinking = {
-        command = "/data/agents/mcp-bridges/sequential-thinking.sh";
-        connect_timeout = 10;
-        timeout = 60;
-      };
-      nixos-cluster = {
-        command = "nix";
-        args = ["run" "/etc/nixos#nixos-cluster-mcp"];
-        connect_timeout = 30;
-        timeout = 60;
-      };
-      lightpanda = {
-        command = "lightpanda";
-        args = ["mcp"];
-        connect_timeout = 30;
-        timeout = 60;
-      };
-      kubernetes = {
-        command = "kubernetes-mcp-server";
-        connect_timeout = 30;
-        timeout = 120;
-      };
-      context7 = {
-        command = "/data/agents/mcp-bridges/context7-mcp.sh";
-        connect_timeout = 30;
-        timeout = 60;
-      };
-      prometheus = {
-        command = "prometheus-mcp-server";
-        connect_timeout = 30;
-        timeout = 60;
-      };
-      selfhosted-tools = {
-        command = "/data/agents/mcp-bridges/selfhosted-mcp.sh";
-        connect_timeout = 30;
-        timeout = 60;
-      };
-    };
-
     };
     hermes-cli = {
       enable = true;
+      apiKeyFile = "/run/secrets/zai-api-key";
       casdoorJwtFile = "/run/secrets/casdoor-hermes-jwt";
-      # apiKeyFile intentionally null — MCP servers are already configured
-      # in user's existing config.yaml. Systemd service disabled below
-      # to prevent overwrite with template.
+      # apiKey set via hermes-env for MCP server template injection
+      # Hermes-mcp-servers service merges servers from Nix fallback block
+      # Service enabled below for declarative MCP management.
       # model = "opencode-go/deepseek-v4-flash" not mapped to module
       # options; hermes-cli module only provides JWT/MCP/package mgmt.
     };
@@ -412,10 +472,9 @@ in {
     selfHosting = true;
   };
 
-  # Disable hermes-mcp-servers — user's config.yaml already has correct MCP
-  # setup. Running the template merge would overwrite working config with
-  # placeholder API keys (null apiKeyFile → "missing" injected into every MCP).
-  systemd.services.hermes-mcp-servers.enable = false;
+  # hermes-mcp-servers enabled — merges MCP servers from Nix fallback block
+  # into config.yaml. All servers (including cua-driver) are defined there.
+  systemd.services.hermes-mcp-servers.enable = true;
 
   systemd.services.caddy.serviceConfig = {
     AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
@@ -504,6 +563,12 @@ NMKEYFILE
       echo "[hermes-dotenv] Synced .env from hermes-env"
     fi
   '';
+
+  # Pass DISPLAY to hermes-agent so cua-driver MCP can access X11
+  systemd.services.hermes-agent.environment = {
+    DISPLAY = ":0";
+  };
+
 
   # Zephyr hosts Caddy for .lan services — VIP must stay here statically
   # VRRP keepalived election is unreliable between nodes (multicast issues)
