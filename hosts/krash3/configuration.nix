@@ -90,6 +90,7 @@ let
     </domain>
   '';
 in {
+  boot.loader.grub.enable = lib.mkForce false;
   imports = [
     ./hardware-configuration.nix
   ];
