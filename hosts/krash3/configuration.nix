@@ -90,7 +90,7 @@ let
     </domain>
   '';
 in {
-  boot.loader.grub.enable = lib.mkForce false;
+  profiles.role.server = true;
   imports = [
     ./hardware-configuration.nix
   ];
@@ -153,9 +153,6 @@ in {
   };
 
   # ── X11 / Display ───────────────────────────────────────
-  services.xserver.enable = lib.mkForce false;
-  services.displayManager.enable = lib.mkForce false;
-  services.displayManager.sddm.enable = lib.mkForce false;
 
   # ── Write inline VM XML & define on every rebuild ───────
   system.activationScripts.windows-vm = lib.mkAfter ''
