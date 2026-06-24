@@ -39,7 +39,7 @@
   virtualisation.spiceUSBRedirection.enable = true;
 
   systemd.tmpfiles.rules = [
-    "f /var/lib/libvirt/images/c.raw 0640 root libvirtd - -"
+    "f /var/lib/libvirt/images/c.raw 0640 root kvm - -"
   ];
 
   # ── iSCSI target: export md0p1 to Windows VM ────────────
