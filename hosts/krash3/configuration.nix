@@ -98,11 +98,11 @@ in {
   # ── Network ─────────────────────────────────────────────
   networking.hostName = "krash3";
   networking.hostId = "deadbeef";
-  networking.useDHCP = lib.mkForce true;
+  networking.useDHCP = true;
   networking.interfaces.enp7s0.useDHCP = true;
   networking.nameservers = [ "127.0.0.1" ];
   networking.search = [ "lan" ];
-  networking.networkmanager.enable = lib.mkForce false;
+  networking.networkmanager.enable = false;
   networking.dhcpcd.extraConfig = "nooption domain_name_servers";
 
   # ── Firewall ────────────────────────────────────────────
@@ -113,7 +113,7 @@ in {
     enable = true;
     settings = {
       PasswordAuthentication = false;
-      PermitRootLogin = lib.mkForce "prohibit-password";
+      PermitRootLogin = "prohibit-password";
     };
   };
 
