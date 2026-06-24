@@ -153,8 +153,8 @@ in {
   };
 
   # ── X11 / Display ───────────────────────────────────────
-  services.xserver.enable = false;
-  services.displayManager.enable = false;
+  services.xserver.enable = lib.mkForce false;
+  services.displayManager.enable = lib.mkForce false;
 
   # ── Write inline VM XML & define on every rebuild ───────
   system.activationScripts.windows-vm = lib.mkAfter ''
