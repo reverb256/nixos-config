@@ -96,6 +96,8 @@ in {
   services.displayManager.sddm.enable = lib.mkForce false;
   boot.loader.grub.enable = lib.mkForce false;
   imports = [
+    ./hardware.nix
+    ./services.nix
     ./hardware-configuration.nix
   ];
 
