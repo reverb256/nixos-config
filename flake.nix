@@ -264,6 +264,7 @@
           inputs.sops-nix.nixosModules.default
           inputs.home-manager.nixosModules.home-manager
           inputs.hermes-agent.nixosModules.default
+          inputs.stylix.nixosModules.default
           ./modules/system/ssh-ca.nix
           ./modules/default.nix
         ];
