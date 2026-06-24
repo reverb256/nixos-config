@@ -8,7 +8,7 @@
       enable = lib.mkDefault true;
       insertNameservers = ["127.0.0.1" "::1"];
     };
-    useDHCP = false;
+    useDHCP = lib.mkDefault false;
 
     hosts = {
       "10.1.1.110" = ["zephyr"];

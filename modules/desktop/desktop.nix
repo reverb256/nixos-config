@@ -96,7 +96,7 @@ in {
       };
     };
     displayManager = {
-      sddm.enable = true;
+      sddm.enable = lib.mkDefault true;
       sddm.settings.General.DisplayServer = "wayland";
     };
 
