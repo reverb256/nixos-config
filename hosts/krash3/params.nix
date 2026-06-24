@@ -43,7 +43,7 @@
     vcpu = 16;
     cores = 8;
     threads = 2;
-    cdisk = "/var/lib/libvirt/images/c.raw";
+    cdisk = "c.raw";
     virtioIso = "/var/lib/libvirt/images/virtio-win.iso";
     gpuRom = "/var/lib/libvirt/images/gpu-rom.bin";
     macNAT = "52:54:00:a5:e0:e0";
