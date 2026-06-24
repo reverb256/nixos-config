@@ -90,7 +90,11 @@ let
     </domain>
   '';
 in {
-  profiles.role.server = true;
+  # Headless server guard
+  services.xserver.enable = lib.mkForce false;
+  services.displayManager.enable = lib.mkForce false;
+  services.displayManager.sddm.enable = lib.mkForce false;
+  boot.loader.grub.enable = lib.mkForce false;
   imports = [
     ./hardware-configuration.nix
   ];
