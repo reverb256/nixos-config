@@ -81,7 +81,7 @@
   # Prevent /boot partition from filling up
   boot.loader.systemd-boot = {
     enable = lib.mkDefault true;
-    configurationLimit = 6;
+    configurationLimit = 3;
     consoleMode = "auto";
     graceful = lib.mkDefault false;
     editor = lib.mkDefault false;

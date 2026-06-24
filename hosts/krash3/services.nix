@@ -1,5 +1,9 @@
 { config, pkgs, lib, ... }:
-{
+let
+  params = import ./params.nix;
+  inherit (params) vm network raid;
+in {
+  # ── Unbound DNS ──
   # ── Unbound DNS ─────────────────────────────────────────
   services.unbound = {
     enable = true;
