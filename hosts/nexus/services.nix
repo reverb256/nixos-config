@@ -228,11 +228,6 @@ in {
         backend = "127.0.0.1:30900";
         compress = false;
       };
-      openwebui = {
-        domain = "openwebui.lan";
-        backend = "127.0.0.1:32080";
-
-      };
       hermes = {
         domain = "hermes.lan";
         backend = "127.0.0.1:8642";
