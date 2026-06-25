@@ -30,9 +30,6 @@ in {
   systemd.services."serial-getty@ttyS0".enable = true;
 
   # ── ZRAM (skip if already exists on non-reboot rebuilds) ──
-  zramSwap.enable = true;
-  systemd.services."systemd-zram-setup@" = {
-    serviceConfig.ExecCondition = lib.mkForce [ "" "${pkgs.coreutils}/bin/test ! -e /dev/zram0" ];
   };
 
   # ── RAID assembly ──
