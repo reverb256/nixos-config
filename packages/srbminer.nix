@@ -3,12 +3,11 @@
   stdenv,
   fetchurl,
   python3,
-  version ? "3.3.9",
+  version ? "3.4.1",
 }: let
-  tag = "srbminer-${builtins.replaceStrings ["."] ["-"] version}";
   src = fetchurl {
-    url = "https://github.com/kryptex-miners-org/kryptex-miners/releases/download/${tag}/SRBMiner-Multi-${builtins.replaceStrings ["."] ["-"] version}-Linux.tar.gz";
-    hash = "sha256-m6JlIicpvamjS0rtbM2XjCyYUwQK4kwLiBANSs0HXHQ=";
+    url = "https://github.com/doktor83/SRBMiner-Multi/releases/download/${version}/SRBMiner-Multi-${builtins.replaceStrings ["."] ["-"] version}-Linux.tar.gz";
+    hash = "sha256-c2de6da87afad6d536573084a46cfb08e2bd5b38cdbf9245199d093a6ea6970f";
   };
 in
   stdenv.mkDerivation {
@@ -24,9 +23,9 @@ in
     dontStrip = true;
 
     installPhase = ''
-      tar -xzf $src
       mkdir -p $out/bin
-      mv SRBMiner-MULTI $out/bin/
+      tar -xzf $src
+      mv SRBMiner-Multi-*/SRBMiner-MULTI $out/bin/
       chmod +x $out/bin/SRBMiner-MULTI
     '';
 
@@ -64,7 +63,7 @@ with open('$out/bin/SRBMiner-MULTI', 'r+b') as f:
 
     meta = {
       description = "SRBMiner-Multi - GPU/CPU miner for various algorithms";
-      homepage = "https://github.com/kryptex-miners-org/kryptex-miners";
+      homepage = "https://github.com/doktor83/SRBMiner-Multi";
       license = lib.licenses.unfree;
       platforms = ["x86_64-linux"];
       maintainers = [];
