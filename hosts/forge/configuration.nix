@@ -133,7 +133,6 @@
     port = 8002;
     ctxSize = 131072;
     gpuLayers = 99;
-    gpu = "amd";
     vulkanDevice = "Vulkan1";
     parallelDecoding = 1;
     enableThinking = false;

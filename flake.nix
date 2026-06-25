@@ -252,6 +252,7 @@
         hostName = "forge";
         # Forge runs mining workloads
         k8sManifest = self.kubernetes.mining.manifestYAMLFile;
+        modules = [{nixpkgs.overlays = [ self.overlays.default ];}];
       };
       sentry = {
         hostName = "sentry";
