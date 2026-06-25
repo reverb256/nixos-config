@@ -190,7 +190,7 @@ in {
 
   config = mkIf cfg.enable {
     services.caddy = {
-      enable = lib.mkForce false;  # Temporarily disabled due to port binding issues
+      enable = true;  # Re-enabled: moved from zephyr to nexus
       package = pkgs.caddy-with-modules;
       configFile = pkgs.writeText "Caddyfile" (buildCaddyfile cfg.services);
       user = lib.mkForce "root";
