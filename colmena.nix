@@ -35,6 +35,7 @@
       inherit targetHost;
       targetUser = "j_kro";
       inherit tags;
+      buildOnTarget = false;
       allowLocalDeployment =
         if targetHost == null
         then true
