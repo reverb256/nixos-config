@@ -220,7 +220,6 @@ in {
     keepalived-vip = {
     # Override: zephyr hosts Caddy for .lan services, so VIP must stay here
     # VRRP multicast is broken between nodes; VIP is set statically
-    # Instead of relying on keepalived election, add VIP at boot via localCommands
       enable = true;
       vip = cluster.kubernetes.vip;
       interface = "eth0";
@@ -578,6 +577,6 @@ NMKEYFILE
   # Zephyr hosts Caddy for .lan services — VIP must stay here statically
   # VRRP keepalived election is unreliable between nodes (multicast issues)
   networking.localCommands = ''
-    ip addr add 10.1.1.100/24 dev eth0 2>/dev/null || true
   '';
+  time.timeZone = lib.mkForce "America/Winnipeg";
 }
