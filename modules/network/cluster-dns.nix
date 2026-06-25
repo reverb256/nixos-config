@@ -100,7 +100,7 @@
     if builtins.elem domain ingressServiceDomains
     then vip
     else if builtins.elem domain hostServiceDomains
-    then hosts.zephyr # zephyr terminates HTTPS for all .lan services
+    then vip # VIP routes to Caddy for TLS termination
     else if builtins.elem domain forgeServiceDomains
     then hosts.forge
     else if builtins.elem domain sentryServiceDomains
@@ -192,11 +192,24 @@ in {
         # Forward zones
         forward-zone = [
           # K8s cluster DNS → CoreDNS (enables host-level K8s service resolution)
-          # NOTE: ts.net. and . (upstream) forward zones are defined in unbound-common.nix
+          
           {
             name = "cluster.local.";
             forward-addr = [config.networking.cluster.kubernetes.clusterDnsIP];
           }
+          # Tailscale MagicDNS (ts.net domains)
+          {
+            name = "ts.net.";
+            forward-addr = ["100.100.100.100" "fd7a:115c:a1e0::53"];
+          }
+          # Internet DNS via TLS forwarders (fast, authenticated)
+          # Self-contained here — no dependency on unbound-common
+          {
+            name = ".";
+            forward-addr = dnsCfg.upstreamServers;
+            forward-tls-upstream = true;
+          }
+
         ];
       };
     };
@@ -279,20 +292,20 @@ in {
         allHosts =
           hosts
           // {
-            ai-inference = hosts.zephyr; # zephyr HTTPS
-            qdrant = hosts.zephyr; # zephyr HTTPS
-            search = hosts.zephyr; # zephyr HTTPS
-            searxng = hosts.zephyr; # zephyr HTTPS
-            n8n = hosts.zephyr; # zephyr HTTPS
-            openwebui = hosts.zephyr; # zephyr HTTPS
-            haven = hosts.zephyr; # zephyr HTTPS
-            grafana = hosts.zephyr; # zephyr HTTPS
+            ai-inference = vip; # VIP Caddy
+            qdrant = vip; # VIP Caddy
+            search = vip; # VIP Caddy
+            searxng = vip; # VIP Caddy
+            n8n = vip; # VIP Caddy
+            openwebui = vip; # VIP Caddy
+            haven = vip; # VIP Caddy
+            grafana = vip; # VIP Caddy
             prometheus = hosts.sentry;
             monitoring = hosts.sentry;
             mining = hosts.forge;
-            mission-control = hosts.zephyr; # zephyr HTTPS
-            workspace = hosts.zephyr; # zephyr HTTPS
-            privacy-filter = hosts.zephyr; # zephyr HTTPS
+            mission-control = vip; # VIP Caddy
+            workspace = vip; # VIP Caddy
+            privacy-filter = vip; # VIP Caddy
           };
       in
         lib.pipe allHosts [

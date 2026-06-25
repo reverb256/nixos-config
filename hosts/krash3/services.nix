@@ -13,14 +13,24 @@ in {
         private-domain = "lan";
         local-zone = "\"lan.\" static";
         local-data = [
-          "\"maplespike.lan. A 10.1.1.110\""
-          "\"api.maplespike.lan. A 10.1.1.110\""
-          "\"searxng.lan. A 10.1.1.110\""
-          "\"search.lan. A 10.1.1.110\""
+          # Services (Caddy-proxied via VIP 10.1.1.100 for HA)
+          "\"maplespike.lan. A 10.1.1.100\""
+          "\"api.maplespike.lan. A 10.1.1.100\""
+          "\"searxng.lan. A 10.1.1.100\""
+          "\"search.lan. A 10.1.1.100\""
+          "\"vane.lan. A 10.1.1.100\""
           "\"haven.lan. A 10.1.1.100\""
-          "\"vane.lan. A 10.1.1.110\""
+          "\"ai-inference.lan. A 10.1.1.100\""
+          "\"auth.lan. A 10.1.1.100\""
+          "\"grafana.lan. A 10.1.1.100\""
+          "\"n8n.lan. A 10.1.1.100\""
+          "\"gitea.lan. A 10.1.1.100\""
+          # Host records (direct IPs)
           "\"nexus.lan. A 10.1.1.120\""
           "\"zephyr.lan. A 10.1.1.110\""
+          "\"forge.lan. A 10.1.1.130\""
+          "\"sentry.lan. A 10.1.1.140\""
+          # Infrastructure
           "\"k3s-api.lan. A 10.1.1.100\""
         ];
       };
