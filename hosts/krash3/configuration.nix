@@ -53,9 +53,9 @@ let
         <controller type='pci' index='7' model='pcie-root-port'/>
         <controller type='pci' index='8' model='pcie-root-port'/>
         <controller type='virtio-serial' index='0'/>
-        <interface type='network'>
+        <interface type='bridge'>
           <mac address='52:54:00:a5:e0:e0'/>
-          <source network='default'/><model type='virtio'/>
+          <source bridge='virbr0'/><model type='virtio'/>
         </interface>
         <interface type='direct'>
           <source dev='enp7s0' mode='bridge'/><model type='virtio'/>
@@ -195,9 +195,7 @@ XMLEOF
     chmod 640 /var/lib/libvirt/images/windows-domain.xml
     # Define domain from the generated XML so virsh knows it
     virsh define /var/lib/libvirt/images/windows-domain.xml 2>/dev/null || true
-    # Ensure default libvirt network is active for the VM's network interface
-    virsh net-start default 2>/dev/null || true
-    virsh net-autostart default 2>/dev/null || true
+
   '';
 
   # ── SSH key dirs ────────────────────────────────────────
