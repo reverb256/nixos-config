@@ -219,8 +219,11 @@ in {
 
     # Add caddy to keyGroup for cert access (only if caddy service is enabled)
     users.users.caddy = lib.mkIf (config.services.caddy.enable or false) {
+      isSystemUser = true;
+      group = "caddy";
       extraGroups = [cfg.keyGroup];
     };
+    users.groups.caddy = {};
 
     systemd.services.cluster-ca-export = {
       description = "Export CA certificate to user home";
