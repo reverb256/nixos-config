@@ -81,7 +81,7 @@ let
         </hostdev>
         <!-- Gamesir Nova Lite 2 dongle (USB passthrough) -->
         <hostdev mode='subsystem' type='usb' managed='yes'>
-          <source>
+          <source startupPolicy='optional'>
             <vendor id='0x3537'/>
             <product id='0x2106'/>
           </source>
