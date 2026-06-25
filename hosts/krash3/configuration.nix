@@ -207,6 +207,14 @@ XMLEOF
 
   # ── SOPS Secrets ────────────────────────────────────────
   # ── SOPS Secrets ────────────────────────────────────────
+  # ── Distributed Builds — never build locally ──
+  nix.distributedBuilds = true;
+  nix.settings = {
+    builders = lib.mkDefault "@/etc/nix/machines";
+    builders-use-substitutes = true;
+    max-jobs = 0;
+  };
+
   sops = {
     age = {
       keyFile = "/etc/nixos/.age/key.txt";
