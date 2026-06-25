@@ -16,6 +16,8 @@
       function = "0x1";
     };
     usb = {
+      vendor = "1022";
+      device = "149c";
       bus = "0x0a";
       slot = "0x00";
       function = "0x3";
