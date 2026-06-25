@@ -1,6 +1,7 @@
 {
   pkgs,
   lib,
+  config,
   ...
 }: {
   hardware.enableRedistributableFirmware = true;
@@ -14,6 +15,8 @@
 
   hardware = {
     nvidia-common.enable = true;
+    nvidia.open = lib.mkForce false;
+    nvidia.package = lib.mkForce config.boot.kernelPackages.nvidiaPackages.new_feature;
     nvidia.powerLimits = {
       enable = true;
       gpus = {

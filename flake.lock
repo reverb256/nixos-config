@@ -1623,18 +1623,6 @@
         "type": "github"
       }
     },
-    "preservation": {
-      "locked": {
-        "lastModified": 1,
-        "narHash": "sha256-JfD+sES5PzVDJHN8XedawzDU1MaVbMyWGyjjZEJsWzA=",
-        "path": "./lib/preservation",
-        "type": "path"
-      },
-      "original": {
-        "path": "./lib/preservation",
-        "type": "path"
-      }
-    },
     "process-compose": {
       "inputs": {
         "flake-utils": "flake-utils_4",
@@ -1821,7 +1809,6 @@
         "nixpkgs-2605": "nixpkgs-2605",
         "nur": "nur",
         "pre-commit-hooks": "pre-commit-hooks_2",
-        "preservation": "preservation",
         "process-compose": "process-compose",
         "scopebuddy": "scopebuddy",
         "sops-nix": "sops-nix",

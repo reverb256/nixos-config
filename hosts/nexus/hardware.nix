@@ -1,6 +1,7 @@
 {
   pkgs,
   lib,
+  config,
   ...
 }: {
   hardware.gpu-compute = {
@@ -199,6 +200,8 @@
     "rootdelay=5"
   ];
 
+  hardware.nvidia.open = lib.mkForce false;
+  hardware.nvidia.package = lib.mkForce config.boot.kernelPackages.nvidiaPackages.new_feature;
   hardware.nvidia.powerLimits = {
     enable = true;
     gpus = {

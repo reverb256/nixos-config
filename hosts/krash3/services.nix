@@ -11,7 +11,6 @@ in {
         interface = [ "127.0.0.1" "::1" "10.1.1.150" ];
         access-control = [ "127.0.0.0/8 allow" "10.1.1.0/24 allow" "::1 allow" ];
         private-domain = "lan";
-        local-zone = "\"lan.\" static";
         local-data = [
           # Services (Caddy-proxied via VIP 10.1.1.100 for HA)
           "\"maplespike.lan. A 10.1.1.100\""
@@ -97,5 +96,5 @@ in {
   };
 
   # ── Packages ──
-  environment.systemPackages = with pkgs; [ virt-manager libvirt virtio-win swtpm jq ];
+  environment.systemPackages = with pkgs; [ virt-manager git libvirt virtio-win swtpm jq ];
 }
