@@ -142,6 +142,8 @@ in {
 
   # ── Firewall ────────────────────────────────────────────
   networking.firewall.allowedTCPPorts = [ 22 445 2222 3260 ];
+  services.avahi.enable = lib.mkForce false;
+  services.tailscale.enable = lib.mkForce false;
 
   # ── SSH ─────────────────────────────────────────────────
   services.openssh = {
