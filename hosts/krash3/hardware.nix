@@ -12,7 +12,7 @@ in {
   };
   boot.kernelPackages = pkgs.linuxPackages_latest;
   boot.kernelParams = [
-    "amd_iommu=on" "iommu=pt" "kvm.ignore_msrs=1" "pcie_acs_override=downstream" "isolcpus=0-8,12-20"
+    "amd_iommu=on" "iommu=pt" "kvm.ignore_msrs=1" "pcie_acs_override=downstream"
     "vfio-pci.ids=${pci.gpu.vendor}:${pci.gpu.device},${pci.gpuAudio.vendor}:${pci.gpuAudio.device}"
     "video=efifb:off" "console=ttyS0,115200"
   ];
