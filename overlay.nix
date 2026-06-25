@@ -7,6 +7,7 @@ _final: prev:
     ;
   lmstudio = prev.callPackage ./packages/lmstudio.nix { };
   srbminer-multi = prev.callPackage ./packages/srbminer.nix { };
+  lpminer-pearl = prev.callPackage ./packages/lpminer-pearl.nix { };
   # DBD-CSV 0.60 test failures in sandbox (Using data files in /build... is unsafe)
   perlPackages = prev.perlPackages // {
     DBDCSV = prev.perlPackages.DBDCSV.overrideAttrs (old: {

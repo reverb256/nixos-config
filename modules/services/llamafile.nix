@@ -17,7 +17,9 @@
   useRocm = config.hardware.gpu-compute.rocm.enable or false;
 
   llamaPkg =
-    if cfg.gpu == "amd" || cfg.gpu == "rocm"
+    if cfg.vulkanDevice != null
+    then pkgs.llama-cpp
+    else if cfg.gpu == "amd" || cfg.gpu == "rocm"
     then pkgs.llama-cpp-rocm
     else if cfg.gpu == "nvidia"
     then pkgs.llama-cpp
@@ -235,8 +237,7 @@ in {
 
         Environment = [
           "LD_LIBRARY_PATH=${llamaPkg}/lib"
-          "CUDA_VISIBLE_DEVICES=${toString cfg.gpuDevice}"
-        ];
+        ] ++ lib.optional (cfg.vulkanDevice == null) "CUDA_VISIBLE_DEVICES=${toString cfg.gpuDevice}";
 
         NoNewPrivileges = true;
         PrivateTmp = true;
