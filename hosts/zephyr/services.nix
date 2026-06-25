@@ -52,7 +52,7 @@ in {
         memory = {
           memory_enabled = true;
           user_profile_enabled = true;
-          provider = "holographic";
+          provider = "mnemosyne";
         };
         terminal = {
           backend = "local";
@@ -105,6 +105,12 @@ in {
         '';
       };
       mcpServers = {
+        agentmemory = {
+          command = "npx";
+          args = ["-y" "@agentmemory/mcp"];
+          connect_timeout = 30;
+          timeout = 120;
+        };
         git = {
           command = "/data/agents/mcp-bridges/git-mcp.sh";
           connect_timeout = 5;
@@ -215,9 +221,10 @@ in {
       ];
     };
 
-    keepalived-vip = {
-    # BACKUP — nexus is MASTER (runs pods)
-      enable = true;
+        keepalived-vip = {
+      # Disabled: VRRP multicast is broken between nodes.
+      # VIP managed by nexus via localCommands.
+      enable = false;
       vip = cluster.kubernetes.vip;
       interface = "eth0";
       priority = 105;
