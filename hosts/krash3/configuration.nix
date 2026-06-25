@@ -33,7 +33,7 @@ let
       <devices>
         <emulator>/run/libvirt/nix-emulators/qemu-system-x86_64</emulator>
         <disk type='file' device='disk'>
-          <driver name='qemu' type='raw' cache='writethrough'/>
+          <driver name='qemu' type='raw' cache='writeback'/>
           <source file='/var/lib/libvirt/images/c.raw'/>
           <target dev='vda' bus='virtio'/><boot order='1'/>
         </disk>
