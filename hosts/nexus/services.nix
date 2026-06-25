@@ -19,6 +19,8 @@ in {
 
   # Force local unbound as DNS resolver
   networking.nameservers = lib.mkForce [ "127.0.0.1" "::1" ];
+  # Prevent DHCP from overriding resolv.conf
+  networking.dhcpcd.extraConfig = "nooption domain_name_servers";
 
   # Keepalived VRRP fallback — add VIP at boot
   networking.localCommands = ''
