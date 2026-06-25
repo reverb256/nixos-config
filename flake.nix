@@ -72,9 +72,6 @@
       inputs.nixpkgs.follows = "";
       inputs.home-manager.follows = "";
     };
-    preservation = {
-      url = "path:./lib/preservation";
-    };
     niri = {
       url = "github:sodiboo/niri-flake/b5f81cf03d90bcf2efd20d12fe933a0790b4722b";
       inputs.nixpkgs.follows = "nixpkgs";
