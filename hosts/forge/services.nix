@@ -7,6 +7,7 @@
 }: let
   cluster = config.networking.cluster;
 in {
+  time.timeZone = lib.mkForce "America/Winnipeg";
   services = {
     keepalived-vip = {
       enable = true;
