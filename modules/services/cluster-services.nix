@@ -198,12 +198,10 @@ in {
     };
 
     # Allow Caddy to bind privileged ports (<1024) when running as non-root
-    systemd.services.caddy = {
-      serviceConfig = lib.mkForce {
-        User = "root";
-        Group = "root";
-        NoNewPrivileges = false;
-      };
+    systemd.services.caddy.serviceConfig = {
+      User = "root";
+      Group = "root";
+      NoNewPrivileges = lib.mkForce false;
     };
 
     environment.systemPackages = [

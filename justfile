@@ -403,3 +403,29 @@ docs-freshen:
     #!/usr/bin/env bash
     set -e
     echo "Check LIVE/ docs for accuracy, run 'docs-audit' after"
+# Deploy in strict order: nexus → forge → sentry. NEVER zephyr.
+deploy-all:
+    #!/usr/bin/env bash
+    set -e
+    echo "Deploying from $(cd {{FLAKE}} && git rev-parse --abbrev-ref HEAD) ($(cd {{FLAKE}} && git rev-parse --short HEAD))"
+    echo ""
+    for host in nexus forge sentry; do
+        echo "=== $host ==="
+        echo "Checking for existing builds..."
+        EXISTING=$(ssh j_kro@$host "ps aux | grep -iE 'nixos-rebuild|nix.*build|colmena' | grep -v grep | grep -v defunct" 2>/dev/null || true)
+        if [ -n "$EXISTING" ]; then
+            echo "WARNING: Existing build(s) on $host:"
+            echo "$EXISTING"
+            echo "Killing stale builds..."
+            ssh j_kro@$host "ps aux | grep -iE 'nixos-rebuild|nix.*build|colmena' | grep -v grep | grep -v defunct | awk '{print \$2}' | xargs -r kill" 2>/dev/null || true
+            sleep 2
+        fi
+        OUT=$(nix build --no-link --print-out-paths {{FLAKE}}#nixosConfigurations.\$host.config.system.build.toplevel) || {
+            echo "Build failed for $host"; exit 1
+        }
+        nix-copy-closure --to j_kro@\$host "\$OUT" 2>&1 | grep -v "copying path" | grep -v "already exists"
+        ssh j_kro@\$host "bash --norc --noprofile -c 'sudo nix-env -p /nix/var/nix/profiles/system --set \$OUT && sudo \$OUT/bin/switch-to-configuration switch && echo OK'" 2>&1 | tail -3
+        echo "$host done"
+    done
+    echo ""
+    echo "Deploy complete. Verify with 'just health'"
