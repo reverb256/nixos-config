@@ -579,8 +579,6 @@ NMKEYFILE
 
 
   # Zephyr hosts Caddy for .lan services — VIP must stay here statically
-  # VRRP keepalived election is unreliable between nodes (multicast issues)
-  networking.localCommands = ''
   '';
   time.timeZone = lib.mkForce "America/Winnipeg";
 }
