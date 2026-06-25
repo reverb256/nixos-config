@@ -124,5 +124,55 @@
 
   environment.systemPackages = [ pkgs.llama-cpp ];
 
+  # ── Local LLM Inference — Declarative Services ────────────
+  services.llamafile = {
+    enable = true;
+    modelPath = "/home/j_kro/models/gemma-4-E2B-it-Q4_K_M.gguf";
+    modelName = "gemma-4-E2B-it-Q4_K_M";
+    host = "0.0.0.0";
+    port = 8002;
+    ctxSize = 131072;
+    gpuLayers = 99;
+    gpu = "amd";
+    vulkanDevice = "Vulkan1";
+    parallelDecoding = 1;
+    enableThinking = false;
+    chatTemplate = "<start_of_turn>user\n{{prompt}}<end_of_turn>\n<start_of_turn>model\n";
+  };
+
+  # Second model — Qwen3.5-4B on Vulkan2
+  systemd.services.llamafile-qwen = {
+    description = "Llama.cpp Qwen3.5-4B (Vulkan2)";
+    after = ["network.target"];
+    wantedBy = ["multi-user.target"];
+    serviceConfig = {
+      Type = "simple";
+      User = "j_kro";
+      Group = "users";
+      WorkingDirectory = "/home/j_kro";
+      ExecStart = ''
+        ${pkgs.llama-cpp-vulkan}/bin/llama-server \
+          --model /home/j_kro/models/Qwen3.5-4B-Q4_K_M.gguf \
+          --host 0.0.0.0 --port 8003 \
+          -ngl 99 -c 65536 -t 8 \
+          --batch-size 64 --ubatch-size 16 \
+          --flash-attn on --parallel 2 \
+          --device Vulkan2 \
+          --chat-template '<|im_start|>system\n{{system_prompt}}<|im_end|>\n<|im_start|>user\n{{prompt}}<|im_end|>\n<|im_start|>assistant\n' \
+          --temp 0.7 --top-k 40 --top-p 0.9 --min-p 0.05 \
+          --metrics
+      '';
+      NoNewPrivileges = true;
+      PrivateTmp = true;
+      LimitNOFILE = 65536;
+      Restart = "on-failure";
+      RestartSec = "10s";
+      StandardOutput = "journal";
+      StandardError = "journal";
+    };
+  };
+
+  networking.firewall.allowedTCPPorts = [ 8002 8003 ];
+
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }
