@@ -9,7 +9,7 @@
     ];
   };
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/66271738346fb9a3ffaa6d9594b002da8204ae43";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     # Stable fallback — 26.05 for hosts that can't run unstable
     nixpkgs-2605.url = "github:NixOS/nixpkgs/nixos-26.05";
     home-manager = {

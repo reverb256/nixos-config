@@ -583,7 +583,5 @@ NMKEYFILE
   };
 
 
-  # Zephyr hosts Caddy for .lan services — VIP must stay here statically
-  '';
   time.timeZone = lib.mkForce "America/Winnipeg";
 }
