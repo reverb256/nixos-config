@@ -6,7 +6,9 @@
   ...
 }: let
   hostName = config.networking.hostName;
-in {
+  hasHM = builtins.hasAttr "home-manager" (builtins.tryEval config).value or {};
+in
+  lib.mkIf hasHM {
   home-manager = {
     useGlobalPkgs = lib.mkDefault false;
 
