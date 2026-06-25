@@ -58,13 +58,13 @@ in {
     # Agent network restrictions — restrict AI agents to allowed destinations only
 
     nixos-share = {
-      enable = false;
+      enable = true;
       client.enable = true;
     };
 
 
     nfs-client = {
-      enable = false;
+      enable = true;
       mountShared = true;
       mountHome = true;
       mountMedia = false;
