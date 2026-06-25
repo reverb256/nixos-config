@@ -120,7 +120,7 @@
 
   nix.settings.auto-optimise-store = true;
   boot.resumeDevice = "/dev/disk/by-id/ata-TEAM_T253X2256G_TM701907310240040386-part2";
-  disabledModules = [ "services/kmscon" ];
+  disabledModules = [ "services/kmscon" "system/home-manager.nix" ];
 
   environment.systemPackages = [ pkgs.llama-cpp ];
 
