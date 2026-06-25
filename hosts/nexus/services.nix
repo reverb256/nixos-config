@@ -15,6 +15,12 @@
   k8s = config.networking.cluster.kubernetes.services;
   cluster = config.networking.cluster;
 in {
+  time.timeZone = lib.mkForce "America/Winnipeg";
+
+  # Keepalived VRRP fallback — add VIP at boot
+  networking.localCommands = """
+    ip addr add 10.1.1.100/24 dev eth0 2>/dev/null || true
+  """;
   systemd.tmpfiles.rules = [
     "R /var/lib/etcd - - - - -"
     "d /data/hermes 0775 j_kro j_kro -"
