@@ -218,12 +218,13 @@ in {
     # Disabled: zephyr is now a k3s agent (not server), so the VIP
     # should live on the server nodes (sentry) for k3s API access.
     keepalived-vip = {
-    # Override: zephyr hosts Caddy for .lan services, so VIP must stay here
-    # VRRP multicast is broken between nodes; VIP is set statically
+    keepalived-vip = {
+    # BACKUP — nexus is MASTER (runs pods)
       enable = true;
       vip = cluster.kubernetes.vip;
       interface = "eth0";
-      priority = 110;
+      priority = 105;
+    };
     };
 
     backup-to-garage = {
