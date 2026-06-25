@@ -195,6 +195,7 @@ XMLEOF
     chmod 640 /var/lib/libvirt/images/windows-domain.xml
     # Define domain from the generated XML so virsh knows it
     virsh define /var/lib/libvirt/images/windows-domain.xml 2>/dev/null || true
+    virsh autostart windows 2>/dev/null || true
 
   '';
 
