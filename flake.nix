@@ -209,6 +209,7 @@
       inputs.home-manager.nixosModules.home-manager
       inputs.sops-nix.nixosModules.default
       inputs.stylix.nixosModules.default
+          ./modules/system/distributed-builds.nix
     ];
 
     mkNixosSystem = {
@@ -263,6 +264,7 @@
           inputs.home-manager.nixosModules.home-manager
           inputs.hermes-agent.nixosModules.default
           inputs.stylix.nixosModules.default
+          ./modules/system/distributed-builds.nix
           ./modules/system/ssh-ca.nix
           ./modules/default.nix
           {
