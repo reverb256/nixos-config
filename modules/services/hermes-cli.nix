@@ -101,6 +101,11 @@
         command: /data/agents/mcp-bridges/cua-driver-mcp.sh
         connect_timeout: 30
         timeout: 60
+      yt-dlp:
+        command: /data/agents/mcp-bridges/yt-dlp-mcp.sh
+        connect_timeout: 15
+        timeout: 300
+        description: yt-dlp video/audio downloader — YouTube, X/Twitter, 1000+ sites (7 tools)
   '';
 
   mcpServersBlock =
