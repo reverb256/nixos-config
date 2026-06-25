@@ -120,6 +120,12 @@ in {
       description = "Reasoning budget in tokens (0 = disable reasoning mode entirely)";
     };
 
+    chatTemplate = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      description = "Jinja2 chat template (e.g. '<start_of_turn>user\\n{{prompt}}<end_of_turn>\\n<start_of_turn>model\\n'). Auto-detected from GGUF metadata when null.";
+    };
+
     cacheTypeK = mkOption {
       type = types.str;
       default = "bf16";
@@ -142,6 +148,12 @@ in {
       type = types.int;
       default = 0;
       description = "CUDA/ROCm device index (use nvidia-smi ordering, not CUDA enumeration)";
+    };
+
+    vulkanDevice = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      description = "Vulkan device name (e.g. 'Vulkan1', 'Vulkan2'). Overrides --gpu-device for Vulkan backends.";
     };
 
     cacheRam = mkOption {
@@ -203,6 +215,8 @@ in {
             --ubatch-size ${toString cfg.ubatchSize} \
             ${lib.optionalString cfg.flashAttention "--flash-attn on"} \
             ${lib.optionalString (cfg.parallelDecoding > 0) "--parallel ${toString cfg.parallelDecoding}"} \
+            ${lib.optionalString (cfg.chatTemplate != null) "--chat-template '${cfg.chatTemplate}'"} \
+            ${lib.optionalString (cfg.vulkanDevice != null) "--device ${cfg.vulkanDevice}"} \
             --chat-template-kwargs '{\"enable_thinking\":${
             if cfg.enableThinking
             then "true"
