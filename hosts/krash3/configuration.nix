@@ -213,7 +213,7 @@ XMLEOF
     };
     secrets = {
       "gemini-api-key" = {
-        sopsFile = ./secrets/ai/gemini-api-key.yaml;
+        sopsFile = ../../secrets/ai/gemini-api-key.yaml;
         format = "binary";
         path = "/run/secrets/gemini-api-key";
         owner = "j_kro";
