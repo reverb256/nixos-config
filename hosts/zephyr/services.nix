@@ -215,14 +215,13 @@ in {
       ];
     };
 
-    # Disabled: zephyr is now a k3s agent (not server), so the VIP
-    # should live on the server nodes (sentry) for k3s API access.
-    keepalived-vip = {
     keepalived-vip = {
     # BACKUP — nexus is MASTER (runs pods)
       enable = true;
       vip = cluster.kubernetes.vip;
       interface = "eth0";
+      priority = 105;
+    };
       priority = 105;
     };
     };
