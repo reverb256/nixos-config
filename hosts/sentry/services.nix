@@ -6,6 +6,7 @@
 }: let
   cluster = config.networking.cluster;
 in {
+  time.timeZone = lib.mkForce "America/Winnipeg";
   services = {
     hermes-cli = {
       enable = true;
@@ -118,7 +119,7 @@ in {
   # Cluster DNS configuration
   networking.cluster.dns.enable = true;
 
-  services.xserver.videoDrivers = ["amdgpu"];
+  # No X11 — pure Wayland only
 
   systemd.services.ai-inference-monitor = {
     wantedBy = lib.mkForce [];
