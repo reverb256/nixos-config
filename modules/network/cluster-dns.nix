@@ -47,7 +47,7 @@
   vip = "10.1.1.100";
 
   # Services via Caddy Ingress (accessed via VIP)
-  ingressServiceDomains = ["search.lan" "openwebui.lan"];
+  ingressServiceDomains = ["search.lan"];
 
   # Services proxied via Caddy via VIP (single stable entry point)
   hostServiceDomains = [
@@ -297,7 +297,6 @@ in {
             search = vip; # VIP Caddy
             searxng = vip; # VIP Caddy
             n8n = vip; # VIP Caddy
-            openwebui = vip; # VIP Caddy
             haven = vip; # VIP Caddy
             grafana = vip; # VIP Caddy
             prometheus = hosts.sentry;
