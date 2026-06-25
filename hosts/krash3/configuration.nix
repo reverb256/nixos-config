@@ -144,6 +144,9 @@ in {
   networking.firewall.allowedTCPPorts = [ 22 445 2222 3260 ];
   services.avahi.enable = lib.mkForce false;
   services.tailscale.enable = lib.mkForce false;
+  services.cups.enable = lib.mkForce false;
+  services.cups-browsed.enable = lib.mkForce false;
+  networking.nftables.enable = lib.mkForce false;
   systemd.services.dhcpcd.restartIfChanged = false;
 
   # ── SSH ─────────────────────────────────────────────────
