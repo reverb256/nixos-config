@@ -50,7 +50,7 @@ in {
       enable = true;
       vip = cluster.kubernetes.vip;
       interface = "eth0";
-      priority = 110;
+      priority = 100;
     };
 
     gaming-detection.enable = lib.mkForce false;
