@@ -2,7 +2,7 @@
 let
   # Windows VM XML embedded INLINE — NEVER a separate file
   windowsDomainXml = ''
-    <domain type='kvm'>
+    <domain type="kvm" xmlns:qemu="http://libvirt.org/schemas/domain/qemu/1.0">
       <name>windows</name>
       <uuid>52b825d0-6b0a-4e19-b251-7ae312ccd5d0</uuid>
       <memory unit='KiB'>25165824</memory>
@@ -26,7 +26,7 @@ let
       <cpu mode='host-model' check='none'>
         <topology sockets='1' dies='1' clusters='1' cores='8' threads='2'/>
       </cpu>
-      <clock offset='localtime'><timer name='hypervclock' present='yes'/></clock>
+      <clock offset='utc'><timer name='hypervclock' present='yes'/></clock>
       <on_poweroff>destroy</on_poweroff>
       <on_reboot>restart</on_reboot>
       <on_crash>destroy</on_crash>
@@ -79,6 +79,13 @@ let
           <driver name='vfio'/>
           <source><address domain='0x0000' bus='0x0a' slot='0x00' function='0x3'/></source>
         </hostdev>
+        <!-- Intel AX200 Bluetooth (USB passthrough) -->
+        <hostdev mode='subsystem' type='usb' managed='yes'>
+          <source>
+            <vendor id='0x8087'/>
+            <product id='0x0029'/>
+          </source>
+        </hostdev>
         <watchdog model='itco' action='reset'/>
         <memballoon model='virtio'/>
         <channel type='unix'>
@@ -86,6 +93,9 @@ let
           <address type='virtio-serial' controller='0' bus='0' port='1'/>
         </channel>
       </devices>
+      <qemu:capabilities>
+        <qemu:del capability="usb-host.hostdevice"/>
+      </qemu:capabilities>
       <seclabel type='none' model='none'/>
     </domain>
   '';
@@ -102,6 +112,7 @@ in {
   ];
 
   # ── Network ─────────────────────────────────────────────
+  time.timeZone = lib.mkForce "America/Winnipeg";
   networking.hostName = "krash3";
   networking.hostId = "deadbeef";
   networking.useDHCP = true;
@@ -174,4 +185,23 @@ XMLEOF
     mkdir -p /home/krash/.ssh /home/j_kro/.ssh
     chmod 700 /home/krash/.ssh /home/j_kro/.ssh
   '';
+
+  # ── SOPS Secrets ────────────────────────────────────────
+  # ── SOPS Secrets ────────────────────────────────────────
+  sops = {
+    age = {
+      keyFile = "/etc/nixos/.age/key.txt";
+      sshKeyPaths = [];
+    };
+    secrets = {
+      "gemini-api-key" = {
+        sopsFile = ./secrets/ai/gemini-api-key.yaml;
+        format = "binary";
+        path = "/run/secrets/gemini-api-key";
+        owner = "j_kro";
+        group = "users";
+        mode = "0444";
+      };
+    };
+  };
 }

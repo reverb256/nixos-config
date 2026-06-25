@@ -12,7 +12,7 @@ in {
   };
   boot.kernelPackages = pkgs.linuxPackages_latest;
   boot.kernelParams = [
-    "amd_iommu=on" "iommu=pt" "kvm.ignore_msrs=1"
+    "amd_iommu=on" "iommu=pt" "kvm.ignore_msrs=1" "pcie_acs_override=downstream"
     "vfio-pci.ids=${pci.gpu.vendor}:${pci.gpu.device},${pci.gpuAudio.vendor}:${pci.gpuAudio.device}"
     "video=efifb:off" "console=ttyS0,115200"
   ];
@@ -47,7 +47,7 @@ in {
       mdadm --build /dev/md0 --level=raid0 --chunk=${toString raid.chunk} \
         --raid-devices=2 /dev/loop10 /dev/loop11 2>/dev/null || true
       if [ ! -b /dev/md0p1 ]; then
-        printf "label: gpt\nstart=32768, type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7\n" | sfdisk /dev/md0 2>/dev/null || true
+        printf "label: gpt\nstart=32768, type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7\n" | sfdisk --wipe no /dev/md0 2>/dev/null || true
       fi
     '';
     serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };
