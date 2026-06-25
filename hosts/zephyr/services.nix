@@ -222,9 +222,6 @@ in {
       interface = "eth0";
       priority = 105;
     };
-      priority = 105;
-    };
-    };
 
     backup-to-garage = {
       enable = true;
