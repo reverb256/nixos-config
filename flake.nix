@@ -9,7 +9,7 @@
     ];
   };
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/9ae611a455b90cf061d8f332b977e387bda8e1ca";
+    nixpkgs.url = "github:NixOS/nixpkgs/66271738346fb9a3ffaa6d9594b002da8204ae43";
     # Stable fallback — 26.05 for hosts that can't run unstable
     nixpkgs-2605.url = "github:NixOS/nixpkgs/nixos-26.05";
     home-manager = {
@@ -55,7 +55,7 @@
     };
 
     nix-mineral = {
-      @8f751e4bc6";
+      url = "github:cynicsketch/nix-mineral/008f751e4bc6";
     };
 
     colmena = {
@@ -84,12 +84,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-cachyos-kernel = {
-      url = "github:xddxdd/nix-cachyos-kernel/86d7051a5694db99f4db6165bcaf15e7bba8672a";
+      url = "github:xddxdd/nix-cachyos-kernel/3ea1942599d8d0a124bdb9ec1304b3e6f63e8b1f";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     stylix = {
-      url = "github:nix-community/stylix/c1456cc4ba3c9485e7b4158c909eeca5a752cd59";
+      url = "github:nix-community/stylix/e084d011e7ee9302aceaaf6c1fc28a9ace09e16a";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
