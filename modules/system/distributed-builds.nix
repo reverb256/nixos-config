@@ -78,6 +78,8 @@ in {
         then 8
         else if currentHost == "forge"
         then 6
+        else if currentHost == "krash3"
+        then 3
         else 4
       );
 
@@ -90,6 +92,8 @@ in {
         then 8 # secondary builder — 8C/16T
         else if currentHost == "forge"
         then 4 # tertiary builder — 6C/6T
+        else if currentHost == "krash3"
+        then 3 # lightweight builder — 3 of 6 host threads
         else 2
       );
 
@@ -132,7 +136,7 @@ in {
   environment = {
     etc = {
       "ssh/ssh_config.d/50-build-machines.conf".text = ''
-        Host zephyr nexus sentry
+        Host zephyr nexus sentry forge krash3
           User j_kro
           IdentityFile ~/.ssh/id_ed25519
           IdentitiesOnly yes
@@ -185,6 +189,16 @@ in {
             sshKey = "~/.ssh/id_ed25519";
             maxJobs = 4;
             speedFactor = 2;
+            supportedFeatures = ["big-parallel"];
+            mandatoryFeatures = [];
+          }
+          {
+            hostName = "krash3";
+            system = "x86_64-linux";
+            sshUser = "j_kro";
+            sshKey = "~/.ssh/id_ed25519";
+            maxJobs = 3;
+            speedFactor = 1;
             supportedFeatures = ["big-parallel"];
             mandatoryFeatures = [];
           }
