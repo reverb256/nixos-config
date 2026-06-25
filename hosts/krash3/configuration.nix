@@ -79,6 +79,13 @@ let
           <driver name='vfio'/>
           <source><address domain='0x0000' bus='0x0a' slot='0x00' function='0x3'/></source>
         </hostdev>
+        <!-- Gamesir Nova Lite 2 dongle (USB passthrough) -->
+        <hostdev mode='subsystem' type='usb' managed='yes'>
+          <source>
+            <vendor id='0x3537'/>
+            <product id='0x2106'/>
+          </source>
+        </hostdev>
         <!-- Intel AX200 Bluetooth (USB passthrough) -->
         <hostdev mode='subsystem' type='usb' managed='yes'>
           <source>
@@ -100,6 +107,14 @@ let
     </domain>
   '';
 in {
+  # ── Libvirt ──────────────────────────────────────────────
+  virtualisation.libvirtd = {
+    enable = true;
+    qemuVerbatimConfig = ''
+      max_memlock = 26843545600
+    '';
+  };
+
   # Headless server guard
   services.xserver.enable = lib.mkForce false;
   services.displayManager.enable = lib.mkForce false;
@@ -178,6 +193,11 @@ ${windowsDomainXml}
 XMLEOF
     chown root:libvirtd /var/lib/libvirt/images/windows-domain.xml
     chmod 640 /var/lib/libvirt/images/windows-domain.xml
+    # Define domain from the generated XML so virsh knows it
+    virsh define /var/lib/libvirt/images/windows-domain.xml 2>/dev/null || true
+    # Ensure default libvirt network is active for the VM's network interface
+    virsh net-start default 2>/dev/null || true
+    virsh net-autostart default 2>/dev/null || true
   '';
 
   # ── SSH key dirs ────────────────────────────────────────
