@@ -29,8 +29,6 @@ in {
   # ── Serial console ──
   systemd.services."serial-getty@ttyS0".enable = true;
 
-  # ── ZRAM (skip if already exists on non-reboot rebuilds) ──
-  };
 
   # ── RAID assembly ──
   systemd.services.assemble-games-raid = {
