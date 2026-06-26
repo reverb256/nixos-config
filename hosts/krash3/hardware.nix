@@ -43,6 +43,11 @@ in {
       if [ ! -b /dev/md0p1 ]; then
         printf "label: gpt\nstart=32768, type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7\n" | sfdisk --wipe no /dev/md0 2>/dev/null || true
       fi
+      # Ensure partition device node exists before dependent services (iscsi-target) start.
+      # mdadm + sfdisk creates partitions async via udev; without this the iSCSI target
+      # may start before /dev/md0p1 exists, causing "not a TYPE_DISK block device" error.
+      /run/current-system/sw/bin/partx -a /dev/md0 2>/dev/null || true
+      /run/current-system/sw/bin/udevadm settle 2>/dev/null || true
     '';
     serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };
   };
