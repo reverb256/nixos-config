@@ -39,7 +39,7 @@
     enable = true;
     hostName = "sentry";
     ipAddress = config.networking.cluster.hosts.sentry.ip;
-    interfaceName = "eth0";
+    interfaceName = lib.mkForce "eth0";
     wireless.enable = false;
     unbound.enable = true;
     unbound.listenAddress = config.networking.cluster.hosts.sentry.ip;
