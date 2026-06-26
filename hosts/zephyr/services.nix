@@ -38,6 +38,7 @@ in {
             discover_models = true;
           };
         };
+        fallback_providers = ["opencode-go" "zai" "nvidia"];
         smart_model_routing = {
           enabled = true;
           max_simple_chars = 160;
@@ -131,6 +132,16 @@ in {
           mode = "off";
           min_ms = 800;
           max_ms = 2500;
+        };
+        auxiliary = {
+          vision.provider = "nvidia";
+          vision.model = "meta/llama-3.2-90b-vision-instruct";
+          web.provider = "nvidia";
+          web.model = "meta/llama-3.2-90b-vision-instruct";
+          compression.provider = "nvidia";
+          compression.model = "meta/llama-3.1-70b-instruct";
+          session_title.provider = "nvidia";
+          session_title.model = "meta/llama-3.1-70b-instruct";
         };
       };
       environmentFiles = [ "/run/secrets/hermes-env" ];
