@@ -85,6 +85,11 @@ in {
   # Zram-only swap — drop disk swap on nvme1n1p1 (adds ~10s device wait)
   swapDevices = lib.mkForce [{ device = "/dev/zram0"; }];
 
+  # Higher swappiness for zram — compressed RAM is fast, so eagerly compress idles pages
+  # to keep uncompressed RAM free for active workloads (nix builds, AI models, browsers).
+  # Best practice per Arch Wiki: 100-180. Traditional disk swap uses 10 to avoid slow I/O.
+  boot.kernel.sysctl."vm.swappiness" = lib.mkForce 150;
+
   # Boot partition already hardened via mountOptions in disko.nix (fmask=0077)
   # systemd-cryptsetup opens with random key from /dev/urandom (no persistence needed)
 
