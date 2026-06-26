@@ -20,7 +20,21 @@
 }: let
   cfg = config.services.hermes-cli;
   hermesAgentCfg = config.services.hermes-agent or {};
-  hermesPkg = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  # Patch hermes-agent to remove /etc/ from sensitive path blocklist,
+  # allowing write_file and patch tools to edit /etc/nixos/ files.
+  hermesPkg = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs (old: {
+    postInstall = (old.postInstall or "") + ''
+      # Remove "/etc/" from _SENSITIVE_PATH_PREFIXES so write_file/patch can
+      # edit files under /etc/nixos/ directly (instead of falling back to sed).
+      # The file_operations.py deny-list still blocks /etc/sudoers, /etc/passwd,
+      # /etc/shadow, /etc/systemd, and /etc/sudoers.d for defense-in-depth.
+      substituteInPlace $out/lib/*/site-packages/tools/file_tools.py \
+        --replace-fail \
+          '"/etc/", "/boot/", "/usr/lib/systemd/"' \
+          '"/boot/", "/usr/lib/systemd/"'
+    '';
+  });
+
 
   # Use base hermes-agent package without WhatsApp bridge (stub removed)
   # WhatsApp functionality temporarily disabled

@@ -3,15 +3,14 @@
   lib,
   ...
 }: {
-  services.displayManager.sddm.enable = lib.mkForce true;
-  services.displayManager.sddm.wayland.enable = false;
+  # No display manager — getty autologin on tty1, niri started via uwsm
+  services.getty.autologinUser = "j_kro";
+
+  # Disable xserver/display-manager infrastructure — pure Wayland from TTY
+  services.xserver.enable = lib.mkForce false;
 
   desktop.uwsm-sessions.enable = true;
   programs.niri.enable = true;
-
-  services.displayManager.autoLogin.enable = true;
-  services.displayManager.autoLogin.user = "j_kro";
-  services.displayManager.defaultSession = "niri-uwsm";
 
   services.gaming.hdr.enable = true;
   services.gaming.vr.enable = true;
