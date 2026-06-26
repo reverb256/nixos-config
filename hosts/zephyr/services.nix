@@ -84,9 +84,6 @@ in {
       };
       environmentFiles = [ "/run/secrets/hermes-env" ];
       extraDependencyGroups = ["messaging" "voice"];
-      extraServiceConfig = {
-        UMask = "0022";
-      };
       extraPackages = with pkgs; [ripgrep jq curl];
       documents = {
         "USER.md" = ''
@@ -169,6 +166,10 @@ in {
         };
       };
     };
+  };
+
+  # UMask was set via extraServiceConfig (removed upstream)
+  systemd.services.hermes-agent.serviceConfig.UMask = "0022";
     hermes-cli = {
       enable = true;
       apiKeyFile = "/run/secrets/zai-api-key";
