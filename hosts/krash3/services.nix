@@ -74,6 +74,7 @@ in {
         tpgs = [{
           tag = 1; enable = true;
           portals = [
+            { ip_address = "192.168.122.1"; port = 3260; }
             { ip_address = "10.1.1.150"; port = 3260; }
           ];
           luns = [{ index = 0; alias = "games-raid"; storage_object = "/backstores/block/games-raid"; }];
