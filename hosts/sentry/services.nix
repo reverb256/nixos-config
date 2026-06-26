@@ -199,7 +199,8 @@ in {
           --parallel 2 \
           --no-mmap \
           --temp 0.7 \
-          --embeddings
+          --embeddings \
+          --pooling mean
       '';
       Restart = "on-failure";
       RestartSec = 10;
