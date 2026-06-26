@@ -117,19 +117,19 @@ in {
   };
 
   # ── Post-build hook: auto-push to nexus cache ──
-  nix.settings.post-build-hook = lib.mkIf (currentHost != "krash3") (pkgs.writeShellScript "upload-to-cache" ""
-    # Only push when actually building (not just substituting)
-    if [ -n "$OUT_PATHS" ] && [ "$BUILD_STATUS" = "success" ]; then
-      exec nice -n 19 nix copy --to ssh://j_kro@nexus --substitute-on-destination $OUT_PATHS 2>/dev/null
-    fi
-  "");
+  # ── Post-build hook: auto-push to nexus cache ──
+
 
   # ── Post-build hook: auto-push to nexus cache ──
-  nix.settings.post-build-hook = lib.mkIf (currentHost != "krash3") (pkgs.writeShellScript "upload-to-cache" ""
-    if [ -n "$OUT_PATHS" ] && [ "$BUILD_STATUS" = "success" ]; then
-      exec nice -n 19 nix copy --to ssh://j_kro@nexus --substitute-on-destination $OUT_PATHS 2>/dev/null
-    fi
-  "");
+  # ── Post-build hook: auto-push to nexus cache ──
+
+
+  # ── Post-build hook: auto-push completed builds to nexus cache ──
+  nix.settings.post-build-hook = lib.mkIf (currentHost != "krash3") (pkgs.writeShellScript "upload-to-cache" ''
+  if [ -n "$OUT_PATHS" ] && [ "$BUILD_STATUS" = "success" ]; then
+    exec nice -n 19 nix copy --to ssh://j_kro@nexus --substitute-on-destination $OUT_PATHS 2>/dev/null
+  fi
+'');
 
   programs.ssh.startAgent = true;
 
