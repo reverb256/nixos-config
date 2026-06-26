@@ -32,8 +32,7 @@ in {
 
   # ── RAID assembly ──
   systemd.services.assemble-games-raid = {
-    wantedBy = [ "local-fs.target" ];
-    before = [ "local-fs.target" ];
+    wantedBy = [ "multi-user.target" ];
     path = [ pkgs.mdadm pkgs.util-linux ];
     script = ''
       offset=$(( ${toString raid.offset} * 512 ))
