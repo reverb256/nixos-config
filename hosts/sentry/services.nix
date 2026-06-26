@@ -187,10 +187,10 @@ in {
       User = "j_kro";
       ExecStartPre = "${pkgs.coreutils}/bin/sleep 5";
       Environment = [
-        "LD_LIBRARY_PATH=${pkgs.linuxPackages.nvidia_x11}/lib"
+        "LD_LIBRARY_PATH=${pkgs.vulkan-loader}/lib"
       ];
       ExecStart = ''
-        ${pkgs.llama-cpp}/bin/llama-server \
+        ${pkgs.llama-cpp-vulkan}/bin/llama-server \
           --model /home/j_kro/models/Qwen3.5-4B-Q4_K_M.gguf \
           --host 0.0.0.0 \
           --port 8001 \
