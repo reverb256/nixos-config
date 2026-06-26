@@ -187,7 +187,7 @@ in {
       User = "j_kro";
       ExecStartPre = "${pkgs.coreutils}/bin/sleep 5";  # Wait for GPU to settle
       ExecStart = ''
-        /nix/store/50mdrm462yrdg7xp2ra4ajy0pkjagjpz-llama-cpp-9503/bin/llama-server \
+        ${pkgs.llama-cpp}/bin/llama-server \
           --model /home/j_kro/models/Qwen3.5-4B-Q4_K_M.gguf \
           --host 0.0.0.0 \
           --port 8001 \
@@ -195,7 +195,8 @@ in {
           --n-gpu-layers 99 \
           --parallel 2 \
           --no-mmap \
-          --temp 0.7
+          --temp 0.7 \
+          --embeddings
       '';
       Restart = "on-failure";
       RestartSec = 10;
