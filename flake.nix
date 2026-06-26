@@ -74,7 +74,6 @@
     };
     preservation = {
       url = "github:nix-community/preservation/93416f4614ad2dfed5b0dcf12f27e57d27a5ab11";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     niri = {
