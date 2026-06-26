@@ -67,6 +67,13 @@ in {
       end
 
       fish_add_path ~/.local/bin
+      # Trim redundant completions to speed up startup
+      set -l keep_completions \
+        ~/.config/fish/completions \
+        /nix/store/*/share/fish/vendor_completions.d \
+        ~/.local/share/fish/vendor_completions.d \
+        ~/.cache/fish/generated_completions
+      set fish_complete_path $keep_completions
 
       zoxide init fish | source
 
