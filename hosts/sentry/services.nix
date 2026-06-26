@@ -190,7 +190,7 @@ in {
         "LD_LIBRARY_PATH=${pkgs.vulkan-loader}/lib"
       ];
       ExecStart = ''
-        ${pkgs.llama-cpp-vulkan}/bin/llama-server \
+        ${(pkgs.llama-cpp-vulkan.override { cudaSupport = false; }) }/bin/llama-server \
           --model /home/j_kro/models/Qwen3.5-4B-Q4_K_M.gguf \
           --host 0.0.0.0 \
           --port 8001 \
