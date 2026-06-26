@@ -34,6 +34,9 @@ in {
             api_key_env = "NVIDIA_API_KEY";
             discover_models = true;
           };
+          nous = {
+            discover_models = true;
+          };
         };
         smart_model_routing = {
           enabled = true;
