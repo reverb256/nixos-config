@@ -489,11 +489,6 @@ in {
   # into config.yaml. All servers (including cua-driver) are defined there.
   systemd.services.hermes-mcp-servers.enable = true;
 
-  systemd.services.caddy.serviceConfig = {
-    AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
-    CapabilityBoundingSet = ["CAP_NET_BIND_SERVICE"];
-    NoNewPrivileges = lib.mkForce false;
-  };
   # Mining user for secret ownership (ZEPHYR monitors mining but doesn't run workers)
   users.users.mining = {
     isSystemUser = true;
@@ -578,6 +573,16 @@ NMKEYFILE
   '';
 
   # Pass DISPLAY to hermes-agent so cua-driver MCP can access X11
+  # Ensure ckb-next can find sinfo/animation binaries (they're in libexec/ not on PATH)
+  system.activationScripts.ckb-next-libexec = lib.stringAfter ["users"] ''
+    CKB_LIBEXEC=$(dirname $(readlink -f $(which ckb-next-daemon 2>/dev/null || echo /nonexistent)) 2>/dev/null)/../libexec
+    if [ -d "$CKB_LIBEXEC" ] && [ -f "$CKB_LIBEXEC"/ckb-next-sinfo ]; then
+      ln -sf "$CKB_LIBEXEC"/ckb-next-sinfo /run/current-system/sw/bin/ckb-next-sinfo 2>/dev/null || true
+      echo "[ckb-next-libexec] Symlinked ckb-next-sinfo to system PATH"
+    fi
+  '';
+
+
   systemd.services.hermes-agent.environment = {
     DISPLAY = ":0";
   };
