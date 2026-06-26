@@ -66,7 +66,7 @@
         timeout: 120
         description: Agentmemory MCP server
       graphiti:
-        url: http://localhost:8000/mcp/
+        url: http://localhost:8000/mcp
         connect_timeout: 30
         timeout: 120
         description: Graphiti temporal knowledge graph MCP server
