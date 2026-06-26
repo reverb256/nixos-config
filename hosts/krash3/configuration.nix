@@ -218,7 +218,11 @@ in {
   <forward mode='nat'/>
   <bridge name='virbr0' stp='on' delay='0'/>
   <dns enable='no'/>
-  <ip address='192.168.122.1' netmask='255.255.255.0'/>
+  <ip address='192.168.122.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.122.10' end='192.168.122.100'/>
+    </dhcp>
+  </ip>
 </network>
 NETEOF
     virsh net-define /var/lib/libvirt/images/virbr0-net.xml 2>/dev/null || true

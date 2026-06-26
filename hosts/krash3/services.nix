@@ -73,10 +73,13 @@ in {
         fabric = "iscsi"; wwn = "${vm.iqn}";
         tpgs = [{
           tag = 1; enable = true;
-          portals = [{ ip_address = "192.168.122.1"; port = 3260; }];
+          portals = [
+            { ip_address = "10.1.1.150"; port = 3260; }
+          ];
           luns = [{ index = 0; alias = "games-raid"; storage_object = "/backstores/block/games-raid"; }];
-          acls = [{ node_wwn = "iqn.1991-05.com.microsoft:windows-vm"; }];
-          attributes = { authentication = 0; generate_node_acls = 1; demo_mode_write_protect = 0; };
+          # No explicit ACLs needed — generate_node_acls=1 allows any initiator
+          # Windows VM initiator IQN: iqn.1991-05.com.microsoft:krash3-vm
+          attributes = { authentication = 0; generate_node_acls = 1; demo_mode_write_protect = 0; demo_mode_discovery = 1; };
         }];
       }];
     };
