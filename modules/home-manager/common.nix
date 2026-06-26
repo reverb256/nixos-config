@@ -35,6 +35,12 @@ in {
         set -g fish_greeting
         fish_add_path /home/j_kro/bin
       '';
+      loginShellInit = ''
+        # Auto-start niri via uwsm when logging in on tty1
+        if test "$XDG_VTNR" = "1" -a -z "$WAYLAND_DISPLAY"
+          exec uwsm start -F -- niri-session
+        end
+      '';
       shellAliases = {
         ll = "ls -la";
         la = "ls -A";

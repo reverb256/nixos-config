@@ -97,8 +97,11 @@
     easykubenix.url = "github:Lillecarl/easykubenix/88a025fc04889f25b702f79030c6220c3ec48f9b";
 
     nix-csi.url = "github:Lillecarl/nix-csi/7ddae07bf04c";
+    # PINNED: revision 935f2bc — newer lockfile drops @esbuild/* platform packages,
+    # causing npm sandbox build failure (esbuild postinstall can't download binary).
+    # Unpin when upstream lockfile is fixed.
     hermes-agent = {
-      url = "github:NousResearch/hermes-agent";
+      url = "github:NousResearch/hermes-agent/935f2bc48daa9c7fad73f80c95d4375da18a39c1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
