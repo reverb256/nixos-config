@@ -34,6 +34,11 @@
           '"/etc/", "/boot/", "/usr/lib/systemd/"' \
           '"/boot/", "/usr/lib/systemd/"'
       done
+      # Patch cua-driver backend: allow Linux (0.6.8+ Wayland) and handle
+      # windows with pid=None (cursor overlays) that crash int(None).
+      for f in $out/lib/*/site-packages/tools/computer_use/cua_backend.py; do
+        patch -p1 -d "$(dirname "$f")" < ${./../../patches/hermes-cua-backend-linux.patch}
+      done
     '';
   });
 
