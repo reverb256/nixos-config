@@ -240,24 +240,15 @@ in {
     "render"
   ];
 
-  # ── Kokoro-FastAPI TTS (via podman container) ──
-  # Uses the upstream Docker image via podman (dockerCompat enabled)
+  # ── Kokoro-FastAPI TTS (via NixOS module) ──
+  # Uses the pre-built upstream Docker image via podman
   # API at http://nexus:8880/v1/audio/speech
-  systemd.services.kokoro-fastapi = {
-    description = "Kokoro-FastAPI Text-to-Speech";
-    after = [ "network.target" "podman.service" ];
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      Type = "simple";
-      ExecStart = "${pkgs.podman}/bin/podman run --rm --name kokoro-tts -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest";
-      ExecStop = "${pkgs.podman}/bin/podman stop kokoro-tts";
-      Restart = "on-failure";
-      RestartSec = "10";
-    };
+  services.kokoro-fastapi = {
+    enable = true;
+    port = 8880;
+    openFirewall = true;
+    # CPU mode — no GPU on nexus for TTS
   };
-
-  # Firewall
-  networking.firewall.allowedTCPPorts = [ 8880 ];
 
   # ── Cluster service registry ──
   # All .lan domains terminate TLS on nexus and proxy to backends
