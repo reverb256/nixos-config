@@ -77,6 +77,10 @@ in {
   # Compress initrd with zstd (smaller → faster loader reads)
   boot.initrd.compressor = "zstd";
 
+  # Limit boot entries on the 1GB ESP to prevent "No space left on device" during deploy
+  boot.loader.systemd-boot.configurationLimit = 3;
+
+
   # Zram-only swap — drop disk swap on nvme1n1p1 (adds ~10s device wait)
   swapDevices = lib.mkForce [{ device = "/dev/zram0"; }];
 
