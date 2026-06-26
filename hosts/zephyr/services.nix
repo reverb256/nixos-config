@@ -583,7 +583,6 @@ NMKEYFILE
 
 
   systemd.services.hermes-agent.environment = {
-    DISPLAY = ":0";
     HERMES_HOME_MODE = "0755";
   };
 
