@@ -29,14 +29,6 @@ in {
             owner = "j_kro";
             group = "users";
           };
-          "ai/zai-api-key" = {
-            sopsFile = "${inputs.self}/secrets/ai/zai-api-key.yaml";
-            path = "/run/secrets/zai-api-key";
-            format = "binary";
-            mode = "0444";
-            owner = "j_kro";
-            group = "users";
-          };
           "default/activepieces-encryption-key" = {
             sopsFile = "${inputs.self}/secrets/default/activepieces-encryption-key.yaml";
             path = "/run/secrets/activepieces-encryption-key";

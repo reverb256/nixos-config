@@ -82,12 +82,18 @@ in {
           hard_stop_enabled = true;
         };
         tts = {
-          provider = "kokoro";
+          provider = "chatterbox";
           providers.kokoro = {
             type = "command";
             command = "${pkgs.kokoro-tts}/bin/kokoro-tts.sh {input_path} {output_path} {voice}";
             output_format = "mp3";
             voice = "am_fenrir";
+          };
+          providers.chatterbox = {
+            type = "command";
+            command = "${pkgs.curl}/bin/curl -s -X POST http://localhost:8004/tts -H 'Content-Type: application/json' -d '{\"text\":\"$(cat {input_path})\",\"voice_mode\":\"predefined\",\"predefined_voice_id\":\"Connor.wav\",\"output_format\":\"mp3\"}' -o {output_path}";
+            output_format = "mp3";
+            voice = "Connor.wav";
           };
         };
       };
