@@ -100,6 +100,17 @@ in {
         '';
       };
       mcpServers = {
+        agentmemory = {
+          command = "npx";
+          args = ["-y" "@agentmemory/mcp"];
+          connect_timeout = 30;
+          timeout = 120;
+        };
+    graphiti = {
+      url = "http://localhost:8000/mcp/";
+      connect_timeout = 30;
+      timeout = 120;
+    };
         git = {
           command = "/data/agents/mcp-bridges/git-mcp.sh";
           connect_timeout = 5;
