@@ -65,6 +65,22 @@ in {
     memoryPercent = 35;
     priority = 999;
   };
+
+  # Boot optimization: blacklist unused kernel modules that add ~10s device timeout
+  boot.blacklistedKernelModules = [
+    "serial8250"     # No physical serial ports — saves ~10s timeout
+    "tpm_crb"        # TPM 2.0 not used — saves ~10s timeout
+    "tpm_tis"
+    "tpm_tis_core"
+  ];
+
+  # Compress initrd with zstd (smaller → faster loader reads)
+  boot.initrd.compressor = "zstd";
+
+  # Zram-only swap — drop disk swap on nvme1n1p1 (adds ~10s device wait)
+  swapDevices = lib.mkForce [{ device = "/dev/zram0"; }];
+
+  # Boot partition already hardened via mountOptions in disko.nix (fmask=0077)
   # systemd-cryptsetup opens with random key from /dev/urandom (no persistence needed)
 
   boot.kernel.sysctl = {
@@ -101,6 +117,7 @@ in {
       base0F = "9eebb3";
     };
     image = ../../modules/desktop/wallpapers/osaka-jade-bg.jpg;
+    enableReleaseChecks = false;
   };
 
   networking = {

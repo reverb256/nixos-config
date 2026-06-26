@@ -231,9 +231,7 @@ in {
                       fi
 
                       if command -v openrgb &>/dev/null; then
-                        local r=$((16#${"color:0:2"}))
-                        local g=$((16#${"color:2:2"}))
-                        local b=$((16#${"color:4:2"}))
+                        local r=$((16#$(echo "$color" | cut -c1-2))) g=$((16#$(echo "$color" | cut -c3-4))) b=$((16#$(echo "$color" | cut -c5-6)))
 
                         openrgb -d $MOTHERBOARD_DEVICE -m Direct -c "$r,$g,$b" 2>/dev/null || true
                         openrgb -d $GPU_DEVICE -m Direct -c "$r,$g,$b" 2>/dev/null || true
@@ -250,9 +248,7 @@ in {
                       fi
 
                       if command -v razer-cli &>/dev/null; then
-                        local r=$((16#${"color:0:2"}))
-                        local g=$((16#${"color:2:2"}))
-                        local b=$((16#${"color:4:2"}))
+                        local r=$((16#$(echo "$color" | cut -c1-2))) g=$((16#$(echo "$color" | cut -c3-4))) b=$((16#$(echo "$color" | cut -c5-6)))
 
                         razer-cli -c "$r,$g,$b" 2>/dev/null || true
                       fi
@@ -320,17 +316,13 @@ in {
 
       if command -v openrgb &>/dev/null; then
         echo "Setting OpenRGB color..."
-        r=$((16#${"COLOR:0:2"}))
-        g=$((16#${"COLOR:2:2"}))
-        b=$((16#${"COLOR:4:2"}))
+        r=$((16#$(echo "$COLOR" | cut -c1-2))) g=$((16#$(echo "$COLOR" | cut -c3-4))) b=$((16#$(echo "$COLOR" | cut -c5-6)))
         openrgb -d 0 -c "$r,$g,$b" 2>/dev/null || true
       fi
 
       if command -v razer-cli &>/dev/null; then
         echo "Setting Razer color..."
-        r=$((16#${"COLOR:0:2"}))
-        g=$((16#${"COLOR:2:2"}))
-        b=$((16#${"COLOR:4:2"}))
+        r=$((16#$(echo "$COLOR" | cut -c1-2))) g=$((16#$(echo "$COLOR" | cut -c3-4))) b=$((16#$(echo "$COLOR" | cut -c5-6)))
         razer-cli -c "$r,$g,$b" 2>/dev/null || true
       fi
 
