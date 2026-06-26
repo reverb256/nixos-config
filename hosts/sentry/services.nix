@@ -5,6 +5,11 @@
   inputs, ...
 }: let
   cluster = config.networking.cluster;
+  # Vulkan-only llama-cpp for AMD RX 5600 XT (no CUDA)
+  llama-cpp-vk = pkgs.llama-cpp.override {
+    cudaSupport = false;
+    vulkanSupport = true;
+  };
 in {
   time.timeZone = lib.mkForce "America/Winnipeg";
   services = {
@@ -190,7 +195,7 @@ in {
         "LD_LIBRARY_PATH=${pkgs.vulkan-loader}/lib"
       ];
       ExecStart = ''
-        ${(pkgs.llama-cpp-vulkan.override { cudaSupport = false; }) }/bin/llama-server \
+        ${llama-cpp-vk}/bin/llama-server \
           --model /home/j_kro/models/Qwen3.5-4B-Q4_K_M.gguf \
           --host 0.0.0.0 \
           --port 8001 \
