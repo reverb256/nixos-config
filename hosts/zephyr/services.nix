@@ -143,7 +143,7 @@ in {
           timeout = 120;
         };
         lightpanda = {
-          command = "lightpanda";
+          command = "/home/j_kro/.local/bin/lightpanda";
           args = ["mcp"];
           connect_timeout = 30;
           timeout = 120;

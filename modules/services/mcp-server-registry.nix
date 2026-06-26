@@ -161,7 +161,7 @@
     lightpanda = {
       type = "stdio";
       scope = "local";
-      command = "lightpanda";
+      command = "/home/j_kro/.local/bin/lightpanda";
       args = ["mcp"];
       description = "Lightpanda web browser automation";
       connectTimeout = 30;
