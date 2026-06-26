@@ -103,7 +103,6 @@ in {
     after = [ "libvirtd.service" "assemble-games-raid.service" "iscsi-target.service" ];
     path = [ pkgs.libvirt ];
     script = ''
-      virsh define /var/lib/libvirt/images/windows-domain.xml 2>/dev/null || true
       virsh start windows 2>/dev/null || true
     '';
     serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };
