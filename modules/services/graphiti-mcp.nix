@@ -39,6 +39,18 @@ in {
       description = "Extra arguments to pass to podman run";
     };
 
+    openaiApiUrl = mkOption {
+      type = types.str;
+      default = "https://api.z.ai/api/coding/paas/v4";
+      description = "OpenAI-compatible API base URL for the LLM provider";
+    };
+
+    modelName = mkOption {
+      type = types.str;
+      default = "glm-4.5";
+      description = "Model name for LLM entity extraction";
+    };
+
     image = mkOption {
       type = types.str;
       default = "zepai/knowledge-graph-mcp:latest";
@@ -92,7 +104,7 @@ in {
         Type = "simple";
         ExecStart = let
           envFile = "/run/graphiti/env";
-        in "${pkgs.podman}/bin/podman run --rm --name graphiti-mcp -p ${toString cfg.port}:8000 --env-file ${envFile} -e GRAPHITI_GROUP_ID=${cfg.groupId} ${cfg.extraPodmanArgs} ${cfg.image}";
+        in "${pkgs.podman}/bin/podman run --rm --name graphiti-mcp -p ${toString cfg.port}:8000 --env-file ${envFile} -e GRAPHITI_GROUP_ID=${cfg.groupId} -e OPENAI_API_URL=${cfg.openaiApiUrl} -e MODEL_NAME=${cfg.modelName} ${cfg.extraPodmanArgs} ${cfg.image}";
         ExecStop = "${pkgs.podman}/bin/podman stop --ignore graphiti-mcp";
         ExecStopPost = "${pkgs.podman}/bin/podman rm -f graphiti-mcp || true";
         Restart = "on-failure";
