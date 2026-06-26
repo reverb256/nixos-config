@@ -39,6 +39,19 @@
       for f in $out/lib/*/site-packages/tools/computer_use/cua_backend.py; do
         patch -p1 -d "$(dirname "$f")" < ${./../../patches/hermes-cua-backend-linux.patch}
       done
+      # Patch nvidia model picker: filter out 100+ non-agentic models
+      # (embedding, guard, safety, rerank, reward) from the model picker.
+      # Only agentic chat/reasoning models appear when selecting nvidia models.
+      for f in $out/lib/*/site-packages/hermes_cli/models.py; do
+        substituteInPlace "$f" \
+          --replace-fail \
+          '                    # Merge static curated list with live API results so\n                    # models that the live endpoint omits (stale cache,\n                    # partial rollout) still appear in the picker.' \
+          '                    # NVIDIA NIM returns ~124 models but many are non-agentic\n                    # (embedding, guard, safety, rerank, reward). Filter them out.\n                    if normalized == "nvidia":\n                        live = [m for m in live if _is_agentic_nvidia_model(m)]\n                    # Merge static curated list with live API results so\n                    # models that the live endpoint omits (stale cache,\n                    # partial rollout) still appear in the picker.'
+        # Add the filter function before the disk cache section
+        substituteInPlace "$f" \
+          --replace-fail \
+          '\n# ---------------------------------------------------------------------------\n# Generic disk cache for provider_model_ids()' \
+          '\n\ndef _is_agentic_nvidia_model(m: str) -> bool:\n    """Filter NVIDIA NIM models to only agentic chat/reasoning models."""\n    lower = m.lower()\n    non_agentic = ["bge-", "e5-", "jina-", "nvolve-", "rerank", "reward",\n                   "nemoguard", "guard", "safety", "starcoder", "fuyu",\n                   "phi-3-vision", "phi-4-vision", "bce", "gte-", "sea-lion"]\n    return not any(p in lower for p in non_agentic)\n\n\n# ---------------------------------------------------------------------------\n# Generic disk cache for provider_model_ids()'
     '';
   });
 
