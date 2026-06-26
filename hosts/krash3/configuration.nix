@@ -1,125 +1,227 @@
-{ config, pkgs, lib, ... }:
+{
+  config, pkgs, lib, ...
+}:
 let
-  # Windows VM XML embedded INLINE — NEVER a separate file
-  windowsDomainXml = ''
-    <domain type="kvm" xmlns:qemu="http://libvirt.org/schemas/domain/qemu/1.0">
-      <name>windows</name>
-      <uuid>52b825d0-6b0a-4e19-b251-7ae312ccd5d0</uuid>
-      <memory unit='KiB'>20971520</memory>
-      <currentMemory unit='KiB'>20971520</currentMemory>
-      <vcpu placement="static">18</vcpu>      <cputune>        <vcpupin vcpu="0" cpuset="0"/>        <vcpupin vcpu="1" cpuset="1"/>        <vcpupin vcpu="2" cpuset="2"/>        <vcpupin vcpu="3" cpuset="3"/>        <vcpupin vcpu="4" cpuset="4"/>        <vcpupin vcpu="5" cpuset="5"/>        <vcpupin vcpu="6" cpuset="6"/>        <vcpupin vcpu="7" cpuset="7"/>        <vcpupin vcpu="8" cpuset="8"/>        <vcpupin vcpu="9" cpuset="12"/>        <vcpupin vcpu="10" cpuset="13"/>        <vcpupin vcpu="11" cpuset="14"/>        <vcpupin vcpu="12" cpuset="15"/>        <vcpupin vcpu="13" cpuset="16"/>        <vcpupin vcpu="14" cpuset="17"/>        <vcpupin vcpu="15" cpuset="18"/>        <vcpupin vcpu="16" cpuset="19"/>        <vcpupin vcpu="17" cpuset="20"/>              <emulatorpin cpuset="9,21"/>
-        <iothreadpin iothread="1" cpuset="9,21"/>
-        <iothreadpin iothread="2" cpuset="9,21"/>
-      </cputune>
-      <iothreads>2</iothreads>
-      <os>
-        <type arch='x86_64' machine='pc-q35-10.2'>hvm</type>
-        <loader readonly='yes' type='pflash' format='raw'>/run/libvirt/nix-ovmf/edk2-x86_64-code.fd</loader>
-        <nvram template='/run/libvirt/nix-ovmf/edk2-i386-vars.fd' templateFormat='raw' format='raw'>/var/lib/libvirt/qemu/nvram/windows_VARS.fd</nvram>
-      </os>
-      <features>
-        <acpi/><apic/>
-        <hyperv mode='custom'>
-          <relaxed state='on'/><vapic state='on'/><spinlocks state='on' retries='8191'/>
-          <vpindex state='on'/><synic state='on'/><stimer state='on'/><reset state='on'/>
-          <vendor_id state='on' value='KVM Hv'/><frequencies state='on'/>
-          <reenlightenment state='on'/><tlbflush state='on'/><ipi state='on'/>
-        </hyperv>
-        <kvm><hidden state='on'/></kvm>
-      </features>
-      <cpu mode='host-model' check='none'>
-        <topology sockets='1' dies='1' clusters='1' cores="9" threads="2"/>
-      </cpu>
-      <clock offset='utc'><timer name='hypervclock' present='yes'/></clock>
-      <on_poweroff>destroy</on_poweroff>
-      <on_reboot>restart</on_reboot>
-      <on_crash>destroy</on_crash>
-      <devices>
-        <emulator>/run/libvirt/nix-emulators/qemu-system-x86_64</emulator>
-        <disk type='file' device='disk'>
-          <driver name="qemu" type="raw" cache="writeback" iothread="1"/>
-          <source file='/var/lib/libvirt/images/c.raw'/>
-          <target dev='vda' bus='virtio'/><boot order='1'/>
-        </disk>
-        <disk type='file' device='cdrom'>
-          <driver name='qemu' type='raw'/>
-          <source file='/var/lib/libvirt/images/virtio-win.iso'/>
-          <target dev='sdd' bus='sata'/><readonly/>
-        </disk>
-        <controller type='sata' index='0'/><controller type='usb' index='0' model='qemu-xhci'/>
-        <controller type='pci' index='0' model='pcie-root'/>
-        <controller type='pci' index='1' model='pcie-root-port'/>
-        <controller type='pci' index='2' model='pcie-root-port'/>
-        <controller type='pci' index='3' model='pcie-root-port'/>
-        <controller type='pci' index='4' model='pcie-root-port'/>
-        <controller type='pci' index='5' model='pcie-root-port'/>
-        <controller type='pci' index='6' model='pcie-root-port'/>
-        <controller type='pci' index='7' model='pcie-root-port'/>
-        <controller type='pci' index='8' model='pcie-root-port'/>
-        <controller type='virtio-serial' index='0'/>
-        <interface type='bridge'>
-          <mac address='52:54:00:a5:e0:e0'/>
-          <source bridge='virbr0'/><model type='virtio'/>
-        </interface>
-        <interface type='direct'>
-          <source dev='enp7s0' mode='bridge'/><model type='virtio'/>
-        </interface>
-        <input type='keyboard' bus='ps2'/><input type='mouse' bus='ps2'/>
-        <graphics type='spice' port='5900' autoport='yes' listen='127.0.0.1'>
-          <listen type='address' address='127.0.0.1'/>
-        </graphics>
-        <audio id='1' type='spice'/>
-        <video><model type='qxl' ram='131072' vram='131072' vgamem='65536' heads='1'/></video>
-        <hostdev mode='subsystem' type='pci' managed='yes'>
-          <driver name='vfio'/>
-          <source><address domain='0x0000' bus='0x08' slot='0x00' function='0x0'/></source>
-          <rom bar='on' file='/var/lib/libvirt/images/gpu-rom.bin'/>
-        </hostdev>
-        <hostdev mode='subsystem' type='pci' managed='yes'>
-          <driver name='vfio'/>
-          <source><address domain='0x0000' bus='0x08' slot='0x00' function='0x1'/></source>
-        </hostdev>
-        <hostdev mode='subsystem' type='pci' managed='yes'>
-          <driver name='vfio'/>
-          <source><address domain='0x0000' bus='0x0a' slot='0x00' function='0x3'/></source>
-        </hostdev>
-        <!-- Gamesir Nova Lite 2 dongle (USB passthrough) -->
-        <hostdev mode='subsystem' type='usb' managed='yes'>
-          <source startupPolicy='optional'>
-            <vendor id='0x3537'/>
-        
-            <product id='0x2106'/>
-        
-          </source>
-        
-        </hostdev>
-        <!-- Sony DualShock 4 Wireless Controller -->
-        <hostdev mode='subsystem' type='usb' managed='yes'>
-          <source startupPolicy='optional'>
-            <vendor id='0x054c'/>
-            <product id='0x09cc'/>
-          </source>
-        </hostdev>
-        <!-- Intel AX200 Bluetooth (USB passthrough) -->
-        <hostdev mode='subsystem' type='usb' managed='yes'>
-          <source>
-            <vendor id='0x8087'/>
-            <product id='0x0029'/>
-          </source>
-        </hostdev>
-        <watchdog model='itco' action='reset'/>
-        <memballoon model='virtio'/>
-        <channel type='unix'>
-          <target type='virtio' name='org.qemu.guest_agent.0'/>
-          <address type='virtio-serial' controller='0' bus='0' port='1'/>
-        </channel>
-      </devices>
-      <qemu:capabilities>
-        <qemu:del capability="usb-host.hostdevice"/>
-      </qemu:capabilities>
-      <seclabel type='none' model='none'/>
-    </domain>
-  '';
+  # Windows VM XML embedded INLINE — matches live libvirt config exactly
+  windowsDomainXml = ''<domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
+  <name>windows</name>
+  <uuid>52b825d0-6b0a-4e19-b251-7ae312ccd5d0</uuid>
+  <memory unit='KiB'>20971520</memory>
+  <currentMemory unit='KiB'>20971520</currentMemory>
+  <vcpu placement='static'>18</vcpu>
+  <iothreads>2</iothreads>
+  <cputune>
+    <vcpupin vcpu='0' cpuset='0'/>
+    <vcpupin vcpu='1' cpuset='1'/>
+    <vcpupin vcpu='2' cpuset='2'/>
+    <vcpupin vcpu='3' cpuset='3'/>
+    <vcpupin vcpu='4' cpuset='4'/>
+    <vcpupin vcpu='5' cpuset='5'/>
+    <vcpupin vcpu='6' cpuset='6'/>
+    <vcpupin vcpu='7' cpuset='7'/>
+    <vcpupin vcpu='8' cpuset='8'/>
+    <vcpupin vcpu='9' cpuset='12'/>
+    <vcpupin vcpu='10' cpuset='13'/>
+    <vcpupin vcpu='11' cpuset='14'/>
+    <vcpupin vcpu='12' cpuset='15'/>
+    <vcpupin vcpu='13' cpuset='16'/>
+    <vcpupin vcpu='14' cpuset='17'/>
+    <vcpupin vcpu='15' cpuset='18'/>
+    <vcpupin vcpu='16' cpuset='19'/>
+    <vcpupin vcpu='17' cpuset='20'/>
+    <emulatorpin cpuset='9,21'/>
+    <iothreadpin iothread='1' cpuset='9,21'/>
+    <iothreadpin iothread='2' cpuset='9,21'/>
+  </cputune>
+  <os firmware='efi'>
+    <type arch='x86_64' machine='pc-q35-10.2'>hvm</type>
+    <firmware>
+      <feature enabled='no' name='enrolled-keys'/>
+      <feature enabled='no' name='secure-boot'/>
+    </firmware>
+    <loader readonly='yes' type='pflash' format='raw'>/run/libvirt/nix-ovmf/edk2-x86_64-code.fd</loader>
+    <nvram template='/run/libvirt/nix-ovmf/edk2-i386-vars.fd' templateFormat='raw' format='raw'>/var/lib/libvirt/qemu/nvram/windows_VARS.fd</nvram>
+  </os>
+  <features>
+    <acpi/>
+    <apic/>
+    <hyperv mode='custom'>
+      <relaxed state='on'/>
+      <vapic state='on'/>
+      <spinlocks state='on' retries='8191'/>
+      <vpindex state='on'/>
+      <synic state='on'/>
+      <stimer state='on'/>
+      <reset state='on'/>
+      <vendor_id state='on' value='KVM Hv'/>
+      <frequencies state='on'/>
+      <reenlightenment state='on'/>
+      <tlbflush state='on'/>
+      <ipi state='on'/>
+    </hyperv>
+    <kvm>
+      <hidden state='on'/>
+    </kvm>
+  </features>
+  <cpu mode='host-model' check='none'>
+    <topology sockets='1' dies='1' clusters='1' cores='9' threads='2'/>
+  </cpu>
+  <clock offset='utc'>
+    <timer name='hypervclock' present='yes'/>
+  </clock>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>destroy</on_crash>
+  <devices>
+    <emulator>/run/libvirt/nix-emulators/qemu-system-x86_64</emulator>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='raw' cache='writeback' iothread='1'/>
+      <source file='/var/lib/libvirt/images/c.raw'/>
+      <target dev='vda' bus='virtio'/>
+      <boot order='1'/>
+      <address type='pci' domain='0x0000' bus='0x05' slot='0x00' function='0x0'/>
+    </disk>
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <source file='/var/lib/libvirt/images/virtio-win.iso'/>
+      <target dev='sdd' bus='sata'/>
+      <readonly/>
+      <address type='drive' controller='0' bus='0' target='0' unit='3'/>
+    </disk>
+    <controller type='sata' index='0'>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x1f' function='0x2'/>
+    </controller>
+    <controller type='usb' index='0' model='qemu-xhci'>
+      <address type='pci' domain='0x0000' bus='0x03' slot='0x00' function='0x0'/>
+    </controller>
+    <controller type='pci' index='0' model='pcie-root'/>
+    <controller type='pci' index='1' model='pcie-root-port'>
+      <model name='pcie-root-port'/>
+      <target chassis='1' port='0x10'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0' multifunction='on'/>
+    </controller>
+    <controller type='pci' index='2' model='pcie-root-port'>
+      <model name='pcie-root-port'/>
+      <target chassis='2' port='0x11'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x1'/>
+    </controller>
+    <controller type='pci' index='3' model='pcie-root-port'>
+      <model name='pcie-root-port'/>
+      <target chassis='3' port='0x12'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x2'/>
+    </controller>
+    <controller type='pci' index='4' model='pcie-root-port'>
+      <model name='pcie-root-port'/>
+      <target chassis='4' port='0x13'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x3'/>
+    </controller>
+    <controller type='pci' index='5' model='pcie-root-port'>
+      <model name='pcie-root-port'/>
+      <target chassis='5' port='0x14'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x4'/>
+    </controller>
+    <controller type='pci' index='6' model='pcie-root-port'>
+      <model name='pcie-root-port'/>
+      <target chassis='6' port='0x15'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x5'/>
+    </controller>
+    <controller type='pci' index='7' model='pcie-root-port'>
+      <model name='pcie-root-port'/>
+      <target chassis='7' port='0x16'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x6'/>
+    </controller>
+    <controller type='pci' index='8' model='pcie-root-port'>
+      <model name='pcie-root-port'/>
+      <target chassis='8' port='0x17'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x7'/>
+    </controller>
+    <controller type='pci' index='9' model='pcie-root-port'>
+      <model name='pcie-root-port'/>
+      <target chassis='9' port='0x18'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+    </controller>
+    <controller type='virtio-serial' index='0'>
+      <address type='pci' domain='0x0000' bus='0x04' slot='0x00' function='0x0'/>
+    </controller>
+    <interface type='bridge'>
+      <mac address='52:54:00:a5:e0:e0'/>
+      <source bridge='virbr0'/>
+      <model type='virtio'/>
+      <address type='pci' domain='0x0000' bus='0x01' slot='0x00' function='0x0'/>
+    </interface>
+    <interface type='direct'>
+      <mac address='52:54:00:7e:42:55'/>
+      <source dev='enp7s0' mode='bridge'/>
+      <model type='virtio'/>
+      <address type='pci' domain='0x0000' bus='0x02' slot='0x00' function='0x0'/>
+    </interface>
+    <channel type='unix'>
+      <target type='virtio' name='org.qemu.guest_agent.0'/>
+      <address type='virtio-serial' controller='0' bus='0' port='1'/>
+    </channel>
+    <input type='keyboard' bus='ps2'/>
+    <input type='mouse' bus='ps2'/>
+    <graphics type='spice' autoport='yes' listen='127.0.0.1'>
+      <listen type='address' address='127.0.0.1'/>
+    </graphics>
+    <audio id='1' type='spice'/>
+    <video>
+      <model type='qxl' ram='131072' vram='131072' vgamem='65536' heads='1' primary='yes'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x0'/>
+    </video>
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+      <driver name='vfio'/>
+      <source>
+        <address domain='0x0000' bus='0x08' slot='0x00' function='0x0'/>
+      </source>
+      <rom bar='on' file='/var/lib/libvirt/images/gpu-rom.bin'/>
+      <address type='pci' domain='0x0000' bus='0x06' slot='0x00' function='0x0'/>
+    </hostdev>
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+      <driver name='vfio'/>
+      <source>
+        <address domain='0x0000' bus='0x08' slot='0x00' function='0x1'/>
+      </source>
+      <address type='pci' domain='0x0000' bus='0x07' slot='0x00' function='0x0'/>
+    </hostdev>
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+      <driver name='vfio'/>
+      <source>
+        <address domain='0x0000' bus='0x0a' slot='0x00' function='0x3'/>
+      </source>
+      <address type='pci' domain='0x0000' bus='0x08' slot='0x00' function='0x0'/>
+    </hostdev>
+    <hostdev mode='subsystem' type='usb' managed='yes'>
+      <source startupPolicy='optional'>
+        <vendor id='0x3537'/>
+        <product id='0x2106'/>
+      </source>
+      <address type='usb' bus='0' port='1'/>
+    </hostdev>
+    <hostdev mode='subsystem' type='usb' managed='yes'>
+      <source startupPolicy='optional'>
+        <vendor id='0x054c'/>
+        <product id='0x09cc'/>
+      </source>
+      <address type='usb' bus='0' port='2'/>
+    </hostdev>
+    <hostdev mode='subsystem' type='usb' managed='yes'>
+      <source>
+        <vendor id='0x8087'/>
+        <product id='0x0029'/>
+      </source>
+      <address type='usb' bus='0' port='3'/>
+    </hostdev>
+    <watchdog model='itco' action='reset'/>
+    <memballoon model='virtio'>
+      <address type='pci' domain='0x0000' bus='0x09' slot='0x00' function='0x0'/>
+    </memballoon>
+  </devices>
+  <seclabel type='none' model='none'/>
+  <qemu:capabilities>
+    <qemu:del capability='usb-host.hostdevice'/>
+  </qemu:capabilities>
+</domain>'';
 in {
   # ── Libvirt ──────────────────────────────────────────────
   virtualisation.libvirtd = {
