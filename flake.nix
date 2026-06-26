@@ -175,12 +175,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # TTS — Kokoro-FastAPI (lightweight, CPU-capable)
-    kokoro-fastapi-nix = {
-      url = "github:mndfcked/kokoro-fastapi-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     # hermes-workspace and hermes-webui archived (2026-05-16)
   };
   outputs = inputs @ {
@@ -258,9 +252,6 @@
         hostName = "nexus";
         # Split manifests - nexus runs monitoring, ai-inference, llama-servers
         k8sManifest = self.kubernetes.monitoring.manifestYAMLFile;
-        modules = commonModules ++ [
-          inputs.kokoro-fastapi-nix.nixosModules.default
-        ];
       };
       forge = {
         hostName = "forge";
