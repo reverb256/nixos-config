@@ -31,6 +31,7 @@
       ../../modules/services/keepalived-vip.nix
       inputs.disko.nixosModules.disko
       inputs.nix-mineral.nixosModules.nix-mineral
+      ../../modules/services/kokoro-fastapi.nix
     ];
 
   # Host-specific CPU/GPU optimization for llama.cpp (Zen2 + Ampere: RTX 3060 Ti)
