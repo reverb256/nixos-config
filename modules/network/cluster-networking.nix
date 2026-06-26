@@ -112,11 +112,23 @@ in {
       ];
 
       nameservers = ["127.0.0.1"];
-      enableIPv6 = false;
 
+      # Don't use enableIPv6 = false — it sets all.disable_ipv6=1 which kills
+      # ::1 (IPv6 loopback), breaking local DNS when resolv.conf lists ::1.
+      # Instead, keep IPv6 enabled globally and disable per-physical-interface.
+      # ::1 on lo works automatically when lo IPv6 is not explicitly disabled.
+      enableIPv6 = true;
       useNetworkd = false;
       networkmanager.enable = true;
     };
+
+    boot.kernel.sysctl =
+      lib.optionalAttrs (cfg.interfaceName != null) {
+        "net.ipv6.conf.${cfg.interfaceName}.disable_ipv6" = 1;
+      }
+      // lib.optionalAttrs cfg.wireless.enable {
+        "net.ipv6.conf.wlan0.disable_ipv6" = 1;
+      };
 
     systemd.network.links = {
       "10-keep-names" = {
