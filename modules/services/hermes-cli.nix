@@ -28,10 +28,12 @@
       # edit files under /etc/nixos/ directly (instead of falling back to sed).
       # The file_operations.py deny-list still blocks /etc/sudoers, /etc/passwd,
       # /etc/shadow, /etc/systemd, and /etc/sudoers.d for defense-in-depth.
-      substituteInPlace $out/lib/*/site-packages/tools/file_tools.py \
-        --replace-fail \
+      for f in $out/lib/*/site-packages/tools/file_tools.py; do
+        substituteInPlace "$f" \
+          --replace-fail \
           '"/etc/", "/boot/", "/usr/lib/systemd/"' \
           '"/boot/", "/usr/lib/systemd/"'
+      done
     '';
   });
 
