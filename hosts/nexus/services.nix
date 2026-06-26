@@ -109,11 +109,6 @@ in {
     enable = true;
     addToSystemPackages = false; # hermes-with-whatsapp (superset) added via hermes-cli.nix
 
-    # Fix UMask from upstream 0007 → 0022 so skill files are group/other readable
-    extraServiceConfig = {
-      UMask = "0022";
-    };
-
     settings = {
       providers = {
         # All inference through AI Inference Gateway on Nexus:8080
