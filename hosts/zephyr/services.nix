@@ -87,7 +87,7 @@ in {
             type = "command";
             command = "${pkgs.kokoro-tts}/bin/kokoro-tts.sh {input_path} {output_path} {voice}";
             output_format = "mp3";
-            voice = "am_puck";
+            voice = "am_fenrir";
           };
         };
       };
