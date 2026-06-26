@@ -52,6 +52,11 @@ in {
   systemd.tmpfiles.rules = [ "f /var/lib/libvirt/images/${vm.cdisk} 0640 root kvm - -" ];
 
   # ── iSCSI target ──
+  # iSCSI target depends on RAID being assembled first
+  systemd.services.iscsi-target = {
+    after = [ "assemble-games-raid.service" ];
+    requires = [ "assemble-games-raid.service" ];
+  };
   services.target = {
     enable = true;
     config = {
