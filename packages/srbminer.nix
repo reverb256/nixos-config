@@ -6,8 +6,8 @@
   version ? "3.4.1",
 }: let
   src = fetchurl {
-    url = "https://github.com/doktor83/SRBMiner-Multi/releases/download/${version}/SRBMiner-Multi-${builtins.replaceStrings ["."] ["-"] version}-Linux.tar.gz";
-    hash = "sha256-c2de6da87afad6d536573084a46cfb08e2bd5b38cdbf9245199d093a6ea6970f";
+    url = "https://github.com/kryptex-miners-org/kryptex-miners/releases/download/srbminer-${builtins.replaceStrings ["."] ["-"] version}/SRBMiner-Multi-${builtins.replaceStrings ["."] ["-"] version}-Linux.tar.gz";
+    hash = "sha256-u37EgcWI/E0swhZJZTYAyYQO/zlpL396kOCO2eSX6xs=";
   };
 in
   stdenv.mkDerivation {
