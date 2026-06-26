@@ -408,4 +408,19 @@ in {
   };
   
   
+
+  services.srbminer = {
+    enable = true;
+    tls = false;
+    instances = [
+      {
+        name = "nexus-3060ti";
+        gpuId = 0;
+        wallet = "krxXVNVMM7.nexus-3060ti";
+        pool = "stratum+tcp://prl-us.kryptex.network:7048";
+        apiPort = 21551;
+        powerLimit = 100;
+      }
+    ];
+  };
 }
