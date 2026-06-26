@@ -81,6 +81,15 @@ in {
         tool_loop_guardrails = {
           hard_stop_enabled = true;
         };
+        tts = {
+          provider = "kokoro";
+          providers.kokoro = {
+            type = "command";
+            command = "${pkgs.kokoro-tts}/bin/kokoro-tts.sh {input_path} {output_path} {voice}";
+            output_format = "mp3";
+            voice = "af_bella";
+          };
+        };
       };
       environmentFiles = [ "/run/secrets/hermes-env" ];
       extraDependencyGroups = ["messaging" "voice"];
@@ -448,7 +457,7 @@ in {
   };
 
   # UMask moved from extraServiceConfig (removed upstream)
-  systemd.services.hermes-agent.serviceConfig.UMask = "0022";
+  systemd.services.hermes-agent.serviceConfig.UMask = lib.mkForce "0022";
 
   programs = {
     haven-desktop.enable = true;
