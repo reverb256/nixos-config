@@ -247,7 +247,8 @@ in {
     enable = true;
     port = 8880;
     openFirewall = true;
-    # CPU mode — no GPU on nexus for TTS
+    useGpu = true;
+    extraPodmanArgs = "--device nvidia.com/gpu=all";
   };
 
   # ── Cluster service registry ──
