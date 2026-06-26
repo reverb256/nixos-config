@@ -245,7 +245,21 @@ in {
     "render"
   ];
 
-  # Cluster service registry — single source of truth for DNS + Caddy
+  # ── Docker (for Kokoro-FastAPI TTS) ──
+  virtualisation.docker = {
+    enable = true;
+    autoPrune.enable = true;
+  };
+
+  # ── Kokoro-FastAPI TTS ──
+  services.kokoro-fastapi = {
+    enable = true;
+    port = 8880;
+    useGpu = false;  # CPU mode on nexus
+    openFirewall = true;
+  };
+
+  # ── Cluster service registry ──
   # All .lan domains terminate TLS on nexus and proxy to backends
   # Uses K8s service DNS (stable across recreations) instead of ephemeral ClusterIPs
   services.cluster-services = {
