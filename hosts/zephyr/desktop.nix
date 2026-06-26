@@ -4,7 +4,7 @@
   ...
 }: {
   services.displayManager.sddm.enable = lib.mkForce true;
-  services.displayManager.sddm.wayland.enable = true;
+  services.displayManager.sddm.wayland.enable = false;
 
   desktop.uwsm-sessions.enable = true;
   programs.niri.enable = true;
