@@ -96,6 +96,39 @@ in {
             voice = "Connor.wav";
           };
         };
+        voice = {
+          record_key = "ctrl+b";
+          max_recording_seconds = 120;
+          auto_tts = true;
+          beep_enabled = true;
+          silence_threshold = 200;
+          silence_duration = 3.0;
+        };
+        stt = {
+          enabled = true;
+          provider = "local";
+          providers.local = {
+            model = "base";
+            language = "";
+          };
+          providers.openai = {
+            model = "whisper-1";
+          };
+          providers.mistral = {
+            model = "voxtral-mini-latest";
+          };
+          providers.elevenlabs = {
+            model_id = "scribe_v2";
+            language_code = "";
+            tag_audio_events = false;
+            diarize = false;
+          };
+        };
+        human_delay = {
+          mode = "off";
+          min_ms = 800;
+          max_ms = 2500;
+        };
       };
       environmentFiles = [ "/run/secrets/hermes-env" ];
       extraDependencyGroups = ["messaging" "voice"];
