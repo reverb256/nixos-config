@@ -80,6 +80,14 @@ in {
             for d in voices reference_audio outputs logs; do
               mkdir -p "${cfg.dataDir}/$d"
             done
+            # Copy default config if not present
+            if [ ! -f "${cfg.dataDir}/config.yaml" ]; then
+              cp "${cfg.dataDir}/Chatterbox-TTS-Server/config.yaml" "${cfg.dataDir}/config.yaml"
+            fi
+            # Copy predefined voices if the voices dir is empty
+            if ! ls "${cfg.dataDir}/voices/"*.wav 2>/dev/null | head -1 >/dev/null 2>&1; then
+              cp "${cfg.dataDir}/Chatterbox-TTS-Server/voices/"*.wav "${cfg.dataDir}/voices/" 2>/dev/null || true
+            fi
             cd "${cfg.dataDir}/Chatterbox-TTS-Server"
             if ! ${pkgs.podman}/bin/podman image exists chatterbox-tts:latest 2>/dev/null; then
               ${pkgs.podman}/bin/podman build -t chatterbox-tts:latest \
