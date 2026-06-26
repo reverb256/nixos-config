@@ -42,7 +42,7 @@ in {
       ipAddress = "10.1.1.115";
     };
     usbEthernet.enable = false;
-    interfaceName = "eth0";
+    interfaceName = lib.mkForce "eth0";
     unbound.enable = true;
     unbound.listenAddress = cluster.hosts.zephyr.ip;
   };
@@ -350,6 +350,9 @@ in {
     # Hermes voice mode dependencies
     portaudio
     alsa-lib
+
+    # Hermes Desktop GUI
+    self.packages.x86_64-linux.hermes-desktop
   ];
 
   # Service .lan domains resolved by unbound → nexus (${cluster.hosts.nexus.ip}).
