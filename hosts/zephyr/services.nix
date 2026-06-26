@@ -146,10 +146,7 @@ in {
       };
       environmentFiles = [ "/run/secrets/hermes-env" ];
       extraDependencyGroups = ["messaging" "voice"];
-      extraPackages = with pkgs; [ripgrep jq curl portaudio];
-      package = pkgs.hermes-agent.overrideAttrs (old: {
-        buildInputs = (old.buildInputs or []) ++ [pkgs.portaudio];
-      });
+      extraPackages = with pkgs; [ripgrep jq curl];
       documents = {
         "USER.md" = ''
           NixOS/k3s homelab operator and developer.
