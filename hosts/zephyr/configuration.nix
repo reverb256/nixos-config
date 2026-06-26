@@ -21,6 +21,7 @@ in {
     ../../modules/default.nix
 
     ../../modules/hardware/rgb-control.nix
+    ../../modules/services/chatterbox-tts.nix
   ];
 
   # Enable Hermes RAM protection
