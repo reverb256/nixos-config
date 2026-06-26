@@ -249,7 +249,7 @@ in {
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       Type = "simple";
-      ExecStart = "${pkgs.podman}/bin/podman run --rm --name kokoro-tts -p 8880:8880 ghcr.io/remsky/kokoro-fastapi";
+      ExecStart = "${pkgs.podman}/bin/podman run --rm --name kokoro-tts -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest";
       ExecStop = "${pkgs.podman}/bin/podman stop kokoro-tts";
       Restart = "on-failure";
       RestartSec = "10";
