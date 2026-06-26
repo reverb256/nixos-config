@@ -317,7 +317,7 @@ in {
     # All .lan services moved to nexus (OOM prevention)
     # Uses caddy-with-modules (includes caddy-ratelimit, caddy-security, caddy-cache)
     caddy = {
-      enable = true;
+      enable = false;
       package = pkgs.caddy-with-modules;
       configFile = let
         lanRoutes = import ./caddy-routes.nix {inherit cluster;};
