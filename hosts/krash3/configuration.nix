@@ -12,10 +12,6 @@ let
         <iothreadpin iothread="2" cpuset="9,21"/>
       </cputune>
       <iothreads>2</iothreads>
-      <memoryBacking>
-        <hugepages><page size="1" unit="GiB"/></hugepages>
-        <locked/>
-      </memoryBacking>
       <os>
         <type arch='x86_64' machine='pc-q35-10.2'>hvm</type>
         <loader readonly='yes' type='pflash' format='raw'>/run/libvirt/nix-ovmf/edk2-x86_64-code.fd</loader>
