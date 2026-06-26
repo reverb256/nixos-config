@@ -185,7 +185,10 @@ in {
     serviceConfig = {
       Type = "simple";
       User = "j_kro";
-      ExecStartPre = "${pkgs.coreutils}/bin/sleep 5";  # Wait for GPU to settle
+      ExecStartPre = "${pkgs.coreutils}/bin/sleep 5";
+      Environment = [
+        "LD_LIBRARY_PATH=${pkgs.linuxPackages.nvidia_x11}/lib"
+      ];
       ExecStart = ''
         ${pkgs.llama-cpp}/bin/llama-server \
           --model /home/j_kro/models/Qwen3.5-4B-Q4_K_M.gguf \
