@@ -57,19 +57,6 @@
   # Inline fallback MCP servers (used when registry is not enabled)
   fallbackMcpServersBlock = pkgs.writeText "hermes-mcp-servers.yaml" ''
     mcp_servers:
-      agentmemory:
-        command: npx
-        args:
-          - -y
-          - "@agentmemory/mcp"
-        connect_timeout: 30
-        timeout: 120
-        description: Agentmemory MCP server
-      graphiti:
-        url: http://localhost:8000/mcp/
-        connect_timeout: 30
-        timeout: 120
-        description: Graphiti temporal knowledge graph MCP server
       kubernetes:
         url: http://kubernetes-mcp.infra.svc.cluster.local:8080/mcp
         connect_timeout: 30
