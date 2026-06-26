@@ -571,6 +571,15 @@ NMKEYFILE
   '';
 
 
+  # ── Chatterbox-TTS (multi-engine GPU TTS on RTX 3090) ──
+  services.chatterbox-tts = {
+    enable = true;
+    port = 8004;
+    openFirewall = true;
+    gpuIndex = 1; # RTX 3090
+  };
+
+
   systemd.services.hermes-agent.environment = {
     HERMES_HOME_MODE = "0755";
   };
