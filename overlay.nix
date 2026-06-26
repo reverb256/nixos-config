@@ -15,6 +15,7 @@ _final: prev:
     });
   };
   haven-desktop = prev.callPackage ./packages/haven-desktop.nix { };
+  kokoro-tts = prev.callPackage ./packages/kokoro-tts.nix { };
   wivrn = prev.wivrn.overrideAttrs (old: {
     cmakeFlags = old.cmakeFlags ++ [ "-DWIVRN_FEATURE_STEAMVR_LIGHTHOUSE=ON" ];
   });
