@@ -54,12 +54,11 @@ in {
   # ── iSCSI target ──
   # iSCSI target depends on RAID being assembled first
   systemd.services.iscsi-target = {
-    # Wait for the actual partition device, not just the assembly script
-    # assemble-games-raid.service finishes BEFORE udev creates /dev/md0p1
-    # Device unit dependency guarantees the block device exists before targetctl runs
-    after = [ "assemble-games-raid.service" "dev-md0p1.device" ];
-    requires = [ "assemble-games-raid.service" "dev-md0p1.device" ];
-    bindsTo = [ "dev-md0p1.device" ];
+    # The assembly script now waits for /dev/md0p1 to appear before exiting,
+    # so after+requires on the script is sufficient. dev-md0p1.device is
+    # unreliable as a systemd dependency (device unit activates async).
+    after = [ "assemble-games-raid.service" ];
+    requires = [ "assemble-games-raid.service" ];
   };
   services.target = {
     enable = true;
