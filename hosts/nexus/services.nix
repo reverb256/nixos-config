@@ -109,6 +109,11 @@ in {
     enable = true;
     addToSystemPackages = false; # hermes-with-whatsapp (superset) added via hermes-cli.nix
 
+    # Fix UMask from upstream 0007 → 0022 so skill files are group/other readable
+    extraServiceConfig = {
+      UMask = "0022";
+    };
+
     settings = {
       providers = {
         # All inference through AI Inference Gateway on Nexus:8080
@@ -160,16 +165,43 @@ in {
       toolsets = ["all"];
       terminal = {
         backend = "local";
-        timeout = 180;
+        timeout = 300;
       };
       memory = {
         memory_enabled = true;
         user_profile_enabled = true;
+        write_approval = true;
       };
       compression = {
         enabled = true;
-        threshold = 0.9;
+        threshold = 0.75;
       };
+      tool_output = {
+        max_bytes = 150000;
+      };
+      approvals = {
+        mode = "smart";
+        destructive_slash_confirm = true;
+      };
+      tool_loop_guardrails = {
+        hard_stop_enabled = true;
+      };
+      skills = {
+        write_approval = true;
+        default = [
+          "windows-kvm-mgmt"
+          "nixos-cluster-config"
+          "nixos-hermes-config"
+          "github-pr-workflow"
+          "nixos-ssh"
+          "nixos-home-manager"
+        ];
+      };
+    };
+
+    # Force 644/755 permissions for skill files
+    environment = {
+      HERMES_HOME_MODE = "0755";
     };
 
     # Secrets loaded via ExecStartPre + EnvironmentFile override below
