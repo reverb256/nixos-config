@@ -37,14 +37,35 @@ in {
           nous = {
             discover_models = true;
           };
+          # Local llama-cpp endpoints (network fallbacks)
+          llama-cpp-sentry = {
+            base_url = "http://sentry:1235/v1";
+            api_key = "unused";
+            model = "Qwen3.5-4B-Q4_K_M.gguf";
+          };
+          llama-cpp-zephyr = {
+            base_url = "http://zephyr:1237/v1";
+            api_key = "unused";
+            model = "Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf";
+          };
+          forge-gemma4 = {
+            base_url = "http://forge:8002/v1";
+            api_key = "unused";
+            model = "gemma-4-E2B-it-Q4_K_M.gguf";
+          };
+          forge-qwen = {
+            base_url = "http://forge:8003/v1";
+            api_key = "unused";
+            model = "Qwen3.5-4B-Q4_K_M.gguf";
+          };
         };
-        fallback_providers = ["opencode-go" "zai" "nvidia"];
+        fallback_providers = ["opencode-go" "zai" "nvidia" "forge-gemma4" "forge-qwen" "llama-cpp-zephyr" "llama-cpp-sentry"];
         smart_model_routing = {
           enabled = true;
           max_simple_chars = 160;
           max_simple_words = 28;
           cheap_model = {
-            provider = "llama-cpp-sentry";
+            provider = "forge-qwen";
             model = "Qwen3.5-4B-Q4_K_M.gguf";
           };
         };
