@@ -54,11 +54,13 @@ in {
   # ── iSCSI target ──
   # iSCSI target depends on RAID being assembled first
   systemd.services.iscsi-target = {
-    # The assembly script now waits for /dev/md0p1 to appear before exiting,
-    # so after+requires on the script is sufficient. dev-md0p1.device is
-    # unreliable as a systemd dependency (device unit activates async).
     after = [ "assemble-games-raid.service" ];
     requires = [ "assemble-games-raid.service" ];
+    # RemainAfterExit=true on the assembly script means systemd considers it
+    # "already active" on next boot, so the iSCSI target starts immediately.
+    # The script does re-run, but the ordering dependency doesn't block.
+    # ExecStartPre ensures the block device actually exists before targetctl runs.
+    serviceConfig.ExecStartPre = "${pkgs.bash}/bin/bash -c 'for i in $$(seq 1 30); do if [ -b /dev/md0p1 ]; then exit 0; fi; sleep 2; done; exit 1'";
   };
   services.target = {
     enable = true;
