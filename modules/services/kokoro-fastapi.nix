@@ -47,6 +47,8 @@ in {
   };
 
   config = mkIf cfg.enable {
+    virtualisation.podman.enable = true;
+
     systemd.services.kokoro-fastapi = {
       description = "Kokoro-FastAPI Text-to-Speech Service";
       after = [ "network.target" "podman.service" ];
