@@ -27,6 +27,7 @@
   {
     nixpkgs.overlays = [
       inputs.niri.overlays.niri
+      inputs.hermes-agent.overlays.default
       inputs.llm-agents.overlays.default
       self.overlays.default
     ];
