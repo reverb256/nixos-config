@@ -211,6 +211,20 @@ in {
 
   # ── Write inline VM XML & define on every rebuild ───────
   system.activationScripts.windows-vm = lib.mkAfter ''
+    # Create libvirt default network WITHOUT dnsmasq (avoids port 53 conflict with unbound)
+    cat > /var/lib/libvirt/images/virbr0-net.xml << 'NETEOF'
+<network>
+  <name>default</name>
+  <forward mode='nat'/>
+  <bridge name='virbr0' stp='on' delay='0'/>
+  <dns enable='no'/>
+  <ip address='192.168.122.1' netmask='255.255.255.0'/>
+</network>
+NETEOF
+    virsh net-define /var/lib/libvirt/images/virbr0-net.xml 2>/dev/null || true
+    virsh net-autostart default 2>/dev/null || true
+    virsh net-start default 2>/dev/null || true
+
     cat > /var/lib/libvirt/images/windows-domain.xml << 'XMLEOF'
 ${windowsDomainXml}
 XMLEOF
