@@ -80,9 +80,43 @@ in {
             for d in voices reference_audio outputs logs; do
               mkdir -p "${cfg.dataDir}/$d"
             done
-            # Copy default config if not present
+            # Write tuned config for Chatterbox Turbo (repo defaults cause garbled audio)
             if [ ! -f "${cfg.dataDir}/config.yaml" ]; then
-              cp "${cfg.dataDir}/Chatterbox-TTS-Server/config.yaml" "${cfg.dataDir}/config.yaml"
+              cat > "${cfg.dataDir}/config.yaml" << 'TUNEDCFG'
+server:
+  host: 0.0.0.0
+  port: 8004
+  use_ngrok: false
+  use_auth: false
+tts_engine:
+  device: cuda
+  predefined_voices_path: voices
+  reference_audio_path: reference_audio
+  default_voice_id: Connor.wav
+model:
+  repo_id: chatterbox-turbo
+paths:
+  model_cache: model_cache
+  output: outputs
+generation_defaults:
+  temperature: 0.65
+  exaggeration: 0.9
+  cfg_weight: 1.5
+  seed: 42
+  speed_factor: 1.0
+  language: en
+audio_output:
+  format: mp3
+  sample_rate: 24000
+  max_reference_duration_sec: 30
+  save_to_disk: false
+ui:
+  title: Chatterbox TTS Server
+  show_language_select: true
+  max_predefined_voices_in_dropdown: 50
+debug:
+  save_intermediate_audio: false
+TUNEDCFG
             fi
             # Copy predefined voices if the voices dir is empty
             if ! ls "${cfg.dataDir}/voices/"*.wav 2>/dev/null | head -1 >/dev/null 2>&1; then
