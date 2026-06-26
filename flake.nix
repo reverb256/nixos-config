@@ -97,13 +97,8 @@
     easykubenix.url = "github:Lillecarl/easykubenix/88a025fc04889f25b702f79030c6220c3ec48f9b";
 
     nix-csi.url = "github:Lillecarl/nix-csi/7ddae07bf04c";
-    # PINNED: revision 935f2bc — newer lockfile drops @esbuild/* platform packages,
-    # causing npm sandbox build failure (esbuild postinstall can't download binary).
-    # Unpin when upstream lockfile is fixed.
-    hermes-agent = {
-      url = "github:NousResearch/hermes-agent/935f2bc48daa9c7fad73f80c95d4375da18a39c1";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # hermes-agent — use main branch (pinned revision 935f2bc had syntax error on installPhase)
+    hermes-agent.url = "github:NousResearch/hermes-agent";
 
     sops-nix = {
       url = "github:Mic92/sops-nix";
@@ -228,7 +223,7 @@
     }:
       nixpkgsInput.lib.nixosSystem {
         specialArgs = {
-          inherit inputs;
+          inherit inputs self;
         };
         modules =
           modules
@@ -286,7 +281,7 @@
       ci-test-eval = (nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [./hosts/ci-test/configuration.nix];
-        specialArgs = {inherit inputs;};
+        specialArgs = {inherit inputs self;};
       }).config.system.build.toplevel;
 
       # VM boot test — boots minimal NixOS in QEMU, verifies multi-user.target
@@ -327,12 +322,12 @@
         ci-test = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [./hosts/ci-test/configuration.nix];
-          specialArgs = {inherit inputs;};
+          specialArgs = {inherit inputs self;};
         };
         # Rescue USB — standalone live ISO (no mining/gaming/K8s)
         usb = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
-          specialArgs = {inherit inputs;};
+          specialArgs = {inherit inputs self;};
           modules = [./hosts/usb/configuration.nix];
         };
       };
@@ -352,6 +347,8 @@
     packages.x86_64-linux.caddy-with-modules = inputs.caddy-ingress.packages.x86_64-linux.caddy-with-modules;
     packages.x86_64-linux.caddy-ingress-image = inputs.caddy-ingress.packages.x86_64-linux.caddy-ingress-image;
     packages.x86_64-linux.hermes-chat = pkgsWithOverlay.hermes-chat;
+    packages.x86_64-linux.hermes-desktop = inputs.hermes-agent.packages.x86_64-linux.desktop;
+    packages.x86_64-linux.hermes-tui = inputs.hermes-agent.packages.x86_64-linux.tui;
     packages.x86_64-linux.privacy-filter = pkgsWithOverlay.privacy-filter;
     packages.x86_64-linux.kubernetes-mcp-server = pkgs.callPackage ./packages/kubernetes-mcp-server.nix {};
     packages.x86_64-linux.nixos-cluster-mcp = pkgs.callPackage ./packages/nixos-cluster-mcp {};

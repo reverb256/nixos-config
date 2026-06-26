@@ -17,8 +17,8 @@ in {
   in {
     clusterNetworking = mkIf (networkingCfg.ipAddress != null) {
       enable = true;
-      inherit (networkingCfg) ipAddress;
-      inherit (networkingCfg) interfaceName;
+      ipAddress = lib.mkDefault networkingCfg.ipAddress;
+      interfaceName = lib.mkDefault networkingCfg.interfaceName;
       wireless = lib.mkDefault networkingCfg.wireless;
       unbound = {
         enable = true;
