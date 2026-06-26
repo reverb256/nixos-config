@@ -582,6 +582,14 @@ NMKEYFILE
   '';
 
 
+  # ── Graphiti MCP (temporal knowledge graph) ──
+  services.graphiti-mcp = {
+    enable = true;
+    port = 8000;
+    openFirewall = false;
+    sopsSecret = "ai/openai-api-key";
+  };
+
   # ── Chatterbox-TTS (multi-engine GPU TTS on RTX 3090) ──
   services.chatterbox-tts = {
     enable = true;
