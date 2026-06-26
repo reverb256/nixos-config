@@ -42,8 +42,8 @@
     name = "windows";
     uuid = "52b825d0-6b0a-4e19-b251-7ae312ccd5d0";
     memoryKiB = 25165824;   # 24 GiB
-    vcpu = 16;
-    cores = 8;
+    vcpu = 18;
+    cores = 9;
     threads = 2;
     cdisk = "c.raw";
     virtioIso = "/var/lib/libvirt/images/virtio-win.iso";

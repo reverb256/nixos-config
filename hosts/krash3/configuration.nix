@@ -7,8 +7,13 @@ let
       <uuid>52b825d0-6b0a-4e19-b251-7ae312ccd5d0</uuid>
       <memory unit='KiB'>25165824</memory>
       <currentMemory unit='KiB'>25165824</currentMemory>
-      <vcpu placement="static">18</vcpu>      <cputune>        <vcpupin vcpu="0" cpuset="0"/>        <vcpupin vcpu="1" cpuset="1"/>        <vcpupin vcpu="2" cpuset="2"/>        <vcpupin vcpu="3" cpuset="3"/>        <vcpupin vcpu="4" cpuset="4"/>        <vcpupin vcpu="5" cpuset="5"/>        <vcpupin vcpu="6" cpuset="6"/>        <vcpupin vcpu="7" cpuset="7"/>        <vcpupin vcpu="8" cpuset="8"/>        <vcpupin vcpu="9" cpuset="12"/>        <vcpupin vcpu="10" cpuset="13"/>        <vcpupin vcpu="11" cpuset="14"/>        <vcpupin vcpu="12" cpuset="15"/>        <vcpupin vcpu="13" cpuset="16"/>        <vcpupin vcpu="14" cpuset="17"/>        <vcpupin vcpu="15" cpuset="18"/>        <vcpupin vcpu="16" cpuset="19"/>        <vcpupin vcpu="17" cpuset="20"/>      </cputune>
+      <vcpu placement="static">18</vcpu>      <cputune>        <vcpupin vcpu="0" cpuset="0"/>        <vcpupin vcpu="1" cpuset="1"/>        <vcpupin vcpu="2" cpuset="2"/>        <vcpupin vcpu="3" cpuset="3"/>        <vcpupin vcpu="4" cpuset="4"/>        <vcpupin vcpu="5" cpuset="5"/>        <vcpupin vcpu="6" cpuset="6"/>        <vcpupin vcpu="7" cpuset="7"/>        <vcpupin vcpu="8" cpuset="8"/>        <vcpupin vcpu="9" cpuset="12"/>        <vcpupin vcpu="10" cpuset="13"/>        <vcpupin vcpu="11" cpuset="14"/>        <vcpupin vcpu="12" cpuset="15"/>        <vcpupin vcpu="13" cpuset="16"/>        <vcpupin vcpu="14" cpuset="17"/>        <vcpupin vcpu="15" cpuset="18"/>        <vcpupin vcpu="16" cpuset="19"/>        <vcpupin vcpu="17" cpuset="20"/>              <emulatorpin cpuset="9,21"/>
+        <iothreadpin iothread="1" cpuset="9,21"/>
+        <iothreadpin iothread="2" cpuset="9,21"/>
+      </cputune>
+      <iothreads>2</iothreads>
       <memoryBacking>
+        <hugepages><page size="1" unit="GiB"/></hugepages>
         <locked/>
       </memoryBacking>
       <os>
@@ -36,7 +41,7 @@ let
       <devices>
         <emulator>/run/libvirt/nix-emulators/qemu-system-x86_64</emulator>
         <disk type='file' device='disk'>
-          <driver name='qemu' type='raw' cache='writeback'/>
+          <driver name="qemu" type="raw" cache="writeback" iothread="1"/>
           <source file='/var/lib/libvirt/images/c.raw'/>
           <target dev='vda' bus='virtio'/><boot order='1'/>
         </disk>
@@ -122,6 +127,7 @@ let
 in {
   # ── Libvirt ──────────────────────────────────────────────
   virtualisation.libvirtd = {
+  # ── Performance tuning ──
     enable = true;
     qemuVerbatimConfig = ''
       max_memlock = 26843545600
@@ -248,4 +254,7 @@ XMLEOF
       };
     };
   };
+  # ── Performance tuning ──
+  boot.kernel.sysctl."vm.nr_hugepages" = 24;
+
 }
