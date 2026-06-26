@@ -346,6 +346,10 @@ in {
     python312Packages.openpyxl
 
     nvtopPackages.full
+
+    # Hermes voice mode dependencies
+    portaudio
+    alsa-lib
   ];
 
   # Service .lan domains resolved by unbound → nexus (${cluster.hosts.nexus.ip}).
