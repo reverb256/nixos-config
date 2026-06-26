@@ -593,9 +593,14 @@ NMKEYFILE
     enable = true;
     port = 8000;
     openFirewall = false;
-    sopsSecret = "ai/zai-api-key";
-    modelName = "glm-4.5";
+    openaiApiUrl = "http://10.1.1.130:8003/v1";
+    modelName = "Qwen3.5-4B-Q4_K_M.gguf";
   };
+
+  # ── Forge inference endpoints (for Herramientas) ──
+  # Gemma 4 on forge:8002 (stronger, 131K ctx)
+  # Qwen3.5-4B on forge:8003 (lighter, faster)
+  # Sentry Qwen3.5-4B on 10.1.1.140:8001 (with --embeddings)
 
   # ── Chatterbox-TTS (multi-engine GPU TTS on RTX 3090) ──
   services.chatterbox-tts = {
