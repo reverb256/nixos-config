@@ -45,59 +45,48 @@ in {
           };
         };
         toolsets = ["all"];
-        compression = {
-          enabled = true;
-          threshold = 0.9;
+        approvals = {
+          mode = "smart";
+          destructive_slash_confirm = true;
+          mcp_reload_confirm = false;
+        };
+        skills = {
+          write_approval = true;
+          default = [
+            "windows-kvm-mgmt"
+            "nixos-cluster-config"
+            "nixos-hermes-config"
+            "github-pr-workflow"
+            "nixos-ssh"
+            "nixos-home-manager"
+          ];
         };
         memory = {
           memory_enabled = true;
           user_profile_enabled = true;
           provider = "mnemosyne";
+          write_approval = true;
         };
         terminal = {
           backend = "local";
-          timeout = 120;
+          timeout = 300;
         };
-        display = {
-          skin = "slate";
+        compression = {
+          enabled = true;
+          threshold = 0.75;
         };
-        onboarding = {
-          seen = {
-            busy_input_prompt = true;
-            tool_progress_prompt = true;
-          };
+        tool_output = {
+          max_bytes = 150000;
         };
-        tts = {
-          provider = "edge-uv";
-          providers = {
-            "edge-uv" = {
-              type = "command";
-              command = "uv run edge-tts -f {input_path} -v {voice} --write-media {output_path}";
-              output_format = "mp3";
-              voice = "en-US-BrianNeural";
-            };
-          };
-        };
-        voice = {
-          record_key = "ctrl+b";
-          max_recording_seconds = 120;
-          auto_tts = true;
-          beep_enabled = true;
-          silence_threshold = 200;
-          silence_duration = 3.0;
-        };
-        stt = {
-          provider = "local";
-          local = {
-            model = "base";
-          };
-        };
-        approvals = {
-          mcp_reload_confirm = false;
+        tool_loop_guardrails = {
+          hard_stop_enabled = true;
         };
       };
       environmentFiles = [ "/run/secrets/hermes-env" ];
       extraDependencyGroups = ["messaging" "voice"];
+      extraServiceConfig = {
+        UMask = "0022";
+      };
       extraPackages = with pkgs; [ripgrep jq curl];
       documents = {
         "USER.md" = ''
@@ -585,6 +574,7 @@ NMKEYFILE
 
   systemd.services.hermes-agent.environment = {
     DISPLAY = ":0";
+    HERMES_HOME_MODE = "0755";
   };
 
 
