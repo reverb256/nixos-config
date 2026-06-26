@@ -54,8 +54,8 @@ in {
   # ── iSCSI target ──
   # iSCSI target depends on RAID being assembled first
   systemd.services.iscsi-target = {
-    after = [ "assemble-games-raid.service" ];
-    requires = [ "assemble-games-raid.service" ];
+    after = [ "assemble-games-raid.service" "iscsi-target.service" ];
+    requires = [ "assemble-games-raid.service" "iscsi-target.service" ];
   };
   services.target = {
     enable = true;
@@ -91,7 +91,7 @@ in {
   # ── VM autostart ──
   systemd.services.libvirt-autostart-windows = {
     wantedBy = [ "multi-user.target" ];
-    after = [ "libvirtd.service" "assemble-games-raid.service" ];
+    after = [ "libvirtd.service" "assemble-games-raid.service" "iscsi-target.service" ];
     path = [ pkgs.libvirt ];
     script = ''
       virsh define /var/lib/libvirt/images/windows-domain.xml 2>/dev/null || true
