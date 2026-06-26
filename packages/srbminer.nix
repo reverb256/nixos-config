@@ -7,7 +7,7 @@
 }: let
   src = fetchurl {
     url = "https://github.com/doktor83/SRBMiner-Multi/releases/download/${version}/SRBMiner-Multi-${builtins.replaceStrings ["."] ["-"] version}-Linux.tar.gz";
-    hash = "sha256-u37EgcWI/E0shwZJZTYAyYQO/zlpL396kOCO2eSX6xs=";
+    hash = "sha256-wt5tqHr61tU2VzCEpGz7COK9WzjNv5JFGZ0JOm6mlw8=";
   };
 in
   stdenv.mkDerivation {
@@ -25,7 +25,11 @@ in
     installPhase = ''
       mkdir -p $out/bin
       tar -xzf $src
-      mv SRBMiner-Multi-*/SRBMiner-MULTI $out/bin/
+      if [ -f SRBMiner-MULTI ]; then
+        mv SRBMiner-MULTI $out/bin/
+      else
+        mv SRBMiner-Multi-*/SRBMiner-MULTI $out/bin/
+      fi
       chmod +x $out/bin/SRBMiner-MULTI
     '';
 
@@ -46,7 +50,7 @@ with open('$out/bin/SRBMiner-MULTI', 'r+b') as f:
             p_off, p_vaddr = struct.unpack('<QQ', f.read(16))[:2]
             if p_off == 0:
                 f.seek(p_vaddr)
-                interp = f.read(256).split(b'\\x00')[0]
+                interp = f.read(256).split(b'\x00')[0]
                 correct_off = p_vaddr
                 correct_sz = len(interp) + 1
                 f.seek(off + 8)
