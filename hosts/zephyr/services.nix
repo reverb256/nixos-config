@@ -84,9 +84,6 @@ in {
       };
       environmentFiles = [ "/run/secrets/hermes-env" ];
       extraDependencyGroups = ["messaging" "voice"];
-      extraServiceConfig = {
-        UMask = "0022";
-      };
       extraPackages = with pkgs; [ripgrep jq curl];
       documents = {
         "USER.md" = ''
@@ -449,6 +446,10 @@ in {
       enableShellEnv = true;
     };
   };
+
+  # UMask moved from extraServiceConfig (removed upstream)
+  systemd.services.hermes-agent.serviceConfig.UMask = "0022";
+
   programs = {
     haven-desktop.enable = true;
   };
