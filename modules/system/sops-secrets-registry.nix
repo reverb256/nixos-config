@@ -29,9 +29,9 @@ in {
             owner = "j_kro";
             group = "users";
           };
-          "ai/openai-api-key" = {
-            sopsFile = "${inputs.self}/secrets/ai/openai-api-key.yaml";
-            path = "/run/secrets/openai-api-key";
+          "ai/zai-api-key" = {
+            sopsFile = "${inputs.self}/secrets/ai/zai-api-key.yaml";
+            path = "/run/secrets/zai-api-key";
             format = "binary";
             mode = "0444";
             owner = "j_kro";
