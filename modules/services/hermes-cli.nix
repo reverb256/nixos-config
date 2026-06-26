@@ -300,7 +300,7 @@ in {
     programs.fish.interactiveShellInit = lib.mkAfter ''
       # Hermes completions
       if command -v hermes &>/dev/null
-        hermes completion fish 2>/dev/null | source
+        hermes completion fish 2>/dev/null | grep -v '^SITECUSTOMIZE:' | source
       end
     '';
 
