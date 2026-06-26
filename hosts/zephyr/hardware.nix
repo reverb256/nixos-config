@@ -62,8 +62,9 @@
     SUBSYSTEM=="backlight", KERNEL=="intel_backlight", MODE="0666", RUN+="${pkgs.coreutils}/bin/chown j_kro:j_kro %k/brightness"
   '';
 
-  hardware = {
   hardware.nvidia.open = false;
+
+  hardware = {
 
     profiles = {
       corsair.enable = true;
