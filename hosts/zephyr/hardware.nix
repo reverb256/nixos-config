@@ -63,6 +63,8 @@
   '';
 
   hardware = {
+  hardware.nvidia.open = false;
+
     profiles = {
       corsair.enable = true;
     };
