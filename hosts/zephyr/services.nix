@@ -100,6 +100,8 @@ in {
           enabled = true;
           threshold = 0.75;
         };
+        hooks = {};
+        hooks_auto_accept = true;
         tool_output = {
           max_bytes = 150000;
         };
@@ -681,6 +683,7 @@ NMKEYFILE
 
   systemd.services.hermes-agent.environment = {
     HERMES_HOME_MODE = "0755";
+    PYTHONPATH = "/var/lib/hermes/mnemosyne-venv/lib/python3.11/site-packages";
   };
 
 
