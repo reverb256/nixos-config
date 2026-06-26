@@ -13,7 +13,7 @@
     # Stable fallback — 26.05 for hosts that can't run unstable
     nixpkgs-2605.url = "github:NixOS/nixpkgs/nixos-26.05";
     home-manager = {
-      url = "github:nix-community/home-manager/509ed3c603349a9d43de9e2ae6613baea6bd5b34";
+      url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zen-browser = {
@@ -90,7 +90,7 @@
     };
 
     stylix = {
-      url = "github:nix-community/stylix/e084d011e7ee9302aceaaf6c1fc28a9ace09e16a";
+      url = "github:nix-community/stylix/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
