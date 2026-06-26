@@ -587,7 +587,8 @@ NMKEYFILE
     enable = true;
     port = 8000;
     openFirewall = false;
-    sopsSecret = "ai/openai-api-key";
+    sopsSecret = "ai/zai-api-key";
+    modelName = "glm-4.5";
   };
 
   # ── Chatterbox-TTS (multi-engine GPU TTS on RTX 3090) ──
