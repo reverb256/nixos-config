@@ -1,0 +1,32 @@
+--- a/cua_backend.py
++++ b/cua_backend.py
+@@ -416,9 +416,12 @@
+ 
+     def is_available(self) -> bool:
+-        if not _is_macos():
+-            return False
+-        return cua_driver_binary_available()
++        # macOS (native) or Linux (cua-driver-rs 0.6.8+ with Wayland/XWayland).
++        if _is_macos():
++            return cua_driver_binary_available()
++        if sys.platform == "linux":
++            return cua_driver_binary_available()
++        return False
+ 
+     # ── Capture ────────────────────────────────────────────────────
+     def capture(self, mode: str = "som", app: Optional[str] = None) -> CaptureResult:
+@@ -439,8 +442,8 @@
+             windows = [
+                 {
+                     "app_name": w.get("app_name", ""),
+-                    "pid": int(w["pid"]),
+-                    "window_id": int(w["window_id"]),
++                    "pid": int(w["pid"]) if w.get("pid") is not None else 0,
++                    "window_id": int(w["window_id"]) if w.get("window_id") is not None else 0,
+                     "off_screen": not w.get("is_on_screen", True),
+                     "title": w.get("title", ""),
+                     "z_index": w.get("z_index", 0),
+                 }
+                 for w in raw_windows
++                if w.get("pid") is not None or w.get("window_id") is not None
+             ]
