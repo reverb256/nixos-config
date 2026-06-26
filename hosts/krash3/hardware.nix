@@ -48,6 +48,13 @@ in {
       # may start before /dev/md0p1 exists, causing "not a TYPE_DISK block device" error.
       /run/current-system/sw/bin/partx -a /dev/md0 2>/dev/null || true
       /run/current-system/sw/bin/udevadm settle 2>/dev/null || true
+      # Wait for partition device to exist before script exits
+      # without this, systemd considers the service finished before
+      # udev creates /dev/md0p1, and iscsi-target starts too early
+      for i in $(seq 1 10); do
+        if [ -b /dev/md0p1 ]; then break; fi
+        sleep 1
+      done
     '';
     serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };
   };
