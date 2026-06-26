@@ -86,7 +86,17 @@ let
         <hostdev mode='subsystem' type='usb' managed='yes'>
           <source startupPolicy='optional'>
             <vendor id='0x3537'/>
+        
             <product id='0x2106'/>
+        
+          </source>
+        
+        </hostdev>
+        <!-- Sony DualShock 4 Wireless Controller -->
+        <hostdev mode='subsystem' type='usb' managed='yes'>
+          <source startupPolicy='optional'>
+            <vendor id='0x054c'/>
+            <product id='0x09cc'/>
           </source>
         </hostdev>
         <!-- Intel AX200 Bluetooth (USB passthrough) -->
