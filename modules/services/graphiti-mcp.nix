@@ -23,7 +23,7 @@ in {
     openaiApiKeyFile = mkOption {
       type = types.nullOr types.path;
       default = null;
-      description = "Path to file containing the OpenAI API key";
+      description = "Path to file containing the raw OpenAI API key";
     };
 
     sopsSecret = mkOption {
@@ -66,22 +66,33 @@ in {
       };
     };
 
+    # Generate env file in proper KEY=VALUE format from raw key file
+    systemd.tmpfiles.rules = [
+      "d /run/graphiti 0755 root root -"
+    ];
+
     systemd.services.graphiti-mcp = {
       description = "Graphiti Temporal Knowledge Graph MCP Server";
-      after = [ "network.target" "podman.service" ];
-      wants = [ "podman.service" ];
+      after = [ "network.target" "podman.service" "sops-nix.service" ];
+      wants = [ "podman.service" "sops-nix.service" ];
       wantedBy = [ "multi-user.target" ];
+
+      preStart = let
+        resolvedKeyFile = if cfg.sopsSecret != null
+          then "/run/secrets/${builtins.baseNameOf cfg.sopsSecret}"
+          else cfg.openaiApiKeyFile;
+      in lib.optionalString (resolvedKeyFile != null) ''
+        if [ -f "${resolvedKeyFile}" ]; then
+          echo "OPENAI_API_KEY=$(cat ${resolvedKeyFile} | tr -d '\\n')" > /run/graphiti/env
+          chmod 600 /run/graphiti/env
+        fi
+      '';
 
       serviceConfig = {
         Type = "simple";
         ExecStart = let
-          resolvedKeyFile = if cfg.sopsSecret != null
-            then "/run/secrets/${builtins.baseNameOf cfg.sopsSecret}"
-            else cfg.openaiApiKeyFile;
-          envArgs = if resolvedKeyFile != null
-            then "--env-file ${resolvedKeyFile}"
-            else "";
-        in "${pkgs.podman}/bin/podman run --rm --name graphiti-mcp -p ${toString cfg.port}:8000 ${envArgs} -e GRAPHITI_GROUP_ID=${cfg.groupId} ${cfg.extraPodmanArgs} ${cfg.image}";
+          envFile = "/run/graphiti/env";
+        in "${pkgs.podman}/bin/podman run --rm --name graphiti-mcp -p ${toString cfg.port}:8000 --env-file ${envFile} -e GRAPHITI_GROUP_ID=${cfg.groupId} ${cfg.extraPodmanArgs} ${cfg.image}";
         ExecStop = "${pkgs.podman}/bin/podman stop --ignore graphiti-mcp";
         ExecStopPost = "${pkgs.podman}/bin/podman rm -f graphiti-mcp || true";
         Restart = "on-failure";
@@ -89,6 +100,6 @@ in {
       };
     };
 
-    networking.firewall.allowedTCPPorts = mkIf cfg.openFirewall [ cfg.port ];
+    networking.firewall.allowedTCPPorts = lib.mkIf cfg.openFirewall [ cfg.port ];
   };
 }
