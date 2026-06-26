@@ -11,8 +11,8 @@ echo "=== NixOS Deploy Pre-Flight ==="
 
 BLOCKED=0
 
-# 1. Check local nixos-rebuild processes
-LOCAL_BUILDS=$(ps aux | grep -E '[n]ixos-rebuild' | wc -l)
+# 1. Check local nixos-rebuild processes (exclude our own script)
+LOCAL_BUILDS=$(ps aux | grep -E '[n]ixos-rebuild' | grep -v "pre-flight" | grep -v "scripts/pre-flight" | wc -l)
 if [ "$LOCAL_BUILDS" -gt 0 ]; then
     echo -e "${RED}❌ $LOCAL_BUILDS nixos-rebuild process(es) already running locally${NC}"
     ps aux | grep -E '[n]ixos-rebuild' | head -5
