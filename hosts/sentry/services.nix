@@ -52,7 +52,7 @@ in {
       enable = true;
       vip = cluster.kubernetes.vip;
       interface = "eth0";
-      priority = 100;
+      priority = 90; # BACKUP — failover node only
     };
 
     gaming-detection.enable = false;
