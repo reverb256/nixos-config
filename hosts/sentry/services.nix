@@ -174,7 +174,8 @@ in {
   services.ci-runner = {
     enable = true;
     repo = "reverb256/nixos-config";
-    tokenFile = "/run/secrets/github-runner-pat";
+    tokenFile = null;
+    patFile = "/run/secrets/github-runner-pat";
     autoStart = true;
     extraLabels = ["sentry"];
   };
