@@ -50,7 +50,7 @@ in {
       enable = true;
       vip = cluster.kubernetes.vip;
       interface = "eth0";
-      priority = 100;
+      priority = 110; # MASTER — nexus hosts the service-gateway Caddy
     };
 
     gaming-detection.enable = lib.mkForce false;
