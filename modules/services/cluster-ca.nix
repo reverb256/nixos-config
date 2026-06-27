@@ -27,6 +27,18 @@
 
   openssl = "${pkgs.openssl}/bin/openssl";
 
+  # ── Build CA subject string from config ──
+  # Produces: /C=CA/O=reverb256/CN=reverb256 Internal CA
+  # Empty fields (state, locality) are omitted to keep subject clean.
+  caSubjectParts = lib.filter (s: s != "") [
+    "/C=${cfg.caSubject.country}"
+    (lib.optionalString (cfg.caSubject.state != "") "/ST=${cfg.caSubject.state}")
+    (lib.optionalString (cfg.caSubject.locality != "") "/L=${cfg.caSubject.locality}")
+    "/O=${cfg.caSubject.organization}"
+    "/CN=${cfg.caSubject.commonName}"
+  ];
+  caSubjectString = lib.concatStringsSep "" caSubjectParts;
+
   # Hash of the current SAN list — changes when domains are added/removed.
   # Stored in /etc/ssl/cluster-ca/.san-hash to detect drift.
   # If the hash doesn't match, the leaf cert is regenerated automatically.
@@ -93,6 +105,28 @@ in {
       default = "caddy";
       description = "Group that gets read access to private keys";
     };
+
+    # ── CA certificate subject fields (cosmetic — shown in cert details) ──
+    caSubject = mkOption {
+      type = types.submodule {
+        options = {
+          country = mkOption { type = types.str; default = "CA"; description = "Country code (ISO 3166-1 alpha-2)"; };
+          state = mkOption { type = types.str; default = ""; description = "State or province"; };
+          locality = mkOption { type = types.str; default = ""; description = "City or locality"; };
+          organization = mkOption { type = types.str; default = "reverb256"; description = "Organization name"; };
+          commonName = mkOption { type = types.str; default = "reverb256 Internal CA"; description = "Common Name (displayed by browsers/tools)"; };
+        };
+      };
+      default = {};
+      description = "X.509 subject fields for the internal CA certificate. These are cosmetic — displayed in certificate inspectors but do not affect trust validation.";
+      example = {
+        country = "CA";
+        state = "British Columbia";
+        locality = "Vancouver";
+        organization = "reverb256";
+        commonName = "reverb256 Cluster CA";
+      };
+    };
   };
 
   config = mkIf cfg.enable {
@@ -149,7 +183,7 @@ in {
               -out ${cfg.caCert} \
               -days 3650 \
               -nodes \
-              -subj "/C=CA/ST=Ontario/L=Ottawa/O=Cluster/CN=Cluster CA" \
+              -subj "${caSubjectString}" \
               -addext "basicConstraints=critical,CA:TRUE" \
               -addext "keyUsage=critical,keyCertSign,cRLSign" 2>/dev/null
 
