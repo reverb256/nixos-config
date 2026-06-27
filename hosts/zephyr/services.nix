@@ -76,7 +76,7 @@ in {
           mcp_reload_confirm = false;
         };
         skills = {
-          write_approval = true;
+          write_approval = false;
           default = [
             "windows-kvm-mgmt"
             "nixos-cluster-config"
@@ -90,7 +90,7 @@ in {
           memory_enabled = true;
           user_profile_enabled = true;
           provider = "mnemosyne";
-          write_approval = true;
+          write_approval = false;
         };
         terminal = {
           backend = "local";
