@@ -200,6 +200,7 @@ in {
       wantedBy = ["multi-user.target"];
 
       serviceConfig = {
+        Type = "simple";
         User = cfg.user;
         Group = "users";
 

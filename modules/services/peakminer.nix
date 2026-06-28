@@ -101,6 +101,8 @@ in {
             );
             ExecStart = pkgs.writeShellScript "peakminer-${instance.name}" ''
               export CUDA_DEVICE_ORDER=PCI_BUS_ID
+              # PeakMiner needs NVML + CUDA runtime libraries from the driver
+              export LD_LIBRARY_PATH=/run/opengl-driver/lib:''${LD_LIBRARY_PATH:-}
               exec ${pkgs.peakminer}/bin/peakminer \
                 --coin pearl \
                 ${lib.concatStringsSep " " poolArgs} \
