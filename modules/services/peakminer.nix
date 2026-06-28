@@ -99,6 +99,12 @@ in {
             ExecStartPre = lib.mkIf (instance.powerLimit != null) (
               lib.mkBefore powerLimitArgs
             );
+            # ExecStartPost re-applies the power limit AFTER peakminer starts,
+            # because peakminer's NVML OC silently fails on NixOS and leaves
+            # the GPU at its default power envelope. nvidia-smi -pl works reliably.
+            ExecStartPost = lib.mkIf (instance.powerLimit != null) (
+              "+/run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
+            );
             ExecStart = pkgs.writeShellScript "peakminer-${instance.name}" ''
               export CUDA_DEVICE_ORDER=PCI_BUS_ID
               # PeakMiner needs NVML + CUDA runtime libraries from the driver
