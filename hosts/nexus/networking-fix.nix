@@ -27,8 +27,6 @@
     networks."30-wired" = {
       matchConfig.Name = "eth0";
       address = [ "10.1.1.120/24" ];
-      gateway = "10.1.1.1";
-      dns = ["127.0.0.1"];
       routes = [{ routeConfig.Gateway = "10.1.1.1"; }];
       networkConfig.IPv6AcceptRA = false;
       linkConfig.RequiredForOnline = "routable";
