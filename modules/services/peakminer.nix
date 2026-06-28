@@ -79,7 +79,7 @@ in {
           else "";
         powerArg =
           if instance.powerLimit != null
-          then ["--gpu-power ${toString instance.powerLimit}"]
+          then []  # Power limit set via nvidia-smi ExecStartPre, not --gpu-power (NVML unreliable on NixOS)
           else [];
         tempArg =
           if instance.tempStop != null
