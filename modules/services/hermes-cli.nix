@@ -70,19 +70,6 @@
   # Inline fallback MCP servers (used when registry is not enabled)
   fallbackMcpServersBlock = pkgs.writeText "hermes-mcp-servers.yaml" ''
     mcp_servers:
-      agentmemory:
-        command: npx
-        args:
-          - -y
-          - "@agentmemory/mcp"
-        connect_timeout: 30
-        timeout: 120
-        description: Agentmemory MCP server
-      graphiti:
-        url: http://localhost:8000/mcp
-        connect_timeout: 30
-        timeout: 120
-        description: Graphiti temporal knowledge graph MCP server
       kubernetes:
         url: http://kubernetes-mcp.infra.svc.cluster.local:8080/mcp
         connect_timeout: 30
@@ -116,10 +103,6 @@
         command: /data/agents/mcp-bridges/git-mcp.sh
         connect_timeout: 30
         timeout: 60
-      sequential-thinking:
-        command: /data/agents/mcp-bridges/sequential-thinking.sh
-        connect_timeout: 30
-        timeout: 60
       casdoor:
         command: python3
         args:
@@ -140,6 +123,11 @@
         connect_timeout: 15
         timeout: 300
         description: yt-dlp video/audio downloader — YouTube, X/Twitter, 1000+ sites (7 tools)
+      maplespike:
+        command: /data/agents/mcp-bridges/maplespike-mcp-std.sh
+        connect_timeout: 30
+        timeout: 120
+        enabled: true
   '';
 
   mcpServersBlock =
