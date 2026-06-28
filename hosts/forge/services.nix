@@ -95,11 +95,12 @@ in {
       enable = true;
     };
 
-    nixos-auto-update = {
-      enable = true;
-      interval = "daily";
-      updateFlakeInputs = ["nixpkgs"];
-    };
+    # Disabled: Mining node should not auto-update
+    # nixos-auto-update = {
+    #   enable = true;
+    #   interval = "daily";
+    #   updateFlakeInputs = ["nixpkgs"];
+    # };
 
     sops-secrets-registry = {
       enable = true;

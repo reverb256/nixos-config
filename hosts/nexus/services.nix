@@ -437,14 +437,15 @@ in {
    };
 
   # GitHub Actions self-hosted runner for CI/CD
-  services.ci-runner = {
-    enable = true;
-    repo = "reverb256/nixos-config";
-    tokenFile = null;
-    patFile = "/run/secrets/github-runner-pat";
-    autoStart = true;
-    extraLabels = ["nexus"];
-  };
+  # Disabled: Invalid PAT token causing setup failures
+  # services.ci-runner = {
+  #   enable = true;
+  #   repo = "reverb256/nixos-config";
+  #   tokenFile = null;
+  #   patFile = "/run/secrets/github-runner-pat";
+  #   autoStart = true;
+  #   extraLabels = ["nexus"];
+  # };
   
   
 

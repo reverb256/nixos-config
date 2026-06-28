@@ -171,14 +171,16 @@ in {
     enableShellEnv = true;
   };
 
-  services.ci-runner = {
-    enable = true;
-    repo = "reverb256/nixos-config";
-    tokenFile = null;
-    patFile = "/run/secrets/github-runner-pat";
-    autoStart = true;
-    extraLabels = ["sentry"];
-  };
+ # GitHub Actions self-hosted runner for CI/CD
+ # Disabled: Invalid PAT token causing setup failures
+ # services.ci-runner = {
+ #   enable = true;
+ #   repo = "reverb256/nixos-config";
+ #   tokenFile = null;
+ #   patFile = "/run/secrets/github-runner-pat";
+ #   autoStart = true;
+ #   extraLabels = ["sentry"];
+ # };
 
 
   # ── llama.cpp inference server (auto-start on boot) ──────────────
