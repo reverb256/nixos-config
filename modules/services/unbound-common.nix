@@ -26,22 +26,11 @@ in {
           tls-cert-bundle = "/etc/ssl/certs/ca-bundle.crt";
         };
 
-        forward-zone = [
-          {
-            name = "ts.net.";
-            forward-addr = ["100.100.100.100" "fd7a:115c:a1e0::53"];
-          }
-          {
-            name = ".";
-            forward-addr = [
-              "1.1.1.1@853"
-              "1.0.0.1@853"
-              "8.8.8.8@853"
-              "8.8.4.4@853"
-            ];
-            forward-tls-upstream = true;
-          }
-        ];
+        # Forward zones NOT defined here — cluster-dns.nix provides them on
+        # hosts that include cluster networking (nexus, forge, sentry).
+        # On hosts without cluster networking, unbound-common currently has
+        # no forward-zone requirement. Duplicate forward zones are ignored
+        # by unbound (logs a warning) but are still sloppy.
       };
     };
 
