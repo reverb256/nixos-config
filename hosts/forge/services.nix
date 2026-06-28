@@ -82,7 +82,7 @@ in {
           pools = ["stratum+tcp://prl-us.kryptex.network:7048" "stratum+tcp://prl.kryptex.network:7048"];
           devices = "0";
           gpuId = 0;
-          powerLimit = 105;
+          powerLimit = 118;
           tempStop = 72;
           apiPort = 21550;
         }
@@ -92,7 +92,7 @@ in {
           pools = ["stratum+tcp://prl-us.kryptex.network:7048" "stratum+tcp://prl.kryptex.network:7048"];
           devices = "1";
           gpuId = 1;
-          powerLimit = 105;
+          powerLimit = 118;
           tempStop = 72;
           apiPort = 21552;
         }
