@@ -240,7 +240,7 @@ deploy-legacy host="all":
     echo ""
     echo "Deploy complete. Verify with 'just health'"
 
-# Host aliases
+# Host aliases (Colmena)
 zephyr:
     just deploy zephyr
 nexus:
@@ -255,6 +255,16 @@ vane:
     just deploy vane
 rp:
     just deploy rp
+
+# Legacy host aliases (nix-copy-closure fallback)
+zephyr-legacy:
+    just deploy-legacy zephyr
+nexus-legacy:
+    just deploy-legacy nexus
+forge-legacy:
+    just deploy-legacy forge
+sentry-legacy:
+    just deploy-legacy sentry
 
 # Deploy a subset, excluding the local host (default) unless passed explicitly.
 deploy-remote hosts:
