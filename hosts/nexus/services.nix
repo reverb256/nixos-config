@@ -450,16 +450,20 @@ in {
   
 
   services.srbminer = {
+    enable = false;  # Replaced by peakminer
+  };
+  services.peakminer = {
     enable = true;
-    tls = false;
     instances = [
       {
         name = "nexus-3060ti";
-        gpuId = 0;
         wallet = "krxXVNVMM7.nexus-3060ti";
-        pool = "stratum+tcp://prl-us.kryptex.network:7048";
-        apiPort = 21551;
+        pools = ["stratum+tcp://prl-us.kryptex.network:7048" "stratum+tcp://prl.kryptex.network:7048"];
+        devices = "0";
+        gpuId = 0;
         powerLimit = 100;
+        tempStop = 72;
+        apiPort = 21551;
       }
     ];
   };
