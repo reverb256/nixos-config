@@ -158,6 +158,21 @@
         connect_timeout: 30
         timeout: 120
         enabled: true
+      agentmemory:
+        command: /data/agents/mcp-bridges/agentmemory-mcp.sh
+        connect_timeout: 30
+        timeout: 120
+        description: Agentmemory — 53 MCP tools for persistent coding memory
+      graphiti:
+        url: http://localhost:8000/mcp
+        connect_timeout: 30
+        timeout: 120
+        description: Graphiti temporal knowledge graph MCP server
+      sequential-thinking:
+        command: /data/agents/mcp-bridges/sequential-thinking-mcp.sh
+        connect_timeout: 30
+        timeout: 60
+        description: Sequential thinking — chain reasoning steps with continuity
   '';
 
   mcpServersBlock =
