@@ -193,12 +193,13 @@ in {
     systemd.services.llamafile = let
       gpuLayersFlag = "-ngl ${toString cfg.gpuLayers}";
       # Write chat template to store to avoid ExecStart multi-line quoting issues
-      chatTemplateFile = pkgs.writeText "llamafile-chat-template.txt"
-        (lib.removeSuffix "\n" (lib.removePrefix "\n" cfg.chatTemplate));
-      chatTemplateArg = lib.optionalString (cfg.chatTemplate != null)
-        "--chat-template-file ${chatTemplateFile} \\\n";
+      chatTemplateFile = pkgs.writeText "llamafile-chat-template.txt" cfg.chatTemplate;
     in {
-        Type = "simple";
+      description = "Llama.cpp LLM Service";
+      after = ["network.target"];
+      wantedBy = ["multi-user.target"];
+
+      serviceConfig = {
         User = cfg.user;
         Group = "users";
 
