@@ -172,7 +172,7 @@ in {
 
     Host krash3 ${hosts.krash3.ip}
       HostName ${hosts.krash3.ip}
-      Port 2222
+      Port 22
       User j_kro
       StrictHostKeyChecking accept-new
       IdentityFile ~/.ssh/id_ed25519
