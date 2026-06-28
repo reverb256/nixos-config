@@ -4,15 +4,15 @@
   pkgs,
   inputs,
   ...
-}: let
-  cfg = config.networking.cluster.hosts.nexus;
-in {
+}: {
   # ── Fix: Declarative static IP configuration via systemd-networkd ──
   # NetworkManager is disabled in favor of networkd for reliable static IP.
   # This prevents the "reboot loses IP" issue.
 
-  networking.useNetworkd = true;
   networking.networkmanager.enable = lib.mkForce false;
+
+  # Use Unbound as DNS resolver (not systemd-resolved)
+  services.resolved.enable = lib.mkForce false;
 
   systemd.network = {
     enable = true;
@@ -26,7 +26,7 @@ in {
     # Static IP on primary wired interface (eth0)
     networks."30-wired" = {
       matchConfig.Name = "eth0";
-      address = [ "${cfg.ip}/24" ];
+      address = [ "10.1.1.120/24" ];
       gateway = "10.1.1.1";
       dns = ["127.0.0.1"];
       routes = [{ routeConfig.Gateway = "10.1.1.1"; }];
@@ -44,7 +44,6 @@ in {
   # IPv6 disabled on physical interface (keep loopback ::1 for local DNS)
   boot.kernel.sysctl = {
     "net.ipv6.conf.eth0.disable_ipv6" = 1;
-    "net.ipv6.conf.wlan0.disable_ipv6" = lib.mkIf config.networking.cluster.hosts.nexus.wireless.enable 1;
   };
 
   # Keepalived VRRP and K3s Flannel use eth0 (already correct in services.nix)
