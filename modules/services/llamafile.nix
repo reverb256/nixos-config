@@ -190,23 +190,14 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # Write chat template to store path to avoid ExecStart quoting issues
     systemd.services.llamafile = let
-      chatTemplateFile = if cfg.chatTemplate != null
-        then pkgs.writeText "llamafile-chat-template.txt" cfg.chatTemplate
-        else null;
+      gpuLayersFlag = "-ngl ${toString cfg.gpuLayers}";
+      # Write chat template to store to avoid ExecStart multi-line quoting issues
+      chatTemplateFile = pkgs.writeText "llamafile-chat-template.txt"
+        (lib.removeSuffix "\n" (lib.removePrefix "\n" cfg.chatTemplate));
+      chatTemplateArg = lib.optionalString (cfg.chatTemplate != null)
+        "--chat-template-file ${chatTemplateFile} \\\n";
     in {
-      description = "Llama.cpp LLM Service";
-      after = ["network.target"];
-      wantedBy = ["multi-user.target"];
-
-      # Write chat template to a file to avoid ExecStart quoting issues
-      ${lib.optionalString (cfg.chatTemplate != null) ''
-      serviceConfig.LoadCredential = "chat-template:${builtins.toFile "llamafile-chat-template.txt" cfg.chatTemplate}";
-      ''}
-
-      serviceConfig = let
-        gpuLayersFlag = "-ngl ${toString cfg.gpuLayers}";
       in {
         Type = "simple";
         User = cfg.user;
