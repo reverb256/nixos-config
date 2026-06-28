@@ -190,10 +190,20 @@ in {
   };
 
   config = mkIf cfg.enable {
-    systemd.services.llamafile = {
+    # Write chat template to store path to avoid ExecStart quoting issues
+    systemd.services.llamafile = let
+      chatTemplateFile = if cfg.chatTemplate != null
+        then pkgs.writeText "llamafile-chat-template.txt" cfg.chatTemplate
+        else null;
+    in {
       description = "Llama.cpp LLM Service";
       after = ["network.target"];
       wantedBy = ["multi-user.target"];
+
+      # Write chat template to a file to avoid ExecStart quoting issues
+      ${lib.optionalString (cfg.chatTemplate != null) ''
+      serviceConfig.LoadCredential = "chat-template:${builtins.toFile "llamafile-chat-template.txt" cfg.chatTemplate}";
+      ''}
 
       serviceConfig = let
         gpuLayersFlag = "-ngl ${toString cfg.gpuLayers}";
@@ -217,13 +227,9 @@ in {
             --ubatch-size ${toString cfg.ubatchSize} \
             ${lib.optionalString cfg.flashAttention "--flash-attn on"} \
             ${lib.optionalString (cfg.parallelDecoding > 0) "--parallel ${toString cfg.parallelDecoding}"} \
-            ${lib.optionalString (cfg.chatTemplate != null) "--chat-template '${cfg.chatTemplate}'"} \
+            ${lib.optionalString (cfg.chatTemplate != null) "--chat-template '${builtins.replaceStrings ["\n"] ["\\n"] cfg.chatTemplate}'"} \
             ${lib.optionalString (cfg.vulkanDevice != null) "--device ${cfg.vulkanDevice}"} \
-            --chat-template-kwargs '{\"enable_thinking\":${
-            if cfg.enableThinking
-            then "true"
-            else "false"
-          }}' \
+            --chat-template-kwargs '${builtins.toJSON { enable_thinking = cfg.enableThinking; }}' \
             --reasoning-budget ${toString cfg.reasoningBudget} \
             --cache-type-k ${cfg.cacheTypeK} \
             --cache-type-v ${cfg.cacheTypeV} \
