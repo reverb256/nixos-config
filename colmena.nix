@@ -36,10 +36,12 @@
       targetUser = "j_kro";
       inherit tags;
       buildOnTarget = false;
+      replaceUnknownProfiles = true;
       allowLocalDeployment =
         if targetHost == null
         then true
         else false;
+      keys = {};
     };
   };
 in {
@@ -56,6 +58,9 @@ in {
     specialArgs = {
       inherit inputs self;
     };
+    # Fallback SSH config for distributed builds
+    sshUser = "j_kro";
+    allowApplyAll = false;
   };
 
   zephyr = mkHost { hostName = "zephyr"; targetHost = null; tags = ["control-plane" "k8s-master" "k8s-node" "local"]; };

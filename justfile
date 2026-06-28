@@ -179,10 +179,39 @@ git-push:
     done
     echo "All hosts synced"
 
-# ── DEPLOYMENT ────────────────────────────────────────────────────────────────
+# ── DEPLOYMENT (Colmena First) ────────────────────────────────────────────────
 
-# Deploy to all hosts (serial, keep host isolation).
+# Primary deployment method: Colmena (distributed builds, proper build machine handling)
+# Colmena builds on local machine, deploys to targets via SSH + nix-copy-closure
 deploy host="all":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{FLAKE}}
+    echo "Colmena deploy from $(git rev-parse --abbrev-ref HEAD) ($(git rev-parse --short HEAD))"
+    echo ""
+    if [ "{{host}}" = "all" ]; then
+        nix run .#colmena -- apply 2>&1
+    else
+        nix run .#colmena -- apply --on {{host}} 2>&1
+    fi
+
+# Colmena-specific commands
+colmena-build *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{FLAKE}}
+    echo "Colmena build only (no deploy)"
+    nix run .#colmena -- build {{args}} 2>&1
+
+colmena-switch *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{FLAKE}}
+    echo "Colmena build + local switch only (no remote deploy)"
+    nix run .#colmena -- apply --local --on $(hostname -s) {{args}} 2>&1
+
+# Legacy nix-copy-closure deploy (fallback, preserves node isolation)
+deploy-legacy host="all":
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Deploying from $(cd {{FLAKE}} && git rev-parse --abbrev-ref HEAD) ($(cd {{FLAKE}} && git rev-parse --short HEAD))"
