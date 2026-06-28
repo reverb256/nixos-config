@@ -58,8 +58,6 @@ in {
     specialArgs = {
       inherit inputs self;
     };
-    # Fallback SSH config for distributed builds
-    sshUser = "j_kro";
     allowApplyAll = false;
   };
 
