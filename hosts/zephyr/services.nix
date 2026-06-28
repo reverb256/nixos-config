@@ -344,7 +344,7 @@ in {
           devices = "0";
           gpuId = 0;
           powerLimit = 120;
-          tempStop = 72;
+          tempStop = 80;
           apiPort = 21553;
         }
         {
@@ -354,7 +354,7 @@ in {
           devices = "1";
           gpuId = 1;
           powerLimit = 250;
-          tempStop = 72;
+          tempStop = 80;
           apiPort = 21554;
         }
       ];
