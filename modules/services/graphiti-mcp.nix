@@ -28,9 +28,9 @@ in {
 
     sopsSecret = mkOption {
       type = types.nullOr types.str;
-      default = null;
+      default = "ai/zai-api-key";
       example = "ai/openai-api-key";
-      description = "Name of a sops-nix secret for the OpenAI API key. Sets openaiApiKeyFile automically.";
+      description = "Name of a sops-nix secret for the OpenAI API key. Sets openaiApiKeyFile automatically.";
     };
 
     extraPodmanArgs = mkOption {
@@ -41,13 +41,13 @@ in {
 
     openaiApiUrl = mkOption {
       type = types.str;
-      default = "https://api.z.ai/api/coding/paas/v4";
+      default = "http://10.1.1.130:8003/v1";
       description = "OpenAI-compatible API base URL for the LLM provider";
     };
 
     modelName = mkOption {
       type = types.str;
-      default = "glm-4.5";
+      default = "Qwen3.5-4B-Q4_K_M.gguf";
       description = "Model name for LLM entity extraction";
     };
 
@@ -59,8 +59,14 @@ in {
 
     groupId = mkOption {
       type = types.str;
-      default = "main";
+      default = "hermes";
       description = "Graphiti group ID for namespace isolation";
+    };
+
+    semaphoreLimit = mkOption {
+      type = types.int;
+      default = 5;
+      description = "Max concurrent LLM operations (adjust for rate limits)";
     };
   };
 
@@ -95,8 +101,14 @@ in {
           else cfg.openaiApiKeyFile;
       in lib.optionalString (resolvedKeyFile != null) ''
         if [ -f "${resolvedKeyFile}" ]; then
-          echo "OPENAI_API_KEY=$(cat ${resolvedKeyFile} | tr -d '\\n')" > /run/graphiti/env
+          echo "OPENAI_API_KEY=$(cat ${resolvedKeyFile} | tr -d '\n')" > /run/graphiti/env
+          echo "SEMAPHORE_LIMIT=${toString cfg.semaphoreLimit}" >> /run/graphiti/env
+          echo "BROWSER=0" >> /run/graphiti/env
+          echo "GRAPHITI_GROUP_ID=${cfg.groupId}" >> /run/graphiti/env
           chmod 600 /run/graphiti/env
+        else
+          echo "ERROR: API key file ${resolvedKeyFile} not found" >&2
+          exit 1
         fi
       '';
 
@@ -104,7 +116,7 @@ in {
         Type = "simple";
         ExecStart = let
           envFile = "/run/graphiti/env";
-        in "${pkgs.podman}/bin/podman run --rm --name graphiti-mcp -p ${toString cfg.port}:8000 --env-file ${envFile} -e GRAPHITI_GROUP_ID=${cfg.groupId} -e OPENAI_API_URL=${cfg.openaiApiUrl} -e MODEL_NAME=${cfg.modelName} ${cfg.extraPodmanArgs} ${cfg.image}";
+        in "${pkgs.podman}/bin/podman run --rm --name graphiti-mcp -p ${toString cfg.port}:8000 --env-file ${envFile} -e OPENAI_API_URL=${cfg.openaiApiUrl} -e MODEL_NAME=${cfg.modelName} ${cfg.extraPodmanArgs} ${cfg.image}";
         ExecStop = "${pkgs.podman}/bin/podman stop --ignore graphiti-mcp";
         ExecStopPost = "${pkgs.podman}/bin/podman rm -f graphiti-mcp || true";
         Restart = "on-failure";

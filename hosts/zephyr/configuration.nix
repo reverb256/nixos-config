@@ -23,6 +23,9 @@ in {
 
     ../../modules/hardware/rgb-control.nix
     ../../modules/services/chatterbox-tts.nix
+    ../../modules/services/graphiti-mcp.nix
+    ../../modules/services/agentmemory-mcp.nix
+    ../../modules/services/sequential-thinking-mcp.nix
   ];
 
   # Enable Hermes RAM protection
