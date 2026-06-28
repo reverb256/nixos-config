@@ -47,6 +47,11 @@
 
   profiles.node.nexus-gaming.enable = true;
 
+  # Minimal clusterNetworking to satisfy cluster-dns.nix
+  # networking-fix.nix handles static IP via systemd-networkd
+  clusterNetworking.enable = true;
+  clusterNetworking.hostName = "nexus";
+
   # Flake lock sync enabled — nexus runs etcd and needs fresh inputs for reliable rebuilds
   services.flake-lock-sync.enable = true;
   systemd.timers.flake-lock-sync.enable = true;
