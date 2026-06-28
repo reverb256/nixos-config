@@ -71,7 +71,7 @@ in {
     };
 
     lpminer = {
-      enable = false;
+      enable = true;
       instances = [
         {
           name = "4060-0";
