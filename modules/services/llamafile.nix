@@ -198,7 +198,6 @@ in {
       chatTemplateArg = lib.optionalString (cfg.chatTemplate != null)
         "--chat-template-file ${chatTemplateFile} \\\n";
     in {
-      in {
         Type = "simple";
         User = cfg.user;
         Group = "users";
