@@ -36,6 +36,11 @@ in {
             default = null;
             description = "GPU power limit in watts (null = no change)";
           };
+          gpuId = mkOption {
+            type = types.int;
+            default = 0;
+            description = "NVIDIA GPU device index for nvidia-smi power limit";
+          };
           apiPort = mkOption {
             type = types.port;
             default = 4068;
@@ -70,7 +75,7 @@ in {
         poolArgs = builtins.map (p: "--url ${p}") instance.pools;
         powerLimitArgs =
           if instance.powerLimit != null
-          then "+/run/current-system/sw/bin/nvidia-smi -i 0 -pl ${toString instance.powerLimit}"
+          then "+/run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
           else "";
         powerArg =
           if instance.powerLimit != null

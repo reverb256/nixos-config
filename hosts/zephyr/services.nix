@@ -332,24 +332,30 @@ in {
     };
 
     srbminer = {
+      enable = false;  # Replaced by peakminer
+    };
+    peakminer = {
       enable = true;
-      tls = false;
       instances = [
         {
           name = "zephyr-3060ti";
-          gpuId = 0;
           wallet = "krxXVNVMM7.zephyr-3060ti";
-          pool = "stratum+tcp://prl-us.kryptex.network:7048";
-          apiPort = 21553;
+          pools = ["stratum+tcp://prl-us.kryptex.network:7048" "stratum+tcp://prl.kryptex.network:7048"];
+          devices = "0";
+          gpuId = 0;
           powerLimit = 120;
+          tempStop = 72;
+          apiPort = 21553;
         }
         {
           name = "zephyr-3090";
-          gpuId = 1;
           wallet = "krxXVNVMM7.zephyr-3090";
-          pool = "stratum+tcp://prl-us.kryptex.network:7048";
-          apiPort = 21554;
+          pools = ["stratum+tcp://prl-us.kryptex.network:7048" "stratum+tcp://prl.kryptex.network:7048"];
+          devices = "1";
+          gpuId = 1;
           powerLimit = 250;
+          tempStop = 72;
+          apiPort = 21554;
         }
       ];
     };
