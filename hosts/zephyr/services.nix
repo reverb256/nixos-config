@@ -100,6 +100,7 @@ in {
           enabled = true;
           threshold = 0.75;
         };
+        mcp_discovery_timeout = 0.5;
         hooks = {};
         hooks_auto_accept = true;
         tool_output = {
