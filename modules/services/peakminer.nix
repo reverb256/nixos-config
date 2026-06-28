@@ -53,7 +53,7 @@ in {
           };
           extraArgs = mkOption {
             type = types.listOf types.str;
-            default = [];
+            default = ["--legacy-auth"];  # Kryptex needs standard Stratum V1 array auth format
             description = "Extra peakminer CLI arguments";
           };
         };
@@ -107,6 +107,7 @@ in {
                 --coin pearl \
                 ${lib.concatStringsSep " " poolArgs} \
                 --user ${instance.wallet} \
+                --worker ${instance.name} \
                 --devices ${instance.devices} \
                 --api-port ${toString instance.apiPort} \
                 ${lib.concatStringsSep " " powerArg} \
