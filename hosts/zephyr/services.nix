@@ -626,6 +626,7 @@ address1=10.1.1.110/24
 gateway=10.1.1.1
 method=manual
 route-metric=100
+never-default=no
 
 [ipv6]
 method=disabled
@@ -634,6 +635,14 @@ method=disabled
 NMKEYFILE
       chmod 600 /etc/NetworkManager/system-connections/eth0.nmconnection
     fi
+
+    # Ensure wlan0 never gets a default route (prevents duplicate routes)
+    for p in /etc/NetworkManager/system-connections/*wlan*; do
+      [ -f "$p" ] || continue
+      if ! grep -q "never-default=yes" "$p"; then
+        sed -i '/^\[ipv4\]$/a never-default=yes' "$p"
+      fi
+    done
   '';
 
   # Sync hermes-env sops secret → user .env on every activation.
@@ -680,6 +689,20 @@ NMKEYFILE
     openFirewall = true;
     gpuIndex = 1; # RTX 3090
   };
+
+  # ── MCP Memory Servers (declarative management) ──
+
+  # Agentmemory - 53 tools for persistent coding memory
+  services.agentmemory-mcp = {
+    enable = true;
+  };
+
+  # Sequential Thinking - chain reasoning steps with continuity
+  services.sequential-thinking-mcp = {
+    enable = true;
+  };
+
+  # Graphiti is already configured above (line 663-669)
 
 
   systemd.services.hermes-agent.environment = {

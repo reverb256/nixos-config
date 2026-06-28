@@ -398,6 +398,7 @@
     #     packages.x86_64-linux.maplespike-api-image = pkgsWithOverlay.maplespike-api-image;
     packages.x86_64-linux.srbminer-multi = pkgsWithOverlay.srbminer-multi;
     packages.x86_64-linux.lpminer-pearl = pkgsWithOverlay.lpminer-pearl;
+    packages.x86_64-linux.peakminer = pkgsWithOverlay.peakminer;
 
     # hermes-workspace-image and hermes-webui-image archived (2026-05-16)
     overlays.default = (import ./overlay.nix) {inherit inputs;};
