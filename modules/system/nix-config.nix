@@ -45,9 +45,9 @@
       experimental-features = ["nix-command" "flakes"];
 
       substituters = [
-        "http://10.1.1.120:50000"
-        "https://nix-community.cachix.org"
-        "https://cache.nixos.org"
+        # "http://10.1.1.120:50000?want-mass-query=true&priority=40"  # Nexus down - disabled 2026-06-27
+        "https://cache.nixos.org?priority=90"
+        "https://nix-community.cachix.org?priority=80"
       ];
 
       trusted-public-keys = lib.mkOptionDefault [

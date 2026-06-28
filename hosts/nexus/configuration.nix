@@ -17,6 +17,7 @@
       ./disko.nix
       ./preservation.nix
       ./nfs-allow.nix
+      ./networking-fix.nix
 
       ./ai-inference.nix
 
@@ -44,31 +45,7 @@
     });
   };
 
-  clusterNetworking = {
-    enable = true;
-    hostName = "nexus";
-    ipAddress = config.networking.cluster.hosts.nexus.ip;
-    interfaceName = "enp7s0";
-    wireless = {
-      enable = true;
-      ipAddress = "10.1.1.125";
-    };
-    unbound.enable = true;
-    unbound.listenAddress = config.networking.cluster.hosts.nexus.ip;
-  };
-
-  # Prevent hardware-configuration from overriding interface naming
-  # while preserving the cluster-networking keep-names policy
-  systemd.network.links = lib.mkForce {
-    "10-keep-names" = {
-      matchConfig = {
-        OriginalName = "*";
-      };
-      linkConfig = {
-        NamePolicy = "keep";
-      };
-    };
-  };
+  profiles.node.nexus-gaming.enable = true;
 
   # Flake lock sync enabled — nexus runs etcd and needs fresh inputs for reliable rebuilds
   services.flake-lock-sync.enable = true;
@@ -83,8 +60,6 @@
     enable = true;
     populateLocal = true;
   };
-
-  profiles.node.nexus-gaming.enable = true;
 
   # Nexus is headless — no printer, disable CUPS to save resources
   services.boot-error-fixes.includePrinting = false;
