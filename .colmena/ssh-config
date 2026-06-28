@@ -1,0 +1,23 @@
+Host *
+    StrictHostKeyChecking=no
+    UserKnownHostsFile=/dev/null
+
+Host zephyr
+    HostName 10.1.1.110
+    User j_kro
+
+Host nexus
+    HostName 10.1.1.120
+    User j_kro
+
+Host forge
+    HostName 10.1.1.130
+    User j_kro
+
+Host sentry
+    HostName 10.1.1.140
+    User j_kro
+
+Host krash3
+    HostName 10.1.1.150
+    User j_kro
