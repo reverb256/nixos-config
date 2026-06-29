@@ -181,9 +181,9 @@ in {
             group = "users";
           };
           "ai/hermes-env" = {
-            sopsFile = "${inputs.self}/secrets/ai/hermes-env.yaml";
+            sopsFile = "${inputs.self}/secrets/ai/hermes-env.env";
             path = "/run/secrets/hermes-env";
-            format = "yaml";
+            format = "binary";
             mode = "0444";
             owner = "j_kro";
             group = "users";
