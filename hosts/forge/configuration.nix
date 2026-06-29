@@ -172,39 +172,11 @@
     };
   };
 
-  # Intel iGPU (Vulkan3) — Qwen3.5-2B (256K context, tiny model)
-  systemd.services.llamafile-qwen-tiny = {
-    description = "Llama.cpp Qwen3.5-2B (Vulkan3, Intel)";
-    after = ["network.target"];
-    wantedBy = ["multi-user.target"];
-    serviceConfig = {
-      Type = "simple";
-      User = "j_kro";
-      Group = "users";
-      WorkingDirectory = "/home/j_kro";
-      ExecStart = ''
-        ${pkgs.llama-cpp-vulkan}/bin/llama-server \
-          --model /home/j_kro/models/Qwen3.5-2B-Instruct-Q4_K_M.gguf \
-          --host 0.0.0.0 --port 8004 \
-          -ngl 99 -c 262144 -t 4 \
-          --batch-size 32 --ubatch-size 8 \
-          --flash-attn on --parallel 1 \
-          --device Vulkan3 \
-          --chat-template '<|im_start|>system\n{{system_prompt}}<|im_end|>\n<|im_start|>user\n{{prompt}}<|im_end|>\n<|im_start|>assistant\n' \
-          --temp 0.7 --top-k 40 --top-p 0.9 --min-p 0.05 \
-          --metrics
-      '';
-      NoNewPrivileges = true;
-      PrivateTmp = true;
-      LimitNOFILE = 65536;
-      Restart = "on-failure";
-      RestartSec = "10s";
-      StandardOutput = "journal";
-      StandardError = "journal";
-    };
-  };
+  # Note: Qwen3.5-0.8B/2B tiny models not yet available as GGUF on HF
+  # Only SafeTensor releases exist. Skip tiny model slot for now.
+  # Available community GGUFs: check HauhauCS for uncensored tiny GGUF variants
 
-  networking.firewall.allowedTCPPorts = [ 8002 8003 8004 ];
+  networking.firewall.allowedTCPPorts = [ 8002 8003 ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }
