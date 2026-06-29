@@ -574,6 +574,9 @@ in {
     selfHosting = true;
   };
 
+  # Sync sops secrets to K8s
+  services.k8s-secrets-sync.enable = true;
+
   # Mining user for secret ownership (ZEPHYR monitors mining but doesn't run workers)
   users.users.mining = {
     isSystemUser = true;
