@@ -38,7 +38,7 @@
       scope = "local";
       command = "/data/agents/mcp-bridges/github-mcp.sh";
       description = "GitHub repositories, issues, PRs, actions (39 tools)";
-      connectTimeout = 30;
+      connectTimeout = 60;
       timeout = 120;
       casdoorApp = "app-github";
     };
@@ -58,8 +58,8 @@
       scope = "local";
       command = "/data/agents/mcp-bridges/searxng-mcp.sh";
       description = "SearXNG web search (15 tools)";
-      connectTimeout = 30;
-      timeout = 60;
+      connectTimeout = 60;
+      timeout = 90;
       casdoorApp = "app-searxng";
       ssePort = 9001;
     };
@@ -69,8 +69,8 @@
       scope = "local";
       command = "/data/agents/mcp-bridges/selfhosted-mcp.sh";
       description = "Self-hosted tools (15 tools: web_reader, github file read, etc.)";
-      connectTimeout = 30;
-      timeout = 60;
+      connectTimeout = 60;
+      timeout = 90;
       casdoorApp = null;
     };
 
