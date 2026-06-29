@@ -30,7 +30,6 @@ in {
           "https://maplespike.cachix.org"
           "https://ezkea.cachix.org"
           "https://nix-gaming.cachix.org"
-          "https://attic.xuyh0120.win/lantian"
         ]
         else [
           "http://10.1.1.120:50000"
@@ -41,7 +40,6 @@ in {
           "https://maplespike.cachix.org"
           "https://ezkea.cachix.org"
           "https://nix-gaming.cachix.org"
-          "https://attic.xuyh0120.win/lantian"
         ]
       );
       trusted-public-keys = lib.mkForce (
@@ -55,7 +53,6 @@ in {
           "maplespike.cachix.org-1:P6v8AHkRYDKI/xc4/OYIvMcwumkD9EafWnYERWWngYg="
           "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
           "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
-          "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc="
         ]
         else [
           "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
@@ -65,7 +62,6 @@ in {
           "maplespike.cachix.org-1:P6v8AHkRYDKI/xc4/OYIvMcwumkD9EafWnYERWWngYg="
           "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
           "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
-          "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc="
         ]
       );
 
