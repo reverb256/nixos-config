@@ -113,7 +113,6 @@ in {
                 --coin pearl \
                 ${lib.concatStringsSep " " poolArgs} \
                 --user ${instance.wallet} \
-                --worker ${instance.name} \
                 --devices ${instance.devices} \
                 --api-port ${toString instance.apiPort} \
                 ${lib.concatStringsSep " " powerArg} \
