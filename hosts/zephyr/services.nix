@@ -718,7 +718,6 @@ NMKEYFILE
     PYTHONPATH = lib.mkForce "/home/j_kro/.venv-hermes/lib/python3.12/site-packages:/var/lib/hermes/mnemosyne-venv/lib/python3.11/site-packages";
   };
 
-  # Hermes Gateway systemd service
   systemd.user.services.hermes-gateway = {
     description = "Hermes Agent Gateway - Messaging Platform Integration";
     after = ["network.target"];
@@ -732,8 +731,6 @@ NMKEYFILE
       StandardOutput = "journal";
       StandardError = "journal";
       
-      User = "j_kro";
-      Group = "users";
       WorkingDirectory = "/home/j_kro";
       
       # Security hardening
