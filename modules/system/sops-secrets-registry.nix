@@ -56,7 +56,6 @@ in {
           "ai/context7-api-key" = {
             sopsFile = "${inputs.self}/secrets/ai/context7-api-key.yaml";
             path = "/run/secrets/context7-api-key";
-            format = "binary";
             mode = "0444";
             owner = "j_kro";
             group = "users";
@@ -184,7 +183,7 @@ in {
           "ai/hermes-env" = {
             sopsFile = "${inputs.self}/secrets/ai/hermes-env.yaml";
             path = "/run/secrets/hermes-env";
-            format = "binary";
+            format = "yaml";
             mode = "0444";
             owner = "j_kro";
             group = "users";

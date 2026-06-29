@@ -81,16 +81,16 @@ in {
 
       max-jobs = lib.mkForce (
         if currentHost == "zephyr"
-        then 3 # lightweight local builds
+        then 0 # pure dispatcher — no local builds
         else if currentHost == "nexus"
         then 12 # primary builder — 12C/24T, binary cache host
         else if currentHost == "sentry"
         then 8 # secondary builder — 8C/16T
         else if currentHost == "forge"
-        then 4 # tertiary builder — 6C/6T
+        then 4 # tertiary builder — 4C/8T
         else if currentHost == "krash3"
-        then 3 # lightweight builder — 3 of 6 host threads
-        else 2
+        then 3 # lightweight builder — 6C/12T (VM host)
+        else 4
       );
 
       http-connections = 100;

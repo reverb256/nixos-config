@@ -110,6 +110,8 @@ in {
     addToSystemPackages = false; # hermes-with-whatsapp (superset) added via hermes-cli.nix
 
     settings = {
+      model.default = "zai";
+
       providers = {
         # All inference through AI Inference Gateway on Nexus:8080
         # Gateway handles upstream routing, auth, think-param stripping
@@ -122,7 +124,7 @@ in {
         zai = {
           base_url = "https://api.z.ai/api/coding/paas/v4";
           api_key_env = "ZAI_API_KEY";
-          model = "glm-5.1";
+          model = "glm-4.7";
         };
         # NVIDIA NIM cloud models
         nvidia-nim = {
