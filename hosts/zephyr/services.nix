@@ -702,10 +702,55 @@ NMKEYFILE
   # Graphiti is already configured above (line 663-669)
 
 
+  # ── Hermes Gateway Permissions Override ──
+  # Allow sudo from gateway (same access as CLI)
+  # hermes-agent module sets NoNewPrivileges=true by default - override it
+  systemd.services.hermes-agent = {
+    serviceConfig = {
+      NoNewPrivileges = false;
+      ProtectSystem = "yes";  # Allow /etc, /var writes
+    };
+  };
+
   # PYTHONPATH includes venv-hermes (for sitecustomize.py runtime patches)
   # and mnemosyne-venv (for the memory provider).
   systemd.services.hermes-agent.environment = {
     PYTHONPATH = lib.mkForce "/home/j_kro/.venv-hermes/lib/python3.12/site-packages:/var/lib/hermes/mnemosyne-venv/lib/python3.11/site-packages";
+  };
+
+  # Hermes Gateway systemd service
+  systemd.user.services.hermes-gateway = {
+    description = "Hermes Agent Gateway - Messaging Platform Integration";
+    after = ["network.target"];
+    wantedBy = ["multi-user.target"];
+    
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${pkgs.hermes-agent}/bin/hermes gateway run";
+      Restart = "always";
+      RestartSec = "10s";
+      StandardOutput = "journal";
+      StandardError = "journal";
+      
+      User = "j_kro";
+      Group = "users";
+      WorkingDirectory = "/home/j_kro";
+      
+      # Security hardening
+      PrivateTmp = true;
+      ProtectSystem = "strict";
+      ProtectHome = "read-only";
+      ReadWritePaths = ["/home/j_kro/.hermes"];
+      NoNewPrivileges = true;
+      RestrictAddressFamilies = ["AF_INET" "AF_INET6" "AF_UNIX"];
+      RestrictRealtime = true;
+      RestrictNamespaces = true;
+    };
+    
+    environment = {
+      HERMES_HOME = "/home/j_kro/.hermes";
+      HERMES_MANAGED = "true";
+    };
   };
 
   time.timeZone = lib.mkForce "America/Winnipeg";
