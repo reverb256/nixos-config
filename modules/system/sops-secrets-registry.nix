@@ -180,15 +180,14 @@ in {
             owner = "j_kro";
             group = "users";
           };
-          # Temporarily disabled - needs proper encryption
-          # "ai/hermes-env" = {
-          #   sopsFile = "${inputs.self}/secrets/ai/hermes-env.env";
-          #   path = "/run/secrets/hermes-env";
-          #   format = "binary";
-          #   mode = "0444";
-          #   owner = "j_kro";
-          #   group = "users";
-          # };
+          "ai/hermes-env" = {
+            sopsFile = "${inputs.self}/secrets/ai/hermes-env.json";
+            path = "/run/secrets/hermes-env";
+            format = "binary";
+            mode = "0444";
+            owner = "j_kro";
+            group = "users";
+          };
         })
         (mkIf config.services.sops-secrets-registry.kubernetes {
           "k8s/ai-gateway-zai-api-key" = {
