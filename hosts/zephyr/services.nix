@@ -20,9 +20,9 @@ in {
       settings = {
         model = {
           api_mode = "chat_completions";
-          base_url = "https://opencode.ai/zen/go/v1";
-          default = "deepseek-v4-flash";
-          provider = "opencode-go";
+          base_url = "https://integrate.api.nvidia.com/v1";
+          default = "deepseek-ai/deepseek-v4-pro";
+          provider = "nvidia";
         };
         providers = {
           zai = {
