@@ -116,6 +116,9 @@ in {
       kubernetes = true;
       aiServices = true;
     };
+
+    # Sync sops secrets to K8s
+    k8s-secrets-sync.enable = true;
   };
 
   services.cluster-mesh.enable = true; # SSH service account for inter-node mesh

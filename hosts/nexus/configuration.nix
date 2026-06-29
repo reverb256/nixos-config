@@ -146,5 +146,7 @@
     selfHosting = true;
     ci = true;
   };
+
+  # Sync sops secrets to K8s
+  services.k8s-secrets-sync.enable = true;
 }
-  # Disable legacy agenix secrets (migrated to sops-nix)
