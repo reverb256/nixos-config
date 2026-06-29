@@ -1025,11 +1025,11 @@
         "uv2nix": "uv2nix_2"
       },
       "locked": {
-        "lastModified": 1782689161,
-        "narHash": "sha256-Mv8vBFnKpHGtAzXtxgLhGZkiRRTRbYnWSVZZT5EcJUU=",
+        "lastModified": 1782764727,
+        "narHash": "sha256-hwtpCZd2cQSocCy5SuB2oPWvo/Gj/SpLepmNCXWePVQ=",
         "owner": "NousResearch",
         "repo": "hermes-agent",
-        "rev": "10043c6d0cd942487f7ef94231e22d91e1734a20",
+        "rev": "f171842f0de73171031ce4f62a4fcfc7adc397d8",
         "type": "github"
       },
       "original": {

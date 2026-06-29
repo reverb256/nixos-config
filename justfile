@@ -118,7 +118,6 @@ rm-worktree number:
 # ── GIT MANAGEMENT ────────────────────────────────────────────────────────────────
 # Sync all hosts to central/main
 
-HOSTS := "zephyr nexus forge sentry"
 
 # Show git status on all hosts
 git-status:
@@ -252,9 +251,6 @@ sentry:
 haven:
     just deploy haven
 vane:
-    just deploy vane
-rp:
-    just deploy rp
 
 # Legacy host aliases (nix-copy-closure fallback)
 zephyr-legacy:

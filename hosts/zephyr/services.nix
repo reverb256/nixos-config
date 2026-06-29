@@ -18,17 +18,13 @@ in {
       group = "users";
       createUser = false;
       settings = {
-        model = {
-          api_mode = "chat_completions";
-          base_url = "https://integrate.api.nvidia.com/v1";
-          default = "deepseek-ai/deepseek-v4-pro";
-          provider = "nvidia";
-        };
+        model.default = "zai";
+
         providers = {
           zai = {
             base_url = "https://api.z.ai/api/coding/paas/v4";
             api_key_env = "ZAI_API_KEY";
-            discover_models = true;
+            model = "glm-4.7";
           };
           opencode-go = {
             base_url = "https://opencode.ai/zen/go/v1";
