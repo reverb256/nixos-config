@@ -53,4 +53,5 @@
   users.groups.plugdev = {};
   users.groups.gamemode = {};
   users.groups.i2c = {};
+  users.groups.ai-inference = {};
 }
