@@ -726,8 +726,9 @@ NMKEYFILE
       RestartSec = "10s";
       StandardOutput = "journal";
       StandardError = "journal";
-      
+
       WorkingDirectory = "/home/j_kro";
+      Path = lib.makeBinPath [pkgs.procps];
       
       # Security hardening
       PrivateTmp = true;
