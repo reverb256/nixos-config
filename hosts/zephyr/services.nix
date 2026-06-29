@@ -11,6 +11,12 @@ in {
     hermes-agent = {
       enable = true;
       addToSystemPackages = true;
+      # Run gateway as j_kro — eliminates the permission war between
+      # gateway (hermes user) and CLI (j_kro). One user, one identity,
+      # zero chmod conflicts. secure_parent_dir() can 0700 all it wants.
+      user = "j_kro";
+      group = "users";
+      createUser = false;
       settings = {
         model = {
           api_mode = "chat_completions";
@@ -170,7 +176,7 @@ in {
       };
       environmentFiles = [ "/run/secrets/hermes-env" ];
       extraDependencyGroups = ["messaging" "voice"];
-      extraPackages = with pkgs; [ripgrep jq curl];
+      extraPackages = with pkgs; [ripgrep jq curl portaudio];
       documents = {
         "USER.md" = ''
           NixOS/k3s homelab operator and developer.
@@ -250,17 +256,18 @@ in {
           connect_timeout = 30;
           timeout = 120;
         };
+        casdoor = {
+          command = "python3";
+          args = ["/data/agents/mcp-bridges/casdoor-mcp-bridge.py"];
+          connect_timeout = 30;
+          timeout = 60;
+        };
+        yt-dlp = {
+          command = "/data/agents/mcp-bridges/yt-dlp-mcp.sh";
+          connect_timeout = 15;
+          timeout = 300;
+        };
       };
-    };
-    hermes-cli = {
-      enable = true;
-      apiKeyFile = "/run/secrets/zai-api-key";
-      casdoorJwtFile = "/run/secrets/casdoor-hermes-jwt";
-      # apiKey set via hermes-env for MCP server template injection
-      # Hermes-mcp-servers service merges servers from Nix fallback block
-      # Service enabled below for declarative MCP management.
-      # model = "opencode-go/deepseek-v4-flash" not mapped to module
-      # options; hermes-cli module only provides JWT/MCP/package mgmt.
     };
     k3s-cluster = {
       enable = true;
@@ -539,12 +546,16 @@ in {
     };
   };
 
-  # UMask moved from extraServiceConfig (removed upstream)
-  systemd.services.hermes-agent.serviceConfig.UMask = lib.mkForce "0022";
-
   programs = {
     haven-desktop.enable = true;
   };
+
+  # Fish completions for hermes CLI (was in hermes-cli module)
+  programs.fish.interactiveShellInit = lib.mkAfter ''
+    if command -v hermes &>/dev/null
+      hermes completion fish 2>/dev/null | grep -v '^SITECUSTOMIZE:' | source
+    end
+  '';
 
   virtualisation.podman = {
     enable = true;
@@ -566,10 +577,6 @@ in {
     ci = true;
     selfHosting = true;
   };
-
-  # hermes-mcp-servers enabled — merges MCP servers from Nix fallback block
-  # into config.yaml. All servers (including cua-driver) are defined there.
-  systemd.services.hermes-mcp-servers.enable = true;
 
   # Mining user for secret ownership (ZEPHYR monitors mining but doesn't run workers)
   users.users.mining = {
@@ -596,10 +603,6 @@ in {
     "d /data/hermes 0775 j_kro j_kro -"
   ];
   services.syncthing-cluster.enable = true;
-
-  # Add j_kro to the hermes group so the interactive CLI can read the
-  # shared state under /var/lib/hermes/.hermes/ (config, .env, sessions).
-  users.users.j_kro.extraGroups = [ "hermes" ];
 
   # Ensure eth0 has persistent static NM profile on every activation.
   # Prevents the "no IP on boot" issue caused by stale DHCP profiles
@@ -651,18 +654,6 @@ NMKEYFILE
     done
   '';
 
-  # Sync hermes-env sops secret → user .env on every activation.
-  # The hermes-agent systemd service loads hermes-env via environmentFiles,
-  # but user CLI reads ~/.hermes/.env directly. This keeps them in sync.
-  system.activationScripts.hermes-dotenv = lib.stringAfter ["users"] ''
-    if [ -f /run/secrets/hermes-env ] && [ -s /run/secrets/hermes-env ]; then
-      cp /run/secrets/hermes-env /home/j_kro/.hermes/.env
-      chown j_kro:users /home/j_kro/.hermes/.env
-      chmod 600 /home/j_kro/.hermes/.env
-      echo "[hermes-dotenv] Synced .env from hermes-env"
-    fi
-  '';
-
   # Pass DISPLAY to hermes-agent so cua-driver MCP can access X11
   # Ensure ckb-next can find sinfo/animation binaries (they're in libexec/ not on PATH)
   system.activationScripts.ckb-next-libexec = lib.stringAfter ["users"] ''
@@ -711,11 +702,12 @@ NMKEYFILE
   # Graphiti is already configured above (line 663-669)
 
 
+  # PYTHONPATH includes venv-hermes (for sitecustomize.py runtime patches)
+  # and mnemosyne-venv (for the memory provider).
   systemd.services.hermes-agent.environment = {
-    HERMES_HOME_MODE = "0755";
-    PYTHONPATH = "/var/lib/hermes/mnemosyne-venv/lib/python3.11/site-packages";
+    PYTHONPATH = lib.mkForce "/home/j_kro/.venv-hermes/lib/python3.12/site-packages:/var/lib/hermes/mnemosyne-venv/lib/python3.11/site-packages";
   };
-
 
   time.timeZone = lib.mkForce "America/Winnipeg";
 }
+
