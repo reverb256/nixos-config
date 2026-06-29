@@ -185,11 +185,11 @@ in
   + mkRoute "gitea.lan" "http://${nexus}:${toString ports.gitea}"
   # Hermes Workspace (zephyr, port 3002)
   # Dev environment
-  + mkRoute "dev.maplespike.lan" "http://${nexus}:${toString ports.dev-maplespike-portal}"
+  + mkRoute "dev.maplespike.lan" "http://${nexus}:${toString ports.maplespike-portal}"
   + "\n"
-  + mkRoute "dev-api.maplespike.lan" "http://${nexus}:${toString ports.dev-maplespike-api}"
+  + mkRoute "dev-api.maplespike.lan" "http://${nexus}:${toString ports.maplespike-api}"
   + "\n"
-  + mkRoute "dev-mcp.maplespike.lan" "http://${nexus}:${toString ports.dev-maplespike-mcp}"
+  + mkRoute "dev-mcp.maplespike.lan" "http://${nexus}:${toString ports.maplespike-mcp}"
   + "\n"
   # Haven chat — public, runs on nexus NodePort 32100 (has own auth)
   + mkRoute "haven.lan" "http://${nexus}:${toString ports.haven}"
