@@ -172,13 +172,13 @@ in
   + "\n"
   + mkRoute "privacy-filter.lan" "http://${nexus}:${toString ports.privacy-filter}"
   # MapleSpike routes — proxied to k8s NodePorts on nexus (bypasses nexus Caddy redirect)
-  + mkRoute "maplespike.lan" "http://${nexus}:31559"
-  + "
-"
-  + mkRoute "api.maplespike.lan" "http://${nexus}:32481"
-  + "
-"
-  + mkRoute "mcp.maplespike.lan" "http://${nexus}:31746"
+  + mkRoute "maplespike.lan" "http://${nexus}:30964"
+  + "\n"
+
+  + mkRoute "api.maplespike.lan" "http://${nexus}:31283"
+  + "\n"
+
+  + mkRoute "mcp.maplespike.lan" "http://${nexus}:31745"
   + "\n"
   + mkRoute "auth.maplespike.lan" "http://${nexus}:30088"
   + "\n"
