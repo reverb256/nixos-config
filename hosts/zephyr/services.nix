@@ -707,8 +707,8 @@ NMKEYFILE
   # hermes-agent module sets NoNewPrivileges=true by default - override it
   systemd.services.hermes-agent = {
     serviceConfig = {
-      NoNewPrivileges = false;
-      ProtectSystem = "yes";  # Allow /etc, /var writes
+      NoNewPrivileges = lib.mkForce false;
+      ProtectSystem = lib.mkForce "yes";  # Allow /etc, /var writes
     };
   };
 
