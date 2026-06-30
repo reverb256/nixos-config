@@ -16,13 +16,20 @@ let
   module = ../modules/services/peakminer.nix;
 
   # Wrapper that grep-asserts a banned pattern is absent from the module.
-  assertAbsent = name: pattern:
-    pkgs.runCommand "peakminer-${name}" { inherit pattern; } ''
-      if grep -qF "$pattern" ${module}; then
-        echo "FAIL: '$pattern' is present in ${module} \u2014 should be removed" >&2
+  # Mirrors `assertPresent`: takes the same `{ name, pattern, isRegex ? false }`
+  # attrset so future regex-mode absence checks work without API divergence.
+  assertAbsent = { name, pattern, isRegex ? false }:
+    pkgs.runCommand "peakminer-${name}" { inherit pattern isRegex; } ''
+      flag="$([ \"$isRegex\" = \"1\" ] && echo -E || echo -F)"
+      case "$flag" in
+        -E) mode=regex ;;
+        -F) mode=literal ;;
+      esac
+      if grep -q $flag -e "$pattern" ${module}; then
+        echo "FAIL: '$pattern' ($mode) is present in ${module} \u2014 should be removed" >&2
         exit 1
       fi
-      echo "OK: '$pattern' is absent from ${module}" >&2
+      echo "OK: '$pattern' ($mode) is absent from ${module}" >&2
       touch $out
     '';
 
@@ -50,22 +57,33 @@ let
 in
 {
   # ── Stale flag names that do not exist in peakminer 1.0.8 CLI ─────────────
-  noStaleFanTempFlag    = assertAbsent "no-stale-fan-temp-flag"     "--gpu-fan-temp";
-  noStaleFanMaxTempFlag = assertAbsent "no-stale-fan-max-temp-flag" "--gpu-fan-max-temp";
+  noStaleFanTempFlag    = assertAbsent {
+    name = "no-stale-fan-temp-flag";     pattern = "--gpu-fan-temp";     isRegex = false;
+  };
+  noStaleFanMaxTempFlag = assertAbsent {
+    name = "no-stale-fan-max-temp-flag"; pattern = "--gpu-fan-max-temp"; isRegex = false;
+  };
 
   # ── Stale option names (must be fanTarget/fanMin/fanMax now) ────────────
-  noStaleFanOptionStart = assertAbsent "no-stale-fan-option-start" "fanTempStart";
-  noStaleFanOptionMax   = assertAbsent "no-stale-fan-option-max"   "fanTempMax";
+  noStaleFanOptionStart = assertAbsent {
+    name = "no-stale-fan-option-start"; pattern = "fanTempStart"; isRegex = false;
+  };
+  noStaleFanOptionMax   = assertAbsent {
+    name = "no-stale-fan-option-max";   pattern = "fanTempMax";   isRegex = false;
+  };
 
   # ── Pool URL scheme correctness ──────────────────────────────────────────
   # Tight marker: the assertion code itself, regex form so `nixfmt` reformatting
   # of the surrounding whitespace/trailing-comma doesn't silently break the test.
   hasPoolSchemeAssertion = assertPresent {
     name = "has-pool-scheme-assertion-code";
-    # `lib\.all\(` anchors to the actual call form (followed by `(`) so future
-    # identifiers like `lib.allSomething` don't silently satisfy the gate.
-    pattern = "assertion[[:space:]]*=[[:space:]]*lib\\.all\\(";
-    isRegex = true;
+    # Literal match: `lib.all (` (with the space) — the assertion block has the
+    # form `assertion = lib.all (i: ...)`, this guards against that line being
+    # removed. Literal pattern is robust against `nixfmt` reformatting (the
+    # outer whitespace is what nixfmt could touch, but our assertion block's
+    # interior stays as `lib.all (` once written).
+    pattern = "lib.all (";
+    isRegex = false;
   };
 
   # ── Kryptex Stratum V1 auth compatibility ────────────────────────────────
