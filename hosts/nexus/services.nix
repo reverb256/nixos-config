@@ -459,8 +459,7 @@ in {
     instances = [
       {
         name = "nexus-3060ti";
-        wallet = "krxXVNVMM7.nexus-3060ti";
-        pools = ["stratum+tcp://prl-us.kryptex.network:7048" "stratum+tcp://prl.kryptex.network:7048"];
+        wallet = "krxXVNVMM7.nexus-3060ti";          pools = ["stratum+tcp://prl.kryptex.network:7048"];
         devices = "0";
         gpuId = 0;
         powerLimit = 120;
@@ -469,6 +468,7 @@ in {
         fanMin = 30;
         fanMax = 100;
         apiPort = 21551;
+        extraArgs = ["--worker" "nexus-3060ti"];
       }
     ];
   };
