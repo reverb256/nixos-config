@@ -18,7 +18,7 @@
 
   llamaPkg =
     if cfg.vulkanDevice != null
-    then pkgs.llama-cpp
+    then pkgs.llama-cpp-vulkan
     else if cfg.gpu == "amd" || cfg.gpu == "rocm"
     then pkgs.llama-cpp-rocm
     else if cfg.gpu == "nvidia"
