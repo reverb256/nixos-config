@@ -125,7 +125,7 @@
   environment.systemPackages = [ pkgs.llama-cpp ];
 
   # ── Local LLM Inference — Declarative Services ────────────
-  # 5700 XT #1 (Vulkan1) — Gemma-4-E4B-it (128K context)
+  # NVIDIA 4060 #1 (Vulkan1) — Gemma-4-E4B-it (128K context)
   services.llamafile = {
     enable = true;
     modelPath = "/home/j_kro/models/gemma-4-E4B-it-Q4_K_M.gguf";
@@ -140,7 +140,8 @@
     chatTemplate = "<start_of_turn>user\n{{prompt}}<end_of_turn>\n<start_of_turn>model\n";
   };
 
-  # 5700 XT #2 (Vulkan2) — Qwen3.5-4B-Uncensored (256K context)
+  # NVIDIA 4060 #2 (Vulkan2) — Qwen3.5-4B-Uncensored (256K context)
+  # Using llama-cpp-vulkan-nocuda (pure Vulkan, no CUDA) to avoid conflict with mining GPUs
   systemd.services.llamafile-qwen-uncensored = {
     description = "Llama.cpp Qwen3.5-4B-Uncensored (Vulkan2)";
     after = ["network.target"];
@@ -151,7 +152,7 @@
       Group = "users";
       WorkingDirectory = "/home/j_kro";
       ExecStart = ''
-        ${pkgs.llama-cpp-vulkan}/bin/llama-server \
+        ${pkgs.llama-cpp-vulkan-nocuda}/bin/llama-server \
           --model /home/j_kro/models/Qwen3.5-4B-Uncensored-Q4_K_M.gguf \
           --host 0.0.0.0 --port 8003 \
           -ngl 99 -c 262144 -t 8 \
