@@ -18,7 +18,10 @@ in {
       group = "users";
       createUser = false;
       settings = {
-        model.default = "zai";
+        model = {
+          default = "zai";
+          provider = "zai";
+        };
 
         providers = {
           zai = {
@@ -716,6 +719,30 @@ NMKEYFILE
   systemd.services.hermes-agent.environment = {
     PYTHONPATH = lib.mkForce "/home/j_kro/.venv-hermes/lib/python3.12/site-packages:/var/lib/hermes/mnemosyne-venv/lib/python3.11/site-packages";
   };
+
+  # ── API Key Environment File ──
+  # hermes-env.json was encrypted with wrong age key — sops-nix can't decrypt it.
+  # This activation script generates /run/secrets/hermes-env from individual sops
+  # secrets that DO decrypt correctly. Runs after setupSecrets (where sops-nix
+  # puts individual keys) and before hermes-agent-setup (where the upstream module
+  # reads environmentFiles to seed $HERMES_HOME/.env). Alphabetical ordering:
+  # "hermes-agent-env" < "hermes-agent-setup".
+  #
+  # Keys missing from env → provider auth fails → model discovery returns 4 models.
+  # This was the root cause of the "only 4 models in picker" bug.
+  system.activationScripts."hermes-agent-env" = lib.stringAfter ["setupSecrets"] ''
+    if [ ! -f /run/secrets/hermes-env ]; then
+      {
+        echo "ZAI_API_KEY=$(cat /run/secrets/zai-api-key)"
+        echo "NVIDIA_API_KEY=$(cat /run/secrets/nvidia-api-key)"
+        echo "OPENCODE_GO_API_KEY=$(cat /run/secrets/opencode-go-api-key)"
+        echo "OPENCODE_API_KEY=$(cat /run/secrets/opencode-api-key)"
+        echo "KILO_API_KEY=$(cat /run/secrets/kilo-api-key)"
+      } > /run/secrets/hermes-env
+      chmod 0440 /run/secrets/hermes-env
+      chown j_kro:users /run/secrets/hermes-env
+    fi
+  '';
 
   systemd.user.services.hermes-gateway = {
     description = "Hermes Agent Gateway - Messaging Platform Integration";
