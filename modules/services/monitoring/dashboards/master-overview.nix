@@ -62,7 +62,7 @@ in {
       })
       (panels.statPanel {
         title = "Total Hashrate";
-        expr = "sum(mining_worker_hashrate)";
+        expr = "sum(mining_gpu_hashrate)";
         gridPos = {
           h = 4;
           w = 6;
