@@ -6,10 +6,10 @@ buildNpmPackage rec {
 
   src = fetchurl {
     url = "https://registry.npmjs.org/lmstudio/-/lmstudio-${version}.tgz";
-    hash = "sha256-SHA256PLACEHOLDER";
+    hash = "sha256-0000000000000000000000000000000000000000000000000000000000000000";
   };
 
-  npmDepsHash = "sha256-NPMDEPSPLACEHOLDER";
+  npmDepsHash = "sha256-0000000000000000000000000000000000000000000000000000000000000000";
   npmDepsFetcherVersion = 2;
 
   nativeBuildInputs = [ nodejs_22 ];

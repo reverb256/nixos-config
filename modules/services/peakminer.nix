@@ -23,8 +23,8 @@ in {
           };
           pools = mkOption {
             type = types.listOf types.str;
-            default = ["stratum+tcp://prl-us.kryptex.network:7048"];
-            description = "List of pool URLs (failover order)";
+            default = ["prl-us.kryptex.network:8048" "prl.kryptex.network:8048"];
+            description = "List of pool URLs (failover order) - TLS auto-detected";
           };
           devices = mkOption {
             type = types.str;
@@ -51,9 +51,24 @@ in {
             default = null;
             description = "Pause GPU at this temperature (°C)";
           };
+          fanSpeed = mkOption {
+            type = types.nullOr types.int;
+            default = null;
+            description = "Fixed fan speed 0-100% (null = auto control)";
+          };
+          fanTempStart = mkOption {
+            type = types.nullOr types.int;
+            default = 50;
+            description = "Temperature at which to start ramping up fan (°C)";
+          };
+          fanTempMax = mkOption {
+            type = types.nullOr types.int;
+            default = 75;
+            description = "Temperature at which to hit 100% fan speed (°C)";
+          };
           extraArgs = mkOption {
             type = types.listOf types.str;
-            default = ["--legacy-auth"];  # Kryptex needs standard Stratum V1 array auth format
+            default = [];
             description = "Extra peakminer CLI arguments";
           };
         };
@@ -85,6 +100,10 @@ in {
           if instance.tempStop != null
           then ["--gpu-temp-stop ${toString instance.tempStop}"]
           else [];
+        fanArg =
+          if instance.fanSpeed != null
+          then ["--gpu-fan ${toString instance.fanSpeed}"]
+          else ["--gpu-fan-temp ${toString instance.fanTempStart}" "--gpu-fan-max-temp ${toString instance.fanTempMax}"];
       in {
         name = "peakminer-${instance.name}";
         value = {
