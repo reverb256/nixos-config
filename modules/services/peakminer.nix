@@ -81,18 +81,35 @@ in {
             default = 100;
             description = "Maximum fan duty cycle (0-100%) for closed-loop control";
           };
+          legacyAuth = mkOption {
+            type = types.bool;
+            # 2026-06-30 verification (all 5 GPUs tested over 30+ min each):
+            # ┃  version   ┃ --legacy-auth  ┃ shares? ┃
+            # ┃ 1.0.8      ┃ no             ┃ YES     ┃
+            # ┃ 1.0.8      ┃ yes            ┃ NO      ┃ 
+            # ┃ 1.0.11-rc2 ┃ no             ┃ NO      ┃
+            # ┃ 1.0.11-rc2 ┃ yes            ┃ NO      ┃
+            # 
+            # The Kryptex PRL pool's Stratum V1 named-params authorize ({user,pass})
+            # works natively with peakminer 1.0.8. Setting --legacy-auth causes
+            # the array-form authorize to be accepted at login but shares silently
+            # never reach the share queue. v1.0.11-rc2 has a separate bug that
+            # blocks shares entirely regardless of --legacy-auth.
+            # 
+            # PINNED to 1.0.8 until 1.0.11 is re-verified.
+            # Do NOT enable legacyAuth or change pinnedVersion without re-testing.
+            default = false;
+            description = "Use Stratum V1 array-form authorize (--legacy-auth). KNOWN BROKEN on Kryptex PRL — keeps connection alive but blocks share submission.";
+          };
+          pinnedVersion = mkOption {
+            type = types.str;
+            default = "1.0.8";
+            description = "PeakMiner version pin. 1.0.8 confirmed working; 1.0.11-rc2 never submits shares on Kryptex. Used for documentation reference — actual package selection is per-flake.";
+          };
           extraArgs = mkOption {
             type = types.listOf types.str;
-            # Kryptex PRL pool (prl.kryptex.network:7048) negotiates Stratum V1
-            # named-params authorize ({user,pass}) and peakminer 1.0.8 auto-detects
-            # this dialect up front. Empirically (cluster dashboard + Windows rig
-            # krash1.5, 2026-06-29): adding --legacy-auth on this pool causes jobs
-            # to flow but share submission to silently stall -- the array-form
-            # authorize payload is accepted by the auth layer but shares never
-            # reach the share queue. Default stays empty; do NOT add --legacy-auth
-            # without first testing whether the new pool accepts array-form.
             default = [];
-            description = "Extra peakminer CLI arguments. Default empty: Kryptex PRL pool's Stratum V1 named-params authorize works without --legacy-auth, while enabling it silently blocks share submission.";
+            description = "Extra peakminer CLI arguments.";
           };
         };
       });
@@ -173,6 +190,7 @@ in {
                 --api-port ${toString instance.apiPort} \
                 ${lib.concatStringsSep " " tempArg} \
                 ${lib.concatStringsSep " " fanArg} \
+                ${lib.optionalString instance.legacyAuth "--legacy-auth"} \
                 ${lib.concatStringsSep " " instance.extraArgs}
             '';
             Restart = "always";
