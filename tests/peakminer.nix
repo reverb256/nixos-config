@@ -1,5 +1,9 @@
 # PeakMiner module regression checks (static grep).
 #
+# NOTE: When `--legacy-auth` is intentionally empty-by-default (testing a TLS
+# pool that hangs on detection), flip this test to `assertAbsent`. Otherwise
+# keep present. See modules/services/peakminer.nix for the rationale.
+#
 # Cheap tests that catch the most likely regressions to the NixOS module:
 #   - Stale fan flag names that don't exist in peakminer 1.0.8
 #     (`--gpu-fan-temp`, `--gpu-fan-max-temp`).
