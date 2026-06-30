@@ -94,14 +94,17 @@ in
   # jobs to flow but share submission to silently stall -- the array-form
   # authorize is accepted by the auth layer but shares never reach the share
   # queue. This gate catches any future re-introduction of --legacy-auth into
-  # the `extraArgs` default as a regression. See modules/services/peakminer.nix.
+  # the `extraArgs` default as a regression. NOTE: only gates the default;
+  # per-instance `extraArgs = [\u0022--legacy-auth\u0022]` overrides slip through
+  # by design (they may be required for non-Kryptex pools). See
+  # modules/services/peakminer.nix.
   noLegacyAuthInDefault = assertAbsent {
     name = "no-legacy-auth-in-default";
-    # Match the exact default-value line (literal -- contains the inner quotes
-    # around the flag). Picks up `default = ["--legacy-auth"];` if reintroduced,
-    # but ignores ad-hoc mentions in doc strings or per-instance overrides
-    # where the flag could still legitimately appear.
-    pattern = ''default = ["--legacy-auth"]'';
-    isRegex = false;
+    # Regex: tolerate whitespace around the `[` and `]` so `nixfmt` reformatting
+    # (`default = ["--legacy-auth"];` → `default = [ "--legacy-auth" ];`) doesn't
+    # silently break the gate. Still ignores ad-hoc mentions in doc strings or
+    # per-instance overrides where the flag could legitimately appear.
+    pattern = ''default\s*=\s*\[\s*\"--legacy-auth\"\s*\]'';
+    isRegex = true;
   };
 }
