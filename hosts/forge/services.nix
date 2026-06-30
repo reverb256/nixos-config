@@ -88,7 +88,6 @@ in {
           fanMin = 30;
           fanMax = 100;
           apiPort = 21550;
-          extraArgs = ["--worker" "forge-4060-0"];
         }
         {
           name = "4060-1";
@@ -102,7 +101,6 @@ in {
           fanMin = 30;
           fanMax = 100;
           apiPort = 21552;
-          extraArgs = ["--worker" "forge-4060-1"];
         }
       ];
     };
