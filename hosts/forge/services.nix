@@ -79,25 +79,27 @@ in {
         {
           name = "4060-0";
           wallet = "krxXVNVMM7.forge-4060-0";
-          pools = ["prl-us.kryptex.network:8048" "prl.kryptex.network:8048"];
+          pools = ["stratum+ssl://prl-us.kryptex.network:8048" "stratum+ssl://prl.kryptex.network:8048"];
           devices = "0";
           gpuId = 0;
           powerLimit = 118;
           tempStop = 72;
-          fanTempStart = 50;
-          fanTempMax = 75;
+          fanTarget = 65;
+          fanMin = 30;
+          fanMax = 100;
           apiPort = 21550;
         }
         {
           name = "4060-1";
           wallet = "krxXVNVMM7.forge-4060-1";
-          pools = ["prl-us.kryptex.network:8048" "prl.kryptex.network:8048"];
+          pools = ["stratum+ssl://prl-us.kryptex.network:8048" "stratum+ssl://prl.kryptex.network:8048"];
           devices = "1";
           gpuId = 1;
           powerLimit = 118;
           tempStop = 72;
-          fanTempStart = 50;
-          fanTempMax = 75;
+          fanTarget = 65;
+          fanMin = 30;
+          fanMax = 100;
           apiPort = 21552;
         }
       ];

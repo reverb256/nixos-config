@@ -346,25 +346,29 @@ in {
         {
           name = "zephyr-3060ti";
           wallet = "krxXVNVMM7.zephyr-3060ti";
-          pools = ["prl-us.kryptex.network:8048" "prl.kryptex.network:8048"];
+          pools = ["stratum+ssl://prl-us.kryptex.network:8048" "stratum+ssl://prl.kryptex.network:8048"];
           devices = "0";
           gpuId = 0;
-          powerLimit = 120;
+          # powerLimit intentionally null on zephyr: gpu-profile-manager owns power/clock policy
+          # to avoid races between peakminer systemd ExecStartPost and gpm's 10s polling loop.
+          powerLimit = null;
           tempStop = 80;
-          fanTempStart = 50;
-          fanTempMax = 75;
+          fanTarget = 65;
+          fanMin = 30;
+          fanMax = 100;
           apiPort = 21553;
         }
         {
           name = "zephyr-3090";
           wallet = "krxXVNVMM7.zephyr-3090";
-          pools = ["prl-us.kryptex.network:8048" "prl.kryptex.network:8048"];
+          pools = ["stratum+ssl://prl-us.kryptex.network:8048" "stratum+ssl://prl.kryptex.network:8048"];
           devices = "1";
           gpuId = 1;
-          powerLimit = 250;
+          powerLimit = null; # gpu-profile-manager owns power/clock policy
           tempStop = 80;
-          fanTempStart = 50;
-          fanTempMax = 75;
+          fanTarget = 65;
+          fanMin = 30;
+          fanMax = 100;
           apiPort = 21554;
         }
       ];

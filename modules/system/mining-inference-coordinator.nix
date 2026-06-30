@@ -23,14 +23,14 @@ in {
 
     primaryMiner = lib.mkOption {
       type = lib.types.str;
-      default = "deployment/gpu-miner-zephyr";
-      description = "K8s resource for the primary miner (3090)";
+      default = "peakminer-zephyr-3090.service";
+      description = "systemd unit for the primary miner (3090). The K8s deployment is gone -- peakminer runs as a systemd service now.";
     };
 
     namespace = lib.mkOption {
       type = lib.types.str;
       default = "mining";
-      description = "K8s namespace for mining resources";
+      description = "DEPRECATED: K8s namespace option. Coordinator no longer scales K8s deployments -- kept for backwards compat with existing host configs that still set this.";
     };
 
     checkInterval = lib.mkOption {
@@ -52,7 +52,9 @@ in {
       after = ["network.target"];
       wantedBy = ["multi-user.target"];
 
-      path = with pkgs; [curl gawk kubectl];
+      # kubectl dropped: coordinator now drives systemd only (peakminer-zephyr-3090.service).
+      # systemctl is available via /run/current-system/sw/bin/systemctl on NixOS.
+      path = with pkgs; [curl gawk];
 
       serviceConfig = {
         Type = "simple";
@@ -62,7 +64,7 @@ in {
           LLAMA_PORT="${toString cfg.llamaPort}"
           COMFYUI_PORT="${toString cfg.comfyuiPort}"
           PRIMARY="${cfg.primaryMiner}"
-          NS="${cfg.namespace}"
+          # NS was used by the old kubectl-based path; the systemd path doesn't need a namespace.
           CHECK_INTERVAL="${toString cfg.checkInterval}"
           IDLE_TIMEOUT="${toString cfg.idleTimeout}"
 
@@ -77,8 +79,12 @@ in {
 
           scale() {
             local resource="$1"
-            local replicas="$2"
-            kubectl scale "$resource" --replicas="$replicas" -n "$NS" 2>/dev/null || true
+            local target_state="$2"
+            if [ "$target_state" = "0" ]; then
+              systemctl stop "$resource" 2>/dev/null || true
+            else
+              systemctl start "$resource" 2>/dev/null || true
+            fi
           }
 
           is_inference_active() {
