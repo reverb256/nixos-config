@@ -104,7 +104,7 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # peakminer 1.0.8 --help confirms pool URLs require a `stratum+tcp://` or `stratum+ssl://`
+    # peakminer 1.0.11-rc2 --help confirms pool URLs require a `stratum+tcp://` or `stratum+ssl://`
     # scheme prefix; bare host:port is rejected by the CLI parser. Enforce at eval time so a
     # typo is caught on `just check` instead of silently failing at miner startup.
     assertions = [
