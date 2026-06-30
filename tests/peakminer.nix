@@ -1,15 +1,13 @@
 # PeakMiner module regression checks (static grep).
 #
-# NOTE: When `--legacy-auth` is intentionally empty-by-default (testing a TLS
-# pool that hangs on detection), flip this test to `assertAbsent`. Otherwise
-# keep present. See modules/services/peakminer.nix for the rationale.
-#
 # Cheap tests that catch the most likely regressions to the NixOS module:
 #   - Stale fan flag names that don't exist in peakminer 1.0.8
 #     (`--gpu-fan-temp`, `--gpu-fan-max-temp`).
 #   - Stale option names for the same (`fanTempStart`, `fanTempMax`).
 #   - Pool scheme assertion accidentally removed from the module.
-#   - `--legacy-auth` removed from `extraArgs` default (Kryptex hangs without it).
+#   - `default = ["--legacy-auth"]` re-introduced into `extraArgs` (Kryptex
+#     PRL pool silently stalls share submission when --legacy-auth is on --
+#     see modules/services/peakminer.nix for the rationale).
 #
 # Each entry is a tiny derivation that fails its build if the regression is
 # detected, surfacing in `just check` / `nix flake check` output.
@@ -91,9 +89,19 @@ in
   };
 
   # ── Kryptex Stratum V1 auth compatibility ────────────────────────────────
-  legacyAuthInDefault  = assertPresent {
-    name = "legacy-auth-in-default";
-    pattern = "--legacy-auth";
+  # Kryptex PRL pool negotiates Stratum V1 named-params authorize and peakminer
+  # 1.0.8 auto-detects this dialect. Adding --legacy-auth on this pool causes
+  # jobs to flow but share submission to silently stall -- the array-form
+  # authorize is accepted by the auth layer but shares never reach the share
+  # queue. This gate catches any future re-introduction of --legacy-auth into
+  # the `extraArgs` default as a regression. See modules/services/peakminer.nix.
+  noLegacyAuthInDefault = assertAbsent {
+    name = "no-legacy-auth-in-default";
+    # Match the exact default-value line (literal -- contains the inner quotes
+    # around the flag). Picks up `default = ["--legacy-auth"];` if reintroduced,
+    # but ignores ad-hoc mentions in doc strings or per-instance overrides
+    # where the flag could still legitimately appear.
+    pattern = ''default = ["--legacy-auth"]'';
     isRegex = false;
   };
 }
