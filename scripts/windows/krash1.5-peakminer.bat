@@ -2,6 +2,10 @@
 REM PeakMiner for krash1.5 (Windows 10, RTX 4060)
 REM Download peakminer-1.0.8-windows-x86_64.zip from:
 REM https://github.com/peakminer/peakminer/releases/download/v1.0.8/peakminer-1.0.8-windows-x86_64.zip
+REM NOTE: v1.0.11-rc2 verified only on /etc/nixos (Linux x86_64). The Windows
+REM       .zip asset name on that release is NOT confirmed -- do NOT bump this
+REM       URL until you've fetched the actual .zip filename from the release
+REM       page (https://github.com/peakminer/peakminer/releases/tag/v1.0.11-rc2).
 REM Extract to C:\peakminer\ and run this script on startup.
 
 REM Kill any existing lpminer first
