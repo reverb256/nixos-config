@@ -48,7 +48,7 @@ in {
           };
           wallet = mkOption {
             type = types.str;
-            description = "Mining wallet with worker suffix";
+            description = "Wallet formatted as krxXVNVMM7.<name>";
           };
           pool = mkOption {
             type = types.nullOr types.str;
