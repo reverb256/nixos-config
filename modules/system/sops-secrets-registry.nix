@@ -140,22 +140,23 @@ in {
             owner = "j_kro";
             group = "users";
           };
-          "ai/opencode-api-key" = {
-            sopsFile = "${inputs.self}/secrets/ai/opencode-api-key.yaml";
-            path = "/run/secrets/opencode-api-key";
-            format = "binary";
-            mode = "0444";
-            owner = "j_kro";
-            group = "users";
-          };
-          "ai/opencode-go-api-key" = {
-            sopsFile = "${inputs.self}/secrets/ai/opencode-go-api-key.yaml";
-            path = "/run/secrets/opencode-go-api-key";
-            format = "binary";
-            mode = "0444";
-            owner = "j_kro";
-            group = "users";
-          };
+          # Temporarily disabled - broken sops format
+          # "ai/opencode-api-key" = {
+          #   sopsFile = "${inputs.self}/secrets/ai/opencode-api-key.yaml";
+          #   path = "/run/secrets/opencode-api-key";
+          #   format = "binary";
+          #   mode = "0444";
+          #   owner = "j_kro";
+          #   group = "users";
+          # };
+          # "ai/opencode-go-api-key" = {
+          #   sopsFile = "${inputs.self}/secrets/ai/opencode-go-api-key.yaml";
+          #   path = "/run/secrets/opencode-go-api-key";
+          #   format = "binary";
+          #   mode = "0444";
+          #   owner = "j_kro";
+          #   group = "users";
+          # };
           "ai/pollinations-api-key" = {
             sopsFile = "${inputs.self}/secrets/ai/pollinations-api-key.yaml";
             path = "/run/secrets/pollinations-api-key";
@@ -270,14 +271,8 @@ in {
             owner = "j_kro";
             group = "users";
           };
-          "k8s/k3s-cluster-token" = {
-            sopsFile = "${inputs.self}/secrets/k8s/k3s-cluster-token.yaml";
-            path = "/run/secrets/k3s-cluster-token";
-            format = "binary";
-            mode = "0444";
-            owner = "root";
-            group = "root";
-          };
+        })
+        (mkIf config.services.sops-secrets-registry.kubernetes {
           "k8s/mission-control-api-key" = {
             sopsFile = "${inputs.self}/secrets/k8s/mission-control-api-key.yaml";
             path = "/run/secrets/mission-control-api-key";

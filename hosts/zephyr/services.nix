@@ -346,21 +346,25 @@ in {
         {
           name = "zephyr-3060ti";
           wallet = "krxXVNVMM7.zephyr-3060ti";
-          pools = ["stratum+tcp://prl-us.kryptex.network:7048" "stratum+tcp://prl.kryptex.network:7048"];
+          pools = ["prl-us.kryptex.network:8048" "prl.kryptex.network:8048"];
           devices = "0";
           gpuId = 0;
           powerLimit = 120;
           tempStop = 80;
+          fanTempStart = 50;
+          fanTempMax = 75;
           apiPort = 21553;
         }
         {
           name = "zephyr-3090";
           wallet = "krxXVNVMM7.zephyr-3090";
-          pools = ["stratum+tcp://prl-us.kryptex.network:7048" "stratum+tcp://prl.kryptex.network:7048"];
+          pools = ["prl-us.kryptex.network:8048" "prl.kryptex.network:8048"];
           devices = "1";
           gpuId = 1;
           powerLimit = 250;
           tempStop = 80;
+          fanTempStart = 50;
+          fanTempMax = 75;
           apiPort = 21554;
         }
       ];
@@ -738,6 +742,8 @@ NMKEYFILE
         echo "OPENCODE_GO_API_KEY=$(cat /run/secrets/opencode-go-api-key)"
         echo "OPENCODE_API_KEY=$(cat /run/secrets/opencode-api-key)"
         echo "KILO_API_KEY=$(cat /run/secrets/kilo-api-key)"
+        echo "TELEGRAM_BOT_TOKEN=$(cat /run/secrets/telegram-bot-token)"
+        echo "TELEGRAM_ALLOWED_USERS=1384182343"
       } > /run/secrets/hermes-env
       chmod 0440 /run/secrets/hermes-env
       chown j_kro:users /run/secrets/hermes-env
