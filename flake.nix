@@ -304,7 +304,12 @@
           print("VM boot test passed")
         '';
       };
-    };
+    } // (import ./tests/peakminer.nix { inherit pkgs; });
+    # Static grep-based regression checks for the peakminer NixOS module.
+    # Catches: stale `--gpu-fan-temp/--gpu-fan-max-temp` flag names,
+    # missing `--legacy-auth` default, regressed pool scheme assertion.
+    # Merged at attrset level so each grep-derivation becomes its own `checks`
+    # entry discovered by `nix flake check`.
 
     nixosConfigurations =
       (builtins.mapAttrs (

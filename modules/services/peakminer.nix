@@ -23,8 +23,8 @@ in {
           };
           pools = mkOption {
             type = types.listOf types.str;
-            default = ["prl-us.kryptex.network:8048" "prl.kryptex.network:8048"];
-            description = "List of pool URLs (failover order) - TLS auto-detected";
+            default = ["stratum+ssl://prl-us.kryptex.network:8048" "stratum+ssl://prl.kryptex.network:8048"];
+            description = "List of pool URLs (failover order). Scheme REQUIRED (stratum+ssl:// or stratum+tcp://host:port).";
           };
           devices = mkOption {
             type = types.str;
@@ -56,20 +56,25 @@ in {
             default = null;
             description = "Fixed fan speed 0-100% (null = auto control)";
           };
-          fanTempStart = mkOption {
+          fanTarget = mkOption {
             type = types.nullOr types.int;
-            default = 50;
-            description = "Temperature at which to start ramping up fan (°C)";
+            default = 65;
+            description = "Target temperature for closed-loop fan control (°C)";
           };
-          fanTempMax = mkOption {
+          fanMin = mkOption {
             type = types.nullOr types.int;
-            default = 75;
-            description = "Temperature at which to hit 100% fan speed (°C)";
+            default = 30;
+            description = "Minimum fan duty cycle (0-100%) for closed-loop control";
+          };
+          fanMax = mkOption {
+            type = types.nullOr types.int;
+            default = 100;
+            description = "Maximum fan duty cycle (0-100%) for closed-loop control";
           };
           extraArgs = mkOption {
             type = types.listOf types.str;
-            default = [];
-            description = "Extra peakminer CLI arguments";
+            default = ["--legacy-auth"];
+            description = "Extra peakminer CLI arguments. Default includes --legacy-auth (Kryptex pool expects standard Stratum V1 array authorize).";
           };
         };
       });
@@ -85,6 +90,17 @@ in {
   };
 
   config = mkIf cfg.enable {
+    # peakminer 1.0.8 --help confirms pool URLs require a `stratum+tcp://` or `stratum+ssl://`
+    # scheme prefix; bare host:port is rejected by the CLI parser. Enforce at eval time so a
+    # typo is caught on `just check` instead of silently failing at miner startup.
+    assertions = [
+      {
+        assertion = lib.all (i:
+          lib.all (url: lib.hasPrefix "stratum+" url) i.pools
+        ) cfg.instances;
+        message = "services.peakminer: every instance pool URL must begin with `stratum+tcp://` or `stratum+ssl://` (peakminer 1.0.8 hard requirement; bare `host:port` is rejected).";
+      }
+    ];
     systemd.services = lib.listToAttrs (
       builtins.map (instance: let
         poolArgs = builtins.map (p: "--url ${p}") instance.pools;
@@ -92,10 +108,9 @@ in {
           if instance.powerLimit != null
           then "+/run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
           else "";
-        powerArg =
-          if instance.powerLimit != null
-          then []  # Power limit set via nvidia-smi ExecStartPre, not --gpu-power (NVML unreliable on NixOS)
-          else [];
+        # Power limit intentionally applies via nvidia-smi (ExecStartPre/Post) -- NOT --gpu-power.
+        # peakminer NVML OC silently fails on NixOS because libnvidia-ml.so.1 dlopen breaks under
+        # pure glibc + LD_LIBRARY_PATH from /run/opengl-driver. nvidia-smi -pl works reliably.
         tempArg =
           if instance.tempStop != null
           then ["--gpu-temp-stop ${toString instance.tempStop}"]
@@ -103,7 +118,11 @@ in {
         fanArg =
           if instance.fanSpeed != null
           then ["--gpu-fan ${toString instance.fanSpeed}"]
-          else ["--gpu-fan-temp ${toString instance.fanTempStart}" "--gpu-fan-max-temp ${toString instance.fanTempMax}"];
+          else [
+            "--gpu-fan-target ${toString instance.fanTarget}"
+            "--gpu-fan-min ${toString instance.fanMin}"
+            "--gpu-fan-max ${toString instance.fanMax}"
+          ];
       in {
         name = "peakminer-${instance.name}";
         value = {
@@ -134,8 +153,8 @@ in {
                 --user ${instance.wallet} \
                 --devices ${instance.devices} \
                 --api-port ${toString instance.apiPort} \
-                ${lib.concatStringsSep " " powerArg} \
                 ${lib.concatStringsSep " " tempArg} \
+                ${lib.concatStringsSep " " fanArg} \
                 ${lib.concatStringsSep " " instance.extraArgs}
             '';
             Restart = "always";

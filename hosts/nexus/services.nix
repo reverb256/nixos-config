@@ -458,17 +458,18 @@ in {
     enable = true;
     instances = [
       {
-          name = "nexus-3060ti";
-          wallet = "krxXVNVMM7.nexus-3060ti";
-          pools = ["prl-us.kryptex.network:8048" "prl.kryptex.network:8048"];
-          devices = "0";
-          gpuId = 0;
-          powerLimit = 120;
-          tempStop = 72;
-          fanTempStart = 50;
-          fanTempMax = 75;
-          apiPort = 21551;
-        }
+        name = "nexus-3060ti";
+        wallet = "krxXVNVMM7.nexus-3060ti";
+        pools = ["stratum+ssl://prl-us.kryptex.network:8048" "stratum+ssl://prl.kryptex.network:8048"];
+        devices = "0";
+        gpuId = 0;
+        powerLimit = 120;
+        tempStop = 72;
+        fanTarget = 65;
+        fanMin = 30;
+        fanMax = 100;
+        apiPort = 21551;
+      }
     ];
   };
 }
