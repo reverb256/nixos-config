@@ -23,8 +23,14 @@ in {
           };
           pools = mkOption {
             type = types.listOf types.str;
-            default = ["stratum+ssl://prl-us.kryptex.network:8048" "stratum+ssl://prl.kryptex.network:8048"];
-            description = "List of pool URLs (failover order). Scheme REQUIRED (stratum+ssl:// or stratum+tcp://host:port).";
+            # Working default at 2026-06-29: plaintext (7048) + --legacy-auth.
+            # Per peakminer --help: -L/--legacy-auth forces `["user","password"]`
+            # array-form authorize; combined with TCP/7048 this is the Kryptex
+            # Stratum V1 path the cluster has actually been mining on since May.
+            # TLS on 8048 silently rejected shares (even with --legacy-auth) so
+            # we keep plaintext until Kryptex documents an SSL endpoint.
+            default = ["stratum+tcp://prl-us.kryptex.network:7048" "stratum+tcp://prl.kryptex.network:7048"];
+            description = "List of pool URLs (failover order). Scheme REQUIRED (stratum+tcp:// or stratum+ssl://host:port).";
           };
           devices = mkOption {
             type = types.str;
@@ -73,17 +79,14 @@ in {
           };
           extraArgs = mkOption {
             type = types.listOf types.str;
-            default = [];
-            # Empty default is intentional. Per `peakminer --help`, default auth
-            # dialect is AUTO-DETECTED (named-params {"wallet","worker","agent"}
-            # first, falling back to array-form on first authorize failure, then
-            # locked). Modern TLS-fronted Kryptex (stratum+ssl://...:8048) expects
-            # named-params; setting `-L/--legacy-auth` (which pins the obsolete
-            # array-form ["user","password"] and skips detection) results in
-            # `accepted_shares: 0` on that endpoint while auth still completes.
-            # Set --legacy-auth only as a per-instance override for legacy pools
-            # that hang on auto-detect.
-            description = "Extra peakminer CLI arguments. Most pools are happy with peakminer's auto-detect auth; only set --legacy-auth when a specific pool hangs on auto-detect.";
+            # Default Kryptex Stratum V1 path observed in production since 2026-05:
+            # plaintext on port 7048 + --legacy-auth forces the array-form authorize
+            # the pool actually accepts. Tested 2026-06-29: with TLS/8048 the miner
+            # either silently drops shares (with --legacy-auth) or fails to connect
+            # to the pool at all (without --legacy-auth). The TCP/7048 + --legacy-auth
+            # combination here is the only path observed producing accepted_shares > 0.
+            default = ["--legacy-auth"];
+            description = "Extra peakminer CLI arguments. Default includes --legacy-auth because the plaintext TCP/7048 Kryptex path can't complete auth without array-form authorize.";
           };
         };
       });
