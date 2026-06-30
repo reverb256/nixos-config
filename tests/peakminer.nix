@@ -1,8 +1,13 @@
 # PeakMiner module regression checks (static grep).
+# FIXME: gates below assume peakminer 1.0.x CLI compat. Re-audit on next minor
+#       (v2.x) bump:
+#         - noStaleFanTempFlag, noStaleFanMaxTempFlag
+#         - noStaleFanOptionStart, noStaleFanOptionMax
+#         - legacyAuthInDefault (see rationale below)
 #
 # Cheap tests that catch the most likely regressions to the NixOS module:
-#   - Stale fan flag names that don't exist in peakminer 1.0.8
-#     (`--gpu-fan-temp`, `--gpu-fan-max-temp`).
+#   - Stale fan flag names that don't exist in peakminer 1.0.11-rc2 CLI
+#     (`--gpu-fan-temp`, `--gpu-fan-max-temp`). Same flag set as v1.0.8.
 #   - Stale option names for the same (`fanTempStart`, `fanTempMax`).
 #   - Pool scheme assertion accidentally removed from the module.
 #   - `default = ["--legacy-auth"]` re-introduced into `extraArgs` (Kryptex
@@ -58,7 +63,7 @@ let
     '';
 in
 {
-  # ── Stale flag names that do not exist in peakminer 1.0.8 CLI ─────────────
+  # ── Stale flag names that do not exist in peakminer 1.0.11-rc2 CLI ─────────────
   noStaleFanTempFlag    = assertAbsent {
     name = "no-stale-fan-temp-flag";     pattern = "--gpu-fan-temp";     isRegex = false;
   };
@@ -89,21 +94,21 @@ in
   };
 
   # ── Kryptex Stratum V1 auth compatibility ────────────────────────────────
-  # Kryptex PRL pool negotiates Stratum V1 named-params authorize and peakminer
-  # 1.0.8 auto-detects this dialect. Adding --legacy-auth on this pool causes
-  # jobs to flow but share submission to silently stall -- the array-form
-  # authorize is accepted by the auth layer but shares never reach the share
-  # queue. This gate catches any future re-introduction of --legacy-auth into
-  # the `extraArgs` default as a regression. NOTE: only gates the default;
-  # per-instance `extraArgs = [\u0022--legacy-auth\u0022]` overrides slip through
-  # by design (they may be required for non-Kryptex pools). See
+  # The Kryptex PRL pool on TCP/7048 ONLY accepts shares from the array-form
+  # Stratum V1 authorize (`["user","password"]`), and peakminer 1.0.11-rc2's
+  # auto-detect picks the named-params form first which causes silent share
+  # rejection. --legacy-auth forces the working array form; removing it from
+  # the default regresses the whole cluster to 0 accepted_shares (verified
+  # 2026-06-29 against v1.0.11-rc2 + Kryptex). This gate catches accidental
+  # removal. NOTE: only gates the default; per-instance overrides slip
+  # through by design (they may be required for non-Kryptex pools). See
   # modules/services/peakminer.nix.
-  noLegacyAuthInDefault = assertAbsent {
-    name = "no-legacy-auth-in-default";
+  legacyAuthInDefault = assertPresent {
+    name = "legacy-auth-in-default";
     # Regex: tolerate whitespace around the `[` and `]` so `nixfmt` reformatting
     # (`default = ["--legacy-auth"];` → `default = [ "--legacy-auth" ];`) doesn't
     # silently break the gate. Still ignores ad-hoc mentions in doc strings or
-    # per-instance overrides where the flag could legitimately appear.
+    # per-instance overrides.
     pattern = ''default\s*=\s*\[\s*\"--legacy-auth\"\s*\]'';
     isRegex = true;
   };
