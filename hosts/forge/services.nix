@@ -79,7 +79,7 @@ in {
         {
           name = "4060-0";
           wallet = "krxXVNVMM7.forge-4060-0";
-          pools = ["stratum+ssl://prl-us.kryptex.network:8048" "stratum+ssl://prl.kryptex.network:8048"];
+          pools = ["stratum+tcp://prl-us.kryptex.network:7048" "stratum+tcp://prl.kryptex.network:7048"];
           devices = "0";
           gpuId = 0;
           powerLimit = 118;
@@ -92,7 +92,7 @@ in {
         {
           name = "4060-1";
           wallet = "krxXVNVMM7.forge-4060-1";
-          pools = ["stratum+ssl://prl-us.kryptex.network:8048" "stratum+ssl://prl.kryptex.network:8048"];
+          pools = ["stratum+tcp://prl-us.kryptex.network:7048" "stratum+tcp://prl.kryptex.network:7048"];
           devices = "1";
           gpuId = 1;
           powerLimit = 118;
