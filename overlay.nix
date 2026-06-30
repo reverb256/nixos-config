@@ -38,6 +38,7 @@ _final: prev:
   vllm-turboquant-env = inputs.vllm.packages.x86_64-linux.vllm-turboquant-env;
   llama-cpp-rocm = prev.callPackage ./packages/llama-cpp-rocm.nix { };
   llama-cpp-vulkan = prev.callPackage ./packages/llama-cpp-vulkan.nix { };
+  llama-cpp-vulkan-nocuda = prev.callPackage ./packages/llama-cpp-vulkan-nocuda.nix { };
   # TODO: broken placeholder rev/hash — re-enable when source is valid
   # llama-cpp-dflash = prev.callPackage ./packages/llama-cpp-dflash.nix {};
   # dflash-server = prev.callPackage ./packages/dflash-server.nix {};
