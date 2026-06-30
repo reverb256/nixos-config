@@ -9,7 +9,7 @@ in {
       (panels.row "📊 Mining Overview" false)
       (panels.statPanel {
         title = "Total Hashrate";
-        expr = "sum(mining_worker_hashrate)";
+        expr = "sum(mining_gpu_hashrate)";
         gridPos = {
           h = 6;
           w = 6;
@@ -21,7 +21,7 @@ in {
       })
       (panels.statPanel {
         title = "Active Workers";
-        expr = "count(mining_worker_hashrate > 0)";
+        expr = "count(mining_gpu_hashrate > 0)";
         gridPos = {
           h = 6;
           w = 6;
@@ -84,7 +84,7 @@ in {
       (panels.row "🖥️ Hashrate by Host" false)
       (panels.timeseries {
         title = "Hashrate by Host";
-        expr = "sum by (host) (mining_worker_hashrate)";
+        expr = "sum by (host) (mining_gpu_hashrate)";
         gridPos = {
           h = 10;
           w = 16;
@@ -96,7 +96,7 @@ in {
       })
       (panels.piechart {
         title = "Hashrate Distribution";
-        expr = "sum(mining_worker_hashrate) by (host)";
+        expr = "sum(mining_gpu_hashrate) by (host)";
         gridPos = {
           h = 10;
           w = 8;
@@ -108,7 +108,7 @@ in {
       (panels.row "🎮 GPU Analysis" true)
       (panels.timeseries {
         title = "Hashrate by GPU";
-        expr = "mining_worker_hashrate";
+        expr = "mining_gpu_hashrate";
         gridPos = {
           h = 10;
           w = 24;
@@ -122,7 +122,7 @@ in {
       (panels.row "⚡ Efficiency Metrics" true)
       (panels.timeseries {
         title = "Hashrate per Watt";
-        expr = "mining_worker_hashrate / nvidia_smi_power_draw_watts";
+        expr = "mining_gpu_hashrate / nvidia_smi_power_draw_watts";
         gridPos = {
           h = 8;
           w = 12;
@@ -192,12 +192,12 @@ in {
         };
         targets = [
           {
-            expr = "avg_over_time(sum(mining_worker_hashrate)[24h:1h])";
+            expr = "avg_over_time(sum(mining_gpu_hashrate)[24h:1h])";
             legendFormat = "24h Average";
             refId = "A";
           }
           {
-            expr = "sum(mining_worker_hashrate)";
+            expr = "sum(mining_gpu_hashrate)";
             legendFormat = "Current";
             refId = "B";
           }

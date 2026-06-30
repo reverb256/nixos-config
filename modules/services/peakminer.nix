@@ -19,7 +19,7 @@ in {
           };
           wallet = mkOption {
             type = types.str;
-            description = "Mining wallet with worker suffix";
+            description = "Wallet formatted as krxXVNVMM7.<name>";
           };
           pools = mkOption {
             type = types.listOf types.str;
