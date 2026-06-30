@@ -79,14 +79,16 @@ in {
           };
           extraArgs = mkOption {
             type = types.listOf types.str;
-            # Default Kryptex Stratum V1 path observed in production since 2026-05:
-            # plaintext on port 7048 + --legacy-auth forces the array-form authorize
-            # the pool actually accepts. Tested 2026-06-29: with TLS/8048 the miner
-            # either silently drops shares (with --legacy-auth) or fails to connect
-            # to the pool at all (without --legacy-auth). The TCP/7048 + --legacy-auth
-            # combination here is the only path observed producing accepted_shares > 0.
-            default = ["--legacy-auth"];
-            description = "Extra peakminer CLI arguments. Default includes --legacy-auth because the plaintext TCP/7048 Kryptex path can't complete auth without array-form authorize.";
+            # Kryptex PRL pool (prl.kryptex.network:7048) negotiates Stratum V1
+            # named-params authorize ({user,pass}) and peakminer 1.0.8 auto-detects
+            # this dialect up front. Empirically (cluster dashboard + Windows rig
+            # krash1.5, 2026-06-29): adding --legacy-auth on this pool causes jobs
+            # to flow but share submission to silently stall -- the array-form
+            # authorize payload is accepted by the auth layer but shares never
+            # reach the share queue. Default stays empty; do NOT add --legacy-auth
+            # without first testing whether the new pool accepts array-form.
+            default = [];
+            description = "Extra peakminer CLI arguments. Default empty: Kryptex PRL pool's Stratum V1 named-params authorize works without --legacy-auth, while enabling it silently blocks share submission.";
           };
         };
       });
