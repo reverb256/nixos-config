@@ -719,13 +719,11 @@ NMKEYFILE
     serviceConfig = {
       NoNewPrivileges = lib.mkForce false;
       ProtectSystem = lib.mkForce "yes";  # Allow /etc, /var writes
+      EnvironmentFile = [ "/run/secrets/hermes-env" ];  # Load API keys
     };
-  };
-
-  # PYTHONPATH includes venv-hermes (for sitecustomize.py runtime patches)
-  # and mnemosyne-venv (for the memory provider).
-  systemd.services.hermes-agent.environment = {
-    PYTHONPATH = lib.mkForce "/home/j_kro/.venv-hermes/lib/python3.12/site-packages:/var/lib/hermes/mnemosyne-venv/lib/python3.11/site-packages";
+    environment = {
+      PYTHONPATH = lib.mkForce "/home/j_kro/.venv-hermes/lib/python3.12/site-packages:/var/lib/hermes/mnemosyne-venv/lib/python3.11/site-packages";
+    };
   };
 
   # ── API Key Environment File ──
