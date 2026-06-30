@@ -191,6 +191,7 @@ in {
                 ${lib.concatStringsSep " " tempArg} \
                 ${lib.concatStringsSep " " fanArg} \
                 ${lib.optionalString instance.legacyAuth "--legacy-auth"} \
+                --worker ${instance.name} \
                 ${lib.concatStringsSep " " instance.extraArgs}
             '';
             Restart = "always";
