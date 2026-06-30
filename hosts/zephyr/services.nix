@@ -357,7 +357,6 @@ in {
           fanMin = 30;
           fanMax = 100;
           apiPort = 21553;
-          extraArgs = ["--worker" "zephyr-3060ti"];
         }
         {
           name = "zephyr-3090";
@@ -371,7 +370,6 @@ in {
           fanMin = 30;
           fanMax = 100;
           apiPort = 21554;
-          extraArgs = ["--worker" "zephyr-3090"];
         }
       ];
     };
