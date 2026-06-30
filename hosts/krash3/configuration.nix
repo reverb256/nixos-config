@@ -368,7 +368,6 @@ XMLEOF
       };
       "k3s-cluster-token" = {
         sopsFile = ../../secrets/k8s/k3s-cluster-token.yaml;
-        format = "binary";
         path = "/run/secrets/k3s-cluster-token";
         owner = "root";
         group = "root";
