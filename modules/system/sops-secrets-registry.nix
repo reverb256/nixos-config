@@ -164,6 +164,14 @@ in {
             owner = "j_kro";
             group = "users";
           };
+          "ai/telegram-bot-token" = {
+            sopsFile = "${inputs.self}/secrets/ai/telegram-bot-token.yaml";
+            path = "/run/secrets/telegram-bot-token";
+            format = "binary";
+            mode = "0444";
+            owner = "j_kro";
+            group = "users";
+          };
           "ai/xai-access-token" = {
             sopsFile = "${inputs.self}/secrets/ai/xai-access-token.yaml";
             path = "/run/secrets/xai-access-token";
