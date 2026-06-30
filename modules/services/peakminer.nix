@@ -32,8 +32,9 @@ in {
             # 2026-06-30: collapsed to single `prl` endpoint per operator directive
             # (TLS 8048 broken; fallback `prl-us` mirror removed). If Kryptex
             # ever exposes additional endpoints, list them here in failover order.
+            # --legacy-auth rationale lives in tests/peakminer.nix::legacyAuthInDefault.
             default = ["stratum+tcp://prl.kryptex.network:7048"];
-            description = "List of pool URLs (failover order). Scheme REQUIRED (stratum+tcp:// or stratum+ssl://host:port).";
+            description = "List of pool URLs. Currently single-primary; expand to a list if a failover is added. Scheme REQUIRED (stratum+tcp:// or stratum+ssl://host:port).";
           };
           devices = mkOption {
             type = types.str;
