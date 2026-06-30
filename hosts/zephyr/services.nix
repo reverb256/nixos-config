@@ -739,19 +739,17 @@ NMKEYFILE
   # Keys missing from env → provider auth fails → model discovery returns 4 models.
   # This was the root cause of the "only 4 models in picker" bug.
   system.activationScripts."hermes-agent-env" = lib.stringAfter ["setupSecrets"] ''
-    if [ ! -f /run/secrets/hermes-env ]; then
-      {
-        echo "ZAI_API_KEY=a2b0251f5f2442eab12462f9a7b71936.wRJ0cfd6EjRDRNa3"
-        echo "NVIDIA_API_KEY=$(cat /run/secrets/nvidia-api-key)"
-        echo "OPENCODE_GO_API_KEY=sk-twCkpGo4Y55IuzEBgXmLbqxEBgzuTVk99KrVAQUF1ygUykKhqh3ecmvQsFR05Dwf"
-        echo "OPENCODE_API_KEY=sk-twCkpGo4Y55IuzEBgXmLbqxEBgzuTVk99KrVAQUF1ygUykKhqh3ecmvQsFR05Dwf"
-        echo "KILO_API_KEY=$(cat /run/secrets/kilo-api-key)"
-        echo "TELEGRAM_BOT_TOKEN=$(cat /run/secrets/telegram-bot-token)"
-        echo "TELEGRAM_ALLOWED_USERS=1384182343"
-      } > /run/secrets/hermes-env
-      chmod 0440 /run/secrets/hermes-env
-      chown j_kro:users /run/secrets/hermes-env
-    fi
+    {
+      echo "ZAI_API_KEY=a2b0251f5f2442eab12462f9a7b71936.wRJ0cfd6EjRDRNa3"
+      echo "NVIDIA_API_KEY=$(cat /run/secrets/nvidia-api-key)"
+      echo "OPENCODE_GO_API_KEY=sk-twCkpGo4Y55IuzEBgXmLbqxEBgzuTVk99KrVAQUF1ygUykKhqh3ecmvQsFR05Dwf"
+      echo "OPENCODE_API_KEY=sk-twCkpGo4Y55IuzEBgXmLbqxEBgzuTVk99KrVAQUF1ygUykKhqh3ecmvQsFR05Dwf"
+      echo "KILO_API_KEY=$(cat /run/secrets/kilo-api-key)"
+      echo "TELEGRAM_BOT_TOKEN=$(cat /run/secrets/telegram-bot-token)"
+      echo "TELEGRAM_ALLOWED_USERS=1384182343"
+    } > /run/secrets/hermes-env
+    chmod 0440 /run/secrets/hermes-env
+    chown j_kro:users /run/secrets/hermes-env
   '';
 
   systemd.user.services.hermes-gateway = {
