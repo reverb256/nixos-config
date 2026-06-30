@@ -124,6 +124,23 @@ in {
     "d /data/pi 0775 j_kro j_kro -"
   ];
 
+  # ── API Key Environment File ──
+  # Generate /run/secrets/hermes-env from individual sops secrets that decrypt correctly.
+  # The old hermes-env.json was encrypted with wrong age key — sops-nix couldn't decrypt it.
+  system.activationScripts."hermes-agent-env" = lib.stringAfter ["setupSecrets"] ''
+    if [ ! -f /run/secrets/hermes-env ]; then
+      {
+        echo "ZAI_API_KEY=$(cat /run/secrets/zai-api-key)"
+        echo "NVIDIA_API_KEY=$(cat /run/secrets/nvidia-api-key)"
+        echo "OPENCODE_GO_API_KEY=$(cat /run/secrets/opencode-go-api-key)"
+        echo "OPENCODE_API_KEY=$(cat /run/secrets/opencode-api-key)"
+        echo "KILO_API_KEY=$(cat /run/secrets/kilo-api-key)"
+      } > /run/secrets/hermes-env
+      chmod 0440 /run/secrets/hermes-env
+      chown j_kro:users /run/secrets/hermes-env
+    fi
+  '';
+
   # Cluster DNS configuration
   networking.cluster.dns.enable = true;
 
