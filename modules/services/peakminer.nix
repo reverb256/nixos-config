@@ -73,8 +73,17 @@ in {
           };
           extraArgs = mkOption {
             type = types.listOf types.str;
-            default = ["--legacy-auth"];
-            description = "Extra peakminer CLI arguments. Default includes --legacy-auth (Kryptex pool expects standard Stratum V1 array authorize).";
+            default = [];
+            # Why empty default: peakminer --help says auto-detect "named params
+            # {wallet,worker,agent} first, falling back to array form on first
+            # authorize failure". Kryptex's TLS endpoint (prl-us.kryptex.network:8048)
+            # accepts named-param auth; the older plaintext endpoint on 7048 with
+            # --legacy-auth was the previous setup but is now TLS-fronted. Empirically
+            # (2026-06-29), --legacy-auth on the SSL port results in `accepted_shares: 0`
+            # forever — auth handshake completes ("new job" arrives) but pool silently
+            # rejects our shares. Override here per-host if a particular pool needs
+            # the V1 array auth form pinned.
+            description = "Extra peakminer CLI arguments. Most pools are happy with peakminer's auto-detect auth; only set --legacy-auth when a specific pool hangs on auto-detect.";
           };
         };
       });
