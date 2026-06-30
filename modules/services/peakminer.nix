@@ -29,7 +29,10 @@ in {
             # Stratum V1 path the cluster has actually been mining on since May.
             # TLS on 8048 silently rejected shares (even with --legacy-auth) so
             # we keep plaintext until Kryptex documents an SSL endpoint.
-            default = ["stratum+tcp://prl-us.kryptex.network:7048" "stratum+tcp://prl.kryptex.network:7048"];
+            # 2026-06-30: collapsed to single `prl` endpoint per operator directive
+            # (TLS 8048 broken; fallback `prl-us` mirror removed). If Kryptex
+            # ever exposes additional endpoints, list them here in failover order.
+            default = ["stratum+tcp://prl.kryptex.network:7048"];
             description = "List of pool URLs (failover order). Scheme REQUIRED (stratum+tcp:// or stratum+ssl://host:port).";
           };
           devices = mkOption {

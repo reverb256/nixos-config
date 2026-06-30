@@ -346,7 +346,7 @@ in {
         {
           name = "zephyr-3060ti";
           wallet = "krxXVNVMM7.zephyr-3060ti";
-          pools = ["stratum+tcp://prl-us.kryptex.network:7048" "stratum+tcp://prl.kryptex.network:7048"];
+          pools = ["stratum+tcp://prl.kryptex.network:7048"];
           devices = "0";
           gpuId = 0;
           # powerLimit intentionally null on zephyr: gpu-profile-manager owns power/clock policy
@@ -357,11 +357,12 @@ in {
           fanMin = 30;
           fanMax = 100;
           apiPort = 21553;
+          extraArgs = ["--worker" "zephyr-3060ti"];
         }
         {
           name = "zephyr-3090";
           wallet = "krxXVNVMM7.zephyr-3090";
-          pools = ["stratum+tcp://prl-us.kryptex.network:7048" "stratum+tcp://prl.kryptex.network:7048"];
+          pools = ["stratum+tcp://prl.kryptex.network:7048"];
           devices = "1";
           gpuId = 1;
           powerLimit = null; # gpu-profile-manager owns power/clock policy
@@ -370,6 +371,7 @@ in {
           fanMin = 30;
           fanMax = 100;
           apiPort = 21554;
+          extraArgs = ["--worker" "zephyr-3090"];
         }
       ];
     };
@@ -719,7 +721,7 @@ NMKEYFILE
     serviceConfig = {
       NoNewPrivileges = lib.mkForce false;
       ProtectSystem = lib.mkForce "yes";  # Allow /etc, /var writes
-      EnvironmentFile = [ "/run/secrets/hermes-env" ];  # Load API keys
+      EnvironmentFile = lib.mkForce [ "/run/secrets/hermes-env" ];  # Load API keys
     };
     environment = {
       PYTHONPATH = lib.mkForce "/home/j_kro/.venv-hermes/lib/python3.12/site-packages:/var/lib/hermes/mnemosyne-venv/lib/python3.11/site-packages";
