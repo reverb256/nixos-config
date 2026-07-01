@@ -1,0 +1,154 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: searxng-config
+  namespace: search
+  labels:
+    app: searxng
+data:
+  settings.yml: |
+    # SearXNG Configuration for Kubernetes
+    # Based on docker-compose/searxng-cluster/config/searxng_settings.yml
+
+    use_default_settings: true
+
+    general:
+      debug: false
+      instance_name: "Zephyr AI Search"
+      contact:
+        mail: "admin@local"
+
+    # Enable comprehensive search formats for AI consumption
+    search:
+      safe_search: 0
+      autocomplete: ''
+      autocomplete_min: 4
+      default_lang: "auto"
+      formats:
+        - html
+        - json
+        - csv
+        - rss
+
+    # Server performance and security
+    server:
+      # Is overwritten by ${SEARXNG_SECRET} environment variable
+      secret_key: "@SEARXNG_SECRET_KEY@"
+
+      # Disable rate limiting (as per NixOS module config)
+      limiter: false
+      image_proxy: true
+
+      # Performance settings
+      method: "GET"
+      port: 7777
+      bind_address: "0.0.0.0"
+      default_http_headers:
+        X-Content-Type-Options: "nosniff"
+        X-Frame-Options: "SAMEORIGIN"
+        X-XSS-Protection: "1; mode=block"
+
+    # ============================================================================
+    # OUTGOING REQUEST CONFIGURATION (Fixes #4 & #5: Timeouts & Retries)
+    # ============================================================================
+
+    outgoing:
+      # Connection pooling for high concurrency
+      pool_connections: 100
+      pool_maxsize: 100
+      keepalive_expiry: 5.0
+
+      # Enable HTTP/2 for better performance
+      enable_http2: true
+
+      # Retry configuration (Fix #5: Add retries for 403/429/5xx)
+      retries: 2
+      retry_on_http_error: [403, 429, 500, 502, 503, 504]
+
+      # Timeouts (Fix #4: Increase from 3s default to 12s)
+      request_timeout: 12.0
+      max_request_timeout: 18.0
+
+      # User agent
+      useragent: "Mozilla/5.0 (compatible; SearXNG-K8s/1.0; +https://github.com/searxng/searxng)"
+
+    # ============================================================================
+    # RATE LIMITING & BOT PROTECTION (Fix #6: limiter.toml will be added separately)
+    # ============================================================================
+
+    limiter: false
+    botdetection:
+      ip_limit:
+        enabled: false
+      link_token: false
+
+    # ============================================================================
+    # UI CONFIGURATION
+    # ============================================================================
+
+    ui:
+      theme_args:
+        simple_style: "auto"
+      results_on_new_tab: false
+      infinite_scroll: false
+      search_url: "/"
+      image_proxy: true
+      center_alignment: true
+      static_use_hash: true
+
+    # ============================================================================
+    # BRAND CONFIGURATION - Fixed schema
+    # ============================================================================
+
+    brand:
+      new_issue_url: https://github.com/searxng/searxng/issues/new
+      docs_url: https://docs.searxng.org
+      public_instances: https://searx.space
+      wiki_url: https://github.com/searxng/searxng/wiki
+      issue_url: https://github.com/searxng/searxng/issues
+
+    # ============================================================================
+    # ENGINE CONFIGURATION - Comprehensive engine list
+    # ============================================================================
+
+    use_default_query: true
+
+    engines_drop:
+      - "fds"
+      - "ytb"
+
+    categories:
+      general:
+        - google
+        - brave
+        - duckduckgo
+        - bing
+        - startpage
+      science:
+        - google_scholar
+        - semantic_scholar
+        - arxiv
+        - wikipedia
+      it:
+        - github
+        - stackoverflow
+        - reddit
+        - docker
+      videos:
+        - youtube
+        - vimeo
+        - peertube
+      images:
+        - google images
+        - bing images
+        - wikimedia
+        - flickr
+      music:
+        - soundcloud
+      files:
+        - kickass
+        - piratebay
+      social:
+        - reddit
+        - twitter
+        - mastodon

@@ -44,9 +44,9 @@
         "4060" = 95;
       };
       mining = {
-        "3060" = 120;
-        "3090" = 250;
-        "4060" = 110;
+        "3060" = 100; # Tuned
+        "3090" = 150; # Balanced
+        "4060" = 110; # Balanced
       };
       idle = {
         "3060" = 200;
@@ -62,10 +62,7 @@
     SUBSYSTEM=="backlight", KERNEL=="intel_backlight", MODE="0666", RUN+="${pkgs.coreutils}/bin/chown j_kro:j_kro %k/brightness"
   '';
 
-  hardware.nvidia.open = lib.mkForce false;
-
   hardware = {
-
     profiles = {
       corsair.enable = true;
     };

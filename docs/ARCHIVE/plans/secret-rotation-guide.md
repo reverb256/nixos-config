@@ -180,6 +180,10 @@ kubectl rollout restart -n ai-inference statefulset/frostbite-postgres
 
 | Field | Value |
 |-------|-------|
+| **File** | `kubernetes/modules/kagent.nix` |
+| **Agenix path** | `secrets/kagent-postgres.age` |
+| **Agenix key** | `kagent-postgres` |
+| **K8s Secret** | `kagent/kagent-postgresql` |
 | **Field** | `POSTGRES_PASSWORD` |
 
 ### Rotation steps
@@ -189,13 +193,17 @@ kubectl rollout restart -n ai-inference statefulset/frostbite-postgres
 NEW_PASS=$(openssl rand -base64 24)
 
 # 2. Encrypt with agenix
+echo -n "$NEW_PASS" | agenix -e secrets/kagent-postgres.age
 
 # 3. Deploy and apply
 just deploy
 kubectl-apply-k8s-secrets
 
 # 4. Restart postgres
+kubectl rollout restart -n kagent statefulset/kagent-postgresql
 
+# 5. Restart kagent controller
+kubectl rollout restart -n kagent deployment/kagent-controller
 ```
 
 ### How to generate
@@ -256,6 +264,7 @@ kubectl rollout restart -n haven deployment/haven
 | 2 | `mission-control-oidc` | `secrets/mission-control-oidc.age` | `orchestration` | `mission-control-oidc` | `client-id`, `cookie-secret` |
 | 3 | `openwebui-oidc-client-secret` | `secrets/openwebui-oidc-client-secret.age` | `ai-inference` | `open-webui-secrets` | `oauth-client-secret` |
 | 4 | `frostbite-postgres` | `secrets/frostbite-postgres.age` | `ai-inference` | `frostbite-secrets` | `postgres-password` |
+| 5 | `kagent-postgres` | `secrets/kagent-postgres.age` | `kagent` | `kagent-postgresql` | `POSTGRES_PASSWORD` |
 | 6 | `haven-oidc` | `secrets/haven-oidc.age` | `haven` | `haven-oidc` | `client-id`, `cookie-secret` |
 
 ## Apply After Rotation

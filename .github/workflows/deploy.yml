@@ -1,10 +1,6 @@
 ---
 name: Deploy
 
-concurrency:
-  group: deploy-${{ github.event.inputs.target || 'all' }}-${{ github.ref_name }}
-  cancel-in-progress: false
-
 on:
   workflow_dispatch:
     inputs:
@@ -19,14 +15,9 @@ on:
           - nexus
           - forge
           - sentry
-  push:
-    branches: [prod]
 
 permissions:
   contents: read
-
-env:
-  FLAKE_DIR: ${{ github.workspace }}
 
 jobs:
   deploy:
@@ -34,45 +25,17 @@ jobs:
     runs-on: [self-hosted, nixos]
     steps:
       - name: Checkout
+        # pin:actions/checkout@v4
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-        with:
-          fetch-depth: 0
-
-      - name: Determine target
-        id: target
-        run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            echo "target=all" >> $GITHUB_OUTPUT
-          else
-            echo "target=${{ github.event.inputs.target }}" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Mark runner offline (zephyr deploy only)
-        if: steps.target.outputs.target == 'zephyr' || steps.target.outputs.target == 'all'
-        run: |
-          RUNNER_NAME=$(hostname)-runner
-          echo "Runner: $RUNNER_NAME — attempting to de-register via API..."
-          # De-register so new jobs route to nexus runner during zephyr reboot
-          if command -v gh >/dev/null 2>&1 && [ -n "${{ secrets.GITHUB_TOKEN }}" ]; then
-            RUNNER_ID=$(gh api repos/${{ github.repository }}/actions/runners               --jq '.runners[] | select(.name == env.RUNNER_NAME) | .id' 2>/dev/null || echo '')
-            if [ -n "$RUNNER_ID" ]; then
-              gh api -X DELETE "repos/${{ github.repository }}/actions/runners/$RUNNER_ID" >/dev/null 2>&1 || true
-              echo "De-registered runner $RUNNER_NAME (ID: $RUNNER_ID)"
-            else
-              echo "Runner not found via API — will reconnect after reboot"
-            fi
-          else
-            echo "gh CLI not available — runner will reconnect after reboot"
-          fi
 
       - name: Pre-build validation
         run: |
-          cd "$FLAKE_DIR"
+          cd /etc/nixos
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Pre-build: verifying configs build before deploying..."
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-          TARGET="${{ steps.target.outputs.target }}"
+          TARGET="${{ github.event.inputs.target }}"
           if [ "$TARGET" = "all" ]; then
             HOSTS="zephyr nexus forge sentry"
           else
@@ -81,7 +44,7 @@ jobs:
 
           for host in $HOSTS; do
             echo "Building $host..."
-            if ! nixos-rebuild build --flake "$FLAKE_DIR#$host" 2>&1 | tee /tmp/prebuild-$host.log; then
+            if ! nixos-rebuild build --flake .#$host 2>&1 | tee /tmp/prebuild-$host.log; then
               echo ""
               echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
               echo "ERROR: Build failed for $host -- aborting deploy"
@@ -96,130 +59,95 @@ jobs:
           echo "All targets build successfully. Proceeding with deploy..."
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-      - name: Cordon K8s nodes
-        run: |
-          TARGET="${{ steps.target.outputs.target }}"
-          if [ "$TARGET" = "all" ]; then
-            NODES="zephyr nexus forge sentry"
-          else
-            NODES="$TARGET"
-          fi
-
-          for node in $NODES; do
-            echo "Cordoning K8s node: $node..."
-            if command -v kubectl &>/dev/null && kubectl get node "$node" &>/dev/null 2>&1; then
-              kubectl cordon "$node" 2>&1 || echo "Warning: could not cordon $node"
-            else
-              echo "  (kubectl not available or node not in cluster, skipping)"
-            fi
-          done
-
       - name: Pause mining
         run: |
-          if systemctl is-active --quiet mining.target 2>/dev/null; then
-            sudo systemctl stop mining.target
-            echo "✓ Mining paused"
-          else
-            echo "Mining not active, skipping"
-          fi
+          sudo systemctl stop mining.target
 
       - name: Deploy to hosts
         run: |
-          cd "$FLAKE_DIR"
+          cd /etc/nixos
 
+          # Signal GPU scheduler (for all GPU nodes: zephyr, nexus, forge, sentry)
           signal_gpu_scheduler() {
             local state=$1
             local host=$2
-            if [ "$host" = "zephyr" ]; then
-              echo "$state" | sudo tee /run/gpu-scheduler/ai-state > /dev/null 2>&1 || true
-            else
-              ssh -o ConnectTimeout=5 "$host" "echo '$state' | sudo tee /run/gpu-scheduler/ai-state > /dev/null" 2>/dev/null || true
+            if [ "$host" = "zephyr" ] || [ "$host" = "nexus" ] || [ "$host" = "forge" ] || [ "$host" = "sentry" ]; then
+              if [ "$host" = "zephyr" ]; then
+                echo "$state" | sudo tee /run/gpu-scheduler/ai-state > /dev/null
+              else
+                ssh $host "echo '$state' | sudo tee /run/gpu-scheduler/ai-state > /dev/null"
+              fi
             fi
           }
 
-          TARGET="${{ steps.target.outputs.target }}"
-          if [ "$TARGET" != "all" ]; then
-            COLMENA_TARGET="--on $TARGET"
+          # Build Colmena command with target selection
+          if [ "${{ github.event.inputs.target }}" != "all" ] && [ -n "${{ github.event.inputs.target }}" ]; then
+            COLMENA_TARGET="--on ${{ github.event.inputs.target }}"
           else
             COLMENA_TARGET=""
           fi
 
+          # Signal deployment start for GPU nodes
           if [ -z "$COLMENA_TARGET" ]; then
             for host in zephyr nexus forge sentry; do
               signal_gpu_scheduler "AI_START" "$host"
             done
           else
-            signal_gpu_scheduler "AI_START" "$TARGET"
+            signal_gpu_scheduler "AI_START" "${{ github.event.inputs.target }}"
           fi
 
+          # Deploy using Colmena
           if ! nix run .#apps.x86_64-linux.colmena -- apply $COLMENA_TARGET 2>&1 | tee /tmp/deploy-colmena.log; then
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "ERROR: Colmena deployment failed, attempting rollback..."
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
+            # Rollback to previous generation
             if [ -z "$COLMENA_TARGET" ]; then
               nix run .#apps.x86_64-linux.colmena -- rollback --all 2>&1 | tee -a /tmp/deploy-colmena.log
             else
-              nix run .#apps.x86_64-linux.colmena -- rollback --on "$TARGET" 2>&1 | tee -a /tmp/deploy-colmena.log
+              nix run .#apps.x86_64-linux.colmena -- rollback --on "${{ github.event.inputs.target }}" 2>&1 | tee -a /tmp/deploy-colmena.log
             fi
 
+            # Reset GPU scheduler state after rollback
             if [ -z "$COLMENA_TARGET" ]; then
               for host in zephyr nexus forge sentry; do
                 signal_gpu_scheduler "" "$host"
               done
             else
-              signal_gpu_scheduler "" "$TARGET"
+              signal_gpu_scheduler "" "${{ github.event.inputs.target }}"
             fi
 
             cat /tmp/deploy-colmena.log
             exit 1
           fi
 
+          # Signal deployment complete for GPU nodes
           if [ -z "$COLMENA_TARGET" ]; then
             for host in zephyr nexus forge sentry; do
               signal_gpu_scheduler "" "$host"
             done
           else
-            signal_gpu_scheduler "" "$TARGET"
+            signal_gpu_scheduler "" "${{ github.event.inputs.target }}"
           fi
 
           echo "✓ Successfully deployed using Colmena"
 
-      - name: Uncordon K8s nodes
-        if: always()
-        run: |
-          TARGET="${{ steps.target.outputs.target }}"
-          if [ "$TARGET" = "all" ]; then
-            NODES="zephyr nexus forge sentry"
-          else
-            NODES="$TARGET"
-          fi
-
-          for node in $NODES; do
-            echo "Uncordoning K8s node: $node..."
-            if command -v kubectl &>/dev/null && kubectl get node "$node" &>/dev/null 2>&1; then
-              kubectl uncordon "$node" 2>&1 || echo "Warning: could not uncordon $node"
-            else
-              echo "  (kubectl not available or node not in cluster, skipping)"
-            fi
-          done
-
       - name: Resume mining
         if: always()
         run: |
-          if systemctl is-active --quiet mining.target 2>/dev/null; then
-            echo "Mining already active, skipping restart"
-          else
-            sudo systemctl start mining.target
-            sleep 2
-            if ! sudo systemctl is-active mining.target >/dev/null 2>&1; then
-              echo "WARNING: mining.target failed to start"
-              sudo systemctl status mining.target || true
-              exit 1
-            fi
-            echo "✓ Mining services restarted successfully"
+          sudo systemctl start mining.target
+
+          # Verify mining services actually restarted
+          if ! sudo systemctl is-active mining.target >/dev/null 2>&1; then
+            echo "WARNING: mining.target failed to start"
+            echo "Checking individual services..."
+            sudo systemctl status mining.target || true
+            exit 1
           fi
+
+          echo "✓ Mining services restarted successfully"
 
       - name: Health check
         run: |
@@ -227,42 +155,29 @@ jobs:
           echo "Running health checks..."
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-          TARGET="${{ steps.target.outputs.target }}"
+          TARGET="${{ github.event.inputs.target }}"
           if [ "$TARGET" = "all" ]; then
             HOSTS="zephyr nexus forge sentry"
           else
             HOSTS="$TARGET"
           fi
 
-          PASS=0
-          FAIL=0
           for host in $HOSTS; do
             echo "Checking $host..."
-            HEALTH_URL="http://127.0.0.1:8080/health"
             if [ "$host" = "zephyr" ]; then
-              if curl -sf "$HEALTH_URL" >/dev/null 2>&1; then
-                echo "  ✓ $host health check passed"
-                PASS=$((PASS + 1))
+              if curl -f http://127.0.0.1:8080/health 2>/dev/null; then
+                echo "✓ $host health check passed"
               else
-                echo "  ⚠ $host health check failed"
-                FAIL=$((FAIL + 1))
+                echo "⚠ $host health check failed (no endpoint configured)"
               fi
             else
-              if ssh -o ConnectTimeout=10 "$host" "curl -sf http://127.0.0.1:8080/health" >/dev/null 2>&1; then
-                echo "  ✓ $host health check passed"
-                PASS=$((PASS + 1))
+              if ssh $host "curl -f http://127.0.0.1:8080/health" 2>/dev/null; then
+                echo "✓ $host health check passed"
               else
-                echo "  ⚠ $host health check failed"
-                FAIL=$((FAIL + 1))
+                echo "⚠ $host health check failed (no endpoint configured)"
               fi
             fi
           done
-
-          echo ""
-          echo "Health: $PASS passed, $FAIL failed"
-          if [ "$FAIL" -gt 0 ]; then
-            echo "Some health checks failed — investigate manually"
-          fi
 
       - name: Notify on failure
         if: failure()
@@ -270,6 +185,4 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "DEPLOYMENT FAILED"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "Target: ${{ steps.target.outputs.target }}"
-          echo "SHA: ${{ github.sha }}"
           echo "Check the workflow logs for details"

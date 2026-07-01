@@ -5,8 +5,6 @@
   inputs,
   ...
 }: {
-  environment.sessionVariables.TZ = "America/Winnipeg";
-
   imports = [
     inputs.disko.nixosModules.disko
     ./monitoring.nix
@@ -39,7 +37,7 @@
     enable = true;
     hostName = "sentry";
     ipAddress = config.networking.cluster.hosts.sentry.ip;
-    interfaceName = lib.mkForce "eth0";
+    interfaceName = "eth0";
     wireless.enable = false;
     unbound.enable = true;
     unbound.listenAddress = config.networking.cluster.hosts.sentry.ip;
@@ -85,8 +83,6 @@
       Group = "users";
       Type = "oneshot";
       WorkingDirectory = "/home/j_kro/projects/maplespike";
-      # Skip gracefully if the script hasn't been cloned yet
-      ConditionPathExists = "/home/j_kro/projects/maplespike/scripts/kanban-execute.sh";
     };
   };
   systemd.timers.kanban-execute = {
@@ -185,7 +181,7 @@
       chmod 000 /sys/power/state /sys/power/mem_sleep
     '';
   };
-  boot.kernelParams = lib.mkAfter [ "loglevel=4" "amdgpu.lockup_timeout=-1" ];
+  boot.kernelParams = lib.mkAfter [ "loglevel=4" ];
   # Override CachyOS kernel loglevel=0 to capture crash diagnostics
 
 }

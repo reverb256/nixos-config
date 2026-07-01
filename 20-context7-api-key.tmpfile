@@ -1,2 +1,0 @@
-# Context7 API key temporary file - managed by sops-nix
-f -mode 0640 -name api-key -owner j_kro -group hermes -link /run/secrets/context7-api-key
