@@ -86,6 +86,7 @@ in {
   monitoring = mkManifest "monitoring" [
     ./modules/monitoring.nix
     ./modules/monitoring-dashboards.nix
+    ./modules/llama-servers.nix
   ];
 
   ai-inference = mkManifest "ai-inference" [
@@ -125,8 +126,9 @@ in {
     ./modules/mission-control.nix
     ./modules/mcp-servers.nix
     ./modules/glance.nix
-      ./modules/hermes-workspace.nix
+    ./modules/hermes-workspace.nix
     ./modules/tailscale.nix
+    ./modules/llama-servers.nix
   ];
 
   miners-csi = mkManifest "miners-csi" [
