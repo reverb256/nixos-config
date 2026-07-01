@@ -22,14 +22,13 @@
 
   inputs.stylix.nixosModules.default
 
-  ./modules/default.nix
+  ./modules/services/peakminer.nix
 
-  ./modules/services/hermes-agent-lock-fix.nix
+  ./modules/default.nix
 
   {
     nixpkgs.overlays = [
       inputs.niri.overlays.niri
-      inputs.hermes-agent.overlays.default
       inputs.llm-agents.overlays.default
       self.overlays.default
     ];
