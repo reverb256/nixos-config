@@ -7,10 +7,10 @@
   currentHost = config.networking.hostName or "unknown";
 in {
   nix = {
-    distributedBuilds = lib.mkDefault true;
+    distributedBuilds = lib.mkDefault (currentHost != "zephyr");
 
     settings = {
-      builders = lib.mkDefault "@/etc/nix/machines";
+      builders = lib.mkIf (currentHost != "zephyr") (lib.mkDefault "@/etc/nix/machines");
       builders-use-substitutes = true;
       require-sigs = lib.mkForce false;
       trusted-users = lib.mkForce [
@@ -67,7 +67,7 @@ in {
 
       cores = lib.mkForce (
         if currentHost == "zephyr"
-        then 16
+        then 2 # minimal for coordination
         else if currentHost == "nexus"
         then 12
         else if currentHost == "sentry"
@@ -113,19 +113,13 @@ in {
   };
 
   # ── Post-build hook: auto-push to nexus cache ──
-  # ── Post-build hook: auto-push to nexus cache ──
-
-
-  # ── Post-build hook: auto-push to nexus cache ──
-  # ── Post-build hook: auto-push to nexus cache ──
-
 
   # ── Post-build hook: auto-push completed builds to nexus cache ──
   nix.settings.post-build-hook = lib.mkIf (currentHost != "krash3") (pkgs.writeShellScript "upload-to-cache" ''
   if [ -n "$OUT_PATHS" ] && [ "$BUILD_STATUS" = "success" ]; then
     exec nice -n 19 nix copy --to ssh://j_kro@nexus --substitute-on-destination $OUT_PATHS 2>/dev/null
   fi
-'');
+ '');
 
   programs.ssh.startAgent = true;
 
@@ -155,7 +149,7 @@ in {
           ConnectTimeout 30
       '';
 
-      "nix/machines".text = let
+      "nix/machines".text = lib.mkIf (currentHost != "zephyr") (let
         allMachines = [
           {
             hostName = "zephyr";
@@ -163,11 +157,8 @@ in {
             sshUser = "j_kro";
             sshKey = "~/.ssh/id_ed25519";
             maxJobs = 0;
-            speedFactor = 4;
-            supportedFeatures = [
-              "big-parallel"
-              "kvm"
-            ];
+            speedFactor = 1; # deprioritize zephyr
+            supportedFeatures = [];
             mandatoryFeatures = [];
           }
           {
@@ -176,7 +167,7 @@ in {
             sshUser = "j_kro";
             sshKey = "~/.ssh/id_ed25519";
             maxJobs = 12;
-            speedFactor = 5;
+            speedFactor = 10; # prioritize nexus
             supportedFeatures = [
               "big-parallel"
               "kvm"
@@ -189,7 +180,7 @@ in {
             sshUser = "j_kro";
             sshKey = "~/.ssh/id_ed25519";
             maxJobs = 8;
-            speedFactor = 3;
+            speedFactor = 6;
             supportedFeatures = ["big-parallel"];
             mandatoryFeatures = [];
           }
@@ -199,7 +190,7 @@ in {
             sshUser = "j_kro";
             sshKey = "~/.ssh/id_ed25519";
             maxJobs = 4;
-            speedFactor = 2;
+            speedFactor = 4;
             supportedFeatures = ["big-parallel"];
             mandatoryFeatures = [];
           }
@@ -209,7 +200,7 @@ in {
             sshUser = "j_kro";
             sshKey = "~/.ssh/id_ed25519";
             maxJobs = 3;
-            speedFactor = 1;
+            speedFactor = 2;
             supportedFeatures = ["big-parallel"];
             mandatoryFeatures = [];
           }
@@ -217,7 +208,7 @@ in {
         machines = builtins.filter (m: m.hostName != currentHost) allMachines;
         formatMachine = m: with builtins;
           concatStringsSep " " [
-            ("ssh-ng:" + "//${m.sshUser}@${m.hostName}")
+            ("ssh-ng://" + "${m.sshUser}@${m.hostName}")
             m.system
             (if m.sshKey != null then m.sshKey else "-")
             (toString m.maxJobs)
@@ -226,7 +217,7 @@ in {
             (concatStringsSep "," m.mandatoryFeatures)
           ];
       in
-        lib.concatStringsSep "\n" (map formatMachine machines) + "\n";
+        lib.concatStringsSep "\n" (map formatMachine machines) + "\n");
     };
 
     variables = {
