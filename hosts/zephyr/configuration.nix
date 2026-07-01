@@ -17,6 +17,7 @@ in {
     ../../modules/services/k3s-cluster.nix
     ../../modules/services/keepalived-vip.nix
     ../../modules/system/systemd-user-timeout.nix
+    ../../modules/system/nix-config.nix
     ../../modules/services/hermes-hardening.nix
 
     ../../modules/default.nix
