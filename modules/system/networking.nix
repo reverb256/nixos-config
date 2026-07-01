@@ -96,13 +96,14 @@
       '';
     };
 
-    timesyncd = {
-      enable = lib.mkDefault true;
+    chrony = {
+      enable = true;
       servers = [
         "time.cloudflare.com"
         "time.google.com"
       ];
     };
+    timesyncd.enable = lib.mkForce false;
 
     tailscale.enable = true;
   };
