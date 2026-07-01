@@ -103,6 +103,19 @@ in {
     };
   };
 
+  # ── k3s token fetch ── fetches token from control plane
+  systemd.services.k3s-token-fetch = {
+    wantedBy = [ "multi-user.target" ];
+    before = [ "k3s.service" ];
+    serviceConfig.Type = "oneshot";
+    serviceConfig.RemainAfterExit = true;
+    path = [ pkgs.openssh pkgs.coreutils ];
+    script = ''
+      ssh -o StrictHostKeyChecking=accept-new j_kro@nexus cat /persistent/etc/k3s-cluster-token > /run/secrets/k3s-cluster-token
+      chmod 600 /run/secrets/k3s-cluster-token
+    '';
+  };
+
   # ── VM autostart ──
   systemd.services.libvirt-autostart-windows = {
     wantedBy = [ "multi-user.target" ];
