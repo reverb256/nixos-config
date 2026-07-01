@@ -85,6 +85,8 @@
       Group = "users";
       Type = "oneshot";
       WorkingDirectory = "/home/j_kro/projects/maplespike";
+      # Skip gracefully if the script hasn't been cloned yet
+      ConditionPathExists = "/home/j_kro/projects/maplespike/scripts/kanban-execute.sh";
     };
   };
   systemd.timers.kanban-execute = {

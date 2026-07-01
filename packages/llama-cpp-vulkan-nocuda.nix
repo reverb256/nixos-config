@@ -9,7 +9,7 @@ stdenv.mkDerivation (finalAttrs: {
     owner = "ggerganov";
     repo = "llama.cpp";
     rev = "b9048";
-    sha256 = "sha256-6z+p9vJxQml4cKQwHh3vANlQ8QZkLxqKFKyW3eQ2Xjw=";
+    sha256 = "sha256-fveIwM5q/PN3bJAS+T6EmIobSsTHw7e2Q9DWIwunS4Q=";
   };
 
   nativeBuildInputs = [ cmake pkg-config python3 ];
