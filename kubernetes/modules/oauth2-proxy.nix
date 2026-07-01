@@ -41,8 +41,8 @@ in {
       metadata.labels = managed;
       type = "Opaque";
       stringData = {
-        "client-secret" = builtins.readFile "/run/secrets/central-auth-client-secret";
-        "cookie-secret" = builtins.readFile "/run/secrets/central-auth-cookie-secret";
+        "client-secret" = builtins.readFile config.sops.secrets."k8s/central-auth-client-secret".path;
+        "cookie-secret" = builtins.readFile config.sops.secrets."k8s/central-auth-cookie-secret".path;
       };
     };
     auth.Deployment.oauth2-proxy = {
@@ -69,7 +69,7 @@ in {
             securityContext = {
               runAsNonRoot = true;
               seccompProfile.type = "RuntimeDefault";
-            hostAliases = [{ip = "10.1.1.100"; hostnames = ["auth.lan"];}];
+              hostAliases = [{ip = "10.1.1.100"; hostnames = ["auth.lan"];}];
             };
             containers._namedlist = true;
             containers.oauth2-proxy = {
