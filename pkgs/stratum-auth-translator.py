@@ -4,158 +4,136 @@ Stratum auth-format translation proxy.
 
 Sits between PeakMiner and a Stratum V1 pool, rewriting the authorize
 payload from PeakMiner's non-standard named-params format to the standard
-array-form that pools use for worker identification.
+array format used by most pools.
 
-Named-params IN (from peakminer):
-  {"method":"mining.authorize","params":{"wallet":"WALLET","worker":"WORKER",...}}
+PeakMiner sends:
+    {"id": 1, "method": "mining.authorize", "params": {"login": "user", "pass": "x"}}
 
-Array-form OUT (to pool):
-  {"method":"mining.authorize","params":["WALLET.WORKER","x"]}
+Pools expect:
+    {"id": 1, "method": "mining.authorize", "params": ["user", "x"]}
 
-This makes the pool see "WALLET.WORKER" as the login string, so the
-dashboard displays per-worker names — while peakminer's share submission
-path (which only works on named-params) continues to function normally.
-
-Usage:
-  python3 stratum-auth-translator.py <pool_host> <pool_port> <listen_port> <worker_name>
-
-Then point peakminer at:
-  --url stratum+tcp://127.0.0.1:<listen_port> --user WALLET --worker <worker_name>
+This proxy runs locally and forwards to the pool with the correct format.
 """
-import socket
-import json
-import threading
+
 import sys
+import socket
+import threading
+import json
+import time
+from typing import Optional, Tuple
 
+# Configuration
+PROXY_HOST = "0.0.0.0"
+PROXY_PORT = 21540  # PeakMiner connects here
+POOL_HOST = "prl.kryptex.network"
+POOL_PORT = 7048
 
-def process_message(line: bytes, direction: str, worker_override: str | None = None) -> bytes:
-    """Parse, optionally rewrite, and return a Stratum JSON-RPC line."""
-    stripped = line.strip()
-    if not stripped:
-        return line
+# Mapping of PeakMiner wallet → worker name
+WALLET_MAP = {
+    "krxXVNVMM7": {
+        "zephyr-3060ti": "krxXVNVMM7.zephyr-3060ti",
+        "zephyr-3090": "krxXVNVMM7.zephyr-3090",
+        "forge-4060-0": "krxXVNVMM7.forge-4060-0",
+        "forge-4060-1": "krxXVNVMM7.forge-4060-1",
+        "nexus-3060ti": "krxXVNVMM7.nexus-3060ti",
+    }
+}
 
+def normalize_payload(payload: dict) -> dict:
+    """Convert PeakMiner named-params to array format."""
+    if "method" in payload and payload["method"] in [
+        "mining.authorize",
+        "mining.subscribe",
+    ]:
+        if isinstance(payload["params"], dict):
+            # Convert {"login": "user", "pass": "x"} → ["user", "x"]
+            params = payload["params"]
+            payload["params"] = [params.get("login", ""), params.get("pass", "x")]
+
+    return payload
+
+def forward_data(src: socket.socket, dst: socket.socket, name: str):
+    """Forward data between sockets."""
     try:
-        msg = json.loads(stripped)
-    except json.JSONDecodeError:
-        return line
-
-    # Only rewrite client→pool messages (authorize)
-    if direction != "C->P":
-        return line
-
-    method = msg.get("method", "")
-    params = msg.get("params", {})
-
-    # Rewrite named-params authorize to array-form
-    if method == "mining.authorize" and isinstance(params, dict):
-        wallet = params.get("wallet", "")
-        worker = worker_override or params.get("worker", "")
-        agent = params.get("agent", "")
-        password = params.get("password", "x")
-
-        # Build array-form: ["wallet.worker", "password"]
-        if worker:
-            login = f"{wallet}.{worker}"
-        else:
-            login = wallet
-
-        new_params = [login, password]
-        msg["params"] = new_params
-
-        rewritten = json.dumps(msg) + "\n"
-        print(f"  [TRANSLATE] {wallet}.{worker} → array-form login='{login}'", flush=True)
-        return rewritten.encode()
-
-    return line
-
-
-def forward(src, dst, label, worker_override=None):
-    """Forward data between sockets, rewriting authorize payloads."""
-    buf = b""
-    while True:
-        try:
-            data = src.recv(65536)
+        while True:
+            data = src.recv(4096)
             if not data:
                 break
-            buf += data
-            # Process complete lines
-            while b"\n" in buf:
-                line, buf = buf.split(b"\n", 1)
-                processed = process_message(line + b"\n", label, worker_override)
-                dst.sendall(processed)
-            # Forward any remaining partial data
-            if buf:
-                dst.sendall(buf)
-                buf = b""
-        except (ConnectionResetError, BrokenPipeError, OSError):
-            break
 
+            # Try to parse and modify JSON
+            try:
+                decoded = data.decode('utf-8').strip()
+                if decoded.startswith("{"):
+                    payload = json.loads(decoded)
+                    normalized = normalize_payload(payload)
+                    modified = json.dumps(normalized) + "\n"
+                    dst.sendall(modified.encode('utf-8'))
+                    # print(f"[{name}] Modified: {decoded[:50]}... → {modified[:50]}...")
+                else:
+                    dst.sendall(data)
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                # Not JSON, forward as-is
+                dst.sendall(data)
+    except Exception as e:
+        pass
+    finally:
+        try:
+            src.shutdown(socket.SHUT_RDWR)
+        except:
+            pass
+
+def handle_client(client_socket: socket.socket, client_address: Tuple[str, int]):
+    """Handle incoming PeakMiner connection."""
+    try:
+        # Connect to pool
+        pool_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        pool_socket.connect((POOL_HOST, POOL_PORT))
+
+        # Start forwarding threads
+        client_thread = threading.Thread(
+            target=forward_data, args=(client_socket, pool_socket, "→pool")
+        )
+        pool_thread = threading.Thread(
+            target=forward_data, args=(pool_socket, client_socket, "←pool")
+        )
+
+        client_thread.start()
+        pool_thread.start()
+
+        client_thread.join()
+        pool_thread.join()
+    except Exception as e:
+        print(f"Error handling client {client_address}: {e}")
+    finally:
+        try:
+            client_socket.close()
+        except:
+            pass
 
 def main():
-    if len(sys.argv) < 4:
-        print(f"Usage: {sys.argv[0]} <pool_host> <pool_port> <listen_port> [worker_name]")
-        print()
-        print("  pool_host    Upstream pool hostname (e.g. prl.kryptex.network)")
-        print("  pool_port    Upstream pool port (e.g. 7048)")
-        print("  listen_port  Local port to listen on")
-        print("  worker_name  Optional: override worker name in all authorize calls")
-        print()
-        print("Point peakminer at: --url stratum+tcp://127.0.0.1:<listen_port>")
-        print("Peakminer will use named-params (shares work), proxy rewrites to array-form")
-        print("Pool sees WALLET.WORKER login → dashboard shows per-worker names")
-        sys.exit(1)
+    """Start the proxy server."""
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind((PROXY_HOST, PROXY_PORT))
+    server.listen(5)
 
-    pool_host = sys.argv[1]
-    pool_port = int(sys.argv[2])
-    listen_port = int(sys.argv[3])
-    worker_override = sys.argv[4] if len(sys.argv) > 4 else None
+    print(f"Stratum auth-translator proxy listening on {PROXY_HOST}:{PROXY_PORT}")
+    print(f"Forwarding to pool: {POOL_HOST}:{POOL_PORT}")
+    print("Press Ctrl+C to stop")
 
-    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    srv.bind(("0.0.0.0", listen_port))
-    srv.listen(5)
-    print(f"Stratum auth translator listening on 0.0.0.0:{listen_port}", flush=True)
-    print(f"  Upstream: {pool_host}:{pool_port}", flush=True)
-    print(f"  Worker override: {worker_override or '(use peakminer --worker)'}", flush=True)
-    print(f"  Translation: named-params → array-form", flush=True)
-    print(flush=True)
-
-    while True:
-        try:
-            client, addr = srv.accept()
-            print(f"[+] Miner connected from {addr}", flush=True)
-
-            pool = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            pool.connect((pool_host, pool_port))
-            print(f"[+] Connected to pool {pool_host}:{pool_port}", flush=True)
-
-            t1 = threading.Thread(
-                target=forward,
-                args=(client, pool, "C->P", worker_override),
-                daemon=True,
+    try:
+        while True:
+            client_socket, client_address = server.accept()
+            print(f"New connection from {client_address}")
+            client_thread = threading.Thread(
+                target=handle_client, args=(client_socket, client_address)
             )
-            t2 = threading.Thread(
-                target=forward,
-                args=(pool, client, "P->C", None),
-                daemon=True,
-            )
-            t1.start()
-            t2.start()
-
-            # Wait for threads to finish (connection closed)
-            t1.join()
-            t2.join()
-            print(f"[-] Connection from {addr} closed", flush=True)
-
-        except (ConnectionResetError, BrokenPipeError, OSError) as e:
-            print(f"[!] Error: {e}", flush=True)
-            continue
-        except KeyboardInterrupt:
-            print("\n[*] Shutting down", flush=True)
-            break
-
-    srv.close()
-
+            client_thread.daemon = True
+            client_thread.start()
+    except KeyboardInterrupt:
+        print("\nShutting down...")
+    finally:
+        server.close()
 
 if __name__ == "__main__":
     main()
