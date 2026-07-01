@@ -106,6 +106,7 @@ in {
   boot.binfmt.emulatedSystems = ["i686-linux"];
 
   stylix = {
+    enableReleaseChecks = false;  # Suppress version mismatch warnings
     base16Scheme = {
       base00 = "111c18";
       base01 = "23372B";
@@ -125,7 +126,6 @@ in {
       base0F = "9eebb3";
     };
     image = ../../modules/desktop/wallpapers/osaka-jade-bg.jpg;
-    enableReleaseChecks = false;
   };
 
   networking = {
