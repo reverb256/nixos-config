@@ -373,7 +373,7 @@ in {
         cores = 4
         sandbox = false
         extra-sandbox-paths = /nix
-        # builders = @/etc/nix/machines (disabled on zephyr)
+        builders = @/etc/nix/machines
       '';
     };
   };
