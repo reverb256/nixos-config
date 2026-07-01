@@ -1,6 +1,6 @@
 { config, lib, pkgs, ... }:
 let
-  inherit (lib) mkEnableOption types mkIf;
+  inherit (lib) mkEnableOption mkOption types mkIf mkDefault mkForce;
   cfg = config.services.systemd-oomd;
 in {
   options.services.systemd-oomd = {
@@ -27,19 +27,9 @@ in {
     
     systemd = {
       oomd = {
-        inherit (lib)
-          [ "Monitor-X11"
-            "Monitor-2.0"
-            "Monitor-X11"
-            "Monitor-1.0"
-          ];
-        # Default action: kill cgroup worst offender in zephyr's case
-        # Can be customized per-host if needed
-        enabled = true;
-        environment = {
-          OOMD_MEMORY_PRESSURE = toString cfg.defaultMemoryPressure;
-          OOMD_MEMORY_PRESSURE_LIMIT = toString cfg.defaultMemoryPressureLimit;
-        };
+        enable = mkDefault true;
+        # Default action: kill cgroup worst offender
+        # Can be customized per-host if needed via drop-ins
       };
     };
   };

@@ -41,6 +41,9 @@
     });
   };
 
+  # Enable userspace OOM killer (understands zswap compression)
+  services.systemd-oomd.enable = true;
+
   clusterNetworking = {
     enable = true;
     hostName = "nexus";

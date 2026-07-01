@@ -15,6 +15,16 @@
         default = 40;
         description = "Maximum RAM percentage for zswap pool (default 40, use 20 for older CPUs)";
       };
+      zswap.enableShrinker = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable zswap shrinker to reclaim memory when zswap pool is full (critical for OOM compatibility)";
+      };
+      zswap.acceptThresholdPercent = lib.mkOption {
+        type = lib.types.int;
+        default = 20;
+        description = "Compression ratio threshold for zswap acceptance (lower = more aggressive, 20 = good balance)";
+      };
     };
   };
 
@@ -64,6 +74,8 @@
           "zswap.compressor=zstd"
           "zswap.max_pool_percent=${builtins.toString config.kernel-hardening.zswap.maxPoolPercent}"
           "zswap.zpool=z3fold"
+          "zswap.shrinker_enabled=${if config.kernel-hardening.zswap.enableShrinker then "Y" else "N"}"
+          "zswap.accept_threshold_percent=${builtins.toString config.kernel-hardening.zswap.acceptThresholdPercent}"
         ]
         else [
           "zswap.enabled=0"
