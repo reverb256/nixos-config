@@ -431,7 +431,7 @@
                           # No clock locks for 3060 Ti mining - power limit only
                           nvidia_safe nvidia-smi -i "$gpu_id" -rgc
                           nvidia_safe nvidia-smi -i "$gpu_id" -rmc
-                          echo "  3060 Ti: Power limit ${pw}W only, clocks auto (mining-optimized)"
+                          echo "  3060 Ti: Power limit $pw W only, clocks auto (mining-optimized)"
                           ;;
                       *"3090"*)
                           local pw=$(get_power_limit mining "$gpu_name" "$gpu_id")
@@ -439,14 +439,14 @@
                           # No clock locks for 3090 mining - power limit only
                           nvidia_safe nvidia-smi -i "$gpu_id" -rgc
                           nvidia_safe nvidia-smi -i "$gpu_id" -rmc
-                          echo "  3090: Power limit ${pw}W only, clocks auto (mining-optimized)"
+                          echo "  3090: Power limit $pw W only, clocks auto (mining-optimized)"
                           ;;
                       *"4060"*)
                           local pw=$(get_power_limit mining "$gpu_name" "$gpu_id")
                           nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
                           nvidia_safe nvidia-smi -i "$gpu_id" -lgc 2000
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6550
-                          echo "  4060 (Ada): 2000 MHz GPU (+200), 6550 MHz mem (+1150), ${pw}W limit (mining-optimized)"
+                          echo "  4060 (Ada): 2000 MHz GPU (+200), 6550 MHz mem (+1150), $pw W limit (mining-optimized)"
                           ;;
                       *)
                           local pw=$(get_power_limit mining "$gpu_name" "$gpu_id")
