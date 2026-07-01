@@ -275,7 +275,7 @@ in {
       enable = lib.mkForce false;
     };
 
-    services.mcp-registry = {
+    mcp-registry = {
       enable = true;
       generateHermes = true;
       generateClaudeCode = true;
