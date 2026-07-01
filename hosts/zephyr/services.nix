@@ -103,7 +103,7 @@ in {
         };
         compression = {
           enabled = true;
-          threshold = 0.75;
+          threshold = 0.62;
         };
         mcp_discovery_timeout = 0.5;
         hooks = {};

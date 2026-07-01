@@ -171,7 +171,7 @@ in {
       };
       compression = {
         enabled = true;
-        threshold = 0.75;
+        threshold = 0.62;
       };
       tool_output = {
         max_bytes = 150000;
