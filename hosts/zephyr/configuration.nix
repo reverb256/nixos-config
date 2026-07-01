@@ -71,14 +71,6 @@ in {
     priority = 999;
   };
 
-  # Boot optimization: blacklist unused kernel modules that add ~10s device timeout
-  boot.blacklistedKernelModules = [
-    "serial8250"     # No physical serial ports — saves ~10s timeout
-    "tpm_crb"        # TPM 2.0 not used — saves ~10s timeout
-    "tpm_tis"
-    "tpm_tis_core"
-  ];
-
   # Compress initrd with zstd (smaller → faster loader reads)
   boot.initrd.compressor = "zstd";
 
