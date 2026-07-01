@@ -35,16 +35,6 @@ in {
       };
     };
 
-    # Create oauth2-proxy-secrets from central-auth secrets
-    # Copied from /run/secrets which are managed by sops-secrets-registry
-    auth.Secret.oauth2-proxy-secrets = {
-      metadata.labels = managed;
-      type = "Opaque";
-      stringData = {
-        "client-secret" = builtins.readFile config.sops.secrets."k8s/central-auth-client-secret".path;
-        "cookie-secret" = builtins.readFile config.sops.secrets."k8s/central-auth-cookie-secret".path;
-      };
-    };
     auth.Deployment.oauth2-proxy = {
       metadata.labels =
         managed
