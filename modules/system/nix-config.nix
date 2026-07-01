@@ -86,6 +86,7 @@
   nixpkgs.config.permittedInsecurePackages = [
     "nodejs-20.20.2"
     "nodejs-slim-20.20.2"
+    "pnpm-10.29.2"
   ];
 
   nixpkgs.config.allowUnfreePredicate = pkg:
