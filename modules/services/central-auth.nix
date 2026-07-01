@@ -27,13 +27,13 @@ in {
 
     clientSecretFile = mkOption {
       type = types.path;
-      default = oauth2Cfg.clientSecretFile;
+      default = config.sops.secrets."k8s/central-auth-client-secret".path;
       description = "Path to file containing Casdoor client secret";
     };
 
     cookieSecretFile = mkOption {
       type = types.path;
-      default = oauth2Cfg.cookieSecretFile;
+      default = config.sops.secrets."k8s/central-auth-cookie-secret".path;
       description = "Path to file containing cookie secret";
     };
 

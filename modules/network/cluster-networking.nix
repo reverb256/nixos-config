@@ -124,10 +124,10 @@ in {
 
     boot.kernel.sysctl =
       lib.optionalAttrs (cfg.interfaceName != null) {
-        "net.ipv6.conf.${cfg.interfaceName}.disable_ipv6" = 1;
+        "net.ipv6.conf.${cfg.interfaceName}.disable_ipv6" = lib.mkDefault 1;
       }
       // lib.optionalAttrs cfg.wireless.enable {
-        "net.ipv6.conf.wlan0.disable_ipv6" = 1;
+        "net.ipv6.conf.wlan0.disable_ipv6" = lib.mkDefault 1;
       };
 
     systemd.network.links = {
