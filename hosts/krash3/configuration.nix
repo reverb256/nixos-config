@@ -223,9 +223,9 @@ let
 in {
   # ── Libvirt ──────────────────────────────────────────────
   virtualisation.libvirtd = {
-  # ── Performance tuning ──
+    # ── Performance tuning ──
     enable = true;
-    qemuVerbatimConfig = ''
+    qemu.verbatimConfig = ''
       max_memlock = 26843545600
     '';
   };
