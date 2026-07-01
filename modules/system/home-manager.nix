@@ -87,6 +87,11 @@ in
         rm -f "$HOME/.config/starship.toml.hm-backup"
         rm -f "$HOME/.config/fish/config.fish.hm-backup"
       '';
+
+      # Auto-migrate Alacritty config after activation (removes deprecation warnings)
+      home.activation.migrateAlacrittyConfig = lib.mkIf config.programs.alacritty.enable ''
+        ${pkgs.alacritty}/bin/alacritty migrate -c "$HOME/.config/alacritty/alacritty.toml" || true
+      '';
     };
   };
 }
