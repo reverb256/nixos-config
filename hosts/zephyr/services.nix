@@ -168,7 +168,7 @@ in {
           web.provider = "nvidia";
           web.model = "meta/llama-3.2-90b-vision-instruct";
           compression.provider = "nvidia";
-          compression.model = "meta/llama-3.1-70b-instruct";
+          compression.model = "nvidia/nemotron-4-340b-instruct";
           session_title.provider = "nvidia";
           session_title.model = "meta/llama-3.1-70b-instruct";
         };
