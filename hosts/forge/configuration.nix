@@ -6,8 +6,6 @@
   ...
 
 }: {
-  environment.sessionVariables.TZ = "America/Winnipeg";
-
   imports = [
     inputs.disko.nixosModules.disko
     ./monitoring.nix
@@ -26,21 +24,19 @@
     ../../modules/services/sshfs-projects-mount.nix
   ];
 
-    # Host-specific CPU/GPU optimization for llama.cpp (Zen1 + Ada: RTX 4060)
-  nixpkgs.config = {
-    allowUnfree = true;
-    packageOverrides = pkgs: {
-      llama-cpp-turboquant = pkgs.llama-cpp-turboquant.overrideAttrs (old: {
-        CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3";
-      });
-      llama-cpp = pkgs.llama-cpp.override {
-        cudaSupport = true;
-      };
-      llama-cpp-vulkan = pkgs.llama-cpp-vulkan.overrideAttrs (old: {
-        CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3";
-      });
-    };
+  # Host-specific CPU/GPU optimization for llama.cpp (Zen1 + Ada: RTX 4060)
+  nixpkgs.config.packageOverrides = pkgs: {
+    llama-cpp-turboquant = pkgs.llama-cpp-turboquant.overrideAttrs (old: {
+      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3";
+    });
+    llama-cpp = pkgs.llama-cpp.overrideAttrs (old: {
+      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3";
+    });
+    llama-cpp-vulkan = pkgs.llama-cpp-vulkan.overrideAttrs (old: {
+      CXXFLAGS = (old.CXXFLAGS or "") + " -march=x86-64-v3";
+    });
   };
+
   stylix = {
     base16Scheme = "${pkgs.base16-schemes}/share/themes/gruvbox-dark-medium.yaml";
     image = ../../modules/desktop/wallpapers/gruvbox-dark-bg.png;
@@ -66,9 +62,9 @@
     }
   ];
 
-  boot.kernel.sysctl."net.ipv6.conf.all.disable_ipv6" = lib.mkForce 0;
-  boot.kernel.sysctl."net.ipv6.conf.default.disable_ipv6" = lib.mkForce 0;
-  boot.kernel.sysctl."net.ipv6.conf.eno1.disable_ipv6" = lib.mkForce 0;
+  boot.kernel.sysctl."net.ipv6.conf.all.disable_ipv6" = 0;
+  boot.kernel.sysctl."net.ipv6.conf.default.disable_ipv6" = 0;
+  boot.kernel.sysctl."net.ipv6.conf.eno1.disable_ipv6" = 0;
 
   systemd.timers.flake-lock-sync.enable = true;
   services.flake-lock-sync.enable = true;
@@ -120,64 +116,7 @@
 
   nix.settings.auto-optimise-store = true;
   boot.resumeDevice = "/dev/disk/by-id/ata-TEAM_T253X2256G_TM701907310240040386-part2";
-  disabledModules = [ "services/kmscon" "system/home-manager.nix" ];
-
-  environment.systemPackages = [ pkgs.llama-cpp ];
-
-  # ── Local LLM Inference — Declarative Services ────────────
-  # NVIDIA 4060 #1 (Vulkan1) — Gemma-4-E4B-it (128K context)
-  services.llamafile = {
-    enable = true;
-    modelPath = "/home/j_kro/models/gemma-4-E4B-it-Q4_K_M.gguf";
-    modelName = "gemma-4-E4B-it-Q4_K_M";
-    host = "0.0.0.0";
-    port = 8002;
-    ctxSize = 131072;
-    gpuLayers = 99;
-    vulkanDevice = "Vulkan1";
-    parallelDecoding = 1;
-    enableThinking = false;
-    chatTemplate = "<start_of_turn>user\n{{prompt}}<end_of_turn>\n<start_of_turn>model\n";
-  };
-
-  # NVIDIA 4060 #2 (Vulkan2) — Qwen3.5-4B-Uncensored (256K context)
-  # Using llama-cpp-vulkan-nocuda (pure Vulkan, no CUDA) to avoid conflict with mining GPUs
-  systemd.services.llamafile-qwen-uncensored = {
-    description = "Llama.cpp Qwen3.5-4B-Uncensored (Vulkan2)";
-    after = ["network.target"];
-    wantedBy = ["multi-user.target"];
-    serviceConfig = {
-      Type = "simple";
-      User = "j_kro";
-      Group = "users";
-      WorkingDirectory = "/home/j_kro";
-      ExecStart = ''
-        ${pkgs.llama-cpp-vulkan-nocuda}/bin/llama-server \
-          --model /home/j_kro/models/Qwen3.5-4B-Uncensored-Q4_K_M.gguf \
-          --host 0.0.0.0 --port 8003 \
-          -ngl 99 -c 262144 -t 8 \
-          --batch-size 64 --ubatch-size 16 \
-          --flash-attn on --parallel 2 \
-          --device Vulkan2 \
-          --chat-template '<|im_start|>system\n{{system_prompt}}<|im_end|>\n<|im_start|>user\n{{prompt}}<|im_end|>\n<|im_start|>assistant\n' \
-          --temp 0.7 --top-k 40 --top-p 0.9 --min-p 0.05 \
-          --metrics
-      '';
-      NoNewPrivileges = true;
-      PrivateTmp = true;
-      LimitNOFILE = 65536;
-      Restart = "on-failure";
-      RestartSec = "10s";
-      StandardOutput = "journal";
-      StandardError = "journal";
-    };
-  };
-
-  # Note: Qwen3.5-0.8B/2B tiny models not yet available as GGUF on HF
-  # Only SafeTensor releases exist. Skip tiny model slot for now.
-  # Available community GGUFs: check HauhauCS for uncensored tiny GGUF variants
-
-  networking.firewall.allowedTCPPorts = [ 8002 8003 ];
+  disabledModules = [ "services/kmscon" ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }

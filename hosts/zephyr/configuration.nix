@@ -3,7 +3,6 @@
   pkgs,
   lib,
   inputs,
-  self,
   ...
 }: let
   cluster = config.networking.cluster;
@@ -22,10 +21,6 @@ in {
     ../../modules/default.nix
 
     ../../modules/hardware/rgb-control.nix
-    ../../modules/services/chatterbox-tts.nix
-    ../../modules/services/graphiti-mcp.nix
-    ../../modules/services/agentmemory-mcp.nix
-    ../../modules/services/sequential-thinking-mcp.nix
   ];
 
   # Enable Hermes RAM protection
@@ -33,9 +28,6 @@ in {
   # Host-specific CPU/GPU optimization for llama.cpp (Zen3: 5950X + Ampere: RTX 3090/3060 Ti)
   # Note: CUDA arch already set in package via CMAKE_CUDA_ARCHITECTURES.
   # Only CPU tuning needed at host level.
-
-
-  environment.sessionVariables.TZ = "America/Winnipeg";
 
   clusterNetworking = {
     enable = true;
@@ -45,8 +37,8 @@ in {
       enable = true;
       ipAddress = "10.1.1.115";
     };
-    usbEthernet.enable = false;
-    interfaceName = lib.mkForce "eth0";
+    usbEthernet.enable = true;
+    interfaceName = "eth0";
     unbound.enable = true;
     unbound.listenAddress = cluster.hosts.zephyr.ip;
   };
@@ -70,25 +62,6 @@ in {
     memoryPercent = 35;
     priority = 999;
   };
-
-  # Compress initrd with zstd (smaller → faster loader reads)
-  boot.initrd.compressor = "zstd";
-
-  # Limit boot entries on the 1GB ESP to prevent "No space left on device" during deploy
-  boot.loader.systemd-boot.configurationLimit = 3;
-
-
-  # Zram-only swap — drop disk swap on nvme1n1p1 (adds ~10s device wait)
-  swapDevices = lib.mkForce [{ device = "/dev/zram0"; }];
-
-  # Higher swappiness for zram — compressed RAM is fast, so eagerly compress idle pages
-  # to keep uncompressed RAM free for active workloads (nix builds, AI models, browsers).
-  # Best practice per Arch Wiki: 100-180. Traditional disk swap uses 10 to avoid slow I/O.
-  # Note: boot.kernel.sysctl doesn't support priority overrides for scalar sysctl attrs,
-  # so we write the file directly to ensure it loads last (alphabetically) and wins.
-  environment.etc."sysctl.d/99-zephyr-zram.conf".text = "vm.swappiness = 150\n";
-
-  # Boot partition already hardened via mountOptions in disko.nix (fmask=0077)
   # systemd-cryptsetup opens with random key from /dev/urandom (no persistence needed)
 
   boot.kernel.sysctl = {
@@ -106,7 +79,6 @@ in {
   boot.binfmt.emulatedSystems = ["i686-linux"];
 
   stylix = {
-    enableReleaseChecks = false;  # Suppress version mismatch warnings
     base16Scheme = {
       base00 = "111c18";
       base01 = "23372B";
@@ -179,20 +151,20 @@ in {
   };
 
   # Gammix subvolume mounts for games + projects
-  # XPG GAMMIX S11 Pro — secondary drive for games + projects
+  # XPG GAMMIX S11 Pro (nvme1n1p2, 938G, 457G free)
   fileSystems."/data/games" = {
-    device = "/dev/disk/by-label/nix";
+    device = "/dev/disk/by-partlabel/disk-xpg-nix";
     fsType = "btrfs";
     options = ["subvol=@games" "compress=zstd:3" "ssd" "discard=async" "noatime" "nofail"];
   };
   fileSystems."/data/projects" = {
-    device = "/dev/disk/by-label/nix";
+    device = "/dev/disk/by-partlabel/disk-xpg-nix";
     fsType = "btrfs";
     options = ["subvol=@projects" "compress=zstd:3" "ssd" "discard=async" "noatime" "nofail"];
   };
 
   services.nixos-share = {
-    enable = lib.mkForce false;
+    enable = false;
   };
 
   i18n.defaultLocale = "en_CA.UTF-8";
@@ -335,20 +307,13 @@ in {
     xmrig
     lolminer
 
-    pkgs.zen-twilight
+    inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.twilight
 
     python3Packages.playwright
 
     python312Packages.openpyxl
 
     nvtopPackages.full
-
-    # Hermes voice mode dependencies
-    portaudio
-    alsa-lib
-
-    # Hermes Desktop GUI
-    self.packages.x86_64-linux.hermes-desktop
   ];
 
   # Service .lan domains resolved by unbound → nexus (${cluster.hosts.nexus.ip}).
@@ -363,19 +328,25 @@ in {
   # provides identical upstream forwarding PLUS cluster.local K8s DNS forwarding.
   # Both active = duplicate forward zone errors on every boot.
   # Other hosts (nexus, forge, sentry) still use unbound-common.
-  services.unbound-common.enable = lib.mkForce false;
+  services.unbound-common.enable = false;
   # Enable Hermes RAM protection (mandatory pre-flight checks)
   # CNS: Zero-knowledge automatic secret distribution
   services.ai-inference.enable = lib.mkForce false;
   services.cluster-mesh.enable = true;
-  services.cluster-ca.enable = true;
 
   # ═══════════════════════════════════════════════════════════════════
-  # STORAGE REDIRECT — Secondary NVMe for heavy data
-  # System: Samsung SSD 980 1TB (nvme1n1, label "root") — 70%, 280G free
-  # Secondary: XPG GAMMIX S11 Pro 1TB (nvme0n1, label "nix") — 44%, 511G free
-  #   /nix (85G store), /var, /data/games, /data/projects on XPG
-  #   /, /home on Samsung
+  # STORAGE REDIRECT — Use secondary NVMe for heavy data
+  # System: Samsung SSD 980 1TB (nvme0n1, nvme-Samsung_SSD_980_1TB_S64ANJ0R712954W) — 95%
+  # Secondary: XPG GAMMIX S11 Pro 1TB (nvme1n1, nvme-XPG_GAMMIX_S11_Pro_2J2520059477)
+  #   nvme1n1p2 (921.9G) at /data/projects — 69%, 288G free
+  # Pre-reboot setup:
+  #   sudo mount /dev/disk/by-label/nix /mnt
+  #   sudo btrfs subvolume create /mnt/@nix
+  #   sudo mkdir -p /mnt/@nix/store /mnt/@nix/var
+  #   sudo cp -a /nix/store/* /mnt/@nix/store/
+  #   sudo cp -a /nix/var/* /mnt/@nix/var/
+  #   sudo umount /mnt
+  #   sudo nixos-rebuild boot && reboot
   # ═══════════════════════════════════════════════════════════════════
   fileSystems."/nix" = lib.mkForce {
     device = "/dev/disk/by-label/nix";
@@ -405,4 +376,3 @@ in {
       pkgs.source-han-serif
     ];
   };}
-

@@ -1,0 +1,23 @@
+--- a
++++ b
+@@ -46,13 +46,20 @@
+   clusterNetworking = {
+     enable = true;
+     hostName = "nexus";
+     ipAddress = config.networking.cluster.hosts.nexus.ip;
+     interfaceName = "enp7s0";
+     wireless = {
+       enable = true;
+       ipAddress = "10.1.1.125";
+     };
+     unbound.enable = true;
+     unbound.listenAddress = config.networking.cluster.hosts.nexus.ip;
+   };
+ 
++  # ── DNS: Force local unbound (127.0.0.1) ─────────────────────────────
++  # cluster-networking.nix sets nameservers, but mkForce ensures nothing
++  # overrides them (DHCP, networkmanager, or other modules).
++  networking.nameservers = lib.mkForce [ "127.0.0.1" "::1" ];
++  # Prevent dhcpcd from injecting DHCP-provided nameservers into resolv.conf
++  networking.dhcpcd.extraConfig = "nooption domain_name_servers";
++

@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: searxng-limiter
+  namespace: search
+  labels:
+    app: searxng
+data:
+  limiter.toml: |
+    # SearXNG Bot Detection Configuration
+    # Disabled limiter as per user preference (see NixOS module)
+
+    [botdetection.ip_limit]
+    # Disable IP-based rate limiting
+    enabled = false
+
+    [botdetection.link_token]
+    # Disable link token verification
+    enabled = false
+
+    [botdetection.token_limit]
+    # Disable token-based rate limiting
+    enabled = false

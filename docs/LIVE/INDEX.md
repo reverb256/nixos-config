@@ -1,17 +1,17 @@
 ---
-last-verified: 2026-06-12
+last-verified: 2026-05-24
 verified-by: Sisyphus
 verification-method: just docs-audit
-expires: 2026-06-19
+expires: 2026-05-31
 ---
 # Documentation Index
 
 ## LIVE Documents (Canonical)
 
 - [INFRASTRUCTURE-AUDIT.md](INFRASTRUCTURE-AUDIT.md) — Current cluster state, services, rules
-- [ARCHITECTURE.md](ARCHITECTURE.md) — Diagrams and data flows
-- [RUNBOOK.md](RUNBOOK.md) — Operational procedures
-- [STATUS.md](STATUS.md) — One-page health dashboard
+- [ARCHITECTURE.md](ARCHITECTURE.md) — Diagrams and data flows (coming)
+- [RUNBOOK.md](RUNBOOK.md) — Operational procedures (coming)
+- [STATUS.md](STATUS.md) — One-page health dashboard (coming)
 
 ## Supporting
 

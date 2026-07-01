@@ -1,11 +1,8 @@
 {
   pkgs,
   lib,
-  config,
   ...
 }: {
-  hardware.enableRedistributableFirmware = true;
-
   hardware.gpu-compute = {
     enable = true;
     cuda.enable = true;
@@ -15,38 +12,16 @@
 
   hardware = {
     nvidia-common.enable = true;
-    nvidia.open = lib.mkForce false;
-    nvidia.package = lib.mkForce config.boot.kernelPackages.nvidiaPackages.new_feature;
     nvidia.powerLimits = {
       enable = true;
       gpus = {
         "rtx4060-0" = {
           index = 0;
-          limit = 118;
+          limit = 110; # Balanced
         };
         "rtx4060-1" = {
           index = 1;
-          limit = 118;
-        };
-      };
-      profiles = {
-        gaming = {
-          "4060" = 110;
-        };
-        ai = {
-          "4060" = 110;
-        };
-        kubernetes-gpu = {
-          "4060" = 110;
-        };
-        builds = {
-          "4060" = 95;
-        };
-        mining = {
-          "4060" = 118;
-        };
-        idle = {
-          "4060" = 115;
+          limit = 110; # Balanced
         };
       };
     };
@@ -372,15 +347,7 @@
     etc."OpenCL/vendors/amdocl64.icd".source = "${pkgs.rocmPackages.clr.icd}/etc/OpenCL/vendors/amdocl64.icd";
   };
 
-  # /dev/net/tun required for tailscale
-  systemd.tmpfiles.rules = [
-    "c /dev/net/tun 666 root root - - - -"
-  ];
-
-  # ROCm symlinks moved to systemd service — tmpfiles L+ rules fail at boot
-  # because the store paths aren't available yet. The service runs after
-  # local-fs.target ensures all filesystems are ready.
-  systemd.services.rocm-symlinks = let
+  systemd.tmpfiles.rules = let
     rocmEnv = pkgs.symlinkJoin {
       name = "rocm-combined";
       paths = with pkgs.rocmPackages; [
@@ -391,20 +358,10 @@
         rpp
       ];
     };
-  in {
-    description = "Create ROCm symlinks";
-    after = ["local-fs.target"];
-    wantedBy = ["multi-user.target"];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-    };
-    script = ''
-      mkdir -p /opt/rocm
-      ln -sfn ${rocmEnv} /opt/rocm
-      ln -sfn ${pkgs.rocmPackages.clr} /opt/rocm/hip
-      mkdir -p /etc/OpenCL/vendors
-      ln -sfn ${pkgs.rocmPackages.clr.icd}/amdocl64.icd /etc/OpenCL/vendors/amdocl64.icd
-    '';
-  };
+  in [
+    "c /dev/net/tun 666 root root - - - -"
+    "L+ /opt/rocm - - - - ${rocmEnv}"
+    "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
+    "L+ /etc/OpenCL/vendors/amdocl64.icd - - - - ${pkgs.rocmPackages.clr.icd}/amdocl64.icd"
+  ];
 }
