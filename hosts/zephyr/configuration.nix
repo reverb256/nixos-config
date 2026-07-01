@@ -30,6 +30,9 @@ in {
   # Enable Hermes Agent hardening
   services.hermes-hardening.enable = true;
 
+  # Enable userspace OOM killer (understands zswap compression)
+  services.systemd-oomd.enable = true;
+
   # Enable Hermes RAM protection
 
   # Host-specific CPU/GPU optimization for llama.cpp (Zen3: 5950X + Ampere: RTX 3090/3060 Ti)
