@@ -17,6 +17,7 @@ BUILD_EVENTS_LOG="${BUILD_EVENTS_LOG:-/run/gpu-scheduler/build-events.log}"
 
 # Log build event (lightweight notification)
 log_build_event() {
+  mkdir -p "$(dirname "$BUILD_EVENTS_LOG")" 2>/dev/null || true
   local event="$1"
   local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
   local hostname=$(hostname)
@@ -209,3 +210,6 @@ if [ $BUILD_STATUS -ne 0 ]; then
 fi
 
 echo "✅ Build completed successfully"
+
+# Migrate alacritty config to match current version format
+runuser -u j_kro -- alacritty migrate --silent 2>/dev/null || true
