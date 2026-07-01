@@ -304,6 +304,53 @@ in {
       };
       enableShellEnv = true;
     };
+
+    # ── Nix-managed Hermes config.yaml ────────────────────────────
+    # Providers, fallback chain, and base_url/key mappings live in Nix.
+    # Imperative sections (telegram channel_profiles, MCP servers, etc.)
+    # are preserved on disk across rebuilds by systemd hermes-config-emit.
+    hermes-cli = {
+      enable = true;
+      user = "j_kro";
+      apiKeyFile = "/run/secrets/zai-api-key";
+      nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
+      casdoorJwtFile = "/run/secrets/casdoor-hermes-jwt";
+      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
+      opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
+      gatewayUrl = "http://${cluster.hosts.zephyr.ip}:${toString cluster.kubernetes.nodePorts.ai-inference-gateway}/v1";
+
+      managedConfig = true;
+      managedProviders = {
+        "opencode-zen" = {
+          api_key_env = "OPENCODE_API_KEY";
+          base_url = "https://opencode.ai/zen/v1";
+          discover_models = true;
+          model = "nemotron-3-ultra-free";
+        };
+        "opencode-go" = {
+          api_key_env = "OPENCODE_GO_API_KEY";
+          base_url = "https://opencode.ai/zen/go/v1";
+          discover_models = true;
+        };
+        "zai" = {
+          api_key_env = "ZAI_API_KEY";
+          base_url = "https://api.z.ai/api/coding/paas/v4";
+          discover_models = true;
+          model = "glm-4.7";
+        };
+        "nvidia" = {
+          api_key_env = "NVIDIA_API_KEY";
+          base_url = "https://integrate.api.nvidia.com/v1";
+          discover_models = true;
+        };
+      };
+      managedFallbackProviders = [
+        "opencode-zen"
+        "opencode-go"
+        "zai"
+        "nvidia"
+      ];
+    };
   };
   programs = {
     haven-desktop.enable = lib.mkForce false;
