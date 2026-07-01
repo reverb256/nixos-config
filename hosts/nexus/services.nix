@@ -474,7 +474,8 @@ in {
         proxyPort = 21542;
         devices = "0";
         gpuId = 0;
-        powerLimit = 120;
+        # Power limit managed by nvidia-power-limits + gpu-profile-manager
+        powerLimit = null;
         tempStop = 72;
         fanTarget = 65;
         fanMin = 30;
@@ -482,5 +483,10 @@ in {
         apiPort = 21551;
       }
     ];
+
+    gpu-profile-manager = {
+      enable = true;
+      checkInterval = 10;
+    };
   };
 }
