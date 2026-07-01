@@ -189,7 +189,7 @@ in {
         web.provider = "nvidia-nim";
         web.model = "nvidia/llama-3.3-nemotron-super-49b-v1.5";
         compression.provider = "nvidia-nim";
-        compression.model = "nvidia/nemotron-4-340b-instruct";
+        compression.model = "qwen/qwen3.5-122b-a10b";
         session_title.provider = "nvidia-nim";
         session_title.model = "nvidia/llama-3.3-nemotron-super-49b-v1.5";
       };
