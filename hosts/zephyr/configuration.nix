@@ -14,6 +14,7 @@ in {
     ./desktop.nix
     ./services.nix
     ./hardware-configuration.nix
+    ./fan-control.nix
     ../../modules/services/k3s-cluster.nix
     ../../modules/services/keepalived-vip.nix
     ../../modules/system/systemd-user-timeout.nix
