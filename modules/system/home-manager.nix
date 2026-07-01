@@ -18,18 +18,19 @@ in
     # This prevents the "existing backup would be clobbered" error
     backupFileExtension = "hm-backup";
 
-    # Home Manager needs its own permittedInsecurePackages for user packages
-    nixpkgs.config.permittedInsecurePackages = [
-      "pnpm-10.29.2"
-      "vesktop-1.6.5"
-    ];
-
     extraSpecialArgs = {
       inherit inputs;
       inherit hostName;
     };
 
     users.j_kro = {...}: {
+      # Home Manager uses separate nixpkgs config for user packages
+      # Allow insecure packages
+      nixpkgs.config.permittedInsecurePackages = [
+        "pnpm-10.29.2"
+        "vesktop-1.6.5"
+      ];
+
       imports = [
         inputs.niri.homeModules.config
         inputs.zen-browser.homeModules.twilight
