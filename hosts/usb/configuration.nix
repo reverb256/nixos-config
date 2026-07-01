@@ -297,6 +297,7 @@ in {
   # Desktop / Niri
   programs.niri.enable = true;
   stylix = {
+    enableReleaseChecks = false;  # Suppress version mismatch warnings
     base16Scheme = "${pkgs.base16-schemes}/share/themes/nord.yaml";
     image = ../../modules/desktop/wallpapers/nord-bg.png;
   };
