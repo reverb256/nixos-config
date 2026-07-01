@@ -108,15 +108,15 @@ in {
     serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };
   };
 
-  # ── k3s cluster agent ── TEMPORARILY DISABLED (sops token format issue)
-  # services.k3s-cluster = {
-  #   enable = true;
-  #   role = "agent";
-  #   nodeName = "krash3";
-  #   nodeIP = "10.1.1.150";
-  #   tokenFile = "/run/secrets/k3s-cluster-token";
-  #   flannelIface = "enp7s0";
-  # };
+  # ── k3s cluster agent ── joins cluster as agent node
+  services.k3s-cluster = {
+    enable = true;
+    role = "agent";
+    nodeName = "krash3";
+    nodeIP = "10.1.1.150";
+    tokenFile = "/run/secrets/k3s-cluster-token";
+    flannelIface = "enp7s0";
+  };
 
   # ── Packages ──
   environment.systemPackages = with pkgs; [ virt-manager git libvirt virtio-win swtpm jq ];

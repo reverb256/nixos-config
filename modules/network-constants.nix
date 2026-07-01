@@ -87,6 +87,14 @@ in {
               roles = ["monitoring" "build"];
               advertiseRoutes = ["10.1.1.0/24"];
             };
+
+            krash3 = {
+              ip = cluster.hosts.krash3.ip;
+              tailscale = "100.95.222.46";
+              description = "Windows VM Host - 12 cores, RTX 4060";
+              roles = ["desktop" "gaming" "mining" "build"];
+              advertiseRoutes = ["10.1.1.0/24"];
+            };
           };
           description = "Cluster host configurations";
         };
