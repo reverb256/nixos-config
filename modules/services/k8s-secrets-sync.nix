@@ -10,7 +10,7 @@ in {
     systemd.services.k8s-secrets-sync = {
       description = "Sync K8s secrets from /run/secrets to Kubernetes";
       after = ["k3s.service" "sops-nix.service"];
-      requires = ["k3s.service"];
+      bindsTo = ["k3s.service"];
       wantedBy = ["multi-user.target"];
       serviceConfig = {
         Type = "oneshot";
@@ -21,18 +21,7 @@ in {
       script = ''
         set -euo pipefail
 
-        echo "[k8s-secrets-sync] Waiting for K8s API..."
-        elapsed=0
-        until kubectl get nodes &>/dev/null; do
-          sleep 5
-          elapsed=$((elapsed + 5))
-          if [ $elapsed -ge 120 ]; then
-            echo "[k8s-secrets-sync] Timed out waiting for K8s API"
-            exit 1
-          fi
-        done
-
-        echo "[k8s-secrets-sync] K8s API ready. Syncing secrets..."
+        echo "[k8s-secrets-sync] K3s is active. Syncing secrets..."
 
         # Sync HF token
         if [ -f /run/secrets/huggingface-token ]; then

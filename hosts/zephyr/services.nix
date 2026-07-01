@@ -321,6 +321,8 @@ in {
       secretKeyFile = "/run/secrets/garage-s3-secret-key";
       retentionDays = 30;
       startAt = "02:00";
+      # /data/shared is not mounted on Zephyr (nfs-client.mountShared = false)
+      backupPaths = ["/etc/nixos"];
     };
 
     gaming-detection = {
@@ -752,21 +754,26 @@ NMKEYFILE
     chown j_kro:users /run/secrets/hermes-env
   '';
 
-  systemd.user.services.hermes-gateway = {
+  # Converted from user service to system service — user services only start
+  # when the user is logged in, causing restart loop at boot. System service
+  # with User=j_kro runs regardless of login state.
+  systemd.services.hermes-gateway = {
     description = "Hermes Agent Gateway - Messaging Platform Integration";
-    after = ["network.target"];
+    after = ["network.target" "hermes-agent.service"];
+    wants = ["hermes-agent.service"];
     wantedBy = ["multi-user.target"];
     
     serviceConfig = {
       Type = "simple";
+      User = "j_kro";
+      Group = "users";
       ExecStart = "${pkgs.hermes-agent}/bin/hermes gateway run";
-      Restart = "always";
+      Restart = "on-failure";
       RestartSec = "10s";
       StandardOutput = "journal";
       StandardError = "journal";
 
       WorkingDirectory = "/home/j_kro";
-      Path = lib.makeBinPath [pkgs.procps];
       
       # Security hardening
       PrivateTmp = true;
