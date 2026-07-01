@@ -1,4 +1,9 @@
-{lib, ...}: {
+{lib, ...}: let
+  # Cluster VIP — keepalived-managed virtual IP (currently on nexus)
+  vip = "10.1.1.100";
+  # Nexus host IP
+  hostIP = "10.1.1.120";
+in {
   networking = {
     firewall = {
       extraInputRules = lib.mkAfter ''
@@ -20,25 +25,32 @@
       ];
     };
 
-    # DNAT host ports 80/443 -> K8s caddy-ingress NodePorts (30080/30443)
-    # Ensures VIP traffic reaches the ingress controller pods
+    # Keep NAT module for masquerade only (K8s pod-to-outside).
+    # DNAT is handled by custom nftables table below with VIP exception.
     nat = {
       enable = true;
       externalInterface = "eth0";
       internalInterfaces = [ "kube-bridge" ];
-      # nftables-native DNAT (replaces old iptables extraCommands)
-      forwardPorts = [
-        {
-          sourcePort = 80;
-          destination = "10.1.1.120:30080";
-          proto = "tcp";
-        }
-        {
-          sourcePort = 443;
-          destination = "10.1.1.120:30443";
-          proto = "tcp";
-        }
-      ];
+      forwardPorts = [];  # DNAT rules removed — see nixos-nat-dnat table below
+    };
+
+    nftables.tables = {
+      # Custom DNAT table with VIP bypass.
+      #     ┌─ VIP traffic (10.1.1.100) → Nexus Caddy on :80/:443 (serves .lan routes)
+      #     └─ Host IP traffic (10.1.1.120) → caddy-ingress NodePorts (30080/30443)
+      nixos-nat-dnat = {
+        family = "ip";
+        content = ''
+          chain pre_dnat {
+            type nat hook prerouting priority dstnat; policy accept;
+            # VIP traffic bypasses DNAT — reaches Nexus Caddy directly
+            ip daddr ${vip} return
+            # Host IP traffic: DNAT to caddy-ingress K8s NodePorts
+            iifname "eth0" tcp dport 80 dnat to ${hostIP}:30080
+            iifname "eth0" tcp dport 443 dnat to ${hostIP}:30443
+          }
+        '';
+      };
     };
   };
 }
