@@ -19,5 +19,18 @@
         8472
       ];
     };
+
+    # DNAT host ports 80/443 -> K8s caddy-ingress NodePorts (30080/30443)
+    # Ensures VIP traffic reaches the ingress controller pods
+    nat = {
+      enable = true;
+      externalInterface = "eth0";
+      internalInterfaces = [ "kube-bridge" ];
+      extraCommands = ''
+        # Redirect .lan HTTP/HTTPS traffic to caddy-ingress NodePorts
+        iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 30080
+        iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 443 -j REDIRECT --to-port 30443
+      '';
+    };
   };
 }
