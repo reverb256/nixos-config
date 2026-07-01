@@ -559,7 +559,12 @@ in {
         ProtectHome = "read-only";
         ReadWritePaths = ["/home/${cfg.user}/.hermes"];
 
-        ExecStart = pkgs.writeShellScript "hermes-config-emit" ''
+        ExecStart = let
+          managedProvidersJson = pkgs.writeText "hermes-managed-providers.json"
+            (builtins.toJSON cfg.managedProviders);
+          managedFallbackJson = pkgs.writeText "hermes-managed-fallback.json"
+            (builtins.toJSON cfg.managedFallbackProviders);
+        in pkgs.writeShellScript "hermes-config-emit" ''
           set -euo pipefail
 
           HERMES_CONFIG="/home/${cfg.user}/.hermes/config.yaml"
@@ -588,8 +593,10 @@ except ImportError:
     print("yaml module not available; aborting hermes-config-emit", file=sys.stderr)
     sys.exit(1)
 
-managed_providers = json.loads('''${builtins.toJSON cfg.managedProviders}''')
-managed_fallback = json.loads('''${builtins.toJSON cfg.managedFallbackProviders}''')
+with open("${managedProvidersJson}") as f:
+    managed_providers = json.load(f)
+with open("${managedFallbackJson}") as f:
+    managed_fallback = json.load(f)
 
 doc = {}
 if managed_providers:
