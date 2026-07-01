@@ -61,3 +61,47 @@ records/
 *.orig
 configuration.nix.new
 
+
+# Ops scripts (moved to homelab-ops)
+scripts/CLOUDFLARE*
+scripts/cloudflare*
+scripts/backup-*.sh
+scripts/cleanup-*.sh
+scripts/cluster-watchdog.sh
+scripts/monitor-sensors.sh
+scripts/mining-*.sh
+scripts/secret-rotation.sh
+scripts/preflight-check.sh
+scripts/hsync.sh
+scripts/tplink*
+scripts/switch-*
+scripts/test-*.sh
+
+# Ops docs (moved to homelab-ops)
+docs/SERVICE-*.md
+
+# Skills (moved to hermes-skills)
+skills/
+.herms/skills/
+.claude/skills/
+
+# Duplicate k8s (use maplespike k8s/)
+k8s/
+kubernetes/
+
+# Build artifacts
+$(result)
+.gcroots
+.direnv
+.pnpm-store
+.pytest_cache
+.ruff_cache
+.sisyphus
+.understand-anything
+Cache/
+htmlcov/
+tmp/
+containers/
+
+# Unclear purpose
+manifests/
