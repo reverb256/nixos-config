@@ -77,9 +77,10 @@ in {
       enable = true;
       instances = [
         {
-          name = "4060-0";
-          wallet = "krxXVNVMM7.forge-4060-0";
+          name = "forge-4060-0";
+          wallet = "krxXVNVMM7";
           pools = ["stratum+tcp://prl.kryptex.network:7048"];
+          proxyPort = 21540;
           devices = "0";
           gpuId = 0;
           powerLimit = 118;
@@ -90,9 +91,10 @@ in {
           apiPort = 21550;
         }
         {
-          name = "4060-1";
-          wallet = "krxXVNVMM7.forge-4060-1";
+          name = "forge-4060-1";
+          wallet = "krxXVNVMM7";
           pools = ["stratum+tcp://prl.kryptex.network:7048"];
+          proxyPort = 21541;
           devices = "1";
           gpuId = 1;
           powerLimit = 118;
