@@ -27,6 +27,7 @@
 
       ../../modules/services/k3s-cluster.nix
       ../../modules/services/keepalived-vip.nix
+      ../../modules/services/supermemory.nix
       inputs.disko.nixosModules.disko
       inputs.nix-mineral.nixosModules.nix-mineral
     ];
@@ -165,6 +166,17 @@
     automation = true;
     selfHosting = true;
     ci = true;
+  };
+
+  # Supermemory local memory engine
+  services.supermemory = {
+    enable = true;
+    dataDir = "/home/j_kro/.supermemory";
+    openaiBaseUrl = "http://sentry.lan:8001/v1";
+    openaiApiKey = "sk-dummy-key";
+    model = "Qwen3.5-4B-Q4_K_M.gguf";
+    port = 6767;
+    user = "j_kro";
   };
 }
   # Disable legacy agenix secrets (migrated to sops-nix)
