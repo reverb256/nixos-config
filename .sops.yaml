@@ -1,8 +1,6 @@
 keys:
   - &cluster_age age1p98yp8w64rdugp03332gxnz5q2vcnucn69cs5qm6s2l2u7epqfcqmu2pqe
-  - &krash3 age1ehx7aedejaf3tqje43h4nj33c3s4nctet6mpys9pyegz4wexa3jqhgg0dz
 creation_rules:
   - key_groups:
       - age:
           - *cluster_age
-          - *krash3

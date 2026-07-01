@@ -10,66 +10,11 @@
 #   just check             # Validate flake (quick, no build)
 #   just build             # Build for this host
 #   just switch            # Apply to local host
-#   just deploy            # Build + deploy to target host(s)
-#   just deploy-all        # Deploy to all managed cluster nodes
+#   just deploy            # Build + deploy to all 4 hosts
 #   just status            # Show git + cluster overview
 #   just new-worktree NNN  # Create worktree for issue NNN
 
 export FLAKE := "/etc/nixos"
-
-# Full managed cluster host set.
-# Deletion order: newest additions first (sentry, forge, nexus) so colony-base
-# and its dependents (zephyr, haven, vane) are torn down last.
-HOSTS := "zephyr nexus forge sentry haven vane"
-
-ak-local:
-    #!/usr/bin/env bash
-    # Delete local Akash node config if present. Degrades colony dependents.
-    # DO NOT run unless akash services are confirmed migrated/removed.
-    if command -v akash >/dev/null 2>&1; then
-      akash stop 2>/dev/null || true
-    fi
-    rm -f /etc/nixos/modules/akash/default.nix
-    echo "Manage state: all (no host-specific overrides to remove)"
-    echo "Nix module removed; switch/rebuild as usual"
-
-rp-sync:
-    #!/usr/bin/env bash
-    rsync -avP {{FLAKE}} rp:/etc/nixos --exclude=.git --exclude=result --exclude=result-link
-
-rp-label:
-    #!/usr/bin/env bash
-    TAG="rp-sync-$(date +%Y%m%d-%H%M%S)"
-    git tag "$TAG" && git push rp "$TAG" && echo "Tag pushed: $TAG"
-
-rp-check:
-    #!/usr/bin/env bash
-    ssh rp 'cd /etc/nixos && git log -1 --oneline && nix flake check && just status | head -20'
-
-rp-rollback:
-    #!/usr/bin/env bash
-    set -e
-    read -rp "Rollback host (default: rp): " host
-    host=${host:-rp}
-    ssh "$host" "sudo nixos-rebuild rollback"
-    echo "Rolled back $host"
-
-rp-prune:
-    #!/usr/bin/env bash
-    ssh rp 'sudo nix-collect-garbage -d'
-
-rp-deploy:
-    #!/usr/bin/env bash
-    rm -f /etc/nixos/modules/akash/default.nix
-    just deploy rp
-
-rp:
-    just deploy rp
-
-rp-rollback-gen:
-    #!/usr/bin/env bash
-    ssh rp 'nix-env --list-generations /nix/var/nix/profiles/system'
-    echo "Run rp-rollback if needed"
 
 _default:
     @just --list
@@ -118,6 +63,7 @@ rm-worktree number:
 # ── GIT MANAGEMENT ────────────────────────────────────────────────────────────────
 # Sync all hosts to central/main
 
+HOSTS := "zephyr nexus forge sentry"
 
 # Show git status on all hosts
 git-status:
@@ -178,68 +124,36 @@ git-push:
     done
     echo "All hosts synced"
 
-# ── DEPLOYMENT (Colmena First) ────────────────────────────────────────────────
+# ── DEPLOYMENT ────────────────────────────────────────────────────────────────
 
-# Primary deployment method: Colmena (distributed builds, proper build machine handling)
-# Colmena builds on local machine, deploys to targets via SSH + nix-copy-closure
+# Deploy to all hosts or a specific host
 deploy host="all":
     #!/usr/bin/env bash
-    set -euo pipefail
-    cd {{FLAKE}}
-    echo "Colmena deploy from $(git rev-parse --abbrev-ref HEAD) ($(git rev-parse --short HEAD))"
-    echo ""
-    if [ "{{host}}" = "all" ]; then
-        nix run .#colmena -- apply 2>&1
-    else
-        nix run .#colmena -- apply --on {{host}} 2>&1
-    fi
-
-# Colmena-specific commands
-colmena-build *args:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    cd {{FLAKE}}
-    echo "Colmena build only (no deploy)"
-    nix run .#colmena -- build {{args}} 2>&1
-
-colmena-switch *args:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    cd {{FLAKE}}
-    echo "Colmena build + local switch only (no remote deploy)"
-    nix run .#colmena -- apply --local --on $(hostname -s) {{args}} 2>&1
-
-# Legacy nix-copy-closure deploy (fallback, preserves node isolation)
-deploy-legacy host="all":
-    #!/usr/bin/env bash
-    set -euo pipefail
+    set -e
     echo "Deploying from $(cd {{FLAKE}} && git rev-parse --abbrev-ref HEAD) ($(cd {{FLAKE}} && git rev-parse --short HEAD))"
     echo ""
     if [ "{{host}}" = "all" ]; then
-        for h in {{HOSTS}}; do
-            just deploy "$h"
-        done
+        TARGETS="{{HOSTS}}"
     else
-        HOST="{{host}}"
-        echo "=== $HOST ==="
-        if [ "$HOST" = "zephyr" ]; then
-            {{FLAKE}}/scripts/preflight-check.sh 2>/dev/null || true
-            cd {{FLAKE}} && sudo nixos-rebuild switch --flake {{FLAKE}}#$HOST 2>&1
+        TARGETS="{{host}}"
+    fi
+    for host in $TARGETS; do
+        echo "=== $host ==="
+        if [ "$host" = "zephyr" ]; then
+            sudo nixos-rebuild switch --flake {{FLAKE}}#$host 2>&1
             echo "done"
         else
-            {{FLAKE}}/scripts/preflight-check.sh 2>/dev/null || true
-            OUT=$(nix build --no-link --print-out-paths {{FLAKE}}#nixosConfigurations.$HOST.config.system.build.toplevel) || {
-                echo "Build failed for $HOST"; exit 1
+            OUT=$(nix build --no-link --print-out-paths {{FLAKE}}#$host.config.system.build.toplevel 2>&1) || {
+                echo "Build failed for $host"; echo "$OUT"; exit 1
             }
-            nix-copy-closure --to j_kro@$HOST "$OUT" 2>&1 | grep -v "copying path" | grep -v "already exists"
-            ssh j_kro@$HOST "bash --norc --nopropile -c 'sudo nix-env -p /nix/var/nix/profiles/system --set $OUT && sudo $OUT/bin/switch-to-configuration switch && echo OK'" 2>&1 | tail -3
+            nix-copy-closure --to j_kro@$host "$OUT" 2>&1 | grep -v "copying path" | grep -v "already exists"
+            ssh j_kro@$host "sudo nix-env -p /nix/var/nix/profiles/system --set $OUT && sudo $OUT/bin/switch-to-configuration switch" 2>&1 | tail -5
             echo "done"
         fi
-    fi
+    done
     echo ""
     echo "Deploy complete. Verify with 'just health'"
 
-# Host aliases (Colmena)
 zephyr:
     just deploy zephyr
 nexus:
@@ -248,45 +162,29 @@ forge:
     just deploy forge
 sentry:
     just deploy sentry
-haven:
-    just deploy haven
-vane:
 
-# Legacy host aliases (nix-copy-closure fallback)
-zephyr-legacy:
-    just deploy-legacy zephyr
-nexus-legacy:
-    just deploy-legacy nexus
-forge-legacy:
-    just deploy-legacy forge
-sentry-legacy:
-    just deploy-legacy sentry
-
-# Deploy a subset, excluding the local host (default) unless passed explicitly.
-deploy-remote hosts:
+deploy-bg target="all":
     #!/usr/bin/env bash
-    set -euo pipefail
-    LOCAL=$(hostname -s)
-    for HOST in {{hosts}}; do
-        if [ "$HOST" = "$LOCAL" ]; then
-            echo "Skipping local host in deploy-remote (use switch)"
-            continue
-        fi
-        just deploy "$HOST"
-    done
+    set -e
+    SESSION="deploy"
+    if tmux has-session -t "$SESSION" 2>/dev/null; then
+        echo "Deploy session already running - use 'just attach'"
+        exit 1
+    fi
+    tmux new-session -d -s "$SESSION" -c {{FLAKE}} -x 200 -y 50
+    tmux send-keys -t "$SESSION" "just deploy {{target}}" Enter
+    echo "Deploy started (tmux: $SESSION)"
+    echo "use 'just attach' to view"
 
-# Deploy all managed hosts via nix-copy-closure, excluding the central control host.
-deploy-drones:
+attach:
     #!/usr/bin/env bash
-    set -euo pipefail
-    LOCAL=$(hostname -s)
-    for HOST in {{HOSTS}}; do
-        if [ "$HOST" = "$LOCAL" ]; then
-            echo "Skipping $HOST (local)"
-            continue
-        fi
-        just deploy "$HOST"
-    done
+    SESSION="deploy"
+    if tmux has-session -t "$SESSION" 2>/dev/null; then
+        exec tmux attach -t "$SESSION"
+    else
+        echo "No active deploy session"
+        exit 1
+    fi
 
 # ── VALIDATION & LOCAL OPS ────────────────────────────────────────────────────
 
@@ -494,15 +392,7 @@ ca-domains:
     nix eval '.#nixosConfigurations.zephyr.config.clusterNetworking.lanDomains' --json 2>/dev/null \
       | python3 -c "import json,sys;d=json.loads(sys.stdin.read());[print(f'  {i}. {x}') for i,x in enumerate(sorted(d),1)]"
 
-# ── RP (TKO-65 / NODE-374) ─────────────────────────────────────────────────────
-#
-# RP host is treated as colony peers: zero-downtime rolling deploy, same deploy model
-# as zephyr (single local switch). If moving RP into cluster later, convert to dual
-# remote switch + deploy-remote.
-#
-# Workflow: optional Akash teardown (state ‘all’ via manage state, config removal, rp-deploy).
-# rp-sync preserves /etc/nixos state only; if /map or other dirs must transfer, extend rsync.
-#
+# ── DOCUMENTATION ─────────────────────────────────────────────────────────────
 
 docs-audit:
     #!/usr/bin/env bash
@@ -513,29 +403,3 @@ docs-freshen:
     #!/usr/bin/env bash
     set -e
     echo "Check LIVE/ docs for accuracy, run 'docs-audit' after"
-# Deploy in strict order: nexus → forge → sentry. NEVER zephyr.
-deploy-all:
-    #!/usr/bin/env bash
-    set -e
-    echo "Deploying from $(cd {{FLAKE}} && git rev-parse --abbrev-ref HEAD) ($(cd {{FLAKE}} && git rev-parse --short HEAD))"
-    echo ""
-    for host in nexus forge sentry; do
-        echo "=== $host ==="
-        echo "Checking for existing builds..."
-        EXISTING=$(ssh j_kro@$host "ps aux | grep -iE 'nixos-rebuild|nix.*build|colmena' | grep -v grep | grep -v defunct" 2>/dev/null || true)
-        if [ -n "$EXISTING" ]; then
-            echo "WARNING: Existing build(s) on $host:"
-            echo "$EXISTING"
-            echo "Killing stale builds..."
-            ssh j_kro@$host "ps aux | grep -iE 'nixos-rebuild|nix.*build|colmena' | grep -v grep | grep -v defunct | awk '{print \$2}' | xargs -r kill" 2>/dev/null || true
-            sleep 2
-        fi
-        OUT=$(nix build --no-link --print-out-paths {{FLAKE}}#nixosConfigurations.\$host.config.system.build.toplevel) || {
-            echo "Build failed for $host"; exit 1
-        }
-        nix-copy-closure --to j_kro@\$host "\$OUT" 2>&1 | grep -v "copying path" | grep -v "already exists"
-        ssh j_kro@\$host "bash --norc --noprofile -c 'sudo nix-env -p /nix/var/nix/profiles/system --set \$OUT && sudo \$OUT/bin/switch-to-configuration switch && echo OK'" 2>&1 | tail -3
-        echo "$host done"
-    done
-    echo ""
-    echo "Deploy complete. Verify with 'just health'"

@@ -1,7 +1,6 @@
 {
   pkgs,
   lib,
-  config,
   ...
 }: {
   hardware.gpu-compute = {
@@ -146,6 +145,51 @@
           "x-systemd.device-timeout=10s"
         ];
       };
+
+      # --- NVMe data mounts (legacy, for backward compatibility) ---
+      # Note: These services have been moved to bcache0 for better performance
+      # and to reduce pressure on the NVMe root filesystem
+      "/data/hermes-legacy" = {
+        device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
+        fsType = "btrfs";
+        options = [
+          "subvol=@home"
+          "compress=zstd"
+          "ssd"
+          "discard=async"
+          "noatime"
+          "nofail"
+          "x-systemd.device-timeout=10s"
+        ];
+      };
+
+      "/data/models-legacy" = {
+        device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
+        fsType = "btrfs";
+        options = [
+          "subvol=@home"
+          "compress=zstd"
+          "ssd"
+          "discard=async"
+          "noatime"
+          "nofail"
+          "x-systemd.device-timeout=10s"
+        ];
+      };
+
+      "/data/pi-legacy" = {
+        device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
+        fsType = "btrfs";
+        options = [
+          "subvol=@home"
+          "compress=zstd"
+          "ssd"
+          "discard=async"
+          "noatime"
+          "nofail"
+          "x-systemd.device-timeout=10s"
+        ];
+      };
   };
 
   boot.kernelParams = [
@@ -155,34 +199,12 @@
     "rootdelay=5"
   ];
 
-  hardware.nvidia.open = lib.mkForce false;
-  hardware.nvidia.package = lib.mkForce config.boot.kernelPackages.nvidiaPackages.new_feature;
   hardware.nvidia.powerLimits = {
     enable = true;
     gpus = {
       "3060ti" = {
         index = 0;
-        limit = 120;
-      };
-    };
-    profiles = {
-      gaming = {
-        "3060" = 200;
-      };
-      ai = {
-        "3060" = 110;
-      };
-      kubernetes-gpu = {
-        "3060" = 150;
-      };
-      builds = {
-        "3060" = 150;
-      };
-      mining = {
-        "3060" = 120;
-      };
-      idle = {
-        "3060" = 200;
+        limit = 100; # Tuned for efficiency (min floor)
       };
     };
   };

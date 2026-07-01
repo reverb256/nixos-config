@@ -97,11 +97,3 @@ networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22 53 6443];
 ---
 
 **Version**: 1.0 | **Updated**: 2026-03-15
-
-## Security
-
-- ALWAYS run `gitleaks protect --staged` before committing
-- Plaintext secrets in git are CRITICAL -- use sops-nix encryption
-- SSH key path: `~/.ssh/id_ed25519` (not inside repo)
-- TMPDIR must NOT be /etc/nixos (temp files contaminate repo)
-

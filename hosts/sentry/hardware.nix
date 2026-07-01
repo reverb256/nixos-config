@@ -44,20 +44,18 @@
 
   boot.kernelModules = ["msr"];
   boot.kernelParams = lib.mkBefore [
-    # RDNA1/Navi10 stability for Vulkan compute:
-    # - lockup_timeout=10000: 10s ring timeout before GPU reset
-    # - runpm=0: disable runtime PM (P-state transitions crash under compute)
-    # - ppfeaturemask removed: stock p-states are stable, overdrive is not
+    # AMD GPU Navi 10 stability: enable GPU recovery, lockup detection at 1s
+    # Must come before mitigations to avoid being overridden
     "amdgpu.gpu_recovery=1"
     "amdgpu.noretry=0"
-    "amdgpu.lockup_timeout=10000"
-    "amdgpu.runpm=0"
+    "amdgpu.ppfeaturemask=0xfffd7fff"  # Disable Overdrive for stability
+    "amdgpu.lockup_timeout=1000"
     "mitigations=auto"
   ];
   boot.extraModprobeConfig = ''
+    # Force GPU recovery even if kernel params get lost
     options amdgpu gpu_recovery=1
     options amdgpu noretry=0
-    options amdgpu runpm=0
   '';
 
   environment = {
@@ -72,13 +70,7 @@
     ];
   };
 
-  # Keep etcd cleanup via tmpfiles (non-dependent on store paths)
-  systemd.tmpfiles.rules = [
-    "R /var/lib/etcd - - - - -"
-  ];
-
-  # ROCm symlinks moved to systemd service — tmpfiles L+ rules fail at boot.
-  systemd.services.rocm-symlinks = let
+  systemd.tmpfiles.rules = let
     rocmEnv = pkgs.symlinkJoin {
       name = "rocm-combined";
       paths = with pkgs.rocmPackages; [
@@ -89,20 +81,11 @@
         rpp
       ];
     };
-  in {
-    description = "Create ROCm symlinks";
-    after = ["local-fs.target"];
-    wantedBy = ["multi-user.target"];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-    };
-    script = ''
-      mkdir -p /opt/rocm
-      ln -sfn ${rocmEnv} /opt/rocm
-      ln -sfn ${pkgs.rocmPackages.clr} /opt/rocm/hip
-    '';
-  };
+  in [
+    "R /var/lib/etcd - - - - -"
+    "L+ /opt/rocm - - - - ${rocmEnv}"
+    "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
+  ];
 
   # Re-enable SMT — CachyOS kernel defaults to mitigations=auto,nosmt which
   # offlines all sibling threads. We override mitigations but the kernel

@@ -5,9 +5,7 @@
   inputs,
   ...
 }: {
-    environment.sessionVariables.TZ = "America/Winnipeg";
-
-  imports = [
+    imports = [
       ./monitoring.nix
       ./firewall.nix
       ./hardware.nix
@@ -17,7 +15,6 @@
       ./disko.nix
       ./preservation.nix
       ./nfs-allow.nix
-      ./networking-fix.nix
 
       ./ai-inference.nix
 
@@ -32,7 +29,6 @@
       ../../modules/services/keepalived-vip.nix
       inputs.disko.nixosModules.disko
       inputs.nix-mineral.nixosModules.nix-mineral
-      ../../modules/services/kokoro-fastapi.nix
     ];
 
   # Host-specific CPU/GPU optimization for llama.cpp (Zen2 + Ampere: RTX 3060 Ti)
@@ -45,12 +41,31 @@
     });
   };
 
-  profiles.node.nexus-gaming.enable = true;
+  clusterNetworking = {
+    enable = true;
+    hostName = "nexus";
+    ipAddress = config.networking.cluster.hosts.nexus.ip;
+    interfaceName = "enp7s0";
+    wireless = {
+      enable = true;
+      ipAddress = "10.1.1.125";
+    };
+    unbound.enable = true;
+    unbound.listenAddress = config.networking.cluster.hosts.nexus.ip;
+  };
 
-  # Minimal clusterNetworking to satisfy cluster-dns.nix
-  # networking-fix.nix handles static IP via systemd-networkd
-  clusterNetworking.enable = true;
-  clusterNetworking.hostName = "nexus";
+  # Prevent hardware-configuration from overriding interface naming
+  # while preserving the cluster-networking keep-names policy
+  systemd.network.links = lib.mkForce {
+    "10-keep-names" = {
+      matchConfig = {
+        OriginalName = "*";
+      };
+      linkConfig = {
+        NamePolicy = "keep";
+      };
+    };
+  };
 
   # Flake lock sync enabled — nexus runs etcd and needs fresh inputs for reliable rebuilds
   services.flake-lock-sync.enable = true;
@@ -65,6 +80,8 @@
     enable = true;
     populateLocal = true;
   };
+
+  profiles.node.nexus-gaming.enable = true;
 
   # Nexus is headless — no printer, disable CUPS to save resources
   services.boot-error-fixes.includePrinting = false;
@@ -146,7 +163,5 @@
     selfHosting = true;
     ci = true;
   };
-
-  # Sync sops secrets to K8s
-  services.k8s-secrets-sync.enable = true;
 }
+  # Disable legacy agenix secrets (migrated to sops-nix)

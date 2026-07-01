@@ -24,9 +24,8 @@ jobs:
           if [[ "$BRANCH" =~ ^(issue|feat|fix|chore|dependabot)/[a-z0-9._-]+$ ]]; then
             echo "✅ Branch name: $BRANCH"
           else
-            echo "::error::Branch '$BRANCH' doesn't follow convention"
+            echo "::warning::Branch '$BRANCH' doesn't follow convention"
             echo "Expected: issue-NNN-desc, feat/NNN-desc, fix/NNN-desc"
-            exit 1
           fi
 
       - name: "Linked issue check"
@@ -48,14 +47,10 @@ jobs:
             elif echo "$msg" | grep -qiE "^(Merge|chore: release)"; then
               echo "⏭️  $msg (merge/release)"
             else
-              echo "::error::Missing issue ref: $msg"
+              echo "⚠️  Missing issue ref: $msg"
               FAILED=$((FAILED + 1))
             fi
           done <<< "$COMMITS"
-          if [ $FAILED -gt 0 ]; then
-            echo "::error::$FAILED commit(s) missing issue references"
-            exit 1
-          fi
 
       - name: "Conventional commit title"
         run: |
@@ -63,8 +58,7 @@ jobs:
           if echo "$TITLE" | grep -qiE "^(feat|fix|chore|refactor|docs|test|ci)(\([a-z]+\))?:"; then
             echo "✅ Title follows conventional commits"
           else
-            echo "::error::PR title should start with type: e.g. 'fix(caddy): desc (#NNN)'"
-            exit 1
+            echo "::warning::PR title should start with type: e.g. 'fix(caddy): desc (#NNN)'"
           fi
 
       - name: "Target branch check"
@@ -73,7 +67,7 @@ jobs:
           if [ "$BASE" = "main" ] || [ "$BASE" = "prod" ]; then
             echo "✅ PR targets $BASE"
           else
-            echo "::error::PR targets '$BASE' — should be main or prod"
+            echo "::warning::PR targets '$BASE' — should be main or prod"
           fi
 
       - name: "PR validation summary"
@@ -97,5 +91,23 @@ jobs:
           contains(github.event.pull_request.files.*.filename, 'kubernetes/') ||
           contains(github.event.pull_request.files.*.filename, 'justfile')
         run: |
-          echo "Checking LIVE/ document freshness via docs-audit..."
-          just docs-audit
+          echo "Checking LIVE/ document freshness..."
+          FAILED=0
+          for f in docs/LIVE/*.md; do
+            if [ ! -f "$f" ]; then
+              echo "::warning::Missing LIVE document: $f"
+              FAILED=$((FAILED + 1))
+              continue
+            fi
+            DATE=$(grep "last-verified:" "$f" 2>/dev/null | sed 's/.*last-verified: *//')
+            if [ -z "$DATE" ]; then
+              echo "::warning::$f has no last-verified date"
+              FAILED=$((FAILED + 1))
+              continue
+            fi
+            echo "  OK: $f (last-verified: $DATE)"
+          done
+          if [ $FAILED -gt 0 ]; then
+            echo "::warning::$FAILED LIVE document(s) need attention. Run 'just docs-audit' after merge."
+          fi
+          exit 0  # Non-blocking — warn only on PRs

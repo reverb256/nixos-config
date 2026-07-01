@@ -36,6 +36,7 @@
 K3s v1.34.5+k3s1 — Flannel CNI (VXLAN, UDP 8472)
 4 nodes: zephyr (control), nexus, forge, sentry
 
+Namespaces: infra, ai-inference, monitoring, haven, kagent,
             orchestration, automation, nixkube, mining, search
 ```
 
@@ -73,6 +74,7 @@ Unbound DNS on all nodes: `local-zone "lan." static`.
   ┌──────────────────┐     ┌─────────────────────────────────┐
   │ ai.lan           │     │ 🔒 haven.lan          → :32100 │
   │ → 127.0.0.1:1237 │     │ 🔒 mission-control.lan → :32101 │
+  │                  │     │ 🔒 kagent.lan          → :32103 │
   │ ai-inference.lan │     │ 🔒 grafana.lan         → :32102 │
   │ → 10.15.67.242   │     │ 🔒 openwebui.lan       → :32080 │
   │   :8080          │     │ 🔒 llama.zephyr.lan    → :1237  │

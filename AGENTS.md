@@ -345,6 +345,7 @@ in {
 | Type | Services | Auth Method |
 |------|----------|-------------|
 | Public (no auth) | searxng.lan, dashboard.lan, gitea.lan, vaultwarden.lan, n8n.lan | Own auth or none |
+| Proxy SSO (forward_auth) | haven.lan, kagent.lan, grafana.lan, mission-control.lan, qdrant.lan, brain.lan, ai-inference.lan, workspace.lan | Caddy -> oauth2-proxy -> Casdoor |
 | Native OIDC (direct to Casdoor) | grafana.lan (also behind forward_auth), ai-inference.lan (JWT/JWKS for API), gitea.lan, openwebui.lan | Direct Casdoor app |
 
 ### Native OIDC Support Matrix (audited 2026-05-14)
@@ -368,6 +369,7 @@ in {
 Three K8s secrets defined in Nix modules but **never mounted or referenced** by any pod — remnants of removed sidecars:
 - `haven-oidc` (haven namespace)
 - `mission-control-oidc` (orchestration namespace)
+- `kagent-oidc` (kagent namespace)
 
 Safe to clean up. The `casdoor-app-sync` systemd service (in `k8s-secret-bootstrap.nix`) handles the real oauth2-proxy Casdoor app with auto-synced client secrets.
 
@@ -467,6 +469,7 @@ Unbound on all nodes with `local-zone "lan." static`.
 ### ⚠️ No K8s Sidecars
 
 Do NOT deploy oauth2-proxy as K8s sidecar containers. Use the `central-auth` NixOS service instead.
+Sidecars were removed 2026-05-02 from: haven, openwebui, kagent-ui, mission-control, llama-server-sentry, llama-server-zephyr-3090-moe.
 Auth is handled exclusively by Caddy `forward_auth` -> local `central-auth` (oauth2-proxy) on zephyr + nexus.
 
 ### Grafana Deployment
@@ -653,7 +656,7 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 | 6 | **Nix Module Boilerplate** | No | `services.*` namespace, `mkEnableOption`, `mkIf cfg.enable`, register in `modules/default.nix`, `git add` new files. |
 | 7 | **Lib Helpers** | No | `lib.getExe` for ExecStart, `writeShellScript` for multi-line scripts, `makeBinPath` for PATH, `pipe` for transforms. |
 | 8 | **Network Policies** | No | `default-deny-all` per namespace + `allow-dns` egress + specific allow policies. |
-| 9 | **Agenix Secrets** | **YES** | `/run/secrets/<name>` paths (sops-nix), `config.sops.secrets.*.path` references. **NEVER hardcode secrets** -- plaintext secrets in git = CRITICAL. Pre-commit gitleaks blocks accidental commits. |
+| 9 | **Agenix Secrets** | No | `/run/agenix/<name>` paths, `config.age.secrets.*.path` references, never hardcode secrets. |
 | 10 | **Systemd Services** | No | `wantedBy = ["multi-user.target"]`, `Restart = "on-failure"`, `writeShellScript` over `bash -c`. |
 | 11 | **Pod Security Standards** | No | PSS labels: `enforce=baseline`, `audit=restricted`, `warn=restricted` on all namespaces. |
 | 12 | **Managed-By Labels** | No | `"app.kubernetes.io/managed-by" = "easykubenix"` on all K8s resources. |
@@ -673,8 +676,7 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 - **Import images on wrong K3s node** -- import on the node where the pod runs
 - **Build Nix containers without `git commit`** -- flakes only see tracked files
 
-## Known Issues (audited 2026-06-17)
-
+## Known Issues (audited 2026-05-14)
 
 | # | Issue | Status | Action |
 |---|-------|--------|--------|
@@ -769,17 +771,13 @@ NEVER use `nixos-anywhere` for hosts with existing data — it's a provisioning 
 
 ```bash
 # 1. Build closure locally (on Nexus)
-#    NEVER use 2>&1 with --print-out-paths — build warnings corrupt the path!
 sudo nix build "path:/etc/nixos#nixosConfigurations.<host>.config.system.build.toplevel" --no-link --print-out-paths
 
 # 2. Copy closure to target
 nix copy --to "ssh://j_kro@<ip>" /nix/store/<hash>-nixos-system-<host>-...
 
 # 3. Activate with FULL switch (not boot)
-#    CRITICAL: Always use bash --norc --noprofile for remote SSH commands!
-#    Remote hosts have fish as default shell, which chokes on long store paths
-#    and pollutes output with devenv error messages.
-ssh j_kro@<ip> "bash --norc --noprofile -c 'sudo nix-env -p /nix/var/nix/profiles/system --set /nix/store/<hash>... && sudo /nix/store/<hash>.../bin/switch-to-configuration switch && echo OK'"
+ssh j_kro@<ip> "sudo nix-env -p /nix/var/nix/profiles/system --set /nix/store/<hash>... && sudo /nix/store/<hash>.../bin/switch-to-configuration switch"
 ```
 
 ### Post-Deployment Verification
