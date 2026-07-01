@@ -25,10 +25,6 @@ stdenv.mkDerivation (finalAttrs: {
 
   doCheck = false;
 
-  postFixup = ''
-    substituteInPlace $out/bin/llama-cli --replace 'LLAMA_BUILD_NUMBER' '${finalAttrs.version}'
-  '';
-
   meta = with lib; {
     description = "Pure Vulkan llama.cpp — no CUDA support for mining hosts";
     homepage = "https://github.com/ggerganov/llama.cpp";
