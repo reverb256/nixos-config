@@ -9,7 +9,7 @@ in {
     role = "agent";
     nodeName = "krash3";
     nodeIP = "10.1.1.150";
-    tokenFile = "/persistent/etc/k3s-cluster-token";
+    tokenFile = "/run/secrets/k3s-cluster-token";
     flannelIface = "enp7s0";
   };
 
