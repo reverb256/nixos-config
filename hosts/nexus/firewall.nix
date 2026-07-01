@@ -26,11 +26,19 @@
       enable = true;
       externalInterface = "eth0";
       internalInterfaces = [ "kube-bridge" ];
-      extraCommands = ''
-        # Redirect .lan HTTP/HTTPS traffic to caddy-ingress NodePorts
-        iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 30080
-        iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 443 -j REDIRECT --to-port 30443
-      '';
+      # nftables-native DNAT (replaces old iptables extraCommands)
+      forwardPorts = [
+        {
+          sourcePort = 80;
+          destination = "10.1.1.120:30080";
+          proto = "tcp";
+        }
+        {
+          sourcePort = 443;
+          destination = "10.1.1.120:30443";
+          proto = "tcp";
+        }
+      ];
     };
   };
 }
