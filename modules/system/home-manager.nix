@@ -89,8 +89,10 @@ in
       '';
 
       # Auto-migrate Alacritty config after activation (removes deprecation warnings)
-      home.activation.migrateAlacrittyConfig = lib.mkIf config.programs.alacritty.enable ''
-        ${pkgs.alacritty}/bin/alacritty migrate -c "$HOME/.config/alacritty/alacritty.toml" || true
+      home.activation.migrateAlacrittyConfig = ''
+        if [ -f "$HOME/.config/alacritty/alacritty.toml" ]; then
+          ${pkgs.alacritty}/bin/alacritty migrate -c "$HOME/.config/alacritty/alacritty.toml" 2>/dev/null || true
+        fi
       '';
     };
   };
