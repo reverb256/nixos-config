@@ -971,7 +971,6 @@ in {
         ];
       };
     };
-    # Open WebUI network policy
     # ── vLLM Network Policies ─────────────────────────────────────────
     # Restrict access to vLLM endpoints to gateway only
     ai-inference.NetworkPolicy.llama-qwen-vllm-nexus-ingress = {
