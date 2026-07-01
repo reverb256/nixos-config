@@ -253,7 +253,7 @@ in {
   networking.dhcpcd.extraConfig = "nooption domain_name_servers";
 
   # ── Firewall ────────────────────────────────────────────
-  networking.firewall.allowedTCPPorts = [ 22 445 2222 3260 ];
+  networking.firewall.allowedTCPPorts = [ 22 445 2222 3260 53 ];
   services.avahi.enable = lib.mkForce false;
   services.tailscale.enable = lib.mkForce false;
   networking.nftables.enable = lib.mkForce false;
