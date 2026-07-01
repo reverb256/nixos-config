@@ -6,6 +6,13 @@
 }: let
   cfg = config.services.peakminer;
   inherit (lib) mkEnableOption mkOption types mkIf;
+
+  # Stratum auth translator proxy — rewrites peakminer's named-params authorize
+  # to standard array-form so the pool sees "WALLET.WORKER" as the login string.
+  # This makes the Kryptex dashboard display per-worker names.
+  # Shares still flow through peakminer's working named-params path internally;
+  # the proxy is transparent for mining.submit and all other messages.
+  authTranslator = pkgs.writeScript "stratum-auth-translator.py" (builtins.readFile ../scripts/stratum-auth-translator.py);
 in {
   options.services.peakminer = {
     enable = mkEnableOption "PeakMiner GPU mining (Pearl/PRL)";
@@ -15,26 +22,16 @@ in {
         options = {
           name = mkOption {
             type = types.str;
-            description = "Service name suffix (e.g. forge-4060-0)";
+            description = "Service name suffix and pool worker name (e.g. forge-4060-0)";
           };
           wallet = mkOption {
             type = types.str;
-            description = "Wallet formatted as krxXVNVMM7.<name>";
+            description = "Wallet address WITHOUT worker suffix (e.g. krxXVNVMM7). The worker name is derived from the 'name' field.";
           };
           pools = mkOption {
             type = types.listOf types.str;
-            # Working default at 2026-06-29: plaintext (7048) + --legacy-auth.
-            # Per peakminer --help: -L/--legacy-auth forces `["user","password"]`
-            # array-form authorize; combined with TCP/7048 this is the Kryptex
-            # Stratum V1 path the cluster has actually been mining on since May.
-            # TLS on 8048 silently rejected shares (even with --legacy-auth) so
-            # we keep plaintext until Kryptex documents an SSL endpoint.
-            # 2026-06-30: collapsed to single `prl` endpoint per operator directive
-            # (TLS 8048 broken; fallback `prl-us` mirror removed). If Kryptex
-            # ever exposes additional endpoints, list them here in failover order.
-            # --legacy-auth rationale lives in tests/peakminer.nix::legacyAuthInDefault.
             default = ["stratum+tcp://prl.kryptex.network:7048"];
-            description = "List of pool URLs. Currently single-primary; expand to a list if a failover is added. Scheme REQUIRED (stratum+tcp:// or stratum+ssl://host:port).";
+            description = "Upstream pool URLs (the REAL pool, not the local proxy). Scheme REQUIRED.";
           };
           devices = mkOption {
             type = types.str;
@@ -81,30 +78,9 @@ in {
             default = 100;
             description = "Maximum fan duty cycle (0-100%) for closed-loop control";
           };
-          legacyAuth = mkOption {
-            type = types.bool;
-            # 2026-06-30 verification (all 5 GPUs tested over 30+ min each):
-            # ┃  version   ┃ --legacy-auth  ┃ shares? ┃
-            # ┃ 1.0.8      ┃ no             ┃ YES     ┃
-            # ┃ 1.0.8      ┃ yes            ┃ NO      ┃ 
-            # ┃ 1.0.11-rc2 ┃ no             ┃ NO      ┃
-            # ┃ 1.0.11-rc2 ┃ yes            ┃ NO      ┃
-            # 
-            # The Kryptex PRL pool's Stratum V1 named-params authorize ({user,pass})
-            # works natively with peakminer 1.0.8. Setting --legacy-auth causes
-            # the array-form authorize to be accepted at login but shares silently
-            # never reach the share queue. v1.0.11-rc2 has a separate bug that
-            # blocks shares entirely regardless of --legacy-auth.
-            # 
-            # PINNED to 1.0.8 until 1.0.11 is re-verified.
-            # Do NOT enable legacyAuth or change pinnedVersion without re-testing.
-            default = false;
-            description = "Use Stratum V1 array-form authorize (--legacy-auth). KNOWN BROKEN on Kryptex PRL — keeps connection alive but blocks share submission.";
-          };
-          pinnedVersion = mkOption {
-            type = types.str;
-            default = "1.0.8";
-            description = "PeakMiner version pin. 1.0.8 confirmed working; 1.0.11-rc2 never submits shares on Kryptex. Used for documentation reference — actual package selection is per-flake.";
+          proxyPort = mkOption {
+            type = types.port;
+            description = "Local port for the auth translator proxy. PeakMiner connects here instead of the real pool.";
           };
           extraArgs = mkOption {
             type = types.listOf types.str;
@@ -125,27 +101,34 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # peakminer 1.0.11-rc2 --help confirms pool URLs require a `stratum+tcp://` or `stratum+ssl://`
-    # scheme prefix; bare host:port is rejected by the CLI parser. Enforce at eval time so a
-    # typo is caught on `just check` instead of silently failing at miner startup.
     assertions = [
       {
         assertion = lib.all (i:
           lib.all (url: lib.hasPrefix "stratum+" url) i.pools
         ) cfg.instances;
-        message = "services.peakminer: every instance pool URL must begin with `stratum+tcp://` or `stratum+ssl://` (peakminer 1.0.8 hard requirement; bare `host:port` is rejected).";
+        message = "services.peakminer: every instance pool URL must begin with stratum+tcp:// or stratum+ssl://";
+      }
+      {
+        assertion = lib.all (i: !lib.hasInfix "." i.wallet) cfg.instances;
+        message = "services.peakminer: wallet must NOT contain a dot (worker suffix is added by the auth translator proxy from the 'name' field)";
       }
     ];
-    systemd.services = lib.listToAttrs (
-      builtins.map (instance: let
-        poolArgs = builtins.map (p: "--url ${p}") instance.pools;
+
+    systemd.services = lib.foldl' (acc: instance:
+      let
+        # Parse the first pool URL to get host:port for the proxy upstream
+        poolUrl = builtins.head instance.pools;
+        # Strip stratum+tcp:// or stratum+ssl:// prefix
+        poolAddr = lib.removePrefix "stratum+tcp://" (lib.removePrefix "stratum+ssl://" poolUrl);
+        # Split host:port
+        poolParts = lib.splitString ":" poolAddr;
+        poolHost = builtins.head poolParts;
+        poolPortStr = if builtins.length poolParts > 1 then builtins.elemAt poolParts 1 else "7048";
+
         powerLimitArgs =
           if instance.powerLimit != null
           then "+/run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
           else "";
-        # Power limit intentionally applies via nvidia-smi (ExecStartPre/Post) -- NOT --gpu-power.
-        # peakminer NVML OC silently fails on NixOS because libnvidia-ml.so.1 dlopen breaks under
-        # pure glibc + LD_LIBRARY_PATH from /run/opengl-driver. nvidia-smi -pl works reliably.
         tempArg =
           if instance.tempStop != null
           then ["--gpu-temp-stop ${toString instance.tempStop}"]
@@ -158,47 +141,64 @@ in {
             "--gpu-fan-min ${toString instance.fanMin}"
             "--gpu-fan-max ${toString instance.fanMax}"
           ];
-      in {
-        name = "peakminer-${instance.name}";
-        value = {
-          description = "PeakMiner - ${instance.name}";
-          wantedBy = ["multi-user.target"];
-          after = ["network-online.target"];
-          wants = ["network-online.target"];
 
-          serviceConfig = {
-            Type = "simple";
-            User = cfg.user;
-            ExecStartPre = lib.mkIf (instance.powerLimit != null) (
-              lib.mkBefore powerLimitArgs
-            );
-            # ExecStartPost re-applies the power limit AFTER peakminer starts,
-            # because peakminer's NVML OC silently fails on NixOS and leaves
-            # the GPU at its default power envelope. nvidia-smi -pl works reliably.
-            ExecStartPost = lib.mkIf (instance.powerLimit != null) (
-              "+/run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
-            );
-            ExecStart = pkgs.writeShellScript "peakminer-${instance.name}" ''
-              export CUDA_DEVICE_ORDER=PCI_BUS_ID
-              # PeakMiner needs NVML + CUDA runtime libraries from the driver
-              export LD_LIBRARY_PATH=/run/opengl-driver/lib:''${LD_LIBRARY_PATH:-}
-              exec ${pkgs.peakminer}/bin/peakminer \
-                --coin pearl \
-                ${lib.concatStringsSep " " poolArgs} \
-                --user ${instance.wallet} \
-                --devices ${instance.devices} \
-                --api-port ${toString instance.apiPort} \
-                ${lib.concatStringsSep " " tempArg} \
-                ${lib.concatStringsSep " " fanArg} \
-                ${lib.optionalString instance.legacyAuth "--legacy-auth"} \
-                --worker ${instance.name} \
-                ${lib.concatStringsSep " " instance.extraArgs}
-            '';
-            Restart = "always";
-            RestartSec = 10;
+        # Auth translator proxy service
+        proxyService = {
+          name = "peakminer-proxy-${instance.name}";
+          value = {
+            description = "Stratum auth translator for ${instance.name}";
+            wantedBy = ["multi-user.target"];
+            after = ["network-online.target"];
+            wants = ["network-online.target"];
+            serviceConfig = {
+              Type = "simple";
+              ExecStart = "${pkgs.python3}/bin/python3 ${authTranslator} ${poolHost} ${poolPortStr} ${toString instance.proxyPort} ${instance.name}";
+              Restart = "always";
+              RestartSec = 5;
+            };
           };
         };
-      }) cfg.instances
-    );
+
+        # PeakMiner service — connects to the LOCAL proxy, not the real pool
+        minerService = {
+          name = "peakminer-${instance.name}";
+          value = {
+            description = "PeakMiner - ${instance.name}";
+            wantedBy = ["multi-user.target"];
+            after = ["network-online.target" "peakminer-proxy-${instance.name}.service"];
+            wants = ["network-online.target"];
+            requires = ["peakminer-proxy-${instance.name}.service"];
+
+            serviceConfig = {
+              Type = "simple";
+              User = cfg.user;
+              ExecStartPre = lib.mkIf (instance.powerLimit != null) (
+                lib.mkBefore powerLimitArgs
+              );
+              ExecStartPost = lib.mkIf (instance.powerLimit != null) (
+                "+/run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
+              );
+              ExecStart = pkgs.writeShellScript "peakminer-${instance.name}" ''
+                export CUDA_DEVICE_ORDER=PCI_BUS_ID
+                export LD_LIBRARY_PATH=/run/opengl-driver/lib:''${LD_LIBRARY_PATH:-}
+                exec ${pkgs.peakminer}/bin/peakminer \
+                  --coin pearl \
+                  --url stratum+tcp://127.0.0.1:${toString instance.proxyPort} \
+                  --user ${instance.wallet} \
+                  --worker ${instance.name} \
+                  --devices ${instance.devices} \
+                  --api-port ${toString instance.apiPort} \
+                  ${lib.concatStringsSep " " tempArg} \
+                  ${lib.concatStringsSep " " fanArg} \
+                  ${lib.concatStringsSep " " instance.extraArgs}
+              '';
+              Restart = "always";
+              RestartSec = 10;
+            };
+          };
+        };
+      in
+        acc // (lib.listToAttrs [proxyService minerService])
+    ) {} cfg.instances;
   };
 }

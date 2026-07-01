@@ -345,8 +345,9 @@ in {
       instances = [
         {
           name = "zephyr-3060ti";
-          wallet = "krxXVNVMM7.zephyr-3060ti";
+          wallet = "krxXVNVMM7";
           pools = ["stratum+tcp://prl.kryptex.network:7048"];
+          proxyPort = 21543;
           devices = "0";
           gpuId = 0;
           # powerLimit intentionally null on zephyr: gpu-profile-manager owns power/clock policy
@@ -360,8 +361,9 @@ in {
         }
         {
           name = "zephyr-3090";
-          wallet = "krxXVNVMM7.zephyr-3090";
+          wallet = "krxXVNVMM7";
           pools = ["stratum+tcp://prl.kryptex.network:7048"];
+          proxyPort = 21544;
           devices = "1";
           gpuId = 1;
           powerLimit = null; # gpu-profile-manager owns power/clock policy

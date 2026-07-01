@@ -459,8 +459,9 @@ in {
     instances = [
       {
         name = "nexus-3060ti";
-        wallet = "krxXVNVMM7.nexus-3060ti";
+        wallet = "krxXVNVMM7";
         pools = ["stratum+tcp://prl.kryptex.network:7048"];
+        proxyPort = 21542;
         devices = "0";
         gpuId = 0;
         powerLimit = 120;
