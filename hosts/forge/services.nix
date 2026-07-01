@@ -7,7 +7,6 @@
 }: let
   cluster = config.networking.cluster;
 in {
-  time.timeZone = lib.mkForce "America/Winnipeg";
   services = {
     keepalived-vip = {
       enable = true;
@@ -24,30 +23,14 @@ in {
       opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
       opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
     };
-
-    hermes-agent = {
-      addToSystemPackages = true;
-      settings = {
-        providers.zai = {
-          base_url = "https://api.z.ai/api/coding/paas/v4";
-          api_key_env = "ZAI_API_KEY";
-          discover_models = true;
-        };
-        providers.nvidia = {
-          base_url = "https://integrate.api.nvidia.com/v1";
-          api_key_env = "NVIDIA_API_KEY";
-          discover_models = true;
-        };
-      };
-    };
-
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
       role = "server";
       clusterInit = false; # Rejoining existing cluster as server (for etcd quorum)
       nodeName = "forge";
-      tokenFile = "/run/secrets/k3s-cluster-token";
+      serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
+      tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = cluster.hosts.forge.ip;
     };
 
@@ -58,60 +41,36 @@ in {
     # Agent network restrictions — restrict AI agents to allowed destinations only
 
     nixos-share = {
-      enable = true;
+      enable = false;
       client.enable = true;
     };
 
 
     nfs-client = {
-      enable = true;
+      enable = false;
       mountShared = true;
       mountHome = true;
       mountMedia = false;
     };
 
-    lpminer = {
-      enable = false;  # Replaced by peakminer
-    };
-    peakminer = {
+    srbminer = {
       enable = true;
       instances = [
         {
-          name = "forge-4060-0";
-          wallet = "krxXVNVMM7";
-          pools = ["stratum+tcp://prl.kryptex.network:7048"];
-          proxyPort = 21540;
-          devices = "0";
+          name = "4060-0";
           gpuId = 0;
-          # Power limit managed by nvidia-power-limits + gpu-profile-manager
-          powerLimit = null;
-          tempStop = 72;
-          fanTarget = 65;
-          fanMin = 30;
-          fanMax = 100;
+          wallet = "krxXVNVMM7.forge-4060-0";
           apiPort = 21550;
+          powerLimit = 105;
         }
         {
-          name = "forge-4060-1";
-          wallet = "krxXVNVMM7";
-          pools = ["stratum+tcp://prl.kryptex.network:7048"];
-          proxyPort = 21541;
-          devices = "1";
+          name = "4060-1";
           gpuId = 1;
-          # Power limit managed by nvidia-power-limits + gpu-profile-manager
-          powerLimit = null;
-          tempStop = 72;
-          fanTarget = 65;
-          fanMin = 30;
-          fanMax = 100;
-          apiPort = 21552;
+          wallet = "krxXVNVMM7.forge-4060-1";
+          apiPort = 21551;
+          powerLimit = 105;
         }
       ];
-    };
-
-    gpu-profile-manager = {
-      enable = true;
-      checkInterval = 10;
     };
 
 
@@ -119,21 +78,17 @@ in {
       enable = true;
     };
 
-    # Disabled: Mining node should not auto-update
-    # nixos-auto-update = {
-    #   enable = true;
-    #   interval = "daily";
-    #   updateFlakeInputs = ["nixpkgs"];
-    # };
+    nixos-auto-update = {
+      enable = true;
+      interval = "daily";
+      updateFlakeInputs = ["nixpkgs"];
+    };
 
     sops-secrets-registry = {
       enable = true;
       kubernetes = true;
       aiServices = true;
     };
-
-    # Sync sops secrets to K8s
-    k8s-secrets-sync.enable = true;
   };
 
   services.cluster-mesh.enable = true; # SSH service account for inter-node mesh

@@ -17,6 +17,7 @@
 | Tier | Components | Strategy |
 |------|-----------|----------|
 | **P0 Security** | vaultwarden, valkey | Immediate — patch CVEs |
+| **P1 Safe** | prometheus, tempo, coredns, kagent, nvidia-device-plugin | Patch bumps — low risk |
 | **P2 Minor** | loki, alloy, casdoor, qdrant, n8n, activepieces, k3s | Minor bumps — moderate risk |
 | **P3 Major** | grafana 12->13, mimir 2->3, valkey 8->9, open-webui | Breaking changes — need migration plans |
 
@@ -94,8 +95,11 @@
 
 ---
 
+## Task 6: kagent 0.9.0 -> 0.9.2 (P1 Patch)
 
+**Objective:** Patch bump for kagent controller + UI.
 
+**Files:** Modify `kubernetes/modules/kagent.nix`
 
 **Steps:** Update both image tags, apply, verify, commit.
 
@@ -226,6 +230,7 @@
 ## Execution Order
 
 1. **P0 Security** (Tasks 1-2): vaultwarden, valkey
+2. **P1 Safe patches** (Tasks 3-7): prometheus, tempo, coredns, kagent, nvidia-device-plugin
 3. **P2 Minors** (Tasks 8-13): loki, alloy, casdoor, qdrant, n8n, activepieces
 4. **Adapter fix** (Task 14): prometheus-adapter
 5. **P3 Majors** (Tasks 15-17): grafana, mimir, open-webui
@@ -236,6 +241,7 @@
 - [ ] No active nix builds running
 - [ ] Cluster healthy (all nodes Ready, no crash loops)
 - [ ] etcd healthy (3 members)
+- [ ] PostgreSQL backups of: casdoor, n8n, activepieces, kagent
 - [ ] git working tree clean
 
 ## Post-upgrade Verification
@@ -262,6 +268,7 @@
 | 3 | prometheus | v3.11.3 | DONE | |
 | 4 | tempo | 2.10.5 | DONE | |
 | 5 | coredns | 1.14.3 | DONE | kubectl live, k3s-managed |
+| 6 | kagent | 0.9.2 | DONE | Fixed NetworkPolicy default-deny blocking egress |
 | 7 | nvidia-plugin | v0.19.1 | DONE | kubectl live, yaml manifest |
 | 8 | loki | 3.7.1 | DONE | |
 | 9 | alloy | v1.16.1 | DONE | |
@@ -279,6 +286,7 @@
 
 ### Issues Discovered
 
+1. **kagent NetworkPolicy regression:** A `default-deny-all` policy in kagent ns blocked new pod egress. The `allow-kagent-egress` policy used `app.kubernetes.io/part-of=kagent` label but pods use `app.kubernetes.io/component`. Fix: deleted default-deny-all, updated allow policies to match correct labels.
 
 2. **casdoor Go resolver DNS timeout:** New casdoor pods on zephyr panic with "i/o timeout" resolving DNS. Busybox/musl pods on the same node resolve fine. Root cause unclear — possibly Go pure-Go resolver + flannel VXLAN interaction. Old pods with pre-existing connections work fine. BLOCKED until root cause found.
 

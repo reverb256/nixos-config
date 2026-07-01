@@ -8,8 +8,6 @@
         3334
         3900
         3901
-        8002
-        8003
       ];
       allowedTCPPortRanges = [
         {

@@ -15,17 +15,6 @@
   k8s = config.networking.cluster.kubernetes.services;
   cluster = config.networking.cluster;
 in {
-  time.timeZone = lib.mkForce "America/Winnipeg";
-
-  # Force local unbound as DNS resolver
-  networking.nameservers = lib.mkForce [ "127.0.0.1" "::1" ];
-  # Prevent DHCP from overriding resolv.conf
-  networking.dhcpcd.extraConfig = "nooption domain_name_servers";
-
-  # Keepalived VRRP fallback — add VIP at boot
-  networking.localCommands = ''
-    ip addr add 10.1.1.100/24 dev eth0 2>/dev/null || true
-  '';
   systemd.tmpfiles.rules = [
     "R /var/lib/etcd - - - - -"
     "d /data/hermes 0775 j_kro j_kro -"
@@ -50,7 +39,7 @@ in {
       enable = true;
       vip = cluster.kubernetes.vip;
       interface = "eth0";
-      priority = 110; # MASTER — nexus hosts the service-gateway Caddy
+      priority = 110;
     };
 
     gaming-detection.enable = lib.mkForce false;
@@ -79,13 +68,6 @@ in {
       interval = "15min";
     };
 
-    # Garage S3-compatible object storage — single-node cluster on large HDD
-    garage-cluster = {
-      enable = true;
-      dataDir = "/mnt/garage";
-      replicationFactor = 1;
-    };
-
   };
 
   programs.steam = {
@@ -110,8 +92,6 @@ in {
     addToSystemPackages = false; # hermes-with-whatsapp (superset) added via hermes-cli.nix
 
     settings = {
-      model.default = "zai";
-
       providers = {
         # All inference through AI Inference Gateway on Nexus:8080
         # Gateway handles upstream routing, auth, think-param stripping
@@ -124,7 +104,7 @@ in {
         zai = {
           base_url = "https://api.z.ai/api/coding/paas/v4";
           api_key_env = "ZAI_API_KEY";
-          model = "glm-4.7";
+          model = "glm-5.1";
         };
         # NVIDIA NIM cloud models
         nvidia-nim = {
@@ -162,53 +142,16 @@ in {
       toolsets = ["all"];
       terminal = {
         backend = "local";
-        timeout = 300;
+        timeout = 180;
       };
       memory = {
         memory_enabled = true;
         user_profile_enabled = true;
-        write_approval = true;
       };
       compression = {
         enabled = true;
-        threshold = 0.75;
+        threshold = 0.9;
       };
-      tool_output = {
-        max_bytes = 150000;
-      };
-      approvals = {
-        mode = "smart";
-        destructive_slash_confirm = true;
-      };
-      tool_loop_guardrails = {
-        hard_stop_enabled = true;
-      };
-      auxiliary = {
-        vision.provider = "nvidia-nim";
-        vision.model = "nvidia/llama-3.3-nemotron-super-49b-v1.5";
-        web.provider = "nvidia-nim";
-        web.model = "nvidia/llama-3.3-nemotron-super-49b-v1.5";
-        compression.provider = "nvidia-nim";
-        compression.model = "qwen/qwen3.5-122b-a10b";
-        session_title.provider = "nvidia-nim";
-        session_title.model = "nvidia/llama-3.3-nemotron-super-49b-v1.5";
-      };
-      skills = {
-        write_approval = true;
-        default = [
-          "windows-kvm-mgmt"
-          "nixos-cluster-config"
-          "nixos-hermes-config"
-          "github-pr-workflow"
-          "nixos-ssh"
-          "nixos-home-manager"
-        ];
-      };
-    };
-
-    # Force 644/755 permissions for skill files
-    environment = {
-      HERMES_HOME_MODE = "0755";
     };
 
     # Secrets loaded via ExecStartPre + EnvironmentFile override below
@@ -252,18 +195,7 @@ in {
     "render"
   ];
 
-  # ── Kokoro-FastAPI TTS (via NixOS module) ──
-  # Uses the pre-built upstream Docker image via podman
-  # API at http://nexus:8880/v1/audio/speech
-  services.kokoro-fastapi = {
-    enable = true;
-    port = 8880;
-    openFirewall = true;
-    useGpu = true;
-    extraPodmanArgs = "--device nvidia.com/gpu=all";
-  };
-
-  # ── Cluster service registry ──
+  # Cluster service registry — single source of truth for DNS + Caddy
   # All .lan domains terminate TLS on nexus and proxy to backends
   # Uses K8s service DNS (stable across recreations) instead of ephemeral ClusterIPs
   services.cluster-services = {
@@ -277,6 +209,11 @@ in {
         domain = "search.lan";
         backend = "127.0.0.1:30900";
         compress = false;
+      };
+      openwebui = {
+        domain = "openwebui.lan";
+        backend = "127.0.0.1:32080";
+
       };
       hermes = {
         domain = "hermes.lan";
@@ -337,15 +274,15 @@ in {
       };
       dev-maplespike-api = {
         domain = "dev-api.maplespike.lan";
-        backend = "10.1.1.120:${toString ports.maplespike-api}";
+        backend = "10.1.1.120:${toString ports.dev-maplespike-api}";
       };
       dev-maplespike-mcp = {
         domain = "dev-mcp.maplespike.lan";
-        backend = "10.1.1.120:${toString ports.maplespike-mcp}";
+        backend = "10.1.1.120:${toString ports.dev-maplespike-mcp}";
       };
       dev-maplespike = {
         domain = "dev.maplespike.lan";
-        backend = "10.1.1.120:${toString ports.maplespike-portal}";
+        backend = "10.1.1.120:${toString ports.dev-maplespike-portal}";
       };
       vaultwarden = {
         domain = "vaultwarden.lan";
@@ -415,7 +352,16 @@ in {
     port = 2222;
   };
   services.lpminer = {
-    enable = lib.mkForce false;
+    enable = true;
+    instances = [
+      {
+        name = "nexus";
+        gpuId = 0;
+        wallet = "krxXVNVMM7.nexus-3060ti";
+        pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
+        powerLimit = 100;
+      }
+    ];
   };
   services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
   services.recovery-specialisation.enable = true; # depends on initrd-ssh
@@ -449,44 +395,13 @@ in {
    };
 
   # GitHub Actions self-hosted runner for CI/CD
-  # Disabled: Invalid PAT token causing setup failures
-  # services.ci-runner = {
-  #   enable = true;
-  #   repo = "reverb256/nixos-config";
-  #   tokenFile = null;
-  #   patFile = "/run/secrets/github-runner-pat";
-  #   autoStart = true;
-  #   extraLabels = ["nexus"];
-  # };
+  services.ci-runner = {
+    enable = true;
+    repo = "reverb256/nixos-config";
+    tokenFile = "/run/secrets/github-runner-pat";
+    autoStart = true;
+    extraLabels = ["nexus"];
+  };
   
   
-
-  services.srbminer = {
-    enable = false;  # Replaced by peakminer
-  };
-  services.peakminer = {
-    enable = true;
-    instances = [
-      {
-        name = "nexus-3060ti";
-        wallet = "krxXVNVMM7";
-        pools = ["stratum+tcp://prl.kryptex.network:7048"];
-        proxyPort = 21542;
-        devices = "0";
-        gpuId = 0;
-        # Power limit managed by nvidia-power-limits + gpu-profile-manager
-        powerLimit = null;
-        tempStop = 72;
-        fanTarget = 65;
-        fanMin = 30;
-        fanMax = 100;
-        apiPort = 21551;
-      }
-    ];
-  };
-
-  services.gpu-profile-manager = {
-    enable = true;
-    checkInterval = 10;
-  };
 }

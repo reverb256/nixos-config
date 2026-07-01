@@ -27,7 +27,7 @@
       ];
       # Workaround: list merge is broken for this host. Ensure critical ports via nft rules.
       extraInputRules = ''
-        tcp dport { 32000, 80, 443, 1235, 1237, 53317, 8080, 8040, 8041, 8888, 3900, 3901, 50000, 9100, 9101, 9400 } accept
+        tcp dport { 80, 443, 1235, 1237, 53317, 8080, 8040, 8041, 8888, 3900, 3901, 50000, 9100, 9101, 9400 } accept
       '';
       allowedUDPPorts = lib.mkOptionDefault [
         9757
@@ -57,8 +57,6 @@
           111
           2049
           20048
-          80
-          443
         ];
       };
     };

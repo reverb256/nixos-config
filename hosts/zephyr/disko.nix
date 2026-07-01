@@ -1,7 +1,7 @@
 { config, lib, pkgs, utils, ... }: {
   disko.devices = {
     disk.samsung = {
-      # Samsung SSD 980 1TB — system drive (label "root")
+      # Samsung SSD 980 1TB — root filesystem (labeled "root")
       device = "/dev/disk/by-id/nvme-Samsung_SSD_980_1TB_S64ANJ0R712954W";
       type = "disk";
       content = {
@@ -38,9 +38,8 @@
       };
     };
 
-    # XPG GAMMIX S11 Pro 1TB — secondary drive (label "nix")
-    # Holds /nix, /var, /data/games, /data/projects
     disk.xpg = {
+      # XPG GAMMIX S11 Pro — nix store + var (labeled "nix")
       device = "/dev/disk/by-id/nvme-XPG_GAMMIX_S11_Pro_2J2520059477";
       type = "disk";
       content = {
@@ -54,7 +53,7 @@
             size = "100%";
             content = {
               type = "btrfs";
-              extraArgs = ["-f"];  # WARNING: formats partition — data loss on disko apply
+              extraArgs = ["-f"];
               subvolumes = {
                 "@nix" = {
                   mountpoint = "/nix";
@@ -80,8 +79,18 @@
     };
   };
 
+  # neededForBoot — filesystems that MUST mount before stage-2 runs
+  # This is the critical fix that prevents the "can't find closure" boot failure
   fileSystems = {
     "/nix" = { neededForBoot = true; };
     "/var" = { neededForBoot = true; };
   };
+
+  # Child subvolumes (srv, tmp, @var/tmp, @var/lib/*) are nested under @ or @var
+  # and auto-mounted through their parent — no separate entries needed.
+  #
+  # Bind mount /data/hermes → /home/j_kro/.hermes is kept in configuration.nix
+  # (disko doesn't manage bind mounts).
+  #
+  # swap on nvme0n1p1 exists but is unused — zramSwap handles swap instead.
 }
