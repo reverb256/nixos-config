@@ -28,6 +28,9 @@
     inputs.nix-mineral.nixosModules.nix-mineral
   ];
 
+  # Enable userspace OOM killer (understands zswap compression)
+  services.systemd-oomd.enable = true;
+
   stylix = {
     base16Scheme = "${pkgs.base16-schemes}/share/themes/dracula.yaml";
     image = ../../modules/desktop/wallpapers/dracula-bg.png;
