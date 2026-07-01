@@ -19,7 +19,7 @@ in {
       createUser = false;
       settings = {
         model = {
-          default = "zai";
+          default = "glm-4.7";
           provider = "zai";
         };
 
