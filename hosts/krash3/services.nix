@@ -3,6 +3,16 @@ let
   params = import ./params.nix;
   inherit (params) vm;
 in {
+  # ── k3s cluster agent ── joins cluster as agent node
+  services.k3s-cluster = {
+    enable = true;
+    role = "agent";
+    nodeName = "krash3";
+    nodeIP = "10.1.1.150";
+    tokenFile = "/persistent/etc/k3s-cluster-token";
+    flannelIface = "enp7s0";
+  };
+
   # ── Unbound DNS ──
   services.unbound = {
     enable = true;
@@ -29,14 +39,16 @@ in {
           "\"zephyr.lan. A 10.1.1.110\""
           "\"forge.lan. A 10.1.1.130\""
           "\"sentry.lan. A 10.1.1.140\""
-          # Infrastructure
+          "\"krash3.lan. A 10.1.1.150\""
+          # k3s cluster VIP (keepalived)
           "\"k3s-api.lan. A 10.1.1.100\""
+          "\"cluster.lan. A 10.1.1.100\""
         ];
+        forward-zone = [{
+          name = ".";
+          forward-addr = [ "10.1.1.100" ];
+        }];
       };
-      forward-zone = [{
-        name = ".";
-        forward-addr = [ "10.1.1.100" ];
-      }];
     };
   };
 
@@ -56,10 +68,6 @@ in {
   systemd.services.iscsi-target = {
     after = [ "assemble-games-raid.service" ];
     requires = [ "assemble-games-raid.service" ];
-    # RemainAfterExit=true on the assembly script means systemd considers it
-    # "already active" on next boot, so the iSCSI target starts immediately.
-    # The script does re-run, but the ordering dependency doesn't block.
-    # ExecStartPre ensures the block device actually exists before targetctl runs.
     serviceConfig.ExecStartPre = "${pkgs.bash}/bin/bash -c 'for i in $$(seq 1 30); do if [ -b /dev/md0p1 ]; then exit 0; fi; sleep 2; done; exit 1'";
   };
   services.target = {
@@ -78,8 +86,6 @@ in {
             { ip_address = "10.1.1.150"; port = 3260; }
           ];
           luns = [{ index = 0; alias = "games-raid"; storage_object = "/backstores/block/games-raid"; }];
-          # No explicit ACLs needed — generate_node_acls=1 allows any initiator
-          # Windows VM initiator IQN: iqn.1991-05.com.microsoft:krash3-vm
           attributes = { authentication = 0; generate_node_acls = 1; demo_mode_write_protect = 0; demo_mode_discovery = 1; };
         }];
       }];
@@ -106,16 +112,6 @@ in {
       virsh start windows 2>/dev/null || true
     '';
     serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };
-  };
-
-  # ── k3s cluster agent ── joins cluster as agent node
-  services.k3s-cluster = {
-    enable = true;
-    role = "agent";
-    nodeName = "krash3";
-    nodeIP = "10.1.1.150";
-    tokenFile = "/persistent/etc/k3s-cluster-token";
-    flannelIface = "enp7s0";
   };
 
   # ── Packages ──
