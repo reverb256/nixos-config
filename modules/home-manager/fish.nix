@@ -66,6 +66,7 @@ in {
         ssh-add -q ~/.ssh/id_ed25519_sk_nfc 2>/dev/null
       end
 
+      fish_add_path ~/.npm-global/bin
       fish_add_path ~/.local/bin
       # Trim redundant completions to speed up startup
       set -l keep_completions \
