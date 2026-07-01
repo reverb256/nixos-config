@@ -107,11 +107,11 @@ in {
           apiPort = 21552;
         }
       ];
+    };
 
-      gpu-profile-manager = {
-        enable = true;
-        checkInterval = 10;
-      };
+    gpu-profile-manager = {
+      enable = true;
+      checkInterval = 10;
     };
 
 

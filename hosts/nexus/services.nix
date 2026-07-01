@@ -483,10 +483,10 @@ in {
         apiPort = 21551;
       }
     ];
+  };
 
-    gpu-profile-manager = {
-      enable = true;
-      checkInterval = 10;
-    };
+  services.gpu-profile-manager = {
+    enable = true;
+    checkInterval = 10;
   };
 }
