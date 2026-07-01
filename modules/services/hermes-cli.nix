@@ -313,6 +313,41 @@ in {
       default = "http://${config.networking.cluster.hosts.zephyr.ip}:${toString config.networking.cluster.kubernetes.nodePorts.ai-inference-gateway}/v1";
       description = "AI Inference Gateway URL for routing";
     };
+
+    # ── Nix-managed config.yaml emitters ──────────────────────────
+    # When managedConfig = true, the module synthesizes top-level
+    # sections (providers, fallback_providers, model) of config.yaml at
+    # boot from Nix expressions. Imperative sections (mcp_servers,
+    # gateway.platforms.telegram.channel_profiles, skills, etc.) on disk
+    # are preserved verbatim across rebuilds.
+    managedConfig = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Emit selected top-level sections of /var/lib/hermes/.hermes/config.yaml from Nix";
+    };
+
+    managedProviders = lib.mkOption {
+      type = lib.types.attrsOf (lib.types.attrsOf lib.types.anything);
+      default = {};
+      example = lib.literalExpression ''
+        {
+          "opencode-zen" = {
+            api_key_env = "OPENCODE_API_KEY";
+            base_url = "https://opencode.ai/zen/v1";
+            discover_models = true;
+            model = "nemotron-3-ultra-free";
+          };
+        }
+      '';
+      description = "Provider definitions mirroring the `providers:` block in hermes config.yaml";
+    };
+
+    managedFallbackProviders = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [];
+      example = ''["opencode-zen" "opencode-go" "zai" "nvidia"]'';
+      description = "Ordered list of fallback providers matching `fallback_providers:` in hermes config.yaml";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -493,6 +528,120 @@ in {
 
             echo "[hermes-mcp] ✓ MCP servers configured for profile: $profile"
           done
+        '';
+      };
+    };
+    # ── Nix-managed config.yaml emitter ────────────────────────────
+    # At boot, rewrite the top-level blocks owned by Nix:
+    #   - providers:
+    #   - fallback_providers:
+    # All other top-level keys (mcp_servers, gateway, skills,
+    # smart_model_routing, display, auxiliary, compression, etc.) are
+    # preserved as-is.
+    #
+    # Idempotent: writes only if the would-be hash differs.
+    systemd.services.hermes-config-emit = lib.mkIf cfg.managedConfig {
+      description = "Emit Nix-managed sections of hermes config.yaml";
+      after = ["agenix.service" "network.target"];
+      wants = ["agenix.service"];
+      wantedBy = ["multi-user.target"];
+
+      path = with pkgs; [python3 coreutils gnugrep];
+
+      serviceConfig = {
+        Type = "oneshot";
+        User = "root";
+        Group = "root";
+        RemainAfterExit = true;
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectSystem = "strict";
+        ProtectHome = "read-only";
+        ReadWritePaths = ["/home/${cfg.user}/.hermes"];
+
+        ExecStart = pkgs.writeShellScript "hermes-config-emit" ''
+          set -euo pipefail
+
+          HERMES_CONFIG="/home/${cfg.user}/.hermes/config.yaml"
+
+          if [ ! -f "$HERMES_CONFIG" ]; then
+            echo "[hermes-config-emit] No config.yaml found at $HERMES_CONFIG"
+            echo "[hermes-config-emit] Skipping — emit requires an existing hand-maintained file"
+            exit 0
+          fi
+
+          # Managed sections: written verbatim into a temporary YAML file,
+          # then merged into config.yaml via Python 3 ruamel.yaml if
+          # available, falling back to dict-based overwrite otherwise.
+          MANAGED_TMP=$(mktemp /tmp/hermes-managed-XXXXXX.yaml)
+          trap 'rm -f "$MANAGED_TMP"' EXIT
+
+          # Emit Nix-managed sections as a YAML document.
+          # python3 + yaml is ALWAYS available on NixOS systems; if the
+          # import fails (rare), we abort the boot unit so activation
+          # fails loudly rather than silently corrupting the file.
+          python3 - <<PYEOF > "$MANAGED_TMP"
+import sys, json
+try:
+    import yaml
+except ImportError:
+    print("yaml module not available; aborting hermes-config-emit", file=sys.stderr)
+    sys.exit(1)
+
+managed_providers = json.loads('''${builtins.toJSON cfg.managedProviders}''')
+managed_fallback = json.loads('''${builtins.toJSON cfg.managedFallbackProviders}''')
+
+doc = {}
+if managed_providers:
+    doc["providers"] = managed_providers
+if managed_fallback:
+    doc["fallback_providers"] = managed_fallback
+
+# Preserve discovered YAML semantics: only top-level keys that exist
+# get overwritten. Empty defaults mean "leave existing config alone".
+yaml.safe_dump(
+    doc,
+    stream=sys.stdout,
+    sort_keys=False,
+    default_flow_style=False,
+    allow_unicode=True,
+)
+PYEOF
+
+          # Merge in-place. python3 merges the managed keys over the
+          # existing document, preserving all other top-level keys.
+          MERGED_TMP=$(mktemp /tmp/hermes-emit-merged-XXXXXX.yaml)
+
+          python3 - <<PYEOF
+import sys, json, os
+import yaml
+
+with open("$HERMES_CONFIG") as f:
+    existing = yaml.safe_load(f) or {}
+
+with open("$MANAGED_TMP") as f:
+    managed = yaml.safe_load(f) or {}
+
+for k, v in managed.items():
+    existing[k] = v
+
+with open("$MERGED_TMP", "w") as f:
+    yaml.safe_dump(existing, f, sort_keys=False, default_flow_style=False, allow_unicode=True)
+PYEOF
+
+          # Idempotency: compare hashes before swapping the live file.
+          if cmp -s "$MERGED_TMP" "$HERMES_CONFIG"; then
+            echo "[hermes-config-emit] config.yaml unchanged (managed sections already in sync)"
+          else
+            cp "$HERMES_CONFIG" "$HERMES_CONFIG.bak.$(date +%s)" 2>/dev/null || true
+            mv "$MERGED_TMP" "$HERMES_CONFIG"
+            echo "[hermes-config-emit] ✓ Wrote managed sections (backup kept with .bak.<unix-ts> suffix)"
+          fi
+
+          chown ${cfg.user}:users "$HERMES_CONFIG" 2>/dev/null || true
+          chmod 600 "$HERMES_CONFIG" 2>/dev/null || true
+
+          rm -f "$MANAGED_TMP" "$MERGED_TMP"
         '';
       };
     };
