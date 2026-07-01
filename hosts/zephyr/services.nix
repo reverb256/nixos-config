@@ -275,11 +275,10 @@ in {
       enable = lib.mkForce false;
     };
 
-    mcp-registry = {
-      enable = lib.mkForce false;
+    services.mcp-registry = {
+      enable = true;
       generateHermes = true;
       generateClaudeCode = true;
-      generateKagentCRDs = true;
       generateNetworkPolicies = true;
       generateCasdoorApps = true;
     };
