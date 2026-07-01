@@ -37,6 +37,9 @@
     });
   };
 
+  # Enable userspace OOM killer (understands zswap compression)
+  services.systemd-oomd.enable = true;
+
   stylix = {
     base16Scheme = "${pkgs.base16-schemes}/share/themes/gruvbox-dark-medium.yaml";
     image = ../../modules/desktop/wallpapers/gruvbox-dark-bg.png;
