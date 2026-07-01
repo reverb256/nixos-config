@@ -119,7 +119,7 @@ in {
   if [ -n "$OUT_PATHS" ] && [ "$BUILD_STATUS" = "success" ]; then
     exec nice -n 19 nix copy --to ssh://j_kro@nexus --substitute-on-destination $OUT_PATHS 2>/dev/null
   fi
- '');
+  '');
 
   programs.ssh.startAgent = true;
 
@@ -149,75 +149,77 @@ in {
           ConnectTimeout 30
       '';
 
-      "nix/machines".text = lib.mkIf (currentHost != "zephyr") (let
-        allMachines = [
-          {
-            hostName = "zephyr";
-            system = "x86_64-linux";
-            sshUser = "j_kro";
-            sshKey = "~/.ssh/id_ed25519";
-            maxJobs = 0;
-            speedFactor = 1; # deprioritize zephyr
-            supportedFeatures = [];
-            mandatoryFeatures = [];
-          }
-          {
-            hostName = "nexus";
-            system = "x86_64-linux";
-            sshUser = "j_kro";
-            sshKey = "~/.ssh/id_ed25519";
-            maxJobs = 12;
-            speedFactor = 10; # prioritize nexus
-            supportedFeatures = [
-              "big-parallel"
-              "kvm"
-            ];
-            mandatoryFeatures = [];
-          }
-          {
-            hostName = "sentry";
-            system = "x86_64-linux";
-            sshUser = "j_kro";
-            sshKey = "~/.ssh/id_ed25519";
-            maxJobs = 8;
-            speedFactor = 6;
-            supportedFeatures = ["big-parallel"];
-            mandatoryFeatures = [];
-          }
-          {
-            hostName = "forge";
-            system = "x86_64-linux";
-            sshUser = "j_kro";
-            sshKey = "~/.ssh/id_ed25519";
-            maxJobs = 4;
-            speedFactor = 4;
-            supportedFeatures = ["big-parallel"];
-            mandatoryFeatures = [];
-          }
-          {
-            hostName = "krash3";
-            system = "x86_64-linux";
-            sshUser = "j_kro";
-            sshKey = "~/.ssh/id_ed25519";
-            maxJobs = 3;
-            speedFactor = 2;
-            supportedFeatures = ["big-parallel"];
-            mandatoryFeatures = [];
-          }
-        ];
-        machines = builtins.filter (m: m.hostName != currentHost) allMachines;
-        formatMachine = m: with builtins;
-          concatStringsSep " " [
-            ("ssh-ng://" + "${m.sshUser}@${m.hostName}")
-            m.system
-            (if m.sshKey != null then m.sshKey else "-")
-            (toString m.maxJobs)
-            (toString m.speedFactor)
-            (concatStringsSep "," m.supportedFeatures)
-            (concatStringsSep "," m.mandatoryFeatures)
+      "nix/machines" = lib.mkIf (currentHost != "zephyr") {
+        text = let
+          allMachines = [
+            {
+              hostName = "zephyr";
+              system = "x86_64-linux";
+              sshUser = "j_kro";
+              sshKey = "~/.ssh/id_ed25519";
+              maxJobs = 0;
+              speedFactor = 1; # deprioritize zephyr
+              supportedFeatures = [];
+              mandatoryFeatures = [];
+            }
+            {
+              hostName = "nexus";
+              system = "x86_64-linux";
+              sshUser = "j_kro";
+              sshKey = "~/.ssh/id_ed25519";
+              maxJobs = 12;
+              speedFactor = 10; # prioritize nexus
+              supportedFeatures = [
+                "big-parallel"
+                "kvm"
+              ];
+              mandatoryFeatures = [];
+            }
+            {
+              hostName = "sentry";
+              system = "x86_64-linux";
+              sshUser = "j_kro";
+              sshKey = "~/.ssh/id_ed25519";
+              maxJobs = 8;
+              speedFactor = 6;
+              supportedFeatures = ["big-parallel"];
+              mandatoryFeatures = [];
+            }
+            {
+              hostName = "forge";
+              system = "x86_64-linux";
+              sshUser = "j_kro";
+              sshKey = "~/.ssh/id_ed25519";
+              maxJobs = 4;
+              speedFactor = 4;
+              supportedFeatures = ["big-parallel"];
+              mandatoryFeatures = [];
+            }
+            {
+              hostName = "krash3";
+              system = "x86_64-linux";
+              sshUser = "j_kro";
+              sshKey = "~/.ssh/id_ed25519";
+              maxJobs = 3;
+              speedFactor = 2;
+              supportedFeatures = ["big-parallel"];
+              mandatoryFeatures = [];
+            }
           ];
-      in
-        lib.concatStringsSep "\n" (map formatMachine machines) + "\n");
+          machines = builtins.filter (m: m.hostName != currentHost) allMachines;
+          formatMachine = m: with builtins;
+            concatStringsSep " " [
+              ("ssh-ng://" + "${m.sshUser}@${m.hostName}")
+              m.system
+              (if m.sshKey != null then m.sshKey else "-")
+              (toString m.maxJobs)
+              (toString m.speedFactor)
+              (concatStringsSep "," m.supportedFeatures)
+              (concatStringsSep "," m.mandatoryFeatures)
+            ];
+        in
+          lib.concatStringsSep "\n" (map formatMachine machines) + "\n";
+      };
     };
 
     variables = {
