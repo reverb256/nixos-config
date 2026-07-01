@@ -24,6 +24,8 @@
 
   ./modules/default.nix
 
+  ./modules/services/hermes-agent-lock-fix.nix
+
   {
     nixpkgs.overlays = [
       inputs.niri.overlays.niri
