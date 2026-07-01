@@ -321,6 +321,10 @@ in {
 
       managedConfig = true;
       managedProviders = {
+        # Cloud-only providers that drive the picker. Local inference
+        # (forge/llama-cpp) lives outside this config — exposed via the
+        # AI inference gateway and used by smart_model_routing, not the
+        # model picker.
         "opencode-zen" = {
           api_key_env = "OPENCODE_API_KEY";
           base_url = "https://opencode.ai/zen/v1";
