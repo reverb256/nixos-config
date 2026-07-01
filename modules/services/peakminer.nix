@@ -12,7 +12,7 @@
   # This makes the Kryptex dashboard display per-worker names.
   # Shares still flow through peakminer's working named-params path internally;
   # the proxy is transparent for mining.submit and all other messages.
-  authTranslator = pkgs.writeScript "stratum-auth-translator.py" (builtins.readFile ../scripts/stratum-auth-translator.py);
+  authTranslator = pkgs.writeScript "stratum-auth-translator.py" (builtins.readFile ../../scripts/stratum-auth-translator.py);
 in {
   options.services.peakminer = {
     enable = mkEnableOption "PeakMiner GPU mining (Pearl/PRL)";

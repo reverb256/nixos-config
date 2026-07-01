@@ -72,7 +72,13 @@
     ];
   };
 
-  systemd.tmpfiles.rules = let
+  # Keep etcd cleanup via tmpfiles (non-dependent on store paths)
+  systemd.tmpfiles.rules = [
+    "R /var/lib/etcd - - - - -"
+  ];
+
+  # ROCm symlinks moved to systemd service — tmpfiles L+ rules fail at boot.
+  systemd.services.rocm-symlinks = let
     rocmEnv = pkgs.symlinkJoin {
       name = "rocm-combined";
       paths = with pkgs.rocmPackages; [
@@ -83,11 +89,20 @@
         rpp
       ];
     };
-  in [
-    "R /var/lib/etcd - - - - -"
-    "L+ /opt/rocm - - - - ${rocmEnv}"
-    "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
-  ];
+  in {
+    description = "Create ROCm symlinks";
+    after = ["local-fs.target"];
+    wantedBy = ["multi-user.target"];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      mkdir -p /opt/rocm
+      ln -sfn ${rocmEnv} /opt/rocm
+      ln -sfn ${pkgs.rocmPackages.clr} /opt/rocm/hip
+    '';
+  };
 
   # Re-enable SMT — CachyOS kernel defaults to mitigations=auto,nosmt which
   # offlines all sibling threads. We override mitigations but the kernel

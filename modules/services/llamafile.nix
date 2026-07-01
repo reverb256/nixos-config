@@ -219,7 +219,7 @@ in {
             --ubatch-size ${toString cfg.ubatchSize} \
             ${lib.optionalString cfg.flashAttention "--flash-attn on"} \
             ${lib.optionalString (cfg.parallelDecoding > 0) "--parallel ${toString cfg.parallelDecoding}"} \
-            ${lib.optionalString (cfg.chatTemplate != null) "--chat-template '${builtins.replaceStrings ["\n"] ["\\n"] cfg.chatTemplate}'"} \
+            ${lib.optionalString (cfg.chatTemplate != null) "--chat-template-file ${chatTemplateFile}"} \
             ${lib.optionalString (cfg.vulkanDevice != null) "--device ${cfg.vulkanDevice}"} \
             --chat-template-kwargs '${builtins.toJSON { enable_thinking = cfg.enableThinking; }}' \
             --reasoning-budget ${toString cfg.reasoningBudget} \

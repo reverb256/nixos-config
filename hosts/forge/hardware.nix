@@ -352,7 +352,15 @@
     etc."OpenCL/vendors/amdocl64.icd".source = "${pkgs.rocmPackages.clr.icd}/etc/OpenCL/vendors/amdocl64.icd";
   };
 
-  systemd.tmpfiles.rules = let
+  # /dev/net/tun required for tailscale
+  systemd.tmpfiles.rules = [
+    "c /dev/net/tun 666 root root - - - -"
+  ];
+
+  # ROCm symlinks moved to systemd service — tmpfiles L+ rules fail at boot
+  # because the store paths aren't available yet. The service runs after
+  # local-fs.target ensures all filesystems are ready.
+  systemd.services.rocm-symlinks = let
     rocmEnv = pkgs.symlinkJoin {
       name = "rocm-combined";
       paths = with pkgs.rocmPackages; [
@@ -363,10 +371,20 @@
         rpp
       ];
     };
-  in [
-    "c /dev/net/tun 666 root root - - - -"
-    "L+ /opt/rocm - - - - ${rocmEnv}"
-    "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
-    "L+ /etc/OpenCL/vendors/amdocl64.icd - - - - ${pkgs.rocmPackages.clr.icd}/amdocl64.icd"
-  ];
+  in {
+    description = "Create ROCm symlinks";
+    after = ["local-fs.target"];
+    wantedBy = ["multi-user.target"];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      mkdir -p /opt/rocm
+      ln -sfn ${rocmEnv} /opt/rocm
+      ln -sfn ${pkgs.rocmPackages.clr} /opt/rocm/hip
+      mkdir -p /etc/OpenCL/vendors
+      ln -sfn ${pkgs.rocmPackages.clr.icd}/amdocl64.icd /etc/OpenCL/vendors/amdocl64.icd
+    '';
+  };
 }
