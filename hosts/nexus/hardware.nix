@@ -162,7 +162,27 @@
     gpus = {
       "3060ti" = {
         index = 0;
-        limit = 100; # Tuned for efficiency (min floor)
+        limit = 120;
+      };
+    };
+    profiles = {
+      gaming = {
+        "3060" = 200;
+      };
+      ai = {
+        "3060" = 110;
+      };
+      kubernetes-gpu = {
+        "3060" = 150;
+      };
+      builds = {
+        "3060" = 150;
+      };
+      mining = {
+        "3060" = 120;
+      };
+      idle = {
+        "3060" = 200;
       };
     };
   };
