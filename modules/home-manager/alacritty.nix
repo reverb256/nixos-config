@@ -1,12 +1,9 @@
 { config, pkgs, lib, ... }: {
 
-  # Stylix auto-imports alacritty.nix - preserve selection settings
-  stylix.targets.alacritty.enable = false;
-
   programs.alacritty = {
     enable = true;
 
-    settings = lib.mkForce {
+    settings = {
       env.TERM = "xterm-256color";
 
       shell.program = "fish";
