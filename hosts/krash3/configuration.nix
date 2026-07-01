@@ -366,14 +366,7 @@ XMLEOF
         group = "users";
         mode = "0444";
       };
-      # k3s cluster token (for joining)
-      "k3s-cluster-token" = {
-        sopsFile = ../../secrets/k8s/k3s-cluster-token.yaml;
-        path = "/run/secrets/k3s-cluster-token";
-        owner = "root";
-        group = "root";
-        mode = "0444";
-      };
+      # k3s token uses /persistent/etc (not sops) for krash3
     };
   };
   # ── Performance tuning ──
