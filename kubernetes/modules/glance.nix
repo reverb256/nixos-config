@@ -124,9 +124,6 @@ in {
                         url: https://brain.lan
                         allow-insecure: true
                         alt-status-codes: [301, 302]
-                      - title: Open WebUI
-                        allow-insecure: true
-                        alt-status-codes: [301, 302]
                       - title: Vaultwarden
                         url: https://vaultwarden.lan
                         allow-insecure: true
@@ -245,7 +242,6 @@ in {
                         links:
                           - title: AI Gateway
                             url: https://ai-inference.lan
-                          - title: Open WebUI
                           - title: Brain
                             url: https://brain.lan
                       - title: Platform
