@@ -428,23 +428,25 @@
                       *"3060"*)
                           local pw=$(get_power_limit mining "$gpu_name" "$gpu_id")
                           nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
-                          nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1700
-                          nvidia_safe nvidia-smi -i "$gpu_id" -lmc 5200
-                          echo "  3060 Ti: 1700 MHz GPU, 5200 MHz mem (''${pw}W limit (mining-optimized)"
+                          # No clock locks for 3060 Ti mining - power limit only
+                          nvidia_safe nvidia-smi -i "$gpu_id" -rgc
+                          nvidia_safe nvidia-smi -i "$gpu_id" -rmc
+                          echo "  3060 Ti: Power limit ${pw}W only, clocks auto (mining-optimized)"
                           ;;
                       *"3090"*)
                           local pw=$(get_power_limit mining "$gpu_name" "$gpu_id")
                           nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
-                          nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1750
-                          nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6500
-                          echo "  3090: 1750 MHz GPU (liquid-cooled), 6500 MHz mem (''${pw}W limit (mining-optimized)"
+                          # No clock locks for 3090 mining - power limit only
+                          nvidia_safe nvidia-smi -i "$gpu_id" -rgc
+                          nvidia_safe nvidia-smi -i "$gpu_id" -rmc
+                          echo "  3090: Power limit ${pw}W only, clocks auto (mining-optimized)"
                           ;;
                       *"4060"*)
                           local pw=$(get_power_limit mining "$gpu_name" "$gpu_id")
                           nvidia_safe nvidia-smi -i "$gpu_id" -pl "$pw"
-                          nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1800
-                          nvidia_safe nvidia-smi -i "$gpu_id" -lmc 5400
-                          echo "  4060 (Ada): 1800 MHz GPU, 5400 MHz mem, ''${pw}W limit (mining-optimized)"
+                          nvidia_safe nvidia-smi -i "$gpu_id" -lgc 2000
+                          nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6550
+                          echo "  4060 (Ada): 2000 MHz GPU (+200), 6550 MHz mem (+1150), ${pw}W limit (mining-optimized)"
                           ;;
                       *)
                           local pw=$(get_power_limit mining "$gpu_name" "$gpu_id")

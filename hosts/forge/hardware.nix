@@ -22,11 +22,31 @@
       gpus = {
         "rtx4060-0" = {
           index = 0;
-          limit = 110; # Balanced
+          limit = 118;
         };
         "rtx4060-1" = {
           index = 1;
-          limit = 110; # Balanced
+          limit = 118;
+        };
+      };
+      profiles = {
+        gaming = {
+          "4060" = 110;
+        };
+        ai = {
+          "4060" = 110;
+        };
+        kubernetes-gpu = {
+          "4060" = 110;
+        };
+        builds = {
+          "4060" = 95;
+        };
+        mining = {
+          "4060" = 118;
+        };
+        idle = {
+          "4060" = 115;
         };
       };
     };
