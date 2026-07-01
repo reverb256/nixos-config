@@ -49,6 +49,8 @@ in {
                         name: Bitcoin
                       - symbol: XMR-USD
                         name: Monero
+                      - symbol: ETH-USD
+                        name: Ethereum
                       - symbol: NVDA
                         name: NVIDIA
                       - symbol: AAPL
@@ -62,7 +64,8 @@ in {
                       - immich-app/immich
                       - syncthing/syncthing
                       - searxng/searxng
-                      - reverb256/portfolio
+                      - nixos/nixpkgs
+                      - k3s-io/k3s
 
               - size: full
                 widgets:
@@ -103,58 +106,35 @@ in {
                     style: compact
                     sites:
                       - title: AI Gateway
-                        url: https://ai-inference.lan
-                        allow-insecure: true
-                        alt-status-codes: [301, 302]
+                        url: http://ai-inference-gateway.ai-inference.svc.cluster.local:8080
                       - title: SearXNG
-                        url: https://search.lan
-                        allow-insecure: true
+                        url: http://searxng.search.svc.cluster.local:8080
                       - title: Grafana
-                        url: https://grafana.lan
-                        allow-insecure: true
+                        url: http://grafana.monitoring.svc.cluster.local:3000
                         alt-status-codes: [301, 302]
-                      - title: Auth
-                        url: https://auth.lan
-                        allow-insecure: true
-                      - title: Workspace
-                        url: https://workspace.lan
-                        allow-insecure: true
-                        alt-status-codes: [301, 302]
-                      - title: Brain
-                        url: https://brain.lan
-                        allow-insecure: true
-                        alt-status-codes: [301, 302]
+                      - title: Gitea
+                        url: http://gitea.ai-inference.svc.cluster.local:3000
+                      - title: Casdoor
+                        url: http://10.1.1.120:32556
                       - title: Vaultwarden
-                        url: https://vaultwarden.lan
-                        allow-insecure: true
+                        url: http://vaultwarden.vaultwarden.svc.cluster.local:8080
                       - title: n8n
-                        url: https://n8n.lan
-                        allow-insecure: true
-                        alt-status-codes: [301, 302]
+                        url: http://n8n.automation.svc.cluster.local:5678
                       - title: Mission Control
-                        url: https://mission-control.lan
-                        allow-insecure: true
-                        alt-status-codes: [301, 302]
-                      - title: Hermes
-                        url: https://hermes.lan
-                        allow-insecure: true
-                        alt-status-codes: [301, 302]
-                      - title: Dashboard
-                        url: https://dashboard.lan
-                        allow-insecure: true
+                        url: http://mission-control.orchestration.svc.cluster.local:3000
+                      - title: Workspace
+                        url: http://10.1.1.120:3002
                       - title: Privacy Filter
-                        url: https://privacy-filter.lan
-                        allow-insecure: true
+                        url: http://privacy-filter.search.svc.cluster.local:8080
+                      - title: Qdrant
+                        url: http://qdrant.ai-inference.svc.cluster.local:6333
+                      - title: Dashboard
+                        url: http://127.0.0.1:32200
 
           - name: Homelab
             columns:
               - size: small
                 widgets:
-                  - type: server-stats
-                    servers:
-                      - type: local
-                        name: Nexus
-
                   - type: search
                     search-engine: duckduckgo
                     bangs:
@@ -167,6 +147,59 @@ in {
                       - title: NixOS Wiki
                         shortcut: "!nix"
                         url: https://wiki.nixos.org/index.php?search={QUERY}
+
+                  - type: bookmarks
+                    groups:
+                      - title: Monitoring
+                        color: 200 50 50
+                        links:
+                          - title: Grafana
+                            url: https://grafana.lan
+                            icon: si:grafana
+                          - title: Prometheus
+                            url: https://prometheus.lan
+                      - title: AI / ML
+                        color: 120 50 50
+                        links:
+                          - title: AI Gateway
+                            url: https://ai-inference.lan
+                          - title: Qdrant
+                            url: https://qdrant.lan
+                      - title: Platform
+                        color: 43 50 70
+                        links:
+                          - title: Casdoor SSO
+                            url: https://auth.lan
+                          - title: Gitea
+                            url: https://gitea.lan
+                          - title: n8n
+                            url: https://n8n.lan
+                            icon: si:n8n
+                          - title: Vaultwarden
+                            url: https://vaultwarden.lan
+                            icon: si:vaultwarden
+                          - title: Workspace
+                            url: https://workspace.lan
+                      - title: Search
+                        color: 80 50 50
+                        links:
+                          - title: SearXNG
+                            url: https://search.lan
+                      - title: Infrastructure
+                        color: 30 50 60
+                        links:
+                          - title: Dashboard
+                            url: https://dashboard.lan
+                      - title: Dev Tools
+                        color: 170 50 50
+                        links:
+                          - title: NixOS Options
+                            url: https://search.nixos.org/options
+                          - title: NixOS Packages
+                            url: https://search.nixos.org/packages
+                          - title: GitHub
+                            url: https://github.com/reverb256
+                            icon: si:github
 
               - size: full
                 widgets:
@@ -193,7 +226,25 @@ in {
                     parameters:
                       query: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
                     template: |
-                      <ul class="list list-gap-10 collapsible-container" data-collapse-after="5">
+                      <ul class="list list-gap-10 collapsible-container" data-collapse-after="8">
+                      {{ range .JSON.Array "data.result" }}
+                        <li>
+                          <div class="flex justify-between">
+                            <span class="size-h4">{{ .String "metric.instance" }}</span>
+                            <span class="color-highlight">{{ printf "%.1f" (.Get "value.1" | toFloat) }}%</span>
+                          </div>
+                        </li>
+                      {{ end }}
+                      </ul>
+
+                  - type: custom-api
+                    title: Node Memory Usage
+                    cache: 1m
+                    url: http://prometheus.monitoring.svc.cluster.local:9090/api/v1/query
+                    parameters:
+                      query: (1 - avg by(instance) (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100
+                    template: |
+                      <ul class="list list-gap-10 collapsible-container" data-collapse-after="8">
                       {{ range .JSON.Array "data.result" }}
                         <li>
                           <div class="flex justify-between">
@@ -222,42 +273,24 @@ in {
                       {{ end }}
                       </ul>
 
+                  - type: custom-api
+                    title: Node Health
+                    cache: 2m
+                    url: http://prometheus.monitoring.svc.cluster.local:9090/api/v1/query
+                    parameters:
+                      query: count by (node) (node_uname_info)
+                    template: |
+                      <div class="flex justify-between text-center">
+                      {{ range .JSON.Array "data.result" }}
+                        <div>
+                          <div class="color-positive size-h5">{{ .String "metric.node" }}</div>
+                          <div class="size-h6">Online</div>
+                        </div>
+                      {{ end }}
+                      </div>
+
               - size: small
                 widgets:
-                  - type: bookmarks
-                    groups:
-                      - title: Monitoring
-                        color: 200 50 50
-                        links:
-                          - title: Grafana
-                            url: https://grafana.lan
-                            icon: si:grafana
-                          - title: Prometheus
-                            url: https://prometheus.lan
-                            icon: si:prometheus
-                          - title: Alertmanager
-                            url: https://alertmanager.lan
-                      - title: AI / ML
-                        color: 120 50 50
-                        links:
-                          - title: AI Gateway
-                            url: https://ai-inference.lan
-                          - title: Brain
-                            url: https://brain.lan
-                      - title: Platform
-                        color: 43 50 70
-                        links:
-                          - title: Casdoor SSO
-                            url: https://auth.lan
-                          - title: n8n
-                            url: https://n8n.lan
-                            icon: si:n8n
-                          - title: Vaultwarden
-                            url: https://vaultwarden.lan
-                            icon: si:vaultwarden
-                          - title: Hermes
-                            url: https://hermes.lan
-
                   - type: monitor
                     cache: 2m
                     title: Critical
@@ -267,6 +300,10 @@ in {
                         url: http://prometheus.monitoring.svc.cluster.local:9090
                       - title: CoreDNS
                         url: http://kube-dns.kube-system.svc.cluster.local:9153/metrics
+                      - title: K8s API
+                        url: https://kubernetes.default.svc.cluster.local:443
+                        allow-insecure: true
+                        alt-status-codes: [401]
       '';
     };
 
