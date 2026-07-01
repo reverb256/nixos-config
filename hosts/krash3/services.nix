@@ -44,11 +44,11 @@ in {
           "\"k3s-api.lan. A 10.1.1.100\""
           "\"cluster.lan. A 10.1.1.100\""
         ];
-        forward-zone = [{
-          name = ".";
-          forward-addr = [ "10.1.1.100" ];
-        }];
       };
+      forward-zone = [{
+        name = ".";
+        forward-addr = [ "10.1.1.100" ];
+      }];
     };
   };
 
