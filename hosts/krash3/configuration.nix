@@ -159,14 +159,6 @@ let
     </channel>
     <input type='keyboard' bus='ps2'/>
     <input type='mouse' bus='ps2'/>
-    <graphics type='spice' autoport='yes' listen='127.0.0.1'>
-      <listen type='address' address='127.0.0.1'/>
-    </graphics>
-    <audio id='1' type='spice'/>
-    <video>
-      <model type='qxl' ram='131072' vram='131072' vgamem='65536' heads='1' primary='yes'/>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x0'/>
-    </video>
     <hostdev mode='subsystem' type='pci' managed='yes'>
       <driver name='vfio'/>
       <source>
