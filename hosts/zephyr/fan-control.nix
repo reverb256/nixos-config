@@ -49,12 +49,9 @@
     liquidctl   # AIO controller support
   ];
 
-  # Load NCT6797 kernel module
+  # Load NCT6797 kernel module (built into the cachyos kernel directly
+  # since NixOS 24.11; no separate package attribute needed).
   boot.kernelModules = [
     "nct6775"  # Driver for NCT6797
-  ];
-
-  boot.extraModulePackages = with config.boot.kernelPackages; [
-    nct6775
   ];
 }
