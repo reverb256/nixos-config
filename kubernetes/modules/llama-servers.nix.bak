@@ -134,7 +134,6 @@ in {
             tolerations = [];
             containers = {
               _namedlist = true;
-            } // lib.optionalAttrs (pkgsWithOverlay ? vllm-turboquant-env) {
               vllm = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
@@ -304,7 +303,6 @@ in {
             tolerations = zephyrTolerations;
             containers = {
               _namedlist = true;
-            } // lib.optionalAttrs (pkgsWithOverlay ? llama-cpp-turboquant) {
               llama-server = {
                 image = scratchImage;
                 imagePullPolicy = "IfNotPresent";
