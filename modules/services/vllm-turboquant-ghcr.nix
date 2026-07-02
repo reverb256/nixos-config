@@ -1,11 +1,11 @@
 # vLLM TurboQuant GHCR — Push + Pull Secret Management
 #
 # Builds the vLLM TurboQuant declarative fixes:
-# 1. Pushes the image to GHCR using GitHub PAT from agenix
+# 1. Pushes the image to GHCR using GitHub PAT from sops-nix
 # 2. Creates/refreshes GHCR pull secret in ai-inference namespace
 # 3. Updates the easykubenix deployment to reference GHCR image
 #
-# Depends on: podman, agenix (github-token)
+# Depends on: podman, sops-nix (github-token)
 {
   config,
   lib,
@@ -44,7 +44,7 @@ in {
     githubTokenPath = lib.mkOption {
       type = lib.types.str;
       default = "/run/secrets/github-token";
-      description = "Path to GitHub PAT in agenix";
+      description = "Path to GitHub PAT in sops-nix";
     };
 
     # comma-separated list of ns where the pull secret gets created

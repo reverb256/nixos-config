@@ -126,7 +126,7 @@ in {
             secretAccessKey = lib.mkOption {
               type = lib.types.nullOr lib.types.str;
               default = null;
-              description = "Secret access key (use agenix!)";
+              description = "Secret access key (use sops-nix!)";
             };
             region = lib.mkOption {
               type = lib.types.str;
@@ -151,7 +151,7 @@ in {
             pass = lib.mkOption {
               type = lib.types.nullOr lib.types.str;
               default = null;
-              description = "Password (use agenix!)";
+              description = "Password (use sops-nix!)";
             };
             account = lib.mkOption {
               type = lib.types.nullOr lib.types.str;
@@ -297,9 +297,8 @@ in {
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [pkgs.rclone];
 
-    # TODO: Run `agenix -e secrets/rclone-config.age` to create the secret file.
     # The rclone config should contain all remote definitions with credentials.
-    # Remove individual remote credential options when migrating fully to agenix.
+    # Remove individual remote credential options when migrating fully to sops-nix.
     environment.etc."rclone/rclone.conf" = {
       source = "/run/secrets/rclone-config";
       mode = "0400";

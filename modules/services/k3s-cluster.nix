@@ -82,7 +82,7 @@ in {
     tokenFile = mkOption {
       type = types.nullOr types.path;
       default = null;
-      description = "File containing the k3s cluster token (agenix secret)";
+      description = "File containing the k3s cluster token (sops-nix secret)";
     };
 
     nodeIP = mkOption {
