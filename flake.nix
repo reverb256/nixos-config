@@ -33,8 +33,6 @@
     noctalia = {
       url = "github:noctalia-dev/noctalia/cachix";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.home-manager.follows = "home-manager";
-      inputs.niri.follows = "niri";
     };
     nur = {
       url = "github:nix-community/NUR/0eb436e129c6a77d5e0ac3ac9af4219ddfc8167e";
