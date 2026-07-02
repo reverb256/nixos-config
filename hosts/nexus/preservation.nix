@@ -24,7 +24,6 @@
       "/var/lib/cni"
       "/var/lib/kubelet"
       "/var/lib/tailscale"
-      "/var/lib/agenix"
       "/var/lib/fwupd"
     ];
     files = [

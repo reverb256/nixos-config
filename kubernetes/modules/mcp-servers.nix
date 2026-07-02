@@ -72,7 +72,7 @@ in {
                     http.containerPort = 8000;
                   };
                   # NOTE: grafana-admin-secret must exist in 'mcp' namespace
-                  # Populated by kubectl-apply-k8s-secrets from agenix (monitoring/grafana-admin-secret)
+                  # Populated by kubectl-apply-k8s-secrets from sops-nix (monitoring/grafana-admin-secret)
                   env = {
                     GRAFANA_URL.name = "GRAFANA_URL";
                     GRAFANA_URL.value = "http://grafana.monitoring.svc.cluster.local:3000";

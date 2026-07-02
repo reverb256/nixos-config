@@ -186,7 +186,7 @@ in {
     ];
 
     # Credentials file for non-secret config values; access key and secret key
-    # are read from agenix secrets at runtime.
+    # are read from sops-nix secrets at runtime.
     environment.etc."backup-to-garage/credentials" = {
       text = ''
         GARAGE_ENDPOINT=${cfg.endpoint}

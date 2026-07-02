@@ -288,10 +288,10 @@ in {
       Status:     `ai-tools-status`
       | Provider | Endpoint | Key Source | Tools |
       |----------|----------|------------|-------|
-      | Z.AI (Anthropic) | api.z.ai/api/anthropic | agenix | Droid |
-      | Z.AI (OpenAI) | api.z.ai/api/coding/paas/v4 | agenix | OpenCode, Crush |
+      | Z.AI (Anthropic) | api.z.ai/api/anthropic | sops-nix | Droid |
+      | Z.AI (OpenAI) | api.z.ai/api/coding/paas/v4 | sops-nix | OpenCode, Crush |
       | K8s AI Gateway | ai-inference-gateway:8080/v1 | None (internal) | OpenCode, Crush, Droid |
-      | NVIDIA NIM | integrate.api.nvidia.com/v1 | agenix | OpenCode, Crush, Droid |
+      | NVIDIA NIM | integrate.api.nvidia.com/v1 | sops-nix | OpenCode, Crush, Droid |
       | LM Studio | 127.0.0.1:1234/v1 | None (local) | OpenCode, Crush |
       | llama.cpp | 127.0.0.1:1235/v1 | None (local) | OpenCode |
       | Server | Type | Purpose | All Tools |

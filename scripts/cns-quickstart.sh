@@ -44,9 +44,9 @@ phase1_generate_ssh_key() {
   log "Generating SSH key pair..."
   ssh-keygen -t ed25519 -f /tmp/cns-ssh-key -N "" -C "cns@zephyr"
 
-  # Encrypt private key with agenix
+  # Encrypt private key with sops-nix
   log "Encrypting private key..."
-  agenix -e secrets/cns-ssh-key.age -i /tmp/cns-ssh-key
+  sops --encrypt secrets/cns-ssh-key.age /tmp/cns-ssh-key
 
   # Cleanup temp files
   rm -f /tmp/cns-ssh-key /tmp/cns-ssh-key.pub
@@ -61,7 +61,7 @@ phase2_extract_public_key() {
   cd "$NIXOS_DIR"
 
   # Decrypt to get public key
-  local key_output=$(agenix -d secrets/cns-ssh-key.age | ssh-keygen -y -f /dev/stdin)
+  local key_output=$(sops --decrypt secrets/cns-ssh-key.age | ssh-keygen -y -f /dev/stdin)
 
   if [ -z "$key_output" ]; then
     error "Failed to extract public key"
@@ -224,8 +224,8 @@ main() {
     error "NixOS directory not found: $NIXOS_DIR"
   fi
 
-  if ! command -v agenix &> /dev/null; then
-    error "agenix not found. Install with: nix-env -iA nixpkgs.agenix"
+  if ! command -v sops &> /dev/null; then
+    error "sops not found. Install with: nix-shell -p sops"
   fi
 
   # Run phases
@@ -242,8 +242,8 @@ main() {
   log ""
   info "Next steps:"
   info "1. CNS is now running and watching for secret changes"
-  info "2. Add new secrets: cd /etc/nixos && agenix -e secrets/new.age"
-  info "3. Register in registry: modules/system/agenix-secrets-registry.nix"
+  info "2. Add new secrets: cd /etc/nixos && sops --encrypt secrets/new.yaml"
+  info "3. Register in registry: modules/system/sops-secrets-registry.nix"
   info "4. Deploy: just deploy"
   info "5. CNS automatically syncs secrets to all nodes"
   info ""

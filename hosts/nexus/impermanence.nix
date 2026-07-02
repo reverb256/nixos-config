@@ -38,10 +38,6 @@
       # Tailscale
       "/var/lib/tailscale"
 
-      # agenix — decrypted secrets land in /run/agenix (tmpfs), but
-      # the age plugin identity may write here
-      "/var/lib/agenix"
-
       # fwupd firmware updates
       "/var/lib/fwupd"
 
