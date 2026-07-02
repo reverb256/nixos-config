@@ -393,8 +393,7 @@ in {
     # Inject agenix secrets into Hermes config at boot
     systemd.services.hermes-config-secrets = lib.mkIf (cfg.casdoorJwtFile != null) {
       description = "Inject agenix secrets into Hermes config";
-      after = ["agenix.service" "network.target"];
-      wants = ["agenix.service"];
+      after = ["network.target"];
       wantedBy = ["multi-user.target"];
 
       path = with pkgs; [coreutils gnused gnugrep];
@@ -470,8 +469,7 @@ in {
     systemd.services.hermes-mcp-servers = {
       restartIfChanged = true;
       description = "Inject declarative MCP servers into Hermes config";
-      after = ["agenix.service" "network.target"];
-      wants = ["agenix.service"];
+      after = ["network.target"];
       wantedBy = ["multi-user.target"];
 
       path = with pkgs; [python3 coreutils gnused];
@@ -542,8 +540,7 @@ in {
     # Idempotent: writes only if the would-be hash differs.
     systemd.services.hermes-config-emit = lib.mkIf cfg.managedConfig {
       description = "Emit Nix-managed sections of hermes config.yaml";
-      after = ["agenix.service" "network.target"];
-      wants = ["agenix.service"];
+      after = ["network.target"];
       wantedBy = ["multi-user.target"];
 
       path = with pkgs; [python3 coreutils gnugrep];
