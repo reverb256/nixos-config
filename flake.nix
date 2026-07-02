@@ -141,14 +141,14 @@
       url = "tarball+https://codeload.github.com/reverb256/astral-key/tar.gz/b269cc69718f3a902ea61aaf29459cae98d96592";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    #     llama-turboquant = {
-    #       url = "path:/data/projects/own/llama-cpp-turboquant";
-    #       inputs.nixpkgs.follows = "nixpkgs";
-    #     };
-    #     vllm = {
-    #       url = "path:/data/projects/own/vllm";
-    #       inputs.nixpkgs.follows = "nixpkgs";
-    #     };
+    llama-turboquant = {
+      url = "github:reverb256/llama-cpp-turboquant";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # vllm = {
+    #   url = "path:/home/j_kro/Projects/vllm";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
     # NOTE: astral-key has nixos-module.nix for systemd service — can be imported in host configs
     dream2nix = {
       url = "tarball+https://codeload.github.com/nix-community/dream2nix/tar.gz/69eb01fa0995e1e90add49d8ca5bcba213b0416f";
