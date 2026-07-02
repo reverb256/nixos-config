@@ -36,7 +36,7 @@ in {
 
     enableHealthCheck = lib.mkOption {
       type = lib.types.bool;
-      default = false;
+      default = true;
       description = "Enable kube-apiserver health check (reduces priority when unhealthy)";
     };
 
