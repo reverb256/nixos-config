@@ -85,7 +85,7 @@ in
       };
 
       home.sessionVariables = {
-        HF_TOKEN = "/run/agenix/huggingface-token";
+        HF_TOKEN = "/run/secrets/huggingface-token";
       };
 
       # Remove stale HM backup files before activation to prevent clobber errors
