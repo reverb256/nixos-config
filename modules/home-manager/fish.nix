@@ -258,7 +258,6 @@ in {
     starship
 
     jq
-    screen
     sshpass
   ];
 }
