@@ -117,10 +117,10 @@ in {
       ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHh8FHzxFAk+brIs8nGhgg9BcGdtgr6of9MsbQctYHuE";
     };
-    # krash3 — WSL host key changes on rebuild; accept-new handles it
+    # krash3 — bare-metal; trust-on-first-use for now, pin once stable
     krash3 = {
       hostNames = ["krash3" hosts.krash3.ip];
-      publicKey = "*"; # Accept any key (WSL host key changes each rebuild)
+      publicKey = "*"; # Bare-metal LAN; replace with pinned key once stable
     };
     krash15 = {
       hostNames = ["krash15" hosts.krash15.ip];
