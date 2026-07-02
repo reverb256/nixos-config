@@ -49,9 +49,8 @@ in {
       nexus = tunedNixpkgs "x86_64-linux";
       forge = tunedNixpkgs "x86_64-linux";
       sentry = tunedNixpkgs "x86_64-linux";
-      # WSL hosts use 26.05 stable
+      # krash3 uses 26.05 stable (separate nixpkgs pin for the libvirt/Win-VM host)
       krash3 = tunedNixpkgs2605 "x86_64-linux";
-      krash3-krash = tunedNixpkgs2605 "x86_64-linux";
     };
     machinesFile = ./machines;
     specialArgs = {
@@ -102,35 +101,19 @@ in {
     ];
   };
 
-  # krash3 — NixOS on WSL (j_kro's Windows account)
+  # krash3 — bare-metal NixOS workstation (libvirt + Windows VM)
+  # IP per modules/network/cluster-dns.nix:16 — correct as of audit #999.
+  # Build locally on zephyr (buildOnTarget=false mirrors distributed-builds).
   krash3 = {...}: {
     imports = [
       ./hosts/krash3/configuration.nix
     ];
     deployment = {
-      targetHost = "krash3-wsl";
+      targetHost = "10.1.1.150";
       targetUser = "j_kro";
-      tags = ["wsl" "workstation"];
+      tags = ["workstation" "baremetal"];
       allowLocalDeployment = false;
       buildOnTarget = false;
-      sshOpts = ["-J" "krash@10.1.1.150:22"];
-    };
-  };
-
-  # krash3-krash — NixOS on WSL (krash's Windows account)
-  krash3-krash = {...}: {
-    imports = [
-      ./hosts/krash3-krash/configuration.nix
-    ];
-    deployment = {
-      targetHost = "krash3-krash";
-      targetUser = "nixos";
-      tags = ["wsl" "workstation"];
-      allowLocalDeployment = false;
-      buildOnTarget = false;
-      sshOpts = ["-J" "krash@10.1.1.150:22"];
-      # Deploy via Windows SSH → wsl -d NixOS
-      # Requires manual: wsl -d NixOS bash -c "nixos-rebuild switch"
     };
   };
 }
