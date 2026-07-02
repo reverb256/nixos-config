@@ -34,16 +34,16 @@ in {
               "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
             ];
           }
-          {
-            argv = [
-              "uwsm"
-              "app"
-              "-s"
-              "s"
-              "--"
-              "noctalia-shell"
-            ];
-          }
+            {
+              argv = [
+                "uwsm"
+                "app"
+                "-s"
+                "s"
+                "--"
+                "noctalia"
+              ];
+            }
           {
             argv = [
               "uwsm"
@@ -188,35 +188,35 @@ in {
             spawn "launch-or-focus" "Bitwarden" "uwsm" "app" "--" "flatpak" "run"
             "com.bitwarden.desktop";
 
-          # Voice dictation - push-to-talk
-          "Mod+Alt+V".action = spawn-sh "voxtype record toggle";
-
-          # Remove redundant Mod+K (Mod+Alt+Space already opens settings)
-          "Mod+Space".action = spawn-sh "noctalia-shell ipc call launcher toggle";
-          "Mod+Ctrl+V".action = spawn-sh "noctalia-shell ipc call launcher clipboard";
-          "Mod+Ctrl+E".action = spawn-sh "noctalia-shell ipc call launcher emoji";
-          "Mod+Ctrl+Slash".action = spawn-sh "noctalia-shell ipc call launcher command";
-          "Mod+Shift+Slash".action = spawn-sh "noctalia-shell ipc call launcher windows";
-
-          "Mod+S".action = spawn "scratchpad-toggle";
-          "Mod+Comma".action = spawn-sh "noctalia-shell ipc call notifications dismissLast";
-          "Mod+Alt+Space".action = spawn-sh "noctalia-shell ipc call settings toggle";
-          "Mod+Shift+Space".action = spawn-sh "noctalia-shell ipc call bar toggle";
-          "Mod+Ctrl+A".action = spawn-sh "noctalia-shell ipc call volume togglePanel";
-          "Mod+Ctrl+W".action = spawn-sh "noctalia-shell ipc call network togglePanel";
-          "Mod+Ctrl+B".action = spawn-sh "noctalia-shell ipc call bluetooth togglePanel";
-          "Mod+Ctrl+I".action = spawn-sh "noctalia-shell ipc call idleInhibitor toggle";
-          "Mod+Ctrl+N".action = spawn-sh "noctalia-shell ipc call nightLight toggle";
-          "Mod+Ctrl+D".action = spawn-sh "noctalia-shell ipc call darkMode toggle";
-          "Mod+Ctrl+T".action = spawn-sh "noctalia-shell ipc call systemMonitor toggle";
-          "Mod+Ctrl+S".action = spawn-sh "noctalia-shell ipc call share toggle";
-          "Mod+Ctrl+L".action = spawn-sh "noctalia-shell ipc call lockScreen lock";
-          "Mod+Ctrl+O".action = spawn-sh "noctalia-shell ipc call controlCenter toggle";
-          "Mod+Ctrl+Shift+W".action = spawn-sh "noctalia-shell ipc call wallpaper random";
-          "Mod+Shift+Comma".action = spawn-sh "noctalia-shell ipc call notifications dismissAll";
-          "Mod+Ctrl+Comma".action = spawn-sh "noctalia-shell ipc call notifications toggleDND";
-          "Mod+Alt+Comma".action = spawn-sh "noctalia-shell ipc call notifications toggleHistory";
-          "Mod+Alt+Shift+Comma".action = spawn-sh "noctalia-shell ipc call notifications invokeDefault";
+           # Voice dictation - push-to-talk
+           "Mod+Alt+V".action = spawn-sh "voxtype record toggle";
+ 
+           # Remove redundant Mod+K (Mod+Alt+Space already opens settings)
+           "Mod+Space".action = spawn "noctalia msg panel-toggle launcher";
+           "Mod+Ctrl+V".action = spawn "noctalia msg panel-toggle clipboard";
+           "Mod+Ctrl+E".action = spawn "noctalia msg panel-toggle launcher";
+           "Mod+Ctrl+Slash".action = spawn "noctalia msg panel-toggle launcher";
+           "Mod+Shift+Slash".action = spawn "noctalia msg window-switcher";
+ 
+           "Mod+S".action = spawn "scratchpad-toggle";
+           "Mod+Comma".action = spawn "noctalia msg notification-clear-active";
+           "Mod+Alt+Space".action = spawn "noctalia msg settings-toggle";
+           "Mod+Shift+Space".action = spawn "noctalia msg bar-toggle";
+           "Mod+Ctrl+A".action = spawn "noctalia msg panel-toggle control-center audio";
+           "Mod+Ctrl+W".action = spawn "noctalia msg panel-toggle control-center network";
+           "Mod+Ctrl+B".action = spawn "noctalia msg panel-toggle control-center bluetooth";
+           "Mod+Ctrl+I".action = spawn "noctalia msg caffeine-toggle";
+           "Mod+Ctrl+N".action = spawn "noctalia msg nightlight-toggle";
+           "Mod+Ctrl+D".action = spawn "noctalia msg theme-mode-toggle";
+           "Mod+Ctrl+T".action = spawn "noctalia msg panel-toggle control-center system";
+           "Mod+Ctrl+S".action = spawn "noctalia msg panel-toggle control-center share";
+           "Mod+Ctrl+L".action = spawn "noctalia msg session lock";
+           "Mod+Ctrl+O".action = spawn "noctalia msg panel-toggle control-center";
+           "Mod+Ctrl+Shift+W".action = spawn "noctalia msg wallpaper-random";
+           "Mod+Shift+Comma".action = spawn "noctalia msg notification-clear-active";
+           "Mod+Ctrl+Comma".action = spawn "noctalia msg notification-dnd-toggle";
+           "Mod+Alt+Comma".action = spawn "noctalia msg notification-dnd-status";
+           "Mod+Alt+Shift+Comma".action = spawn "noctalia msg notification-invoke-latest";
 
           # Screenshots (smart region, window, fullscreen, color)
           "Print" = {
@@ -342,16 +342,16 @@ in {
           "Mod+Shift+Alt+Up".action = move-workspace-to-monitor-up;
           "Mod+Shift+Alt+Down".action = move-workspace-to-monitor-down;
 
-          "XF86AudioRaiseVolume".action = spawn-sh "noctalia-shell ipc call volume increase";
-          "XF86AudioLowerVolume".action = spawn-sh "noctalia-shell ipc call volume decrease";
-          "XF86AudioMute".action = spawn-sh "noctalia-shell ipc call volume muteOutput";
-          "XF86AudioMicMute".action = spawn-sh "noctalia-shell ipc call volume muteInput";
-          "XF86AudioPlay".action = spawn-sh "noctalia-shell ipc call media playPause";
-          "XF86AudioNext".action = spawn-sh "noctalia-shell ipc call media next";
-          "XF86AudioPrev".action = spawn-sh "noctalia-shell ipc call media previous";
-          "XF86AudioStop".action = spawn-sh "noctalia-shell ipc call media stop";
+          "XF86AudioRaiseVolume".action = spawn "noctalia msg volume-up";
+          "XF86AudioLowerVolume".action = spawn "noctalia msg volume-down";
+          "XF86AudioMute".action = spawn "noctalia msg volume-mute";
+          "XF86AudioMicMute".action = spawn "noctalia msg mic-mute";
+          "XF86AudioPlay".action = spawn "noctalia msg media toggle";
+          "XF86AudioNext".action = spawn "noctalia msg media next";
+          "XF86AudioPrev".action = spawn "noctalia msg media previous";
+          "XF86AudioStop".action = spawn "noctalia msg media stop";
 
-          "Mod+Escape".action = spawn-sh "noctalia-shell ipc call sessionMenu toggle";
+          "Mod+Escape".action = spawn "noctalia msg panel-toggle session";
           "Mod+Ctrl+Escape".action = spawn "systemctl" "suspend";
           "Mod+Shift+Escape".action = quit;
           "Mod+Shift+C".action = spawn "niri" "msg" "action" "load-config-file";
