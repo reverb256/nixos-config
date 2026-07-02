@@ -38,8 +38,8 @@ Remote Nodes
 └── cns-receive@node.socket (socket-activated)
     ├── Receives package
     ├── Verifies checksum
-    ├── Decrypts with agenix
-    └── Writes to /run/agenix/ (tmpfs)
+    ├── Decrypts with sops-nix
+    └── Writes to /run/secrets/ (tmpfs)
 ```
 
 ## Key Features
@@ -76,7 +76,7 @@ sudo /tmp/cns-quickstart.sh
 ```bash
 cd /etc/nixos
 ssh-keygen -t ed25519 -f /tmp/cns-ssh-key -N "" -C "cns@zephyr"
-agenix -e secrets/cns-ssh-key.age -i /tmp/cns-ssh-key
+sops --encrypt secrets/cns-ssh-key.age /tmp/cns-ssh-key
 rm /tmp/cns-ssh-key
 # Keep /tmp/cns-ssh-key.pub for later
 ```
@@ -106,7 +106,7 @@ services.cns-watcher.enable = true;
 **Step 5: Configure Remote Nodes**
 ```bash
 # Get public key
-agenix -d secrets/cns-ssh-key.age | ssh-keygen -y -f /dev/stdin
+sops --decrypt secrets/cns-ssh-key.age | ssh-keygen -y -f /dev/stdin
 
 # Edit each remote node config (nexus, forge, sentry)
 # In hosts/*/default.nix, add:
@@ -139,9 +139,9 @@ ssh nexus 'tail /var/log/cns/receiver.log'
 ### Add New Secret (Zero Touch)
 ```bash
 cd /etc/nixos
-agenix -e secrets/my-new-secret.age
+sops --encrypt secrets/my-new-secret.yaml > secrets/my-new-secret.age
 
-# Register in registry (modules/system/agenix-secrets-registry.nix)
+# Register in registry (modules/system/sops-secrets-registry.nix)
 # Deploy
 just deploy
 
@@ -163,7 +163,7 @@ journalctl -u cns-health -f
 ## Security Properties
 
 1. **Zero Knowledge**: Nodes never know sender identity
-2. **Zero Persistence**: Secrets in /run/agenix/ (tmpfs, lost on reboot)
+2. **Zero Persistence**: Secrets in /run/secrets/ (tmpfs, lost on reboot)
 3. **mTLS Authentication**: SSH key exchange
 4. **Checksum Verification**: Package integrity validated
 5. **Sender Authorization**: Only allowed hosts can trigger

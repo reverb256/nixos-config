@@ -713,26 +713,26 @@ in {
     };
     # ── Secrets ──────────────────────────────────────────────────
     # Secrets are populated by kubectl-apply-k8s-secrets systemd service
-    # from agenix-decrypted files at /run/agenix/. These placeholder
+    # from sops-nix decrypted files at /run/secrets/. These placeholder
     # definitions ensure the Secret objects exist for secretKeyRef lookups.
     ai-inference.Secret.ai-inference-gateway-secrets = {
       type = "Opaque";
-      # TODO: Fill from agenix key `ai-gateway-zai-api-key` (see modules/system/agenix-secrets-registry.nix)
+      # TODO: Fill from sops-nix key `ai-gateway-zai-api-key` (see modules/system/sops-secrets-registry.nix)
       stringData = {
         "api-keys" = "";
       };
     };
-    # Z.AI API key — populated from agenix (secrets/ai-gateway-zai-api-key.age)
+    # Z.AI API key — populated from sops-nix (secrets/ai-gateway-zai-api-key.age)
     ai-inference.Secret.zai-api-key = {
       type = "Opaque";
       stringData.ZAI_API_KEY = "";
     };
-    # HuggingFace token — populated from agenix (secrets/huggingface-token.age)
+    # HuggingFace token — populated from sops-nix (secrets/huggingface-token.age)
     ai-inference.Secret.hf-token = {
       type = "Opaque";
       stringData.token = "";
     };
-    # NVIDIA API key — populated from agenix (secrets/nvidia-api-key.age)
+    # NVIDIA API key — populated from sops-nix (secrets/nvidia-api-key.age)
     ai-inference.Secret.nvidia-api-key = {
       type = "Opaque";
       stringData.NVIDIA_API_KEY = "";
@@ -741,12 +741,12 @@ in {
       type = "Opaque";
       stringData.KILO_API_KEY = "";
     };
-    # OpenCode API key — populated from agenix (secrets/opencode-api-key.age)
+    # OpenCode API key — populated from sops-nix (secrets/opencode-api-key.age)
     ai-inference.Secret.opencode-api-key = {
       type = "Opaque";
       stringData.OPENCODE_API_KEY = "";
     };
-    # Gateway API token — populated from agenix (secrets/ai-gateway-token.age)
+    # Gateway API token — populated from sops-nix (secrets/ai-gateway-token.age)
     ai-inference.Secret.ai-gateway-token = {
       type = "Opaque";
       stringData.GATEWAY_TOKEN = "";

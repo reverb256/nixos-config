@@ -21,7 +21,6 @@
       "/var/lib/NetworkManager"
       "/var/lib/bluetooth"
       "/var/lib/tailscale"
-      "/var/lib/agenix"
       "/var/lib/fwupd"
     ];
     files = [
