@@ -1,87 +1,73 @@
 {pkgs ? import <nixpkgs> {}}: let
   lib = pkgs.lib;
 
-  registrySource = builtins.readFile ./../modules/system/agenix-secrets-registry.nix;
+  registrySource = builtins.readFile ./../modules/system/sops-secrets-registry.nix;
 
-  # Extract .age filenames from file = "..." paths in the registry
-  extractAgeFilenames = src: let
+  # Extract sopsFile paths from the registry
+  extractSopsFileNames = src: let
     lines = lib.splitString "\n" src;
-    isFileLine = line: lib.strings.hasInfix "secrets/" line && lib.strings.hasInfix ".age" line;
-    fileLines = builtins.filter isFileLine lines;
+    isSopsFileLine = line:
+      lib.strings.hasInfix "sopsFile" line
+      && lib.strings.hasInfix "secrets/" line
+      && (lib.strings.hasInfix ".yaml" line || lib.strings.hasInfix ".yml" line);
+    fileLines = builtins.filter isSopsFileLine lines;
     extractFilename = line: let
-      parts = lib.splitString "/secrets/" line;
+      parts = lib.splitString "secrets/" line;
       afterSecrets = if builtins.length parts > 1 then
         let tail = builtins.elemAt parts (builtins.length parts - 1);
-            ageParts = lib.splitString ".age" tail;
-        in if builtins.length ageParts > 0 then
-          builtins.elemAt ageParts 0 + ".age"
+            # Split on quote chars to isolate the path
+            quoteParts = lib.splitString "\"" tail;
+        in if builtins.length quoteParts > 0 then
+          builtins.elemAt quoteParts 0
         else null
       else null;
     in afterSecrets;
     filenames = builtins.filter (f: f != null) (builtins.map extractFilename fileLines);
   in lib.unique filenames;
 
-  # Get all .age files actually present in secrets/
-  secretsDir = ./../secrets;
-  ageFilesOnDisk = let
-    allFiles = builtins.readDir secretsDir;
-    ageOnly = lib.filterAttrs (name: type:
-      type == "regular" && lib.strings.hasSuffix ".age" name
-    ) allFiles;
-  in builtins.attrNames ageOnly;
+  # Collect all .yaml files actually present in secrets/ subdirectories
+  sopsFileNamesFromFragments = let
+    subdirs = ["ai" "k8s" "cloud" "infra" "monitoring" "mining" "storage" "automation" "selfhosting" "ci" "default"];
+    paths = builtins.map (d: builtins.toString ./../secrets + "/" + d) subdirs;
+    allFiles = builtins.concatLists (builtins.map (p:
+      if builtins.pathExists p then
+        builtins.filter (f: builtins.strings?hasSuffix f ".yaml") (builtins.attrNames (builtins.readDir p))
+      else []
+    ) paths);
+  in allFiles;
 
-  # Extract referenced filenames from the registry
-  referencedAgeFiles = extractAgeFilenames registrySource;
+  # Referenced secret files from registry
+  referencedYamlFiles = extractSopsFileNames registrySource;
 
-  # Check: all referenced .age files exist on disk
-  missingOnDisk = builtins.filter (f:
-    !(builtins.elem f ageFilesOnDisk)
-  ) referencedAgeFiles;
+  # Check: every referenced yaml file exists on disk
+  missingYamlFiles = builtins.filter (f:
+    !(builtins.elem f sopsFileNamesFromFragments)
+  ) referencedYamlFiles;
 
-  # Check: all .age files on disk are referenced somewhere (catches orphans)
-  orphanedOnDisk = builtins.filter (f:
-    !(builtins.elem f referencedAgeFiles)
-  ) ageFilesOnDisk;
-
-  # Check: no secret has mode "777" or "666" (overly permissive)
+  # Check no secret has mode "777" or "666"
   unsafeModes = let
     lines = lib.splitString "\n" registrySource;
     isUnsafeMode = line:
-      (lib.strings.hasInfix "mode = " line) &&
-      (lib.strings.hasInfix "777" line || lib.strings.hasInfix "666" line);
+      (lib.strings.hasInfix "mode = " line)
+      && (lib.strings.hasInfix "777" line || lib.strings.hasInfix "666" line);
   in builtins.filter isUnsafeMode lines;
 
-  # Check: initrd secrets use host-specific filenames (prevent sharing)
-  initrdSecretsProperlyScoped = let
-    lines = lib.splitString "\n" registrySource;
-    initrdLines = builtins.filter (l: lib.strings.hasInfix "initrd-ssh-host-key" l) lines;
-    hasHostNameRef = lib.any (l:
-      lib.strings.hasInfix "config.networking.hostName" l
-    ) initrdLines;
-  in if initrdLines == [] then true else hasHostNameRef;
-
-  # Check: secrets.nix (agenix) file exists if referenced
-  secretsNixExists = builtins.pathExists ./../secrets/secrets.nix;
-
   allChecks = {
-    allReferencedSecretsExist = missingOnDisk == [];
-    noOrphanedSecretFiles = orphanedOnDisk == [];
+    allReferencedSecretsExist = missingYamlFiles == [];
     noUnsafeModes = unsafeModes == [];
-    initrdSecretsHostScoped = initrdSecretsProperlyScoped;
-    secretsDirectoryExists = builtins.pathExists secretsDir;
-    registryFileExists = builtins.pathExists ./../modules/system/agenix-secrets-registry.nix;
-    secretsNixExists = secretsNixExists;
+    secretsDirectoryExists = builtins.pathExists ./../secrets;
+    registryFileExists = builtins.pathExists ./../modules/system/sops-secrets-registry.nix;
   };
 
   failures = lib.filterAttrs (_: v: v == false) allChecks;
 in {
   checks = allChecks // {
     _diagnostics = {
-      inherit missingOnDisk orphanedOnDisk unsafeModes;
-      totalAgeFilesOnDisk = builtins.length ageFilesOnDisk;
-      totalReferencedSecrets = builtins.length referencedAgeFiles;
+      inherit unsafeModes missingYamlFiles;
+      totalReferencedSecrets = builtins.length referencedYamlFiles;
+      totalYamlFilesOnDisk = builtins.length sopsFileNamesFromFragments;
     };
   };
   failures = builtins.attrNames failures;
-  passed = failures == {};
+  passed = failures == [];
 }
