@@ -248,63 +248,63 @@ in {
     apiKeyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
-      description = "Path to agenix secret file containing ZAI_API_KEY";
+      description = "Path to sops-nix secret file containing ZAI_API_KEY";
       example = "config.age.secrets.zai-api-key.path";
     };
 
     nvidiaApiKeyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
-      description = "Path to agenix secret file containing NVIDIA_API_KEY";
+      description = "Path to sops-nix secret file containing NVIDIA_API_KEY";
       example = "config.age.secrets.nvidia-api-key.path";
     };
 
     casdoorJwtFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
-      description = "Path to agenix secret file containing Casdoor JWT for MCP";
+      description = "Path to sops-nix secret file containing Casdoor JWT for MCP";
       example = "config.age.secrets.casdoor-hermes-jwt.path";
     };
 
     opencodeGoApiKeyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
-      description = "Path to agenix secret file containing OpenCode Go API key";
+      description = "Path to sops-nix secret file containing OpenCode Go API key";
       example = "config.age.secrets.opencode-go-api-key.path";
     };
 
     opencodeZenApiKeyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
-      description = "Path to agenix secret file containing OpenCode Zen API key";
+      description = "Path to sops-nix secret file containing OpenCode Zen API key";
       example = "config.age.secrets.opencode-api-key.path";
     };
 
     kilocodeApiKeyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
-      description = "Path to agenix secret file containing Kilo Code API key";
+      description = "Path to sops-nix secret file containing Kilo Code API key";
       example = "config.age.secrets.kilo-api-key.path";
     };
 
     geminiApiKeyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
-      description = "Path to agenix secret file containing Gemini API key";
+      description = "Path to sops-nix secret file containing Gemini API key";
       example = "config.age.secrets.gemini-api-key.path";
     };
 
     hfTokenFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
-      description = "Path to agenix secret file containing HuggingFace token";
+      description = "Path to sops-nix secret file containing HuggingFace token";
       example = "config.age.secrets.huggingface-token.path";
     };
 
     githubTokenFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
-      description = "Path to agenix secret file containing GitHub token";
+      description = "Path to sops-nix secret file containing GitHub token";
       example = "config.age.secrets.github-token.path";
     };
 
@@ -390,9 +390,9 @@ in {
       end
     '';
 
-    # Inject agenix secrets into Hermes config at boot
+    # Inject sops-nix secrets into Hermes config at boot
     systemd.services.hermes-config-secrets = lib.mkIf (cfg.casdoorJwtFile != null) {
-      description = "Inject agenix secrets into Hermes config";
+      description = "Inject sops-nix secrets into Hermes config";
       after = ["network.target"];
       wantedBy = ["multi-user.target"];
 
@@ -419,7 +419,7 @@ in {
             exit 0
           fi
 
-          # Wait for agenix secret
+          # Wait for sops-nix secret
           for i in $(seq 1 30); do
             if [ -f "${cfg.casdoorJwtFile}" ] && [ -s "${cfg.casdoorJwtFile}" ]; then
               break
@@ -465,7 +465,7 @@ in {
 
     # ── Declarative MCP server management ─────────────────────────
     # Merges Nix-defined mcp_servers into Hermes config.yaml at boot.
-    # API keys are injected from agenix secrets (ZAI_API_KEY).
+    # API keys are injected from sops-nix secrets (ZAI_API_KEY).
     systemd.services.hermes-mcp-servers = {
       restartIfChanged = true;
       description = "Inject declarative MCP servers into Hermes config";

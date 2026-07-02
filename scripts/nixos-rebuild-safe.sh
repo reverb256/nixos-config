@@ -10,7 +10,7 @@ set -euo pipefail
 # XMRig HTTP API configuration
 XMRIG_API_HOST="${XMRIG_API_HOST:-127.0.0.1}"
 XMRIG_API_PORT="${XMRIG_API_PORT:-8081}"
-XMRIG_TOKEN_FILE="${XMRIG_TOKEN_FILE:-/run/agenix/xmrig-api-token}"
+XMRIG_TOKEN_FILE="${XMRIG_TOKEN_FILE:-/run/secrets/xmrig-api-token}"
 
 # Build events log (for compute-workload-monitor visibility)
 BUILD_EVENTS_LOG="${BUILD_EVENTS_LOG:-/run/gpu-scheduler/build-events.log}"

@@ -154,7 +154,7 @@
   services.unbound-common.enable = true;
 
 
-  # sops-nix secrets registry (dual-run with agenix during migration)
+  # sops-nix secrets registry (migrated from agenix)
   services.sops-secrets-registry = {
     enable = true;
     aiServices = true;
@@ -179,4 +179,4 @@
     user = "j_kro";
   };
 }
-  # Disable legacy agenix secrets (migrated to sops-nix)
+  # Legacy agenix secrets disabled (migrated to sops-nix)

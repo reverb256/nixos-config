@@ -8,12 +8,12 @@
   inherit (lib) mkEnableOption mkOption types mkIf;
 in {
   options.services.cachix-auth = {
-    enable = mkEnableOption "Cachix authentication via agenix secret";
+    enable = mkEnableOption "Cachix authentication via sops-nix secret";
 
     tokenFile = mkOption {
       type = types.path;
       default = "/run/secrets/cachix-token";
-      description = "Path to the Cachix authentication token file (agenix secret)";
+      description = "Path to the Cachix authentication token file (sops-nix secret)";
     };
   };
 
