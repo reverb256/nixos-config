@@ -178,12 +178,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # WSL — NixOS on Windows Subsystem for Linux (krash3)
-    NixOS-WSL = {
-      url = "github:nix-community/NixOS-WSL/main";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     # ── Newly extracted project flakes ───────────────────────
     # hermes-workspace and hermes-webui archived (2026-05-16)
   };
@@ -219,13 +213,6 @@
     commonModules = import ./common-modules-list.nix {
       inherit inputs self;
     };
-
-    # Slim module set for WSL/remote hosts — no desktop/GPU/cluster modules
-    slimModules = [
-      inputs.home-manager.nixosModules.home-manager
-      inputs.sops-nix.nixosModules.default
-      inputs.stylix.nixosModules.default
-    ];
 
     mkNixosSystem = {
       hostName,
