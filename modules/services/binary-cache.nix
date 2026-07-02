@@ -28,6 +28,7 @@ in {
 
     services.nix-serve = {
       enable = lib.mkDefault true;
+      package = pkgs.nix-serve-ng;
       secretKeyFile = "/etc/nix/cache-priv.key";
       inherit (cfg) port;
       inherit (cfg) bindAddress;
@@ -36,11 +37,9 @@ in {
     systemd.services.nix-serve.serviceConfig.ExecStart = lib.mkForce [
       (pkgs.writeShellScript "nix-serve-start" ''
         export NIX_SECRET_KEY_FILE="$CREDENTIALS_DIRECTORY/NIX_SECRET_KEY_FILE"
-        exec ${pkgs.nix-serve}/bin/nix-serve \
+        exec ${pkgs.nix-serve-ng}/bin/nix-serve \
           --listen ${cfg.bindAddress}:${toString cfg.port} \
-          --workers 20 \
-          --keepalive-timeout 60 \
-          --read-timeout 300
+          --timeout 300
       '')
     ];
 
