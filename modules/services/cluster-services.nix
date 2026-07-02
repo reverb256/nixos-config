@@ -198,10 +198,14 @@ in {
     };
 
     # Allow Caddy to bind privileged ports (<1024) when running as non-root
+    # Restart=always: survives clean POST /stop to admin API and any unexpected exit
     systemd.services.caddy.serviceConfig = {
       User = "root";
       Group = "root";
       NoNewPrivileges = lib.mkForce false;
+      Restart = lib.mkForce "always";
+      RestartSec = lib.mkForce "5s";
+      StartLimitBurst = lib.mkForce 5;
     };
 
     environment.systemPackages = [
