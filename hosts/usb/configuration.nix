@@ -301,11 +301,7 @@ in {
   services.displayManager.sddm.enable = lib.mkForce true;
 
 
-  # NVIDIA NIM API key — for Hermes autonomous operation
-  # age.secrets.nvidia-api-key = {  # sops-nix migration
-    file = ../../secrets/nvidia-api-key.age;
-    owner = "j_kro";
-  };
+  # NVIDIA NIM API key moved to sops-nix. Stub removed during migration.
   # Hermes Agent — self-contained config matching live setup
   environment.variables.HERMES_HOME = "/home/j_kro/.hermes";
   system.activationScripts.hermes-usb-setup = lib.stringAfter ["users"] ''
