@@ -5,7 +5,7 @@
 #
 # Architecture:
 #   - cluster-mesh user/group (uid/gid locked, no interactive shell)
-#   - cns-ssh-key owned by cluster-mesh:cluster-mesh 0600 (from agenix)
+#   - cns-ssh-key owned by cluster-mesh:cluster-mesh 0600 (from sops-nix)
 #   - Systemd service copies key to /var/lib/cluster-mesh/.ssh/id_ed25519
 #   - Authorized keys restricted via command= for maximum security
 #
@@ -39,13 +39,13 @@ in {
     sshKey = mkOption {
       type = types.str;
       default = "/run/secrets/cns-ssh-key";
-      description = "Path to CNS SSH key (agenix-deployed)";
+      description = "Path to CNS SSH key (sops-nix deployed)";
     };
 
     keyDir = mkOption {
       type = types.path;
       default = "/var/lib/cluster-mesh/.ssh";
-      description = "Directory for cluster-mesh SSH key (copied from agenix)";
+      description = "Directory for cluster-mesh SSH key (copied from sops-nix)";
     };
   };
 
@@ -78,7 +78,7 @@ in {
           chmod 700 ${cfg.keyDir}
         '';
 
-        # Copy key from agenix
+        # Copy key from sops-nix
         ExecStart = pkgs.writeShellScript "cluster-mesh-key-setup" ''
           cp ${cfg.sshKey} ${cfg.keyDir}/id_ed25519
           chmod 600 ${cfg.keyDir}/id_ed25519

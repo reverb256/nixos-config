@@ -25,8 +25,8 @@
   # Check that flake.nix references colmena (deployment tool)
   hasColmena = lib.strings.hasInfix "colmena" flakeSource;
 
-  # Check that flake inputs include agenix
-  hasAgenixInput = lib.strings.hasInfix "agenix" flakeSource;
+  # Check that flake inputs include sops-nix (replaced agenix)
+  hasSopsInput = lib.strings.hasInfix "sops-nix" flakeSource;
 
   # Check that flake inputs include home-manager
   hasHomeManagerInput = lib.strings.hasInfix "home-manager" flakeSource;
@@ -59,7 +59,7 @@
     hasNixosConfigurations = hasNixosConfigurations;
     allHostsInFlake = missingHostsInFlake == [];
     hasColmena = hasColmena;
-    hasAgenixInput = hasAgenixInput;
+    hasSopsInput = hasSopsInput;
     hasHomeManagerInput = hasHomeManagerInput;
     hasNixpkgsInput = hasNixpkgsInput;
     flakeLockExists = flakeLockExists;

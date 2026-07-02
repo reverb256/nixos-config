@@ -137,7 +137,7 @@
         description = "Cloudflare Tunnel - secure ingress";
         wantedBy = ["multi-user.target"];
         requires = ["network-online.target"];
-        after = ["network-online.target" "agenix-rekey.service"];
+        after = ["network-online.target"];
 
         serviceConfig = {
           ExecStart = lib.getExe pkgs.cloudflared + " tunnel --config /etc/cloudflared/config.yml run";
@@ -155,7 +155,7 @@
         preStart = ''
           if [ ! -f ${cfg.credentialsFile} ]; then
             echo "ERROR: cloudflared credentials not found at ${cfg.credentialsFile}"
-            echo "Please ensure the secret is properly configured in agenix."
+            echo "Please ensure the secret exists at ${cfg.credentialsFile}."
             exit 1
           fi
         '';
