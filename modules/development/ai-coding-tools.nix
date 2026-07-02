@@ -139,10 +139,8 @@ in {
     systemd.services.ai-coding-tools-config = {
       description = "Generate harmonized MCP configs for AI coding tools";
       after = [
-        "agenix.service"
         "network.target"
       ];
-      wants = ["agenix.service"];
       wantedBy = ["multi-user.target"];
       path = [
         pkgs.jq

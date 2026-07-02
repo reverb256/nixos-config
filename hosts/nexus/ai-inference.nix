@@ -16,11 +16,11 @@
       };
       nvidia-nim = {
         enable = true;
-        apiKeyFile = "/run/agenix/nvidia-api-key";
+        apiKeyFile = "/run/secrets/nvidia-api-key";
       };
       zai = {
         enable = true;
-        apiKeyFile = "/run/agenix/zai-api-key";
+        apiKeyFile = "/run/secrets/zai-api-key";
         baseUrl = "https://api.z.ai/api/coding/paas/v4";
         enableRetry = true;
         maxRetries = 3;
@@ -29,7 +29,7 @@
       };
       pollinations = {
         enable = true;
-        apiKeyFile = "/run/agenix/pollinations-api-key";
+        apiKeyFile = "/run/secrets/pollinations-api-key";
         baseUrl = "https://text.pollinations.ai";
       };
     };

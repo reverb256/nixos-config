@@ -60,13 +60,11 @@ in {
 
     users.groups.cluster-mesh = {};
 
-    # CNS SSH key provisioned via sops-nix now, not agenix
-    # age.secrets.cns-ssh-key removed during sops-nix migration
+    # CNS SSH key provisioned via sops-nix
 
-    # Systemd service: copy key from /run/agenix to persistent location
+    # Systemd service: copy key from /run/secrets to persistent location
     systemd.services.cluster-mesh-key-setup = {
-      description = "Setup cluster-mesh SSH key from agenix";
-      after = ["agenix.service"];
+      description = "Setup cluster-mesh SSH key from sops-nix";
       wantedBy = ["multi-user.target"];
 
       serviceConfig = {
