@@ -354,6 +354,7 @@ XMLEOF
       "k3s-cluster-token" = {
         sopsFile = ../../secrets/k8s/k3s-cluster-token.yaml;
         path = "/run/secrets/k3s-cluster-token";
+        format = "binary";
         owner = "root";
         group = "root";
         mode = "0444";
