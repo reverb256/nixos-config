@@ -164,8 +164,7 @@ in {
     # Run the permissions fix as a one-shot service after hermes-cli
     systemd.services.hermes-skills-perms = {
       description = "Fix Hermes skills permissions";
-      after = ["agenix.service" "network.target"];
-      wants = ["agenix.service"];
+      after = ["network.target"];
       wantedBy = ["multi-user.target"];
       path = with pkgs; [coreutils findutils];
       serviceConfig = {
