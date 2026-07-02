@@ -174,5 +174,12 @@ _final: prev:
 } // prev.lib.optionalAttrs (inputs ? vllm) {
   vllm-turboquant-env = inputs.vllm.packages.x86_64-linux.vllm-turboquant-env;
 } // prev.lib.optionalAttrs (inputs ? llama-turboquant) {
-  llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant;
+  llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant.overrideAttrs (old: {
+    src = prev.fetchFromGitHub {
+      owner = "AmesianX";
+      repo = "TurboQuant";
+      rev = "v${old.version}";
+      hash = "sha256-Jxje/SMyI7l1YJQXcwFBu8CPzxpZb5VPZ+gmEWGoZUA=";
+    };
+  });
 }
