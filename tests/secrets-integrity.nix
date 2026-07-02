@@ -28,13 +28,14 @@
   # Collect all .yaml files actually present in secrets/ subdirectories
   sopsFileNamesFromFragments = let
     subdirs = ["ai" "k8s" "cloud" "infra" "monitoring" "mining" "storage" "automation" "selfhosting" "ci" "default"];
-    paths = builtins.map (d: builtins.toString ./../secrets + "/" + d) subdirs;
-    allFiles = builtins.concatLists (builtins.map (p:
-      if builtins.pathExists p then
-        builtins.filter (f: builtins.strings?hasSuffix f ".yaml") (builtins.attrNames (builtins.readDir p))
-      else []
-    ) paths);
-  in allFiles;
+  in builtins.concatLists (builtins.map (d:
+    let dirPath = builtins.toString ./../secrets + "/" + d;
+    in if builtins.pathExists dirPath then
+      builtins.map (f: d + "/" + f) (
+        builtins.filter (f: lib.strings.hasSuffix ".yaml" f) (builtins.attrNames (builtins.readDir dirPath))
+      )
+    else []
+  ) subdirs);
 
   # Referenced secret files from registry
   referencedYamlFiles = extractSopsFileNames registrySource;
