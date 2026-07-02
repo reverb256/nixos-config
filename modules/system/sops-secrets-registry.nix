@@ -338,6 +338,10 @@ in {
             owner = "root";
             group = "root";
           };
+          "cloud/cloudflared-tunnel-credentials" = {
+            sopsFile = "${inputs.self}/secrets/cloud/cloudflared-tunnel-credentials.yaml";
+            path = "/run/secrets/cloudflared-tunnel-credentials";
+          };
           "cloud/tailscale-api-key" = {
             sopsFile = "${inputs.self}/secrets/cloud/tailscale-api-key.yaml";
             path = "/run/secrets/tailscale-api-key";
