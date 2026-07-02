@@ -107,7 +107,7 @@ in {
         hosts.forge.ip
         hosts.forge.tailscale
       ];
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINhHtW56M3KuMH/qCwamdGKQe22NuemFQaYV7LhJXdUz";
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEyPhSqZMMXmavBIN/Cr/uYmK3BwZV3GK7BbJW/dQnf3";
     };
     sentry = {
       hostNames = [
