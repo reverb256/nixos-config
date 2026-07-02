@@ -34,6 +34,8 @@ _final: prev:
     inherit (prev) cudaPackages;
   };
   llama-cpp-ik = prev.callPackage ./packages/llama-cpp-ik.nix { };
+  llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant;
+  vllm-turboquant-env = inputs.vllm.packages.x86_64-linux.vllm-turboquant-env;
   llama-cpp-rocm = prev.callPackage ./packages/llama-cpp-rocm.nix { };
   llama-cpp-vulkan = prev.callPackage ./packages/llama-cpp-vulkan.nix { };
   llama-cpp-vulkan-nocuda = prev.callPackage ./packages/llama-cpp-vulkan-nocuda.nix { };
@@ -171,8 +173,4 @@ _final: prev:
       substituteInPlace $out/bin/zen-twilight         --replace-fail 'export MOZ_LEGACY_PROFILES' '# export MOZ_LEGACY_PROFILES'
     '';
   });
-} // prev.lib.optionalAttrs (inputs ? vllm) {
-  vllm-turboquant-env = inputs.vllm.packages.x86_64-linux.vllm-turboquant-env;
-} // prev.lib.optionalAttrs (inputs ? llama-turboquant) {
-  llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant;
 }
