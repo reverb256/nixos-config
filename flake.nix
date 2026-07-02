@@ -266,14 +266,18 @@
       krash3 = {
         hostName = "krash3";
         k8sManifest = null;
-        modules = slimModules;
-        nixpkgsInput = inputs.nixpkgs-2605;
-      };
-      krash3-krash = {
-        hostName = "krash3-krash";
-        k8sManifest = null;
-        modules = slimModules;
-        nixpkgsInput = inputs.nixpkgs-2605;
+        modules = [
+          inputs.sops-nix.nixosModules.default
+          inputs.home-manager.nixosModules.home-manager
+          inputs.hermes-agent.nixosModules.default
+          inputs.stylix.nixosModules.default
+          ./modules/system/distributed-builds.nix
+          ./modules/system/ssh-ca.nix
+          ./modules/default.nix
+          {
+            nixpkgs.overlays = [ self.overlays.default ];
+          }
+        ];
       };
   };
   in {
