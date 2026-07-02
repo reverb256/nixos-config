@@ -18,7 +18,7 @@ in {
       ];
     };
 
-    # TODO: Run `agenix -e secrets/garnix-password.age` to create the secret file.
+    # TODO: Create the garnix-password secret file at /run/secrets/garnix-password.
     # The file must contain netrc-format content:
     #   machine cache.garnix.io
     #     login reverb256

@@ -55,22 +55,22 @@ in {
     zaiApiKeyFile = mkOption {
       type = types.path;
       default = "/run/secrets/zai-api-key";
-      description = "Path to Z.AI API key (agenix secret)";
+      description = "Path to Z.AI API key (sops-nix secret)";
     };
     context7ApiKeyFile = mkOption {
       type = types.path;
       default = "/run/secrets/context7-api-key";
-      description = "Path to Context7 API key (agenix secret)";
+      description = "Path to Context7 API key (sops-nix secret)";
     };
     nvidiaNimApiKeyFile = mkOption {
       type = types.path;
       default = "/run/secrets/nvidia-api-key";
-      description = "Path to NVIDIA NIM API key (agenix secret)";
+      description = "Path to NVIDIA NIM API key (sops-nix secret)";
     };
     opencodeGoApiKeyFile = mkOption {
       type = types.path;
       default = "/run/secrets/opencode-go-api-key";
-      description = "Path to OpenCode Go API key (agenix secret)";
+      description = "Path to OpenCode Go API key (sops-nix secret)";
     };
     tools = {
       droid = {
@@ -317,7 +317,7 @@ in {
       | Tool | Command | Source |
       |------|---------|--------|
       | Crush | `crush` | npx @charmland/crush@latest |
-      All keys managed via agenix secrets:
+      All keys managed via sops-nix secrets:
       - zai-api-key → /run/secrets/zai-api-key
       - context7-api-key → /run/secrets/context7-api-key
       - nvidia-api-key → /run/secrets/nvidia-api-key

@@ -69,9 +69,7 @@ in {
           #!${pkgs.bash}/bin/bash
           echo "=== Boot Error Status ===" | ${pkgs.coreutils}/bin/tee -a /var/log/boot-errors.log
 
-          if [ -z "$(${pkgs.coreutils}/bin/ls /run/agenix.d/*/ 2>/dev/null)" ]; then
-            echo "WARNING: No agenix secrets decrypted" | ${pkgs.coreutils}/bin/tee -a /var/log/boot-errors.log
-          fi
+          echo "INFO: sops-nix secrets at /run/secrets/ (if directory exists)" | ${pkgs.coreutils}/bin/tee -a /var/log/boot-errors.log
 
           if ! ${pkgs.shadow}/bin/getent group plugdev >/dev/null 2>&1; then
             echo "WARNING: plugdev group missing" | ${pkgs.coreutils}/bin/tee -a /var/log/boot-errors.log

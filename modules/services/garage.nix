@@ -140,7 +140,7 @@ in {
           wants = ["network-online.target"];
           wantedBy = ["multi-user.target"];
 
-          # Generate config from template + agenix secrets before starting Garage.
+          # Generate config from template + sops-nix secrets before starting Garage.
           # Secrets are read at service start, never stored in /etc.
           preStart = "${lib.getExe generateConfig}";
 
@@ -163,7 +163,7 @@ in {
 
             ExecStart = "${lib.getExe pkgs.garage} -c /run/garage/garage.toml server";
 
-            # Access agenix secret files for config generation in preStart
+            # Access sops-nix secret files for config generation in preStart
             ReadOnlyPaths = [
               "/run/secrets/garage-rpc-secret"
               "/run/secrets/garage-metrics-token"

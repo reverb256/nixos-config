@@ -51,7 +51,7 @@
             exit 1
         fi
 
-        # Read access key from agenix secret
+        # Read access key from sops-nix secret
         GARAGE_ACCESS_KEY="$(cat ${"/run/secrets/garage-s3-access-key-id"})"
         export AWS_ACCESS_KEY_ID="$GARAGE_ACCESS_KEY"
         export AWS_SECRET_ACCESS_KEY="$GARAGE_SECRET_KEY"
@@ -153,7 +153,7 @@ in {
     secretKeyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
-      description = "Path to file containing Garage S3 secret key (agenix)";
+      description = "Path to file containing Garage S3 secret key (sops-nix)";
     };
 
     retentionDays = lib.mkOption {
