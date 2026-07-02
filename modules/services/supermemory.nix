@@ -70,6 +70,6 @@ in {
       };
     };
 
-    networking.firewall.allowedTCPPorts = [cfg.port];
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
   };
 }
