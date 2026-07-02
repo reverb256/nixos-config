@@ -63,7 +63,7 @@ rm-worktree number:
 # ── GIT MANAGEMENT ────────────────────────────────────────────────────────────────
 # Sync all hosts to central/main
 
-HOSTS := "zephyr nexus forge sentry"
+HOSTS := "zephyr nexus forge sentry krash3"
 
 # Show git status on all hosts
 git-status:
@@ -139,7 +139,8 @@ deploy host="all":
     fi
     for host in $TARGETS; do
         echo "=== $host ==="
-        if [ "$host" = "zephyr" ]; then
+        LOCAL=$(hostname -s)
+        if [ "$host" = "$LOCAL" ]; then
             sudo nixos-rebuild switch --flake {{FLAKE}}#$host 2>&1
             echo "done"
         else
