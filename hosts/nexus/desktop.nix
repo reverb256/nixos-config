@@ -1,6 +1,6 @@
 {pkgs, ...}: {
-  programs.niri.enable = true;
-  desktop.uwsm-sessions.enable = true;
+  programs.niri.enable = lib.mkForce false;  # Headless — no display
+  programs.noctalia.enable = true;  # v5 — runs as Wayland shell via niri spawn
 
   services.displayManager.defaultSession = "niri-uwsm";
   services.displayManager.autoLogin.enable = true;
