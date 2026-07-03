@@ -373,7 +373,7 @@ Hyprland tty3).
 | `plasma6.nix` | `services.desktop.plasma6` | KDE Plasma 6 desktop |
 | `niri.nix` | `programs.niri` | Scrollable-tiling Wayland compositor |
 | `uwsm-sessions.nix` | `programs.uwsm` | UWSM Wayland session registrations |
-| `wayland-compositor-common.nix` | - | Shared packages (noctalia-shell, cliphist, wf-recorder) |
+| `wayland-compositor-common.nix` | - | Shared packages (noctalia, cliphist, wf-recorder) |
 | `wayland-common.nix` | - | Wayland base settings |
 | `flatpak.nix` | `services.flatpak-kde` | Flatpak support |
 | `spotify-spotx.nix` | `services.spotify-spotx` | Spotify ad removal |

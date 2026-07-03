@@ -54,62 +54,62 @@ Internal CA using CFSSL for cluster service certificates:
 - Issues certificates for K8s components, etcd, and internal services
 - CA API available on port 8888
 
-## Encrypted Secrets (Agenix)
+## Encrypted Secrets (sops-nix)
+
+The cluster uses [sops-nix](https://github.com/Mic92/sops-nix) for secret management.
+Secrets are encrypted with age/YubiKey via SOPS and decrypted at boot.
 
 ### Architecture
 
 ```
-secrets/*.age           ← Encrypted secret files (committed to git)
-secrets.nix             ← Maps secrets to host public keys (who can decrypt)
-agenix-secrets-registry ← Declares which secrets deploy to which hosts
+secrets/*.yaml          ← Encrypted secret files by category (ai/, k8s/, cloud/, etc.)
+sops-secrets-registry   ← Declares which secrets deploy to which hosts/files
 hosts/*/configuration.nix ← Enables specific secret categories per host
 ```
 
 ### Secret Lifecycle
 
-1. **Create**: `agenix -e secrets/my-secret.age` (encrypts with host public keys)
-2. **Register**: Add to `modules/system/agenix-secrets-registry.nix`
-3. **Deploy**: Enable in host config: `services.agenix-secrets-registry.{category} = true`
-4. **Access**: Decrypted secrets appear at `/run/agenix/<secret-name>`
+1. **Create**: Add encrypted `.yaml` file to `secrets/<category>/` directory
+2. **Register**: Add to `modules/system/sops-secrets-registry.nix`
+3. **Deploy**: Enable in host config: `services.sops-secrets-registry.{category} = true`
+4. **Access**: Decrypted secrets appear at `/run/secrets/<secret-name>`
 
 ### Secret Categories
 
-| Category | Secrets | Hosts |
-|----------|---------|-------|
-| `aiServices` | ZAI API key, HF token, NVIDIA API key, Pollinations key | Zephyr, Nexus |
-| `monitoring` | Prometheus, Grafana, AlertManager secrets | Unused currently |
-| `storage` | Garage S3 API key | Zephyr |
-| `mining` | XMRig API tokens, pool credentials | Zephyr, Forge, Sentry |
-| `cloud` | Cloudflare tunnel token, Context7 API key | Zephyr |
-| `kubernetes` | k3s cluster token | All K8s nodes |
-| `selfHosting` | Vaultwarden, Spacebot tokens | Per-service hosts |
+| Category | Hosts |
+|----------|-------|
+| `ai` | Zephyr, Nexus |
+| `k8s` | All K8s nodes |
+| `cloud` | Zephyr |
+| `monitoring` | Sentry |
+| `mining` | Zephyr, Forge, Sentry |
+| `infra` | All nodes |
+| `automation` | Nexus |
+| `storage` | Zephyr |
+| `ci` | Nexus |
 
 ### Adding a New Secret
 
-1. Create encrypted file:
+1. Create encrypted YAML file in `secrets/<category>/`:
    ```bash
    cd /etc/nixos
-   agenix -e secrets/my-new-secret.age
+   # Edit with your $EDITOR, sops encrypts automatically
+   sops secrets/ai/my-new-key.yaml
    ```
 
-2. Add public key mapping in `secrets.nix`:
+2. Declare in registry (`modules/system/sops-secrets-registry.nix`):
    ```nix
-   "secrets/my-new-secret.age".publicKeys = [ zephyr nexus ];
-   ```
-
-3. Declare in registry (`modules/system/agenix-secrets-registry.nix`):
-   ```nix
-   my-new-secret = {
-     file = "${inputs.self}/secrets/my-new-secret.age";
-     mode = "400";
+   my-new-key = {
+     sopsFile = "\${inputs.self}/secrets/ai/my-new-key.yaml";
+     mode = "0400";
      owner = "root";
      group = "root";
    };
    ```
 
-4. Reference in host config:
+3. Reference in host config:
    ```nix
-   config.age.secrets.my-new-secret.path  # → "/run/agenix/my-new-secret"
+   myNewKeyFile = "/run/secrets/my-new-key";
    ```
 
 ## PAM Integration

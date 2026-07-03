@@ -93,7 +93,7 @@ Three K8s secrets defined in Nix modules but **never mounted** (removed sidecar 
 ### Fixes Applied (2026-05-02, Session 2)
 
 - Fixed Grafana K8s OAuth: removed duplicated/conflicting `GF_AUTH_GENERIC_OAUTH_*` env vars (monitoring.nix)
-- Fixed Grafana admin-secret namespace: was applying to `ai-inference`, now correctly applies to `monitoring` (agenix-fixes.nix)
+- Fixed Grafana admin-secret namespace: was applying to `ai-inference`, now correctly applies to `monitoring`
 - Removed K8s sidecars (haven, kagent, mission-control) — auth now handled by Caddy forward_auth only
 - Fixed Service targetPorts: changed from 4180 (removed sidecar) to actual app ports (3000, 8080)
 - Removed alert-webhook stub deployment — AlertManager logs directly via Alloy → Loki

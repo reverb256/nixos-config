@@ -1,30 +1,26 @@
-{pkgs, lib, inputs, ...}: {
+{pkgs, lib, ...}: {
   programs.niri.enable = lib.mkForce false;
   desktop.uwsm-sessions.enable = lib.mkForce false;
 
-  # Noctalia v5 — install binary directly (nixosModule has no programs.noctalia option)
-  # Binary path: inputs.noctalia.packages.x86_64-linux.default
-  environment.systemPackages =
-    if inputs ? noctalia
-    then [inputs.noctalia.packages.x86_64-linux.default]
-    else [];
+  # Noctalia v5 shell — install the binary but DO NOT enable the systemd
+  # user service (`graphical-session.target` upstream). Nexus is headless
+  # with no Wayland compositor and no planned cage/kiosk unit; enabling the
+  # systemd service would crash-loop the moment any future user session
+  # reached `graphical-session.target`. Package wiring happens in
+  # modules/desktop/wayland-compositor-common.nix.
+  programs.noctalia.enable = true;
 
-  # Launch noctalia as a user systemd service (no niri/s compositor needed)
-  systemd.user.services.noctalia = lib.mkIf (inputs ? noctalia) {
-    Unit = {
-      Description = "Noctalia v5 Wayland panel";
-      PartOf = ["graphical-session.target"];
-    };
-    Service = {
-      Type = "simple";
-      ExecStart = "${lib.getExe (inputs.noctalia.packages.x86_64-linux.default)}";
-      Restart = "always";
-      RestartSec = 5;
-    };
-    Install = { WantedBy = ["graphical-session.target"]; };
-  };
-
-  # Headless — disable all display managers and auto-login
+  # Headless — disable xserver AND all display managers. NixOS 26.11
+  # auto-migrates `services.displayManager.autoLogin.*` into the legacy
+  # `services.xserver.displayManager.lightdm.autoLogin.*` namespace whenever
+  # xserver is enabled. That pulls in `nixos/modules/.../lightdm.nix`,
+  # which references `dmcfg.sessionData.desktops` — a default only populated
+  # when a DM is active in the new namespace. With the new namespace fully
+  # disabled, the default is unset and evaluation crashes. Disabling xserver
+  # here is the minimal correct fix: nexus has no display, no input devices,
+  # and never needs a DM. The kiosk-style use cases (future cage unit) can
+  # re-enable xserver + sddm in their own override.
+  services.xserver.enable = lib.mkForce false;
   services.displayManager.enable = lib.mkForce false;
   services.displayManager.autoLogin.enable = lib.mkForce false;
   services.displayManager.sddm.enable = lib.mkForce false;

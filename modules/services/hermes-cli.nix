@@ -543,7 +543,7 @@ in {
       after = ["network.target"];
       wantedBy = ["multi-user.target"];
 
-      path = with pkgs; [python3 coreutils gnugrep];
+      path = with pkgs; [(python3.withPackages (p: [p.pyyaml])) coreutils gnugrep];
 
       serviceConfig = {
         Type = "oneshot";

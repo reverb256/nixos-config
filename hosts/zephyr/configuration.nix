@@ -15,6 +15,7 @@ in {
     ./services.nix
     ./hardware-configuration.nix
     ./fan-control.nix
+    ./peakminer.nix
     ../../modules/services/k3s-cluster.nix
     ../../modules/services/k3s-pod-affinity.nix
     ../../modules/services/keepalived-vip.nix

@@ -34,6 +34,13 @@
       size = 24;
     };
 
+    iconTheme = {
+      enable = true;
+      package = pkgs.papirus-icon-theme;
+      dark = "Papirus-Dark";
+      light = "Papirus-Light";
+    };
+
     opacity = {
       applications = 1.0;
       desktop = 1.0;
