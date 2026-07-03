@@ -26,12 +26,14 @@ in {
   config = mkMerge [
     {programs.niri.enable = lib.mkOptionDefault false;}
     (mkIf niriEnabled {
-      # niri 26.4 removed MaxBpc (the variant our HDR-SDR patch was designed around).
-      # The upstream patch no longer applies. Re-add the patch when upstream adds the
-      # SdrBrightness variant upstream. See modules/desktop/patches/README.md (TODO).
+      # Use nixpkgs niri instead of sodiboo/flake niri-unstable.
+      # sodiboo/niri-flake ships an HDR-SDR brightness patch that no longer applies
+      # against current niri-unstable (MaxBpc removed in niri 26.4).
+      # nixpkgs niri is maintained, tracks stable, and avoids the broken patch.
+      # Revert to inputs.niri (sodiboo) when their HDR patch is fixed upstream.
       programs.niri.package =
         lib.mkForce
-        inputs.niri.packages.${pkgs.stdenv.hostPlatform.system}.niri-unstable;
+        pkgs.niri;
     })
     (mkIf niriEnabled (
       lib.mkMerge [
