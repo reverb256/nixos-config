@@ -310,6 +310,7 @@ in {
   };
 
   # ── X11 / Display ───────────────────────────────────────
+  programs.niri.enable = lib.mkForce false;
 
   # ── Write inline VM XML & define on every rebuild ───────
   system.activationScripts.windows-vm = lib.mkAfter ''
