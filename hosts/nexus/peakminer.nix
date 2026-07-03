@@ -23,7 +23,7 @@ in {
     peakminer = {
       enable = true;
       wallet = "krxXVNVMM7";
-      pools = ["stratum+tcp://prl.kryptex.network:7048"];
+      pools = ["stratum+tcp://prl-us.kryptex.network:7048"];
       instances = [
         {
           name = "nexus-3060ti";
