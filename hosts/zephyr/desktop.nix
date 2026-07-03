@@ -6,6 +6,20 @@
   services.displayManager.sddm.enable = lib.mkForce true;
   services.displayManager.sddm.wayland.enable = true;
 
+  # Enable UWSM (Universal Wayland Session Manager) - CRITICAL for Niri session integration.
+  # 2026-07-03: binPath points at the raw `niri` binary rather than the
+  # nixpkgs 26.04 `niri-session` wrapper, which conflicts with uwsm's
+  # wayland-compositor@.service session supervision and timed out at ~42 s
+  # (sddm-helper exit 64, greeter loop).
+  programs.uwsm = {
+    enable = true;
+    waylandCompositors.niri = {
+      prettyName = "Niri";
+      comment = "A scrollable-tiling Wayland compositor";
+      binPath = "/run/current-system/sw/bin/niri";
+    };
+  };
+
   desktop.uwsm-sessions.enable = true;
   programs.niri.enable = true;
 

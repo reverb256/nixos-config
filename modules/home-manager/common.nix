@@ -37,8 +37,11 @@ in {
       '';
       loginShellInit = ''
         # Auto-start niri via uwsm when logging in on tty1
+        # 2026-07-03: launch the niri binary directly (not the niri-session
+        # wrapper) so uwsm supervises the compositor and binds the Wayland
+        # socket without colliding with the wrapper's systemd targets.
         if test "$XDG_VTNR" = "1" -a -z "$WAYLAND_DISPLAY"
-          exec uwsm start -F -- niri-session
+          exec uwsm start -F -- niri
         end
       '';
       shellAliases = {
