@@ -757,6 +757,40 @@ in {
     })
   ]);
 
+  # Auto-reload niri config when home-manager swaps ~/.config/niri/config.kdl
+  # (the symlink target moves to a new /nix/store generation on every switch).
+  # systemd path watches the PARENT DIRECTORY (not the symlink itself --
+  # systemd resolves symlinks on PathChanged= and would pin the OLD store
+  # path, never seeing the new generation).
+  systemd.user.paths.niri-config-reload = mkIf niriHmAvailable {
+    Unit.Description = "Watch ~/.config/niri/ for config.kdl generation swap";
+    # Watching the parent dir fires whenever HM tmpfile-then-rename replaces
+    # the config.kdl symlink. Atomic-ish (single PathChanged on rename).
+    # `default.target` (not graphical-session.target) so the watch is
+    # active from login onward. Path unit must be ready before any
+    # potential HM swap during graphical-session startup.
+    Install.WantedBy = [ "default.target" ];
+    Path.PathChanged = "${config.home.homeDirectory}/.config/niri";
+  };
+
+  systemd.user.services.niri-config-reload = mkIf niriHmAvailable {
+    Unit.Description = "Reload niri config after config.kdl generation swap";
+    Service = {
+      Type = "oneshot";
+      # Guard: pgrep niri first so path-triggered reloads during early login
+      # (before niri-session is up) or after a niri crash don't spam journal
+      # with `niri msg` connection errors. Idempotent -- next path event
+      # retries once niri is back.
+      ExecStart = pkgs.writeShellScript "niri-reload-on-config-change" ''
+        #!/bin/sh
+        if ${pkgs.procps}/bin/pgrep -x niri >/dev/null 2>&1; then
+          ${pkgs.niri}/bin/niri msg action load-config-file \
+            || echo "niri-reload-on-config-change: reload failed" >&2
+        fi
+      '';
+    };
+  };
+
   # Declarative launch-or-focus script with orphan cleanup
   home.file.".local/bin/launch-or-focus" = {
     executable = true;

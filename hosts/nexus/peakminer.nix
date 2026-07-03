@@ -20,6 +20,8 @@ in {
       flannelIface = "eth0";
     };
 
+    # Bump `pkgs/peakminer.nix` from v1.0.12 to v1.0.13 and serve both 
+    # workers.
     peakminer = {
       enable = true;
       wallet = "krxXVNVMM7";
@@ -39,6 +41,9 @@ in {
           apiPort = 21551;
           proxyPort = 21542;
         }
+      ];
+      exporterInstances = [
+        { instanceName = "nexus-3060ti"; apiPort = 21551; exporterPort = 9101; }
       ];
     };
 
