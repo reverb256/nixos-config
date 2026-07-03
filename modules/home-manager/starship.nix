@@ -2,7 +2,7 @@
 let
   c = config.lib.stylix.colors.withHashtag;
 
-  # miner script removed — was broken
+  minerScript = "${config.xdg.configHome}/fish/scripts/miner-status.sh";
 in {
   programs.starship = {
     enable = true;
@@ -115,6 +115,14 @@ in {
       scala.disabled = true;
       swift.disabled = true;
       zig.disabled = true;
+
+      custom.miner = {
+        command = minerScript;
+        when = true;
+        shell = ["bash", "-c"];
+        format = "[$output](bold ${c.base0E}) ";
+        disabled = false;
+      };
     };
   };
 }
