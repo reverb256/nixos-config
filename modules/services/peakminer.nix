@@ -175,6 +175,7 @@ in {
           builtins.map (instance: let
             proxyServiceName = "peakminer-proxy-${instance.name}";
             instanceWallet = if instance.wallet != null then instance.wallet else cfg.wallet;
+            instancePools = if instance.pools != null then instance.pools else cfg.pools;
           in lib.optionalAttrs (instance.proxyPort != null) {
             name = proxyServiceName;
             value = {
@@ -189,7 +190,7 @@ in {
                   ${pkgs.peakminer}/bin/peakminer-proxy \
                     --listen-host 127.0.0.1 \
                     --listen-port ${toString instance.proxyPort} \
-                    --target ${builtins.head instance.pools} \
+                    --target ${builtins.head instancePools} \
                     --wallet ${instanceWallet} \
                     --worker ${instance.name}
                 '';
