@@ -167,6 +167,7 @@ in {
                   --url ${poolUrl} \
                   --user ${instanceWallet} \
                   --worker ${instance.name} \
+                  --legacy-auth \
                   --devices ${instance.devices} \
                   --api-port ${toString instance.apiPort} \
                   --gpu-temp-stop ${toString instance.tempStop} \
