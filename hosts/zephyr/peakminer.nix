@@ -21,7 +21,7 @@ in {
     peakminer = {
       enable = true;
       wallet = "krxXVNVMM7";
-      pools = ["stratum+tcp://prl.kryptex.network:7048"];
+      pools = ["stratum+tcp://prl-us.kryptex.network:7048"];
       exporterInstances = [
         { instanceName = "zephyr-3060ti"; apiPort = 21553; exporterPort = 9101; }
         { instanceName = "zephyr-3090";   apiPort = 21554; exporterPort = 9102; }
