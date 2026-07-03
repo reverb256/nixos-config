@@ -8,7 +8,7 @@ mkDerivation rec {
 
   src = fetchurl {
     url = "https://github.com/peakminer/peakminer/releases/download/v${version}/peakminer-${version}.tar.gz";
-    sha256 = "a6d677e1270d1c8a3abb343dd79bef4c8adb6765b5fb6cee10b06cd719b51d81";
+    sha256 = "7efe5fffb8f20a1d1320f0272de348c662a3baff2056fbf971eba9813d49a441";
   };
 
   nativeBuildInputs = [ autoPatchelfHook makeWrapper ];

@@ -56,6 +56,7 @@
     "profiles/network/default.nix" = true;
     "port-helpers.nix" = true; # Library: helper functions, NOT a NixOS module
     "services/oauth2-proxy-config.nix" = true; # Library: shared oauth2 config data, NOT a module
+    "services/hermes-moa.nix" = true; # Library: declarative MoA config, NOT a standalone NixOS module
     # implementations.nix files are imported by their respective subdirectory default.nix, and can be
     # safely collected here too (file path dedup works when both refs are file paths).
   };
