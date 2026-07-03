@@ -223,6 +223,7 @@ in {
   services.displayManager.sddm.enable = lib.mkForce false;
   boot.loader.grub.enable = lib.mkForce false;
   imports = [
+    ../../modules/default.nix
     ./hardware.nix
     ./services.nix
     ./hardware-configuration.nix
