@@ -1,4 +1,15 @@
 {pkgs, lib, ...}: {
+  # Enable UWSM (Universal Wayland Session Manager) for proper session management
+  # Even though Nexus is headless, UWSM provides the necessary infrastructure
+  programs.uwsm = {
+    enable = true;
+    waylandCompositors.niri = {
+      prettyName = "Niri";
+      comment = "A scrollable-tiling Wayland compositor";
+      binPath = "/run/current-system/sw/bin/niri-session";
+    };
+  };
+
   programs.niri.enable = lib.mkForce false;
   desktop.uwsm-sessions.enable = lib.mkForce false;
 
@@ -40,7 +51,7 @@
     polkit.addRule(function(action, subject) {
       if ((action.id == "org.freedesktop.flatpak.system-helper" ||
            action.id == "org.freedesktop.flatpak.auth-helper") &&
-          subject.isInGroup("wheel")) {
+           subject.isInGroup("wheel")) {
         return polkit.Result.YES;
       }
     });

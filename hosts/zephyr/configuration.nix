@@ -391,12 +391,56 @@ in {
     ];
   };
 
-  # Auditd — track age key file access
+  # Audit subsystem — track sops age key file access
   security.audit = {
     enable = true;
+    backlogLimit = 8192;
     rules = [
       "-w /etc/nixos/.age/key.txt -p rwa -k sops-key-access"
       "-w /etc/nixos/.age/krash3-key.txt -p rwa -k sops-key-access"
     ];
+  };
+
+  # Auditd daemon — drains kernel audit buffer so events aren't lost.
+  # Without this, kernel hits backlog limit and prints "kauditd hold queue overflow".
+  security.auditd = {
+    enable = true;
+    settings = {
+      log_file = "/var/log/audit/audit.log";
+      log_format = "ENRICHED";
+      log_group = "root";
+      priority_boost = 4;
+      flush = "INCREMENTAL_ASYNC";
+      freq = 20;
+      q_depth = 2000;
+      overflow_action = "SYSLOG";
+      num_logs = 5;
+      max_log_file = 100;
+      max_log_file_action = "ROTATE";
+      space_left = "75%";
+      space_left_action = "SYSLOG";
+      admin_space_left = "50%";
+      admin_space_left_action = "SYSLOG";
+      disk_full_action = "SUSPEND";
+      disk_error_action = "SUSPEND";
+      action_mail_acct = "root";
+      distribute_network = "no";
+    };
+  };
+
+  # Rotate audit logs to prevent unbounded growth
+  services.logrotate = {
+    enable = true;
+    settings = {
+      "/var/log/audit/audit.log" = {
+        daily = true;
+        rotate = 4;
+        compress = true;
+        missingok = true;
+        notifempty = true;
+        create = "0600 root root";
+        postrotate = "systemctl reload auditd";
+      };
+    };
   };
 }

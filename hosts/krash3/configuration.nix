@@ -176,23 +176,24 @@ let
       <address type='pci' domain='0x0000' bus='0x08' slot='0x00' function='0x0'/>
     </hostdev>
     <hostdev mode='subsystem' type='usb' managed='yes'>
-      <source startupPolicy='optional'>
+      <source startupPolicy='optional' missing='yes'>
         <vendor id='0x3537'/>
         <product id='0x2106'/>
       </source>
       <address type='usb' bus='0' port='1'/>
     </hostdev>
     <hostdev mode='subsystem' type='usb' managed='yes'>
-      <source startupPolicy='optional'>
+      <source startupPolicy='optional' missing='yes'>
         <vendor id='0x054c'/>
         <product id='0x09cc'/>
       </source>
       <address type='usb' bus='0' port='2'/>
     </hostdev>
     <hostdev mode='subsystem' type='usb' managed='yes'>
-      <source>
+      <source startupPolicy='optional' missing='yes'>
         <vendor id='0x8087'/>
         <product id='0x0029'/>
+        <address bus='1' device='2'/>
       </source>
       <address type='usb' bus='0' port='3'/>
     </hostdev>
@@ -305,6 +306,16 @@ in {
     };
   };
 
+  services.k3s-cluster = {
+    enable = true;
+    nvidia.enable = true;
+    role = "agent";
+    nodeName = "krash3";
+    serverAddr = "https://${config.networking.cluster.kubernetes.vip}:${toString config.networking.cluster.kubernetes.apiPort}";
+    tokenFile = "/run/secrets/k3s-cluster-token";
+    nodeIP = config.networking.cluster.hosts.krash3.ip;
+  };
+
   security.sudo = {
     enable = true;
     wheelNeedsPassword = false;
@@ -313,7 +324,6 @@ in {
   # ── X11 / Display ───────────────────────────────────────
   programs.niri.enable = lib.mkForce false;
   services.flatpak.enable = lib.mkForce false;
-  services.flatpak-kde.enable = lib.mkForce false;
 
   # ── Write inline VM XML & define on every rebuild ───────
   system.activationScripts.windows-vm = lib.mkAfter ''
