@@ -27,7 +27,8 @@
       ];
       # Workaround: list merge is broken for this host. Ensure critical ports via nft rules.
       extraInputRules = ''
-        tcp dport { 80, 443, 1235, 1237, 53317, 8080, 8040, 8041, 8888, 3900, 3901, 50000, 9100, 9101, 9102, 9400 } accept
+        # Source-restrict exposed services to LAN + pod CIDR
+        ip saddr { 10.42.0.0/16, 10.1.1.0/24 } tcp dport { 80, 443, 1235, 1237, 53317, 8080, 8040, 8041, 8888, 3900, 3901, 50000, 9100, 9101, 9102, 9400 } accept
       '';
       allowedUDPPorts = lib.mkOptionDefault [
         9757
