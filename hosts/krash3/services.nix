@@ -85,7 +85,7 @@ in {
 
   # ── Samba ──
   services.samba = {
-    enable = true; openFirewall = true;
+    enable = true; openFirewall = lib.mkForce false;
     settings = {
       global = {
         workgroup = "WORKGROUP"; "server string" = "krash3"; "netbios name" = "krash3";
