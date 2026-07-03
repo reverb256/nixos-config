@@ -23,6 +23,8 @@
 
       ../../modules/hardware/rgb-control.nix
 
+      inputs.noctalia.nixosModules.default
+
       ../../modules/security/aistor-secrets.nix
       ../../modules/services/podman-support.nix
 
