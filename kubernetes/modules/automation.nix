@@ -39,9 +39,8 @@ in {
     Secret.n8n-secrets = {
       type = "Opaque";
       stringData = {
-        # Managed by agenix: apply_secret automation n8n-secrets admin-password
-        # Managed by agenix: apply_secret automation n8n-secrets encryption-key
-        # Managed by agenix: apply_secret automation n8n-secrets postgres-password
+        # Populated by sops-nix: kubectl-apply-k8s-secrets automation n8n-secrets
+        # admin-password, encryption-key, postgres-password
         postgres-password = "";
       };
     };
@@ -49,7 +48,7 @@ in {
     Secret.hermes-automation-keys = {
       type = "Opaque";
       stringData = {
-        # Managed by agenix: apply_secret automation hermes-automation-keys n8n-api-key
+        # Populated by sops-nix: kubectl-apply-k8s-secrets automation hermes-automation-keys n8n-api-key
       };
     };
 

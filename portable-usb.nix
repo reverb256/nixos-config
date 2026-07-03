@@ -227,13 +227,11 @@
             settings = {
               substituters = [
                 "https://niri.cachix.org"
-                "https://noctalia.cachix.org"
-                "https://nix-community.cachix.org"
+                  "https://nix-community.cachix.org"
               ];
               trusted-public-keys = [
                 "niri.cachix.org-1:Wv0O6Tz6V5fM6gD8hIRwM+QjRtBu5OD5QyQjx2hE8vE="
-                "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
-                "nix-community.cachix.org-1:3B8gQfk+egR5f2cK5zJqHmWqJdY6LlBBwRiAxH2wX5o="
+                  "nix-community.cachix.org-1:3B8gQfk+egR5f2cK5zJqHmWqJdY6LlBBwRiAxH2wX5o="
               ];
               max-jobs = "auto";
               cores = 0; # Use all available

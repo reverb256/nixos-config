@@ -43,6 +43,7 @@ in {
     ./nexus.nix
     ./forge.nix
     ./sentry.nix
+    ./mime-fix.nix
   ];
 
   # Make home-manager state persistent across NixOS generations
