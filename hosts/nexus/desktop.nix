@@ -1,12 +1,18 @@
 {pkgs, lib, ...}: {
-  # Enable UWSM (Universal Wayland Session Manager) for proper session management
-  # Even though Nexus is headless, UWSM provides the necessary infrastructure
+  # Enable UWSM (Universal Wayland Session Manager) for proper session management.
+  # Even though Nexus is headless, UWSM provides the necessary infrastructure.
+  # 2026-07-03: binPath points at the raw `niri` binary rather than the
+  # nixpkgs-26.04 `niri-session` wrapper. The niri + uwsm-sessions pair is
+  # mkForce-false below, so this value is dead config today, but it would
+  # become load-bearing if either toggle flipped back to true. Keeping it in
+  # sync with zephyr/forge/sentry avoids surprise reactivation. Same fix
+  # shape as commits db97c0c0 + the shared module in modules/desktop/niri.nix.
   programs.uwsm = {
     enable = true;
     waylandCompositors.niri = {
       prettyName = "Niri";
       comment = "A scrollable-tiling Wayland compositor";
-      binPath = "/run/current-system/sw/bin/niri-session";
+      binPath = "/run/current-system/sw/bin/niri";
     };
   };
 

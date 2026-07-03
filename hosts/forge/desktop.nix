@@ -1,11 +1,16 @@
 {pkgs, ...}: {
-  # Enable UWSM (Universal Wayland Session Manager) for proper session management
+  # Enable UWSM (Universal Wayland Session Manager) for proper session management.
+  # 2026-07-03: binPath points at the raw `niri` binary rather than the
+  # nixpkgs-26.04 `niri-session` wrapper, which conflicts with uwsm's
+  # wayland-compositor@.service supervision and times out at ~42 s
+  # (sddm-helper exit 64, greeter loop). Same fix applied to zephyr
+  # in hosts/zephyr/desktop.nix and the shared modules/desktop/niri.nix.
   programs.uwsm = {
     enable = true;
     waylandCompositors.niri = {
       prettyName = "Niri";
       comment = "A scrollable-tiling Wayland compositor";
-      binPath = "/run/current-system/sw/bin/niri-session";
+      binPath = "/run/current-system/sw/bin/niri";
     };
   };
 
