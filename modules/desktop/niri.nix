@@ -38,12 +38,19 @@ in {
     (mkIf niriEnabled (
       lib.mkMerge [
         {
+          # 2026-07-03: binPath now points at the raw `niri` binary rather than
+          # the `niri-session` wrapper. nixpkgs-26.04's wrapper activates
+          # systemd targets inside uwsm's wayland-compositor@.service, causing
+          # the session to time out after ~42 s and uwsm to exit 64
+          # (sddm-helper propagates, repeating the greeter loop).
+          # UWSM is designed to drive the compositor directly; the wrapper is
+          # redundant under uwsm and conflicts with its session supervision.
           programs.uwsm = {
             enable = lib.mkDefault true;
             waylandCompositors.niri = {
               prettyName = "Niri";
               comment = "A scrollable-tiling Wayland compositor";
-              binPath = "/run/current-system/sw/bin/niri-session";
+              binPath = "/run/current-system/sw/bin/niri";
             };
           };
         }
