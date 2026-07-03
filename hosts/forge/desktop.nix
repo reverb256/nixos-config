@@ -1,4 +1,14 @@
 {pkgs, ...}: {
+  # Enable UWSM (Universal Wayland Session Manager) for proper session management
+  programs.uwsm = {
+    enable = true;
+    waylandCompositors.niri = {
+      prettyName = "Niri";
+      comment = "A scrollable-tiling Wayland compositor";
+      binPath = "/run/current-system/sw/bin/niri-session";
+    };
+  };
+
   programs.niri.enable = true;
   desktop.uwsm-sessions.enable = true;
 
@@ -18,7 +28,7 @@
     polkit.addRule(function(action, subject) {
       if ((action.id == "org.freedesktop.flatpak.system-helper" ||
            action.id == "org.freedesktop.flatpak.auth-helper") &&
-          subject.isInGroup("wheel")) {
+           subject.isInGroup("wheel")) {
         return polkit.Result.YES;
       }
     });

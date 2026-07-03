@@ -1,4 +1,14 @@
 { config, pkgs, lib, ... }: {
+  # Enable UWSM (Universal Wayland Session Manager) for proper session management
+  programs.uwsm = {
+    enable = true;
+    waylandCompositors.niri = {
+      prettyName = "Niri";
+      comment = "A scrollable-tiling Wayland compositor";
+      binPath = "/run/current-system/sw/bin/niri-session";
+    };
+  };
+
   programs.niri = {
     enable = true;
     # settings removed — niri version mismatch
