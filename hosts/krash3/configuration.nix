@@ -177,17 +177,10 @@ let
     </hostdev>
     <hostdev mode='subsystem' type='usb' managed='yes'>
       <source startupPolicy='optional' missing='yes'>
-        <vendor id='0x3537'/>
-        <product id='0x2106'/>
-      </source>
-      <address type='usb' bus='0' port='1'/>
-    </hostdev>
-    <hostdev mode='subsystem' type='usb' managed='yes'>
-      <source startupPolicy='optional' missing='yes'>
         <vendor id='0x054c'/>
         <product id='0x09cc'/>
       </source>
-      <address type='usb' bus='0' port='2'/>
+      <address type='usb' bus='0' port='1'/>
     </hostdev>
     <hostdev mode='subsystem' type='usb' managed='yes'>
       <source startupPolicy='optional' missing='yes'>
@@ -212,7 +205,7 @@ in {
   virtualisation.libvirtd = {
   # ── Performance tuning ──
     enable = true;
-    qemuVerbatimConfig = ''
+    qemu.verbatimConfig = ''
       max_memlock = 26843545600
     '';
   };
