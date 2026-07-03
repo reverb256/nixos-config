@@ -262,7 +262,7 @@ in {
   '';
   services.avahi.enable = lib.mkForce false;
   services.tailscale.enable = lib.mkForce false;
-  networking.nftables.enable = lib.mkForce false;
+  networking.nftables.enable = lib.mkForce true;
   systemd.services.dhcpcd.restartIfChanged = false;
 
   # ── SSH ─────────────────────────────────────────────────
