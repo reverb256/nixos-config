@@ -239,7 +239,27 @@ in {
   networking.dhcpcd.extraConfig = "nooption domain_name_servers";
 
   # ── Firewall ────────────────────────────────────────────
-  networking.firewall.allowedTCPPorts = [ 22 445 2222 3260 53 ];
+  networking.firewall.allowedTCPPorts = [ 53 ];   # DNS is global (needed by unbound for 10.1.1.0/24 clients)
+  networking.firewall.extraInputRules = ''
+    # SSH — restrict to LAN
+    ip saddr { 10.1.1.0/24 } tcp dport 22 accept
+
+    # Samba/SMB — restrict to libvirt VM network only (Windows VM via virbr0)
+    iifname "virbr0" tcp dport { 139, 445 } accept
+    iifname "virbr0" udp dport { 137, 138 } accept
+
+    # iSCSI — restrict to LAN + libvirt VM network
+    ip saddr { 10.1.1.0/24, 192.168.122.0/24 } tcp dport 3260 accept
+
+    # Unbound DNS — restrict to LAN (access-control already set in unbound config)
+    ip saddr { 10.1.1.0/24, 127.0.0.0/8, 192.168.122.0/24 } udp dport 53 accept
+    ip saddr { 10.1.1.0/24, 127.0.0.0/8, 192.168.122.0/24 } tcp dport 53 accept
+
+    # alt SSH (2222) — restrict to LAN
+    ip saddr 10.1.1.0/24 tcp dport 2222 accept
+
+    # k3s agent API — loopback only (default)
+  '';
   services.avahi.enable = lib.mkForce false;
   services.tailscale.enable = lib.mkForce false;
   networking.nftables.enable = lib.mkForce false;
