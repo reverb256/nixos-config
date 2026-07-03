@@ -31,7 +31,7 @@
   `age1p98yp8w64rdugp03332gxnz5v2vcnucn69cs5qm6s2l2u7epqfcqmu2pqe` —
   identical to `/home/j_kro/.age/key.txt`. Newly-encrypted secrets will
   therefore decrypt on `zephyr` once any host enables the registry.
-- **Pre-policy legacy:** all 64 top-level `*.age` files + ~71 subdir
+- **Pre-policy legacy (re-key BLOCKED on zephyr; see Operational decision below):** all 64 top-level `*.age` files + ~71 subdir
   `*.yaml`/`*.env.yaml` files are encrypted to historical recipient sets
   that do NOT include `zephyr`'s pubkey. They decrypt 0/135 with the
   local key. Treatment: re-key with `sops updatekeys --add age <pubkey>`
