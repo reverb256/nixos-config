@@ -125,8 +125,10 @@ git-push:
     echo "All hosts synced"
 
 # ── DEPLOYMENT ────────────────────────────────────────────────────────────────
+# Nexus is the workhorse: build/apply from there to keep zephyr light.
+# Local deploy still works for the host you're running on.
 
-# Deploy to all hosts or a specific host
+# Local deploy to all hosts or a specific host
 deploy host="all":
     #!/usr/bin/env bash
     set -e
@@ -155,6 +157,7 @@ deploy host="all":
     echo ""
     echo "Deploy complete. Verify with 'just health'"
 
+# Host shortcuts: local deploy
 zephyr:
     just deploy zephyr
 nexus:
@@ -163,6 +166,77 @@ forge:
     just deploy forge
 sentry:
     just deploy sentry
+
+# Async deploy from nexus using colmena, tmux session + log file.
+# Idempotent: re-running attaches to the existing session instead of creating a duplicate.
+NEXUS_DEPLOY_SESSION := "deploy-nexus-{{host}}"
+NEXUS_DEPLOY_LOG := "/var/log/colmena-deploy-{{host}}.log"
+
+deploy-nexus host:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    HOST="{{host}}"
+    SESSION="deploy-nexus-${HOST}"
+    LOG="/var/log/colmena-deploy-${HOST}.log"
+    CMD="cd /etc/nixos && colmena apply --on ${HOST} --eval-node-limit 100 | tee ${LOG}"
+    if tmux has-session -t "$SESSION" 2>/dev/null; then
+        echo "attaching to existing deploy session: $SESSION"
+        exec tmux attach -t "$SESSION"
+    fi
+    tmux new-session -d -s "$SESSION"
+    tmux send-keys -t "$SESSION" "ssh nexus '${CMD}'" Enter
+    echo "deploy started on nexus -> ${HOST}"
+    echo "tmux: $SESSION"
+    echo "log:  $LOG"
+
+# Attach to an in-progress nexus deploy, or start it if missing.
+deploy-nexus-attach host:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    HOST="{{host}}"
+    SESSION="deploy-nexus-${HOST}"
+    if tmux has-session -t "$SESSION" 2>/dev/null; then
+        exec tmux attach -t "$SESSION"
+    fi
+    just deploy-nexus "$HOST"
+
+# Tail the deploy log without attaching.
+deploy-nexus-logs host:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    HOST="{{host}}"
+    LOG="/var/log/colmena-deploy-${HOST}.log"
+    if [ -f "$LOG" ]; then
+        tail -f "$LOG"
+    else
+        echo "no log yet: $LOG"
+        exit 1
+    fi
+
+# Stop an in-progress nexus deploy.
+deploy-nexus-stop host:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    HOST="{{host}}"
+    SESSION="deploy-nexus-${HOST}"
+    if tmux has-session -t "$SESSION" 2>/dev/null; then
+        tmux send-keys -t "$SESSION" C-c
+        sleep 1
+        tmux kill-session -t "$SESSION"
+        echo "stopped deploy session: $SESSION"
+    else
+        echo "no deploy session: $SESSION"
+    fi
+
+# Convenience shortcuts: deploy from nexus
+deploy-nexus-zephyr:
+    just deploy-nexus zephyr
+deploy-nexus-forge:
+    just deploy-nexus forge
+deploy-nexus-sentry:
+    just deploy-nexus sentry
+deploy-nexus-all:
+    just deploy-nexus all
 
 deploy-bg target="all":
     #!/usr/bin/env bash

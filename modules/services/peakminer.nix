@@ -93,10 +93,31 @@ in {
       default = [];
       description = "List of PeakMiner instances";
     };
+
+    exporterInstances = mkOption {
+      type = types.listOf (types.submodule {
+        options = {
+          instanceName = mkOption {
+            type = types.str;
+            description = "Miner instance name (matched to instances[].name)";
+          };
+          apiPort = mkOption {
+            type = types.port;
+            description = "PeakMiner API port to scrape";
+          };
+          exporterPort = mkOption {
+            type = types.port;
+            default = 9101;
+            description = "Prometheus metrics exporter listen port";
+          };
+        };
+      });
+      default = [];
+      description = "List of Prometheus exporter instances to generate";
+    };
   };
 
   config = mkIf cfg.enable {
-    # PeakMiner package v1.0.12
     nixpkgs.config.packageOverrides = pkgs: {
       peakminer = pkgs.callPackage ../pkgs/peakminer.nix {};
     };
@@ -165,8 +186,9 @@ in {
                 Type = "simple";
                 User = "root";
                 ExecStart = pkgs.writeShellScript proxyServiceName ''
-                  ${pkgs.nodejs}/bin/node ${pkgs.peakminer}/lib/stratum-proxy.js \
-                    --listen 127.0.0.1:${toString instance.proxyPort} \
+                  ${pkgs.peakminer}/bin/peakminer-proxy \
+                    --listen-host 127.0.0.1 \
+                    --listen-port ${toString instance.proxyPort} \
                     --target ${builtins.head instance.pools} \
                     --wallet ${instanceWallet} \
                     --worker ${instance.name}
@@ -177,7 +199,33 @@ in {
             };
           }) cfg.instances
         );
+
+        # Build Prometheus exporter service entries
+        exporterScript = pkgs.writeScript "peakminer-exporter.py" (builtins.readFile ../../pkgs/peakminer-exporter.py);
+        exporterServices = builtins.map (exp: let
+          serviceName = "peakminer-exporter-${exp.instanceName}";
+        in {
+          name = serviceName;
+          value = {
+            description = "PeakMiner Prometheus exporter - ${exp.instanceName}";
+            wantedBy = [ "multi-user.target" ];
+            after = [ "network-online.target" "peakminer-${exp.instanceName}.service" ];
+
+            serviceConfig = {
+              Type = "simple";
+              User = "root";
+              Environment = [
+                "PEAKMINER_API_PORT=${toString exp.apiPort}"
+                "EXPORTER_PORT=${toString exp.exporterPort}"
+                "WORKER_NAME=${exp.instanceName}"
+              ];
+              ExecStart = "${pkgs.python3}/bin/python3 ${exporterScript}";
+              Restart = "always";
+              RestartSec = 10;
+            };
+          };
+        }) cfg.exporterInstances;
       in
-      lib.listToAttrs (minerServices ++ proxyServices);
+      lib.listToAttrs (minerServices ++ proxyServices ++ exporterServices);
   };
 }

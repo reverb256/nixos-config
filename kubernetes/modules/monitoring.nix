@@ -321,6 +321,21 @@
               - '${hostIPs.nexus.ip}:9400'
               - '${hostIPs.forge.ip}:9400'
 
+      - job_name: 'peakminer'
+        scrape_interval: 15s
+        static_configs:
+          - targets:
+              - '${hostIPs.zephyr.ip}:9101'
+              - '${hostIPs.zephyr.ip}:9102'
+              - '${hostIPs.nexus.ip}:9101'
+              - '${hostIPs.forge.ip}:9101'
+              - '${hostIPs.forge.ip}:9102'
+        relabel_configs:
+          - source_labels: [__address__]
+            regex: '.*:(.*)'
+            target_label: instance
+            replacement: 'peakminer-$$1'
+
 
       - job_name: 'kube-state-metrics'
         kubernetes_sd_configs:
@@ -1032,9 +1047,9 @@ in {
     };
 
     # ── Grafana admin secret ──────────────────────────────────
-    # Populated by kubectl-apply-k8s-secrets from agenix:
-    #   admin-password ← /run/agenix/grafana-admin-password
-    # grafana-oidc-secret populated by kubectl-apply-k8s-secrets from agenix
+    # Populated by kubectl-apply-k8s-secrets from sops-nix:
+    #   admin-password ← /run/secrets/grafana-admin-password
+    # grafana-oidc-secret populated by kubectl-apply-k8s-secrets from sops-nix
     monitoring.Secret.grafana-oidc-secret = {
       type = "Opaque";
       stringData = {};
