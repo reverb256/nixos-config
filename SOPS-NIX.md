@@ -237,7 +237,20 @@ if you want to retire a key).
   correct form; the older `nix run 'nixpkgs#X' -c args...` is rejected
   by modern nix.
 
-- **Cluster-wide loss.** The orphan files (0/135 decrypt today) encode
+- **> **WARNING (high): rotation REPLACES the recipient set, not
+> extends it.** Applying
+> `sops --config /etc/nixos/.sops.yaml --encrypt --in-place`
+> re-encrypts under `.sops.yaml` `creation_rules`, which lists ONLY
+> zephyr's pubkey. The resulting file has ONLY zephyr as a recipient
+> — every other host that could decrypt the previous envelope (up to 76
+> historical recipients) loses decryption access on rotation.
+> **Coordinate with all peer hosts (forge, nexus, sentry, krash3, and
+> any external operator) before running rotation en masse**, or peer
+> hosts will silently stop decrypting on their next `nixos-rebuild`.
+> See also the WARNING block at the top of the `sops 3.13.1 updatekeys
+> syntax` appendix.
+
+Cluster-wide loss.** The orphan files (0/135 decrypt today) encode
   76 unique recipient X25519 tags (from prior audit). If the matching
   private keys are gone, those secrets are unrecoverable. Rotate
   everything: re-collect each secret from its owner/operator, store as
