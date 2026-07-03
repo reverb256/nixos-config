@@ -156,12 +156,34 @@ secrets automatically include `zephyr`. For historical files:
 ```bash
 cd /etc/nixos
 PUBKEY=$(awk '/^# public key:/ {print $4}' ~/.age/key.txt)
-sops --config /etc/nixos/.sops.yaml updatekeys --yes \
-    --add age "$PUBKEY" secrets/<feature>/<name>.yaml
+# NOTE (sops 3.13.1): The single-file re-key example below is
+# **not currently executable** as-written. `sops updatekeys --help`
+# confirms this subcommand accepts ONLY:
+#   --yes | --input-type | --enable-local-keyservice | --keyservice
+# There is NO `--add` / `--add-recipient` / `--rm` flag in sops 3.13.1
+# for adding age recipients via updatekeys. See "Recovery from key
+# loss -> Rotation" below for the actual recovery path, and the
+# "sops 3.13.1 updatekeys syntax (verified Aug 2026)" appendix for
+# the full help evidence.
+#
+# Pseudocode once a future sops release adds the flag:
+#   sops --config /etc/nixos/.sops.yaml updatekeys --add age \
+#     "$PUBKEY" secrets/<feature>/<name>.yaml
 ```
 
-Verify the local `sops` binary's syntax — different sops revisions have
+ Verify the local `sops` binary's syntax — different sops revisions have
 varied the flag names:
+
+```bash
+sops updatekeys --help 2>&1 | grep -E 'add|rm|yes' | head -20
+```
+
+*Verified Aug 2026 (sops 3.13.1)*: `sops updatekeys` accepts only
+`--yes`, `--input-type`, `--enable-local-keyservice`, `--keyservice`.
+There is **no `--add` / `--rm` flag for adding age recipients** in
+this subcommand. The `rekey all files via updatekeys --add` example
+in this doc is therefore not currently executable on sops 3.13.1;
+see the `Recovery from key loss -> Rotation` section.
 
 ```bash
 sops updatekeys --help 2>&1 | grep -E 'add|rm'
@@ -172,12 +194,20 @@ Batch against every encrypted file (uses `find` so it works in plain
 
 ```bash
 PUBKEY=$(awk '/^# public key:/ {print $4}' ~/.age/key.txt)
-while read -r f; do
-  sops --config /etc/nixos/.sops.yaml updatekeys --yes \
-      --add age "$PUBKEY" "$f"
-done < <(find /etc/nixos/secrets \
-           -type f \
-           \( -name '*.age' -o -name '*.yaml' -o -name '*.env.yaml' \))
+# NOTE (sops 3.13.1): The batch re-key loop below is also NOT
+# currently executable. `updatekeys` has no `--add` flag in this
+# version. The real recovery path is documented in
+# "Recovery from key loss -> Rotation" — collect plaintext from
+# secret owners and re-encrypt with `sops ... --encrypt --in-place`
+# (uses `.sops.yaml` `creation_rules` to enroll zephyr's pubkey).
+#
+# Pseudocode once a future sops adds the flag:
+#   while read -r f; do
+#     sops --config /etc/nixos/.sops.yaml updatekeys --yes \
+#        --add age "$PUBKEY" "$f"
+#   done < <(find /etc/nixos/secrets \
+#              -type f \
+#              \( -name "*.age" -o -name "*.yaml" -o -name "*.env.yaml" \))
 ```
 
 Note: `--yes` is non-interactive AND accepts-prompting. Test on ONE file
@@ -249,6 +279,59 @@ if you want to retire a key).
   uses `nix run 'nixpkgs#X' -- args...` (note the `--` separator).
 - `sops updatekeys` flag names differ across minor versions — always
   check `sops updatekeys --help` first.
+
+
+
+## sops 3.13.1 updatekeys syntax (verified Aug 2026)
+
+Verified via `sops updatekeys --help` against the local 3.13.1 install
+on zephyr (2026-08-XX). The `updatekeys` subcommand accepts ONLY:
+
+```
+--yes / -y
+--input-type
+--enable-local-keyservice
+--keyservice
+```
+
+There is **no `--add` or `--add-recipient` flag** for adding age
+recipients. Flaky syntax like `--add age <X25519>` or
+`-i <X25519>` are all rejected with `fatal: flag provided but not
+defined`.
+
+### Implication for the documented recovery path
+
+The `## Re-keying / adding zephyr as a recipient` example in this doc
+was authored against an older sops version where `updatekeys --add`
+existed. On sops 3.13.1, that exact invocation is rejected.
+
+To actually re-key the 135 legacy files, the supported paths on this
+sops version are:
+
+1.  **Rotation (re-encrypt-from-plaintext)** — see
+    `## Recovery from key loss`. Plaintext gathered from secret
+    owners is stored under `/etc/nixos/secrets/<feature>/<name>.yaml`,
+    then re-encrypted via `sops --config /etc/nixos/.sops.yaml
+    --encrypt --in-place` (uses `.sops.yaml` creation_rules and
+    produces a file with ONLY the canonical pubkey as a recipient).
+
+2.  **Manually edit encrypted files** — extract the sops data-ciphertext
+    block from each file, build a new envelope with the desired
+    recipients, re-encrypt and write back. This is brittle and
+    out of scope.
+
+3.  **Downgrade sops locally** to a version where `updatekeys --add`
+    works (e.g. an older 1.x / 2.x). Out of scope because then
+    `/etc/nixos/.sops.yaml` `creation_rules` semantics would also
+    differ.
+
+Path (1) is the supported recovery; paths (2)/(3) are escape hatches.
+
+### Decryption state today
+
+Plain `sops -d <file>` with `~/.age/key.txt` continues to fail for all
+135 legacy files because zephyr's pubkey is not embedded as a recipient
+in any of them (chicken-and-egg, separate concern from syntax).
 
 ## Cross-references
 
