@@ -201,7 +201,8 @@ PUBKEY=$(awk '/^# public key:/ {print $4}' ~/.age/key.txt)
 # secret owners and re-encrypt with `sops ... --encrypt --in-place`
 # (uses `.sops.yaml` `creation_rules` to enroll zephyr's pubkey).
 #
-# Pseudocode once a future sops adds the flag:
+# Pseudocode (kept for reference; `--add`/`--rm` has been
+absent from `sops updatekeys` for the duration of sops 3.x):
 #   while read -r f; do
 #     sops --config /etc/nixos/.sops.yaml updatekeys --yes \
 #        --add age "$PUBKEY" "$f"
@@ -241,7 +242,11 @@ if you want to retire a key).
   private keys are gone, those secrets are unrecoverable. Rotate
   everything: re-collect each secret from its owner/operator, store as
   plaintext under `/etc/nixos/secrets/<feature>/<name>.yaml`, and
-  re-encrypt with the canonical pubkey.
+  re-encrypt via `sops --config /etc/nixos/.sops.yaml
+--encrypt --in-place`. The resulting file has ONLY zephyr as a
+recipient (per `.sops.yaml` `creation_rules`) — coordinate with
+all peer hosts before running, see WARNING in the
+`sops 3.13.1 updatekeys syntax` appendix.
 
 - **zephyr-specific.** Because `config.sops.secrets = null/[]` here
   today, **no** current `nixos-rebuild switch` will attempt to decrypt
@@ -298,6 +303,21 @@ There is **no `--add` or `--add-recipient` flag** for adding age
 recipients. Flaky syntax like `--add age <X25519>` or
 `-i <X25519>` are all rejected with `fatal: flag provided but not
 defined`.
+
+> **WARNING — rotation vs addition.** The "Rotation" recovery path
+> documented elsewhere in this doc uses
+> `sops --config /etc/nixos/.sops.yaml --encrypt --in-place`. This
+> applies the **`.sops.yaml` `creation_rules`**, which lists ONLY the
+> cluster_age (= zephyr's pubkey). The resulting file has ONLY zephyr
+> as a recipient — every previously-encrypted file was created with
+> up to 76 distinct historical recipients, and they will all lose
+> decryption access on rotation. **Coordinate with all peer hosts**
+> (forge, nexus, sentry, krash3, and any external operator) **before
+> running rotation en masse**, or peer hosts will silently stop
+> decrypting on their next `nixos-rebuild`. The semantics here are
+> fundamentally different from `--add`, which (in older sops
+> versions) was additive; `--encrypt --in-place` is a **replacement
+> of the recipient set**, not an addition.
 
 ### Implication for the documented recovery path
 
