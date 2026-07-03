@@ -389,4 +389,14 @@ in {
       pkgs.source-han-sans
       pkgs.source-han-serif
     ];
-  };}
+  };
+
+  # Auditd — track age key file access
+  security.audit = {
+    enable = true;
+    rules = [
+      "-w /etc/nixos/.age/key.txt -p rwa -k sops-key-access"
+      "-w /etc/nixos/.age/krash3-key.txt -p rwa -k sops-key-access"
+    ];
+  };
+}
