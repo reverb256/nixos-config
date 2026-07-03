@@ -26,6 +26,9 @@ in {
     ../../modules/default.nix
 
     ../../modules/hardware/rgb-control.nix
+
+    # Noctalia desktop compositor (niri shell, iced/winit/Smithay deps)
+    inputs.noctalia.nixosModules.default
   ];
 
   # Enable Hermes Agent hardening
