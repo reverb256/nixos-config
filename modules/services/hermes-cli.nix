@@ -512,8 +512,23 @@ in {
               done
             ''}
 
-            # Build mcp_servers block with injected API key
-            ZAI_KEY="$(if [ -n "${cfg.apiKeyFile}" ]; then cat "${cfg.apiKeyFile}" 2>/dev/null; else echo missing; fi)"
+            # Build mcp_servers block with injected API key.
+            # 2026-07-03: explicitly check that the path resolves to a real file
+            # before running cat. Two failure modes we tolerate:
+            #   1) cfg.apiKeyFile == null (option unset) → empty ZAI_KEY.
+            #   2) cfg.apiKeyFile set but sops-nix didn't provision the file
+            #      on this host → also empty ZAI_KEY.
+            # Empty (rather than the literal string "missing") so the `sed`
+            # below substitutes `__ZAI_API_KEY__` with "" — downstream
+            # MCP consumers treat an empty bearer as "no auth provided",
+            # which is the truthful signal here. The literal "missing"
+            # would have rendered as the bearer token, causing
+            # confusing client-side 401s instead of a clean absence.
+            # The other half of the original bug is `set -euo pipefail`:
+            # `cat` on a missing file returns 1, command substitution
+            # surfaces that, and the script aborts — which is the
+            # 30 s then status=1/FAILURE pattern.
+            ZAI_KEY="$(if [ -n "${cfg.apiKeyFile}" ] && [ -e "${cfg.apiKeyFile}" ]; then cat "${cfg.apiKeyFile}" 2>/dev/null; else echo; fi)"
             MCP_TMP=$(mktemp /tmp/hermes-mcp-XXXXXX.yaml)
             sed "s/__ZAI_API_KEY__/$ZAI_KEY/g" ${mcpServersBlock} > "$MCP_TMP"
 

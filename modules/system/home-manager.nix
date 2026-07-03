@@ -14,9 +14,10 @@ in
 
     useUserPackages = true;
 
-    # Use a unique backup extension that won't collide with previous backups
-    # This prevents the "existing backup would be clobbered" error
-    backupFileExtension = "hm-backup";
+    # Use a unique backup extension that won't collide with previous backups.
+    # Resolves "existing backup would be clobbered" failures on .hm-backup from
+    # earlier failed HM activations (alacritty.toml, starship.toml, gtk.css).
+    backupFileExtension = "v3-fix";
 
     extraSpecialArgs = {
       inherit inputs;
@@ -95,9 +96,14 @@ in
 
       # Remove stale HM backup files before activation to prevent clobber errors
       home.activation.removeStaleBackups = ''
-        rm -f "$HOME/.config/alacritty/alacritty.toml.hm-backup"
-        rm -f "$HOME/.config/starship.toml.hm-backup"
-        rm -f "$HOME/.config/fish/config.fish.hm-backup"
+        # Old extension (gone on next activation) and new extension (until clean state)
+        for ext in hm-backup v3-fix; do
+          rm -f "$HOME/.config/alacritty/alacritty.toml.$ext"
+          rm -f "$HOME/.config/starship.toml.$ext"
+          rm -f "$HOME/.config/fish/config.fish.$ext"
+          rm -f "$HOME/.config/gtk-3.0/gtk.css.$ext"
+          rm -f "$HOME/.config/gtk-4.0/gtk.css.$ext"
+        done
       '';
 
       # Auto-migrate Alacritty config after activation (removes deprecation warnings)
