@@ -16,7 +16,4 @@ in {
     tokenFile = "/run/secrets/k3s-cluster-token";
     nodeIP = config.networking.cluster.hosts.krash3.ip;
   };
-
-  gaming-detection.enable = lib.mkForce false;
-  gaming-detection.checkInterval = 10;
 }
