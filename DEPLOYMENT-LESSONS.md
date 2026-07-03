@@ -28,7 +28,7 @@ Never use `switch-to-configuration boot` — it only writes the boot entry witho
 1. `readlink /nix/var/nix/profiles/system` — should be generation > 1
 2. `systemctl list-units --state=failed` — should be 0 or known-minor only
 3. `sudo bootctl list | grep -c recovery` — should have recovery specialisation
-4. `ls /run/agenix/` — should have secrets decrypted
+4. `ls /run/secrets/` — should have sops-nix secrets decrypted
 5. `systemd-analyze time` — userspace should be < 1 minute
 
 ## Cross-Host Config Contamination

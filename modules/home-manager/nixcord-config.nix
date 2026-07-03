@@ -17,11 +17,11 @@
           minimizeToTray = true;
           tray = true;
           trayIcon = true;
-          openHidden = true;
+          openHidden = false;
           arRPC = true;
           splashColor = "rgb(220, 220, 223)";
           splashBackground = "rgb(17, 28, 24)";
-          autoStartMinimized = true;
+          autoStartMinimized = false;
           hardwareVideoAcceleration = true;
           hardwareAcceleration = true;
           customTitleBar = false;

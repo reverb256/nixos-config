@@ -156,7 +156,7 @@ in {
         metadata.labels = managed;
         type = "Opaque";
         stringData = {
-          # TODO: Fill from agenix key `tailscale-oauth` (see modules/system/agenix-secrets-registry.nix)
+          # TODO: Fill from sops-nix key (see modules/system/sops-secrets-registry.nix)
           client_id = "";
           client_secret = "";
         };

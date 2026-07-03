@@ -385,7 +385,7 @@ Safe to clean up. The `casdoor-app-sync` systemd service (in `k8s-secret-bootstr
 cluster-mesh service account
 ├── User: cluster-mesh (system user, no shell)
 ├── Group: cluster-mesh
-├── SSH key: cns-ssh-key (agenix, owned cluster-mesh:cluster-mesh 0600)
+├── SSH key: cns-ssh-key (sops-nix, owned cluster-mesh:cluster-mesh 0600)
 ├── Key location: /var/lib/cluster-mesh/.ssh/id_ed25519
 └── Authorized keys: Restricted via command=
 ```
@@ -412,7 +412,7 @@ Module: `modules/security/cluster-mesh.nix`
 
 1. **Agenix Secret:** `secrets/cns-ssh-key.age`
 2. **Owner:** `cluster-mesh:cluster-mesh 0600`
-3. **Copy Service:** `cluster-mesh-key-setup.service` copies from `/run/agenix/cns-ssh-key` → `/var/lib/cluster-mesh/.ssh/id_ed25519`
+3. **Copy Service:** `cluster-mesh-key-setup.service` copies from `/run/secrets/cns-ssh-key` → `/var/lib/cluster-mesh/.ssh/id_ed25519`
 4. **Deployment:** Auto-applied on all hosts via module auto-discovery
 
 ### Usage Pattern
@@ -477,7 +477,7 @@ Auth is handled exclusively by Caddy `forward_auth` -> local `central-auth` (oau
 Grafana runs **only as K8s** (`monitoring` namespace, sentry, NodePort 32102).
 The NixOS `services.monitoring.grafana` module (`modules/services/monitoring/grafana-v2.nix`) is **disabled on all hosts** — it's dead code.
 Grafana OAuth uses Casdoor via `GF_AUTH_GENERIC_OAUTH` env vars + Caddy `forward_auth` as a second layer.
-Secrets populated by `kubectl-apply-k8s-secrets` from agenix (`monitoring/grafana-oidc-secret`, `monitoring/grafana-admin-secret`).
+Secrets populated by sops-nix (`monitoring/grafana-oidc-secret`, `monitoring/grafana-admin-secret`).
 
 ## ⚠️ CRITICAL: /data/projects/own/ Flake Inputs
 
@@ -656,7 +656,7 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 | 6 | **Nix Module Boilerplate** | No | `services.*` namespace, `mkEnableOption`, `mkIf cfg.enable`, register in `modules/default.nix`, `git add` new files. |
 | 7 | **Lib Helpers** | No | `lib.getExe` for ExecStart, `writeShellScript` for multi-line scripts, `makeBinPath` for PATH, `pipe` for transforms. |
 | 8 | **Network Policies** | No | `default-deny-all` per namespace + `allow-dns` egress + specific allow policies. |
-| 9 | **Agenix Secrets** | No | `/run/agenix/<name>` paths, `config.age.secrets.*.path` references, never hardcode secrets. |
+| 9 | **sops-nix Secrets** | No | `/run/secrets/<name>` paths, never hardcode secrets. |
 | 10 | **Systemd Services** | No | `wantedBy = ["multi-user.target"]`, `Restart = "on-failure"`, `writeShellScript` over `bash -c`. |
 | 11 | **Pod Security Standards** | No | PSS labels: `enforce=baseline`, `audit=restricted`, `warn=restricted` on all namespaces. |
 | 12 | **Managed-By Labels** | No | `"app.kubernetes.io/managed-by" = "easykubenix"` on all K8s resources. |
@@ -708,7 +708,7 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 ---
 
 **Version**: 9.2 | **Last Updated:** 2026-05-23
-**Changes**: Updated from 2026-05-16 to 2026-05-23. Fresh commit ref. Added cluster-mesh SSH key ownership fix (agenix-secrets-registry). Added cns-watcher bash syntax fixes. Added SRI hash format fix for k3s-cluster. Stale plan docs flagged per Pocock Rule. INDEX.md reality-check refreshed.
+**Changes**: Updated from 2026-05-16 to 2026-06-02. Full agenix→sops-nix migration complete. Stale plan docs flagged per Pocock Rule. INDEX.md reality-check refreshed.
 
 ## Known Frictions & Workarounds (2026-05-18)
 
@@ -792,8 +792,8 @@ ssh j_kro@<ip> "systemctl list-units --state=failed"
 # 3. Verify recovery specialisation exists in boot menu
 ssh j_kro@<ip> "sudo bootctl list | grep recovery"
 
-# 4. Check agenix secrets are decrypted
-ssh j_kro@<ip> "ls /run/agenix/"
+# 4. Check sops-nix secrets are decrypted
+ssh j_kro@<ip> "ls /run/secrets/"
 
 # 5. Boot performance
 ssh j_kro@<ip> "systemd-analyze time"

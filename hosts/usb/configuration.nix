@@ -186,6 +186,7 @@ in {
     inputs.niri.nixosModules.niri
     inputs.home-manager.nixosModules.home-manager
     inputs.stylix.nixosModules.stylix
+    inputs.noctalia.nixosModules.default
   ];
 
   # ISO Settings
@@ -434,8 +435,7 @@ in {
       # Browser
       firefox
 
-      # Desktop
-      noctalia-shell
+      # Desktop — noctalia v5 installed via wayland-compositor-common.nix
 
       # Rescue script
       rescue-script

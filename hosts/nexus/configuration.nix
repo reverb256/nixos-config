@@ -17,6 +17,7 @@
       ./nfs-allow.nix
 
       ./ai-inference.nix
+      ./peakminer.nix
 
       ../../modules/default.nix
 

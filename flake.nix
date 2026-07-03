@@ -81,7 +81,9 @@
       url = "path:/etc/nixos/lib/preservation";
     };
     niri = {
-      url = "github:sodiboo/niri-flake/b5f81cf03d90bcf2efd20d12fe933a0790b4722b";
+      # Pinned to commit that exports lib.niri.actions with spawn/spawn-sh/focus-window-previous
+      # (replaces b5f81cf03… which lacked focus-window-previous and broke niri-config binds).
+      url = "github:sodiboo/niri-flake/c11048188f434263cf5c207ddef453984d1e02ba";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     llm-agents = {
@@ -94,7 +96,7 @@
     };
 
     stylix = {
-      url = "github:nix-community/stylix/c1456cc4ba3c9485e7b4158c909eeca5a752cd59";
+      url = "github:nix-community/stylix/8bca95e381f44aea7f1bd98dd10ee0ca7b26e8c1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -263,6 +265,7 @@
           inputs.home-manager.nixosModules.home-manager
           inputs.hermes-agent.nixosModules.default
           inputs.stylix.nixosModules.default
+          inputs.noctalia.nixosModules.default
           ./modules/system/distributed-builds.nix
           ./modules/system/ssh-ca.nix
           ./modules/default.nix
