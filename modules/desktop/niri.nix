@@ -26,15 +26,12 @@ in {
   config = mkMerge [
     {programs.niri.enable = lib.mkOptionDefault false;}
     (mkIf niriEnabled {
-      programs.niri.package = lib.mkForce (
-        inputs.niri.packages.${pkgs.stdenv.hostPlatform.system}.niri-unstable.overrideAttrs (old: {
-          patches =
-            (old.patches or [])
-            ++ [
-              ./patches/niri-hdr-sdr-brightness.patch
-            ];
-        })
-      );
+      # niri 26.4 removed MaxBpc (the variant our HDR-SDR patch was designed around).
+      # The upstream patch no longer applies. Re-add the patch when upstream adds the
+      # SdrBrightness variant upstream. See modules/desktop/patches/README.md (TODO).
+      programs.niri.package =
+        lib.mkForce
+        inputs.niri.packages.${pkgs.stdenv.hostPlatform.system}.niri-unstable;
     })
     (mkIf niriEnabled (
       lib.mkMerge [
