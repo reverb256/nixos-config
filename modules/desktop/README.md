@@ -10,14 +10,13 @@ HDR support, and application integration across the cluster.
 | `desktop.nix` | Plasma 6 Wayland with XWayland fallback, monitor auto-setup | All desktop hosts |
 | `plasma6.nix` | KDE Plasma 6 environment, kscreen monitor setup | All desktop hosts |
 | `wayland-common.nix` | Shared PipeWire, Bluetooth, libinput, dbus-broker | All desktop hosts |
-| `wayland-compositor-common.nix` | Shared compositor packages (noctalia-shell, cliphist) | Niri/Hyprland hosts |
+| `wayland-compositor-common.nix` | Shared compositor packages (noctalia, cliphist) | Niri/Hyprland hosts |
 | `uwsm-sessions.nix` | UWSM session wrapper for SDDM compositor selection | Niri/Hyprland hosts |
 | `niri.nix` | Niri scroll-tiling compositor config, NVIDIA support | Zephyr, Forge |
 | `niri-settings.nix` | Niri KConfig-based settings (keybinds, layout) | Niri hosts |
 | `gamescope-tty.nix` | Steam Gamescope session on tty3 for dedicated gaming | Nexus |
 | `flatpak.nix` | Flatpak with Discover integration and Flathub | Zephyr |
 | `spotify-spotx.nix` | Spotify Flatpak with SpotX ad-removal patch | Zephyr, Forge, Sentry |
-| `noctalia-sdr-brightness.nix` | Patch noctalia-shell for SDR brightness on HDMI TV | Zephyr |
 | `systems-intelligence-plasmoid.nix` | Cluster monitoring Plasma widget | Zephyr |
 
 ## Compositor Selection
@@ -38,9 +37,9 @@ SDDM (display manager)
 ├── Plasma 6 (default on Zephyr)
 │   └── KWin (Wayland compositor)
 ├── Niri (scroll-tiling, via UWSM)
-│   └── noctalia-shell (bar, notifications, launcher)
+│   └── noctalia (bar, notifications, launcher)
 ├── Hyprland (tiling, via UWSM)
-│   └── noctalia-shell (same package, different backend)
+│   └── noctalia (same binary, different backend)
 └── Gamescope (tty3, dedicated gaming on Nexus)
 ```
 
@@ -66,9 +65,11 @@ enabled on Zephyr (connected to 4K HDR TV). Requires:
 - Automatic updates (configurable via `autoUpdate`)
 - Used for Spotify (with SpotX patch) and other GUI apps
 
-## Noctalia Shell
+## Noctalia v5
 
-The `noctalia-shell` package is a unified desktop shell that auto-detects
-the running compositor (Niri or Hyprland) at runtime via environment
-variables (`NIRI_SOCKET`). Shared packages
-are installed by `wayland-compositor-common.nix` to avoid duplication.
+Noctalia v5 is a native C++ Wayland shell (bar, notifications, launcher,
+control center, session lock) that replaces the Qt/QML v4 `noctalia-shell`.
+It is installed via the upstream NixOS module (`programs.noctalia.enable`)
+and launched via `uwsm app -s s -- noctalia` from niri's spawn-at-startup
+list. The binary is added to `environment.systemPackages` by
+`wayland-compositor-common.nix`. Configuration uses TOML (not v4 JSON).

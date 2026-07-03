@@ -226,35 +226,20 @@
   clusterServers = lib.filterAttrs (_: s: s.scope == "cluster") allServers;
 
   # ── C2: Generate Claude Code settings.json mcpServers ───────────────────
+  # Use builtins.toJSON for proper JSON escaping (control chars, quotes, etc.)
   mkClaudeCodeMcpServers = servers:
-    lib.concatStringsSep ",\n    " (
-      lib.mapAttrsToList (
-        name: server: let
-          argsStr =
-            if (builtins.hasAttr "args" server) && (server.args != [])
-            then ''"args": [${lib.concatStringsSep ", " (map (a: ''"${a}"'') server.args)}]"''
-            else null;
-          envStr =
-            if (builtins.hasAttr "env" server) && (server.env != {})
-            then ''"env": {${lib.concatStringsSep ", " (lib.mapAttrsToList (k: v: ''"${k}": "${v}"'') server.env)}}''
-            else null;
-          finalFields = lib.filter (s: s != null) [
-            ''"command": "${server.command}"''
-            argsStr
-            envStr
-          ];
-        in ''"${name}": { ${lib.concatStringsSep ", " finalFields} }''
-      )
-      servers
-    );
+    builtins.toJSON {
+      mcpServers = lib.mapAttrs (
+        name: server: lib.filterAttrs (_: v: v != null && v != []) {
+          command = server.command or null;
+          args = if builtins.hasAttr "args" server then server.args else null;
+          env = if builtins.hasAttr "env" server then server.env else null;
+        }
+      ) servers;
+    };
 
-  claudeCodeJson = pkgs.writeText "claude-code-mcp-servers.json" ''
-    {
-      "mcpServers": {
-        ${mkClaudeCodeMcpServers stdioServers}
-      }
-    }
-  '';
+  claudeCodeJson = pkgs.writeText "claude-code-mcp-servers.json"
+    (mkClaudeCodeMcpServers stdioServers);
 
   # ── C3: Generate Hermes config.yaml mcp_servers ─────────────────────────
   mkHermesMcpServers = servers: let
@@ -395,19 +380,22 @@ in {
 
         mkdir -p "/home/${cfg.claudeCodeUser}/.claude"
 
-        # Generate mcpServers block from registry (wrapped in {} for valid JSON)
-        MCP_BLOCK='{${mkClaudeCodeMcpServers stdioServers}}'
+        # Use the prebaked JSON file in the Nix store rather than embedding JSON
+        # into a bash command line. The store path is a single literal token,
+        # so there's no shell-quoting risk even if entries contain double
+        # quotes, backslashes, newlines, or shell metacharacters.
+        CLAUDE_CODE_MCP_JSON="${claudeCodeJson}"
 
         if [ -f "$CLAUDE_CONFIG" ]; then
-          # Merge mcpServers into existing settings.json
-          ${pkgs.jq}/bin/jq '.mcpServers |= (.mcpServers // {}) + $mcp' --argjson mcp "$MCP_BLOCK" "$CLAUDE_CONFIG" > "$CLAUDE_CONFIG.tmp" && mv "$CLAUDE_CONFIG.tmp" "$CLAUDE_CONFIG"
+          # Merge mcpServers into existing settings.json.
+          # --slurpfile loads the file as an array; [0] picks the JSON object.
+          ${pkgs.jq}/bin/jq \
+            '.mcpServers |= (.mcpServers // {}) + $mcp[0].mcpServers' \
+            --slurpfile mcp "$CLAUDE_CODE_MCP_JSON" \
+            "$CLAUDE_CONFIG" > "$CLAUDE_CONFIG.tmp" && mv "$CLAUDE_CONFIG.tmp" "$CLAUDE_CONFIG"
         else
-          # Create new settings.json with mcpServers
-          echo "{
-            \"mcpServers\": {
-              $MCP_BLOCK
-            }
-          }" | ${pkgs.jq} '.' > "$CLAUDE_CONFIG"
+          # No prior config — copy the Nix-managed JSON verbatim.
+          cp "$CLAUDE_CODE_MCP_JSON" "$CLAUDE_CONFIG"
         fi
 
         chown ${cfg.claudeCodeUser}:users "$CLAUDE_CONFIG" 2>/dev/null || true

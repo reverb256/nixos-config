@@ -15,6 +15,7 @@
     ./services.nix
     ./disko.nix
     ./preservation.nix
+    ./peakminer.nix
 
     ../../modules/default.nix
     ../../modules/hardware/rgb-control.nix

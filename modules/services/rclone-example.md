@@ -28,7 +28,7 @@ The `rclone-sync` module provides declarative rclone configuration with support 
         provider = "Other";
         endpoint = "http://10.1.1.110:3900";
         accessKeyId = "GKac91d924fc76a30b9bcf6c3e";
-        secretAccessKey = "your-secret-key";  # Use agenix!
+        secretAccessKey = "your-secret-key";  # Use sops-nix!
         region = "garage";
       };
     };
@@ -36,7 +36,7 @@ The `rclone-sync` module provides declarative rclone configuration with support 
 }
 ```
 
-### With Agenix Secret (Recommended)
+### With sops-nix Secret (Recommended)
 
 ```nix
 # hosts/zephyr/configuration.nix
@@ -50,22 +50,22 @@ The `rclone-sync` module provides declarative rclone configuration with support 
         provider = "Other";
         endpoint = "http://10.1.1.110:3900";
         accessKeyId = "GKac91d924fc76a30b9bcf6c3e";
-        secretAccessKey = "";  # Set via agenix!
+        secretAccessKey = "";  # Set via sops-nix!
         region = "garage";
       };
     };
   };
 
-  # Agenix secret for Garage S3 key
-  age.secrets.garage-s3-key = {
-    file = "${inputs.self}/secrets/garage-s3-key.age";
-    mode = "440";
+  # sops-nix secret for Garage S3 key
+  sops.secrets.garage-s3-key = {
+    sopsFile = "\${inputs.self}/secrets/storage/garage-s3-key.yaml";
+    mode = "0440";
     owner = "root";
   };
 
   # Pass secret to rclone (via systemd service environment)
   systemd.services.rclone-garage-backup.serviceConfig.EnvironmentFile =
-    "/run/agenix/garage-s3-key";
+    "/run/secrets/garage-s3-key";
 }
 ```
 
@@ -230,7 +230,7 @@ systemctl disable rclone-garage-to-onedrive.timer
 
 ## Security Best Practices
 
-1. **Always use agenix for secrets:** Never hardcode passwords/tokens
+1. **Always use sops-nix for secrets:** Never hardcode passwords/tokens
 2. **Start with dry-run:** Test sync jobs before enabling
 3. **Use specific remotes:** Don't sync entire filesystems
 4. **Set appropriate schedules:** Avoid peak hours for large transfers
@@ -276,8 +276,8 @@ If you have an existing `~/.config/rclone/rclone.conf`:
 # View current config
 cat ~/.config/rclone/rclone.conf
 
-# Copy secrets to agenix
-agenix -e secrets/rclone-garage.age
+# Create sops-nix secret
+sops secrets/storage/rclone-garage.yaml
 
 # Update NixOS config to use declarative format
 # Deploy: just deploy

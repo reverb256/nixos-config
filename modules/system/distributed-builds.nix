@@ -7,10 +7,10 @@
   currentHost = config.networking.hostName or "unknown";
 in {
   nix = {
-    distributedBuilds = lib.mkDefault (currentHost != "zephyr");
+    distributedBuilds = lib.mkDefault true;
 
     settings = {
-      builders = lib.mkIf (currentHost != "zephyr") (lib.mkDefault "@/etc/nix/machines");
+      builders = lib.mkDefault "@/etc/nix/machines";
       builders-use-substitutes = true;
       require-sigs = lib.mkForce false;
       trusted-users = lib.mkForce [
@@ -22,7 +22,7 @@ in {
       substituters = lib.mkForce (
         if currentHost == "zephyr"
         then [
-          "http://10.1.1.120:50000"
+          "http://10.1.1.120:50000?priority=40&want-mass-query=true"
           "https://cache.nixos.org"
           "https://nix-community.cachix.org"
           "https://cache.garnix.io"
@@ -32,7 +32,7 @@ in {
           "https://nix-gaming.cachix.org"
         ]
         else [
-          "http://10.1.1.120:50000"
+          "http://10.1.1.120:50000?priority=40&want-mass-query=true"
           "https://cache.nixos.org"
           "https://nix-community.cachix.org"
           "https://cache.garnix.io"
@@ -81,7 +81,7 @@ in {
 
       max-jobs = lib.mkForce (
         if currentHost == "zephyr"
-        then 0 # pure dispatcher — no local builds
+        then 2 # dispatcher — 2 local fallback slots if remote builders are down
         else if currentHost == "nexus"
         then 12 # primary builder — 12C/24T, binary cache host
         else if currentHost == "sentry"
@@ -124,18 +124,21 @@ in {
   programs.ssh.startAgent = true;
 
   systemd.services.copy-build-ssh-key = {
-    description = "Copy SSH key for distributed builds";
+    description = "Ensure SSH key exists for distributed builds";
     wantedBy = ["multi-user.target"];
     after = ["local-fs.target"];
-    before = ["nix-daemon.service"];
     serviceConfig.Type = "oneshot";
     serviceConfig.RemainAfterExit = true;
     script = ''
+      # Non-fatal: warn on missing key but do NOT block nix-daemon.
+      # Missing key = remote builds unavailable, local builds (maxJobs) still work.
       if [ ! -f /home/j_kro/.ssh/id_ed25519 ]; then
-        echo "copy-build-ssh-key: No SSH key at ~/.ssh/id_ed25519 — remote builds unavailable"
+        echo "copy-build-ssh-key: WARN — No SSH key at ~/.ssh/id_ed25519; remote builds disabled" >&2
+      else
+        chmod 600 /home/j_kro/.ssh/id_ed25519
+        echo "copy-build-ssh-key: SSH key verified"
       fi
     '';
-
   };
 
   environment = {
@@ -149,7 +152,7 @@ in {
           ConnectTimeout 30
       '';
 
-      "nix/machines" = lib.mkIf (currentHost != "zephyr") {
+      "nix/machines" = {
         text = let
           allMachines = [
             {

@@ -61,7 +61,7 @@
     cuda_nvcc
   ]);
   cudaBuildInputs = lib.optionals cudaSupport (with cudaPackages; [
-    cuda_cccl
+    cccl
     cuda_cudart
     libcublas
   ]);

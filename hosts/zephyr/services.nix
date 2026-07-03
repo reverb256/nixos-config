@@ -347,6 +347,11 @@ in {
           base_url = "https://integrate.api.nvidia.com/v1";
           discover_models = true;
         };
+        "llama-cpp-sentry" = {
+          base_url = "http://llama-server-sentry.ai-inference.svc.cluster.local:1235/v1";
+          api_key = "unused";
+          model = "Qwen3.5-4B-Q4_K_M.gguf";
+        };
       };
       managedFallbackProviders = [
         "opencode-zen"
@@ -354,6 +359,12 @@ in {
         "zai"
         "nvidia"
       ];
+      # managedMoA = import ../../modules/services/hermes-moa.nix;
+      # v4 integration NOT YET MIGRATED — `services.hermes-cli.managedMoA`
+      # option does not exist in v5. hermes-moa.nix contains the declarative
+      # MoA routing config; a proper `managedMoA` option needs to be added
+      # to modules/services/hermes-cli.nix and wired to a Nix-managed YAML
+      # emitter (similar to the existing managedProviders/managedConfig).
     };
   };
   programs = {
@@ -416,6 +427,10 @@ in {
         service = "http://localhost:31283";
       }
       {
+        hostname = "quill.maplespike.ca";
+        service = "http://localhost:31745";
+      }
+      {
         hostname = "mcp.maplespike.ca";
         service = "http://localhost:31745";
       }
@@ -425,7 +440,7 @@ in {
       }
       {
         hostname = "data.maplespike.ca";
-        service = "http://localhost:30964";
+        service = "http://localhost:31745";
       }
     ];
   };

@@ -171,7 +171,7 @@ in {
           "Mod+O".action = spawn "launch-or-focus" "Obsidian" "uwsm" "app" "--" "obsidian";
           "Mod+T".action = spawn "uwsm" "app" "--" "alacritty" "-e" "btop";
           "Mod+D".action = spawn "uwsm" "app" "--" "alacritty" "-e" "lazydocker";
-          "Mod+G".action = spawn "launch-or-focus" "Discord" "uwsm" "app" "--" "vesktop";
+          "Mod+G".action = spawn "launch-or-focus" "vesktop" "uwsm" "app" "--" "vesktop";
           # firefoxpwa shortcuts disabled
           # "Mod+Shift+G".action =
           #   spawn "launch-or-focus" "Grok" "uwsm" "app" "--" "firefoxpwa" "site" "launch"
@@ -193,7 +193,6 @@ in {
  
            # Remove redundant Mod+K (Mod+Alt+Space already opens settings)
            "Mod+Space".action = spawn "noctalia msg panel-toggle launcher";
-           "Mod+Ctrl+V".action = spawn "noctalia msg panel-toggle clipboard";
            "Mod+Ctrl+E".action = spawn "noctalia msg panel-toggle launcher";
            "Mod+Ctrl+Slash".action = spawn "noctalia msg panel-toggle launcher";
            "Mod+Shift+Slash".action = spawn "noctalia msg window-switcher";
@@ -219,12 +218,7 @@ in {
            "Mod+Alt+Shift+Comma".action = spawn "noctalia msg notification-invoke-latest";
 
           # Screenshots (smart region, window, fullscreen, color)
-          "Print" = {
-            action.spawn = [
-              "screenshot"
-              "region"
-            ];
-          };
+          "Print".action = spawn "noctalia" "msg" "screenshot-region";
           "Mod+Print" = {
             action.spawn = [
               "screenshot"
@@ -234,12 +228,7 @@ in {
           "Mod+Ctrl+Print" = {
             action.spawn = ["ocr-extract"];
           };
-          "Mod+Shift+Print" = {
-            action.spawn = [
-              "screenshot"
-              "fullscreen"
-            ];
-          };
+          "Mod+Shift+Print".action = spawn "noctalia" "msg" "screenshot-fullscreen";
           "Mod+Alt+Print" = {
             action.spawn = [
               "screenshot"
