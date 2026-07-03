@@ -311,6 +311,8 @@ in {
 
   # ── X11 / Display ───────────────────────────────────────
   programs.niri.enable = lib.mkForce false;
+  services.flatpak.enable = lib.mkForce false;
+  services.flatpak-kde.enable = lib.mkForce false;
 
   # ── Write inline VM XML & define on every rebuild ───────
   system.activationScripts.windows-vm = lib.mkAfter ''
