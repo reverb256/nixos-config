@@ -1,36 +1,33 @@
-{ stdenv, fetchurl, autoPatchelfHook, lib, python3, ... }:
-
-stdenv.mkDerivation rec {
+{ lib, stdenv, fetchurl, autoPatchelfHook, makeWrapper, python3, ... }:
+let
+  inherit (stdenv) mkDerivation;
+in
+mkDerivation rec {
   pname = "peakminer";
-  version = "1.0.12";
+  version = "1.0.13";
 
   src = fetchurl {
-    url = "https://github.com/peakminer/peakminer/releases/download/v${version}/peakminer-${version}-linux-x86_64.tar.gz";
-    sha256 = lib.fakeHash;
+    url = "https://github.com/peakminer/peakminer/releases/download/v${version}/peakminer-${version}.tar.gz";
+    sha256 = "a6d677e1270d1c8a3abb343dd79bef4c8adb6765b5fb6cee10b06cd719b51d81";
   };
 
-  nativeBuildInputs = [ autoPatchelfHook ];
-
+  nativeBuildInputs = [ autoPatchelfHook makeWrapper ];
   buildInputs = [ stdenv.cc.cc.lib ];
 
   installPhase = ''
     mkdir -p $out/bin
-    mkdir -p $out/lib
     mkdir -p $out/share/peakminer
 
-    cp peakminer $out/bin/
+    tar -xzf $src
+    cp peakminer/peakminer $out/bin/
     chmod +x $out/bin/peakminer
 
     # Install auth-translator proxy
     cp ${../pkgs/stratum-auth-translator.py} $out/share/peakminer/stratum-auth-translator.py
     chmod +x $out/share/peakminer/stratum-auth-translator.py
 
-    # Wrapper script for proxy
-    cat > $out/bin/peakminer-proxy <<'EOF'
-    #!${python3}/bin/python3
-    exec ${python3}/bin/python3 $out/share/peakminer/stratum-auth-translator.py "$@"
-    EOF
-    chmod +x $out/bin/peakminer-proxy
+    makeWrapper $out/share/peakminer/stratum-auth-translator.py $out/bin/peakminer-proxy \
+      --prefix PATH : ${python3}/bin
   '';
 
   meta = with lib; {

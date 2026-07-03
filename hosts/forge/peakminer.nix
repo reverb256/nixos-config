@@ -49,6 +49,10 @@ in {
           proxyPort = 21541;
         }
       ];
+      exporterInstances = [
+        { instanceName = "forge-4060-0"; apiPort = 21550; exporterPort = 9101; }
+        { instanceName = "forge-4060-1"; apiPort = 21552; exporterPort = 9102; }
+      ];
     };
 
     srbminer.enable = lib.mkForce false;
