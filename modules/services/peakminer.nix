@@ -171,12 +171,14 @@ in {
         }) cfg.instances;
 
         # Build proxy service entries
-        proxyServices = builtins.filter (s: s != null) (
+        # lib.optionalAttrs returns {} when condition is false; filter those out
+        # using s ? name (empty attrsets have no 'name' attribute)
+        proxyServices = builtins.filter (s: s ? name) (
           builtins.map (instance: let
             proxyServiceName = "peakminer-proxy-${instance.name}";
             instanceWallet = if instance.wallet != null then instance.wallet else cfg.wallet;
             instancePools = if instance.pools != null then instance.pools else cfg.pools;
-          in if instance.proxyPort != null then {
+          in lib.optionalAttrs (instance.proxyPort != null) {
             name = proxyServiceName;
             value = {
               description = "PeakMiner auth-translator proxy - ${instance.name}";
@@ -198,7 +200,7 @@ in {
                 RestartSec = 10;
               };
             };
-          } else null;
+          }) cfg.instances
         );
 
         # Build Prometheus exporter service entries
