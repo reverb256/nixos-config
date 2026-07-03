@@ -103,6 +103,7 @@ in {
     tokenFile = "/run/secrets/k3s-cluster-token";
     flannelIface = "enp7s0";
   };
+  services.k3s-pod-affinity.enable = lib.mkForce false;
 
   # ── VM autostart ──
   systemd.services.libvirt-autostart-windows = {
