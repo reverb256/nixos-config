@@ -353,6 +353,49 @@ Plain `sops -d <file>` with `~/.age/key.txt` continues to fail for all
 135 legacy files because zephyr's pubkey is not embedded as a recipient
 in any of them (chicken-and-egg, separate concern from syntax).
 
+
+
+## Recommended next step (option b): smoke-test feature flag
+
+The failure of option (a) (rekey all 135 secrets) does not invalidate
+the configuration wiring on zephyr. The most useful next action is a
+smoke-test that confirms the registry correctly picks up secrets when
+enabled:
+
+```nix
+# hosts/zephyr/configuration.nix
+services.sops-secrets-registry.enable    = true;
+services.sops-secrets-registry.mining   = true;   # low-risk isolated feature
+```
+
+After application:
+
+```bash
+nix --extra-experimental-features 'nix-command flakes' \
+    eval /etc/nixos#nixosConfigurations.zephyr.config.sops.secrets \
+    --apply 'x: builtins.attrNames x'
+
+nix --extra-experimental-features 'nix-command flakes' \
+    eval /etc/nixos#nixosConfigurations.zephyr.config.sops.age.keyFile
+```
+
+**Expected outcome:**
+
+- First eval returns `["xmrig-password" "xmrig-rpc-password" ...]`
+  (or whatever mining entries the registry declares).
+- Second eval returns `"/etc/nixos/.age/key.txt"`.
+
+**What this DOES NOT test:** decryption itself. Even with the flag
+enabled, `nixos-rebuild switch` will attempt to decrypt the files and
+fail at the decrypt step (zephyr's pubkey is NOT a recipient of any
+legacy mining YAML). The valuable signal from option (b) is that
+*registry, file paths, and key-file resolution are correct up to the
+decrypt step*, independently of the recipient-mismatch issue.
+
+If you want a smoke-test that ALSO exercises decryption, the only
+path is option (a) rotation via the recovery procedure documented in
+`## Recovery from key loss` once the fleet is coordinated.
+
 ## Cross-references
 
 - `/etc/nixos/STATUS.md` — cluster health / real-time state (footer
