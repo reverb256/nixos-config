@@ -239,7 +239,8 @@ in {
   networking.dhcpcd.extraConfig = "nooption domain_name_servers";
 
   # ── Firewall ────────────────────────────────────────────
-  networking.firewall.allowedTCPPorts = [ 53 ];   # DNS is global (needed by unbound for 10.1.1.0/24 clients)
+  networking.firewall.allowedTCPPorts = lib.mkForce [];  # All ports declared in extraInputRules with source restrictions
+  services.openssh.openFirewall = lib.mkForce false;
   networking.firewall.extraInputRules = ''
     # SSH — restrict to LAN
     ip saddr { 10.1.1.0/24 } tcp dport 22 accept
