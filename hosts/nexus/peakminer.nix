@@ -20,8 +20,6 @@ in {
       flannelIface = "eth0";
     };
 
-    # Bump `pkgs/peakminer.nix` from v1.0.12 to v1.0.13 and serve both 
-    # workers.
     peakminer = {
       enable = true;
       wallet = "krxXVNVMM7";
@@ -29,8 +27,6 @@ in {
       instances = [
         {
           name = "nexus-3060ti";
-          wallet = "krxXVNVMM7";
-          pools = ["stratum+tcp://prl.kryptex.network:7048"];
           devices = "0";
           gpuId = 0;
           powerLimit = 120;
@@ -39,7 +35,6 @@ in {
           fanMin = 30;
           fanMax = 100;
           apiPort = 21551;
-          proxyPort = 21542;
         }
       ];
       exporterInstances = [
@@ -47,10 +42,7 @@ in {
       ];
     };
 
-    lpminer = {
-      enable = lib.mkForce false;
-    };
-
+    lpminer.enable = lib.mkForce false;
     gaming-detection.enable = lib.mkForce false;
   };
 }
