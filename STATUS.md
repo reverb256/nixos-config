@@ -273,3 +273,9 @@ kubectl get endpoints <service-name> -n <namespace>
 **Update Script:** `scripts/update-status.sh`
 **Run Manually:** `sudo ./scripts/update-status.sh`
 **Auto-Refresh:** Hourly via systemd timer (status-update.timer)
+
+---
+
+## SOPS-NIX
+
+See [SOPS-NIX.md](./SOPS-NIX.md) for sops-nix status, key file location, registry module reference, and recovery workflow.
