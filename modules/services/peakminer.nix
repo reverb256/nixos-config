@@ -18,7 +18,7 @@ in {
 
     pools = mkOption {
       type = types.listOf types.str;
-      default = ["stratum+tcp://prl.kryptex.network:7048"];
+      default = ["stratum+tcp://prl-us.kryptex.network:7048"];
       description = "Mining pool URLs (uses auth-translator proxy on Linux)";
     };
 
