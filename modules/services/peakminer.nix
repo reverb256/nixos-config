@@ -3,8 +3,7 @@
   pkgs,
   lib,
   ...
-}:
-let
+}: let
   cfg = config.services.peakminer;
   inherit (lib) mkEnableOption mkOption types mkIf mkBefore;
 in {
@@ -122,27 +121,38 @@ in {
       peakminer = pkgs.callPackage ../pkgs/peakminer.nix {};
     };
 
-    systemd.services =
-      let
-        # Build miner service entries
-        minerServices = builtins.map (instance: let
+    systemd.services = let
+      # Build miner service entries
+      minerServices =
+        builtins.map (instance: let
           instanceName = "peakminer-${instance.name}";
-          instanceWallet = if instance.wallet != null then instance.wallet else cfg.wallet;
-          instancePools = if instance.pools != null then instance.pools else cfg.pools;
-          poolUrl = if instance.proxyPort != null
+          instanceWallet =
+            if instance.wallet != null
+            then instance.wallet
+            else cfg.wallet;
+          instancePools =
+            if instance.pools != null
+            then instance.pools
+            else cfg.pools;
+          poolUrl =
+            if instance.proxyPort != null
             then "stratum+tcp://127.0.0.1:${toString instance.proxyPort}"
             else builtins.head instancePools;
-          powerLimitArgs = if instance.powerLimit != null then
-            "+/run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
-          else "";
-          proxyService = if instance.proxyPort != null then [ "peakminer-proxy-${instance.name}.service" ] else [];
+          powerLimitArgs =
+            if instance.powerLimit != null
+            then "+/run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
+            else "";
+          proxyService =
+            if instance.proxyPort != null
+            then ["peakminer-proxy-${instance.name}.service"]
+            else [];
         in {
           name = instanceName;
           value = {
             description = "PeakMiner - ${instance.name}";
-            wantedBy = [ "multi-user.target" ];
-            after = [ "network-online.target" ] ++ proxyService;
-            wants = [ "network-online.target" ];
+            wantedBy = ["multi-user.target"];
+            after = ["network-online.target"] ++ proxyService;
+            wants = ["network-online.target"];
             requires = proxyService;
 
             serviceConfig = {
@@ -167,22 +177,30 @@ in {
               RestartSec = 10;
             };
           };
-        }) cfg.instances;
+        })
+        cfg.instances;
 
-        # Build proxy service entries
-        # lib.optionalAttrs returns {} when condition is false; filter those out
-        # using s ? name (empty attrsets have no 'name' attribute)
-        proxyServices = builtins.filter (s: s ? name) (
-          builtins.map (instance: let
-            proxyServiceName = "peakminer-proxy-${instance.name}";
-            instanceWallet = if instance.wallet != null then instance.wallet else cfg.wallet;
-            instancePools = if instance.pools != null then instance.pools else cfg.pools;
-          in lib.optionalAttrs (instance.proxyPort != null) {
+      # Build proxy service entries
+      # lib.optionalAttrs returns {} when condition is false; filter those out
+      # using s ? name (empty attrsets have no 'name' attribute)
+      proxyServices = builtins.filter (s: s ? name) (
+        builtins.map (instance: let
+          proxyServiceName = "peakminer-proxy-${instance.name}";
+          instanceWallet =
+            if instance.wallet != null
+            then instance.wallet
+            else cfg.wallet;
+          instancePools =
+            if instance.pools != null
+            then instance.pools
+            else cfg.pools;
+        in
+          lib.optionalAttrs (instance.proxyPort != null) {
             name = proxyServiceName;
             value = {
               description = "PeakMiner auth-translator proxy - ${instance.name}";
-              wantedBy = [ "multi-user.target" ];
-              after = [ "network-online.target" ];
+              wantedBy = ["multi-user.target"];
+              after = ["network-online.target"];
 
               serviceConfig = {
                 Type = "simple";
@@ -199,19 +217,21 @@ in {
                 RestartSec = 10;
               };
             };
-          }) cfg.instances
-        );
+          })
+        cfg.instances
+      );
 
-        # Build Prometheus exporter service entries
-        exporterScript = pkgs.writeScript "peakminer-exporter.py" (builtins.readFile ../../pkgs/peakminer-exporter.py);
-        exporterServices = builtins.map (exp: let
+      # Build Prometheus exporter service entries
+      exporterScript = pkgs.writeScript "peakminer-exporter.py" (builtins.readFile ../../pkgs/peakminer-exporter.py);
+      exporterServices =
+        builtins.map (exp: let
           serviceName = "peakminer-exporter-${exp.instanceName}";
         in {
           name = serviceName;
           value = {
             description = "PeakMiner Prometheus exporter - ${exp.instanceName}";
-            wantedBy = [ "multi-user.target" ];
-            after = [ "network-online.target" "peakminer-${exp.instanceName}.service" ];
+            wantedBy = ["multi-user.target"];
+            after = ["network-online.target" "peakminer-${exp.instanceName}.service"];
 
             serviceConfig = {
               Type = "simple";
@@ -226,8 +246,9 @@ in {
               RestartSec = 10;
             };
           };
-        }) cfg.exporterInstances;
-      in
+        })
+        cfg.exporterInstances;
+    in
       lib.listToAttrs (minerServices ++ proxyServices ++ exporterServices);
   };
 }
