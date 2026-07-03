@@ -176,7 +176,7 @@ in {
             proxyServiceName = "peakminer-proxy-${instance.name}";
             instanceWallet = if instance.wallet != null then instance.wallet else cfg.wallet;
             instancePools = if instance.pools != null then instance.pools else cfg.pools;
-          in lib.optionalAttrs (instance.proxyPort != null) {
+          in if instance.proxyPort != null then {
             name = proxyServiceName;
             value = {
               description = "PeakMiner auth-translator proxy - ${instance.name}";
@@ -198,7 +198,7 @@ in {
                 RestartSec = 10;
               };
             };
-          }) cfg.instances
+          } else null;
         );
 
         # Build Prometheus exporter service entries
