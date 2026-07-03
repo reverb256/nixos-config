@@ -165,9 +165,7 @@ in {
                 exec ${pkgs.peakminer}/bin/peakminer \
                   ${lib.concatStringsSep " " cfg.extraArgs} \
                   --url ${poolUrl} \
-                  --user ${instanceWallet} \
-                  --worker ${instance.name} \
-                  --legacy-auth \
+                  --user ${instanceWallet}.${instance.name} \
                   --devices ${instance.devices} \
                   --api-port ${toString instance.apiPort} \
                   --gpu-temp-stop ${toString instance.tempStop} \
