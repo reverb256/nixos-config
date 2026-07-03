@@ -813,3 +813,9 @@ Shared modules (`modules/system/home-manager.nix`, `modules/home-manager/*.nix`)
 - Use generic defaults (e.g., `"*"` for monitor wildcard)
 - Use `mkIf (hostName == "...")` for per-host overrides
 - **Never** assume Zephyr's config is universal
+
+---
+
+## SOPS-NIX
+
+For canonical sops-nix guidance —  location, registry module reference, adding secrets, re-keying, recovery — see [SOPS-NIX.md](./SOPS-NIX.md).
