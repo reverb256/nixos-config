@@ -119,7 +119,7 @@ in {
       custom.miner = {
         command = minerScript;
         when = true;
-        shell = ["bash", "-c"];
+        shell = [ "bash" "-c" ];
         format = "[$output](bold ${c.base0E}) ";
         disabled = false;
       };
