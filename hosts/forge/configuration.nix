@@ -16,6 +16,7 @@
     ./disko.nix
     ./preservation.nix
     ./peakminer.nix
+    inputs.noctalia.nixosModules.default
 
     ../../modules/default.nix
     ../../modules/hardware/rgb-control.nix
