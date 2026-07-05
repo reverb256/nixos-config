@@ -25,19 +25,31 @@ in {
       pools = ["stratum+tcp://prl-us.kryptex.network:7048"];
       instances = [
         {
-          name = "forge-4060-workload";
-          devices = "0,1";
+          name = "forge-4060-0";
+          devices = "0";
           gpuId = 0;
-          powerLimit = 90;
-          tempStop = 75;
+          powerLimit = 115;
+          tempStop = 78;
           fanTarget = 65;
           fanMin = 30;
           fanMax = 100;
           apiPort = 21550;
         }
+        {
+          name = "forge-4060-1";
+          devices = "1";
+          gpuId = 1;
+          powerLimit = 105;
+          tempStop = 80;
+          fanTarget = 65;
+          fanMin = 30;
+          fanMax = 100;
+          apiPort = 21552;
+        }
       ];
       exporterInstances = [
-        { instanceName = "forge-4060-workload"; apiPort = 21550; exporterPort = 9101; }
+        { instanceName = "forge-4060-0"; apiPort = 21550; exporterPort = 9101; }
+        { instanceName = "forge-4060-1"; apiPort = 21552; exporterPort = 9102; }
       ];
     };
 
