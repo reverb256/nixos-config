@@ -37,6 +37,7 @@ in {
           fanMin = 30;
           fanMax = 100;
           apiPort = 21553;
+          proxyPort = 30001;
         }
         {
           name = "zephyr-3090";
@@ -48,6 +49,7 @@ in {
           fanMin = 30;
           fanMax = 100;
           apiPort = 21554;
+          proxyPort = 30002;
         }
       ];
     };
