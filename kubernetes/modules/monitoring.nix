@@ -2579,7 +2579,9 @@ in {
                 protocol = "TCP";
               }
             ];
-            env.REGISTRY_STORAGE_DELETE_ENABLED = "true";
+            env = [
+              { name = "REGISTRY_STORAGE_DELETE_ENABLED"; value = "true"; }
+            ];
             volumeMounts = [
               {
                 name = "data";
