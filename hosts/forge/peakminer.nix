@@ -34,6 +34,7 @@ in {
           fanMin = 30;
           fanMax = 100;
           apiPort = 21550;
+          proxyPort = 30001;
         }
         {
           name = "forge-4060-1";
@@ -45,6 +46,7 @@ in {
           fanMin = 30;
           fanMax = 100;
           apiPort = 21552;
+          proxyPort = 30002;
         }
       ];
       exporterInstances = [
