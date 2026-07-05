@@ -6,8 +6,9 @@
   ...
 }: let
   hostName = config.networking.hostName;
+  hasHM = builtins.hasAttr "home-manager" (builtins.tryEval config).value or {};
 in
-  if builtins.elem hostName ["zephyr" "sentry"] then {
+  lib.mkIf hasHM {
   home-manager = {
     useGlobalPkgs = lib.mkDefault false;
 
@@ -113,4 +114,4 @@ in
       '';
     };
   };
-} else {}
+}

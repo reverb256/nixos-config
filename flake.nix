@@ -262,7 +262,8 @@
         k8sManifest = null;
         modules = [
           inputs.sops-nix.nixosModules.default
-          inputs.home-manager.nixosModules.home-manager
+          # home-manager skipped on krash3 — headless server, no user config needed
+          # inputs.home-manager.nixosModules.home-manager
           inputs.hermes-agent.nixosModules.default
           inputs.stylix.nixosModules.default
           inputs.noctalia.nixosModules.default
