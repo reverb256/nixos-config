@@ -6,7 +6,7 @@
   ...
 }: let
   hostName = config.networking.hostName;
-  hasHM = builtins.hasAttr "home-manager" (builtins.tryEval config).value or {};
+  hasHM = builtins.hasAttr "home-manager" (builtins.tryEval config).value or {} && hostName != "krash3";
 in
   lib.mkIf hasHM {
   home-manager = {
