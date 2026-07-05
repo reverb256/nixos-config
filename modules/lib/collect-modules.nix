@@ -44,7 +44,8 @@
     "development/ai-coding-tools/opencode.nix" = true; # Submodule: imported by parent
     "development/ai-coding-tools/pi.nix" = true; # Submodule: imported by parent
 
-    "system/home-manager.nix" = true; # Home Manager integration — imported explicitly on desktop hosts (zephyr/sentry)
+    "system/home-manager.nix" = true; # Home Manager integration — imported explicitly in commonModules
+    "system/sops-secrets-registry.nix" = true; # SOPS secrets — imported explicitly in commonModules
     "profiles/networking.nix" = true; # Library: returns mkNetworkingConfig function
     "system/network.nix" = true; # Dead code: references missing config.cluster.config
     "system/ssh-autodiscover.nix" = true; # Dead code: references missing config.cluster.config
