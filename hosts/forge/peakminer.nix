@@ -28,25 +28,23 @@ in {
           name = "forge-4060-0";
           devices = "0";
           gpuId = 0;
-          powerLimit = 115;
+          powerLimit = 118;
           tempStop = 78;
           fanTarget = 65;
           fanMin = 30;
           fanMax = 100;
           apiPort = 21550;
-          proxyPort = 30001;
         }
         {
           name = "forge-4060-1";
           devices = "1";
           gpuId = 1;
-          powerLimit = 105;
+          powerLimit = 118;
           tempStop = 80;
           fanTarget = 65;
           fanMin = 30;
           fanMax = 100;
           apiPort = 21552;
-          proxyPort = 30002;
         }
       ];
       exporterInstances = [
