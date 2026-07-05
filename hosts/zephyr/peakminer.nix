@@ -59,4 +59,25 @@ in {
     lpminer.enable = lib.mkForce false;
     srbminer.enable = lib.mkForce false;
   };
+
+  # Auth-translator proxy for krash1.5 Windows miner
+  systemd.services.peakminer-proxy-krash15-4060 = {
+    description = "PeakMiner auth-translator proxy - krash15-4060";
+    after = ["network-online.target"];
+    wantedBy = ["multi-user.target"];
+    serviceConfig = {
+      Type = "simple";
+      User = "root";
+      ExecStart = pkgs.writeShellScript "peakminer-proxy-krash15-4060" ''
+        ${pkgs.peakminer}/bin/peakminer-proxy \
+          --listen-host 0.0.0.0 \
+          --listen-port 30003 \
+          --target prl-us.kryptex.network:7048 \
+          --wallet krxXVNVMM7 \
+          --worker krash15-4060
+      '';
+      Restart = "always";
+      RestartSec = 10;
+    };
+  };
 }
