@@ -1,3 +1,14 @@
+# DEAD CODE — kept for reference only (2026-07-04)
+#
+# MoA config is managed IMPERATIVELY in ~/.hermes/config.yaml via
+# `hermes config set`. The services.hermes-cli module v5 has no
+# `managedMoA` option — this file is NOT imported anywhere.
+#
+# If managedMoA is ever added to hermes-cli.nix, the presets below
+# must be synced with the live config.yaml before enabling.
+#
+# Live source of truth: /home/j_kro/.hermes/config.yaml (moa: section, lines 27-137)
+# Refs: services.nix line 362 (/etc/nixos/hosts/zephyr/services.nix)
 { config, pkgs, lib, ... }:
 
 {
