@@ -1,0 +1,378 @@
+Sat Jul  4 04:00:21 AM CDT 2026
+krash3
+Linux krash3 7.1.2 #1-NixOS SMP PREEMPT_DYNAMIC Sat Jun 27 10:08:18 UTC 2026 x86_64 GNU/Linux
+
+########## A. VM ##########
+ Id   Name           State
+-------------------------------
+ 2    windows        running
+ -    windows-test   shut off
+
+---
+running
+
+---
+guest-agent ping:
+{"return":{}}
+
+
+
+########## B. LIO full config ##########
+[B.1] targetcli ls / -o tree
+Got 3 positionnal parameters, expected at most 2.
+[B.2] /tpg1 ls -l
+No such path /iscsi/iqn.2025-06.lan.krash3:games/tpg1/-l
+[B.3] /tpg1/attribute ls
+No such path /iscsi/iqn.2025-06.lan.krash3:games/tpg1/attribute
+[B.4] /tpg1/auth ls
+No such path /iscsi/iqn.2025-06.lan.krash3:games/tpg1/auth
+[B.5] /tpg1/portals ls
+o- portals ............................................................................................................ [Portals: 2]
+  o- 10.1.1.150:3260 .......................................................................................................... [OK]
+  o- 192.168.122.1:3260 ....................................................................................................... [OK]
+[B.6] /tpg1/luns ls -l
+No such path /iscsi/iqn.2025-06.lan.krash3:games/tpg1/luns/-l
+[B.7] /tpg1/acls ls -l
+No such path /iscsi/iqn.2025-06.lan.krash3:games/tpg1/acls/iqn.1991-05.com.microsoft:krash3-vm/-l
+[B.8] sysfs tpg1 attrib files
+ls: cannot access '/sys/kernel/config/target/iscsi/iqn.2025-06.lan.krash3:games/tpg1/': No such file or directory
+--- attrib values:
+  auth_type = cat: '/sys/kernel/config/target/iscsi/iqn.2025-06.lan.krash3:games/tpg1/attrib/auth_type': No such file or directory
+
+  demo_mode_write_protect = cat: '/sys/kernel/config/target/iscsi/iqn.2025-06.lan.krash3:games/tpg1/attrib/demo_mode_write_protect': No such file or directory
+
+  default_cmdsn_depth = cat: '/sys/kernel/config/target/iscsi/iqn.2025-06.lan.krash3:games/tpg1/attrib/default_cmdsn_depth': No such file or directory
+
+  prod_mode_shift = cat: '/sys/kernel/config/target/iscsi/iqn.2025-06.lan.krash3:games/tpg1/attrib/prod_mode_shift': No such file or directory
+
+  fabric_gen_sessions_match_all = cat: '/sys/kernel/config/target/iscsi/iqn.2025-06.lan.krash3:games/tpg1/attrib/fabric_gen_sessions_match_all': No such file or directory
+
+  netif_timeout = cat: '/sys/kernel/config/target/iscsi/iqn.2025-06.lan.krash3:games/tpg1/attrib/netif_timeout': No such file or directory
+
+  max_data_out_per_conn = cat: '/sys/kernel/config/target/iscsi/iqn.2025-06.lan.krash3:games/tpg1/attrib/max_data_out_per_conn': No such file or directory
+
+
+--- tpg_state / enable:
+cat: '/sys/kernel/config/target/iscsi/iqn.2025-06.lan.krash3:games/tpg1/enable': No such file or directory
+
+
+########## C. ss and listeners on 3260 ##########
+[C.1] ss -lntp4
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+LISTEN 0      256       10.1.1.150:3260      0.0.0.0:*   
+LISTEN 0      256    192.168.122.1:3260      0.0.0.0:*   
+[C.2] ss -lntp6
+State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+[C.3] ss -tnp all :3260
+State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+
+
+########## D. Linux-side iscsiadm LOGIN TEST ##########
+[D.1] Add node record
+/tmp/krash3-debug.sh: line 61: iscsiadm: command not found
+/tmp/krash3-debug.sh: line 62: iscsiadm: command not found
+/tmp/krash3-debug.sh: line 63: iscsiadm: command not found
+/tmp/krash3-debug.sh: line 64: iscsiadm: command not found
+[D.2] show node config
+/tmp/krash3-debug.sh: line 66: iscsiadm: command not found
+[D.3] login attempt
+login attempt at 04:00:22.iso
+/tmp/krash3-debug.sh: line 69: iscsiadm: command not found
+[D.4] session -P 2
+/tmp/krash3-debug.sh: line 72: iscsiadm: command not found
+[D.5] session -s
+/tmp/krash3-debug.sh: line 74: iscsiadm: command not found
+[D.6] lsblk
+NAME        MAJ:MIN RM   SIZE RO TYPE  MOUNTPOINTS
+loop10        7:10   0   931G  0 loop  
+└─md0         9:0    0   1.8T  0 raid0 
+  └─md0p1   259:3    0   1.8T  0 part  
+loop11        7:11   0   931G  0 loop  
+└─md0         9:0    0   1.8T  0 raid0 
+  └─md0p1   259:3    0   1.8T  0 part  
+sda           8:0    0 931.5G  0 disk  
+└─sda1        8:1    0 931.5G  0 part  
+sdb           8:16   0 931.5G  0 disk  
+├─sdb1        8:17   0    16M  0 part  
+└─sdb2        8:18   0 912.9G  0 part  
+nvme0n1     259:0    0 953.9G  0 disk  
+├─nvme0n1p1 259:1    0   512M  0 part  /boot
+└─nvme0n1p2 259:2    0 953.4G  0 part  /nix/store
+                                       /
+[D.7] /dev/disk/by-path
+pci-0000:01:00.0-nvme-1
+pci-0000:01:00.0-nvme-1-part
+pci-0000:01:00.0-nvme-1-part1
+pci-0000:01:00.0-nvme-1-part2
+pci-0000:02:00.1-ata-1
+pci-0000:02:00.1-ata-1.0
+pci-0000:02:00.1-ata-1.0-part
+pci-0000:02:00.1-ata-1.0-part1
+pci-0000:02:00.1-ata-1.0-part2
+pci-0000:02:00.1-ata-1-part1
+pci-0000:02:00.1-ata-1-part2
+pci-0000:02:00.1-ata-2
+pci-0000:02:00.1-ata-2.0
+pci-0000:02:00.1-ata-2.0-part
+pci-0000:02:00.1-ata-2.0-part1
+pci-0000:02:00.1-ata-2-part1
+
+
+########## E. dmesg iSCSI recent ##########
+[34251.390220] iSCSI Login negotiation failed.
+[34251.394625] iSCSI Login negotiation failed.
+[34450.267943] Loading iSCSI transport class v2.0-870.
+[34450.275963] iscsi: registered transport (tcp)
+[34602.626943] iSCSI Login negotiation failed.
+[34642.091104] Illegal login_req->flags Combination, CSG: 0, NSG: 0, ISCSI_FLAG_LOGIN_TRANSIT: 128.
+[34642.099880] iSCSI Login negotiation failed.
+[34662.741526] Illegal login_req->flags Combination, CSG: 0, NSG: 0, ISCSI_FLAG_LOGIN_TRANSIT: 128.
+[34662.750308] iSCSI Login negotiation failed.
+[34768.017317] iSCSI Login negotiation failed.
+--- journalctl last 5 min iSCSI subset ---
+
+
+########## F. tcpdump + Windows re-login trigger ##########
+[F.0] starting tcpdump on enp7s0 (60s budget)
+[F.1] running Windows re-login via guest-agent
+--- Update-IscsiTarget -NodeAddress "iqn.2025-06.lan.krash3:games" ---
+
+#< CLIXML
+<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04"><Obj S="progress" RefId="0"><TN RefId="0"><T>System.Management.Automation.PSCustomObject</T><T>System.Object</T></TN><MS><I64 N="SourceId">1</I64><PR N="Record"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj><Obj S="progress" RefId="1"><TNRef RefId="0" /><MS><I64 N="SourceId">1</I64><PR N="Record"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj><Obj S="progress" RefId="2"><TNRef RefId="0" /><MS><I64 N="SourceId">2</I64><PR N="Record"><AV>Update-IscsiTarget -NodeAddress "iqn.2025-06.lan.krash3:games" | Out-String -Width 4096</AV><AI>970406148</AI><Nil /><PI>-1</PI><PC>100</PC><T>Completed</T><SR>0</SR><SD>2/2 completed</SD></PR></MS></Obj></Objs>
+
+--- Get-IscsiTargetPortal | Update-IscsiTargetPortal ---
+
+#< CLIXML
+<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04"><Obj S="progress" RefId="0"><TN RefId="0"><T>System.Management.Automation.PSCustomObject</T><T>System.Object</T></TN><MS><I64 N="SourceId">1</I64><PR N="Record"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj><Obj S="progress" RefId="1"><TNRef RefId="0" /><MS><I64 N="SourceId">1</I64><PR N="Record"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj><Obj S="progress" RefId="2"><TNRef RefId="0" /><MS><I64 N="SourceId">2</I64><PR N="Record"><AV>Get-IscsiTargetPortal | Update-IscsiTargetPortal | Out-String -Width 4096</AV><AI>1004190635</AI><Nil /><PI>-1</PI><PC>100</PC><T>Completed</T><SR>0</SR><SD>1/1 completed</SD></PR></MS></Obj><S S="Error">Update-IscsiTargetPortal : Connection Failed. _x000D__x000A_</S><S S="Error">At line:1 char:81_x000D__x000A_</S><S S="Error">+ ... ding]::UTF8; Get-IscsiTargetPortal | Update-IscsiTargetPortal | Out-S ..._x000D__x000A_</S><S S="Error">+                                          ~~~~~~~~~~~~~~~~~~~~~~~~_x000D__x000A_</S><S S="Error">    + CategoryInfo          : NotSpecified: (MSFT_iSCSITarge...= "10.1.1.150"):ROOT/Microsoft/...CSITargetPortal) [Upd _x000D__x000A_</S><S S="Error">   ate-IscsiTargetPortal], CimException_x000D__x000A_</S><S S="Error">    + FullyQualifiedErrorId : HRESULT 0xefff0003,Update-IscsiTargetPortal_x000D__x000A_</S><S S="Error"> _x000D__x000A_</S><Obj S="progress" RefId="3"><TNRef RefId="0" /><MS><I64 N="SourceId">3</I64><PR N="Record"><AV>Update-IscsiTargetPortal | Out-String -Width 4096</AV><AI>2143640457</AI><Nil /><PI>-1</PI><PC>100</PC><T>Completed</T><SR>0</SR><SD>2/2 completed</SD></PR></MS></Obj></Objs>
+
+--- Get-Service msiscsi | Format-List ---
+
+
+Name                : msiscsi
+DisplayName         : Microsoft iSCSI Initiator Service
+Status              : Running
+DependentServices   : {}
+ServicesDependedOn  : {}
+CanPauseAndContinue : False
+CanShutdown         : True
+CanStop             : True
+ServiceType         : Win32OwnProcess, Win32ShareProcess
+
+
+
+
+#< CLIXML
+<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04"><Obj S="progress" RefId="0"><TN RefId="0"><T>System.Management.Automation.PSCustomObject</T><T>System.Object</T></TN><MS><I64 N="SourceId">1</I64><PR N="Record"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj><Obj S="progress" RefId="1"><TNRef RefId="0" /><MS><I64 N="SourceId">1</I64><PR N="Record"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj></Objs>
+
+
+[F.2] waiting 30s for any login traffic...
+[F.3] stopping tcpdump
+total 8
+drwxr-xr-x 1 root root  58 Jul  4 04:00 .
+drwxr-xr-x 1 root root  48 Jul  4 04:00 ..
+-rw-r--r-- 1 root root 163 Jul  4 04:01 tcpdump.err
+-rw-r--r-- 1 root root  24 Jul  4 04:00 windows_login.pcap
+
+########## G. Decode pcap ##########
+-rw-r--r-- 1 root root 24 Jul  4 04:00 /tmp/krash3-iscsi-debug/pcap/windows_login.pcap
+tcpdump stderr:
+tcpdump: listening on enp7s0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+0 packets captured
+1 packet received by filter
+0 packets dropped by kernel
+
+[G.1] tcpdump text dump (first 250 lines, verbose):
+reading from file /tmp/krash3-iscsi-debug/pcap/windows_login.pcap, link-type EN10MB (Ethernet), snapshot length 262144
+
+no tshark; attempting tcpdump -X on SYN/RST/FIN:
+reading from file /tmp/krash3-iscsi-debug/pcap/windows_login.pcap, link-type EN10MB (Ethernet), snapshot length 262144
+
+
+########## H. Windows iSCSI service state + last 30 iScsiPrt events ##########
+--- Get-Service msiscsi -ErrorAction SilentlyContinue | Format-List Status,StartType,Name ---
+
+
+Status    : Running
+StartType : Automatic
+Name      : msiscsi
+
+
+
+
+#< CLIXML
+<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04"><Obj S="progress" RefId="0"><TN RefId="0"><T>System.Management.Automation.PSCustomObject</T><T>System.Object</T></TN><MS><I64 N="SourceId">1</I64><PR N="Record"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj><Obj S="progress" RefId="1"><TNRef RefId="0" /><MS><I64 N="SourceId">1</I64><PR N="Record"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj></Objs>
+
+--- Get-EventLog System -Source "iScsiPrt" -Newest 30 | Format-List TimeGenerated,EntryType,Message ---
+
+
+TimeGenerated : 2026-07-04 1:48:22 AM
+EntryType     : Error
+Message       : Initiator failed to connect to the target. Target IP address and TCP Port number are given in dump data.
+
+TimeGenerated : 2026-07-04 1:48:13 AM
+EntryType     : Information
+Message       : If Digest support selected for iSCSI Session, Will use Processor support for Digest computation.
+
+TimeGenerated : 2026-07-04 1:30:31 AM
+EntryType     : Error
+Message       : Error occurred when processing iSCSI logon request. The request was not retried. Error status is given in the dump data.
+
+TimeGenerated : 2026-07-04 1:28:31 AM
+EntryType     : Error
+Message       : Initiator failed to connect to the target. Target IP address and TCP Port number are given in dump data.
+
+TimeGenerated : 2026-07-04 1:28:15 AM
+EntryType     : Error
+Message       : Error occurred when processing iSCSI logon request. The request was not retried. Error status is given in the dump data.
+
+TimeGenerated : 2026-07-04 1:28:15 AM
+EntryType     : Error
+Message       : Initiator failed to connect to the target. Target IP address and TCP Port number are given in dump data.
+
+TimeGenerated : 2026-07-04 1:22:09 AM
+EntryType     : Error
+Message       : Error occurred when processing iSCSI logon request. The request was not retried. Error status is given in the dump data.
+
+TimeGenerated : 2026-07-04 1:22:09 AM
+EntryType     : Error
+Message       : Initiator failed to connect to the target. Target IP address and TCP Port number are given in dump data.
+
+TimeGenerated : 2026-07-04 1:19:54 AM
+EntryType     : Error
+Message       : Error occurred when processing iSCSI logon request. The request was not retried. Error status is given in the dump data.
+
+TimeGenerated : 2026-07-04 1:19:54 AM
+EntryType     : Error
+Message       : Initiator failed to connect to the target. Target IP address and TCP Port number are given in dump data.
+
+TimeGenerated : 2026-07-04 1:17:31 AM
+EntryType     : Error
+Message       : Error occurred when processing iSCSI logon request. The request was not retried. Error status is given in the dump data.
+
+TimeGenerated : 2026-07-04 1:17:31 AM
+EntryType     : Error
+Message       : Initiator failed to connect to the target. Target IP address and TCP Port number are given in dump data.
+
+TimeGenerated : 2026-07-04 1:16:34 AM
+EntryType     : Error
+Message       : Error occurred when processing iSCSI logon request. The request was not retried. Error status is given in the dump data.
+
+TimeGenerated : 2026-07-04 1:16:34 AM
+EntryType     : Error
+Message       : Initiator failed to connect to the target. Target IP address and TCP Port number are given in dump data.
+
+TimeGenerated : 2026-07-04 1:15:34 AM
+EntryType     : Error
+Message       : Error occurred when processing iSCSI logon request. The request was not retried. Error status is given in the dump data.
+
+TimeGenerated : 2026-07-04 1:15:34 AM
+EntryType     : Error
+Message       : Initiator failed to connect to the target. Target IP address and TCP Port number are given in dump data.
+
+TimeGenerated : 2026-07-04 12:45:10 AM
+EntryType     : Error
+Message       : Error occurred when processing iSCSI logon request. The request was not retried. Error status is given in the dump data.
+
+TimeGenerated : 2026-07-04 12:45:10 AM
+EntryType     : Error
+Message       : Initiator failed to connect to the target. Target IP address and TCP Port number are given in dump data.
+
+TimeGenerated : 2026-07-04 12:45:10 AM
+EntryType     : Error
+Message       : Error occurred when processing iSCSI logon request. The request was not retried. Error status is given in the dump data.
+
+TimeGenerated : 2026-07-04 12:45:10 AM
+EntryType     : Error
+Message       : Initiator failed to connect to the target. Target IP address and TCP Port number are given in dump data.
+
+TimeGenerated : 2026-07-04 12:45:05 AM
+EntryType     : Error
+Message       : Initiator failed to connect to the target. Target IP address and TCP Port number are given in dump data.
+
+TimeGenerated : 2026-07-04 12:44:48 AM
+EntryType     : Information
+Message       : If Digest support selected for iSCSI Session, Will use Processor support for Digest computation.
+
+TimeGenerated : 2026-07-03 11:48:10 PM
+EntryType     : Error
+Message       : Error occurred when processing iSCSI logon request. The request was not retried. Error status is given in the dump data.
+
+TimeGenerated : 2026-07-03 11:48:10 PM
+EntryType     : Error
+Message       : Initiator failed to connect to the target. Target IP address and TCP Port number are given in dump data.
+
+TimeGenerated : 2026-07-03 11:47:56 PM
+EntryType     : Error
+Message       : Initiator failed to connect to the target. Target IP address and TCP Port number are given in dump data.
+
+TimeGenerated : 2026-07-03 11:47:55 PM
+EntryType     : Error
+Message       : Error occurred when processing iSCSI logon request. The request was not retried. Error status is given in the dump data.
+
+TimeGenerated : 2026-07-03 11:47:55 PM
+EntryType     : Error
+Message       : Initiator failed to connect to the target. Target IP address and TCP Port number are given in dump data.
+
+TimeGenerated : 2026-07-03 11:45:28 PM
+EntryType     : Information
+Message       : If Digest support selected for iSCSI Session, Will use Processor support for Digest computation.
+
+TimeGenerated : 2026-07-03 11:43:44 PM
+EntryType     : Error
+Message       : Error occurred when processing iSCSI logon request. The request was not retried. Error status is given in the dump data.
+
+TimeGenerated : 2026-07-03 11:43:44 PM
+EntryType     : Error
+Message       : Initiator failed to connect to the target. Target IP address and TCP Port number are given in dump data.
+
+
+
+
+#< CLIXML
+<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04"><Obj S="progress" RefId="0"><TN RefId="0"><T>System.Management.Automation.PSCustomObject</T><T>System.Object</T></TN><MS><I64 N="SourceId">1</I64><PR N="Record"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj><Obj S="progress" RefId="1"><TNRef RefId="0" /><MS><I64 N="SourceId">1</I64><PR N="Record"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj></Objs>
+
+--- try { Get-MSDSMGlobalSettings -ErrorAction Stop | Format-List } catch { $_.Exception.Message } ---
+#< CLIXML
+<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04"><S S="Error">At line:1 char:152_x000D__x000A_</S><S S="Error">+ ... rAction Stop | Format-List } catch { $_.Exception.Message } | Out-Str ..._x000D__x000A_</S><S S="Error">+                                                                 ~_x000D__x000A_</S><S S="Error">An empty pipe element is not allowed._x000D__x000A_</S><S S="Error">    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException_x000D__x000A_</S><S S="Error">    + FullyQualifiedErrorId : EmptyPipeElement_x000D__x000A_</S><S S="Error"> _x000D__x000A_</S></Objs>
+
+--- reg query "HKLM\SOFTWARE\Microsoft\iSCSI\Discovery" 2>&1 ---
+reg : ERROR: The system was unable to find the specified registry key or value.
+At line:1 char:57
++ ... ing]::UTF8; reg query "HKLM\SOFTWARE\Microsoft\iSCSI\Discovery" 2>&1  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: The syst...y key or value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+#< CLIXML
+<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04"><Obj S="progress" RefId="0"><TN RefId="0"><T>System.Management.Automation.PSCustomObject</T><T>System.Object</T></TN><MS><I64 N="SourceId">1</I64><PR N="Record"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj></Objs>
+
+--- reg query "HKLM\SOFTWARE\Microsoft\iSCSI Target Portal" 2>&1 ---
+reg : ERROR: The system was unable to find the specified registry key or value.
+At line:1 char:57
++ ... ing]::UTF8; reg query "HKLM\SOFTWARE\Microsoft\iSCSI Target Portal" 2 ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ERROR: The syst...y key or value.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+#< CLIXML
+<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04"><Obj S="progress" RefId="0"><TN RefId="0"><T>System.Management.Automation.PSCustomObject</T><T>System.Object</T></TN><MS><I64 N="SourceId">1</I64><PR N="Record"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj></Objs>
+
+--- Get-NetAdapter | Where-Object {$_.Status -eq "Up"} | Sort-Object ifIndex | Format-Table Name,ifIndex,MacAddress,Status,LinkSpeed ---
+
+Name       ifIndex MacAddress        Status LinkSpeed
+----       ------- ----------        ------ ---------
+Ethernet 4       9 52-54-00-7E-42-55 Up     10 Gbps  
+Ethernet 2      22 52-54-00-A5-E0-E0 Up     10 Gbps  
+
+
+
+#< CLIXML
+<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04"><Obj S="progress" RefId="0"><TN RefId="0"><T>System.Management.Automation.PSCustomObject</T><T>System.Object</T></TN><MS><I64 N="SourceId">1</I64><PR N="Record"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj><Obj S="progress" RefId="1"><TNRef RefId="0" /><MS><I64 N="SourceId">1</I64><PR N="Record"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj><Obj S="progress" RefId="2"><TNRef RefId="0" /><MS><I64 N="SourceId">2</I64><PR N="Record"><AV>Get-NetAdapter | Where-Object {$_.Status -eq "Up"} | Sort-Object ifIndex | Format-Table Name,ifIndex,MacAddress,Status,LinkSpeed | Out-String -Width 4096</AV><AI>1447043418</AI><Nil /><PI>-1</PI><PC>100</PC><T>Completed</T><SR>0</SR><SD>1/1 completed</SD></PR></MS></Obj></Objs>
+
+
+
+########## END ##########
+Sat Jul  4 04:02:19 AM CDT 2026
+RUNLOG=/tmp/krash3-iscsi-debug/runlog.txt

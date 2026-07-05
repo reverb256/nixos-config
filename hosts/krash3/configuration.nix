@@ -207,6 +207,7 @@ in {
     enable = true;
     qemu.verbatimConfig = ''
       max_memlock = 26843545600
+      clear_emulator_capabilities = 0
     '';
   };
 
