@@ -6,9 +6,11 @@
   ...
 }: let
   hostName = config.networking.hostName;
-  hasHM = builtins.hasAttr "home-manager" (builtins.tryEval config).value or {} && hostName != "krash3";
+  # Only enable home-manager on desktop/graphical hosts (zephyr, sentry)
+  # Headless servers (krash3, forge, nexus, haven) skip entirely
+  isDesktop = builtins.elem hostName ["zephyr" "sentry"];
 in
-  lib.mkIf hasHM {
+  lib.mkIf isDesktop {
   home-manager = {
     useGlobalPkgs = lib.mkDefault false;
 
