@@ -87,6 +87,11 @@ in {
             default = null;
             description = "Auth-translator proxy port (null = direct pool connection)";
           };
+          proxyHost = mkOption {
+            type = types.str;
+            default = "127.0.0.1";
+            description = "Proxy listen host (0.0.0.0 for external miners)";
+          };
         };
       });
       default = [];
@@ -207,7 +212,7 @@ in {
                 User = "root";
                 ExecStart = pkgs.writeShellScript proxyServiceName ''
                   ${pkgs.peakminer}/bin/peakminer-proxy \
-                    --listen-host 127.0.0.1 \
+                    --listen-host ${instance.proxyHost} \
                     --listen-port ${toString instance.proxyPort} \
                     --target ${lib.removePrefix "stratum+tcp://" (builtins.head instancePools)} \
                     --wallet ${instanceWallet} \
