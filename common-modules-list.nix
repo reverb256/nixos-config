@@ -3,6 +3,7 @@
   self,
 }: [
   inputs.home-manager.nixosModules.home-manager
+  ./modules/system/home-manager.nix
   inputs.aagl.nixosModules.default
   inputs.nur.modules.nixos.default
   inputs.sops-nix.nixosModules.default
