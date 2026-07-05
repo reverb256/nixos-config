@@ -3,10 +3,13 @@
   inputs,
   lib,
   pkgs,
+  options,
   ...
 }: let
   hostName = config.networking.hostName;
-  hasHM = builtins.hasAttr "home-manager" (builtins.tryEval config).value or {};
+  # Check if home-manager option is DECLARED (not just defined) to avoid
+  # "option does not exist" errors on hosts that don't import the HM module
+  hasHM = builtins.hasAttr "home-manager" (builtins.tryEval options).value or {};
 in
   lib.mkIf hasHM {
   home-manager = {
