@@ -2555,15 +2555,18 @@ in {
     # Local container registry on nexus for cluster-built images.
     # Gateway HA pods on sentry pull from here instead of needing pre-loaded images.
     kube-system.PersistentVolumeClaim.local-registry-data = {
-      accessModes = ["ReadWriteOnce"];
-      storageClassName = "local-path";
-      resources.requests.storage = "20Gi";
+      spec = {
+        accessModes = ["ReadWriteOnce"];
+        storageClassName = "local-path";
+        resources.requests.storage = "20Gi";
+      };
     };
     kube-system.Deployment.local-registry = {
-      replicas = 1;
-      selector.matchLabels.app = "local-registry";
-      template.metadata.labels.app = "local-registry";
-      template.spec = {
+      spec = {
+        replicas = 1;
+        selector.matchLabels.app = "local-registry";
+        template.metadata.labels.app = "local-registry";
+        template.spec = {
         nodeSelector."kubernetes.io/hostname" = "nexus";
         containers = [
           {
@@ -2618,6 +2621,7 @@ in {
           }
         ];
       };
+    };
     };
     monitoring.NetworkPolicy.allow-monitoring-api-server = {
       spec = {

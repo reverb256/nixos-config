@@ -209,7 +209,7 @@ in {
                   ${pkgs.peakminer}/bin/peakminer-proxy \
                     --listen-host 127.0.0.1 \
                     --listen-port ${toString instance.proxyPort} \
-                    --target ${builtins.head instancePools} \
+                    --target ${lib.removePrefix "stratum+tcp://" (builtins.head instancePools)} \
                     --wallet ${instanceWallet} \
                     --worker ${instance.name}
                 '';
