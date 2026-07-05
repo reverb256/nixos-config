@@ -24,8 +24,14 @@ in {
 
     extraArgs = mkOption {
       type = types.listOf types.str;
-      default = ["--coin" "pearl"];
-      description = "Extra arguments passed to all miner instances";
+      default = ["--coin" "pearl" "--legacy-auth"];
+      description = "Extra arguments passed to all miner instances. --legacy-auth makes peakminer send standard Stratum V1 array authorize (login=[WALLET.WORKER, pass]) which Kryptex pools require for worker-name registration.";
+    };
+
+    setPowerLimit = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Whether to set GPU power limits via nvidia-smi -pl in ExecStartPre. Requires systemd to run as root (always true here) AND nvidia persistence mode to be enabled.";
     };
 
     instances = mkOption {
@@ -82,16 +88,6 @@ in {
             type = types.port;
             description = "API statistics port";
           };
-          proxyPort = mkOption {
-            type = types.nullOr types.int;
-            default = null;
-            description = "Auth-translator proxy port (null = direct pool connection)";
-          };
-          proxyHost = mkOption {
-            type = types.str;
-            default = "127.0.0.1";
-            description = "Proxy listen host (0.0.0.0 for external miners)";
-          };
         };
       });
       default = [];
@@ -139,31 +135,23 @@ in {
             if instance.pools != null
             then instance.pools
             else cfg.pools;
-          poolUrl =
-            if instance.proxyPort != null
-            then "stratum+tcp://127.0.0.1:${toString instance.proxyPort}"
-            else builtins.head instancePools;
+          poolUrl = builtins.head instancePools;
           powerLimitArgs =
-            if instance.powerLimit != null
-            then "+/run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
+            if instance.powerLimit != null && cfg.setPowerLimit
+            then "+${pkgs.bash}/bin/bash -c 'i=0; while ! /run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}; do i=$((i+1)); if [ \"$i\" -ge 30 ]; then echo \"power limit failed after 30s\"; exit 1; fi; sleep 1; done'"
             else "";
-          proxyService =
-            if instance.proxyPort != null
-            then ["peakminer-proxy-${instance.name}.service"]
-            else [];
         in {
           name = instanceName;
           value = {
-            description = "PeakMiner - ${instance.name}";
+            description = "PeakMiner - ${instance.name} (direct pool, --legacy-auth)";
             wantedBy = ["multi-user.target"];
-            after = ["network-online.target"] ++ proxyService;
+            after = ["network-online.target"];
             wants = ["network-online.target"];
-            requires = proxyService;
 
             serviceConfig = {
               Type = "simple";
               User = "root";
-              ExecStartPre = mkIf (instance.powerLimit != null) (mkBefore powerLimitArgs);
+              ExecStartPre = mkIf (instance.powerLimit != null && cfg.setPowerLimit) (mkBefore powerLimitArgs);
               ExecStart = pkgs.writeShellScript instanceName ''
                 export CUDA_DEVICE_ORDER=PCI_BUS_ID
                 export LD_LIBRARY_PATH=/run/opengl-driver/lib:''${LD_LIBRARY_PATH:-}
@@ -184,47 +172,6 @@ in {
           };
         })
         cfg.instances;
-
-      # Build proxy service entries
-      # lib.optionalAttrs returns {} when condition is false; filter those out
-      # using s ? name (empty attrsets have no 'name' attribute)
-      proxyServices = builtins.filter (s: s ? name) (
-        builtins.map (instance: let
-          proxyServiceName = "peakminer-proxy-${instance.name}";
-          instanceWallet =
-            if instance.wallet != null
-            then instance.wallet
-            else cfg.wallet;
-          instancePools =
-            if instance.pools != null
-            then instance.pools
-            else cfg.pools;
-        in
-          lib.optionalAttrs (instance.proxyPort != null) {
-            name = proxyServiceName;
-            value = {
-              description = "PeakMiner auth-translator proxy - ${instance.name}";
-              wantedBy = ["multi-user.target"];
-              after = ["network-online.target"];
-
-              serviceConfig = {
-                Type = "simple";
-                User = "root";
-                ExecStart = pkgs.writeShellScript proxyServiceName ''
-                  ${pkgs.peakminer}/bin/peakminer-proxy \
-                    --listen-host ${instance.proxyHost} \
-                    --listen-port ${toString instance.proxyPort} \
-                    --target ${lib.removePrefix "stratum+tcp://" (builtins.head instancePools)} \
-                    --wallet ${instanceWallet} \
-                    --worker ${instance.name}
-                '';
-                Restart = "always";
-                RestartSec = 10;
-              };
-            };
-          })
-        cfg.instances
-      );
 
       # Build Prometheus exporter service entries
       exporterScript = pkgs.writeScript "peakminer-exporter.py" (builtins.readFile ../../pkgs/peakminer-exporter.py);
@@ -254,6 +201,6 @@ in {
         })
         cfg.exporterInstances;
     in
-      lib.listToAttrs (minerServices ++ proxyServices ++ exporterServices);
+      lib.listToAttrs (minerServices ++ exporterServices);
   };
 }
