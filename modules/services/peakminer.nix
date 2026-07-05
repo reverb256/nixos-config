@@ -166,7 +166,6 @@ in {
                   ${lib.concatStringsSep " " cfg.extraArgs} \
                   --url ${poolUrl} \
                   --user ${instanceWallet}.${instance.name} \
-                  --legacy-auth \
                   --devices ${instance.devices} \
                   --api-port ${toString instance.apiPort} \
                   --gpu-temp-stop ${toString instance.tempStop} \

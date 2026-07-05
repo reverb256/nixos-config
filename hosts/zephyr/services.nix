@@ -359,12 +359,9 @@ in {
         "zai"
         "nvidia"
       ];
-      # managedMoA = import ../../modules/services/hermes-moa.nix;
-      # v4 integration NOT YET MIGRATED — `services.hermes-cli.managedMoA`
-      # option does not exist in v5. hermes-moa.nix contains the declarative
-      # MoA routing config; a proper `managedMoA` option needs to be added
-      # to modules/services/hermes-cli.nix and wired to a Nix-managed YAML
-      # emitter (similar to the existing managedProviders/managedConfig).
+      # MoA config is imperative in ~/.hermes/config.yaml (moa: section).
+      # hermes-moa-declarative.nix is DEAD CODE — see its header for details.
+      # Do NOT uncomment this import without syncing presets from the live config first.
     };
   };
   programs = {
