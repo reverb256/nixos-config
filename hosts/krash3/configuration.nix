@@ -177,13 +177,6 @@ let
     </hostdev>
     <hostdev mode='subsystem' type='usb' managed='yes'>
       <source startupPolicy='optional' missing='yes'>
-        <vendor id='0x054c'/>
-        <product id='0x09cc'/>
-      </source>
-      <address type='usb' bus='0' port='1'/>
-    </hostdev>
-    <hostdev mode='subsystem' type='usb' managed='yes'>
-      <source startupPolicy='optional' missing='yes'>
         <vendor id='0x8087'/>
         <product id='0x0029'/>
         <address bus='1' device='2'/>
