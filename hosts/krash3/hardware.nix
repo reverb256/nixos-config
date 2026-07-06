@@ -45,7 +45,7 @@ in {
       mdadm --build /dev/md0 --level=raid0 --chunk=${toString raid.chunk} \
         --raid-devices=2 /dev/loop10 /dev/loop11 2>/dev/null || true
       if [ ! -b /dev/md0p1 ]; then
-        printf "label: gpt\nstart=32768, type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7\n" | sfdisk --wipe no /dev/md0 2>/dev/null || true
+        printf "label: gpt\nstart=32768, type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7\n" | sfdisk --wipe never /dev/md0 2>/dev/null || true
       fi
       # Ensure partition device node exists before dependent services (iscsi-target) start.
       /run/current-system/sw/bin/partx -a /dev/md0 2>/dev/null || true
