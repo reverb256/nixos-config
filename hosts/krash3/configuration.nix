@@ -211,6 +211,14 @@ in {
     '';
   };
 
+  # ── iSCSI target — never clear on stop (prevents session drops on NixOS rebuilds) ──
+  systemd.services.iscsi-target = {
+    # Remove ExecStop=targetctl clear so active sessions survive service restarts
+    serviceConfig.ExecStop = lib.mkForce [ "" ];
+    # Don't restart this service on config changes
+    stopIfChanged = false;
+  };
+
   # Headless server guard
   services.xserver.enable = lib.mkForce false;
   services.displayManager.enable = lib.mkForce false;
