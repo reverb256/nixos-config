@@ -19,8 +19,11 @@
   inputs.compute-market.nixosModules.default
   inputs.gpu-proxy.nixosModules.default
 
-  # No stylix for krash3 (headless hypervisor)
+  # Desktop modules (niri, stylix, noctalia)
+  # NOTE: krash3 (headless hypervisor) EXCLUDES these in colmena.nix
   # inputs.stylix.nixosModules.default
+  # inputs.niri.overlays.niri
+  # inputs.llm-agents.overlays.default
 
   ./modules/services/peakminer.nix
 
@@ -28,8 +31,9 @@
 
   {
     nixpkgs.overlays = [
-      inputs.niri.overlays.niri
-      inputs.llm-agents.overlays.default
+      # Desktop overlays - krash3 EXCLUDES these
+      # inputs.niri.overlays.niri
+      # inputs.llm-agents.overlays.default
       self.overlays.default
     ];
   }
