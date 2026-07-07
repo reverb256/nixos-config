@@ -74,7 +74,7 @@ in {
       # Prevent rtslib-fb clear from destroying active iSCSI sessions on service stop
       ExecStop = lib.mkForce [ "${pkgs.coreutils}/bin/true" ];
       # Create ACLs for Windows VM after target starts (persistent across reboots)
-      ExecStartPost = "${pkgs.bash}/bin/bash -c '${pkgs.targetcli}/bin/targetcli /iscsi/${vm.iqn}/tpg1/acls create iqn.1991-05.com.microsoft:krash3-vm 2>/dev/null || true && ${pkgs.targetcli}/bin/targetcli /iscsi/${vm.iqn}/tpg1/acls create iqn.1991-05.com.microsoft:desktop-a0cvoc1 2>/dev/null || true'";
+      ExecStartPost = "${pkgs.bash}/bin/bash -c '${pkgs.targetcli-fb}/bin/targetcli /iscsi/${vm.iqn}/tpg1/acls create iqn.1991-05.com.microsoft:krash3-vm 2>/dev/null || true && ${pkgs.targetcli-fb}/bin/targetcli /iscsi/${vm.iqn}/tpg1/acls create iqn.1991-05.com.microsoft:desktop-a0cvoc1 2>/dev/null || true'";
     };
     # Don't restart on config changes — existing sessions must survive rebuilds
     stopIfChanged = false;
