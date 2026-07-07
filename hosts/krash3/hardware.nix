@@ -8,6 +8,23 @@ in {
   
   nixpkgs.hostPlatform = "x86_64-linux";
   
+  # ── File Systems (from hardware-configuration.nix) ─
+  fileSystems."/" = {
+    device = "/dev/disk/by-uuid/9659a7e5-54fb-4228-afc3-96244c2612e5";
+    fsType = "btrfs";
+    options = [ "subvol=/" ];
+  };
+
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-uuid/64DA-689B";
+    fsType = "vfat";
+    options = [ "fmask=0022" "dmask=0022" ];
+  };
+
+  swapDevices = [ ];
+
+  hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+  
   # ── Boot ─
   boot.loader = {
     efi.canTouchEfiVariables = true;
@@ -20,7 +37,9 @@ in {
     "vfio-pci.disable_idle_d3=1"
     "video=efifb:off" "console=ttyS0,115200"
   ];
+  boot.initrd.availableKernelModules = [ "xhci_pci" "ahci" "usbhid" "uas" "usb_storage" "sd_mod" ];
   boot.initrd.kernelModules = [ "nvme" "btrfs" "vfio" "vfio_iommu_type1" "virtio_pci" "virtio_blk" "md_mod" "raid0" "vfio_pci" ];
+  boot.kernelModules = [ "kvm-amd" ];
   boot.blacklistedKernelModules = [ "nvidia" "nvidia_drm" "nvidia_modeset" "nvidia_uvm" ];
 
   # ── VFIO module parameters ─
@@ -41,7 +60,7 @@ in {
     wantedBy = [ "multi-user.target" ];
     path = [ pkgs.mdadm pkgs.util-linux ];
     script = ''
-      offset=$((${toString raid.offset} * 512))
+      offset=$(( ${toString raid.offset} * 512 ))
       losetup -o $offset /dev/loop10 ${builtins.elemAt raid.devices 0} 2>/dev/null || true
       losetup -o $offset /dev/loop11 ${builtins.elemAt raid.devices 1} 2>/dev/null || true
       mdadm --build /dev/md0 --level=raid0 --chunk=${toString raid.chunk} \\
