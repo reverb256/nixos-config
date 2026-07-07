@@ -262,14 +262,9 @@
         k8sManifest = null;
         modules = [
           inputs.sops-nix.nixosModules.default
-          # home-manager skipped on krash3 — headless server, no user config needed
-          # inputs.home-manager.nixosModules.home-manager
           inputs.hermes-agent.nixosModules.default
-          inputs.stylix.nixosModules.default
-          inputs.noctalia.nixosModules.default
           ./modules/system/distributed-builds.nix
           ./modules/system/ssh-ca.nix
-          ./modules/default.nix
           {
             nixpkgs.overlays = [ self.overlays.default ];
           }
