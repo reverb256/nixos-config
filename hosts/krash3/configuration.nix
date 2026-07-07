@@ -18,8 +18,8 @@ in
   time.timeZone = lib.mkForce "America/Winnipeg";
   networking.hostName = "krash3";
   networking.hostId = "deadbeef";
-  networking.useDHCP = true;
-  networking.interfaces.enp7s0.useDHCP = true;
+  networking.useDHCP = lib.mkForce true;
+  networking.interfaces.enp7s0.useDHCP = lib.mkForce true;
 
   # ── Users ───────────────────────────────────────────────
   users.users.j_kro = {
