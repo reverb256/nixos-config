@@ -21,6 +21,10 @@
     inherit inputs self;
   };
 
+  krash3Modules = import ./krash3-common-modules.nix {
+    inherit inputs self;
+  };
+
   mkHost = {
     hostName,
     targetHost,
@@ -105,7 +109,7 @@ in {
   # IP per modules/network/cluster-dns.nix:16 — correct as of audit #999.
   # Build locally on zephyr (buildOnTarget=false mirrors distributed-builds).
   krash3 = {...}: {
-    imports = import ./krash3-common-modules.nix { inherit inputs self; } ++ [
+    imports = krash3Modules ++ [
       ./hosts/krash3/configuration.nix
     ];
     deployment = {
