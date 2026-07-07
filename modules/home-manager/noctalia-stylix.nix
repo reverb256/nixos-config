@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, lib, ... }:
 let
   inherit (lib) mkIf;
   cfg = config.stylix;
@@ -130,19 +130,11 @@ in {
   # ── Write active palette (colors.json) ───────────────────────────
   xdg.configFile."noctalia/colors.json".text = colorsJson;
 
-  # ── Activation: update settings to use Stylix scheme ────────────
-  home.activation.noctaliaStylix = lib.hm.dag.entryAfter ["writeBoundary"] ''
-    # Only update if jq is available and settings file exists
-    SETTINGS="$HOME/.config/noctalia/settings.json"
-    if [ -x "${pkgs.jq}/bin/jq" ] && [ -f "$SETTINGS" ]; then
-      # Set predefinedScheme to Stylix and disable wallpaper color gen
-      ${pkgs.jq}/bin/jq '
-        .colorSchemes.predefinedScheme = "Stylix" |
-        .colorSchemes.useWallpaperColors = false |
-        .colorSchemes.syncGsettings = false
-      ' "$SETTINGS" > "$SETTINGS.tmp" && mv "$SETTINGS.tmp" "$SETTINGS"
-      # Signal noctalia to reload config
-      ${pkgs.procps}/bin/pkill -USR1 -x noctalia 2>/dev/null || true
-    fi
-  '';
+  # 2026-07-07: removed `home.activation.noctaliaStylix` entirely. v5
+  # reads TOML only; the v4 hook ran `jq` against `settings.json` and
+  # `pkill -USR1` for live reload -- both destructive against the v5
+  # TOML loader. With the hook gone, no per-HM-switch activation entry
+  # fires. User picks a colorscheme via the noctalia control center;
+  # auto-injection from Stylix palettes is parked until the v5 TOML
+  # schema is documented upstream.
 })

@@ -34,16 +34,10 @@ in {
               "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
             ];
           }
-            {
-              argv = [
-                "uwsm"
-                "app"
-                "-s"
-                "s"
-                "--"
-                "noctalia"
-              ];
-            }
+          # 2026-07-07: noctalia daemon moved out of spawn-at-startup.
+          # Transient uwsm-app units intentionally do NOT restart on
+          # failure — when the cat pressed sleep and the daemon died,
+          # nothing brought it back. Spawn ckb-next still inline.
           {
             argv = [
               "uwsm"
@@ -331,14 +325,31 @@ in {
           "Mod+Shift+Alt+Up".action = move-workspace-to-monitor-up;
           "Mod+Shift+Alt+Down".action = move-workspace-to-monitor-down;
 
-          "XF86AudioRaiseVolume".action = spawn "noctalia msg volume-up";
-          "XF86AudioLowerVolume".action = spawn "noctalia msg volume-down";
-          "XF86AudioMute".action = spawn "noctalia msg volume-mute";
-          "XF86AudioMicMute".action = spawn "noctalia msg mic-mute";
-          "XF86AudioPlay".action = spawn "noctalia msg media toggle";
-          "XF86AudioNext".action = spawn "noctalia msg media next";
-          "XF86AudioPrev".action = spawn "noctalia msg media previous";
-          "XF86AudioStop".action = spawn "noctalia msg media stop";
+          # ── Media keys ──────────────────────────────────────────────
+          # 2026-07-07: reverted to spawn-sh per the original
+          # commit 889f612f ("fix: change XF86 media key bindings from
+          # spawn to spawn-sh"). spawn argv-tokenizes the string and
+          # exec's the joined string as a single binary name — i.e. it
+          # looks for an executable literally named
+          # "noctalia msg volume-up", which fails. spawn-sh routes
+          # through `sh -c` so the spaces split correctly. Same fix
+          # shape as the prior commit; +XF86MonBrightnessUp/Down which
+          # were never wired (the captured card has dedicated
+          # brightness keys).
+          "XF86AudioRaiseVolume".action = spawn-sh "noctalia msg volume-up";
+          "XF86AudioLowerVolume".action = spawn-sh "noctalia msg volume-down";
+          "XF86AudioMute".action = spawn-sh "noctalia msg volume-mute";
+          "XF86AudioMicMute".action = spawn-sh "noctalia msg mic-mute";
+          "XF86AudioPlay".action = spawn-sh "noctalia msg media toggle";
+          "XF86AudioNext".action = spawn-sh "noctalia msg media next";
+          "XF86AudioPrev".action = spawn-sh "noctalia msg media previous";
+          "XF86AudioStop".action = spawn-sh "noctalia msg media stop";
+          # Brightness media keys — routed through the noctalia wrapper.
+          # The wrapper forwards global verbs (no target arg) to
+          # brightness-router.sh so the patched niri output (locked-I2C
+          # Samsung HDTV on HDMI-A-2) still gets sdr-brightness.
+          "XF86MonBrightnessUp".action = spawn-sh "noctalia msg brightness-up";
+          "XF86MonBrightnessDown".action = spawn-sh "noctalia msg brightness-down";
 
           "Mod+Escape".action = spawn "noctalia msg panel-toggle session";
           "Mod+Ctrl+Escape".action = spawn "systemctl" "suspend";
@@ -745,6 +756,11 @@ in {
       };
     })
   ]);
+
+  # Auto-reload noctalia systemd unit is registered upstream. The ExecStart
+  # override (sources /etc/uwsm/env-niri + discovers NIRI_SOCKET) lives in
+  # modules/desktop/wayland-compositor-common.nix so it applies to every
+  # niri-enabled host, not just zephyr.
 
   # Auto-reload niri config when home-manager swaps ~/.config/niri/config.kdl
   # (the symlink target moves to a new /nix/store generation on every switch).

@@ -62,11 +62,8 @@
           '"/boot/", "/usr/lib/systemd/"'
       fi
 
-      # Patch cua-driver backend: allow Linux (0.6.8+ Wayland) and handle
-      # windows with pid=None (cursor overlays) that crash int(None).
-      if [ -f "$SITE_PKGS/tools/computer_use/cua_backend.py" ]; then
-        patch -p1 -d "$(dirname "$SITE_PKGS/tools/computer_use/cua_backend.py")" < ${./../../patches/hermes-cua-backend-linux.patch}
-      fi
+      # NOTE: cua-driver backend Linux support + windows pid=None guard are
+      # now merged upstream (hermes-agent >= f341cadb). Patch dropped 2026-07-07.
 
       # Patch nvidia model picker: filter out 100+ non-agentic models
       # (embedding, guard, safety, rerank, reward) from the model picker.
