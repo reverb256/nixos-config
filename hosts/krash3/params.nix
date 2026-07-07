@@ -59,7 +59,7 @@
         type = "iscsi";
         target = "vdb";
         targetIqn = "iqn.2025-06.lan.krash3:games";
-        portal = { host = "192.168.122.1"; port = 3260; };
+        portal = { host = "192.168.122.1"; port = "3260"; };
         lun = "0";
         cache = "writeback";
       }
@@ -100,7 +100,7 @@
         vendor = "0x8087";
         product = "0x0029";
         bus = "0";
-        port = 3;
+        port = "3";
         startupPolicy = "optional";
       }
     ];

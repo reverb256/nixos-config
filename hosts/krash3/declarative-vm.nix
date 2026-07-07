@@ -6,7 +6,7 @@ let
   # Simple XML generator for krash3-vm
   generateDomainXml = { name, uuid, memory, vcpu, disks, networks, gpus, usbs, nvram }:
     let
-      disksXml = lib.concatMapStrings "" (disk:
+      disksXml = lib.concatMapStrings (disk:
         if disk.type == "virtio-file" then ''
           <disk type='file' device='disk'>
             <driver name='qemu' type='raw' cache='${disk.cache}' ${lib.optionalString (disk.iothread != null) "iothread='${toString disk.iothread}'"}/>
@@ -25,7 +25,7 @@ let
         '' else ""
       ) disks;
 
-      networksXml = lib.concatMapStrings "" (net:
+      networksXml = lib.concatMapStrings (net:
         if net.type == "bridge" then ''
           <interface type='bridge'>
             <mac address='${net.mac}'/>
@@ -43,7 +43,7 @@ let
         '' else ""
       ) networks;
 
-      gpusXml = lib.concatMapStrings "" (gpu:
+      gpusXml = lib.concatMapStrings (gpu:
         ''
           <hostdev mode='subsystem' type='pci' managed='yes'>
             <driver name='vfio'/>
@@ -56,7 +56,7 @@ let
         ''
       ) gpus;
 
-      usbsXml = lib.concatMapStrings "" (usb: ''
+      usbsXml = lib.concatMapStrings (usb: ''
         <hostdev mode='subsystem' type='usb' managed='yes'>
           <source startupPolicy='${usb.startupPolicy}'>
             <vendor id='${usb.vendor}'/>
