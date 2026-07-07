@@ -16,15 +16,11 @@
   inputs.caddy-ingress.nixosModules.caddy-common
 
   inputs.ai-gateway.nixosModules.default
-
   inputs.compute-market.nixosModules.default
-
   inputs.gpu-proxy.nixosModules.default
 
-  inputs.stylix.nixosModules.default
-  # Noctalia is opt-in per host (needs desktop compositor deps):
-  #   - zephyr: desktop workstation
-  #   - krash3: gaming desktop (adds explicitly in flake.nix)
+  # No stylix for krash3 (headless hypervisor)
+  # inputs.stylix.nixosModules.default
 
   ./modules/services/peakminer.nix
 
