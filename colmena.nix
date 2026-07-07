@@ -105,7 +105,7 @@ in {
   # IP per modules/network/cluster-dns.nix:16 — correct as of audit #999.
   # Build locally on zephyr (buildOnTarget=false mirrors distributed-builds).
   krash3 = {...}: {
-    imports = [
+    imports = commonModules ++ [
       ./hosts/krash3/configuration.nix
     ];
     deployment = {
