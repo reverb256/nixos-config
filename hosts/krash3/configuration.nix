@@ -34,14 +34,6 @@ in
     shell = pkgs.fish;
   };
 
-  # ── Desktop disabled on hypervisor ───────────────────────
-  programs.niri.enable = lib.mkForce false;
-  services.flatpak.enable = lib.mkForce false;
-
-  # ── Legacy inline VM XML (REMOVED - using declarative-vm.nix) ───────
-  # The inline XML (400+ lines) has been removed
-  # New declarative approach uses params.nix + declarative-vm.nix
-
   # ── SSH key dirs ────────────────────────────────────────
   system.activationScripts.ssh-keys = ''
     mkdir -p /home/krash/.ssh /home/j_kro/.ssh

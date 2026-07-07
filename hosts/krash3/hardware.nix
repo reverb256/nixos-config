@@ -46,16 +46,11 @@ in {
   boot.extraModprobeConfig = "options vfio-pci disable_idle_d3=1;";
 
   # ── GPU ─
-  # NOTE: services.xserver.enable = false for headless hypervisor
-  # GPU drivers are needed for VFIO passthrough to Windows VM
-  # but X server itself is not needed (headless)
-  services.xserver.videoDrivers = [ "nvidia" ];
+  # GPU drivers needed for VFIO passthrough to Windows VM
   hardware.nvidia.open = false;
   hardware.nvidia.modesetting.enable = true;
   hardware.graphics.enable = true;
   nixpkgs.config.allowUnfree = true;
-  services.xserver.enable = lib.mkForce false;
-  services.displayManager.sddm.enable = lib.mkForce false;
   
   # ── Serial console ─
   systemd.services."serial-getty@ttyS0".enable = true;
