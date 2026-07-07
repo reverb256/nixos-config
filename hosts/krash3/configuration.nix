@@ -176,12 +176,25 @@ let
       <address type='pci' domain='0x0000' bus='0x08' slot='0x00' function='0x0'/>
     </hostdev>
     <hostdev mode='subsystem' type='usb' managed='yes'>
-      <source startupPolicy='optional' missing='yes'>
+      <source startupPolicy='optional'>
         <vendor id='0x8087'/>
         <product id='0x0029'/>
-        <address bus='1' device='2'/>
       </source>
       <address type='usb' bus='0' port='3'/>
+    </hostdev>
+    <hostdev mode='subsystem' type='usb' managed='yes'>
+      <source startupPolicy='optional'>
+        <vendor id='0x054c'/>
+        <product id='0x09cc'/>
+      </source>
+      <address type='usb' bus='0' port='4'/>
+    </hostdev>
+    <hostdev mode='subsystem' type='usb' managed='yes'>
+      <source startupPolicy='optional'>
+        <vendor id='0x3537'/>
+        <product id='0x2106'/>
+      </source>
+      <address type='usb' bus='0' port='5'/>
     </hostdev>
     <watchdog model='itco' action='reset'/>
     <memballoon model='virtio'>
@@ -202,7 +215,13 @@ in {
       max_memlock = 26843545600
       clear_emulator_capabilities = 0
     '';
+    allowedUsers = [ "krash" "j_kro" ];
   };
+
+  # Default virsh to system URI for non-root users (avoids qemu:///session confusion)
+  environment.etc."libvirt/libvirt.conf".text = ''
+    uri_default = "qemu:///system"
+  '';
 
   # ── iSCSI target — never clear on stop (prevents session drops on NixOS rebuilds) ──
   systemd.services.iscsi-target = {
