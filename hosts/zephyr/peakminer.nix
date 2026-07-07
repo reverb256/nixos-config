@@ -65,6 +65,7 @@ in {
     description = "PeakMiner auth-translator proxy - krash15-4060";
     after = ["network-online.target"];
     wantedBy = ["multi-user.target"];
+    wants = ["network-online.target"];
     serviceConfig = {
       Type = "simple";
       User = "root";
