@@ -70,37 +70,55 @@ mapfile -t DDC_ENTRIES < <(awk -F= '$1=="DDC" && $2 ~ /:/ {print $2}' "$PROFILE"
 # bus-numbered form is the only one that survives a modern ddcutil.
 # The auto-seed only fires when the profile is missing/empty, so an
 # existing v1 profile is invisible to the new logic and would silently
-# no-op. Detect v1 rows (DDC=<name> with no colon) and rewrite using
-# a zephyr-specific bus table; non-zephyr hosts see a warning and can
-# edit the file by hand.
+# no-op.
+#
+# Host-gated: the ZEPHYR_BUS table is specific to zephyr's physical
+# layout. If forge or sentry ever has a v1 profile (e.g., copy-pasted
+# from zephyr), blindly rewriting with zephyr's bus numbers would
+# silently corrupt them. On non-zephyr hosts we emit a warning and
+# leave the profile alone — unmigrated v1 lines turn into no-ops
+# (the awk filter requires `:` so they're skipped) rather than
+# triggering destructive ddcutil calls against the wrong bus. The
+# user can `ddcutil detect` to find their bus numbers and edit the
+# profile by hand.
 if grep -qE '^[[:space:]]*DDC=[^:]+([[:space:]]*$|#)' "$PROFILE" 2>/dev/null; then
-  echo "brightness-router: migrating v1 profile to v2 (bus:DRM-name) format" >&2
-  declare -A ZEPHYR_BUS=(
-    ["DP-1"]="3" ["DP-2"]="4" ["DP-3"]="5" ["DP-4"]="8"
-    ["DP-5"]="9" ["DP-6"]="10" ["HDMI-A-1"]="6" ["HDMI-A-2"]="7"
-  )
-  tmp="${PROFILE}.migrate.$$"
-  {
-    while IFS= read -r line; do
-      case "$line" in
-        ''|'#'*) printf '%s\n' "$line" ;;
-        DDC=*)
-          name="${line#DDC=}"
-          name="${name%%[[:space:]]*}"
-          bus="${ZEPHYR_BUS[$name]:-}"
-          if [ -n "$bus" ]; then
-            printf 'DDC=%s:%s\n' "$bus" "$name"
-          else
-            echo "brightness-router: no bus mapping for '$name', leaving line untouched: $line" >&2
-            printf '%s\n' "$line"
-          fi
-          ;;
-        *) printf '%s\n' "$line" ;;
-      esac
-    done <"$PROFILE"
-  } >"$tmp" && mv "$tmp" "$PROFILE"
-  # Re-parse with the migrated file
-  mapfile -t DDC_ENTRIES < <(awk -F= '$1=="DDC" && $2 ~ /:/ {print $2}' "$PROFILE")
+  if [[ "$(uname -n 2>/dev/null)" != "zephyr" ]]; then
+    # Rate-limit the warning to once per profile via a sentinel file.
+    # Without this, every brightness keypress on a non-zephyr host
+    # would log the same migration message to stderr.
+    if [[ ! -f "${PROFILE}.warned" ]]; then
+      echo "brightness-router: v1 profile format detected on non-zephyr host. Manual migration to v2 (bus:DRM-name) required." >&2
+      : >"${PROFILE}.warned"
+    fi
+  else
+    echo "brightness-router: migrating v1 profile to v2 (bus:DRM-name) format" >&2
+    declare -A ZEPHYR_BUS=(
+      ["DP-1"]="3" ["DP-2"]="4" ["DP-3"]="5" ["DP-4"]="8"
+      ["DP-5"]="9" ["DP-6"]="10" ["HDMI-A-1"]="6" ["HDMI-A-2"]="7"
+    )
+    tmp="${PROFILE}.migrate.$$"
+    {
+      while IFS= read -r line; do
+        case "$line" in
+          ''|'#'*) printf '%s\n' "$line" ;;
+          DDC=*)
+            name="${line#DDC=}"
+            name="${name%%[[:space:]]*}"
+            bus="${ZEPHYR_BUS[$name]:-}"
+            if [ -n "$bus" ]; then
+              printf 'DDC=%s:%s\n' "$bus" "$name"
+            else
+              echo "brightness-router: no bus mapping for '$name', leaving line untouched: $line" >&2
+              printf '%s\n' "$line"
+            fi
+            ;;
+          *) printf '%s\n' "$line" ;;
+        esac
+      done <"$PROFILE"
+    } >"$tmp" && mv "$tmp" "$PROFILE"
+    # Re-parse with the migrated file
+    mapfile -t DDC_ENTRIES < <(awk -F= '$1=="DDC" && $2 ~ /:/ {print $2}' "$PROFILE")
+  fi
 fi
 
 # ── Helpers ───────────────────────────────────────────────────────────
