@@ -9,7 +9,7 @@ in
   imports = [
     ../../modules/services/monitoring/loki.nix
     ../../modules/services/monitoring/node-exporter.nix
-    ../../modules/services/monitoring/unbound.nix
+    ../../modules/services/unbound-common.nix
     ../../modules/services/peakminer.nix
     ./hardware.nix
     ./services.nix
