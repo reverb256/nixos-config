@@ -8,8 +8,8 @@ in
   # ── Imports (explicit - no desktop modules for hypervisor) ──
   imports = [
     ../../modules/services/monitoring/loki.nix
-    ../../modules/services/monitoring/prometheus-node-exporter.nix
-    ../../modules/services/monitoring/unbound.nix
+    ../../modules/services/monitoring/node-exporter.nix
+    ../../modules/services/monitoring/default.nix
     ../../modules/services/peakminer.nix
     ./hardware.nix
     ./services.nix
