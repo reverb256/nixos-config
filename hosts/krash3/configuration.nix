@@ -5,9 +5,13 @@ let
   params = import ./params.nix;
 in
 {
-  # ── Imports ───────────────────────────────────────────────
+  # ── Imports (explicit - no desktop modules for hypervisor) ──
   imports = [
-    ../../modules/default.nix
+    ../../modules/hardware/qemu-guest.nix
+    ../../modules/services/monitoring/loki.nix
+    ../../modules/services/monitoring/prometheus-node-exporter.nix
+    ../../modules/services/monitoring/unbound.nix
+    ../../modules/services/peakminer.nix
     ./hardware.nix
     ./services.nix
     ./hardware-configuration.nix
