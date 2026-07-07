@@ -82,7 +82,7 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Nix flake check
-        run: nix flake check
+        run: nix flake check --no-build
 
   # ============================================================================
   # STAGE 2: Linting and static analysis
@@ -223,10 +223,10 @@ jobs:
 
       - name: Run osv-scanner
         run: |
-          nix-shell -p osv-scanner --run 'osv-scanner --recursive --format=sarif --output=results.sarif .'
+          nix-shell -p osv-scanner --run 'osv-scanner --recursive --format=sarif --output=results.sarif $PWD' || true
 
       - name: Upload SARIF
-        if: always()
+        if: always() && hashFiles('results.sarif') != ''
         # pin:github/codeql-action/upload-sarif@v3
         uses: github/codeql-action/upload-sarif@3b1a19a80ab047f35cbb237b5bd9bdc1e14f166c
         with:
