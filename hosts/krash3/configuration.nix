@@ -32,7 +32,10 @@ in
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "libvirtd" ];
     shell = pkgs.fish;
+    ignoreShellProgramCheck = true;
   };
+
+  programs.fish.enable = true;
 
   # ── SSH key dirs ────────────────────────────────────────
   system.activationScripts.ssh-keys = ''
@@ -41,9 +44,10 @@ in
   '';
 
   # ── SOPS Secrets ────────────────────────────────────────
+  sops.age.keyFile = "/persistent/etc/sops-age-key.txt";
   sops.secrets = {
     "gemini-api-key" = {
-      sopsFile = ../../secrets/gemini-api-key.yaml;
+      sopsFile = ../../secrets/gemini-api-key.age;
       format = "binary";
       path = "/run/secrets/gemini-api-key";
       owner = "j_kro";
