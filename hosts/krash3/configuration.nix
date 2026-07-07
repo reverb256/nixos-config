@@ -37,7 +37,6 @@ in
   # ── Desktop disabled on hypervisor ───────────────────────
   programs.niri.enable = lib.mkForce false;
   services.flatpak.enable = lib.mkForce false;
-  desktop.uwsm-sessions.enable = lib.mkForce false;
 
   # ── Legacy inline VM XML (REMOVED - using declarative-vm.nix) ───────
   # The inline XML (400+ lines) has been removed
