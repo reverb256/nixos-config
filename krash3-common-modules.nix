@@ -2,8 +2,10 @@
   inputs,
   self,
 }: [
-  inputs.home-manager.nixosModules.home-manager
-  ./modules/system/home-manager.nix
+  # No home-manager for krash3 (headless hypervisor)
+  # inputs.home-manager.nixosModules.home-manager
+  # ./modules/system/home-manager.nix
+
   inputs.aagl.nixosModules.default
   inputs.nur.modules.nixosModules.default
   inputs.sops-nix.nixosModules.default
