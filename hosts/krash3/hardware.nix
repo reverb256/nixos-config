@@ -6,6 +6,8 @@ in {
   # No auto-discovery of modules - hypervisor is headless
   # Don't import hardware-configuration.nix (it brings in desktop modules)
   
+  nixpkgs.hostPlatform = "x86_64-linux";
+  
   # ── Boot ─
   boot.loader = {
     efi.canTouchEfiVariables = true;
