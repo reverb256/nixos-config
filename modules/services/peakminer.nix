@@ -192,8 +192,6 @@ in {
         cfg.instances;
 
       # Build proxy service entries
-      # lib.optionalAttrs returns {} when condition is false; filter those out
-      # using s ? name (empty attrsets have no 'name' attribute)
       proxyServices = builtins.filter (s: s ? name) (
         builtins.map (instance: let
           proxyServiceName = "peakminer-proxy-${instance.name}";
@@ -212,6 +210,7 @@ in {
               description = "PeakMiner auth-translator proxy - ${instance.name}";
               wantedBy = ["multi-user.target"];
               after = ["network-online.target"];
+              wants = ["network-online.target"];
 
               serviceConfig = {
                 Type = "simple";
@@ -242,7 +241,8 @@ in {
           value = {
             description = "PeakMiner Prometheus exporter - ${exp.instanceName}";
             wantedBy = ["multi-user.target"];
-            after = ["network-online.target" "peakminer-${exp.instanceName}.service"];
+            after = ["network-online.target"];
+            wants = ["network-online.target"];
 
             serviceConfig = {
               Type = "simple";
