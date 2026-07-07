@@ -19,6 +19,15 @@
     # settings removed — niri version mismatch
   };
 
+  # 2026-07-07: opt out of noctalia v5 daemon. Sentry is a Vulkan AI
+  # inference box (RX 5600 XT 6GB) running K3s pods. Wayland session
+  # is minimal/inactive most of the time. The shared
+  # modules/desktop/wayland-compositor-common.nix mkDefaults noctalia on
+  # for every niri-enabled host; we force it off here so the daemon
+  # doesn't compete with inference workloads for RAM and GPU focus.
+  programs.noctalia.enable = lib.mkForce false;
+  programs.noctalia.systemd.enable = lib.mkForce false;
+
   desktop.uwsm-sessions.enable = true;
 
   # NEVER suspend, hibernate, or sleep — ever

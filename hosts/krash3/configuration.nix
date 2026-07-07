@@ -3,7 +3,7 @@
 }:
 let
   # Windows VM XML embedded INLINE — matches live libvirt config exactly
-  windowsDomainXml = ''<domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
+  windowsDomainXml = ''\n<domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
   <name>windows</name>
   <uuid>52b825d0-6b0a-4e19-b251-7ae312ccd5d0</uuid>
   <memory unit='KiB'>20971520</memory>
@@ -197,13 +197,7 @@ let
       </source>
       <address type='usb' bus='0' port='4'/>
     </hostdev>
-    <hostdev mode='subsystem' type='usb' managed='yes'>
-      <source startupPolicy='optional'>
-        <vendor id='0x3537'/>
-        <product id='0x2106'/>
-      </source>
-      <address type='usb' bus='0' port='5'/>
-    </hostdev>
+    
     <watchdog model='itco' action='reset'/>
     <memballoon model='virtio'>
       <address type='pci' domain='0x0000' bus='0x09' slot='0x00' function='0x0'/>
