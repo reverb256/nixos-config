@@ -9,11 +9,10 @@ in
   imports = [
     ../../modules/services/monitoring/loki.nix
     ../../modules/services/monitoring/node-exporter.nix
-    ../../modules/services/monitoring/default.nix
+    ../../modules/services/monitoring/unbound.nix
     ../../modules/services/peakminer.nix
     ./hardware.nix
     ./services.nix
-    ./hardware-configuration.nix
     ./declarative-vm.nix
   ];
 
