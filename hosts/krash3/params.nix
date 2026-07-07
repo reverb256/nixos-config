@@ -39,18 +39,70 @@
   };
 
   vm = {
-    name = "windows";
+    name = "krash3-vm";
     uuid = "52b825d0-6b0a-4e19-b251-7ae312ccd5d0";
-    memoryKiB = 20971520;   # 20 GiB
+    memory = 20472;  # MiB (20 GiB)
     vcpu = 16;
-    cores = 8;
-    threads = 2;
-    cdisk = "c.raw";
-    virtioIso = "/var/lib/libvirt/images/virtio-win.iso";
-    gpuRom = "/var/lib/libvirt/images/gpu-rom.bin";
-    macNAT = "52:54:00:a5:e0:e0";
-    macMacvtap = "52:54:00:21:03:ae";
-    nvram = "/var/lib/libvirt/qemu/nvram/windows_VARS.fd";
+    nvram = "/var/lib/libvirt/qemu/nvram/krash3-vm_VARS.fd";
     iqn = "iqn.2025-06.lan.krash3:games";
+    
+    disks = [
+      {
+        type = "virtio-file";
+        target = "vda";
+        source = "/var/lib/libvirt/images/c.raw";
+        bootOrder = 1;
+        iothread = 1;
+        cache = "writeback";
+      }
+      {
+        type = "iscsi";
+        target = "vdb";
+        targetIqn = "iqn.2025-06.lan.krash3:games";
+        portal = { host = "192.168.122.1"; port = 3260; };
+        lun = "0";
+        cache = "writeback";
+      }
+    ];
+    
+    networks = [
+      {
+        type = "bridge";
+        bridge = "virbr0";
+        mac = "52:54:00:a5:e0:e0";
+        model = "virtio";
+        bus = "0x01";
+        slot = "0x00";
+      }
+      {
+        type = "macvtap";
+        dev = "enp7s0";
+        mac = "52:54:00:7e:42:55";
+        model = "virtio";
+        mode = "bridge";
+        bus = "0x02";
+        slot = "0x00";
+      }
+    ];
+    
+    gpus = [
+      {
+        domain = "0x0000";
+        bus = "0x08";
+        slot = "0x00";
+        function = "0x0";
+        romBar = "off";
+      }
+    ];
+    
+    usbs = [
+      {
+        vendor = "0x8087";
+        product = "0x0029";
+        bus = "0";
+        port = 3;
+        startupPolicy = "optional";
+      }
+    ];
   };
 }
