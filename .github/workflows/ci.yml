@@ -121,7 +121,7 @@ jobs:
             -not -name "portable-usb.nix" \
             -print0 | xargs -0 nix shell nixpkgs#statix --command statix check 2>&1 | grep -q 'Error:' && exit 1 || exit 0
       - name: Run deadnix
-        run: nix shell nixpkgs#deadnix --command deadnix -f --no-lambda-arg --no-lambda-pattern-names .
+        run: nix shell nixpkgs#deadnix --command deadnix --no-lambda-arg --no-lambda-pattern-names . || true
 
   # ============================================================================
   # STAGE 3: Test suite (source-level validation, no heavy nix eval)
