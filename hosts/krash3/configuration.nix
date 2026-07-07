@@ -7,7 +7,6 @@ in
 {
   # ── Imports (explicit - no desktop modules for hypervisor) ──
   imports = [
-    ../../modules/hardware/nixos-guest.nix
     ../../modules/services/monitoring/loki.nix
     ../../modules/services/monitoring/prometheus-node-exporter.nix
     ../../modules/services/monitoring/unbound.nix
