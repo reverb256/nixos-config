@@ -5,7 +5,7 @@
   inputs.home-manager.nixosModules.home-manager
   ./modules/system/home-manager.nix
   inputs.aagl.nixosModules.default
-  inputs.nur.modules.nixos.default
+  inputs.nur.modules.nixosModules.default
   inputs.sops-nix.nixosModules.default
   ./modules/system/sops-secrets-registry.nix
   inputs.hermes-agent.nixosModules.default
@@ -27,7 +27,8 @@
 
   ./modules/services/peakminer.nix
 
-  ./modules/default.nix
+  # krash3: DO NOT import modules/default.nix (auto-discovers desktop modules)
+  # ./modules/default.nix
 
   {
     nixpkgs.overlays = [
