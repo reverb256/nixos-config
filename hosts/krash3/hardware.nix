@@ -55,7 +55,8 @@ in {
   hardware.graphics.enable = true;
   nixpkgs.config.allowUnfree = true;
   services.xserver.enable = lib.mkForce false;
-
+  services.displayManager.sddm.enable = lib.mkForce false;
+  
   # ── Serial console ─
   systemd.services."serial-getty@ttyS0".enable = true;
 
