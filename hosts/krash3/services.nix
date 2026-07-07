@@ -117,7 +117,7 @@ in {
 
   # ── Runtime files ────────────────────────────────────────
   systemd.tmpfiles.rules = [
-    "f /var/lib/libvirt/images/${vm.cdisk} 0640 root kvm - -"
+    "f /var/lib/libvirt/images/c.raw 0640 root kvm - -"
     "L+ /run/secrets/k3s-cluster-token - - - - /persistent/etc/k3s-cluster-token"
   ];
 
