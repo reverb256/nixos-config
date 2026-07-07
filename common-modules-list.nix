@@ -5,7 +5,7 @@
   inputs.home-manager.nixosModules.home-manager
   ./modules/system/home-manager.nix
   inputs.aagl.nixosModules.default
-  inputs.nur.modules.nixosModules.default
+  inputs.nur.modules.nixos.default
   inputs.sops-nix.nixosModules.default
   ./modules/system/sops-secrets-registry.nix
   inputs.hermes-agent.nixosModules.default
@@ -19,22 +19,16 @@
   inputs.compute-market.nixosModules.default
   inputs.gpu-proxy.nixosModules.default
 
-  # Desktop modules (niri, stylix, noctalia)
-  # NOTE: krash3 (headless hypervisor) EXCLUDES these in colmena.nix
-  # inputs.stylix.nixosModules.default
-  # inputs.niri.overlays.niri
-  # inputs.llm-agents.overlays.default
+  inputs.stylix.nixosModules.default
 
   ./modules/services/peakminer.nix
 
-  # krash3: DO NOT import modules/default.nix (auto-discovers desktop modules)
-  # ./modules/default.nix
+  ./modules/default.nix
 
   {
     nixpkgs.overlays = [
-      # Desktop overlays - krash3 EXCLUDES these
-      # inputs.niri.overlays.niri
-      # inputs.llm-agents.overlays.default
+      inputs.niri.overlays.niri
+      inputs.llm-agents.overlays.default
       self.overlays.default
     ];
   }
