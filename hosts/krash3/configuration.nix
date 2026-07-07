@@ -79,6 +79,14 @@ let
       <boot order='1'/>
       <address type='pci' domain='0x0000' bus='0x05' slot='0x00' function='0x0'/>
     </disk>
+    <disk type='iscsi' device='disk'>
+      <driver name='qemu' type='raw' cache='writeback'/>
+      <source protocol='iscsi' name='iqn.2025-06.lan.krash3:games/0'>
+        <host name='192.168.122.1' port='3260'/>
+      </source>
+      <target dev='vdb' bus='virtio'/>
+      <address type='pci' domain='0x0000' bus='0x05' slot='0x01' function='0x0'/>
+    </disk>
 <controller type='sata' index='0'>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x1f' function='0x2'/>
     </controller>
