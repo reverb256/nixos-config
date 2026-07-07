@@ -215,7 +215,6 @@ in {
       max_memlock = 26843545600
       clear_emulator_capabilities = 0
     '';
-    allowedUsers = [ "krash" "j_kro" ];
   };
 
   # Default virsh to system URI for non-root users (avoids qemu:///session confusion)
