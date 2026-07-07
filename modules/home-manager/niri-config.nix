@@ -672,8 +672,8 @@ in {
         focus-ring.enable = mkDefault false;
         border = {
           enable = mkDefault true;
-          active = {color = mkDefault (base0D or "#7aa2f7");};
-          inactive = {color = mkDefault (base03 or "#3b4261");};
+          active = {color = mkDefault (if base0D != null then base0D else "#7aa2f7");};
+          inactive = {color = mkDefault (if base03 != null then base03 else "#3b4261");};
         };
       };
     })
