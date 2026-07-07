@@ -222,14 +222,6 @@ in {
     uri_default = "qemu:///system"
   '';
 
-  # ── iSCSI target — never clear on stop (prevents session drops on NixOS rebuilds) ──
-  systemd.services.iscsi-target = {
-    # Remove ExecStop=targetctl clear so active sessions survive service restarts
-    serviceConfig.ExecStop = lib.mkForce [ "" ];
-    # Don't restart this service on config changes
-    stopIfChanged = false;
-  };
-
   # Headless server guard
   services.xserver.enable = lib.mkForce false;
   services.displayManager.enable = lib.mkForce false;
@@ -318,16 +310,6 @@ in {
         "***@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIM8thErkGjAacCICZxGcBd4oYP+GIoHDPHJ3kXGIc9IyAAAAEXNzaDpqX2tyby1jbHVzdGVy ssh:j_kro-cluster"
       ];
     };
-  };
-
-  services.k3s-cluster = {
-    enable = true;
-    nvidia.enable = true;
-    role = "agent";
-    nodeName = "krash3";
-    serverAddr = "https://${config.networking.cluster.kubernetes.vip}:${toString config.networking.cluster.kubernetes.apiPort}";
-    tokenFile = "/run/secrets/k3s-cluster-token";
-    nodeIP = config.networking.cluster.hosts.krash3.ip;
   };
 
   security.sudo = {
