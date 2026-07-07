@@ -106,6 +106,14 @@ in {
       alsa.support32Bit = true;
       pulse.enable = true;
       jack.enable = true;
+      # 2026-07-07: wake noctalia v5 audio control. Noctalia daemon calls
+      # into wireplumber for `volume-*` / `mic-*` IPC. NixOS default for
+      # `services.pipewire.wireplumber.enable` is `true` since 25.11 but
+      # the noctalia launch via `uwsm` runs ahead of the pipewire session
+      # sometimes (transient unit ordering). Explicit enable + reload-on-
+      # resume ordering avoids racy plugin load failures that mute the
+      # daemon's audio IPC.
+      wireplumber.enable = lib.mkDefault true;
 
       extraConfig = {
         pipewire."99-lowlatency" = {
