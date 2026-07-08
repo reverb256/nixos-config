@@ -12,14 +12,14 @@ let
             <driver name='qemu' type='raw' cache='${disk.cache}' ${lib.optionalString (disk.iothread != null) "iothread='${toString disk.iothread}'"}/>
             <source file='${disk.source}'/>
             <target dev='${disk.target}' bus='virtio'/>
-            ${lib.optionalString (disk.bootOrder != null) "<boot order='${toString disk.bootOrder}'/>"}
+            ${lib.optionalString (disk.bootOrder or null != null) "<boot order='${toString disk.bootOrder}'/>"}
           </disk>
         '' else if disk.type == "block" then ''
           <disk type='block' device='disk'>
             <driver name='qemu' type='raw' cache='${disk.cache}'/>
             <source dev='${disk.source}'/>
             <target dev='${disk.target}' bus='virtio'/>
-            ${lib.optionalString (disk.bootOrder != null) "<boot order='${toString disk.bootOrder}'/>"}
+            ${lib.optionalString (disk.bootOrder or null != null) "<boot order='${toString disk.bootOrder}'/>"}
           </disk>
         '' else ""
       ) disks;
