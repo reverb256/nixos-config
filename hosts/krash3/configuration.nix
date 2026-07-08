@@ -46,14 +46,10 @@ in
   # ── SOPS Secrets ────────────────────────────────────────
   sops.age.keyFile = "/persistent/etc/sops-age-key.txt";
   sops.secrets = {
-    "gemini-api-key" = {
-      sopsFile = ../../secrets/gemini-api-key.age;
-      format = "binary";
-      path = "/run/secrets/gemini-api-key";
-      owner = "j_kro";
-      group = "users";
-      mode = "0444";
-    };
+    # NOTE: gemini-api-key removed — source age file (secrets/gemini-api-key.age)
+    # is corrupt (fails sops decrypt) and blocks the entire system build. No
+    # critical krash3 service consumes it (fish.nix only sets GEMINI_API_KEY
+    # if the file exists). Restore the age file + re-add this block once fixed.
     "k3s-cluster-token" = {
       sopsFile = ../../secrets/k8s/k3s-cluster-token.yaml;
       format = "binary";
