@@ -71,7 +71,7 @@
         bridge = "virbr0";
         mac = "52:54:00:a5:e0:e0";
         model = "virtio";
-        bus = "0x01";
+        bus = "01";
         slot = "0x00";
       }
       {
@@ -80,7 +80,7 @@
         mac = "52:54:00:7e:42:55";
         model = "virtio";
         mode = "bridge";
-        bus = "0x02";
+        bus = "02";
         slot = "0x00";
       }
     ];
