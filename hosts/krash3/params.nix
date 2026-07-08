@@ -60,7 +60,7 @@
         # in the path, so it survives NixOS rebuilds and reboots by construction.
         type = "block";
         target = "vdb";
-        source = "/dev/md0p1";
+        source = "/dev/md0";
         cache = "writeback";
       }
     ];
