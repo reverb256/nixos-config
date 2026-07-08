@@ -48,9 +48,12 @@
 
   security.sudo = {
     enable = lib.mkDefault true;
-    extraConfig = ''
-      j_kro ALL=(ALL) NOPASSWD: ALL
-    '';
+    extraRules = [
+      {
+        users = [ "j_kro" ];
+        commands = [ { command = "ALL"; options = [ "NOPASSWD" ]; } ];
+      }
+    ];
   };
 
   users.groups.plugdev = {};
