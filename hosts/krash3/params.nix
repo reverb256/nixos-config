@@ -97,6 +97,20 @@
     
     usbs = [
       {
+        vendor = "0x3537";
+        product = "0x2106";
+        bus = "0";
+        port = "1";
+        startupPolicy = "optional";
+      }
+      {
+        vendor = "0x054c";
+        product = "0x09cc";
+        bus = "0";
+        port = "2";
+        startupPolicy = "optional";
+      }
+      {
         vendor = "0x8087";
         product = "0x0029";
         bus = "0";
