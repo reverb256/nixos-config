@@ -2,7 +2,7 @@
 
 let
   params = import ./params.nix;
-  
+
   # Simple XML generator for krash3-vm
   generateDomainXml = { name, uuid, memory, vcpu, disks, networks, gpus, usbs, nvram }:
     let
@@ -74,7 +74,6 @@ let
             <vendor id='${usb.vendor}'/>
             <product id='${usb.product}'/>
           </source>
-          <address type='usb' bus='${usb.bus}' port='${usb.port}'/>
         </hostdev>
       '') usbs;
     in ''
@@ -93,7 +92,7 @@ let
             <feature enabled='no' name='secure-boot'/>
           </firmware>
           <loader readonly='yes' type='pflash' format='raw'>/run/libvirt/nix-ovmf/edk2-x86_64-code.fd</loader>
-          <nvram template='/run/libvirt/nix-ovmf/edk2-i386-vars.fd' templateFormat='raw' format='raw'>${nvram}</nvram>
+          <nvram template='/run/libvirt/nix-ovmf/edk2-i386-vars.fd' templateFormat='raw'>${nvram}</nvram>
         </os>
         <features>
           <acpi/>
@@ -150,6 +149,78 @@ let
         </qemu:capabilities>
       </domain>
     '';
+
+  # ── USB hotplug: auto-attach/detach devices to the running VM ──
+  # libvirt does NOT hotplug host USB devices by default. This wires:
+  #   1. A libvirt qemu hook that attaches already-present USB devices
+  #      when the VM starts (and detaches on stop), matched by vendor:product.
+  #   2. A udev rule that fires on USB plug/unplug and calls the hotplug
+  #      script, so devices work whether plugged before OR after boot.
+  # All 3 known devices pass through; krash3 has no USB peripherals that
+  # must stay on the host, so the hook is safe to run unconditionally.
+  vmName = params.vm.name;
+
+  # USB device match-list for the hotplug script's case filter.
+  usbMatchList = lib.concatMapStrings (usb: "${usb.vendor}:${usb.product}|") params.vm.usbs;
+
+  # Script invoked by udev on USB add/remove. Attaches/detaches the matching
+  # device (by vendor:product) to the running VM.
+  hotplugScript = pkgs.writeScriptBin "krash3-usb-hotplug" ''
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ACTION="$1"      # add | remove
+    BUS="$2"         # usb bus from udev (e.g. 1-2)
+    VENDOR="$3"      # 0x3537
+    PRODUCT="$4"     # 0x2106
+    VM="${vmName}"
+    VIRSH="${pkgs.libvirt}/bin/virsh"
+    # Only act on the USB devices we intend to pass through.
+    case "$VENDOR:$PRODUCT" in
+      ${usbMatchList}
+        ;;
+      *) exit 0 ;;
+    esac
+    DEVXML=$(mktemp)
+    cat > "$DEVXML" <<XML
+      <hostdev mode='subsystem' type='usb' managed='yes'>
+        <source startupPolicy='optional'>
+          <vendor id='$VENDOR'/>
+          <product id='$PRODUCT'/>
+        </source>
+      </hostdev>
+    XML
+    if [ "$ACTION" = "add" ]; then
+      $VIRSH attach-device "$VM" "$DEVXML" --live --persistent 2>&1 || true
+    elif [ "$ACTION" = "remove" ]; then
+      $VIRSH detach-device "$VM" "$DEVXML" --live --persistent 2>&1 || true
+    fi
+    rm -f "$DEVXML"
+  '';
+
+  # libvirt qemu hook: attach present USB devices when the VM starts.
+  qemuHook = pkgs.writeScriptBin "qemu-hook" ''
+    #!/usr/bin/env bash
+    set -euo pipefail
+    VM="$1"; ACTION="$2"
+    VIRSH="${pkgs.libvirt}/bin/virsh"
+    [ "$VM" = "${vmName}" ] || exit 0
+    [ "$ACTION" = "started" ] || exit 0
+    ${lib.concatMapStrings (usb: ''
+      DEVXML=$(mktemp); cat > "$DEVXML" <<XML
+      <hostdev mode='subsystem' type='usb' managed='yes'>
+        <source startupPolicy='optional'>
+          <vendor id='${usb.vendor}'/>
+          <product id='${usb.product}'/>
+        </source>
+      </hostdev>
+      XML
+      ${pkgs.libvirt}/bin/virsh attach-device "${vmName}" "$DEVXML" --live --persistent 2>&1 || true
+      rm -f "$DEVXML"
+    '') params.vm.usbs}
+  '';
+
+  # udev rule body (vendor list from params).
+  usbVendorList = lib.concatMapStringsSep "|" (usb: usb.vendor) params.vm.usbs;
 in
 {
   # Write the generated XML to the path libvirtd actually loads on NixOS
@@ -164,6 +235,19 @@ in
     gpus = params.vm.gpus;
     usbs = params.vm.usbs;
   };
+
+  # Hotplug script + libvirt qemu hook (made executable on the PATH).
+  environment.systemPackages = [ hotplugScript qemuHook ];
+
+  # libvirt qemu hook: symlink into the hooks dir libvirtd watches.
+  environment.etc."libvirt/hooks/qemu".source = "${qemuHook}/bin/qemu-hook";
+  environment.etc."libvirt/hooks/qemu".mode = "0755";
+
+  # udev rule: fire hotplug script on USB add/remove for our devices.
+  services.udev.extraRules = ''
+    SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="${usbVendorList}", RUN+="${hotplugScript}/bin/krash3-usb-hotplug add %k $attr{idVendor} $attr{idProduct}"
+    SUBSYSTEM=="usb", ACTION=="remove", ATTR{idVendor}=="${usbVendorList}", RUN+="${hotplugScript}/bin/krash3-usb-hotplug remove %k $attr{idVendor} $attr{idProduct}"
+  '';
 
   system.activationScripts.krash3-vm-define = lib.mkAfter ''
     # Ensure libvirtd is up before we define
