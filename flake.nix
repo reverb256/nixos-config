@@ -260,16 +260,7 @@
       krash3 = {
         hostName = "krash3";
         k8sManifest = null;
-        modules =
-          (import ./krash3-common-modules.nix {inherit inputs self;})
-          ++ [
-            inputs.hermes-agent.nixosModules.default
-            ./modules/system/distributed-builds.nix
-            ./modules/system/ssh-ca.nix
-            {
-              nixpkgs.overlays = [self.overlays.default];
-            }
-          ];
+        modules = (import ./krash3-common-modules.nix { inherit inputs self; });
       };
   };
   in {
