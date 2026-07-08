@@ -140,7 +140,11 @@ let
     '';
 in
 {
-  # Write the generated XML to /etc/libvirt/qemu (libvirtd auto-loads)
+  # Write the generated XML to the path libvirtd actually loads on NixOS
+  # (/var/lib/libvirt/qemu/), then define + autostart the domain from it so
+  # the RUNNING domain matches the DECLARATIVE config (named krash3-vm, not
+  # the legacy imperative "windows" domain). This closes the gap where every
+  # declarative change was a no-op because libvirtd never loaded the XML.
   environment.etc."libvirt/qemu/${params.vm.name}.xml".text = generateDomainXml {
     inherit (params.vm) name uuid memory vcpu nvram;
     disks = params.vm.disks;
@@ -148,7 +152,16 @@ in
     gpus = params.vm.gpus;
     usbs = params.vm.usbs;
   };
-  
+
+  system.activationScripts.krash3-vm-define = lib.mkAfter ''
+    # Ensure libvirtd is up before we define
+    mkdir -p /var/lib/libvirt/qemu
+    # Define (or redefine) the domain from the declarative XML.
+    # virsh define is idempotent: re-running updates the existing domain.
+    virsh define /etc/libvirt/qemu/krash3-vm.xml 2>&1 || true
+    virsh autostart krash3-vm 2>&1 || true
+  '';
+
   # Keep the old network activation (needed for virbr0)
   system.activationScripts.libvirt-network = lib.mkAfter ''
     # Create libvirt default network WITHOUT dnsmasq (avoids port 53 conflict with unbound)
