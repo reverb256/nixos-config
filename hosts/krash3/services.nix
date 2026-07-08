@@ -59,7 +59,20 @@ in {
             { ip_address = "10.1.1.150"; port = 3260; }
           ];
           luns = [{ index = 0; alias = "games-raid"; storage_object = "/backstores/block/games-raid"; }];
-          attributes = { authentication = 0; generate_node_acls = 1; demo_mode_write_protect = 0; demo_mode_discovery = 1; };
+          attributes = { authentication = 0; generate_node_acls = 0; demo_mode_write_protect = 1; demo_mode_discovery = 1; };
+          node_acls = [{
+            node_wwn = "iqn.1991-05.com.microsoft:krash3-vm";
+            mapped_luns = [{
+              tpg_lun = 0;
+              write_protect = false;
+            }];
+          } {
+            node_wwn = "iqn.1991-05.com.microsoft:desktop-a0cvoc1";
+            mapped_luns = [{
+              tpg_lun = 0;
+              write_protect = false;
+            }];
+          }];
         }];
       }];
     };
@@ -73,8 +86,7 @@ in {
       ExecStartPre = "${pkgs.bash}/bin/bash -c 'for i in $$(seq 1 30); do if [ -b /dev/md0p1 ]; then exit 0; fi; sleep 2; done; exit 1'";
       # Prevent rtslib-fb clear from destroying active iSCSI sessions on service stop
       ExecStop = lib.mkForce [ "${pkgs.coreutils}/bin/true" ];
-      # Create ACLs for Windows VM after target starts (persistent across reboots)
-      ExecStartPost = "${pkgs.bash}/bin/bash -c '${pkgs.targetcli-fb}/bin/targetcli /iscsi/${vm.iqn}/tpg1/acls create iqn.1991-05.com.microsoft:krash3-vm 2>/dev/null || true && ${pkgs.targetcli-fb}/bin/targetcli /iscsi/${vm.iqn}/tpg1/acls create iqn.1991-05.com.microsoft:desktop-a0cvoc1 2>/dev/null || true'";
+      # ACLs are now declared in services.target.config above — no need for targetcli calls
     };
     # Don't restart on config changes — existing sessions must survive rebuilds
     stopIfChanged = false;
