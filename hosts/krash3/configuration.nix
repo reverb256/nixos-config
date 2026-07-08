@@ -45,21 +45,12 @@ in
   '';
 
   # ── SOPS Secrets ────────────────────────────────────────
-  sops.age.keyFile = "/persistent/etc/sops-age-key.txt";
-  sops.secrets = {
-    # NOTE: gemini-api-key removed — source age file (secrets/gemini-api-key.age)
-    # is corrupt (fails sops decrypt) and blocks the entire system build. No
-    # critical krash3 service consumes it (fish.nix only sets GEMINI_API_KEY
-    # if the file exists). Restore the age file + re-add this block once fixed.
-    "k3s-cluster-token" = {
-      sopsFile = ../../secrets/k8s/k3s-cluster-token.yaml;
-      format = "binary";
-      path = "/run/secrets/k3s-cluster-token";
-      owner = "root";
-      group = "root";
-      mode = "0444";
-    };
-  };
+  # NOTE: all sops secrets removed from krash3. The sops age key
+  # (/persistent/etc/sops-age-key.txt) is absent on this host, so sops-install
+  # -secrets fails and blocks the entire system switch. The only secret krash3
+  # needed (k3s-cluster-token) is provided via tmpfiles symlink to
+  # /persistent/etc/k3s-cluster-token (see services.nix). gemini-api-key age
+  # file is also corrupt. Restore sops secrets here once the age key is present.
   # ── Performance tuning ──
   boot.kernel.sysctl."vm.nr_hugepages" = 24;
 

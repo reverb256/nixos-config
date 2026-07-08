@@ -157,8 +157,8 @@ in
     mkdir -p /var/lib/libvirt/qemu
     # Define (or redefine) the domain from the declarative XML.
     # virsh define is idempotent: re-running updates the existing domain.
-    virsh define /etc/libvirt/qemu/krash3-vm.xml 2>&1 || true
-    virsh autostart krash3-vm 2>&1 || true
+    ${pkgs.libvirt}/bin/virsh define /etc/libvirt/qemu/krash3-vm.xml 2>&1 || true
+    ${pkgs.libvirt}/bin/virsh autostart krash3-vm 2>&1 || true
   '';
 
   # Keep the old network activation (needed for virbr0)
