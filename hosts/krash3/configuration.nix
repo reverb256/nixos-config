@@ -36,6 +36,18 @@ in
     ignoreShellProgramCheck = true;
   };
 
+  # ── Libvirt/KVM ────────────────────────────────────────
+  # CRITICAL: libvirtd was never enabled in config — it was only running
+  # imperatively. A nixos-rebuild switch reset systemd and killed libvirtd,
+  # taking the VM down. Enable it declaratively so it survives switches.
+  virtualisation.libvirtd.enable = true;
+  virtualisation.libvirtd.qemu.swtpm = true;
+  # Allow j_kro/krash to manage VMs without root
+  virtualisation.libvirtd.extraConfig = ''
+    unix_sock_group = "libvirtd"
+    unix_sock_rw_perms = "0770"
+  '';
+
   programs.fish.enable = true;
 
   # ── SSH key dirs ────────────────────────────────────────
