@@ -117,6 +117,22 @@
         port = "3";
         startupPolicy = "optional";
       }
+      {
+        # Logitech USB Receiver (mouse/keyboard unifying) — phys present on host
+        vendor = "0x046d";
+        product = "0xc52b";
+        bus = "0";
+        port = "4";
+        startupPolicy = "optional";
+      }
+      {
+        # PixArt USB Optical Mouse — phys present on host
+        vendor = "0x04f2";
+        product = "0x0939";
+        bus = "0";
+        port = "5";
+        startupPolicy = "optional";
+      }
     ];
   };
 }
