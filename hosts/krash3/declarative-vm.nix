@@ -7,20 +7,19 @@ let
   generateDomainXml = { name, uuid, memory, vcpu, disks, networks, gpus, usbs, nvram }:
     let
       disksXml = lib.concatMapStrings (disk:
-        if disk.type == "virtio-file" then ''
+      if disk.type == "virtio-file" then ''
           <disk type='file' device='disk'>
             <driver name='qemu' type='raw' cache='${disk.cache}' ${lib.optionalString (disk.iothread != null) "iothread='${toString disk.iothread}'"}/>
             <source file='${disk.source}'/>
             <target dev='${disk.target}' bus='virtio'/>
             ${lib.optionalString (disk.bootOrder != null) "<boot order='${toString disk.bootOrder}'/>"}
           </disk>
-        '' else if disk.type == "iscsi" then ''
-          <disk type='network' device='disk'>
+        '' else if disk.type == "block" then ''
+          <disk type='block' device='disk'>
             <driver name='qemu' type='raw' cache='${disk.cache}'/>
-            <source protocol='iscsi' name='${disk.targetIqn}/${disk.lun}'>
-              <host name='${disk.portal.host}' port='${toString disk.portal.port}'/>
-            </source>
+            <source dev='${disk.source}'/>
             <target dev='${disk.target}' bus='virtio'/>
+            ${lib.optionalString (disk.bootOrder != null) "<boot order='${toString disk.bootOrder}'/>"}
           </disk>
         '' else ""
       ) disks;
