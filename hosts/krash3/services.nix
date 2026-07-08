@@ -41,48 +41,11 @@ in {
     };
   };
 
-  # ── iSCSI target ────────────────────────────────────────
-  # Provides the E: drive to the Windows VM via LIO kernel target
-  services.target = {
-    enable = true;
-    config = {
-      storage_objects = [{
-        plugin = "block"; name = "games-raid"; dev = "/dev/md0p1";
-        attributes = { block_size = 512; emulate_write_cache = 0; unmap_granularity = 512; };
-      }];
-      targets = [{
-        fabric = "iscsi"; wwn = "${vm.iqn}";
-        tpgs = [{
-          tag = 1; enable = true;
-          portals = [
-            { ip_address = "192.168.122.1"; port = 3260; }
-            { ip_address = "10.1.1.150"; port = 3260; }
-          ];
-          luns = [{ index = 0; alias = "games-raid"; storage_object = "/backstores/block/games-raid"; }];
-          # generate_node_acls = 1 → target accepts ANY initiator (incl. the
-          # libvirt/QEMU session that owns the E: virtio disk). This is a
-          # single-host trusted LAN target (10.1.1.0/24 only), so demo-mode
-          # ACLs are acceptable and eliminate the fragile per-IQN whitelist
-          # that broke E: every reboot when the guest initiator name drifted.
-          attributes = { authentication = 0; generate_node_acls = 1; demo_mode_write_protect = 0; demo_mode_discovery = 1; };
-        }];
-      }];
-    };
-  };
-  # Ordering: wait for RAID to assemble before restoring iSCSI target
-  systemd.services.iscsi-target = {
-    after = [ "assemble-games-raid.service" ];
-    requires = [ "assemble-games-raid.service" ];
-    serviceConfig = {
-      # Wait for /dev/md0p1 to appear before running rtslib-fb restore
-      ExecStartPre = "${pkgs.bash}/bin/bash -c 'for i in $$(seq 1 30); do if [ -b /dev/md0p1 ]; then exit 0; fi; sleep 2; done; exit 1'";
-      # Prevent rtslib-fb clear from destroying active iSCSI sessions on service stop
-      ExecStop = lib.mkForce [ "${pkgs.coreutils}/bin/true" ];
-      # ACLs are now declared in services.target.config above — no need for targetcli calls
-    };
-    # Don't restart on config changes — existing sessions must survive rebuilds
-    stopIfChanged = false;
-  };
+  # ── E: drive ────────────────────────────────────────────
+  # E: is now a DIRECT virtio-blk disk on /dev/md0p1 (see declarative-vm.nix),
+  # NOT an iSCSI target. No target service means rebuilds/reboots cannot kill
+  # E: — it is available by construction as long as the RAID assembles.
+  # The assemble-games-raid.service still runs (provides /dev/md0p1).
 
   # ── Samba ────────────────────────────────────────────────
   services.samba = {
@@ -126,13 +89,13 @@ in {
   ];
 
   # ── E: drive watchdog ───────────────────────────────────
-  # Verifies from INSIDE the guest that E: is mounted/healthy. If not, it
-  # re-attach the iSCSI virtio disk to the running domain and restarts the
-  # target backstore. This makes E: self-healing across guest reboots and
-  # target restarts — the permanent fix for the recurring E:-missing failure.
+  # Verifies from INSIDE the guest that E: is mounted/healthy. Since E: is now
+  # a direct virtio-blk disk on /dev/md0p1 (no iSCSI target), the only failure
+  # mode is the disk not being attached to the running domain (e.g. after a
+  # manual VM redefinition). Self-heals by re-attaching the block disk.
   systemd.services.e-drive-watchdog = {
     wantedBy = [ "multi-user.target" ];
-    after = [ "libvirtd.service" "iscsi-target.service" ];
+    after = [ "libvirtd.service" "assemble-games-raid.service" ];
     path = [ pkgs.libvirt pkgs.qemu ];
     serviceConfig = {
       Type = "oneshot";
@@ -156,12 +119,10 @@ in {
         exit 0
       fi
       echo "E: NOT healthy (got: $OUT) — attempting recovery"
-      # Re-attach the iSCSI virtio disk if missing from the running domain
-      if ! virsh dumpxml "$DOM" 2>/dev/null | grep -q "iqn.2025-06.lan.krash3:games"; then
-        virsh attach-disk "$DOM" --type network --source-url iscsi://192.168.122.1:3260/iqn.2025-06.lan.krash3:games/0 --target vdb --persistent 2>&1 || true
+      # Re-attach the block disk if missing from the running domain
+      if ! virsh dumpxml "$DOM" 2>/dev/null | grep -q "vdb"; then
+        virsh attach-disk "$DOM" --type block --source /dev/md0p1 --target vdb --persistent 2>&1 || true
       fi
-      # Restart target backstore to clear any stale session
-      systemctl restart iscsi-target.service 2>/dev/null || true
       sleep 5
       # Final probe
       OUT2=$(check)
