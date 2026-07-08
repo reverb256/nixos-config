@@ -25,6 +25,9 @@
       kdePackages.yakuake
       gh
       nodejs
+      fastfetch
+      zoxide
+      fzf
     ];
   };
 
