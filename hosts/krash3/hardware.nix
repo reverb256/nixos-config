@@ -61,10 +61,18 @@ in {
     path = [ pkgs.mdadm pkgs.util-linux ];
     script = ''
       offset=$(( ${toString raid.offset} * 512 ))
-      losetup -o $offset /dev/loop10 ${builtins.elemAt raid.devices 0} 2>/dev/null || true
-      losetup -o $offset /dev/loop11 ${builtins.elemAt raid.devices 1} 2>/dev/null || true
-      mdadm --build /dev/md0 --level=raid0 --chunk=${toString raid.chunk} \\
-        --raid-devices=2 /dev/loop10 /dev/loop11 2>/dev/null || true
+      # Find free loop devices instead of hardcoding /dev/loop10/11
+      # (those nodes don't exist on NixOS -> losetup fails silently -> mdadm
+      # gets no devices -> "no raid-devices specified" -> array never comes up)
+      dev0=$(losetup -f --show -o $offset ${builtins.elemAt raid.devices 0} 2>/dev/null || true)
+      dev1=$(losetup -f --show -o $offset ${builtins.elemAt raid.devices 1} 2>/dev/null || true)
+      if [ -z "$dev0" ] || [ -z "$dev1" ]; then
+        echo "ERROR: could not set up loop devices for RAID (dev0='$dev0' dev1='$dev1')"
+        exit 1
+      fi
+      echo "RAID loop devices: $dev0 $dev1"
+      mdadm --build /dev/md0 --level=raid0 --chunk=${toString raid.chunk} \
+        --raid-devices=2 "$dev0" "$dev1" 2>/dev/null || true
       if [ ! -b /dev/md0p1 ]; then
         printf "label: gpt\nstart=32768, type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7\n" | sfdisk --wipe never /dev/md0 2>/dev/null || true
       fi
