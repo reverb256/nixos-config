@@ -94,7 +94,9 @@ in {
   # mode is the disk not being attached to the running domain (e.g. after a
   # manual VM redefinition). Self-heals by re-attaching the block disk.
   systemd.services.e-drive-watchdog = {
-    wantedBy = [ "multi-user.target" ];
+    # NOTE: intentionally NOT in wantedBy — running this during switch causes
+    # the switch to abort if the VM/hypervisor isn't ready yet. It runs via the
+    # timer (e-drive-watchdog.timer) after boot, when the VM is up.
     after = [ "libvirtd.service" "assemble-games-raid.service" ];
     path = [ pkgs.libvirt pkgs.qemu ];
     serviceConfig = {
@@ -102,6 +104,7 @@ in {
       RemainAfterExit = true;
     };
     script = ''
+      export LIBVIRT_URI=qemu:///system
       DOM="krash3-vm"
       # Is the domain even running?
       if ! virsh domstate "$DOM" 2>/dev/null | grep -q running; then
