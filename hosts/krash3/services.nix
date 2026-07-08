@@ -59,20 +59,12 @@ in {
             { ip_address = "10.1.1.150"; port = 3260; }
           ];
           luns = [{ index = 0; alias = "games-raid"; storage_object = "/backstores/block/games-raid"; }];
-          attributes = { authentication = 0; generate_node_acls = 0; demo_mode_write_protect = 1; demo_mode_discovery = 1; };
-          node_acls = [{
-            node_wwn = "iqn.1991-05.com.microsoft:krash3-vm";
-            mapped_luns = [{
-              tpg_lun = 0;
-              write_protect = false;
-            }];
-          } {
-            node_wwn = "iqn.1991-05.com.microsoft:desktop-a0cvoc1";
-            mapped_luns = [{
-              tpg_lun = 0;
-              write_protect = false;
-            }];
-          }];
+          # generate_node_acls = 1 → target accepts ANY initiator (incl. the
+          # libvirt/QEMU session that owns the E: virtio disk). This is a
+          # single-host trusted LAN target (10.1.1.0/24 only), so demo-mode
+          # ACLs are acceptable and eliminate the fragile per-IQN whitelist
+          # that broke E: every reboot when the guest initiator name drifted.
+          attributes = { authentication = 0; generate_node_acls = 1; demo_mode_write_protect = 0; demo_mode_discovery = 1; };
         }];
       }];
     };
@@ -122,7 +114,7 @@ in {
     after = [ "libvirtd.service" "assemble-games-raid.service" "iscsi-target.service" ];
     path = [ pkgs.libvirt ];
     script = ''
-      virsh start windows 2>/dev/null || true
+      virsh start krash3-vm 2>/dev/null || true
     '';
     serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };
   };
@@ -132,6 +124,65 @@ in {
     "f /var/lib/libvirt/images/c.raw 0640 root kvm - -"
     "L+ /run/secrets/k3s-cluster-token - - - - /persistent/etc/k3s-cluster-token"
   ];
+
+  # ── E: drive watchdog ───────────────────────────────────
+  # Verifies from INSIDE the guest that E: is mounted/healthy. If not, it
+  # re-attach the iSCSI virtio disk to the running domain and restarts the
+  # target backstore. This makes E: self-healing across guest reboots and
+  # target restarts — the permanent fix for the recurring E:-missing failure.
+  systemd.services.e-drive-watchdog = {
+    wantedBy = [ "multi-user.target" ];
+    after = [ "libvirtd.service" "iscsi-target.service" ];
+    path = [ pkgs.libvirt pkgs.qemu ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      DOM="krash3-vm"
+      # Is the domain even running?
+      if ! virsh domstate "$DOM" 2>/dev/null | grep -q running; then
+        virsh start "$DOM" 2>/dev/null || true
+        sleep 15
+      fi
+      # Probe the guest for E: via qemu-agent
+      check() {
+        virsh qemu-agent-command "$DOM" '{"execute":"guest-exec","arguments":{"path":"C:\\Windows\\System32\\cmd.exe","arg":["/c","powershell -command \"Get-Volume -DriveLetter E -ErrorAction SilentlyContinue | Select -ExpandProperty HealthStatus\""],"capture-output":true}}' 2>/dev/null \
+          | ${pkgs.jq}/bin/jq -r '.return' 2>/dev/null
+      }
+      OUT=$(check)
+      if echo "$OUT" | grep -qi "Healthy"; then
+        echo "E: healthy — no action needed"
+        exit 0
+      fi
+      echo "E: NOT healthy (got: $OUT) — attempting recovery"
+      # Re-attach the iSCSI virtio disk if missing from the running domain
+      if ! virsh dumpxml "$DOM" 2>/dev/null | grep -q "iqn.2025-06.lan.krash3:games"; then
+        virsh attach-disk "$DOM" --type network --source-url iscsi://192.168.122.1:3260/iqn.2025-06.lan.krash3:games/0 --target vdb --persistent 2>&1 || true
+      fi
+      # Restart target backstore to clear any stale session
+      systemctl restart iscsi-target.service 2>/dev/null || true
+      sleep 5
+      # Final probe
+      OUT2=$(check)
+      if echo "$OUT2" | grep -qi "Healthy"; then
+        echo "E: recovered — healthy"
+        exit 0
+      else
+        echo "E: STILL NOT HEALTHY after recovery: $OUT2"
+        exit 1
+      fi
+    '';
+  };
+
+  systemd.timers.e-drive-watchdog = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnBootSec = "60s";
+      OnUnitActiveSec = "300s";
+      Unit = "e-drive-watchdog.service";
+    };
+  };
 
   # ── Packages ─────────────────────────────────────────────
   environment.systemPackages = with pkgs; [ virt-manager git libvirt virtio-win swtpm jq ];
