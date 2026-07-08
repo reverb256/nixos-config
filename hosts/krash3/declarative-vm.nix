@@ -43,16 +43,29 @@ let
       ) networks;
 
       gpusXml = lib.concatMapStrings (gpu:
-        ''
-          <hostdev mode='subsystem' type='pci' managed='yes'>
-            <driver name='vfio'/>
-            <source>
-              <address domain='${gpu.domain}' bus='${gpu.bus}' slot='${gpu.slot}' function='${gpu.function}'/>
-            </source>
-            <rom bar='${gpu.romBar}'/>
-            <address type='pci' domain='0x0000' bus='0x06' slot='0x00' function='0x0'/>
-          </hostdev>
-        ''
+        # Emit both GPU functions (0x0 = video, 0x1 = audio) so passthrough
+        # matches the working windows domain exactly.
+        let
+          func0 = ''
+            <hostdev mode='subsystem' type='pci' managed='yes'>
+              <driver name='vfio'/>
+              <source>
+                <address domain='${gpu.domain}' bus='${gpu.bus}' slot='${gpu.slot}' function='0x0'/>
+              </source>
+              <rom bar='on' file='/var/lib/libvirt/images/gpu-rom.bin'/>
+              <address type='pci' domain='0x0000' bus='0x06' slot='0x00' function='0x0'/>
+            </hostdev>
+          '';
+          func1 = ''
+            <hostdev mode='subsystem' type='pci' managed='yes'>
+              <driver name='vfio'/>
+              <source>
+                <address domain='${gpu.domain}' bus='${gpu.bus}' slot='${gpu.slot}' function='0x1'/>
+              </source>
+              <address type='pci' domain='0x0000' bus='0x07' slot='0x00' function='0x0'/>
+            </hostdev>
+          '';
+        in func0 + func1
       ) gpus;
 
       usbsXml = lib.concatMapStrings (usb: ''
