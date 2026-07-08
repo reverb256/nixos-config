@@ -41,7 +41,6 @@ in
   # imperatively. A nixos-rebuild switch reset systemd and killed libvirtd,
   # taking the VM down. Enable it declaratively so it survives switches.
   virtualisation.libvirtd.enable = true;
-  virtualisation.libvirtd.qemu.swtpm = true;
   # Allow j_kro/krash to manage VMs without root
   virtualisation.libvirtd.extraConfig = ''
     unix_sock_group = "libvirtd"
