@@ -56,11 +56,11 @@
         cache = "writeback";
       }
       {
-        type = "iscsi";
+        # E: drive — direct virtio-blk on the RAID partition. NO iSCSI target
+        # in the path, so it survives NixOS rebuilds and reboots by construction.
+        type = "block";
         target = "vdb";
-        targetIqn = "iqn.2025-06.lan.krash3:games";
-        portal = { host = "192.168.122.1"; port = "3260"; };
-        lun = "0";
+        source = "/dev/md0p1";
         cache = "writeback";
       }
     ];
