@@ -10,6 +10,7 @@ in
     ../../modules/services/monitoring/loki.nix
     ../../modules/services/monitoring/node-exporter.nix
     ../../modules/services/peakminer.nix
+    ../../modules/system/users.nix
     ./hardware.nix
     ./services.nix
     ./declarative-vm.nix
@@ -23,10 +24,10 @@ in
   networking.interfaces.enp7s0.useDHCP = lib.mkForce true;
 
   # ── Users ───────────────────────────────────────────────
-  users.users.j_kro = {
-    isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" "libvirtd" "kvm" ];
-  };
+  # Base account + passwordless sudo come from modules/system/users.nix
+  # (imported above, uniform with all other hosts). krash3 needs libvirt/kvm
+  # access for VM management — append those groups here.
+  users.users.j_kro.extraGroups = [ "libvirtd" "kvm" ];
 
   users.users.krash = {
     isNormalUser = true;
