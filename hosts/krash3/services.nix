@@ -74,7 +74,7 @@ in {
   # ── VM autostart ─────────────────────────────────────────
   systemd.services.libvirt-autostart-windows = {
     wantedBy = [ "multi-user.target" ];
-    after = [ "libvirtd.service" "assemble-games-raid.service" "iscsi-target.service" ];
+    after = [ "libvirtd.service" "assemble-games-raid.service" ];
     path = [ pkgs.libvirt ];
     script = ''
       virsh start krash3-vm 2>/dev/null || true
