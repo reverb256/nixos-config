@@ -36,12 +36,6 @@ in
     ignoreShellProgramCheck = true;
   };
 
-  # ── SSH (defense-in-depth: never let openssh be silently disabled) ──
-  # krash3 was previously built without the shared SSH module, so
-  # services.openssh.enable fell back to false and sshd was never generated.
-  # Pin it explicitly so a missing module import can't break SSH again.
-  services.openssh.enable = lib.mkForce true;
-
   # ── Libvirt/KVM ────────────────────────────────────────
   # CRITICAL: libvirtd was never enabled in config — it was only running
   # imperatively. A nixos-rebuild switch reset systemd and killed libvirtd,
