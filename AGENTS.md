@@ -674,6 +674,7 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 - **Use `systemctl enable`** — declare in NixOS config
 - **Import images on wrong K3s node** -- import on the node where the pod runs
 - **Build Nix containers without `git commit`** -- flakes only see tracked files
+- **Edit `/etc/nixos` directly on remote nodes** — accumulates stray editor backups, phantom host configs, and root-owned contamination that block `git checkout` / `git reset` on cluster nodes. Use `just deploy` from zephyr.
 
 ## Known Issues (audited 2026-05-14)
 
@@ -706,7 +707,7 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 
 ---
 
-**Version**: 9.3 | **Last Updated:** 2026-07-08
+**Version**: 9.4 | **Last Updated:** 2026-07-08
 **Changes**: Updated from 2026-05-23 to 2026-07-08. Reconciled `origin/prod`: deleted redundant branch, updated AGENTS.md + justfile + weekly-git-health.yml to reflect actual deploy flow (`just deploy` from `main` HEAD). Audit fixes (PR #273) and stash triage (umbrella #274) shipped.
 
 ## Known Frictions & Workarounds (2026-05-18)
