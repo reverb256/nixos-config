@@ -16,15 +16,9 @@
       function = "0x1";
     };
     usb = {
-      # PCI/VFIO passthrough of a USB CONTROLLER is only safe when the
-      # controller is alone in its IOMMU group. The onboard XHCI (0a:00.3)
-      # is in group 20 (isolated) -> safe to pass whole.
-      # The chipset XHCI (02:00.0) shares IOMMU group 15 with the NIC and
-      # bridges -> CANNOT be passed (would take down networking). Its leaf
-      # devices (keyboard/mouse) are passed per-device via `usbs` below.
-      controllers = [
-        { vendor = "1022"; device = "149c"; bus = "0x0a"; slot = "0x00"; function = "0x3"; }  # onboard xhci (0a:00.3) — group 20, isolated
-      ];
+      # No whole-controller PCI passthrough (see hardware.nix rationale).
+      # Keyboard/mouse are passed per-device via `usbs` below.
+      controllers = [ ];
     };
   };
 

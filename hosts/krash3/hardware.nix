@@ -33,12 +33,15 @@ in {
   boot.kernelPackages = pkgs.linuxPackages_latest;
   boot.kernelParams = [
     "amd_iommu=on" "iommu=pt" "kvm.ignore_msrs=1" "pcie_acs_override=downstream"
-    # Onboard XHCI (1022:149c @ 0a:00.3) is in IOMMU group 20 (isolated) ->
-    # safe to bind to vfio and pass whole to the VM. The chipset XHCI
-    # (1022:43ee @ 02:00.0) is in group 15 WITH the NIC -> must NOT be in
-    # vfio-pci.ids (would take down networking). Its devices use per-device
-    # USB passthrough instead.
-    "vfio-pci.ids=${pci.gpu.vendor}:${pci.gpu.device},${pci.gpuAudio.vendor}:${pci.gpuAudio.device},1022:149c"
+    # No USB controllers in vfio-pci.ids. Both XHCI controllers stay on the
+    # host (xhci_hcd) so the host can see every USB device. Keyboard/mouse are
+    # passed to the VM via PER-DEVICE USB passthrough (libvirt usb-host), which
+    # is robust and avoids whole-controller passthrough failures
+    # ("Device Descriptor Request Failed") seen when passing a controller with
+    # hub topology. Passing a controller also requires it to be alone in its
+    # IOMMU group; the chipset controller (group 15) shares the NIC and cannot
+    # be passed at all.
+    "vfio-pci.ids=${pci.gpu.vendor}:${pci.gpu.device},${pci.gpuAudio.vendor}:${pci.gpuAudio.device}"
     "vfio-pci.disable_idle_d3=1"
     "video=efifb:off" "console=ttyS0,115200"
   ];
