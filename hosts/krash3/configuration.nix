@@ -65,4 +65,14 @@ in
   # ── Performance tuning ──
   boot.kernel.sysctl."vm.nr_hugepages" = 24;
 
+  # ── GPU passthrough: NVIDIA reset bug fix ──
+  # NVIDIA GPUs suffer from the "reset bug" — the card cannot be fully
+  # reset after a VM shutdown, so the next VM start finds the GPU in a
+  # broken state and the Windows NVIDIA driver crash-loops on 2 vCPUs
+  # (symptom: catastrophic perf regression, programs won't open after
+  # every VM restart). The `vendor_reset` kernel module (from
+  # linuxPackages) provides a vendor-specific reset that works around
+  # this. Load it on boot so every VM start gets a clean GPU.
+  boot.kernelModules = [ "vendor_reset" ];
+
 }
