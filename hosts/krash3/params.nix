@@ -16,16 +16,19 @@
       function = "0x1";
     };
     usb = {
-      # Whole-controller PCI passthrough for BOTH XHCI controllers so USB works
-      # on ANY port, hotplug included:
-      #   - 0a:00.3 (1022:149c, IOMMU group 20 — alone) → onboard ports
-      #   - 02:00.0 (1022:43ee, group 15 — NIC-entangled) → chipset ports
-      # Both are in vfio-pci.ids (hardware.nix). The per-device `usbs` entries
-      # remain as a belt-and-suspenders fallback but are no longer required for
-      # port-agnostic passthrough.
+      # Whole-controller PCI passthrough of the ONBOARD Matisse XHCI only
+      # (0000:0a:00.3, 1022:149c, IOMMU group 20 — alone, no NIC). Group 20 is
+      # viable, so passing the whole controller makes EVERY device on the
+      # onboard ports appear in the VM automatically — keyboard, mouse,
+      # gamepad dongle, USB hubs, anything, including hotplug.
+      #
+      # The CHIPSET XHCI (0000:02:00.0, 1022:43ee) is NEVER passed: it shares
+      # IOMMU group 15 with the host's Intel NIC/SATA/WiFi, so that group can
+      # never be made viable ("group 15 is not viable" aborts QEMU). Devices on
+      # chipset ports are still covered by the per-device `usbs` list + the
+      # udev hotplug hook in declarative-vm.nix (vendor:product match).
       controllers = [
         { vendor = "1022"; device = "149c"; bus = "0x0a"; slot = "0x00"; function = "0x3"; }
-        { vendor = "1022"; device = "43ee"; bus = "0x02"; slot = "0x00"; function = "0x0"; }
       ];
     };
   };
@@ -39,19 +42,19 @@
   };
 
   raid = {
-    offset = 1069056;       # partition offset in sectors
+    offset = 1069056;
     devices = [ "/dev/sdb" "/dev/sda" ];
-    chunk = 64;             # raid0 chunk size in KB
+    chunk = 64;
   };
 
   vm = {
     name = "krash3-vm";
     uuid = "52b825d0-6b0a-4e19-b251-7ae312ccd5d0";
-    memory = 20472;  # MiB (20 GiB)
+    memory = 20472;
     vcpu = 16;
     nvram = "/var/lib/libvirt/qemu/nvram/krash3-vm_VARS.fd";
     iqn = "iqn.2025-06.lan.krash3:games";
-    
+
     disks = [
       {
         type = "virtio-file";
@@ -62,15 +65,13 @@
         cache = "writeback";
       }
       {
-        # E: drive — direct virtio-blk on the RAID partition. NO iSCSI target
-        # in the path, so it survives NixOS rebuilds and reboots by construction.
         type = "block";
         target = "vdb";
         source = "/dev/md0p1";
         cache = "none";
       }
     ];
-    
+
     networks = [
       {
         type = "bridge";
@@ -90,7 +91,7 @@
         slot = "0x00";
       }
     ];
-    
+
     gpus = [
       {
         domain = "0x0000";
@@ -100,60 +101,28 @@
         romBar = "off";
       }
     ];
-    
+
     usbs = [
       {
-        # Intel Bluetooth (8087:0029) — on chipset XHCI controller (02:00.0,
-        # IOMMU group 15, NIC-entangled). NOT on the VFIO-passthrough Matisse
-        # controller, so it MUST use per-device passthrough. Host can see it
-        # (it appears in `lsusb` / info usbhost) so bus/device addressing works.
-        vendor = "0x8087";
-        product = "0x0029";
-        bus = "1";
-        device = "2";
-        startupPolicy = "optional";
+        vendor = "0x8087"; product = "0x0029"; bus = "1"; device = "2"; startupPolicy = "optional";
       }
       {
-        # Zikway HID keyboard (3537:2106) — input device. Passed per-device so
-        # it works REGARDLESS of which physical port it is plugged into. If the
-        # device is on a chipset-port (group 15) the host sees it and binds it;
-        # if it is on a Matisse-port (group 20, VFIO-passed whole-controller)
-        # the host cannot see it and libvirt marks it missing=yes (non-fatal) —
-        # it still arrives via the VFIO controller. Either way the keyboard works.
-        vendor = "0x3537";
-        product = "0x2106";
-        bus = "0";
-        port = "1";
-        startupPolicy = "optional";
+        vendor = "0x3537"; product = "0x2106"; bus = "0"; port = "1"; startupPolicy = "optional";
       }
       {
-        # Sony DualShock 4 gamepad (054c:09cc)
-        vendor = "0x054c";
-        product = "0x09cc";
-        bus = "0";
-        port = "2";
-        startupPolicy = "optional";
+        vendor = "0x054c"; product = "0x09cc"; bus = "0"; port = "2"; startupPolicy = "optional";
       }
       {
-        # Logitech Unifying Receiver (046d:c52b) — multi-interface HID
-        # (mouse + keyboard + consumer). Per-device passthrough so it works on
-        # any port. NOTE: the `qemu:del capability='usb-host.hostdevice'` line
-        # that previously stripped the keyboard HID interface has been REMOVED
-        # from this file — without it libvirt uses the `hostdevice=/dev/bus/usb`
-        # path which preserves all interfaces.
-        vendor = "0x046d";
-        product = "0xc52b";
-        bus = "0";
-        port = "4";
-        startupPolicy = "optional";
+        vendor = "0x046d"; product = "0xc52b"; bus = "0"; port = "4"; startupPolicy = "optional";
       }
       {
-        # PixArt USB Optical Mouse (04f2:0939)
-        vendor = "0x04f2";
-        product = "0x0939";
-        bus = "0";
-        port = "5";
-        startupPolicy = "optional";
+        vendor = "0x04f2"; product = "0x0939"; bus = "0"; port = "5"; startupPolicy = "optional";
+      }
+      {
+        vendor = "0x05e3"; product = "0x0610"; startupPolicy = "optional";
+      }
+      {
+        vendor = "0x05e3"; product = "0x0612"; startupPolicy = "optional";
       }
     ];
   };
