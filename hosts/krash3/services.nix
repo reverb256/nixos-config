@@ -72,11 +72,14 @@ in {
   services.k3s-pod-affinity.enable = lib.mkForce false;
 
   # ── VM autostart ─────────────────────────────────────────
+  # Define the domain from the declarative XML FIRST (so the running domain
+  # always matches config), then start it. `virsh define` is idempotent.
   systemd.services.libvirt-autostart-windows = {
     wantedBy = [ "multi-user.target" ];
     after = [ "libvirtd.service" "assemble-games-raid.service" ];
     path = [ pkgs.libvirt ];
     script = ''
+      virsh define /etc/libvirt/qemu/krash3-vm.xml 2>/dev/null || true
       virsh start krash3-vm 2>/dev/null || true
     '';
     serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };

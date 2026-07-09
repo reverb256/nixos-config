@@ -265,7 +265,13 @@ let
   '';
 
   # udev rule body (vendor list from params).
+  # IMPORTANT: udev ATTR{idVendor} is the raw hex WITHOUT the 0x prefix
+  # (e.g. "3537", not "0x3537"), so the udev match list must strip 0x.
+  # The libvirt XML (and the hotplug attach-device XML) still need 0x, so we
+  # keep both forms.
   usbVendorList = lib.concatMapStringsSep "|" (usb: usb.vendor) params.vm.usbs;
+  usbVendorListUdev = lib.concatMapStringsSep "|"
+    (usb: lib.removePrefix "0x" usb.vendor) params.vm.usbs;
 in
 {
   # Write the generated XML to the path libvirtd actually loads on NixOS
@@ -290,9 +296,10 @@ in
   environment.etc."libvirt/hooks/qemu".mode = "0755";
 
   # udev rule: fire hotplug script on USB add/remove for our devices.
+  # udev ATTR{idVendor} is raw hex (no 0x), hence usbVendorListUdev.
   services.udev.extraRules = ''
-    SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="${usbVendorList}", RUN+="${hotplugScript}/bin/krash3-usb-hotplug add %k $attr{idVendor} $attr{idProduct}"
-    SUBSYSTEM=="usb", ACTION=="remove", ATTR{idVendor}=="${usbVendorList}", RUN+="${hotplugScript}/bin/krash3-usb-hotplug remove %k $attr{idVendor} $attr{idProduct}"
+    SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="${usbVendorListUdev}", RUN+="${hotplugScript}/bin/krash3-usb-hotplug add %k $attr{idVendor} $attr{idProduct}"
+    SUBSYSTEM=="usb", ACTION=="remove", ATTR{idVendor}=="${usbVendorListUdev}", RUN+="${hotplugScript}/bin/krash3-usb-hotplug remove %k $attr{idVendor} $attr{idProduct}"
   '';
 
   system.activationScripts.krash3-vm-define = lib.mkAfter ''
