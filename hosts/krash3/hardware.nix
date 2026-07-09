@@ -41,6 +41,9 @@ in {
     #     declarative-vm.nix. Never add 1022:43ee back here.
     "vfio-pci.ids=${pci.gpu.vendor}:${pci.gpu.device},${pci.gpuAudio.vendor}:${pci.gpuAudio.device},1022:149c"
     "vfio-pci.disable_idle_d3=1"
+    # AMD VFIO stability (prevents 500%+ qemu CPU / reset storms)
+    "pcie_aspm=off"
+    "kvm_amd.msr_filter=0"
     "video=efifb:off" "console=ttyS0,115200"
   ];
   boot.initrd.availableKernelModules = [ "xhci_pci" "ahci" "usbhid" "uas" "usb_storage" "sd_mod" ];
