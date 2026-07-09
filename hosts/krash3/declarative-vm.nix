@@ -157,7 +157,6 @@ let
         <on_crash>restart</on_crash>
         <devices>
           <emulator>/run/current-system/sw/bin/qemu-system-x86_64</emulator>
-          <graphics type='none'/>
           <controller type='sata' index='0'>
             <address type='pci' domain='0x0000' bus='0x00' slot='0x1f' function='0x2'/>
           </controller>
