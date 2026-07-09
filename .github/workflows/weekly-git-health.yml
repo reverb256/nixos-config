@@ -16,7 +16,7 @@ jobs:
           echo "**Flake:** $(git log --oneline -1)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Stale branches (merged to main)" >> $GITHUB_STEP_SUMMARY
-          git branch -r --merged origin/main | grep -v "origin/main\|origin/HEAD\|origin/prod" | while read b; do
+          git branch -r --merged origin/main | grep -v "origin/main\|origin/HEAD" | while read b; do
             echo "- $b" >> $GITHUB_STEP_SUMMARY
           done
           echo "" >> $GITHUB_STEP_SUMMARY

@@ -9,7 +9,7 @@ just check              # Quick flake validation (no build)
 just switch             # Apply to local host
 just deploy [<host>]    # Build + deploy to all or specific host
 just rollback           # Rollback local host
-just status             # Git status + prod alignment
+just status             # Git status + main alignment
 just health             # Cluster connectivity overview
 just new-worktree <NNN> # Create worktree for issue NNN
 ```
@@ -21,14 +21,13 @@ just new-worktree <NNN> # Create worktree for issue NNN
 ### Branch Model
 
 ```
-main — Integration branch (PRs land here, CI validates)
-prod  — Stable deployment branch (what the cluster actually runs)
+main — Integration AND production branch (PRs land here, CI validates, deployed state tracks main HEAD)
 issue-NNN-* — All new work, only in worktrees under /data/projects/own/
 ```
 
 - /etc/nixos on ALL nodes stays on `main` (never a feature branch)
-- The deployed cluster state = `prod` branch
-- All changes go through PR → main (CI validates) → prod (deploy gate) → cluster
+- The deployed cluster state = `main` HEAD after `just deploy`
+- All changes go through PR → main (CI validates) → cluster via `just deploy`
 
 ### Default: Kelos-Powered (delegated to AI agents)
 
@@ -36,7 +35,7 @@ issue-NNN-* — All new work, only in worktrees under /data/projects/own/
 2. **Kelos handles the rest** — agent creates worktree, implements, pushes branch, opens PR
 3. **Review the PR** — human reviews, requests changes via comments
 4. **Merge** — squash-merge via GitHub UI into `main`
-5. **Deploy** — merge `main` → `prod`, then `just deploy`
+5. **Deploy** — `just deploy` directly from `main` HEAD
 
 ### Manual Fallback (exploratory/architectural work)
 
@@ -69,7 +68,7 @@ gh pr create --base main --head issue-NNN-desc --title "type: description (#NNN)
 2. **Worktrees** under `/data/projects/own/` are the ONLY development target
 3. `/etc/nixos` tracks `main` on all hosts (never a feature branch)
 4. `just deploy` builds closures and copies them to remote hosts via `nix-copy-closure` + `switch-to-configuration`
-5. The `prod` branch tracks the deployed cluster state
+5. The deployed cluster state = `main` HEAD as last copied via `just deploy` (no separate `prod` branch)
 
 > NFS has been removed cluster-wide. See `modules/services/k8s-nix-deploy.nix` for the remote deployment mechanism.
 
@@ -707,8 +706,8 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 
 ---
 
-**Version**: 9.2 | **Last Updated:** 2026-05-23
-**Changes**: Updated from 2026-05-16 to 2026-06-02. Full agenix→sops-nix migration complete. Stale plan docs flagged per Pocock Rule. INDEX.md reality-check refreshed.
+**Version**: 9.3 | **Last Updated:** 2026-07-08
+**Changes**: Updated from 2026-05-23 to 2026-07-08. Reconciled `origin/prod`: deleted redundant branch, updated AGENTS.md + justfile + weekly-git-health.yml to reflect actual deploy flow (`just deploy` from `main` HEAD). Audit fixes (PR #273) and stash triage (umbrella #274) shipped.
 
 ## Known Frictions & Workarounds (2026-05-18)
 
