@@ -102,7 +102,7 @@ in {
   systemd.services.krash3-vm-agent-health = {
     wantedBy = [ "multi-user.target" ];
     after = [ "libvirt-autostart-windows.service" ];
-    path = [ pkgs.libvirt pkgs.jq ];
+    path = [ pkgs.libvirt pkgs.jq pkgs.coreutils ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
@@ -112,27 +112,27 @@ in {
       export LIBVIRT_URI=qemu:///system
       DOM="krash3-vm"
       ping_agent() {
-        out=$(sudo virsh qemu-agent-command "$DOM" '{"execute":"guest-ping"}' 2>/dev/null)
+        out=$(virsh qemu-agent-command "$DOM" '{"execute":"guest-ping"}' 2>/dev/null)
         echo "$out" | grep -q '"return"'
       }
       # Trivial exec probe with a hard wall-clock timeout. Returns 0 if exec
       # completes, 1 if it hangs/fails. Uses `timeout` so a wedged exec can't
       # block the whole service.
       exec_ok() {
-        sudo timeout 12 virsh qemu-agent-command "$DOM" \
+        timeout 12 virsh qemu-agent-command "$DOM" \
           '{"execute":"guest-exec","arguments":{"path":"C:\\Windows\\System32\\cmd.exe","arg":["/c","echo ga-probe"],"capture-output":true}}' \
           >/dev/null 2>&1
       }
       # Graceful VM reset — the only host lever that restores a wedged qemu-ga.
       reset_guest() {
         echo "guest-agent: wedge/down — graceful VM reset to restore qemu-ga"
-        sudo virsh reset "$DOM" >/dev/null 2>&1 || sudo virsh destroy "$DOM" >/dev/null 2>&1
+        virsh reset "$DOM" >/dev/null 2>&1 || virsh destroy "$DOM" >/dev/null 2>&1
         sleep 8
-        sudo virsh start "$DOM" >/dev/null 2>&1 || true
+        virsh start "$DOM" >/dev/null 2>&1 || true
         sleep 20
       }
       # Only act if the domain is actually running.
-      sudo virsh domstate "$DOM" 2>/dev/null | grep -q running || { echo "guest not running, skip"; exit 0; }
+      virsh domstate "$DOM" 2>/dev/null | grep -q running || { echo "guest not running, skip"; exit 0; }
       if ping_agent && exec_ok; then
         echo "guest-agent: healthy (ping + exec)"
         exit 0
@@ -145,7 +145,7 @@ in {
       fi
       # ping failed entirely
       echo "guest-agent: down — attempt in-guest qemu-ga restart"
-      sudo virsh qemu-agent-command "$DOM" "{\"execute\":\"guest-exec\",\"arguments\":{\"path\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"arg\":[\"/c\",\"net stop qemu-guest-agent & net start qemu-guest-agent\"],\"capture-output\":true}}" >/dev/null 2>&1 || true
+      virsh qemu-agent-command "$DOM" "{\"execute\":\"guest-exec\",\"arguments\":{\"path\":\"C:\\Windows\\System32\\cmd.exe\",\"arg\":[\"/c\",\"net stop qemu-guest-agent & net start qemu-guest-agent\"],\"capture-output\":true}}" >/dev/null 2>&1 || true
       sleep 10
       if ping_agent; then
         echo "guest-agent: recovered"
@@ -197,12 +197,12 @@ in {
       fi
       # Probe the guest for E: via qemu-agent (bounded so a wedged exec can't hang us)
       check_e() {
-        sudo timeout 15 virsh qemu-agent-command "$DOM" '{"execute":"guest-exec","arguments":{"path":"C:\\Windows\\System32\\cmd.exe","arg":["/c","powershell -command \"Get-Volume -DriveLetter E -ErrorAction SilentlyContinue | Select -ExpandProperty HealthStatus\""],"capture-output":true}}' 2>/dev/null \
+        timeout 15 virsh qemu-agent-command "$DOM" '{"execute":"guest-exec","arguments":{"path":"C:\\Windows\\System32\\cmd.exe","arg":["/c","powershell -command \"Get-Volume -DriveLetter E -ErrorAction SilentlyContinue | Select -ExpandProperty HealthStatus\""],"capture-output":true}}' 2>/dev/null \
           | ${pkgs.jq}/bin/jq -r '.return' 2>/dev/null
       }
       # Does a games volume exist under a DIFFERENT letter? (mount-manager drift)
       find_games() {
-        sudo timeout 15 virsh qemu-agent-command "$DOM" '{"execute":"guest-exec","arguments":{"path":"C:\\Windows\\System32\\cmd.exe","arg":["/c","powershell -command \"$v=(Get-Volume | Where-Object { $_.DriveLetter -ne [char]67 -and $_.DriveLetter -ne [char]69 -and $_.Size -gt 1TB }); if($v){$v.DriveLetter} else {$null}\""],"capture-output":true}}' 2>/dev/null \
+        timeout 15 virsh qemu-agent-command "$DOM" '{"execute":"guest-exec","arguments":{"path":"C:\\Windows\\System32\\cmd.exe","arg":["/c","powershell -command \"$v=(Get-Volume | Where-Object { $_.DriveLetter -ne [char]67 -and $_.DriveLetter -ne [char]69 -and $_.Size -gt 1TB }); if($v){$v.DriveLetter} else {$null}\""],"capture-output":true}}' 2>/dev/null \
           | ${pkgs.jq}/bin/jq -r '.return' 2>/dev/null
       }
       OUT=$(check_e)
@@ -220,7 +220,7 @@ in {
       GAMES=$(find_games)
       if [ -n "$GAMES" ] && [ "$GAMES" != "E" ]; then
         echo "Games volume found on $GAMES — reassigning to E:"
-        sudo timeout 15 virsh qemu-agent-command "$DOM" "{\"execute\":\"guest-exec\",\"arguments\":{\"path\":\"C:\\Windows\\System32\\cmd.exe\",\"arg\":[\"/c\",\"echo select volume $GAMES > C:\\dk.txt & echo assign letter=E noerr >> C:\\dk.txt & diskpart /s C:\\dk.txt\"],\"capture-output\":true}}" >/dev/null 2>&1 || true
+        timeout 15 virsh qemu-agent-command "$DOM" "{\"execute\":\"guest-exec\",\"arguments\":{\"path\":\"C:\\Windows\\System32\\cmd.exe\",\"arg\":[\"/c\",\"echo select volume $GAMES > C:\\dk.txt & echo assign letter=E noerr >> C:\\dk.txt & diskpart /s C:\\dk.txt\"],\"capture-output\":true}}" >/dev/null 2>&1 || true
         sleep 5
       fi
       # Final probe
