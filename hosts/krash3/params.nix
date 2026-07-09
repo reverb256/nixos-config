@@ -16,13 +16,16 @@
       function = "0x1";
     };
     usb = {
-      # Whole-controller PCI passthrough for the isolated onboard USB controller
-      # (0000:0a:00.3, 1022:149c, group 20, alone in IOMMU group) — any device
-      # on those ports passes through automatically.  The chipset controller
-      # (02:00.0, group 15, NIC-entangled) cannot be passed; devices on those
-      # ports use per-device USB passthrough via `usbs`.
+      # Whole-controller PCI passthrough for BOTH XHCI controllers so USB works
+      # on ANY port, hotplug included:
+      #   - 0a:00.3 (1022:149c, IOMMU group 20 — alone) → onboard ports
+      #   - 02:00.0 (1022:43ee, group 15 — NIC-entangled) → chipset ports
+      # Both are in vfio-pci.ids (hardware.nix). The per-device `usbs` entries
+      # remain as a belt-and-suspenders fallback but are no longer required for
+      # port-agnostic passthrough.
       controllers = [
         { vendor = "1022"; device = "149c"; bus = "0x0a"; slot = "0x00"; function = "0x3"; }
+        { vendor = "1022"; device = "43ee"; bus = "0x02"; slot = "0x00"; function = "0x0"; }
       ];
     };
   };

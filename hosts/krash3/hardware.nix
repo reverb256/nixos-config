@@ -33,12 +33,16 @@ in {
   boot.kernelPackages = pkgs.linuxPackages_latest;
   boot.kernelParams = [
     "amd_iommu=on" "iommu=pt" "kvm.ignore_msrs=1" "pcie_acs_override=downstream"
-    # Pass the isolated onboard USB controller (0000:0a:00.3, 1022:149c, IOMMU
-    # group 20 — alone, no NIC) as a vfio-pci device. Any USB device plugged into
-    # its ports appears in the VM automatically (no whitelist needed). The chipset
-    # controller (0000:02:00.0, 1022:43ee, group 15) shares the NIC and stays on
-    # the host — devices on those ports go through per-device USB passthrough.
-    "vfio-pci.ids=${pci.gpu.vendor}:${pci.gpu.device},${pci.gpuAudio.vendor}:${pci.gpuAudio.device},1022:149c"
+    # Pass BOTH USB controllers as vfio-pci devices so EVERY port auto-passthroughs
+    # to the VM (keyboard, mouse, gamepad, hub — any device, any port, hotplug too).
+    #   - Onboard XHCI (0000:0a:00.3, 1022:149c, IOMMU group 20 — alone, no NIC)
+    #   - Chipset XHCI (0000:02:00.0, 1022:43ee, group 15 — shares 2 Intel NICs
+    #     06:00.0/07:00.0). The NICs also bind to VFIO and are passed to the VM
+    #     unused (acceptable on a dedicated gaming host; the VM uses macvtap/bridges
+    #     on other interfaces). Whole-controller pass avoids the per-device
+    #     startupPolicy='optional' trap where a device not present at VM start is
+    #     silently skipped.
+    "vfio-pci.ids=${pci.gpu.vendor}:${pci.gpu.device},${pci.gpuAudio.vendor}:${pci.gpuAudio.device},1022:149c,1022:43ee"
     "vfio-pci.disable_idle_d3=1"
     "video=efifb:off" "console=ttyS0,115200"
   ];
