@@ -149,9 +149,24 @@ in {
             if instance.proxyPort != null
             then "stratum+tcp://${instance.proxyHost}:${toString instance.proxyPort}"
             else builtins.head instancePools;
+          # Retry power-limit application via writeShellScript (no bash -c).
+          # The leading `+` in ExecStart tells systemd that non-zero exit is allowed.
+          powerLimitScript = pkgs.writeShellScript "peakminer-power-limit-${instance.name}" ''
+            #!/usr/bin/env bash
+            set -e
+            i=0
+            while ! /run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}; do
+              i=$((i+1))
+              if [ "$i" -ge 30 ]; then
+                echo "power limit failed after 30s"
+                exit 1
+              fi
+              sleep 1
+            done
+          '';
           powerLimitArgs =
             if instance.powerLimit != null && cfg.setPowerLimit
-            then "+${pkgs.bash}/bin/bash -c 'i=0; while ! /run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}; do i=$((i+1)); if [ \"$i\" -ge 30 ]; then echo \"power limit failed after 30s\"; exit 1; fi; sleep 1; done'"
+            then "+${powerLimitScript}"
             else "";
           proxyService =
             if instance.proxyPort != null
