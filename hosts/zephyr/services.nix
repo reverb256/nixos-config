@@ -377,7 +377,11 @@ in {
   services.appimage-updater.enable = lib.mkForce false;
 
   services.sops-secrets-registry = {
-    enable = lib.mkForce false;
+    # Enabled: sops-nix now decrypts Hermes bootstrap creds
+    # (/run/secrets/{nvidia,opencode,opencode-go,zai,casdoor-hermes-jwt}-api-key)
+    # which the hermes-cli module wires into Hermes via *-ApiKeyFile.
+    # This replaces the redundant hermes_vault plugin (see memo 2026-07-08).
+    enable = true;
     aiServices = true;
     monitoring = false;
     storage = true;
