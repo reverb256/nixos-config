@@ -8,7 +8,9 @@
     wantedBy = ["multi-user.target"];
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = lib.getExe pkgs.bash + " -c 'chmod 755 ~j_kro'";
+      # Use the list form of ExecStart (no shell, no bash -c). The ~j_kro
+      # tilde would otherwise need shell expansion; use the literal path.
+      ExecStart = [ (lib.getExe' pkgs.coreutils "chmod") "755" "/home/j_kro" ];
       User = "root";
     };
   };

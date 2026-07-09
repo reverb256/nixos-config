@@ -19,7 +19,11 @@ spec:
     spec:
       containers:
       - name: searxng
-        image: searxng/searxng:latest
+        # Pinned per AGENTS.md (no :latest — admission policy).
+        # SearXNG is rolling-release: tag is YYYY.M.D-<git-sha>. Verify this
+        # tag exists in the cluster image cache before deploying; otherwise
+        # pre-pull on the target host: docker pull searxng/searxng:2026.7.8-1412926f5
+        image: searxng/searxng:2026.7.8-1412926f5
         imagePullPolicy: IfNotPresent
         ports:
         - name: http

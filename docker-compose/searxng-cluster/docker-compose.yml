@@ -16,7 +16,7 @@ services:
   # SEARXNG INSTANCE 1 (Primary)
   # ========================================================================
   searxng-1:
-    image: docker.io/searxng/searxng:latest
+    image: docker.io/searxng/searxng:2026.7.8-1412926f5
     container_name: searxng-1
     hostname: searxng-1
     restart: unless-stopped
@@ -68,7 +68,7 @@ services:
   # SEARXNG INSTANCE 2 (Secondary)
   # ========================================================================
   searxng-2:
-    image: docker.io/searxng/searxng:latest
+    image: docker.io/searxng/searxng:2026.7.8-1412926f5
     container_name: searxng-2
     hostname: searxng-2
     restart: unless-stopped
@@ -114,7 +114,7 @@ services:
   # SEARXNG INSTANCE 3 (Tertiary)
   # ========================================================================
   searxng-3:
-    image: docker.io/searxng/searxng:latest
+    image: docker.io/searxng/searxng:2026.7.8-1412926f5
     container_name: searxng-3
     hostname: searxng-3
     restart: unless-stopped
