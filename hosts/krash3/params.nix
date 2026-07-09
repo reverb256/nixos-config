@@ -61,7 +61,7 @@
         type = "block";
         target = "vdb";
         source = "/dev/md0";
-        cache = "writeback";
+        cache = "none";
       }
     ];
     
