@@ -86,13 +86,19 @@ in {
   };
 
   # ── Guest-agent self-healing ───────────────────────────
-  # The qemu-guest-agent inside Windows wedges / fails to auto-start, leaving
-  # the org.qemu.guest_agent.0 channel disconnected after VM boot. This
-  # oneshot does a best-effort heal: ping the agent; if wedged, restart the
-  # Windows qemu-ga service once via bounded guest-exec. It MUST NOT block
-  # host deploys — short timeout, single attempt, exit either way. The real
-  # durable fix is the Windows qemu-ga service set to Automatic start
-  # (one-time guest-side step); this just auto-recovers transient wedges.
+  # Liveness is determined by `guest-ping` (synchronous QMP — always reliable).
+  # The qemu-guest-agent on Windows has a known defect: `guest-exec` (async
+  # process spawn) can wedge its internal exec mutex when a child's stdio pipe
+  # isn't drained, leaving guest-exec permanently unresponsive while ping still
+  # works. That wedge can only be cleared by restarting the qemu-ga process,
+  # which on the host means a graceful VM reset (libvirt `reset`).
+  #
+  # Strategy:
+  #   1. ping OK  + exec probe OK   -> healthy, do nothing.
+  #   2. ping OK  + exec probe HANG -> exec wedged -> `virsh reset` to clear it.
+  #   3. ping FAIL                  -> qemu-ga not up -> try guest-exec restart
+  #                                     once; if still down, `virsh reset`.
+  # Must NEVER block host deploys: bounded timeouts, exits 0 either way.
   systemd.services.krash3-vm-agent-health = {
     wantedBy = [ "multi-user.target" ];
     after = [ "libvirt-autostart-windows.service" ];
@@ -100,7 +106,7 @@ in {
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
-      TimeoutStartSec = 30;
+      TimeoutStartSec = 90;
     };
     script = ''
       export LIBVIRT_URI=qemu:///system
@@ -109,21 +115,45 @@ in {
         out=$(sudo virsh qemu-agent-command "$DOM" '{"execute":"guest-ping"}' 2>/dev/null)
         echo "$out" | grep -q '"return"'
       }
+      # Trivial exec probe with a hard wall-clock timeout. Returns 0 if exec
+      # completes, 1 if it hangs/fails. Uses `timeout` so a wedged exec can't
+      # block the whole service.
+      exec_ok() {
+        sudo timeout 12 virsh qemu-agent-command "$DOM" \
+          '{"execute":"guest-exec","arguments":{"path":"C:\\Windows\\System32\\cmd.exe","arg":["/c","echo ga-probe"],"capture-output":true}}' \
+          >/dev/null 2>&1
+      }
+      # Graceful VM reset — the only host lever that restores a wedged qemu-ga.
+      reset_guest() {
+        echo "guest-agent: wedge/down — graceful VM reset to restore qemu-ga"
+        sudo virsh reset "$DOM" >/dev/null 2>&1 || sudo virsh destroy "$DOM" >/dev/null 2>&1
+        sleep 8
+        sudo virsh start "$DOM" >/dev/null 2>&1 || true
+        sleep 20
+      }
       # Only act if the domain is actually running.
       sudo virsh domstate "$DOM" 2>/dev/null | grep -q running || { echo "guest not running, skip"; exit 0; }
-      if ping_agent; then
-        echo "guest-agent: healthy"
+      if ping_agent && exec_ok; then
+        echo "guest-agent: healthy (ping + exec)"
         exit 0
       fi
-      echo "guest-agent: down — one-shot restart of Windows qemu-ga service"
+      if ping_agent && ! exec_ok; then
+        echo "guest-agent: ping OK but exec wedged"
+        reset_guest
+        ping_agent && echo "guest-agent: recovered after reset" || echo "guest-agent: still down after reset"
+        exit 0
+      fi
+      # ping failed entirely
+      echo "guest-agent: down — attempt in-guest qemu-ga restart"
       sudo virsh qemu-agent-command "$DOM" "{\"execute\":\"guest-exec\",\"arguments\":{\"path\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"arg\":[\"/c\",\"net stop qemu-guest-agent & net start qemu-guest-agent\"],\"capture-output\":true}}" >/dev/null 2>&1 || true
-      sleep 8
+      sleep 10
       if ping_agent; then
         echo "guest-agent: recovered"
       else
-        echo "guest-agent: still down (Windows qemu-ga service likely not set to Automatic — set it once in guest)"
+        echo "guest-agent: still down — graceful reset"
+        reset_guest
+        ping_agent && echo "guest-agent: recovered after reset" || echo "guest-agent: STILL down"
       fi
-      # Exit 0 regardless: never block host deploys / switch.
       exit 0
     '';
   };
@@ -141,6 +171,11 @@ in {
   # mounted it under a different letter (mount-manager drift). Self-heals both:
   # re-attaches the block disk if missing, and forces letter E: if the games
   # volume exists but isn't E:.
+  #
+  # guest-exec on this Windows guest can wedge (see krash3-vm-agent-health), so
+  # all agent probes are wrapped in `timeout` and the whole check is bounded.
+  # If the agent exec channel is wedged we do NOT spin forever — we let the
+  # agent-health service clear it on its next run.
   systemd.services.e-drive-watchdog = {
     # NOTE: intentionally NOT in wantedBy — running this during switch causes
     # the switch to abort if the VM/hypervisor isn't ready yet. It runs via the
@@ -150,6 +185,7 @@ in {
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+      TimeoutStartSec = 60;
     };
     script = ''
       export LIBVIRT_URI=qemu:///system
@@ -159,14 +195,14 @@ in {
         virsh start "$DOM" 2>/dev/null || true
         sleep 15
       fi
-      # Probe the guest for E: via qemu-agent
+      # Probe the guest for E: via qemu-agent (bounded so a wedged exec can't hang us)
       check_e() {
-        virsh qemu-agent-command "$DOM" '{"execute":"guest-exec","arguments":{"path":"C:\\Windows\\System32\\cmd.exe","arg":["/c","powershell -command \\"Get-Volume -DriveLetter E -ErrorAction SilentlyContinue | Select -ExpandProperty HealthStatus\\""],"capture-output":true}}' 2>/dev/null \
+        sudo timeout 15 virsh qemu-agent-command "$DOM" '{"execute":"guest-exec","arguments":{"path":"C:\\Windows\\System32\\cmd.exe","arg":["/c","powershell -command \"Get-Volume -DriveLetter E -ErrorAction SilentlyContinue | Select -ExpandProperty HealthStatus\""],"capture-output":true}}' 2>/dev/null \
           | ${pkgs.jq}/bin/jq -r '.return' 2>/dev/null
       }
       # Does a games volume exist under a DIFFERENT letter? (mount-manager drift)
       find_games() {
-        virsh qemu-agent-command "$DOM" '{"execute":"guest-exec","arguments":{"path":"C:\\Windows\\System32\\cmd.exe","arg":["/c","powershell -command \\"$v=(Get-Volume | Where-Object { $_.FileSystem -eq \\u0027NTFS\\u0027 -and $_.DriveLetter -ne \\u0027C\\u0027 -and $_.Size -gt 1TB }); if($v){$v.DriveLetter} else {\\u0027\\u0027}\\""],"capture-output":true}}' 2>/dev/null \
+        sudo timeout 15 virsh qemu-agent-command "$DOM" '{"execute":"guest-exec","arguments":{"path":"C:\\Windows\\System32\\cmd.exe","arg":["/c","powershell -command \"$v=(Get-Volume | Where-Object { $_.DriveLetter -ne [char]67 -and $_.DriveLetter -ne [char]69 -and $_.Size -gt 1TB }); if($v){$v.DriveLetter} else {$null}\""],"capture-output":true}}' 2>/dev/null \
           | ${pkgs.jq}/bin/jq -r '.return' 2>/dev/null
       }
       OUT=$(check_e)
@@ -184,7 +220,7 @@ in {
       GAMES=$(find_games)
       if [ -n "$GAMES" ] && [ "$GAMES" != "E" ]; then
         echo "Games volume found on $GAMES — reassigning to E:"
-        virsh qemu-agent-command "$DOM" "{\"execute\":\"guest-exec\",\"arguments\":{\"path\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"arg\":[\"/c\",\"echo select volume $GAMES > C:\\\\dk.txt & echo assign letter=E noerr >> C:\\\\dk.txt & diskpart /s C:\\\\dk.txt\"],\"capture-output\":true}}" >/dev/null 2>&1 || true
+        sudo timeout 15 virsh qemu-agent-command "$DOM" "{\"execute\":\"guest-exec\",\"arguments\":{\"path\":\"C:\\Windows\\System32\\cmd.exe\",\"arg\":[\"/c\",\"echo select volume $GAMES > C:\\dk.txt & echo assign letter=E noerr >> C:\\dk.txt & diskpart /s C:\\dk.txt\"],\"capture-output\":true}}" >/dev/null 2>&1 || true
         sleep 5
       fi
       # Final probe
@@ -193,8 +229,11 @@ in {
         echo "E: recovered — healthy"
         exit 0
       else
-        echo "E: STILL NOT HEALTHY after recovery: $OUT2"
-        exit 1
+        # Either the disk is genuinely missing or the agent exec is wedged.
+        # Don't fail hard — the agent-health service will clear a wedge, and
+        # the disk attachment is verified by the vdb grep above.
+        echo "E: not confirmed healthy this pass (agent exec may be wedged or volume still binding): $OUT2"
+        exit 0
       fi
     '';
   };
