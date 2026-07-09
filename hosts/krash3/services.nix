@@ -135,16 +135,18 @@ in {
   ];
 
   # ── E: drive watchdog ───────────────────────────────────
-  # Verifies from INSIDE the guest that E: is mounted/healthy. Since E: is now
-  # a direct virtio-blk disk on /dev/md0p1 (no iSCSI target), the only failure
-  # mode is the disk not being attached to the running domain (e.g. after a
-  # manual VM redefinition). Self-heals by re-attaching the block disk.
+  # Verifies from INSIDE the guest that E: is mounted/healthy. E: is a direct
+  # virtio-blk disk on /dev/md0p1 (no iSCSI target), so the only failure modes
+  # are: (a) the disk not attached to the running domain, or (b) Windows
+  # mounted it under a different letter (mount-manager drift). Self-heals both:
+  # re-attaches the block disk if missing, and forces letter E: if the games
+  # volume exists but isn't E:.
   systemd.services.e-drive-watchdog = {
     # NOTE: intentionally NOT in wantedBy — running this during switch causes
     # the switch to abort if the VM/hypervisor isn't ready yet. It runs via the
     # timer (e-drive-watchdog.timer) after boot, when the VM is up.
     after = [ "libvirtd.service" "assemble-games-raid.service" ];
-    path = [ pkgs.libvirt pkgs.qemu ];
+    path = [ pkgs.libvirt pkgs.qemu pkgs.jq ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
@@ -158,11 +160,16 @@ in {
         sleep 15
       fi
       # Probe the guest for E: via qemu-agent
-      check() {
-        virsh qemu-agent-command "$DOM" '{"execute":"guest-exec","arguments":{"path":"C:\\Windows\\System32\\cmd.exe","arg":["/c","powershell -command \"Get-Volume -DriveLetter E -ErrorAction SilentlyContinue | Select -ExpandProperty HealthStatus\""],"capture-output":true}}' 2>/dev/null \
+      check_e() {
+        virsh qemu-agent-command "$DOM" '{"execute":"guest-exec","arguments":{"path":"C:\\Windows\\System32\\cmd.exe","arg":["/c","powershell -command \\"Get-Volume -DriveLetter E -ErrorAction SilentlyContinue | Select -ExpandProperty HealthStatus\\""],"capture-output":true}}' 2>/dev/null \
           | ${pkgs.jq}/bin/jq -r '.return' 2>/dev/null
       }
-      OUT=$(check)
+      # Does a games volume exist under a DIFFERENT letter? (mount-manager drift)
+      find_games() {
+        virsh qemu-agent-command "$DOM" '{"execute":"guest-exec","arguments":{"path":"C:\\Windows\\System32\\cmd.exe","arg":["/c","powershell -command \\"$v=(Get-Volume | Where-Object { $_.FileSystem -eq \\u0027NTFS\\u0027 -and $_.DriveLetter -ne \\u0027C\\u0027 -and $_.Size -gt 1TB }); if($v){$v.DriveLetter} else {\\u0027\\u0027}\\""],"capture-output":true}}' 2>/dev/null \
+          | ${pkgs.jq}/bin/jq -r '.return' 2>/dev/null
+      }
+      OUT=$(check_e)
       if echo "$OUT" | grep -qi "Healthy"; then
         echo "E: healthy — no action needed"
         exit 0
@@ -171,10 +178,17 @@ in {
       # Re-attach the block disk if missing from the running domain
       if ! virsh dumpxml "$DOM" 2>/dev/null | grep -q "vdb"; then
         virsh attach-disk "$DOM" --type block --source /dev/md0p1 --target vdb --persistent 2>&1 || true
+        sleep 5
       fi
-      sleep 5
+      # If the games volume exists but under another letter, force E: via diskpart
+      GAMES=$(find_games)
+      if [ -n "$GAMES" ] && [ "$GAMES" != "E" ]; then
+        echo "Games volume found on $GAMES — reassigning to E:"
+        virsh qemu-agent-command "$DOM" "{\"execute\":\"guest-exec\",\"arguments\":{\"path\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"arg\":[\"/c\",\"echo select volume $GAMES > C:\\\\dk.txt & echo assign letter=E noerr >> C:\\\\dk.txt & diskpart /s C:\\\\dk.txt\"],\"capture-output\":true}}" >/dev/null 2>&1 || true
+        sleep 5
+      fi
       # Final probe
-      OUT2=$(check)
+      OUT2=$(check_e)
       if echo "$OUT2" | grep -qi "Healthy"; then
         echo "E: recovered — healthy"
         exit 0
