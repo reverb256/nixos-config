@@ -63,3 +63,10 @@ void-config/
 .yarn/*
 .yarn-integrity
 void-mklive/
+
+# Editor backups + patch-rejection artifacts (locked in 2026-07-08, #277)
+*.bak*
+*.swp
+*.orig
+*.rej
+*~
