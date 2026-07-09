@@ -186,30 +186,30 @@ in {
            "Mod+Alt+V".action = spawn-sh "voxtype record toggle";
  
            # Remove redundant Mod+K (Mod+Alt+Space already opens settings)
-           "Mod+Space".action = spawn "noctalia msg panel-toggle launcher";
-           "Mod+Ctrl+E".action = spawn "noctalia msg panel-toggle launcher";
-           "Mod+Ctrl+Slash".action = spawn "noctalia msg panel-toggle launcher";
-           "Mod+Shift+Slash".action = spawn "noctalia msg window-switcher";
+           "Mod+Space".action = spawn "noctalia" "msg" "panel-toggle" "launcher";
+           "Mod+Ctrl+E".action = spawn "noctalia" "msg" "panel-toggle" "launcher";
+           "Mod+Ctrl+Slash".action = spawn "noctalia" "msg" "panel-toggle" "launcher";
+           "Mod+Shift+Slash".action = spawn "noctalia" "msg" "window-switcher";
  
            "Mod+S".action = spawn "scratchpad-toggle";
-           "Mod+Comma".action = spawn "noctalia msg notification-clear-active";
-           "Mod+Alt+Space".action = spawn "noctalia msg settings-toggle";
-           "Mod+Shift+Space".action = spawn "noctalia msg bar-toggle";
-           "Mod+Ctrl+A".action = spawn "noctalia msg panel-toggle control-center audio";
-           "Mod+Ctrl+W".action = spawn "noctalia msg panel-toggle control-center network";
-           "Mod+Ctrl+B".action = spawn "noctalia msg panel-toggle control-center bluetooth";
-           "Mod+Ctrl+I".action = spawn "noctalia msg caffeine-toggle";
-           "Mod+Ctrl+N".action = spawn "noctalia msg nightlight-toggle";
-           "Mod+Ctrl+D".action = spawn "noctalia msg theme-mode-toggle";
-           "Mod+Ctrl+T".action = spawn "noctalia msg panel-toggle control-center system";
-           "Mod+Ctrl+S".action = spawn "noctalia msg panel-toggle control-center share";
-           "Mod+Ctrl+L".action = spawn "noctalia msg session lock";
-           "Mod+Ctrl+O".action = spawn "noctalia msg panel-toggle control-center";
-           "Mod+Ctrl+Shift+W".action = spawn "noctalia msg wallpaper-random";
-           "Mod+Shift+Comma".action = spawn "noctalia msg notification-clear-active";
-           "Mod+Ctrl+Comma".action = spawn "noctalia msg notification-dnd-toggle";
-           "Mod+Alt+Comma".action = spawn "noctalia msg notification-dnd-status";
-           "Mod+Alt+Shift+Comma".action = spawn "noctalia msg notification-invoke-latest";
+           "Mod+Comma".action = spawn "noctalia" "msg" "notification-clear-active";
+           "Mod+Alt+Space".action = spawn "noctalia" "msg" "settings-toggle";
+           "Mod+Shift+Space".action = spawn "noctalia" "msg" "bar-toggle";
+           "Mod+Ctrl+A".action = spawn "noctalia" "msg" "panel-toggle" "control-center" "audio";
+           "Mod+Ctrl+W".action = spawn "noctalia" "msg" "panel-toggle" "control-center" "network";
+           "Mod+Ctrl+B".action = spawn "noctalia" "msg" "panel-toggle" "control-center" "bluetooth";
+           "Mod+Ctrl+I".action = spawn "noctalia" "msg" "caffeine-toggle";
+           "Mod+Ctrl+N".action = spawn "noctalia" "msg" "nightlight-toggle";
+           "Mod+Ctrl+D".action = spawn "noctalia" "msg" "theme-mode-toggle";
+           "Mod+Ctrl+T".action = spawn "noctalia" "msg" "panel-toggle" "control-center" "system";
+           "Mod+Ctrl+S".action = spawn "noctalia" "msg" "panel-toggle" "control-center" "share";
+           "Mod+Ctrl+L".action = spawn "noctalia" "msg" "session" "lock";
+           "Mod+Ctrl+O".action = spawn "noctalia" "msg" "panel-toggle" "control-center";
+           "Mod+Ctrl+Shift+W".action = spawn "noctalia" "msg" "wallpaper-random";
+           "Mod+Shift+Comma".action = spawn "noctalia" "msg" "notification-clear-active";
+           "Mod+Ctrl+Comma".action = spawn "noctalia" "msg" "notification-dnd-toggle";
+           "Mod+Alt+Comma".action = spawn "noctalia" "msg" "notification-dnd-status";
+           "Mod+Alt+Shift+Comma".action = spawn "noctalia" "msg" "notification-invoke-latest";
 
           # Screenshots (smart region, window, fullscreen, color)
           "Print".action = spawn "noctalia" "msg" "screenshot-region";
@@ -351,7 +351,7 @@ in {
           "XF86MonBrightnessUp".action = spawn-sh "noctalia msg brightness-up";
           "XF86MonBrightnessDown".action = spawn-sh "noctalia msg brightness-down";
 
-          "Mod+Escape".action = spawn "noctalia msg panel-toggle session";
+          "Mod+Escape".action = spawn "noctalia" "msg" "panel-toggle" "session";
           "Mod+Ctrl+Escape".action = spawn "systemctl" "suspend";
           "Mod+Shift+Escape".action = quit;
           "Mod+Shift+C".action = spawn "niri" "msg" "action" "load-config-file";
