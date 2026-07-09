@@ -108,14 +108,14 @@
         product = "0x2106";
         bus = "0";
         port = "1";
-        startupPolicy = "mandatory";
+        startupPolicy = "optional";
       }
       {
         vendor = "0x054c";
         product = "0x09cc";
         bus = "0";
         port = "2";
-        startupPolicy = "mandatory";
+        startupPolicy = "optional";
       }
       {
         # Intel Bluetooth
@@ -123,7 +123,7 @@
         product = "0x0029";
         bus = "0";
         port = "3";
-        startupPolicy = "mandatory";
+        startupPolicy = "optional";
       }
       {
         # Logitech USB Receiver (mouse/keyboard unifying) — phys present on host
@@ -131,7 +131,7 @@
         product = "0xc52b";
         bus = "0";
         port = "4";
-        startupPolicy = "mandatory";
+        startupPolicy = "optional";
       }
       {
         # PixArt USB Optical Mouse — phys present on host
@@ -139,7 +139,7 @@
         product = "0x0939";
         bus = "0";
         port = "5";
-        startupPolicy = "mandatory";
+        startupPolicy = "optional";
       }
     ];
   };
