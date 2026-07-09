@@ -83,13 +83,13 @@ in {
   };
 
   # ── Guest-agent self-healing ───────────────────────────
-  # The qemu-guest-agent inside Windows wedges when long/hung guest-exec
-  # commands clog its single serialized response channel (symptom:
-  # `guest-ping`/`guest-info` return "failed to parse JSON" while guest-exec
-  # still spawns pids). This service waits for the VM to come up, then pings
-  # the agent; if it's wedged it force-restarts the Windows qemu-ga service
-  # via a bounded guest-exec and re-checks. Declarative + automatic, so the
-  # agent stays healthy across every VM reboot without manual intervention.
+  # The qemu-guest-agent inside Windows wedges / fails to auto-start, leaving
+  # the org.qemu.guest_agent.0 channel disconnected after VM boot. This
+  # oneshot does a best-effort heal: ping the agent; if wedged, restart the
+  # Windows qemu-ga service once via bounded guest-exec. It MUST NOT block
+  # host deploys — short timeout, single attempt, exit either way. The real
+  # durable fix is the Windows qemu-ga service set to Automatic start
+  # (one-time guest-side step); this just auto-recovers transient wedges.
   systemd.services.krash3-vm-agent-health = {
     wantedBy = [ "multi-user.target" ];
     after = [ "libvirt-autostart-windows.service" ];
@@ -97,36 +97,31 @@ in {
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
-      TimeoutSec = 180;
+      TimeoutStartSec = 30;
     };
     script = ''
       export LIBVIRT_URI=qemu:///system
       DOM="krash3-vm"
       ping_agent() {
         out=$(sudo virsh qemu-agent-command "$DOM" '{"execute":"guest-ping"}' 2>/dev/null)
-        if echo "$out" | grep -q '"return"'; then return 0; else return 1; fi
+        echo "$out" | grep -q '"return"'
       }
-      # Wait for the domain to be running
-      for i in $(seq 1 30); do
-        sudo virsh domstate "$DOM" 2>/dev/null | grep -q running && break
-        sleep 5
-      done
-      # Give the guest agent time to start inside Windows
-      sleep 30
+      # Only act if the domain is actually running.
+      sudo virsh domstate "$DOM" 2>/dev/null | grep -q running || { echo "guest not running, skip"; exit 0; }
       if ping_agent; then
-        echo "guest-agent: healthy on first check"
+        echo "guest-agent: healthy"
         exit 0
       fi
-      echo "guest-agent: wedged — restarting Windows qemu-ga service"
-      # Bounded guest-exec: kill any wedged agent, then start it fresh.
-      sudo virsh qemu-agent-command "$DOM" "{\"execute\":\"guest-exec\",\"arguments\":{\"path\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"arg\":[\"/c\",\"taskkill /f /im qemu-ga.exe & net start qemu-guest-agent\"],\"capture-output\":true}}" >/dev/null 2>&1 || true
-      sleep 15
+      echo "guest-agent: down — one-shot restart of Windows qemu-ga service"
+      sudo virsh qemu-agent-command "$DOM" "{\"execute\":\"guest-exec\",\"arguments\":{\"path\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"arg\":[\"/c\",\"net stop qemu-guest-agent & net start qemu-guest-agent\"],\"capture-output\":true}}" >/dev/null 2>&1 || true
+      sleep 8
       if ping_agent; then
-        echo "guest-agent: recovered after restart"
-        exit 0
+        echo "guest-agent: recovered"
+      else
+        echo "guest-agent: still down (Windows qemu-ga service likely not set to Automatic — set it once in guest)"
       fi
-      echo "guest-agent: still wedged after restart attempt (guest may need a reboot)"
-      exit 1
+      # Exit 0 regardless: never block host deploys / switch.
+      exit 0
     '';
   };
 
