@@ -132,12 +132,13 @@ let
             <target type='virtio' name='org.qemu.guest_agent.0'/>
             <address type='virtio-serial' controller='0' bus='0' port='1'/>
           </channel>
-          <input type='keyboard' bus='ps2'/>
+          <input type='keyboard' bus='usb'/>
           <input type='mouse' bus='usb'/>
           <audio id='1' type='none'/>
           ${networksXml}
           ${gpusXml}
           ${usbsXml}
+          <graphics type='none'/>
           <watchdog model='itco' action='reset'/>
           <memballoon model='virtio'>
             <address type='pci' domain='0x0000' bus='0x09' slot='0x00' function='0x0'/>
