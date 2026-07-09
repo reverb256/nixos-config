@@ -216,6 +216,13 @@ in {
         echo "E: healthy — no action needed"
         exit 0
       fi
+      # Empty/garbled result = transient guest-agent wedge, NOT a real
+      # drive fault. Don't thrash the VM (re-attach vdb / run diskpart) on a
+      # wedge — just skip this pass and let the next tick re-check.
+      if [ -z "$(echo "$OUT" | tr -d '\r\n[:space:]')" ]; then
+        echo "E: agent returned no data (likely transient wedge) — skipping this pass"
+        exit 0
+      fi
       echo "E: NOT healthy (got: $OUT) — attempting recovery"
 
       if ! virsh dumpxml "$DOM" 2>/dev/null | grep -q "vdb"; then
