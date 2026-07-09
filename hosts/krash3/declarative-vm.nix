@@ -4,7 +4,7 @@ let
   params = import ./params.nix;
 
   # Simple XML generator for krash3-vm
-  generateDomainXml = { name, uuid, memory, vcpu, disks, networks, gpus, usbs, nvram }:
+  generateDomainXml = { name, uuid, memory, vcpu, disks, networks, gpus, usbs, usbControllers, nvram }:
     let
       disksXml = lib.concatMapStrings (disk:
       if disk.type == "virtio-file" then ''
@@ -279,6 +279,7 @@ in
     networks = params.vm.networks;
     gpus = params.vm.gpus;
     usbs = params.vm.usbs;
+    usbControllers = params.pci.usb.controllers;
   };
 
   # Hotplug script + libvirt qemu hook (made executable on the PATH).
