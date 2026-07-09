@@ -162,7 +162,10 @@ let
             <address type='virtio-serial' controller='0' bus='0' port='1'/>
           </channel>
           <input type='keyboard' bus='usb'/>
+          <input type='keyboard' bus='ps2'/>
           <input type='mouse' bus='usb'/>
+          <input type='mouse' bus='ps2'/>
+          <input type='tablet' bus='usb'/>
           <audio id='1' type='none'/>
           ${networksXml}
           ${gpusXml}
