@@ -63,7 +63,7 @@
         # in the path, so it survives NixOS rebuilds and reboots by construction.
         type = "block";
         target = "vdb";
-        source = "/dev/md0";
+        source = "/dev/md0p1";
         cache = "none";
       }
     ];
@@ -101,16 +101,55 @@
     usbs = [
       {
         # Intel Bluetooth (8087:0029) — on chipset XHCI controller (02:00.0,
-        # IOMMU group 15). NOT on the VFIO-passthrough controller, so it MUST
-        # use per-device passthrough. The other peripheral devices (Logitech
-        # receiver, Zikway keyboard, PixArt mouse, Sony gamepad) are on the
-        # VFIO-passthrough Matisse controller (0a:00.3) and reach the VM
-        # automatically via the whole-controller PCI passthrough — they do NOT
-        # need per-device entries here.
+        # IOMMU group 15, NIC-entangled). NOT on the VFIO-passthrough Matisse
+        # controller, so it MUST use per-device passthrough. Host can see it
+        # (it appears in `lsusb` / info usbhost) so bus/device addressing works.
         vendor = "0x8087";
         product = "0x0029";
         bus = "1";
         device = "2";
+        startupPolicy = "optional";
+      }
+      {
+        # Zikway HID keyboard (3537:2106) — input device. Passed per-device so
+        # it works REGARDLESS of which physical port it is plugged into. If the
+        # device is on a chipset-port (group 15) the host sees it and binds it;
+        # if it is on a Matisse-port (group 20, VFIO-passed whole-controller)
+        # the host cannot see it and libvirt marks it missing=yes (non-fatal) —
+        # it still arrives via the VFIO controller. Either way the keyboard works.
+        vendor = "0x3537";
+        product = "0x2106";
+        bus = "0";
+        port = "1";
+        startupPolicy = "optional";
+      }
+      {
+        # Sony DualShock 4 gamepad (054c:09cc)
+        vendor = "0x054c";
+        product = "0x09cc";
+        bus = "0";
+        port = "2";
+        startupPolicy = "optional";
+      }
+      {
+        # Logitech Unifying Receiver (046d:c52b) — multi-interface HID
+        # (mouse + keyboard + consumer). Per-device passthrough so it works on
+        # any port. NOTE: the `qemu:del capability='usb-host.hostdevice'` line
+        # that previously stripped the keyboard HID interface has been REMOVED
+        # from this file — without it libvirt uses the `hostdevice=/dev/bus/usb`
+        # path which preserves all interfaces.
+        vendor = "0x046d";
+        product = "0xc52b";
+        bus = "0";
+        port = "4";
+        startupPolicy = "optional";
+      }
+      {
+        # PixArt USB Optical Mouse (04f2:0939)
+        vendor = "0x04f2";
+        product = "0x0939";
+        bus = "0";
+        port = "5";
         startupPolicy = "optional";
       }
     ];
