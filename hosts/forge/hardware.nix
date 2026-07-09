@@ -299,7 +299,11 @@
       after = ["basic.target"];
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo 2>/dev/null || echo \"AMD GPU detection failed\"'";
+        ExecStart = pkgs.writeShellScript "amd-gpu-check" ''
+          #!/usr/bin/env bash
+          PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo 2>/dev/null \
+            || echo "AMD GPU detection failed"
+        '';
         RemainAfterExit = true;
       };
     };
@@ -310,7 +314,11 @@
       after = ["basic.target"];
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo > /tmp/amd-gpu-info.log 2>&1 || true'";
+        ExecStart = pkgs.writeShellScript "amd-gpu-info" ''
+          #!/usr/bin/env bash
+          PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo \
+            > /tmp/amd-gpu-info.log 2>&1 || true
+        '';
         RemainAfterExit = true;
       };
     };

@@ -128,6 +128,20 @@
 
         log_success "Backup completed successfully"
   '';
+  # Wrap shell command (source credentials + read secret + exec) in a
+  # writeShellScript instead of bash -c per AGENTS.md lib helpers rule.
+  # Hoisted to the file-level `let` so systemd.services can reference it
+  # without needing `rec { ... }`.
+  secretWrapper = pkgs.writeShellScript "backup-to-garage-secret-wrapper" ''
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # /etc/backup-to-garage/credentials is already sourced by systemd
+    # via EnvironmentFile below — no need to re-source here.
+    if [ -r ${cfg.secretKeyFile} ]; then
+      export GARAGE_SECRET_KEY="$(cat ${cfg.secretKeyFile})"
+    fi
+    exec ${backupScript}/bin/backup-to-garage
+  '';
 in {
   options.services.backup-to-garage = {
     enable = lib.mkEnableOption "Automated backups to Garage S3";
@@ -210,7 +224,7 @@ in {
         Environment = "PATH=/run/current-system/sw/bin:/run/wrappers/bin";
         ExecStart =
           if cfg.secretKeyFile != null
-          then "${pkgs.bash}/bin/bash -c 'source /etc/backup-to-garage/credentials && export GARAGE_SECRET_KEY=$(cat ${cfg.secretKeyFile}) && exec ${backupScript}/bin/backup-to-garage'"
+          then "${secretWrapper}"
           else "${backupScript}/bin/backup-to-garage";
         EnvironmentFile = "/etc/backup-to-garage/credentials";
         User = "root";
