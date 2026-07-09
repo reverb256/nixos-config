@@ -164,23 +164,14 @@ in {
             owner = "j_kro";
             group = "users";
           };
-          # ai/telegram-bot-token temporarily disabled — sops-install-secrets
-          # can't process this file: `format = "binary"` parses the sops
-          # metadata as JSON and fails on the YAML `data:` key, while
-          # `format = "yaml"` tries to extract a structured key matching
-          # the manifest entry (`ai/telegram-bot-token`) which the file
-          # doesn't have (it's a YAML data-blob, not structured keys).
-          # Re-enable after re-encrypting as JSON or restructuring to have
-          # explicit user keys. Nothing currently reads
-          # `/run/secrets/telegram-bot-token` (grep confirmed no callers).
-          # "ai/telegram-bot-token" = {
-          #   sopsFile = "${inputs.self}/secrets/ai/telegram-bot-token.yaml";
-          #   path = "/run/secrets/telegram-bot-token";
-          #   format = "binary";
-          #   mode = "0444";
-          #   owner = "j_kro";
-          #   group = "users";
-          # };
+          "ai/telegram-bot-token" = {
+            sopsFile = "${inputs.self}/secrets/ai/telegram-bot-token.yaml";
+            path = "/run/secrets/telegram-bot-token";
+            format = "yaml";
+            mode = "0444";
+            owner = "j_kro";
+            group = "users";
+          };
           "ai/xai-access-token" = {
             sopsFile = "${inputs.self}/secrets/ai/xai-access-token.yaml";
             path = "/run/secrets/xai-access-token";
