@@ -1,5 +1,24 @@
 # NixOS Cluster - Agent Guidelines
 
+## 🔴 HARD RULE: DECLARATIVE ONLY — NEVER IMPERATIVE
+
+**ALL persistent NixOS state lives in `.nix` files under git.** Shell commands
+on a running NixOS host are ONLY acceptable for reading state. They are NEVER
+acceptable for: configuring services, fixing bugs, attaching devices, changing
+networking, editing secrets, or "patching" running daemons.
+
+The workflow for ANY NixOS change:
+1. Edit the `.nix` file on zephyr (the source-of-truth host)
+2. Commit + push to central
+3. Deploy via Colmena (`cd /etc/nixos && git add -A && git commit -m "..." && git push && colmena deploy`)
+
+The live host is a *consumer* of the config, not the source of truth. Never
+treat what a running host shows as authoritative — it's a rolled-back snapshot.
+
+**Violation of this rule is the #1 most expensive recurring failure pattern.**
+The user has demanded this be forced. If your first instinct is to SSH into
+a NixOS host and run a command, STOP — find the `.nix` file first.
+
 **Generated:** 2026-05-25 | **Commit:** `83524727` | **Branch:** main
 
 ## Quick Start
