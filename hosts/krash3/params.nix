@@ -16,12 +16,14 @@
       function = "0x1";
     };
     usb = {
-      # Both onboard + chipset XHCI controllers. Passing the whole controller
-      # (not per-device) guarantees EVERY USB device plugged into krash3
-      # (keyboard, mouse, hub, etc.) reaches the guest automatically.
+      # PCI/VFIO passthrough of a USB CONTROLLER is only safe when the
+      # controller is alone in its IOMMU group. The onboard XHCI (0a:00.3)
+      # is in group 20 (isolated) -> safe to pass whole.
+      # The chipset XHCI (02:00.0) shares IOMMU group 15 with the NIC and
+      # bridges -> CANNOT be passed (would take down networking). Its leaf
+      # devices (keyboard/mouse) are passed per-device via `usbs` below.
       controllers = [
-        { vendor = "1022"; device = "149c"; bus = "0x0a"; slot = "0x00"; function = "0x3"; }  # onboard xhci (0a:00.3)
-        { vendor = "1022"; device = "43ee"; bus = "0x02"; slot = "0x00"; function = "0x0"; }  # chipset xhci (02:00.0) — keyboard lives here
+        { vendor = "1022"; device = "149c"; bus = "0x0a"; slot = "0x00"; function = "0x3"; }  # onboard xhci (0a:00.3) — group 20, isolated
       ];
     };
   };
@@ -99,25 +101,29 @@
     
     usbs = [
       {
+        # Zikway HID keyboard — physically on host (chipset XHCI, group 15).
+        # Passed per-device (NOT whole-controller) to avoid IOMMU group 15
+        # entanglement with the NIC. mandatory = never silently dropped.
         vendor = "0x3537";
         product = "0x2106";
         bus = "0";
         port = "1";
-        startupPolicy = "optional";
+        startupPolicy = "mandatory";
       }
       {
         vendor = "0x054c";
         product = "0x09cc";
         bus = "0";
         port = "2";
-        startupPolicy = "optional";
+        startupPolicy = "mandatory";
       }
       {
+        # Intel Bluetooth
         vendor = "0x8087";
         product = "0x0029";
         bus = "0";
         port = "3";
-        startupPolicy = "optional";
+        startupPolicy = "mandatory";
       }
       {
         # Logitech USB Receiver (mouse/keyboard unifying) — phys present on host
@@ -125,7 +131,7 @@
         product = "0xc52b";
         bus = "0";
         port = "4";
-        startupPolicy = "optional";
+        startupPolicy = "mandatory";
       }
       {
         # PixArt USB Optical Mouse — phys present on host
@@ -133,7 +139,7 @@
         product = "0x0939";
         bus = "0";
         port = "5";
-        startupPolicy = "optional";
+        startupPolicy = "mandatory";
       }
     ];
   };

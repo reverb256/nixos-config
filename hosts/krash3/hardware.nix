@@ -33,7 +33,12 @@ in {
   boot.kernelPackages = pkgs.linuxPackages_latest;
   boot.kernelParams = [
     "amd_iommu=on" "iommu=pt" "kvm.ignore_msrs=1" "pcie_acs_override=downstream"
-    "vfio-pci.ids=${pci.gpu.vendor}:${pci.gpu.device},${pci.gpuAudio.vendor}:${pci.gpuAudio.device},1022:149c,1022:43ee"
+    # Onboard XHCI (1022:149c @ 0a:00.3) is in IOMMU group 20 (isolated) ->
+    # safe to bind to vfio and pass whole to the VM. The chipset XHCI
+    # (1022:43ee @ 02:00.0) is in group 15 WITH the NIC -> must NOT be in
+    # vfio-pci.ids (would take down networking). Its devices use per-device
+    # USB passthrough instead.
+    "vfio-pci.ids=${pci.gpu.vendor}:${pci.gpu.device},${pci.gpuAudio.vendor}:${pci.gpuAudio.device},1022:149c"
     "vfio-pci.disable_idle_d3=1"
     "video=efifb:off" "console=ttyS0,115200"
   ];
