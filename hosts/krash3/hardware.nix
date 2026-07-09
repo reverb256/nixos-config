@@ -33,15 +33,12 @@ in {
   boot.kernelPackages = pkgs.linuxPackages_latest;
   boot.kernelParams = [
     "amd_iommu=on" "iommu=pt" "kvm.ignore_msrs=1" "pcie_acs_override=downstream"
-    # No USB controllers in vfio-pci.ids. Both XHCI controllers stay on the
-    # host (xhci_hcd) so the host can see every USB device. Keyboard/mouse are
-    # passed to the VM via PER-DEVICE USB passthrough (libvirt usb-host), which
-    # is robust and avoids whole-controller passthrough failures
-    # ("Device Descriptor Request Failed") seen when passing a controller with
-    # hub topology. Passing a controller also requires it to be alone in its
-    # IOMMU group; the chipset controller (group 15) shares the NIC and cannot
-    # be passed at all.
-    "vfio-pci.ids=${pci.gpu.vendor}:${pci.gpu.device},${pci.gpuAudio.vendor}:${pci.gpuAudio.device}"
+    # Pass the isolated onboard USB controller (0000:0a:00.3, 1022:149c, IOMMU
+    # group 20 — alone, no NIC) as a vfio-pci device. Any USB device plugged into
+    # its ports appears in the VM automatically (no whitelist needed). The chipset
+    # controller (0000:02:00.0, 1022:43ee, group 15) shares the NIC and stays on
+    # the host — devices on those ports go through per-device USB passthrough.
+    "vfio-pci.ids=${pci.gpu.vendor}:${pci.gpu.device},${pci.gpuAudio.vendor}:${pci.gpuAudio.device},1022:149c"
     "vfio-pci.disable_idle_d3=1"
     "video=efifb:off" "console=ttyS0,115200"
   ];

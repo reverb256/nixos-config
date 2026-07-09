@@ -16,9 +16,14 @@
       function = "0x1";
     };
     usb = {
-      # No whole-controller PCI passthrough (see hardware.nix rationale).
-      # Keyboard/mouse are passed per-device via `usbs` below.
-      controllers = [ ];
+      # Whole-controller PCI passthrough for the isolated onboard USB controller
+      # (0000:0a:00.3, 1022:149c, group 20, alone in IOMMU group) — any device
+      # on those ports passes through automatically.  The chipset controller
+      # (02:00.0, group 15, NIC-entangled) cannot be passed; devices on those
+      # ports use per-device USB passthrough via `usbs`.
+      controllers = [
+        { vendor = "1022"; device = "149c"; bus = "0x0a"; slot = "0x00"; function = "0x3"; }
+      ];
     };
   };
 
