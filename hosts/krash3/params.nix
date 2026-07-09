@@ -114,7 +114,6 @@
       # whole-controller VFIO of 0a:00.3 and do not need these). startupPolicy
       # optional so a missing dongle never blocks VM start. Hotplug udev rule
       # re-attaches on plug for chipset ports.
-      { vendor = "0x8087"; product = "0x0029"; startupPolicy = "optional"; } # Intel BT
       { vendor = "0x3537"; product = "0x2106"; startupPolicy = "optional"; } # Zikway dongle base
       { vendor = "0x3537"; product = "0x1098"; startupPolicy = "optional"; } # Zikway XInput iface
       { vendor = "0x3537"; product = "0x100f"; startupPolicy = "optional"; } # Zikway alt iface
