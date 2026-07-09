@@ -1,9 +1,9 @@
 # NixOS Cluster Deployment — GitOps-Based Architecture
 #
 # Architecture:
-#   • /etc/nixos on all hosts tracks prod (deployed state)
+#   • /etc/nixos on all hosts tracks main (deployed state = main HEAD after `just deploy`)
 #   • All development in worktrees under /data/projects/own/nixos-config-NNN
-#   • PR → main (CI validates) → prod (deploy gate) → cluster
+#   • PR → main (CI validates) → cluster via `just deploy` (no separate prod branch)
 #   • Config deployed via nix-copy-closure + SSH switch-to-configuration
 #
 # Quick start:
@@ -313,15 +313,17 @@ status:
     echo "Branch: $(git rev-parse --abbrev-ref HEAD)"
     echo "Commit: $(git log -1 --oneline)"
     echo ""
-    echo "Prod alignment:"
-    PROD=$(git rev-parse origin/prod 2>/dev/null || echo "")
+    echo "Origin alignment (local HEAD vs origin/main):"
+    LOCAL=$(git rev-parse HEAD 2>/dev/null || echo "")
     MAIN=$(git rev-parse origin/main 2>/dev/null || echo "")
-    if [ "$PROD" = "$MAIN" ]; then
-        echo "  prod = main"
-    elif [ -n "$PROD" ]; then
-        echo "  prod is $(git rev-list --count $PROD..$MAIN) commit(s) behind main"
+    if [ "$LOCAL" = "$MAIN" ]; then
+        echo "  local = origin/main"
+    elif [ -n "$LOCAL" ] && [ -n "$MAIN" ]; then
+        AHEAD=$(git rev-list --count $MAIN..$LOCAL)
+        BEHIND=$(git rev-list --count $LOCAL..$MAIN)
+        echo "  local is $AHEAD commit(s) ahead, $BEHIND behind origin/main"
     else
-        echo "  no prod branch"
+        echo "  unable to determine (missing origin/main ref)"
     fi
     echo ""
     echo "Worktrees:"
