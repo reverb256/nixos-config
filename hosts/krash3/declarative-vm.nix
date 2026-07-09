@@ -189,9 +189,6 @@ let
           <memballoon model='virtio'/>
         </devices>
         <seclabel type='none' model='none'/>
-        <qemu:capabilities>
-          <qemu:del capability='usb-host.hostdevice'/>
-        </qemu:capabilities>
       </domain>
     '';
 
@@ -206,7 +203,9 @@ let
   vmName = params.vm.name;
 
   # USB device match-list for the hotplug script's case filter.
-  usbMatchList = lib.concatMapStrings (usb: "${usb.vendor}:${usb.product}|") params.vm.usbs;
+  # udev ATTR{idVendor} is raw hex WITHOUT 0x prefix ("046d" not "0x046d"),
+  # so the case filter must also use raw hex to match.
+  usbMatchList = lib.concatMapStrings (usb: "${lib.removePrefix "0x" usb.vendor}:${lib.removePrefix "0x" usb.product}|") params.vm.usbs;
 
   # Script invoked by udev on USB add/remove. Attaches/detaches the matching
   # device (by vendor:product) to the running VM.
@@ -225,12 +224,16 @@ let
         ;;
       *) exit 0 ;;
     esac
+    # udev passes $attr{idVendor} as raw hex (e.g. "046d") but libvirt XML
+    # needs the 0x prefix ("0x046d"). Prepend it.
+    VENDOR_XML="0x$VENDOR"
+    PRODUCT_XML="0x$PRODUCT"
     DEVXML=$(mktemp)
     cat > "$DEVXML" <<XML
       <hostdev mode='subsystem' type='usb' managed='yes'>
         <source startupPolicy='optional'>
-          <vendor id='$VENDOR'/>
-          <product id='$PRODUCT'/>
+          <vendor id='$VENDOR_XML'/>
+          <product id='$PRODUCT_XML'/>
         </source>
       </hostdev>
     XML
