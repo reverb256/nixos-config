@@ -100,44 +100,17 @@
     
     usbs = [
       {
-        # Zikway HID keyboard — physically on host (chipset XHCI, group 15).
-        # Passed per-device (NOT whole-controller) to avoid IOMMU group 15
-        # entanglement with the NIC. mandatory = never silently dropped.
-        vendor = "0x3537";
-        product = "0x2106";
-        bus = "0";
-        port = "1";
-        startupPolicy = "optional";
-      }
-      {
-        vendor = "0x054c";
-        product = "0x09cc";
-        bus = "0";
-        port = "2";
-        startupPolicy = "optional";
-      }
-      {
-        # Intel Bluetooth
+        # Intel Bluetooth (8087:0029) — on chipset XHCI controller (02:00.0,
+        # IOMMU group 15). NOT on the VFIO-passthrough controller, so it MUST
+        # use per-device passthrough. The other peripheral devices (Logitech
+        # receiver, Zikway keyboard, PixArt mouse, Sony gamepad) are on the
+        # VFIO-passthrough Matisse controller (0a:00.3) and reach the VM
+        # automatically via the whole-controller PCI passthrough — they do NOT
+        # need per-device entries here.
         vendor = "0x8087";
         product = "0x0029";
-        bus = "0";
-        port = "3";
-        startupPolicy = "optional";
-      }
-      {
-        # Logitech USB Receiver (mouse/keyboard unifying) — phys present on host
-        vendor = "0x046d";
-        product = "0xc52b";
-        bus = "0";
-        port = "4";
-        startupPolicy = "optional";
-      }
-      {
-        # PixArt USB Optical Mouse — phys present on host
-        vendor = "0x04f2";
-        product = "0x0939";
-        bus = "0";
-        port = "5";
+        bus = "1";
+        device = "2";
         startupPolicy = "optional";
       }
     ];
