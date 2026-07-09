@@ -7,18 +7,21 @@
 > 2026-07-08 migration
 > (`zephyr: enable sops-secrets-registry; migrate Hermes creds to sops-nix`)
 > **`zephyr` sets `enable = true`** with feature flags scoped to
-> `aiServices`, `kubernetes`, `cloud`, `storage`, `mining`, `automation`,
-> `ci`, and `selfHosting` (`monitoring = false`). This resolves **89
-> secrets** on zephyr and `nixos-rebuild switch` now decrypts them at
-> activation. The Hermes bootstrap credential set (`nvidia`,
-> `opencode`/zen, `opencode-go`, `zai`, `casdoor-hermes-jwt`) and the
-> re-keyed `ai/telegram-bot-token` decrypt successfully with zephyr's age
-> key; the other four hosts (`forge`, `nexus`, `sentry`, `krash3`) remain
-> at the default `enable = false`. The historical 0/135 legacy-files
-> decrypt mismatch is **still real** for any secret file that was NOT
-> re-encrypted under the zephyr-only `.sops.yaml` policy — see the warning
-> block under `## Hermes bootstrap credentials via sops-nix`. Do NOT assume
-> all 135 secrets decrypt; only the set currently enabled on zephyr (and
+> `aiServices` and `kubernetes` ONLY (`monitoring`, `storage`, `mining`,
+> `cloud`, `automation`, `ci`, `selfHosting` are all `false`). This is
+> intentional: the other feature flags reference secrets left malformed by
+> the 2026-07-03 mass rekey (e.g. `no binary data found in tree` / wrong
+> sops envelope format), so they are out of scope for this migration and
+> must NOT be enabled until those secrets are re-keyed. The ~6 Hermes
+> bootstrap secrets that ARE enabled (`nvidia`, `opencode`/zen,
+> `opencode-go`, `zai`, `casdoor-hermes-jwt`, `telegram-bot-token`)
+> decrypt successfully with zephyr's age key; the other four hosts
+> (`forge`, `nexus`, `sentry`, `krash3`) remain at the default
+> `enable = false`. The historical 0/135 legacy-files decrypt mismatch is
+> **still real** for any secret file that was NOT re-encrypted under the
+> zephyr-only `.sops.yaml` policy — see the warning block under
+> `## Hermes bootstrap credentials via sops-nix`. Do NOT assume all 135
+> secrets decrypt; only the hermes-relevant set enabled on zephyr (and
 > re-keyed to zephyr's pubkey) does.
 
 ## Current state
@@ -29,16 +32,19 @@
   `flake.nix:260`; assembled via `mkNixosSystem` at `flake.nix:284`).
 - **Per-host flags:** `zephyr` is the only host with the registry enabled.
   As of 2026-07-08 it sets `services.sops-secrets-registry.enable = true`
-  with `aiServices`, `kubernetes`, `cloud`, `storage`, `mining`,
-  `automation`, `ci`, `selfHosting` = `true` and `monitoring = false`
+  with `aiServices` and `kubernetes` = `true`; `monitoring`, `storage`,
+  `mining`, `cloud`, `automation`, `ci`, `selfHosting` are all `false`
   (in `hosts/zephyr/services.nix`). The other four hosts (`forge`,
   `nexus`, `sentry`, `krash3`) stay at the default `enable = false`, so
   the registry `mkIf` block remains inert there. Concretely on zephyr:
   - `nix eval ...#nixosConfigurations.zephyr.config.sops.age.keyFile`
     returns `"/etc/nixos/.age/key.txt"`.
   - `nix eval ...#nixosConfigurations.zephyr.config.sops.secrets
-    --apply 'x: builtins.attrNames x'` returns **89 secret names**
-    (the full enabled set across the 8 active feature flags).
+    --apply 'x: builtins.attrNames x'` returns the **~6 Hermes secrets**
+    (`nvidia-api-key`, `opencode-api-key`, `opencode-go-api-key`,
+    `zai-api-key`, `casdoor-hermes-jwt`, `telegram-bot-token`) — the
+    only set that decrypts cleanly with zephyr's age key. Enabling the
+    other feature flags is BLOCKED until their secrets are re-keyed.
 - **Canonical recipient:** `/etc/nixos/.sops.yaml` (git-tracked,
   uncommitted) lists **one** recipient:
   `age1p98yp8w64rdugp03332gxnz5v2vcnucn69cs5qm6s2l2u7epqfcqmu2pqe` —
@@ -168,8 +174,9 @@ Flow:
    `hosts/zephyr/services.nix`).
 
 > **WARNING (scope).** Only the secret set currently **enabled on zephyr**
-> (the 8 active feature flags, 89 secrets) and re-keyed to zephyr's pubkey
-> decrypts. This is NOT a claim that all 135 historical secret files are
+> (scoped to `aiServices` + `kubernetes` only — ~6 Hermes secrets) and
+> re-keyed to zephyr's pubkey decrypts. This is NOT a claim that all 135
+> historical secret files are
 > now valid — the 2026-07-03 mass rekey left many `cloud`/`storage`/
 > `mining`/`automation`/`ci`/`selfHosting`/`monitoring` files with the
 > wrong sops envelope ("no binary data found in tree"). Those that zephyr
@@ -334,10 +341,11 @@ all peer hosts before running, see WARNING in the
 - **zephyr-specific.** Since 2026-07-08 zephyr sets
   `services.sops-secrets-registry.enable = true`, the registry `mkIf`
   block IS included and `nixos-rebuild switch` now **does** attempt to
-  decrypt 89 secrets at activation. The Hermes bootstrap set and the
-  re-keyed `ai/telegram-bot-token` decrypt successfully with zephyr's
-  age key. The remaining "0/135 legacy decrypt mismatch" applies only to
-  the historical files that were NOT re-encrypted under the zephyr-only
+  decrypt the ~6 enabled Hermes secrets at activation. The Hermes bootstrap
+  set and the re-keyed `ai/telegram-bot-token` decrypt successfully with
+  zephyr's age key. The remaining "0/135 legacy decrypt mismatch" applies
+  only to the historical files that were NOT re-encrypted under the
+  zephyr-only
   `.sops.yaml` policy (e.g. the `monitoring/*` group, disabled on zephyr,
   and any unreferenced/orphan files) — those remain un-decryptable and
   out of scope until explicitly re-keyed.
@@ -361,8 +369,8 @@ all peer hosts before running, see WARNING in the
   `.age` files that zephyr does NOT enable (and which were not re-keyed
   to zephyr's pubkey during the 2026-07-08 migration) still fail local
   decryption — this is the historical 0/135 mismatch, scoped to the
-  unreferenced/legacy set. The secrets zephyr enables (89 entries) now
-  decrypt successfully via sops-nix at activation.
+  unreferenced/legacy set. The secrets zephyr enables (~6 Hermes entries)
+  now decrypt successfully via sops-nix at activation.
 - `/etc/nixos/` git tree is dirty (uncommitted); `nix` prints a warning
   but `flake check` itself succeeds (rc=0).
 - `/etc/nixos/kubernetes/modules/ai-inference.nix` mentions
@@ -458,16 +466,19 @@ no longer hit this failure; sops-nix decrypts them at activation.
 
 The smoke-test described below was **executed as part of the 2026-07-08
 migration**: `services.sops-secrets-registry.enable = true` now lives in
-`hosts/zephyr/services.nix` (scoped to the 8 active feature flags,
-`monitoring = false`), and `nixos-rebuild switch` decrypts the enabled
-set at activation. The eval commands below now return the live state:
+`hosts/zephyr/services.nix` (scoped to `aiServices` + `kubernetes` only;
+all other feature flags are `false` because their secrets are malformed
+from the 2026-07-03 rekey), and `nixos-rebuild switch` decrypts the
+enabled set (~6 Hermes secrets) at activation. The eval commands below
+now return the live state:
 
 ```bash
 nix --extra-experimental-features 'nix-command flakes' \
     eval /etc/nixos#nixosConfigurations.zephyr.config.sops.secrets \
     --apply 'x: builtins.attrNames x'
-# → 89 enabled secret names across aiServices/kubernetes/cloud/storage/
-#   mining/automation/ci/selfHosting
+# → ~6 enabled secret names across aiServices/kubernetes only
+#   (nvidia-api-key, opencode-api-key, opencode-go-api-key, zai-api-key,
+#    casdoor-hermes-jwt, telegram-bot-token)
 
 nix --extra-experimental-features 'nix-command flakes' \
     eval /etc/nixos#nixosConfigurations.zephyr.config.sops.age.keyFile
