@@ -84,7 +84,11 @@ let
         <currentMemory unit='KiB'>${toString (memory * 1024)}</currentMemory>
         <vcpu placement='static'>${toString vcpu}</vcpu>
         <iothreads>2</iothreads>
-        <cpu mode='host-model' check='none'/>
+        # host-passthrough: expose the native Ryzen 9 5900X (Zen 3) to the
+        # guest with zero feature emulation. Critical for gaming perf — and it
+        # avoids the EPYC-Milan mis-detection + NPT-disabled stale-def bug
+        # that was tanking the VM (see commit history). NPT stays ON (native).
+        <cpu mode='host-passthrough' check='none'/>
         <os firmware='efi'>
           <type arch='x86_64' machine='pc-q35-10.2'>hvm</type>
           <firmware>
@@ -138,7 +142,6 @@ let
           ${networksXml}
           ${gpusXml}
           ${usbsXml}
-          <graphics type='none'/>
           <watchdog model='itco' action='reset'/>
           <memballoon model='virtio'>
             <address type='pci' domain='0x0000' bus='0x09' slot='0x00' function='0x0'/>
@@ -255,8 +258,13 @@ in
     mkdir -p /var/lib/libvirt/qemu
     # Define (or redefine) the domain from the declarative XML.
     # virsh define is idempotent: re-running updates the existing domain.
-    ${pkgs.libvirt}/bin/virsh define /etc/libvirt/qemu/krash3-vm.xml 2>&1 || true
-    ${pkgs.libvirt}/bin/virsh autostart krash3-vm 2>&1 || true
+    # NOTE: do NOT swallow failures with `|| true` — an invalid XML (e.g. the
+    # old <graphics type='none'/> bug) would silently leave the VM on a stale
+    # definition with a wrong CPU model (EPYC-Milan) and NPT disabled, which
+    # caused a severe perf regression. Fail loudly instead so the rebuild
+    # surfaces it.
+    ${pkgs.libvirt}/bin/virsh define /etc/libvirt/qemu/krash3-vm.xml
+    ${pkgs.libvirt}/bin/virsh autostart krash3-vm
   '';
 
   # Keep the old network activation (needed for virbr0)
