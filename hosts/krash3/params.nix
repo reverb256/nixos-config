@@ -16,11 +16,13 @@
       function = "0x1";
     };
     usb = {
-      vendor = "1022";
-      device = "149c";
-      bus = "0x0a";
-      slot = "0x00";
-      function = "0x3";
+      # Both onboard + chipset XHCI controllers. Passing the whole controller
+      # (not per-device) guarantees EVERY USB device plugged into krash3
+      # (keyboard, mouse, hub, etc.) reaches the guest automatically.
+      controllers = [
+        { vendor = "1022"; device = "149c"; bus = "0x0a"; slot = "0x00"; function = "0x3"; }  # onboard xhci (0a:00.3)
+        { vendor = "1022"; device = "43ee"; bus = "0x02"; slot = "0x00"; function = "0x0"; }  # chipset xhci (02:00.0) — keyboard lives here
+      ];
     };
   };
 
