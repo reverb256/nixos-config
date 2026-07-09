@@ -84,11 +84,29 @@ let
         <currentMemory unit='KiB'>${toString (memory * 1024)}</currentMemory>
         <vcpu placement='static'>${toString vcpu}</vcpu>
         <iothreads>2</iothreads>
-        # host-passthrough: expose the native Ryzen 9 5900X (Zen 3) to the
-        # guest with zero feature emulation. Critical for gaming perf — and it
-        # avoids the EPYC-Milan mis-detection + NPT-disabled stale-def bug
-        # that was tanking the VM (see commit history). NPT stays ON (native).
-        <cpu mode='host-passthrough' check='none'/>
+        <cpu mode='host-passthrough' check='none'>
+          <topology sockets='1' dies='1' cores='8' threads='2'/>
+          <cache mode='passthrough'/>
+        </cpu>
+        <cputune>
+          <vcpupin vcpu='0' cpuset='1'/>
+          <vcpupin vcpu='1' cpuset='13'/>
+          <vcpupin vcpu='2' cpuset='2'/>
+          <vcpupin vcpu='3' cpuset='14'/>
+          <vcpupin vcpu='4' cpuset='3'/>
+          <vcpupin vcpu='5' cpuset='15'/>
+          <vcpupin vcpu='6' cpuset='4'/>
+          <vcpupin vcpu='7' cpuset='16'/>
+          <vcpupin vcpu='8' cpuset='5'/>
+          <vcpupin vcpu='9' cpuset='17'/>
+          <vcpupin vcpu='10' cpuset='6'/>
+          <vcpupin vcpu='11' cpuset='18'/>
+          <vcpupin vcpu='12' cpuset='7'/>
+          <vcpupin vcpu='13' cpuset='19'/>
+          <vcpupin vcpu='14' cpuset='8'/>
+          <vcpupin vcpu='15' cpuset='20'/>
+          <emulatorpin cpuset='0,12'/>
+        </cputune>
         <os firmware='efi'>
           <type arch='x86_64' machine='pc-q35-10.2'>hvm</type>
           <firmware>
@@ -125,6 +143,13 @@ let
         <on_crash>destroy</on_crash>
         <devices>
           <emulator>/run/current-system/sw/bin/qemu-system-x86_64</emulator>
+          <graphics type='spice' autoport='yes' listen='0.0.0.0' keymap='en-us'>
+            <listen type='address' address='0.0.0.0'/>
+          </graphics>
+          <video>
+            <model type='qxl' ram='262144' vram='65536' vgamem='16384' heads='1' primary='yes'/>
+            <address type='pci' domain='0x0000' bus='0x0a' slot='0x01' function='0x0'/>
+          </video>
           <controller type='sata' index='0'>
             <address type='pci' domain='0x0000' bus='0x00' slot='0x1f' function='0x2'/>
           </controller>
@@ -143,9 +168,7 @@ let
           ${gpusXml}
           ${usbsXml}
           <watchdog model='itco' action='reset'/>
-          <memballoon model='virtio'>
-            <address type='pci' domain='0x0000' bus='0x09' slot='0x00' function='0x0'/>
-          </memballoon>
+          <memballoon model='virtio'/>
         </devices>
         <seclabel type='none' model='none'/>
         <qemu:capabilities>
