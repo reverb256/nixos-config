@@ -68,6 +68,20 @@ let
         in func0 + func1
       ) gpus;
 
+      # Whole USB controller passthrough (not per-device). Binding the entire
+      # XHCI controller to the VM means EVERY USB device plugged into krash3
+      # (keyboard, mouse, hub, gamepad) appears in the guest automatically.
+      # Per-device passthrough with startupPolicy='optional' silently skips
+      # devices not present at VM start -> dead input. This is the fix.
+      usbControllersXml = lib.concatMapStrings (ctl: ''
+        <hostdev mode='subsystem' type='pci' managed='yes'>
+          <driver name='vfio'/>
+          <source>
+            <address domain='0x0000' bus='${ctl.bus}' slot='${ctl.slot}' function='${ctl.function}'/>
+          </source>
+        </hostdev>
+      '') (params.pci.usb.controllers or []);
+
       usbsXml = lib.concatMapStrings (usb: ''
         <hostdev mode='subsystem' type='usb' managed='yes'>
           <source startupPolicy='${usb.startupPolicy}'>
@@ -169,6 +183,7 @@ let
           <audio id='1' type='none'/>
           ${networksXml}
           ${gpusXml}
+          ${usbControllersXml}
           ${usbsXml}
           <watchdog model='itco' action='reset'/>
           <memballoon model='virtio'/>
