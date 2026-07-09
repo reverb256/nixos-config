@@ -8,9 +8,11 @@
     wantedBy = ["multi-user.target"];
     serviceConfig = {
       Type = "oneshot";
-      # Use the list form of ExecStart (no shell, no bash -c). The ~j_kro
-      # tilde would otherwise need shell expansion; use the literal path.
-      ExecStart = [ (lib.getExe' pkgs.coreutils "chmod") "755" "/home/j_kro" ];
+      # Single-string ExecStart: systemd parses the string into argv
+      # reliably. (The list form [chmod "755" "/home/j_kro"] serialized
+      # as three separate ExecStart= lines on this systemd, running
+      # `chmod` with no args -> "missing operand".)
+      ExecStart = "${lib.getExe' pkgs.coreutils "chmod"} 755 /home/j_kro";
       User = "root";
     };
   };
