@@ -157,13 +157,7 @@ let
         <on_crash>restart</on_crash>
         <devices>
           <emulator>/run/current-system/sw/bin/qemu-system-x86_64</emulator>
-          <graphics type='spice' autoport='yes' listen='0.0.0.0' keymap='en-us'>
-            <listen type='address' address='0.0.0.0'/>
-          </graphics>
-          <video>
-            <model type='qxl' ram='262144' vram='65536' vgamem='16384' heads='1' primary='yes'/>
-            <address type='pci' domain='0x0000' bus='0x0a' slot='0x01' function='0x0'/>
-          </video>
+          <graphics type='none'/>
           <controller type='sata' index='0'>
             <address type='pci' domain='0x0000' bus='0x00' slot='0x1f' function='0x2'/>
           </controller>
@@ -176,9 +170,7 @@ let
             <address type='virtio-serial' controller='0' bus='0' port='1'/>
           </channel>
           <input type='keyboard' bus='usb'/>
-          <input type='keyboard' bus='ps2'/>
           <input type='mouse' bus='usb'/>
-          <input type='mouse' bus='ps2'/>
           <input type='tablet' bus='usb'/>
           <audio id='1' type='none'/>
           ${networksXml}
