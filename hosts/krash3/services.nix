@@ -42,10 +42,9 @@ in {
   };
 
   # ── E: drive ────────────────────────────────────────────
-  # E: is now a DIRECT virtio-blk disk on /dev/md0p1 (see declarative-vm.nix),
-  # NOT an iSCSI target. No target service means rebuilds/reboots cannot kill
-  # E: — it is available by construction as long as the RAID assembles.
-  # The assemble-games-raid.service still runs (provides /dev/md0p1).
+  # E: is a DIRECT virtio-blk disk on /dev/md0 (whole GPT RAID with one NTFS
+  # data partition; see params.nix). Not iSCSI. assemble-games-raid still
+  # builds /dev/md0 (+ md0p1 for host tooling).
 
   # ── Samba ────────────────────────────────────────────────
   services.samba = {
@@ -165,76 +164,83 @@ in {
   ];
 
   # ── E: drive watchdog ───────────────────────────────────
-  # Verifies from INSIDE the guest that E: is mounted/healthy. E: is a direct
-  # virtio-blk disk on /dev/md0p1 (no iSCSI target), so the only failure modes
-  # are: (a) the disk not attached to the running domain, or (b) Windows
-  # mounted it under a different letter (mount-manager drift). Self-heals both:
-  # re-attaches the block disk if missing, and forces letter E: if the games
-  # volume exists but isn't E:.
-  #
-  # guest-exec on this Windows guest can wedge (see krash3-vm-agent-health), so
-  # all agent probes are wrapped in `timeout` and the whole check is bounded.
-  # If the agent exec channel is wedged we do NOT spin forever — we let the
-  # agent-health service clear it on its next run.
+  # Verifies from INSIDE the guest that E: is Healthy. Disk source is /dev/md0
+  # (GPT RAID with one NTFS data partition). Self-heals:
+  #   (a) missing vdb → re-attach /dev/md0
+  #   (b) letter drift (often D:) → diskpart assign letter=E
+  # guest-exec returns only a pid — always poll guest-exec-status + decode
+  # out-data. Bounded timeouts; never fail the unit hard.
   systemd.services.e-drive-watchdog = {
-    # NOTE: intentionally NOT in wantedBy — running this during switch causes
-    # the switch to abort if the VM/hypervisor isn't ready yet. It runs via the
-    # timer (e-drive-watchdog.timer) after boot, when the VM is up.
+    # NOT in wantedBy — timer only (avoids switch-abort if VM isn't ready).
     after = [ "libvirtd.service" "assemble-games-raid.service" ];
-    path = [ pkgs.libvirt pkgs.qemu pkgs.jq ];
+    path = [ pkgs.libvirt pkgs.qemu pkgs.jq pkgs.coreutils pkgs.gnugrep ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
-      TimeoutStartSec = 60;
+      TimeoutStartSec = 90;
     };
     script = ''
       export LIBVIRT_URI=qemu:///system
       DOM="krash3-vm"
-      # Is the domain even running?
       if ! virsh domstate "$DOM" 2>/dev/null | grep -q running; then
         virsh start "$DOM" 2>/dev/null || true
-        sleep 15
+        sleep 20
       fi
-      # Probe the guest for E: via qemu-agent (bounded so a wedged exec can't hang us)
-      check_e() {
-        timeout 15 virsh qemu-agent-command "$DOM" '{"execute":"guest-exec","arguments":{"path":"C:\\Windows\\System32\\cmd.exe","arg":["/c","powershell -command \"Get-Volume -DriveLetter E -ErrorAction SilentlyContinue | Select -ExpandProperty HealthStatus\""],"capture-output":true}}' 2>/dev/null \
-          | ${pkgs.jq}/bin/jq -r '.return' 2>/dev/null
+
+      # guest_ps: run PowerShell, poll status, print decoded stdout (or empty).
+      guest_ps() {
+        local ps_cmd="$1" raw pid i st b64
+        raw=$(timeout 12 virsh qemu-agent-command "$DOM" \
+          "$(${pkgs.jq}/bin/jq -nc --arg p "$ps_cmd" \
+            '{execute:"guest-exec",arguments:{path:"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",arg:["-NoProfile","-Command",$p],"capture-output":true}}')" \
+          2>/dev/null) || true
+        pid=$(echo "$raw" | ${pkgs.jq}/bin/jq -r '.return.pid // empty' 2>/dev/null) || true
+        [ -n "$pid" ] || return 0
+        for i in $(seq 1 20); do
+          st=$(timeout 8 virsh qemu-agent-command "$DOM" \
+            "{\"execute\":\"guest-exec-status\",\"arguments\":{\"pid\":$pid}}" 2>/dev/null) || true
+          if echo "$st" | ${pkgs.jq}/bin/jq -e '.return.exited == true' >/dev/null 2>&1; then
+            b64=$(echo "$st" | ${pkgs.jq}/bin/jq -r '.return["out-data"] // empty' 2>/dev/null) || true
+            if [ -n "$b64" ]; then
+              echo "$b64" | base64 -d 2>/dev/null || true
+            fi
+            return 0
+          fi
+          sleep 0.5
+        done
+        return 0
       }
-      # Does a games volume exist under a DIFFERENT letter? (mount-manager drift)
-      find_games() {
-        timeout 15 virsh qemu-agent-command "$DOM" '{"execute":"guest-exec","arguments":{"path":"C:\\Windows\\System32\\cmd.exe","arg":["/c","powershell -command \"$v=(Get-Volume | Where-Object { $_.DriveLetter -ne [char]67 -and $_.DriveLetter -ne [char]69 -and $_.Size -gt 1TB }); if($v){$v.DriveLetter} else {$null}\""],"capture-output":true}}' 2>/dev/null \
-          | ${pkgs.jq}/bin/jq -r '.return' 2>/dev/null
-      }
-      OUT=$(check_e)
+
+      OUT=$(guest_ps "try { (Get-Volume -DriveLetter E -ErrorAction Stop).HealthStatus } catch { 'MISSING' }")
       if echo "$OUT" | grep -qi "Healthy"; then
         echo "E: healthy — no action needed"
         exit 0
       fi
       echo "E: NOT healthy (got: $OUT) — attempting recovery"
-      # Re-attach the block disk if missing from the running domain
+
       if ! virsh dumpxml "$DOM" 2>/dev/null | grep -q "vdb"; then
-        virsh attach-disk "$DOM" --type block --source /dev/md0p1 --target vdb --persistent 2>&1 || true
+        virsh attach-disk "$DOM" --type block --source /dev/md0 --target vdb --persistent 2>&1 || true
         sleep 5
       fi
-      # If the games volume exists but under another letter, force E: via diskpart
-      GAMES=$(find_games)
+
+      GAMES=$(guest_ps "\$v = Get-Volume | Where-Object { \$_.DriveLetter -and \$_.DriveLetter -ne [char]67 -and \$_.DriveLetter -ne [char]69 -and \$_.FileSystem -eq 'NTFS' -and \$_.Size -gt 500GB } | Select-Object -First 1; if (\$v) { [string]\$v.DriveLetter }")
+      GAMES=$(echo "$GAMES" | tr -d '\r\n[:space:]')
       if [ -n "$GAMES" ] && [ "$GAMES" != "E" ]; then
         echo "Games volume found on $GAMES — reassigning to E:"
-        timeout 15 virsh qemu-agent-command "$DOM" "{\"execute\":\"guest-exec\",\"arguments\":{\"path\":\"C:\\Windows\\System32\\cmd.exe\",\"arg\":[\"/c\",\"echo select volume $GAMES > C:\\dk.txt & echo assign letter=E noerr >> C:\\dk.txt & diskpart /s C:\\dk.txt\"],\"capture-output\":true}}" >/dev/null 2>&1 || true
-        sleep 5
+        guest_ps "\$s = @\"
+select volume $GAMES
+assign letter=E noerr
+\"@; \$s | Out-File -Encoding ascii C:\\dk.txt; diskpart /s C:\\dk.txt | Out-String" >/dev/null || true
+        sleep 3
       fi
-      # Final probe
-      OUT2=$(check_e)
+
+      OUT2=$(guest_ps "try { (Get-Volume -DriveLetter E -ErrorAction Stop).HealthStatus } catch { 'MISSING' }")
       if echo "$OUT2" | grep -qi "Healthy"; then
         echo "E: recovered — healthy"
         exit 0
-      else
-        # Either the disk is genuinely missing or the agent exec is wedged.
-        # Don't fail hard — the agent-health service will clear a wedge, and
-        # the disk attachment is verified by the vdb grep above.
-        echo "E: not confirmed healthy this pass (agent exec may be wedged or volume still binding): $OUT2"
-        exit 0
       fi
+      echo "E: not confirmed healthy this pass (agent may be wedged or volume still binding): $OUT2"
+      exit 0
     '';
   };
 

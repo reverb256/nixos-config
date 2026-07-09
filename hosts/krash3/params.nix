@@ -65,9 +65,16 @@
         cache = "writeback";
       }
       {
+        # Pass the WHOLE GPT RAID member (/dev/md0), not md0p1.
+        # md0 currently has a single Microsoft-basic-data partition whose
+        # payload is the NTFS volume. Pointing virtio at md0p1 makes Windows
+        # treat the raw NTFS BPB as an MBR and invent garbage partitions, so
+        # the games volume never mounts. Pointing at md0 exposes a clean GPT
+        # + one NTFS partition. Letter is forced to E: by e-drive-watchdog
+        # (mount-manager may still pick D: on first boot).
         type = "block";
         target = "vdb";
-        source = "/dev/md0p1";
+        source = "/dev/md0";
         cache = "none";
       }
     ];
@@ -103,27 +110,20 @@
     ];
 
     usbs = [
-      {
-        vendor = "0x8087"; product = "0x0029"; bus = "1"; device = "2"; startupPolicy = "optional";
-      }
-      {
-        vendor = "0x3537"; product = "0x2106"; bus = "0"; port = "1"; startupPolicy = "optional";
-      }
-      {
-        vendor = "0x054c"; product = "0x09cc"; bus = "0"; port = "2"; startupPolicy = "optional";
-      }
-      {
-        vendor = "0x046d"; product = "0xc52b"; bus = "0"; port = "4"; startupPolicy = "optional";
-      }
-      {
-        vendor = "0x04f2"; product = "0x0939"; bus = "0"; port = "5"; startupPolicy = "optional";
-      }
-      {
-        vendor = "0x05e3"; product = "0x0610"; startupPolicy = "optional";
-      }
-      {
-        vendor = "0x05e3"; product = "0x0612"; startupPolicy = "optional";
-      }
+      # Chipset-port per-device fallbacks (Matisse-port devices arrive via
+      # whole-controller VFIO of 0a:00.3 and do not need these). startupPolicy
+      # optional so a missing dongle never blocks VM start. Hotplug udev rule
+      # re-attaches on plug for chipset ports.
+      { vendor = "0x8087"; product = "0x0029"; startupPolicy = "optional"; } # Intel BT
+      { vendor = "0x3537"; product = "0x2106"; startupPolicy = "optional"; } # Zikway dongle base
+      { vendor = "0x3537"; product = "0x1098"; startupPolicy = "optional"; } # Zikway XInput iface
+      { vendor = "0x3537"; product = "0x100f"; startupPolicy = "optional"; } # Zikway alt iface
+      { vendor = "0x054c"; product = "0x09cc"; startupPolicy = "optional"; } # Sony DualShock 4
+      { vendor = "0x046d"; product = "0xc52b"; startupPolicy = "optional"; } # Logitech Unifying
+      { vendor = "0x04f2"; product = "0x0939"; startupPolicy = "optional"; } # PixArt mouse
+      { vendor = "0x05e3"; product = "0x0610"; startupPolicy = "optional"; } # Genesys hub USB2
+      { vendor = "0x05e3"; product = "0x0612"; startupPolicy = "optional"; } # Genesys hub USB3
+      { vendor = "0x0e8d"; product = "0x20ff"; startupPolicy = "optional"; } # MediaTek dongle mode
     ];
   };
 }
