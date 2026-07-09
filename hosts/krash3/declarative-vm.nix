@@ -140,7 +140,7 @@ let
         </clock>
         <on_poweroff>destroy</on_poweroff>
         <on_reboot>restart</on_reboot>
-        <on_crash>destroy</on_crash>
+        <on_crash>restart</on_crash>
         <devices>
           <emulator>/run/current-system/sw/bin/qemu-system-x86_64</emulator>
           <graphics type='spice' autoport='yes' listen='0.0.0.0' keymap='en-us'>
