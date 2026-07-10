@@ -6,11 +6,21 @@
   options,
   ...
 }:
+
 let
-  inherit (lib) mkIf mkDefault mkForce;
+  inherit (lib) mkIf mkDefault mkForce mkOption types;
   noctaliaEnabled = options ? programs.noctalia.enable;
-in
-  mkIf (config.programs.niri.enable or false) {
+in {
+  options = {
+    desktop.noctalia.daemonPackage = mkOption {
+      type = types.package;
+      default = inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
+      defaultText = "inputs.noctalia.packages.\\${pkgs.stdenv.hostPlatform.system}.default";
+      description = "Noctalia daemon package (overridable for patched versions)";
+    };
+  };
+
+  config = mkIf (config.programs.niri.enable or false) {
 
     # ── SSH agent conflict resolution ──────────────────────────────────
     # REQUIRED — NixOS asserts that `programs.ssh.startAgent = true` (set
@@ -93,6 +103,7 @@ in
             ;;
         esac
       fi
-      exec ${inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/noctalia "$@"
+      exec ${lib.getExe config.desktop.noctalia.daemonPackage} "$@"
     '');
-  }
+  };
+}
