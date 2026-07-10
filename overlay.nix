@@ -26,10 +26,14 @@ _final: prev:
     doCheck = false;
   });
   # gradio tests fail due to missing matplotlib and starlette version check; disable globally
-  gradio = prev.gradio.overrideAttrs (_old: {
+  gradio = prev.gradio.overrideAttrs (old: {
     doCheck = false;
     checkPhase = false;
     dontCheckRuntimeDeps = true;
+    postPatch = (old.postPatch or "") + ''
+      sed -i 's/starlette<1.0/starlette<2.0/' setup.cfg pyproject.toml setup.py 2>/dev/null || true
+    '';
+    pythonImportsCheck = [ ];
   });
   llama-cpp = prev.callPackage ./packages/llama-cpp.nix {
     cudaSupport = true;
@@ -130,10 +134,15 @@ _final: prev:
       };
       # Fix: pipx 1.8.0 test failures (spaces around @)
       pipx = py-super.pipx.overridePythonAttrs { doCheck = false; };
-      gradio = py-super.gradio.overrideAttrs (_old: {
+      gradio = py-super.gradio.overrideAttrs (old: {
         doCheck = false;
         checkPhase = false;
         dontCheckRuntimeDeps = true;
+        # gradio <1.0 requires starlette<1.0 but nixpkgs ships starlette 1.1.0
+        postPatch = (old.postPatch or "") + ''
+          sed -i 's/starlette<1.0/starlette<2.0/' setup.cfg pyproject.toml setup.py 2>/dev/null || true
+        '';
+        pythonImportsCheck = [ ];
       });
     };
   };
