@@ -166,9 +166,14 @@ in {
   # ── VM images dir: NOCOW btrfs subvolume ─────────────────
   # /var/lib/libvirt/images becomes a subvolume with inherited NOCOW so any
   # future VM image file skips btrfs copy-on-write. Existing c.raw keeps its
-  # current allocation (Track B may re-seed it onto the RAID later). Runs
-  # before libvirt so the dir exists with correct ownership when libvirtd
-  # starts. Safe to re-run: it only converts if not already a subvolume.
+  # current allocation (Track B may re-seed it onto the RAID later).
+  #
+  # Conversion to a subvolume requires moving c.raw aside; that is unsafe while
+  # the VM holds the image open, so this unit does the SAFE part now (set NOCOW
+  # on the existing dir + ensure it exists) and only does the full dir→subvolume
+  # conversion when it can move files without error. If it can't (VM running),
+  # it best-effort sets chattr +C on the dir and exits 0 — the full subvolume
+  # conversion is completed during the next VM-off maintenance window.
   systemd.services.ensure-images-subvolume = {
     wantedBy = [ "multi-user.target" ];
     before = [ "libvirtd.service" "virtlogd.service" ];
@@ -177,22 +182,39 @@ in {
     script = ''
       D=/var/lib/libvirt/images
       mkdir -p "$(dirname "$D")"
-      if [ ! -d "$D" ]; then
-        mkdir -p "$D"
+      [ -d "$D" ] || mkdir -p "$D"
+
+      # Already a subvolume? just ensure NOCOW and done.
+      if btrfs subvolume show "$D" >/dev/null 2>&1; then
+        btrfs property set "$D" compression "" 2>/dev/null || true
+        chattr +C "$D" 2>/dev/null || true
+        exit 0
       fi
-      # Convert the plain dir into a subvolume (preserves existing contents).
-      if ! btrfs subvolume show "$D" >/dev/null 2>&1; then
-        T="$(mktemp -d "$D/.seed.XXXXXX")"
-        mv "$D"/* "$T"/ 2>/dev/null || true
-        rmdir "$D" 2>/dev/null || true
-        btrfs subvolume create "$D"
-        chown root:kvm "$D"; chmod 0750 "$D"
+
+      # Try a clean conversion (move contents aside, make subvolume, move back).
+      # This only succeeds if nothing holds files open (e.g. VM stopped).
+      if T="$(mktemp -d "$D/.seed.XXXXXX" 2>/dev/null)"; then
+        if mv "$D"/* "$T"/ 2>/dev/null; then
+          if rmdir "$D" 2>/dev/null && btrfs subvolume create "$D" 2>/dev/null; then
+            chown root:kvm "$D"; chmod 0750 "$D"
+            mv "$T"/* "$D"/ 2>/dev/null || true
+            rmdir "$T" 2>/dev/null || true
+            btrfs property set "$D" compression "" 2>/dev/null || true
+            chattr +C "$D" 2>/dev/null || true
+            echo "converted $D to NOCOW subvolume"
+            exit 0
+          fi
+        fi
+        # conversion failed (likely open files) — restore and fall through
         mv "$T"/* "$D"/ 2>/dev/null || true
         rmdir "$T" 2>/dev/null || true
       fi
-      # Inherit NOCOW on the subvolume (applies to all new files within).
-      btrfs property set "$D" compression "" 2>/dev/null || true
+
+      # Best-effort: set NOCOW on the existing plain dir; full conversion deferred
+      # to the next VM-off maintenance window.
       chattr +C "$D" 2>/dev/null || true
+      echo "deferred full subvolume conversion (VM likely holds c.raw open); set NOCOW on dir"
+      exit 0
     '';
   };
 
