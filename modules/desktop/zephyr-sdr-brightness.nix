@@ -34,8 +34,6 @@
   #     SDR brightness (requires the noctalia and niri patches above)
   noctaliaConfigFile = pkgs.writeText "noctalia-config.toml" ''
     [brightness]
-    enableDdcSupport = true
-    brightnessStep = 5
 
     [brightness.monitor."HDMI-A-2"]
     backend = "sdr"
