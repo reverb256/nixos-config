@@ -1,0 +1,200 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: reverb256 <reverb256@users.noreply.github.com>
+Date: Thu, 10 Jul 2026 00:00:00 -0500
+Subject: [PATCH] feat: add SDR brightness control via NV_PLANE_DEGAMMA_MULTIPLIER
+
+Add per-output SDR brightness support for HDR-capable displays on
+NVIDIA GPUs. Uses the NV_PLANE_DEGAMMA_MULTIPLIER DRM plane property
+(32.32 fixed-point) as a hardware-accelerated brightness multiplier.
+
+This is the compositor-side half of the noctalia v5 SDR brightness
+backend. noctalia calls `niri msg output <name> sdr-brightness <0..1>`
+which lands here and writes the plane property. Only niri holds DRM
+master, so the write MUST happen in niri (a standalone helper cannot
+acquire master).
+
+Changes:
+- niri-config: Add sdr_brightness field to Output config
+- niri-ipc: Add OutputAction::SdrBrightness variant
+- tty.rs: Add NvBrightnessProps for detection/set/restore
+- tty.rs: Apply sdr_brightness on config change / transient set
+
+Usage:
+  niri msg output hdmi-a-2 sdr-brightness 0.9
+---
+ niri-config/src/output.rs |  6 ++++++
+ niri-ipc/src/lib.rs       | 10 ++++++++++
+ src/backend/tty.rs        | 94 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ src/niri.rs               |  7 +++++++
+ 4 files changed, 117 insertions(+)
+
+diff --git a/niri-config/src/output.rs b/niri-config/src/output.rs
+index 0000000..1111111 100644
+--- a/niri-config/src/output.rs
++++ b/niri-config/src/output.rs
+@@ -21,6 +21,8 @@ pub struct Output {
+     #[knuffel(child, unwrap(argument, str))]
+     pub mode: Option<ConfiguredMode>,
+     #[knuffel(child)]
++    pub sdr_brightness: Option<f64>,
++    #[knuffel(child)]
+     pub variable_refresh_rate: Option<Vrr>,
+     #[knuffel(child)]
+     pub focus_at_startup: bool,
+@@ -52,6 +54,7 @@ impl Default for Output {
+             transform: Transform::Normal,
+             position: None,
+             mode: None,
++            sdr_brightness: None,
+             variable_refresh_rate: None,
+             background_color: None,
+             backdrop_color: None,
+diff --git a/niri-ipc/src/lib.rs b/niri-ipc/src/lib.rs
+index 2222222..3333333 100644
+--- a/niri-ipc/src/lib.rs
++++ b/niri-ipc/src/lib.rs
+@@ -983,6 +983,11 @@ pub enum OutputAction {
+         #[cfg_attr(feature = "clap", command(flatten))]
+         vrr: VrrToSet,
+     },
++    /// Set the SDR brightness (a multiplier on the composited image), on
++    /// supported hardware, via the NV_PLANE_DEGAMMA_MULTIPLIER DRM plane
++    /// property. `brightness` is in the `0.0..=1.0` range.
++    SdrBrightness {
++        brightness: f64,
++    },
+ }
+ 
+ /// Output mode to set.
+diff --git a/src/backend/tty.rs b/src/backend/tty.rs
+index 4444444..5555555 100644
+--- a/src/backend/tty.rs
++++ b/src/backend/tty.rs
+@@ -250,6 +250,13 @@ struct GammaProps {
+     previous_blob: Option<NonZeroU64>,
+ }
+ 
++/// NVIDIA SDR brightness plane property (NV_PLANE_DEGAMMA_MULTIPLIER).
++/// A 32.32 fixed-point multiplier applied to the composited image, giving
++/// hardware-accelerated brightness control for displays without DDC/CI.
++struct NvBrightnessProps {
++    crtc: crtc::Handle,
++    degamma_mult: property::Handle,
++}
++
+ struct ConnectorProperties<'a> {
+     device: &'a DrmDevice,
+     connector: connector::Handle,
+@@ -1768,6 +1775,44 @@ impl Tty {
+         self.refresh_ipc_outputs(niri);
+     }
+ 
++    /// Detect the NV_PLANE_DEGAMMA_MULTIPLIER property on the primary plane
++    /// that can drive this CRTC, returning an `NvBrightnessProps` if present.
++    fn detect_nv_brightness_props(
++        drm: &DrmDevice,
++        crtc: crtc::Handle,
++    ) -> Option<NvBrightnessProps> {
++        let plane_handles = drm.planes().ok()?;
++        for plane_handle in plane_handles {
++            let info = drm.get_plane_info(plane_handle).ok()?;
++            // Only primary planes that can drive this CRTC.
++            if info.crtc != Some(crtc) {
++                continue;
++            }
++            if let Some(prop) = find_drm_property(drm, plane_handle, "NV_PLANE_DEGAMMA_MULTIPLIER") {
++                debug!(
++                    "found NV_PLANE_DEGAMMA_MULTIPLIER on plane {:?} for CRTC {:?}",
++                    plane_handle, crtc
++                );
++                return Some(NvBrightnessProps {
++                    crtc,
++                    degamma_mult: prop.handle,
++                });
++            }
++        }
++        None
++    }
++
++    /// Write the SDR brightness multiplier to the plane property.
++    fn set_nv_brightness(
++        &self,
++        device: &DrmDevice,
++        crtc: crtc::Handle,
++        brightness: f64,
++    ) -> anyhow::Result<()> {
++        let props = Self::detect_nv_brightness_props(device, crtc)
++            .context("NV_PLANE_DEGAMMA_MULTIPLIER not available on this output")?;
++        // 32.32 fixed point: value 1.0 -> 0x100000000.
++        let fixed = (brightness.clamp(0.0, 1.0) * 4294967296.0).round() as u64;
++        device
++            .connection()
++            .set_property(crtc, props.degamma_mult, fixed)
++            .context("error setting NV_PLANE_DEGAMMA_MULTIPLIER")?;
++        Ok(())
++    }
++
++    /// Resolve the device + CRTC for an `Output` and apply SDR brightness.
++    fn set_nv_brightness_for_output(
++        &self,
++        output: &Output,
++        brightness: f64,
++    ) -> anyhow::Result<()> {
++        for device in self.devices.values() {
++            for (&crtc, surface) in device.surfaces.iter() {
++                let tty_state: &TtyOutputState = output.user_data().get().unwrap();
++                if tty_state.node == surface.name.node() && tty_state.crtc == crtc {
++                    return self.set_nv_brightness(&device.drm, crtc, brightness);
++                }
++            }
++        }
++        anyhow::bail!("no surface found for output {:?}", output.name())
++    }
++
+     pub fn on_output_config_changed(&mut self, niri: &mut Niri) {
+         let _span = tracy_client::span!("Tty::on_output_config_changed");
+ 
+@@ -1853,6 +1898,15 @@ impl Tty {
+                 } else {
+                     warn!("failed to get connector properties");
+                 };
+ 
++                // Apply SDR brightness via NV_PLANE_DEGAMMA_MULTIPLIER when configured.
++                if let Some(brightness) = config.sdr_brightness {
++                    if let Err(err) = self.set_nv_brightness(&device.drm, crtc, brightness) {
++                        debug!(
++                            "output {:?}: SDR brightness not applied: {err:?}",
++                            surface.name.connector
++                        );
++                    }
++                }
++
+                 // Check if we need to change the mode.
+                 let Some(connector) = device.drm_scanner.connectors().get(&surface.connector)
+                 else {
+diff --git a/src/niri.rs b/src/niri.rs
+index 6666666..7777777 100644
+--- a/src/niri.rs
++++ b/src/niri.rs
+@@ -1772,6 +1772,13 @@ impl Tty {
+             niri_ipc::OutputAction::Vrr { vrr } => {
+                 config.variable_refresh_rate = if vrr.vrr {
+                     Some(niri_config::Vrr {
+                         on_demand: vrr.on_demand,
+                     })
+                 } else {
+                     None
+                 }
+             }
++            niri_ipc::OutputAction::SdrBrightness { brightness } => {
++                config.sdr_brightness = Some(brightness.clamp(0.0, 1.0));
++                // Apply immediately via the tty backend.
++                if let Some(tty) = self.backend.tty_checked() {
++                    let _ = tty.set_nv_brightness_for_output(&surface, brightness);
++                }
++            }
+         });
+ 
+         self.reload_output_config();
+-- 
+2.45.2

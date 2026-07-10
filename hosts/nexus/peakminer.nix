@@ -35,6 +35,7 @@ in {
           fanMin = 30;
           fanMax = 100;
           apiPort = 21551;
+          proxyPort = 30001;
         }
       ];
       exporterInstances = [
