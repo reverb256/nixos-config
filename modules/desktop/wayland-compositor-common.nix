@@ -48,62 +48,35 @@ in {
     # e.g. a Vulkan AI inference machine on hosts/sentry that wants
     # niri but not the desktop shell daemon.
     programs.noctalia.enable = mkDefault true;
-    programs.noctalia.systemd.enable = mkDefault true;
-    # After: list values merge across module boundaries, so adding our
-    # own entries composes with upstream's graphical-session.target
-    # ordering. Pipewire + wireplumber services must be active before
-    # noctalia starts so the v5 audio plugin can probe wireplumber on
-    # boot -- otherwise the audio plugin init hangs / silently fails
-    # (the exact regression the user reported on "volume keys dead").
-    systemd.user.services.noctalia.unitConfig.After = [
-      "pipewire.service"
-      "wireplumber.service"
-    ];
-    systemd.user.services.noctalia.serviceConfig.ExecStart = mkForce (
-      pkgs.writeShellScript "noctalia-launch" ''
-        #!/usr/bin/env bash
-        set -a
-        . /etc/uwsm/env-niri
-        set +a
-        # 2026-07-07: a bare systemd --user ExecStart does NOT inherit
-        # the user session's `NIRI_SOCKET`. uwsm finalize blocks on
-        # `UWSM_WAIT_VARNAMES=NIRI_SOCKET` if it's empty. Discover the
-        # runtime niri socket (PID-suffixed, dynamic) and export it.
-        for s in /run/user/$(id -u)/niri.wayland-*.sock; do
-          [ -S "$s" ] && export NIRI_SOCKET="$s" && break
-        done
-        # Mirror upstream's `lib.getExe cfg.package` so we pick up
-        # whatever `mainProgram`/multi-bin rewire happens upstream
-        # rather than hard-coding `/bin/noctalia`. If noctalia ever
-        # renames its binary, this stays correct.
-        exec ${lib.getExe config.programs.noctalia.package}
-      ''
-    );
+    # 2026-07-10: run noctalia INSIDE the logind session scope, NOT as a
+    # detached `systemd --user` service. The BrightnessService resolves its
+    # controllable displays via logind `GetSessionByPID`. A user-service PID
+    # is not "in" any logind session, so logind returns `NoSessionForPID`
+    # and noctalia bails out of brightness probing entirely — every slider
+    # grays out (DDC + SDR alike). Launching noctalia as a niri
+    # `spawn-at-startup` child (see modules/home-manager/niri-config.nix)
+    # makes it a descendant of niri, which lives in `session-*.scope`, so
+    # the logind lookup resolves and BrightnessService actually probes
+    # ddcutil and the SDR backend.
+    programs.noctalia.systemd.enable = mkForce false;
 
-    # ── noctalia v5: wrapper as the package so it shadows the daemon ──
-    # 2026-07-07 refactor: the prior approach installed a `noctalia` wrapper
-    # via `environment.systemPackages` while the upstream NixOS module also
-    # installed the daemon package as `programs.noctalia.package`. Both
-    # produced `bin/noctalia` and the daemon's ELF won the PATH collision,
-    # so the brightness intercept never ran (XF86 keys hit the daemon
-    # directly, which has no DDC backend for the locked-I2C HDTV and
-    # reports "brightness control unavailable"). The fix: override
-    # `programs.noctalia.package` to the wrapper derivation. The upstream
-    # module then installs ONLY the wrapper (no daemon binary on PATH
-    # besides what the wrapper's Nix-store reference exec's into). The
-    # wrapper still exec's the real daemon for non-brightness verbs, so
-    # `noctalia msg volume-up`, `noctalia msg panel-toggle launcher`,
-    # etc. all work; only `brightness-{up,down,get,set}` is intercepted
-    # and routed to scripts/brightness-router.sh.
+    # The patched daemon (desktop.noctalia.daemonPackage) now owns the
+    # brightness backends natively: DDC/CI via ddcutil for DP-* and the
+    # compositor-driven SDR backend (niri IPC) for HDMI-A-2. The old
+    # wrapper intercepted brightness verbs and routed them to
+    # scripts/brightness-router.sh, which (a) could not drive SDR and
+    # (b) had an arg-order bug (`brightness-set <conn> <pct>` swapped
+    # them). Drop the interception entirely — pass every verb through to
+    # the daemon. This keeps `noctalia msg volume-up`, panel toggles, etc.
+    # working while letting the daemon handle brightness natively.
     programs.noctalia.package = lib.mkForce (pkgs.writeShellScriptBin "noctalia" ''
-      if [[ "$1" == "msg" ]]; then
-        case "$2" in
-          brightness-up|brightness-down|brightness-get|brightness-set)
-            exec ${./../../scripts/brightness-router.sh} "$2" "''${@:3}"
-            ;;
-        esac
-      fi
       exec ${lib.getExe config.desktop.noctalia.daemonPackage} "$@"
     '');
+
+    # Point the daemon at the system-managed TOML (/etc/noctalia/config.toml,
+    # symlinked into /etc/static). Previously set on the systemd unit's
+    # environment; with the user service gone we set it session-wide so the
+    # spawn-at-startup child inherits it.
+    environment.sessionVariables.NOCTALIA_CONFIG_HOME = "/etc";
   };
 }
