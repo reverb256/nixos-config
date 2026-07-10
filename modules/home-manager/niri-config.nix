@@ -811,11 +811,19 @@ in {
     };
   };
 
-  # Declarative launch-or-focus script with orphan cleanup
-  home.file.".local/bin/launch-or-focus" = {
-    executable = true;
-    text = ''
-      #!${pkgs.bash}/bin/bash
+  # Declarative launch-or-focus script with orphan cleanup.
+  #
+  # Installed as a home.packages derivation (NOT home.file under ~/.local/bin)
+  # so it lands in /etc/profiles/per-user/<user>/bin — which IS present in the
+  # PATH that niri passes to spawned children. A bare `home.file` under
+  # ~/.local/bin is NOT on that PATH, so niri-spawned binds calling
+  # `launch-or-focus` by bare name silently fail to find the script.
+  #
+  # writeShellScriptBin (not writeShellApplication) is used deliberately: it
+  # produces <name>/bin/<name> without running shellcheck, so the inline
+  # `local x=$(...)` form builds cleanly on this Nixpkgs version.
+  home.packages = [
+    (pkgs.writeShellScriptBin "launch-or-focus" ''
       set -euo pipefail
 
       if [ $# -lt 1 ]; then
@@ -830,14 +838,15 @@ in {
       # Kill orphan processes that match the pattern but have no Niri window.
       # Prevents stale processes from a previous session blocking new launches.
       for pid in $(pgrep -f "$PATTERN" 2>/dev/null || true); do
-        if [ "$pid" != "$$" ] && ! ${pkgs.niri}/bin/niri msg windows 2>/dev/null | grep -q "PID: $pid"; then
+        if [ "$pid" != "$$" ] && ! niri msg windows 2>/dev/null | grep -q "PID: $pid"; then
           kill "$pid" 2>/dev/null || true
         fi
       done
 
       find_window_id() {
-        local pat_lower=$(echo "$PATTERN" | tr '[:upper:]' '[:lower:]')
-        ${pkgs.niri}/bin/niri msg windows 2>/dev/null | awk -v pat="$pat_lower" '
+        local pat_lower
+        pat_lower=$(echo "$PATTERN" | tr '[:upper:]' '[:lower:]')
+        niri msg windows 2>/dev/null | awk -v pat="$pat_lower" '
           /^Window ID/ { current_id = $3; gsub(/:/, "", current_id); title=""; appid="" }
           /^  Title:/ {
             val = $0; sub(/^  Title: "/, "", val); sub(/"$/, "", val); title = val
@@ -853,10 +862,10 @@ in {
 
       WINDOW_ID=$(find_window_id) || true
       if [ -n "$WINDOW_ID" ]; then
-        ${pkgs.niri}/bin/niri msg action focus-window --id "$WINDOW_ID" 2>/dev/null || true
+        niri msg action focus-window --id "$WINDOW_ID" 2>/dev/null || true
       else
         exec $LAUNCH_CMD
       fi
-    '';
-  };
+    '')
+  ];
 }
