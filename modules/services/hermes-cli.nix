@@ -20,6 +20,19 @@
 }: let
   cfg = config.services.hermes-cli;
   hermesAgentCfg = config.services.hermes-agent or {};
+  # Runtime library path for audio (PortAudio) on NixOS.
+  # NixOS has no ldconfig / /etc/ld.so.cache, so ctypes.util.find_library()
+  # returns None and sounddevice raises "PortAudio library not found".
+  # sounddevice only strips to 'libportaudio' (not '.so.2'), so even the
+  # system-path symlink isn't found by the loader. The fix is to prefix
+  # LD_LIBRARY_PATH with the portaudio + alsa-lib lib dirs on every hermes
+  # wrapper, so dlopen() resolves them. This is the canonical pattern already
+  # proven in packages/hermes-with-whatsapp.nix (now dead code).
+  hermesAudioLibPath = lib.makeLibraryPath [
+    pkgs.portaudio
+    pkgs.alsa-lib
+  ];
+
   # Patch hermes-agent to remove /etc/ from sensitive path blocklist,
   # allowing write_file and patch tools to edit /etc/nixos/ files.
   hermesPkg = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs (old: {
@@ -82,6 +95,31 @@
       fi
     '';
   });
+
+  # Wrap hermes-agent so every bin (hermes, hermes-agent, hermes-acp) gets
+  # LD_LIBRARY_PATH for PortAudio + alsa-lib. On NixOS there is no ldconfig,
+  # so ctypes.util.find_library('portaudio') returns None and sounddevice
+  # raises OSError("PortAudio library not found") -> Hermes refuses to start
+  # voice mode. Prefixing LD_LIBRARY_PATH makes dlopen('libportaudio') resolve.
+  # This is the canonical fix; the equivalent lived in the now-dead
+  # packages/hermes-with-whatsapp.nix (--prefix LD_LIBRARY_PATH : portaudioLib).
+  hermesPkgWrapped = pkgs.runCommand "hermes-agent-wrapped-${hermesPkg.version or "0.18.0"}" {
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+    buildInputs = [ hermesPkg ];
+    meta = (hermesPkg.meta or {}) // { description = "hermes-agent with PortAudio LD_LIBRARY_PATH wrapper"; };
+  } ''
+    mkdir -p "$out/bin"
+    for bin in ${hermesPkg}/bin/*; do
+      name=$(basename "$bin")
+      makeWrapper "$bin" "$out/bin/$name" \
+        --prefix LD_LIBRARY_PATH : "${hermesAudioLibPath}"
+    done
+  '';
+
+  # Expose the wrapped hermes bin dir so Home Manager (user-local symlink)
+  # and other modules can reference it by store path without touching
+  # /run/current-system at pure-eval time.
+  wrappedBinPath = "${hermesPkgWrapped}/bin/hermes";
 
   # Use base hermes-agent package without WhatsApp bridge (stub removed)
   # WhatsApp functionality temporarily disabled
@@ -317,6 +355,17 @@ in {
     # boot from Nix expressions. Imperative sections (mcp_servers,
     # gateway.platforms.telegram.channel_profiles, skills, etc.) on disk
     # are preserved verbatim across rebuilds.
+    # Internal: store-path to the wrapped hermes binary (carries the
+    # PortAudio LD_LIBRARY_PATH). Exposed to Home Manager via extraSpecialArgs
+    # so the user-local ~/.local/bin/hermes symlink tracks the real path.
+    wrappedHermesBin = lib.mkOption {
+      type = lib.types.str;
+      internal = true;
+      readOnly = true;
+      default = wrappedBinPath;
+      description = "Store path to the wrapped hermes binary with PortAudio LD_LIBRARY_PATH.";
+    };
+
     managedConfig = lib.mkOption {
       type = lib.types.bool;
       default = false;
@@ -348,8 +397,10 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Install hermes package system-wide
-    environment.systemPackages = [hermesPkg pkgs.portaudio];
+    # Install hermes package system-wide. Use the wrapped variant so voice
+    # mode's PortAudio dependency resolves (LD_LIBRARY_PATH for portaudio +
+    # alsa-lib). The bare pkgs.portaudio is no longer needed here.
+    environment.systemPackages = [hermesPkgWrapped];
 
     # Only set HERMES_HOME if hermes-agent is NOT managing it
     # The hermes-agent module sets addToSystemPackages which also sets HERMES_HOME
