@@ -1,8 +1,8 @@
 diff --git a/src/config/config_types.h b/src/config/config_types.h
-index 30a2827..83cbd03 100644
+index 6ee0d1d..549cf02 100644
 --- a/src/config/config_types.h
 +++ b/src/config/config_types.h
-@@ -1073,6 +1073,7 @@ enum class BrightnessBackendPreference : std::uint8_t {
+@@ -1087,6 +1087,7 @@ enum class BrightnessBackendPreference : std::uint8_t {
    None = 1,
    Backlight = 2,
    Ddcutil = 3,
@@ -10,7 +10,7 @@ index 30a2827..83cbd03 100644
  };
  
  constexpr EnumOption<BrightnessBackendPreference> kBrightnessBackendPreferences[] = {
-@@ -1080,6 +1081,7 @@ constexpr EnumOption<BrightnessBackendPreference> kBrightnessBackendPreferences[
+@@ -1094,6 +1095,7 @@ constexpr EnumOption<BrightnessBackendPreference> kBrightnessBackendPreferences[
      {BrightnessBackendPreference::None, "none", ""},
      {BrightnessBackendPreference::Backlight, "backlight", ""},
      {BrightnessBackendPreference::Ddcutil, "ddcutil", ""},
@@ -19,7 +19,7 @@ index 30a2827..83cbd03 100644
  
  struct BrightnessMonitorOverride {
 diff --git a/src/system/brightness_service.cpp b/src/system/brightness_service.cpp
-index b1a6303..426dead 100644
+index 23a2c42..579574c 100644
 --- a/src/system/brightness_service.cpp
 +++ b/src/system/brightness_service.cpp
 @@ -57,6 +57,7 @@ namespace {
@@ -30,16 +30,17 @@ index b1a6303..426dead 100644
    };
  
    struct DisplayInternal {
-@@ -67,6 +68,8 @@ namespace {
-     std::string sysfsPath;
+@@ -68,6 +69,9 @@ namespace {
      std::string connectorName;
      int inotifyWd = -1;
+ 
 +    // Last brightness requested for SDR (compositor-driven) displays.
 +    float sdrBrightness = 0.9f;
- 
++
      int ddcBus = -1;
      // Incremented on each user brightness write; completions with an older epoch are ignored.
-@@ -662,6 +665,9 @@ struct BrightnessService::Impl {
+     std::uint64_t ddcWriteEpoch = 0;
+@@ -662,6 +666,9 @@ struct BrightnessService::Impl {
  
    std::vector<BrightnessDisplay> publicDisplays;
    std::vector<DisplayInternal> internals;
@@ -49,7 +50,7 @@ index b1a6303..426dead 100644
  
    std::unique_ptr<sdbus::IProxy> sessionProxy;
    sdbus::ObjectPath sessionPath;
-@@ -929,6 +935,10 @@ struct BrightnessService::Impl {
+@@ -924,6 +931,10 @@ struct BrightnessService::Impl {
    }
  
    void rebuildPublic() {
@@ -60,7 +61,7 @@ index b1a6303..426dead 100644
      publicDisplays.clear();
      publicDisplays.reserve(internals.size() + wayland.outputs().size());
      for (const auto& display : internals) {
-@@ -947,6 +957,30 @@ struct BrightnessService::Impl {
+@@ -935,6 +946,30 @@ struct BrightnessService::Impl {
          continue;
        }
  
@@ -88,10 +89,10 @@ index b1a6303..426dead 100644
 +        continue;
 +      }
 +
-       publicDisplays.push_back(disabledDisplayForOutput(output));
-     }
-   }
-@@ -987,6 +1021,9 @@ struct BrightnessService::Impl {
+       const bool hasDisplay = std::ranges::any_of(internals, [&output](const DisplayInternal& display) {
+         return display.connectorName == output.connectorName;
+       });
+@@ -982,6 +1017,9 @@ struct BrightnessService::Impl {
      case RuntimeBackend::Ddcutil:
        setDdcBrightness(*display, value);
        break;
@@ -101,8 +102,8 @@ index b1a6303..426dead 100644
      }
    }
  
-@@ -1025,6 +1062,37 @@ struct BrightnessService::Impl {
-     }
+@@ -1076,6 +1114,37 @@ struct BrightnessService::Impl {
+     workerCv.notify_all();
    }
  
 +  void setSdrBrightness(DisplayInternal& display, float value) {
@@ -136,6 +137,6 @@ index b1a6303..426dead 100644
 +    }
 +  }
 +
-   void setDdcBrightness(DisplayInternal& display, float value) {
+   void queueDdcRefreshes() {
      const auto now = std::chrono::steady_clock::now();
-     if (display.quarantined && now < display.cooldownUntil) {
+     std::scoped_lock lock(workerMutex);
