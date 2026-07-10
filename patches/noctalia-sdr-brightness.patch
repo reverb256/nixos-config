@@ -1,0 +1,141 @@
+diff --git a/src/config/config_types.h b/src/config/config_types.h
+index 30a2827..83cbd03 100644
+--- a/src/config/config_types.h
++++ b/src/config/config_types.h
+@@ -1073,6 +1073,7 @@ enum class BrightnessBackendPreference : std::uint8_t {
+   None = 1,
+   Backlight = 2,
+   Ddcutil = 3,
++  Sdr = 4,
+ };
+ 
+ constexpr EnumOption<BrightnessBackendPreference> kBrightnessBackendPreferences[] = {
+@@ -1080,6 +1081,7 @@ constexpr EnumOption<BrightnessBackendPreference> kBrightnessBackendPreferences[
+     {BrightnessBackendPreference::None, "none", ""},
+     {BrightnessBackendPreference::Backlight, "backlight", ""},
+     {BrightnessBackendPreference::Ddcutil, "ddcutil", ""},
++    {BrightnessBackendPreference::Sdr, "sdr", ""},
+ };
+ 
+ struct BrightnessMonitorOverride {
+diff --git a/src/system/brightness_service.cpp b/src/system/brightness_service.cpp
+index b1a6303..426dead 100644
+--- a/src/system/brightness_service.cpp
++++ b/src/system/brightness_service.cpp
+@@ -57,6 +57,7 @@ namespace {
+   enum class RuntimeBackend : std::uint8_t {
+     Backlight,
+     Ddcutil,
++    Sdr,
+   };
+ 
+   struct DisplayInternal {
+@@ -67,6 +68,8 @@ namespace {
+     std::string sysfsPath;
+     std::string connectorName;
+     int inotifyWd = -1;
++    // Last brightness requested for SDR (compositor-driven) displays.
++    float sdrBrightness = 0.9f;
+ 
+     int ddcBus = -1;
+     // Incremented on each user brightness write; completions with an older epoch are ignored.
+@@ -662,6 +665,9 @@ struct BrightnessService::Impl {
+ 
+   std::vector<BrightnessDisplay> publicDisplays;
+   std::vector<DisplayInternal> internals;
++  // Persisted SDR brightness per connector (compositor-driven displays have no
++  // readable brightness, so we remember the last value we set).
++  std::unordered_map<std::string, float> sdrBrightnessCache;
+ 
+   std::unique_ptr<sdbus::IProxy> sessionProxy;
+   sdbus::ObjectPath sessionPath;
+@@ -929,6 +935,10 @@ struct BrightnessService::Impl {
+   }
+ 
+   void rebuildPublic() {
++    // Drop previously-synthesized SDR displays; they are re-created below from
++    // the current output list so they track connect/disconnect correctly.
++    std::erase_if(internals, [](const DisplayInternal& display) { return display.backend == RuntimeBackend::Sdr; });
++
+     publicDisplays.clear();
+     publicDisplays.reserve(internals.size() + wayland.outputs().size());
+     for (const auto& display : internals) {
+@@ -947,6 +957,30 @@ struct BrightnessService::Impl {
+         continue;
+       }
+ 
++      // SDR (compositor-driven) displays: explicitly opted-in via a per-monitor
++      // backend override (e.g. `[brightness.monitor."HDMI-A-2"] backend = "sdr"`).
++      // They have no DDC/CI or backlight, so brightness is pushed to the
++      // compositor (niri) which owns DRM master.
++      const auto preference = backendPreferenceForOutput(activeConfig, &output);
++      if (preference == BrightnessBackendPreference::Sdr) {
++        DisplayInternal sdr;
++        sdr.backend = RuntimeBackend::Sdr;
++        sdr.connectorName = output.connectorName;
++        sdr.pub.id = output.connectorName;
++        sdr.pub.controllable = true;
++        sdr.sdrBrightness = sdrBrightnessCache.contains(output.connectorName)
++                                ? sdrBrightnessCache.at(output.connectorName)
++                                : 0.9f;
++        sdr.pub.brightness = sdr.sdrBrightness;
++        applyOutputMetadata(sdr.pub, output);
++        if (sdr.pub.label.empty()) {
++          sdr.pub.label = output.connectorName;
++        }
++        internals.push_back(std::move(sdr));
++        publicDisplays.push_back(internals.back().pub);
++        continue;
++      }
++
+       publicDisplays.push_back(disabledDisplayForOutput(output));
+     }
+   }
+@@ -987,6 +1021,9 @@ struct BrightnessService::Impl {
+     case RuntimeBackend::Ddcutil:
+       setDdcBrightness(*display, value);
+       break;
++    case RuntimeBackend::Sdr:
++      setSdrBrightness(*display, value);
++      break;
+     }
+   }
+ 
+@@ -1025,6 +1062,37 @@ struct BrightnessService::Impl {
+     }
+   }
+ 
++  void setSdrBrightness(DisplayInternal& display, float value) {
++    value = std::clamp(value, activeConfig.minimumBrightness, 1.0f);
++    display.sdrBrightness = value;
++    display.pub.brightness = value;
++    sdrBrightnessCache[display.connectorName] = value;
++    syncPublicDisplay(display);
++    if (changeCallback) {
++      changeCallback();
++    }
++
++    // SDR brightness is driven by the compositor (niri), which is the only
++    // process holding DRM master. noctalia shells out to niri's IPC, which
++    // writes the NV_PLANE_DEGAMMA_MULTIPLIER plane property on NVIDIA GPUs.
++    // This is fire-and-forget: we trust the cache as the source of truth
++    // because the compositor does not report the value back.
++    if (!process::commandExists("niri")) {
++      kLog.warn("sdr brightness: 'niri' not found on PATH; cannot set brightness for '{}'", display.pub.id);
++      return;
++    }
++    const std::vector<std::string> args{
++        "niri", "msg", "output", display.connectorName, "sdr-brightness", std::to_string(value),
++    };
++    const auto result = process::runSync(args);
++    if (!result) {
++      kLog.warn(
++          "sdr brightness: niri set failed for '{}' (exit {}): {}", display.pub.id, result.exitCode,
++          StringUtils::trim(result.err)
++      );
++    }
++  }
++
+   void setDdcBrightness(DisplayInternal& display, float value) {
+     const auto now = std::chrono::steady_clock::now();
+     if (display.quarantined && now < display.cooldownUntil) {
