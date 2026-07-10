@@ -25,6 +25,13 @@ in
     extraSpecialArgs = {
       inherit inputs;
       inherit hostName;
+      # Expose the noctalia wrapper (NixOS `programs.noctalia.package`,
+      # mkForce'd to the pass-through wrapper in
+      # modules/desktop/wayland-compositor-common.nix) to home-manager
+      # modules. Home-manager's `config` does NOT see NixOS options, so
+      # niri-config.nix spawns it via this injected arg rather than
+      # `config.programs.noctalia.package`.
+      noctaliaPackage = config.programs.noctalia.package;
     };
 
     users.j_kro = {...}: {

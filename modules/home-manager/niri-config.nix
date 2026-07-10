@@ -4,6 +4,7 @@
   pkgs,
   inputs,
   hostName,
+  noctaliaPackage,
   ...
 }: let
   inherit (lib) mkDefault mkIf;
@@ -34,10 +35,24 @@ in {
               "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
             ];
           }
-          # 2026-07-07: noctalia daemon moved out of spawn-at-startup.
-          # Transient uwsm-app units intentionally do NOT restart on
-          # failure — when the cat pressed sleep and the daemon died,
-          # nothing brought it back. Spawn ckb-next still inline.
+          # 2026-07-10: noctalia daemon moved BACK into spawn-at-startup.
+          # It was previously a detached `systemd --user` service, but
+          # BrightnessService resolves controllable displays via logind
+          # GetSessionByPID, which returns NoSessionForPID for user-service
+          # PIDs — so brightness probing aborted and all sliders grayed out.
+          # Running as a niri spawn child puts it in session-*.scope (niri's
+          # scope), so logind resolves and DDC/CI + SDR brightness work.
+          # niri respawns failed spawn-at-startup apps (restart-on-failure).
+          {
+            argv = [
+              "uwsm"
+              "app"
+              "-s"
+              "s"
+              "--"
+              "${noctaliaPackage}/bin/noctalia"
+            ];
+          }
           {
             argv = [
               "uwsm"
