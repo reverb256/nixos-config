@@ -25,6 +25,9 @@ in
     extraSpecialArgs = {
       inherit inputs;
       inherit hostName;
+      # Wrapped hermes binary (with PortAudio LD_LIBRARY_PATH) for the
+      # user-local ~/.local/bin/hermes symlink (replaces stale manual link).
+      hermesWrappedBin = config.services.hermes-cli.wrappedHermesBin;
       # Expose the noctalia wrapper (NixOS `programs.noctalia.package`,
       # mkForce'd to the pass-through wrapper in
       # modules/desktop/wayland-compositor-common.nix) to home-manager
@@ -34,7 +37,7 @@ in
       noctaliaPackage = config.programs.noctalia.package;
     };
 
-    users.j_kro = {...}: {
+    users.j_kro = { hermesWrappedBin, ... }: {
       # Home Manager uses separate nixpkgs config for user packages
       # Allow insecure packages
       nixpkgs.config.permittedInsecurePackages = [
@@ -102,6 +105,15 @@ in
 
       home.sessionVariables = {
         HF_TOKEN = "/run/secrets/huggingface-token";
+      };
+
+      # Ensure the user's ~/.local/bin/hermes points at the NixOS-wrapped
+      # hermes binary (which carries the PortAudio LD_LIBRARY_PATH). A stale
+      # manual symlink to a raw GC-able store path previously shadowed the
+      # system wrapper and broke voice mode. force=true overrides it.
+      home.file.".local/bin/hermes" = {
+        source = hermesWrappedBin;
+        force = true;
       };
 
       # Remove stale HM backup files before activation to prevent clobber errors
