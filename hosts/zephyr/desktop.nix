@@ -1,8 +1,13 @@
 {
   pkgs,
   lib,
+  inputs,
   ...
 }: {
+  imports = [
+    ../../modules/desktop/zephyr-sdr-brightness.nix
+  ];
+
   services.displayManager.sddm.enable = lib.mkForce true;
   services.displayManager.sddm.wayland.enable = true;
 

@@ -25,7 +25,7 @@ in {
     extraArgs = mkOption {
       type = types.listOf types.str;
       default = ["--coin" "pearl"];
-      description = "Extra arguments passed to all miner instances. Note: --legacy-auth is intentionally NOT included because peakminer v1.0.13 with --legacy-auth emits dead submits against Kryptex (0 accepted shares). The auth-translator proxy (per-instance proxyPort) translates authorize to array-form on the miner's behalf.";
+      description = "Extra arguments passed to all miner instances. Note: --legacy-auth is intentionally NOT included because peakminer v1.0.13+ with --legacy-auth emits dead submits against Kryptex (0 accepted shares). The auth-translator proxy (per-instance proxyPort) translates authorize to array-form on the miner's behalf. See commit e92331e6 for the TCP-line-buffering fix to the proxy script.";
     };
 
     setPowerLimit = mkOption {
