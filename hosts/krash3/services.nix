@@ -159,9 +159,42 @@ in {
 
   # ── Runtime files ────────────────────────────────────────
   systemd.tmpfiles.rules = [
-    "f /var/lib/libvirt/images/c.raw 0640 root kvm - -"
+    # NOTE: c.raw image creation moved to ensure-images-subvolume (NOCOW subvol).
     "L+ /run/secrets/k3s-cluster-token - - - - /persistent/etc/k3s-cluster-token"
   ];
+
+  # ── VM images dir: NOCOW btrfs subvolume ─────────────────
+  # /var/lib/libvirt/images becomes a subvolume with inherited NOCOW so any
+  # future VM image file skips btrfs copy-on-write. Existing c.raw keeps its
+  # current allocation (Track B may re-seed it onto the RAID later). Runs
+  # before libvirt so the dir exists with correct ownership when libvirtd
+  # starts. Safe to re-run: it only converts if not already a subvolume.
+  systemd.services.ensure-images-subvolume = {
+    wantedBy = [ "multi-user.target" ];
+    before = [ "libvirtd.service" "virtlogd.service" ];
+    path = [ pkgs.btrfs-progs pkgs.coreutils pkgs.e2fsprogs ];
+    serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };
+    script = ''
+      D=/var/lib/libvirt/images
+      mkdir -p "$(dirname "$D")"
+      if [ ! -d "$D" ]; then
+        mkdir -p "$D"
+      fi
+      # Convert the plain dir into a subvolume (preserves existing contents).
+      if ! btrfs subvolume show "$D" >/dev/null 2>&1; then
+        T="$(mktemp -d "$D/.seed.XXXXXX")"
+        mv "$D"/* "$T"/ 2>/dev/null || true
+        rmdir "$D" 2>/dev/null || true
+        btrfs subvolume create "$D"
+        chown root:kvm "$D"; chmod 0750 "$D"
+        mv "$T"/* "$D"/ 2>/dev/null || true
+        rmdir "$T" 2>/dev/null || true
+      fi
+      # Inherit NOCOW on the subvolume (applies to all new files within).
+      btrfs property set "$D" compression "" 2>/dev/null || true
+      chattr +C "$D" 2>/dev/null || true
+    '';
+  };
 
   # ── E: drive watchdog ───────────────────────────────────
   # Verifies from INSIDE the guest that E: is Healthy. Disk source is /dev/md0
@@ -261,5 +294,5 @@ assign letter=E noerr
   };
 
   # ── Packages ─────────────────────────────────────────────
-  environment.systemPackages = with pkgs; [ virt-manager git libvirt virtio-win swtpm jq ];
+  environment.systemPackages = with pkgs; [ virt-manager git libvirt virtio-win swtpm jq e2fsprogs ];
 }
