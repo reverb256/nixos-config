@@ -1,0 +1,158 @@
+diff --git a/niri-config/src/output.rs b/niri-config/src/output.rs
+index 5d6565f5..60f05c34 100644
+--- a/niri-config/src/output.rs
++++ b/niri-config/src/output.rs
+@@ -64,6 +64,8 @@ pub struct Output {
+     #[knuffel(child)]
+     pub modeline: Option<Modeline>,
+     #[knuffel(child)]
++    pub sdr_brightness: Option<f64>,
++    #[knuffel(child)]
+     pub variable_refresh_rate: Option<Vrr>,
+     #[knuffel(child)]
+     pub focus_at_startup: bool,
+@@ -103,6 +105,7 @@ impl Default for Output {
+             position: None,
+             mode: None,
+             modeline: None,
++            sdr_brightness: None,
+             variable_refresh_rate: None,
+             background_color: None,
+             backdrop_color: None,
+diff --git a/niri-ipc/src/lib.rs b/niri-ipc/src/lib.rs
+index 0aa3cb4f..1fbfa851 100644
+--- a/niri-ipc/src/lib.rs
++++ b/niri-ipc/src/lib.rs
+@@ -1097,6 +1097,12 @@ pub enum OutputAction {
+         #[cfg_attr(feature = "clap", command(flatten))]
+         vrr: VrrToSet,
+     },
++    /// Set the SDR brightness (a multiplier on the composited image), on
++    /// supported hardware, via the NV_PLANE_DEGAMMA_MULTIPLIER DRM plane
++    /// property. `brightness` is in the `0.0..=1.0` range.
++    SdrBrightness {
++        brightness: f64,
++    },
+ }
+ 
+ /// Output mode to set.
+diff --git a/src/backend/tty.rs b/src/backend/tty.rs
+index 5368c7ec..7175456a 100644
+--- a/src/backend/tty.rs
++++ b/src/backend/tty.rs
+@@ -401,6 +401,14 @@ struct GammaProps {
+     previous_blob: Option<NonZeroU64>,
+ }
+ 
++/// NVIDIA SDR brightness plane property (NV_PLANE_DEGAMMA_MULTIPLIER).
++/// A 32.32 fixed-point multiplier applied to the composited image, giving
++/// hardware-accelerated brightness control for displays without DDC/CI.
++struct NvBrightnessProps {
++    crtc: crtc::Handle,
++    degamma_mult: property::Handle,
++}
++
+ struct ConnectorProperties<'a> {
+     device: &'a DrmDevice,
+     connector: connector::Handle,
+@@ -1332,6 +1340,16 @@ impl Tty {
+             debug!("couldn't reset gamma: {err:?}");
+         }
+ 
++        // Apply SDR brightness via NV_PLANE_DEGAMMA_MULTIPLIER when configured.
++        if let Some(brightness) = config.sdr_brightness {
++            if let Err(err) = self.apply_nv_brightness(&device.drm, crtc, brightness) {
++                debug!(
++                    "output {:?}: SDR brightness not applied: {err:?}",
++                    surface.name.connector
++                );
++            }
++        }
++
+         let surface = device
+             .drm
+             .create_surface(crtc, mode, &[connector.handle()])?;
+@@ -2283,6 +2301,61 @@ impl Tty {
+         }
+     }
+ 
++    /// Write the SDR brightness multiplier to the NV_PLANE_DEGAMMA_MULTIPLIER
++    /// plane property for the output's CRTC.
++    pub fn set_sdr_brightness(&self, output: &Output, brightness: f64) -> anyhow::Result<()> {
++        let brightness = brightness.clamp(0.0, 1.0);
++        for (&node, device) in self.devices.iter() {
++            for (&crtc, surface) in device.surfaces.iter() {
++                let tty_state: &TtyOutputState = output.user_data().get().unwrap();
++                if tty_state.node == node && tty_state.crtc == crtc {
++                    return self.apply_nv_brightness(&device.drm, crtc, brightness);
++                }
++            }
++        }
++        anyhow::bail!("no surface found for output {:?}", output.name())
++    }
++
++    fn apply_nv_brightness(
++        &self,
++        drm: &DrmDevice,
++        crtc: crtc::Handle,
++        brightness: f64,
++    ) -> anyhow::Result<()> {
++        let props = Self::detect_nv_brightness_props(drm, crtc)
++            .context("NV_PLANE_DEGAMMA_MULTIPLIER not available on this output")?;
++        // 32.32 fixed point: value 1.0 -> 0x100000000.
++        let fixed = (brightness.clamp(0.0, 1.0) * 4294967296.0).round() as u64;
++        drm.connection()
++            .set_property(crtc, props.degamma_mult, fixed)
++            .context("error setting NV_PLANE_DEGAMMA_MULTIPLIER")?;
++        Ok(())
++    }
++
++    fn detect_nv_brightness_props(drm: &DrmDevice, crtc: crtc::Handle) -> Option<NvBrightnessProps> {
++        let plane_handles = drm.planes().ok()?;
++        for plane_handle in plane_handles {
++            let info = drm.get_plane_info(plane_handle).ok()?;
++            // Only primary planes that can drive this CRTC.
++            if info.crtc != Some(crtc) {
++                continue;
++            }
++            if let Some((_, _info, _value)) =
++                find_drm_property(drm, plane_handle, "NV_PLANE_DEGAMMA_MULTIPLIER")
++            {
++                debug!(
++                    "found NV_PLANE_DEGAMMA_MULTIPLIER on plane {:?} for CRTC {:?}",
++                    plane_handle, crtc
++                );
++                return Some(NvBrightnessProps {
++                    crtc,
++                    degamma_mult: _info.handle,
++                });
++            }
++        }
++        None
++    }
++
+     fn compute_ignored_nodes(&self) -> HashSet<DrmNode> {
+         let mut ignored_nodes = ignored_nodes_from_config(&self.config.borrow());
+         if ignored_nodes.remove(&self.primary_node)
+diff --git a/src/niri.rs b/src/niri.rs
+index ec40e01c..1aaac92a 100644
+--- a/src/niri.rs
++++ b/src/niri.rs
+@@ -1925,6 +1925,17 @@ impl State {
+                     None
+                 }
+             }
++            niri_ipc::OutputAction::SdrBrightness { brightness } => {
++                config.sdr_brightness = Some(brightness.clamp(0.0, 1.0));
++                // Apply immediately via the tty backend (it owns DRM master).
++                if let Some(output) = self.niri.output_by_name_match(name) {
++                    if let Some(tty) = self.backend.tty_checked() {
++                        if let Err(err) = tty.set_sdr_brightness(output, brightness) {
++                            warn!("error applying SDR brightness for {name:?}: {err:?}");
++                        }
++                    }
++                }
++            }
+         });
+ 
+         self.reload_output_config();
