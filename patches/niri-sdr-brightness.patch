@@ -6,7 +6,7 @@ index 5d6565f5..60f05c34 100644
      #[knuffel(child)]
      pub modeline: Option<Modeline>,
      #[knuffel(child)]
-+    pub sdr_brightness: Option<f64>,
++    pub sdr_brightness: Option<FloatOrInt<0, 1>>,
 +    #[knuffel(child)]
      pub variable_refresh_rate: Option<Vrr>,
      #[knuffel(child)]
@@ -34,7 +34,7 @@ index 0aa3cb4f..1fbfa851 100644
 +        brightness: f64,
 +    },
  }
- 
+
  /// Output mode to set.
 diff --git a/src/backend/tty.rs b/src/backend/tty.rs
 index 5368c7ec..7175456a 100644
@@ -43,7 +43,7 @@ index 5368c7ec..7175456a 100644
 @@ -401,6 +401,14 @@ struct GammaProps {
      previous_blob: Option<NonZeroU64>,
  }
- 
+
 +/// NVIDIA SDR brightness plane property (NV_PLANE_DEGAMMA_MULTIPLIER).
 +/// A 32.32 fixed-point multiplier applied to the composited image, giving
 +/// hardware-accelerated brightness control for displays without DDC/CI.
@@ -58,10 +58,10 @@ index 5368c7ec..7175456a 100644
 @@ -1332,6 +1340,16 @@ impl Tty {
              debug!("couldn't reset gamma: {err:?}");
          }
- 
+
 +        // Apply SDR brightness via NV_PLANE_DEGAMMA_MULTIPLIER when configured.
 +        if let Some(brightness) = config.sdr_brightness {
-+            if let Err(err) = self.apply_nv_brightness(&device.drm, crtc, brightness) {
++            if let Err(err) = self.apply_nv_brightness(&device.drm, crtc, brightness.0) {
 +                debug!(
 +                    "output {:?}: SDR brightness not applied: {err:?}",
 +                    surface.name.connector
@@ -75,7 +75,7 @@ index 5368c7ec..7175456a 100644
 @@ -2283,6 +2301,61 @@ impl Tty {
          }
      }
- 
+
 +    /// Write the SDR brightness multiplier to the NV_PLANE_DEGAMMA_MULTIPLIER
 +    /// plane property for the output's CRTC.
 +    pub fn set_sdr_brightness(&self, output: &Output, brightness: f64) -> anyhow::Result<()> {
@@ -143,7 +143,7 @@ index ec40e01c..1aaac92a 100644
                  }
              }
 +            niri_ipc::OutputAction::SdrBrightness { brightness } => {
-+                config.sdr_brightness = Some(brightness.clamp(0.0, 1.0));
++                config.sdr_brightness = Some(FloatOrInt(brightness.clamp(0.0, 1.0)));
 +                // Apply immediately via the tty backend (it owns DRM master).
 +                if let Some(output) = self.niri.output_by_name_match(name) {
 +                    if let Some(tty) = self.backend.tty_checked() {
@@ -154,5 +154,5 @@ index ec40e01c..1aaac92a 100644
 +                }
 +            }
          });
- 
+
          self.reload_output_config();
