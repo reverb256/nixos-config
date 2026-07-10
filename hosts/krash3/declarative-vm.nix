@@ -308,6 +308,16 @@ in
     # surfaces it.
     ${pkgs.libvirt}/bin/virsh define /etc/libvirt/qemu/krash3-vm.xml
     ${pkgs.libvirt}/bin/virsh autostart krash3-vm
+    # Self-healing: dump GPU VBIOS ROM if missing (lost on host reboot).
+    # The RTX 4060's ROM is required for GPU passthrough; without it,
+    # virsh start fails with "failed to find romfile".
+    if [ ! -f /var/lib/libvirt/images/gpu-rom.bin ]; then
+      echo 1 > /sys/bus/pci/devices/0000:08:00.0/rom
+      dd if=/sys/bus/pci/devices/0000:08:00.0/rom of=/var/lib/libvirt/images/gpu-rom.bin bs=512 count=1024 status=none
+      echo 0 > /sys/bus/pci/devices/0000:08:00.0/rom
+      chown root:kvm /var/lib/libvirt/images/gpu-rom.bin
+      chmod 0640 /var/lib/libvirt/images/gpu-rom.bin
+    fi
   '';
 
   # Keep the old network activation (needed for virbr0)
