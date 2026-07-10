@@ -74,8 +74,7 @@ in {
       vrrpScripts = lib.optionalAttrs cfg.enableHealthCheck {
         check-kube-apiserver = {
           script = ''
-            #!/bin/sh
-            ${pkgs.curl}/bin/curl -f -s -o /dev/null --connect-timeout 3 --insecure https://127.0.0.1:6443/healthz
+            exec ${pkgs.curl}/bin/curl -f -s -o /dev/null --connect-timeout 3 --insecure https://127.0.0.1:6443/healthz
           '';
           weight = -20;
           interval = 2;
