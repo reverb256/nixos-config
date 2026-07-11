@@ -111,28 +111,6 @@ context_length = 262144
 capabilities = ["chat", "completion", "reasoning"]
 backends = ["llama-zephyr-3090"]
 
-# ── ZAI (Subscription / Quota Exhausted - Last Resort) ──────────────────
-[models.glm-5-turbo]
-name = "glm-5-turbo"
-description = "GLM-5 Turbo — Fast Agentic"
-context_length = 128000
-capabilities = ["chat", "completion", "fast"]
-backends = ["zai"]
-
-[models.glm-5.1]
-name = "glm-5.1"
-description = "GLM-5.1 744B MoE — Orchestrator"
-context_length = 128000
-capabilities = ["chat", "completion", "reasoning"]
-backends = ["zai"]
-
-[models.glm-4.7]
-name = "glm-4.7"
-description = "GLM-4.7 358B MoE — Coding"
-context_length = 128000
-capabilities = ["chat", "completion", "coding"]
-backends = ["zai"]
-
 # ── OPENCODE ZEN (Daily Reset 7PM) ────────────────────────────────────
 [models.deepseek-v4-flash-zen]
 name = "deepseek-v4-flash"
@@ -212,13 +190,6 @@ type = "openai-compatible"
 url = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1"
 host = "cluster"
 models = ["google/gemma-4-31b-it", "google/gemma-4-26b-a4b-it", "google/gemma-3-12b-it", "google/gemma-3-4b-it", "google/gemma-2b"]
-
-# ── ZAI Backend ──────────────────────────────────────────────────────
-[backends.zai]
-type = "zai"
-url = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1"
-host = "cluster"
-models = ["glm-5-turbo", "glm-5.1", "glm-4.7"]
 
 # ── OpenCode Zen Backend ──────────────────────────────────────────────
 [backends.opencode-zen]

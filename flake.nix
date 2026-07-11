@@ -123,10 +123,6 @@
       url = "github:reverb256/ai-inference-gateway/96497a4227147d96d7ccc721ab293302a61fe13d";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    knowledge-fabric = {
-      url = "github:reverb256/knowledge-fabric/9f3e90153be35a31a047693404ccea084a868138";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     compute-market = {
       url = "github:reverb256/compute-market/02eb54874adf8a0887a4878a99d33274af9d5404";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -144,10 +140,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # mining-infra removed - only exists on zephyr at /data/projects/infra/mining-infra
-    astral-key = {
-      url = "github:reverb256/astral-key/b269cc69718f3a902ea61aaf29459cae98d96592";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     llama-turboquant = {
       url = "github:reverb256/llama-cpp-turboquant";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -156,25 +148,13 @@
     #   url = "path:/home/j_kro/Projects/vllm";
     #   inputs.nixpkgs.follows = "nixpkgs";
     # };
-    # NOTE: astral-key has nixos-module.nix for systemd service — can be imported in host configs
-    dream2nix = {
-      url = "github:nix-community/dream2nix/69eb01fa0995e1e90add49d8ca5bcba213b0416f";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    pre-commit-hooks = {
-      url = "github:cachix/pre-commit-hooks.nix/61ab0e80d9c7ab14c256b5b453d8b3fb0189ba0a";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    process-compose = {
-      url = "github:F1bonacc1/process-compose/5e62578ad443ccb5ea5761119305335528f0cf10";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    nix-fast-build = {
-      url = "github:Mic92/nix-fast-build/ab8dadc27c73855a958198c6f994398f0e84d2ab";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     bun2nix = {
       url = "github:nix-community/bun2nix/f2bc12af1a6369648aac41041ceeaa0b866599c6";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    pre-commit-hooks = {
+      url = "github:cachix/pre-commit-hooks.nix/61ab0e80d9c7ab14c256b5b453d8b3fb0189ba0a";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

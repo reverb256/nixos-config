@@ -9,7 +9,7 @@
   defaults = {
     primary = "nvidia/nemotron-3-nano-30b-a3b";
     fallback = "google/gemma-2b";
-    default = "glm-4.7"; # 1x quota, cheapest primary
+    default = "nvidia/nemotron-3-nano-30b-a3b"; # Local/NIM primary (glm-4.7 zai removed)
     smol = "local/qwen3.5-2b-awq"; # Local, no external dependency
     slow = "local/qwen3.6-moe-35b"; # Local, best reasoning
     plan = "deepseek-ai/deepseek-v4-flash"; # NIM, rate-limited
@@ -148,53 +148,7 @@
       priority = 3;
     };
 
-    # ── GLM MODELS (Z.AI / Quota-Managed) ───────────────────────────
-    glm-5-1 = {
-      id = "glm-5.1";
-      name = "GLM-5.1 744B MoE orchestrator";
-      category = "primary";
-      contextWindow = 128000;
-      provider = "gateway";
-      quotaMultiplier = 2;
-      priority = 4;
-    };
-    glm-5-turbo = {
-      id = "glm-5-turbo";
-      name = "GLM-5 Turbo fast agentic";
-      category = "primary";
-      contextWindow = 128000;
-      provider = "gateway";
-      quotaMultiplier = 2;
-      priority = 4;
-    };
-    glm-4-7 = {
-      id = "glm-4.7";
-      name = "GLM-4.7 358B MoE";
-      category = "primary";
-      contextWindow = 128000;
-      provider = "gateway";
-      quotaMultiplier = 1;
-      priority = 4;
-    };
-    glm-4-7-flash = {
-      id = "glm-4.7-flash";
-      name = "GLM-4.7 Flash 30B vision";
-      category = "fast";
-      contextWindow = 128000;
-      provider = "gateway";
-      quotaMultiplier = 1;
-      capabilities = ["chat" "completion" "vision" "fast"];
-      priority = 4;
-    };
-    glm-4-5-air = {
-      id = "glm-4.5-air";
-      name = "GLM-4.5 Air ultra-fast";
-      category = "fast";
-      contextWindow = 128000;
-      provider = "gateway";
-      quotaMultiplier = 1;
-      priority = 4;
-    };
+    # ── QWEN MODELS (NIM / Gateway) ──────────────────────────────
     qwen3-5-flash = {
       id = "qwen/qwen3.5-flash-02-23";
       name = "Qwen3.5 Flash 1M context";

@@ -22,9 +22,6 @@ in {
           "prometheus" = "prefer sentry";
           "grafana" = "prefer sentry";
         };
-        "astral-key" = {
-          "astral-key" = "prefer sentry";
-        };
         "glitchtip" = {
           "glitchtip" = "prefer sentry";
         };
@@ -172,31 +169,6 @@ in {
                 }
               }
             }' 2>/dev/null || echo "[k3s-pod-affinity] Grafana not found or already patched"
-
-          # Astral Key - prefer sentry
-          ${pkgs.kubernetes}/bin/kubectl patch deployment astral-key -n astral-key \
-            --patch='{
-              "spec": {
-                "template": {
-                  "spec": {
-                    "affinity": {
-                      "nodeAffinity": {
-                        "preferredDuringSchedulingIgnoredDuringExecution": [{
-                          "weight": 100,
-                          "preference": {
-                            "matchExpressions": [{
-                              "key": "kubernetes.io/hostname",
-                              "operator": "In",
-                              "values": ["sentry"]
-                            }]
-                          }
-                        }]
-                      }
-                    }
-                  }
-                }
-              }
-            }' 2>/dev/null || echo "[k3s-pod-affinity] Astral Key not found or already patched"
 
           # SearXNG - prefer sentry
           ${pkgs.kubernetes}/bin/kubectl patch deployment searxng -n search \
