@@ -109,6 +109,15 @@ in {
         if [ -b /dev/md0p1 ]; then break; fi
         sleep 1
       done
+      # Create md0p2 (C: scratch/RAID disk) once, non-destructively. Only
+      # runs after the operator shrinks md0p1 (window step) so free space
+      # exists; otherwise sfdisk --append has no room and is skipped.
+      if [ ! -b /dev/md0p2 ]; then
+        end1=$(sfdisk --list /dev/md0 2>/dev/null | awk '/md0p1/{print $3}')
+        if [ -n "$end1" ]; then
+          printf ',,L\n' | sfdisk --append /dev/md0 2>/dev/null || true
+        fi
+      fi
     '';
     serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };
   };
