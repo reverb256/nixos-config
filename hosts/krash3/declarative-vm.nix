@@ -127,6 +127,7 @@ let
         <features>
           <acpi/>
           <apic/>
+          <ioapic driver='kvm'/>
           <hyperv mode='custom'>
             <relaxed state='on'/>
             <vapic state='on'/>
