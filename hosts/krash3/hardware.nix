@@ -65,6 +65,26 @@ in {
 
   systemd.services."serial-getty@ttyS0".enable = true;
 
+  # Belt-and-suspenders: force the performance governor at boot. The
+  # powerManagement.cpuFreqGovernor option is not reliably enforced on
+  # linuxPackages_latest (amd-pstate-epp reports powersave by default), so a
+  # oneshot writes `performance` to every CPU's scaling_governor early in
+  # boot. Prevents the periodic gaming-guest stutter from host power-gating.
+  systemd.services.set-cpu-governor = {
+    description = "Force performance CPU governor for low-latency VFIO gaming";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "systemd-modules-load.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+        echo performance > "$f" 2>/dev/null || true
+      done
+    '';
+  };
+
   systemd.services.assemble-games-raid = {
     wantedBy = [ "multi-user.target" ];
     path = [ pkgs.mdadm pkgs.util-linux ];
