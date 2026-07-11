@@ -3,6 +3,11 @@ let
   params = import ./params.nix;
   inherit (params) pci network raid;
 in {
+  # Pin the host CPU governor to performance so the pinned guest vCPUs in
+  # krash3-vm never get clock-gated between frames (powersave/amd-pstate-epp
+  # caused periodic micro-stutter in the Windows gaming guest).
+  powerManagement.cpuFreqGovernor = "performance";
+
   nixpkgs.hostPlatform = "x86_64-linux";
 
   fileSystems."/" = {
