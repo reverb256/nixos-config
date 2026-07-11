@@ -224,15 +224,6 @@ in {
           enable = lib.mkForce false;
           apiKeyFile = "/run/secrets/nvidia-api-key";
         };
-        zai = {
-          enable = lib.mkForce false;
-          apiKeyFile = "/run/secrets/zai-api-key";
-          baseUrl = "https://api.z.ai/api/coding/paas/v4";
-          enableRetry = true;
-          maxRetries = 3;
-          retryDelay = 1.0;
-          timeout = 300.0;
-        };
         pollinations = {
           enable = lib.mkForce false;
           apiKeyFile = "/run/secrets/pollinations-api-key";
@@ -244,7 +235,6 @@ in {
         defaultModel = "qwen3.5-35b-a3b";
         fallbackChain = [
           "vllm"
-          "zai"
           "pollinations"
         ];
       };
@@ -290,7 +280,6 @@ in {
     ai-coding-tools = {
       enable = lib.mkForce false;
       user = "j_kro";
-      zaiApiKeyFile = "/run/secrets/zai-api-key";
       context7ApiKeyFile = "/run/secrets/context7-api-key";
       nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
       opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
@@ -312,7 +301,6 @@ in {
     hermes-cli = {
       enable = true;
       user = "j_kro";
-      apiKeyFile = "/run/secrets/zai-api-key";
       nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
       casdoorJwtFile = "/run/secrets/casdoor-hermes-jwt";
       opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
@@ -336,12 +324,6 @@ in {
           base_url = "https://opencode.ai/zen/go/v1";
           discover_models = true;
         };
-        "zai" = {
-          api_key_env = "ZAI_API_KEY";
-          base_url = "https://api.z.ai/api/coding/paas/v4";
-          discover_models = true;
-          model = "glm-4.7";
-        };
         "nvidia" = {
           api_key_env = "NVIDIA_API_KEY";
           base_url = "https://integrate.api.nvidia.com/v1";
@@ -356,7 +338,6 @@ in {
       managedFallbackProviders = [
         "opencode-zen"
         "opencode-go"
-        "zai"
         "nvidia"
       ];
       # MoA config is imperative in ~/.hermes/config.yaml (moa: section).
