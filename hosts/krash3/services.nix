@@ -218,11 +218,13 @@ in {
     '';
   };
 
-  # ── E: drive watchdog ───────────────────────────────────
-  # Verifies from INSIDE the guest that E: is Healthy. Disk source is /dev/md0
-  # (GPT RAID with one NTFS data partition). Self-heals:
+  # ── Games RAID drive watchdog ───────────────────────────
+  # Verifies from INSIDE the guest that the games RAID volume (source /dev/md0,
+  # GPT RAID with one NTFS data partition) is Healthy under EITHER drive letter.
+  # User directive 2026-07-10: the RAID is valid as D: OR E: — do NOT force a
+  # rename. Self-heals only a genuinely-missing volume:
   #   (a) missing vdb → re-attach /dev/md0
-  #   (b) letter drift (often D:) → diskpart assign letter=E
+  # Never runs diskpart letter reassignment (honors the D: directive).
   # guest-exec returns only a pid — always poll guest-exec-status + decode
   # out-data. Bounded timeouts; never fail the unit hard.
   systemd.services.e-drive-watchdog = {
@@ -266,42 +268,29 @@ in {
         return 0
       }
 
-      OUT=$(guest_ps "try { (Get-Volume -DriveLetter E -ErrorAction Stop).HealthStatus } catch { 'MISSING' }")
+      # User directive 2026-07-10: the games RAID is valid under EITHER drive
+      # letter (presently D:). Do NOT force a rename to E:. A volume is
+      # "healthy" if ANY NTFS volume >500GB reports Healthy — regardless of
+      # letter. Only re-attach vdb if the volume is genuinely absent.
+      OUT=$(guest_ps "Get-Volume | Where-Object { \$_.FileSystem -eq 'NTFS' -and \$_.Size -gt 500GB } | ForEach-Object { \"$($_.DriveLetter):$($_.HealthStatus)\" }")
       if echo "$OUT" | grep -qi "Healthy"; then
-        echo "E: healthy — no action needed"
+        echo "games RAID volume healthy (any letter) — no action needed"
         exit 0
       fi
       # Empty/garbled result = transient guest-agent wedge, NOT a real
-      # drive fault. Don't thrash the VM (re-attach vdb / run diskpart) on a
-      # wedge — just skip this pass and let the next tick re-check.
+      # drive fault. Don't thrash the VM (re-attach vdb) on a wedge — just
+      # skip this pass and let the next tick re-check.
       if [ -z "$(echo "$OUT" | tr -d '\r\n[:space:]')" ]; then
-        echo "E: agent returned no data (likely transient wedge) — skipping this pass"
+        echo "agent returned no data (likely transient wedge) — skipping this pass"
         exit 0
       fi
-      echo "E: NOT healthy (got: $OUT) — attempting recovery"
+      echo "games RAID volume NOT healthy (got: $OUT) — attempting recovery"
 
       if ! virsh dumpxml "$DOM" 2>/dev/null | grep -q "vdb"; then
         virsh attach-disk "$DOM" --type block --source /dev/md0 --target vdb --persistent 2>&1 || true
         sleep 5
       fi
-
-      GAMES=$(guest_ps "\$v = Get-Volume | Where-Object { \$_.DriveLetter -and \$_.DriveLetter -ne [char]67 -and \$_.DriveLetter -ne [char]69 -and \$_.FileSystem -eq 'NTFS' -and \$_.Size -gt 500GB } | Select-Object -First 1; if (\$v) { [string]\$v.DriveLetter }")
-      GAMES=$(echo "$GAMES" | tr -d '\r\n[:space:]')
-      if [ -n "$GAMES" ] && [ "$GAMES" != "E" ]; then
-        echo "Games volume found on $GAMES — reassigning to E:"
-        guest_ps "\$s = @\"
-select volume $GAMES
-assign letter=E noerr
-\"@; \$s | Out-File -Encoding ascii C:\\dk.txt; diskpart /s C:\\dk.txt | Out-String" >/dev/null || true
-        sleep 3
-      fi
-
-      OUT2=$(guest_ps "try { (Get-Volume -DriveLetter E -ErrorAction Stop).HealthStatus } catch { 'MISSING' }")
-      if echo "$OUT2" | grep -qi "Healthy"; then
-        echo "E: recovered — healthy"
-        exit 0
-      fi
-      echo "E: not confirmed healthy this pass (agent may be wedged or volume still binding): $OUT2"
+      echo "games RAID volume still not confirmed healthy this pass (agent may be wedged or volume binding): $OUT"
       exit 0
     '';
   };
