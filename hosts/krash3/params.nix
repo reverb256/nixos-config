@@ -57,26 +57,27 @@
 
     disks = [
       {
-        type = "virtio-file";
-        target = "vda";
-        source = "/var/lib/libvirt/images/c.raw";
+        # NEW C: on RAID raw block (md0p2) - fixes btrfs COW slowness on the
+        # OS disk. Created idempotently by assemble-games-raid AFTER md0p1 is
+        # shrunk in the maintenance window. c.raw kept below for rollback.
+        type = "block";
+        target = "vdc";
+        source = "/dev/md0p2";
         bootOrder = 1;
         iothread = 1;
-        cache = "writeback";
+        cache = "none";
       }
       {
-        # Pass the WHOLE GPT RAID member (/dev/md0), not md0p1.
-        # md0 currently has a single Microsoft-basic-data partition whose
-        # payload is the NTFS volume. Pointing virtio at md0p1 makes Windows
-        # treat the raw NTFS BPB as an MBR and invent garbage partitions, so
-        # the games volume never mounts. Pointing at md0 exposes a clean GPT
-        # + one NTFS partition. Letter is forced to E: by e-drive-watchdog
-        # (mount-manager may still pick D: on first boot).
+        # E: games volume (whole GPT RAID member).
         type = "block";
         target = "vdb";
         source = "/dev/md0";
         cache = "none";
       }
+      # ROLLBACK: uncomment, set bootOrder=1, comment vdc above.
+      # { type = "virtio-file"; target = "vda";
+      #   source = "/var/lib/libvirt/images/c.raw";
+      #   bootOrder = 1; iothread = 1; cache = "writeback"; }
     ];
 
     networks = [
