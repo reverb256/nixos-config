@@ -5,6 +5,13 @@
   ...
 }: let
   cfg = config.services.aistor-secrets;
+  # accessKey/secretKey are nullOr (default null) and only meaningful in
+  # mode="custom". They are interpolated into the script at eval time, so a
+  # bare ${cfg.accessKey} on a host with default-null keys would crash the
+  # build (cannot coerce null to a string). Fall back to "" so the custom
+  # branch is safe when unset; the runtime case only emits these in custom mode.
+  accessKeyValue = if cfg.accessKey != null then cfg.accessKey else "";
+  secretKeyValue = if cfg.secretKey != null then cfg.secretKey else "";
 in {
   options.services.aistor-secrets = {
     enable = lib.mkEnableOption "Generate and manage AIStor (MinIO) credentials declaratively";
@@ -66,8 +73,8 @@ in {
                         ;;
                       custom)
                         ${pkgs.coreutils}/bin/cat > ${cfg.outputPath} << EOF
-          MINIO_ACCESS_KEY=${cfg.accessKey}
-          MINIO_SECRET_KEY=${cfg.secretKey}
+          MINIO_ACCESS_KEY=${accessKeyValue}
+          MINIO_SECRET_KEY=${secretKeyValue}
           EOF
                         ;;
                     esac

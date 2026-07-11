@@ -29,12 +29,6 @@
         base_url = "https://opencode.ai/zen/go/v1";
         discover_models = true;
       };
-      zai = {
-        api_key_env = "ZAI_API_KEY";
-        base_url = "https://api.z.ai/api/coding/paas/v4";
-        discover_models = true;
-        model = "glm-4.7";
-      };
       nvidia = {
         api_key_env = "NVIDIA_API_KEY";
         base_url = "https://integrate.api.nvidia.com/v1";
@@ -50,7 +44,6 @@
     managedFallbackProviders = [
       "opencode-zen"
       "opencode-go"
-      "zai"
       "nvidia"
     ];
 

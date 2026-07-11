@@ -123,40 +123,6 @@
       ssePort = 8080;
     };
 
-    # ── Remote HTTP servers (Z.AI) ──────────────────────────────────────
-    web-search-prime = {
-      type = "http";
-      scope = "remote";
-      url = "https://api.z.ai/api/mcp/web_search_prime/mcp";
-      headers.Authorization = "Bearer $ZAI_API_KEY";
-      description = "Z.AI web search prime";
-      connectTimeout = 30;
-      timeout = 60;
-      casdoorApp = null;
-    };
-
-    web-reader = {
-      type = "http";
-      scope = "remote";
-      url = "https://api.z.ai/api/mcp/web_reader/mcp";
-      headers.Authorization = "Bearer $ZAI_API_KEY";
-      description = "Z.AI web reader";
-      connectTimeout = 30;
-      timeout = 60;
-      casdoorApp = null;
-    };
-
-    zread = {
-      type = "http";
-      scope = "remote";
-      url = "https://api.z.ai/api/mcp/zread/mcp";
-      headers.Authorization = "Bearer $ZAI_API_KEY";
-      description = "Z.AI zread";
-      connectTimeout = 30;
-      timeout = 60;
-      casdoorApp = null;
-    };
-
     # ── Additional stdio servers ────────────────────────────────────────
     lightpanda = {
       type = "stdio";
