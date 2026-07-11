@@ -176,16 +176,6 @@ _final: prev:
     };
   });
 
-  # Override zen-browser to use Profile Groups instead of legacy profiles.ini
-  # The upstream wrapper hardcodes MOZ_LEGACY_PROFILES=1 which forces Zen to
-  # look for profiles in ~/.mozilla/firefox/ — a location that breaks on first
-  # launch when no profiles.ini exists. Profile Groups is Zen's native system.
-  zen-twilight = (inputs.zen-browser.packages.x86_64-linux.twilight).overrideAttrs (old: {
-    postFixup = (old.postFixup or "") + ''
-      # Comment out the legacy profiles flag so Zen uses Profile Groups natively
-      substituteInPlace $out/bin/zen-twilight         --replace-fail 'export MOZ_LEGACY_PROFILES' '# export MOZ_LEGACY_PROFILES'
-    '';
-  });
 } // prev.lib.optionalAttrs (inputs ? vllm) {
   vllm-turboquant-env = inputs.vllm.packages.x86_64-linux.vllm-turboquant-env;
 } // prev.lib.optionalAttrs (inputs ? llama-turboquant) {
