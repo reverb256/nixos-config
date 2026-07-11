@@ -49,6 +49,7 @@ in {
     # AMD VFIO stability (prevents 500%+ qemu CPU / reset storms)
     "pcie_aspm=off"
     "kvm_amd.msr_filter=0"
+    "isolcpus=1-8,13-20"
     "video=efifb:off" "console=ttyS0,115200"
   ];
   boot.initrd.availableKernelModules = [ "xhci_pci" "ahci" "usbhid" "uas" "usb_storage" "sd_mod" ];
