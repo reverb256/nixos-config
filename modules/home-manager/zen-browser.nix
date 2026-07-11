@@ -13,17 +13,18 @@ in {
   programs.zen-browser = {
     enable = true;
 
-    # Full non-legacy profile model. The zen-browser flake's wrapFirefox
-    # hardcodes `export MOZ_LEGACY_PROFILES='1'` in the wrapper script, which
-    # forces Zen to look for profiles in the legacy ~/.mozilla/firefox-style
-    # layout. Patch it out so Zen uses its native Profile Groups system
-    # (~/.config/zen/Profile Groups/). Applied to the package the HM module
-    # actually launches (programs.zen-browser.package is mkDefault here), so
-    # this override is NOT inert the way the old overlay.nix block was.
+    # Full non-legacy profile model. nixpkgs' wrapFirefox hardcodes
+    # `export MOZ_LEGACY_PROFILES='1'` into the wrapper script via makeWrapper
+    # --set, and runs makeWrapper INSIDE buildCommand (a single string build),
+    # so there is no postFixup phase to hook. Override buildCommand to append a
+    # sed that comments out that one export line, so Zen uses its native
+    # Profile Groups system (~/.config/zen/Profile Groups/). overrideAttrs keeps
+    # the derivation's .override (old: { cfg }) that the zen module's
+    # finalPackage expects. Applied to programs.zen-browser.package (mkDefault
+    # here), which is the package the HM module actually launches.
     package = (inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.twilight).overrideAttrs (old: {
-      postFixup = (old.postFixup or "") + ''
-        substituteInPlace $out/bin/zen-twilight \
-          --replace-fail 'export MOZ_LEGACY_PROFILES' '# export MOZ_LEGACY_PROFILES'
+      buildCommand = (old.buildCommand or "") + ''
+        sed -i "s|^export MOZ_LEGACY_PROFILES='1'|# export MOZ_LEGACY_PROFILES='1'|" "$out/bin/zen-twilight"
       '';
     });
 
