@@ -58,8 +58,6 @@
   modelNames = {
     "qwen3.5-2b-awq" = aiModels.models.qwen3_5-2b-awq.name or "qwen3.5-2b-awq";
     "qwen3.6-35b-iq3-s" = aiModels.models.qwen3_6-35b-iq3-s.name or "Qwen3.6-35B-A3B-UD-IQ3_S.gguf";
-    "glm-5-turbo" = aiModels.models.glm-5-turbo.name or "glm-5-turbo";
-    "glm-5.1" = aiModels.models.glm-5_1.name or "glm-5.1";
   };
   # AI Inference Gateway — derive paths from flake input, not hardcoded store paths
 in {
@@ -99,8 +97,7 @@ in {
       AUTH_MODE = "token"; # Token-based authentication (set GATEWAY_TOKEN via Secret)
       BACKEND_TYPE = "llama-cpp";
       BACKEND_URL = "http://${cluster.hosts.sentry.ip}:1235";
-      BACKEND_FALLBACK_URLS = "https://api.z.ai/api/coding/paas/v4,https://integrate.api.nvidia.com/v1";
-      ZAI_API_KEY_FILE = "/run/secrets/zai-api-key";
+      BACKEND_FALLBACK_URLS = "https://integrate.api.nvidia.com/v1";
       NVIDIA_NIM_API_KEY_FILE = "/run/secrets/nvidia-api-key";
       DEFAULT_MODEL = "Qwen3.5-4B-Q4_K_M.gguf";
       GATEWAY_HOST = "0.0.0.0";
@@ -582,10 +579,6 @@ in {
                   SEARXNG_URL.valueFrom.configMapKeyRef = {
                     name = "ai-inference-gateway-config";
                     key = "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL";
-                  };
-                  ZAI_API_KEY.valueFrom.secretKeyRef = {
-                    name = "zai-api-key";
-                    key = "ZAI_API_KEY";
                   };
                   NVIDIA_API_KEY.valueFrom.secretKeyRef = {
                     name = "nvidia-api-key";

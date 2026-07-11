@@ -121,6 +121,12 @@
   # /run/current-system at pure-eval time.
   wrappedBinPath = "${hermesPkgWrapped}/bin/hermes";
 
+  # apiKeyFile is a nullOr path (default null). The ExecStart script needs a
+  # plain string it can interpolate at build time without coercing null.
+  # When unset, resolve to "" so the runtime `if [ -n ... ]` guard handles
+  # the "no key" case cleanly instead of Nix crashing on toString null.
+  apiKeyPath = if cfg.apiKeyFile != null then cfg.apiKeyFile else "";
+
   # Use base hermes-agent package without WhatsApp bridge (stub removed)
   # WhatsApp functionality temporarily disabled
 
@@ -576,7 +582,7 @@ in {
             # `cat` on a missing file returns 1, command substitution
             # surfaces that, and the script aborts — which is the
             # 30 s then status=1/FAILURE pattern.
-            ZAI_KEY="$(if [ -n "${cfg.apiKeyFile}" ] && [ -e "${cfg.apiKeyFile}" ]; then cat "${cfg.apiKeyFile}" 2>/dev/null; else echo; fi)"
+            ZAI_KEY="$(if [ -n "${apiKeyPath}" ] && [ -e "${apiKeyPath}" ]; then cat "${apiKeyPath}" 2>/dev/null; else echo; fi)"
             MCP_TMP=$(mktemp /tmp/hermes-mcp-XXXXXX.yaml)
             sed "s/__ZAI_API_KEY__/$ZAI_KEY/g" ${mcpServersBlock} > "$MCP_TMP"
 
