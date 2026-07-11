@@ -1,6 +1,7 @@
 {
   pkgs,
   lib,
+  inputs,
   ...
 }: let
   clusterCA = "/etc/ssl/cluster-ca/ca.crt";
@@ -11,6 +12,20 @@
 in {
   programs.zen-browser = {
     enable = true;
+
+    # Full non-legacy profile model. The zen-browser flake's wrapFirefox
+    # hardcodes `export MOZ_LEGACY_PROFILES='1'` in the wrapper script, which
+    # forces Zen to look for profiles in the legacy ~/.mozilla/firefox-style
+    # layout. Patch it out so Zen uses its native Profile Groups system
+    # (~/.config/zen/Profile Groups/). Applied to the package the HM module
+    # actually launches (programs.zen-browser.package is mkDefault here), so
+    # this override is NOT inert the way the old overlay.nix block was.
+    package = (inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.twilight).overrideAttrs (old: {
+      postFixup = (old.postFixup or "") + ''
+        substituteInPlace $out/bin/zen-twilight \
+          --replace-fail 'export MOZ_LEGACY_PROFILES' '# export MOZ_LEGACY_PROFILES'
+      '';
+    });
 
     nativeMessagingHosts = with pkgs; [
       # firefoxpwa  # disabled due to broken derivation
