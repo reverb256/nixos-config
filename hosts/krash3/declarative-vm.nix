@@ -121,6 +121,8 @@ let
           <vcpupin vcpu='15' cpuset='20'/>
           <emulatorpin cpuset='0,12'/>
         </cputune>
+        <iothreadpin iothread='1' cpuset='0'/>
+        <iothreadpin iothread='2' cpuset='0'/>
         <os firmware='efi'>
           <type arch='x86_64' machine='pc-q35-10.2'>hvm</type>
           <firmware>
