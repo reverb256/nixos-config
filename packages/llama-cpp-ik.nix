@@ -38,7 +38,6 @@ in
     ];
 
     buildInputs = with cudaPackages; [
-      cccl
       cuda_cudart
       libcublas
     ];
