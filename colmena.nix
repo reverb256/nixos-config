@@ -10,13 +10,6 @@
       overlays = [((import ./overlay.nix) {inherit inputs;})];
     };
 
-  tunedNixpkgs2605 = system:
-    import inputs.nixpkgs-2605 {
-      inherit system;
-      config.allowUnfree = true;
-      overlays = [((import ./overlay.nix) {inherit inputs;})];
-    };
-
   commonModules = import ./common-modules-list.nix {
     inherit inputs self;
   };
@@ -53,8 +46,10 @@ in {
       nexus = tunedNixpkgs "x86_64-linux";
       forge = tunedNixpkgs "x86_64-linux";
       sentry = tunedNixpkgs "x86_64-linux";
-      # krash3 uses 26.05 stable (separate nixpkgs pin for the libvirt/Win-VM host)
-      krash3 = tunedNixpkgs2605 "x86_64-linux";
+      # krash3 now uses the same pinned nixpkgs as every other node (was a
+      # separate nixpkgs-2605 pin — removed so the whole cluster builds from
+      # one nixpkgs commit)
+      krash3 = tunedNixpkgs "x86_64-linux";
     };
     machinesFile = ./machines;
     specialArgs = {
