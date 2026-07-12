@@ -278,8 +278,6 @@ in {
         openFirewall = true;
         autoStart = false;
         highPriority = true;
-        steam.enable = lib.mkDefault true;
-        steam.importOXRRuntimes = true;
         package = pkgs.wivrn.override {
           cudaSupport = true;
         };
