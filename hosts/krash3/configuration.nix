@@ -23,6 +23,23 @@ in
   networking.useDHCP = lib.mkForce true;
   networking.interfaces.enp7s0.useDHCP = lib.mkForce true;
 
+  # ── Cluster networking / DNS (single source of truth = cluster-dns.nix) ──
+  # krash3 previously ran a standalone services.unbound block in services.nix
+  # that forwarded "." -> 10.1.1.100 (the VIP). The VIP is hosted on zephyr,
+  # not krash3, so that forward looped and krash3 could resolve NOTHING
+  # externally. Enabling clusterNetworking.unbound lets cluster-dns.nix own
+  # DNS uniformly (DoT upstreams + cluster.local -> CoreDNS), same as the
+  # other 4 nodes. The standalone block in services.nix has been removed.
+  clusterNetworking = {
+    enable = true;
+    hostName = "krash3";
+    ipAddress = "10.1.1.150";
+    interfaceName = "enp7s0";
+    wireless.enable = false;
+    unbound.enable = true;
+    unbound.listenAddress = "10.1.1.150";
+  };
+
   # ── Users ───────────────────────────────────────────────
   # Base account + passwordless sudo come from modules/system/users.nix
   # (imported above, uniform with all other hosts). krash3 needs libvirt/kvm
