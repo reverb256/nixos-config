@@ -372,6 +372,70 @@ info:
     set -e
     cd {{FLAKE}} && nix flake metadata
 
+# ── HERMES AGENT ──────────────────────────────────────────────────────────
+# "Full" update: bump EVERY flake input to latest upstream (nix flake update),
+# commit + push the lock, verify the NixOS patches in modules/services/hermes-cli.nix
+# still apply on a full toplevel build (fail fast before touching the cluster),
+# then deploy the whole system (patched hermes package included) to all 5 hosts.
+#
+# IMPORTANT: a full `nix flake update` also moves nixpkgs to its newest commit,
+# which can be a large rebuild and can surface breaking changes elsewhere. The
+# step-3 build is the guard: if anything fails to evaluate/build, the script
+# aborts BEFORE deploying, so the cluster stays on the last good generation.
+#
+# Note: a full deploy triggers nixos-rebuild switch on every host. Services whose
+# units change will restart — miners included. If you need a maintenance window,
+# run `just hermes-update-check` first, then deploy in a window.
+hermes-update:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{FLAKE}}
+
+    echo "1/6 Bumping ALL flake inputs to latest upstream..."
+    nix flake update 2>&1 | tail -5
+
+    echo "2/6 Committing + pushing flake.lock..."
+    git add flake.lock
+    if git diff --cached --quiet; then
+        echo "  (lock unchanged — already at latest)"
+    else
+        git commit -m "chore: bump all flake inputs to latest upstream" 2>&1 | tail -2
+        git push origin main 2>&1 | tail -2 || echo "  (push skipped)"
+    fi
+
+    echo "3/6 Building zephyr toplevel (full build — verifies hermes-cli.nix patches + all inputs)..."
+    nix build --no-link --print-out-paths \
+        .#nixosConfigurations.zephyr.config.system.build.toplevel 2>&1 | tail -20
+
+    echo "4/6 Deploying to all hosts (full system switch)..."
+    just deploy all 2>&1 | tail -50
+
+    echo "5/6 Verifying hermes version on all hosts..."
+    for host in {{HOSTS}}; do
+        if [ "$host" = "$(hostname -s)" ]; then
+            V=$(hermes --version 2>/dev/null || echo "unknown")
+        else
+            V=$(ssh "$host" "hermes --version 2>/dev/null || echo unknown" 2>/dev/null)
+        fi
+        echo "  $host: $V"
+    done
+
+    echo "6/6 Done. Hermes Agent + all flake inputs updated and deployed."
+
+# Dry-run variant: full flake update + build only, NO deploy. Use to catch
+# breaking changes (nixpkgs moves, hermes-cli.nix patch mismatches) before
+# committing the cluster to a full switch in a maintenance window.
+hermes-update-check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{FLAKE}}
+    echo "Bumping ALL flake inputs to latest upstream..."
+    nix flake update 2>&1 | tail -5
+    echo "Building zephyr toplevel to verify hermes-cli.nix patches + all inputs apply..."
+    nix build --no-link --print-out-paths \
+        .#nixosConfigurations.zephyr.config.system.build.toplevel 2>&1 | tail -20 \
+        && echo "OK: everything builds. Run 'just hermes-update' to deploy."
+
 # ── GITHUB ISSUES ─────────────────────────────────────────────────────────────
 
 issue-create title="" label="":
