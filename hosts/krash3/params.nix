@@ -57,15 +57,14 @@
 
     disks = [
       {
-        # NEW C: on RAID raw block (md0p2) - fixes btrfs COW slowness on the
-        # OS disk. Created idempotently by assemble-games-raid AFTER md0p1 is
-        # shrunk in the maintenance window. c.raw kept below for rollback.
-        type = "block";
-        target = "vdc";
-        source = "/dev/md0p2";
+        # C: on virtio-file (c.raw). Rollback from md0p2 — storage transfer
+        # not yet performed. Keep as-is until maintenance window.
+        type = "virtio-file";
+        target = "vda";
+        source = "/var/lib/libvirt/images/c.raw";
         bootOrder = 1;
         iothread = 1;
-        cache = "none";
+        cache = "writeback";
       }
       {
         # E: games volume (whole GPT RAID member).
@@ -74,9 +73,8 @@
         source = "/dev/md0";
         cache = "none";
       }
-      # ROLLBACK: uncomment, set bootOrder=1, comment vdc above.
-      # { type = "virtio-file"; target = "vda";
-      #   source = "/var/lib/libvirt/images/c.raw";
+      # STORAGE TRANSFER PENDING: uncomment md0p2 block, comment c.raw above,
+      # then run the maintenance window (VM stop + ntfsresize + dd clone).
       #   bootOrder = 1; iothread = 1; cache = "writeback"; }
     ];
 
