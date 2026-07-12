@@ -38,6 +38,11 @@
 
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "j_kro";
+  # 2026-07-12: `just switch` re-execs sddm (unit is regenerated), and NixOS's
+  # default [Autologin] Relogin=false makes sddm drop to the greeter on ANY
+  # restart instead of auto-logging-in j_kro. Force Relogin=true so the
+  # niri-uwsm session comes back automatically after every switch, not a greeter.
+  services.displayManager.sddm.settings.Autologin.Relogin = true;
   services.displayManager.defaultSession = "niri-uwsm";
 
   services.gaming.hdr.enable = true;
