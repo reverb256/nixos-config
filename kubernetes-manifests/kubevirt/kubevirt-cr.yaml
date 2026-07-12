@@ -8,7 +8,7 @@ spec:
   certificateRotateStrategy: {}
   configuration:
     developerConfiguration:
-      featureGates: []
+      featureGates: ["HostDevices"]
     imagePullPolicy: IfNotPresent
   customizeComponents: {}
   imagePullPolicy: IfNotPresent

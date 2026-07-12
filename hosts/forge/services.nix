@@ -32,6 +32,7 @@ in {
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = cluster.hosts.forge.ip;
+      flannelIface = "eth0";
     };
 
     spotify-spotx.enable = true;

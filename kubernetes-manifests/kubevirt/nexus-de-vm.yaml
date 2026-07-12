@@ -41,8 +41,6 @@ spec:
           inputs:
             - type: tablet
               bus: virtio
-            - type: keyboard
-              bus: virtio
         resources:
           limits:
             cpu: "8"
