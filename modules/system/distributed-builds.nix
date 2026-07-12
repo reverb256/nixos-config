@@ -80,16 +80,21 @@ in {
       );
 
       max-jobs = lib.mkForce (
+        # zephyr: ZERO local build capacity. It is a pure dispatcher — every
+        # derivation offloads to nexus/sentry/forge via /etc/nix/machines.
+        # max-jobs=2 here was the OOM root cause: a local `nix build`/`switch`
+        # fell back to 2 local jobs and (doubled) blew past 31GB. Never build
+        # on zephyr.
         if currentHost == "zephyr"
-        then 2 # dispatcher — 2 local fallback slots if remote builders are down
+        then 0
         else if currentHost == "nexus"
         then 12 # primary builder — 12C/24T, binary cache host
         else if currentHost == "sentry"
-        then 8 # secondary builder — 8C/16T
+        then 8
         else if currentHost == "forge"
-        then 4 # tertiary builder — 4C/8T
+        then 4
         else if currentHost == "krash3"
-        then 3 # lightweight builder — 6C/12T (VM host)
+        then 3
         else 4
       );
 
