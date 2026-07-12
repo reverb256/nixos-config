@@ -69,7 +69,12 @@
       alias gds="git diff --staged"
 
       alias nconf="nvim /etc/nixos/flake.nix"
-      alias sconf="nvim ~/.config/starship.toml"
+      # Starship is HM-managed from this Nix source; the live
+      # ~/.config/starship.toml is a symlink into the HM generation.
+      # Editing the symlink directly materializes a stray file that
+      # shadows HM and breaks Stylix palette control — so point sconf
+      # at the source of truth instead.
+      alias sconf="nvim /etc/nixos/modules/home-manager/starship.nix"
       alias bconf="nvim ~/.bashrc"
 
       alias sysinfo="fastfetch"

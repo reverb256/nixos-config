@@ -67,7 +67,7 @@ in
         metadata.labels = managed;
         spec = {
           policyName = "require-resources-and-security";
-          action = "Exempt";
+          validationActions = [ "Warn" ];
           matchResources = {
             namespaceSelector = {
               matchExpressions = [
@@ -98,21 +98,23 @@ in
                 {
                   pciVendorSelector = "10DE:2486";
                   resourceName = gpuResourceName;
-                  externalResourceProvider = true;
+                  externalResourceProvider = false;
                 }
               ];
               # USB devices on the TV's hub (IOMMU group 15, chipset XHCI).
               # Non-isolated group — pass individual devices, not the controller.
               usb = [
                 {
-                  vendor = "1a2c";
-                  product = "2124";
                   resourceName = "usb/kb-tv";
+                  selectors = [
+                    { vendor = "1a2c"; product = "2124"; }
+                  ];
                 }
                 {
-                  vendor = "1532";
-                  product = "008f";
                   resourceName = "usb/mouse-tv";
+                  selectors = [
+                    { vendor = "1532"; product = "008f"; }
+                  ];
                 }
               ];
             };
@@ -120,49 +122,6 @@ in
           customizeComponents = { };
           imagePullPolicy = "IfNotPresent";
           workloadUpdateStrategy = { };
-        };
-      };
-
-      # ── VFIO GPU device-plugin DaemonSet ──────────────────────────────────
-      #    Discovers the vfio-pci bound 3060 Ti on nexus and advertises it as the
-      #    extended resource nvidia.com/ga104 so the scheduler can place the VM.
-      kubevirt.DaemonSet.vfio-ga104-device-plugin = {
-        metadata.labels = managed // { app = "vfio-ga104-device-plugin"; };
-        spec = {
-          selector.matchLabels.app = "vfio-ga104-device-plugin";
-          template = {
-            metadata.labels.app = "vfio-ga104-device-plugin";
-            spec = {
-              nodeSelector."kubernetes.io/hostname" = "nexus";
-              containers = {
-                _namedlist = true;
-                device-plugin = {
-                  image = "ghcr.io/nvidia/k8s-device-plugin:latest";
-                  name = "device-plugin";
-                  args = [ "--device=10de:2486" "--resource-name=nvidia.com/ga104" ];
-                  securityContext.privileged = true;
-                  volumeMounts = {
-                    _namedlist = true;
-                    "device-plugin" = { mountPath = "/var/lib/kubelet/device-plugins"; };
-                    "vfio" = { mountPath = "/dev/vfio"; };
-                  };
-                  resources = {
-                    limits.cpu = "100m";
-                    limits.memory = "64Mi";
-                    requests.cpu = "50m";
-                    requests.memory = "32Mi";
-                  };
-                };
-              };
-              volumes = {
-                _namedlist = true;
-                "device-plugin" = {
-                  hostPath.path = "/var/lib/kubelet/device-plugins";
-                };
-                "vfio" = { hostPath.path = "/dev/vfio"; };
-              };
-            };
-          };
         };
       };
 
