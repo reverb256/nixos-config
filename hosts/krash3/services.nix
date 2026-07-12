@@ -3,43 +3,13 @@ let
   params = import ./params.nix;
   inherit (params) vm;
 in {
-  # ── Unbound DNS ─────────────────────────────────────────
-  services.unbound = {
-    enable = true;
-    settings = {
-      server = {
-        interface = [ "127.0.0.1" "::1" "10.1.1.150" ];
-        access-control = [ "127.0.0.0/8 allow" "10.1.1.0/24 allow" "::1 allow" ];
-        private-domain = "lan";
-        local-zone = [ "lan. static" ];
-        local-data = [
-          # Services (Caddy-proxied via VIP 10.1.1.100 for HA)
-          ''"maplespike.lan. A 10.1.1.100"''
-          ''"api.maplespike.lan. A 10.1.1.100"''
-          ''"searxng.lan. A 10.1.1.100"''
-          ''"search.lan. A 10.1.1.100"''
-          ''"vane.lan. A 10.1.1.100"''
-          ''"haven.lan. A 10.1.1.100"''
-          ''"ai-inference.lan. A 10.1.1.100"''
-          ''"auth.lan. A 10.1.1.100"''
-          ''"grafana.lan. A 10.1.1.100"''
-          ''"n8n.lan. A 10.1.1.100"''
-          ''"gitea.lan. A 10.1.1.100"''
-          # Host records (direct IPs)
-          ''"nexus.lan. A 10.1.1.120"''
-          ''"zephyr.lan. A 10.1.1.110"''
-          ''"forge.lan. A 10.1.1.130"''
-          ''"sentry.lan. A 10.1.1.140"''
-          # Infrastructure
-          ''"k3s-api.lan. A 10.1.1.100"''
-        ];
-      };
-      forward-zone = [{
-        name = ".";
-        forward-addr = [ "10.1.1.100" ];
-      }];
-    };
-  };
+  # ── DNS ─────────────────────────────────────────────────
+  # DNS is owned by cluster-dns.nix (enabled via clusterNetworking.unbound in
+  # configuration.nix). It forwards "." to the DoT upstreams and "cluster.local."
+  # to CoreDNS, and serves the .lan records defined centrally. The previous
+  # standalone services.unbound block here forwarded "." -> 10.1.1.100 (the
+  # VIP, hosted on zephyr) which looped and broke all external resolution on
+  # krash3. Removed in favor of the cluster-wide SSOT.
 
   # ── E: drive ────────────────────────────────────────────
   # E: is a DIRECT virtio-blk disk on /dev/md0 (whole GPT RAID with one NTFS

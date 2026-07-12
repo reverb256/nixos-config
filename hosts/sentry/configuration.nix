@@ -154,16 +154,12 @@
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
 
-  services.unbound.settings.forward-zone = lib.mkForce [
-    {
-      name = "ts.net.";
-      forward-addr = ["100.100.100.100" "fd7a:115c:a1e0::53"];
-    }
-    {
-      name = ".";
-      forward-addr = ["1.1.1.1" "1.0.0.1" "8.8.8.8" "8.8.4.4"];
-    }
-  ];
+  # NOTE: Do NOT override services.unbound.settings.forward-zone here.
+  # cluster-dns.nix (enabled via clusterNetworking.unbound.enable above) is the
+  # single source of truth for DNS: it forwards "." to the DoT upstreams
+  # (1.1.1.1@853 etc.) and "cluster.local." to CoreDNS. A previous per-host
+  # mkForce forward-zone clobbered that and left sentry with no working
+  # resolver. Let the SSOT own DNS on every node.
 
   security.clusterAudit = {
     enable = true;
