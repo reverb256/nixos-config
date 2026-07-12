@@ -45,6 +45,11 @@
   # Load all common GPU drivers — works on any host in the cluster
   services.xserver.videoDrivers = ["amdgpu" "nvidia" "modesetting"];
 
+  # nvidia module requires an explicit open/closed choice on driver >= 560
+  # (null triggers a type error in nixpkgs' nvidia.nix assertion). Closed-source
+  # modules give the widest GPU compatibility for a generic rescue ISO.
+  hardware.nvidia.open = false;
+
   hardware.enableRedistributableFirmware = true;
 
   # USB boot support

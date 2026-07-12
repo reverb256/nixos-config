@@ -32,6 +32,11 @@ spec:
           gpus:
             - deviceName: nvidia.com/ga104
               name: gpu0
+          hostDevices:
+            - deviceName: usb/kb-tv
+              name: tv-keyboard
+            - deviceName: usb/mouse-tv
+              name: tv-mouse
           autoattachGraphicsDevice: false
           inputs:
             - type: tablet

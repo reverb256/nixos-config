@@ -10,6 +10,11 @@
   # Check if home-manager option is DECLARED (not just defined) to avoid
   # "option does not exist" errors on hosts that don't import the HM module
   hasHM = builtins.hasAttr "home-manager" (builtins.tryEval options).value or {};
+  # Check if the hermes-cli NixOS service option is DECLARED. Minimal hosts
+  # (e.g. the usb rescue ISO) import a selective module set and run Hermes via
+  # the hermes-agent package directly, so they have no services.hermes-cli.
+  # Guard the hermes wrapper symlink on this to avoid "attribute missing" errors.
+  hasHermesCli = (builtins.tryEval options).value ? services.hermes-cli;
 in
   lib.mkIf hasHM {
   home-manager = {
@@ -27,7 +32,8 @@ in
       inherit hostName;
       # Wrapped hermes binary (with PortAudio LD_LIBRARY_PATH) for the
       # user-local ~/.local/bin/hermes symlink (replaces stale manual link).
-      hermesWrappedBin = config.services.hermes-cli.wrappedHermesBin;
+      # Null when the hermes-cli service isn't declared (e.g. usb rescue ISO).
+      hermesWrappedBin = if hasHermesCli then config.services.hermes-cli.wrappedHermesBin else null;
       # Expose the noctalia wrapper (NixOS `programs.noctalia.package`,
       # mkForce'd to the pass-through wrapper in
       # modules/desktop/wayland-compositor-common.nix) to home-manager
@@ -111,7 +117,9 @@ in
       # hermes binary (which carries the PortAudio LD_LIBRARY_PATH). A stale
       # manual symlink to a raw GC-able store path previously shadowed the
       # system wrapper and broke voice mode. force=true overrides it.
-      home.file.".local/bin/hermes" = {
+      # Skipped on hosts without the hermes-cli service (e.g. usb rescue ISO,
+      # which ships hermes via the hermes-agent package directly).
+      home.file.".local/bin/hermes" = lib.mkIf (hermesWrappedBin != null) {
         source = hermesWrappedBin;
         force = true;
       };
