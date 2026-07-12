@@ -27,7 +27,7 @@
       "8.8.8.8@853"
       "8.8.4.4@853"
     ];
-    searchDomains = config.networking.search or [];
+    searchDomains = [ "cluster.local" ] ++ (config.networking.search or []);
     enableLanRecords = true;
     enableServiceRecords = true;
   };
