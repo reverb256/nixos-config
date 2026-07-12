@@ -119,25 +119,13 @@
   #    that TV, the GPU must be VFIO-passed (exclusive) to the guest. IOMMU is
   #    already on (hardware.nix: amd_iommu=on iommu=pt). The host loses the GPU
   #    (host mining on GPU0 moves into the guest — by design).
+  #    Kernel params vfio-pci.ids handle the bind at BOOT (before nvidia loads).
+  #    NO activationScript — runtime unbind would hang with nvidia active.
   boot.initrd.kernelModules = [ "vfio" "vfio_pci" ];
   boot.kernelParams = [
     "vfio-pci.ids=10de:2486,10de:228b"
     "vfio-pci.disable_vga=1"
   ];
-  # Early unbind of nvidia/snd_hda_intel and bind to vfio-pci before KubeVirt claims it.
-  system.activationScripts.vfio-bind-3060ti = ''
-    echo "Ensuring 0000:0a:00.0 / 0000:0a:00.1 are vfio-pci bound..."
-    for dev in 0000:0a:00.0 0000:0a:00.1; do
-      if [ -e "/sys/bus/pci/devices/$dev/driver" ]; then
-        old=$(readlink "/sys/bus/pci/devices/$dev/driver" | xargs basename)
-        if [ "$old" != "vfio-pci" ]; then
-          echo "$dev" > "/sys/bus/pci/devices/$dev/driver/unbind" || true
-        fi
-      fi
-      echo "vfio-pci" > "/sys/bus/pci/devices/$dev/driver_override" || true
-      echo "$dev" > /sys/bus/pci/drivers/vfio-pci/bind || true
-    done
-  '';
 
   # System hardening (Phase 0: Security Baseline)
   # Preset: compatibility (desktop + AI gateway)
