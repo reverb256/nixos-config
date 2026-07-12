@@ -57,7 +57,7 @@ in
 
     # Fix RPATH after install
     postFixup = ''
-      patchelf --set-rpath "${lib.makeLibraryPath (with cudaPackages; [cuda_cudart libcublas cccl])}" $out/bin/test_dflash
+      patchelf --set-rpath "${lib.makeLibraryPath (with cudaPackages; [cuda_cudart libcublas])}" $out/bin/test_dflash
     '';
 
     meta = with lib; {

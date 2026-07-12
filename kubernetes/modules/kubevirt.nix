@@ -101,6 +101,20 @@ in
                   externalResourceProvider = true;
                 }
               ];
+              # USB devices on the TV's hub (IOMMU group 15, chipset XHCI).
+              # Non-isolated group — pass individual devices, not the controller.
+              usb = [
+                {
+                  vendor = "1a2c";
+                  product = "2124";
+                  resourceName = "usb/kb-tv";
+                }
+                {
+                  vendor = "1532";
+                  product = "008f";
+                  resourceName = "usb/mouse-tv";
+                }
+              ];
             };
           };
           customizeComponents = { };
