@@ -77,7 +77,7 @@ in {
               _namedlist = true;
               haven = {
                 image = havenImage;
-                imagePullPolicy = "Always";
+                imagePullPolicy = "IfNotPresent";
                 ports = {
                   _namedlist = true;
                   https = {
