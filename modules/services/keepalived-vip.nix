@@ -73,9 +73,10 @@ in {
 
       vrrpScripts = lib.optionalAttrs cfg.enableHealthCheck {
         check-kube-apiserver = {
-          script = ''
-            exec ${pkgs.curl}/bin/curl -f -s -o /dev/null --connect-timeout 3 --insecure https://127.0.0.1:6443/healthz
-          '';
+          # NOTE: keepalived requires the script on a SINGLE line. A multiline
+          # '' string emits a newline inside the quotes, which keepalived ≥2.3
+          # rejects as "Unmatched quote" and the VRRP child SIGSEGVs (no VIP).
+          script = "exec ${pkgs.curl}/bin/curl -f -s -o /dev/null --connect-timeout 3 --insecure https://127.0.0.1:6443/healthz";
           weight = -20;
           interval = 2;
           fall = 2;
