@@ -264,6 +264,45 @@ in {
               fsGroup = 1001;
               seccompProfile.type = "RuntimeDefault";
             };
+            # The upstream searxng/searxng image ships NO non-root user
+            # (its config User is null → runs as root). Because the pod is
+            # forced to runAsNonRoot/runAsUser=1001, Python's
+            # pwd.getpwuid(1001) in valkeydb.py raises KeyError at init and
+            # the process crashes (CrashLoopBackOff). The container is also
+            # readOnlyRootFilesystem, so /etc/passwd is immutable. Fix: an
+            # initContainer provisions a passwd/group entry for 1001 into a
+            # writable emptyDir, overlaid onto the read-only /etc/passwd.
+            initContainers = {
+              _namedlist = true;
+              setup-passwd = {
+                image = "searxng/searxng@sha256:dda1ea3a106b448f5e18ef9b3bb8448e92fc7ecccc3f4a0c82b0106f3dfca23b";
+                imagePullPolicy = "IfNotPresent";
+                securityContext = {
+                  runAsNonRoot = true;
+                  runAsUser = 1001;
+                  runAsGroup = 1001;
+                  allowPrivilegeEscalation = false;
+                  readOnlyRootFilesystem = true;
+                  capabilities.drop = ["ALL"];
+                };
+                command = [
+                  "sh"
+                  "-c"
+                  ''
+                    set -e
+                    printf 'searxng:x:1001:1001::/home/searxng:/sbin/nologin\n' > /passwd/passwd
+                    printf 'searxng:x:1001:\n' > /passwd/group
+                    chmod 0644 /passwd/passwd /passwd/group
+                  ''
+                ];
+                volumeMounts = {
+                  _namedlist = true;
+                  passwd = {
+                    mountPath = "/passwd";
+                  };
+                };
+              };
+            };
             containers = {
               _namedlist = true;
               searxng = {
@@ -345,6 +384,17 @@ in {
                     subPath = "nsswitch.conf";
                     readOnly = true;
                   };
+                  passwd = {
+                    mountPath = "/etc/passwd";
+                    subPath = "passwd";
+                    readOnly = true;
+                  };
+                  group = {
+                    mountPath = "/etc/group";
+                    name = "passwd";
+                    subPath = "group";
+                    readOnly = true;
+                  };
                 };
               };
             };
@@ -363,6 +413,7 @@ in {
               nsswitch.configMap.name = "nsswitch-conf";
               data.emptyDir = {};
               tmp.emptyDir = {};
+              passwd.emptyDir = {};
             };
           };
         };
