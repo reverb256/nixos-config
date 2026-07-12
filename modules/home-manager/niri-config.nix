@@ -68,8 +68,8 @@ in {
         ];
 
         cursor = {
-          theme = lib.mkForce "Adwaita";
-          size = mkDefault 24;
+          # theme/size are owned by Stylix (see stylix block below) so the
+          # cursor follows the active scheme instead of a hardcoded name.
           hide-on-key-press = true;
           hide-after-inactive-ms = 3000;
         };
@@ -82,26 +82,8 @@ in {
         prefer-no-csd = true;
 
         layout = {
-          focus-ring = {
-            enable = true;
-            width = 2;
-            active = {
-              color = "#7aa2f7";
-            };
-            inactive = {
-              color = "#3b4261";
-            };
-          };
-          border = {
-            enable = false;
-            width = 1;
-            active = {
-              color = "#7aa2f7";
-            };
-            inactive = {
-              color = "#3b4261";
-            };
-          };
+          # focus-ring/border colors are owned by Stylix (see stylix block
+          # below) so the window accent follows the active scheme.
           default-column-width = {
             proportion = 0.5;
           };
@@ -684,11 +666,17 @@ in {
         theme = mkDefault config.stylix.cursor.name;
       };
       layout = with (config.lib.stylix.colors.withHashtag or {}); {
-        focus-ring.enable = mkDefault false;
-        border = {
+        # Stylix drives the focus-ring colors; preserve the user's preferred
+        # look (focus-ring on, border off) while making the hue follow the
+        # active base16 scheme instead of a hardcoded Tokyo Night palette.
+        focus-ring = {
           enable = mkDefault true;
+          width = mkDefault 2;
           active = {color = mkDefault (if base0D != null then base0D else "#7aa2f7");};
           inactive = {color = mkDefault (if base03 != null then base03 else "#3b4261");};
+        };
+        border = {
+          enable = mkDefault false;
         };
       };
     })

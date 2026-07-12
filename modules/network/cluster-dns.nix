@@ -32,12 +32,6 @@
     enableServiceRecords = true;
   };
 
-  # K8s service CIDR - same value as in k3s-cluster.nix (10.43.0.0/16)
-  serviceCIDR = "10.43.0.0/16";
-
-  # Flannel gateway IP for this node (gateway of the pod subnet)
-  kubeFlannelGateway = "10.42.0.1";
-
   # ── Service domain definitions (SSOT for .lan domains) ──────────────────
   # These lists define ALL .lan domains. They feed into:
   #   1. Unbound DNS records (local-data)
@@ -283,11 +277,10 @@ in {
       '';
     };
 
-    # Route K8s service CIDR via Flannel so ClusterIP traffic stays local
-    networking.localCommands = ''
-      # Add route to K8s service CIDR via Flannel gateway
-      ip route add 10.43.0.0/16 via 10.42.0.1 dev flannel.1 2>/dev/null || true
-    '';
+    # NOTE: Do NOT add a static route for the K8s service CIDR (10.43.0.0/16).
+    # kube-proxy handles ClusterIP translation via iptables/nftables; routing
+    # service IPs directly through flannel.1 bypasses kube-proxy and breaks
+    # service discovery (e.g., CoreDNS).
 
     # Populate /etc/hosts for compatibility
     networking.extraHosts = lib.mkBefore (
