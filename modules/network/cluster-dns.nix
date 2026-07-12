@@ -27,7 +27,7 @@
       "8.8.8.8@853"
       "8.8.4.4@853"
     ];
-    searchDomains = (config.networking.search or []) ++ [ "svc.cluster.local" "cluster.local" ];
+    searchDomains = config.networking.search or [];
     enableLanRecords = true;
     enableServiceRecords = true;
   };
@@ -240,7 +240,7 @@ in {
           access-control: 100.64.0.0/10 allow
           access-control: 172.16.0.0/12 allow
           verbosity: 1
-          local-zone: "lan." static
+          local-zone: "lan." transparent
 
       ''
       +
