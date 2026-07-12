@@ -28,7 +28,10 @@
 **60 pods running across 22 namespaces.**
 **OS:** NixOS 26.05 (Yarara), Kernel 7.0.0-cachyos, containerd 2.1.5-k3s1
 
-**Note:** ClusterIP unreachable from host (kube-proxy in container, no iptables DNAT). Fixed by routing 10.0.0.0/12 via Flannel gateway + NodePort for Caddy routes.
+**Note:** ClusterIPs are handled by **kube-proxy** (iptables/nftables DNAT inside the kube-proxy
+container). Do NOT add a static host route for the service CIDR (`10.43.0.0/16`) via `flannel.1` —
+that bypasses kube-proxy and breaks in-cluster service discovery (e.g. CoreDNS). Host access to
+cluster services uses NodePort through Caddy, not routed ClusterIPs. (See `cluster-dns.nix`.)
 
 **Stuck pods:** `debug-nexus` in default namespace (CreateContainerConfigError) — orphaned debug pod.
 
