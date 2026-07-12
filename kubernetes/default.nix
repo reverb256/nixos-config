@@ -131,6 +131,10 @@ in {
     ./modules/llama-servers.nix
   ];
 
+  kubevirt = mkManifest "kubevirt" [
+    ./modules/kubevirt.nix
+  ];
+
   miners-csi = mkManifest "miners-csi" [
     ./modules/miners-csi.nix
   ];

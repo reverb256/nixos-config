@@ -9,7 +9,7 @@
     ];
   };
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     # Stable fallback — 26.05 for hosts that can't run unstable
     nixpkgs-2605.url = "github:NixOS/nixpkgs/nixos-26.05";
     home-manager = {
@@ -70,6 +70,10 @@
 
     disko = {
       url = "github:nix-community/disko/65fb947964bd44fc0008faf77d1fcb7a9f40bb32";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nixos-generators = {
+      url = "github:nix-community/nixos-generators";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     impermanence = {
@@ -225,8 +229,8 @@
       };
       nexus = {
         hostName = "nexus";
-        # Split manifests - nexus runs monitoring, ai-inference, llama-servers
-        k8sManifest = self.kubernetes.monitoring.manifestYAMLFile;
+        # Split manifests - nexus runs monitoring, ai-inference, llama-servers, kubevirt
+        k8sManifest = self.kubernetes.kubevirt.manifestYAMLFile;
       };
       forge = {
         hostName = "forge";
@@ -341,6 +345,21 @@
         #         maplespike-ingest-image
         #         maplespike-engine-image
         ;
+
+      # ── KubeVirt guest disk for the "nexus-de" VM (4K TV on the 3060 Ti) ──
+      #    Produces a qcow2 disk image. After build, upload it as the VM's
+      #    DataVolume (see images/nexus-de-guest.nix header for the command).
+      #    Module imports are resolved inside images/nexus-de-guest.nix via
+      #    `self + "/..."` absolute paths (preserves the modules' own relative
+      #    imports like peakminer's ../pkgs/peakminer.nix).
+      nexusDeGuest = inputs.nixos-generators.nixosGenerate {
+        system = "x86_64-linux";
+        format = "qcow";
+        specialArgs = { inherit inputs self; peakminerPkg = pkgsWithOverlay.peakminer; };
+        modules = [
+          ./images/nexus-de-guest.nix
+        ];
+      };
     };
 
     # hermes-workspace-image and hermes-webui-image archived (2026-05-16)

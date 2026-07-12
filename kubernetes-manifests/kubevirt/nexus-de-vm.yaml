@@ -1,0 +1,57 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: nexus-de
+  namespace: nexus-de
+  labels:
+    app.kubernetes.io/managed-by: easykubenix
+    app: nexus-de
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      annotations:
+        # K3s AppArmor known issue: virt-launcher needs unconfined
+        # (kubevirt docs host-devices / known issues).
+        container.apparmor.security.beta.kubernetes.io/compute: unconfined
+      labels:
+        app: nexus-de
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nexus
+      domain:
+        cpu:
+          cores: 8
+        memory:
+          guest: 24Gi
+        firmware:
+          bootloader:
+            efi:
+              secureBoot: false
+        devices:
+          gpus:
+            - deviceName: nvidia.com/ga104
+              name: gpu0
+          autoattachGraphicsDevice: false
+          inputs:
+            - type: tablet
+              bus: virtio
+            - type: keyboard
+              bus: virtio
+        resources:
+          limits:
+            cpu: "8"
+            memory: 24Gi
+          requests:
+            cpu: "4"
+            memory: 16Gi
+      volumes:
+        - name: root
+          dataVolume:
+            name: nexus-de-root
+# NOTE: the nexus-de-root DataVolume is NOT defined here on purpose. It is
+# created and populated at deploy time by `virtctl image-upload` (see
+# scripts/deploy-nexus-de-vm.sh), which builds the CDI-compatible image from
+# the locally-built qcow2 (/nix/store/...-nixos-disk-image/nixos.qcow2 on
+# nexus) and creates the DV in one step. Defining a registry-source DV here
+# would hang Pending forever because nexus:5000/nexus-de-guest does not exist.

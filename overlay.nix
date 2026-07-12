@@ -63,7 +63,11 @@ _final: prev:
         dependencies = with py-super; [
           transformers
           accelerate
-          gradio
+          # Use the patched gradio (py-self.gradio) so the starlette<1.0 relax
+          # and dontCheckRuntimeDeps actually apply — qwen-tts otherwise pulls
+          # the un-overridden py-super.gradio and fails the runtime-dep check
+          # against starlette 1.1.0.
+          py-self.gradio
           librosa
           torchaudio
           soundfile
