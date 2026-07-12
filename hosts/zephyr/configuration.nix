@@ -111,7 +111,6 @@ in {
       base0E = "D2689C";
       base0F = "9eebb3";
     };
-    image = ../../modules/desktop/wallpapers/osaka-jade-bg.jpg;
   };
 
   networking = {
