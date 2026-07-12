@@ -88,7 +88,7 @@ in {
 
   systemd.services.assemble-games-raid = {
     wantedBy = [ "multi-user.target" ];
-    path = [ pkgs.mdadm pkgs.util-linux ];
+    path = [ pkgs.mdadm pkgs.util-linux pkgs.gawk ];
     script = ''
       offset=$(( ${toString raid.offset} * 512 ))
       dev0=$(losetup -f --show -o $offset ${builtins.elemAt raid.devices 0} 2>/dev/null || true)
