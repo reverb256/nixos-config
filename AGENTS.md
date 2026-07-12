@@ -490,6 +490,36 @@ Do NOT deploy oauth2-proxy as K8s sidecar containers. Use the `central-auth` Nix
 Sidecars were removed 2026-05-02 from: haven, openwebui, kagent-ui, mission-control, llama-server-sentry, llama-server-zephyr-3090-moe.
 Auth is handled exclusively by Caddy `forward_auth` -> local `central-auth` (oauth2-proxy) on zephyr + nexus.
 
+### KubeVirt (nexus DE VM)
+
+KubeVirt runs a Windows 11 desktop VM on **nexus** (4K TV + boot-time VFIO bind for the
+3060 Ti). Source of truth:
+
+- `kubernetes/modules/kubevirt.nix` — KubeVirt operator config, device definitions, validation gate
+- `kubernetes-manifests/kubevirt/kubevirt-cr.yaml` — operator CR (feature gates)
+- `kubernetes-manifests/kubevirt/nexus-de-vm.yaml` — DataVolume + VirtualMachine
+
+**Conventions (current as of 2026-07-12):**
+- `kubevirt-cr.yaml` enables `featureGates: ["HostDevices"]` — required for PCI/USB passthrough.
+- GPU (`nvidia.com/ga104`, 10DE:2486) is advertised by KubeVirt's built-in **HostDevices** plugin
+  (`externalResourceProvider = false`), NOT the nvidia/k8s-device-plugin DaemonSet. The separate
+  `vfio-ga104-device-plugin` DaemonSet was removed — do not re-add it.
+- USB devices (TV hub, IOMMU group 15) use the `selectors = [{ vendor; product; }]` form inside the
+  `usb` device block, with one `resourceName` per device (`usb/kb-tv`, `usb/mouse-tv`).
+- The KubeVirt validation webhook is set to `validationActions = ["Warn"]` (not `Exempt`) so the
+  policy still surfaces issues without blocking the VM admit.
+- The VM's `<inputs>` block uses a **virtio tablet only** — the virtio keyboard was dropped (the
+  passed-through USB keyboard is the primary input; a second virtio keyboard confuses Windows).
+
+### Kubernetes service routing (kube-proxy owns ClusterIP)
+
+**Do NOT add a static route for the K8s service CIDR (`10.43.0.0/16`) via `flannel.1`.**
+kube-proxy performs ClusterIP translation via iptables/nftables; routing service IPs directly
+through the Flannel VXLAN device bypasses kube-proxy and breaks in-cluster service discovery
+(notably CoreDNS). This was removed from `cluster-dns.nix` (the old `networking.localCommands`
+`ip route add 10.43.0.0/16 via 10.42.0.1 dev flannel.1`). Host access to cluster services is via
+NodePort through Caddy, never routed ClusterIPs.
+
 ### Grafana Deployment
 
 Grafana runs **only as K8s** (`monitoring` namespace, sentry, NodePort 32102).
