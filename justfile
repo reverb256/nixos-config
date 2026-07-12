@@ -143,7 +143,13 @@ deploy host="all":
         echo "=== $host ==="
         LOCAL=$(hostname -s)
         if [ "$host" = "$LOCAL" ]; then
-            sudo nixos-rebuild switch --flake {{FLAKE}}#$host 2>&1
+            # Zephyr never builds locally (31GB OOM). Offload its system build
+            # to nexus via colmena; other hosts build locally as before.
+            if [ "$host" = "zephyr" ]; then
+                ssh nexus "cd /etc/nixos && colmena apply --on zephyr --eval-node-limit 100" 2>&1
+            else
+                sudo nixos-rebuild switch --flake {{FLAKE}}#$host 2>&1
+            fi
             echo "done"
         else
             OUT=$(nix build --no-link --print-out-paths {{FLAKE}}#nixosConfigurations.$host.config.system.build.toplevel 2>&1) || {
@@ -271,18 +277,33 @@ check:
 build:
     #!/usr/bin/env bash
     set -e
-    cd {{FLAKE}} && sudo nixos-rebuild build --flake .#$(hostname -s)
+    cd {{FLAKE}}
+    # Offload compilation to nexus so zephyr never builds locally (31GB OOM).
+    nix build --builders 'ssh-ng://j_kro@nexus' --no-link --print-out-paths .#$(hostname -s)
 
 switch:
     #!/usr/bin/env bash
     set -e
+    cd {{FLAKE}}
     {{FLAKE}}/scripts/preflight-check.sh 2>/dev/null || true
-    cd {{FLAKE}} && sudo nixos-rebuild switch --flake .#$(hostname -s)
+    # Zephyr never builds locally (31GB OOM) — offload the system build to
+    # nexus via colmena. Other hosts build locally.
+    if [ "$(hostname -s)" = "zephyr" ]; then
+        ssh nexus "cd /etc/nixos && colmena apply --on zephyr --eval-node-limit 100" 2>&1
+    else
+        sudo nixos-rebuild switch --flake .#$(hostname -s)
+    fi
 
 test-apply:
     #!/usr/bin/env bash
     set -e
-    cd {{FLAKE}} && sudo nixos-rebuild test --flake .#$(hostname -s)
+    cd {{FLAKE}}
+    # Zephyr never builds locally (31GB OOM) — use test via nexus.
+    if [ "$(hostname -s)" = "zephyr" ]; then
+        ssh nexus "cd /etc/nixos && colmena apply --on zephyr --eval-node-limit 100" 2>&1
+    else
+        sudo nixos-rebuild test --flake .#$(hostname -s)
+    fi
 
 preflight:
     #!/usr/bin/env bash
