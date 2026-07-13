@@ -1,0 +1,65 @@
+---
+name: Cache
+
+# Populate the nexus binary cache (10.1.1.120:50000, nix-serve) from PR/push
+# builds so reviewers and `nixos-rebuild` downloads instead of rebuilding.
+# This is the one real benefit of a CI cache (what garnix-ci provided) without
+# adopting the garnix stack — it reuses the existing nexus nix-serve + the
+# self-hosted GitHub Actions runner. A cache-population failure is non-fatal:
+# the PR build still succeeds locally, we just miss the cache hit.
+
+on:
+  pull_request:
+  push:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  populate-cache:
+    name: Build & push to nexus cache
+    runs-on: [self-hosted, nixos]
+    needs: []          # independent of ci.yml; runs alongside it
+    steps:
+      - name: Checkout
+        # pin:actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          fetch-depth: 0
+
+      - name: Install Nix
+        # pin:cachix/install-nix-action@v31
+        uses: cachix/install-nix-action@b97f05dcb019ddea06450a50ef6203d2fdc19fee
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Setup Cachix (read-only mirror for inputs)
+        # pin:cachix/cachix-action@v17
+        uses: cachix/cachix-action@02b16339eddcf6ea27126a830c7f1992855cae13
+        with:
+          name: reverb-os
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build all host toplevels and push to nexus cache
+        continue-on-error: true
+        run: |
+          set -u
+          for host in zephyr nexus forge sentry; do
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "Building $host toplevel..."
+            if ! nixos-rebuild build --flake .#$host 2>&1 | tee /tmp/cache-build-$host.log; then
+              echo "::warning::Build failed for $host — skipping cache push"
+              continue
+            fi
+            echo "Pushing $host closure to nexus cache (ssh://j_kro@nexus)..."
+            # Mirrors the post-build-hook in modules/system/distributed-builds.nix:
+            # nexus nix-serve serves 10.1.1.120:50000 signed by zephyr-cache-1.
+            if nix copy --to ssh://j_kro@nexus --substitute-on-destination \
+                 ./result 2>&1 | tee /tmp/cache-push-$host.log; then
+              echo "✓ $host pushed to nexus cache"
+            else
+              echo "::warning::Cache push failed for $host (cache miss only, build still valid)"
+            fi
+          done
