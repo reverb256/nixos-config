@@ -34,9 +34,10 @@ in {
     role = "agent";
     nodeName = "krash3";
     serverAddr = "https://${config.networking.cluster.kubernetes.vip}:${toString config.networking.cluster.kubernetes.apiPort}";
-    tokenFile = "/run/secrets/k3s-cluster-token";
+    tokenFile = "/persistent/etc/k3s-cluster-token";
     nodeIP = config.networking.cluster.hosts.krash3.ip;
     flannelIface = "enp7s0";
+      flannelBackend = "host-gw";
   };
   services.k3s-pod-affinity.enable = lib.mkForce false;
 
