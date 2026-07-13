@@ -60,14 +60,6 @@ in {
             owner = "j_kro";
             group = "users";
           };
-          "default/garnix-password" = {
-            sopsFile = "${inputs.self}/secrets/default/garnix-password.yaml";
-            path = "/run/secrets/garnix-password";
-            format = "binary";
-            mode = "0444";
-            owner = "root";
-            group = "root";
-          };
           "ai/gemini-api-key" = {
             sopsFile = "${inputs.self}/secrets/ai/gemini-api-key.yaml";
             path = "/run/secrets/gemini-api-key";
