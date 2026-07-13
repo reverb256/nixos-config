@@ -123,11 +123,14 @@ in {
       # applet instead of a dead remembered target. The poisoned cache
       # (~/.local/state/wireplumber/stream-properties) is cleared once at
       # deploy time so existing bad pins are gone immediately.
-      wireplumber.extraConfig."99-no-restore-target" = {
-        "wireplumber.settings" = {
-          "node.stream.restore-target" = false;
-        };
-      };
+      # Written via environment.etc because services.pipewire.wireplumber.
+      # extraConfig builds the derivation but nixos-26.05 does not install
+      # it into /etc/wireplumber, so the file would never reach WirePlumber.
+      environment.etc."wireplumber/wireplumber.conf.d/99-no-restore-target.conf".text = ''
+        wireplumber.settings = {
+          node.stream.restore-target = false
+        }
+      '';
 
       extraConfig = {
         pipewire."99-lowlatency" = {
