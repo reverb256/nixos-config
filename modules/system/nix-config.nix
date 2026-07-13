@@ -87,6 +87,7 @@
     "nodejs-20.20.2"
     "nodejs-slim-20.20.2"
     "pnpm-10.29.2"
+    "pnpm-9.15.9"
     "vesktop-1.6.5"
   ];
 
