@@ -123,14 +123,9 @@ in {
       # applet instead of a dead remembered target. The poisoned cache
       # (~/.local/state/wireplumber/stream-properties) is cleared once at
       # deploy time so existing bad pins are gone immediately.
-      # Written via environment.etc because services.pipewire.wireplumber.
-      # extraConfig builds the derivation but nixos-26.05 does not install
-      # it into /etc/wireplumber, so the file would never reach WirePlumber.
-      environment.etc."wireplumber/wireplumber.conf.d/99-no-restore-target.conf".text = ''
-        wireplumber.settings = {
-          node.stream.restore-target = false
-        }
-      '';
+      # NOTE: this must be installed via top-level environment.etc (see
+      # end of module) — services.pipewire.wireplumber.extraConfig builds
+      # the derivation but nixos-26.05 does not install it into /etc.
 
       extraConfig = {
         pipewire."99-lowlatency" = {
@@ -251,6 +246,21 @@ in {
         pkgs.ddcutil
       ]
     );
+
+    # 2026-07-12: WirePlumber restore-target fix (companion to the pipewire
+    # block above). Installed via environment.etc (single key, merged with the
+    # xdg etc block below) because nixos-26.05's services.pipewire.wireplumber.
+    # extraConfig builds the derivation but does NOT link it into
+    # /etc/wireplumber, so the setting never reached WirePlumber. This drop-in
+    # lands at /etc/wireplumber/wireplumber.conf.d/99-no-restore-target.conf and
+    # is read on every boot — so apps stop being pinned to dead sinks
+    # (mic/webcam) and always follow the live default the user picks in the
+    # volume applet.
+    environment.etc."wireplumber/wireplumber.conf.d/99-no-restore-target.conf".text = ''
+      wireplumber.settings = {
+        node.stream.restore-target = false
+      }
+    '';
 
     etc = lib.mkIf config.services.desktopManager.plasma6.enable {
       "xdg/kscreenlockerrc".text = ''
