@@ -294,7 +294,18 @@ in {
       nameserver 127.0.0.1
       nameserver ::1
       nameserver 10.1.1.120
-      options edns0 trust-ad
+      options edns0 trust-ad single-request-reopen timeout:2 attempts:2
+    '';
+
+    # Prefer IPv4 for getaddrinfo when both A and AAAA exist — avoids hangs on
+    # broken or blackholed v6 paths while keeping ::1 / Tailscale v6 usable.
+    environment.etc."gai.conf".text = ''
+      label ::1/128       0
+      label ::/0          1
+      label 2002::/16     2
+      label ::/0          3
+      label ::/0          4
+      precedence ::ffff:0:0/96  100
     '';
 
     # Disable resolvconf — we manage /etc/resolv.conf directly
