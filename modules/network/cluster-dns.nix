@@ -260,21 +260,13 @@ in {
     };
 
     # Generate local DNS records
+    # NOTE: this file is pulled in via `include:` from WITHIN the main
+    # `server:` block of unbound.conf, so it must contain ONLY local-data /
+    # local-zone directives. A nested `server:` header here is a hard syntax
+    # error in unbound (it rejects nested server blocks) and prevents unbound
+    # from starting. Interfaces, access-control and the lan./cluster.local.
+    # zones are already declared in the main server block above.
     environment.etc."unbound/local-dns.conf".text =
-      # Server section header (required for local-data lines to work)
-      ''
-        server:
-          interface: 0.0.0.0
-          interface: ::0
-          access-control: 10.0.0.0/8 allow
-          access-control: 100.64.0.0/10 allow
-          access-control: 172.16.0.0/12 allow
-          verbosity: 1
-          local-zone: "lan." transparent
-
-      ''
-      +
-      # Host records section
       (lib.optionalString dnsCfg.enableLanRecords (
         lib.concatMapStrings (record: "local-data: \"${record}\"\n") hostRecords
       ))
