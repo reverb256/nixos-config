@@ -19,6 +19,7 @@
       "original": {
         "owner": "ezKEa",
         "repo": "aagl-gtk-on-nix",
+        "rev": "af94408291ad477cae8eed964981ab41f90eb184",
         "type": "github"
       }
     },
@@ -354,6 +355,7 @@
         "dir": "pkgs/firefox-addons",
         "owner": "rycee",
         "repo": "nur-expressions",
+        "rev": "8d61e9afde605cd6c22dab68b83d7a71f0a6c5b2",
         "type": "gitlab"
       }
     },
@@ -744,16 +746,17 @@
         "uv2nix": "uv2nix"
       },
       "locked": {
-        "lastModified": 1783855980,
-        "narHash": "sha256-Qo2+HxVj2Y9slSWuhMjhk2RhmWwBDxlZZlWZpuEIk/s=",
+        "lastModified": 1783939504,
+        "narHash": "sha256-/4ORV8J2py+genxYfI4J9GqkZqQN9fYAcyJ1bnyVL/o=",
         "owner": "NousResearch",
         "repo": "hermes-agent",
-        "rev": "7b5ba2054721dde998ed47fd4a0f031955278e99",
+        "rev": "f96b2e6ef75ba6ed678c99954bc8f3ee7f6a38ba",
         "type": "github"
       },
       "original": {
         "owner": "NousResearch",
         "repo": "hermes-agent",
+        "rev": "f96b2e6ef75ba6ed678c99954bc8f3ee7f6a38ba",
         "type": "github"
       }
     },
@@ -815,6 +818,7 @@
       "original": {
         "owner": "reverb256",
         "repo": "llama-cpp-turboquant",
+        "rev": "1818bd47996da5e26edc1ac5b1a9b2543f36ff71",
         "type": "github"
       }
     },
@@ -999,16 +1003,17 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1783831317,
-        "narHash": "sha256-BvLYf5Buzr9QaggcAA/u06ReC7rvZAS17uZ/KJh2Wkc=",
+        "lastModified": 1783904209,
+        "narHash": "sha256-9J92YCz9IH0EBFRfx6ty5hJQ78X3p6J1Pr8izieDgOw=",
         "owner": "cynicsketch",
         "repo": "nix-mineral",
-        "rev": "0642859ea18e2735c9e54a0ea53442f7d576d5cc",
+        "rev": "4c7fd609d382e6d854a4924a92b86c90ff19513c",
         "type": "github"
       },
       "original": {
         "owner": "cynicsketch",
         "repo": "nix-mineral",
+        "rev": "4c7fd609d382e6d854a4924a92b86c90ff19513c",
         "type": "github"
       }
     },
@@ -1069,6 +1074,7 @@
       "original": {
         "owner": "nix-community",
         "repo": "nixos-generators",
+        "rev": "8946737ff703382fda7623b9fab071d037e897d5",
         "type": "github"
       }
     },
@@ -1167,11 +1173,11 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1783703440,
-        "narHash": "sha256-O3/YajjWo001VUIgD8BwaRdSNLUFe7nZ1qV5TwhRBcw=",
+        "lastModified": 1783856661,
+        "narHash": "sha256-ZGP04e+Q6WyQJGA9ZvI5CL6+heGQldbAG9U1T9NGvmU=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "8f0500b9660505dc3cb647775fe9a978a74b5283",
+        "rev": "569d578509928497eddc3fdbf94a799027050be4",
         "type": "github"
       },
       "original": {
@@ -1188,17 +1194,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1783884540,
-        "narHash": "sha256-vhHwcGEjcLHQUhsJGCXZn5LpQkYsJaPS1ogsRo1wKMk=",
+        "lastModified": 1783939443,
+        "narHash": "sha256-D+8VysrekADQZbdF5eKzmFtmeAzg7na0lHe2fi/ahI8=",
         "owner": "noctalia-dev",
         "repo": "noctalia",
-        "rev": "e2f529a4a39ce924c36f6633ded1ce0a88312ec2",
+        "rev": "ad49c1ee536e2223829be89292c9815b96da413d",
         "type": "github"
       },
       "original": {
         "owner": "noctalia-dev",
-        "ref": "cachix",
         "repo": "noctalia",
+        "rev": "ad49c1ee536e2223829be89292c9815b96da413d",
         "type": "github"
       }
     },
@@ -1449,6 +1455,7 @@
       "original": {
         "owner": "Mic92",
         "repo": "sops-nix",
+        "rev": "f1406619a3884cd5c47992a70b8b35c9c0fcb4c9",
         "type": "github"
       }
     },

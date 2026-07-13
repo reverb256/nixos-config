@@ -20,16 +20,16 @@
       inputs.home-manager.follows = "home-manager";
     };
     firefox-addons = {
-      url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
+      url = "gitlab:rycee/nur-expressions/8d61e9afde605cd6c22dab68b83d7a71f0a6c5b2?dir=pkgs/firefox-addons";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     aagl = {
-      url = "github:ezKEa/aagl-gtk-on-nix";
+      url = "github:ezKEa/aagl-gtk-on-nix/af94408291ad477cae8eed964981ab41f90eb184";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     noctalia = {
-      url = "github:noctalia-dev/noctalia/cachix";
+      url = "github:noctalia-dev/noctalia/ad49c1ee536e2223829be89292c9815b96da413d";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nur = {
@@ -58,7 +58,7 @@
     };
 
     nix-mineral = {
-      url = "github:cynicsketch/nix-mineral/";
+      url = "github:cynicsketch/nix-mineral/4c7fd609d382e6d854a4924a92b86c90ff19513c";
     };
 
     colmena = {
@@ -71,7 +71,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nixos-generators = {
-      url = "github:nix-community/nixos-generators";
+      url = "github:nix-community/nixos-generators/8946737ff703382fda7623b9fab071d037e897d5";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     impermanence = {
@@ -102,16 +102,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    easykubenix.url = "github:Lillecarl/easykubenix/88a025fc04889f25b702f79030c6220c3ec48f9b";
-
-    nix-csi.url = "github:Lillecarl/nix-csi";
     hermes-agent = {
-      url = "github:NousResearch/hermes-agent";
+      url = "github:NousResearch/hermes-agent/f96b2e6ef75ba6ed678c99954bc8f3ee7f6a38ba";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     sops-nix = {
-      url = "github:Mic92/sops-nix";
+      url = "github:Mic92/sops-nix/f1406619a3884cd5c47992a70b8b35c9c0fcb4c9";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -143,7 +140,7 @@
     };
     # mining-infra removed - only exists on zephyr at /data/projects/infra/mining-infra
     llama-turboquant = {
-      url = "github:reverb256/llama-cpp-turboquant";
+      url = "github:reverb256/llama-cpp-turboquant/1818bd47996da5e26edc1ac5b1a9b2543f36ff71";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # vllm = {
