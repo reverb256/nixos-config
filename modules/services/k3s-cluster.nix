@@ -102,6 +102,12 @@ in {
       default = "eth0";
       description = "Network interface for flannel VXLAN (must have node IP)";
     };
+
+    flannelBackend = mkOption {
+      type = types.enum ["vxlan" "host-gw"];
+      default = "vxlan";
+      description = "Flannel backend to use. host-gw is recommended for single-LAN clusters.";
+    };
     nvidia = {
       enable = mkOption {
         type = types.bool;
@@ -190,16 +196,23 @@ in {
         )
         ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"
         ++ lib.optional (config.hardware.gpu-compute.rocm.enable or false) "--node-label=gpu=amd"
-        ++ lib.optional (cfg.nodeIP != "") "--node-external-ip=${cfg.nodeIP}"
-        ++ lib.optional (cfg.nodeIP != "") "--kubelet-arg=node-ip=${cfg.nodeIP}"
-
-        ++ lib.optional cfg.clusterReset "--cluster-reset"
+        # NOTE: do NOT pass --node-external-ip or --kubelet-arg=node-ip here.
+        # cfg.nodeIP already flows to k3s via the upstream module's `nodeIP`
+        # option (translating to --node-ip=...), and a duplicate node-ip arg
+        # caused kubelet to register the same IP twice as InternalIP, which the
+        # apiserver rejected (`status.addresses: duplicate value`).
         ++ [
           "--data-dir=${cfg.dataDir}"
+          # k3s >=1.36 removed the --flannel-backend CLI flag; the backend is
+          # now selected via a flannel config file passed with --flannel-conf.
+          # The chosen backend (cfg.flannelBackend) is written to
+          # /etc/rancher/k3s/flannel.conf below for both agent and server roles.
+          "--flannel-conf=/etc/rancher/k3s/flannel.conf"
           "--flannel-iface=${cfg.flannelIface}"
           "--kubelet-arg=authentication-token-webhook=true"
           "--kubelet-arg=authorization-mode=Webhook"
         ];
+
       # --flannel-iface=eth0: explicitly bind flannel VXLAN to eth0 so it uses
       # the real node IP (10.1.1.x), not the VIP (10.1.1.100) added by keepalived.
       # Without this, k3s restarts while keepalived is running cause flannel to
@@ -225,6 +238,13 @@ in {
 
       disableAgent = false;
     };
+
+    # Flannel backend config file (k3s >=1.36 mechanism, replaces the
+    # removed --flannel-backend CLI flag). The chosen backend (cfg.flannelBackend)
+    # is written here and passed to k3s via --flannel-conf. The Network field is
+    # overridden at runtime by the server's cluster CIDR; only the backend Type
+    # matters in this file.
+    environment.etc."rancher/k3s/flannel.conf".text = lib.mkForce ''{"Network":"10.42.0.0/16","Backend":{"Type":"${cfg.flannelBackend}"}}'';
 
     # Override the broken nvidia-container-toolkit-cdi-generator with a working one
     # that sets LD_LIBRARY_PATH so nvidia-ctk can find libnvidia-ml.so.
