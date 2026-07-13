@@ -44,8 +44,9 @@
   ];
 
   # Helper to create an easykubenix instance for a set of modules
+  # NOTE: easykubenix is vendored locally to avoid GitHub fetch hangs.
   mkManifest = name: modules: let
-    easykubenix = import inputs.easykubenix {
+    easykubenix = import ../vendor/easykubenix {
       inherit pkgs;
       modules = commonModules ++ modules;
     };

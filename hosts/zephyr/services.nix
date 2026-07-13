@@ -399,9 +399,13 @@ in {
   services.secret-hygiene.enable = lib.mkForce false;
   services.btrfs-boot-snapshot.enable = lib.mkForce false; # NixOS generations sufficient
 
-  # Create directories for hermes/pi bind mounts on Zephyr
+  # Create directories for hermes/pi bind mounts on Zephyr.
+  # Also symlink /etc/cdi -> /var/run/cdi so podman finds the nvidia-container-toolkit
+  # CDI spec (the generator writes to /var/run/cdi; podman reads /etc/cdi by default).
+  # This exposes nvidia.com/gpu={0,1,all}, incl. the RTX 3090.
   systemd.tmpfiles.rules = [
     "d /data/hermes 0775 j_kro j_kro -"
+    "L+ /etc/cdi - - - - /var/run/cdi"
   ];
   services.syncthing-cluster.enable = lib.mkForce false;
 
