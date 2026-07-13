@@ -37,6 +37,7 @@ in {
     tokenFile = "/persistent/etc/k3s-cluster-token";
     nodeIP = config.networking.cluster.hosts.krash3.ip;
     flannelIface = "enp7s0";
+    flannelBackend = "vxlan";
   };
   services.k3s-pod-affinity.enable = lib.mkForce false;
 
