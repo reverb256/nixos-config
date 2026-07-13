@@ -53,6 +53,7 @@ in {
     };
     usbEthernet.enable = true;
     interfaceName = "eth0";
+    ipv6EgressDisableInterfaces = ["eth1"];
     unbound.enable = true;
     unbound.listenAddress = cluster.hosts.zephyr.ip;
   };
