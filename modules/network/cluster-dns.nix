@@ -185,11 +185,13 @@ in {
           # Don't query localhost (prevent loops)
           do-not-query-localhost = true;
 
-          # Resilience: if all forwarders are unreachable, fall back to
-          # recursive resolution (root hints) instead of hard SERVFAIL.
-          # Prevents a single upstream (1.1.1.1@853 etc.) outage from
-          # blackholing DNS cluster-wide.
-          forward-first = true;
+          # NOTE: `forward-first` was REMOVED from unbound in 1.21.0. On the
+          # moving nixos-26.05 branch unbound 1.25.1 is pulled, which rejects
+          # the directive as a syntax error and refuses to start (taking down
+          # cluster DNS and blocking all `nixos-rebuild switch` activations).
+          # Modern unbound already falls back to recursive resolution when
+          # forwarders are unreachable, so dropping the option preserves the
+          # original resilience intent without the fatal syntax error.
         };
 
         # Forward zones
