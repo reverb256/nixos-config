@@ -115,6 +115,20 @@ in {
       # daemon's audio IPC.
       wireplumber.enable = lib.mkDefault true;
 
+      # 2026-07-12: stop WirePlumber from pinning each app's stream to a
+      # saved sink (node.stream.restore-target). A stale pin had routed
+      # Spotify into a microphone/webcam device -> silence, while explicit
+      # `pw-play --target` still produced sound. With restore-target off,
+      # apps always follow the LIVE default sink chosen in the volume
+      # applet instead of a dead remembered target. The poisoned cache
+      # (~/.local/state/wireplumber/stream-properties) is cleared once at
+      # deploy time so existing bad pins are gone immediately.
+      wireplumber.extraConfig."99-no-restore-target" = {
+        "wireplumber.settings" = {
+          "node.stream.restore-target" = false;
+        };
+      };
+
       extraConfig = {
         pipewire."99-lowlatency" = {
           "context.properties" = {
