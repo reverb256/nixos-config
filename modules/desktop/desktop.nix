@@ -247,22 +247,20 @@ in {
       ]
     );
 
-    # 2026-07-12: WirePlumber restore-target fix (companion to the pipewire
-    # block above). Installed via environment.etc (single key, merged with the
-    # xdg etc block below) because nixos-26.05's services.pipewire.wireplumber.
-    # extraConfig builds the derivation but does NOT link it into
-    # /etc/wireplumber, so the setting never reached WirePlumber. This drop-in
-    # lands at /etc/wireplumber/wireplumber.conf.d/99-no-restore-target.conf and
-    # is read on every boot — so apps stop being pinned to dead sinks
-    # (mic/webcam) and always follow the live default the user picks in the
-    # volume applet.
-    environment.etc."wireplumber/wireplumber.conf.d/99-no-restore-target.conf".text = ''
-      wireplumber.settings = {
-        node.stream.restore-target = false
-      }
-    '';
-
     etc = lib.mkIf config.services.desktopManager.plasma6.enable {
+      # 2026-07-12: WirePlumber restore-target fix. nixos-26.05's
+      # services.pipewire.wireplumber.extraConfig builds the derivation but
+      # does NOT link it into /etc/wireplumber, so the setting never reached
+      # WirePlumber. This drop-in lands at
+      # /etc/wireplumber/wireplumber.conf.d/99-no-restore-target.conf and is
+      # read on every boot — apps stop being pinned to dead sinks (mic/webcam)
+      # and always follow the live default the user picks in the volume applet.
+      "wireplumber/wireplumber.conf.d/99-no-restore-target.conf".text = ''
+        wireplumber.settings = {
+          node.stream.restore-target = false
+        }
+      '';
+
       "xdg/kscreenlockerrc".text = ''
         [Daemon]
         Autolock=false
