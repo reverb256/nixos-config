@@ -36,6 +36,19 @@ in {
       description = "Network interface name for wired connection";
     };
 
+    # Extra NICs that must not receive IPv6 RA or originate v6 egress (e.g. eth1
+    # on zephyr with RA default route but no working v6 — classic blackhole).
+    ipv6EgressDisableInterfaces = mkOption {
+      type = types.listOf types.str;
+      default = [];
+      example = ["eth1"];
+      description = ''
+        Additional interfaces (besides interfaceName) to disable IPv6 and
+        router advertisements on. Prevents intermittent IPv6 blackholes when
+        RA installs a default route but v6 egress is broken.
+      '';
+    };
+
     wireless = {
       enable = mkOption {
         type = types.bool;
@@ -123,11 +136,20 @@ in {
     };
 
     boot.kernel.sysctl =
-      lib.optionalAttrs (cfg.interfaceName != null) {
-        "net.ipv6.conf.${cfg.interfaceName}.disable_ipv6" = lib.mkDefault 1;
-      }
+      let
+        allIpv6Off =
+          [cfg.interfaceName]
+          ++ cfg.ipv6EgressDisableInterfaces;
+        perIface =
+          iface: {
+            "net.ipv6.conf.${iface}.disable_ipv6" = lib.mkForce 1;
+            "net.ipv6.conf.${iface}.accept_ra" = lib.mkForce 0;
+          };
+      in
+      lib.foldl' (acc: iface: acc // perIface iface) {} allIpv6Off
       // lib.optionalAttrs cfg.wireless.enable {
-        "net.ipv6.conf.wlan0.disable_ipv6" = lib.mkDefault 1;
+        "net.ipv6.conf.wlan0.disable_ipv6" = lib.mkForce 1;
+        "net.ipv6.conf.wlan0.accept_ra" = lib.mkForce 0;
       };
 
     systemd.network.links = {
