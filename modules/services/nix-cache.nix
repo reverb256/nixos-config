@@ -141,16 +141,6 @@ in {
     # ── Firewall ──────────────────────────────────────────────
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
 
-
-    # ── Prometheus metrics integration ────────────────────────
-    services.prometheus.exporters = lib.mkIf cfg.metrics {
-      nix-cache = {
-        enable = cfg.metrics;
-        port = cfg.port;
-        metricsPath = "/metrics";
-      };
-    };
-
     environment.systemPackages = [pkgs.nix-cache-proxy];
   };
 }
