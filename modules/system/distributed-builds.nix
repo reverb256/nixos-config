@@ -158,7 +158,7 @@ in {
           allMachines = [
             {
               hostName = "zephyr";
-              system = "x86_64-linux";
+              systems = ["x86_64-linux" "i686-linux"];
               sshUser = "j_kro";
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 0;
@@ -168,7 +168,7 @@ in {
             }
             {
               hostName = "nexus";
-              system = "x86_64-linux";
+              systems = ["x86_64-linux" "i686-linux"];
               sshUser = "j_kro";
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 12;
@@ -181,7 +181,7 @@ in {
             }
             {
               hostName = "sentry";
-              system = "x86_64-linux";
+              systems = ["x86_64-linux" "i686-linux"];
               sshUser = "j_kro";
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 8;
@@ -191,7 +191,7 @@ in {
             }
             {
               hostName = "forge";
-              system = "x86_64-linux";
+              systems = ["x86_64-linux" "i686-linux"];
               sshUser = "j_kro";
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 4;
@@ -201,7 +201,7 @@ in {
             }
             {
               hostName = "krash3";
-              system = "x86_64-linux";
+              systems = ["x86_64-linux" "i686-linux"];
               sshUser = "j_kro";
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 3;
@@ -214,7 +214,7 @@ in {
           formatMachine = m: with builtins;
             concatStringsSep " " [
               ("ssh-ng://" + "${m.sshUser}@${m.hostName}")
-              m.system
+              (concatStringsSep " " m.systems)
               (if m.sshKey != null then m.sshKey else "-")
               (toString m.maxJobs)
               (toString m.speedFactor)
