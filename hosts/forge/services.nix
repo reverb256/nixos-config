@@ -91,6 +91,13 @@ in {
       kubernetes = true;
       aiServices = true;
     };
+
+
+    chatterbox-tts = {
+      enable = true;
+      user = "j_kro";
+      group = "users";
+    };
   };
 
   services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
