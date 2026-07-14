@@ -111,7 +111,11 @@ let
           <vcpupin vcpu='5' cpuset='6'/>
           <vcpupin vcpu='6' cpuset='7'/>
           <vcpupin vcpu='7' cpuset='8'/>
-          <emulatorpin cpuset='0,12'/>
+          <vcpupin vcpu='8' cpuset='9'/>
+          <vcpupin vcpu='9' cpuset='10'/>
+          <vcpupin vcpu='10' cpuset='11'/>
+          <vcpupin vcpu='11' cpuset='12'/>
+          <emulatorpin cpuset='0'/>
         </cputune>
         <os firmware='efi'>
           <type arch='x86_64' machine='pc-q35-10.2'>hvm</type>
