@@ -3,7 +3,7 @@
     ./prometheus.nix
     ./alertmanager.nix
     ./alert-webhook.nix
-    ./grafana-v2.nix
+    # ./grafana-v2.nix  # Stale: Grafana runs as K8s only (see kubernetes/modules/monitoring.nix)
     ./alert-rules.nix
     ./node-exporter.nix
     ./nfs-exporter.nix
