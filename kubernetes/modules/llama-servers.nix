@@ -55,10 +55,6 @@
       readOnly = true;
     };
     nvidia-libs.hostPath.path = "/run/opengl-driver/lib";
-    models.persistentVolumeClaim = {
-      claimName = "nfs-models-pvc";
-      readOnly = true;
-    };
   };
 
   nexusVolumes =
@@ -89,6 +85,10 @@
       };
       vulkan-icd.hostPath.path = "/run/opengl-driver/share/vulkan/icd.d";
       tmp.emptyDir = {};
+      models.hostPath = {
+        path = "/home/j_kro/models";
+        type = "Directory";
+      };
     };
 in {
   config.kubernetes.objects.ai-inference = {
