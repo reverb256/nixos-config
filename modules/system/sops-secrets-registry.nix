@@ -223,7 +223,7 @@ in {
             group = "users";
           };
           "infra/k3s-encryption-key" = {
-            sopsFile = "${inputs.self}/secrets/infra/k3s-encryption-key.yaml";
+            sopsFile = "${inputs.self}/secrets/infra/k3s-encryption-key.json";
             path = "/run/secrets/k3s-encryption-key";
             format = "binary";
             mode = "0400";
