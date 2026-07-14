@@ -96,7 +96,7 @@ in {
 
       http-connections = 100;
       connect-timeout = 30;
-      max-silent-time = 3600;
+      max-silent-time = 14400;
       keep-build-log = true;
       log-lines = 2000;
       auto-optimise-store = true;
