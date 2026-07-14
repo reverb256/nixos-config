@@ -48,6 +48,19 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
+    # The NixOS keepalived module defaults to a 'keepalived_script' user for
+    # vrrp_script blocks. This user must exist, otherwise the script fails and
+    # the VRRP health check is silently ignored.
+    users.users.keepalived_script = {
+      isSystemUser = true;
+      group = "nogroup";
+      description = "keepalived vrrp_script user";
+    };
+
+    # keepalived-boot-delay.timer only fires at boot. If the service is
+    # stopped by a deploy or crash, ensure it auto-restarts.
+    systemd.services.keepalived.restartIfChanged = false;
+
     services.keepalived = {
       enable = lib.mkDefault true;
 
