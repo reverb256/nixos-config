@@ -32,7 +32,7 @@ in {
             containers = [
               {
                 name = "hermes-workspace";
-                image = "nexus:5000/hermes-workspace:latest"; # Local build (own image)
+                image = "nexus:5000/hermes-workspace:v1.0.0"; # Local build (own image)
                 imagePullPolicy = "IfNotPresent";
                 ports = [{containerPort = 3000; name = "http"; protocol = "TCP";}];
                 env = [

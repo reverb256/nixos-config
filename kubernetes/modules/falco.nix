@@ -85,7 +85,7 @@ in {
           - rule: Terminal shell in container
             desc: A shell was spawned in a container
             condition: spawned_process and container and shell_procs and not proc.name in (bash, sh)
-            output: >
+            output: >-
               Terminal shell in container
               (user=%user.name command=%proc.cmdline container=%container.name)
             priority: NOTICE
@@ -93,7 +93,7 @@ in {
           - rule: Privileged container started
             desc: A privileged container was started
             condition: container_started and container.privileged=true
-            output: >
+            output: >-
               Privileged container started
               (user=%user.name command=%proc.cmdline image=%container.image)
             priority: WARNING

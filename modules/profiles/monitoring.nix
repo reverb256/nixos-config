@@ -24,14 +24,6 @@ in {
       };
     };
 
-    grafana = {
-      enable = lib.mkOption {
-        type = lib.types.bool;
-        default = cfg.enable;
-        description = "Enable Grafana dashboard server";
-      };
-    };
-
     alertmanager = {
       enable = lib.mkOption {
         type = lib.types.bool;
@@ -56,10 +48,6 @@ in {
         retentionDays = cfg.prometheus.retentionDays;
       };
 
-      grafana = lib.mkIf cfg.grafana.enable {
-        enable = true;
-      };
-
       alertmanager = lib.mkIf cfg.alertmanager.enable {
         enable = true;
       };
@@ -71,7 +59,6 @@ in {
 
     networking.firewall.interfaces."tailscale0".allowedTCPPorts = lib.mkOptionDefault (
       lib.optional cfg.prometheus.enable ports.prometheus
-      ++ lib.optional cfg.grafana.enable ports.grafana
       ++ lib.optional cfg.alertmanager.enable ports.alertmanager
     );
   };

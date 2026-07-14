@@ -442,12 +442,17 @@ in {
         # NodePort range restricted to LAN subnet (10.1.1.0/24) only.
         # Prevents external access to K8s services bypassing Caddy auth.
         # Host-local services (127.0.0.1) still have full NodePort access.
-        extraCommands = ''
-          # Restrict NodePort access: DROP then ACCEPT from LAN+localhost
-          # (INSERT order matters — second -I goes above first, so ACCEPT is evaluated before DROP)
-          iptables -I nixos-fw -p tcp --dport 30000:32767 -j DROP 2>/dev/null || true
-          iptables -I nixos-fw -p tcp --dport 30000:32767 -s 127.0.0.1 -j nixos-fw-accept 2>/dev/null || true
-          iptables -I nixos-fw -p tcp --dport 30000:32767 -s 10.1.1.0/24 -j nixos-fw-accept 2>/dev/null || true
+        extraInputRules = ''
+          # Restrict NodePort access: accept from LAN+localhost, drop everything else.
+          tcp dport 30000-32767 ip saddr 127.0.0.1 accept
+          tcp dport 30000-32767 ip saddr 10.1.1.0/24 accept
+          tcp dport 30000-32767 drop
+        '';
+        extraForwardRules = ''
+          # Same restriction for forwarded NodePort traffic.
+          tcp dport 30000-32767 ip saddr 127.0.0.1 accept
+          tcp dport 30000-32767 ip saddr 10.1.1.0/24 accept
+          tcp dport 30000-32767 drop
         '';
         allowedUDPPorts = mkOptionDefault (lib.optionals (cfg.flannelBackend == "vxlan") [
           8472 # k3s flannel VXLAN (NOT 4789)

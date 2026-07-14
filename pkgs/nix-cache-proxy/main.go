@@ -14,9 +14,11 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -29,19 +31,6 @@ import (
 	"sync/atomic"
 	"time"
 )
-
-// ── byte counting response writer ──────────────────────────────────
-
-type countingWriter struct {
-	http.ResponseWriter
-	bytes *atomic.Int64
-}
-
-func (cw *countingWriter) Write(b []byte) (int, error) {
-	n, err := cw.ResponseWriter.Write(b)
-	cw.bytes.Add(int64(n))
-	return n, err
-}
 
 // ── Metrics ────────────────────────────────────────────────────────
 
@@ -90,19 +79,38 @@ type StoreInfo struct {
 
 var startTime = time.Now()
 
-func getStoreInfo(nixStorePath string) StoreInfo {
+// cachedStoreInfo holds the most recently computed store stats so that
+// /health does not block on disk walks or fork `du` on every request.
+type cachedStoreInfo struct {
+	mu         sync.RWMutex
+	info       StoreInfo
+	lastUpdate time.Time
+}
+
+func (c *cachedStoreInfo) get() (StoreInfo, time.Time) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.info, c.lastUpdate
+}
+
+func (c *cachedStoreInfo) update(nixStorePath string) {
 	info := StoreInfo{
 		StorePath:     nixStorePath,
 		UptimeSeconds: int64(time.Since(startTime).Seconds()),
 	}
 	entries, _ := filepath.Glob(filepath.Join(nixStorePath, "*"))
 	info.StoreEntries = len(entries)
-	cmd := exec.Command("du", "-sh", nixStorePath)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "du", "-sh", nixStorePath)
 	out, err := cmd.Output()
 	if err == nil {
 		info.StoreSize = strings.TrimSpace(string(out))
 	}
-	return info
+	c.mu.Lock()
+	c.info = info
+	c.lastUpdate = time.Now()
+	c.mu.Unlock()
 }
 
 // ── Async cache fill ───────────────────────────────────────────────
@@ -186,10 +194,11 @@ func triggerAsyncFill(requestPath, nixStore string) {
 // ── Handlers ───────────────────────────────────────────────────────
 
 var metrics = &Metrics{}
+var storeCache = &cachedStoreInfo{}
 
 func healthHandler(nixStore string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		info := getStoreInfo(nixStore)
+		info, lastUpdate := storeCache.get()
 		metrics.mu.RLock()
 		reqs := metrics.Requests.Load()
 		hits := metrics.CacheHits.Load()
@@ -198,15 +207,16 @@ func healthHandler(nixStore string) http.HandlerFunc {
 			hitRate = float64(hits) / float64(reqs)
 		}
 		infoJSON := map[string]interface{}{
-			"store":          info,
-			"cache_hits":     hits,
-			"cache_misses":   metrics.CacheMisses.Load(),
-			"cache_fills":    metrics.CacheFills.Load(),
-			"fill_errors":    metrics.FillErrors.Load(),
-			"requests_total": reqs,
-			"bytes_served":   metrics.BytesServed.Load(),
-			"last_fill_path": metrics.LastFillPath,
-			"hit_rate":       hitRate,
+			"store":           info,
+			"cache_hits":      hits,
+			"cache_misses":    metrics.CacheMisses.Load(),
+			"cache_fills":     metrics.CacheFills.Load(),
+			"fill_errors":     metrics.FillErrors.Load(),
+			"requests_total":  reqs,
+			"bytes_served":    metrics.BytesServed.Load(),
+			"last_fill_path":  metrics.LastFillPath,
+			"hit_rate":        hitRate,
+			"store_refreshed": lastUpdate.Format(time.RFC3339),
 		}
 		metrics.mu.RUnlock()
 		w.Header().Set("Content-Type", "application/json")
@@ -233,13 +243,13 @@ func warmHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing ?path=<store-path>", http.StatusBadRequest)
 		return
 	}
-	// Pass full store path directly to fill queue
 	select {
 	case fillQueue <- path:
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "queued", "path": path})
 	default:
+		http.Error(w, "cache fill queue full", http.StatusServiceUnavailable)
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "queued", "path": path})
 }
 
 // ── Main ───────────────────────────────────────────────────────────
@@ -256,6 +266,16 @@ func main() {
 	}
 
 	startFillWorker(*nixStore)
+
+	// Background refresh of store stats so /health stays fast.
+	storeCache.update(*nixStore)
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			storeCache.update(*nixStore)
+		}
+	}()
 
 	proxy := httputil.NewSingleHostReverseProxy(backendURL)
 
