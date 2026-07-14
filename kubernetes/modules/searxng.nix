@@ -426,8 +426,8 @@ in {
                 protocol = "TCP";
               }];
               resources = {
-                requests = { memory = "32Mi"; cpu = "30m"; };
-                limits = { memory = "64Mi"; cpu = "100m"; };
+                requests = { memory = "128Mi"; cpu = "50m"; };
+                limits = { memory = "256Mi"; cpu = "200m"; };
               };
             };
           };
