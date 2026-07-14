@@ -183,9 +183,6 @@ in {
 
   i18n.defaultLocale = "en_CA.UTF-8";
 
-  boot.kernelPackages =
-    inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
-
   programs = {
     scopebuddy = {
       enable = true;
