@@ -403,7 +403,7 @@ in {
           position = 210;
         };
         "Hugging Face" = {
-          id = "pin-ai-003";
+          id = "pin-ai-007";
           url = "https://huggingface.co";
           workspace = "ai-2b9d4c41-6a8e-4c9b-9a44-6d1c7f2e8b02";
           container = 5;
