@@ -12,7 +12,7 @@ case "$HOSTNAME" in
   zephyr)
     # GPU 0: 3060Ti
     # GPU 1: 3090 hybrid (fan 0% is normal)
-    nvidia-smi -i 0 -pl 100
+    nvidia-smi -i 0 -pl 120
     nvidia-smi -i 1 -pl 250
 
     # Start auth-translator proxy for GPU 0
