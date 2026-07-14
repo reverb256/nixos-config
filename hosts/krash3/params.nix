@@ -51,7 +51,7 @@
     name = "krash3-vm";
     uuid = "52b825d0-6b0a-4e19-b251-7ae312ccd5d0";
     memory = 20472;
-    vcpu = 16;
+    vcpu = 8;
     nvram = "/var/lib/libvirt/qemu/nvram/krash3-vm_VARS.fd";
     iqn = "iqn.2025-06.lan.krash3:games";
 
