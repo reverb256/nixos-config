@@ -190,16 +190,6 @@ in {
               mandatoryFeatures = [];
             }
             {
-              hostName = "forge";
-              systems = ["x86_64-linux" "i686-linux"];
-              sshUser = "j_kro";
-              sshKey = "~/.ssh/id_ed25519";
-              maxJobs = 4;
-              speedFactor = 4;
-              supportedFeatures = ["big-parallel"];
-              mandatoryFeatures = [];
-            }
-            {
               hostName = "krash3";
               systems = ["x86_64-linux" "i686-linux"];
               sshUser = "j_kro";
