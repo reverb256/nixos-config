@@ -191,6 +191,7 @@ in {
             "--etcd-expose-metrics"
             "--kube-controller-manager-arg=terminated-pod-gc-threshold=500"
             "--kube-controller-manager-arg=node-monitor-grace-period=40s"
+            "--flannel-backend=${cfg.flannelBackend}"
           ]
           ++ map (san: "--tls-san=${san}") tlsSans
         )
@@ -209,7 +210,6 @@ in {
           # does NOT actually affect backend selection on restart — k3s
           # restores the backend from etcd/node annotations.
           # See https://docs.k3s.io/networking/basic-network-options#flannel-options
-          "--flannel-backend=${cfg.flannelBackend}"
           "--flannel-iface=${cfg.flannelIface}"
           "--kubelet-arg=authentication-token-webhook=true"
           "--kubelet-arg=authorization-mode=Webhook"
