@@ -30,11 +30,12 @@ in {
     efi.canTouchEfiVariables = true;
     systemd-boot = {
       enable = true;
-      # Override the EFI sticky default so systemd-boot shows the newest
-      # nixos generation as default at every switch, even if the firmware
-      # previously fixed a stale entry. Replace `defaultEntry` (removed
-      # upstream) with the glob-based `entryDefault`.
-      entryDefault = "nixos-*";
+      # NixOS-managed systemd-boot rewrites /boot/loader/loader.conf on every
+      # `nixos-rebuild switch` and defaults to the newest generation, so no
+      # manual override is needed. The previous `defaultEntry = "NixOS"`
+      # (commit 2d1967c0) was a no-op (option removed upstream) and later
+      # attempts to use `entryDefault` (also removed) both blocked
+      # evaluation — see commit chain for f37197d5 / f37197d6.
     };
   };
   boot.kernelPackages = pkgs.linuxPackages_latest;
