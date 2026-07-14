@@ -394,6 +394,91 @@ _: let
     uid = "k8s-cluster";
     version = 1;
   };
+
+  nixCacheDashboard = builtins.toJSON {
+    annotations = {list = [];};
+    editable = true;
+    graphTooltip = 1;
+    id = null;
+    panels = [
+      {
+        title = "Cache Hit Rate";
+        type = "gauge";
+        gridPos = {h = 8; w = 6; x = 0; y = 0;};
+        fieldConfig.defaults = {
+          unit = "percentunit";
+          min = 0;
+          max = 1;
+          thresholds = {
+            mode = "absolute";
+            steps = [
+              {color = "red"; value = 0;}
+              {color = "yellow"; value = 0.5;}
+              {color = "green"; value = 0.8;}
+            ];
+          };
+        };
+        targets = [{
+          expr = "rate(nix_cache_hits_total[5m]) / (rate(nix_cache_hits_total[5m]) + rate(nix_cache_misses_total[5m]))";
+          legendFormat = "hit rate";
+        }];
+      }
+      {
+        title = "Requests / Second";
+        type = "timeseries";
+        gridPos = {h = 8; w = 9; x = 6; y = 0;};
+        fieldConfig.defaults.unit = "reqps";
+        targets = [{
+          expr = "rate(nix_cache_requests_total[5m])";
+          legendFormat = "req/s";
+        }];
+      }
+      {
+        title = "Hits vs Misses";
+        type = "timeseries";
+        gridPos = {h = 8; w = 9; x = 15; y = 0;};
+        targets = [
+          {expr = "rate(nix_cache_hits_total[5m])"; legendFormat = "hits/s";}
+          {expr = "rate(nix_cache_misses_total[5m])"; legendFormat = "misses/s";}
+        ];
+      }
+      {
+        title = "Cache Fills";
+        type = "timeseries";
+        gridPos = {h = 8; w = 8; x = 0; y = 8;};
+        targets = [
+          {expr = "rate(nix_cache_fills_total[5m])"; legendFormat = "fills/s";}
+          {expr = "rate(nix_cache_fill_errors_total[5m])"; legendFormat = "errors/s";}
+        ];
+      }
+      {
+        title = "Throughput";
+        type = "timeseries";
+        gridPos = {h = 8; w = 8; x = 8; y = 8;};
+        fieldConfig.defaults.unit = "Bps";
+        targets = [{
+          expr = "rate(nix_cache_bytes_served_total[5m])";
+          legendFormat = "bytes/s";
+        }];
+      }
+      {
+        title = "Uptime";
+        type = "stat";
+        gridPos = {h = 8; w = 8; x = 16; y = 8;};
+        fieldConfig.defaults.unit = "s";
+        targets = [{
+          expr = "nix_cache_uptime_seconds";
+          legendFormat = "uptime";
+        }];
+      }
+    ];
+    schemaVersion = 39;
+    tags = ["nix" "cache" "infrastructure"];
+    time = {from = "now-1h"; to = "now";};
+    title = "Nix Cache";
+    uid = "nix-cache";
+    version = 1;
+  };
 in {
   config.kubernetes.objects = {
     monitoring.ConfigMap.grafana-dashboards-provider.data."provider.yaml" = dashboardProvider;
@@ -402,6 +487,7 @@ in {
       "gpu-overview.json" = gpuDashboard;
       "mining-ops.json" = miningDashboard;
       "k8s-cluster.json" = k8sDashboard;
+      "nix-cache.json" = nixCacheDashboard;
     };
   };
 }

@@ -109,8 +109,13 @@
 
   services.cluster-ca.enable = true;
 
-  # Nix binary cache — serves /nix/store via HTTP for all cluster nodes
-  services.binary-cache.enable = true;
+  # Nix binary cache — serves /nix/store with pull-through proxy and metrics
+  services.nix-cache = {
+    enable = true;
+    port = 50000; # unchanged from binary-cache
+    bindAddress = "10.1.1.120";
+    metrics = true;
+  };
 
   # ── Nexus DE VM: dynamic GPU handoff (no boot-time VFIO blacklist) ───
   # The RTX 3060 Ti boots on the nvidia driver. A coordinator script

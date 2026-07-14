@@ -295,6 +295,7 @@
     packages.x86_64-linux.privacy-filter = pkgsWithOverlay.privacy-filter;
     packages.x86_64-linux.kubernetes-mcp-server = pkgs.callPackage ./packages/kubernetes-mcp-server.nix {};
     packages.x86_64-linux.nixos-cluster-mcp = pkgs.callPackage ./packages/nixos-cluster-mcp {};
+    packages.x86_64-linux.nix-cache-proxy = pkgs.callPackage ./pkgs/nix-cache-proxy {};
     packages.x86_64-linux.luce-dflash = pkgs.callPackage ./packages/luce-dflash.nix {};
 
     packages.x86_64-linux.xmrig-proxy-image = pkgsWithOverlay.dockerTools.buildImage {
