@@ -142,7 +142,7 @@ in {
     virtualisation.libvirtd = {
       enable = true;
       qemu = {
-        ovmf.enable = true;
+        # ovmf is available by default since nixpkgs removed the submodule
         swtpm.enable = true;
         runAsRoot = true;
       };
