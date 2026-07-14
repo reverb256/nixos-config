@@ -97,6 +97,7 @@ in {
             proxies:
               all://:
                 - socks5h://127.0.0.1:9050
+            using_tor_proxy: true
             retries: 3
             retry_on_http_error:
               - 403
