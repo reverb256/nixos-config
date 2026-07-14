@@ -11,41 +11,41 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     home-manager = {
-      url = "github:nix-community/home-manager";
+      url = "github:nix-community/home-manager/a45a7c451455a51ae740ec3bce4024b312809c29";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zen-browser = {
-      url = "github:0xc000022070/zen-browser-flake";
+      url = "github:0xc000022070/zen-browser-flake/8cbde27feab69507f13a41a01ee45c2b632a8f43";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
     firefox-addons = {
-      url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
+      url = "gitlab:rycee/nur-expressions/8d61e9afde605cd6c22dab68b83d7a71f0a6c5b2?dir=pkgs/firefox-addons";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     aagl = {
-      url = "github:ezKEa/aagl-gtk-on-nix";
+      url = "github:ezKEa/aagl-gtk-on-nix/af94408291ad477cae8eed964981ab41f90eb184";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     noctalia = {
-      url = "github:noctalia-dev/noctalia/cachix";
+      url = "github:noctalia-dev/noctalia/e2f529a4a39ce924c36f6633ded1ce0a88312ec2";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nur = {
-      url = "github:nix-community/NUR";
+      url = "github:nix-community/NUR/377589c277546126c0e26719bea6b2906f3ef134";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     claude-native = {
-      url = "github:ryoppippi/nix-claude-code";
+      url = "github:ryoppippi/nix-claude-code/d5964cc2ce7987c4c7f7e516877190d1c8cd8cf8";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     scopebuddy = {
-      url = "github:OpenGamingCollective/ScopeBuddy";
+      url = "github:OpenGamingCollective/ScopeBuddy/150051976a2a1e64179edc7265175ba4e5f62f62";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nixcord = {
-      url = "github:FlameFlag/nixcord";
+      url = "github:FlameFlag/nixcord/5e2ee31f6e3a1020ac821e749aea046b12e17252";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # System hardening (Phase 0: Security Baseline)
@@ -53,30 +53,30 @@
     # Phase 3: MicroVM isolation (Qubes-like compartmentalization)
     # https://github.com/microvm-nix/microvm.nix
     microvm = {
-      url = "github:microvm-nix/microvm.nix";
+      url = "github:microvm-nix/microvm.nix/74d8374877d0d4e0fa81480793d4ab09b2b32ba5";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     nix-mineral = {
-      url = "github:cynicsketch/nix-mineral";
+      url = "github:cynicsketch/nix-mineral/0642859ea18e2735c9e54a0ea53442f7d576d5cc";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     colmena = {
-      url = "github:zhaofengli/colmena";
+      url = "github:zhaofengli/colmena/76ba0daa542880b730faec81f4e87efcaa63bc57";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     disko = {
-      url = "github:nix-community/disko";
+      url = "github:nix-community/disko/ff8702b4de27f72b4c78573dfb89ec74e36abdf1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nixos-generators = {
-      url = "github:nix-community/nixos-generators";
+      url = "github:nix-community/nixos-generators/8946737ff703382fda7623b9fab071d037e897d5";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     impermanence = {
-      url = "github:nix-community/impermanence";
+      url = "github:nix-community/impermanence/7b1d382faf603b6d264f58627330f9faa5cba149";
       inputs.nixpkgs.follows = "";
       inputs.home-manager.follows = "";
     };
@@ -86,36 +86,35 @@
     niri = {
       # Pinned to commit that exports lib.niri.actions with spawn/spawn-sh/focus-window-previous
       # (replaces b5f81cf03… which lacked focus-window-previous and broke niri-config binds).
-      url = "github:sodiboo/niri-flake";
+      url = "github:sodiboo/niri-flake/9d808f1bb6e86239780039bc18abb64e5415cb23";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     llm-agents = {
-      url = "github:numtide/llm-agents.nix";
+      url = "github:numtide/llm-agents.nix/5c73869318afcf796a7a465b4b5e31b27f0819d4";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-cachyos-kernel = {
-      url = "github:xddxdd/nix-cachyos-kernel";
+      url = "github:xddxdd/nix-cachyos-kernel/01ef07c1c8bc8d9db9c0c9c59a8fea701b7f5a34";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     stylix = {
-      url = "github:nix-community/stylix";
+      url = "github:nix-community/stylix/14814ef555d8148ab82eba5054e654cd9eae3a1f";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    easykubenix.url = "github:Lillecarl/easykubenix";
+    easykubenix.url = "github:Lillecarl/easykubenix/bd1e879b546873b7b6ab01d5e2a89fd86e7c0eec";
 
     nix-csi = {
-      url = "github:Lillecarl/nix-csi";
+      url = "github:Lillecarl/nix-csi/e282e8a8fa099384cd4ffac0aa66dbf2c64f8902";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     hermes-agent = {
-      url = "github:NousResearch/hermes-agent";
+      url = "github:NousResearch/hermes-agent/226e8de827a669e8ffa7035b27d70c19e44b1208";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     sops-nix = {
-      url = "github:Mic92/sops-nix";
+      url = "github:Mic92/sops-nix/f1406619a3884cd5c47992a70b8b35c9c0fcb4c9";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -126,28 +125,28 @@
     # ═══════════════════════════════════════════════════════════════════
 
     ai-gateway = {
-      url = "github:reverb256/ai-inference-gateway";
+      url = "github:reverb256/ai-inference-gateway/76668583f69e7d96353f0865c71b5cdad70d2133";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     compute-market = {
-      url = "github:reverb256/compute-market";
+      url = "github:reverb256/compute-market/02eb54874adf8a0887a4878a99d33274af9d5404";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     mcp-registry = {
-      url = "github:reverb256/mcp-registry";
+      url = "github:reverb256/mcp-registry/d2d5daafaa9cd8f99feff39f8c18bbda014033b1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     caddy-ingress = {
-      url = "github:reverb256/caddy-ingress";
+      url = "github:reverb256/caddy-ingress/a6bc19374ed68da7c769473e2b36cefc3355ac39";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     gpu-proxy = {
-      url = "github:reverb256/gpu-proxy";
+      url = "github:reverb256/gpu-proxy/d17e8fa40d5f539714f05b7387b30a0e831c1c12";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # mining-infra removed - only exists on zephyr at /data/projects/infra/mining-infra
     llama-turboquant = {
-      url = "github:reverb256/llama-cpp-turboquant";
+      url = "github:reverb256/llama-cpp-turboquant/1818bd47996da5e26edc1ac5b1a9b2543f36ff71";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # vllm = {
@@ -155,12 +154,12 @@
     #   inputs.nixpkgs.follows = "nixpkgs";
     # };
     bun2nix = {
-      url = "github:nix-community/bun2nix";
+      url = "github:nix-community/bun2nix/5a39d717029e94163ac223aee8d5c9946cafed1c";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     pre-commit-hooks = {
-      url = "github:cachix/pre-commit-hooks.nix";
+      url = "github:cachix/pre-commit-hooks.nix/bca82caa46d5ec0f5d422c61fb1e30bc51313cbe";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
