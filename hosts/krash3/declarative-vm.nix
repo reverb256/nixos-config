@@ -99,7 +99,7 @@ let
         <vcpu placement='static'>${toString vcpu}</vcpu>
         <iothreads>2</iothreads>
         <cpu mode='host-passthrough' check='none'>
-          <topology sockets='1' dies='1' cores='8' threads='1'/>
+          <topology sockets='1' dies='1' cores='12' threads='1'/>
           <cache mode='passthrough'/>
         </cpu>
         <cputune>

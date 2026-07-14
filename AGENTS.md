@@ -739,11 +739,14 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 
 | # | Issue | Status | Action |
 |---|-------|--------|--------|
-| 1 | **dashboard.lan (Glance)** | Nix config complete, namespace never deployed | Deploy via easykubenix, verify DNS + Caddy route |
+| 1 | **dashboard.lan (Glance)** | ✅ Resolved 2026-07-14 | Deployed via `kubernetes.small` manifest on zephyr/sentry |
 | 2 | **Casdoor MCP bridge scopes** | mcp-client OAuth app missing MCP scopes | Add MCP scopes to app mcp-client in Casdoor |
 | 3 | **Nexus NVMe boot timeout** | ✅ Resolved 2026-07-14 | `nvme_core.timeout=30` already in nexus hardware.nix |
-| 4 | **NodePort access bypasses Caddy auth** | P0 — 17 services accessible on 30000-32767 from LAN | Restrict NodePort range to VIP only (see #291) |
-| 5 | **etcd encryption at rest** | P0 — no encryption config | Add encryption-provider-config to k3s server args |
+| 4 | **NodePort access bypasses Caddy auth** | ✅ Resolved 2026-07-14 | iptables restricts 30000-32767 to 10.1.1.0/24 + localhost |
+| 5 | **etcd encryption at rest** | ✅ Resolved 2026-07-14 | `encryption-provider-config` wired in k3s-cluster.nix |
+| 6 | **Pod Security Standards labels** | ✅ Resolved 2026-07-14 | Baseline/restricted labels added to all namespaces |
+| 7 | **K8s audit policy** | ✅ Resolved 2026-07-14 | Audit policy + JSON logs wired in k3s-cluster.nix |
+| 8 | **Falco runtime security** | ✅ Resolved 2026-07-14 | Falco DaemonSet deployed via `kubernetes/modules/falco.nix` |
 
 ### Resolved (2026-05-14)
 - K8s Tailscale Funnel live: 5 ingresses via operator, ProxyGroup 2/2, host funnel disabled
