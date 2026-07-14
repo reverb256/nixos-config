@@ -161,6 +161,46 @@ in {
           "pod-security.kubernetes.io/warn" = "restricted";
         };
     };
+
+    # ── Pod Security Standards labels on all namespaces ────────────
+    # System namespaces keep privileged enforcement; everything else
+    # enforces baseline with restricted audit/warn.
+    Namespace.ai-coding.metadata.labels = pssLabels // {name = "ai-coding";};
+    Namespace.ai-inference.metadata.labels = pssLabels // {name = "ai-inference";};
+    Namespace.auth.metadata.labels = pssLabels // {name = "auth";};
+    Namespace.automation.metadata.labels = pssLabels // {name = "automation";};
+    Namespace.cert-manager.metadata.labels = pssLabels // {name = "cert-manager";};
+    Namespace.custom-metrics.metadata.labels = pssLabels // {name = "custom-metrics";};
+    Namespace.dashboard.metadata.labels = pssLabels // {name = "dashboard";};
+    Namespace.kagent.metadata.labels = pssLabels // {name = "kagent";};
+    Namespace.kelos-system.metadata.labels = pssLabels // {name = "kelos-system";};
+    Namespace.maplespike-dev.metadata.labels = pssLabels // {name = "maplespike-dev";};
+    Namespace.maplespike-prod.metadata.labels = pssLabels // {name = "maplespike-prod";};
+    Namespace.mining.metadata.labels = pssLabels // {name = "mining";};
+    Namespace.monitoring.metadata.labels = pssLabels // {name = "monitoring";};
+    Namespace.nixkube.metadata.labels = pssLabels // {name = "nixkube";};
+    Namespace.orchestration.metadata.labels = pssLabels // {name = "orchestration";};
+    Namespace.search.metadata.labels = pssLabels // {name = "search";};
+    Namespace.tailscale.metadata.labels = pssLabels // {name = "tailscale";};
+    Namespace.vaultwarden.metadata.labels = pssLabels // {name = "vaultwarden";};
+    Namespace.kube-system.metadata.labels = {
+      name = "kube-system";
+      "pod-security.kubernetes.io/enforce" = "privileged";
+      "pod-security.kubernetes.io/audit" = "baseline";
+      "pod-security.kubernetes.io/warn" = "restricted";
+    };
+    Namespace.kube-public.metadata.labels = {
+      name = "kube-public";
+      "pod-security.kubernetes.io/enforce" = "privileged";
+      "pod-security.kubernetes.io/audit" = "baseline";
+      "pod-security.kubernetes.io/warn" = "restricted";
+    };
+    Namespace.kube-node-lease.metadata.labels = {
+      name = "kube-node-lease";
+      "pod-security.kubernetes.io/enforce" = "privileged";
+      "pod-security.kubernetes.io/audit" = "baseline";
+      "pod-security.kubernetes.io/warn" = "restricted";
+    };
   };
 
   config.kubernetes.objects.default = {
