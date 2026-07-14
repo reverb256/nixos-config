@@ -135,8 +135,4 @@ in {
   kubevirt = mkManifest "kubevirt" [
     ./modules/kubevirt.nix
   ];
-
-  miners-csi = mkManifest "miners-csi" [
-    ./modules/miners-csi.nix
-  ];
 }
