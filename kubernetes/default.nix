@@ -130,6 +130,7 @@ in {
     ./modules/hermes-workspace.nix
     ./modules/tailscale.nix
     ./modules/llama-servers.nix
+    ./modules/falco.nix
   ];
 
   kubevirt = mkManifest "kubevirt" [

@@ -48,6 +48,44 @@
     "traefik"
     "metrics-server"
   ];
+
+  # Kubernetes audit policy: log metadata for all requests, log bodies for
+  # secrets/configmaps/auth changes. Written to a file on every NixOS node so
+  # server nodes can bind-mount it into the k3s data dir.
+  auditPolicyFile = pkgs.writeText "k3s-audit-policy.yaml" ''
+    apiVersion: audit.k8s.io/v1
+    kind: Policy
+    omitStages:
+      - "RequestReceived"
+    rules:
+      # Log metadata for all requests at a reasonable rate.
+      - level: Metadata
+        omitStages:
+          - "RequestReceived"
+      # Log request/response bodies for secrets changes.
+      - level: RequestResponse
+        resources:
+          - group: ""
+            resources: ["secrets"]
+      # Log request/response bodies for configmap changes.
+      - level: RequestResponse
+        resources:
+          - group: ""
+            resources: ["configmaps"]
+      # Log request/response bodies for RBAC/auth changes.
+      - level: RequestResponse
+        resources:
+          - group: "rbac.authorization.k8s.io"
+            resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+      # Log request/response bodies for pod security policy/exemption changes.
+      - level: RequestResponse
+        resources:
+          - group: "admissionregistration.k8s.io"
+            resources: ["validatingadmissionpolicies", "validatingadmissionpolicybindings"]
+  '';
+
+  auditLogDir = "${cfg.dataDir}/server/logs";
+  auditLogPath = "${auditLogDir}/audit.log";
 in {
   options.services.k3s-cluster = {
     enable = mkEnableOption "k3s lightweight Kubernetes cluster";
@@ -222,6 +260,14 @@ in {
         ]
         ++ lib.optionals (isServer && cfg.secretsEncryptionKeyFile != null) [
           "--kube-apiserver-arg=encryption-provider-config=${cfg.dataDir}/server/cred/encryption-config.yaml"
+        ]
+        ++ lib.optionals isServer [
+          "--kube-apiserver-arg=audit-policy-file=${cfg.dataDir}/server/audit-policy.yaml"
+          "--kube-apiserver-arg=audit-log-path=${auditLogPath}"
+          "--kube-apiserver-arg=audit-log-format=json"
+          "--kube-apiserver-arg=audit-log-maxage=7"
+          "--kube-apiserver-arg=audit-log-maxsize=100"
+          "--kube-apiserver-arg=audit-log-maxbackup=10"
         ];
 
       # --flannel-iface=eth0: explicitly bind flannel VXLAN to eth0 so it uses
@@ -566,6 +612,24 @@ in {
         OnUnitActiveSec = "30s";
         AccuracySec = "10s";
       };
+    };
+
+    # ── Kubernetes audit policy ────────────────────────────────────
+    # Copies the Nix-built audit policy into the k3s data dir and ensures
+    # the audit log directory exists before the API server starts.
+    systemd.services.k3s-audit-policy = lib.mkIf isServer {
+      description = "Install Kubernetes audit policy for k3s";
+      wantedBy = ["k3s.service"];
+      before = ["k3s.service"];
+      serviceConfig.Type = "oneshot";
+      serviceConfig.RemainAfterExit = true;
+      path = with pkgs; [coreutils];
+      script = ''
+        mkdir -p "${auditLogDir}"
+        cp "${auditPolicyFile}" "${cfg.dataDir}/server/audit-policy.yaml"
+        chmod 600 "${cfg.dataDir}/server/audit-policy.yaml"
+        echo "k3s-audit-policy: installed audit policy and ensured log dir ${auditLogDir}"
+      '';
     };
 
     # ── Secrets encryption at rest (etcd) ──────────────────────────
