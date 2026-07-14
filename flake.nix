@@ -15,7 +15,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zen-browser = {
-      url = "github:0xc000022070/zen-browser-flake/5bcdfcef664bf62831dcb4b947004d9c5fbf7201";
+      url = "github:0xc000022070/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
@@ -33,19 +33,19 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nur = {
-      url = "github:nix-community/NUR/0eb436e129c6a77d5e0ac3ac9af4219ddfc8167e";
+      url = "github:nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     claude-native = {
-      url = "github:ryoppippi/nix-claude-code/6b5a0e9bee689f0f21ad9f19c19a359ebe0593e0";
+      url = "github:ryoppippi/nix-claude-code";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     scopebuddy = {
-      url = "github:OpenGamingCollective/ScopeBuddy/150051976a2a1e64179edc7265175ba4e5f62f62";
+      url = "github:OpenGamingCollective/ScopeBuddy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nixcord = {
-      url = "github:FlameFlag/nixcord/45a98c17b0d9e695bdee92ab00c76657eddf47e7";
+      url = "github:FlameFlag/nixcord";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # System hardening (Phase 0: Security Baseline)
@@ -53,7 +53,7 @@
     # Phase 3: MicroVM isolation (Qubes-like compartmentalization)
     # https://github.com/microvm-nix/microvm.nix
     microvm = {
-      url = "github:microvm-nix/microvm.nix/9755fd345bd64d1c75ba12b63089c926dd5d886e";
+      url = "github:microvm-nix/microvm.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -63,12 +63,12 @@
     };
 
     colmena = {
-      url = "github:zhaofengli/colmena/349b035a5027f23d88eeb3bc41085d7ee29f18ed";
+      url = "github:zhaofengli/colmena";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     disko = {
-      url = "github:nix-community/disko/65fb947964bd44fc0008faf77d1fcb7a9f40bb32";
+      url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nixos-generators = {
@@ -76,7 +76,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     impermanence = {
-      url = "github:nix-community/impermanence/7b1d382faf603b6d264f58627330f9faa5cba149";
+      url = "github:nix-community/impermanence";
       inputs.nixpkgs.follows = "";
       inputs.home-manager.follows = "";
     };
@@ -94,7 +94,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-cachyos-kernel = {
-      url = "github:xddxdd/nix-cachyos-kernel/86d7051a5694db99f4db6165bcaf15e7bba8672a";
+      url = "github:xddxdd/nix-cachyos-kernel";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -103,7 +103,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    easykubenix.url = "github:Lillecarl/easykubenix/88a025fc04889f25b702f79030c6220c3ec48f9b";
+    easykubenix.url = "github:Lillecarl/easykubenix";
 
     nix-csi = {
       url = "github:Lillecarl/nix-csi";
@@ -155,12 +155,12 @@
     #   inputs.nixpkgs.follows = "nixpkgs";
     # };
     bun2nix = {
-      url = "github:nix-community/bun2nix/f2bc12af1a6369648aac41041ceeaa0b866599c6";
+      url = "github:nix-community/bun2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     pre-commit-hooks = {
-      url = "github:cachix/pre-commit-hooks.nix/61ab0e80d9c7ab14c256b5b453d8b3fb0189ba0a";
+      url = "github:cachix/pre-commit-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
