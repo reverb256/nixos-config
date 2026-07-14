@@ -9,7 +9,7 @@
     ];
   };
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     home-manager = {
       url = "github:nix-community/home-manager/ebc87daabc8d3f595e9a8b67107eaaa8115ad582";
       inputs.nixpkgs.follows = "nixpkgs";
