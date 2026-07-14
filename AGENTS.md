@@ -490,26 +490,38 @@ Do NOT deploy oauth2-proxy as K8s sidecar containers. Use the `central-auth` Nix
 Sidecars were removed 2026-05-02 from: haven, openwebui, kagent-ui, mission-control, llama-server-sentry, llama-server-zephyr-3090-moe.
 Auth is handled exclusively by Caddy `forward_auth` -> local `central-auth` (oauth2-proxy) on zephyr + nexus.
 
-### KubeVirt (nexus DE VM)
+### Nexus DE VM (libvirt/QEMU — migrated from KubeVirt 2026-07-14)
 
-KubeVirt runs a Windows 11 desktop VM on **nexus** (4K TV + boot-time VFIO bind for the
-3060 Ti). Source of truth:
+A Windows 11 desktop VM on **nexus** (4K TV on RTX 3060 Ti, USB keyboard/mouse).
+Source of truth:
 
-- `kubernetes/modules/kubevirt.nix` — KubeVirt operator config, device definitions, validation gate
-- `kubernetes-manifests/kubevirt/kubevirt-cr.yaml` — operator CR (feature gates)
-- `kubernetes-manifests/kubevirt/nexus-de-vm.yaml` — DataVolume + VirtualMachine
+- `modules/services/nexus-de-vm.nix` — libvirt domain definition, GPU handoff coordinator, systemd service
 
-**Conventions (current as of 2026-07-12):**
-- `kubevirt-cr.yaml` enables `featureGates: ["HostDevices"]` — required for PCI/USB passthrough.
-- GPU (`nvidia.com/ga104`, 10DE:2486) is advertised by KubeVirt's built-in **HostDevices** plugin
-  (`externalResourceProvider = false`), NOT the nvidia/k8s-device-plugin DaemonSet. The separate
-  `vfio-ga104-device-plugin` DaemonSet was removed — do not re-add it.
-- USB devices (TV hub, IOMMU group 15) use the `selectors = [{ vendor; product; }]` form inside the
-  `usb` device block, with one `resourceName` per device (`usb/kb-tv`, `usb/mouse-tv`).
-- The KubeVirt validation webhook is set to `validationActions = ["Warn"]` (not `Exempt`) so the
-  policy still surfaces issues without blocking the VM admit.
-- The VM's `<inputs>` block uses a **virtio tablet only** — the virtio keyboard was dropped (the
-  passed-through USB keyboard is the primary input; a second virtio keyboard confuses Windows).
+**Key design: dynamic GPU handoff (no boot-time VFIO blacklist):**
+- The RTX 3060 Ti boots on the **nvidia driver** (available for AI inference).
+- The `nexus-de-vm` systemd service runs a coordinator script:
+  1. Drain host GPU processes (llama, vLLM)
+  2. Unbind GPU from `nvidia` → bind to `vfio-pci`
+  3. Start `virsh start nexus-de`
+  4. On stop: reverse the process → GPU returns to nvidia driver
+- This lets the GPU serve AI workloads when the VM is off.
+
+**VM spec:**
+- 8 vCPU (host-passthrough), 24Gi RAM, UEFI + TPM 2.0
+- GPU: 10DE:2486 (RTX 3060 Ti), audio: 10DE:228b — VFIO passthrough
+- USB: TV keyboard (1a2c:2124) + mouse (1532:008f) — USB passthrough
+- Disk: `/var/lib/libvirt/images/nexus-de.qcow2` (qcow2, SATA)
+- Network: default libvirt network (NAT to host bridge)
+- Spice display on port 5900 for install/debug
+- VirtIO drivers ISO at `/var/lib/libvirt/images/virtio-win.iso`
+
+**Lifecycle:**
+```bash
+systemctl start nexus-de-vm    # Handoff + start VM
+systemctl stop nexus-de-vm     # Stop VM + return GPU to host
+systemctl status nexus-de-vm   # Check state
+virsh console nexus-de         # Direct console
+```
 
 ### Kubernetes service routing (kube-proxy owns ClusterIP)
 
