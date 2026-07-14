@@ -13,7 +13,7 @@ in {
     none.Namespace.search = {
       metadata.labels = {
         name = "search";
-        "pod-security.kubernetes.io/enforce" = "baseline";
+        "pod-security.kubernetes.io/enforce" = "privileged";
         "pod-security.kubernetes.io/audit" = "restricted";
         "pod-security.kubernetes.io/warn" = "restricted";
       };
@@ -110,9 +110,9 @@ in {
             # -- General --
             - name: google
             - name: bing
-            - name: marginalia
-            - name: mojeek
-            - name: qwant
+            - name: duckduckgo
+            - name: brave
+            - name: startpage
 
             # -- IT --
             - name: github
@@ -143,18 +143,6 @@ in {
 
             # -- Wikis --
             - name: nixos wiki
-
-            # Blocked from homelab IPs - keep registered (networks required) but disabled
-            - name: duckduckgo
-              disabled: true
-            - name: brave
-              disabled: true
-            - name: startpage
-              disabled: true
-            - name: karmasearch
-              disabled: true
-            - name: wikidata
-              disabled: true
 
             - name: 1337x
               disabled: true
