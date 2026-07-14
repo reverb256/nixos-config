@@ -402,30 +402,6 @@ in {
   ];
   services.syncthing-cluster.enable = lib.mkForce false;
 
-  services.cloudflared-tunnel = {
-    enable = true;
-    tunnelId = "cec1b070-796f-4524-b43e-9b05c32af906";
-    ingressRules = [
-      {
-        hostname = "api.maplespike.ca";
-        service = "http://localhost:31283";
-      }
-      {
-        hostname = "quill.maplespike.ca";
-        service = "http://localhost:31285";
-      }
-      {
-        hostname = "mcp.maplespike.ca";
-        service = "http://localhost:31745";
-      }
-      {
-        hostname = "datafabric.maplespike.ca";
-        service = "http://localhost:30964";
-      }
-      {
-        hostname = "data.maplespike.ca";
-        service = "http://localhost:31745";
-      }
-    ];
-  };
+  # Moved to K3s deployment (kubernetes-manifests/ingress/cloudflared-tunnel.yaml)
+  # services.cloudflared-tunnel = { ... }
 }
