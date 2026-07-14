@@ -114,7 +114,7 @@ in {
       targetUser = "j_kro";
       tags = ["workstation" "baremetal"];
       allowLocalDeployment = false;
-      buildOnTarget = false;
+      buildOnTarget = true;
     };
   };
 }

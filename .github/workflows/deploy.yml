@@ -15,9 +15,11 @@ on:
           - nexus
           - forge
           - sentry
+          - krash3
 
 permissions:
-  contents: read
+  contents: write
+  id-token: write
 
 jobs:
   deploy:
@@ -37,7 +39,7 @@ jobs:
 
           TARGET="${{ github.event.inputs.target }}"
           if [ "$TARGET" = "all" ]; then
-            HOSTS="zephyr nexus forge sentry"
+            HOSTS="zephyr nexus forge sentry krash3"
           else
             HOSTS="$TARGET"
           fi
@@ -67,7 +69,7 @@ jobs:
         run: |
           cd /etc/nixos
 
-          # Signal GPU scheduler (for all GPU nodes: zephyr, nexus, forge, sentry)
+          # Signal GPU scheduler
           signal_gpu_scheduler() {
             local state=$1
             local host=$2
@@ -80,21 +82,22 @@ jobs:
             fi
           }
 
-          # Build Colmena command with target selection
-          if [ "${{ github.event.inputs.target }}" != "all" ] && [ -n "${{ github.event.inputs.target }}" ]; then
-            COLMENA_TARGET="--on ${{ github.event.inputs.target }}"
-          else
+          ALL_HOSTS="zephyr nexus forge sentry krash3"
+          GPU_HOSTS="zephyr nexus forge sentry"
+
+          TARGET="${{ github.event.inputs.target }}"
+          if [ "$TARGET" = "all" ]; then
             COLMENA_TARGET=""
+            DEPLOY_HOSTS="$ALL_HOSTS"
+          else
+            COLMENA_TARGET="--on $TARGET"
+            DEPLOY_HOSTS="$TARGET"
           fi
 
           # Signal deployment start for GPU nodes
-          if [ -z "$COLMENA_TARGET" ]; then
-            for host in zephyr nexus forge sentry; do
-              signal_gpu_scheduler "AI_START" "$host"
-            done
-          else
-            signal_gpu_scheduler "AI_START" "${{ github.event.inputs.target }}"
-          fi
+          for host in $GPU_HOSTS; do
+            signal_gpu_scheduler "AI_START" "$host"
+          done
 
           # Deploy using Colmena
           if ! nix run .#apps.x86_64-linux.colmena -- apply $COLMENA_TARGET 2>&1 | tee /tmp/deploy-colmena.log; then
@@ -103,50 +106,47 @@ jobs:
             echo "ERROR: Colmena deployment failed, attempting rollback..."
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-            # Rollback to previous generation
             if [ -z "$COLMENA_TARGET" ]; then
               nix run .#apps.x86_64-linux.colmena -- rollback --all 2>&1 | tee -a /tmp/deploy-colmena.log
             else
-              nix run .#apps.x86_64-linux.colmena -- rollback --on "${{ github.event.inputs.target }}" 2>&1 | tee -a /tmp/deploy-colmena.log
+              nix run .#apps.x86_64-linux.colmena -- rollback --on "$TARGET" 2>&1 | tee -a /tmp/deploy-colmena.log
             fi
 
-            # Reset GPU scheduler state after rollback
-            if [ -z "$COLMENA_TARGET" ]; then
-              for host in zephyr nexus forge sentry; do
-                signal_gpu_scheduler "" "$host"
-              done
-            else
-              signal_gpu_scheduler "" "${{ github.event.inputs.target }}"
-            fi
+            for host in $GPU_HOSTS; do
+              signal_gpu_scheduler "" "$host"
+            done
 
             cat /tmp/deploy-colmena.log
             exit 1
           fi
 
           # Signal deployment complete for GPU nodes
-          if [ -z "$COLMENA_TARGET" ]; then
-            for host in zephyr nexus forge sentry; do
-              signal_gpu_scheduler "" "$host"
-            done
-          else
-            signal_gpu_scheduler "" "${{ github.event.inputs.target }}"
-          fi
+          for host in $GPU_HOSTS; do
+            signal_gpu_scheduler "" "$host"
+          done
 
           echo "✓ Successfully deployed using Colmena"
+
+      - name: Sync central repo
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Syncing central bare repo on nexus..."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          if git push central main 2>&1; then
+            echo "✓ Central repo synced"
+          else
+            echo "⚠ Central repo sync failed (cluster nodes may have stale refs)"
+          fi
 
       - name: Resume mining
         if: always()
         run: |
           sudo systemctl start mining.target
-
-          # Verify mining services actually restarted
           if ! sudo systemctl is-active mining.target >/dev/null 2>&1; then
             echo "WARNING: mining.target failed to start"
-            echo "Checking individual services..."
             sudo systemctl status mining.target || true
             exit 1
           fi
-
           echo "✓ Mining services restarted successfully"
 
       - name: Health check
@@ -157,27 +157,45 @@ jobs:
 
           TARGET="${{ github.event.inputs.target }}"
           if [ "$TARGET" = "all" ]; then
-            HOSTS="zephyr nexus forge sentry"
+            HOSTS="zephyr nexus forge sentry krash3"
           else
             HOSTS="$TARGET"
           fi
 
           for host in $HOSTS; do
             echo "Checking $host..."
-            if [ "$host" = "zephyr" ]; then
-              if curl -f http://127.0.0.1:8080/health 2>/dev/null; then
-                echo "✓ $host health check passed"
-              else
-                echo "⚠ $host health check failed (no endpoint configured)"
-              fi
-            else
-              if ssh $host "curl -f http://127.0.0.1:8080/health" 2>/dev/null; then
-                echo "✓ $host health check passed"
-              else
-                echo "⚠ $host health check failed (no endpoint configured)"
-              fi
-            fi
+            case "$host" in
+              zephyr)
+                if ssh localhost "uptime" 2>/dev/null; then
+                  echo "✓ zephyr: SSH reachable"
+                else
+                  echo "⚠ zephyr: health check ambiguous"
+                fi
+                ;;
+              nexus|forge|sentry)
+                if ssh $host "uptime" 2>/dev/null; then
+                  echo "✓ $host: SSH reachable"
+                else
+                  echo "⚠ $host: SSH unreachable"
+                fi
+                ;;
+              krash3)
+                if ssh krash3 "uptime" 2>/dev/null; then
+                  echo "✓ krash3: host up"
+                  if ssh krash3 "sudo virsh -c qemu:///system domstate krash3-vm" 2>/dev/null; then
+                    echo "✓ krash3-vm: running"
+                  else
+                    echo "⚠ krash3-vm: not running"
+                  fi
+                else
+                  echo "⚠ krash3: SSH unreachable"
+                fi
+                ;;
+            esac
           done
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Health checks complete"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
       - name: Notify on failure
         if: failure()
