@@ -48,6 +48,62 @@
     "traefik"
     "metrics-server"
   ];
+
+  # Kubernetes audit policy: log metadata for all requests, log bodies for
+  # secrets/configmaps/auth changes. Written to a file on every NixOS node so
+  # server nodes can bind-mount it into the k3s data dir.
+  auditPolicyFile = pkgs.writeText "k3s-audit-policy.yaml" ''
+    apiVersion: audit.k8s.io/v1
+    kind: Policy
+    omitStages:
+      - "RequestReceived"
+    rules:
+      # Don't log high-volume read-only endpoints (health, metrics, discovery).
+      - level: None
+        nonResourceURLs:
+          - "/healthz"
+          - "/livez"
+          - "/readyz"
+          - "/metrics"
+          - "/openapi/*"
+          - "/api*"
+          - "/version"
+      # Don't log repeated GET requests from system/service accounts.
+      - level: None
+        verbs: ["get", "list", "watch"]
+        users:
+          - "system:kube-proxy"
+          - "system:node"
+          - "system:kube-controller-manager"
+          - "system:kube-scheduler"
+      # Log metadata for all other requests.
+      - level: Metadata
+        omitStages:
+          - "RequestReceived"
+      # Log request/response bodies for secrets changes.
+      - level: RequestResponse
+        resources:
+          - group: ""
+            resources: ["secrets"]
+      # Log request/response bodies for configmap changes.
+      - level: RequestResponse
+        resources:
+          - group: ""
+            resources: ["configmaps"]
+      # Log request/response bodies for RBAC/auth changes.
+      - level: RequestResponse
+        resources:
+          - group: "rbac.authorization.k8s.io"
+            resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+      # Log request/response bodies for admission policy changes.
+      - level: RequestResponse
+        resources:
+          - group: "admissionregistration.k8s.io"
+            resources: ["validatingadmissionpolicies", "validatingadmissionpolicybindings"]
+  '';
+
+  auditLogDir = "${cfg.dataDir}/server/logs";
+  auditLogPath = "${auditLogDir}/audit.log";
 in {
   options.services.k3s-cluster = {
     enable = mkEnableOption "k3s lightweight Kubernetes cluster";
@@ -222,6 +278,14 @@ in {
         ]
         ++ lib.optionals (isServer && cfg.secretsEncryptionKeyFile != null) [
           "--kube-apiserver-arg=encryption-provider-config=${cfg.dataDir}/server/cred/encryption-config.yaml"
+        ]
+        ++ lib.optionals isServer [
+          "--kube-apiserver-arg=audit-policy-file=${cfg.dataDir}/server/audit-policy.yaml"
+          "--kube-apiserver-arg=audit-log-path=${auditLogPath}"
+          "--kube-apiserver-arg=audit-log-format=json"
+          "--kube-apiserver-arg=audit-log-maxage=7"
+          "--kube-apiserver-arg=audit-log-maxsize=100"
+          "--kube-apiserver-arg=audit-log-maxbackup=10"
         ];
 
       # --flannel-iface=eth0: explicitly bind flannel VXLAN to eth0 so it uses
@@ -375,12 +439,21 @@ in {
             2380
           ]
         );
-        allowedTCPPortRanges = [
-          {
-            from = 30000;
-            to = 32767;
-          }
-        ];
+        # NodePort range restricted to LAN subnet (10.1.1.0/24) only.
+        # Prevents external access to K8s services bypassing Caddy auth.
+        # Host-local services (127.0.0.1) still have full NodePort access.
+        extraInputRules = ''
+          # Restrict NodePort access: accept from LAN+localhost, drop everything else.
+          tcp dport 30000-32767 ip saddr 127.0.0.1 accept
+          tcp dport 30000-32767 ip saddr 10.1.1.0/24 accept
+          tcp dport 30000-32767 drop
+        '';
+        extraForwardRules = ''
+          # Same restriction for forwarded NodePort traffic.
+          tcp dport 30000-32767 ip saddr 127.0.0.1 accept
+          tcp dport 30000-32767 ip saddr 10.1.1.0/24 accept
+          tcp dport 30000-32767 drop
+        '';
         allowedUDPPorts = mkOptionDefault (lib.optionals (cfg.flannelBackend == "vxlan") [
           8472 # k3s flannel VXLAN (NOT 4789)
         ]);
@@ -564,6 +637,24 @@ in {
       };
     };
 
+    # ── Kubernetes audit policy ────────────────────────────────────
+    # Copies the Nix-built audit policy into the k3s data dir and ensures
+    # the audit log directory exists before the API server starts.
+    systemd.services.k3s-audit-policy = lib.mkIf isServer {
+      description = "Install Kubernetes audit policy for k3s";
+      wantedBy = ["k3s.service"];
+      before = ["k3s.service"];
+      serviceConfig.Type = "oneshot";
+      serviceConfig.RemainAfterExit = true;
+      path = with pkgs; [coreutils];
+      script = ''
+        mkdir -p "${auditLogDir}"
+        cp "${auditPolicyFile}" "${cfg.dataDir}/server/audit-policy.yaml"
+        chmod 600 "${cfg.dataDir}/server/audit-policy.yaml"
+        echo "k3s-audit-policy: installed audit policy and ensured log dir ${auditLogDir}"
+      '';
+    };
+
     # ── Secrets encryption at rest (etcd) ──────────────────────────
     # Generates a Kubernetes EncryptionConfiguration from a shared AES key
     # on all server nodes. All HA servers MUST use the same key file.
@@ -614,7 +705,6 @@ in {
         echo "k3s-secrets-encryption: encryption config written to $CONFIG_FILE"
       '';
     };
-
     # Etcd defragmentation — compaction alone doesn't reclaim disk space.
     # Must defrag periodically. Runs on all servers.
     systemd.services.k3s-etcd-defrag = lib.mkIf isServer {

@@ -91,7 +91,7 @@ in {
               app = "redis";
             };
           spec = {
-            nodeName = "zephyr";
+            affinity = nexusPreferredAffinity; # P0: was nodeName "zephyr" — default to nexus (46GB)
             hostNetwork = true;
             dnsPolicy = "ClusterFirstWithHostNet";
             automountServiceAccountToken = false;
@@ -225,7 +225,7 @@ in {
               app = "redis-ai-gateway";
             };
           spec = {
-            nodeName = "zephyr";
+            affinity = nexusPreferredAffinity; # P0: was nodeName "zephyr" — default to nexus (46GB)
             hostNetwork = true;
             dnsPolicy = "ClusterFirstWithHostNet";
             automountServiceAccountToken = false;
@@ -713,7 +713,7 @@ in {
               app = "claude-code-router";
             };
           spec = {
-            nodeName = "zephyr";
+            affinity = nexusPreferredAffinity; # P0: was nodeName "zephyr" — default to nexus (46GB)
             hostNetwork = true;
             dnsPolicy = "ClusterFirstWithHostNet";
             automountServiceAccountToken = false;
@@ -952,7 +952,7 @@ in {
               app = "mining-coordinator";
             };
           spec = {
-            nodeName = "zephyr";
+            affinity = nexusPreferredAffinity; # P0: was nodeName "zephyr" — default to nexus (46GB)
             hostNetwork = true;
             hostPID = true;
             dnsPolicy = "ClusterFirstWithHostNet";
@@ -999,125 +999,8 @@ in {
     # Self-contained: monitors llama.cpp on 3090 (port 1237), pauses mining
     # during inference. No 3060Ti fallback — 3060Ti reserved for vLLM.
     # Needs kubectl for scaling, curl for metrics, hostNetwork for localhost.
-    # ── lolminer-nvidia on zephyr (Deployment) ────────────────────
-    # Replaces: lolminer-nvidia.service on zephyr (GPU 1, RTX 3090)
-    # Supersedes the CrashLoopBackOff gpu-miner-zephyr pod
-    mining.Deployment.lolminer-nvidia-zephyr = {
-      metadata.labels =
-        managed
-        // {
-          app = "lolminer-nvidia-zephyr";
-          host = "zephyr";
-          gpu = "rtx3090";
-        };
-      spec = {
-        replicas = 1;
-        revisionHistoryLimit = 1;
-        selector.matchLabels.app = "lolminer-nvidia-zephyr";
-        strategy.type = "Recreate";
-        template = {
-          metadata.labels =
-            managed
-            // {
-              app = "lolminer-nvidia-zephyr";
-              host = "zephyr";
-              gpu = "rtx3090";
-            };
-          spec = {
-            nodeName = "zephyr";
-            hostNetwork = true;
-            dnsPolicy = "ClusterFirstWithHostNet";
-            automountServiceAccountToken = false;
-            serviceAccountName = "gpu-miner-sa";
-            priorityClassName = "mining-low";
-            tolerations = allTolerations;
-            containers = {
-              _namedlist = true;
-              lolminer = {
-                image = "docker.io/swamp7/lolminer:latest";
-                imagePullPolicy = "IfNotPresent";
-                args = [
-                  "--algo"
-                  "CR29"
-                  "--pool"
-                  "${xmrigProxy}"
-                  "--user"
-                  "krxXVNVMM7.zephyr-gpu"
-                  "--pass"
-                  "x"
-                  "--tls"
-                  "off"
-                  "--pool"
-                  "xtm-c29-us.kryptex.network:8040"
-                  "--user"
-                  "krxXVNVMM7.zephyr-gpu"
-                  "--pass"
-                  "x"
-                  "--tls"
-                  "on"
-                  "--devices"
-                  "1"
-                  "--apiport"
-                  "4068"
-                  "--mode"
-                  "b"
-                ];
-                env = {
-                  _namedlist = true;
-                  GPU_MAX_HEAP_SIZE.value = "100";
-                  GPU_MAX_ALLOC_PERCENT.value = "100";
-                  OCL_ICD_VENDORS.value = "/etc/OpenCL/vendors";
-                };
-                ports = [
-                  {
-                    containerPort = 4068;
-                    name = "api";
-                    protocol = "TCP";
-                  }
-                ];
-                resources = {
-                  requests = {
-                    memory = "256Mi";
-                    cpu = "100m";
-                  };
-                  limits = {
-                    memory = "2Gi";
-                    cpu = "1000m";
-                  };
-                };
-                securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                  nix = nixVolumeMount;
-                  opengl = {
-                    mountPath = "/run/opengl-driver/lib";
-                  };
-                  dev = {
-                    mountPath = "/dev";
-                  };
-                  opencl = {
-                    mountPath = "/etc/OpenCL/vendors";
-                  };
-                };
-              };
-            };
-            volumes = {
-              _namedlist = true;
-              nix = nixVolume;
-              opengl.hostPath.path = "/run/opengl-driver/lib";
-              dev.hostPath = {
-                path = "/dev";
-                type = "Directory";
-              };
-              opencl.hostPath = {
-                path = "/etc/OpenCL/vendors";
-                type = "DirectoryOrCreate";
-              };
-            };
-          };
-        };
-      };
-    };
+    # NOTE: lolminer-nvidia-zephyr Deployment removed (2026-07-14) — not used,
+    # peakminer runs as a systemd service instead.
 
     # ── Caddy Local Proxy (Deployment) ────────────────────────────
     # Replaces: caddy.service on zephyr (local reverse proxy, NOT K8s ingress)
@@ -1140,7 +1023,7 @@ in {
               app = "caddy-local";
             };
           spec = {
-            nodeName = "zephyr";
+            nodeName = "zephyr"; # Local-only: .ts.net TLS termination requires zephyr certs
             hostNetwork = true;
             dnsPolicy = "ClusterFirstWithHostNet";
             automountServiceAccountToken = false;

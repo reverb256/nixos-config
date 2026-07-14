@@ -148,8 +148,8 @@ in {
       in
       lib.foldl' (acc: iface: acc // perIface iface) {} allIpv6Off
       // lib.optionalAttrs cfg.wireless.enable {
-        "net.ipv6.conf.wlan0.disable_ipv6" = lib.mkForce 1;
-        "net.ipv6.conf.wlan0.accept_ra" = lib.mkForce 0;
+        "net.ipv6.conf.wlan0.disable_ipv6" = lib.mkDefault 1;
+        "net.ipv6.conf.wlan0.accept_ra" = lib.mkDefault 0;
       };
 
     systemd.network.links = {

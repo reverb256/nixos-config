@@ -113,7 +113,7 @@ in {
         revisionHistoryLimit = 1;
         selector.matchLabels = {
           app = "llama-qwen-vllm-nexus";
-          host = "zephyr";
+          host = "nexus";
         };
         strategy.type = "Recreate";
         template = {
@@ -297,7 +297,7 @@ in {
               };
           };
           spec = {
-            nodeName = "zephyr";
+            nodeName = "zephyr"; # P0: MUST stay on zephyr — RTX 3090 GPU hardware
             hostNetwork = true;
             automountServiceAccountToken = false;
             priorityClassName = "high-priority-ai";
