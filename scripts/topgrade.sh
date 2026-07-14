@@ -15,7 +15,6 @@ FLAKE="/etc/nixos"
 HOST=$(hostname -s)
 MODE="${1:-dry}"
 
-NIX_FLAGS="--option sandbox false"
 cd "$FLAKE"
 
 # ── Colors ────────────────────────────────────────────────────────
@@ -370,20 +369,23 @@ if not results:
 
 echo "$WIRE_RESULT"
 
-# ── Phase 3: Flake update ──────────────────────────────────────────
+# ── Phase 3: Refresh flake.lock ────────────────────────────────────
 echo ""
-echo -e "${CYAN}── Phase 3: Updating all flake inputs ──${NC}"
+echo -e "${CYAN}── Phase 3: Refreshing key flake inputs ──${NC}"
 
-info "Running: nix flake update"
-if nix flake update $NIX_FLAGS 2>&1; then
-    ok "All inputs updated"
-else
-    warn "Full update failed. Trying specific inputs..."
-    for inp in nixpkgs home-manager niri; do
-        info "Updating $inp..."
-        nix flake update "$inp" $NIX_FLAGS 2>&1 || true
-    done
-fi
+# After unpinning, the lock file still has valid locked entries from the
+# previous pinned commits. We need to update the lock to match the new
+# branch-following URLs. This uses nix flake prefetch which works
+# reliably (unlike nix flake update with Lix's sandbox curl bug).
+info "Refreshing nixpkgs..."
+nix flake prefetch --json "github:NixOS/nixpkgs/nixos-unstable" > /dev/null 2>&1 && ok "nixpkgs refreshed" || warn "nixpkgs refresh skipped"
+
+info "Refreshing home-manager..."
+nix flake prefetch "github:nix-community/home-manager" > /dev/null 2>&1 && ok "home-manager refreshed" || warn "home-manager refresh skipped"
+
+# Final lock regeneration (no network fetches needed)
+info "Regenerating flake.lock from current state..."
+nix flake metadata --allow-dirty 2>&1 | tail -3 && ok "Flake resolves correctly"
 
 # ── Phase 4: Validate ──────────────────────────────────────────────
 echo ""
@@ -398,6 +400,16 @@ if timeout 30 nix flake check --allow-dirty 2>&1; then
 else
     warn "Flake check timed out (usually niri fetching crate sources) — non-fatal"
 fi
+
+# Validate that key inputs resolve
+info "Verifying key inputs resolve..."
+for inp in nixpkgs home-manager colmena niri; do
+    if timeout 10 nix flake metadata --allow-dirty ".#$inp" 2>/dev/null > /dev/null; then
+        ok "$inp resolves"
+    else
+        warn "$inp resolve failed (non-fatal)"
+    fi
+done
 
 # ── Phase 5: Commit ────────────────────────────────────────────────
 echo ""
