@@ -89,12 +89,13 @@ in {
             default_theme: simple
 
           outgoing:
-            request_timeout: 10.0
-            max_request_timeout: 20.0
+            request_timeout: 30.0
+            max_request_timeout: 60.0
             pool_connections: 100
             pool_maxsize: 50
             enable_http2: true
-            retries: 2
+            using_tor_proxy: true
+            retries: 3
             retry_on_http_error:
               - 403
               - 429
@@ -404,6 +405,24 @@ in {
               data.emptyDir = {};
               tmp.emptyDir = {};
               passwd.emptyDir = {};
+            };
+            tor = {
+              image = "dperson/torproxy:latest";
+              imagePullPolicy = "IfNotPresent";
+              securityContext = {
+                runAsNonRoot = false;
+                allowPrivilegeEscalation = true;
+                capabilities.add = ["NET_ADMIN"];
+              };
+              ports = [{
+                name = "socks";
+                containerPort = 9050;
+                protocol = "TCP";
+              }];
+              resources = {
+                requests = { memory = "64Mi"; cpu = "50m"; };
+                limits = { memory = "128Mi"; cpu = "200m"; };
+              };
             };
           };
         };
