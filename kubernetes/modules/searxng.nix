@@ -650,6 +650,10 @@ in {
                 protocol = "TCP";
                 port = 443;
               }
+              {
+                protocol = "TCP";
+                port = 9001;
+              }
             ];
           }
           # Valkey access
