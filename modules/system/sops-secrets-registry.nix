@@ -338,15 +338,8 @@ in {
             owner = "j_kro";
             group = "users";
           };
-          "cloud/cloudflared-tunnel-credentials" = {
-            sopsFile = "${inputs.self}/secrets/cloud/cloudflared-tunnel-credentials.yaml";
-            path = "/run/secrets/cloudflared-tunnel-credentials";
-            format = "json";
-            key = "";
-            mode = "0444";
-            owner = "j_kro";
-            group = "users";
-          };
+          # REMOVED: cloud/cloudflared-tunnel-credentials — dead secret, tunnel recreated
+          #          and empty tunnel_secret; no service references it.
           "cloud/tailscale-api-key" = {
             sopsFile = "${inputs.self}/secrets/cloud/tailscale-api-key.yaml";
             path = "/run/secrets/tailscale-api-key";
