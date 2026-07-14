@@ -748,6 +748,18 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 | 7 | **K8s audit policy** | ✅ Resolved 2026-07-14 | Audit policy + JSON logs wired in k3s-cluster.nix |
 | 8 | **Falco runtime security** | ✅ Resolved 2026-07-14 | Falco DaemonSet deployed via `kubernetes/modules/falco.nix` |
 
+### Security Hardening (2026-07-14)
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| 1 | **NodePort access restriction** | ✅ Implemented | iptables rules in `modules/services/k3s-cluster.nix` drop NodePort (30000-32767) traffic except from `10.1.1.0/24` + localhost |
+| 2 | **etcd encryption at rest** | ✅ Implemented | `services.k3s-cluster.secretsEncryptionKeyFile` + `k3s-secrets-encryption` oneshot; key distributed via sops-nix (`secrets/infra/k3s-encryption-key.yaml`) |
+| 3 | **Kubernetes audit policy** | ✅ Implemented | `k3s-audit-policy` installs policy + log dir; API server logs metadata for all requests, bodies for secrets/RBAC/admission changes |
+| 4 | **Falco runtime security** | ✅ Implemented | `kubernetes/modules/falco.nix` DaemonSet in `monitoring` namespace, privileged, host mounts for syscall monitoring |
+| 5 | **Pod Security Standards labels** | ✅ Implemented | `kubernetes/modules/infrastructure.nix` sets `enforce=baseline/audit=warn=restricted` on workload namespaces; system namespaces `privileged` |
+| 6 | **runAsNonRoot tightening** | ✅ Implemented | `mining` and `mcp` namespaces removed from `require-resources-and-security` policy binding exclusions |
+| 7 | **`:latest` image tags** | ✅ Pinned | vane, nix-csi, hermes-workspace, kb-mcp, qdrant-mcp, chatterbox-tts now use versioned tags |
+
 ### Resolved (2026-05-14)
 - K8s Tailscale Funnel live: 5 ingresses via operator, ProxyGroup 2/2, host funnel disabled
 - Funnel manifests committed to Nix at kubernetes-manifests/tailscale/
