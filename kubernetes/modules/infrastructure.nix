@@ -82,8 +82,6 @@ in {
                 "kube-public"
                 "kube-node-lease"
                 "ai-inference"
-                "mining"
-                "mcp"
                 "tailscale"
                 "nix-csi"
               ];

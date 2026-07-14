@@ -382,14 +382,11 @@ in {
 | Vaultwarden | ❌ No support | — | Bitwarden SSO enterprise-only. |
 | Workspace | ❌ No auth at all | — | Headless service. Proxy auth correct. |
 
-### Stale OIDC Secrets (dead code — 2026-05-14)
+### Stale OIDC Secrets (cleaned up 2026-07-14)
 
-Three K8s secrets defined in Nix modules but **never mounted or referenced** by any pod — remnants of removed sidecars:
-- `haven-oidc` (haven namespace)
-- `mission-control-oidc` (orchestration namespace)
-- `kagent-oidc` (kagent namespace)
-
-Safe to clean up. The `casdoor-app-sync` systemd service (in `k8s-secret-bootstrap.nix`) handles the real oauth2-proxy Casdoor app with auto-synced client secrets.
+Three K8s secrets (`haven-oidc`, `mission-control-oidc`, `kagent-oidc`) were
+removed in the 2026-07-14 audit — they were never mounted or referenced by any pod.
+The `casdoor-app-sync` systemd service handles the real oauth2-proxy Casdoor app.
 
 ## Cluster Mesh SSH Account
 
@@ -535,7 +532,8 @@ NodePort through Caddy, never routed ClusterIPs.
 ### Grafana Deployment
 
 Grafana runs **only as K8s** (`monitoring` namespace, sentry, NodePort 32102).
-The NixOS `services.monitoring.grafana` module (`modules/services/monitoring/grafana-v2.nix`) is **disabled on all hosts** — it's dead code.
+The NixOS `services.monitoring.grafana` module (`modules/services/monitoring/grafana-v2.nix`)
+was deleted 2026-07-14 — Grafana runs exclusively as K8s.
 Grafana OAuth uses Casdoor via `GF_AUTH_GENERIC_OAUTH` env vars + Caddy `forward_auth` as a second layer.
 Secrets populated by sops-nix (`monitoring/grafana-oidc-secret`, `monitoring/grafana-admin-secret`).
 
@@ -737,13 +735,15 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 - **Build Nix containers without `git commit`** -- flakes only see tracked files
 - **Edit `/etc/nixos` directly on remote nodes** — accumulates stray editor backups, phantom host configs, and root-owned contamination that block `git checkout` / `git reset` on cluster nodes. Use `just deploy` from zephyr.
 
-## Known Issues (audited 2026-05-14)
+## Known Issues (audited 2026-07-14)
 
 | # | Issue | Status | Action |
 |---|-------|--------|--------|
 | 1 | **dashboard.lan (Glance)** | Nix config complete, namespace never deployed | Deploy via easykubenix, verify DNS + Caddy route |
 | 2 | **Casdoor MCP bridge scopes** | mcp-client OAuth app missing MCP scopes | Add MCP scopes to app mcp-client in Casdoor |
-| 3 | **Nexus NVMe boot timeout** | No kernel-level nvme_core.timeout set | Add nvme_core.timeout=30 + rootdelay=5 to nexus kernelParams |
+| 3 | **Nexus NVMe boot timeout** | ✅ Resolved 2026-07-14 | `nvme_core.timeout=30` already in nexus hardware.nix |
+| 4 | **NodePort access bypasses Caddy auth** | P0 — 17 services accessible on 30000-32767 from LAN | Restrict NodePort range to VIP only (see #291) |
+| 5 | **etcd encryption at rest** | P0 — no encryption config | Add encryption-provider-config to k3s server args |
 
 ### Resolved (2026-05-14)
 - K8s Tailscale Funnel live: 5 ingresses via operator, ProxyGroup 2/2, host funnel disabled
@@ -768,8 +768,8 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 
 ---
 
-**Version**: 9.4 | **Last Updated:** 2026-07-08
-**Changes**: Updated from 2026-05-23 to 2026-07-08. Reconciled `origin/prod`: deleted redundant branch, updated AGENTS.md + justfile + weekly-git-health.yml to reflect actual deploy flow (`just deploy` from `main` HEAD). Audit fixes (PR #273) and stash triage (umbrella #274) shipped.
+**Version**: 9.5 | **Last Updated:** 2026-07-14
+**Changes**: Updated from 2026-07-08 to 2026-07-14. Audit remediation sprint (#291): nodeName zephyr→nexus, :latest tags documented, lolminer purged, grafana-v2.nix deleted, nix-cache Prometheus scrape wired, root junk cleaned. Stale OIDC secrets confirmed already removed. nvme_core.timeout confirmed already set on nexus.
 
 ## Known Frictions & Workarounds (2026-05-18)
 
