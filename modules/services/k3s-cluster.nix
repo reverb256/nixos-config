@@ -121,6 +121,12 @@ in {
       default = "/var/lib/rancher/k3s";
       description = "k3s data directory for storing state, etcd, etc.";
     };
+
+    secretsEncryptionKeyFile = mkOption {
+      type = types.nullOr types.path;
+      default = null;
+      description = "Path to a 32-byte base64-encoded AES key for etcd secrets encryption at rest. All HA servers MUST use the same key. Use sops-nix to distribute.";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -213,6 +219,9 @@ in {
           "--flannel-iface=${cfg.flannelIface}"
           "--kubelet-arg=authentication-token-webhook=true"
           "--kubelet-arg=authorization-mode=Webhook"
+        ]
+        ++ lib.optionals (isServer && cfg.secretsEncryptionKeyFile != null) [
+          "--kube-apiserver-arg=encryption-provider-config=${cfg.dataDir}/server/cred/encryption-config.yaml"
         ];
 
       # --flannel-iface=eth0: explicitly bind flannel VXLAN to eth0 so it uses
@@ -557,6 +566,57 @@ in {
         OnUnitActiveSec = "30s";
         AccuracySec = "10s";
       };
+    };
+
+    # ── Secrets encryption at rest (etcd) ──────────────────────────
+    # Generates a Kubernetes EncryptionConfiguration from a shared AES key
+    # on all server nodes. All HA servers MUST use the same key file.
+    # Uses aescbc provider with identity fallback for reading unencrypted secrets.
+    #
+    # Uses pkgs.writeText at build time (avoids heredoc indentation issues)
+    # with a placeholder that sed replaces at runtime with the real key.
+    systemd.services.k3s-secrets-encryption = let
+      encryptionConfigTemplate = pkgs.writeText "encryption-config.yaml" ''
+        apiVersion: apiserver.config.k8s.io/v1
+        kind: EncryptionConfiguration
+        resources:
+          - resources:
+              - secrets
+            providers:
+              - aescbc:
+                  keys:
+                    - name: key1
+                      secret: __ENCRYPTION_KEY__
+              - identity: {}
+      '';
+    in mkIf (isServer && cfg.secretsEncryptionKeyFile != null) {
+      description = "Generate etcd encryption config for K3s secrets encryption at rest";
+      wantedBy = ["k3s.service"];
+      before = ["k3s.service"];
+      serviceConfig.Type = "oneshot";
+      serviceConfig.RemainAfterExit = true;
+      path = with pkgs; [coreutils gnused];
+      script = ''
+        KEY_FILE="${cfg.secretsEncryptionKeyFile}"
+        CONFIG_DIR="${cfg.dataDir}/server/cred"
+        CONFIG_FILE="$CONFIG_DIR/encryption-config.yaml"
+
+        if [ ! -f "$KEY_FILE" ]; then
+          echo "k3s-secrets-encryption: key file $KEY_FILE not found, skipping"
+          exit 0
+        fi
+
+        KEY_B64=$(head -c 32 "$KEY_FILE" | ${pkgs.coreutils}/bin/base64 -w0)
+        if [ -z "$KEY_B64" ]; then
+          echo "k3s-secrets-encryption: key file is empty, skipping"
+          exit 0
+        fi
+
+        mkdir -p "$CONFIG_DIR"
+        sed "s/__ENCRYPTION_KEY__/''${KEY_B64}/" ${encryptionConfigTemplate} > "$CONFIG_FILE"
+        chmod 600 "$CONFIG_FILE"
+        echo "k3s-secrets-encryption: encryption config written to $CONFIG_FILE"
+      '';
     };
 
     # Etcd defragmentation — compaction alone doesn't reclaim disk space.
