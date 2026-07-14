@@ -20,9 +20,10 @@ in {
       role = "server";
       nodeName = "sentry";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
-      tokenFile = "/run/secrets/k3s-cluster-token";
+      tokenFile = "/persistent/etc/k3s-cluster-token";
       nodeIP = cluster.hosts.sentry.ip;
       flannelIface = "eth0";
+      flannelBackend = "host-gw";
     };
 
     keepalived-vip = {
