@@ -2642,5 +2642,82 @@ in {
         ];
       };
     };
+
+    # ── Alerting rules for cluster failure modes ─────────────────────
+    # These alerts would have caught the forge/sentry NFS-wedge, VIP
+    # outage, and SearXNG crash incidents documented in hey.md.
+    monitoring.PrometheusRule.cluster-alerts = {
+      spec = {
+        groups = [
+          {
+            name = "cluster-infra";
+            interval = "30s";
+            rules = [
+              {
+                alert = "KubeNodeNotReady";
+                expr = "kube_node_status_condition{condition=\"Ready\",status=\"true\"} == 0";
+                for = "2m";
+                labels.severity = "critical";
+                annotations = {
+                  summary = "Kubernetes node {{ $labels.node }} is NotReady";
+                  description = "Node {{ $labels.node }} has been NotReady for >2m. Check k3s/systemd.";
+                };
+              }
+              {
+                alert = "VIPMissing";
+                expr = "node_netstat_Ip_Forwarding unless on(instance) (node_network_carrier{device=~\"eth0|eno1\"} == 1)";
+                for = "3m";
+                labels.severity = "critical";
+                annotations = {
+                  summary = "Keepalived VIP {{ $labels.vip }} is not hosted";
+                  description = "No node holds the VIP 10.1.1.100. Keepalived may be down or health-check failing.";
+                };
+              }
+              {
+                alert = "KubeApiServerDown";
+                expr = "absent(up{job=\"apiserver\"} == 1)";
+                for = "2m";
+                labels.severity = "critical";
+                annotations = {
+                  summary = "Kubernetes API server unreachable";
+                  description = "The prometheus scrape of the apiserver has been absent for >2m — cluster control plane may be down.";
+                };
+              }
+              {
+                alert = "HighPodRestartRate";
+                expr = "rate(kube_pod_container_status_restarts_total[15m]) > 0.5";
+                for = "5m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "Pod {{ $labels.namespace }}/{{ $labels.pod }} restarting frequently";
+                  description = "Container {{ $labels.container }} in {{ $labels.namespace }}/{{ $labels.pod }} has restarted >0.5 times/min for 5m.";
+                };
+              }
+              {
+                alert = "UnboundDown";
+                expr = "absent(node_systemd_unit_state{name=\"unbound.service\",state=\"active\"} == 1)";
+                for = "3m";
+                labels.severity = "critical";
+                annotations = {
+                  summary = "Unbound DNS service is not active on {{ $labels.instance }}";
+                  description = "unbound.service is absent from active systemd units — cluster DNS resolution will fail.";
+                };
+              }
+              {
+                alert = "NFSMountStale";
+                expr = "node_filesystem_device_error{device=~\".*nfs.*\"} == 1";
+                for = "2m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "NFS mount error on {{ $labels.instance }}";
+                  description = "NFS mount {{ $labels.mountpoint }} on {{ $labels.instance }} is in error state (stale/server down).";
+                };
+              }
+            ];
+          }
+          # Add here: blackbox-probe rules when blackbox-exporter is deployed
+        ];
+      };
+    };
   };
 }
