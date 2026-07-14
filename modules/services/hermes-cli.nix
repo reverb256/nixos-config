@@ -505,12 +505,63 @@ in {
           sed -i "s|base_url: http://\[IP_ADDRESS\]:8080/v1|base_url: $GATEWAY_URL|g" "$HERMES_CONFIG"
 
           # Enforce Z.AI coding plan endpoint (not pay-as-you-go /api/paas/v4)
-          sed -i "s|base_url: https://api\.z\.ai/api/paas/v4[^/]|base_url: https://api.z.ai/api/coding/paas/v4|g" "$HERMES_CONFIG"
+          sed -i "s|base_url: https://api\\.z\\.ai/api/paas/v4[^/]|base_url: https://api.z.ai/api/coding/paas/v4|g" "$HERMES_CONFIG"
           # Also catch the exact pay-as-you-go path without trailing chars
-          sed -i "s|base_url: https://api\.z\.ai/api/paas/v4$|base_url: https://api.z.ai/api/coding/paas/v4|g" "$HERMES_CONFIG"
+          sed -i "s|base_url: https://api\\.z\\.ai/api/paas/v4$|base_url: https://api.z.ai/api/coding/paas/v4|g" "$HERMES_CONFIG"
 
           chown ${cfg.user}:users "$HERMES_CONFIG" 2>/dev/null || true
           chmod 600 "$HERMES_CONFIG" 2>/dev/null || true
+
+          # ── Export sops-nix secrets to $HERMES_HOME/.env ──────────
+          # Hermes reads .env at startup for env vars like OPENCODE_API_KEY,
+          # OPENCODE_ZEN_API_KEY, etc. We maintain the file here from sops-nix
+          # secrets so it survives Hermes Vault bootstrap cycles.
+          ENV_FILE="/home/${cfg.user}/.hermes/.env"
+
+          # opencodeZenApiKeyFile → OPENCODE_API_KEY + OPENCODE_ZEN_API_KEY
+          ${lib.optionalString (cfg.opencodeZenApiKeyFile != null) ''
+            OC_ZEN="${cfg.opencodeZenApiKeyFile}"
+            if [ -f "$OC_ZEN" ] && [ -s "$OC_ZEN" ]; then
+              ZEN_KEY="$(cat "$OC_ZEN")"
+              # Remove any stale OPENCODE_ZEN_API_KEY line (including vault-redacted comments)
+              grep -v '^OPENCODE_ZEN_API_KEY=\\|^#.*OPENCODE_ZEN_API_KEY=' "$ENV_FILE" > "$ENV_FILE".tmp 2>/dev/null || true
+              echo "OPENCODE_ZEN_API_KEY=$ZEN_KEY" >> "$ENV_FILE".tmp
+              sort -u "$ENV_FILE".tmp > "$ENV_FILE"
+              chmod 600 "$ENV_FILE"
+              chown ${cfg.user}:users "$ENV_FILE" 2>/dev/null || true
+              echo "[hermes-config] ✓ OPENCODE_ZEN_API_KEY written to .env"
+            fi
+          ''}
+
+          ${lib.optionalString (cfg.opencodeGoApiKeyFile != null) ''
+            OC_GO="${cfg.opencodeGoApiKeyFile}"
+            if [ -f "$OC_GO" ] && [ -s "$OC_GO" ]; then
+              GO_KEY="$(cat "$OC_GO")"
+              grep -v '^OPENCODE_GO_API_KEY=\\|^#.*OPENCODE_GO_API_KEY=' "$ENV_FILE" > "$ENV_FILE".tmp 2>/dev/null || true
+              echo "OPENCODE_GO_API_KEY=$GO_KEY" >> "$ENV_FILE".tmp
+              sort -u "$ENV_FILE".tmp > "$ENV_FILE"
+              chmod 600 "$ENV_FILE"
+              chown ${cfg.user}:users "$ENV_FILE" 2>/dev/null || true
+              echo "[hermes-config] ✓ OPENCODE_GO_API_KEY written to .env"
+            fi
+          ''}
+
+          ${lib.optionalString (cfg.nvidiaApiKeyFile != null) ''
+            NV_KEY_PATH="${cfg.nvidiaApiKeyFile}"
+            if [ -f "$NV_KEY_PATH" ] && [ -s "$NV_KEY_PATH" ]; then
+              NV_KEY="$(cat "$NV_KEY_PATH")"
+              grep -v '^NVIDIA_API_KEY=\\|^#.*NVIDIA_API_KEY=' "$ENV_FILE" > "$ENV_FILE".tmp 2>/dev/null || true
+              echo "NVIDIA_API_KEY=$NV_KEY" >> "$ENV_FILE".tmp
+              sort -u "$ENV_FILE".tmp > "$ENV_FILE"
+              chmod 600 "$ENV_FILE"
+              chown ${cfg.user}:users "$ENV_FILE" 2>/dev/null || true
+              echo "[hermes-config] ✓ NVIDIA_API_KEY written to .env"
+            fi
+          ''}
+
+          # Ensure .env exists even if no secrets were configured
+          touch "$ENV_FILE"
+          chmod 600 "$ENV_FILE" 2>/dev/null || true
 
           echo "[hermes-config] Done"
         '';
