@@ -13,7 +13,7 @@ in {
     none.Namespace.search = {
       metadata.labels = {
         name = "search";
-        "pod-security.kubernetes.io/enforce" = "privileged";
+        "pod-security.kubernetes.io/enforce" = "baseline";
         "pod-security.kubernetes.io/audit" = "restricted";
         "pod-security.kubernetes.io/warn" = "restricted";
       };
@@ -89,13 +89,12 @@ in {
             default_theme: simple
 
           outgoing:
-            request_timeout: 30.0
-            max_request_timeout: 60.0
+            request_timeout: 10.0
+            max_request_timeout: 20.0
             pool_connections: 100
             pool_maxsize: 50
             enable_http2: true
-            using_tor_proxy: true
-            retries: 3
+            retries: 2
             retry_on_http_error:
               - 403
               - 429
@@ -405,25 +404,6 @@ in {
               data.emptyDir = {};
               tmp.emptyDir = {};
               passwd.emptyDir = {};
-            };
-            tor = {
-              image = "dperson/torproxy:latest";
-              imagePullPolicy = "IfNotPresent";
-              args = ["-p", "9050", "-d", "-t"];
-              securityContext = {
-                runAsNonRoot = false;
-                allowPrivilegeEscalation = true;
-                capabilities.add = ["NET_ADMIN"];
-              };
-              ports = [{
-                name = "socks";
-                containerPort = 9050;
-                protocol = "TCP";
-              }];
-              resources = {
-                requests = { memory = "64Mi"; cpu = "50m"; };
-                limits = { memory = "128Mi"; cpu = "200m"; };
-              };
             };
           };
         };
