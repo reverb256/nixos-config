@@ -29,11 +29,6 @@ in
         cp ${../../kubernetes-manifests/kubevirt/cdi-cr.yaml} $out
       '';
     };
-    importyaml.nexus-de-vm = {
-      src = pkgs.runCommand "nexus-de-vm.yaml" { } ''
-        cp ${../../kubernetes-manifests/kubevirt/nexus-de-vm.yaml} $out
-      '';
-    };
 
     kubernetes.objects = {
       # ── Namespaces (privileged PSA — KubeVirt runs virt-launcher as root) ──
