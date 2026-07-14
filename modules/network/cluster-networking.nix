@@ -142,8 +142,8 @@ in {
           ++ cfg.ipv6EgressDisableInterfaces;
         perIface =
           iface: {
-            "net.ipv6.conf.${iface}.disable_ipv6" = lib.mkForce 1;
-            "net.ipv6.conf.${iface}.accept_ra" = lib.mkForce 0;
+            "net.ipv6.conf.${iface}.disable_ipv6" = lib.mkDefault 1;
+            "net.ipv6.conf.${iface}.accept_ra" = lib.mkDefault 0;
           };
       in
       lib.foldl' (acc: iface: acc // perIface iface) {} allIpv6Off
