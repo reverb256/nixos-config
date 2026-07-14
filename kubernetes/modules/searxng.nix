@@ -89,16 +89,12 @@ in {
             default_theme: simple
 
           outgoing:
-            request_timeout: 60.0
-            max_request_timeout: 120.0
+            request_timeout: 10.0
+            max_request_timeout: 20.0
             pool_connections: 100
             pool_maxsize: 50
             enable_http2: true
-            proxies:
-              all://:
-                - socks5h://127.0.0.1:9050
-            using_tor_proxy: true
-            retries: 3
+            retries: 2
             retry_on_http_error:
               - 403
               - 429
@@ -409,28 +405,6 @@ in {
               tmp.emptyDir = {};
               passwd.emptyDir = {};
             };
-            tor = {
-              image = "nexus:5000/tor-socks:latest";
-              imagePullPolicy = "IfNotPresent";
-              securityContext = {
-                runAsNonRoot = true;
-                runAsUser = 1001;
-                runAsGroup = 1001;
-                allowPrivilegeEscalation = false;
-                capabilities.drop = ["ALL"];
-                readOnlyRootFilesystem = false;
-                seccompProfile.type = "RuntimeDefault";
-              };
-              ports = [{
-                name = "socks";
-                containerPort = 9050;
-                protocol = "TCP";
-              }];
-              resources = {
-                requests = { memory = "128Mi"; cpu = "50m"; };
-                limits = { memory = "256Mi"; cpu = "200m"; };
-              };
-            };
           };
         };
       };
@@ -652,10 +626,6 @@ in {
               {
                 protocol = "TCP";
                 port = 443;
-              }
-              {
-                protocol = "TCP";
-                port = 9001;
               }
             ];
           }
