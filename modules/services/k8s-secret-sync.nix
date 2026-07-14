@@ -45,12 +45,6 @@ let
       key = "encryption-key";
     }
     {
-      sopsPath = "/run/secrets/automation/n8n-postgres-password";
-      namespace = "automation";
-      secretName = "n8n-secrets";
-      key = "postgres-password";
-    }
-    {
       sopsPath = "/run/secrets/automation/n8n-api-key";
       namespace = "automation";
       secretName = "hermes-automation-keys";
@@ -78,7 +72,7 @@ let
     }
     # ── AI Inference Gateway ─────────────────────────────────
     {
-      sopsPath = "/run/secrets/ai/ai-gateway-zai-api-key";
+      sopsPath = "/run/secrets/ai-gateway-zai-api-key";
       namespace = "ai-inference";
       secretName = "ai-inference-gateway-secrets";
       key = "api-keys";
