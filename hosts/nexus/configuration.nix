@@ -112,18 +112,11 @@
   # Nix binary cache — serves /nix/store via HTTP for all cluster nodes
   services.binary-cache.enable = true;
 
-  # ── KubeVirt GPU passthrough: bind the RTX 3060 Ti to vfio-pci at boot ──
-  #    nexus owns a 4K TV on the 3060 Ti. For the KubeVirt "nexus-de" VM to drive
-  #    that TV, the GPU must be VFIO-passed (exclusive) to the guest. IOMMU is
-  #    already on (hardware.nix: amd_iommu=on iommu=pt). The host loses the GPU
-  #    (host mining on GPU0 moves into the guest — by design).
-  #    Kernel params vfio-pci.ids handle the bind at BOOT (before nvidia loads).
-  #    NO activationScript — runtime unbind would hang with nvidia active.
-  boot.initrd.kernelModules = [ "vfio" "vfio_pci" ];
-  boot.kernelParams = [
-    "vfio-pci.ids=10de:2486,10de:228b"
-    "vfio-pci.disable_vga=1"
-  ];
+  # ── Nexus DE VM: dynamic GPU handoff (no boot-time VFIO blacklist) ───
+  # The RTX 3060 Ti boots on the nvidia driver. A coordinator script
+  # unbinds from nvidia → vfio-pci when the VM starts, and reverses when
+  # the VM stops. The GPU is available for host AI inference when idle.
+  services.nexus-de-vm.enable = true;
 
   # System hardening (Phase 0: Security Baseline)
   # Preset: compatibility (desktop + AI gateway)
