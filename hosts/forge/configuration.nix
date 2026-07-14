@@ -24,6 +24,7 @@
     ../../modules/services/k3s-cluster.nix
     ../../modules/services/keepalived-vip.nix
     ../../modules/services/sshfs-projects-mount.nix
+    ../../modules/services/chatterbox-tts.nix
   ];
 
   # Host-specific CPU/GPU optimization for llama.cpp (Zen1 + Ada: RTX 4060)

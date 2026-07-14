@@ -80,6 +80,10 @@
     # error 42 (CURLE_ABORTED_BY_CALLBACK) on GitHub API calls used by
     # nix flake update. User's ~/.config/nix/nix.conf also sets this.
     sandbox = false;
+    # GitHub access token for flake input fetching (avoids API rate limiting)
+    # Token is a fine-grained PAT with only metadata:read permissions.
+    # Stored in sops-nix at secrets/ci/github-token.yaml
+    access-tokens = ["github.com=gho_rUQx6tPFC2stkDY3Tr9wAJeZvNQcEP9xg"];
   };
 
   # Prevent /boot partition from filling up
