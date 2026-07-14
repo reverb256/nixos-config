@@ -107,16 +107,6 @@ in {
       description = "Low priority for cryptocurrency mining. Preempted by AI workloads.";
     };
 
-    # ── NFS Models PVC (shared across all AI nodes) ───────────────────────
-    # Mount point: /models → /home/j_kro/models on Nexus (NFS export)
-    PersistentVolumeClaim.nfs-models-pvc = {
-      spec = {
-        accessModes = ["ReadWriteMany"];
-        storageClassName = "nfs-client";
-        resources.requests.storage = "500Gi";
-      };
-    };
-
     # ── Require resource limits on all pods ──────────────────────
     # Audit mode: warns but does not block. Lets us find non-compliant workloads first.
     ValidatingAdmissionPolicy.require-resource-limits = {
