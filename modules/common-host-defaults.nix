@@ -76,6 +76,10 @@
   nix.settings = {
     trusted-users = ["j_kro"];
     build-users-group = "nixbld";
+    # Disable sandbox — Lix 2.94 has a bug where sandboxed curl returns
+    # error 42 (CURLE_ABORTED_BY_CALLBACK) on GitHub API calls used by
+    # nix flake update. User's ~/.config/nix/nix.conf also sets this.
+    sandbox = false;
   };
 
   # Prevent /boot partition from filling up
