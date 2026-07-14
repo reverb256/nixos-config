@@ -24,7 +24,7 @@ in {
             containers = [
               {
                 name = "vane";
-                image = "ghcr.io/reverb256/vane:latest";
+                image = "ghcr.io/reverb256/vane:latest"; # Local build (own image, no versioned tags yet)
                 imagePullPolicy = "IfNotPresent";
                 ports = [
                   {

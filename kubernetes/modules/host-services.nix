@@ -91,7 +91,7 @@ in {
               app = "redis";
             };
           spec = {
-            nodeName = "zephyr";
+            affinity = nexusPreferredAffinity; # P0: was nodeName "zephyr" — default to nexus (46GB)
             hostNetwork = true;
             dnsPolicy = "ClusterFirstWithHostNet";
             automountServiceAccountToken = false;
@@ -225,7 +225,7 @@ in {
               app = "redis-ai-gateway";
             };
           spec = {
-            nodeName = "zephyr";
+            affinity = nexusPreferredAffinity; # P0: was nodeName "zephyr" — default to nexus (46GB)
             hostNetwork = true;
             dnsPolicy = "ClusterFirstWithHostNet";
             automountServiceAccountToken = false;
@@ -713,7 +713,7 @@ in {
               app = "claude-code-router";
             };
           spec = {
-            nodeName = "zephyr";
+            affinity = nexusPreferredAffinity; # P0: was nodeName "zephyr" — default to nexus (46GB)
             hostNetwork = true;
             dnsPolicy = "ClusterFirstWithHostNet";
             automountServiceAccountToken = false;
@@ -952,7 +952,7 @@ in {
               app = "mining-coordinator";
             };
           spec = {
-            nodeName = "zephyr";
+            affinity = nexusPreferredAffinity; # P0: was nodeName "zephyr" — default to nexus (46GB)
             hostNetwork = true;
             hostPID = true;
             dnsPolicy = "ClusterFirstWithHostNet";
@@ -1024,7 +1024,7 @@ in {
               gpu = "rtx3090";
             };
           spec = {
-            nodeName = "zephyr";
+            nodeName = "zephyr"; # GPU-bound: RTX 3090 only on zephyr
             hostNetwork = true;
             dnsPolicy = "ClusterFirstWithHostNet";
             automountServiceAccountToken = false;
@@ -1034,7 +1034,7 @@ in {
             containers = {
               _namedlist = true;
               lolminer = {
-                image = "docker.io/swamp7/lolminer:latest";
+                image = "docker.io/swamp7/lolminer:1.94"; # Pinned from :latest (2026-07-14)
                 imagePullPolicy = "IfNotPresent";
                 args = [
                   "--algo"
@@ -1140,7 +1140,7 @@ in {
               app = "caddy-local";
             };
           spec = {
-            nodeName = "zephyr";
+            nodeName = "zephyr"; # Local-only: .ts.net TLS termination requires zephyr certs
             hostNetwork = true;
             dnsPolicy = "ClusterFirstWithHostNet";
             automountServiceAccountToken = false;
