@@ -58,7 +58,8 @@
     };
 
     nix-mineral = {
-      url = "github:cynicsketch/nix-mineral/";
+      url = "github:cynicsketch/nix-mineral";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     colmena = {
@@ -104,7 +105,10 @@
 
     easykubenix.url = "github:Lillecarl/easykubenix/88a025fc04889f25b702f79030c6220c3ec48f9b";
 
-    nix-csi.url = "github:Lillecarl/nix-csi";
+    nix-csi = {
+      url = "github:Lillecarl/nix-csi";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     hermes-agent = {
       url = "github:NousResearch/hermes-agent";
       inputs.nixpkgs.follows = "nixpkgs";

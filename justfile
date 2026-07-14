@@ -310,21 +310,19 @@ preflight:
     set -e
     {{FLAKE}}/scripts/preflight-check.sh
 
-topgrade:
+# ── TOPGRADE (super-upgrade) ──────────────────────────────────────
+# Comprehensive flake upgrade: unpins stale inputs, updates ALL flake
+# inputs to latest, collapses redundant nixpkgs variants, validates,
+# switches, GCs, and commits the result.
+#
+# Usage:
+#   just topgrade        # dry-run: show what would change
+#   just topgrade apply  # execute: unpin, update, commit, switch, gc
+topgrade mode="dry":
     #!/usr/bin/env bash
-    set -e
-    HOST=$(hostname -s)
-    echo "Topgrade: $HOST"
-    echo "1/4 Updating flake.lock..."
-    cd {{FLAKE}} && nix flake update 2>&1 || echo "skip (non-fatal)"
-    echo "2/4 Validating..."
-    cd {{FLAKE}} && nix flake check 2>&1 || echo "skip (non-fatal)"
-    echo "3/4 Switching..."
-    cd {{FLAKE}} && sudo nixos-rebuild switch --flake .#$HOST; rc=$?
-    if [ $rc -ne 0 ] && [ $rc -ne 4 ]; then exit $rc; fi
-    echo "4/4 GC..."
-    sudo nix-collect-garbage -d || true
-    echo "done"
+    set -euo pipefail
+    cd {{FLAKE}}
+    exec ./scripts/topgrade.sh {{mode}}
 
 # ── CLUSTER STATUS ────────────────────────────────────────────────────────────
 
