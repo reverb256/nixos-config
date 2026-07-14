@@ -146,7 +146,7 @@ deploy host="all":
             # Zephyr never builds locally (31GB OOM). Offload its system build
             # to nexus via colmena; other hosts build locally as before.
             if [ "$host" = "zephyr" ]; then
-                ssh nexus "cd /etc/nixos && colmena apply --on zephyr --eval-node-limit 100" 2>&1
+                ssh nexus 'bash --norc --noprofile -c "cd /etc/nixos && nix shell nixpkgs#colmena -c colmena apply --on zephyr --eval-node-limit 100"' 2>&1
             else
                 sudo nixos-rebuild switch --flake {{FLAKE}}#$host 2>&1
             fi
@@ -184,7 +184,7 @@ deploy-nexus host:
     HOST="{{host}}"
     SESSION="deploy-nexus-${HOST}"
     LOG="/var/log/colmena-deploy-${HOST}.log"
-    CMD="cd /etc/nixos && colmena apply --on ${HOST} --eval-node-limit 100 | tee ${LOG}"
+    CMD="cd /etc/nixos && nix shell nixpkgs#colmena -c colmena apply --on ${HOST} --eval-node-limit 100 | tee ${LOG}"
     if tmux has-session -t "$SESSION" 2>/dev/null; then
         echo "attaching to existing deploy session: $SESSION"
         exec tmux attach -t "$SESSION"
