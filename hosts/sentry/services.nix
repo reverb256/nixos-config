@@ -24,6 +24,7 @@ in {
       nodeIP = cluster.hosts.sentry.ip;
       flannelIface = "eth0";
       flannelBackend = "host-gw";
+      secretsEncryptionKeyFile = "/run/secrets/k3s-encryption-key";
     };
 
     keepalived-vip = {

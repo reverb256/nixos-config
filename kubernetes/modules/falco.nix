@@ -144,12 +144,32 @@ in {
                 resources = {
                   requests = {
                     cpu = "100m";
-                    memory = "128Mi";
+                    memory = "256Mi";
                   };
                   limits = {
                     cpu = "500m";
-                    memory = "512Mi";
+                    memory = "1Gi";
                   };
+                };
+                livenessProbe = {
+                  httpGet = {
+                    path = "/healthz";
+                    port = 8765;
+                  };
+                  initialDelaySeconds = 60;
+                  periodSeconds = 30;
+                  timeoutSeconds = 5;
+                  failureThreshold = 3;
+                };
+                readinessProbe = {
+                  httpGet = {
+                    path = "/healthz";
+                    port = 8765;
+                  };
+                  initialDelaySeconds = 10;
+                  periodSeconds = 10;
+                  timeoutSeconds = 5;
+                  failureThreshold = 3;
                 };
                 volumeMounts = {
                   _namedlist = true;

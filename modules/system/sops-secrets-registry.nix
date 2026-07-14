@@ -222,6 +222,14 @@ in {
             owner = "j_kro";
             group = "users";
           };
+          "infra/k3s-encryption-key" = {
+            sopsFile = "${inputs.self}/secrets/infra/k3s-encryption-key.yaml";
+            path = "/run/secrets/k3s-encryption-key";
+            format = "binary";
+            mode = "0400";
+            owner = "root";
+            group = "root";
+          };
           "k8s/frostbite-postgres" = {
             sopsFile = "${inputs.self}/secrets/k8s/frostbite-postgres.yaml";
             path = "/run/secrets/frostbite-postgres";

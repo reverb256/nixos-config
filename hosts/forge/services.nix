@@ -34,6 +34,7 @@ in {
       nodeIP = cluster.hosts.forge.ip;
       flannelIface = "eth0";
       flannelBackend = "host-gw";
+      secretsEncryptionKeyFile = "/run/secrets/k3s-encryption-key";
     };
 
     spotify-spotx.enable = true;
