@@ -19,6 +19,8 @@
   maplespike-mcp = 31745; # MCP server (3001 → 31745)
   maplespike-portal = 30964; # Static portal (8080 → 30964)
   maplespike-status = 31832; # Uptime Kuma (3001 → 31832)
+  quill-portal = 31285; # Quill portal (8080 → 31285)
+  quill-api = 31286; # Quill API (8082 → 31286)
   # ── maplespike-dev (namespace: maplespike-dev) ────────────────
   dev-maplespike-api = 31284; # Dev API (8082 → 31284)
   dev-maplespike-mcp = 31746; # Dev MCP (3001 → 31746)
