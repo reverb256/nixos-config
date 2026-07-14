@@ -91,7 +91,7 @@
 
   boot.loader.efi.canTouchEfiVariables = lib.mkDefault true;
 
-  boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_zen;
+  boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_latest;
 
   networking.firewall = {
     allowedTCPPortRanges = lib.mkOptionDefault [

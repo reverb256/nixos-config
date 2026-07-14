@@ -112,8 +112,6 @@
   # /storage is manually mounted in hardware-configuration.nix
   # /var is on SSD (default)
 
-  boot.kernelPackages =
-    inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
   boot.loader.timeout = lib.mkDefault 5;
 
   services.sshfs-projects-mount.enable = true;
