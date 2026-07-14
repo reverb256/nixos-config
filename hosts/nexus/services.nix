@@ -393,6 +393,8 @@ in {
     autoStart = true;
     extraLabels = ["nexus"];
   };
-  
-  
+
+  services.k8s-secret-sync = {
+    enable = true;
+  };
 }
