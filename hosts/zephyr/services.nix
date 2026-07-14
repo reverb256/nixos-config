@@ -412,7 +412,7 @@ in {
       }
       {
         hostname = "quill.maplespike.ca";
-        service = "http://localhost:31745";
+        service = "http://localhost:31285";
       }
       {
         hostname = "mcp.maplespike.ca";
