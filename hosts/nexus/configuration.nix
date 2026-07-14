@@ -110,7 +110,7 @@
 
   # Nix binary cache — serves /nix/store with pull-through proxy and metrics
   services.nix-cache = {
-    enable = true;
+    enable = false;
     port = 50000; # unchanged from binary-cache
     bindAddress = "10.1.1.120";
     metrics = true;
