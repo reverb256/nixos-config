@@ -58,7 +58,25 @@
     omitStages:
       - "RequestReceived"
     rules:
-      # Log metadata for all requests at a reasonable rate.
+      # Don't log high-volume read-only endpoints (health, metrics, discovery).
+      - level: None
+        nonResourceURLs:
+          - "/healthz"
+          - "/livez"
+          - "/readyz"
+          - "/metrics"
+          - "/openapi/*"
+          - "/api*"
+          - "/version"
+      # Don't log repeated GET requests from system/service accounts.
+      - level: None
+        verbs: ["get", "list", "watch"]
+        users:
+          - "system:kube-proxy"
+          - "system:node"
+          - "system:kube-controller-manager"
+          - "system:kube-scheduler"
+      # Log metadata for all other requests.
       - level: Metadata
         omitStages:
           - "RequestReceived"
@@ -77,7 +95,7 @@
         resources:
           - group: "rbac.authorization.k8s.io"
             resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
-      # Log request/response bodies for pod security policy/exemption changes.
+      # Log request/response bodies for admission policy changes.
       - level: RequestResponse
         resources:
           - group: "admissionregistration.k8s.io"

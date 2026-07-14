@@ -27,12 +27,13 @@ in {
       nvidia.enable = true;
       role = "server";
       clusterInit = false; # Stable cluster running
-  clusterReset = false; # Already reset, running clean
+      clusterReset = false; # Already reset, running clean
       nodeName = "nexus";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/persistent/etc/k3s-cluster-token";
       nodeIP = cluster.hosts.nexus.ip;
-    flannelIface = "eth0"; # Nexus primary interface (eth0 has NO-CARRIER)
+      flannelIface = "eth0"; # Nexus primary interface (eth0 has NO-CARRIER)
+      secretsEncryptionKeyFile = "/run/secrets/k3s-encryption-key";
     };
 
     keepalived-vip = {
