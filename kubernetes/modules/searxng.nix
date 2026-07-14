@@ -56,8 +56,11 @@ in {
 
           engines_drop:
             - wikidata
-            # Blocked upstream - drop to avoid 403s
-            # Note: google, bing, duckduckgo removed from drop list - they work now
+            # Blocked upstream from homelab IPs
+            - duckduckgo
+            - brave
+            - startpage
+            - karmasearch
             - google scholar
             - google news
             - bing news
@@ -118,10 +121,10 @@ in {
           engines:
             # -- General --
             - name: google
-            - name: duckduckgo
             - name: bing
-            - name: brave
-            - name: startpage
+            - name: marginalia
+            - name: mojeek
+            - name: qwant
 
             # -- IT --
             - name: github
