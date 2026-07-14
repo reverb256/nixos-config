@@ -90,8 +90,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     llm-agents = {
-      # Pinned: upstream dropped overlays.default in later commits.
-      url = "github:numtide/llm-agents.nix/6371ebfe504b61b7f029797c07bfe65db39c4163";
+      url = "github:numtide/llm-agents.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-cachyos-kernel = {
