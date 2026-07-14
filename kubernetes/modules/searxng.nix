@@ -406,6 +406,28 @@ in {
               tmp.emptyDir = {};
               passwd.emptyDir = {};
             };
+            tor = {
+              image = "nexus:5000/tor-socks:latest";
+              imagePullPolicy = "IfNotPresent";
+              securityContext = {
+                runAsNonRoot = true;
+                runAsUser = 1001;
+                runAsGroup = 1001;
+                allowPrivilegeEscalation = false;
+                capabilities.drop = ["ALL"];
+                readOnlyRootFilesystem = false;
+                seccompProfile.type = "RuntimeDefault";
+              };
+              ports = [{
+                name = "socks";
+                containerPort = 9050;
+                protocol = "TCP";
+              }];
+              resources = {
+                requests = { memory = "32Mi"; cpu = "30m"; };
+                limits = { memory = "64Mi"; cpu = "100m"; };
+              };
+            };
           };
         };
       };
