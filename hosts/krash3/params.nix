@@ -67,11 +67,11 @@
         cache = "writeback";
       }
       {
-        # D: games volume (NTFS partition directly — no GPT layer, avoids
-        # md0p2 confusion and BLKRRPART triggers from partition table ops).
+        # D: games volume (whole GPT RAID — Windows needs the GPT
+        # partition table to recognise the NTFS volume correctly).
         type = "block";
         target = "vdb";
-        source = "/dev/md0p1";
+        source = "/dev/md0";
         cache = "none";
       }
       # STORAGE TRANSFER PENDING: uncomment md0p2 block, comment c.raw above,
