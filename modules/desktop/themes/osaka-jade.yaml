@@ -1,0 +1,21 @@
+system: "base16"
+name: "Osaka Jade"
+author: "Justin Lowry (Justikun) — https://github.com/Justikun/omarchy-osaka-jade-theme"
+variant: "dark"
+palette:
+  base00: "#111C18" # Default Background  — deepest bg / shadow
+  base01: "#23372B" # Lighter Background  — normal black
+  base02: "#53685B" # Selection Background — selection bg / outlines
+  base03: "#53685B" # Comments / Invisibles
+  base04: "#ACD4CF" # Dark Foreground      — medium emphasis text
+  base05: "#C1C497" # Default Foreground   — primary text
+  base06: "#D7C995" # Light Foreground     — cursor / light text
+  base07: "#F6F5DD" # Light Background     — normal white (light bg)
+  base08: "#FF5345" # Red                  — error / red
+  base09: "#DB9F9C" # Orange               — hover / orange
+  base0A: "#459451" # Yellow               — muted green-yellow
+  base0B: "#549E6A" # Green                — secondary accent
+  base0C: "#2DD5B7" # Cyan                 — cyan
+  base0D: "#509475" # Blue                 — main accent / primary
+  base0E: "#D2689C" # Magenta              — magenta
+  base0F: "#9EEBB3" # Brown / Extra        — mint accent
