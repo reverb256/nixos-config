@@ -141,6 +141,5 @@ in {
     # ── Firewall ──────────────────────────────────────────────
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
 
-    environment.systemPackages = [nix-cache-proxy];
   };
 }
