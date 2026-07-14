@@ -4,11 +4,14 @@
   pkgs,
   ...
 }: let
-  inherit (lib) types mkEnableOption mkOption mkIf mkForce;
+  inherit (lib) types mkEnableOption mkOption mkIf;
   cfg = config.services.nix-cache;
+
+  # Build the proxy package directly (no overlay pollution)
+  nix-cache-proxy = pkgs.callPackage ../../pkgs/nix-cache-proxy {};
 in {
   options.services.nix-cache = {
-    enable = mkEnableOption "Nix binary cache with pull-through proxy";
+    enable = mkEnableOption "Nix binary cache with pull-through proxy and metrics";
 
     port = mkOption {
       type = types.port;
@@ -34,12 +37,6 @@ in {
       description = "Key name for cache signing";
     };
 
-    nixStore = mkOption {
-      type = types.str;
-      default = "/nix/store";
-      description = "Path to the Nix store";
-    };
-
     pullThrough = mkOption {
       type = types.bool;
       default = true;
@@ -54,12 +51,10 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # ── nix-cache-proxy package ────────────────────────────────
-    nixpkgs.overlays = [
-      (final: prev: {
-        nix-cache-proxy = prev.callPackage ../../pkgs/nix-cache-proxy {};
-      })
-    ];
+    # ── Warn if old binary-cache module is also enabled ──────────
+    warnings = lib.optional
+      (config.services.binary-cache.enable or false)
+      "services.binary-cache is deprecated — use services.nix-cache instead";
 
     # ── Cache signing key generation ──────────────────────────
     systemd.services.generate-nix-cache-keys = {
@@ -84,7 +79,7 @@ in {
       '';
     };
 
-    # ── nix-serve-ng (internal, behind proxy) ──────────────────
+    # ── nix-serve-ng (internal, behind proxy, read-only) ───────
     systemd.services.nix-serve-internal = {
       description = "Nix binary cache server (internal)";
       wantedBy = ["multi-user.target"];
@@ -103,8 +98,7 @@ in {
         ProtectHome = true;
         PrivateTmp = true;
         NoNewPrivileges = true;
-        ReadWritePaths = [cfg.nixStore];
-        ReadOnlyPaths = ["/etc/nix/cache-priv.key"];
+        ReadOnlyPaths = ["/nix/store" "/etc/nix/cache-priv.key"];
       };
     };
 
@@ -112,14 +106,13 @@ in {
     systemd.services.nix-cache-proxy = {
       description = "Nix cache proxy with pull-through and metrics";
       wantedBy = ["multi-user.target"];
-      after = ["nix-serve-internal.service" "network.target"];
-      requires = ["nix-serve-internal.service"];
+      after = ["nix-serve-internal.service" "nix-daemon.service" "network.target"];
+      requires = ["nix-serve-internal.service" "nix-daemon.service"];
       serviceConfig = {
         ExecStart = lib.concatStringsSep " " [
-          "${lib.getExe pkgs.nix-cache-proxy}"
+          "${lib.getExe nix-cache-proxy}"
           "--listen ${cfg.bindAddress}:${toString cfg.port}"
           "--backend http://127.0.0.1:${toString cfg.backendPort}"
-          "--nix-store ${cfg.nixStore}"
         ];
         Restart = "always";
         RestartSec = "5s";
@@ -127,7 +120,6 @@ in {
         ProtectHome = true;
         PrivateTmp = true;
         NoNewPrivileges = true;
-        ReadOnlyPaths = [cfg.nixStore];
       };
     };
 
@@ -149,15 +141,6 @@ in {
     # ── Firewall ──────────────────────────────────────────────
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
 
-    # ── Prometheus metrics integration ────────────────────────
-    services.prometheus.exporters = lib.mkIf (config.services.prometheus.exporters != {}) {
-      nix-cache = {
-        enable = cfg.metrics;
-        port = cfg.port;
-        metricsPath = "/metrics";
-      };
-    };
-
-    environment.systemPackages = [pkgs.nix-cache-proxy];
+    environment.systemPackages = [nix-cache-proxy];
   };
 }
