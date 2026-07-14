@@ -36,7 +36,7 @@
   network = {
     hostName = "krash3";
     hostId = "deadbeef";
-    interface = "enp7s0";
+    interface = "eth0";
     ip = "10.1.1.150";
     gateway = "10.1.1.1";
   };
@@ -90,7 +90,7 @@
       }
       {
         type = "macvtap";
-        dev = "enp7s0";
+        dev = "eth0";
         mac = "52:54:00:7e:42:55";
         model = "virtio";
         mode = "bridge";
