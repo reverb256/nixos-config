@@ -141,20 +141,9 @@ in {
     # ── Firewall ──────────────────────────────────────────────
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
 
-    environment.systemPackages = [nix-cache-proxy];
-||||||| parent of 41349a64 (fix: resolve nix-cache prometheus self-referential cycle)
-    # ── Prometheus metrics integration ────────────────────────
 
-      nix-cache = {
-        enable = cfg.metrics;
-        port = cfg.port;
-        metricsPath = "/metrics";
-      };
-    };
-
-    environment.systemPackages = [pkgs.nix-cache-proxy];
     # ── Prometheus metrics integration ────────────────────────
-    services.prometheus.exporters = lib.mkIf (cfg.metrics) {
+    services.prometheus.exporters = lib.mkIf cfg.metrics {
       nix-cache = {
         enable = cfg.metrics;
         port = cfg.port;
