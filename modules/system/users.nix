@@ -1,6 +1,7 @@
 {
   pkgs,
   lib,
+  config,
   ...
 }: {
   users.users.j_kro = {
@@ -20,15 +21,20 @@
       "gamemode"
       "i2c"
     ];
-    packages = with pkgs; [
-      kdePackages.kate
-      kdePackages.yakuake
-      gh
-      nodejs
-      fastfetch
-      zoxide
-      fzf
-    ];
+    packages = with pkgs; (
+      # Desktop apps only on hosts with a desktop environment
+      (lib.optionals (config.programs.niri.enable or false || config.services.desktopManager.plasma6.enable or false) [
+        kdePackages.kate
+        kdePackages.yakuake
+      ])
+      ++ [
+        gh
+        nodejs
+        fastfetch
+        zoxide
+        fzf
+      ]
+    );
   };
 
   users.groups.j_kro = {};
