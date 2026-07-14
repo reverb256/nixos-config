@@ -330,6 +330,14 @@ in {
             owner = "root";
             group = "root";
           };
+          "cloud/cloudflared-prod-credentials" = {
+            sopsFile = "${inputs.self}/secrets/cloud/cloudflared-prod-credentials.yaml";
+            path = "/run/secrets/cloudflared-prod-credentials";
+            format = "binary";
+            mode = "0444";
+            owner = "j_kro";
+            group = "users";
+          };
           "cloud/cloudflared-tunnel-credentials" = {
             sopsFile = "${inputs.self}/secrets/cloud/cloudflared-tunnel-credentials.yaml";
             path = "/run/secrets/cloudflared-tunnel-credentials";
