@@ -100,24 +100,6 @@ in {
       echo "RAID loop devices: $dev0 $dev1"
       mdadm --build /dev/md0 --level=raid0 --chunk=${toString raid.chunk} \
         --raid-devices=2 "$dev0" "$dev1" 2>/dev/null || true
-      if [ ! -b /dev/md0p1 ]; then
-        printf "label: gpt\nstart=32768, type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7\n" | sfdisk --wipe never /dev/md0 2>/dev/null || true
-      fi
-      /run/current-system/sw/bin/partx -a /dev/md0 2>/dev/null || true
-      /run/current-system/sw/bin/udevadm settle 2>/dev/null || true
-      for i in $(seq 1 10); do
-        if [ -b /dev/md0p1 ]; then break; fi
-        sleep 1
-      done
-      # Create md0p2 (C: scratch/RAID disk) once, non-destructively. Only
-      # runs after the operator shrinks md0p1 (window step) so free space
-      # exists; otherwise sfdisk --append has no room and is skipped.
-      if [ ! -b /dev/md0p2 ]; then
-        end1=$(sfdisk --list /dev/md0 2>/dev/null | awk '/md0p1/{print $3}')
-        if [ -n "$end1" ]; then
-          printf ',,L\n' | sfdisk --append /dev/md0 2>/dev/null || true
-        fi
-      fi
     '';
     serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };
   };
