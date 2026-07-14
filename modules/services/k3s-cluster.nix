@@ -700,12 +700,11 @@ in {
         fi
 
         mkdir -p "$CONFIG_DIR"
-        sed "s/__ENCRYPTION_KEY__/''${KEY_B64}/" ${encryptionConfigTemplate} > "$CONFIG_FILE"
+        sed "s|__ENCRYPTION_KEY__|''${KEY_B64}|" ${encryptionConfigTemplate} > "$CONFIG_FILE"
         chmod 600 "$CONFIG_FILE"
         echo "k3s-secrets-encryption: encryption config written to $CONFIG_FILE"
       '';
     };
-
     # Etcd defragmentation — compaction alone doesn't reclaim disk space.
     # Must defrag periodically. Runs on all servers.
     systemd.services.k3s-etcd-defrag = lib.mkIf isServer {
