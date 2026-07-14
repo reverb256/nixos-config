@@ -36,7 +36,7 @@ in {
     serverAddr = "https://${config.networking.cluster.kubernetes.vip}:${toString config.networking.cluster.kubernetes.apiPort}";
     tokenFile = "/persistent/etc/k3s-cluster-token";
     nodeIP = config.networking.cluster.hosts.krash3.ip;
-    flannelIface = "enp7s0";
+    flannelIface = "eth0";
   };
   services.k3s-pod-affinity.enable = lib.mkForce false;
 

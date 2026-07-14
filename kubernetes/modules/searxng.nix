@@ -89,12 +89,14 @@ in {
             default_theme: simple
 
           outgoing:
-            request_timeout: 30.0
-            max_request_timeout: 60.0
+            request_timeout: 60.0
+            max_request_timeout: 120.0
             pool_connections: 100
             pool_maxsize: 50
             enable_http2: true
-            using_tor_proxy: true
+            proxies:
+              all://:
+                - socks5h://127.0.0.1:9050
             retries: 3
             retry_on_http_error:
               - 403

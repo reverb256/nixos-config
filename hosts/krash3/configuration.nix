@@ -21,7 +21,7 @@ in
   networking.hostName = "krash3";
   networking.hostId = "deadbeef";
   networking.useDHCP = lib.mkForce true;
-  networking.interfaces.enp7s0.useDHCP = lib.mkForce true;
+  networking.interfaces.eth0.useDHCP = lib.mkForce true;
 
   # ── Cluster networking / DNS (single source of truth = cluster-dns.nix) ──
   # krash3 previously ran a standalone services.unbound block in services.nix
@@ -34,7 +34,7 @@ in
     enable = true;
     hostName = "krash3";
     ipAddress = "10.1.1.150";
-    interfaceName = "enp7s0";
+    interfaceName = "eth0";
     wireless.enable = false;
     unbound.enable = true;
     unbound.listenAddress = "10.1.1.150";
