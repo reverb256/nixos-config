@@ -15,7 +15,7 @@
     gpus = {
       "3060ti" = {
         index = 0;
-        limit = 100;
+        limit = 120;
       };
       "3090" = {
         index = 1;
