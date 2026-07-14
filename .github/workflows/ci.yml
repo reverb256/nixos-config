@@ -272,4 +272,21 @@ jobs:
               exit 1
             fi
             echo "✓ $host built successfully"
+            # Validate generated unbound config
+            if [ -L "result" ] && [ -f "result/etc/unbound/unbound.conf" ]; then
+              echo "--- unbound-checkconf $host ---"
+              nix-shell -p unbound --run "unbound-checkconf result/etc/unbound/unbound.conf" || \
+                echo "::warning::unbound-checkconf failed for $host"
+            fi
+            rm -f result
           done
+
+      - name: Validate k8s manifests (kubeconform)
+        run: |
+          nix build '.#kubernetes.combined.manifestYAMLFile' --no-link -o /tmp/k8s-manifest 2>&1 || \
+            echo "::warning::k8s manifest build failed (frozen-hash anomaly?)"
+          if [ -f /tmp/k8s-manifest ]; then
+            nix-shell -p kubeconform --run 'kubeconform -summary /tmp/k8s-manifest' || \
+              echo "::warning::kubeconform found issues in k8s manifests"
+            rm -f /tmp/k8s-manifest
+          fi
