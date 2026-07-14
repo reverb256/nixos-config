@@ -8,7 +8,7 @@
   cfg = config.services.nix-cache;
 
   # Build the proxy package directly (no overlay pollution)
-  nix-cache-proxy = pkgs.callPackage ../../pkgs/nix-cache-proxy {};
+  nix-cache-proxy = pkgs.callPackage ../../nix-cache-proxy {};
 in {
   options.services.nix-cache = {
     enable = mkEnableOption "Nix binary cache with pull-through proxy and metrics";
@@ -141,6 +141,6 @@ in {
     # ── Firewall ──────────────────────────────────────────────
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
 
-    environment.systemPackages = [pkgs.nix-cache-proxy];
+    environment.systemPackages = [nix-cache-proxy];
   };
 }
