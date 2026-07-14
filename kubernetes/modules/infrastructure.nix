@@ -19,19 +19,6 @@ in {
     # ── Require security context on all pods (Deny mode) ───────────
     # Prevents pods without runAsNonRoot, allowPrivilegeEscalation=false, and resource limits
     ValidatingAdmissionPolicy.require-resources-and-security = {
-      # ── NFS Client StorageClass ───────────────────────────────────────
-      # Backed by the nfs-subdir-external-provisioner on nexus.
-      # NFS exports: /data/hermes, /data/pi, /data/qdrant, /etc/nixos
-      StorageClass.nfs-client = {
-        metadata.annotations."storageclass.kubernetes.io/is-default-class" = "true";
-        provisioner = "nfs-client";
-        parameters = {
-          archiveOnDelete = "true";
-        };
-        mountOptions = ["vers=4.1" "hard" "noatime"];
-        reclaimPolicy = "Delete";
-        volumeBindingMode = "Immediate";
-      };
       metadata.annotations = {
         "description" = "Requires all containers to define runAsNonRoot=true, no privilege escalation, and resource limits";
       };
@@ -66,6 +53,20 @@ in {
           }
         ];
       };
+    };
+
+    # ── NFS Client StorageClass ──────────────────────────────────
+    # Backed by the nfs-subdir-external-provisioner on nexus.
+    # NFS exports: /data/hermes, /data/pi, /data/qdrant, /etc/nixos
+    StorageClass.nfs-client = {
+      metadata.annotations."storageclass.kubernetes.io/is-default-class" = "true";
+      provisioner = "nfs-client";
+      parameters = {
+        archiveOnDelete = "true";
+      };
+      mountOptions = ["vers=4.1" "hard" "noatime"];
+      reclaimPolicy = "Delete";
+      volumeBindingMode = "Immediate";
     };
     ValidatingAdmissionPolicyBinding.require-resources-and-security = {
       spec = {
@@ -381,7 +382,7 @@ in {
           containers = {
             _namedlist = true;
             amd-gpu-plugin = {
-              image = "rocm/k8s-device-plugin:latest";
+              image = "rocm/k8s-device-plugin:1.31.0.10";
               imagePullPolicy = "IfNotPresent";
               securityContext.privileged = true;
               env.ROCM_VISIBLE_DEVICES.value = "all";
