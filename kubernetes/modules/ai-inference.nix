@@ -1198,7 +1198,7 @@ in {
             containers = [
               {
                 name = "kb-mcp";
-                image = "localhost/kb-mcp:latest";
+                image = "localhost/kb-mcp:latest"; # Local build (STUB: image not built yet)
                 imagePullPolicy = "IfNotPresent";
                 securityContext = {
                   runAsNonRoot = true;
