@@ -143,7 +143,7 @@ in {
         # Build JSON patch for each secret (batch all keys per secret)
         ${lib.concatStringsSep "\n" (lib.mapAttrsToList (ns_secret: mappings: ''
           namespace="${lib.head (builtins.split "/" ns_secret)}"
-          secretName="${lib.elemAt (builtins.split "/" ns_secret) 1}"
+          secretName="${lib.elemAt (lib.splitString "/" ns_secret) 1}"
 
           # Build patch data
           PATCH_DATA="{"
