@@ -409,6 +409,7 @@ in {
             tor = {
               image = "dperson/torproxy:latest";
               imagePullPolicy = "IfNotPresent";
+              args = ["-p", "9050", "-d", "-t"];
               securityContext = {
                 runAsNonRoot = false;
                 allowPrivilegeEscalation = true;
