@@ -26,3 +26,12 @@ the same hosts, modules, or generations. Update your section when you start/fini
 
 ## Agent: flake-281-verify (this session) — DONE
 ## Agent: garnix-removal (this session) — DONE
+
+## Agent: knowledge-fabric-mcp (this session)
+- **Scope:** Standalone MCP server for multi-source RAG + RRF fusion
+  (Qdrant, SearXNG, code search, brain wiki). Extracted from
+  ai-inference-gateway middleware. Code at ~/knowledge-fabric-mcp
+  (github.com/reverb256/knowledge-fabric-mcp). Systemd service on nexus.
+- **Status:** Code committed. Deploy script ready. NOT deployed (waiting
+  on user approval for nexus deploy).
+- **Not touched:** forge/*, sentry/*, niri-config, k3s-cluster, flake.lock.
