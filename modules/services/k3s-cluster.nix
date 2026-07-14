@@ -105,7 +105,7 @@ in {
 
     flannelBackend = mkOption {
       type = types.enum ["vxlan" "host-gw"];
-      default = "vxlan";
+      default = "host-gw";
       description = "Flannel backend to use. host-gw is recommended for single-LAN clusters.";
     };
     nvidia = {
@@ -203,11 +203,13 @@ in {
         # apiserver rejected (`status.addresses: duplicate value`).
         ++ [
           "--data-dir=${cfg.dataDir}"
-          # k3s >=1.36 removed the --flannel-backend CLI flag; the backend is
-          # now selected via a flannel config file passed with --flannel-conf.
-          # The chosen backend (cfg.flannelBackend) is written to
-          # /etc/rancher/k3s/flannel.conf below for both agent and server roles.
-          "--flannel-conf=/etc/rancher/k3s/flannel.conf"
+          # Flannel backend: use --flannel-backend for servers (cluster-wide).
+          # k3s >=1.36 still supports --flannel-backend despite earlier module
+          # comments claiming removal. --flannel-conf (agent-level override)
+          # does NOT actually affect backend selection on restart — k3s
+          # restores the backend from etcd/node annotations.
+          # See https://docs.k3s.io/networking/basic-network-options#flannel-options
+          "--flannel-backend=${cfg.flannelBackend}"
           "--flannel-iface=${cfg.flannelIface}"
           "--kubelet-arg=authentication-token-webhook=true"
           "--kubelet-arg=authorization-mode=Webhook"
@@ -239,12 +241,10 @@ in {
       disableAgent = false;
     };
 
-    # Flannel backend config file (k3s >=1.36 mechanism, replaces the
-    # removed --flannel-backend CLI flag). The chosen backend (cfg.flannelBackend)
-    # is written here and passed to k3s via --flannel-conf. The Network field is
-    # overridden at runtime by the server's cluster CIDR; only the backend Type
-    # matters in this file.
-    environment.etc."rancher/k3s/flannel.conf".text = lib.mkForce ''{"Network":"10.42.0.0/16","Backend":{"Type":"${cfg.flannelBackend}"}}'';
+    # NOTE: flannel.conf via environment.etc has been REMOVED. k3s >=1.36
+    # still honors --flannel-backend=host-gw directly. The --flannel-conf
+    # mechanism was an agent-level override that didn't actually affect
+    # backend selection on restart (k3s restores from etcd annotations).
 
     # Override the broken nvidia-container-toolkit-cdi-generator with a working one
     # that sets LD_LIBRARY_PATH so nvidia-ctk can find libnvidia-ml.so.
@@ -372,9 +372,9 @@ in {
             to = 32767;
           }
         ];
-        allowedUDPPorts = mkOptionDefault [
+        allowedUDPPorts = mkOptionDefault (lib.optionals (cfg.flannelBackend == "vxlan") [
           8472 # k3s flannel VXLAN (NOT 4789)
-        ];
+        ]);
       }
     ];
 
