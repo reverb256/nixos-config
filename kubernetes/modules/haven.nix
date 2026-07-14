@@ -3,7 +3,8 @@
   lib,
   ...
 }: let
-  havenImage = "nexus:5000/mosiac:v0.1.6-forum";
+  havenImage = "nexus:5000/mosiac@sha256:477419d370c22fcec649bbfbeec1817c931469db2f69caf1cb99da21ded13938";
+  havenImageTag = "v0.1.8-full";
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
@@ -105,6 +106,8 @@ in {
                   FORCE_HTTP.value = "true";
                   MOSIAC_RP_ID.value = "10.1.1.120";
                   MOSIAC_ORIGIN.value = "http://10.1.1.120:32100";
+                  FEATURES.value = "all";
+                  MOSIAC_VERSION.value = "v0.1.8-full";
                 };
                 resources = {
                   requests = {
