@@ -52,19 +52,18 @@ in {
           link_token = false
         '';
         "settings.yml" = ''
-          use_default_settings: true
-
-          engines_drop:
-            - wikidata
-            # Blocked upstream from homelab IPs
-            - duckduckgo
-            - brave
-            - startpage
-            - karmasearch
-            - google scholar
-            - google news
-            - bing news
-            - duckduckgo news
+          use_default_settings:
+            engines:
+              remove:
+                - wikidata
+                - duckduckgo
+                - brave
+                - startpage
+                - karmasearch
+                - google scholar
+                - google news
+                - bing news
+                - duckduckgo news
 
           server:
             limiter: false  # Rate limiting disabled (internal service, no public exposure)
