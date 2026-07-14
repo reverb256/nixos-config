@@ -167,7 +167,6 @@ let
           <input type='mouse' bus='usb'/>
           <input type='tablet' bus='usb'/>
           <audio id='1' type='none'/>
-          <graphics type='none'/>
           ${networksXml}
           ${gpusXml}
           ${usbControllersXml}
