@@ -11,7 +11,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     home-manager = {
-      url = "github:nix-community/home-manager/ebc87daabc8d3f595e9a8b67107eaaa8115ad582";
+      url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zen-browser = {
@@ -86,11 +86,11 @@
     niri = {
       # Pinned to commit that exports lib.niri.actions with spawn/spawn-sh/focus-window-previous
       # (replaces b5f81cf03… which lacked focus-window-previous and broke niri-config binds).
-      url = "github:sodiboo/niri-flake/c11048188f434263cf5c207ddef453984d1e02ba";
+      url = "github:sodiboo/niri-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     llm-agents = {
-      url = "github:numtide/llm-agents.nix/6371ebfe504b61b7f029797c07bfe65db39c4163";
+      url = "github:numtide/llm-agents.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-cachyos-kernel = {
@@ -99,7 +99,7 @@
     };
 
     stylix = {
-      url = "github:nix-community/stylix/8bca95e381f44aea7f1bd98dd10ee0ca7b26e8c1";
+      url = "github:nix-community/stylix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -126,23 +126,23 @@
     # ═══════════════════════════════════════════════════════════════════
 
     ai-gateway = {
-      url = "github:reverb256/ai-inference-gateway/96497a4227147d96d7ccc721ab293302a61fe13d";
+      url = "github:reverb256/ai-inference-gateway";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     compute-market = {
-      url = "github:reverb256/compute-market/02eb54874adf8a0887a4878a99d33274af9d5404";
+      url = "github:reverb256/compute-market";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     mcp-registry = {
-      url = "github:reverb256/mcp-registry/d2d5daafaa9cd8f99feff39f8c18bbda014033b1";
+      url = "github:reverb256/mcp-registry";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     caddy-ingress = {
-      url = "github:reverb256/caddy-ingress/a6bc19374ed68da7c769473e2b36cefc3355ac39";
+      url = "github:reverb256/caddy-ingress";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     gpu-proxy = {
-      url = "github:reverb256/gpu-proxy/d17e8fa40d5f539714f05b7387b30a0e831c1c12";
+      url = "github:reverb256/gpu-proxy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # mining-infra removed - only exists on zephyr at /data/projects/infra/mining-infra
