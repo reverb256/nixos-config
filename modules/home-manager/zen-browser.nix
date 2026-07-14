@@ -45,6 +45,7 @@ in {
         Locked = true;
         Cryptomining = true;
         Fingerprinting = true;
+        Exceptions = ["api.hetzner.cloud"];
       };
 
       DNSOverHTTPS = {
