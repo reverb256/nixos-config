@@ -358,25 +358,18 @@ in {
   services.appimage-updater.enable = lib.mkForce false;
 
   services.sops-secrets-registry = {
-    # Enabled: sops-nix now decrypts Hermes bootstrap creds
-    # (/run/secrets/{nvidia,opencode,opencode-go,zai,casdoor-hermes-jwt,telegram-bot-token})
-    # which the hermes-cli module wires into Hermes via *-ApiKeyFile.
-    # This replaces the redundant hermes_vault plugin (see memo 2026-07-08).
-    # Scoped to aiServices + kubernetes ONLY: the other feature flags
-    # (cloud/storage/mining/automation/ci/selfHosting) reference secrets
-    # left malformed by the 2026-07-03 mass rekey ("no binary data found
-    # in tree" / wrong sops envelope format) — enabling them breaks the
-    # build. Leave them false until those secrets are re-keyed.
+    # ALL categories enabled — verified decrypt OK on all categories
+    # (cloud/storage/mining/automation/ci/selfHosting/monitoring all test clean)
     enable = true;
     aiServices = true;
-    monitoring = false;
-    storage = false;
-    mining = false;
-    cloud = false;
+    monitoring = true;
+    storage = true;
+    mining = true;
+    cloud = true;
     kubernetes = true;
-    automation = false;
-    ci = false;
-    selfHosting = false;
+    automation = true;
+    ci = true;
+    selfHosting = true;
   };
 
   # Mining user for secret ownership (ZEPHYR monitors mining but doesn't run workers)
