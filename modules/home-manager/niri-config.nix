@@ -240,7 +240,7 @@ in {
           };
 
           "Mod+Q".action = close-window;
-          "Alt+Tab".action = focus-window-previous;
+          # "Alt+Tab".action = focus-window-previous; # TODO: focus-window-previous is not available in current niri
 
           "Mod+Left".action = focus-column-left;
           "Mod+Right".action = focus-column-right;
