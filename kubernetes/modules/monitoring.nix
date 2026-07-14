@@ -313,6 +313,12 @@
               - '${hostIPs.forge.ip}:9100'
               - '${hostIPs.sentry.ip}:9100'
 
+      - job_name: 'nix-cache'
+        scrape_interval: 30s
+        static_configs:
+          - targets:
+              - '${hostIPs.nexus.ip}:50000'
+
       - job_name: 'nvidia-exporter'
         scrape_interval: 15s
         static_configs:

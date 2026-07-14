@@ -165,7 +165,7 @@ in {
               containers = {
                 _namedlist = true;
                 qdrant-mcp = {
-                  image = "localhost/qdrant-mcp:latest";
+                  image = "localhost/qdrant-mcp:v1.0.0"; # Local build (imported into k3s on nexus)
                   imagePullPolicy = "Never";
                   command = ["/usr/local/bin/mcp-server-qdrant"];
                   args = [

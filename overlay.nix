@@ -2,7 +2,6 @@
 _final: prev:
 {
   inherit (inputs.compute-market.packages.x86_64-linux)
-    lolminer
     xmrig
     ;
   lmstudio = prev.callPackage ./packages/lmstudio.nix { };

@@ -162,14 +162,6 @@ in {
                 type = lib.types.int;
                 default = 8081;
               };
-              lolminer-nvidia-api = lib.mkOption {
-                type = lib.types.int;
-                default = 4068;
-              };
-              lolminer-amd-api = lib.mkOption {
-                type = lib.types.int;
-                default = 4069;
-              };
               nix-cache = lib.mkOption {
                 type = lib.types.int;
                 default = 8080;

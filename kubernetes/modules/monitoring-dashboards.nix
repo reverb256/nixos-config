@@ -230,61 +230,21 @@ _: let
       {
         title = "XMRig Hashrate";
         type = "timeseries";
-        gridPos = {
-          h = 8;
-          w = 24;
-          x = 0;
-          y = 0;
-        };
-        targets = [
-          {
-            expr = "xmrig_hashrate";
-            legendFormat = "{{instance}}";
-            datasource = {
-              type = "prometheus";
-              uid = "mimir";
-            };
-          }
-        ];
+        gridPos = {h = 8; w = 24; x = 0; y = 0;};
+        targets = [{
+          expr = "xmrig_hashrate";
+          legendFormat = "{{instance}}";
+          datasource = {type = "prometheus"; uid = "mimir";};
+        }];
       }
       {
         title = "Total Good Shares";
         type = "stat";
-        gridPos = {
-          h = 4;
-          w = 8;
-          x = 0;
-          y = 8;
-        };
-        targets = [
-          {
-            expr = "sum(xmrig_shares_good)";
-            datasource = {
-              type = "prometheus";
-              uid = "mimir";
-            };
-          }
-        ];
-      }
-      {
-        title = "GPU Miner Hashrate";
-        type = "timeseries";
-        gridPos = {
-          h = 8;
-          w = 24;
-          x = 0;
-          y = 12;
-        };
-        targets = [
-          {
-            expr = "lolminer_hashrate";
-            legendFormat = "{{instance}} {{algo}}";
-            datasource = {
-              type = "prometheus";
-              uid = "mimir";
-            };
-          }
-        ];
+        gridPos = {h = 4; w = 8; x = 0; y = 8;};
+        targets = [{
+          expr = "sum(xmrig_shares_good)";
+          datasource = {type = "prometheus"; uid = "mimir";};
+        }];
       }
     ];
     schemaVersion = 39;

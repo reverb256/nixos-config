@@ -317,7 +317,6 @@ in {
     pkgs.python312Packages.huggingface-hub
 
     xmrig
-    lolminer
 
     inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.twilight
 
