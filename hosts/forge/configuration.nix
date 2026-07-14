@@ -94,9 +94,6 @@
   profiles.node.forge-mining.enable = true;
   services.ai-inference.backend.type = "llama-cpp";
 
-  boot.kernelPackages =
-    inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
-
   services.sshfs-projects-mount.enable = true;
 
   services.nfs-cluster-mounts = {
