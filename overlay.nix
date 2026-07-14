@@ -180,6 +180,26 @@ _final: prev:
     };
   });
 
+  # Lix 2.94.2 bug: builtins.fetchGit fails with "could not update mtime for file '': No such file or directory"
+  # Workaround: provide outputHashes for git dependencies in niri's Cargo.lock so importCargoLock uses
+  # fetchgit (derivation-based, works) instead of builtins.fetchGit (broken in Lix 2.94.2).
+  niri-stable = prev.niri-stable.overrideAttrs (old: {
+    cargoLock = (old.cargoLock or {}) // {
+      outputHashes = (old.cargoLock.outputHashes or {}) // {
+        "pipewire-0.8.0" = "sha256-twzqBGGprxXgQAtfp2ny+9pTdAQN4S+QHQlNXz+d+H0=";
+        "smithay-0.7.0" = "sha256-dCsCeDyMi5kLdbhk5y2OJdAknkbblgRR7sqc558MOEA=";
+      };
+    };
+  });
+  niri-unstable = prev.niri-unstable.overrideAttrs (old: {
+    cargoLock = (old.cargoLock or {}) // {
+      outputHashes = (old.cargoLock.outputHashes or {}) // {
+        "pipewire-0.8.0" = "sha256-twzqBGGprxXgQAtfp2ny+9pTdAQN4S+QHQlNXz+d+H0=";
+        "smithay-0.7.0" = "sha256-dCsCeDyMi5kLdbhk5y2OJdAknkbblgRR7sqc558MOEA=";
+      };
+    };
+  });
+
 } // prev.lib.optionalAttrs (inputs ? vllm) {
   vllm-turboquant-env = inputs.vllm.packages.x86_64-linux.vllm-turboquant-env;
 } // prev.lib.optionalAttrs (inputs ? llama-turboquant) {
