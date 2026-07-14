@@ -28,7 +28,7 @@
   {
     nixpkgs.overlays = [
       inputs.niri.overlays.niri
-      inputs.llm-agents.overlays.default
+      inputs.llm-agents.overlays.shared-nixpkgs
       self.overlays.default
     ];
   }

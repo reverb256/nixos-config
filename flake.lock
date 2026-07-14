@@ -853,10 +853,10 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1778260000,
+        "lastModified": 1784012825,
         "owner": "numtide",
         "repo": "llm-agents.nix",
-        "rev": "6371ebfe504b61b7f029797c07bfe65db39c4163",
+        "rev": "5c73869318afcf796a7a465b4b5e31b27f0819d4",
         "type": "github"
       },
       "original": {
