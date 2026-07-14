@@ -112,8 +112,6 @@
   # Nix binary cache — serves /nix/store via HTTP for all cluster nodes
   services.binary-cache.enable = true;
 
-  boot.kernelPackages = inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
-
   # ── KubeVirt GPU passthrough: bind the RTX 3060 Ti to vfio-pci at boot ──
   #    nexus owns a 4K TV on the 3060 Ti. For the KubeVirt "nexus-de" VM to drive
   #    that TV, the GPU must be VFIO-passed (exclusive) to the guest. IOMMU is
