@@ -52,18 +52,7 @@ in {
           link_token = false
         '';
         "settings.yml" = ''
-          use_default_settings:
-            engines:
-              remove:
-                - wikidata
-                - duckduckgo
-                - brave
-                - startpage
-                - karmasearch
-                - google scholar
-                - google news
-                - bing news
-                - duckduckgo news
+          use_default_settings: true
 
           server:
             limiter: false  # Rate limiting disabled (internal service, no public exposure)
@@ -155,7 +144,18 @@ in {
             # -- Wikis --
             - name: nixos wiki
 
-            # -- Explicitly disable noisy engines --
+            # Blocked from homelab IPs - keep registered (networks required) but disabled
+            - name: duckduckgo
+              disabled: true
+            - name: brave
+              disabled: true
+            - name: startpage
+              disabled: true
+            - name: karmasearch
+              disabled: true
+            - name: wikidata
+              disabled: true
+
             - name: 1337x
               disabled: true
             - name: 9gag
