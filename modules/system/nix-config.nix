@@ -6,7 +6,7 @@
   nixpkgs.overlays = [
     (_final: prev: {
       inherit
-        (prev.lixPackageSets.stable)
+        (prev.lixPackageSets.lix_2_95)
         nix-eval-jobs
         nix-fast-build
         colmena
@@ -39,7 +39,7 @@
   ];
 
   nix = {
-    package = lib.mkDefault pkgs.lixPackageSets.stable.lix;
+    package = lib.mkDefault pkgs.lixPackageSets.lix_2_95.lix;
 
     settings = {
       experimental-features = ["nix-command" "flakes"];
