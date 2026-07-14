@@ -167,6 +167,7 @@ let
           <input type='mouse' bus='usb'/>
           <input type='tablet' bus='usb'/>
           <audio id='1' type='none'/>
+          <graphics type='none'/>
           ${networksXml}
           ${gpusXml}
           ${usbControllersXml}
@@ -295,13 +296,13 @@ in
     # Ensure libvirtd is up before we define
     mkdir -p /var/lib/libvirt/qemu
     # Define (or redefine) the domain from the declarative XML.
-    # virsh define is idempotent: re-running updates the existing domain.
-    # NOTE: do NOT swallow failures with `|| true` — an invalid XML (e.g. the
-    # old <graphics type='none'/> bug) would silently leave the VM on a stale
-    # definition with a wrong CPU model (EPYC-Milan) and NPT disabled, which
-    # caused a severe perf regression. Fail loudly instead so the rebuild
-    # surfaces it.
-    ${pkgs.libvirt}/bin/virsh define /etc/libvirt/qemu/krash3-vm.xml
+    # virsh define --validate rejects schema-invalid XML instead of silently
+    # keeping the stale persistent definition (mode #25 pitfall — the July 5-14
+    # SPICE/QXL/PS2 regression where a schema violation in <iothreadpin>
+    # caused `virsh define` to exit 0 without updating the domain).
+    # NOTE: do NOT swallow failures with `|| true` — an invalid XML would
+    # silently leave the VM on a stale definition. Fail loudly instead.
+    ${pkgs.libvirt}/bin/virsh define --validate /etc/libvirt/qemu/krash3-vm.xml
     ${pkgs.libvirt}/bin/virsh autostart krash3-vm
     # Self-healing: dump GPU VBIOS ROM if missing (lost on host reboot).
     # The RTX 4060's ROM is required for GPU passthrough; without it,
