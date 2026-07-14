@@ -22,6 +22,7 @@
     hostName,
     targetHost,
     tags ? [],
+    buildOnTarget ? true,  # Never build on zephyr — OOM. Default true for remote.
   }: {...}: {
     imports =
       commonModules
@@ -29,7 +30,7 @@
         ./hosts/${hostName}/configuration.nix
       ];
     deployment = {
-      inherit targetHost;
+      inherit targetHost buildOnTarget;
       targetUser = "j_kro";
       inherit tags;
       allowLocalDeployment =
@@ -38,6 +39,7 @@
         else false;
     };
   };
+
 in {
   meta = {
     nixpkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
