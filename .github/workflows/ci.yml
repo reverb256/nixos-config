@@ -28,10 +28,8 @@ jobs:
 
       - name: Verify commit signatures
         if: github.event_name == 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --json commits --jq '.commits[].oid')
+          COMMITS=$(git log ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --format=%H)
           FAILED=0
           for sha in $COMMITS; do
             if ! git verify-commit $sha 2>/dev/null; then
@@ -84,7 +82,6 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Nix flake check
-        continue-on-error: true
         run: nix flake check --no-build
 
   # ============================================================================
@@ -123,7 +120,7 @@ jobs:
             -not -name "portable-usb.nix" \
             -print0 | xargs -0 nix shell nixpkgs#statix --command statix check 2>&1 | grep -q 'Error:' && exit 1 || exit 0
       - name: Run deadnix
-        run: nix shell nixpkgs#deadnix --command deadnix --no-lambda-arg --no-lambda-pattern-names . || true
+        run: nix shell nixpkgs#deadnix --command deadnix --no-lambda-arg --no-lambda-pattern-names . 2>&1 | tee /tmp/deadnix.log || true; if grep -qE '^Found|Warning' /tmp/deadnix.log 2>/dev/null; then echo '::warning::deadnix found unused code'; fi
 
   # ============================================================================
   # STAGE 3: Test suite (source-level validation, no heavy nix eval)

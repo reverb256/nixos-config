@@ -103,7 +103,6 @@
   profiles.monitoring = {
     enable = true;
     prometheus.enable = false; # K8s monitoring namespace replaces this
-    grafana.enable = false; # K8s monitoring namespace replaces this
     alertmanager.enable = false; # K8s monitoring namespace replaces this
   };
 

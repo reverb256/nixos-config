@@ -2,7 +2,7 @@
   networking = {
     firewall = {
       extraInputRules = lib.mkAfter ''
-        # Nix binary cache (nix-serve)
+        # Nix binary cache (nix-cache-proxy + nix-serve-ng)
         tcp dport { 50000 } accept
         # K3s server ports — restricted to cluster nodes only
         ip saddr { 10.1.1.110, 10.1.1.120, 10.1.1.130, 10.1.1.140 } tcp dport { 6443, 2379, 2380, 10250 } accept

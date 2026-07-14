@@ -9,7 +9,6 @@
 
     monitoring = {
       prometheus.enable = false; # Consolidated to nexus
-      grafana.enable = false; # Consolidated to nexus
       alertmanager.enable = false; # Consolidated to nexus
       alert-webhook.enable = false; # Consolidated to nexus
       alertmanager.email.enable = false;
