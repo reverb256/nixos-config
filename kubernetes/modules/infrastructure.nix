@@ -19,19 +19,6 @@ in {
     # ── Require security context on all pods (Deny mode) ───────────
     # Prevents pods without runAsNonRoot, allowPrivilegeEscalation=false, and resource limits
     ValidatingAdmissionPolicy.require-resources-and-security = {
-      # ── NFS Client StorageClass ───────────────────────────────────────
-      # Backed by the nfs-subdir-external-provisioner on nexus.
-      # NFS exports: /data/hermes, /data/pi, /data/qdrant, /etc/nixos
-      StorageClass.nfs-client = {
-        metadata.annotations."storageclass.kubernetes.io/is-default-class" = "true";
-        provisioner = "nfs-client";
-        parameters = {
-          archiveOnDelete = "true";
-        };
-        mountOptions = ["vers=4.1" "hard" "noatime"];
-        reclaimPolicy = "Delete";
-        volumeBindingMode = "Immediate";
-      };
       metadata.annotations = {
         "description" = "Requires all containers to define runAsNonRoot=true, no privilege escalation, and resource limits";
       };
@@ -67,6 +54,20 @@ in {
         ];
       };
     };
+
+    # ── NFS Client StorageClass ──────────────────────────────────
+    # Backed by the nfs-subdir-external-provisioner on nexus.
+    # NFS exports: /data/hermes, /data/pi, /data/qdrant, /etc/nixos
+    StorageClass.nfs-client = {
+      metadata.annotations."storageclass.kubernetes.io/is-default-class" = "true";
+      provisioner = "nfs-client";
+      parameters = {
+        archiveOnDelete = "true";
+      };
+      mountOptions = ["vers=4.1" "hard" "noatime"];
+      reclaimPolicy = "Delete";
+      volumeBindingMode = "Immediate";
+    };
     ValidatingAdmissionPolicyBinding.require-resources-and-security = {
       spec = {
         policyName = "require-resources-and-security";
@@ -81,8 +82,6 @@ in {
                 "kube-public"
                 "kube-node-lease"
                 "ai-inference"
-                "mining"
-                "mcp"
                 "tailscale"
                 "nix-csi"
               ];
@@ -162,6 +161,21 @@ in {
           "pod-security.kubernetes.io/warn" = "restricted";
         };
     };
+
+    # ── Pod Security Standards labels on workload namespaces ───────
+    # These labels are merged with namespace definitions in other modules.
+    # All workload namespaces enforce baseline; restricted is audited/warned.
+    # System namespaces (kube-system, kube-public, kube-node-lease) are
+    # intentionally omitted — they are managed by k3s and require privileged.
+    Namespace.ai-coding.metadata.labels = pssLabels // {name = "ai-coding";};
+    Namespace.auth.metadata.labels = pssLabels // {name = "auth";};
+    Namespace.automation.metadata.labels = pssLabels // {name = "automation";};
+    Namespace.kagent.metadata.labels = pssLabels // {name = "kagent";};
+    Namespace.kelos-system.metadata.labels = pssLabels // {name = "kelos-system";};
+    Namespace.maplespike-dev.metadata.labels = pssLabels // {name = "maplespike-dev";};
+    Namespace.mining.metadata.labels = pssLabels // {name = "mining";};
+    Namespace.tailscale.metadata.labels = pssLabels // {name = "tailscale";};
+    Namespace.vaultwarden.metadata.labels = pssLabels // {name = "vaultwarden";};
   };
 
   config.kubernetes.objects.default = {
@@ -381,7 +395,7 @@ in {
           containers = {
             _namedlist = true;
             amd-gpu-plugin = {
-              image = "rocm/k8s-device-plugin:latest";
+              image = "rocm/k8s-device-plugin:1.31.0.10";
               imagePullPolicy = "IfNotPresent";
               securityContext.privileged = true;
               env.ROCM_VISIBLE_DEVICES.value = "all";

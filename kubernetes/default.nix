@@ -130,13 +130,10 @@ in {
     ./modules/hermes-workspace.nix
     ./modules/tailscale.nix
     ./modules/llama-servers.nix
+    ./modules/falco.nix
   ];
 
   kubevirt = mkManifest "kubevirt" [
     ./modules/kubevirt.nix
-  ];
-
-  miners-csi = mkManifest "miners-csi" [
-    ./modules/miners-csi.nix
   ];
 }

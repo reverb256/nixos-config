@@ -14,6 +14,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -34,15 +35,15 @@ import (
 // ── Metrics ────────────────────────────────────────────────────────
 
 type Metrics struct {
-	Requests      atomic.Int64
-	CacheHits     atomic.Int64
-	CacheMisses   atomic.Int64
-	CacheFills    atomic.Int64 // async fills triggered
-	FillErrors    atomic.Int64
-	BytesServed   atomic.Int64
-	LastFillTime  time.Time
-	LastFillPath  string
-	mu            sync.RWMutex
+	Requests     atomic.Int64
+	CacheHits    atomic.Int64
+	CacheMisses  atomic.Int64
+	CacheFills   atomic.Int64
+	FillErrors   atomic.Int64
+	BytesServed  atomic.Int64
+	LastFillTime time.Time
+	LastFillPath string
+	mu           sync.RWMutex
 }
 
 func (m *Metrics) recordHit() {
@@ -67,10 +68,6 @@ func (m *Metrics) recordFillError() {
 	m.FillErrors.Add(1)
 }
 
-func (m *Metrics) addBytes(n int64) {
-	m.BytesServed.Add(n)
-}
-
 // ── Store info ─────────────────────────────────────────────────────
 
 type StoreInfo struct {
@@ -82,24 +79,38 @@ type StoreInfo struct {
 
 var startTime = time.Now()
 
-func getStoreInfo(nixStorePath string) StoreInfo {
+// cachedStoreInfo holds the most recently computed store stats so that
+// /health does not block on disk walks or fork `du` on every request.
+type cachedStoreInfo struct {
+	mu         sync.RWMutex
+	info       StoreInfo
+	lastUpdate time.Time
+}
+
+func (c *cachedStoreInfo) get() (StoreInfo, time.Time) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.info, c.lastUpdate
+}
+
+func (c *cachedStoreInfo) update(nixStorePath string) {
 	info := StoreInfo{
 		StorePath:     nixStorePath,
 		UptimeSeconds: int64(time.Since(startTime).Seconds()),
 	}
-
-	// Count store entries and get size
 	entries, _ := filepath.Glob(filepath.Join(nixStorePath, "*"))
 	info.StoreEntries = len(entries)
-
-	// du -sh for store size
-	cmd := exec.Command("du", "-sh", nixStorePath)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "du", "-sh", nixStorePath)
 	out, err := cmd.Output()
 	if err == nil {
 		info.StoreSize = strings.TrimSpace(string(out))
 	}
-
-	return info
+	c.mu.Lock()
+	c.info = info
+	c.lastUpdate = time.Now()
+	c.mu.Unlock()
 }
 
 // ── Async cache fill ───────────────────────────────────────────────
@@ -113,23 +124,25 @@ var upstreams = []string{
 	"https://nix-gaming.cachix.org",
 }
 
-// extractStorePath tries to extract a /nix/store/<hash>-name path from
-// a narinfo request path.  The request comes in as /<hash>.narinfo or
-// /nar/<hash>.nar — we need to reconstruct the full store path.
+// extractStorePath reconstructs a /nix/store/<hash>-name path from a
+// narinfo/nar request path or a full store path.
 func extractStorePath(requestPath, nixStore string) string {
-	// /l1x2...abc.narinfo → /nix/store/l1x2...abc-???
-	// We can reconstruct by looking at the local store for matching paths
+	// If this is already a full store path, return it directly
+	if strings.HasPrefix(requestPath, nixStore+"/") {
+		if _, err := os.Stat(requestPath); err == nil {
+			return requestPath
+		}
+		return ""
+	}
+	// Parse narinfo-style path: /<hash>.narinfo or /nar/<hash>.nar
 	base := filepath.Base(requestPath)
 	hash := strings.TrimSuffix(base, ".narinfo")
 	if hash == base {
-		// Try .nar suffix
 		hash = strings.TrimSuffix(base, ".nar")
 		if hash == base {
 			return ""
 		}
 	}
-
-	// Check if this hash prefix matches something in the store
 	entries, err := filepath.Glob(filepath.Join(nixStore, hash+"*"))
 	if err != nil || len(entries) == 0 {
 		return ""
@@ -138,21 +151,17 @@ func extractStorePath(requestPath, nixStore string) string {
 }
 
 var fillQueue = make(chan string, 100)
-var fillWg sync.WaitGroup
 
 func startFillWorker(nixStore string) {
-	fillWg.Add(1)
 	go func() {
-		defer fillWg.Done()
 		for path := range fillQueue {
 			log.Printf("[fill] warming %s", path)
-			// Try each upstream until one succeeds
 			success := false
 			for _, upstream := range upstreams {
-			cmd := exec.Command("nix", "copy",
-				"--from", upstream,
-				path,
-			)
+				cmd := exec.Command("nix", "copy",
+					"--from", upstream,
+					path,
+				)
 				cmd.Stdout = os.Stdout
 				cmd.Stderr = os.Stderr
 				if err := cmd.Run(); err == nil {
@@ -179,39 +188,37 @@ func triggerAsyncFill(requestPath, nixStore string) {
 	select {
 	case fillQueue <- hash:
 	default:
-		// Queue full, drop — we'll retry on next request
 	}
 }
 
 // ── Handlers ───────────────────────────────────────────────────────
 
 var metrics = &Metrics{}
+var storeCache = &cachedStoreInfo{}
 
 func healthHandler(nixStore string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		info := getStoreInfo(nixStore)
+		info, lastUpdate := storeCache.get()
 		metrics.mu.RLock()
-		infoJSON := map[string]interface{}{
-			"store":            info,
-			"cache_hits":       metrics.CacheHits.Load(),
-			"cache_misses":     metrics.CacheMisses.Load(),
-			"cache_fills":      metrics.CacheFills.Load(),
-			"fill_errors":      metrics.FillErrors.Load(),
-			"requests_total":   metrics.Requests.Load(),
-			"bytes_served":     metrics.BytesServed.Load(),
-			"last_fill_path":   metrics.LastFillPath,
-		}
-		metrics.mu.RUnlock()
-
-		// Calculate hit rate
 		reqs := metrics.Requests.Load()
 		hits := metrics.CacheHits.Load()
+		hitRate := 0.0
 		if reqs > 0 {
-			infoJSON["hit_rate"] = float64(hits) / float64(reqs)
-		} else {
-			infoJSON["hit_rate"] = 0.0
+			hitRate = float64(hits) / float64(reqs)
 		}
-
+		infoJSON := map[string]interface{}{
+			"store":           info,
+			"cache_hits":      hits,
+			"cache_misses":    metrics.CacheMisses.Load(),
+			"cache_fills":     metrics.CacheFills.Load(),
+			"fill_errors":     metrics.FillErrors.Load(),
+			"requests_total":  reqs,
+			"bytes_served":    metrics.BytesServed.Load(),
+			"last_fill_path":  metrics.LastFillPath,
+			"hit_rate":        hitRate,
+			"store_refreshed": lastUpdate.Format(time.RFC3339),
+		}
+		metrics.mu.RUnlock()
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(infoJSON)
 	}
@@ -220,33 +227,13 @@ func healthHandler(nixStore string) http.HandlerFunc {
 func metricsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
-		fmt.Fprintf(w, "# HELP nix_cache_requests_total Total requests served\n")
-		fmt.Fprintf(w, "# TYPE nix_cache_requests_total counter\n")
-		fmt.Fprintf(w, "nix_cache_requests_total %d\n", metrics.Requests.Load())
-
-		fmt.Fprintf(w, "# HELP nix_cache_hits_total Cache hit count\n")
-		fmt.Fprintf(w, "# TYPE nix_cache_hits_total counter\n")
-		fmt.Fprintf(w, "nix_cache_hits_total %d\n", metrics.CacheHits.Load())
-
-		fmt.Fprintf(w, "# HELP nix_cache_misses_total Cache miss count\n")
-		fmt.Fprintf(w, "# TYPE nix_cache_misses_total counter\n")
-		fmt.Fprintf(w, "nix_cache_misses_total %d\n", metrics.CacheMisses.Load())
-
-		fmt.Fprintf(w, "# HELP nix_cache_fills_total Async cache fills triggered\n")
-		fmt.Fprintf(w, "# TYPE nix_cache_fills_total counter\n")
-		fmt.Fprintf(w, "nix_cache_fills_total %d\n", metrics.CacheFills.Load())
-
-		fmt.Fprintf(w, "# HELP nix_cache_fill_errors_total Failed cache fills\n")
-		fmt.Fprintf(w, "# TYPE nix_cache_fill_errors_total counter\n")
-		fmt.Fprintf(w, "nix_cache_fill_errors_total %d\n", metrics.FillErrors.Load())
-
-		fmt.Fprintf(w, "# HELP nix_cache_bytes_served_total Bytes served\n")
-		fmt.Fprintf(w, "# TYPE nix_cache_bytes_served_total counter\n")
-		fmt.Fprintf(w, "nix_cache_bytes_served_total %d\n", metrics.BytesServed.Load())
-
-		fmt.Fprintf(w, "# HELP nix_cache_uptime_seconds Uptime in seconds\n")
-		fmt.Fprintf(w, "# TYPE nix_cache_uptime_seconds gauge\n")
-		fmt.Fprintf(w, "nix_cache_uptime_seconds %d\n", int64(time.Since(startTime).Seconds()))
+		fmt.Fprintf(w, "# HELP nix_cache_requests_total Total requests served\n# TYPE nix_cache_requests_total counter\nnix_cache_requests_total %d\n", metrics.Requests.Load())
+		fmt.Fprintf(w, "# HELP nix_cache_hits_total Cache hit count\n# TYPE nix_cache_hits_total counter\nnix_cache_hits_total %d\n", metrics.CacheHits.Load())
+		fmt.Fprintf(w, "# HELP nix_cache_misses_total Cache miss count\n# TYPE nix_cache_misses_total counter\nnix_cache_misses_total %d\n", metrics.CacheMisses.Load())
+		fmt.Fprintf(w, "# HELP nix_cache_fills_total Async cache fills triggered\n# TYPE nix_cache_fills_total counter\nnix_cache_fills_total %d\n", metrics.CacheFills.Load())
+		fmt.Fprintf(w, "# HELP nix_cache_fill_errors_total Failed cache fills\n# TYPE nix_cache_fill_errors_total counter\nnix_cache_fill_errors_total %d\n", metrics.FillErrors.Load())
+		fmt.Fprintf(w, "# HELP nix_cache_bytes_served_total Bytes served\n# TYPE nix_cache_bytes_served_total counter\nnix_cache_bytes_served_total %d\n", metrics.BytesServed.Load())
+		fmt.Fprintf(w, "# HELP nix_cache_uptime_seconds Uptime in seconds\n# TYPE nix_cache_uptime_seconds gauge\nnix_cache_uptime_seconds %d\n", int64(time.Since(startTime).Seconds()))
 	}
 }
 
@@ -256,9 +243,13 @@ func warmHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing ?path=<store-path>", http.StatusBadRequest)
 		return
 	}
-	triggerAsyncFill(path, "/nix/store")
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "queued", "path": path})
+	select {
+	case fillQueue <- path:
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "queued", "path": path})
+	default:
+		http.Error(w, "cache fill queue full", http.StatusServiceUnavailable)
+	}
 }
 
 // ── Main ───────────────────────────────────────────────────────────
@@ -274,29 +265,22 @@ func main() {
 		log.Fatalf("invalid backend URL: %v", err)
 	}
 
-	// Start the async fill worker
 	startFillWorker(*nixStore)
 
-	// Reverse proxy to nix-serve-ng
+	// Background refresh of store stats so /health stays fast.
+	storeCache.update(*nixStore)
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			storeCache.update(*nixStore)
+		}
+	}()
+
 	proxy := httputil.NewSingleHostReverseProxy(backendURL)
 
-	// Track hits via ModifyResponse, trigger fills on real 404s
-	proxy.ModifyResponse = func(resp *http.Response) error {
-		if resp.StatusCode == http.StatusOK {
-			metrics.recordHit()
-		}
-		if resp.StatusCode == http.StatusNotFound {
-			metrics.recordMiss()
-			// Trigger async fill on genuine cache miss
-			// The request path looks like /<hash>.narinfo
-			if resp.Request != nil {
-				triggerAsyncFill(resp.Request.URL.Path, *nixStore)
-			}
-		}
-		return nil
-	}
-
-	// Count actual bytes served (handles chunked encoding)
+	// Single ModifyResponse: track hits/misses, trigger fills on 404,
+	// count bytes for chunked and non-chunked responses.
 	proxy.ModifyResponse = func(resp *http.Response) error {
 		if resp.StatusCode == http.StatusOK {
 			metrics.recordHit()
@@ -307,19 +291,12 @@ func main() {
 				triggerAsyncFill(resp.Request.URL.Path, *nixStore)
 			}
 		}
+		// Wire up byte counting for both chunked and fixed-length responses
+		resp.Body = &countingReadCloser{
+			ReadCloser: resp.Body,
+			bytes:      &metrics.BytesServed,
+		}
 		return nil
-	}
-
-	// Wrap response writer to count actual bytes for chunked responses
-	originalDirector := proxy.Director
-	proxy.Director = func(req *http.Request) {
-		originalDirector(req)
-		req.Host = backendURL.Host
-	}
-
-	// Use a response wrapper for accurate byte counting
-	proxy.Transport = &countingTransport{
-		transport: http.DefaultTransport,
 	}
 
 	mux := http.NewServeMux()
@@ -334,7 +311,7 @@ func main() {
 		Addr:         *listen,
 		Handler:      mux,
 		ReadTimeout:  60 * time.Second,
-		WriteTimeout: 300 * time.Second, // large nar files can take time
+		WriteTimeout: 300 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 
@@ -342,4 +319,17 @@ func main() {
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("server error: %v", err)
 	}
+}
+
+// countingReadCloser wraps an io.ReadCloser and counts bytes read.
+// Handles chunked encoding by counting raw bytes on the wire.
+type countingReadCloser struct {
+	io.ReadCloser
+	bytes *atomic.Int64
+}
+
+func (c *countingReadCloser) Read(b []byte) (int, error) {
+	n, err := c.ReadCloser.Read(b)
+	c.bytes.Add(int64(n))
+	return n, err
 }

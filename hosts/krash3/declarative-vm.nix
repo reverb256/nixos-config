@@ -99,7 +99,7 @@ let
         <vcpu placement='static'>${toString vcpu}</vcpu>
         <iothreads>2</iothreads>
         <cpu mode='host-passthrough' check='none'>
-          <topology sockets='1' dies='1' cores='8' threads='1'/>
+          <topology sockets='1' dies='1' cores='12' threads='1'/>
           <cache mode='passthrough'/>
         </cpu>
         <cputune>
@@ -111,9 +111,11 @@ let
           <vcpupin vcpu='5' cpuset='6'/>
           <vcpupin vcpu='6' cpuset='7'/>
           <vcpupin vcpu='7' cpuset='8'/>
-          <emulatorpin cpuset='0,12'/>
-          <iothreadpin iothread='1' cpuset='0'/>
-          <iothreadpin iothread='2' cpuset='0'/>
+          <vcpupin vcpu='8' cpuset='9'/>
+          <vcpupin vcpu='9' cpuset='10'/>
+          <vcpupin vcpu='10' cpuset='11'/>
+          <vcpupin vcpu='11' cpuset='12'/>
+          <emulatorpin cpuset='0'/>
         </cputune>
         <os firmware='efi'>
           <type arch='x86_64' machine='pc-q35-10.2'>hvm</type>
@@ -175,6 +177,9 @@ let
           <memballoon model='virtio'/>
         </devices>
         <seclabel type='none' model='none'/>
+        <qemu:capabilities>
+          <qemu:del capability='usb-host.hostdevice'/>
+        </qemu:capabilities>
       </domain>
     '';
 

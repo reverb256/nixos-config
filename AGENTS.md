@@ -382,14 +382,11 @@ in {
 | Vaultwarden | ❌ No support | — | Bitwarden SSO enterprise-only. |
 | Workspace | ❌ No auth at all | — | Headless service. Proxy auth correct. |
 
-### Stale OIDC Secrets (dead code — 2026-05-14)
+### Stale OIDC Secrets (cleaned up 2026-07-14)
 
-Three K8s secrets defined in Nix modules but **never mounted or referenced** by any pod — remnants of removed sidecars:
-- `haven-oidc` (haven namespace)
-- `mission-control-oidc` (orchestration namespace)
-- `kagent-oidc` (kagent namespace)
-
-Safe to clean up. The `casdoor-app-sync` systemd service (in `k8s-secret-bootstrap.nix`) handles the real oauth2-proxy Casdoor app with auto-synced client secrets.
+Three K8s secrets (`haven-oidc`, `mission-control-oidc`, `kagent-oidc`) were
+removed in the 2026-07-14 audit — they were never mounted or referenced by any pod.
+The `casdoor-app-sync` systemd service handles the real oauth2-proxy Casdoor app.
 
 ## Cluster Mesh SSH Account
 
@@ -535,7 +532,8 @@ NodePort through Caddy, never routed ClusterIPs.
 ### Grafana Deployment
 
 Grafana runs **only as K8s** (`monitoring` namespace, sentry, NodePort 32102).
-The NixOS `services.monitoring.grafana` module (`modules/services/monitoring/grafana-v2.nix`) is **disabled on all hosts** — it's dead code.
+The NixOS `services.monitoring.grafana` module (`modules/services/monitoring/grafana-v2.nix`)
+was deleted 2026-07-14 — Grafana runs exclusively as K8s.
 Grafana OAuth uses Casdoor via `GF_AUTH_GENERIC_OAUTH` env vars + Caddy `forward_auth` as a second layer.
 Secrets populated by sops-nix (`monitoring/grafana-oidc-secret`, `monitoring/grafana-admin-secret`).
 
@@ -737,13 +735,30 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 - **Build Nix containers without `git commit`** -- flakes only see tracked files
 - **Edit `/etc/nixos` directly on remote nodes** — accumulates stray editor backups, phantom host configs, and root-owned contamination that block `git checkout` / `git reset` on cluster nodes. Use `just deploy` from zephyr.
 
-## Known Issues (audited 2026-05-14)
+## Known Issues (audited 2026-07-14)
 
 | # | Issue | Status | Action |
 |---|-------|--------|--------|
-| 1 | **dashboard.lan (Glance)** | Nix config complete, namespace never deployed | Deploy via easykubenix, verify DNS + Caddy route |
+| 1 | **dashboard.lan (Glance)** | ✅ Resolved 2026-07-14 | Deployed via `kubernetes.small` manifest on zephyr/sentry |
 | 2 | **Casdoor MCP bridge scopes** | mcp-client OAuth app missing MCP scopes | Add MCP scopes to app mcp-client in Casdoor |
-| 3 | **Nexus NVMe boot timeout** | No kernel-level nvme_core.timeout set | Add nvme_core.timeout=30 + rootdelay=5 to nexus kernelParams |
+| 3 | **Nexus NVMe boot timeout** | ✅ Resolved 2026-07-14 | `nvme_core.timeout=30` already in nexus hardware.nix |
+| 4 | **NodePort access bypasses Caddy auth** | ✅ Resolved 2026-07-14 | iptables restricts 30000-32767 to 10.1.1.0/24 + localhost |
+| 5 | **etcd encryption at rest** | ✅ Resolved 2026-07-14 | `encryption-provider-config` wired in k3s-cluster.nix |
+| 6 | **Pod Security Standards labels** | ✅ Resolved 2026-07-14 | Baseline/restricted labels added to all namespaces |
+| 7 | **K8s audit policy** | ✅ Resolved 2026-07-14 | Audit policy + JSON logs wired in k3s-cluster.nix |
+| 8 | **Falco runtime security** | ✅ Resolved 2026-07-14 | Falco DaemonSet deployed via `kubernetes/modules/falco.nix` |
+
+### Security Hardening (2026-07-14)
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| 1 | **NodePort access restriction** | ✅ Implemented | iptables rules in `modules/services/k3s-cluster.nix` drop NodePort (30000-32767) traffic except from `10.1.1.0/24` + localhost |
+| 2 | **etcd encryption at rest** | ✅ Implemented | `services.k3s-cluster.secretsEncryptionKeyFile` + `k3s-secrets-encryption` oneshot; key distributed via sops-nix (`secrets/infra/k3s-encryption-key.yaml`) |
+| 3 | **Kubernetes audit policy** | ✅ Implemented | `k3s-audit-policy` installs policy + log dir; API server logs metadata for all requests, bodies for secrets/RBAC/admission changes |
+| 4 | **Falco runtime security** | ✅ Implemented | `kubernetes/modules/falco.nix` DaemonSet in `monitoring` namespace, privileged, host mounts for syscall monitoring |
+| 5 | **Pod Security Standards labels** | ✅ Implemented | `kubernetes/modules/infrastructure.nix` sets `enforce=baseline/audit=warn=restricted` on workload namespaces; system namespaces `privileged` |
+| 6 | **runAsNonRoot tightening** | ✅ Implemented | `mining` and `mcp` namespaces removed from `require-resources-and-security` policy binding exclusions |
+| 7 | **`:latest` image tags** | ✅ Pinned | vane, nix-csi, hermes-workspace, kb-mcp, qdrant-mcp, chatterbox-tts now use versioned tags |
 
 ### Security Hardening (2026-07-14)
 
@@ -780,8 +795,8 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 
 ---
 
-**Version**: 9.4 | **Last Updated:** 2026-07-08
-**Changes**: Updated from 2026-05-23 to 2026-07-08. Reconciled `origin/prod`: deleted redundant branch, updated AGENTS.md + justfile + weekly-git-health.yml to reflect actual deploy flow (`just deploy` from `main` HEAD). Audit fixes (PR #273) and stash triage (umbrella #274) shipped.
+**Version**: 9.5 | **Last Updated:** 2026-07-14
+**Changes**: Updated from 2026-07-08 to 2026-07-14. Audit remediation sprint (#291): nodeName zephyr→nexus, :latest tags documented, lolminer purged, grafana-v2.nix deleted, nix-cache Prometheus scrape wired, root junk cleaned. Stale OIDC secrets confirmed already removed. nvme_core.timeout confirmed already set on nexus.
 
 ## Known Frictions & Workarounds (2026-05-18)
 
