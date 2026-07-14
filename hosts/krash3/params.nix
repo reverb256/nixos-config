@@ -67,10 +67,11 @@
         cache = "writeback";
       }
       {
-        # E: games volume (whole GPT RAID member).
+        # D: games volume (NTFS partition directly — no GPT layer, avoids
+        # md0p2 confusion and BLKRRPART triggers from partition table ops).
         type = "block";
         target = "vdb";
-        source = "/dev/md0";
+        source = "/dev/md0p1";
         cache = "none";
       }
       # STORAGE TRANSFER PENDING: uncomment md0p2 block, comment c.raw above,
