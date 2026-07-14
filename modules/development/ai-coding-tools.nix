@@ -72,6 +72,11 @@ in {
       default = "/run/secrets/opencode-go-api-key";
       description = "Path to OpenCode Go API key (sops-nix secret)";
     };
+    opencodeApiKeyFile = mkOption {
+      type = types.path;
+      default = "/run/secrets/opencode-api-key";
+      description = "Path to OpenCode Zen API key (sops-nix secret). Exported as OPENCODE_API_KEY and OPENCODE_ZEN_API_KEY.";
+    };
     tools = {
       droid = {
         enable = mkOption {
@@ -166,7 +171,7 @@ in {
         ];
         ExecStart = pkgs.writeShellScript "ai-coding-tools-generate" ''
           set -euo pipefail
-          for secret in ${cfg.zaiApiKeyFile} ${cfg.context7ApiKeyFile} ${cfg.nvidiaNimApiKeyFile} ${cfg.opencodeGoApiKeyFile}; do
+          for secret in ${cfg.zaiApiKeyFile} ${cfg.context7ApiKeyFile} ${cfg.nvidiaNimApiKeyFile} ${cfg.opencodeGoApiKeyFile} ${cfg.opencodeApiKeyFile}; do
             for i in {1..30}; do
               if [ -f "$secret" ] && [ -s "$secret" ]; then
                 break
@@ -185,6 +190,9 @@ in {
           NVIDIA_NIM_API_KEY="$(cat $NVIDIA_NIM_KEY_PATH 2>/dev/null || echo)"
           export OPENCODE_GO_KEY_PATH="${cfg.opencodeGoApiKeyFile}"
           OPENCODE_GO_API_KEY="$(cat $OPENCODE_GO_KEY_PATH 2>/dev/null || echo)"
+          export OPENCODE_ZEN_KEY_PATH="${cfg.opencodeApiKeyFile}"
+          OPENCODE_API_KEY="$(cat $OPENCODE_ZEN_KEY_PATH 2>/dev/null || echo)"
+          OPENCODE_ZEN_API_KEY="$OPENCODE_API_KEY"
           echo "[ai-coding-tools] Generating harmonized MCP configs..."
           ${optionalString cfg.tools.droid.enable ''
             echo "[ai-coding-tools] Generating Droid settings..."
@@ -223,6 +231,10 @@ in {
       if test -f ${cfg.context7ApiKeyFile}
         set -gx CONTEXT7_API_KEY (cat ${cfg.context7ApiKeyFile})
       end
+      if test -f ${cfg.opencodeApiKeyFile}
+        set -gx OPENCODE_API_KEY (cat ${cfg.opencodeApiKeyFile})
+        set -gx OPENCODE_ZEN_API_KEY $OPENCODE_API_KEY
+      end
     '';
     programs.bash.interactiveShellInit = mkIf cfg.enableShellEnv ''
       if [ -f ${cfg.zaiApiKeyFile} ]; then
@@ -232,6 +244,11 @@ in {
       if [ -f ${cfg.context7ApiKeyFile} ]; then
         CTX7_KEY_PATH="${cfg.context7ApiKeyFile}"
         export CONTEXT7_API_KEY="$(cat $CTX7_KEY_PATH)"
+      fi
+      if [ -f ${cfg.opencodeApiKeyFile} ]; then
+        OPENCODE_ZEN_KEY_PATH="${cfg.opencodeApiKeyFile}"
+        export OPENCODE_API_KEY="$(cat $OPENCODE_ZEN_KEY_PATH)"
+        export OPENCODE_ZEN_API_KEY="$OPENCODE_API_KEY"
       fi
     '';
     environment.systemPackages = [
