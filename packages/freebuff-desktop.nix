@@ -32,7 +32,7 @@ writeShellScriptBin pname ''
     echo "Downloaded to $APP_IMAGE"
   fi
 
-  # Run
+  # Run with FUSE if available, otherwise extract and run
   if [ -x "$APP_IMAGE" ]; then
     if [ -c /dev/fuse ] 2>/dev/null; then
       exec "$APP_IMAGE" "$@"
