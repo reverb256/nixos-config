@@ -62,9 +62,7 @@
     # stylix's generated copy. Enable both kde + qt targets so stylix
     # owns Dolphin's view colors AND Qt app theming end-to-end.
     # IMPORTANT: do NOT set targets.qt.platform = "qtct" — forcing qt5ct
-    # is documented (stylix#971) to freeze the session. With kde target
-    # enabled, stylix auto-selects the "kde" Qt platform, which is correct.
-    targets.kde.enable = true;
+    # is documented (stylix#971) to freeze the session.
     targets.qt.enable = true;
 
     autoEnable = true;
