@@ -162,6 +162,22 @@ deploy host="all":
     done
     echo ""
     echo "Deploy complete. Verify with 'just health'"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Syncing cluster nodes to central repo..."
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    cd {{FLAKE}}
+    git push central main 2>/dev/null || echo "central push failed"
+    for host in nexus forge sentry krash3; do
+        echo -n "  $host ... "
+        if ssh "$host" "cd /etc/nixos && git stash 2>/dev/null; git pull --ff-only central main" >/dev/null 2>&1; then
+            echo "OK"
+        else
+            echo "FAILED"
+        fi
+    done
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "All nodes synced"
 
 # Host shortcuts: local deploy
 zephyr:
@@ -366,6 +382,30 @@ health:
     echo ""
     echo "Kubernetes:"
     kubectl get nodes 2>/dev/null | sed 's/^/  /' || echo "  not responding"
+
+# ── NODE SYNC ─────────────────────────────────────────────────────────────────
+
+# Pull central repo on all cluster nodes (keeps them in sync after deploy)
+sync-nodes:
+    #!/usr/bin/env bash
+    set -e
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Syncing all cluster nodes to central repo..."
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    for host in {{HOSTS}}; do
+        if [ "$host" = "$(hostname -s)" ]; then
+            echo "Skipping local ($host)"
+            continue
+        fi
+        echo -n "  $host ... "
+        if ssh "$host" "cd /etc/nixos && git stash 2>/dev/null; git pull --ff-only central main" >/dev/null 2>&1; then
+            echo "OK"
+        else
+            echo "FAILED"
+        fi
+    done
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "All nodes synced"
 
 # ── ROLLBACK ──────────────────────────────────────────────────────────────────
 
