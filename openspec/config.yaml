@@ -1,0 +1,19 @@
+schema: spec-driven
+
+context: |
+  Homelab: 4-node NixOS/K3s cluster (zephyr, sentry, forge, nexus, haven, krash3)
+  7 GPUs (RTX 4090, 2x 4060, 3090, others)
+  Config-first: All changes via /etc/nixos → commit → push → colmena deploy
+  3 profiles: thorough-coder, reviewer, verifier
+  Revenue-critical: mining GPUs must never be disabled
+  Deployment: cd /etc/nixos && git add -A && git commit && git push && colmena deploy
+
+rules:
+  proposal:
+    - Identify which hosts are affected
+    - Note if GPU/revenue-critical services are impacted
+    - Specify rollback plan (git revert + redeploy)
+  specs:
+    - Each config change SHALL be revertable via git revert
+    - Infrastructure changes MUST specify colmena deploy order
+    - NEVER disable mining services
