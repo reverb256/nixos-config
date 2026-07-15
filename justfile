@@ -580,6 +580,17 @@ validate-k8s:
     cd {{FLAKE}}
     nix build .#kubernetesManifests 2>/dev/null && echo "K8s manifests built" || nix run .#k8s-validate 2>/dev/null || echo "k8s-validate not available"
 
+# Validate all *.yaml/*.yml files in the repo. Lenient of Nix toJSON, SOPS, and
+# Helm output (tab indentation, JSON-as-YAML). Surfaces real syntax errors.
+validate-yaml *paths:
+    #!/usr/bin/env bash
+    set -e
+    cd {{FLAKE}}
+    if [ "$#" -eq 0 ]; then
+        exec python3 scripts/yaml-validate.py
+    fi
+    exec python3 scripts/yaml-validate.py "$@"
+
 full-check *args:
     #!/usr/bin/env bash
     set -e
