@@ -74,15 +74,18 @@ in {
             # Without this, the portal's built-in OpenURI handler shows an
             # "Open With…" dialog instead of launching the default browser.
             xdgOpenUsePortal = mkForce false;
-            config.niri = {
-              default = [
-                "gnome"
-                "gtk"
-              ];
-              "org.freedesktop.impl.portal.Access" = "gtk";
-              "org.freedesktop.impl.portal.FileChooser" = "gtk";
-              "org.freedesktop.impl.portal.Notification" = "gtk";
-              "org.freedesktop.impl.portal.Secret" = "gnome-keyring";
+            config = {
+              common.default = "*";
+              niri = {
+                default = [
+                  "gnome"
+                  "gtk"
+                ];
+                "org.freedesktop.impl.portal.Access" = "gtk";
+                "org.freedesktop.impl.portal.FileChooser" = "gtk";
+                "org.freedesktop.impl.portal.Notification" = "gtk";
+                "org.freedesktop.impl.portal.Secret" = "gnome-keyring";
+              };
             };
             extraPortals = mkDefault [
               pkgs.xdg-desktop-portal-gnome
