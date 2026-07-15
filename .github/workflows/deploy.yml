@@ -138,6 +138,25 @@ jobs:
             echo "⚠ Central repo sync failed (cluster nodes may have stale refs)"
           fi
 
+      - name: Sync cluster nodes
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Pulling latest config on all cluster nodes..."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          ALL_HOSTS="nexus forge sentry krash3"
+          for host in $ALL_HOSTS; do
+            echo "Pulling on $host..."
+            if ssh "$host" "cd /etc/nixos && git stash 2>/dev/null; git pull --ff-only central main 2>&1"; then
+              echo "✓ $host synced"
+            else
+              echo "⚠ $host pull failed (manual sync may be needed)"
+            fi
+          done
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "All nodes synced"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
       - name: Resume mining
         if: always()
         run: |
