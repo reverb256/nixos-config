@@ -93,26 +93,9 @@ in {
   # Enable i686 emulation so local builds can compile 32-bit packages (Steam, Wine)
   boot.binfmt.emulatedSystems = ["i686-linux"];
 
-  # Osaka Jade — see modules/desktop/themes/osaka-jade.yaml for the canonical palette
+  # Osaka Jade — canonical palette in modules/desktop/themes/osaka-jade.yaml
   stylix = {
-    base16Scheme = {
-      base00 = "111C18";
-      base01 = "23372B";
-      base02 = "53685B";
-      base03 = "53685B";
-      base04 = "ACD4CF";
-      base05 = "C1C497";
-      base06 = "D7C995";
-      base07 = "F6F5DD";
-      base08 = "FF5345";
-      base09 = "DB9F9C";
-      base0A = "459451";
-      base0B = "549E6A";
-      base0C = "2DD5B7";
-      base0D = "509475";
-      base0E = "D2689C";
-      base0F = "9EEBB3";
-    };
+    base16Scheme = ../../modules/desktop/themes/osaka-jade.yaml;
   };
 
   networking = {

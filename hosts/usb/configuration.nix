@@ -296,7 +296,8 @@ in {
   # Desktop / Niri
   programs.niri.enable = true;
   stylix = {
-    base16Scheme = "${pkgs.base16-schemes}/share/themes/nord.yaml";
+    # 2026-07-15: renamed theme from "Nord" to Osaka Jade (repo-local scheme).
+    base16Scheme = ../../modules/desktop/themes/osaka-jade.yaml;
     image = ../../modules/desktop/wallpapers/nord-bg.png;
   };
   services.displayManager.sddm.enable = lib.mkForce true;
