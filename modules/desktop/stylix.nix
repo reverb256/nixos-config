@@ -6,7 +6,10 @@
     # intentionally track a newer Stylix, so silence the noise.
     enableReleaseChecks = false;
     enable = lib.mkDefault true;
-    base16Scheme = lib.mkDefault "${pkgs.base16-schemes}/share/themes/nord.yaml";
+    # 2026-07-15: renamed the theme from "Nord" to "Osaka Jade" (real Omarchy
+    # palette). Uses the repo-local base16 scheme below as the single source
+    # of truth so the name is correct end-to-end.
+    base16Scheme = lib.mkDefault ../modules/desktop/themes/osaka-jade.yaml;
     polarity = "dark";
 
     fonts = {
@@ -51,6 +54,18 @@
       popups = 0.95;
       terminal = 0.95;
     };
+
+    # ── KDE / Qt targets ───────────────────────────────────────
+    # 2026-07-15: Dolphin (a Qt/KDE app) was unreadable because its
+    # folder-view background is read from [Colors:View] in kdeglobals,
+    # and the stale ~/.config/kdeglobals (April, Breeze-Dark) shadowed
+    # stylix's generated copy. Enable both kde + qt targets so stylix
+    # owns Dolphin's view colors AND Qt app theming end-to-end.
+    # IMPORTANT: do NOT set targets.qt.platform = "qtct" — forcing qt5ct
+    # is documented (stylix#971) to freeze the session. With kde target
+    # enabled, stylix auto-selects the "kde" Qt platform, which is correct.
+    targets.kde.enable = true;
+    targets.qt.enable = true;
 
     autoEnable = true;
 
