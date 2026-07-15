@@ -127,6 +127,13 @@ in {
 
   profiles.node.zephyr-workstation.enable = true;
 
+  # CachyOS x86-64-v3 kernel for gaming/AI tuning (Zen3 5950X is v3-capable).
+  # Re-added 2026-07-15: the 60d60402 "switch all hosts to linuxPackages_latest"
+  # commit dropped it from zephyr, but zephyr was never redeployed, so it stayed
+  # booted on the old CachyOS 7.0.9 generation. Overrides the mkDefault
+  # linuxPackages_latest set in modules/common-host-defaults.nix.
+  boot.kernelPackages = inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
+
   # Proton VR games require 32-bit NVIDIA driver ICD
   hardware.graphics.enable32Bit = lib.mkForce true;
 
