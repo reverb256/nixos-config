@@ -131,7 +131,7 @@ git-push:
 # Local deploy to all hosts or a specific host
 deploy host="all":
     #!/usr/bin/env bash
-    set -e
+    set -euo pipefail
     echo "Deploying from $(cd {{FLAKE}} && git rev-parse --abbrev-ref HEAD) ($(cd {{FLAKE}} && git rev-parse --short HEAD))"
     echo ""
     if [ "{{host}}" = "all" ]; then
@@ -144,25 +144,78 @@ deploy host="all":
         LOCAL=$(hostname -s)
         if [ "$host" = "$LOCAL" ]; then
             if [ "$host" = "zephyr" ]; then
-                # Zephyr never builds locally (31GB OOM). Offload to nexus:
-                # build on nexus, copy closure back, activate locally.
-                # This follows the proper CI/CD pipeline (build → copy → activate).
-                OUT=$(ssh nexus "cd /etc/nixos && nix build --no-link --print-out-paths '.#nixosConfigurations.zephyr.config.system.build.toplevel'" 2>&1) || {
-                    echo "Build failed for zephyr"; echo "$OUT"; exit 1
-                }
-                # Copy from nexus to zephyr (localhost)
-                ssh nexus "nix-copy-closure --to j_kro@zephyr '$OUT'" 2>&1 | grep -v "copying path" | grep -v "already exists" || true
+                # Zephyr never builds locally (31GB OOM) — build on nexus, copy back, activate.
+                BUILD_TAG="zephyr-deploy"
+                STORE_PATH_FILE="/tmp/${BUILD_TAG}-store-path"
+                BUILD_LOG_FILE="/tmp/${BUILD_TAG}-build-log"
+                PID_FILE="/tmp/${BUILD_TAG}-pid"
+
+                # 1. Kill orphaned builds
+                if [ -f "$PID_FILE" ]; then
+                    ssh nexus "kill $(cat "$PID_FILE") 2>/dev/null || true" || true
+                    ssh nexus "pkill -f 'nix.*build.*zephyr.*toplevel' 2>/dev/null || true" || true
+                fi
+
+                # 2. Check if already built (idempotent)
+                OUT=""
+                if [ -f "$STORE_PATH_FILE" ]; then
+                    OUT=$(cat "$STORE_PATH_FILE")
+                    ssh nexus "nix path-info '$OUT' >/dev/null 2>&1" || OUT=""
+                fi
+
+                # 3. Start detached build if needed
+                if [ -z "$OUT" ]; then
+                    rm -f "$STORE_PATH_FILE" "$BUILD_LOG_FILE" "$PID_FILE"
+                    echo "  starting detached build on nexus..."
+                    ssh nexus "cd /etc/nixos && rm -f /tmp/${BUILD_TAG}-* && nohup nix build --no-link --print-out-paths '.#nixosConfigurations.zephyr.config.system.build.toplevel' > $STORE_PATH_FILE 2>$BUILD_LOG_FILE < /dev/null & echo \$! > $PID_FILE"
+
+                    echo -n "  building"
+                    START=$(date +%s)
+                    while true; do
+                        BUILD_PID=$(ssh nexus "cat $PID_FILE 2>/dev/null || echo ''")
+                        if [ -z "$BUILD_PID" ] || ! ssh nexus "kill -0 $BUILD_PID 2>/dev/null"; then
+                            sleep 2
+                            OUT=$(ssh nexus "cat $STORE_PATH_FILE 2>/dev/null" || echo "")
+                            if [ -n "$OUT" ] && ssh nexus "nix path-info '$OUT' >/dev/null 2>&1"; then
+                                echo " done ($(($(date +%s) - START))s)"
+                                break
+                            else
+                                echo ""
+                                echo "Build failed on nexus. Last log lines:"
+                                ssh nexus "tail -5 $BUILD_LOG_FILE 2>/dev/null" || echo "  (no log)"
+                                exit 1
+                            fi
+                        fi
+                        if [ $(( ($(date +%s) - START) % 30 )) -eq 0 ]; then
+                            ssh nexus "tail -1 $BUILD_LOG_FILE 2>/dev/null | grep -oE 'copying path.*|building.*|[0-9]+%|fetched.*' || true" | head -1 || true
+                        fi
+                        echo -n "."
+                        sleep 5
+                    done
+                    echo "$OUT" > "$STORE_PATH_FILE"
+                fi
+
+                # 4. Copy closure to zephyr
+                echo "  copying closure..."
+                ssh nexus "nix-copy-closure --to j_kro@zephyr '$OUT'" 2>&1 | grep -v "copying path\|already exists" || true
+
+                # 5. Activate
+                echo "  activating..."
                 sudo nix-env -p /nix/var/nix/profiles/system --set "$OUT"
-                sudo "$OUT/bin/switch-to-configuration" switch 2>&1 | tail -5
+                sudo "$OUT/bin/switch-to-configuration" switch 2>&1 | tail -10
+
+                rm -f "$STORE_PATH_FILE" "$PID_FILE"
             else
                 sudo nixos-rebuild switch --flake {{FLAKE}}#$host 2>&1
             fi
             echo "done"
         else
-            OUT=$(nix build --no-link --print-out-paths {{FLAKE}}#nixosConfigurations.$host.config.system.build.toplevel 2>&1) || {
-                echo "Build failed for $host"; echo "$OUT"; exit 1
+            # Building for a REMOTE host (nexus/forge/sentry/krash3) from local (zephyr)
+            # Offload build to nexus to avoid OOM on zephyr
+            OUT=$(ssh nexus "cd /etc/nixos && nix build --no-link --print-out-paths '.#nixosConfigurations.$host.config.system.build.toplevel'" 2>/dev/null) || {
+                echo "Build failed for $host"; exit 1
             }
-            nix-copy-closure --to j_kro@$host "$OUT" 2>&1 | grep -v "copying path" | grep -v "already exists"
+            nix-copy-closure --to j_kro@$host "$OUT" 2>&1 | grep -v "copying path\|already exists" || true
             ssh j_kro@$host "sudo nix-env -p /nix/var/nix/profiles/system --set $OUT && sudo $OUT/bin/switch-to-configuration switch" 2>&1 | tail -5
             echo "done"
         fi
@@ -306,36 +359,154 @@ build:
 
 switch:
     #!/usr/bin/env bash
-    set -e
+    set -euo pipefail
     cd {{FLAKE}}
     {{FLAKE}}/scripts/preflight-check.sh 2>/dev/null || true
     HOST=$(hostname -s)
     if [ "$HOST" = "zephyr" ]; then
-        # Zephyr never builds locally (31GB OOM) — build on nexus, copy back, activate.
         echo "Building on nexus for $HOST..."
-        OUT=$(ssh nexus "cd /etc/nixos && nix build --no-link --print-out-paths '.#nixosConfigurations.${HOST}.config.system.build.toplevel'" 2>&1) || {
-            echo "Build failed for $HOST"; echo "$OUT"; exit 1
-        }
-        ssh nexus "nix-copy-closure --to j_kro@${HOST} '$OUT'" 2>&1 | grep -v "copying path" | grep -v "already exists" || true
+        # ── detached build: survives SSH disconnection, no timeout issues ──
+        BUILD_TAG="zephyr-switch"
+        STORE_PATH_FILE="/tmp/${BUILD_TAG}-store-path"
+        BUILD_LOG_FILE="/tmp/${BUILD_TAG}-build-log"
+        PID_FILE="/tmp/${BUILD_TAG}-pid"
+
+        # 1. Kill any orphaned build from a previous killed run
+        if [ -f "$PID_FILE" ]; then
+            OLD_PID=$(cat "$PID_FILE")
+            ssh nexus "kill $OLD_PID 2>/dev/null || true" || true
+            ssh nexus "pkill -f 'nix.*build.*zephyr.*toplevel' 2>/dev/null || true" || true
+        fi
+
+        # 2. Check if build is already complete in nix store (idempotent)
+        OUT=""
+        if [ -f "$STORE_PATH_FILE" ]; then
+            OUT=$(cat "$STORE_PATH_FILE")
+            if ssh nexus "nix path-info '$OUT' >/dev/null 2>&1"; then
+                echo "  build already complete: $OUT"
+            else
+                OUT=""
+            fi
+        fi
+
+        # 3. If no cached build, run it detached on nexus
+        if [ -z "$OUT" ]; then
+            rm -f "$STORE_PATH_FILE" "$BUILD_LOG_FILE" "$PID_FILE"
+            echo "  starting detached build on nexus..."
+            ssh nexus "cd /etc/nixos && rm -f /tmp/${BUILD_TAG}-* && nohup nix build --no-link --print-out-paths '.#nixosConfigurations.zephyr.config.system.build.toplevel' > $STORE_PATH_FILE 2>$BUILD_LOG_FILE < /dev/null & echo \$! > $PID_FILE" 
+
+            # 4. Poll for completion
+            echo -n "  building"
+            START=$(date +%s)
+            while true; do
+                # Check if process finished
+                BUILD_PID=$(ssh nexus "cat $PID_FILE 2>/dev/null || echo ''")
+                if [ -z "$BUILD_PID" ] || ! ssh nexus "kill -0 $BUILD_PID 2>/dev/null"; then
+                    sleep 2  # let files flush
+                    OUT=$(ssh nexus "cat $STORE_PATH_FILE 2>/dev/null" || echo "")
+                    if [ -n "$OUT" ] && ssh nexus "nix path-info '$OUT' >/dev/null 2>&1"; then
+                        echo " done ($(($(date +%s) - START))s)"
+                        break
+                    else
+                        echo ""
+                        echo "Build failed on nexus. Last log lines:"
+                        ssh nexus "tail -5 $BUILD_LOG_FILE 2>/dev/null" || echo "  (no log)"
+                        exit 1
+                    fi
+                fi
+                # Show progress every 30s
+                if [ $(( ($(date +%s) - START) % 30 )) -eq 0 ]; then
+                    ssh nexus "tail -1 $BUILD_LOG_FILE 2>/dev/null | grep -oE 'copying path.*|building.*|[0-9]+%|fetched.*' || true" | head -1 || true
+                fi
+                echo -n "."
+                sleep 5
+            done
+
+            # Cache the store path locally for idempotency
+            echo "$OUT" > "$STORE_PATH_FILE"
+        fi
+
+        # 5. Copy closure to zephyr
+        echo "  copying closure to $HOST..."
+        ssh nexus "nix-copy-closure --to j_kro@${HOST} '$OUT'" 2>&1 | grep -v "copying path\|already exists" || true
+
+        # 6. Activate
+        echo "  activating..."
         sudo nix-env -p /nix/var/nix/profiles/system --set "$OUT"
-        sudo "$OUT/bin/switch-to-configuration" switch 2>&1 | tail -5
+        sudo "$OUT/bin/switch-to-configuration" switch 2>&1 | tail -10
+
+        # 7. Cleanup sentinels
+        rm -f "$STORE_PATH_FILE" "$PID_FILE"
     else
         sudo nixos-rebuild switch --flake .#$HOST
     fi
 
 test-apply:
     #!/usr/bin/env bash
-    set -e
+    set -euo pipefail
     cd {{FLAKE}}
     HOST=$(hostname -s)
     if [ "$HOST" = "zephyr" ]; then
-        # Zephyr never builds locally (31GB OOM) — use test via nexus.
         echo "Building on nexus for $HOST (test)..."
-        OUT=$(ssh nexus "cd /etc/nixos && nix build --no-link --print-out-paths '.#nixosConfigurations.${HOST}.config.system.build.toplevel'" 2>&1) || {
-            echo "Build failed for $HOST"; echo "$OUT"; exit 1
-        }
-        ssh nexus "nix-copy-closure --to j_kro@${HOST} '$OUT'" 2>&1 | grep -v "copying path" | grep -v "already exists" || true
-        sudo "$OUT/bin/switch-to-configuration" test 2>&1 | tail -5
+        BUILD_TAG="zephyr-test"
+        STORE_PATH_FILE="/tmp/${BUILD_TAG}-store-path"
+        BUILD_LOG_FILE="/tmp/${BUILD_TAG}-build-log"
+        PID_FILE="/tmp/${BUILD_TAG}-pid"
+
+        # 1. Kill orphaned builds
+        if [ -f "$PID_FILE" ]; then
+            ssh nexus "kill $(cat "$PID_FILE") 2>/dev/null || true" || true
+            ssh nexus "pkill -f 'nix.*build.*zephyr.*toplevel' 2>/dev/null || true" || true
+        fi
+
+        # 2. Check if already built (idempotent)
+        OUT=""
+        if [ -f "$STORE_PATH_FILE" ]; then
+            OUT=$(cat "$STORE_PATH_FILE")
+            ssh nexus "nix path-info '$OUT' >/dev/null 2>&1" || OUT=""
+        fi
+
+        # 3. Start detached build if needed
+        if [ -z "$OUT" ]; then
+            rm -f "$STORE_PATH_FILE" "$BUILD_LOG_FILE" "$PID_FILE"
+            echo "  starting detached build on nexus..."
+            ssh nexus "cd /etc/nixos && rm -f /tmp/${BUILD_TAG}-* && nohup nix build --no-link --print-out-paths '.#nixosConfigurations.zephyr.config.system.build.toplevel' > $STORE_PATH_FILE 2>$BUILD_LOG_FILE < /dev/null & echo \$! > $PID_FILE"
+
+            echo -n "  building"
+            START=$(date +%s)
+            while true; do
+                BUILD_PID=$(ssh nexus "cat $PID_FILE 2>/dev/null || echo ''")
+                if [ -z "$BUILD_PID" ] || ! ssh nexus "kill -0 $BUILD_PID 2>/dev/null"; then
+                    sleep 2
+                    OUT=$(ssh nexus "cat $STORE_PATH_FILE 2>/dev/null" || echo "")
+                    if [ -n "$OUT" ] && ssh nexus "nix path-info '$OUT' >/dev/null 2>&1"; then
+                        echo " done ($(($(date +%s) - START))s)"
+                        break
+                    else
+                        echo ""
+                        echo "Build failed on nexus. Last log lines:"
+                        ssh nexus "tail -5 $BUILD_LOG_FILE 2>/dev/null" || echo "  (no log)"
+                        exit 1
+                    fi
+                fi
+                if [ $(( ($(date +%s) - START) % 30 )) -eq 0 ]; then
+                    ssh nexus "tail -1 $BUILD_LOG_FILE 2>/dev/null | grep -oE 'copying path.*|building.*|[0-9]+%|fetched.*' || true" | head -1 || true
+                fi
+                echo -n "."
+                sleep 5
+            done
+            echo "$OUT" > "$STORE_PATH_FILE"
+        fi
+
+        # 4. Copy closure
+        echo "  copying closure to $HOST..."
+        ssh nexus "nix-copy-closure --to j_kro@${HOST} '$OUT'" 2>&1 | grep -v "copying path\|already exists" || true
+
+        # 5. Test (no profile switch)
+        echo "  testing..."
+        sudo "$OUT/bin/switch-to-configuration" test 2>&1 | tail -10
+
+        rm -f "$STORE_PATH_FILE" "$PID_FILE"
     else
         sudo nixos-rebuild test --flake .#$HOST
     fi
