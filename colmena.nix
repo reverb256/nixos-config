@@ -62,6 +62,7 @@ in {
   zephyr = mkHost {
     hostName = "zephyr";
     targetHost = null;
+    buildOnTarget = false;  # zephyr has max-jobs=0; build on nexus and push
     tags = [
       "control-plane"
       "k8s-master"
