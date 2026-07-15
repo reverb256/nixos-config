@@ -167,6 +167,7 @@ _final: prev:
   # maplespike images are built locally in nixos-config/packages/maplespike-*.nix
   # (maplespike repo is self-contained source; nixos-config is the OS)
   hermes-chat = prev.callPackage ./packages/hermes-chat.nix { };
+  nixos-cluster-mcp = prev.callPackage ./packages/nixos-cluster-mcp { };
   # hermes-workspace and hermes-webui archived (2026-05-16)
   privacy-filter = prev.callPackage ./packages/privacy-filter.nix {
     transformers-dev = prev.callPackage ./packages/transformers-dev.nix { };
