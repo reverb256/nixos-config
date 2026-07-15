@@ -275,6 +275,14 @@ in {
           "--flannel-iface=${cfg.flannelIface}"
           "--kubelet-arg=authentication-token-webhook=true"
           "--kubelet-arg=authorization-mode=Webhook"
+          # Fast kubelet recovery: update node status every 10s, report every 30s.
+          # Without these, a brief etcd leader election (40s grace) cascades into
+          # all-Unknown nodes because the kubelet on each node connects via
+          # 127.0.0.1:6443 and can't patch status when its local API server is
+          # briefly unavailable. These intervals ensure the kubelet retries and
+          # recovers within the grace period instead of timing out.
+          "--kubelet-arg=node-status-update-frequency=10s"
+          "--kubelet-arg=node-status-report-frequency=30s"
         ]
         ++ lib.optionals (isServer && cfg.secretsEncryptionKeyFile != null) [
           "--kube-apiserver-arg=encryption-provider-config=${cfg.dataDir}/server/cred/encryption-config.yaml"
