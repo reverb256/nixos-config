@@ -241,11 +241,6 @@
         hostName = "sentry";
         k8sManifest = self.kubernetes.small.manifestYAMLFile;
       };
-      krash3 = {
-        hostName = "krash3";
-        k8sManifest = null;
-        modules = (import ./krash3-common-modules.nix { inherit inputs self; });
-      };
   };
   in {
     checks.x86_64-linux = {};

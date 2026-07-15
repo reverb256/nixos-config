@@ -16,10 +16,6 @@
       ip = "10.1.1.140";
       tailscale = "100.82.210.39";
     };
-    krash3 = {
-      ip = "10.1.1.150";
-      tailscale = null;
-    };
     krash15 = {
       ip = "10.1.1.79";
       tailscale = null;
@@ -117,11 +113,6 @@ in {
       ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHh8FHzxFAk+brIs8nGhgg9BcGdtgr6of9MsbQctYHuE";
     };
-    # krash3 — bare-metal; trust-on-first-use for now, pin once stable
-    krash3 = {
-      hostNames = ["krash3" hosts.krash3.ip];
-      publicKey = "*"; # Bare-metal LAN; replace with pinned key once stable
-    };
     krash15 = {
       hostNames = ["krash15" hosts.krash15.ip];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA5ioQaftrkEOGFW3Xs/Db9r8tf5TcegVbzwPDknbFzS";
@@ -167,14 +158,6 @@ in {
     Host sentry ${hosts.sentry.ip} ${hosts.sentry.tailscale}
       HostName ${hosts.sentry.ip}
       User j_kro
-      IdentityFile ~/.ssh/id_ed25519
-      ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
-
-    Host krash3 ${hosts.krash3.ip}
-      HostName ${hosts.krash3.ip}
-      Port 22
-      User j_kro
-      StrictHostKeyChecking accept-new
       IdentityFile ~/.ssh/id_ed25519
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 

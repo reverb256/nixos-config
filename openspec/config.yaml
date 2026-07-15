@@ -1,7 +1,7 @@
 schema: spec-driven
 
 context: |
-  Homelab: 4-node NixOS/K3s cluster (zephyr, sentry, forge, nexus, haven, krash3)
+  Homelab: 4-node NixOS/K3s cluster (zephyr, sentry, forge, nexus)
   7 GPUs (RTX 4090, 2x 4060, 3090, others)
   Config-first: All changes via /etc/nixos → commit → push → colmena deploy
   3 profiles: thorough-coder, reviewer, verifier

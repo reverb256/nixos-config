@@ -11,14 +11,11 @@ rec {
   nexusIp = "10.1.1.120";
   forgeIp = "10.1.1.130";
   sentryIp = "10.1.1.140";
-  krash3Ip = "10.1.1.150";
-
   hosts = {
     zephyr.ip = zephyrIp;
     nexus.ip = nexusIp;
     forge.ip = forgeIp;
     sentry.ip = sentryIp;
-    krash3.ip = krash3Ip;
   };
 
   kubernetes = {

@@ -70,8 +70,6 @@ in {
         then 8
         else if currentHost == "forge"
         then 6
-        else if currentHost == "krash3"
-        then 3
         else 4
       );
 
@@ -89,8 +87,6 @@ in {
         then 8
         else if currentHost == "forge"
         then 4
-        else if currentHost == "krash3"
-        then 3
         else 4
       );
 
@@ -113,14 +109,8 @@ in {
     };
   };
 
-  # ── Post-build hook: auto-push to nexus cache ──
-
   # ── Post-build hook: auto-push completed builds to nexus cache ──
-  nix.settings.post-build-hook = lib.mkIf (currentHost != "krash3") (pkgs.writeShellScript "upload-to-cache" ''
-  if [ -n "$OUT_PATHS" ] && [ "$BUILD_STATUS" = "success" ]; then
-    exec nice -n 19 nix copy --to ssh://j_kro@nexus --substitute-on-destination $OUT_PATHS 2>/dev/null
-  fi
-  '');
+  nix.settings.post-build-hook = pkgs.writeShellScript "upload-to-cache" "if [ -n \"$OUT_PATHS\" ] \u0026\u0026 [ \"$BUILD_STATUS\" = \"success\" ]; then exec nice -n 19 nix copy --to ssh://j_kro@nexus --substitute-on-destination $OUT_PATHS 2>/dev/null; fi";
 
   programs.ssh.startAgent = true;
 
@@ -145,7 +135,7 @@ in {
   environment = {
     etc = {
       "ssh/ssh_config.d/50-build-machines.conf".text = ''
-        Host zephyr nexus sentry forge krash3
+        Host zephyr nexus sentry forge
           User j_kro
           IdentityFile ~/.ssh/id_ed25519
           IdentitiesOnly yes
@@ -186,16 +176,6 @@ in {
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 8;
               speedFactor = 6;
-              supportedFeatures = ["big-parallel"];
-              mandatoryFeatures = [];
-            }
-            {
-              hostName = "krash3";
-              systems = ["x86_64-linux" "i686-linux"];
-              sshUser = "j_kro";
-              sshKey = "~/.ssh/id_ed25519";
-              maxJobs = 3;
-              speedFactor = 2;
               supportedFeatures = ["big-parallel"];
               mandatoryFeatures = [];
             }
