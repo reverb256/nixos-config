@@ -160,8 +160,13 @@ in {
   config = mkIf cfg.enable {
     systemd.services.nixos-auto-update = {
       description = "Automatic NixOS Update";
-      after = ["network-online.target" "run-nixos\\x2dshared.mount"];
-      wants = ["network-online.target" "run-nixos\\x2dshared.mount"];
+      # NOTE: previously `wants/after = run-nixos-shared.mount`, but the
+      # nixos-share NFS client is dead cluster-wide (zephyr's NFS server is
+      # not enabled), so that dependency made this unit fail at boot.
+      # The update script already falls back to /etc/nixos when
+      # /run/nixos-shared is absent, so the dependency is dropped.
+      after = ["network-online.target"];
+      wants = ["network-online.target"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = updateScript;
