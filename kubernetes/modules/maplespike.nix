@@ -24,7 +24,7 @@ with lib; let
     image,
     resources,
     envExtra ? [],
-    nodeName ? "nexus",
+    nodeName ? null,
     runAsUser ? 1001,
     runAsGroup ? 1001,
   }: let
@@ -55,8 +55,9 @@ with lib; let
       };
       template = {
         metadata.labels = labels;
-        spec = {
-          inherit nodeName;
+        spec =
+          lib.optionalAttrs (nodeName != null) { inherit nodeName; }
+          // {
           securityContext = {
             inherit runAsUser;
             inherit runAsGroup;
@@ -64,6 +65,55 @@ with lib; let
           };
           terminationGracePeriodSeconds = 30;
           imagePullSecrets = [{name = "ghcr-pull";}];
+          affinity = {
+            podAntiAffinity = {
+              preferredDuringSchedulingIgnoredDuringExecution = [
+                {
+                  weight = 100;
+                  podAffinityTerm = {
+                    labelSelector.matchLabels = {
+                      inherit (labels) app;
+                    };
+                    topologyKey = "kubernetes.io/hostname";
+                  };
+                }
+              ];
+            };
+            nodeAffinity = {
+              preferredDuringSchedulingIgnoredDuringExecution = [
+                {
+                  weight = 80;
+                  preference.matchExpressions = [
+                    {
+                      key = "kubernetes.io/hostname";
+                      operator = "In";
+                      values = ["nexus" "sentry"];
+                    }
+                  ];
+                }
+                {
+                  weight = 50;
+                  preference.matchExpressions = [
+                    {
+                      key = "kubernetes.io/hostname";
+                      operator = "In";
+                      values = ["nexus"];
+                    }
+                  ];
+                }
+              ];
+            };
+          };
+          topologySpreadConstraints = [
+            {
+              maxSkew = 1;
+              topologyKey = "kubernetes.io/hostname";
+              whenUnsatisfiable = "ScheduleAnyway";
+              labelSelector.matchLabels = {
+                inherit (labels) app;
+              };
+            }
+          ];
           containers = [
             {
               inherit name image;
@@ -150,11 +200,11 @@ in {
       };
       mcp = mkOption {
         type = types.int;
-        default = 1;
+        default = 2;
       };
       portal = mkOption {
         type = types.int;
-        default = 1;
+        default = 2;
       };
       stagingApi = mkOption {
         type = types.int;
