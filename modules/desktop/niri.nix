@@ -92,6 +92,15 @@ in {
               pkgs.xdg-desktop-portal-gtk
             ];
           };
+
+          # 2026-07-15: gnome-keyring was only referenced by the portal
+          # Secret=gnome-keyring routing but never enabled as a service.
+          # With no keyring daemon, the Secret portal impl fails to acquire
+          # at xdg-desktop-portal startup, which can wedge the whole portal
+          # daemon — that's why the file picker never opened/persisted.
+          # Enable the daemon so the Secret portal (and thus the portal
+          # service overall) actually starts.
+          services.gnome.gnome-keyring.enable = true;
         }
         {
           environment.systemPackages = with pkgs.kdePackages;
