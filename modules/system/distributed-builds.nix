@@ -19,10 +19,15 @@ in {
         "@wheel"
       ];
 
+      # NOTE (2026-07-15): the local nexus nix-serve cache (10.1.1.120:50000)
+      # was serving CORRUPT nars (truncated zstd) that poisoned host stores via
+      # the post-build-hook's `--substitute-on-destination`. Until the nexus
+      # store is repaired, the local proxy is removed from substituters so
+      # builds pull clean paths from cache.nixos.org + cachix, then push clean
+      # results back to nexus (overwriting the corrupt entries).
       substituters = lib.mkForce (
         if currentHost == "zephyr"
         then [
-          "http://10.1.1.120:50000?priority=40&want-mass-query=true"
           "https://cache.nixos.org"
           "https://nix-community.cachix.org"
           "https://reverb-os.cachix.org"
@@ -31,7 +36,6 @@ in {
           "https://nix-gaming.cachix.org"
         ]
         else [
-          "http://10.1.1.120:50000?priority=40&want-mass-query=true"
           "https://cache.nixos.org"
           "https://nix-community.cachix.org"
           "https://reverb-os.cachix.org"
@@ -65,9 +69,9 @@ in {
         if currentHost == "zephyr"
         then 2 # minimal for coordination
         else if currentHost == "nexus"
-        then 12
+        then 16
         else if currentHost == "sentry"
-        then 8
+        then 10
         else if currentHost == "forge"
         then 6
         else 4
@@ -82,9 +86,9 @@ in {
         if currentHost == "zephyr"
         then 0
         else if currentHost == "nexus"
-        then 12 # primary builder — 12C/24T, binary cache host
+        then 16 # primary builder — 24C/48T, 25G free; 16 leaves headroom
         else if currentHost == "sentry"
-        then 8
+        then 10 # 16C, 20G avail; inference is VRAM-bound so RAM is safe
         else if currentHost == "forge"
         then 4
         else 4
