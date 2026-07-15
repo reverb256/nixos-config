@@ -177,10 +177,9 @@ in {
         template = {
           metadata.labels.app = "qdrant";
           spec = {
-            affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution = [
+            affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms = [
               {
-                weight = 100;
-                preference.matchExpressions = [
+                matchExpressions = [
                   {
                     key = "kubernetes.io/hostname";
                     operator = "In";
@@ -243,9 +242,8 @@ in {
             volumes = {
               _namedlist = true;
               qdrant-storage = {
-                hostPath = {
-                  path = "/storage/qdrant";
-                  type = "DirectoryOrCreate";
+                persistentVolumeClaim = {
+                  claimName = "qdrant-data";
                 };
               };
               qdrant-snapshots = {
@@ -278,6 +276,125 @@ in {
           }
         ];
         selector.app = "qdrant";
+      };
+    };
+    # ── PersistentVolumeClaims ────────────────────────────────────
+    ai-inference.PersistentVolumeClaim.qdrant-data = {
+      metadata.labels = managed;
+      spec = {
+        accessModes = ["ReadWriteOnce"];
+        resources.requests.storage = "20Gi";
+        storageClassName = "local-path";
+      };
+    };
+    ai-inference.PersistentVolumeClaim.astral-postgres-data = {
+      metadata.labels = managed;
+      spec = {
+        accessModes = ["ReadWriteOnce"];
+        resources.requests.storage = "10Gi";
+        storageClassName = "local-path";
+      };
+    };
+    # ── Astral Postgres ────────────────────────────────────────────
+    ai-inference.Deployment.astral-postgres = {
+      metadata.labels.app = "astral-postgres";
+      spec = {
+        replicas = 1;
+        revisionHistoryLimit = 2;
+        selector.matchLabels.app = "astral-postgres";
+        strategy.type = "Recreate";
+        template = {
+          metadata.labels.app = "astral-postgres";
+          spec = {
+            affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms = [
+              {
+                matchExpressions = [
+                  {
+                    key = "kubernetes.io/hostname";
+                    operator = "In";
+                    values = ["nexus"];
+                  }
+                ];
+              }
+            ];
+            securityContext = {
+              runAsNonRoot = true;
+              runAsUser = 1000;
+              fsGroup = 100;
+            };
+            containers = {
+              _namedlist = true;
+              postgres = {
+                image = "postgres:16-alpine";
+                imagePullPolicy = "IfNotPresent";
+                securityContext = {
+                  runAsNonRoot = true;
+                  runAsUser = 1000;
+                  runAsGroup = 100;
+                  allowPrivilegeEscalation = false;
+                  capabilities.drop = ["ALL"];
+                  seccompProfile.type = "RuntimeDefault";
+                };
+                ports = [
+                  {
+                    containerPort = 5432;
+                    name = "postgres";
+                    protocol = "TCP";
+                  }
+                ];
+                env = {
+                  _namedlist = true;
+                  POSTGRES_USER.value = "astral";
+                  POSTGRES_PASSWORD.valueFrom.secretKeyRef = {
+                    name = "astral-postgres-secret";
+                    key = "POSTGRES_PASSWORD";
+                  };
+                  POSTGRES_DB.value = "astral";
+                  PGDATA.value = "/var/lib/postgresql/data/pgdata";
+                };
+                resources = {
+                  requests = {
+                    cpu = "250m";
+                    memory = "512Mi";
+                  };
+                  limits = {
+                    cpu = "1";
+                    memory = "2Gi";
+                  };
+                };
+                volumeMounts = {
+                  _namedlist = true;
+                  data = {
+                    mountPath = "/var/lib/postgresql/data";
+                  };
+                };
+              };
+            };
+            volumes = {
+              _namedlist = true;
+              data = {
+                persistentVolumeClaim = {
+                  claimName = "astral-postgres-data";
+                };
+              };
+            };
+          };
+        };
+      };
+    };
+    ai-inference.Service.astral-postgres = {
+      metadata.labels.app = "astral-postgres";
+      spec = {
+        type = "ClusterIP";
+        ports = [
+          {
+            name = "postgres";
+            port = 5432;
+            targetPort = 5432;
+            protocol = "TCP";
+          }
+        ];
+        selector.app = "astral-postgres";
       };
     };
     ai-inference.Role.n8n-role = {
