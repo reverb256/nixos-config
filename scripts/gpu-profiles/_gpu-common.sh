@@ -83,9 +83,12 @@ store_original_power_limits() {
     # Create state directory if it doesn't exist
     mkdir -p "$state_dir"
 
-    local gpus=$(get_gpu_list)
+    # SC2155: declare and assign separately to avoid masking return values.
+    local gpus
+    gpus=$(get_gpu_list)
     for gpu_id in $gpus; do
-        local current_limit=$(nvidia-smi -i "$gpu_id" --query-gpu=power.limit --format=csv,noheader,nounits 2>/dev/null | tr -d '[:space:]')
+        local current_limit
+        current_limit=$(nvidia-smi -i "$gpu_id" --query-gpu=power.limit --format=csv,noheader,nounits 2>/dev/null | tr -d '[:space:]')
         if [ -n "$current_limit" ]; then
             echo "$current_limit" > "$state_dir/gpu${gpu_id}_original_power"
         fi
@@ -97,11 +100,14 @@ store_original_power_limits() {
 restore_original_power_limits() {
     local state_dir="${1:-/run/gpu-profiles}"
 
-    local gpus=$(get_gpu_list)
+    # SC2155: declare and assign separately to avoid masking return values.
+    local gpus
+    gpus=$(get_gpu_list)
     for gpu_id in $gpus; do
         local stored_file="$state_dir/gpu${gpu_id}_original_power"
         if [ -f "$stored_file" ]; then
-            local original_limit=$(cat "$stored_file")
+            local original_limit
+            original_limit=$(cat "$stored_file")
             if [ -n "$original_limit" ]; then
                 nvidia_safe nvidia-smi -i "$gpu_id" -pl "$original_limit"
             fi
