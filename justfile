@@ -298,10 +298,18 @@ check:
 
 build:
     #!/usr/bin/env bash
-    set -e
+    set -euo pipefail
     cd {{FLAKE}}
-    # Offload compilation to nexus so zephyr never builds locally (31GB OOM).
-    nix build --builders 'ssh-ng://j_kro@nexus' --no-link --print-out-paths .#$(hostname -s)
+    HOST=$(hostname -s)
+    if [ "$HOST" = "zephyr" ]; then
+        # Zephyr never builds locally (31GB OOM). Use remote-build.sh which
+        # runs nix build directly ON nexus via systemd-run -- avoiding the
+        # ssh-ng remote-build pipe-draining wedge (NixOS/nix#5701).
+        exec {{FLAKE}}/scripts/remote-build.sh zephyr zephyr-build
+    else
+        NIX_SSHOPTS="-o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ConnectTimeout=30" \
+        nix build --builders 'ssh-ng://j_kro@nexus' --no-link --print-out-paths .#$HOST
+    fi
 
 switch:
     #!/usr/bin/env bash
