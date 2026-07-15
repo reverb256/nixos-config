@@ -13,9 +13,6 @@
     nexus = "${cluster.hosts.nexus.ip}";
     forge = cluster.hosts.forge.ip;
     sentry = "${cluster.hosts.sentry.ip}";
-    krash3 = "10.1.1.150";
-    krash3-vm = "10.1.1.34";
-    krash15 = "10.1.1.79";
   };
   # Get DNS config - use or {} for safety in case the option doesn't exist
   dnsCfg = {
