@@ -102,6 +102,7 @@ let
         <cpu mode='host-passthrough' check='none'>
           <topology sockets='1' dies='1' cores='12' threads='1'/>
           <cache mode='passthrough'/>
+          <feature policy='require' name='hv-no-nonarch-coresharing'/>
         </cpu>
         <cputune>
           <vcpupin vcpu='0' cpuset='1'/>
@@ -144,7 +145,6 @@ let
             <reenlightenment state='on'/>
             <tlbflush state='on'/>
             <ipi state='on'/>
-            <evmcs state='on'/>
           </hyperv>
           <kvm><hidden state='on'/></kvm>
         </features>
@@ -182,6 +182,10 @@ let
         <qemu:capabilities>
           <qemu:del capability='usb-host.hostdevice'/>
         </qemu:capabilities>
+        <qemu:commandline>
+          <qemu:arg value='-cpu'/>
+          <qemu:arg value='host,migratable=on,hv-time=on,hv-relaxed=on,hv-vapic=on,hv-spinlocks=0x1fff,hv-vpindex=on,hv-synic=on,hv-stimer=on,hv-reset=on,hv-vendor-id=KVM Hv,hv-frequencies=on,hv-reenlightenment=on,hv-tlbflush=on,hv-ipi=on,hv-no-nonarch-coresharing=on'/>
+        </qemu:commandline>
       </domain>
     '';
 
