@@ -102,6 +102,8 @@ in
 
       home.sessionVariables.BAT_THEME = "base16";
 
+      home.pointerCursor.enable = true;
+
       home.stateVersion = "26.05";
       home.enableNixpkgsReleaseCheck = false;
 
