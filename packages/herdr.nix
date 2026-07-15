@@ -5,7 +5,7 @@ let
   version = "0.7.3";
   src = fetchurl {
     url = "https://github.com/ogulcancelik/herdr/releases/download/v${version}/herdr-linux-x86_64";
-    sha256 = "0aPv5Oo+f65pjA5eMB1gjJcP9RhtnMUFXvpP6DC1YXM=";
+    sha256 = "rThAYsNyO3OYrv6fhMFPRurvUD180ZEofZf5UqVr1OQ=";
   };
 in
 writeShellScriptBin pname ''
