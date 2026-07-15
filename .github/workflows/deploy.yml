@@ -15,7 +15,6 @@ on:
           - nexus
           - forge
           - sentry
-          - krash3
 
 permissions:
   contents: write
@@ -39,7 +38,7 @@ jobs:
 
           TARGET="${{ github.event.inputs.target }}"
           if [ "$TARGET" = "all" ]; then
-            HOSTS="zephyr nexus forge sentry krash3"
+            HOSTS="zephyr nexus forge sentry"
           else
             HOSTS="$TARGET"
           fi
@@ -82,7 +81,7 @@ jobs:
             fi
           }
 
-          ALL_HOSTS="zephyr nexus forge sentry krash3"
+          ALL_HOSTS="zephyr nexus forge sentry"
           GPU_HOSTS="zephyr nexus forge sentry"
 
           TARGET="${{ github.event.inputs.target }}"
@@ -144,7 +143,7 @@ jobs:
           echo "Pulling latest config on all cluster nodes..."
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-          ALL_HOSTS="nexus forge sentry krash3"
+          ALL_HOSTS="nexus forge sentry"
           for host in $ALL_HOSTS; do
             echo "Pulling on $host..."
             if ssh "$host" "cd /etc/nixos && git stash 2>/dev/null; git pull --ff-only central main 2>&1"; then
@@ -176,7 +175,7 @@ jobs:
 
           TARGET="${{ github.event.inputs.target }}"
           if [ "$TARGET" = "all" ]; then
-            HOSTS="zephyr nexus forge sentry krash3"
+            HOSTS="zephyr nexus forge sentry"
           else
             HOSTS="$TARGET"
           fi
@@ -196,18 +195,6 @@ jobs:
                   echo "✓ $host: SSH reachable"
                 else
                   echo "⚠ $host: SSH unreachable"
-                fi
-                ;;
-              krash3)
-                if ssh krash3 "uptime" 2>/dev/null; then
-                  echo "✓ krash3: host up"
-                  if ssh krash3 "sudo virsh -c qemu:///system domstate krash3-vm" 2>/dev/null; then
-                    echo "✓ krash3-vm: running"
-                  else
-                    echo "⚠ krash3-vm: not running"
-                  fi
-                else
-                  echo "⚠ krash3: SSH unreachable"
                 fi
                 ;;
             esac
