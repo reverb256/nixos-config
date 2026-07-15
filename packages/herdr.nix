@@ -12,8 +12,9 @@ writeShellScriptBin pname ''
   set -euo pipefail
 
   DATA_DIR="$HOME/.local/share/herdr"
-  BIN="$DATA_DIR/herdr"
-  mkdir -p "$DATA_DIR"
+  BIN_DIR="$HOME/.local/bin"
+  BIN="$BIN_DIR/herdr"
+  mkdir -p "$DATA_DIR" "$BIN_DIR"
 
   # Download binary on first run (self-updating — herdr handles its own updates)
   if [ ! -x "$BIN" ]; then
