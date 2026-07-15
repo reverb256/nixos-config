@@ -47,9 +47,13 @@ in {
 
     nexus-exec.enable = true;
 
+    # nixos-share NFS client disabled: zephyr's NFS server is not enabled
+    # cluster-wide, so the /run/nixos-shared mount always fails. The
+    # nixos-auto-update script already falls back to /etc/nixos. The server
+    # half is kept available but the dead client mount is removed.
     nixos-share = {
       enable = true;
-      client.enable = true;
+      client.enable = false;
     };
 
     nfs-data-server = {
