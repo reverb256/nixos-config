@@ -37,6 +37,7 @@ skills-lock.json
 
 # ── Build artifacts ───────────────────────────────────────────────
 __pycache__/
+.ruff_cache/
 sbom/
 node_modules/
 package.json
