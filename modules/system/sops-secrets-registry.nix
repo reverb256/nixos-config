@@ -60,6 +60,13 @@ in {
             owner = "j_kro";
             group = "users";
           };
+          "ai/exa-api-key" = {
+            sopsFile = "${inputs.self}/secrets/ai/exa-api-key.yaml";
+            path = "/run/secrets/exa-api-key";
+            mode = "0444";
+            owner = "j_kro";
+            group = "users";
+          };
           "ai/gemini-api-key" = {
             sopsFile = "${inputs.self}/secrets/ai/gemini-api-key.yaml";
             path = "/run/secrets/gemini-api-key";
