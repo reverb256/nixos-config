@@ -94,7 +94,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-cachyos-kernel = {
-      url = "github:xddxdd/nix-cachyos-kernel/01ef07c1c8bc8d9db9c0c9c59a8fea701b7f5a34";
+      url = "git+https://github.com/xddxdd/nix-cachyos-kernel?rev=d286da7a8384cb7914a38e0d0652d3e9a8fbb66f";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
