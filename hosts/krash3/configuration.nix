@@ -82,4 +82,3 @@ in
   # ── Performance tuning ──
   boot.kernel.sysctl."vm.nr_hugepages" = 24;
 }
-}
