@@ -56,16 +56,13 @@
     };
 
     # ── KDE / Qt targets ───────────────────────────────────────
-    # 2026-07-15: Dolphin (a Qt/KDE app) was unreadable because its
-    # folder-view background is read from [Colors:View] in kdeglobals,
-    # and the stale ~/.config/kdeglobals (April, Breeze-Dark) shadowed
-    # stylix's generated copy. Enable both kde + qt targets so stylix
-    # owns Dolphin's view colors AND Qt app theming end-to-end.
-    # IMPORTANT: do NOT set targets.qt.platform = "qtct" — forcing qt5ct
-    # is documented (stylix#971) to freeze the session.
+    # Qt target only — the `kde` target was removed in newer stylix
+    # and autoEnable tries to enable it when Plasma is running,
+    # causing "option does not exist" eval errors. Explicit per-target
+    # only covers what we actually run (Qt apps, not KDE/Plasma).
     targets.qt.enable = true;
 
-    autoEnable = true;
+    autoEnable = false;
 
     homeManagerIntegration = {
       followSystem = true;
