@@ -72,8 +72,10 @@ in {
 
   security.rtkit.enable = true;
 
-  # Printer monitoring — ink levels and status via LEDM API
-  systemd.services.hp-envy-monitor = {
+  # Printer monitoring — ink levels and status via LEDM API.
+  # Only enabled where printing is actually enabled (i.e. a node with a
+  # printer); headless nodes without CUPS never run this.
+  systemd.services.hp-envy-monitor = lib.mkIf config.services.printing.enable {
     description = "HP ENVY 7800 Status Monitor";
     path = with pkgs; [curl bash coreutils];
     serviceConfig.Type = "oneshot";
@@ -89,7 +91,7 @@ in {
     '';
   };
 
-  systemd.timers.hp-envy-monitor = {
+  systemd.timers.hp-envy-monitor = lib.mkIf config.services.printing.enable {
     wantedBy = ["timers.target"];
     timerConfig = {
       OnCalendar = "hourly";
