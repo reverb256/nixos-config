@@ -206,7 +206,13 @@ deploy-nexus host:
     HOST="{{host}}"
     SESSION="deploy-nexus-${HOST}"
     LOG="/var/log/colmena-deploy-${HOST}.log"
-    CMD="cd /etc/nixos && nix shell nixpkgs#colmena -c colmena apply --on ${HOST} --eval-node-limit 100 | tee ${LOG}"
+    # Use the flake's OWN colmena app (.#colmena = 0.5.0-pre built from
+    # flake.nix colmena input). Using 'nixpkgs#colmena' drifts to the
+    # channel-pinned 0.4.0 binary, which cannot evaluate a 0.5.0-style
+    # 'colmenaHive' flake attribute ('cannot update unlocked flake
+    # input hive in pure mode'). .#colmena is version-correct by
+    # construction and survives future colmena bumps.
+    CMD="cd /etc/nixos && nix run .#apps.x86_64-linux.colmena -- apply --on ${HOST} --eval-node-limit 100 | tee ${LOG}"
     if tmux has-session -t "$SESSION" 2>/dev/null; then
         echo "attaching to existing deploy session: $SESSION"
         exec tmux attach -t "$SESSION"
