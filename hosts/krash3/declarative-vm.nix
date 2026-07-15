@@ -103,6 +103,7 @@ let
           <topology sockets='1' dies='1' cores='12' threads='1'/>
           <cache mode='passthrough'/>
           <feature policy='require' name='hv-no-nonarch-coresharing'/>
+          <feature policy='disable' name='hypervisor'/>
         </cpu>
         <cputune>
           <vcpupin vcpu='0' cpuset='1'/>
