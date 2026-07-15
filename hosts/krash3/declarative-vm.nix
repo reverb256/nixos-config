@@ -141,7 +141,7 @@ let
             <synic state='on'/>
             <stimer state='on'/>
             <reset state='on'/>
-            <vendor_id state='on' value='KVM Hv'/>
+            <vendor_id state='on' value='AuthenticAMD'/>
             <frequencies state='on'/>
             <reenlightenment state='on'/>
             <tlbflush state='on'/>
