@@ -143,10 +143,17 @@ deploy host="all":
         echo "=== $host ==="
         LOCAL=$(hostname -s)
         if [ "$host" = "$LOCAL" ]; then
-            # Zephyr never builds locally (31GB OOM). Offload its system build
-            # to nexus via colmena; other hosts build locally as before.
             if [ "$host" = "zephyr" ]; then
-                ssh nexus 'bash --norc --noprofile -c "cd /etc/nixos && nix shell nixpkgs#colmena -c colmena apply --on zephyr --eval-node-limit 100"' 2>&1
+                # Zephyr never builds locally (31GB OOM). Offload to nexus:
+                # build on nexus, copy closure back, activate locally.
+                # This follows the proper CI/CD pipeline (build → copy → activate).
+                OUT=$(ssh nexus "cd /etc/nixos && nix build --no-link --print-out-paths '.#nixosConfigurations.zephyr.config.system.build.toplevel'" 2>&1) || {
+                    echo "Build failed for zephyr"; echo "$OUT"; exit 1
+                }
+                # Copy from nexus to zephyr (localhost)
+                ssh nexus "nix-copy-closure --to j_kro@zephyr '$OUT'" 2>&1 | grep -v "copying path" | grep -v "already exists" || true
+                sudo nix-env -p /nix/var/nix/profiles/system --set "$OUT"
+                sudo "$OUT/bin/switch-to-configuration" switch 2>&1 | tail -5
             else
                 sudo nixos-rebuild switch --flake {{FLAKE}}#$host 2>&1
             fi
@@ -302,23 +309,35 @@ switch:
     set -e
     cd {{FLAKE}}
     {{FLAKE}}/scripts/preflight-check.sh 2>/dev/null || true
-    # Zephyr never builds locally (31GB OOM) — offload the system build to
-    # nexus via colmena. Other hosts build locally.
-    if [ "$(hostname -s)" = "zephyr" ]; then
-        ssh nexus "cd /etc/nixos && colmena apply --on zephyr --eval-node-limit 100" 2>&1
+    HOST=$(hostname -s)
+    if [ "$HOST" = "zephyr" ]; then
+        # Zephyr never builds locally (31GB OOM) — build on nexus, copy back, activate.
+        echo "Building on nexus for $HOST..."
+        OUT=$(ssh nexus "cd /etc/nixos && nix build --no-link --print-out-paths '.#nixosConfigurations.${HOST}.config.system.build.toplevel'" 2>&1) || {
+            echo "Build failed for $HOST"; echo "$OUT"; exit 1
+        }
+        ssh nexus "nix-copy-closure --to j_kro@${HOST} '$OUT'" 2>&1 | grep -v "copying path" | grep -v "already exists" || true
+        sudo nix-env -p /nix/var/nix/profiles/system --set "$OUT"
+        sudo "$OUT/bin/switch-to-configuration" switch 2>&1 | tail -5
     else
-        sudo nixos-rebuild switch --flake .#$(hostname -s)
+        sudo nixos-rebuild switch --flake .#$HOST
     fi
 
 test-apply:
     #!/usr/bin/env bash
     set -e
     cd {{FLAKE}}
-    # Zephyr never builds locally (31GB OOM) — use test via nexus.
-    if [ "$(hostname -s)" = "zephyr" ]; then
-        ssh nexus "cd /etc/nixos && colmena apply --on zephyr --eval-node-limit 100" 2>&1
+    HOST=$(hostname -s)
+    if [ "$HOST" = "zephyr" ]; then
+        # Zephyr never builds locally (31GB OOM) — use test via nexus.
+        echo "Building on nexus for $HOST (test)..."
+        OUT=$(ssh nexus "cd /etc/nixos && nix build --no-link --print-out-paths '.#nixosConfigurations.${HOST}.config.system.build.toplevel'" 2>&1) || {
+            echo "Build failed for $HOST"; echo "$OUT"; exit 1
+        }
+        ssh nexus "nix-copy-closure --to j_kro@${HOST} '$OUT'" 2>&1 | grep -v "copying path" | grep -v "already exists" || true
+        sudo "$OUT/bin/switch-to-configuration" test 2>&1 | tail -5
     else
-        sudo nixos-rebuild test --flake .#$(hostname -s)
+        sudo nixos-rebuild test --flake .#$HOST
     fi
 
 preflight:
