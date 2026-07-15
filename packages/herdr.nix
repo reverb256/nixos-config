@@ -4,8 +4,9 @@ let
   pname = "herdr";
   version = "0.7.3";
   src = fetchurl {
+    name = "herdr-linux-x86_64";
     url = "https://github.com/ogulcancelik/herdr/releases/download/v${version}/herdr-linux-x86_64";
-    sha256 = "rThAYsNyO3OYrv6fhMFPRurvUD180ZEofZf5UqVr1OQ=";
+    sha256 = "BD70Psur2ihGXc/x7sMYRRgVDVZ7i48gzanGyIdwZB0=";
   };
 in
 writeShellScriptBin pname ''
