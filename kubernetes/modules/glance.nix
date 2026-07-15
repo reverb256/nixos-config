@@ -62,7 +62,6 @@ in {
                       - glanceapp/glance
                       - go-gitea/gitea
                       - immich-app/immich
-                      - syncthing/syncthing
                       - searxng/searxng
                       - nixos/nixpkgs
                       - k3s-io/k3s

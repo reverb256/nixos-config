@@ -626,6 +626,178 @@ def ai_backends() -> str:
     return json.dumps(BACKENDS, indent=2)
 
 
+# ──────────────────────────────────────────────
+# NixOS Host Management Tools
+# ──────────────────────────────────────────────
+# These tools manage the NixOS system layer (build / switch / verify) on each
+# physical node. They deliberately SSH to the TARGET host and build there, so a
+# heavy `nix build` never runs on zephyr (31GB, earlyoom kills it). Hosts track
+# `main` (AGENTS.md), so resetting to origin/main is the correct deploy state.
+
+import subprocess as _sp
+
+_SSH_OPTS = ["-o", "StrictHostKeyChecking=accept-new", "-o", "BatchMode=yes", "-T"]
+
+
+def _ssh_run(host: str, cmd: str, timeout: int = 2400) -> tuple[int, str]:
+    """SSH to a node as j_kro and run a command. Returns (rc, combined_output)."""
+    if host not in NODES:
+        return 1, f"Unknown host '{host}'. Valid: {list(NODES.keys())}"
+    ip = NODES[host]["ip"]
+    full = ["ssh", *_SSH_OPTS, f"j_kro@{ip}", "bash", "--norc", "--noprofile", "-c", cmd]
+    try:
+        r = _sp.run(full, capture_output=True, text=True, timeout=timeout)
+        return r.returncode, (r.stdout + r.stderr).strip()
+    except _sp.TimeoutExpired:
+        return -1, f"ssh command timed out after {timeout}s"
+
+
+@mcp.tool
+def nixos_git_state() -> dict[str, Any]:
+    """Root-cause visibility for deploy failures: report /etc/nixos git state on
+    every node (branch, behind/ahead vs origin/main, dirty files). A dirty or
+    behind tree is the usual cause of `nix run` / `nix build` eval failures."""
+    out = {}
+    for host in NODES:
+        rc, raw = _ssh_run(host, (
+            "cd /etc/nixos 2>/dev/null && "
+            "echo BRANCH:$(git branch --show-current) && "
+            "echo BEHIND:$(git rev-list --count HEAD..origin/main 2>/dev/null) && "
+            "echo AHEAD:$(git rev-list --count origin/main..HEAD 2>/dev/null) && "
+            "echo DIRTY:$(git status --porcelain 2>/dev/null | wc -l)"
+        ), timeout=30)
+        info: dict[str, Any] = {"reachable": rc == 0}
+        if rc == 0:
+            for line in raw.splitlines():
+                if ":" in line:
+                    k, v = line.split(":", 1)
+                    info[k.lower()] = v.strip()
+        else:
+            info["error"] = raw[:200]
+        out[host] = info
+    return out
+
+
+@mcp.tool
+def nixos_status(host: str) -> dict[str, Any]:
+    """NixOS host health: current generation, uptime, failed systemd unit count,
+    and whether the node is on the latest origin/main config."""
+    if host not in NODES:
+        return {"error": f"Unknown host '{host}'. Valid: {list(NODES.keys())}"}
+    rc, raw = _ssh_run(host, (
+        "echo GEN:$(readlink /nix/var/nix/profiles/system | xargs basename); "
+        "echo UPTIME:$(uptime -p 2>/dev/null || true); "
+        "echo FAILED:$(systemctl --failed --no-legend 2>/dev/null | wc -l); "
+        "cd /etc/nixos 2>/dev/null && echo BEHIND:$(git rev-list --count HEAD..origin/main 2>/dev/null)"
+    ), timeout=30)
+    if rc != 0:
+        return {"host": host, "reachable": False, "error": raw[:300]}
+    result = {"host": host, "reachable": True}
+    for line in raw.splitlines():
+        if ":" in line:
+            k, v = line.split(":", 1)
+            result[k.lower()] = v.strip()
+    return result
+
+
+@mcp.tool
+def nixos_failed_units(host: str) -> dict[str, Any]:
+    """List failed systemd units on a NixOS host (the `systemctl --failed` view)."""
+    if host not in NODES:
+        return {"error": f"Unknown host '{host}'. Valid: {list(NODES.keys())}"}
+    rc, raw = _ssh_run(host, "systemctl --failed --no-legend --no-pager 2>/dev/null", timeout=30)
+    units = [u.split()[0] for u in raw.splitlines() if u.strip()]
+    return {"host": host, "count": len(units), "units": units}
+
+
+@mcp.tool
+def nixos_build(host: str, reset_to_main: bool = True) -> dict[str, Any]:
+    """Build a host's NixOS toplevel ON the target host (avoids zephyr earlyoom).
+    Optionally resets the host's /etc/nixos to origin/main first (hosts track main).
+    Returns the built store path. Does NOT switch — use nixos_switch for that.
+    Long-running (10-40 min cold); the caller should poll nixos_status afterwards."""
+    if host not in NODES:
+        return {"error": f"Unknown host '{host}'. Valid: {list(NODES.keys())}"}
+    sync = "git fetch origin main >/dev/null 2>&1 && git reset --hard origin/main >/dev/null 2>&1 && " if reset_to_main else ""
+    build_cmd = (
+        f"cd /etc/nixos && {sync}"
+        f"OUT=$(nix build /etc/nixos#nixosConfigurations.{host}.config.system.build.toplevel "
+        f"--no-link --print-out-paths 2>&1 | tail -1) && "
+        f"echo BUILT:$OUT && echo \"$OUT\" | grep -q '^/nix/store' && echo OK || echo BUILD_FAILED"
+    )
+    rc, raw = _ssh_run(host, build_cmd, timeout=2400)
+    store_path = ""
+    for line in raw.splitlines():
+        if line.startswith("BUILT:/nix/store"):
+            store_path = line.split(":", 1)[1].strip()
+    return {
+        "host": host,
+        "rc": rc,
+        "store_path": store_path or None,
+        "ok": rc == 0 and bool(store_path),
+        "tail": raw.splitlines()[-12:],
+    }
+
+
+@mcp.tool
+def nixos_switch(host: str, store_path: str | None = None) -> dict[str, Any]:
+    """Switch a NixOS host to a built toplevel and activate it.
+    If store_path is omitted, switches to the currently-built toplevel (last nix build).
+    Falls back to `nixos-rebuild switch` if no explicit path is given and none is found."""
+    if host not in NODES:
+        return {"error": f"Unknown host '{host}'. Valid: {list(NODES.keys())}"}
+    if store_path:
+        switch_cmd = (
+            f"sudo nix-env -p /nix/var/nix/profiles/system --set {store_path} && "
+            f"sudo {store_path}/bin/switch-to-configuration switch"
+        )
+    else:
+        switch_cmd = "cd /etc/nixos && sudo nixos-rebuild switch"
+    rc, raw = _ssh_run(host, switch_cmd, timeout=600)
+    return {
+        "host": host,
+        "rc": rc,
+        "switched": rc == 0,
+        "tail": raw.splitlines()[-15:],
+    }
+
+
+@mcp.tool
+def nixos_deploy(host: str, reset_to_main: bool = True) -> dict[str, Any]:
+    """One-shot safe deploy: build the host's toplevel on the target (no zephyr
+    earlyoom), reset /etc/nixos to origin/main first (hosts track main), then
+    switch + activate. Returns build path, switch result, and post-switch
+    failed-unit count. This is the canonical cluster deploy path."""
+    if host not in NODES:
+        return {"error": f"Unknown host '{host}'. Valid: {list(NODES.keys())}"}
+    sync = "git fetch origin main >/dev/null 2>&1 && git reset --hard origin/main >/dev/null 2>&1 && " if reset_to_main else ""
+    deploy_cmd = (
+        f"cd /etc/nixos && {sync}"
+        f"OUT=$(nix build /etc/nixos#nixosConfigurations.{host}.config.system.build.toplevel "
+        f"--no-link --print-out-paths 2>&1 | tail -1) && "
+        f"echo BUILT:$OUT && "
+        f"sudo nix-env -p /nix/var/nix/profiles/system --set \"$OUT\" && "
+        f"sudo \"$OUT\"/bin/switch-to-configuration switch 2>&1 | tail -8 && "
+        f"echo POSTFAIL:$(systemctl --failed --no-legend 2>/dev/null | wc -l)"
+    )
+    rc, raw = _ssh_run(host, deploy_cmd, timeout=2400)
+    store_path = ""
+    postfail = None
+    for line in raw.splitlines():
+        if line.startswith("BUILT:/nix/store"):
+            store_path = line.split(":", 1)[1].strip()
+        if line.startswith("POSTFAIL:"):
+            postfail = line.split(":", 1)[1].strip()
+    return {
+        "host": host,
+        "rc": rc,
+        "store_path": store_path or None,
+        "deployed": rc == 0 and bool(store_path),
+        "post_switch_failed_units": postfail,
+        "tail": raw.splitlines()[-15:],
+    }
+
+
 @mcp.resource("cluster://safety-rules")
 def safety_rules() -> str:
     """Safety rules enforced by this MCP server."""

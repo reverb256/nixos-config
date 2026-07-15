@@ -9,7 +9,6 @@ in {
   services = {
     hermes-cli = {
       enable = true;
-      apiKeyFile = "/run/secrets/zai-api-key";
       nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
       casdoorJwtFile = "/run/secrets/casdoor-hermes-jwt";
       opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
@@ -82,7 +81,7 @@ in {
     };
 
     syncthing-cluster = {
-      enable = true;
+      enable = false;
     };
 
     sops-secrets-registry = {
