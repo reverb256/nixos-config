@@ -328,6 +328,10 @@ in {
     freebuff-desktop
   ];
 
+  # Enable FUSE for AppImage support
+  programs.appimage.enable = true;
+  boot.kernelModules = ["fuse"];
+
   # Service .lan domains resolved by unbound → nexus (${cluster.hosts.nexus.ip}).
   # Do NOT override to 127.0.0.1 — zephyr has no local Caddy proxy for these.
 
