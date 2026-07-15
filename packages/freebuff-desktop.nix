@@ -1,7 +1,7 @@
 { lib, writeShellScriptBin, curl }:
 
 let
-  pname = "freebuff";
+  pname = "freebuff-desktop";
 in
 writeShellScriptBin pname ''
   set -euo pipefail
