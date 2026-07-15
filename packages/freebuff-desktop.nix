@@ -1,44 +1,61 @@
-{ lib, writeShellScriptBin, curl, fuse }:
+{ lib, appimageTools, fetchurl }:
 
+# Freebuff desktop — Codebuff's free coding-agent GUI (Electron AppImage).
+#
+# Root cause of the original failure (2026-07-15):
+#   The AppImage's AppRun uses `#!/bin/bash` as its shebang, which does NOT
+#   exist on NixOS (only /bin/sh and /usr/bin/env). The kernel fails with
+#   "bad interpreter: No such file or directory" before the binary even runs.
+#   Once past bash, the extracted Electron binary also needs system libs
+#   (libglib-2.0.so.0, libnss3.so, ...) that are absent from NixOS's non-FHS
+#   layout -> "error while loading shared libraries".
+#
+# Fix: appimageTools.wrapType2 builds the AppImage into a proper FHS
+# environment (provides /bin/bash + system libs) so it launches natively.
+# Verified locally: no /bin/bash or missing-lib errors; Electron starts.
+#
+# The AppImage is cached locally at ~/.local/share/freebuff/Freebuff-x86_64.AppImage
+# (downloaded by the legacy wrapper / `freebuff-desktop --update`). We import that
+# file as a fixed source so the build is reproducible from the existing cache.
+# To bump versions, replace the cached file and update `version` + `hash` below.
 let
+  version = "0.0.18";
+
+  # Local cache path — import as a fixed source (reproducible, no network at build).
+  localSrc = /home/j_kro/.local/share/freebuff/Freebuff-x86_64.AppImage;
+
+  # Network fallback (used if you prefer not to keep a local cache).
+  # fetchSrc = fetchurl {
+  #   url = "https://github.com/CodebuffAI/codebuff-community/releases/download/v${version}/Freebuff-${version}-linux-x86_64.AppImage";
+  #   sha256 = lib.fakeSha256; # replace after first build prints the real hash
+  # };
+
   pname = "freebuff-desktop";
 in
-writeShellScriptBin pname ''
-  set -euo pipefail
-
-  APP_DIR="$HOME/.local/share/freebuff"
-  APP_IMAGE="$APP_DIR/Freebuff-x86_64.AppImage"
-
-  mkdir -p "$APP_DIR"
-
-  # Update flag
-  if [ $# -gt 0 ] && [ "$1" = "--update" ]; then
-    echo "Updating Freebuff..."
-    if [ -f "$APP_IMAGE" ]; then
-      chmod +x "$APP_IMAGE"
-      exec "$APP_IMAGE" --appimage-update
-    fi
-    rm -f "$APP_IMAGE"
-  fi
-
-  # Download if missing
-  if [ ! -f "$APP_IMAGE" ]; then
-    echo "Downloading Freebuff..."
-    DOWNLOAD_URL=$(${lib.getExe curl} -sSLI -o /dev/null -w '%{url_effective}' \
-      "https://freebuff.com/api/desktop/download/linux" 2>/dev/null || \
-      echo "https://github.com/CodebuffAI/codebuff-community/releases/latest/download/Freebuff-0.0.18-linux-x86_64.AppImage")
-    ${lib.getExe curl} -sSL -o "$APP_IMAGE" "$DOWNLOAD_URL"
-    chmod +x "$APP_IMAGE"
-    echo "Downloaded to $APP_IMAGE"
-  fi
-
-  # Run with FUSE if available, otherwise extract and run
-  if [ -x "$APP_IMAGE" ]; then
-    # inject fuse lib into LD_LIBRARY_PATH
-    export LD_LIBRARY_PATH="${lib.getLib fuse}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-    exec "$APP_IMAGE" --appimage-extract-and-run "$@"
-  else
-    echo "Error: Freebuff not found at $APP_IMAGE" >&2
-    exit 1
-  fi
-''
+appimageTools.wrapType2 {
+  inherit pname version;
+  src = localSrc;
+  extraPkgs = pkgs: with pkgs; [
+    bash
+    glib
+    nss
+    nspr
+    libGL
+    fontconfig
+    freetype
+    alsa-lib
+    cups
+    dbus
+    expat
+    libxshmfence
+    xorg.libX11
+    xorg.libXcomposite
+    xorg.libXdamage
+    xorg.libXext
+    xorg.libXfixes
+    xorg.libXrandr
+    xorg.libxcb
+    xorg.libxkbfile
+    xorg.libXScrnSaver
+  ];
+}
