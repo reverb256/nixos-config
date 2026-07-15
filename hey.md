@@ -27,8 +27,21 @@ the same hosts, modules, or generations. Update your section when you start/fini
 ## Agent: flake-281-verify (this session) — DONE
 ## Agent: garnix-removal (this session) — DONE
 
+## Agent: maplespike-24-issues (this session — j_kro)
+- **Scope:** 24 MapleSpike production issues across quill repo + nixos-config.
+  quill repo at ~/Projects/quill.
+- **Status:**
+  - ✅ All 24 issues implemented, committed, pushed (13 quill commits + 4 nixos-config commits)
+  - ✅ Lockfile updated, Dockerfiles created, tsconfig paths fixed
+  - ✅ Container images built from cached Nix store + pushed to nexus:5000
+  - ✅ Rollout complete — quill-api/mcp/portal running across forge+sentry+nexus (pinned digests)
+  - ✅ Bonsai 27B deployment — PrismML fork built, models downloaded (ternary + 1-bit)
+  - ⏳ Building llama.cpp with CUDA (tmux prism-build on zephyr) for native Nix integration
+  - ⏳ Will deploy as systemd services replacing current llama-server endpoints
+- **Not touched:** k3s-cluster.nix, flannel config, DNS, forge/sentry services, niri-config,
+  flake.lock, hermes config, knowledge-fabric-mcp, krash3/krash3-vm
+
 ## Agent: knowledge-fabric-mcp (this session)
-- **Scope:** Standalone MCP server for multi-source RAG + RRF fusion
   (Qdrant, SearXNG, code search, brain wiki). Extracted from
   ai-inference-gateway middleware. Code at ~/knowledge-fabric-mcp
   (github.com/reverb256/knowledge-fabric-mcp). Systemd service on nexus.
