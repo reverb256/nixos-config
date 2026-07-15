@@ -72,6 +72,8 @@ in {
       ./modules/oauth2-proxy.nix
       ./modules/monitoring.nix
       ./modules/monitoring-dashboards.nix
+      ./modules/monitoring-rules.nix
+      ./modules/grafana-dashboards.nix
       ./modules/vane.nix
       ./modules/host-services.nix
       ./modules/mission-control.nix
@@ -87,6 +89,8 @@ in {
   monitoring = mkManifest "monitoring" [
     ./modules/monitoring.nix
     ./modules/monitoring-dashboards.nix
+    ./modules/monitoring-rules.nix
+    ./modules/grafana-dashboards.nix
     ./modules/llama-servers.nix
   ];
 

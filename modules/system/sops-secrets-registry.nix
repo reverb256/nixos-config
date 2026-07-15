@@ -272,6 +272,31 @@ in {
           };
         })
         (mkIf config.services.sops-secrets-registry.kubernetes {
+          # Casdoor OIDC client secrets for MapleSpike SSO (B3)
+          "k8s/casdoor-maplespike-api-client-secret" = {
+            sopsFile = "${inputs.self}/secrets/k8s/casdoor-maplespike-api-client-secret.yaml";
+            path = "/run/secrets/casdoor-maplespike-api-client-secret";
+            format = "binary";
+            mode = "0440";
+            owner = "root";
+            group = "root";
+          };
+          "k8s/casdoor-maplespike-portal-client-secret" = {
+            sopsFile = "${inputs.self}/secrets/k8s/casdoor-maplespike-portal-client-secret.yaml";
+            path = "/run/secrets/casdoor-maplespike-portal-client-secret";
+            format = "binary";
+            mode = "0440";
+            owner = "root";
+            group = "root";
+          };
+          "k8s/casdoor-maplespike-mcp-client-secret" = {
+            sopsFile = "${inputs.self}/secrets/k8s/casdoor-maplespike-mcp-client-secret.yaml";
+            path = "/run/secrets/casdoor-maplespike-mcp-client-secret";
+            format = "binary";
+            mode = "0440";
+            owner = "root";
+            group = "root";
+          };
           "k8s/mission-control-api-key" = {
             sopsFile = "${inputs.self}/secrets/k8s/mission-control-api-key.yaml";
             path = "/run/secrets/mission-control-api-key";

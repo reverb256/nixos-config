@@ -98,16 +98,46 @@ in {
     wantedBy = [ "multi-user.target" ];
     path = [ pkgs.mdadm pkgs.util-linux pkgs.gawk ];
     script = ''
+      # ── Cleanup any stale loop devices from previous boots ──
+      # This prevents losetup -f from returning a device that was left
+      # dangling after an unclean shutdown, which could cause the new
+      # loop to point at a different offset and corrupt the RAID data.
+      for dev in /dev/loop*; do
+        [ -b "$dev" ] || continue
+        backing=$(losetup -nO BACK-FILE "$dev" 2>/dev/null || true)
+        case "$backing" in
+          /dev/sda|/dev/sdb) losetup -d "$dev" 2>/dev/null || true ;;
+        esac
+      done
+
+      # ── Set up loop devices at the correct offset ──
       offset=$(( ${toString raid.offset} * 512 ))
-      dev0=$(losetup -f --show -o $offset ${builtins.elemAt raid.devices 0} 2>/dev/null || true)
-      dev1=$(losetup -f --show -o $offset ${builtins.elemAt raid.devices 1} 2>/dev/null || true)
-      if [ -z "$dev0" ] || [ -z "$dev1" ]; then
-        echo "ERROR: could not set up loop devices for RAID (dev0='$dev0' dev1='$dev1')"
-        exit 1
-      fi
+      dev0=$(losetup -f --show -o $offset ${builtins.elemAt raid.devices 0})
+      dev1=$(losetup -f --show -o $offset ${builtins.elemAt raid.devices 1})
       echo "RAID loop devices: $dev0 $dev1"
-      mdadm --build /dev/md0 --level=raid0 --chunk=${toString raid.chunk} \
-        --raid-devices=2 "$dev0" "$dev1" 2>/dev/null || true
+
+      # ── Build md0 only if it doesn't already exist ──
+      if [ ! -e /dev/md0 ]; then
+        mdadm --build /dev/md0 --level=raid0 --chunk=${toString raid.chunk} \
+          --raid-devices=2 "$dev0" "$dev1"
+      else
+        echo "md0 already exists — skipping rebuild"
+      fi
+
+      # ── Verify NTFS integrity ──
+      NTFS_SIG=$(dd if=/dev/md0 bs=512 skip=32768 count=1 2>/dev/null | od -A x -t x1z -v | head -1)
+      if echo "$NTFS_SIG" | grep -q "eb 52 90 4e 54 46 53"; then
+        echo "NTFS signature valid"
+      else
+        echo "WARNING: NTFS signature MISSING — restoring from backup"
+        if [ -f /root/ntfs-boot-backup.img ]; then
+          dd if=/root/ntfs-boot-backup.img of=/dev/md0 bs=512 seek=32768 count=16 conv=notrunc 2>/dev/null
+          dd if=/root/ntfs-backup-area-backup.img of=/dev/md0 bs=512 seek=$((3904911359 - 15)) count=16 conv=notrunc 2>/dev/null
+          echo "NTFS boot sector restored from backup"
+        else
+          echo "CRITICAL: No NTFS backup available — data may be lost"
+        fi
+      fi
     '';
     serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };
   };
