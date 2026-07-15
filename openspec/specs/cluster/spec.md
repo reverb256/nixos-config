@@ -43,11 +43,6 @@ Worker nodes SHALL be assigned to specific GPU workloads.
 - GIVEN haven is the infrastructure services node
 - THEN it SHALL host non-GPU auxiliary services
 
-#### Scenario: Krash3 role
-- GIVEN krash3 (10.1.1.150) is the KVM hypervisor
-- THEN it SHALL host krash3-vm (Windows 11 with RTX 4060 passthrough)
-- AND krash3-vm SHALL use libvirt/QEMU, NOT KubeVirt
-
 ### Requirement: Config Management
 
 #### Scenario: Declarative config

@@ -14,10 +14,6 @@
     inherit inputs self;
   };
 
-  krash3Modules = import ./krash3-common-modules.nix {
-    inherit inputs self;
-  };
-
   mkHost = {
     hostName,
     targetHost,
@@ -48,10 +44,6 @@ in {
       nexus = tunedNixpkgs "x86_64-linux";
       forge = tunedNixpkgs "x86_64-linux";
       sentry = tunedNixpkgs "x86_64-linux";
-      # krash3 now uses the same pinned nixpkgs as every other node (was a
-      # separate nixpkgs-2605 pin — removed so the whole cluster builds from
-      # one nixpkgs commit)
-      krash3 = tunedNixpkgs "x86_64-linux";
     };
     machinesFile = ./machines;
     specialArgs = {
@@ -103,19 +95,4 @@ in {
     ];
   };
 
-  # krash3 — bare-metal NixOS workstation (libvirt + Windows VM)
-  # IP per modules/network/cluster-dns.nix:16 — correct as of audit #999.
-  # Build locally on zephyr (buildOnTarget=false mirrors distributed-builds).
-  krash3 = {...}: {
-    imports = krash3Modules ++ [
-      ./hosts/krash3/configuration.nix
-    ];
-    deployment = {
-      targetHost = "10.1.1.150";
-      targetUser = "j_kro";
-      tags = ["workstation" "baremetal"];
-      allowLocalDeployment = false;
-      buildOnTarget = true;
-    };
-  };
 }
