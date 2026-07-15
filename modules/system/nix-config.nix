@@ -44,8 +44,10 @@
     settings = {
       experimental-features = ["nix-command" "flakes"];
 
+      # NOTE (2026-07-15): local nexus nix-serve cache removed — was serving
+      # corrupt nars. Builds use cache.nixos.org + cachix; clean results are
+      # pushed back to nexus by the post-build-hook.
       substituters = [
-        "http://10.1.1.120:50000?want-mass-query=true&priority=40"
         "https://cache.nixos.org?priority=90"
         "https://nix-community.cachix.org?priority=80"
       ];
