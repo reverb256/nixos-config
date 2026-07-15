@@ -146,7 +146,7 @@
     };
     # mining-infra removed - only exists on zephyr at /data/projects/infra/mining-infra
     llama-turboquant = {
-      url = "github:reverb256/llama-cpp-turboquant/1818bd47996da5e26edc1ac5b1a9b2543f36ff71";
+      url = "git+https://github.com/reverb256/llama-cpp-turboquant?rev=1818bd47996da5e26edc1ac5b1a9b2543f36ff71";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # vllm = {
@@ -289,6 +289,7 @@
     packages.x86_64-linux.privacy-filter = pkgsWithOverlay.privacy-filter;
     packages.x86_64-linux.kubernetes-mcp-server = pkgs.callPackage ./packages/kubernetes-mcp-server.nix {};
     packages.x86_64-linux.nixos-cluster-mcp = pkgs.callPackage ./packages/nixos-cluster-mcp {};
+    packages.x86_64-linux.buffy-mcp = pkgs.callPackage ./packages/buffy-mcp {};
     packages.x86_64-linux.nix-cache-proxy = pkgs.callPackage ./pkgs/nix-cache-proxy {};
     packages.x86_64-linux.luce-dflash = pkgs.callPackage ./packages/luce-dflash.nix {};
 
