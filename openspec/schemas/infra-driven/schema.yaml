@@ -10,7 +10,7 @@ artifacts:
       Create a proposal for an infrastructure change.
 
       CRITICAL for NixOS infrastructure:
-      - List EVERY host affected (zephyr, sentry, forge, nexus, haven, krash3)
+      - List EVERY host affected (zephyr, sentry, forge, nexus, haven)
       - Flag if mining/GPU/revenue services are impacted
       - Specify rollback plan (git revert + colmena deploy)
       - Note deploy order if hosts must be updated in sequence

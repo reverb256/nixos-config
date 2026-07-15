@@ -296,7 +296,7 @@ current recipients (`/etc/nixos/.sops.yaml`), and recovery workflow, see
 
 Quick facts that hold on this NixOS host (zephyr):
 - Registry `services.sops-secrets-registry.enable` defaults to `false` on
-  all 5 hosts (forge, nexus, sentry, zephyr, krash3); the registry's
+  all 4 hosts (forge, nexus, sentry, zephyr); the registry's
   `mkIf` block is currently inert and `config.sops.secrets` evaluates to
   `[]` until a host opts in.
 - 0/135 existing encrypted files decrypt locally today (legacy

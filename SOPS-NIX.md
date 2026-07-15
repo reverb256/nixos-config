@@ -15,8 +15,8 @@
 > must NOT be enabled until those secrets are re-keyed. The ~6 Hermes
 > bootstrap secrets that ARE enabled (`nvidia`, `opencode`/zen,
 > `opencode-go`, `zai`, `casdoor-hermes-jwt`, `telegram-bot-token`)
-> decrypt successfully with zephyr's age key; the other four hosts
-> (`forge`, `nexus`, `sentry`, `krash3`) remain at the default
+> decrypt successfully with zephyr's age key; the other three hosts
+> (`forge`, `nexus`, `sentry`) remain at the default
 > `enable = false`. The historical 0/135 legacy-files decrypt mismatch is
 > **still real** for any secret file that was NOT re-encrypted under the
 > zephyr-only `.sops.yaml` policy — see the warning block under
@@ -28,14 +28,14 @@
 
 - **Module wiring:** `common-modules-list.nix` line 8
   (`inputs.sops-nix.nixosModules.default`) + line 9 (`./modules/system/sops-secrets-registry.nix`).
-- **Hosts:** `forge`, `nexus`, `sentry`, `zephyr`, `krash3` (defined at
+- **Hosts:** `forge`, `nexus`, `sentry`, `zephyr` (defined at
   `flake.nix:260`; assembled via `mkNixosSystem` at `flake.nix:284`).
 - **Per-host flags:** `zephyr` is the only host with the registry enabled.
   As of 2026-07-08 it sets `services.sops-secrets-registry.enable = true`
   with `aiServices` and `kubernetes` = `true`; `monitoring`, `storage`,
   `mining`, `cloud`, `automation`, `ci`, `selfHosting` are all `false`
-  (in `hosts/zephyr/services.nix`). The other four hosts (`forge`,
-  `nexus`, `sentry`, `krash3`) stay at the default `enable = false`, so
+  (in `hosts/zephyr/services.nix`). The other three hosts (`forge`,
+  `nexus`, `sentry`) stay at the default `enable = false`, so
   the registry `mkIf` block remains inert there. Concretely on zephyr:
   - `nix eval ...#nixosConfigurations.zephyr.config.sops.age.keyFile`
     returns `"/etc/nixos/.age/key.txt"`.
@@ -321,7 +321,7 @@ if you want to retire a key).
 > zephyr's pubkey. The resulting file has ONLY zephyr as a recipient
 > — every other host that could decrypt the previous envelope (up to 76
 > historical recipients) loses decryption access on rotation.
-> **Coordinate with all peer hosts (forge, nexus, sentry, krash3, and
+> **Coordinate with all peer hosts (forge, nexus, sentry, and
 > any external operator) before running rotation en masse**, or peer
 > hosts will silently stop decrypting on their next `nixos-rebuild`.
 > See also the WARNING block at the top of the `sops 3.13.1 updatekeys
@@ -413,7 +413,7 @@ defined`.
 > as a recipient — every previously-encrypted file was created with
 > up to 76 distinct historical recipients, and they will all lose
 > decryption access on rotation. **Coordinate with all peer hosts**
-> (forge, nexus, sentry, krash3, and any external operator) **before
+> (forge, nexus, sentry, and any external operator) **before
 > running rotation en masse**, or peer hosts will silently stop
 > decrypting on their next `nixos-rebuild`. The semantics here are
 > fundamentally different from `--add`, which (in older sops
