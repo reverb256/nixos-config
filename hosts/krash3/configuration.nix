@@ -81,5 +81,5 @@ in
   # file is also corrupt. Restore sops secrets here once the age key is present.
   # ── Performance tuning ──
   boot.kernel.sysctl."vm.nr_hugepages" = 24;
-
-  # ── Performance tuning ──
+}
+}
