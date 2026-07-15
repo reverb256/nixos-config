@@ -103,6 +103,7 @@ let
           <topology sockets='1' dies='1' cores='12' threads='1'/>
           <cache mode='passthrough'/>
           <feature policy='disable' name='hypervisor'/>
+          <maxphysaddr mode='passthrough' limit='39'/>
         </cpu>
         <cputune>
           <vcpupin vcpu='0' cpuset='1'/>
