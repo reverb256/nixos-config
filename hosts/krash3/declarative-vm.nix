@@ -46,13 +46,14 @@ let
         # Emit both GPU functions (0x0 = video, 0x1 = audio) so passthrough
         # matches the working windows domain exactly.
         let
+          romXml = if (gpu.romBar or "on") == "on" then ''<rom bar='on' file='/var/lib/libvirt/images/gpu-rom.bin'/>'' else "";
           func0 = ''
             <hostdev mode='subsystem' type='pci' managed='yes'>
               <driver name='vfio'/>
               <source>
                 <address domain='${gpu.domain}' bus='${gpu.bus}' slot='${gpu.slot}' function='0x0'/>
               </source>
-              <rom bar='on' file='/var/lib/libvirt/images/gpu-rom.bin'/>
+              ${romXml}
               <address type='pci' domain='0x0000' bus='0x06' slot='0x00' function='0x0'/>
             </hostdev>
           '';
@@ -143,6 +144,7 @@ let
             <reenlightenment state='on'/>
             <tlbflush state='on'/>
             <ipi state='on'/>
+            <evmcs state='on'/>
           </hyperv>
           <kvm><hidden state='on'/></kvm>
         </features>
