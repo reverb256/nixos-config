@@ -848,16 +848,16 @@
       "locked": {
         "lastModified": 1776795482,
         "narHash": "sha256-yNH/4+KDwyYU/Krbj7XC2v+r+UVD1ByZ5N87iK6kOso=",
-        "owner": "reverb256",
-        "repo": "llama-cpp-turboquant",
+        "ref": "refs/heads/master",
         "rev": "1818bd47996da5e26edc1ac5b1a9b2543f36ff71",
-        "type": "github"
+        "revCount": 4,
+        "type": "git",
+        "url": "https://github.com/reverb256/llama-cpp-turboquant"
       },
       "original": {
-        "owner": "reverb256",
-        "repo": "llama-cpp-turboquant",
         "rev": "1818bd47996da5e26edc1ac5b1a9b2543f36ff71",
-        "type": "github"
+        "type": "git",
+        "url": "https://github.com/reverb256/llama-cpp-turboquant"
       }
     },
     "llm-agents": {
