@@ -35,6 +35,7 @@ _final: prev:
     pythonImportsCheck = [ ];
   });
   freebuff-desktop = prev.callPackage ./packages/freebuff-desktop.nix { };
+  herdr = prev.callPackage ./packages/herdr.nix { };
   llama-cpp = prev.callPackage ./packages/llama-cpp.nix {
     cudaSupport = true;
     inherit (prev) cudaPackages;

@@ -326,6 +326,7 @@ in {
 
     nvtopPackages.full
     freebuff-desktop
+    herdr
   ];
 
   # Enable FUSE for AppImage support
