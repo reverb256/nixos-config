@@ -145,53 +145,7 @@
           "x-systemd.device-timeout=10s"
         ];
       };
-
-      # --- NVMe data mounts (legacy, for backward compatibility) ---
-      # Note: These services have been moved to bcache0 for better performance
-      # and to reduce pressure on the NVMe root filesystem
-      "/data/hermes-legacy" = {
-        device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
-        fsType = "btrfs";
-        options = [
-          "subvol=@home"
-          "compress=zstd"
-          "ssd"
-          "discard=async"
-          "noatime"
-          "nofail"
-          "x-systemd.device-timeout=10s"
-        ];
-      };
-
-      "/data/models-legacy" = {
-        device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
-        fsType = "btrfs";
-        options = [
-          "subvol=@home"
-          "compress=zstd"
-          "ssd"
-          "discard=async"
-          "noatime"
-          "nofail"
-          "x-systemd.device-timeout=10s"
-        ];
-      };
-
-      "/data/pi-legacy" = {
-        device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
-        fsType = "btrfs";
-        options = [
-          "subvol=@home"
-          "compress=zstd"
-          "ssd"
-          "discard=async"
-          "noatime"
-          "nofail"
-          "x-systemd.device-timeout=10s"
-        ];
-      };
   };
-
   boot.kernelParams = [
     "amd_iommu=on"
     "iommu=pt"
