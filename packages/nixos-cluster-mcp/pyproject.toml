@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nixos-cluster-mcp"
-version = "0.1.0"
-description = "MCP server for NixOS cluster management"
+version = "0.2.0"
+description = "MCP server for declarative NixOS cluster management over SSH ControlMaster"
 requires-python = ">=3.12"
 dependencies = [
-    "fastmcp>=2.0.0",
+    "fastmcp>=2.3.0",
 ]
 
 [project.scripts]

@@ -73,6 +73,10 @@ in {
       interval = "15min";
     };
 
+    nixos-cluster-mcp = {
+      enable = true;
+    };
+
   };
 
   programs.steam = {
@@ -105,12 +109,6 @@ in {
           api_key = "none";
           model = "qwen/qwen3-coder-480b-a35b-instruct";
         };
-        # Direct ZAI fallback (bypasses gateway for reliability)
-        zai = {
-          base_url = "https://api.z.ai/api/coding/paas/v4";
-          api_key_env = "ZAI_API_KEY";
-          model = "glm-5.1";
-        };
         # NVIDIA NIM cloud models
         nvidia-nim = {
           base_url = "https://integrate.api.nvidia.com/v1";
@@ -130,7 +128,6 @@ in {
         };
       };
       fallback_providers = [
-        "zai"
         "nvidia-nim"
         "llama-cpp-zephyr"
         "llama-cpp-sentry"
@@ -159,13 +156,11 @@ in {
       };
     };
 
-    # Secrets loaded via ExecStartPre + EnvironmentFile override below
-    mcpServers = {
-      github = {
-        command = "npx";
-        args = ["-y" "@modelcontextprotocol/server-github"];
-      };
-    };
+    # MCP servers are managed exclusively via modules/services/mcp-server-registry.nix
+    # (single source of truth). GitHub is reached via the bridge-script variant
+    # /data/agents/mcp-bridges/github-mcp.sh which carries the sops-decrypted
+    # github-token. The previous inline npx-shape entry was deleted 2026-07-15
+    # to resolve the duplicate-shape merge race with hermes-cli's MCP block.
 
     # Personality documents
     documents = {
@@ -184,7 +179,7 @@ in {
    # Runs on zephyr only. Dead code and timer removed.
 
 
-  # Load Z.AI and NVIDIA API keys for hermes-agent
+  # Load NVIDIA API keys for hermes-agent
   # The official module's environment option doesn't reliably set systemd env vars,
   # so we use a systemd override with ExecStartPre to generate an env file.
 
@@ -367,7 +362,6 @@ in {
    services.ai-coding-tools = {
      enable = true;
      user = "j_kro";
-     zaiApiKeyFile = "/run/secrets/zai-api-key";
      context7ApiKeyFile = "/run/secrets/context7-api-key";
      nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
