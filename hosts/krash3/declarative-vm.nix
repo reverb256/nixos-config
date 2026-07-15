@@ -177,7 +177,6 @@ let
           ${usbControllersXml}
           ${usbsXml}
           <watchdog model='itco' action='reset'/>
-          <memballoon model='virtio'/>
         </devices>
         <seclabel type='none' model='none'/>
         <qemu:capabilities>
