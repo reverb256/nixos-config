@@ -48,25 +48,25 @@ in {
     after = [ "libvirtd.service" "assemble-games-raid.service" ];
     path = [ pkgs.libvirt ];
     script = ''
-      virsh define /etc/libvirt/qemu/krash3-vm.xml 2>/dev/null || true
-      virsh start krash3-vm 2>/dev/null || true
+      virsh define --validate /etc/libvirt/qemu/krash3-vm.xml
+      virsh start krash3-vm || true
     '';
     serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };
   };
 
   # ── Guest-agent self-healing ───────────────────────────
-  # Liveness is determined by `guest-ping` (synchronous QMP — always reliable).
-  # The qemu-guest-agent on Windows has a known defect: `guest-exec` (async
-  # process spawn) can wedge its internal exec mutex when a child's stdio pipe
-  # isn't drained, leaving guest-exec permanently unresponsive while ping still
-  # works. That wedge can only be cleared by restarting the qemu-ga process,
-  # which on the host means a graceful VM reset (libvirt `reset`).
+  # Liveness check only — NEVER hard-resets the VM.
+  # The qemu-guest-agent on Windows can wedge its exec mutex (async process
+  # spawn). That is NOT a data-loss condition — guest-ping still works, the
+  # VM runs fine. A `virsh destroy` during an in-flight disk write corrupts
+  # the NTFS on D: (proven root cause of the recurring `00 XX 01 XX...`
+  # counting-byte pattern in the MFT). This service only logs the wedge and
+  # exits 0 so it never blocks or kills.
   #
   # Strategy:
   #   1. ping OK  + exec probe OK   -> healthy, do nothing.
-  #   2. ping OK  + exec probe HANG -> exec wedged -> `virsh reset` to clear it.
-  #   3. ping FAIL                  -> qemu-ga not up -> try guest-exec restart
-  #                                     once; if still down, `virsh reset`.
+  #   2. ping OK  + exec probe HANG -> log WARNING, do NOT reset.
+  #   3. ping FAIL                  -> log WARNING, do NOT reset.
   # Must NEVER block host deploys: bounded timeouts, exits 0 either way.
   systemd.services.krash3-vm-agent-health = {
     wantedBy = [ "multi-user.target" ];
@@ -84,45 +84,16 @@ in {
         out=$(virsh qemu-agent-command "$DOM" '{"execute":"guest-ping"}' 2>/dev/null)
         echo "$out" | grep -q '"return"'
       }
-      # Trivial exec probe with a hard wall-clock timeout. Returns 0 if exec
-      # completes, 1 if it hangs/fails. Uses `timeout` so a wedged exec can't
-      # block the whole service.
-      exec_ok() {
-        timeout 12 virsh qemu-agent-command "$DOM" \
-          '{"execute":"guest-exec","arguments":{"path":"C:\\Windows\\System32\\cmd.exe","arg":["/c","echo ga-probe"],"capture-output":true}}' \
-          >/dev/null 2>&1
-      }
-      # Graceful VM reset — the only host lever that restores a wedged qemu-ga.
-      reset_guest() {
-        echo "guest-agent: wedge/down — graceful VM reset to restore qemu-ga"
-        virsh reset "$DOM" >/dev/null 2>&1 || virsh destroy "$DOM" >/dev/null 2>&1
-        sleep 8
-        virsh start "$DOM" >/dev/null 2>&1 || true
-        sleep 20
-      }
       # Only act if the domain is actually running.
       virsh domstate "$DOM" 2>/dev/null | grep -q running || { echo "guest not running, skip"; exit 0; }
-      if ping_agent && exec_ok; then
-        echo "guest-agent: healthy (ping + exec)"
-        exit 0
-      fi
-      if ping_agent && ! exec_ok; then
-        echo "guest-agent: ping OK but exec wedged"
-        reset_guest
-        ping_agent && echo "guest-agent: recovered after reset" || echo "guest-agent: still down after reset"
-        exit 0
-      fi
-      # ping failed entirely
-      echo "guest-agent: down — attempt in-guest qemu-ga restart"
-      virsh qemu-agent-command "$DOM" "{\"execute\":\"guest-exec\",\"arguments\":{\"path\":\"C:\\Windows\\System32\\cmd.exe\",\"arg\":[\"/c\",\"net stop qemu-guest-agent & net start qemu-guest-agent\"],\"capture-output\":true}}" >/dev/null 2>&1 || true
-      sleep 10
       if ping_agent; then
-        echo "guest-agent: recovered"
-      else
-        echo "guest-agent: still down — graceful reset"
-        reset_guest
-        ping_agent && echo "guest-agent: recovered after reset" || echo "guest-agent: STILL down"
+        echo "guest-agent: healthy"
+        exit 0
       fi
+      # ping failed — guest agent is down or disconnected.
+      # This is NOT a data-loss condition. Log the issue and exit.
+      # NEVER `virsh destroy` here — that has caused NTFS corruption.
+      echo "guest-agent: NOT RESPONDING (ping failed) — manual recovery may be needed"
       exit 0
     '';
   };
