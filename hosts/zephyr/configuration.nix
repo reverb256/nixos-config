@@ -325,7 +325,7 @@ in {
     python312Packages.openpyxl
 
     nvtopPackages.full
-    freebuff
+    freebuff-desktop
   ];
 
   # Service .lan domains resolved by unbound → nexus (${cluster.hosts.nexus.ip}).
