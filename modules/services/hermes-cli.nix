@@ -158,10 +158,6 @@
           - /etc/nixos#nixos-cluster-mcp
         connect_timeout: 30
         timeout: 60
-      searxng:
-        command: /data/agents/mcp-bridges/searxng-mcp.sh
-        connect_timeout: 30
-        timeout: 60
       selfhosted-tools:
         command: /data/agents/mcp-bridges/selfhosted-mcp.sh
         connect_timeout: 30
