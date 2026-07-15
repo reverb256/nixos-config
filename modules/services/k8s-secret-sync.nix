@@ -18,6 +18,37 @@ let
   # Each entry: { sopsPath; namespace; secretName; key; }
   # sopsPath is the /run/secrets/... path from sops-install-secrets
   secretMappings = [
+    # ── MapleSpike (D3) ─────────────────────────────────────────
+    # NOTE: telegram-secrets:bot-token is currently empty (0 bytes).
+    # The sops secret /run/secrets/telegram-bot-token uses format=yaml
+    # and the actual token value is nested under a `data` key.
+    # Fix: change the secret format to "binary" in sops-secrets-registry.nix
+    # or use `sops -d --output-type raw` to get the bare token.
+    # Currently maps from /run/secrets/telegram-bot-token (needs decryption fix).
+    {
+      sopsPath = "/run/secrets/telegram-bot-token";
+      namespace = "maplespike";
+      secretName = "telegram-secrets";
+      key = "bot-token";
+    }
+    {
+      sopsPath = "/run/secrets/jwt-secret";
+      namespace = "maplespike";
+      secretName = "maplespike-secrets";
+      key = "JWT_SECRET";
+    }
+    {
+      sopsPath = "/run/secrets/billing-secret";
+      namespace = "maplespike";
+      secretName = "maplespike-secrets";
+      key = "QUILL_BILLING_SECRET";
+    }
+    {
+      sopsPath = "/run/secrets/cachix-token";
+      namespace = "maplespike";
+      secretName = "cachix-secrets";
+      key = "cachix-token";
+    }
     # ── Grafana ──────────────────────────────────────────────
     {
       sopsPath = "/run/secrets/grafana-oidc-client-secret";
@@ -180,6 +211,16 @@ in {
 
         echo "[k8s-secret-sync] Done."
       '';
+    };
+    # ── Reconciliation timer (hourly, random offset) ──────────
+    systemd.timers.k8s-secret-sync = {
+      description = "Periodic K8s secret reconciliation (sops-nix → K8s)";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "hourly";
+        RandomizedDelaySec = "600";  # 0-10 min random delay to avoid thundering herd
+        Persistent = true;
+      };
     };
   };
 }
