@@ -1,0 +1,62 @@
+name: infra-driven
+version: 1
+description: NixOS infrastructure change workflow with deploy verification
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    description: High-level description of the change, its motivation, scope, and host impact
+    template: proposal.md
+    instruction: |
+      Create a proposal for an infrastructure change.
+
+      CRITICAL for NixOS infrastructure:
+      - List EVERY host affected (zephyr, sentry, forge, nexus, haven, krash3)
+      - Flag if mining/GPU/revenue services are impacted
+      - Specify rollback plan (git revert + colmena deploy)
+      - Note deploy order if hosts must be updated in sequence
+    requires: []
+  - id: specs
+    generates: specs/**/*.md
+    description: Detailed specifications with requirements and scenarios
+    template: specs/spec.md
+    instruction: |
+      Create spec files for infrastructure changes.
+
+      Use delta format (ADDED/MODIFIED/REMOVED).
+      Each config change SHALL be revertable via git revert.
+    requires:
+      - proposal
+  - id: design
+    generates: design.md
+    description: Technical design decisions and implementation approach
+    template: design.md
+    instruction: |
+      Create a design document for the infrastructure change.
+
+      Include:
+      - Exact NixOS module paths and config keys
+      - Service names and systemd unit impacts
+      - GPU allocation changes (if any)
+      - K3s manifest changes (if any)
+      - Colmena deploy order
+    requires:
+      - specs
+  - id: tasks
+    generates: tasks.md
+    description: Implementation checklist with trackable tasks
+    template: tasks.md
+    instruction: |
+      Create task list for infrastructure implementation.
+
+      Tasks MUST include:
+      - File edits (exact paths in /etc/nixos/)
+      - Config validation steps (nix eval / colmena eval)
+      - Deploy steps (colmena deploy <host>)
+      - Verification steps (systemctl status, kubectl get pods)
+      - Rollback steps (git revert + redeploy)
+    requires:
+      - design
+apply:
+  requires:
+    - tasks
+  tracks: tasks.md
