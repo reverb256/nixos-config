@@ -63,7 +63,7 @@ rm-worktree number:
 # ── GIT MANAGEMENT ────────────────────────────────────────────────────────────────
 # Sync all hosts to central/main
 
-HOSTS := "zephyr nexus forge sentry krash3"
+HOSTS := "zephyr nexus forge sentry"
 
 # Show git status on all hosts
 git-status:
@@ -156,7 +156,7 @@ deploy host="all":
             fi
             echo "done"
         else
-            # Building for a REMOTE host (nexus/forge/sentry/krash3) from local (zephyr)
+            # Building for a REMOTE host (nexus/forge/sentry) from local (zephyr)
             # Offload build to nexus to avoid OOM on zephyr
             OUT=$(ssh nexus "cd /etc/nixos && nix build --no-link --print-out-paths '.#nixosConfigurations.$host.config.system.build.toplevel'" 2>/dev/null) || {
                 echo "Build failed for $host"; exit 1
@@ -174,7 +174,7 @@ deploy host="all":
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     cd {{FLAKE}}
     git push central main 2>/dev/null || echo "central push failed"
-    for host in nexus forge sentry krash3; do
+    for host in nexus forge sentry; do
         echo -n "  $host ... "
         if ssh "$host" "cd /etc/nixos && git stash 2>/dev/null; git pull --ff-only central main" >/dev/null 2>&1; then
             echo "OK"

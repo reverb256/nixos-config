@@ -407,7 +407,6 @@ in {
     backlogLimit = 8192;
     rules = [
       "-w /etc/nixos/.age/key.txt -p rwa -k sops-key-access"
-      "-w /etc/nixos/.age/krash3-key.txt -p rwa -k sops-key-access"
     ];
   };
 
