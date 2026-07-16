@@ -230,4 +230,17 @@ in {
       fi
     done
   '';
+
+  # ── Remove stale Kvantum config ──────────────────────────────────────
+  # 2026-07-15: kvantum removed from config (QT_STYLE_OVERRIDE=kvantum
+  # dropped from env-vars; stylix's KDE+Qt targets own Qt theming).
+  # A prior home-manager generation left a stale ~/.config/Kvantum/ symlink
+  # (kvantum.kvconfig -> <hm-files>/.config/Kvantum/...). With no
+  # active declaration it is never recreated, but lingers until explicitly
+  # cleaned. Delete the orphan dir at switch so nothing points at it.
+  home.activation.removeStaleKvantum = ''
+    if [ -e "$HOME/.config/Kvantum" ]; then
+      rm -rf "$HOME/.config/Kvantum"
+    fi
+  '';
 })
