@@ -8,13 +8,10 @@
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
 
-    ZAI_KEY_PATH="${cfg.zaiApiKeyFile}"
-    ZAI_API_KEY="$(cat $ZAI_KEY_PATH 2>/dev/null || echo)"
 
     mkdir -p "/home/${cfg.user}/.omp/agent"
 
     # Write mcp.json
-    ${pkgs.jq}/bin/jq -n       --arg zai_key "$ZAI_API_KEY"       --arg gateway_base "${gatewayUrl}/v1"       '{
         "settings": {"idleTimeout": 30},
         "mcpServers": {
           ${mkMcpServersJson {keyMode = "env";}}
@@ -28,10 +25,7 @@
             "baseUrl": ($gateway_base),
             "api": "openai-completions",
             "apiKey": "***",
-            "models": [
-              {"id": "glm-5.1", "name": "GLM-5.1", "reasoning": true},
-              {"id": "glm-5-turbo", "name": "GLM-5 Turbo", "reasoning": true},
-              {"id": "glm-4.7", "name": "GLM-4.7", "reasoning": true}
+            "models": [,,
             ]
           },
           "local-vllm": {
@@ -51,9 +45,9 @@
           }
         },
         "modelRoles": {
-          "default": "glm-5.1",
-          "smol": "glm-4.5-air",
-          "code": "glm-4.7"
+          "default": "qwen/qwen3.5-397b-a17b",
+          "smol": "local/qwen3.5-2b-awq",
+          "code": "qwen/qwen3.5-397b-a17b"
         }
       }' > "/home/${cfg.user}/.omp/agent/models.json"
 

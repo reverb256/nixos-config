@@ -48,26 +48,9 @@
     "sequential-thinking": {
       "command": "/data/agents/mcp-bridges/sequential-thinking.sh"
     },
-    "web-search-prime": {
-      "type": "http",
-      "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
-      "headers": {
-        "Authorization": "Bearer $ZAI_API_KEY"
-      }
-    },
-    "web-reader": {
-      "type": "http",
-      "url": "https://api.z.ai/api/mcp/web_reader/mcp",
-      "headers": {
-        "Authorization": "Bearer $ZAI_API_KEY"
-      }
-    },
-    "zread": {
-      "type": "http",
-      "url": "https://api.z.ai/api/mcp/zread/mcp",
-      "headers": {
-        "Authorization": "Bearer $ZAI_API_KEY"
-      }
+    "buffy-mcp": {
+      "command": "nix",
+      "args": ["run", "/etc/nixos#buffy-mcp"]
     }
   }
 }

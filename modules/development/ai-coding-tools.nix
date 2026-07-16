@@ -52,11 +52,6 @@ in {
       default = "j_kro";
       description = "User for AI coding tool configs";
     };
-    zaiApiKeyFile = mkOption {
-      type = types.path;
-      default = "/run/secrets/zai-api-key";
-      description = "Path to Z.AI API key (sops-nix secret)";
-    };
     context7ApiKeyFile = mkOption {
       type = types.path;
       default = "/run/secrets/context7-api-key";
@@ -124,7 +119,7 @@ in {
     enableShellEnv = mkOption {
       type = types.bool;
       default = true;
-      description = "Set ZAI_API_KEY and related env vars in shell session";
+      description = "Set provider API keys (OpenCode, Context7, NVIDIA) in shell session";
     };
   };
   config = mkIf cfg.enable {
@@ -138,7 +133,6 @@ in {
       "d /home/${cfg.user}/.omp/agent 0755 ${cfg.user} users -"
     ];
     environment.sessionVariables = mkIf cfg.enableShellEnv {
-      ZAI_API_KEY_FILE = cfg.zaiApiKeyFile;
       CONTEXT7_API_KEY_FILE = cfg.context7ApiKeyFile;
     };
     systemd.services.ai-coding-tools-config = {
@@ -171,7 +165,7 @@ in {
         ];
         ExecStart = pkgs.writeShellScript "ai-coding-tools-generate" ''
           set -euo pipefail
-          for secret in ${cfg.zaiApiKeyFile} ${cfg.context7ApiKeyFile} ${cfg.nvidiaNimApiKeyFile} ${cfg.opencodeGoApiKeyFile} ${cfg.opencodeApiKeyFile}; do
+          for secret in ${cfg.context7ApiKeyFile} ${cfg.nvidiaNimApiKeyFile} ${cfg.opencodeGoApiKeyFile} ${cfg.opencodeApiKeyFile}; do
             for i in {1..30}; do
               if [ -f "$secret" ] && [ -s "$secret" ]; then
                 break
@@ -182,8 +176,6 @@ in {
               sleep 1
             done
           done
-          export ZAI_KEY_PATH="${cfg.zaiApiKeyFile}"
-          ZAI_API_KEY="$(cat $ZAI_KEY_PATH 2>/dev/null || echo)"
           export CTX7_KEY_PATH="${cfg.context7ApiKeyFile}"
           CONTEXT7_API_KEY="$(cat $CTX7_KEY_PATH 2>/dev/null || echo)"
           export NVIDIA_NIM_KEY_PATH="${cfg.nvidiaNimApiKeyFile}"
@@ -225,9 +217,6 @@ in {
       };
     };
     programs.fish.interactiveShellInit = mkIf cfg.enableShellEnv ''
-      if test -f ${cfg.zaiApiKeyFile}
-        set -gx ZAI_API_KEY (cat ${cfg.zaiApiKeyFile})
-      end
       if test -f ${cfg.context7ApiKeyFile}
         set -gx CONTEXT7_API_KEY (cat ${cfg.context7ApiKeyFile})
       end
@@ -237,10 +226,6 @@ in {
       end
     '';
     programs.bash.interactiveShellInit = mkIf cfg.enableShellEnv ''
-      if [ -f ${cfg.zaiApiKeyFile} ]; then
-        ZAI_KEY_PATH="${cfg.zaiApiKeyFile}"
-        export ZAI_API_KEY="$(cat $ZAI_KEY_PATH)"
-      fi
       if [ -f ${cfg.context7ApiKeyFile} ]; then
         CTX7_KEY_PATH="${cfg.context7ApiKeyFile}"
         export CONTEXT7_API_KEY="$(cat $CTX7_KEY_PATH)"
@@ -281,7 +266,7 @@ in {
         done
         echo ""
         echo "Secrets:"
-        for s in ${cfg.zaiApiKeyFile} ${cfg.context7ApiKeyFile}; do
+        for s in ${cfg.context7ApiKeyFile}; do
           if [ -f "$s" ] && [ -s "$s" ]; then
             echo "  ✓ $s"
           else
@@ -305,18 +290,12 @@ in {
       Status:     `ai-tools-status`
       | Provider | Endpoint | Key Source | Tools |
       |----------|----------|------------|-------|
-      | Z.AI (Anthropic) | api.z.ai/api/anthropic | sops-nix | Droid |
-      | Z.AI (OpenAI) | api.z.ai/api/coding/paas/v4 | sops-nix | OpenCode, Crush |
       | K8s AI Gateway | ai-inference-gateway:8080/v1 | None (internal) | OpenCode, Crush, Droid |
       | NVIDIA NIM | integrate.api.nvidia.com/v1 | sops-nix | OpenCode, Crush, Droid |
       | LM Studio | 127.0.0.1:1234/v1 | None (local) | OpenCode, Crush |
       | llama.cpp | 127.0.0.1:1235/v1 | None (local) | OpenCode |
       | Server | Type | Purpose | All Tools |
       |--------|------|---------|-----------|
-      | zai-mcp-server | stdio | Z.AI image/video/analysis | Yes |
-      | web-search-prime | HTTP | Z.AI web search | Yes |
-      | web-reader | HTTP | Z.AI URL reader | Yes |
-      | zread | HTTP | Z.AI GitHub repo reader | Yes |
       | filesystem | stdio | Local filesystem access | Yes |
       | git | stdio | Git operations | Yes |
       | fetch | stdio | Web fetching | Yes |
@@ -335,11 +314,10 @@ in {
       |------|---------|--------|
       | Crush | `crush` | npx @charmland/crush@latest |
       All keys managed via sops-nix secrets:
-      - zai-api-key → /run/secrets/zai-api-key
       - context7-api-key → /run/secrets/context7-api-key
       - nvidia-api-key → /run/secrets/nvidia-api-key
       Keys are loaded into shell environment (fish/bash) and referenced
-      in configs at generation time. Z.AI HTTP servers use Bearer tokens.
+      in configs at generation time. HTTP servers use Bearer tokens.
     '';
   };
 }
