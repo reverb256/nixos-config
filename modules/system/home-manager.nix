@@ -168,6 +168,33 @@ in
           ${pkgs.alacritty}/bin/alacritty migrate -c "$HOME/.config/alacritty/alacritty.toml" 2>/dev/null || true
         fi
       '';
+
+      # ── Self-healing HM-ownership drift guard ──────────────────
+      # Root cause of recurring stylix/dotfile drift: HM-owned dotfiles get
+      # frozen as plain 0444 files (manual edit, failed activation) and HM
+      # can no longer overwrite/relink them on switch — so they shadow the
+      # generated stylix version forever. This guard detects any known
+      # HM-managed dotfile that is a REGULAR FILE (not a symlink into the
+      # store generation), makes it writable, and warns. With write perms,
+      # HM's own activation reclaims it (moves to .hm-backup, relinks from
+      # store) on the SAME switch. Never deletes — safe by design.
+      # List = files HM generates via programs.* / xdg.configFile / stylix.
+      home.activation.healHMDrift = ''
+        for f in \
+          "$HOME/.config/starship.toml" \
+          "$HOME/.config/alacritty/alacritty.toml" \
+          "$HOME/.config/btop/btop.conf" \
+          "$HOME/.config/fish/config.fish" \
+          "$HOME/.config/gtk-3.0/gtk.css" \
+          "$HOME/.config/gtk-4.0/gtk.css" \
+          "$HOME/.config/lazygit/config.yml" \
+          "$HOME/.config/kitty/kitty.conf" ; do
+          if [ -e "$f" ] && [ ! -L "$f" ]; then
+            echo "healHMDrift: $f drifted from HM (plain file) — un-freezing so HM can reclaim it"
+            chmod u+w "$f" 2>/dev/null || true
+          fi
+        done
+      '';
     };
   };
 }
