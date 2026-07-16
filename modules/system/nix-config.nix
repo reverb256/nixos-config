@@ -90,6 +90,10 @@
     "nodejs-slim-20.20.2"
     "pnpm-10.29.2"
     "vesktop-1.6.5"
+    # vesktop pulls electron-40.10.5 which nixpkgs marks insecure; permit it so
+    # the zephyr build realises vesktop. Added 2026-07-16 after the cache.nixos.org
+    # stall fix (edde17f0) unblocked evaluation and surfaced this real error.
+    "electron-40.10.5"
   ];
 
   nixpkgs.config.allowUnfreePredicate = pkg:
