@@ -49,6 +49,10 @@ in
       nixpkgs.config.permittedInsecurePackages = [
         "pnpm-10.29.2"
         "vesktop-1.6.5"
+        # vesktop pulls electron-40.10.5 (EOL, marked insecure); HM has its own
+        # nixpkgs config so the system-level permit in nix-config.nix doesn't
+        # reach it. Added 2026-07-16.
+        "electron-40.10.5"
       ];
 
       imports =
