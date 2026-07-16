@@ -113,7 +113,7 @@
     # HERMES_VOICE_TTS=1 (speak replies) as its native "voice on by default"
     # hook. No config.yaml key does this in hermes-agent 0.18.x.
     ${lib.optionalString cfg.voiceAutoStart
-      "VOICE_ARGS=''--set HERMES_VOICE 1 --set HERMES_VOICE_TTS 1''"}
+      "VOICE_ARGS='--set HERMES_VOICE 1 --set HERMES_VOICE_TTS 1'"}
     ${lib.optionalString (!cfg.voiceAutoStart) "VOICE_ARGS=''"}
 
     for bin in ${hermesPkg}/bin/*; do
