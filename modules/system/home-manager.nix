@@ -80,6 +80,12 @@ in
         ../../modules/home-manager/editorconfig.nix
         ../../modules/home-manager/btop.nix
         ../../modules/home-manager/noctalia-stylix.nix
+        # Wires the removeStaleNoctaliaThemes activation so frozen v4
+        # noctalia.* orphans (alacritty theme, gtk css, btop theme, qt
+        # colors, niri kdl, telegram theme, scroll) are deleted on switch
+        # and can no longer bypass stylix. Was previously dead code
+        # (never imported) — see stylix audit 2026-07-16.
+        ../../modules/home-manager/stylix-bridges.nix
       ]
       # niri-config only on hosts with the niri HM module
       ++ lib.optional (hostName == "zephyr" || hostName == "sentry")
@@ -93,6 +99,24 @@ in
         inherit (config.stylix) base16Scheme;
         inherit (config.stylix) image;
         targets.zen-browser.profileNames = ["default"];
+
+        # ── Explicit target empowerment (version-bump-proof) ───────
+        # autoEnable is false system-wide, so with autoImport/followSystem
+        # the HM targets are still auto-enabled by stylix's HM module ONLY
+        # when the program is installed. That dependency chain is fragile
+        # (a stylix rev bump or a mkForce can silently drop theming).
+        # Explicitly empower every target we actually run so the theme is
+        # guaranteed regardless of auto-detect. Terminal-app targets live
+        # in the HM stylix namespace (NOT config.stylix.targets.* at the
+        # NixOS level, which only carries system targets like lightdm).
+        targets.starship.enable = true;
+        targets.alacritty.enable = true;
+        targets.kitty.enable = true;
+        targets.fish.enable = true;
+        targets.btop.enable = true;
+        targets.lazygit.enable = true;
+        targets.gtk.enable = true;
+        targets.qt.enable = true;
       };
 
       # CopyQ clipboard manager (replaces cliphist)
