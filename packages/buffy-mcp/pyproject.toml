@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "buffy-mcp"
+version = "0.1.0"
+description = "Buffy — local port of Freebuff tool primitives (file picker, code search, bash, browser, docs). No cloud egress."
+requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [{ name = "Buffy Team" }]
+
+[tool.setuptools.packages.find]
+where = ["src"]
