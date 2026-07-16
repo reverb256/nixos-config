@@ -1,19 +1,16 @@
-system: "base16"
-name: "Osaka Jade"
-author: "Omarchy (basecamp)"
-variant: "dark"
+system: base16
+name: Osaka Jade
+author: Omarchy (basecamp)
+variant: dark
 palette:
-  # Backgrounds (progressively lighter surfaces)
   base00: "#111c18"
   base01: "#1d2b25"
   base02: "#23372B"
   base03: "#3a4f43"
-  # Foregrounds (progressively lighter text)
   base04: "#8a9479"
   base05: "#C1C497"
   base06: "#E3E2C4"
   base07: "#F6F5DD"
-  # Accent hues (red, orange, yellow, green, cyan, blue, magenta, muted-red)
   base08: "#FF5345"
   base09: "#db9f9c"
   base0A: "#E5C736"
