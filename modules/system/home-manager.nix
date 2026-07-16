@@ -66,6 +66,7 @@ in
         # ../../modules/home-manager/obsidian.nix  # Temporarily disabled - stylix integration issue
         ../../modules/home-manager/opencode.nix
         ../../modules/home-manager/firefox-pwa-apps.nix
+        ../../modules/home-manager/freebuff-desktop.nix
         ../../modules/home-manager/alacritty.nix
         ../../modules/home-manager/hermes-skin.nix
         ../../modules/home-manager/icon-theme.nix
