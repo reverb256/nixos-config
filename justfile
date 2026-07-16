@@ -132,6 +132,11 @@ git-push:
 deploy host="all":
     #!/usr/bin/env bash
     set -euo pipefail
+    # G4 gate: confirm source-of-truth + nexus builder agree on canonical before building.
+    {{FLAKE}}/scripts/preflight-check.sh 2>&1 | sed 's/^/  [preflight] /' || {
+        echo "Preflight BLOCKED deploy (nexus/local drift or in-flight build). Fix and retry." >&2
+        exit 1
+    }
     echo "Deploying from $(cd {{FLAKE}} && git rev-parse --abbrev-ref HEAD) ($(cd {{FLAKE}} && git rev-parse --short HEAD))"
     echo ""
     if [ "{{host}}" = "all" ]; then
@@ -157,7 +162,11 @@ deploy host="all":
             echo "done"
         else
             # Building for a REMOTE host (nexus/forge/sentry) from local (zephyr)
-            # Offload build to nexus to avoid OOM on zephyr
+            # Offload build to nexus to avoid OOM on zephyr.
+            # PIPELINE INTEGRITY: nexus is a build executor only — force its
+            # /etc/nixos to the canonical ref BEFORE building so the produced
+            # toplevel reflects origin/main, never nexus's drifted local checkout.
+            ssh nexus "bash --norc --noprofile -c 'set -e; cd /etc/nixos; git fetch origin main 2>&1 | tail -1; git reset --hard origin/main 2>&1 | tail -1'" 2>&1 | tail -1
             OUT=$(ssh nexus "cd /etc/nixos && nix build --no-link --print-out-paths '.#nixosConfigurations.$host.config.system.build.toplevel'" 2>/dev/null) || {
                 echo "Build failed for $host"; exit 1
             }
@@ -204,8 +213,20 @@ deploy-nexus host:
     #!/usr/bin/env bash
     set -euo pipefail
     HOST="{{host}}"
+    # FOOTGUN GUARD (G3): zephyr's colmena node has targetHost=null, which
+    # colmena interprets as "deploy to localhost (wherever colmena runs)".
+    # Since this runs ON nexus, 'just deploy-nexus zephyr' would apply
+    # ZEPHYR'S CONFIG TO NEXUS. Hard-refuse zephyr and the all-aggregate.
+    if [ "$HOST" = "zephyr" ] || [ "$HOST" = "all" ]; then
+        echo "ERROR: 'just deploy-nexus $HOST' would apply config to nexus (zephyr node has targetHost=null)." >&2
+        echo "       Use 'just deploy zephyr' (builds on nexus, activates on zephyr) instead." >&2
+        exit 1
+    fi
     SESSION="deploy-nexus-${HOST}"
     LOG="/var/log/colmena-deploy-${HOST}.log"
+    # PIPELINE INTEGRITY (G2): nexus evaluates the colmena hive from its LOCAL
+    # /etc/nixos. Force it to the canonical ref so the hive matches origin/main.
+    ssh nexus "bash --norc --noprofile -c 'set -e; cd /etc/nixos; git fetch origin main 2>&1 | tail -1; git reset --hard origin/main 2>&1 | tail -1'" 2>&1 | tail -1
     # Use the flake's OWN colmena app (.#colmena = 0.5.0-pre built from
     # flake.nix colmena input). Using 'nixpkgs#colmena' drifts to the
     # channel-pinned 0.4.0 binary, which cannot evaluate a 0.5.0-style
@@ -264,13 +285,18 @@ deploy-nexus-stop host:
 
 # Convenience shortcuts: deploy from nexus
 deploy-nexus-zephyr:
-    just deploy-nexus zephyr
+    # zephyr must NOT use colmena-on-nexus (targetHost=null footgun) — route to correct path.
+    just deploy zephyr
 deploy-nexus-forge:
     just deploy-nexus forge
 deploy-nexus-sentry:
     just deploy-nexus sentry
 deploy-nexus-all:
-    just deploy-nexus all
+    # 'all' includes zephyr, which is unsafe via colmena-on-nexus (G3). Deploy each host by its correct path.
+    just deploy nexus
+    just deploy forge
+    just deploy sentry
+    just deploy zephyr
 
 deploy-bg target="all":
     #!/usr/bin/env bash
