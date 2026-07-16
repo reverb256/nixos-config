@@ -972,4 +972,4 @@ The following items in this roadmap are stale and no longer reflect current infr
 - Timeline Week 1-9: Cluster has been running 19+ days past initial K3s deploy
 - NVIDIA device plugin Forge 0 GPUs: Forge now has NVIDIA GPUs registered
 
-Current verified state: See ~/brain/STATUS.md (2026-04-24 audit)
+Current verified state: See `infrastructure-docs/` for the 2026-04-24 audit notes (the `~/brain/` vault was retired during the 2026-07-16 workspace cleanup).
