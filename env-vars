@@ -137,11 +137,6 @@ declare -x QT_MEDIA_BACKEND="gstreamer"
 declare -x QT_PLUGIN_PATH="/etc/profiles/per-user/j_kro/lib/qt-5.15.18/plugins:/etc/profiles/per-user/j_kro/lib/qt-6/plugins:/home/j_kro/.local/share/flatpak/exports/lib/qt-5.15.18/plugins:/home/j_kro/.local/share/flatpak/exports/lib/qt-6/plugins:/var/lib/flatpak/exports/lib/qt-5.15.18/plugins:/var/lib/flatpak/exports/lib/qt-6/plugins:/home/j_kro/.nix-profile/lib/qt-5.15.18/plugins:/home/j_kro/.nix-profile/lib/qt-6/plugins:/nix/profile/lib/qt-5.15.18/plugins:/nix/profile/lib/qt-6/plugins:/home/j_kro/.local/state/nix/profile/lib/qt-5.15.18/plugins:/home/j_kro/.local/state/nix/profile/lib/qt-6/plugins:/etc/profiles/per-user/j_kro/lib/qt-5.15.18/plugins:/etc/profiles/per-user/j_kro/lib/qt-6/plugins:/nix/var/nix/profiles/default/lib/qt-5.15.18/plugins:/nix/var/nix/profiles/default/lib/qt-6/plugins:/run/current-system/sw/lib/qt-5.15.18/plugins:/run/current-system/sw/lib/qt-6/plugins"
 declare -x QT_QPA_GL_VERSION="2"
 declare -x QT_QPA_PLATFORM="wayland;xcb"
-# 2026-07-15: removed QT_QPA_PLATFORMTHEME="qt5ct" and QT_STYLE_OVERRIDE="kvantum".
-# Kvantum/qt5ct are replaced by stylix's KDE+Qt targets (stylix.nix now sets
-# targets.kde.enable = true; targets.qt.enable = true), which drive Qt theming
-# natively. Forcing qt5ct/kvantum shadowed stylix and caused Dolphin's
-# unreadable folder-view colors. Let stylix own Qt theming.
 declare -x RANLIB="ranlib"
 declare -x READELF="readelf"
 declare -x SANE_CONFIG_DIR="/etc/sane-config"
