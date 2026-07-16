@@ -9,19 +9,24 @@
 #
 # wrapType2 provides a proper FHS environment (bash + system libs) at runtime.
 # Verified: no interpreter/missing-lib errors; Electron starts.
+#
+# The download URL (freebuff.com/api/desktop/download/linux) redirects to the
+# latest AppImage. The sha256 pins the current version. To upgrade, re-fetch
+# and update the hash.
 
 let
-  version = "0.0.18";
-  # Version pinned to the GitHub release URL. To bump, update version + sha256.
-  # The sha256 is the nix hash of the downloaded AppImage.
-  src = fetchurl {
-    url = "https://github.com/CodebuffAI/codebuff-community/releases/download/v${version}/Freebuff-${version}-linux-x86_64.AppImage";
-    sha256 = "sha256-MP929iWwqeiNv3V+ksl9/HvpFefFcv3b0mZSK2AUUEs=";
-  };
   pname = "freebuff-desktop";
+  src = fetchurl {
+    url = "https://freebuff.com/api/desktop/download/linux";
+    # Hash of the AppImage downloaded 2026-07-14 (~v0.0.22).
+    # To update: nix build .#freebuff-desktop; copy the expected hash from the
+    # failed build output.
+    sha256 = "sha256-zhZgkBVRLkx7IRNT1WGIYAzm4On4mAXV4gc+Z6CXmHg=";
+  };
 in
 appimageTools.wrapType2 {
-  inherit pname version src;
+  inherit pname src;
+  version = "0.0.22"; # approximate; actual version is determined by the API
   extraPkgs = pkgs: with pkgs; [
     bash
     glib
