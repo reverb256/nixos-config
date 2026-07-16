@@ -8,13 +8,10 @@
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
 
-    ZAI_KEY_PATH="${cfg.zaiApiKeyFile}"
-    ZAI_API_KEY="$(cat $ZAI_KEY_PATH 2>/dev/null || echo)"
 
     mkdir -p "/home/${cfg.user}/.pi/agent"
 
     # Write mcp.json
-    ${pkgs.jq}/bin/jq -n       --arg zai_key "$ZAI_API_KEY"       --arg gateway_base "${gatewayUrl}/v1"       '{
         "settings": {"idleTimeout": 10, "directTools": false},
         "mcpServers": {
           ${mkMcpServersJson {keyMode = "env";}}
@@ -28,9 +25,7 @@
             "baseUrl": ($gateway_base),
             "api": "openai-completions",
             "apiKey": "***",
-            "models": [
-              {"id": "glm-5.1", "name": "GLM-5.1"},
-              {"id": "glm-5-turbo", "name": "GLM-5 Turbo"},
+            "models": [,,
               {"id": "qwen/qwen3.5-397b-a17b", "name": "Qwen3.5-397B"}
             ]
           },

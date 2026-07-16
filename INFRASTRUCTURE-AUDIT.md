@@ -102,6 +102,14 @@ Three K8s secrets defined in Nix modules but **never mounted** (removed sidecar 
 - Removed alert-webhook stub deployment — AlertManager logs directly via Alloy → Loki
 - Fixed privacy-filter NetworkPolicy: allows ingress from `ai-inference` and `ingress-system` namespaces
 
+### Cleanup Done (2026-07-15)
+
+- Deleted 4 Z.AI MCP servers (web-search-prime, web-reader, zread, @z_ai/mcp-server stdio).
+  Replaced with **buffy-mcp** (packages/buffy-mcp) — local FastMCP server providing file_picker,
+  code_search, bash, read_files, write_file, tmux_run, http_fetch (LAN-only), web_search (LAN SearXNG).
+- Removed runtime-dead `services.hermes-cli.apiKeyFile` option and host configs (forge/sentry/zephyr)
+  — option was the wiring path for the deleted Z.AI MCP bearer auth and is now obsolete.
+
 ---
 
 ## MCP Infrastructure — 2026-05-01
@@ -113,15 +121,20 @@ Three K8s secrets defined in Nix modules but **never mounted** (removed sidecar 
 | kubernetes-mcp | Deployment | infra | nexus | SSE :8080 | Running |
 | nixos-cluster-mcp | DaemonSet | infra | all 4 | SSE :8081 | Running (4 pods) |
 
-### Claude Code MCP (18 servers)
+### Claude Code MCP
+
+> **Updated 2026-07-15.** 4 Z.AI MCP servers (web-search-prime, web-reader, zread, @z_ai/mcp-server)
+> were deleted and replaced with **buffy-mcp** (local FastMCP, no cloud egress). Z.AI HTTP servers
+> had bearer-token issues per the May audit; buffy-mcp replaces them with LAN-local SearXNG-backed
+> web_search and http_fetch (with redirect-chain LAN-only enforcement).
 
 | Status | Count | Servers |
 |--------|-------|---------|
-| Working | 11 | context-mode, context7, git, fetch, filesystem, zread, sonatype-guide, chrome-devtools, playwright, kubernetes, nixos-cluster |
-| Broken | 7 | nixos, grep-app, searxng, gateway, web-reader, pinecone, web-search-prime |
+| Working (2026-07-15) | 12 | context-mode, context7, git, fetch, filesystem, sonatype-guide, chrome-devtools, playwright, kubernetes, nixos-cluster, buffy-mcp, gateway |
 | Needs auth | 2 | sentry, gitlab |
+| Removed 2026-07-15 | 4 | web-reader, pinecone, web-search-prime, zread |
 
-### Hermes MCP (6 servers)
+### Hermes MCP
 
 | Server | Transport | Status |
 |--------|-----------|--------|
@@ -129,6 +142,7 @@ Three K8s secrets defined in Nix modules but **never mounted** (removed sidecar 
 | bsky | stdio | Working |
 | casdoor | stdio bridge | Working |
 | nixos-cluster | stdio | Working |
+| buffy-mcp | stdio (nix) | Working (added 2026-07-15) |
 | searxng | stdio | Working |
 | kubernetes | SSE | Working |
 
@@ -198,6 +212,7 @@ Three K8s secrets defined in Nix modules but **never mounted** (removed sidecar 
 | kubernetes-mcp | — | Running | — | — |
 | nixos-cluster-mcp | Running | Running | Running | Running |
 | nixkube CSI | Running | Running | Running | Running |
+| buffy-mcp | Running | Running | Running | Running (added 2026-07-15) |
 | **LLM Servers** | | | | |
 | llama-server-zephyr | Running | — | — | — |
 | llama-server-sentry (AMD) | — | — | — | Running |
@@ -227,7 +242,7 @@ OAuth via Casdoor SSO (Caddy forward_auth). Grafana also has native `GF_AUTH_GEN
 
 ---
 
-**Last Updated:** 2026-05-14
+**Last Updated:** 2026-07-15
 
 ---
 
@@ -296,6 +311,14 @@ Funnel is managed entirely through the K8s Tailscale operator. Host-level funnel
 | `funnel-dev.yaml` | Dev namespace ingresses (api, portal, mcp) |
 | `funnel-prod.yaml` | Prod namespace ingresses (api, portal) |
 
+## Recent Infrastructure Changes — 2026-07-15
+
+| Change | Description |
+|--------|-------------|
+| buffy-mcp shipped | Local FastMCP server mirroring Freebuff tool primitives (8 tools, no cloud egress) |
+| Z.AI MCP servers deleted | web-search-prime, web-reader, zread, @z_ai/mcp-server — replaced by buffy-mcp |
+| hermes-cli.apiKeyFile removed | Option and host configs cleaned up (orphan from Z.AI MCP deletion) |
+
 ## Recent Infrastructure Changes — 2026-05-14
 
 | Change | Description |
@@ -307,4 +330,4 @@ Funnel is managed entirely through the K8s Tailscale operator. Host-level funnel
 | Corporate + influence ingestion modules | 2,850 lines built across lobbying, procurement, execs, actors |
 | Katzilla references purged | All code + docs references removed |
 
-**Last Updated:** 2026-05-14
+**Last Updated:** 2026-07-15

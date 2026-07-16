@@ -8,38 +8,7 @@
   cluster = config.networking.cluster;
 in {
   services = {
-#    hermes-cli = {
-#      enable = lib.mkForce false;
-#      model = "base.en";
-#      apiKeyFile = "/run/secrets/zai-api-key";
-#      nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
-#      casdoorJwtFile = "/run/secrets/casdoor-hermes-jwt";
-#      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
-#      # openrouterApiKeyFile removed — no longer used
-#      kilocodeApiKeyFile = "/run/secrets/kilo-api-key";
-#      geminiApiKeyFile = "/run/secrets/gemini-api-key";
-#      hfTokenFile = "/run/secrets/huggingface-token";
-#      githubTokenFile = "/run/secrets/github-token";
-#      settings = {
-#        model = {
-#          provider = "gateway";
-#          default = "opencode-go/deepseek-v4-flash";
-#        };
-#        toolsets = ["all"];
-#        terminal = {
-#          backend = "local";
-#          timeout = 180;
-#        };
-#        memory = {
-#          memory_enabled = true;
-#          user_profile_enabled = true;
-#        };
-#        compression = {
-#          enabled = true;
-#          threshold = 0.9;
-#        };
-#      };
-#    };
+
     k3s-cluster = {
       enable = lib.mkForce false;
       nvidia.enable = lib.mkForce false;
@@ -302,7 +271,6 @@ in {
       enable = true;
       user = "j_kro";
       nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
-      casdoorJwtFile = "/run/secrets/casdoor-hermes-jwt";
       opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
       opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
       gatewayUrl = "http://${cluster.hosts.zephyr.ip}:${toString cluster.kubernetes.nodePorts.ai-inference-gateway}/v1";

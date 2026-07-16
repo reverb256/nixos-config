@@ -9,27 +9,17 @@ in {
   mkCrushConfig = pkgs.writeShellScript "generate-crush-config" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
-    ZAI_KEY_PATH="${cfg.zaiApiKeyFile}"
-    ZAI_API_KEY="$(cat $ZAI_KEY_PATH 2>/dev/null || echo)"
     CTX7_KEY_PATH="${cfg.context7ApiKeyFile}"
     CONTEXT7_API_KEY="$(cat $CTX7_KEY_PATH 2>/dev/null || echo)"
     NVIDIA_NIM_KEY_PATH="${cfg.nvidiaNimApiKeyFile}"
     NVIDIA_NIM_API_KEY="$(cat $NVIDIA_NIM_KEY_PATH 2>/dev/null || echo)"
     ${pkgs.jq}/bin/jq -n \
-      --arg zai_key "$ZAI_API_KEY" \
       --arg ctx7_key "$CONTEXT7_API_KEY" \
       --arg nvidia_key "$NVIDIA_NIM_API_KEY" \
-      --arg zai_base "${gatewayUrl}/v1" \
-      --arg gateway_base "${gatewayUrl}/v1" \
+        --arg gateway_base "${gatewayUrl}/v1" \
       --arg nvidia_base "${nvidiaNimBaseUrl}" \
       '{
-        "providers": {
-          "zai": {
-            "id": "zai",
-            "name": "ZAI Provider",
-            "base_url": $zai_base,
-            "api_key": $zai_key
-          },
+        "providers":,
           "nvidia-nim": {
             "id": "nvidia-nim",
             "name": "NVIDIA NIM",
