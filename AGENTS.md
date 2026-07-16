@@ -581,7 +581,6 @@ These are **flake inputs** defined in `flake.nix` (line ~106), NOT NixOS modules
 
 | Provider | Base URL | Models | Purpose |
 |----------|----------|--------|---------|
-| zai-coding-plan | api.z.ai | GLM-5.1, GLM-5, GLM-4.6, etc. | Primary cloud models |
 | local-vllm | 10.1.1.110:8040 | Qwen3.5-2B-AWQ | Fast local (Zephyr 3060Ti) |
 | local-llama-zephyr | 10.1.1.110:1237 | Qwen3.6-35B-A3B | Large local (Zephyr 3090) |
 | local-llama-sentry | 10.1.1.140:1235 | Qwen3.5-4B | Medium local (Sentry ROCm) |

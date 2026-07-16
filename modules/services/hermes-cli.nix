@@ -228,10 +228,6 @@ in {
     # config.lib.mcp-registry.hermesMcpYaml before mcp-registry was
     # enabled (Nix eval failure).
 
-    # the cluster — no Z.AI MCP servers, no Z.AI LLM provider, no Z.AI
-    # secrets. The remaining LLM providers (opencode-zen, opencode-go,
-    # nvidia, llama-cpp local) each have their own apiKeyFile option below.
-
     nvidiaApiKeyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;

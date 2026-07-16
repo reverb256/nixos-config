@@ -14,7 +14,7 @@
 > sops envelope format), so they are out of scope for this migration and
 > must NOT be enabled until those secrets are re-keyed. The ~6 Hermes
 > bootstrap secrets that ARE enabled (`nvidia`, `opencode`/zen,
-> `opencode-go`, `zai`, `casdoor-hermes-jwt`, `telegram-bot-token`)
+> `opencode-go`, `casdoor-hermes-jwt`, `telegram-bot-token`)
 > decrypt successfully with zephyr's age key; the other three hosts
 > (`forge`, `nexus`, `sentry`) remain at the default
 > `enable = false`. The historical 0/135 legacy-files decrypt mismatch is
@@ -42,7 +42,7 @@
   - `nix eval ...#nixosConfigurations.zephyr.config.sops.secrets
     --apply 'x: builtins.attrNames x'` returns the **~6 Hermes secrets**
     (`nvidia-api-key`, `opencode-api-key`, `opencode-go-api-key`,
-    `zai-api-key`, `casdoor-hermes-jwt`, `telegram-bot-token`) — the
+    `casdoor-hermes-jwt`, `telegram-bot-token`) — the
     only set that decrypts cleanly with zephyr's age key. Enabling the
     other feature flags is BLOCKED until their secrets are re-keyed.
 - **Canonical recipient:** `/etc/nixos/.sops.yaml` (git-tracked,
@@ -150,7 +150,6 @@ Flow:
    - `ai/nvidia-api-key` → `/run/secrets/nvidia-api-key`
    - `ai/opencode-api-key` → `/run/secrets/opencode-api-key`
    - `ai/opencode-go-api-key` → `/run/secrets/opencode-go-api-key`
-   - `ai/zai-api-key` → `/run/secrets/zai-api-key`
    - `k8s/casdoor-hermes-jwt` → `/run/secrets/casdoor-hermes-jwt`
    - `ai/telegram-bot-token` → `/run/secrets/telegram-bot-token`
      (re-keyed to zephyr's pubkey; `format = "yaml"`, nested
@@ -159,7 +158,6 @@ Flow:
      manifest name `ai/telegram-bot-token`).
 2. **The `hermes-cli` module wires** these paths into Hermes via the
    `*ApiKeyFile` options:
-   - `apiKeyFile = "/run/secrets/zai-api-key"`
    - `nvidiaApiKeyFile = "/run/secrets/nvidia-api-key"`
    - `casdoorJwtFile = "/run/secrets/casdoor-hermes-jwt"`
    - `opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key"`
@@ -373,9 +371,8 @@ all peer hosts before running, see WARNING in the
   now decrypt successfully via sops-nix at activation.
 - `/etc/nixos/` git tree is dirty (uncommitted); `nix` prints a warning
   but `flake check` itself succeeds (rc=0).
-- `/etc/nixos/kubernetes/modules/ai-inference.nix` mentions
-  `secrets/ai-gateway-zai-api-key.age` in **comments only** — those
-  references are narrative, not live.
+- Z.AI API key references removed 2026-07-15 — `zai-api-key` secret and all
+  `apiKeyFile` wiring deleted. Z.AI provider fully gone from the cluster.
 - `format = "binary"` means each `.yaml` secret stores its sops data as
   a JSON-encoded blob (`{"data":"ENC[...]"}`), not as YAML keys. Mixing
   plaintext into YAML-mode storage produces parse errors during
@@ -477,7 +474,7 @@ nix --extra-experimental-features 'nix-command flakes' \
     eval /etc/nixos#nixosConfigurations.zephyr.config.sops.secrets \
     --apply 'x: builtins.attrNames x'
 # → ~6 enabled secret names across aiServices/kubernetes only
-#   (nvidia-api-key, opencode-api-key, opencode-go-api-key, zai-api-key,
+#   (nvidia-api-key, opencode-api-key, opencode-go-api-key,
 #    casdoor-hermes-jwt, telegram-bot-token)
 
 nix --extra-experimental-features 'nix-command flakes' \
