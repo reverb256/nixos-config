@@ -2,7 +2,7 @@
 #
 # Installs the hermes CLI tool for interactive use on any host.
 # Each host gets its own ~/.hermes/ state directory with unified config
-# pointing to the Z.AI provider (same model, tools, personality everywhere).
+# (same model, tools, personality everywhere via Nix-managed providers).
 #
 # On hosts where services.hermes-agent is enabled, this module only installs
 # the package and fish completions - the hermes-agent module handles HERMES_HOME
@@ -10,7 +10,6 @@
 #
 # Usage:
 #   services.hermes-cli.enable = true;
-#   services.hermes-cli.apiKeyFile = config.age.secrets.zai-api-key.path;
 {
   config,
   lib,
@@ -121,11 +120,9 @@
   # /run/current-system at pure-eval time.
   wrappedBinPath = "${hermesPkgWrapped}/bin/hermes";
 
-  # apiKeyFile is a nullOr path (default null). The ExecStart script needs a
-  # plain string it can interpolate at build time without coercing null.
-  # When unset, resolve to "" so the runtime `if [ -n ... ]` guard handles
-  # the "no key" case cleanly instead of Nix crashing on toString null.
-  apiKeyPath = if cfg.apiKeyFile != null then cfg.apiKeyFile else "";
+  # apiKeyFile/ZAI_API_KEY removed 2026-07-15. Z.AI is fully gone from the
+  # cluster — no Z.AI MCP servers, no Z.AI LLM provider, no Z.AI secrets.
+  # buffy-mcp + local bridges don't need internet bearer auth.
 
   # Use base hermes-agent package without WhatsApp bridge (stub removed)
   # WhatsApp functionality temporarily disabled
@@ -133,128 +130,70 @@
   # If hermes-agent is enabled, use its state dir. Otherwise, use user home.
   useAgentStateDir = hermesAgentCfg.enable or false;
 
-  # Declarative MCP server configuration — sourced from mcp-server-registry
-  # If registry is enabled, use its generated config; otherwise fall back to inline defaults
-  registryCfg = config.services.mcp-servers or {};
-  useRegistry = false; # Disabled until mcp-servers exports hermesMcpYaml
+  # ── MCP server list: registry is the single source of truth ────────────
+  # The legacy in-tree fallback block (~75 lines, hardcoded MCP servers)
+  # was deleted 2026-07-15 along with the dropped MCP servers (Z.AI +
+  # Casdoor bridge). Add/remove MCP servers in modules/services/mcp-server-registry.nix
+  # ONLY — this module consumes config.lib.mcp-registry.hermesMcpYaml.
+  useRegistry = config.services.mcp-registry.enable or false;
 
-  # Inline fallback MCP servers (used when registry is not enabled)
-  fallbackMcpServersBlock = pkgs.writeText "hermes-mcp-servers.yaml" ''
-    mcp_servers:
-      kubernetes:
-        url: http://kubernetes-mcp.infra.svc.cluster.local:8080/mcp
-        connect_timeout: 30
-        timeout: 60
-      lightpanda:
-        command: lightpanda
-        args:
-          - mcp
-        connect_timeout: 30
-        timeout: 60
-      nixos-cluster:
-        command: nix
-        args:
-          - run
-          - /etc/nixos#nixos-cluster-mcp
-        connect_timeout: 30
-        timeout: 60
-      selfhosted-tools:
-        command: /data/agents/mcp-bridges/selfhosted-mcp.sh
-        connect_timeout: 30
-        timeout: 60
-      github:
-        command: /data/agents/mcp-bridges/github-mcp.sh
-        connect_timeout: 30
-        timeout: 120
-      git:
-        command: /data/agents/mcp-bridges/git-mcp.sh
-        connect_timeout: 30
-        timeout: 60
-      casdoor:
-        command: python3
-        args:
-          - /data/agents/mcp-bridges/casdoor-mcp-bridge.py
-        connect_timeout: 30
-        timeout: 60
-        description: Casdoor SSO/OIDC - application management (5 tools, Bearer auth)
-      context7:
-        command: /data/agents/mcp-bridges/context7-mcp.sh
-        connect_timeout: 30
-        timeout: 60
-      cua-driver:
-        command: /data/agents/mcp-bridges/cua-driver-mcp.sh
-        connect_timeout: 30
-        timeout: 60
-      yt-dlp:
-        command: /data/agents/mcp-bridges/yt-dlp-mcp.sh
-        connect_timeout: 15
-        timeout: 300
-        description: yt-dlp video/audio downloader — YouTube, X/Twitter, 1000+ sites (7 tools)
-      maplespike:
-        command: /data/agents/mcp-bridges/maplespike-mcp-std.sh
-        connect_timeout: 30
-        timeout: 120
-        enabled: true
-      agentmemory:
-        command: /data/agents/mcp-bridges/agentmemory-mcp.sh
-        connect_timeout: 30
-        timeout: 120
-        description: Agentmemory — 53 MCP tools for persistent coding memory
-      graphiti:
-        url: http://localhost:8000/mcp
-        connect_timeout: 30
-        timeout: 120
-        description: Graphiti temporal knowledge graph MCP server
-      sequential-thinking:
-        command: /data/agents/mcp-bridges/sequential-thinking-mcp.sh
-        connect_timeout: 30
-        timeout: 60
-        description: Sequential thinking — chain reasoning steps with continuity
+  # ruamel.yaml round-trip merge into Hermes config.yaml. Replaces the
+  # line-by-line parser which broke on:
+  #   - top-level `mcp_servers:` keys nested deeper in the document
+  #   - YAML comments / quoted strings containing "mcp_servers:"
+  #   - multi-line scalars / flow-style maps
+  # ruamel preserves comments, ordering, and key structure on round-trip.
+  mcpMergeScript = pkgs.writeText "hermes-mcp-merge.py" ''
+    import os
+    import shutil
+    import sys
+    import time
+    from ruamel.yaml import YAML
+
+    config_path = sys.argv[1]
+    mcp_path = sys.argv[2]
+
+    yaml = YAML()
+    yaml.indent(mapping=2, sequence=4, offset=2)
+    yaml.preserve_quotes = True
+
+    # config.yaml handling:
+    #   - missing or empty → start with empty dict (mcp_servers-only merge)
+    #   - parse error → BACKUP original to .bak.<ts> and BAIL. Silent
+    #     overwrite would WIPE the rest of the user's config.yaml
+    #     (providers, fallback_providers, smart_model_routing, etc.).
+    if os.path.exists(config_path):
+        try:
+            with open(config_path) as f:
+                data = yaml.load(f) or {}
+        except Exception as e:
+            ts = int(time.time())
+            backup = f"{config_path}.bak.{ts}"
+            shutil.copy2(config_path, backup)
+            print(f"[hermes-mcp] FATAL: config.yaml parse failed: {e}", file=sys.stderr)
+            print(f"[hermes-mcp] backed up to {backup}; refusing to overwrite", file=sys.stderr)
+            sys.exit(1)
+    else:
+        data = {}
+
+    # mcp block is a Nix store path produced by pkgs.writeText + mkHermesMcpServers.
+    # If it's malformed, that's a Nix bug — let the raw YAMLError propagate so the
+    # trace is honest. We still guard on missing file + empty mcp_servers mapping.
+    if not os.path.exists(mcp_path):
+        print(f"[hermes-mcp] FATAL: mcp block not found at {mcp_path}", file=sys.stderr)
+        sys.exit(1)
+    with open(mcp_path) as f:
+        mcp_data = yaml.load(f) or {}
+    if not mcp_data.get("mcp_servers"):
+        print(f"[hermes-mcp] FATAL: mcp block has no mcp_servers mapping", file=sys.stderr)
+        sys.exit(1)
+
+    if "mcp_servers" in mcp_data:
+        data["mcp_servers"] = mcp_data["mcp_servers"]
+
+    with open(config_path, "w") as f:
+        yaml.dump(data, f)
   '';
-
-  mcpServersBlock =
-    if useRegistry
-    then registryCfg.lib.mcp-registry.hermesMcpYaml
-    else fallbackMcpServersBlock;
-
-  # Python script to merge mcp_servers section into Hermes config.yaml
-  # Uses line-by-line parsing to avoid regex escape issues with Nix multiline strings
-  mcpMergeScript = pkgs.writeText "hermes-mcp-merge.py" (
-    builtins.concatStringsSep "\n" [
-      "import sys"
-      "config_path = sys.argv[1]"
-      "mcp_path = sys.argv[2]"
-      "with open(config_path) as f:"
-      "    lines = f.readlines()"
-      "with open(mcp_path) as f:"
-      "    mcp_block = f.read().strip()"
-      "# Strip existing mcp_servers section"
-      "in_mcp = False"
-      "filtered = []"
-      "for line in lines:"
-      "    # Detect top-level mcp_servers: key (not indented)"
-      "    if line.startswith('mcp_servers:') or line.startswith('mcp_servers: '):"
-      "        in_mcp = True"
-      "        continue"
-      "    if in_mcp:"
-      "        # Skip indented children (part of mcp_servers block)"
-      "        if line.startswith(' ') or line.startswith(chr(9)) or line.strip() == '':"
-      "            continue"
-      "        # Non-indented, non-empty line = next top-level section"
-      "        in_mcp = False"
-      "    filtered.append(line)"
-      "content = ''.join(filtered).rstrip()"
-      "# Insert new block before smart_model_routing or at end"
-      "marker = 'smart_model_routing:'"
-      "full = content.split(marker, 1)"
-      "if len(full) == 2:"
-      "    result = full[0] + mcp_block + chr(10) + chr(10) + marker + full[1]"
-      "else:"
-      "    result = content + chr(10) + chr(10) + mcp_block + chr(10)"
-      "with open(config_path, 'w') as f:"
-      "    f.write(result)"
-    ]
-  );
 in {
   options.services.hermes-cli = {
     enable = lib.mkEnableOption "Hermes Agent CLI for interactive use";
@@ -267,7 +206,7 @@ in {
 
     model = lib.mkOption {
       type = lib.types.str;
-      default = "glm-5.1";
+      default = "nvidia/nemotron-3-nano-30b-a3b";
       description = "Default model to use";
     };
 
@@ -282,12 +221,16 @@ in {
       description = "Agent personality (written to SOUL.md)";
     };
 
-    apiKeyFile = lib.mkOption {
-      type = lib.types.nullOr lib.types.path;
-      default = null;
-      description = "Path to sops-nix secret file containing ZAI_API_KEY";
-      example = "config.age.secrets.zai-api-key.path";
-    };
+    # Note: there is intentionally no `useRegistry` option. The systemd
+    # gate is derived directly from services.mcp-registry.enable (let
+    # binding below). An override option was removed 2026-07-15 because
+    # it created an edge case where hermes-cli could reference
+    # config.lib.mcp-registry.hermesMcpYaml before mcp-registry was
+    # enabled (Nix eval failure).
+
+    # the cluster — no Z.AI MCP servers, no Z.AI LLM provider, no Z.AI
+    # secrets. The remaining LLM providers (opencode-zen, opencode-go,
+    # nvidia, llama-cpp local) each have their own apiKeyFile option below.
 
     nvidiaApiKeyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
@@ -296,12 +239,6 @@ in {
       example = "config.age.secrets.nvidia-api-key.path";
     };
 
-    casdoorJwtFile = lib.mkOption {
-      type = lib.types.nullOr lib.types.path;
-      default = null;
-      description = "Path to sops-nix secret file containing Casdoor JWT for MCP";
-      example = "config.age.secrets.casdoor-hermes-jwt.path";
-    };
 
     opencodeGoApiKeyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
@@ -383,7 +320,7 @@ in {
             api_key_env = "OPENCODE_API_KEY";
             base_url = "https://opencode.ai/zen/v1";
             discover_models = true;
-            model = "nemotron-3-ultra-free";
+            model = "nvidia/nemotron-3-nano-30b-a3b";
           };
         }
       '';
@@ -393,7 +330,7 @@ in {
     managedFallbackProviders = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [];
-      example = ''["opencode-zen" "opencode-go" "zai" "nvidia"]'';
+      example = ''["opencode-zen" "opencode-go" "nvidia"]'';
       description = "Ordered list of fallback providers matching `fallback_providers:` in hermes config.yaml";
     };
   };
@@ -418,6 +355,12 @@ in {
                       # Create directory structure
                       mkdir -p "$HERMES_HOME"/{sessions,memories,skills,cron,logs}
 
+                      # Scaffold per-profile dirs so the 10-profile loop in
+                      # hermes-mcp-servers no longer no-ops. The dirs are
+                      # safe to leave empty; users populate ~/.hermes/profiles/
+                      # as they onboard new profiles.
+                      mkdir -p "$HERMES_HOME/profiles/"{analyst,backend-eng,frontend-eng,maplespike-eng-1,maplespike-eng-2,maplespike-eng-3,ops,researcher,writer}
+
                                             # Write SOUL.md if it doesn't exist
                       if [ ! -f "$HERMES_HOME/SOUL.md" ]; then
           cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
@@ -441,7 +384,15 @@ in {
     '';
 
     # Inject sops-nix secrets into Hermes config at boot
-    systemd.services.hermes-config-secrets = lib.mkIf (cfg.casdoorJwtFile != null) {
+    systemd.services.hermes-config-secrets = lib.mkIf (
+cfg.nvidiaApiKeyFile != null
+      || cfg.opencodeGoApiKeyFile != null
+      || cfg.opencodeZenApiKeyFile != null
+      || cfg.kilocodeApiKeyFile != null
+      || cfg.geminiApiKeyFile != null
+      || cfg.hfTokenFile != null
+      || cfg.githubTokenFile != null
+    ) {
       description = "Inject sops-nix secrets into Hermes config";
       after = ["network.target"];
       wantedBy = ["multi-user.target"];
@@ -469,28 +420,9 @@ in {
             exit 0
           fi
 
-          # Wait for sops-nix secret
-          for i in $(seq 1 30); do
-            if [ -f "${cfg.casdoorJwtFile}" ] && [ -s "${cfg.casdoorJwtFile}" ]; then
-              break
-            fi
-            sleep 1
-          done
-
-          if [ ! -f "${cfg.casdoorJwtFile}" ] || [ ! -s "${cfg.casdoorJwtFile}" ]; then
-            echo "[hermes-config] WARNING: Casdoor JWT not available"
-            exit 0
-          fi
-
-          JWT=$(cat "${cfg.casdoorJwtFile}")
-
-          # Inject Casdoor JWT into MCP server config
-          if grep -q 'casdoor:' "$HERMES_CONFIG"; then
-            sed -i "/^[[:space:]]*casdoor:/,/^[[:space:]]*\(connect_timeout\|timeout\|command\|url\):/{
-              s|Authorization: Bearer .*|Authorization: Bearer $JWT|
-            }" "$HERMES_CONFIG"
-            echo "[hermes-config] ✓ Injected Casdoor JWT"
-          fi
+          # Ensure all base_url entries point to gateway (prevents stale IPs)
+          # Casdoor JWT injection removed 2026-07-15 (casdoor MCP dropped —
+          # see modules/services/mcp-server-registry.nix + ACTION-ITEMS P2-5).
 
           # Ensure all base_url entries point to gateway (prevents stale IPs)
           GATEWAY_URL="${cfg.gatewayUrl}"
@@ -501,9 +433,7 @@ in {
           sed -i "s|base_url: http://\[IP_ADDRESS\]:8080/v1|base_url: $GATEWAY_URL|g" "$HERMES_CONFIG"
 
           # Enforce Z.AI coding plan endpoint (not pay-as-you-go /api/paas/v4)
-          sed -i "s|base_url: https://api\\.z\\.ai/api/paas/v4[^/]|base_url: https://api.z.ai/api/coding/paas/v4|g" "$HERMES_CONFIG"
           # Also catch the exact pay-as-you-go path without trailing chars
-          sed -i "s|base_url: https://api\\.z\\.ai/api/paas/v4$|base_url: https://api.z.ai/api/coding/paas/v4|g" "$HERMES_CONFIG"
 
           chown ${cfg.user}:users "$HERMES_CONFIG" 2>/dev/null || true
           chmod 600 "$HERMES_CONFIG" 2>/dev/null || true
@@ -566,14 +496,18 @@ in {
 
     # ── Declarative MCP server management ─────────────────────────
     # Merges Nix-defined mcp_servers into Hermes config.yaml at boot.
-    # API keys are injected from sops-nix secrets (ZAI_API_KEY).
-    systemd.services.hermes-mcp-servers = {
+    # API keys are injected from sops-nix secrets.
+    systemd.services.hermes-mcp-servers = lib.mkIf useRegistry {
       restartIfChanged = true;
-      description = "Inject declarative MCP servers into Hermes config";
-      after = ["network.target"];
+      description = "Inject declarative MCP servers into Hermes config (from mcp-server-registry)";
+      # Order matters: hermes-config-secrets populates ~/.hermes/.env from
+      # sops-nix secrets before this unit runs the merge.
+      after = ["network.target" "hermes-config-secrets.service"];
       wantedBy = ["multi-user.target"];
 
-      path = with pkgs; [python3 coreutils gnused];
+      # python3-with-ruamel for the ruamel.yaml round-trip merge script.
+      # python3-with-ruamel for the ruamel.yaml round-trip merge script.
+      path = with pkgs; [(python3.withPackages (p: [p.ruyaml])) coreutils gnused];
 
       serviceConfig = {
         Type = "oneshot";
@@ -603,37 +537,13 @@ in {
 
             echo "[hermes-mcp] Processing profile: $profile"
 
-            # Wait for ZAI API key
-            ${lib.optionalString (cfg.apiKeyFile != null) ''
-              for i in $(seq 1 30); do
-                if [ -f "${cfg.apiKeyFile}" ] && [ -s "${cfg.apiKeyFile}" ]; then
-                  break
-                fi
-                sleep 1
-              done
-            ''}
-
-            # Build mcp_servers block with injected API key.
-            # 2026-07-03: explicitly check that the path resolves to a real file
-            # before running cat. Two failure modes we tolerate:
-            #   1) cfg.apiKeyFile == null (option unset) → empty ZAI_KEY.
-            #   2) cfg.apiKeyFile set but sops-nix didn't provision the file
-            #      on this host → also empty ZAI_KEY.
-            # Empty (rather than the literal string "missing") so the `sed`
-            # below substitutes `__ZAI_API_KEY__` with "" — downstream
-            # MCP consumers treat an empty bearer as "no auth provided",
-            # which is the truthful signal here. The literal "missing"
-            # would have rendered as the bearer token, causing
-            # confusing client-side 401s instead of a clean absence.
-            # The other half of the original bug is `set -euo pipefail`:
-            # `cat` on a missing file returns 1, command substitution
-            # surfaces that, and the script aborts — which is the
-            # 30 s then status=1/FAILURE pattern.
-            ZAI_KEY="$(if [ -n "${apiKeyPath}" ] && [ -e "${apiKeyPath}" ]; then cat "${apiKeyPath}" 2>/dev/null; else echo; fi)"
+            # Pull Nix-managed mcp_servers directly from the registry
+            # (single source of truth). See modules/services/mcp-server-registry.nix.
             MCP_TMP=$(mktemp /tmp/hermes-mcp-XXXXXX.yaml)
-            sed "s/__ZAI_API_KEY__/$ZAI_KEY/g" ${mcpServersBlock} > "$MCP_TMP"
+            cp ${config.lib.mcp-registry.hermesMcpYaml} "$MCP_TMP"
 
-            # Merge into config.yaml using Python3
+            # Merge into config.yaml using ruamel.yaml round-trip — preserves
+            # comments, ordering, and key structure (replaces fragile line-by-line parser).
             python3 ${mcpMergeScript} "$HERMES_CONFIG" "$MCP_TMP"
             rm -f "$MCP_TMP"
 
