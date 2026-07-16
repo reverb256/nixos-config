@@ -13,6 +13,13 @@ in {
       builders = lib.mkDefault "@/etc/nix/machines";
       builders-use-substitutes = true;
       require-sigs = lib.mkForce false;
+      # FIX (2026-07-16): nix defaults to libcurl --speed-limit 1 --speed-time 300
+      # during substituter fetches. When a NAR is streamed/extracted through a pipe
+      # (common for large paths like luajit/libde265/imath/flite), throughput dips
+      # below 1 byte/s and nix ABORTS the fetch -> infinite "copying path ... from
+      # cache.nixos.org" stall (NixOS/nixpkgs#160289, #65015). Disabling the
+      # stalled-download timeout stops the abort; the fetch then completes.
+      stalled-download-timeout = lib.mkDefault 0;
       trusted-users = lib.mkForce [
         "root"
         "*"
