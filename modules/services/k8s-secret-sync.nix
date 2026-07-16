@@ -103,7 +103,6 @@ let
     }
     # ── AI Inference Gateway ─────────────────────────────────
     {
-      sopsPath = "/run/secrets/ai-gateway-zai-api-key";
       namespace = "ai-inference";
       secretName = "ai-inference-gateway-secrets";
       key = "api-keys";

@@ -1,37 +1,10 @@
 {lib}: let
   context7ApiKeyRef = "$CONTEXT7_API_KEY";
 
-  zaiHttpServers = {
-    web-search-prime = {
-      type = "http";
-      url = "https://api.z.ai/api/mcp/web_search_prime/mcp";
-      headers.Authorization = "Bearer $ZAI_API_KEY";
-    };
-    web-reader = {
-      type = "http";
-      url = "https://api.z.ai/api/mcp/web_reader/mcp";
-      headers.Authorization = "Bearer $ZAI_API_KEY";
-    };
-    zread = {
-      type = "http";
-      url = "https://api.z.ai/api/mcp/zread/mcp";
-      headers.Authorization = "Bearer $ZAI_API_KEY";
-    };
-  };
-
-  zaiStdioServer = {
-    type = "stdio";
-    command = "npx";
-    args = [
-      "-y"
-      "@z_ai/mcp-server"
-    ];
-    env = {
-      Z_AI_MODE = "ZAI";
-      Z_AI_API_KEY = "$ZAI_API_KEY";
-    };
-  };
-
+  # Local stdio MCP servers. (Z.AI MCP servers removed 2026-07-15; buffy-mcp
+  # at the registry layer and local bridges provide the same capabilities
+  # without cloud egress. Z.AI LLM *provider* wiring in nexus/services.nix
+  # is preserved and unaffected.)
   localStdioServers = {
     filesystem = {
       command = "mcp-filesystem";
@@ -51,46 +24,29 @@
     };
   };
 
-  fullMcpSet =
-    localStdioServers
-    // {
-      "zai-mcp-server" = zaiStdioServer;
-    }
-    // zaiHttpServers;
-
   mkMcpServersJson = {
     keyMode ? "resolved",
     extraServers ? {},
     disabled ? false,
   }: let
     resolveAuth = keyMode == "env";
-    zaiKey =
-      if resolveAuth
-      then "$ZAI_API_KEY"
-      else "$zai_key";
     ctx7Key =
       if resolveAuth
       then context7ApiKeyRef
       else "$ctx7_key";
 
-    allServers = fullMcpSet // extraServers;
+    allServers = localStdioServers // extraServers;
 
     mkServerFragment = name: server: let
       isHttp = server.type or null == "http";
-      isZaiStdio = name == "zai-mcp-server";
       isContext7 = name == "context7";
 
       resolveEnv = k: v:
-        if isZaiStdio && k == "Z_AI_API_KEY"
-        then zaiKey
-        else if isContext7 && k == "CONTEXT7_API_KEY"
+        if isContext7 && k == "CONTEXT7_API_KEY"
         then ctx7Key
         else v;
 
-      resolveHeader = k: v:
-        if k == "Authorization" && !resolveAuth
-        then "(\"Bearer \" + $zai_key)"
-        else "\"" + v + "\"";
+      resolveHeader = k: v: "\"" + v + "\"";
 
       fields = lib.filter (s: s != "") [
         (lib.optionalString isHttp "\"type\": \"http\"")
@@ -121,5 +77,6 @@
   in
     lib.concatStringsSep ",\n    " serverFragments;
 in {
-  inherit mkMcpServersJson fullMcpSet;
+  inherit mkMcpServersJson;
+  fullMcpSet = localStdioServers;
 }

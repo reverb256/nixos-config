@@ -1,20 +1,14 @@
 # AI Model Registry - Single Source of Truth
 # Last Updated: 2026-05-20
-# Strategy: NIM (Primary) -> Google Gemma (Fast) -> Local (Private) -> ZAI (Limited) -> OpenCode (Reset)
 
 [defaults]
 primary = "nemotron-3-nano"
 fallback = "gemma-2b"
 disabled_models = [
-  "glm-5.1","glm-5-turbo","glm-5","glm-4.7","glm-4.6v","glm-4.6",
-  "glm-4.7-flash","glm-4.5","glm-4.5-flash","glm-4.5-air",
   "meta/llama-3.1-405b-instruct","deepseek-ai/deepseek-coder-6.7b-instruct",
   "moonshotai/kimi-k2-instruct","moonshotai/kimi-k2-thinking",
   "mistralai/devstral-2-123b-instruct-2512","mistralai/magistral-small-2026",
-  "minimaxai/minimax-m2.5","z-ai/glm4.7",
   "bytedance-seed/dola-seed-2.0-pro:free","x-ai/grok-code-fast-1:optimized:free",
-  "arcee-ai/trinity-large-thinking:free","z-ai/glm-5v-turbo","z-ai/glm-4.5v",
-  "z-ai/glm-4.6v","nvidia/nemotron-4-340b-instruct","nvidia/nemotron-nano-9b-v2",
   "nvidia/llama-3.1-nemotron-70b", "moonshotai/kimi-k2.5",
   "microsoft/phi-4",
   "qwen/qwen3-coder-plus","qwen/qwen3-coder-next","qwen/qwen3-coder-flash",

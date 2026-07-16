@@ -18,15 +18,6 @@
         enable = true;
         apiKeyFile = "/run/secrets/nvidia-api-key";
       };
-      zai = {
-        enable = true;
-        apiKeyFile = "/run/secrets/zai-api-key";
-        baseUrl = "https://api.z.ai/api/coding/paas/v4";
-        enableRetry = true;
-        maxRetries = 3;
-        retryDelay = 1.0;
-        timeout = 300.0;
-      };
       pollinations = {
         enable = true;
         apiKeyFile = "/run/secrets/pollinations-api-key";

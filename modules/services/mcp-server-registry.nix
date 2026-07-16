@@ -98,16 +98,76 @@
       package = "nixos-cluster-mcp";
     };
 
-    casdoor = {
+    # ── Buffy MCP (C2: local port of Freebuff tool primitives) ───────────
+    # Mirrors packages/buffy-mcp — gives AI tools file_picker, code_search,
+    # bash, file IO, tmux_run, http_fetch, web_search without cloud egress.
+    buffy-mcp = {
       type = "stdio";
       scope = "local";
-      command = "python3";
-      args = ["/data/agents/mcp-bridges/casdoor-mcp-bridge.py"];
-      description = "Casdoor SSO/OIDC - application management (5 tools, Bearer auth)";
+      command = "nix";
+      args = ["run" "/etc/nixos#buffy-mcp"];
+      description = "Buffy — local port of Freebuff tool primitives (8 tools, no cloud egress)";
+      connectTimeout = 30;
+      timeout = 120;
+      casdoorApp = null;
+      package = "buffy-mcp";
+    };
+
+    # Casdoor MCP server removed 2026-07-15. Casdoor is being phased out
+    # cluster-wide (oauth2-proxy handles .lan auth). The casdoor-hermes-jwt
+    # secret is retained for transitional back-compat but no longer mounted
+    # into any MCP server context.
+
+    # ── Local stdio bridges (experimental — under /data/agents/mcp-bridges) ──
+    cua-driver = {
+      type = "stdio";
+      scope = "local";
+      command = "/data/agents/mcp-bridges/cua-driver-mcp.sh";
+      description = "Computer-Use Agent driver — desktop automation (mouse, keyboard, screenshot)";
       connectTimeout = 30;
       timeout = 60;
       casdoorApp = null;
-      ssePort = 9005;
+    };
+
+    yt-dlp = {
+      type = "stdio";
+      scope = "local";
+      command = "/data/agents/mcp-bridges/yt-dlp-mcp.sh";
+      description = "yt-dlp video/audio downloader — YouTube, X/Twitter, 1000+ sites (7 tools)";
+      connectTimeout = 15;
+      timeout = 300;
+      casdoorApp = null;
+    };
+
+    maplespike = {
+      type = "stdio";
+      scope = "local";
+      command = "/data/agents/mcp-bridges/maplespike-mcp-std.sh";
+      description = "Maplespike std MCP — Maple-AI spike blog";
+      connectTimeout = 30;
+      timeout = 120;
+      casdoorApp = null;
+    };
+
+    agentmemory = {
+      type = "stdio";
+      scope = "local";
+      command = "/data/agents/mcp-bridges/agentmemory-mcp.sh";
+      description = "Agentmemory — 53 MCP tools for persistent coding memory";
+      connectTimeout = 30;
+      timeout = 120;
+      casdoorApp = null;
+    };
+
+    # ── Local HTTP server (graphiti temporal KG runs in-process) ──────────
+    graphiti = {
+      type = "http";
+      scope = "local";
+      url = "http://localhost:8000/mcp";
+      description = "Graphiti temporal knowledge graph MCP server";
+      connectTimeout = 30;
+      timeout = 120;
+      casdoorApp = null;
     };
 
     # ── Cluster SSE servers (K8s) ───────────────────────────────────────

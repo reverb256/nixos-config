@@ -136,26 +136,6 @@ in {
       };
     };
 
-    zai = {
-      enable = mkOption {
-        type = types.bool;
-        default = true;
-        description = "Enable ZAI as fallback provider";
-      };
-
-      baseUrl = mkOption {
-        type = types.str;
-        default = "https://api.z.ai/api/coding/paas/v4";
-        description = "ZAI API base URL";
-      };
-
-      models = mkOption {
-        type = types.listOf types.str;
-        default = ["glm-5" "glm-4.7" "glm-4.6"];
-        description = "ZAI models to configure";
-      };
-    };
-
     pollinations = {
       enable = mkOption {
         type = types.bool;
@@ -319,13 +299,6 @@ in {
       {
         "$schema": "https://opencode.ai/config.json",
         "provider": {
-          ${optionalString cfg.zai.enable ''
-        "zai-coding-plan": {
-          "options": {
-            "apiKey": "{env:ZAI_API_KEY}"
-          }
-        },
-      ''}
           "gateway": {
             "npm": "@ai-sdk/openai-compatible",
             "name": "AI Gateway v2 (Local)",
