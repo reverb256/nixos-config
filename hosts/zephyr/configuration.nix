@@ -93,9 +93,34 @@ in {
   # Enable i686 emulation so local builds can compile 32-bit packages (Steam, Wine)
   boot.binfmt.emulatedSystems = ["i686-linux"];
 
-  # Osaka Jade — canonical palette in modules/desktop/themes/osaka-jade.yaml
   stylix = {
-    base16Scheme = ../../modules/desktop/themes/osaka-jade.yaml;
+    # Osaka Jade — canonical palette
+    # Inlined directly (not via YAML) because this nixpkgs pin's fromYaml.nix
+    # crashes with "expected a set but found null" on the scheme file.
+    base16Scheme = {
+      slug = "osaka-jade";
+      name = "Osaka Jade";
+      author = "Omarchy (basecamp)";
+      variant = "dark";
+      palette = {
+        base00 = "#111c18";
+        base01 = "#1d2b25";
+        base02 = "#23372B";
+        base03 = "#3a4f43";
+        base04 = "#8a9479";
+        base05 = "#C1C497";
+        base06 = "#E3E2C4";
+        base07 = "#F6F5DD";
+        base08 = "#FF5345";
+        base09 = "#db9f9c";
+        base0A = "#E5C736";
+        base0B = "#549e6a";
+        base0C = "#2DD5B7";
+        base0D = "#509475";
+        base0E = "#D2689C";
+        base0F = "#D7C995";
+      };
+    };
   };
 
   networking = {
