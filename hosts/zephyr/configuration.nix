@@ -97,7 +97,8 @@ in {
     # Osaka Jade — canonical palette
     # Inlined directly (not via YAML) because this nixpkgs pin's fromYaml.nix
     # crashes with "expected a set but found null" on the scheme file.
-    base16Scheme = {
+    # Uses mkForce to override the mkDefault in modules/desktop/stylix.nix.
+    base16Scheme = lib.mkForce {
       slug = "osaka-jade";
       name = "Osaka Jade";
       author = "Omarchy (basecamp)";
