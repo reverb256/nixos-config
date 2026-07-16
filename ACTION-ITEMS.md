@@ -1,6 +1,6 @@
 # Action Items — Consolidated
 
-> **Last Updated:** 2026-05-16
+> **Last Updated:** 2026-07-15
 > **Source:** Cross-session audit of cluster infrastructure, security posture, vLLM containerization, NixOS config.
 
 ---
@@ -53,7 +53,8 @@
 | **P2-2** | Enforce Pod Security Standards on all namespaces | Only 2 namespaces have PSS labels. Others allow privileged. | Add PSS labels (enforce=baseline, audit=restricted, warn=restricted) to all namespaces. |
 | **P2-3** | Evaluate service mesh for mTLS | Pod-to-pod traffic in plaintext. | Evaluate Istio ambient mesh or Cilium. Scoped as "evaluate only" for now. |
 | **P2-4** | Add nvme_core.timeout=30 on nexus boot | NVMe drive can time out on boot. | `boot.kernelParams` addition. |
-| **P2-5** | Add Casdoor MCP scopes to mcp-client app | OAuth app missing MCP scopes. Tool calls may fail. | Casdoor admin -> Applications -> mcp-client -> add MCP scopes. |
+| ~~**P2-4**~~ | ~~Add nvme_core.timeout=30 on nexus boot~~ | ~~NVMe drive can time out on boot.~~ | **DONE 2026-07-14**: `nvme_core.timeout=30` confirmed already set on nexus boot parameters. |
+| ~~**P2-5**~~ | ~~Add Casdoor MCP scopes to mcp-client app~~ | ~~OAuth app missing MCP scopes. Tool calls may fail.~~ | **RESOLVED 2026-07-15**: casdoor MCP bridge removed from registry + hermes-cli (full Path A cleanup). Casdoor is being phased out cluster-wide — oauth2-proxy handles .lan auth. The `casdoor-hermes-jwt` sops secret is retained for transitional back-compat only; will be migrated in a followup. |
 
 ---
 
@@ -65,8 +66,8 @@
 | **P3-2** | Model file integrity verification | GGUF models loaded without SHA-256 check. | Add checksum step to llama-server startup. Store hashes in ConfigMap. |
 | **P3-3** | Generate SBOMs for all container images | No software bill of materials. | `docker sbom` or `syft` on each built image. |
 | **P3-4** | ai-inference namespace lockdown | Privileged namespace. Tighten after GPU isolation fixed. | Change PSS label to `baseline` after P0-3. |
-| **P3-5** | Remove stale NixOS Grafana module | `services.monitoring.grafana` disabled but config exists. | Delete or archive `grafana-v2.nix`. |
-| **P3-6** | Clean up stale OIDC K8s secrets | `haven-oidc`, `mission-control-oidc`, `kagent-oidc` never mounted. | Delete secrets + Nix references. |
+| ~~**P3-5**~~ | ~~Remove stale NixOS Grafana module~~ | ~~`services.monitoring.grafana` disabled but config exists.~~ | **DONE 2026-07-14**: `grafana-v2.nix` deleted; import line commented out in `modules/services/monitoring/default.nix`. Grafana runs exclusively as K8s deployment. |
+| ~~**P3-6**~~ | ~~Clean up stale OIDC K8s secrets~~ | ~~`haven-oidc`, `mission-control-oidc`, `kagent-oidc` never mounted.~~ | **DONE 2026-07-14**: Stale OIDC secrets confirmed already removed. No Nix references remain. |
 
 ---
 
@@ -89,16 +90,16 @@
 
 | # | Item | Status |
 |---|------|--------|
-| N1 | nvme_core.timeout=30 on nexus (P2-4) | Pending |
-| N2 | Delete stale Grafana NixOS module (P3-5) | Pending |
-| N3 | Clean up stale OIDC secret K8s defs (P3-6) | Pending |
-| N4 | Deploy `dashboard.lan` (Glance) — Nix config done, namespace never deployed | Known Issue |
+| ✅ N1 | nvme_core.timeout=30 on nexus (P2-4) | **DONE** — confirmed already set |
+| ✅ N2 | Delete stale Grafana NixOS module (P3-5) | **DONE** — grafana-v2.nix deleted 2026-07-14 |
+| ✅ N3 | Clean up stale OIDC secret K8s defs (P3-6) | **DONE** — confirmed already removed 2026-07-14 |
+| ✅ N4 | Deploy `dashboard.lan` (Glance) | **DONE** — Glance deployed, Caddy route wired in nexus/services.nix |
 
 ### Model / Provider Config
 
 | # | Item | Status |
 |---|------|--------|
-| M1 | Verify GLM-4.7 peak-hour timer works (06-10 UTC) | Verify next cycle |
+| ~~M1~~ | ~~Verify GLM-4.7 peak-hour timer~~ | **OBSOLETE** — Z.AI/GLM provider fully removed 2026-07-15. No GLM models in cluster. |
 | M2 | Monitor vLLM 200K context + maxConcurrency 16 for OOM | Monitor ongoing |
 
 ---

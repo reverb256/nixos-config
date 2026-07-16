@@ -1,7 +1,7 @@
 # Unified AI Model Registry — Single Source of Truth
 # Last Updated: 2026-05-21
 # Strategy: Local (Private) → NIM (Unlimited) → Gemma (Fast/Privacy)
-#           → GLM (Quota-limited) → OpenCode Go (Daily reset 7PM) → Free routers
+#           → OpenCode Go (Daily reset 7PM) → Free routers
 # This file is imported by model-sync CronJob to generate Pi/OmP configs
 # and consumed by ai-coding-tools module for tool config generation.
 {
@@ -9,7 +9,6 @@
   defaults = {
     primary = "nvidia/nemotron-3-nano-30b-a3b";
     fallback = "google/gemma-2b";
-    default = "nvidia/nemotron-3-nano-30b-a3b"; # Local/NIM primary (glm-4.7 zai removed)
     smol = "local/qwen3.5-2b-awq"; # Local, no external dependency
     slow = "local/qwen3.6-moe-35b"; # Local, best reasoning
     plan = "deepseek-ai/deepseek-v4-flash"; # NIM, rate-limited
