@@ -341,7 +341,8 @@ in {
     python312Packages.openpyxl
 
     nvtopPackages.full
-    freebuff-desktop
+    # freebuff-desktop disabled 2026-07-15: upstream release URL returns 404
+    # freebuff-desktop
     herdr
   ];
 
