@@ -64,6 +64,17 @@
 
     autoEnable = false;
 
+    # ── NEW-APP THEMING RULE (read before adding a themed program) ──
+    # autoEnable=false means stylix only themes targets that are EXPLICITLY
+    # enabled. Terminal-app targets (starship, alacritty, kitty, fish, btop,
+    # lazygit, gtk, qt, zen-browser) are HOME-MANAGER targets — empower them
+    # in the HM `stylix` block (modules/system/home-manager.nix), NOT here at
+    # the NixOS level (config.stylix.targets.* only carries system targets like
+    # lightdm/limine and will throw "option does not exist"). System targets
+    # (lightdm, limine, grub, etc.) ARE enabled here. So: when you add a new
+    # themed app, add `stylix.targets.<x>.enable = true` in the correct
+    # namespace or it will silently stay unthemed (no error, just wrong colors).
+
     homeManagerIntegration = {
       followSystem = true;
       autoImport = true;
