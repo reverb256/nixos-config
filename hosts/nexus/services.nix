@@ -65,7 +65,6 @@ in {
       '';
     };
 
-
     nfs-state-sync = {
       enable = true;
       sourceHost = "zephyr";
@@ -177,7 +176,6 @@ in {
 
    # Hermes WebUI — disabled on nexus (no /data/projects/own/hermes-webui)
    # Runs on zephyr only. Dead code and timer removed.
-
 
   # Load NVIDIA API keys for hermes-agent
   # The official module's environment option doesn't reliably set systemd env vars,
@@ -394,80 +392,7 @@ in {
     extraLabels = ["nexus"];
   };
 
-  # maplespike-brand runner
-  # Uses PAT-based auto-registration so tokens never expire.
-  # The runner registers as nexus-brand-runner with labels self-hosted,linux,nexus,brand.
-  systemd.services.github-actions-runner-brand-setup = let
-    allLabels = builtins.concatStringsSep "," (["self-hosted" "linux" "nixos" "nexus" "brand"]);
-  in {
-    description = "GitHub Actions Runner Setup (maplespike-brand)";
-    before = ["github-actions-runner-brand.service"];
-    requiredBy = ["github-actions-runner-brand.service"];
-    path = [pkgs.curl pkgs.jq pkgs.github-runner];
-    script = ''
-      if [ -f "/var/lib/runner-brand/.runner" ] || [ -f "/var/lib/runner-brand/.github-runner/.runner" ]; then
-        echo "Runner already configured, skipping setup"
-        exit 0
-      fi
-      echo "Generating runner registration token from PAT..."
-      PAT=$(cat /run/secrets/github-token)
-      API_RESPONSE=$(curl -s -X POST \
-        -H "Authorization: Bearer $PAT" \
-        -H "Accept: application/vnd.github+json" \
-        "https://api.github.com/repos/reverb256/maplespike-brand/actions/runners/registration-token")
-      TOKEN=$(echo "$API_RESPONSE" | ${pkgs.jq}/bin/jq -r '.token // empty')
-      if [ -z "$TOKEN" ]; then
-        echo "ERROR: Failed to generate runner token from PAT"
-        echo "API response: $API_RESPONSE"
-        exit 1
-      fi
-      echo "Successfully generated runner token"
-      ${pkgs.github-runner}/bin/config.sh \
-        --url "https://github.com/reverb256/maplespike-brand" \
-        --token "$TOKEN" \
-        --name "nexus-brand-runner" \
-        --labels "${allLabels}" \
-        --disableupdate \
-        --unattended
-      echo "Runner configured successfully"
-    '';
-    serviceConfig = {
-      Type = "oneshot";
-      User = "runner-brand";
-      WorkingDirectory = "/var/lib/runner-brand";
-    };
-  };
-
-  systemd.services.github-actions-runner-brand = {
-    description = "GitHub Actions Self-Hosted Runner (maplespike-brand)";
-    after = ["network-online.target" "github-actions-runner-brand-setup.service"];
-    wants = ["network-online.target"];
-    wantedBy = ["multi-user.target"];
-    serviceConfig = {
-      Type = "simple";
-      User = "runner-brand";
-      WorkingDirectory = "/var/lib/runner-brand";
-      ExecStart = "${pkgs.github-runner}/bin/runsvc.sh";
-      Restart = "always";
-      RestartSec = "10s";
-      ProtectSystem = "strict";
-      PrivateTmp = true;
-      NoNewPrivileges = true;
-      ReadWritePaths = ["/var/lib/runner-brand"];
-    };
-  };
-
-  # Create runner-brand user
-  users.groups.runner-brand = {};
-  users.users.runner-brand = {
-    isSystemUser = true;
-    group = "runner-brand";
-    description = "GitHub Actions runner (maplespike-brand)";
-    home = "/var/lib/runner-brand";
-    createHome = true;
-  };
-
-  services.k8s-secret-sync = {
+    services.k8s-secret-sync = {
     enable = true;
   };
 }
