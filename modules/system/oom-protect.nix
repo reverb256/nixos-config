@@ -9,13 +9,18 @@
 # Protects opencode, hermes, claude, and LLM inference from the
 # Linux OOM killer by setting negative oom_score_adj values.
 #
-# These processes are essential for the MapleSpike development
-# workflow and should never be OOM-killed.
+# Also protects the desktop session: niri (compositor), noctalia
+# (theme daemon), spotify, zen-twilight (browser), and vesktop
+# (Discord). These are long-lived user apps that should survive
+# memory pressure rather than be OOM-killed — see the 2026-07-15
+# zephyr OOM crash where the user graphical session was killed.
 #
 # Imperative: sudo bash -c 'for pid in $(pgrep -f "opencode|hermes|claude|llama-server"); do echo -500 > /proc/$pid/oom_score_adj; done'
 # Verify: cat /proc/<pid>/oom_score_adj
 let
-  # Processes to protect, matched by comm/pid pattern
+  # Processes to protect, matched by comm/pid pattern (pgrep -f).
+  # Desktop session apps added 2026-07-15 to keep the workstation
+  # usable under memory pressure (root-cause of the 2026-07-15 crash).
   protectedProcesses = [
     "opencode"
     "hermes"
@@ -23,6 +28,12 @@ let
     "llama-server"
     "llama-cli"
     "llama.cpp"
+    # Desktop session — keep the graphical environment alive
+    "niri"
+    "noctalia"
+    "spotify"
+    "zen-twilight"
+    "vesktop"
   ];
 
   # OOM score adjustment: -1000 (never kill) to +1000 (always kill first)
