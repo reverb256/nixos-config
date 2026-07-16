@@ -19,29 +19,20 @@ in {
         "@wheel"
       ];
 
-      # NOTE (2026-07-15): the local nexus nix-serve cache (10.1.1.120:50000)
-      # was serving CORRUPT nars (truncated zstd) that poisoned host stores via
-      # the post-build-hook's `--substitute-on-destination`. Until the nexus
-      # store is repaired, the local proxy is removed from substituters so
-      # builds pull clean paths from cache.nixos.org + cachix, then push clean
-      # results back to nexus (overwriting the corrupt entries).
+      # NOTE (2026-07-16): only fast/reliable substituters. maplespike, reverb-os,
+      # ezkea, and nix-gaming cachix mirrors are too slow (5-min "Operation too
+      # slow" timeouts per request before falling through to the next cache).
+      # cache.nixos.org + nix-community.cachix.org are fast and well-populated.
+      # Clean build results are pushed back to nexus by the post-build-hook.
       substituters = lib.mkForce (
         if currentHost == "zephyr"
         then [
-          "https://cache.nixos.org"
-          "https://nix-community.cachix.org"
-          "https://reverb-os.cachix.org"
-          "https://maplespike.cachix.org"
-          "https://ezkea.cachix.org"
-          "https://nix-gaming.cachix.org"
+          "https://cache.nixos.org?priority=90"
+          "https://nix-community.cachix.org?priority=80"
         ]
         else [
-          "https://cache.nixos.org"
-          "https://nix-community.cachix.org"
-          "https://reverb-os.cachix.org"
-          "https://maplespike.cachix.org"
-          "https://ezkea.cachix.org"
-          "https://nix-gaming.cachix.org"
+          "https://cache.nixos.org?priority=90"
+          "https://nix-community.cachix.org?priority=80"
         ]
       );
       trusted-public-keys = lib.mkForce (
