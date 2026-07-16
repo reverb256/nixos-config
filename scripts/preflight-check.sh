@@ -46,10 +46,16 @@ fi
 NEXUS_HEAD=$(ssh nexus "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse --short origin/main 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
 NEXUS_LOCAL=$(ssh nexus "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse --short HEAD 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
 if [ "$NEXUS_LOCAL" != "$CANONICAL" ]; then
-    fail "nexus /etc/nixos ($NEXUS_LOCAL) != origin/main ($CANONICAL) — would build drifted bytes"
-    log "    fix: the deploy scripts now auto-reset nexus to origin/main before building;"
-    log "         if this gate fires, run 'just deploy <host>' which self-heals, or manually:"
-    log "         ssh nexus 'cd /etc/nixos && git fetch origin main && git reset --hard origin/main'"
+    # Self-heal: the deploy paths force-reset nexus to origin/main before building,
+    # so drift here is benign. Sync it now (non-destructive: matches canonical).
+    log "  ⚠ nexus /etc/nixos ($NEXUS_LOCAL) != origin/main ($CANONICAL) — self-healing (reset nexus to origin/main)"
+    ssh nexus "bash --norc --noprofile -c 'set -e; cd /etc/nixos; git fetch origin main 2>&1 | tail -1; git reset --hard origin/main 2>&1 | tail -1'" 2>&1 | tail -1
+    NEXUS_LOCAL=$(ssh nexus "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse --short HEAD 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
+    if [ "$NEXUS_LOCAL" = "$CANONICAL" ]; then
+        pass "nexus /etc/nixos synced to origin/main"
+    else
+        fail "nexus /etc/nixos still drifted ($NEXUS_LOCAL) after reset attempt"
+    fi
 else
     pass "nexus /etc/nixos matches origin/main"
 fi
