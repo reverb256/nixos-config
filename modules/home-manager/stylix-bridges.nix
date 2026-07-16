@@ -205,7 +205,7 @@ in {
   xdg.configFile."niri/noctalia.kdl".text = niriKdl;
 
   # ── Telegram Desktop theme (base16-driven) ───────────────────
-  xdg.configFile."telegram-desktop/themes/noctalia.tdesktop-theme".text = telegramTheme;
+  xdg.configFile."telegram-desktop/themes/stylix.tdesktop-theme".text = telegramTheme;
 
   # ── Remove stale "noctalia.*" theme snapshots that bypass stylix ──
   # 2026-07-15: the v4→v5 migration wrote frozen noctalia.* theme files
@@ -224,7 +224,7 @@ in {
       "$HOME/.config/niri/noctalia.kdl" \
       "$HOME/.config/scroll/noctalia" \
       "$HOME/.config/btop/themes/noctalia.theme" \
-      "$HOME/.config/telegram-desktop/themes/noctalia.tdesktop-theme" ; do
+      "$HOME/.config/telegram-desktop/themes/stylix.tdesktop-theme" ; do
       if [ -e "$f" ]; then
         rm -f "$f"
       fi
