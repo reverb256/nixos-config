@@ -12,6 +12,9 @@
     mkdir -p "/home/${cfg.user}/.pi/agent"
 
     # Write mcp.json
+    ${pkgs.jq}/bin/jq -n \
+      --arg gateway_base "${gatewayUrl}/v1" \
+      '{
         "settings": {"idleTimeout": 10, "directTools": false},
         "mcpServers": {
           ${mkMcpServersJson {keyMode = "env";}}
@@ -25,7 +28,7 @@
             "baseUrl": ($gateway_base),
             "api": "openai-completions",
             "apiKey": "***",
-            "models": [,,
+            "models": [
               {"id": "qwen/qwen3.5-397b-a17b", "name": "Qwen3.5-397B"}
             ]
           },
