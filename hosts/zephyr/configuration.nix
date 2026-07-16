@@ -448,6 +448,7 @@ in {
   # Rotate audit logs to prevent unbounded growth
   services.logrotate = {
     enable = true;
+    checkConfig = false;  # /var/log/audit/audit.log may not exist without auditd
     settings = {
       "/var/log/audit/audit.log" = {
         daily = true;
