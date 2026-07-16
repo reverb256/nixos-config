@@ -108,10 +108,18 @@
     meta = (hermesPkg.meta or {}) // { description = "hermes-agent with PortAudio LD_LIBRARY_PATH wrapper"; };
   } ''
     mkdir -p "$out/bin"
+    # Voice mode on by default (services.hermes-cli.voiceAutoStart):
+    # the Hermes TUI gateway honors HERMES_VOICE=1 (voice mode) and
+    # HERMES_VOICE_TTS=1 (speak replies) as its native "voice on by default"
+    # hook. No config.yaml key does this in hermes-agent 0.18.x.
+    ${lib.optionalString cfg.voiceAutoStart
+      "VOICE_ARGS=''--set HERMES_VOICE 1 --set HERMES_VOICE_TTS 1''"}
+    ${lib.optionalString (!cfg.voiceAutoStart) "VOICE_ARGS=''"}
+
     for bin in ${hermesPkg}/bin/*; do
       name=$(basename "$bin")
       makeWrapper "$bin" "$out/bin/$name" \
-        --prefix LD_LIBRARY_PATH : "${hermesAudioLibPath}"
+        --prefix LD_LIBRARY_PATH : "${hermesAudioLibPath}" $VOICE_ARGS
     done
   '';
 
@@ -328,6 +336,21 @@ in {
       default = [];
       example = ''["opencode-zen" "opencode-go" "nvidia"]'';
       description = "Ordered list of fallback providers matching `fallback_providers:` in hermes config.yaml";
+    };
+
+    voiceAutoStart = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Enable voice mode (with TTS) by default on Hermes TUI startup.
+
+        Implemented by injecting HERMES_VOICE=1 + HERMES_VOICE_TTS=1 into the
+        wrapped hermes binaries. The TUI gateway (tui_gateway/server.py::
+        _voice_mode_enabled / _voice_tts_enabled) treats these env vars as the
+        authoritative voice-mode / TTS flags; hermes-agent 0.18.x has NO
+        config.yaml key that auto-enables voice at startup. Set false to
+        require an explicit `/voice on` each session.
+      '';
     };
   };
 
