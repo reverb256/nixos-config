@@ -397,18 +397,15 @@ in {
   # maplespike-brand runner
   # Uses PAT-based auto-registration so tokens never expire.
   # The runner registers as nexus-brand-runner with labels self-hosted,linux,nexus,brand.
-  systemd.services = let
-    brandRunnerHome = "/var/lib/runner-brand";
+  systemd.services.github-actions-runner-brand-setup = let
+    allLabels = builtins.concatStringsSep "," (["self-hosted" "linux" "nixos" "nexus" "brand"]);
   in {
-    github-actions-runner-brand-setup = let
-      allLabels = builtins.concatStringsSep "," (["self-hosted" "linux" "nixos" "nexus" "brand"]);
-    in {
     description = "GitHub Actions Runner Setup (maplespike-brand)";
     before = ["github-actions-runner-brand.service"];
     requiredBy = ["github-actions-runner-brand.service"];
     path = [pkgs.curl pkgs.jq pkgs.github-runner];
     script = ''
-      if [ -f "${brandRunnerHome}/.runner" ] || [ -f "${brandRunnerHome}/.github-runner/.runner" ]; then
+      if [ -f "/var/lib/runner-brand/.runner" ] || [ -f "/var/lib/runner-brand/.github-runner/.runner" ]; then
         echo "Runner already configured, skipping setup"
         exit 0
       fi
@@ -437,7 +434,7 @@ in {
     serviceConfig = {
       Type = "oneshot";
       User = "runner-brand";
-      WorkingDirectory = brandRunnerHome;
+      WorkingDirectory = "/var/lib/runner-brand";
     };
   };
 
@@ -449,14 +446,14 @@ in {
     serviceConfig = {
       Type = "simple";
       User = "runner-brand";
-      WorkingDirectory = brandRunnerHome;
+      WorkingDirectory = "/var/lib/runner-brand";
       ExecStart = "${pkgs.github-runner}/bin/runsvc.sh";
       Restart = "always";
       RestartSec = "10s";
       ProtectSystem = "strict";
       PrivateTmp = true;
       NoNewPrivileges = true;
-      ReadWritePaths = [brandRunnerHome];
+      ReadWritePaths = ["/var/lib/runner-brand"];
     };
   };
 

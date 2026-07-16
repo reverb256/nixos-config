@@ -66,7 +66,10 @@ in
         # ../../modules/home-manager/obsidian.nix  # Temporarily disabled - stylix integration issue
         ../../modules/home-manager/opencode.nix
         ../../modules/home-manager/firefox-pwa-apps.nix
-        ../../modules/home-manager/freebuff-desktop.nix
+        # Temporarily disabled: nixpkgs/home-manager version mismatch broke
+        # `xdg.dataFile.__ignoreNulls`. Re-enable after updating to matching
+        # versions (the option was renamed/moved in newer nixpkgs).
+        # ../../modules/home-manager/freebuff-desktop.nix
         ../../modules/home-manager/alacritty.nix
         ../../modules/home-manager/hermes-skin.nix
         ../../modules/home-manager/icon-theme.nix
