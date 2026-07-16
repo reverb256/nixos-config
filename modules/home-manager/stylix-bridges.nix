@@ -223,7 +223,8 @@ in {
       "$HOME/.config/qt6ct/colors/noctalia.conf" \
       "$HOME/.config/niri/noctalia.kdl" \
       "$HOME/.config/scroll/noctalia" \
-      "$HOME/.config/btop/themes/noctalia.theme" ; do
+      "$HOME/.config/btop/themes/noctalia.theme" \
+      "$HOME/.config/telegram-desktop/themes/noctalia.tdesktop-theme" ; do
       if [ -e "$f" ]; then
         rm -f "$f"
       fi
