@@ -101,12 +101,6 @@ let
       secretName = "searxng-secrets";
       key = "secret-key";
     }
-    # ── AI Inference Gateway ─────────────────────────────────
-    {
-      namespace = "ai-inference";
-      secretName = "ai-inference-gateway-secrets";
-      key = "api-keys";
-    }
   ];
 in {
   options.services.k8s-secret-sync = {
