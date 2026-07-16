@@ -160,6 +160,7 @@ in {
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 12;
               speedFactor = 10; # prioritize nexus
+              protocol = "ssh-ng";
               supportedFeatures = [
                 "big-parallel"
                 "kvm"
@@ -173,6 +174,9 @@ in {
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 8;
               speedFactor = 6;
+              # ssh:// avoids NixOS/nix#5701 pipe-draining deadlock (ssh-ng stalls when
+              # build-remote writes progress logs faster than the parent drains the pipe).
+              protocol = "ssh";
               supportedFeatures = ["big-parallel"];
               mandatoryFeatures = [];
             }
@@ -180,7 +184,7 @@ in {
           machines = builtins.filter (m: m.hostName != currentHost) allMachines;
           formatMachine = m: with builtins;
             concatStringsSep " " [
-              ("ssh-ng://" + "${m.sshUser}@${m.hostName}")
+              ("${m.protocol}://" + "${m.sshUser}@${m.hostName}")
               (concatStringsSep " " m.systems)
               (if m.sshKey != null then m.sshKey else "-")
               (toString m.maxJobs)
