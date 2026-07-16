@@ -327,10 +327,11 @@ in {
 
     # Override the broken nvidia-container-toolkit-cdi-generator with a working one
     # that sets LD_LIBRARY_PATH so nvidia-ctk can find libnvidia-ml.so.
-    # Disabled on nexus: its single GPU is intentionally vfio-bound to the
-    # DE-VM at boot (modules/services/nexus-de-vm.nix), so the nvidia driver
-    # cannot probe it and this generator fails every boot. The CDI spec is
-    # only useful when the GPU is available to containers (zephyr/forge/sentry).
+    # Disabled on nexus: its single GPU is dynamically handed off between
+    # nvidia (host, for AI inference) and vfio-pci (DE-VM, for Windows
+    # gaming) at runtime. At boot the GPU belongs to the nvidia driver,
+    # so this generator works normally — the VFIO modules are loaded on
+    # demand by the handoff script only when the VM starts.
     systemd.services.nvidia-container-toolkit-cdi-generator = mkIf (cfg.nvidia.enable && config.networking.hostName != "nexus") {
       wantedBy = ["multi-user.target"];
       after = ["systemd-udev-settle.service"];
