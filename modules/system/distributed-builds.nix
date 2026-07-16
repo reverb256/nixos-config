@@ -154,16 +154,7 @@ in {
       "nix/machines" = {
         text = let
           allMachines = [
-            {
-              hostName = "zephyr";
-              systems = ["x86_64-linux" "i686-linux"];
-              sshUser = "j_kro";
-              sshKey = "~/.ssh/id_ed25519";
-              maxJobs = 0;
-              speedFactor = 1; # deprioritize zephyr
-              supportedFeatures = [];
-              mandatoryFeatures = [];
-            }
+            # zephyr removed 2026-07-15: build dispatcher only, maxJobs=0 (no local builds)
             {
               hostName = "nexus";
               systems = ["x86_64-linux" "i686-linux"];
