@@ -12,6 +12,9 @@
     mkdir -p "/home/${cfg.user}/.omp/agent"
 
     # Write mcp.json
+    ${pkgs.jq}/bin/jq -n \
+      --arg gateway_base "${gatewayUrl}/v1" \
+      '{
         "settings": {"idleTimeout": 30},
         "mcpServers": {
           ${mkMcpServersJson {keyMode = "env";}}
@@ -25,7 +28,7 @@
             "baseUrl": ($gateway_base),
             "api": "openai-completions",
             "apiKey": "***",
-            "models": [,,
+            "models": [
             ]
           },
           "local-vllm": {
