@@ -1,7 +1,0 @@
-# Garnix CI configuration
-# Exclude full NixOS configuration evaluations from CI builds.
-# nixosConfigurations are extremely expensive to evaluate (4 hosts × 30+ inputs).
-# They're deployed via Colmena, not rebuilt on every push.
-builds:
-  exclude:
-    - 'nixosConfigurations.*'
