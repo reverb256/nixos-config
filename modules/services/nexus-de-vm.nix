@@ -156,11 +156,11 @@ in {
       swtpm    # TPM for Windows 11
     ];
 
-    # ── Kernel modules for VFIO (loaded on demand, not at boot) ─
-    boot.kernelModules = [ "vfio" "vfio_pci" "vfio_iommu_type1" ];
-    boot.extraModprobeConfig = ''
-      options vfio-pci disable_vga=1
-    '';
+    # ── VFIO modules loaded on demand by coordinator script — NOT at boot ──
+    # The GPU boots on the nvidia driver (available for AI inference). The
+    # coordinator script at systemd.services.nexus-de-vm calls modprobe
+    # vfio-pci at runtime when the VM starts, then unbinds GPU from nvidia
+    # and binds to vfio-pci. On VM stop, it reverses the process.
 
     # ── Libvirt domain definition ───────────────────────────────
     environment.etc."libvirt/qemu/nexus-de.xml" = {
