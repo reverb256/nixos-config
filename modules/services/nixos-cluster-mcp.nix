@@ -90,6 +90,28 @@ in {
           mining_host = false;
           tags = ["monitoring" "rocm-inference"];
         }
+
+        # ── NixOS-WSL dev box on j_kro's Windows host (krash) ──────────────
+        # Managed bidirectionally: the nixos-cluster-mcp server (on nexus)
+        # reaches this box over SSH. Because WSL2 puts the guest behind a NAT
+        # (guest IP is dynamic, e.g. 172.19.x), the inbound path is:
+        #   nexus ─ssh→ <WINDOWS_LAN_IP>:2222 ─(netsh portproxy)→ WSL:2222
+        # Set `host` below to the WINDOWS host's stable LAN IP (10.1.1.x) once
+        # the portproxy is in place (see PR body). port 2222 = the WSL sshd.
+        # Auth: the nixos-cluster-mcp service user's SSH key must be in this
+        # box's authorizedKeys (add it to profiles/wsl.nix or this host).
+        {
+          name = "wsl-j_kro";
+          host = "172.19.255.48";  # WSL NAT IP — REPLACE with Windows LAN IP + portproxy
+          user = "j_kro";
+          port = 2222;
+          build_host = "nexus";
+          allow_deploy = true;
+          allow_build = true;
+          allow_rollback = true;
+          mining_host = false;
+          tags = ["wsl" "dev-box" "j_kro"];
+        }
       ];
     };
 
