@@ -161,10 +161,6 @@
     bindServicesToLocalhost = true;
   };
 
-  # TEMP: disable distributed builders to avoid stale /etc/nix/machines
-  # during first deploy with strict nix machines parser. Remove after deploy.
-  nix.settings.builders = "";
-
   system.stateVersion = "26.05";
   services.unbound-common.enable = true;
 
