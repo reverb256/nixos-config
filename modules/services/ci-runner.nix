@@ -92,13 +92,9 @@ in {
         ProtectSystem = "strict";
         PrivateTmp = true;
         NoNewPrivileges = true;
-        ReadWritePaths = [
-          runnerHome
-          # The runner's externals/node20 symlink needs to point to
-          # node24 (nixpkgs provides node24, not node20 as runner expects).
-          (builtins.toString pkgs.github-runner + "/lib/externals")
-        ];
-      };
+        ReadWritePaths = [runnerHome];
+        # Mount nodejs_24 at the path where runner expects node20
+        BindReadOnlyPaths = ["${pkgs.nodejs_24}:${pkgs.github-runner}/lib/externals/node20"];
     };
 
     systemd.services.github-actions-runner-setup = {
@@ -109,16 +105,14 @@ in {
       script = let
         allLabels = lib.concatStringsSep "," (cfg.labels ++ cfg.extraLabels);
       in ''
-        if [ -f "${runnerHome}/.runner" ] || [ -f "${runnerHome}/.github-runner/.runner" ]; then
-          echo "Runner already configured, skipping setup"
-          exit 0
-        fi
+        # Always re-register to pick up fresh token (--replace handles name conflict)
         ${getTokenCmd}
         ${pkgs.github-runner}/bin/config.sh \
           --url "https://github.com/${cfg.repo}" \
           --token "$TOKEN" \
           --name "${config.networking.hostName}-runner" \
           --labels "${allLabels}" \
+          --replace \
           --unattended
         echo "Runner configured successfully"
       '';
