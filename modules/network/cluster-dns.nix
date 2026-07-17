@@ -172,7 +172,7 @@ in {
 
           # Include local DNS records
           local-zone = [
-            "lan. static"
+            "lan. transparent"
             "cluster.local. transparent"
           ];
           # All records generated below in environment.etc."unbound/local-dns.conf"

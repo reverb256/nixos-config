@@ -33,6 +33,7 @@ in {
       tokenFile = "/persistent/etc/k3s-cluster-token";
       nodeIP = cluster.hosts.nexus.ip;
       flannelIface = "eth0"; # Nexus primary interface (eth0 has NO-CARRIER)
+      flannelBackend = "vxlan";
       secretsEncryptionKeyFile = "/run/secrets/k3s-encryption-key";
     };
 
