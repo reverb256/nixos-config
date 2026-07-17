@@ -85,7 +85,7 @@ in {
         Type = "simple";
         User = cfg.user;
         WorkingDirectory = runnerHome;
-        ExecStart = "${pkgs.nodejs_24}/bin/node ${pkgs.github-runner}/lib/github-runner/RunnerService.js";
+        ExecStart = "${pkgs.github-runner}/bin/Runner.Listener run";
         ExecStop = "/bin/kill -INT $MAINPID";
         Restart = "always";
         RestartSec = "10s";
