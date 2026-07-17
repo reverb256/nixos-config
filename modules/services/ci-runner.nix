@@ -85,15 +85,19 @@ in {
         Type = "simple";
         User = cfg.user;
         WorkingDirectory = runnerHome;
-        ExecStart = "${pkgs.github-runner}/bin/runsvc.sh";
         Restart = "always";
         RestartSec = "10s";
         ProtectSystem = "strict";
         PrivateTmp = true;
         NoNewPrivileges = true;
         ReadWritePaths = [runnerHome];
-        # Mount nodejs_24 at the path where runner expects node20
-        BindReadOnlyPaths = ["${pkgs.nodejs_24}:${pkgs.github-runner}/lib/externals/node20"];
+        ExecStart = "${pkgs.symlinkJoin {
+          name = "github-runner-node20";
+          paths = [pkgs.github-runner];
+          postBuild = ''
+            ln -sfT ${pkgs.nodejs_24} $out/lib/externals/node20
+          '';
+        }}/bin/runsvc.sh";
       };
     };
 
