@@ -184,15 +184,13 @@ in {
           machines = builtins.filter (m: m.hostName != currentHost) allMachines;
           formatMachine = m: with builtins;
             let
-              base = [
-                ("${m.protocol}://" + "${m.sshUser}@${m.hostName}")
-                (if m.sshKey != null then m.sshKey else "-")
-                (toString m.maxJobs)
-                (toString m.speedFactor)
-                (concatStringsSep "," m.supportedFeatures)
-                (concatStringsSep "," m.mandatoryFeatures)
-              ];
-              line = system: concatStringsSep " " ([system] ++ base);
+              host = "${m.protocol}://${m.sshUser}@${m.hostName}";
+              key = if m.sshKey != null then m.sshKey else "-";
+              jobs = toString m.maxJobs;
+              speed = toString m.speedFactor;
+              features = concatStringsSep "," m.supportedFeatures;
+              mandatories = concatStringsSep "," m.mandatoryFeatures;
+              line = system: concatStringsSep " " [host system key jobs speed features mandatories];
             in
               concatStringsSep "\n" (map line m.systems);
         in
