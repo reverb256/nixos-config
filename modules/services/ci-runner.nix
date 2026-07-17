@@ -85,24 +85,14 @@ in {
         Type = "simple";
         User = cfg.user;
         WorkingDirectory = runnerHome;
+        ExecStart = "${pkgs.nodejs_24}/bin/node ${pkgs.github-runner}/lib/github-runner/RunnerService.js";
+        ExecStop = "/bin/kill -INT $MAINPID";
         Restart = "always";
         RestartSec = "10s";
         ProtectSystem = "strict";
         PrivateTmp = true;
         NoNewPrivileges = true;
         ReadWritePaths = [runnerHome];
-        ExecStart = "${pkgs.runCommand "github-runner-node20" {} ''
-          # Copy full runner, dereferencing symlinks so runsvc.sh resolves
-          # to the wrapper dir (not the original store path), making
-          # ../lib/externals/node20 find our symlink.
-          # Copy full runner contents, dereferencing symlinks
-          cp -rL ${pkgs.github-runner}/. $out/
-          chmod -R u+w $out
-          ln -sfT ${pkgs.nodejs_24} $out/lib/externals/node20
-          # runsvc.sh hardcodes absolute store path — redirect node reference
-          # to our nodejs_24 package instead.
-          sed -i "s|${pkgs.github-runner}/lib/externals/\$nodever/bin/node|${pkgs.nodejs_24}/bin/node|g" $out/lib/github-runner/runsvc.sh
-        ''}/bin/runsvc.sh";
       };
     };
 
