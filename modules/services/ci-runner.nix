@@ -91,13 +91,12 @@ in {
         PrivateTmp = true;
         NoNewPrivileges = true;
         ReadWritePaths = [runnerHome];
-        ExecStart = "${pkgs.symlinkJoin {
-          name = "github-runner-node20";
-          paths = [pkgs.github-runner];
-          postBuild = ''
-            ln -sfT ${pkgs.nodejs_24} $out/lib/externals/node20
-          '';
-        }}/bin/runsvc.sh";
+        ExecStart = "${pkgs.runCommand "github-runner-node20" {} ''
+          set -e
+          cp -rT ${pkgs.github-runner} $out
+          chmod -R u+w $out
+          ln -sfT ${pkgs.nodejs_24} $out/lib/externals/node20
+        ''}/bin/runsvc.sh";
       };
     };
 
