@@ -299,6 +299,17 @@
             ./hosts/wsl-krash2/configuration.nix
           ];
         };
+        # j_kro's WSL dev box (this Windows PC). Folded in for declarative
+        # management + nixos-cluster-mcp node registration. Not part of the
+        # Colmena physical-cluster hive (bootstrapped standalone like krash2/3).
+        wsl-j_kro = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = {inherit inputs;};
+          modules = [
+            inputs.nixos-wsl.nixosModules.default
+            ./hosts/wsl-j_kro/configuration.nix
+          ];
+        };
       };
 
     colmena = import ./colmena.nix {
