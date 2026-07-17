@@ -105,7 +105,9 @@ in {
       script = let
         allLabels = lib.concatStringsSep "," (cfg.labels ++ cfg.extraLabels);
       in ''
-        # Always re-register to pick up fresh token (--replace handles name conflict)
+        # Always re-register: wipe any stale config so config.sh can run fresh
+        rm -f "${runnerHome}/.runner" "${runnerHome}/.credentials" \
+              "${runnerHome}/.credentials_rsaparams" "${runnerHome}/.github-runner/.runner"
         ${getTokenCmd}
         ${pkgs.github-runner}/bin/config.sh \
           --url "https://github.com/${cfg.repo}" \
