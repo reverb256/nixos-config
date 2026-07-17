@@ -24,7 +24,13 @@ in {
             containers = [
               {
                 name = "vane";
+<<<<<<< HEAD
                 image = "ghcr.io/reverb256/vane:v1.0.0"; # Local build (own image, pin before deploying)
+||||||| f46c16eb
+                image = "ghcr.io/reverb256/vane:latest";
+=======
+                image = "ghcr.io/reverb256/vane:latest"; # Local build (own image, no versioned tags yet)
+>>>>>>> central/issue-291-audit-remediation
                 imagePullPolicy = "IfNotPresent";
                 ports = [
                   {

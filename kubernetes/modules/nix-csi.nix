@@ -16,7 +16,13 @@
 }: let
   # Container images - mirrored from ghcr.io/lillecarl/nix-csi/
   scratchImage = "nexus:5000/nix-csi/scratch:1.0.1";
+<<<<<<< HEAD
   lixImage = "nexus:5000/nix-csi/lix:1.0.1"; # Local build (nix-csi upstream, mirrored locally)
+||||||| f46c16eb
+  lixImage = "nexus:5000/nix-csi/lix:latest";
+=======
+  lixImage = "nexus:5000/nix-csi/lix:latest"; # Local build (nix-csi upstream, mirrored locally)
+>>>>>>> central/issue-291-audit-remediation
   csiRegistrarImage = "registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.15.0";
   livenessProbeImage = "registry.k8s.io/sig-storage/livenessprobe:v2.17.0";
 
