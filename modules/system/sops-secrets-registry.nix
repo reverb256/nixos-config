@@ -213,6 +213,7 @@ in {
             owner = "j_kro";
             group = "users";
           };
+<<<<<<< HEAD
           "infra/k3s-encryption-key" = {
             sopsFile = "${inputs.self}/secrets/infra/k3s-encryption-key.json";
             path = "/run/secrets/k3s-encryption-key";
@@ -221,6 +222,17 @@ in {
             owner = "root";
             group = "root";
           };
+||||||| f46c16eb
+=======
+          "infra/k3s-encryption-key" = {
+            sopsFile = "${inputs.self}/secrets/infra/k3s-encryption-key.yaml";
+            path = "/run/secrets/k3s-encryption-key";
+            format = "binary";
+            mode = "0400";
+            owner = "root";
+            group = "root";
+          };
+>>>>>>> central/issue-291-audit-remediation
           "k8s/frostbite-postgres" = {
             sopsFile = "${inputs.self}/secrets/k8s/frostbite-postgres.yaml";
             path = "/run/secrets/frostbite-postgres";

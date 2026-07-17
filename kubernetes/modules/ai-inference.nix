@@ -1314,7 +1314,13 @@ in {
             containers = [
               {
                 name = "kb-mcp";
+<<<<<<< HEAD
                 image = "localhost/kb-mcp:v0.1.0-stub"; # Local build (STUB: image not built yet)
+||||||| f46c16eb
+                image = "localhost/kb-mcp:latest";
+=======
+                image = "localhost/kb-mcp:latest"; # Local build (STUB: image not built yet)
+>>>>>>> central/issue-291-audit-remediation
                 imagePullPolicy = "IfNotPresent";
                 securityContext = {
                   runAsNonRoot = true;
