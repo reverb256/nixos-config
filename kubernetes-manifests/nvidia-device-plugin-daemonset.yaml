@@ -1,0 +1,108 @@
+# NVIDIA Device Plugin DaemonSet (v0.14.4 for NixOS compatibility)
+# Uses simple NVML device discovery without CDI requirements
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nvidia-device-plugin-daemonset
+  namespace: kube-system
+  labels:
+    name: nvidia-device-plugin-ds
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      name: nvidia-device-plugin-ds
+  template:
+    metadata:
+      labels:
+        name: nvidia-device-plugin-ds
+    spec:
+      hostPID: true
+      containers:
+      - name: nvidia-device-plugin-ctr
+        image: nvcr.io/nvidia/k8s-device-plugin:v0.14.4
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: PASS_DEVICE_SPECS
+          value: "false"
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "all"
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: "compute,utility"
+        - name: LD_LIBRARY_PATH
+          value: /run/opengl-driver/lib:/nix/store
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "rm -rf /var/lib/kubelet/device-plugins/*.sock"]
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - test -S /var/lib/kubelet/device-plugins/kubelet.sock
+          failureThreshold: 3
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources: {}
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /var/lib/kubelet/device-plugins
+          name: device-plugin
+        - mountPath: /run/opengl-driver/lib
+          name: driver-lib
+          readOnly: true
+        - mountPath: /dev
+          name: dev
+        - mountPath: /sys/module
+          name: sys-module
+        - mountPath: /nix/store
+          name: nix-store
+          readOnly: true
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        accelerator: nvidia-gpu
+      priorityClassName: system-node-critical
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists
+      - key: interactive
+        operator: Exists
+      - key: workstation
+        operator: Exists
+      - key: ram-constrained
+        operator: Exists
+      volumes:
+      - hostPath:
+          path: /var/lib/kubelet/device-plugins
+          type: ""
+        name: device-plugin
+      - hostPath:
+          path: /run/opengl-driver/lib
+          type: ""
+        name: driver-lib
+      - hostPath:
+          path: /dev
+          type: ""
+        name: dev
+      - hostPath:
+          path: /sys/module
+          type: ""
+        name: sys-module
+      - hostPath:
+          path: /nix/store
+          type: ""
+        name: nix-store
+  updateStrategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate

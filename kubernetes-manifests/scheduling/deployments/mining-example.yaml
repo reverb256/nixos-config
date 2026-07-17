@@ -1,0 +1,95 @@
+# Example Mining Deployment with YuniKorn + Volcano
+# Demonstrates low priority and preemption behavior
+
+---
+# GPU Mining Deployment (YuniKorn)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-zephyr-yunikorn
+  namespace: mining
+  labels:
+    app: gpu-miner
+    host: zephyr
+    scheduler: yunikorn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gpu-miner
+      host: zephyr
+  template:
+    metadata:
+      labels:
+        app: gpu-miner
+        host: zephyr
+    spec:
+      # Use YuniKorn scheduler
+      schedulerName: yunikorn
+      # Low priority (preemptible by AI)
+      priorityClassName: mining-low
+      # Node selector to run on specific host
+      nodeSelector:
+        kubernetes.io/hostname: zephyr
+      containers:
+      - name: lolminer
+        image: lolminer:latest
+        resources:
+          requests:
+            nvidia.com/gpu: "1"
+            memory: "4Gi"
+            cpu: "2"
+          limits:
+            nvidia.com/gpu: "1"
+            memory: "4Gi"
+            cpu: "2"
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"
+---
+# GPU Mining Deployment (Volcano with PodGroup)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-forge-volcano
+  namespace: mining
+  labels:
+    app: gpu-miner
+    host: forge
+    scheduler: volcano
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gpu-miner
+      host: forge
+  template:
+    metadata:
+      labels:
+        app: gpu-miner
+        host: forge
+        # PodGroup association
+        scheduling.volcano.sh/pod-group: mining-gpu
+    spec:
+      # Use Volcano scheduler
+      schedulerName: volcano
+      # Low priority (preemptible by AI)
+      priorityClassName: mining-low
+      # Node selector to run on specific host
+      nodeSelector:
+        kubernetes.io/hostname: forge
+      containers:
+      - name: lolminer
+        image: lolminer:latest
+        resources:
+          requests:
+            nvidia.com/gpu: "1"
+            memory: "4Gi"
+            cpu: "2"
+          limits:
+            nvidia.com/gpu: "1"
+            memory: "4Gi"
+            cpu: "2"
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"

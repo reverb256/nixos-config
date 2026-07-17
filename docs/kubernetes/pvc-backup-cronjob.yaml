@@ -1,0 +1,96 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pvc-backup
+  namespace: monitoring
+spec:
+  schedule: "0 2 * * *"  # Run daily at 2 AM
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: pvc-backup-sa
+          restartPolicy: OnFailure
+          containers:
+          - name: backup
+            image: ubuntu:22.04
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              BACKUP_DIR="/tmp/backups"
+              TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+
+              # Install required tools
+              apt-get update && apt-get install -y curl kubectl
+
+              # Download backup script
+              curl -s http://backup-script-service/backup-pvc.sh -o /tmp/backup-pvc.sh
+              chmod +x /tmp/backup-pvc.sh
+
+              # Run backup
+              /tmp/backup-pvc.sh
+
+              # Upload to long-term storage (if configured)
+              if [ -n "$BACKUP_S3_BUCKET" ]; then
+                aws s3 sync /var/backups/k8s-pvc/ s3://$BACKUP_S3_BUCKET/k8s-backups/
+              fi
+
+            env:
+            - name: BACKUP_S3_BUCKET
+              value: ""  # Set to S3 bucket name if using S3
+            volumeMounts:
+            - name: backups
+              mountPath: /var/backups
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+          volumes:
+          - name: backups
+            hostPath:
+              path: /var/backups/k8s-pvc
+              type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pvc-backup-sa
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pvc-backup-role
+rules:
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["persistentvolumes"]
+  verbs: ["get"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["create", "get", "list", "delete"]
+- apiGroups: ["batch"]
+  resources: ["cronjobs"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pvc-backup-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pvc-backup-role
+subjects:
+- kind: ServiceAccount
+  name: pvc-backup-sa
+  namespace: monitoring

@@ -1,0 +1,141 @@
+{
+  "milestone": "config-foundation",
+  "round": 1,
+  "status": "fail",
+  "validatorsRun": {
+    "check": {
+      "passed": true,
+      "command": "cd /etc/nixos && nix flake check",
+      "exitCode": 0,
+      "observation": "All NixOS configurations validated successfully for 4 hosts. Minor evaluation warnings (prometheus-mining-exporter ordering, system→stdenv rename) but no errors."
+    },
+    "test": {
+      "passed": false,
+      "command": "cd /etc/nixos/modules/services/ai-inference/ai_inference_gateway && nix-shell shell.nix --run 'pytest tests/ --tb=no -q'",
+      "exitCode": 1,
+      "observation": "48 passed, 25 failed out of 73 core tests. All 25 failures are pre-existing (test_load_balancer.py async decorator issues, test_config.py load_from_env missing, test_main.py backend degraded, test_circuit_breaker.py validation constraint changes, test_observability.py request ID prefix bug). None are caused by config-foundation milestone changes."
+    },
+    "lint": {
+      "passed": true,
+      "command": "cd /etc/nixos && nix flake check",
+      "exitCode": 0,
+      "observation": "nix flake check serves as both typecheck and lint for NixOS configurations. Passed cleanly."
+    },
+    "health_gateway": {
+      "passed": false,
+      "command": "curl -sf http://127.0.0.1:8080/health",
+      "exitCode": 0,
+      "observation": "Gateway responds but status is 'degraded' (backend llama-cpp unhealthy). This is a pre-existing condition unrelated to config changes."
+    },
+    "health_claude_router": {
+      "passed": false,
+      "command": "curl -sf --connect-timeout 5 --max-time 10 http://localhost:3456/health",
+      "exitCode": 28,
+      "observation": "Claude Code Router health endpoint timed out (curl exit 28). Service may not be running or not listening on port 3456."
+    }
+  },
+  "reviewsSummary": {
+    "total": 5,
+    "passed": 3,
+    "failed": 2,
+    "failedFeatures": ["crush-claude-config-harmonize", "droid-config-align"]
+  },
+  "blockingIssues": [
+    {
+      "featureId": "crush-claude-config-harmonize",
+      "severity": "blocking",
+      "description": "Crush config (~/.config/crush/crush.json) contains plaintext ZAI API key 'a304de1a...' in 5 locations: provider api_key, zai-mcp-server env, and 3 HTTP server Authorization headers. The NixOS ai-coding-tools-config service resolves the agenix secret at generation time and writes the plaintext value. Crush does not support ${VAR} env var interpolation in JSON configs.",
+      "suggestedFix": "Either: (a) ensure crush.json has chmod 600 permissions and accept runtime-resolved plaintext, updating the validation contract to allow this pattern for tools that don't support env vars; or (b) implement a Crush wrapper script that generates config at runtime from a template."
+    },
+    {
+      "featureId": "crush-claude-config-harmonize",
+      "severity": "blocking",
+      "description": "MCP server deduplication is incomplete: Claude Code mcp.json is missing the Z.AI HTTP servers (web-search-prime, web-reader, zread) that Crush and Droid have. VAL-CONF-006 requires all tools reference the canonical MCP server set.",
+      "suggestedFix": "Add web-search-prime, web-reader, and zread MCP servers to the Claude Code mcp.json generator in ai-coding-tools.nix."
+    },
+    {
+      "featureId": "crush-claude-config-harmonize",
+      "severity": "blocking",
+      "description": "'Align model names with 3-tier strategy' requirement from feature description was entirely not addressed by the worker.",
+      "suggestedFix": "Update Crush config model definitions to align with the 3-tier strategy naming conventions."
+    },
+    {
+      "featureId": "droid-config-align",
+      "severity": "blocking",
+      "description": "Droid mcp.json (~/.factory/mcp.json) contains 4 inline plaintext API keys (zai-mcp-server.env.Z_AI_API_KEY, web-search-prime/web-reader/zread headers.Authorization). Feature description explicitly required 'Update MCP config to use env vars instead of inline API key'. Worker incorrectly reported mcp.json already uses env vars.",
+      "suggestedFix": "Determine if the Droid/Factory platform supports ${VAR} env var substitution in MCP server config fields. If yes, replace inline keys with env var references. If no, document this limitation and accept the runtime-resolved pattern with appropriate file permissions."
+    }
+  ],
+  "nonBlockingIssues": [
+    {
+      "featureId": "tool-config-api-key",
+      "description": "ProtectHome='read-write' is invalid systemd syntax. Should be 'no'. Systemd ignores it but intended protection is not applied."
+    },
+    {
+      "featureId": "tool-config-api-key",
+      "description": "crush.json generated with 644 permissions (world-readable). Should be 600 since it contains API keys."
+    },
+    {
+      "featureId": "tool-config-api-key",
+      "description": "tmpfiles rule creates a directory named 'mcp.json' instead of parent directory. Functionally overridden by generator script."
+    },
+    {
+      "featureId": "opencode-consolidation",
+      "description": "~/.opencode/config.json was not cleaned up/redirected - still contains full old config despite handoff claiming it was."
+    },
+    {
+      "featureId": "opencode-consolidation",
+      "description": "Changes were written imperatively to ~/.config/ rather than through NixOS declarative module. Auto-sync timer could overwrite consolidated config."
+    },
+    {
+      "featureId": "crush-claude-config-harmonize",
+      "description": "Backup files (~/.claude/settings.json.bak, ~/.claude/settings.json.backup) contain plaintext API keys on disk."
+    },
+    {
+      "featureId": "security-cleanup",
+      "description": "API key remains in git history (commits 03da53a, 7f43b0c). Out of scope but noted for potential future git history cleanup."
+    }
+  ],
+  "appliedUpdates": [],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add section on API key management patterns in NixOS: (1) tools that support env var references (Droid settings.json, Claude Code, OpenCode) should use env vars; (2) tools that don't support env var interpolation (Crush, Droid mcp.json headers) need config generation with resolved secrets and must use chmod 600 permissions. Document that the ai-coding-tools.nix module is the canonical source of truth for all tool MCP configs.",
+      "evidence": "Reviews of crush-claude-config-harmonize and droid-config-align both found that the NixOS ai-coding-tools-config service resolves agenix secrets at generation time and writes plaintext to config files. This is by design for tools without env var support, but creates tension with validation assertions requiring env var references. The pattern needs explicit documentation.",
+      "isSystemic": true
+    },
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add guidance that feature descriptions should cross-reference the 3-tier strategy table when specifying model assignments. The droid-config-align feature description incorrectly specified 'GLM-5' for validator tier (GLM-5 is orchestrator tier) which caused worker confusion.",
+      "evidence": "droid-config-align review found feature description had inaccurate model-to-tier mappings. Worker had to independently reason about the correct tier assignments.",
+      "isSystemic": false
+    },
+    {
+      "target": "skills/nixos-config-worker",
+      "suggestion": "Add guidance for verifying non-NixOS config files (Droid settings.json/mcp.json, Crush, Claude Code) that live outside the git repo. The skill currently focuses on .nix files and git-tracked changes, but workers are being asked to manage user-level configs too.",
+      "evidence": "droid-config-align worker spent time discovering settings.json is not git-tracked. opencode-consolidation worker wrote configs imperatively without NixOS module integration.",
+      "isSystemic": true
+    },
+    {
+      "target": "mission.md",
+      "suggestion": "Clarify VAL-SEC-004 and VAL-CONF-004 to account for tools that cannot support env var interpolation. Either add an exception for generated configs with runtime-resolved secrets (with chmod 600), or explicitly require all tools to support env vars (which may not be achievable for Crush).",
+      "evidence": "crush-claude-config-harmonize review found that Crush does not support ${VAR} interpolation in JSON. The ai-coding-tools-config service writes resolved secrets to crush.json by design. This creates an inherent conflict with assertions requiring env var references.",
+      "isSystemic": false
+    }
+  ],
+  "rejectedObservations": [
+    {
+      "observation": "ProtectHome='read-write' is invalid systemd syntax",
+      "reason": "This is a code fix, not a guidance/library/services update. Should be addressed as a fix feature, not as a scrutiny observation."
+    },
+    {
+      "observation": "crush.json has 644 permissions",
+      "reason": "Same as above - this is a code fix, not a documentation/guidance update."
+    },
+    {
+      "observation": "opencode-model-update timer not in services.yaml",
+      "reason": "Ambiguous - the timer is a NixOS-managed service, not a manually managed service. Adding to services.yaml would be misleading since workers shouldn't start/stop NixOS-managed services imperatively."
+    }
+  ],
+  "previousRound": null
+}

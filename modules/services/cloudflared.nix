@@ -1,3 +1,5 @@
+# Cloudflare Tunnel (cloudflared) Module for NixOS
+# Secure ingress for Kubernetes services without public ports
 {
   config,
   pkgs,
@@ -15,7 +17,7 @@
 
     credentialsFile = lib.mkOption {
       type = lib.types.path;
-      default = "/run/secrets/cloudflared-token";
+      default = "/run/agenix/cloudflared-token";
       description = "Path to tunnel credentials file (JSON with AccountID, TunnelID, TunnelSecret)";
     };
 
@@ -32,6 +34,7 @@
             example = "http://localhost:8080";
             description = "Backend service URL (or http_status:404 for catch-all)";
           };
+          # NEW: Zero Trust access policy
           accessPolicy = lib.mkOption {
             type = lib.types.nullOr lib.types.str;
             default = null;
@@ -50,12 +53,14 @@
       description = "Port for cloudflared metrics";
     };
 
+    # NEW: QUIC protocol for faster connections
     quicEnabled = lib.mkOption {
       type = lib.types.bool;
       default = true;
       description = "Enable QUIC protocol for 30-50% faster connections";
     };
 
+    # NEW: Origin request configuration
     originRequest = lib.mkOption {
       type = lib.types.submodule (_: {
         options = {
@@ -100,9 +105,16 @@
     cfg = config.services.cloudflared-tunnel;
   in
     lib.mkIf cfg.enable {
+      # ============================================================================
+      # REQUIRED PACKAGES
+      # ============================================================================
       environment.systemPackages = with pkgs; [cloudflared];
 
+      # ============================================================================
+      # CLOUDFLARED CONFIGURATION
+      # ============================================================================
       environment.etc."cloudflared/config.yml".text = let
+        # Generate ingress YAML entries with proper quoting
         ingressYaml =
           lib.concatMapStrings (rule: ''
             - hostname: "${rule.hostname}"
@@ -114,12 +126,15 @@
         tunnel: ${cfg.tunnelId}
         credentials-file: ${cfg.credentialsFile}
 
-        metrics: 127.0.0.1:${toString cfg.metricsPort}
+        metrics: 0.0.0.0:${toString cfg.metricsPort}
 
+        # QUIC protocol for faster connections (30-50% improvement)
         ${lib.optionalString cfg.quicEnabled "quic: true"}
 
+        # Force IPv4 only (IPv6 routing issues breaking control stream)
         no-remote-ipv6: true
 
+        # Origin request configuration for connection pooling
         originRequest:
           connectTimeout: ${cfg.originRequest.connectTimeout}
           tlsTimeout: ${cfg.originRequest.tlsTimeout}
@@ -130,21 +145,27 @@
 
         ingress:
         ${lib.optionalString (cfg.ingressRules != []) ingressYaml}
+        # Catch-all: return 404 for unmatched routes
         - service: http_status:404
       '';
 
+      # ============================================================================
+      # SYSTEMD SERVICE
+      # ============================================================================
       systemd.services.cloudflared-tunnel = {
         description = "Cloudflare Tunnel - secure ingress";
         wantedBy = ["multi-user.target"];
         requires = ["network-online.target"];
-        after = ["network-online.target"];
+        after = ["network-online.target" "agenix-rekey.service"];
 
         serviceConfig = {
           ExecStart = lib.getExe pkgs.cloudflared + " tunnel --config /etc/cloudflared/config.yml run";
           Restart = "on-failure";
           RestartSec = "5s";
+          # Run as root to read agenix-decrypted credentials
           User = "root";
           Group = "root";
+          # Security hardening
           NoNewPrivileges = true;
           PrivateTmp = true;
           ProtectSystem = "strict";
@@ -152,13 +173,21 @@
           AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
         };
 
+        # Verify token exists before starting
         preStart = ''
           if [ ! -f ${cfg.credentialsFile} ]; then
             echo "ERROR: cloudflared credentials not found at ${cfg.credentialsFile}"
-            echo "Please ensure the secret exists at ${cfg.credentialsFile}."
+            echo "Please ensure the secret is properly configured in agenix."
             exit 1
           fi
         '';
       };
+
+      # ============================================================================
+      # FIREWALL (for metrics)
+      # ============================================================================
+      networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
+        config.services.cloudflared-tunnel.metricsPort
+      ];
     };
 }

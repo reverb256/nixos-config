@@ -1,0 +1,165 @@
+---
+# Open WebUI - User-Friendly AI Chat Interface
+# Deploy to nexus (46GB RAM) - default target per AGENTS.md scheduling rules
+# Caddy ingress handles external TLS termination (no NodePort needed)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: open-webui
+  namespace: ai-inference
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-webui
+  namespace: ai-inference
+  labels:
+    app: open-webui
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: open-webui
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-webui
+  namespace: ai-inference
+  labels:
+    app: open-webui
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: open-webui
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: open-webui
+    spec:
+      serviceAccountName: open-webui
+      nodeName: nexus  # 46GB RAM - default for ALL workloads per AGENTS.md
+      dnsPolicy: ClusterFirst
+      # Allow outbound internet for HuggingFace model downloads
+      containers:
+        - name: open-webui
+          image: ghcr.io/open-webui/open-webui:0.6.5
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+              name: http
+          env:
+            # Local AI Gateway (Ollama-compatible API)
+            # Uses cluster DNS - Caddy ingress routes to the gateway
+            - name: OLLAMA_BASE_URLS
+              value: "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1"
+            # Secret key for session encryption
+            # TODO: Move to agenix-managed K8s secret
+            - name: WEBUI_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: open-webui-secrets
+                  key: webui-secret-key
+                  optional: true
+            # Connection settings
+            - name: ENABLE_OLLAMA_API
+              value: "true"
+            - name: OLLAMA_API_BASE_URLS
+              value: "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/v1"
+            # Feature flags
+            - name: ENABLE_OPENAI_API
+              value: "true"
+            - name: ENABLE_LLM
+              value: "true"
+            - name: ENABLE_SIGNUP
+              value: "true"
+            - name: ENABLE_LDAP_LOGIN
+              value: "false"
+            - name: DEFAULT_LLM
+              value: "qwen3.5-35b-a3b"
+            # Embedding model (cached locally, downloaded on first start)
+            - name: RAG_EMBEDDING_MODEL
+              value: "sentence-transformers/all-MiniLM-L6-v2"
+            - name: RAG_EMBEDDING_MODEL_TRUST_REMOTE_CODE
+              value: "true"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 2000m
+              memory: 4Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: webui-data
+              mountPath: /app/backend/data
+      volumes:
+        - name: webui-data
+          hostPath:
+            path: /var/lib/open-webui
+            type: DirectoryOrCreate
+---
+# Secret for WEBUI_SECRET_KEY
+# Generate with: openssl rand -hex 32
+# TODO: Move to agenix
+apiVersion: v1
+kind: Secret
+metadata:
+  name: open-webui-secrets
+  namespace: ai-inference
+type: Opaque
+stringData:
+  webui-secret-key: ""
+---
+# NetworkPolicy - allow Open WebUI to talk to everything it needs
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: open-webui
+  namespace: ai-inference
+spec:
+  podSelector:
+    matchLabels:
+      app: open-webui
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-system
+      ports:
+        - port: 8080
+          protocol: TCP
+    - from:
+        - podSelector: {}  # Allow health checks from any pod in namespace
+  egress:
+    - {}  # Allow all outbound (HuggingFace, Ollama gateway, etc.)

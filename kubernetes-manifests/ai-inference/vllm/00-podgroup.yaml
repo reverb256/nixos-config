@@ -1,0 +1,21 @@
+# vLLM PodGroup for YuniKorn Gang Scheduling
+# Ensures all vLLM pods are scheduled together with guaranteed resources
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: PodGroup
+metadata:
+  name: vllm-qwen-podgroup
+  namespace: ai-inference
+  labels:
+    app: vllm-qwen
+spec:
+  # Minimum number of pods to schedule together
+  minMember: 2
+  # Total pods in the group
+  minResources:
+    nvidia.com/gpu: "2"  # 2 pods × 1 GPU each
+    memory: "8Gi"        # 2 pods × 4Gi each
+    cpu: "4"             # 2 pods × 2 CPU each
+  # Queue assignment (YuniKorn: root.ai-inference)
+  queue: root.ai-inference
+  # Priority class for preemption
+  priorityClassName: ai-inference-high

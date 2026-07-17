@@ -1,0 +1,123 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xmrig-zephyr
+  namespace: mining
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: xmrig-zephyr
+  template:
+    metadata:
+      labels:
+        app: xmrig-zephyr
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8082"
+        prometheus.io/path: "/1/summary"
+    spec:
+      nodeName: zephyr
+      hostNetwork: true
+      hostIPC: true
+
+      dnsPolicy: ClusterFirstWithHostNet
+      automountServiceAccountToken: false
+      serviceAccountName: gpu-miner-sa
+      priorityClassName: mining-low
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: workstation
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+      - key: interactive
+        operator: Equal
+        value: "true"
+        effect: NoExecute
+      - key: ram-constrained
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: xmrig
+        image: gcr.io/distroless/static-debian12@sha256:20bc6c0bc4d625a22a8fde3e55f6515709b32055ef8fb9cfbddaa06d1760f838
+        command: ["/nix/store/0fd8d0yx3am8srx0ix2mnm5rypm6q1jv-xmrig-6.25.0/bin/xmrig"]
+        args:
+        - "-o"
+        - "10.1.1.120:3333"
+        - "-u"
+        - "zephyr-cpu"
+        - "--tls=false"
+        - "--threads=8"
+        - "--donate-level=1"
+        - "--http-enabled"
+        - "--http-host=0.0.0.0"
+        - "--http-port=8082"
+        - "--api-worker-id=zephyr-cpu"
+        env:
+        - name: XMRIG_NO_TLS
+          value: "1"
+        ports:
+        - containerPort: 8082
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /1/summary
+            port: 8082
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /1/summary
+            port: 8082
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: 1Gi
+            cpu: 4
+          limits:
+            memory: 4096Mi
+            cpu: 8
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: nix
+          mountPath: /nix
+          subPath: nix
+        - name: msr
+          mountPath: /dev/cpu
+        - name: hugepages
+          mountPath: /dev/hugepages
+        - name: sys-module-msr
+          mountPath: /sys/module/msr
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: nix
+        csi:
+          driver: nixkube
+          volumeAttributes:
+            x86_64-linux: /nix/store/0fd8d0yx3am8srx0ix2mnm5rypm6q1jv-xmrig-6.25.0
+      - name: msr
+        hostPath:
+          path: /dev/cpu
+          type: Directory
+      - name: hugepages
+        hostPath:
+          path: /dev/hugepages
+          type: Directory
+      - name: sys-module-msr
+        hostPath:
+          path: /sys/module/msr
+          type: Directory
+      - name: tmp
+        emptyDir: {}

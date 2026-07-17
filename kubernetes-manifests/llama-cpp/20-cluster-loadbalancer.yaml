@@ -1,0 +1,62 @@
+---
+# Cluster-wide Load Balancer for llama.cpp
+# This service provides a single endpoint that can be expanded to include
+# multiple llama.cpp instances across different nodes for load distribution
+apiVersion: v1
+kind: Service
+metadata:
+  name: llama-cpp-qwen-cluster
+  namespace: ai-inference
+  labels:
+    app: llama-cpp-qwen
+    component: llm-inference
+    type: cluster-loadbalancer
+  annotations:
+    description: "Cluster-wide load balancer for llama.cpp instances"
+spec:
+  type: ClusterIP
+  clusterIP: 10.0.0.213  # Fixed IP for consistency
+  sessionAffinity: ClientIP  # Sticky sessions for better UX
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8083
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  # No selector - we'll use manual Endpoints for precise control
+---
+# Endpoints for cluster load balancer
+# Currently pointing to Zephyr only
+# Add more nodes here as they come online
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: llama-cpp-qwen-cluster
+  namespace: ai-inference
+  labels:
+    app: llama-cpp-qwen
+    component: llm-inference
+subsets:
+  - addresses:
+      - ip: 10.1.1.110  # zephyr (RTX 3060 Ti + RTX 3090)
+        nodeName: zephyr
+        targetRef:
+          kind: Pod
+          name: llama-cpp-zephyr  # Logical name, not an actual pod
+      # Future nodes - uncomment when ready:
+      # - ip: 10.1.1.108  # nexus (RTX 3060 Ti)
+      #   nodeName: nexus
+      # - ip: 10.1.1.109  # forge (RTX 4060 #1)
+      #   nodeName: forge
+      # - ip: 10.1.1.109  # forge (RTX 4060 #2)
+      #   nodeName: forge
+    ports:
+      - name: http
+        port: 8083
+        protocol: TCP
+      - name: metrics
+        port: 9090
+        protocol: TCP

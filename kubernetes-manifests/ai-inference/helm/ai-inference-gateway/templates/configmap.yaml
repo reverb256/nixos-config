@@ -1,0 +1,65 @@
+{{/*
+AI Inference Gateway — ConfigMap
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ai-inference-gateway.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ai-inference-gateway.labels" . | nindent 4 }}
+data:
+  # Gateway core
+  GATEWAY_HOST: "{{ .Values.gateway.host }}"
+  GATEWAY_PORT: "{{ .Values.gateway.port }}"
+  BACKEND_URL: "{{ .Values.backend.url }}"
+  BACKEND_TYPE: "{{ .Values.backend.type }}"
+  LOG_LEVEL: "{{ .Values.gateway.logLevel }}"
+
+  # Routing
+  ROUTING_ENABLED: "{{ .Values.routing.enabled }}"
+  DEFAULT_MODEL: "{{ .Values.routing.defaultModel }}"
+
+  # ZAI
+  {{- if .Values.zai.enabled }}
+  ZAI_BASE_URL: "{{ .Values.zai.baseUrl }}"
+  {{- end }}
+
+  # Pollinations
+  {{- if .Values.pollinations.enabled }}
+  POLLINATIONS_BASE_URL: "{{ .Values.pollinations.baseUrl }}"
+  {{- end }}
+
+  # RAG
+  {{- if .Values.rag.enabled }}
+  RAG_ENABLED: "true"
+  QDRANT_URL: "{{ .Values.rag.qdrantUrl }}"
+  EMBEDDING_MODEL: "{{ .Values.rag.embeddingModel }}"
+  CHUNK_SIZE: "{{ .Values.rag.chunkSize }}"
+  CHUNK_OVERLAP: "{{ .Values.rag.chunkOverlap }}"
+  RAG_TOP_K: "{{ .Values.rag.topK }}"
+  HYBRID_SEARCH_ENABLED: "{{ .Values.rag.hybridSearch }}"
+  RERANKER_ENABLED: "{{ .Values.rag.reranker.enabled }}"
+  {{- end }}
+
+  # Knowledge Fabric
+  {{- if .Values.middleware.knowledgeFabric.enabled }}
+  MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED: "true"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K: "{{ .Values.middleware.knowledgeFabric.rrfK }}"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED: "{{ .Values.middleware.knowledgeFabric.ragEnabled }}"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED: "{{ .Values.middleware.knowledgeFabric.searxngEnabled }}"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_SEARCH_ENABLED: "{{ .Values.middleware.knowledgeFabric.webSearchEnabled }}"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED: "{{ .Values.middleware.knowledgeFabric.codeSearchEnabled }}"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL: "{{ .Values.middleware.knowledgeFabric.searxngUrl }}"
+  {{- end }}
+
+  # Redis
+  {{- if .Values.middleware.redis.enabled }}
+  REDIS_URL: "redis://{{ .Values.middleware.redis.host }}:{{ .Values.middleware.redis.port }}"
+  {{- end }}
+
+  # Monitoring
+  {{- if .Values.monitoring.enabled }}
+  MONITORING_ENABLED: "true"
+  MONITORING_PORT: "{{ .Values.monitoring.port }}"
+  {{- end }}

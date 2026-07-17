@@ -1,0 +1,5 @@
+NAME     CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)   
+forge    134m         2%       4405Mi          33%         
+nexus    6302m        26%      9424Mi          20%         
+sentry   1372m        8%       5571Mi          18%         
+zephyr   9558m        29%      13052Mi         44%         

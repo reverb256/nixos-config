@@ -1,0 +1,24 @@
+# LimitRange for Default Namespace
+# Sets default resource requests and limits for pods that don't specify them
+# Prevents resource starvation by ensuring all pods have resource bounds
+
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-limits
+  namespace: default
+spec:
+  limits:
+  - default:
+      cpu: "500m"       # Default limit if not specified
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "100m"       # Default request if not specified
+      memory: "128Mi"
+    max:
+      cpu: "4"
+      memory: "4Gi"
+    min:
+      cpu: "50m"
+      memory: "64Mi"
+    type: Container

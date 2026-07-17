@@ -1,0 +1,161 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: searxng-settings
+  namespace: search
+data:
+  settings.yml: |
+    # SearXNG minimal configuration
+    use_default_settings: true
+    server:
+      limiter: false
+      secret_key: "${SEARXNG_SECRET}"
+      method: "GET"
+      port: 8080
+
+    # Completely disable limiter and rate limiting
+    limiter: false
+
+    # Disable bot detection
+    bot_detection:
+      enabled: false
+
+    search:
+      formats:
+        - html
+        - json
+      language: en
+      safe_search: 0
+
+    # Disable all access control for cluster use
+    ui:
+      static_use_hash: true
+      default_theme: simple
+
+    # Disable rate limiting completely
+    result_proxy:
+      enabled: false
+
+    engines:
+      # Bot-friendly engines that don't return 403 errors
+      - name: duckduckgo
+        paging: true
+
+      - name: brave
+        paging: true
+
+      - name: startpage
+        paging: true
+
+      - name: wikipedia
+        paging: true
+
+      - name: stackoverflow
+        paging: true
+
+      - name: github
+        paging: true
+
+      # Disabled due to 403 errors
+      # - name: google
+      #   paging: true
+      # - name: bing
+      #   paging: true
+
+    # Disable limiter completely for API access
+    limiter: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: searxng
+  namespace: search
+  labels:
+    app: searxng
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: searxng
+  template:
+    metadata:
+      labels:
+        app: searxng
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: searxng
+          image: searxng/searxng:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: SEARXNG_SECRET
+              value: "7b22a3c8f9e4d1a6b5c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1"
+            - name: BASE_URL
+              value: "http://searxng.search.svc.cluster.local:8080"
+            - name: SEARXNG_LIMITER
+              value: "false"
+          volumeMounts:
+            - name: settings
+              mountPath: /etc/searxng/settings.yml
+              subPath: settings.yml
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /var/cache/searxng
+            - name: run
+              mountPath: /run
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: settings
+          configMap:
+            name: searxng-settings
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: searxng
+  namespace: search
+  labels:
+    app: searxng
+spec:
+  type: ClusterIP
+  # FIXED ClusterIP - NEVER CHANGES - Required for MCP configuration
+  clusterIP: 10.0.0.100
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: searxng

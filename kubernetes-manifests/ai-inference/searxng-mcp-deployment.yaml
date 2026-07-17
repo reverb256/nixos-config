@@ -1,0 +1,134 @@
+---
+# SearXNG MCP Server - Kubernetes Deployment
+# Replaces systemd service with cluster-native deployment
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: searxng-mcp
+  namespace: ai-inference
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: searxng-mcp-config
+  namespace: ai-inference
+data:
+  SEARXNG_URL: "http://searxng-refactored.search.svc.cluster.local:8080"
+  SEARXNG_CACHE_TTL: "300"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: searxng-mcp
+  namespace: ai-inference
+  labels:
+    app: searxng-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: searxng-mcp
+  template:
+    metadata:
+      labels:
+        app: searxng-mcp
+    spec:
+      serviceAccountName: searxng-mcp
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: searxng-mcp
+        image: ghcr.io/reverb256/ai-inference-gateway:latest
+        imagePullPolicy: Always
+        command:
+          - "python"
+          - "-m"
+          - "ai_inference_gateway.mcp_servers.searxng_server"
+        env:
+          - name: SEARXNG_URL
+            valueFrom:
+              configMapKeyRef:
+                name: searxng-mcp-config
+                key: SEARXNG_URL
+          - name: SEARXNG_CACHE_TTL
+            valueFrom:
+              configMapKeyRef:
+                name: searxng-mcp-config
+                key: SEARXNG_CACHE_TTL
+          - name: PYTHONPATH
+            value: "/app"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: searxng-mcp
+  namespace: ai-inference
+  labels:
+    app: searxng-mcp
+spec:
+  selector:
+    app: searxng-mcp
+  ports:
+    - name: mcp
+      protocol: TCP
+      port: 3000
+      targetPort: 3000
+  type: ClusterIP
+---
+# NetworkPolicy to allow MCP server to reach SearXNG
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: searxng-mcp-egress
+  namespace: ai-inference
+spec:
+  podSelector:
+    matchLabels:
+      app: searxng-mcp
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow SearXNG access
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: search
+      ports:
+        - protocol: TCP
+          port: 8080

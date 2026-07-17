@@ -1,0 +1,47 @@
+---
+# MCP Gateway Proxy DaemonSet
+# Forwards localhost:8080 to AI Inference Gateway NodePort on each node
+# This allows mcp-gateway-bridge to connect to localhost:8080 and reach the K8s gateway
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: mcp-gateway-proxy
+  namespace: ai-inference
+  labels:
+    app: mcp-gateway-proxy
+spec:
+  selector:
+    matchLabels:
+      app: mcp-gateway-proxy
+  template:
+    metadata:
+      labels:
+        app: mcp-gateway-proxy
+    spec:
+      hostNetwork: true  # Use host network to access localhost:8080
+      tolerations:
+      - key: CriticalAddonsOnly
+        operator: Exists
+      containers:
+      - name: socat
+        image: alpine/socat:latest
+        command:
+          - "socat"
+          - "TCP-LISTEN:8080,fork,reuseaddr,bind=127.0.0.1"
+          - "TCP:localhost:30880"
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+            add:
+              - NET_BIND_SERVICE
+              - NET_ADMIN

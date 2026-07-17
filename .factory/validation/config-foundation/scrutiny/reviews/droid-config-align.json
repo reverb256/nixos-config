@@ -1,0 +1,60 @@
+{
+  "featureId": "droid-config-align",
+  "reviewedAt": "2026-03-31T05:15:00.000Z",
+  "commitId": "none",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The settings.json changes are correct: customModels display names include tier roles, workerModel points to GLM-4.7 (worker tier), validationWorkerModel correctly changed from GLM-5.1 to GLM-4.5-Air (validator tier), and sessionDefaultSettings.model is GLM-5.1 (orchestrator tier). However, the mcp.json file still contains 4 inline plaintext API keys, which directly contradicts the feature description requirement to 'Update MCP config to use env vars instead of inline API key' and also means the verification step 'rg a304de1a ~/.factory/mcp.json (should return 0)' would FAIL. The worker reported mcp.json as already using env vars, which is false.",
+    "issues": [
+      {
+        "file": "/home/j_kro/.factory/mcp.json",
+        "line": null,
+        "severity": "blocking",
+        "description": "CRITICAL: mcp.json contains 4 inline plaintext API keys that were NOT replaced with env vars. The worker reported 'All 4 MCP servers use ${ZAI_API_KEY} environment variable, no inline plaintext keys' but this is FALSE. Actual state: zai-mcp-server.env.Z_AI_API_KEY is an inline key (length=49), web-search-prime.headers.Authorization is inline (length=56), web-reader.headers.Authorization is inline (length=56), zread.headers.Authorization is inline (length=56). The feature description explicitly requires 'Update MCP config to use env vars instead of inline API key'. This was NOT done. Furthermore, the verification step 'rg a304de1a ~/.factory/mcp.json (should return 0)' would MATCH, meaning the test as written would PASS but for the WRONG reason — the test expects the key to be FOUND (return 0), not absent. However, the handoff claims exit code 1 (no matches), which contradicts the actual file content. This is either because the file was modified after the worker ran, or the worker's verification was incorrect."
+      },
+      {
+        "file": "/home/j_kro/.factory/settings.json",
+        "line": null,
+        "severity": "non_blocking",
+        "description": "MINOR: Feature description says 'Map session default to orchestrator tier (claude-opus-4-6)' but the actual model used is GLM-5.1, not claude-opus-4-6. The worker correctly identified this discrepancy and used GLM-5.1 per the 3-tier strategy table in AGENTS.md. The feature description's parenthetical '(claude-opus-4-6)' appears to be a Claude-side model name reference, not the actual model to set. This is acceptable but the feature description could be clearer."
+      },
+      {
+        "file": "/home/j_kro/.factory/settings.json",
+        "line": null,
+        "severity": "non_blocking",
+        "description": "MINOR: Feature description says 'validation model to validator tier (GLM-5)' but GLM-5 is orchestrator tier per the 3-tier strategy. The worker correctly identified this error and used GLM-4.5-Air (the actual validator tier model) instead, following the validation contract VAL-ROUTER-004. Good judgment by the worker, but the feature description had an error."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "The feature description for droid-config-align contained inaccurate model-to-tier mappings (e.g., 'validation model to validator tier (GLM-5)' when GLM-5 is actually orchestrator tier, and 'session default to orchestrator tier (claude-opus-4-6)' when the model is GLM-5.1). Mission planners should cross-reference the 3-tier strategy table in AGENTS.md when generating feature descriptions to avoid confusion.",
+      "evidence": "Feature description says 'GLM-5' for validator tier but AGENTS.md 3-tier strategy table shows glm-4.5-air as validator tier cloud fallback. Worker transcript shows the worker had to reason about this discrepancy before implementing."
+    },
+    {
+      "area": "skills",
+      "observation": "The nixos-config-worker skill does not include guidance on verifying MCP config files or Droid user config files (settings.json, mcp.json). These are user config files, not NixOS configs, and live outside the git repo. The skill is focused on .nix files and git-tracked changes. A worker handling Droid config alignment needs different procedures than one editing NixOS modules.",
+      "evidence": "Worker spent time discovering that settings.json is not git-tracked and no commit was needed. The skill's step 7 says 'Commit: Stage only changed files' which doesn't apply to non-git-tracked config files."
+    },
+    {
+      "area": "conventions",
+      "observation": "The verification step in the feature definition ('rg a304de1a ~/.factory/settings.json ~/.factory/mcp.json (should return 0)') is ambiguous. 'Should return 0' could mean 'the key should be found (exit 0 from rg)' or 'the check should pass'. In context, the intent seems to be that the key should NOT be present (verified by exit code 1), but the wording suggests it SHOULD be found. This ambiguity could lead to incorrect verification results.",
+      "evidence": "Feature verificationSteps field: 'rg a304de1a ~/.factory/settings.json ~/.factory/mcp.json (should return 0)'. The handoff shows exit code 1 (no matches) as a success indicator, but the step says 'should return 0'."
+    },
+    {
+      "area": "services",
+      "observation": "The mcp.json file at ~/.factory/mcp.json is a critical configuration file containing API keys for MCP servers (zai-mcp-server, web-search-prime, web-reader, zread, context7). It is not tracked by git and not mentioned in services.yaml. Its management (especially secret rotation and env var references) should be documented somewhere in the mission or library.",
+      "evidence": "mcp.json contains 5 API key references (4 inline plaintext, 1 for context7). No documentation exists in .factory/library/ about MCP config management patterns."
+    },
+    {
+      "area": "knowledge",
+      "observation": "The settings.json customModels use '${ZAI_API_KEY}' as env var reference syntax, but mcp.json uses different patterns: 'env' object for some (zai-mcp-server uses Z_AI_API_KEY with inline value) and 'headers.Authorization' for others (web-search-prime, web-reader, zread). The Droid/Factory platform may not support env var substitution in MCP headers the same way it does in customModels.apiKey. This needs clarification before the mcp.json migration to env vars can be done correctly.",
+      "evidence": "settings.json customModels[].apiKey uses '${ZAI_API_KEY}' successfully. mcp.json has zai-mcp-server.env.Z_AI_API_KEY (inline), web-search-prime.headers.Authorization (inline), zread.headers.Authorization (inline). Whether these header fields support ${VAR} substitution is unknown."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "FAIL: The settings.json changes are correct — customModels have tier role display names, workerModel/GLM-4.7 and validationWorkerModel/GLM-4.5-Air are properly tiered, and sessionDefaultSettings uses GLM-5.1 (orchestrator). However, the feature's requirement to 'Update MCP config to use env vars instead of inline API key' was NOT completed. The mcp.json file still contains 4 inline plaintext API keys (zai-mcp-server.env.Z_AI_API_KEY, web-search-prime/web-reader/zread headers.Authorization). The worker incorrectly reported that mcp.json already uses env vars. This is a blocking issue that must be fixed for VAL-CONF-007 and the security cleanup assertions to fully pass."
+}

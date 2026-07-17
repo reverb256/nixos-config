@@ -1,33 +1,56 @@
+# Programming Languages Module
+# Comprehensive language runtimes and package managers
 {pkgs, ...}: {
   environment.systemPackages = with pkgs; [
+    # ============================================================================
+    # GO
+    # ============================================================================
     go
-    gopls
+    gopls # Go LSP
 
+    # ============================================================================
+    # PYTHON
+    # ============================================================================
     python313
+    # Python with GUI and system integration packages
     (python313.withPackages (
       ps:
         with ps; [
-          pygobject3
-          gobject-introspection
-          pyqt6-sip
+          pygobject3 # Python bindings for GObject
+          gobject-introspection # GObject introspection
+          pyqt6-sip # PyQt6 SIP bindings
         ]
     ))
 
+    # uv - Ultra-fast Python package installer (replaces pip/poetry)
     uv
 
-    nodejs
-    pnpm
+    # ============================================================================
+    # JAVASCRIPT / TYPESCRIPT
+    # ============================================================================
+    nodePackages_latest.nodejs
+    nodePackages_latest.pnpm
 
+    # bun - Ultra-fast JavaScript runtime (Node.js alternative)
     bun
 
-    lua
-    lua-language-server
+    # ============================================================================
+    # SYSTEM / EMBEDDED LANGUAGES
+    # ============================================================================
+    lua # Lightweight scripting language
+    lua-language-server # Lua LSP
 
-    zig
-    zls
+    zig # Modern system programming language
+    zls # Zig LSP
 
-    numbat
+    # ============================================================================
+    # CALCULATOR / MATH
+    # ============================================================================
+    numbat # Scientific calculator with unit handling
 
-    typst
+    # ============================================================================
+    # MISCELLANEOUS
+    # ============================================================================
+    typst # Alternative to LaTeX
   ];
 }

@@ -1,3 +1,4 @@
+# modules/profiles/role/implementations.nix --- Role profile implementations
 {
   config,
   lib,
@@ -18,14 +19,14 @@ in {
       services.gaming.vr.enable = true;
     })
 
-    (lib.mkIf cfg.aiInference {
-      services.opencode.enable = true;
+    (lib.mkIf cfg.mining {
+      services.mining.enable = true;
     })
 
-    (lib.mkIf cfg.monitoring {
-      # Monitoring profile: exporters and observability
-      # are handled by individual service modules.
-      # This role flag is used for node-profiles role assignment only.
+    (lib.mkIf cfg.aiInference {
+      services.ai-inference.enable = true;
+      # services.ai-inference.pre-download = true;  # Requires qwen3-tts-preload module
+      services.opencode.enable = true;
     })
   ];
 }

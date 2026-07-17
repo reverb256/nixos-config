@@ -1,0 +1,23 @@
+{
+  "skill_name": "capacity-planner",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have 8 GPUs and expect 20 concurrent AI users. How should I allocate my resources?",
+      "expected_output": "Run calculate-capacity.sh with appropriate parameters and recommend GPU allocation between AI and mining",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Plan capacity for running Llama 3 70B model with 10 concurrent users",
+      "expected_output": "Calculate VRAM needs (70B model needs ~40GB VRAM) and recommend GPU allocation",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Should I mine or run AI inference during work hours?",
+      "expected_output": "Explain time-based separation strategy and recommend prioritizing AI during work hours",
+      "files": []
+    }
+  ]
+}

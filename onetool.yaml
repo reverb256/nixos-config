@@ -1,0 +1,19 @@
+# OneTool Configuration
+version: 2
+
+# Paths are relative to this file's directory (the .onetool/ directory)
+
+# Glob patterns for custom tool discovery (relative to .onetool/, or absolute)
+# Example: ["tools/*.py"] loads all Python files in .onetool/tools/
+tools_dir: []
+
+# log_level: INFO
+
+# Tool-specific configuration
+# tools:
+#   # ot_llm — LLM calls from within OneTool (code generation, transforms, etc.)
+#   ot_llm:
+#     model: google/gemini-3-flash-preview
+#     base_url: https://openrouter.ai/api/v1
+#   # mem — persistent memory (semantic search and recall)
+#   # mem: {}

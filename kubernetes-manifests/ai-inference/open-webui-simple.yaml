@@ -1,0 +1,109 @@
+---
+# Open WebUI - User-Friendly AI Chat Interface
+# Deploy to nexus (46GB RAM) - default target for AI workloads
+# Using hostPath for simplicity (no PV/PVC complexity)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: open-webui
+  namespace: ai-inference
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-webui
+  namespace: ai-inference
+  labels:
+    app: open-webui
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: open-webui
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-webui
+  namespace: ai-inference
+  labels:
+    app: open-webui
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: open-webui
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: open-webui
+    spec:
+      serviceAccountName: open-webui
+      nodeName: forge
+      containers:
+        - name: open-webui
+          image: ghcr.io/open-webui/open-webui:0.6.5
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              hostPort: 30080
+              protocol: TCP
+              name: http
+          env:
+            # Local AI Gateway (Ollama-compatible) - will connect to local llama-server
+            - name: OLLAMA_BASE_URLS
+              value: "http://10.1.1.110:8081/v1"
+            # General settings
+            - name: WEBUI_SECRET_KEY
+              value: "local-dev-key-replace-in-production"
+            - name: ENABLE_OLLAMA
+              value: "true"
+            - name: ENABLE_OPENAI_API
+              value: "false"
+            - name: ENABLE_LLM
+              value: "true"
+            - name: ENABLE_SIGNUP
+              value: "true"
+            - name: ENABLE_LDAP_LOGIN
+              value: "false"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 2000m
+              memory: 4Gi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: webui-data
+              mountPath: /app/backend/data
+      volumes:
+        - name: webui-data
+          hostPath:
+            path: /mnt/open-webui-data
+            type: DirectoryOrCreate

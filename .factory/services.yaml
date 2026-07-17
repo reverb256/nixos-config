@@ -1,0 +1,44 @@
+commands:
+  check: nix flake check --no-build
+  build: nixos-rebuild build
+  build-remote: colmena apply --build-on-target --no-submit
+  test: echo "No unit tests for NixOS configs - use 'check' and 'build'"
+  lint: nix flake check --no-build
+  switch: just switch
+  deploy: just deploy
+
+services:
+  kubernetes:
+    start: echo "K8s managed by NixOS - do not restart"
+    stop: echo "K8s managed by NixOS - do not stop"
+    healthcheck: kubectl get nodes --no-headers 2>&1 | grep -c Ready
+    port: 6443
+    depends_on: []
+
+  ai-inference-gateway:
+    start: echo "Managed by K8s - use kubectl apply"
+    stop: echo "Managed by K8s - use kubectl scale --replicas=0"
+    healthcheck: kubectl exec -n ai-inference deploy/ai-inference-gateway -- curl -sf http://localhost:8081/health
+    port: 8081
+    depends_on: [kubernetes]
+
+  vllm-qwen:
+    start: echo "Managed by K8s - use kubectl apply"
+    stop: echo "Managed by K8s - use kubectl scale --replicas=0"
+    healthcheck: kubectl exec -n ai-inference deploy/ai-inference-gateway -- curl -sf http://vllm-qwen.ai-inference.svc.cluster.local:8000/health
+    port: 8000
+    depends_on: [kubernetes, ai-inference-gateway]
+
+  caddy-ingress:
+    start: echo "Managed by K8s DaemonSet"
+    stop: echo "Managed by K8s DaemonSet"
+    healthcheck: kubectl get pods -n ingress-system -l app=caddy-ingress --no-headers 2>&1 | grep -c Running
+    port: 443
+    depends_on: [kubernetes]
+
+  metrics-server:
+    start: echo "Managed by K8s - check RBAC if broken"
+    stop: echo "Managed by K8s"
+    healthcheck: kubectl top nodes --no-headers 2>&1 | wc -l
+    port: 443
+    depends_on: [kubernetes]

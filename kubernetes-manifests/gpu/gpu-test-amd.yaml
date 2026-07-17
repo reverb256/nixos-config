@@ -1,0 +1,25 @@
+# AMD GPU Test Pod (ROCm)
+# Usage: kubectl apply -f gpu-test-amd.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-test-amd
+spec:
+  restartPolicy: OnFailure
+  nodeSelector:
+    # Only run on nodes with AMD GPUs
+    gpu: amd
+  containers:
+  - name: rocm-smi
+    image: rocm/dev-ubuntu-22.04:6.2
+    command: ["rocm-smi"]
+    resources:
+      limits:
+        amd.com/gpu: 1
+    securityContext:
+      # AMD GPU diagnostics require privileged access to /dev/kfd
+      privileged: true
+  tolerations:
+  - key: amd.com/gpu
+    operator: Exists
+    effect: NoSchedule

@@ -1,3 +1,5 @@
+# AlertManager Service
+# Routes and manages alerts from Prometheus
 {
   config,
   lib,
@@ -21,6 +23,7 @@ in {
       description = "External URL for AlertManager";
     };
 
+    # Email notification configuration (optional, requires SMTP)
     email = {
       enable = lib.mkOption {
         type = lib.types.bool;
@@ -50,11 +53,12 @@ in {
       passwordFile = lib.mkOption {
         type = lib.types.nullOr lib.types.path;
         default = null;
-        example = lib.literalExpression "/run/secrets/alertmanager-smtp-password";
+        example = lib.literalExpression "/run/agenix/alertmanager-smtp-password";
         description = "Path to file containing SMTP password";
       };
     };
 
+    # Webhook notification configuration (local, no auth required)
     webhook = {
       enable = lib.mkOption {
         type = lib.types.bool;
@@ -78,6 +82,7 @@ in {
 
       webExternalUrl = cfg.externalUrl;
 
+      # Basic configuration
       configuration = {
         global =
           {
@@ -93,6 +98,7 @@ in {
             smtp_require_tls = false;
           };
 
+        # Route all alerts to default receivers
         route = {
           receiver = "default";
           group_wait = "30s";
@@ -101,9 +107,11 @@ in {
           group_by = ["alertname" "cluster"];
         };
 
+        # Default receiver(s)
         receivers = let
           baseReceiver = {
             name = "default";
+            # Local webhook (no auth required)
             webhook_configs = lib.optionals cfg.webhook.enable [
               {
                 inherit (cfg.webhook) url;
@@ -132,10 +140,12 @@ in {
       };
     };
 
+    # Open firewall for internal Tailscale access
     networking.firewall.interfaces."tailscale0".allowedTCPPorts = [
       ports.alertmanager
     ];
 
+    # Add user
     users.users.alertmanager = {
       isSystemUser = true;
       group = "alertmanager";

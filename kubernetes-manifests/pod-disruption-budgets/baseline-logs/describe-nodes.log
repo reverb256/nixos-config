@@ -1,0 +1,434 @@
+Name:               forge
+Roles:              <none>
+Labels:             accelerator=nvidia-gpu
+                    akash.network=true
+                    akash.network/capabilities.gpu.vendor.nvidia.model.rtx4060=2
+                    akash.network/capabilities.gpu.vendor.nvidia.model.rtx4060.interface.pcie=2
+                    akash.network/capabilities.gpu.vendor.nvidia.model.rtx4060.ram.8Gi=2
+                    akash.network/capabilities.storage.class.beta2=1
+                    akash.network/capabilities.storage.class.beta3=1
+                    akash.network/capabilities.storage.class.ram=1
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    gpu=amd
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=forge
+                    kubernetes.io/os=linux
+                    nvidia.com/gpu.count=2
+                    nvidia.com/gpu.present=true
+                    nvidia.com/gpu.product=RTX4060
+                    topology.kubernetes.io/region=us-west
+                    topology.kubernetes.io/zone=homelab
+Annotations:        flannel.alpha.coreos.com/backend-data: {"VNI":1,"VtepMAC":"36:66:ab:7d:fe:08"}
+                    flannel.alpha.coreos.com/backend-type: vxlan
+                    flannel.alpha.coreos.com/kube-subnet-manager: true
+                    flannel.alpha.coreos.com/public-ip: 10.1.1.130
+                    node.alpha.kubernetes.io/ttl: 0
+                    volumes.kubernetes.io/controller-managed-attach-detach: true
+CreationTimestamp:  Wed, 18 Mar 2026 09:28:49 -0500
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  forge
+  AcquireTime:     <unset>
+  RenewTime:       Sat, 21 Mar 2026 19:18:28 -0500
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  NetworkUnavailable   False   Sat, 21 Mar 2026 14:04:14 -0500   Sat, 21 Mar 2026 14:04:14 -0500   FlannelIsUp                  Flannel is running on this node
+  MemoryPressure       False   Sat, 21 Mar 2026 19:13:32 -0500   Sat, 21 Mar 2026 06:11:35 -0500   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sat, 21 Mar 2026 19:13:32 -0500   Sat, 21 Mar 2026 06:11:35 -0500   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sat, 21 Mar 2026 19:13:32 -0500   Sat, 21 Mar 2026 06:11:35 -0500   KubeletHasSufficientPID      kubelet has sufficient PID available
+  Ready                True    Sat, 21 Mar 2026 19:13:32 -0500   Sat, 21 Mar 2026 06:11:35 -0500   KubeletReady                 kubelet is posting ready status
+Addresses:
+  InternalIP:  10.1.1.130
+  Hostname:    forge
+Capacity:
+  amd.com/gpu:        2
+  cpu:                6
+  ephemeral-storage:  240620868Ki
+  hugepages-1Gi:      0
+  hugepages-2Mi:      2560Mi
+  memory:             16309560Ki
+  nvidia.com/gpu:     2
+  pods:               110
+Allocatable:
+  amd.com/gpu:        2
+  cpu:                6
+  ephemeral-storage:  221756191582
+  hugepages-1Gi:      0
+  hugepages-2Mi:      2560Mi
+  memory:             13585720Ki
+  nvidia.com/gpu:     2
+  pods:               110
+System Info:
+  Machine ID:                 2ac64b80b4574aeda0ad63a1134e1ee7
+  System UUID:                00000000-0000-0000-0000-309c23ad98d1
+  Boot ID:                    d8e79c54-50ef-435e-8ef6-05b1e5fb719f
+  Kernel Version:             6.18.13-zen1
+  OS Image:                   NixOS 26.05 (Yarara)
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  containerd://2.2.1
+  Kubelet Version:            v1.35.2
+  Kube-Proxy Version:         
+PodCIDR:                      10.244.1.0/24
+PodCIDRs:                     10.244.1.0/24
+Non-terminated Pods:          (8 in total)
+  Namespace                   Name                                           CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                                           ------------  ----------  ---------------  -------------  ---
+  akash-services              operator-inventory-hardware-discovery-forge    0 (0%)        0 (0%)      0 (0%)           0 (0%)         3m34s
+  kube-flannel                kube-flannel-ds-jxk8m                          100m (1%)     0 (0%)      50Mi (0%)        0 (0%)         5h14m
+  kube-system                 amdgpu-device-plugin-daemonset-t6gpp           0 (0%)        0 (0%)      0 (0%)           0 (0%)         13h
+  kube-system                 nvidia-device-plugin-daemonset-m4cbl           0 (0%)        0 (0%)      0 (0%)           0 (0%)         16h
+  local-path-storage          local-path-provisioner-f8dc9bf97-52kbr         0 (0%)        0 (0%)      0 (0%)           0 (0%)         3d7h
+  mining                      gpu-miner-forge-nvidia-0-846fd5fd98-c5thp      2 (33%)       4 (66%)     4Gi (30%)        8Gi (61%)      12h
+  mining                      gpu-miner-forge-nvidia-1-54d89fd6f4-vtlvv      2 (33%)       4 (66%)     4Gi (30%)        8Gi (61%)      12h
+  monitoring                  node-exporter-6ctgp                            50m (0%)      100m (1%)   64Mi (0%)        128Mi (0%)     15h
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests      Limits
+  --------           --------      ------
+  cpu                4150m (69%)   8100m (135%)
+  memory             8306Mi (62%)  16512Mi (124%)
+  ephemeral-storage  0 (0%)        0 (0%)
+  hugepages-1Gi      0 (0%)        0 (0%)
+  hugepages-2Mi      0 (0%)        0 (0%)
+  amd.com/gpu        0             0
+  nvidia.com/gpu     2             2
+Events:
+  Type    Reason          Age    From             Message
+  ----    ------          ----   ----             -------
+  Normal  RegisteredNode  37m    node-controller  Node forge event: Registered Node forge in Controller
+  Normal  RegisteredNode  6m22s  node-controller  Node forge event: Registered Node forge in Controller
+
+
+Name:               nexus
+Roles:              <none>
+Labels:             accelerator=nvidia-gpu
+                    akash.network=true
+                    akash.network/capabilities.gpu.vendor.nvidia.model.rtx3060ti=1
+                    akash.network/capabilities.gpu.vendor.nvidia.model.rtx3060ti.interface.pcie=1
+                    akash.network/capabilities.gpu.vendor.nvidia.model.rtx3060ti.ram.8Gi=1
+                    akash.network/capabilities.storage.class.beta2=1
+                    akash.network/capabilities.storage.class.beta3=1
+                    akash.network/capabilities.storage.class.ram=1
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=nexus
+                    kubernetes.io/os=linux
+                    nvidia.com/gpu.count=1
+                    nvidia.com/gpu.present=true
+                    nvidia.com/gpu.product=RTX3060Ti
+                    topology.kubernetes.io/region=us-west
+                    topology.kubernetes.io/zone=homelab
+Annotations:        flannel.alpha.coreos.com/backend-data: {"VNI":1,"VtepMAC":"96:9f:f1:57:15:d0"}
+                    flannel.alpha.coreos.com/backend-type: vxlan
+                    flannel.alpha.coreos.com/kube-subnet-manager: true
+                    flannel.alpha.coreos.com/public-ip: 10.1.1.120
+                    node.alpha.kubernetes.io/ttl: 0
+                    volumes.kubernetes.io/controller-managed-attach-detach: true
+CreationTimestamp:  Wed, 18 Mar 2026 09:39:04 -0500
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  nexus
+  AcquireTime:     <unset>
+  RenewTime:       Sat, 21 Mar 2026 19:18:29 -0500
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  NetworkUnavailable   False   Sat, 21 Mar 2026 14:04:14 -0500   Sat, 21 Mar 2026 14:04:14 -0500   FlannelIsUp                  Flannel is running on this node
+  MemoryPressure       False   Sat, 21 Mar 2026 19:17:29 -0500   Sat, 21 Mar 2026 01:56:28 -0500   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sat, 21 Mar 2026 19:17:29 -0500   Sat, 21 Mar 2026 01:56:28 -0500   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sat, 21 Mar 2026 19:17:29 -0500   Sat, 21 Mar 2026 01:56:28 -0500   KubeletHasSufficientPID      kubelet has sufficient PID available
+  Ready                True    Sat, 21 Mar 2026 19:17:29 -0500   Sat, 21 Mar 2026 01:56:28 -0500   KubeletReady                 kubelet is posting ready status
+Addresses:
+  InternalIP:  10.1.1.120
+  Hostname:    nexus
+Capacity:
+  cpu:                24
+  ephemeral-storage:  936460Mi
+  hugepages-1Gi:      0
+  hugepages-2Mi:      2560Mi
+  memory:             49243012Ki
+  nvidia.com/gpu:     1
+  pods:               110
+Allocatable:
+  cpu:                24
+  ephemeral-storage:  883754531401
+  hugepages-1Gi:      0
+  hugepages-2Mi:      2560Mi
+  memory:             46519172Ki
+  nvidia.com/gpu:     1
+  pods:               110
+System Info:
+  Machine ID:                 48e72aa3368a4ce38d38e6c1d109d582
+  System UUID:                03d502e0-045e-05a7-4b06-500700080009
+  Boot ID:                    1eca4f30-a29d-482f-97d1-9eea619dbd88
+  Kernel Version:             6.18.13-zen1
+  OS Image:                   NixOS 26.05 (Yarara)
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  containerd://2.2.1
+  Kubelet Version:            v1.35.2
+  Kube-Proxy Version:         
+PodCIDR:                      10.244.3.0/24
+PodCIDRs:                     10.244.3.0/24
+Non-terminated Pods:          (22 in total)
+  Namespace                   Name                                           CPU Requests  CPU Limits   Memory Requests  Memory Limits  Age
+  ---------                   ----                                           ------------  ----------   ---------------  -------------  ---
+  ai-inference                postgres-n8n-0                                 250m (1%)     500m (2%)    256Mi (0%)       1Gi (2%)       11h
+  ai-inference                qdrant-0                                       200m (0%)     1 (4%)       256Mi (0%)       1Gi (2%)       3d7h
+  akash-cpu-test              nginx-test-65456dc9b6-j6b6g                    250m (1%)     500m (2%)    128Mi (0%)       256Mi (0%)     37h
+  akash-services              akash-node-1-0                                 500m (2%)     500m (2%)    1Gi (2%)         2Gi (4%)       43h
+  akash-services              akash-provider-akash-provider-fixed-0          1 (4%)        2 (8%)       2Gi (4%)         4Gi (9%)       2m9s
+  akash-services              cloudflared-fb4569c65-4tbx2                    100m (0%)     500m (2%)    128Mi (0%)       256Mi (0%)     3h20m
+  akash-services              operator-hostname-769685c76d-q2t6r             200m (0%)     200m (0%)    256Mi (0%)       256Mi (0%)     2d2h
+  akash-services              operator-inventory-hardware-discovery-nexus    0 (0%)        0 (0%)       0 (0%)           0 (0%)         3m34s
+  glitchtip                   postgres-0                                     100m (0%)     1 (4%)       256Mi (0%)       2Gi (4%)       12h
+  kube-flannel                kube-flannel-ds-zvnkn                          100m (0%)     0 (0%)       50Mi (0%)        0 (0%)         5h14m
+  kube-system                 amdgpu-device-plugin-daemonset-k68md           0 (0%)        0 (0%)       0 (0%)           0 (0%)         13h
+  kube-system                 nvidia-device-plugin-daemonset-5hplw           0 (0%)        0 (0%)       0 (0%)           0 (0%)         37h
+  mining                      gpu-miner-nexus-78b95d94f7-6mk9v               2 (8%)        4 (16%)      4Gi (9%)         8Gi (18%)      11h
+  mining                      xmrig-nexus-54f5c79d4d-hzcc8                   3 (12%)       6 (25%)      1Gi (2%)         3Gi (6%)       12h
+  monitoring                  grafana-7895fc9c8b-kndsh                       100m (0%)     500m (2%)    128Mi (0%)       512Mi (1%)     5h22m
+  monitoring                  node-exporter-7sl84                            50m (0%)      100m (0%)    64Mi (0%)        128Mi (0%)     15h
+  monitoring                  prometheus-5749489f57-dwnt7                    250m (1%)     500m (2%)    512Mi (1%)       1Gi (2%)       5h24m
+  search                      redis-56b74b675c-bngrh                         50m (0%)      200m (0%)    64Mi (0%)        128Mi (0%)     11h
+  search                      searxng-bbfb6bc77-2zd4j                        100m (0%)     500m (2%)    128Mi (0%)       512Mi (1%)     147m
+  search                      searxng-bbfb6bc77-lkjc9                        100m (0%)     500m (2%)    128Mi (0%)       512Mi (1%)     146m
+  search                      searxng-bbfb6bc77-svnpk                        100m (0%)     500m (2%)    128Mi (0%)       512Mi (1%)     148m
+  yunikorn                    yunikorn-scheduler-7f9478c7f9-wr44v            400m (1%)     4500m (18%)  1280Mi (2%)      2560Mi (5%)    2d1h
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests       Limits
+  --------           --------       ------
+  cpu                8850m (36%)    23500m (97%)
+  memory             11954Mi (26%)  28160Mi (61%)
+  ephemeral-storage  0 (0%)         0 (0%)
+  hugepages-1Gi      0 (0%)         0 (0%)
+  hugepages-2Mi      0 (0%)         0 (0%)
+  nvidia.com/gpu     1              1
+Events:
+  Type    Reason          Age    From             Message
+  ----    ------          ----   ----             -------
+  Normal  RegisteredNode  37m    node-controller  Node nexus event: Registered Node nexus in Controller
+  Normal  RegisteredNode  6m22s  node-controller  Node nexus event: Registered Node nexus in Controller
+
+
+Name:               sentry
+Roles:              <none>
+Labels:             akash.network=true
+                    akash.network/capabilities.storage.class.beta2=1
+                    akash.network/capabilities.storage.class.beta3=1
+                    akash.network/capabilities.storage.class.ram=1
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=sentry
+                    kubernetes.io/os=linux
+                    topology.kubernetes.io/region=us-west
+                    topology.kubernetes.io/zone=homelab
+Annotations:        flannel.alpha.coreos.com/backend-data: {"VNI":1,"VtepMAC":"e2:70:09:39:64:1c"}
+                    flannel.alpha.coreos.com/backend-type: vxlan
+                    flannel.alpha.coreos.com/kube-subnet-manager: true
+                    flannel.alpha.coreos.com/public-ip: 10.1.1.140
+                    node.alpha.kubernetes.io/ttl: 0
+                    volumes.kubernetes.io/controller-managed-attach-detach: true
+CreationTimestamp:  Wed, 18 Mar 2026 09:34:07 -0500
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  sentry
+  AcquireTime:     <unset>
+  RenewTime:       Sat, 21 Mar 2026 19:18:27 -0500
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  NetworkUnavailable   False   Sat, 21 Mar 2026 14:06:12 -0500   Sat, 21 Mar 2026 14:06:12 -0500   FlannelIsUp                  Flannel is running on this node
+  MemoryPressure       False   Sat, 21 Mar 2026 19:15:30 -0500   Sat, 21 Mar 2026 06:27:09 -0500   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sat, 21 Mar 2026 19:15:30 -0500   Sat, 21 Mar 2026 06:27:09 -0500   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sat, 21 Mar 2026 19:15:30 -0500   Sat, 21 Mar 2026 06:27:09 -0500   KubeletHasSufficientPID      kubelet has sufficient PID available
+  Ready                True    Sat, 21 Mar 2026 19:15:30 -0500   Sat, 21 Mar 2026 06:27:09 -0500   KubeletReady                 kubelet is posting ready status
+Addresses:
+  InternalIP:  10.1.1.140
+  Hostname:    sentry
+Capacity:
+  amd.com/gpu:        1
+  cpu:                16
+  ephemeral-storage:  240620868Ki
+  hugepages-1Gi:      0
+  hugepages-2Mi:      2560Mi
+  memory:             32790556Ki
+  pods:               110
+Allocatable:
+  amd.com/gpu:        1
+  cpu:                16
+  ephemeral-storage:  221756191582
+  hugepages-1Gi:      0
+  hugepages-2Mi:      2560Mi
+  memory:             30066716Ki
+  pods:               110
+System Info:
+  Machine ID:                 e191fcd1cccd40dc9b2e70c17ae1bcbb
+  System UUID:                d2c28570-bf87-0000-0000-000000000000
+  Boot ID:                    5ccf507e-fd77-4a1a-b93f-0126f4095a67
+  Kernel Version:             6.18.13-zen1
+  OS Image:                   NixOS 26.05 (Yarara)
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  containerd://2.2.1
+  Kubelet Version:            v1.35.2
+  Kube-Proxy Version:         
+PodCIDR:                      10.244.2.0/24
+PodCIDRs:                     10.244.2.0/24
+Non-terminated Pods:          (20 in total)
+  Namespace                   Name                                            CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                                            ------------  ----------  ---------------  -------------  ---
+  ai-inference                n8n-6b7cf9f945-2frmf                            250m (1%)     500m (3%)   256Mi (0%)       1Gi (3%)       11h
+  ai-inference                prometheus-cbff86bbb-f2qs9                      200m (1%)     1 (6%)      512Mi (1%)       2Gi (6%)       11h
+  ai-inference                redis-85598bdf45-lxv7s                          100m (0%)     500m (3%)   128Mi (0%)       512Mi (1%)     11h
+  akash-cpu-test              nginx-test-65456dc9b6-ccgjn                     250m (1%)     500m (3%)   128Mi (0%)       256Mi (0%)     37h
+  akash-services              operator-inventory-54f4bf6c7f-xj88x             500m (3%)     2 (12%)     512Mi (1%)       2Gi (6%)       5h10m
+  akash-services              operator-inventory-hardware-discovery-sentry    0 (0%)        0 (0%)      0 (0%)           0 (0%)         3m34s
+  ingress-nginx               ingress-nginx-controller-68b66dcbf5-5ztdb       100m (0%)     0 (0%)      90Mi (0%)        0 (0%)         12h
+  istio-system                istiod-cd4667d86-4xxz7                          500m (3%)     0 (0%)      2Gi (6%)         0 (0%)         3d7h
+  kube-flannel                kube-flannel-ds-b9hwq                           100m (0%)     0 (0%)      50Mi (0%)        0 (0%)         5h12m
+  kube-system                 amdgpu-device-plugin-daemonset-mkf8w            0 (0%)        0 (0%)      0 (0%)           0 (0%)         13h
+  kube-system                 coredns-cf487b964-5v2xl                         100m (0%)     500m (3%)   128Mi (0%)       512Mi (1%)     12h
+  monitoring                  node-exporter-vxw2k                             50m (0%)      100m (0%)   64Mi (0%)        128Mi (0%)     15h
+  search                      searxng-bbfb6bc77-28gqw                         100m (0%)     500m (3%)   128Mi (0%)       512Mi (1%)     146m
+  search                      searxng-bbfb6bc77-dwh8s                         100m (0%)     500m (3%)   128Mi (0%)       512Mi (1%)     147m
+  search                      searxng-bbfb6bc77-pfwp7                         100m (0%)     500m (3%)   128Mi (0%)       512Mi (1%)     149m
+  search                      searxng-bbfb6bc77-xl7ld                         100m (0%)     500m (3%)   128Mi (0%)       512Mi (1%)     148m
+  secure-workloads            secure-pod-example                              0 (0%)        0 (0%)      0 (0%)           0 (0%)         98m
+  volcano-system              volcano-admission-5b7bdbfb86-kf42w              0 (0%)        0 (0%)      0 (0%)           0 (0%)         2d1h
+  volcano-system              volcano-controllers-f8f4486c7-xllcl             0 (0%)        0 (0%)      0 (0%)           0 (0%)         2d1h
+  volcano-system              volcano-scheduler-8657d7cc77-bcv9v              0 (0%)        0 (0%)      0 (0%)           0 (0%)         16h
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests      Limits
+  --------           --------      ------
+  cpu                2550m (15%)   7100m (44%)
+  memory             4428Mi (15%)  8576Mi (29%)
+  ephemeral-storage  0 (0%)        0 (0%)
+  hugepages-1Gi      0 (0%)        0 (0%)
+  hugepages-2Mi      0 (0%)        0 (0%)
+  amd.com/gpu        0             0
+Events:
+  Type    Reason          Age    From             Message
+  ----    ------          ----   ----             -------
+  Normal  RegisteredNode  37m    node-controller  Node sentry event: Registered Node sentry in Controller
+  Normal  RegisteredNode  6m22s  node-controller  Node sentry event: Registered Node sentry in Controller
+
+
+Name:               zephyr
+Roles:              control-plane
+Labels:             accelerator=nvidia-gpu
+                    akash.network=true
+                    akash.network/capabilities.gpu.vendor.nvidia.model.rtx3060ti=1
+                    akash.network/capabilities.gpu.vendor.nvidia.model.rtx3060ti.interface.pcie=1
+                    akash.network/capabilities.gpu.vendor.nvidia.model.rtx3060ti.ram.8Gi=1
+                    akash.network/capabilities.gpu.vendor.nvidia.model.rtx3090=1
+                    akash.network/capabilities.gpu.vendor.nvidia.model.rtx3090.interface.pcie=1
+                    akash.network/capabilities.gpu.vendor.nvidia.model.rtx3090.ram.24Gi=1
+                    akash.network/capabilities.storage.class.beta2=1
+                    akash.network/capabilities.storage.class.beta3=1
+                    akash.network/capabilities.storage.class.ram=1
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/os=linux
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=zephyr
+                    kubernetes.io/os=linux
+                    node-role.kubernetes.io/control-plane=
+                    nvidia.com/gpu.count=2
+                    nvidia.com/gpu.present=true
+                    nvidia.com/gpu.product=RTX3090
+                    topology.kubernetes.io/region=us-west
+                    topology.kubernetes.io/zone=homelab
+Annotations:        flannel.alpha.coreos.com/backend-data: {"VNI":1,"VtepMAC":"4a:a1:7e:4f:56:87"}
+                    flannel.alpha.coreos.com/backend-type: vxlan
+                    flannel.alpha.coreos.com/kube-subnet-manager: true
+                    flannel.alpha.coreos.com/public-ip: 10.1.1.110
+                    node.alpha.kubernetes.io/ttl: 0
+                    volumes.kubernetes.io/controller-managed-attach-detach: true
+CreationTimestamp:  Wed, 18 Mar 2026 09:23:21 -0500
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  zephyr
+  AcquireTime:     <unset>
+  RenewTime:       Sat, 21 Mar 2026 19:18:30 -0500
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  NetworkUnavailable   False   Sat, 21 Mar 2026 14:04:15 -0500   Sat, 21 Mar 2026 14:04:15 -0500   FlannelIsUp                  Flannel is running on this node
+  MemoryPressure       False   Sat, 21 Mar 2026 19:18:00 -0500   Wed, 18 Mar 2026 09:23:21 -0500   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Sat, 21 Mar 2026 19:18:00 -0500   Wed, 18 Mar 2026 09:23:21 -0500   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Sat, 21 Mar 2026 19:18:00 -0500   Wed, 18 Mar 2026 09:23:21 -0500   KubeletHasSufficientPID      kubelet has sufficient PID available
+  Ready                True    Sat, 21 Mar 2026 19:18:00 -0500   Sat, 21 Mar 2026 04:43:37 -0500   KubeletReady                 kubelet is posting ready status
+Addresses:
+  InternalIP:  10.1.1.110
+  Hostname:    zephyr
+Capacity:
+  cpu:                32
+  ephemeral-storage:  975712964Ki
+  hugepages-1Gi:      0
+  hugepages-2Mi:      2560Mi
+  memory:             32781352Ki
+  nvidia.com/gpu:     2
+  pods:               110
+Allocatable:
+  cpu:                32
+  ephemeral-storage:  899217066134
+  hugepages-1Gi:      0
+  hugepages-2Mi:      2560Mi
+  memory:             30057512Ki
+  nvidia.com/gpu:     2
+  pods:               110
+System Info:
+  Machine ID:                 74e199617da140b89f4dfcc86f48cba0
+  System UUID:                8f85cd1b-e186-f917-a4b0-2cf05da1b8ef
+  Boot ID:                    155887f2-7d8d-488d-b022-d2881fb21e5b
+  Kernel Version:             6.18.13-zen1
+  OS Image:                   NixOS 26.05 (Yarara)
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  containerd://2.2.1
+  Kubelet Version:            v1.35.2
+  Kube-Proxy Version:         
+PodCIDR:                      10.244.0.0/24
+PodCIDRs:                     10.244.0.0/24
+Non-terminated Pods:          (13 in total)
+  Namespace                   Name                                            CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                                            ------------  ----------  ---------------  -------------  ---
+  ai-coding                   claude-code-5454d58bdd-2mb9f                    550m (1%)     2100m (6%)  576Mi (1%)       2176Mi (7%)    5h45m
+  ai-coding                   opencode-78985ff89-xvh6r                        550m (1%)     2100m (6%)  576Mi (1%)       2176Mi (7%)    5h44m
+  akash-services              operator-inventory-hardware-discovery-zephyr    0 (0%)        0 (0%)      0 (0%)           0 (0%)         3m35s
+  kube-flannel                kube-flannel-ds-lm4h2                           100m (0%)     0 (0%)      50Mi (0%)        0 (0%)         5h14m
+  kube-system                 amdgpu-device-plugin-daemonset-8vdd9            0 (0%)        0 (0%)      0 (0%)           0 (0%)         13h
+  kube-system                 metrics-server-75c56668c8-76cs4                 100m (0%)     0 (0%)      200Mi (0%)       0 (0%)         6h17m
+  kube-system                 nvidia-device-plugin-daemonset-svf76            0 (0%)        0 (0%)      0 (0%)           0 (0%)         37h
+  mining                      gpu-miner-zephyr-dbfdcc44d-2xtpd                2 (6%)        4 (12%)     4Gi (13%)        8Gi (27%)      12h
+  mining                      xmrig-zephyr-56d8c8b5b8-6wtcf                   4 (12%)       8 (25%)     1Gi (3%)         3Gi (10%)      12h
+  monitoring                  node-exporter-gs99c                             50m (0%)      100m (0%)   64Mi (0%)        128Mi (0%)     15h
+  search                      searxng-bbfb6bc77-9pvn7                         100m (0%)     500m (1%)   128Mi (0%)       512Mi (1%)     146m
+  search                      searxng-bbfb6bc77-b9p7h                         100m (0%)     500m (1%)   128Mi (0%)       512Mi (1%)     149m
+  search                      searxng-bbfb6bc77-wm6fw                         100m (0%)     500m (1%)   128Mi (0%)       512Mi (1%)     147m
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests      Limits
+  --------           --------      ------
+  cpu                7650m (23%)   17800m (55%)
+  memory             6970Mi (23%)  17280Mi (58%)
+  ephemeral-storage  0 (0%)        0 (0%)
+  hugepages-1Gi      0 (0%)        0 (0%)
+  hugepages-2Mi      0 (0%)        0 (0%)
+  nvidia.com/gpu     1             1
+Events:
+  Type    Reason          Age    From             Message
+  ----    ------          ----   ----             -------
+  Normal  RegisteredNode  37m    node-controller  Node zephyr event: Registered Node zephyr in Controller
+  Normal  RegisteredNode  6m23s  node-controller  Node zephyr event: Registered Node zephyr in Controller

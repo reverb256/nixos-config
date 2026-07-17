@@ -1,0 +1,59 @@
+# Test namespace for GPU workloads with relaxed security
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gpu-test
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+---
+# Test AMD GPU access via ROCm in Kubernetes
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rocm-gpu-test
+  namespace: gpu-test
+spec:
+  nodeName: forge
+  restartPolicy: Never
+  containers:
+  - name: rocm-test
+    image: rocm/dev-ubuntu-22.04:6.2
+    command: ["/bin/bash"]
+    args:
+      - "-c"
+      - |
+        echo "=== ROCm GPU Test ==="
+        echo "Checking ROCm installation..."
+        which rocminfo
+        echo ""
+        echo "Checking GPU devices..."
+        rocminfo | head -20
+        echo ""
+        rocm-smi --showproductname
+        echo ""
+        echo "Checking for HIP/ROCm libraries..."
+        ls -la /opt/rocm/lib/libhip*.so 2>/dev/null || echo "HIP libs not found"
+        echo ""
+        echo "=== Test Complete ==="
+    resources:
+      requests:
+        amd.com/gpu: "1"
+        memory: "4Gi"
+        cpu: "1000m"
+      limits:
+        amd.com/gpu: "1"
+        memory: "8Gi"
+        cpu: "2000m"
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: dev
+      mountPath: /dev
+  volumes:
+  - name: dev
+    hostPath:
+      path: /dev

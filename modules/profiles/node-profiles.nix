@@ -1,11 +1,20 @@
+# Node Profile System
+# Centralized role-based profiles to eliminate DRY violations
+#
+# USAGE:
+#   profiles.node.zephyr-workstation.enable = true;
+#   profiles.node.kubernetes-worker.enable = true;
+#
+# This replaces manual profile declaration:
+#   OLD: profiles.role = { gaming = true; mining = true; };
+#   NEW: profiles.node.gaming-mining.enable = true;
 {
   config,
   lib,
   ...
-}: let
-  cluster = config.networking.cluster;
-  inherit
-    (lib)
+}:
+let
+  inherit (lib)
     mkEnableOption
     mkOption
     types
@@ -13,30 +22,79 @@
     mkMerge
     ;
 
-  networkingHelper = import ./networking.nix {inherit lib;};
-  inherit (networkingHelper) mkNetworkingConfig;
-
-  mkProfileConfig = _profileName: profileCfg:
+  # Helper function to create profile config
+  mkProfileConfig =
+    _profileName: profileCfg:
     mkIf profileCfg.enable (
-      (mkNetworkingConfig profileCfg)
-      // {
+      let
+        # Extract networking config - handle both nested and direct formats
+        networkingCfgBase =
+          profileCfg.networking or {
+            ipAddress = profileCfg.ipAddress or null;
+            interfaceName = profileCfg.interfaceName or null;
+            unboundListenAddress = profileCfg.unboundListenAddress or null;
+            wireless = profileCfg.wireless or { enable = false; };
+          };
+        # Ensure wireless has a default value
+        networkingCfg = networkingCfgBase // {
+          wireless = networkingCfgBase.wireless or { enable = false; };
+        };
+      in
+      {
+        # Apply networking configuration (only if ipAddress is set)
+        clusterNetworking = mkIf (networkingCfg.ipAddress != null) {
+          enable = true;
+          inherit (networkingCfg) ipAddress;
+          inherit (networkingCfg) interfaceName;
+          wireless = lib.mkDefault networkingCfg.wireless;
+          unbound = {
+            enable = true;
+            listenAddress = networkingCfg.unboundListenAddress;
+          };
+        };
+
+        # Kubernetes is configured per-host via services.k3s-cluster
+        # Node profiles no longer set kubernetes-module (replaced by k3s-cluster)
+        # GPU, hardware, and firewall settings are still applied below
+
+        # Apply hardware profiles
         hardware.profiles = {
           nvidia.enable = profileCfg.nvidia.enable or false;
           nvidia.multiGpu = profileCfg.nvidia.multiGpu or false;
           amdgpu.enable = profileCfg.amdgpu.enable or false;
           amdgpu.wayland = profileCfg.amdgpu.wayland or false;
-          amd.enable = true;
-          monitoring.enable = true;
+          monitoring.enable = true; # All nodes get monitoring
         };
 
+        # Apply network profiles
         profiles.network.tailscale.enable = true;
+
+        # Networking configuration
+        networking = {
+          # Disable DHCP if requested
+          dhcpcd.enable = mkIf (profileCfg.disableDHCP or false) (lib.mkForce false);
+
+          # Apply extra firewall rules
+          firewall = {
+            allowedTCPPorts = lib.mkOptionDefault (profileCfg.firewallExtraTCPPorts or [ ]);
+            allowedTCPPortRanges = lib.mkOptionDefault (profileCfg.firewallExtraTCPPortRanges or [ ]);
+            allowedUDPPorts = lib.mkOptionDefault (profileCfg.firewallExtraUDPPorts or [ ]);
+          };
+        };
       }
     );
-in {
+in
+{
   options.profiles.node = {
+    # ============================================================================
+    # NODE-SPECIFIC PROFILES
+    # Each profile bundles role profiles + node-specific configuration
+    # ============================================================================
+
     zephyr-workstation = {
       enable = mkEnableOption "Zephyr workstation profile (control plane + gaming + VR + mining + AI)";
 
+      # Hardware-specific
       nvidia = mkOption {
         type = types.attrs;
         default = {
@@ -46,28 +104,30 @@ in {
         description = "NVIDIA GPU configuration";
       };
 
+      # Networking
       networking = mkOption {
         type = types.attrs;
         default = {
-          ipAddress = cluster.hosts.zephyr.ip;
-          interfaceName = "enp38s0";
-          unboundListenAddress = cluster.hosts.zephyr.ip;
+          ipAddress = "10.1.1.110";
+          interfaceName = "enp38s0"; # Native hardware interface name
+          unboundListenAddress = "10.1.1.110";
           wireless.enable = true;
         };
         description = "Networking configuration";
       };
 
+      # Firewall ports (beyond cluster defaults)
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
         default = [
-          9757
-          18789
-          18790
-          19898
-          1234
-          8080
-          53317
-          8888
+          9757 # WiVRn main port
+          18789 # Steam Remote Play
+          18790 # Steam Remote Play (secondary)
+          19898 # Moonlight/GameStream + Spacebot Web UI
+          1234 # LM Studio API server
+          8080 # AI Inference Gateway
+          53317 # LocalSend (file sharing)
+          8888 # CFSSL CA API server
         ];
         description = "Extra TCP ports";
       };
@@ -77,12 +137,12 @@ in {
         default = [
           9757
           9758
-          9759
+          9759 # WiVRn
           27031
-          27036
-          5353
-          9947
-          53317
+          27036 # Steam UDP
+          5353 # mDNS
+          9947 # WiVRn
+          53317 # LocalSend (multicast)
         ];
         description = "Extra UDP ports";
       };
@@ -103,9 +163,9 @@ in {
       networking = mkOption {
         type = types.attrs;
         default = {
-          ipAddress = cluster.hosts.nexus.ip;
-          interfaceName = "enp7s0";
-          unboundListenAddress = cluster.hosts.nexus.ip;
+          ipAddress = "10.1.1.120";
+          interfaceName = "enp7s0"; # Native hardware interface name
+          unboundListenAddress = "10.1.1.120";
           wireless.enable = true;
         };
         description = "Networking configuration";
@@ -113,7 +173,7 @@ in {
 
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
-        default = [10250];
+        default = [ 10250 ];
         description = "Extra TCP ports";
       };
 
@@ -121,8 +181,8 @@ in {
         type = types.listOf (
           types.submodule {
             options = {
-              from = mkOption {type = types.port;};
-              to = mkOption {type = types.port;};
+              from = mkOption { type = types.port; };
+              to = mkOption { type = types.port; };
             };
           }
         );
@@ -137,7 +197,7 @@ in {
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [];
+        default = [ ];
         description = "Extra UDP ports";
       };
     };
@@ -166,9 +226,9 @@ in {
       networking = mkOption {
         type = types.attrs;
         default = {
-          ipAddress = cluster.hosts.forge.ip;
-          interfaceName = "enp0s31f6";
-          unboundListenAddress = cluster.hosts.forge.ip;
+          ipAddress = "10.1.1.130";
+          interfaceName = "enp0s31f6"; # Native hardware interface name
+          unboundListenAddress = "10.1.1.130";
           wireless.enable = false;
         };
         description = "Networking configuration";
@@ -182,7 +242,7 @@ in {
 
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
-        default = [10250];
+        default = [ 10250 ];
         description = "Extra TCP ports";
       };
 
@@ -190,8 +250,8 @@ in {
         type = types.listOf (
           types.submodule {
             options = {
-              from = mkOption {type = types.port;};
-              to = mkOption {type = types.port;};
+              from = mkOption { type = types.port; };
+              to = mkOption { type = types.port; };
             };
           }
         );
@@ -206,13 +266,13 @@ in {
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [];
+        default = [ ];
         description = "Extra UDP ports";
       };
     };
 
     sentry-monitoring = {
-      enable = mkEnableOption "Sentry monitoring profile (monitoring + observability)";
+      enable = mkEnableOption "Sentry monitoring profile (CPU mining + AI inference)";
 
       amdgpu = mkOption {
         type = types.attrs;
@@ -226,9 +286,9 @@ in {
       networking = mkOption {
         type = types.attrs;
         default = {
-          ipAddress = cluster.hosts.sentry.ip;
-          interfaceName = "enp7s0";
-          unboundListenAddress = cluster.hosts.sentry.ip;
+          ipAddress = "10.1.1.140";
+          interfaceName = "enp7s0"; # Native hardware interface name
+          unboundListenAddress = "10.1.1.140";
           wireless.enable = false;
         };
         description = "Networking configuration";
@@ -236,7 +296,7 @@ in {
 
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
-        default = [10250];
+        default = [ 10250 ];
         description = "Extra TCP ports";
       };
 
@@ -244,8 +304,8 @@ in {
         type = types.listOf (
           types.submodule {
             options = {
-              from = mkOption {type = types.port;};
-              to = mkOption {type = types.port;};
+              from = mkOption { type = types.port; };
+              to = mkOption { type = types.port; };
             };
           }
         );
@@ -260,18 +320,24 @@ in {
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [];
+        default = [ ];
         description = "Extra UDP ports";
       };
     };
 
+    # ============================================================================
+    # GENERIC PROFILES (for custom nodes)
+    # ============================================================================
+
+    # Legacy generic profiles kept for backwards compatibility
+    # Kubernetes is now configured per-host via services.k3s-cluster
     kubernetes-control-plane = {
       enable = mkEnableOption "Kubernetes control plane node (legacy — use k3s-cluster instead)";
 
       networking = mkOption {
         type = types.attrs;
         default = {
-          unboundListenAddress = cluster.hosts.zephyr.ip;
+          unboundListenAddress = "10.1.1.110";
         };
         description = "Networking configuration";
       };
@@ -283,14 +349,14 @@ in {
       networking = mkOption {
         type = types.attrs;
         default = {
-          unboundListenAddress = cluster.hosts.nexus.ip;
+          unboundListenAddress = "10.1.1.120";
         };
         description = "Networking configuration";
       };
 
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
-        default = [10250];
+        default = [ 10250 ];
         description = "Extra TCP ports";
       };
 
@@ -298,8 +364,8 @@ in {
         type = types.listOf (
           types.submodule {
             options = {
-              from = mkOption {type = types.port;};
-              to = mkOption {type = types.port;};
+              from = mkOption { type = types.port; };
+              to = mkOption { type = types.port; };
             };
           }
         );
@@ -314,19 +380,36 @@ in {
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [];
+        default = [ ];
         description = "Extra UDP ports";
       };
     };
   };
 
+  # ============================================================================
+  # PROFILE IMPLEMENTATION
+  # ============================================================================
   config = mkMerge [
+    # Zephyr workstation profile
     (mkProfileConfig "zephyr-workstation" config.profiles.node.zephyr-workstation)
+    # Nexus gaming profile
     (mkProfileConfig "nexus-gaming" config.profiles.node.nexus-gaming)
+    # Forge mining profile
     (mkProfileConfig "forge-mining" config.profiles.node.forge-mining)
+    # Sentry monitoring profile
     (mkProfileConfig "sentry-monitoring" config.profiles.node.sentry-monitoring)
+    # Generic Kubernetes control plane profile
+    (mkProfileConfig "kubernetes-control-plane" config.profiles.node.kubernetes-control-plane)
+    # Generic Kubernetes worker profile
+    (mkProfileConfig "kubernetes-worker" config.profiles.node.kubernetes-worker)
 
+    # ============================================================================
+    # ROLE PROFILE ASSIGNMENTS
+    # ============================================================================
+    # Each node profile assigns its corresponding role profiles
+    # ============================================================================
 
+    # Zephyr workstation role profiles
     (mkIf config.profiles.node.zephyr-workstation.enable {
       profiles.role = {
         workstation = true;
@@ -337,6 +420,7 @@ in {
       };
     })
 
+    # Nexus gaming role profiles
     (mkIf config.profiles.node.nexus-gaming.enable {
       profiles.role = {
         gaming = true;
@@ -346,15 +430,19 @@ in {
       };
     })
 
+    # Forge mining role profiles
     (mkIf config.profiles.node.forge-mining.enable {
       profiles.role = {
         mining = true;
+        aiInference = true;
       };
     })
 
+    # Sentry monitoring role profiles
     (mkIf config.profiles.node.sentry-monitoring.enable {
       profiles.role = {
-        monitoring = true;
+        mining = true;
+        aiInference = true;
       };
     })
   ];

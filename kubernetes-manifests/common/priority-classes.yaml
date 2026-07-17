@@ -1,0 +1,21 @@
+# PriorityClasses for GPU Workload Scheduling
+# Defines priority levels for different workload types to enable preemption
+
+# High priority for AI inference workloads
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority-ai
+value: 1000
+globalDefault: false
+description: "High priority class for AI inference workloads. Preempts mining pods."
+
+---
+# Low priority for mining workloads
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: low-priority-mining
+value: 100
+globalDefault: false
+description: "Low priority class for cryptocurrency mining. Preempted by AI workloads."

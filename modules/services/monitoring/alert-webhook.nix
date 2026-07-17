@@ -1,3 +1,6 @@
+# Alert Webhook Receiver
+# Receives AlertManager webhooks and displays desktop notifications
+# No authentication required - runs locally on the cluster
 {
   config,
   lib,
@@ -29,11 +32,13 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
+    # Create log directory
     systemd.tmpfiles.rules = [
       "d /var/log/alert-webhook 0755 root root -"
       "d /var/log/alert-webhook/archive 0755 root root -"
     ];
 
+    # Python webhook receiver
     environment.etc."alert-webhook/receiver.py".text = ''
       #!/usr/bin/env python3
       """Local webhook receiver for AlertManager alerts."""
@@ -44,10 +49,12 @@ in {
       from socketserver import ThreadingMixIn
       from pathlib import Path
 
+      # Configuration
       PORT = ${toString cfg.port}
       LOG_FILE = "${cfg.logFile}"
       ENABLE_DESKTOP_NOTIFY = ${toString cfg.enableDesktopNotify}
 
+      # Setup logging
       logging.basicConfig(
           level=logging.INFO,
           format="%(asctime)s - %(message)s",
@@ -112,6 +119,7 @@ in {
               instance = labels.get("instance", "")
               job = labels.get("job", "")
 
+              # Build message
               summary = annotations.get("summary", f"{alertname} is {status}")
               description = annotations.get("description", "")
 
@@ -121,8 +129,10 @@ in {
               if instance:
                   message += f" (instance: {instance})"
 
+              # Log the alert
               logger.info(f"Alert: {message}")
 
+              # Send desktop notification
               if ENABLE_DESKTOP_NOTIFY and status == "firing":
                   self.send_notification(
                       title=f"Alert: {alertname}",
@@ -134,6 +144,7 @@ in {
               """Send desktop notification using notify-send."""
               import subprocess
 
+              # Map urgency to notify-send levels
               urgency_map = {
                   "critical": "critical",
                   "error": "normal",
@@ -166,6 +177,7 @@ in {
           main()
     '';
 
+    # Systemd service
     systemd.services.alert-webhook = {
       description = "AlertManager Webhook Receiver";
       after = ["network.target" "alertmanager.service"];
@@ -177,6 +189,7 @@ in {
         Restart = "on-failure";
         RestartSec = "10s";
 
+        # Security hardening
         NoNewPrivileges = true;
         PrivateTmp = true;
         ProtectSystem = "strict";
@@ -184,13 +197,18 @@ in {
         RestrictRealtime = true;
         RestrictAddressFamilies = ["AF_UNIX" "AF_INET" "AF_INET6"];
 
+        # Allow writing to log directory
         ReadWritePaths = ["/var/log/alert-webhook"];
       };
     };
 
+    # Open firewall for localhost only (not needed for 127.0.0.1 binding)
+    # networking.firewall.allowedTCPPorts = [cfg.port]; # Only local, no firewall needed
+
+    # Add to system packages
     environment.systemPackages = with pkgs; [
       python3
-      libnotify
+      libnotify # For notify-send desktop notifications
     ];
   };
 }

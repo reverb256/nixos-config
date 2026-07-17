@@ -1,0 +1,60 @@
+# AMD GPU Device Plugin for Kubernetes
+# Deployed on Forge node for RX 5700 XT GPUs
+# Source: https://github.com/ROCm/k8s-device-plugin
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: amdgpu-device-plugin-daemonset
+  namespace: kube-system
+  labels:
+    app: amdgpu-device-plugin
+spec:
+  selector:
+    matchLabels:
+      name: amdgpu-dp-ds
+  template:
+    metadata:
+      labels:
+        name: amdgpu-dp-ds
+        app: amdgpu-device-plugin
+    spec:
+      restartPolicy: Always
+      nodeName: forge  # Only run on Forge which has AMD GPUs
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      priorityClassName: system-node-critical
+      tolerations:
+      - key: CriticalAddonsOnly
+        operator: Exists
+      containers:
+      - image: rocm/k8s-device-plugin:latest
+        name: amdgpu-dp-cntr
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          privileged: true
+          capabilities:
+            drop: ["ALL"]
+        volumeMounts:
+          - name: dp
+            mountPath: /var/lib/kubelet/device-plugins
+          - name: sys
+            mountPath: /sys
+          - name: dev
+            mountPath: /dev
+          - name: libs
+            mountPath: /opt/rocm
+            readOnly: true
+      volumes:
+      - name: dp
+        hostPath:
+          path: /var/lib/kubelet/device-plugins
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: libs
+        hostPath:
+          path: /run/opengl-driver  # NixOS ROCm libraries
