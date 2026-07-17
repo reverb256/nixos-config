@@ -34,6 +34,7 @@ skills-lock.json
 *.orig
 *.rej
 *~
+<<<<<<< HEAD
 
 # ── Build artifacts ───────────────────────────────────────────────
 __pycache__/
@@ -72,6 +73,46 @@ lucebox-hub.git/
 modules/services/secrets/kubernetes/encryption-config.yaml
 ssh/
 territory_map.json
+||||||| 324be4bd
+=======
+
+# ── Build artifacts ───────────────────────────────────────────────
+__pycache__/
+sbom/
+node_modules/
+package.json
+package-lock.json
+.pnpm-debug.log*
+.yarn/*
+.yarn-integrity
+
+# ── Scratch / debug / temporary files ──────────────────────────────
+.scratch/
+tmp/
+tmpfile
+cat
+echo
+hello_test
+usb.qcow2
+Updated API key file
+
+# ── Vendor / third-party ──────────────────────────────────────────
+istio-1.29.1/
+vllm-env/
+void-config/
+void-mklive/
+
+# ── Miscellaneous ─────────────────────────────────────────────────
+.diff-scores.json
+.firecrawl/
+.pipeline-guard-disable
+/kubernetes/modules/monitoring.nix.bak
+lucebox-hub
+lucebox-hub.git/
+modules/services/secrets/kubernetes/encryption-config.yaml
+ssh/
+territory_map.json
+>>>>>>> central/issue-290-nix-cache-enhancement
 hey.md
 
 # ── Emergency cleanup additions (2026-03-19) ───────────────────────
