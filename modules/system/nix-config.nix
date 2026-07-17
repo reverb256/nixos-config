@@ -89,6 +89,7 @@
     "nodejs-20.20.2"
     "nodejs-slim-20.20.2"
     "pnpm-10.29.2"
+    "pnpm-9.15.9"
     "vesktop-1.6.5"
     # vesktop pulls electron-40.10.5 which nixpkgs marks insecure; permit it so
     # the zephyr build realises vesktop. Added 2026-07-16 after the cache.nixos.org
