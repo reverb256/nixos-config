@@ -123,18 +123,15 @@ in
         targets.fish.enable = true;
         targets.btop.enable = true;
         targets.lazygit.enable = true;
-        targets.gtk.enable = true;
         targets.qt.enable = true;
+        # GTK theming requires dconf/D-Bus which isn't available on nexus
+        targets.gtk.enable = hostName != "nexus";
       };
 
       # CopyQ clipboard manager (replaces cliphist)
       programs.copyq = {
         enable = lib.mkDefault true;
       };
-
-      # dconf is required by GTK theming but fails on headless hosts
-      # (no D-Bus session → dconf service unavailable → HM activation fails).
-      programs.dconf.enable = lib.mkIf (hostName == "nexus") false;
 
       home.sessionVariables.BAT_THEME = "base16";
 
