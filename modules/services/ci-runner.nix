@@ -95,6 +95,7 @@ in {
         ReadWritePaths = [runnerHome];
         # Mount nodejs_24 at the path where runner expects node20
         BindReadOnlyPaths = ["${pkgs.nodejs_24}:${pkgs.github-runner}/lib/externals/node20"];
+      };
     };
 
     systemd.services.github-actions-runner-setup = {
