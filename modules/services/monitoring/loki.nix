@@ -1,3 +1,5 @@
+# Loki Log Aggregation Service
+# Centralized log storage with Grafana integration
 {
   config,
   lib,
@@ -40,6 +42,7 @@ in {
         server.http_listen_port = cfg.port;
         server.http_listen_address = cfg.listenAddress;
 
+        # Common storage configuration
         common = {
           path_prefix = cfg.dataDir;
           storage.filesystem = {
@@ -49,6 +52,7 @@ in {
           replication_factor = 1;
         };
 
+        # Schema configuration - use boltdb-shipper for compatibility
         schema_config = {
           configs = [
             {
@@ -64,6 +68,7 @@ in {
           ];
         };
 
+        # Storage configuration wrapper (required for boltdb-shipper)
         storage_config = {
           boltdb_shipper = {
             active_index_directory = "${cfg.dataDir}/boltdb-shipper/index";
@@ -71,13 +76,16 @@ in {
           };
         };
 
+        # Retention policy
         limits_config = {
           retention_period = cfg.retentionPeriod;
           per_stream_rate_limit = "10MB";
           per_stream_rate_limit_burst = "20MB";
+          # Disable structured metadata for boltdb-shipper compatibility
           allow_structured_metadata = false;
         };
 
+        # Ingester configuration
         ingester = {
           chunk_idle_period = "1h";
           max_chunk_age = "2h";
@@ -90,6 +98,7 @@ in {
           };
         };
 
+        # Compactor configuration
         compactor = {
           working_directory = "${cfg.dataDir}/compactor";
           retention_enabled = true;
@@ -98,6 +107,7 @@ in {
           delete_request_store = "filesystem";
         };
 
+        # Ruler for alerting on logs
         ruler = {
           alertmanager_url = "http://127.0.0.1:9093";
           storage = {
@@ -110,6 +120,7 @@ in {
       };
     };
 
+    # Create data directories
     systemd.tmpfiles.settings."loki" = {
       "${cfg.dataDir}" = {
         d = {
@@ -162,6 +173,10 @@ in {
       };
     };
 
+    # Note: User and group are created by the built-in Loki service
+    # We only need to create the data directories
+
+    # Firewall
     networking.firewall.interfaces."tailscale0".allowedTCPPorts = [cfg.port];
   };
 }

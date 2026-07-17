@@ -1,0 +1,46 @@
+# GPU + Compute Market Integration Test
+# This pod will trigger the compute-market to pause mining on the node it runs on
+# Usage: kubectl apply -f gpu-compute-market-test.yaml
+#
+# The compute-market scheduler detects GPU pods and pauses mining automatically
+# Test by watching: journalctl -u compute-market -f
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-mining-pause-test
+  labels:
+    app: gpu-test
+    purpose: "compute-market-integration-test"
+spec:
+  restartPolicy: Never
+  # Run on any GPU node (NVIDIA or AMD)
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: accelerator
+            operator: In
+            values: [nvidia-gpu]
+        - matchExpressions:
+          - key: gpu
+            operator: In
+            values: [amd]
+  containers:
+  - name: gpu-holder
+    image: ubuntu:22.04
+    command: ["sh", "-c", "echo 'GPU workload running - mining should be paused'; echo 'Holding GPU for 60 seconds...'; sleep 60; echo 'Test complete'"]
+    resources:
+      limits:
+        # Request EITHER NVIDIA OR AMD GPU (whichever node is selected)
+        nvidia.com/gpu: 1
+    env:
+    - name: NODE_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: spec.nodeName
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule

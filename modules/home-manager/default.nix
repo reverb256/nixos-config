@@ -1,62 +1,70 @@
-# Home-Manager Integration
-#
-# This module enables declarative home directory management for j_kro
-#
-# Architecture:
-#   - Declarative: .config/*, dotfiles (managed by home-manager)
-#   - Persistent: SSH, GPG, Zen Browser (managed by preservation module)
-#   - Data: User data (not managed declaratively)
-#
-# Import per-host:
-#   hosts/zephyr/configuration.nix: imports = [ ../../modules/home-manager/zephyr.nix ];
-#   hosts/nexus/configuration.nix:  imports = [ ../../modules/home-manager/nexus.nix ];
-#   hosts/forge/configuration.nix:  imports = [ ../../modules/home-manager/forge.nix ];
-#   hosts/sentry/configuration.nix: imports = [ ../../modules/home-manager/sentry.nix ];
-#
-# Scope:
-#   - Shell config (bash, fish)
-#   - Git configuration
-#   - Common dotfiles (.screenrc, .gitconfig)
-#   - .config/* (alacritty, fastfetch, etc.)
-#
-# NOT in scope:
-#   - Crypto wallets (Zen Browser) → preservation module
-#   - SSH keys (already in preservation)
-#   - GPG keys (already in preservation)
-#   - User data (~/models, ~/projects, downloads)
-{
-  config,
-  lib,
-  pkgs,
-  inputs,
-  ...
-}: let
-  inherit (lib) mkDefault mkIf mkMerge;
-in {
-  # Home-Manager is already imported via common-modules-list.nix
-  # This module configures j_kro's declarative home
+# Home Manager Configuration - Main Entry Point
+# Centralized user configuration for j_kro across all cluster nodes
+{inputs, ...}: {
+  home-manager = {
+    # No backups - configs are declarative and version-controlled
+    backupFileExtension = null;
 
-  # Import per-host configuration
-  imports = [
-    ./common.nix
-    ./zephyr.nix
-    ./nexus.nix
-    ./forge.nix
-    ./sentry.nix
-    ./mime-fix.nix
-  ];
+    # Pass inputs to user configs so flake inputs are accessible
+    extraSpecialArgs = {inherit inputs;};
 
-  # Make home-manager state persistent across NixOS generations
-  users.users.j_kro = {
-    # Home dir is already managed by disko or host-specific config
-    # Don't manage it here to avoid conflicts
-  };
+    users.j_kro = {inputs, ...}: {
+      imports = [
+        inputs.zen-browser.homeModules.twilight
+        inputs.nixcord.homeModules.nixcord
+        ./fish.nix
+        {config, ...}:
+          {
+            imports = [./starship.nix];
+            # Host-specific prompt colors passed to Starship
+            programs.starship.settings = {
+              # Hostname color - different for each cluster node
+              hostname.style =
+                {
+                  zephyr = "bold green";
+                  nexus = "bold blue";
+                  forge = "bold red";
+                  sentry = "bold yellow";
+                }.${
+                  config.networking.hostName
+                } or "bold white";
+              # Character prompt color matches hostname
+              character.success_symbol =
+                {
+                  zephyr = "[❯](bold green)";
+                  nexus = "[❯](bold blue)";
+                  forge = "[❯](bold red)";
+                  sentry = "[❯](bold yellow)";
+                }.${
+                  config.networking.hostName
+                } or "[❯](bold cyan)";
+            };
+          }
+          ./wayland-tools.nix
+          ./zen-browser.nix
+          ./nixcord-config.nix
+          {
+            # Force manage mimeapps.list to prevent clobber errors
+            # This makes the configuration idempotent
+            xdg.mimeApps = {
+              enable = true;
+              defaultApplications = {
+                "text/html" = ["zen-browser.desktop"];
+                "x-scheme-handler/http" = ["zen-browser.desktop"];
+                "x-scheme-handler/https" = ["zen-browser.desktop"];
+                "x-scheme-handler/about" = ["zen-browser.desktop"];
+                "x-scheme-handler/unknown" = ["zen-browser.desktop"];
+              };
+            };
+          }
+      ];
 
-  # Ensure home-manager activation happens at boot
-  systemd.services.home-manager-j_kro = {
-    enable = true;
-    description = "Home Manager for j_kro";
-    wantedBy = ["multi-user.target"];
-    serviceConfig.Type = "oneshot";
+      home.stateVersion = "26.05";
+
+      # systemd user environment for secrets (available in all shells)
+      systemd.user.sessionVariables = {
+        HF_TOKEN = "/run/agenix/huggingface-token";
+      };
+    };
   };
 }

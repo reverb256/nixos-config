@@ -1,12 +1,16 @@
+# Host Dashboard - Web interface for cluster host status
+# Shows system info, services, and Prometheus metrics with auto-refresh
 {
   lib,
   pkgs,
   config,
   ...
-}: let
+}:
+let
   cfg = config.services.host-dashboard;
   hostname = config.networking.hostName or "localhost";
 
+  # JavaScript for dashboard (external file to avoid Nix parsing issues)
   dashboardJS = pkgs.writeText "dashboard.js" ''
     // Host Dashboard JavaScript
     // Safe DOM manipulation to avoid XSS
@@ -61,6 +65,7 @@
     });
   '';
 
+  # CSS for dark theme dashboard
   dashboardCSS = pkgs.writeText "dashboard.css" ''
     * {
       margin: 0;
@@ -283,6 +288,7 @@
     }
   '';
 
+  # Generate HTML dashboard
   dashboardHTML = pkgs.writeText "dashboard.html" ''
     <!DOCTYPE html>
     <html lang="en">
@@ -352,17 +358,16 @@
             </h2>
             <ul class="link-list">
               ${lib.concatMapStrings (s: ''
-        <li class="link-item">
-          <a href="${s.url}">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8.636 3.5a.5.5 0 00-.5-.5H1.5A1.5 1.5 0 000 4.5v7A1.5 1.5 0 001.5 13h6.636a.5.5 0 000-1H1.5a.5.5 0 01-.5-.5v-7a.5.5 0 01.5-.5h6.636a.5.5 0 00.5-.5z"/>
-              <path d="M14.5 3h-6a.5.5 0 00-.5.5v9a.5.5 0 00.5.5h6a.5.5 0 00.5-.5v-9a.5.5 0 00-.5-.5zm-6 1h6v9h-6V4z"/>
-            </svg>
-            ${s.name}
-          </a>
-        </li>
-      '')
-      cfg.featuredServices}
+                <li class="link-item">
+                  <a href="${s.url}">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M8.636 3.5a.5.5 0 00-.5-.5H1.5A1.5 1.5 0 000 4.5v7A1.5 1.5 0 001.5 13h6.636a.5.5 0 000-1H1.5a.5.5 0 01-.5-.5v-7a.5.5 0 01.5-.5h6.636a.5.5 0 00.5-.5z"/>
+                      <path d="M14.5 3h-6a.5.5 0 00-.5.5v9a.5.5 0 00.5.5h6a.5.5 0 00.5-.5v-9a.5.5 0 00-.5-.5zm-6 1h6v9h-6V4z"/>
+                    </svg>
+                    ${s.name}
+                  </a>
+                </li>
+              '') cfg.featuredServices}
             </ul>
           </div>
         </div>
@@ -406,35 +411,50 @@
     </html>
   '';
 
-  httpServer = pkgs.writeShellScriptBin "host-dashboard-server" ''
-    #!${pkgs.bash}/bin/bash
-    set -euo pipefail
+  # Simple HTTP server for dashboard - build script carefully to avoid Nix escaping issues
+  httpServer = pkgs.stdenv.mkDerivation {
+    name = "host-dashboard-server";
+    buildCommand = ''
+        mkdir -p $out/bin
+        cat > $out/bin/host-dashboard-server << 'EOF'
+      #!${pkgs.bash}/bin/bash
+      set -euo pipefail
 
-    PORT="''${1:-${toString cfg.port}}"
-    DATA_DIR="''${2:-${cfg.dataDir}}"
+      # Accept arguments or use defaults
+      PORT="''${1:-${toString cfg.port}}"
+      DATA_DIR="''${2:-${cfg.dataDir}}"
 
-    echo "Starting host dashboard on port $PORT"
-    mkdir -p "$DATA_DIR"
+      echo "Starting host dashboard on port $PORT"
 
-    exec ${pkgs.darkhttpd}/bin/darkhttpd "$DATA_DIR" \
-      --port "$PORT" \
-      --addr 127.0.0.1 \
-      --no-server-id
-  '';
+      # Ensure data directory exists
+      mkdir -p "$DATA_DIR"
 
+      # Simple Python HTTP server
+      exec ${pkgs.python3}/bin/python3 -m http.server "$PORT" \
+        --directory "$DATA_DIR" \
+        --bind 127.0.0.1
+      EOF
+        chmod +x $out/bin/host-dashboard-server
+    '';
+  };
+
+  # Update script for fetching metrics
   updateScript = pkgs.writeShellScriptBin "host-dashboard-update" ''
     set -euo pipefail
 
     DATA_DIR="${cfg.dataDir}"
     PROMETHEUS_URL="${cfg.prometheusUrl}"
 
+    # Fetch uptime (parse from /proc/uptime for portability)
     ${pkgs.gawk}/bin/awk '{printf("%.0f days, %.0f hours\n", $1/86400, ($1%86400)/3600)}' /proc/uptime > "$DATA_DIR/api/uptime"
 
+    # Fetch basic metrics
     ${pkgs.curl}/bin/curl -s "$PROMETHEUS_URL/api/v1/query?query=node_load1{instance=\"${hostname}\"}" \
       | ${pkgs.jq}/bin/jq -r '.data.result[0].value[1]' \
       > "$DATA_DIR/api/load1" 2>/dev/null || echo "N/A" > "$DATA_DIR/api/load1"
   '';
-in {
+in
+{
   options.services.host-dashboard = {
     enable = lib.mkEnableOption "Host Dashboard - web interface for cluster host status";
 
@@ -477,7 +497,7 @@ in {
           };
         }
       );
-      default = [];
+      default = [ ];
       description = "Featured services to display with quick links";
     };
 
@@ -497,7 +517,7 @@ in {
           };
         }
       );
-      default = [];
+      default = [ ];
       description = "Services to display in the running services list";
     };
 
@@ -509,15 +529,17 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
+    # Create data directory structure
     systemd.tmpfiles.rules = [
       "d ${cfg.dataDir} 0755 root root -"
       "d ${cfg.dataDir}/api 0755 root root -"
     ];
 
+    # Copy dashboard files to data directory
     systemd.services.host-dashboard-setup = {
       description = "Setup host dashboard files";
-      wantedBy = ["multi-user.target"];
-      before = ["host-dashboard.service"];
+      wantedBy = [ "multi-user.target" ];
+      before = [ "host-dashboard.service" ];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "host-dashboard-setup" ''
@@ -525,23 +547,26 @@ in {
           cp ${dashboardHTML} ${cfg.dataDir}/index.html
           cp ${dashboardCSS} ${cfg.dataDir}/style.css
 
+          # Generate JS file with services data embedded
           sed 's|/* SERVICES_PLACEHOLDER */|${lib.strings.toJSON cfg.services}|' \
             ${dashboardJS} > ${cfg.dataDir}/dashboard.js
         '';
       };
     };
 
+    # Main dashboard service
     systemd.services.host-dashboard = {
       description = "Host Dashboard Web Server";
       after = [
         "network.target"
         "host-dashboard-setup.service"
       ];
-      wantedBy = ["multi-user.target"];
+      wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         ExecStart = "${httpServer}/bin/host-dashboard-server ${toString cfg.port} ${cfg.dataDir}";
         Restart = "on-failure";
         RestartSec = "5s";
+        # Security hardening
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
@@ -550,6 +575,7 @@ in {
       };
     };
 
+    # Update timer for metrics refresh
     systemd.services.host-dashboard-update = {
       description = "Update dashboard metrics";
       serviceConfig = {
@@ -560,17 +586,19 @@ in {
 
     systemd.timers.host-dashboard-update = {
       description = "Timer for dashboard metrics update";
-      wantedBy = ["timers.target"];
+      wantedBy = [ "timers.target" ];
       timerConfig = {
-        OnCalendar = "*:0/5";
+        OnCalendar = "*:0/5"; # Every 5 minutes
         Unit = "host-dashboard-update.service";
       };
     };
 
+    # Firewall
     networking.firewall = lib.mkIf cfg.openFirewall {
-      allowedTCPPorts = lib.mkOptionDefault [cfg.port];
+      allowedTCPPorts = lib.mkOptionDefault [ cfg.port ];
     };
 
+    # Service gateway integration
     services.service-gateway = lib.mkIf config.services.service-gateway.enable {
       services.host-dashboard = {
         description = "Host Dashboard - Cluster Status";

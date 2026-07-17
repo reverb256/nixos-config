@@ -1,0 +1,336 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: searxng-settings-refactored
+  namespace: search
+data:
+  settings.yml: |
+    # SearXNG Refactored Configuration
+    # Optimized for cluster-internal use with bot detection bypasses
+    use_default_settings: true
+
+    general:
+      debug: false
+      instance_name: "Cluster SearXNG"
+      contact: "admin@cluster.local"
+
+    server:
+      secret_key: "${SEARXNG_SECRET}"
+      limiter: false
+      image_proxy: true
+      method: "GET"
+      port: 8080
+      # Enable HTTP for cluster-internal use
+      base_url: "http://searxng.search.svc.cluster.local:8080"
+
+    search:
+      formats:
+        - html
+        - json
+        - csv
+        - rss
+      language: en
+      safe_search: 0
+      autocomplete: ""
+
+    # Disable UI limiter for API access
+    ui:
+      static_use_hash: true
+      default_theme: simple
+      infinite_scroll: false
+
+    limiter: false
+    result_proxy:
+      enabled: false
+
+    # Outgoing request configuration - CRITICAL for bot detection bypass
+    outgoing:
+      # User-Agent rotation to appear as legitimate browser traffic
+      user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+      # Request timeout and retry configuration
+      request_timeout: 15.0
+      max_request_timeout: 30.0
+      reconnect_time: 5
+
+      # Pool connections for better performance
+      pool_connections: 100
+      pool_maxsize: 10
+
+      # Enable HTTP/2 for engines that support it
+      enable_http2: true
+
+      # Network settings
+      source_ip: ""
+
+      # TLS configuration
+      verify: true
+
+      # Maximum redirects to follow
+      max_redirects: 5
+
+    # Engine configuration with rate limiting and bot detection bypasses
+    engines:
+      # Academic and knowledge engines (most reliable)
+      - name: wikipedia
+        engine: wikipedia
+        paging: true
+        timeout: 10.0
+        disabled: false
+
+      - name: wikidata
+        engine: wikidata
+        paging: false
+        timeout: 10.0
+        disabled: false
+
+      - name: arxiv
+        engine: arxiv
+        paging: true
+        timeout: 10.0
+        disabled: false
+
+      - name: pubmed
+        engine: pubmed
+        paging: true
+        timeout: 10.0
+        disabled: false
+
+      # Code and development engines
+      - name: github
+        engine: github
+        paging: true
+        timeout: 15.0
+        disabled: false
+
+      - name: stackoverflow
+        engine: stackoverflow
+        paging: true
+        timeout: 10.0
+        disabled: false
+
+      - name: npm
+        engine: npm
+        paging: true
+        timeout: 10.0
+        disabled: false
+
+      - name: pypi
+        engine: pypi
+        paging: true
+        timeout: 10.0
+        disabled: false
+
+      # Package managers (NixOS specific)
+      - name: nixos wiki
+        engine: mediawiki
+        paging: true
+        search_url: https://wiki.nixos.org/w/index.php?search={query}&title=Special%3ASearch
+        url: https://wiki.nixos.org/w/index.php?title={title}
+        disabled: false
+
+      - name: arch linux wiki
+        engine: arch_linux_wiki
+        paging: true
+        timeout: 10.0
+        disabled: false
+
+      - name: alpine linux packages
+        engine: apk_mirror
+        paging: true
+        timeout: 10.0
+        disabled: false
+
+      # Privacy-focused search engines (more bot-friendly)
+      - name: duckduckgo
+        engine: duckduckgo
+        paging: true
+        timeout: 10.0
+        disabled: false
+
+      - name: brave
+        engine: brave
+        paging: true
+        timeout: 10.0
+        disabled: false
+
+      # Video and media
+      - name: youtube
+        engine: youtube_api
+        paging: true
+        timeout: 10.0
+        disabled: false
+
+      - name: vimeo
+        engine: vimeo
+        paging: true
+        timeout: 10.0
+        disabled: false
+
+      # IT and tech
+      - name: apple app store
+        engine: apple_app_store
+        paging: true
+        timeout: 10.0
+        disabled: false
+
+      - name: adobe stock
+        engine: adobe_stock
+        paging: true
+        timeout: 10.0
+        disabled: false
+
+      # News and media
+      - name: google news
+        engine: google_news
+        paging: true
+        timeout: 10.0
+        disabled: false
+
+      # Blocked engines (HTTP 403) - kept for reference but disabled
+      # - name: google
+      #   engine: google
+      #   paging: true
+      #   disabled: true  # Too aggressive with bot detection
+
+      # - name: bing
+      #   engine: bing
+      #   paging: true
+      #   disabled: true  # Requires CAPTCHA
+
+      # - name: startpage
+      #   engine: startpage
+      #   paging: true
+      #   disabled: true  # Blocks automated queries
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: searxng-refactored
+  namespace: search
+  labels:
+    app: searxng-refactored
+  annotations:
+    description: "Refactored SearXNG with bot detection bypasses and rate limiting"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: searxng-refactored
+  template:
+    metadata:
+      labels:
+        app: searxng-refactored
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+      - name: searxng
+        image: searxng/searxng:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+
+        env:
+        - name: SEARXNG_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: searxng-secret
+              key: secret_key
+
+        - name: BASE_URL
+          value: "http://searxng.search.svc.cluster.local:8080"
+
+        - name: SEARXNG_LIMITER
+          value: "false"
+
+        volumeMounts:
+        - name: settings
+          mountPath: /etc/searxng/settings.yml
+          subPath: settings.yml
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /var/cache/searxng
+        - name: run
+          mountPath: /run
+
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+
+      volumes:
+      - name: settings
+        configMap:
+          name: searxng-settings-refactored
+      - name: tmp
+        emptyDir: {}
+      - name: cache
+        emptyDir: {}
+      - name: run
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: searxng-refactored
+  namespace: search
+  labels:
+    app: searxng-refactored
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: searxng-refactored
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: searxng-secret
+  namespace: search
+type: Opaque
+stringData:
+  secret_key: "$(openssl rand -hex 32)"

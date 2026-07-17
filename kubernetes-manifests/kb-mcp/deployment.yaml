@@ -1,0 +1,93 @@
+# KB MCP Server - Knowledge Base RAG MCP Server
+# Provides vector search over 38 technical eBooks via FastMCP protocol
+# Connects to Qdrant at qdrant-service.ai-inference.svc.cluster.local:6333
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kb-mcp
+  namespace: ai-inference
+  labels:
+    app: kb-mcp
+    component: rag
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kb-mcp
+  template:
+    metadata:
+      labels:
+        app: kb-mcp
+        component: rag
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: nexus
+      containers:
+      - name: kb-mcp
+        image: localhost/kb-mcp:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: QDRANT_HOST
+          value: "qdrant-service.ai-inference.svc.cluster.local"
+        - name: QDRANT_PORT
+          value: "6333"
+        - name: KB_PORT
+          value: "8080"
+        - name: KB_HOST
+          value: "0.0.0.0"
+        - name: KB_COLLECTION
+          value: "knowledge_base"
+        - name: KB_MODEL
+          value: "all-MiniLM-L6-v2"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: HOME
+          value: "/tmp"
+        - name: USER
+          value: "kb-mcp"
+        - name: HF_HOME
+          value: "/tmp/huggingface"
+        - name: TRANSFORMERS_CACHE
+          value: "/tmp/huggingface/transformers"
+        resources:
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+        livenessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        volumeMounts:
+        - name: huggingface-cache
+          mountPath: /tmp/huggingface
+      volumes:
+      - name: huggingface-cache
+        emptyDir:
+          sizeLimit: "1Gi"
+      tolerations:
+      - key: workstation
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+      - key: interactive
+        operator: Equal
+        value: "true"
+        effect: NoExecute

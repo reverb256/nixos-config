@@ -1,23 +1,25 @@
+# modules/profiles/hardware/implementations.nix --- Hardware profile implementations
 {
   config,
   lib,
   ...
-}: let
+}:
+let
   cfg = config.hardware.profiles;
-in {
+in
+{
   config = lib.mkMerge [
     (lib.mkIf cfg.amd.enable {
       boot = {
-        kernelParams =
-          [
-            "amd_iommu=on"
-            "iommu=pt"
-          ]
-          ++ lib.optionals cfg.amd.zen [
-            "split_lock_detect=off"
-            "threadirqs"
-            "preempt=full"
-          ];
+        kernelParams = [
+          "amd_iommu=on"
+          "iommu=pt"
+        ]
+        ++ lib.optionals cfg.amd.zen [
+          "split_lock_detect=off"
+          "threadirqs"
+          "preempt=full"
+        ];
       };
       hardware.cpu.amd.updateMicrocode = lib.mkDefault true;
     })
@@ -43,9 +45,12 @@ in {
 
     (lib.mkIf cfg.amdgpu.enable {
       boot = {
-        kernelModules = ["amdgpu"];
-        initrd.kernelModules = ["amdgpu"];
+        kernelModules = [ "amdgpu" ];
+        initrd.kernelModules = [ "amdgpu" ];
       };
+      # Note: hardware.amdgpu.wayland option removed in newer nixpkgs
+      # Using direct amdgpu module configuration instead
+      # Enable ROCm OpenCL for compute workloads
       hardware.amdgpu.opencl.enable = true;
     })
 
@@ -58,6 +63,8 @@ in {
           NCCL_IB_DISABLE = "1";
           NCCL_ALGO = "Tree";
         })
+        # AMDGPU Wayland-specific environment vars removed
+        # (hardware.amdgpu.wayland option no longer exists)
       ];
     })
 

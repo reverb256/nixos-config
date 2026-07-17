@@ -1,0 +1,96 @@
+---
+# AI Inference Gateway Service (Kubernetes Deployment)
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-inference-gateway
+  namespace: ai-inference
+  labels:
+    app: ai-inference-gateway
+    version: v2.0.0
+spec:
+  type: NodePort
+  sessionAffinity: None
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+      nodePort: 30880  # Expose on all nodes at port 30880
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+      nodePort: 30990  # Expose metrics on all nodes at port 30990
+  selector:
+    app: ai-inference-gateway
+
+---
+# NetworkPolicy to allow gateway to reach dependencies
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-egress
+  namespace: ai-inference
+spec:
+  podSelector:
+    matchLabels:
+      app: ai-inference-gateway
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow SearXNG access (search namespace)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: search
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Allow Qdrant access (ai-inference namespace)
+    - to:
+        - podSelector:
+            matchLabels:
+              app: qdrant
+      ports:
+        - protocol: TCP
+          port: 6333
+    # Allow llama.cpp access (ai-inference namespace)
+    - to:
+        - podSelector:
+            matchLabels:
+              app: llama-cpp-qwen
+      ports:
+        - protocol: TCP
+          port: 8080
+
+---
+# NetworkPolicy to allow ingress to gateway from cluster
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-ingress
+  namespace: ai-inference
+spec:
+  podSelector:
+    matchLabels:
+      app: ai-inference-gateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        # Allow from all namespaces in cluster
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9090

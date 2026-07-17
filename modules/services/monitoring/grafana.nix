@@ -1,0 +1,2197 @@
+# Grafana Dashboard Server
+# Visualization platform for Prometheus metrics
+# Uses auto-generated admin password (no manual setup required)
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  cfg = config.services.monitoring.grafana;
+  cluster = {
+    ports = {
+      prometheus = 9090;
+      grafana = 3001;
+    };
+    tailscale.domain = "ts.krogh.dev";
+  };
+  grafanaPasswordFile = "/var/lib/grafana/admin-password";
+  dashboardsDir = "/var/lib/grafana/dashboards";
+
+  # Unified Cluster Dashboard
+  # Combines cluster monitoring, mining, AI inference, and hardware metrics
+  # Uses correct metric names from actual Prometheus exporters
+  unifiedDashboard = builtins.toJSON {
+    annotations.list = [];
+    description = "Reverb-OS NixOS Cluster - Unified Monitoring Dashboard";
+    editable = true;
+    fiscalYearStartMonth = 0;
+    graphTooltip = 1;
+    id = null;
+    links = [];
+    liveNow = false;
+    panels = [
+      # ========== ROW: CLUSTER HEALTH ==========
+      {
+        collapsed = false;
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 0;
+        };
+        id = 100;
+        panels = [];
+        title = "🖥️ Cluster Health";
+        type = "row";
+      }
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "thresholds";
+          mappings = [];
+          thresholds = {
+            mode = "absolute";
+            steps = [
+              {
+                color = "red";
+                value = null;
+              }
+              {
+                color = "green";
+                value = 1;
+              }
+            ];
+          };
+        };
+        gridPos = {
+          h = 4;
+          w = 24;
+          x = 0;
+          y = 1;
+        };
+        id = 1;
+        options = {
+          colorMode = "background";
+          graphMode = "none";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          {
+            expr = "up{job=\"node\"}";
+            legendFormat = "{{instance}} - Node";
+            refId = "A";
+          }
+          {
+            expr = "up{job=\"nvidia\"}";
+            legendFormat = "{{instance}} - NVIDIA";
+            refId = "B";
+          }
+          {
+            expr = "up{job=\"mining\"}";
+            legendFormat = "{{instance}} - Mining";
+            refId = "C";
+          }
+          {
+            expr = "ai_inference_backend_healthy";
+            legendFormat = "AI Gateway {{backend}}";
+            refId = "D";
+          }
+        ];
+        title = "Service Health";
+        type = "stat";
+      }
+
+      # ========== ROW: CPU & MEMORY ==========
+      {
+        collapsed = false;
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 5;
+        };
+        id = 200;
+        panels = [];
+        title = "💻 CPU & Memory";
+        type = "row";
+      }
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          max = 100;
+          min = 0;
+          thresholds = {
+            mode = "absolute";
+            steps = [
+              {
+                color = "green";
+                value = null;
+              }
+              {
+                color = "yellow";
+                value = 70;
+              }
+              {
+                color = "red";
+                value = 90;
+              }
+            ];
+          };
+          unit = "percent";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 6;
+        };
+        id = 2;
+        options = {
+          legend = {
+            calcs = ["mean" "last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "100 * (1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) by (instance))";
+            legendFormat = "{{instance}}";
+            refId = "A";
+          }
+        ];
+        title = "CPU Usage";
+        type = "timeseries";
+      }
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          max = 100;
+          min = 0;
+          thresholds = {
+            mode = "absolute";
+            steps = [
+              {
+                color = "green";
+                value = null;
+              }
+              {
+                color = "yellow";
+                value = 70;
+              }
+              {
+                color = "red";
+                value = 90;
+              }
+            ];
+          };
+          unit = "percent";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 6;
+        };
+        id = 3;
+        options = {
+          legend = {
+            calcs = ["mean" "last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))";
+            legendFormat = "{{instance}}";
+            refId = "A";
+          }
+        ];
+        title = "Memory Usage";
+        type = "timeseries";
+      }
+
+      # ========== ROW: THERMAL & HARDWARE ==========
+      {
+        collapsed = false;
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 14;
+        };
+        id = 300;
+        panels = [];
+        title = "🌡️ Thermal & Hardware";
+        type = "row";
+      }
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "continuous-GrYlRd";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          thresholds = {
+            mode = "absolute";
+            steps = [
+              {
+                color = "green";
+                value = null;
+              }
+              {
+                color = "yellow";
+                value = 70;
+              }
+              {
+                color = "red";
+                value = 85;
+              }
+            ];
+          };
+          unit = "celsius";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 15;
+        };
+        id = 4;
+        options = {
+          legend = {
+            calcs = ["mean" "last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "node_hwmon_temp_celsius{sensor=\"coretemp\"}";
+            legendFormat = "{{chip}} {{label}}";
+            refId = "A";
+          }
+        ];
+        title = "CPU Temperatures";
+        type = "timeseries";
+      }
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "continuous-GrYlRd";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          thresholds = {
+            mode = "absolute";
+            steps = [
+              {
+                color = "green";
+                value = null;
+              }
+              {
+                color = "yellow";
+                value = 75;
+              }
+              {
+                color = "red";
+                value = 85;
+              }
+            ];
+          };
+          unit = "celsius";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 15;
+        };
+        id = 5;
+        options = {
+          legend = {
+            calcs = ["mean" "last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "nvidia_smi_temperature_gpu";
+            legendFormat = "NVIDIA {{instance}} gpu{{index}}";
+            refId = "A";
+          }
+          {
+            expr = "amdgpu_temperature_celsius";
+            legendFormat = "AMD {{instance}} {{gpu}}";
+            refId = "B";
+          }
+        ];
+        title = "GPU Temperatures";
+        type = "timeseries";
+      }
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          max = 100;
+          min = 0;
+          thresholds = {
+            mode = "absolute";
+            steps = [
+              {
+                color = "green";
+                value = null;
+              }
+              {
+                color = "yellow";
+                value = 80;
+              }
+              {
+                color = "red";
+                value = 95;
+              }
+            ];
+          };
+          unit = "percent";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 23;
+        };
+        id = 6;
+        options = {
+          legend = {
+            calcs = ["mean" "last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "100 * nvidia_smi_utilization_gpu_ratio";
+            legendFormat = "NVIDIA {{instance}} gpu{{index}}";
+            refId = "A";
+          }
+          {
+            expr = "amdgpu_utilization_percent";
+            legendFormat = "AMD {{instance}} {{gpu}}";
+            refId = "B";
+          }
+        ];
+        title = "GPU Utilization";
+        type = "timeseries";
+      }
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          thresholds.mode = "absolute";
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+          ];
+          unit = "watt";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 23;
+        };
+        id = 7;
+        options = {
+          legend = {
+            calcs = ["mean" "last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "nvidia_smi_power_draw_watts";
+            legendFormat = "NVIDIA {{instance}} gpu{{index}}";
+            refId = "A";
+          }
+          {
+            expr = "amdgpu_power_watts";
+            legendFormat = "AMD {{instance}} {{gpu}}";
+            refId = "B";
+          }
+        ];
+        title = "GPU Power Draw";
+        type = "timeseries";
+      }
+
+      # ========== ROW: MINING ==========
+      {
+        collapsed = false;
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 31;
+        };
+        id = 400;
+        panels = [];
+        title = "⛏️ Mining";
+        type = "row";
+      }
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          thresholds.mode = "absolute";
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+          ];
+          unit = "hashrate";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 32;
+        };
+        id = 8;
+        options = {
+          legend = {
+            calcs = ["mean" "last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "mining_lolminer_hashrate_total";
+            legendFormat = "LolMiner {{instance}}";
+            refId = "A";
+          }
+          {
+            expr = "mining_xmrig_hashrate_total";
+            legendFormat = "XMRig {{instance}}";
+            refId = "B";
+          }
+        ];
+        title = "Total Hashrate";
+        type = "timeseries";
+      }
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          thresholds.mode = "absolute";
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+          ];
+          unit = "short";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 32;
+        };
+        id = 9;
+        options = {
+          legend = {
+            calcs = ["sum"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "rate(mining_lolminer_shares_accepted[5m])";
+            legendFormat = "LolMiner Accepted {{instance}}";
+            refId = "A";
+          }
+          {
+            expr = "rate(mining_xmrig_shares_accepted[5m])";
+            legendFormat = "XMRig Accepted {{instance}}";
+            refId = "B";
+          }
+          {
+            expr = "rate(mining_lolminer_shares_rejected[5m])";
+            legendFormat = "LolMiner Rejected {{instance}}";
+            refId = "C";
+          }
+          {
+            expr = "rate(mining_xmrig_shares_rejected[5m])";
+            legendFormat = "XMRig Rejected {{instance}}";
+            refId = "D";
+          }
+        ];
+        title = "Share Rate";
+        type = "timeseries";
+      }
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          thresholds.mode = "absolute";
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+          ];
+          unit = "percent";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 40;
+        };
+        id = 10;
+        options = {
+          legend = {
+            calcs = ["mean" "last"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "mining_xmrig_cpu_percent";
+            legendFormat = "XMRig {{instance}}";
+            refId = "A";
+          }
+        ];
+        title = "XMRig CPU Usage";
+        type = "timeseries";
+      }
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          thresholds.mode = "absolute";
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+          ];
+          unit = "short";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 40;
+        };
+        id = 11;
+        options = {
+          legend = {
+            calcs = ["last"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "mining_xmrig_threads";
+            legendFormat = "Threads {{instance}}";
+            refId = "A";
+          }
+        ];
+        title = "XMRig Threads";
+        type = "timeseries";
+      }
+
+      # ========== ROW: AI INFERENCE ==========
+      {
+        collapsed = false;
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 48;
+        };
+        id = 500;
+        panels = [];
+        title = "🤖 AI Inference Gateway";
+        type = "row";
+      }
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          thresholds.mode = "absolute";
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+          ];
+          unit = "short";
+        };
+        gridPos = {
+          h = 8;
+          w = 8;
+          x = 0;
+          y = 49;
+        };
+        id = 12;
+        options = {
+          legend = {
+            calcs = ["last"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "ai_inference_backend_healthy";
+            legendFormat = "{{backend}}";
+            refId = "A";
+          }
+        ];
+        title = "Backend Health";
+        type = "timeseries";
+      }
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "continuous-GrYlRd";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          thresholds = {
+            mode = "absolute";
+            steps = [
+              {
+                color = "green";
+                value = null;
+              }
+              {
+                color = "yellow";
+                value = 70;
+              }
+              {
+                color = "red";
+                value = 85;
+              }
+            ];
+          };
+          unit = "celsius";
+        };
+        gridPos = {
+          h = 8;
+          w = 8;
+          x = 8;
+          y = 49;
+        };
+        id = 13;
+        options = {
+          legend = {
+            calcs = ["mean" "last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "ai_inference_gpu_temperature_c";
+            legendFormat = "{{backend}}";
+            refId = "A";
+          }
+        ];
+        title = "AI GPU Temperature";
+        type = "timeseries";
+      }
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          max = 100;
+          min = 0;
+          thresholds = {
+            mode = "absolute";
+            steps = [
+              {
+                color = "green";
+                value = null;
+              }
+              {
+                color = "yellow";
+                value = 80;
+              }
+              {
+                color = "red";
+                value = 95;
+              }
+            ];
+          };
+          unit = "percent";
+        };
+        gridPos = {
+          h = 8;
+          w = 8;
+          x = 16;
+          y = 49;
+        };
+        id = 14;
+        options = {
+          legend = {
+            calcs = ["mean" "last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "ai_inference_gpu_utilization_percent";
+            legendFormat = "{{backend}}";
+            refId = "A";
+          }
+        ];
+        title = "AI GPU Utilization";
+        type = "timeseries";
+      }
+
+      # ========== ROW: STORAGE & NETWORK ==========
+      {
+        collapsed = false;
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 57;
+        };
+        id = 600;
+        panels = [];
+        title = "💾 Storage & Network";
+        type = "row";
+      }
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          thresholds.mode = "absolute";
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+          ];
+          unit = "bytes";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 58;
+        };
+        id = 15;
+        options = {
+          legend = {
+            calcs = ["last"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "node_filesystem_avail_bytes{fstype!=\"tmpfs\"}";
+            legendFormat = "{{mountpoint}} - {{instance}}";
+            refId = "A";
+          }
+        ];
+        title = "Disk Space Available";
+        type = "timeseries";
+      }
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          thresholds.mode = "absolute";
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+          ];
+          unit = "Bps";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 58;
+        };
+        id = 16;
+        options = {
+          legend = {
+            calcs = ["mean" "last"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "rate(node_network_receive_bytes_total[5m])";
+            legendFormat = "RX {{device}} {{instance}}";
+            refId = "A";
+          }
+          {
+            expr = "rate(node_network_transmit_bytes_total[5m])";
+            legendFormat = "TX {{device}} {{instance}}";
+            refId = "B";
+          }
+        ];
+        title = "Network Traffic";
+        type = "timeseries";
+      }
+      # NFS RPC Retransmissions (error indicator)
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          thresholds.mode = "absolute";
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+            {
+              color = "yellow";
+              value = 0.01;
+            }
+            {
+              color = "red";
+              value = 0.05;
+            }
+          ];
+          unit = "none";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 66;
+        };
+        id = 17;
+        options = {
+          legend = {
+            calcs = ["last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "rate(node_nfs_rpc_retransmissions_total[5m])";
+            legendFormat = "Retransmits {{instance}}";
+            refId = "A";
+          }
+        ];
+        title = "NFS RPC Retransmissions";
+        type = "timeseries";
+      }
+      # NFS Read/Write Latency
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          thresholds.mode = "absolute";
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+            {
+              color = "yellow";
+              value = 0.001;
+            }
+            {
+              color = "orange";
+              value = 0.005;
+            }
+            {
+              color = "red";
+              value = 0.01;
+            }
+          ];
+          unit = "s";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 66;
+        };
+        id = 18;
+        options = {
+          legend = {
+            calcs = ["mean" "max" "p95"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "rate(node_nfs_latency_seconds_total{protocol=\"4\"}[5m])";
+            legendFormat = "Read {{instance}}";
+            refId = "A";
+          }
+          {
+            expr = "rate(node_nfs_latency_seconds_total{protocol=\"4\", vers=\"-4\"}[5m])";
+            legendFormat = "Write {{instance}}";
+            refId = "B";
+          }
+        ];
+        title = "NFS Read/Write Latency";
+        type = "timeseries";
+      }
+      # NFS Server Operations (zephyr only)
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          thresholds.mode = "absolute";
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+          ];
+          unit = "ops";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 74;
+        };
+        id = 19;
+        options = {
+          legend = {
+            calcs = ["mean" "last"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "rate(nfsd_read_total[5m])";
+            legendFormat = "Server Reads";
+            refId = "A";
+          }
+          {
+            expr = "rate(nfsd_write_total[5m])";
+            legendFormat = "Server Writes";
+            refId = "B";
+          }
+        ];
+        title = "NFS Server Operations (zephyr:/etc/nixos)";
+        type = "timeseries";
+      }
+      # NFS Reply Cache Hit Rate
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "continuous-GrYlRd";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          max = 1;
+          min = 0;
+          thresholds.mode = "absolute";
+          thresholds.steps = [
+            {
+              color = "red";
+              value = null;
+            }
+            {
+              color = "yellow";
+              value = 0.7;
+            }
+            {
+              color = "green";
+              value = 0.85;
+            }
+          ];
+          unit = "percentunit";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 74;
+        };
+        id = 20;
+        options = {
+          legend = {
+            calcs = ["last"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "nfsd_rc_hits_total / (nfsd_rc_hits_total + nfsd_rc_misses_total + nfsd_rc_nocache_total)";
+            legendFormat = "Reply Cache Hit Rate";
+            refId = "A";
+          }
+        ];
+        title = "NFS Reply Cache Hit Rate";
+        type = "timeseries";
+      }
+    ];
+    refresh = "5s";
+    schemaVersion = 38;
+    tags = ["cluster" "mining" "ai" "unified"];
+    templating.list = [];
+    time = {
+      from = "now-1h";
+      to = "now";
+    };
+    timepicker = {};
+    timezone = "";
+    title = "Reverb-OS Cluster";
+    uid = "reverb-os-unified";
+    version = 1;
+    weekStart = "";
+  };
+
+  # AI Inference Gateway Dashboard
+  # Comprehensive metrics for LM Studio and ZAI backends
+  aiInferenceDashboard = builtins.toJSON {
+    annotations.list = [];
+    description = "AI Inference Gateway - Comprehensive metrics for LM Studio and ZAI backends";
+    editable = true;
+    fiscalYearStartMonth = 0;
+    graphTooltip = 1;
+    id = null;
+    links = [];
+    liveNow = false;
+    refresh = "10s";
+    schemaVersion = 38;
+    tags = ["ai" "inference" "gateway" "lm-studio" "zai"];
+    templating.list = [
+      {
+        name = "Backend";
+        type = "query";
+        query = {
+          query = "label_values(gateway_backend_requests_total, backend)";
+          refId = "BackendValues";
+          type = "query";
+        };
+        multi = true;
+        includeAll = true;
+        allValue = ".*";
+        current = {};
+        hide = 0;
+      }
+    ];
+    timezone = "browser";
+    weekStart = "";
+    time = {
+      from = "now-1h";
+      to = "now";
+    };
+    timepicker = {};
+    title = "AI Inference Gateway";
+    uid = "ai-inference-gateway";
+    version = 1;
+    panels = [
+      # ========== ROW: OVERVIEW ==========
+      {
+        collapsed = false;
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 0;
+        };
+        id = 100;
+        panels = [];
+        title = "📊 Overview";
+        type = "row";
+      }
+      # Backend Health Status
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "thresholds";
+          mappings = [];
+          thresholds = {
+            mode = "absolute";
+            steps = [
+              {
+                color = "red";
+                value = null;
+              }
+              {
+                color = "green";
+                value = 1;
+              }
+            ];
+          };
+        };
+        gridPos = {
+          h = 6;
+          w = 6;
+          x = 0;
+          y = 1;
+        };
+        id = 1;
+        options = {
+          colorMode = "background";
+          graphMode = "none";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          {
+            expr = "gateway_backend_healthy";
+            legendFormat = "{{backend}}";
+            refId = "A";
+          }
+        ];
+        title = "Backend Health";
+        type = "stat";
+      }
+      # Total Requests
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          mappings = [];
+          thresholds.mode = "absolute";
+        };
+        gridPos = {
+          h = 6;
+          w = 6;
+          x = 6;
+          y = 1;
+        };
+        id = 2;
+        options = {
+          graphMode = "area";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          {
+            expr = "sum(rate(gateway_backend_requests_total[5m]))";
+            legendFormat = "Requests/sec";
+            refId = "A";
+          }
+        ];
+        title = "Request Rate";
+        type = "stat";
+      }
+      # Token Throughput
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          mappings = [];
+          unit = "tps";
+        };
+        gridPos = {
+          h = 6;
+          w = 6;
+          x = 12;
+          y = 1;
+        };
+        id = 3;
+        options = {
+          graphMode = "area";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          {
+            expr = "sum(rate(gateway_model_tokens_total[5m]))";
+            legendFormat = "Tokens/sec";
+            refId = "A";
+          }
+        ];
+        title = "Token Throughput";
+        type = "stat";
+      }
+      # Active Requests
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "thresholds";
+          thresholds = {
+            mode = "absolute";
+            steps = [
+              {
+                color = "green";
+                value = null;
+              }
+              {
+                color = "yellow";
+                value = 5;
+              }
+              {
+                color = "orange";
+                value = 10;
+              }
+              {
+                color = "red";
+                value = 20;
+              }
+            ];
+          };
+        };
+        gridPos = {
+          h = 6;
+          w = 6;
+          x = 18;
+          y = 1;
+        };
+        id = 4;
+        options = {
+          graphMode = "none";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          {
+            expr = "gateway_active_requests";
+            legendFormat = "Active";
+            refId = "A";
+          }
+        ];
+        title = "Active Requests";
+        type = "stat";
+      }
+
+      # ========== ROW: LATENCY ==========
+      {
+        collapsed = false;
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 7;
+        };
+        id = 200;
+        panels = [];
+        title = "⏱️ Latency & Performance";
+        type = "row";
+      }
+      # Request Duration Percentiles
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            spanNulls = true;
+          };
+          unit = "s";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 8;
+        };
+        id = 5;
+        options = {
+          legend = {
+            calcs = ["mean" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = ''histogram_quantile(0.50, sum(rate(gateway_model_request_duration_seconds_bucket[5m])) by (le, model))'';
+            legendFormat = "{{model}} p50";
+            refId = "A";
+          }
+          {
+            expr = ''histogram_quantile(0.95, sum(rate(gateway_model_request_duration_seconds_bucket[5m])) by (le, model))'';
+            legendFormat = "{{model}} p95";
+            refId = "B";
+          }
+          {
+            expr = ''histogram_quantile(0.99, sum(rate(gateway_model_request_duration_seconds_bucket[5m])) by (le, model))'';
+            legendFormat = "{{model}} p99";
+            refId = "C";
+          }
+        ];
+        title = "Request Duration Percentiles";
+        type = "timeseries";
+      }
+      # Time to First Token
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            spanNulls = true;
+          };
+          unit = "s";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 8;
+        };
+        id = 6;
+        options = {
+          legend = {
+            calcs = ["mean" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "gateway_model_time_to_first_token_seconds";
+            legendFormat = "{{model}}";
+            refId = "A";
+          }
+        ];
+        title = "Time to First Token";
+        type = "timeseries";
+      }
+
+      # ========== ROW: TOKENS ==========
+      {
+        collapsed = false;
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 16;
+        };
+        id = 300;
+        panels = [];
+        title = "🪙 Token Usage";
+        type = "row";
+      }
+      # Input/Output Token Rates
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            spanNulls = true;
+          };
+          unit = "tps";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 17;
+        };
+        id = 7;
+        options = {
+          legend = {
+            calcs = ["mean" "last"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "sum(rate(gateway_model_input_tokens_total[5m])) by (model)";
+            legendFormat = "{{model}} input";
+            refId = "A";
+          }
+          {
+            expr = "sum(rate(gateway_model_output_tokens_total[5m])) by (model)";
+            legendFormat = "{{model}} output";
+            refId = "B";
+          }
+        ];
+        title = "Input/Output Token Rates";
+        type = "timeseries";
+      }
+      # Total Tokens Distribution
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            hideFrom = {
+              tooltip = false;
+              vizLegend = false;
+              yaxis = false;
+            };
+          };
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 17;
+        };
+        id = 8;
+        options = {
+          legend = {
+            displayMode = "table";
+            placement = "right";
+            values = ["value" "percent"];
+          };
+          pieType = "donut";
+        };
+        targets = [
+          {
+            expr = "sum(gateway_model_tokens_total) by (model)";
+            legendFormat = "{{model}}";
+            refId = "A";
+          }
+        ];
+        title = "Tokens Distribution by Model";
+        type = "piechart";
+      }
+
+      # ========== ROW: ERRORS ==========
+      {
+        collapsed = false;
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 25;
+        };
+        id = 400;
+        panels = [];
+        title = "⚠️ Errors & Failures";
+        type = "row";
+      }
+      # Error Rate
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "thresholds";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            spanNulls = true;
+          };
+          thresholds.mode = "absolute";
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+            {
+              color = "yellow";
+              value = 0.01;
+            }
+            {
+              color = "orange";
+              value = 0.05;
+            }
+            {
+              color = "red";
+              value = 0.1;
+            }
+          ];
+          unit = "percentunit";
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 26;
+        };
+        id = 9;
+        options = {
+          legend = {
+            calcs = ["last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = ''sum(rate(gateway_model_requests_total{error!="none"}[5m])) / sum(rate(gateway_model_requests_total[5m]))'';
+            legendFormat = "Error Rate";
+            refId = "A";
+          }
+        ];
+        title = "Error Rate";
+        type = "timeseries";
+      }
+      # Error Types
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            hideFrom = {
+              tooltip = false;
+              vizLegend = false;
+              yaxis = false;
+            };
+          };
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 26;
+        };
+        id = 10;
+        options = {
+          legend = {
+            displayMode = "table";
+            placement = "right";
+            values = ["value" "percent"];
+          };
+          pieType = "donut";
+        };
+        targets = [
+          {
+            expr = "sum(gateway_model_requests_total) by (error)";
+            legendFormat = "{{error}}";
+            refId = "A";
+          }
+        ];
+        title = "Errors by Type";
+        type = "piechart";
+      }
+      # Circuit Breaker State
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "thresholds";
+          mappings = [
+            {
+              type = "value";
+              options = {
+                "0" = {
+                  color = "red";
+                  text = "Open";
+                };
+                "1" = {
+                  color = "yellow";
+                  text = "Half-Open";
+                };
+                "2" = {
+                  color = "green";
+                  text = "Closed";
+                };
+              };
+            }
+          ];
+          thresholds.mode = "absolute";
+        };
+        gridPos = {
+          h = 6;
+          w = 12;
+          x = 0;
+          y = 34;
+        };
+        id = 11;
+        options = {
+          graphMode = "none";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          {
+            expr = "gateway_circuit_breaker_state";
+            legendFormat = "{{backend}} {{model}}";
+            refId = "A";
+          }
+        ];
+        title = "Circuit Breaker State";
+        type = "stat";
+      }
+
+      # ========== ROW: ROUTING ==========
+      {
+        collapsed = false;
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 40;
+        };
+        id = 500;
+        panels = [];
+        title = "🔀 Routing & Specialization";
+        type = "row";
+      }
+      # Backend Distribution
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            hideFrom = {
+              tooltip = false;
+              vizLegend = false;
+              yaxis = false;
+            };
+          };
+        };
+        gridPos = {
+          h = 8;
+          w = 8;
+          x = 0;
+          y = 41;
+        };
+        id = 12;
+        options = {
+          legend = {
+            displayMode = "table";
+            placement = "right";
+            values = ["value" "percent"];
+          };
+          pieType = "donut";
+        };
+        targets = [
+          {
+            expr = "sum(gateway_backend_requests_total) by (backend)";
+            legendFormat = "{{backend}}";
+            refId = "A";
+          }
+        ];
+        title = "Requests by Backend";
+        type = "piechart";
+      }
+      # Model Scores
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "bars";
+            fillOpacity = 80;
+            gradientMode = "none";
+            lineInterpolation = "linear";
+            lineWidth = 1;
+            spanNulls = true;
+          };
+          thresholds.mode = "absolute";
+        };
+        gridPos = {
+          h = 8;
+          w = 16;
+          x = 8;
+          y = 41;
+        };
+        id = 13;
+        options = {
+          legend = {
+            calcs = ["mean" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "gateway_model_score";
+            legendFormat = "{{model}}";
+            refId = "A";
+          }
+        ];
+        title = "Model Specialization Scores";
+        type = "timeseries";
+      }
+    ];
+  };
+in {
+  options.services.monitoring.grafana = {
+    enable = lib.mkEnableOption "Grafana dashboard server";
+    domain = lib.mkOption {
+      type = lib.types.str;
+      default = "sentry.${cluster.tailscale.domain}";
+      description = "Domain for Grafana access";
+    };
+    adminUser = lib.mkOption {
+      type = lib.types.str;
+      default = "admin";
+      description = "Grafana admin username";
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    services.grafana = {
+      enable = true;
+      settings = {
+        server = {
+          http_addr = "127.0.0.1";
+          http_port = cluster.ports.grafana;
+          root_url = "https://${cfg.domain}";
+          serve_from_sub_path = false;
+        };
+
+        security = {
+          admin_user = cfg.adminUser;
+          admin_password = "$__file{${grafanaPasswordFile}}";
+          disable_initial_admin_creation = false;
+          secret_key = "$__file{${grafanaPasswordFile}}";
+        };
+
+        database = {
+          type = "sqlite3";
+          path = "/var/lib/grafana/data/grafana.db";
+        };
+
+        users = {
+          allow_sign_up = false;
+          auto_assign_org = true;
+          auto_assign_org_role = "Viewer";
+        };
+
+        auth = {
+          disable_login_form = false;
+          disable_signout_menu = false;
+        };
+
+        "auth.anonymous".enabled = false;
+
+        log = {
+          mode = "console";
+          level = "info";
+        };
+      };
+
+      provision = {
+        datasources.settings.datasources = [
+          {
+            name = "Prometheus";
+            type = "prometheus";
+            url = "http://127.0.0.1:${toString cluster.ports.prometheus}";
+            isDefault = true;
+            access = "proxy";
+            editable = false;
+            uid = "prometheus";
+          }
+        ];
+
+        dashboards.settings.providers = [
+          {
+            name = "default";
+            orgId = 1;
+            folder = "";
+            type = "file";
+            disableDeletion = false;
+            updateIntervalSeconds = 30;
+            options.path = dashboardsDir;
+          }
+        ];
+      };
+    };
+
+    users.users.grafana = {
+      isSystemUser = true;
+      group = "grafana";
+    };
+    users.groups.grafana = {};
+
+    # Create dashboards directory
+    systemd.tmpfiles.settings."grafana-setup" = {
+      "${dashboardsDir}" = {
+        d = {
+          user = "grafana";
+          group = "grafana";
+          mode = "0755";
+        };
+      };
+    };
+
+    # Provision dashboards
+    systemd.services.grafana-dashboard-provision = {
+      description = "Provision Grafana dashboards";
+      wantedBy = ["multi-user.target"];
+      before = ["grafana.service"];
+      after = ["local-fs.target"];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = pkgs.writeShellScript "grafana-dashboard-provision" ''
+          mkdir -p ${dashboardsDir}
+          cp ${pkgs.writeText "reverb-os-unified.json" unifiedDashboard} ${dashboardsDir}/reverb-os-unified.json
+          cp ${pkgs.writeText "ai-inference-gateway.json" aiInferenceDashboard} ${dashboardsDir}/ai-inference-gateway.json
+          cp ${../../compute-market/grafana-dashboard.json} ${dashboardsDir}/gpu-marketplace.json
+          chown grafana:grafana ${dashboardsDir}/reverb-os-unified.json ${dashboardsDir}/ai-inference-gateway.json ${dashboardsDir}/gpu-marketplace.json
+          chmod 644 ${dashboardsDir}/reverb-os-unified.json ${dashboardsDir}/ai-inference-gateway.json ${dashboardsDir}/gpu-marketplace.json
+        '';
+      };
+    };
+    };
+
+    # Open firewall
+    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [cluster.ports.grafana];
+  };
+}

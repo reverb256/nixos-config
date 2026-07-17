@@ -1,0 +1,33 @@
+# Caddy Ingress Route for Spacebot
+# Add to modules/services/caddy-ingress.nix or apply via kubectl
+
+# Option 1: Add to Caddy Ingress ConfigMap
+# kubectl edit configmap caddy-ingress-config -n ingress-system
+
+# Add this route to the Caddyfile:
+# spacebot.cluster.local {
+#     reverse_proxy spacebot.spacebot.svc.cluster.local:19898
+# }
+
+# Option 2: Create Ingress route (if using NGINX)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: spacebot
+  namespace: spacebot
+  annotations:
+    ingress.caddy.lblt.net/profile: "off"
+    ingress.caddy.lblt.net/scheme: "https"
+spec:
+  ingressClassName: caddy
+  rules:
+  - host: spacebot.cluster.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: spacebot
+            port:
+              number: 19898

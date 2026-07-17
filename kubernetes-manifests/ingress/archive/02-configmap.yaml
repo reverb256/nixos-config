@@ -1,0 +1,101 @@
+# Caddy Ingress Configuration
+# Routes all cluster services through VIP 10.1.1.100
+#
+# Architecture:
+#   Client → VIP 10.1.1.100 (keepalived on zephyr)
+#         → Zephyr Caddy (:443, tls internal)
+#            → K8s Caddy DaemonSet (HTTP NodePort 30080)
+#            → Backend ClusterIP services
+#
+# Services:
+#   openwebui.cluster.local / openwebui.lan → Open WebUI (AI chat)
+#   llama.cluster.local     / llama.lan     → LLM API (llama-server)
+#   mining.cluster.local    / mining.lan    → Mining metrics (xmrig-proxy)
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: caddy-config
+  namespace: ingress-system
+  labels:
+    app.kubernetes.io/name: caddy-ingress
+    app.kubernetes.io/component: ingress
+data:
+  Caddyfile: |
+    {
+      admin 0.0.0.0:2019
+      default_sni cluster.local
+    }
+
+    # === Open WebUI (AI Chat Interface) ===
+    openwebui.cluster.local, openwebui.lan {
+      tls internal
+      encode zstd gzip
+      reverse_proxy open-webui.ai-inference.svc.cluster.local:8080 {
+        transport http {
+          read_timeout 300s
+          write_timeout 300s
+        }
+      }
+    }
+    http://openwebui.cluster.local, http://openwebui.lan {
+      encode zstd gzip
+      reverse_proxy open-webui.ai-inference.svc.cluster.local:8080 {
+        transport http {
+          read_timeout 300s
+          write_timeout 300s
+        }
+      }
+    }
+
+    # === LLM API (llama-server) ===
+    llama.cluster.local, llama.lan {
+      tls internal
+      encode zstd gzip
+      reverse_proxy llama-server.ai-inference.svc.cluster.local:8080 {
+        transport http {
+          read_timeout 300s
+          write_timeout 300s
+        }
+      }
+    }
+    http://llama.cluster.local, http://llama.lan {
+      encode zstd gzip
+      reverse_proxy llama-server.ai-inference.svc.cluster.local:8080 {
+        transport http {
+          read_timeout 300s
+          write_timeout 300s
+        }
+      }
+    }
+
+    # === Mining Metrics (xmrig-proxy dashboard) ===
+    mining.cluster.local, mining.lan {
+      tls internal
+      encode zstd gzip
+      reverse_proxy xmrig-proxy.mining.svc.cluster.local:8081
+    }
+    http://mining.cluster.local, http://mining.lan {
+      encode zstd gzip
+      reverse_proxy xmrig-proxy.mining.svc.cluster.local:8081
+    }
+
+    # === SearXNG (Search Engine) ===
+    search.cluster.local, search.lan, search.reverb256.ca {
+      tls internal
+      encode zstd gzip
+      reverse_proxy searxng.search.svc.cluster.local:8080
+    }
+    http://search.cluster.local, http://search.lan, http://search.reverb256.ca {
+      encode zstd gzip
+      reverse_proxy searxng.search.svc.cluster.local:8080
+    }
+
+    # === Default catch-all ===
+    :80 {
+      respond "Not found" 404
+    }
+    :443 {
+      tls internal
+      respond "Not found" 404
+    }

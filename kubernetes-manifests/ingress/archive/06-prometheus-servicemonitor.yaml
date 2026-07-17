@@ -1,0 +1,23 @@
+# Prometheus ServiceMonitor for Caddy Ingress
+# Requires Prometheus Operator to be installed
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: caddy-ingress
+  namespace: ingress-system
+  labels:
+    app.kubernetes.io/name: caddy-ingress
+    app.kubernetes.io/component: ingress
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: caddy-ingress
+      app.kubernetes.io/component: ingress
+  endpoints:
+  - port: admin
+    path: /metrics
+    interval: 30s
+    scheme: http
+  namespaceSelector:
+    matchNames:
+    - ingress-system

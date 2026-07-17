@@ -1,3 +1,5 @@
+# System Monitoring Tools Module
+# CLI utilities for system monitoring and debugging
 {
   config,
   lib,
@@ -22,6 +24,7 @@ in {
   };
 
   config = mkIf config.services.monitoring.system-tools.enable {
+    # Base packages always included
     environment.systemPackages = with pkgs;
       [
         htop

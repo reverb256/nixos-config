@@ -1,0 +1,100 @@
+# GitHub Copilot Instructions for NixOS Cluster
+
+**Primary Reference**: For comprehensive guidelines on using AI assistants with this project, please refer to [`CLAUDE.md`](../CLAUDE.md). That document covers all the essential patterns, commands, and workflows.
+
+---
+
+## Quick Start
+
+1. **Always** run `just test` before making changes
+2. **Always** use `just deploy` for applying configuration changes
+3. **Never** use direct colmena/nix-build commands (causes hangs)
+
+---
+
+## Critical Safety Rules
+
+### Module System
+In shared modules, use `lib.mkOptionDefault` for extensible options:
+
+```nix
+# ❌ WRONG - REPLACES node configs
+networking.firewall.allowedTCPPorts = [22 53 6443];
+
+# ✅ CORRECT - MERGES with node configs  
+networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22 53 6443];
+```
+
+**Why**: Direct assignment breaks SSH on all nodes.
+
+### Deployment Safety
+- **NEVER** suppress build errors (`|| true`)
+- **ALWAYS** test before deployment
+- **CHECK** storage mounts after deployment
+- **STOP** if SSH breaks on any node
+
+---
+
+## Project Structure
+
+```
+/etc/nixos/
+├── flake.nix                    # Main flake
+├── hosts/                       # Per-host configs
+├── modules/                     # Reusable modules
+│   ├── profiles/                # Hardware/role/network profiles
+│   └── system/                  # System-level modules
+├── .claude/                     # Claude-specific files
+├── .github/                     # GitHub-specific files (you are here)
+│   └── copilot-instructions.md  # This file
+└── justfile                     # CI/CD commands
+```
+
+---
+
+## Commands Reference
+
+| Command | Purpose | When to Use |
+|---------|---------|-------------|
+| `just test` | Verify config builds | Before any changes |
+| `just switch` | Apply to local host | Local development |
+| `just deploy` | Deploy to all hosts | Production changes |
+| `just ci-local` | Full CI pipeline | Pre-commit verification |
+
+---
+
+## Code Conventions
+
+- **2-space indentation**, trailing semicolons
+- **kebab-case** for files and modules
+- **Line length**: 80-100 chars (soft limit 120)
+- **Never** edit `hardware-configuration.nix` or `flake.lock`
+
+---
+
+## Multi-Host Considerations
+
+### Hosts in Cluster
+- **Zephyr** (10.1.1.110) - Control plane, gaming, AI inference
+- **Nexus** (10.1.1.120) - Storage, GPU computing
+- **Forge** (10.1.1.130) - GPU computing, mining
+- **Sentry** (10.1.1.140) - Monitoring, logging
+
+### Testing Changes
+- `modules/networking/*` → Test SSH on zephyr AND nexus
+- `modules/system/ssh.nix` → Test SSH on all 4 nodes
+- `modules/system/users.nix` → Test login on all 4 nodes
+
+---
+
+## Documentation Links
+
+- **AGENTS.md**: Universal patterns for all AI agents
+- **CLAUDE.md**: Claude Code-specific patterns
+- **DOCUMENTATION_INDEX.md**: Full documentation catalog
+- **ROADMAP.md**: Kubernetes migration plan
+
+---
+
+**Version**: 1.0 | **Updated**: 2026-03-15
+**Based on**: Juice Shop pattern for multi-agent documentation

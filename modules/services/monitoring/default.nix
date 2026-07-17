@@ -1,16 +1,20 @@
-{...}: {
+# Monitoring Infrastructure Modules
+# Prometheus, Grafana, and exporters for cluster observability
+{ ... }:
+{
   imports = [
     ./prometheus.nix
     ./alertmanager.nix
-    ./alert-webhook.nix
-    # ./grafana-v2.nix  # Stale: Grafana runs as K8s only (see kubernetes/modules/monitoring.nix)
-    ./alert-rules.nix
+    ./alert-webhook.nix # Local webhook receiver (no auth required)
+    ./grafana-v2.nix # New modular dashboard system
+    ./alert-rules.nix # Cluster alert rules
     ./node-exporter.nix
     ./nfs-exporter.nix
     ./redis-exporter.nix
     ./smart-exporter.nix
     ./loki.nix
-    ./system-tools.nix
-    # ./xmrig-metrics.nix  # migrated to inputs.compute-market
+    ./promtail.nix # Log aggregation to Loki
+    ./system-tools.nix # CLI monitoring tools (htop, iotop, nethogs, sysstat)
+    ./xmrig-metrics.nix # XMRig miner metrics -> node-exporter textfile collector
   ];
 }

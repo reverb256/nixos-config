@@ -1,0 +1,44 @@
+---
+# llama.cpp Service on Forge (2x RTX 4060)
+apiVersion: v1
+kind: Service
+metadata:
+  name: llama-cpp-qwen-forge
+  namespace: ai-inference
+  labels:
+    app: llama-cpp-qwen-forge
+    component: llm-inference
+    node: forge
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8083
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+---
+# Endpoints pointing to forge's llama.cpp service
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: llama-cpp-qwen-forge
+  namespace: ai-inference
+  labels:
+    app: llama-cpp-qwen-forge
+    component: llm-inference
+    node: forge
+subsets:
+  - addresses:
+      - ip: 10.1.1.109  # forge
+        nodeName: forge
+    ports:
+      - name: http
+        port: 8083
+        protocol: TCP
+      - name: metrics
+        port: 9090
+        protocol: TCP

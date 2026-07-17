@@ -1,0 +1,1039 @@
+{
+  "url": "http://localhost:5000",
+  "timestamp": "2026-03-08T04:53:44.770Z",
+  "summary": {
+    "status": 200,
+    "loadTime": 12573
+  },
+  "performance": {
+    "domContentLoaded": 0,
+    "loadComplete": 0,
+    "domInteractive": 531,
+    "firstPaint": 8268,
+    "firstContentfulPaint": 8404,
+    "transferSize": 4414,
+    "encodedBodySize": 4114,
+    "decodedBodySize": 4114
+  },
+  "content": {
+    "title": "Troves & Coves - Mystical Crystal Jewelry | Authentic Gemstone Healing Talismans",
+    "url": "http://localhost:5000/",
+    "headings": [
+      {
+        "tag": "H1",
+        "text": "Where CrystalWisdom Meets Artisan Beauty"
+      },
+      {
+        "tag": "H2",
+        "text": "Crystal Collection"
+      },
+      {
+        "tag": "H3",
+        "text": "Wire Wrapped Crystal Pendant Collection"
+      },
+      {
+        "tag": "H3",
+        "text": "Gold Chain Crystal Necklace with Wire Wrapped Pendant"
+      },
+      {
+        "tag": "H3",
+        "text": "Pretty Handwrapped Citrine, Pearl, Hematite, Crystal Necklace Set"
+      },
+      {
+        "tag": "H3",
+        "text": "Lapis Lazuli, Wire Wrapped Necklace, Leather, Spiritual, Royal, Psychic Abilities"
+      },
+      {
+        "tag": "H3",
+        "text": "Medium Rose Quartz Pendant, Wire Wrapped, Brown Leather"
+      },
+      {
+        "tag": "H3",
+        "text": "Lapis Lazuli, Brown Leather, Masculine, Men's Necklace"
+      },
+      {
+        "tag": "H2",
+        "text": "Channel Your Inner Light"
+      },
+      {
+        "tag": "H2",
+        "text": "Join Our Crystal Circle"
+      },
+      {
+        "tag": "H3",
+        "text": "Collections"
+      },
+      {
+        "tag": "H3",
+        "text": "Guidance"
+      },
+      {
+        "tag": "H3",
+        "text": "Connect"
+      }
+    ],
+    "linkStats": {
+      "total": 33,
+      "internal": 28,
+      "external": 5,
+      "empty": 0,
+      "newTab": 5
+    },
+    "imageStats": {
+      "total": 6,
+      "withAlt": 6,
+      "withoutAlt": 0,
+      "lazyLoaded": 0,
+      "large": 0
+    },
+    "visuals": {
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "textColor": "rgb(205, 217, 228)",
+      "headingColor": "rgb(205, 217, 228)",
+      "fontFamily": "\"Cormorant Garamond\", serif",
+      "fontSize": "16px",
+      "lineHeight": "27.2px"
+    }
+  },
+  "links": [
+    {
+      "href": "#main-content",
+      "text": "Skip to main content",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/",
+      "text": "Troves×CovesMystical Crystal Jewelry • Winnipeg",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/products",
+      "text": "Collections",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/about",
+      "text": "About",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/contact",
+      "text": "Contact",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/checkout",
+      "text": "",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/products",
+      "text": "Explore Crystal Collections",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/about",
+      "text": "Our Spiritual Story",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/products/1",
+      "text": "Crystal NecklacesWire Wrapped Crystal Pendant Coll",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/products/2",
+      "text": "Crystal NecklacesGold Chain Crystal Necklace with ",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/products/3",
+      "text": "Healing CrystalsPretty Handwrapped Citrine, Pearl,",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/products/4",
+      "text": "Wire Wrapped JewelryLapis Lazuli, Wire Wrapped Nec",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/products/5",
+      "text": "Wire Wrapped JewelryMedium Rose Quartz Pendant, Wi",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/products/6",
+      "text": "Wire Wrapped JewelryLapis Lazuli, Brown Leather, M",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/products",
+      "text": "View All Crystal Treasures",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "https://www.facebook.com/TrovesandCoves",
+      "text": "",
+      "title": null,
+      "target": "_blank"
+    },
+    {
+      "href": "https://instagram.com/Troves_and_Coves",
+      "text": "",
+      "title": null,
+      "target": "_blank"
+    },
+    {
+      "href": "https://www.etsy.com/ca/shop/TrovesandCoves",
+      "text": "",
+      "title": null,
+      "target": "_blank"
+    },
+    {
+      "href": "https://linktr.ee/TrovesandCoves",
+      "text": "",
+      "title": null,
+      "target": "_blank"
+    },
+    {
+      "href": "/products/crystal-necklaces",
+      "text": "Crystal Necklaces",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/products/healing-crystals",
+      "text": "Healing Crystals",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/products/wire-wrapped",
+      "text": "Wire Wrapped Jewellery",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/products",
+      "text": "All Products",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/",
+      "text": "Featured Items",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/contact",
+      "text": "Custom Consultations",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/size-guide",
+      "text": "Size Guide",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/jewelry-care",
+      "text": "Jewellery Care",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/warranty",
+      "text": "Warranty",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/returns",
+      "text": "Returns & Exchanges",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/financing",
+      "text": "Financing",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/contact",
+      "text": "Contact Us",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "/privacy-policy",
+      "text": "Privacy Policy",
+      "title": null,
+      "target": null
+    },
+    {
+      "href": "https://reverb256.ca",
+      "text": "vibecoded with mystical energy ✦",
+      "title": null,
+      "target": "_blank"
+    }
+  ],
+  "images": [
+    {
+      "src": "/images/jewelry/lepidolite-necklace-1.png",
+      "alt": "Wire Wrapped Crystal Pendant Collection",
+      "loading": null,
+      "width": 250,
+      "height": 250
+    },
+    {
+      "src": "/images/jewelry/gold-chain-crystal-1.png",
+      "alt": "Gold Chain Crystal Necklace with Wire Wrapped Pendant",
+      "loading": null,
+      "width": 250,
+      "height": 250
+    },
+    {
+      "src": "/images/jewelry/citrine-necklace-set-1.png",
+      "alt": "Pretty Handwrapped Citrine, Pearl, Hematite, Crystal Necklace Set",
+      "loading": null,
+      "width": 250,
+      "height": 250
+    },
+    {
+      "src": "/images/jewelry/lapis-black-cord-1.png",
+      "alt": "Lapis Lazuli, Wire Wrapped Necklace, Leather, Spiritual, Royal, Psychic Abilities",
+      "loading": null,
+      "width": 250,
+      "height": 250
+    },
+    {
+      "src": "/images/jewelry/rose-quartz-flower-display-1.png",
+      "alt": "Medium Rose Quartz Pendant, Wire Wrapped, Brown Leather",
+      "loading": null,
+      "width": 250,
+      "height": 250
+    },
+    {
+      "src": "/images/jewelry/lapis-leather-flower-display-1.png",
+      "alt": "Lapis Lazuli, Brown Leather, Masculine, Men's Necklace",
+      "loading": null,
+      "width": 250,
+      "height": 250
+    }
+  ],
+  "forms": [
+    {
+      "action": null,
+      "method": "GET",
+      "inputCount": 1,
+      "hasSubmit": true,
+      "id": "flex flex-col sm:flex-row gap-4 max-w-md mx-auto"
+    }
+  ],
+  "consoleLogs": [
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    }
+  ],
+  "networkRequests": [
+    {
+      "url": "http://localhost:5000/",
+      "method": "GET",
+      "resourceType": "document"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@vite/client",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/main.tsx?v=YRQ6Y4ZblRVAXJ0tiwAkx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@react-refresh",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@vite-plugin-pwa/pwa-entry-point-loaded",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/react-dom_client.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/App.tsx?t=1772945603083&v=YRQ6Y4ZblRVAXJ0tiwAkx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/index.css?t=1772945603083&v=YRQ6Y4ZblRVAXJ0tiwAkx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/vite/dist/client/env.mjs",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/chunk-QCHXOAYK.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/chunk-WOOG5QLI.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/wouter.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/lib/queryClient.ts",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/@tanstack_react-query.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/ui/toaster.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/ui/tooltip.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/lib/store.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/Header.tsx?t=1772945574474",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/Footer.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/CartDrawer.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/pages/Home.tsx?t=1772945603083",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/pages/Products.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/pages/ProductDetail.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/pages/Checkout.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/pages/OrderConfirmation.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/pages/Contact.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/pages/About.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/pages/SizeGuide.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/pages/JewelryCare.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/pages/Warranty.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/pages/Returns.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/pages/Financing.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/pages/PrivacyPolicy.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/pages/not-found.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/chunk-KBTYAULA.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/hooks/use-toast.ts",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/ui/toast.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/react.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/lib/utils.ts",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/lucide-react.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/ui/sheet.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/ui/button.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/ui/badge.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/ui/separator.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/hooks/useCart.ts",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/SEOHead.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/Hero.tsx?t=1772945603083",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/ui/card.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/ui/input.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/ui/textarea.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/ui/label.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/react-hook-form.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/@hookform_resolvers_zod.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/ui/form.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/ui/select.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/ui/calendar.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/src/components/ui/popover.tsx",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/date-fns.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/shared/types.ts",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/zod.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/@radix-ui_react-toast.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/class-variance-authority.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/clsx.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/tailwind-merge.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/chunk-R5YVGTHA.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/chunk-UII6PSRO.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/chunk-XUTEVCF7.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/chunk-NUL6LBQ2.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/chunk-XKNQWAH5.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/chunk-BOL2CCOG.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/@radix-ui_react-slot.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/@radix-ui_react-dialog.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/@radix-ui_react-separator.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/@radix-ui_react-label.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/chunk-4BFJKWC4.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/@radix-ui_react-select.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/react-day-picker.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/@radix-ui_react-popover.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/chunk-6PJ6ZD5Z.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/chunk-OXX3LNYC.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/chunk-U7P2NEEE.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/@fs/data/@projects/trovesandcoves/node_modules/.vite/deps/chunk-TMX75OYL.js?v=37af9e3e",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Cinzel:wght@400;500;600;700&family=Dancing+Script:wght@400;500;600;700&family=Source+Sans+Pro:wght@300;400;600&display=swap",
+      "method": "GET",
+      "resourceType": "stylesheet"
+    },
+    {
+      "url": "http://localhost:5000/api/products/featured",
+      "method": "GET",
+      "resourceType": "fetch"
+    },
+    {
+      "url": "http://localhost:5000/api/cart",
+      "method": "GET",
+      "resourceType": "fetch"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/registerSW.js",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/cormorantgaramond/v21/co3umX5slCNuHLi8bLeY9MK7whWMhyjypVO7abI26QOD_v86GnM.ttf",
+      "method": "GET",
+      "resourceType": "font"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/cinzel/v26/8vIU7ww63mVu7gtR-kwKxNvkNOjw-jHgTYo.ttf",
+      "method": "GET",
+      "resourceType": "font"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/cinzel/v26/8vIU7ww63mVu7gtR-kwKxNvkNOjw-gjgTYo.ttf",
+      "method": "GET",
+      "resourceType": "font"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/cinzel/v26/8vIU7ww63mVu7gtR-kwKxNvkNOjw-uTnTYo.ttf",
+      "method": "GET",
+      "resourceType": "font"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/sourcesanspro/v23/6xKydSBYKcSV-LCoeQqfX1RYOo3i54rAkA.ttf",
+      "method": "GET",
+      "resourceType": "font"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/dancingscript/v29/If2cXTr6YS-zF4S-kcSWSVi_sxjsohD9F50Ruu7B7y0HTQ.ttf",
+      "method": "GET",
+      "resourceType": "font"
+    },
+    {
+      "url": "http://localhost:5000/images/jewelry/lepidolite-necklace-1.png",
+      "method": "GET",
+      "resourceType": "image"
+    },
+    {
+      "url": "http://localhost:5000/images/jewelry/gold-chain-crystal-1.png",
+      "method": "GET",
+      "resourceType": "image"
+    },
+    {
+      "url": "http://localhost:5000/images/jewelry/citrine-necklace-set-1.png",
+      "method": "GET",
+      "resourceType": "image"
+    },
+    {
+      "url": "http://localhost:5000/images/jewelry/lapis-black-cord-1.png",
+      "method": "GET",
+      "resourceType": "image"
+    },
+    {
+      "url": "http://localhost:5000/images/jewelry/rose-quartz-flower-display-1.png",
+      "method": "GET",
+      "resourceType": "image"
+    },
+    {
+      "url": "http://localhost:5000/images/jewelry/lapis-leather-flower-display-1.png",
+      "method": "GET",
+      "resourceType": "image"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/cormorantgaramond/v21/co3umX5slCNuHLi8bLeY9MK7whWMhyjypVO7abI26QOD_iE9GnM.ttf",
+      "method": "GET",
+      "resourceType": "font"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/favicon.svg",
+      "method": "GET",
+      "resourceType": "other"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/registerSW.js",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/registerSW.js",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/registerSW.js",
+      "method": "GET",
+      "resourceType": "script"
+    },
+    {
+      "url": "http://localhost:5000/trovesandcoves/registerSW.js",
+      "method": "GET",
+      "resourceType": "script"
+    }
+  ],
+  "accessibility": {
+    "skipLink": true,
+    "langAttribute": true,
+    "ariaLabels": 8,
+    "mainLandmark": 1,
+    "navLandmark": 1,
+    "footerLandmark": 1,
+    "headerLandmark": 2,
+    "buttonsWithoutLabel": 0,
+    "imagesWithoutAlt": 0,
+    "linksWithoutText": 1
+  },
+  "seo": {
+    "metaTags": {
+      "viewport": [
+        "width=device-width, initial-scale=1.0, maximum-scale=1",
+        "width=device-width, initial-scale=1.0"
+      ],
+      "theme-color": [
+        "#2dd4bf",
+        "#D4AF37"
+      ],
+      "keywords": [
+        "crystal jewelry Winnipeg, healing crystals Manitoba, spiritual talismans, wire wrapped pendants, metaphysical jewelry, sacred gemstones",
+        "crystal jewelry, gemstone healing, wire-wrapped pendants, crystal wisdom, artisan jewelry, Winnipeg, spiritual jewelry, healing crystals"
+      ],
+      "og:image": [
+        "/favicon.svg",
+        "https://trovesandcoves.ca/og-image.jpg"
+      ],
+      "description": [
+        "Where authentic gemstone energies merge with artisan craftsmanship. Discover handcrafted crystal jewelry, wire-wrapped pendants, and healing talismans. Each piece channels crystal wisdom to amplify your inner light."
+      ],
+      "author": [
+        "Troves & Coves"
+      ],
+      "robots": [
+        "index, follow"
+      ],
+      "og:title": [
+        "Troves & Coves - Mystical Crystal Jewelry | Authentic Gemstone Healing Talismans"
+      ],
+      "og:description": [
+        "Where authentic gemstone energies merge with artisan craftsmanship. Discover handcrafted crystal jewelry, wire-wrapped pendants, and healing talismans. Each piece channels crystal wisdom to amplify your inner light."
+      ],
+      "og:image:width": [
+        "1200"
+      ],
+      "og:image:height": [
+        "630"
+      ],
+      "og:image:alt": [
+        "Troves & Coves Crystal Jewelry"
+      ],
+      "og:url": [
+        "https://trovesandcoves.ca"
+      ],
+      "og:type": [
+        "website"
+      ],
+      "og:site_name": [
+        "Troves & Coves"
+      ],
+      "og:locale": [
+        "en_CA"
+      ],
+      "og:brand": [
+        "Troves & Coves"
+      ],
+      "twitter:card": [
+        "summary_large_image"
+      ],
+      "twitter:title": [
+        "Troves & Coves - Mystical Crystal Jewelry | Authentic Gemstone Healing Talismans"
+      ],
+      "twitter:description": [
+        "Where authentic gemstone energies merge with artisan craftsmanship. Discover handcrafted crystal jewelry, wire-wrapped pendants, and healing talismans. Each piece channels crystal wisdom to amplify your inner light."
+      ],
+      "twitter:image": [
+        "/og-image.jpg"
+      ],
+      "geo.region": [
+        "CA-MB"
+      ],
+      "geo.placename": [
+        "Winnipeg"
+      ],
+      "geo.position": [
+        "49.8951;-97.1384"
+      ],
+      "ICBM": [
+        "49.8951, -97.1384"
+      ],
+      "business:contact_data:locality": [
+        "Winnipeg"
+      ],
+      "business:contact_data:region": [
+        "Manitoba"
+      ],
+      "business:contact_data:country_name": [
+        "Canada"
+      ],
+      "msapplication-TileColor": [
+        "#000000"
+      ],
+      "apple-mobile-web-app-capable": [
+        "yes"
+      ],
+      "apple-mobile-web-app-status-bar-style": [
+        "black-translucent"
+      ]
+    },
+    "descriptions": [
+      "Where authentic gemstone energies merge with artisan craftsmanship. Discover handcrafted crystal jewelry, wire-wrapped pendants, and healing talismans. Each piece channels crystal wisdom to amplify your inner light."
+    ],
+    "canonical": "https://trovesandcoves.ca",
+    "viewport": "width=device-width, initial-scale=1.0, maximum-scale=1",
+    "charset": "UTF-8",
+    "lang": "en",
+    "ogTitle": "Troves & Coves - Mystical Crystal Jewelry | Authentic Gemstone Healing Talismans",
+    "ogDescription": "Where authentic gemstone energies merge with artisan craftsmanship. Discover handcrafted crystal jewelry, wire-wrapped pendants, and healing talismans. Each piece channels crystal wisdom to amplify your inner light.",
+    "ogImage": "/favicon.svg",
+    "ogType": "website"
+  },
+  "issues": [
+    {
+      "type": "performance",
+      "severity": "info",
+      "message": "No images use lazy loading - consider adding loading=\"lazy\""
+    },
+    {
+      "type": "performance",
+      "severity": "warning",
+      "message": "FCP is 8404ms (target: <1800ms)"
+    }
+  ]
+}

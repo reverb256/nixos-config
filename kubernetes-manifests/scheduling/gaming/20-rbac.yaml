@@ -1,0 +1,77 @@
+# RBAC for compute-workload-monitor to manage gaming state in Kubernetes
+# Allows the monitor (running as root with kubelet config) to update ConfigMap
+# and scale the gaming-placeholder deployment
+---
+# ServiceAccount in kube-system for ConfigMap access
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: compute-workload-monitor
+  namespace: kube-system
+---
+# Role in kube-system for ConfigMap access
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: compute-workload-monitor
+  namespace: kube-system
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["gpu-scheduler-state"]
+  verbs: ["get", "update", "patch"]
+---
+# RoleBinding in kube-system
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: compute-workload-monitor
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: compute-workload-monitor
+subjects:
+- kind: User
+  name: root
+  apiGroup: rbac.authorization.k8s.io
+- kind: ServiceAccount
+  name: compute-workload-monitor
+  namespace: kube-system
+---
+# Role in mining namespace for deployment scaling
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: compute-workload-monitor
+  namespace: mining
+rules:
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  resourceNames: ["gaming-placeholder"]
+  verbs: ["get", "update", "patch", "scale"]
+- apiGroups: ["apps"]
+  resources: ["deployments/scale"]
+  resourceNames: ["gaming-placeholder"]
+  verbs: ["get", "update", "patch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list", "get"]  # For checking gaming placeholder status
+---
+# RoleBinding in mining namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: compute-workload-monitor
+  namespace: mining
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: compute-workload-monitor
+subjects:
+- kind: User
+  name: root
+  apiGroup: rbac.authorization.k8s.io
+- kind: ServiceAccount
+  name: compute-workload-monitor
+  namespace: kube-system

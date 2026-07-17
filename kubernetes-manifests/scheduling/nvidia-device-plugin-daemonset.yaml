@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  annotations:
+    deprecated.daemonset.template.generation: "7"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"DaemonSet","metadata":{"annotations":{},"labels":{"app.kubernetes.io/component":"nvidia-device-plugin","app.kubernetes.io/name":"nvidia-device-plugin","name":"nvidia-device-plugin-ds"},"name":"nvidia-device-plugin-daemonset","namespace":"kube-system"},"spec":{"selector":{"matchLabels":{"name":"nvidia-device-plugin-ds"}},"template":{"metadata":{"labels":{"app.kubernetes.io/component":"nvidia-device-plugin","app.kubernetes.io/name":"nvidia-device-plugin","name":"nvidia-device-plugin-ds"}},"spec":{"containers":[{"args":["--device-list-strategy=volume-mounts","--device-discovery-strategy=nvml","--driver-root=/nvidia-lib"],"env":[{"name":"NVIDIA_VISIBLE_DEVICES","value":"void"},{"name":"NVIDIA_DRIVER_CAPABILITIES","value":"compute,utility"},{"name":"LD_LIBRARY_PATH","value":"/nvidia-lib"}],"image":"nvcr.io/nvidia/k8s-device-plugin:v0.18.2","imagePullPolicy":"IfNotPresent","name":"nvidia-device-plugin-ctr","resources":{"limits":{"cpu":"500m","memory":"200Mi"},"requests":{"cpu":"100m","memory":"100Mi"}},"securityContext":{"privileged":true},"volumeMounts":[{"mountPath":"/var/lib/kubelet","name":"kubelet-root"},{"mountPath":"/var/run/cdi","name":"cdi-spec","readOnly":true},{"mountPath":"/nvidia-lib","name":"nvidia-lib","readOnly":true},{"mountPath":"/dev","name":"dev-mount"}]}],"nodeSelector":{"nixos-nvidia-cdi":"enabled"},"restartPolicy":"Always","securityContext":{"fsGroup":0,"runAsNonRoot":false},"tolerations":[{"effect":"NoSchedule","key":"workstation","operator":"Exists"}],"volumes":[{"hostPath":{"path":"/var/lib/kubernetes"},"name":"kubelet-root"},{"hostPath":{"path":"/var/run/cdi","type":"Directory"},"name":"cdi-spec"},{"hostPath":{"path":"/nix/store/ia20kw8xkfssyfjmk2kanm5nhxablfyz-nvidia-x11-595.45.04-6.18.13/lib","type":"Directory"},"name":"nvidia-lib"},{"hostPath":{"path":"/dev"},"name":"dev-mount"}]}},"updateStrategy":{"rollingUpdate":{"maxUnavailable":1},"type":"RollingUpdate"}}}
+  creationTimestamp: "2026-03-25T22:13:16Z"
+  generation: 7
+  labels:
+    app.kubernetes.io/component: nvidia-device-plugin
+    app.kubernetes.io/name: nvidia-device-plugin
+    name: nvidia-device-plugin-ds
+  name: nvidia-device-plugin-daemonset
+  namespace: kube-system
+  resourceVersion: "1270645"
+  uid: 789775a6-d8ba-4fe9-9507-6ef5fdc3b83d
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      name: nvidia-device-plugin-ds
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: nvidia-device-plugin
+        app.kubernetes.io/name: nvidia-device-plugin
+        name: nvidia-device-plugin-ds
+    spec:
+      containers:
+      - args:
+        - --device-list-strategy=volume-mounts
+        - --device-discovery-strategy=nvml
+        - --driver-root=/nvidia-lib
+        env:
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: void
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: compute,utility
+        - name: LD_LIBRARY_PATH
+          value: /nvidia-lib
+        image: nvcr.io/nvidia/k8s-device-plugin:v0.18.2
+        imagePullPolicy: IfNotPresent
+        name: nvidia-device-plugin-ctr
+        resources:
+          limits:
+            cpu: 500m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        securityContext:
+          privileged: true
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /var/lib/kubelet
+          name: kubelet-root
+        - mountPath: /var/run/cdi
+          name: cdi-spec
+          readOnly: true
+        - mountPath: /nvidia-lib
+          name: nvidia-lib
+          readOnly: true
+        - mountPath: /dev
+          name: dev-mount
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        nixos-nvidia-cdi: enabled
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        fsGroup: 0
+        runAsNonRoot: false
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - effect: NoSchedule
+        key: workstation
+        operator: Exists
+      - effect: NoSchedule
+        key: ram-constrained
+        operator: Exists
+      - effect: NoExecute
+        key: interactive
+        operator: Exists
+      volumes:
+      - hostPath:
+          path: /var/lib/kubelet
+          type: ""
+        name: kubelet-root
+      - hostPath:
+          path: /var/run/cdi
+          type: Directory
+        name: cdi-spec
+      - hostPath:
+          path: /nix/store/ia20kw8xkfssyfjmk2kanm5nhxablfyz-nvidia-x11-595.45.04-6.18.13/lib
+          type: Directory
+        name: nvidia-lib
+      - hostPath:
+          path: /dev
+          type: ""
+        name: dev-mount
+  updateStrategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+status:
+  currentNumberScheduled: 2
+  desiredNumberScheduled: 2
+  numberAvailable: 2
+  numberMisscheduled: 0
+  numberReady: 2
+  observedGeneration: 7
+  updatedNumberScheduled: 2

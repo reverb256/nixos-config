@@ -1,0 +1,23 @@
+{
+  "skill_name": "sla-tracker",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Check the health of all hosts in my cluster",
+      "expected_output": "Run check-cluster-uptime.sh or equivalent ping checks for all hosts (zephyr, nexus, forge, sentry)",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Generate an SLA report for my cluster uptime",
+      "expected_output": "Use sla-report.sh to calculate uptime percentages and show SLA compliance status",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Is my cluster meeting 99.9% SLA?",
+      "expected_output": "Calculate uptime from logs and determine if 99.9% threshold is met",
+      "files": []
+    }
+  ]
+}

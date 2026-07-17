@@ -1,0 +1,35 @@
+---
+# LimitRange for AI Inference namespace
+# Fixed version: Does NOT auto-assign GPUs to all pods
+# GPU workloads must explicitly request GPUs in their deployment specs
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: ai-inference-limits
+  namespace: ai-inference
+  labels:
+    app: gpu-scheduler
+spec:
+  limits:
+  - type: Container
+    # Default limits (applied if not specified)
+    default:
+      cpu: "2"
+      memory: 4Gi
+    # Default requests (applied if not specified)
+    defaultRequest:
+      cpu: 500m
+      memory: 1Gi
+    # Maximum limits
+    max:
+      cpu: "8"
+      memory: 16Gi
+      nvidia.com/gpu: "1"
+    # Minimum requests (does NOT auto-assign, only validates)
+    min:
+      cpu: 100m
+      memory: 128Mi
+    # Max limit/request ratio
+    maxLimitRequestRatio:
+      cpu: "10"
+      memory: "4"

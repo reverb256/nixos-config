@@ -1,0 +1,58 @@
+# AI Inference Workload Example (with High Priority)
+# This demonstrates how AI workloads preempt mining pods
+#
+# When this pod is scheduled, mining pods (low-priority-mining) are immediately
+# evicted to free up GPU resources.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ai-inference-example
+  namespace: default
+  labels:
+    app: ai-inference
+    workload: ai
+spec:
+  priorityClassName: high-priority-ai  # Preempts mining pods
+  nodeName: zephyr  # Run on specific GPU node
+  containers:
+  - name: ai-model
+    image: nvidia/cuda:12.6.0-base-ubuntu22.04
+    command: ["/bin/bash"]
+    args:
+      - -c
+      - |
+        # Install dependencies
+        apt-get update -qq
+        apt-get install -y -qq python3 python3-pip
+
+        # Signal GPU scheduler that AI is starting
+        echo "AI_START" > /run/gpu-scheduler/ai-state
+
+        # Run AI workload (example: 30 minute training/inference session)
+        echo "Starting AI inference workload..."
+        echo "GPUs allocated: 2x NVIDIA (RTX 3060 Ti + RTX 3090)"
+        sleep 1800  # Run for 30 minutes
+
+        # Signal GPU scheduler that AI is stopping
+        echo "AI_STOP" > /run/gpu-scheduler/ai-state
+        echo "AI workload completed"
+    env:
+    - name: NVIDIA_VISIBLE_DEVICES
+      value: "0,1"  # Use all GPUs on the node
+    volumeMounts:
+    - name: gpu-scheduler-state
+      mountPath: /run/gpu-scheduler
+    resources:
+      requests:
+        nvidia.com/gpu: "2"
+        memory: "8Gi"
+      limits:
+        nvidia.com/gpu: "2"
+        memory: "16Gi"
+  volumes:
+  # Share state with GPU scheduler (mounted from host)
+  - name: gpu-scheduler-state
+    hostPath:
+      path: /run/gpu-scheduler
+  restartPolicy: Never

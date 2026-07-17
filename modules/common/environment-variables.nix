@@ -1,3 +1,5 @@
+# Common Environment Variables Module
+# Centralized environment variable definitions to prevent conflicts
 {
   config,
   lib,
@@ -63,20 +65,27 @@
   };
 
   config = lib.mkMerge [
+    # Wayland environment variables
     (lib.mkIf config.environment.common.wayland.enable {
       environment.sessionVariables = {
+        # Qt Wayland support
         QT_QPA_PLATFORM = config.environment.common.wayland.qtPlatform;
 
+        # Ozone Wayland support
         NIXOS_OZONE_WL = lib.optionalString config.environment.common.wayland.ozonePlatform "1";
 
+        # Software cursor rendering (reduces latency)
         WLR_NO_HARDWARE_CURSORS = lib.optionalString config.environment.common.wayland.softwareCursors "1";
 
+        # Auto-scale for Qt applications
         QT_AUTO_SCREEN_SCALE_FACTOR = "1";
 
+        # Qt OpenGL version
         QT_QPA_GL_VERSION = "2";
       };
     })
 
+    # CUDA environment variables
     (lib.mkIf config.environment.common.cuda.enable {
       environment.sessionVariables = {
         CUDA_PATH = "/run/opengl-driver";
@@ -84,18 +93,21 @@
       };
     })
 
+    # ROCm environment variables
     (lib.mkIf config.environment.common.rocm.enable {
       environment.sessionVariables = {
         ROCM_PATH = "${pkgs.rocmPackages.clr}";
       };
     })
 
+    # Wine environment variables
     (lib.mkIf config.environment.common.wine.enable {
       environment.sessionVariables = {
         WINE_FULLSCREEN_FAKE_CAPTURE = "1";
       };
     })
 
+    # Development environment variables
     (lib.mkMerge [
       (lib.mkIf (config.environment.common.development.editor != null) {
         environment.sessionVariables = {

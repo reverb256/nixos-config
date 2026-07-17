@@ -1,0 +1,77 @@
+# Mining Workloads - Medium Priority PDBs
+# Ensures some GPU mining capacity remains during deployments
+# Mining is interruptible, so we use maxUnavailable instead of minAvailable
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: gpu-miner-forge-nvidia-0-pdb
+  namespace: mining
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: gpu-miner-forge
+      gpu-id: "0"
+      gpu-type: nvidia
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: gpu-miner-forge-nvidia-1-pdb
+  namespace: mining
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: gpu-miner-forge
+      gpu-id: "1"
+      gpu-type: nvidia
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: gpu-miner-nexus-pdb
+  namespace: mining
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: gpu-miner
+      host: nexus
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: gpu-miner-zephyr-pdb
+  namespace: mining
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: gpu-miner
+      host: zephyr
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: xmrig-zephyr-pdb
+  namespace: mining
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: xmrig
+      host: zephyr
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: xmrig-nexus-pdb
+  namespace: mining
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: xmrig
+      host: nexus

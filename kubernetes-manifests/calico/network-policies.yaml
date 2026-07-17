@@ -1,0 +1,186 @@
+# Calico Network Policies - Enforced
+#
+# Zero-trust network security for the cluster.
+# All traffic that doesn't match Allow rules is denied.
+#
+# CIDR Ranges:
+# - 10.1.1.0/24:   Physical cluster network
+# - 10.244.0.0/16:  Kubernetes pod network (Calico IP pool)
+# - 10.0.0.0/12:    Kubernetes service network
+# - 100.64.0.0/10:  Tailscale VPN network
+#
+# NodePorts:
+# - 30080: Caddy Ingress HTTP
+# - 30443: Caddy Ingress HTTPS
+# - 6443:  Kubernetes API Server
+---
+apiVersion: crd.projectcalico.org/v1
+kind: GlobalNetworkPolicy
+metadata:
+  name: default-deny-enforced
+  annotations:
+    description: |
+      Default-deny policy in ENFORCEMENT mode.
+      Blocks all traffic not explicitly allowed.
+      Allows cluster-internal traffic and NodePorts.
+spec:
+  namespaceSelector: all()
+  order: 1000
+  applyOnForward: true
+  preDNAT: true
+  types:
+  - Ingress
+  - Egress
+
+  ingress:
+  # Allow traffic from cluster network
+  - action: Allow
+    source:
+      nets:
+      - 10.1.1.0/24
+
+  # Allow traffic from pod network
+  - action: Allow
+    source:
+      nets:
+      - 10.244.0.0/16
+
+  # Allow traffic from service network
+  - action: Allow
+    source:
+      nets:
+      - 10.0.0.0/12
+
+  # Allow traffic from Tailscale VPN
+  - action: Allow
+    source:
+      nets:
+      - 100.64.0.0/10
+
+  # Allow NodePort traffic (Caddy Ingress)
+  - action: Allow
+    destination:
+      ports:
+      - 30080
+    protocol: TCP
+
+  # Allow hostPort traffic (Caddy direct binding)
+  - action: Allow
+    destination:
+      ports:
+      - 80
+    protocol: TCP
+
+  - action: Allow
+    destination:
+      ports:
+      - 30443
+    protocol: TCP
+
+  - action: Allow
+    destination:
+      ports:
+      - 443
+    protocol: TCP
+
+  # Allow Kubernetes API Server
+  - action: Allow
+    destination:
+      ports:
+      - 6443
+    protocol: TCP
+
+  # Allow DNS (critical for cluster operation)
+  - action: Allow
+    destination:
+      ports:
+      - 53
+    protocol: UDP
+
+  - action: Allow
+    destination:
+      ports:
+      - 53
+    protocol: TCP
+
+  # DENY everything else
+  - action: Deny
+    source:
+      nets:
+      - 0.0.0.0/0
+
+  egress:
+  # Allow traffic to cluster network
+  - action: Allow
+    destination:
+      nets:
+      - 10.1.1.0/24
+
+  # Allow traffic to pod network
+  - action: Allow
+    destination:
+      nets:
+      - 10.244.0.0/16
+
+  # Allow traffic to service network
+  - action: Allow
+    destination:
+      nets:
+      - 10.0.0.0/12
+
+  # Allow traffic to Tailscale VPN
+  - action: Allow
+    destination:
+      nets:
+      - 100.64.0.0/10
+
+  # Allow NodePort traffic (Caddy Ingress)
+  - action: Allow
+    destination:
+      ports:
+      - 30080
+    protocol: TCP
+
+  - action: Allow
+    destination:
+      ports:
+      - 80
+    protocol: TCP
+
+  - action: Allow
+    destination:
+      ports:
+      - 30443
+    protocol: TCP
+
+  - action: Allow
+    destination:
+      ports:
+      - 443
+    protocol: TCP
+
+  # Allow Kubernetes API Server
+  - action: Allow
+    destination:
+      ports:
+      - 6443
+    protocol: TCP
+
+  # Allow DNS (critical for cluster operation)
+  - action: Allow
+    destination:
+      ports:
+      - 53
+    protocol: UDP
+
+  - action: Allow
+    destination:
+      ports:
+      - 53
+    protocol: TCP
+
+  # DENY everything else
+  - action: Deny
+    destination:
+      nets:
+      - 0.0.0.0/0

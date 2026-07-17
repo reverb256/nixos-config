@@ -1,3 +1,17 @@
+# Boot Emergency Diagnostics System
+# Self-contained emergency diagnostics using llama-cpp with local Qwen 3.5 GGUF files
+#
+# CONCEPT:
+# - Separate from AI gateway (independent system)
+# - Uses llama-cpp from Nixpkgs with local GGUF models
+# - Smart model selection based on emergency type and available resources
+# - Self-unloading after diagnostics complete (oneshot service)
+# - Leaves behind fix script for manual or automatic execution
+#
+# Integrates with existing llamafile infrastructure:
+# - Uses same llama-cpp package as services.llamafile
+# - References existing GGUF models in ~/.lmstudio/models/
+# - Compatible with create-llamafile.sh for standalone binaries
 {
   config,
   lib,
@@ -7,6 +21,7 @@
 with lib; let
   cfg = config.services.boot-emergency-diagnostics;
 
+  # Select llama-cpp variant based on GPU type
   llamaPkg =
     if cfg.gpu == "amd" || cfg.gpu == "rocm"
     then pkgs.llama-cpp-rocm
@@ -14,8 +29,12 @@ with lib; let
     then pkgs.llama-cpp
     else pkgs.llama-cpp;
 
+  # Emergency type detection (heuristic, not AI)
   detectEmergencyType = pkgs.writeShellScript "detect-emergency" ''
+    # Determine emergency type from system state
+    # This is fast and deterministic - no LLM needed
 
+    # Check for specific indicators
     if dmesg 2>/dev/null | grep -qi "gpu.*error\|nvidia.*fail"; then
       echo "hardware-gpu"
     elif dmesg 2>/dev/null | grep -qi "i.*error.*mounting\|filesystem.*read-only"; then
@@ -31,10 +50,12 @@ with lib; let
     fi
   '';
 
+  # Model selector based on emergency type and available resources
   selectModel = pkgs.writeShellScript "select-model" ''
-    EMERGENCY_TYPE="$1"
-    AVAILABLE_VRAM="$2"
+    EMERGENCY_TYPE="$1"  # hardware-gpu, nixos-build, services, memory-low, unknown
+    AVAILABLE_VRAM="$2"   # Free VRAM in MB, or "system" for CPU-only
 
+    # Convert VRAM string to number for comparison
     case "$AVAILABLE_VRAM" in
       system|0)
         AVAILABLE_MB=0
@@ -44,6 +65,7 @@ with lib; let
         ;;
     esac
 
+    # Select best model based on emergency type and resources
     case "$EMERGENCY_TYPE" in
       hardware-gpu|hardware-storage)
         if [ "$AVAILABLE_MB" -ge 5120 ]; then
@@ -66,6 +88,7 @@ with lib; let
         ;;
 
       unknown)
+        # Default to quick for unknown issues
         echo "${cfg.models.quick.name}"
         ;;
     esac
@@ -74,6 +97,7 @@ in {
   options.services.boot-emergency-diagnostics = {
     enable = mkEnableOption "Emergency boot diagnostics with Qwen 3.5 models";
 
+    # Diagnostic model definitions
     models = mkOption {
       type = types.attrsOf (types.submodule {
         options = {
@@ -106,6 +130,7 @@ in {
         };
       });
       default = {
+        # Quick diagnostics - Qwen 3.5 0.8B (~900MB)
         quick = {
           name = "qwen-0.8b";
           ggufPath = "/home/j_kro/.lmstudio/models/unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf";
@@ -115,6 +140,7 @@ in {
           gpuLayers = 999;
         };
 
+        # Code analysis - Qwen 3.5 4B (~2.5GB)
         code = {
           name = "qwen-4b";
           ggufPath = "/home/j_kro/.lmstudio/models/unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-IQ4_NL.gguf";
@@ -124,6 +150,7 @@ in {
           gpuLayers = 999;
         };
 
+        # Capable reasoning - Qwen 3.5 9B (~5.5GB)
         capable = {
           name = "qwen-9b";
           ggufPath = "/home/j_kro/.lmstudio/models/Jackrong/Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-GGUF/Qwen3.5-9B.Q4_K_S.gguf";
@@ -133,30 +160,34 @@ in {
           gpuLayers = 999;
         };
 
+        # Minimal fallback - Qwen 3.5 0.8B (CPU-only)
         minimal = {
           name = "qwen-0.8b-minimal";
           ggufPath = "/home/j_kro/.lmstudio/models/unsloth/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q8_0.gguf";
           vramRequired = "512M";
           ctxSize = 2048;
           bestFor = ["emergency" "fallback" "low-vram"];
-          gpuLayers = 0;
+          gpuLayers = 0; # CPU-only for truly minimal
         };
       };
       description = "Available diagnostic models";
     };
 
+    # GPU type for llama-cpp variant selection
     gpu = mkOption {
       type = types.nullOr (types.enum ["nvidia" "amd" "rocm"]);
       default = null;
       description = "GPU type (null = auto-detect, nvidia, or amdgpu/rocm)";
     };
 
+    # How to detect available VRAM
     vramDetectionMethod = mkOption {
       type = types.enum ["nvidia-smi" "free" "fixed"];
       default = "nvidia-smi";
       description = "How to detect available VRAM";
     };
 
+    # Fixed VRAM amount (if vramDetectionMethod = "fixed")
     fixedVram = mkOption {
       type = types.int;
       default = 2048;
@@ -165,27 +196,34 @@ in {
   };
 
   config = mkIf cfg.enable {
+    # Install llama-cpp for diagnostics
     environment.systemPackages = [llamaPkg];
 
+    # State directory
     systemd.tmpfiles.rules = [
       "d /var/lib/emergency-diagnostics 0755 root root -"
       "d /var/cache/emergency-diagnostics 0700 root root -"
     ];
 
+    # Emergency detection and diagnostic service
     systemd.services.emergency-diagnostics = {
       description = "Emergency AI diagnostics (Qwen 3.5)";
 
+      # Run early, before most services
+      # Gateway moved to Kubernetes, removed from before list
       after = ["basic.target"];
       before = ["multi-user.target"];
-      wantedBy = ["emergency.target"];
+      wantedBy = ["emergency.target"]; # Only run in emergency
 
+      # Only run if there was a boot failure
       conditionPathExists = ["/run/systemd/emergency"];
 
       serviceConfig = {
         Type = "oneshot";
-        RemainAfterExit = false;
+        RemainAfterExit = false; # Self-unload after completion
 
-        MemoryMax = "8G";
+        # Resource limits
+        MemoryMax = "8G"; # Enough for 9B model
         CPUQuota = "75%";
 
         WorkingDirectory = "/var/lib/emergency-diagnostics";
@@ -204,19 +242,27 @@ in {
                     echo "Time: $(date)" | tee -a "$LOG"
                     echo "Uptime: $(uptime)" | tee -a "$LOG"
 
+                    # =============================================================================
+                    # STEP 1: Detect emergency type
+                    # =============================================================================
                     EMERGENCY_TYPE=$(${detectEmergencyType})
                     echo "Emergency type: $EMERGENCY_TYPE" | tee -a "$LOG"
 
+                    # =============================================================================
+                    # STEP 2: Detect available resources
+                    # =============================================================================
                     case "${cfg.vramDetectionMethod}" in
                       nvidia-smi)
                         if command -v nvidia-smi >/dev/null 2>&1; then
                           FREE_VRAM=$(nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits | head -1)
+                          # nvidia-smi returns in MB
                           AVAILABLE_VRAM="$${FREE_VRAM:-0}"
                         else
-                          AVAILABLE_VRAM="0"
+                          AVAILABLE_VRAM="0"  # No NVIDIA GPU
                         fi
                         ;;
                       free)
+                        # Use system RAM as fallback (in MB)
                         AVAILABLE_VRAM=$(free -m | awk '/^Mem:/{print $2}')
                         ;;
                       fixed)
@@ -226,8 +272,12 @@ in {
 
                     echo "Available VRAM/RAM: $AVAILABLE_VRAM MB" | tee -a "$LOG"
 
+                    # =============================================================================
+                    # STEP 3: Select appropriate model
+                    # =============================================================================
                     MODEL_NAME=$(${selectModel} "$EMERGENCY_TYPE" "$AVAILABLE_VRAM")
 
+                    # Get model config
                     case "$MODEL_NAME" in
                       qwen-0.8b)
                         MODEL_PATH="${cfg.models.quick.ggufPath}"
@@ -257,6 +307,7 @@ in {
                         ;;
                     esac
 
+                    # Verify model exists
                     if [ ! -f "$MODEL_PATH" ]; then
                       echo "ERROR: Model not found: $MODEL_PATH" | tee -a "$LOG"
                       echo "Falling back to minimal diagnostics..." | tee -a "$LOG"
@@ -270,6 +321,9 @@ in {
                     echo "Context size: $CTX_SIZE" | tee -a "$LOG"
                     echo "GPU layers: $GPU_LAYERS" | tee -a "$LOG"
 
+                    # =============================================================================
+                    # STEP 4: Gather relevant symptoms (scoped)
+                    # =============================================================================
                     SYMPTOMS="$STATE/symptoms.txt"
 
                     case "$EMERGENCY_TYPE" in
@@ -289,6 +343,9 @@ in {
                         ;;
                     esac
 
+                    # =============================================================================
+                    # STEP 5: Run diagnostics with llama-cli
+                    # =============================================================================
                     cat > "$CACHE/prompt.txt" <<EOF
           You are an emergency system diagnostic AI specialized in NixOS systems.
 
@@ -323,18 +380,28 @@ in {
                       -p "$(< "$CACHE/prompt.txt")" \
                       2>&1 | tee -a "$LOG" | tee "$CACHE/response.txt"
 
+                    # =============================================================================
+                    # STEP 6: Parse and generate fix script
+                    # =============================================================================
                     FIX_SCRIPT="$STATE/fix_$(date +%H%M%S).sh"
 
+                    # Extract JSON (simple parsing, handle various formats)
                     RESPONSE=$(cat "$CACHE/response.txt")
                     ROOT_CAUSE=$(echo "$RESPONSE" | grep -oP '"root_cause":\s*"\K[^"]+' 2>/dev/null || echo "unknown - check diagnostic log")
                     FIX_COMMAND=$(echo "$RESPONSE" | grep -oP '"fix_command":\s*"\K[^"]+' 2>/dev/null || echo "manual")
                     CONFIDENCE=$(echo "$RESPONSE" | grep -oP '"confidence":\s*"\K[^"]+' 2>/dev/null || echo "low")
 
+                    # Sanitize extracted values (remove control characters, escapes)
                     ROOT_CAUSE=$(echo "$ROOT_CAUSE" | tr -d '\n\r' | sed 's/\\n/ /g' | sed 's/\\t/ /g')
                     FIX_COMMAND=$(echo "$FIX_COMMAND" | tr -d '\n\r' | sed 's/\\n/ /g' | sed 's/\\t/ /g')
 
                     cat > "$FIX_SCRIPT" <<FIXEOF
           #!/bin/bash
+          # Emergency fix script generated at $(date)
+          # Emergency type: $EMERGENCY_TYPE
+          # Root cause: $ROOT_CAUSE
+          # Model used: $MODEL_NAME
+          # Confidence: $CONFIDENCE
 
           DIAGNOSTIC_LOG="$LOG"
 
@@ -363,7 +430,7 @@ in {
                   ;;
                 d|D)
                   less "$DIAGNOSTIC_LOG"
-                  exec "$0"
+                  exec "$0"  # Restart menu
                   ;;
                 *)
                   echo "Skipped - fix not applied"
@@ -393,8 +460,12 @@ in {
                     echo "Fix script: $FIX_SCRIPT" | tee -a "$LOG"
                     ln -sf "$FIX_SCRIPT" "$STATE/fix.sh"
 
+                    # =============================================================================
+                    # STEP 7: Self-unload
+                    # =============================================================================
                     echo "Diagnostics complete, service unloading..." | tee -a "$LOG"
 
+                    # Clean up marker - allow normal boot next time
                     rm -f /run/systemd/emergency
 
                     echo "System ready for normal boot or manual intervention" | tee -a "$LOG"
@@ -402,16 +473,19 @@ in {
       };
     };
 
+    # Boot count integration - create emergency marker
     systemd.services.boot-emergency-trigger = {
       description = "Trigger emergency mode on repeated boot failures";
       wantedBy = ["basic.target"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "check-emergency-trigger" ''
+          # Detect rapid reboots (boot loop indicator)
           LAST_BOOT=$(last reboot 2>/dev/null | head -1 | awk '{print $1}' || echo "0")
           CURRENT_BOOT=$(date +%s)
           BOOT_AGE=$((CURRENT_BOOT - LAST_BOOT))
 
+          # If boot is less than 2 minutes old, we're in a boot loop
           if [ "$BOOT_AGE" -lt 120 ] && [ "$BOOT_AGE" -gt 0 ]; then
             echo "Rapid boot detected ($BOOT_AGE seconds) - triggering emergency mode" | wall
             touch /run/systemd/emergency
@@ -420,6 +494,7 @@ in {
       };
     };
 
+    # Normal boot marker (emergency off)
     systemd.services.boot-normal = {
       description = "Mark normal boot, disable emergency mode";
       after = ["multi-user.target"];
@@ -427,6 +502,7 @@ in {
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "disable-emergency" ''
+          # Remove emergency marker on successful boot
           rm -f /run/systemd/emergency
           echo "Normal boot confirmed - emergency mode disabled" | wall
         '';

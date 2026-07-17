@@ -11,7 +11,7 @@ set -euo pipefail
 GATEWAY_URL="http://127.0.0.1:8080"
 GATEWAY_HEALTH="${GATEWAY_URL}/health"
 LM_STUDIO_URL="http://127.0.0.1:1234"
-API_KEY_FILE="/run/secrets/lm-studio-api-key"
+API_KEY_FILE="/run/agenix/lm-studio-api-key"
 LOG_FILE="/var/log/ai-inference/opencode-gateway-check.log"
 MAX_RETRIES=3
 RETRY_DELAY=5

@@ -1,0 +1,49 @@
+# Prometheus Adapter Configuration
+# Maps Prometheus queries to Kubernetes Metrics API
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-adapter-config
+  namespace: custom-metrics
+data:
+  config.yaml: |
+    # Resource metrics (CPU/memory) for HPA
+    resourceRules:
+      cpu:
+        container: true
+        containerQuery: |
+          sum by (container) (
+            rate(container_cpu_usage_seconds_total{container!="", container!="POD"}[5m])
+          )
+        nodeQuery: |
+          sum by (node) (
+            rate(node_cpu_seconds_total{mode!="idle"}[5m])
+          )
+        resources:
+          overrides:
+            node:
+              resource: cpu
+            namespace:
+              resource: cpu
+            pod:
+              resource: cpu
+      memory:
+        container: true
+        containerQuery: |
+          sum by (container) (
+            container_memory_working_set_bytes{container!="", container!="POD"}
+          )
+        nodeQuery: |
+          sum by (node) (
+            node_memory_MemAvailable_bytes
+          )
+        resources:
+          overrides:
+            node:
+              resource: memory
+            namespace:
+              resource: memory
+            pod:
+              resource: memory
+      window: 5m

@@ -1,11 +1,17 @@
+# Prometheus Monitoring Server
+# Centralized metrics collection for the NixOS cluster
+# Should be deployed on sentry (monitoring node)
 {
   config,
   lib,
   ...
-}: let
+}:
+let
   cfg = config.services.monitoring.prometheus;
+  # Use centralized network constants to avoid duplication
   inherit (config.networking.cluster) ports;
-in {
+in
+{
   options.services.monitoring.prometheus = {
     enable = lib.mkEnableOption "Prometheus monitoring server";
 
@@ -32,26 +38,34 @@ in {
     services.prometheus = {
       enable = true;
       port = ports.prometheus;
-      listenAddress = "127.0.0.1";
+      listenAddress = "127.0.0.1"; # Localhost only, use nginx for external access
 
+      # Data retention
       retentionTime = "${toString cfg.retentionDays}d";
 
+      # Global configuration
       globalConfig = {
         scrape_interval = cfg.scrapeInterval;
         evaluation_interval = "1m";
       };
 
+      # AlertManager configuration
       alertmanagers = [
         {
           static_configs = [
             {
-              targets = ["127.0.0.1:${toString ports.alertmanager}"];
+              targets = [ "127.0.0.1:${toString ports.alertmanager}" ];
             }
           ];
         }
       ];
 
+      # Note: Alert rules are configured by the alert-rules.nix module
+      # Enable with services.monitoring.prometheus.enableAlertRules = true
+
+      # Scrape configurations for cluster nodes
       scrapeConfigs = [
+        # Node exporter for all cluster hosts
         {
           job_name = "node";
           static_configs = [
@@ -69,6 +83,7 @@ in {
           ];
         }
 
+        # Mining metrics exporter for all hosts
         {
           job_name = "mining";
           static_configs = [
@@ -86,6 +101,7 @@ in {
           ];
         }
 
+        # NVIDIA GPU metrics (for hosts with NVIDIA GPUs)
         {
           job_name = "nvidia";
           static_configs = [
@@ -99,11 +115,18 @@ in {
           ];
         }
 
+        # Note: AMD GPU metrics are collected via node-exporter textfile collector
+        # (forge:9100/metrics includes amdgpu_* metrics from /var/lib/prometheus/node-exporter/textfile-collector/)
+
+        # XMRig metrics collected via node-exporter textfile collector
+        # (services.xmrig-metrics writes xmrig.prom every 30s on each host)
+
+        # Redis metrics (AI Gateway cache)
         {
           job_name = "redis";
           static_configs = [
             {
-              targets = ["zephyr:9121"];
+              targets = [ "zephyr:9121" ];
               labels = {
                 role = "ai-gateway-cache";
               };
@@ -111,33 +134,37 @@ in {
           ];
         }
 
+        # Prometheus self-monitoring
         {
           job_name = "prometheus";
           static_configs = [
             {
-              targets = ["localhost:${toString ports.prometheus}"];
+              targets = [ "localhost:${toString ports.prometheus}" ];
             }
           ];
         }
 
+        # AlertManager self-monitoring
         {
           job_name = "alertmanager";
           static_configs = [
             {
-              targets = ["localhost:${toString ports.alertmanager}"];
+              targets = [ "localhost:${toString ports.alertmanager}" ];
             }
           ];
         }
 
+        # Grafana metrics
         {
           job_name = "grafana";
           static_configs = [
             {
-              targets = ["localhost:${toString ports.grafana}"];
+              targets = [ "localhost:${toString ports.grafana}" ];
             }
           ];
         }
 
+        # Garage S3 object storage metrics (3-node cluster)
         {
           job_name = "garage";
           static_configs = [
@@ -155,18 +182,39 @@ in {
           ];
           metrics_path = "/metrics";
           params = {
-            token = ["garage_metrics_token"];
+            token = [ "garage_metrics_token" ];
           };
+        }
+
+        # Caddy Ingress Controller metrics (Kubernetes)
+        # Scrapes controller metrics endpoint (port 9765)
+        {
+          job_name = "caddy-ingress";
+          static_configs = [
+            {
+              targets = [
+                "caddy-ingress-controller-metrics.ingress-system.svc.cluster.local:9765"
+              ];
+              labels = {
+                role = "ingress";
+                tier = "kubernetes";
+              };
+            }
+          ];
+          metrics_path = "/metrics";
+          scheme = "http";
         }
       ];
     };
 
+    # Create prometheus user (systemd service runs as prometheus by default)
     users.users.prometheus = {
       isSystemUser = true;
       group = "prometheus";
     };
-    users.groups.prometheus = {};
+    users.groups.prometheus = { };
 
+    # Open firewall for internal access
     networking.firewall.interfaces."tailscale0".allowedTCPPorts = [
       ports.prometheus
     ];

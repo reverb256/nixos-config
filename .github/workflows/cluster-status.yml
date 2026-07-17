@@ -2,9 +2,9 @@
 name: Cluster Status
 
 on:
-  # schedule disabled — self-hosted runner offline, causes queue flood
-  # schedule:
-  #   - cron: '*/5 * * * *'
+  schedule:
+    # Run every 5 minutes
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 permissions:

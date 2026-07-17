@@ -1,0 +1,19 @@
+# Default Security Context for Pods
+# Apply these to all pods for baseline hardening
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: security-context-defaults
+  namespace: default
+data:
+  # Non-root user (common across containers)
+  runAsUser: "1001"
+  runAsGroup: "1001"
+  fsGroup: "1001"
+  # Security options
+  runAsNonRoot: "true"
+  allowPrivilegeEscalation: "false"
+  readOnlyRootFilesystem: "true"
+  seccompProfileType: "RuntimeDefault"

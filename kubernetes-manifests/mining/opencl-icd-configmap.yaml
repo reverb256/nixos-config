@@ -1,0 +1,12 @@
+# OpenCL ICD Vendor Files for AMD GPUs only
+# This file tells OpenCL applications where to find AMD GPU drivers
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opencl-icd-vendors
+  namespace: mining
+data:
+  # AMD OpenCL ICD - points to ROCm OpenCL library
+  amdocl64.icd: |
+    /nix/store/2qfd7pvbwjhzx112x5w161q063z3qfyx-clr-7.2.0/lib/libamdocl64.so

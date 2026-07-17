@@ -88,7 +88,7 @@ kubectl get pods -A | grep OutOfnvidia.com/gpu
 #### Step 2: Monitor Pod Recovery
 ```bash
 # Watch pods transition from OutOfnvidia.com/gpu to Running
-kubectl get pods -A -w | grep llama
+kubectl get pods -A -w | grep vllm-qwen
 ```
 
 **Expected Result**: Pods should automatically schedule once GPUs are registered
@@ -152,7 +152,7 @@ ssh nexus 'sudo systemctl restart kubelet'
 
 - [ ] Device plugin creates socket at `/var/lib/kubelet/device-plugins/nvidia-gpu.sock`
 - [ ] Node capacity shows `nvidia.com/gpu: 2` (zephyr) and `nvidia.com/gpu: 1` (nexus)
-- [ ] All llama pods transition to `Running` state
+- [ ] All vllm-qwen pods transition to `Running` state
 - [ ] No `OutOfnvidia.com/gpu` pods in cluster
 - [ ] kube-root-ca.crt ConfigMap exists
 

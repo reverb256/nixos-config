@@ -1,22 +1,14 @@
-# LM Studio — wrapper around the official upstream AppImage.
-#
-# Reverted to AppImage on 2026-06-29 after a `buildNpmPackage` rewrite failed
-# with `invalid SRI hash '0000000000000000000000000000000000000000000000000000000000000000'`.
-# The npm-mirror CLI at https://registry.npmjs.org/lmstudio/-/lmstudio-0.0.32.tgz
-# is a Node.js shim that requires a real runtime build + a vendored Linux AppImage
-# payload at install time; it is NOT a self-contained CLI like the AppImage is.
-# Until upstream provides a pre-built static binary on npm, the AppImage path stays.
 {
   appimageTools,
   fetchurl,
   lib,
-  runCommandLocal,
 }: let
-  version = "0.4.18-1";
+  version = "0.4.6-1";
   src = fetchurl {
     url = "https://installers.lmstudio.ai/linux/x64/${version}/LM-Studio-${version}-x64.AppImage";
-    sha256 = "sha256-KpznZu1tiXhtW9XDvbMCgH9xyGyaO37/F1sWqK1RCUk=";
+    sha256 = "1yaz5i5qdf2nb7llaml2g3wdck2mwpgpw8kyr787ma5777iplxhl";
   };
+  # Extract the icon from the AppImage first
   appimageContents = appimageTools.extractType2 {
     pname = "lmstudio";
     inherit version src;
@@ -27,14 +19,18 @@ in
     inherit version src;
     extraPkgs = _pkgs: [];
     extraInstallCommands = ''
-      mkdir -p $out/share/icons/hicolor/{512x512,scalable}/apps
-      cp ${appimageContents}/lm-studio.png $out/share/icons/hicolor/512x512/apps/lm-studio.png
-      cp ${appimageContents}/lm-studio.png $out/share/icons/hicolor/scalable/apps/lm-studio.png
-      mkdir -p $out/share/applications
-      cat > $out/share/applications/lmstudio.desktop << 'DESKTOP'
+          # Install the icon from the extracted AppImage
+          mkdir -p $out/share/icons/hicolor/512x512/apps
+          cp ${appimageContents}/lm-studio.png $out/share/icons/hicolor/512x512/apps/lm-studio.png
+          # Also install to scalable location for compatibility
+          mkdir -p $out/share/icons/hicolor/scalable/apps
+          cp ${appimageContents}/lm-studio.png $out/share/icons/hicolor/scalable/apps/lm-studio.png
+          # Create desktop file with correct StartupWMClass
+          mkdir -p $out/share/applications
+          cat > $out/share/applications/lmstudio.desktop << 'EOF'
       [Desktop Entry]
       Name=LM Studio
-      Comment=Local LLMs (GPU-only, NVIDIA CUDA)
+      Comment=Easy to use desktop app for local LLMs
       GenericName=LM Studio
       Exec=lm-studio %F
       Icon=lm-studio
@@ -45,10 +41,10 @@ in
       Terminal=false
       X-MultipleArgs=false
       MimeType=application/json;
-      DESKTOP
+      EOF
     '';
     meta = with lib; {
-      description = "Local LLM runner (GPU-only, NVIDIA CUDA)";
+      description = "Easy to use desktop app for local LLMs";
       homepage = "https://lmstudio.ai";
       license = licenses.unfree;
       platforms = ["x86_64-linux"];

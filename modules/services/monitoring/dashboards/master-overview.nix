@@ -1,3 +1,5 @@
+# Master Overview Dashboard
+# High-level cluster health, alerts summary, and navigation hub
 {lib, ...}: let
   inherit (lib.dashboard) panels template thresholds;
 in {
@@ -6,7 +8,9 @@ in {
     description = "Cluster health at a glance - quick status of all systems";
     tags = ["overview" "cluster"];
     panels = [
+      # ========== ROW: CLUSTER STATUS ==========
       (panels.row "🖥️ Cluster Status" false)
+      # Node Health Stat
       (panels.statPanel {
         title = "Nodes Online";
         expr = "count(up{job=\"node\"} == 1)";
@@ -19,6 +23,7 @@ in {
         thresholds = thresholds.binary;
         colorMode = "background";
       })
+      # Services Health Stat
       (panels.statPanel {
         title = "Services Healthy";
         expr = "count(up == 1)";
@@ -31,6 +36,7 @@ in {
         thresholds = thresholds.binary;
         colorMode = "background";
       })
+      # Active Alerts Stat
       (panels.statPanel {
         title = "Active Alerts";
         expr = "count(ALERTS{alertstate=\"firing\"})";
@@ -60,9 +66,10 @@ in {
         ];
         colorMode = "background";
       })
+      # Total Hashrate
       (panels.statPanel {
         title = "Total Hashrate";
-        expr = "sum(mining_gpu_hashrate)";
+        expr = "sum(mining_worker_hashrate)";
         gridPos = {
           h = 4;
           w = 6;
@@ -73,7 +80,9 @@ in {
         colorMode = "value";
       })
 
+      # ========== ROW: RESOURCES OVERVIEW ==========
       (panels.row "📊 Resource Overview" false)
+      # Cluster CPU Usage
       (panels.gauge {
         title = "Cluster CPU Usage";
         expr = "avg(100 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)";
@@ -86,6 +95,7 @@ in {
         thresholds = thresholds.percentage;
         unit = "percent";
       })
+      # Cluster Memory Usage
       (panels.gauge {
         title = "Cluster Memory Usage";
         expr = "avg((1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100)";
@@ -98,6 +108,7 @@ in {
         thresholds = thresholds.percentage;
         unit = "percent";
       })
+      # Cluster Disk Usage
       (panels.gauge {
         title = "Cluster Disk Usage";
         expr = "avg((1 - node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"}) * 100)";
@@ -110,6 +121,7 @@ in {
         thresholds = thresholds.percentage;
         unit = "percent";
       })
+      # GPU Utilization
       (panels.gauge {
         title = "GPU Utilization (Avg)";
         expr = "avg(nvidia_smi_utilization_gpu_ratio) * 100";
@@ -140,7 +152,9 @@ in {
         unit = "percent";
       })
 
+      # ========== ROW: NODE GRID ==========
       (panels.row "🖥️ Per-Node Status" false)
+      # Node CPU Table
       {
         datasource = lib.dashboard.prometheusDatasource;
         gridPos = {
@@ -175,6 +189,7 @@ in {
           }
         ];
       }
+      # Node Memory Table
       {
         datasource = lib.dashboard.prometheusDatasource;
         gridPos = {
@@ -209,7 +224,9 @@ in {
         ];
       }
 
+      # ========== ROW: ALERTS & ACTIVITY ==========
       (panels.row "🚨 Recent Alerts" true)
+      # Recent Firing Alerts
       {
         datasource = lib.dashboard.prometheusDatasource;
         fieldConfig.defaults = {

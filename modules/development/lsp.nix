@@ -1,65 +1,145 @@
+# LSP and Development Tools Module
+# Language servers and development tools for multiple languages
 {
   pkgs,
   lib,
   ...
-}: {
+}:
+{
+  # Install LSP servers and development tools
   environment.systemPackages = with pkgs; [
+
+    # LANGUAGE SERVERS & LSP
+
+    # Rust
     rust-analyzer
-    taplo
+    taplo # TOML
+    # Python
     python312Packages.python-lsp-server
     python312Packages.black
     python312Packages.isort
     python312Packages.mypy
     python312Packages.ruff
-    typescript
-    typescript-language-server
-    vscode-langservers-extracted
+    # JavaScript/TypeScript
+    nodePackages.typescript
+    nodePackages.typescript-language-server
+    nodePackages.vscode-langservers-extracted
+    nodePackages."@tailwindcss/language-server"
     eslint
     prettier
-    nil
+    # Nix
+    nil # Nix language server
     nixd
-    alejandra
-    statix
-    deadnix
+    alejandra # Nix formatter
+    statix # Nix linter
+    deadnix # Nix dead code finder
     nixfmt
     nixpkgs-fmt
+    # Lua
+    lua-language-server
     stylua
-    yaml-language-server
+    # YAML
+    nodePackages.yaml-language-server
     yamllint
-    vscode-json-languageserver
+    # JSON
+    nodePackages.vscode-json-languageserver
+    # Markdown
     markdownlint-cli
-    bash-language-server
+    # Bash/Shell
+    nodePackages.bash-language-server
     shellcheck
     shfmt
+    # SQL
     sqls
+    # C/C++
     clang-tools
     cmake
     ninja
     gnumake
+    # Go
+    gopls
     go-tools
     gotools
+    # Terraform
     terraform-ls
     tflint
+    # Dockerfile
     dockerfile-language-server
     hadolint
 
+    # DEVELOPMENT TOOLS
+
+    # Version control
+    git
+    git-lfs
+    lazygit
+    gh
+    # Editing
+    neovim
+    helix
+    # Search & navigation
+    ripgrep
+    fzf
+    fd
+    tealdeer
+    zoxide
+    # Build tools
+    gnumake
+    cmake
     meson
-    dive
-    lazydocker
+    ninja
+    # Debugging
+    gdb
+    ltrace
+    strace
+    # Performance analysis
+    perf-tools
+    hyperfine
+    # Network tools
+    curl
+    wget
+    httpie
+    restic
+    # Database tools
+    sqlite
     postgresql
+    # Container tools
+    dive # Docker image explorer
+    lazydocker # Docker/Podman TUI
+    # Documentation
+    man-pages
+    # Misc tools
+    jq
+    yq
+    delta
+    bat
+    eza
+    duf
+    dust
   ];
 
+  # DEVELOPMENT ENVIRONMENT VARIABLES
+
+  # Use common environment variables module for EDITOR/VISUAL
   environment.common.development.editor = lib.mkDefault "nvim";
+  # Development-tool-specific environment variables
   environment.sessionVariables = {
-    # PYTHONPATH removed from session vars — was poisoning ai-inference-gateway systemd service.
-    # If Python LSP needs extra paths, configure in editor LSP settings, not globally.
-    # PYTHONPATH = "/var/lib/ai/python";
+    # Language-specific overrides
+    PYTHONPATH = "/var/lib/ai/python";
+    # Go
     GOPATH = "$HOME/go";
     GOBIN = "$HOME/go/bin";
+    # Rust
     CARGO_HOME = "$HOME/.cargo";
+    # Git configuration
     GIT_CONFIG_SYSTEM = "/etc/gitconfig-safe-nixos.conf";
   };
 
+  # GIT CONFIGURATION
+
+  # System gitconfig with safe.directory for ai-inference user
+  # Git 2.35+ requires explicit approval for owned repos
+  # Use tmpfiles to create override config
   systemd.tmpfiles.rules = [
     "f /etc/gitconfig-safe - - - - -"
     "w /etc/gitconfig-safe - - - - [safe] /etc/nixos"

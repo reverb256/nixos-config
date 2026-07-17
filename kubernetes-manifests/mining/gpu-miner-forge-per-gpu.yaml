@@ -1,0 +1,373 @@
+# Per-GPU lolMiner pods for Forge
+# 4 GPUs: 2x AMD RX 5700 XT (devices 0,1) + 2x NVIDIA RTX 4060 (devices 2,3)
+# Uses host lolMiner binary via /nix/store mount for OpenCL (AMD) + CUDA (NVIDIA) support
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-forge-gpu0
+  namespace: mining
+  labels:
+    app: gpu-miner-forge
+    gpu-type: amd
+    gpu-id: "0"
+    host: forge
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: gpu-miner-forge-gpu0
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: gpu-miner-forge-gpu0
+        gpu-type: amd
+        gpu-id: "0"
+        host: forge
+    spec:
+      nodeName: forge
+      hostNetwork: true
+      priorityClassName: mining-low
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+      - name: lolminer
+        image: docker.io/swamp7/lolminer:latest
+        imagePullPolicy: IfNotPresent
+        command:
+          - "/nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a/bin/lolMiner"
+        args:
+          - "--algo=CR29"
+          - "--pool=xtm-c29-us.kryptex.network:8040"
+          - "--user=krxXVNVMM7.forge-a0"
+          - "--pass=x"
+          - "--tls=1"
+          - "--pool=xtm-c29-eu.kryptex.network:8040"
+          - "--user=krxXVNVMM7.forge-a0"
+          - "--pass=x"
+          - "--tls=1"
+          - "--devices=0"
+          - "--apiport=4070"
+        env:
+          - name: LD_LIBRARY_PATH
+            value: "/run/opengl-driver/lib"
+          - name: OCL_ICD_VENDORS
+            value: "/etc/OpenCL/vendors"
+        ports:
+        - containerPort: 4070
+          name: api
+          protocol: TCP
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: dri
+          mountPath: /dev/dri
+        - name: opengl
+          mountPath: /run/opengl-driver/lib
+          readOnly: true
+        - name: nix-store
+          mountPath: /nix/store
+          readOnly: true
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "500m"
+            amd.com/gpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+            amd.com/gpu: "1"
+      volumes:
+      - name: dri
+        hostPath:
+          path: /dev/dri
+      - name: opengl
+        hostPath:
+          path: /run/opengl-driver/lib
+      - name: nix-store
+        hostPath:
+          path: /nix/store
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-forge-gpu1
+  namespace: mining
+  labels:
+    app: gpu-miner-forge
+    gpu-type: amd
+    gpu-id: "1"
+    host: forge
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: gpu-miner-forge-gpu1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: gpu-miner-forge-gpu1
+        gpu-type: amd
+        gpu-id: "1"
+        host: forge
+    spec:
+      nodeName: forge
+      hostNetwork: true
+      priorityClassName: mining-low
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+      - name: lolminer
+        image: docker.io/swamp7/lolminer:latest
+        imagePullPolicy: IfNotPresent
+        command:
+          - "/nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a/bin/lolMiner"
+        args:
+          - "--algo=CR29"
+          - "--pool=xtm-c29-us.kryptex.network:8040"
+          - "--user=krxXVNVMM7.forge-a1"
+          - "--pass=x"
+          - "--tls=1"
+          - "--pool=xtm-c29-eu.kryptex.network:8040"
+          - "--user=krxXVNVMM7.forge-a1"
+          - "--pass=x"
+          - "--tls=1"
+          - "--devices=1"
+          - "--apiport=4071"
+        env:
+          - name: LD_LIBRARY_PATH
+            value: "/run/opengl-driver/lib"
+          - name: OCL_ICD_VENDORS
+            value: "/etc/OpenCL/vendors"
+        ports:
+        - containerPort: 4071
+          name: api
+          protocol: TCP
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: dri
+          mountPath: /dev/dri
+        - name: opengl
+          mountPath: /run/opengl-driver/lib
+          readOnly: true
+        - name: nix-store
+          mountPath: /nix/store
+          readOnly: true
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "500m"
+            amd.com/gpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+            amd.com/gpu: "1"
+      volumes:
+      - name: dri
+        hostPath:
+          path: /dev/dri
+      - name: opengl
+        hostPath:
+          path: /run/opengl-driver/lib
+      - name: nix-store
+        hostPath:
+          path: /nix/store
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-forge-gpu2
+  namespace: mining
+  labels:
+    app: gpu-miner-forge
+    gpu-type: nvidia
+    gpu-id: "0"
+    host: forge
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: gpu-miner-forge-gpu2
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: gpu-miner-forge-gpu2
+        gpu-type: nvidia
+        gpu-id: "0"
+        host: forge
+    spec:
+      nodeName: forge
+      hostNetwork: true
+      priorityClassName: mining-low
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+      - name: lolminer
+        image: docker.io/swamp7/lolminer:latest
+        imagePullPolicy: IfNotPresent
+        command:
+          - "/nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a/bin/lolMiner"
+        args:
+          - "--algo=CR29"
+          - "--pool=xtm-c29-us.kryptex.network:8040"
+          - "--user=krxXVNVMM7.forge-n0"
+          - "--pass=x"
+          - "--tls=1"
+          - "--pool=xtm-c29-eu.kryptex.network:8040"
+          - "--user=krxXVNVMM7.forge-n0"
+          - "--pass=x"
+          - "--tls=1"
+          - "--devices=2"
+          - "--cclk=2350"
+          - "--moff=1100"
+          - "--pl=90"
+          - "--apiport=4068"
+        env:
+          - name: LD_LIBRARY_PATH
+            value: "/run/opengl-driver/lib"
+          - name: OCL_ICD_VENDORS
+            value: "/etc/OpenCL/vendors"
+        ports:
+        - containerPort: 4068
+          name: api
+          protocol: TCP
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: dri
+          mountPath: /dev/dri
+        - name: opengl
+          mountPath: /run/opengl-driver/lib
+          readOnly: true
+        - name: nix-store
+          mountPath: /nix/store
+          readOnly: true
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+            nvidia.com/gpu: "1"
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+            nvidia.com/gpu: "1"
+      volumes:
+      - name: dri
+        hostPath:
+          path: /dev/dri
+      - name: opengl
+        hostPath:
+          path: /run/opengl-driver/lib
+      - name: nix-store
+        hostPath:
+          path: /nix/store
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-forge-gpu3
+  namespace: mining
+  labels:
+    app: gpu-miner-forge
+    gpu-type: nvidia
+    gpu-id: "1"
+    host: forge
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: gpu-miner-forge-gpu3
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: gpu-miner-forge-gpu3
+        gpu-type: nvidia
+        gpu-id: "1"
+        host: forge
+    spec:
+      nodeName: forge
+      hostNetwork: true
+      priorityClassName: mining-low
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+      - name: lolminer
+        image: docker.io/swamp7/lolminer:latest
+        imagePullPolicy: IfNotPresent
+        command:
+          - "/nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a/bin/lolMiner"
+        args:
+          - "--algo=CR29"
+          - "--pool=xtm-c29-us.kryptex.network:8040"
+          - "--user=krxXVNVMM7.forge-n1"
+          - "--pass=x"
+          - "--tls=1"
+          - "--pool=xtm-c29-eu.kryptex.network:8040"
+          - "--user=krxXVNVMM7.forge-n1"
+          - "--pass=x"
+          - "--tls=1"
+          - "--devices=3"
+          - "--cclk=2350"
+          - "--moff=1100"
+          - "--pl=90"
+          - "--apiport=4069"
+        env:
+          - name: LD_LIBRARY_PATH
+            value: "/run/opengl-driver/lib"
+          - name: OCL_ICD_VENDORS
+            value: "/etc/OpenCL/vendors"
+        ports:
+        - containerPort: 4069
+          name: api
+          protocol: TCP
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: dri
+          mountPath: /dev/dri
+        - name: opengl
+          mountPath: /run/opengl-driver/lib
+          readOnly: true
+        - name: nix-store
+          mountPath: /nix/store
+          readOnly: true
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+            nvidia.com/gpu: "1"
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+            nvidia.com/gpu: "1"
+      volumes:
+      - name: dri
+        hostPath:
+          path: /dev/dri
+      - name: opengl
+        hostPath:
+          path: /run/opengl-driver/lib
+      - name: nix-store
+        hostPath:
+          path: /nix/store
