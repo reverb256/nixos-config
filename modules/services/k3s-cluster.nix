@@ -280,7 +280,7 @@ in {
           # briefly unavailable. These intervals ensure the kubelet retries and
           # recovers within the grace period instead of timing out.
           "--kubelet-arg=node-status-update-frequency=10s"
-          "--kubelet-arg=node-status-report-frequency=30s"
+          # node-status-report-frequency was removed in kubelet 1.36
         ]
         ++ lib.optionals (isServer && cfg.secretsEncryptionKeyFile != null) [
           "--kube-apiserver-arg=encryption-provider-config=${cfg.dataDir}/server/cred/encryption-config.yaml"
