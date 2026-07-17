@@ -183,15 +183,18 @@ in {
           ];
           machines = builtins.filter (m: m.hostName != currentHost) allMachines;
           formatMachine = m: with builtins;
-            concatStringsSep " " [
-              ("${m.protocol}://" + "${m.sshUser}@${m.hostName}")
-              (concatStringsSep " " m.systems)
-              (if m.sshKey != null then m.sshKey else "-")
-              (toString m.maxJobs)
-              (toString m.speedFactor)
-              (concatStringsSep "," m.supportedFeatures)
-              (concatStringsSep "," m.mandatoryFeatures)
-            ];
+            let
+              base = [
+                ("${m.protocol}://" + "${m.sshUser}@${m.hostName}")
+                (if m.sshKey != null then m.sshKey else "-")
+                (toString m.maxJobs)
+                (toString m.speedFactor)
+                (concatStringsSep "," m.supportedFeatures)
+                (concatStringsSep "," m.mandatoryFeatures)
+              ];
+              line = system: concatStringsSep " " ([system] ++ base);
+            in
+              concatStringsSep "\n" (map line m.systems);
         in
           lib.concatStringsSep "\n" (map formatMachine machines) + "\n";
       };
