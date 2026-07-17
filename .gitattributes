@@ -1,0 +1,14 @@
+# Normalise line endings so Nix flakes (which reject CRLF) evaluate on Windows.
+# Without this, cloning on Windows with core.autocrlf=true rewrites every
+# .nix/.ps1 to CRLF and `nix flake check` fails before any logic runs.
+* text=auto eol=lf
+
+*.nix text eol=lf
+*.ps1 text eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.toml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+flake.lock text eol=lf
