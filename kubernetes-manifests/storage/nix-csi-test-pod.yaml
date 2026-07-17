@@ -17,25 +17,9 @@ spec:
     runAsNonRoot: true
     runAsUser: 1000
     fsGroup: 1000
-    seccompProfile:
-      type: RuntimeDefault
   containers:
   - name: test
     image: alpine:3.19
-    securityContext:
-      runAsNonRoot: true
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop: ["ALL"]
-      seccompProfile:
-        type: RuntimeDefault
-    resources:
-      limits:
-        cpu: "100m"
-        memory: "128Mi"
-      requests:
-        cpu: "50m"
-        memory: "64Mi"
     command: ["/bin/sh", "-c"]
     args:
     - |
@@ -45,34 +29,54 @@ spec:
       echo ""
       echo "Testing read-only access..."
       if touch /nix/store/test 2>&1 | grep -q "Read-only"; then
-        echo "Read-only mount verified"
+        echo "✅ Read-only mount verified"
       else
-        echo "Read-only mount FAILED"
+        echo "❌ Read-only mount FAILED"
         exit 1
       fi
       echo ""
-      echo "Testing /nix/store existence..."
-      if [ -d /nix/store ]; then
-        echo "/nix/store exists"
-        echo "Store paths: $(ls /nix/store | wc -l)"
+      echo "Testing package access..."
+      if [ -d "/nix/store" ]; then
+        echo "✅ /nix/store accessible"
+        echo "Store entries: $(ls /nix/store | wc -l)"
       else
-        echo "/nix/store NOT found"
+        echo "❌ /nix/store not accessible"
         exit 1
       fi
       echo ""
       echo "=== All tests passed ==="
+      echo "Sleeping for 1 hour to allow inspection..."
+      sleep 3600
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: false  # Need writable /tmp for shell operations
+      capabilities:
+        drop:
+        - ALL
     volumeMounts:
-    - mountPath: /nix/store
-      name: nix-store
+    - name: nix-store
+      mountPath: /nix/store
       readOnly: true
+    - name: tmp
+      mountPath: /tmp
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+      limits:
+        cpu: "100m"
+        memory: "128Mi"
   volumes:
   - name: nix-store
-    ephemeral:
-      volumeClaimTemplate:
-        spec:
-          accessModes: ["ReadOnlyMany"]
-          resources:
-            requests:
-              storage: 1Gi
-          storageClassName: nix-store
+    csi:
+      driver: nix.csi.store
+      readOnly: true
+      volumeAttributes:
+        storePath: /nix/store
+  - name: tmp
+    emptyDir:
+      sizeLimit: 100Mi
   restartPolicy: Never
+  # Schedule on nexus where nix-csi driver is confirmed running
+  nodeSelector:
+    kubernetes.io/hostname: nexus

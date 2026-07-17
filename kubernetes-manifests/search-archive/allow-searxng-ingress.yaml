@@ -1,0 +1,38 @@
+# Ingress NetworkPolicy for SearXNG pods
+# Allows traffic from AI Gateway and DNS responses from CoreDNS
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-searxng-ingress
+  namespace: search
+spec:
+  podSelector:
+    matchLabels:
+      app: searxng
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow traffic from AI Gateway
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ai-inference
+      podSelector:
+        matchLabels:
+          app: ai-inference-gateway
+    ports:
+    - port: 8080
+      protocol: TCP
+  # Allow DNS responses from CoreDNS (kube-system namespace)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: coredns
+    ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP

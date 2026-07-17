@@ -1,0 +1,116 @@
+# MLflow Tracking Server and Model Registry
+# Stores experiments, metrics, and model artifacts for Qwen3.5 and other models
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mlflow-storage
+  namespace: ai-inference
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: local-path
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+  namespace: ai-inference
+  labels:
+    app: mlflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow
+  template:
+    metadata:
+      labels:
+        app: mlflow
+    spec:
+      containers:
+      - name: mlflow
+        image: ghcr.io/mlflow/mlflow:v2.18.0
+        command:
+          - mlflow
+          - server
+          - --backend-store-uri
+          - sqlite:///mlflow/mlflow.db
+          - --default-artifact-root
+          - /mlflow/artifacts
+          - --host
+          - 0.0.0.0
+          - --port
+          - "5000"
+        ports:
+        - containerPort: 5000
+          name: http
+        env:
+        - name: MLFLOW_TRACKING_URI
+          value: http://0.0.0.0:5000
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        volumeMounts:
+        - name: mlflow-data
+          mountPath: /mlflow
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: mlflow-data
+        persistentVolumeClaim:
+          claimName: mlflow-storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow
+  namespace: ai-inference
+  labels:
+    app: mlflow
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5000
+    targetPort: 5000
+    name: http
+  selector:
+    app: mlflow
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mlflow-ingress
+  namespace: ai-inference
+  annotations:
+    kubernetes.io/ingress.class: caddy
+    caddy.tls: "true"
+spec:
+  rules:
+  - host: mlflow.cluster.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mlflow
+            port:
+              number: 5000

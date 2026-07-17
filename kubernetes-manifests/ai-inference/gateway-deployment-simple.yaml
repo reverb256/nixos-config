@@ -1,0 +1,116 @@
+# AI Inference Gateway - Simplified NixOS Integration
+# Uses host Python environment for maximum compatibility
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-gateway
+  namespace: ai-inference
+  labels:
+    app: ai-gateway
+spec:
+  type: NodePort
+  ports:
+  - port: 8080
+    targetPort: 8080
+    nodePort: 30880
+    name: http
+  selector:
+    app: ai-gateway
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-gateway
+  namespace: ai-inference
+  labels:
+    app: ai-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-gateway
+  template:
+    metadata:
+      labels:
+        app: ai-gateway
+    spec:
+      nodeName: zephyr  # Run on Zephyr where gateway is configured
+      hostNetwork: true  # Use host network for simplicity
+      containers:
+      - name: gateway
+        image: alpine:3.19
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            # Mount NixOS store and run gateway
+            mount -t proc proc proc
+            mount -t sysfs sys sys
+            mount --bind /nix/store /nix/store
+            mount --bind /run /run
+
+            # Find and use the Python environment
+            PYTHON_ENV=$(find /nix/store -maxdepth 1 -name "python3.*" -type d | head -1)
+            export PATH=$PYTHON_ENV/bin:/run/current-system/sw/bin
+            export PYTHONPATH=$PYTHON_ENV/lib/python*/site-packages
+            export LD_LIBRARY_PATH=/run/opengl-driver/lib
+
+            # Start the gateway
+            cd /app
+            exec $PYTHON_ENV/bin/uvicorn ai_inference_gateway.main:app \
+              --host 0.0.0.0 \
+              --port 8080 \
+              --workers 1
+        envFrom:
+        - configMapRef:
+            name: gateway-config
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        volumeMounts:
+        - name: nix-store
+          mountPath: /nix/store
+          readOnly: true
+        - name: run
+          mountPath: /run
+        - name: app-src
+          mountPath: /app
+          readOnly: true
+        - name: model-cache
+          mountPath: /var/cache/ai-inference
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 5
+        securityContext:
+          privileged: true
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+      volumes:
+      - name: nix-store
+        hostPath:
+          path: /nix/store
+      - name: run
+        hostPath:
+          path: /run
+      - name: app-src
+        hostPath:
+          path: /etc/nixos/modules/services/ai-inference/ai_inference_gateway
+      - name: model-cache
+        hostPath:
+          path: /var/cache/ai-inference

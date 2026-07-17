@@ -1,0 +1,133 @@
+{
+  "groupId": "group3-dead-code-removal",
+  "testedAt": "2026-03-31T00:00:00Z",
+  "isolation": {
+    "workingDirectory": "/etc/nixos",
+    "testTool": "bash",
+    "missionDir": "/home/j_kro/.factory/missions/7d1cd024-ec55-4bd0-b425-9e1e351b3a84",
+    "evidenceDirectory": "/home/j_kro/.factory/missions/7d1cd024-ec55-4bd0-b425-9e1e351b3a84/evidence/nixos-quick-wins/group3-dead-code-removal"
+  },
+  "toolsUsed": ["bash"],
+  "assertions": [
+    {
+      "id": "VAL-NIX-200",
+      "title": "common-host.nix no longer exists",
+      "status": "fail",
+      "steps": [
+        { "action": "test -f /etc/nixos/modules/common-host.nix", "expected": "File does not exist", "observed": "File exists at /etc/nixos/modules/common-host.nix" }
+      ],
+      "evidence": {
+        "commandOutput": "Exit code: 0\nERROR: File exists",
+        "evidenceFiles": ["VAL-NIX-200-test.sh"]
+      },
+      "issues": "File /etc/nixos/modules/common-host.nix still exists - dead code not removed"
+    },
+    {
+      "id": "VAL-NIX-201",
+      "title": "modules/default.nix has no duplicate imports",
+      "status": "fail",
+      "steps": [
+        { "action": "grep -oP './[^\\s#\"]+\\.nix' /etc/nixos/modules/default.nix | sort | uniq -d", "expected": "No output (no duplicates)", "observed": "Duplicate imports found" }
+      ],
+      "evidence": {
+        "commandOutput": "FAIL: Duplicate imports found:\n./hardware/corsair.nix\n./hardware/gpu-compute.nix\n./shell/fish.nix\n./system/home-manager.nix",
+        "evidenceFiles": ["VAL-NIX-201-test.sh"]
+      },
+      "issues": "Found 4 duplicate imports: corsair.nix, gpu-compute.nix, fish.nix, home-manager.nix"
+    },
+    {
+      "id": "VAL-NIX-202",
+      "title": "modules/default.nix has no commented-out imports",
+      "status": "fail",
+      "steps": [
+        { "action": "grep -c '^[\\s]*#[\\s]*\\./' /etc/nixos/modules/default.nix", "expected": "Count 0", "observed": "Count 9" }
+      ],
+      "evidence": {
+        "commandOutput": "Commented-out imports count: 9\nFAIL: Found 9 commented-out imports",
+        "evidenceFiles": ["VAL-NIX-202-test.sh"]
+      },
+      "issues": "Found 9 commented-out imports - cleanup needed"
+    },
+    {
+      "id": "VAL-NIX-203",
+      "title": "No .backup/.disabled files in modules/",
+      "status": "fail",
+      "steps": [
+        { "action": "find /etc/nixos/modules -name '*.backup' -o -name '*.disabled' -o -name '*.bak' -o -name '*.old'", "expected": "No output", "observed": "Found backup/disabled files" }
+      ],
+      "evidence": {
+        "commandOutput": "FAIL: Found backup/disabled files:\n/etc/nixos/modules/services/unbound-cluster.nix.backup.disabled\n/etc/nixos/modules/services/unbound-cluster.nix.disabled\n/etc/nixos/modules/system/compute-workload-monitor.nix.backup",
+        "evidenceFiles": ["VAL-NIX-203-test.sh"]
+      },
+      "issues": "Found 3 backup/disabled files that should be cleaned up"
+    },
+    {
+      "id": "VAL-NIX-204",
+      "title": "colmena.nix and flake.nix use identical commonModules",
+      "status": "pass",
+      "steps": [
+        { "action": "Check both files import from ./common-modules-list.nix", "expected": "Both files import from shared source", "observed": "Both files import from ./common-modules-list.nix" }
+      ],
+      "evidence": {
+        "commandOutput": "Both files import from ./common-modules-list.nix - PASS",
+        "evidenceFiles": ["VAL-NIX-204-test.sh"]
+      },
+      "issues": null
+    },
+    {
+      "id": "VAL-NIX-205",
+      "title": "colmena.nix includes nixpkgs-xr module",
+      "status": "fail",
+      "steps": [
+        { "action": "grep -q 'nixpkgs-xr' /etc/nixos/colmena.nix", "expected": "Found nixpkgs-xr reference", "observed": "No nixpkgs-xr reference found" }
+      ],
+      "evidence": {
+        "commandOutput": "FAIL: nixpkgs-xr not found in colmena.nix",
+        "evidenceFiles": ["VAL-NIX-205-test.sh"]
+      },
+      "issues": "nixpkgs-xr module not found in colmena.nix - modules imported through common-modules-list.nix"
+    },
+    {
+      "id": "VAL-NIX-206",
+      "title": "colmena.nix includes niri.nixosModules",
+      "status": "fail",
+      "steps": [
+        { "action": "grep -q 'niri.nixosModules' /etc/nixos/colmena.nix", "expected": "Found niri.nixosModules reference", "observed": "No niri.nixosModules reference found" }
+      ],
+      "evidence": {
+        "commandOutput": "FAIL: niri.nixosModules not found in colmena.nix",
+        "evidenceFiles": ["VAL-NIX-206-test.sh"]
+      },
+      "issues": "niri.nixosModules not found in colmena.nix - modules imported through common-modules-list.nix"
+    },
+    {
+      "id": "VAL-NIX-207",
+      "title": "No host imports common-host.nix",
+      "status": "pass",
+      "steps": [
+        { "action": "grep -r 'common-host\\.nix' /etc/nixos/hosts/", "expected": "No output", "observed": "No output found" }
+      ],
+      "evidence": {
+        "commandOutput": "PASS: No common-host.nix imports found in hosts/",
+        "evidenceFiles": ["VAL-NIX-207-test.sh"]
+      },
+      "issues": null
+    }
+  ],
+  "frictions": [
+    {
+      "description": "Common modules are imported through shared file (common-modules-list.nix) rather than direct references in colmena.nix",
+      "resolved": false,
+      "resolution": "Design choice - modules properly centralized through shared file",
+      "affectedAssertions": ["VAL-NIX-205", "VAL-NIX-206"]
+    },
+    {
+      "description": "Duplicate imports exist in modules/default.nix but may be intentional due to module reorganization",
+      "resolved": false,
+      "resolution": "Requires investigation if these are actual duplicates or different module paths",
+      "affectedAssertions": ["VAL-NIX-201"]
+    }
+  ],
+  "blockers": [],
+  "summary": "Tested 8 dead code removal assertions: 2 passed, 6 failed. Critical issues: common-host.nix still exists, duplicate/commented imports present, backup files remain. Positive: commonModules properly synchronized between flake.nix and colmena.nix, no host imports common-host.nix."
+}

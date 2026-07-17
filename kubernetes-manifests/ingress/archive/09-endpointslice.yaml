@@ -1,0 +1,28 @@
+# EndpointSlice for external Prometheus scraping
+# Allows systemd Prometheus on Zephyr to scrape Caddy metrics
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: caddy-metrics-external
+  namespace: ingress-system
+  labels:
+    app.kubernetes.io/name: caddy-ingress
+    kubernetes.io/service-name: caddy-metrics
+addressType: IPv4
+endpoints:
+  # Nexus node
+  - addresses:
+    - 10.1.1.120
+    conditions:
+      ready: true
+    nodeName: nexus
+  # Sentry node
+  - addresses:
+    - 10.1.1.140
+    conditions:
+      ready: true
+    nodeName: sentry
+ports:
+  - name: admin
+    protocol: TCP
+    port: 2019

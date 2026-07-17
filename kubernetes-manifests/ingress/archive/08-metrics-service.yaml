@@ -1,0 +1,28 @@
+# Caddy Metrics Service for Prometheus scraping
+# Exposes the admin API (port 2019) for Prometheus metrics
+apiVersion: v1
+kind: Service
+metadata:
+  name: caddy-metrics
+  namespace: ingress-system
+  labels:
+    app.kubernetes.io/name: caddy-ingress
+    app.kubernetes.io/component: ingress
+  annotations:
+    # Prometheus scrape annotations
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "2019"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: caddy-ingress
+    app.kubernetes.io/component: ingress
+  ports:
+  - name: admin
+    port: 2019
+    targetPort: admin
+    protocol: TCP
+
+# Note: PodMonitor requires Prometheus Operator CRDs to be installed
+# The service annotations above allow standard Prometheus to scrape metrics

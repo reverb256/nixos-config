@@ -1,0 +1,77 @@
+# Volcano Scheduler Configuration with Preemption Enabled
+# This configuration enables priority-based preemption for GPU workloads
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: volcano-scheduler-configmap
+  namespace: volcano-system
+data:
+  volcano-scheduler.conf: |
+    # Actions: enqueue, allocate, preempt, backfill
+    # PREEMPTION is now enabled!
+    actions: "enqueue, allocate, preempt, backfill"
+
+    tiers:
+    # Tier 1: Priority-based scheduling with preemption
+    - plugins:
+      - name: priority
+      - name: gang
+        enablePreemptable: true           # ENABLED for preemption
+        timeoutSeconds: 60
+      - name: conformance
+    # Tier 2: Resource allocation with preemption
+    - plugins:
+      - name: overcommit
+      - name: drf
+        enablePreemptable: true           # ENABLED for preemption
+      - name: predicates
+      - name: proportion
+      - name: nodeorder
+      - name: binpack
+
+    # Preemption configuration
+    preemption:
+      enable: true                        # Enable preemption globally
+      # Preemption based on priority class
+      # Pods with higher priority will preempt lower priority pods
+      # We use:
+      #   - gaming-high (1000) for gaming placeholder
+      #   - low-priority-mining (100) for mining workloads
+
+    # Queue configuration
+    queues:
+      - name: default
+        weight: 1
+        # Default queue for general workloads
+      - name: mining-queue
+        weight: 1
+        # Queue for mining workloads (lower priority)
+        reclaimable: true                   # Allow this queue's resources to be preempted
+      - name: gaming-queue
+        weight: 100                        # Much higher weight for gaming
+        # Queue for gaming workloads (highest priority)
+        # Can preempt resources from mining-queue
+---
+# Volcano Queue for Mining Workloads
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: mining-queue
+  namespace: volcano-system
+spec:
+  weight: 1
+  reclaimable: true                       # Allow this queue to be preempted
+---
+# Volcano Queue for Gaming Workloads
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: gaming-queue
+  namespace: volcano-system
+spec:
+  weight: 100                             # Much higher priority
+  # This queue can preempt mining-queue resources
+---
+# NOTE: After applying this config, restart the Volcano scheduler:
+# kubectl rollout restart deployment/volcano-scheduler -n volcano-system

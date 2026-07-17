@@ -1,0 +1,50 @@
+# Caddy Ingress Controller — Service (NodePort)
+# Maps NodePort 30080→80 (HTTP) and 30443→443 (HTTPS)
+# externalTrafficPolicy: Local preserves client source IP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: caddy-ingress-controller
+  namespace: ingress-system
+  labels:
+    app.kubernetes.io/name: caddy-ingress-controller
+    app.kubernetes.io/component: controller
+spec:
+  type: NodePort
+  externalTrafficPolicy: Local
+  internalTrafficPolicy: Cluster
+  selector:
+    app.kubernetes.io/name: caddy-ingress-controller
+    app.kubernetes.io/component: controller
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    nodePort: 30080
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: https
+    nodePort: 30443
+    protocol: TCP
+---
+# Metrics service for Prometheus scraping (port 9765)
+apiVersion: v1
+kind: Service
+metadata:
+  name: caddy-ingress-controller-metrics
+  namespace: ingress-system
+  labels:
+    app.kubernetes.io/name: caddy-ingress-controller
+    app.kubernetes.io/component: controller
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: caddy-ingress-controller
+    app.kubernetes.io/component: controller
+  ports:
+  - name: metrics
+    port: 9765
+    targetPort: metrics
+    protocol: TCP

@@ -1,0 +1,116 @@
+# GPU Miner - gpu-miner-forge-amd-1 (amd)
+# CSI-based: uses nix-csi for lolMiner binary + host mounts for GPU drivers
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-forge-amd-1
+  namespace: mining
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: gpu-miner-forge-amd-1
+  template:
+    metadata:
+      labels:
+        app: gpu-miner-forge-amd-1
+
+    spec:
+      nodeName: forge
+      hostNetwork: true
+      automountServiceAccountToken: false
+      serviceAccountName: gpu-miner-sa
+      priorityClassName: mining-low
+
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: lolminer
+        image: gcr.io/distroless/static-debian12:latest
+        command: ["/nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a/bin/.lolMiner-wrapped"]
+        args:
+        - "--algo=CR29"
+        - "--pool=xtm-c29-us.kryptex.network:8040"
+        - "--user=krxXVNVMM7.forge-a1"
+        - "--pass=x"
+        - "--tls=1"
+        - "--pool=xtm-c29-eu.kryptex.network:8040"
+        - "--user=krxXVNVMM7.forge-a1"
+        - "--pass=x"
+        - "--tls=1"
+        - "--devices=1"
+        - "--apiport=4071"
+
+        env:
+        - name: LD_LIBRARY_PATH
+          value: "/nix/store/jms7zxzm7w1whczwny5m3gkgdjghmi2r-glibc-2.42-51/lib:/run/opengl-driver/lib"
+        - name: OCL_ICD_VENDORS
+          value: "/etc/OpenCL/vendors/"
+        ports:
+        - containerPort: 4071
+          name: api
+          protocol: TCP
+        livenessProbe:
+          tcpSocket:
+            port: 4070
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          tcpSocket:
+            port: 4071
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: 512Mi
+            cpu: 500m
+          limits:
+            memory: 2Gi
+            cpu: 2
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: nix
+          mountPath: /nix
+          subPath: nix
+        - name: opengl-driver
+          mountPath: /run/opengl-driver/lib
+        - name: glibc-lib
+          mountPath: /nix/store/jms7zxzm7w1whczwny5m3gkgdjghmi2r-glibc-2.42-51/lib
+        - name: dri
+          mountPath: /dev/dri
+        - name: kfd
+          mountPath: /dev/kfd
+        - name: opencl-icd
+          mountPath: /etc/OpenCL/vendors
+      volumes:
+      - name: nix
+        csi:
+          driver: nixkube
+          volumeAttributes:
+            x86_64-linux: /nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a
+      - name: opengl-driver
+        hostPath:
+          path: /run/opengl-driver/lib
+      - name: glibc-lib
+        hostPath:
+          path: /nix/store/jms7zxzm7w1whczwny5m3gkgdjghmi2r-glibc-2.42-51/lib
+          type: Directory
+          type: DirectoryOrCreate
+      - name: dri
+        hostPath:
+          path: /dev/dri
+          type: Directory
+      - name: kfd
+        hostPath:
+          path: /dev/kfd
+          type: CharDevice
+      - name: opencl-icd
+        hostPath:
+          path: /nix/store/6yvx83sa6iwhr6xnjjlfjg56jnki5mdn-clr-7.2.0-icd/etc/OpenCL/vendors
+          type: Directory

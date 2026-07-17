@@ -1,0 +1,74 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kube-apiserver-health
+  namespace: monitoring
+  labels:
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+    - name: kube-apiserver
+      interval: 30s
+      rules:
+        # Alert if API server is down
+        - alert: KubeAPIServerDown
+          expr: up{job="kube-apiserver-static"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            component: control-plane
+          annotations:
+            summary: "Kubernetes API server is down"
+            description: "Kubernetes API server on {{ $labels.instance }} has been down for more than 1 minute."
+
+        # Alert on API server restart (detected by process start time change)
+        - alert: KubeAPIServerRestarted
+          expr: |
+            time() - process_start_time_seconds{job="kube-apiserver-static"} < 300
+          for: 0m
+          labels:
+            severity: warning
+            component: control-plane
+          annotations:
+            summary: "Kubernetes API server restarted"
+            description: "Kubernetes API server on {{ $labels.instance }} restarted less than 5 minutes ago (uptime: {{ $value | humanizeDuration }})."
+
+        # API server high request latency
+        - alert: KubeAPIServerLatencyHigh
+          expr: |
+            histogram_quantile(0.99, sum(rate(apiserver_request_duration_seconds_bucket{job="kube-apiserver-static"}[5m])) by (le, verb))
+          for: 10m
+          labels:
+            severity: warning
+            component: control-plane
+          annotations:
+            summary: "Kubernetes API server 99th percentile latency high"
+            description: "Kubernetes API server 99th percentile latency {{ $value | humanizeDuration }} for verb {{ $labels.verb }}."
+
+        # API server error rate high
+        - alert: KubeAPIServerErrorsHigh
+          expr: |
+            sum(rate(apiserver_request_total{job="kube-apiserver-static",code=~"5.."}[5m]))
+            /
+            sum(rate(apiserver_request_total{job="kube-apiserver-static"}[5m])) > 0.05
+          for: 10m
+          labels:
+            severity: warning
+            component: control-plane
+          annotations:
+            summary: "Kubernetes API server error rate high"
+            description: "{{ $value | humanizePercentage }} of API server requests are failing with 5xx errors."
+
+        # etcd request latency high
+        - alert: KubeAPIServerEtcdLatencyHigh
+          expr: |
+            histogram_quantile(0.99, sum(rate(apiserver_storage_db_request_duration_seconds_bucket{job="kube-apiserver-static"}[5m])) by (le, operation_name))
+          for: 10m
+          labels:
+            severity: warning
+            component: control-plane
+          annotations:
+            summary: "Kubernetes API server etcd latency high"
+            description: "Kubernetes API server 99th percentile etcd latency {{ $value | humanizeDuration }} for operation {{ $labels.operation_name }}."

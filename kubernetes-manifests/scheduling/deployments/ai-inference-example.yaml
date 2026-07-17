@@ -27,9 +27,7 @@ spec:
       priorityClassName: ai-inference-high
       containers:
       - name: ai-inference
-        # Example only — uses RFC 2606 reserved `example.invalid` so this
-        # file cannot accidentally be applied without editing the image ref.
-        image: example.invalid/ai-inference:v1.0.0
+        image: ai-inference:latest
         resources:
           requests:
             nvidia.com/gpu: "1"
@@ -70,8 +68,7 @@ spec:
       priorityClassName: ai-inference-critical
       containers:
       - name: training
-        # Example only — uses RFC 2606 reserved `example.invalid` (see above).
-        image: example.invalid/distributed-training:v1.0.0
+        image: distributed-training:latest
         resources:
           requests:
             nvidia.com/gpu: "1"

@@ -1,185 +1,495 @@
+# Sentry Host Configuration - Monitoring Server
+# 10.1.1.140 - 16 cores, RX 5600 XT
+# Features: Gaming only (no VR), CPU mining, ROCm
+#
+# Module imports: Gaming, mining, monitoring, opencode are already imported
+# via commonModules in flake.nix (./modules/default.nix)
+# Gaming module is used here for Plasma desktop gaming optimizations
 {
-  config,
   lib,
   pkgs,
   inputs,
   ...
-}: {
+}:
+{
   imports = [
-    inputs.disko.nixosModules.disko
+    # Monitoring configuration
     ./monitoring.nix
-    ./firewall.nix
-    ./hardware.nix
-    ./desktop.nix
-    ./services.nix
+    # Hardware configuration (generated)
     ./hardware-configuration.nix
-    ./disko.nix
-    ./preservation.nix
-    inputs.noctalia.nixosModules.default
 
+    # All other modules (desktop, gaming, networking, services, etc.)
     ../../modules/default.nix
 
+    # AMD GPU Wayland optimizations (includes nvtopPackages.full)
+    ../../modules/hardware/amdgpu-wayland.nix
     ../../modules/hardware/rgb-control.nix
 
+    # Podman support
     ../../modules/services/podman-support.nix
 
+    # Kubernetes
     ../../modules/services/k3s-cluster.nix
+    # Keepalived VIP for HA API server access
     ../../modules/services/keepalived-vip.nix
-    ../../modules/services/sshfs-projects-mount.nix
-    inputs.nix-mineral.nixosModules.nix-mineral
   ];
 
-  # Enable userspace OOM killer (understands zswap compression)
-  services.systemd-oomd.enable = true;
-
-  stylix = {
-    base16Scheme = "${pkgs.base16-schemes}/share/themes/dracula.yaml";
-    image = ../../modules/desktop/wallpapers/dracula-bg.png;
-  };
-
+  # ============================================================================
+  # HOST IDENTIFICATION
+  # ============================================================================
+  # Centralized cluster networking (search domains, DNS, firewall basics)
   clusterNetworking = {
     enable = true;
     hostName = "sentry";
-    ipAddress = config.networking.cluster.hosts.sentry.ip;
-    interfaceName = "eth0";
+    ipAddress = "10.1.1.140";
+    interfaceName = "enp7s0";
     wireless.enable = false;
-    unbound.enable = true;
-    unbound.listenAddress = config.networking.cluster.hosts.sentry.ip;
+    unbound.listenAddress = "10.1.1.140";
   };
 
-  # Block Hoyoverse telemetry domains (Genshin Impact, Honkai Star Rail, Zenless Zone Zero)
-  networking.hoyoverse-telemetry-block.enable = true;
+  # Disable flake-lock-sync (nixos-shared mount not available)
+  services.flake-lock-sync.enable = lib.mkForce false;
 
-  # Declarative static IP for eth0 — NM connection persisted across rebuilds
-  environment.etc."NetworkManager/system-connections/static-eth0.nmconnection" = {
-    mode = "0600";
-    text = ''
-      [connection]
-      id=static-eth0
-      type=ethernet
-      interface-name=eth0
+  # Directly disable the systemd timer (blocking rebuilds)
+  systemd.timers.flake-lock-sync.enable = false;
 
-      [ethernet]
-
-      [ipv4]
-      method=manual
-      addresses=${config.networking.cluster.hosts.sentry.ip}/24
-      gateway=10.1.1.1
-      dns=127.0.0.1
-
-      [ipv6]
-      method=auto
-    '';
-  };
-
-  services.flake-lock-sync.enable = true;
-  systemd.timers.flake-lock-sync.enable = true;
-
-  # Kanban automation — execute ready tasks every 15 minutes
-  systemd.services.kanban-execute = {
-    description = "MapleSpike Kanban Task Executor";
-    path = [ pkgs.bash pkgs.jq ];
-    script = ''
-      exec /home/j_kro/projects/maplespike/scripts/kanban-execute.sh
-    '';
-    serviceConfig = {
-      User = "j_kro";
-      Group = "users";
-      Type = "oneshot";
-      WorkingDirectory = "/home/j_kro/projects/maplespike";
-    };
-  };
-  systemd.timers.kanban-execute = {
-    description = "Run kanban executor every 15 minutes";
-    wantedBy = [ "timers.target" ];
-    timerConfig = {
-      OnCalendar = "minute:0/15";
-      Persistent = true;
+  # Populate /etc/hosts from central cluster configuration
+  networking = {
+    # Kubernetes worker firewall rules
+    firewall = {
+      allowedTCPPorts = lib.mkOptionDefault [
+        22
+        10250
+        3100
+        3900
+        3901
+        9100 # Prometheus node-exporter
+      ]; # SSH + Kubelet API + Loki + Garage (merges with cluster defaults)
+      allowedTCPPortRanges = lib.mkOptionDefault [
+        {
+          from = 30000;
+          to = 32767;
+        }
+      ];
+      allowedUDPPorts = lib.mkOptionDefault [
+        8472 # VXLAN (Flannel or Calico)
+      ];
+      # Open Loki port on main interface for cluster access (module only opens on tailscale0)
+      interfaces."enp7s0".allowedTCPPorts = [ 3100 ];
     };
   };
 
+  # ============================================================================
+  # NODE PROFILE - Platform-level defaults
+  # ============================================================================
+  # This profile bundles role profiles, Kubernetes config, hardware profiles,
+  # and networking configuration. Eliminates ~100 lines of duplication.
   profiles.node.sentry-monitoring.enable = true;
 
-  services.ai-inference.enable = lib.mkForce false;
+  # Use llama-cpp backend instead of ZAI (sentry doesn't have ZAI API key)
+  services.ai-inference.backend.type = "llama-cpp";
 
-  # ═══════════════════════════════════════════════════════════════════
-  # STORAGE — Managed by disko.nix
-  # System SSD: Micron 1100 SATA 256GB (sdb, /dev/disk/by-id/ata-Micron_1100_SATA_256GB_18361E518AB4)
-  # Storage HDD: ST1000DM010 1TB (sda, /dev/disk/by-id/ata-ST1000DM010-2EP102_ZN1AMQLC)
-  # ═══════════════════════════════════════════════════════════════════
-  # Subvolumes on SSD: @root (/), @persistent (/persistent), @nix (/nix)
-  # Subvolumes on HDD: @home (/home)
-  # /storage is manually mounted in hardware-configuration.nix
-  # /var is on SSD (default)
-
-  boot.loader.timeout = lib.mkDefault 5;
-
-  services.sshfs-projects-mount.enable = true;
-
-  services.nfs-cluster-mounts = {
+  # ============================================================================
+  # GPU COMPUTE - ROCm/Vulkan support for AI inference
+  # ============================================================================
+  hardware.gpu-compute = {
     enable = true;
-    mountHermes = false;
-    mountPi = false;
+    # autoDetect removed - not needed
+    # ROCm for AMD-specific compute (5600XT)
+    rocm.enable = true;
+    # Vulkan as universal backend
+    vulkan.enable = true;
   };
 
-  # System hardening
-  nix-mineral = {
-    enable = true;
-    preset = ["compatibility"];
-    settings.etc.kicksecure-module-blacklist = false;
-    filesystems.normal = {
-      "/etc".enable = lib.mkForce false;
-      "/home".enable = lib.mkForce false;
-      "/root".enable = lib.mkForce false;
-      "/srv".enable = lib.mkForce false;
-      "/tmp".enable = lib.mkForce false;
-      "/var".enable = lib.mkForce false;
-      "/var/lib".enable = lib.mkForce false;
-      "/var/log".enable = lib.mkForce false;
-      "/var/tmp".enable = lib.mkForce false;
+  # ============================================================================
+  # SERVICES - All service configurations
+  # ============================================================================
+  services = {
+    # KUBERNETES - k3s control plane (joins existing cluster)
+    # Joins nexus (bootstrap) via VIP for HA
+    k3s-cluster = {
+      enable = true;
+      role = "server";
+      nodeName = "sentry";
+      serverAddr = "https://10.1.1.100:6443";
+      tokenFile = "/run/agenix/k3s-cluster-token";
+      nodeIP = "10.1.1.140";
+      calico.enable = true;
+    };
+
+    # Auto-apply K8s manifests on boot (control-plane node)
+    k8s-manifest-autoapply.enable = true;
+
+    # Keepalived VIP for HA API server access
+    keepalived-vip = {
+      enable = true;
+      vip = "10.1.1.100";
+      interface = "enp7s0";
+      priority = 90;
+    };
+
+    # Host Dashboard - Web interface for cluster host status
+    host-dashboard = {
+      enable = true;
+      role = "control-plane + monitoring";
+      port = 8090;
+      prometheusUrl = "http://127.0.0.1:9090";
+      featuredServices = [
+        {
+          name = "Prometheus";
+          url = "http://127.0.0.1:9090";
+        }
+        {
+          name = "Grafana";
+          url = "http://127.0.0.1:3000";
+        }
+        {
+          name = "Loki";
+          url = "http://127.0.0.1:3100";
+        }
+      ];
+      services = [
+        {
+          name = "kubelet";
+          active = true;
+        }
+        {
+          name = "containerd";
+          active = true;
+        }
+        {
+          name = "cfssl";
+          active = true;
+        }
+        {
+          name = "keepalived";
+          active = true;
+        }
+        {
+          name = "xmrig";
+          active = true;
+        }
+      ];
     };
   };
 
-  systemd.services.nfs-idmapd.serviceConfig.SupplementaryGroups = ["proc"];
-  systemd.tmpfiles.rules = ["d /var/lib/nfs/rpc_pipefs/nfs 0755 root root -"];
+  # ============================================================================
+  # HARDWARE PROFILES
+  # ============================================================================
+  # Base profiles provided by node-profiles.sentry-monitoring:
+  # - amd.zen, amdgpu.enable, amdgpu.wayland, monitoring.enable
+  #
+  # Sentry-specific hardware additions:
+  hardware = {
+    # BTRFS compression and deduplication
+    btrfs-compression.enable = true;
 
-  environment.etc.gitconfig.source = lib.mkForce (pkgs.writeText "gitconfig" ''
-    [user]
-      name = Jeremy Kroeker
-      email = jkroeker@proton.me
-  '');
+    # Hardware monitoring extras (not covered by profile)
+    monitoring = {
+      autoDetect = false; # Disabled: sensors-detect path issues
+      fanControl = false; # BIOS fan control for now
+    };
 
-  system.stateVersion = "26.05";
-  services.unbound-common.enable = true;
-
-  # NOTE: Do NOT override services.unbound.settings.forward-zone here.
-  # cluster-dns.nix (enabled via clusterNetworking.unbound.enable above) is the
-  # single source of truth for DNS: it forwards "." to the DoT upstreams
-  # (1.1.1.1@853 etc.) and "cluster.local." to CoreDNS. A previous per-host
-  # mkForce forward-zone clobbered that and left sentry with no working
-  # resolver. Let the SSOT own DNS on every node.
-
-  security.clusterAudit = {
-    enable = true;
-    enableFirewall = true;
-    enableTailscaleSSH = true;
-    bindServicesToLocalhost = true;
+    # RGB control for AMD Wraith Prism cooler and MSI motherboard
+    rgb-control = {
+      enable = true;
+      openrgb.enable = true;
+      wraithRgb.enable = true; # AMD Wraith Prism cooler
+      temperatureReactive = {
+        enable = true;
+        sensor = "cpu"; # Monitor CPU temps
+        thresholds = {
+          cool = 45;
+          warm = 60;
+          hot = 70;
+        };
+        interval = 5;
+      };
+    };
   };
 
-  environment.systemPackages = with pkgs; [
-    nvtopPackages.full
+  # ============================================================================
+  # ROLE PROFILES
+  # ============================================================================
+  # Base role profiles provided by node-profiles.sentry-monitoring:
+  # - mining, aiInference
+  # Kubernetes and networking also handled by node profile
+  #
+  # No additional role profiles needed - all handled by node profile
+
+  # ============================================================================
+  # NETWORK PROFILES
+  # ============================================================================
+  # Base Tailscale configuration provided by node-profiles.sentry-monitoring
+  # No additional network profile configuration needed
+
+  # ============================================================================
+  # SERVICES CONFIGURATION
+  # ============================================================================
+  services = {
+    # Crash detection and logging
+    # services.crash-watchdog.enable = true; # Module not available yet
+
+    # Compute Workload Monitor - Pause mining during builds/gaming
+    # Modular workload monitoring (replaces old compute-workload-monitor monolith)
+    gaming-detection.enable = true;
+    gpu-profile-manager.enable = true;
+    mining-coordinator.enable = true;
+
+    # Nginx - Lightweight static file server
+    nginx = {
+      enable = true;
+      recommendedProxySettings = true;
+      recommendedGzipSettings = true;
+
+      virtualHosts."_" = {
+        default = true;
+        locations."= /".return = "200 'OK'";
+        locations."= /".extraConfig = ''
+          add_header Content-Type text/plain;
+        '';
+      };
+    };
+
+    xserver.videoDrivers = [ "amdgpu" ];
+
+    # MINING (CPU only - 4 threads = 25% of 16 cores)
+    # Uses xmrig-proxy on Zephyr for centralized hashrate aggregation
+    # Note: profiles.role.mining enables services.mining automatically
+    # Sentry: CPU mining DISABLED - K8s deployment scaled to 0/0
+    # RX 5600 XT reserved for AI inference (llamafile ROCm)
+    mining = {
+      xmrig = {
+        enable = false; # Disabled - K8s xmrig-sentry deployment scaled to 0/0
+        autostart = false;
+        threads = 4;
+        pool = "10.1.1.110:3333"; # xmrig-proxy on Zephyr
+      };
+      xmrigDual = {
+        enable = true; # Enable for 1GB hugepages kernel params
+        alwaysOn = {
+          enable = false;
+        };
+      };
+      # AMD GPU (RX 5600 XT) - DISABLED for AI inference
+      # Sentry should only CPU mine, GPU reserved for llamafile (ROCm)
+      # lolminer = {
+      #   enable = true;
+      #   amd = {
+      #     enable = true;
+      #     autostart = true;
+      #     devices = "0"; # RX 5600 XT (single AMD GPU)
+      #     powerLimit = 140; # Safe power limit for RX 5600 XT
+      #     apiPort = 4069;
+      #   };
+      #   # Use local xmrig-proxy on Zephyr for pooled mining
+      #   pool = "10.1.1.110:3334";
+      #   wallet = "krxXVNVMM7.sentry-gpu";
+      #   pools = [
+      #     {
+      #       url = "10.1.1.110:3334"; # gpu-proxy on Zephyr
+      #       wallet = "krxXVNVMM7.sentry-gpu";
+      #       password = "x";
+      #       tls = false;
+      #     }
+      #     {
+      #       url = "xtm-c29-us.kryptex.network:8040"; # Direct Kryptex US (failover)
+      #       wallet = "krxXVNVMM7.sentry-gpu";
+      #       password = "x";
+      #       tls = true;
+      #     }
+      #     {
+      #       url = "xtm-c29-eu.kryptex.network:8040"; # Direct Kryptex EU (failover)
+      #       wallet = "krxXVNVMM7.sentry-gpu";
+      #       password = "x";
+      #       tls = true;
+      #     }
+      #   ];
+      # };
+    };
+
+    # Spotify with SpotX patch (ad-free, premium features)
+    spotify-spotx.enable = true;
+
+    # TAILSCALE
+    tailscale.enable = true;
+
+    # Mount /etc/nixos from zephyr (single-source-of-truth)
+    nixos-share = {
+      enable = true;
+      client.enable = true;
+    };
+
+    # NFS Client - Mount shared storage from nexus
+    nfs-client = {
+      enable = true;
+      mountShared = true;
+      mountHome = false;
+      mountMedia = false;
+    };
+
+    # Syncthing P2P file sync for /etc/nixos config sync
+    syncthing-cluster = {
+      enable = true;
+      deviceId = "SENTRY-PLACEHOLDER";
+    };
+
+    # Garage S3 disabled - using nexus as primary storage node
+    # Access Garage S3 at: http://10.1.120:3900
+    # Note: /storage/garage directory still exists for local use
+    garage-cluster.enable = false;
+
+    # Hermes Agent module removed (2026-04-06)
+  };
+
+  # ============================================================================
+  # BOOTLOADER CONFIGURATION
+  # ============================================================================
+  # Moved from hardware-configuration.nix for centralized config
+  # Base bootloader settings provided by common-host-defaults.nix:
+  # - systemd-boot.enable, efi.canTouchEfiVariables, kernelPackages (linux_zen)
+  # NOTE: Using CachyOS kernel — binary cached, x86-64-v3 optimized, BORE scheduler.
+  boot.kernelPackages =
+    inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
+  boot.loader.timeout = lib.mkDefault 5;
+
+  # Kernel parameters for XMRig RandomX performance (dual-xmrig module)
+  boot.kernelParams = [
+    "hugepagesz=1G"
+    "hugepages=3"
   ];
 
-  # Lock /sys/power/state to prevent ACPI sleep bypassing systemd/logind
-  systemd.services.lock-power-state = {
-    description = "Lock /sys/power/state read-only to prevent rogue ACPI sleep";
-    wantedBy = ["multi-user.target"];
-    serviceConfig.Type = "oneshot";
-    script = ''
-      chmod 000 /sys/power/state /sys/power/mem_sleep
-    '';
-  };
-  boot.kernelParams = lib.mkAfter [ "loglevel=4" ];
-  # Override CachyOS kernel loglevel=0 to capture crash diagnostics
+  # Environment configuration
+  environment = {
+    # ROCm SETUP (for AMD GPU monitoring)
+    # Note: hardware.profiles.amdgpu.wayland sets ROC_ENABLE_PRE_VEGA=1 automatically
+    variables = {
+      LD_LIBRARY_PATH = lib.mkForce "${pkgs.rocmPackages.clr}/lib:${pkgs.rocmPackages.clr.icd}/lib:${pkgs.mesa.opencl}/lib";
+      OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
+    };
 
+    systemPackages = with pkgs; [
+      rocmPackages.rocm-smi
+      rocmPackages.rocminfo
+    ];
+  };
+
+  systemd.tmpfiles.rules =
+    let
+      rocmEnv = pkgs.symlinkJoin {
+        name = "rocm-combined";
+        paths = with pkgs.rocmPackages; [
+          clr
+          clr.icd
+          rocblas
+          hipblas
+          rpp
+        ];
+      };
+    in
+    [
+      # Clean old etcd data directory before starting (NixOS-managed cleanup)
+      "R /var/lib/etcd - - - - -"
+      # ROCm symlinks
+      "L+ /opt/rocm - - - - ${rocmEnv}"
+      "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
+    ];
+
+  # ============================================================================
+  # SECONDARY STORAGE (sda - 1TB SSD)
+  # Defined in hardware-configuration.nix with subvol=@data
+  # ============================================================================
+
+  # Host-specific Tailscale override: Sentry advertises subnet routes (backup gateway)
+  # This overrides the base Tailscale configuration from node profile
+  systemd.services.tailscaled.environment = {
+    TS_ADVERTISE_ROUTES = "10.1.1.0/24";
+    TS_ROUTES = "";
+    TS_SSH = "true";
+  };
+
+  programs = {
+    nix-ld.libraries = with pkgs; [
+      # AMD/ROCm libraries
+      rocmPackages.clr
+      rocmPackages.clr.icd
+      rocmPackages.rocminfo
+      rocmPackages.rocm-smi
+      rocmPackages.rocm-runtime
+      rocmPackages.rocblas
+      rocmPackages.hipblas
+      rocmPackages.hipsparse
+      rocmPackages.rocfft
+      rocmPackages.rocrand
+      rocmPackages.rocthrust
+
+      # OpenCL
+      ocl-icd
+      opencl-headers
+      clinfo
+
+      # System libraries
+      zlib
+      libpng
+      libjpeg
+      freetype
+      fontconfig
+      libx11
+      libxext
+      libxrender
+      libxcb
+      libxau
+      libxdmcp
+      SDL2
+      alsa-lib
+      systemd
+      libusb1
+      curl
+      openssl
+    ];
+
+    # Git configuration now provided by common-host-defaults.nix
+    # Sentry-specific git remote override (if needed):
+    # programs.git.config.remote.origin.url = "git@github.com:reverb256/nixos-config.git";
+  };
+
+  # ============================================================================
+  # SECURITY
+  # ============================================================================
+  # ============================================================================
+  # AGENIX SECRETS
+  # ============================================================================
+  # Centralized registry - see modules/system/agenix-secrets-registry.nix
+  services.agenix-secrets-registry = {
+    enable = true;
+    mining = true; # XMRig API token
+    kubernetes = true; # k3s cluster token
+  };
+  # Override specific secret permissions for mining service
+  # ============================================================================
+  # LLAMAFILE - LLM INFERENCE SERVICE (AMD RX 5600 XT - Vulkan)
+  # ============================================================================
+  # TEMPORARILY DISABLED: llama-cpp-rocm build failing
+  # Re-enable after nixpkgs update or switch to CPU/Vulkan backend
+  services.llamafile = {
+    enable = false;
+    # modelPath = "/home/j_kro/.lmstudio/models/unsloth/Qwen3.5-2B-GGUF/Qwen3.5-2B-IQ4_NL.gguf";
+    # host = "0.0.0.0";
+    # port = 8086;
+    # gpu = "rocm";
+    # gpuLayers = 999;
+    # ctxSize = 16384;
+    # threads = 8;
+    # batchSize = 512;
+    # ubatchSize = 512;
+    # flashAttention = false;
+    # enableThinking = false;
+    # reasoningBudget = 0;
+    # cacheTypeK = "bf16";
+    # cacheTypeV = "bf16";
+  };
+
+  # ============================================================================
+  # UNBOUND DNS WITH DNS-OVER-TLS (Cluster-wide configuration)
+  # ============================================================================
 }

@@ -1,0 +1,151 @@
+{{/*
+AI Inference Gateway — Deployment
+*/}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ai-inference-gateway.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ai-inference-gateway.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "ai-inference-gateway.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ai-inference-gateway.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: gateway
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - "{{ .Values.gateway.workers | printf "python" }}"
+            - "-m"
+            - "uvicorn"
+            - "ai_inference_gateway.main:app"
+            - "--host"
+            - "{{ .Values.gateway.host }}"
+            - "--port"
+            - "{{ .Values.gateway.port }}"
+            - "--workers"
+            - "{{ .Values.gateway.workers }}"
+          ports:
+            - name: http
+              containerPort: {{ .Values.gateway.port }}
+              protocol: TCP
+            {{- if .Values.monitoring.enabled }}
+            - name: metrics
+              containerPort: {{ .Values.monitoring.port }}
+              protocol: TCP
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "ai-inference-gateway.fullname" . }}-config
+          env:
+            - name: GATEWAY_HOST
+              value: "{{ .Values.gateway.host }}"
+            - name: GATEWAY_PORT
+              value: "{{ .Values.gateway.port }}"
+            - name: BACKEND_URL
+              value: "{{ .Values.backend.url }}"
+            - name: BACKEND_TYPE
+              value: "{{ .Values.backend.type }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.gateway.logLevel }}"
+            {{- if .Values.zai.enabled }}
+            - name: ZAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ai-inference-gateway.fullname" . }}-secrets
+                  key: zai-api-key
+                  optional: true
+            {{- end }}
+            {{- if .Values.nvidiaNim.enabled }}
+            - name: POLLINATIONS_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ai-inference-gateway.fullname" . }}-secrets
+                  key: nvidia-nim-api-key
+                  optional: true
+            {{- end }}
+            {{- if .Values.rag.enabled }}
+            - name: RAG_ENABLED
+              value: "true"
+            - name: QDRANT_URL
+              value: "{{ .Values.rag.qdrantUrl }}"
+            - name: EMBEDDING_MODEL
+              value: "{{ .Values.rag.embeddingModel }}"
+            {{- end }}
+            {{- if .Values.middleware.knowledgeFabric.enabled }}
+            - name: MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED
+              value: "true"
+            - name: MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K
+              value: "{{ .Values.middleware.knowledgeFabric.rrfK }}"
+            - name: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL
+              value: "{{ .Values.middleware.knowledgeFabric.searxngUrl }}"
+            {{- end }}
+            {{- if .Values.middleware.redis.enabled }}
+            - name: REDIS_URL
+              value: "redis://{{ .Values.middleware.redis.host }}:{{ .Values.middleware.redis.port }}"
+            {{- end }}
+          volumeMounts:
+            {{- if .Values.persistence.enabled }}
+            - name: model-cache
+              mountPath: {{ .Values.persistence.mountPath }}
+            {{- end }}
+            - name: tmp
+              mountPath: /tmp
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: {{ .Values.health.startupFailureThreshold }}
+            periodSeconds: {{ .Values.health.startupPeriodSeconds }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.health.livenessInitialDelay }}
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.health.readinessInitialDelay }}
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        {{- if .Values.persistence.enabled }}
+        - name: model-cache
+          persistentVolumeClaim:
+            claimName: {{ include "ai-inference-gateway.fullname" . }}-cache
+        {{- end }}
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

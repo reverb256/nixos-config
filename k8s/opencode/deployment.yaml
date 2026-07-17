@@ -2,6 +2,19 @@
 # Migrating from systemd to Kubernetes
 
 ---
+# Secret for ZAI API key (same as agenix secret)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: zai-api-key
+  namespace: ai-services
+type: Opaque
+stringData:
+  # Copy from: /run/agenix/zai-api-key
+  # Or use: kubectl create secret generic zai-api-key --from-file=/run/agenix/zai-api-key
+  api-key: "PLACEHOLDER"  # Replace with actual key or use ExternalSecret operator
+
+---
 # ConfigMap for OpenCode configuration
 apiVersion: v1
 kind: ConfigMap
@@ -9,9 +22,9 @@ metadata:
   name: opencode-config
   namespace: ai-services
 data:
-  DEFAULT_MODEL: "deepseek-ai/deepseek-v4-flash"
-  QUICK_MODEL: "nvidia/nemotron-3-nano-30b-a3b"
-  VISION_MODEL: "qwen/qwen3.5-397b-a17b"
+  DEFAULT_MODEL: "zai-coding-plan/glm-4.7"
+  QUICK_MODEL: "zai-coding-plan/glm-4.5-air"
+  VISION_MODEL: "zai-coding-plan/glm-4.6v"
   HOST: "0.0.0.0"
   PORT: "8000"
 
@@ -76,6 +89,14 @@ spec:
             configMapKeyRef:
               name: opencode-config
               key: VISION_MODEL
+        - name: ZAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: zai-api-key
+              key: api-key
+        - name: OPENAI_API_KEY
+          value: "sk-$(cat /run/agenix/zai-api-key 2>/dev/null || echo 'placeholder')"  # Fallback
+
         ports:
         - name: http
           containerPort: 8000

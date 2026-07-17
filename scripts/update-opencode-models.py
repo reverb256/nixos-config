@@ -56,10 +56,10 @@ MODEL_PATTERNS = {
     # writing - documentation and prose
     "writing": ["unredacted", "writing", "prose"],
 
-    # visual-engineering - UI/UX (requires vision-capable models)
+    # visual-engineering - UI/UX (requires vision models - use ZAI)
     "visual-engineering": ["vision", "multimodal", "vl"],
 
-    # artistry - creative work (requires creative-capable models)
+    # artistry - creative work (requires creative models - use ZAI)
     "artistry": ["creative", "artistic"],
 }
 
@@ -98,7 +98,7 @@ def categorize_model(model_id: str) -> str:
     - writing: Documentation, prose
 
     Note: Local LM Studio models don't have vision capabilities,
-    so visual-engineering/artistry should use remote vision models.
+    so visual-engineering/artistry should use ZAI remote models.
     """
     model_lower = model_id.lower()
 
@@ -339,6 +339,7 @@ def read_api_key() -> Optional[str]:
 def generate_opencode_config(
     model_ids: List[str],
     existing_config: Optional[Dict] = None,
+    zai_api_key: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Generate complete OpenCode configuration."""
 
@@ -364,6 +365,14 @@ def generate_opencode_config(
             }
         },
     }
+
+    # Add ZAI provider if API key is available or exists in current config
+    if zai_api_key or (existing_config and "zai-coding-plan" in existing_config.get("provider", {})):
+        config["provider"]["zai-coding-plan"] = {
+            "options": {
+                "apiKey": "{env:ZAI_API_KEY}",
+            }
+        }
 
     # Select default and small models
     default_model = select_default_model(model_ids)
@@ -419,9 +428,12 @@ def update_opencode_config(
         except Exception as e:
             print(f"⚠ Could not read existing config: {e}")
 
+    # Read ZAI API key (for reference only - we use env var in config)
+    zai_api_key = read_api_key()
+
     # Generate new configuration
     print("\n🔧 Generating OpenCode configuration...")
-    new_config = generate_opencode_config(model_ids, existing_config)
+    new_config = generate_opencode_config(model_ids, existing_config, zai_api_key)
 
     # Print summary
     print("\n📊 Configuration Summary:")

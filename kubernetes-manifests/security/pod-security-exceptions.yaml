@@ -32,4 +32,3 @@ metadata:
     pod-security.kubernetes.io/allow-privilege-escalation: "false"
 
 
-

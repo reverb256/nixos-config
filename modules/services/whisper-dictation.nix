@@ -7,6 +7,9 @@
 with lib; let
   cfg = config.services.whisper-dictation;
 in {
+  # ==========================================================================
+  # MODULE OPTIONS
+  # ==========================================================================
   options.services.whisper-dictation = with lib; {
     enable =
       lib.mkEnableOption "Enable Whisper Dictation (speech-to-text)"
@@ -73,7 +76,13 @@ in {
     };
   };
 
+  # ==========================================================================
+  # CONFIGURATION
+  # ==========================================================================
   config = mkIf cfg.enable {
+    # ==========================================================================
+    # DICTATION SCRIPTS
+    # ==========================================================================
     environment.systemPackages = with pkgs;
       [
         whisper-cpp
@@ -86,6 +95,9 @@ in {
         procps
       ]
       ++ [
+        # ========================================================================
+        # whisper-dictate: Toggle mode (press to start/stop)
+        # ========================================================================
         (pkgs.writeShellScriptBin "whisper-dictate" ''
           set -euo pipefail
 
@@ -98,6 +110,7 @@ in {
           INJECTION_MODE="${cfg.injectionMode}"
           KEY_DELAY="${toString cfg.keyDelay}"
 
+          # Transcribe and inject function
           transcribe_and_inject() {
             if [ ! -s "$RECORDING" ]; then
               ${optionalString cfg.notify ''${pkgs.libnotify}/bin/notify-send "Whisper" "No audio recorded" --icon=dialog-warning''}
@@ -148,33 +161,41 @@ in {
             ${optionalString cfg.notify ''${pkgs.libnotify}/bin/notify-send "✅ Whisper" "$TEXT" --icon=edit-paste''}
           }
 
+          # Check model
           if [ ! -f "$MODEL_PATH" ]; then
             echo "Model not found. Run: sudo systemctl start whisper-model-download"
             ${optionalString cfg.notify ''${pkgs.libnotify}/bin/notify-send "Whisper" "Model not downloaded" --icon=dialog-error''}
             exit 1
           fi
 
+          # Check ydotoold
           if ! pgrep -x "ydotoold" > /dev/null; then
             sudo systemctl start ydotoold 2>/dev/null || true
             sleep 0.3
           fi
 
+          # TOGGLE LOGIC
           if [ -f "$PID_FILE" ]; then
             OLD_PID=$(cat "$PID_FILE" 2>/dev/null || echo "")
 
             if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+              # Stop recording
               kill "$OLD_PID" 2>/dev/null || true
               rm -f "$PID_FILE"
 
+              # Wait for recording to finalize
               sleep 0.2
 
+              # Transcribe
               transcribe_and_inject
 
+              # Cleanup
               rm -f "$RECORDING" "$OUTPUT.txt" "$OUTPUT.json"
               exit 0
             fi
           fi
 
+          # Start recording
           rm -f "$RECORDING" "$OUTPUT.txt" "$OUTPUT.json"
 
           ${optionalString cfg.notify ''${pkgs.libnotify}/bin/notify-send "🎤 Whisper" "Recording... Press shortcut again to stop" --icon=audio-input-microphone''}
@@ -187,6 +208,9 @@ in {
           rm -f "$PID_FILE"
         '')
 
+        # ========================================================================
+        # whisper-dictate-auto: Auto-stop on silence (VAD)
+        # ========================================================================
         (pkgs.writeShellScriptBin "whisper-dictate-auto" ''
           set -euo pipefail
 
@@ -219,8 +243,12 @@ in {
           ${optionalString cfg.notify ''${pkgs.libnotify}/bin/notify-send "🎤 Whisper" "Speak now - auto-stops after ${toString cfg.silenceTimeout}s silence" --icon=audio-input-microphone''}
           echo "🎤 Recording... Will auto-stop after ${toString cfg.silenceTimeout}s of silence"
 
+          # Record with sox silence detection
+          # silence 1: above_periods=1, duration=0.5s, threshold=$SILENCE_THRESHOLD (start when audio detected)
+          # silence 2: below_periods=1, duration=$SILENCE, threshold=$SILENCE_THRESHOLD (stop after silence)
           ${pkgs.sox}/bin/sox -t alsa default -t wav "$RECORDING" \
             silence 1 0.5 ${cfg.silenceThreshold} 1 "$SILENCE" ${cfg.silenceThreshold} 2>/dev/null || {
+              # Fallback to arecord if sox fails
               ${pkgs.alsa-utils}/bin/arecord -f cd -t wav -d 30 "$RECORDING" 2>/dev/null
             }
 
@@ -265,6 +293,9 @@ in {
         '')
       ];
 
+    # ==========================================================================
+    # SYSTEMD SERVICES
+    # ==========================================================================
     systemd.services.ydotoold = {
       description = "YDotoold - ydotool daemon for keyboard input injection";
       wantedBy = ["multi-user.target"];

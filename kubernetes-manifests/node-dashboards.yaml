@@ -84,7 +84,7 @@ data:
             <div class="card-title">Node Information</div>
             <div class="info-row"><span class="info-label">Hostname</span><span class="info-value">zephyr</span></div>
             <div class="info-row"><span class="info-label">IP Address</span><span class="info-value">10.1.1.110</span></div>
-            <div class="info-row"><span class="info-label">K8s Version</span><span class="info-value">v1.34.5+k3s1</span></div>
+            <div class="info-row"><span class="info-label">K8s Version</span><span class="info-value">v1.35.0</span></div>
             <div class="info-row"><span class="info-label">CNI</span><span class="info-value">Flannel VXLAN</span></div>
           </div>
 
@@ -132,7 +132,7 @@ data:
           </div>
         </div>
 
-        <footer><p>NixOS Cluster • Kubernetes v1.34.5+k3s1 • <span id="timestamp"></span></p></footer>
+        <footer><p>NixOS Cluster • Kubernetes v1.35.0 • <span id="timestamp"></span></p></footer>
       </div>
       <script>document.getElementById('timestamp').textContent = new Date().toLocaleString(); setTimeout(() => location.reload(), 60000);</script>
     </body>
@@ -187,7 +187,7 @@ data:
           <div class="card"><div class="card-title">Node Information</div>
             <div class="info-row"><span class="info-label">Hostname</span><span class="info-value">nexus</span></div>
             <div class="info-row"><span class="info-label">IP Address</span><span class="info-value">10.1.1.120</span></div>
-            <div class="info-row"><span class="info-label">K8s Version</span><span class="info-value">v1.34.5+k3s1</span></div>
+            <div class="info-row"><span class="info-label">K8s Version</span><span class="info-value">v1.35.0</span></div>
           </div>
           <div class="card"><div class="card-title">Hardware</div>
             <div class="info-row"><span class="info-label">CPU</span><span class="info-value">AMD Zen (24 cores)</span></div>
@@ -203,7 +203,7 @@ data:
             <a href="http://sentry.lan" class="nav-link"><span style="font-weight: 600;">Sentry</span><span style="font-size: 0.875rem; color: var(--text-secondary);">Monitoring</span></a>
           </div>
         </div>
-        <footer><p>NixOS Cluster • Kubernetes v1.34.5+k3s1</p></footer>
+        <footer><p>NixOS Cluster • Kubernetes v1.35.0</p></footer>
       </div>
     </body>
     </html>
@@ -259,7 +259,7 @@ data:
           <div class="card"><div class="card-title">Node Information</div>
             <div class="info-row"><span class="info-label">Hostname</span><span class="info-value">forge</span></div>
             <div class="info-row"><span class="info-label">IP Address</span><span class="info-value">10.1.1.130</span></div>
-            <div class="info-row"><span class="info-label">K8s Version</span><span class="info-value">v1.34.5+k3s1</span></div>
+            <div class="info-row"><span class="info-label">K8s Version</span><span class="info-value">v1.35.0</span></div>
           </div>
           <div class="card"><div class="card-title">Hardware</div>
             <div class="info-row"><span class="info-label">CPU</span><span class="info-value">Intel Skylake (6 cores)</span></div>
@@ -282,7 +282,7 @@ data:
             <a href="http://sentry.lan" class="nav-link"><span style="font-weight: 600;">Sentry</span><span style="font-size: 0.875rem; color: var(--text-secondary);">Monitoring</span></a>
           </div>
         </div>
-        <footer><p>NixOS Cluster • Kubernetes v1.34.5+k3s1</p></footer>
+        <footer><p>NixOS Cluster • Kubernetes v1.35.0</p></footer>
       </div>
     </body>
     </html>
@@ -336,7 +336,7 @@ data:
           <div class="card"><div class="card-title">Node Information</div>
             <div class="info-row"><span class="info-label">Hostname</span><span class="info-value">sentry</span></div>
             <div class="info-row"><span class="info-label">IP Address</span><span class="info-value">10.1.1.140</span></div>
-            <div class="info-row"><span class="info-label">K8s Version</span><span class="info-value">v1.34.5+k3s1</span></div>
+            <div class="info-row"><span class="info-label">K8s Version</span><span class="info-value">v1.35.0</span></div>
           </div>
           <div class="card"><div class="card-title">Hardware</div>
             <div class="info-row"><span class="info-label">CPU</span><span class="info-value">AMD Zen (16 cores)</span></div>
@@ -352,7 +352,7 @@ data:
             <a href="http://forge.lan" class="nav-link"><span style="font-weight: 600;">Forge</span><span style="font-size: 0.875rem; color: var(--text-secondary);">Multi-GPU</span></a>
           </div>
         </div>
-        <footer><p>NixOS Cluster • Kubernetes v1.34.5+k3s1</p></footer>
+        <footer><p>NixOS Cluster • Kubernetes v1.35.0</p></footer>
       </div>
     </body>
     </html>

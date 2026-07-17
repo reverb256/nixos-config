@@ -1,0 +1,55 @@
+# GPU Test Pod - Phase 1 Testing
+# Tests Kubernetes GPU workload detection in compute-workload-monitor
+#
+# This pod requests an NVIDIA GPU and runs for 1 hour
+# The compute-workload-monitor should:
+# 1. Detect this pod using kubectl
+# 2. Switch to "kubernetes-gpu" profile
+# 3. Pause GPU mining (lolminer-nvidia)
+# 4. Reduce CPU mining to 50%
+#
+# Usage:
+#   kubectl apply -f gpu-test-phase1.yaml
+#   sudo journalctl -u compute-workload-monitor -f  # Watch logs
+#   kubectl delete pod gpu-test-phase1  # Cleanup when done
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-test-phase1
+  labels:
+    app: gpu-test
+    phase: "1"  # Phase 1: Kubernetes GPU detection testing
+spec:
+  # Use default namespace (visible to compute-workload-monitor)
+  # Do NOT use kube-system (compute-workload-monitor checks all namespaces)
+  containers:
+  - name: gpu-test
+    image: nvidia/cuda:12.1.0-base-ubuntu22.04
+    command: ["sleep"]
+    args: ["3600"]  # Run for 1 hour
+    resources:
+      limits:
+        nvidia.com/gpu: 1  # Request 1 GPU
+    env:
+    - name: NVIDIA_VISIBLE_DEVICES
+      value: "all"
+  restartPolicy: Never  # Don't restart if it fails
+
+---
+# Alternative: AMD GPU test (if testing AMD detection)
+# Uncomment this section if you want to test AMD GPU pods
+# apiVersion: v1
+# kind: Pod
+# metadata:
+#   name: amd-gpu-test-phase1
+# spec:
+#   containers:
+#   - name: amd-gpu-test
+#     image: rocm/dev-ubuntu-22.04:latest
+#     command: ["sleep"]
+#     args: ["3600"]
+#     resources:
+#       limits:
+#         amd.com/gpu: 1
+#   restartPolicy: Never

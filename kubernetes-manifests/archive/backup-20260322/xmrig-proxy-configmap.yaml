@@ -1,0 +1,70 @@
+# xmrig-proxy Configuration (non-sensitive)
+# Sensitive values (API token, passwords) are in xmrig-proxy-secret.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xmrig-proxy-config
+  namespace: mining
+  labels:
+    app: xmrig-proxy
+    component: stratum-proxy
+data:
+  config.json: |
+    {
+      "api": {
+        "port": 8081,
+        "restricted": true,
+        "token-file": "/etc/xmrig-proxy-secrets/api-token"
+      },
+      "log": {
+        "level": 5
+      },
+      "pools": [
+        {
+          "id": "kryptex-rx-us",
+          "url": "xtm-rx-us.kryptex.network:8038",
+          "user": "krxXVNVMM7.cpu-proxy",
+          "pass-file": "/etc/xmrig-proxy-secrets/pool-password",
+          "tls": true,
+          "keepalive": true,
+          "priority": 1
+        },
+        {
+          "id": "kryptex-rx-eu",
+          "url": "xtm-rx-eu.kryptex.network:8038",
+          "user": "krxXVNVMM7.cpu-proxy",
+          "pass-file": "/etc/xmrig-proxy-secrets/pool-password",
+          "tls": true,
+          "keepalive": true,
+          "priority": 2
+        },
+        {
+          "id": "kryptex-cr29-us",
+          "url": "xtm-c29-us.kryptex.network:8040",
+          "user": "krxXVNVMM7.gpu-proxy",
+          "pass-file": "/etc/xmrig-proxy-secrets/pool-password",
+          "tls": true,
+          "keepalive": true,
+          "priority": 1
+        },
+        {
+          "id": "kryptex-cr29-eu",
+          "url": "xtm-c29-eu.kryptex.network:8040",
+          "user": "krxXVNVMM7.gpu-proxy",
+          "pass-file": "/etc/xmrig-proxy-secrets/pool-password",
+          "tls": true,
+          "keepalive": true,
+          "priority": 2
+        }
+      ],
+      "workers": [
+        {"id": "zephyr-cpu", "password-file": "/etc/xmrig-proxy-secrets/pool-password"},
+        {"id": "nexus-cpu", "password-file": "/etc/xmrig-proxy-secrets/pool-password"},
+        {"id": "sentry-cpu", "password-file": "/etc/xmrig-proxy-secrets/pool-password"},
+        {"id": "zephyr-gpu", "password-file": "/etc/xmrig-proxy-secrets/pool-password"},
+        {"id": "nexus-gpu", "password-file": "/etc/xmrig-proxy-secrets/pool-password"},
+        {"id": "forge-gpu", "password-file": "/etc/xmrig-proxy-secrets/pool-password"},
+        {"id": "forge-gpu-nvidia", "password-file": "/etc/xmrig-proxy-secrets/pool-password"},
+        {"id": "forge-gpu-amd", "password-file": "/etc/xmrig-proxy-secrets/pool-password"}
+      ]
+    }

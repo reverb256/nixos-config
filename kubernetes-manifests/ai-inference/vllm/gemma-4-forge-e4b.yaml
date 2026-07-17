@@ -1,0 +1,111 @@
+# Gemma 4 E4B GGUF on Forge RTX 4060 #1 (8GB)
+# ~5GB model, tight on 8GB. Preempts gpu-miner-forge-nvidia-1.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gemma-4-e4b-forge
+  namespace: ai-inference
+  labels:
+    app: gemma-4-e4b-forge
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: gemma-4-e4b-forge
+  template:
+    metadata:
+      labels:
+        app: gemma-4-e4b-forge
+    spec:
+      priorityClassName: ai-inference-high
+      nodeSelector:
+        kubernetes.io/hostname: forge
+      containers:
+      - name: vllm
+        image: vllm/vllm-openai:v0.19.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - --model=/models/gemma-4-E4B-GGUF/gemma-4-E4B-it-Q4_K_M.gguf
+        - --model-format=gguf
+        - --device=cuda
+        - --served-model-name=gemma-4-e4b
+        - --gpu-memory-utilization=0.90
+        - --enforce-eager
+        - --max-model-len=4096
+        - --kv-cache-dtype=fp8
+        - --max-num-seqs=4
+        - --disable-log-requests
+        env:
+        - name: LD_LIBRARY_PATH
+          value: "/nix/store/ia20kw8xkfssyfjmk2kanm5nhxablfyz-nvidia-x11-595.45.04-6.18.13/lib:/usr/local/cuda/lib64"
+        - name: CUDA_VISIBLE_DEVICES
+          value: "1"
+        - name: VLLM_WORKER_MULTIPROC_METHOD
+          value: "fork"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        ports:
+        - name: http
+          containerPort: 8000
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "4Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "2"
+            memory: "6Gi"
+            nvidia.com/gpu: "1"
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 30
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 120
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        volumeMounts:
+        - name: models
+          mountPath: /models
+          readOnly: true
+        - name: nvidia-driver
+          mountPath: /nix/store/ia20kw8xkfssyfjmk2kanm5nhxablfyz-nvidia-x11-595.45.04-6.18.13/lib
+          readOnly: true
+      volumes:
+      - name: models
+        hostPath:
+          path: /var/lib/vllm-models
+          type: Directory
+      - name: nvidia-driver
+        hostPath:
+          path: /nix/store/ia20kw8xkfssyfjmk2kanm5nhxablfyz-nvidia-x11-595.45.04-6.18.13/lib
+          type: Directory
+      terminationGracePeriodSeconds: 60
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gemma-4-e4b-forge
+  namespace: ai-inference
+spec:
+  type: ClusterIP
+  selector:
+    app: gemma-4-e4b-forge
+  ports:
+  - port: 8005
+    targetPort: 8000

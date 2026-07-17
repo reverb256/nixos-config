@@ -1,16 +1,22 @@
+# Dashboard Library - Reusable Panel Builders
+# Provides composable functions for building Grafana dashboards
 {lib, ...}: let
+  # Common datasource reference
   prometheusDatasource = {
     type = "prometheus";
     uid = "prometheus";
   };
 
+  # Standard field configs
   fieldConfigs = {
+    # Color mode with thresholds
     thresholdColor = steps: {
       color.mode = "thresholds";
       thresholds.mode = "absolute";
       thresholds.steps = steps;
     };
 
+    # Classic palette for timeseries
     paletteClassic = {
       color.mode = "palette-classic";
       custom = {
@@ -25,6 +31,7 @@
       };
     };
 
+    # Area chart style
     areaStyle = {
       color.mode = "palette-classic";
       custom = {
@@ -40,6 +47,7 @@
       };
     };
 
+    # Bar chart style
     barStyle = {
       color.mode = "palette-classic";
       custom = {
@@ -55,7 +63,9 @@
     };
   };
 
+  # Common thresholds
   thresholds = {
+    # 0-1 binary (up/down)
     binary = [
       {
         color = "red";
@@ -67,6 +77,7 @@
       }
     ];
 
+    # Percentage (0-100%)
     percentage = [
       {
         color = "green";
@@ -86,6 +97,7 @@
       }
     ];
 
+    # Error rate
     errorRate = [
       {
         color = "green";
@@ -105,6 +117,7 @@
       }
     ];
 
+    # Latency (seconds)
     latency = [
       {
         color = "green";
@@ -124,6 +137,7 @@
       }
     ];
 
+    # Temperature (Celsius)
     temperature = [
       {
         color = "green";
@@ -143,6 +157,7 @@
       }
     ];
 
+    # Load average multiplier
     loadMultiplier = [
       {
         color = "green";
@@ -163,6 +178,7 @@
     ];
   };
 
+  # Common units
   units = {
     percent = "percent";
     percentunit = "percentunit";
@@ -173,6 +189,7 @@
     none = "none";
   };
 
+  # Standard grid positions (24-column grid)
   grid = {
     fullWidth = {
       h = 1;
@@ -218,7 +235,9 @@
     };
   };
 
+  # Panel builders
   panels = {
+    # Create a row header
     row = title: collapsed: {
       inherit collapsed;
       gridPos = {
@@ -232,6 +251,7 @@
       type = "row";
     };
 
+    # Create a stat panel
     statPanel = {
       title,
       expr,
@@ -271,6 +291,7 @@
       type = "stat";
     };
 
+    # Create a timeseries panel
     timeseries = {
       title,
       expr,
@@ -280,6 +301,7 @@
       custom ? null,
       thresholds ? null,
     }: let
+      # Build field config defaults
       baseFieldConfig = {
         color.mode = "palette-classic";
         custom =
@@ -330,6 +352,7 @@
       type = "timeseries";
     };
 
+    # Create a gauge panel
     gauge = {
       title,
       expr,
@@ -370,6 +393,7 @@
       type = "gauge";
     };
 
+    # Create a piechart/donut panel
     piechart = {
       title,
       expr,
@@ -409,6 +433,7 @@
       type = "piechart";
     };
 
+    # Create a table panel
     table = {
       title,
       expr,
@@ -441,6 +466,7 @@
     };
   };
 
+  # Dashboard template
   template = {
     title,
     description ? "",
@@ -458,7 +484,11 @@
     inherit panels;
     inherit tags;
     inherit title;
+    # Generate valid UID: remove emoji, replace spaces/slashes with dashes, lowercase
+    # Grafana UIDs can only contain: a-z, 0-9, -, _
+    # Uses lib.pipe for clean functional transformation pipeline
     uid = lib.pipe title [
+      # Remove emoji sequentially (each stage receives output of previous)
       (builtins.replaceStrings ["🏠"] [""])
       (builtins.replaceStrings ["🔍"] [""])
       (builtins.replaceStrings ["⛏️"] [""])
@@ -470,7 +500,9 @@
       (builtins.replaceStrings ["⚡"] [""])
       (builtins.replaceStrings ["🌡️"] [""])
       (builtins.replaceStrings ["🔬"] [""])
+      # Replace spaces and slashes with dashes
       (builtins.replaceStrings [" " "/"] ["-" "-"])
+      # Normalize: trim whitespace, strip leading/trailing dashes, lowercase
       lib.strings.trim
       (s: lib.strings.removePrefix "-" (lib.strings.removeSuffix "-" s))
       lib.toLower
