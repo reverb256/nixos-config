@@ -1386,10 +1386,11 @@
     "preservation": {
       "locked": {
         "dir": "lib/preservation",
-        "dirtyRev": "0b9305b5dbd588e6312b2a80b653e236f30b3e88-dirty",
-        "dirtyShortRev": "0b9305b5-dirty",
-        "lastModified": 1784239152,
-        "narHash": "sha256-uIIJuHJ5aKsjMu0Q/wLTiMTkgbB7dQH2OCPtN1rfUaU=",
+        "lastModified": 1784261314,
+        "narHash": "sha256-fnMKHq2YjuYx4uswdXA6E74q57XSawAU9B2xUzDmvXI=",
+        "ref": "refs/heads/main",
+        "rev": "9320c2a4b9fdef15044f4a829b98fd9eec1b08cd",
+        "revCount": 4025,
         "type": "git",
         "url": "file:///etc/nixos"
       },
