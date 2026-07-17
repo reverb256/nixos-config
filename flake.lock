@@ -805,19 +805,18 @@
         ]
       },
       "locked": {
+        "lastModified": 1784160000,
+        "narHash": "sha256-N5JiyICSeQF14x+OQebNyPpYowOT9Rs1iKyeCylSzOA=",
         "owner": "nix-community",
         "repo": "home-manager",
         "rev": "165228b0efefc3e635e5174020c40ea64271dc25",
-        "type": "github",
-        "lastModified": 1784160000,
-        "narHash": "sha256-N5JiyICSeQF14x+OQebNyPpYowOT9Rs1iKyeCylSzOA="
+        "type": "github"
       },
       "original": {
         "owner": "nix-community",
         "repo": "home-manager",
         "type": "github"
-      },
-      "type": "github"
+      }
     },
     "impermanence": {
       "inputs": {
@@ -1386,14 +1385,18 @@
     },
     "preservation": {
       "locked": {
-        "lastModified": 1780809578,
-        "narHash": "sha256-JfD+sES5PzVDJHN8XedawzDU1MaVbMyWGyjjZEJsWzA=",
-        "path": "/etc/nixos/lib/preservation",
-        "type": "path"
+        "dir": "lib/preservation",
+        "dirtyRev": "0b9305b5dbd588e6312b2a80b653e236f30b3e88-dirty",
+        "dirtyShortRev": "0b9305b5-dirty",
+        "lastModified": 1784239152,
+        "narHash": "sha256-uIIJuHJ5aKsjMu0Q/wLTiMTkgbB7dQH2OCPtN1rfUaU=",
+        "type": "git",
+        "url": "file:///etc/nixos"
       },
       "original": {
-        "path": "/etc/nixos/lib/preservation",
-        "type": "path"
+        "dir": "lib/preservation",
+        "type": "git",
+        "url": "file:///etc/nixos"
       }
     },
     "pyproject-build-systems": {
