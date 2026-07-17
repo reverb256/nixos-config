@@ -116,6 +116,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # ── NixOS-WSL: declarative Linux dev boxes inside WSL2 ──
+    nixos-wsl = {
+      url = "github:nix-community/NixOS-WSL/24c8dc8e0f2170e1a377be24dfadc7d9d21dc1ad";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     sops-nix = {
       url = "github:Mic92/sops-nix/f1406619a3884cd5c47992a70b8b35c9c0fcb4c9";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -271,6 +277,27 @@
           system = "x86_64-linux";
           specialArgs = {inherit inputs;};
           modules = [./hosts/usb/configuration.nix];
+        };
+
+        # ── NixOS-WSL dev boxes (declarative Linux inside WSL2) ──
+        # Compose the NixOS-WSL flake module with the reusable WSL profile.
+        # Not part of the Colmena physical-cluster hive; each instance is
+        # imported/bootstrapped standalone on its own Windows PC.
+        wsl-krash3 = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = {inherit inputs;};
+          modules = [
+            inputs.nixos-wsl.nixosModules.default
+            ./hosts/wsl-krash3/configuration.nix
+          ];
+        };
+        wsl-krash2 = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = {inherit inputs;};
+          modules = [
+            inputs.nixos-wsl.nixosModules.default
+            ./hosts/wsl-krash2/configuration.nix
+          ];
         };
       };
 
