@@ -354,14 +354,15 @@ in {
             owner = "root";
             group = "root";
           };
-          "cloud/cloudflared-prod-credentials" = {
-            sopsFile = "${inputs.self}/secrets/cloud/cloudflared-prod-credentials.yaml";
-            path = "/run/secrets/cloudflared-prod-credentials";
-            format = "binary";
-            mode = "0444";
-            owner = "j_kro";
-            group = "users";
-          };
+          # Temporarily disabled — sops format mismatch blocks all secrets
+          # "cloud/cloudflared-prod-credentials" = {
+          #   sopsFile = "${inputs.self}/secrets/cloud/cloudflared-prod-credentials.yaml";
+          #   path = "/run/secrets/cloudflared-prod-credentials";
+          #   format = "binary";
+          #   mode = "0444";
+          #   owner = "j_kro";
+          #   group = "users";
+          # };
           # REMOVED: cloud/cloudflared-tunnel-credentials — dead secret, tunnel recreated
           #          and empty tunnel_secret; no service references it.
           "cloud/tailscale-api-key" = {
