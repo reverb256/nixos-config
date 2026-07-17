@@ -109,6 +109,14 @@ The two YubiKeys are enrolled as **additional** recipients so that, if the
 static key is ever lost, either hardware token can still decrypt the
 secrets.
 
+> **Scope note.** The YubiKey public keys in `.sops.yaml` are usable by
+> the `age` binary (for non-sops age files) and by any keyservice-aware
+> tooling. The `sops` CLI itself does **not** parse
+> `AGE-PLUGIN-YUBIKEY-...` identities from `SOPS_AGE_KEY_FILE`, so
+> unattended `sops`/`sops-nix` operations rely on the static
+> `cluster_age` key. Configure a keyservice if you need `sops` to delegate
+> age operations to a YubiKey.
+
 ### CLI decryption with a YubiKey
 
 `sops` (via the age library) needs an **age identity** that matches one of
@@ -140,11 +148,13 @@ YubiKey-backed decryption are:
    ```
 
 If you want a single composite identity file for tools that *do* support
-plugin identities (e.g. the `age` binary), extract the YubiKey identity
+plugin identities (e.g. the `age` binary), extract the YubiKey identities
 once:
 
 ```bash
-# Prompts for PIN and touch; stores identities for all configured slots.
+# Run once to extract identities for all configured YubiKey slots.
+# This prompts for the YubiKey PIN and a touch; the output contains one
+# age-plugin-yubikey identity line per configured slot.
 age-plugin-yubikey --identity > ~/.age/yubikey_identity
 ```
 
