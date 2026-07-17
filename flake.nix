@@ -84,7 +84,7 @@
       inputs.home-manager.follows = "";
     };
     preservation = {
-      url = "path:/etc/nixos/lib/preservation";
+      url = "git+file:///etc/nixos?dir=lib/preservation";
     };
     niri = {
       # Pinned to commit that exports lib.niri.actions with spawn/spawn-sh/focus-window-previous
