@@ -26,7 +26,7 @@
     aagl = {
       url = "github:ezKEa/aagl-gtk-on-nix/af94408291ad477cae8eed964981ab41f90eb184";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-compat.url = "github:edolstra/flake-compat/5edf11c44bc78a0d334f6334cdaf7d60d732daab";
+      inputs.flake-compat.url = "git+https://github.com/edolstra/flake-compat?rev=5edf11c44bc78a0d334f6334cdaf7d60d732daab";
       inputs.rust-overlay.url = "github:oxalica/rust-overlay/a7887636a3959168bd1ba7ef24a8a70b168dcb56";
       inputs.rust-overlay.inputs.nixpkgs.follows = "aagl/nixpkgs";
     };
