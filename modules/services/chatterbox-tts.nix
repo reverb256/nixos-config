@@ -80,7 +80,13 @@ in {
             -e NVIDIA_VISIBLE_DEVICES=all \
             -e NVIDIA_DRIVER_CAPABILITIES=compute,utility \
             --device nvidia.com/gpu=all \
+<<<<<<< HEAD
             localhost/chatterbox-tts:v1.0.0''; # Local build (podman)
+||||||| f46c16eb
+            localhost/chatterbox-tts:latest'';
+=======
+            localhost/chatterbox-tts:latest''; # Local build (podman)
+>>>>>>> central/issue-291-audit-remediation
         # Server listens on 8004 inside; host networking exposes on 0.0.0.0:8004
 
         ExecStop = "${pkgs.podman}/bin/podman stop --ignore chatterbox-tts";

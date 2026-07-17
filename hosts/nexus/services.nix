@@ -32,9 +32,16 @@ in {
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/persistent/etc/k3s-cluster-token";
       nodeIP = cluster.hosts.nexus.ip;
+<<<<<<< HEAD
       flannelIface = "eth0"; # Nexus primary interface (eth0 has NO-CARRIER)
       flannelBackend = "vxlan";
       secretsEncryptionKeyFile = "/run/secrets/k3s-encryption-key";
+||||||| f46c16eb
+    flannelIface = "eth0"; # Nexus primary interface (eth0 has NO-CARRIER)
+=======
+      flannelIface = "eth0"; # Nexus primary interface (eth0 has NO-CARRIER)
+      secretsEncryptionKeyFile = "/run/secrets/k3s-encryption-key";
+>>>>>>> central/issue-291-audit-remediation
     };
 
     keepalived-vip = {

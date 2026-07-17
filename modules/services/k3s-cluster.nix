@@ -273,6 +273,7 @@ in {
           "--flannel-iface=${cfg.flannelIface}"
           "--kubelet-arg=authentication-token-webhook=true"
           "--kubelet-arg=authorization-mode=Webhook"
+<<<<<<< HEAD
           # Fast kubelet recovery: update node status every 10s, report every 30s.
           # Without these, a brief etcd leader election (40s grace) cascades into
           # all-Unknown nodes because the kubelet on each node connects via
@@ -292,6 +293,20 @@ in {
           "--kube-apiserver-arg=audit-log-maxage=7"
           "--kube-apiserver-arg=audit-log-maxsize=100"
           "--kube-apiserver-arg=audit-log-maxbackup=10"
+||||||| f46c16eb
+=======
+        ]
+        ++ lib.optionals (isServer && cfg.secretsEncryptionKeyFile != null) [
+          "--kube-apiserver-arg=encryption-provider-config=${cfg.dataDir}/server/cred/encryption-config.yaml"
+        ]
+        ++ lib.optionals isServer [
+          "--kube-apiserver-arg=audit-policy-file=${cfg.dataDir}/server/audit-policy.yaml"
+          "--kube-apiserver-arg=audit-log-path=${auditLogPath}"
+          "--kube-apiserver-arg=audit-log-format=json"
+          "--kube-apiserver-arg=audit-log-maxage=7"
+          "--kube-apiserver-arg=audit-log-maxsize=100"
+          "--kube-apiserver-arg=audit-log-maxbackup=10"
+>>>>>>> central/issue-291-audit-remediation
         ];
 
       # --flannel-iface=eth0: explicitly bind flannel VXLAN to eth0 so it uses
@@ -450,6 +465,7 @@ in {
             2380
           ]
         );
+<<<<<<< HEAD
         # NodePort range restricted to LAN subnet (10.1.1.0/24) only.
         # Prevents external access to K8s services bypassing Caddy auth.
         # Host-local services (127.0.0.1) still have full NodePort access.
@@ -465,6 +481,25 @@ in {
           tcp dport 30000-32767 ip saddr 10.1.1.0/24 accept
           tcp dport 30000-32767 drop
         '';
+||||||| f46c16eb
+        allowedTCPPortRanges = [
+          {
+            from = 30000;
+            to = 32767;
+          }
+        ];
+=======
+        # NodePort range restricted to LAN subnet (10.1.1.0/24) only.
+        # Prevents external access to K8s services bypassing Caddy auth.
+        # Host-local services (127.0.0.1) still have full NodePort access.
+        extraCommands = ''
+          # Restrict NodePort access: DROP then ACCEPT from LAN+localhost
+          # (INSERT order matters — second -I goes above first, so ACCEPT is evaluated before DROP)
+          iptables -I nixos-fw -p tcp --dport 30000:32767 -j DROP 2>/dev/null || true
+          iptables -I nixos-fw -p tcp --dport 30000:32767 -s 127.0.0.1 -j nixos-fw-accept 2>/dev/null || true
+          iptables -I nixos-fw -p tcp --dport 30000:32767 -s 10.1.1.0/24 -j nixos-fw-accept 2>/dev/null || true
+        '';
+>>>>>>> central/issue-291-audit-remediation
         allowedUDPPorts = mkOptionDefault (lib.optionals (cfg.flannelBackend == "vxlan") [
           8472 # k3s flannel VXLAN (NOT 4789)
         ]);
@@ -648,6 +683,7 @@ in {
       };
     };
 
+<<<<<<< HEAD
     # ── Kubernetes audit policy ────────────────────────────────────
     # Copies the Nix-built audit policy into the k3s data dir and ensures
     # the audit log directory exists before the API server starts.
@@ -716,6 +752,78 @@ in {
         echo "k3s-secrets-encryption: encryption config written to $CONFIG_FILE"
       '';
     };
+||||||| f46c16eb
+=======
+    # ── Kubernetes audit policy ────────────────────────────────────
+    # Copies the Nix-built audit policy into the k3s data dir and ensures
+    # the audit log directory exists before the API server starts.
+    systemd.services.k3s-audit-policy = lib.mkIf isServer {
+      description = "Install Kubernetes audit policy for k3s";
+      wantedBy = ["k3s.service"];
+      before = ["k3s.service"];
+      serviceConfig.Type = "oneshot";
+      serviceConfig.RemainAfterExit = true;
+      path = with pkgs; [coreutils];
+      script = ''
+        mkdir -p "${auditLogDir}"
+        cp "${auditPolicyFile}" "${cfg.dataDir}/server/audit-policy.yaml"
+        chmod 600 "${cfg.dataDir}/server/audit-policy.yaml"
+        echo "k3s-audit-policy: installed audit policy and ensured log dir ${auditLogDir}"
+      '';
+    };
+
+    # ── Secrets encryption at rest (etcd) ──────────────────────────
+    # Generates a Kubernetes EncryptionConfiguration from a shared AES key
+    # on all server nodes. All HA servers MUST use the same key file.
+    # Uses aescbc provider with identity fallback for reading unencrypted secrets.
+    #
+    # Uses pkgs.writeText at build time (avoids heredoc indentation issues)
+    # with a placeholder that sed replaces at runtime with the real key.
+    systemd.services.k3s-secrets-encryption = let
+      encryptionConfigTemplate = pkgs.writeText "encryption-config.yaml" ''
+        apiVersion: apiserver.config.k8s.io/v1
+        kind: EncryptionConfiguration
+        resources:
+          - resources:
+              - secrets
+            providers:
+              - aescbc:
+                  keys:
+                    - name: key1
+                      secret: __ENCRYPTION_KEY__
+              - identity: {}
+      '';
+    in mkIf (isServer && cfg.secretsEncryptionKeyFile != null) {
+      description = "Generate etcd encryption config for K3s secrets encryption at rest";
+      wantedBy = ["k3s.service"];
+      before = ["k3s.service"];
+      serviceConfig.Type = "oneshot";
+      serviceConfig.RemainAfterExit = true;
+      path = with pkgs; [coreutils gnused];
+      script = ''
+        KEY_FILE="${cfg.secretsEncryptionKeyFile}"
+        CONFIG_DIR="${cfg.dataDir}/server/cred"
+        CONFIG_FILE="$CONFIG_DIR/encryption-config.yaml"
+
+        if [ ! -f "$KEY_FILE" ]; then
+          echo "k3s-secrets-encryption: key file $KEY_FILE not found, skipping"
+          exit 0
+        fi
+
+        KEY_B64=$(head -c 32 "$KEY_FILE" | ${pkgs.coreutils}/bin/base64 -w0)
+        if [ -z "$KEY_B64" ]; then
+          echo "k3s-secrets-encryption: key file is empty, skipping"
+          exit 0
+        fi
+
+        mkdir -p "$CONFIG_DIR"
+        sed "s/__ENCRYPTION_KEY__/''${KEY_B64}/" ${encryptionConfigTemplate} > "$CONFIG_FILE"
+        chmod 600 "$CONFIG_FILE"
+        echo "k3s-secrets-encryption: encryption config written to $CONFIG_FILE"
+      '';
+    };
+
+>>>>>>> central/issue-291-audit-remediation
     # Etcd defragmentation — compaction alone doesn't reclaim disk space.
     # Must defrag periodically. Runs on all servers.
     systemd.services.k3s-etcd-defrag = lib.mkIf isServer {

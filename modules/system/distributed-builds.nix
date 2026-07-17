@@ -174,9 +174,43 @@ in {
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 8;
               speedFactor = 6;
+<<<<<<< HEAD
               # ssh:// avoids NixOS/nix#5701 pipe-draining deadlock (ssh-ng stalls when
               # build-remote writes progress logs faster than the parent drains the pipe).
               protocol = "ssh";
+||||||| f46c16eb
+              supportedFeatures = ["big-parallel"];
+              mandatoryFeatures = [];
+            }
+            {
+              hostName = "forge";
+              systems = ["x86_64-linux" "i686-linux"];
+              sshUser = "j_kro";
+              sshKey = "~/.ssh/id_ed25519";
+              maxJobs = 4;
+              speedFactor = 4;
+              supportedFeatures = ["big-parallel"];
+              mandatoryFeatures = [];
+            }
+            {
+              hostName = "krash3";
+              systems = ["x86_64-linux" "i686-linux"];
+              sshUser = "j_kro";
+              sshKey = "~/.ssh/id_ed25519";
+              maxJobs = 3;
+              speedFactor = 2;
+=======
+              supportedFeatures = ["big-parallel"];
+              mandatoryFeatures = [];
+            }
+            {
+              hostName = "krash3";
+              systems = ["x86_64-linux" "i686-linux"];
+              sshUser = "j_kro";
+              sshKey = "~/.ssh/id_ed25519";
+              maxJobs = 3;
+              speedFactor = 2;
+>>>>>>> central/issue-291-audit-remediation
               supportedFeatures = ["big-parallel"];
               mandatoryFeatures = [];
             }
