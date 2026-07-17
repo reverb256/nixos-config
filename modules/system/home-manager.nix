@@ -132,6 +132,10 @@ in
         enable = lib.mkDefault true;
       };
 
+      # dconf is required by GTK theming but fails on headless hosts
+      # (no D-Bus session → dconf service unavailable → HM activation fails).
+      programs.dconf.enable = lib.mkIf (hostName == "nexus") false;
+
       home.sessionVariables.BAT_THEME = "base16";
 
       home.pointerCursor.enable = true;
