@@ -86,12 +86,17 @@ in {
         User = cfg.user;
         WorkingDirectory = runnerHome;
         ExecStart = "${pkgs.github-runner}/bin/runsvc.sh";
+      ExecStartPre = "${pkgs.bash}/bin/bash -c 'ln -sfT node24 ${pkgs.github-runner}/lib/externals/node20'";
         Restart = "always";
         RestartSec = "10s";
         ProtectSystem = "strict";
         PrivateTmp = true;
         NoNewPrivileges = true;
-        ReadWritePaths = [runnerHome];
+        ReadWritePaths = [runnerHome]
+          # The runner's externals/node20 symlink needs to point to
+          # node24 (nixpkgs provides node24, not node20 as runner expects).
+          (builtins.toString pkgs.github-runner + "/lib/externals")
+        ];
       };
     };
 
