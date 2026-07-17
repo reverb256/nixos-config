@@ -93,6 +93,77 @@ the manual resync above is the current contract. The earlier redundant
 `/etc/sops/age/keys.txt` was decommissioned; the explicit `sops.age.keyFile`
 makes the sops-nix default-fallback path moot.
 
+## YubiKey decryption
+
+`/etc/nixos/.sops.yaml` enrolls three age recipients:
+
+| Recipient | Identity | Use case |
+|-----------|----------|----------|
+| `cluster_age` | `age1p98yp8w64rdugp03332gxnz5q2vcnucn69cs5qm6s2l2u7epqfcqmu2pqe` | Static file key used by sops-nix at NixOS activation |
+| `yubikey_nano` | `age1yubikey1qtrfqkheehc6dlyux9stwq67dq3kcledlwzzrckx0wk639mh0wqh54auh7v` | YubiKey Nano (permanent) hardware token |
+| `yubikey_nfc` | `age1yubikey1qvh5yeguawe89kr9muzn6xvfwjkcja7rf0j6afxgyula6p9vql4kkjh52h2` | YubiKey NFC (portable) hardware token |
+
+The static `cluster_age` key is the default identity for sops-nix: it is
+unattended, lives in `/etc/nixos/.age/key.txt`, and requires no hardware.
+The two YubiKeys are enrolled as **additional** recipients so that, if the
+static key is ever lost, either hardware token can still decrypt the
+secrets.
+
+### CLI decryption with a YubiKey
+
+`sops` (via the age library) needs an **age identity** that matches one of
+the recipients. Native age secret keys (`AGE-SECRET-KEY-...`) work via
+`SOPS_AGE_KEY_FILE`, but **age-plugin-yubikey identities are NOT parsed by
+sops from an identity file** — sops reports `unknown identity type` when
+given an `AGE-PLUGIN-YUBIKEY-...` line. Therefore the supported paths for
+YubiKey-backed decryption are:
+
+1. **Use the static cluster key for sops CLI** (simplest):
+
+   ```bash
+   SOPS_AGE_KEY_FILE=~/.age/key.txt \
+     sops --config /etc/nixos/.sops.yaml -d \
+     /etc/nixos/secrets/<feature>/<file>.yaml
+   ```
+
+2. **Use an age keyservice** so sops delegates age operations to a
+   keyservice that can talk to the YubiKey. This is out of scope for the
+   default setup; see `sops --help` and the age-plugin-yubikey docs if you
+   need it.
+
+3. **For non-sops age files only**, decrypt directly with `age` and the
+   plugin:
+
+   ```bash
+   age -d -i /home/j_kro/.nix-profile/bin/age-plugin-yubikey \
+     -o plaintext.bin secret.age
+   ```
+
+If you want a single composite identity file for tools that *do* support
+plugin identities (e.g. the `age` binary), extract the YubiKey identity
+once:
+
+```bash
+# Prompts for PIN and touch; stores identities for all configured slots.
+age-plugin-yubikey --identity > ~/.age/yubikey_identity
+```
+
+### Important caveats
+
+- **sops-nix activation uses the static key only.** At `nixos-rebuild`
+  time, `/etc/nixos/.age/key.txt` is the only identity available. Do not
+  rely on a YubiKey being present during unattended activation unless you
+  have also configured a keyservice or manual unlock step.
+- **YubiKey identities are additive, not a replacement.** Keep the static
+  `cluster_age` key as the primary recipient so activation stays
+  unattended.
+- **Plugin path.** `age-plugin-yubikey` must be in `PATH` (e.g. via the
+  Nix profile `/home/j_kro/.nix-profile/bin/age-plugin-yubikey`). If it is
+  not, sops/age will report `no identity matched any of the recipients`.
+- **Touch policy.** Depending on the YubiKey PIV slot configuration, you
+  may need to touch the device during decryption. Batch/automated
+  decryption should therefore use the static key, not a YubiKey.
+
 ## Registry module quick reference
 
 File: `/etc/nixos/modules/system/sops-secrets-registry.nix` (569 lines).
@@ -312,20 +383,7 @@ if you want to retire a key).
   correct form; the older `nix run 'nixpkgs#X' -c args...` is rejected
   by modern nix.
 
-- **> **WARNING (high): rotation REPLACES the recipient set, not
-> extends it.** Applying
-> `sops --config /etc/nixos/.sops.yaml --encrypt --in-place`
-> re-encrypts under `.sops.yaml` `creation_rules`, which lists ONLY
-> zephyr's pubkey. The resulting file has ONLY zephyr as a recipient
-> — every other host that could decrypt the previous envelope (up to 76
-> historical recipients) loses decryption access on rotation.
-> **Coordinate with all peer hosts (forge, nexus, sentry, and
-> any external operator) before running rotation en masse**, or peer
-> hosts will silently stop decrypting on their next `nixos-rebuild`.
-> See also the WARNING block at the top of the `sops 3.13.1 updatekeys
-> syntax` appendix.
-
-Cluster-wide loss.** The orphan files (0/135 decrypt today) encode
+- **Cluster-wide loss.** The orphan files (0/135 decrypt today) encode
   76 unique recipient X25519 tags (from prior audit). If the matching
   private keys are gone, those secrets are unrecoverable. Rotate
   everything: re-collect each secret from its owner/operator, store as
