@@ -86,7 +86,6 @@ in {
         User = cfg.user;
         WorkingDirectory = runnerHome;
         ExecStart = "${pkgs.github-runner}/bin/runsvc.sh";
-      ExecStartPre = "${pkgs.bash}/bin/bash -c 'ln -sfT node24 ${pkgs.github-runner}/lib/externals/node20'";
         Restart = "always";
         RestartSec = "10s";
         ProtectSystem = "strict";
@@ -119,6 +118,7 @@ in {
       '';
       serviceConfig = {
         Type = "oneshot";
+        RemainAfterExit = true;
         User = cfg.user;
         WorkingDirectory = runnerHome;
       };
