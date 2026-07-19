@@ -72,9 +72,28 @@ in {
       description = "GitHub Actions runner";
       home = runnerHome;
       createHome = true;
+      # Shell for the runner's step execution (GitHub resets PATH per-step to a
+      # minimal FHS set; without a real login shell here, `sh` resolves to nothing).
+      shell = pkgs.bash;
     };
 
-    environment.systemPackages = [pkgs.curl pkgs.jq];
+    # Full toolchain the workflows need (sh, bash, git, nix, coreutils, jq...).
+    # Without these on PATH the runner cannot execute any `run:` step.
+    environment.systemPackages = [
+      pkgs.bash
+      pkgs.git
+      pkgs.nix
+      pkgs.coreutils
+      pkgs.gnused
+      pkgs.gnugrep
+      pkgs.gnutar
+      pkgs.gzip
+      pkgs.findutils
+      pkgs.diffutils
+      pkgs.curl
+      pkgs.jq
+      pkgs.github-runner
+    ];
 
     systemd.services.github-actions-runner = lib.mkIf cfg.autoStart {
       description = "GitHub Actions Self-Hosted Runner";
@@ -89,7 +108,23 @@ in {
         ExecStop = "/bin/kill -INT $MAINPID";
         Restart = "always";
         RestartSec = "10s";
+        # NixOS has no FHS /usr/bin/sh. Force a PATH that includes the Nix store
+        # profile bin so `sh`/`bash`/`git`/`nix` resolve when GitHub resets PATH
+        # at step-exec time (root cause of 'sh: command not found' startup_failure).
+        Environment = {
+          PATH = "/run/current-system/sw/bin:/run/current-system/sw/sbin:/usr/bin:/bin";
+          LANG = "C.UTF-8";
+        };
         ProtectSystem = "strict";
+        # Keep /run/current-system, the nix store, and sops secrets visible +
+        # executable under ProtectSystem=strict so steps can run shells and `nix`.
+        BindReadOnlyPaths = [
+          "/run/current-system"
+          "/nix/store"
+          "/run/secrets"
+          "/bin"
+          "/usr"
+        ];
         PrivateTmp = true;
         NoNewPrivileges = true;
         ReadWritePaths = [runnerHome];
