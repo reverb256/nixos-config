@@ -1,24 +1,18 @@
-# machines - Nix distributed build farm configuration
-# Format: https://nixos.org/manual/nix/stable/advanced-topics/distributed-builds.html
-#
-# Each line: [protocol://]user@host system ssh-key max-jobs speed-factor supported-features mandatory-features
-# Note: Empty fields use defaults, - means "not specified"
+# machines - Colmena build-farm configuration
+# Colmena machines format (see colmena docs):
+#   [ssh://]user@host  system  ssh-private-key  cores  memory(MB)  tags
+# NOTE: /etc/nix/machines (Nix distributed-builds) is GENERATED separately by
+# modules/system/distributed-builds.nix — this file is colmena-only.
+# Do NOT write Nix distributed-build format here; colmena cannot parse it.
 
-# All 4 cluster nodes are build servers (base x86_64, reverted from v3 on 2026-03-14)
+# Zephyr - K8s control plane (32 cores, 31GB RAM). Disabled as builder (OOMs).
+j_kro@zephyr x86_64-linux /home/j_kro/.ssh/id_ed25519 0 31000 big-parallel,kvm
 
-# Zephyr - K8s control plane + node (32 cores, 31GB RAM)
-# DISABLED as builder: maxJobs=0 (only 31GB RAM, OOMs building large packages like gamescope)
-# Previous: maxJobs=4 (~7.5GB per job, leaves 1GB headroom for system + AI)
-ssh-ng://j_kro@zephyr x86_64-linux - 0 1 kvm,big-parallel -
+# Nexus - K8s storage worker (24 cores, 46GB RAM). maxJobs=6.
+j_kro@nexus x86_64-linux /home/j_kro/.ssh/id_ed25519 6 46000 big-parallel
 
-# Nexus - K8s storage worker + NFS (24 cores, 46GB RAM)
-# maxJobs=2 (~7GB per job, leaves 4GB headroom for NFS)
-ssh-ng://j_kro@nexus x86_64-linux - 6 5 big-parallel -
+# Forge - GPU worker (6 cores, 15GB RAM, 2x RTX 4060 + 2x RX 5700 XT). maxJobs=1.
+j_kro@forge x86_64-linux /home/j_kro/.ssh/id_ed25519 1 15000 big-parallel
 
-# Forge - GPU worker (6 cores, 15GB RAM, 2x RTX 4060 + 2x RX 5700 XT)
-# CONSERVATIVE maxJobs=1 (only 15GB RAM, GPU workloads need memory)
-ssh-ng://j_kro@forge x86_64-linux - 1 2 big-parallel -
-
-# Sentry - Monitoring worker (16 cores, 31GB RAM, RX 5600 XT)
-# maxJobs=3 (~15GB per job, leaves headroom for monitoring stack)
-ssh-ng://j_kro@sentry x86_64-linux - 2 3 big-parallel -
+# Sentry - Monitoring worker (16 cores, 31GB RAM, RX 5600 XT). maxJobs=2.
+j_kro@sentry x86_64-linux /home/j_kro/.ssh/id_ed25519 2 31000 big-parallel
