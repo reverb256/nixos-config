@@ -13,33 +13,31 @@ in {
       builders = lib.mkDefault "@/etc/nix/machines";
       builders-use-substitutes = true;
       require-sigs = lib.mkForce false;
-      # FIX (2026-07-16): nix defaults to libcurl --speed-limit 1 --speed-time 300
-      # during substituter fetches. When a NAR is streamed/extracted through a pipe
-      # (common for large paths like luajit/libde265/imath/flite), throughput dips
-      # below 1 byte/s and nix ABORTS the fetch -> infinite "copying path ... from
-      # cache.nixos.org" stall (NixOS/nixpkgs#160289, #65015). Disabling the
-      # stalled-download timeout stops the abort; the fetch then completes.
-      stalled-download-timeout = lib.mkDefault 0;
       trusted-users = lib.mkForce [
         "root"
         "*"
         "@wheel"
       ];
 
-      # NOTE (2026-07-16): only fast/reliable substituters. maplespike, reverb-os,
-      # ezkea, and nix-gaming cachix mirrors are too slow (5-min "Operation too
-      # slow" timeouts per request before falling through to the next cache).
-      # cache.nixos.org + nix-community.cachix.org are fast and well-populated.
-      # Clean build results are pushed back to nexus by the post-build-hook.
       substituters = lib.mkForce (
         if currentHost == "zephyr"
         then [
-          "https://cache.nixos.org?priority=90"
-          "https://nix-community.cachix.org?priority=80"
+          "http://10.1.1.120:50000?priority=40&want-mass-query=true"
+          "https://cache.nixos.org"
+          "https://nix-community.cachix.org"
+          "https://reverb-os.cachix.org"
+          "https://maplespike.cachix.org"
+          "https://ezkea.cachix.org"
+          "https://nix-gaming.cachix.org"
         ]
         else [
-          "https://cache.nixos.org?priority=90"
-          "https://nix-community.cachix.org?priority=80"
+          "http://10.1.1.120:50000?priority=40&want-mass-query=true"
+          "https://cache.nixos.org"
+          "https://nix-community.cachix.org"
+          "https://reverb-os.cachix.org"
+          "https://maplespike.cachix.org"
+          "https://ezkea.cachix.org"
+          "https://nix-gaming.cachix.org"
         ]
       );
       trusted-public-keys = lib.mkForce (
@@ -67,11 +65,13 @@ in {
         if currentHost == "zephyr"
         then 2 # minimal for coordination
         else if currentHost == "nexus"
-        then 16
+        then 12
         else if currentHost == "sentry"
-        then 10
+        then 8
         else if currentHost == "forge"
         then 6
+        else if currentHost == "krash3"
+        then 3
         else 4
       );
 
@@ -84,17 +84,19 @@ in {
         if currentHost == "zephyr"
         then 0
         else if currentHost == "nexus"
-        then 16 # primary builder — 24C/48T, 25G free; 16 leaves headroom
+        then 12 # primary builder — 12C/24T, binary cache host
         else if currentHost == "sentry"
-        then 10 # 16C, 20G avail; inference is VRAM-bound so RAM is safe
+        then 8
         else if currentHost == "forge"
         then 4
+        else if currentHost == "krash3"
+        then 3
         else 4
       );
 
       http-connections = 100;
       connect-timeout = 30;
-      max-silent-time = 14400;
+      max-silent-time = 3600;
       keep-build-log = true;
       log-lines = 2000;
       auto-optimise-store = true;
@@ -111,12 +113,14 @@ in {
     };
   };
 
+  # ── Post-build hook: auto-push to nexus cache ──
+
   # ── Post-build hook: auto-push completed builds to nexus cache ──
-  nix.settings.post-build-hook = pkgs.writeShellScript "upload-to-cache" ''
+  nix.settings.post-build-hook = lib.mkIf (currentHost != "krash3") (pkgs.writeShellScript "upload-to-cache" ''
   if [ -n "$OUT_PATHS" ] && [ "$BUILD_STATUS" = "success" ]; then
     exec nice -n 19 nix copy --to ssh://j_kro@nexus --substitute-on-destination $OUT_PATHS 2>/dev/null
   fi
-  '';
+  '');
 
   programs.ssh.startAgent = true;
 
@@ -141,7 +145,7 @@ in {
   environment = {
     etc = {
       "ssh/ssh_config.d/50-build-machines.conf".text = ''
-        Host zephyr nexus sentry forge
+        Host zephyr nexus sentry forge krash3
           User j_kro
           IdentityFile ~/.ssh/id_ed25519
           IdentitiesOnly yes
@@ -152,7 +156,16 @@ in {
       "nix/machines" = {
         text = let
           allMachines = [
-            # zephyr removed 2026-07-15: build dispatcher only, maxJobs=0 (no local builds)
+            {
+              hostName = "zephyr";
+              systems = ["x86_64-linux" "i686-linux"];
+              sshUser = "j_kro";
+              sshKey = "~/.ssh/id_ed25519";
+              maxJobs = 0;
+              speedFactor = 1; # deprioritize zephyr
+              supportedFeatures = [];
+              mandatoryFeatures = [];
+            }
             {
               hostName = "nexus";
               systems = ["x86_64-linux" "i686-linux"];
@@ -160,7 +173,6 @@ in {
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 12;
               speedFactor = 10; # prioritize nexus
-              protocol = "ssh-ng";
               supportedFeatures = [
                 "big-parallel"
                 "kvm"
@@ -174,11 +186,9 @@ in {
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 8;
               speedFactor = 6;
-<<<<<<< HEAD
               # ssh:// avoids NixOS/nix#5701 pipe-draining deadlock (ssh-ng stalls when
               # build-remote writes progress logs faster than the parent drains the pipe).
               protocol = "ssh";
-||||||| f46c16eb
               supportedFeatures = ["big-parallel"];
               mandatoryFeatures = [];
             }
@@ -199,18 +209,6 @@ in {
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 3;
               speedFactor = 2;
-=======
-              supportedFeatures = ["big-parallel"];
-              mandatoryFeatures = [];
-            }
-            {
-              hostName = "krash3";
-              systems = ["x86_64-linux" "i686-linux"];
-              sshUser = "j_kro";
-              sshKey = "~/.ssh/id_ed25519";
-              maxJobs = 3;
-              speedFactor = 2;
->>>>>>> central/issue-291-audit-remediation
               supportedFeatures = ["big-parallel"];
               mandatoryFeatures = [];
             }
@@ -218,15 +216,20 @@ in {
           machines = builtins.filter (m: m.hostName != currentHost) allMachines;
           formatMachine = m: with builtins;
             let
-              host = "${m.protocol}://${m.sshUser}@${m.hostName}";
-              key = if m.sshKey != null then m.sshKey else "-";
-              jobs = toString m.maxJobs;
-              speed = toString m.speedFactor;
-              features = concatStringsSep "," m.supportedFeatures;
-              mandatories = concatStringsSep "," m.mandatoryFeatures;
-              line = system: concatStringsSep " " [host system key jobs speed features mandatories];
+              # Single primary system only. Colmena parses this file too and
+              # chokes on the multi-system "x86_64-linux i686-linux" form
+              # (the 2nd system lands in the ssh-key column -> uint parse error).
+              primarySystem = lib.head m.systems;
             in
-              concatStringsSep "\n" (map line m.systems);
+            concatStringsSep " " [
+              ("ssh-ng://" + "${m.sshUser}@${m.hostName}")
+              primarySystem
+              (if m.sshKey != null then m.sshKey else "-")
+              (toString m.maxJobs)
+              (toString m.speedFactor)
+              (concatStringsSep "," m.supportedFeatures)
+              (concatStringsSep "," m.mandatoryFeatures)
+            ];
         in
           lib.concatStringsSep "\n" (map formatMachine machines) + "\n";
       };
