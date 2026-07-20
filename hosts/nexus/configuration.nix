@@ -517,7 +517,6 @@
       consistencyMode = "consistent"; # Full consistency with zones
       enableMetrics = true; # Prometheus metrics on port 3903
       enableBackup = false; # Nexus IS the backup storage
-      rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
     };
 
     # Hermes Agent module removed (2026-04-06) - missing flake input made it undeletable
