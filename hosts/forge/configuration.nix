@@ -283,7 +283,6 @@
       enable = true;
       interval = "daily"; # Check for updates daily at 00:00
       updateFlakeInputs = [ "nixpkgs" ]; # Auto-update nixpkgs input
-      extraFlags = [ "--upgrade" ]; # Run with --upgrade flag
     };
   };
 
