@@ -95,16 +95,19 @@
     ./gaming/scopebuddy.nix
 
     # Mining
-    ./mining/mining.nix
-    ./mining/mining-plasmoid.nix
-    ./mining/dual-xmrig.nix
-    ./mining/xmrig-proxy.nix
-    ./mining/mining-proxy.nix
+    # (handled by inputs.compute-market.nixosModules.default in common-modules-list.nix)
+    # ./mining/mining.nix
+    # ./mining/mining-plasmoid.nix
+    # ./mining/dual-xmrig.nix
+    # ./mining/xmrig-proxy.nix
+    # ./mining/mining-proxy.nix
     # Note: Python gpu-proxy removed - replaced by gpu-proxy-cpp (centralized on Forge)
-    ./mining/gpu-proxy-cpp.nix
+    # gpu-proxy handled by inputs.gpu-proxy.nixosModules.default
+    # ./mining/gpu-proxy-cpp.nix
 
     # GPU Resource Marketplace
-    ./compute-market/default.nix
+    # (handled by inputs.compute-market.nixosModules.default in common-modules-list.nix)
+    # ./compute-market/default.nix
 
     # Services
     ./services/mcp-servers.nix
@@ -116,7 +119,6 @@
     ./services/lm-studio-headless.nix
     ./services/llamafile.nix
     ./services/stability-matrix.nix
-    ./services/ai-inference/default.nix
     ./services/nixos-share.nix
     ./services/spacebot.nix # Systemd/Podman deployment (current)
     ./services/spacebot/default.nix # Container module for Kubernetes (optional)
