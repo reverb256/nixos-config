@@ -59,6 +59,7 @@ in
         lib.optional (hostName == "zephyr" || hostName == "sentry")
           inputs.niri.homeModules.config
         ++ [
+          inputs.stylix.homeManagerModules.default
           inputs.zen-browser.homeModules.twilight
         inputs.nixcord.homeModules.nixcord
         ../../modules/home-manager/fish.nix
