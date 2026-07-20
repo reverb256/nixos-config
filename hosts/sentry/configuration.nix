@@ -112,7 +112,7 @@
       role = "server";
       nodeName = "sentry";
       serverAddr = "https://10.1.1.100:6443";
-      tokenFile = "/run/agenix/k3s-cluster-token";
+      tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.140";
       calico.enable = true;
     };
@@ -460,7 +460,7 @@
   # AGENIX SECRETS
   # ============================================================================
   # Centralized registry - see modules/system/agenix-secrets-registry.nix
-  services.agenix-secrets-registry = {
+  services.sops-secrets-registry = {
     enable = true;
     mining = true; # XMRig API token
     kubernetes = true; # k3s cluster token

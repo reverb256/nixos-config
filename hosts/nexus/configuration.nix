@@ -150,7 +150,7 @@
       clusterInit = true;
       nodeName = "nexus";
       serverAddr = "https://10.1.1.100:6443";
-      tokenFile = "/run/agenix/k3s-cluster-token";
+      tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.120";
       calico.enable = true;
     };
@@ -419,7 +419,7 @@
           enable = false;
           threads = 4; # 17% of 24 cores
           httpPort = 8081;
-          httpTokenFile = "/run/agenix/xmrig-always-api-token";
+          httpTokenFile = "/run/secrets/xmrig-always-api-token";
           autostart = false;
         };
         # Flexible instance - pauses during gaming/builds
@@ -427,7 +427,7 @@
           enable = true;
           threads = 8; # 33% of 24 cores
           httpPort = 8082;
-          httpTokenFile = "/run/agenix/xmrig-flexible-api-token";
+          httpTokenFile = "/run/secrets/xmrig-flexible-api-token";
           autostart = false;
         };
         # Common settings for both instances
@@ -572,7 +572,7 @@
   # AGENIX SECRETS
   # ============================================================================
   # Centralized registry - see modules/system/agenix-secrets-registry.nix
-  services.agenix-secrets-registry = {
+  services.sops-secrets-registry = {
     enable = true;
     aiServices = true; # HF_TOKEN for vLLM model downloads
     mining = true; # XMRig API tokens

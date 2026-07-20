@@ -17,7 +17,7 @@ _: {
     # Admin account (password managed by Agenix)
     admin = {
       user = "j_kro"; # Or "admin"
-      passwordFile = "/run/agenix/nextcloud-admin";
+      passwordFile = "/run/secrets/nextcloud-admin";
     };
     # Storage
     dataDir = "/var/lib/nextcloud";
@@ -54,7 +54,7 @@ _: {
   # The password is encrypted in:
   #   /data/@projects/infra/nixos/secrets/nextcloud-admin.age
   #
-  # Decrypted at runtime to: /run/agenix/nextcloud-admin
+  # Decrypted at runtime to: /run/secrets/nextcloud-admin
   #
   # To view the password:
   #   age --decrypt /data/@projects/infra/nixos/secrets/nextcloud-admin.age

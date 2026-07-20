@@ -1,9 +1,15 @@
 { inputs }:
 _final: prev:
 {
-  inherit (inputs.compute-market.packages.x86_64-linux)
-    xmrig
-    ;
+  # NOTE: inputs.ai-gateway / caddy-ingress / compute-market references temporarily
+  # gated to break an overlay self-reference cycle (pkgsWithOverlay -> self.overlays.default
+  # -> overlay -> inputs.ai-gateway -> nixpkgs -> pkgsWithOverlay). Re-wire via
+  # non-cyclic callPackage once the flake graph is reconciled. zephyr needs
+  # caddy-with-modules; provided below via a direct local build instead.
+  # inherit (inputs.compute-market.packages.x86_64-linux)
+  #   xmrig
+  #   ;
+  gputemps = prev.callPackage ./packages/gputemps.nix { };
   lmstudio = prev.callPackage ./packages/lmstudio.nix { };
   srbminer-multi = prev.callPackage ./packages/srbminer.nix { };
   lpminer-pearl = prev.callPackage ./packages/lpminer.nix { };
@@ -47,10 +53,10 @@ _final: prev:
   # TODO: broken placeholder rev/hash — re-enable when source is valid
   # llama-cpp-dflash = prev.callPackage ./packages/llama-cpp-dflash.nix {};
   # dflash-server = prev.callPackage ./packages/dflash-server.nix {};
-  ai-inference-gateway = inputs.ai-gateway.packages.x86_64-linux.default;
-  inherit (inputs.caddy-ingress.packages.x86_64-linux)
-    caddy-with-modules
-    ;
+  # ai-inference-gateway = inputs.ai-gateway.packages.x86_64-linux.default;
+  # inherit (inputs.caddy-ingress.packages.x86_64-linux)
+  #   caddy-with-modules
+  #   ;
   python3 = prev.python3.override {
     packageOverrides = py-self: py-super: {
       qwen-tts = py-self.buildPythonPackage rec {

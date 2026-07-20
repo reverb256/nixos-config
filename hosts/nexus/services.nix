@@ -27,21 +27,13 @@ in {
       nvidia.enable = true;
       role = "server";
       clusterInit = false; # Stable cluster running
-      clusterReset = false; # Already reset, running clean
+  clusterReset = false; # Already reset, running clean
       nodeName = "nexus";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/persistent/etc/k3s-cluster-token";
       nodeIP = cluster.hosts.nexus.ip;
-<<<<<<< HEAD
-      flannelIface = "eth0"; # Nexus primary interface (eth0 has NO-CARRIER)
-      flannelBackend = "vxlan";
-      secretsEncryptionKeyFile = "/run/secrets/k3s-encryption-key";
-||||||| f46c16eb
     flannelIface = "eth0"; # Nexus primary interface (eth0 has NO-CARRIER)
-=======
-      flannelIface = "eth0"; # Nexus primary interface (eth0 has NO-CARRIER)
-      secretsEncryptionKeyFile = "/run/secrets/k3s-encryption-key";
->>>>>>> central/issue-291-audit-remediation
+    flannelBackend = "vxlan";
     };
 
     keepalived-vip = {
@@ -55,13 +47,9 @@ in {
 
     nexus-exec.enable = true;
 
-    # nixos-share NFS client disabled: zephyr's NFS server is not enabled
-    # cluster-wide, so the /run/nixos-shared mount always fails. The
-    # nixos-auto-update script already falls back to /etc/nixos. The server
-    # half is kept available but the dead client mount is removed.
     nixos-share = {
       enable = true;
-      client.enable = false;
+      client.enable = true;
     };
 
     nfs-data-server = {
@@ -73,15 +61,12 @@ in {
       '';
     };
 
+
     nfs-state-sync = {
       enable = true;
       sourceHost = "zephyr";
       paths = ["/data/hermes" "/data/pi"];
       interval = "15min";
-    };
-
-    nixos-cluster-mcp = {
-      enable = true;
     };
 
   };
@@ -116,6 +101,12 @@ in {
           api_key = "none";
           model = "qwen/qwen3-coder-480b-a35b-instruct";
         };
+        # Direct ZAI fallback (bypasses gateway for reliability)
+        zai = {
+          base_url = "https://api.z.ai/api/coding/paas/v4";
+          api_key_env = "ZAI_API_KEY";
+          model = "glm-5.1";
+        };
         # NVIDIA NIM cloud models
         nvidia-nim = {
           base_url = "https://integrate.api.nvidia.com/v1";
@@ -135,6 +126,7 @@ in {
         };
       };
       fallback_providers = [
+        "zai"
         "nvidia-nim"
         "llama-cpp-zephyr"
         "llama-cpp-sentry"
@@ -163,11 +155,13 @@ in {
       };
     };
 
-    # MCP servers are managed exclusively via modules/services/mcp-server-registry.nix
-    # (single source of truth). GitHub is reached via the bridge-script variant
-    # /data/agents/mcp-bridges/github-mcp.sh which carries the sops-decrypted
-    # github-token. The previous inline npx-shape entry was deleted 2026-07-15
-    # to resolve the duplicate-shape merge race with hermes-cli's MCP block.
+    # Secrets loaded via ExecStartPre + EnvironmentFile override below
+    mcpServers = {
+      github = {
+        command = "npx";
+        args = ["-y" "@modelcontextprotocol/server-github"];
+      };
+    };
 
     # Personality documents
     documents = {
@@ -185,7 +179,8 @@ in {
    # Hermes WebUI — disabled on nexus (no /data/projects/own/hermes-webui)
    # Runs on zephyr only. Dead code and timer removed.
 
-  # Load NVIDIA API keys for hermes-agent
+
+  # Load Z.AI and NVIDIA API keys for hermes-agent
   # The official module's environment option doesn't reliably set systemd env vars,
   # so we use a systemd override with ExecStartPre to generate an env file.
 
@@ -368,6 +363,7 @@ in {
    services.ai-coding-tools = {
      enable = true;
      user = "j_kro";
+     zaiApiKeyFile = "/run/secrets/zai-api-key";
      context7ApiKeyFile = "/run/secrets/context7-api-key";
      nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
@@ -390,8 +386,7 @@ in {
      generateCasdoorApps = true;
    };
 
-  # GitHub Actions self-hosted runners for CI/CD
-  # nixos-config runner (existing)
+  # GitHub Actions self-hosted runner for CI/CD
   services.ci-runner = {
     enable = true;
     repo = "reverb256/nixos-config";
@@ -400,7 +395,7 @@ in {
     extraLabels = ["nexus"];
   };
 
-    services.k8s-secret-sync = {
+  services.k8s-secret-sync = {
     enable = true;
   };
 }

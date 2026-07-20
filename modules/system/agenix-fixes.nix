@@ -81,7 +81,7 @@ in
 
         # Determine the correct target directory for secrets
         # The agenix module creates /run/agenix -> /run/agenix.d/1/ symlink
-        # Services access secrets via /run/agenix/<name>
+        # Services access secrets via /run/secrets/<name>
         # We need to write to the symlink target for services to find them
         if [ -L "/run/agenix" ]; then
           # Use the symlink target (readlink gives us /run/agenix.d/1)

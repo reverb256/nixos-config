@@ -32,8 +32,8 @@
     ./system/vm-tuning.nix
     ./system/fetch-tools.nix
     ./system/boot-error-fixes.nix
-    ./system/agenix-fixes.nix
-    ./system/agenix-secrets-registry.nix
+    # ./system/agenix-fixes.nix              # Migrated to sops-nix; agenix module no longer loaded
+    # ./system/agenix-secrets-registry.nix     # Migrated to sops-nix; agenix module no longer loaded
     ./system/cluster-storage.nix
     ./system/security-hardening.nix
     ./system/cluster-firewall.nix
@@ -150,6 +150,7 @@
     # Exporters
     ./services/gpu-exporters.nix
     ./services/mining-exporter.nix
+    ./services/gputemps-exporter.nix
     # Multimedia modules
     ./multimedia/gstreamer.nix
     # Desktop modules (Spotify customization)

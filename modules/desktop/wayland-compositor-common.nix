@@ -29,6 +29,10 @@ in {
     services.gnome.gcr-ssh-agent.enable = mkDefault false;
 
     # ── noctalia v5: install + systemd-managed daemon ─────────────────
+    # Guarded because the noctalia NixOS module may not be loaded on all
+    # configurations. When it is absent, skip the noctalia integration
+    # entirely so niri can still be enabled without the extra flake input.
+    } // lib.optionalAttrs noctaliaEnabled {
     # 2026-07-07 refactor: moved off the hand-rolled
     # `systemd.user.services.noctalia` block in modules/home-manager/niri-config.nix
     # to upstream's first-class option. The noctalia NixOS module

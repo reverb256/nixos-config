@@ -8,7 +8,7 @@
 #   lmstudio   — Local LM Studio on zephyr
 #
 # API keys are injected from agenix-decrypted secrets via systemd service
-# that reads /run/agenix/* after agenix activation.
+# that reads /run/secrets/* after agenix activation.
 { config, lib, pkgs, ... }:
 
 let
@@ -217,8 +217,8 @@ let
   writeModelsJson = pkgs.writeShellScript "write-pi-models-json" ''
     set -euo pipefail
 
-    ZAI_KEY_FILE="/run/agenix/zai-api-key"
-    NVIDIA_KEY_FILE="/run/agenix/nvidia-api-key"
+    ZAI_KEY_FILE="/run/secrets/zai-api-key"
+    NVIDIA_KEY_FILE="/run/secrets/nvidia-api-key"
     OUTPUT="${modelsJsonPath}"
 
     # Read API keys (strip trailing whitespace/newlines)

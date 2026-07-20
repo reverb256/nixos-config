@@ -270,7 +270,7 @@ in
       };
       httpTokenFile = mkOption {
         type = types.path;
-        default = "/run/agenix/xmrig-api-token";
+        default = "/run/secrets/xmrig-api-token";
         description = "Path to the HTTP API token file (managed by agenix)";
       };
       tls = mkOption {

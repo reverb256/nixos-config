@@ -38,12 +38,12 @@
         case "$INSTANCE" in
             always)
                 XMRIG_API_PORT="8081"
-                XMRIG_API_TOKEN_FILE="/run/agenix/xmrig-always-api-token"
+                XMRIG_API_TOKEN_FILE="/run/secrets/xmrig-always-api-token"
                 XMRIG_SERVICE="xmrig-always"
                 ;;
             flexible)
                 XMRIG_API_PORT="8082"
-                XMRIG_API_TOKEN_FILE="/run/agenix/xmrig-flexible-api-token"
+                XMRIG_API_TOKEN_FILE="/run/secrets/xmrig-flexible-api-token"
                 XMRIG_SERVICE="xmrig-flexible"
                 ;;
         esac

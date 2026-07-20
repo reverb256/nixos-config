@@ -138,7 +138,7 @@
       role = "agent";
       nodeName = "forge";
       serverAddr = "https://10.1.1.100:6443";
-      tokenFile = "/run/agenix/k3s-cluster-token";
+      tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.130";
     };
 
@@ -353,8 +353,7 @@
     #
     # Only add Forge-specific parameters here that aren't provided by modules
     kernelParams = [
-      # No overrides needed - using hardened defaults from kernel-hardening.nix
-      # Previously had loglevel=4 and reduced lsm stack which weakened security
+      "iomem=relaxed" # Required for gputemps BAR0 MMIO access (per-module GDDR6 VRAM temps)
     ];
     # GPU DRIVERS (Hybrid AMD + NVIDIA)
     # Note: NVIDIA modules loaded via nvidia-wayland.nix
@@ -790,7 +789,7 @@
   # AGENIX SECRETS
 
   # Centralized registry - see modules/system/agenix-secrets-registry.nix
-  services.agenix-secrets-registry = {
+  services.sops-secrets-registry = {
     enable = true;
     kubernetes = true; # k3s cluster token
   };

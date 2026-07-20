@@ -916,17 +916,17 @@ in
     };
     zaiApiKeyFile = mkOption {
       type = types.path;
-      default = "/run/agenix/zai-api-key";
+      default = "/run/secrets/zai-api-key";
       description = "Path to Z.AI API key (agenix secret)";
     };
     context7ApiKeyFile = mkOption {
       type = types.path;
-      default = "/run/agenix/context7-api-key";
+      default = "/run/secrets/context7-api-key";
       description = "Path to Context7 API key (agenix secret)";
     };
     nvidiaNimApiKeyFile = mkOption {
       type = types.path;
-      default = "/run/agenix/nvidia-api-key";
+      default = "/run/secrets/nvidia-api-key";
       description = "Path to NVIDIA NIM API key (agenix secret)";
     };
     tools = {
@@ -1214,9 +1214,9 @@ in
       | Pi | `pi` | npx @mariozechner/pi-coding-agent@latest |
       ## API Keys
       All keys managed via agenix secrets:
-      - zai-api-key → /run/agenix/zai-api-key
-      - context7-api-key → /run/agenix/context7-api-key
-      - nvidia-api-key → /run/agenix/nvidia-api-key
+      - zai-api-key → /run/secrets/zai-api-key
+      - context7-api-key → /run/secrets/context7-api-key
+      - nvidia-api-key → /run/secrets/nvidia-api-key
       Keys are loaded into shell environment (fish/bash) and referenced
       in configs at generation time. Z.AI HTTP servers use Bearer tokens.
     '';
