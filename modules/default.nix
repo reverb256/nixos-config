@@ -112,7 +112,8 @@
     # ./compute-market/default.nix
 
     # Services
-    ./services/mcp-servers.nix
+    # mcp-servers provided by inputs.mcp-registry.nixosModules.default
+    # ./services/mcp-servers.nix
     ./services/nfs-server.nix
     ./services/nfs-client.nix
     ./services/tplink-switches.nix
@@ -125,8 +126,8 @@
     ./services/spacebot.nix # Systemd/Podman deployment (current)
     ./services/spacebot/default.nix # Container module for Kubernetes (optional)
     ./services/podman-auto-update.nix
-    ./services/caddy.nix
-    ./services/caddy-common.nix
+    # ./services/caddy.nix (handled by inputs.caddy-ingress.nixosModules.caddy)
+    # ./services/caddy-common.nix (handled by inputs.caddy-ingress.nixosModules.caddy-common)
     # caddy-ingress-common.nix removed — was dead code (comments only)
     ./services/nextcloud.nix
     ./services/service-gateway.nix
