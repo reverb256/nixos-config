@@ -78,7 +78,7 @@ in {
     apiKeyFile = mkOption {
       type = types.nullOr types.path;
       default = null;
-      example = literalExpression ''"/run/agenix/spacebot-api-key"'';
+      example = literalExpression ''"/run/secrets/spacebot-api-key"'';
       description = "File containing API key (if not using gateway)";
     };
 
@@ -95,8 +95,8 @@ in {
         # OPENROUTER_API_KEY = null;
       };
       example = {
-        ZAI_CODING_PLAN_KEY = "/run/agenix/zai-api-key";
-        KILO_API_KEY = "/run/agenix/kilo-api-key";
+        ZAI_CODING_PLAN_KEY = "/run/secrets/zai-api-key";
+        KILO_API_KEY = "/run/secrets/kilo-api-key";
       };
       description = ''
         Provider API keys to pass as environment variables.
@@ -169,7 +169,7 @@ in {
       tokenFile = mkOption {
         type = types.nullOr types.path;
         default = null;
-        example = literalExpression ''"/run/agenix/discord-token"'';
+        example = literalExpression ''"/run/secrets/discord-token"'';
         description = "File containing Discord bot token";
       };
 
@@ -193,7 +193,7 @@ in {
       tokenFile = mkOption {
         type = types.nullOr types.path;
         default = null;
-        example = literalExpression ''"/run/agenix/slack-token"'';
+        example = literalExpression ''"/run/secrets/slack-token"'';
         description = "File containing Slack bot token";
       };
     };
@@ -211,7 +211,7 @@ in {
       tokenFile = mkOption {
         type = types.nullOr types.path;
         default = null;
-        example = literalExpression ''"/run/agenix/telegram-token"'';
+        example = literalExpression ''"/run/secrets/telegram-token"'';
         description = "File containing Telegram bot token";
       };
     };
@@ -253,7 +253,7 @@ in {
           When using direct API access:
             services.spacebot.apiKey = "sk-...";
             # OR
-            services.spacebot.apiKeyFile = /run/agenix/openai-key;
+            services.spacebot.apiKeyFile = /run/secrets/openai-key;
 
           Current configuration:
             useGateway = ${toString cfg.useGateway}
@@ -269,7 +269,7 @@ in {
           Configure Discord bot token:
             services.spacebot.discord.token = "your-bot-token";
             # OR
-            services.spacebot.discord.tokenFile = /run/agenix/discord-token;
+            services.spacebot.discord.tokenFile = /run/secrets/discord-token;
 
           Get your bot token from: https://discord.com/developers/applications
 
@@ -550,7 +550,7 @@ in {
             -p ${cfg.host}:${toString cfg.port}:19898 \
             -v ${cfg.dataDir}:/data:Z \
             -v ${cfg.dataDir}/config.toml:/data/config.toml:Z \
-            -v /run/agenix:/run/agenix:ro \
+            -v /run/secrets:/run/secrets:ro \
             -v /var/run/podman/podman.sock:/var/run/docker.sock:Z \
             -v /proc:/proc:ro \
             -v /sys/fs/cgroup:/sys/fs/cgroup:ro \

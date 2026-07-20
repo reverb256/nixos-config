@@ -119,6 +119,34 @@ in {
         unit = "watt";
         legendFormat = "{{instance}}";
       })
+      # VRAM Junction Temperature (per-module hotspot, from gputemps BAR0 MMIO)
+      (panels.timeseries {
+        title = "VRAM Junction Temperature";
+        expr = "gputemps_vram_temperature_celsius";
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 21;
+        };
+        unit = "celsius";
+        legendFormat = "{{instance}} GPU {{gpu}}";
+        description = "GDDR6/GDDR6X per-module VRAM junction temperature from BAR0 MMIO (gputemps)";
+      })
+      # GPU Junction (Hotspot) Temperature
+      (panels.timeseries {
+        title = "GPU Junction (Hotspot) Temperature";
+        expr = "gputemps_junction_temperature_celsius";
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 21;
+        };
+        unit = "celsius";
+        legendFormat = "{{instance}} GPU {{gpu}}";
+        description = "GPU die hotspot temperature from BAR0 MMIO (gputemps)";
+      })
 
       # ========== ROW: CLOCK SPEEDS ==========
       (panels.row "⚡ Clock Speeds" true)
@@ -130,7 +158,7 @@ in {
           h = 8;
           w = 8;
           x = 0;
-          y = 21;
+          y = 29;
         };
         unit = "hertz";
         legendFormat = "{{instance}}";
@@ -143,7 +171,7 @@ in {
           h = 8;
           w = 8;
           x = 8;
-          y = 21;
+          y = 29;
         };
         unit = "hertz";
         legendFormat = "{{instance}}";
@@ -156,7 +184,7 @@ in {
           h = 8;
           w = 8;
           x = 16;
-          y = 21;
+          y = 29;
         };
         unit = "hertz";
         legendFormat = "{{instance}}";
@@ -172,7 +200,7 @@ in {
           h = 8;
           w = 12;
           x = 0;
-          y = 29;
+          y = 37;
         };
         unit = "percent";
         legendFormat = "{{instance}}";
@@ -185,7 +213,7 @@ in {
           h = 8;
           w = 12;
           x = 12;
-          y = 29;
+          y = 37;
         };
         unit = "decibytes";
         legendFormat = "{{instance}}";
@@ -219,7 +247,7 @@ in {
           h = 6;
           w = 24;
           x = 0;
-          y = 37;
+          y = 45;
         };
         options = {
           graphMode = "none";
@@ -260,7 +288,7 @@ in {
           h = 8;
           w = 12;
           x = 0;
-          y = 43;
+          y = 51;
         };
         unit = "percent";
         legendFormat = "{{instance}}";
@@ -273,7 +301,7 @@ in {
           h = 8;
           w = 12;
           x = 12;
-          y = 43;
+          y = 51;
         };
         unit = "watt";
         legendFormat = "{{instance}}";

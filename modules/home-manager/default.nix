@@ -63,7 +63,7 @@
 
       # systemd user environment for secrets (available in all shells)
       systemd.user.sessionVariables = {
-        HF_TOKEN = "/run/agenix/huggingface-token";
+        HF_TOKEN = "/run/secrets/huggingface-token";
       };
     };
   };

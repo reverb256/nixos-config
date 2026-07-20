@@ -15,7 +15,7 @@
 
   spotxBash = pkgs.fetchurl {
     url = "https://raw.githubusercontent.com/SpotX-Official/SpotX-Bash/main/spotx.sh";
-    hash = "sha256-ziknP/O5IZnejOqiljbHxNoZtXoNsUFZigY19gQIQVA=";
+    hash = "sha256-dfy0zsYD61KhvkQURKMFKC8eVy46zuexLdtIL87bBG4=";
   };
 in {
   options.services.spotify-spotx = {

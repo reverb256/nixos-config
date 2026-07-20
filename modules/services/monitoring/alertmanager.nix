@@ -53,7 +53,7 @@ in {
       passwordFile = lib.mkOption {
         type = lib.types.nullOr lib.types.path;
         default = null;
-        example = lib.literalExpression "/run/agenix/alertmanager-smtp-password";
+        example = lib.literalExpression "/run/secrets/alertmanager-smtp-password";
         description = "Path to file containing SMTP password";
       };
     };

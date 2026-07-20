@@ -153,7 +153,7 @@ in
       };
       httpTokenFile = mkOption {
         type = types.path;
-        default = "/run/agenix/xmrig-always-api-token";
+        default = "/run/secrets/xmrig-always-api-token";
         description = "Path to HTTP API token file for always-on instance";
       };
       autostart = mkOption {
@@ -177,7 +177,7 @@ in
       };
       httpTokenFile = mkOption {
         type = types.path;
-        default = "/run/agenix/xmrig-flexible-api-token";
+        default = "/run/secrets/xmrig-flexible-api-token";
         description = "Path to HTTP API token file for flexible instance";
       };
       autostart = mkOption {

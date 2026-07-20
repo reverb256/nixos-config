@@ -170,7 +170,7 @@ in
         };
         apiKeyFile = lib.mkOption {
           type = lib.types.path;
-          default = "/run/agenix/context7-api-key";
+          default = "/run/secrets/context7-api-key";
           description = "Path to file containing Context7 API key (agenix secret)";
         };
       };
