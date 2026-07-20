@@ -15,6 +15,6 @@
     ./loki.nix
     ./promtail.nix # Log aggregation to Loki
     ./system-tools.nix # CLI monitoring tools (htop, iotop, nethogs, sysstat)
-    ./xmrig-metrics.nix # XMRig miner metrics -> node-exporter textfile collector
+    # ./xmrig-metrics.nix (handled by inputs.compute-market.nixosModules.default)
   ];
 }
