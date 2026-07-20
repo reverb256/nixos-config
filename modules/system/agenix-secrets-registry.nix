@@ -22,7 +22,7 @@
 # - hosts/*/configuration.nix       - Enables specific secrets per host
 #
 # RUNTIME LOCATIONS:
-# - Decrypted secrets appear at: /run/agenix/<secret-name>
+# - Decrypted secrets appear at: /run/secrets/<secret-name>
 # - Permissions are set per-secret (mode, owner, group)
 #
 {
@@ -35,7 +35,7 @@ let
   inherit (lib) mkOption types mkIf;
 in
 {
-  options.services.agenix-secrets-registry = {
+  options.services.sops-secrets-registry = {
     enable = mkOption {
       type = types.bool;
       default = true;
@@ -80,13 +80,13 @@ in
       description = "Enable Kubernetes cluster secrets";
     };
   };
-  config = mkIf config.services.agenix-secrets-registry.enable {
+  config = mkIf config.services.sops-secrets-registry.enable {
 
     # AI SERVICE API KEYS
 
     age.secrets = lib.mkMerge [
       # AI Services - Zephyr primary
-      (lib.mkIf config.services.agenix-secrets-registry.aiServices {
+      (lib.mkIf config.services.sops-secrets-registry.aiServices {
         # LM Studio API key - Local LLM backend
         #        lm-studio-api-key = {
         #          file = "${inputs.self}/secrets/lm-studio-api-key.age";
@@ -168,7 +168,7 @@ in
         };
       })
       # Monitoring Secrets
-      (lib.mkIf config.services.agenix-secrets-registry.monitoring {
+      (lib.mkIf config.services.sops-secrets-registry.monitoring {
         # Grafana admin password
         grafana-admin = {
           file = "${inputs.self}/secrets/grafana-admin.age";
@@ -178,7 +178,7 @@ in
         };
       })
       # Storage Secrets (Garage S3 cluster)
-      (lib.mkIf config.services.agenix-secrets-registry.storage {
+      (lib.mkIf config.services.sops-secrets-registry.storage {
         # Garage RPC secret - Cluster authentication
         # Only define if garage service is actually enabled on this host
         garage-rpc-secret = lib.mkIf config.services.garage-cluster.enable {
@@ -196,7 +196,7 @@ in
         };
       })
       # Mining Control Secrets
-      (lib.mkIf config.services.agenix-secrets-registry.mining {
+      (lib.mkIf config.services.sops-secrets-registry.mining {
         # XMRig primary API token (pause-able instance)
         xmrig-api-token = {
           file = "${inputs.self}/secrets/xmrig-api-token.age";
@@ -220,7 +220,7 @@ in
         };
       })
       # Cloud Service Secrets
-      (lib.mkIf config.services.agenix-secrets-registry.cloud {
+      (lib.mkIf config.services.sops-secrets-registry.cloud {
         # Tailscale API key
         tailscale-api-key = {
           file = "${inputs.self}/secrets/tailscale-api-key.age";
@@ -244,7 +244,7 @@ in
         };
       })
       # Self-Hosted Service Secrets
-      (lib.mkIf config.services.agenix-secrets-registry.selfHosting {
+      (lib.mkIf config.services.sops-secrets-registry.selfHosting {
         # Nextcloud admin password
         nextcloud-admin = {
           file = "${inputs.self}/secrets/nextcloud-admin.age";
@@ -261,7 +261,7 @@ in
         };
       })
       # Kubernetes/k3s Secrets
-      (lib.mkIf config.services.agenix-secrets-registry.kubernetes {
+      (lib.mkIf config.services.sops-secrets-registry.kubernetes {
         # k3s cluster token - used for server/agent authentication
         # NOTE: Bootstrap secret only, not consumed by any running module
         k3s-cluster-token = {

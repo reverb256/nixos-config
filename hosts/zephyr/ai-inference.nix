@@ -10,7 +10,7 @@
       type = "zai";
       zai = {
         enable = true;
-        apiKeyFile = "/run/agenix/zai-api-key";
+        apiKeyFile = "/run/secrets/zai-api-key";
       };
     };
 

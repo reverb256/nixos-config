@@ -25,6 +25,8 @@
     # Mining exporter for GPU mining metrics
     mining-exporter.enable = true;
 
+    gputemps-exporter.enable = true;
+
     # Log aggregation to Sentry's Loki
     monitoring.promtail = {
       enable = true;

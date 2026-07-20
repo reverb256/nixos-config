@@ -223,9 +223,8 @@
       role = "server";
       nodeName = "zephyr";
       serverAddr = "https://10.1.1.100:6443";
-      tokenFile = "/run/agenix/k3s-cluster-token";
+      tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.110";
-      calico.enable = true;
     };
 
     # Auto-apply K8s manifests on boot (control-plane node)
@@ -249,8 +248,8 @@
       endpoint = "http://10.1.1.110:3900";
       region = "garage";
       bucket = "backups";
-      accessKey = "GKac91d924fc76a30b9bcf6c3e";
-      secretKeyFile = "/run/agenix/garage-s3-secret-key";
+      accessKeyFile = "/run/secrets/garage-s3-access-key-id";
+      secretKeyFile = "/run/secrets/garage-s3-secret-key";
       retentionDays = 30;
       startAt = "02:00"; # 2 AM daily
     };
@@ -604,7 +603,7 @@
         api = {
           port = 8081;
           restricted = true;
-          tokenFile = "/run/agenix/xmrig-api-token";
+          tokenFile = "/run/secrets/xmrig-api-token";
         };
 
         log = {
@@ -719,12 +718,12 @@
       cpu = "2";
       hideUpdateNotification = true;
       providerKeys = {
-        ZAI_CODING_PLAN_KEY = "/run/agenix/zai-api-key";
-        KILO_API_KEY = "/run/agenix/kilo-api-key";
+        ZAI_CODING_PLAN_KEY = "/run/secrets/zai-api-key";
+        KILO_API_KEY = "/run/secrets/kilo-api-key";
       };
       discord.enable = false;
       telegram.enable = true;
-      telegram.tokenFile = "/run/agenix/spacebot-telegram-token";
+      telegram.tokenFile = "/run/secrets/spacebot-telegram-token";
     };
 
     # Redis - For gateway rate limiting and caching
@@ -742,7 +741,7 @@
         type = "llama-cpp";
         zai = {
           enable = true;
-          apiKeyFile = "/run/agenix/zai-api-key";
+          apiKeyFile = "/run/secrets/zai-api-key";
           baseUrl = "https://api.z.ai/api/coding/paas/v4";
           enableRetry = true;
           maxRetries = 3;
@@ -751,7 +750,7 @@
         };
         pollinations = {
           enable = true;
-          apiKeyFile = "/run/agenix/pollinations-api-key";
+          apiKeyFile = "/run/secrets/pollinations-api-key";
           baseUrl = "https://text.pollinations.ai";
         };
       };
@@ -834,7 +833,7 @@
             type = "local";
             # Use absolute path for reliable subprocess spawning
             command = [ "/run/current-system/sw/bin/mcp-context7" ];
-            environment.CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
+            environment.CONTEXT7_API_KEY_FILE = "/run/secrets/context7-api-key";
             enabled = true;
           };
           searxng = {
@@ -895,14 +894,14 @@
     mcp-servers = {
       enable = true;
       servers.playwright.enable = true;
-      servers.context7.apiKeyFile = "/run/agenix/context7-api-key";
+      servers.context7.apiKeyFile = "/run/secrets/context7-api-key";
     };
 
     # AI Coding Tools - Harmonized MCP configs (Droid, Claude, Crush, OpenCode)
     ai-coding-tools = {
       enable = true;
-      zaiApiKeyFile = config.age.secrets.zai-api-key.path;
-      context7ApiKeyFile = "/run/agenix/context7-api-key";
+      zaiApiKeyFile = "/run/secrets/zai-api-key";
+      context7ApiKeyFile = "/run/secrets/context7-api-key";
       tools.pi.packages = [
         "npm:pi-annotated-reply@0.4.1"
         "npm:pi-btw@0.2.1"
@@ -994,7 +993,7 @@
           enable = false;
           threads = 4; # 12% of 32 cores - unintrusive during gaming
           httpPort = 8081;
-          httpTokenFile = "/run/agenix/xmrig-always-api-token";
+          httpTokenFile = "/run/secrets/xmrig-always-api-token";
           autostart = false;
         };
         # Flexible instance - pauses during gaming/builds
@@ -1002,7 +1001,7 @@
           enable = true;
           threads = 12; # 38% of 32 cores - extra capacity when idle
           httpPort = 8082;
-          httpTokenFile = "/run/agenix/xmrig-flexible-api-token";
+          httpTokenFile = "/run/secrets/xmrig-flexible-api-token";
           autostart = false;
         };
         # Common settings for both instances
@@ -1023,7 +1022,6 @@
     # Syncthing P2P file sync for /etc/nixos config sync
     syncthing-cluster = {
       enable = true;
-      deviceId = "ZEPHYR-PLACEHOLDER";
     };
 
     # Garage S3 disabled - using nexus as primary storage node
@@ -1135,7 +1133,7 @@
   # All secrets managed via agenix-secrets-registry module
   # Categories: aiServices, monitoring, storage, mining, cloud, selfHosting
   # See: modules/system/agenix-secrets-registry.nix
-  services.agenix-secrets-registry = {
+  services.sops-secrets-registry = {
     enable = true;
     aiServices = true; # For autoresearch skill optimization (ANTHROPIC_API_KEY)
     monitoring = false; # No monitoring secrets currently needed (sentry-dsn removed with GlitchTip)
@@ -1147,17 +1145,13 @@
   };
 
   # Override specific secret permissions (registry defaults can be overridden)
-  age = {
-    identityPaths = [ "/home/j_kro/.age/key.txt" ];
-    secrets.cloudflared-token = lib.mkForce {
-      file = "${inputs.self}/secrets/cloudflared-token.age";
-      mode = "400";
-      owner = "root";
-      group = "root";
-    };
-    # Note: spacebot-telegram-token uses registry default (owner=j_kro)
-    # because the hermes-agent service runs as user=j_kro
+  sops.secrets."cloud/cloudflared-token" = lib.mkForce {
+    mode = "400";
+    owner = "root";
+    group = "root";
   };
+  # Note: spacebot-telegram-token uses registry default (owner=j_kro)
+  # because the hermes-agent service runs as user=j_kro
 
   # ============================================================================
   # AI INFERENCE SERVICE - Gateway with authentication and metrics
@@ -1466,7 +1460,7 @@
     port = 3456;
     openFirewall = false; # Localhost only
     zai = {
-      apiKeyFile = config.age.secrets.zai-api-key.path;
+      apiKeyFile = "/run/secrets/zai-api-key";
       defaultModel = "glm-4.7";
       thinkModel = "glm-4.7";
     };

@@ -51,8 +51,7 @@
             exit 1
         fi
 
-        # Read access key from sops-nix secret
-        GARAGE_ACCESS_KEY="$(cat ${"/run/secrets/garage-s3-access-key-id"})"
+        # Access/secret keys are exported by the systemd wrapper from sops-nix secrets
         export AWS_ACCESS_KEY_ID="$GARAGE_ACCESS_KEY"
         export AWS_SECRET_ACCESS_KEY="$GARAGE_SECRET_KEY"
         export AWS_DEFAULT_REGION="$GARAGE_REGION"
@@ -137,9 +136,16 @@
     set -euo pipefail
     # /etc/backup-to-garage/credentials is already sourced by systemd
     # via EnvironmentFile below — no need to re-source here.
-    if [ -r ${cfg.secretKeyFile} ]; then
-      export GARAGE_SECRET_KEY="$(cat ${cfg.secretKeyFile})"
+    ${lib.optionalString (cfg.accessKeyFile != null) ''
+    if [ -r ${toString cfg.accessKeyFile} ]; then
+      export GARAGE_ACCESS_KEY="$(cat ${toString cfg.accessKeyFile})"
     fi
+    ''}
+    ${lib.optionalString (cfg.secretKeyFile != null) ''
+    if [ -r ${toString cfg.secretKeyFile} ]; then
+      export GARAGE_SECRET_KEY="$(cat ${toString cfg.secretKeyFile})"
+    fi
+    ''}
     exec ${backupScript}/bin/backup-to-garage
   '';
 in {
@@ -162,6 +168,12 @@ in {
       type = lib.types.str;
       default = "backups";
       description = "Garage S3 bucket for backups";
+    };
+
+    accessKeyFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to file containing Garage S3 access key ID (sops-nix)";
     };
 
     secretKeyFile = lib.mkOption {

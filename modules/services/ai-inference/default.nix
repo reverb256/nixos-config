@@ -84,7 +84,7 @@ in
         apiKeyFile = mkOption {
           type = types.nullOr types.path;
           default = null;
-          example = literalExpression "/run/agenix/zai-api-key";
+          example = literalExpression "/run/secrets/zai-api-key";
           description = "Path to file containing ZAI API key (takes precedence over apiKey)";
         };
 
@@ -165,7 +165,7 @@ in
         apiKeyFile = mkOption {
           type = types.nullOr types.path;
           default = null;
-          example = literalExpression "/run/agenix/pollinations-api-key";
+          example = literalExpression "/run/secrets/pollinations-api-key";
           description = "Path to file containing Pollinations API key (takes precedence over apiKey)";
         };
 
@@ -790,7 +790,7 @@ in
       dsnFile = mkOption {
         type = types.nullOr types.path;
         default = null;
-        example = literalExpression "/run/agenix/sentry-dsn";
+        example = literalExpression "/run/secrets/sentry-dsn";
         description = "Path to file containing Sentry DSN (takes precedence over dsn)";
       };
 
@@ -849,7 +849,7 @@ in
           When services.ai-inference.backend.zai.enable is true, you must configure:
             services.ai-inference.backend.zai.apiKey = "your-api-key";
             # OR
-            services.ai-inference.backend.zai.apiKeyFile = /run/agenix/zai-api-key;
+            services.ai-inference.backend.zai.apiKeyFile = /run/secrets/zai-api-key;
 
           Current configuration:
             zai.enable = ${toString cfg.backend.zai.enable}
@@ -868,7 +868,7 @@ in
           When using ZAI backend, configure an API key:
             services.ai-inference.backend.zai.apiKey = "your-zai-api-key";
             # OR
-            services.ai-inference.backend.zai.apiKeyFile = /run/agenix/zai-api-key;
+            services.ai-inference.backend.zai.apiKeyFile = /run/secrets/zai-api-key;
 
           Current configuration:
             backend.type = "${cfg.backend.type}"

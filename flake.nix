@@ -1,7 +1,7 @@
 {
   description = "NixOS configuration with Garage and Syncthing storage";
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "tarball+https://codeload.github.com/NixOS/nixpkgs/tar.gz/9ae611a455b90cf061d8f332b977e387bda8e1ca"; # pinned: predates nixos-unstable pkgs-fixedPoint recursion regression
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -50,6 +50,10 @@
       url = "github:ryantm/agenix/0.15.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     # Colmena - Multi-host deployment
     colmena = {
       url = "github:zhaofengli/colmena";
@@ -71,6 +75,43 @@
     # Binary cache: attic.xuyh0120.win/lantian (no local compilation needed)
     # Do NOT follow nixpkgs — uses its own pinned nixos-unstable-small for kernel builds
     nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
+    # ── Inputs required by common-modules-list.nix (re-added after a drift where
+    #    they were dropped from flake.nix but still referenced in the module list) ──
+    # hermes-agent - Hermes Agent NixOS module + packages
+    hermes-agent = {
+      url = "github:NousResearch/hermes-agent";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # mcp-registry - MCP server registry module (local tarball: nix HTTPS fetcher stalls)
+    mcp-registry = {
+      url = "tarball+file:///tmp/mcp-registry.tar.gz";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # caddy-ingress - Caddy ingress module + caddy-with-modules package (local tarball)
+    caddy-ingress = {
+      url = "tarball+file:///tmp/caddy-ingress.tar.gz";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # ai-gateway - AI inference gateway package (local tarball)
+    ai-gateway = {
+      url = "tarball+file:///tmp/ai-gateway.tar.gz";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # compute-market - xmrig/compute market images (local tarball)
+    compute-market = {
+      url = "tarball+file:///tmp/compute-market.tar.gz";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # gpu-proxy - GPU proxy module (local tarball)
+    gpu-proxy = {
+      url = "tarball+file:///tmp/gpu-proxy.tar.gz";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # stylix - theming module (local tarball)
+    stylix = {
+      url = "tarball+file:///tmp/stylix.tar.gz";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
   outputs =
     inputs@{
@@ -91,15 +132,13 @@
       pkgs = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
-        config.cudaSupport = true;
       };
       # pkgsWithOverlay: nixpkgs with custom overlay applied
       # Used for package outputs that need custom packages (lolminer, xmrig, etc.)
       pkgsWithOverlay = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
-        config.cudaSupport = true;
-        overlays = [ (import ./overlay.nix) ];
+        overlays = [ (import ./overlay.nix { inherit inputs; }) ];
       };
 
       # COMMON MODULES - Shared across all hosts (single source of truth)
@@ -170,11 +209,6 @@
 
       packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
       packages.x86_64-linux.llama-cpp = pkgs.llama-cpp;
-      packages.x86_64-linux.caddy-with-modules = pkgsWithOverlay.caddy-with-modules;
-      packages.x86_64-linux.caddy-ingress-image = pkgs.callPackage ./pkgs/caddy-ingress-image {
-        inherit (pkgsWithOverlay) caddy-with-modules;
-      };
-
       # CONTAINER IMAGES (for Kubernetes deployment)
 
       packages.x86_64-linux.xmrig-proxy-image = pkgs.dockerTools.buildImage {
@@ -449,13 +483,12 @@
           };
         };
       };
-      overlays.default = import ./overlay.nix;
+      overlays.default = import ./overlay.nix { inherit inputs; };
       # pkgsWithOverlay: nixpkgs with custom overlay applied
       # Used for package outputs that need custom packages (lolminer, xmrig, etc.)
       pkgsWithOverlay = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
-        config.cudaSupport = true;
         overlays = [ self.overlays.default ];
       };
       apps.x86_64-linux.colmena = {

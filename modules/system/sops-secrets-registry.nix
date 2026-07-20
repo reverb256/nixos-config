@@ -179,6 +179,14 @@ in {
             owner = "root";
             group = "root";
           };
+          "ai/zai-api-key" = {
+            sopsFile = "${inputs.self}/secrets/ai/zai-api-key.yaml";
+            path = "/run/secrets/zai-api-key";
+            format = "binary";
+            mode = "0444";
+            owner = "j_kro";
+            group = "users";
+          };
         })
         (mkIf config.services.sops-secrets-registry.kubernetes {
           "k8s/casdoor-hermes-jwt" = {
@@ -213,7 +221,6 @@ in {
             owner = "j_kro";
             group = "users";
           };
-<<<<<<< HEAD
           "infra/k3s-encryption-key" = {
             sopsFile = "${inputs.self}/secrets/infra/k3s-encryption-key.json";
             path = "/run/secrets/k3s-encryption-key";
@@ -222,17 +229,6 @@ in {
             owner = "root";
             group = "root";
           };
-||||||| f46c16eb
-=======
-          "infra/k3s-encryption-key" = {
-            sopsFile = "${inputs.self}/secrets/infra/k3s-encryption-key.yaml";
-            path = "/run/secrets/k3s-encryption-key";
-            format = "binary";
-            mode = "0400";
-            owner = "root";
-            group = "root";
-          };
->>>>>>> central/issue-291-audit-remediation
           "k8s/frostbite-postgres" = {
             sopsFile = "${inputs.self}/secrets/k8s/frostbite-postgres.yaml";
             path = "/run/secrets/frostbite-postgres";
@@ -339,6 +335,14 @@ in {
             mode = "0444";
             owner = "j_kro";
             group = "users";
+          };
+          "k8s/k3s-cluster-token" = {
+            sopsFile = "${inputs.self}/secrets/k8s/k3s-cluster-token.yaml";
+            path = "/run/secrets/k3s-cluster-token";
+            format = "binary";
+            mode = "0444";
+            owner = "root";
+            group = "root";
           };
         })
         (mkIf config.services.sops-secrets-registry.cloud {
