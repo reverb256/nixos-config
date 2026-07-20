@@ -107,6 +107,11 @@
       url = "tarball+file:///tmp/gpu-proxy.tar.gz";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # noctalia - brightness daemon for NixOS
+    noctalia = {
+      url = "github:noctalia-dev/noctalia/e2f529a4a39ce924c36f6633ded1ce0a88312ec2";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     # stylix - theming module (local tarball)
     stylix = {
       url = "tarball+file:///tmp/stylix.tar.gz";

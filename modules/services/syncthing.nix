@@ -7,6 +7,12 @@
 in {
   options.services.syncthing-cluster = {
     enable = lib.mkEnableOption "Syncthing P2P file sync for cluster";
+
+    deviceId = lib.mkOption {
+      type = lib.types.str;
+      default = "";
+      description = "Syncthing device ID for this node (used to identify the node in the cluster)";
+    };
   };
 
   config = lib.mkIf cfg.enable {

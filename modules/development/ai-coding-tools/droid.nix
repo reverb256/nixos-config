@@ -61,7 +61,7 @@
             "maxOutputTokens": 131072,
             "noImageSupport": false,
             "provider": "anthropic"
-          },,
+          },
           {
             "model": "qwen3-coder-480b-turbo",
             "id": "custom:OpenCode-5-Turbo-Z.AI-Anthropic-4",
