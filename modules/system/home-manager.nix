@@ -59,7 +59,6 @@ in
         lib.optional (hostName == "zephyr" || hostName == "sentry")
           inputs.niri.homeModules.config
         ++ [
-          inputs.stylix.homeModules.default
           inputs.zen-browser.homeModules.twilight
         inputs.nixcord.homeModules.nixcord
         ../../modules/home-manager/fish.nix
@@ -100,10 +99,13 @@ in
       nixcord-config.enable = lib.mkForce (hostName == "zephyr");
       caprine.enable = lib.mkForce (hostName == "zephyr");
 
-      # Stylix - inherit from system config for home-manager
+      # Stylix - targets are empowered explicitly below. The base16Scheme is
+      # propagated NixOS -> home-manager automatically by stylix's
+      # homeManagerIntegration.followSystem (see modules/desktop/stylix.nix).
+      # Do NOT re-inherit (config.stylix).base16Scheme here: stylix's own HM
+      # module also derives the read-only `stylix.base16` from it, and two
+      # definitions collide ("option is read-only, set multiple times").
       stylix = {
-        inherit (config.stylix) base16Scheme;
-        inherit (config.stylix) image;
         targets.zen-browser.profileNames = ["default"];
 
         # ── Explicit target empowerment (version-bump-proof) ───────
@@ -132,8 +134,6 @@ in
       };
 
       home.sessionVariables.BAT_THEME = "base16";
-
-      home.pointerCursor.enable = true;
 
       home.stateVersion = "26.05";
       home.enableNixpkgsReleaseCheck = false;

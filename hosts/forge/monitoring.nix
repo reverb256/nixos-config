@@ -27,9 +27,12 @@
 
     gputemps-exporter.enable = true;
 
-    # Log aggregation to Sentry's Loki
+    # Log aggregation to Sentry's Loki.
+    # NOTE: promtail was removed from nixpkgs 26.05 (EOL). Disabled here to
+    # unblock eval; migrate to grafana-alloy or fluent-bit when log shipping
+    # is needed again. See tracking item.
     monitoring.promtail = {
-      enable = true;
+      enable = false;
       lokiUrl = "http://10.1.1.140:3100/loki/api/v1/push";
     };
   };

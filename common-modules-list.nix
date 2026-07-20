@@ -21,6 +21,7 @@
   inputs.gpu-proxy.nixosModules.default
 
   inputs.stylix.nixosModules.default
+  ./modules/desktop/stylix.nix
 
   ./modules/services/peakminer.nix
 

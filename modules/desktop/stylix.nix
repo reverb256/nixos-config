@@ -9,7 +9,7 @@
     # 2026-07-15: renamed the theme from "Nord" to "Osaka Jade" (real Omarchy
     # palette). Uses the repo-local base16 scheme below as the single source
     # of truth so the name is correct end-to-end.
-    base16Scheme = lib.mkDefault ../modules/desktop/themes/osaka-jade.yaml;
+    base16Scheme = lib.mkDefault ./themes/osaka-jade.yaml;
     polarity = "dark";
 
     fonts = {
