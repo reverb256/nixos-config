@@ -117,27 +117,18 @@ in {
         ln -s ${pkgs.gcc}/bin/ranlib $out/bin/ranlib
       '')
       wrapperScript
-      (pkgs.makeDesktopItem {
-        name = "StabilityMatrix";
-        desktopName = "Stability Matrix";
-        comment = "Multi-Platform Package Manager for Stable Diffusion";
-        icon = "${appimageContents}/usr/share/icons/hicolor/512x512/apps/zone.lykos.stabilitymatrix.png";
-        exec = "stability-matrix %U";
-        categories = [
-          "Graphics"
-          "2DGraphics"
-          "RasterGraphics"
-          "Art"
-        ];
-        keywords = [
-          "stable diffusion"
-          "ai"
-          "image generation"
-          "art"
-        ];
-        startupNotify = true;
-        terminal = false;
-      })
+      (pkgs.writeText "stability-matrix.desktop" ''
+        [Desktop Entry]
+        Name=Stability Matrix
+        Comment=Multi-Platform Package Manager for Stable Diffusion
+        Exec=stability-matrix %U
+        Icon=${appimageContents}/usr/share/icons/hicolor/512x512/apps/zone.lykos.stabilitymatrix.png
+        Terminal=false
+        Type=Application
+        Categories=Graphics;2DGraphics;RasterGraphics;Art;
+        Keywords=stable diffusion;ai;image generation;art;
+        StartupNotify=true
+      '')
     ];
     environment.variables = lib.mkIf cfg.enableCuda {
       CUDA_PATH = lib.mkDefault "/run/opengl-driver";

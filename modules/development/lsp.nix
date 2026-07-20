@@ -21,10 +21,10 @@
     python312Packages.mypy
     python312Packages.ruff
     # JavaScript/TypeScript
-    nodePackages.typescript
-    nodePackages.typescript-language-server
-    nodePackages.vscode-langservers-extracted
-    nodePackages."@tailwindcss/language-server"
+    typescript
+    typescript-language-server
+    vscode-langservers-extracted
+    tailwindcss-language-server
     eslint
     prettier
     # Nix
@@ -39,14 +39,14 @@
     lua-language-server
     stylua
     # YAML
-    nodePackages.yaml-language-server
+    yaml-language-server
     yamllint
     # JSON
-    nodePackages.vscode-json-languageserver
+    vscode-json-languageserver
     # Markdown
     markdownlint-cli
     # Bash/Shell
-    nodePackages.bash-language-server
+    bash-language-server
     shellcheck
     shfmt
     # SQL

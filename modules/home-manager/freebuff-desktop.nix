@@ -10,20 +10,24 @@ let
   # depending on hicolor icon-theme cache regeneration.
   freebuffBin = "${config.home.homeDirectory}/.local/bin/freebuff-desktop";
   freebuffIcon = "${config.home.homeDirectory}/.local/share/freebuff/extracted/@codebufffreebuff-desktop.png";
+
+  desktopFile = pkgs.writeText "freebuff.desktop" ''
+    [Desktop Entry]
+    Name=Freebuff
+    GenericName=Coding Agent Orchestrator
+    Comment=Freebuff Desktop — GitHub-native coding-agent orchestrator
+    Exec=${freebuffBin} %U
+    Icon=${freebuffIcon}
+    Terminal=false
+    Type=Application
+    Categories=Development;Utility;
+    StartupWMClass=Freebuff
+  '';
 in
 {
   # Declarative .desktop launcher for Freebuff Desktop, shown in the
-  # app launcher (niri/rofi/anyrun). Follows the xdg.dataFile."applications"
-  # + pkgs.makeDesktopItem pattern used by firefox-pwa-apps.nix.
-  xdg.dataFile."applications/freebuff.desktop" = pkgs.makeDesktopItem {
-    name = "freebuff";
-    exec = "${freebuffBin} %U";
-    icon = freebuffIcon;
-    desktopName = "Freebuff";
-    genericName = "Coding Agent Orchestrator";
-    comment = "Freebuff Desktop — GitHub-native coding-agent orchestrator";
-    categories = [ "Development" "Utility" ];
-    startupWMClass = "Freebuff";
-    terminal = false;
-  };
+  # app launcher (niri/rofi/anyrun). Written as plain text via xdg.dataFile
+  # (not pkgs.makeDesktopItem) to avoid the __ignoreNulls attribute that the
+  # current home-manager version no longer accepts.
+  xdg.dataFile."applications/freebuff.desktop".source = desktopFile;
 }

@@ -45,6 +45,10 @@
     ./monitoring.nix
     # Hardware configuration (generated)
     ./hardware-configuration.nix
+    # Desktop (niri + uwsm + SDDM autoLogin) — must be imported or
+    # services.displayManager.defaultSession/autoLogin stay null and the
+    # SDDM autologin assertion fails eval.
+    ./desktop.nix
     # All other modules (desktop, networking, services, etc.)
     ../../modules/default.nix
     # GPU support (wayland-specific, host-dependent)

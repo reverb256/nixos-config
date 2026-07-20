@@ -37,13 +37,15 @@ in
     # Create desktop entries for PWA apps
     xdg.dataFile."applications" = lib.mkIf config.wayland.windowManager.niri.enable (
       lib.mapAttrs' (id: url: lib.nameValuePair "${id}.desktop" (
-        pkgs.makeDesktopItem {
-          name = id;
-          exec = "firefoxpwa site launch ${id}";
-          icon = "firefox";
-          desktopName = lib.strings.toUpper (builtins.substring 0 1 id) + builtins.substring 1 (-1) id;
-          categories = ["Network" "WebBrowser"];
-        }
+        pkgs.writeText "${id}.desktop" ''
+          [Desktop Entry]
+          Name=${lib.strings.toUpper (builtins.substring 0 1 id) + builtins.substring 1 (-1) id}
+          Exec=firefoxpwa site launch ${id}
+          Icon=firefox
+          Terminal=false
+          Type=Application
+          Categories=Network;WebBrowser;
+        ''
       ))
     ) enabledApps;
   };
