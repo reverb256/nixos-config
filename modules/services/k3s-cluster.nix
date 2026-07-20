@@ -116,6 +116,14 @@ in {
       };
     };
 
+    calico = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Configure Calico CNI manifest auto-apply alongside k3s";
+      };
+    };
+
     dataDir = mkOption {
       type = types.str;
       default = "/var/lib/rancher/k3s";

@@ -32,8 +32,23 @@ sessions, models, or vendors). Read this before working. Update when done.
 
 ## Work Log
 
-### 2026-07-16 00:20 (UTC-5) | zephyr-kernel-proxy-build
-- 🔄 Build v6 still running (PID 3827510 on nexus, 549 log lines) — CachyOS 7.1.3 kernel compiling on sentry
+### 2026-07-20 17:00 (UTC-5) | j_kro (quill-WebMCP-fixes)
+- ✅ WebMCP implemented (7 tools), deployed to k3s
+- ✅ API crash loop fixed (rate limit bypass + readiness probe fix)
+- ✅ Portal→API proxy fixed (X-Forwarded-Proto: https)
+- ✅ Cloudflare DNS fixed (Pages CNAME → Tunnel CNAME)
+- ✅ Caveman + Cavecrew completely removed system-wide
+- 🔄 Sentry k3s still failing to join cluster (duplicate node name)
+- 🔄 NixOS config fixes committed but not deployed (noctalia, calico, syncthing deviceId, garage rpcSecret)
+
+**Files touched:**
+- `flake.nix`, `hosts/nexus/configuration.nix`, `modules/services/k3s-cluster.nix`
+- `modules/services/syncthing.nix`
+- `~/Projects/quill/packages/portal/*`, `~/Projects/quill/packages/api-server/src/*`
+- `~/.config/opencode/*`, `~/.claude/*`, `~/.grok/*`, `~/.skillclaw/*`
+- `~/Projects/hermes-skills/*`, `~/.agents/skills/*`, `~/.npm/_npx/*`
+- `~/.claude.json`, `~/.config/opencode/AGENTS.md`
+- Cloudflare DNS, cache level, dev mode
 
 ### 2026-07-15 22:30 (UTC-5) | zephyr-kernel-proxy-build
 - 🔄 Build v6 started on nexus coordinator (nexus+sentry builders, no forge/krash3)
