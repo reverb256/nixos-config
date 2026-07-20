@@ -243,7 +243,6 @@
     # Syncthing P2P file sync for /etc/nixos config sync
     syncthing-cluster = {
       enable = true;
-      deviceId = "FORGE-PLACEHOLDER";
     };
     # Host Dashboard - Web interface for cluster host status
     host-dashboard = {
