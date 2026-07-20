@@ -95,12 +95,14 @@
     ./gaming/scopebuddy.nix
 
     # Mining
-    # (handled by inputs.compute-market.nixosModules.default in common-modules-list.nix)
+    # Most mining modules handled by inputs.compute-market.nixosModules.default
+    # (services.mining.*, services.xmrig-proxy.*, services.mining-exporter.*, etc.)
     # ./mining/mining.nix
-    # ./mining/mining-plasmoid.nix
     # ./mining/dual-xmrig.nix
     # ./mining/xmrig-proxy.nix
     # ./mining/mining-proxy.nix
+    # mining-plasmoid is NOT in the compute-market flake's import list, keep local
+    ./mining/mining-plasmoid.nix
     # Note: Python gpu-proxy removed - replaced by gpu-proxy-cpp (centralized on Forge)
     # gpu-proxy handled by inputs.gpu-proxy.nixosModules.default
     # ./mining/gpu-proxy-cpp.nix
@@ -151,7 +153,7 @@
     # Crash detection and diagnostics
     # Exporters
     ./services/gpu-exporters.nix
-    ./services/mining-exporter.nix
+    # ./services/mining-exporter.nix (handled by inputs.compute-market.nixosModules.default)
     ./services/gputemps-exporter.nix
     # Multimedia modules
     ./multimedia/gstreamer.nix
