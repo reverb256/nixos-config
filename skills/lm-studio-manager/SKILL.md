@@ -303,7 +303,6 @@ nvidia-smi
 # 1. Reduce context length in LM Studio
 # 2. Use smaller model
 # 3. Reduce GPU Layers (offload fewer layers)
-# 4. Stop mining: sudo systemctl stop xmrig@*
 ```
 
 ## Auto-Start LM Studio
@@ -350,7 +349,6 @@ systemd.user.services.lm-studio = {
 ### Maximize GPU Utilization
 ```bash
 # Stop mining before running LM Studio
-sudo systemctl stop xmrig@*
 
 # Set GPU Layers to -1 (all layers to GPU)
 # In LM Studio: Local Server → Settings → GPU Layers = -1
@@ -393,7 +391,6 @@ time curl -X POST http://127.0.0.1:1234/v1/chat/completions \
 | List models | `curl http://127.0.0.1:1234/v1/models \| jq .` |
 | Test inference | `curl -X POST http://127.0.0.1:1234/v1/chat/completions -d '{...}'` |
 | Check GPU | `nvidia-smi` |
-| Stop mining | `sudo systemctl stop xmrig@*` |
 | View gateway logs | `journalctl -u ai-inference-gateway -f` |
 
 ## Related Skills

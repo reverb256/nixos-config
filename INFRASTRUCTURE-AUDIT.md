@@ -231,7 +231,6 @@ Three K8s secrets defined in Nix modules but **never mounted** (removed sidecar 
 | gpu-miner-zephyr | Running | — | — | — |
 | gpu-miner-forge (AMD) | — | — | Running | — |
 | gpu-miner-forge (NVIDIA) | — | — | Running | — |
-| xmrig-* | Running | Running | — | Running |
 
 ### Grafana Deployment Model
 

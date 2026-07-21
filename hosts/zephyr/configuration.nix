@@ -97,7 +97,6 @@
         18789 # Steam Remote Play
         18790 # Steam Remote Play (secondary)
         19898 # Moonlight/GameStream AND Spacebot Web UI
-        3333 # XMRig stratum proxy (for GPU miners)
         8080 # AI Inference Gateway
         8083 # Llamafile standalone LLM service
         53317 # LocalSend (file sharing)
@@ -400,7 +399,6 @@
       "iommu=pt" # IOMMU passthrough mode (better performance)
       "processor.max_cstate=1"
       "intel_idle.max_cstate=1"
-      "hugepagesz=1G" # For XMRig RandomX performance (dual-xmrig module)
       "hugepages=3"
       "btrfs.commit_interval=300" # From btrfs-tuning module
       "nvidia.NVreg_RegistryDwords=EnableBrightnessControl=1" # Enable laptop brightness control
@@ -480,7 +478,6 @@
           enable = true;
           hourlyRevenue = 0.10; # $0.10/hr per GPU (baseline bid)
           services = [
-            "xmrig"
           ];
         };
 
@@ -520,8 +517,6 @@
     # Gaming HDR for 4K HDR TV
     gaming.hdr.enable = true;
 
-    # XMRig Proxy - Centralized stratum proxy for CPU (RandomX) and GPU (CR29) mining
-    xmrig-proxy = {
       enable = true;
 
       config = builtins.toJSON {
@@ -602,7 +597,6 @@
         api = {
           port = 8081;
           restricted = true;
-          tokenFile = "/run/secrets/xmrig-api-token";
         };
 
         log = {
@@ -942,7 +936,6 @@
     };
 
     # MINING - GPU Mining (RTX 3090 + RTX 3060 Ti)
-    # Using centralized xmrig-proxy on nexus (10.1.1.120:3333)
     # DISABLED: K8s version working instead
     mining = {
         pool = "stratum+tcp://10.1.1.120:3333"; # Centralized proxy on nexus
@@ -980,17 +973,14 @@
         ]; # GPU0: RTX 3060 Ti no limit (AI/ML), GPU1: RTX 3090 @ 250W
         apiPort = 4068;
       };
-      # CPU mining - Dual XMRig setup (always-on + pause-able)
       # Total when idle: 16 threads (50%) - Total when gaming: 4 threads (12%)
       # Re-enabled: No K8s migration completed
-      xmrigDual = {
         enable = true;
         # Always-on instance - mines even during gaming
         alwaysOn = {
           enable = false;
           threads = 4; # 12% of 32 cores - unintrusive during gaming
           httpPort = 8081;
-          httpTokenFile = "/run/secrets/xmrig-always-api-token";
           autostart = false;
         };
         # Flexible instance - pauses during gaming/builds
@@ -998,7 +988,6 @@
           enable = true;
           threads = 12; # 38% of 32 cores - extra capacity when idle
           httpPort = 8082;
-          httpTokenFile = "/run/secrets/xmrig-flexible-api-token";
           autostart = false;
         };
         # Common settings for both instances
@@ -1087,7 +1076,6 @@
           active = true;
         }
         {
-          name = "XMRig Proxy";
           active = true;
         }
       ];
@@ -1357,7 +1345,6 @@
     opencode # AI coding agent (terminal-based)
 
     # Mining (manual only, no auto-start)
-    xmrig
 
     # Desktop
     inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.twilight

@@ -15227,7 +15227,6 @@
     {
       "bom-ref": "urn:uuid:56c9e936-b7e3-47e1-bbab-58aa635e991e",
       "type": "library",
-      "name": "xmrig",
       "version": "6.25.0",
       "scope": "required"
     },
@@ -18118,7 +18117,6 @@
     {
       "bom-ref": "urn:uuid:84ce4c9e-23e7-4775-a2c1-8d46970e7988",
       "type": "library",
-      "name": "xmrig-proxy",
       "version": "6.24.0",
       "scope": "required"
     },
@@ -19567,9 +19565,7 @@
     {
       "bom-ref": "urn:uuid:801127be-865a-490f-baac-167744b68e4b",
       "type": "container",
-      "name": "localhost--xmrig-proxy",
       "version": "alpine-6.25.0",
-      "purl": "pkg:docker/localhost/xmrig-proxy@alpine-6.25.0",
       "scope": "required",
       "properties": [
         {
@@ -19585,9 +19581,7 @@
     {
       "bom-ref": "urn:uuid:5123d5fc-9da2-4bab-82a8-945c06fc02fc",
       "type": "container",
-      "name": "localhost--xmrig",
       "version": "alpine-6.25.0",
-      "purl": "pkg:docker/localhost/xmrig@alpine-6.25.0",
       "scope": "required",
       "properties": [
         {
@@ -20071,9 +20065,7 @@
     {
       "bom-ref": "urn:uuid:275a495d-69e1-4134-82c2-c9c55fb51ef1",
       "type": "container",
-      "name": "docker.io--xmrig--xmrig",
       "version": "latest",
-      "purl": "pkg:docker/docker.io/xmrig/xmrig@latest",
       "scope": "required",
       "properties": [
         {
@@ -20341,9 +20333,7 @@
     {
       "bom-ref": "urn:uuid:eea84d07-278d-4f94-a177-7154ad7388e7",
       "type": "container",
-      "name": "docker.io--library--xmrig-alpine",
       "version": "6.25.0",
-      "purl": "pkg:docker/docker.io/library/xmrig-alpine@6.25.0",
       "scope": "required",
       "properties": [
         {
@@ -20355,9 +20345,7 @@
     {
       "bom-ref": "urn:uuid:5df1b30b-b51f-4898-bc53-65f8d3a7fab2",
       "type": "container",
-      "name": "docker.io--library--xmrig-alpine",
       "version": "latest",
-      "purl": "pkg:docker/docker.io/library/xmrig-alpine@latest",
       "scope": "required",
       "properties": [
         {

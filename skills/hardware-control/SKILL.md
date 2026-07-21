@@ -5,7 +5,6 @@ description: Manage GPU/CPU hardware for mining and AI workloads. Use when user 
 
 # Hardware Control
 
-Manage multi-GPU and CPU hardware across the cluster for mining (xmrig, lolminer) and AI workloads (LM Studio).
 
 ## When to Use This Skill
 
@@ -72,22 +71,17 @@ sensors | grep -i fan
 ### Check Mining Status
 ```bash
 # On zephyr (local)
-systemctl status xmrig@nvidia0  # RTX 3090
-systemctl status xmrig@nvidia1  # RTX 3060 Ti
 
 # On remote hosts
 ssh nexus "systemctl status lolminer-nvidia"
 ssh forge "systemctl status lolminer-nvidia"
-ssh sentry "systemctl status xmrig@amdgpu"
 ```
 
 ### Stop Mining
 ```bash
 # Stop specific miner
-sudo systemctl stop xmrig@nvidia0
 
 # Stop all mining on host
-sudo systemctl stop xmrig@*
 sudo systemctl stop lolminer-*
 
 # Stop on remote host
@@ -97,10 +91,8 @@ ssh nexus "sudo systemctl stop lolminer-*"
 ### Start Mining
 ```bash
 # Start specific miner
-sudo systemctl start xmrig@nvidia0
 
 # Start all mining on host
-sudo systemctl start xmrig@*
 
 # Start on remote host
 ssh forge "sudo systemctl start lolminer-*"
@@ -109,10 +101,8 @@ ssh forge "sudo systemctl start lolminer-*"
 ### Restart Mining
 ```bash
 # Restart after configuration change
-sudo systemctl restart xmrig@nvidia0
 
 # Restart all mining
-sudo systemctl restart xmrig@*
 sudo systemctl restart lolminer-*
 ```
 
@@ -122,7 +112,6 @@ Mining services are defined in NixOS modules:
 ```
 /etc/nixos/modules/mining/
 ├── default.nix           # Main mining module
-├── xmrig.nix             # XMRig (RandomX) CPU/GPU miner
 └── lolminer.nix          # LolMiner (Etchash) GPU miner
 ```
 
@@ -134,7 +123,6 @@ Each host enables mining in its `configuration.nix`:
 profiles.role.mining = true;
 
 # Or enable specific miners
-services.xmrig = {
   enable = true;
   gpus = [ "0" "1" ];  # GPU indices
 };
@@ -207,7 +195,6 @@ sudo nvidia-smi -i 0 -pl 350  # RTX 3090 max
 sudo nvidia-smi -i 1 -pl 200  # RTX 3060 Ti max
 
 # Ensure mining is running
-sudo systemctl restart xmrig@*
 sudo systemctl restart lolminer-*
 ```
 
@@ -218,7 +205,6 @@ sudo nvidia-smi -i 0 -pl 250
 sudo nvidia-smi -i 1 -pl 130
 
 # Stop mining to free GPU
-sudo systemctl stop xmrig@*
 sudo systemctl stop lolminer-*
 
 # Verify LM Studio has access
@@ -228,7 +214,6 @@ curl http://127.0.0.1:1234/v1/models
 ### Gaming Mode (Low Latency)
 ```bash
 # Stop mining first
-sudo systemctl stop xmrig@*
 sudo systemctl stop lolminer-*
 
 # Set optimal gaming power
@@ -304,14 +289,11 @@ systemd.services.gpu-power-limit = {
 
 ### View Mining Output
 ```bash
-# View xmrig logs
-journalctl -u xmrig@nvidia0 -f
 
 # View lolminer logs
 journalctl -u lolminer-nvidia -f
 
 # Check recent hashrate
-journalctl -u xmrig@nvidia0 -n 100 | grep -i "speed\|hash"
 ```
 
 ## Troubleshooting
@@ -331,10 +313,8 @@ sudo systemctl restart nvidia-persistenced
 ### Mining Not Starting
 ```bash
 # Check service status
-systemctl status xmrig@nvidia0
 
 # Check logs
-journalctl -u xmrig@nvidia0 -n 50
 
 # Verify GPU is accessible
 nvidia-smi
@@ -356,12 +336,8 @@ sudo nvidia-smi -i 0 -pl 200
 | Task | Command |
 |------|---------|
 | Check GPUs | `nvidia-smi` or `rocm-smi` |
-| Check mining | `systemctl status xmrig@*` |
-| Stop mining | `sudo systemctl stop xmrig@* lolminer-*` |
-| Start mining | `sudo systemctl start xmrig@* lolminer-*` |
 | Set power limit | `sudo nvidia-smi -i 0 -pl 250` |
 | Check temps | `sensors` or `nvidia-smi` |
-| View logs | `journalctl -u xmrig@nvidia0 -f` |
 
 ## Related Skills
 - **nix-rebuild**: For applying hardware configuration changes

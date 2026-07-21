@@ -166,7 +166,6 @@
           active = true;
         }
         {
-          name = "xmrig";
           active = true;
         }
       ];
@@ -254,18 +253,13 @@
     xserver.videoDrivers = [ "amdgpu" ];
 
     # MINING (CPU only - 4 threads = 25% of 16 cores)
-    # Uses xmrig-proxy on Zephyr for centralized hashrate aggregation
     # Note: profiles.role.mining enables services.mining automatically
     # Sentry: CPU mining DISABLED - K8s deployment scaled to 0/0
     # RX 5600 XT reserved for AI inference (llamafile ROCm)
     mining = {
-      xmrig = {
-        enable = false; # Disabled - K8s xmrig-sentry deployment scaled to 0/0
         autostart = false;
         threads = 4;
-        pool = "10.1.1.110:3333"; # xmrig-proxy on Zephyr
       };
-      xmrigDual = {
         enable = true; # Enable for 1GB hugepages kernel params
         alwaysOn = {
           enable = false;
@@ -281,7 +275,6 @@
       #     powerLimit = 140; # Safe power limit for RX 5600 XT
       #     apiPort = 4069;
       #   };
-      #   # Use local xmrig-proxy on Zephyr for pooled mining
       #   pool = "10.1.1.110:3334";
       #   wallet = "krxXVNVMM7.sentry-gpu";
       #   pools = [
@@ -352,10 +345,11 @@
     inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
   boot.loader.timeout = lib.mkDefault 5;
 
-  # Kernel parameters for XMRig RandomX performance (dual-xmrig module)
   boot.kernelParams = [
     "hugepagesz=1G"
     "hugepages=3"
+    # Override conflicting panic values — ensure 30s for journald flush on crash
+    "panic=30"
   ];
 
   # Environment configuration
@@ -461,7 +455,6 @@
   # Centralized registry - see modules/system/agenix-secrets-registry.nix
   services.sops-secrets-registry = {
     enable = true;
-    mining = true; # XMRig API token
     kubernetes = true; # k3s cluster token
   };
   # Override specific secret permissions for mining service

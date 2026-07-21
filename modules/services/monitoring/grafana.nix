@@ -577,13 +577,10 @@
         };
         targets = [
           {
-            expr = "mining_lolminer_hashrate_total";
             legendFormat = "LolMiner {{instance}}";
             refId = "A";
           }
           {
-            expr = "mining_xmrig_hashrate_total";
-            legendFormat = "XMRig {{instance}}";
             refId = "B";
           }
         ];
@@ -633,23 +630,17 @@
         };
         targets = [
           {
-            expr = "rate(mining_lolminer_shares_accepted[5m])";
             legendFormat = "LolMiner Accepted {{instance}}";
             refId = "A";
           }
           {
-            expr = "rate(mining_xmrig_shares_accepted[5m])";
-            legendFormat = "XMRig Accepted {{instance}}";
             refId = "B";
           }
           {
-            expr = "rate(mining_lolminer_shares_rejected[5m])";
             legendFormat = "LolMiner Rejected {{instance}}";
             refId = "C";
           }
           {
-            expr = "rate(mining_xmrig_shares_rejected[5m])";
-            legendFormat = "XMRig Rejected {{instance}}";
             refId = "D";
           }
         ];
@@ -699,12 +690,9 @@
         };
         targets = [
           {
-            expr = "mining_xmrig_cpu_percent";
-            legendFormat = "XMRig {{instance}}";
             refId = "A";
           }
         ];
-        title = "XMRig CPU Usage";
         type = "timeseries";
       }
       {
@@ -750,12 +738,10 @@
         };
         targets = [
           {
-            expr = "mining_xmrig_threads";
             legendFormat = "Threads {{instance}}";
             refId = "A";
           }
         ];
-        title = "XMRig Threads";
         type = "timeseries";
       }
 

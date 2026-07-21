@@ -10,7 +10,6 @@
 # Services:
 #   openwebui.cluster.local / openwebui.lan → Open WebUI (AI chat)
 #   llama.cluster.local     / llama.lan     → LLM API (llama-server)
-#   mining.cluster.local    / mining.lan    → Mining metrics (xmrig-proxy)
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -69,15 +68,12 @@ data:
       }
     }
 
-    # === Mining Metrics (xmrig-proxy dashboard) ===
     mining.cluster.local, mining.lan {
       tls internal
       encode zstd gzip
-      reverse_proxy xmrig-proxy.mining.svc.cluster.local:8081
     }
     http://mining.cluster.local, http://mining.lan {
       encode zstd gzip
-      reverse_proxy xmrig-proxy.mining.svc.cluster.local:8081
     }
 
     # === SearXNG (Search Engine) ===

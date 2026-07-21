@@ -58,7 +58,6 @@ Replace the `RuntimeMaxSec` brute-force pattern with a threaded approach:
 - Remove `RuntimeMaxSec = 60`
 - Restructure the Python HTTP server to use `threading.Thread` for background metric refresh
 - The main thread runs the HTTP server, a daemon thread periodically fetches metrics
-- Add proper error handling for missing token file (log warning, skip xmrig metrics)
 
 ### Step 4: Fix manage-models.py
 

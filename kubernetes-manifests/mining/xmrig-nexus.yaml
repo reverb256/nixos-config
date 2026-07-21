@@ -1,14 +1,11 @@
-# XMRig CPU Miner - nexus (24 cores, 12 threads = 50%)
 # - privileged for MSR register access
 # - 1 replica at 50% CPU cap
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: xmrig-nexus
   namespace: mining
   labels:
-    app: xmrig-nexus
     host: nexus
     workload: crypto-mining
 spec:
@@ -16,13 +13,11 @@ spec:
   revisionHistoryLimit: 2
   selector:
     matchLabels:
-      app: xmrig-nexus
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app: xmrig-nexus
         host: nexus
         workload: crypto-mining
       annotations:
@@ -43,8 +38,6 @@ spec:
           operator: Exists
           effect: NoSchedule
       containers:
-      - name: xmrig
-        image: docker.io/library/xmrig-alpine:6.25.0
         imagePullPolicy: Never
         args:
           - "-o"

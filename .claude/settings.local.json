@@ -3,7 +3,6 @@
     "allow": [
       "Bash(ps -p 3814589 -o pid,etime,stat)",
       "Bash(just switch:*)",
-      "Bash(pkill -f \"xmrig|nicehash\")",
       "Bash(curl -s http://127.0.0.1:8080/mcp/servers)",
       "Bash(curl -s http://127.0.0.1:8080/mcp/tools)",
       "Bash(systemctl restart:*)",

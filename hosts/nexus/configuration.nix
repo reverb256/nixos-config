@@ -345,11 +345,9 @@
   # NOTE: Using CachyOS kernel — binary cached, x86-64-v3 optimized, BORE scheduler.
   boot.kernelPackages = inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
 
-  # Kernel parameters for IOMMU, device passthrough, and XMRig RandomX performance
   boot.kernelParams = [
     "amd_iommu=on" # Enable AMD IOMMU for device passthrough
     "iommu=pt" # IOMMU passthrough mode (better performance)
-    "hugepagesz=1G" # For XMRig RandomX performance (dual-xmrig module)
     "hugepages=3"
   ];
 
@@ -404,22 +402,18 @@
     # Spotify with SpotX patch (ad-free, premium features)
     spotify-spotx.enable = true;
 
-    # Mining configuration - CPU uses xmrig-proxy on Zephyr
     # GPU mining DISABLED: 3060 Ti is used for desktop (VRAM exhausted by KWin/Xwayland)
     # Only 136MB VRAM free - insufficient for CR29 mining DAG (~7GB required)
     # CPU mining DISABLED: K8s version working instead
     mining = {
-      # Dual XMRig setup (always-on + pause-able)
       # Total when idle: 12 threads (50%) - Total when gaming: 4 threads (17%)
       # DISABLED: Migrated to Kubernetes
-      xmrigDual = {
         enable = false;
         # Always-on instance - mines even during gaming
         alwaysOn = {
           enable = false;
           threads = 4; # 17% of 24 cores
           httpPort = 8081;
-          httpTokenFile = "/run/secrets/xmrig-always-api-token";
           autostart = false;
         };
         # Flexible instance - pauses during gaming/builds
@@ -427,11 +421,9 @@
           enable = true;
           threads = 8; # 33% of 24 cores
           httpPort = 8082;
-          httpTokenFile = "/run/secrets/xmrig-flexible-api-token";
           autostart = false;
         };
         # Common settings for both instances
-        pool = "10.1.1.110:3333"; # xmrig-proxy on Zephyr
         wallet = "nexus-cpu"; # Worker ID for proxy
         password = "x";
         tls = false; # No TLS needed for local proxy
@@ -573,7 +565,6 @@
   services.sops-secrets-registry = {
     enable = true;
     aiServices = true; # HF_TOKEN for vLLM model downloads
-    mining = true; # XMRig API tokens
     storage = true; # Garage S3 cluster (Nexus is a storage node)
     kubernetes = true; # k3s cluster token
   };

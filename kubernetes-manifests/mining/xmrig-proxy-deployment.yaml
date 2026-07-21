@@ -1,19 +1,15 @@
-# xmrig-proxy Deployment
 # Central stratum proxy for all mining workers
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: xmrig-proxy
   namespace: mining
   labels:
-    app: xmrig-proxy
     component: stratum-proxy
 spec:
   replicas: 1
   revisionHistoryLimit: 2
   selector:
     matchLabels:
-      app: xmrig-proxy
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -22,7 +18,6 @@ spec:
   template:
     metadata:
       labels:
-        app: xmrig-proxy
         component: stratum-proxy
       annotations:
         prometheus.io/scrape: "true"
@@ -39,11 +34,8 @@ spec:
           effect: NoSchedule
 
       containers:
-        - name: xmrig-proxy
-          image: xmrig-proxy:nixos-6.24.0
           imagePullPolicy: Never
           args:
-            - "--config=/etc/xmrig-proxy/config.json"
             - "--no-color"
           ports:
             - containerPort: 3333
@@ -68,10 +60,8 @@ spec:
             failureThreshold: 3
           volumeMounts:
             - name: config
-              mountPath: /etc/xmrig-proxy
               readOnly: true
             - name: secrets
-              mountPath: /etc/xmrig-proxy-secrets
               readOnly: true
           resources:
             requests:
@@ -87,13 +77,10 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: xmrig-proxy-config
         - name: secrets
           secret:
-            secretName: xmrig-proxy-secret
             items:
               - key: api-token
                 path: api-token
               - key: kryptex-password
                 path: pool-password
-# Service definition moved to xmrig-proxy-service.yaml with proper ClusterIP

@@ -38,7 +38,6 @@ This file tracks all temporarily disabled modules, TODOs, and FIXMEs in the NixO
 | ID | File | Line | Image | Status | Target |
 |----|------|------|-------|--------|--------|
 | K8S-001 | `kubernetes-manifests/mining/*.yaml` | 39,62 | `lolminer:latest` | 🟠 Security | 2026-04-05 |
-| K8S-002 | `kubernetes-manifests/mining/*.yaml` | 46 | `xmrig-nixos:latest` | 🟠 Security | 2026-04-05 |
 | K8S-003 | `kubernetes-manifests/n8n/*.yaml` | 130 | `n8nio/n8n:latest` | 🟠 Security | 2026-04-05 |
 | K8S-004 | `kubernetes-manifests/glitchtip/*.yaml` | 22 | `glitchtip/glitchtip:latest` | 🟠 Security | 2026-04-05 |
 | K8S-005 | `kubernetes-manifests/spacebot/*.yaml` | 45,56 | `spacebot:latest` | 🟠 Security | 2026-04-05 |

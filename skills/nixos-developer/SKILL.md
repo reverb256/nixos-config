@@ -130,7 +130,6 @@ Located in `modules/profiles/role/`:
 | `workstation` | Desktop + development tools |
 | `gaming` | Steam, Lutris, game launchers |
 | `vr` | WiVRn, SteamVR |
-| `mining` | xmrig, lolminer |
 | `aiInference` | AI gateway + MCP |
 | `desktop` | Plasma, Wayland |
 

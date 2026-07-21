@@ -68,8 +68,6 @@ kubernetes-manifests/mining/backup-20260322-102128/
 ├── gpu-miner-forge-amd-0.yaml
 ├── gpu-miner-forge-nvidia-0.yaml
 ├── gpu-miner-zephyr.yaml
-├── xmrig-nexus.yaml
-├── xmrig-proxy-deployment.yaml
 └── ... (25 more files)
 ```
 

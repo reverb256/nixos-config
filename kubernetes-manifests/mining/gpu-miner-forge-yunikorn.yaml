@@ -76,7 +76,6 @@ spec:
         imagePullPolicy: Never  # Use local image built by Nix
         args:
           - "--algo=CR29"
-          - "--pool=stratum+tcp://10.1.1.110:3333"  # Connect to xmrig-proxy service
           - "--user=forge-gpu"
           - "--devices=2,3"  # RTX 4060s (GPU IDs on Forge)
           - "--apiport=4068"
@@ -128,7 +127,6 @@ spec:
         imagePullPolicy: Never  # Use local image built by Nix
         args:
           - "--algo=CR29"
-          - "--pool=stratum+tcp://10.1.1.110:3333"  # Connect to xmrig-proxy service
           - "--user=forge-gpu"
           - "--devices=0,1"  # RX 5700 XTs
           - "--apiport=4069"

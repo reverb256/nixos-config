@@ -51,7 +51,6 @@ data:
       desc: Detect potential crypto mining in containers
       condition: >
         spawned_process
-        and proc.cmdline in ["xmrig", "minerd", "cpuminer"]
         and not user.name = "nobody"
       output: >
         Crypto mining detected (container=%container.name process=%proc.cmdline user=%user.name)

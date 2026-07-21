@@ -27,7 +27,6 @@
 - SSH connectivity ✅
 - DNS resolution (unbound) ✅
 - Kubernetes control plane ✅
-- xmrig-zephyr pod Running ✅
 
 **Issues**:
 - ❌ ICMP ping failures (localhost and remote)
@@ -97,7 +96,6 @@ gpu-miner-forge-nvidia-1: 1/1 Running, 0 restarts, IP 10.1.1.130
 **Status**: Unknown (likely similar to forge)
 
 **Working**:
-- ✅ xmrig-sentry pod Running (1/1 READY)
 - ✅ Kubernetes reports node as Ready
 
 **Issues**:
@@ -111,15 +109,11 @@ gpu-miner-forge-nvidia-1: 1/1 Running, 0 restarts, IP 10.1.1.130
 |-----|------|--------|----------|-------|
 | gpu-miner-forge-nvidia-0 | forge | Running | 0 | ✅ Cannot verify logs |
 | gpu-miner-forge-nvidia-1 | forge | Running | 0 | ✅ Cannot verify logs |
-| xmrig-sentry | sentry | Running | 0 | ✅ Likely functional |
 
 ### Failed Miners (4/7)
 | Pod | Node | Status | Restarts | Issue |
 |-----|------|--------|----------|-------|
-| xmrig-proxy | nexus | Running | 64 | ❌ DNS resolution failure |
-| xmrig-nexus | nexus | Running | 1 | ❌ Cannot connect to pools |
 | gpu-miner-nexus-* | nexus | UnexpectedAdmissionError | 0 | ❌ Scheduling failure |
-| xmrig-zephyr | zephyr | Running | 0 | ⚠️ Just restarted (31m ago) |
 
 ## Root Cause Analysis
 
@@ -127,7 +121,6 @@ gpu-miner-forge-nvidia-1: 1/1 Running, 0 restarts, IP 10.1.1.130
 **Symptom**: All mining pods failing to connect to stratum pools
 ```
 Error: "DNS resolve error - retrying in 5 seconds"
-Error: "Lost connection to xmrig-proxy.mining.svc.cluster.local:3333"
 ```
 
 **Root Cause Chain**:
@@ -135,11 +128,9 @@ Error: "Lost connection to xmrig-proxy.mining.svc.cluster.local:3333"
    - Upstream servers: 9.9.9.9@853, 1.1.1.1@853, 8.8.8.8@853 (DoT)
    - Firewall blocking outbound DoT (port 853) from nexus
 
-2. **xmrig-proxy** crashes due to DNS failures
    - Cannot resolve: xtm-rx-us.kryptex.network, xtm-c29-us.kryptex.network
    - Enters CrashLoopBackOff (64 restarts)
 
-3. **Miners cannot connect** to xmrig-proxy or pools
    - Service has no ready endpoints (circular dependency)
    - Calico blocks connections to services without endpoints
 
@@ -318,7 +309,6 @@ Impact: Container networking failures
 4. Test DNS resolution from all nodes
 
 ### Phase 3: Mining Recovery (30 min)
-1. Verify xmrig-proxy starts successfully
 2. Verify all miner pods connect to pools
 3. Check hash rates and temperatures
 4. Confirm 7/7 miners functional

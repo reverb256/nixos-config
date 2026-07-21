@@ -7,7 +7,6 @@ _final: prev:
   # non-cyclic callPackage once the flake graph is reconciled. zephyr needs
   # caddy-with-modules; provided below via a direct local build instead.
   # inherit (inputs.compute-market.packages.x86_64-linux)
-  #   xmrig
   #   ;
   gputemps = prev.callPackage ./packages/gputemps.nix { };
   lmstudio = prev.callPackage ./packages/lmstudio.nix { };

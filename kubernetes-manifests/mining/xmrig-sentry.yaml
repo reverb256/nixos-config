@@ -1,14 +1,11 @@
-# XMRig CPU Miner - sentry (16 cores, 8 threads = 50%)
 # - privileged for MSR register access
 # - 1 replica at 50% CPU cap
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: xmrig-sentry
   namespace: mining
   labels:
-    app: xmrig-sentry
     host: sentry
     workload: crypto-mining
 spec:
@@ -16,13 +13,11 @@ spec:
   revisionHistoryLimit: 2
   selector:
     matchLabels:
-      app: xmrig-sentry
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app: xmrig-sentry
         host: sentry
         workload: crypto-mining
       annotations:
@@ -43,8 +38,6 @@ spec:
           operator: Exists
           effect: NoSchedule
       containers:
-      - name: xmrig
-        image: docker.io/library/xmrig-alpine:6.25.0
         imagePullPolicy: Never
         args:
           - "-o"

@@ -24,7 +24,6 @@ kubectl -n ingress-system logs -l app.kubernetes.io/name=caddy-ingress
 |----------|---------|--------|
 | `openwebui.cluster.local` / `openwebui.lan` | `open-webui.ai-inference:8080` | ✅ Active |
 | `llama.cluster.local` / `llama.lan` | `llama-server.ai-inference:8080` | ⏳ Route ready |
-| `mining.cluster.local` / `mining.lan` | `xmrig-proxy.mining:8081` | ⏳ Route ready |
 
 ## Access Methods
 

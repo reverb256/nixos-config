@@ -116,10 +116,6 @@ echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf
 - ✅ gpu-miner-forge-nvidia-0: Running
 - ✅ gpu-miner-forge-nvidia-1: Running
 - ✅ gpu-miner-nexus: Running
-- ✅ xmrig-nexus: Running
-- ✅ xmrig-sentry: Running
-- ✅ xmrig-zephyr: Running
-- ❌ xmrig-proxy: CrashLoopBackOff (can't reach Nexus)
 
 ### Kubernetes Status
 - Control plane: 2/4 nodes ready (Zephyr, Sentry)

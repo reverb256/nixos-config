@@ -7,7 +7,6 @@
 | Node | NVIDIA GPUs | AMD GPUs | Total | Status |
 |------|------------|----------|-------|--------|
 | **Forge** | 2× RTX 4060 | 2× AMD | **4** | 1 NVIDIA used by mining, 3 available |
-| **Nexus** | 1× RTX 3090 | 0 | **1** | 1 used by xmrig-nexus (CPU miner) |
 | **Sentry** | 0 | 1× AMD | **1** | Monitoring node (GPU available) |
 | **Zephyr** | 2× RTX 3090 | 0 | **2** | 1 used by gpu-miner-zephyr, 1 available |
 
@@ -51,7 +50,6 @@ Forge's 2 AMD GPUs are:
 ### To Use AMD GPUs
 
 To actually use Forge's AMD GPUs, you would need:
-1. AMD-compatible mining software (XMRig with AMD ROCm, not lolminer)
 2. Deployment with `amd.com/gpu` resource requests
 3. Or AMD-compatible AI workloads (PyTorch with ROCm, etc.)
 

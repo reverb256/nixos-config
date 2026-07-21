@@ -58,7 +58,6 @@ Remove commented import lines for files that still exist on disk and were never 
 
 ### Task 1.10: Delete dead host files (5 files)
 
-hosts/zephyr/ai-inference.nix, hosts/zephyr/xmrig-proxy-example.nix, hosts/forge/mining-proxy-example.nix, hosts/forge/hardware.nix.backup, hosts/sentry/hardware-configuration.nix.backup
 
 ### Task 1.11: Verify and commit
 
@@ -83,7 +82,6 @@ Remove: commented-out nix-mineral and microvm-host imports and config block
 
 ### Task 2.3: Clean nexus/services.nix (~100 lines)
 
-Remove: xmrigDual (all enable=false), mcp-servers (enable=false), syncthing-cluster, garage-cluster, ai-coding-tools (all enable=false), deletion notices, empty environment={}, commented environmentFiles. KEEP intentional host overrides (vane, gpu-profile-manager, etc.) where the module is imported via common-modules.
 
 ### Task 2.4: Clean sentry/services.nix (~31 lines)
 
@@ -175,7 +173,6 @@ docs-emergency-cleanup.sh, remove-flannel-annotations.sh, install-lmstudio-headl
 
 ### Task 5.5: Remove dead check_flannel() from cleanup-zombie-pods.sh
 
-### Task 5.6: Fix stale xmrig-metrics targets on nexus and sentry
 
 Remove or update localhost targets for disabled mining services.
 
