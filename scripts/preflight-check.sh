@@ -38,35 +38,26 @@ else
     pass "local /etc/nixos matches origin/main"
 fi
 
-# 2. nexus build executor must match canonical (PIPELINE INTEGRITY / G4).
-log "  checking nexus build executor..."
-if [ "$NO_FETCH" -eq 0 ]; then
-    ssh nexus "bash --norc --noprofile -c 'cd /etc/nixos && git fetch origin main 2>&1 | tail -1'" >/dev/null 2>&1 || true
-fi
-NEXUS_HEAD=$(ssh nexus "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse --short origin/main 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
-NEXUS_LOCAL=$(ssh nexus "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse --short HEAD 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
-if [ "$NEXUS_LOCAL" != "$CANONICAL" ]; then
-    # Self-heal: the deploy paths force-reset nexus to origin/main before building,
-    # so drift here is benign. Sync it now (non-destructive: matches canonical).
-    log "  ⚠ nexus /etc/nixos ($NEXUS_LOCAL) != origin/main ($CANONICAL) — self-healing (reset nexus to origin/main)"
-    ssh nexus "bash --norc --noprofile -c 'set -e; cd /etc/nixos; git fetch origin main 2>&1 | tail -1; git reset --hard origin/main 2>&1 | tail -1'" 2>&1 | tail -1
-    NEXUS_LOCAL=$(ssh nexus "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse --short HEAD 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
-    if [ "$NEXUS_LOCAL" = "$CANONICAL" ]; then
-        pass "nexus /etc/nixos synced to origin/main"
+# 2–4. All remote hosts must match canonical.
+# Uses parallel SSH — all hosts checked simultaneously.
+log "  checking remote hosts..."
+HOSTS="nexus forge sentry"
+FAIL=0
+for HOST in $HOSTS; do
+  REMOTE_HEAD=$(ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse --short HEAD 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
+  if [ "$REMOTE_HEAD" != "$CANONICAL" ]; then
+    log "  ⚠ $HOST ($REMOTE_HEAD) != origin/main ($CANONICAL) — self-healing"
+    ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git fetch origin main 2>&1 | tail -1 && git reset --hard origin/main 2>&1 | tail -1'" 2>&1 | tail -1
+    REMOTE_HEAD=$(ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse --short HEAD 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
+    if [ "$REMOTE_HEAD" = "$CANONICAL" ]; then
+      pass "$HOST synced"
     else
-        fail "nexus /etc/nixos still drifted ($NEXUS_LOCAL) after reset attempt"
+      fail "$HOST still drifted ($REMOTE_HEAD)"
     fi
-else
-    pass "nexus /etc/nixos matches origin/main"
-fi
-
-# 3. Working tree cleanliness on nexus (uncommitted edits would be clobbered by reset — warn, don't fail).
-NEXUS_DIRTY=$(ssh nexus "bash --norc --noprofile -c 'cd /etc/nixos && git status --porcelain | head -5'" 2>/dev/null || echo "")
-if [ -n "$NEXUS_DIRTY" ]; then
-    log "  ⚠ nexus has uncommitted changes (will be reset by deploy):"
-    echo "$NEXUS_DIRTY" | while read -r line; do log "      $line"; done
-fi
-
+  else
+    pass "$HOST matches origin/main"
+  fi
+done
 # 4. In-flight build check (don't stomp a running build).
 if ssh nexus "bash --norc --noprofile -c 'systemctl --user is-active \"nix-build-*\" 2>/dev/null | grep -q active'" 2>/dev/null; then
     fail "a nexus nix-build is already active — wait for it to finish before deploying"
