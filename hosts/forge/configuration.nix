@@ -155,39 +155,7 @@
       enable = true;
       client.enable = true;
     };
-      # NVIDIA GPUs (2x RTX 4060) - MIGRATED TO KUBERNETES
-      # Bare-metal systemd service disabled in favor of K8s deployments
-      # Power limit persists via nvidia-gpu-power-limit systemd service at boot
-      # (AMD GPUs are 0,1, NVIDIA GPUs are 2,3 when both OpenCL and CUDA are available)
-      nvidia = {
-        enable = false; # Disabled - migrated to Kubernetes (gpu-miner-forge-nvidia-0/1)
-        autostart = false;
-        devices = "2,3";
-        powerLimit = 90; # Both RTX 4060s @ 90W (applied at boot via power-limit service)
-        memoryClockLock = 8501; # CRITICAL: Without this, lolMiner fails to drive memory clocks up on RTX 4060, resulting in ~0.2 g/s instead of ~4 g/s
-        apiPort = 4068;
-      };
-      # AMD GPUs (RX 5700 XT) - NOW MANAGED BY K3S
-      # Migrated from systemd to k3s pods (gpu-miner-forge-amd-0/1)
-      # using ubuntu:24.04 base + Nix store lolMiner binary for OpenCL support
-      amd = {
-        enable = false; # Disabled - AMD mining now via k3s pods
-        autostart = false;
-        devices = "0,1";
-        powerLimit = 110;
-        apiPort = 4069;
-      };
-      # Direct connection to Kryptex (gpu-proxy-cpp was broken - no jobs forwarded)
-      pool = "xtm-c29-us.kryptex.network:8040";
-      wallet = "krxXVNVMM7.forge-gpu";
-      pools = [
-        {
-          url = "xtm-c29-us.kryptex.network:8040"; # Kryptex US (primary)
-          wallet = "krxXVNVMM7.forge-gpu";
-          password = "x";
-          tls = true;
-        }
-        {
+      # GPU mining migrated to Kubernetes (peakminer)
           url = "xtm-c29-eu.kryptex.network:8040"; # Kryptex EU (failover)
           wallet = "krxXVNVMM7.forge-gpu";
           password = "x";

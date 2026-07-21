@@ -12,6 +12,7 @@ sessions, models, or vendors). Read this before working. Update when done.
 | Agent | Scope | Files/hosts touched | Off-limits | Status | Last active |
 |-------|-------|---------------------|------------|--------|-------------|
 | j_kro-systemd_recovery | Sentry crash investigation + cluster k3s recovery | modules/system/kernel-hardening.nix, hosts/sentry/configuration.nix, hosts/sentry/services.nix, hosts/forge/services.nix, modules/development/ai-coding-tools/droid.nix, modules/system/sops-secrets-registry.nix | Peakminer/mining services, MapleSpike, Niri desktop configs | ✅ Cluster restored (nexus+forge+sentry); ✅ etcd quorum fixed (identity-only encryption); ✅ Forge agent config committed; ✅ Sentry panic=30 config committed; 🔄 Sentry k3s still cycling (3-member etcd formed, k3s not fully becoming Ready) | 2026-07-21 05:05 (UTC-5) |
+| j_kro-quill-nixos | WebMCP, API fix, caveman removal, lolminer/xmrig purge, NixOS eval drift fixes | see Work Log | Peakminer | ✅ WebMCP, API fix, caveman done; ✅ LOLMINER + XMRIG COMPLETELY PURGED from all .nix files (~38 files cleaned); 🔄 Build still failing — last error in sops-secrets-registry.nix mining section (needs syntax fix) | 2026-07-21 02:30 (UTC-5) |
 
 (Stale prior sessions archived — nexus-dns-and-hermes, maplespike-24-issues, nexus-de-vm-boot, infra/dns-recovery, quill-portal-fixes were all ✅ Done from earlier sessions.)
 
@@ -43,14 +44,18 @@ sessions, models, or vendors). Read this before working. Update when done.
 - 🔄 Sentry k3s still cycling: 3-member etcd formed but k3s server not reaching Ready state
 - 🔄 Sentry's `/run/secrets/k3s-cluster-token` needs sops deployment or manual copy
 
-### 2026-07-20 17:00 (UTC-5) | j_kro (quill-WebMCP-fixes)
-- ✅ WebMCP implemented (7 tools), deployed to k3s
-- ✅ API crash loop fixed (rate limit bypass + readiness probe fix)
-- ✅ Portal→API proxy fixed (X-Forwarded-Proto: https)
-- ✅ Cloudflare DNS fixed (Pages CNAME → Tunnel CNAME)
-- ✅ Caveman + Cavecrew completely removed system-wide
-- 🔄 Sentry k3s still failing to join cluster (duplicate node name)
-- 🔄 NixOS config fixes committed but not deployed (noctalia, calico, syncthing deviceId, garage rpcSecret)
+### 2026-07-21 02:30 (UTC-5) | j_kro-quill-nixos
+- ✅ WebMCP: 7 tools implemented and deployed to k3s (getHealth, searchGovernmentData, askMapleSpike, getWatcherEvents, getBillingPlans, listDataModules, getApiDocs)
+- ✅ API crash loop fixed: rate limit bypass for /v1/health + /v1/astral/health; readiness probe changed to /v1/health
+- ✅ Portal→API proxy fixed: X-Forwarded-Proto always https
+- ✅ Cloudflare: DNS changed from Pages CNAME to Tunnel CNAME; cache level aggressive→basic; dev mode on
+- ✅ Caveman + Cavecrew: completely removed from all 8 locations (OpenCode, Claude, Grok, Skillclaw, Hermes-skills, npx caches, .claude.json, AGENTS.md)
+- ✅ LOLMINER: ALL references purged from .nix files (mining.nix rewritten, flake.nix image defs removed, packages deleted, exporter deleted, grafana dashboards cleaned, host configs stripped)
+- ✅ XMRIG: ALL references purged from .nix files (38 files cleaned — dual-xmrig.nix, xmrig-proxy.nix, packages, pkgs, containers, secrets registries, host configs, monitoring, grafana, etc.)
+- ✅ Eval drift fixes: noctalia flake input, calico option, syncthing deviceId, garage rpcSecret, wivrn defaultRuntime, timeseries description, krash3 refs removed, promtail disabled
+- 🔄 Build still failing: last error is in sops-secrets-registry.nix mining section (orphaned secret entries from xmrig sed-strip broke syntax — needs manual fix)
+- 🔄 Sentry k3s still not healthy (duplicate node name in etcd)
+- 🔄 No deploy yet — waiting for successful build
 
 **Files touched:**
 - `flake.nix`, `hosts/nexus/configuration.nix`, `modules/services/k3s-cluster.nix`
@@ -70,30 +75,37 @@ sessions, models, or vendors). Read this before working. Update when done.
 
 ## Handoff
 
-**From:** zephyr-kernel-proxy-build
-**Timestamp:** 2026-07-16 00:20 (UTC-5)
-**Status:** ✅ Core fixes done; ⏳ build v6 running
+**From:** j_kro-quill-nixos
+**Timestamp:** 2026-07-21 02:30 (UTC-5)
+**Status:** ✅ All major cleanup done; 🔄 Build blocked by one syntax error
 **What changed:**
-- CachyOS 7.1.3 kernel pin + zephyr override — resolves to `linux-cachyos-latest-x86_64-v3-7.1.3`
-- Corrupt proxy (`10.1.1.120:50000`) removed from nix.conf on all hosts (declaratively)
-- Post-build-hook `--substitute-on-destination` removed — corruption writer fixed
-- All 9 eval blockers fixed cluster-wide
-- Builders reduced to nexus+sentry only (no forge/mining, no krash3)
-- Builder retune: nexus 12→16, sentry 8→10 (source only, needs switch)
+- LOLMINER + XMRIG completely removed from all .nix files (~50 files total)
+- mining.nix rewritten: only xmrig was left (no lolminer); user then demanded xmrig removed too — currently xmrig-free
+- flake.nix: lolminer amd nvidia images + all xmrig images deleted (lines 219-402)
+- All dedicated xmrig/lolminer files deleted (dual-xmrig, xmrig-proxy, xmrig-api-control, xmrig-metrics, mining-exporter, packages)
+- WebMCP, API fix, portal proxy, Cloudflare DNS done
+- Caveman + Cavecrew removed from all 8 locations
 
 **What's blocked:**
-- Final build toplevel not yet produced — kernel still compiling on sentry
-- No deploy per user instruction — toplevel artifact only
+- Build fails at `modules/system/sops-secrets-registry.nix` line 432 — the mining section
+  has orphaned secret entries (sed-strip of xmrig references left dangling `format = "binary";...};` blocks without their key names). Needs manual fix of the mining block.
+- Sentry k3s still not healthy (etcd duplicate node name)
 
 **What to do next:**
-1. Wait for build v6 (PID 3827510 on nexus, sentry compiling kernel) to complete
-2. If the toplevel store path appears, report it; do NOT switch
-3. If the build fails, check `/tmp/zephyr-nexus-v6-log` on nexus
-4. Committed config changes need `just deploy nexus sentry` to take effect — held per "no redeploy"
-5. Consider switching remaining flake `github:` URLs to `git+https://` for consistency
+1. Fix sops-secrets-registry.nix mining section (remove orphaned secret blocks inside the `mkIf mining` section)
+2. Run `nix build .#nixosConfigurations.nexus.config.system.build.toplevel` to verify
+3. Commit and push
+4. `just deploy` to all reachable hosts
 
 **Files touched:**
-- `flake.nix`, `flake.lock`, `hosts/zephyr/configuration.nix`, `modules/desktop/stylix.nix`
-- `modules/desktop/themes/osaka-jade.yaml`, `modules/services/hermes-cli.nix`
-- `modules/system/distributed-builds.nix`, `modules/system/nix-config.nix`
-- `packages/herdr.nix`, `justfile`, `HEY.md`
+- `modules/mining/mining.nix` — rewritten (xmrig only, then xmrig stripped)
+- `flake.nix` — lolminer + xmrig image defs removed
+- `modules/system/sops-secrets-registry.nix` — xmrig secret entries stripped (may need syntax fix)
+- `modules/services/monitoring/grafana.nix`, `modules/services/mining-exporter.nix` (deleted)
+- `modules/services/k3s-cluster.nix`, `modules/services/syncthing.nix`
+- `modules/system/agenix-secrets-registry.nix`, `secrets.nix`, `overlay.nix`
+- `hosts/*/configuration.nix`, `hosts/*/monitoring.nix` — lolminer/xmrig stripped
+- `kubernetes/`, `containers/`, `packages/`, `pkgs/` — xmrig files deleted
+- `modules/gaming/gaming.nix`, `modules/services/monitoring/dashboards/lib.nix`
+- `modules/compute-market/default.nix` — mining services default changed
+- All caveman/cavecrew locations (OpenCode, Claude, Grok, Skillclaw, etc.)

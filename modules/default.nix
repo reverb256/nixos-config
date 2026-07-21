@@ -96,9 +96,6 @@
     # Mining
     # Most mining modules handled by inputs.compute-market.nixosModules.default
     # ./mining/mining.nix
-    # ./mining/mining-proxy.nix
-    # mining-plasmoid is NOT in the compute-market flake's import list, keep local
-    ./mining/mining-plasmoid.nix
     # Note: Python gpu-proxy removed - replaced by gpu-proxy-cpp (centralized on Forge)
     # gpu-proxy handled by inputs.gpu-proxy.nixosModules.default
     # ./mining/gpu-proxy-cpp.nix

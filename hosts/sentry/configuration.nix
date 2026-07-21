@@ -294,12 +294,7 @@
       #       url = "xtm-c29-eu.kryptex.network:8040"; # Direct Kryptex EU (failover)
       #       wallet = "krxXVNVMM7.sentry-gpu";
       #       password = "x";
-      #       tls = true;
-      #     }
-      #   ];
-      # };
-    };
-
+    }
     # Spotify with SpotX patch (ad-free, premium features)
     spotify-spotx.enable = true;
 

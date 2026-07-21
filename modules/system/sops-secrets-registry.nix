@@ -424,28 +424,6 @@ in {
             group = "root";
           };
         })
-        (mkIf config.services.sops-secrets-registry.mining {
-            format = "binary";
-            mode = "0444";
-            owner = "root";
-            group = "root";
-          };
-            format = "binary";
-            mode = "0444";
-            owner = "root";
-            group = "root";
-          };
-            format = "binary";
-            mode = "0444";
-            owner = "root";
-            group = "root";
-          };
-            format = "binary";
-            mode = "0444";
-            owner = "root";
-            group = "root";
-          };
-        })
         (mkIf config.services.sops-secrets-registry.storage {
           "storage/garage-metrics-token" = {
             sopsFile = "${inputs.self}/secrets/storage/garage-metrics-token.yaml";

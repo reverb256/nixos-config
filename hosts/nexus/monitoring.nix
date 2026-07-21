@@ -31,14 +31,6 @@
       enable = false;
       lokiUrl = "http://10.1.1.140:3100/loki/api/v1/push";
     };
-
-      enable = true;
-      targets = [
-        "127.0.0.1:8082"
-        "127.0.0.1:8083"
-      ];
-      interval = 30;
-    };
   };
 
   # Ensure node-exporter port is open for Prometheus scraping

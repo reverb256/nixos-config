@@ -88,6 +88,11 @@ in {
               advertiseRoutes = ["10.1.1.0/24"];
             };
 
+              tailscale = "100.95.222.46";
+              description = "Windows VM Host - 12 cores, RTX 4060";
+              roles = ["desktop" "gaming" "mining" "build"];
+              advertiseRoutes = ["10.1.1.0/24"];
+            };
           };
           description = "Cluster host configurations";
         };
@@ -150,9 +155,6 @@ in {
               localsend = lib.mkOption {
                 type = lib.types.int;
                 default = 53317;
-              };
-                type = lib.types.int;
-                default = 8081;
               };
               nix-cache = lib.mkOption {
                 type = lib.types.int;
@@ -420,20 +422,6 @@ in {
                       description = "llama-server Sentry ROCm";
                     };
 
-                      type = lib.types.submodule {
-                        options = {
-                          host = lib.mkOption {
-                            type = lib.types.str;
-                            default = "10.1.1.120";
-                          };
-                          port = lib.mkOption {
-                            type = lib.types.int;
-                            default = 3333;
-                          };
-                        };
-                      };
-                      default = {};
-                    };
                   };
                 };
                 default = {};
