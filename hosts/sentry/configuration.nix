@@ -349,6 +349,8 @@
     "hugepages=3"
     # Override conflicting panic values — ensure 30s for journald flush on crash
     "panic=30"
+    # Ryzen MCE mitigation: Bank 5 WDT timeout. See https://github.com/DimitriFourny/MCE-Ryzen-Decoder
+    "processor.max_cstate=5"
   ];
 
   # Environment configuration
