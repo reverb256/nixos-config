@@ -973,14 +973,6 @@
     # Syncthing P2P file sync for /etc/nixos config sync
     syncthing-cluster = {
       enable = true;
-      # CPU mining migrated to Kubernetes
-          url = "http://127.0.0.1:3000";
-        }
-        {
-          name = "Home Assistant";
-          url = "http://127.0.0.1:8123";
-        }
-      ];
       services = [
         {
           name = "AI Inference Gateway";
