@@ -398,4 +398,6 @@ in {
   services.k8s-secret-sync = {
     enable = true;
   };
+  # Use local kubeconfig instead of cluster join token (node token is not a valid API bearer token)
+  services.k8s-nix-deploy.tokenFile = lib.mkForce null;
 }
