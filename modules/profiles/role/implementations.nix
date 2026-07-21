@@ -6,6 +6,16 @@
 }: let
   cfg = config.profiles.role;
 in {
+  options.services.mining = lib.mkOption {
+    type = lib.types.submodule {
+      options = {
+        enable = lib.mkEnableOption "mining services";
+      };
+    };
+    default = {};
+    description = "Mining service configuration";
+  };
+
   config = lib.mkMerge [
     (lib.mkIf cfg.workstation {
       services.gaming.enable = true;
@@ -20,7 +30,7 @@ in {
     })
 
     (lib.mkIf cfg.mining {
-      services.mining.enable = true;
+      services.mining.enable = lib.mkDefault true;
     })
 
     (lib.mkIf cfg.aiInference {
