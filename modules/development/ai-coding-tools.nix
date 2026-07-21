@@ -108,6 +108,10 @@ let
       # SearXNG via fetch wrapper with custom URL
       # Note: If a dedicated searxng MCP wrapper exists, replace this
     };
+    hound = {
+      command = "/data/agents/mcp-bridges/hound-mcp.sh";
+      description = "Web fetch + crawl + search + Cloudflare bypass + PDF OCR";
+    };
   };
   # Full MCP set: Z.AI stdio + Z.AI HTTP + local stdio
   fullMcpSet =
