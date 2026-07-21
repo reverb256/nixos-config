@@ -25,7 +25,7 @@
     options = ["subvol=@home"];
   };
   fileSystems."/boot" = {
-    device = "/dev/disk/by-uuid/EB7C-E7CC";
+    device = "/dev/disk/by-uuid/CD7B-DFCA";
     fsType = "vfat";
     options = ["fmask=0077" "dmask=0077"];
   };
