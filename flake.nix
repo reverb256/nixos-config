@@ -83,6 +83,12 @@
     # Binary cache: attic.xuyh0120.win/lantian (no local compilation needed)
     nix-cachyos-kernel.url = "git+https://github.com/xddxdd/nix-cachyos-kernel";
     nix-cachyos-kernel.inputs.flake-parts.follows = "flake-parts";
+    nix-cachyos-kernel.inputs.linux-cachyos.follows = "linux-cachyos";
+    # linux-cachyos — transitive dep for cachyos kernel, use git+https for Lix compat
+    linux-cachyos = {
+      url = "git+https://github.com/CachyOS/linux-cachyos";
+      flake = false;
+    };
     # linux-cachyos override — may not exist in all kernel flake versions, non-fatal if ignored
     # ── Inputs required by common-modules-list.nix (re-added after a drift where
     #    they were dropped from flake.nix but still referenced in the module list) ──
