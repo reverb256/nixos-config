@@ -3,11 +3,11 @@
   inputs = {
     nixpkgs.url = "tarball+https://codeload.github.com/NixOS/nixpkgs/tar.gz/9ae611a455b90cf061d8f332b977e387bda8e1ca"; # pinned: predates nixos-unstable pkgs-fixedPoint recursion regression
     home-manager = {
-      url = "github:nix-community/home-manager";
+      url = "git+https://github.com/nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zen-browser = {
-      url = "github:0xc000022070/zen-browser-flake";
+      url = "git+https://github.com/0xc000022070/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
@@ -20,66 +20,66 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nur = {
-      url = "github:nix-community/NUR";
+      url = "git+https://github.com/nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     claude-native = {
-      url = "github:ryoppippi/claude-code-overlay";
+      url = "git+https://github.com/ryoppippi/claude-code-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # nixpkgs-xr - Bleeding-edge XR/VR packages (WiVRn, Monado, libsurvive, xrizer, etc.)
     # Provides binary cache at nix-community.cachix.org
     nixpkgs-xr = {
-      url = "github:nix-community/nixpkgs-xr";
+      url = "git+https://github.com/nix-community/nixpkgs-xr";
     };
     scopebuddy = {
-      url = "github:OpenGamingCollective/ScopeBuddy";
+      url = "git+https://github.com/OpenGamingCollective/ScopeBuddy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nixcord = {
-      url = "github:FlameFlag/nixcord";
+      url = "git+https://github.com/FlameFlag/nixcord";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # spicetify-nix - Disabled due to deprecated options in systems dependency
     # Not currently used in configuration
     # spicetify-nix = {
-    #   url = "github:Gerg-L/spicetify-nix";
+    #   url = "git+https://github.com/Gerg-L/spicetify-nix";
     #   inputs.nixpkgs.follows = "nixpkgs";
     # };
     agenix = {
-      url = "github:ryantm/agenix/0.15.0";
+      url = "git+https://github.com/ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     sops-nix = {
-      url = "github:Mic92/sops-nix";
+      url = "git+https://github.com/Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # Colmena - Multi-host deployment
     colmena = {
-      url = "github:zhaofengli/colmena";
+      url = "git+https://github.com/zhaofengli/colmena";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # Niri - Scrollable-tiling Wayland compositor
     # Provides: programs.niri NixOS module, niri-unstable overlay, home-manager module
     niri = {
-      url = "github:sodiboo/niri-flake";
+      url = "git+https://github.com/sodiboo/niri-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # llm-agents.nix - Nix packages for AI coding agents (Droid, etc.)
     llm-agents = {
-      url = "github:numtide/llm-agents.nix";
+      url = "git+https://github.com/numtide/llm-agents.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # CachyOS kernel - Performance-optimized kernel for gaming/desktop (Zephyr only)
     # Provides: linux-cachyos-latest-x86_64-v3, sched_ext support, BORE scheduler
     # Binary cache: attic.xuyh0120.win/lantian (no local compilation needed)
     # Do NOT follow nixpkgs — uses its own pinned nixos-unstable-small for kernel builds
-    nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
+    nix-cachyos-kernel.url = "git+https://github.com/xddxdd/nix-cachyos-kernel";
     # ── Inputs required by common-modules-list.nix (re-added after a drift where
     #    they were dropped from flake.nix but still referenced in the module list) ──
     # hermes-agent - Hermes Agent NixOS module + packages
     hermes-agent = {
-      url = "github:NousResearch/hermes-agent";
+      url = "git+https://github.com/NousResearch/hermes-agent";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # mcp-registry - MCP server registry module (local tarball: nix HTTPS fetcher stalls)
@@ -109,7 +109,7 @@
     };
     # noctalia - brightness daemon for NixOS
     noctalia = {
-      url = "github:noctalia-dev/noctalia/e2f529a4a39ce924c36f6633ded1ce0a88312ec2";
+      url = "git+https://github.com/noctalia-dev/noctalia";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # stylix - theming module (local tarball)
