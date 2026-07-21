@@ -524,5 +524,5 @@ in {
     };
     description = "Cluster network configuration";
     default = {};
-  };
+  }
 }
