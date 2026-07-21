@@ -79,14 +79,8 @@
     # CachyOS kernel - Performance-optimized kernel for gaming/desktop (Zephyr only)
     # Provides: linux-cachyos-latest-x86_64-v3, sched_ext support, BORE scheduler
     # Binary cache: attic.xuyh0120.win/lantian (no local compilation needed)
-    # CachyOS kernel - Performance-optimized kernel for gaming/desktop (Zephyr only)
-    # Use git+https:// to bypass GitHub API 401 errors in Lix
-    linux-cachyos = {
-      url = "git+https://github.com/CachyOS/linux-cachyos";
-      flake = false;
-    };
     nix-cachyos-kernel.url = "git+https://github.com/xddxdd/nix-cachyos-kernel";
-    nix-cachyos-kernel.inputs.linux-cachyos.follows = "linux-cachyos";
+    # linux-cachyos override — may not exist in all kernel flake versions, non-fatal if ignored
     # ── Inputs required by common-modules-list.nix (re-added after a drift where
     #    they were dropped from flake.nix but still referenced in the module list) ──
     # hermes-agent - Hermes Agent NixOS module + packages
