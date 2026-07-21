@@ -961,42 +961,7 @@
           }
         ];
       };
-      # NVIDIA GPU mining - MIGRATED TO KUBERNETES
-      # Systemd service disabled in favor of K8s deployment (gpu-miner-zephyr)
-      # Power limits persist via nvidia-gpu-power-limit systemd service at boot
-        enable = false; # Disabled - migrated to Kubernetes (gpu-miner-zephyr)
-        autostart = false;
-        devices = "1"; # Only mine on GPU 1 (RTX 3090)
-        perGpuPowerLimits = [
-          0
-          250
-        ]; # GPU0: RTX 3060 Ti no limit (AI/ML), GPU1: RTX 3090 @ 250W
-        apiPort = 4068;
-      };
-      # Total when idle: 16 threads (50%) - Total when gaming: 4 threads (12%)
-      # Re-enabled: No K8s migration completed
-        enable = true;
-        # Always-on instance - mines even during gaming
-        alwaysOn = {
-          enable = false;
-          threads = 4; # 12% of 32 cores - unintrusive during gaming
-          httpPort = 8081;
-          autostart = false;
-        };
-        # Flexible instance - pauses during gaming/builds
-        flexible = {
-          enable = true;
-          threads = 12; # 38% of 32 cores - extra capacity when idle
-          httpPort = 8082;
-          autostart = false;
-        };
-        # Common settings for both instances
-        pool = "10.1.1.110:3333"; # Point to local proxy
-        wallet = "zephyr-cpu"; # Worker ID for proxy
-        password = "x";
-        tls = false; # Disable TLS for local proxy connection
-      };
-    };
+      # GPU mining migrated to Kubernetes (peakminer)
 
     # Vaultwarden - Self-hosted password manager with FIDO2/WebAuthn
     vaultwarden-module = {
@@ -1008,29 +973,7 @@
     # Syncthing P2P file sync for /etc/nixos config sync
     syncthing-cluster = {
       enable = true;
-    };
-
-    # Garage S3 disabled - using nexus as primary storage node
-    # Access Garage S3 at: http://10.1.1.120:3900
-    garage-cluster.enable = false;
-
-    # Host Dashboard - Web interface for cluster host status
-    host-dashboard = {
-      enable = true;
-      role = "control-plane + ai-workstation";
-      port = 8090;
-      prometheusUrl = "http://127.0.0.1:9090";
-      featuredServices = [
-        {
-          name = "AI Gateway";
-          url = "http://127.0.0.1:8080";
-        }
-        {
-          name = "Prometheus";
-          url = "http://127.0.0.1:9090";
-        }
-        {
-          name = "Grafana";
+      # CPU mining migrated to Kubernetes
           url = "http://127.0.0.1:3000";
         }
         {
