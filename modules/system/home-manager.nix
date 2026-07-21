@@ -40,7 +40,7 @@ in
       # modules. Home-manager's `config` does NOT see NixOS options, so
       # niri-config.nix spawns it via this injected arg rather than
       # `config.programs.noctalia.package`.
-      noctaliaPackage = if config ? programs.noctalia then config.programs.noctalia.package else null;
+      noctaliaPackage = if config ? programs.noctalia then config.programs.noctalia.package else "";
     };
 
     users.j_kro = { hermesWrappedBin, ... }: {
