@@ -59,14 +59,6 @@
       memoryThreshold = 90;
       diskThreshold = 90;
     };
-
-      enable = true;
-      targets = [
-        "127.0.0.1:8081"
-        "127.0.0.1:8083"
-      ];
-      interval = 30;
-    };
   };
 
   # Ensure node-exporter port is open for Prometheus scraping
