@@ -559,8 +559,8 @@ These are **flake inputs** defined in `flake.nix` (line ~106), NOT NixOS modules
 **Claude Code:** `nix run /etc/nixos#kubernetes-mcp-server` and `nix run /etc/nixos#nixos-cluster-mcp` (stdio)
 **Hermes:** SSE URL for kubernetes, stdio for others (see `~/.hermes/config.yaml`)
 **OpenCode:** 8 MCP servers + 4 model providers via `~/.config/opencode/opencode.json` (`type: "local"` + command array). Local models: vLLM (8040), llama.cpp Zephyr (1237), llama.cpp Sentry (1235).
-**OmP:** MCP servers via `~/.omp/agent/mcp.json` — kubernetes, nixos-cluster, github, git, searxng, casdoor, gateway, context7, filesystem, fetch, lightpanda. Local models via `~/.omp/agent/models.json`.
-**PI:** MCP servers via `~/.pi/agent/mcp.json` — kubernetes, nixos-cluster, github, git, searxng, casdoor, selfhosted-tools. Local models via `~/.pi/agent/models.json`.
+**OmP:** MCP servers via `~/.omp/agent/mcp.json` — kubernetes, nixos-cluster, github, git, hound, casdoor, gateway, context7, filesystem, lightpanda. Local models via `~/.omp/agent/models.json`. SearXNG and fetch replaced by Hound.
+**PI:** MCP servers via `~/.pi/agent/mcp.json` — kubernetes, nixos-cluster, github, git, hound, casdoor, selfhosted-tools. Local models via `~/.pi/agent/models.json`. SearXNG replaced by Hound.
 **Registry:** `modules/services/mcp-server-registry.nix` — single source of truth
 **Full plan:** `docs/plans/2026-05-01-mcp-system-plan.md`
 
@@ -571,7 +571,8 @@ These are **flake inputs** defined in `flake.nix` (line ~106), NOT NixOS modules
 | github | `/data/agents/mcp-bridges/github-mcp.sh` | 39 (repos, issues, PRs, actions, code_security) | ✅ Working |
 | nixos-cluster | `nix run /etc/nixos#nixos-cluster-mcp` | 15 (cluster_status, node_info, gpu_inventory, etc.) | ✅ Working |
 | kubernetes | `nix run /etc/nixos#kubernetes-mcp-server` | 14 (pods_list, events_list, resources_*) | ✅ Working |
-| searxng | `/data/agents/mcp-bridges/searxng-mcp.sh` | 15 (web_search, search_code, etc.) | ✅ Working |
+| hound | `/data/agents/mcp-bridges/hound-mcp.sh` | 6 (mcp_smart_fetch, mcp_smart_crawl, mcp_smart_search, mcp_screenshot, cache_clear, version) | ✅ Working (replaces searxng + fetch) |
+| searxng | `/data/agents/mcp-bridges/searxng-mcp.sh` | 15 (web_search, search_code, etc.) | 🔄 Replaced by hound smart_search |
 | selfhosted-tools | `/data/agents/mcp-bridges/selfhosted-mcp.sh` | 15 (web_reader, read_github_file, etc.) | ✅ Working |
 | git | `/data/agents/mcp-bridges/git-mcp.sh` | 29 (git_log, git_diff, git_status, etc.) | ✅ Working |
 | casdoor | `/data/agents/mcp-bridges/opencode-casdoor-bridge.py` | 5 (get_applications, etc.) | ✅ Working |
@@ -589,6 +590,7 @@ These are **flake inputs** defined in `flake.nix` (line ~106), NOT NixOS modules
 
 | Server | Common Tool Calls |
 |--------|-----------------|
+| hound | `mcp_smart_fetch` (fetch any URL, auto CF bypass), `mcp_smart_crawl` (same-domain crawl), `mcp_smart_search` (10 search engines, neural rerank), `mcp_screenshot` (page capture) |
 | nixos-cluster | `cluster_status`, `node_info`, `gpu_inventory`, `gateway_health`, `pod_status`, `check_models` |
 | kubernetes | `pods_list`, `pods_get`, `pods_log`, `pods_exec`, `pods_run`, `events_list`, `resources_list` |
 | github | `list_repositories`, `search_repositories`, `get_file_contents`, `list_commits`, `list_issues`, `list_pull_requests`, `create_pull_request` |
