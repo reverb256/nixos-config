@@ -168,6 +168,7 @@
           active = true;
         }
         {
+          name = "k3s-server";
           active = true;
         }
       ];
