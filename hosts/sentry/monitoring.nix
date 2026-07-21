@@ -34,8 +34,9 @@
       smart-exporter.enable = true;
 
       # Log aggregation (local Loki)
-      promtail.enable = true;
-      promtail.lokiUrl = "http://127.0.0.1:3100/loki/api/v1/push";
+      # promtail removed from nixpkgs (EOL). Migrate to fluent-bit.
+      # promtail.enable = true;
+      # promtail.lokiUrl = "http://127.0.0.1:3100/loki/api/v1/push";
     };
 
     # Note: Sentry has no GPUs, no GPU exporters needed
