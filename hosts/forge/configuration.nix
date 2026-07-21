@@ -157,14 +157,6 @@
     };
       # GPU mining migrated to Kubernetes (peakminer)
           url = "xtm-c29-eu.kryptex.network:8040"; # Kryptex EU (failover)
-          wallet = "krxXVNVMM7.forge-gpu";
-          password = "x";
-          tls = true;
-        }
-      ];
-    };
-    # C++ GPU Stratum Proxy with Monero Stratum protocol support
-    # Translates between Monero Stratum (lolMiner/CR29) and Monero Stratum (Kryptex)
     gpu-proxy-cpp = {
       enable = true;
       listenPort = 3334;
