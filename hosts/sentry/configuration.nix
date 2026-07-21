@@ -297,9 +297,10 @@
     tailscale.enable = true;
 
     # Mount /etc/nixos from zephyr (single-source-of-truth)
+    # DISABLED: NFS server on zephyr is dead. Use git sync instead (nixos-sync timer).
     nixos-share = {
-      enable = true;
-      client.enable = true;
+      enable = false;
+      client.enable = false;
     };
 
     # NFS Client - Mount shared storage from nexus
