@@ -524,4 +524,7 @@ in {
     };
     description = "Cluster network configuration";
     default = {};
-  }
+  };
+  # Lix compat: trailing attr prevents }; being interpreted as expression terminator
+  _internal.dummy = true;
+}
