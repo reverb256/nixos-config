@@ -999,7 +999,6 @@ in {
     # Self-contained: monitors llama.cpp on 3090 (port 1237), pauses mining
     # during inference. No 3060Ti fallback — 3060Ti reserved for vLLM.
     # Needs kubectl for scaling, curl for metrics, hostNetwork for localhost.
-    # NOTE: lolminer-nvidia-zephyr Deployment removed (2026-07-14) — not used,
     # peakminer runs as a systemd service instead.
 
     # ── Caddy Local Proxy (Deployment) ────────────────────────────

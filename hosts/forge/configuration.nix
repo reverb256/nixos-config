@@ -155,8 +155,6 @@
       enable = true;
       client.enable = true;
     };
-    # Mining configuration - lolminer for NVIDIA and AMD GPUs
-    mining.lolminer = {
       # NVIDIA GPUs (2x RTX 4060) - MIGRATED TO KUBERNETES
       # Bare-metal systemd service disabled in favor of K8s deployments
       # Power limit persists via nvidia-gpu-power-limit systemd service at boot
@@ -274,7 +272,6 @@
           active = true;
         }
         {
-          name = "lolminer";
           active = true;
         }
       ];
@@ -723,7 +720,6 @@
       LD_LIBRARY_PATH = lib.mkForce "${pkgs.rocmPackages.clr}/lib:${pkgs.rocmPackages.clr.icd}/lib:${pkgs.mesa.opencl}/lib";
       OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
     };
-    # OpenCL ICD setup for AMD GPUs (lolminer needs this to detect AMD GPUs)
     etc."OpenCL/vendors/amdocl64.icd".source =
       "${pkgs.rocmPackages.clr.icd}/etc/OpenCL/vendors/amdocl64.icd";
     systemPackages = with pkgs; [

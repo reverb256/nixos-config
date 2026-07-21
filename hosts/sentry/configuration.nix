@@ -273,7 +273,6 @@
       };
       # AMD GPU (RX 5600 XT) - DISABLED for AI inference
       # Sentry should only CPU mine, GPU reserved for llamafile (ROCm)
-      # lolminer = {
       #   enable = true;
       #   amd = {
       #     enable = true;
