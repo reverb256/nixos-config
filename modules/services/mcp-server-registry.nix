@@ -139,6 +139,16 @@
       casdoorApp = null;
     };
 
+    hound = {
+      type = "stdio";
+      scope = "local";
+      command = "/data/agents/mcp-bridges/hound-mcp.sh";
+      description = "Hound — web fetch, crawl, search, Cloudflare bypass, PDF OCR (6 tools: smart_fetch, smart_crawl, smart_search, screenshot, cache_clear, version)";
+      connectTimeout = 30;
+      timeout = 180;
+      casdoorApp = null;
+    };
+
     maplespike = {
       type = "stdio";
       scope = "local";
