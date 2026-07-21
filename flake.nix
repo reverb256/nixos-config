@@ -79,7 +79,12 @@
     # CachyOS kernel - Performance-optimized kernel for gaming/desktop (Zephyr only)
     # Provides: linux-cachyos-latest-x86_64-v3, sched_ext support, BORE scheduler
     # Binary cache: attic.xuyh0120.win/lantian (no local compilation needed)
-    # Do NOT follow nixpkgs — uses its own pinned nixos-unstable-small for kernel builds
+    # CachyOS kernel - Performance-optimized kernel for gaming/desktop (Zephyr only)
+    # Use git+https:// to bypass GitHub API 401 errors in Lix
+    linux-cachyos = {
+      url = "git+https://github.com/CachyOS/linux-cachyos";
+      flake = false;
+    };
     nix-cachyos-kernel.url = "git+https://github.com/xddxdd/nix-cachyos-kernel";
     nix-cachyos-kernel.inputs.linux-cachyos.follows = "linux-cachyos";
     # ── Inputs required by common-modules-list.nix (re-added after a drift where
