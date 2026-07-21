@@ -67,6 +67,8 @@
     "dev-api.maplespike.lan"
     "dev-mcp.maplespike.lan"
     "gitea.lan"
+    "openwebui.lan"
+    "ai.lan"
   ];
 
   # Forge-specific services
