@@ -11,6 +11,8 @@ in {
 
     settings = {
       builders = lib.mkDefault "@/etc/nix/machines";
+      # TEMP: override for sentry build — single-system format for Lix 2.95.2 compat
+      builders = lib.mkForce "";
       builders-use-substitutes = true;
       require-sigs = lib.mkForce false;
       trusted-users = lib.mkForce [
@@ -219,7 +221,7 @@ in {
               # Single primary system only. Colmena parses this file too and
               # chokes on the multi-system "x86_64-linux i686-linux" form
               # (the 2nd system lands in the ssh-key column -> uint parse error).
-              primarySystem = lib.head m.systems;
+              primarySystem = builtins.head m.systems;
             in
             concatStringsSep " " [
               ("ssh-ng://" + "${m.sshUser}@${m.hostName}")
