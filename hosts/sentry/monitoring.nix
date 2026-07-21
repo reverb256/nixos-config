@@ -60,8 +60,6 @@
       diskThreshold = 90;
     };
 
-    # XMRig CPU miner metrics -> node-exporter textfile collector
-    xmrig-metrics = {
       enable = true;
       targets = [
         "127.0.0.1:8081"

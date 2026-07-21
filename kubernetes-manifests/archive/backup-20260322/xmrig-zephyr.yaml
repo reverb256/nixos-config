@@ -1,13 +1,10 @@
-# XMRig CPU Miner Deployment for Zephyr (32 cores)
 # FIXED: Removed Volcano scheduler, added health probes, pinned image version
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: xmrig-zephyr
   namespace: mining
   labels:
-    app: xmrig
     host: zephyr
     workload: crypto-mining
 spec:
@@ -15,7 +12,6 @@ spec:
   revisionHistoryLimit: 3
   selector:
     matchLabels:
-      app: xmrig
       host: zephyr
   strategy:
     type: RollingUpdate
@@ -25,7 +21,6 @@ spec:
   template:
     metadata:
       labels:
-        app: xmrig
         host: zephyr
         workload: crypto-mining
       annotations:
@@ -41,8 +36,6 @@ spec:
       priorityClassName: preemptible-mining
       terminationGracePeriodSeconds: 30
       containers:
-      - name: xmrig
-        image: xmrig-nixos:6.22.0
         imagePullPolicy: Never
         args:
           - "-o"
@@ -91,10 +84,8 @@ spec:
             memory: "3Gi"
             cpu: "8"
         env:
-        - name: XMRIG_NO_TLS
           value: "1"
         securityContext:
-          runAsNonRoot: false  # xmrig needs root for 1GB pages
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
           capabilities:

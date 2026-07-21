@@ -28,7 +28,6 @@ rec {
   # Import service-ports for use in other modules
   nodePorts = import ./service-ports.nix;
 
-  # Per-host xmrig CPU miner toggles (default: all enabled)
   # Set to false to exclude a host's miner from the manifest entirely.
   mining = {
     enableZephyr = true;

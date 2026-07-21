@@ -54,8 +54,6 @@ docs/plans/2026-03-20-k8s-mining-migration-design.md
 docs/plans/2026-03-22-caddy-ingress-design.md
 docs/plans/2026-03-22-caddy-ingress-migration.md
 docs/plans/2026-03-22-caddy-ingress-implementation.md
-docs/plans/2026-03-22-xmrig-intelligent-autoscaling-design.md
-docs/plans/2026-03-22-xmrig-intelligent-autoscaling-implementation.md
 docs/plans/2026-03-24-network-integration-design.md
 docs/plans/2026-03-24-network-integration-implementation.md
 docs/plans/2026-03-28-networking-security-hardening.md

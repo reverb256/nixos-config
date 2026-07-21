@@ -228,11 +228,9 @@ _: let
     id = null;
     panels = [
       {
-        title = "XMRig Hashrate";
         type = "timeseries";
         gridPos = {h = 8; w = 24; x = 0; y = 0;};
         targets = [{
-          expr = "xmrig_hashrate";
           legendFormat = "{{instance}}";
           datasource = {type = "prometheus"; uid = "mimir";};
         }];
@@ -242,7 +240,6 @@ _: let
         type = "stat";
         gridPos = {h = 4; w = 8; x = 0; y = 8;};
         targets = [{
-          expr = "sum(xmrig_shares_good)";
           datasource = {type = "prometheus"; uid = "mimir";};
         }];
       }

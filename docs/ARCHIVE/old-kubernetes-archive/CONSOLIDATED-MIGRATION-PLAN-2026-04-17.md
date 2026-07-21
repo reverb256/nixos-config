@@ -49,7 +49,6 @@ Move any non-GPU, non-desktop workloads from Zephyr (31GB, tight) to Nexus (46GB
 - k3s-cluster (control plane)
 - keepalived-vip
 - gaming-detection, gpu-profile-manager
-- mining (lolminer, xmrig)
 - desktop (lm-studio, haven-desktop)
 - nixos-share server
 - podman

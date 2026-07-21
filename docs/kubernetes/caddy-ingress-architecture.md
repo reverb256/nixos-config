@@ -37,7 +37,6 @@ All cluster services are routed through a Caddy-based ingress layer with VIP fai
                     ┌─────────────────────┼─────────────────────┐
                     │                     │                     │
            ┌───────▼──────┐      ┌───────▼──────┐     ┌────────▼────┐
-           │ Open WebUI   │      │ llama-server │     │ xmrig-proxy │
            │ :8080        │      │ :8080        │     │ :8081       │
            │ (forge)      │      │ (nexus)      │     │ (nexus)     │
            └──────────────┘      └──────────────┘     └─────────────┘
@@ -81,7 +80,6 @@ Zephyr is excluded from the K8s Caddy DaemonSet (OOM prevention). It proxies all
 | `openwebui.lan` | Open WebUI (alt) | same | ✅ Active |
 | `llama.cluster.local` | LLM API | `llama-server.ai-inference:8080` | ⏳ Route ready |
 | `llama.lan` | LLM API (alt) | same | ⏳ Route ready |
-| `mining.cluster.local` | Mining Metrics | `xmrig-proxy.mining:8081` | ⏳ Route ready |
 | `mining.lan` | Mining Metrics (alt) | same | ⏳ Route ready |
 
 Each service is accessible via both `*.cluster.local` and `*.lan` domains, with both HTTPS (port 443) and HTTP (port 30080) paths.

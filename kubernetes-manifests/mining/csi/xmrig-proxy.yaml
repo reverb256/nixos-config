@@ -1,7 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: xmrig-proxy
   namespace: mining
 spec:
   replicas: 1
@@ -9,11 +8,9 @@ spec:
     type: Recreate
   selector:
     matchLabels:
-      app: xmrig-proxy
   template:
     metadata:
       labels:
-        app: xmrig-proxy
     spec:
       nodeName: nexus
       hostNetwork: true
@@ -26,9 +23,7 @@ spec:
         effect: NoSchedule
       terminationGracePeriodSeconds: 30
       containers:
-      - name: xmrig-proxy
         image: gcr.io/distroless/static-debian12@sha256:20bc6c0bc4d625a22a8fde3e55f6515709b32055ef8fb9cfbddaa06d1760f838
-        command: ["/nix/store/s0kwgsv9fvrq8vs73smgdrdmqbzpa7nx-xmrig-proxy-6.24.0/bin/xmrig-proxy"]
         args:
         - "-b"
         - "0.0.0.0:3333"
@@ -57,4 +52,3 @@ spec:
         csi:
           driver: nixkube
           volumeAttributes:
-            x86_64-linux: /nix/store/s0kwgsv9fvrq8vs73smgdrdmqbzpa7nx-xmrig-proxy-6.24.0

@@ -45,7 +45,6 @@
       services = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [
-          "xmrig"
         ];
         description = "Mining services to manage";
       };

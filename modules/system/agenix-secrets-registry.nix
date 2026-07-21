@@ -61,7 +61,6 @@ in
     mining = mkOption {
       type = types.bool;
       default = false;
-      description = "Enable mining control secrets (XMRig API tokens)";
     };
     cloud = mkOption {
       type = types.bool;
@@ -197,23 +196,14 @@ in
       })
       # Mining Control Secrets
       (lib.mkIf config.services.sops-secrets-registry.mining {
-        # XMRig primary API token (pause-able instance)
-        xmrig-api-token = {
-          file = "${inputs.self}/secrets/xmrig-api-token.age";
           mode = "440";
           owner = "mining";
           group = "mining";
         };
-        # XMRig always-on instance API token
-        xmrig-always-api-token = {
-          file = "${inputs.self}/secrets/xmrig-always-api-token.age";
           mode = "440";
           owner = "mining";
           group = "mining";
         };
-        # XMRig flexible instance API token
-        xmrig-flexible-api-token = {
-          file = "${inputs.self}/secrets/xmrig-flexible-api-token.age";
           mode = "440";
           owner = "mining";
           group = "mining";

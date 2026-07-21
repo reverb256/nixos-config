@@ -18,7 +18,6 @@ Bare Metal (Primary, Stable)     Kubernetes (Backup, Experimental)
 │ systemd services    │         │ Kubernetes pods         │
 │                     │         │                         │
 │ Zephyr:             │         │ Zephyr:                 │
-│ - xmrig-proxy      │◄──────►│ - xmrig-proxy          │
 │ - lolminer-nvidia  │         │ - gpu-miner-zephyr      │
 │                     │         │                         │
 │ Forge:              │         │ Forge:                  │
@@ -26,7 +25,6 @@ Bare Metal (Primary, Stable)     Kubernetes (Backup, Experimental)
 │ - lolminer-amd     │         │                         │
 │                     │         │                         │
 │ Nexus:              │         │ Nexus:                  │
-│ - xmrig (CPU)      │         │ (Not ready, skip)        │
 └─────────────────────┘         └─────────────────────────┘
 ```
 
@@ -59,16 +57,11 @@ Bare Metal (Primary, Stable)     Kubernetes (Backup, Experimental)
 # 1. Create namespace
 kubectl apply -f mining-namespace.yaml
 
-# 2. Deploy xmrig-proxy first (critical infrastructure)
-kubectl apply -f xmrig-proxy-configmap.yaml
-kubectl apply -f xmrig-proxy-deployment.yaml
 
 # 3. Verify proxy is healthy
 kubectl get pods -n mining
-kubectl logs -n mining -l app=xmrig-proxy --tail=50
 
 # 4. Test proxy connectivity
-kubectl port-forward -n mining svc/xmrig-proxy 3333:3333 &
 # Test from another terminal
 nc -zv 127.0.0.1 3333
 ```
@@ -143,8 +136,6 @@ kubectl describe pod -n mining gpu-miner-zephyr-0
 
 #### Issue 3: Miner Connected But No Hashrate
 ```bash
-# Check xmrig-proxy connection
-kubectl logs -n mining xmrig-proxy-0 --tail=20
 
 # Check if worker is registered
 curl -s http://10.1.1.110:8081/workers  # If API accessible
@@ -190,8 +181,6 @@ ssh forge 'sudo systemctl start lolminer-nvidia lolminer-amd'
 ```
 mining/
 ├── mining-namespace.yaml          # Namespace isolation
-├── xmrig-proxy-configmap.yaml    # Proxy configuration
-├── xmrig-proxy-deployment.yaml    # Proxy deployment
 ├── gpu-miner-zephyr.yaml        # Zephyr GPU miner
 ├── gpu-miner-forge.yaml          # Forge GPU miner
 └── README.md                      # This file
@@ -214,18 +203,15 @@ nvidia-smi -i 1 -pl 250
 ```
 
 **Add More Pools:**
-Edit `xmrig-proxy-configmap.yaml`, add to `pools` array
 
 ## 🎯 Success Criteria
 
 ### Phase 1 Success (Proxy)
-- [x] xmrig-proxy pod running
 - [x] Service accessible on port 3333
 - [x] Workers can connect (check logs)
 
 ### Phase 2 Success (Miners)
 - [ ] GPU miner pods running
-- [ ] Connected to xmrig-proxy
 - [ ] Submitting shares to Kryptex
 - [ ] Hashrate matches bare metal (±5%)
 
@@ -288,10 +274,8 @@ spec:
 ### Updating Configuration
 ```bash
 # 1. Update ConfigMap
-kubectl edit configmap xmrig-proxy-config -n mining
 
 # 2. Restart proxy
-kubectl rollout restart deployment xmrig-proxy -n mining
 
 # 3. Restart miners
 kubectl rollout restart deployment gpu-miner-zephyr -n mining

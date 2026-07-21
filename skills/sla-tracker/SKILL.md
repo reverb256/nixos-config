@@ -64,7 +64,6 @@ just cluster-status
 ```bash
 # On each host, check service status
 systemctl is-active ai-inference-gateway
-systemctl is-active xmrig@*
 systemctl is-active lolminer-*
 
 # Get last restart time

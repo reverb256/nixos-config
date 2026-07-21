@@ -15,7 +15,6 @@
 | Input | Project | Module Imported | Used By | Package Consumed |
 |---|---|---|---|---|
 | `ai-gateway` | ai-inference-gateway | `nixosModules.default` | ALL hosts | `container` (K8s image) |
-| `compute-market` | compute-market | `nixosModules.default` | ALL hosts | `xmrig-alpine-image`, `xmrig-proxy-alpine-image` |
 | `gpu-proxy` | gpu-proxy | `nixosModules.default` | ALL hosts | (none consumed yet) |
 | `mcp-registry` | mcp-registry | `nixosModules.default` | ALL hosts | (none consumed) |
 | `caddy-ingress` | caddy-ingress | `nixosModules.{caddy,caddy-common}` | ALL hosts | `caddy-with-modules`, `caddy-ingress-image` |
@@ -33,7 +32,6 @@
 
 | Directory | Workloads | Nodes | Deploy Script? |
 |---|---|---|---|
-| `mining/` | xmrig-zephyr/nexus/sentry, gpu-miner-forge/zephyr, xmrig-proxy | all 4 | `deploy-mining-k8s.sh` |
 | `n8n/` | n8n | nexus | unknown |
 | `llama-cpp/` | llama-cpp (pvc + service endpoints) | nexus, forge | unknown |
 | `spacebot/` | spacebot | unknown | unknown |
@@ -46,10 +44,8 @@
 |---|---|---|
 | `ai-inference` | zephyr, nexus, forge, sentry | `ai-gateway` |
 | `compute-market` | zephyr, forge | `compute-market` |
-| `mining` (lolMiner, XMRig) | zephyr, nexus, forge, sentry | `compute-market` |
 | `gaming-mining-coordinator` | zephyr, forge | `compute-market` |
 | `gpu-proxy-cpp` | forge | `gpu-proxy` |
-| `xmrig-proxy` | zephyr | `compute-market` |
 | `mcp-servers` | ALL hosts | `mcp-registry` |
 | `hermes-agent` | nexus | `hermes-agent` (external) |
 | `caddy` | ALL hosts | `caddy-ingress` |
@@ -129,7 +125,6 @@
 - Action: Delete iteration files, keep only `helm/` (if used) + `gateway-service.yaml` (if referenced)
 
 **A6. `kubernetes-manifests/archive/`**
-- `backup-20260322/` has old xmrig configs (2.4K lines)
 - `coredns.yml`, `gateway/` — unclear if needed
 - Action: Audit what's referenced, delete the rest
 

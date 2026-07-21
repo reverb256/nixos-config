@@ -1,7 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: xmrig-zephyr
   namespace: mining
 spec:
   replicas: 1
@@ -9,11 +8,9 @@ spec:
     type: Recreate
   selector:
     matchLabels:
-      app: xmrig-zephyr
   template:
     metadata:
       labels:
-        app: xmrig-zephyr
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8082"
@@ -45,9 +42,7 @@ spec:
         effect: NoSchedule
       terminationGracePeriodSeconds: 30
       containers:
-      - name: xmrig
         image: gcr.io/distroless/static-debian12@sha256:20bc6c0bc4d625a22a8fde3e55f6515709b32055ef8fb9cfbddaa06d1760f838
-        command: ["/nix/store/0fd8d0yx3am8srx0ix2mnm5rypm6q1jv-xmrig-6.25.0/bin/xmrig"]
         args:
         - "-o"
         - "10.1.1.120:3333"
@@ -61,7 +56,6 @@ spec:
         - "--http-port=8082"
         - "--api-worker-id=zephyr-cpu"
         env:
-        - name: XMRIG_NO_TLS
           value: "1"
         ports:
         - containerPort: 8082
@@ -106,7 +100,6 @@ spec:
         csi:
           driver: nixkube
           volumeAttributes:
-            x86_64-linux: /nix/store/0fd8d0yx3am8srx0ix2mnm5rypm6q1jv-xmrig-6.25.0
       - name: msr
         hostPath:
           path: /dev/cpu

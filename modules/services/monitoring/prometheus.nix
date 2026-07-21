@@ -118,8 +118,6 @@ in
         # Note: AMD GPU metrics are collected via node-exporter textfile collector
         # (forge:9100/metrics includes amdgpu_* metrics from /var/lib/prometheus/node-exporter/textfile-collector/)
 
-        # XMRig metrics collected via node-exporter textfile collector
-        # (services.xmrig-metrics writes xmrig.prom every 30s on each host)
 
         # Redis metrics (AI Gateway cache)
         {

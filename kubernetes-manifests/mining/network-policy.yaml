@@ -13,16 +13,13 @@ spec:
     - Ingress
     - Egress
 ---
-# Allow xmrig-proxy to communicate with external pools and receive connections from miners
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: xmrig-proxy-policy
   namespace: mining
 spec:
   podSelector:
     matchLabels:
-      app: xmrig-proxy
   policyTypes:
     - Ingress
     - Egress
@@ -69,28 +66,22 @@ spec:
         - protocol: TCP
           port: 8040
 ---
-# Allow CPU miners to connect to xmrig-proxy
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: xmrig-miner-policy
   namespace: mining
 spec:
   podSelector:
     matchLabels:
-      app: xmrig
   policyTypes:
     - Egress
   egress:
-    # Connect to xmrig-proxy (same namespace)
     - to:
         - podSelector:
             matchLabels:
-              app: xmrig-proxy
       ports:
         - protocol: TCP
           port: 3333
-    # Connect to xmrig-proxy hostNetwork pod (cluster host network)
     - to:
         - ipBlock:
             cidr: 10.1.1.0/24
@@ -114,7 +105,6 @@ spec:
         - protocol: TCP
           port: 9090
 ---
-# Allow GPU miners to connect to xmrig-proxy
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -127,15 +117,12 @@ spec:
   policyTypes:
     - Egress
   egress:
-    # Connect to xmrig-proxy (same namespace)
     - to:
         - podSelector:
             matchLabels:
-              app: xmrig-proxy
       ports:
         - protocol: TCP
           port: 3333
-    # Connect to xmrig-proxy hostNetwork pod (cluster host network)
     - to:
         - ipBlock:
             cidr: 10.1.1.0/24

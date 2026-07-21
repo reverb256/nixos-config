@@ -55,23 +55,19 @@ spec:
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: xmrig-zephyr-pdb
   namespace: mining
 spec:
   maxUnavailable: 1
   selector:
     matchLabels:
-      app: xmrig
       host: zephyr
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: xmrig-nexus-pdb
   namespace: mining
 spec:
   maxUnavailable: 1
   selector:
     matchLabels:
-      app: xmrig
       host: nexus

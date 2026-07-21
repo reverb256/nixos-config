@@ -144,7 +144,6 @@ Remote hosts (nexus, forge, sentry) use the `boot` goal by default to avoid swit
 All deployment commands automatically pause mining on remote hosts:
 ```bash
 # The justfile recipes handle this:
-# 1. Stop xmrig@* and lolminer-* services on target host
 # 2. Run deployment
 # 3. Restart mining services (even if deployment fails)
 ```
@@ -241,7 +240,6 @@ ssh sentry "sudo nixos-rebuild switch --rollback"
 ### Mining Not Restarting
 ```bash
 # Check mining services on remote
-ssh nexus "systemctl status xmrig@nvidia0"
 
 # Manually restart mining
 ssh forge "sudo systemctl restart lolminer-nvidia"
