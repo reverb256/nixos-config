@@ -16,7 +16,6 @@
     mining = lib.mkOption {
       type = with lib.types; listOf port;
       default = [3333 14444];
-      description = "Mining operation ports (XMRig, lolminer)";
     };
 
     # AI/Inference

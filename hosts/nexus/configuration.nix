@@ -439,7 +439,6 @@
 
       # GPU mining DISABLED on nexus - runs via Kubernetes (gpu-miner-nexus)
       # Power limit set here for boot persistence; K8s pod connects to pool
-      lolminer.nvidia = {
         enable = false; # Mining runs in K8s, not systemd
         powerLimit = 120; # RTX 3060 Ti @ 120W (persists via nvidia-gpu-power-limit service)
       };

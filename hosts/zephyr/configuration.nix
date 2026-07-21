@@ -480,7 +480,6 @@
           enable = true;
           hourlyRevenue = 0.10; # $0.10/hr per GPU (baseline bid)
           services = [
-            "lolminer-nvidia"
             "xmrig"
           ];
         };
@@ -946,7 +945,6 @@
     # Using centralized xmrig-proxy on nexus (10.1.1.120:3333)
     # DISABLED: K8s version working instead
     mining = {
-      lolminer = {
         pool = "stratum+tcp://10.1.1.120:3333"; # Centralized proxy on nexus
         wallet = "krxXVNVMM7.zephyr-gpu";
         pools = [
@@ -973,7 +971,6 @@
       # NVIDIA GPU mining - MIGRATED TO KUBERNETES
       # Systemd service disabled in favor of K8s deployment (gpu-miner-zephyr)
       # Power limits persist via nvidia-gpu-power-limit systemd service at boot
-      lolminer.nvidia = {
         enable = false; # Disabled - migrated to Kubernetes (gpu-miner-zephyr)
         autostart = false;
         devices = "1"; # Only mine on GPU 1 (RTX 3090)
@@ -1361,7 +1358,6 @@
 
     # Mining (manual only, no auto-start)
     xmrig
-    lolminer
 
     # Desktop
     inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.twilight

@@ -45,8 +45,6 @@
       services = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [
-          "lolminer-nvidia"
-          "lolminer-amd"
           "xmrig"
         ];
         description = "Mining services to manage";
@@ -321,7 +319,6 @@
           # Bidder configurations from NixOS
           MINING_ENABLE=''${MINING_ENABLE:-true}
           MINING_HOURLY=''${MINING_HOURLY:-0.10}
-          MINING_SERVICES="''${MINING_SERVICES:-lolminer-nvidia xmrig}"
 
           K8S_ENABLE=''${K8S_ENABLE:-true}
           K8S_BASE_BID=''${K8S_BASE_BID:-2.50}
@@ -885,8 +882,6 @@
           pause_all_mining() {
               local host=$(hostname)
               for service in $MINING_SERVICES; do
-                  # Skip stopping lolminer on hosts other than nexus (no heat issues)
-                  if [[ "$service" =~ lolminer ]] && [ "$host" != "nexus" ]; then
                       log_info "Skipping $service on $host (allowed to mine during gaming/builds)"
                       continue
                   fi
