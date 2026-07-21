@@ -162,6 +162,8 @@
     # Profile system
     ./profiles/default.nix
     ./profiles/node-profiles.nix
+    # NixOS config sync — force git origin/main on all hosts
+    ./services/nixos-sync.nix
     # Hardware modules
     ./hardware/corsair.nix
     ./hardware/gpu-compute.nix
