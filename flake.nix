@@ -81,6 +81,7 @@
     # Binary cache: attic.xuyh0120.win/lantian (no local compilation needed)
     # Do NOT follow nixpkgs — uses its own pinned nixos-unstable-small for kernel builds
     nix-cachyos-kernel.url = "git+https://github.com/xddxdd/nix-cachyos-kernel";
+    nix-cachyos-kernel.inputs.linux-cachyos.follows = "linux-cachyos";
     # ── Inputs required by common-modules-list.nix (re-added after a drift where
     #    they were dropped from flake.nix but still referenced in the module list) ──
     # hermes-agent - Hermes Agent NixOS module + packages
