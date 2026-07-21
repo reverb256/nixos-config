@@ -32,6 +32,16 @@ sessions, models, or vendors). Read this before working. Update when done.
 
 ## Work Log
 
+### 2026-07-21 16:45 (UTC-5) | j_kro-hound
+- ✅ Hound MCP server (master-fetch) installed and configured on zephyr
+- ✅ `hound-mcp[all]` v11.1.6 installed in `~/.hound-env/` venv
+- ✅ Playwright Chromium downloaded for stealthy browser
+- ✅ Bridge script at `/data/agents/mcp-bridges/hound-mcp.sh`
+- ✅ MCP registry updated: hound entry with 180s timeout (browser warmup)
+- ✅ Hermes config.yaml updated: hound MCP server added
+- ✅ ai-coding-tools: hound added to shared localStdioServers (all coding tools get it)
+- 🔄 Replaces: `smart_search`→web_search, `smart_fetch`→web_extract (CF bypass), `smart_crawl`→new capability
+
 ### 2026-07-21 05:05 (UTC-5) | j_kro-systemd_recovery
 - ✅ Sentry crash investigation: MCE on CPU 1 Bank 5 (Execution Unit, Jul 17), 2nd crash was hardware-level reset (PSU/thermal, no panic logs)
 - ✅ Cluster k3s recovery: etcd quorum fixed after cluster-reset on nexus; encryption config set to identity-only
