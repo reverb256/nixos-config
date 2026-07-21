@@ -83,9 +83,9 @@
     # Binary cache: attic.xuyh0120.win/lantian (no local compilation needed)
     nix-cachyos-kernel.url = "git+https://github.com/xddxdd/nix-cachyos-kernel";
     nix-cachyos-kernel.inputs.flake-parts.follows = "flake-parts";
-    nix-cachyos-kernel.inputs.linux-cachyos.follows = "linux-cachyos";
-    # linux-cachyos — transitive dep for cachyos kernel, use git+https for Lix compat
-    linux-cachyos = {
+    nix-cachyos-kernel.inputs.cachyos-kernel.follows = "cachyos-kernel";
+    # cachyos-kernel — transitive dep for cachyos kernel, use git+https for Lix compat
+    cachyos-kernel = {
       url = "git+https://github.com/CachyOS/linux-cachyos";
       flake = false;
     };
