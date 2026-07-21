@@ -10,8 +10,6 @@ in {
     distributedBuilds = lib.mkDefault true;
 
     settings = {
-      builders = lib.mkDefault "@/etc/nix/machines";
-      # TEMP: override for sentry build — single-system format for Lix 2.95.2 compat
       builders = lib.mkForce "";
       builders-use-substitutes = true;
       require-sigs = lib.mkForce false;
