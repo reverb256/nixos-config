@@ -49,10 +49,16 @@
     agenix = {
       url = "git+https://github.com/ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
     };
     sops-nix = {
       url = "git+https://github.com/Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # Use git+https:// for github inputs to avoid GitHub API 401 errors (prevalent in Lix 2.95)
+    systems = {
+      url = "git+https://github.com/nix-systems/default";
+      flake = false;
     };
     # Colmena - Multi-host deployment
     colmena = {
