@@ -353,6 +353,10 @@
     "panic=30"
     # Ryzen MCE mitigation: Bank 5 WDT timeout. See https://github.com/DimitriFourny/MCE-Ryzen-Decoder
     "processor.max_cstate=5"
+    # Do NOT panic on kernel oops — k3s nftables cleanup segfaults trigger oops,
+    # and MCE Bank 5 errors on Ryzen are non-fatal. panic_on_oops=1 overrides this
+    # from kernel-hardening.nix; put ours last so the kernel uses it.
+    "panic_on_oops=0"
   ];
 
   # Environment configuration

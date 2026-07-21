@@ -441,7 +441,7 @@ in
     # Sentry monitoring role profiles
     (mkIf config.profiles.node.sentry-monitoring.enable {
       profiles.role = {
-        mining = true;
+        mining = false;
         aiInference = true;
       };
     })
