@@ -259,18 +259,6 @@
     # Sentry: CPU mining DISABLED - K8s deployment scaled to 0/0
     # RX 5600 XT reserved for AI inference (llamafile ROCm)
     mining = {
-      xmrig = {
-        enable = false; # Disabled - K8s xmrig-sentry deployment scaled to 0/0
-        autostart = false;
-        threads = 4;
-        pool = "10.1.1.110:3333"; # xmrig-proxy on Zephyr
-      };
-      xmrigDual = {
-        enable = true; # Enable for 1GB hugepages kernel params
-        alwaysOn = {
-          enable = false;
-        };
-      };
     };
     # AMD GPU (RX 5600 XT) - DISABLED for AI inference
       # Sentry should only CPU mine, GPU reserved for llamafile (ROCm)
