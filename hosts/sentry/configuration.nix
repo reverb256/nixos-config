@@ -85,6 +85,8 @@
   # This profile bundles role profiles, Kubernetes config, hardware profiles,
   # and networking configuration. Eliminates ~100 lines of duplication.
   profiles.node.sentry-monitoring.enable = true;
+  # Mining role disabled — mining module removed with compute-market purge
+  profiles.role.mining = lib.mkForce false;
 
   # Use llama-cpp backend instead of ZAI (sentry doesn't have ZAI API key)
   services.ai-inference.backend.type = "llama-cpp";
@@ -231,9 +233,9 @@
 
     # Compute Workload Monitor - Pause mining during builds/gaming
     # Modular workload monitoring (replaces old compute-workload-monitor monolith)
-    gaming-detection.enable = true;
-    gpu-profile-manager.enable = true;
-    mining-coordinator.enable = true;
+    gaming-detection.enable = false;
+    gpu-profile-manager.enable = false;
+    mining-coordinator.enable = false;
 
     # Nginx - Lightweight static file server
     nginx = {
