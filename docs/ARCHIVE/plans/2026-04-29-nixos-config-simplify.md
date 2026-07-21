@@ -89,7 +89,6 @@ Remove: mining blocks (enable=false), llamafile (enable=false), redundant system
 
 ### Task 2.5: Clean forge/services.nix (~15 lines)
 
-Remove: lolminer nvidia + amd (both enable=false)
 
 ### Task 2.6: Clean forge/hardware.nix (~24 lines)
 

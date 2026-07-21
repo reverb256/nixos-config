@@ -100,10 +100,7 @@ resume_xmrig() {
   return 1
 }
 
-# Stop lolMiner services via systemctl
-stop_lolminer() {
   local stopped=0
-  for unit in lolminer-nvidia.service lolminer-amd.service; do
     if systemctl list-unit-files | grep -q "^${unit}"; then
       if systemctl is-active --quiet "$unit"; then
         systemctl stop "$unit"
@@ -115,10 +112,7 @@ stop_lolminer() {
   return $stopped
 }
 
-# Start lolMiner services via systemctl
-start_lolminer() {
   local started=0
-  for unit in lolminer-nvidia.service lolminer-amd.service; do
     if systemctl list-unit-files | grep -q "^${unit}"; then
       if ! systemctl is-active --quiet "$unit"; then
         systemctl start "$unit" 2>/dev/null || true
@@ -143,8 +137,6 @@ stop_mining() {
   # Pause XMRig
   pause_xmrig && paused=$((paused + 1))
 
-  # Stop lolMiner (no API available, use systemctl)
-  stop_lolminer && paused=$((paused + 1))
 
   if [ $paused -eq 0 ]; then
     echo "  No active mining services found"
@@ -160,8 +152,6 @@ start_mining() {
   # Resume XMRig
   resume_xmrig && resumed=$((resumed + 1))
 
-  # Start lolMiner
-  start_lolminer && resumed=$((resumed + 1))
 
   if [ $resumed -eq 0 ]; then
     echo "  All mining services already running"

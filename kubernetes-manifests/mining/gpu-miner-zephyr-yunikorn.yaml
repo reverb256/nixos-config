@@ -74,8 +74,6 @@ spec:
         effect: NoSchedule
       # Allow this pod to be evicted for higher priority pods
       containers:
-      - name: lolminer
-        image: lolminer:1.98a-nixos
         imagePullPolicy: Never  # Use local image built by Nix
         args:
           - "--algo=CR29"
@@ -88,7 +86,6 @@ spec:
         - containerPort: 4068
           name: api
           protocol: TCP
-        # Health probes - lolMiner API for monitoring
         livenessProbe:
           httpGet:
             path: /
@@ -130,7 +127,6 @@ spec:
           path: /run/current-system/sw/lib/nvidia
       initContainers:
       - name: set-gpu-power-limits
-        image: lolminer:1.98a-nixos
         imagePullPolicy: Never
         command:
           - /bin/bash

@@ -18,11 +18,8 @@ Bare Metal (Primary, Stable)     Kubernetes (Backup, Experimental)
 │ systemd services    │         │ Kubernetes pods         │
 │                     │         │                         │
 │ Zephyr:             │         │ Zephyr:                 │
-│ - lolminer-nvidia  │         │ - gpu-miner-zephyr      │
 │                     │         │                         │
 │ Forge:              │         │ Forge:                  │
-│ - lolminer-nvidia  │         │ - gpu-miner-forge        │
-│ - lolminer-amd     │         │                         │
 │                     │         │                         │
 │ Nexus:              │         │ Nexus:                  │
 └─────────────────────┘         └─────────────────────────┘
@@ -159,8 +156,6 @@ kubectl delete namespace mining
 ### Bare Metal Fallback
 ```bash
 # Kubernetes pods failed? Fall back to systemd:
-ssh zephyr 'sudo systemctl start lolminer-nvidia'
-ssh forge 'sudo systemctl start lolminer-nvidia lolminer-amd'
 ```
 
 ## 📊 Performance Comparison
@@ -281,11 +276,8 @@ spec:
 kubectl rollout restart deployment gpu-miner-zephyr -n mining
 ```
 
-### Upgrading lolMiner
 ```bash
 # 1. Update image in deployment
-kubectl set image deployment/gpu-miner-zephyr lolminer \
-  --image=lolminer/lolminer:1.99a -n mining
 
 # 2. Watch rollout status
 kubectl rollout status deployment/gpu-miner-zephyr -n mining
@@ -307,8 +299,6 @@ kubectl rollout status deployment/gpu-miner-zephyr -n mining
 kubectl delete deployment -n mining --all
 
 # Fall back to bare metal
-ssh zephyr 'sudo systemctl start lolminer-nvidia'
-ssh forge 'sudo systemctl start lolminer-nvidia lolminer-amd'
 ```
 
 ### Circuit Overload Warning
@@ -339,7 +329,6 @@ kubectl get all -n mining -o yaml > mining-state.txt
 # Check systemd mining status
 for host in zephyr forge; do
   echo "=== $host ==="
-  ssh $host 'systemctl status lolminer* --no-pager | head -5'
 done
 ```
 

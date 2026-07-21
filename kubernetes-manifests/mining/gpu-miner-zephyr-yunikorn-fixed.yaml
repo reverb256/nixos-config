@@ -6,7 +6,6 @@
 #
 # Changes from v1.0:
 # - Added serviceAccountName for least-privilege RBAC
-# - Fixed health probes (TCP instead of HTTP for lolMiner API)
 # - Added semantic versioning for images
 # - Added topology spread constraints for HA
 # - Added PodDisruptionBudget for maintenance safety
@@ -84,9 +83,6 @@ spec:
         effect: NoSchedule
       # Allow this pod to be evicted for higher priority pods
       containers:
-      - name: lolminer
-        # Using existing Docker Hub image for lolminer
-        image: docker.io/swamp7/lolminer:latest
         imagePullPolicy: Always
         args:
           - "--algo=CR29"
@@ -102,7 +98,6 @@ spec:
         - containerPort: 4068
           name: api
           protocol: TCP
-        # ✅ FIXED: TCP probe instead of HTTP (lolMiner API is not HTTP-compatible)
         livenessProbe:
           tcpSocket:
             port: api

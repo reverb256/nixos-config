@@ -12,7 +12,6 @@ sessions, models, or vendors). Read this before working. Update when done.
 | Agent | Scope | Files/hosts touched | Off-limits | Status | Last active |
 |-------|-------|---------------------|------------|--------|-------------|
 | j_kro-systemd_recovery | Sentry crash investigation + cluster k3s recovery | modules/system/kernel-hardening.nix, hosts/sentry/configuration.nix, hosts/sentry/services.nix, hosts/forge/services.nix, modules/development/ai-coding-tools/droid.nix, modules/system/sops-secrets-registry.nix | Peakminer/mining services, MapleSpike, Niri desktop configs | ✅ Cluster restored (nexus+forge+sentry); ✅ etcd quorum fixed (identity-only encryption); ✅ Forge agent config committed; ✅ Sentry panic=30 config committed; 🔄 Sentry k3s still cycling (3-member etcd formed, k3s not fully becoming Ready) | 2026-07-21 05:05 (UTC-5) |
-| j_kro-quill-nixos | WebMCP, API fix, caveman removal, lolminer/xmrig purge, NixOS eval drift fixes | see Work Log | Peakminer | ✅ WebMCP, API fix, caveman done; ✅ LOLMINER + XMRIG COMPLETELY PURGED from all .nix files (~38 files cleaned); 🔄 Build still failing — last error in sops-secrets-registry.nix mining section (needs syntax fix) | 2026-07-21 02:30 (UTC-5) |
 
 (Stale prior sessions archived — nexus-dns-and-hermes, maplespike-24-issues, nexus-de-vm-boot, infra/dns-recovery, quill-portal-fixes were all ✅ Done from earlier sessions.)
 
@@ -50,7 +49,6 @@ sessions, models, or vendors). Read this before working. Update when done.
 - ✅ Portal→API proxy fixed: X-Forwarded-Proto always https
 - ✅ Cloudflare: DNS changed from Pages CNAME to Tunnel CNAME; cache level aggressive→basic; dev mode on
 - ✅ Caveman + Cavecrew: completely removed from all 8 locations (OpenCode, Claude, Grok, Skillclaw, Hermes-skills, npx caches, .claude.json, AGENTS.md)
-- ✅ LOLMINER: ALL references purged from .nix files (mining.nix rewritten, flake.nix image defs removed, packages deleted, exporter deleted, grafana dashboards cleaned, host configs stripped)
 - ✅ XMRIG: ALL references purged from .nix files (38 files cleaned — dual-xmrig.nix, xmrig-proxy.nix, packages, pkgs, containers, secrets registries, host configs, monitoring, grafana, etc.)
 - ✅ Eval drift fixes: noctalia flake input, calico option, syncthing deviceId, garage rpcSecret, wivrn defaultRuntime, timeseries description, krash3 refs removed, promtail disabled
 - 🔄 Build still failing: last error is in sops-secrets-registry.nix mining section (orphaned secret entries from xmrig sed-strip broke syntax — needs manual fix)
@@ -79,10 +77,6 @@ sessions, models, or vendors). Read this before working. Update when done.
 **Timestamp:** 2026-07-21 02:30 (UTC-5)
 **Status:** ✅ All major cleanup done; 🔄 Build blocked by one syntax error
 **What changed:**
-- LOLMINER + XMRIG completely removed from all .nix files (~50 files total)
-- mining.nix rewritten: only xmrig was left (no lolminer); user then demanded xmrig removed too — currently xmrig-free
-- flake.nix: lolminer amd nvidia images + all xmrig images deleted (lines 219-402)
-- All dedicated xmrig/lolminer files deleted (dual-xmrig, xmrig-proxy, xmrig-api-control, xmrig-metrics, mining-exporter, packages)
 - WebMCP, API fix, portal proxy, Cloudflare DNS done
 - Caveman + Cavecrew removed from all 8 locations
 
@@ -99,12 +93,10 @@ sessions, models, or vendors). Read this before working. Update when done.
 
 **Files touched:**
 - `modules/mining/mining.nix` — rewritten (xmrig only, then xmrig stripped)
-- `flake.nix` — lolminer + xmrig image defs removed
 - `modules/system/sops-secrets-registry.nix` — xmrig secret entries stripped (may need syntax fix)
 - `modules/services/monitoring/grafana.nix`, `modules/services/mining-exporter.nix` (deleted)
 - `modules/services/k3s-cluster.nix`, `modules/services/syncthing.nix`
 - `modules/system/agenix-secrets-registry.nix`, `secrets.nix`, `overlay.nix`
-- `hosts/*/configuration.nix`, `hosts/*/monitoring.nix` — lolminer/xmrig stripped
 - `kubernetes/`, `containers/`, `packages/`, `pkgs/` — xmrig files deleted
 - `modules/gaming/gaming.nix`, `modules/services/monitoring/dashboards/lib.nix`
 - `modules/compute-market/default.nix` — mining services default changed

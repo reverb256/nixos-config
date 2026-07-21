@@ -2,12 +2,6 @@
 
 ## Files Retrieved
 
-1. `kubernetes-manifests/mining/gpu-miner-forge-amd-0.yaml` (full) — AMD GPU 0 lolMiner
-2. `kubernetes-manifests/mining/gpu-miner-forge-amd-1.yaml` (full) — AMD GPU 1 lolMiner
-3. `kubernetes-manifests/mining/gpu-miner-forge-nvidia-0.yaml` (full) — NVIDIA GPU 0 lolMiner
-4. `kubernetes-manifests/mining/gpu-miner-forge-nvidia-1.yaml` (full) — NVIDIA GPU 1 lolMiner
-5. `kubernetes-manifests/mining/gpu-miner-nexus.yaml` (full) — Nexus RTX 3060 Ti lolMiner
-6. `kubernetes-manifests/mining/gpu-miner-zephyr.yaml` (full) — Zephyr RTX 3090 lolMiner
 
 ---
 
@@ -42,7 +36,6 @@
 
 | Category | Count | Priority | Image Strategy |
 |----------|-------|----------|----------------|
-| GPU lolMiner (direct pool) | 6 | `mining-low` | AMD: `ubuntu:24.04` + host nix-store mount; NVIDIA: `swamp7/lolminer` + host nix-store mount |
 
 ---
 
@@ -53,7 +46,6 @@
 | Field | Value |
 |-------|-------|
 | **Image** | `docker.io/library/ubuntu:24.04` |
-| **Command** | `/nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a/bin/lolMiner` |
 | **Args** | `--algo=CR29 --pool=xtm-c29-us.kryptex.network:8040 --user=krxXVNVMM7.forge-a0 --pass=x --tls=1 --pool=xtm-c29-eu.kryptex.network:8040 --user=krxXVNVMM7.forge-a0 --pass=x --tls=1 --devices=0 --apiport=4070` |
 | **Env** | `LD_LIBRARY_PATH=/run/opengl-driver/lib` <br> `OCL_ICD_VENDORS=/etc/OpenCL/vendors/` |
 | **Port** | 4070/tcp (api) |
@@ -66,7 +58,6 @@
 | **Resources req** | `memory: 512Mi, cpu: 500m` |
 | **Resources lim** | `cpu: 2` (no memory limit — /nix/store mount causes cgroup OOM) |
 | **Tolerations** | none |
-| **Probes** | liveness/readiness: `exec pgrep -f lolMiner` (live: 30s/30s, ready: 10s/10s) |
 
 **Volume Mounts:**
 
@@ -85,7 +76,6 @@
 | Field | Value |
 |-------|-------|
 | **Image** | `docker.io/library/ubuntu:24.04` |
-| **Command** | `/nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a/bin/lolMiner` |
 | **Args** | `--algo=CR29 --pool=xtm-c29-us.kryptex.network:8040 --user=krxXVNVMM7.forge-a1 --pass=x --tls=1 --pool=xtm-c29-eu.kryptex.network:8040 --user=krxXVNVMM7.forge-a1 --pass=x --tls=1 --devices=1 --apiport=4071` |
 | **Env** | `LD_LIBRARY_PATH=/run/opengl-driver/lib` <br> `OCL_ICD_VENDORS=/etc/OpenCL/vendors/` |
 | **Port** | 4071/tcp (api) |
@@ -98,7 +88,6 @@
 | **Resources req** | `memory: 512Mi, cpu: 500m` |
 | **Resources lim** | `cpu: 2` (no memory limit) |
 | **Tolerations** | none |
-| **Probes** | liveness/readiness: `exec pgrep -f lolMiner` (live: 30s/30s, ready: 10s/10s) |
 
 **Volume Mounts:** Identical to amd-0 (same ICD path, same 5 volumes).
 
@@ -108,7 +97,6 @@
 
 | Field | Value |
 |-------|-------|
-| **Image** | `docker.io/swamp7/lolminer:latest` |
 | **Command** | (default entrypoint) |
 | **Args** | `--algo=CR29 --pool=xtm-c29-us.kryptex.network:8040 --user=krxXVNVMM7.forge-n0 --pass=x --tls=1 --pool=xtm-c29-eu.kryptex.network:8040 --user=krxXVNVMM7.forge-n0 --pass=x --tls=1 --devices=0 --cclk=2350 --moff=1100 --pl=90 --apiport=4068` |
 | **Env** | `LD_LIBRARY_PATH=/run/opengl-driver/lib:/nix/store` |
@@ -138,7 +126,6 @@
 
 | Field | Value |
 |-------|-------|
-| **Image** | `docker.io/swamp7/lolminer:latest` |
 | **Command** | (default entrypoint) |
 | **Args** | `--algo=CR29 --pool=xtm-c29-us.kryptex.network:8040 --user=krxXVNVMM7.forge-n1 --pass=x --tls=1 --pool=xtm-c29-eu.kryptex.network:8040 --user=krxXVNVMM7.forge-n1 --pass=x --tls=1 --devices=1 --cclk=2350 --moff=1100 --pl=90 --apiport=4069` |
 | **Env** | `LD_LIBRARY_PATH=/run/opengl-driver/lib:/nix/store` |
@@ -161,7 +148,6 @@
 
 | Field | Value |
 |-------|-------|
-| **Image** | `docker.io/swamp7/lolminer:latest` |
 | **Command** | (default entrypoint) |
 | **Args** | `--algo=CR29 --pool=xtm-c29-us.kryptex.network:8040 --user=krxXVNVMM7.nexus-gpu --pass=x --tls=1 --pool=xtm-c29-eu.kryptex.network:8040 --user=krxXVNVMM7.nexus-gpu --pass=x --tls=1 --devices=0 --cclk=1605 --moff=1500 --pl=120 --apiport=4068` |
 | **Env** | `LD_LIBRARY_PATH=/run/opengl-driver/lib:/nix/store` |
@@ -186,7 +172,6 @@
 
 | Field | Value |
 |-------|-------|
-| **Image** | `docker.io/swamp7/lolminer:latest` |
 | **Command** | (default entrypoint) |
 | **Args** | `--algo=CR29 --pool=xtm-c29-us.kryptex.network:8040 --user=krxXVNVMM7.zephyr-gpu --pass=x --tls=1 --pool=xtm-c29-eu.kryptex.network:8040 --user=krxXVNVMM7.zephyr-gpu --pass=x --tls=1 --devices=1 --pl=250 --apiport=4068` |
 | **Env** | `LD_LIBRARY_PATH=/run/opengl-driver/lib:/nix/store` |
@@ -488,14 +473,11 @@
 
 | Current Image | Deployments | Target |
 |--------------|-------------|--------|
-| `ubuntu:24.04` + host nix-store | forge-amd-0, forge-amd-1 | Distroless + CSI mount lolminer binary |
-| `swamp7/lolminer:latest` | forge-nvidia-0/1, nexus, zephyr | Distroless + CSI mount lolminer binary |
 
 ### Key Nix Store Paths Referenced
 
 | Path | Used By | Purpose |
 |------|---------|---------|
-| `/nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a/bin/lolMiner` | forge-amd-0/1 | lolMiner binary |
 | `/nix/store/6yvx83sa6iwhr6xnjjlfjg56jnki5mdn-clr-7.2.0-icd/etc/OpenCL/vendors` | forge-amd-0/1 | AMD OpenCL ICD |
 | `/run/opengl-driver/lib` | All GPU miners | GPU driver shared libs |
 | `/nix/store` (full mount) | All GPU miners | Needed for dependency resolution |

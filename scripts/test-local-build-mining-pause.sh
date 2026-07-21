@@ -6,7 +6,6 @@
 
 set -euo pipefail
 
-MINING_SERVICES=("lolminer-nvidia" "xmrig")
 TEST_BUILD_DIR="/tmp/nix-test-build-local-$$"
 
 # Color output

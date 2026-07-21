@@ -7,7 +7,6 @@ spec:
   nodeName: forge
   containers:
   - name: test
-    image: docker.io/library/lolminer-amd:1.98a-nixos
     imagePullPolicy: Never
     command: ["/bin/sh"]
     args: ["-c", "ls -la /lib/ | head -30; echo '---'; ls -la /nix/store/ | head -30; sleep 3600"]

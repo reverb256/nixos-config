@@ -154,7 +154,6 @@ if [ -d "$MINERS_DIR" ] && [ "$(ls -A "$MINERS_DIR" 2>/dev/null)" ]; then
 else
     echo "[wrapper] Downloading miners..."
     mkdir -p "$MINERS_DIR"
-    for pair in "rigel:rigel-1-23-2/rigel-1.23.2-linux.tar.gz" "srbminer:srbminer-3-2-6/SRBMiner-Multi-3-2-6-Linux.tar.gz" "bzminer:bzminer-24-0-1/bzminer_v24.0.1_linux.tar.gz" "lolminer:lolminer-1-98a/lolMiner_v1.98a_Lin64.tar.gz"; do
         name="${pair%%:*}"
         url="https://github.com/kryptex-miners-org/kryptex-miners/releases/download/${pair#*:}"
         wget -qO "/tmp/${name}.tar.gz" "$url" && tar xzf "/tmp/${name}.tar.gz" -C "$MINERS_DIR/" 2>/dev/null && echo "[wrapper] ${name} OK" || echo "[wrapper] ${name} failed"

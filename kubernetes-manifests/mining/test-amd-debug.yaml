@@ -1,4 +1,3 @@
-# Debug pod to test NixOS lolMiner container
 apiVersion: v1
 kind: Pod
 metadata:
@@ -8,7 +7,6 @@ spec:
   nodeName: forge
   containers:
   - name: debug
-    image: docker.io/library/lolminer-amd:1.98a-nixos
     imagePullPolicy: Never
     command: ["/bin/sh", "-c"]
     args:
@@ -17,8 +15,6 @@ spec:
       env
       echo ""
       echo "=== Files in /bin ==="
-      ls -la /bin/lolMiner
-      file /bin/lolMiner
       echo ""
       echo "=== Libraries in /lib ==="
       ls -la /lib/*.so* 2>&1 | head -20
@@ -32,8 +28,6 @@ spec:
       echo "=== GPU devices ==="
       ls -la /dev/dri/
       echo ""
-      echo "=== Running lolMiner --help ==="
-      /bin/lolMiner --help || echo "lolMiner failed with exit code $?"
       echo ""
       echo "=== Sleeping for debug ==="
       sleep 3600

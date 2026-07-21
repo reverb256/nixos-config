@@ -270,7 +270,6 @@ nodeSelector:
 **Workload Priority**:
 1. AI inference (P2) - llamafile, LLM serving
 2. Monitoring dashboards (P2)
-3. Mining (P3) - lolminer when idle
 
 **Ideal Models**:
 - 7B parameter models (quantized to 4-bit)
@@ -289,7 +288,6 @@ nodeSelector:
 **Workload Priority**:
 1. AI training (P2) - PyTorch, TensorFlow
 2. AI inference (P2) - LLM serving, Stable Diffusion
-3. Mining (P3) - lolminer when idle
 
 **Ideal Workloads**:
 - Training models up to 7B parameters

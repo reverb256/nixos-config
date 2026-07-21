@@ -6,7 +6,6 @@
 set -euo pipefail
 
 LOG_FILE="/var/log/gpu-workload-monitor.log"
-MINING_SERVICE="lolminer-nvidia"
 AI_PROCESSES=("lmstudio" "ollama" "python.*llm" "ai-inference-gateway")
 GAMING_PROCESSES=("steam" "lutris" "heroic" "wine" "proton" "wine-preloader" "wine64" "wineserver")
 

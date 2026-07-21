@@ -61,7 +61,6 @@ secretGenerator:
 
 # Images to track (automated updates)
 images:
-  - name: lolminer
     newTag: "1.98a-nixos"
   - name: ai-inference-gateway
     newTag: "v3.1.0"

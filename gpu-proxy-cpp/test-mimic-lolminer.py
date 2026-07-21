@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """
-Mimic lolMiner exactly - same TLS config, same user agent, same message format.
 """
 
 import asyncio
@@ -18,13 +17,9 @@ POOL_HOST = "xtm-c29-us.kryptex.network"
 POOL_PORT = 8040
 WALLET = "krxXVNVMM7.zephyr-gpu"
 
-async def test_exact_lolminer_behavior():
     """
-    Test with exact lolMiner behavior.
-    Key: lolMiner might send messages immediately after TLS handshake without waiting.
     """
 
-    # Exact TLS configuration like lolMiner
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
@@ -46,11 +41,9 @@ async def test_exact_lolminer_behavior():
 
         logger.info("Connected! Sending messages immediately (no waiting)...\n")
 
-        # Send subscribe IMMEDIATELY after connection (like lolMiner might do)
         subscribe_msg = {
             "id": 1,
             "method": "mining.subscribe",
-            "params": ["lolMiner/1.98a", None]
         }
         subscribe_str = json.dumps(subscribe_msg, separators=(',', ':'))
         logger.info(f"SENDING: {subscribe_str}")
@@ -101,4 +94,3 @@ async def test_exact_lolminer_behavior():
         traceback.print_exc()
 
 if __name__ == "__main__":
-    asyncio.run(test_exact_lolminer_behavior())

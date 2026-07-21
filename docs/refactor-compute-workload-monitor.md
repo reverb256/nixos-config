@@ -7,7 +7,6 @@
 ### Mixed Responsibilities
 
 1. **❌ REDUNDANT - Systemd Service Management** (~400 lines)
-   - `manage_lolminer_for_gaming()` - systemctl stop/start for lolminer-nvidia
    - All systemd mining service control (lines 1046-1089, 286-292)
 
 2. **⚠️ PARTIALLY REDUNDANT - Manual K8s Scaling** (~90 lines)
@@ -50,7 +49,6 @@ User Request: "compute-workload-monitor i think we need to completely remove bec
    - Both trying to control same resources → conflicts
 
 2. **Systemd Mining Services No Longer Used**
-   - lolminer systemd being migrated to K8s (gpu-miner-forge-*)
    - Remaining systemd control is redundant
 
 3. **K8s Integration Outdated**
@@ -88,7 +86,6 @@ compute-workload-monitor.nix (1665 lines)
 ### Phase 2: Remove Redundant Code
 
 **Delete Entirely:**
-- All `pause_lolminer_for_gaming()` logic (lines 264-348)
 - All `systemctl stop/start` calls for mining services
 - All `kubectl scale` calls (replaced by Volcano preemption)
 - MINING_SERVICES array (line 65)

@@ -74,11 +74,9 @@ get_cpu_hashrate() {
     CPU_HASHRATE="2300"
 }
 
-# Get GPU hashrate from lolminer (GPU mining)
 get_gpu_hashrate() {
     echo -e "${YELLOW}Fetching GPU hashrate...${NC}"
 
-    # Try lolminer API on forge
     local gpu_stats=$(curl -s http://10.1.1.130:4070/summary 2>/dev/null)
 
     if [[ -n "$gpu_stats" ]]; then

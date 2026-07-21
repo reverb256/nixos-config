@@ -242,7 +242,6 @@ ssh sentry "sudo nixos-rebuild switch --rollback"
 # Check mining services on remote
 
 # Manually restart mining
-ssh forge "sudo systemctl restart lolminer-nvidia"
 ```
 
 ## Colmena Configuration

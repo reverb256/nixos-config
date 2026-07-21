@@ -806,7 +806,6 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 ---
 
 **Version**: 9.5 | **Last Updated:** 2026-07-14
-**Changes**: Updated from 2026-07-08 to 2026-07-14. Audit remediation sprint (#291): nodeName zephyr→nexus, :latest tags documented, lolminer purged, grafana-v2.nix deleted, nix-cache Prometheus scrape wired, root junk cleaned. Stale OIDC secrets confirmed already removed. nvme_core.timeout confirmed already set on nexus.
 
 ## Known Frictions & Workarounds (2026-05-18)
 
