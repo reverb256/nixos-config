@@ -28,7 +28,6 @@ After=network.target
 Type=oneshot
 ExecStart=$SCRIPT_DIR/profit-monitor.sh $ELECTRICITY_RATE $MIN_PROFIT
 # If unprofitable (exit 1), stop mining services
-ExecStopPost=/bin/bash -c 'systemctl stop xmrig@* lolminer-* 2>/dev/null || true'
 StandardOutput=journal
 StandardError=journal
 

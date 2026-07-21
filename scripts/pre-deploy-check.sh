@@ -235,7 +235,6 @@ check_network() {
 check_mining_pause() {
     section "Mining Status Check"
 
-    if systemctl is-active --quiet xmrig@* || systemctl is-active --quiet lolminer-*; then
         log_warning "Mining services are active"
         log_info "Mining will be automatically paused during deployment"
     else

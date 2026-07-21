@@ -6,7 +6,6 @@
 set -euo pipefail
 
 LOG_FILE="/var/log/gpu-workload-monitor.log"
-MINING_SERVICES=("lolminer-nvidia" "lolminer-amd" "xmrig")
 AI_PROCESSES=("lmstudio" "ollama" "python.*llm" "ai-inference-gateway")
 GAMING_PROCESSES=("steam" "lutris" "heroic" "wine" "proton" "wine-preloader" "wine64" "wineserver")
 BUILD_PROCESSES=("nixos-rebuild" "colmena" "nix-build" "gcc" "clang" "cargo build" "make" "cmake" "ninja")
@@ -114,7 +113,6 @@ apply_profile() {
             # Pause GPU mining, reduce CPU mining via CPUQuota
             for service in "${MINING_SERVICES[@]}"; do
                 if systemctl is-active --quiet "$service"; then
-                    if [[ "$service" == *"lolminer"* ]]; then
                         log "Limiting $service to 0% CPU for gaming"
                         systemctl set-property ${service}.service CPUQuota="0%" --runtime
                     else
@@ -130,7 +128,6 @@ apply_profile() {
             # Pause GPU mining, keep CPU mining at 100%
             for service in "${MINING_SERVICES[@]}"; do
                 if systemctl is-active --quiet "$service"; then
-                    if [[ "$service" == *"lolminer"* ]]; then
                         log "Limiting $service to 0% CPU for AI"
                         systemctl set-property ${service}.service CPUQuota="0%" --runtime
                     else
@@ -167,7 +164,6 @@ apply_profile() {
             done
 
             # Start mining services if not running
-            for service in lolminer-nvidia lolminer-amd; do
                 if ! systemctl is-active --quiet "$service"; then
                     log "Starting $service (no other workloads detected)"
                     systemctl start "$service"

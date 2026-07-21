@@ -1,5 +1,4 @@
 # GPU Miner Deployment for Forge NVIDIA GPU 1 (GeForce GTX 1070)
-# - swamp7/lolminer bundles CUDA 12.1 runtime
 # - Host NVIDIA driver libs via /nix/store + /run/opengl-driver/lib mounts
 # - Power limit 120W, mem offset +800 (stable for 1070 GDDR5)
 ---
@@ -37,8 +36,6 @@ spec:
       hostNetwork: true
       priorityClassName: mining-low
       containers:
-      - name: lolminer
-        image: docker.io/swamp7/lolminer:latest
         imagePullPolicy: IfNotPresent
         args:
           - "--algo=CR29"

@@ -155,8 +155,6 @@
       enable = true;
       client.enable = true;
     };
-      # GPU mining migrated to Kubernetes (peakminer)
-          url = "xtm-c29-eu.kryptex.network:8040"; # Kryptex EU (failover)
     gpu-proxy-cpp = {
       enable = true;
       listenPort = 3334;

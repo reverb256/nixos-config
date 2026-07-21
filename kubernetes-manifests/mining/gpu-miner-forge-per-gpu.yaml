@@ -1,6 +1,4 @@
-# Per-GPU lolMiner pods for Forge
 # 4 GPUs: 2x AMD RX 5700 XT (devices 0,1) + 2x NVIDIA RTX 4060 (devices 2,3)
-# Uses host lolMiner binary via /nix/store mount for OpenCL (AMD) + CUDA (NVIDIA) support
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -36,11 +34,8 @@ spec:
           operator: Exists
           effect: NoSchedule
       containers:
-      - name: lolminer
-        image: docker.io/swamp7/lolminer:latest
         imagePullPolicy: IfNotPresent
         command:
-          - "/nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a/bin/lolMiner"
         args:
           - "--algo=CR29"
           - "--pool=xtm-c29-us.kryptex.network:8040"
@@ -127,11 +122,8 @@ spec:
           operator: Exists
           effect: NoSchedule
       containers:
-      - name: lolminer
-        image: docker.io/swamp7/lolminer:latest
         imagePullPolicy: IfNotPresent
         command:
-          - "/nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a/bin/lolMiner"
         args:
           - "--algo=CR29"
           - "--pool=xtm-c29-us.kryptex.network:8040"
@@ -218,11 +210,8 @@ spec:
           operator: Exists
           effect: NoSchedule
       containers:
-      - name: lolminer
-        image: docker.io/swamp7/lolminer:latest
         imagePullPolicy: IfNotPresent
         command:
-          - "/nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a/bin/lolMiner"
         args:
           - "--algo=CR29"
           - "--pool=xtm-c29-us.kryptex.network:8040"
@@ -312,11 +301,8 @@ spec:
           operator: Exists
           effect: NoSchedule
       containers:
-      - name: lolminer
-        image: docker.io/swamp7/lolminer:latest
         imagePullPolicy: IfNotPresent
         command:
-          - "/nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a/bin/lolMiner"
         args:
           - "--algo=CR29"
           - "--pool=xtm-c29-us.kryptex.network:8040"

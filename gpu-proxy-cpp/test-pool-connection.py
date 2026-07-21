@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 POOL_HOST = "xtm-c29-us.kryptex.network"
 POOL_PORT = 8040
 
-# Wallet from lolminer config
 WALLET = "krxXVNVMM7.zephyr-gpu"
 
 async def test_connection():
@@ -62,11 +61,9 @@ async def test_connection():
         except asyncio.TimeoutError:
             logger.info("No data from pool before subscribe (timeout)")
 
-        # Now send subscribe (like lolminer would)
         subscribe_msg = {
             "id": 1,
             "method": "mining.subscribe",
-            "params": ["lolMiner/1.98a", None]
         }
         subscribe_str = json.dumps(subscribe_msg, separators=(',', ':'))
         logger.info(f"Sending subscribe: {subscribe_str}")

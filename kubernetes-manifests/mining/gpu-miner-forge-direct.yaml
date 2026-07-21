@@ -29,8 +29,6 @@ spec:
       tolerations:
       containers:
       # NVIDIA GPU mining (RTX 4060s)
-      - name: lolminer-nvidia
-        image: docker.io/swamp7/lolminer:latest
         imagePullPolicy: IfNotPresent
         args:
           - "--algo=CR29"
@@ -75,8 +73,6 @@ spec:
             nvidia.com/gpu: "2"
             amd.com/gpu: "0"
       # AMD GPU mining (RX 5700 XTs)
-      - name: lolminer-amd
-        image: docker.io/swamp7/lolminer:latest
         imagePullPolicy: IfNotPresent
         args:
           - "--algo=CR29"

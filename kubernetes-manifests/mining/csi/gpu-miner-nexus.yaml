@@ -1,5 +1,4 @@
 # GPU Miner - gpu-miner-nexus (nvidia)
-# CSI-based: uses nix-csi for lolMiner binary + host mounts for GPU drivers
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -31,9 +30,7 @@ spec:
         effect: NoSchedule
       terminationGracePeriodSeconds: 30
       containers:
-      - name: lolminer
         image: gcr.io/distroless/static-debian12@sha256:20bc6c0bc4d625a22a8fde3e55f6515709b32055ef8fb9cfbddaa06d1760f838
-        command: ["/nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a/bin/.lolMiner-wrapped"]
         args:
         - "--algo=CR29"
         - "--pool=xtm-c29-us.kryptex.network:8040"
@@ -91,7 +88,6 @@ spec:
         csi:
           driver: nixkube
           volumeAttributes:
-            x86_64-linux: /nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a
       - name: opengl-driver
         hostPath:
           path: /run/opengl-driver/lib

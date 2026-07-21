@@ -32,8 +32,6 @@ spec:
       nodeSelector:
         kubernetes.io/hostname: zephyr
       containers:
-      - name: lolminer
-        image: lolminer:latest
         resources:
           requests:
             nvidia.com/gpu: "1"
@@ -79,8 +77,6 @@ spec:
       nodeSelector:
         kubernetes.io/hostname: forge
       containers:
-      - name: lolminer
-        image: lolminer:latest
         resources:
           requests:
             nvidia.com/gpu: "1"

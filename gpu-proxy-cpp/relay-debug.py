@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """
-Enhanced relay with better debugging to understand why lolMiner can't connect.
 Listen on plain TCP, forward to TLS pool.
 """
 
@@ -66,7 +65,6 @@ class RelayConnection:
                 pass
 
 async def handle_client(client_reader, client_writer, pool_reader, pool_writer):
-    """Handle a client (lolminer) connection."""
     # Get client address for logging
     addr = client_writer.get_extra_info('peername')
     logger.info(f"Client connected from {addr}!")
@@ -123,7 +121,6 @@ async def main():
 
     # Start server for client (PLAIN TCP - no TLS on client side)
     logger.info(f"Starting relay server on port {RELAY_PORT}")
-    logger.info(f"Configure lolminer: --pool localhost:{RELAY_PORT} --user krxXVNVMM7.zephyr-gpu --pass x --tls off")
 
     async def handle_client_wrapper(r, w):
         # For each new client, we need a fresh pool connection

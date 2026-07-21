@@ -7,10 +7,8 @@ spec:
   nodeName: forge
   containers:
   - name: test
-    image: docker.io/library/lolminer-amd:1.98a-nixos
     imagePullPolicy: Never
     command: ["/bin/sh"]
-    args: ["-c", "ldd /bin/lolMiner 2>&1; ls -la /lib/libc.so* 2>&1; echo done"]
     resources:
       requests:
         cpu: "100m"

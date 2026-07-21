@@ -464,54 +464,6 @@
       bindAddress = "10.1.1.110";
     };
 
-    # GPU Resource Marketplace - Unified auction engine for GPU allocation
-    # Coordinates between mining, Kubernetes, Akash, and gaming workloads
-    # DISABLED: Service broken, blocking rebuild (2026-03-21)
-    compute-market = {
-      enable = false;
-      auctionInterval = 30; # Run auction every 30 seconds
-
-      # Bidders configuration
-      bidders = {
-        # Mining bidder configuration
-        mining = {
-          enable = true;
-          hourlyRevenue = 0.10; # $0.10/hr per GPU (baseline bid)
-          services = [
-          ];
-        };
-
-        # Kubernetes bidder configuration
-        kubernetes = {
-          enable = true;
-          baseBid = 2.50; # $2.50/hr base bid for K8s workloads
-          urgencyMultiplier = 2.0; # 2x multiplier for urgent jobs
-          namespace = "default";
-        };
-
-        # Gaming override (always wins)
-        gaming = {
-          enable = true;
-          processes = [
-            "steam"
-            "steamwebhelper"
-            "steamapps"
-            "lutris"
-            "heroic"
-            "Lutris"
-            "HeroicGamesLauncher"
-            "wine"
-            "proton"
-          ];
-        };
-      };
-
-      # Prometheus metrics
-      # MIGRATED TO KUBERNETES (2026-03-18)
-      prometheus = {
-        enable = false;
-        port = 9200;
-      };
     };
 
     # Gaming HDR for 4K HDR TV
@@ -1016,7 +968,6 @@
       ];
     };
   };
-
   # ============================================================================
   # PROGRAMS - SCOPEBUDDY, ANIME GAME LAUNCHERS, AI SERVICES
   # ============================================================================
@@ -1383,5 +1334,4 @@
       thinkModel = "glm-4.7";
     };
   };
-}
 # Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC

@@ -11,7 +11,6 @@ detection and automatic mining pause/resume functionality.
 
 #### Features
 
-- **Gaming Detection:** Automatically pauses lolminer when gaming detected
 - **GPU Pattern Analysis:** Fallback detection for games without GameMode
 - **Hysteresis:** 15-second countdown prevents rapid cycling
 - **Prometheus Metrics:** Exports gaming state for monitoring
@@ -19,7 +18,6 @@ detection and automatic mining pause/resume functionality.
 
 #### Gaming Detection
 
-The compute-workload-monitor automatically pauses lolminer when gaming
 is detected on the local host.
 
 ##### Detection Methods
@@ -46,7 +44,6 @@ via node_exporter textfile collector.
 No configuration required. Automatically enabled on hosts with:
 - GameMode package installed
 - NVIDIA GPU
-- lolminer service running
 
 ##### State File Format
 
@@ -65,7 +62,6 @@ PAUSE_COUNT=5
 - `detect_gaming()`: Unified gaming detection (GameMode → GPU fallback)
 - `detect_gaming_gamemode()`: GameMode daemon query
 - `detect_gpu_pattern()`: GPU utilization pattern analysis
-- `manage_lolminer_for_gaming()`: Pause/resume orchestration with hysteresis
 - `export_gaming_metric()`: Prometheus metric export
 
 #### Usage

@@ -1,14 +1,11 @@
-# Debug pod to explore the NixOS lolMiner container
 apiVersion: v1
 kind: Pod
 metadata:
-  name: debug-lolminer
   namespace: mining
 spec:
   nodeName: forge
   containers:
   - name: debug
-    image: docker.io/library/lolminer-amd:1.98a-nixos
     imagePullPolicy: Never
     command: ["/bin/sh"]
     args: ["-c", "sleep 3600"]

@@ -11,7 +11,7 @@
     ../modules/network
     ../modules/mining
     ../modules/gaming
-    ../modules/compute-market
+    # compute-market removed
     ../modules/common
   ];
 

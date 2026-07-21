@@ -147,7 +147,6 @@ Leverage the existing `nixos-rebuild-safe.sh` pattern - pause mining before expe
 ```bash
 # In your profitability script, if unprofitable:
 if ! /etc/nixos/scripts/check-mining-profit.sh; then
-    systemctl stop lolminer-*
     echo "Mining paused due to unprofitability" | logger -t mining-profit
 fi
 ```

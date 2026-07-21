@@ -77,6 +77,5 @@ of whether mining is active:
 
 1. Enable `profiles.role.mining` in the host's node profile
 2. Configure `services.mining` in the host's services module:
-   - GPU: Configure `lolminer` with pool pointing to Forge proxy
 3. Add worker credentials to the proxy config on Zephyr/Forge
 4. Open stratum port in the host's firewall module

@@ -10,7 +10,6 @@
 set -euo pipefail
 
 LOG_FILE="/var/log/distributed-builds-test.log"
-MINING_SERVICES=("lolminer-nvidia" "xmrig")
 TEST_BUILD_DIR="/tmp/nix-test-build-$$"
 
 # Color output

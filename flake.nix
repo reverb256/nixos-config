@@ -103,11 +103,6 @@
       url = "tarball+file:///tmp/ai-gateway.tar.gz";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # compute-market - xmrig/compute market images (local tarball)
-    compute-market = {
-      url = "tarball+file:///tmp/compute-market.tar.gz";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     # gpu-proxy - GPU proxy module (local tarball)
     gpu-proxy = {
       url = "tarball+file:///tmp/gpu-proxy.tar.gz";
@@ -145,7 +140,6 @@
         config.allowUnfree = true;
       };
       # pkgsWithOverlay: nixpkgs with custom overlay applied
-      # Used for package outputs that need custom packages (lolminer, xmrig, etc.)
       pkgsWithOverlay = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
@@ -312,7 +306,6 @@
       };
       overlays.default = import ./overlay.nix { inherit inputs; };
       # pkgsWithOverlay: nixpkgs with custom overlay applied
-      # Used for package outputs that need custom packages (lolminer, xmrig, etc.)
       pkgsWithOverlay = import nixpkgs {
         inherit system;
         config.allowUnfree = true;

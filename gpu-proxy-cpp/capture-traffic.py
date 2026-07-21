@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """
-Simple Stratum proxy to capture and log all messages between lolminer and Kryptex.
 This helps us understand the actual protocol being used.
 """
 
@@ -90,7 +89,6 @@ async def connect_to_pool():
     """Connect to the mining pool."""
     logger.info(f"Connecting to pool {POOL_HOST}:{POOL_PORT}")
 
-    # Create SSL context (match lolminer settings)
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
@@ -128,7 +126,6 @@ async def main():
     )
 
     logger.info(f"Proxy listening on port {PROXY_PORT}")
-    logger.info("Configure lolminer to use localhost:3336 instead of the pool")
 
     async with server:
         await server.serve_forever()

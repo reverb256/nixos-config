@@ -1,13 +1,11 @@
 { inputs }:
 _final: prev:
 {
-  # NOTE: inputs.ai-gateway / caddy-ingress / compute-market references temporarily
+  # NOTE: inputs.ai-gateway / caddy-ingress references temporarily
   # gated to break an overlay self-reference cycle (pkgsWithOverlay -> self.overlays.default
   # -> overlay -> inputs.ai-gateway -> nixpkgs -> pkgsWithOverlay). Re-wire via
   # non-cyclic callPackage once the flake graph is reconciled. zephyr needs
   # caddy-with-modules; provided below via a direct local build instead.
-  # inherit (inputs.compute-market.packages.x86_64-linux)
-  #   ;
   gputemps = prev.callPackage ./packages/gputemps.nix { };
   lmstudio = prev.callPackage ./packages/lmstudio.nix { };
   srbminer-multi = prev.callPackage ./packages/srbminer.nix { };
