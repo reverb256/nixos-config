@@ -168,17 +168,17 @@
     "cachyos-kernel": {
       "flake": false,
       "locked": {
-        "lastModified": 1783566754,
-        "narHash": "sha256-EyVTx67qTNB2utnXRUgOWnaZxV6c07XE2rVCq/qgWxI=",
-        "owner": "CachyOS",
-        "repo": "linux-cachyos",
-        "rev": "4065d7e175fb182a2e30b982b0d8121c97c8d46b",
-        "type": "github"
+        "lastModified": 1784569577,
+        "narHash": "sha256-pmwdKRPSavZ98QJv/Xlbj2U60AZ/+P4aevLBZ71jDaA=",
+        "ref": "refs/heads/master",
+        "rev": "5ca2493c51b1cadec102c9c549345b43f669960b",
+        "revCount": 1984,
+        "type": "git",
+        "url": "https://github.com/CachyOS/linux-cachyos"
       },
       "original": {
-        "owner": "CachyOS",
-        "repo": "linux-cachyos",
-        "type": "github"
+        "type": "git",
+        "url": "https://github.com/CachyOS/linux-cachyos"
       }
     },
     "cachyos-kernel-patches": {
@@ -554,11 +554,11 @@
         "uv2nix": "uv2nix"
       },
       "locked": {
-        "lastModified": 1784617474,
-        "narHash": "sha256-byPsHFn6RIonon+Ubqbzm4x65j5ero2p9AWMxC34Mxc=",
+        "lastModified": 1784675116,
+        "narHash": "sha256-idhEEX6hOnyIJtb2c1adv27I/yWb2Aumj+SLdFEROwE=",
         "ref": "refs/heads/main",
-        "rev": "f4df260f26c93f15694698869f3ea8e965eea301",
-        "revCount": 16607,
+        "rev": "8208fc52701332f213e6c51ebc0b610be00300de",
+        "revCount": 16733,
         "type": "git",
         "url": "https://github.com/NousResearch/hermes-agent"
       },
@@ -606,22 +606,6 @@
       "original": {
         "type": "git",
         "url": "https://github.com/nix-community/home-manager"
-      }
-    },
-    "linux-cachyos": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1784569577,
-        "narHash": "sha256-pmwdKRPSavZ98QJv/Xlbj2U60AZ/+P4aevLBZ71jDaA=",
-        "ref": "refs/heads/master",
-        "rev": "5ca2493c51b1cadec102c9c549345b43f669960b",
-        "revCount": 1984,
-        "type": "git",
-        "url": "https://github.com/CachyOS/linux-cachyos"
-      },
-      "original": {
-        "type": "git",
-        "url": "https://github.com/CachyOS/linux-cachyos"
       }
     },
     "llm-agents": {
@@ -727,7 +711,9 @@
     },
     "nix-cachyos-kernel": {
       "inputs": {
-        "cachyos-kernel": "cachyos-kernel",
+        "cachyos-kernel": [
+          "cachyos-kernel"
+        ],
         "cachyos-kernel-patches": "cachyos-kernel-patches",
         "flake-compat": "flake-compat_3",
         "flake-parts": [
@@ -1096,6 +1082,7 @@
         "aagl": "aagl",
         "agenix": "agenix",
         "ai-gateway": "ai-gateway",
+        "cachyos-kernel": "cachyos-kernel",
         "caddy-ingress": "caddy-ingress",
         "claude-native": "claude-native",
         "colmena": "colmena",
@@ -1104,7 +1091,6 @@
         "gpu-proxy": "gpu-proxy",
         "hermes-agent": "hermes-agent",
         "home-manager": "home-manager_2",
-        "linux-cachyos": "linux-cachyos",
         "llm-agents": "llm-agents",
         "mcp-registry": "mcp-registry",
         "niri": "niri",
