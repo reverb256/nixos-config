@@ -71,8 +71,6 @@ spec:
       # Allow this pod to be evicted for higher priority pods
       containers:
       # NVIDIA GPU mining (RTX 4060s)
-      - name: lolminer-nvidia
-        image: lolminer:1.98a-nixos
         imagePullPolicy: Never  # Use local image built by Nix
         args:
           - "--algo=CR29"
@@ -85,7 +83,6 @@ spec:
         - containerPort: 4068
           name: api
           protocol: TCP
-        # Health probes - lolMiner API for monitoring
         livenessProbe:
           httpGet:
             path: /
@@ -122,8 +119,6 @@ spec:
             cpu: "4"
             nvidia.com/gpu: "2"
       # AMD GPU mining (RX 5700 XTs)
-      - name: lolminer-amd
-        image: lolminer:1.98a-nixos
         imagePullPolicy: Never  # Use local image built by Nix
         args:
           - "--algo=CR29"
@@ -136,7 +131,6 @@ spec:
         - containerPort: 4069
           name: api-amd
           protocol: TCP
-        # Health probes - lolMiner API for monitoring
         livenessProbe:
           httpGet:
             path: /

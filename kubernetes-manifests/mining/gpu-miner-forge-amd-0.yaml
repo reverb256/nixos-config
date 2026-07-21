@@ -31,10 +31,7 @@ spec:
       priorityClassName: mining-low
       terminationGracePeriodSeconds: 30
       containers:
-      - name: lolminer
-        image: docker.io/library/lolminer-amd:1.98a-nixos
         imagePullPolicy: Never
-        command: ["/bin/lolMiner"]
         args:
         - "--algo=CR29"
         - "--pool=xtm-c29-us.kryptex.network:8040"

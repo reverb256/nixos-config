@@ -52,8 +52,6 @@ spec:
               add:
                 - SYS_ADMIN
       containers:
-        - name: lolminer-nvidia
-          image: lolminer:1.98a-nixos
           imagePullPolicy: Never
           args:
             - "--algo=CR29"
@@ -98,8 +96,6 @@ spec:
             limits:
               memory: "8Gi"
               nvidia.com/gpu: "2"
-        - name: lolminer-amd
-          image: lolminer:1.98a-nixos
           imagePullPolicy: Never
           args:
             - "--algo=CR29"

@@ -24,7 +24,6 @@
 | **P0 - Critical** | GPU jobs | Evict all miners immediately | Container inference, training |
 | **P1 - User** | Gaming | Evict miners on gaming GPU | Zephyr 3060 Ti (compute-workload-monitor) |
 | **P2 - Production** | AI inference | Evict miners if needed | llamafile on Sentry |
-| **P3 - Background** | Mining | Always preemptible | lolminer on all GPUs |
 
 **Key Principle**: Mining runs **only when GPUs would otherwise be idle**. Never blocks higher priority workloads.
 
@@ -162,8 +161,6 @@ spec:
       nodeName: zephyr
       schedulerName: yunikorn  # Use Yunikorn for GPU-aware scheduling
       containers:
-      - name: lolminer
-        image: docker.io/swamp7/lolminer:latest
         resources:
           requests:
             nvidia.com/gpu: 1
@@ -475,7 +472,6 @@ spec:
     spec:
       nodeName: zephyr
       containers:
-      - name: lolminer
         resources:
           limits:
             nvidia.com/gpu: 1
@@ -499,7 +495,6 @@ spec:
     spec:
       nodeName: nexus
       containers:
-      - name: lolminer
         resources:
           limits:
             nvidia.com/gpu: 1
@@ -527,7 +522,6 @@ spec:
     spec:
       nodeName: forge
       containers:
-      - name: lolminer
         resources:
           limits:
             nvidia.com/gpu: 1

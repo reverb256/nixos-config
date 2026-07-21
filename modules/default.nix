@@ -94,14 +94,14 @@
     ./gaming/scopebuddy.nix
 
     # Mining
-    # Most mining modules handled by inputs.compute-market.nixosModules.default
+    # Most mining modules REMOVED (compute-market, lolminer, xmrig)
     # ./mining/mining.nix
     # Note: Python gpu-proxy removed - replaced by gpu-proxy-cpp (centralized on Forge)
     # gpu-proxy handled by inputs.gpu-proxy.nixosModules.default
     # ./mining/gpu-proxy-cpp.nix
 
     # GPU Resource Marketplace
-    # (handled by inputs.compute-market.nixosModules.default in common-modules-list.nix)
+    # (compute-market removed)
     # ./compute-market/default.nix
 
     # Services
@@ -147,7 +147,7 @@
     # Crash detection and diagnostics
     # Exporters
     ./services/gpu-exporters.nix
-    # ./services/mining-exporter.nix (handled by inputs.compute-market.nixosModules.default)
+    # ./services/mining-exporter.nix (removed with compute-market)
     ./services/gputemps-exporter.nix
     # Multimedia modules
     ./multimedia/gstreamer.nix

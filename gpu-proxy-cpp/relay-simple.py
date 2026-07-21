@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """
-Simple relay: Plain TCP from client (lolminer), TLS to pool.
 Logs all traffic in both directions.
 """
 
@@ -61,7 +60,6 @@ class RelayConnection:
                 pass
 
 async def handle_client(client_reader, client_writer, pool_reader, pool_writer):
-    """Handle a client (lolminer) connection."""
     logger.info("Client connected!")
 
     client = RelayConnection(client_reader, client_writer, "CLIENT")
@@ -92,7 +90,6 @@ async def main():
     )
 
     logger.info(f"Connected to pool! Waiting for client on port {RELAY_PORT}")
-    logger.info(f"Configure lolminer: --pool localhost:{RELAY_PORT} --user krxXVNVMM7.zephyr-gpu --pass x --tls off")
 
     # Start server for client (PLAIN TCP, no TLS on client side)
     async def handle_client_wrapper(r, w):

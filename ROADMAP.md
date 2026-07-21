@@ -750,7 +750,6 @@
 - Expand MCP server ecosystem
 
 ### Completed Quick Fixes (2026-03-18)
-- ✅ Sentry: Enabled lolminer-amd for RX 5600 XT GPU mining
 - ✅ Zephyr: Fixed Redis port conflict (changed to 6380)
 - ✅ All hosts: Fixed hermes-agent systemd ordering dependencies
 - ✅ All hosts: Fixed flake-lock-sync systemd ordering dependencies
@@ -759,7 +758,6 @@
 
 | Feature | Priority | Est. Time | Dependencies | Status |
 |----------|-----------|------------|---------------|---------|
-| Sentry lolminer-amd | P0 | 15 min | None | ✅ Done |
 | Redis port conflict | P0 | 10 min | None | ✅ Done |
 | Systemd ordering fixes | P0 | 10 min | None | ✅ Done |
 | Unified Redis service | P1 | 1 hr | Port conflict fix | 📋 Planning |
@@ -945,7 +943,6 @@ The Sovereign Service Mesh is a bus-style architecture where the AI Gateway serv
 |---|-------|----------|
 | 1 | **Calico CNI broken on server nodes** — nftables segfault + nat table conflict | Deploy `k3s-cluster.nix` changes (iptables pkg + kube-proxy-arg). If still broken, switch to Flannel (k3s default). |
 | 2 | **Sentry metrics-server unknown** — depends on Calico fix | Will resolve when CNI is healthy. |
-| 3 | **Nexus GPU contention** — desktop + lolMiner consuming GPU, K8s can't allocate | Decide: mine via K8s only (disable host lolMiner) or accept desktop GPU is unavailable. |
 
 ### Future Improvements
 

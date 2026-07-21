@@ -3,7 +3,6 @@
 ## Overview
 
 This cluster supports **coexisting GPU workloads** on AMD GPUs:
-- **Mining**: Via systemd services (lolMiner)
 - **AI/Inference**: Via Kubernetes (ROCm workloads)
 
 Both can coexist, but you need to manage GPU allocation carefully.
@@ -16,7 +15,6 @@ Both can coexist, but you need to manage GPU allocation carefully.
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  GPU 0                    GPU 1                         │
-│  ├─ systemd: lolMiner   ├─ systemd: lolMiner           │
 │  └─ K8s: ROCm pods     └─ K8s: ROCm pods              │
 │                                                         │
 │  ROCm Device Plugin ──→ Exposes GPUs to Kubernetes      │
@@ -34,7 +32,6 @@ Both can coexist, but you need to manage GPU allocation carefully.
 - **Status**: Running on 4 nodes (Forge, Sentry, Nexus, Zephyr)
 
 ✅ **Mining**: Active via systemd
-- Service: `lolminer` (GPU 0 and GPU 1)
 - Hashrate: ~4.42 g/s total
 - User: root
 
@@ -55,7 +52,6 @@ GPU 1: Kubernetes workloads
 **Setup:**
 ```bash
 # Stop mining on GPU 1
-ssh forge 'systemctl stop lolminer@amd-1'
 
 # Deploy K8s workload that requests 1 GPU
 kubectl apply -f my-ai-workload.yaml
@@ -76,7 +72,6 @@ Stop miner → Deploy K8s → Restart miner
 **Setup:**
 ```bash
 # 1. Stop mining on specific GPU
-ssh forge 'systemctl stop lolminer@amd-0'
 
 # 2. Deploy K8s workload
 kubectl apply -f my-ai-workload.yaml
@@ -85,7 +80,6 @@ kubectl apply -f my-ai-workload.yaml
 kubectl wait --for=condition=complete job/my-ai-job
 
 # 4. Restart mining
-ssh forge 'systemctl start lolminer@amd-0'
 ```
 
 **Advantages:**
@@ -173,10 +167,8 @@ ssh forge 'rocm-smi --showuse --showmemuse'
 
 ```bash
 # Systemd services
-ssh forge 'systemctl status lolminer*'
 
 # Mining processes
-ssh forge 'ps aux | grep lolMiner | grep -v grep'
 ```
 
 ### Check Kubernetes GPU Workloads
@@ -311,7 +303,6 @@ kubectl run rocm-test --image=rocm/dev-ubuntu-22.04:6.2 --rm -it --restart=Never
 
 3. Restart mining service:
    ```bash
-   ssh forge 'systemctl restart lolminer@amd-0'
    ```
 
 ### Pod Pending - Insufficient GPUs
@@ -331,7 +322,6 @@ kubectl run rocm-test --image=rocm/dev-ubuntu-22.04:6.2 --rm -it --restart=Never
 
 3. Stop mining on target GPU:
    ```bash
-   ssh forge 'systemctl stop lolminer@amd-0'
    ```
 
 ## Future Improvements
@@ -366,7 +356,6 @@ Set up Grafana dashboard showing:
 
 ## Summary
 
-✅ **Mining**: Works via systemd (lolMiner)
 ✅ **AI Workloads**: Work via Kubernetes (ROCm)
 ✅ **Coexistence**: Stop miner on target GPU, deploy K8s workload, restart miner
 ✅ **Device Plugin**: Exposes GPUs to Kubernetes for scheduling

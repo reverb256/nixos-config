@@ -29,7 +29,6 @@ P2 (500000) - Production Services
 └─ Cluster services
 
 P3 (10000) - Background Mining
-└─ lolminer (all GPUs, preemptible)
 ```
 
 ## Implementation Plan
@@ -221,7 +220,6 @@ rate(kube_pod_status_terminated_reason{reason="Evicted", namespace="mining"}[1h]
 sum by (priority_class) (kube_pod_container_resource_requests{resource="nvidia.com/gpu"})
 
 # Mining hashrate impact
-mining_hashrate{job="lolminer"} / mining_hashrate_expected
 ```
 
 ### Alerts

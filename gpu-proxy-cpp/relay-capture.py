@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """
-Simple relay to capture traffic between lolminer and Kryptex.
 Listen on port 3333, forward to pool, log everything.
 """
 
@@ -57,7 +56,6 @@ class RelayConnection:
             self.peer.peer = None
 
 async def handle_client(client_reader, client_writer, pool_reader, pool_writer):
-    """Handle a client (lolminer) connection."""
     client = RelayConnection(client_reader, client_writer, "CLIENT")
     pool = RelayConnection(pool_reader, pool_writer, "POOL", client)
     client.peer = pool
@@ -84,7 +82,6 @@ async def main():
     )
 
     logger.info(f"Connected to pool! Waiting for client on port {RELAY_PORT}")
-    logger.info(f"Configure lolminer: --pool localhost:{RELAY_PORT} --user krxXVNVMM7.zephyr-gpu --pass x --tls on")
 
     # Start server for client
     async def handle_client_wrapper(r, w):

@@ -1,6 +1,5 @@
 # GPU Miner Deployment for Zephyr (RTX 3090 GPU 1)
 # - Mines on RTX 3090 only (GPU 1) — RTX 3060 Ti (GPU 0) reserved for AI/gaming
-# - swamp7/lolminer with host NVIDIA driver mounts
 # - Power limit 250W, mem offset +1300 (3090 mining sweet spot)
 # - GameMode scales replicas 0↔1 via gaming.nix gamemode hooks
 ---
@@ -43,8 +42,6 @@ spec:
           operator: Exists
           effect: NoSchedule
       containers:
-      - name: lolminer
-        image: docker.io/swamp7/lolminer:latest
         imagePullPolicy: IfNotPresent
         args:
           - "--algo=CR29"

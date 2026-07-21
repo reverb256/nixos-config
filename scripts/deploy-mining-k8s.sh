@@ -302,8 +302,6 @@ main() {
 		echo ""
 		log_info "=== Deployment Summary ==="
 		echo "Bare Metal (systemd):"
-		echo "  ✓ Zephyr: lolminer-nvidia service running"
-		echo "  ✓ Forge: lolminer-nvidia + lolminer-amd services running"
 		echo ""
 		echo "Kubernetes (pods):"
 		[[ "$deployed_zephyr" == true ]] && echo "  ✓ Zephyr: gpu-miner-zephyr pod running" || echo "  ✗ Zephyr: not deployed"

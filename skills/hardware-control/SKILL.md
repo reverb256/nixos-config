@@ -73,8 +73,6 @@ sensors | grep -i fan
 # On zephyr (local)
 
 # On remote hosts
-ssh nexus "systemctl status lolminer-nvidia"
-ssh forge "systemctl status lolminer-nvidia"
 ```
 
 ### Stop Mining
@@ -82,10 +80,8 @@ ssh forge "systemctl status lolminer-nvidia"
 # Stop specific miner
 
 # Stop all mining on host
-sudo systemctl stop lolminer-*
 
 # Stop on remote host
-ssh nexus "sudo systemctl stop lolminer-*"
 ```
 
 ### Start Mining
@@ -95,7 +91,6 @@ ssh nexus "sudo systemctl stop lolminer-*"
 # Start all mining on host
 
 # Start on remote host
-ssh forge "sudo systemctl start lolminer-*"
 ```
 
 ### Restart Mining
@@ -103,7 +98,6 @@ ssh forge "sudo systemctl start lolminer-*"
 # Restart after configuration change
 
 # Restart all mining
-sudo systemctl restart lolminer-*
 ```
 
 ## Mining Configuration
@@ -112,7 +106,6 @@ Mining services are defined in NixOS modules:
 ```
 /etc/nixos/modules/mining/
 ├── default.nix           # Main mining module
-└── lolminer.nix          # LolMiner (Etchash) GPU miner
 ```
 
 ### Host-Specific Mining Configuration
@@ -127,7 +120,6 @@ profiles.role.mining = true;
   gpus = [ "0" "1" ];  # GPU indices
 };
 
-services.lolminer = {
   enable = true;
   devices = [ "0" "1" ];
 };
@@ -195,7 +187,6 @@ sudo nvidia-smi -i 0 -pl 350  # RTX 3090 max
 sudo nvidia-smi -i 1 -pl 200  # RTX 3060 Ti max
 
 # Ensure mining is running
-sudo systemctl restart lolminer-*
 ```
 
 ### AI Mode (Balanced)
@@ -205,7 +196,6 @@ sudo nvidia-smi -i 0 -pl 250
 sudo nvidia-smi -i 1 -pl 130
 
 # Stop mining to free GPU
-sudo systemctl stop lolminer-*
 
 # Verify LM Studio has access
 curl http://127.0.0.1:1234/v1/models
@@ -214,7 +204,6 @@ curl http://127.0.0.1:1234/v1/models
 ### Gaming Mode (Low Latency)
 ```bash
 # Stop mining first
-sudo systemctl stop lolminer-*
 
 # Set optimal gaming power
 sudo nvidia-smi -i 0 -pl 280
@@ -290,8 +279,6 @@ systemd.services.gpu-power-limit = {
 ### View Mining Output
 ```bash
 
-# View lolminer logs
-journalctl -u lolminer-nvidia -f
 
 # Check recent hashrate
 ```

@@ -93,7 +93,6 @@ Contains easykubenix definitions for:
 - Gaming Detection
 - Mining Coordinator
 - Mining-Inference Coordinator
-- lolminer-nvidia (zephyr)
 - Caddy Local
 - Syncthing
 

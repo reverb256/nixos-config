@@ -1,5 +1,4 @@
 # GPU Miner Deployment for Nexus (RTX 3060 Ti)
-# - swamp7/lolminer bundles CUDA 12.1 runtime
 # - Host NVIDIA driver libs via /nix/store + /run/opengl-driver/lib mounts
 # - LD_LIBRARY_PATH includes host driver path for CUDA compatibility
 # - Power limit 120W, core 1605 MHz, mem offset +1200
@@ -39,8 +38,6 @@ spec:
           operator: Exists
           effect: NoSchedule
       containers:
-      - name: lolminer
-        image: docker.io/swamp7/lolminer:latest
         imagePullPolicy: IfNotPresent
         args:
           - "--algo=CR29"

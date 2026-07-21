@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # Query local miner and output hashrate for starship prompt
-# Supports: srbminer (API ports 21550+), lolminer (API port 3333)
 
 set -euo pipefail
 

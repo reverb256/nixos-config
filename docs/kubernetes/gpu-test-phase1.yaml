@@ -5,7 +5,6 @@
 # The compute-workload-monitor should:
 # 1. Detect this pod using kubectl
 # 2. Switch to "kubernetes-gpu" profile
-# 3. Pause GPU mining (lolminer-nvidia)
 # 4. Reduce CPU mining to 50%
 #
 # Usage:

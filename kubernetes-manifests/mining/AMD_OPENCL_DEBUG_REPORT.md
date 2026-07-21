@@ -37,10 +37,7 @@ volumeMounts:
     readOnly: true
 ```
 
-### Issue 2: lolMiner ICD Path Concatenation Bug ❌ → ✅ FIXED
-**Symptom**: ICD file exists but lolMiner constructs wrong path.
 
-lolMiner has a bug in its OpenCL ICD loading code. It reads `OCL_ICD_VENDORS`,
 scans the directory via `getdents64`, but concatenates the path + filename
 **without a `/` separator**:
 
@@ -65,13 +62,11 @@ version `GLIBC_2.38' not found (required by libamdocl64.so)
 The NixOS-built `libamdocl64.so` (from CLR 7.2.0) requires **GLIBC_2.38+**.
 | Container Image | glibc | OpenCL Works? |
 |----------------|-------|---------------|
-| swamp7/lolminer (Ubuntu 18.04) | 2.27 | ❌ GLIBC_2.34 not found |
 | ubuntu:22.04 | 2.35 | ❌ GLIBC_2.38 not found |
 | **ubuntu:24.04** | **2.39** | **✅ ALL GPUs DETECTED** |
 
 **Fix**: Use a container image with glibc ≥ 2.38. Options:
 1. **ubuntu:24.04** (glibc 2.39) — simplest, verified working
-2. **lolminer-amd:1.98a-nixos** — if rebuilt with Ubuntu 24.04 base instead of 18.04
 3. **Fedora 40+** — also has glibc ≥ 2.38
 
 ## What's Also Required
@@ -98,7 +93,6 @@ securityContext:
 ## The Complete Dependency Chain
 
 ```
-lolMiner (static binary, self-contained)
   └─ dlopen("libOpenCL.so.1")           ← via LD_LIBRARY_PATH=/run/opengl-driver/lib
      └─ reads /etc/OpenCL/vendors/*.icd  ← via OCL_ICD_VENDORS (needs trailing /)
         └─ amdocl64.icd → libamdocl64.so
@@ -167,7 +161,6 @@ spec:
 
 ```bash
 # Inside the verified pod:
-/nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a/bin/lolMiner --list-devices
 
 # OUTPUT:
 # OpenCL driver detected. Number of OpenCL supported GPUs: 2
@@ -186,7 +179,6 @@ Deploying AMD pods alongside requires conservative memory settings:
 ```yaml
 resources:
   requests:
-    memory: "512Mi"    # lolMiner uses ~300MB actual
     cpu: "500m"
   limits:
     memory: "2Gi"
@@ -207,5 +199,4 @@ If deploying both AMD and NVIDIA pods simultaneously causes OOM, consider:
 | ROCm Runtime (HSA) | `/nix/store/bcpsxd7saqx2141gj7z92a810vbv0pwh-rocm-runtime-7.2.0` |
 | ROCm Comgr | `/nix/store/igyf5nccby5b385gql65p3qwjvpxcr30-rocm-comgr-22.0.0-rocm` |
 | NixOS glibc 2.42 | `/nix/store/jms7zxzm7w1whczwny5m3gkgdjghmi2r-glibc-2.42-51` |
-| lolMiner 1.98a | `/nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a` |
 | NVIDIA OpenCL ICD | `/nix/store/ia20kw8xkfssyfjmk2kanm5nhxablfyz-nvidia-x11-595.45.04-6.18.13/etc/OpenCL/vendors/nvidia.icd` |
