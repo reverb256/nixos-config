@@ -24,7 +24,8 @@
     monitoring.smart-exporter.enable = true;
 
     # Mining exporter for CPU/GPU mining metrics
-    mining-exporter.enable = true;
+    # Mining exporter removed (module deleted with compute-market cleanup)
+    # mining-exporter.enable = true;
 
     # Log aggregation to Sentry's Loki
     monitoring.promtail = {
