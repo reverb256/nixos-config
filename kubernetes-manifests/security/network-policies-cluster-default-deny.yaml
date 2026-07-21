@@ -169,7 +169,6 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: xmrig
   policyTypes:
     - Egress
   egress:

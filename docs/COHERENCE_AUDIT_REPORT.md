@@ -33,7 +33,6 @@ Conducted comprehensive coherence audit across 187 NixOS modules and 338 Kuberne
 | hardware/ | 7 | nvidia-common.nix, gpu-compute.nix |
 | desktop/ | 7 | wayland-common.nix, hyprland.nix |
 | gaming/ | 3 | gaming-detection.nix, scopebuddy.nix |
-| mining/ | 6 | dual-xmrig.nix, gpu-miner-cpp.nix |
 | development/ | 5 | tools.nix, lsp.nix |
 | network/ | 4 | cluster-hosts.nix, cluster-networking.nix |
 

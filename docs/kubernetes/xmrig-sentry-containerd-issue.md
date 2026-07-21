@@ -1,4 +1,3 @@
-# xmrig-sentry Containerd CRI Issue
 
 **Date:** 2026-03-22
 **Status:** Documented, Workaround Applied
@@ -6,12 +5,10 @@
 
 ## Problem
 
-The xmrig-sentry deployment fails with `ErrImageNeverPull` even though the container image exists in containerd.
 
 ### Symptoms
 
 ```
-ErrImageNeverPull: Container image "docker.io/library/xmrig-nixos:latest" is not present with pull policy of Never
 ```
 
 - `ctr image ls` shows the image exists in containerd
@@ -41,17 +38,11 @@ Additionally, CRI-managed images have the label `io.cri-containerd.image=managed
 
 ## Comparison: Working vs Broken Nodes
 
-| Node | `ctr image ls` | `crictl images` | xmrig Status |
 |------|----------------|-----------------|---------------|
-| Zephyr | ✅ Shows xmrig | ✅ Shows xmrig | ✅ Mining |
-| Nexus | ✅ Shows xmrig | ✅ Shows xmrig | ✅ Mining |
-| Sentry | ✅ Shows xmrig | ❌ Missing | ❌ Failed |
 
 ## Workaround Applied
 
-Scaled down xmrig-sentry deployment:
 ```bash
-kubectl scale deployment xmrig-sentry -n mining --replicas=0
 ```
 
 **Current Mining Capacity:**
@@ -66,17 +57,13 @@ kubectl scale deployment xmrig-sentry -n mining --replicas=0
 Need to import images using CRI plugin APIs instead of plain `ctr`:
 ```bash
 # This doesn't work - crictl has no load command in this version
-crictl load < xmrig-nixos.tar.gz
 
 # Alternative: Use containerd CRI plugin
 # (requires investigation of proper CRI import method)
 ```
 
-### Option 2: Run xmrig as Systemd Service
-Fall back to systemd-managed xmrig on sentry (pre-Kubernetes approach):
 ```nix
 # hosts/sentry/configuration.nix
-services.xmrig = {
   enable = true;
   settings = {
     url = "10.1.1.110:3333";
@@ -101,15 +88,11 @@ May need to:
 
 ## Next Steps
 
-1. **Short-term**: Run xmrig-sentry as systemd service (Option 2)
 2. **Medium-term**: Research proper CRI image import method (Option 1)
 3. **Long-term**: Standardize container image distribution across cluster
 
 ## Files Referenced
 
-- `/etc/nixos/flake.nix` - xmrig-nixos-image build (line 401-418)
-- `/etc/nixos/kubernetes-manifests/mining/xmrig-sentry.yaml`
-- Container image: `docker.io/library/xmrig-nixos:latest`
 - Image digest: `sha256:604c7949c15977a813ead3b732308679f71e8af59b55751bbe7daa47965ab229`
 
 ## Related Issues

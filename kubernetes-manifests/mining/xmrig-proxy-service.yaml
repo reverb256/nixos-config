@@ -1,16 +1,12 @@
-# xmrig-proxy ClusterIP Service
 # Provides stable network endpoint for mining pods
 apiVersion: v1
 kind: Service
 metadata:
-  name: xmrig-proxy
   namespace: mining
   labels:
-    app: xmrig-proxy
 spec:
   type: ClusterIP
   selector:
-    app: xmrig-proxy
   ports:
     - name: stratum
       port: 3333

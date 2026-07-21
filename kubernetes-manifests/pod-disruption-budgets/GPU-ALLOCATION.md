@@ -579,7 +579,6 @@ ssh forge "nvidia-smi && rocm-smi"
 ```
 
 ### Mining Revenue Tracking
-- Hashrate aggregation via xmrig-proxy on Zephyr (10.1.1.110:3333)
 - Wallet-based tracking per GPU
 - Revenue per GPU monitoring
 

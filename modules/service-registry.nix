@@ -355,11 +355,8 @@ in {
       };
 
       # ── Mining Proxy ──────────────────────────────────────────────
-      xmrig-proxy = mkService {
-        name = "xmrig-proxy";
         namespace = "mining";
         port = 3333;
-        lan = "xmrig-proxy.lan";
         auth = "none";
         protocol = "stratum+tcp"; # Non-HTTP protocol
       };

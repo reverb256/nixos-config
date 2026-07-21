@@ -100,7 +100,6 @@
 - NixOS-share (configuration sync)
 
 **Desktop/Mining (9):**
-- Gaming tools, mining clients (xmrig, lolminer)
 - Not containerized (remain on systemd)
 
 ---

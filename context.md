@@ -8,14 +8,6 @@
 4. `kubernetes-manifests/mining/gpu-miner-forge-nvidia-1.yaml` (full) — NVIDIA GPU 1 lolMiner
 5. `kubernetes-manifests/mining/gpu-miner-nexus.yaml` (full) — Nexus RTX 3060 Ti lolMiner
 6. `kubernetes-manifests/mining/gpu-miner-zephyr.yaml` (full) — Zephyr RTX 3090 lolMiner
-7. `kubernetes-manifests/mining/xmrig-nexus.yaml` (full) — Nexus CPU xmrig (base)
-8. `kubernetes-manifests/mining/xmrig-nexus-variable.yaml` (full) — Nexus CPU xmrig (variable/preemptible)
-9. `kubernetes-manifests/mining/xmrig-sentry.yaml` (full) — Sentry CPU xmrig (base)
-10. `kubernetes-manifests/mining/xmrig-sentry-variable.yaml` (full) — Sentry CPU xmrig (variable/preemptible)
-11. `kubernetes-manifests/mining/xmrig-zephyr.yaml` (full) — Zephyr CPU xmrig (base)
-12. `kubernetes-manifests/mining/xmrig-zephyr-variable.yaml` (full) — Zephyr CPU xmrig (variable/preemptible)
-13. `kubernetes-manifests/mining/xmrig-proxy-deployment.yaml` (full) — Stratum proxy
-14. `kubernetes-manifests/mining/xmrig-proxy-configmap.yaml` (full) — Proxy config
 
 ---
 
@@ -25,7 +17,6 @@
 
 ```
                     ┌─────────────────────┐
-                    │  xmrig-proxy (nexus) │  ← Stratum proxy on nexus:3333
                     │  priority: system-   │     API on nexus:8081
                     │  cluster-critical     │
                     └──────┬────────────────┘
@@ -45,7 +36,6 @@
 
 ### Two Connection Modes
 
-1. **CPU miners** → `xmrig-proxy` (nexus:3333) → kryptex RandomX pools (via proxy)
 2. **GPU miners** → kryptex CR29 pools **directly** (dual-pool failover: US primary, EU secondary)
 
 ### Three Deployment Categories
@@ -53,9 +43,6 @@
 | Category | Count | Priority | Image Strategy |
 |----------|-------|----------|----------------|
 | GPU lolMiner (direct pool) | 6 | `mining-low` | AMD: `ubuntu:24.04` + host nix-store mount; NVIDIA: `swamp7/lolminer` + host nix-store mount |
-| CPU xmrig base | 3 | `mining-low` | `xmrig-alpine:6.25.0` (local, `imagePullPolicy: Never`) |
-| CPU xmrig variable | 3 | `preemptible-mining` | `xmrig-alpine:6.25.0` (local, `imagePullPolicy: Never`) |
-| xmrig-proxy | 1 | `system-cluster-critical` | `xmrig-proxy:nixos-6.24.0` (local, `imagePullPolicy: Never`) |
 
 ---
 
@@ -230,14 +217,11 @@
 
 ---
 
-### 7. xmrig-nexus
 
 | Field | Value |
 |-------|-------|
-| **Image** | `xmrig-alpine:6.25.0` (`imagePullPolicy: Never`) |
 | **Command** | (default entrypoint) |
 | **Args** | `-o 10.1.1.120:3333 -u nexus-cpu --tls=false --threads=6 --donate-level=1 --http-enabled --http-host=0.0.0.0 --http-port=8082` |
-| **Env** | `XMRIG_NO_TLS=1` |
 | **Port** | 8082/tcp (api) |
 | **nodeName** | `nexus` |
 | **hostNetwork** | `true` |
@@ -270,11 +254,9 @@
 
 ---
 
-### 8. xmrig-nexus-variable
 
 | Field | Value |
 |-------|-------|
-| **Image** | `docker.io/library/xmrig-alpine:6.25.0` (`imagePullPolicy: Never`) |
 | **Command** | (default entrypoint) |
 | **Args** | `-o 10.1.1.120:3333 -u nexus-cpu-var --tls=false --threads=6 --donate-level=1 --http-enabled --http-host=0.0.0.0 --http-port=8083` |
 | **Env** | none |
@@ -294,18 +276,14 @@
 | **Tolerations** | `node-role.kubernetes.io/control-plane:NoSchedule` |
 | **Probes** | none |
 
-**Volume Mounts:** Same as xmrig-nexus (msr + hugepages + sys-module-msr + tmp).
 
 ---
 
-### 9. xmrig-sentry
 
 | Field | Value |
 |-------|-------|
-| **Image** | `xmrig-alpine:6.25.0` (`imagePullPolicy: Never`) |
 | **Command** | (default entrypoint) |
 | **Args** | `-o 10.1.1.120:3333 -u sentry-cpu --tls=false --threads=4 --donate-level=1 --http-enabled --http-host=0.0.0.0 --http-port=8081` |
-| **Env** | `XMRIG_NO_TLS=1` |
 | **Port** | 8081/tcp (api) |
 | **nodeName** | `sentry` |
 | **hostNetwork** | `true` |
@@ -327,11 +305,9 @@
 
 ---
 
-### 10. xmrig-sentry-variable
 
 | Field | Value |
 |-------|-------|
-| **Image** | `docker.io/library/xmrig-alpine:6.25.0` (`imagePullPolicy: Never`) |
 | **Command** | (default entrypoint) |
 | **Args** | `-o 10.1.1.120:3333 -u sentry-cpu-var --tls=false --threads=4 --donate-level=1 --http-enabled --http-host=0.0.0.0 --http-port=8083` |
 | **Env** | none |
@@ -355,14 +331,10 @@
 
 ---
 
-### 11. xmrig-zephyr
 
 | Field | Value |
 |-------|-------|
-| **Image** | `xmrig-alpine:6.25.0` (`imagePullPolicy: Never`) |
-| **Command** | `/bin/sh -c "exec /bin/xmrig -o 10.1.1.120:3333 -u zephyr-cpu --threads=8 --donate-level=1 --api-worker-id=zephyr-cpu --http-enabled --http-host=0.0.0.0 --http-port=8082"` |
 | **Args** | (inline via command) |
-| **Env** | `XMRIG_NO_TLS=1` |
 | **Port** | 8082/tcp (api) |
 | **nodeName** | `zephyr` |
 | **hostNetwork** | `true` |
@@ -393,11 +365,9 @@
 
 ---
 
-### 12. xmrig-zephyr-variable
 
 | Field | Value |
 |-------|-------|
-| **Image** | `docker.io/library/xmrig-alpine:6.25.0` (`imagePullPolicy: Never`) |
 | **Command** | (default entrypoint) |
 | **Args** | `-o 10.1.1.110:3333 -u zephyr-cpu-var --tls=false --threads=8 --donate-level=1 --http-enabled --http-host=0.0.0.0 --http-port=8083` |
 | **Env** | none |
@@ -414,22 +384,17 @@
 | **securityContext** | `privileged: true` |
 | **Resources req** | `memory: 2Gi, cpu: 4` |
 | **Resources lim** | `memory: 4Gi, cpu: 8` |
-| **Tolerations** | Same 4 as xmrig-zephyr (control-plane, workstation, interactive, ram-constrained) |
 | **Probes** | none |
 
 **Volume Mounts:** Same pattern (msr + hugepages + sys-module-msr + tmp).
 
-> ⚠️ **NOTE:** xmrig-zephyr-variable connects to `10.1.1.110:3333` (ZEPHYR's own proxy port?) instead of `10.1.1.120:3333` (nexus). This may be intentional or a bug.
 
 ---
 
-### 13. xmrig-proxy
 
 | Field | Value |
 |-------|-------|
-| **Image** | `xmrig-proxy:nixos-6.24.0` (`imagePullPolicy: Never`) |
 | **Command** | (default entrypoint) |
-| **Args** | `--config=/etc/xmrig-proxy/config.json --no-color` |
 | **Env** | none |
 | **Ports** | 3333/tcp (stratum), 8081/tcp (api) |
 | **nodeName** | `nexus` |
@@ -450,14 +415,10 @@
 
 | Name | MountPath | Source | Mode |
 |------|-----------|--------|------|
-| config | `/etc/xmrig-proxy` | configMap `xmrig-proxy-config` | ro |
-| secrets | `/etc/xmrig-proxy-secrets` | secret `xmrig-proxy-secret` (keys: `api-token`→`api-token`, `kryptex-password`→`pool-password`) | ro |
 
 ---
 
-### 14. xmrig-proxy-configmap
 
-**ConfigMap name:** `xmrig-proxy-config` (namespace: `mining`)
 
 **config.json contents:**
 
@@ -467,7 +428,6 @@
   "api": {
     "port": 8081,
     "restricted": true,
-    "token-file": "/etc/xmrig-proxy-secrets/api-token"
   },
   "randomx": {"mode": "light"},
   "log": {"level": 5},
@@ -476,28 +436,24 @@
       "id": "kryptex-rx-us",
       "url": "xtm-rx-us.kryptex.network:8038",
       "user": "krxXVNVMM7.cpu-proxy",
-      "pass-file": "/etc/xmrig-proxy-secrets/pool-password",
       "tls": true, "keepalive": true, "priority": 1
     },
     {
       "id": "kryptex-rx-eu",
       "url": "xtm-rx-eu.kryptex.network:8038",
       "user": "krxXVNVMM7.cpu-proxy",
-      "pass-file": "/etc/xmrig-proxy-secrets/pool-password",
       "tls": true, "keepalive": true, "priority": 2
     },
     {
       "id": "kryptex-cr29-us",
       "url": "xtm-c29-us.kryptex.network:8040",
       "user": "krxXVNVMM7.gpu-proxy",
-      "pass-file": "/etc/xmrig-proxy-secrets/pool-password",
       "tls": true, "keepalive": true, "priority": 1
     },
     {
       "id": "kryptex-cr29-eu",
       "url": "xtm-c29-eu.kryptex.network:8040",
       "user": "krxXVNVMM7.gpu-proxy",
-      "pass-file": "/etc/xmrig-proxy-secrets/pool-password",
       "tls": true, "keepalive": true, "priority": 2
     }
   ],
@@ -527,10 +483,6 @@
 | `hostPath /dev/dri`, `/dev/kfd` | AMD GPU miners | Device plugin or CSI |
 | `hostPath /dev` | NVIDIA GPU miners (forge-nvidia) | Device plugin (mounting entire /dev is overly broad) |
 | `hostPath /nix/store/...-clr-7.2.0-icd/etc/OpenCL/vendors` | AMD GPU miners | Pin ICD path as CSI volume |
-| `hostPath /dev/cpu`, `/dev/hugepages`, `/sys/module/msr` | All xmrig CPU miners | Keep as hostPath (MSR access) or CSI |
-| `emptyDir /tmp` | All xmrig CPU miners | Keep as emptyDir |
-| `configMap xmrig-proxy-config` | xmrig-proxy | Keep as ConfigMap |
-| `secret xmrig-proxy-secret` | xmrig-proxy | Keep as Secret |
 
 ### Image Migration Strategy
 
@@ -538,8 +490,6 @@
 |--------------|-------------|--------|
 | `ubuntu:24.04` + host nix-store | forge-amd-0, forge-amd-1 | Distroless + CSI mount lolminer binary |
 | `swamp7/lolminer:latest` | forge-nvidia-0/1, nexus, zephyr | Distroless + CSI mount lolminer binary |
-| `xmrig-alpine:6.25.0` (local) | All xmrig (6 deployments) | Distroless + CSI mount xmrig binary |
-| `xmrig-proxy:nixos-6.24.0` (local) | xmrig-proxy | Distroless + CSI mount proxy binary |
 
 ### Key Nix Store Paths Referenced
 
@@ -563,7 +513,6 @@
 
 | PriorityClass | Used By | Deployments |
 |---------------|---------|-------------|
-| `system-cluster-critical` | xmrig-proxy | 1 |
 | `mining-low` | All base miners | 9 |
 | `preemptible-mining` | All variable miners | 3 |
 
@@ -571,6 +520,3 @@
 
 | Node | Base Threads | Variable Threads | Total / Available |
 |------|-------------|-----------------|-------------------|
-| zephyr | 8 (xmrig-zephyr) | 8 (xmrig-zephyr-variable) | 16 / 32 (50%) |
-| nexus | 6 (xmrig-nexus) | 6 (xmrig-nexus-variable) | 12 / 24 (50%) |
-| sentry | 4 (xmrig-sentry) | 4 (xmrig-sentry-variable) | 8 / 16 (50%) |

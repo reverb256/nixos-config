@@ -47,7 +47,6 @@ First, understand the user's setup:
 
 ```bash
 # Check active mining services
-systemctl list-units | grep -E "(xmrig|lolminer|miner)"
 
 # Check GPU configuration
 nvidia-smi --query-gpu=name,power.limit --format=csv,noheader
@@ -148,7 +147,6 @@ Leverage the existing `nixos-rebuild-safe.sh` pattern - pause mining before expe
 ```bash
 # In your profitability script, if unprofitable:
 if ! /etc/nixos/scripts/check-mining-profit.sh; then
-    systemctl stop xmrig@*
     systemctl stop lolminer-*
     echo "Mining paused due to unprofitability" | logger -t mining-profit
 fi
@@ -182,7 +180,6 @@ For your cluster:
 
 ```bash
 # Check current mining status
-systemctl status xmrig@* lolminer-*
 
 # Check power consumption
 nvidia-smi --query-gpu=name,power.draw,power.limit --format=csv
@@ -191,7 +188,6 @@ nvidia-smi --query-gpu=name,power.draw,power.limit --format=csv
 echo "0.32 * 24 * 0.12" | bc  # RTX 3090 at $0.12/kWh
 
 # View mining logs
-journalctl -u xmrig@* -u lolminer-* --since "1 hour ago"
 ```
 
 ## Common Questions

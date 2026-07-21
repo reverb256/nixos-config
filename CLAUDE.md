@@ -406,7 +406,6 @@ useradd myuser
     - **Zephyr** (31GB RAM): ONLY infrastructure + mining
       - Control plane: kube-apiserver, etcd, kube-scheduler, kube-controller-manager
       - CNI: Calico components
-      - Mining: gpu-miner-zephyr, xmrig-zephyr (RTX 3090 GPU)
       - NO OTHER WORKLOADS
     - **Forge** (15GB RAM): GPU mining only (2x NVIDIA + 2x AMD)
     - **Sentry** (31GB RAM): Monitoring, logging

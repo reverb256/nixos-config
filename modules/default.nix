@@ -46,7 +46,6 @@
     ./system/mining-coordinator.nix
     ./system/oom-protection.nix
     ./system/home-permissions-fix.nix
-    ./system/xmrig-api-control.nix
     ./system/boot-emergency-diagnostics.nix
     ./system/mining-inference-coordinator.nix
     ./system/status-auto-update.nix
@@ -96,10 +95,7 @@
 
     # Mining
     # Most mining modules handled by inputs.compute-market.nixosModules.default
-    # (services.mining.*, services.xmrig-proxy.*, services.mining-exporter.*, etc.)
     # ./mining/mining.nix
-    # ./mining/dual-xmrig.nix
-    # ./mining/xmrig-proxy.nix
     # ./mining/mining-proxy.nix
     # mining-plasmoid is NOT in the compute-market flake's import list, keep local
     ./mining/mining-plasmoid.nix

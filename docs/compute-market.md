@@ -70,7 +70,6 @@ services.compute-market = {
   bidders.mining = {
     enable = true;
     hourlyRevenue = 0.10; # USD per GPU per hour
-    services = ["lolminer-nvidia" "xmrig"];
   };
 
   # Kubernetes bidder

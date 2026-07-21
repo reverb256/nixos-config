@@ -38,7 +38,6 @@ in {
       mining = mkOption {
         type = types.bool;
         default = false;
-        description = "Enable mining exporter (XMRig metrics)";
       };
     };
 

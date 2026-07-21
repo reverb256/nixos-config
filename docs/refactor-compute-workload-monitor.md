@@ -7,7 +7,6 @@
 ### Mixed Responsibilities
 
 1. **❌ REDUNDANT - Systemd Service Management** (~400 lines)
-   - `pause_xmrig()`, `resume_xmrig()` - systemctl stop/start for xmrig-always, xmrig-flexible
    - `manage_lolminer_for_gaming()` - systemctl stop/start for lolminer-nvidia
    - All systemd mining service control (lines 1046-1089, 286-292)
 
@@ -51,7 +50,6 @@ User Request: "compute-workload-monitor i think we need to completely remove bec
    - Both trying to control same resources → conflicts
 
 2. **Systemd Mining Services No Longer Used**
-   - xmrig systemd services replaced by K8s deployments (xmrig-zephyr, xmrig-nexus)
    - lolminer systemd being migrated to K8s (gpu-miner-forge-*)
    - Remaining systemd control is redundant
 
@@ -90,7 +88,6 @@ compute-workload-monitor.nix (1665 lines)
 ### Phase 2: Remove Redundant Code
 
 **Delete Entirely:**
-- All `pause_xmrig()`, `resume_xmrig()` functions (lines 1046-1071)
 - All `pause_lolminer_for_gaming()` logic (lines 264-348)
 - All `systemctl stop/start` calls for mining services
 - All `kubectl scale` calls (replaced by Volcano preemption)
@@ -245,7 +242,6 @@ description: "Low priority for mining workloads"
 apiVersion: scheduling.volcano.sh/v1beta1
 kind: PodGroup
 metadata:
-  name: xmrig-zephyr-group
 spec:
   minMember: 1
   minResources:

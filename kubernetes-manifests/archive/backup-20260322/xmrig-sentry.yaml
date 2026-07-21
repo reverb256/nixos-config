@@ -1,12 +1,9 @@
-# XMRig CPU Miner Deployment for Sentry (16 cores)
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: xmrig-sentry
   namespace: mining
   labels:
-    app: xmrig
     host: sentry
     workload: crypto-mining
 spec:
@@ -14,7 +11,6 @@ spec:
   revisionHistoryLimit: 3
   selector:
     matchLabels:
-      app: xmrig
       host: sentry
   strategy:
     type: RollingUpdate
@@ -24,7 +20,6 @@ spec:
   template:
     metadata:
       labels:
-        app: xmrig
         host: sentry
         workload: crypto-mining
       annotations:
@@ -42,8 +37,6 @@ spec:
         runAsUser: 1000
         fsGroup: 1000
       containers:
-      - name: xmrig
-        image: docker.io/xmrig/xmrig:6.22.2
         imagePullPolicy: IfNotPresent
         args:
           - "-o"
@@ -84,7 +77,6 @@ spec:
             memory: "2Gi"
             cpu: "2"
         env:
-        - name: XMRIG_NO_TLS
           value: "1"
         securityContext:
           allowPrivilegeEscalation: false

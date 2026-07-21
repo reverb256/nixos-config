@@ -56,8 +56,6 @@ User asked "check all network endpoints" — discovered widespread hardcoded IPs
 ### K8s Modules (easykubenix — no `config` access)
 - `kubernetes/modules/vane.nix` — gateway URL → K8s DNS constant
 - `kubernetes/modules/monitoring.nix` — `hostIPs` constant for scrape targets
-- `kubernetes/modules/mining.nix` — `xmrigProxy` constant
-- `kubernetes/modules/host-services.nix` — `xmrigProxy` constant
 
 ### Live K8s Changes (kubectl apply)
 - `coredns` ConfigMap — removed wrong NodeHosts entry
@@ -93,7 +91,6 @@ Host service → 127.0.0.1:53 (unbound)
 
 | Bug | Cause | Fix |
 |-----|-------|-----|
-| Infinite recursion in `host-services.nix` | `replace_all` caught definition itself `${xmrigProxy}` | Kept definition as literal string, only interpolated at usage sites |
 | `attribute 'kubernetes' missing` | Submodule `readOnly = true` with no `default` | Removed `readOnly`, added `default = {}` |
 | File corruption (line-number prefixes) | Linter modified configuration.nix | Restored from git |
 

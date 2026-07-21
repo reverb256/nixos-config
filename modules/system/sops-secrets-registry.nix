@@ -425,33 +425,21 @@ in {
           };
         })
         (mkIf config.services.sops-secrets-registry.mining {
-          "mining/xmrig-always-api-token" = {
-            sopsFile = "${inputs.self}/secrets/mining/xmrig-always-api-token.yaml";
-            path = "/run/secrets/xmrig-always-api-token";
             format = "binary";
             mode = "0444";
             owner = "root";
             group = "root";
           };
-          "mining/xmrig-api-token" = {
-            sopsFile = "${inputs.self}/secrets/mining/xmrig-api-token.yaml";
-            path = "/run/secrets/xmrig-api-token";
             format = "binary";
             mode = "0444";
             owner = "root";
             group = "root";
           };
-          "mining/xmrig-flexible-api-token" = {
-            sopsFile = "${inputs.self}/secrets/mining/xmrig-flexible-api-token.yaml";
-            path = "/run/secrets/xmrig-flexible-api-token";
             format = "binary";
             mode = "0444";
             owner = "root";
             group = "root";
           };
-          "mining/xmrig-proxy-api-token" = {
-            sopsFile = "${inputs.self}/secrets/mining/xmrig-proxy-api-token.yaml";
-            path = "/run/secrets/xmrig-proxy-api-token";
             format = "binary";
             mode = "0444";
             owner = "root";

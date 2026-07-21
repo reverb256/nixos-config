@@ -9,7 +9,6 @@
   ...
 }: let
   scratchImage = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
-  xmrigProxy = "stratum+tcp://${cluster.hosts.nexus.ip}:3333";
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };

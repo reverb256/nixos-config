@@ -194,7 +194,6 @@ done
 curl -s http://127.0.0.1:8080/metrics | grep inference
 
 # Check mining status
-systemctl status xmrig@* lolminer-*
 ```
 
 ## Seasonal Planning

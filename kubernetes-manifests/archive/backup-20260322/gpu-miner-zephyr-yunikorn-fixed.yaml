@@ -92,7 +92,6 @@ spec:
         imagePullPolicy: Always
         args:
           - "--algo=CR29"
-          - "--pool=stratum+tcp://10.1.1.110:3333"  # Connect to xmrig-proxy service
           - "--user=zephyr-gpu"
           - "--devices=1"  # RTX 3090 only (GPU 1)
           - "--apiport=4068"

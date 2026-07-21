@@ -151,7 +151,6 @@ in {
                 type = lib.types.int;
                 default = 53317;
               };
-              xmrig-api = lib.mkOption {
                 type = lib.types.int;
                 default = 8081;
               };
@@ -421,13 +420,11 @@ in {
                       description = "llama-server Sentry ROCm";
                     };
 
-                    xmrig-proxy = lib.mkOption {
                       type = lib.types.submodule {
                         options = {
                           host = lib.mkOption {
                             type = lib.types.str;
                             default = "10.1.1.120";
-                            description = "xmrig-proxy host (not a K8s DNS service)";
                           };
                           port = lib.mkOption {
                             type = lib.types.int;
@@ -436,7 +433,6 @@ in {
                         };
                       };
                       default = {};
-                      description = "xmrig-proxy stratum endpoint";
                     };
                   };
                 };

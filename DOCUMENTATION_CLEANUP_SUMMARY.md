@@ -50,7 +50,6 @@
 1. `compute-workload-monitor-implementation-plan.md` (1,681 lines)
    - Added: `# STATUS: 🟡 ACTIVE IMPLEMENTATION PLAN - IN PROGRESS`
 
-2. `2026-03-22-xmrig-intelligent-autoscaling-implementation.md` (1,597 lines)
    - Added: `# STATUS: 🟡 ACTIVE IMPLEMENTATION PLAN - IN PROGRESS`
 
 3. `pod-disruption-budgets/IMPLEMENTATION-PLAN.md` (1,543 lines)

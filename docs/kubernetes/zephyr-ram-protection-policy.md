@@ -37,7 +37,6 @@ Only workloads with the `ram-constrained` toleration can schedule to Zephyr:
    - CNI plugins (nvidia-device-plugin, amd-gpu-device-plugin)
 
 2. **Mining** (explicit ram-constrained toleration)
-   - xmrig-zephyr (CPU mining)
    - gpu-miner-zephyr (GPU mining - currently disabled due to GPU device health issue)
 
 ### Default Scheduling Target
@@ -131,7 +130,6 @@ kubectl get pod <pod-name> -n <namespace> -o jsonpath='{.spec.tolerations}' | jq
 
 **Impact:** Not related to ram-constrained toleration (toleration is correctly applied).
 
-**Resolution:** Pending GPU device health investigation. xmrig-zephyr (CPU mining) continues to run successfully.
 
 ## Related Documentation
 
@@ -143,7 +141,5 @@ kubectl get pod <pod-name> -n <namespace> -o jsonpath='{.spec.tolerations}' | jq
 ## Changes
 
 **2026-03-24:**
-- Applied ram-constrained toleration to xmrig-zephyr and gpu-miner-zephyr
-- Verified xmrig-zephyr running successfully with toleration
 - Disabled gpu-miner-zephyr (GPU device health issue, unrelated to tolerations)
 - Created documentation
