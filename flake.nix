@@ -40,6 +40,7 @@
     nixcord = {
       url = "git+https://github.com/FlameFlag/nixcord";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-parts.follows = "flake-parts";
     };
     # spicetify-nix - Disabled due to deprecated options in systems dependency
     # Not currently used in configuration
