@@ -95,7 +95,7 @@
 
     # Mining
     # Most mining modules REMOVED (compute-market, lolminer, xmrig)
-    # ./mining/mining.nix
+    ./mining/mining.nix
     # Note: Python gpu-proxy removed - replaced by gpu-proxy-cpp (centralized on Forge)
     # gpu-proxy handled by inputs.gpu-proxy.nixosModules.default
     # ./mining/gpu-proxy-cpp.nix
