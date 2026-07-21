@@ -403,37 +403,9 @@
     spotify-spotx.enable = true;
 
     # GPU mining DISABLED: 3060 Ti is used for desktop (VRAM exhausted by KWin/Xwayland)
-    # Only 136MB VRAM free - insufficient for CR29 mining DAG (~7GB required)
-    # CPU mining DISABLED: K8s version working instead
+    # CPU mining DISABLED: Migrated to Kubernetes
     mining = {
-      # Total when idle: 12 threads (50%) - Total when gaming: 4 threads (17%)
-      # DISABLED: Migrated to Kubernetes
-        enable = false;
-        # Always-on instance - mines even during gaming
-        alwaysOn = {
-          enable = false;
-          threads = 4; # 17% of 24 cores
-          httpPort = 8081;
-          autostart = false;
-        };
-        # Flexible instance - pauses during gaming/builds
-        flexible = {
-          enable = true;
-          threads = 8; # 33% of 24 cores
-          httpPort = 8082;
-          autostart = false;
-        };
-        # Common settings for both instances
-        wallet = "nexus-cpu"; # Worker ID for proxy
-        password = "x";
-        tls = false; # No TLS needed for local proxy
-      };
-
-      # GPU mining DISABLED on nexus - runs via Kubernetes (gpu-miner-nexus)
-      # Power limit set here for boot persistence; K8s pod connects to pool
-        enable = false; # Mining runs in K8s, not systemd
-        powerLimit = 120; # RTX 3060 Ti @ 120W (persists via nvidia-gpu-power-limit service)
-      };
+      enable = lib.mkForce false;
     };
 
     # GPU Proxy - DISABLED: Using centralized gpu-proxy-cpp on Forge (10.1.1.130:3334)
