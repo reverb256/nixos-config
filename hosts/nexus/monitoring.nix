@@ -28,7 +28,7 @@
 
     # Log aggregation to Sentry's Loki
     monitoring.promtail = {
-      enable = true;
+      enable = false;
       lokiUrl = "http://10.1.1.140:3100/loki/api/v1/push";
     };
 

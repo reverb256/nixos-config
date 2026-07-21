@@ -298,6 +298,7 @@
       gridPos,
       legendFormat ? "",
       unit ? "none",
+      description ? "",
       custom ? null,
       thresholds ? null,
     }: let
@@ -324,6 +325,7 @@
       datasource = prometheusDatasource;
       fieldConfig.defaults = fieldConfig;
       inherit gridPos;
+      inherit description;
       options = {
         legend = {
           calcs = ["mean" "max" "last"];

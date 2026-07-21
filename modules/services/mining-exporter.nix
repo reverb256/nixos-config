@@ -1,5 +1,4 @@
 # Mining Metrics Exporter for Prometheus
-# Exports lolminer and xmrig metrics for cluster monitoring
 {
   config,
   lib,
@@ -56,22 +55,18 @@ let
       nvidia = true;
       amd = false;
       cpu = true;
-      lolminerPort = 4068;
       xmrigPort = 8081;
     };
     nexus = {
       nvidia = true;
       amd = false;
       cpu = true;
-      lolminerPort = 4068;
       xmrigPort = 8081;
     };
     forge = {
       nvidia = true;
       amd = true;
       cpu = false;
-      lolminerPort = 4068;
-      lolminerAmdPort = 4069;
       xmrigPort = 8081;
     };
     sentry = {
@@ -130,51 +125,6 @@ in
           # Temporary file for accumulating metrics
           METRICS_FILE="$METRICS_DIR/metrics.tmp"
 
-          # Fetch lolminer metrics (appends to METRICS_FILE)
-          fetch_lolminer() {
-            local port=$1
-            local gpu_type=$2  # nvidia or amd
-
-            if ! ${pkgs.curl}/bin/curl -s http://localhost:"$port" > /tmp/lolminer_"$gpu_type".json 2>/dev/null; then
-              return
-            fi
-
-            {
-              echo "# HELP mining_lolminer_hashrate_total Total hashrate for lolminer"
-              echo "# TYPE mining_lolminer_hashrate_total gauge"
-              HASHRATE=$(${pkgs.jq}/bin/jq -r '.Algorithms[0].Total_Performance // 0' /tmp/lolminer_"$gpu_type".json 2>/dev/null || echo "0")
-              echo "mining_lolminer_hashrate_total{instance=$HOST_LABEL,gpu_type=\"$gpu_type\"} $HASHRATE"
-
-              echo "# HELP mining_lolminer_hashrate_per_gpu Hashrate per GPU"
-              echo "# TYPE mining_lolminer_hashrate_per_gpu gauge"
-              ${pkgs.jq}/bin/jq -r --arg hostname "$HOSTNAME" --arg gputype "$gpu_type" '.Algorithms[0].Worker_Performance as $perf | .Workers as $workers | range(0; $workers | length) | "mining_lolminer_hashrate_per_gpu{instance=\"" + $hostname + "\",gpu_type=\"" + $gputype + "\",gpu_id=\"" + ($workers[.].Index | tostring) + "\",gpu_name=\"" + ($workers[.].Name // "unknown") + "\"} " + ($perf[.] // "0" | tostring)' /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
-
-              echo "# HELP mining_lolminer_shares_accepted Total accepted shares"
-              echo "# TYPE mining_lolminer_shares_accepted counter"
-              ACCEPTED=$(${pkgs.jq}/bin/jq -r '.Algorithms[0].Total_Accepted // 0' /tmp/lolminer_"$gpu_type".json 2>/dev/null || echo "0")
-              echo "mining_lolminer_shares_accepted{instance=$HOST_LABEL,gpu_type=\"$gpu_type\"} $ACCEPTED"
-
-              echo "# HELP mining_lolminer_shares_rejected Total rejected shares"
-              echo "# TYPE mining_lolminer_shares_rejected counter"
-              REJECTED=$(${pkgs.jq}/bin/jq -r '.Algorithms[0].Total_Rejected // 0' /tmp/lolminer_"$gpu_type".json 2>/dev/null || echo "0")
-              echo "mining_lolminer_shares_rejected{instance=$HOST_LABEL,gpu_type=\"$gpu_type\"} $REJECTED"
-
-              echo "# HELP mining_lolminer_uptime_seconds Uptime in seconds"
-              echo "# TYPE mining_lolminer_uptime_seconds gauge"
-              UPTIME=$(${pkgs.jq}/bin/jq -r '.Session.Uptime // 0' /tmp/lolminer_"$gpu_type".json 2>/dev/null || echo "0")
-              echo "mining_lolminer_uptime_seconds{instance=$HOST_LABEL,gpu_type=\"$gpu_type\"} $UPTIME"
-
-              echo "# HELP mining_lolminer_power_watts Power consumption"
-              echo "# TYPE mining_lolminer_power_watts gauge"
-              ${pkgs.jq}/bin/jq -r --arg hostname "$HOSTNAME" --arg gputype "$gpu_type" '.Workers[] | "mining_lolminer_power_watts{instance=\"" + $hostname + "\",gpu_type=\"" + $gputype + "\",gpu_id=\"" + (.Index | tostring) + "\",gpu_name=\"" + (.Name // "unknown") + "\"} " + (.Power // "0" | tostring)' /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
-
-              echo "# HELP mining_lolminer_temperature_celsius GPU temperature"
-              echo "# TYPE mining_lolminer_temperature_celsius gauge"
-              ${pkgs.jq}/bin/jq -r --arg hostname "$HOSTNAME" --arg gputype "$gpu_type" '.Workers[] | "mining_lolminer_temperature_celsius{instance=\"" + $hostname + "\",gpu_type=\"" + $gputype + "\",gpu_id=\"" + (.Index | toString) + "\",gpu_name=\"" + (.Name // "unknown") + "\"} " + (.Core_Temp // "0" | tostring)' /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
-
-              echo ""
-            } >> "$METRICS_FILE"
-          }
 
           # Fetch xmrig metrics (appends to METRICS_FILE)
           fetch_xmrig() {
@@ -210,41 +160,6 @@ in
 
           # Main polling loop
           # Conditionally fetch metrics based on what's configured for this host
-          ${lib.optionalString (hostConfig ? lolminerPort) ''
-            fetch_lolminer ${toString (hostConfig.lolminerPort or 4068)} "nvidia" &
-          ''}
-          ${lib.optionalString (hostConfig ? lolminerAmdPort) ''
-            fetch_lolminer ${toString (hostConfig.lolminerAmdPort or 4069)} "amd" &
-          ''}
-          ${lib.optionalString (hostConfig ? xmrigPort) ''
-            fetch_xmrig ${toString hostConfig.xmrigPort} &
-          ''}
-          wait
-
-            # Expose metrics via HTTP server
-            ${pkgs.python3}/bin/python3 ${httpServerScript} ${toString cfg.port} "$METRICS_FILE"
-
-            # Sleep until next scrape
-            sleep "$INTERVAL_SECONDS"
-          done
-        '';
-        Path = [
-          pkgs.curl
-          pkgs.hostname
-          pkgs.jq
-          pkgs.gnused
-          pkgs.coreutils
-        ];
-        # Security hardening
-        StandardError = "journal";
-        NoNewPrivileges = true;
-        PrivateTmp = true;
-        RuntimeDirectory = "prometheus-mining-exporter";
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        ReadOnlyPaths = "/";
-        ReadWritePaths = "/run/prometheus-mining-exporter";
-      };
     };
 
     # Use firewall helper to open ports
