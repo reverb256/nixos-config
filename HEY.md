@@ -11,7 +11,7 @@ sessions, models, or vendors). Read this before working. Update when done.
 
 | Agent | Scope | Files/hosts touched | Off-limits | Status | Last active |
 |-------|-------|---------------------|------------|--------|-------------|
-| zephyr-kernel-proxy-build | Upgrade zephyr kernel to CachyOS 7.1.3; fix proxy/store corruption; unbreak distributed builds | flake.nix, flake.lock, configuration.nix, distributed-builds.nix, nix-config.nix, stylix.nix, hermes-cli.nix, herdr.nix, justfile, osaka-jade.yaml | forge/mining services, sentry inference, k3s-cluster, niri-config | ✅ Core fixes done; ⏳ build v6 running (CachyOS 7.1.3 kernel compiling on sentry) | 2026-07-16 00:20 (UTC-5) |
+| j_kro-systemd_recovery | Sentry crash investigation + cluster k3s recovery | modules/system/kernel-hardening.nix, hosts/sentry/configuration.nix, hosts/sentry/services.nix, hosts/forge/services.nix, modules/development/ai-coding-tools/droid.nix, modules/system/sops-secrets-registry.nix | Peakminer/mining services, MapleSpike, Niri desktop configs | ✅ Cluster restored (nexus+forge+sentry); ✅ etcd quorum fixed (identity-only encryption); ✅ Forge agent config committed; ✅ Sentry panic=30 config committed; 🔄 Sentry k3s still cycling (3-member etcd formed, k3s not fully becoming Ready) | 2026-07-21 05:05 (UTC-5) |
 
 (Stale prior sessions archived — nexus-dns-and-hermes, maplespike-24-issues, nexus-de-vm-boot, infra/dns-recovery, quill-portal-fixes were all ✅ Done from earlier sessions.)
 
@@ -31,6 +31,17 @@ sessions, models, or vendors). Read this before working. Update when done.
 ---
 
 ## Work Log
+
+### 2026-07-21 05:05 (UTC-5) | j_kro-systemd_recovery
+- ✅ Sentry crash investigation: MCE on CPU 1 Bank 5 (Execution Unit, Jul 17), 2nd crash was hardware-level reset (PSU/thermal, no panic logs)
+- ✅ Cluster k3s recovery: etcd quorum fixed after cluster-reset on nexus; encryption config set to identity-only
+- ✅ etcd stale members removed (sentry, forge); cluster-reset recovery performed on nexus
+- ✅ Forge role config changed server→agent (committed `1a2211cb`, needs deploy)
+- ✅ Sentry panic=30 added to kernel params (committed `e10af411`)
+- ✅ Auth fixed: zephyr kubeconfig updated with new cluster certs
+- ✅ droid.nix JSON double-comma fixed (already in HEAD)
+- 🔄 Sentry k3s still cycling: 3-member etcd formed but k3s server not reaching Ready state
+- 🔄 Sentry's `/run/secrets/k3s-cluster-token` needs sops deployment or manual copy
 
 ### 2026-07-20 17:00 (UTC-5) | j_kro (quill-WebMCP-fixes)
 - ✅ WebMCP implemented (7 tools), deployed to k3s
