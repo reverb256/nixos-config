@@ -22,6 +22,7 @@
     nur = {
       url = "git+https://github.com/nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-parts.follows = "flake-parts";
     };
     claude-native = {
       url = "git+https://github.com/ryoppippi/claude-code-overlay";
@@ -75,11 +76,13 @@
     llm-agents = {
       url = "git+https://github.com/numtide/llm-agents.nix";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-parts.follows = "flake-parts";
     };
     # CachyOS kernel - Performance-optimized kernel for gaming/desktop (Zephyr only)
     # Provides: linux-cachyos-latest-x86_64-v3, sched_ext support, BORE scheduler
     # Binary cache: attic.xuyh0120.win/lantian (no local compilation needed)
     nix-cachyos-kernel.url = "git+https://github.com/xddxdd/nix-cachyos-kernel";
+    nix-cachyos-kernel.inputs.flake-parts.follows = "flake-parts";
     # linux-cachyos override — may not exist in all kernel flake versions, non-fatal if ignored
     # ── Inputs required by common-modules-list.nix (re-added after a drift where
     #    they were dropped from flake.nix but still referenced in the module list) ──
@@ -87,6 +90,7 @@
     hermes-agent = {
       url = "git+https://github.com/NousResearch/hermes-agent";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-parts.follows = "flake-parts";
     };
     # mcp-registry - MCP server registry module (local tarball: nix HTTPS fetcher stalls)
     mcp-registry = {
@@ -106,6 +110,11 @@
     # gpu-proxy - GPU proxy module (local tarball)
     gpu-proxy = {
       url = "tarball+file:///tmp/gpu-proxy.tar.gz";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # flake-parts — transitive dep for 6 inputs, use git+https to bypass GitHub API 401
+    flake-parts = {
+      url = "git+https://github.com/hercules-ci/flake-parts";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # noctalia - brightness daemon for NixOS
