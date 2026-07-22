@@ -91,6 +91,11 @@ in
         # and can no longer bypass stylix. Was previously dead code
         # (never imported) — see stylix audit 2026-07-16.
         ../../modules/home-manager/stylix-bridges.nix
+        # Self-healing: purge stale .v3-fix/.hm-backup files and un-freeze
+        # drifted plain-file dotfiles BEFORE linkGeneration (root-cause fix
+        # for the 2026-07-22 home-manager activation abort). Uses lib.hm.dag
+        # which is only in scope inside the HM user config, hence its own module.
+        ../../modules/home-manager/heal-stale-backups.nix
       ]
       # niri-config only on hosts with the niri HM module
       ++ lib.optional (hostName == "zephyr" || hostName == "sentry")
@@ -157,57 +162,11 @@ in
         force = true;
       };
 
-      # Remove stale HM backup files before activation to prevent clobber errors
-      home.activation.removeStaleBackups = ''
-        # Old extension (gone on next activation) and new extension (until clean state)
-        for ext in hm-backup v3-fix; do
-          rm -f "$HOME/.config/alacritty/alacritty.toml.$ext"
-          rm -f "$HOME/.config/starship.toml.$ext"
-          rm -f "$HOME/.config/fish/config.fish.$ext"
-          rm -f "$HOME/.config/gtk-3.0/gtk.css.$ext"
-          rm -f "$HOME/.config/gtk-4.0/gtk.css.$ext"
-          # Round 2: collision list captured during 2026-07-21 boot diagnosis
-          # (HM activation failed because these stale backups blocked the
-          # new backup write — list now mirrors the full healHMDrift set).
-          rm -f "$HOME/.config/btop/btop.conf.$ext"
-          rm -f "$HOME/.config/niri/noctalia.kdl.$ext"
-          rm -f "$HOME/.config/lazygit/config.yml.$ext"
-          rm -f "$HOME/.config/kitty/kitty.conf.$ext"
-        done
-      '';
-
       # Auto-migrate Alacritty config after activation (removes deprecation warnings)
       home.activation.migrateAlacrittyConfig = ''
         if [ -f "$HOME/.config/alacritty/alacritty.toml" ]; then
           ${pkgs.alacritty}/bin/alacritty migrate -c "$HOME/.config/alacritty/alacritty.toml" 2>/dev/null || true
         fi
-      '';
-
-      # ── Self-healing HM-ownership drift guard ──────────────────
-      # Root cause of recurring stylix/dotfile drift: HM-owned dotfiles get
-      # frozen as plain 0444 files (manual edit, failed activation) and HM
-      # can no longer overwrite/relink them on switch — so they shadow the
-      # generated stylix version forever. This guard detects any known
-      # HM-managed dotfile that is a REGULAR FILE (not a symlink into the
-      # store generation), makes it writable, and warns. With write perms,
-      # HM's own activation reclaims it (moves to .hm-backup, relinks from
-      # store) on the SAME switch. Never deletes — safe by design.
-      # List = files HM generates via programs.* / xdg.configFile / stylix.
-      home.activation.healHMDrift = ''
-        for f in \
-          "$HOME/.config/starship.toml" \
-          "$HOME/.config/alacritty/alacritty.toml" \
-          "$HOME/.config/btop/btop.conf" \
-          "$HOME/.config/fish/config.fish" \
-          "$HOME/.config/gtk-3.0/gtk.css" \
-          "$HOME/.config/gtk-4.0/gtk.css" \
-          "$HOME/.config/lazygit/config.yml" \
-          "$HOME/.config/kitty/kitty.conf" ; do
-          if [ -e "$f" ] && [ ! -L "$f" ]; then
-            echo "healHMDrift: $f drifted from HM (plain file) — un-freezing so HM can reclaim it"
-            chmod u+w "$f" 2>/dev/null || true
-          fi
-        done
       '';
     };
   };
