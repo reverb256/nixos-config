@@ -117,7 +117,9 @@ in {
         ln -s ${pkgs.gcc}/bin/ranlib $out/bin/ranlib
       '')
       wrapperScript
-      (pkgs.writeText "stability-matrix.desktop" ''
+      (pkgs.runCommand "stability-matrix-desktop" {} ''
+        mkdir -p $out/share/applications
+        cat > $out/share/applications/stability-matrix.desktop << EOF
         [Desktop Entry]
         Name=Stability Matrix
         Comment=Multi-Platform Package Manager for Stable Diffusion
@@ -128,6 +130,7 @@ in {
         Categories=Graphics;2DGraphics;RasterGraphics;Art;
         Keywords=stable diffusion;ai;image generation;art;
         StartupNotify=true
+        EOF
       '')
     ];
     environment.variables = lib.mkIf cfg.enableCuda {
