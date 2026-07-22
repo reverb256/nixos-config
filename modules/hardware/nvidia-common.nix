@@ -38,7 +38,7 @@ in
 
       # Use beta drivers (560+) for best Wayland/Plasma 6 support
       # RTX 30 series (Ampere) is fully supported
-      package = config.boot.kernelPackages.nvidiaPackages.beta;
+      package = config.boot.kernelPackages.nvidiaPackages.stable;
 
       # Open source kernel module (required for Turing+/RTX 30 series)
       # Better Wayland/Plasma 6 stability, no kernel taint, better error handling
