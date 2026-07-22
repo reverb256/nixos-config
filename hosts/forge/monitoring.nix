@@ -21,6 +21,7 @@
 
     # SMART exporter for disk health monitoring
     monitoring.smart-exporter.enable = true;
+    gputemps-exporter.enable = true;
 
     # NOTE (2026-07-21, issue #300): mining-exporter and gputemps-exporter
     # modules were removed with the lolminer/xmrig purge. Forge mining now
