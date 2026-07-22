@@ -3,15 +3,16 @@
 **Purpose:** Shared scope coordination for multiple AI agents (different
 sessions, models, or vendors). Read this before working. Update when done.
 
-**Last updated:** 2026-07-16 00:20 (UTC-5)
+**Last updated:** 2026-07-21 20:43 (UTC-5)
 
 ---
 
 ## Active Sessions
 
 | Agent | Scope | Files/hosts touched | Off-limits | Status | Last active |
-|-------|-------|---------------------|------------|--------|-------------|
+|-------|-------|---------------------|------------|--------|------------|
 | j_kro-systemd_recovery | Sentry crash investigation + cluster k3s recovery | modules/system/kernel-hardening.nix, hosts/sentry/configuration.nix, hosts/sentry/services.nix, hosts/forge/services.nix, modules/development/ai-coding-tools/droid.nix, modules/system/sops-secrets-registry.nix | Peakminer/mining services, MapleSpike, Niri desktop configs | ✅ Cluster restored (nexus+forge+sentry); ✅ etcd quorum fixed (identity-only encryption); ✅ Forge agent config committed; ✅ Sentry panic=30 config committed; 🔄 Sentry k3s still cycling (3-member etcd formed, k3s not fully becoming Ready) | 2026-07-21 05:05 (UTC-5) |
+| j_kro-boot-debug | Boot journal review on zephyr (gen 2283) + cluster wide pre-deploy fix | hosts/zephyr/configuration.nix, hosts/zephyr/monitoring.nix, hosts/forge/configuration.nix, hosts/forge/monitoring.nix, modules/services/hermes-cli.nix, modules/system/home-manager.nix, modules/system/systemd-user-timeout.nix, modules/system/users.nix | MapleSpike, k3s cluster topology | ✅ Issue #300 created; ✅ Worktree issue-300-boot-debug-remediation; ✅ Commit 90949f9 pushed to origin + central; ✅ PR #301 opened (`fix(boot): repair syntax-broken zephyr config + 5 deprecation drift issues`); ✅ `nix eval` clean on all 4 hosts; 🔄 Awaiting PR review + merge; 🔄 Post-merge `just deploy zephyr` first | 2026-07-21 20:43 (UTC-5) |
 
 (Stale prior sessions archived — nexus-dns-and-hermes, maplespike-24-issues, nexus-de-vm-boot, infra/dns-recovery, quill-portal-fixes were all ✅ Done from earlier sessions.)
 
@@ -27,10 +28,40 @@ sessions, models, or vendors). Read this before working. Update when done.
 | D4 | Remove `http://10.1.1.120:50000` from substituters declaratively | nix-serve served truncated nars from corrupted store | j_kro | 2026-07-15 |
 | D5 | Build locally with `--impure` for freebuff-desktop | AppImage path access forbidden in pure eval (pre-existing) | j_kro | 2026-07-15 |
 | D6 | Remove boot-time VFIO module loading on nexus; VFIO loads on demand | GPU boots on nvidia for AI inference; VFIO loaded by handoff script at VM start | j_kro | 2026-07-16 |
+| D7 | `python3.withPackages (p: [p.ruamel-yaml])` for the hermes-mcp-servers Python merge script (was `p.ruyaml` — wrong attribute) | `from ruamel.yaml import YAML` requires the ruamel-yaml package. `ruyaml` is a PyYAML shim and lacks the `ruamel` module, causing persistent `ModuleNotFoundError` on every boot. `ruamel-yaml` is the correct nixpkgs attribute. | j_kro-boot-debug | 2026-07-21 |
+| D8 | Forward-port only the boot-debug fixes from the `90949f9` commit; do not carry pre-existing modular cruft forward | The previous xmrig-strip left orphan bloc residues; this PR scrubs the boot-actionable subset only. MapleSpike/k3s topology and `tests/infrastructure-consistency.nix` wiring remain separate issues. | j_kro-boot-debug | 2026-07-21 |
 
 ---
 
 ## Work Log
+
+### 2026-07-21 20:43 (UTC-5) | j_kro-boot-debug
+- ✅ Boot journal audit on zephyr (gen 2283, NixOS 26.11, Linux 7.1.3-cachyos) found FIVE real bugs in HEAD pre-deploy state
+- ✅ Issue #300 created (off-limits: MapleSpike, k3s topology)
+- ✅ Worktree `/data/projects/own/nixos-config-300` branched from main
+- ✅ Fix #1: `hosts/zephyr/configuration.nix` — dropped spurious premature `};` close of `services = { ... }`, removed orphan Kryptex pools/workers block, dropped dead `services.mining` + `services.nixos-share` + `programs.mining-plasmoid` + orphan Syncthing-cluster services list, restored top-level closing brace
+- ✅ Fix #2: `modules/services/hermes-cli.nix` — `p.ruyaml` → `p.ruamel-yaml` (root cause of hermes-mcp-servers.service ModuleNotFoundError)
+- ✅ Fix #3: `modules/system/home-manager.nix` — extended `removeStaleBackups` activation to btop/niri/lazygit/kitty
+- ✅ Fix #4: `hosts/zephyr/monitoring.nix` + `hosts/forge/monitoring.nix` — orphan xmrig block + mining-exporter option deltas
+- ✅ Fix #5: `hosts/forge/configuration.nix` — orphan entry in host-dashboard.services
+- ✅ Fix #6: `hosts/zephyr/configuration.nix` — `defaultSession' 'plasma'` → `niri-uwsm` (upstream retired bare `plasma`)
+- ✅ Fix #7: `modules/system/systemd-user-timeout.nix` — `systemd.user.extraConfig` → `systemd.user.settings.Manager`
+- ✅ Fix #8: `modules/system/users.nix` — `initialHashedPassword` → `hashedPassword`
+- ✅ All 4 host configs evaluate to a real `.drv` via `nix eval`
+- ✅ Commit `90949f9` pushed to `origin` + `central`
+- ✅ PR #301 opened: https://github.com/reverb256/nixos-config/pull/301
+- 🔄 Waiting on PR review and merge
+- 🔄 After merge: `just deploy zephyr` first; verify gen 2284+ boots; capture new boot journal
+
+**Files touched:**
+- `hosts/zephyr/configuration.nix` (-168 / cleaned)
+- `hosts/zephyr/monitoring.nix` (-6 / orphan purge)
+- `hosts/forge/configuration.nix` (-3 / orphan entry purge)
+- `hosts/forge/monitoring.nix` (-4 / mining-exporter purge)
+- `modules/services/hermes-cli.nix` (+5 / critical runtime fix)
+- `modules/system/home-manager.nix` (+5 / activation drift cleanup)
+- `modules/system/systemd-user-timeout.nix` (+7 / deprecation migration)
+- `modules/system/users.nix` (+6 / deprecation migration)
 
 ### 2026-07-21 16:45 (UTC-5) | j_kro-hound
 - ✅ Hound MCP server (master-fetch) installed and configured on zephyr
