@@ -880,9 +880,6 @@
     group = "root";
   };
   # Note: spacebot-telegram-token uses registry default (owner=j_kro)
-  # because the hermes-agent service runs as user=j_kro
-
-  # ============================================================================
   # AI INFERENCE SERVICE - Gateway with authentication and metrics
   # Gateway routes to various backends (ZAI, vLLM, llama.cpp, etc.)
   # Gateway: OpenAI-compatible API on port 8080
@@ -951,10 +948,6 @@
     fzf
     eza
     btop
-    # Hermes Agent (CLI binary, provided by flake input overlay)
-    (inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.default)
-
-    # Version control
     tmux
     mosh
     git
