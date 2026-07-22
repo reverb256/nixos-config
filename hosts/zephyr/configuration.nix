@@ -34,9 +34,6 @@
     ../../modules/hardware/nvidia-wayland.nix
     # Noctalia desktop compositor (niri shell, iced/winit/Smithay deps)
     inputs.noctalia.nixosModules.default
-    # Hermes Agent - NixOS module (service + package for hermes CLI)
-    inputs.hermes-agent.nixosModules.default
-
     # RGB control for peripherals and components
     ../../modules/hardware/rgb-control.nix
   ];
@@ -954,6 +951,8 @@
     fzf
     eza
     btop
+    # Hermes Agent (CLI binary, provided by flake input overlay)
+    (inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.default)
 
     # Version control
     tmux
