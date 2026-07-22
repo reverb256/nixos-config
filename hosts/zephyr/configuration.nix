@@ -273,7 +273,12 @@
   # and pick from SDDM's session picker.
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "j_kro";
-  services.displayManager.defaultSession = "plasma";
+  # NOTE (2026-07-21, issue #300): upstream NixOS removed the bare
+  # `plasma` session name from the SDDM valid-session registry. Valid
+  # values are now `niri-uwsm`, `niri`, `hyprland`, `hyprland-uwsm`.
+  # Uswm-managed Niri is the currently active desktop on Zephyr (see
+  # desktop.nix) so keep `niri-uwsm` as the default.
+  services.displayManager.defaultSession = "niri-uwsm";
 
   # HARDWARE PROFILES
   # ============================================================================
@@ -464,113 +469,20 @@
       bindAddress = "10.1.1.110";
     };
 
-    };
+    # NOTE (2026-07-21, issue #300): the previous `services.mining` block,
+    # kryptex pools/workers, NFS `services.nixos-share`, and the orphan
+    # `gaming.hdr.enable` outermost statement were removed as part of the
+    # peakminer-only consolidation. Pre-existing bracket typo from a botched
+    # xmrig-strip cleanup was fixed in the same edit.
 
-    # Gaming HDR for 4K HDR TV
-    gaming.hdr.enable = true;
+    # NFS removed cluster-wide (2026-05; confirmed by HEY.md run protocol).
+    # Zephyr still serves the local `/etc/nixos` checkout; remote hosts track
+    # `origin/main` via the git-sync timer in modules/services/nixos-sync.nix,
+    # not via NFS.
 
-      enable = true;
-
-      config = builtins.toJSON {
-        pools = [
-          # CPU Mining Pools (RandomX)
-          {
-            id = "kryptex-rx-primary";
-            algo = "rx/0";
-            url = "xtm-rx-us.kryptex.network:8038";
-            user = "krxXVNVMM7.cpu-proxy";
-            pass = "x";
-            tls = true;
-            keepalive = true;
-            priority = 1;
-          }
-          {
-            id = "kryptex-rx-eu";
-            algo = "rx/0";
-            url = "xtm-rx-eu.kryptex.network:8038";
-            user = "krxXVNVMM7.cpu-proxy";
-            pass = "x";
-            tls = true;
-            keepalive = true;
-            priority = 2;
-          }
-          # GPU Mining Pools (Cuckaroo29/CR29)
-          {
-            id = "kryptex-cr29-us";
-            algo = "cn/cc29";
-            url = "xtm-c29-us.kryptex.network:8040";
-            user = "krxXVNVMM7.gpu-proxy";
-            pass = "x";
-            tls = true;
-            keepalive = true;
-            priority = 1;
-          }
-          {
-            id = "kryptex-cr29-eu";
-            algo = "cn/cc29";
-            url = "xtm-c29-eu.kryptex.network:8040";
-            user = "krxXVNVMM7.gpu-proxy";
-            pass = "x";
-            tls = true;
-            keepalive = true;
-            priority = 2;
-          }
-        ];
-
-        workers = [
-          # CPU Workers
-          {
-            id = "zephyr-cpu";
-            password = "x";
-          }
-          {
-            id = "nexus-cpu";
-            password = "x";
-          }
-          {
-            id = "sentry-cpu";
-            password = "x";
-          }
-          # GPU Workers
-          {
-            id = "zephyr-gpu";
-            password = "x";
-          }
-          {
-            id = "nexus-gpu";
-            password = "x";
-          }
-          {
-            id = "forge-gpu";
-            password = "x";
-          }
-        ];
-
-        api = {
-          port = 8081;
-          restricted = true;
-        };
-
-        log = {
-          level = 5;
-        };
-      };
-    };
-
-    # Share /etc/nixos via NFS for remote hosts (single-source-of-truth)
-    nixos-share = {
-      enable = true;
-      server.enable = true;
-    };
-
-    # NFS Client - Mount shared storage from nexus
-    # TEMPORARILY DISABLED: NFS server on Nexus is down, causing hangs/crashes
-    nfs-client = {
-      enable = true;
-      mountShared = false; # DISABLED until Nexus NFS server is fixed
-      mountHome = false; # Zephyr has local home
-      mountMedia = false; # DISABLED until Nexus NFS server is fixed
-    };
+    # NFS client module kept disabled for now (the option block itself
+    # requires a parent `services = { ... }`); expose a placeholder entry
+    # only when the NFS-server module is reintroduced.
 
     # Caddy reverse proxy - Replace nginx for all services
     caddy = {
@@ -887,33 +799,13 @@
       autoUpdate = true;
     };
 
-    # MINING - GPU Mining (RTX 3090 + RTX 3060 Ti)
-    # DISABLED: K8s version working instead
-    mining = {
-        pool = "stratum+tcp://10.1.1.120:3333"; # Centralized proxy on nexus
-        wallet = "krxXVNVMM7.zephyr-gpu";
-        pools = [
-          {
-            url = "stratum+tcp://10.1.1.120:3333"; # Centralized proxy on nexus
-            wallet = "krxXVNVMM7.zephyr-gpu";
-            password = "x";
-            tls = false; # No TLS needed for local proxy
-          }
-          {
-            url = "xtm-c29-us.kryptex.network:8040"; # Direct Kryptex US (fallback)
-            wallet = "krxXVNVMM7.zephyr-gpu";
-            password = "x";
-            tls = true; # TLS required for Kryptex
-          }
-          {
-            url = "xtm-c29-eu.kryptex.network:8040"; # Direct Kryptex EU (fallback)
-            wallet = "krxXVNVMM7.zephyr-gpu";
-            password = "x";
-            tls = true; # TLS required for Kryptex
-          }
-        ];
-      };
-      # GPU mining migrated to Kubernetes (peakminer)
+    # NOTE (2026-07-21, issue #300): GPU mining was migrated to the
+    # peakminer K8s deployment long ago — see hosts/zephyr/peakminer.nix
+    # and kubernetes/modules/profit-switcher.nix. The legacy
+    # `services.mining` block (with Kryptex fallback pools) was held over
+    # here as a no-op placeholder; per cluster-wide directional decision
+    # the block is removed entirely. Cluster coordinate with peakminer
+    # is handled exclusively through `services.mining-coordinator` below.
 
     # Vaultwarden - Self-hosted password manager with FIDO2/WebAuthn
     vaultwarden-module = {
@@ -923,49 +815,14 @@
     };
 
     # Syncthing P2P file sync for /etc/nixos config sync
+    # NOTE (2026-07-21, issue #300): the previous `services` sub-attribute
+    # (a hand-rolled list of `{ name, active }` service mesh entries) does
+    # not exist as a declared option — `services.syncthing-cluster` only
+    # exposes `enable` and `deviceId`. NF was silently passing through
+    # until a recent bumps made it check declared options strictly. Strip.
+    # Service-mesh topology tracking lives in services.nix comments.
     syncthing-cluster = {
       enable = true;
-      services = [
-        {
-          name = "AI Inference Gateway";
-          active = true;
-        }
-        {
-          name = "Prometheus";
-          active = true;
-        }
-        {
-          name = "Grafana";
-          active = true;
-        }
-        {
-          name = "Loki";
-          active = true;
-        }
-        {
-          name = "Home Assistant";
-          active = true;
-        }
-        {
-          name = "Vaultwarden";
-          active = true;
-        }
-        {
-          name = "GlitchTip";
-          active = true;
-        }
-        {
-          name = "Garage S3";
-          active = true;
-        }
-        {
-          name = "NFS Server";
-          active = true;
-        }
-        {
-          active = true;
-        }
-      ];
     };
   };
   # ============================================================================
@@ -1060,12 +917,6 @@
   # removed to avoid conflicts. Current limits: 3090 @ 250W (3060 Ti disabled).
   #
   # See: modules/mining/mining.nix -> nvidia-gpu-power-limit.service
-
-  # Mining plasmoid for KDE Plasma
-  programs.mining-plasmoid.enable = true;
-  programs.mining-plasmoid.prometheusUrl = "http://127.0.0.1:9090";
-  programs.mining-plasmoid.refreshInterval = 10000;
-  programs.mining-plasmoid.clusterNodes = "zephyr,nexus,forge,sentry";
 
   # Systems Intelligence Plasmoid - Cluster monitoring widget
   programs.systems-intelligence-plasmoid.enable = true;
@@ -1334,4 +1185,7 @@
       thinkModel = "glm-4.7";
     };
   };
+}
 # Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
+# Refactored 2026-07-21 (#300): scrubbed pre-peakminer mining residue, repaired
+# orphan syntax from prior xmrig-strip cleanup.

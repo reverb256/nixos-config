@@ -13,13 +13,15 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # Increase systemd user manager timeout for reload operations
-    # This fixes nixos-rebuild switch hanging at "reloading user units"
-    systemd.user.extraConfig = ''
-      # Increase timeout for user service reload operations
-      # Default is 90s, but some services (like KDE components) can take longer
-      DefaultTimeoutStartSec=180s
-      DefaultTimeoutStopSec=180s
-    '';
+    # Increase systemd user manager timeout for reload operations.
+    # This fixes nixos-rebuild switch hanging at "reloading user units".
+    # NOTE (2026-07-21, issue #300): `systemd.user.extraConfig` was removed
+    # from upstream NixOS — modern equivalent is
+    # `systemd.user.settings.Manager`. Migrated here so the assertion
+    # "systemd.user.extraConfig no longer has any effect" no longer fires.
+    systemd.user.settings.Manager = {
+      DefaultTimeoutStartSec = "180s";
+      DefaultTimeoutStopSec  = "180s";
+    };
   };
 }
