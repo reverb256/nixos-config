@@ -166,6 +166,13 @@ in
           rm -f "$HOME/.config/fish/config.fish.$ext"
           rm -f "$HOME/.config/gtk-3.0/gtk.css.$ext"
           rm -f "$HOME/.config/gtk-4.0/gtk.css.$ext"
+          # Round 2: collision list captured during 2026-07-21 boot diagnosis
+          # (HM activation failed because these stale backups blocked the
+          # new backup write — list now mirrors the full healHMDrift set).
+          rm -f "$HOME/.config/btop/btop.conf.$ext"
+          rm -f "$HOME/.config/niri/noctalia.kdl.$ext"
+          rm -f "$HOME/.config/lazygit/config.yml.$ext"
+          rm -f "$HOME/.config/kitty/kitty.conf.$ext"
         done
       '';
 

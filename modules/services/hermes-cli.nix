@@ -525,8 +525,13 @@ cfg.nvidiaApiKeyFile != null
       wantedBy = ["multi-user.target"];
 
       # python3-with-ruamel for the ruamel.yaml round-trip merge script.
-      # python3-with-ruamel for the ruamel.yaml round-trip merge script.
-      path = with pkgs; [(python3.withPackages (p: [p.ruyaml])) coreutils gnused];
+      # NOTE (2026-07-21, issue #300): the previous `p.ruyaml` was the wrong
+      # attribute — `ruyaml` is a small PyYAML-compatible shim, NOT
+      # `ruamel-yaml`. The script imports `from ruamel.yaml import YAML`,
+      # which requires `ruamel-yaml`. With `p.ruyaml` we got a
+      # `ModuleNotFoundError: No module named 'ruamel'` on every boot.
+      # Fixed here; double-comment removed in the same edit.
+      path = with pkgs; [(python3.withPackages (p: [p.ruamel-yaml])) coreutils gnused];
 
       serviceConfig = {
         Type = "oneshot";
