@@ -82,14 +82,16 @@
     # CachyOS kernel - Performance-optimized kernel for gaming/desktop (Zephyr only)
     # Provides: linux-cachyos-latest-x86_64-v3, sched_ext support, BORE scheduler
     # Binary cache: attic.xuyh0120.win/lantian (no local compilation needed)
-    nix-cachyos-kernel.url = "git+https://github.com/xddxdd/nix-cachyos-kernel";
-    nix-cachyos-kernel.inputs.flake-parts.follows = "flake-parts";
-    nix-cachyos-kernel.inputs.cachyos-kernel.follows = "cachyos-kernel";
     # cachyos-kernel — transitive dep for cachyos kernel, use git+https for Lix compat
     cachyos-kernel = {
       url = "git+https://github.com/CachyOS/linux-cachyos";
       flake = false;
     };
+    # nix-cachyos-kernel — pinned to cc5bc99 (7.1.3 version) because 7.1.4+
+    # breaks nvidia-open-595 driver compile (linux/of_gpio.h removed in 6.10+)
+    nix-cachyos-kernel.url = "git+https://github.com/xddxdd/nix-cachyos-kernel?rev=cc5bc99baf27245f2644c1fe13f7bac5d3d47865";
+    nix-cachyos-kernel.inputs.flake-parts.follows = "flake-parts";
+    nix-cachyos-kernel.inputs.cachyos-kernel.follows = "cachyos-kernel";
     # linux-cachyos override — may not exist in all kernel flake versions, non-fatal if ignored
     # ── Inputs required by common-modules-list.nix (re-added after a drift where
     #    they were dropped from flake.nix but still referenced in the module list) ──
