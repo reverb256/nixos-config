@@ -15,13 +15,16 @@ let
   # activation ("Existing file '...v3-fix' would be clobbered"). The cleanup that
   # would have removed the stale backup ran too late (or not at all).
   #
-  # FIX: pin BOTH scripts to run BEFORE `linkGeneration` via lib.hm.dag.entryBefore.
-  # The stale backups are gone before HM tries to write a fresh one, breaking the
-  # cycle permanently.
+  # FIX: pin BOTH scripts to run BEFORE `checkLinkTargets` via lib.hm.dag.entryBefore.
+  # checkLinkTargets (HM's early collision guard) ABORTS the whole activation when a
+  # plain file shadows an HM-managed target -- and it runs BEFORE linkGeneration.
+  # So the cleanup must precede checkLinkTargets, not linkGeneration. The stale
+  # backups are gone and the shadowing plain files are un-frozen before the guard
+  # runs, breaking the abort cycle permanently.
   inherit (lib) mkIf;
 in {
   # Remove stale HM backup files BEFORE linkGeneration to prevent clobber errors.
-  home.activation.removeStaleBackups = lib.hm.dag.entryBefore [ "linkGeneration" ] ''
+  home.activation.removeStaleBackups = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
     # Old extension (gone on next activation) and new extension (until clean state)
     for ext in hm-backup v3-fix; do
       rm -f "$HOME/.config/alacritty/alacritty.toml.$ext"
@@ -50,7 +53,7 @@ in {
   # store) on the SAME switch. Never deletes — safe by design.
   # List = files HM generates via programs.* / xdg.configFile / stylix.
   # Runs BEFORE linkGeneration so the un-freeze happens before HM reclaims.
-  home.activation.healHMDrift = lib.hm.dag.entryBefore [ "linkGeneration" ] ''
+  home.activation.healHMDrift = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
     for f in \
       "$HOME/.config/starship.toml" \
       "$HOME/.config/alacritty/alacritty.toml" \
