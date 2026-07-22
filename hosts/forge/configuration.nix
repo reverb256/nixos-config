@@ -229,9 +229,10 @@
           name = "gpu-proxy-cpp";
           active = true;
         }
-        {
-          active = true;
-        }
+        # NOTE (2026-07-21, issue #300): the previous orphan
+        # `{ active = true; }` entry was failing the host-dashboard.services
+        # submodule name assertion; stripping it. Active peakminer /
+        # k3s-side daemon tracking lives in the dashboard at runtime.
       ];
     };
     # Hermes Agent module removed (2026-04-06)

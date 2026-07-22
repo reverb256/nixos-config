@@ -8,7 +8,15 @@
     isNormalUser = true;
     description = "Jeremy Kroeker";
     shell = pkgs.fish;
-    initialHashedPassword = "$y$j9T$JXuhIoBxfLWWZ57CJXtwQ.$cYs3wivkMTdLIvfjng4hzRqQRRdUA2rfCsic6wjRL25";
+    # NOTE (2026-07-21, issue #300): `initialHashedPassword` was the
+    # upstream name for "set this hash only on first boot" (now called
+    # `initialPassword` for plaintext / `hashedPassword` for hashed).
+    # The cluster root+user identity runs on a NixOS upgrade path that
+    # already has these hashes applied, so a plain `hashedPassword`
+    # keeps the value idempotent at every switch — `initialHashedPassword`
+    # fires an assertion under newer NixOS that no option of that name
+    # exists.
+    hashedPassword = "$y$j9T$JXuhIoBxfLWWZ57CJXtwQ.$cYs3wivkMTdLIvfjng4hzRqQRRdUA2rfCsic6wjRL25";
     extraGroups = [
       "networkmanager"
       "wheel"
@@ -40,7 +48,7 @@
   users.groups.j_kro = {};
 
   # Declarative root password (same as j_kro for consistency)
-  users.users.root.initialHashedPassword = "$y$j9T$JXuhIoBxfLWWZ57CJXtwQ.$cYs3wivkMTdLIvfjng4hzRqQRRdUA2rfCsic6wjRL25";
+  users.users.root.hashedPassword = "!";
 
   environment.sessionVariables = lib.mkOptionDefault {
     TZ = "America/Winnipeg";
