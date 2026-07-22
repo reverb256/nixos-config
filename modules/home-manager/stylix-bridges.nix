@@ -221,7 +221,6 @@ in {
       "$HOME/.config/gtk-4.0/noctalia.css" \
       "$HOME/.config/qt5ct/colors/noctalia.conf" \
       "$HOME/.config/qt6ct/colors/noctalia.conf" \
-      "$HOME/.config/niri/noctalia.kdl" \
       "$HOME/.config/scroll/noctalia" \
       "$HOME/.config/btop/themes/noctalia.theme" \
       "$HOME/.config/telegram-desktop/themes/stylix.tdesktop-theme" ; do
