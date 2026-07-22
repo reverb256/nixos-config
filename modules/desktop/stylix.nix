@@ -81,4 +81,14 @@
     };
   };
 
+  # ── Register the monospace Nerd Font with fontconfig ──────────
+  # Stylix sets `monospace.package = pkgs.nerd-fonts.jetbrains-mono` (the
+  # *alias* name "JetBrainsMono Nerd Font"), but that alone does NOT put the
+  # font files on fontconfig's search path. Without this, `fc-match
+  # "JetBrainsMono Nerd Font"` resolves to DejaVu Sans, so terminals /
+  # fastfetch / starship render Nerd glyphs as missing-character squares.
+  # Adding the package to `fonts.fonts` symlinks it into the font dir and
+  # registers it with fontconfig system-wide.
+  fonts.fonts = [ pkgs.nerd-fonts.jetbrains-mono ];
+
 }
