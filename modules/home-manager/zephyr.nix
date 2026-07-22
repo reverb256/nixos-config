@@ -23,7 +23,7 @@
     # Steam configuration (if enabled)
     programs.steam.enable = true;
 
-    # Discord
+# Discord
     programs.discord.enable = true;
 
     # OBS Studio (for streaming)

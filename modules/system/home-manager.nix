@@ -131,14 +131,27 @@ in
         targets.qt.enable = true;
         # GTK theming requires dconf/D-Bus which isn't available on nexus
         targets.gtk.enable = hostName != "nexus";
+        # ── Additional targets for installed programs ──────────────
+        # bat — theming for bat (base16-stylix theme)
+        targets.bat.enable = true;
+        # fzf — theming for fzf colors
+        targets.fzf.enable = true;
+        # tmux — theming for tmux (tinted theme)
+        targets.tmux.enable = true;
+        # opencode — full TUI theme (Osaka Jade palette)
+        targets.opencode.enable = true;
+        # discord/vesktop — theme for Vesktop/Vencord (Osaka Jade)
+        targets.vesktop.enable = true;
       };
 
       # CopyQ clipboard manager (replaces cliphist)
       programs.copyq = {
         enable = lib.mkDefault true;
       };
+      # Kitty terminal emulator (generates kitty.conf for stylix theming)
+      programs.kitty.enable = true;
 
-      home.sessionVariables.BAT_THEME = "base16";
+      home.sessionVariables.BAT_THEME = "base16-stylix";
 
       home.stateVersion = "26.05";
       home.enableNixpkgsReleaseCheck = false;
