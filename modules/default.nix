@@ -125,6 +125,7 @@
     ./services/nextcloud.nix
     ./services/service-gateway.nix
     ./services/host-dashboard.nix
+    ./services/hermes-cli.nix
     ./services/ci-runner.nix
     ./services/garnix.nix
     ./services/auto-update.nix
