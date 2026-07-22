@@ -32,6 +32,8 @@
     # NVIDIA GPU Wayland support (host-dependent)
     ../../modules/hardware/nvidia-common.nix
     ../../modules/hardware/nvidia-wayland.nix
+    # Noctalia desktop compositor (niri shell, iced/winit/Smithay deps)
+    inputs.noctalia.nixosModules.default
 
     # RGB control for peripherals and components
     ../../modules/hardware/rgb-control.nix
