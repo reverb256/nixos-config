@@ -4,11 +4,11 @@ let
 in
 mkDerivation rec {
   pname = "peakminer";
-  version = "1.0.15";
+  version = "2.2.2";
 
   src = fetchurl {
     url = "https://github.com/peakminer/peakminer/releases/download/v${version}/peakminer-${version}.tar.gz";
-    sha256 = "ca4613282fbb19a379238a3a7f68199e26f6f5f8c4631f2c0653853c84f8d406";
+    sha256 = "6ba96829ce60954e24bd0b626e7f92cb5c7b8b529e3b6616bb189a287ab1d5fa";
   };
 
   nativeBuildInputs = [ autoPatchelfHook makeWrapper ];
