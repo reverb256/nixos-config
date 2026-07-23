@@ -29,8 +29,8 @@
   # Early OOM prevention — kill processes before system freezes
   services.earlyoom = {
     enable = true;
-    # freeMemThreshold handled in modules/system/vm-tuning.nix
-    freeSwapThreshold = 10;
+    # freeMemThreshold + freeSwapThreshold are set in modules/system/vm-tuning.nix
+    # (freeSwapThreshold=50, raised from the stale 10 below — do NOT re-hardcode here)
     enableNotifications = true;
   };
   # VM tuning for memory-constrained mining node (15GB RAM)

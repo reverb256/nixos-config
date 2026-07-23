@@ -179,14 +179,7 @@ in {
             owner = "root";
             group = "root";
           };
-          "ai/zai-api-key" = {
-            sopsFile = "${inputs.self}/secrets/ai/zai-api-key.yaml";
-            path = "/run/secrets/zai-api-key";
-            format = "binary";
-            mode = "0444";
-            owner = "j_kro";
-            group = "users";
-          };
+
         })
         (mkIf config.services.sops-secrets-registry.kubernetes {
           "k8s/casdoor-hermes-jwt" = {

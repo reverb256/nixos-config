@@ -100,7 +100,6 @@ in {
       keep-build-log = true;
       log-lines = 2000;
       auto-optimise-store = true;
-      extra-platforms = lib.mkBefore ["i686-linux"];
       extra-sandbox-paths = [
         "/var/cache/ccache"
       ];
@@ -158,7 +157,7 @@ in {
           allMachines = [
             {
               hostName = "zephyr";
-              systems = ["x86_64-linux" "i686-linux"];
+              systems = ["x86_64-linux"];
               sshUser = "j_kro";
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 0;
@@ -168,7 +167,7 @@ in {
             }
             {
               hostName = "nexus";
-              systems = ["x86_64-linux" "i686-linux"];
+              systems = ["x86_64-linux"];
               sshUser = "j_kro";
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 12;
@@ -181,7 +180,7 @@ in {
             }
             {
               hostName = "sentry";
-              systems = ["x86_64-linux" "i686-linux"];
+              systems = ["x86_64-linux"];
               sshUser = "j_kro";
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 8;
@@ -194,7 +193,7 @@ in {
             }
             {
               hostName = "forge";
-              systems = ["x86_64-linux" "i686-linux"];
+              systems = ["x86_64-linux"];
               sshUser = "j_kro";
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 4;
@@ -204,7 +203,7 @@ in {
             }
             {
               hostName = "krash3";
-              systems = ["x86_64-linux" "i686-linux"];
+              systems = ["x86_64-linux"];
               sshUser = "j_kro";
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 3;

@@ -435,11 +435,15 @@ in {
       wantedBy = lib.mkForce [];
       # Self-heal: if k3s ever exits (crash, OOM, etcd blip), restart it
       # immediately instead of relying solely on the one-shot boot timer.
-      # startLimitIntervalSec=0 disables systemd's start-limit backoff so a
+      # StartLimitIntervalSec=0 disables systemd's start-limit backoff so a
       # flapping k3s keeps retrying instead of being parked in failed state.
-      serviceConfig.Restart = "always";
-      serviceConfig.RestartSec = "15s";
-      serviceConfig.StartLimitIntervalSec = 0;
+      # mkForce: override the upstream rancher/k3s module's own serviceConfig
+      # (which sets RestartSec=5s) to avoid a definition conflict.
+      serviceConfig = lib.mkForce {
+        Restart = "always";
+        RestartSec = "15s";
+        StartLimitIntervalSec = 0;
+      };
       # Belt-and-suspenders: start before keepalived at boot (primary fix: --flannel-iface)
       before = lib.mkIf config.services.keepalived.enable ["keepalived.service"];
       # nfs-utils needed for kubelet to mount NFS PVs (mount.nfs binary)
@@ -450,7 +454,9 @@ in {
     # k3s is deliberately excluded from multi-user.target (wantedBy = mkForce []) above
     # because server nodes can take 5+ minutes to start etcd and hang the boot path.
     # This boot timer starts k3s shortly after boot completes so it survives reboots.
-    # k3s.service already has Restart=always, so once started it stays up.
+    # The service now sets Restart=always + StartLimitIntervalSec=0 (see above) so a
+    # crash self-recovers, and the timer is Persistent=true so a missed boot trigger
+    # still fires. Together these prevent the NotReady/Unknown-after-reboot failure.
     # Safe for all roles (agent + server) and decoupled from boot-critical targets.
     systemd.timers.k3s-autostart = {
       description = "Start k3s after boot (decoupled from multi-user.target to avoid blocking boot)";
