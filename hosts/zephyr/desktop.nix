@@ -6,6 +6,7 @@
 }: {
   imports = [
     ../../modules/desktop/zephyr-sdr-brightness.nix
+    ../../modules/desktop/samsung-tv-brightness.nix
   ];
 
   services.displayManager.sddm.enable = lib.mkForce true;
