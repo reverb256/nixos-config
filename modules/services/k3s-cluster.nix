@@ -437,9 +437,9 @@ in {
       # immediately instead of relying solely on the one-shot boot timer.
       # startLimitIntervalSec=0 disables systemd's start-limit backoff so a
       # flapping k3s keeps retrying instead of being parked in failed state.
-      restart = "always";
-      restartSec = "15s";
-      startLimitIntervalSec = 0;
+      serviceConfig.Restart = "always";
+      serviceConfig.RestartSec = "15s";
+      serviceConfig.StartLimitIntervalSec = 0;
       # Belt-and-suspenders: start before keepalived at boot (primary fix: --flannel-iface)
       before = lib.mkIf config.services.keepalived.enable ["keepalived.service"];
       # nfs-utils needed for kubelet to mount NFS PVs (mount.nfs binary)
