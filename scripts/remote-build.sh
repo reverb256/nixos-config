@@ -55,13 +55,13 @@ check_cached() {
 # nexus is a build cache only; never trust its local edits. Pull the canonical
 # ref and hard-reset to it so the build can't reflect drift.
 sync_builder() {
-    echo "  syncing nexus /etc/nixos -> $REF (builder must match source of truth)..."
+    echo >&2 "  syncing nexus /etc/nixos -> $REF (builder must match source of truth)..."
     ssh "$NEXUS" "bash --norc --noprofile -c 'set -e; cd /etc/nixos; git fetch origin \"$REF\" 2>&1 | tail -1; git reset --hard \"$REF\" 2>&1 | tail -2; echo \"  nexus /etc/nixos now at \$(git rev-parse --short HEAD)\"'"
 }
 
 # ── Step 3: Start build via systemd-run (detached, survives SSH drop) ──
 start_build() {
-    echo "  starting detached build on nexus (service: $SERVICE)..."
+    echo >&2 "  starting detached build on nexus (service: $SERVICE)..."
     cleanup_sentinels
     sync_builder
     # Build the toplevel for TARGET from the (now synced) nexus checkout.
@@ -72,7 +72,7 @@ start_build() {
 
 # ── Step 4: Poll for completion ──
 poll_build() {
-    echo -n "  building"
+    echo -n >&2 "  building"
     local START
     START=$(date +%s)
     local ACTIVE
@@ -92,12 +92,12 @@ poll_build() {
             if [ -n "$OUT" ] && ssh "$NEXUS" "nix path-info '$OUT' >/dev/null 2>&1"; then
                 local ELAPSED
                 ELAPSED=$(( $(date +%s) - START ))
-                echo " done (${ELAPSED}s)"
+                echo >&2 " done (${ELAPSED}s)"
                 echo "$OUT" > "$STORE_PATH_FILE"
                 echo "$OUT"
                 return 0
             else
-                echo ""
+                echo >&2 ""
                 if [ "$RESULT" = "failed" ]; then
                     echo "Build failed for $TARGET (service failed). Last log lines:" >&2
                 else
@@ -113,9 +113,9 @@ poll_build() {
         if [ $(( ELAPSED % 30 )) -eq 0 ] && [ "$ELAPSED" -gt 0 ]; then
             local PROGRESS
             PROGRESS=$(ssh "$NEXUS" "tail -5 /tmp/${TAG}-build-log 2>/dev/null | grep -oE 'copying path.*from.*|building.*|[0-9]+%|checked.*|error.*' | tail -1 || echo ''")
-            [ -n "$PROGRESS" ] && echo " [$PROGRESS]"
+            [ -n "$PROGRESS" ] && echo >&2 " [$PROGRESS]"
         fi
-        echo -n "."
+        echo -n >&2 "."
         sleep 5
     done
 }
