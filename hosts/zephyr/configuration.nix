@@ -941,6 +941,8 @@
   # ============================================================================
   # ADDITIONAL PACKAGES
   # ============================================================================
+  # Noctalia CLI binary (needed for keybindings: Mod+Space, Print, etc.)
+  # Package referenced via flake input (outside with pkgs; scope)
   environment.systemPackages = with pkgs; [
     # Shell & CLI
     fish
@@ -1090,6 +1092,8 @@
     mermaid-cli # Mermaid → SVG/PNG
     graphviz # Graphviz (dot) diagrams
     python312Packages.openpyxl # Excel read/write
+    # Noctalia CLI binary for keybindings (Mod+Space, Print, notifications)
+    inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 
   # ============================================================================
