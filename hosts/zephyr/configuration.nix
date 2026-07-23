@@ -17,6 +17,8 @@
     ./monitoring.nix
     # Hardware configuration (generated)
     ./hardware-configuration.nix
+    # Desktop configuration (SDR brightness, Samsung TV, SDDM)
+    ./desktop.nix
     # Kubernetes control plane
     ../../modules/services/k3s-cluster.nix
     # Keepalived VIP for Kubernetes HA
@@ -90,7 +92,7 @@
     "net.core.rmem_max" = 16777216; # 16MB max
     "net.core.wmem_max" = 16777216;
 
-    # CALICO CNI REQUIREMENTS
+    # k3s flannel CNI (default) — rp_filter=1 is safe (VXLAN overlay)
     "net.ipv4.conf.all.rp_filter" = 1; # Reverse path filtering for BGP
 
     # ------------------------------------------------------------------

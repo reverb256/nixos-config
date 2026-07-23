@@ -45,7 +45,6 @@
     ./system/gpu-profile-manager.nix
     ./system/mining-coordinator.nix
     ./system/oom-protection.nix
-    ./system/cilium-sysctl.nix
     ./system/home-permissions-fix.nix
     ./system/boot-emergency-diagnostics.nix
     ./system/mining-inference-coordinator.nix
