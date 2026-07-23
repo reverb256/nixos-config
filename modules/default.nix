@@ -128,6 +128,7 @@
     ./services/ci-runner.nix
     ./services/garnix.nix
     ./services/auto-update.nix
+    ./services/hermes/default.nix
     ./services/hermes-cli.nix
     ./services/whisper-dictation.nix
     ./services/cloudflared.nix
