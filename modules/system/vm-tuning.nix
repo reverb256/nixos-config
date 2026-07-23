@@ -17,7 +17,7 @@
   services.earlyoom = {
     enable = true;
     freeMemThreshold = 12; # Kill at 12% RAM free (~3.8GB) - allows Genshin Impact (3.7GB) to launch
-    freeSwapThreshold = 10; # Kill at 10% swap free (~3.2GB)
+    freeSwapThreshold = 50; # Act when swap < 50% free (swap-pressure trigger, was 10)
     enableNotifications = true; # Notify user before killing
   };
 

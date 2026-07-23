@@ -35,7 +35,7 @@ spec:
       containers:
       - name: searxng
         # Using the official SearXNG image
-        image: searxng/searxng:latest
+        image: docker.io/searxng/searxng:latest
         imagePullPolicy: IfNotPresent
         # CONTAINER LEVEL SECURITY CONTEXT
         securityContext:

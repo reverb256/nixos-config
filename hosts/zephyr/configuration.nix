@@ -68,12 +68,20 @@
 
   # ZRAM compressed swap — reduces SSD wear, faster than disk swap
   # 25% of 31GB ≈ 8GB compressed swap (zstd compression ~2-3x ratio)
+  # 40% of 31GB ~= 12GB compressed swap. Bumped from 25% after the
+  # 2026-07-23 swap-exhaustion event (8GB zram pool filled, earlyoom fired
+  # at swap 0 MiB). zswap is DISABLED below because it intercepts pages
+  # before they reach zram and fights it; kernel-MM guidance: never run
+  # zswap in front of zram.
   zramSwap = {
     enable = true;
     algorithm = "zstd";
-    memoryPercent = 25;
+    memoryPercent = 40;
     priority = 999; # Prefer zram over disk swap
   };
+
+  # Disable zswap (conflicts with zram). Emits zswap.enabled=0 on cmdline.
+  kernel-hardening.zswap.enable = false;
 
   boot.kernel.sysctl = {
     # Network buffer tuning (frees unused socket buffers)
@@ -84,6 +92,32 @@
 
     # CALICO CNI REQUIREMENTS
     "net.ipv4.conf.all.rp_filter" = 1; # Reverse path filtering for BGP
+
+    # ------------------------------------------------------------------
+    # IN-MEMORY SWAP TUNING (zram-only). swappiness > 100 is appropriate
+    # for in-memory swap (kernel docs); Pop!_OS/Arch zram standard = 180 +
+    # page-cluster=0. Overrides vm-tuning.nix mkForce 40 (assumes zswap).
+    "vm.swappiness" = lib.mkForce 180;
+    "vm.page-cluster" = lib.mkForce 0;
+    "vm.vfs_cache_pressure" = lib.mkForce 50; # less inode churn (vm-tuning=150)
+  };
+
+  # ------------------------------------------------------------------
+  # EARLYOOM - primary OOM defense for this desktop host.
+  # --avoid protects the graphical session (subtracts 300 from oom_score,
+  # last-to-die); --prefer targets reloadable browser content / nix builds.
+  # -s 50 adds a swap-pressure trigger (not just a RAM floor).
+  services.earlyoom = {
+    enable = true;
+    freeMemThreshold = 12;
+    freeSwapThreshold = 50;
+    freeMemKillThreshold = 6;
+    freeSwapKillThreshold = 25;
+    enableNotifications = true;
+    extraArgs = [
+      "--prefer" "(Web Content|Isolated Web|nix)"
+      "--avoid"  "(niri|noctalia|zen|spotify|vesktop|opencode|hermes|Xwayland|pipewire)"
+    ];
   };
 
   networking = {
