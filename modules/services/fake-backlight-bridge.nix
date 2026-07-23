@@ -2,7 +2,7 @@
 #
 # Creates a virtual /sys/class/backlight-compatible interface using systemd
 # path units. When Noctalia (or any brightness tool) writes a value to
-# /var/run/fake-backlight/brightness, this runs gammastep -m wayland to
+# /var/run/fake-backlight/brightness, this runs ${pkgs.gammastep}/bin/gammastep -m wayland to
 # set the gamma ramp, which works on ALL displays including HDMI TVs that
 # lack DDC/CI or kernel backlight support.
 #
@@ -39,9 +39,10 @@ in {
             VAL=$(cat "$BRIGHTNESS_FILE" 2>/dev/null || echo "$MAX_BRIGHTNESS")
             if [ "$VAL" -gt "$MAX_BRIGHTNESS" ] 2>/dev/null; then VAL=$MAX_BRIGHTNESS; fi
             if [ "$VAL" -lt 0 ] 2>/dev/null; then VAL=0; fi
-            BRIGHTNESS=$(awk "BEGIN {printf \"%.2f\", $VAL / $MAX_BRIGHTNESS}")
-            pkill gammastep 2>/dev/null || true
-            gammastep -m wayland -b "$BRIGHTNESS" -O 6500 &
+            # Calculate brightness 0.00-1.00 (bash integer math, max 100)
+            BRIGHTNESS=$(printf "0.%02d" $((VAL * 100 / MAX_BRIGHTNESS)))
+            pkill -f "${pkgs.gammastep}/bin/gammastep" 2>/dev/null || true 2>/dev/null || true
+            ${pkgs.gammastep}/bin/gammastep -m wayland -b "$BRIGHTNESS" -O 6500 &
           fi
         '';
         User = "j_kro";
@@ -51,6 +52,7 @@ in {
 
     systemd.services.fake-backlight-setup = {
       description = "Setup fake backlight device for gamma-brightness bridge";
+      wantedBy = [ "multi-user.target" ];
       before = [ "fake-backlight-apply.service" ];
       requiredBy = [ "fake-backlight-apply.service" ];
       serviceConfig = {
@@ -76,4 +78,3 @@ in {
     };
   };
 }
-NIX
