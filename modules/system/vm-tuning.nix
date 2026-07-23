@@ -56,7 +56,7 @@
     # - Earlier, more gradual swapping vs emergency thrashing
     # - Trades background swapping for panic-driven swap storms
     # - 1 = minimal swap, 100 = aggressive swap
-    "vm.swappiness" = lib.mkForce 40; # Earlier swap = smoother than thrashing
+    "vm.swappiness" = lib.mkDefault 40; # zram hosts override (zephyr=180)
 
     # ========================================================================
     # DIRTY MEMORY CAPS - Limit pending write cache
@@ -73,7 +73,7 @@
     # Default 100 aggressively reclaims inode/dentry cache
     # Higher = reclaim cache more, lower = reclaim cache less
     # 150 is more aggressive - frees slab cache faster under memory pressure
-    "vm.vfs_cache_pressure" = lib.mkForce 150;
+    "vm.vfs_cache_pressure" = lib.mkDefault 50;
 
     # ========================================================================
     # PAGE CACHE LIMITS - Prevent page cache from crowding anonymous memory
@@ -88,7 +88,7 @@
     # Controls how many pages are read ahead from swap at once
     # Default 2 (32 pages), increase to 3 (64 pages) for better swap throughput
     # Helps when system reads back swapped-out pages
-    "vm.page-cluster" = lib.mkForce 3; # Read ahead 64 pages from swap
+    "vm.page-cluster" = lib.mkDefault 3; # zram hosts override (zephyr=0)
 
     # ========================================================================
     # WATERMARK SCALE FACTOR - More proactive memory reclaim

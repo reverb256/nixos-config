@@ -97,9 +97,9 @@
     # IN-MEMORY SWAP TUNING (zram-only). swappiness > 100 is appropriate
     # for in-memory swap (kernel docs); Pop!_OS/Arch zram standard = 180 +
     # page-cluster=0. Overrides vm-tuning.nix mkForce 40 (assumes zswap).
-    "vm.swappiness" = lib.mkForce 180;
-    "vm.page-cluster" = lib.mkForce 0;
-    "vm.vfs_cache_pressure" = lib.mkForce 50; # less inode churn (vm-tuning=150)
+    "vm.swappiness" = 180;
+    "vm.page-cluster" = 0;
+    "vm.vfs_cache_pressure" = 50;
   };
 
   # ------------------------------------------------------------------
@@ -118,6 +118,22 @@
       "--prefer" "(Web Content|Isolated Web|nix)"
       "--avoid"  "(niri|noctalia|zen|spotify|vesktop|opencode|hermes|Xwayland|pipewire)"
     ];
+  };
+
+  # ------------------------------------------------------------------
+  # SYSTEMD-OOMD - passive backstop to earlyoom (slower PSI-based, but
+  # acts at the cgroup level). It does NOTHING unless a slice opts in via
+  # ManagedOOMSwap=kill, so we opt the root slice in (Fedora default).
+  # settings.OOM.SwapUsedLimit=90 is the stock default but set explicitly.
+  systemd.oomd = {
+    enable = true;
+    settings.OOM = {
+      SwapUsedLimit = 90;
+      MemoryUsedLimit = 90;
+    };
+  };
+  systemd.slices."-".sliceConfig = {
+    ManagedOOMSwap = "kill";
   };
 
   networking = {
