@@ -58,10 +58,8 @@ in {
     # wayland-compositor-common.nix sets desktop.noctalia.daemonPackage as
     # a mkOption (priority 100). mkForce beats the default.
     desktop.noctalia.daemonPackage = mkForce noctalia-patched;
-    # Directly set the wrapper package (bypasses option indirection)
-    programs.noctalia.package = mkForce (pkgs.writeShellScriptBin "noctalia" ''
-      exec ${lib.getExe noctalia-patched} "$@"
-    '');
+    # Ensure the patched noctalia binary is in PATH with highest priority
+    environment.systemPackages = [ noctalia-patched ];
 
     # ── Systemd environment: point noctalia at our TOML config ──────────
     # /etc/noctalia/ contains the system-managed TOML config. Setting
