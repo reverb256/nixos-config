@@ -58,16 +58,24 @@ in {
     # wayland-compositor-common.nix sets desktop.noctalia.daemonPackage as
     # a mkOption (priority 100). mkForce beats the default.
     desktop.noctalia.daemonPackage = mkForce noctalia-patched;
-    # Ensure the patched noctalia binary is in PATH with highest priority
-    environment.systemPackages = [ noctalia-patched ];
-
-    # ── Systemd environment: point noctalia at our TOML config ──────────
-    # /etc/noctalia/ contains the system-managed TOML config. Setting
-    # NOCTALIA_CONFIG_HOME here overrides the default
-    # ~/.config/noctalia/ search path for the noctalia daemon process.
-    systemd.user.services.noctalia.environment = {
-      NOCTALIA_CONFIG_HOME = "/etc";
+    # Direct systemd user service for patched noctalia daemon
+    # (bypasses the noctalia flake's systemd module which doesn't set ExecStart)
+    systemd.user.services.noctalia = {
+      description = "Noctalia shell daemon (patched with Sdr brightness backend)";
+      wantedBy = [ "graphical-session.target" ];
+      partOf = [ "graphical-session.target" ];
+      after = [ "graphical-session.target" ];
+      serviceConfig = {
+        Type = "dbus";
+        BusName = "noctalia";
+        ExecStart = "${lib.getExe noctalia-patched}";
+        Restart = "on-failure";
+        RestartSec = "3";
+      };
+      environment.NOCTALIA_CONFIG_HOME = "/etc";
     };
+    # Ensure patched binary is in PATH
+    environment.systemPackages = [ noctalia-patched ];
 
     # ── Write the TOML config to /etc/noctalia/config.toml ──────────────
     environment.etc."noctalia/config.toml".source = noctaliaConfigFile;
