@@ -150,9 +150,9 @@ deploy host="all":
         if [ "$host" = "$LOCAL" ]; then
             if [ "$host" = "zephyr" ]; then
                 # Zephyr never builds locally (31GB OOM) — build on nexus, copy back, activate.
-                OUT=$({{FLAKE}}/scripts/remote-build.sh zephyr zephyr-deploy)
+                OUT=$({{FLAKE}}/scripts/remote-build.sh zephyr zephyr-deploy | tail -1)
                 echo "  copying closure..."
-                ssh nexus "nix-copy-closure --to j_kro@zephyr '$OUT'" 2>&1 | grep -v "copying path\|already exists" || true
+                ssh nexus "nix-copy-closure --to j_kro@zephyr $OUT" 2>&1 | grep -v "copying path\|already exists" || true
                 echo "  activating..."
                 sudo nix-env -p /nix/var/nix/profiles/system --set "$OUT"
                 sudo "$OUT/bin/switch-to-configuration" switch 2>&1 | tail -10
@@ -351,9 +351,9 @@ switch:
     HOST=$(hostname -s)
     if [ "$HOST" = "zephyr" ]; then
         echo "Building on nexus for $HOST..."
-        OUT=$({{FLAKE}}/scripts/remote-build.sh zephyr zephyr-switch)
+        OUT=$({{FLAKE}}/scripts/remote-build.sh zephyr zephyr-switch | tail -1)
         echo "  copying closure to $HOST..."
-        ssh nexus "nix-copy-closure --to j_kro@${HOST} '$OUT'" 2>&1 | grep -v "copying path\|already exists" || true
+        ssh nexus "nix-copy-closure --to j_kro@${HOST} $OUT" 2>&1 | grep -v "copying path\|already exists" || true
         echo "  activating..."
         sudo nix-env -p /nix/var/nix/profiles/system --set "$OUT"
         sudo "$OUT/bin/switch-to-configuration" switch 2>&1 | tail -10
