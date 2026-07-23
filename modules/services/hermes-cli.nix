@@ -32,6 +32,16 @@
     pkgs.alsa-lib
   ];
 
+  # Python runtime path for voice-mode packages (sounddevice, numpy).
+  # Hermes-agent ships its own Python env but does NOT include these.
+  # Without this PYTHONPATH, voice mode fails with:
+  #   "Voice mode requires sounddevice and numpy."
+  # Python 3.12 is the version hermes-agent-env bundles.
+  hermesVoicePyPath = lib.makeSearchPath "lib/python3.12/site-packages" [
+    pkgs.python3Packages.sounddevice
+    pkgs.python3Packages.numpy
+  ];
+
   # Patch hermes-agent to remove /etc/ from sensitive path blocklist,
   # allowing write_file and patch tools to edit /etc/nixos/ files.
   hermesPkg = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs (old: {
@@ -119,7 +129,8 @@
     for bin in ${hermesPkg}/bin/*; do
       name=$(basename "$bin")
       makeWrapper "$bin" "$out/bin/$name" \
-        --prefix LD_LIBRARY_PATH : "${hermesAudioLibPath}" $VOICE_ARGS
+        --prefix LD_LIBRARY_PATH : "${hermesAudioLibPath}" \
+        --prefix PYTHONPATH : "${hermesVoicePyPath}" $VOICE_ARGS
     done
   '';
 
