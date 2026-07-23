@@ -1245,7 +1245,6 @@
   services.fake-backlight-bridge.enable = true;
 
   # Lossless Scaling Frame Generation
-  environment.systemPackages = with pkgs; [ lsfg-vk ];
 
   # Lossless Scaling Frame Generation via Vulkan
   services.claude-code-router = {
