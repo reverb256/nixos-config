@@ -433,6 +433,13 @@ in {
       environment.CONTAINERD_NRI_DISABLED = "1";
       # Do NOT block multi-user.target - k3s can take 5+ minutes to start with etcd
       wantedBy = lib.mkForce [];
+      # Self-heal: if k3s ever exits (crash, OOM, etcd blip), restart it
+      # immediately instead of relying solely on the one-shot boot timer.
+      # startLimitIntervalSec=0 disables systemd's start-limit backoff so a
+      # flapping k3s keeps retrying instead of being parked in failed state.
+      restart = "always";
+      restartSec = "15s";
+      startLimitIntervalSec = 0;
       # Belt-and-suspenders: start before keepalived at boot (primary fix: --flannel-iface)
       before = lib.mkIf config.services.keepalived.enable ["keepalived.service"];
       # nfs-utils needed for kubelet to mount NFS PVs (mount.nfs binary)
@@ -449,6 +456,11 @@ in {
       description = "Start k3s after boot (decoupled from multi-user.target to avoid blocking boot)";
       wantedBy = ["timers.target"];
       timerConfig = {
+        # Persistent=true: if the 30s boot trigger is ever missed (timer inactive
+        # at boot, fast reboot, clock skew), fire on the next tick instead of
+        # leaving k3s permanently down. This is the root-cause fix for nodes
+        # coming up NotReady/Unknown after a reboot.
+        Persistent = true;
         OnBootSec = "30s";
         Unit = "k3s.service";
       };
