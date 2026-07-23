@@ -21,6 +21,10 @@
     };
 
     # Log aggregation to Sentry's Loki
+    gputemps-exporter.enable = true;
+
+    monitoring.smart-exporter.enable = true;
+
     monitoring.promtail = {
       enable = false;
       lokiUrl = "http://10.1.1.140:3100/loki/api/v1/push";
