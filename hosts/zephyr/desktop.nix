@@ -29,6 +29,10 @@
   desktop.uwsm-sessions.enable = true;
   programs.niri.enable = true;
 
+  # Samsung TV brightness via Tizen WS API
+  desktop.samsung-tv-brightness.enable = true;
+  desktop.zephyr-sdr-brightness.enable = true;
+
   # Noctalia v5 (noctalia flake input) is enabled automatically by
   # modules/desktop/wayland-compositor-common.nix whenever `programs.niri.enable`
   # is true. The binary is launched via the niri `spawn-at-startup` list in
