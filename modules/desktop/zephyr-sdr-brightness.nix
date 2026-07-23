@@ -66,11 +66,12 @@ in {
       partOf = [ "graphical-session.target" ];
       after = [ "graphical-session.target" ];
       serviceConfig = {
-        Type = "dbus";
-        BusName = "noctalia";
+        Type = "simple";
         ExecStart = "${lib.getExe noctalia-patched}";
         Restart = "on-failure";
         RestartSec = "3";
+        # Full system PATH for ddcutil and niri
+        Environment = "PATH=/run/current-system/sw/bin";
       };
       environment.NOCTALIA_CONFIG_HOME = "/etc";
     };
