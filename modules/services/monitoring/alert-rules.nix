@@ -1,7 +1,7 @@
 # Cluster Alert Rules
 # Deployed on Sentry alongside Prometheus
 # After adding a new rule, run: just deploy sentry
-{ config, lib, ... }: let
+{ config, lib, pkgs, ... }: let
   inherit (lib) mkIf;
   cfg = config.services.monitoring.prometheus;
 in mkIf cfg.enableAlertRules {
@@ -11,17 +11,17 @@ in mkIf cfg.enableAlertRules {
     }];
   }];
 
-  services.prometheus.rules = let
-    mkRule = name: alert: ''
-      groups:
-        - name: ${name}
-          interval: 30s
-          rules:
-${builtins.concatStringsSep "\n" (map (a: "            ${builtins.toJSON a}") alert)}
-    '';
+  services.prometheus.ruleFiles = let
+    ruleFile = name: alertList: pkgs.writeText "prom-${name}.yml" (builtins.toJSON {
+      groups = [{
+        name = "${name}";
+        interval = "30s";
+        rules = alertList;
+      }];
+    });
   in [
     # ── Host health ──────────────────────────────────────────────
-    (mkRule "host" [
+    (ruleFile "host" [
       {
         alert = "HostDown";
         expr = "up{job='node'} == 0";
@@ -55,7 +55,7 @@ ${builtins.concatStringsSep "\n" (map (a: "            ${builtins.toJSON a}") al
     ])
 
     # ── GPU health ───────────────────────────────────────────────
-    (mkRule "gpu" [
+    (ruleFile "gpu" [
       {
         alert = "NvidiaGpuTempWarning";
         expr = "nvidia_smi_temperature_gpu > 85";
@@ -89,7 +89,7 @@ ${builtins.concatStringsSep "\n" (map (a: "            ${builtins.toJSON a}") al
     ])
 
     # ── Service health ───────────────────────────────────────────
-    (mkRule "service" [
+    (ruleFile "service" [
       {
         alert = "K3sNodeNotReady";
         expr = "kube_node_status_condition{condition='Ready',status='true'} == 0";
@@ -113,7 +113,7 @@ ${builtins.concatStringsSep "\n" (map (a: "            ${builtins.toJSON a}") al
     ])
 
     # ── Temperature ──────────────────────────────────────────────
-    (mkRule "temperature" [
+    (ruleFile "temperature" [
       {
         alert = "CpuTempHot";
         expr = "node_hwmon_temp_celsius{sensor='coretemp'} > 80";
