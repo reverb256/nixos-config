@@ -12,10 +12,7 @@
 # once crates.io has the crate, switch this to `rustPlatform.buildRustPackage
 # { … src = fetchCrate { … }; }`.
 
-rustPlatform.buildRustPackage {
-  pname = "secretspec-provider-sops";
-  version = "0.1.0";
-
+let
   src = fetchFromGitHub {
     owner = "reverb256";
     repo = "secretspec-provider-sops";
@@ -27,6 +24,11 @@ rustPlatform.buildRustPackage {
     #   nix-prefetch-github --owner reverb256 --repo secretspec-provider-sops --rev v0.1.0
     hash = lib.fakeHash;
   };
+in
+rustPlatform.buildRustPackage {
+  pname = "secretspec-provider-sops";
+  version = "0.1.0";
+  inherit src;
 
   # Use the upstream Cargo.lock verbatim (no vendor hash needed).
   cargoLock = {
