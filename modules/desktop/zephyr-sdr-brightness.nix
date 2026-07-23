@@ -51,7 +51,7 @@ in {
     # ── Patched niri ────────────────────────────────────────────────────
     # niri.nix already sets `programs.niri.package = mkForce pkgs.niri`.
     # We override with an even higher priority (40 < 50) to beat mkForce.
-    programs.niri.package = mkOverride 40 niri-patched;
+    programs.niri.package = mkOverride 60 niri-patched;
 
     # ── Patched noctalia daemon ─────────────────────────────────────────
     # wayland-compositor-common.nix sets desktop.noctalia.daemonPackage as
