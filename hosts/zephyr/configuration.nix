@@ -1240,6 +1240,9 @@
     };
   };
 
+  # Gamma-based brightness for HDMI TV (no DDC/CI)
+  services.fake-backlight-bridge.enable = true;
+
   services.claude-code-router = {
     enable = true;
     port = 3456;
