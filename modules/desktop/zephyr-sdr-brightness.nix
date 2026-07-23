@@ -58,15 +58,22 @@ in {
     # wayland-compositor-common.nix sets desktop.noctalia.daemonPackage as
     # a mkOption (priority 100). mkForce beats the default.
     desktop.noctalia.daemonPackage = mkForce noctalia-patched;
-    # Enable noctalia's built-in systemd service (generates ExecStart from programs.noctalia.package)
-    programs.noctalia.systemd.enable = mkOverride 40 true;
-    programs.noctalia.package = mkForce noctalia-patched;
-    # Ensure patched binary is in PATH
+    # Direct systemd user service for patched noctalia daemon
+    systemd.user.services.noctalia = {
+      description = "Noctalia shell daemon (patched with Sdr brightness backend)";
+      wantedBy = [ "graphical-session.target" ];
+      partOf = [ "graphical-session.target" ];
+      after = [ "graphical-session.target" ];
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${lib.getExe noctalia-patched}";
+        Restart = "on-failure";
+        RestartSec = "3";
+        Environment = "PATH=/run/current-system/sw/bin";
+      };
+      environment.NOCTALIA_CONFIG_HOME = "/etc";
+    };
     environment.systemPackages = [ noctalia-patched ];
-    # Point noctalia at system-managed config
-    systemd.user.services.noctalia.environment.NOCTALIA_CONFIG_HOME = "/etc";
-    # Full system PATH for ddcutil and niri
-    systemd.user.services.noctalia.serviceConfig.Environment = "PATH=/run/current-system/sw/bin";
 
     # ── Write the TOML config to /etc/noctalia/config.toml ──────────────
     environment.etc."noctalia/config.toml".source = noctaliaConfigFile;
