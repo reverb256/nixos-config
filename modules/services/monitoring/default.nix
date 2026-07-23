@@ -12,7 +12,6 @@
     ./redis-exporter.nix
     ./smart-exporter.nix
     ./loki.nix
-    ./alert-rules.nix  # Cluster alert rules (disk, temp, GPU, service health)
     ./ntfy.nix           # Phone push notifications via ntfy
     ./dcgm-exporter.nix  # NVIDIA DCGM hardware error tracking (ECC, PCIe)
     ./grafana-alloy.nix  # Log shipper to Loki (replaces promtail)
