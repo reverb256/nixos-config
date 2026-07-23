@@ -11,7 +11,7 @@
 # rp_filter=0 transitively via the kernel's `max(conf.all, conf.<dev>)`
 # policy. Wildcard keys like `lxc*` or `cilium_*` would NOT match any
 # path under /proc/sys/net/ipv4/conf/ and would error out at sysctl -w.
-{ lib, ... }:
+{ ... }:
 {
   boot.extraSysctls = {
     # kernel-everywhere default (max wins over per-device)
