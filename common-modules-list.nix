@@ -1,7 +1,8 @@
 {
   inputs,
   self,
-}: [
+}:
+[
   inputs.home-manager.nixosModules.home-manager
   ./modules/system/home-manager.nix
   inputs.aagl.nixosModules.default
@@ -25,6 +26,9 @@
 
   ./modules/services/peakminer.nix
 
+  # Phase 4 closure: secretspec + sudo systemd-creds + LoadCredentialEncrypted=
+  ./modules/services/secretspec-example.nix
+
   ./modules/default.nix
 
   {
@@ -32,6 +36,11 @@
       inputs.niri.overlays.niri
       inputs.llm-agents.overlays.shared-nixpkgs
       self.overlays.default
+      # secretspec-provider-sops: Phase 2 closure of the sops-nix → SecretSpec
+      # migration. Exposed as `pkgs.secretspec-provider-sops` across all hosts.
+      (final: prev: {
+        secretspec-provider-sops = final.callPackage ./pkgs/secretspec-provider-sops { };
+      })
     ];
   }
 ]
