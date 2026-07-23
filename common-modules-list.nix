@@ -44,5 +44,4 @@
       inputs.lsfg-vk-nix.overlays.default
     ];
   }
-  inputs.lsfg-vk-flake.nixosModules.default
 ]
