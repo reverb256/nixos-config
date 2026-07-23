@@ -13,7 +13,7 @@
 # path under /proc/sys/net/ipv4/conf/ and would error out at sysctl -w.
 { ... }:
 {
-  boot.extraSysctls = {
+  boot.kernel.sysctl = {
     # kernel-everywhere default (max wins over per-device)
     "net.ipv4.conf.all.rp_filter" = 0;
     # per-interface default (covers newly-created interfaces — incl. Cilium veths)
