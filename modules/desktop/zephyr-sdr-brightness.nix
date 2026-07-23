@@ -34,9 +34,10 @@
   #     SDR brightness (requires the noctalia and niri patches above)
   noctaliaConfigFile = pkgs.writeText "noctalia-config.toml" ''
     [brightness]
+    enable_ddcutil = true
 
     [brightness.monitor."HDMI-A-2"]
-    backend = "none"
+    backend = "sdr"
   '';
 in {
   options.desktop.zephyr-sdr-brightness = {
