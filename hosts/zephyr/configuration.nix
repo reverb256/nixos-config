@@ -85,6 +85,9 @@
   # Disable zswap (conflicts with zram). Emits zswap.enabled=0 on cmdline.
   kernel-hardening.zswap.enable = false;
 
+  # Hermes Agent CLI (interactive agent) with voice deps
+  services.hermes-cli.enable = true;
+
   boot.kernel.sysctl = {
     # Network buffer tuning (frees unused socket buffers)
     "net.core.rmem_default" = 262144; # 256KB (default: 212992)
