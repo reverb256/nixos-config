@@ -10,7 +10,7 @@ in {
     distributedBuilds = lib.mkDefault true;
 
     settings = {
-      builders = lib.mkForce "";
+      builders = lib.mkForce "@/etc/nix/machines";
       builders-use-substitutes = true;
       require-sigs = lib.mkForce false;
       trusted-users = lib.mkForce [
