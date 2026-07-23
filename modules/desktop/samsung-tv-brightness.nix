@@ -1,51 +1,31 @@
-# Samsung TV Brightness Control via Tizen WS API
-# Token managed by sops-nix (secrets/samsung-tv-token)
-# Requires uv-installed samsungtvws CLI: uv tool install "samsungtvws[cli]"
+# Brightness control via wlr-gamma-control-v1 (works on NVIDIA + niri)
+# Uses gammastep to scale gamma ramps via the Wayland protocol.
+# No GPU patches, no Samsung API, no DDC/CI needed.
+# Requires: niri supports wlr-gamma-control-v1 (PR #240, merged in 25.05+)
 { config, lib, pkgs, ... }: let
   cfg = config.desktop.samsung-tv-brightness;
   inherit (lib) mkEnableOption mkOption types mkIf;
 in {
   options.desktop.samsung-tv-brightness = {
-    enable = mkEnableOption "Samsung TV brightness control via Tizen API";
-    host = mkOption { type = types.str; default = "10.1.1.68"; };
-    tokenFile = mkOption {
-      type = types.path;
-      default = "/run/secrets/samsung-tv-token";
-    };
+    enable = mkEnableOption "Gamma-based brightness control via wlr-gamma-control-v1";
   };
 
   config = mkIf cfg.enable {
-    environment.systemPackages = [
-      (pkgs.writeShellScriptBin "samsung-brightness" ''
+    environment.systemPackages = with pkgs; [
+      gammastep
+      (writeShellScriptBin "samsung-brightness" ''
         set -euo pipefail
-        TV_HOST="${cfg.host}"
-        TOKEN_FILE="${cfg.tokenFile}"
-
-        if [ ! -f "$TOKEN_FILE" ]; then
-          # Fallback to repo token
-          TOKEN_FILE="/etc/nixos/secrets/samsung-tv-token"
-          if [ ! -f "$TOKEN_FILE" ]; then
-            echo "samsung-brightness: No token file found" >&2
-            exit 1
-          fi
-        fi
-
         PERCENT=$1
         if [ -z "$PERCENT" ]; then
           echo "Usage: samsung-brightness <0-100>" >&2
           exit 1
         fi
-
-        # Use uv-installed CLI
-        PATH="$HOME/.local/share/uv/tools/samsungtvws/bin:$PATH"
-        if command -v samsungtv &>/dev/null; then
-          samsungtv --host "$TV_HOST" --token-file "$TOKEN_FILE" send-key KEY_MAGIC_BRIGHT
-          echo "samsung-brightness: sent KEY_MAGIC_BRIGHT to TV at $TV_HOST ($PERCENT%)"
-        else
-          # Direct WebSocket fallback
-          TOKEN=$(cat "$TOKEN_FILE")
-          echo "samsung-brightness: TV reachable at $TV_HOST"
-        fi
+        # Kill any running gammastep
+        pkill gammastep 2>/dev/null || true
+        # Convert 0-100 to 0.0-1.0
+        BRIGHTNESS=$(awk "BEGIN {printf \"%.2f\", $PERCENT / 100}")
+        echo "Setting brightness to $PERCENT% ($BRIGHTNESS)"
+        exec gammastep -m wayland -b "$BRIGHTNESS" -O 6500
       '')
     ];
   };
