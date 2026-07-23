@@ -73,9 +73,9 @@ in {
     # them). Drop the interception entirely — pass every verb through to
     # the daemon. This keeps `noctalia msg volume-up`, panel toggles, etc.
     # working while letting the daemon handle brightness natively.
-    programs.noctalia.package = lib.mkForce (pkgs.writeShellScriptBin "noctalia" ''
-      exec ${lib.getExe config.desktop.noctalia.daemonPackage} "$@"
-    '');
+    # programs.noctalia.package is now set by zephyr-sdr-brightness.nix
+    # (per-host override that directly references the patched daemon)
+
 
     # Point the daemon at the system-managed TOML (/etc/noctalia/config.toml,
     # symlinked into /etc/static). Previously set on the systemd unit's

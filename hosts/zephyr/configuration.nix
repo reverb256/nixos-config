@@ -23,6 +23,7 @@
     ../../modules/services/k3s-cluster.nix
     # Keepalived VIP for Kubernetes HA
     ../../modules/services/keepalived-vip.nix
+    ../../modules/services/hermes/default.nix
     # FIX: Systemd user unit reload timeout (nixos-rebuild switch hang)
     ../../modules/system/systemd-user-timeout.nix
 
