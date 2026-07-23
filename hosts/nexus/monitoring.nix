@@ -32,6 +32,8 @@
       enable = false;
       lokiUrl = "http://10.1.1.140:3100/loki/api/v1/push";
     };
+    # Log shipping to Loki (Grafana Alloy)
+    monitoring.grafana-alloy.enable = true;
   };
 
   # Ensure node-exporter port is open for Prometheus scraping
