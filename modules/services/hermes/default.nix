@@ -15,6 +15,12 @@ let
 
 in {
   options.services.hermes = {
+    default = mkOption {
+      type = types.attrs;
+      default = {};
+      description = "Default profile configuration (set by Hermes flake)";
+      internal = true;
+    };
     enable = mkEnableOption "Hermes Agent declarative management";
 
     profiles = mkOption {
