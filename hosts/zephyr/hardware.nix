@@ -140,6 +140,8 @@
       # Fix Intel AX200 Bluetooth FW download failure (-19 ENODEV) — USB autosuspend
       # causes the device to be unresponsive during firmware loading.
       "btusb.enable_autosuspend=0"
+      # Required for gputemps BAR0 MMIO access (per-module GDDR6X VRAM temps on RTX 3090)
+      "iomem=relaxed"
       # Silence kauditd console spam: with 0 audit rules but audit=1, the kernel
       # still emits default events (LSM, capabilities, logins) faster than any
       # backlog can absorb. Disabling the audit subsystem is the cleanest fix.
