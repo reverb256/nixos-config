@@ -41,6 +41,7 @@
       (final: prev: {
         secretspec-provider-sops = final.callPackage ./pkgs/secretspec-provider-sops { };
       })
+      inputs.lsfg-vk-nix.overlays.default
     ];
   }
   inputs.lsfg-vk-flake.nixosModules.default

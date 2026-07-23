@@ -8,11 +8,13 @@
     };
     zen-browser = {
       url = "git+https://github.com/0xc000022070/zen-browser-flake";
-    # lsfg-vk - Lossless Scaling Frame Generation on Linux
-    lsfg-vk-flake.url = "github:pabloaul/lsfg-vk-flake/main";
-    lsfg-vk-flake.inputs.nixpkgs.follows = "nixpkgs";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
+    };
+    # lsfg-vk - Lossless Scaling Frame Generation on Linux
+    lsfg-vk-nix = {
+      url = "github:Daaboulex/lsfg-vk-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
     firefox-addons = {
       url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
