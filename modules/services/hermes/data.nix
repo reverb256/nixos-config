@@ -73,6 +73,15 @@ in {
       };
     };
 
+    default = {
+      soul = readSoul "default";
+      skills = [
+        "nixos-cluster-ops" "nixos-declarative-only" "deployment-debugger"
+        "user-interaction-patterns"
+      ];
+      description = "General infrastructure and MapleSpike operations";
+    };
+
     bundles = {
       planning = {
         skills = [ "grill-me" "to-spec" "to-tickets" ];
@@ -109,6 +118,7 @@ in {
       secretspec-checkpoint = { content = readSkill "secretspec-checkpoint"; category = "infrastructure"; };
       daily-oom-audit =      { content = readSkill "daily-oom-audit";      category = "infrastructure"; };
       weekly-drift-scan =    { content = readSkill "weekly-drift-scan";    category = "infrastructure"; };
+      user-interaction-patterns = { content = readSkill "user-interaction-patterns"; category = "communication"; };
     };
   };
 }
