@@ -28,8 +28,12 @@ in {
     systemd = {
       oomd = {
         enable = mkDefault true;
-        # Default action: kill cgroup worst offender
-        # Can be customized per-host if needed via drop-ins
+        # Passive backstop to earlyoom: act on system-wide swap/memory
+        # pressure. earlyoom is the primary (faster-reacting) layer.
+        oomdSettings = {
+          SwapUsedLimit = 90;
+          MemoryUsedLimit = 90;
+        };
       };
     };
   };

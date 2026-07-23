@@ -61,6 +61,9 @@
       memoryThreshold = 90;
       diskThreshold = 90;
     };
+    # Log shipping to Loki (Grafana Alloy)
+    monitoring.grafana-alloy.enable = true;
+    monitoring.ntfy.enable = true;
   };
 
   # Ensure node-exporter port is open for Prometheus scraping
