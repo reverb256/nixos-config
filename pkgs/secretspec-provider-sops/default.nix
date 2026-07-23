@@ -16,13 +16,25 @@ let
   src = fetchFromGitHub {
     owner = "reverb256";
     repo = "secretspec-provider-sops";
-    # Pin to the first v0.1.x release tag once it exists. Until then,
-    # bump the rev to a known-good commit SHA on origin/main.
-    rev = "v0.1.0";
-    # lib.fakeHash allows `nix flake check` to evaluate cleanly; replace
-    # with the real SRI once v0.1.0 is tagged:
+    # Audit 2026-07-26 -- documented-fallback path applied.
+    #
+    # The v0.1.0 release tag has not been published upstream yet (literal
+    # `nix-prefetch-github --owner reverb256 --repo secretspec-provider-sops
+    # --rev v0.1.0` cannot run today). Applying the fallback from
+    # /home/j_kro/Projects/secretspec/CONTEXT.md
+    # (Audit 2026-07-23 -- lib.fakeHash SRI upstream precondition check,
+    #  Recommended next step section):
+    #   * `rev` bumped to a known-good commit SHA on origin/main
+    #     (24e4813bb0d418ab93630e55710615aa32965cd5).
+    #   * `hash` replaced with the NAR hash of that SHA's tarball,
+    #     computed via `nix-prefetch-url --unpack` and converted to SRI
+    #     via `nix hash to-sri ...`.
+    #
+    # To migrate once v0.1.0 is tagged upstream, replace rev with "v0.1.0"
+    # and re-run:
     #   nix-prefetch-github --owner reverb256 --repo secretspec-provider-sops --rev v0.1.0
-    hash = lib.fakeHash;
+    rev = "24e4813bb0d418ab93630e55710615aa32965cd5";
+    hash = "sha256-LdNi3L7jJJWZ3eTIbIzTfFSJSKa4Ant8ZdB7K/qKabI";
   };
 in
 rustPlatform.buildRustPackage {
