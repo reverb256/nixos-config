@@ -1175,6 +1175,16 @@
   # ============================================================================
   # CLAUDE CODE ROUTER - Route Claude Code to Z.AI GLM models
   # ============================================================================
+  # Corsair keyboard/mouse driver daemon (ckb-next)
+  systemd.services.ckb-next = {
+    description = "Corsair Keyboards and Mice Daemon";
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.ckb-next}/bin/ckb-next-daemon";
+      Restart = "on-failure";
+    };
+  };
+
   services.claude-code-router = {
     enable = true;
     port = 3456;
