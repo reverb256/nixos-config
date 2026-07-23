@@ -43,4 +43,5 @@
       })
     ];
   }
+  inputs.lsfg-vk-flake.nixosModules.default
 ]
