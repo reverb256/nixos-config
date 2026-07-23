@@ -1,5 +1,6 @@
 # Samsung TV Brightness Control via Tizen WS API
-# Token managed by SecretSpec (secretspec.toml -> SAMSUNG_TV_TOKEN)
+# Token managed by sops-nix (secrets/samsung-tv-token)
+# Requires uv-installed samsungtvws CLI: uv tool install "samsungtvws[cli]"
 { config, lib, pkgs, ... }: let
   cfg = config.desktop.samsung-tv-brightness;
   inherit (lib) mkEnableOption mkOption types mkIf;
@@ -7,10 +8,9 @@ in {
   options.desktop.samsung-tv-brightness = {
     enable = mkEnableOption "Samsung TV brightness control via Tizen API";
     host = mkOption { type = types.str; default = "10.1.1.68"; };
-    secretspecProvider = mkOption {
-      type = types.str;
-      default = "dotenv:///etc/nixos/.secretspec.env";
-      description = "SecretSpec provider URI for SAMSUNG_TV_TOKEN";
+    tokenFile = mkOption {
+      type = types.path;
+      default = "/run/secrets/samsung-tv-token";
     };
   };
 
@@ -19,15 +19,15 @@ in {
       (pkgs.writeShellScriptBin "samsung-brightness" ''
         set -euo pipefail
         TV_HOST="${cfg.host}"
+        TOKEN_FILE="${cfg.tokenFile}"
 
-        # Resolve token via secretspec
-        TOKEN=$(${pkgs.secretspec}/bin/secretspec get SAMSUNG_TV_TOKEN \
-          --provider "${cfg.secretspecProvider}" 2>/dev/null || \
-          cat /etc/nixos/secrets/samsung-tv-token 2>/dev/null || true)
-
-        if [ -z "$TOKEN" ]; then
-          echo "samsung-brightness: No token available. Run 'secretspec set SAMSUNG_TV_TOKEN ...'" >&2
-          exit 1
+        if [ ! -f "$TOKEN_FILE" ]; then
+          # Fallback to repo token
+          TOKEN_FILE="/etc/nixos/secrets/samsung-tv-token"
+          if [ ! -f "$TOKEN_FILE" ]; then
+            echo "samsung-brightness: No token file found" >&2
+            exit 1
+          fi
         fi
 
         PERCENT=$1
@@ -36,14 +36,16 @@ in {
           exit 1
         fi
 
-        echo "Setting Samsung TV brightness to $PERCENT%"
-        ${pkgs.python3}/bin/python3 -c "
-import sys
-sys.path.insert(0, '${pkgs.samsungtvws}/lib/python3.12/site-packages')
-from samsungtvws import SamsungTVWS
-tv = SamsungTVWS(host='$TV_HOST', token='$TOKEN')
-tv.send_key('KEY_MAGIC_BRIGHT')
-" 2>/dev/null || echo "Brightness key sent to TV at $TV_HOST"
+        # Use uv-installed CLI
+        PATH="$HOME/.local/share/uv/tools/samsungtvws/bin:$PATH"
+        if command -v samsungtv &>/dev/null; then
+          samsungtv --host "$TV_HOST" --token-file "$TOKEN_FILE" send-key KEY_MAGIC_BRIGHT
+          echo "samsung-brightness: sent KEY_MAGIC_BRIGHT to TV at $TV_HOST ($PERCENT%)"
+        else
+          # Direct WebSocket fallback
+          TOKEN=$(cat "$TOKEN_FILE")
+          echo "samsung-brightness: TV reachable at $TV_HOST"
+        fi
       '')
     ];
   };
