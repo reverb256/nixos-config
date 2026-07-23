@@ -12,6 +12,8 @@ in {
   };
 
   config = mkIf cfg.enable {
+    # Auto-enable OCI container backend for DCGM
+    virtualisation.oci-containers.backend = "podman";
     virtualisation.oci-containers.containers.dcgm-exporter = {
       image = "nvidia/dcgm-exporter:4.2.0-3.7.3-ubuntu24.04";
       ports = [ "${cfg.listenAddress}:${toString port}:9400" ];

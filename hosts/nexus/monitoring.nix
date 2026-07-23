@@ -33,6 +33,8 @@
       lokiUrl = "http://10.1.1.140:3100/loki/api/v1/push";
     };
     # Log shipping to Loki (Grafana Alloy)
+    # NVIDIA DCGM error tracking (ECC, PCIe replay count)
+    monitoring.dcgm-exporter.enable = true;
     monitoring.grafana-alloy.enable = true;
   };
 
