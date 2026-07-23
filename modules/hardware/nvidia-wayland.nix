@@ -109,6 +109,12 @@ in
     # KERNEL PARAMETERS (for better Wayland stability)
 
     boot = {
+      # Migrated from hand-placed /etc/modprobe.d/nvidia.conf.
+      # Disable NVIDIA page attribute table (fixes Wayland/niri rendering
+      # corruption on some setups).
+      extraModprobeConfig = ''
+        options nvidia NVreg_EnablePageAttributeTable=0
+      '';
       kernelParams = [
         # Enable NVIDIA DRM modeset (required for Wayland)
         "nvidia-drm.modeset=1"

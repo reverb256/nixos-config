@@ -137,6 +137,7 @@ in
           y = 1080;
         };
         scale = 1.5;
+        vrr = false;
       };
     };
 
