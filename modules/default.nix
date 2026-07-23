@@ -180,5 +180,6 @@
     ./services/container-scanning.nix
     # Auto-apply Kubernetes manifests on boot
     ./services/k8s-manifest-autoapply.nix
+    ./services/fake-backlight-bridge.nix
   ];
 }

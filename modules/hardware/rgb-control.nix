@@ -274,16 +274,22 @@ in
                         local r=$((16#''${color:0:2}))
                         local g=$((16#''${color:2:2}))
                         local b=$((16#''${color:4:2}))
+                        # Convert decimal RGB to OpenRGB hex format
+                        local hex
+                        printf -v hex "%02X%02X%02X" "$r" "$g" "$b"
 
                         # Set mode to Direct first, then set color for each device
                         # Motherboard
-                        openrgb -d $MOTHERBOARD_DEVICE -m Direct -c "$r,$g,$b" 2>/dev/null || true
+                        openrgb -d $MOTHERBOARD_DEVICE -m Direct -c "$hex" 2>/dev/null || true
                         # GPU (3090)
-                        openrgb -d $GPU_DEVICE -m Direct -c "$r,$g,$b" 2>/dev/null || true
+                        openrgb -d $GPU_DEVICE -m Direct -c "$hex" 2>/dev/null || true
                         # Fans (Lighting Node Pro)
-                        openrgb -d $FAN_DEVICE -m Direct -c "$r,$g,$b" 2>/dev/null || true
-                        # AIO pump
-                        openrgb -d $AIO_DEVICE -m Direct -c "$r,$g,$b" 2>/dev/null || true
+                        openrgb -d $FAN_DEVICE -m Direct -c "$hex" 2>/dev/null || true
+                        # AIO pump (with range guard)
+                        TOTAL_DEVICES=$(openrgb -d 2>&1 | grep -oP "controller count from server: \K\d+" || echo "0")
+                        if [ "$AIO_DEVICE" -lt "$TOTAL_DEVICES" ] 2>/dev/null; then
+                            openrgb -d $AIO_DEVICE -m Direct -c "$hex" 2>/dev/null || true
+                        fi
                       fi
                     }
 
@@ -302,7 +308,8 @@ in
                         local g=$((16#''${color:2:2}))
                         local b=$((16#''${color:4:2}))
 
-                        razer-cli -c "$r,$g,$b" 2>/dev/null || true
+                        local rh=$(printf "%02X%02X%02X" "$r" "$g" "$b")
+              razer-cli -c "$rh" 2>/dev/null || true
                       fi
                     }
 
@@ -382,7 +389,7 @@ in
         r=$((16#''${COLOR:0:2}))
         g=$((16#''${COLOR:2:2}))
         b=$((16#''${COLOR:4:2}))
-        openrgb -d 0 -c "$r,$g,$b" 2>/dev/null || true
+        openrgb -d 0 -c "$hex" 2>/dev/null || true
       fi
 
       # Razer
@@ -391,7 +398,7 @@ in
         r=$((16#''${COLOR:0:2}))
         g=$((16#''${COLOR:2:2}))
         b=$((16#''${COLOR:4:2}))
-        razer-cli -c "$r,$g,$b" 2>/dev/null || true
+        razer-cli -c "$hex" 2>/dev/null || true
       fi
 
       # Wraith Prism
