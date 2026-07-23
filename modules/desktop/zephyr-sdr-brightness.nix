@@ -36,7 +36,7 @@
     [brightness]
 
     [brightness.monitor."HDMI-A-2"]
-    backend = "sdr"
+    backend = "none"
   '';
 in {
   options.desktop.zephyr-sdr-brightness = {
