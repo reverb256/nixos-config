@@ -1,7 +1,23 @@
+# Calico Felix Configuration (single source of truth — kind: FelixConfiguration name: default)
+#
+# Merged from the former felix-configuration.yaml (ipv6) and wireguard-config.yaml.
+# There must be EXACTLY ONE FelixConfiguration named "default" — a second one
+# (as previously existed in wireguard-config.yaml) silently overwrites this and
+# drops ipv6Support: false. Both are consolidated here.
 apiVersion: crd.projectcalico.org/v1
 kind: FelixConfiguration
 metadata:
   name: default
 spec:
+  # IPv6 disabled cluster-wide (single-stack IPv4).
   ipv6Support: false
+
+  # Health/metrics port for Felix.
   healthPort: 9097
+
+  # WireGuard encryption: DISABLED by default.
+  # Reason: requires the wireguard kernel module loaded on all 4 nodes (unverified),
+  # and adds nft/route-rule complexity on NixOS. VXLAN encapsulation already
+  # provides overlay isolation for this LAN-only cluster. Enable only after
+  # verifying `lsmod | grep wireguard` is non-empty on every node.
+  wireguardEnabled: false

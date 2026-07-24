@@ -12,6 +12,7 @@ in {
     automation = mkOption { type = types.bool; default = false; };
     selfHosting = mkOption { type = types.bool; default = false; };
     ci = mkOption { type = types.bool; default = false; };
+    cache = mkOption { type = types.bool; default = false; };
   };
 
   config = mkIf config.services.sops-secrets-registry.enable {
@@ -549,6 +550,16 @@ in {
             path = "/run/secrets/npm-token";
             format = "binary";
             mode = "0444";
+            owner = "root";
+            group = "root";
+          };
+        })
+        (mkIf config.services.sops-secrets-registry.cache {
+          "cache/nexus-cache-priv-key" = {
+            sopsFile = "${inputs.self}/secrets/cache/nexus-cache-priv-key.yaml";
+            path = "/etc/nix/cache-priv.key";
+            format = "binary";
+            mode = "0400";
             owner = "root";
             group = "root";
           };

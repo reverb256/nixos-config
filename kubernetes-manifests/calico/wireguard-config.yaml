@@ -1,9 +1,0 @@
-apiVersion: crd.projectcalico.org/v1
-kind: FelixConfiguration
-metadata:
-  name: default
-spec:
-  wireguardEnabled: true
-  wireguardListeningPort: 51820
-  wireguardRoutingRulePriority: 100
-  wireguardInterfaceName: "wireguard.cali"

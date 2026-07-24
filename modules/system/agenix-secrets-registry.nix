@@ -22,7 +22,7 @@
 # - hosts/*/configuration.nix       - Enables specific secrets per host
 #
 # RUNTIME LOCATIONS:
-# - Decrypted secrets appear at: /run/secrets/<secret-name>
+# - Decrypted secrets appear at: /run/agenix/<secret-name>
 # - Permissions are set per-secret (mode, owner, group)
 #
 {
@@ -35,7 +35,7 @@ let
   inherit (lib) mkOption types mkIf;
 in
 {
-  options.services.sops-secrets-registry = {
+  options.services.agenix-secrets-registry = {
     enable = mkOption {
       type = types.bool;
       default = true;
@@ -61,6 +61,7 @@ in
     mining = mkOption {
       type = types.bool;
       default = false;
+      description = "Enable mining control secrets (XMRig API tokens)";
     };
     cloud = mkOption {
       type = types.bool;
@@ -79,13 +80,13 @@ in
       description = "Enable Kubernetes cluster secrets";
     };
   };
-  config = mkIf config.services.sops-secrets-registry.enable {
+  config = mkIf config.services.agenix-secrets-registry.enable {
 
     # AI SERVICE API KEYS
 
     age.secrets = lib.mkMerge [
       # AI Services - Zephyr primary
-      (lib.mkIf config.services.sops-secrets-registry.aiServices {
+      (lib.mkIf config.services.agenix-secrets-registry.aiServices {
         # LM Studio API key - Local LLM backend
         #        lm-studio-api-key = {
         #          file = "${inputs.self}/secrets/lm-studio-api-key.age";
@@ -101,7 +102,12 @@ in
           group = "users";
         };
         # ZAI API key - Coding assistant API
-
+        zai-api-key = {
+          file = "${inputs.self}/secrets/zai-api-key.age";
+          mode = "440";
+          owner = "j_kro";
+          group = "users";
+        };
         # Pollinations API key - Free AI services
         pollinations-api-key = {
           file = "${inputs.self}/secrets/pollinations-api-key.age";
@@ -162,7 +168,7 @@ in
         };
       })
       # Monitoring Secrets
-      (lib.mkIf config.services.sops-secrets-registry.monitoring {
+      (lib.mkIf config.services.agenix-secrets-registry.monitoring {
         # Grafana admin password
         grafana-admin = {
           file = "${inputs.self}/secrets/grafana-admin.age";
@@ -172,7 +178,7 @@ in
         };
       })
       # Storage Secrets (Garage S3 cluster)
-      (lib.mkIf config.services.sops-secrets-registry.storage {
+      (lib.mkIf config.services.agenix-secrets-registry.storage {
         # Garage RPC secret - Cluster authentication
         # Only define if garage service is actually enabled on this host
         garage-rpc-secret = lib.mkIf config.services.garage-cluster.enable {
@@ -190,22 +196,31 @@ in
         };
       })
       # Mining Control Secrets
-      (lib.mkIf config.services.sops-secrets-registry.mining {
+      (lib.mkIf config.services.agenix-secrets-registry.mining {
+        # XMRig primary API token (pause-able instance)
+        xmrig-api-token = {
+          file = "${inputs.self}/secrets/xmrig-api-token.age";
           mode = "440";
           owner = "mining";
           group = "mining";
         };
+        # XMRig always-on instance API token
+        xmrig-always-api-token = {
+          file = "${inputs.self}/secrets/xmrig-always-api-token.age";
           mode = "440";
           owner = "mining";
           group = "mining";
         };
+        # XMRig flexible instance API token
+        xmrig-flexible-api-token = {
+          file = "${inputs.self}/secrets/xmrig-flexible-api-token.age";
           mode = "440";
           owner = "mining";
           group = "mining";
         };
       })
       # Cloud Service Secrets
-      (lib.mkIf config.services.sops-secrets-registry.cloud {
+      (lib.mkIf config.services.agenix-secrets-registry.cloud {
         # Tailscale API key
         tailscale-api-key = {
           file = "${inputs.self}/secrets/tailscale-api-key.age";
@@ -229,7 +244,7 @@ in
         };
       })
       # Self-Hosted Service Secrets
-      (lib.mkIf config.services.sops-secrets-registry.selfHosting {
+      (lib.mkIf config.services.agenix-secrets-registry.selfHosting {
         # Nextcloud admin password
         nextcloud-admin = {
           file = "${inputs.self}/secrets/nextcloud-admin.age";
@@ -246,7 +261,7 @@ in
         };
       })
       # Kubernetes/k3s Secrets
-      (lib.mkIf config.services.sops-secrets-registry.kubernetes {
+      (lib.mkIf config.services.agenix-secrets-registry.kubernetes {
         # k3s cluster token - used for server/agent authentication
         # NOTE: Bootstrap secret only, not consumed by any running module
         k3s-cluster-token = {

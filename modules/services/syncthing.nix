@@ -85,6 +85,12 @@ in {
     systemd.services.syncthing.after = ["network-online.target"];
     systemd.services.syncthing.wants = ["network-online.target"];
 
+    # The on-disk syncthing config (config.xml) was written by a newer syncthing
+    # than the pinned binary (config version 52 > binary-supported 51). Accept it
+    # instead of refusing to start. Proper long-term fix is bumping syncthing via
+    # nixpkgs, but this unblocks the service now without a full channel bump.
+    services.syncthing.extraOptions = [ "--allow-newer-config" ];
+
     systemd.services.syncthing-init = {
       serviceConfig = {
         SuccessExitStatus = "0 5";
