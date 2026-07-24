@@ -1,5 +1,9 @@
-{ config, pkgs, lib, ... }:
-let
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}: let
   params = import ./params.nix;
   inherit (params) pci network raid;
 in {
@@ -13,16 +17,16 @@ in {
   fileSystems."/" = {
     device = "/dev/disk/by-uuid/9659a7e5-54fb-4228-afc3-96244c2612e5";
     fsType = "btrfs";
-    options = [ "subvol=/" ];
+    options = ["subvol=/"];
   };
 
   fileSystems."/boot" = {
     device = "/dev/disk/by-uuid/64DA-689B";
     fsType = "vfat";
-    options = [ "fmask=0022" "dmask=0022" ];
+    options = ["fmask=0022" "dmask=0022"];
   };
 
-  swapDevices = [ ];
+  swapDevices = [];
 
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 
@@ -32,7 +36,10 @@ in {
   };
   boot.kernelPackages = pkgs.linuxPackages_latest;
   boot.kernelParams = [
-    "amd_iommu=on" "iommu=pt" "kvm.ignore_msrs=1" "pcie_acs_override=downstream"
+    "amd_iommu=on"
+    "iommu=pt"
+    "kvm.ignore_msrs=1"
+    "pcie_acs_override=downstream"
     # VFIO bind list:
     #   - GPU (10de:2882) + GPU audio (10de:22be) for passthrough to krash3-vm.
     #   - ONBOARD Matisse XHCI (1022:149c, 0000:0a:00.3, IOMMU group 20 — alone)
@@ -50,12 +57,13 @@ in {
     "pcie_aspm=off"
     "kvm_amd.msr_filter=0"
     "isolcpus=1-12"
-    "video=efifb:off" "console=ttyS0,115200"
+    "video=efifb:off"
+    "console=ttyS0,115200"
   ];
-  boot.initrd.availableKernelModules = [ "xhci_pci" "ahci" "usbhid" "uas" "usb_storage" "sd_mod" ];
-  boot.initrd.kernelModules = [ "nvme" "btrfs" "vfio" "vfio_iommu_type1" "virtio_pci" "virtio_blk" "md_mod" "raid0" "vfio_pci" ];
-  boot.kernelModules = [ "kvm-amd" ];
-  boot.blacklistedKernelModules = [ "nvidia" "nvidia_drm" "nvidia_modeset" "nvidia_uvm" ];
+  boot.initrd.availableKernelModules = ["xhci_pci" "ahci" "usbhid" "uas" "usb_storage" "sd_mod"];
+  boot.initrd.kernelModules = ["nvme" "btrfs" "vfio" "vfio_iommu_type1" "virtio_pci" "virtio_blk" "md_mod" "raid0" "vfio_pci"];
+  boot.kernelModules = ["kvm-amd"];
+  boot.blacklistedKernelModules = ["nvidia" "nvidia_drm" "nvidia_modeset" "nvidia_uvm"];
 
   boot.extraModprobeConfig = "options vfio-pci disable_idle_d3=1;";
 
@@ -73,8 +81,8 @@ in {
   # boot. Prevents the periodic gaming-guest stutter from host power-gating.
   systemd.services.set-cpu-governor = {
     description = "Force performance CPU governor for low-latency VFIO gaming";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "systemd-modules-load.service" ];
+    wantedBy = ["multi-user.target"];
+    after = ["systemd-modules-load.service"];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
@@ -87,8 +95,8 @@ in {
   };
 
   systemd.services.assemble-games-raid = {
-    wantedBy = [ "multi-user.target" ];
-    path = [ pkgs.mdadm pkgs.util-linux pkgs.gawk ];
+    wantedBy = ["multi-user.target"];
+    path = [pkgs.mdadm pkgs.util-linux pkgs.gawk];
     script = ''
       offset=$(( ${toString raid.offset} * 512 ))
       dev0=$(losetup -f --show -o $offset ${builtins.elemAt raid.devices 0} 2>/dev/null || true)
@@ -101,6 +109,9 @@ in {
       mdadm --build /dev/md0 --level=raid0 --chunk=${toString raid.chunk} \
         --raid-devices=2 "$dev0" "$dev1" 2>/dev/null || true
     '';
-    serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
   };
 }

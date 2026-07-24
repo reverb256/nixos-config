@@ -9,11 +9,10 @@
   lib,
   pkgs,
   ...
-}:
-
-let
+}: let
   cfg = config.services.claude-code-router;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
@@ -101,9 +100,7 @@ let
         ;;
     esac
   '';
-
-in
-{
+in {
   options.services.claude-code-router = {
     enable = mkEnableOption "Claude Code Router - route Claude Code to different LLM providers";
 
@@ -148,7 +145,7 @@ in
 
   config = mkIf cfg.enable {
     # Firewall configuration (localhost-only by default for security)
-    networking.firewall.allowedTCPPorts = lib.mkIf cfg.openFirewall (lib.mkOptionDefault [ cfg.port ]);
+    networking.firewall.allowedTCPPorts = lib.mkIf cfg.openFirewall (lib.mkOptionDefault [cfg.port]);
 
     # System packages - nodejs and CLI wrapper
     environment.systemPackages = [
@@ -164,8 +161,8 @@ in
     # Setup service - generates config.json at runtime with API key from secret file
     systemd.services.claude-code-router-setup = {
       description = "Setup Claude Code Router config";
-      wantedBy = [ "multi-user.target" ];
-      before = [ "claude-code-router.service" ];
+      wantedBy = ["multi-user.target"];
+      before = ["claude-code-router.service"];
       path = [
         pkgs.jq
         pkgs.coreutils
@@ -211,9 +208,9 @@ in
         "network-online.target"
         "claude-code-router-setup.service"
       ];
-      wants = [ "network-online.target" ];
-      requires = [ "claude-code-router-setup.service" ];
-      wantedBy = [ "multi-user.target" ];
+      wants = ["network-online.target"];
+      requires = ["claude-code-router-setup.service"];
+      wantedBy = ["multi-user.target"];
 
       environment = {
         NODE_ENV = "production";
@@ -251,7 +248,7 @@ in
         NoNewPrivileges = true;
         PrivateTmp = false;
         ProtectSystem = "strict";
-        ReadWritePaths = [ cfg.stateDir "/root/.npm" "/tmp" ];
+        ReadWritePaths = [cfg.stateDir "/root/.npm" "/tmp"];
 
         ExecStart = "${pkgs.nodejs_22}/bin/npx @musistudio/claude-code-router start --port ${toString cfg.port} --config ${cfg.stateDir}/config.json";
       };
@@ -260,7 +257,7 @@ in
     # Health check timer + service
     systemd.timers.claude-code-router-health = {
       description = "Claude Code Router periodic health check";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnBootSec = "5min";
         OnUnitActiveSec = "1min";
@@ -270,8 +267,8 @@ in
 
     systemd.services.claude-code-router-health = {
       description = "Claude Code Router health check";
-      after = [ "claude-code-router.service" ];
-      wants = [ "claude-code-router.service" ];
+      after = ["claude-code-router.service"];
+      wants = ["claude-code-router.service"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${pkgs.curl}/bin/curl -sf http://localhost:${toString cfg.port}/health";

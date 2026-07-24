@@ -17,170 +17,176 @@
   hasHermesCli = (builtins.tryEval options).value ? services.hermes-cli;
 in
   lib.mkIf hasHM {
-  home-manager = {
-    useGlobalPkgs = lib.mkDefault false;
+    home-manager = {
+      useGlobalPkgs = lib.mkDefault false;
 
-    useUserPackages = true;
+      useUserPackages = true;
 
-    # Use a unique backup extension that won't collide with previous backups.
-    # Resolves "existing backup would be clobbered" failures on .hm-backup from
-    # earlier failed HM activations (alacritty.toml, starship.toml, gtk.css).
-    backupFileExtension = "v3-fix";
+      # Use a unique backup extension that won't collide with previous backups.
+      # Resolves "existing backup would be clobbered" failures on .hm-backup from
+      # earlier failed HM activations (alacritty.toml, starship.toml, gtk.css).
+      backupFileExtension = "v3-fix";
 
-    extraSpecialArgs = {
-      inherit inputs;
-      inherit hostName;
-      # Wrapped hermes binary (with PortAudio LD_LIBRARY_PATH) for the
-      # user-local ~/.local/bin/hermes symlink (replaces stale manual link).
-      # Null when the hermes-cli service isn't declared (e.g. usb rescue ISO).
-      hermesWrappedBin = if hasHermesCli then config.services.hermes-cli.wrappedHermesBin else null;
-      # Expose the noctalia wrapper (NixOS `programs.noctalia.package`,
-      # mkForce'd to the pass-through wrapper in
-      # modules/desktop/wayland-compositor-common.nix) to home-manager
-      # modules. Home-manager's `config` does NOT see NixOS options, so
-      # niri-config.nix spawns it via this injected arg rather than
-      # `config.programs.noctalia.package`.
-      noctaliaPackage = if config ? programs.noctalia then config.programs.noctalia.package else "";
-    };
+      extraSpecialArgs = {
+        inherit inputs;
+        inherit hostName;
+        # Wrapped hermes binary (with PortAudio LD_LIBRARY_PATH) for the
+        # user-local ~/.local/bin/hermes symlink (replaces stale manual link).
+        # Null when the hermes-cli service isn't declared (e.g. usb rescue ISO).
+        hermesWrappedBin =
+          if hasHermesCli
+          then config.services.hermes-cli.wrappedHermesBin
+          else null;
+        # Expose the noctalia wrapper (NixOS `programs.noctalia.package`,
+        # mkForce'd to the pass-through wrapper in
+        # modules/desktop/wayland-compositor-common.nix) to home-manager
+        # modules. Home-manager's `config` does NOT see NixOS options, so
+        # niri-config.nix spawns it via this injected arg rather than
+        # `config.programs.noctalia.package`.
+        noctaliaPackage =
+          if config ? programs.noctalia
+          then config.programs.noctalia.package
+          else "";
+      };
 
-    users.j_kro = { hermesWrappedBin, ... }: {
-      # Home Manager uses separate nixpkgs config for user packages
-      # Allow insecure packages
-      nixpkgs.config.permittedInsecurePackages = [
-        "pnpm-10.29.2"
-        "vesktop-1.6.5"
-        # vesktop pulls electron-40.10.5 (EOL, marked insecure); HM has its own
-        # nixpkgs config so the system-level permit in nix-config.nix doesn't
-        # reach it. Added 2026-07-16.
-        "electron-40.10.5"
-      ];
+      users.j_kro = {hermesWrappedBin, ...}: {
+        # Home Manager uses separate nixpkgs config for user packages
+        # Allow insecure packages
+        nixpkgs.config.permittedInsecurePackages = [
+          "pnpm-10.29.2"
+          "vesktop-1.6.5"
+          # vesktop pulls electron-40.10.5 (EOL, marked insecure); HM has its own
+          # nixpkgs config so the system-level permit in nix-config.nix doesn't
+          # reach it. Added 2026-07-16.
+          "electron-40.10.5"
+        ];
 
-      imports =
-        lib.optional (hostName == "zephyr" || hostName == "sentry")
+        imports =
+          lib.optional (hostName == "zephyr" || hostName == "sentry")
           inputs.niri.homeModules.config
-        ++ [
-          inputs.zen-browser.homeModules.twilight
-        inputs.nixcord.homeModules.nixcord
-        ../../modules/home-manager/fish.nix
-        ../../modules/home-manager/starship.nix
-        # ../../modules/home-manager/wayland-tools.nix
-        ../../modules/home-manager/zen-browser.nix
-        ../../modules/home-manager/nixcord-config.nix
-        ../../modules/home-manager/caprine.nix
-        # ../../modules/home-manager/obsidian.nix  # Temporarily disabled - stylix integration issue
-        ../../modules/home-manager/opencode.nix
-        ../../modules/home-manager/firefox-pwa-apps.nix
-        ../../modules/home-manager/freebuff-desktop.nix
-        ../../modules/home-manager/alacritty.nix
-        ../../modules/home-manager/hermes-skin.nix
-        ../../modules/home-manager/icon-theme.nix
-        ../../modules/home-manager/dolphin.nix
-        ../../modules/home-manager/desktop-utilities.nix
-        ../../modules/home-manager/copyq.nix
-        ../../modules/home-manager/git.nix
-        ../../modules/home-manager/tmux.nix
-        ../../modules/home-manager/lazygit.nix
-        ../../modules/home-manager/mime-apps.nix
-        ../../modules/home-manager/tui-apps.nix
-        ../../modules/home-manager/editorconfig.nix
-        ../../modules/home-manager/btop.nix
-        ../../modules/home-manager/noctalia-stylix.nix
-        # Wires the removeStaleNoctaliaThemes activation so frozen v4
-        # noctalia.* orphans (alacritty theme, gtk css, btop theme, qt
-        # colors, niri kdl, telegram theme, scroll) are deleted on switch
-        # and can no longer bypass stylix. Was previously dead code
-        # (never imported) — see stylix audit 2026-07-16.
-        ../../modules/home-manager/stylix-bridges.nix
-        # Self-healing: purge stale .v3-fix/.hm-backup files and un-freeze
-        # drifted plain-file dotfiles BEFORE linkGeneration (root-cause fix
-        # for the 2026-07-22 home-manager activation abort). Uses lib.hm.dag
-        # which is only in scope inside the HM user config, hence its own module.
-        ../../modules/home-manager/heal-stale-backups.nix
-      ]
-      # niri-config only on hosts with the niri HM module
-      ++ lib.optional (hostName == "zephyr" || hostName == "sentry")
-        ../../modules/home-manager/niri-config.nix;
+          ++ [
+            inputs.zen-browser.homeModules.twilight
+            inputs.nixcord.homeModules.nixcord
+            ../../modules/home-manager/fish.nix
+            ../../modules/home-manager/starship.nix
+            # ../../modules/home-manager/wayland-tools.nix
+            ../../modules/home-manager/zen-browser.nix
+            ../../modules/home-manager/nixcord-config.nix
+            ../../modules/home-manager/caprine.nix
+            # ../../modules/home-manager/obsidian.nix  # Temporarily disabled - stylix integration issue
+            ../../modules/home-manager/opencode.nix
+            ../../modules/home-manager/firefox-pwa-apps.nix
+            ../../modules/home-manager/freebuff-desktop.nix
+            ../../modules/home-manager/alacritty.nix
+            ../../modules/home-manager/hermes-skin.nix
+            ../../modules/home-manager/icon-theme.nix
+            ../../modules/home-manager/dolphin.nix
+            ../../modules/home-manager/desktop-utilities.nix
+            ../../modules/home-manager/copyq.nix
+            ../../modules/home-manager/git.nix
+            ../../modules/home-manager/tmux.nix
+            ../../modules/home-manager/lazygit.nix
+            ../../modules/home-manager/mime-apps.nix
+            ../../modules/home-manager/tui-apps.nix
+            ../../modules/home-manager/editorconfig.nix
+            ../../modules/home-manager/btop.nix
+            ../../modules/home-manager/noctalia-stylix.nix
+            # Wires the removeStaleNoctaliaThemes activation so frozen v4
+            # noctalia.* orphans (alacritty theme, gtk css, btop theme, qt
+            # colors, niri kdl, telegram theme, scroll) are deleted on switch
+            # and can no longer bypass stylix. Was previously dead code
+            # (never imported) — see stylix audit 2026-07-16.
+            ../../modules/home-manager/stylix-bridges.nix
+            # Self-healing: purge stale .v3-fix/.hm-backup files and un-freeze
+            # drifted plain-file dotfiles BEFORE linkGeneration (root-cause fix
+            # for the 2026-07-22 home-manager activation abort). Uses lib.hm.dag
+            # which is only in scope inside the HM user config, hence its own module.
+            ../../modules/home-manager/heal-stale-backups.nix
+          ]
+          # niri-config only on hosts with the niri HM module
+          ++ lib.optional (hostName == "zephyr" || hostName == "sentry")
+          ../../modules/home-manager/niri-config.nix;
 
-      nixcord-config.enable = lib.mkForce (hostName == "zephyr");
-      caprine.enable = lib.mkForce (hostName == "zephyr");
+        nixcord-config.enable = lib.mkForce (hostName == "zephyr");
+        caprine.enable = lib.mkForce (hostName == "zephyr");
 
-      # Stylix - targets are empowered explicitly below. The base16Scheme is
-      # propagated NixOS -> home-manager automatically by stylix's
-      # homeManagerIntegration.followSystem (see modules/desktop/stylix.nix).
-      # Do NOT re-inherit (config.stylix).base16Scheme here: stylix's own HM
-      # module also derives the read-only `stylix.base16` from it, and two
-      # definitions collide ("option is read-only, set multiple times").
-      stylix = {
-        targets.zen-browser.profileNames = ["default"];
+        # Stylix - targets are empowered explicitly below. The base16Scheme is
+        # propagated NixOS -> home-manager automatically by stylix's
+        # homeManagerIntegration.followSystem (see modules/desktop/stylix.nix).
+        # Do NOT re-inherit (config.stylix).base16Scheme here: stylix's own HM
+        # module also derives the read-only `stylix.base16` from it, and two
+        # definitions collide ("option is read-only, set multiple times").
+        stylix = {
+          targets.zen-browser.profileNames = ["default"];
 
-        # ── Explicit target empowerment (version-bump-proof) ───────
-        # autoEnable is false system-wide, so with autoImport/followSystem
-        # the HM targets are still auto-enabled by stylix's HM module ONLY
-        # when the program is installed. That dependency chain is fragile
-        # (a stylix rev bump or a mkForce can silently drop theming).
-        # Explicitly empower every target we actually run so the theme is
-        # guaranteed regardless of auto-detect. Terminal-app targets live
-        # in the HM stylix namespace (NOT config.stylix.targets.* at the
-        # NixOS level, which only carries system targets like lightdm).
-        targets.starship.enable = true;
-        targets.alacritty.enable = true;
-        targets.kitty.enable = true;
-        targets.fish.enable = true;
-        targets.btop.enable = true;
-        targets.lazygit.enable = true;
-        targets.qt.enable = true;
-        # GTK theming requires dconf/D-Bus which isn't available on nexus
-        targets.gtk.enable = hostName != "nexus";
-        # ── Additional targets for installed programs ──────────────
-        # bat — theming for bat (base16-stylix theme)
-        targets.bat.enable = true;
-        # fzf — theming for fzf colors
-        targets.fzf.enable = true;
-        # tmux — theming for tmux (tinted theme)
-        targets.tmux.enable = true;
-        # opencode — full TUI theme (Osaka Jade palette)
-        targets.opencode.enable = true;
-        # discord/vesktop — theme for Vesktop/Vencord (Osaka Jade)
-        targets.vesktop.enable = true;
+          # ── Explicit target empowerment (version-bump-proof) ───────
+          # autoEnable is false system-wide, so with autoImport/followSystem
+          # the HM targets are still auto-enabled by stylix's HM module ONLY
+          # when the program is installed. That dependency chain is fragile
+          # (a stylix rev bump or a mkForce can silently drop theming).
+          # Explicitly empower every target we actually run so the theme is
+          # guaranteed regardless of auto-detect. Terminal-app targets live
+          # in the HM stylix namespace (NOT config.stylix.targets.* at the
+          # NixOS level, which only carries system targets like lightdm).
+          targets.starship.enable = true;
+          targets.alacritty.enable = true;
+          targets.kitty.enable = true;
+          targets.fish.enable = true;
+          targets.btop.enable = true;
+          targets.lazygit.enable = true;
+          targets.qt.enable = true;
+          # GTK theming requires dconf/D-Bus which isn't available on nexus
+          targets.gtk.enable = hostName != "nexus";
+          # ── Additional targets for installed programs ──────────────
+          # bat — theming for bat (base16-stylix theme)
+          targets.bat.enable = true;
+          # fzf — theming for fzf colors
+          targets.fzf.enable = true;
+          # tmux — theming for tmux (tinted theme)
+          targets.tmux.enable = true;
+          # opencode — full TUI theme (Osaka Jade palette)
+          targets.opencode.enable = true;
+          # discord/vesktop — theme for Vesktop/Vencord (Osaka Jade)
+          targets.vesktop.enable = true;
+        };
+
+        # CopyQ clipboard manager (replaces cliphist)
+        programs.copyq = {
+          enable = lib.mkDefault true;
+        };
+        # Kitty terminal emulator (generates kitty.conf for stylix theming)
+        programs.kitty.enable = true;
+
+        home.sessionVariables.BAT_THEME = "base16-stylix";
+
+        home.stateVersion = "26.05";
+        home.enableNixpkgsReleaseCheck = false;
+
+        xdg.configFile = {
+          "mimeapps.list".force = true;
+        };
+
+        home.sessionVariables = {
+          HF_TOKEN = "/run/secrets/huggingface-token";
+        };
+
+        # Ensure the user's ~/.local/bin/hermes points at the NixOS-wrapped
+        # hermes binary (which carries the PortAudio LD_LIBRARY_PATH). A stale
+        # manual symlink to a raw GC-able store path previously shadowed the
+        # system wrapper and broke voice mode. force=true overrides it.
+        # Skipped on hosts without the hermes-cli service (e.g. usb rescue ISO,
+        # which ships hermes via the hermes-agent package directly).
+        home.file.".local/bin/hermes" = lib.mkIf (hermesWrappedBin != null) {
+          source = hermesWrappedBin;
+          force = true;
+        };
+
+        # Auto-migrate Alacritty config after activation (removes deprecation warnings)
+        home.activation.migrateAlacrittyConfig = ''
+          if [ -f "$HOME/.config/alacritty/alacritty.toml" ]; then
+            ${pkgs.alacritty}/bin/alacritty migrate -c "$HOME/.config/alacritty/alacritty.toml" 2>/dev/null || true
+          fi
+        '';
       };
-
-      # CopyQ clipboard manager (replaces cliphist)
-      programs.copyq = {
-        enable = lib.mkDefault true;
-      };
-      # Kitty terminal emulator (generates kitty.conf for stylix theming)
-      programs.kitty.enable = true;
-
-      home.sessionVariables.BAT_THEME = "base16-stylix";
-
-      home.stateVersion = "26.05";
-      home.enableNixpkgsReleaseCheck = false;
-
-      xdg.configFile = {
-        "mimeapps.list".force = true;
-      };
-
-      home.sessionVariables = {
-        HF_TOKEN = "/run/secrets/huggingface-token";
-      };
-
-      # Ensure the user's ~/.local/bin/hermes points at the NixOS-wrapped
-      # hermes binary (which carries the PortAudio LD_LIBRARY_PATH). A stale
-      # manual symlink to a raw GC-able store path previously shadowed the
-      # system wrapper and broke voice mode. force=true overrides it.
-      # Skipped on hosts without the hermes-cli service (e.g. usb rescue ISO,
-      # which ships hermes via the hermes-agent package directly).
-      home.file.".local/bin/hermes" = lib.mkIf (hermesWrappedBin != null) {
-        source = hermesWrappedBin;
-        force = true;
-      };
-
-      # Auto-migrate Alacritty config after activation (removes deprecation warnings)
-      home.activation.migrateAlacrittyConfig = ''
-        if [ -f "$HOME/.config/alacritty/alacritty.toml" ]; then
-          ${pkgs.alacritty}/bin/alacritty migrate -c "$HOME/.config/alacritty/alacritty.toml" 2>/dev/null || true
-        fi
-      '';
     };
-  };
-}
+  }

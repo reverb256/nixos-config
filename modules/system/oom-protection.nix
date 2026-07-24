@@ -5,11 +5,9 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.k3s-cluster.enable or false;
-in
-{
+in {
   # Protect container runtime (k3s bundles containerd)
   systemd.services.k3s = lib.mkIf cfg {
     serviceConfig.OOMPolicy = lib.mkForce "continue";

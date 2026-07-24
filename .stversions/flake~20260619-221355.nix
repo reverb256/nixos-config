@@ -275,22 +275,23 @@
         modules = slimModules;
         nixpkgsInput = inputs.nixpkgs-2605;
       };
-  };
+    };
   in {
     checks.x86_64-linux = {
       # Build ci-test config (microVM for CI) — verifies it evaluates cleanly
-      ci-test-eval = (nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        modules = [./hosts/ci-test/configuration.nix];
-        specialArgs = {inherit inputs;};
-      }).config.system.build.toplevel;
+      ci-test-eval =
+        (nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [./hosts/ci-test/configuration.nix];
+          specialArgs = {inherit inputs;};
+        }).config.system.build.toplevel;
 
       # VM boot test — boots minimal NixOS in QEMU, verifies multi-user.target
       # Catches runtime regressions static analysis misses (firewall, SSH, etc.)
       minimal-boot = pkgs.testers.nixosTest {
         name = "minimal-boot";
-        nodes.machine = { ... }: {
-          imports = [ inputs.sops-nix.nixosModules.default ];
+        nodes.machine = {...}: {
+          imports = [inputs.sops-nix.nixosModules.default];
           system.stateVersion = "26.05";
           services.openssh.enable = true;
           networking.firewall.enable = true;

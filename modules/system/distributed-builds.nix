@@ -121,9 +121,9 @@ in {
 
   # ── Post-build hook: auto-push completed builds to nexus cache ──
   nix.settings.post-build-hook = lib.mkIf (currentHost != "krash3") (pkgs.writeShellScript "upload-to-cache" ''
-  if [ -n "$OUT_PATHS" ] && [ "$BUILD_STATUS" = "success" ]; then
-    exec nice -n 19 nix copy --to ssh://j_kro@nexus --substitute-on-destination $OUT_PATHS 2>/dev/null
-  fi
+    if [ -n "$OUT_PATHS" ] && [ "$BUILD_STATUS" = "success" ]; then
+      exec nice -n 19 nix copy --to ssh://j_kro@nexus --substitute-on-destination $OUT_PATHS 2>/dev/null
+    fi
   '');
 
   programs.ssh.startAgent = true;
@@ -218,17 +218,20 @@ in {
             }
           ];
           machines = builtins.filter (m: m.hostName != currentHost) allMachines;
-          formatMachine = m: with builtins;
-            let
-              # Single primary system only. Colmena parses this file too and
-              # chokes on the multi-system "x86_64-linux i686-linux" form
-              # (the 2nd system lands in the ssh-key column -> uint parse error).
-              primarySystem = builtins.head m.systems;
-            in
+          formatMachine = m: with builtins; let
+            # Single primary system only. Colmena parses this file too and
+            # chokes on the multi-system "x86_64-linux i686-linux" form
+            # (the 2nd system lands in the ssh-key column -> uint parse error).
+            primarySystem = builtins.head m.systems;
+          in
             concatStringsSep " " [
               ("ssh-ng://" + "${m.sshUser}@${m.hostName}")
               primarySystem
-              (if m.sshKey != null then m.sshKey else "-")
+              (
+                if m.sshKey != null
+                then m.sshKey
+                else "-"
+              )
               (toString m.maxJobs)
               (toString m.speedFactor)
               (concatStringsSep "," m.supportedFeatures)

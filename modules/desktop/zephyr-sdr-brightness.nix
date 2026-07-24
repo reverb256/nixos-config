@@ -61,9 +61,9 @@ in {
     # Direct systemd user service for patched noctalia daemon
     systemd.user.services.noctalia = {
       description = "Noctalia shell daemon (patched with Sdr brightness backend)";
-      wantedBy = [ "graphical-session.target" ];
-      partOf = [ "graphical-session.target" ];
-      after = [ "graphical-session.target" ];
+      wantedBy = ["graphical-session.target"];
+      partOf = ["graphical-session.target"];
+      after = ["graphical-session.target"];
       serviceConfig = {
         Type = "simple";
         ExecStart = "${lib.getExe noctalia-patched}";
@@ -73,7 +73,7 @@ in {
       };
       environment.NOCTALIA_CONFIG_HOME = "/etc";
     };
-    environment.systemPackages = [ noctalia-patched ];
+    environment.systemPackages = [noctalia-patched];
 
     # ── Write the TOML config to /etc/noctalia/config.toml ──────────────
     environment.etc."noctalia/config.toml".source = noctaliaConfigFile;

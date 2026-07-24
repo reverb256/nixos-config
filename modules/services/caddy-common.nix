@@ -8,8 +8,12 @@
 #     metricsPort = 2019;
 #     adminListenAddress = "0.0.0.0";  # K8s: 0.0.0.0, systemd: 127.0.0.1
 #   };
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.caddy-common;
   inherit (lib) mkEnableOption mkOption types mkIf;
 in {
@@ -44,11 +48,11 @@ in {
   config = mkIf cfg.enable {
     services.caddy = {
       globalConfig = ''
-        {
-          admin ${cfg.adminListenAddress}:${toString cfg.metricsPort}
-          default_sni cluster.local
+                {
+                  admin ${cfg.adminListenAddress}:${toString cfg.metricsPort}
+                  default_sni cluster.local
 
-          ${lib.optionalString cfg.securityHeaders ''
+                  ${lib.optionalString cfg.securityHeaders ''
           (security_headers) {
             header {
               Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
@@ -60,19 +64,19 @@ in {
               -Server
             }
           }
-          ''}
+        ''}
 
-#          rate_limit {
-#            zone dynamic_zones {
-#              entry {
-#                zone = "cluster_local"
-#                key = "remote_ip"
-#                events = ${toString cfg.rateLimit}
-#                window = 1m
-#              }
-#            }
-#          }
-        }
+        #          rate_limit {
+        #            zone dynamic_zones {
+        #              entry {
+        #                zone = "cluster_local"
+        #                key = "remote_ip"
+        #                events = ${toString cfg.rateLimit}
+        #                window = 1m
+        #              }
+        #            }
+        #          }
+                }
       '';
     };
   };

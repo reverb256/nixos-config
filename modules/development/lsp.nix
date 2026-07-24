@@ -4,11 +4,9 @@
   pkgs,
   lib,
   ...
-}:
-{
+}: {
   # Install LSP servers and development tools
   environment.systemPackages = with pkgs; [
-
     # LANGUAGE SERVERS & LSP
 
     # Rust

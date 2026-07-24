@@ -3,8 +3,7 @@
   pkgs,
   lib,
   ...
-}:
-let
+}: let
   cluster = config.networking.cluster;
 in {
   services = {
@@ -50,8 +49,16 @@ in {
         }
       ];
       exporterInstances = [
-        { instanceName = "forge-4060-0"; apiPort = 21550; exporterPort = 9101; }
-        { instanceName = "forge-4060-1"; apiPort = 21552; exporterPort = 9102; }
+        {
+          instanceName = "forge-4060-0";
+          apiPort = 21550;
+          exporterPort = 9101;
+        }
+        {
+          instanceName = "forge-4060-1";
+          apiPort = 21552;
+          exporterPort = 9102;
+        }
       ];
     };
 

@@ -8,11 +8,9 @@
   lib,
   config,
   ...
-}:
-let
+}: let
   cfg = config.programs.hyprland.enable;
-in
-{
+in {
   config = {
     programs.hyprland = {
       enable = lib.mkDefault false;
@@ -24,8 +22,7 @@ in
     programs.hyprlock.enable = cfg;
 
     environment.systemPackages = lib.mkIf cfg (
-      with pkgs;
-      [
+      with pkgs; [
         # Core Hyprland tools
         hyprpicker # Color picker
         hyprcursor # Custom cursor support

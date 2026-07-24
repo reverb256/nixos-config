@@ -12,9 +12,9 @@
   config,
   lib,
   ...
-}:
-let
-  inherit (lib)
+}: let
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
@@ -23,8 +23,7 @@ let
     ;
 
   # Helper function to create profile config
-  mkProfileConfig =
-    _profileName: profileCfg:
+  mkProfileConfig = _profileName: profileCfg:
     mkIf profileCfg.enable (
       let
         # Extract networking config - handle both nested and direct formats
@@ -33,14 +32,15 @@ let
             ipAddress = profileCfg.ipAddress or null;
             interfaceName = profileCfg.interfaceName or null;
             unboundListenAddress = profileCfg.unboundListenAddress or null;
-            wireless = profileCfg.wireless or { enable = false; };
+            wireless = profileCfg.wireless or {enable = false;};
           };
         # Ensure wireless has a default value
-        networkingCfg = networkingCfgBase // {
-          wireless = networkingCfgBase.wireless or { enable = false; };
-        };
-      in
-      {
+        networkingCfg =
+          networkingCfgBase
+          // {
+            wireless = networkingCfgBase.wireless or {enable = false;};
+          };
+      in {
         # Apply networking configuration (only if ipAddress is set)
         clusterNetworking = mkIf (networkingCfg.ipAddress != null) {
           enable = true;
@@ -76,15 +76,14 @@ let
 
           # Apply extra firewall rules
           firewall = {
-            allowedTCPPorts = lib.mkOptionDefault (profileCfg.firewallExtraTCPPorts or [ ]);
-            allowedTCPPortRanges = lib.mkOptionDefault (profileCfg.firewallExtraTCPPortRanges or [ ]);
-            allowedUDPPorts = lib.mkOptionDefault (profileCfg.firewallExtraUDPPorts or [ ]);
+            allowedTCPPorts = lib.mkOptionDefault (profileCfg.firewallExtraTCPPorts or []);
+            allowedTCPPortRanges = lib.mkOptionDefault (profileCfg.firewallExtraTCPPortRanges or []);
+            allowedUDPPorts = lib.mkOptionDefault (profileCfg.firewallExtraUDPPorts or []);
           };
         };
       }
     );
-in
-{
+in {
   options.profiles.node = {
     # ============================================================================
     # NODE-SPECIFIC PROFILES
@@ -173,7 +172,7 @@ in
 
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ 10250 ];
+        default = [10250];
         description = "Extra TCP ports";
       };
 
@@ -181,8 +180,8 @@ in
         type = types.listOf (
           types.submodule {
             options = {
-              from = mkOption { type = types.port; };
-              to = mkOption { type = types.port; };
+              from = mkOption {type = types.port;};
+              to = mkOption {type = types.port;};
             };
           }
         );
@@ -197,7 +196,7 @@ in
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ ];
+        default = [];
         description = "Extra UDP ports";
       };
     };
@@ -242,7 +241,7 @@ in
 
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ 10250 ];
+        default = [10250];
         description = "Extra TCP ports";
       };
 
@@ -250,8 +249,8 @@ in
         type = types.listOf (
           types.submodule {
             options = {
-              from = mkOption { type = types.port; };
-              to = mkOption { type = types.port; };
+              from = mkOption {type = types.port;};
+              to = mkOption {type = types.port;};
             };
           }
         );
@@ -266,7 +265,7 @@ in
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ ];
+        default = [];
         description = "Extra UDP ports";
       };
     };
@@ -296,7 +295,7 @@ in
 
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ 10250 ];
+        default = [10250];
         description = "Extra TCP ports";
       };
 
@@ -304,8 +303,8 @@ in
         type = types.listOf (
           types.submodule {
             options = {
-              from = mkOption { type = types.port; };
-              to = mkOption { type = types.port; };
+              from = mkOption {type = types.port;};
+              to = mkOption {type = types.port;};
             };
           }
         );
@@ -320,7 +319,7 @@ in
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ ];
+        default = [];
         description = "Extra UDP ports";
       };
     };
@@ -356,7 +355,7 @@ in
 
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ 10250 ];
+        default = [10250];
         description = "Extra TCP ports";
       };
 
@@ -364,8 +363,8 @@ in
         type = types.listOf (
           types.submodule {
             options = {
-              from = mkOption { type = types.port; };
-              to = mkOption { type = types.port; };
+              from = mkOption {type = types.port;};
+              to = mkOption {type = types.port;};
             };
           }
         );
@@ -380,7 +379,7 @@ in
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ ];
+        default = [];
         description = "Extra UDP ports";
       };
     };

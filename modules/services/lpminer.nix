@@ -3,8 +3,7 @@
   pkgs,
   lib,
   ...
-}:
-let
+}: let
   cfg = config.services.lpminer;
   inherit (lib) mkEnableOption mkOption types mkIf mkBefore;
 in {
@@ -52,16 +51,17 @@ in {
   config = mkIf cfg.enable {
     systemd.services = lib.listToAttrs (
       builtins.map (instance: let
-        powerLimitArgs = if instance.powerLimit != null then
-          "+/run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
-        else "";
+        powerLimitArgs =
+          if instance.powerLimit != null
+          then "+/run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
+          else "";
       in {
         name = "lpminer-${instance.name}";
         value = {
           description = "LPMiner - ${instance.name}";
-          wantedBy = [ "multi-user.target" ];
-          after = [ "network-online.target" ];
-          wants = [ "network-online.target" ];
+          wantedBy = ["multi-user.target"];
+          after = ["network-online.target"];
+          wants = ["network-online.target"];
 
           serviceConfig = {
             Type = "simple";
@@ -82,7 +82,8 @@ in {
             RestartSec = "5";
           };
         };
-      }) cfg.instances
+      })
+      cfg.instances
     );
   };
 }

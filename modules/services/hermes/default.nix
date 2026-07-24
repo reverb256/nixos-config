@@ -3,16 +3,17 @@
 # SPOC for all Hermes profile, skill, bundle, cron, and gateway config.
 # Everything that was imperatively set up in ~/.hermes/ is declared here
 # and deployed via `git commit` + `colmena deploy`.
-
-{ config, lib, pkgs, ... }:
-
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   inherit (lib) mkEnableOption mkIf mkOption types;
 
   cfg = config.services.hermes;
   user = "j_kro";
   hermesHome = "/home/${user}/.hermes";
-
 in {
   options.services.hermes = {
     default = mkOption {
@@ -110,10 +111,16 @@ in {
       profileRoutes = mkOption {
         type = types.attrsOf (types.submodule {
           options = {
-            platform = mkOption { type = types.str; };
-            chatId = mkOption { type = types.nullOr types.str; default = null; };
-            guildId = mkOption { type = types.nullOr types.str; default = null; };
-            profile = mkOption { type = types.str; };
+            platform = mkOption {type = types.str;};
+            chatId = mkOption {
+              type = types.nullOr types.str;
+              default = null;
+            };
+            guildId = mkOption {
+              type = types.nullOr types.str;
+              default = null;
+            };
+            profile = mkOption {type = types.str;};
           };
         });
         default = {};
@@ -125,9 +132,18 @@ in {
       type = types.attrsOf (types.submodule {
         options = {
           enable = mkEnableOption "this cron job";
-          schedule = mkOption { type = types.str; description = "Cron expression"; };
-          skill = mkOption { type = types.nullOr types.str; default = null; };
-          prompt = mkOption { type = types.nullOr types.str; default = null; };
+          schedule = mkOption {
+            type = types.str;
+            description = "Cron expression";
+          };
+          skill = mkOption {
+            type = types.nullOr types.str;
+            default = null;
+          };
+          prompt = mkOption {
+            type = types.nullOr types.str;
+            default = null;
+          };
           deliver = mkOption {
             type = types.str;
             default = "origin";

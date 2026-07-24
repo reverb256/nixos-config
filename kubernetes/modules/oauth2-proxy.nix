@@ -59,7 +59,12 @@ in {
             securityContext = {
               runAsNonRoot = true;
               seccompProfile.type = "RuntimeDefault";
-              hostAliases = [{ip = "10.1.1.100"; hostnames = ["auth.lan"];}];
+              hostAliases = [
+                {
+                  ip = "10.1.1.100";
+                  hostnames = ["auth.lan"];
+                }
+              ];
             };
             containers._namedlist = true;
             containers.oauth2-proxy = {

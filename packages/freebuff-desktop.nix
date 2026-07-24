@@ -1,5 +1,8 @@
-{ lib, appimageTools, fetchurl }:
-
+{
+  lib,
+  appimageTools,
+  fetchurl,
+}:
 # Freebuff desktop — Codebuff's free coding-agent GUI (Electron AppImage).
 #
 # FIX (2026-07-15): appimageTools.wrapType2 fixes two NixOS failures:
@@ -13,7 +16,6 @@
 # The download URL (freebuff.com/api/desktop/download/linux) redirects to the
 # latest AppImage. The sha256 pins the current version. To upgrade, re-fetch
 # and update the hash.
-
 let
   pname = "freebuff-desktop";
   src = fetchurl {
@@ -24,30 +26,31 @@ let
     sha256 = "sha256-zhZgkBVRLkx7IRNT1WGIYAzm4On4mAXV4gc+Z6CXmHg=";
   };
 in
-appimageTools.wrapType2 {
-  inherit pname src;
-  version = "0.0.22"; # approximate; actual version is determined by the API
-  extraPkgs = pkgs: with pkgs; [
-    bash
-    glib
-    nss
-    nspr
-    libGL
-    fontconfig
-    freetype
-    alsa-lib
-    cups
-    dbus
-    expat
-    libxshmfence
-    xorg.libX11
-    xorg.libXcomposite
-    xorg.libXdamage
-    xorg.libXext
-    xorg.libXfixes
-    xorg.libXrandr
-    xorg.libxcb
-    xorg.libxkbfile
-    xorg.libXScrnSaver
-  ];
-}
+  appimageTools.wrapType2 {
+    inherit pname src;
+    version = "0.0.22"; # approximate; actual version is determined by the API
+    extraPkgs = pkgs:
+      with pkgs; [
+        bash
+        glib
+        nss
+        nspr
+        libGL
+        fontconfig
+        freetype
+        alsa-lib
+        cups
+        dbus
+        expat
+        libxshmfence
+        xorg.libX11
+        xorg.libXcomposite
+        xorg.libXdamage
+        xorg.libXext
+        xorg.libXfixes
+        xorg.libXrandr
+        xorg.libxcb
+        xorg.libxkbfile
+        xorg.libXScrnSaver
+      ];
+  }

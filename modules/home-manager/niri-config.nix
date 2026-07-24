@@ -179,34 +179,34 @@ in {
             spawn "launch-or-focus" "Bitwarden" "uwsm" "app" "--" "flatpak" "run"
             "com.bitwarden.desktop";
 
-           # Voice dictation - push-to-talk
-           "Mod+Alt+V".action = spawn-sh "voxtype record toggle";
- 
-           # Remove redundant Mod+K (Mod+Alt+Space already opens settings)
-           "Mod+Space".action = spawn "noctalia" "msg" "panel-toggle" "launcher";
-           "Mod+Ctrl+E".action = spawn "noctalia" "msg" "panel-toggle" "launcher";
-           "Mod+Ctrl+Slash".action = spawn "noctalia" "msg" "panel-toggle" "launcher";
-           "Mod+Shift+Slash".action = spawn "noctalia" "msg" "window-switcher";
- 
-           "Mod+S".action = spawn "scratchpad-toggle";
-           "Mod+Comma".action = spawn "noctalia" "msg" "notification-clear-active";
-           "Mod+Alt+Space".action = spawn "noctalia" "msg" "settings-toggle";
-           "Mod+Shift+Space".action = spawn "noctalia" "msg" "bar-toggle";
-           "Mod+Ctrl+A".action = spawn "noctalia" "msg" "panel-toggle" "control-center" "audio";
-           "Mod+Ctrl+W".action = spawn "noctalia" "msg" "panel-toggle" "control-center" "network";
-           "Mod+Ctrl+B".action = spawn "noctalia" "msg" "panel-toggle" "control-center" "bluetooth";
-           "Mod+Ctrl+I".action = spawn "noctalia" "msg" "caffeine-toggle";
-           "Mod+Ctrl+N".action = spawn "noctalia" "msg" "nightlight-toggle";
-           "Mod+Ctrl+D".action = spawn "noctalia" "msg" "theme-mode-toggle";
-           "Mod+Ctrl+T".action = spawn "noctalia" "msg" "panel-toggle" "control-center" "system";
-           "Mod+Ctrl+S".action = spawn "noctalia" "msg" "panel-toggle" "control-center" "share";
-           "Mod+Ctrl+L".action = spawn "noctalia" "msg" "session" "lock";
-           "Mod+Ctrl+O".action = spawn "noctalia" "msg" "panel-toggle" "control-center";
-           "Mod+Ctrl+Shift+W".action = spawn "noctalia" "msg" "wallpaper-random";
-           "Mod+Shift+Comma".action = spawn "noctalia" "msg" "notification-clear-active";
-           "Mod+Ctrl+Comma".action = spawn "noctalia" "msg" "notification-dnd-toggle";
-           "Mod+Alt+Comma".action = spawn "noctalia" "msg" "notification-dnd-status";
-           "Mod+Alt+Shift+Comma".action = spawn "noctalia" "msg" "notification-invoke-latest";
+          # Voice dictation - push-to-talk
+          "Mod+Alt+V".action = spawn-sh "voxtype record toggle";
+
+          # Remove redundant Mod+K (Mod+Alt+Space already opens settings)
+          "Mod+Space".action = spawn "noctalia" "msg" "panel-toggle" "launcher";
+          "Mod+Ctrl+E".action = spawn "noctalia" "msg" "panel-toggle" "launcher";
+          "Mod+Ctrl+Slash".action = spawn "noctalia" "msg" "panel-toggle" "launcher";
+          "Mod+Shift+Slash".action = spawn "noctalia" "msg" "window-switcher";
+
+          "Mod+S".action = spawn "scratchpad-toggle";
+          "Mod+Comma".action = spawn "noctalia" "msg" "notification-clear-active";
+          "Mod+Alt+Space".action = spawn "noctalia" "msg" "settings-toggle";
+          "Mod+Shift+Space".action = spawn "noctalia" "msg" "bar-toggle";
+          "Mod+Ctrl+A".action = spawn "noctalia" "msg" "panel-toggle" "control-center" "audio";
+          "Mod+Ctrl+W".action = spawn "noctalia" "msg" "panel-toggle" "control-center" "network";
+          "Mod+Ctrl+B".action = spawn "noctalia" "msg" "panel-toggle" "control-center" "bluetooth";
+          "Mod+Ctrl+I".action = spawn "noctalia" "msg" "caffeine-toggle";
+          "Mod+Ctrl+N".action = spawn "noctalia" "msg" "nightlight-toggle";
+          "Mod+Ctrl+D".action = spawn "noctalia" "msg" "theme-mode-toggle";
+          "Mod+Ctrl+T".action = spawn "noctalia" "msg" "panel-toggle" "control-center" "system";
+          "Mod+Ctrl+S".action = spawn "noctalia" "msg" "panel-toggle" "control-center" "share";
+          "Mod+Ctrl+L".action = spawn "noctalia" "msg" "session" "lock";
+          "Mod+Ctrl+O".action = spawn "noctalia" "msg" "panel-toggle" "control-center";
+          "Mod+Ctrl+Shift+W".action = spawn "noctalia" "msg" "wallpaper-random";
+          "Mod+Shift+Comma".action = spawn "noctalia" "msg" "notification-clear-active";
+          "Mod+Ctrl+Comma".action = spawn "noctalia" "msg" "notification-dnd-toggle";
+          "Mod+Alt+Comma".action = spawn "noctalia" "msg" "notification-dnd-status";
+          "Mod+Alt+Shift+Comma".action = spawn "noctalia" "msg" "notification-invoke-latest";
 
           # Screenshots (smart region, window, fullscreen, color)
           "Print".action = spawn "noctalia" "msg" "screenshot-region";
@@ -672,8 +672,20 @@ in {
         focus-ring = {
           enable = mkDefault true;
           width = mkDefault 2;
-          active = {color = mkDefault (if base0D != null then base0D else "#7aa2f7");};
-          inactive = {color = mkDefault (if base03 != null then base03 else "#3b4261");};
+          active = {
+            color = mkDefault (
+              if base0D != null
+              then base0D
+              else "#7aa2f7"
+            );
+          };
+          inactive = {
+            color = mkDefault (
+              if base03 != null
+              then base03
+              else "#3b4261"
+            );
+          };
         };
         border = {
           enable = mkDefault false;
@@ -777,7 +789,7 @@ in {
     # `default.target` (not graphical-session.target) so the watch is
     # active from login onward. Path unit must be ready before any
     # potential HM swap during graphical-session startup.
-    Install.WantedBy = [ "default.target" ];
+    Install.WantedBy = ["default.target"];
     Path.PathChanged = "${config.home.homeDirectory}/.config/niri";
   };
 

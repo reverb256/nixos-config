@@ -10,8 +10,7 @@
   pkgs,
   inputs,
   ...
-}:
-{
+}: {
   # Forge-specific zswap tuning (Intel i5-9500 needs 20% pool, not 40%)
   kernel-hardening.zswap.maxPoolPercent = 20;
 
@@ -241,7 +240,7 @@
     nixos-auto-update = {
       enable = true;
       interval = "daily"; # Check for updates daily at 00:00
-      updateFlakeInputs = [ "nixpkgs" ]; # Auto-update nixpkgs input
+      updateFlakeInputs = ["nixpkgs"]; # Auto-update nixpkgs input
     };
   };
 
@@ -316,7 +315,7 @@
     # GPU DRIVERS (Hybrid AMD + NVIDIA)
     # Note: NVIDIA modules loaded via nvidia-wayland.nix
     # Note: AMDGPU loaded via hardware.profiles.amdgpu.wayland (initrd too)
-    kernelModules = [ "tun" ]; # amdgpu added by profile, not duplicated here
+    kernelModules = ["tun"]; # amdgpu added by profile, not duplicated here
   };
 
   # MINING CONFIGURATION (Forge: 6 cores, 2x RTX 4060 + 2x RX 5700 XT)
@@ -339,9 +338,9 @@
     services = {
       amd-gpu-power-mgmt = {
         description = "AMD GPU Power Limit (110W for RX 5700 XT)";
-        wantedBy = [ "multi-user.target" ];
-        after = [ "multi-user.target" ];
-        path = [ pkgs.coreutils ];
+        wantedBy = ["multi-user.target"];
+        after = ["multi-user.target"];
+        path = [pkgs.coreutils];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
@@ -388,8 +387,8 @@
       };
       nvidia-compute-mode = {
         description = "NVIDIA GPU Compute-Only Mode (EXCLUSIVE_PROCESS)";
-        wantedBy = [ "multi-user.target" ];
-        after = [ "basic.target" ];
+        wantedBy = ["multi-user.target"];
+        after = ["basic.target"];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
@@ -422,7 +421,7 @@
       amd-gpu-fan-curve = {
         description = "AMD GPU Dynamic Fan Curve Control";
         # FIXED: awk escaping bug resolved by using bc instead of awk
-        wantedBy = [ "multi-user.target" ];
+        wantedBy = ["multi-user.target"];
         after = [
           "network.target"
           "amd-gpu-power-mgmt.service"
@@ -582,8 +581,8 @@
       # AMD GPU HEALTH CHECKS
       "amd-gpu-check" = {
         description = "AMD GPU Detection and Health Check";
-        wantedBy = [ "multi-user.target" ];
-        after = [ "basic.target" ];
+        wantedBy = ["multi-user.target"];
+        after = ["basic.target"];
         serviceConfig = {
           Type = "oneshot";
           ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo 2>/dev/null || echo \"AMD GPU detection failed\"'";
@@ -623,8 +622,8 @@
       };
       "amd-gpu-info" = {
         description = "AMD GPU Information Service";
-        wantedBy = [ "multi-user.target" ];
-        after = [ "basic.target" ];
+        wantedBy = ["multi-user.target"];
+        after = ["basic.target"];
         serviceConfig = {
           Type = "oneshot";
           ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo > /tmp/amd-gpu-info.log 2>&1 || true'";
@@ -632,26 +631,24 @@
         };
       };
     };
-    tmpfiles.rules =
-      let
-        rocmEnv = pkgs.symlinkJoin {
-          name = "rocm-combined";
-          paths = with pkgs.rocmPackages; [
-            clr
-            clr.icd
-            rocblas
-            hipblas
-            rpp
-          ];
-        };
-      in
-      [
-        "c /dev/net/tun 666 root root - - - -"
-        "L+ /opt/rocm - - - - ${rocmEnv}"
-        "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
-        # lolMiner workaround for OpenCL ICD path bug
-        "L /etc/OpenCL/vendorsamdocl64.icd - - - - /etc/OpenCL/vendors/amdocl64.icd"
-      ];
+    tmpfiles.rules = let
+      rocmEnv = pkgs.symlinkJoin {
+        name = "rocm-combined";
+        paths = with pkgs.rocmPackages; [
+          clr
+          clr.icd
+          rocblas
+          hipblas
+          rpp
+        ];
+      };
+    in [
+      "c /dev/net/tun 666 root root - - - -"
+      "L+ /opt/rocm - - - - ${rocmEnv}"
+      "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
+      # lolMiner workaround for OpenCL ICD path bug
+      "L /etc/OpenCL/vendorsamdocl64.icd - - - - /etc/OpenCL/vendors/amdocl64.icd"
+    ];
     slices.mining = {
       description = "Mining Services Slice";
       sliceConfig = {
@@ -679,8 +676,7 @@
       LD_LIBRARY_PATH = lib.mkForce "${pkgs.rocmPackages.clr}/lib:${pkgs.rocmPackages.clr.icd}/lib:${pkgs.mesa.opencl}/lib";
       OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
     };
-    etc."OpenCL/vendors/amdocl64.icd".source =
-      "${pkgs.rocmPackages.clr.icd}/etc/OpenCL/vendors/amdocl64.icd";
+    etc."OpenCL/vendors/amdocl64.icd".source = "${pkgs.rocmPackages.clr.icd}/etc/OpenCL/vendors/amdocl64.icd";
     systemPackages = with pkgs; [
       rocmPackages.rocm-smi
       clinfo # For debugging OpenCL

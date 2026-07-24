@@ -1,7 +1,12 @@
 # Grafana Alloy - Log shipper to Loki
 # Modern replacement for Promtail (which was EOL'd in nixpkgs 26.05)
 # Deploy on EVERY host to ship systemd journal + container logs to central Loki
-{ config, lib, pkgs, ... }: let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.monitoring.grafana-alloy;
   inherit (lib) mkEnableOption mkOption types mkIf;
 in {

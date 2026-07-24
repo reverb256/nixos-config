@@ -3,8 +3,7 @@
   pkgs,
   lib,
   ...
-}:
-let
+}: let
   cluster = config.networking.cluster;
 in {
   services = {
@@ -39,7 +38,11 @@ in {
         }
       ];
       exporterInstances = [
-        { instanceName = "nexus-3060ti"; apiPort = 21551; exporterPort = 9101; }
+        {
+          instanceName = "nexus-3060ti";
+          apiPort = 21551;
+          exporterPort = 9101;
+        }
       ];
     };
 

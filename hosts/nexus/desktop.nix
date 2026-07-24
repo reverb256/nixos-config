@@ -1,4 +1,8 @@
-{pkgs, lib, ...}: {
+{
+  pkgs,
+  lib,
+  ...
+}: {
   # Enable UWSM (Universal Wayland Session Manager) for proper session management.
   # Even though Nexus is headless, UWSM provides the necessary infrastructure.
   # 2026-07-03: binPath points at the raw `niri` binary rather than the

@@ -221,7 +221,7 @@ in {
             ${lib.optionalString (cfg.parallelDecoding > 0) "--parallel ${toString cfg.parallelDecoding}"} \
             ${lib.optionalString (cfg.chatTemplate != null) "--chat-template-file ${chatTemplateFile}"} \
             ${lib.optionalString (cfg.vulkanDevice != null) "--device ${cfg.vulkanDevice}"} \
-            --chat-template-kwargs '${builtins.toJSON { enable_thinking = cfg.enableThinking; }}' \
+            --chat-template-kwargs '${builtins.toJSON {enable_thinking = cfg.enableThinking;}}' \
             --reasoning-budget ${toString cfg.reasoningBudget} \
             --cache-type-k ${cfg.cacheTypeK} \
             --cache-type-v ${cfg.cacheTypeV} \
@@ -233,9 +233,11 @@ in {
             --metrics
         '';
 
-        Environment = [
-          "LD_LIBRARY_PATH=${llamaPkg}/lib"
-        ] ++ lib.optional (cfg.vulkanDevice == null) "CUDA_VISIBLE_DEVICES=${toString cfg.gpuDevice}";
+        Environment =
+          [
+            "LD_LIBRARY_PATH=${llamaPkg}/lib"
+          ]
+          ++ lib.optional (cfg.vulkanDevice == null) "CUDA_VISIBLE_DEVICES=${toString cfg.gpuDevice}";
 
         NoNewPrivileges = true;
         PrivateTmp = true;

@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
-
-let
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}: let
   # Freebuff Desktop is launched by the user-local wrapper script
   # (~/.local/bin/freebuff-desktop), which downloads/runs the
   # Freebuff-x86_64.AppImage from ~/.local/share/freebuff. The canonical
@@ -23,8 +26,7 @@ let
     Categories=Development;Utility;
     StartupWMClass=Freebuff
   '';
-in
-{
+in {
   # Declarative .desktop launcher for Freebuff Desktop, shown in the
   # app launcher (niri/rofi/anyrun). Written as plain text via xdg.dataFile
   # (not pkgs.makeDesktopItem) to avoid the __ignoreNulls attribute that the

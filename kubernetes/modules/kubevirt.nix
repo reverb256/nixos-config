@@ -1,5 +1,8 @@
-{ pkgs, lib, ... }:
-let
+{
+  pkgs,
+  lib,
+  ...
+}: let
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
   };
@@ -10,22 +13,21 @@ let
   # These are bound to vfio-pci at boot on nexus (see hosts/nexus/configuration.nix)
   # so the VM owns the physical GPU and drives the connected 4K TV.
   gpuResourceName = "nvidia.com/ga104";
-in
-{
+in {
   config = {
     # ── Static operator/CRD YAML (committed, like tailscale) ───────────────
     importyaml.kubevirt-operator = {
-      src = pkgs.runCommand "kubevirt-operator.yaml" { } ''
+      src = pkgs.runCommand "kubevirt-operator.yaml" {} ''
         cp ${../../kubernetes-manifests/kubevirt/operator.yaml} $out
       '';
     };
     importyaml.cdi-operator = {
-      src = pkgs.runCommand "cdi-operator.yaml" { } ''
+      src = pkgs.runCommand "cdi-operator.yaml" {} ''
         cp ${../../kubernetes-manifests/kubevirt/cdi-operator.yaml} $out
       '';
     };
     importyaml.cdi-cr = {
-      src = pkgs.runCommand "cdi-cr.yaml" { } ''
+      src = pkgs.runCommand "cdi-cr.yaml" {} ''
         cp ${../../kubernetes-manifests/kubevirt/cdi-cr.yaml} $out
       '';
     };
@@ -33,25 +35,31 @@ in
     kubernetes.objects = {
       # ── Namespaces (privileged PSA — KubeVirt runs virt-launcher as root) ──
       none.Namespace.kubevirt = {
-        metadata.labels = managed // {
-          "pod-security.kubernetes.io/enforce" = "privileged";
-          "pod-security.kubernetes.io/audit" = "privileged";
-          "pod-security.kubernetes.io/warn" = "privileged";
-        };
+        metadata.labels =
+          managed
+          // {
+            "pod-security.kubernetes.io/enforce" = "privileged";
+            "pod-security.kubernetes.io/audit" = "privileged";
+            "pod-security.kubernetes.io/warn" = "privileged";
+          };
       };
       none.Namespace.cdi = {
-        metadata.labels = managed // {
-          "pod-security.kubernetes.io/enforce" = "privileged";
-          "pod-security.kubernetes.io/audit" = "privileged";
-          "pod-security.kubernetes.io/warn" = "privileged";
-        };
+        metadata.labels =
+          managed
+          // {
+            "pod-security.kubernetes.io/enforce" = "privileged";
+            "pod-security.kubernetes.io/audit" = "privileged";
+            "pod-security.kubernetes.io/warn" = "privileged";
+          };
       };
       none.Namespace."nexus-de" = {
-        metadata.labels = managed // {
-          "pod-security.kubernetes.io/enforce" = "privileged";
-          "pod-security.kubernetes.io/audit" = "privileged";
-          "pod-security.kubernetes.io/warn" = "privileged";
-        };
+        metadata.labels =
+          managed
+          // {
+            "pod-security.kubernetes.io/enforce" = "privileged";
+            "pod-security.kubernetes.io/audit" = "privileged";
+            "pod-security.kubernetes.io/warn" = "privileged";
+          };
       };
 
       # ── Exempt KubeVirt/CDI namespaces from the cluster-wide runAsNonRoot policy
@@ -62,14 +70,14 @@ in
         metadata.labels = managed;
         spec = {
           policyName = "require-resources-and-security";
-          validationActions = [ "Warn" ];
+          validationActions = ["Warn"];
           matchResources = {
             namespaceSelector = {
               matchExpressions = [
                 {
                   key = "kubernetes.io/metadata.name";
                   operator = "In";
-                  values = [ "kubevirt" "cdi" "nexus-de" ];
+                  values = ["kubevirt" "cdi" "nexus-de"];
                 }
               ];
             };
@@ -84,9 +92,9 @@ in
       none.KubeVirt.kubevirt = {
         metadata.labels = managed;
         spec = {
-          certificateRotateStrategy = { };
+          certificateRotateStrategy = {};
           configuration = {
-            developerConfiguration.featureGates = [ ];
+            developerConfiguration.featureGates = [];
             imagePullPolicy = "IfNotPresent";
             permittedHostDevices = {
               pciHostDevices = [
@@ -102,21 +110,27 @@ in
                 {
                   resourceName = "usb/kb-tv";
                   selectors = [
-                    { vendor = "1a2c"; product = "2124"; }
+                    {
+                      vendor = "1a2c";
+                      product = "2124";
+                    }
                   ];
                 }
                 {
                   resourceName = "usb/mouse-tv";
                   selectors = [
-                    { vendor = "1532"; product = "008f"; }
+                    {
+                      vendor = "1532";
+                      product = "008f";
+                    }
                   ];
                 }
               ];
             };
           };
-          customizeComponents = { };
+          customizeComponents = {};
           imagePullPolicy = "IfNotPresent";
-          workloadUpdateStrategy = { };
+          workloadUpdateStrategy = {};
         };
       };
 

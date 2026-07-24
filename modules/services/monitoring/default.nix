@@ -1,7 +1,6 @@
 # Monitoring Infrastructure Modules
 # Prometheus, Grafana, and exporters for cluster observability
-{ ... }:
-{
+{...}: {
   imports = [
     ./prometheus.nix
     ./alertmanager.nix
@@ -12,9 +11,9 @@
     ./redis-exporter.nix
     ./smart-exporter.nix
     ./loki.nix
-    ./ntfy.nix           # Phone push notifications via ntfy
-    ./dcgm-exporter.nix  # NVIDIA DCGM hardware error tracking (ECC, PCIe)
-    ./grafana-alloy.nix  # Log shipper to Loki (replaces promtail)
+    ./ntfy.nix # Phone push notifications via ntfy
+    ./dcgm-exporter.nix # NVIDIA DCGM hardware error tracking (ECC, PCIe)
+    ./grafana-alloy.nix # Log shipper to Loki (replaces promtail)
     ./promtail.nix # Log aggregation to Loki
     ./system-tools.nix # CLI monitoring tools (htop, iotop, nethogs, sysstat)
   ];

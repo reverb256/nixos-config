@@ -3,8 +3,7 @@
   pkgs,
   lib,
   ...
-}:
-{
+}: {
   options.internal = lib.mkOption {
     type = lib.types.anything;
   };
@@ -56,43 +55,43 @@
       lib.imap0 (i: kind: {
         name = kind;
         value = i;
-      }) helmOrder
+      })
+      helmOrder
     );
 
     # Get priority for a kind, default to end if not in list
     getApplyPriority = kind: applyPriorities.${kind} or (lib.length helmOrder);
 
-    generatedOrdered = lib.sort (
-      a: b: (getApplyPriority a.kind) < (getApplyPriority b.kind)
-    ) config.kubernetes.generated;
+    generatedOrdered =
+      lib.sort (
+        a: b: (getApplyPriority a.kind) < (getApplyPriority b.kind)
+      )
+      config.kubernetes.generated;
 
     # Makes a valid YAML string, supports multiple documents or single attrsets,
     # documents will be JSON formatted since Nix can't render YAML.
-    toYAMLStr =
-      input:
-      if builtins.typeOf input == "list" then
-        lib.concatStringsSep "\n---\n" (map (doc: builtins.toJSON doc) input)
-      else if builtins.typeOf input == "set" then
-        builtins.toJSON input
-      else
-        throw "toYAML only supports set and list types";
+    toYAMLStr = input:
+      if builtins.typeOf input == "list"
+      then lib.concatStringsSep "\n---\n" (map (doc: builtins.toJSON doc) input)
+      else if builtins.typeOf input == "set"
+      then builtins.toJSON input
+      else throw "toYAML only supports set and list types";
 
     # Makes a valid YAML string, supports multiple documents or single attrsets,
     # reformatted using "yq-go".
-    toYAMLFile =
-      filename: input:
+    toYAMLFile = filename: input:
       pkgs.runCommand filename
-        {
-          nativeBuildInputs = [
-            pkgs.yq-go
-          ];
-          yamlContent = toYAMLStr input;
-          passAsFile = [ "yamlContent" ];
-        }
-        #bash
-        ''
-          yq --prettyPrint < $yamlContentPath > $out
-        '';
+      {
+        nativeBuildInputs = [
+          pkgs.yq-go
+        ];
+        yamlContent = toYAMLStr input;
+        passAsFile = ["yamlContent"];
+      }
+      #bash
+      ''
+        yq --prettyPrint < $yamlContentPath > $out
+      '';
 
     manifestAttrs = {
       apiVersion = "v1";
@@ -104,10 +103,11 @@
     # Beware that YAML rendering requires IFD
     manifestYAMLList = builtins.readFile manifestYAMLFile;
     manifestYAMLFileList =
-      pkgs.runCommand "manifest.yaml" { } # bash
-        ''
-          ${lib.getExe pkgs.yq} --yaml-output '.' ${manifestJSONFile} > $out
-        '';
+      pkgs.runCommand "manifest.yaml" {} # bash
+      
+      ''
+        ${lib.getExe pkgs.yq} --yaml-output '.' ${manifestJSONFile} > $out
+      '';
     manifestYAML = builtins.readFile manifestYAMLFile;
     manifestYAMLFile = toYAMLFile "nix-csi.yaml" generatedOrdered;
   };

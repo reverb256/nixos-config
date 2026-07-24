@@ -1,4 +1,10 @@
-{ config, lib, pkgs, utils, ... }: {
+{
+  config,
+  lib,
+  pkgs,
+  utils,
+  ...
+}: {
   disko.devices = {
     disk.nvme1n1 = {
       device = "/dev/disk/by-id/nvme-WDC_WDS100T2B0C-00PXH0_203797800744";
@@ -19,7 +25,10 @@
           };
           swap = {
             size = "16G";
-            content = { type = "swap"; discardPolicy = "both"; };
+            content = {
+              type = "swap";
+              discardPolicy = "both";
+            };
           };
           root = {
             size = "100%";
@@ -35,18 +44,18 @@
                   mountpoint = "/persistent";
                   mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
                 };
-#                "@home" = {
-#                  mountpoint = "/home";
-#                  mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
-#                };
+                #                "@home" = {
+                #                  mountpoint = "/home";
+                #                  mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
+                #                };
                 "@nix" = {
                   mountpoint = "/nix";
                   mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
                 };
-#                "@games" = {
-#                  mountpoint = "/games";
-#                  mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
-#                };
+                #                "@games" = {
+                #                  mountpoint = "/games";
+                #                  mountOptions = ["compress=zstd:3" "ssd" "discard=async" "noatime"];
+                #                };
               };
             };
           };
@@ -60,8 +69,8 @@
   # These mount via fileSystems."..." in hardware.nix
 
   fileSystems = {
-    "/persistent" = { neededForBoot = true; };
-    "/nix" = { neededForBoot = true; };
+    "/persistent" = {neededForBoot = true;};
+    "/nix" = {neededForBoot = true;};
     # "/home" moved to bcache - see hardware.nix
   };
 }

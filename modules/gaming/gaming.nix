@@ -6,8 +6,7 @@
   pkgs,
   ...
 }:
-with lib;
-let
+with lib; let
   cfg = config.services.gaming;
   vrCfg = cfg.vr;
   # Kernel-level deadzone tool for controllers
@@ -22,10 +21,9 @@ let
       mkdir -p $out/bin
       cp set-evdev-deadzone $out/bin/
     '';
-    nativeBuildInputs = [ pkgs.gcc ];
+    nativeBuildInputs = [pkgs.gcc];
   };
-in
-{
+in {
   options.services.gaming = {
     enable = mkEnableOption "Gaming support (Steam, GameMode, Gamescope)";
     vr = {
@@ -54,7 +52,6 @@ in
   config = mkMerge [
     # Base gaming configuration (always when gaming.enable = true)
     (mkIf cfg.enable {
-
       # ASSERTIONS
 
       assertions = [
@@ -151,8 +148,8 @@ in
             # ];
           ];
           package = pkgs.steam.override {
-            extraLibraries =
-              pkgs: with pkgs; [
+            extraLibraries = pkgs:
+              with pkgs; [
                 freetype
                 fontconfig
                 libpng
@@ -316,10 +313,10 @@ in
       };
       # Create plugdev group for backwards compatibility
       # Note: TAG+="uaccess" (above) provides the same functionality via systemd-logind
-      users.groups.plugdev = { };
+      users.groups.plugdev = {};
       # Load hid_sony kernel module for DualSense native support
       # Provides: Haptic feedback, gyro, LED, touchpad, adaptive triggers
-      boot.kernelModules = [ "hid_sony" ];
+      boot.kernelModules = ["hid_sony"];
       systemd.tmpfiles.rules = [
         "d /var/cache/nvidia-shader-cache 0755 root root - -"
         # ldconfig is in glibc.bin output, not glibc.out
@@ -454,7 +451,6 @@ in
     })
     # VR configuration (only when vr.enable = true)
     (mkIf vrCfg.enable {
-
       # SERVICES - Avahi for WiVRn discovery, WiVRn streaming
 
       services = {
@@ -484,7 +480,7 @@ in
       };
       # VR firewall ports
       networking.firewall = {
-        allowedTCPPorts = lib.mkOptionDefault [ 9757 ];
+        allowedTCPPorts = lib.mkOptionDefault [9757];
         allowedUDPPorts = lib.mkOptionDefault [
           9757
           5353
@@ -519,35 +515,33 @@ in
           OPENVR_API_PATH = "${pkgs.xrizer}/lib/xrizer";
         };
         # VR-specific packages
-        systemPackages =
-          with pkgs;
-          (
-            [
-              wivrn
-              openxr-loader
-              opencomposite
-              openvr
-              xrizer
-              motoc
-              # VR font/graphics dependencies
-              freetype
-              fontconfig
-              libpng
-              libjpeg
-              libtiff
-              ffmpeg
-            ]
-            # Temporarily disabled nixpkgs-xr packages due to deprecated options
-            # ++ optionals (inputs != null && inputs ? nixpkgs-xr) [
-            #   inputs.nixpkgs-xr.packages.${pkgs.stdenv.hostPlatform.system}.oscavmgr
-            # ]
-            ++ [
-              # GPU profile command (merged here to avoid duplicate assignment)
-              (pkgs.writeShellScriptBin "gpu-profile" ''
-                exec ${./scripts/gpu-profiles/switch-profile} "$@"
-              '')
-            ]
-          );
+        systemPackages = with pkgs; (
+          [
+            wivrn
+            openxr-loader
+            opencomposite
+            openvr
+            xrizer
+            motoc
+            # VR font/graphics dependencies
+            freetype
+            fontconfig
+            libpng
+            libjpeg
+            libtiff
+            ffmpeg
+          ]
+          # Temporarily disabled nixpkgs-xr packages due to deprecated options
+          # ++ optionals (inputs != null && inputs ? nixpkgs-xr) [
+          #   inputs.nixpkgs-xr.packages.${pkgs.stdenv.hostPlatform.system}.oscavmgr
+          # ]
+          ++ [
+            # GPU profile command (merged here to avoid duplicate assignment)
+            (pkgs.writeShellScriptBin "gpu-profile" ''
+              exec ${./scripts/gpu-profiles/switch-profile} "$@"
+            '')
+          ]
+        );
       };
 
       # COMPUTE WORKLOAD MONITOR MODULE

@@ -9,8 +9,7 @@
   pkgs,
   inputs,
   ...
-}:
-{
+}: {
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -61,7 +60,7 @@
   };
 
   # FIX: Disable interface renaming - use actual interface names
-  systemd.network.links = lib.mkForce { };
+  systemd.network.links = lib.mkForce {};
 
   # Disable flake-lock-sync (nixos-shared mount not available)
   services.flake-lock-sync.enable = lib.mkForce false;

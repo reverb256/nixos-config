@@ -48,7 +48,7 @@
     # Must come before mitigations to avoid being overridden
     "amdgpu.gpu_recovery=1"
     "amdgpu.noretry=0"
-    "amdgpu.ppfeaturemask=0xfffd7fff"  # Disable Overdrive for stability
+    "amdgpu.ppfeaturemask=0xfffd7fff" # Disable Overdrive for stability
     "amdgpu.lockup_timeout=1000"
     "mitigations=auto"
   ];

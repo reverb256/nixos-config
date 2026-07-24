@@ -8,7 +8,7 @@
     sentry.ip = "10.1.1.140";
   };
 
-  requiredFiles = [ "configuration.nix" "hardware.nix" "firewall.nix" "services.nix" ];
+  requiredFiles = ["configuration.nix" "hardware.nix" "firewall.nix" "services.nix"];
 
   hostDirExists = host: builtins.pathExists ./../hosts/${host};
   hostFileExists = host: file: builtins.pathExists ./../hosts/${host}/${file};
@@ -24,13 +24,15 @@
 
   correctIPRef = host: ip: let
     src = builtins.readFile ./../hosts/${host}/configuration.nix;
-  in lib.strings.hasInfix "hosts.${host}.ip" src || lib.strings.hasInfix "\"${ip}\"" src;
+  in
+    lib.strings.hasInfix "hosts.${host}.ip" src || lib.strings.hasInfix "\"${ip}\"" src;
 
   allHosts = builtins.attrNames expectedHosts;
   existingHosts = builtins.filter hostDirExists allHosts;
 
-  missingFilesPerHost = builtins.mapAttrs (host: cfg:
-    builtins.filter (f: !(hostFileExists host f)) requiredFiles
+  missingFilesPerHost = builtins.mapAttrs (
+    host: cfg:
+      builtins.filter (f: !(hostFileExists host f)) requiredFiles
   ) (lib.genAttrs existingHosts (_: {}));
 
   # Cross-contamination: host references another host's path
@@ -39,15 +41,22 @@
       src = builtins.readFile ./../hosts/${host}/configuration.nix;
       others = builtins.filter (h: h != host) allHosts;
       contaminated = builtins.filter (o: lib.strings.hasInfix "hosts/${o}/" src) others;
-    in if contaminated != [] then { ${host} = contaminated; } else {};
-  in lib.foldl' (acc: h: acc // (check h)) {} existingHosts;
+    in
+      if contaminated != []
+      then {${host} = contaminated;}
+      else {};
+  in
+    lib.foldl' (acc: h: acc // (check h)) {} existingHosts;
 
   allChecks = {
     allHostDirsPresent = builtins.length (builtins.filter (h: !(hostDirExists h)) allHosts) == 0;
 
-    allRequiredFilesPresent = lib.all (host:
-      builtins.filter (f: !(hostFileExists host f)) requiredFiles == []
-    ) existingHosts;
+    allRequiredFilesPresent =
+      lib.all (
+        host:
+          builtins.filter (f: !(hostFileExists host f)) requiredFiles == []
+      )
+      existingHosts;
 
     allHaveClusterNetworking =
       builtins.filter (h: !(hasClusterNetworking h)) existingHosts == [];
@@ -58,21 +67,26 @@
     allFirewallsNonEmpty =
       builtins.filter (h: !(firewallNonEmpty h)) existingHosts == [];
 
-    allHaveCorrectIPRef = lib.all (host:
-      correctIPRef host expectedHosts.${host}.ip
-    ) existingHosts;
+    allHaveCorrectIPRef =
+      lib.all (
+        host:
+          correctIPRef host expectedHosts.${host}.ip
+      )
+      existingHosts;
 
     noCrossContamination = hostCrossContamination == {};
   };
 
   failures = lib.filterAttrs (_: v: v == false) allChecks;
 in {
-  checks = allChecks // {
-    _diagnostics = {
-      missingHostDirs = builtins.filter (h: !(hostDirExists h)) allHosts;
-      inherit hostCrossContamination;
+  checks =
+    allChecks
+    // {
+      _diagnostics = {
+        missingHostDirs = builtins.filter (h: !(hostDirExists h)) allHosts;
+        inherit hostCrossContamination;
+      };
     };
-  };
   failures = builtins.attrNames failures;
   passed = failures == {};
 }

@@ -4,8 +4,7 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.ai-inference.rag;
   inherit (lib) mkIf optional;
 
@@ -22,14 +21,13 @@ let
     telemetry:
       disable: true
   '';
-in
-{
+in {
   config = mkIf (cfg.enable && cfg.qdrant.enable) {
     # Qdrant service
     systemd.services.qdrant = {
       description = "Qdrant Vector Database";
-      after = [ "network.target" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["network.target"];
+      wantedBy = ["multi-user.target"];
 
       serviceConfig = {
         ExecStart = "${cfg.qdrant.package}/bin/qdrant --config-path ${qdrantConfig}";
@@ -60,7 +58,7 @@ in
       group = "qdrant";
       description = "Qdrant Vector Database";
     };
-    users.groups.qdrant = { };
+    users.groups.qdrant = {};
 
     # Create storage directory
     systemd.tmpfiles.rules = [

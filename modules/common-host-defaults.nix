@@ -1,10 +1,11 @@
 {
   config,
   lib,
-  pkgs, inputs,
+  pkgs,
+  inputs,
   ...
 }: {
-  disabledModules = [ "${inputs.stylix}/modules/kmscon/nixos.nix" ];
+  disabledModules = ["${inputs.stylix}/modules/kmscon/nixos.nix"];
   system.stateVersion = lib.mkDefault "26.05";
 
   # Auto-cleanup old nix generations

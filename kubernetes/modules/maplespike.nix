@@ -56,100 +56,100 @@ with lib; let
       template = {
         metadata.labels = labels;
         spec =
-          lib.optionalAttrs (nodeName != null) { inherit nodeName; }
+          lib.optionalAttrs (nodeName != null) {inherit nodeName;}
           // {
-          securityContext = {
-            inherit runAsUser;
-            inherit runAsGroup;
-            fsGroup = runAsGroup;
-          };
-          terminationGracePeriodSeconds = 30;
-          imagePullSecrets = [{name = "ghcr-pull";}];
-          affinity = {
-            podAntiAffinity = {
-              preferredDuringSchedulingIgnoredDuringExecution = [
-                {
-                  weight = 100;
-                  podAffinityTerm = {
-                    labelSelector.matchLabels = {
-                      inherit (labels) app;
+            securityContext = {
+              inherit runAsUser;
+              inherit runAsGroup;
+              fsGroup = runAsGroup;
+            };
+            terminationGracePeriodSeconds = 30;
+            imagePullSecrets = [{name = "ghcr-pull";}];
+            affinity = {
+              podAntiAffinity = {
+                preferredDuringSchedulingIgnoredDuringExecution = [
+                  {
+                    weight = 100;
+                    podAffinityTerm = {
+                      labelSelector.matchLabels = {
+                        inherit (labels) app;
+                      };
+                      topologyKey = "kubernetes.io/hostname";
                     };
-                    topologyKey = "kubernetes.io/hostname";
+                  }
+                ];
+              };
+              nodeAffinity = {
+                preferredDuringSchedulingIgnoredDuringExecution = [
+                  {
+                    weight = 80;
+                    preference.matchExpressions = [
+                      {
+                        key = "kubernetes.io/hostname";
+                        operator = "In";
+                        values = ["nexus" "sentry"];
+                      }
+                    ];
+                  }
+                  {
+                    weight = 50;
+                    preference.matchExpressions = [
+                      {
+                        key = "kubernetes.io/hostname";
+                        operator = "In";
+                        values = ["nexus"];
+                      }
+                    ];
+                  }
+                ];
+              };
+            };
+            topologySpreadConstraints = [
+              {
+                maxSkew = 1;
+                topologyKey = "kubernetes.io/hostname";
+                whenUnsatisfiable = "ScheduleAnyway";
+                labelSelector.matchLabels = {
+                  inherit (labels) app;
+                };
+              }
+            ];
+            containers = [
+              {
+                inherit name image;
+                imagePullPolicy = "IfNotPresent";
+                ports = lib.mkIf (port > 0) [
+                  {
+                    containerPort = port;
+                  }
+                ];
+                env =
+                  [
+                    {
+                      name = "PORT";
+                      value = toString port;
+                    }
+                    {
+                      name = "NODE_ENV";
+                      value = "production";
+                    }
+                  ]
+                  ++ envExtra;
+                inherit resources;
+                securityContext = {
+                  allowPrivilegeEscalation = false;
+                  capabilities = {
+                    drop = ["ALL"];
                   };
-                }
-              ];
-            };
-            nodeAffinity = {
-              preferredDuringSchedulingIgnoredDuringExecution = [
-                {
-                  weight = 80;
-                  preference.matchExpressions = [
-                    {
-                      key = "kubernetes.io/hostname";
-                      operator = "In";
-                      values = ["nexus" "sentry"];
-                    }
-                  ];
-                }
-                {
-                  weight = 50;
-                  preference.matchExpressions = [
-                    {
-                      key = "kubernetes.io/hostname";
-                      operator = "In";
-                      values = ["nexus"];
-                    }
-                  ];
-                }
-              ];
-            };
+                  runAsNonRoot = true;
+                  inherit runAsUser;
+                  seccompProfile = {
+                    type = "RuntimeDefault";
+                  };
+                };
+              }
+            ];
           };
-          topologySpreadConstraints = [
-            {
-              maxSkew = 1;
-              topologyKey = "kubernetes.io/hostname";
-              whenUnsatisfiable = "ScheduleAnyway";
-              labelSelector.matchLabels = {
-                inherit (labels) app;
-              };
-            }
-          ];
-          containers = [
-            {
-              inherit name image;
-              imagePullPolicy = "IfNotPresent";
-              ports = lib.mkIf (port > 0) [
-                {
-                  containerPort = port;
-                }
-              ];
-              env =
-                [
-                  {
-                    name = "PORT";
-                    value = toString port;
-                  }
-                  {
-                    name = "NODE_ENV";
-                    value = "production";
-                  }
-                ]
-                ++ envExtra;
-              inherit resources;
-              securityContext = {
-                allowPrivilegeEscalation = false;
-                capabilities = {
-                  drop = ["ALL"];
-                };
-                runAsNonRoot = true;
-                inherit runAsUser;
-                seccompProfile = {
-                  type = "RuntimeDefault";
-                };
-              };
-            }
-          ];
-        };
       };
     };
   };

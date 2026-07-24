@@ -322,7 +322,7 @@ in {
         # Allow reading the update script and sops secrets (if they exist)
         ReadOnlyPaths = [
           "/etc/nixos/scripts"
-          "/run/secrets"  # Optional: only exists on nodes with sops secrets
+          "/run/secrets" # Optional: only exists on nodes with sops secrets
         ];
 
         # Logging

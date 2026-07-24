@@ -4,5 +4,5 @@
   inherit (helpers) ports;
   inherit (helpers) cluster;
 in {
-  options = import ./network-options { inherit lib ports cluster; };
+  options = import ./network-options {inherit lib ports cluster;};
 }

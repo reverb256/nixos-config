@@ -25,8 +25,7 @@
   #   HW-20: Build closure check — each host can build (nix-build)
   #
   pkgs ? import <nixpkgs> {},
-}:
-let
+}: let
   lib = pkgs.lib;
 
   # ── Host definitions ──
@@ -53,29 +52,33 @@ let
 
   # Check that the host config has actual filesystem definitions (not a stub)
   # A standalone config should have at least one fileSystems definition
-  hwConfigHasFileSystems = host:
-    let src = builtins.readFile (hwConfigPath host);
-    in lib.strings.hasInfix "fileSystems." src;
+  hwConfigHasFileSystems = host: let
+    src = builtins.readFile (hwConfigPath host);
+  in
+    lib.strings.hasInfix "fileSystems." src;
 
   # ── HW-2: Hardware config uses partlabels, not UUIDs ──
-  hwConfigUsesUUID = host:
-    let src = readFile (hwConfigPath host);
-    in hasInfix "by-uuid" src;
+  hwConfigUsesUUID = host: let
+    src = readFile (hwConfigPath host);
+  in
+    hasInfix "by-uuid" src;
 
-  hwConfigUsesPartlabel = host:
-    let src = readFile (hwConfigPath host);
-    in hasInfix "by-partlabel" src;
+  hwConfigUsesPartlabel = host: let
+    src = readFile (hwConfigPath host);
+  in
+    hasInfix "by-partlabel" src;
 
   # ── HW-3: No filesystem mounts to non-existent disks ──
   # Check that all device = "/dev/..." entries use mechanisms that survive disk swaps
   # (partlabel, by-id, etc.)
-  hwConfigUsesStableDeviceNames = host:
-    let src = readFile (hwConfigPath host);
-        lines = lib.splitString "\n" src;
-        deviceLines = filter (l: hasInfix "device =" l) lines;
-        # Look for devices that use by-uuid (brittle)
-        uuidDevices = filter (l: hasInfix "by-uuid" l) deviceLines;
-    in builtins.length uuidDevices == 0;
+  hwConfigUsesStableDeviceNames = host: let
+    src = readFile (hwConfigPath host);
+    lines = lib.splitString "\n" src;
+    deviceLines = filter (l: hasInfix "device =" l) lines;
+    # Look for devices that use by-uuid (brittle)
+    uuidDevices = filter (l: hasInfix "by-uuid" l) deviceLines;
+  in
+    builtins.length uuidDevices == 0;
 
   # ── HW-4: panic_on_oops=0 on sentry (MCE mitigation) ──
   sentryConfig = readFile ./../hosts/sentry/configuration.nix;
@@ -100,7 +103,8 @@ let
   # ── HW-8: NFS mounts have nofail when NFS server is known dead ──
   # Check that nixos-share is disabled on non-zephyr hosts
   sentryNixosShare = hasInfix "nixos-share" sentryConfig;
-  sentryNixosShareDisabled = hasInfix "enable = false" sentryConfig
+  sentryNixosShareDisabled =
+    hasInfix "enable = false" sentryConfig
     || hasInfix "enable = lib.mkForce false" sentryConfig;
 
   # ── HW-10: No stale LOLMINER or XMRIG refs in .nix files ──
@@ -120,7 +124,8 @@ let
   sentryUsesPartlabel = hasInfix "by-partlabel" sentryHwConfig;
 
   # ── HW-14: MCE mitigation params on AMD GPU hosts ──
-  sentryHasMceMitigation = hasInfix "processor.max_cstate=5" sentryConfig
+  sentryHasMceMitigation =
+    hasInfix "processor.max_cstate=5" sentryConfig
     && hasInfix "panic_on_oops=0" sentryConfig;
 
   # ── HW-16: No /etc/nixos hw config symlinks between hosts ──
@@ -139,7 +144,6 @@ let
 
   # ── Build the check results ──
   checks = {
-
     # HW-1: Standalone hardware configs
     hw_config_sentry_has_filesystems = hwConfigHasFileSystems "sentry";
     hw_config_zephyr_has_filesystems = hwConfigHasFileSystems "zephyr";
@@ -197,7 +201,11 @@ in {
   summary = let
     ok = builtins.length passNames;
     fail = builtins.length failNames;
-  in "${toString ok}/${toString allCheckNames} checks passed" + (
-    if fail > 0 then ", ${toString fail} FAILED: ${lib.concatStringsSep ", " failNames}" else ""
-  );
+  in
+    "${toString ok}/${toString allCheckNames} checks passed"
+    + (
+      if fail > 0
+      then ", ${toString fail} FAILED: ${lib.concatStringsSep ", " failNames}"
+      else ""
+    );
 }

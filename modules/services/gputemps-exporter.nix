@@ -6,8 +6,7 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.gputemps-exporter;
   inherit (lib) mkEnableOption mkOption types mkIf;
 
@@ -76,8 +75,7 @@ let
       mv -f "$OUT" "$FINAL"
     fi
   '';
-in
-{
+in {
   options.services.gputemps-exporter = {
     enable = mkEnableOption "GDDR6/GDDR6X per-module VRAM temperature exporter (gputemps)";
     interval = mkOption {
@@ -88,13 +86,13 @@ in
   };
 
   config = mkIf cfg.enable {
-    environment.systemPackages = [ pkgs.gputemps ];
+    environment.systemPackages = [pkgs.gputemps];
 
     systemd.services.gputemps-exporter = {
       description = "Export per-module GDDR6/GDDR6X VRAM junction temperatures to Prometheus textfile";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "prometheus-node-exporter.service" ];
-      requires = [ "prometheus-node-exporter.service" ];
+      wantedBy = ["multi-user.target"];
+      after = ["prometheus-node-exporter.service"];
+      requires = ["prometheus-node-exporter.service"];
 
       serviceConfig = {
         Type = "oneshot";
@@ -105,7 +103,7 @@ in
     };
 
     systemd.timers.gputemps-exporter = {
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnBootSec = "60s";
         OnUnitActiveSec = "${toString cfg.interval}s";

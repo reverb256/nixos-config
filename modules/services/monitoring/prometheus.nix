@@ -5,13 +5,11 @@
   config,
   lib,
   ...
-}:
-let
+}: let
   cfg = config.services.monitoring.prometheus;
   # Use centralized network constants to avoid duplication
   inherit (config.networking.cluster) ports;
-in
-{
+in {
   options.services.monitoring.prometheus = {
     enable = lib.mkEnableOption "Prometheus monitoring server";
 
@@ -54,7 +52,7 @@ in
         {
           static_configs = [
             {
-              targets = [ "127.0.0.1:${toString ports.alertmanager}" ];
+              targets = ["127.0.0.1:${toString ports.alertmanager}"];
             }
           ];
         }
@@ -118,13 +116,12 @@ in
         # Note: AMD GPU metrics are collected via node-exporter textfile collector
         # (forge:9100/metrics includes amdgpu_* metrics from /var/lib/prometheus/node-exporter/textfile-collector/)
 
-
         # Redis metrics (AI Gateway cache)
         {
           job_name = "redis";
           static_configs = [
             {
-              targets = [ "zephyr:9121" ];
+              targets = ["zephyr:9121"];
               labels = {
                 role = "ai-gateway-cache";
               };
@@ -137,7 +134,7 @@ in
           job_name = "prometheus";
           static_configs = [
             {
-              targets = [ "localhost:${toString ports.prometheus}" ];
+              targets = ["localhost:${toString ports.prometheus}"];
             }
           ];
         }
@@ -147,7 +144,7 @@ in
           job_name = "alertmanager";
           static_configs = [
             {
-              targets = [ "localhost:${toString ports.alertmanager}" ];
+              targets = ["localhost:${toString ports.alertmanager}"];
             }
           ];
         }
@@ -157,7 +154,7 @@ in
           job_name = "grafana";
           static_configs = [
             {
-              targets = [ "localhost:${toString ports.grafana}" ];
+              targets = ["localhost:${toString ports.grafana}"];
             }
           ];
         }
@@ -180,7 +177,7 @@ in
           ];
           metrics_path = "/metrics";
           params = {
-            token = [ "garage_metrics_token" ];
+            token = ["garage_metrics_token"];
           };
         }
 
@@ -210,7 +207,7 @@ in
       isSystemUser = true;
       group = "prometheus";
     };
-    users.groups.prometheus = { };
+    users.groups.prometheus = {};
 
     # Open firewall for internal access
     networking.firewall.interfaces."tailscale0".allowedTCPPorts = [

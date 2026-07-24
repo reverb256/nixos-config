@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }: {
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   # Enable UWSM (Universal Wayland Session Manager) for proper session management.
   # 2026-07-03: binPath points at the raw `niri` binary rather than the
   # nixpkgs-26.04 `niri-session` wrapper, which conflicts with uwsm's

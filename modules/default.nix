@@ -1,7 +1,6 @@
 # Default module imports for all submodules
 # Modules are organized into logical subdirectories for better maintainability
-{ ... }:
-{
+{...}: {
   imports = [
     # ============================================================================
     # SHARED DEFAULTS

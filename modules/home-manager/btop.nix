@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }: let
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}: let
   c = config.lib.stylix.colors;
   toHex = hex: "#" + hex;
   bg = toHex c.base00;

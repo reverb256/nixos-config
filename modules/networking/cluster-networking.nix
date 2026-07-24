@@ -5,17 +5,16 @@
   lib,
   pkgs,
   ...
-}:
-let
-  inherit (lib)
+}: let
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
     mkIf
     ;
   cfg = config.clusterNetworking;
-in
-{
+in {
   options.clusterNetworking = {
     enable = mkEnableOption "Cluster networking configuration";
 
@@ -63,8 +62,8 @@ in
 
       macAddresses = mkOption {
         type = types.listOf types.str;
-        default = [ ];
-        example = [ "00:11:22:33:44:55" ];
+        default = [];
+        example = ["00:11:22:33:44:55"];
         description = "MAC addresses of USB Ethernet adapters to configure with static IP";
       };
 
@@ -193,7 +192,7 @@ in
       '';
       # SECURITY: Kubernetes API accessible via Tailscale VPN only
       # Note: cluster-firewall.nix also allows 6443 from cluster LAN
-      interfaces."tailscale0".allowedTCPPorts = [ 6443 ];
+      interfaces."tailscale0".allowedTCPPorts = [6443];
     };
   };
 }

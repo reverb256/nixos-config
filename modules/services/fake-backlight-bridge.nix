@@ -8,7 +8,12 @@
 #
 # Requires: niri (any version with wlr-gamma-control-v1, PR #240+)
 # Requires: gammastep (added to systemPackages)
-{ config, lib, pkgs, ... }: let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.fake-backlight-bridge;
   inherit (lib) mkEnableOption mkOption types mkIf;
   runDir = "/var/run/fake-backlight";
@@ -23,12 +28,12 @@ in {
   };
 
   config = mkIf cfg.enable {
-    environment.systemPackages = [ pkgs.gammastep ];
+    environment.systemPackages = [pkgs.gammastep];
 
     systemd.services.fake-backlight-apply = {
       description = "Apply fake backlight brightness via gamma ramp";
-      after = [ "fake-backlight-setup.service" ];
-      wants = [ "fake-backlight-setup.service" ];
+      after = ["fake-backlight-setup.service"];
+      wants = ["fake-backlight-setup.service"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "apply-brightness" ''
@@ -52,9 +57,9 @@ in {
 
     systemd.services.fake-backlight-setup = {
       description = "Setup fake backlight device for gamma-brightness bridge";
-      wantedBy = [ "multi-user.target" ];
-      before = [ "fake-backlight-apply.service" ];
-      requiredBy = [ "fake-backlight-apply.service" ];
+      wantedBy = ["multi-user.target"];
+      before = ["fake-backlight-apply.service"];
+      requiredBy = ["fake-backlight-apply.service"];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -70,7 +75,7 @@ in {
 
     systemd.paths.fake-backlight-watcher = {
       description = "Watch for fake backlight brightness changes";
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = ["multi-user.target"];
       pathConfig = {
         PathModified = "${runDir}/brightness";
         Unit = "fake-backlight-apply.service";

@@ -6,11 +6,9 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.hardware.nvidia.wayland;
-in
-{
+in {
   options.hardware.nvidia.wayland = {
     enable = lib.mkEnableOption "NVIDIA Wayland optimizations for Plasma 6";
     enable32Bit = lib.mkOption {
@@ -39,7 +37,6 @@ in
     };
   };
   config = lib.mkIf cfg.enable {
-
     # NVIDIA DRIVER CONFIGURATION
 
     # NOTE: hardware.nvidia base configuration (including package) is in nvidia-common.nix
@@ -100,10 +97,8 @@ in
     # VULKAN ICD SYMLINK - Use environment.etc for reliable symlink creation
     # systemd.tmpfiles.rules was failing with "Invalid age" errors on L+ type
     environment.etc = {
-      "vulkan/icd.d/nvidia_icd.json".source =
-        "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
-      "vulkan/icd.d/nvidia_icd.x86_64.json".source =
-        "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
+      "vulkan/icd.d/nvidia_icd.json".source = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
+      "vulkan/icd.d/nvidia_icd.x86_64.json".source = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
     };
 
     # KERNEL PARAMETERS (for better Wayland stability)
@@ -151,8 +146,8 @@ in
         "systemd-modules-load.service"
         "systemd-udev-trigger.service"
       ];
-      wants = [ "systemd-modules-load.service" ];
-      wantedBy = [ "multi-user.target" ];
+      wants = ["systemd-modules-load.service"];
+      wantedBy = ["multi-user.target"];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -162,7 +157,7 @@ in
         ProtectHome = true;
         PrivateTmp = true;
         RestrictRealtime = true;
-        RestrictAddressFamilies = [ "AF_UNIX" ];
+        RestrictAddressFamilies = ["AF_UNIX"];
         ExecStart = pkgs.writeShellScript "nvidia-device-nodes" ''
           # Wait for NVIDIA driver to be fully loaded
           if [ -d /proc/driver/nvidia ]; then

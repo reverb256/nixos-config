@@ -132,112 +132,114 @@ in {
             automountServiceAccountToken = false;
             priorityClassName = "medium-priority-ai";
             tolerations = [];
-            containers = {
-              _namedlist = true;
-            } // lib.optionalAttrs (pkgsWithOverlay ? vllm-turboquant-env) {
-              vllm = {
-                image = scratchImage;
-                imagePullPolicy = "IfNotPresent";
-                command = ["${pkgsWithOverlay.vllm-turboquant-env}/bin/vllm-tq-wrapper"];
-                args = [
-                  "--model"
-                  "/data/models/QuantTrio/Qwen3.5-2B-AWQ"
-                  "--served-model-name"
-                  "qwen3.5-2b-awq"
-                  "--host"
-                  "0.0.0.0"
-                  "--port"
-                  "8040"
-                  "--gpu-memory-utilization"
-                  "0.85"
-                  "--max-num-seqs"
-                  "16"
-                  "--max-model-len"
-                  "180000"
-                  "--quantization"
-                  "awq"
-                  "--enable-prefix-caching"
-                  "--enforce-eager"
-                ];
-                env = {
-                  _namedlist = true;
-                  VLLM_CACHE_ROOT = {
-                    name = "VLLM_CACHE_ROOT";
-                    value = "/tmp/vllm-cache";
+            containers =
+              {
+                _namedlist = true;
+              }
+              // lib.optionalAttrs (pkgsWithOverlay ? vllm-turboquant-env) {
+                vllm = {
+                  image = scratchImage;
+                  imagePullPolicy = "IfNotPresent";
+                  command = ["${pkgsWithOverlay.vllm-turboquant-env}/bin/vllm-tq-wrapper"];
+                  args = [
+                    "--model"
+                    "/data/models/QuantTrio/Qwen3.5-2B-AWQ"
+                    "--served-model-name"
+                    "qwen3.5-2b-awq"
+                    "--host"
+                    "0.0.0.0"
+                    "--port"
+                    "8040"
+                    "--gpu-memory-utilization"
+                    "0.85"
+                    "--max-num-seqs"
+                    "16"
+                    "--max-model-len"
+                    "180000"
+                    "--quantization"
+                    "awq"
+                    "--enable-prefix-caching"
+                    "--enforce-eager"
+                  ];
+                  env = {
+                    _namedlist = true;
+                    VLLM_CACHE_ROOT = {
+                      name = "VLLM_CACHE_ROOT";
+                      value = "/tmp/vllm-cache";
+                    };
+                    NVIDIA_VISIBLE_DEVICES = {
+                      name = "NVIDIA_VISIBLE_DEVICES";
+                      value = "0";
+                    };
+                    CUDA_VISIBLE_DEVICES = {
+                      name = "CUDA_VISIBLE_DEVICES";
+                      value = "0";
+                    };
+                    TORCHINDUCTOR_CACHE_DIR = {
+                      name = "TORCHINDUCTOR_CACHE_DIR";
+                      value = "/tmp/vllm-cache";
+                    };
                   };
-                  NVIDIA_VISIBLE_DEVICES = {
-                    name = "NVIDIA_VISIBLE_DEVICES";
-                    value = "0";
+                  resources = {
+                    requests = {
+                      cpu = "2";
+                      memory = "12Gi";
+                    };
+                    limits = {
+                      cpu = "4";
+                      memory = "16Gi";
+                    };
                   };
-                  CUDA_VISIBLE_DEVICES = {
-                    name = "CUDA_VISIBLE_DEVICES";
-                    value = "0";
+                  ports = [
+                    {
+                      containerPort = 8040;
+                      name = "http";
+                      protocol = "TCP";
+                    }
+                  ];
+                  livenessProbe = {
+                    httpGet = {
+                      path = "/health";
+                      port = 8040;
+                    };
+                    initialDelaySeconds = 180;
+                    periodSeconds = 30;
+                    failureThreshold = 5;
                   };
-                  TORCHINDUCTOR_CACHE_DIR = {
-                    name = "TORCHINDUCTOR_CACHE_DIR";
-                    value = "/tmp/vllm-cache";
+                  readinessProbe = {
+                    httpGet = {
+                      path = "/health";
+                      port = 8040;
+                    };
+                    initialDelaySeconds = 90;
+                    periodSeconds = 10;
+                    failureThreshold = 10;
                   };
-                };
-                resources = {
-                  requests = {
-                    cpu = "2";
-                    memory = "12Gi";
-                  };
-                  limits = {
-                    cpu = "4";
-                    memory = "16Gi";
-                  };
-                };
-                ports = [
-                  {
-                    containerPort = 8040;
-                    name = "http";
-                    protocol = "TCP";
-                  }
-                ];
-                livenessProbe = {
-                  httpGet = {
-                    path = "/health";
-                    port = 8040;
-                  };
-                  initialDelaySeconds = 180;
-                  periodSeconds = 30;
-                  failureThreshold = 5;
-                };
-                readinessProbe = {
-                  httpGet = {
-                    path = "/health";
-                    port = 8040;
-                  };
-                  initialDelaySeconds = 90;
-                  periodSeconds = 10;
-                  failureThreshold = 10;
-                };
-                securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                  nix = {
-                    mountPath = "/nix";
-                    readOnly = true;
-                  };
-                  nvidia-libs = {
-                    mountPath = "/run/opengl-driver/lib";
-                    readOnly = true;
-                  };
-                  models = {
-                    mountPath = "/models";
-                    readOnly = true;
-                  };
-                  tmp = {
-                    mountPath = "/tmp";
-                  };
-                  etc = {
-                    mountPath = "/etc";
-                    readOnly = true;
+                  securityContext.privileged = true;
+                  volumeMounts = {
+                    _namedlist = true;
+                    nix = {
+                      mountPath = "/nix";
+                      readOnly = true;
+                    };
+                    nvidia-libs = {
+                      mountPath = "/run/opengl-driver/lib";
+                      readOnly = true;
+                    };
+                    models = {
+                      mountPath = "/models";
+                      readOnly = true;
+                    };
+                    tmp = {
+                      mountPath = "/tmp";
+                    };
+                    etc = {
+                      mountPath = "/etc";
+                      readOnly = true;
+                    };
                   };
                 };
               };
-            };
             volumes = nexusVolumes;
           };
         };
@@ -302,124 +304,126 @@ in {
             automountServiceAccountToken = false;
             priorityClassName = "high-priority-ai";
             tolerations = zephyrTolerations;
-            containers = {
-              _namedlist = true;
-            } // lib.optionalAttrs (pkgsWithOverlay ? llama-cpp-turboquant) {
-              llama-server = {
-                image = scratchImage;
-                imagePullPolicy = "IfNotPresent";
-                command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
-                args = [
-                  "--model"
-                  "/models/mradermacher/Carnice-Qwen3.6-MoE-35B-A3B-GGUF/Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf"
-                  "--mmproj"
-                  "/models/unsloth/Qwen3.6-35B-A3B-GGUF/mmproj-BF16.gguf"
-                  "--host"
-                  "0.0.0.0"
-                  "--port"
-                  "1237"
-                  "-ngl"
-                  "60"
-                  "--split-mode"
-                  "none"
-                  "--main-gpu"
-                  "1"
-                  "-c"
-                  "262144"
-                  "-t"
-                  "16"
-                  "--flash-attn"
-                  "on"
-                  "-ctk"
-                  "turbo4"
-                  "-ctv"
-                  "turbo4"
-                  "--parallel"
-                  "1"
-                  "--metrics"
-                  "-b"
-                  "256"
-                  "--reasoning"
-                  "on"
-                  "--chat-template-kwargs"
-                  ''{"preserve_thinking": true, "enable_thinking": true}''
-                  "--temp"
-                  "0.7"
-                  "--top-k"
-                  "20"
-                  "--top-p"
-                  "0.8"
-                  "--min-p"
-                  "0.0"
-                  "--presence-penalty"
-                  "1.5"
-                ];
-                env = {
-                  _namedlist = true;
-                  NVIDIA_VISIBLE_DEVICES = {
-                    name = "NVIDIA_VISIBLE_DEVICES";
-                    value = "1";
+            containers =
+              {
+                _namedlist = true;
+              }
+              // lib.optionalAttrs (pkgsWithOverlay ? llama-cpp-turboquant) {
+                llama-server = {
+                  image = scratchImage;
+                  imagePullPolicy = "IfNotPresent";
+                  command = ["${pkgsWithOverlay.llama-cpp-turboquant}/bin/llama-server"];
+                  args = [
+                    "--model"
+                    "/models/mradermacher/Carnice-Qwen3.6-MoE-35B-A3B-GGUF/Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf"
+                    "--mmproj"
+                    "/models/unsloth/Qwen3.6-35B-A3B-GGUF/mmproj-BF16.gguf"
+                    "--host"
+                    "0.0.0.0"
+                    "--port"
+                    "1237"
+                    "-ngl"
+                    "60"
+                    "--split-mode"
+                    "none"
+                    "--main-gpu"
+                    "1"
+                    "-c"
+                    "262144"
+                    "-t"
+                    "16"
+                    "--flash-attn"
+                    "on"
+                    "-ctk"
+                    "turbo4"
+                    "-ctv"
+                    "turbo4"
+                    "--parallel"
+                    "1"
+                    "--metrics"
+                    "-b"
+                    "256"
+                    "--reasoning"
+                    "on"
+                    "--chat-template-kwargs"
+                    ''{"preserve_thinking": true, "enable_thinking": true}''
+                    "--temp"
+                    "0.7"
+                    "--top-k"
+                    "20"
+                    "--top-p"
+                    "0.8"
+                    "--min-p"
+                    "0.0"
+                    "--presence-penalty"
+                    "1.5"
+                  ];
+                  env = {
+                    _namedlist = true;
+                    NVIDIA_VISIBLE_DEVICES = {
+                      name = "NVIDIA_VISIBLE_DEVICES";
+                      value = "1";
+                    };
+                    CUDA_VISIBLE_DEVICES = {
+                      name = "CUDA_VISIBLE_DEVICES";
+                      value = "1";
+                    };
+                    LD_LIBRARY_PATH = {
+                      name = "LD_LIBRARY_PATH";
+                      value = "/run/opengl-driver/lib:/nix/store";
+                    };
                   };
-                  CUDA_VISIBLE_DEVICES = {
-                    name = "CUDA_VISIBLE_DEVICES";
-                    value = "1";
+                  ports = [
+                    {
+                      containerPort = 1237;
+                      name = "http";
+                      protocol = "TCP";
+                    }
+                  ];
+                  livenessProbe = {
+                    tcpSocket.port = 1237;
+                    initialDelaySeconds = 120;
+                    periodSeconds = 30;
+                    failureThreshold = 5;
                   };
-                  LD_LIBRARY_PATH = {
-                    name = "LD_LIBRARY_PATH";
-                    value = "/run/opengl-driver/lib:/nix/store";
+                  readinessProbe = {
+                    tcpSocket.port = 1237;
+                    initialDelaySeconds = 60;
+                    periodSeconds = 10;
+                    failureThreshold = 10;
                   };
-                };
-                ports = [
-                  {
-                    containerPort = 1237;
-                    name = "http";
-                    protocol = "TCP";
-                  }
-                ];
-                livenessProbe = {
-                  tcpSocket.port = 1237;
-                  initialDelaySeconds = 120;
-                  periodSeconds = 30;
-                  failureThreshold = 5;
-                };
-                readinessProbe = {
-                  tcpSocket.port = 1237;
-                  initialDelaySeconds = 60;
-                  periodSeconds = 10;
-                  failureThreshold = 10;
-                };
-                resources = {
-                  requests = {
-                    memory = "4Gi";
-                    cpu = "500m";
+                  resources = {
+                    requests = {
+                      memory = "4Gi";
+                      cpu = "500m";
+                    };
+                    limits = {
+                      memory = "16Gi";
+                      cpu = "4";
+                    };
                   };
-                  limits = {
-                    memory = "16Gi";
-                    cpu = "4";
-                  };
-                };
-                securityContext.privileged = true;
-                volumeMounts = {
-                  _namedlist = true;
-                  nix = {
-                    mountPath = "/nix";
-                    readOnly = true;
-                  };
-                  nvidia-libs = {
-                    mountPath = "/run/opengl-driver/lib";
-                    readOnly = true;
-                  };
-                  models = {
-                    mountPath = "/models";
-                    readOnly = true;
-                  };
-                  dflash = {
-                    mountPath = "/dflash";
-                    readOnly = true;
+                  securityContext.privileged = true;
+                  volumeMounts = {
+                    _namedlist = true;
+                    nix = {
+                      mountPath = "/nix";
+                      readOnly = true;
+                    };
+                    nvidia-libs = {
+                      mountPath = "/run/opengl-driver/lib";
+                      readOnly = true;
+                    };
+                    models = {
+                      mountPath = "/models";
+                      readOnly = true;
+                    };
+                    dflash = {
+                      mountPath = "/dflash";
+                      readOnly = true;
+                    };
                   };
                 };
               };
-            };
             volumes = zephyrVolumes;
           };
         };

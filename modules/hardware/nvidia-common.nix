@@ -5,11 +5,9 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.hardware.nvidia-common;
-in
-{
+in {
   options.hardware.nvidia-common.enable = lib.mkEnableOption "NVIDIA GPU support";
 
   config = lib.mkIf cfg.enable {
@@ -27,7 +25,7 @@ in
     };
 
     # Load nvidia driver for Xorg and Wayland
-    services.xserver.videoDrivers = [ "nvidia" ];
+    services.xserver.videoDrivers = ["nvidia"];
 
     hardware.nvidia = {
       # Modesetting is required for Wayland

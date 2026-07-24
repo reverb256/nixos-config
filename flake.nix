@@ -138,7 +138,7 @@
     };
     # stylix - theming module (local tarball)
     stylix = {
-      url = "tarball+file:///tmp/stylix.tar.gz";
+      url = "github:NixOS/nixos-stylix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # treefmt-nix - declarative formatter aggregation (alejandra + statix + deadnix)
@@ -160,6 +160,8 @@
       aagl,
       nur,
       claude-native,
+      treefmt-nix,
+      git-hooks,
       agenix,
       colmena,
       nixpkgs-xr,
@@ -399,5 +401,4 @@
           "modules/system/agenix-secrets-registry.nix"
         ];
       };
-    };
 }

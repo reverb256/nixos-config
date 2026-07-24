@@ -3,15 +3,13 @@
   pkgs,
   lib,
   ...
-}:
-let
+}: let
   cfg = config.kluctl;
-  settingsFormat = pkgs.formats.json { };
-in
-{
+  settingsFormat = pkgs.formats.json {};
+in {
   options = {
     kluctl = {
-      package = lib.mkPackageOption pkgs "kluctl" { };
+      package = lib.mkPackageOption pkgs "kluctl" {};
       discriminator = lib.mkOption {
         type = lib.types.str;
         description = ''
@@ -40,7 +38,7 @@ in
         type = settingsFormat.type;
         description = "Anything to be rendered into .kluctl.yaml";
         default = {
-          targets = [ { name = "local"; } ];
+          targets = [{name = "local";}];
         };
       };
       resourcePriority = lib.mkOption {
@@ -94,12 +92,12 @@ in
       deployment = lib.mkOption {
         type = settingsFormat.type;
         description = "Anything to be rendered into deployment.yaml";
-        default = { };
+        default = {};
       };
       files = lib.mkOption {
         type = lib.types.attrsOf lib.types.str;
         description = "Attribute set where name is filename and value is string to be put into the file";
-        default = { };
+        default = {};
       };
       projectDir = lib.mkOption {
         type = lib.types.package;
@@ -135,51 +133,56 @@ in
     };
     kluctl.projectDir = pkgs.writeMultipleFiles {
       name = "kluctlProject";
-      files = {
-        ".kluctl.yaml" = {
-          content = builtins.toJSON config.kluctl.project;
-        };
-        "deployment.yaml" = {
-          content = builtins.toJSON config.kluctl.deployment;
-        };
-        # Don't apply prioritized resources again.
-        "default/easykubenix.yaml" = {
-          content = builtins.toJSON {
-            apiVersion = "v1";
-            kind = "List";
-            items = lib.filter (
-              v: !lib.elem v.kind (lib.attrNames cfg.resourcePriority)
-            ) config.kubernetes.generated;
+      files =
+        {
+          ".kluctl.yaml" = {
+            content = builtins.toJSON config.kluctl.project;
           };
-        };
-      }
-      # Prioritized resources
-      // (lib.mapAttrs' (n: v: {
-        name = "prio-${toString v}/${n}.yaml";
-        value = builtins.toJSON {
-          apiVersion = "v1";
-          kind = "List";
-          items = lib.filter (v: v.kind == n) config.kubernetes.generated;
-        };
-      }) cfg.resourcePriority)
-      # Other user-supplied files
-      // cfg.files;
+          "deployment.yaml" = {
+            content = builtins.toJSON config.kluctl.deployment;
+          };
+          # Don't apply prioritized resources again.
+          "default/easykubenix.yaml" = {
+            content = builtins.toJSON {
+              apiVersion = "v1";
+              kind = "List";
+              items =
+                lib.filter (
+                  v: !lib.elem v.kind (lib.attrNames cfg.resourcePriority)
+                )
+                config.kubernetes.generated;
+            };
+          };
+        }
+        # Prioritized resources
+        // (lib.mapAttrs' (n: v: {
+            name = "prio-${toString v}/${n}.yaml";
+            value = builtins.toJSON {
+              apiVersion = "v1";
+              kind = "List";
+              items = lib.filter (v: v.kind == n) config.kubernetes.generated;
+            };
+          })
+          cfg.resourcePriority)
+        # Other user-supplied files
+        // cfg.files;
     };
     kluctl.script =
       pkgs.writeScriptBin "kubenixDeploy" # bash
-        ''
-          #! ${pkgs.runtimeShell}
-          set -euo pipefail
-          set -x
-          ${cfg.preDeployScript}
-          ${lib.getExe cfg.package} \
-            deploy \
-              --no-update-check \
-              --target local \
-              --discriminator ${cfg.discriminator} \
-              --project-dir ${cfg.projectDir} \
-              $@ # --dry-run? --yes? --prune!
-          ${cfg.postDeployScript}
-        '';
+      
+      ''
+        #! ${pkgs.runtimeShell}
+        set -euo pipefail
+        set -x
+        ${cfg.preDeployScript}
+        ${lib.getExe cfg.package} \
+          deploy \
+            --no-update-check \
+            --target local \
+            --discriminator ${cfg.discriminator} \
+            --project-dir ${cfg.projectDir} \
+            $@ # --dry-run? --yes? --prune!
+        ${cfg.postDeployScript}
+      '';
   };
 }
