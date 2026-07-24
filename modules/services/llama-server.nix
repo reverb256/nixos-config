@@ -48,7 +48,7 @@ in {
 
     n-gpu-layers = mkOption {
       type = types.int;
-      default = 99;  # Offload all layers to GPU by default
+      default = 99; # Offload all layers to GPU by default
       description = "Number of layers to offload to GPU (-1 for all)";
     };
 
@@ -77,14 +77,21 @@ in {
         ExecStart = lib.concatStringsSep " " (
           [
             (lib.getExe cfg.package)
-            "--model" cfg.model
-            "--host" cfg.host
-            "--port" (toString cfg.port)
-            "--ctx-size" (toString cfg.ctx-size)
-            "--n-gpu-layers" (toString cfg.n-gpu-layers)
-            "--threads" (toString cfg.threads)
-            "--metrics"  # Enable Prometheus metrics
-            "--log-format" "json"  # Structured logging
+            "--model"
+            cfg.model
+            "--host"
+            cfg.host
+            "--port"
+            (toString cfg.port)
+            "--ctx-size"
+            (toString cfg.ctx-size)
+            "--n-gpu-layers"
+            (toString cfg.n-gpu-layers)
+            "--threads"
+            (toString cfg.threads)
+            "--metrics" # Enable Prometheus metrics
+            "--log-format"
+            "json" # Structured logging
           ]
           ++ cfg.extra-flags
         );
@@ -98,8 +105,8 @@ in {
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-       ReadWritePaths = [
-          "/tmp"  # For temporary files
+        ReadWritePaths = [
+          "/tmp" # For temporary files
         ];
 
         # Resource limits
@@ -113,7 +120,7 @@ in {
 
       # GPU access (NVIDIA)
       environment = {
-        CUDA_VISIBLE_DEVICES = "0";  # Use first GPU by default
+        CUDA_VISIBLE_DEVICES = "0"; # Use first GPU by default
       };
     };
 

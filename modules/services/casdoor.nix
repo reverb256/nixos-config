@@ -12,9 +12,12 @@
 # Follows the same pattern as app-gitea, app-openwebui, and the
 # oauth2-proxy app in k8s-secret-bootstrap.nix.
 # ─────────────────────────────────────────────────────────────────
-
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.casdoor-app-registration;
   inherit (lib) mkEnableOption mkOption types mkIf;
 in {
@@ -43,9 +46,9 @@ in {
   config = mkIf cfg.enable {
     systemd.services.casdoor-app-registration = {
       description = "Register MapleSpike apps in Casdoor";
-      after = [ "k3s.service" "k8s-nix-deploy.service" ];
-      wants = [ "k3s.service" "k8s-nix-deploy.service" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["k3s.service" "k8s-nix-deploy.service"];
+      wants = ["k3s.service" "k8s-nix-deploy.service"];
+      wantedBy = ["multi-user.target"];
 
       serviceConfig = {
         Type = "oneshot";
@@ -55,7 +58,7 @@ in {
         RestartSec = "30s";
       };
 
-      path = with pkgs; [ curl jq coreutils ];
+      path = with pkgs; [curl jq coreutils];
 
       script = ''
         set -euo pipefail

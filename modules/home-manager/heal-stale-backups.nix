@@ -1,5 +1,9 @@
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   # This module runs INSIDE the home-manager user config (imported by
   # modules/system/home-manager.nix under users.j_kro.imports), so `lib.hm`
   # (home-manager's extended lib) is in scope here — unlike the NixOS-level
@@ -24,7 +28,7 @@ let
   inherit (lib) mkIf;
 in {
   # Remove stale HM backup files BEFORE linkGeneration to prevent clobber errors.
-  home.activation.removeStaleBackups = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+  home.activation.removeStaleBackups = lib.hm.dag.entryBefore ["checkLinkTargets"] ''
     # Old extension (gone on next activation) and new extension (until clean state)
     for ext in hm-backup v3-fix; do
       rm -f "$HOME/.config/alacritty/alacritty.toml.$ext"
@@ -53,7 +57,7 @@ in {
   # store) on the SAME switch. Never deletes — safe by design.
   # List = files HM generates via programs.* / xdg.configFile / stylix.
   # Runs BEFORE linkGeneration so the un-freeze happens before HM reclaims.
-  home.activation.healHMDrift = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+  home.activation.healHMDrift = lib.hm.dag.entryBefore ["checkLinkTargets"] ''
     for f in \
       "$HOME/.config/starship.toml" \
       "$HOME/.config/alacritty/alacritty.toml" \

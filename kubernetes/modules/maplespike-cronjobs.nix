@@ -1,4 +1,8 @@
-{config, lib, ...}:
+{
+  config,
+  lib,
+  ...
+}:
 with lib; let
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
@@ -7,7 +11,6 @@ with lib; let
   imageTag = "2026-05-16";
   ingestionImage = "ghcr.io/reverb256/maplespike-ingest:${imageTag}";
   kanbanImage = "ghcr.io/reverb256/maplespike-kanban-exec:${imageTag}";
-
   # ── Node labels required for distributed ingestion ──
   # These labels must exist on cluster nodes for the nodeSelector terms below.
   #
@@ -29,19 +32,33 @@ in {
           nodeSelector = {
             "kubernetes.io/hostname" = "forge";
           };
-          containers = [{
-            name = "ingest";
-            image = ingestionImage;
-            imagePullPolicy = "IfNotPresent";
-            env = [
-              {name = "MAPLESPIKE_PIPELINE"; value = "committees";}
-              {name = "NODE_ENV"; value = "production";}
-            ];
-            resources = {
-              requests = {cpu = "50m"; memory = "64Mi";};
-              limits = {cpu = "200m"; memory = "256Mi";};
-            };
-          }];
+          containers = [
+            {
+              name = "ingest";
+              image = ingestionImage;
+              imagePullPolicy = "IfNotPresent";
+              env = [
+                {
+                  name = "MAPLESPIKE_PIPELINE";
+                  value = "committees";
+                }
+                {
+                  name = "NODE_ENV";
+                  value = "production";
+                }
+              ];
+              resources = {
+                requests = {
+                  cpu = "50m";
+                  memory = "64Mi";
+                };
+                limits = {
+                  cpu = "200m";
+                  memory = "256Mi";
+                };
+              };
+            }
+          ];
         };
       };
     };
@@ -58,19 +75,33 @@ in {
           nodeSelector = {
             "kubernetes.io/hostname" = "sentry";
           };
-          containers = [{
-            name = "ingest";
-            image = ingestionImage;
-            imagePullPolicy = "IfNotPresent";
-            env = [
-              {name = "MAPLESPIKE_PIPELINE"; value = "indigenous";}
-              {name = "NODE_ENV"; value = "production";}
-            ];
-            resources = {
-              requests = {cpu = "50m"; memory = "64Mi";};
-              limits = {cpu = "200m"; memory = "256Mi";};
-            };
-          }];
+          containers = [
+            {
+              name = "ingest";
+              image = ingestionImage;
+              imagePullPolicy = "IfNotPresent";
+              env = [
+                {
+                  name = "MAPLESPIKE_PIPELINE";
+                  value = "indigenous";
+                }
+                {
+                  name = "NODE_ENV";
+                  value = "production";
+                }
+              ];
+              resources = {
+                requests = {
+                  cpu = "50m";
+                  memory = "64Mi";
+                };
+                limits = {
+                  cpu = "200m";
+                  memory = "256Mi";
+                };
+              };
+            }
+          ];
         };
       };
     };
@@ -87,19 +118,33 @@ in {
           nodeSelector = {
             "kubernetes.io/hostname" = "forge";
           };
-          containers = [{
-            name = "ingest";
-            image = ingestionImage;
-            imagePullPolicy = "IfNotPresent";
-            env = [
-              {name = "MAPLESPIKE_PIPELINE"; value = "realtime";}
-              {name = "NODE_ENV"; value = "production";}
-            ];
-            resources = {
-              requests = {cpu = "50m"; memory = "64Mi";};
-              limits = {cpu = "200m"; memory = "256Mi";};
-            };
-          }];
+          containers = [
+            {
+              name = "ingest";
+              image = ingestionImage;
+              imagePullPolicy = "IfNotPresent";
+              env = [
+                {
+                  name = "MAPLESPIKE_PIPELINE";
+                  value = "realtime";
+                }
+                {
+                  name = "NODE_ENV";
+                  value = "production";
+                }
+              ];
+              resources = {
+                requests = {
+                  cpu = "50m";
+                  memory = "64Mi";
+                };
+                limits = {
+                  cpu = "200m";
+                  memory = "256Mi";
+                };
+              };
+            }
+          ];
         };
       };
     };
@@ -113,18 +158,29 @@ in {
         failedJobsHistoryLimit = 3;
         jobTemplate.spec.template.spec = {
           restartPolicy = "Never";
-          containers = [{
-            name = "kanban";
-            image = kanbanImage;
-            imagePullPolicy = "IfNotPresent";
-            env = [
-              {name = "NODE_ENV"; value = "production";}
-            ];
-            resources = {
-              requests = {cpu = "50m"; memory = "64Mi";};
-              limits = {cpu = "200m"; memory = "256Mi";};
-            };
-          }];
+          containers = [
+            {
+              name = "kanban";
+              image = kanbanImage;
+              imagePullPolicy = "IfNotPresent";
+              env = [
+                {
+                  name = "NODE_ENV";
+                  value = "production";
+                }
+              ];
+              resources = {
+                requests = {
+                  cpu = "50m";
+                  memory = "64Mi";
+                };
+                limits = {
+                  cpu = "200m";
+                  memory = "256Mi";
+                };
+              };
+            }
+          ];
         };
       };
     };

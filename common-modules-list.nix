@@ -1,8 +1,7 @@
 {
   inputs,
   self,
-}:
-[
+}: [
   inputs.home-manager.nixosModules.home-manager
   ./modules/system/home-manager.nix
   inputs.aagl.nixosModules.default
@@ -39,7 +38,7 @@
       # secretspec-provider-sops: Phase 2 closure of the sops-nix → SecretSpec
       # migration. Exposed as `pkgs.secretspec-provider-sops` across all hosts.
       (final: prev: {
-        secretspec-provider-sops = final.callPackage ./pkgs/secretspec-provider-sops { };
+        secretspec-provider-sops = final.callPackage ./pkgs/secretspec-provider-sops {};
       })
       inputs.lsfg-vk-nix.overlays.default
     ];

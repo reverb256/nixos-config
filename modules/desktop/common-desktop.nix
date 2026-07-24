@@ -12,7 +12,6 @@
 
   services.flatpak.enable = true;
 
-
   environment.etc."polkit-1/rules.d/org.flathub.flatpak.rules".text = ''
     polkit.addRule(function(action, subject) {
       if ((action.id == "org.freedesktop.flatpak.system-helper" ||

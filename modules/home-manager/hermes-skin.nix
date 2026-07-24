@@ -1,5 +1,9 @@
-{ config, pkgs, lib, ... }:
-let
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}: let
   c = config.lib.stylix.colors.withHashtag;
   skinFile = pkgs.writeText "stylix.yaml" (builtins.toJSON {
     name = "stylix";

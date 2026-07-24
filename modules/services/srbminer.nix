@@ -3,8 +3,7 @@
   pkgs,
   lib,
   ...
-}:
-let
+}: let
   cfg = config.services.srbminer;
   inherit (lib) mkEnableOption mkOption types mkIf mkBefore;
 in {
@@ -31,7 +30,7 @@ in {
 
     extraArgs = mkOption {
       type = types.listOf types.str;
-      default = [ "--disable-cpu" "--disable-gpu-amd" ];
+      default = ["--disable-cpu" "--disable-gpu-amd"];
       description = "Extra arguments passed to all miner instances";
     };
 
@@ -103,19 +102,29 @@ in {
     systemd.services = lib.listToAttrs (
       builtins.map (instance: let
         srbminerBin = "${pkgs.srbminer-multi}/bin/SRBMiner-MULTI";
-        tlsFlag = if cfg.tls then "--tls true" else "--tls false";
-        poolUrl = if instance.pool != null then instance.pool else cfg.pool;
-        algo = if instance.algorithm != null then instance.algorithm else cfg.algorithm;
-        powerLimitArgs = if instance.powerLimit != null then
-          "+/run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
-        else "";
+        tlsFlag =
+          if cfg.tls
+          then "--tls true"
+          else "--tls false";
+        poolUrl =
+          if instance.pool != null
+          then instance.pool
+          else cfg.pool;
+        algo =
+          if instance.algorithm != null
+          then instance.algorithm
+          else cfg.algorithm;
+        powerLimitArgs =
+          if instance.powerLimit != null
+          then "+/run/current-system/sw/bin/nvidia-smi -i ${toString instance.gpuId} -pl ${toString instance.powerLimit}"
+          else "";
       in {
         name = "srbminer-${instance.name}";
         value = {
           description = "SRBMiner-Multi - ${instance.name} (GPU ${toString instance.gpuId})";
-          wantedBy = [ "multi-user.target" ];
-          after = [ "network-online.target" ];
-          wants = [ "network-online.target" ];
+          wantedBy = ["multi-user.target"];
+          after = ["network-online.target"];
+          wants = ["network-online.target"];
 
           serviceConfig = {
             Type = "simple";
@@ -142,7 +151,8 @@ in {
             RestartSec = cfg.restartSec;
           };
         };
-      }) cfg.instances
+      })
+      cfg.instances
     );
   };
 }

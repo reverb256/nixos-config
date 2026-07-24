@@ -27,13 +27,13 @@ in {
       nvidia.enable = true;
       role = "server";
       clusterInit = false; # Stable cluster running
-  clusterReset = false; # Already reset, running clean
+      clusterReset = false; # Already reset, running clean
       nodeName = "nexus";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/persistent/etc/k3s-cluster-token";
       nodeIP = cluster.hosts.nexus.ip;
-    flannelIface = "eth0"; # Nexus primary interface (eth0 has NO-CARRIER)
-    flannelBackend = "none"; # Calico CNI (VXLAN, policy-enforcing)
+      flannelIface = "eth0"; # Nexus primary interface (eth0 has NO-CARRIER)
+      flannelBackend = "none"; # Calico CNI (VXLAN, policy-enforcing)
     };
 
     keepalived-vip = {
@@ -61,14 +61,12 @@ in {
       '';
     };
 
-
     nfs-state-sync = {
       enable = true;
       sourceHost = "zephyr";
       paths = ["/data/hermes" "/data/pi"];
       interval = "15min";
     };
-
   };
 
   programs.steam = {
@@ -176,9 +174,8 @@ in {
     extraPackages = with pkgs; [git ripgrep curl jq];
   };
 
-   # Hermes WebUI — disabled on nexus (no /data/projects/own/hermes-webui)
-   # Runs on zephyr only. Dead code and timer removed.
-
+  # Hermes WebUI — disabled on nexus (no /data/projects/own/hermes-webui)
+  # Runs on zephyr only. Dead code and timer removed.
 
   # Load Z.AI and NVIDIA API keys for hermes-agent
   # The official module's environment option doesn't reliably set systemd env vars,
@@ -214,7 +211,6 @@ in {
       openwebui = {
         domain = "openwebui.lan";
         backend = "127.0.0.1:32080";
-
       };
       hermes = {
         domain = "hermes.lan";
@@ -342,7 +338,6 @@ in {
           }
         '';
       };
-
     };
   };
   # Initrd SSH recovery + BTRFS snapshots
@@ -360,31 +355,31 @@ in {
   services.btrfs-boot-snapshot.enable = lib.mkForce false; # NixOS generations sufficient
 
   services.cachix-auth.enable = true;
-   services.ai-coding-tools = {
-     enable = true;
-     user = "j_kro";
-     zaiApiKeyFile = "/run/secrets/zai-api-key";
-     context7ApiKeyFile = "/run/secrets/context7-api-key";
-     nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
-     opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
-     tools = {
-       claude = { enable = true; };
-       opencode = { enable = true; };
-       droid = { enable = true; };
-       crush = { enable = true; };
-       pi = { enable = true; };
-       omp = { enable = true; };
-     };
-     enableShellEnv = true;
-   };
+  services.ai-coding-tools = {
+    enable = true;
+    user = "j_kro";
+    zaiApiKeyFile = "/run/secrets/zai-api-key";
+    context7ApiKeyFile = "/run/secrets/context7-api-key";
+    nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
+    opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
+    tools = {
+      claude = {enable = true;};
+      opencode = {enable = true;};
+      droid = {enable = true;};
+      crush = {enable = true;};
+      pi = {enable = true;};
+      omp = {enable = true;};
+    };
+    enableShellEnv = true;
+  };
 
-   services.mcp-registry = {
-     enable = true;
-     generateHermes = true;
-     generateClaudeCode = true;
-     generateNetworkPolicies = true;
-     generateCasdoorApps = true;
-   };
+  services.mcp-registry = {
+    enable = true;
+    generateHermes = true;
+    generateClaudeCode = true;
+    generateNetworkPolicies = true;
+    generateCasdoorApps = true;
+  };
 
   # GitHub Actions self-hosted runner for CI/CD
   services.ci-runner = {

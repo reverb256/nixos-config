@@ -24,7 +24,7 @@
       "8.8.8.8@853"
       "8.8.4.4@853"
     ];
-    searchDomains = [ "cluster.local" ] ++ (config.networking.search or []);
+    searchDomains = ["cluster.local"] ++ (config.networking.search or []);
     enableLanRecords = true;
     enableServiceRecords = true;
   };
@@ -196,7 +196,7 @@ in {
         # Forward zones
         forward-zone = [
           # K8s cluster DNS → CoreDNS (enables host-level K8s service resolution)
-          
+
           {
             name = "cluster.local.";
             forward-addr = [config.networking.cluster.kubernetes.clusterDnsIP];
@@ -213,7 +213,6 @@ in {
             forward-addr = dnsCfg.upstreamServers;
             forward-tls-upstream = true;
           }
-
         ];
       };
     };
@@ -236,9 +235,9 @@ in {
     # next manual switch. Runs every minute; idempotent; never fails the unit.
     systemd.services.unbound-watchdog = {
       description = "Restart unbound if it stops answering on :53";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "unbound.service" ];
-      path = [ pkgs.bash pkgs.coreutils pkgs.iproute2 ];
+      wantedBy = ["multi-user.target"];
+      after = ["unbound.service"];
+      path = [pkgs.bash pkgs.coreutils pkgs.iproute2];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -252,7 +251,7 @@ in {
       '';
     };
     systemd.timers.unbound-watchdog = {
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnBootSec = "30s";
         OnUnitActiveSec = "60s";

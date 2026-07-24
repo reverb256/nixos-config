@@ -8,7 +8,6 @@
   cluster = config.networking.cluster;
 in {
   services = {
-
     k3s-cluster = {
       enable = lib.mkForce false;
       nvidia.enable = lib.mkForce false;

@@ -5,7 +5,7 @@
   lib,
   ...
 }: let
-    inherit (lib) mkEnableOption mkIf types;
+  inherit (lib) mkEnableOption mkIf types;
   cfg = config.services.systemd-user-timeout;
 in {
   options.services.systemd-user-timeout = {
@@ -21,7 +21,7 @@ in {
     # "systemd.user.extraConfig no longer has any effect" no longer fires.
     systemd.user.settings.Manager = {
       DefaultTimeoutStartSec = "180s";
-      DefaultTimeoutStopSec  = "180s";
+      DefaultTimeoutStopSec = "180s";
     };
   };
 }

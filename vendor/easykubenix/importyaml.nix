@@ -4,18 +4,15 @@
   lib,
   ...
 }:
-with lib;
-let
+with lib; let
   cfg = config.importyaml;
-  settingsFormat = pkgs.formats.json { };
+  settingsFormat = pkgs.formats.json {};
   globalConfig = config;
 
   importyaml = types.submodule (
-    { config, ... }:
-    let
+    {config, ...}: let
       yamlConfig = config;
-    in
-    {
+    in {
       options = {
         src = mkOption {
           description = "Should be either a derivation or URL for builtins.fetchTree";
@@ -24,7 +21,7 @@ let
         overrides = mkOption {
           description = "Overrides to apply to all chart objects, don't do namespace here";
           type = lib.types.listOf (types.functionTo settingsFormat.type);
-          default = [ ];
+          default = [];
         };
         convertLists = mkOption {
           description = ''
@@ -38,7 +35,7 @@ let
         objects = mkOption {
           description = "Generated kubernetes objects";
           type = types.listOf types.attrs;
-          default = [ ];
+          default = [];
         };
       };
       config = {
@@ -47,66 +44,62 @@ let
           lib.mkBefore (object: (lib.walkWithPath (lib.kubeListsToAttrs object)) object)
         );
 
-        objects =
-          let
-            # TODO: This is bugged if you input a fetchTree
-            src =
-              if isDerivation yamlConfig.src then
-                yamlConfig.src
-              else
-                builtins.fetchTree {
-                  type = "file";
-                  url = yamlConfig.src;
-                };
+        objects = let
+          # TODO: This is bugged if you input a fetchTree
+          src =
+            if isDerivation yamlConfig.src
+            then yamlConfig.src
+            else
+              builtins.fetchTree {
+                type = "file";
+                url = yamlConfig.src;
+              };
 
-            list = lib.importJSON (
-              pkgs.runCommand "yaml2json" { } # bash
-                ''
-                  ${pkgs.yq}/bin/yq -Scs '.' ${src} >$out
-                ''
-            );
-          in
+          list = lib.importJSON (
+            pkgs.runCommand "yaml2json" {} # bash
+            
+            ''
+              ${pkgs.yq}/bin/yq -Scs '.' ${src} >$out
+            ''
+          );
+        in
           list;
       };
     }
   );
-in
-{
+in {
   options.importyaml = mkOption {
     type = types.attrsOf importyaml;
-    default = { };
+    default = {};
   };
-  config =
-    let
-      allObjects = lib.pipe cfg [
-        (lib.mapAttrsToList (
-          _: importspec: lib.map (object: lib.pipe object importspec.overrides) importspec.objects
-        ))
-        lib.flatten
-      ];
-    in
-    {
-      kubernetes.objects = lib.pipe allObjects [
-        (lib.map (object: {
-          ${object.metadata.namespace or "none"}.${object.kind}.${object.metadata.name} = object;
-        }))
-        lib.mkMerge
-      ];
-      kubernetes.apiMappings = lib.pipe allObjects [
-        (lib.filter (object: object.kind or null == "CustomResourceDefinition"))
-        (map (crd: {
-          name = crd.spec.names.kind;
-          value =
-            let
-              version = lib.pipe crd.spec.versions [
-                (lib.filter (x: x.storage or false == true))
-                lib.head
-                (x: x.name)
-              ];
-            in
-            lib.mkDefault "${crd.spec.group}/${version}";
-        }))
-        lib.listToAttrs
-      ];
-    };
+  config = let
+    allObjects = lib.pipe cfg [
+      (lib.mapAttrsToList (
+        _: importspec: lib.map (object: lib.pipe object importspec.overrides) importspec.objects
+      ))
+      lib.flatten
+    ];
+  in {
+    kubernetes.objects = lib.pipe allObjects [
+      (lib.map (object: {
+        ${object.metadata.namespace or "none"}.${object.kind}.${object.metadata.name} = object;
+      }))
+      lib.mkMerge
+    ];
+    kubernetes.apiMappings = lib.pipe allObjects [
+      (lib.filter (object: object.kind or null == "CustomResourceDefinition"))
+      (map (crd: {
+        name = crd.spec.names.kind;
+        value = let
+          version = lib.pipe crd.spec.versions [
+            (lib.filter (x: x.storage or false == true))
+            lib.head
+            (x: x.name)
+          ];
+        in
+          lib.mkDefault "${crd.spec.group}/${version}";
+      }))
+      lib.listToAttrs
+    ];
+  };
 }

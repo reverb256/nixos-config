@@ -5,12 +5,10 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   inherit (lib) mkIf mkOption types;
   cfg = config.clusterNetworking;
-in
-{
+in {
   options.services.unbound-common = {
     enable = lib.mkEnableOption "Unbound DNS resolver with DNS-over-TLS (cluster-wide config)";
   };
@@ -63,18 +61,18 @@ in
     # local-data records that contain spaces.
     environment.etc."unbound/local-dns.conf".text =
       lib.concatMapStrings (record: "local-data: \"${record}\"\n")
-        [
-          # K8s ingress hosts
-          "search.lan. IN A 10.1.1.100"
-          "ai.lan. IN A 10.1.1.100"
-          "openwebui.lan. IN A 10.1.1.100"
-          # .cluster.local aliases
-          "search.cluster.local. IN A 10.1.1.100"
-          "ai.cluster.local. IN A 10.1.1.100"
-          "openwebui.cluster.local. IN A 10.1.1.100"
-        ];
+      [
+        # K8s ingress hosts
+        "search.lan. IN A 10.1.1.100"
+        "ai.lan. IN A 10.1.1.100"
+        "openwebui.lan. IN A 10.1.1.100"
+        # .cluster.local aliases
+        "search.cluster.local. IN A 10.1.1.100"
+        "ai.cluster.local. IN A 10.1.1.100"
+        "openwebui.cluster.local. IN A 10.1.1.100"
+      ];
 
-    networking.firewall.allowedUDPPorts = lib.mkOptionDefault [ 53 ];
-    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ 53 ];
+    networking.firewall.allowedUDPPorts = lib.mkOptionDefault [53];
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [53];
   };
 }

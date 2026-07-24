@@ -34,7 +34,7 @@
   };
 
   # bcache0 needs the bcache kernel module in initrd so it assembles at boot
-  boot.initrd.kernelModules = [ "bcache" ];
+  boot.initrd.kernelModules = ["bcache"];
 
   # /, /home, /boot, /nix, /persistent, /games, swap managed by disko.nix
   # Only bcache0 and extra data mounts here
@@ -81,70 +81,70 @@
       ];
     };
 
-      "/data/media" = {
-        device = "/dev/disk/by-label/nexus-storage";
-        fsType = "btrfs";
-        options = [
-          "subvol=media"
-          "compress=zstd"
-          "ssd"
-          "discard=async"
-          "nofail"
-          "x-systemd.device-timeout=10s"
-        ];
-      };
+    "/data/media" = {
+      device = "/dev/disk/by-label/nexus-storage";
+      fsType = "btrfs";
+      options = [
+        "subvol=media"
+        "compress=zstd"
+        "ssd"
+        "discard=async"
+        "nofail"
+        "x-systemd.device-timeout=10s"
+      ];
+    };
 
-      "/data/hermes" = {
-        device = "/dev/disk/by-label/nexus-storage";
-        fsType = "btrfs";
-        options = [
-          "subvol=hermes"
-          "compress=zstd"
-          "ssd"
-          "discard=async"
-          "nofail"
-          "x-systemd.device-timeout=10s"
-        ];
-      };
+    "/data/hermes" = {
+      device = "/dev/disk/by-label/nexus-storage";
+      fsType = "btrfs";
+      options = [
+        "subvol=hermes"
+        "compress=zstd"
+        "ssd"
+        "discard=async"
+        "nofail"
+        "x-systemd.device-timeout=10s"
+      ];
+    };
 
-      "/data/models" = {
-        device = "/dev/disk/by-label/nexus-storage";
-        fsType = "btrfs";
-        options = [
-          "subvol=models"
-          "compress=zstd"
-          "ssd"
-          "discard=async"
-          "nofail"
-          "x-systemd.device-timeout=10s"
-        ];
-      };
+    "/data/models" = {
+      device = "/dev/disk/by-label/nexus-storage";
+      fsType = "btrfs";
+      options = [
+        "subvol=models"
+        "compress=zstd"
+        "ssd"
+        "discard=async"
+        "nofail"
+        "x-systemd.device-timeout=10s"
+      ];
+    };
 
-      "/data/pi" = {
-        device = "/dev/disk/by-label/nexus-storage";
-        fsType = "btrfs";
-        options = [
-          "subvol=pi"
-          "compress=zstd"
-          "ssd"
-          "discard=async"
-          "nofail"
-          "x-systemd.device-timeout=10s"
-        ];
-      };
+    "/data/pi" = {
+      device = "/dev/disk/by-label/nexus-storage";
+      fsType = "btrfs";
+      options = [
+        "subvol=pi"
+        "compress=zstd"
+        "ssd"
+        "discard=async"
+        "nofail"
+        "x-systemd.device-timeout=10s"
+      ];
+    };
 
-      "/var/lib/containers" = {
-        device = "/dev/disk/by-label/nexus-storage";
-        fsType = "btrfs";
-        options = [
-          "subvol=containers"
-          "compress=zstd"
-          "ssd"
-          "discard=async"
-          "nofail"
-          "x-systemd.device-timeout=10s"
-        ];
-      };
+    "/var/lib/containers" = {
+      device = "/dev/disk/by-label/nexus-storage";
+      fsType = "btrfs";
+      options = [
+        "subvol=containers"
+        "compress=zstd"
+        "ssd"
+        "discard=async"
+        "nofail"
+        "x-systemd.device-timeout=10s"
+      ];
+    };
   };
   boot.kernelParams = [
     "amd_iommu=on"

@@ -8,7 +8,7 @@
   # NOTE: This test is designed to be run via `nix eval` or `just check`
   # and validates the flake outputs directly.
 
-  expectedHosts = [ "zephyr" "nexus" "forge" "sentry" ];
+  expectedHosts = ["zephyr" "nexus" "forge" "sentry"];
 
   # Verify flake.nix defines nixosConfigurations for all expected hosts
   flakeSource = builtins.readFile ./../flake.nix;
@@ -17,8 +17,8 @@
 
   # Check each host is referenced in the flake
   hostPresentInFlake = host:
-    lib.strings.hasInfix "nixosConfigurations.${host}" flakeSource ||
-    lib.strings.hasInfix host flakeSource;
+    lib.strings.hasInfix "nixosConfigurations.${host}" flakeSource
+    || lib.strings.hasInfix host flakeSource;
 
   missingHostsInFlake = builtins.filter (h: !(hostPresentInFlake h)) expectedHosts;
 
@@ -72,11 +72,13 @@
 
   failures = lib.filterAttrs (_: v: v == false) allChecks;
 in {
-  checks = allChecks // {
-    _diagnostics = {
-      inherit missingHostsInFlake missingHardwareConfig;
+  checks =
+    allChecks
+    // {
+      _diagnostics = {
+        inherit missingHostsInFlake missingHardwareConfig;
+      };
     };
-  };
   failures = builtins.attrNames failures;
   passed = failures == {};
 }

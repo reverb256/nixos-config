@@ -1,5 +1,11 @@
-{ pkgs, lib, inputs, self, peakminerPkg, ... }:
-let
+{
+  pkgs,
+  lib,
+  inputs,
+  self,
+  peakminerPkg,
+  ...
+}: let
   # Guest for the KubeVirt "nexus-de" VM on nexus.
   # Reuses the SAME desktop + mining modules as the bare-metal hosts so the
   # 4K-TV experience is identical to zephyr. The GPU (RTX 3060 Ti) is VFIO-
@@ -17,8 +23,7 @@ let
   # store paths — nixos-generators evaluates outside the flake dir, so this
   # file must NOT use relative imports. qemu-guest-agent is enabled via
   # services.qemuGuestAgent.enable (pulled in automatically).
-in
-{
+in {
   # ── Boot / firmware ──
   boot.loader.systemd-boot.enable = false;
   boot.kernelParams = [
@@ -44,9 +49,9 @@ in
   #    VFIO-passed to this guest, so GPU 0 here is the real card.
   systemd.services.nexus-peakminer = {
     description = "PeakMiner on RTX 3060 Ti (guest GPU 0)";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "network-online.target" ];
-    wants = [ "network-online.target" ];
+    wantedBy = ["multi-user.target"];
+    after = ["network-online.target"];
+    wants = ["network-online.target"];
     serviceConfig = {
       ExecStart = "${peakminerPkg}/bin/peakminer --wallet krxXVNVMM7 --server prl-us.kryptex.network:7048 --worker nexus-de-3060ti --devices 0 --legacy-auth";
       Restart = "always";
@@ -82,7 +87,7 @@ in
   # ── User + groups (mirror host) ──
   users.users.j_kro = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "video" "render" "audio" "input" "networkmanager" ];
+    extraGroups = ["wheel" "video" "render" "audio" "input" "networkmanager"];
     hashedPassword = null; # set via SSH key / first-boot; see note above
   };
 

@@ -74,7 +74,11 @@
           "zswap.compressor=zstd"
           "zswap.max_pool_percent=${builtins.toString config.kernel-hardening.zswap.maxPoolPercent}"
           "zswap.zpool=z3fold"
-          "zswap.shrinker_enabled=${if config.kernel-hardening.zswap.enableShrinker then "Y" else "N"}"
+          "zswap.shrinker_enabled=${
+            if config.kernel-hardening.zswap.enableShrinker
+            then "Y"
+            else "N"
+          }"
           "zswap.accept_threshold_percent=${builtins.toString config.kernel-hardening.zswap.acceptThresholdPercent}"
         ]
         else [

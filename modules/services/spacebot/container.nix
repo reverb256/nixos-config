@@ -74,7 +74,7 @@
       HealthCheck = {
         Test = ["CMD" "curl" "-f" "http://localhost:19898/api/health"];
         Interval = 30 * 1000000000; # 30 seconds in nanoseconds
-        Timeout = 10 * 1000000000;  # 10 seconds
+        Timeout = 10 * 1000000000; # 10 seconds
         Retries = 3;
         StartPeriod = 40 * 1000000000; # 40 seconds
       };

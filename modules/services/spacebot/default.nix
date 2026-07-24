@@ -6,9 +6,9 @@
   lib,
   pkgs,
   ...
-}:
-let
-  inherit (lib)
+}: let
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
@@ -42,16 +42,15 @@ let
         "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
       ];
       ExposedPorts = {
-        "19898/tcp" = { };
+        "19898/tcp" = {};
       };
       Volumes = {
-        "/data" = { };
+        "/data" = {};
       };
       User = "1000:1000";
     };
   };
-in
-{
+in {
   options.services.spacebot-container = {
     enable = mkEnableOption "Spacebot container image builder";
 
@@ -75,8 +74,8 @@ in
     virtualisation.containerd.enable = true;
     systemd.services.spacebot-seed = {
       description = "Pre-seed spacebot container image to containerd";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "containerd.service" ];
+      wantedBy = ["multi-user.target"];
+      after = ["containerd.service"];
       serviceConfig.Type = "oneshot";
       script = ''
         ${pkgs.podman}/bin/podman image pull ${spacebotContainerImage} 2>/dev/null || true

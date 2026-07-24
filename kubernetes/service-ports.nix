@@ -47,7 +47,6 @@
   haven = 32100;
   mosiac = 32101;
 
-
   # ── monitoring (namespace: monitoring) ─────────────────────
   grafana = 32102;
 

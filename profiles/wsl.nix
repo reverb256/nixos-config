@@ -8,15 +8,12 @@
 # Provides: j_kro user, sshd on 2222 (key + password), gh + git,
 # Lix + flakes, declarative /etc/shadow. Per-host extras (extra SSH
 # keys, packages, services) live in that host's configuration.nix.
-
 {
   config,
   pkgs,
   lib,
   ...
-}:
-
-{
+}: {
   # ── NixOS-WSL core ─────────────────────────────────────────────
   wsl.enable = true;
   wsl.defaultUser = "j_kro";

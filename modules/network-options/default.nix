@@ -1,4 +1,8 @@
-{ lib, ports, cluster }: let
+{
+  lib,
+  ports,
+  cluster,
+}: let
   inherit (lib) mkOption types;
 in {
   networking.cluster = mkOption {
@@ -84,7 +88,6 @@ in {
               roles = ["monitoring" "build"];
               advertiseRoutes = ["10.1.1.0/24"];
             };
-
           };
           description = "Cluster host configurations";
         };
@@ -112,26 +115,86 @@ in {
         ports = mkOption {
           type = types.submodule {
             options = {
-              wivrn-tcp = mkOption { type = types.int; default = 9757; };
-              wivrn-udp-start = mkOption { type = types.int; default = 9757; };
-              wivrn-udp-end = mkOption { type = types.int; default = 9760; };
-              mcp-api = mkOption { type = types.int; default = 18789; };
-              mcp-storage = mkOption { type = types.int; default = 18790; };
-              steam-tcp = mkOption { type = types.listOf types.int; default = [27031 27036]; };
-              steam-udp = mkOption { type = types.listOf types.int; default = [27031 27036]; };
-              mdns = mkOption { type = types.int; default = 5353; };
-              localsend = mkOption { type = types.int; default = 53317; };
-              nix-cache = mkOption { type = types.int; default = 8080; };
-              prometheus = mkOption { type = types.int; default = 9090; };
-              alertmanager = mkOption { type = types.int; default = 9093; };
-              grafana = mkOption { type = types.int; default = 3001; };
-              node-exporter = mkOption { type = types.int; default = 9100; };
-              nvidia-exporter = mkOption { type = types.int; default = 9400; };
-              caddy-admin = mkOption { type = types.int; default = 2019; };
-              caddy-http = mkOption { type = types.int; default = 80; };
-              caddy-https = mkOption { type = types.int; default = 443; };
-              caddy-nodeport-http = mkOption { type = types.int; default = 30080; };
-              caddy-nodeport-https = mkOption { type = types.int; default = 30443; };
+              wivrn-tcp = mkOption {
+                type = types.int;
+                default = 9757;
+              };
+              wivrn-udp-start = mkOption {
+                type = types.int;
+                default = 9757;
+              };
+              wivrn-udp-end = mkOption {
+                type = types.int;
+                default = 9760;
+              };
+              mcp-api = mkOption {
+                type = types.int;
+                default = 18789;
+              };
+              mcp-storage = mkOption {
+                type = types.int;
+                default = 18790;
+              };
+              steam-tcp = mkOption {
+                type = types.listOf types.int;
+                default = [27031 27036];
+              };
+              steam-udp = mkOption {
+                type = types.listOf types.int;
+                default = [27031 27036];
+              };
+              mdns = mkOption {
+                type = types.int;
+                default = 5353;
+              };
+              localsend = mkOption {
+                type = types.int;
+                default = 53317;
+              };
+              nix-cache = mkOption {
+                type = types.int;
+                default = 8080;
+              };
+              prometheus = mkOption {
+                type = types.int;
+                default = 9090;
+              };
+              alertmanager = mkOption {
+                type = types.int;
+                default = 9093;
+              };
+              grafana = mkOption {
+                type = types.int;
+                default = 3001;
+              };
+              node-exporter = mkOption {
+                type = types.int;
+                default = 9100;
+              };
+              nvidia-exporter = mkOption {
+                type = types.int;
+                default = 9400;
+              };
+              caddy-admin = mkOption {
+                type = types.int;
+                default = 2019;
+              };
+              caddy-http = mkOption {
+                type = types.int;
+                default = 80;
+              };
+              caddy-https = mkOption {
+                type = types.int;
+                default = 443;
+              };
+              caddy-nodeport-http = mkOption {
+                type = types.int;
+                default = 30080;
+              };
+              caddy-nodeport-https = mkOption {
+                type = types.int;
+                default = 30443;
+              };
             };
           };
           default = {};
@@ -141,8 +204,14 @@ in {
         kubernetes = mkOption {
           type = types.submodule {
             options = {
-              vip = mkOption { type = types.str; default = cluster.kubernetes.vip; };
-              apiPort = mkOption { type = types.int; default = cluster.kubernetes.apiPort; };
+              vip = mkOption {
+                type = types.str;
+                default = cluster.kubernetes.vip;
+              };
+              apiPort = mkOption {
+                type = types.int;
+                default = cluster.kubernetes.apiPort;
+              };
               clusterDnsIP = mkOption {
                 type = types.str;
                 default = cluster.kubernetes.clusterDnsIP;
@@ -157,37 +226,157 @@ in {
               services = mkOption {
                 type = types.submodule {
                   options = let
-                    svcOpts = { namespace, port, nodePort ? null, ... }: { name, ... }: {
+                    svcOpts = {
+                      namespace,
+                      port,
+                      nodePort ? null,
+                      ...
+                    }: {name, ...}: {
                       options = {
                         dns = mkOption {
                           type = types.str;
                           default = "${name}.${namespace}.svc.cluster.local:${toString port}";
                           description = "K8s service DNS name (stable across recreations)";
                         };
-                        namespace = mkOption { type = types.str; default = namespace; };
-                        port = mkOption { type = types.int; default = port; };
-                        lan = mkOption { type = types.str; default = ""; description = "LAN hostname"; };
-                        nodePort = mkOption { type = types.nullOr types.int; default = nodePort; };
+                        namespace = mkOption {
+                          type = types.str;
+                          default = namespace;
+                        };
+                        port = mkOption {
+                          type = types.int;
+                          default = port;
+                        };
+                        lan = mkOption {
+                          type = types.str;
+                          default = "";
+                          description = "LAN hostname";
+                        };
+                        nodePort = mkOption {
+                          type = types.nullOr types.int;
+                          default = nodePort;
+                        };
                       };
                     };
                   in {
-                    ai-gateway = mkOption { type = types.submodule (svcOpts { namespace = "ai-inference"; port = 8080; }); default = {}; };
-                    qdrant = mkOption { type = types.submodule (svcOpts { namespace = "ai-inference"; port = 6333; }); default = {}; };
-                    redis = mkOption { type = types.submodule (svcOpts { namespace = "ai-inference"; port = 6379; }); default = {}; };
-                    prometheus = mkOption { type = types.submodule (svcOpts { namespace = "ai-inference"; port = 9090; }); default = {}; };
-                    searxng = mkOption { type = types.submodule (svcOpts { namespace = "search"; port = 8080; }); default = {}; };
-                    vane = mkOption { type = types.submodule (svcOpts { namespace = "search"; port = 30900; }); default = {}; };
-                    knowledge-fabric = mkOption { type = types.submodule (svcOpts { namespace = "ai-inference"; port = 3000; }); default = {}; };
-                    privacy-filter = mkOption { type = types.submodule (svcOpts { namespace = "ai-inference"; port = 8080; }); default = {}; };
-                    n8n = mkOption { type = types.submodule (svcOpts { namespace = "automation"; port = 5678; }); default = {}; };
-                    casdoor = mkOption { type = types.submodule (svcOpts { namespace = "auth"; port = 8000; }); default = {}; };
-                    oauth2-proxy = mkOption { type = types.submodule (svcOpts { namespace = "auth"; port = 4180; }); default = {}; };
-                    haven = mkOption { type = types.submodule (svcOpts { namespace = "haven"; port = 3000; }); default = {}; };
-                    mission-control = mkOption { type = types.submodule (svcOpts { namespace = "orchestration"; port = 3000; }); default = {}; };
-                    grafana = mkOption { type = types.submodule (svcOpts { namespace = "monitoring"; port = 3000; }); default = {}; };
-                    llama-zephyr = mkOption { type = types.submodule (svcOpts { namespace = "ai-inference"; port = 1235; }); default = {}; };
-                    llama-zephyr-3060ti = mkOption { type = types.submodule (svcOpts { namespace = "ai-inference"; port = 8040; }); default = {}; };
-                    llama-sentry = mkOption { type = types.submodule (svcOpts { namespace = "ai-inference"; port = 1235; }); default = {}; };
+                    ai-gateway = mkOption {
+                      type = types.submodule (svcOpts {
+                        namespace = "ai-inference";
+                        port = 8080;
+                      });
+                      default = {};
+                    };
+                    qdrant = mkOption {
+                      type = types.submodule (svcOpts {
+                        namespace = "ai-inference";
+                        port = 6333;
+                      });
+                      default = {};
+                    };
+                    redis = mkOption {
+                      type = types.submodule (svcOpts {
+                        namespace = "ai-inference";
+                        port = 6379;
+                      });
+                      default = {};
+                    };
+                    prometheus = mkOption {
+                      type = types.submodule (svcOpts {
+                        namespace = "ai-inference";
+                        port = 9090;
+                      });
+                      default = {};
+                    };
+                    searxng = mkOption {
+                      type = types.submodule (svcOpts {
+                        namespace = "search";
+                        port = 8080;
+                      });
+                      default = {};
+                    };
+                    vane = mkOption {
+                      type = types.submodule (svcOpts {
+                        namespace = "search";
+                        port = 30900;
+                      });
+                      default = {};
+                    };
+                    knowledge-fabric = mkOption {
+                      type = types.submodule (svcOpts {
+                        namespace = "ai-inference";
+                        port = 3000;
+                      });
+                      default = {};
+                    };
+                    privacy-filter = mkOption {
+                      type = types.submodule (svcOpts {
+                        namespace = "ai-inference";
+                        port = 8080;
+                      });
+                      default = {};
+                    };
+                    n8n = mkOption {
+                      type = types.submodule (svcOpts {
+                        namespace = "automation";
+                        port = 5678;
+                      });
+                      default = {};
+                    };
+                    casdoor = mkOption {
+                      type = types.submodule (svcOpts {
+                        namespace = "auth";
+                        port = 8000;
+                      });
+                      default = {};
+                    };
+                    oauth2-proxy = mkOption {
+                      type = types.submodule (svcOpts {
+                        namespace = "auth";
+                        port = 4180;
+                      });
+                      default = {};
+                    };
+                    haven = mkOption {
+                      type = types.submodule (svcOpts {
+                        namespace = "haven";
+                        port = 3000;
+                      });
+                      default = {};
+                    };
+                    mission-control = mkOption {
+                      type = types.submodule (svcOpts {
+                        namespace = "orchestration";
+                        port = 3000;
+                      });
+                      default = {};
+                    };
+                    grafana = mkOption {
+                      type = types.submodule (svcOpts {
+                        namespace = "monitoring";
+                        port = 3000;
+                      });
+                      default = {};
+                    };
+                    llama-zephyr = mkOption {
+                      type = types.submodule (svcOpts {
+                        namespace = "ai-inference";
+                        port = 1235;
+                      });
+                      default = {};
+                    };
+                    llama-zephyr-3060ti = mkOption {
+                      type = types.submodule (svcOpts {
+                        namespace = "ai-inference";
+                        port = 8040;
+                      });
+                      default = {};
+                    };
+                    llama-sentry = mkOption {
+                      type = types.submodule (svcOpts {
+                        namespace = "ai-inference";
+                        port = 1235;
+                      });
+                      default = {};
+                    };
                   };
                 };
                 default = {};
@@ -246,12 +435,32 @@ in {
         devices = mkOption {
           type = types.submodule {
             options = {
-              printer = mkOption { type = types.str; default = "10.1.1.173"; description = "HP ENVY Photo 7800"; };
-              switch = mkOption { type = types.str; default = "10.1.1.1"; description = "Core switch"; };
-              switch-1 = mkOption { type = types.str; default = "10.1.1.10"; };
-              switch-2 = mkOption { type = types.str; default = "10.1.1.11"; };
-              switch-3 = mkOption { type = types.str; default = "10.1.1.12"; };
-              switch-4 = mkOption { type = types.str; default = "10.1.1.13"; };
+              printer = mkOption {
+                type = types.str;
+                default = "10.1.1.173";
+                description = "HP ENVY Photo 7800";
+              };
+              switch = mkOption {
+                type = types.str;
+                default = "10.1.1.1";
+                description = "Core switch";
+              };
+              switch-1 = mkOption {
+                type = types.str;
+                default = "10.1.1.10";
+              };
+              switch-2 = mkOption {
+                type = types.str;
+                default = "10.1.1.11";
+              };
+              switch-3 = mkOption {
+                type = types.str;
+                default = "10.1.1.12";
+              };
+              switch-4 = mkOption {
+                type = types.str;
+                default = "10.1.1.13";
+              };
             };
           };
           default = {};

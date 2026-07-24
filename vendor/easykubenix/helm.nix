@@ -6,24 +6,24 @@
   pkgs,
   ...
 }:
-with lib;
-let
+with lib; let
   cfg = config.helm;
-  settingsFormat = pkgs.formats.json { };
+  settingsFormat = pkgs.formats.json {};
   globalConfig = config;
-in
-{
+in {
   options.helm = {
-    package = lib.mkPackageOption pkgs "kubernetes-helm" { };
+    package = lib.mkPackageOption pkgs "kubernetes-helm" {};
     releases = mkOption {
       description = "Attribute set of helm releases";
       type = types.attrsOf (
         types.submodule (
-          { config, name, ... }:
-          let
-            releaseConfig = config;
-          in
           {
+            config,
+            name,
+            ...
+          }: let
+            releaseConfig = config;
+          in {
             options = {
               name = mkOption {
                 description = "Helm release name";
@@ -42,7 +42,7 @@ in
               values = mkOption {
                 description = "Values to pass to chart";
                 type = settingsFormat.type;
-                default = { };
+                default = {};
               };
               kubeVersion = mkOption {
                 description = "Kubernetes version to build chart for";
@@ -52,7 +52,7 @@ in
               overrides = mkOption {
                 description = "Overrides to apply to all chart objects, don't do namespace here";
                 type = lib.types.listOf (types.functionTo settingsFormat.type);
-                default = [ ];
+                default = [];
               };
               convertLists = mkOption {
                 description = ''
@@ -93,13 +93,13 @@ in
                   This is useful for charts which contain `.Capabilities.APIVersions.Has` checks.
                 '';
                 type = types.listOf types.str;
-                default = [ ];
+                default = [];
               };
 
               objects = mkOption {
                 description = "Generated kubernetes objects";
                 type = types.listOf settingsFormat.type;
-                default = [ ];
+                default = [];
               };
             };
 
@@ -109,25 +109,25 @@ in
                 lib.mkBefore (object: (lib.walkWithPath (lib.kubeListsToAttrs object)) object)
               );
 
-              objects =
-                let
-                  list = lib.filter (x: x != null) (
-                    importJSON (
-                      pkgs.chart2json.override { kubernetes-helm = cfg.package; } {
-                        inherit (releaseConfig)
-                          chart
-                          name
-                          namespace
-                          values
-                          kubeVersion
-                          includeCRDs
-                          noHooks
-                          apiVersions
-                          ;
-                      }
-                    )
-                  );
-                in
+              objects = let
+                list = lib.filter (x: x != null) (
+                  importJSON (
+                    pkgs.chart2json.override {kubernetes-helm = cfg.package;} {
+                      inherit
+                        (releaseConfig)
+                        chart
+                        name
+                        namespace
+                        values
+                        kubeVersion
+                        includeCRDs
+                        noHooks
+                        apiVersions
+                        ;
+                    }
+                  )
+                );
+              in
                 list
                 ++ lib.optional (releaseConfig.namespace != null) {
                   apiVersion = "v1";
@@ -138,49 +138,44 @@ in
           }
         )
       );
-      default = { };
+      default = {};
     };
   };
 
-  config =
-    let
-      allObjects = lib.pipe cfg.releases [
-        (lib.mapAttrsToList (
-          _: release: lib.map (object: lib.pipe object release.overrides) release.objects
-        ))
-        lib.flatten
-      ];
-    in
-    {
-      kubernetes.objects = lib.pipe allObjects [
-        (lib.map (
-          object:
-          let
-            kind = object.kind or (throw "no kind for ${object}");
-            name = object.metadata.name or (throw "no name for ${object}");
-            namespace = object.metadata.namespace or "none";
-          in
-          {
-            ${namespace}.${kind}.${name} = object;
-          }
-        ))
-        lib.mkMerge
-      ];
-      kubernetes.apiMappings = lib.pipe allObjects [
-        (lib.filter (object: object.kind or null == "CustomResourceDefinition"))
-        (map (crd: {
-          name = crd.spec.names.kind;
-          value =
-            let
-              version = lib.pipe crd.spec.versions [
-                (lib.filter (x: x.storage or false == true))
-                lib.head
-                (x: x.name)
-              ];
-            in
-            lib.mkDefault "${crd.spec.group}/${version}";
-        }))
-        lib.listToAttrs
-      ];
-    };
+  config = let
+    allObjects = lib.pipe cfg.releases [
+      (lib.mapAttrsToList (
+        _: release: lib.map (object: lib.pipe object release.overrides) release.objects
+      ))
+      lib.flatten
+    ];
+  in {
+    kubernetes.objects = lib.pipe allObjects [
+      (lib.map (
+        object: let
+          kind = object.kind or (throw "no kind for ${object}");
+          name = object.metadata.name or (throw "no name for ${object}");
+          namespace = object.metadata.namespace or "none";
+        in {
+          ${namespace}.${kind}.${name} = object;
+        }
+      ))
+      lib.mkMerge
+    ];
+    kubernetes.apiMappings = lib.pipe allObjects [
+      (lib.filter (object: object.kind or null == "CustomResourceDefinition"))
+      (map (crd: {
+        name = crd.spec.names.kind;
+        value = let
+          version = lib.pipe crd.spec.versions [
+            (lib.filter (x: x.storage or false == true))
+            lib.head
+            (x: x.name)
+          ];
+        in
+          lib.mkDefault "${crd.spec.group}/${version}";
+      }))
+      lib.listToAttrs
+    ];
+  };
 }

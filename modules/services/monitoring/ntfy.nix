@@ -1,13 +1,21 @@
 # ntfy Push Notification Service
 # Simple phone push for Prometheus Alertmanager alerts
 # Deployed on Sentry alongside Alertmanager
-{ config, lib, pkgs, ... }: let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.monitoring.ntfy;
   inherit (lib) mkEnableOption mkOption types mkIf;
 in {
   options.services.monitoring.ntfy = {
     enable = mkEnableOption "ntfy push notification service";
-    port = mkOption { type = types.port; default = 9099; };
+    port = mkOption {
+      type = types.port;
+      default = 9099;
+    };
     topic = mkOption {
       type = types.str;
       default = "cluster-alerts";
@@ -33,12 +41,14 @@ in {
     services.prometheus.alertmanager.configuration.receivers = let
       base = {
         name = "default";
-        webhook_configs = [{
-          url = "http://127.0.0.1:${toString cfg.port}/${cfg.topic}";
-          send_resolved = true;
-        }];
+        webhook_configs = [
+          {
+            url = "http://127.0.0.1:${toString cfg.port}/${cfg.topic}";
+            send_resolved = true;
+          }
+        ];
       };
-    in [ base ];
+    in [base];
 
     # Open for localhost only
     networking.firewall.allowedTCPPorts = [];

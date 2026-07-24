@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{pkgs, ...}: {
   config.kubernetes.resources = {
     default.Secret."my-app-config" = {
       # No need to set namespace or name here

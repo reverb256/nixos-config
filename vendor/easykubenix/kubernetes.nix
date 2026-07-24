@@ -3,41 +3,34 @@
   pkgs,
   lib,
   ...
-}:
-let
+}: let
   cfg = config.kubernetes;
-  settingsFormat = pkgs.formats.json { };
-in
-{
+  settingsFormat = pkgs.formats.json {};
+in {
   imports = [
-    (lib.mkAliasOptionModule [ "kubernetes" "resources" ] [ "kubernetes" "objects" ])
+    (lib.mkAliasOptionModule ["kubernetes" "resources"] ["kubernetes" "objects"])
     (lib.mkRemovedOptionModule [
       "kubernetes"
       "namespacedMappings"
     ] "RIP namespacedMappings")
   ];
   options.kubernetes = {
-    package = lib.mkPackageOption pkgs "kubernetes" { };
+    package = lib.mkPackageOption pkgs "kubernetes" {};
 
     objects = lib.mkOption {
       type = lib.types.attrsOf (
         lib.types.submodule (
-          { name, ... }:
-          let
+          {name, ...}: let
             namespace = name;
-          in
-          {
+          in {
             freeformType = lib.types.attrsOf (
               lib.types.submodule (
-                { name, ... }:
-                let
+                {name, ...}: let
                   kind = name;
-                in
-                {
+                in {
                   freeformType = lib.types.attrsOf (
                     lib.types.submodule (
-                      { name, ... }:
-                      {
+                      {name, ...}: {
                         freeformType = settingsFormat.type;
                         options = {
                           apiVersion = lib.mkOption {
@@ -56,7 +49,7 @@ in
                                 default = name;
                               };
                             };
-                            default = { };
+                            default = {};
                           };
                         };
                         config = lib.mkMerge [
@@ -74,7 +67,7 @@ in
         )
       );
 
-      default = { };
+      default = {};
       description = ''
         Kubernetes objects, grouped by namespace, then kind.
         apiVersion is automatically injected (if apiMappings for the object exists)
@@ -83,14 +76,14 @@ in
         metadata.namespace is automatically injected if namespace isn't "none"
       '';
       example = {
-        kubernetes.objects.none.Namespace.easykubenix = { };
+        kubernetes.objects.none.Namespace.easykubenix = {};
         kubernetes.objects.easykubenix.ConfigMap.myconfig.data.key = "value";
       };
     };
 
     transformers = lib.mkOption {
       type = lib.types.listOf (lib.types.functionTo lib.types.attrs);
-      default = [ ];
+      default = [];
       description = "List of functions that transform object attrsets";
       example = ''
         kubernetes.transformers = [
@@ -128,7 +121,7 @@ in
 
     generators = lib.mkOption {
       type = lib.types.listOf (lib.types.functionTo lib.types.attrs);
-      default = [ ];
+      default = [];
       description = "List of functions that generate object attrsets";
       example = ''
         kubernetes.generators = [
@@ -167,13 +160,13 @@ in
 
     filters = lib.mkOption {
       type = lib.types.listOf (lib.types.functionTo lib.types.bool);
-      default = [ ];
+      default = [];
       description = "List of functions that filter objects";
     };
 
     apiMappings = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;
-      default = { };
+      default = {};
       example = {
         Cluster = "cluster.x-k8s.io/v1beta1";
         HCloudMachineTemplate = "infrastructure.cluster.x-k8s.io/v1beta1";
@@ -213,14 +206,16 @@ in
 
   config.kubernetes = {
     # Get apiMappings from apiMappingFile
-    apiMappings =
-      let
-        data = lib.importJSON cfg.apiMappingFile;
-        objectToAttr = object: {
-          name = object.kind;
-          value = if object.group or "" == "" then object.version else "${object.group}/${object.version}";
-        };
-      in
+    apiMappings = let
+      data = lib.importJSON cfg.apiMappingFile;
+      objectToAttr = object: {
+        name = object.kind;
+        value =
+          if object.group or "" == ""
+          then object.version
+          else "${object.group}/${object.version}";
+      };
+    in
       lib.listToAttrs (map objectToAttr data.resources);
 
     generated = lib.pipe cfg.objects [
@@ -229,11 +224,11 @@ in
       # Run a generator pass to generate objects from objects.
       (
         objects:
-        objects
-        ++ lib.pipe objects [
-          (lib.concatMap (object: map (generator: generator object) cfg.generators))
-          (lib.filter (x: x != { }))
-        ]
+          objects
+          ++ lib.pipe objects [
+            (lib.concatMap (object: map (generator: generator object) cfg.generators))
+            (lib.filter (x: x != {}))
+          ]
       )
       # Run a transformation pass over all objects
       (map (object: lib.pipe object cfg.transformers))
@@ -246,11 +241,13 @@ in
     ];
 
     # like kubernetes.objects but with transformation and generation applied
-    generatedByPath = lib.foldl' (
-      acc: object:
-      lib.recursiveUpdate acc {
-        ${object.metadata.namespace or "none"}.${object.kind}.${object.metadata.name} = object;
-      }
-    ) { } cfg.generated;
+    generatedByPath =
+      lib.foldl' (
+        acc: object:
+          lib.recursiveUpdate acc {
+            ${object.metadata.namespace or "none"}.${object.kind}.${object.metadata.name} = object;
+          }
+      ) {}
+      cfg.generated;
   };
 }

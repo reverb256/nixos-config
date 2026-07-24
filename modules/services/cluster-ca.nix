@@ -110,11 +110,31 @@ in {
     caSubject = mkOption {
       type = types.submodule {
         options = {
-          country = mkOption { type = types.str; default = "CA"; description = "Country code (ISO 3166-1 alpha-2)"; };
-          state = mkOption { type = types.str; default = ""; description = "State or province"; };
-          locality = mkOption { type = types.str; default = ""; description = "City or locality"; };
-          organization = mkOption { type = types.str; default = "reverb256"; description = "Organization name"; };
-          commonName = mkOption { type = types.str; default = "reverb256 Internal CA"; description = "Common Name (displayed by browsers/tools)"; };
+          country = mkOption {
+            type = types.str;
+            default = "CA";
+            description = "Country code (ISO 3166-1 alpha-2)";
+          };
+          state = mkOption {
+            type = types.str;
+            default = "";
+            description = "State or province";
+          };
+          locality = mkOption {
+            type = types.str;
+            default = "";
+            description = "City or locality";
+          };
+          organization = mkOption {
+            type = types.str;
+            default = "reverb256";
+            description = "Organization name";
+          };
+          commonName = mkOption {
+            type = types.str;
+            default = "reverb256 Internal CA";
+            description = "Common Name (displayed by browsers/tools)";
+          };
         };
       };
       default = {};
@@ -277,8 +297,8 @@ in {
     };
     # Ensure cert directory exists and has correct permissions
     systemd.tmpfiles.rules =
-      [ "d /etc/ssl/cluster-ca 0755 root root -" ]
+      ["d /etc/ssl/cluster-ca 0755 root root -"]
       ++ lib.optional cfg.generateLeaf "f /etc/ssl/cluster-ca/leaf.key 0640 root ${cfg.keyGroup} -"
-      ++ [ "f /etc/ssl/cluster-ca/leaf.crt 0644 root root -" ];
+      ++ ["f /etc/ssl/cluster-ca/leaf.crt 0644 root root -"];
   };
 }

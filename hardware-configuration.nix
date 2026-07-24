@@ -2,81 +2,85 @@
 # and may be overwritten by future invocations.  Please make changes
 # to /etc/nixos/configuration.nix instead.
 # UPDATED: Converted from UUIDs to partlabels for durability across disk swaps
-{ config, lib, pkgs, modulesPath, ... }:
-
 {
-  imports =
-    [ (modulesPath + "/installer/scan/not-detected.nix")
-    ];
+  config,
+  lib,
+  pkgs,
+  modulesPath,
+  ...
+}: {
+  imports = [
+    (modulesPath + "/installer/scan/not-detected.nix")
+  ];
 
-  boot.initrd.availableKernelModules = [ "xhci_pci" "ahci" "usbhid" "sd_mod" ];
-  boot.initrd.kernelModules = [ ];
-  boot.kernelModules = [ "kvm-amd" ];
-  boot.extraModulePackages = [ ];
+  boot.initrd.availableKernelModules = ["xhci_pci" "ahci" "usbhid" "sd_mod"];
+  boot.initrd.kernelModules = [];
+  boot.kernelModules = ["kvm-amd"];
+  boot.extraModulePackages = [];
 
-  fileSystems."/" =
-    { device = "/dev/disk/by-partlabel/disk-sdb-root";
-      fsType = "btrfs";
-      options = [ "subvol=@root" ];
-    };
+  fileSystems."/" = {
+    device = "/dev/disk/by-partlabel/disk-sdb-root";
+    fsType = "btrfs";
+    options = ["subvol=@root"];
+  };
 
-  fileSystems."/persistent" =
-    { device = "/dev/disk/by-partlabel/disk-sdb-root";
-      fsType = "btrfs";
-      options = [ "subvol=@persistent" ];
-    };
+  fileSystems."/persistent" = {
+    device = "/dev/disk/by-partlabel/disk-sdb-root";
+    fsType = "btrfs";
+    options = ["subvol=@persistent"];
+  };
 
-  fileSystems."/nix" =
-    { device = "/dev/disk/by-partlabel/disk-sdb-root";
-      fsType = "btrfs";
-      options = [ "subvol=@nix" ];
-    };
+  fileSystems."/nix" = {
+    device = "/dev/disk/by-partlabel/disk-sdb-root";
+    fsType = "btrfs";
+    options = ["subvol=@nix"];
+  };
 
-  fileSystems."/srv" =
-    { device = "/dev/disk/by-partlabel/disk-sdb-root";
-      fsType = "btrfs";
-      options = [ "subvol=@srv" ];
-    };
+  fileSystems."/srv" = {
+    device = "/dev/disk/by-partlabel/disk-sdb-root";
+    fsType = "btrfs";
+    options = ["subvol=@srv"];
+  };
 
-  fileSystems."/var/tmp" =
-    { device = "/dev/disk/by-partlabel/disk-sdb-root";
-      fsType = "btrfs";
-      options = [ "subvol=@var/tmp" ];
-    };
+  fileSystems."/var/tmp" = {
+    device = "/dev/disk/by-partlabel/disk-sdb-root";
+    fsType = "btrfs";
+    options = ["subvol=@var/tmp"];
+  };
 
-  fileSystems."/home" =
-    { device = "/dev/disk/by-partlabel/disk-sda-data";
-      fsType = "btrfs";
-      options = [ "subvol=@home" ];
-    };
+  fileSystems."/home" = {
+    device = "/dev/disk/by-partlabel/disk-sda-data";
+    fsType = "btrfs";
+    options = ["subvol=@home"];
+  };
 
-  fileSystems."/storage" =
-    { device = "/dev/disk/by-partlabel/disk-sda-data";
-      fsType = "btrfs";
-      options = [ "subvol=@" ];
-    };
+  fileSystems."/storage" = {
+    device = "/dev/disk/by-partlabel/disk-sda-data";
+    fsType = "btrfs";
+    options = ["subvol=@"];
+  };
 
-  fileSystems."/var/storage" =
-    { device = "/dev/disk/by-partlabel/disk-sda-data";
-      fsType = "btrfs";
-      options = [ "subvol=@var" ];
-    };
+  fileSystems."/var/storage" = {
+    device = "/dev/disk/by-partlabel/disk-sda-data";
+    fsType = "btrfs";
+    options = ["subvol=@var"];
+  };
 
-  fileSystems."/boot" =
-    { device = "/dev/disk/by-partlabel/disk-sdb-boot";
-      fsType = "vfat";
-      options = [ "fmask=0077" "dmask=0077" ];
-    };
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-partlabel/disk-sdb-boot";
+    fsType = "vfat";
+    options = ["fmask=0077" "dmask=0077"];
+  };
 
-  fileSystems."/var/lib/containers/storage/overlay" =
-    { device = "/var/tmp/@root/var/lib/containers/storage/overlay";
-      fsType = "none";
-      options = [ "bind" ];
-    };
+  fileSystems."/var/lib/containers/storage/overlay" = {
+    device = "/var/tmp/@root/var/lib/containers/storage/overlay";
+    fsType = "none";
+    options = ["bind"];
+  };
 
-  swapDevices =
-    [ { device = "/dev/disk/by-partlabel/disk-sdb-swap"; }
-    ];
+  swapDevices = [
+    {device = "/dev/disk/by-partlabel/disk-sdb-swap";}
+  ];
 
   # Disable /data mount - the 2TB drive was removed.
   # If re-added, mount by partlabel not UUID.

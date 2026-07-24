@@ -257,8 +257,16 @@ in {
 
           Current configuration:
             useGateway = ${toString cfg.useGateway}
-            apiKey = ${if cfg.apiKey != null then "***" else "(not set)"}
-            apiKeyFile = ${if cfg.apiKeyFile != null then toString cfg.apiKeyFile else "(not set)"}
+            apiKey = ${
+            if cfg.apiKey != null
+            then "***"
+            else "(not set)"
+          }
+            apiKeyFile = ${
+            if cfg.apiKeyFile != null
+            then toString cfg.apiKeyFile
+            else "(not set)"
+          }
         '';
       }
       {
@@ -275,8 +283,16 @@ in {
 
           Current configuration:
             discord.enable = ${toString cfg.discord.enable}
-            discord.token = ${if cfg.discord.token != null then "***" else "(not set)"}
-            discord.tokenFile = ${if cfg.discord.tokenFile != null then toString cfg.discord.tokenFile else "(not set)"}
+            discord.token = ${
+            if cfg.discord.token != null
+            then "***"
+            else "(not set)"
+          }
+            discord.tokenFile = ${
+            if cfg.discord.tokenFile != null
+            then toString cfg.discord.tokenFile
+            else "(not set)"
+          }
         '';
       }
       {

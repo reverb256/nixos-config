@@ -1,27 +1,28 @@
-{ inputs }:
-_final: prev:
+{inputs}: _final: prev:
 {
   # NOTE: inputs.ai-gateway / caddy-ingress references temporarily
   # gated to break an overlay self-reference cycle (pkgsWithOverlay -> self.overlays.default
   # -> overlay -> inputs.ai-gateway -> nixpkgs -> pkgsWithOverlay). Re-wire via
   # non-cyclic callPackage once the flake graph is reconciled. zephyr needs
   # caddy-with-modules; provided below via a direct local build instead.
-  gputemps = prev.callPackage ./packages/gputemps.nix { };
-  lmstudio = prev.callPackage ./packages/lmstudio.nix { };
-  srbminer-multi = prev.callPackage ./packages/srbminer.nix { };
-  lpminer-pearl = prev.callPackage ./packages/lpminer.nix { };
-  peakminer = prev.callPackage ./pkgs/peakminer.nix { };
+  gputemps = prev.callPackage ./packages/gputemps.nix {};
+  lmstudio = prev.callPackage ./packages/lmstudio.nix {};
+  srbminer-multi = prev.callPackage ./packages/srbminer.nix {};
+  lpminer-pearl = prev.callPackage ./packages/lpminer.nix {};
+  peakminer = prev.callPackage ./pkgs/peakminer.nix {};
   # DBD-CSV 0.60 test failures in sandbox (Using data files in /build... is unsafe)
-  perlPackages = prev.perlPackages // {
-    DBDCSV = prev.perlPackages.DBDCSV.overrideAttrs (old: {
-      doCheck = false;
-    });
-  };
-  haven-desktop = prev.callPackage ./packages/haven-desktop.nix { };
-  kokoro-tts = prev.callPackage ./packages/kokoro-tts.nix { };
-  chatterbox-tts = prev.callPackage ./packages/chatterbox-tts.nix { };
+  perlPackages =
+    prev.perlPackages
+    // {
+      DBDCSV = prev.perlPackages.DBDCSV.overrideAttrs (old: {
+        doCheck = false;
+      });
+    };
+  haven-desktop = prev.callPackage ./packages/haven-desktop.nix {};
+  kokoro-tts = prev.callPackage ./packages/kokoro-tts.nix {};
+  chatterbox-tts = prev.callPackage ./packages/chatterbox-tts.nix {};
   wivrn = prev.wivrn.overrideAttrs (old: {
-    cmakeFlags = old.cmakeFlags ++ [ "-DWIVRN_FEATURE_STEAMVR_LIGHTHOUSE=ON" ];
+    cmakeFlags = old.cmakeFlags ++ ["-DWIVRN_FEATURE_STEAMVR_LIGHTHOUSE=ON"];
   });
   # assimp tests fail on musl; disable globally since nothing in this config needs them
   assimp = prev.assimp.overrideAttrs (_old: {
@@ -32,21 +33,23 @@ _final: prev:
     doCheck = false;
     checkPhase = false;
     dontCheckRuntimeDeps = true;
-    postPatch = (old.postPatch or "") + ''
-      sed -i 's/starlette<1.0/starlette<2.0/' setup.cfg pyproject.toml setup.py 2>/dev/null || true
-    '';
-    pythonImportsCheck = [ ];
+    postPatch =
+      (old.postPatch or "")
+      + ''
+        sed -i 's/starlette<1.0/starlette<2.0/' setup.cfg pyproject.toml setup.py 2>/dev/null || true
+      '';
+    pythonImportsCheck = [];
   });
-  freebuff-desktop = prev.callPackage ./packages/freebuff-desktop.nix { };
-  herdr = prev.callPackage ./packages/herdr.nix { };
+  freebuff-desktop = prev.callPackage ./packages/freebuff-desktop.nix {};
+  herdr = prev.callPackage ./packages/herdr.nix {};
   llama-cpp = prev.callPackage ./packages/llama-cpp.nix {
     cudaSupport = true;
     inherit (prev) cudaPackages;
   };
-  llama-cpp-ik = prev.callPackage ./packages/llama-cpp-ik.nix { };
-  llama-cpp-rocm = prev.callPackage ./packages/llama-cpp-rocm.nix { };
-  llama-cpp-vulkan = prev.callPackage ./packages/llama-cpp-vulkan.nix { };
-  llama-cpp-vulkan-nocuda = prev.callPackage ./packages/llama-cpp-vulkan-nocuda.nix { };
+  llama-cpp-ik = prev.callPackage ./packages/llama-cpp-ik.nix {};
+  llama-cpp-rocm = prev.callPackage ./packages/llama-cpp-rocm.nix {};
+  llama-cpp-vulkan = prev.callPackage ./packages/llama-cpp-vulkan.nix {};
+  llama-cpp-vulkan-nocuda = prev.callPackage ./packages/llama-cpp-vulkan-nocuda.nix {};
   # TODO: broken placeholder rev/hash — re-enable when source is valid
   # llama-cpp-dflash = prev.callPackage ./packages/llama-cpp-dflash.nix {};
   # dflash-server = prev.callPackage ./packages/dflash-server.nix {};
@@ -141,73 +144,88 @@ _final: prev:
         };
       };
       # Fix: pipx 1.8.0 test failures (spaces around @)
-      pipx = py-super.pipx.overridePythonAttrs { doCheck = false; };
+      pipx = py-super.pipx.overridePythonAttrs {doCheck = false;};
       gradio = py-super.gradio.overrideAttrs (old: {
         doCheck = false;
         checkPhase = false;
         dontCheckRuntimeDeps = true;
         # gradio <1.0 requires starlette<1.0 but nixpkgs ships starlette 1.1.0
-        postPatch = (old.postPatch or "") + ''
-          sed -i 's/starlette<1.0/starlette<2.0/' setup.cfg pyproject.toml setup.py 2>/dev/null || true
-        '';
-        pythonImportsCheck = [ ];
+        postPatch =
+          (old.postPatch or "")
+          + ''
+            sed -i 's/starlette<1.0/starlette<2.0/' setup.cfg pyproject.toml setup.py 2>/dev/null || true
+          '';
+        pythonImportsCheck = [];
       });
     };
   };
 
   # Fix firefoxpwa - create missing lib/firefoxpwa directory
   firefoxpwa-unwrapped = prev.firefoxpwa-unwrapped.overrideAttrs (old: {
-    postInstall = old.postInstall + ''
-      # Create empty `lib/firefoxpwa` directory so the Firefox wrapper won\x27t fail
-      # trying to disable the update checks. It will try to write to
-      # `$out/lib/firefoxpwa/is-packaged-app`, which doesn\x27t exist by default.
-      mkdir -p $out/lib/firefoxpwa
-    '';
+    postInstall =
+      old.postInstall
+      + ''
+        # Create empty `lib/firefoxpwa` directory so the Firefox wrapper won\x27t fail
+        # trying to disable the update checks. It will try to write to
+        # `$out/lib/firefoxpwa/is-packaged-app`, which doesn\x27t exist by default.
+        mkdir -p $out/lib/firefoxpwa
+      '';
   });
 
-  claude-code-image = prev.callPackage ./packages/claude-code-image.nix { };
-  opencode-image = prev.callPackage ./packages/opencode-image.nix { };
+  claude-code-image = prev.callPackage ./packages/claude-code-image.nix {};
+  opencode-image = prev.callPackage ./packages/opencode-image.nix {};
   # maplespike images are built locally in nixos-config/packages/maplespike-*.nix
   # (maplespike repo is self-contained source; nixos-config is the OS)
-  hermes-chat = prev.callPackage ./packages/hermes-chat.nix { };
-  nixos-cluster-mcp = prev.callPackage ./packages/nixos-cluster-mcp { };
+  hermes-chat = prev.callPackage ./packages/hermes-chat.nix {};
+  nixos-cluster-mcp = prev.callPackage ./packages/nixos-cluster-mcp {};
   # hermes-workspace and hermes-webui archived (2026-05-16)
   privacy-filter = prev.callPackage ./packages/privacy-filter.nix {
-    transformers-dev = prev.callPackage ./packages/transformers-dev.nix { };
+    transformers-dev = prev.callPackage ./packages/transformers-dev.nix {};
   };
   # dufs tests require CA certificates for reqwest-based HTTP client
   # Provide cacert and set SSL_CERT_FILE during test phase
   dufs = prev.dufs.overrideAttrs (old: {
-    nativeBuildInputs = (old.nativeBuildInputs or []) ++ [ prev.cacert ];
-    env = (old.env or {}) // {
-      SSL_CERT_FILE = "${prev.cacert}/etc/ssl/certs/ca-bundle.crt";
-      REQUESTS_CA_BUNDLE = "${prev.cacert}/etc/ssl/certs/ca-bundle.crt";
-    };
+    nativeBuildInputs = (old.nativeBuildInputs or []) ++ [prev.cacert];
+    env =
+      (old.env or {})
+      // {
+        SSL_CERT_FILE = "${prev.cacert}/etc/ssl/certs/ca-bundle.crt";
+        REQUESTS_CA_BUNDLE = "${prev.cacert}/etc/ssl/certs/ca-bundle.crt";
+      };
   });
 
   # Lix 2.94.2 bug: builtins.fetchGit fails with "could not update mtime for file '': No such file or directory"
   # Workaround: provide outputHashes for git dependencies in niri's Cargo.lock so importCargoLock uses
   # fetchgit (derivation-based, works) instead of builtins.fetchGit (broken in Lix 2.94.2).
   niri-stable = prev.niri-stable.overrideAttrs (old: {
-    cargoLock = (old.cargoLock or {}) // {
-      outputHashes = (old.cargoLock.outputHashes or {}) // {
-        "pipewire-0.8.0" = "sha256-twzqBGGprxXgQAtfp2ny+9pTdAQN4S+QHQlNXz+d+H0=";
-        "smithay-0.7.0" = "sha256-dCsCeDyMi5kLdbhk5y2OJdAknkbblgRR7sqc558MOEA=";
+    cargoLock =
+      (old.cargoLock or {})
+      // {
+        outputHashes =
+          (old.cargoLock.outputHashes or {})
+          // {
+            "pipewire-0.8.0" = "sha256-twzqBGGprxXgQAtfp2ny+9pTdAQN4S+QHQlNXz+d+H0=";
+            "smithay-0.7.0" = "sha256-dCsCeDyMi5kLdbhk5y2OJdAknkbblgRR7sqc558MOEA=";
+          };
       };
-    };
   });
   niri-unstable = prev.niri-unstable.overrideAttrs (old: {
-    cargoLock = (old.cargoLock or {}) // {
-      outputHashes = (old.cargoLock.outputHashes or {}) // {
-        "pipewire-0.8.0" = "sha256-twzqBGGprxXgQAtfp2ny+9pTdAQN4S+QHQlNXz+d+H0=";
-        "smithay-0.7.0" = "sha256-dCsCeDyMi5kLdbhk5y2OJdAknkbblgRR7sqc558MOEA=";
+    cargoLock =
+      (old.cargoLock or {})
+      // {
+        outputHashes =
+          (old.cargoLock.outputHashes or {})
+          // {
+            "pipewire-0.8.0" = "sha256-twzqBGGprxXgQAtfp2ny+9pTdAQN4S+QHQlNXz+d+H0=";
+            "smithay-0.7.0" = "sha256-dCsCeDyMi5kLdbhk5y2OJdAknkbblgRR7sqc558MOEA=";
+          };
       };
-    };
   });
-
-} // prev.lib.optionalAttrs (inputs ? vllm) {
+}
+// prev.lib.optionalAttrs (inputs ? vllm) {
   vllm-turboquant-env = inputs.vllm.packages.x86_64-linux.vllm-turboquant-env;
-} // prev.lib.optionalAttrs (inputs ? llama-turboquant) {
+}
+// prev.lib.optionalAttrs (inputs ? llama-turboquant) {
   llama-cpp-turboquant = inputs.llama-turboquant.packages.x86_64-linux.llama-cpp-turboquant.overrideAttrs (old: {
     src = prev.fetchFromGitHub {
       owner = "AmesianX";

@@ -1,5 +1,9 @@
-{ config, pkgs, lib, ... }:
-let
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}: let
   c = config.lib.stylix.colors.withHashtag;
 
   minerScript = "${config.xdg.configHome}/fish/scripts/miner-status.sh";
@@ -73,7 +77,6 @@ in {
         min_time = 2000;
       };
 
-
       # ── Prompt Character ──────────────────────────────────────
       character = {
         success_symbol = "[╰─❯](bold ${c.base0D})";
@@ -119,7 +122,7 @@ in {
       custom.miner = {
         command = minerScript;
         when = true;
-        shell = [ "bash" "-c" ];
+        shell = ["bash" "-c"];
         format = "[$output](bold ${c.base0E}) ";
         disabled = false;
       };

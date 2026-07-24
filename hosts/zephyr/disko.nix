@@ -1,4 +1,10 @@
-{ config, lib, pkgs, utils, ... }: {
+{
+  config,
+  lib,
+  pkgs,
+  utils,
+  ...
+}: {
   disko.devices = {
     disk.samsung = {
       # Samsung SSD 980 1TB — root filesystem (labeled "root")
@@ -47,7 +53,7 @@
         partitions = {
           swap = {
             size = "16G";
-            content = { type = "swap"; };
+            content = {type = "swap";};
           };
           nix = {
             size = "100%";
@@ -82,8 +88,8 @@
   # neededForBoot — filesystems that MUST mount before stage-2 runs
   # This is the critical fix that prevents the "can't find closure" boot failure
   fileSystems = {
-    "/nix" = { neededForBoot = true; };
-    "/var" = { neededForBoot = true; };
+    "/nix" = {neededForBoot = true;};
+    "/var" = {neededForBoot = true;};
   };
 
   # Child subvolumes (srv, tmp, @var/tmp, @var/lib/*) are nested under @ or @var

@@ -1,4 +1,10 @@
-{ config, lib, pkgs, inputs, ... }: {
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}: {
   imports = [
     inputs.preservation.nixosModules.preservation
   ];
@@ -18,13 +24,22 @@
       "/var/lib/fwupd"
     ];
     files = [
-      { file = "/etc/machine-id"; inInitrd = true; }
+      {
+        file = "/etc/machine-id";
+        inInitrd = true;
+      }
     ];
 
     users.j_kro = {
       directories = [
-        { directory = ".ssh"; mode = "0700"; }
-        { directory = ".gnupg"; mode = "0700"; }
+        {
+          directory = ".ssh";
+          mode = "0700";
+        }
+        {
+          directory = ".gnupg";
+          mode = "0700";
+        }
         ".local/share/keyrings"
         ".cache/huggingface"
         ".local/share/direnv"

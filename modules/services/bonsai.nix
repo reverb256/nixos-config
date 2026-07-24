@@ -22,7 +22,7 @@ with lib; let
   # Wrap the externally-built PrismML fork binary into a package the module can consume.
   # The fork is NOT a flake input (it's built ad-hoc on zephyr against CUDA 13.1); we
   # reference its realized store path. Keep this path in sync after each rebuild.
-  prismBinary = pkgs.runCommand "prism-llama-bonsai" { } ''
+  prismBinary = pkgs.runCommand "prism-llama-bonsai" {} ''
     mkdir -p $out/bin
     cp -rL ${cfg.binaryStorePath}/bin/llama-server $out/bin/llama-server
     # Copy companion libs alongside so the static binary finds its CUDA/ggml .so at runtime
@@ -98,13 +98,13 @@ in {
         LimitNOFILE = 65536;
         OOMScoreAdjust = 500;
         # GPU access + model read; no network bind privilege needed (listens on 0.0.0.0 ephemeral)
-        AmbientCapabilities = [ "CAP_SYS_RAWIO" ];
+        AmbientCapabilities = ["CAP_SYS_RAWIO"];
         NoNewPrivileges = true;
         ProtectSystem = "strict";
         ProtectHome = true;
         PrivateTmp = true;
-        ReadWritePaths = [ "/run/bonsai-ternary" ];
-        ReadOnlyPaths = [ "${cfg.ternaryModel}" "${cfg.mmproj}" ];
+        ReadWritePaths = ["/run/bonsai-ternary"];
+        ReadOnlyPaths = ["${cfg.ternaryModel}" "${cfg.mmproj}"];
       };
 
       environment = {
@@ -134,8 +134,8 @@ in {
         ProtectSystem = "strict";
         ProtectHome = true;
         PrivateTmp = true;
-        ReadWritePaths = [ "/run/bonsai-1bit-forge" ];
-        ReadOnlyPaths = [ "${cfg.onebitModel}" ];
+        ReadWritePaths = ["/run/bonsai-1bit-forge"];
+        ReadOnlyPaths = ["${cfg.onebitModel}"];
       };
 
       environment = {

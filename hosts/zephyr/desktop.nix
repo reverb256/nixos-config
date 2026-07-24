@@ -50,7 +50,6 @@
   services.displayManager.sddm.settings.Autologin.Relogin = true;
   services.displayManager.defaultSession = "niri-uwsm";
 
-
   services.flatpak-kde = {
     enable = true;
     autoUpdate = true;

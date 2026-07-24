@@ -1,9 +1,10 @@
 # NetworkManager DNS Configuration Module
 # Configures NetworkManager to use local unbound DNS and sets interface priorities
-{ config
-, lib
-, pkgs
-, ...
+{
+  config,
+  lib,
+  pkgs,
+  ...
 }: let
   cfg = config.networking.networkmanager-dns;
   inherit
@@ -19,7 +20,7 @@ in {
 
     dnsServers = mkOption {
       type = types.listOf types.str;
-      default = [ "127.0.0.1" ];
+      default = ["127.0.0.1"];
       description = "DNS servers to use (default: local unbound)";
     };
 
@@ -42,6 +43,5 @@ in {
       # Ensure DNS doesn't get overridden by DHCP
       dns = "default";
     };
-
   };
 }

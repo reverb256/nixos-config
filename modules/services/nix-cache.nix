@@ -52,7 +52,8 @@ in {
 
   config = mkIf cfg.enable {
     # ── Warn if old binary-cache module is also enabled ──────────
-    warnings = lib.optional
+    warnings =
+      lib.optional
       (config.services.binary-cache.enable or false)
       "services.binary-cache is deprecated — use services.nix-cache instead";
 
@@ -140,6 +141,5 @@ in {
 
     # ── Firewall ──────────────────────────────────────────────
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
-
   };
 }

@@ -12,7 +12,10 @@ in {
   options.networking.hoyoverse-telemetry-block = {
     enable = mkEnableOption "block Hoyoverse telemetry domains in /etc/hosts";
     # For zephyr (workstation), always disable telemetry block to allow anime game launchers
-    default = if isZephyr then false else config.networking.hoyoverse-telemetry-block.enable;
+    default =
+      if isZephyr
+      then false
+      else config.networking.hoyoverse-telemetry-block.enable;
   };
 
   config = mkIf config.networking.hoyoverse-telemetry-block.enable {

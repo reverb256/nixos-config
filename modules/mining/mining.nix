@@ -6,8 +6,7 @@
   pkgs,
   ...
 }:
-with lib;
-let
+with lib; let
   cfg = config.services.mining;
   body = {
     options.services.mining = {
@@ -25,7 +24,7 @@ let
         group = "mining";
         extraGroups = ["video" "render"];
       };
-      users.groups.mining = { };
+      users.groups.mining = {};
 
       boot.kernel.sysctl."vm.nr_hugepages" = 1280;
 
@@ -35,4 +34,5 @@ let
       ];
     };
   };
-in body
+in
+  body

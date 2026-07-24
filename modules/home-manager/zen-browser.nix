@@ -23,9 +23,11 @@ in {
     # finalPackage expects. Applied to programs.zen-browser.package (mkDefault
     # here), which is the package the HM module actually launches.
     package = (inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.twilight).overrideAttrs (old: {
-      buildCommand = (old.buildCommand or "") + ''
-        sed -i "s|^export MOZ_LEGACY_PROFILES='1'|# export MOZ_LEGACY_PROFILES='1'|" "$out/bin/zen-twilight"
-      '';
+      buildCommand =
+        (old.buildCommand or "")
+        + ''
+          sed -i "s|^export MOZ_LEGACY_PROFILES='1'|# export MOZ_LEGACY_PROFILES='1'|" "$out/bin/zen-twilight"
+        '';
     });
 
     nativeMessagingHosts = with pkgs; [
@@ -851,4 +853,3 @@ in {
     done
   '';
 }
-

@@ -83,29 +83,29 @@ in {
     # Local builds and daemon images are allowed
     # ============================================================================
     environment.etc."containers/policy.json".text = builtins.toJSON {
-      default = [{ type = "reject"; }];
+      default = [{type = "reject";}];
       transports = {
         "docker-daemon" = {
-          "" = [{ type = "insecureAcceptAnything"; }];
+          "" = [{type = "insecureAcceptAnything";}];
         };
         "directory" = {
-          "" = [{ type = "insecureAcceptAnything"; }];
+          "" = [{type = "insecureAcceptAnything";}];
         };
         "docker" = {
           # Docker Hub official images — allowed (reviewed by Docker)
-          "docker.io/library" = [{ type = "insecureAcceptAnything"; }];
+          "docker.io/library" = [{type = "insecureAcceptAnything";}];
           # Docker Hub third-party — allowed with caution
-          "docker.io" = [{ type = "insecureAcceptAnything"; }];
+          "docker.io" = [{type = "insecureAcceptAnything";}];
           # GitHub Container Registry — allowed (tied to GitHub auth)
-          "ghcr.io" = [{ type = "insecureAcceptAnything"; }];
+          "ghcr.io" = [{type = "insecureAcceptAnything";}];
           # Quay.io — allowed (Red Hat managed)
-          "quay.io" = [{ type = "insecureAcceptAnything"; }];
+          "quay.io" = [{type = "insecureAcceptAnything";}];
           # Local registry — allowed
-          "localhost" = [{ type = "insecureAcceptAnything"; }];
+          "localhost" = [{type = "insecureAcceptAnything";}];
           # Everything else — rejected
         };
         "atomic" = {
-          "" = [{ type = "insecureAcceptAnything"; }];
+          "" = [{type = "insecureAcceptAnything";}];
         };
       };
     };
