@@ -354,7 +354,7 @@
     };
 
       # ── FORMATTING GATE ───────────────────────────────────────────────
-      treefmt = treefmt-nix.lib.mkTreefmt {
+      treefmt = inputs.treefmt-nix.lib.mkTreefmt {
         inherit nixpkgs;
         settings = {
           formatter = "alejandra";
@@ -381,7 +381,7 @@
       };
       formatter.x86_64-linux = self.treefmt.build.wrapper;
 
-      checks.x86_64-linux.pre-commit = git-hooks.lib.x86_64-linux.run {
+      checks.x86_64-linux.pre-commit = inputs.git-hooks.lib.x86_64-linux.run {
         src = ./.;
         hooks = {
           alejandra.enable = true;
