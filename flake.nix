@@ -173,11 +173,11 @@
         inherit system;
         config.allowUnfree = true;
         overlays = [ (import ./overlay.nix { inherit inputs; }) ];
+      };
 
       # Flake input aliases for the body (needed for treefmt/checks sections)
       treefmt-nix = inputs.treefmt-nix;
       git-hooks = inputs.git-hooks;
-      };
 
       # COMMON MODULES - Shared across all hosts (single source of truth)
 
