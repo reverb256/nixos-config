@@ -34,46 +34,21 @@ in {
                 name = "hermes-workspace";
                 image = "nexus:5000/hermes-workspace:v1.0.0"; # Local build (own image)
                 imagePullPolicy = "IfNotPresent";
-                ports = [
-                  {
-                    containerPort = 3000;
-                    name = "http";
-                    protocol = "TCP";
-                  }
-                ];
+                ports = [{containerPort = 3000; name = "http"; protocol = "TCP";}];
                 env = [
-                  {
-                    name = "HERMES_API_URL";
-                    value = "http://10.1.1.110:8642";
-                  }
-                  {
-                    name = "HERMES_DASHBOARD_URL";
-                    value = "http://10.1.1.110:9119";
-                  }
-                  {
-                    name = "HOST";
-                    value = "0.0.0.0";
-                  }
-                  {
-                    name = "PORT";
-                    value = "3000";
-                  }
-                  {
-                    name = "VITE_HERMESWORLD_ENABLED";
-                    value = "0";
-                  }
+                  {name = "HERMES_API_URL"; value = "http://10.1.1.110:8642";}
+                  {name = "HERMES_DASHBOARD_URL"; value = "http://10.1.1.110:9119";}
+                  {name = "HOST"; value = "0.0.0.0";}
+                  {name = "PORT"; value = "3000";}
+                  {name = "VITE_HERMESWORLD_ENABLED"; value = "0";}
                 ];
                 livenessProbe = {
-                  httpGet.path = "/";
-                  port = 3000;
-                  initialDelaySeconds = 15;
-                  periodSeconds = 30;
+                  httpGet.path = "/"; port = 3000;
+                  initialDelaySeconds = 15; periodSeconds = 30;
                 };
                 readinessProbe = {
-                  httpGet.path = "/api/ping";
-                  port = 3000;
-                  initialDelaySeconds = 10;
-                  periodSeconds = 15;
+                  httpGet.path = "/api/ping"; port = 3000;
+                  initialDelaySeconds = 10; periodSeconds = 15;
                 };
               }
             ];
@@ -86,14 +61,7 @@ in {
       metadata = {inherit labels;};
       spec = {
         selector = labels;
-        ports = [
-          {
-            port = 3000;
-            targetPort = 3000;
-            name = "http";
-            protocol = "TCP";
-          }
-        ];
+        ports = [{port = 3000; targetPort = 3000; name = "http"; protocol = "TCP";}];
       };
     };
   };
