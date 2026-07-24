@@ -141,16 +141,6 @@
       url = "tarball+file:///tmp/stylix.tar.gz";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # treefmt-nix - declarative formatter aggregation (alejandra + statix + deadnix)
-    treefmt-nix = {
-      url = "github:numtide/treefmt-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    # git-hooks.nix - pre-commit hooks (alejandra/statix/deadnix) for dev + CI gate
-    git-hooks = {
-      url = "github:cachix/git-hooks.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
   outputs =
     inputs@{
@@ -348,56 +338,6 @@
         type = "app";
         program = "${colmena.packages.x86_64-linux.colmena}/bin/colmena";
         meta.description = "Colmena multi-host NixOS deployment";
-      };
-    };
-
-      # ── FORMATTING GATE ───────────────────────────────────────────────
-      treefmt = treefmt-nix.lib.mkTreefmt {
-        inherit nixpkgs;
-        settings = {
-          formatter = "alejandra";
-          allow_missing_formatter = false;
-          excludes = [
-            ".git"
-            "flake.lock"
-            "vendor/**"
-            "kubernetes/modules/nix-csi.nix"
-            "kubernetes/modules/ai-inference.nix"
-            "kubernetes/modules/vane.nix"
-            "kubernetes/modules/hermes-workspace.nix"
-            "kubernetes/modules/mcp-servers.nix"
-            "modules/home-manager/default.nix"
-            "modules/services/spacebot/container.nix"
-            "modules/system/agenix-secrets-registry.nix"
-          ];
-        };
-        programs = {
-          alejandra.enable = true;
-          statix.enable = true;
-          deadnix.enable = true;
-        };
-      };
-      formatter.x86_64-linux = self.treefmt.build.wrapper;
-
-      checks.x86_64-linux.pre-commit = git-hooks.lib.x86_64-linux.run {
-        src = ./.;
-        hooks = {
-          alejandra.enable = true;
-          statix.enable = true;
-          deadnix = {
-            enable = true;
-            settings.no-lambda-arg = true;
-            settings.no-lambda-pattern-names = true;
-          };
-        };
-        excludes = [
-          "vendor/.*"
-          "flake.lock"
-          "kubernetes/modules/.*\.nix"
-          "modules/home-manager/default.nix"
-          "modules/services/spacebot/container.nix"
-          "modules/system/agenix-secrets-registry.nix"
-        ];
       };
     };
 }
