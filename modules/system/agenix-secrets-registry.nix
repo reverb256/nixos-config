@@ -30,9 +30,11 @@
   lib,
   inputs,
   ...
-}: let
+}:
+let
   inherit (lib) mkOption types mkIf;
-in {
+in
+{
   options.services.agenix-secrets-registry = {
     enable = mkOption {
       type = types.bool;
@@ -79,6 +81,7 @@ in {
     };
   };
   config = mkIf config.services.agenix-secrets-registry.enable {
+
     # AI SERVICE API KEYS
 
     age.secrets = lib.mkMerge [
