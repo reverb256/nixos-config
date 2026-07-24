@@ -46,6 +46,9 @@ in {
       description = "Sync /etc/nixos to origin/main (force reset)";
       script = "${syncScript}";
       serviceConfig.Type = "oneshot";
+      # The sync script calls `git`, which is absent from systemd's minimal PATH.
+      # Provide a full PATH so the script's git/reset commands resolve (was exit 127).
+      path = [ pkgs.git pkgs.coreutils pkgs.findutils pkgs.gnugrep ];
     };
 
     systemd.timers.nixos-sync = {

@@ -44,20 +44,24 @@
     settings = {
       experimental-features = ["nix-command" "flakes"];
 
-      # NOTE (2026-07-15): local nexus nix-serve cache removed — was serving
-      # corrupt nars. Builds use cache.nixos.org + cachix; clean results are
-      # pushed back to nexus by the post-build-hook.
+      # Local Nix binary caches (nexus and zephyr serve signed store paths).
       substituters = [
+        "http://10.1.1.110:50000?priority=40"
+        "http://10.1.1.120:50000?priority=40"
         "https://cache.nixos.org?priority=90"
         "https://nix-community.cachix.org?priority=80"
       ];
 
       trusted-public-keys = lib.mkOptionDefault [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-        "zephyr-cache-1:2Tqq4OUEZrz6DEXurUPrAQBjh1VoiQ0jZhrGYozHq5c="
+        "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU="
+        "nexus-cache-1:mKdZqDFeOn2nbSVa7GlSEQmyFnZ22AOOB/Wx10YHHNo="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
         "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
       ];
+
+      # Don't abort the build if a local cache is temporarily unreachable.
+      fallback = true;
 
       trusted-users = lib.mkOptionDefault ["root" "@wheel"];
 

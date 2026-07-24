@@ -63,9 +63,13 @@ in {
         User = cfg.user;
       };
       script = ''
-        mkdir -p ~/.local/share/plasma/plasmoids/${plasmoidName}
+        # Parents (/home/<user>/.local/share/plasma/plasmoids) may be root-owned
+        # from a prior run, so create + own them explicitly before copying.
+        install -d -o ${cfg.user} -g users -m 0755 \
+          ~/.local/share/plasma/plasmoids/${plasmoidName}
         cp -r ${plasmoidSrc}/* ~/.local/share/plasma/plasmoids/${plasmoidName}/
         chmod -R 0755 ~/.local/share/plasma/plasmoids/${plasmoidName}
+        chown -R ${cfg.user}:users ~/.local/share/plasma/plasmoids/${plasmoidName}
       '';
     };
 

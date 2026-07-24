@@ -37,15 +37,24 @@ in {
     }];
 
     # Add DCGM alert rules
-    services.prometheus.rules = let
-      mkRule = name: alert: ''
+    services.prometheus.ruleFiles = let
+      ruleToYaml = r: ''
+        - alert: ${r.alert}
+          expr: ${r.expr}
+          for: ${r.for}
+          labels:
+            severity: ${r.labels.severity}
+          annotations:
+            summary: "${r.annotations.summary}"
+            description: "${r.annotations.description}"'';
+      ruleGroup = name: alertList: pkgs.writeText "prom-${name}.yml" ''
         groups:
           - name: ${name}
             interval: 30s
             rules:
-${builtins.concatStringsSep "\n" (map (a: "            ${builtins.toJSON a}") alert)}
+${builtins.concatStringsSep "\n" (map ruleToYaml alertList)}
       '';
-    in [ (mkRule "dcgm" [
+    in [ (ruleGroup "dcgm" [
       {
         alert = "GpuEccCorrectedRate";
         expr = "rate(DCGM_FI_DEV_ECC_CORRECTED[5m]) > 0.1";

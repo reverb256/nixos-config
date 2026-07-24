@@ -102,9 +102,9 @@ in {
     };
 
     flannelBackend = mkOption {
-      type = types.enum ["vxlan" "host-gw"];
+      type = types.enum ["vxlan" "host-gw" "none"];
       default = "host-gw";
-      description = "Flannel backend to use. host-gw is recommended for single-LAN clusters.";
+      description = "Flannel backend to use. host-gw is recommended for single-LAN clusters. 'none' disables Flannel entirely (use a custom CNI such as Calico).";
     };
     nvidia = {
       enable = mkOption {
@@ -198,7 +198,12 @@ in {
             "--kube-controller-manager-arg=terminated-pod-gc-threshold=500"
             "--kube-controller-manager-arg=node-monitor-grace-period=40s"
             "--flannel-backend=${cfg.flannelBackend}"
+            # When Flannel is disabled ('none'), Calico provides network policy.
+            # Disable k3s's built-in network-policy controller to avoid conflicts.
+            # (When Flannel is active, keep k3s NP enabled — do NOT add "network-policy"
+            # to disabledComponents, as that breaks cross-node pod traffic.)
           ]
+          ++ lib.optional (cfg.flannelBackend == "none") "--disable-network-policy"
           ++ map (san: "--tls-san=${san}") tlsSans
         )
         ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"

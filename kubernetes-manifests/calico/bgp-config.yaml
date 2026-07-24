@@ -1,24 +1,24 @@
 # Calico BGP Configuration
-# Enables BGP for dynamic pod route advertisement between nodes
 #
-# NOTE: With VXLAN encapsulation, BGP is used for route advertisement
-# but data plane traffic flows through VXLAN tunnels.
+# IMPORTANT: This cluster runs Calico in VXLAN encapsulation mode (see
+# tigera-installation.yaml). VXLAN does NOT use BGP for the data plane — pod
+# routes are distributed via the VXLAN overlay, not BGP. Enabling the BGP node
+# mesh here is what caused the historical "IP=Never" Bird crash
+# (2026-03-24). BGP is therefore intentionally DISABLED.
 #
-# Service CIDR 10.0.0.0/12 matches k3s --service-cidr flag.
+# If you later switch to a no-encap / BGP-routing mode, set
+# nodeToNodeMeshEnabled: true AND switch tigera-installation.yaml ipPools to
+# ipipMode/vxlanMode: Never — but that mode is NOT currently supported on this
+# NixOS stack (kernel/module + autodetection issues). Keep this disabled.
 apiVersion: crd.projectcalico.org/v1
 kind: BGPConfiguration
 metadata:
   name: default
 spec:
   logSeverityScreen: Info
-  nodeToNodeMeshEnabled: true
-  asNumber: 64512
-
-  # Advertise service ClusterIPs to BGP peers
-  # Must match k3s --service-cidr
-  serviceClusterIPs:
-  - cidr: 10.0.0.0/12
-
-  # Advertise all ExternalIPs and LoadBalancerIPs
+  # VXLAN mode: no BGP mesh needed.
+  nodeToNodeMeshEnabled: false
+  # No service ClusterIP advertisement — irrelevant under VXLAN encapsulation.
+  serviceClusterIPs: []
   serviceExternalIPs: []
   serviceLoadBalancerIPs: []

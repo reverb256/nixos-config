@@ -539,6 +539,7 @@
     aiServices = true; # HF_TOKEN for vLLM model downloads
     storage = true; # Garage S3 cluster (Nexus is a storage node)
     kubernetes = true; # k3s cluster token
+    cache = true; # Nix binary cache private key
   };
 
   # Override specific secret permissions for mining service
@@ -548,5 +549,13 @@
   # ============================================================================
   # UNBOUND DNS WITH DNS-OVER-TLS (Cluster-wide configuration)
   # ============================================================================
+  # Nix binary cache — serves /nix/store as HTTP binary cache for cluster builds
+  binary-cache = {
+    enable = true;
+    port = 50000;
+    bindAddress = "10.1.1.120";
+    keyName = "nexus-cache-1";
+  };
+
   services.unbound-common.enable = true;
 }

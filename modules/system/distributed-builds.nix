@@ -22,6 +22,7 @@ in {
       substituters = lib.mkForce (
         if currentHost == "zephyr"
         then [
+          "http://10.1.1.110:50000?priority=40&want-mass-query=true"
           "http://10.1.1.120:50000?priority=40&want-mass-query=true"
           "https://cache.nixos.org"
           "https://nix-community.cachix.org"
@@ -31,6 +32,7 @@ in {
           "https://nix-gaming.cachix.org"
         ]
         else [
+          "http://10.1.1.110:50000?priority=40&want-mass-query=true"
           "http://10.1.1.120:50000?priority=40&want-mass-query=true"
           "https://cache.nixos.org"
           "https://nix-community.cachix.org"
@@ -43,7 +45,8 @@ in {
       trusted-public-keys = lib.mkForce (
         if currentHost == "zephyr"
         then [
-          "zephyr-cache-1:2Tqq4OUEZrz6DEXurUPrAQBjh1VoiQ0jZhrGYozHq5c="
+          "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU="
+          "nexus-cache-1:mKdZqDFeOn2nbSVa7GlSEQmyFnZ22AOOB/Wx10YHHNo="
           "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
           "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zybkq5CX+/rkCWyvRCYg3Fs="
           "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1q2jYzI="
@@ -52,6 +55,8 @@ in {
           "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
         ]
         else [
+          "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU="
+          "nexus-cache-1:mKdZqDFeOn2nbSVa7GlSEQmyFnZ22AOOB/Wx10YHHNo="
           "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
           "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zybkq5CX+/rkCWyvRCYg3Fs="
           "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1q2jYzI="
