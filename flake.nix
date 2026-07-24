@@ -138,7 +138,7 @@
     };
     # stylix - theming module (local tarball)
     stylix = {
-      url = "tarball+file:///tmp/stylix.tar.gz";
+      url = "github:NixOS/nixos-stylix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
