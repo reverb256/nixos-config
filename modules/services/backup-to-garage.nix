@@ -137,14 +137,14 @@
     # /etc/backup-to-garage/credentials is already sourced by systemd
     # via EnvironmentFile below — no need to re-source here.
     ${lib.optionalString (cfg.accessKeyFile != null) ''
-    if [ -r ${toString cfg.accessKeyFile} ]; then
-      export GARAGE_ACCESS_KEY="$(cat ${toString cfg.accessKeyFile})"
-    fi
+      if [ -r ${toString cfg.accessKeyFile} ]; then
+        export GARAGE_ACCESS_KEY="$(cat ${toString cfg.accessKeyFile})"
+      fi
     ''}
     ${lib.optionalString (cfg.secretKeyFile != null) ''
-    if [ -r ${toString cfg.secretKeyFile} ]; then
-      export GARAGE_SECRET_KEY="$(cat ${toString cfg.secretKeyFile})"
-    fi
+      if [ -r ${toString cfg.secretKeyFile} ]; then
+        export GARAGE_SECRET_KEY="$(cat ${toString cfg.secretKeyFile})"
+      fi
     ''}
     exec ${backupScript}/bin/backup-to-garage
   '';

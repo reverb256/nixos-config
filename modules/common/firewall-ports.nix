@@ -1,9 +1,6 @@
 # Common Firewall Ports Module
 # Centralized port definitions to prevent conflicts
-{
-  lib,
-  ...
-}: {
+{lib, ...}: {
   options.networking.ports = {
     # Monitoring
     monitoring = lib.mkOption {

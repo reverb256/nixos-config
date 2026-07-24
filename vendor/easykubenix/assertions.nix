@@ -1,12 +1,9 @@
-{ lib, ... }:
-{
-
+{lib, ...}: {
   options = {
-
     assertions = lib.mkOption {
       type = lib.types.listOf lib.types.unspecified;
       internal = true;
-      default = [ ];
+      default = [];
       example = [
         {
           assertion = false;
@@ -22,15 +19,14 @@
 
     warnings = lib.mkOption {
       internal = true;
-      default = [ ];
+      default = [];
       type = lib.types.listOf lib.types.str;
-      example = [ "The `foo' service is deprecated and will go away soon!" ];
+      example = ["The `foo' service is deprecated and will go away soon!"];
       description = ''
         This option allows modules to show warnings to users during
         the evaluation of the system configuration.
       '';
     };
-
   };
   # impl of assertions is in
   # - <nixpkgs/nixos/modules/system/activation/top-level.nix>

@@ -16,7 +16,7 @@
     # Register the NVIDIA OCI runtime so containers requesting --runtime=nvidia
     # (e.g. dcgm-exporter) resolve. Without this, podman errors:
     # "default OCI runtime \"nvidia\" not found". nvidia-docker provides the binary.
-    settings.runtimes.nvidia = [ "${pkgs.nvidia-docker}/bin/nvidia-container-runtime" ];
+    settings.runtimes.nvidia = ["${pkgs.nvidia-docker}/bin/nvidia-container-runtime"];
   };
 
   # Environment variables for distrobox

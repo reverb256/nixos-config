@@ -9,10 +9,10 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.ai-coding-tools;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     mkIf
@@ -909,8 +909,7 @@ let
     chmod 600 "/home/${cfg.user}/.factory/settings.json"
     echo "[ai-coding-tools] Droid settings generated with env var references"
   '';
-in
-{
+in {
   options.services.ai-coding-tools = {
     enable = mkEnableOption "Harmonized MCP configuration for all AI coding tools (Droid, Claude Code, Crush, OpenCode, Pi)";
     user = mkOption {
@@ -963,7 +962,7 @@ in
         };
         packages = mkOption {
           type = types.listOf types.str;
-          default = [ ];
+          default = [];
           example = [
             "npm:pi-lens@3.8.5"
             "npm:pi-powerline-footer@0.4.9"
@@ -1022,8 +1021,8 @@ in
         "agenix.service"
         "network.target"
       ];
-      wants = [ "agenix.service" ];
-      wantedBy = [ "multi-user.target" ];
+      wants = ["agenix.service"];
+      wantedBy = ["multi-user.target"];
       path = [
         pkgs.jq
         pkgs.coreutils
@@ -1068,27 +1067,27 @@ in
           NVIDIA_NIM_API_KEY="$(cat $NVIDIA_NIM_KEY_PATH 2>/dev/null || echo)"
                 echo "[ai-coding-tools] Generating harmonized MCP configs..."
                 ${optionalString cfg.tools.droid.enable ''
-                  echo "[ai-coding-tools] Generating Droid settings..."
-                  ${mkDroidSettings}
-                  echo "[ai-coding-tools] Generating Droid MCP config..."
-                  ${mkDroidMcpJson}
-                ''}
+            echo "[ai-coding-tools] Generating Droid settings..."
+            ${mkDroidSettings}
+            echo "[ai-coding-tools] Generating Droid MCP config..."
+            ${mkDroidMcpJson}
+          ''}
                 ${optionalString cfg.tools.claude.enable ''
-                  echo "[ai-coding-tools] Generating Claude Code config..."
-                  ${mkClaudeMcpJson}
-                ''}
+            echo "[ai-coding-tools] Generating Claude Code config..."
+            ${mkClaudeMcpJson}
+          ''}
                 ${optionalString cfg.tools.crush.enable ''
-                  echo "[ai-coding-tools] Generating Crush config..."
-                  ${mkCrushConfig}
-                ''}
+            echo "[ai-coding-tools] Generating Crush config..."
+            ${mkCrushConfig}
+          ''}
                 ${optionalString cfg.tools.opencode.enable ''
-                  echo "[ai-coding-tools] Generating OpenCode config..."
-                  ${mkOpencodeConfig}
-                ''}
+            echo "[ai-coding-tools] Generating OpenCode config..."
+            ${mkOpencodeConfig}
+          ''}
                 ${optionalString cfg.tools.pi.enable ''
-                  echo "[ai-coding-tools] Generating Pi config..."
-                  ${mkPiConfig}
-                ''}
+            echo "[ai-coding-tools] Generating Pi config..."
+            ${mkPiConfig}
+          ''}
                 echo "[ai-coding-tools] All configs generated successfully"
         '';
       };

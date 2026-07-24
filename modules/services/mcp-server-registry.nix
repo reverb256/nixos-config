@@ -265,16 +265,26 @@
   # Use builtins.toJSON for proper JSON escaping (control chars, quotes, etc.)
   mkClaudeCodeMcpServers = servers:
     builtins.toJSON {
-      mcpServers = lib.mapAttrs (
-        name: server: lib.filterAttrs (_: v: v != null && v != []) {
-          command = server.command or null;
-          args = if builtins.hasAttr "args" server then server.args else null;
-          env = if builtins.hasAttr "env" server then server.env else null;
-        }
-      ) servers;
+      mcpServers =
+        lib.mapAttrs (
+          name: server:
+            lib.filterAttrs (_: v: v != null && v != []) {
+              command = server.command or null;
+              args =
+                if builtins.hasAttr "args" server
+                then server.args
+                else null;
+              env =
+                if builtins.hasAttr "env" server
+                then server.env
+                else null;
+            }
+        )
+        servers;
     };
 
-  claudeCodeJson = pkgs.writeText "claude-code-mcp-servers.json"
+  claudeCodeJson =
+    pkgs.writeText "claude-code-mcp-servers.json"
     (mkClaudeCodeMcpServers stdioServers);
 
   # ── C3: Generate Hermes config.yaml mcp_servers ─────────────────────────
@@ -311,7 +321,6 @@
         mcp_servers:
     ${mkHermesMcpServers allServers}
   '';
-
 
   # ── C5: Generate NetworkPolicy per server ───────────────────────────────
   mkNetworkPolicy = name: server:
@@ -399,7 +408,6 @@ in {
       default = "j_kro";
       description = "User whose Hermes config to manage";
     };
-
 
     # C5: NetworkPolicy generation
     generateNetworkPolicies = mkEnableOption "Generate NetworkPolicy per MCP server";

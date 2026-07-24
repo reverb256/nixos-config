@@ -10,8 +10,7 @@
   pkgs,
   inputs,
   ...
-}:
-{
+}: {
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -75,7 +74,7 @@
         8472 # VXLAN (Flannel or Calico)
       ];
       # Open Loki port on main interface for cluster access (module only opens on tailscale0)
-      interfaces."enp7s0".allowedTCPPorts = [ 3100 ];
+      interfaces."enp7s0".allowedTCPPorts = [3100];
     };
   };
 
@@ -253,7 +252,7 @@
       };
     };
 
-    xserver.videoDrivers = [ "amdgpu" ];
+    xserver.videoDrivers = ["amdgpu"];
 
     # MINING (CPU only - 4 threads = 25% of 16 cores)
     # Note: profiles.role.mining enables services.mining automatically
@@ -262,34 +261,34 @@
     mining = {
     };
     # AMD GPU (RX 5600 XT) - DISABLED for AI inference
-      # Sentry should only CPU mine, GPU reserved for llamafile (ROCm)
-      #   enable = true;
-      #   amd = {
-      #     enable = true;
-      #     autostart = true;
-      #     devices = "0"; # RX 5600 XT (single AMD GPU)
-      #     powerLimit = 140; # Safe power limit for RX 5600 XT
-      #     apiPort = 4069;
-      #   };
-      #   pool = "10.1.1.110:3334";
-      #   wallet = "krxXVNVMM7.sentry-gpu";
-      #   pools = [
-      #     {
-      #       url = "10.1.1.110:3334"; # gpu-proxy on Zephyr
-      #       wallet = "krxXVNVMM7.sentry-gpu";
-      #       password = "x";
-      #       tls = false;
-      #     }
-      #     {
-      #       url = "xtm-c29-us.kryptex.network:8040"; # Direct Kryptex US (failover)
-      #       wallet = "krxXVNVMM7.sentry-gpu";
-      #       password = "x";
-      #       tls = true;
-      #     }
-      #     {
-      #       url = "xtm-c29-eu.kryptex.network:8040"; # Direct Kryptex EU (failover)
-      #       wallet = "krxXVNVMM7.sentry-gpu";
-      #       password = "x";
+    # Sentry should only CPU mine, GPU reserved for llamafile (ROCm)
+    #   enable = true;
+    #   amd = {
+    #     enable = true;
+    #     autostart = true;
+    #     devices = "0"; # RX 5600 XT (single AMD GPU)
+    #     powerLimit = 140; # Safe power limit for RX 5600 XT
+    #     apiPort = 4069;
+    #   };
+    #   pool = "10.1.1.110:3334";
+    #   wallet = "krxXVNVMM7.sentry-gpu";
+    #   pools = [
+    #     {
+    #       url = "10.1.1.110:3334"; # gpu-proxy on Zephyr
+    #       wallet = "krxXVNVMM7.sentry-gpu";
+    #       password = "x";
+    #       tls = false;
+    #     }
+    #     {
+    #       url = "xtm-c29-us.kryptex.network:8040"; # Direct Kryptex US (failover)
+    #       wallet = "krxXVNVMM7.sentry-gpu";
+    #       password = "x";
+    #       tls = true;
+    #     }
+    #     {
+    #       url = "xtm-c29-eu.kryptex.network:8040"; # Direct Kryptex EU (failover)
+    #       wallet = "krxXVNVMM7.sentry-gpu";
+    #       password = "x";
     # Spotify with SpotX patch (ad-free, premium features)
     spotify-spotx.enable = true;
 
@@ -364,26 +363,24 @@
     ];
   };
 
-  systemd.tmpfiles.rules =
-    let
-      rocmEnv = pkgs.symlinkJoin {
-        name = "rocm-combined";
-        paths = with pkgs.rocmPackages; [
-          clr
-          clr.icd
-          rocblas
-          hipblas
-          rpp
-        ];
-      };
-    in
-    [
-      # Clean old etcd data directory before starting (NixOS-managed cleanup)
-      "R /var/lib/etcd - - - - -"
-      # ROCm symlinks
-      "L+ /opt/rocm - - - - ${rocmEnv}"
-      "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
-    ];
+  systemd.tmpfiles.rules = let
+    rocmEnv = pkgs.symlinkJoin {
+      name = "rocm-combined";
+      paths = with pkgs.rocmPackages; [
+        clr
+        clr.icd
+        rocblas
+        hipblas
+        rpp
+      ];
+    };
+  in [
+    # Clean old etcd data directory before starting (NixOS-managed cleanup)
+    "R /var/lib/etcd - - - - -"
+    # ROCm symlinks
+    "L+ /opt/rocm - - - - ${rocmEnv}"
+    "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
+  ];
 
   # ============================================================================
   # SECONDARY STORAGE (sda - 1TB SSD)

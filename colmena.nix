@@ -18,7 +18,7 @@
     hostName,
     targetHost,
     tags ? [],
-    buildOnTarget ? true,  # Never build on zephyr — OOM. Default true for remote.
+    buildOnTarget ? true, # Never build on zephyr — OOM. Default true for remote.
   }: {...}: {
     imports =
       commonModules
@@ -35,7 +35,6 @@
         else false;
     };
   };
-
 in {
   meta = {
     nixpkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
@@ -54,7 +53,7 @@ in {
   zephyr = mkHost {
     hostName = "zephyr";
     targetHost = null;
-    buildOnTarget = false;  # zephyr has max-jobs=0; build on nexus and push
+    buildOnTarget = false; # zephyr has max-jobs=0; build on nexus and push
     tags = [
       "control-plane"
       "k8s-master"
@@ -94,5 +93,4 @@ in {
       "remote"
     ];
   };
-
 }

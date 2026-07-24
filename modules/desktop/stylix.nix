@@ -1,5 +1,9 @@
-{ pkgs, lib, config, ... }:
 {
+  pkgs,
+  lib,
+  config,
+  ...
+}: {
   stylix = {
     # Stylix is pinned to a newer commit than the 26.05 Nixpkgs we track.
     # The upstream version-mismatch check is a warning, not an error; we
@@ -89,6 +93,5 @@
   # fastfetch / starship render Nerd glyphs as missing-character squares.
   # Adding the package to `fonts.packages` symlinks it into the font dir and
   # registers it with fontconfig system-wide.
-  fonts.packages = [ pkgs.nerd-fonts.jetbrains-mono ];
-
+  fonts.packages = [pkgs.nerd-fonts.jetbrains-mono];
 }

@@ -6,8 +6,7 @@
   lib,
   inputs,
   ...
-}:
-{
+}: {
   imports = [
     # ========================================================================
     # BASE MODULES
@@ -59,7 +58,7 @@
   };
 
   # FIX: Disable interface renaming - use actual interface names
-  systemd.network.links = lib.mkForce { };
+  systemd.network.links = lib.mkForce {};
 
   # ============================================================================
   # MEMORY OPTIMIZATION - zram compressed swap + kernel tuning
@@ -121,8 +120,10 @@
     freeSwapKillThreshold = 25;
     enableNotifications = true;
     extraArgs = [
-      "--prefer" "(Web Content|Isolated Web|nix)"
-      "--avoid"  "(niri|noctalia|zen|spotify|vesktop|opencode|hermes|Xwayland|pipewire)"
+      "--prefer"
+      "(Web Content|Isolated Web|nix)"
+      "--avoid"
+      "(niri|noctalia|zen|spotify|vesktop|opencode|hermes|Xwayland|pipewire)"
     ];
   };
 
@@ -263,7 +264,7 @@
   # FIX: Don't override ExecStart or Type - let gaming module handle those.
   # Only add wantedBy to start at boot. This prevents duplicate ExecStart lines.
   systemd.user.services.gamemoded = {
-    wantedBy = [ "default.target" ];
+    wantedBy = ["default.target"];
   };
 
   # ============================================================================
@@ -728,7 +729,7 @@
           nix-rebuild = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
               "/etc/nixos/skills/nix-rebuild-mcp/server.py"
             ];
             environment.NIX_HOST = "zephyr";
@@ -738,16 +739,16 @@
           add-service = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
               "/etc/nixos/skills/add-service-mcp/server.py"
             ];
-            environment = { };
+            environment = {};
             enabled = true;
           };
           context7 = {
             type = "local";
             # Use absolute path for reliable subprocess spawning
-            command = [ "/run/current-system/sw/bin/mcp-context7" ];
+            command = ["/run/current-system/sw/bin/mcp-context7"];
             environment.CONTEXT7_API_KEY_FILE = "/run/secrets/context7-api-key";
             enabled = true;
           };
@@ -1235,7 +1236,7 @@
   # Corsair keyboard/mouse driver daemon (ckb-next)
   systemd.services.ckb-next = {
     description = "Corsair Keyboards and Mice Daemon";
-    wantedBy = [ "multi-user.target" ];
+    wantedBy = ["multi-user.target"];
     serviceConfig = {
       ExecStart = "${pkgs.ckb-next}/bin/ckb-next-daemon";
       Restart = "on-failure";
@@ -1262,3 +1263,4 @@
 # Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
 # Refactored 2026-07-21 (#300): scrubbed pre-peakminer mining residue, repaired
 # orphan syntax from prior xmrig-strip cleanup.
+

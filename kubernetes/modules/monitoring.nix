@@ -2573,63 +2573,66 @@ in {
         selector.matchLabels.app = "local-registry";
         template.metadata.labels.app = "local-registry";
         template.spec = {
-        nodeSelector."kubernetes.io/hostname" = "nexus";
-        containers = [
-          {
-            name = "registry";
-            image = "registry:2";
-            ports = [
-              {
-                containerPort = 5000;
-                hostPort = 5000;
-                protocol = "TCP";
-              }
-            ];
-            env = [
-              { name = "REGISTRY_STORAGE_DELETE_ENABLED"; value = "true"; }
-            ];
-            volumeMounts = [
-              {
-                name = "data";
-                mountPath = "/var/lib/registry";
-              }
-            ];
-            livenessProbe = {
-              httpGet = {
-                path = "/v2/";
-                port = 5000;
+          nodeSelector."kubernetes.io/hostname" = "nexus";
+          containers = [
+            {
+              name = "registry";
+              image = "registry:2";
+              ports = [
+                {
+                  containerPort = 5000;
+                  hostPort = 5000;
+                  protocol = "TCP";
+                }
+              ];
+              env = [
+                {
+                  name = "REGISTRY_STORAGE_DELETE_ENABLED";
+                  value = "true";
+                }
+              ];
+              volumeMounts = [
+                {
+                  name = "data";
+                  mountPath = "/var/lib/registry";
+                }
+              ];
+              livenessProbe = {
+                httpGet = {
+                  path = "/v2/";
+                  port = 5000;
+                };
+                initialDelaySeconds = 5;
+                periodSeconds = 10;
               };
-              initialDelaySeconds = 5;
-              periodSeconds = 10;
-            };
-            readinessProbe = {
-              httpGet = {
-                path = "/v2/";
-                port = 5000;
+              readinessProbe = {
+                httpGet = {
+                  path = "/v2/";
+                  port = 5000;
+                };
+                initialDelaySeconds = 3;
+                periodSeconds = 5;
               };
-              initialDelaySeconds = 3;
-              periodSeconds = 5;
-            };
-            resources = {
-              requests = {
-                cpu = "50m";
-                memory = "64Mi";
+              resources = {
+                requests = {
+                  cpu = "50m";
+                  memory = "64Mi";
+                };
+                limits = {
+                  cpu = "200m";
+                  memory = "256Mi";
+                };
               };
-              limits = {
-                cpu = "200m";
-                memory = "256Mi";
-              };
-            };
-          }
-        ];
-        volumes = [
-          {
-            name = "data";
-            persistentVolumeClaim.claimName = "local-registry-data";
-          }
-        ];
+            }
+          ];
+          volumes = [
+            {
+              name = "data";
+              persistentVolumeClaim.claimName = "local-registry-data";
+            }
+          ];
+        };
       };
-    };
     };
     monitoring.NetworkPolicy.allow-monitoring-api-server = {
       spec = {

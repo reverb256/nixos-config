@@ -71,16 +71,16 @@ in {
       path = [pkgs.podman];
 
       serviceConfig = {
-        ExecStart = ''${pkgs.podman}/bin/podman run \
-            --name chatterbox-tts \
-            --replace \
-            --network host \
-            --rm \
-            -v ${cfg.voiceRefsDir}:/app/reference_audio:Z \
-            -e NVIDIA_VISIBLE_DEVICES=all \
-            -e NVIDIA_DRIVER_CAPABILITIES=compute,utility \
-            --device nvidia.com/gpu=all \
-            localhost/chatterbox-tts:v1.0.0''; # Local build (podman)
+        ExecStart = ''          ${pkgs.podman}/bin/podman run \
+                      --name chatterbox-tts \
+                      --replace \
+                      --network host \
+                      --rm \
+                      -v ${cfg.voiceRefsDir}:/app/reference_audio:Z \
+                      -e NVIDIA_VISIBLE_DEVICES=all \
+                      -e NVIDIA_DRIVER_CAPABILITIES=compute,utility \
+                      --device nvidia.com/gpu=all \
+                      localhost/chatterbox-tts:v1.0.0''; # Local build (podman)
         # Server listens on 8004 inside; host networking exposes on 0.0.0.0:8004
 
         ExecStop = "${pkgs.podman}/bin/podman stop --ignore chatterbox-tts";

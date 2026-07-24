@@ -1,4 +1,8 @@
-{ writeShellScriptBin, jq, curl }:
+{
+  writeShellScriptBin,
+  jq,
+  curl,
+}:
 writeShellScriptBin "chatterbox-tts.sh" ''
   set -euo pipefail
   INPUT_FILE="$1"

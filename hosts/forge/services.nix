@@ -45,7 +45,6 @@ in {
       client.enable = true;
     };
 
-
     nfs-client = {
       enable = false;
       mountShared = true;
@@ -73,7 +72,6 @@ in {
       ];
     };
 
-
     syncthing-cluster = {
       enable = false;
     };
@@ -89,7 +87,6 @@ in {
       kubernetes = true;
       aiServices = true;
     };
-
 
     chatterbox-tts = {
       enable = true;

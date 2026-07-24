@@ -197,7 +197,7 @@ in {
           {
             from = [
               {ipBlock.cidr = "10.1.1.0/24";}
-              
+
               {namespaceSelector.matchLabels.name = "ingress-system";}
             ];
             ports = [
@@ -263,7 +263,6 @@ in {
                 };
               }
             ];
-
           }
         ];
       };

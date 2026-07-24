@@ -145,7 +145,6 @@
       # Silence kauditd console spam: with 0 audit rules but audit=1, the kernel
       # still emits default events (LSM, capabilities, logins) faster than any
       # backlog can absorb. Disabling the audit subsystem is the cleanest fix.
-      
     ];
   };
 

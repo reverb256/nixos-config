@@ -64,8 +64,13 @@
     enable = lib.mkDefault true;
     extraRules = [
       {
-        users = [ "j_kro" ];
-        commands = [ { command = "ALL"; options = [ "NOPASSWD" ]; } ];
+        users = ["j_kro"];
+        commands = [
+          {
+            command = "ALL";
+            options = ["NOPASSWD"];
+          }
+        ];
       }
     ];
   };

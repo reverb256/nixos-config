@@ -4,8 +4,7 @@
   pkgs,
   config,
   ...
-}:
-let
+}: let
   monitorSetupScript = pkgs.writeShellApplication {
     name = "plasma-monitor-setup";
     runtimeInputs = with pkgs; [
@@ -204,10 +203,9 @@ let
     find ''${XDG_CACHE_HOME:-$HOME/.cache} -name "qmlcache" -type d -exec rm -rf {} + 2>/dev/null || true
     rm -rf ~/.cache/kwin* ~/.cache/plasma* ~/.cache/ksycoca* 2>/dev/null || true
   '';
-in
-{
+in {
   # Add KDE xdg-desktop-portal when Plasma is enabled
-  xdg.portal.extraPortals = with pkgs; [ pkgs.kdePackages.xdg-desktop-portal-kde ];
+  xdg.portal.extraPortals = with pkgs; [pkgs.kdePackages.xdg-desktop-portal-kde];
   services = {
     xserver = {
       enable = true;
@@ -219,15 +217,15 @@ in
     displayManager = {
       sddm.enable = true;
       sddm.settings.General.DisplayServer = "wayland";
-      sddm.settings.Wayland.SessionDir = toString (pkgs.runCommandLocal "wayland-sessions-filtered" { } ''
-          mkdir -p $out
-          for f in ${config.services.displayManager.sessionData.desktops}/share/wayland-sessions/*.desktop; do
-            bn=$(basename "$f")
-            if [ "$bn" != "hyprland.desktop" ]; then
-              ln -s "$f" "$out/$bn"
-            fi
-          done
-        '');
+      sddm.settings.Wayland.SessionDir = toString (pkgs.runCommandLocal "wayland-sessions-filtered" {} ''
+        mkdir -p $out
+        for f in ${config.services.displayManager.sessionData.desktops}/share/wayland-sessions/*.desktop; do
+          bn=$(basename "$f")
+          if [ "$bn" != "hyprland.desktop" ]; then
+            ln -s "$f" "$out/$bn"
+          fi
+        done
+      '');
       # autoLogin is configured in common-host-defaults.nix to avoid duplication
       autoLogin.enable = lib.mkDefault true;
       autoLogin.user = lib.mkDefault "j_kro";
@@ -483,8 +481,8 @@ in
     # Supports both NVIDIA (CUDA) and AMD (ROCm) GPUs
     services.gpu-ready = {
       description = "Wait for GPU devices to be ready";
-      after = [ "systemd-modules-load.service" ];
-      wantedBy = [ "display-manager.service" ];
+      after = ["systemd-modules-load.service"];
+      wantedBy = ["display-manager.service"];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -552,8 +550,8 @@ in
     };
     services.clear-kde-cache-after-rebuild = {
       description = "Clear KDE/QML cache after nixos-rebuild";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "nixos-rebuild.service" ];
+      wantedBy = ["multi-user.target"];
+      after = ["nixos-rebuild.service"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = clearKdeCacheScript;
@@ -588,7 +586,7 @@ in
     user.services = {
       plasma-monitor-setup = {
         description = "Apply monitor configuration";
-        wantedBy = [ "graphical-session.target" ];
+        wantedBy = ["graphical-session.target"];
         after = [
           "plasma-plasmashell.service"
           "graphical-session.target"
@@ -616,7 +614,7 @@ in
       # KWin doesn't hold DRM master (user switched to another VT).
       tv-monitor-daemon = {
         description = "Monitor TV power state and auto-disable/enable";
-        wantedBy = [ "graphical-session.target" ];
+        wantedBy = ["graphical-session.target"];
         after = [
           "plasma-plasmashell.service"
           "graphical-session.target"

@@ -1,6 +1,5 @@
 # Helm example
-{ pkgs, ... }:
-{
+{pkgs, ...}: {
   config = {
     # Since we're only setting one final subattribute this is really the entire
     # hetzner secret

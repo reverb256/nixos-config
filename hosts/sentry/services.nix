@@ -2,7 +2,8 @@
   config,
   lib,
   pkgs,
-  inputs, ...
+  inputs,
+  ...
 }: let
   cluster = config.networking.cluster;
 in {
@@ -154,6 +155,4 @@ in {
     autoStart = true;
     extraLabels = ["sentry"];
   };
-
-
 }

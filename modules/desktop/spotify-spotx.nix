@@ -282,7 +282,10 @@ in {
       fi
     '';
 
-    environment.etc."spotx/spotx.sh" = { source = spotxBash; mode = "0555"; };
+    environment.etc."spotx/spotx.sh" = {
+      source = spotxBash;
+      mode = "0555";
+    };
     environment.etc."spotx/patch-service.sh".source = pkgs.writeShellScript "spotx-patch-service" ''
       set -euo pipefail
 

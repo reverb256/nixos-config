@@ -8,9 +8,12 @@
 # It maps sops-nix secret paths (/run/secrets/...) to K8s Secret
 # keys and runs a one-shot systemd service to populate them.
 # ─────────────────────────────────────────────────────────────────
-
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.k8s-secret-sync;
   inherit (lib) mkEnableOption mkOption types mkIf;
 
@@ -109,10 +112,10 @@ in {
     extraMappings = mkOption {
       type = types.listOf (types.submodule {
         options = {
-          sopsPath = mkOption { type = types.str; };
-          namespace = mkOption { type = types.str; };
-          secretName = mkOption { type = types.str; };
-          key = mkOption { type = types.str; };
+          sopsPath = mkOption {type = types.str;};
+          namespace = mkOption {type = types.str;};
+          secretName = mkOption {type = types.str;};
+          key = mkOption {type = types.str;};
         };
       });
       default = [];
@@ -129,11 +132,11 @@ in {
   config = mkIf cfg.enable {
     systemd.services.k8s-secret-sync = {
       description = "Sync sops-nix secrets to K8s Secrets";
-      after = [ "k3s.service" "sops-install-secrets.service" "network.target" ];
-      requires = [ "k3s.service" ];
-      wants = [ "sops-install-secrets.service" ];
-      wantedBy = [ "multi-user.target" ];
-      before = [ "k8s-nix-deploy.service" ];
+      after = ["k3s.service" "sops-install-secrets.service" "network.target"];
+      requires = ["k3s.service"];
+      wants = ["sops-install-secrets.service"];
+      wantedBy = ["multi-user.target"];
+      before = ["k8s-nix-deploy.service"];
 
       serviceConfig = {
         Type = "oneshot";
@@ -144,7 +147,7 @@ in {
         RestartSec = 15;
       };
 
-      path = with pkgs; [ kubectl coreutils gnused gnugrep ];
+      path = with pkgs; [kubectl coreutils gnused gnugrep];
 
       script = let
         allMappings = secretMappings ++ cfg.extraMappings;
@@ -166,41 +169,43 @@ in {
 
         # Build JSON patch for each secret (batch all keys per secret)
         ${lib.concatStringsSep "\n" (lib.mapAttrsToList (ns_secret: mappings: ''
-          namespace="${lib.head (builtins.split "/" ns_secret)}"
-          secretName="${lib.elemAt (lib.splitString "/" ns_secret) 1}"
+            namespace="${lib.head (builtins.split "/" ns_secret)}"
+            secretName="${lib.elemAt (lib.splitString "/" ns_secret) 1}"
 
-          # Build patch data
-          PATCH_DATA="{"
-          FIRST=true
-          ${lib.concatStringsSep "\n" (map (m: ''
-            SOP_PATH="${m.sopsPath}"
-            KEY="${m.key}"
-            if [ -f "$SOP_PATH" ]; then
-              VAL=$(cat "$SOP_PATH" | base64 -w0)
-              if [ "$FIRST" = "true" ]; then FIRST=false; else PATCH_DATA="$PATCH_DATA,"; fi
-              PATCH_DATA="$PATCH_DATA\"$KEY\":\"$VAL\""
-            else
-              ${lib.optionalString cfg.requireAllSecrets ''
-                echo "[k8s-secret-sync] ERROR: $SOP_PATH not found (requireAllSecrets=true)"
-                exit 1
-              ''}
-              echo "[k8s-secret-sync] WARN: $SOP_PATH not found, skipping $namespace/$secretName/$KEY"
-            fi
-          '') mappings)}
-          PATCH_DATA="$PATCH_DATA}"
+            # Build patch data
+            PATCH_DATA="{"
+            FIRST=true
+            ${lib.concatStringsSep "\n" (map (m: ''
+                SOP_PATH="${m.sopsPath}"
+                KEY="${m.key}"
+                if [ -f "$SOP_PATH" ]; then
+                  VAL=$(cat "$SOP_PATH" | base64 -w0)
+                  if [ "$FIRST" = "true" ]; then FIRST=false; else PATCH_DATA="$PATCH_DATA,"; fi
+                  PATCH_DATA="$PATCH_DATA\"$KEY\":\"$VAL\""
+                else
+                  ${lib.optionalString cfg.requireAllSecrets ''
+                  echo "[k8s-secret-sync] ERROR: $SOP_PATH not found (requireAllSecrets=true)"
+                  exit 1
+                ''}
+                  echo "[k8s-secret-sync] WARN: $SOP_PATH not found, skipping $namespace/$secretName/$KEY"
+                fi
+              '')
+              mappings)}
+            PATCH_DATA="$PATCH_DATA}"
 
-          if [ "$FIRST" = "false" ]; then
-            echo "[k8s-secret-sync] Syncing $namespace/$secretName..."
-            if kubectl get secret "$secretName" -n "$namespace" &>/dev/null; then
-              # Secret exists — patch it
-              kubectl patch secret "$secretName" -n "$namespace" -p "{\"data\":$PATCH_DATA}" 2>&1 | head -1
-            else
-              # Secret doesn't exist — create it
-              kubectl create secret generic "$secretName" -n "$namespace" --from-literal=dummy=temp 2>&1 | head -1
-              kubectl patch secret "$secretName" -n "$namespace" -p "{\"data\":$PATCH_DATA}" 2>&1 | head -1
+            if [ "$FIRST" = "false" ]; then
+              echo "[k8s-secret-sync] Syncing $namespace/$secretName..."
+              if kubectl get secret "$secretName" -n "$namespace" &>/dev/null; then
+                # Secret exists — patch it
+                kubectl patch secret "$secretName" -n "$namespace" -p "{\"data\":$PATCH_DATA}" 2>&1 | head -1
+              else
+                # Secret doesn't exist — create it
+                kubectl create secret generic "$secretName" -n "$namespace" --from-literal=dummy=temp 2>&1 | head -1
+                kubectl patch secret "$secretName" -n "$namespace" -p "{\"data\":$PATCH_DATA}" 2>&1 | head -1
+              fi
             fi
-          fi
-        '') grouped)}
+          '')
+          grouped)}
 
         echo "[k8s-secret-sync] Done."
       '';
@@ -208,10 +213,10 @@ in {
     # ── Reconciliation timer (hourly, random offset) ──────────
     systemd.timers.k8s-secret-sync = {
       description = "Periodic K8s secret reconciliation (sops-nix → K8s)";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnCalendar = "hourly";
-        RandomizedDelaySec = "600";  # 0-10 min random delay to avoid thundering herd
+        RandomizedDelaySec = "600"; # 0-10 min random delay to avoid thundering herd
         Persistent = true;
       };
     };

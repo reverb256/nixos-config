@@ -10,8 +10,14 @@
   # bare ${cfg.accessKey} on a host with default-null keys would crash the
   # build (cannot coerce null to a string). Fall back to "" so the custom
   # branch is safe when unset; the runtime case only emits these in custom mode.
-  accessKeyValue = if cfg.accessKey != null then cfg.accessKey else "";
-  secretKeyValue = if cfg.secretKey != null then cfg.secretKey else "";
+  accessKeyValue =
+    if cfg.accessKey != null
+    then cfg.accessKey
+    else "";
+  secretKeyValue =
+    if cfg.secretKey != null
+    then cfg.secretKey
+    else "";
 in {
   options.services.aistor-secrets = {
     enable = lib.mkEnableOption "Generate and manage AIStor (MinIO) credentials declaratively";

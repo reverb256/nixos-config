@@ -5,11 +5,9 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   inherit (lib) mkOption types mkIf;
-in
-{
+in {
   options.services.agenix-fixes = {
     enable = mkOption {
       type = types.bool;
@@ -190,19 +188,19 @@ in
     # Create systemd service for secret verification
     systemd.services.agenix-rekey = {
       description = "Agenix secret verification and decryption";
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = ["multi-user.target"];
       after = [
         "run-agenix.d.mount"
         "local-fs.target"
       ];
-      requires = [ "run-agenix.d.mount" ];
+      requires = ["run-agenix.d.mount"];
       before = [
         # Gateway runs in Kubernetes, not as systemd service
         "garage.service"
       ];
       environment.PATH = lib.mkForce (
         lib.makeBinPath (
-          [ pkgs.coreutils ] ++ lib.optionals config.services.cluster-storage.enable [ pkgs.util-linux ]
+          [pkgs.coreutils] ++ lib.optionals config.services.cluster-storage.enable [pkgs.util-linux]
         )
       );
 
@@ -229,7 +227,7 @@ in
     # ============================================================================
     # FIX: Add age CLI to system packages
     # ============================================================================
-    environment.systemPackages = with pkgs; [ age ];
+    environment.systemPackages = with pkgs; [age];
 
     # ============================================================================
     # ACTIVATION SCRIPT: Sync identity file to all locations
@@ -238,7 +236,7 @@ in
     # 1. /etc/nixos/.age/key.txt - Synced via Syncthing across cluster (primary)
     # 2. /etc/age/key.txt - System location for early boot access
     # 3. /home/j_kro/.age/key.txt - Original location (Zephyr only)
-    system.activationScripts.copy-age-key = lib.stringAfter [ "users" ] ''
+    system.activationScripts.copy-age-key = lib.stringAfter ["users"] ''
       # Create directories
       mkdir -p /etc/age /etc/nixos/.age
 

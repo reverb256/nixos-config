@@ -2,7 +2,12 @@
 # Uses gammastep to scale gamma ramps via the Wayland protocol.
 # No GPU patches, no Samsung API, no DDC/CI needed.
 # Requires: niri supports wlr-gamma-control-v1 (PR #240, merged in 25.05+)
-{ config, lib, pkgs, ... }: let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.desktop.samsung-tv-brightness;
   inherit (lib) mkEnableOption mkOption types mkIf;
 in {

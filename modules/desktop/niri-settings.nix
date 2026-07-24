@@ -9,32 +9,29 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   inherit (lib) mkDefault;
   # Helper: noctalia IPC commands
-  noctalia =
-    cmd:
+  noctalia = cmd:
     [
       "noctalia-shell"
       "ipc"
       "call"
     ]
     ++ (lib.splitString " " cmd);
-in
-{
+in {
   programs.niri.settings = {
     # ==========================================================================
     # GENERAL SETTINGS
     # ==========================================================================
     spawn-at-startup = [
       # Polkit authentication agent (systemd also handles this)
-      { command = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"; }
+      {command = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";}
       # Noctalia desktop shell (replaces waybar, mako, fuzzel, swww)
-      { command = "noctalia-shell"; }
+      {command = "noctalia-shell";}
       # Clipboard manager (requires wl-clipboard)
-      { command = "wl-paste --type text --watch ${pkgs.cliphist}/bin/cliphist store"; }
-      { command = "wl-paste --type image --watch ${pkgs.cliphist}/bin/cliphist store"; }
+      {command = "wl-paste --type text --watch ${pkgs.cliphist}/bin/cliphist store";}
+      {command = "wl-paste --type image --watch ${pkgs.cliphist}/bin/cliphist store";}
     ];
 
     # Cursor configuration
@@ -222,7 +219,7 @@ in
       # SPAWN APPLICATIONS
       # --------------------------------------------------------------------------
       "${mod}+Return" = {
-        spawn = [ "${pkgs.kdePackages.konsole}/bin/konsole" ];
+        spawn = ["${pkgs.kdePackages.konsole}/bin/konsole"];
       };
       "${mod}+D" = {
         spawn = noctalia "launcher toggle";
@@ -231,10 +228,10 @@ in
         spawn = noctalia "launcher toggle";
       };
       "${mod}+E" = {
-        spawn = [ "${pkgs.dolphin}/bin/dolphin" ];
+        spawn = ["${pkgs.dolphin}/bin/dolphin"];
       };
       "${mod}+B" = {
-        spawn = [ "${pkgs.firefox}/bin/firefox" ];
+        spawn = ["${pkgs.firefox}/bin/firefox"];
       };
       "${mod}+Print" = {
         spawn = [
@@ -251,7 +248,7 @@ in
         ];
       };
       "${mod}+Shift+E" = {
-        spawn = [ "${pkgs.code}/bin/code" ];
+        spawn = ["${pkgs.code}/bin/code"];
       };
 
       # --------------------------------------------------------------------------
@@ -259,49 +256,49 @@ in
       # --------------------------------------------------------------------------
       # Close focused window
       "${mod}+Q" = {
-        close-window = [ ];
+        close-window = [];
       };
 
       # Focus windows (arrow keys)
       "${mod}+Left" = {
-        focus-column-left = [ ];
+        focus-column-left = [];
       };
       "${mod}+Right" = {
-        focus-column-right = [ ];
+        focus-column-right = [];
       };
       "${mod}+Up" = {
-        focus-window-up = [ ];
+        focus-window-up = [];
       };
       "${mod}+Down" = {
-        focus-window-down = [ ];
+        focus-window-down = [];
       };
 
       # Move windows (arrow keys)
       "${mod}+Shift+Left" = {
-        move-column-left = [ ];
+        move-column-left = [];
       };
       "${mod}+Shift+Right" = {
-        move-column-right = [ ];
+        move-column-right = [];
       };
       "${mod}+Shift+Up" = {
-        move-window-up = [ ];
+        move-window-up = [];
       };
       "${mod}+Shift+Down" = {
-        move-window-down = [ ];
+        move-window-down = [];
       };
 
       # Column width adjustment
       "${mod}+Comma" = {
-        consume-window-into-column = [ ];
+        consume-window-into-column = [];
       };
       "${mod}+Period" = {
-        expel-window-from-column = [ ];
+        expel-window-from-column = [];
       };
       "${mod}+R" = {
-        switch-preset-column-width = [ ];
+        switch-preset-column-width = [];
       };
       "${mod}+Shift+R" = {
-        reset-window-height = [ ];
+        reset-window-height = [];
       };
       "${mod}+Minus" = {
         set-column-width = "-10%";
@@ -318,21 +315,21 @@ in
 
       # Center focused column
       "${mod}+C" = {
-        center-column = [ ];
+        center-column = [];
       };
 
       # Focus and move to monitor edges
       "${mod}+Home" = {
-        focus-column-first = [ ];
+        focus-column-first = [];
       };
       "${mod}+End" = {
-        focus-column-last = [ ];
+        focus-column-last = [];
       };
       "${mod}+Shift+Home" = {
-        move-column-to-first = [ ];
+        move-column-to-first = [];
       };
       "${mod}+Shift+End" = {
-        move-column-to-last = [ ];
+        move-column-to-last = [];
       };
 
       # --------------------------------------------------------------------------
@@ -404,22 +401,22 @@ in
 
       # Workspace navigation
       "${mod}+Page_Down" = {
-        focus-workspace-down = [ ];
+        focus-workspace-down = [];
       };
       "${mod}+Page_Up" = {
-        focus-workspace-up = [ ];
+        focus-workspace-up = [];
       };
       "${mod}+Shift+Page_Down" = {
-        move-column-to-workspace-down = [ ];
+        move-column-to-workspace-down = [];
       };
       "${mod}+Shift+Page_Up" = {
-        move-column-to-workspace-up = [ ];
+        move-column-to-workspace-up = [];
       };
       "${mod}+BracketLeft" = {
-        focus-workspace-down = [ ];
+        focus-workspace-down = [];
       }; # Alt-Tab style
       "${mod}+BracketRight" = {
-        focus-workspace-up = [ ];
+        focus-workspace-up = [];
       };
 
       # --------------------------------------------------------------------------
@@ -427,30 +424,30 @@ in
       # --------------------------------------------------------------------------
       # Focus monitor
       "${mod}+Ctrl+Left" = {
-        focus-monitor-left = [ ];
+        focus-monitor-left = [];
       };
       "${mod}+Ctrl+Right" = {
-        focus-monitor-right = [ ];
+        focus-monitor-right = [];
       };
       "${mod}+Ctrl+Up" = {
-        focus-monitor-up = [ ];
+        focus-monitor-up = [];
       };
       "${mod}+Ctrl+Down" = {
-        focus-monitor-down = [ ];
+        focus-monitor-down = [];
       };
 
       # Move window to monitor
       "${mod}+Ctrl+Shift+Left" = {
-        move-column-to-monitor-left = [ ];
+        move-column-to-monitor-left = [];
       };
       "${mod}+Ctrl+Shift+Right" = {
-        move-column-to-monitor-right = [ ];
+        move-column-to-monitor-right = [];
       };
       "${mod}+Ctrl+Shift+Up" = {
-        move-column-to-monitor-up = [ ];
+        move-column-to-monitor-up = [];
       };
       "${mod}+Ctrl+Shift+Down" = {
-        move-column-to-monitor-down = [ ];
+        move-column-to-monitor-down = [];
       };
 
       # --------------------------------------------------------------------------
@@ -458,18 +455,18 @@ in
       # --------------------------------------------------------------------------
       # Toggle fullscreen
       "${mod}+F" = {
-        fullscreen-window = [ ];
+        fullscreen-window = [];
       };
       "${mod}+Shift+F" = {
-        toggle-windowed-fullscreen = [ ];
+        toggle-windowed-fullscreen = [];
       };
 
       # Toggle floating
       "${mod}+V" = {
-        toggle-window-floating = [ ];
+        toggle-window-floating = [];
       };
       "${mod}+Shift+V" = {
-        switch-focus-between-floating-and-tiling = [ ];
+        switch-focus-between-floating-and-tiling = [];
       };
 
       # Pin window (show on all workspaces)
@@ -482,10 +479,10 @@ in
       # --------------------------------------------------------------------------
       # Switch layout (scrollable-tiling only)
       "${mod}+Tab" = {
-        focus-workspace-down = [ ];
+        focus-workspace-down = [];
       };
       "${mod}+Shift+Tab" = {
-        focus-workspace-up = [ ];
+        focus-workspace-up = [];
       };
 
       # --------------------------------------------------------------------------
@@ -534,12 +531,12 @@ in
       # --------------------------------------------------------------------------
       # Quit niri (logout)
       "${mod}+Shift+Escape" = {
-        quit = [ ];
+        quit = [];
       };
 
       # Lock screen
       "${mod}+Escape" = {
-        spawn = [ "${pkgs.swaylock}/bin/swaylock" ];
+        spawn = ["${pkgs.swaylock}/bin/swaylock"];
       };
 
       # Power menu (noctalia session menu)
@@ -560,22 +557,22 @@ in
       # --------------------------------------------------------------------------
       # Toggle keyboard focus
       "${mod}+Ctrl+Space" = {
-        toggle-keyboard-focus = [ ];
+        toggle-keyboard-focus = [];
       };
 
       # Debug toggle
       "${mod}+Shift+D" = {
-        toggle-debug-tint = [ ];
+        toggle-debug-tint = [];
       };
 
       # Reload config (if supported)
       "${mod}+Shift+C" = {
-        reload-config = [ ];
+        reload-config = [];
       };
 
       # Show hotkey overlay
       "${mod}+Slash" = {
-        show-hotkey-overlay = [ ];
+        show-hotkey-overlay = [];
       };
     };
 
@@ -587,23 +584,23 @@ in
       # Float specific applications
       {
         matches = [
-          { app-id = "pavucontrol"; }
-          { app-id = "nm-connection-editor"; }
-          { app-id = "blueman-manager"; }
-          { app-id = "gnome-calculator"; }
-          { app-id = "gnome-control-center"; }
-          { app-id = "file-roller"; }
-          { title = "File Transfer*"; }
-          { title = "Copy*"; }
-          { title = "Passwords*"; }
-          { app-id = "pinentry-"; }
+          {app-id = "pavucontrol";}
+          {app-id = "nm-connection-editor";}
+          {app-id = "blueman-manager";}
+          {app-id = "gnome-calculator";}
+          {app-id = "gnome-control-center";}
+          {app-id = "file-roller";}
+          {title = "File Transfer*";}
+          {title = "Copy*";}
+          {title = "Passwords*";}
+          {app-id = "pinentry-";}
         ];
         open-floating = true;
       }
 
       # Picture-in-Picture windows
       {
-        matches = [ { title = "Picture-in-Picture"; } ];
+        matches = [{title = "Picture-in-Picture";}];
         open-floating = true;
         default-floating-position = {
           x = 0;
@@ -620,10 +617,10 @@ in
       # Full-width applications
       {
         matches = [
-          { app-id = "firefox"; }
-          { app-id = "librewolf"; }
-          { app-id = "chromium"; }
-          { app-id = "brave"; }
+          {app-id = "firefox";}
+          {app-id = "librewolf";}
+          {app-id = "chromium";}
+          {app-id = "brave";}
         ];
         default-column-width = {
           proportion = 1.0;
@@ -633,11 +630,11 @@ in
       # Terminal default width
       {
         matches = [
-          { app-id = "Alacritty"; }
-          { app-id = "kitty"; }
-          { app-id = "foot"; }
-          { app-id = "gnome-terminal"; }
-          { app-id = "konsole"; }
+          {app-id = "Alacritty";}
+          {app-id = "kitty";}
+          {app-id = "foot";}
+          {app-id = "gnome-terminal";}
+          {app-id = "konsole";}
         ];
         default-column-width = {
           proportion = 0.5;
@@ -647,10 +644,10 @@ in
       # IDEs and editors
       {
         matches = [
-          { app-id = "code"; }
-          { app-id = "code-url-handler"; }
-          { app-id = "jetbrains-"; }
-          { app-id = "emacs"; }
+          {app-id = "code";}
+          {app-id = "code-url-handler";}
+          {app-id = "jetbrains-";}
+          {app-id = "emacs";}
         ];
         default-column-width = {
           proportion = 0.7;
@@ -660,18 +657,18 @@ in
       # Games (usually want floating or fullscreen)
       {
         matches = [
-          { app-id = "steam"; }
-          { app-id = "lutris"; }
-          { app-id = "heroic"; }
-          { app-id = "minecraft"; }
-          { app-id = "prism-launcher"; }
+          {app-id = "steam";}
+          {app-id = "lutris";}
+          {app-id = "heroic";}
+          {app-id = "minecraft";}
+          {app-id = "prism-launcher";}
         ];
         open-floating = true;
       }
 
       # Screen sharing prompts (always float)
       {
-        matches = [ { title = "Choose what to share"; } ];
+        matches = [{title = "Choose what to share";}];
         open-floating = true;
         focus-ring.enable = false;
         border.enable = false;
@@ -680,11 +677,11 @@ in
       # Block screen-sharing of sensitive windows
       {
         matches = [
-          { app-id = "bitwarden"; }
-          { app-id = "keepassxc"; }
-          { app-id = "1password"; }
-          { title = "*Password*"; }
-          { title = "*Secret*"; }
+          {app-id = "bitwarden";}
+          {app-id = "keepassxc";}
+          {app-id = "1password";}
+          {title = "*Password*";}
+          {title = "*Secret*";}
         ];
         block-out-from = "screen-capture";
       }
@@ -697,25 +694,25 @@ in
     layer-rules = [
       # Noctalia shell (bar, notifications, launcher, dock)
       {
-        matches = [ { namespace = "noctalia"; } ];
+        matches = [{namespace = "noctalia";}];
         place-within-backdrop = false;
       }
 
       # Quickshell (noctalia-qs underlying engine)
       {
-        matches = [ { namespace = "quickshell"; } ];
+        matches = [{namespace = "quickshell";}];
         place-within-backdrop = false;
       }
 
       # GTK layer shell apps (polkit dialogs, etc.)
       {
-        matches = [ { namespace = "gtk-layer-shell"; } ];
+        matches = [{namespace = "gtk-layer-shell";}];
         place-within-backdrop = false;
       }
 
       # Screen lock (above everything)
       {
-        matches = [ { namespace = "swaylock"; } ];
+        matches = [{namespace = "swaylock";}];
         place-within-backdrop = true;
       }
     ];

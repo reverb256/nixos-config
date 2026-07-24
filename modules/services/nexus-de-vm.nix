@@ -10,14 +10,17 @@
 #
 # This lets the GPU serve AI inference workloads when the VM is off.
 # ─────────────────────────────────────────────────────────────────
-
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.nexus-de-vm;
   inherit (lib) mkEnableOption mkOption types mkIf;
 
   # GPU PCI addresses on nexus (verified via lspci)
-  gpuDevices = [ "0000:0a:00.0" "0000:0a:00.1" ];
+  gpuDevices = ["0000:0a:00.0" "0000:0a:00.1"];
 
   # ── GPU handoff script ────────────────────────────────────────
   # Switches GPU between nvidia (host) and vfio-pci (VM) drivers
@@ -150,10 +153,10 @@ in {
 
     # ── Required packages ───────────────────────────────────────
     environment.systemPackages = with pkgs; [
-      libvirt  # virsh
-      OVMF     # UEFI firmware
+      libvirt # virsh
+      OVMF # UEFI firmware
       qemu_kvm # KVM + QEMU
-      swtpm    # TPM for Windows 11
+      swtpm # TPM for Windows 11
     ];
 
     # ── VFIO modules loaded on demand by coordinator script — NOT at boot ──
@@ -283,10 +286,10 @@ in {
     # ── Auto-start the VM via systemd ───────────────────────────
     systemd.services.nexus-de-vm = {
       description = "Nexus DE Windows 11 VM (dynamic GPU handoff)";
-      after = [ "libvirtd.service" "network.target" ];
-      requires = [ "libvirtd.service" ];
-      wantedBy = [ "multi-user.target" ];
-      wants = [ "network-online.target" ];
+      after = ["libvirtd.service" "network.target"];
+      requires = ["libvirtd.service"];
+      wantedBy = ["multi-user.target"];
+      wants = ["network-online.target"];
 
       serviceConfig = {
         Type = "oneshot";
@@ -296,7 +299,7 @@ in {
         ExecStart = "${pkgs.libvirt}/bin/virsh start nexus-de";
         ExecStop = "${pkgs.libvirt}/bin/virsh destroy nexus-de 2>/dev/null || true";
         ExecStopPost = "${handoffScript} post";
-        Restart = "no";  # VM lifecycle managed by virsh
+        Restart = "no"; # VM lifecycle managed by virsh
         TimeoutStartSec = "infinity";
         TimeoutStopSec = 120;
       };
@@ -304,7 +307,7 @@ in {
 
     # ── Firewall: allow Spice access from local network ─────────
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
-      5900  # Spice display
+      5900 # Spice display
     ];
   };
 }

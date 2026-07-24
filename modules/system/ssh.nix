@@ -1,4 +1,8 @@
-{lib, pkgs, ...}: let
+{
+  lib,
+  pkgs,
+  ...
+}: let
   hosts = {
     zephyr = {
       ip = "10.1.1.110";

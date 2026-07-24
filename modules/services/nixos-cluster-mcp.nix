@@ -3,8 +3,7 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.nixos-cluster-mcp;
   inherit (lib) mkEnableOption mkOption types mkIf;
 in {
@@ -102,7 +101,7 @@ in {
         # box's authorizedKeys (add it to profiles/wsl.nix or this host).
         {
           name = "wsl-j_kro";
-          host = "172.19.255.48";  # WSL NAT IP — REPLACE with Windows LAN IP + portproxy
+          host = "172.19.255.48"; # WSL NAT IP — REPLACE with Windows LAN IP + portproxy
           user = "j_kro";
           port = 2222;
           build_host = "nexus";

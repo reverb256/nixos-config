@@ -196,7 +196,7 @@ in {
         RestartSec = "10s";
 
         # Security
-        User = "root";  # Changed from ai-inference to avoid user dependency issue
+        User = "root"; # Changed from ai-inference to avoid user dependency issue
         Group = "root";
         NoNewPrivileges = true;
         PrivateTmp = true;
