@@ -37,7 +37,7 @@ let
     "ingress"
     "monitoring"
     "health-checks"
-    #"calico"  # Calico managed manually — DaemonSet patches + static nft binary
+    "calico"  # Calico CNI (VXLAN, policy-enforcing) — applied after k3s comes up with flannel disabled
   ];
 
   applyScript = pkgs.writeShellScript "k8s-apply-manifests" ''

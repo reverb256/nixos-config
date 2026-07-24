@@ -11,7 +11,7 @@ in mkIf cfg.enableAlertRules {
     }];
   }];
 
-  services.prometheus.ruleFiles = let
+  services.prometheus.rules = let
     ruleFile = name: alertList: pkgs.writeText "prom-${name}.yml" (builtins.toJSON {
       groups = [{
         name = "${name}";
@@ -21,7 +21,7 @@ in mkIf cfg.enableAlertRules {
     });
   in [
     # ── Host health ──────────────────────────────────────────────
-    (ruleFile "host" [
+    (ruleGroup "host" [
       {
         alert = "HostDown";
         expr = "up{job='node'} == 0";
@@ -55,7 +55,7 @@ in mkIf cfg.enableAlertRules {
     ])
 
     # ── GPU health ───────────────────────────────────────────────
-    (ruleFile "gpu" [
+    (ruleGroup "gpu" [
       {
         alert = "NvidiaGpuTempWarning";
         expr = "nvidia_smi_temperature_gpu > 85";
@@ -89,7 +89,7 @@ in mkIf cfg.enableAlertRules {
     ])
 
     # ── Service health ───────────────────────────────────────────
-    (ruleFile "service" [
+    (ruleGroup "service" [
       {
         alert = "K3sNodeNotReady";
         expr = "kube_node_status_condition{condition='Ready',status='true'} == 0";
@@ -113,7 +113,7 @@ in mkIf cfg.enableAlertRules {
     ])
 
     # ── Temperature ──────────────────────────────────────────────
-    (ruleFile "temperature" [
+    (ruleGroup "temperature" [
       {
         alert = "CpuTempHot";
         expr = "node_hwmon_temp_celsius{sensor='coretemp'} > 80";

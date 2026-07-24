@@ -30,7 +30,7 @@ in {
       tokenFile = "/persistent/etc/k3s-cluster-token";
       nodeIP = cluster.hosts.forge.ip;
       flannelIface = "eth0";
-      flannelBackend = "host-gw";
+      flannelBackend = "none"; # Calico CNI (VXLAN, policy-enforcing)
       secretsEncryptionKeyFile = "/run/secrets/k3s-encryption-key";
     };
 

@@ -23,6 +23,12 @@ in {
       default = "10.1.1.110";
       description = "Address to bind nix-serve to";
     };
+
+    keyName = mkOption {
+      type = types.str;
+      default = "zephyr-cache-1";
+      description = "Name for the cache signing key (e.g. hostname-cache-1)";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -61,7 +67,7 @@ in {
       script = ''
         if [ ! -f /etc/nix/cache-priv.key ]; then
           # Generate binary cache signing keys using Nix CLI
-          ${pkgs.nix}/bin/nix key generate-secret --key-name zephyr-cache-1 > /etc/nix/cache-priv.key.tmp
+          ${pkgs.nix}/bin/nix key generate-secret --key-name ${cfg.keyName} > /etc/nix/cache-priv.key.tmp
           mv /etc/nix/cache-priv.key.tmp /etc/nix/cache-priv.key
           chmod 640 /etc/nix/cache-priv.key
 
@@ -90,7 +96,7 @@ in {
         echo "========================================="
         echo "Add this to trusted-public-keys on other nodes:"
         echo "nix.settings.trusted-public-keys = ["
-        echo "  \"zephyr-cache-1:$(cat /etc/nix/cache-pub.key | cut -d: -f2)\""
+        echo "  \"${cfg.keyName}:$(cat /etc/nix/cache-pub.key | cut -d: -f2)\""
         echo "];"
         echo "========================================="
       '';

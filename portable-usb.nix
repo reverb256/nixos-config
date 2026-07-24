@@ -184,7 +184,7 @@
           ];
 
           # ─── Fonts & Theming ───────────────────────────────
-          fonts.fonts = with pkgs.nerdfonts; [
+          fonts.packages = with pkgs.nerdfonts; [
             JetBrainsMono
             FiraCode
             Hack

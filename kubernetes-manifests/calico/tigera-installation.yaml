@@ -3,10 +3,23 @@
 # Deployed alongside tigera-operator.yaml (official manifest from projectcalico/calico v3.31.4)
 # This CR tells the operator how to configure Calico.
 #
-# Cluster CIDRs (must match k3s --cluster-cidr and --service-cidr):
-#   Pod:      10.244.0.0/16
-#   Service:  10.0.0.0/12
-#   DNS:      10.43.0.10
+# Cluster CIDRs (MUST match k3s --cluster-cidr and --service-cidr in modules/services/k3s-cluster.nix):
+#   Pod:      10.42.0.0/16   (clusterCIDR, confirmed by cluster-firewall.nix podCidr)
+#   Service:  10.43.0.0/16   (serviceCIDR)
+#   DNS:      10.43.0.10     (clusterDNS)
+#
+# Mode: VXLAN encapsulation (no BGP, no IPIP). This is deliberate:
+#   - VXLAN needs no BGP daemons and no special kernel modules.
+#   - The 2026-03-24 Calico failure was caused by enabling BGP/IPIP (Bird
+#     crashed with "IP=Never" IP-autodetection error). VXLAN avoids that.
+#   - nodeAddressAutodetectionV4: canReach: 8.8.8.8 prevents the IP=Never
+#     autodetection failure on NixOS (picks the interface with the default route).
+#
+# NixOS note: the operator's install init container writes CNI binaries to the
+# k8s CNI bin dir. On NixOS the root is read-only, so point at k3s's mutable
+# CNI dir and ensure the binaries land there (see cluster comment in
+# k8s-manifest-autoapply.nix: "static nft binary"). Set UPDATE_CNI_BINARIES
+# false only if calico/calico-ipam are already present in the bin dir.
 apiVersion: operator.tigera.io/v1
 kind: Installation
 metadata:
@@ -17,21 +30,24 @@ spec:
 
   cni:
     type: Calico
+    # k3s containerd CNI bin_dir (read-only store symlink, but root-writable
+    # btrfs on this cluster). The Tigera operator's install init container
+    # writes calico + calico-ipam here at runtime (runs as root).
+    cniBinDir: /var/lib/rancher/k3s/data/cni
 
   calicoNetwork:
-    # VXLAN encapsulation — works everywhere, no special kernel/modules needed
-    # MTU 1440 = 1500 - 50 (VXLAN 8 + UDP 8 + outer IP 20 + ethernet 14)
-    # Slightly conservative to handle intermediate hops on canReach path
+    # VXLAN encapsulation — works everywhere, no special kernel/modules needed.
+    # MTU 1440 = 1500 - 60 (VXLAN 8 + UDP 8 + outer IP 20 + ethernet 14).
     mtu: 1440
 
+    # Use canReach to auto-detect the node IP via the default route.
+    # This is the fix for the historical "IP=Never" Bird autodetection crash.
     nodeAddressAutodetectionV4:
-      # Use canReach to auto-detect the interface with internet access
-      # Works regardless of interface name differences across nodes
       canReach: 8.8.8.8
 
-    # Pod CIDR — must match k3s --cluster-cidr
+    # Pod CIDR — MUST match k3s --cluster-cidr (10.42.0.0/16).
     ipPools:
-    - cidr: 10.244.0.0/16
+    - cidr: 10.42.0.0/16
       encapsulation: VXLAN
       natOutgoing: Enabled
       nodeSelector: all()

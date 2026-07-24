@@ -87,8 +87,8 @@
   # font files on fontconfig's search path. Without this, `fc-match
   # "JetBrainsMono Nerd Font"` resolves to DejaVu Sans, so terminals /
   # fastfetch / starship render Nerd glyphs as missing-character squares.
-  # Adding the package to `fonts.fonts` symlinks it into the font dir and
+  # Adding the package to `fonts.packages` symlinks it into the font dir and
   # registers it with fontconfig system-wide.
-  fonts.fonts = [ pkgs.nerd-fonts.jetbrains-mono ];
+  fonts.packages = [ pkgs.nerd-fonts.jetbrains-mono ];
 
 }

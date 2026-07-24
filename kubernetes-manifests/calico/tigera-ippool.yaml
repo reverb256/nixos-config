@@ -1,10 +1,12 @@
+# Calico IPPool — MUST match k3s --cluster-cidr (10.42.0.0/16).
+# VXLAN encapsulation (no BGP). natOutgoing enables pod egress to the LAN/internet.
 apiVersion: crd.projectcalico.org/v1
 kind: IPPool
 metadata:
   name: default-ipv4-ippool
 spec:
   blockSize: 26
-  cidr: 10.244.0.0/16
+  cidr: 10.42.0.0/16
   ipipMode: Never
   vxlanMode: Always
   natOutgoing: true
