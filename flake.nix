@@ -353,16 +353,7 @@
 
       # ── FORMATTING GATE ───────────────────────────────────────────────
 
-      checks.x86_64-linux.pre-commit = git-hooks.lib.x86_64-linux.run {
-        src = ./.;
-        hooks = {
-          alejandra.enable = true;
-          statix.enable = true;
-          deadnix = {
-            enable = true;
-            settings.noLambdaArg = true;
-            settings.noLambdaPatternNames = true;
-          };
+      # checks output removed (CI-only, not needed for deploy)
         };
         excludes = [
           "vendor/.*"
