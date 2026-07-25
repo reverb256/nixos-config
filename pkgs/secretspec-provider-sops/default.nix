@@ -15,6 +15,13 @@
 # Both binaries are built:
 #   $out/bin/secretspec-provider-sops            (CLI: get / doctor)
 #   $out/bin/secretspec-provider-sops-protocol   (NDJSON stdio dispatcher for cachix fork)
+#
+# DIS_RAD fix applied below: `lib.cleanSource` on local-fork src, plus
+# Path-type concatenation (`+ "/..."`) instead of `toString path + "/..."` —
+# this forces Nix's implicit copy-to-store semantics so buildRustPackage's
+# cargoSetupPostUnpackHook doesn't follow a symlink back to the absolute
+# local-home-dir path (failing as Permission denied when cargo-vendor-dir
+# cache entry has 0555 root:root perms).
 let
   localForkSubcrate = /home/j_kro/Projects/secretspec/provider-rust;
   remote = fetchFromGitHub {
@@ -25,12 +32,22 @@ let
   };
   sources = if builtins.pathExists localForkSubcrate
     then {
-      src = localForkSubcrate;
-      lockFile = toString localForkSubcrate + "/Cargo.lock";
+      src = lib.cleanSource localForkSubcrate;
+      lockFile = localForkSubcrate + "/Cargo.lock";
     }
     else {
-      src = toString remote + "/provider-rust";
-      lockFile = toString remote + "/provider-rust/Cargo.lock";
+      # fetchFromGitHub output is already a /nix/store-resident
+      # extracted directory. Path-type `+` against it Just Works.
+      # Upstream assumption: the `v0.1.0` gateway tag's tarball extracts as
+      # `secretspec-provider-sops-0.1.0/<contents>` but fetchFromGitHub
+      # strips the versioned top-level directory — leaving the inner
+      # `provider-rust/` subdir at the extract root. The `+ "/provider-rust"`
+      # concat therefore resolves correctly against the extracted tree.
+      # If a future release publishes a tag without that internal subdir,
+      # this branch needs to drop the `/provider-rust` suffix and just
+      # use `src = remote;` + `lockFile = remote + "/Cargo.lock";`.
+      src = remote + "/provider-rust";
+      lockFile = remote + "/provider-rust/Cargo.lock";
     };
 in
 rustPlatform.buildRustPackage {
