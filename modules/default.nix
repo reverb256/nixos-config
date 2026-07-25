@@ -62,6 +62,7 @@
     ./hardware/nvidia-common.nix
     ./hardware/nvidia-wayland.nix
     ./hardware/amdgpu-wayland.nix
+    ./hardware/nvidia-niri-profile.nix
 
     # Desktop environment
     ./desktop/desktop.nix

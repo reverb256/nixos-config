@@ -25,7 +25,7 @@
       comment = "A scrollable-tiling Wayland compositor";
       # HDR fork binary (build from dividebysandwich/niri hdr-smithay-master)
       # Rebuild with: cd /tmp/niri-hdr && cargo build --release && sudo cp target/release/niri /usr/local/bin/niri-hdr
-      binPath = "/usr/local/bin/niri-hdr";
+      binPath = lib.mkForce "/usr/local/bin/niri-hdr";
     };
   };
 

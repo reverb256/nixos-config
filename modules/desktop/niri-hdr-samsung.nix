@@ -11,6 +11,18 @@ in {
     enable = mkEnableOption "NVIDIA tuning + Samsung TV HDR config for niri";
   };
 
+  # Declare programs.niri.settings as a free-form attrset option.
+  # The pinned nixpkgs version (9ae611a4) doesn't include programs.niri.settings
+  # as a declared sub-option; home-manager's niri config provides it via
+  # the sodiboo/niri-flake homeModules, but the NixOS-level module doesn't.
+  # Declaring it here avoids evaluation failure while keeping the options
+  # available for runtime niri config generation.
+  options.programs.niri.settings = lib.mkOption {
+    type = lib.types.attrsOf lib.types.anything;
+    default = {};
+    description = "Niri compositor settings (declared locally for niri-hdr-samsung)";
+  };
+
   config = mkIf cfg.enable {
     # Extend niri settings with NVIDIA tuning and Samsung TV HDR output
     programs.niri.settings = {
