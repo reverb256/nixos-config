@@ -1,0 +1,43 @@
+---
+apiVersion: "apps/v1"
+kind: "Deployment"
+metadata:
+  name: "mosaic-bridge-atproto"
+  namespace: "orchestration"
+  labels:
+    app: "mosaic-bridge-atproto"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "mosaic-bridge-atproto"
+  template:
+    metadata:
+      labels:
+        app: "mosaic-bridge-atproto"
+    spec:
+      initContainers: []
+
+      containers:
+        -
+          name: "bridge"
+          image: "nexus:5000/mosaic-bridges:v0.1.0"
+          imagePullPolicy: "IfNotPresent"
+          env:
+            -
+              name: "MIS_URL"
+              value: "http://mosaic-identity:8081"
+            -
+              name: "BRIDGE_TYPE"
+              value: "atproto"
+          securityContext:
+            runAsUser: 100
+            runAsGroup: 101
+            runAsNonRoot: true
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "32Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
