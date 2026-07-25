@@ -170,7 +170,9 @@
     # `toString forkSrc + "/provider-rust"`, so we rely on that to scope the build.
     # Same full-clone requirement as the secretspec input above.
     secretspec-provider-sops = {
-      url = "github:reverb256/secretspec-provider-sops";
+      # Feature branch with two-strategy handle_get (file#key resolution) for
+      # ref-based routing. Merge to main once validated.
+      url = "github:reverb256/secretspec-provider-sops/feature/two-strategy-handle-get";
       flake = false;
     };
   };
