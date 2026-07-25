@@ -7,16 +7,6 @@
   cluster = config.networking.cluster;
 in {
   services = {
-    k3s-cluster = {
-      enable = true;
-      nvidia.enable = true;
-      role = "agent";
-      nodeName = "zephyr";
-      serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
-      tokenFile = "/run/secrets/k3s-cluster-token";
-      nodeIP = cluster.hosts.zephyr.ip;
-    };
-
     peakminer = {
       enable = true;
       wallet = "krxXVNVMM7";
@@ -63,8 +53,6 @@ in {
 
     gaming-detection.enable = lib.mkForce false;
     gpu-profile-manager.enable = lib.mkForce false;
-    lpminer.enable = lib.mkForce false;
-    srbminer.enable = lib.mkForce false;
   };
 
   # Auth-translator proxy for krash1.5 Windows miner
@@ -83,28 +71,6 @@ in {
           --target prl-us.kryptex.network:7048 \
           --wallet krxXVNVMM7 \
           --worker krash15-4060
-      '';
-      Restart = "always";
-      RestartSec = 10;
-    };
-  };
-
-  # Auth-translator proxy for krash3-4060 Windows miner
-  systemd.services.peakminer-proxy-krash3-4060 = {
-    description = "PeakMiner auth-translator proxy - krash3-4060";
-    after = ["network-online.target"];
-    wantedBy = ["multi-user.target"];
-    wants = ["network-online.target"];
-    serviceConfig = {
-      Type = "simple";
-      User = "root";
-      ExecStart = pkgs.writeShellScript "peakminer-proxy-krash3-4060" ''
-        ${pkgs.peakminer}/bin/peakminer-proxy \
-          --listen-host 0.0.0.0 \
-          --listen-port 30004 \
-          --target prl-us.kryptex.network:7048 \
-          --wallet krxXVNVMM7 \
-          --worker krash3-4060
       '';
       Restart = "always";
       RestartSec = 10;
