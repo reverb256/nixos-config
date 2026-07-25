@@ -1,0 +1,23 @@
+# Ephemeral bridge manifest for `just secretspec-validate-local` end-to-end test.
+#
+# This template is copied to $BDIR/test-manifest.toml at validation time, then
+# sed-substituted to inject the actual temp-dir path into the `sops://` and
+# `dotenv://` URIs. The cluster's `secretspec-validate-local` recipe uses
+# absolute paths to avoid heredoc/just-parser whitespace conflicts inside the
+# justfile recipe body — `cp` + `sed` keeps the recipe body pure 4-space
+# indented (just rejects any tab/space mixing in a single recipe).
+#
+# The provider fork's CI bridge fixture (in /home/j_kro/Projects/secretspec/
+# .github/workflows/ci.yml) uses the same template structure, so drift between
+# cluster and provider-fork validation stays zero.
+[project]
+name = "ci-bridge-fixture"
+revision = "test"
+
+[providers]
+sops = "sops://@BDIR@"
+env = "env://"
+dotenv = "dotenv://@BDIR@/.env.bridge"
+
+[profiles.default]
+providers = ["sops"]
