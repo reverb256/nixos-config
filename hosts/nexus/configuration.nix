@@ -39,7 +39,6 @@
     ../../modules/services/nexus-de-vm.nix
 
     # SecretSpec Phase 4 credential provisioning (parallel with sops registry)
-    ../../modules/system/secretspec-creds.nix
 
     # Kubernetes
     ../../modules/services/k3s-cluster.nix
@@ -76,7 +75,7 @@
   services.nexus-de-vm.enable = true;
 
   # Directly disable the systemd timer (blocking rebuilds)
-  systemd.timers.flake-lock-sync.enable = false;
+  systemd.timers.flake-lock-sync.enable = lib.mkForce false;
 
   # STATUS.md auto-update (hourly from kubectl)
   services.status-auto-update.enable = true;
@@ -123,7 +122,7 @@
   # Autologin into Niri on boot (instead of Plasma).
   # To switch compositor, logout and pick from SDDM's session picker.
   programs.niri.enable = true;
-  services.displayManager.defaultSession = "niri";
+  # services.displayManager.defaultSession = "niri";  # headless, no DM
 
   # ============================================================================
   # MONITORING - Prometheus, Grafana, AlertManager
@@ -419,7 +418,7 @@
 
     # GPU Proxy - DISABLED: Using centralized gpu-proxy-cpp on Forge (10.1.1.130:3334)
     # gpu-proxy = {
-    #   enable = false;
+    #   enable = lib.mkForce false;
     #   listenPort = 3334;
     #   apiPort = 8083;
     #   logLevel = "INFO";
@@ -539,10 +538,6 @@
   # ============================================================================
   # Centralized registry - see modules/system/agenix-secrets-registry.nix
   # SecretSpec Phase 4 — credential provisioning (replaces sops-nix)
-  services.secretspec-creds = {
-    enable = true;
-    secrets = import ./secretspec-creds-wiring.nix;
-  };
 
   # Override specific secret permissions for mining service
 
