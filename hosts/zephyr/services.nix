@@ -269,6 +269,29 @@ in {
     hermes-cli = {
       enable = true;
       user = "j_kro";
+
+      # Phase 2 E2 migration (2026-07-25 pilot): secretspec-resolved
+      # credentials via cachix-fork sops:// NDJSON dispatcher (Phase 1a).
+      # The hermes-config-secrets.service runs `secretspec get <route>`
+      # for each entry and writes the resolved value to ~/.hermes/.env
+      # AFTER the Path B sops-nix blocks (Path A wins for any env var
+      # defined in both paths). The E1 fallback (Path B = `*ApiKeyFile = "..."`)
+      # remains active until operator confirms and drops the stale lines.
+      #
+      # Note: HUGGINGFACE_TOKEN + GITHUB_TOKEN are listed for forward
+      # consistency with /etc/nixos/secretspec.toml, but neither has a
+      # wired `*ApiKeyFile = "..."` line in this host config — they will
+      # resolve via Path A only. If `secretspec get` returns empty for
+      # those routes, Path A logs WARN and Herme doesn't get those env
+      # vars (caller falls through to ~/.hermes/.env defaults / vault).
+      secretspecEnvVarMappings = {
+        "NVIDIA_API_KEY"      = "NVIDIA_API_KEY";
+        "OPENCODE_API_KEY"    = "OPENCODE_ZEN_API_KEY";
+        "OPENCODE_GO_API_KEY" = "OPENCODE_GO_API_KEY";
+        "HUGGINGFACE_TOKEN"   = "HUGGINGFACE_TOKEN";
+        "GITHUB_TOKEN"        = "GITHUB_TOKEN";
+      };
+
       nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
       opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
       opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
@@ -323,6 +346,12 @@ in {
   };
 
   services.appimage-updater.enable = lib.mkForce false;
+
+  # Phase 1b/1c (2026-07-25): explicit per-host opt-in for the secretspec-validator
+  # systemd unit. The cachix-fork secretspec is now a flake input (Phase 1a) — no
+  # impure-eval coupling needed. cluster.localSealSupport option was removed
+  # (vestigial after Phase 1a made the fork probe unnecessary).
+  services.secretspec-validator.enable = true;
 
   services.sops-secrets-registry = {
     # ALL categories enabled — verified decrypt OK on all categories

@@ -1,23 +1,38 @@
 # Plan: `cluster.localSealSupport` Scope — Zephyr-only vs Cluster-wide
 
-**Created:** 2026-07-25 | **Implementation Status:** ✅ LANDED (Option B)
-**Last Verified:** 2026-07-25 (post-Option-B implementation)
+**Created:** 2026-07-25 | **Implementation Status:** ⚠️ SUPERSEDED (Option B dissolved by Phase 1b on 2026-07-25; the impure-eval coupling it patched around is no longer needed because Phase 1a converted both forks to flake inputs)
+**Last Verified:** 2026-07-25 (post-Phase-1a/1b implementation; Option B archived)
 
 ---
 
-## Outcome (2026-07-25)
+## Outcome (2026-07-25, post-Phase 1a/1b)
 
-**Decision: Option B — cluster-wide auto-couple.** `cluster.localSealSupport` is
-now a `lib.mkOption { type = bool; default = config.services.sops-secrets-registry.enable; }`
+> **⚠️ SUPERSEDED.** The Option B implementation described below was
+> dissolved on the same day by Phase 1b (2026-07-25), which removed the
+> `cluster.localSealSupport` option entirely. Phase 1a (also 2026-07-25)
+> upstreamed the fork + provider-rust as flake inputs, eliminating the
+> impure-eval probe that Option B was patching around. This document is
+> retained as a historical record of the Option B decision cycle.
+
+**Historical decision record (Option B, dissolved).** `cluster.localSealSupport`
+was implemented as a `lib.mkOption { type = bool; default = config.services.sops-secrets-registry.enable; }`
 in `modules/system/secretspec-cluster-mode.nix`. Any host with the sops-registry
-enabled implicitly gets `nix.settings.pure-eval = false` and the local-fork probe
-fires. Zephyr's explicit `cluster.localSealSupport = true;` line was removed
-(redundant after auto-couple). The validator unit on forge/nexus/sentry now builds
-with `sops://` available — closing the validator-fork-resolution gap surfaced by
-the cross-host drift audit.
+enabled implicitly got `nix.settings.pure-eval = false` and the local-fork probe
+fired. Zephyr's explicit `cluster.localSealSupport = true;` was removed
+(redundant after auto-couple). The validator unit on forge/nexus/sentry built
+with `sops://` available.
 
-Cluster trust model: single-operator homelab. Impure-eval security broadening is
-acceptable here (pathExists probe restricted to one specific dir per host).
+**Phase 1a/1b resolution (current state).** The cachix-fork secretspec and
+the provider-rust fork are now flake inputs in `flake.nix`:
+`inputs.secretspec` and `inputs.secretspec-provider-sops`. `git+file://`
+flakerefs are pure-eval-safe, so the impure-eval probe was removed
+entirely. The validator module's `default` is now `false` (opt-in per host).
+The `cluster.localSealSupport` option is removed (its module is a stub).
+
+Cluster trust model: single-operator homelab. The impure-eval broadening was
+acceptable here (pathExists probe restricted to one specific dir per host)
+but is no longer needed because Phase 1a replaces the probe with flake-input
+content addressing.
 
 ---
 
@@ -50,16 +65,21 @@ sops://, fails silently at the systemd layer.
 
 | Site | Status |
 |---|---|
-| `pkgs/secretspec/default.nix` — `lib.cleanSource localForkPath` + impure flag for build | ✅ landed |
-| `pkgs/secretspec-provider-sops/default.nix` — same hygiene + dropped `toString` (Path-concat) | ✅ landed |
-| `just secretspec-validate-local` — passes pure-eval=false end-to-end | ✅ GREEN |
-| `just secretspec-rebuild` — both packages built from local fork | ✅ GREEN |
-| `just build` / `hermes-update*` / `deploy-nexus` / `validate-k8s` — `--option pure-eval false` | ✅ landed |
-| `cluster.localSealSupport` option (modules/system/secretspec-cluster-mode.nix) | ✅ module landed |
-| `cluster.localSealSupport` auto-couple default = sops-registry.enable (Option B) | ✅ landed |
-| `modules/system/secretspec-validator.nix` — IMPURE-EVAL COUPLING NOTE comment (auto-couple-aware) | ✅ landed |
-| `hosts/zephyr/configuration.nix` — explicit `cluster.localSealSupport = true;` removed (now auto-coupled) | ✅ landed |
-| `knowledge.md` — impure-eval gotcha subsection updated to describe auto-couple | ✅ landed |
+| Site | Status | Closed |
+|---|---|---|
+| `pkgs/secretspec/default.nix` — `lib.cleanSource localForkPath` + impure flag for build | ✅ landed | 2026-07-25 |
+| `pkgs/secretspec-provider-sops/default.nix` — same hygiene + dropped `toString` (Path-concat) | ✅ landed | 2026-07-25 |
+| `just secretspec-validate-local` — passes pure-eval=false end-to-end | ✅ GREEN | 2026-07-25 |
+| `just secretspec-rebuild` — both packages built from local fork | ✅ GREEN | 2026-07-25 |
+| `just build` / `hermes-update*` / `deploy-nexus` / `validate-k8s` — `--option pure-eval false` | ✅ landed | 2026-07-25 |
+| `cluster.localSealSupport` option (modules/system/secretspec-cluster-mode.nix) | ✅ module landed → 🔁 REVERTED (Phase 1b) | 2026-07-25 |
+| `cluster.localSealSupport` auto-couple default = sops-registry.enable (Option B) | ✅ landed → 🔁 REVERTED (Phase 1b) | 2026-07-25 |
+| `modules/system/secretspec-validator.nix` — IMPURE-EVAL COUPLING NOTE comment (auto-couple-aware) | ✅ landed | 2026-07-25 |
+| `hosts/zephyr/configuration.nix` — explicit `cluster.localSealSupport = true;` removed (now auto-coupled) | ✅ landed | 2026-07-25 |
+| `knowledge.md` — impure-eval gotcha subsection updated to describe auto-couple | ✅ landed | 2026-07-25 |
+| `modules/system/secretspec-cluster-mode.nix` + `…-validator.nix` — defensive `or false` access on sops-registry default | ✅ landed | 2026-07-25 |
+| `modules/system/secretspec-cluster-mode.nix` — malformed-merged-line comment fixed | ✅ landed | 2026-07-25 |
+| `justfile validate-k8s` — unnecessary `--option pure-eval false` removed (parity-noise) | ✅ landed | 2026-07-25 |
 
 ---
 
@@ -97,7 +117,7 @@ sops://, fails silently at the systemd layer.
 
 ## Recommended Decision (archived — see Outcome above)
 
-<!-- Archived 2026-07-25: superseded by Outcome (2026-07-25) section above. Kept for audit trail. -->
+> **ARCHIVED** — superseded by the Outcome (2026-07-25) section above; retained for reasoning trail.
 
 **Recommended Option B** (cluster-wide `cluster.localSealSupport = true` on every host
 that has `services.sops-secrets-registry.enable = true` or `services.secretspec-validator.enable = true`).
@@ -116,7 +136,7 @@ Reasoning (recorded at decision time):
 
 ## Implementation Steps (Option B — archived; see Drift Cycle History above)
 
-<!-- Archived 2026-07-25: superseded by Drift Cycle History table above. Kept for audit trail. -->
+> **ARCHIVED** — superseded by the Drift Cycle History table above; retained for audit-trail purposes.
 
 1. Update `modules/system/secretspec-cluster-mode.nix`:
    ```nix
@@ -137,8 +157,14 @@ Reasoning (recorded at decision time):
 
 ## Open Questions for Operator
 
-- [RESOLVED per Outcome above] What was the cluster's trust model for impure-eval?
+### Resolved (per Outcome above)
+
+- What was the cluster's trust model for impure-eval?
   Answer: single-operator homelab. Security broadening acceptable.
+  → Closed 2026-07-25.
+
+### Still Open
+
 - Are there hosts that want validator OFF but impure-eval OFF too? (Decoupling would
   require a separate option — `cluster.pure-eval` instead of coupling to validator.)
 - Does the cachix fork branch (feature/sops-provider-subprocess-dispatch) need to be
@@ -151,6 +177,7 @@ Reasoning (recorded at decision time):
 - `pkgs/secretspec/default.nix` — fork source definition (localForkPath / remote)
 - `pkgs/secretspec-provider-sops/default.nix` — subcrate source definition
 - `modules/system/secretspec-cluster-mode.nix` — `cluster.localSealSupport` opt-in
+  (stub now; option removed by Phase 1b 2026-07-25)
 - `modules/system/secretspec-validator.nix` — `services.secretspec-validator` module
   + IMPURE-EVAL COUPLING NOTE (pending this PR)
 - `hosts/zephyr/configuration.nix` — current-only enable site (line 75)

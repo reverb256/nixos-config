@@ -15,63 +15,19 @@
     then "production"
     else "default";
 
-  # Auto-couple the validator to the sops-secrets-registry so that any
-  # host which has secretspec.toml in scope also validates it. Operators
-  # who want to opt out still can — default = registry-coupled. The `?`-
-  # test guard handles the edge case where a host imports this validator
-  # module but doesn't import the sops-registry module — without the
-  # guard, the `enable` access throws at eval time. (Note: `or false`
-  # alone would NOT defend here — it only catches `null`, not missing
-  # attribute paths; the explicit `?` test is required.)
-  # Soft default — host-set `services.secretspec-validator.enable = false;`
-  # overrides this auto-coupled default (host-set value assignments
-  # override module-side defaults in option merge). Edge case: a host
-  # importing sops-registry as `null` will still throw at `.enable`
-  # access — NixOS modules don't normally produce null attrsets, but
-  # external importers could.
-  defaultEnable = if config.services ? sops-secrets-registry
-                  then config.services.sops-secrets-registry.enable
-                  else false;
 in {
-  # ─── IMPURE-EVAL COUPLING NOTE ───────────────────────────────────────
-  # This module declares `services.secretspec-validator.enable` as a systemd
-  # one-shot that runs `secretspec check` on activation. The check requires
-  # the `sops://` provider backend, sourced from a local fork checkout at
-  # `~/Projects/secretspec/provider-rust` (see pkgs/secretspec-provider-sops).
-  # The flake probes that local fork via `builtins.pathExists`, which is
-  # blocked under default pure-eval.
-  #
-  # Since Option B auto-coupling landed in
-  # modules/system/secretspec-cluster-mode.nix, this validator no longer
-  # requires any manual `cluster.localSealSupport = true` declaration — it
-  # auto-fires wherever `services.sops-secrets-registry.enable = true` is
-  # set. Hosts with sops-registry enabled but NO local fork checkout still
-  # fall through to the upstream cachix tarball (no sops:// registration),
-  # and the systemd unit will fail at activation with
-  # "Provider backend 'sops' not found" — fail-loud by design. CI runners
-  # and fresh-clone hosts SHOULD set `services.sops-secrets-registry.enable
-  # = false` (or use a host config that doesn't import the registry) to
-  # avoid widening the impure-eval surface unnecessarily.
-  #
-  # Why this is a comment and not a lib.types.assert check: assertions
-  # against config.services.secretspec-validator.enable would force build of
-  # a closure the operator might not want validated yet. Keep coupling
-  # documented-but-flexible.
-  # ─────────────────────────────────────────────────────────────────────────
-
   options.services.secretspec-validator = {
     enable = lib.mkOption {
       type = lib.types.bool;
-      default = defaultEnable;
-      defaultText = lib.literalExpression "config.services.sops-secrets-registry.enable";
+      default = false;
       description = ''
         Whether to run `secretspec check --file <manifestPath>
         --profile <profile>` as a systemd one-shot on multi-user.target.
 
-        Defaults to whatever `services.sops-secrets-registry.enable` is set
-        to on this host: the validator is meaningful only on hosts that
-        have a sops registry to validate against. Set this option
-        explicitly to override.
+        Default is `false` (Phase 1a/1b, 2026-07-25): the validator is
+        now opt-in per host. Hosts that wish to enforce SecretSpec schema
+        validation at activation must set this option explicitly in
+        hosts/<host>/services.nix.
 
         On failure the unit stays failed and blocks downstream services
         whose units declare `After=secretspec-validator.service`. This is
@@ -101,9 +57,9 @@ in {
       default = true;
       description = ''
         When true (default), an unresolved required secret causes the
-        systemd unit to fail. When false, the unit warns-and-succeeds,
-        useful during initial Phase 1 rollout when dotenv values aren't
-        yet populated for every secret.
+        systemd unit to fail. When false, the unit warns-and-succeeds;
+        useful when dotenv values aren't yet populated for every secret
+        (e.g. fresh dev environments or before re-keying legacy secrets).
       '';
     };
 
@@ -145,9 +101,9 @@ in {
           cmd';
         # Wire the sops:// subprocess dispatcher into the secretspec binary
         # so `providers = ["sops"]` chains resolve via NDJSON over stdio.
-        # Required for Phase 2 — without this, `secretspec check` falls back
-        # to env/dotenv providers only and the validator reports every
-        # sops-routed secret as unresolved.
+        # Without this env var, `secretspec check` falls back to env/dotenv
+        # providers only and the validator reports every sops-routed
+        # secret as unresolved.
         Environment = [
           "SECRETSPEC_SOPS_PROVIDER_BIN=${pkgs.secretspec-provider-sops}/bin/secretspec-provider-sops-protocol"
         ];
