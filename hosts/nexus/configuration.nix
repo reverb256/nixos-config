@@ -35,6 +35,9 @@
     ../../modules/security/aistor-secrets.nix
     ../../modules/services/podman-support.nix
 
+    # Windows 11 IoT LTSC gaming VM (libvirt + dynamic GPU handoff)
+    ../../modules/services/nexus-de-vm.nix
+
     # Kubernetes
     ../../modules/services/k3s-cluster.nix
     ../../modules/services/mosaic-k3s-manifests.nix
@@ -65,6 +68,9 @@
 
   # Disable flake-lock-sync (nixos-shared mount not available)
   services.flake-lock-sync.enable = lib.mkForce false;
+
+  # Windows 11 IoT LTSC gaming VM on the 3060 Ti (libvirt dynamic handoff)
+  services.nexus-de-vm.enable = true;
 
   # Directly disable the systemd timer (blocking rebuilds)
   systemd.timers.flake-lock-sync.enable = false;
