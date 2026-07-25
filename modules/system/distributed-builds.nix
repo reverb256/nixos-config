@@ -75,8 +75,6 @@ in {
         then 8
         else if currentHost == "forge"
         then 6
-        else if currentHost == "krash3"
-        then 3
         else 4
       );
 
@@ -94,8 +92,6 @@ in {
         then 8
         else if currentHost == "forge"
         then 4
-        else if currentHost == "krash3"
-        then 3
         else 4
       );
 
@@ -204,16 +200,6 @@ in {
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 4;
               speedFactor = 4;
-              supportedFeatures = ["big-parallel"];
-              mandatoryFeatures = [];
-            }
-            {
-              hostName = "krash3";
-              systems = ["x86_64-linux"];
-              sshUser = "j_kro";
-              sshKey = "~/.ssh/id_ed25519";
-              maxJobs = 3;
-              speedFactor = 2;
               supportedFeatures = ["big-parallel"];
               mandatoryFeatures = [];
             }
