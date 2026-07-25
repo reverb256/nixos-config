@@ -89,7 +89,7 @@ else mkDerivation rec {
   # is absent (e.g., CI runners, fresh clones).
   src = fetchurl {
     url = "https://github.com/cachix/secretspec/releases/download/v${version}/secretspec-x86_64-unknown-linux-gnu.tar.xz";
-    sha256 = "70ea5c1a851167dc00e3359d9c22e4344d2d46e3e528b9fb6c072e519e959b85";
+    sha256 = "KFzO/x6WVdnj8jcfVlOXVfP26maeW4tnc+jq+CO8PBc=";
   };
 
   nativeBuildInputs = [ autoPatchelfHook ];
