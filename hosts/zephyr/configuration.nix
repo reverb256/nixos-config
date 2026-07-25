@@ -996,10 +996,6 @@
   # See: modules/mining/mining.nix -> nvidia-gpu-power-limit.service
 
   # Systems Intelligence Plasmoid - Cluster monitoring widget
-  programs.systems-intelligence-plasmoid.enable = true;
-  programs.systems-intelligence-plasmoid.prometheusUrl = "http://127.0.0.1:9090";
-  programs.systems-intelligence-plasmoid.refreshInterval = 5000;
-  programs.systems-intelligence-plasmoid.clusterNodes = "zephyr,nexus,forge,sentry";
 
   # LM Studio - Local LLM inference with GPU acceleration
   programs.lm-studio.enable = true;

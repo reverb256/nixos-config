@@ -3,7 +3,6 @@
 {inputs, ...}: {
   home-manager = {
     # No backups - configs are declarative and version-controlled
-    backupFileExtension = null;
 
     # Pass inputs to user configs so flake inputs are accessible
     extraSpecialArgs = {inherit inputs;};
