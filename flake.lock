@@ -754,6 +754,23 @@
         "url": "https://github.com/sodiboo/niri-flake"
       }
     },
+    "niri-hdr": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1783683903,
+        "narHash": "sha256-Y8X2bTuboCAQ9E67ri9kTMkzBYU+1o3iCHCOVWctxLo=",
+        "owner": "dividebysandwich",
+        "repo": "niri",
+        "rev": "2516a83b3eef5f3a766af5113244357a11e255a6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "dividebysandwich",
+        "ref": "hdr-smithay-master",
+        "repo": "niri",
+        "type": "github"
+      }
+    },
     "niri-stable": {
       "flake": false,
       "locked": {
@@ -1206,6 +1223,7 @@
         "lsfg-vk-nix": "lsfg-vk-nix",
         "mcp-registry": "mcp-registry",
         "niri": "niri",
+        "niri-hdr": "niri-hdr",
         "nix-cachyos-kernel": "nix-cachyos-kernel",
         "nixcord": "nixcord",
         "nixpkgs": "nixpkgs_3",
@@ -1282,15 +1300,16 @@
     "secretspec-provider-sops": {
       "flake": false,
       "locked": {
-        "lastModified": 1784806535,
-        "narHash": "sha256-LdNi3L7jJJWZ3eTIbIzTfFSJSKa4Ant8ZdB7K/qKabI=",
+        "lastModified": 1785010442,
+        "narHash": "sha256-Mev414zw/Bjk2mL1oxcL4jnN0MCo+ot8clPN9SpuGVE=",
         "owner": "reverb256",
         "repo": "secretspec-provider-sops",
-        "rev": "24e4813bb0d418ab93630e55710615aa32965cd5",
+        "rev": "87315a2006658345a004654557555e58c5970fb9",
         "type": "github"
       },
       "original": {
         "owner": "reverb256",
+        "ref": "feature/two-strategy-handle-get",
         "repo": "secretspec-provider-sops",
         "type": "github"
       }
