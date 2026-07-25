@@ -25,7 +25,10 @@
   wivrn = prev.wivrn.overrideAttrs (old: {
     cmakeFlags = old.cmakeFlags ++ ["-DWIVRN_FEATURE_STEAMVR_LIGHTHOUSE=ON"];
   });
-  # assimp tests fail on musl; disable globally since nothing in this config needs them
+  niri-hdr = prev.callPackage ./pkgs/niri-hdr.nix {
+    inherit (prev) niri-unstable;
+  };
+
   assimp = prev.assimp.overrideAttrs (_old: {
     doCheck = false;
   });
