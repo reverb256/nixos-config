@@ -19,7 +19,7 @@ in {
         --arg gateway_base "${gatewayUrl}/v1" \
       --arg nvidia_base "${nvidiaNimBaseUrl}" \
       '{
-        "providers":,
+        "providers": {
           "nvidia-nim": {
             "id": "nvidia-nim",
             "name": "NVIDIA NIM",
