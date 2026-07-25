@@ -1,6 +1,6 @@
 # Infrastructure Audit — 2026-05-14
 
-> **⚠️ 9 days old, approaching staleness threshold (7 days). Re-verify key metrics before relying.**
+> **⚠️ STALE. This is a 2026-05-14 point-in-time audit snapshot (71+ days old at last read). Figures here — RAM/CPU usage, pod counts, namespace classifications, ingress status — have drifted significantly since the snapshot. Do NOT use this file's figures as current-state references UNLESS you re-run the audit process and confirm numbers still match the cluster. Documented cluster state changes since this audit live in `.plans/` files (e.g., `.plans/2026-07-25-cluster-localSealSupport-scope.md` for the cluster LocalSealSupport drift cycle); they are NOT in this snapshot. See `.plans/` directory listing for the full set of post-audit drift markers.**
 
 ## Cluster Overview
 

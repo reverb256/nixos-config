@@ -635,12 +635,12 @@ validate-k8s:
     #!/usr/bin/env bash
     set -e
     cd {{FLAKE}}
-    # --option pure-eval false included for parity with every other secretspec-touching
-    # nix build invocation in this justfile. k8s manifests don't transitively
-    # depend on pkgs.secretspec (they're YAML/Kustomize) so this isn't strictly
-    # correctness-required, but it keeps the cluster-path flag uniform across
-    # all flakes-touching invocations — easier to grep + reason about.
-    nix build --option pure-eval false .#kubernetesManifests 2>/dev/null && echo "K8s manifests built" || nix --option pure-eval false run .#k8s-validate 2>/dev/null || echo "k8s-validate not available"
+    # No --option pure-eval false: k8s manifests don't transitively depend on
+    # pkgs.secretspec (they're YAML/Kustomize), so flake pure-eval restrictions
+    # don't apply. Other recipes in this justfile still need the flag for the
+    # cachix-fork buildRustPackage path (validate-local, build, hermes-update*,
+    # deploy-nexus) — those reach `builtins.pathExists` on the local fork.
+    nix build .#kubernetesManifests 2>/dev/null && echo "K8s manifests built" || nix run .#k8s-validate 2>/dev/null || echo "k8s-validate not available"
 
 # Validate all *.yaml/*.yml files in the repo. Lenient of Nix toJSON, SOPS, and
 # Helm output (tab indentation, JSON-as-YAML). Surfaces real syntax errors.
@@ -1071,3 +1071,50 @@ lint:
 # Format all .nix files with alejandra (in-place).
 fmt:
     alejandra --exclude modules/system/agenix-secrets-registry.nix --exclude modules/home-manager/default.nix --exclude modules/services/spacebot/container.nix --exclude kubernetes/modules .
+
+# ── Mosaic Identity Service ──────────────────────────────────────────────────
+
+# Build MIS Docker image and push to local registry
+mosaic-build:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Building MIS on nexus..."
+    ssh nexus "cd /home/j_kro/Projects/astral-key && \
+        docker build -t nexus:5000/mosaic-identity:latest -f Dockerfile . && \
+        docker push nexus:5000/mosaic-identity:latest"
+    echo "MIS image pushed to nexus:5000/mosaic-identity:latest"
+
+# Deploy MIS to cluster
+mosaic-deploy:
+    kubectl apply -f /etc/nixos/k8s/mosaic-identity/
+    echo "MIS deployed. Check: kubectl -n orchestration get pods -l app=mosaic-identity"
+
+# Deploy all bridge plugins
+mosaic-bridges-deploy:
+    kubectl apply -f /etc/nixos/k8s/mosaic-bridges/
+    echo "Bridges deployed."
+
+# Deploy MIS + all bridges
+mosaic-up: mosaic-build mosaic-deploy mosaic-bridges-deploy
+
+# Check MIS status
+mosaic-status:
+    kubectl -n orchestration get pods -l app=mosaic-identity
+    kubectl -n orchestration get svc mosaic-identity
+    echo "---"
+    kubectl -n orchestration get pods -l 'app in (mosaic-bridge-atproto, mosaic-bridge-buzz, mosaic-bridge-matrix, mosaic-bridge-irc)' 2>/dev/null || echo "No bridge pods running"
+    echo "---"
+    # Quick health check via port-forward
+    echo "MIS endpoint check:"
+    kubectl -n orchestration run mis-test --image=curlimages/curl --restart=Never --rm -it -- \
+        curl -s http://mosaic-identity:8081/health 2>/dev/null || echo "Port-forward not available"
+
+# Tail MIS logs
+mosaic-logs:
+    kubectl -n orchestration logs -l app=mosaic-identity --tail=50 -f
+
+# Destroy MIS + bridges
+mosaic-down:
+    kubectl delete -f /etc/nixos/k8s/mosaic-identity/ 2>/dev/null || true
+    kubectl delete -f /etc/nixos/k8s/mosaic-bridges/ 2>/dev/null || true
+    echo "MIS removed from cluster."
