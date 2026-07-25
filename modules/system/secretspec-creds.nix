@@ -2,7 +2,7 @@
 # secretspec-creds — Phase 4 SecretSpec provisioning via systemd oneshot.
 #
 # Replaces sops-nix's sops-install-secrets builder as the activation-time
-# secret writer. At activation, runs `secretspec get <NAME> --profile default`
+# secret writer. At activation, runs `secretspec get <NAME> --profile production`
 # for each entry in `services.secretspec-creds.secrets` and writes the resolved
 # value to the declared /run/secrets/ path.
 #
@@ -27,17 +27,17 @@ let
 
     ${concatStringsSep "\n" (mapAttrsToList (name: entry: ''
       log "Resolving ${name} → ${entry.path} ..."
-      VALUE=$("$SECRETSPEC" get ${name} --profile default 2>>"$LOG") || {
+      VALUE=$("$SECRETSPEC" get ${name} --profile production 2>>"$LOG") || {
         log "FAILED: secretspec get ${name} (exit $?)"
-        fail=1
+        fail=1; continue
       }
       if [ -z "$VALUE" ] || [ "$VALUE" = "null" ]; then
         log "FAILED: ${name} resolved to empty"
-        fail=1
+        fail=1; continue
       fi
       install -D -m ${toString entry.mode} -o ${entry.owner} -g ${entry.group} \
         <(printf '%s' "$VALUE") "${entry.path}" 2>>"$LOG" || {
-        log "FAILED: write ${entry.path}"; fail=1
+        log "FAILED: write ${entry.path}"; fail=1; continue
       }
       log "Wrote ${entry.path} ($(wc -c < "${entry.path}") bytes)"
     '') cfg.secrets)}
