@@ -45,3 +45,11 @@ repos:
         entry: check-added-large-files
         language: system
         args: [--maxkb=1000]
+
+      # Dual-fork secretspec stack validation (per-file on changed files)
+      - id: secretspec-stack-validation
+        name: Secretspec stack validation (Nix parse + TOML + bash syntax + binary presence)
+        entry: /etc/nixos/scripts/validate-secretspec-stack.sh
+        language: system
+        pass_filenames: true
+        files: ^(pkgs/secretspec.*/.*\.nix|.*secretspec.*\.toml|.*secretspec-.*\.yml|.*secretspec-.*\.yaml|secretspec-fork-patches/.*|scripts/secretspec-fork-.*|scripts/validate-secretspec-stack\.sh)$

@@ -5,6 +5,23 @@
   ...
 }:
 with lib;
+# secretspec-example — DEPRECATED as of Phase 1 rollout. The real
+# validation is `modules/system/secretspec-validator.nix`, which runs
+# `secretspec check` as a systemd one-shot on multi-user.target. The
+# purpose of THIS module (Phase 4: secretspec resolves secrets and
+# ssh-pushes each to /etc/credstore via `systemd-creds encrypt`) is
+# preserved here as a documented reference but not wired up.
+#
+# Migration path: when Phase 4 is ready (cachix/secretspec#98 lands or
+# pkgs/secretspec-provider-sops becomes the primary backend), rename this
+# file to `secretspec-systemd-creds.nix`, port the creds attr below forward,
+# and add it to modules/default.nix. Until then, treat this file as
+# documentation only.
+#
+# For the running validator today: services.secretspec-validator.enable.
+# This file's `enable` defaults remain false so accidental imports can't
+# silently spin a sleep-infinity service.
+#
 # secretspec-example — DISABLED by default. Demonstrates the Phase 4 deploy
 # pattern: secretspec resolves secrets, ssh-pushes each to /etc/credstore
 # via `systemd-creds encrypt`, and systemd exposes them at
@@ -56,7 +73,13 @@ with lib;
         after = ["network-online.target"];
         serviceConfig = {
           Type = "simple";
-          ExecStart = "${pkgs.bash}/bin/bash -c 'echo Loaded creds from $CREDENTIALS_DIRECTORY; ls -la $CREDENTIALS_DIRECTORY; sleep infinity'";
+          # NOTE: Phase-4 deploy pattern not yet wired. This ExecStart is
+          # intentionally a no-op (`/bin/false`) so that an accidental
+          # `imports = [ ./services/secretspec-example.nix ]` regression
+          # cannot silently spin a sleep-infinity service. The real
+          # running validator lives at
+          # `modules/system/secretspec-validator.nix`.
+          ExecStart = "/bin/false";
           DynamicUser = true;
           LoadCredentialEncrypted =
             mapAttrsToList (

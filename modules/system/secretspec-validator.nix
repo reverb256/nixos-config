@@ -99,6 +99,14 @@ in
           cmd' = if cfg.failOnMissing then cmd
             else cmd + " || true";
         in cmd';
+        # Wire the sops:// subprocess dispatcher into the secretspec binary
+        # so `providers = ["sops"]` chains resolve via NDJSON over stdio.
+        # Required for Phase 2 — without this, `secretspec check` falls back
+        # to env/dotenv providers only and the validator reports every
+        # sops-routed secret as unresolved.
+        Environment = [
+          "SECRETSPEC_SOPS_PROVIDER_BIN=${pkgs.secretspec-provider-sops}/bin/secretspec-provider-sops-protocol"
+        ];
         StandardOutput = "journal";
         StandardError = "journal";
         SuccessExitStatus = if cfg.failOnMissing then "0" else "0 1";

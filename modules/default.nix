@@ -28,6 +28,7 @@
     ./system/polkit-rules.nix
     ./system/tailscale.nix
     ./system/kernel-hardening.nix
+    ./system/secretspec-validator.nix
     ./system/vm-tuning.nix
     ./system/fetch-tools.nix
     ./system/boot-error-fixes.nix

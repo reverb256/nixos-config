@@ -27,6 +27,17 @@ in {
       default = "/etc/nixos/scripts/update-status.sh";
       description = "Path to update script";
     };
+
+    clusterStatePath = mkOption {
+      type = types.path;
+      default = "/etc/nixos/cluster-state.nix";
+      description = ''
+        Path to cluster-state.nix — source-of-truth for static STATUS.md
+        sections (Cluster Health Overview, GPU Resources, Migration
+        Progress, Known Issues, Notes). The regen script reads it via
+        `nix eval --json --file <path>` and pipes rows through ``jq``.
+      '';
+    };
   };
 
   config = mkIf cfg.enable {
@@ -34,16 +45,21 @@ in {
       description = "Update STATUS.md with current cluster state";
       after = ["network.target" "kubernetes.target"];
       wants = ["network-online.target"];
+      # Pass source-of-truth path so the regen script can find it without
+      # hard-coding /etc/nixos/cluster-state.nix. env CLUSTER_STATE_NIX
+      # → override; default in script still applies if neither set.
+      environment.CLUSTER_STATE_NIX = toString cfg.clusterStatePath;
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${cfg.scriptPath}";
         User = "root";
         Group = "root";
         WorkingDirectory = "/etc/nixos";
-        # Only run on cluster nodes with kubectl
-        # Don't run if STATUS.md is being manually edited (check for .lock file)
+        # Only run on cluster nodes where the full toolchain is present.
         ConditionPathExists = [
           "/run/current-system/sw/bin/kubectl"
+          "/run/current-system/sw/bin/nix"
+          "/run/current-system/sw/bin/jq"
           "!/etc/nixos/STATUS.md.lock"
         ];
       };
