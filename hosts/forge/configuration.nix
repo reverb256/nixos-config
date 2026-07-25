@@ -159,6 +159,7 @@
       interface = "eno1";
       priority = 90;
     };
+  };
 
   # HARDWARE PROFILES
 
