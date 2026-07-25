@@ -81,7 +81,6 @@ in {
       sourceHost = "nexus";
     };
 
-    syncthing-cluster = {
       enable = false;
     };
 
