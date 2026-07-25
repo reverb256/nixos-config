@@ -167,7 +167,7 @@ in {
           "ai/telegram-bot-token" = {
             sopsFile = "${inputs.self}/secrets/ai/telegram-bot-token.yaml";
             path = "/run/secrets/telegram-bot-token";
-            format = "yaml";
+            format = "binary";
             mode = "0444";
             owner = "j_kro";
             group = "users";
