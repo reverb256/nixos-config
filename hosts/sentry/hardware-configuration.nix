@@ -31,12 +31,14 @@
   fileSystems."/nix" = {
     device = "/dev/disk/by-partlabel/disk-sdb-root";
     fsType = "btrfs";
+    neededForBoot = true;
     options = ["subvol=@nix"];
   };
 
   fileSystems."/srv" = {
     device = "/dev/disk/by-partlabel/disk-sdb-root";
     fsType = "btrfs";
+    neededForBoot = true;
     options = ["subvol=@srv"];
   };
 

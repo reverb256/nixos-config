@@ -29,6 +29,7 @@
   fileSystems."/nix" = {
     device = "/dev/disk/by-partlabel/root";
     fsType = "btrfs";
+    neededForBoot = true;
     options = ["subvol=@nix" "compress=zstd:3" "ssd" "discard=async" "noatime" "x-initrd.mount"];
   };
 
@@ -36,6 +37,7 @@
   fileSystems."/home" = {
     device = "/dev/disk/by-partlabel/data";
     fsType = "btrfs";
+    neededForBoot = true;
     options = ["subvol=@home" "compress=zstd:3" "noatime"];
   };
 
