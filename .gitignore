@@ -129,3 +129,5 @@ hey.md
 *.backup
 *.backup.disabled
 certs.bak/
+.env.secrets
+secrets.pre-recovery-2026-07-25/
