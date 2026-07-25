@@ -3,22 +3,36 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.secretspec-validator;
 
   # Manifest path defaults to the cluster source-of-truth. Per-host overrides
   # via the `manifestPath` option for paths outside /etc/nixos.
   defaultManifest = "/etc/nixos/secretspec.toml";
 
-  profile = if cfg.production then "production" else "default";
+  profile =
+    if cfg.production
+    then "production"
+    else "default";
 
   # Auto-couple the validator to the sops-secrets-registry so that any
   # host which has secretspec.toml in scope also validates it. Operators
-  # who want to opt out still can — default = registry-coupled.
-  defaultEnable = config.services.sops-secrets-registry.enable;
-in
-{
+  # who want to opt out still can — default = registry-coupled. The `?`-
+  # test guard handles the edge case where a host imports this validator
+  # module but doesn't import the sops-registry module — without the
+  # guard, the `enable` access throws at eval time. (Note: `or false`
+  # alone would NOT defend here — it only catches `null`, not missing
+  # attribute paths; the explicit `?` test is required.)
+  # Soft default — host-set `services.secretspec-validator.enable = false;`
+  # overrides this auto-coupled default (host-set value assignments
+  # override module-side defaults in option merge). Edge case: a host
+  # importing sops-registry as `null` will still throw at `.enable`
+  # access — NixOS modules don't normally produce null attrsets, but
+  # external importers could.
+  defaultEnable = if config.services ? sops-secrets-registry
+                  then config.services.sops-secrets-registry.enable
+                  else false;
+in {
   # ─── IMPURE-EVAL COUPLING NOTE ───────────────────────────────────────
   # This module declares `services.secretspec-validator.enable` as a systemd
   # one-shot that runs `secretspec check` on activation. The check requires
@@ -51,7 +65,7 @@ in
       default = defaultEnable;
       defaultText = lib.literalExpression "config.services.sops-secrets-registry.enable";
       description = ''
-        Whether to run `secretspec check --manifest <manifestPath>
+        Whether to run `secretspec check --file <manifestPath>
         --profile <profile>` as a systemd one-shot on multi-user.target.
 
         Defaults to whatever `services.sops-secrets-registry.enable` is set
@@ -106,12 +120,12 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = [ pkgs.secretspec ];
+    environment.systemPackages = [pkgs.secretspec];
 
     systemd.services.secretspec-validator = {
       description = "SecretSpec schema — validate that every required secret resolves under profile";
-      documentation = [ "https://github.com/cachix/secretspec" ];
-      wantedBy = [ "multi-user.target" ];
+      documentation = ["https://github.com/cachix/secretspec"];
+      wantedBy = ["multi-user.target"];
 
       # secretspec check is fully offline (reads local manifest + dotenv);
       # no network-online.target ordering needed.
@@ -119,12 +133,16 @@ in
         Type = "oneshot";
         RemainAfterExit = true;
         ExecStart = let
-          cmd = "${pkgs.secretspec}/bin/secretspec check"
-            + " --manifest ${cfg.manifestPath}"
+          cmd =
+            "${pkgs.secretspec}/bin/secretspec check"
+            + " --file ${cfg.manifestPath}"
             + " --profile ${profile}";
-          cmd' = if cfg.failOnMissing then cmd
+          cmd' =
+            if cfg.failOnMissing
+            then cmd
             else cmd + " || true";
-        in cmd';
+        in
+          cmd';
         # Wire the sops:// subprocess dispatcher into the secretspec binary
         # so `providers = ["sops"]` chains resolve via NDJSON over stdio.
         # Required for Phase 2 — without this, `secretspec check` falls back
@@ -135,7 +153,10 @@ in
         ];
         StandardOutput = "journal";
         StandardError = "journal";
-        SuccessExitStatus = if cfg.failOnMissing then "0" else "0 1";
+        SuccessExitStatus =
+          if cfg.failOnMissing
+          then "0"
+          else "0 1";
       };
     };
 
@@ -143,7 +164,7 @@ in
     # onCalendarCheck is non-empty.
     systemd.timers.secretspec-validator = lib.mkIf (cfg.onCalendarCheck != "") {
       description = "Periodic SecretSpec schema drift check";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnCalendar = cfg.onCalendarCheck;
         Persistent = true;
