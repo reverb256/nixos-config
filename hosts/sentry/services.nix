@@ -16,7 +16,8 @@ in {
     };
     k3s-cluster = {
       enable = true;
-      role = "agent";
+      role = "server";
+      etcdClean = true;
       nodeName = "sentry";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/persistent/etc/k3s-cluster-token";
