@@ -28,6 +28,12 @@
   # Phase 4 closure: secretspec + sudo systemd-creds + LoadCredentialEncrypted=
   ./modules/services/secretspec-example.nix
 
+  # cluster.localSealSupport — opt-in impure-eval for hosts with the local
+  # cachix-fork checkout. See module header for rationale. Keep this AFTER
+  # secretspec-* modules so it can override `nix.settings` if both stanzas
+  # are merged by some future code-path.
+  ./modules/system/secretspec-cluster-mode.nix
+
   ./modules/default.nix
 
   {
