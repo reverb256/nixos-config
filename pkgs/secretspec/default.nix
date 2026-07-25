@@ -45,13 +45,15 @@
 # unconditionally.
 # Fork SHA pin (Issue #6 / Stream 2c, added 2026-07-25).
 # Informational only — the build reads `src = lib.cleanSource localForkPath`,
-# not a remote ref. Update via: the secretspec-fork-sha-pin just recipe
-# (which runs `git ls-remote <cachix-url>` to capture the fork HEAD SHA
-# + prints it). Long-term (Issue #10): when cachix upstream merges + tags
-# a release with the sops feature, drop this and let
+# not a remote ref. Update via: `cd ~/Projects/secretspec-core && git log -1
+# --format=%H` (captures the LOCAL fork HEAD SHA — always works). Optional:
+# if/when the fork is pushed publicly, also `git ls-remote
+# https://github.com/cachix/secretspec refs/heads/feature/sops-provider-subprocess-dispatch`
+# to track the public SHA. Long-term (Issue #10): when cachix upstream
+# merges + tags a release with the sops feature, drop this and let
 # `fetchFromGitHub { rev = "vX.Y.Z"; ... }` do the SHA-pinning work natively.
 #
-# FORK_SHA: unknown / local-only — populate via `just secretspec-fork-sha-pin`.
+# FORK_SHA: unknown / local-only — see the comment above for how to populate.
 let
   inherit (stdenv) mkDerivation;
 
