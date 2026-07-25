@@ -538,7 +538,7 @@
     aiServices = true; # HF_TOKEN for vLLM model downloads
     storage = true; # Garage S3 cluster (Nexus is a storage node)
     kubernetes = true; # k3s cluster token
-    cache = true; # Nix binary cache private key
+    cache = false; # secret file missing — unblocks build; create then flip to true
   };
 
   # Override specific secret permissions for mining service
