@@ -20,20 +20,20 @@
   };
 
   fileSystems."/" = {
-    device = "/dev/disk/by-uuid/076e60fb-09b9-4f5c-9d9b-cdbb1f1f859b";
+    device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
     fsType = "btrfs";
     options = ["subvol=@root" "compress=zstd:3" "ssd" "discard=async" "noatime"];
   };
 
   fileSystems."/nix" = {
-    device = "/dev/disk/by-uuid/076e60fb-09b9-4f5c-9d9b-cdbb1f1f859b";
+    device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
     fsType = "btrfs";
     neededForBoot = true;
     options = ["subvol=@nix" "compress=zstd:3" "ssd" "discard=async" "noatime" "x-initrd.mount"];
   };
 
   fileSystems."/persistent" = {
-    device = "/dev/disk/by-uuid/076e60fb-09b9-4f5c-9d9b-cdbb1f1f859b";
+    device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
     fsType = "btrfs";
     options = ["subvol=@persistent" "compress=zstd:3" "ssd" "discard=async" "noatime" "x-initrd.mount"];
   };

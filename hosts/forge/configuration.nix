@@ -63,6 +63,9 @@
     ../../modules/services/k3s-cluster.nix
     # Keepalived VIP for HA API server access
     ../../modules/services/keepalived-vip.nix
+
+    # SecretSpec Phase 4 credential provisioning
+    ../../modules/system/secretspec-creds.nix
   ];
 
   # NETWORKING CONFIGURATION
@@ -659,9 +662,10 @@
   # AGENIX SECRETS
 
   # Centralized registry - see modules/system/agenix-secrets-registry.nix
-  services.sops-secrets-registry = {
+  # SecretSpec creds provisioning (replaces sops-nix)
+  services.secretspec-creds = {
     enable = true;
-    kubernetes = true; # k3s cluster token
+    secrets = import ./secretspec-creds-wiring.nix;
   };
 
   # Force SDDM to use X11 instead of Wayland - Wayland has DRM issues on this multi-GPU system
