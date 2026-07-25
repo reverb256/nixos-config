@@ -71,6 +71,12 @@ in {
       description = "Set true once to reset cluster (clear corrupted state), then set false";
     };
 
+    etcdClean = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Set true once to clean stale local etcd data and rejoin cluster";
+    };
+
     serverAddr = mkOption {
       type = types.str;
       default = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
@@ -128,6 +134,8 @@ in {
       description = "k3s data directory for storing state, etcd, etc.";
     };
   };
+
+  imports = [ ./k3s/etcd-clean.nix ];
 
   config = mkIf cfg.enable {
     services.k3s = {
