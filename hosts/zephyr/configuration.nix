@@ -892,6 +892,9 @@
       enable = true;
       hostName = "vaultwarden.zephyr.tigris-ule.ts.net"; # Tailscale Magic DNS
       dataDir = "/var/lib/vaultwarden";
+    };
+  };
+
   # ============================================================================
   programs = {
     scopebuddy = {
