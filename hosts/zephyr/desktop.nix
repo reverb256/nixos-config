@@ -22,7 +22,9 @@
     waylandCompositors.niri = {
       prettyName = "Niri";
       comment = "A scrollable-tiling Wayland compositor";
-      binPath = "/run/current-system/sw/bin/niri";
+      # HDR fork binary (build from dividebysandwich/niri hdr-smithay-master)
+      # Rebuild with: cd /tmp/niri-hdr && cargo build --release && sudo cp target/release/niri /usr/local/bin/niri-hdr
+      binPath = "/usr/local/bin/niri-hdr";
     };
   };
 
@@ -63,3 +65,9 @@
 
   services.multimedia.gstreamer.enable = true;
 }
+
+  # NVIDIA tuning + Samsung TV HDR config for niri
+  imports = [
+    ../../modules/desktop/niri-hdr-samsung.nix
+  ];
+  desktop.niri-hdr-samsung.enable = true;

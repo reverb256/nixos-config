@@ -42,6 +42,13 @@
       url = "git+https://github.com/OpenGamingCollective/ScopeBuddy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Community HDR fork for niri — HDR metadata + hdr { enabled } config.
+    # Trade-off: lags behind upstream. Switch programs.niri.package to use it.
+    niri-hdr = {
+      url = "github:dividebysandwich/niri/hdr-smithay-master";
+      flake = false;
+    };
     nixcord = {
       url = "git+https://github.com/FlameFlag/nixcord";
       inputs.nixpkgs.follows = "nixpkgs";
