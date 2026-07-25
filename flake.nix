@@ -150,7 +150,7 @@
     # both work. To sync the local fork with upstream cachix/secretspec, use
     # `just secretspec-fork-sync` (re-applies /etc/nixos/secretspec-fork-patches/0001-add-sops-provider.patch).
     secretspec = {
-      url = "git+file:///home/j_kro/Projects/secretspec-core?ref=feature/sops-provider-subprocess-dispatch";
+      url = "github:reverb256/secretspec/feature/sops-provider-subprocess-dispatch";
       flake = false;
     };
     # secretspec-provider-sops - Local fork carrying the NDJSON stdio dispatcher binary.
@@ -163,7 +163,7 @@
     # `toString forkSrc + "/provider-rust"`, so we rely on that to scope the build.
     # Same full-clone requirement as the secretspec input above.
     secretspec-provider-sops = {
-      url = "git+file:///home/j_kro/Projects/secretspec";
+      url = "github:reverb256/secretspec-provider-sops";
       flake = false;
     };
   };
