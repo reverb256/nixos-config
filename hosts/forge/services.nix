@@ -72,9 +72,6 @@ in {
       ];
     };
 
-    syncthing-cluster = {
-      enable = false;
-    };
 
     nixos-auto-update = {
       enable = true;
