@@ -7,17 +7,6 @@
   cluster = config.networking.cluster;
 in {
   services = {
-    k3s-cluster = {
-      enable = true;
-      nvidia.enable = true;
-      role = "server";
-      clusterInit = false;
-      nodeName = "forge";
-      serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
-      tokenFile = "/persistent/etc/k3s-cluster-token";
-      nodeIP = cluster.hosts.forge.ip;
-    };
-
     peakminer = {
       enable = true;
       wallet = "krxXVNVMM7";
