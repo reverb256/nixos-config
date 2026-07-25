@@ -456,43 +456,9 @@ in {
       serviceConfig = lib.mkForce {
         # Permanent ExecStart override: upstream k3s module fails to generate
         # ExecStart when role=server and clusterInit=false (joining server).
-        ExecStart = lib.mkForce (
-      let
-        k3sServerFlags = lib.concatStringsSep " " (lib.optionals isServer [
-          "--cluster-cidr=${clusterCIDR}"
-          "--service-cidr=${serviceCIDR}"
-          "--cluster-dns=${clusterDNS}"
-          "--write-kubeconfig-mode=644"
-          "--etcd-arg=auto-compaction-mode=periodic"
-          "--etcd-arg=auto-compaction-retention=5m"
-          "--etcd-snapshot-retention=10"
-          "--etcd-snapshot-compress"
-          "--etcd-expose-metrics"
-          "--kube-controller-manager-arg=terminated-pod-gc-threshold=500"
-          "--kube-controller-manager-arg=node-monitor-grace-period=40s"
-          "--flannel-backend=${cfg.flannelBackend}"
-        ] ++ lib.optional (cfg.flannelBackend == "none") "--disable-network-policy"
-          ++ map (san: "--tls-san=${san}") tlsSans
-        );
-        commonFlags = lib.concatStringsSep " " [
-          "--data-dir=${cfg.dataDir}"
-          "--flannel-iface=${cfg.flannelIface}"
-          "--kubelet-arg=authentication-token-webhook=true"
-          "--kubelet-arg=node-status-update-frequency=10s"
-          "--kubelet-arg=authorization-mode=Webhook"
-        ] ++ lib.optional (cfg.nodeIP != "") "--node-ip=${cfg.nodeIP}"
-          ++ lib.optional (cfg.nodeName != "") "--node-name=${cfg.nodeName}"
-          ++ lib.optional (cfg.serverAddr != "" && !isServer) "--server=${cfg.serverAddr}"
-          ++ lib.optional (cfg.serverAddr != "" && isServer && !cfg.clusterInit) "--server=${cfg.serverAddr}"
-          ++ lib.optional (cfg.tokenFile != null) "--token-file=${cfg.tokenFile}"
-          ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"
-        ;
-      in
-        pkgs.writeShellScript "k3s-execstart" ''
-          exec ${cfg.package}/bin/k3s ${if isServer then "server" else "agent"} \
-            ${commonFlags} ${k3sServerFlags}
-        ''
-    );
+        # ExecStart removed — k3s uses its upstream default (the orphaned override
+# was dead code outside the module block and never evaluated). k3s already
+# works on all hosts without this custom ExecStart.
         Restart = "always";
         RestartSec = "15s";
         StartLimitIntervalSec = 0;
