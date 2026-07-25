@@ -31,7 +31,7 @@ in {
         listen-http = "127.0.0.1:${toString cfg.port}";
         # No auth required for local webhook (trusted network)
         auth-default-access = "read-write";
-        cache-file = "/var/lib/ntfy/cache.db";
+        cache-file = "/var/lib/ntfy-sh/cache.db";
         # Keep notifications for 48h
         visitor-subscription-ttl = "48h";
       };
