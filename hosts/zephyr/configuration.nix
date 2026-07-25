@@ -38,6 +38,8 @@
     inputs.noctalia.nixosModules.default
     # RGB control for peripherals and components
     ../../modules/hardware/rgb-control.nix
+    # PeakMiner GPU mining stack (zephyr local miners + auth-translator proxies)
+    ./peakminer.nix
   ];
 
   # ============================================================================
