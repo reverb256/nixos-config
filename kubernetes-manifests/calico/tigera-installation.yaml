@@ -29,12 +29,6 @@ spec:
   kubernetesProvider: ""
 
   cni:
-    type: Calico
-    # k3s containerd CNI bin_dir (read-only store symlink, but root-writable
-    # btrfs on this cluster). The Tigera operator's install init container
-    # writes calico + calico-ipam here at runtime (runs as root).
-    cniBinDir: /var/lib/rancher/k3s/data/cni
-
   calicoNetwork:
     # VXLAN encapsulation — works everywhere, no special kernel/modules needed.
     # MTU 1440 = 1500 - 60 (VXLAN 8 + UDP 8 + outer IP 20 + ethernet 14).

@@ -1,77 +1,174 @@
 #!/run/current-system/sw/bin/bash
 # STATUS.md Auto-Generation Script
-# Updates STATUS.md with current cluster state from kubectl
+#
+# Refactored (2026-07-24) to derive static sections from
+# `/etc/nixos/cluster-state.nix` via `nix eval --json --file` and `jq`.
+# Dynamic sections (pod list, pod summary, node + pod resource usage,
+# last-updated timestamp) still come from `kubectl` because they have no
+# offline equivalent.
+#
+# Render order:
+#   1. Title + Quick Check + meta-notes (Nix-derived + jq)
+#   2. Cluster Health Overview table (Nix-derived)
+#   3. Kubernetes Nodes list (kubectl)
+#   4. GPU Resources by Node (Nix-derived)
+#   5. Migration Progress + Known Issues (Nix-derived)
+#   6. Services Running: pods + summary (kubectl)
+#   7. System Health Metrics: node + pod usage (kubectl)
+#   8. Quick Reference + SOPS-NIX link (hard-coded)
+#   9. Recent Changes (always emit header; conditionally preserve body)
+#
+# Atomic write: render to ${STATUS_MD}.tmp then mv into place. The cleanup
+# trap rm's the .tmp file on ANY exit failure, so a failing render never
+# leaves orphans in /etc/nixos. STATUS.md is published only when the
+# entire render succeeded.
 
 set -euo pipefail
 
-# Configuration
-STATUS_MD="/etc/nixos/STATUS.md"
-BACKUP_MD="/etc/nixos/STATUS.md.backup"
+STATUS_MD="${STATUS_MD:-/etc/nixos/STATUS.md}"
+BACKUP_MD="${BACKUP_MD:-/etc/nixos/STATUS.md.backup}"
+CLUSTER_STATE_NIX="${CLUSTER_STATE_NIX:-/etc/nixos/cluster-state.nix}"
+TMP_STATUS="${STATUS_MD}.tmp.$$"
+
+# Cleanup trap — fires on ANY exit (success OR failure). On success the
+# final `mv` already consumed TMP_STATUS so rm is a no-op.
+trap 'rm -f "$TMP_STATUS" 2>/dev/null || true' EXIT INT TERM
+
 DATE=$(date +%Y-%m-%d)
 TIME=$(date +%H:%M:%S)
 
-# Color output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
-}
+log_info()  { printf "${GREEN}[INFO]${NC} %s\n" "$1"; }
+log_warn()  { printf "${YELLOW}[WARN]${NC} %s\n" "$1"; }
+log_error() { printf "${RED}[ERROR]${NC} %s\n" "$1"; }
 
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
-}
+# Pre-flight: required tools and source-of-truth file
+for cmd in nix jq kubectl; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        log_error "$cmd not found on PATH. ${0##*/} requires nix, jq, kubectl."
+        exit 1
+    fi
+done
 
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# Check if running on cluster node
-if ! command -v kubectl &> /dev/null; then
-    log_error "kubectl not found. This script must run on a cluster node."
+if [ ! -f "$CLUSTER_STATE_NIX" ]; then
+    log_error "cluster-state.nix not found: $CLUSTER_STATE_NIX"
     exit 1
 fi
 
-# Check if kubectl can connect to cluster
-if ! kubectl get nodes &> /dev/null; then
-    log_error "Cannot connect to Kubernetes cluster. Check kubeconfig."
-    exit 1
+# kubectl is best-effort: if cluster is unreachable, render offline.
+KUBECTL_OK=0
+if kubectl get nodes >/dev/null 2>&1; then
+    KUBECTL_OK=1
+    log_info "kubectl reachable"
+else
+    log_warn "kubectl unreachable; rendering STATUS.md with Nix-derived sections only"
+fi
+
+# Backup before any clobber
+if [ -f "$STATUS_MD" ]; then
+    cp "$STATUS_MD" "$BACKUP_MD"
+    log_info "Backed up STATUS.md to $BACKUP_MD"
 fi
 
 log_info "Starting STATUS.md update at ${TIME} on ${DATE}"
 
-# Backup current STATUS.md
-if [ -f "$STATUS_MD" ]; then
-    cp "$STATUS_MD" "$BACKUP_MD"
-    log_info "Backed up current STATUS.md to STATUS.md.backup"
+# Static facts from cluster-state.nix
+log_info "Rendering static facts from $CLUSTER_STATE_NIX..."
+STATE_JSON=$(nix eval --json --file "$CLUSTER_STATE_NIX" 2>/dev/null) || {
+    log_error "nix eval --json --file $CLUSTER_STATE_NIX failed (run \`nix flake update\` + check the file for syntax errors)"
+    exit 1
+}
+
+COMPONENTS_COUNT=$(echo "$STATE_JSON" | jq '.components | length')
+NODES_COUNT=$(echo      "$STATE_JSON" | jq '.nodes | length')
+PHASES_COUNT=$(echo     "$STATE_JSON" | jq '.phases | length')
+if [ "$COMPONENTS_COUNT" -le 0 ] || [ "$NODES_COUNT" -le 0 ] || [ "$PHASES_COUNT" -le 0 ]; then
+    log_error "cluster-state.nix returned empty arrays (components=$COMPONENTS_COUNT nodes=$NODES_COUNT phases=$PHASES_COUNT)"
+    exit 1
+fi
+LAST_UPDATED=$(echo "$STATE_JSON" | jq -r .last_updated)
+log_info "  components=$COMPONENTS_COUNT nodes=$NODES_COUNT phases=$PHASES_COUNT (snapshot: $LAST_UPDATED)"
+
+# Dynamic kubectl sections
+if [ "$KUBECTL_OK" -eq 1 ]; then
+    NODES=$(kubectl get nodes 2>&1 || echo "kubectl get nodes failed")
+    ALL_PODS=$(kubectl get pods --all-namespaces 2>/dev/null || true)
+    PODS_BY_NAMESPACE=$(kubectl get pods --all-namespaces --no-headers 2>/dev/null \
+        | awk '{print $1}' | sort | uniq -c | sort -rn)
+    NODE_USAGE=$(kubectl top nodes 2>/dev/null \
+        || echo "Node metrics not available (metrics-server not deployed)")
+    POD_USAGE=$(kubectl top pods --all-namespaces 2>/dev/null | head -20 \
+        || echo "Pod metrics not available (metrics-server not deployed)")
+else
+    NODES="(unreachable — kubectl offline)"
+    ALL_PODS=""
+    PODS_BY_NAMESPACE=""
+    NODE_USAGE=""
+    POD_USAGE=""
 fi
 
-# Gather cluster data
-log_info "Gathering cluster state..."
+# Render Nix-derived rows via jq
+COMPONENT_ROWS=$(echo "$STATE_JSON" | jq -r \
+    '.components[] | "| **\(.name)** | \(.emoji) | \(.details) |"')
 
-# Get node status
-NODES=$(kubectl get nodes -o wide)
+NODE_ROWS=$(echo "$STATE_JSON" | jq -r \
+    '.nodes[] |
+     "| **\(.name)** | \(.nvidia) | \(.amd) | " +
+      (if .cuda   then "✅" else "-" end) + " | " +
+      (if .rocm   then "✅" else "-" end) + " | " +
+      (if .vulkan then "✅" else "-" end) + " |"')
 
-# Count pods by namespace
-PODS_BY_NAMESPACE=$(kubectl get pods --all-namespaces --no-headers | awk '{print $1}' | sort | uniq -c | sort -rn)
+PHASE_ROWS=$(echo "$STATE_JSON" | jq -r \
+    '.phases[] | "| **\(.name)** | \(.status) | \(.completion) | \(.notes) |"')
 
-# Get pod status across all namespaces
-ALL_PODS=$(kubectl get pods --all-namespaces)
+KNOWN_ROWS=$(echo "$STATE_JSON" | jq -r \
+    '.known_issues[] | "- \(.emoji) **\(.name):** \(.description) (\(.date))"')
 
-# Get system services (user@host specific)
-# This will be empty when run as root, but the template handles it
+NOTES_BLOCK=$(echo "$STATE_JSON" | jq -r '.notes[] | "> " + .')
+OVERALL_PROGRESS=$(echo "$STATE_JSON" | jq -r .overall_progress)
+OVERALL_LABEL=$(echo "$STATE_JSON" | jq -r .overall_progress_label)
 
-# Generate STATUS.md content
-cat > "$STATUS_MD" << EOF
+# Recent Changes: ALWAYS emit the section header (fixes first-run regression
+# where BACKUP_MD didn't exist and the entire merge was skipped). Conditionally
+# append preserved prior log entries from BACKUP_MD. Use REAL NEWLINES in
+# double-quoted strings — bash does not interpret \n escape sequences inside
+# double quotes, so any `\n` literal would appear in STATUS.md verbatim.
+# Single-pass variable, no intermediate .new file.
+RECENT_HEADER='## Recent Changes'
+LATEST_AUTO_ENTRY="**${DATE} ${TIME}:**
+- 🔄 **AUTO-UPDATED:** STATUS.md regenerated; static sections from cluster-state.nix (snapshot $LAST_UPDATED), dynamic from kubectl."
+
+if [ -f "$BACKUP_MD" ] && grep -qE '^## Recent Changes' "$BACKUP_MD"; then
+    log_info "Preserving Recent Changes log from $BACKUP_MD"
+    PRIOR_LOG=$(awk '/^## Recent Changes/{found=1; next} found {print}' "$BACKUP_MD" | tail -n +2)
+    RECENT_CHANGES_BLOCK="${RECENT_HEADER}
+
+${LATEST_AUTO_ENTRY}
+
+${PRIOR_LOG}"
+else
+    log_info "First run (no BACKUP_MD or no prior Recent Changes section); emitting header + first entry only"
+    RECENT_CHANGES_BLOCK="${RECENT_HEADER}
+
+${LATEST_AUTO_ENTRY}"
+fi
+
+# Atomic write to TMP_STATUS then mv to STATUS_MD
+log_info "Rendering to $TMP_STATUS..."
+
+{
+    cat << HEADER
 # NixOS Cluster - Real-Time Status
 
-**Last Updated:** ${DATE} ${TIME} | **Auto-Generated:** Yes | **Refresh:** \`./scripts/update-status.sh\`
+**Last Updated:** ${DATE} ${TIME} | **Auto-Generated:** Yes | **Refresh:** \`./scripts/update-status.sh\` | **Source-of-truth snapshot:** ${LAST_UPDATED}
 
-> **Quick Check:** Run \`just cluster-status\` to see current cluster state. This command works from any cluster host and proxies to zephyr for Kubernetes queries when needed.
+> **Quick Check:** Run \`just cluster-status\` to see current cluster state. This command proxies to zephyr for Kubernetes queries when needed.
 >
-> **Note:** This file is auto-generated by \`scripts/update-status.sh\`. For the most current state, run \`kubectl get nodes\` and \`kubectl get pods --all-namespaces\`.
+> **Note:** This file is auto-generated by \`scripts/update-status.sh\`. Static sections (Cluster Health Overview, GPU Resources, Migration Progress, Known Issues, Notes) derive from \`/etc/nixos/cluster-state.nix\` via \`nix eval --json --file\` + \`jq\`. Dynamic sections (Kubernetes Nodes, Pods, Resource Usage) come from \`kubectl\`. Edit the source-of-truth file (\`cluster-state.nix\`), not STATUS.md directly.
 
 ---
 
@@ -79,37 +176,23 @@ cat > "$STATUS_MD" << EOF
 
 | Component | Status | Details |
 |-----------|--------|---------|
-| **Kubernetes** | 🟢 RUNNING | v1.35.0, 4 nodes joined |
-| **Control Plane** | 🟢 OPERATIONAL | Zephyr: apiserver, etcd, scheduler, controller-manager |
-| **Worker Nodes** | 🟢 4/4 READY | Zephyr, Nexus, Sentry, Forge |
-| **Networking** | 🟢 OPERATIONAL | Flannel CNI (VXLAN), CoreDNS, Unbound cluster DNS |
-| **Ingress Controller** | 🟢 DEPLOYED | Caddy Ingress (DaemonSet on 2 nodes) |
-| **GPU Passthrough** | 🟢 PARTIAL | Zephyr: 2x NVIDIA (✓), Forge: 2x AMD + 2x NVIDIA (⚠️) |
-| **Monitoring** | 🟢 RUNNING | Prometheus, Grafana, AlertManager, node-exporters, Caddy metrics |
-| **Storage** | 🟢 OPERATIONAL | NFS shared storage, local-path provisioner |
-| **GPU Marketplace** | 🟢 DEPLOYED | Auction engine coordinating mining/K8s/gaming |
+${COMPONENT_ROWS}
 
 ---
 
 ## Kubernetes Nodes
 
 \`\`\`
-$(kubectl get nodes)
+${NODES}
 \`\`\`
 
-> **Note:** Node ages reflect CIDR fix + role label application. Roles describe node function for pod scheduling.
-> etcd HA cluster (zephyr, nexus, sentry) remains unchanged from original setup.
+${NOTES_BLOCK}
 
 ### GPU Resources by Node
 
 | Node | NVIDIA GPUs | AMD GPUs | CUDA | ROCm | Vulkan |
 |------|-------------|----------|------|------|--------|
-| **Zephyr** | 2 (RTX 3090 + 3060 Ti) | 0 | ✅ | - | ✅ |
-| **Nexus** | 1 (RTX 3060 Ti) | 0 | ✅ | - | ✅ |
-| **Forge** | 2 (RTX 4060) | 2 (RX 5700 XT) | ✅ | ✅ | ✅ |
-| **Sentry** | 0 | 1 (RX 5600 XT) | - | ✅ | ✅ |
-
-> **Note (2026-03-16):** CUDA issue resolved by removing \`allowUnsupportedSystem = true;\` from flake.nix. See \`docs/CUDA_TROUBLESHOOTING.md\` for details.
+${NODE_ROWS}
 
 ---
 
@@ -117,20 +200,12 @@ $(kubectl get nodes)
 
 | Phase | Status | Completion | Notes |
 |-------|--------|------------|-------|
-| **Phase 1: Foundation** | ✅ COMPLETE | 100% | Control plane, networking, CoreDNS |
-| **Phase 2: Worker Nodes** | ✅ COMPLETE | 100% | All nodes joined, correct CIDRs, DNS functional |
-| **Phase 3: Stateful Services** | ✅ COMPLETE | 95% | **GlitchTip PostgreSQL migrated** (2026-03-19) |
-| **Phase 4: Stateless Services** | ✅ COMPLETE | 95% | **GlitchTip web/worker/redis, SearXNG migrated** (2026-03-19), Caddy Ingress, n8n, home-assistant |
-| **Phase 5: GPU Workloads** | ✅ COMPLETE | 95% | **llama.cpp deployed, Gateway integrated, tested** (2026-03-19) |
-| **Phase 6: Monitoring** | ✅ COMPLETE | 100% | Prometheus + Grafana running, **Caddy metrics configured** |
-| **Phase 7: Cleanup** | ✅ COMPLETE | 95% | **Removed obsolete manifests, finalized documentation** (2026-03-19) |
+${PHASE_ROWS}
 
-**Overall Progress:** ✅ **95% COMPLETE** (All 7 phases finished, known issues remain)
+**Overall Progress:** ${OVERALL_PROGRESS} (${OVERALL_LABEL})
 
 **Known Issues:**
-- ⚠️ **SearXNG search:** HTTP 403 errors from external engines, MCP gateway unable to use web search (2026-03-21)
-- ⚠️ **Monitor brightness:** ASUS/Acer displays not controllable via Plasma slider (EDID limitation, hardware workaround required)
-- ⚠️ **Gaming detection:** Using Volcano scheduler instead of YuniKorn (migration completed, docs need update)
+${KNOWN_ROWS}
 
 ---
 
@@ -139,48 +214,13 @@ $(kubectl get nodes)
 ### Kubernetes Pods by Namespace
 
 \`\`\`
-$(kubectl get pods --all-namespaces -o wide | head -50)
+${ALL_PODS}
 \`\`\`
-
-> **Note:** Showing first 50 pods. Run \`kubectl get pods --all-namespaces\` for full list.
 
 ### Pod Summary by Namespace
 \`\`\`
-$PODS_BY_NAMESPACE
+${PODS_BY_NAMESPACE}
 \`\`\`
-
----
-
-## Recent Changes
-
-**${DATE} ${TIME}:**
-- 🔄 **AUTO-UPDATED:** STATUS.md regenerated from current cluster state
-- 📊 **CLUSTER STATUS:** All nodes Ready, control plane operational
-
-**2026-03-21 12:30:**
-- ✅ **DOCUMENTATION:** Phase 2 audit complete - archive consolidated, false completion claims removed
-- ✅ **UPDATED:** STATUS.md accuracy improved to 95% with known issues
-- ✅ **UPDATED:** ROADMAP.md phases 3-5 marked 95% complete with known issues
-- 📁 **ARCHIVED:** 10+ incident reports moved to \`docs/incidents/2026-03-21/\`
-
-**2026-03-21 11:10:**
-- ✅ **COMPLETE: Phase 7 Cleanup** - Removed obsolete deployment manifests (vLLM, test files, failed deployments)
-- ✅ **FINALIZED: Migration documentation** - All 7 phases 100% complete
-- ✅ **CLEANED: kubernetes-manifests/** - Removed test manifests, old deployment attempts, obsolete docs
-- 📝 **UPDATED: STATUS.md** - Phase 7 marked complete, overall progress 100%
-
-**2026-03-19 16:45:**
-- ✅ **MIGRATED: SearXNG** - Search service now running on Kubernetes (search namespace)
-- ✅ **MIGRATED: GlitchTip** - Full stack (PostgreSQL, Redis, web, worker) on Kubernetes
-- ✅ **DEPLOYED: n8n** - Workflow automation on Kubernetes
-- ✅ **DEPLOYED: home-assistant** - Smart home platform on Kubernetes
-- 📊 **MONITORING:** Caddy metrics configured and scraping successfully
-
-**2026-03-18 14:20:**
-- ✅ **CONTROL PLANE ROBUSTNESS:** Phase 5 complete - etcd quorum protection, apiserver HA, graceful degradation
-- ✅ **REFACTORED:** Compute workload monitor to dedicated module (\`modules/system/compute-workload-monitor.nix\`)
-- ✅ **IMPLEMENTED:** Kubernetes GPU workload detection (Phase 1 of compute scheduler)
-- 📝 **DOCUMENTED:** \`docs/kubernetes/compute-workload-monitor-refactor.md\`
 
 ---
 
@@ -188,12 +228,12 @@ $PODS_BY_NAMESPACE
 
 ### Node Resource Usage
 \`\`\`
-$(kubectl top nodes 2>/dev/null || echo "Node metrics not available (metrics-server not deployed)")
+${NODE_USAGE}
 \`\`\`
 
 ### Pod Resource Usage
 \`\`\`
-$(kubectl top pods --all-namespaces 2>/dev/null | head -20 || echo "Pod metrics not available (metrics-server not deployed)")
+${POD_USAGE}
 \`\`\`
 
 ---
@@ -224,7 +264,7 @@ kubectl exec -it <pod-name> -n <namespace> -- /bin/bash
 ### Troubleshooting
 \`\`\`bash
 # Check node not ready
-kubectl describe node <node-name>
+kubectl describe node <host-name>
 
 # Check pod crashes
 kubectl describe pod <pod-name> -n <namespace>
@@ -237,18 +277,28 @@ kubectl get endpoints <service-name> -n <namespace>
 ---
 
 **Auto-Generated:** ${DATE} ${TIME}
+**Source-of-truth snapshot:** ${LAST_UPDATED} (cluster-state.nix)
 **Update Script:** \`scripts/update-status.sh\`
 **Run Manually:** \`sudo ./scripts/update-status.sh\`
 **Auto-Refresh:** Hourly via systemd timer (status-update.timer)
-EOF
+
+---
+
+## SOPS-NIX
+
+See [SOPS-NIX.md](./SOPS-NIX.md) for sops-nix status, key file location, registry module reference, and recovery workflow.
+HEADER
+    printf '\n%s\n' "$RECENT_CHANGES_BLOCK"
+} > "$TMP_STATUS"
+
+# Atomic publish (no separate .new file; single-pass variable above)
+mv "$TMP_STATUS" "$STATUS_MD"
 
 log_info "STATUS.md updated successfully"
-
-# Show summary
-log_info "Cluster Summary:"
-echo "$NODES" | head -5
-
-log_info "Pod Summary by Namespace:"
-echo "$PODS_BY_NAMESPACE" | head -10
-
-log_info "Update complete! STATUS.md has been regenerated with current cluster state."
+if [ "$KUBECTL_OK" -eq 1 ]; then
+    log_info "Cluster Summary (first 5 lines):"
+    echo "$NODES" | head -5
+    log_info "Pod Summary by Namespace (top 10):"
+    echo "$PODS_BY_NAMESPACE" | head -10
+fi
+log_info "Update complete! STATUS.md has been regenerated."

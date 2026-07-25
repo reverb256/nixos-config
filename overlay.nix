@@ -10,6 +10,7 @@
   srbminer-multi = prev.callPackage ./packages/srbminer.nix {};
   lpminer-pearl = prev.callPackage ./packages/lpminer.nix {};
   peakminer = prev.callPackage ./pkgs/peakminer.nix {};
+  secretspec = prev.callPackage ./pkgs/secretspec {};
   # DBD-CSV 0.60 test failures in sandbox (Using data files in /build... is unsafe)
   perlPackages =
     prev.perlPackages

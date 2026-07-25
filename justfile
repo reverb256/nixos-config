@@ -670,3 +670,285 @@ docs-freshen:
     #!/usr/bin/env bash
     set -e
     echo "Check LIVE/ docs for accuracy, run 'docs-audit' after"
+
+# ── STATUS REGEN ─────────────────────────────────────────────────────────────
+# Regenerate STATUS.md manually. The hourly status-update.timer (declared
+# in modules/system/status-auto-update.nix) runs the same script. Use this
+# recipe after editing cluster-state.nix to preview the diff before the
+# next scheduled regen. The script aborts BEFORE clobbering STATUS.md if
+# nix/jq/kubectl are missing or if cluster-state.nix is missing — so this
+# is safe to run from a fresh shell with incomplete toolchain.
+status-regen:
+    sudo /etc/nixos/scripts/update-status.sh
+
+# ── SECRETSPEC ──────────────────────────────────────────────────────────────────
+# Validate secretspec.toml against the cluster's declared schema. Wraps
+# `secretspec check` with the cluster's prod manifest path. The
+# modules/system/secretspec-validator systemd unit invokes this on every
+# activation; run manually for pre-deploy validation.
+
+# Validate every required secret in secretspec.toml resolves under the
+# production profile. Exits non-zero on any unresolved required secret.
+secretspec-check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v secretspec >/dev/null 2>&1; then
+        echo "secretspec not on PATH - built via /etc/nixos/pkgs/secretspec + overlay wiring" >&2
+        exit 127
+    fi
+    secretspec check \
+        --manifest /etc/nixos/secretspec.toml \
+        --profile production
+
+# List every declared secret grouped by category. Useful for audit + new-member
+# onboarding ("what does the cluster expect, in human terms?").
+secretspec-list:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v secretspec >/dev/null 2>&1; then
+        echo "secretspec not on PATH - built via /etc/nixos/pkgs/secretspec + overlay wiring" >&2
+        exit 127
+    fi
+    secretspec list --manifest /etc/nixos/secretspec.toml
+
+# Phase-2 manual bridge: proves that the local `secretspec-provider-sops`
+# CLI can decrypt a real sops:// route (the cluster's #1 missing piece
+# until cachix/secretspec#98 lands the Provider-trait exposure).
+#
+# Flow: provider-sops get <file> <key> --format dotenv > /tmp/.env.bridge
+#       secretspec check -f secretspec-bridge.toml   (uses /tmp/.env.bridge)
+#
+# Override SECRET_FILE / SECRET_KEY to demo other routes. The bridge CLI
+# is built via `pkgs/secretspec-provider-sops` — `nix shell .#secretspec-provider-sops`
+# puts it on PATH without a permanent install. Once upstream lands, this
+# recipe becomes obsolete (the same route works natively with
+# `providers = ["sops"]`).
+secretspec-bridge-demo:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    PROVIDER_SOPS=$(command -v secretspec-provider-sops || true)
+    if [ -z "$PROVIDER_SOPS" ]; then
+        echo "secretspec-provider-sops not on PATH" >&2
+        echo "  Hint: nix shell .#secretspec-provider-sops" >&2
+        exit 127
+    fi
+    SECRET_FILE="${SECRET_FILE:-/etc/nixos/secrets/ci/github-token.yaml}"
+    SECRET_KEY="${SECRET_KEY:-github_token}"
+    BRIDGE_OUT="${BRIDGE_OUT:-/tmp/.env.bridge}"
+    trap "rm -f $BRIDGE_OUT" EXIT INT TERM
+    if [ ! -f "$SECRET_FILE" ]; then
+        echo "missing: $SECRET_FILE" >&2
+        exit 2
+    fi
+    echo "[bridge] decrypting $SECRET_FILE#${SECRET_KEY} via secretspec-provider-sops..."
+    if ! "$PROVIDER_SOPS" get "$SECRET_FILE" "$SECRET_KEY" --format dotenv > "$BRIDGE_OUT" 2>/dev/null; then
+        echo "[bridge] decrypt failed (check \$HOME/.config/sops/age/keys.txt)" >&2
+        exit 3
+    fi
+    echo "[bridge] verifying via secretspec check (manifest: secretspec-bridge.toml)..."
+    secretspec check -f /etc/nixos/secretspec-bridge.toml
+    echo "[bridge] OK: secretspec-provider-sops decrypted $SECRET_FILE and secretspec check passed"
+
+# Audit table: each script in scripts/ + its first comment line as
+# description, plus every just recipe at the bottom. Surfaces the
+# ~118 vs ~30 split so "what does X do" never gets the wrong-name answer.
+catalog:
+    #!/usr/bin/env bash
+    cd /etc/nixos
+    printf '=== scripts/ (top-level dispatchers) ===\n'
+    for s in scripts/*.sh scripts/*.py; do
+        [ -f "$s" ] || continue
+        # First non-blank comment line of the file, normalized as description
+        desc=$(grep -m1 -E '^[[:space:]]*(#|""")' "$s" 2>/dev/null | sed -E 's/^[[:space:]]*(#|""")[[:space:]]*//' | head -c 80)
+        printf '  %-40s %s\n' "$(basename "$s")" "$desc"
+    done
+    printf '\n=== just recipes ===\n'
+    just --list --unsorted 2>/dev/null || just --list
+
+# Show every hermes-agent MCP server this cluster exports plus the
+# secretspec provider chain. Greps the nixos-cluster-mcp package for
+# `name = "..."` rows (the schema source-of-truth).
+mcp-list:
+    #!/usr/bin/env bash
+    cd /etc/nixos
+    printf '=== Cluster MCP servers (nixos-cluster-mcp) ===\n'
+    grep -rnE '^[[:space:]]*name[[:space:]]*=[[:space:]]*"[a-z][-a-z0-9_/.]+"' packages/nixos-cluster-mcp/ 2>/dev/null \
+        | sed -E 's/.*name = "([^"]+)".*/  \1/' \
+        | sort -u || true
+    printf '\n=== secretspec providers ===\n'
+    grep -E '^[a-z_]+\s*=\s*"[a-z]+://' /etc/nixos/secretspec.toml 2>/dev/null \
+        | sed -E 's/^[[:space:]]*([a-z_]+).*=.*/  \1/' \
+        | sort -u
+
+# ── DUAL-FORK SECRETSPEC CI/CD ───────────────────────────────────────────────
+# The cluster builds secretspec from TWO local forks:
+#   ~/$Projects/secretspec-core/   — cachix/secretspec fork + sops Provider
+#   ~/$Projects/secretspec/        — provider-rust fork + NDJSON dispatcher
+# These recipes keep them in sync with upstream and rebuild the closure.
+
+# Show ahead/behind commit counts + working-tree state for both forks.
+secretspec-fork-status:
+    #!/usr/bin/env bash
+    set -e
+    printf '=== cachix fork (~/Projects/secretspec-core) ===\n'
+    if [ -d /home/j_kro/Projects/secretspec-core ]; then
+        (cd /home/j_kro/Projects/secretspec-core && \
+            BR=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) && \
+            UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || echo "no upstream") && \
+            echo "branch: $BR  upstream: $UPSTREAM" && \
+            AHEAD=$(git rev-list --count @{u}..HEAD 2>/dev/null || echo "?") && \
+            BEHIND=$(git rev-list --count HEAD..@{u} 2>/dev/null || echo "?") && \
+            echo "ahead: $AHEAD  behind: $BEHIND (rebase target if non-zero)" && \
+            git status --short | head -5)
+    else
+        echo 'NOT CLONED. Run: just secretspec-fork-bootstrap'
+    fi
+    printf '\n=== provider fork (~/Projects/secretspec) ===\n'
+    if [ -d /home/j_kro/Projects/secretspec ]; then
+        (cd /home/j_kro/Projects/secretspec && \
+            BR=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) && \
+            UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || echo "no upstream") && \
+            echo "branch: $BR  upstream: $UPSTREAM" && \
+            AHEAD=$(git rev-list --count @{u}..HEAD 2>/dev/null || echo "?") && \
+            BEHIND=$(git rev-list --count HEAD..@{u} 2>/dev/null || echo "?") && \
+            echo "ahead: $AHEAD  behind: $BEHIND" && \
+            git status --short | head -5)
+    else
+        echo 'NOT CLONED. Run: just secretspec-fork-bootstrap'
+    fi
+
+# Sync cachix fork (~/Projects/secretspec-core) with upstream — rebase, no
+# merge. Fails loud if merge-tree would conflict (the user resolves manually).
+secretspec-core-sync:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd /home/j_kro/Projects/secretspec-core
+    git fetch upstream main 2>&1 | tail -1
+    # merge-tree dry-run detects changed-in-both conflicts before the actual
+    # rebase; exit 1 → dump exit so the operator knows to rebase manually.
+    if git merge-tree $(git merge-base HEAD @{u}) HEAD @{u} | grep -q '^changed in both'; then
+        echo 'CONFLICT detected in merge-tree dry-run. Run manual rebase:' >&2
+        echo '  cd ~/Projects/secretspec-core && git rebase -i upstream/main' >&2
+        exit 1
+    fi
+    git rebase upstream/main
+    echo 'cachix fork rebased onto upstream/main. NEXT: just secretspec-rebuild'
+
+# Sync provider fork (~/Projects/secretspec) with upstream — rebase, no merge.
+secretspec-provider-sync:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd /home/j_kro/Projects/secretspec
+    git fetch upstream main 2>&1 | tail -1
+    if git merge-tree $(git merge-base HEAD @{u}) HEAD @{u} | grep -q '^changed in both'; then
+        echo 'CONFLICT detected. Manual rebase:' >&2
+        echo '  cd ~/Projects/secretspec && git rebase -i upstream/main' >&2
+        exit 1
+    fi
+    git rebase upstream/main
+    echo 'provider fork rebased onto upstream/main. NEXT: just secretspec-rebuild'
+
+# Rebuild the cluster's Nix closure for BOTH secretspec packages. Uses local
+# forks when present (~/Projects/*), falls back to upstream GH fetches when
+# absent. Runs `pkgs.secretspec` and `pkgs.secretspec-provider-sops` build
+# in parallel to halve wall-clock time.
+secretspec-rebuild:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd /etc/nixos
+    ./scripts/validate-secretspec-stack.sh --env --binary --schema || true
+    # Two builds run as parallel subprocesses — `&` + `wait` halves wall-clock
+    # vs running serially. Cachix-push is best-effort (`|| echo`) so a flaky
+    # cache upload doesn't fail the rebuild.
+    echo "[rebuild] Building pkgs/secretspec + pkgs/secretspec-provider-sops in parallel..."
+    ( nix build --no-link --print-out-paths .#secretspec > /tmp/secretspec-rebuild-out 2>&1 ) &
+    PID_A=$!
+    ( nix build --no-link --print-out-paths .#secretspec-provider-sops > /tmp/secretspec-provider-rebuild-out 2>&1 ) &
+    PID_B=$!
+    wait "$PID_A" "$PID_B" || { echo "[rebuild] at least one nix build failed:"; sed 's/^/  /' /tmp/secretspec-rebuild-out /tmp/secretspec-provider-rebuild-out; exit 1; }
+    OUT_SECRETSPEC=$(tail -1 /tmp/secretspec-rebuild-out)
+    OUT_PROVIDER=$(tail -1 /tmp/secretspec-provider-rebuild-out)
+    rm -f /tmp/secretspec-rebuild-out /tmp/secretspec-provider-rebuild-out
+    echo "[rebuild] secretspec → $OUT_SECRETSPEC"
+    echo "[rebuild] secretspec-provider-sops → $OUT_PROVIDER"
+    if [ -n "${CACHIX_AUTH_TOKEN:-}" ]; then
+        echo "[rebuild] pushing to cachix (best-effort)..."
+        cachix push nixos-cluster-mcp "$OUT_SECRETSPEC" "$OUT_PROVIDER" || echo "  cachix push failed (cache best-effort)"
+    fi
+    echo "[rebuild] OK"
+
+# End-to-end local validation — ephemeral age keypair, never touches real
+# secrets. Mirrors the provider fork's CI bridge fixture (commit 43eadc6).
+# Used by: pre-commit, GitHub Actions secretspec-build job, manual sanity
+# checks before deploying cluster changes.
+secretspec-validate-local:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd /etc/nixos
+    BDIR=$(mktemp -d -t secretspec-bridge-XXXXXX)
+    trap 'rm -rf "$BDIR"' EXIT INT TERM
+    cd "$BDIR"
+    echo '[ci] Generating ephemeral AGE keypair...'
+    age-keygen -o test-age.key >/dev/null 2>&1 || { echo 'age-keygen not found; install nixpkgs#age'; exit 1; }
+    AGE_PUB=$(grep '^# public key:' test-age.key | awk '{print $NF}')
+    echo '[ci] Encrypting dummy payload with sops...'
+    printf 'ci_dummy_secret: "ci-dummy-value"\n' > test-fixture.yaml
+    SOPS_AGE_KEY_FILE=test-age.key sops --encrypt --age "$AGE_PUB" --in-place test-fixture.yaml
+    # Manifest content lives in a separate template under scripts/ (not inline
+    # heredoc) so this recipe body stays pure 4-space-indented. just's parser
+    # rejects ANY tab/space mix inside a single recipe body — a heredoc with
+    # tab-indented content lines was previously interpreted as a new recipe
+    # header `[profiles.default]`, breaking the parse (line 907 of the
+    # previously-broken state). Template substitutes @BDIR@ via sed after cp.
+    cp /etc/nixos/scripts/test-bridge-manifest.toml "$BDIR/test-manifest.toml"
+    sed -i "s|@BDIR@|$BDIR|g" "$BDIR/test-manifest.toml"
+    echo '[ci] Running secretspec check against ephemeral sops:// route...'
+    SOPS_AGE_KEY_FILE=test-age.key secretspec check -f test-manifest.toml
+    echo '[ci] End-to-end provider chain validated successfully.'
+
+# One-shot bootstrapper: clones cachix/secretspec to ~/Projects/secretspec-core
+# on a feature/sops-provider-subprocess-dispatch branch, then applies the
+# local secretspec-fork-patches/0001-add-sops-provider.patch. Idempotent.
+secretspec-fork-bootstrap:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    LOCAL_CORE=/home/j_kro/Projects/secretspec-core
+    PATCH=/etc/nixos/secretspec-fork-patches/0001-add-sops-provider.patch
+    if [ -d "$LOCAL_CORE" ]; then
+        echo "[bootstrap] $LOCAL_CORE already exists. To re-bootstrap: rm -rf $LOCAL_CORE"
+        exit 0
+    fi
+    echo "[bootstrap] Cloning cachix/secretspec → $LOCAL_CORE (shallow)..."
+    git clone --depth=200 https://github.com/cachix/secretspec.git "$LOCAL_CORE"
+    (cd "$LOCAL_CORE" && \
+        git remote rename origin upstream && \
+        git remote add upstream https://github.com/cachix/secretspec.git && \
+        git fetch upstream --unshallow 2>/dev/null || true)
+    echo "[bootstrap] Creating feature branch..."
+    (cd "$LOCAL_CORE" && git checkout -b feature/sops-provider-subprocess-dispatch)
+    if [ -f "$PATCH" ]; then
+        echo "[bootstrap] Applying $PATCH..."
+        (cd "$LOCAL_CORE" && git apply --index "$PATCH")
+        echo '[bootstrap] Patch applied. Review and commit with:'
+        echo "  cd $LOCAL_CORE && git status"
+        echo '  cd '"$LOCAL_CORE"' && git commit -m "feat: SOPS provider via subprocess NDJSON dispatcher"'
+    else
+        echo "[bootstrap] WARN: $PATCH not found — skipping apply step"
+    fi
+    echo '[bootstrap] Done. Run `just secretspec-fork-status` to verify.'
+
+# Run all linters in check mode (no changes). Exits non-zero on any issue.
+# Used by CI (ci.yml) and for pre-commit checks.
+lint:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== alejandra --check ==="
+    alejandra --check --exclude modules/system/agenix-secrets-registry.nix --exclude modules/home-manager/default.nix --exclude modules/services/spacebot/container.nix --exclude kubernetes/modules .
+    echo "=== statix check ==="
+    statix check
+    echo "=== deadnix ==="
+    deadnix --fail --no-lambda-arg --no-lambda-pattern-names
+
+# Format all .nix files with alejandra (in-place).
+fmt:
+    alejandra --exclude modules/system/agenix-secrets-registry.nix --exclude modules/home-manager/default.nix --exclude modules/services/spacebot/container.nix --exclude kubernetes/modules .
