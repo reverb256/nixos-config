@@ -72,6 +72,6 @@
       web = [80 443]; # HTTP/HTTPS
 
       # File sharing
-      fileSharing = [22000 21027]; # p2p file sharing
+      fileSharing = [22000 21027]; # syncthing
     };
 }

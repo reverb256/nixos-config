@@ -72,22 +72,28 @@ in {
       ];
     };
 
+    syncthing-cluster = {
       enable = false;
+    };
 
     nixos-auto-update = {
       enable = true;
       interval = "daily";
       updateFlakeInputs = ["nixpkgs"];
+    };
 
     sops-secrets-registry = {
       enable = true;
       kubernetes = true;
       aiServices = true;
+    };
 
     chatterbox-tts = {
       enable = true;
       user = "j_kro";
       group = "users";
+    };
+  };
 
   services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
   environment.systemPackages = with pkgs; [
@@ -140,12 +146,14 @@ in {
   services.cluster-ca = {
     enable = true;
     generateLeaf = false;
+  };
 
   services.initrd-ssh-recovery = {
     enable = true;
     interface = "eth0";
     networkDriver = "r8169";
     port = 2222;
+  };
   services.recovery-specialisation.enable = true;
   services.btrfs-boot-snapshot.enable = lib.mkForce false; # removed snapshotting
 
@@ -157,4 +165,13 @@ in {
     nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
     opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
     tools = {
+      claude = {enable = true;};
+      opencode = {enable = true;};
+      droid = {enable = true;};
+      crush = {enable = true;};
+      pi = {enable = true;};
+      omp = {enable = true;};
+    };
     enableShellEnv = true;
+  };
+}

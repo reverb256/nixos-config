@@ -134,6 +134,7 @@
     ./services/cloudflared.nix
     ./services/cluster-ca.nix # Internal CA for cluster services
     ./services/unbound-common.nix # Unified Unbound DNS-over-TLS for all hosts
+    ./services/syncthing.nix
     ./services/garage.nix # S3-compatible distributed object storage
     ./services/backup-to-garage.nix # Automated backups to Garage S3
     ./services/binary-cache.nix # Nix binary cache server for cluster
