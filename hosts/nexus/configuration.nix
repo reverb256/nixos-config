@@ -38,6 +38,9 @@
     # Windows 11 IoT LTSC gaming VM (libvirt + dynamic GPU handoff)
     ../../modules/services/nexus-de-vm.nix
 
+    # SecretSpec Phase 4 credential provisioning (parallel with sops registry)
+    ../../modules/system/secretspec-creds.nix
+
     # Kubernetes
     ../../modules/services/k3s-cluster.nix
     ../../modules/services/mosaic-k3s-manifests.nix
@@ -540,12 +543,10 @@
   # AGENIX SECRETS
   # ============================================================================
   # Centralized registry - see modules/system/agenix-secrets-registry.nix
-  services.sops-secrets-registry = {
+  # SecretSpec Phase 4 — credential provisioning (replaces sops-nix)
+  services.secretspec-creds = {
     enable = true;
-    aiServices = true; # HF_TOKEN for vLLM model downloads
-    storage = true; # Garage S3 cluster (Nexus is a storage node)
-    kubernetes = true; # k3s cluster token
-    cache = false; # secret file missing — unblocks build; create then flip to true
+    secrets = import ./secretspec-creds-wiring.nix;
   };
 
   # Override specific secret permissions for mining service
