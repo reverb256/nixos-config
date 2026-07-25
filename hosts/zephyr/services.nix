@@ -396,5 +396,8 @@ in {
     "d /data/hermes 0775 j_kro j_kro -"
     "L+ /etc/cdi - - - - /var/run/cdi"
   ];
+  services.syncthing-cluster.enable = lib.mkForce false;
 
   # Moved to K3s deployment (kubernetes-manifests/ingress/cloudflared-tunnel.yaml)
+  # services.cloudflared-tunnel = { ... }
+}
