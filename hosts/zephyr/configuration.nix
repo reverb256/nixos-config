@@ -57,6 +57,25 @@
     unbound.listenAddress = "10.1.1.110";
   };
 
+  # ============================================================================
+  # SECRETSPEC FORK SUPPORT — See modules/system/secretspec-cluster-mode.nix.
+  # Zephyr carries ~/Projects/secretspec-core (cachix-fork with sops
+  # subprocess provider) and ~/Projects/secretspec/provider-rust (NDJSON
+  # dispatcher fork). `cluster.localSealSupport` is now auto-coupled to
+  # `services.sops-secrets-registry.enable` (= true below), so the impure-eval
+  # relax + local-fork probe fire together on this host. No explicit
+  # declaration needed; see .plans/2026-07-25-cluster-localSealSupport-scope.md
+  # for the cluster-wide semantic.
+  # ============================================================================
+
+  # Validator is auto-coupled to services.sops-secrets-registry.enable (set below in
+  # the services block) — no explicit services.secretspec-validator block needed.
+  # → enable defaults to true (coupled) + production defaults to true.
+  # See modules/system/secretspec-validator.nix header for the impure-eval
+  # coupling requirement (cluster.localSealSupport must be true on this host).
+  # See .plans/2026-07-25-cluster-localSealSupport-scope.md for the cluster-wide
+  # toggle decision (currently zephyr-only — open architectural question).
+
   # FIX: Disable interface renaming - use actual interface names
   systemd.network.links = lib.mkForce {};
 

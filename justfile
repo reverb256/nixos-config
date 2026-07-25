@@ -65,6 +65,15 @@ rm-worktree number:
 
 HOSTS := "zephyr nexus forge sentry"
 
+# Local secretspec fork paths — overridable so CI runners / other users can
+# point at their own clones without forking the recipe per-env. Defaults
+# resolve to ~/. The cachix fork (`secretspec-core`) supplies the CLI binary
+# + sops Provider module. The provider fork (`secretspec`) supplies the
+# NDJSON dispatcher binary spawned by cachix's SopsProvider at runtime.
+LOCAL_SECRETSPEC_CORE := env_var_or_default('SECRETSPEC_LOCAL_CORE', env_var('HOME') + '/Projects/secretspec-core')
+LOCAL_SECRETSPEC_PROVIDER := env_var_or_default('SECRETSPEC_LOCAL_PROVIDER', env_var('HOME') + '/Projects/secretspec')
+LOCAL_SECRETSPEC_PROVIDER_DIR := LOCAL_SECRETSPEC_PROVIDER + '/provider-rust'
+
 # Show git status on all hosts
 git-status:
     #!/usr/bin/env bash
@@ -167,7 +176,12 @@ deploy host="all":
             # /etc/nixos to the canonical ref BEFORE building so the produced
             # toplevel reflects origin/main, never nexus's drifted local checkout.
             ssh nexus "bash --norc --noprofile -c 'set -e; cd /etc/nixos; git fetch origin main 2>&1 | tail -1; git reset --hard origin/main 2>&1 | tail -1'" 2>&1 | tail -1
-            OUT=$(ssh nexus "cd /etc/nixos && nix build --no-link --print-out-paths '.#nixosConfigurations.$host.config.system.build.toplevel'" 2>/dev/null) || {
+            # `--option pure-eval false` is REQUIRED for hosts with a cachix
+            # fork present at ~/Projects/secretspec-core. Without it, the
+            # secretspec derivation silently falls back to the upstream
+            # tarball (no sops://) on the cluster-side rebuild. CI runners
+            # (no fork) still work via the fall-through branch.
+            OUT=$(ssh nexus "cd /etc/nixos && nix build --option pure-eval false --no-link --print-out-paths '.#nixosConfigurations.$host.config.system.build.toplevel'" 2>/dev/null) || {
                 echo "Build failed for $host"; exit 1
             }
             nix-copy-closure --to j_kro@$host "$OUT" 2>&1 | grep -v "copying path\|already exists" || true
@@ -233,7 +247,13 @@ deploy-nexus host:
     # 'colmenaHive' flake attribute ('cannot update unlocked flake
     # input hive in pure mode'). .#colmena is version-correct by
     # construction and survives future colmena bumps.
-    CMD="cd /etc/nixos && nix run .#apps.x86_64-linux.colmena -- apply --on ${HOST} --eval-node-limit 100 | tee ${LOG}"
+    # --option pure-eval false MUST come BEFORE the `run` subcommand (it's
+    # argument-position-sensitive in Nix CLI). Same rationale as elsewhere in
+    # this justfile: flake pure-eval disallows probing absolute paths to
+    # ~/Projects/secretspec-core and ~/Projects/secretspec/provider-rust,
+    # so without this option each host's colmena-applied toplevel silently
+    # falls through to the upstream cachix tarball (no sops://).
+    CMD="cd /etc/nixos && nix --option pure-eval false run .#apps.x86_64-linux.colmena -- apply --on ${HOST} --eval-node-limit 100 | tee ${LOG}"
     if tmux has-session -t "$SESSION" 2>/dev/null; then
         echo "attaching to existing deploy session: $SESSION"
         exec tmux attach -t "$SESSION"
@@ -340,7 +360,12 @@ build:
         exec {{FLAKE}}/scripts/remote-build.sh zephyr zephyr-build
     else
         NIX_SSHOPTS="-o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ConnectTimeout=30" \
-        nix build --builders 'ssh-ng://j_kro@nexus' --no-link --print-out-paths .#$HOST
+        # --option pure-eval false is required on hosts with a cachix fork
+        # checkout at ~/Projects/secretspec-core so flake eval probes the
+        # absolute local-fork path and selects the buildRustPackage branch
+        # (with sops://) instead of falling back to the upstream tarball.
+        # See pkgs/secretspec/default.nix header comment for full rationale.
+        nix build --option pure-eval false --builders 'ssh-ng://j_kro@nexus' --no-link --print-out-paths .#$HOST
     fi
 
 switch:
@@ -519,7 +544,10 @@ hermes-update:
     fi
 
     echo "3/6 Building zephyr toplevel (full build — verifies hermes-cli.nix patches + all inputs)..."
-    nix build --no-link --print-out-paths \
+    # --option pure-eval false is required to trigger the cachix-fork
+    # buildRustPackage branch (which carries the sops:// subprocess
+    # Dispatcher module) for transitively-included pkgs.secretspec.
+    nix build --option pure-eval false --no-link --print-out-paths \
         .#nixosConfigurations.zephyr.config.system.build.toplevel 2>&1 | tail -20
 
     echo "4/6 Deploying to all hosts (full system switch)..."
@@ -547,7 +575,10 @@ hermes-update-check:
     echo "Bumping ALL flake inputs to latest upstream..."
     nix flake update 2>&1 | tail -5
     echo "Building zephyr toplevel to verify hermes-cli.nix patches + all inputs apply..."
-    nix build --no-link --print-out-paths \
+    # --option pure-eval false required for the same reason as hermes-update
+    # above: pkgs.secretspec inside zephyr's toplevel needs the cachix-fork
+    # branch selected to ship sops:// provider registration at runtime.
+    nix build --option pure-eval false --no-link --print-out-paths \
         .#nixosConfigurations.zephyr.config.system.build.toplevel 2>&1 | tail -20 \
         && echo "OK: everything builds. Run 'just hermes-update' to deploy."
 
@@ -604,7 +635,12 @@ validate-k8s:
     #!/usr/bin/env bash
     set -e
     cd {{FLAKE}}
-    nix build .#kubernetesManifests 2>/dev/null && echo "K8s manifests built" || nix run .#k8s-validate 2>/dev/null || echo "k8s-validate not available"
+    # --option pure-eval false included for parity with every other secretspec-touching
+    # nix build invocation in this justfile. k8s manifests don't transitively
+    # depend on pkgs.secretspec (they're YAML/Kustomize) so this isn't strictly
+    # correctness-required, but it keeps the cluster-path flag uniform across
+    # all flakes-touching invocations — easier to grep + reason about.
+    nix build --option pure-eval false .#kubernetesManifests 2>/dev/null && echo "K8s manifests built" || nix --option pure-eval false run .#k8s-validate 2>/dev/null || echo "k8s-validate not available"
 
 # Validate all *.yaml/*.yml files in the repo. Lenient of Nix toJSON, SOPS, and
 # Helm output (tab indentation, JSON-as-YAML). Surfaces real syntax errors.
@@ -790,9 +826,9 @@ mcp-list:
 secretspec-fork-status:
     #!/usr/bin/env bash
     set -e
-    printf '=== cachix fork (~/Projects/secretspec-core) ===\n'
-    if [ -d /home/j_kro/Projects/secretspec-core ]; then
-        (cd /home/j_kro/Projects/secretspec-core && \
+    printf '=== cachix fork (%s) ===\n' '{{LOCAL_SECRETSPEC_CORE}}'
+    if [ -d '{{LOCAL_SECRETSPEC_CORE}}' ]; then
+        (cd '{{LOCAL_SECRETSPEC_CORE}}' && \
             BR=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) && \
             UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || echo "no upstream") && \
             echo "branch: $BR  upstream: $UPSTREAM" && \
@@ -803,9 +839,9 @@ secretspec-fork-status:
     else
         echo 'NOT CLONED. Run: just secretspec-fork-bootstrap'
     fi
-    printf '\n=== provider fork (~/Projects/secretspec) ===\n'
-    if [ -d /home/j_kro/Projects/secretspec ]; then
-        (cd /home/j_kro/Projects/secretspec && \
+    printf '\n=== provider fork (%s) ===\n' '{{LOCAL_SECRETSPEC_PROVIDER}}'
+    if [ -d '{{LOCAL_SECRETSPEC_PROVIDER}}' ]; then
+        (cd '{{LOCAL_SECRETSPEC_PROVIDER}}' && \
             BR=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) && \
             UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || echo "no upstream") && \
             echo "branch: $BR  upstream: $UPSTREAM" && \
@@ -822,7 +858,7 @@ secretspec-fork-status:
 secretspec-core-sync:
     #!/usr/bin/env bash
     set -euo pipefail
-    cd /home/j_kro/Projects/secretspec-core
+    cd '{{LOCAL_SECRETSPEC_CORE}}'
     git fetch upstream main 2>&1 | tail -1
     # merge-tree dry-run detects changed-in-both conflicts before the actual
     # rebase; exit 1 → dump exit so the operator knows to rebase manually.
@@ -838,7 +874,7 @@ secretspec-core-sync:
 secretspec-provider-sync:
     #!/usr/bin/env bash
     set -euo pipefail
-    cd /home/j_kro/Projects/secretspec
+    cd '{{LOCAL_SECRETSPEC_PROVIDER}}'
     git fetch upstream main 2>&1 | tail -1
     if git merge-tree $(git merge-base HEAD @{u}) HEAD @{u} | grep -q '^changed in both'; then
         echo 'CONFLICT detected. Manual rebase:' >&2
@@ -860,10 +896,18 @@ secretspec-rebuild:
     # Two builds run as parallel subprocesses — `&` + `wait` halves wall-clock
     # vs running serially. Cachix-push is best-effort (`|| echo`) so a flaky
     # cache upload doesn't fail the rebuild.
+    # `--option pure-eval false` is REQUIRED for both builds: the cachix
+    # fork path lives outside the flake's directory tree (at
+    # /home/j_kro/Projects/secretspec-core) and flake pure-eval (the
+    # default on Lix 2.95.2+ and Nix 2.20+) prevents `builtins.pathExists`
+    # from probing external paths. Without the option, pure mode silently
+    # evaluates the `else` branch (upstream cachix tarball, no sops://)
+    # and the cluster either has no sops feature at all or the build Rust
+    # step fails because the local-fork derivation never evaluates.
     echo "[rebuild] Building pkgs/secretspec + pkgs/secretspec-provider-sops in parallel..."
-    ( nix build --no-link --print-out-paths .#secretspec > /tmp/secretspec-rebuild-out 2>&1 ) &
+    ( nix build --option pure-eval false --no-link --print-out-paths .#secretspec > /tmp/secretspec-rebuild-out 2>&1 ) &
     PID_A=$!
-    ( nix build --no-link --print-out-paths .#secretspec-provider-sops > /tmp/secretspec-provider-rebuild-out 2>&1 ) &
+    ( nix build --option pure-eval false --no-link --print-out-paths .#secretspec-provider-sops > /tmp/secretspec-provider-rebuild-out 2>&1 ) &
     PID_B=$!
     wait "$PID_A" "$PID_B" || { echo "[rebuild] at least one nix build failed:"; sed 's/^/  /' /tmp/secretspec-rebuild-out /tmp/secretspec-provider-rebuild-out; exit 1; }
     OUT_SECRETSPEC=$(tail -1 /tmp/secretspec-rebuild-out)
@@ -902,17 +946,92 @@ secretspec-validate-local:
     # previously-broken state). Template substitutes @BDIR@ via sed after cp.
     cp /etc/nixos/scripts/test-bridge-manifest.toml "$BDIR/test-manifest.toml"
     sed -i "s|@BDIR@|$BDIR|g" "$BDIR/test-manifest.toml"
+    # Cluster-path alignment: build BOTH binaries via `nix build
+    # --no-link --print-out-paths` against /etc/nixos flake outputs so this
+    # recipe exercises the same closure the cluster side rebuild produces
+    # (via `just secretspec-rebuild`). Earlier iterations used `cargo build`
+    # directly which produced a feature-correct binary but bypassed the
+    # Nix-store path entirely — useful during the buildFeatures debugging
+    # phase, but it diverged from the cluster rebuild path and would have
+    # silently passed validate-local while the cluster rebuild was still
+    # broken. The cachix fork (pkgs/secretspec, via $LOCAL_SECRETSPEC_CORE)
+    # AND the provider fork (pkgs/secretspec-provider-sops, via
+    # $LOCAL_SECRETSPEC_PROVIDER) are independent Nix derivations, so we
+    # invoke each separately and capture its own store path. Build logs are
+    # tee'd to /tmp so a nix-build failure leaves the diagnostic context
+    # behind regardless of pass/fail.
+    #
+    # Pre-build fork-existence guard: a fresh-clone host (CI runner, new
+    # operator) without ~/Projects/secretspec-core checked out would
+    # otherwise hit a cryptic "path /nix/store/...-secretspec-0.16.0...
+    # does not exist" from nix build (the derivation evaluates but the
+    # buildRustPackage branch with src=localForkPath fails the
+    # builtins.pathExists short-circuit and falls back to the upstream
+    # tarball mkDerivation branch — which has NO sops feature). Fail-fast
+    # with the bootstrap hint instead.
+    SECRETSPEC_LOG=/tmp/secretspec-validate-build-cachix-fork.log
+    SOPS_LOG=/tmp/secretspec-validate-build-provider-rust.log
+    CACHIX_FORK='{{LOCAL_SECRETSPEC_CORE}}'
+    PROVIDER_FORK='{{LOCAL_SECRETSPEC_PROVIDER_DIR}}'
+    [ -d "$CACHIX_FORK" ] || { echo "missing fork dir: $CACHIX_FORK (run: just secretspec-fork-bootstrap)"; exit 1; }
+    [ -d "$PROVIDER_FORK" ] || { echo "missing fork dir: $PROVIDER_FORK (provider-rust subdir of cachix fork rev)"; exit 1; }
+    echo '[ci] Building pkgs/secretspec via nix build (cluster-path)...'
+    # `--option pure-eval false` is REQUIRED here (Lix 2.95.2 + Nix flake
+    # default = `pure-eval = true`): without it, `builtins.pathExists
+    # /home/j_kro/Projects/secretspec-core` in pkgs/secretspec/default.nix
+    # silently evaluates to `false` (paths outside the flake tree are
+    # unreadable in pure mode), the `else mkDerivation` upstream-tarball
+    # branch fires, and the resulting binary has no `SopsProvider`
+    # registration (the upstream cachix tarball doesn't ship with the
+    # sops:// provider module — it's an out-of-tree fork addition).
+    # With `--option pure-eval false`, flake eval relaxes the absolute-path
+    # restriction, the local-fork branch evaluates, buildRustPackage +
+    # buildAndTestSubdir + cargoBuildFlags all fire correctly, and the
+    # output store path includes `local-fork.1` (e.g.
+    # `/nix/store/...-secretspec-0.16.0-local-fork.1`) instead of plain
+    # `0.16.0` (upstream tarball).
+    SECRETSPEC_OUT=$(nix --extra-experimental-features 'nix-command flakes' \
+        build --option pure-eval false --no-link --print-out-paths /etc/nixos#secretspec 2>"$SECRETSPEC_LOG") \
+        || { echo "nix build /etc/nixos#secretspec failed; full build log: $SECRETSPEC_LOG" >&2; tail -20 "$SECRETSPEC_LOG" >&2; exit 1; }
+    echo '[ci] Building pkgs/secretspec-provider-sops via nix build (cluster-path)...'
+    SOPS_OUT=$(nix --extra-experimental-features 'nix-command flakes' \
+        build --option pure-eval false --no-link --print-out-paths /etc/nixos#secretspec-provider-sops 2>"$SOPS_LOG") \
+        || { echo "nix build /etc/nixos#secretspec-provider-sops failed; full build log: $SOPS_LOG" >&2; tail -20 "$SOPS_LOG" >&2; exit 1; }
+    # Sanity: confirm the freshly-built binary actually came from the
+    # buildRustPackage branch (local-fork compile with sops feature) and
+    # not the upstream-tarball fallback (which lacks sops://). Missing
+    # `local-fork.1` in the store path means pure-eval re-fell-through to
+    # the else branch on a host where the local fork path doesn't exist.
+    case "$SECRETSPEC_OUT" in
+        *local-fork.1*) echo "[ci] OK: secretspec built from local fork (sops feature enabled)" ;;
+        *) echo "[ci] WARN: secretspec binary is the upstream tarball (no sops:// support). Local fork at $CACHIX_FORK missing? Run: just secretspec-fork-bootstrap" >&2 ;;
+    esac
+    SECRETSPEC_BIN="$SECRETSPEC_OUT/bin/secretspec"
+    SOPS_DISPATCHER="$SOPS_OUT/bin/secretspec-provider-sops-protocol"
+    [ -x "$SECRETSPEC_BIN" ] || { printf 'secretspec bin missing: %s\n' "$SECRETSPEC_BIN" >&2; exit 1; }
+    [ -x "$SOPS_DISPATCHER" ] || { printf 'provider dispatcher missing: %s\n' "$SOPS_DISPATCHER" >&2; exit 1; }
+    echo '[ci] Binaries ready:' && ls -la "$SECRETSPEC_BIN" "$SOPS_DISPATCHER"
     echo '[ci] Running secretspec check against ephemeral sops:// route...'
-    SOPS_AGE_KEY_FILE=test-age.key secretspec check -f test-manifest.toml
+    # `SECRETSPEC_SOPS_PROVIDER_BIN` is read by cachix fork's
+    # `SopsProvider::dispatcher_binary()` (env override before `which`
+    # fallback). Pointing it at the freshly-built provider-rust-protocol
+    # binary lets the cachix fork dispatch in-process keystore resolution to
+    # NDJSON over stdio, which then shells out to `sops --decrypt` with the
+    # ephemeral age keyfile we generated above.
+    SOPS_AGE_KEY_FILE=test-age.key \
+    SECRETSPEC_SOPS_PROVIDER_BIN="$SOPS_DISPATCHER" \
+        "$SECRETSPEC_BIN" check -f test-manifest.toml
     echo '[ci] End-to-end provider chain validated successfully.'
 
 # One-shot bootstrapper: clones cachix/secretspec to ~/Projects/secretspec-core
 # on a feature/sops-provider-subprocess-dispatch branch, then applies the
 # local secretspec-fork-patches/0001-add-sops-provider.patch. Idempotent.
+# Path defaults to $HOME/Projects/secretspec-core; override via
+# SECRETSPEC_LOCAL_CORE env var.
 secretspec-fork-bootstrap:
     #!/usr/bin/env bash
     set -euo pipefail
-    LOCAL_CORE=/home/j_kro/Projects/secretspec-core
+    LOCAL_CORE='{{LOCAL_SECRETSPEC_CORE}}'
     PATCH=/etc/nixos/secretspec-fork-patches/0001-add-sops-provider.patch
     if [ -d "$LOCAL_CORE" ]; then
         echo "[bootstrap] $LOCAL_CORE already exists. To re-bootstrap: rm -rf $LOCAL_CORE"

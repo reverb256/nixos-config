@@ -549,7 +549,7 @@
   # UNBOUND DNS WITH DNS-OVER-TLS (Cluster-wide configuration)
   # ============================================================================
   # Nix binary cache — serves /nix/store as HTTP binary cache for cluster builds
-  binary-cache = {
+  services.binary-cache = {
     enable = true;
     port = 50000;
     bindAddress = "10.1.1.120";
