@@ -28,13 +28,18 @@
   # Phase 4 closure: secretspec + sudo systemd-creds + LoadCredentialEncrypted=
   ./modules/services/secretspec-example.nix
 
-  # cluster.localSealSupport — opt-in impure-eval for hosts with the local
-  # cachix-fork checkout. See module header for rationale. Keep this AFTER
-  # secretspec-* modules so it can override `nix.settings` if both stanzas
-  # are merged by some future code-path.
-  ./modules/system/secretspec-cluster-mode.nix
+  # cluster.localSealSupport module removed (Phase 1b/1c, 2026-07-25).
+  # The cachix-fork secretspec is now a flake input (Phase 1a) — impure-eval
+  # coupling is no longer needed. The module file is kept as a stub for
+  # historical drift-cycle tracking (.plans/2026-07-25-cluster-localSealSupport-scope.md)
+  # but is no longer imported here.
 
   ./modules/default.nix
+
+  {
+    # D-Bus configuration system (required by Stylix / HM dconf activation)
+    programs.dconf.enable = true;
+  }
 
   {
     nixpkgs.overlays = [
@@ -44,7 +49,7 @@
       # secretspec-provider-sops: Phase 2 closure of the sops-nix → SecretSpec
       # migration. Exposed as `pkgs.secretspec-provider-sops` across all hosts.
       (final: prev: {
-        secretspec-provider-sops = final.callPackage ./pkgs/secretspec-provider-sops {};
+        secretspec-provider-sops = final.callPackage ./pkgs/secretspec-provider-sops { inherit inputs; };
       })
       inputs.lsfg-vk-nix.overlays.default
     ];
