@@ -1300,16 +1300,15 @@
     "secretspec-provider-sops": {
       "flake": false,
       "locked": {
-        "lastModified": 1785015642,
-        "narHash": "sha256-R4WsQ1f7Ucd71LR1cf/ep5P5D35IHRkrquWsFoaKHqc=",
+        "lastModified": 1785016395,
+        "narHash": "sha256-BbIeFNUpzPPhF3LXVbrYH4BE5PQwr3VFG67Awl21KGA=",
         "owner": "reverb256",
         "repo": "secretspec-provider-sops",
-        "rev": "fd01761168f2e2d4b02a4786af6fd492eb75b546",
+        "rev": "e5d3ea4f9fad790705425616531330b07d2c9e1d",
         "type": "github"
       },
       "original": {
         "owner": "reverb256",
-        "ref": "feature/two-strategy-handle-get",
         "repo": "secretspec-provider-sops",
         "type": "github"
       }

@@ -172,7 +172,7 @@
     secretspec-provider-sops = {
       # Feature branch with two-strategy handle_get (file#key resolution) for
       # ref-based routing. Merge to main once validated.
-      url = "github:reverb256/secretspec-provider-sops/feature/two-strategy-handle-get";
+      url = "github:reverb256/secretspec-provider-sops";
       flake = false;
     };
   };
