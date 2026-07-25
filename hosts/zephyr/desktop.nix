@@ -7,6 +7,7 @@
   imports = [
     ../../modules/desktop/zephyr-sdr-brightness.nix
     ../../modules/desktop/samsung-tv-brightness.nix
+    ../../modules/desktop/niri-hdr-samsung.nix
   ];
 
   services.displayManager.sddm.enable = lib.mkForce true;
@@ -34,6 +35,9 @@
   # Samsung TV brightness via Tizen WS API
   desktop.samsung-tv-brightness.enable = true;
   desktop.zephyr-sdr-brightness.enable = true;
+
+  # NVIDIA tuning + Samsung TV HDR config for niri
+  desktop.niri-hdr-samsung.enable = true;
 
   # Noctalia v5 (noctalia flake input) is enabled automatically by
   # modules/desktop/wayland-compositor-common.nix whenever `programs.niri.enable`
@@ -65,9 +69,3 @@
 
   services.multimedia.gstreamer.enable = true;
 }
-
-  # NVIDIA tuning + Samsung TV HDR config for niri
-  imports = [
-    ../../modules/desktop/niri-hdr-samsung.nix
-  ];
-  desktop.niri-hdr-samsung.enable = true;
