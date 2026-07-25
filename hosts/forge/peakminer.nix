@@ -62,7 +62,6 @@ in {
       ];
     };
 
-    srbminer.enable = lib.mkForce false;
     gaming-detection.enable = lib.mkForce false;
   };
 }
