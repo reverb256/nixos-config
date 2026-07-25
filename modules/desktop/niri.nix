@@ -26,14 +26,19 @@ in {
   config = mkMerge [
     {programs.niri.enable = lib.mkOptionDefault false;}
     (mkIf niriEnabled {
-      # Use nixpkgs niri instead of sodiboo/flake niri-unstable.
-      # sodiboo/niri-flake ships an HDR-SDR brightness patch that no longer applies
-      # against current niri-unstable (MaxBpc removed in niri 26.4).
-      # nixpkgs niri is maintained, tracks stable, and avoids the broken patch.
-      # Revert to inputs.niri (sodiboo) when their HDR patch is fixed upstream.
+      # Use sodiboo/niri-flake's niri-unstable (tracks YaLTeR/niri HEAD) for HDR
+      # support. niri-unstable carries max_bpc + reset_hdr plumbing (HDR via EDID),
+      # which nixpkgs' stable niri (v26.04) also has but on an older schema. We
+      # switched to unstable 2026-07-25 to enable HDR on the Samsung TV
+      # (HDMI-A-2). The old custom SDR-brightness patch (patches/niri-sdr-brightness.patch)
+      # was dropped - the TV is now HDR-driven natively by niri; noctalia's
+      # HDMI-A-2 backend was set to `normal` so niri owns the output.
+      # inputs.niri.overlays.niri (common-modules-list.nix) only adds
+      # pkgs.niri-unstable / pkgs.niri-stable; it does NOT replace pkgs.niri,
+      # so this mkForce is what actually selects the unstable binary.
       programs.niri.package =
         lib.mkForce
-        pkgs.niri;
+        inputs.niri.packages.${pkgs.stdenv.hostPlatform.system}.niri-unstable;
     })
     (mkIf niriEnabled (
       lib.mkMerge [
