@@ -1,46 +1,50 @@
 # ─────────────────────────────────────────────────────────────────
-# secretspec-creds — Phase 4 SecretSpec provisioning via systemd oneshot.
+# secretspec-creds — Phase 4 SecretSpec credential provisioning.
 #
-# Replaces sops-nix's sops-install-secrets builder as the activation-time
-# secret writer. At activation, runs `secretspec get <NAME> --profile production`
-# for each entry in `services.secretspec-creds.secrets` and writes the resolved
-# value to the declared /run/secrets/ path.
+# At activation, decrypts each sops file via `sops -d --extract '["data"]'`
+# and writes the resolved value to the declared /run/secrets/ path.
 #
-# Designed to run IN PARALLEL with the sops registry. Both write the same
-# files to /run/secrets/; whichever finishes first satisfies the consumer.
-# Once verified, disable sops-secrets-registry and keep this module.
+# Uses sops CLI directly (not secretspec-provider-sops subprocess) to
+# avoid provider extraction bugs. The `--extract '["data"]'` flag works
+# for both binary-format and YAML-format sops files.
 # -----------------------------------------------------------------
 { config, lib, pkgs, ... }:
 with lib;
 let
   cfg = config.services.secretspec-creds;
 
-  # Build a single shell script that resolves every secret via
-  # `secretspec get` and writes each to its declared path.
   writeScript = pkgs.writeShellScript "secretspec-write-creds" ''
     set -euo pipefail
     LOG="/var/log/secretspec-creds.log"
     log() { echo "[$(date +%H:%M:%S)] $*" | tee -a "$LOG"; }
 
-    SECRETSPEC="${pkgs.secretspec}/bin/secretspec"
+    SOPS="${pkgs.sops}/bin/sops"
     fail=0
+    CONFIG="/etc/nixos/.sops.yaml"
+    SECRETS_DIR="/etc/nixos/secrets"
 
-    ${concatStringsSep "\n" (mapAttrsToList (name: entry: ''
-      log "Resolving ${name} → ${entry.path} ..."
-      VALUE=$("$SECRETSPEC" get ${name} --profile production 2>>"$LOG") || {
-        log "FAILED: secretspec get ${name} (exit $?)"
-        fail=1; continue
+    write_secret() {
+      local name="$1" path="$2" file="$3" mode="$4" owner="$5" group="$6"
+      log "Decrypting ${file} → ${path} ..."
+      local value
+      value=$("$SOPS" -d --config "$CONFIG" --extract '["data"]' "$SECRETS_DIR/$file" 2>>"$LOG") || {
+        log "FAILED: sops -d ${file} (exit $?)"
+        fail=1; return
       }
-      if [ -z "$VALUE" ] || [ "$VALUE" = "null" ]; then
-        log "FAILED: ${name} resolved to empty"
-        fail=1; continue
+      if [ -z "$value" ] || [ "$value" = "null" ]; then
+        log "FAILED: ${file} resolved to empty/null"
+        fail=1; return
       fi
-      install -D -m ${toString entry.mode} -o ${entry.owner} -g ${entry.group} \
-        <(printf '%s' "$VALUE") "${entry.path}" 2>>"$LOG" || {
-        log "FAILED: write ${entry.path}"; fail=1; continue
+      install -D -m "$mode" -o "$owner" -g "$group" \
+        <(printf '%s' "$value") "$path" 2>>"$LOG" || {
+        log "FAILED: install ${path}"; fail=1; return
       }
-      log "Wrote ${entry.path} ($(wc -c < "${entry.path}") bytes)"
-    '') cfg.secrets)}
+      log "Wrote ${path} ($(wc -c < "$path") bytes)"
+    }
+
+    ${concatStringsSep "\n" (mapAttrsToList (name: entry:
+      "write_secret ${name} ${entry.path} ${entry.file} ${toString entry.mode} ${entry.owner} ${entry.group}"
+    ) cfg.secrets)}
 
     if [ "$fail" = 1 ]; then
       log "One or more secrets failed — see journalctl -u secretspec-creds"
@@ -53,47 +57,28 @@ in {
     enable = mkOption {
       type = types.bool;
       default = false;
-      description = ''
-        Enable SecretSpec provisioning at activation. When true, a systemd
-        oneshot runs `secretspec get` for each declared secret and writes the
-        resolved value to its target path.
-
-        Run in parallel with the sops registry for validation (both write the
-        same files). Once verified, disable sops-secrets-registry and keep this.
-      '';
+      description = "Enable SecretSpec credential provisioning at activation.";
     };
 
     secrets = mkOption {
       type = types.attrsOf (types.submodule {
         options = {
-          path = mkOption {
-            type = types.str;
-            description = "Absolute path to write (e.g. /run/secrets/context7-api-key)";
-          };
+          path = mkOption { type = types.str; };
+          file = mkOption { type = types.str; description = "Relative path under /etc/nixos/secrets/"; };
           mode = mkOption { type = types.str; default = "0444"; };
           owner = mkOption { type = types.str; default = "root"; };
           group = mkOption { type = types.str; default = "root"; };
         };
       });
       default = {};
-      description = ''
-        Attrset mapping secretspec.toml secret names to their on-disk paths.
-        Example:
-          CONTEXT7_API_KEY = { path = "/run/secrets/context7-api-key";
-            owner = "j_kro"; group = "users"; };
-      '';
     };
   };
 
   config = mkIf cfg.enable {
-    environment.systemPackages = with pkgs; [
-      secretspec
-      secretspec-provider-sops
-      sops
-    ];
+    environment.systemPackages = with pkgs; [ sops ];
 
     systemd.services.secretspec-creds = {
-      description = "SecretSpec credential provisioning — resolve+write /run/secrets/*";
+      description = "SecretSpec credential provisioning — sops-d + write /run/secrets/*";
       documentation = [ "https://secretspec.dev" ];
       wantedBy = ["multi-user.target"];
       before = ["multi-user.target"];
@@ -102,10 +87,7 @@ in {
         Type = "oneshot";
         RemainAfterExit = true;
         ExecStart = writeScript;
-        Environment = [
-          "SOPS_AGE_KEY_FILE=/etc/nixos/.age/key.txt"
-          "SECRETSPEC_SOPS_PROVIDER_BIN=${pkgs.secretspec-provider-sops}/bin/secretspec-provider-sops-protocol"
-        ];
+        Environment = [ "SOPS_AGE_KEY_FILE=/etc/nixos/.age/key.txt" ];
         StandardOutput = "journal";
         StandardError = "journal";
         TimeoutStartSec = "5min";
