@@ -19,34 +19,38 @@
     extraModulePackages = [];
   };
 
-  fileSystems = {
-    "/" = {
-      device = "/dev/disk/by-uuid/0893f780-7016-44cc-aae7-1f7996e498cc";
-      fsType = "btrfs";
-      options = ["subvol=@"];
-    };
+  fileSystems."/" = {
+    device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
+    fsType = "btrfs";
+    options = ["subvol=@root" "compress=zstd:3" "ssd" "discard=async" "noatime" "x-initrd.mount"];
+  };
 
-    "/home" = {
-      device = "/dev/disk/by-uuid/0893f780-7016-44cc-aae7-1f7996e498cc";
-      fsType = "btrfs";
-      options = ["subvol=@home"];
-    };
+  fileSystems."/nix" = {
+    device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
+    fsType = "btrfs";
+    options = ["subvol=@nix" "compress=zstd:3" "ssd" "discard=async" "noatime" "x-initrd.mount"];
+  };
 
-    "/boot" = {
-      device = "/dev/disk/by-uuid/0AD6-630E";
-      fsType = "vfat";
-      options = ["fmask=0077" "dmask=0077"];
-    };
+  fileSystems."/persistent" = {
+    device = "/dev/disk/by-partlabel/disk-nvme1n1-root";
+    fsType = "btrfs";
+    options = ["subvol=@persistent" "compress=zstd:3" "ssd" "discard=async" "noatime" "x-initrd.mount"];
+  };
 
-    "/data/worn" = {
-      device = "/dev/disk/by-uuid/2056c7e4-cd6c-4a67-9b3d-001178a70eaa";
-      fsType = "btrfs";
-      options = ["subvol=@worn" "compress=zstd" "ssd" "discard=async" "nofail" "x-systemd.device-timeout=10s"];
-    };
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-partlabel/disk-nvme1n1-ESP";
+    fsType = "vfat";
+    options = ["fmask=0077" "dmask=0077"];
+  };
+
+  fileSystems."/home" = {
+    device = "/dev/disk/by-label/nexus-storage";
+    fsType = "btrfs";
+    options = ["subvol=home" "compress=zstd:3" "ssd" "discard=async"];
   };
 
   swapDevices = [
-    {device = "/dev/disk/by-uuid/e0137755-9f24-4d61-829c-6cf9ae7ef3ef";}
+    {device = "/dev/disk/by-partlabel/disk-nvme1n1-swap";}
   ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
