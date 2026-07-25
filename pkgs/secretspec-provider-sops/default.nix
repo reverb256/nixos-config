@@ -29,7 +29,7 @@ let
       lockFile = toString localForkSubcrate + "/Cargo.lock";
     }
     else {
-      src = remote;
+      src = toString remote + "/provider-rust";
       lockFile = toString remote + "/provider-rust/Cargo.lock";
     };
 in
