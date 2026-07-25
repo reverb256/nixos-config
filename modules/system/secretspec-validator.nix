@@ -19,6 +19,32 @@ let
   defaultEnable = config.services.sops-secrets-registry.enable;
 in
 {
+  # ─── IMPURE-EVAL COUPLING NOTE ───────────────────────────────────────
+  # This module declares `services.secretspec-validator.enable` as a systemd
+  # one-shot that runs `secretspec check` on activation. The check requires
+  # the `sops://` provider backend, sourced from a local fork checkout at
+  # `~/Projects/secretspec/provider-rust` (see pkgs/secretspec-provider-sops).
+  # The flake probes that local fork via `builtins.pathExists`, which is
+  # blocked under default pure-eval.
+  #
+  # Since Option B auto-coupling landed in
+  # modules/system/secretspec-cluster-mode.nix, this validator no longer
+  # requires any manual `cluster.localSealSupport = true` declaration — it
+  # auto-fires wherever `services.sops-secrets-registry.enable = true` is
+  # set. Hosts with sops-registry enabled but NO local fork checkout still
+  # fall through to the upstream cachix tarball (no sops:// registration),
+  # and the systemd unit will fail at activation with
+  # "Provider backend 'sops' not found" — fail-loud by design. CI runners
+  # and fresh-clone hosts SHOULD set `services.sops-secrets-registry.enable
+  # = false` (or use a host config that doesn't import the registry) to
+  # avoid widening the impure-eval surface unnecessarily.
+  #
+  # Why this is a comment and not a lib.types.assert check: assertions
+  # against config.services.secretspec-validator.enable would force build of
+  # a closure the operator might not want validated yet. Keep coupling
+  # documented-but-flexible.
+  # ─────────────────────────────────────────────────────────────────────────
+
   options.services.secretspec-validator = {
     enable = lib.mkOption {
       type = lib.types.bool;
