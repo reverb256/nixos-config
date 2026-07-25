@@ -13,7 +13,7 @@ with lib;
 let
   cfg = config.services.secretspec-creds;
 
-  writeScript = pkgs.writeShellScript "secretspec-write-creds" ''
+  writeScript = if cfg.enable then pkgs.writeShellScript "secretspec-write-creds" ''
     set -euo pipefail
     LOG="/var/log/secretspec-creds.log"
     log() { echo "[$(date +%H:%M:%S)] $*" | tee -a "$LOG"; }
@@ -50,7 +50,7 @@ let
       exit 1
     fi
     log "All ${builtins.toString (builtins.length (builtins.attrNames cfg.secrets))} secrets written."
-  '';
+  '' else pkgs.writeShellScript "secretspec-write-creds-dummy" "exit 0";
 in {
   options.services.secretspec-creds = {
     enable = mkOption {
