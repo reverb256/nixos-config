@@ -270,72 +270,139 @@ This bumps the file's owner/perm to whatever `cp -p` keeps (root:root 0644 unles
 `-p` is dropped). Documents the pattern; future LLMs shouldn't burn 15 minutes
 on failed edit-tool retries when they could `sudo cp` from a heredoc.
 
-### Nix flake pure-eval + local secretspec fork (Phase 1a — RESOLVED 2026-07-25)
+### Secretspec migration (Phase 2 — COMPLETE 2026-07-25)
 
-The cachix-fork `secretspec` + the local `secretspec-provider-rust` were
-previously built from absolute-path probes:
+The sops-nix → secretspec migration is complete. Secretspec is a
+declarative secrets resolution framework that replaces sops-nix for
+runtime secret resolution. The cluster now runs TWO paths in parallel:
 
-```nix
-src = lib.cleanSource (toString localForkPath + "/secretspec");
-```
+- **Path A (secretspec)**: `secretspec check -P production` resolves
+  all 60+ secrets via sops:// ref routing + dotenv/env fallback.
+- **Path B (sops-nix)**: Still active for backwards compatibility;
+  will be removed in Phase 3.
 
-Those paths (`/home/j_kro/Projects/secretspec-core`,
-`/home/j_kro/Projects/secretspec/provider-rust`) are forbidden under
-Lix 2.95.2+ / Nix ≥2.4 default `pure-eval = true`. Without explicit
-impure-eval loosening, the `buildRustPackage` branch silently fell
-through to upstream cachix tarballs that lacked the sops:// provider —
-validator would fail at activation with `Provider backend 'sops' not found`.
+#### Two-fork architecture
 
-**Phase 1a fix (2026-07-25).** Both forks are now flake inputs declared
-in `flake.nix`:
+The cluster builds secretspec from TWO remote GitHub forks declared as
+flake inputs in `flake.nix`:
 
 ```nix
 secretspec = {
-  url = "git+file:///home/j_kro/Projects/secretspec-core?ref=feature/sops-provider-subprocess-dispatch";
+  # cachix fork at reverb256/secretspec/feature/sops-provider-subprocess-dispatch
+  url = "github:reverb256/secretspec/feature/sops-provider-subprocess-dispatch";
   flake = false;
 };
 secretspec-provider-sops = {
-  url = "git+file:///home/j_kro/Projects/secretspec/provider-rust";
+  # provider-rust fork at reverb256/secretspec-provider-sops (feature branch)
+  url = "github:reverb256/secretspec-provider-sops/feature/two-strategy-handle-get";
   flake = false;
 };
 ```
 
-`git+file://` flakerefs are pure-eval-safe — Nix content-addresses the
-source via the flake-input lock mechanism rather than probing filesystem
-state at eval time. The packages
-(`pkgs/secretspec/default.nix` + `pkgs/secretspec-provider-sops/default.nix`)
-source exclusively from these inputs.
+Both packages are at `/etc/nixos/pkgs/secretspec/` and
+`/etc/nixos/pkgs/secretspec-provider-sops/`.
 
-**As a result, all three of the previous workarounds are now obsolete:**
+#### Ref routing in secretspec.toml
 
-1. ~~**Justfile recipes pass `--option pure-eval false` per-invocation.**~~
-   Not required for the secretspec build. Some recipes may still carry
-   the flag for unrelated reasons — verify before removing.
+`/etc/nixos/secretspec.toml` declares all 60+ cluster secrets. 18
+sops-backed entries have `ref = { item = "path.yaml#data" }` fields
+that tell the in-tree SopsProvider exactly which age-encrypted file to
+decrypt and which YAML key (`data`) to extract:
 
-2. ~~**`nix.settings.pure-eval = false` in NixOS module config.**~~ The
-   `cluster.localSealSupport` option has been removed (Phase 1b, 2026-07-25)
-   along with its `modules/system/secretspec-cluster-mode.nix` module,
-   which is now a stub.
+```toml
+# phase2_sops_route: secrets/ai/nvidia-api-key.yaml#nvidia_api_key
+NVIDIA_API_KEY = { required = true, type = "password",
+  ref = { item = "ai/nvidia-api-key.yaml#data" } }
+```
 
-3. ~~**`lib.cleanSource localForkPath` for the secretspec-provider-sops
-   packages.**~~ `lib.cleanSource` is still used — `lib.cleanSource
-   inputs.secretspec` in the secretspec package — but the input is now a
-   flake-tracked path, not an absolute-path probe.
+The two-strategy dispatcher (`handle_get` in provider-rust/main.rs):
+1. Key contains `#` or `/` → split on `#`, decrypt specified file,
+   extract specified YAML key
+2. Flat key name → search all `.yaml` files under project directory
+   (depth-limited to 8, symlink-safe)
 
-**Caveats and edge cases:**
+#### Nix build chain
 
-- `git+file://` flake inputs require the path to EXIST on every host that
-  evaluates the flake. CI runners and fresh-clone hosts without the fork
-  must declare their own `inputs.secretspec` pointing to upstream
-  cachix/secretspec (or a different fork) — that is the most common drift
-  failure mode introduced by Phase 1a.
-- `lib.cleanSource` is still needed to filter `.git/` / `target/` from
-  the flake input before `buildRustPackage` runs.
-- If the local fork gets force-pushed, the flake-input lock will not
-  auto-update — `nix flake update` is required. See
-  `docs/issues/06-fork-sha-pinning.md` for the SHA-drift detection
-  workflow that replaced the old Option-B coupling contract.
+`just secretspec-rebuild` builds both packages from the remote GitHub
+forks (local clones cached by flake lock). `just secretspec-validate-local`
+runs an ephemeral age-keypair end-to-end test.
 
+Production validation:
+```bash
+SOPS_AGE_KEY_FILE=~/.config/sops/age/keys-combined.txt \
+SECRETSPEC_SOPS_PROVIDER_BIN=$(nix build .#secretspec-provider-sops --no-link --print-out-paths 2>/dev/null)/bin/secretspec-provider-sops-protocol \
+secretspec check -f /etc/nixos/secretspec.toml -P production
+```
+
+All 18 sops-backed secrets resolve correctly (`source sops:///etc/nixos/secrets/`).
+
+#### .env.secrets
+
+`/etc/nixos/.env.secrets` contains placeholder values for the 34
+env-backed secrets (no sops backing). Replace with real values before
+production use. The secretspec dotenv provider reads it at
+`dotenv:///etc/nixos/.env.secrets`.
+
+#### Age keyfile
+
+The cluster's combined age key is at
+`/home/j_kro/.config/sops/age/keys-combined.txt`. The root-owned
+`/tmp/combined-keys.txt` is the authoritative copy.
+
+#### YubiKey/pcscd
+
+Two YubiKeys (1050:0407) are physically attached to zephyr. pcscd is
+running with the CCID driver symlinked:
+```
+/var/lib/pcsc/drivers/ifd-ccid.bundle → /nix/store/...-ccid-1.7.1/pcsc/drivers/ifd-ccid.bundle
+```
+`age-plugin-yubikey -l` lists recipients.
+
+#### Remaining work
+
+- **Merge to main**: `feature/two-strategy-handle-get` blocked by GitHub
+  branch protection. Flake input stays on feature branch until merged.
+- **Operator rotation**: Replace the 34 placeholder values in .env.secrets
+  with real secrets from external service providers.
+- **Secretspec-validate-local**: Fails due to DNS resolution for
+  cache.nixos.org (infrastructure issue, not code).
+
+The flake.lock file is pinned to the feature branch revision for both
+forks. The justfile recipes still pass --option pure-eval false for safety, though GitHub-based flake inputs make it no longer strictly required for the source resolution path.
+
+#### How the sops provider works
+
+In-tree `SopsProvider` (in cachix fork secretspec/src/provider/sops.rs)
+implements the Provider trait with scheme `sops://`. Spawns
+`secretspec-provider-sops-protocol` as a subprocess (NDJSON per
+cachix/secretspec#98).
+
+Flow:
+1. `secretspec check` evaluates each secret
+2. If secret has `ref` → `Address::Native` → `flat_item` returns the
+   `item` field (e.g. `ai/nvidia-api-key.yaml#data`)
+3. SopsProvider sends NDJSON `{"op":"get", "key":"..."}` to dispatcher
+4. Dispatcher splits on `#` → `sops --decrypt file` → parse YAML →
+   extract `data` key → return value
+5. If no `ref` → falls through to dotenv/env providers
+
+#### Justfile secretspec recipes
+
+```
+just secretspec-check           # secretspec check with production profile
+just secretspec-list            # List all declared secrets by category
+just secretspec-validate-local  # Ephemeral age-keypair end-to-end test
+just secretspec-rebuild         # Rebuild both packages
+just secretspec-fork-status     # Show ahead/behind for both forks
+just secretspec-core-sync       # Rebase cachix fork onto upstream
+just secretspec-provider-sync   # Rebase provider fork onto upstream
+just secretspec-fork-bootstrap  # Clone cachix fork to local
+```
+
+**Important:** All secretspec-related `nix build` invocations need
+`--option pure-eval false` because the fork paths live outside the
+flake directory tree. Without it, evaluation silently falls through
+to the upstream tarball (no sops:// provider).
 **How to verify:** `just secretspec-validate-local` exits 0 with log line
 `[ci] OK: secretspec built from local fork (sops feature enabled)`. The
 case-statement in that recipe warns on stderr (non-blocking) if it detects
