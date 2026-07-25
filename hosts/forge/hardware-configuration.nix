@@ -47,7 +47,7 @@
 
   # Boot partition (TEAM SSD)
   fileSystems."/boot" = {
-    device = "/dev/disk/by-uuid/EB7C-E7CC";
+    device = "/dev/disk/by-uuid/E979-C61E";
     fsType = "vfat";
     options = ["fmask=0077" "dmask=0077"];
   };
@@ -55,10 +55,10 @@
   # Swap partitions
   swapDevices = [
     {
-      device = "/dev/disk/by-uuid/b4655d1d-1abf-4c0f-a5f1-4fa5ba8d7d43";
+      device = "/dev/disk/by-uuid/6fba2143-d725-4b5b-836c-98b7cedca5ee";
     }
     {
-      device = "/dev/disk/by-uuid/5f83b842-3e30-47f2-8274-8db86b7f7124";
+      device = "/dev/disk/by-uuid/835adbd3-7cae-46e9-8f85-772f77724b90";
     }
   ];
 
