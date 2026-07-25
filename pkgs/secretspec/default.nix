@@ -3,6 +3,8 @@
   stdenv,
   rustPlatform,
   autoPatchelfHook,
+  dbus,
+  gcc,
   fetchurl,
   ...
 }:
@@ -93,6 +95,7 @@ else mkDerivation rec {
   };
 
   nativeBuildInputs = [ autoPatchelfHook ];
+  buildInputs = [ dbus gcc.cc.lib ];
 
   dontConfigure = true;
   dontBuild = true;
