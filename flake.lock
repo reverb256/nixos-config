@@ -754,6 +754,23 @@
         "url": "https://github.com/sodiboo/niri-flake"
       }
     },
+    "niri-hdr": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1783683903,
+        "narHash": "sha256-Y8X2bTuboCAQ9E67ri9kTMkzBYU+1o3iCHCOVWctxLo=",
+        "owner": "dividebysandwich",
+        "repo": "niri",
+        "rev": "2516a83b3eef5f3a766af5113244357a11e255a6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "dividebysandwich",
+        "ref": "hdr-smithay-master",
+        "repo": "niri",
+        "type": "github"
+      }
+    },
     "niri-stable": {
       "flake": false,
       "locked": {
@@ -1206,6 +1223,7 @@
         "lsfg-vk-nix": "lsfg-vk-nix",
         "mcp-registry": "mcp-registry",
         "niri": "niri",
+        "niri-hdr": "niri-hdr",
         "nix-cachyos-kernel": "nix-cachyos-kernel",
         "nixcord": "nixcord",
         "nixpkgs": "nixpkgs_3",
@@ -1267,32 +1285,33 @@
       "locked": {
         "lastModified": 1784998751,
         "narHash": "sha256-LjL22GMegE2GjtTisKaUaWESTA4SRXvSfW+9XAhr+zk=",
-        "ref": "feature/sops-provider-subprocess-dispatch",
+        "owner": "reverb256",
+        "repo": "secretspec",
         "rev": "f706d21b4887ced712c712f504fe4eab4cd42f47",
-        "revCount": 659,
-        "type": "git",
-        "url": "file:///home/j_kro/Projects/secretspec-core"
+        "type": "github"
       },
       "original": {
+        "owner": "reverb256",
         "ref": "feature/sops-provider-subprocess-dispatch",
-        "type": "git",
-        "url": "file:///home/j_kro/Projects/secretspec-core"
+        "repo": "secretspec",
+        "type": "github"
       }
     },
     "secretspec-provider-sops": {
       "flake": false,
       "locked": {
-        "lastModified": 1784850149,
-        "narHash": "sha256-otClRui6pjCgohBIYOLO7ucCGbYYO/E8gH3NIsigLqU=",
-        "ref": "refs/heads/main",
-        "rev": "e63e27c479802777ed44f0fcd52e71d2639aaabd",
-        "revCount": 45,
-        "type": "git",
-        "url": "file:///home/j_kro/Projects/secretspec"
+        "lastModified": 1785015642,
+        "narHash": "sha256-R4WsQ1f7Ucd71LR1cf/ep5P5D35IHRkrquWsFoaKHqc=",
+        "owner": "reverb256",
+        "repo": "secretspec-provider-sops",
+        "rev": "fd01761168f2e2d4b02a4786af6fd492eb75b546",
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "file:///home/j_kro/Projects/secretspec"
+        "owner": "reverb256",
+        "ref": "feature/two-strategy-handle-get",
+        "repo": "secretspec-provider-sops",
+        "type": "github"
       }
     },
     "sops-nix": {
