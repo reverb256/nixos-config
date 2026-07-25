@@ -89,6 +89,7 @@ in {
     environment.systemPackages = with pkgs; [
       secretspec
       secretspec-provider-sops
+      sops
     ];
 
     systemd.services.secretspec-creds = {
