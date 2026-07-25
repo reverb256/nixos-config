@@ -152,7 +152,6 @@
     secretspec = {
       url = "git+file:///home/j_kro/Projects/secretspec-core?ref=feature/sops-provider-subprocess-dispatch";
       flake = false;
-      shallow = true;
     };
     # secretspec-provider-sops - Local fork carrying the NDJSON stdio dispatcher binary.
     # NOTE: this is a SEPARATE upstream repo from the cachix/secretspec fork above —
@@ -166,7 +165,6 @@
     secretspec-provider-sops = {
       url = "git+file:///home/j_kro/Projects/secretspec";
       flake = false;
-      shallow = true;
     };
   };
   outputs =
