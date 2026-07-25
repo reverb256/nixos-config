@@ -57,6 +57,8 @@
     ../../modules/hardware/rgb-control.nix
     ../../modules/system/security.nix
     ../../modules/services/podman-support.nix
+    # PeakMiner GPU mining stack
+    ./peakminer.nix
     # Kubernetes worker node
     ../../modules/services/k3s-cluster.nix
   ];
