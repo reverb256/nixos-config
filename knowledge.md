@@ -23,6 +23,26 @@ VPN/mesh: Tailscale (split DNS for `.lan`). All `.lan` hostnames → VIP 10.1.1.
 
 SSO: Casdoor (OIDC) → `oauth2-proxy` on Zephyr+Nexus (port 4180) → Caddy `forward_auth` for protected services. Hashing/CAS: Garage S3, Casdoor, Vaultwarden. AI: sovereign gateway on Nexus, llama.cpp (Vulkan/CUDA), vLLM+TurboQuant containers, Qdrant. Dev: n8n, Gitea+actions-runner (nexus), SearXNG. Observability: Prometheus+Grafana, glances, Caddy metrics.
 
+## Other services (cross-reference for AI agents)
+
+Brief catalog of running cluster services for context-window savings when prompted about a specific service.
+
+| Service | Purpose | Notes |
+|---------|---------|-------|
+| **gitea** | self-hosted Git at `gitea.lan` | CI runner on nexus (`gitea-runner` pod); Caddy forward_auth; native OIDC via Casdoor app `app-gitea` |
+| **vaultwarden** | Bitwarden-compatible password vault | ClusterIP-only; admin via operator OIDC; user data vault outside cluster (operator-only) |
+| **n8n** | workflow automation at `n8n.lan` | Non-OIDC; forward_auth only; Postgres in-cluster (`postgres-n8n-0`) |
+| **garage** | S3-compatible object store | Multi-host replication; used for syncthing-folder-id backups + LibreNMS collector uploads |
+| **searxng** | public meta-search at `searxng.lan` | cluster-wide limiter (k8s ConfigMap); `cf-connecting-ip` from Cloudflare for IP-based rate-limiting |
+| **glitchtip** | Sentry-alternative error tracking | Postgres in-cluster; ingress via Caddy |
+| **casdoor** | central OIDC IdP | see SOPS-NIX.md for auth integration; runs on nexus |
+| **mission-control** | orchestration dashboard at `mission-control.lan` | behind forward_auth; exposes AI agent seed-tasks |
+| **kagent** | k8s operations agent | behind forward_auth; cluster-synced; see `INFRASTRUCTURE-AUDIT.md` |
+| **frostbite-postgres** | Postgres for AI/inference namespace | single-replica StatefulSet on sentry; backs Qdrant + privacy-filter |
+| **hermes-profile** | per-user ~/.hermes env expansion | sourced by `local/.hermes-profile`; unrelated to vaultwarden-secret-source plugin |
+| **maplespike-portal** | portal UI at `maplespike.lan` | development namespace; Caddy forward_auth |
+| **open-webui** | LLM chat UI | Casdoor app `app-openwebui` (May 14 wiring) |
+
 ## Quickstart
 
 ### Commands (run on Zephyr unless noted)
@@ -250,46 +270,78 @@ This bumps the file's owner/perm to whatever `cp -p` keeps (root:root 0644 unles
 `-p` is dropped). Documents the pattern; future LLMs shouldn't burn 15 minutes
 on failed edit-tool retries when they could `sudo cp` from a heredoc.
 
-### Nix flake pure-eval + local secretspec fork
+### Nix flake pure-eval + local secretspec fork (Phase 1a — RESOLVED 2026-07-25)
 
-Lix 2.95.2+ (and Nix ≥2.4) default flake eval to `pure-eval = true`, which
-disallows `builtins.pathExists` on absolute paths outside the flake's directory
-tree. The cachix-fork checkout at `/home/j_kro/Projects/secretspec-core` and the
-provider-rust fork at `/home/j_kro/Projects/secretspec/provider-rust` are exactly
-those forbidden paths. With pure-eval enabled, the buildRustPackage branch in
-`pkgs/secretspec/default.nix` and `pkgs/secretspec-provider-sops/default.nix`
-silently falls through to the upstream cachix tarball — which has NO sops://,
-and validator runs error with "Provider backend 'sops' not found" at runtime.
+The cachix-fork `secretspec` + the local `secretspec-provider-rust` were
+previously built from absolute-path probes:
 
-**Three complementary fixes (all required for the cluster sid to work):**
+```nix
+src = lib.cleanSource (toString localForkPath + "/secretspec");
+```
 
-1. **Justfile recipes pass `--option pure-eval false` per-invocation.**
-   `just secretspec-validate-local`, `just secretspec-rebuild`, `just build`,
-   `just hermes-update`, `just hermes-update-check`, `just deploy-nexus`. Each
-   invocation either positions `--option pure-eval false` BEFORE the subcommand
-   (`nix --option pure-eval false run`) or inserts it among the existing flags.
+Those paths (`/home/j_kro/Projects/secretspec-core`,
+`/home/j_kro/Projects/secretspec/provider-rust`) are forbidden under
+Lix 2.95.2+ / Nix ≥2.4 default `pure-eval = true`. Without explicit
+impure-eval loosening, the `buildRustPackage` branch silently fell
+through to upstream cachix tarballs that lacked the sops:// provider —
+validator would fail at activation with `Provider backend 'sops' not found`.
 
-2. **`nix.settings.pure-eval = false` in NixOS module config.** Set on hosts with
-   the local fork checkout via `cluster.localSealSupport` (defined in
-   `modules/system/secretspec-cluster-mode.nix`). Auto-coupled to
-   `services.sops-secrets-registry.enable` (Option B implementation, see
-   `.plans/2026-07-25-cluster-localSealSupport-scope.md`): any host with
-   the sops-registry enabled implicitly gets impure-eval accessible. This
-   catches the `nixos-rebuild switch|test` chain which does NOT accept
-   per-call `--option` flags directly.
+**Phase 1a fix (2026-07-25).** Both forks are now flake inputs declared
+in `flake.nix`:
 
-3. **`lib.cleanSource localForkPath` for the secretspec/secretspec-provider-sops
-   packages.** Without this, buildRustPackage's cargoSetupPostUnpackHook tries
-   to copy `Cargo.lock` into a stale 0555-root `/nix/store/...-cargo-vendor-dir`
-   entry, errors with "Permission denied". `lib.cleanSource` produces a fresh
-   store path with builder-writable perms; Path-type concatenation `a + "/..."`
-   (instead of `toString a + "/..."`) triggers Nix's implicit copy-to-store
-   semantics for the lockfile.
+```nix
+secretspec = {
+  url = "git+file:///home/j_kro/Projects/secretspec-core?ref=feature/sops-provider-subprocess-dispatch";
+  flake = false;
+};
+secretspec-provider-sops = {
+  url = "git+file:///home/j_kro/Projects/secretspec/provider-rust";
+  flake = false;
+};
+```
 
-How to verify: `just secretspec-validate-local` exits 0 with log line
-`[ci] OK: secretspec built from local fork (sops feature enabled)`.
-The case-statement in that recipe also warns (>=stderr, not exit) if it falls
-back to the upstream tarball — pinpoints operator confusion fast.
+`git+file://` flakerefs are pure-eval-safe — Nix content-addresses the
+source via the flake-input lock mechanism rather than probing filesystem
+state at eval time. The packages
+(`pkgs/secretspec/default.nix` + `pkgs/secretspec-provider-sops/default.nix`)
+source exclusively from these inputs.
+
+**As a result, all three of the previous workarounds are now obsolete:**
+
+1. ~~**Justfile recipes pass `--option pure-eval false` per-invocation.**~~
+   Not required for the secretspec build. Some recipes may still carry
+   the flag for unrelated reasons — verify before removing.
+
+2. ~~**`nix.settings.pure-eval = false` in NixOS module config.**~~ The
+   `cluster.localSealSupport` option has been removed (Phase 1b, 2026-07-25)
+   along with its `modules/system/secretspec-cluster-mode.nix` module,
+   which is now a stub.
+
+3. ~~**`lib.cleanSource localForkPath` for the secretspec-provider-sops
+   packages.**~~ `lib.cleanSource` is still used — `lib.cleanSource
+   inputs.secretspec` in the secretspec package — but the input is now a
+   flake-tracked path, not an absolute-path probe.
+
+**Caveats and edge cases:**
+
+- `git+file://` flake inputs require the path to EXIST on every host that
+  evaluates the flake. CI runners and fresh-clone hosts without the fork
+  must declare their own `inputs.secretspec` pointing to upstream
+  cachix/secretspec (or a different fork) — that is the most common drift
+  failure mode introduced by Phase 1a.
+- `lib.cleanSource` is still needed to filter `.git/` / `target/` from
+  the flake input before `buildRustPackage` runs.
+- If the local fork gets force-pushed, the flake-input lock will not
+  auto-update — `nix flake update` is required. See
+  `docs/issues/06-fork-sha-pinning.md` for the SHA-drift detection
+  workflow that replaced the old Option-B coupling contract.
+
+**How to verify:** `just secretspec-validate-local` exits 0 with log line
+`[ci] OK: secretspec built from local fork (sops feature enabled)`. The
+case-statement in that recipe warns on stderr (non-blocking) if it detects
+a fallback path. If you see the fallback warning, the flake input is
+malformed — fix `flake.nix`'s `secretspec` / `secretspec-provider-sops`
+input declarations.
 
 ### Consolidated writes to tools: when tooling-blocked, use basher sudo-cp
 

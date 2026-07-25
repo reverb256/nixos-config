@@ -250,6 +250,42 @@ in {
     # config.lib.mcp-registry.hermesMcpYaml before mcp-registry was
     # enabled (Nix eval failure).
 
+    # Phase 2 E2 migration (2026-07-25): SecretSpec route → Hermes env-var
+    # bindings. When non-empty, hermes-config-secrets.service runs
+    # `secretspec get <route>` per entry and writes the resolved value
+    # to ~/.hermes/.env as `<envVar>=<value>`. The provider chain on
+    # /etc/nixos/secretspec.toml resolves through the cachix-fork sops://
+    # NDJSON dispatcher; SECRETSPEC_SOPS_PROVIDER_BIN is auto-wired to
+    # the secretspec-provider-sops-protocol binary.
+    #
+    # When this option is empty (default), the module falls back to the
+    # E1 sops-nix *ApiKeyFile path. Operators migrate host-by-host: once
+    # this mapping covers a secret, drop the corresponding
+    # `*ApiKeyFile = "..."` assignment from host configs.
+    secretspecEnvVarMappings = lib.mkOption {
+      type = lib.types.attrsOf lib.types.str;
+      default = {};
+      example = lib.literalExpression ''
+        {
+          "NVIDIA_API_KEY"      = "NVIDIA_API_KEY";
+          "OPENCODE_API_KEY"    = "OPENCODE_ZEN_API_KEY";
+          "OPENCODE_GO_API_KEY" = "OPENCODE_GO_API_KEY";
+          "HUGGINGFACE_TOKEN"   = "HUGGINGFACE_TOKEN";
+          "GITHUB_TOKEN"        = "GITHUB_TOKEN";
+        }
+      '';
+      description = ''
+        Phase 2 (E2) migration path: map each SecretSpec route name (key)
+        to the Hermes env var name (value). The hermes-config-secrets
+        systemd one-shot runs `secretspec get <key> -f value` for every
+        entry, then appends `<envVar>=<resolved>` to ~/.hermes/.env
+        (stripping any prior identical env var line first).
+
+        When this option is empty, no secretspec resolution happens —
+        the module falls back to the E1 sops-nix ApiKeyFile path.
+      '';
+    };
+
     nvidiaApiKeyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
@@ -426,12 +462,18 @@ in {
         || cfg.geminiApiKeyFile != null
         || cfg.hfTokenFile != null
         || cfg.githubTokenFile != null
+        || cfg.secretspecEnvVarMappings != {}
       ) {
-        description = "Inject sops-nix secrets into Hermes config";
+        description = "Inject secrets into Hermes config (secretspec E2 + sops-nix E1)";
         after = ["network.target"];
         wantedBy = ["multi-user.target"];
 
-        path = with pkgs; [coreutils gnused gnugrep];
+        # `jq` is unconditional (consumed by the secretspec loop);
+        # `pkgs.secretspec` is added only when E2 mappings are configured.
+        path =
+          with pkgs;
+          [coreutils gnused gnugrep jq]
+          ++ lib.optional (cfg.secretspecEnvVarMappings != {}) pkgs.secretspec;
 
         serviceConfig = {
           Type = "oneshot";
@@ -443,6 +485,12 @@ in {
           ProtectSystem = "strict";
           ProtectHome = "read-only";
           ReadWritePaths = ["/home/${cfg.user}/.hermes"];
+
+          # Wire the cachix-fork secretspec-provider-sops-protocol binary
+          # so `secretspec get <route>` chains resolve via NDJSON over
+          # stdio (Phase 2 E2 — providers = ["sops", "dotenv", "env"]).
+          Environment = lib.optional (cfg.secretspecEnvVarMappings != {})
+            "SECRETSPEC_SOPS_PROVIDER_BIN=${pkgs.secretspec-provider-sops}/bin/secretspec-provider-sops-protocol";
 
           ExecStart = pkgs.writeShellScript "hermes-config-secrets" ''
             set -euo pipefail
@@ -477,6 +525,13 @@ in {
             # OPENCODE_ZEN_API_KEY, etc. We maintain the file here from sops-nix
             # secrets so it survives Hermes Vault bootstrap cycles.
             ENV_FILE="/home/${cfg.user}/.hermes/.env"
+
+            # ── Path B: legacy sops-nix ApiKeyFile (Phase 1 E1) ──────────
+            # Preserved verbatim. Populates env vars NOT covered by the
+            # secretspec mapping (legacy fallback during migration).
+            # Operators migrate host-by-host: once secretspecEnvVarMappings
+            # covers a secret, drop the corresponding *ApiKeyFile
+            # assignment from host configs.
 
             # opencodeZenApiKeyFile → OPENCODE_API_KEY + OPENCODE_ZEN_API_KEY
             ${lib.optionalString (cfg.opencodeZenApiKeyFile != null) ''
@@ -517,6 +572,38 @@ in {
                 chown ${cfg.user}:users "$ENV_FILE" 2>/dev/null || true
                 echo "[hermes-config] ✓ NVIDIA_API_KEY written to .env"
               fi
+            ''}
+
+            # ── Path A: secretspec get (Phase 2 E2 migration) ──────────
+            # Runs AFTER Path B so that for any env var defined in both
+            # paths, Path A wins. Path B's `grep -v` already stripped the
+            # original line; Path A's `grep -v` strips Path B's contribution
+            # before appending, so secretspec values take precedence.
+            #
+            # Path B still applies for env vars NOT in the secretspec
+            # mapping (legacy fallback during migration).
+            #
+            # `sort -u` (same pattern as Path B) handles re-run idempotency:
+            # on a second activation with the same secret value, no
+            # duplicate `<ENV_VAR>=value` line accumulates.
+            #
+            # Empty `secretspec get` result → warning logged, NO abort;
+            # Path B's value (if any) is preserved in that case.
+            ${lib.optionalString (cfg.secretspecEnvVarMappings != {}) ''
+              SECRETSPEC_MAP='${lib.toJSON cfg.secretspecEnvVarMappings}'
+              SECRETSPEC_COUNT=${toString (builtins.length (builtins.attrNames cfg.secretspecEnvVarMappings))}
+              echo "[hermes-config] Resolving $SECRETSPEC_COUNT route(s) via secretspec"
+              printf '%s' "$SECRETSPEC_MAP" | jq -r 'to_entries[] | "\(.key)\t\(.value)"' | while IFS=$'\t' read -r route env_var; do
+                value=$(secretspec get "$route" -f value 2>/dev/null || true)
+                if [ -z "$value" ]; then
+                  echo "[hermes-config] WARN: secretspec get '$route' returned empty (provider missing? SECRETSPEC_SOPS_PROVIDER_BIN)" >&2
+                  continue
+                fi
+                grep -v "^$env_var=" "$ENV_FILE" > "$ENV_FILE".tmp 2>/dev/null || true
+                printf '%s=%s\n' "$env_var" "$value" >> "$ENV_FILE".tmp
+                sort -u "$ENV_FILE".tmp > "$ENV_FILE"
+                echo "[hermes-config] ✓ secretspec route '$route' -> $env_var"
+              done
             ''}
 
             # Ensure .env exists even if no secrets were configured

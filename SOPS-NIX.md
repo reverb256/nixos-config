@@ -573,3 +573,54 @@ path is option (a) rotation via the recovery procedure documented in
   provisioning templates that reference `sops-nix`
 - `/home/j_kro/Projects/hermes-skills/agenix-secrets/` — older agenix
   pattern (separate, complementary skill)
+
+## Cluster LocalSealSupport — Option B (drift-cycle 2026-07-25, SUPERSEDED by Phase 1a/1b)
+
+> **⚠️ SUPERSEDED (Phase 1a/1b, 2026-07-25).** The Option B auto-couple to
+> `services.sops-secrets-registry.enable` described below was dissolved on
+> 2026-07-25 by the Phase 1a/1b refactor:
+>
+> - **Phase 1a** converted the local cachix/fork + provider-rust into flake inputs
+>   (`inputs.secretspec` + `inputs.secretspec-provider-sops` in `flake.nix`),
+>   removing the impure-eval probe that Option B was patching around.
+> - **Phase 1b** removed the `cluster.localSealSupport` option entirely. Its
+>   module (`modules/system/secretspec-cluster-mode.nix`) is now a stub.
+> - **Current state**: validator is opt-in per host with `default = false;`
+>   and is enabled explicitly in `hosts/zephyr/services.nix`. Hosts running
+>   the sops-secrets-registry stay at `nix.settings.pure-eval = true`
+>   (NixOS default) — no impure-eval broadening.
+>
+> For the historical reasoning trail, see
+> `.plans/2026-07-25-cluster-localSealSupport-scope.md` (now annotated
+> SUPERSEDED). The remainder of this section is preserved verbatim for
+> those reading the drift-cycle decision history.
+
+The `modules/system/secretspec-cluster-mode.nix` +
+`modules/system/secretspec-validator.nix` modules now **auto-couple** to
+`services.sops-secrets-registry.enable` via `?`-guarded defaults:
+
+\\`\\`\\`nix
+default = if config.services ? sops-secrets-registry
+          then config.services.sops-secrets-registry.enable
+          else false;
+\\`\\`\\`
+
+**Implication for sops-nix consumers.** Hosts running the registry now ALSO get
+`nix.settings.pure-eval = false` automatically (Option B). Hosts without the
+registry (`forge`, `nexus`, `sentry` today) stay at pure-eval semantics. Today
+only `zephyr` enables the registry (per `sec/hermes bootstrap credentials`
+above), so the practical blast radius of the Option-B relax is bounded to
+`zephyr` cluster-wide.
+
+**Validator considerations.** The `secretspec-validator` systemd unit on
+`zephyr` consumes `/run/secrets/*` paths populated by the registry. Adding a
+new secret MUST land in:
+
+1. `modules/system/sops-secrets-registry.nix` — registry entry.
+2. `secrets/<feature>/<name>.yaml` — encrypted under `.sops.yaml`.
+3. `secretspec.toml` — manifest declares the route.
+
+For full drift-cycle documentation, see
+`.plans/2026-07-25-cluster-localSealSupport-scope.md`. For the pure-eval
+relaxation's coupling contract, see the `Operational gotchas` section of
+`knowledge.md`.

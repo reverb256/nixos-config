@@ -37,6 +37,7 @@
 
     # Kubernetes
     ../../modules/services/k3s-cluster.nix
+    ../../modules/services/mosaic-k3s-manifests.nix
     # Keepalived VIP for HA API server access
     ../../modules/services/keepalived-vip.nix
 
