@@ -7,6 +7,8 @@ let
   cfg = config.services.nixos-sync;
   syncScript = pkgs.writeShellScript "nixos-sync" ''
     set -euo pipefail
+    # Mitigate git dubious-ownership (systemd runs as root, repo belongs to j_kro)
+    git config --global --add safe.directory "$FLAKE" 2>/dev/null || true
     FLAKE="/etc/nixos"
     LOG="/var/log/nixos-sync.log"
 
