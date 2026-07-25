@@ -715,10 +715,11 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 | 6 | **Nix Module Boilerplate** | No | `services.*` namespace, `mkEnableOption`, `mkIf cfg.enable`, register in `modules/default.nix`, `git add` new files. |
 | 7 | **Lib Helpers** | No | `lib.getExe` for ExecStart, `writeShellScript` for multi-line scripts, `makeBinPath` for PATH, `pipe` for transforms. |
 | 8 | **Network Policies** | No | `default-deny-all` per namespace + `allow-dns` egress + specific allow policies. |
-| 9 | **sops-nix Secrets** | No | `/run/secrets/<name>` paths, never hardcode secrets. |
+| 9 | **sops-nix + secretspec** | No | Path A (secretspec): `ref = { item = "path.yaml#data" }` in secretspec.toml for sops-backed secrets, `.env.secrets` for env-backed; Path B (sops-nix): `/run/secrets/<name>` paths. Both active. |
 | 10 | **Systemd Services** | No | `wantedBy = ["multi-user.target"]`, `Restart = "on-failure"`, `writeShellScript` over `bash -c`. |
 | 11 | **Pod Security Standards** | No | PSS labels: `enforce=baseline`, `audit=restricted`, `warn=restricted` on all namespaces. |
 | 12 | **Managed-By Labels** | No | `"app.kubernetes.io/managed-by" = "easykubenix"` on all K8s resources. |
+| 13 | **Secretspec** | No | `secretspec check -P production` validates all secrets. 18 sops-backed + 34 env-backed. See `secretspec.toml` for `ref` routing. Run `just secretspec-rebuild` after updating the fork.
 
 ### Anti-Patterns (DO NOT)
 
@@ -918,3 +919,49 @@ Shared modules (`modules/system/home-manager.nix`, `modules/home-manager/*.nix`)
 ## SOPS-NIX
 
 For canonical sops-nix guidance —  location, registry module reference, adding secrets, re-keying, recovery — see [SOPS-NIX.md](./SOPS-NIX.md).
+
+## SecretSpec (Phase 2 — Active 2026-07-25)
+
+Secretspec (`pkgs/secretspec` + `pkgs/secretspec-provider-sops`) is the
+runtime secrets resolution framework. Both packages build from remote
+GitHub forks (flake inputs), not local path probes.
+
+### Quick reference
+
+```bash
+# Validate all secrets resolve
+secretspec check -f /etc/nixos/secretspec.toml -P production
+
+# Rebuild both packages
+just secretspec-rebuild
+
+# End-to-end test with ephemeral keys
+just secretspec-validate-local
+```
+
+### File locations
+
+| File | Purpose |
+|------|---------|
+| `/etc/nixos/secretspec.toml` | SSOT for all 60+ cluster secrets with `ref` routing |
+| `/etc/nixos/.env.secrets` | Placeholder values for 34 env-backed secrets |
+| `/etc/nixos/pkgs/secretspec/` | In-tree SopsProvider (cachix fork) |
+| `/etc/nixos/pkgs/secretspec-provider-sops/` | NDJSON dispatcher binary (provider-rust fork) |
+| `~/.config/sops/age/keys-combined.txt` | Combined age key for dispatcher access |
+| `justfile` (secretspec-* recipes) | Build + validate commands |
+
+### Architecture
+
+The in-tree SopsProvider (cachix fork) spawns `secretspec-provider-sops-protocol`
+as a subprocess (NDJSON stdio per cachix/secretspec#98). Secrets with
+`ref = { item = "path.yaml#data" }` get routed as `file#key` to the
+dispatcher, which decrypts the age file via `sops --decrypt` and
+extracts the YAML `data` key. 18 sops-backed secrets confirmed
+resolving via this path.
+
+### Known limitations
+
+- Main branch merge blocked by GitHub branch protection — flake input
+  stays on `feature/two-strategy-handle-get`
+- `secretspec-validate-local` fails due to DNS (infra issue)
+- Placeholder values in `.env.secrets` need operator rotation
