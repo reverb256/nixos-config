@@ -61,6 +61,8 @@
     ./peakminer.nix
     # Kubernetes worker node
     ../../modules/services/k3s-cluster.nix
+    # Keepalived VIP for HA API server access
+    ../../modules/services/keepalived-vip.nix
   ];
 
   # NETWORKING CONFIGURATION
@@ -140,111 +142,23 @@
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
-      role = "agent";
+      role = "server";
+      clusterInit = false;
+      calico.enable = true;
+      flannelBackend = "none";
       nodeName = "forge";
       serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.130";
     };
+    k8s-manifest-autoapply.enable = true;
 
-    # Spotify with SpotX patch (ad-free, premium features)
-    spotify-spotx.enable = true;
-    # OpenCode - AI coding assistant configuration
-    opencode.enable = true;
-    # Mount /etc/nixos from zephyr (single-source-of-truth)
-    nixos-share = {
+    keepalived-vip = {
       enable = true;
-      client.enable = true;
+      vip = "10.1.1.100";
+      interface = "eno1";
+      priority = 90;
     };
-    gpu-proxy-cpp = {
-      enable = true;
-      listenPort = 3334;
-      apiPort = 8083;
-      logLevel = "INFO";
-      pools = [
-        {
-          name = "Kryptex US";
-          url = "xtm-c29-us.kryptex.network:8040";
-          wallet = "krxXVNVMM7";
-          password = "x";
-          priority = 1;
-          tls = true;
-        }
-        {
-          name = "Kryptex EU";
-          url = "xtm-c29-eu.kryptex.network:8040";
-          wallet = "krxXVNVMM7";
-          password = "x";
-          priority = 2;
-          tls = true;
-        }
-      ];
-      workers = [
-        {
-          id = "krxXVNVMM7.forge-gpu";
-          password = "x";
-        }
-        {
-          id = "krxXVNVMM7.zephyr-gpu";
-          password = "x";
-        }
-        {
-          id = "krxXVNVMM7.nexus-gpu";
-          password = "x";
-        }
-      ];
-    };
-    # NFS Client - Mount shared storage from nexus
-    nfs-client = {
-      enable = true;
-      mountShared = true;
-      mountHome = true;
-      mountMedia = true;
-    };
-    # Syncthing P2P file sync for /etc/nixos config sync
-    syncthing-cluster = {
-      enable = true;
-    };
-    # Host Dashboard - Web interface for cluster host status
-    host-dashboard = {
-      enable = true;
-      role = "compute + mining";
-      port = 8090;
-      prometheusUrl = "http://127.0.0.1:9090";
-      featuredServices = [
-        {
-          name = "GPU Proxy";
-          url = "http://127.0.0.1:8083";
-        }
-      ];
-      services = [
-        {
-          name = "kubelet";
-          active = true;
-        }
-        {
-          name = "containerd";
-          active = true;
-        }
-        {
-          name = "gpu-proxy-cpp";
-          active = true;
-        }
-        # NOTE (2026-07-21, issue #300): the previous orphan
-        # `{ active = true; }` entry was failing the host-dashboard.services
-        # submodule name assertion; stripping it. Active peakminer /
-        # k3s-side daemon tracking lives in the dashboard at runtime.
-      ];
-    };
-    # Hermes Agent module removed (2026-04-06)
-    # NIXOS AUTO-UPDATE - Flake-aware automatic updates
-    # Replaces built-in system.autoUpgrade which doesn't support flakes properly
-    nixos-auto-update = {
-      enable = true;
-      interval = "daily"; # Check for updates daily at 00:00
-      updateFlakeInputs = ["nixpkgs"]; # Auto-update nixpkgs input
-    };
-  };
 
   # HARDWARE PROFILES
 
