@@ -1213,6 +1213,8 @@
         "noctalia": "noctalia",
         "nur": "nur",
         "scopebuddy": "scopebuddy",
+        "secretspec": "secretspec",
+        "secretspec-provider-sops": "secretspec-provider-sops",
         "sops-nix": "sops-nix",
         "stylix": "stylix",
         "systems": "systems_5",
@@ -1258,6 +1260,39 @@
       "original": {
         "type": "git",
         "url": "https://github.com/OpenGamingCollective/ScopeBuddy"
+      }
+    },
+    "secretspec": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1784998751,
+        "narHash": "sha256-LjL22GMegE2GjtTisKaUaWESTA4SRXvSfW+9XAhr+zk=",
+        "owner": "reverb256",
+        "repo": "secretspec",
+        "rev": "f706d21b4887ced712c712f504fe4eab4cd42f47",
+        "type": "github"
+      },
+      "original": {
+        "owner": "reverb256",
+        "ref": "feature/sops-provider-subprocess-dispatch",
+        "repo": "secretspec",
+        "type": "github"
+      }
+    },
+    "secretspec-provider-sops": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1784806535,
+        "narHash": "sha256-LdNi3L7jJJWZ3eTIbIzTfFSJSKa4Ant8ZdB7K/qKabI=",
+        "owner": "reverb256",
+        "repo": "secretspec-provider-sops",
+        "rev": "24e4813bb0d418ab93630e55710615aa32965cd5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "reverb256",
+        "repo": "secretspec-provider-sops",
+        "type": "github"
       }
     },
     "sops-nix": {
