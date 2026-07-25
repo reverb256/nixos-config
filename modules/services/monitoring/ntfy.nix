@@ -37,6 +37,15 @@ in {
       };
     };
 
+    # Ensure /var/lib/ntfy exists for the cache database
+    systemd.tmpfiles.settings."ntfy-cache" = {
+      "/var/lib/ntfy".d = {
+        mode = "0755";
+        user = "root";
+        group = "root";
+      };
+    };
+
     # Wire Alertmanager's local webhook to ntfy
     services.prometheus.alertmanager.configuration.receivers = let
       base = {
