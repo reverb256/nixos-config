@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mosaic-identity
+  namespace: orchestration
+  labels:
+    app: mosaic-identity
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mosaic-identity
+  template:
+    metadata:
+      labels:
+        app: mosaic-identity
+    spec:
+      initContainers: []
+      nodeSelector:
+        kubernetes.io/hostname: nexus
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: mosaic-identity
+        image: localhost:5000/mosaic-identity:v0.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8081
+          name: http
+          protocol: TCP
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+          runAsNonRoot: true
+        env:
+        - name: MIS_HOST
+          value: "0.0.0.0"
+        - name: MIS_PORT
+          value: "8081"
+        - name: MIS_DATABASE_URL
+          value: "sqlite:///data/mosaic-identity.db?mode=rwc"
+        - name: RUST_LOG
+          value: "info"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mosaic-identity
+  namespace: orchestration
+  labels:
+    app: mosaic-identity
+spec:
+  selector:
+    app: mosaic-identity
+  ports:
+  - name: http
+    port: 8081
+    targetPort: 8081
+    protocol: TCP
+  type: ClusterIP
