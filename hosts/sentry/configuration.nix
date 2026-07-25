@@ -115,6 +115,7 @@
       serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.140";
+      etcdClean = true;
       calico.enable = true;
     };
 
