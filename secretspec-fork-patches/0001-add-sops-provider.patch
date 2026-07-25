@@ -10,13 +10,14 @@ index e75ffc1..d689fe8 100644
  akv = ["dep:azure_core", "dep:azure_identity", "dep:azure_security_keyvault_secrets"]
  age = ["dep:age"]
 diff --git a/secretspec/src/provider/mod.rs b/secretspec/src/provider/mod.rs
-index 041c805..1365bac 100644
+index 041c805..d02b0a4 100644
 --- a/secretspec/src/provider/mod.rs
 +++ b/secretspec/src/provider/mod.rs
-@@ -272,6 +272,8 @@ pub mod akv;
+@@ -271,7 +271,8 @@ pub mod age;
+ pub mod akv;
  #[cfg(feature = "awssm")]
  pub mod awssm;
- #[cfg(feature = "bws")]
+-#[cfg(feature = "bws")]
 +#[cfg(feature = "sops")]
 +pub mod sops;
  pub mod bws;
