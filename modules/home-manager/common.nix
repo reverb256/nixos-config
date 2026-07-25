@@ -17,6 +17,7 @@ in {
 
   home-manager.users.j_kro = {pkgs, ...}: {
     home.stateVersion = "26.05";
+    home.pointerCursor.enable = true;
 
     # Shell configuration
     programs.bash = {
