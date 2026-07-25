@@ -897,14 +897,10 @@
     # Syncthing P2P file sync for /etc/nixos config sync
     # NOTE (2026-07-21, issue #300): the previous `services` sub-attribute
     # (a hand-rolled list of `{ name, active }` service mesh entries) does
-    # not exist as a declared option — `services.syncthing-cluster` only
     # exposes `enable` and `deviceId`. NF was silently passing through
     # until a recent bumps made it check declared options strictly. Strip.
     # Service-mesh topology tracking lives in services.nix comments.
-    syncthing-cluster = {
       enable = true;
-    };
-  };
   # ============================================================================
   # PROGRAMS - SCOPEBUDDY, ANIME GAME LAUNCHERS, AI SERVICES
   # ============================================================================
@@ -915,7 +911,6 @@
         resolution = true;
         hdr = true;
         vrr = true;
-      };
     };
 
     # Anime game launchers

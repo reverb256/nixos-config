@@ -81,17 +81,13 @@ in {
       sourceHost = "nexus";
     };
 
-    syncthing-cluster = {
       enable = false;
-    };
 
     sops-secrets-registry = {
       enable = true;
       kubernetes = true;
       aiServices = true;
       ci = true;
-    };
-  };
 
   services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
   # Create directories for hermes/pi bind mounts on Sentry
@@ -108,26 +104,22 @@ in {
   systemd.services.ai-inference-monitor = {
     wantedBy = lib.mkForce [];
     enable = false;
-  };
 
   systemd.services.tailscaled.environment = {
     TS_ADVERTISE_ROUTES = "10.1.1.0/24";
     TS_ROUTES = "";
     TS_SSH = "true";
-  };
 
   # Initrd SSH recovery + BTRFS snapshots
   services.cluster-ca = {
     enable = true;
     generateLeaf = false;
-  };
 
   services.initrd-ssh-recovery = {
     enable = true;
     interface = "eth0";
     networkDriver = "r8169";
     port = 2222;
-  };
   services.recovery-specialisation.enable = true;
   services.btrfs-boot-snapshot.enable = lib.mkForce false;
 
@@ -139,15 +131,7 @@ in {
     nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
     opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
     tools = {
-      claude = {enable = true;};
-      opencode = {enable = true;};
-      droid = {enable = true;};
-      crush = {enable = true;};
-      pi = {enable = true;};
-      omp = {enable = true;};
-    };
     enableShellEnv = true;
-  };
 
   services.ci-runner = {
     enable = true;
@@ -155,5 +139,3 @@ in {
     tokenFile = "/run/secrets/github-runner-pat";
     autoStart = true;
     extraLabels = ["sentry"];
-  };
-}

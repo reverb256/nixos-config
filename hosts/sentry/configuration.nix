@@ -313,10 +313,8 @@
     };
 
     # Syncthing P2P file sync for /etc/nixos config sync
-    syncthing-cluster = {
       enable = true;
       deviceId = "SENTRY-PLACEHOLDER";
-    };
 
     # Garage S3 disabled - using nexus as primary storage node
     # Access Garage S3 at: http://10.1.120:3900
@@ -324,7 +322,6 @@
     garage-cluster.enable = false;
 
     # Hermes Agent module removed (2026-04-06)
-  };
 
   # ============================================================================
   # BOOTLOADER CONFIGURATION
@@ -355,15 +352,12 @@
     # ROCm SETUP (for AMD GPU monitoring)
     # Note: hardware.profiles.amdgpu.wayland sets ROC_ENABLE_PRE_VEGA=1 automatically
     variables = {
-      LD_LIBRARY_PATH = lib.mkForce "${pkgs.rocmPackages.clr}/lib:${pkgs.rocmPackages.clr.icd}/lib:${pkgs.mesa.opencl}/lib";
       OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
-    };
 
     systemPackages = with pkgs; [
       rocmPackages.rocm-smi
       rocmPackages.rocminfo
     ];
-  };
 
   systemd.tmpfiles.rules = let
     rocmEnv = pkgs.symlinkJoin {
@@ -375,13 +369,10 @@
         hipblas
         rpp
       ];
-    };
   in [
     # Clean old etcd data directory before starting (NixOS-managed cleanup)
     "R /var/lib/etcd - - - - -"
     # ROCm symlinks
-    "L+ /opt/rocm - - - - ${rocmEnv}"
-    "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
   ];
 
   # ============================================================================
@@ -395,7 +386,6 @@
     TS_ADVERTISE_ROUTES = "10.1.1.0/24";
     TS_ROUTES = "";
     TS_SSH = "true";
-  };
 
   programs = {
     nix-ld.libraries = with pkgs; [
@@ -440,7 +430,6 @@
     # Git configuration now provided by common-host-defaults.nix
     # Sentry-specific git remote override (if needed):
     # programs.git.config.remote.origin.url = "git@github.com:reverb256/nixos-config.git";
-  };
 
   # ============================================================================
   # SECURITY
@@ -454,7 +443,6 @@
   services.sops-secrets-registry = {
     enable = true;
     kubernetes = true; # k3s cluster token
-  };
   # Override specific secret permissions for mining service
   # ============================================================================
   # LLAMAFILE - LLM INFERENCE SERVICE (AMD RX 5600 XT - Vulkan)
@@ -477,5 +465,3 @@
     # reasoningBudget = 0;
     # cacheTypeK = "bf16";
     # cacheTypeV = "bf16";
-  };
-}
