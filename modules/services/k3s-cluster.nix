@@ -453,15 +453,10 @@ in {
       # flapping k3s keeps retrying instead of being parked in failed state.
       # mkForce: override the upstream rancher/k3s module's own serviceConfig
       # (which sets RestartSec=5s) to avoid a definition conflict.
-      serviceConfig = lib.mkForce {
-        # Permanent ExecStart override: upstream k3s module fails to generate
-        # ExecStart when role=server and clusterInit=false (joining server).
-        # ExecStart removed — k3s uses its upstream default (the orphaned override
-# was dead code outside the module block and never evaluated). k3s already
-# works on all hosts without this custom ExecStart.
-        Restart = "always";
-        RestartSec = "15s";
-        StartLimitIntervalSec = 0;
+      serviceConfig = {
+        Restart = lib.mkForce "always";
+        RestartSec = lib.mkForce "15s";
+        StartLimitIntervalSec = lib.mkForce 0;
       };
       # Belt-and-suspenders: start before keepalived at boot (primary fix: --flannel-iface)
       before = lib.mkIf config.services.keepalived.enable ["keepalived.service"];
