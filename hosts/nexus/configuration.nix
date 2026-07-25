@@ -10,7 +10,6 @@
   inputs,
   ...
 }: {
-  disabledModules = [ "services/display-managers/sddm.nix" ];
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -123,7 +122,6 @@
   # Autologin into Niri on boot (instead of Plasma).
   # To switch compositor, logout and pick from SDDM's session picker.
   programs.niri.enable = true;
-  # services.displayManager.defaultSession = "niri";  # headless, no DM
 
   # ============================================================================
   # MONITORING - Prometheus, Grafana, AlertManager
@@ -556,9 +554,8 @@
   };
 
   services.unbound-common.enable = true;
-}
-
-  # Headless server — displayManager is disabled, but SDDM module still evaluates autoLoginSessionName
-  # disabledModules above prevents it from loading.
   services.displayManager.autoLogin.user = lib.mkForce "j_kro";
-  services.displayManager.defaultSession = lib.mkForce "";
+  services.displayManager.defaultSession = lib.mkForce "niri-uwsm";
+
+
+}

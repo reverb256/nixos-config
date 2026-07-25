@@ -44,8 +44,7 @@
   services.xserver.enable = lib.mkForce false;
   services.displayManager.enable = lib.mkForce false;
   services.displayManager.autoLogin.enable = lib.mkForce false;
-  services.displayManager.sddm.enable = lib.mkForce false;
-  services.displayManager.sddm.wayland.enable = lib.mkForce false;
+
 
   services.flatpak.enable = true;
   xdg.portal.enable = true;
