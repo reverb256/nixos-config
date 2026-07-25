@@ -29,15 +29,15 @@ let
       log "Resolving ${name} → ${entry.path} ..."
       VALUE=$("$SECRETSPEC" get ${name} --profile production 2>>"$LOG") || {
         log "FAILED: secretspec get ${name} (exit $?)"
-        fail=1; continue
+        fail=1
       }
       if [ -z "$VALUE" ] || [ "$VALUE" = "null" ]; then
         log "FAILED: ${name} resolved to empty"
-        fail=1; continue
+        fail=1
       fi
       install -D -m ${toString entry.mode} -o ${entry.owner} -g ${entry.group} \
         <(printf '%s' "$VALUE") "${entry.path}" 2>>"$LOG" || {
-        log "FAILED: write ${entry.path}"; fail=1; continue
+        log "FAILED: write ${entry.path}"; fail=1
       }
       log "Wrote ${entry.path} ($(wc -c < "${entry.path}") bytes)"
     '') cfg.secrets)}

@@ -18,7 +18,6 @@
   OPENCODE_ZEN_API_KEY = { path = "/run/secrets/opencode-api-key"; owner = "j_kro"; group = "users"; };
   OPENCODE_GO_API_KEY = { path = "/run/secrets/opencode-go-api-key"; owner = "j_kro"; group = "users"; };
   POLLINATIONS_API_KEY = { path = "/run/secrets/pollinations-api-key"; owner = "j_kro"; group = "users"; };
-  TELEGRAM_BOT_TOKEN = { path = "/run/secrets/telegram-bot-token"; owner = "j_kro"; group = "users"; };
   XAI_ACCESS_TOKEN = { path = "/run/secrets/xai-access-token"; owner = "root"; };
 
   # ── kubernetes (block 1) ────────────────────────────────────
