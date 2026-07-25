@@ -474,10 +474,8 @@
     nfs.server.enable = true;
 
     # Syncthing P2P file sync for /etc/nixos config sync
-    syncthing-cluster = {
       enable = true;
       deviceId = "NEXUS-PLACEHOLDER";
-    };
 
     # Garage S3-compatible object storage (single-node cluster)
     # Nexus hosts the primary storage on local bcache0
@@ -489,17 +487,14 @@
       consistencyMode = "consistent"; # Full consistency with zones
       enableMetrics = true; # Prometheus metrics on port 3903
       enableBackup = false; # Nexus IS the backup storage
-    };
 
     # Hermes Agent module removed (2026-04-06) - missing flake input made it undeletable
-  };
   # Host-specific override: Nexus does not advertise routes (zephyr handles that)
   # This overrides the base Tailscale configuration from node profile
   systemd.services.tailscaled.environment = {
     TS_ADVERTISE_ROUTES = "";
     TS_ROUTES = "";
     TS_SSH = "true";
-  };
 
   # ============================================================================
   # USER GROUPS
@@ -531,7 +526,6 @@
   # garnix.enable = true configures cache.garnix.io remote cache access
   nix.settings = {
     # No local substituters needed - using common caches from distributed-builds.nix
-  };
 
   # ============================================================================
   # SECURITY
@@ -547,7 +541,6 @@
   services.secretspec-creds = {
     enable = true;
     secrets = import ./secretspec-creds-wiring.nix;
-  };
 
   # Override specific secret permissions for mining service
 
@@ -562,7 +555,5 @@
     port = 50000;
     bindAddress = "10.1.1.120";
     keyName = "nexus-cache-1";
-  };
 
   services.unbound-common.enable = true;
-}
