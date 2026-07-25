@@ -24,22 +24,21 @@ let
     SECRETS_DIR="/etc/nixos/secrets"
 
     write_secret() {
-      local name="$1" path="$2" file="$3" mode="$4" owner="$5" group="$6"
-      log "Decrypting ${file} → ${path} ..."
-      local value
-      value=$("$SOPS" -d --config "$CONFIG" --extract '["data"]' "$SECRETS_DIR/$file" 2>>"$LOG") || {
-        log "FAILED: sops -d ${file} (exit $?)"
+      log "Decrypting $3 → $2 ..."
+      local _v
+      _v=$("$SOPS" -d --config "$CONFIG" --extract '["data"]' "$SECRETS_DIR/$3" 2>>"$LOG") || {
+        log "FAILED: sops -d $3 (exit $?)"
         fail=1; return
       }
-      if [ -z "$value" ] || [ "$value" = "null" ]; then
-        log "FAILED: ${file} resolved to empty/null"
+      if [ -z "$_v" ] || [ "$_v" = "null" ]; then
+        log "FAILED: $3 resolved to empty/null"
         fail=1; return
       fi
-      install -D -m "$mode" -o "$owner" -g "$group" \
-        <(printf '%s' "$value") "$path" 2>>"$LOG" || {
-        log "FAILED: install ${path}"; fail=1; return
+      install -D -m "$4" -o "$5" -g "$6" \
+        <(printf '%s' "$_v") "$2" 2>>"$LOG" || {
+        log "FAILED: install $2"; fail=1; return
       }
-      log "Wrote ${path} ($(wc -c < "$path") bytes)"
+      log "Wrote $2 ($(wc -c < "$2") bytes)"
     }
 
     ${concatStringsSep "\n" (mapAttrsToList (name: entry:
