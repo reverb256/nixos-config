@@ -29,6 +29,8 @@
 
     # Kubernetes
     ../../modules/services/k3s-cluster.nix
+    # Bonsai 27B: 1-bit Vulkan (port 8003)
+    ../../modules/services/bonsai.nix
     # Keepalived VIP for HA API server access
     ../../modules/services/keepalived-vip.nix
 
@@ -115,6 +117,7 @@
     # KUBERNETES - k3s control plane (joins existing cluster)
     # Joins nexus (bootstrap) via VIP for HA
     k3s-cluster = {
+      wipeState = true;
       enable = true;
       role = "server";
       clusterInit = false;
@@ -129,6 +132,7 @@
     # Auto-apply K8s manifests on boot (control-plane node)
     k8s-manifest-autoapply.enable = true;
 
+    # Bonsai 27B: 1-bit Vulkan (port 8003)
     # Keepalived VIP for HA API server access
     keepalived-vip = {
       enable = true;
@@ -482,3 +486,10 @@
   };
   services.storage-assertions.enable = true;
 }
+
+  # Bonsai 27B: 1-bit via Vulkan on AMD RX 5600 XT (port 8003)
+  services.bonsai = {
+    enable = true;
+    binaryStorePath = "";  # required (unused; vulkanBinaryStorePath is the active path)
+    vulkanBinaryStorePath = "/nix/store/shxi0y8dv1llnjcqbjg2hz9f3b0gwpgj-llama-cpp-vulkan-0.0.0";
+  };
