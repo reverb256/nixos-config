@@ -54,14 +54,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1779665330,
-        "narHash": "sha256-kKd4EBS/IWXBxAHS96zGNDRgr6uYxpZUcecpgn6kiWc=",
-        "type": "tarball",
-        "url": "file:///tmp/ai-gateway.tar.gz"
+        "lastModified": 1785027126,
+        "narHash": "sha256-2Onnyq4h2aOZcTY4HdUsrpoT5Z8oaF02G6iTSg+z770=",
+        "owner": "reverb256",
+        "repo": "ai-inference-gateway",
+        "rev": "108ddf7977d11c60366717cc1e0582b222b2a099",
+        "type": "github"
       },
       "original": {
-        "type": "tarball",
-        "url": "file:///tmp/ai-gateway.tar.gz"
+        "owner": "reverb256",
+        "repo": "ai-inference-gateway",
+        "type": "github"
       }
     },
     "base16": {
@@ -206,12 +209,15 @@
       "locked": {
         "lastModified": 1776506351,
         "narHash": "sha256-7nTAFoN0jYRzImStzwOPQae9ghaG1oL2GnHkUYE6Z7g=",
-        "type": "tarball",
-        "url": "file:///tmp/caddy-ingress.tar.gz"
+        "owner": "reverb256",
+        "repo": "caddy-ingress",
+        "rev": "a6bc19374ed68da7c769473e2b36cefc3355ac39",
+        "type": "github"
       },
       "original": {
-        "type": "tarball",
-        "url": "file:///tmp/caddy-ingress.tar.gz"
+        "owner": "reverb256",
+        "repo": "caddy-ingress",
+        "type": "github"
       }
     },
     "claude-native": {
@@ -588,14 +594,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1776506349,
-        "narHash": "sha256-lFphLIHt3qfNQ0HlS9A6X+RAqresMe7rnTK2ExH6Ev0=",
-        "type": "tarball",
-        "url": "file:///tmp/gpu-proxy.tar.gz"
+        "lastModified": 1785027134,
+        "narHash": "sha256-NMCooaj6T8SwcD9oMH1ojdtGekJ9hPxFlTaVTEdwy5U=",
+        "owner": "reverb256",
+        "repo": "gpu-proxy",
+        "rev": "3441f9de41b40c3e8b6c504486f9aada778f37ed",
+        "type": "github"
       },
       "original": {
-        "type": "tarball",
-        "url": "file:///tmp/gpu-proxy.tar.gz"
+        "owner": "reverb256",
+        "repo": "gpu-proxy",
+        "type": "github"
       }
     },
     "hermes-agent": {
@@ -722,14 +731,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1776500198,
-        "narHash": "sha256-hvhDjKIHqy6ZUAlKObYersZhtSkpkGUwhqVG7pwgetk=",
-        "type": "tarball",
-        "url": "file:///tmp/mcp-registry.tar.gz"
+        "lastModified": 1785027128,
+        "narHash": "sha256-VFeHOdVZkfZAgJaiP8GrMGbp565albT9ukdlpzixhUY=",
+        "owner": "reverb256",
+        "repo": "mcp-registry",
+        "rev": "4e0495f20c1913f4458cca25d29b99282867aefb",
+        "type": "github"
       },
       "original": {
-        "type": "tarball",
-        "url": "file:///tmp/mcp-registry.tar.gz"
+        "owner": "reverb256",
+        "repo": "mcp-registry",
+        "type": "github"
       }
     },
     "niri": {
