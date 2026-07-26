@@ -30,6 +30,12 @@ in {
           "miner-audit"
           "oom-defense"
           "drift-cleanup"
+          "gha-runner-unstick"
+          "zram-sizing"
+          "nexus-gha-token"
+        ];
+        description = "Infrastructure operations — OOM, drift, runners, mining, secrets, NixOS cluster fixes";
+      };
       researcher = {
         soul = readSoul "researcher";
         skills = [
