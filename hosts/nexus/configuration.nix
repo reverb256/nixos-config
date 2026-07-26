@@ -40,10 +40,6 @@
     ../../modules/services/nexus-de-vm.nix
 
     # SecretSpec Phase 4 credential provisioning (parallel with sops registry)
-  services.secretspec-creds = {
-    enable = true;
-    secrets = import ./secretspec-creds-wiring.nix;
-  };
 
     # Kubernetes
     ../../modules/services/k3s-cluster.nix
@@ -53,6 +49,10 @@
 
     # Nix binary cache DISABLED
   ];
+  services.secretspec-creds = {
+    enable = true;
+    secrets = import ./secretspec-creds-wiring.nix;
+  };
 
   # ============================================================================
   # HOST IDENTIFICATION
