@@ -1258,18 +1258,8 @@
   # Lossless Scaling Frame Generation
 
   # Lossless Scaling Frame Generation via Vulkan
-  services.claude-code-router = {
-    enable = true;
-    port = 3456;
-    openFirewall = false; # Localhost only
-    zai = {
-      apiKeyFile = "/run/secrets/zai-api-key";
-      defaultModel = "glm-4.7";
-      thinkModel = "glm-4.7";
-    };
-  };
-}
 # Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
 # Refactored 2026-07-21 (#300): scrubbed pre-peakminer mining residue, repaired
 # orphan syntax from prior xmrig-strip cleanup.
 
+}
