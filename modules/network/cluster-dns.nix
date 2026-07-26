@@ -41,7 +41,7 @@
   vip = "10.1.1.100";
 
   # Services via Caddy Ingress (accessed via VIP)
-  ingressServiceDomains = ["search.lan"];
+  ingressServiceDomains = ["search.lan" "searxng.lan"];
 
   # Services proxied via Caddy via VIP (single stable entry point)
   hostServiceDomains = [
@@ -49,7 +49,6 @@
     "auth.lan"
     "qdrant.lan"
     "n8n.lan"
-    "searxng.lan"
     "mission-control.lan"
     "grafana.lan"
     "privacy-filter.lan"

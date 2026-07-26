@@ -262,6 +262,11 @@ in {
             # readOnlyRootFilesystem, so /etc/passwd is immutable. Fix: an
             # initContainer provisions a passwd/group entry for 1001 into a
             # writable emptyDir, overlaid onto the read-only /etc/passwd.
+            tolerations = [
+              { key = "interactive"; operator = "Equal"; value = "true"; effect = "NoExecute"; }
+              { key = "ram-constrained"; operator = "Equal"; value = "true"; effect = "NoSchedule"; }
+              { key = "workstation"; operator = "Equal"; value = "true"; effect = "NoSchedule"; }
+            ];
             initContainers = {
               _namedlist = true;
               setup-passwd = {
