@@ -23,7 +23,7 @@ in {
           ok = builtins.match "disk-.+-.+" pl != null;
         in {
           assertion = !isPartlabel || ok;
-          message = "Storage: ${name} partlabel "${pl}" must match "disk-{disk}-{part}" format.";
+          message = "Storage: ${name} partlabel '${pl}' must match disk-{disk}-{part} format.";
         }) config.fileSystems)
       # 2. No by-uuid
       ++ (mapAttrsToList (name: fs: {

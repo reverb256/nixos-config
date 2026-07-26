@@ -676,6 +676,5 @@
     displayManager.sddm.wayland.enable = lib.mkForce false;
     displayManager.sddm.settings.General.DisplayServer = lib.mkForce "x11";
   };
-}
-
   services.storage-assertions.enable = true;
+}
