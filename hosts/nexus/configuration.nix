@@ -576,6 +576,5 @@
   };
 
   # Pin nixpkgs to latest for NVIDIA 610+ driver (production is 595)
-  hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.new_feature;
 
 }
