@@ -34,9 +34,9 @@ in {
       priority = 100;
     };
 
-    gaming-detection.enable = false;
-    gpu-profile-manager.enable = false;
-    mining-coordinator.enable = false;
+    gaming-detection.enable = true;
+    gpu-profile-manager.enable = true;
+    mining-coordinator.enable = true;
 
     nginx = {
       enable = true;
@@ -56,12 +56,12 @@ in {
     tailscale.enable = true;
 
     nixos-share = {
-      enable = false;
+      enable = true;
       client.enable = true;
     };
 
     nfs-client = {
-      enable = false;
+      enable = true;
       mountShared = true;
       mountHome = false;
       mountMedia = false;
@@ -81,7 +81,7 @@ in {
       sourceHost = "nexus";
     };
 
-      enable = false;
+      enable = true;
     };
 
     sops-secrets-registry = {
@@ -106,7 +106,7 @@ in {
 
   systemd.services.ai-inference-monitor = {
     wantedBy = lib.mkForce [];
-    enable = false;
+    enable = true;
   };
 
   systemd.services.tailscaled.environment = {
