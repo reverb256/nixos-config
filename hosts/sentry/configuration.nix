@@ -32,6 +32,9 @@
     # Keepalived VIP for HA API server access
     ../../modules/services/keepalived-vip.nix
 
+    # Storage assertions (partlabel/uuid/boot checks)
+    ../../modules/system/storage-assertions.nix
+
     # SecretSpec Phase 4 credential provisioning
     ../../modules/system/secretspec-creds.nix
   ];
@@ -478,3 +481,5 @@
     # cacheTypeV = "bf16";
   };
 }
+
+  services.storage-assertions.enable = true;

@@ -23,6 +23,9 @@
     ../../modules/services/k3s-cluster.nix
     # Keepalived VIP for Kubernetes HA
     ../../modules/services/keepalived-vip.nix
+
+    # Storage assertions (partlabel/uuid/boot checks)
+    ../../modules/system/storage-assertions.nix
     ../../modules/services/hermes/default.nix
     # FIX: Systemd user unit reload timeout (nixos-rebuild switch hang)
     ../../modules/system/systemd-user-timeout.nix
@@ -1247,3 +1250,4 @@
 # Refactored 2026-07-21 (#300): scrubbed pre-peakminer mining residue, repaired
 # orphan syntax from prior xmrig-strip cleanup.
 
+  services.storage-assertions.enable = true;
