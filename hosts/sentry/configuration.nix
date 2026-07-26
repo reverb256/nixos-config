@@ -117,9 +117,9 @@
     k3s-cluster = {
       enable = true;
       role = "server";
-      clusterInit = true;
+      clusterInit = false;
       nodeName = "sentry";
-      serverAddr = "https://10.1.1.100:6443";
+      serverAddr = "https://127.0.0.1:6443";
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.140";
       etcdClean = true;

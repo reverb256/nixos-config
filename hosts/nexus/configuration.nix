@@ -156,15 +156,15 @@
 
   services = {
     # KUBERNETES - k3s control plane (cluster bootstrap node)
-    # This is the first server (clusterInit=true, oldest etcd data)
+    # Joins sentry control-plane (was bootstrap, now secondary server)
     # All other servers/agents join via VIP: https://10.1.1.100:6443
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
       role = "server";
-      clusterInit = true;
+      clusterInit = false;
       nodeName = "nexus";
-      serverAddr = "https://10.1.1.100:6443";
+      serverAddr = "https://10.1.1.140:6443";
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.120";
       calico.enable = true;
