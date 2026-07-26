@@ -25,10 +25,16 @@ in {
           assertion = !isPartlabel || ok;
           message = "Storage: ${name} partlabel '${pl}' must match disk-{disk}-{part} format.";
         }) config.fileSystems)
-      # 2. No by-uuid
+      # 2. No by-uuid on BOOT-CRITICAL paths (/, /boot, /nix).
+      #    by-uuid on stable data disks (e.g. nexus single-disk pools) is
+      #    legitimate; the brittle case that caused forge boot failures was
+      #    UUID-referenced root/nix mounts. Scoped to critical paths only.
       ++ (mapAttrsToList (name: fs: {
-        assertion = !hasPrefix "/dev/disk/by-uuid/" fs.device;
-        message = "Storage: ${name} uses by-uuid — use by-partlabel instead.";
+        assertion =
+          if (name == "/" || name == "/boot" || name == "/nix")
+          then !hasPrefix "/dev/disk/by-uuid/" fs.device
+          else true;
+        message = "Storage: ${name} uses by-uuid — use by-partlabel for boot-critical mounts.";
       }) config.fileSystems)
       # 3. /nix needs neededForBoot
       ++ (optional (config.fileSystems ? "/nix") {
