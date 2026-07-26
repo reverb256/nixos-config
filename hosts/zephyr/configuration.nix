@@ -326,7 +326,7 @@
     keepalived-vip = {
       enable = true;
       vip = "10.1.1.100";
-      interface = "dummy0";
+      interface = "enp38s0";
       priority = 110;
     };
 
