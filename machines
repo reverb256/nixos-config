@@ -1,18 +1,4 @@
-# machines - Colmena build-farm configuration
-# Colmena machines format (see colmena docs):
-#   [ssh://]user@host  system  ssh-private-key  cores  memory(MB)  tags
-# NOTE: /etc/nix/machines (Nix distributed-builds) is GENERATED separately by
-# modules/system/distributed-builds.nix — this file is colmena-only.
-# Do NOT write Nix distributed-build format here; colmena cannot parse it.
-
-# Zephyr - K8s control plane (32 cores, 31GB RAM). Disabled as builder (OOMs).
 j_kro@zephyr x86_64-linux /home/j_kro/.ssh/id_ed25519 0 31000 big-parallel,kvm
-
-# Nexus - K8s storage worker (24 cores, 46GB RAM). maxJobs=6.
 j_kro@nexus x86_64-linux /home/j_kro/.ssh/id_ed25519 6 46000 big-parallel
-
-# Forge - GPU worker (6 cores, 15GB RAM, 2x RTX 4060 + 2x RX 5700 XT). maxJobs=1.
 j_kro@forge x86_64-linux /home/j_kro/.ssh/id_ed25519 1 15000 big-parallel
-
-# Sentry - Monitoring worker (16 cores, 31GB RAM, RX 5600 XT). maxJobs=2.
 j_kro@sentry x86_64-linux /home/j_kro/.ssh/id_ed25519 2 31000 big-parallel
