@@ -558,4 +558,24 @@
   services.displayManager.defaultSession = lib.mkForce "niri-uwsm";
 
 
+
+  # ComfyUI — FLUX.1-schnell GGUF image generation
+  # Uses the same venv as the site-agency pipeline for CUDA access
+  systemd.services.comfyui = {
+    description = "ComfyUI — FLUX image generation server";
+    after = [ "network.target" ];
+    wantedBy = [ "multi-user.target" ];
+    environment.LD_LIBRARY_PATH = "/run/opengl-driver/lib:/nix/store/chqq8mpmpyfi9kgsngya71akv5xicn03-gcc-15.2.0-lib/lib";
+    serviceConfig = {
+      WorkingDirectory = "/home/j_kro/ComfyUI";
+      ExecStart = "/home/j_kro/Projects/site-agency/.venv/bin/python main.py --listen 0.0.0.0 --port 8188 --highvram";
+      User = "j_kro";
+      Restart = "always";
+      RestartSec = "10s";
+    };
+  };
+
+  # Pin nixpkgs to latest for NVIDIA 610+ driver (production is 595)
+  hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.new_feature;
+
 }
