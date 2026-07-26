@@ -1200,6 +1200,18 @@
   # Survives NixOS rebuilds without restart (restartIfChanged = false)
   services.unbound-common.enable = true;
 
+  # Point Steam/pressure-vessel to the NVIDIA Vulkan ICD
+  # nvidia_x11 provides nvidia_icd.json; Steam looks for nvidia_icd.x86_64.json
+  # Point Steam/pressure-vessel to the NVIDIA Vulkan ICD
+  environment.sessionVariables = {
+    VK_DRIVER_FILES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
+  };
+
+  # Ensure the arch-suffixed ICD file exists (nvidia_x11 only provides nvidia_icd.json)
+  systemd.tmpfiles.rules = [
+    "L+ /run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json - - - - /run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json"
+  ];
+
   # Resolve K8s ingress hostnames to the cluster VIP (10.1.1.100)
   # Local DNS records are in modules/services/unbound-common.nix (shared
   # across all hosts). Fallback /etc/hosts entries below.
