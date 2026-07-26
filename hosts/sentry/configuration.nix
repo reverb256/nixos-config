@@ -461,6 +461,14 @@
     enable = true;
     secrets = import ./secretspec-creds-wiring.nix;
   };
+
+  # hosts/sentry/services.nix is not imported — enable here for real activation
+  services.secretspec-validator = {
+    enable = true;
+    production = true;
+    failOnMissing = true;
+  };
+
   # Override specific secret permissions for mining service
   # ============================================================================
   # LLAMAFILE - LLM INFERENCE SERVICE (AMD RX 5600 XT - Vulkan)
@@ -485,10 +493,10 @@
     # cacheTypeV = "bf16";
   };
   services.storage-assertions.enable = true;
-}
 
   # Bonsai 27B: 1-bit via Vulkan on AMD RX 5600 XT (port 8003)
   services.bonsai = {
     enable = true;
     vulkanBinaryStorePath = "/nix/store/shxi0y8dv1llnjcqbjg2hz9f3b0gwpgj-llama-cpp-vulkan-0.0.0";
   };
+}
