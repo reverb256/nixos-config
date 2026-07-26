@@ -9,13 +9,13 @@
 in {
   services = {
     hermes-cli = {
-      enable = true;
+      enable = false;
       nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
       opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
       opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
     };
     k3s-cluster = {
-      enable = true;
+      enable = false;
       role = "server";
       etcdClean = true;
       nodeName = "sentry";
@@ -28,7 +28,7 @@ in {
     };
 
     keepalived-vip = {
-      enable = true;
+      enable = false;
       vip = cluster.kubernetes.vip;
       interface = "eth0";
       priority = 100;
@@ -39,7 +39,7 @@ in {
     mining-coordinator.enable = true;
 
     nginx = {
-      enable = true;
+      enable = false;
       recommendedProxySettings = true;
       recommendedGzipSettings = true;
       virtualHosts."_" = {
@@ -56,12 +56,12 @@ in {
     tailscale.enable = true;
 
     nixos-share = {
-      enable = true;
+      enable = false;
       client.enable = true;
     };
 
     nfs-client = {
-      enable = true;
+      enable = false;
       mountShared = true;
       mountHome = false;
       mountMedia = false;
@@ -69,7 +69,7 @@ in {
 
     # Secondary NFS data server for failover (hermes + pi state)
     nfs-data-server = {
-      enable = true;
+      enable = false;
       exports = ''
         /data/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=105)
 
@@ -77,15 +77,15 @@ in {
       '';
     };
     nfs-state-sync = {
-      enable = true;
+      enable = false;
       sourceHost = "nexus";
     };
 
-      enable = true;
+      enable = false;
     };
 
     sops-secrets-registry = {
-      enable = true;
+      enable = false;
       kubernetes = true;
       aiServices = true;
       ci = true;
