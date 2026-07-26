@@ -20,7 +20,7 @@
     };
   };
 
-  programs.niri.enable = lib.mkForce false;
+  programs.niri.enable = true;
   desktop.uwsm-sessions.enable = lib.mkForce false;
 
   # Noctalia v5 shell — install the binary but DO NOT enable the systemd

@@ -30,8 +30,7 @@
   # modules/desktop/wayland-compositor-common.nix mkDefaults noctalia on
   # for every niri-enabled host; we force it off here so the daemon
   # doesn't compete with inference workloads for RAM and GPU focus.
-  programs.noctalia.enable = lib.mkForce false;
-  programs.noctalia.systemd.enable = lib.mkForce false;
+  # noctalia enabled via wayland-compositor-common.nix (mkDefault true when niri is enabled)
 
   desktop.uwsm-sessions.enable = true;
 
