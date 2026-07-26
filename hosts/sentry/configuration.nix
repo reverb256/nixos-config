@@ -480,6 +480,5 @@
     # cacheTypeK = "bf16";
     # cacheTypeV = "bf16";
   };
-}
-
   services.storage-assertions.enable = true;
+}
