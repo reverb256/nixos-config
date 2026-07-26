@@ -51,7 +51,6 @@
     ./system/status-auto-update.nix
 
     # Security
-    ./security/pam-vaultwarden.nix
     ./security/caddy-ca.nix
     ./kubernetes-security.nix
 
@@ -140,7 +139,6 @@
     ./services/binary-cache.nix # Nix binary cache server for cluster
     ./services/rclone.nix # Cloud storage sync (70+ providers)
     ./services/n8n.nix
-    ./services/vaultwarden.nix
     ./services/self-healing-alerts.nix
 
     # Monitoring

@@ -252,13 +252,6 @@ in
           owner = "nextcloud";
           group = "nextcloud";
         };
-        # Vaultwarden admin token
-        vaultwarden-admin-token = {
-          file = "${inputs.self}/secrets/vaultwarden-admin-token.age";
-          mode = "440";
-          owner = "vaultwarden";
-          group = "vaultwarden";
-        };
       })
       # Kubernetes/k3s Secrets
       (lib.mkIf config.services.agenix-secrets-registry.kubernetes {
