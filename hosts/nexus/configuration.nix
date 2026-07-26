@@ -47,6 +47,9 @@
     # Keepalived VIP for HA API server access
     ../../modules/services/keepalived-vip.nix
 
+    # Storage assertions (partlabel/uuid/boot checks)
+    ../../modules/system/storage-assertions.nix
+
     # Nix binary cache DISABLED
   ];
   services.secretspec-creds = {
@@ -583,3 +586,5 @@
   # Pin nixpkgs to latest for NVIDIA 610+ driver (production is 595)
 
 }
+
+  services.storage-assertions.enable = true;
