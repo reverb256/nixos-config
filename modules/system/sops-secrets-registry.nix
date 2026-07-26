@@ -65,7 +65,8 @@ in {
           "ai/exa-api-key" = {
             sopsFile = "${inputs.self}/secrets/ai/exa-api-key.yaml";
             path = "/run/secrets/exa-api-key";
-            format = "binary";
+            format = "yaml";
+            key = "exa_api_key";
             mode = "0444";
             owner = "j_kro";
             group = "users";
