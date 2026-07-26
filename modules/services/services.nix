@@ -90,7 +90,6 @@ in {
       aiServices = true;
       ci = true;
     };
-  };
 
   services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
   # Create directories for hermes/pi bind mounts on Sentry

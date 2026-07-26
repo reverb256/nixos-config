@@ -429,21 +429,7 @@ in {
         };
       };
 
-      kagent.RemoteMCPServer.casdoor = {
-        metadata.labels =
-          managed
-          // {
-            "app.kubernetes.io/component" = "mcp-server";
-            "mcp-server" = "casdoor";
-          };
-        spec = {
-          name = "casdoor";
-          url = "http://casdoor-mcp.mcp.svc.cluster.local:9005/sse";
-          transport = "sse";
-          description = "Casdoor SSO/OIDC - application management (5 tools, Bearer auth)";
-        };
-      };
-
+     
       # ── C5: NetworkPolicy per MCP server ────────────────────────────────
       # Allow ingress to MCP SSE endpoints from ingress-system and cluster subnet
       mcp.NetworkPolicy.allow-mcp-sse-ingress = {
@@ -481,7 +467,6 @@ in {
                 {
                   protocol = "TCP";
                   port = 9005;
-                } # casdoor-mcp
               ];
             }
           ];
