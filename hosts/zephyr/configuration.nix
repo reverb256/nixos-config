@@ -55,8 +55,10 @@
     wireless = {
       enable = true;
       ipAddress = "10.1.1.115"; # Static IP for WiFi backup
+    };
     usbEthernet.enable = true; # Support USB ethernet adapters
     unbound.listenAddress = "10.1.1.110";
+  };
 
   # ============================================================================
   # SECRETSPEC FORK SUPPORT — See modules/system/secretspec-cluster-mode.nix.
@@ -100,6 +102,7 @@
     algorithm = "zstd";
     memoryPercent = 40;
     priority = 999; # Prefer zram over disk swap
+  };
 
   # Disable zswap (conflicts with zram). Emits zswap.enabled=0 on cmdline.
   kernel-hardening.zswap.enable = false;
@@ -124,6 +127,7 @@
     "vm.swappiness" = 180;
     "vm.page-cluster" = 0;
     "vm.vfs_cache_pressure" = 50;
+  };
 
   # ------------------------------------------------------------------
   # EARLYOOM - primary OOM defense for this desktop host.
@@ -143,6 +147,7 @@
       "--avoid"
       "(niri|noctalia|zen|spotify|vesktop|opencode|hermes|Xwayland|pipewire)"
     ];
+  };
 
   # ------------------------------------------------------------------
   # SYSTEMD-OOMD - passive backstop to earlyoom (slower PSI-based, but
@@ -154,13 +159,17 @@
     settings.OOM = {
       SwapUsedLimit = 90;
       MemoryUsedLimit = 90;
+    };
+  };
   systemd.slices."-".sliceConfig = {
     ManagedOOMSwap = "kill";
+  };
 
   networking = {
     cluster-hosts = {
       enable = true;
       populateLocal = true;
+    };
     # Zephyr-specific firewall rules (in addition to cluster defaults)
     firewall = {
       allowedTCPPorts = [
@@ -208,6 +217,8 @@
           20048
         ]; # rpcbind, nfs, mountd
       };
+    };
+  };
 
   # ============================================================================
   # NODE PROFILE - Platform-level defaults
@@ -231,6 +242,7 @@
     enableFirewall = true;
     enableTailscaleSSH = true;
     bindServicesToLocalhost = true;
+  };
 
   # Kubernetes security tools for runtime monitoring
   security.kubernetes.enable = true;
@@ -245,6 +257,7 @@
     enable = true;
     cuda.enable = true; # CUDA for NVIDIA RTX 3090 + 3060 Ti
     vulkan.enable = true; # Vulkan as fallback/universal backend
+  };
 
   # DDC/CI support for external monitor brightness control
   # Note: hardware.video.ddcutil module doesn't exist in NixOS
@@ -274,6 +287,7 @@
   # Only add wantedBy to start at boot. This prevents duplicate ExecStart lines.
   systemd.user.services.gamemoded = {
     wantedBy = ["default.target"];
+  };
 
   # ============================================================================
   # SERVICES - All service configurations consolidated here
@@ -291,6 +305,7 @@
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.110";
       flannelBackend = "none"; # Calico CNI (VXLAN, policy-enforcing)
+    };
 
     # Auto-apply K8s manifests on boot (control-plane node)
     k8s-manifest-autoapply.enable = true;
@@ -301,6 +316,7 @@
       vip = "10.1.1.100";
       interface = "enp38s0";
       priority = 110;
+    };
 
     # Crash watchdog - detect and log system crashes
     # TEMPORARILY DISABLED: Module being fixed (2026-03-23)
@@ -316,6 +332,8 @@
       secretKeyFile = "/run/secrets/garage-s3-secret-key";
       retentionDays = 30;
       startAt = "02:00"; # 2 AM daily
+    };
+  };
 
   # STATUS.md auto-update (hourly from kubectl)
   services.status-auto-update.enable = true;
@@ -352,6 +370,7 @@
   hardware = {
     profiles = {
       corsair.enable = true; # Corsair AIO + RGB (not in node profile)
+    };
 
     # BTRFS compression and deduplication
     btrfs-compression.enable = true;
@@ -360,12 +379,14 @@
     monitoring = {
       autoDetect = false; # Skip auto-detect, we know the hardware
       fanControl = true; # Custom fan curve control
+    };
 
     # Corsair extras (not covered by profile)
     corsair = {
       aio.enable = true; # Corsair H115i AIO control
       rgb.enable = true; # OpenRGB for RGB control
       autoStartRgb = false; # Don't auto-start (conflicts with liquidctl)
+    };
 
     # RGB control for peripherals and components
     rgb-control = {
@@ -382,9 +403,11 @@
         };
         interval = 5;
       };
+    };
 
     # Bluetooth support via BlueZ
     bluetooth.enable = true;
+  };
 
   # ============================================================================
   # FILESYSTEM COMPRESSION - Enable zstd on all BTRFS filesystems
@@ -402,6 +425,7 @@
       "ssd"
       "discard=async"
     ];
+  };
 
   # ============================================================================
   # WIRELESS HARDWARE
@@ -465,6 +489,7 @@
       "btrfs.commit_interval=300" # From btrfs-tuning module
       "nvidia.NVreg_RegistryDwords=EnableBrightnessControl=1" # Enable laptop brightness control
     ];
+  };
 
   # ============================================================================
   # ROLE PROFILES
@@ -497,10 +522,12 @@
     gaming-detection = {
       enable = true;
       checkInterval = 10;
+    };
 
     gpu-profile-manager = {
       enable = true;
       checkInterval = 10;
+    };
 
     mining-coordinator = {
       enable = true;
@@ -508,6 +535,7 @@
       # Use conservative thresholds for memory-constrained system
       psiCpuBuildThreshold = "5.0";
       psiCpuIdleThreshold = "2.0";
+    };
 
     # AI CODING AGENT - OpenCode with Kubernetes gateway
     opencode.enable = true;
@@ -520,6 +548,7 @@
       enable = true;
       port = 50000;
       bindAddress = "10.1.1.110";
+    };
 
     # NOTE (2026-07-21, issue #300): the previous `services.mining` block,
     # kryptex pools/workers, NFS `services.nixos-share`, and the orphan
@@ -607,6 +636,7 @@
           }
         }
       '';
+    };
 
     # NOTE: caddy-common NOT enabled because configFile overrides globalConfig
     # Global options manually included in configFile above
@@ -614,6 +644,25 @@
     #   enable = true;
     #   adminListenAddress = "127.0.0.1";  # Localhost only for systemd
     # };
+
+    # Spacebot AI agent (integrated with AI Gateway)
+    spacebot = {
+      enable = true;
+      useGateway = true;
+      gatewayUrl = "http://127.0.0.1:8081"; # K8s gateway (hostNetwork, port 8081)
+      host = "127.0.0.1";
+      port = 19898;
+      memory = "4G";
+      cpu = "2";
+      hideUpdateNotification = true;
+      providerKeys = {
+        ZAI_CODING_PLAN_KEY = "/run/secrets/zai-api-key";
+        KILO_API_KEY = "/run/secrets/kilo-api-key";
+      };
+      discord.enable = false;
+      telegram.enable = true;
+      telegram.tokenFile = "/run/secrets/spacebot-telegram-token";
+    };
 
     # Redis - For gateway rate limiting and caching
     redis.servers."".enable = true;
@@ -777,12 +826,14 @@
         maxRequestSize = 10485760; # 10MB
         enableProxy = false; # Disabled for code assistants
       };
+    };
 
     # MCP Servers for AI tools
     mcp-servers = {
       enable = true;
       servers.playwright.enable = true;
       servers.context7.apiKeyFile = "/run/secrets/context7-api-key";
+    };
 
     # AI Coding Tools - Harmonized MCP configs (Droid, Claude, Crush, OpenCode)
     ai-coding-tools = {
@@ -801,15 +852,21 @@
         "npm:pi-web-access@0.10.6"
         "npm:pi-worktree@1.3.3"
       ];
+    };
 
     # WEB TESTING - Playwright/Puppeteer system dependencies
     web-testing.enable = true;
 
     # CI/CD - Self-hosted GitHub Actions runner
+    secretspec-creds = {
+      enable = true;
+      secrets = import ./secretspec-creds-wiring.nix;
+    };
     ci-runner = {
       enable = false;
       repo = "username/nixos-config";
       autoStart = false;
+    };
 
     # MULTIMEDIA - GStreamer support for Qt/KDE applications
     multimedia.gstreamer.enable = true;
@@ -819,11 +876,13 @@
       enable = true;
       forceX11 = true;
       clearCacheOnPatch = true;
+    };
 
     # FLATPAK - Flatpak support with Discover and Flathub
     flatpak-kde = {
       enable = true;
       autoUpdate = true;
+    };
 
     # NOTE (2026-07-21, issue #300): GPU mining was migrated to the
     # peakminer K8s deployment long ago — see hosts/zephyr/peakminer.nix
@@ -833,6 +892,13 @@
     # the block is removed entirely. Cluster coordinate with peakminer
     # is handled exclusively through `services.mining-coordinator` below.
 
+    # Vaultwarden - Self-hosted password manager with FIDO2/WebAuthn
+    vaultwarden-module = {
+      enable = true;
+      hostName = "vaultwarden.zephyr.tigris-ule.ts.net"; # Tailscale Magic DNS
+      dataDir = "/var/lib/vaultwarden";
+    };
+  };
 
   # ============================================================================
   programs = {
@@ -843,6 +909,7 @@
         hdr = true;
         vrr = true;
       };
+    };
 
     # Anime game launchers
     anime-game-launcher.enable = true;
@@ -852,12 +919,14 @@
 
     # AI services
     stability-matrix.enable = true;
+  };
 
   # Podman container runtime (for Spacebot)
   virtualisation.podman = {
     enable = true;
     dockerCompat = true;
     dockerSocket.enable = true;
+  };
 
   # ============================================================================
   # AGENIX SECRETS - Centralized registry (2026-03-16 migration)
@@ -874,13 +943,16 @@
     cloud = true;
     kubernetes = true; # k3s cluster token
     selfHosting = false; # These services run on other hosts
+  };
 
   # Override specific secret permissions (registry defaults can be overridden)
   sops.secrets."cloud/cloudflared-token" = lib.mkForce {
     mode = "400";
     owner = "root";
     group = "root";
-    # AI INFERENCE SERVICE - Gateway with authentication and metrics
+  };
+  # Note: spacebot-telegram-token uses registry default (owner=j_kro)
+  # AI INFERENCE SERVICE - Gateway with authentication and metrics
   # Gateway routes to various backends (ZAI, vLLM, llama.cpp, etc.)
   # Gateway: OpenAI-compatible API on port 8080
   # ============================================================================
@@ -960,6 +1032,11 @@
 
     # Deployment
     inputs.colmena.packages.${pkgs.stdenv.hostPlatform.system}.colmena
+    (pkgs.writeShellScriptBin "spacebot" ''
+      #!${pkgs.bash}/bin/bash
+      # Spacebot CLI wrapper - connects to local Spacebot service
+      exec ${pkgs.curl}/bin/curl --data-binary @- http://127.0.0.1:19898/api/run "$@"
+    '')
 
     # Hardware monitoring & fan control helpers
     ddcutil # DDC/CI monitor brightness control
@@ -1105,6 +1182,7 @@
     GGML_CUDA_GPU_MEMORY_FRACTION = "0.9"; # Use 90% of GPU VRAM (leave headroom)
     LLAMA_GRAPH_POOL_SIZE = "0.2"; # CUDA Graphs pool (20% of VRAM)
     # KV cache quantization (Q4_0) is configured per-model in backend
+  };
 
   # ============================================================================
 
@@ -1172,6 +1250,8 @@
     serviceConfig = {
       ExecStart = "${pkgs.ckb-next}/bin/ckb-next-daemon";
       Restart = "on-failure";
+    };
+  };
 
   # Gamma-based brightness for HDMI TV (no DDC/CI)
   services.fake-backlight-bridge.enable = true;
@@ -1179,6 +1259,16 @@
   # Lossless Scaling Frame Generation
 
   # Lossless Scaling Frame Generation via Vulkan
+  services.claude-code-router = {
+    enable = true;
+    port = 3456;
+    openFirewall = false; # Localhost only
+    zai = {
+      apiKeyFile = "/run/secrets/zai-api-key";
+      defaultModel = "glm-4.7";
+      thinkModel = "glm-4.7";
+    };
+  };
 }
 # Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
 # Refactored 2026-07-21 (#300): scrubbed pre-peakminer mining residue, repaired
