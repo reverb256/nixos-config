@@ -378,12 +378,12 @@ in {
 
   # Initrd SSH recovery + BTRFS snapshots
   services.initrd-ssh-recovery = {
-    enable = lib.mkForce false;
-    interface = "eth0";
+    enable = true;
+    interface = "enp38s0";
     networkDriver = "r8169";
     port = 2222;
   };
-  services.recovery-specialisation.enable = lib.mkForce false;
+  services.recovery-specialisation.enable = true;
   services.secret-hygiene.enable = lib.mkForce false;
   services.btrfs-boot-snapshot.enable = lib.mkForce false; # NixOS generations sufficient
 
