@@ -135,6 +135,19 @@ in {
     };
   };
 
+    # One-shot state wipe. k3s locks its data-dir with the immutable
+    # attribute (chattr +i) on the .lock file and data/ tree, so a plain
+    # `rm -rf` fails with EPERM. This unit clears the bit (via e2fsprogs)
+    # and removes the dir BEFORE k3s starts. Set true once, deploy, then
+    # set false. Without this option, stale/corrupt state is never cleared
+    # (NixOS k3s module has no native wipe — nixpkgs#404216).
+    wipeState = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Set true once to wipe all k3s state (etcd, tokens, certs) before starting. Clears immutable bit then rm -rf dataDir. Revert to false after deploy.";
+    };
+
+
   imports = [ ./k3s/etcd-clean.nix ];
 
   config = mkIf cfg.enable {
@@ -267,6 +280,28 @@ in {
 
       disableAgent = false;
     };
+
+    # ── Wipe state before starting (gated by wipeState) ──────────────
+    # k3s data-dir has chattr +i immutable files; a plain rm fails with
+    # EPERM. As a NixOS systemd unit, e2fsprogs' loader is wired correctly
+    # (unlike ad-hoc sudo over SSH which hits ENOENT on the interpreter).
+    systemd.services.k3s-wipe = lib.mkIf cfg.wipeState {
+      description = "Wipe k3s state (clear immutable bit + rm -rf dataDir) before k3s starts";
+      requiredBy = [ "k3s.service" ];
+      before = [ "k3s.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = pkgs.writeShellScript "k3s-wipe" ''
+          mkdir -p $(dirname ${cfg.dataDir})
+          if [ -d ${cfg.dataDir} ]; then
+            ${pkgs.e2fsprogs}/bin/chattr -R -i ${cfg.dataDir} 2>/dev/null || true
+            rm -rf ${cfg.dataDir}
+          fi
+        '';
+      };
+    };
+
 
 
     # NOTE: flannel.conf via environment.etc has been REMOVED. k3s >=1.36

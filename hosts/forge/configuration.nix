@@ -61,6 +61,8 @@
     ./peakminer.nix
     # Kubernetes worker node
     ../../modules/services/k3s-cluster.nix
+    # Bonsai 27B: ternary (when GPU idle, port 8005), 1-bit (port 8002)
+    ../../modules/services/bonsai.nix
     # Keepalived VIP for HA API server access
     ../../modules/services/keepalived-vip.nix
 
@@ -678,3 +680,8 @@
   };
   services.storage-assertions.enable = true;
 }
+
+  # Bonsai 27B: 1-bit on RTX 4060 (port 8002), ternary (port 8005) when GPU idle
+  services.bonsai = {
+    enable = true;
+  };
