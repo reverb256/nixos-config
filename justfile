@@ -1118,3 +1118,39 @@ mosaic-down:
     kubectl delete -f /etc/nixos/k8s/mosaic-identity/ 2>/dev/null || true
     kubectl delete -f /etc/nixos/k8s/mosaic-bridges/ 2>/dev/null || true
     echo "MIS removed from cluster."
+
+# ── COLMENA BUILD-FARM ──────────────────────────────────────────────────
+# Uses colmena 0.5.0-pre for cluster-wide builds and deployment.
+# The build-farm machines file at machines defines 4 builders:
+#   nexus (primary), sentry, forge (limited), zephyr (disabled).
+#
+# Quick reference:
+#   just colmena-check       # Build for sentry (smoke test)
+#   just colmena-deploy      # Full deploy to all 4 hosts
+#   just colmena-deploy-host host=sentry  # Deploy to one host
+#   just colmena-list        # List all hosts
+
+# Build all configurations (no deploy)
+colmena-build:
+    @echo "Building all configurations..."
+    colmena build --eval-node-limit 2 2>&1
+
+# Build a single host
+colmena-check host="sentry":
+    @echo "Building {{host}}..."
+    colmena build --on {{host}} 2>&1
+
+# Deploy to all hosts
+colmena-deploy:
+    @echo "Deploying to all hosts..."
+    colmena apply --eval-node-limit 2 2>&1
+
+# Deploy to a single host (default: sentry)
+colmena-deploy-host host="sentry":
+    @echo "Deploying to {{host}}..."
+    colmena apply --on {{host}} 2>&1
+
+# List all hosts in the cluster
+colmena-list:
+    @echo "Cluster hosts:"
+    @colmena list 2>/dev/null || colmena apply --dry-run 2>&1 | grep -E "INFO|Selected|Hosts" || echo "Use: colmena apply --on @tag"

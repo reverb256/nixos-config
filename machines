@@ -1,4 +1,4 @@
+j_kro@nexus x86_64-linux /home/j_kro/.ssh/id_ed25519 12 46000 big-parallel,kvm
+j_kro@sentry x86_64-linux /home/j_kro/.ssh/id_ed25519 8 31000 big-parallel
+j_kro@forge x86_64-linux /home/j_kro/.ssh/id_ed25519 4 15000 big-parallel
 j_kro@zephyr x86_64-linux /home/j_kro/.ssh/id_ed25519 0 31000 big-parallel,kvm
-j_kro@nexus x86_64-linux /home/j_kro/.ssh/id_ed25519 6 46000 big-parallel
-j_kro@forge x86_64-linux /home/j_kro/.ssh/id_ed25519 1 15000 big-parallel
-j_kro@sentry x86_64-linux /home/j_kro/.ssh/id_ed25519 2 31000 big-parallel
