@@ -490,6 +490,5 @@
   # Bonsai 27B: 1-bit via Vulkan on AMD RX 5600 XT (port 8003)
   services.bonsai = {
     enable = true;
-    binaryStorePath = "";  # required (unused; vulkanBinaryStorePath is the active path)
     vulkanBinaryStorePath = "/nix/store/shxi0y8dv1llnjcqbjg2hz9f3b0gwpgj-llama-cpp-vulkan-0.0.0";
   };
