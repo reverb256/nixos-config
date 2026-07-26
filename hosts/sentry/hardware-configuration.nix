@@ -32,7 +32,7 @@
     device = "/dev/disk/by-partlabel/disk-sdb-root";
     fsType = "btrfs";
     neededForBoot = true;
-    options = ["subvol=@nix"];
+    options = ["subvol=@nix" "x-initrd.mount"];
   };
 
   fileSystems."/srv" = {
