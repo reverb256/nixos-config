@@ -26,7 +26,7 @@
     device = "/dev/disk/by-partlabel/disk-xpg-nix";
     fsType = "btrfs";
     neededForBoot = true;
-    options = ["subvol=@nix"];
+    options = ["subvol=@nix" "x-initrd.mount"];
   };
 
   fileSystems."/var" = {
