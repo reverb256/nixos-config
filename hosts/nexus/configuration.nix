@@ -585,6 +585,5 @@
 
   # Pin nixpkgs to latest for NVIDIA 610+ driver (production is 595)
 
-}
-
   services.storage-assertions.enable = true;
+}
