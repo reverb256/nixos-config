@@ -235,10 +235,12 @@ in
       done
     '';
 
-    # ── Kvantum: DO NOT delete ──────────────────────────────────────────
-    # niri hosts make Stylix pick platform=qtct → style=kvantum. Stylix
-    # generates Base16Kvantum and Home Manager links ~/.config/Kvantum.
-    # The old removeStaleKvantum activation deleted that tree every switch,
-    # leaving QT_STYLE_OVERRIDE=kvantum with no theme (broken Qt on
-    # sentry/nexus/forge). Leave the HM-managed tree alone.
+    # ── Drop leftover Kvantum state (we no longer use kvantum) ─────
+    # Qt theming is adwaita-dark via stylix targets.qt.platform = "gnome".
+    # Remove any residual Base16Kvantum / kvantum.kvconfig from prior gens.
+    home.activation.removeStaleKvantum = ''
+      if [ -e "$HOME/.config/Kvantum" ]; then
+        rm -rf "$HOME/.config/Kvantum"
+      fi
+    '';
   })
