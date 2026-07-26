@@ -11,6 +11,7 @@
   ...
 }: {
   imports = [
+    ../../modules/system/secretspec-creds.nix
     # Monitoring configuration
     ./monitoring.nix
     # Hardware configuration (generated)
