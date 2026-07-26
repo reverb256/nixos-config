@@ -135,8 +135,13 @@ in
           targets.btop.enable = true;
           targets.lazygit.enable = true;
           targets.qt.enable = true;
-          # GTK theming requires dconf/D-Bus which isn't available on nexus
-          targets.gtk.enable = hostName != "nexus";
+          # niri hosts land on stylix qt platform=qtct → style=kvantum.
+          # Keep platform explicit so followSystem cannot drift to a DE that
+          # isn't actually the active session on every host.
+          targets.qt.platform = "qtct";
+          # GTK theming for all hosts (dconf/HM works headless for file gen).
+          # Previously disabled on nexus — that left GTK apps unthemed there.
+          targets.gtk.enable = true;
           # ── Additional targets for installed programs ──────────────
           # bat — theming for bat (base16-stylix theme)
           targets.bat.enable = true;
@@ -148,6 +153,16 @@ in
           targets.opencode.enable = true;
           # discord/vesktop — theme for Vesktop/Vencord (Osaka Jade)
           targets.vesktop.enable = true;
+        };
+
+        # Ensure Qt/Kvantum stack matches stylix qtct path on every host.
+        # Stylix generates Base16Kvantum when style.name == "kvantum"; without
+        # these, QT_STYLE_OVERRIDE=kvantum has nothing to load (the failure
+        # mode on sentry/nexus/forge).
+        qt = {
+          enable = true;
+          platformTheme.name = "qtct";
+          style.name = "kvantum";
         };
 
         # CopyQ clipboard manager (replaces cliphist)
