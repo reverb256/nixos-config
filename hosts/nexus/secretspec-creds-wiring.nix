@@ -21,7 +21,6 @@
   XAI_ACCESS_TOKEN = { path = "/run/secrets/xai-access-token"; file = "ai/xai-access-token.yaml"; owner = "root"; };
 
   # ── kubernetes (block 1) ────────────────────────────────────
-  CASDOOR_HERMES_JWT = { path = "/run/secrets/casdoor-hermes-jwt"; file = "k8s/casdoor-hermes-jwt.yaml"; owner = "j_kro"; group = "users"; };
   CENTRAL_AUTH_CLIENT_SECRET = { path = "/run/secrets/central-auth-client-secret"; file = "k8s/central-auth-client-secret.yaml"; owner = "root"; };
   CENTRAL_AUTH_COOKIE_SECRET = { path = "/run/secrets/central-auth-cookie-secret"; file = "k8s/central-auth-cookie-secret.yaml"; owner = "root"; };
   CNS_SSH_KEY = { path = "/run/secrets/cns-ssh-key"; file = "infra/cns-ssh-key.yaml"; owner = "j_kro"; group = "users"; };
@@ -33,9 +32,6 @@
   INITRD_SSH_KEY_ZEPHYR = { path = "/run/secrets/initrd-ssh-host-key-zephyr"; file = "infra/initrd-ssh-host-key-zephyr.yaml"; owner = "j_kro"; group = "users"; };
 
   # ── kubernetes (block 2) ────────────────────────────────────
-  CASDOOR_MAPLESPIKE_API_CLIENT_SECRET = { path = "/run/secrets/casdoor-maplespike-api-client-secret"; file = "k8s/casdoor-maplespike-api-client-secret.yaml"; owner = "root"; };
-  CASDOOR_MAPLESPIKE_PORTAL_CLIENT_SECRET = { path = "/run/secrets/casdoor-maplespike-portal-client-secret"; file = "k8s/casdoor-maplespike-portal-client-secret.yaml"; owner = "root"; };
-  CASDOOR_MAPLESPIKE_MCP_CLIENT_SECRET = { path = "/run/secrets/casdoor-maplespike-mcp-client-secret"; file = "k8s/casdoor-maplespike-mcp-client-secret.yaml"; owner = "root"; };
   MISSION_CONTROL_API_KEY = { path = "/run/secrets/mission-control-api-key"; file = "k8s/mission-control-api-key.yaml"; owner = "j_kro"; group = "users"; };
   MISSION_CONTROL_AUTH_PASS = { path = "/run/secrets/mission-control-auth-pass"; file = "k8s/mission-control-auth-pass.yaml"; owner = "j_kro"; group = "users"; };
   SEARXNG_SECRET_KEY = { path = "/run/secrets/searxng-secret-key"; file = "k8s/searxng-secret-key.yaml"; owner = "root"; };

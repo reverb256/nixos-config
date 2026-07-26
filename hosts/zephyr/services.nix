@@ -23,7 +23,6 @@ in {
       secrets = [
         {
           namespace = "auth";
-          name = "casdoor-postgres-secret";
           keys = ["POSTGRES_PASSWORD"];
         }
         {

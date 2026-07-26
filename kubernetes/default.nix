@@ -67,7 +67,6 @@ in {
       ./modules/searxng.nix
       ./modules/vane.nix
       ./modules/haven.nix
-      ./modules/casdoor.nix
       ./modules/cert-manager.nix
       ./modules/oauth2-proxy.nix
       ./modules/monitoring.nix
@@ -123,7 +122,6 @@ in {
     ./modules/nixkube.nix
     ./modules/searxng.nix
     ./modules/haven.nix
-    ./modules/casdoor.nix
     ./modules/cert-manager.nix
     ./modules/oauth2-proxy.nix
     ./modules/vane.nix

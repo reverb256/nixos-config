@@ -34,7 +34,6 @@
   qdrant = 30632; # Vector database
 
   # ── auth (namespace: auth) ─────────────────────────────────
-  casdoor = 32556; # SSO provider
   oauth2-proxy = 30890; # OAuth2 proxy
 
   # ── automation (namespace: automation) ─────────────────────
