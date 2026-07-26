@@ -298,6 +298,7 @@ in {
             rm -rf ${cfg.dataDir}
           fi
         '';
+      };
     };
 
 
@@ -662,6 +663,5 @@ in {
         RandomizedDelaySec = "1h";
       };
     };
-  };
   };
 }
