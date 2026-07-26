@@ -1,0 +1,41 @@
+name: CI Doctor
+
+on:
+  workflow_run:
+    workflows: ["CI", "Deploy", "CI Test Automation", "Cluster Status"]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+jobs:
+  diagnose:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' || github.event.workflow_run.conclusion == 'cancelled' }}
+    runs-on: [self-hosted, nixos]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run CI Doctor
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL || 'https://integrate.api.nvidia.com/v1' }}
+        run: |
+          FAILED_JOBS=""
+          for job in $(gh api "/repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/jobs" \
+            -q '.jobs[] | select(.conclusion == "failure") | .name' 2>/dev/null); do
+            FAILED_JOBS="$FAILED_JOBS $job"
+          done
+          if [ -z "$FAILED_JOBS" ]; then
+            echo "No failed jobs found, skipping."
+            exit 0
+          fi
+          bash scripts/ci-doctor.sh \
+            "${{ github.repository }}" \
+            "${{ github.event.workflow_run.id }}" \
+            "${{ github.event.workflow_run.run_number }}" \
+            "$FAILED_JOBS" \
+            "$OPENAI_API_KEY" \
+            "$OPENAI_BASE_URL"
