@@ -951,8 +951,7 @@
     owner = "root";
     group = "root";
   };
-  # Note: spacebot-telegram-token uses registry default (owner=j_kro)
-  # AI INFERENCE SERVICE - Gateway with authentication and metrics
+    # AI INFERENCE SERVICE - Gateway with authentication and metrics
   # Gateway routes to various backends (ZAI, vLLM, llama.cpp, etc.)
   # Gateway: OpenAI-compatible API on port 8080
   # ============================================================================
