@@ -41,9 +41,7 @@
     "selfhosted-tools": {
       "command": "/data/agents/mcp-bridges/selfhosted-mcp.sh"
     },
-    "casdoor": {
       "command": "python3",
-      "args": ["/data/agents/mcp-bridges/casdoor-mcp-bridge.py"]
     },
     "sequential-thinking": {
       "command": "/data/agents/mcp-bridges/sequential-thinking.sh"

@@ -304,7 +304,8 @@
       serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.110";
-      flannelBackend = "none"; # Calico CNI (VXLAN, policy-enforcing)
+      flannelBackend = "none";
+      flannelIface = "enp38s0"; # Calico CNI (VXLAN, policy-enforcing)
     };
 
     # Auto-apply K8s manifests on boot (control-plane node)

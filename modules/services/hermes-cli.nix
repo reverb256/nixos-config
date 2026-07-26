@@ -503,7 +503,6 @@ in {
             fi
 
             # Ensure all base_url entries point to gateway (prevents stale IPs)
-            # Casdoor JWT injection removed 2026-07-15 (casdoor MCP dropped —
             # see modules/services/mcp-server-registry.nix + ACTION-ITEMS P2-5).
 
             # Ensure all base_url entries point to gateway (prevents stale IPs)

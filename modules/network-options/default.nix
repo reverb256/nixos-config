@@ -321,14 +321,7 @@ in {
                       });
                       default = {};
                     };
-                    casdoor = mkOption {
-                      type = types.submodule (svcOpts {
-                        namespace = "auth";
-                        port = 8000;
-                      });
-                      default = {};
-                    };
-                    oauth2-proxy = mkOption {
+                                        oauth2-proxy = mkOption {
                       type = types.submodule (svcOpts {
                         namespace = "auth";
                         port = 4180;
