@@ -27,23 +27,19 @@ with lib; let
   host = config.networking.hostName;
 
   # Wrap the PrismML fork CUDA binary into a package.
-  prismBinary = pkgs.runCommand "prism-llama-bonsai" {} ''
-    mkdir -p $out/bin
-    cp -rL ${cfg.binaryStorePath}/bin/llama-server $out/bin/llama-server
-    for lib in ${cfg.binaryStorePath}/lib/*.so*; do
-      cp -rL "$lib" $out/bin/ 2>/dev/null || true
-    done
+  # Create a wrapper that sets LD_LIBRARY_PATH to fix symbol resolution
+  # (PrismML fork's libggml-cpu.so needs libggml-base.so at runtime but search order fails)
+  prismBinary = pkgs.writeShellScriptBin "llama-server-bonsai" ''
+    export LD_LIBRARY_PATH="${cfg.binaryStorePath}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    exec ${cfg.binaryStorePath}/bin/llama-server "$@"
   '';
 
   # Optional Vulkan binary for AMD hosts.
   prismVulkanBinary =
     if cfg.vulkanBinaryStorePath != null then
-      pkgs.runCommand "prism-llama-bonsai-vulkan" {} ''
-        mkdir -p $out/bin
-        cp -rL ${cfg.vulkanBinaryStorePath}/bin/llama-server $out/bin/llama-server
-        for lib in ${cfg.vulkanBinaryStorePath}/lib/*.so*; do
-          cp -rL "$lib" $out/bin/ 2>/dev/null || true
-        done
+      pkgs.writeShellScriptBin "llama-server-bonsai-vulkan" ''
+        export LD_LIBRARY_PATH="${cfg.vulkanBinaryStorePath}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+        exec ${cfg.vulkanBinaryStorePath}/bin/llama-server "$@"
       ''
     else null;
 
