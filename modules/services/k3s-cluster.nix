@@ -132,6 +132,8 @@ in {
       type = types.str;
       default = "/var/lib/rancher/k3s";
       description = "k3s data directory for storing state, etcd, etc.";
+    };
+
     # One-shot state wipe. k3s locks its data-dir with the immutable
     # attribute (chattr +i) on the .lock file and data/ tree, so a plain
     # `rm -rf` fails with EPERM. This unit clears the bit (via e2fsprogs)
@@ -142,8 +144,6 @@ in {
       type = types.bool;
       default = false;
       description = "Set true once to wipe all k3s state (etcd, tokens, certs) before starting. Clears immutable bit then rm -rf dataDir. Revert to false after deploy.";
-    };
-
     };
   };
 
@@ -298,7 +298,6 @@ in {
             rm -rf ${cfg.dataDir}
           fi
         '';
-      };
     };
 
 
