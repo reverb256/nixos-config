@@ -112,36 +112,6 @@ in
   + "\n"
   +
   # === PUBLIC SERVICES (no auth) ===
-  # SSO provider itself (hostNetwork on zephyr)
-  # auth.lan — Casdoor SSO UI + oauth2-proxy callback.
-  # MUST handle /oauth2/* so callbacks reach oauth2-proxy (redirect_uri=https://auth.lan/oauth2/callback).
-  # NOTE: Uses NodePort IPs instead of ClusterIP DNS because CoreDNS cluster.local
-  # is not resolvable from the host (unbound forwards to public DNS).
-  "auth.lan {
-      ${tls}
-      encode zstd gzip
-      rate_limit {
-        zone auth_per_ip {
-          key    {remote_host}
-          events 100
-          window 1m
-        }
-      }
-      # OAuth2 callback — proxy to oauth2-proxy (NOT Casdoor)
-      handle /oauth2/* {
-        reverse_proxy ${zephyr}:${toString ports.oauth2-proxy}
-      }
-      handle {
-        reverse_proxy ${zephyr}:${toString ports.casdoor} {
-          ${proxyHeader}
-        }
-      }
-    }"
-  + "\n"
-  +
-
-  + "\n"
-  +
   # n8n automation — has own auth
   mkRoute "n8n.lan" "http://${nexus}:${toString ports.n8n}"
   + "\n"

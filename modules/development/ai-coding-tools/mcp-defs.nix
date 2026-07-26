@@ -18,9 +18,7 @@
       command = "npx";
       args = ["-y" "chrome-devtools-mcp@latest"];
     };
-    casdoor = {
       command = "python3";
-      args = ["/data/agents/mcp-bridges/casdoor-mcp-bridge.py"];
     };
   };
 
