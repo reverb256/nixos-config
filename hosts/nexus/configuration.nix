@@ -590,9 +590,9 @@
   # Pin nixpkgs to latest for NVIDIA 610+ driver (production is 595)
 
   services.storage-assertions.enable = true;
-}
 
   # Bonsai 27B: 1-bit on RTX 3060 Ti (port 1235), ternary (port 1238) when GPU idle
   services.bonsai = {
     enable = true;
   };
+}
