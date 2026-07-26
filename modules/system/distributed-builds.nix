@@ -23,8 +23,7 @@ in {
         if currentHost == "zephyr"
         then [
           "http://10.1.1.110:50000?priority=40&want-mass-query=true"
-          "http://10.1.1.120:50000?priority=40&want-mass-query=true"
-          "https://cache.nixos.org"
+        "https://cache.nixos.org"
           "https://nix-community.cachix.org"
           "https://reverb-os.cachix.org"
           "https://maplespike.cachix.org"
@@ -33,8 +32,7 @@ in {
         ]
         else [
           "http://10.1.1.110:50000?priority=40&want-mass-query=true"
-          "http://10.1.1.120:50000?priority=40&want-mass-query=true"
-          "https://cache.nixos.org"
+        "https://cache.nixos.org"
           "https://nix-community.cachix.org"
           "https://reverb-os.cachix.org"
           "https://maplespike.cachix.org"
@@ -46,8 +44,7 @@ in {
         if currentHost == "zephyr"
         then [
           "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU="
-          "nexus-cache-1:mKdZqDFeOn2nbSVa7GlSEQmyFnZ22AOOB/Wx10YHHNo="
-          "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+        "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
           "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zybkq5CX+/rkCWyvRCYg3Fs="
           "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1q2jYzI="
           "maplespike.cachix.org-1:P6v8AHkRYDKI/xc4/OYIvMcwumkD9EafWnYERWWngYg="
@@ -56,7 +53,6 @@ in {
         ]
         else [
           "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU="
-          "nexus-cache-1:mKdZqDFeOn2nbSVa7GlSEQmyFnZ22AOOB/Wx10YHHNo="
           "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
           "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zybkq5CX+/rkCWyvRCYg3Fs="
           "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1q2jYzI="

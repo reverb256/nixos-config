@@ -47,16 +47,14 @@
       # Local Nix binary caches (nexus and zephyr serve signed store paths).
       substituters = [
         "http://10.1.1.110:50000?priority=40"
-        "http://10.1.1.120:50000?priority=40"
-        "https://cache.nixos.org?priority=90"
+      "https://cache.nixos.org?priority=90"
         "https://nix-community.cachix.org?priority=80"
       ];
 
       trusted-public-keys = lib.mkOptionDefault [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU="
-        "nexus-cache-1:mKdZqDFeOn2nbSVa7GlSEQmyFnZ22AOOB/Wx10YHHNo="
-        "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
         "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
       ];
 
