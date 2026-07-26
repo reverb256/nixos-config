@@ -113,24 +113,24 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-parts.follows = "flake-parts";
     };
-    # mcp-registry - MCP server registry module (local tarball: nix HTTPS fetcher stalls)
+    # mcp-registry - MCP server registry module
     mcp-registry = {
-      url = "tarball+file:///tmp/mcp-registry.tar.gz";
+      url = "github:reverb256/mcp-registry";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # caddy-ingress - Caddy ingress module + caddy-with-modules package (local tarball)
+    # caddy-ingress - Caddy ingress module + caddy-with-modules package
     caddy-ingress = {
-      url = "tarball+file:///tmp/caddy-ingress.tar.gz";
+      url = "github:reverb256/caddy-ingress";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # ai-gateway - AI inference gateway package (local tarball)
+    # ai-gateway - AI inference gateway package
     ai-gateway = {
-      url = "tarball+file:///tmp/ai-gateway.tar.gz";
+      url = "github:reverb256/ai-inference-gateway";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # gpu-proxy - GPU proxy module (local tarball)
+    # gpu-proxy - GPU proxy module
     gpu-proxy = {
-      url = "tarball+file:///tmp/gpu-proxy.tar.gz";
+      url = "github:reverb256/gpu-proxy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # flake-parts — transitive dep for 6 inputs, use git+https to bypass GitHub API 401
