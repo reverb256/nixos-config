@@ -137,7 +137,7 @@ in
           targets.qt.enable = true;
           # Prefer gnome platform → adwaita-dark (no Kvantum). qtct defaults
           # to kvantum which we intentionally do not ship.
-          targets.qt.platform = "gnome";
+          targets.qt.platform = lib.mkForce "gnome";
           # GTK theming for all hosts (dconf/HM works headless for file gen).
           # Previously disabled on nexus — that left GTK apps unthemed there.
           targets.gtk.enable = true;
