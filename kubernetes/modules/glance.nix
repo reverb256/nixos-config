@@ -115,8 +115,6 @@ in {
                         url: http://gitea.ai-inference.svc.cluster.local:3000
                       - title: Casdoor
                         url: http://10.1.1.120:32556
-                      - title: Vaultwarden
-                        url: http://vaultwarden.vaultwarden.svc.cluster.local:8080
                       - title: n8n
                         url: http://n8n.automation.svc.cluster.local:5678
                       - title: Mission Control
@@ -174,9 +172,6 @@ in {
                           - title: n8n
                             url: https://n8n.lan
                             icon: si:n8n
-                          - title: Vaultwarden
-                            url: https://vaultwarden.lan
-                            icon: si:vaultwarden
                           - title: Workspace
                             url: https://workspace.lan
                       - title: Search

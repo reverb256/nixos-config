@@ -498,22 +498,6 @@ in {
             owner = "j_kro";
             group = "users";
           };
-          "selfhosting/vaultwarden-admin-token" = {
-            sopsFile = "${inputs.self}/secrets/selfhosting/vaultwarden-admin-token.yaml";
-            path = "/run/secrets/vaultwarden-admin-token";
-            format = "binary";
-            mode = "0444";
-            owner = "root";
-            group = "root";
-          };
-          "selfhosting/vaultwarden-oidc-client-secret" = {
-            sopsFile = "${inputs.self}/secrets/selfhosting/vaultwarden-oidc-client-secret.yaml";
-            path = "/run/secrets/vaultwarden-oidc-client-secret";
-            format = "binary";
-            mode = "0444";
-            owner = "root";
-            group = "root";
-          };
         })
         (mkIf config.services.sops-secrets-registry.ci {
           "ci/gitea-runner-token" = {

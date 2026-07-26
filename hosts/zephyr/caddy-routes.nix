@@ -139,8 +139,7 @@ in
     }"
   + "\n"
   +
-  # Vaultwarden — has own auth
-  mkRoute "vaultwarden.lan" "http://${nexus}:${toString ports.vaultwarden}"
+
   + "\n"
   +
   # n8n automation — has own auth

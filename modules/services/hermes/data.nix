@@ -30,13 +30,6 @@ in {
           "miner-audit"
           "oom-defense"
           "drift-cleanup"
-          "vaultwarden-sops-fix"
-          "gha-runner-unstick"
-          "zram-sizing"
-          "nexus-gha-token"
-        ];
-        description = "Infrastructure operations — OOM, drift, runners, mining, secrets, NixOS cluster fixes";
-      };
       researcher = {
         soul = readSoul "researcher";
         skills = [
@@ -154,10 +147,6 @@ in {
       };
       drift-cleanup = {
         content = readSkill "drift-cleanup";
-        category = "infrastructure";
-      };
-      vaultwarden-sops-fix = {
-        content = readSkill "vaultwarden-sops-fix";
         category = "infrastructure";
       };
       gha-runner-unstick = {
