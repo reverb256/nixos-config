@@ -646,7 +646,7 @@
 
     # Spacebot AI agent (integrated with AI Gateway)
     spacebot = {
-      enable = true;
+      enable = false;
       useGateway = true;
       gatewayUrl = "http://127.0.0.1:8081"; # K8s gateway (hostNetwork, port 8081)
       host = "127.0.0.1";
@@ -889,7 +889,7 @@
 
     # Vaultwarden - Self-hosted password manager with FIDO2/WebAuthn
     vaultwarden-module = {
-      enable = true;
+      enable = false;
       hostName = "vaultwarden.zephyr.tigris-ule.ts.net"; # Tailscale Magic DNS
       dataDir = "/var/lib/vaultwarden";
     };
@@ -1255,7 +1255,7 @@
 
   # Lossless Scaling Frame Generation via Vulkan
   services.claude-code-router = {
-    enable = true;
+    enable = false;
     port = 3456;
     openFirewall = false; # Localhost only
     zai = {
