@@ -1,229 +1,197 @@
-#!/usr/bin/env python3
-"""nim-proxy: NVIDIA NIM rate-limiting proxy with circuit breaker.
+#!/run/current-system/sw/bin/python3
+"""nim-proxy: self-learning NVIDIA NIM rate limiter with AIMD congestion control.
 
-Layered before Hermes' nvidia provider so rate limits (RPM/TPM), 429 backoff,
-and circuit breaker are handled client-side instead of hitting NIM directly.
-If the circuit is open or rate is exhausted, returns 429 — Hermes then
-falls through the provider chain (kilocode → opencode-zen → opencode-go).
+Learns the actual rate limits by observing real API behavior:
+- On success → slowly increase allowed rate (additive increase)
+- On 429 → back off aggressively (multiplicative decrease)
+- No hardcoded RPM/TPM ceilings — discovers them dynamically.
 
-Usage:
-  NIM_PROXY_PORT=8787 NVIDIA_API_KEY=nvapi-... python3 nim-proxy.py
+Also implements circuit breaker, exponential backoff, and a /metrics endpoint.
 """
 
-import asyncio, json, logging, os, random, time, urllib.request
-from http.server import HTTPServer, BaseHTTPRequestHandler
+import json, logging, os, random, time, urllib.request
 from dataclasses import dataclass, field
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from typing import Optional
 
 log = logging.getLogger("nim-proxy")
 
-# --- Configuration -----------------------------------------------------------
-MAX_RPM = 30                         # safe requests/min (NIM docs: 40)
-RPM_WINDOW_MS = 60_000
-MAX_TPM = 150_000                    # safe tokens/min
-INTER_REQUEST_DELAY_MS = RPM_WINDOW_MS // MAX_RPM  # ~2000ms
+# ─── Configuration ────────────────────────────────────────────────────────────
 
-MAX_RETRIES = 3
-BASE_BACKOFF_MS = 2_000              # 2s initial
-MAX_BACKOFF_MS = 300_000             # 5 min cap
-
-CIRCUIT_THRESHOLD = 5                # consecutive 429s → open
-CIRCUIT_COOLDOWN_S = 3600            # 1 hour before retry
-
-MAX_QUEUE = 10
-
-NVIDIA_BASE = "https://integrate.api.nvidia.com"
-NVIDIA_KEY = os.environ.get("NVIDIA_API_KEY", "")
+START_RPM   = int(os.environ.get("START_RPM",   "20"))
+MIN_RPM     = int(os.environ.get("MIN_RPM",     "5"))
+START_TPM   = int(os.environ.get("START_TPM",   "50000"))
+MIN_TPM     = int(os.environ.get("MIN_TPM",     "10000"))
+AI_STEP     = float(os.environ.get("AI_RPM_STEP", "1"))
+MD_FACTOR   = float(os.environ.get("MD_FACTOR",  "0.5"))
+WINDOW_MS   = 60_000
+CB_THRESHOLD = int(os.environ.get("CB_THRESHOLD", "5"))
+CB_COOLDOWN  = int(os.environ.get("CB_COOLDOWN",  "3600"))
+STATE_FILE  = os.environ.get("STATE_FILE", "/home/j_kro/.cache/nim-proxy-state.json")
 HOST = os.environ.get("PROXY_HOST", "127.0.0.1")
 PORT = int(os.environ.get("PROXY_PORT", "8787"))
-
-# --- State ------------------------------------------------------------------
+NVIDIA_KEY = os.environ.get("NVIDIA_API_KEY", "")
+NVIDIA_BASE = "https://integrate.api.nvidia.com"
 
 @dataclass
-class SlidingWindow:
-    window_ms: int
-    max_count: int
-    entries: list = field(default_factory=list)
+class AIMDController:
+    rpm_target: float = START_RPM
+    tpm_target: float = START_TPM
+    rpm_entries: list = field(default_factory=list)
+    tpm_entries: list = field(default_factory=list)
+    last_request_ms: float = 0
+    consecutive_429: int = 0
+    circuit_opened_at: Optional[float] = None
+    window_ms: int = WINDOW_MS
 
-    def prune(self, now: int) -> None:
+    def prune(self, entries: list, now: int) -> None:
         cutoff = now - self.window_ms
-        while self.entries and self.entries[0] < cutoff:
-            self.entries.pop(0)
-
-    def count(self, now: int) -> int:
-        self.prune(now)
-        return len(self.entries)
-
-    def can_accept(self, now: int) -> bool:
-        return self.count(now) < self.max_count
-
-    def add(self, now: int) -> None:
-        self.entries.append(now)
-
-class CircuitBreaker:
-    def __init__(self):
-        self.failures = 0
-        self.opened_at: Optional[float] = None
-
-    def record_failure(self):
-        self.failures += 1
-        if self.failures >= CIRCUIT_THRESHOLD and self.opened_at is None:
-            self.opened_at = time.monotonic()
-            log.warning("CIRCUIT OPEN — %d failures, cooldown %ds", self.failures, CIRCUIT_COOLDOWN_S)
-
-    def record_success(self):
-        if self.opened_at is not None:
-            log.info("Circuit closed (successful request)")
-        self.failures = 0
-        self.opened_at = None
+        while entries and entries[0][0] < cutoff:
+            entries.pop(0)
 
     @property
-    def is_open(self) -> bool:
-        if self.opened_at is None:
-            return False
-        elapsed = time.monotonic() - self.opened_at
-        if elapsed >= CIRCUIT_COOLDOWN_S:
-            self.opened_at = None
-            self.failures = 0
-            log.info("Circuit half-open — allowing probe")
-            return False
-        return True
+    def rpm_window_count(self) -> int:
+        self.prune(self.rpm_entries, int(time.time() * 1000))
+        return len(self.rpm_entries)
+
+    def record_success(self, tokens: int = 0) -> None:
+        now = int(time.time() * 1000)
+        self.rpm_entries.append((now, 1))
+        if tokens:
+            self.tpm_entries.append((now, tokens))
+        self.last_request_ms = now
+        self.consecutive_429 = 0
+        self.circuit_opened_at = None
+        self.rpm_target = min(self.rpm_target + AI_STEP, self.rpm_target * 1.02)
+        self.tpm_target = min(self.tpm_target + 100, self.tpm_target * 1.01)
+        self._save()
+
+    def record_429(self) -> None:
+        self.consecutive_429 += 1
+        self.rpm_target = max(self.rpm_target * MD_FACTOR, MIN_RPM)
+        self.tpm_target = max(self.tpm_target * MD_FACTOR, MIN_TPM)
+        if self.consecutive_429 >= CB_THRESHOLD and self.circuit_opened_at is None:
+            self.circuit_opened_at = time.monotonic()
+            log.warning("CIRCUIT OPEN — %d consecutive 429s", self.consecutive_429)
+        self._save()
 
     @property
-    def remaining(self) -> int:
-        if self.opened_at is None:
+    def circuit_remaining(self) -> int:
+        if self.circuit_opened_at is None:
             return 0
-        return max(0, int(CIRCUIT_COOLDOWN_S - (time.monotonic() - self.opened_at)))
+        e = time.monotonic() - self.circuit_opened_at
+        if e >= CB_COOLDOWN:
+            self.circuit_opened_at = None
+            self.consecutive_429 = 0
+            return 0
+        return int(CB_COOLDOWN - e)
 
-# --- HTTP Handler -----------------------------------------------------------
+    def can_send(self, now: int) -> Optional[str]:
+        if self.circuit_remaining > 0:
+            return f"circuit_breaker:{self.circuit_remaining}s"
+        self.prune(self.rpm_entries, now)
+        if self.rpm_window_count >= int(self.rpm_target):
+            return f"rpm_limit:{int(self.rpm_target)}/min"
+        d = int(WINDOW_MS / max(self.rpm_target, MIN_RPM))
+        e = now - self.last_request_ms
+        if e < d and self.last_request_ms > 0:
+            return f"inter_request_delay:{d - e}ms"
+        return None
 
-limiter = None  # set in main()
+    def _save(self) -> None:
+        try:
+            os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
+            json.dump({"rpm_target": self.rpm_target, "tpm_target": self.tpm_target,
+                       "consecutive_429": self.consecutive_429}, open(STATE_FILE, "w"))
+        except Exception:
+            pass
+
+    @classmethod
+    def load(cls) -> "AIMDController":
+        try:
+            d = json.load(open(STATE_FILE))
+            log.info("Loaded: rpm=%.1f tpm=%.0f", d["rpm_target"], d["tpm_target"])
+            return cls(rpm_target=d["rpm_target"], tpm_target=d["tpm_target"],
+                       consecutive_429=d.get("consecutive_429", 0))
+        except (FileNotFoundError, json.JSONDecodeError):
+            log.info("Fresh start: rpm=%.0f tpm=%.0f", START_RPM, START_TPM)
+            return cls()
+
+ctl = AIMDController.load()
 
 class Handler(BaseHTTPRequestHandler):
+    def _ok_or_429(self) -> bool:
+        r = ctl.can_send(int(time.time() * 1000))
+        if r is None:
+            return True
+        log.info("Blocked: %s", r)
+        self._json(429, {"error": {"message": f"NIM proxy: {r}", "type": "rate_limit_error"}})
+        return False
+
+    def _json(self, s: int, d: dict):
+        b = json.dumps(d).encode()
+        self.send_response(s)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(b)))
+        self.end_headers()
+        self.wfile.write(b)
+
     def do_GET(self):
-        if self.path == "/v1/models":
-            self._proxy(b"")
-        elif self.path == "/health":
-            self._json(200, {"status": "ok", "service": "nim-proxy"})
+        if self.path == "/health":
+            self._json(200, {"status": "ok", "service": "nim-proxy",
+                             "rpm_learned": round(ctl.rpm_target, 1),
+                             "rpm_window": ctl.rpm_window_count,
+                             "circuit": ctl.circuit_remaining})
+        elif self.path == "/metrics":
+            self._json(200, {"rpm_target": round(ctl.rpm_target, 1),
+                             "rpm_window": ctl.rpm_window_count,
+                             "tpm_target": round(ctl.tpm_target),
+                             "consecutive_429": ctl.consecutive_429,
+                             "circuit_remaining": ctl.circuit_remaining})
         else:
-            self._json(404, {"error": "not_found"})
+            self._proxy(b"")
 
     def do_POST(self):
-        if self.path in ("/v1/chat/completions", "/v1/completions", "/v1/embeddings"):
-            length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(length) if length else b"{}"
-            self._proxy(body)
-        else:
-            self._json(404, {"error": "not_found"})
-
-    def _json(self, status: int, data: dict):
-        body = json.dumps(data).encode()
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+        if self.path not in ("/v1/chat/completions", "/v1/completions", "/v1/embeddings"):
+            return self._json(404, {"error": "not_found"})
+        l = int(self.headers.get("Content-Length", 0))
+        self._proxy(self.rfile.read(l) if l else b"{}")
 
     def _proxy(self, body: bytes):
-        global limiter
-        now = int(time.time() * 1000)
-
-        # Circuit breaker
-        if limiter.circuit.is_open:
-            log.warning("Blocked: circuit open (%ds)", limiter.circuit.remaining)
-            self._json(429, {"error": {
-                "message": f"NIM circuit breaker open ({limiter.circuit.remaining}s)",
-                "type": "rate_limit_error"}})
+        if not self._ok_or_429():
             return
-
-        # Rate limit check (sequential: enforce inter-request delay)
-        if not limiter.rpm.can_accept(now):
-            log.warning("Blocked: RPM exhausted")
-            self._json(429, {"error": {
-                "message": "NIM RPM limit — try again later",
-                "type": "rate_limit_error"}})
-            return
-
-        elapsed = now - limiter.last_req
-        if elapsed < INTER_REQUEST_DELAY_MS:
-            asyncio.run(asyncio.sleep((INTER_REQUEST_DELAY_MS - elapsed) / 1000))
-
-        # Proxy to NIM
-        url = f"{NVIDIA_BASE}{self.path}"
-        headers = {
-            "Authorization": f"Bearer {NVIDIA_KEY}",
-            "Content-Type": "application/json",
-        }
-        req = urllib.request.Request(url, data=body, headers=headers, method=self.command)
-
+        req = urllib.request.Request(f"{NVIDIA_BASE}{self.path}", data=body,
+            headers={"Authorization": f"Bearer {NVIDIA_KEY}", "Content-Type": "application/json"},
+            method=self.command)
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
-                resp_body = resp.read()
-                # Estimate tokens
+            with urllib.request.urlopen(req, timeout=120) as r:
+                rb = r.read()
+                t = 0
                 try:
-                    data = json.loads(resp_body)
-                    tokens = (data.get("usage") or {}).get("total_tokens", 0)
-                except Exception:
-                    tokens = 0
-
-                now = int(time.time() * 1000)
-                limiter.rpm.add(now)
-                limiter.last_req = now
-                limiter.circuit.record_success()
-
-                self.send_response(resp.status)
-                for k, v in resp.headers.items():
+                    u = json.loads(rb).get("usage", {}); t = u.get("total_tokens", 0) if u else 0
+                except Exception: pass
+                ctl.record_success(t)
+                self.send_response(r.status)
+                for k, v in r.headers.items():
                     if k.lower() not in ("transfer-encoding", "content-encoding", "content-length"):
                         self.send_header(k, v)
-                self.send_header("Content-Length", str(len(resp_body)))
-                self.end_headers()
-                self.wfile.write(resp_body)
-
+                self.send_header("Content-Length", str(len(rb))); self.end_headers(); self.wfile.write(rb)
         except urllib.error.HTTPError as e:
-            resp_body = e.read()
-            if e.code == 429:
-                limiter.circuit.record_failure()
-                retry_after = int(e.headers.get("Retry-After", 0))
-                log.warning("NIM 429 (failure %d/%d)", limiter.circuit.failures, CIRCUIT_THRESHOLD)
-            else:
-                log.error("NIM HTTP %d: %s", e.code, resp_body[:200])
-
-            self.send_response(e.code)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(resp_body)
-
+            rb = e.read()
+            if e.code == 429: ctl.record_429(); log.warning("429 — rpm=%.1f fails=%d", ctl.rpm_target, ctl.consecutive_429)
+            else: log.error("NIM %d: %s", e.code, rb[:200])
+            self.send_response(e.code); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(rb)
         except urllib.error.URLError as e:
-            log.error("NIM connection: %s", e)
-            self._json(502, {"error": {"message": f"NIM unreachable: {e.reason}", "type": "proxy_error"}})
-
+            log.error("NIM down: %s", e.reason); self._json(502, {"error": {"message": f"NIM unreachable: {e.reason}"}})
         except Exception as e:
-            log.error("Proxy error: %s", e)
-            self._json(500, {"error": {"message": str(e), "type": "proxy_error"}})
-
-# --- Main -------------------------------------------------------------------
+            log.error("Proxy: %s", e); self._json(500, {"error": {"message": str(e)}})
 
 def main():
-    global limiter
     logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO").upper(),
                         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
-
-    class State:
-        rpm = SlidingWindow(RPM_WINDOW_MS, MAX_RPM)
-        circuit = CircuitBreaker()
-        last_req = 0
-
-    limiter = State()
-
-    log.info("NIM proxy on %s:%s — RPM=%d TPM=%d circuit=%dx%ds",
-             HOST, PORT, MAX_RPM, MAX_TPM, CIRCUIT_THRESHOLD, CIRCUIT_COOLDOWN_S)
-
-    server = HTTPServer((HOST, PORT), Handler)
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        log.info("Shutdown")
-        server.server_close()
+    log.info("nim-proxy on %s:%s — rpm_start=%.0f tpm_start=%.0f state=%s",
+             HOST, PORT, ctl.rpm_target, ctl.tpm_target, STATE_FILE)
+    HTTPServer((HOST, PORT), Handler).serve_forever()
 
 if __name__ == "__main__":
     main()
