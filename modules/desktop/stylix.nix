@@ -61,6 +61,10 @@
     # causing "option does not exist" eval errors. Explicit per-target
     # only covers what we actually run (Qt apps, not KDE/Plasma).
     targets.qt.enable = true;
+    # Cluster runs niri (not pure Plasma6/GNOME), so Stylix's DE detect
+    # would fall through to qtct → kvantum. Pin that path and rely on HM
+    # to install Base16Kvantum (see modules/system/home-manager.nix).
+    targets.qt.platform = "qtct";
 
     autoEnable = false;
 

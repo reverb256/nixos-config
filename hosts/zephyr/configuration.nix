@@ -1267,13 +1267,10 @@
 
   # Lossless Scaling Frame Generation via Vulkan
   services.storage-assertions.enable = true;
-}
-# Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
-# Refactored 2026-07-21 (#300): scrubbed pre-peakminer mining residue, repaired
-# orphan syntax from prior xmrig-strip cleanup.
 
   # Bonsai 27B: ternary on RTX 3090 (port 1237) + 1-bit on RTX 3060 Ti (port 1236)
   services.bonsai = {
     enable = true;
     # binaryStorePath = "FIXME_CUDA_ON_BUILD"; # set after `nix build .#cuda` finishes
   };
+}
