@@ -44,6 +44,8 @@
     ../../modules/hardware/rgb-control.nix
     # PeakMiner GPU mining stack (zephyr local miners + auth-translator proxies)
     ./peakminer.nix
+    # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
+    ../../modules/services/bonsai.nix
   ];
 
   # ============================================================================
@@ -149,7 +151,8 @@
       "(Web Content|Isolated Web|nix)"
       "--avoid"
       "(niri|noctalia|zen|spotify|vesktop|opencode|hermes|Xwayland|pipewire)"
-    ];
+      # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
+  ];
   };
 
   # ------------------------------------------------------------------
@@ -194,7 +197,8 @@
         179 # Calico BGP
         5473 # Calico Typha
         9100 # Prometheus node-exporter
-      ];
+        # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
+  ];
       allowedUDPPorts = [
         9757 # WiVRn
         9758 # WiVRn
@@ -205,20 +209,23 @@
         53317 # LocalSend (multicast discovery)
         8472 # VXLAN (Flannel/Calico)
         4789 # VXLAN (Calico)
-      ];
+        # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
+  ];
       interfaces = {
         # mDNS restricted to LAN interface only (not 0.0.0.0)
         "enp38s0".allowedUDPPorts = [5353 111 2049 20048];
         "tailscale0".allowedTCPPorts = [
           18789
           18790
-        ];
+          # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
+  ];
         # NFS server - allow local network only
         "enp38s0".allowedTCPPorts = [
           111
           2049
           20048
-        ]; # rpcbind, nfs, mountd
+          # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
+  ]; # rpcbind, nfs, mountd
       };
     };
   };
@@ -300,6 +307,7 @@
     # Bootstrap node: nexus (clusterInit=true, oldest etcd data)
     # All servers join via VIP for HA: https://10.1.1.100:6443
     k3s-cluster = {
+      wipeState = true;
       enable = true;
       nvidia.enable = true;
       role = "server";
@@ -423,12 +431,14 @@
       "compress=zstd:3"
       "ssd"
       "discard=async"
-    ];
+      # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
+  ];
     "/home".options = lib.mkOptionDefault [
       "compress=zstd:3"
       "ssd"
       "discard=async"
-    ];
+      # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
+  ];
   };
 
   # ============================================================================
@@ -456,7 +466,8 @@
     # (Note: hardware.profiles.nvidia.enable adds nvidia modules automatically)
     kernelModules = [
       "nvidia_uvm" # Unified Memory (CRITICAL for multi-GPU!)
-    ];
+      # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
+  ];
 
     extraModprobeConfig = ''
       options nvidia NVreg_EnableBacklightHandler=1
@@ -480,7 +491,8 @@
       "appletalk"
       "ipx"
       "decnet"
-    ];
+      # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
+  ];
 
     # Zephyr-specific kernel params for gaming
     # (Note: hardware.profiles.amd.zen adds split_lock_detect, threadirqs, preempt)
@@ -492,7 +504,8 @@
       "hugepages=3"
       "btrfs.commit_interval=300" # From btrfs-tuning module
       "nvidia.NVreg_RegistryDwords=EnableBrightnessControl=1" # Enable laptop brightness control
-    ];
+      # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
+  ];
   };
 
   # ============================================================================
@@ -696,7 +709,8 @@
           code_search_paths = [
             "/etc/nixos"
             "/home/j_kro"
-          ];
+            # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
+  ];
           code_max_results = 10;
           web_search_enabled = true;
           web_max_results = 10;
@@ -710,7 +724,8 @@
           "vllm"
           "zai"
           "pollinations"
-        ];
+          # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
+  ];
       };
       auth.mode = "none";
       monitoring.enable = true;
@@ -739,7 +754,8 @@
             command = [
               "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
               "/etc/nixos/skills/nix-rebuild-mcp/server.py"
-            ];
+              # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
+  ];
             environment.NIX_HOST = "zephyr";
             environment.NIX_ACCEPT_FLAKE_CONFIG = "1";
             enabled = true;
@@ -749,7 +765,8 @@
             command = [
               "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
               "/etc/nixos/skills/add-service-mcp/server.py"
-            ];
+              # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
+  ];
             environment = {};
             enabled = true;
           };
@@ -766,7 +783,8 @@
               "python3"
               "-m"
               "ai_inference_gateway.mcp_servers.searxng_server"
-            ];
+              # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
+  ];
             environment = {
               SEARXNG_URL = "http://searxng.search.svc.cluster.local:8080"; # Kubernetes service DNS
               SEARXNG_CACHE_TTL = "300";
@@ -837,7 +855,8 @@
         "npm:pi-subagents@0.12.4"
         "npm:pi-web-access@0.10.6"
         "npm:pi-worktree@1.3.3"
-      ];
+        # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
+  ];
     };
 
     # WEB TESTING - Playwright/Puppeteer system dependencies
@@ -1136,6 +1155,7 @@
     python312Packages.openpyxl # Excel read/write
     # Noctalia CLI binary for keybindings (Mod+Space, Print, notifications)
     inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default
+    # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
   ];
 
   # ============================================================================
@@ -1213,6 +1233,7 @@
   # Ensure the arch-suffixed ICD file exists (nvidia_x11 only provides nvidia_icd.json)
   systemd.tmpfiles.rules = [
     "L+ /run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json - - - - /run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json"
+    # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
   ];
 
   # Resolve K8s ingress hostnames to the cluster VIP (10.1.1.100)
@@ -1250,3 +1271,9 @@
 # Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
 # Refactored 2026-07-21 (#300): scrubbed pre-peakminer mining residue, repaired
 # orphan syntax from prior xmrig-strip cleanup.
+
+  # Bonsai 27B: ternary on RTX 3090 (port 1237) + 1-bit on RTX 3060 Ti (port 1236)
+  services.bonsai = {
+    enable = true;
+    # binaryStorePath = "FIXME_CUDA_ON_BUILD"; # set after `nix build .#cuda` finishes
+  };

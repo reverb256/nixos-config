@@ -44,6 +44,8 @@
     # Kubernetes
     ../../modules/services/k3s-cluster.nix
     ../../modules/services/mosaic-k3s-manifests.nix
+    # Bonsai 27B: ternary (when GPU idle, port 1238), 1-bit (port 1235)
+    ../../modules/services/bonsai.nix
     # Keepalived VIP for HA API server access
     ../../modules/services/keepalived-vip.nix
 
@@ -159,6 +161,7 @@
     # Bootstrap node: first server to start, creates the cluster
     # All other servers/agents join via VIP: https://10.1.1.100:6443
     k3s-cluster = {
+      wipeState = true;
       enable = true;
       nvidia.enable = true;
       role = "server";
@@ -173,6 +176,7 @@
     # Auto-apply K8s manifests on boot (control-plane node)
     k8s-manifest-autoapply.enable = true;
 
+    # Bonsai 27B: ternary (when GPU idle, port 1238), 1-bit (port 1235)
     # Keepalived VIP for HA API server access
     keepalived-vip = {
       enable = true;
@@ -587,3 +591,8 @@
 
   services.storage-assertions.enable = true;
 }
+
+  # Bonsai 27B: 1-bit on RTX 3060 Ti (port 1235), ternary (port 1238) when GPU idle
+  services.bonsai = {
+    enable = true;
+  };
