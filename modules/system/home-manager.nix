@@ -135,10 +135,9 @@ in
           targets.btop.enable = true;
           targets.lazygit.enable = true;
           targets.qt.enable = true;
-          # niri hosts land on stylix qt platform=qtct → style=kvantum.
-          # Keep platform explicit so followSystem cannot drift to a DE that
-          # isn't actually the active session on every host.
-          targets.qt.platform = "qtct";
+          # Prefer gnome platform → adwaita-dark (no Kvantum). qtct defaults
+          # to kvantum which we intentionally do not ship.
+          targets.qt.platform = "gnome";
           # GTK theming for all hosts (dconf/HM works headless for file gen).
           # Previously disabled on nexus — that left GTK apps unthemed there.
           targets.gtk.enable = true;
@@ -155,15 +154,16 @@ in
           targets.vesktop.enable = true;
         };
 
-        # Ensure Qt/Kvantum stack matches stylix qtct path on every host.
-        # Stylix generates Base16Kvantum when style.name == "kvantum"; without
-        # these, QT_STYLE_OVERRIDE=kvantum has nothing to load (the failure
-        # mode on sentry/nexus/forge).
+        # Non-Kvantum Qt path for all hosts (niri + optional Plasma).
+        # adwaita-dark aligns with polarity=dark and GTK adw-gtk3.
         qt = {
           enable = true;
-          platformTheme.name = "qtct";
-          style.name = "kvantum";
+          platformTheme.name = "gnome";
+          style.name = lib.mkForce "adwaita-dark";
+          # Never pull Base16Kvantum / QT_STYLE_OVERRIDE=kvantum.
+          kvantum.enable = lib.mkForce false;
         };
+        home.sessionVariables.QT_STYLE_OVERRIDE = lib.mkForce "adwaita-dark";
 
         # CopyQ clipboard manager (replaces cliphist)
         programs.copyq = {
