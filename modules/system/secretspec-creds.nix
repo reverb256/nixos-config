@@ -72,6 +72,7 @@ in {
           mode = mkOption { type = types.str; default = "0444"; };
           owner = mkOption { type = types.str; default = "root"; };
           group = mkOption { type = types.str; default = "root"; };
+          key = mkOption { type = types.str; default = "data"; description = "Key to extract from sops file (e.g. data for JSON, exa_api_key for YAML)"; };
         };
       });
       default = {};
