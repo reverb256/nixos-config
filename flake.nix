@@ -377,6 +377,5 @@
       };
       # ── FORMATTING GATE ───────────────────────────────────────
       # `nix fmt` -> alejandra (format) across the tree.
-      formatter.x86_64-linux = pkgs.writeShellScriptBin "nixfmt-cluster" "exec ${pkgs.alejandra}/bin/alejandra --exclude modules/system/agenix-secrets-registry.nix --exclude modules/home-manager/default.nix --exclude modules/services/spacebot/container.nix --exclude kubernetes/modules";
     };
 }
