@@ -20,6 +20,7 @@
   # Requires caddy-with-modules (mholt/caddy-ratelimit plugin).
   mkRoute = hosts: backend: ''
     ${hosts} {
+      bind 10.1.1.110
       ${tls}
       encode zstd gzip
       rate_limit {
@@ -44,6 +45,7 @@
   # Requires caddy-with-modules (mholt/caddy-ratelimit plugin).
   mkAuthRoute = hosts: backend: ''
     ${hosts} {
+      bind 10.1.1.110
       ${tls}
       encode zstd gzip
       rate_limit {
@@ -74,6 +76,7 @@
   # Requires caddy-with-modules (mholt/caddy-ratelimit plugin).
   mkAuthRouteTLS = hosts: backend: ''
     ${hosts} {
+      bind 10.1.1.110
       ${tls}
       encode zstd gzip
       rate_limit {
@@ -117,7 +120,7 @@ in
   + "\n"
   +
   # Search (SearXNG) — public search tool
-  mkRoute "searxng.lan, search.lan" "http://${nexus}:${toString ports.searxng}"
+  mkRoute "searxng.lan, search.lan" "http://${zephyr}:${toString ports.searxng}"
   + "\n"
   +
   # === PROTECTED SERVICES (central SSO) ===
