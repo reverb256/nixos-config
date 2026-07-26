@@ -43,7 +43,7 @@ let
     }
 
     ${concatStringsSep "\n" (mapAttrsToList (name: entry:
-      "write_secret ${name} ${entry.path} ${entry.file} ${toString entry.mode} ${entry.owner} ${entry.group} ${entry.key or "data"}"
+      "write_secret ${name} ${entry.path} ${entry.file} ${toString entry.mode} ${entry.owner} ${entry.group} ${if entry ? key then entry.key else "data"}"
     ) cfg.secrets)}
 
     if [ "$fail" = 1 ]; then
