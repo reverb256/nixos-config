@@ -116,8 +116,6 @@
     ./services/llamafile.nix
     ./services/stability-matrix.nix
     ./services/nixos-share.nix
-    ./services/spacebot.nix # Systemd/Podman deployment (current)
-    ./services/spacebot/default.nix # Container module for Kubernetes (optional)
     ./services/podman-auto-update.nix
     # ./services/caddy.nix (handled by inputs.caddy-ingress.nixosModules.caddy)
     # ./services/caddy-common.nix (handled by inputs.caddy-ingress.nixosModules.caddy-common)
@@ -172,7 +170,6 @@
     ./network/cluster-hosts.nix
     ./networking/cluster-networking.nix
     # Claude Code Router
-    ./services/claude-code-router.nix
     # Supply chain security (7-day cooldown on npm/bun/uv packages)
     ./services/supply-chain-cooldowns.nix
     # Container image security scanning
