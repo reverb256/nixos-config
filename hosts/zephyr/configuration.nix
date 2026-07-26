@@ -874,12 +874,6 @@
     # the block is removed entirely. Cluster coordinate with peakminer
     # is handled exclusively through `services.mining-coordinator` below.
 
-    # Vaultwarden - Self-hosted password manager with FIDO2/WebAuthn
-    vaultwarden-module = {
-      enable = true;
-      hostName = "vaultwarden.zephyr.tigris-ule.ts.net"; # Tailscale Magic DNS
-      dataDir = "/var/lib/vaultwarden";
-    };
   };
 
   # ============================================================================
