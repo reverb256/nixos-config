@@ -57,7 +57,8 @@ in {
           "ai/context7-api-key" = {
             sopsFile = "${inputs.self}/secrets/ai/context7-api-key.yaml";
             path = "/run/secrets/context7-api-key";
-            format = "binary";
+            format = "yaml";
+            key = "";
             mode = "0444";
             owner = "j_kro";
             group = "users";
@@ -170,7 +171,8 @@ in {
           "ai/telegram-bot-token" = {
             sopsFile = "${inputs.self}/secrets/ai/telegram-bot-token.yaml";
             path = "/run/secrets/telegram-bot-token";
-            format = "binary";
+            format = "yaml";
+            key = "telegram_bot_token";
             mode = "0444";
             owner = "j_kro";
             group = "users";
