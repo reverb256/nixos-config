@@ -30,6 +30,14 @@ in {
         "rd.systemd.debug_shell"
         "rd.emergency=reboot"
         "fbcon=scrollback:1024k"
+        # Panic and lockup detection (from forge recovery)
+        "panic=10"
+        "panic_on_oops=1"
+        "softlockup_panic=1"
+        "nmi_watchdog=1"
+        # Storage debug
+        "rd.udev.log_priority=debug"
+        "boot.shell_on_fail"
       ];
 
       boot.initrd.systemd.services.emergency = {
