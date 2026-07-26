@@ -2,6 +2,7 @@
 # One entry per /run/secrets/ path
 {
   # ── aiServices ──────────────────────────────────────────────
+  EXA_API_KEY = { path = "/run/secrets/exa-api-key"; file = "ai/exa-api-key.yaml"; key = "exa_api_key"; owner = "j_kro"; group = "users"; };
   NVIDIA_API_KEY = { path = "/run/secrets/nvidia-api-key"; file = "ai/nvidia-api-key.yaml"; owner = "j_kro"; group = "users"; };
   HUGGINGFACE_TOKEN = { path = "/run/secrets/huggingface-token"; file = "ai/huggingface-token.yaml"; owner = "root"; };
   OPENCODE_ZEN_API_KEY = { path = "/run/secrets/opencode-api-key"; file = "ai/opencode-api-key.yaml"; owner = "j_kro"; group = "users"; };
