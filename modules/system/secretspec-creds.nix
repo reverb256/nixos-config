@@ -24,7 +24,8 @@ let
     SECRETS_DIR="/etc/nixos/secrets"
 
     write_secret() {
-      log "Decrypting $3 → $2 ..."
+      local name="$1" path="$2" file="$3" mode="$4" owner="$5" group="$6" key="${7-data}"
+      log "Decrypting $file → $path (key=$key) ..."
       local _v
       _v=$("$SOPS" -d --config "$CONFIG" --extract '["data"]' "$SECRETS_DIR/$3" 2>>"$LOG") || {
         log "FAILED: sops -d $3 (exit $?)"
@@ -42,7 +43,7 @@ let
     }
 
     ${concatStringsSep "\n" (mapAttrsToList (name: entry:
-      "write_secret ${name} ${entry.path} ${entry.file} ${toString entry.mode} ${entry.owner} ${entry.group}"
+      "write_secret ${name} ${entry.path} ${entry.file} ${toString entry.mode} ${entry.owner} ${entry.group} ${entry.key or "data"}"
     ) cfg.secrets)}
 
     if [ "$fail" = 1 ]; then
