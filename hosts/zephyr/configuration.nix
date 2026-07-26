@@ -645,24 +645,6 @@
     #   adminListenAddress = "127.0.0.1";  # Localhost only for systemd
     # };
 
-    # Spacebot AI agent (integrated with AI Gateway)
-    spacebot = {
-      enable = true;
-      useGateway = true;
-      gatewayUrl = "http://127.0.0.1:8081"; # K8s gateway (hostNetwork, port 8081)
-      host = "127.0.0.1";
-      port = 19898;
-      memory = "4G";
-      cpu = "2";
-      hideUpdateNotification = true;
-      providerKeys = {
-        ZAI_CODING_PLAN_KEY = "/run/secrets/zai-api-key";
-        KILO_API_KEY = "/run/secrets/kilo-api-key";
-      };
-      discord.enable = false;
-      telegram.enable = true;
-      telegram.tokenFile = "/run/secrets/spacebot-telegram-token";
-    };
 
     # Redis - For gateway rate limiting and caching
     redis.servers."".enable = true;
@@ -1031,11 +1013,6 @@
 
     # Deployment
     inputs.colmena.packages.${pkgs.stdenv.hostPlatform.system}.colmena
-    (pkgs.writeShellScriptBin "spacebot" ''
-      #!${pkgs.bash}/bin/bash
-      # Spacebot CLI wrapper - connects to local Spacebot service
-      exec ${pkgs.curl}/bin/curl --data-binary @- http://127.0.0.1:19898/api/run "$@"
-    '')
 
     # Hardware monitoring & fan control helpers
     ddcutil # DDC/CI monitor brightness control
@@ -1258,8 +1235,8 @@
   # Lossless Scaling Frame Generation
 
   # Lossless Scaling Frame Generation via Vulkan
+}
 # Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
 # Refactored 2026-07-21 (#300): scrubbed pre-peakminer mining residue, repaired
 # orphan syntax from prior xmrig-strip cleanup.
 
-}
