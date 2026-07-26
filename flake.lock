@@ -168,11 +168,11 @@
     "cachyos-kernel": {
       "flake": false,
       "locked": {
-        "lastModified": 1784569577,
-        "narHash": "sha256-pmwdKRPSavZ98QJv/Xlbj2U60AZ/+P4aevLBZ71jDaA=",
+        "lastModified": 1785001338,
+        "narHash": "sha256-iX0iia6K1Z8k5ptg9zW/5Ar5AN0JbWcoM4KgW8+G1bI=",
         "ref": "refs/heads/master",
-        "rev": "5ca2493c51b1cadec102c9c549345b43f669960b",
-        "revCount": 1984,
+        "rev": "fc29f6a9d1e48e0d5db29b4d53e0dbfadd0d75b0",
+        "revCount": 1985,
         "type": "git",
         "url": "https://github.com/CachyOS/linux-cachyos"
       },
@@ -221,11 +221,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1784948311,
-        "narHash": "sha256-K9LEiPB4t4CifChDVV2M0CkwYm5wZ5oo/tx4ZB8KYoQ=",
+        "lastModified": 1785013936,
+        "narHash": "sha256-YaOA+gfLQRTxSrKzani2xz5TYSG9T82yEUPTOWBP95U=",
         "ref": "refs/heads/main",
-        "rev": "e78cd30e6fb6f6394dab993fb316b229025498a7",
-        "revCount": 380,
+        "rev": "fcc7811a78f40da2f520866dc23d7b65cffa6c7c",
+        "revCount": 381,
         "type": "git",
         "url": "https://github.com/ryoppippi/claude-code-overlay"
       },
@@ -612,11 +612,11 @@
         "uv2nix": "uv2nix"
       },
       "locked": {
-        "lastModified": 1784989072,
-        "narHash": "sha256-cqm51lf+jiQTeAozGKal7pGkUqvoL+N/a2jiwzCgYmQ=",
+        "lastModified": 1785022969,
+        "narHash": "sha256-HOl0qF5aEESgJLTpaEL3XBj1fOws6Bh9Ny+TdoqWSxw=",
         "ref": "refs/heads/main",
-        "rev": "07e97d2f5dc3d2092cfe693ef07b2527a36cd2d8",
-        "revCount": 17806,
+        "rev": "1161cc0b53fbc89abe81283b13f81d85784bf611",
+        "revCount": 17838,
         "type": "git",
         "url": "https://github.com/NousResearch/hermes-agent"
       },
@@ -627,14 +627,17 @@
     },
     "home-manager": {
       "inputs": {
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": [
+          "agenix",
+          "nixpkgs"
+        ]
       },
       "locked": {
-        "lastModified": 1784877405,
-        "narHash": "sha256-W649GocILahx7Vb/JMx834217+OLKBrq014VmC/8+NM=",
+        "lastModified": 1745494811,
+        "narHash": "sha256-YZCh2o9Ua1n9uCvrvi5pRxtuVNml8X2a03qIFfRKpFs=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "32de400b6ac9f43042bca706f4a64f6ad08117e8",
+        "rev": "abfad3d2958c9e6300a883bd443512c55dfeb1be",
         "type": "github"
       },
       "original": {
@@ -676,11 +679,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1784986205,
-        "narHash": "sha256-2JnCiA4JxySAyH++JduEQ56TJgN5l/7T0NMiA1HxUm0=",
+        "lastModified": 1785017951,
+        "narHash": "sha256-luT7zVV4D0z8bRbHInqJE/NbChUkDdhWp3H4+6wFYI8=",
         "ref": "refs/heads/main",
-        "rev": "be7d518035073dcac5a2812e24b1960c9fbc7a8e",
-        "revCount": 13744,
+        "rev": "7cd2288e0c918b7af05f8a2ad446c54f463da21b",
+        "revCount": 13771,
         "type": "git",
         "url": "https://github.com/numtide/llm-agents.nix"
       },
@@ -814,7 +817,7 @@
         "flake-parts": [
           "flake-parts"
         ],
-        "nixpkgs": "nixpkgs_2"
+        "nixpkgs": "nixpkgs"
       },
       "locked": {
         "lastModified": 1784399663,
@@ -863,11 +866,11 @@
         "nixpkgs-nixcord": "nixpkgs-nixcord"
       },
       "locked": {
-        "lastModified": 1784988994,
-        "narHash": "sha256-pwamGPgY2vqw38oz4fPEVCZrAK2W795FF+XPSU62jFw=",
+        "lastModified": 1784998108,
+        "narHash": "sha256-Bcplstv6cEphwzggdZ2LB3sZDimmF/QkaVkW9qk17no=",
         "ref": "refs/heads/main",
-        "rev": "a568a817a59ef5f07c789785f313ec4a003f2286",
-        "revCount": 1458,
+        "rev": "cca6d30eb701c1189f046f7d22f24ba85a6e07e3",
+        "revCount": 1463,
         "type": "git",
         "url": "https://github.com/FlameFlag/nixcord"
       },
@@ -973,7 +976,7 @@
       "inputs": {
         "flake-compat": "flake-compat_6",
         "flake-utils": "flake-utils_2",
-        "nixpkgs": "nixpkgs_4",
+        "nixpkgs": "nixpkgs_3",
         "nvfetcher": "nvfetcher",
         "systems": "systems_3",
         "treefmt-nix": "treefmt-nix_2"
@@ -994,22 +997,6 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1784376972,
-        "narHash": "sha256-RV+5/2MexV9xfNcm9rhYr5FE250sHPnH1coGz/pKTqM=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "8d704def0fc91d80d2ffcf23ae4b08cb055308f0",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "ref": "nixos-unstable-small",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs_3": {
-      "locked": {
         "lastModified": 1781074563,
         "narHash": "sha256-md8WlXOlfnIeHeOScMTTHFyf2d6iaTwPl2apR5EQ3P4=",
         "type": "tarball",
@@ -1020,7 +1007,7 @@
         "url": "https://codeload.github.com/NixOS/nixpkgs/tar.gz/9ae611a455b90cf061d8f332b977e387bda8e1ca"
       }
     },
-    "nixpkgs_4": {
+    "nixpkgs_3": {
       "locked": {
         "lastModified": 1784796856,
         "narHash": "sha256-wWFrV5/Qbm+lyt5x20E/bSbfJiGKMo4RCxZV8cl/WZI=",
@@ -1043,11 +1030,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1784995258,
-        "narHash": "sha256-P+L5WamigPCJzwGkYCgsmOzqhSvPoERyUm68NIy6BtY=",
+        "lastModified": 1785023462,
+        "narHash": "sha256-Jt1Yd0ob1XUsvBC8fjvkgvDHd/uYCfkRTljj4ymFHAQ=",
         "ref": "refs/heads/main",
-        "rev": "835c127f5971a42217254877dd372be051c55ea1",
-        "revCount": 4814,
+        "rev": "39d2c7629e8c5b57d08add9d9bbb0c1b24286f31",
+        "revCount": 4830,
         "type": "git",
         "url": "https://github.com/noctalia-dev/noctalia"
       },
@@ -1087,11 +1074,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1784995430,
-        "narHash": "sha256-omcRHx3mKNL2wBI9M/NGnpLAInjrG/GDlIfmM6VoW4Y=",
+        "lastModified": 1785018925,
+        "narHash": "sha256-gxWMwgvV6W6V9PhfP1VmjYvzcdBd8Hcdt7LCFNYz7uY=",
         "ref": "refs/heads/main",
-        "rev": "1d57bf80c1c2e7e7663359ec1c05dd38707aa43a",
-        "revCount": 46368,
+        "rev": "2e7a3ed8ee1f4f6a73eb697c21a6422317b61f25",
+        "revCount": 46380,
         "type": "git",
         "url": "https://github.com/nix-community/NUR"
       },
@@ -1226,7 +1213,7 @@
         "niri-hdr": "niri-hdr",
         "nix-cachyos-kernel": "nix-cachyos-kernel",
         "nixcord": "nixcord",
-        "nixpkgs": "nixpkgs_3",
+        "nixpkgs": "nixpkgs_2",
         "nixpkgs-xr": "nixpkgs-xr",
         "noctalia": "noctalia",
         "nur": "nur",
