@@ -1,12 +1,11 @@
 # ─────────────────────────────────────────────────────────────────
 # secretspec-creds — Phase 4 SecretSpec credential provisioning.
 #
-# At activation, decrypts each sops file via `sops -d --extract '["data"]'`
-# and writes the resolved value to the declared /run/secrets/ path.
+# At activation, decrypts each sops file via `sops -d` and writes
+# the resolved value to the declared /run/secrets/ path.
 #
-# Uses sops CLI directly (not secretspec-provider-sops subprocess) to
-# avoid provider extraction bugs. The `--extract '["data"]'` flag works
-# for both binary-format and YAML-format sops files.
+# Handles both binary-format sops files ({"data":"..."}) and
+# YAML-format sops files (key: value) automatically.
 # -----------------------------------------------------------------
 { config, lib, pkgs, ... }:
 with lib;
@@ -24,13 +23,18 @@ let
     SECRETS_DIR="/etc/nixos/secrets"
 
     write_secret() {
-      local name="$1" path="$2" file="$3" mode="$4" owner="$5" group="$6" key="${7-data}"
-      log "Decrypting $file → $path (key=$key) ..."
+      log "Decrypting $3 -> $2 ..."
       local _v
-      _v=$("$SOPS" -d --config "$CONFIG" --extract '["data"]' "$SECRETS_DIR/$3" 2>>"$LOG") || {
+      # Decrypt without --extract to handle both binary and YAML formats
+      _v=$("$SOPS" -d --config "$CONFIG" "$SECRETS_DIR/$3" 2>>"$LOG") || {
         log "FAILED: sops -d $3 (exit $?)"
         fail=1; return
       }
+      # Auto-detect YAML-format sops (key: value) vs binary (raw data)
+      if echo "$_v" | grep -q '^[a-zA-Z_][a-zA-Z0-9_]*:'; then
+        # YAML format — strip the key prefix
+        _v=$(echo "$_v" | sed 's/^[^:]*:[[:space:]]*//')
+      fi
       if [ -z "$_v" ] || [ "$_v" = "null" ]; then
         log "FAILED: $3 resolved to empty/null"
         fail=1; return
@@ -43,11 +47,11 @@ let
     }
 
     ${concatStringsSep "\n" (mapAttrsToList (name: entry:
-      "write_secret ${name} ${entry.path} ${entry.file} ${toString entry.mode} ${entry.owner} ${entry.group} ${if entry ? key then entry.key else "data"}"
+      "write_secret ${name} ${entry.path} ${entry.file} ${toString entry.mode} ${entry.owner} ${entry.group}"
     ) cfg.secrets)}
 
     if [ "$fail" = 1 ]; then
-      log "One or more secrets failed — see journalctl -u secretspec-creds"
+      log "One or more secrets failed -- see journalctl -u secretspec-creds"
       exit 1
     fi
     log "All ${builtins.toString (builtins.length (builtins.attrNames cfg.secrets))} secrets written."
@@ -78,7 +82,7 @@ in {
     environment.systemPackages = with pkgs; [ sops ];
 
     systemd.services.secretspec-creds = {
-      description = "SecretSpec credential provisioning — sops-d + write /run/secrets/*";
+      description = "SecretSpec credential provisioning -- sops-d + write /run/secrets/*";
       documentation = [ "https://secretspec.dev" ];
       wantedBy = ["multi-user.target"];
       before = ["multi-user.target"];
