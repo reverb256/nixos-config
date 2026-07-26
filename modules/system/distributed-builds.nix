@@ -206,14 +206,13 @@ in {
           ];
           machines = builtins.filter (m: m.hostName != currentHost) allMachines;
           formatMachine = m: with builtins; let
-            # Single primary system only. Colmena parses this file too and
-            # chokes on the multi-system "x86_64-linux i686-linux" form
-            # (the 2nd system lands in the ssh-key column -> uint parse error).
-            primarySystem = builtins.head m.systems;
+            # Join ALL systems with commas so the nix builder line advertises
+            # both x86_64-linux and i686-linux (volk, steam-run, etc).
+            allSystems = lib.concatStringsSep "," m.systems;
           in
             concatStringsSep " " [
               ("ssh-ng://" + "${m.sshUser}@${m.hostName}")
-              primarySystem
+              allSystems
               (
                 if m.sshKey != null
                 then m.sshKey

@@ -175,7 +175,6 @@ in {
     Namespace.maplespike-dev.metadata.labels = pssLabels // {name = "maplespike-dev";};
     Namespace.mining.metadata.labels = pssLabels // {name = "mining";};
     Namespace.tailscale.metadata.labels = pssLabels // {name = "tailscale";};
-    Namespace.vaultwarden.metadata.labels = pssLabels // {name = "vaultwarden";};
   };
 
   config.kubernetes.objects.default = {

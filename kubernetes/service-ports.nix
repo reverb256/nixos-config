@@ -58,7 +58,4 @@
   privacy-filter = 30935;
   vane = 30900;
 
-  # ── vaultwarden (namespace: vaultwarden) ───────────────────
-  vaultwarden = 32110;
-  vaultwarden-ws = 32111; # WebSocket port
 }

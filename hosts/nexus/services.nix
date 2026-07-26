@@ -282,10 +282,6 @@ in {
         domain = "dev.maplespike.lan";
         backend = "10.1.1.120:${toString ports.dev-maplespike-portal}";
       };
-      vaultwarden = {
-        domain = "vaultwarden.lan";
-        backend = "vaultwarden.vaultwarden.svc.cluster.local:8080";
-      };
       glance = {
         domain = "dashboard.lan";
         backend = "127.0.0.1:32200";

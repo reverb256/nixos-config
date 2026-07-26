@@ -53,7 +53,6 @@
     "mission-control.lan"
     "grafana.lan"
     "privacy-filter.lan"
-    "vaultwarden.lan"
     "workspace.lan"
     "dashboard.lan"
     "maplespike.lan"
