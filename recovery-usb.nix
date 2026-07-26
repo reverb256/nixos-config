@@ -45,7 +45,8 @@
             description = "Recovery User";
             extraGroups = ["wheel" "networkmanager"];
             openssh.authorizedKeys.keys = [
-              # Add your SSH keys here or use empty for password auth
+              # Cluster SSH key for automated recovery from the GH runner on nexus
+              "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFGFHqWyZE0fadxRlfCFf/hyahjiS9WzlIvLkYf0ZK9b j_kro@nixos-cluster"
             ];
           };
 
