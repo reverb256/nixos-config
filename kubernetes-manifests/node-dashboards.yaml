@@ -85,7 +85,7 @@ data:
             <div class="info-row"><span class="info-label">Hostname</span><span class="info-value">zephyr</span></div>
             <div class="info-row"><span class="info-label">IP Address</span><span class="info-value">10.1.1.110</span></div>
             <div class="info-row"><span class="info-label">K8s Version</span><span class="info-value">v1.35.0</span></div>
-            <div class="info-row"><span class="info-label">CNI</span><span class="info-value">Flannel VXLAN</span></div>
+            <div class="info-row"><span class="info-label">CNI</span><span class="info-value">Calico VXLAN</span></div>
           </div>
 
           <div class="card">
