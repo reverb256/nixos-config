@@ -53,31 +53,8 @@ in {
 
     tailscale.enable = true;
 
-    nixos-share = {
-      enable = false;
-      client.enable = true;
-    };
 
-    nfs-client = {
-      enable = false;
-      mountShared = true;
-      mountHome = false;
-      mountMedia = false;
-    };
 
-    # Secondary NFS data server for failover (hermes + pi state)
-    nfs-data-server = {
-      enable = true;
-      exports = ''
-        /data/hermes 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=105)
-
-        /data/pi 10.1.1.0/24(rw,sync,no_subtree_check,root_squash,anonuid=1000,anongid=100,fsid=106)
-      '';
-    };
-    nfs-state-sync = {
-      enable = true;
-      sourceHost = "nexus";
-    };
 
     sops-secrets-registry = {
       enable = true;

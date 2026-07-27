@@ -96,31 +96,11 @@ in {
       clusterSync.enable = lib.mkForce false; # skip SSH sync to cluster nodes on every activation
     };
 
-    nixos-share = {
-      enable = true;
-      server.enable = lib.mkForce false;
-    };
 
     # NFS server for /etc/nixos only — hermes/pi moved to Nexus to break I/O loop on root NVMe
-    nfs-data-server = {
-      enable = true;
-      exports = "";
-    };
 
     # Sync hermes/pi state FROM Nexus (Nexus is now canonical source)
-    nfs-state-sync = {
-      enable = true;
-      sourceHost = "nexus";
-      paths = ["/data/hermes"];
-      interval = "15min";
-    };
 
-    nfs-client = {
-      enable = true;
-      mountShared = false;
-      mountHome = false;
-      mountMedia = false;
-    };
 
     # Caddy — only Tailscale ingress for this host
     # All .lan services moved to nexus (OOM prevention)

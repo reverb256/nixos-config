@@ -97,15 +97,7 @@
   boot.kernel.sysctl."net.ipv6.conf.all.disable_ipv6" = 0;
   boot.kernel.sysctl."net.ipv6.conf.default.disable_ipv6" = 0;
   boot.kernel.sysctl."net.ipv6.conf.eno1.disable_ipv6" = 0;
-  # Disable flake-lock-sync (nixos-shared mount not available)
   # Module auto-detects, but explicitly disable to prevent rebuild issues
-  systemd.timers.flake-lock-sync.enable = false;
-    # Mount /etc/nixos from zephyr (single-source-of-truth)
-    # DISABLED: NFS server on zephyr is dead. Use git sync instead (nixos-sync timer).
-    nixos-share = {
-      enable = false;
-      client.enable = false;
-    };
 
   # Populate /etc/hosts from central cluster configuration
   networking = {
@@ -150,6 +142,8 @@
   # SERVICES CONFIGURATION
 
   services = {
+    # NixOS share DISABLED — NFS removed cluster-wide. Use git sync.
+
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;

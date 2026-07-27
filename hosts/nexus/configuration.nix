@@ -84,14 +84,11 @@
   # FIX: Disable interface renaming - use actual interface names
   systemd.network.links = lib.mkForce {};
 
-  # Disable flake-lock-sync (nixos-shared mount not available)
-  services.flake-lock-sync.enable = lib.mkForce false;
 
   # Windows 11 IoT LTSC gaming VM on the 3060 Ti (libvirt dynamic handoff)
   services.nexus-de-vm.enable = true;
 
   # Directly disable the systemd timer (blocking rebuilds)
-  systemd.timers.flake-lock-sync.enable = lib.mkForce false;
 
   # STATUS.md auto-update (hourly from kubectl)
   services.status-auto-update.enable = true;
@@ -483,26 +480,7 @@
     };
 
     # Mount /etc/nixos from zephyr (single-source-of-truth)
-    # DISABLED: NFS server on zephyr is dead. Use git sync instead (nixos-sync timer).
-    nixos-share = {
-      enable = false;
-      client.enable = false;
-    };
-
-    # NFS Server - Export shared storage for cluster
-    nfs.server.enable = true;
-
-    # Garage S3-compatible object storage (single-node cluster)
-    # Nexus hosts the primary storage on local bcache0
-    # Zephyr and Sentry Garage nodes disabled - centralized storage
-    garage-cluster = {
-      enable = true;
-      dataDir = "/data/shared/garage"; # Local on nexus (bcache0)
-      replicationFactor = 1; # Single-node operation (no replication)
-      consistencyMode = "consistent"; # Full consistency with zones
-      enableMetrics = true; # Prometheus metrics on port 3903
-      enableBackup = false; # Nexus IS the backup storage
-    };
+    # DISABLED: NFS removed cluster-wide. Use git sync instead (nixos-sync timer).
 
     # Hermes Agent module removed (2026-04-06) - missing flake input made it undeletable
   };
