@@ -103,15 +103,13 @@ in {
         TimeoutStartSec = "30";
         Restart = "on-failure";
         RestartSec = "2min";
-        # Bound the auto-retry: 3 attempts within 15 min. If cups is permanently
-        # broken (binary corruption, not a transient 10.1.1.173 outage), the unit
-        # stops spamming the journal after this limit triggers and stays failed
-        # until `systemctl reset-failed add-network-printer` (or the next
-        # nixos-rebuild where systemd re-reads the unit). The systemd default
-        # StartLimitBurst=5 over StartLimitIntervalSec=10s is moot here because
-        # RestartSec="2min" keeps start density well below 5 per 10s.
-        StartLimitBurst = 3;
-        StartLimitIntervalSec = "15min";
+        # Bound auto-retry: 5 attempts within 25 min. Cups + k3s control-plane
+        # restarts routinely take 2-5 min to fully resolve; this profile lets
+        # transient cluster storms self-heal within ~10 min (5 x 2-min cadence)
+        # before the unit goes silent. Permanently-broken cups surfaces as
+        # journal spam bounded by the 25-min envelope, not forever.
+        StartLimitBurst = 5;
+        StartLimitIntervalSec = "25min";
         ExecStart = pkgs.writeShellScript "add-network-printer" ''
           #!${pkgs.bash}/bin/bash
           set -e
