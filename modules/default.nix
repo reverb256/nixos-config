@@ -107,15 +107,12 @@
     # Services
     # mcp-servers provided by inputs.mcp-registry.nixosModules.default
     # ./services/mcp-servers.nix
-    ./services/nfs-server.nix
-    ./services/nfs-client.nix
     ./services/tplink-switches.nix
     ./services/tplink-cli.nix
     ./services/lm-studio.nix
     ./services/lm-studio-headless.nix
     ./services/llamafile.nix
     ./services/stability-matrix.nix
-    ./services/nixos-share.nix
     ./services/podman-auto-update.nix
     # ./services/caddy.nix (handled by inputs.caddy-ingress.nixosModules.caddy)
     # ./services/caddy-common.nix (handled by inputs.caddy-ingress.nixosModules.caddy-common)
@@ -154,9 +151,7 @@
     # Distributed builds
     ./system/distributed-builds.nix
     # Flake lock sync (auto-enabled on remote hosts only)
-    ./system/flake-lock-sync.nix
     # Fallback cache for remote hosts (graceful NFS failure)
-    ./system/nixos-fallback-cache.nix
     # Profile system
     ./profiles/default.nix
     ./profiles/node-profiles.nix

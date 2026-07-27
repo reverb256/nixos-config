@@ -218,19 +218,18 @@
   ];
       interfaces = {
         # mDNS restricted to LAN interface only (not 0.0.0.0)
-        "enp38s0".allowedUDPPorts = [5353 111 2049 20048];
         "tailscale0".allowedTCPPorts = [
           18789
           18790
           # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
   ];
-        # NFS server - allow local network only
+    
         "enp38s0".allowedTCPPorts = [
           111
           2049
           20048
           # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
-  ]; # rpcbind, nfs, mountd
+  ];
       };
     };
   };
@@ -562,7 +561,7 @@
     };
 
     # NOTE (2026-07-21, issue #300): the previous `services.mining` block,
-    # kryptex pools/workers, NFS `services.nixos-share`, and the orphan
+    # kryptex pools/workers, NFS `NFS (removed)`, and the orphan
     # `gaming.hdr.enable` outermost statement were removed as part of the
     # peakminer-only consolidation. Pre-existing bracket typo from a botched
     # xmrig-strip cleanup was fixed in the same edit.

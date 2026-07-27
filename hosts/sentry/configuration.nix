@@ -57,11 +57,8 @@
     unbound.listenAddress = "10.1.1.140";
   };
 
-  # Disable flake-lock-sync (nixos-shared mount not available)
-  services.flake-lock-sync.enable = lib.mkForce false;
 
   # Directly disable the systemd timer (blocking rebuilds)
-  systemd.timers.flake-lock-sync.enable = false;
 
   # Populate /etc/hosts from central cluster configuration
   networking = {
@@ -313,19 +310,7 @@
     tailscale.enable = true;
 
     # Mount /etc/nixos from zephyr (single-source-of-truth)
-    # DISABLED: NFS server on zephyr is dead. Use git sync instead (nixos-sync timer).
-    nixos-share = {
-      enable = false;
-      client.enable = false;
-    };
-
-    # NFS Client - Mount shared storage from nexus
-    nfs-client = {
-      enable = true;
-      mountShared = true;
-      mountHome = false;
-      mountMedia = false;
-    };
+    # DISABLED: NFS removed cluster-wide. Use git sync instead (nixos-sync timer).
 
     # Garage S3 disabled - using nexus as primary storage node
     # Access Garage S3 at: http://10.1.120:3900
