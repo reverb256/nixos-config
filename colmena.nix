@@ -46,7 +46,8 @@ in {
     };
     machinesFile = ./machines;
     specialArgs = {
-      inherit inputs self vfioPkgs;
+      inherit inputs self;
+      vfioPkgs = inputs.nixpkgs-vfio.legacyPackages.x86_64-linux;
     };
   };
 
