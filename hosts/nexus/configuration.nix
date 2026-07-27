@@ -223,10 +223,6 @@
           name = "keepalived";
           active = true;
         }
-        {
-          name = "NFS Server";
-          active = true;
-        }
       ];
     };
   };
@@ -480,7 +476,6 @@
     };
 
     # Mount /etc/nixos from zephyr (single-source-of-truth)
-    # DISABLED: NFS removed cluster-wide. Use git sync instead (nixos-sync timer).
 
     # Hermes Agent module removed (2026-04-06) - missing flake input made it undeletable
   };

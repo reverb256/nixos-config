@@ -97,7 +97,6 @@ in {
     };
 
 
-    # NFS server for /etc/nixos only — hermes/pi moved to Nexus to break I/O loop on root NVMe
 
     # Sync hermes/pi state FROM Nexus (Nexus is now canonical source)
 
