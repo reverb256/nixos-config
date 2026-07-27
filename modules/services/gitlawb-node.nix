@@ -143,12 +143,13 @@ in {
           ${pkgs.podman}/bin/podman run \
             --name gitlawb-node \
             --replace \
-            --network host \
+            --network gitlawb-net \
             --rm \
+            -p ${hostIp}:${toString cfg.httpPort}:${toString cfg.httpPort} \
             -v ${cfg.dataDir}:/data:Z \
             --env-file ${pgPassFile} \
             -e DATABASE_URL=postgresql://gitlawb:${cfg.postgresPassword}@gitlawb-pg:5432/gitlawb \
-            -e GITLAWB_HOST=${hostIp} \
+            -e GITLAWB_HOST=0.0.0.0 \
             -e GITLAWB_PORT=${toString cfg.httpPort} \
             -e GITLAWB_PUBLIC_URL=http://${hostIp}:${toString cfg.httpPort} \
             -e GITLAWB_P2P_PORT=0 \
