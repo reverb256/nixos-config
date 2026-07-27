@@ -41,8 +41,13 @@ in {
       # Enable OpenCL if requested
       opencl.enable = cfg.opencl;
 
-      # Load AMD GPU driver
-      initrd.enable = true;
+      # Load AMD GPU driver.
+      # mkDefault (priority 1000) so a host with KMS init issues (e.g. forge's
+      # hybrid AMD+NVIDIA rigs reporting `amdgpu fatal during init` for one or
+      # more PCI slots) can disable it via `hardware.amdgpu.initrd.enable =
+      # lib.mkForce false;` without forking the module. Borg-style fleet fix
+      # for #326.
+      initrd.enable = lib.mkDefault true;
     };
 
     # ============================================================================
