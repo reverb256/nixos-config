@@ -151,7 +151,6 @@
     # Distributed builds
     ./system/distributed-builds.nix
     # Flake lock sync (auto-enabled on remote hosts only)
-    # Fallback cache for remote hosts (graceful NFS failure)
     # Profile system
     ./profiles/default.nix
     ./profiles/node-profiles.nix
