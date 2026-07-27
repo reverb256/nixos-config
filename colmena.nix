@@ -47,6 +47,8 @@ in {
     machinesFile = ./machines;
     specialArgs = {
       inherit inputs self;
+      # Computed locally (matches flake.nix:218 definition) so we don't need
+      # flake.nix to pass vfioPkgs as an extra arg to this module.
       vfioPkgs = inputs.nixpkgs-vfio.legacyPackages.x86_64-linux;
     };
   };

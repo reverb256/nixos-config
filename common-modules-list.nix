@@ -28,6 +28,12 @@
   # Phase 4 closure: secretspec + sudo systemd-creds + LoadCredentialEncrypted=
   ./modules/services/secretspec-example.nix
 
+  # Fleet-wide memory-pressure + trim + nix-gc scheduling. Replaces the
+  # broken per-host oomd block on zephyr that used the obsolete NixOS 25.x
+  # keys (see oomd-fleet.nix header). Loaded AFTER secretspec modules so
+  # default-priority overrides compose correctly.
+  ./modules/system/oomd-fleet.nix
+
   # cluster.localSealSupport module removed (Phase 1b/1c, 2026-07-25).
   # The cachix-fork secretspec is now a flake input (Phase 1a) — impure-eval
   # coupling is no longer needed. The module file is kept as a stub for
@@ -42,15 +48,17 @@
   }
 
   {
+    # Overlay order matters: `self.overlays.default` already registers
+    # `secretspec` AND `secretspec-provider-sops` via pkgs/secretspec/{default.nix}
+    # and pkgs/secretspec-provider-sops/default.nix — DO NOT redeclare them
+    # inline (would conflict on the same attribute and trigger a multiple-definition
+    # error during pkgsWithOverlay evaluation). Earlier duplicates were removed
+    # during the Phase-2 secretspec consolidation (see
+    # modules/system/SECRETSPEC-CONSOLIDATION.md).
     nixpkgs.overlays = [
       inputs.niri.overlays.niri
       inputs.llm-agents.overlays.shared-nixpkgs
       self.overlays.default
-      # secretspec-provider-sops: Phase 2 closure of the sops-nix → SecretSpec
-      # migration. Exposed as `pkgs.secretspec-provider-sops` across all hosts.
-      (final: prev: {
-        secretspec-provider-sops = final.callPackage ./pkgs/secretspec-provider-sops { inherit inputs; };
-      })
       inputs.lsfg-vk-nix.overlays.default
     ];
   }
