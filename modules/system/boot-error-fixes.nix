@@ -94,6 +94,24 @@ in {
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
+        # Fail-fast + auto-retry: 30s startup ceiling prevents the boot sequence
+        # from hanging when cups or the network printer at 10.1.1.173:9100 is
+        # unreachable. Restart=on-failure lets the unit auto-recover once cups
+        # comes up and the printer becomes reachable (was previously a silent
+        # multi-user.target blocker on hosts where the printer is occasionally
+        # powered off). Closes the add-network-printer half of #329.
+        TimeoutStartSec = "30";
+        Restart = "on-failure";
+        RestartSec = "2min";
+        # Bound the auto-retry: 3 attempts within 15 min. If cups is permanently
+        # broken (binary corruption, not a transient 10.1.1.173 outage), the unit
+        # stops spamming the journal after this limit triggers and stays failed
+        # until `systemctl reset-failed add-network-printer` (or the next
+        # nixos-rebuild where systemd re-reads the unit). The systemd default
+        # StartLimitBurst=5 over StartLimitIntervalSec=10s is moot here because
+        # RestartSec="2min" keeps start density well below 5 per 10s.
+        StartLimitBurst = 3;
+        StartLimitIntervalSec = "15min";
         ExecStart = pkgs.writeShellScript "add-network-printer" ''
           #!${pkgs.bash}/bin/bash
           set -e

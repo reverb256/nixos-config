@@ -179,6 +179,12 @@
   #
   # Forge-specific hardware additions:
   hardware = {
+    # Force AMD KMS out of initrd (#326 — fatal during init on 0000:03:00.0 +
+    # 0000:08:00.0, the 2 RX 5700 XT cards). Mining-only host (SDDM is forced to
+    # X11, no Wayland early-KMS consumers), so deferring KMS to post-mount is
+    # safe. The module default is `lib.mkDefault true` (see
+    # modules/hardware/amdgpu-wayland.nix); mkForce here pins it false here.
+    amdgpu.initrd.enable = lib.mkForce false;
     # NVIDIA GPU support (base driver)
     nvidia-common.enable = true;
     # BTRFS compression and deduplication
