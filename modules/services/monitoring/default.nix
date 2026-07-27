@@ -7,7 +7,6 @@
     ./alert-webhook.nix # Local webhook receiver (no auth required)
     ./grafana-v2.nix # New modular dashboard system
     ./node-exporter.nix
-    ./nfs-exporter.nix
     ./redis-exporter.nix
     ./smart-exporter.nix
     ./loki.nix

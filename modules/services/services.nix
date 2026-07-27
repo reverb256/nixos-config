@@ -56,11 +56,12 @@ in {
 
 
 
-    # Secondary NFS data server for failover (hermes + pi state)
-
+    sops-secrets-registry = {
       enable = false;
+      kubernetes = true;
+      aiServices = true;
+      ci = true;
     };
-
     sops-secrets-registry = {
       enable = false;
       kubernetes = true;
