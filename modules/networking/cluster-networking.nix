@@ -153,10 +153,10 @@ in {
         };
         ipv4 = {
           method = "manual";
-          addresses = [ "${cfg.ipAddress}/${toString cfg.prefixLength}" ];
+          addresses = "${cfg.ipAddress}/${toString cfg.prefixLength}";
           gateway = cfg.gateway;
           # Unbound runs locally; resolve via loopback first.
-          dns = [ "127.0.0.1" "10.1.1.1" ];
+          dns = "127.0.0.1 10.1.1.1";
         };
         ipv6 = {
           method = "disabled";
@@ -173,9 +173,9 @@ in {
         };
         ipv4 = {
           method = "manual";
-          addresses = [ "${cfg.wireless.ipAddress}/${toString cfg.prefixLength}" ];
+          addresses = "${cfg.wireless.ipAddress}/${toString cfg.prefixLength}";
           gateway = cfg.gateway;
-          dns = [ "127.0.0.1" "10.1.1.1" ];
+          dns = "127.0.0.1 10.1.1.1";
         };
         ipv6.method = "disabled";
         wifi = {

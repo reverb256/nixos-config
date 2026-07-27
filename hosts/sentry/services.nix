@@ -81,9 +81,6 @@ in {
       sourceHost = "nexus";
     };
 
-      enable = false;
-    };
-
     sops-secrets-registry = {
       enable = true;
       kubernetes = true;
@@ -136,7 +133,6 @@ in {
     user = "j_kro";
     context7ApiKeyFile = "/run/secrets/context7-api-key";
     nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
-    opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
     tools = {
       claude = {enable = true;};
       opencode = {enable = true;};
@@ -155,69 +151,4 @@ in {
     autoStart = true;
     extraLabels = ["sentry"];
   };
-}
-
-  # Second runner: site-agency CI/CD (module only supports one instance)
-  systemd.services.github-actions-runner-site-agency = let
-    rdr = pkgs.github-runner;
-    runnerHome = "/var/lib/runner-site-agency";
-  in {
-    description = "GitHub Actions Self-Hosted Runner — site-agency";
-
-  # Second runner: site-agency CI/CD (module only supports one instance)
-  systemd.services.github-actions-runner-site-agency = let
-    rdr = pkgs.github-runner;
-    runnerHome = "/var/lib/runner-site-agency";
-  in {
-    description = "GitHub Actions Self-Hosted Runner — site-agency";
-    after = ["network-online.target" "github-actions-runner-site-agency-setup.service"];
-    wants = ["network-online.target"];
-    wantedBy = ["multi-user.target"];
-    serviceConfig = {
-      Type = "simple";
-      User = "runner";
-      WorkingDirectory = runnerHome;
-      ExecStart = "${rdr}/bin/Runner.Listener run";
-      ExecStop = "/bin/kill -INT $MAINPID";
-      Restart = "always";
-      RestartSec = "10s";
-      Environment.PATH = "/run/current-system/sw/bin:/run/current-system/sw/sbin:/usr/bin:/bin";
-      Environment.LANG = "C.UTF-8";
-      ProtectSystem = "strict";
-      BindReadOnlyPaths = [ "/run/current-system" "/nix/store" "/run/secrets" "/bin" "/usr" ];
-      PrivateTmp = true;
-      NoNewPrivileges = true;
-      ReadWritePaths = [runnerHome];
-    };
-  };
-
-  systemd.services.github-actions-runner-site-agency-setup = {
-    description = "GitHub Actions Runner Setup — site-agency";
-    before = ["github-actions-runner-site-agency.service"];
-    requiredBy = ["github-actions-runner-site-agency.service"];
-    path = [pkgs.curl pkgs.jq pkgs.github-runner];
-    script = ''
-      rm -f "${runnerHome}/.runner" "${runnerHome}/.credentials" \
-            "${runnerHome}/.credentials_rsaparams" "${runnerHome}/.github-runner/.runner"
-      PAT=$(cat /run/secrets/github-runner-pat)
-      TOKEN=$(curl -s -X POST \
-        -H "Authorization: Bearer $PAT" \
-        -H "Accept: application/json" \
-        "https://api.github.com/repos/reverb256/site-agency/actions/runners/registration-token" | jq -r '.token')
-      ${pkgs.github-runner}/bin/config.sh \
-        --url "https://github.com/reverb256/site-agency" \
-        --token "$TOKEN" \
-        --name "sentry-site-agency" \
-        --labels "self-hosted,Linux,X64,nixos,sentry" \
-        --replace \
-        --unattended
-    '';
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      User = "runner";
-      WorkingDirectory = runnerHome;
-    };
-  };
-}
 }
