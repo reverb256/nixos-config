@@ -108,13 +108,13 @@ with lib; let
 
   # Ternary on zephyr 3090 (GPU 1, 24 GB)
   ternaryZephyr = mkIf (host == "zephyr" && cfg.binaryStorePath != null) (mkTernaryService {
-    name = "zephyr"; desc = "Bonsai 27B Ternary — Zephyr RTX 3090 (port 1237)";
-    port = 1237; gpu = "1"; memoryMax = "20G";
+    name = "zephyr"; desc = "Bonsai 27B Ternary — Zephyr RTX 3090 (port 1237, device 0 post-VFIO)";
+    port = 1237; gpu = "0"; memoryMax = "20G";
   });
 
   # 1-bit on zephyr 3060 Ti (GPU 0, 8 GB)
   bit1Zephyr = mkIf (host == "zephyr" && cfg.binaryStorePath != null) (mk1bitService {
-    name = "zephyr"; desc = "Bonsai 27B 1-bit — Zephyr RTX 3060 Ti (port 1236)";
+    name = "zephyr"; desc = "Bonsai 27B 1-bit — Zephyr RTX 3090 (port 1236, device 0 post-VFIO)";
     port = 1236; gpu = "0";
   });
 

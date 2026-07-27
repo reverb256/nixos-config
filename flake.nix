@@ -104,6 +104,15 @@
     nix-cachyos-kernel.url = "git+https://github.com/xddxdd/nix-cachyos-kernel?rev=cc5bc99baf27245f2644c1fe13f7bac5d3d47865";
     nix-cachyos-kernel.inputs.flake-parts.follows = "flake-parts";
     nix-cachyos-kernel.inputs.cachyos-kernel.follows = "cachyos-kernel";
+    # nixpkgs-vfio — RECENT nixpkgs for VFIO/Looking Glass tooling (kvmfr,
+    # looking-glass-client, OVMFFull, qemu_kvm, scream, virtio-win) that is
+    # MISSING from the pinned main nixpkgs (9ae611a…). Scoped; does not replace
+    # main nixpkgs anywhere else.
+    # Normal flake input. Reference via inputs.nixpkgs-vfio.legacyPackages.x86_64-linux
+    # (the flake output has legacyPackages; `import` of a flake=false source does not).
+    nixpkgs-vfio = {
+      url = "github:NixOS/nixpkgs/nixos-unstable";
+    };
     # linux-cachyos override — may not exist in all kernel flake versions, non-fatal if ignored
     # ── Inputs required by common-modules-list.nix (re-added after a drift where
     #    they were dropped from flake.nix but still referenced in the module list) ──
@@ -203,6 +212,11 @@
         overlays = [ (import ./overlay.nix { inherit inputs; }) ];
       };
 
+      # Scoped recent-nixpkgs for VFIO/Looking Glass packages only.
+      # Reference the flake output's legacyPackages set directly (verified to
+      # expose kvmfr / looking-glass-client / OVMFFull / qemu_kvm / scream / virtio-win).
+      vfioPkgs = inputs.nixpkgs-vfio.legacyPackages.x86_64-linux;
+
       # COMMON MODULES - Shared across all hosts (single source of truth)
 
       # Import from shared file to ensure flake.nix and colmena.nix stay in sync
@@ -220,7 +234,7 @@
         nixpkgs.lib.nixosSystem {
           # system is auto-detected from stdenv.hostPlatform
           specialArgs = {
-            inherit inputs;
+            inherit inputs vfioPkgs;
           };
           modules =
             commonModules
@@ -377,5 +391,6 @@
       };
       # ── FORMATTING GATE ───────────────────────────────────────
       # `nix fmt` -> alejandra (format) across the tree.
+
     };
 }

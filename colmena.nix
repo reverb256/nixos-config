@@ -46,7 +46,7 @@ in {
     };
     machinesFile = ./machines;
     specialArgs = {
-      inherit inputs self;
+      inherit inputs self vfioPkgs;
     };
   };
 
