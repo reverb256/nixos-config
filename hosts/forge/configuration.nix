@@ -100,6 +100,13 @@
   # Disable flake-lock-sync (nixos-shared mount not available)
   # Module auto-detects, but explicitly disable to prevent rebuild issues
   systemd.timers.flake-lock-sync.enable = false;
+    # Mount /etc/nixos from zephyr (single-source-of-truth)
+    # DISABLED: NFS server on zephyr is dead. Use git sync instead (nixos-sync timer).
+    nixos-share = {
+      enable = false;
+      client.enable = false;
+    };
+
   # Populate /etc/hosts from central cluster configuration
   networking = {
     # Forge-specific firewall rules (in addition to cluster defaults)
