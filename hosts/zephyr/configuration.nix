@@ -48,6 +48,9 @@
     ./peakminer.nix
     # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
     ../../modules/services/bonsai.nix
+
+    # Gitlawb node — self-hosted decentralized git (private mirror)
+    ../../modules/services/gitlawb-node.nix
   ];
 
   # ============================================================================
