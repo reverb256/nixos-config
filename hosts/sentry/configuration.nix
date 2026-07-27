@@ -117,8 +117,6 @@
   # SERVICES - All service configurations
   # ============================================================================
   services = {
-    # KUBERNETES - k3s control plane (joins existing cluster)
-    # Joins nexus (bootstrap) via VIP for HA
     k3s-cluster = {
       enable = true;
       role = "server";
@@ -134,14 +132,20 @@
     # Auto-apply K8s manifests on boot (control-plane node)
     k8s-manifest-autoapply.enable = true;
 
-    # Bonsai 27B: 1-bit Vulkan (port 8003)
-    # Keepalived VIP for HA API server access
     keepalived-vip = {
       enable = true;
       vip = "10.1.1.100";
       interface = "enp7s0";
       priority = 90;
     };
+
+    # KUBERNETES - k3s control plane (joins existing cluster)
+    # Joins nexus (bootstrap) via VIP for HA
+
+    # Auto-apply K8s manifests on boot (control-plane node)
+
+    # Bonsai 27B: 1-bit Vulkan (port 8003)
+    # Keepalived VIP for HA API server access
 
     # Host Dashboard - Web interface for cluster host status
     host-dashboard = {
@@ -324,14 +328,12 @@
       mountMedia = false;
     };
 
-
     # Garage S3 disabled - using nexus as primary storage node
     # Access Garage S3 at: http://10.1.120:3900
     # Note: /storage/garage directory still exists for local use
     garage-cluster.enable = false;
 
     # Hermes Agent module removed (2026-04-06)
-
 
     # ----------------------------------------------------------------------
     # GITLAWB NODE — self-hosted decentralized git (PRIVATE mirror only)
@@ -472,7 +474,6 @@
     secrets = import ./secretspec-creds-wiring.nix;
   };
 
-  # hosts/sentry/services.nix is not imported — enable here for real activation
   services.secretspec-validator = {
     enable = true;
     production = true;

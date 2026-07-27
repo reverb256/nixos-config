@@ -163,9 +163,6 @@
   ];
 
   services = {
-    # KUBERNETES - k3s control plane (cluster bootstrap node)
-    # Bootstrap node: first server to start, creates the cluster
-    # All other servers/agents join via VIP: https://10.1.1.100:6443
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
@@ -179,17 +176,23 @@
       flannelBackend = "none"; # Calico-only (no Flannel)
     };
 
-    # Auto-apply K8s manifests on boot (control-plane node)
     k8s-manifest-autoapply.enable = true;
 
-    # Bonsai 27B: ternary (when GPU idle, port 1238), 1-bit (port 1235)
-    # Keepalived VIP for HA API server access
     keepalived-vip = {
       enable = true;
       vip = "10.1.1.100";
       interface = "enp7s0";
       priority = 100;
     };
+
+    # KUBERNETES - k3s control plane (cluster bootstrap node)
+    # Bootstrap node: first server to start, creates the cluster
+    # All other servers/agents join via VIP: https://10.1.1.100:6443
+
+    # Auto-apply K8s manifests on boot (control-plane node)
+
+    # Bonsai 27B: ternary (when GPU idle, port 1238), 1-bit (port 1235)
+    # Keepalived VIP for HA API server access
 
     # Host Dashboard - Web interface for cluster host status
     host-dashboard = {
@@ -405,7 +408,7 @@
   # Both sessions will be available in SDDM for selection
   programs.steam = {
     enable = true;
-    gamescopeSession.enable = true;
+    gamescopeSession.enable = lib.mkForce true;
   };
 
   services = {
@@ -488,7 +491,6 @@
 
     # NFS Server - Export shared storage for cluster
     nfs.server.enable = true;
-
 
     # Garage S3-compatible object storage (single-node cluster)
     # Nexus hosts the primary storage on local bcache0
@@ -574,8 +576,6 @@
   services.unbound-common.enable = true;
   services.displayManager.autoLogin.user = lib.mkForce "j_kro";
   services.displayManager.defaultSession = lib.mkForce "niri-uwsm";
-
-
 
   # ComfyUI — FLUX.1-schnell GGUF image generation
   # Uses the same venv as the site-agency pipeline for CUDA access

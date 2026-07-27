@@ -71,6 +71,7 @@
 
     # SecretSpec Phase 4 credential provisioning
     ../../modules/system/secretspec-creds.nix
+
   ];
 
   # NETWORKING CONFIGURATION
@@ -142,11 +143,6 @@
   # SERVICES CONFIGURATION
 
   services = {
-    # Crash detection and logging
-    # services.crash-watchdog.enable = true; # Module not available yet
-
-    # KUBERNETES - k3s agent (worker only)
-    # Joins cluster via VIP for HA
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
@@ -159,6 +155,7 @@
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.130";
     };
+
     k8s-manifest-autoapply.enable = true;
 
     keepalived-vip = {
@@ -167,6 +164,13 @@
       interface = "eno1";
       priority = 90;
     };
+
+    # Crash detection and logging
+    # services.crash-watchdog.enable = true; # Module not available yet
+
+    # KUBERNETES - k3s agent (worker only)
+    # Joins cluster via VIP for HA
+
   };
 
   # HARDWARE PROFILES
@@ -673,7 +677,6 @@
     secrets = import ./secretspec-creds-wiring.nix;
   };
 
-  # hosts/forge/services.nix is not imported — enable here for real activation
   services.secretspec-validator = {
     enable = true;
     production = true;
