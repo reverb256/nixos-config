@@ -329,6 +329,14 @@
     garage-cluster.enable = false;
 
     # Hermes Agent module removed (2026-04-06)
+
+
+    # ----------------------------------------------------------------------
+    # GITLAWB NODE — self-hosted decentralized git (PRIVATE mirror only)
+    # Isolated: no P2P gossip, no seed bootstrap, LAN-only HTTP on 7545.
+    # GitHub remains the primary remote; this is a parallel signed mirror.
+    # ----------------------------------------------------------------------
+    gitlawb-node.enable = true;
   };
 
   # ============================================================================

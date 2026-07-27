@@ -8,14 +8,9 @@
   cluster = config.networking.cluster;
 in {
   services = {
+    # zephyr runs NO k3s (control plane is nexus/forge/sentry).
     k3s-cluster = {
-      enable = true;
-      nvidia.enable = lib.mkForce false;
-      role = "agent";
-      nodeName = "zephyr";
-      serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
-      tokenFile = "/run/secrets/k3s-cluster-token";
-      nodeIP = cluster.hosts.zephyr.ip;
+      enable = false;
     };
 
     k8s-secret-bootstrap = {
