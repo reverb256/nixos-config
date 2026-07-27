@@ -45,8 +45,6 @@ let
       </cputune>
       <os firmware="efi">
         <type arch="x86_64" machine="pc-q35-9.2">hvm</type>
-        <loader readonly="yes" type="pflash" format="raw">/run/libvirt/nix-ovmf/edk2-x86_64-code.fd</loader>
-        <nvram template="/run/libvirt/nix-ovmf/edk2-i386-vars.fd" templateFormat="raw" format="raw">/var/lib/libvirt/qemu/nvram/gamepass-win11_VARS.fd</nvram>
         <boot dev="hd"/>
       </os>
       <features>
@@ -180,16 +178,15 @@ in {
       destination = "/etc/udev/rules.d/70-kvmfr.rules";
     });
 
-    # 3. libvirt + OVMF + swtpm (qemu from recent nixpkgs for newer machine types)
+    # 3. libvirt + swtpm (qemu from recent nixpkgs for newer machine types)
+    # OVMF is bundled with qemu_kvm by default in current nixpkgs (the
+    # `qemu.ovmf` submodule was removed); libvirt auto-selects it via
+    # <os firmware="efi"> in the domain XML.
     virtualisation.libvirtd = {
       enable = true;
       qemu = {
         package = vfioPkgs.qemu_kvm;
         runAsRoot = true;
-        ovmf = {
-          enable = true;
-          packages = [ vfioPkgs.OVMFFull ];
-        };
         swtpm.enable = true;
         verbatimConfig = ''
           namespaces = []
