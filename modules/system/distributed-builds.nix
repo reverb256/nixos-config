@@ -164,8 +164,7 @@ in {
             }
             {
               hostName = "nexus";
-              # i686-linux for 32-bit deps (volk, steam-run, etc)
-              systems = ["x86_64-linux" "i686-linux"];
+              systems = ["x86_64-linux"];
               sshUser = "j_kro";
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 12;
