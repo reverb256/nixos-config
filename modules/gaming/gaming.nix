@@ -156,6 +156,9 @@ in {
             dejavu_fonts
           ];
           extraCompatPackages = [
+            # proton-ge-bin: GloriousEggroll Proton (GE-Proton10-34 in pinned nixpkgs).
+            # Use as a per-game compatibility-tool alternative when Experimental regresses.
+            pkgs.proton-ge-bin
             # Temporarily disabled nixpkgs-xr packages due to deprecated options
             # optionals (inputs != null && inputs ? nixpkgs-xr) [
             #   inputs.nixpkgs-xr.packages."x86_64-linux".proton-ge-rtsp-bin
@@ -381,6 +384,7 @@ in {
           goverlay
           gamemode
           scx.full
+          protonup-qt  # fetch latest Proton-GE / proton-cachyos into ~/.steam/root/compatibilitytools.d/
           # TEMPORARILY DISABLED: Build failing (2026-03-27)
           # Kernel-level deadzone tool for controllers (GLOBAL solution)
           # set-evdev-deadzone
