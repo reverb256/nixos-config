@@ -358,6 +358,12 @@ in {
           # Force DXVK to use RTX 3090 (GPU1) — fixes dual-dGPU Vulkan rendering bug
           # Without this, DXVK picks GPU0 (3060 Ti, no monitors) and fails to present
           DXVK_FILTER_DEVICE_NAME = "NVIDIA GeForce RTX 3090";
+
+          # NVIDIA NVAPI for ALL Proton games (Reflex low-latency, DLSS, G-Sync).
+          # Set globally so every Proton title gets NVAPI; disable only per-game
+          # via PROTON_DISABLE_NVAPI=1 launch option if a specific title crashes.
+          PROTON_ENABLE_NVAPI = "1";
+          DXVK_ENABLE_NVAPI = "1";
           # SDL2 HIDAPI DISABLED for DualSense to use kernel deadzone
           # HIDAPI uses raw hidraw access (bypasses kernel deadzone)
           # SDL_JOYSTICK_HIDAPI = "1";
