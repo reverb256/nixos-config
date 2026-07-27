@@ -37,7 +37,7 @@ let
     "ingress"
     "monitoring"
     "health-checks"
-    "calico"  # Calico CNI (VXLAN, policy-enforcing) — applied after k3s comes up with flannel disabled
+    "calico"  # Calico CNI (VXLAN, policy-enforcing)
   ];
 
   applyScript = pkgs.writeShellScript "k8s-apply-manifests" ''
