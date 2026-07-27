@@ -119,7 +119,7 @@
         }
       ];
       allowedUDPPorts = lib.mkOptionDefault [
-        8472 # VXLAN (Flannel or Calico)
+        8472 # VXLAN (Calico)
       ];
     };
   };
@@ -173,7 +173,6 @@
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.120";
       calico.enable = true;
-      flannelBackend = "none"; # Calico-only (no Flannel)
     };
 
     k8s-manifest-autoapply.enable = true;

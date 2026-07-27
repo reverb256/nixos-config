@@ -16,7 +16,6 @@ in {
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/persistent/etc/k3s-cluster-token";
       nodeIP = cluster.hosts.nexus.ip;
-      flannelIface = "eth0";
     };
 
     peakminer = {

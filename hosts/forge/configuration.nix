@@ -117,7 +117,7 @@
         }
       ];
       allowedUDPPorts = lib.mkOptionDefault [
-        8472 # VXLAN (Flannel or Calico)
+        8472 # VXLAN (Calico)
       ];
     };
   };
@@ -149,7 +149,6 @@
       role = "server";
       clusterInit = false;
       calico.enable = true;
-      flannelBackend = "none";
       nodeName = "forge";
       serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/secrets/k3s-cluster-token";

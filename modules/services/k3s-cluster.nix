@@ -101,17 +101,6 @@ in {
       description = "Kubernetes node name (defaults to hostname)";
     };
 
-    flannelIface = mkOption {
-      type = types.str;
-      default = "eth0";
-      description = "Network interface for flannel VXLAN (must have node IP)";
-    };
-
-    flannelBackend = mkOption {
-      type = types.enum ["vxlan" "host-gw" "none"];
-      default = "host-gw";
-      description = "Flannel backend to use. host-gw is recommended for single-LAN clusters. 'none' disables Flannel entirely (use a custom CNI such as Calico).";
-    };
     nvidia = {
       enable = mkOption {
         type = types.bool;
@@ -217,13 +206,9 @@ in {
             "--etcd-expose-metrics"
             "--kube-controller-manager-arg=terminated-pod-gc-threshold=500"
             "--kube-controller-manager-arg=node-monitor-grace-period=40s"
-            "--flannel-backend=${cfg.flannelBackend}"
-            # When Flannel is disabled ('none'), Calico provides network policy.
-            # Disable k3s's built-in network-policy controller to avoid conflicts.
-            # (When Flannel is active, keep k3s NP enabled — do NOT add "network-policy"
-            # to disabledComponents, as that breaks cross-node pod traffic.)
+            "--flannel-backend=none"
+            "--disable-network-policy"  # Calico-only; disable k3s built-in NP
           ]
-          ++ lib.optional (cfg.flannelBackend == "none") "--disable-network-policy"
           ++ map (san: "--tls-san=${san}") tlsSans
         )
         ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"
@@ -235,13 +220,8 @@ in {
         # apiserver rejected (`status.addresses: duplicate value`).
         ++ [
           "--data-dir=${cfg.dataDir}"
-          # Flannel backend: use --flannel-backend for servers (cluster-wide).
-          # k3s >=1.36 still supports --flannel-backend despite earlier module
-          # comments claiming removal. --flannel-conf (agent-level override)
           # does NOT actually affect backend selection on restart — k3s
           # restores the backend from etcd/node annotations.
-          # See https://docs.k3s.io/networking/basic-network-options#flannel-options
-          "--flannel-iface=${cfg.flannelIface}"
           "--kubelet-arg=authentication-token-webhook=true"
           # Fast kubelet recovery: update node status every 10s, report every 30s.
           # Without these, a brief etcd leader election (40s grace) cascades into
@@ -254,9 +234,7 @@ in {
           "--kubelet-arg=authorization-mode=Webhook"
         ];
 
-      # --flannel-iface=eth0: explicitly bind flannel VXLAN to eth0 so it uses
-      # the real node IP (10.1.1.x), not the VIP (10.1.1.100) added by keepalived.
-      # Without this, k3s restarts while keepalived is running cause flannel to
+# the real node IP (10.1.1.x), not the VIP (10.1.1.100) added by keepalived.
       # bind to the VIP, breaking all cross-node pod networking for zephyr.
 
       containerdConfigTemplate = mkIf cfg.nvidia.enable ''
@@ -301,10 +279,6 @@ in {
       };
     };
 
-
-
-    # NOTE: flannel.conf via environment.etc has been REMOVED. k3s >=1.36
-    # still honors --flannel-backend=host-gw directly. The --flannel-conf
     # mechanism was an agent-level override that didn't actually affect
     # backend selection on restart (k3s restores from etcd annotations).
 
@@ -434,9 +408,6 @@ in {
             to = 32767;
           }
         ];
-        allowedUDPPorts = mkOptionDefault (lib.optionals (cfg.flannelBackend == "vxlan") [
-          8472 # k3s flannel VXLAN (NOT 4789)
-        ]);
       }
     ];
 
@@ -492,8 +463,7 @@ in {
         RestartSec = lib.mkForce "15s";
         StartLimitIntervalSec = lib.mkForce 0;
       };
-      # Belt-and-suspenders: start before keepalived at boot (primary fix: --flannel-iface)
-      before = lib.mkIf config.services.keepalived.enable ["keepalived.service"];
+        before = lib.mkIf config.services.keepalived.enable ["keepalived.service"];
       # nfs-utils needed for kubelet to mount NFS PVs (mount.nfs binary)
       path = with pkgs; [nfs-utils];
     };
@@ -519,18 +489,6 @@ in {
         Unit = "k3s.service";
       };
     };
-
-    # Delete stale flannel.1 interface so k3s creates it fresh with --flannel-iface=eth0.
-    # Without this, k3s reuses the old interface bound to the VIP (10.1.1.100) instead of
-    # creating a new one bound to the real eth0 IP (10.1.1.110). This breaks cross-node
-    # VXLAN because remote nodes can't route back to the VIP.
-    system.activationScripts.k3s-flannel-clean = ''
-      if ip link show flannel.1 &>/dev/null; then
-        echo "[k3s-flannel-clean] Deleting stale flannel.1 (bound to old IP)..."
-        ip link del flannel.1 2>/dev/null || true
-        echo "[k3s-flannel-clean] flannel.1 deleted. k3s will create it with --flannel-iface=eth0."
-      fi
-    '';
 
     system.activationScripts.k3s-dirs = ''
       mkdir -p ${cfg.dataDir}/agent/etc/containerd
@@ -566,7 +524,6 @@ in {
 
     # Static route for K3s CNI pods to reach node IPs on other hosts.
     # Without this, pods with hostNetwork=true that get CNI bridge routing
-    # cannot reach node IPs on other hosts (flannel VXLAN only handles pod CIDRs).
     systemd.services.k3s-node-route = {
       description = "Add static route for cross-node CNI pod traffic";
       after = ["network-online.target"];

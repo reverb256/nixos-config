@@ -322,7 +322,7 @@ in {
 
     # NOTE: Do NOT add a static route for the K8s service CIDR (10.43.0.0/16).
     # kube-proxy handles ClusterIP translation via iptables/nftables; routing
-    # service IPs directly through flannel.1 bypasses kube-proxy and breaks
+    # Calico manages service IPs directly. Ensure no bypass.
     # service discovery (e.g., CoreDNS).
 
     # Populate /etc/hosts for compatibility
