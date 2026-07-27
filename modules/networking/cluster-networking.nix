@@ -36,6 +36,22 @@ in {
       description = "Network interface name for wired connection";
     };
 
+    # Default gateway for the wired subnet. Cluster uses a flat 10.1.1.0/24
+    # with the router at .1; override per-host only if that ever changes.
+    gateway = mkOption {
+      type = types.str;
+      default = "10.1.1.1";
+      example = "10.1.1.1";
+      description = "IPv4 default gateway for the wired interface";
+    };
+
+    # Subnet prefix length for the wired static address.
+    prefixLength = mkOption {
+      type = types.int;
+      default = 24;
+      description = "CIDR prefix length for the wired static address";
+    };
+
     # Optional WiFi configuration
     wireless = {
       enable = mkOption {
@@ -112,20 +128,67 @@ in {
       # Use NetworkManager for all interfaces (not systemd-networkd)
       useNetworkd = false;
       networkmanager.enable = true;
-
-      # Don't use static interface configuration - let NetworkManager handle it
-      # via connection profiles in /etc/NetworkManager/system-connections/
     };
 
-    # NOTE: NetworkManager connection profiles managed directly by NM
-    # (via nmcli or /etc/NetworkManager/system-connections/*.nmconnection files)
-    # Do NOT use environment.etc."system-connections" — it creates a symlink that
-    # conflicts with user-created .nmconnection files and breaks on every switch.
+    # ----------------------------------------------------------------------------
+    # STATIC IP — declared by the generation, NOT by a side-effect NM file.
+    #
+    # Root cause of the sentry "newest generation has no networking" break:
+    # the static address lived only in a /etc/NetworkManager/system-connections
+    # *.nmconnection file preserved under /persistent. With useDHCP=false and no
+    # declarative address, a missing/stale/interface-mismatched connection file
+    # means the host boots with NO IP (NixOS #71655 class). Generating the
+    # profile from the generation removes that fragile external dependency:
+    # the IP, route, and DNS are guaranteed present on every boot.
+    # ----------------------------------------------------------------------------
+    networking.networkmanager.ensureProfiles.profiles = {
+      "cluster-wired" = {
+        connection = {
+          id = "cluster-wired";
+          type = "ethernet";
+          interface-name = cfg.interfaceName;
+          # Win over any stale preserved "Wired connection 1" profile.
+          autoconnect = true;
+          autoconnect-priority = 100;
+        };
+        ipv4 = {
+          method = "manual";
+          addresses = [ "${cfg.ipAddress}/${toString cfg.prefixLength}" ];
+          gateway = cfg.gateway;
+          # Unbound runs locally; resolve via loopback first.
+          dns = [ "127.0.0.1" "10.1.1.1" ];
+        };
+        ipv6 = {
+          method = "disabled";
+        };
+      };
+    } // lib.optionalAttrs (cfg.wireless.enable && cfg.wireless.ipAddress != null) {
+      "cluster-wireless" = {
+        connection = {
+          id = "cluster-wireless";
+          type = "wifi";
+          # Bind to the SSID via wifi section below; no hard interface-name.
+          autoconnect = true;
+          autoconnect-priority = 50;
+        };
+        ipv4 = {
+          method = "manual";
+          addresses = [ "${cfg.wireless.ipAddress}/${toString cfg.prefixLength}" ];
+          gateway = cfg.gateway;
+          dns = [ "127.0.0.1" "10.1.1.1" ];
+        };
+        ipv6.method = "disabled";
+        wifi = {
+          # SSID is expected to be configured per-host; left empty here so a
+          # host can layer its own wifi.ssid via an additional profile merge.
+          mode = "infrastructure";
+        };
+      };
+    };
 
     # ============================================================================
-    # SYSTEMD-NETWORKD CONFIGURATION (DISABLED - using NetworkManager instead)
+    # SYSTEMD-NETWORKD LINK POLICY (keep kernel interface names)
     # ============================================================================
-    # systemd.network.networks = { ... };  # Removed - using NetworkManager
     systemd.network.links = {
       # Disable interface renaming - keep kernel names (enp*, wlp*, enx*)
       "10-keep-names" = {
