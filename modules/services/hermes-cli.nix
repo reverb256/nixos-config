@@ -437,7 +437,7 @@ in {
                         chmod 644 "$HERMES_HOME/SOUL.md"
                       fi
 
-                      # Set ownership (skip on NFS where root-squash blocks chown)
+                      # Set ownership
                       chown -R ${cfg.user}:users "$HERMES_HOME" 2>/dev/null || true
                       chmod 750 "$HERMES_HOME" 2>/dev/null || true
       ''
