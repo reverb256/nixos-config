@@ -204,10 +204,24 @@ in {
             # Join ALL systems with commas so the nix builder line advertises
             # both x86_64-linux and i686-linux (volk, steam-run, etc).
             allSystems = lib.concatStringsSep "," m.systems;
+            # Nix's machine parser (libstore/machines.cc) reads positions
+            # strictly as: URL sshKey maxJobs speedFactor systemTypes
+            # supportedFeatures mandatoryFeatures. Earlier this function
+            # emitted `URL system sshKey maxJobs ...`, putting the path
+            # in Nix's maxJobs slot and triggering
+            # `error: bad machine specification: failed to convert column
+            # #3 ... to 'unsigned int'` (2026-07-27 cluster-fix-batch).
+            # Order corrected below; trailing empty `mandatoryFeatures`
+            # suppressed to avoid a trailing-empty column.
+            optFeatures =
+              if m.supportedFeatures == [ ]
+              then "" else concatStringsSep "," m.supportedFeatures;
+            mandFeatures =
+              if m.mandatoryFeatures == [ ]
+              then "" else concatStringsSep "," m.mandatoryFeatures;
           in
             concatStringsSep " " [
               ("ssh-ng://" + "${m.sshUser}@${m.hostName}")
-              allSystems
               (
                 if m.sshKey != null
                 then m.sshKey
@@ -215,8 +229,9 @@ in {
               )
               (toString m.maxJobs)
               (toString m.speedFactor)
-              (concatStringsSep "," m.supportedFeatures)
-              (concatStringsSep "," m.mandatoryFeatures)
+              allSystems
+              optFeatures
+              mandFeatures
             ];
         in
           lib.concatStringsSep "\n" (map formatMachine machines) + "\n";
