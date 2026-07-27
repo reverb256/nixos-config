@@ -101,7 +101,7 @@ in {
     backupDir = lib.mkOption {
       type = lib.types.path;
       default = "/data/shared/garage-backups";
-      description = "Directory for metadata backups (should be on NFS/shared storage)";
+      description = "Directory for metadata backups (on shared storage)";
     };
 
     backupInterval = lib.mkOption {

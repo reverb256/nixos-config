@@ -26,7 +26,6 @@
     ]}
 
     # Find flake path - local /etc/nixos only.
-    # The old NFS config-share (/etc/nixos) is removed; do not depend on it.
     if [ -f /etc/nixos/flake.nix ]; then
       FLAKE_PATH=/etc/nixos
     else

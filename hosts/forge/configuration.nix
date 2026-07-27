@@ -142,7 +142,6 @@
   # SERVICES CONFIGURATION
 
   services = {
-    # NixOS share DISABLED — NFS removed cluster-wide. Use git sync.
 
     k3s-cluster = {
       enable = true;

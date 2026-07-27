@@ -309,7 +309,6 @@
   services = {
     # KUBERNETES - zephyr does NOT run k3s.
     # Control plane (k3s servers): nexus, forge, sentry (VIP 10.1.1.100).
-    # Zephyr is the workstation / NFS origin / config source-of-truth only.
     # Running k3s here put the keepalived VIP (10.1.1.100) on enp38s0 alongside
     # the real IP (10.1.1.110), which made k3s refuse to start
     # ("multiple global unicast addresses defined for enp38s0").
@@ -561,19 +560,14 @@
     };
 
     # NOTE (2026-07-21, issue #300): the previous `services.mining` block,
-    # kryptex pools/workers, NFS `NFS (removed)`, and the orphan
     # `gaming.hdr.enable` outermost statement were removed as part of the
     # peakminer-only consolidation. Pre-existing bracket typo from a botched
     # xmrig-strip cleanup was fixed in the same edit.
 
-    # NFS removed cluster-wide (2026-05; confirmed by HEY.md run protocol).
     # Zephyr still serves the local `/etc/nixos` checkout; remote hosts track
     # `origin/main` via the git-sync timer in modules/services/nixos-sync.nix,
-    # not via NFS.
 
-    # NFS client module kept disabled for now (the option block itself
     # requires a parent `services = { ... }`); expose a placeholder entry
-    # only when the NFS-server module is reintroduced.
 
     # Caddy reverse proxy - Replace nginx for all services
     caddy = {

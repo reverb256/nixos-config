@@ -310,7 +310,6 @@
     tailscale.enable = true;
 
     # Mount /etc/nixos from zephyr (single-source-of-truth)
-    # DISABLED: NFS removed cluster-wide. Use git sync instead (nixos-sync timer).
 
     # Garage S3 disabled - using nexus as primary storage node
     # Access Garage S3 at: http://10.1.120:3900
