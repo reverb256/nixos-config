@@ -136,6 +136,20 @@ in {
         # Steam - Game launcher and Proton manager
         steam = {
           enable = true;
+
+          # --- Declarative Steam hardening (NixOS Wiki best-practice) ---
+          # protontricks: winetricks wrapper for Proton prefixes (e.g. PoE deps/overrides)
+          protontricks.enable = true;
+          # extest: translate X11 input events to uinput for Steam Input on Wayland
+          extest.enable = true;
+          # Firewall openings for Remote Play + local network game transfers
+          remotePlay.openFirewall = true;
+          localNetworkGameTransfers.openFirewall = true;
+          # Steam-Machine / Steam Deck console mode (Big Picture at login).
+          # OPT-IN: leave false on the desktop; set true + choose the "Steam"
+          # session at the display manager to boot straight into Game Mode.
+          gamescopeSession.enable = false;
+
           fontPackages = with pkgs; [
             noto-fonts
             liberation_ttf
