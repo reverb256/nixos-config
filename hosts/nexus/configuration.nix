@@ -167,7 +167,6 @@
     # Bootstrap node: first server to start, creates the cluster
     # All other servers/agents join via VIP: https://10.1.1.100:6443
     k3s-cluster = {
-      wipeState = true;
       enable = true;
       nvidia.enable = true;
       role = "server";
