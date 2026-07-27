@@ -334,7 +334,6 @@ in {
     monitoring = true;
     storage = true;
     mining = true;
-    cloud = true;
     kubernetes = true;
     automation = true;
     ci = true;

@@ -933,7 +933,6 @@
     monitoring = false; # No monitoring secrets currently needed (sentry-dsn removed with GlitchTip)
     storage = true; # Required for backup-to-garage service (S3 API key)
     mining = true;
-    cloud = true;
     kubernetes = true; # k3s cluster token
     selfHosting = false; # These services run on other hosts
   };
