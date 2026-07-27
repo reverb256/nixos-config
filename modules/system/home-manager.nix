@@ -158,7 +158,10 @@ in
         # adwaita-dark aligns with polarity=dark and GTK adw-gtk3.
         qt = {
           enable = true;
-          platformTheme.name = "adwaita";
+          # Align with stylix targets.qt.platform = mkForce "gnome" (adwaita-dark
+          # via gnome platform, no Kvantum). Must match or the full build fails on
+          # a conflicting-definition error. mkForce resolves the priority clash.
+          platformTheme.name = lib.mkForce "gnome";
           style.name = lib.mkForce "adwaita-dark";
           # Never pull Base16Kvantum / QT_STYLE_OVERRIDE=kvantum.
           kvantum.enable = lib.mkForce false;
