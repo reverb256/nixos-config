@@ -82,7 +82,7 @@
         }
       ];
       allowedUDPPorts = lib.mkOptionDefault [
-        8472 # VXLAN (Flannel or Calico)
+        8472 # VXLAN (Calico)
       ];
       # Open Loki port on main interface for cluster access (module only opens on tailscale0)
       interfaces."enp7s0".allowedTCPPorts = [3100];
@@ -126,7 +126,6 @@
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.140";
       calico.enable = true;
-      flannelBackend = "none"; # Calico-only (no Flannel)
     };
 
     # Auto-apply K8s manifests on boot (control-plane node)

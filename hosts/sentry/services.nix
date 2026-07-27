@@ -22,8 +22,6 @@ in {
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
       tokenFile = "/persistent/etc/k3s-cluster-token";
       nodeIP = cluster.hosts.sentry.ip;
-      flannelIface = "eth0";
-      flannelBackend = "none"; # Calico CNI (VXLAN, policy-enforcing)
       secretsEncryptionKeyFile = "/run/secrets/k3s-encryption-key";
     };
 

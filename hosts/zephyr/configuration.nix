@@ -127,7 +127,7 @@
     "net.core.rmem_max" = 16777216; # 16MB max
     "net.core.wmem_max" = 16777216;
 
-    # k3s flannel CNI (default) — rp_filter=1 is safe (VXLAN overlay)
+    # k3s Calico CNI — rp_filter=1 required for Calico VXLAN
     "net.ipv4.conf.all.rp_filter" = 1; # Reverse path filtering for BGP
 
     # ------------------------------------------------------------------
@@ -212,7 +212,7 @@
         27036 # Steam UDP
         9947 # WiVRn
         53317 # LocalSend (multicast discovery)
-        8472 # VXLAN (Flannel/Calico)
+        8472 # VXLAN (Calico)
         4789 # VXLAN (Calico)
         # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
   ];
