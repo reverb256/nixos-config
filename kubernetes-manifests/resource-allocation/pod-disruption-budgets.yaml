@@ -25,17 +25,4 @@ spec:
   selector:
     matchLabels:
       app: caddy-ingress
----
-# Flannel PDB (ensure network connectivity)
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: kube-flannel
-  namespace: kube-flannel
-spec:
-  # Allow up to 1 unavailable pod (we have 4 nodes)
-  maxUnavailable: 1
-  selector:
-    matchLabels:
-      app: flannel
 

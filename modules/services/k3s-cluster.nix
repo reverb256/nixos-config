@@ -206,7 +206,6 @@ in {
             "--etcd-expose-metrics"
             "--kube-controller-manager-arg=terminated-pod-gc-threshold=500"
             "--kube-controller-manager-arg=node-monitor-grace-period=40s"
-            "--flannel-backend=none"
             "--disable-network-policy"  # Calico-only; disable k3s built-in NP
           ]
           ++ map (san: "--tls-san=${san}") tlsSans
@@ -220,8 +219,6 @@ in {
         # apiserver rejected (`status.addresses: duplicate value`).
         ++ [
           "--data-dir=${cfg.dataDir}"
-          # does NOT actually affect backend selection on restart — k3s
-          # restores the backend from etcd/node annotations.
           "--kubelet-arg=authentication-token-webhook=true"
           # Fast kubelet recovery: update node status every 10s, report every 30s.
           # Without these, a brief etcd leader election (40s grace) cascades into
@@ -233,9 +230,6 @@ in {
           # node-status-report-frequency was removed in kubelet 1.36
           "--kubelet-arg=authorization-mode=Webhook"
         ];
-
-# the real node IP (10.1.1.x), not the VIP (10.1.1.100) added by keepalived.
-      # bind to the VIP, breaking all cross-node pod networking for zephyr.
 
       containerdConfigTemplate = mkIf cfg.nvidia.enable ''
         {{ template "base" . }}
@@ -278,9 +272,6 @@ in {
         '';
       };
     };
-
-    # mechanism was an agent-level override that didn't actually affect
-    # backend selection on restart (k3s restores from etcd annotations).
 
     # Override the broken nvidia-container-toolkit-cdi-generator with a working one
     # that sets LD_LIBRARY_PATH so nvidia-ctk can find libnvidia-ml.so.
