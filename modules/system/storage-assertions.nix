@@ -26,9 +26,6 @@ in {
           message = "Storage: ${name} partlabel '${pl}' must match disk-{disk}-{part} format.";
         }) config.fileSystems)
       # 2. No by-uuid on BOOT-CRITICAL paths (/, /boot, /nix).
-      #    by-uuid on stable data disks (e.g. nexus single-disk pools) is
-      #    legitimate; the brittle case that caused forge boot failures was
-      #    UUID-referenced root/nix mounts. Scoped to critical paths only.
       ++ (mapAttrsToList (name: fs: {
         assertion =
           if (name == "/" || name == "/boot" || name == "/nix")
@@ -41,7 +38,20 @@ in {
         assertion = config.fileSystems."/nix".neededForBoot or false;
         message = "Storage: /nix must have neededForBoot = true.";
       })
-      # 4. systemd-initrd needs x-initrd.mount on /nix
+      # 4. Network/remote filesystems MUST have nofail (never block boot)
+      ++ (filter (x: x != null) (mapAttrsToList (name: fs:
+        let
+          localTypes = ["ext4" "btrfs" "vfat" "xfs" "zfs" "tmpfs" "ramfs" "devtmpfs" "proc" "sysfs" "cgroup2" "autofs" "none" "overlay" "fuse.overlayfs" "squashfs" "securityfs" "debugfs" "pstore" "efivarfs" "hugetlbfs" "mqueue" "configfs" "tracefs" "binfmt_misc" "fuse.lxcfs"];
+          isLocal = builtins.elem fs.fsType localTypes;
+          hasNofail = builtins.elem "nofail" (fs.options or []);
+          hasXinitrd = builtins.elem "x-initrd.mount" (fs.options or []);
+        in
+        if !isLocal && !hasNofail && !hasXinitrd then {
+          assertion = false;
+          message = "BOOT BLOCKER: ${name} (${fs.fsType}) is a non-local filesystem without nofail - add nofail to options or this will block boot.";
+        } else null
+      ) config.fileSystems))
+      # 5. systemd-initrd needs x-initrd.mount on /nix
       ++ (optional (config.boot.initrd.systemd.enable or false && config.fileSystems ? "/nix") {
         assertion = any (o: o == "x-initrd.mount") (config.fileSystems."/nix".options or []);
         message = "Storage: /nix needs x-initrd.mount for systemd-initrd.";
