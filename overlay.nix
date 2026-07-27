@@ -33,6 +33,20 @@
   assimp = prev.assimp.overrideAttrs (_old: {
     doCheck = false;
   });
+  # P0: forge cupsd 041777 insecure notifier directory.
+  # cups-progs / cups upstream derive the notifier dir with sticky + world-
+  # writable bits under some build environments, which makes CUPS refuse
+  # to use it (InsecurePermissions). Reset to 0755 here without guessing the
+  # exact path — find walks the package tree.
+  cups = prev.cups.overrideAttrs (old: {
+    postInstall = (old.postInstall or "") + ''
+      # Target the live runtime notifier dir only; skip $out/share (which
+      # holds examples, doc, and locale that may also be named `notifier`
+      # under translation trees).
+      find "$out" -path "$out/share" -prune -o -type d -name notifier -print 2>/dev/null \
+        | while read -r d; do [ -d "$d" ] && chmod 0755 "$d"; done || true
+    '';
+  });
   # gradio tests fail due to missing matplotlib and starlette version check; disable globally
   gradio = prev.gradio.overrideAttrs (old: {
     doCheck = false;
@@ -55,13 +69,6 @@
   llama-cpp-rocm = prev.callPackage ./packages/llama-cpp-rocm.nix {};
   llama-cpp-vulkan = prev.callPackage ./packages/llama-cpp-vulkan.nix {};
   llama-cpp-vulkan-nocuda = prev.callPackage ./packages/llama-cpp-vulkan-nocuda.nix {};
-  # TODO: broken placeholder rev/hash — re-enable when source is valid
-  # llama-cpp-dflash = prev.callPackage ./packages/llama-cpp-dflash.nix {};
-  # dflash-server = prev.callPackage ./packages/dflash-server.nix {};
-  # ai-inference-gateway = inputs.ai-gateway.packages.x86_64-linux.default;
-  # inherit (inputs.caddy-ingress.packages.x86_64-linux)
-  #   caddy-with-modules
-  #   ;
   python3 = prev.python3.override {
     packageOverrides = py-self: py-super: {
       qwen-tts = py-self.buildPythonPackage rec {

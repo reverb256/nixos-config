@@ -1,6 +1,10 @@
 # NixOS Cluster - Real-Time Status
 
-**Last Updated:** 2026-05-24 04:27:12 | **Auto-Generated:** Yes | **Refresh:** `./scripts/update-status.sh`
+**Last Edit:** 2026-07-27 (metadata refresh — audit-driven)
+**Last Data Snapshot:** 2026-05-24 04:27:12 ⚠ **STALE** (auto-generation appears offline; no scripted runs since 2026-05-24)
+**Refresh:** `./scripts/update-status.sh`
+
+> **2026-07-27 audit (F-21):** This doc's cluster-data snapshot is 2 months old. Several Known Issues at the bottom (SearXNG 403, monitor brightness, gaming detection) are stale or resolved. For current cluster state, see [`docs/audit-2026-07-27.md`](docs/audit-2026-07-27.md) and run `just cluster-status`. The `Last Edit` date is when the metadata was last touched, **not** when the underlying cluster data was captured.
 
 > **Quick Check:** Run `just cluster-status` to see current cluster state. This command works from any cluster host and proxies to zephyr for Kubernetes queries when needed.
 >
@@ -279,3 +283,9 @@ kubectl get endpoints <service-name> -n <namespace>
 ## SOPS-NIX
 
 See [SOPS-NIX.md](./SOPS-NIX.md) for sops-nix status, key file location, registry module reference, and recovery workflow.
+
+## 2026-07-27 Cross-References
+
+- **Cluster audit:** [`docs/audit-2026-07-27.md`](docs/audit-2026-07-27.md) — 24 findings (F-1..F-24), prioritized HIGH/MEDIUM/LOW.
+- **Security incident baseline:** [`SECURITY-INCIDENT-2026-07-25.md`](SECURITY-INCIDENT-2026-07-25.md) — the SAMSUNG_TV_TOKEN routing regression that prompted Phase-2 secretspec validation.
+- **Next manual refresh of this file:** schedule `scripts/update-status.sh`; current 2-month drift violates AGENTS.md Pocock Rule (>7 days stale = re-verify before following).

@@ -161,17 +161,13 @@
   };
 
   # ------------------------------------------------------------------
-  # SYSTEMD-OOMD - passive backstop to earlyoom (slower PSI-based, but
-  # acts at the cgroup level). It does NOTHING unless a slice opts in via
-  # ManagedOOMSwap=kill, so we opt the root slice in (Fedora default).
-  # settings.OOM.SwapUsedLimit=90 is the stock default but set explicitly.
-  systemd.oomd = {
-    enable = true;
-    settings.OOM = {
-      SwapUsedLimit = 90;
-      MemoryUsedLimit = 90;
-    };
-  };
+  # SYSTEMD-OOMD - fleet-wide defaults are now provided by
+  # modules/system/oomd-fleet.nix (loaded via common-modules-list.nix).
+  # Fleet default: MemoryUsedPercent=90, SwapUsedPercent=85 (corrected
+  # NixOS 26.11 percent-based keys; the SwapUsedLimit=90 integer form was
+  # silently ignored). Per-host slice opt-in remains below.
+  # systemd.oomd = { enable = true; settings.OOM.SwapUsedLimit = 90; ... };
+  #   ^^^ REMOVED — superseded by oomd-fleet.nix (#328 + #318 audit fixes).
   systemd.slices."-".sliceConfig = {
     ManagedOOMSwap = "kill";
   };
