@@ -61,6 +61,13 @@
     # causing "option does not exist" eval errors. Explicit per-target
     # only covers what we actually run (Qt apps, not KDE/Plasma).
     targets.qt.enable = true;
+    # Avoid qtct→kvantum (default for non-GNOME/non-Plasma-only DEs).
+    # Cluster runs niri; use gnome platform → adwaita-dark so Qt matches
+    # GTK (adw-gtk3) without Kvantum plugins (removed for Plasma6/NVIDIA
+    # crash risk; also fragile when theme files are missing).
+    # mkForce: override stylix DE-detect (niri is neither pure GNOME nor pure
+    # Plasma6, so the module would set qtct → kvantum).
+    targets.qt.platform = lib.mkForce "gnome";
 
     autoEnable = false;
 
