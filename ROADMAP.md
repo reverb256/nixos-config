@@ -218,8 +218,7 @@
      etcd.enable = true;
      scheduler.enable = true;
      controllerManager.enable = true;
-     # Networking (Calico CNI)
-     flannel.enable = false;  # Disabled after Calico migration
+     # Networking (Calico CNI — flannel removed entirely)
      # Kubelet
      kubelet.enable = true;
    };

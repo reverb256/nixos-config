@@ -122,20 +122,6 @@ metadata:
     pod-security.kubernetes.io/warn-version: latest
 
 ---
-# kube-flannel — enforce privileged (CNI requires full network access)
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: kube-flannel
-  labels:
-    pod-security.kubernetes.io/enforce: privileged
-    pod-security.kubernetes.io/enforce-version: latest
-    pod-security.kubernetes.io/audit: baseline
-    pod-security.kubernetes.io/audit-version: latest
-    pod-security.kubernetes.io/warn: baseline
-    pod-security.kubernetes.io/warn-version: latest
-
----
 # cert-manager — enforce restricted (certificate management)
 apiVersion: v1
 kind: Namespace
