@@ -120,15 +120,13 @@
     # KUBERNETES - k3s control plane (joins existing cluster)
     # Joins nexus (bootstrap) via VIP for HA
     k3s-cluster = {
-      wipeState = true;
       enable = true;
       role = "server";
       clusterInit = false;
       nodeName = "sentry";
-      serverAddr = "https://10.1.1.120:6443";
+      serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.140";
-      etcdClean = true;
       calico.enable = true;
     };
 
