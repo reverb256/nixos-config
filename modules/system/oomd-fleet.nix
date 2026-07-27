@@ -24,17 +24,13 @@
       };
     };
 
-    # Fleet-wide VM tuning for in-memory swap (zramOnly). mkDefault so hosts
-    # that want to push swappiness higher (zephyr does 180) can still do so.
-    # Obsolete keys vm.extra_free_kbytes / vm/page-cache-limit were REMOVED
-    # from the upstream kernel (6.10 / 5.15 respectively); systemd-sysctl
-    # will log a benign "Failed to write" for any host that still tries to
-    # set them — they will not break boot.
-    boot.kernel.sysctl = {
-      "vm.watermark_scale_factor" = lib.mkDefault 200;
-      "vm.page-cluster"            = lib.mkDefault 0;
-      "vm.vfs_cache_pressure"      = lib.mkDefault 50;
-    };
+    # Sysctl tuning is owned by modules/system/vm-tuning.nix (predates this
+    # module and is the canonical source for vm.* keys). The previous block
+    # here (vm.watermark_scale_factor / vm.page-cluster / vm.vfs_cache_pressure)
+    # produced a NixOS "defined multiple times" error against vm-tuning.nix's
+    # own mkDefault of the same keys and was removed on 2026-07-27 to
+    # unblock the cluster-fix-batch rebuild. Host-specific zram overrides
+    # (e.g. zephyr=180 swappiness) remain in vm-tuning.nix.
 
     # fstrim was running per-boot on zephyr (20m 35s!). Switch to weekly.
     services.fstrim = {
