@@ -38,17 +38,7 @@ in {
 
     # Agent network restrictions — restrict AI agents to allowed destinations only
 
-    nixos-share = {
-      enable = false;
-      client.enable = true;
-    };
 
-    nfs-client = {
-      enable = false;
-      mountShared = true;
-      mountHome = true;
-      mountMedia = false;
-    };
 
     srbminer = {
       enable = true;

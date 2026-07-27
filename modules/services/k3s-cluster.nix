@@ -456,7 +456,6 @@ in {
       };
         before = lib.mkIf config.services.keepalived.enable ["keepalived.service"];
       # nfs-utils needed for kubelet to mount NFS PVs (mount.nfs binary)
-      path = with pkgs; [nfs-utils];
     };
 
     # Auto-start k3s at boot WITHOUT blocking multi-user.target.
@@ -504,7 +503,7 @@ in {
 
     # Replace busybox mount with util-linux mount for NFS PV support.
     # k3s bundles busybox mount which does not support NFS protocol.
-    # The real util-linux mount calls mount.nfs as a helper.
+
     system.activationScripts.k3s-fix-mount = lib.stringAfter ["k3s-dirs"] ''
       for aux in ${cfg.dataDir}/data/*/bin/aux; do
         if [ -L "$aux/mount" ] && readlink "$aux/mount" | grep -q busybox; then

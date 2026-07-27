@@ -25,13 +25,12 @@
       pkgs.kubectl
     ]}
 
-    # Find flake path
-    if [ -d /run/nixos-shared ] && [ -f /run/nixos-shared/flake.nix ]; then
-      FLAKE_PATH=/run/nixos-shared
-    elif [ -f /etc/nixos/flake.nix ]; then
+    # Find flake path - local /etc/nixos only.
+    # The old NFS config-share (/etc/nixos) is removed; do not depend on it.
+    if [ -f /etc/nixos/flake.nix ]; then
       FLAKE_PATH=/etc/nixos
     else
-      echo "WARNING: Cannot find flake.nix in /etc/nixos or /run/nixos-shared"
+      echo "WARNING: Cannot find flake.nix in /etc/nixos"
       exit 0
     fi
 
@@ -160,11 +159,7 @@ in {
   config = mkIf cfg.enable {
     systemd.services.nixos-auto-update = {
       description = "Automatic NixOS Update";
-      # NOTE: previously `wants/after = run-nixos-shared.mount`, but the
-      # nixos-share NFS client is dead cluster-wide (zephyr's NFS server is
-      # not enabled), so that dependency made this unit fail at boot.
-      # The update script already falls back to /etc/nixos when
-      # /run/nixos-shared is absent, so the dependency is dropped.
+
       after = ["network-online.target"];
       wants = ["network-online.target"];
       serviceConfig = {
