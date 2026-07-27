@@ -673,15 +673,22 @@
     secrets = import ./secretspec-creds-wiring.nix;
   };
 
+  # hosts/forge/services.nix is not imported — enable here for real activation
+  services.secretspec-validator = {
+    enable = true;
+    production = true;
+    failOnMissing = true;
+  };
+
   # Force SDDM to use X11 instead of Wayland - Wayland has DRM issues on this multi-GPU system
   services.xserver = {
     displayManager.sddm.wayland.enable = lib.mkForce false;
     displayManager.sddm.settings.General.DisplayServer = lib.mkForce "x11";
   };
   services.storage-assertions.enable = true;
-}
 
   # Bonsai 27B: 1-bit on RTX 4060 (port 8002), ternary (port 8005) when GPU idle
   services.bonsai = {
     enable = true;
   };
+}

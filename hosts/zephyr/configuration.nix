@@ -38,6 +38,8 @@
     # NVIDIA GPU Wayland support (host-dependent)
     ../../modules/hardware/nvidia-common.nix
     ../../modules/hardware/nvidia-wayland.nix
+    # Game Pass Windows VM — VFIO RTX 3060 Ti passthrough (zephyr only)
+    ../../modules/hardware/vfio-gamepass.nix
     # Noctalia desktop compositor (niri shell, iced/winit/Smithay deps)
     inputs.noctalia.nixosModules.default
     # RGB control for peripherals and components
@@ -303,32 +305,21 @@
   # SERVICES - All service configurations consolidated here
   # ============================================================================
   services = {
-    # KUBERNETES - k3s control plane (joins existing cluster)
-    # Bootstrap node: nexus (clusterInit=true, oldest etcd data)
-    # All servers join via VIP for HA: https://10.1.1.100:6443
+    # KUBERNETES - zephyr does NOT run k3s.
+    # Control plane (k3s servers): nexus, forge, sentry (VIP 10.1.1.100).
+    # Zephyr is the workstation / NFS origin / config source-of-truth only.
+    # Running k3s here put the keepalived VIP (10.1.1.100) on enp38s0 alongside
+    # the real IP (10.1.1.110), which made k3s refuse to start
+    # ("multiple global unicast addresses defined for enp38s0").
     k3s-cluster = {
-      wipeState = true;
-      enable = true;
-      nvidia.enable = true;
-      role = "server";
-      nodeName = "zephyr";
-      serverAddr = "https://10.1.1.120:6443";
-      tokenFile = "/run/secrets/k3s-cluster-token";
-      nodeIP = "10.1.1.110";
-      flannelBackend = "none";
-      flannelIface = "enp38s0"; # Calico CNI (VXLAN, policy-enforcing)
+      enable = false;
     };
 
-    # Auto-apply K8s manifests on boot (control-plane node)
-    k8s-manifest-autoapply.enable = true;
+    # No manifest auto-apply on zephyr -- only control-plane nodes do this.
+    k8s-manifest-autoapply.enable = false;
 
-    # Keepalived VIP for HA API server access
-    keepalived-vip = {
-      enable = true;
-      vip = "10.1.1.100";
-      interface = "enp38s0";
-      priority = 110;
-    };
+    # Keepalived VIP lives on the k3s servers (nexus/forge/sentry), not zephyr.
+    # Removed to stop the enp38s0 dual-IP collision that broke k3s startup.
 
     # Crash watchdog - detect and log system crashes
     # TEMPORARILY DISABLED: Module being fixed (2026-03-23)
@@ -867,6 +858,13 @@
       enable = true;
       secrets = import ./secretspec-creds-wiring.nix;
     };
+
+    # hosts/zephyr/services.nix is NOT imported — enable here
+    secretspec-validator = {
+      enable = true;
+      production = true;
+      failOnMissing = true;
+    };
     ci-runner = {
       enable = false;
       repo = "username/nixos-config";
@@ -1267,13 +1265,10 @@
 
   # Lossless Scaling Frame Generation via Vulkan
   services.storage-assertions.enable = true;
-}
-# Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
-# Refactored 2026-07-21 (#300): scrubbed pre-peakminer mining residue, repaired
-# orphan syntax from prior xmrig-strip cleanup.
 
   # Bonsai 27B: ternary on RTX 3090 (port 1237) + 1-bit on RTX 3060 Ti (port 1236)
   services.bonsai = {
     enable = true;
     # binaryStorePath = "FIXME_CUDA_ON_BUILD"; # set after `nix build .#cuda` finishes
   };
+}
