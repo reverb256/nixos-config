@@ -107,36 +107,36 @@ with lib; let
   # ── All services, each gated by hostname ──
 
   # Ternary on zephyr 3090 (GPU 1, 24 GB)
-  ternaryZephyr = mkIf (host == "zephyr") (mkTernaryService {
-    name = "zephyr"; desc = "Bonsai 27B Ternary — Zephyr RTX 3090 (port 1237)";
-    port = 1237; gpu = "1"; memoryMax = "20G";
+  ternaryZephyr = mkIf (host == "zephyr" && cfg.binaryStorePath != null) (mkTernaryService {
+    name = "zephyr"; desc = "Bonsai 27B Ternary — Zephyr RTX 3090 (port 1237, device 0 post-VFIO)";
+    port = 1237; gpu = "0"; memoryMax = "20G";
   });
 
   # 1-bit on zephyr 3060 Ti (GPU 0, 8 GB)
-  bit1Zephyr = mkIf (host == "zephyr") (mk1bitService {
-    name = "zephyr"; desc = "Bonsai 27B 1-bit — Zephyr RTX 3060 Ti (port 1236)";
+  bit1Zephyr = mkIf (host == "zephyr" && cfg.binaryStorePath != null) (mk1bitService {
+    name = "zephyr"; desc = "Bonsai 27B 1-bit — Zephyr RTX 3090 (port 1236, device 0 post-VFIO)";
     port = 1236; gpu = "0";
   });
 
   # 1-bit on nexus 3060 Ti (8 GB) — ternary can also run when miners idle (-c 0 fits ctx to VRAM)
-  bit1Nexus = mkIf (host == "nexus") (mk1bitService {
+  bit1Nexus = mkIf (host == "nexus" && cfg.binaryStorePath != null) (mk1bitService {
     name = "nexus"; desc = "Bonsai 27B 1-bit — Nexus RTX 3060 Ti (port 1235)";
     port = 1235;
   });
 
-  ternaryNexus = mkIf (host == "nexus") (mkTernaryService {
+  ternaryNexus = mkIf (host == "nexus" && cfg.binaryStorePath != null) (mkTernaryService {
     name = "nexus"; desc = "Bonsai 27B Ternary — Nexus RTX 3060 Ti (port 1238, when GPU idle)";
     port = 1238; gpu = "0"; memoryMax = "8G";
   });
 
   # 1-bit on forge 4060 (GPU 0, 8 GB)
-  bit1Forge = mkIf (host == "forge") (mk1bitService {
+  bit1Forge = mkIf (host == "forge" && cfg.binaryStorePath != null) (mk1bitService {
     name = "forge"; desc = "Bonsai 27B 1-bit — Forge RTX 4060 (port 8002)";
     port = 8002; gpu = "0";
   });
 
   # Ternary on forge 4060 — tight fit (6.7 GB on 8 GB), starts when miners idle
-  ternaryForge = mkIf (host == "forge") (mkTernaryService {
+  ternaryForge = mkIf (host == "forge" && cfg.binaryStorePath != null) (mkTernaryService {
     name = "forge"; desc = "Bonsai 27B Ternary — Forge RTX 4060 (port 8005, when GPU idle, tight)";
     port = 8005; gpu = "0"; memoryMax = "8G";
   });
@@ -158,7 +158,8 @@ in {
     enable = mkEnableOption "Bonsai 27B llama-server inference";
 
     binaryStorePath = mkOption {
-      type = types.str;
+      type = types.nullOr types.str;
+      default = null;
       description = "Store path of the built PrismML llama.cpp fork (nix build .#cuda output)";
       example = "/nix/store/00000000000000000000000000000000-llama-cpp-cuda";
     };

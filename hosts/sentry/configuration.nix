@@ -39,6 +39,9 @@
 
     # SecretSpec Phase 4 credential provisioning
     ../../modules/system/secretspec-creds.nix
+
+    # Gitlawb node — self-hosted decentralized git (private mirror)
+    ../../modules/services/gitlawb-node.nix
   ];
 
   # ============================================================================
@@ -329,6 +332,14 @@
     garage-cluster.enable = false;
 
     # Hermes Agent module removed (2026-04-06)
+
+
+    # ----------------------------------------------------------------------
+    # GITLAWB NODE — self-hosted decentralized git (PRIVATE mirror only)
+    # Isolated: no P2P gossip, no seed bootstrap, LAN-only HTTP on 7545.
+    # GitHub remains the primary remote; this is a parallel signed mirror.
+    # ----------------------------------------------------------------------
+    gitlawb-node.enable = true;
   };
 
   # ============================================================================
@@ -461,6 +472,14 @@
     enable = true;
     secrets = import ./secretspec-creds-wiring.nix;
   };
+
+  # hosts/sentry/services.nix is not imported — enable here for real activation
+  services.secretspec-validator = {
+    enable = true;
+    production = true;
+    failOnMissing = true;
+  };
+
   # Override specific secret permissions for mining service
   # ============================================================================
   # LLAMAFILE - LLM INFERENCE SERVICE (AMD RX 5600 XT - Vulkan)
@@ -485,11 +504,10 @@
     # cacheTypeV = "bf16";
   };
   services.storage-assertions.enable = true;
-}
 
   # Bonsai 27B: 1-bit via Vulkan on AMD RX 5600 XT (port 8003)
   services.bonsai = {
     enable = true;
-    binaryStorePath = "";  # required (unused; vulkanBinaryStorePath is the active path)
     vulkanBinaryStorePath = "/nix/store/shxi0y8dv1llnjcqbjg2hz9f3b0gwpgj-llama-cpp-vulkan-0.0.0";
   };
+}

@@ -135,8 +135,12 @@ in
           targets.btop.enable = true;
           targets.lazygit.enable = true;
           targets.qt.enable = true;
-          # GTK theming requires dconf/D-Bus which isn't available on nexus
-          targets.gtk.enable = hostName != "nexus";
+          # Prefer gnome platform → adwaita-dark (no Kvantum). qtct defaults
+          # to kvantum which we intentionally do not ship.
+          targets.qt.platform = lib.mkForce "gnome";
+          # GTK theming for all hosts (dconf/HM works headless for file gen).
+          # Previously disabled on nexus — that left GTK apps unthemed there.
+          targets.gtk.enable = true;
           # ── Additional targets for installed programs ──────────────
           # bat — theming for bat (base16-stylix theme)
           targets.bat.enable = true;
@@ -149,6 +153,21 @@ in
           # discord/vesktop — theme for Vesktop/Vencord (Osaka Jade)
           targets.vesktop.enable = true;
         };
+
+        # Non-Kvantum Qt path for all hosts (niri + optional Plasma).
+        # adwaita-dark aligns with polarity=dark and GTK adw-gtk3.
+        qt = {
+          enable = true;
+          # Align with stylix targets.qt.platform = mkForce "gnome" (adwaita-dark
+          # via gnome platform, no Kvantum). Must match or the full build fails on
+          # a conflicting-definition error. mkForce resolves the priority clash.
+          platformTheme.name = lib.mkForce "gnome";
+          style.name = lib.mkForce "adwaita-dark";
+          # Never pull Base16Kvantum / QT_STYLE_OVERRIDE=kvantum.
+          kvantum.enable = lib.mkForce false;
+        };
+        home.sessionVariables.QT_STYLE_OVERRIDE = lib.mkForce "adwaita-dark";
+        home.pointerCursor.enable = true;
 
         # CopyQ clipboard manager (replaces cliphist)
         programs.copyq = {
