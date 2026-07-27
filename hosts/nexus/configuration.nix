@@ -176,6 +176,7 @@
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.120";
       calico.enable = true;
+      flannelBackend = "none"; # Calico-only (no Flannel)
     };
 
     # Auto-apply K8s manifests on boot (control-plane node)
