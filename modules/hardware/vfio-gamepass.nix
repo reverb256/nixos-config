@@ -101,6 +101,13 @@ let
           <source file="${vfioPkgs.virtio-win}/virtio-win.iso"/>
           <target dev="sdb" bus="sata"/>
         </disk>
+        <!-- Windows 11 installer ISO. Place your ISO at this path before first boot:
+             sudo cp /path/to/Win11.iso /var/lib/libvirt/images/win11.iso -->
+        <disk type="file" device="cdrom">
+          <driver name="qemu" type="raw"/>
+          <source file="/var/lib/libvirt/images/win11.iso"/>
+          <target dev="sdc" bus="sata"/>
+        </disk>
         <controller type="usb" index="0" model="qemu-xhci" ports="15"/>
         <controller type="pci" index="0" model="pcie-root"/>
         <interface type="network">

@@ -39,6 +39,9 @@
 
     # SecretSpec Phase 4 credential provisioning
     ../../modules/system/secretspec-creds.nix
+
+    # Gitlawb node — self-hosted decentralized git (private mirror)
+    ../../modules/services/gitlawb-node.nix
   ];
 
   # ============================================================================
