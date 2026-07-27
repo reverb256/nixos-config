@@ -1144,7 +1144,16 @@
     python312Packages.openpyxl # Excel read/write
     # Noctalia CLI binary for keybindings (Mod+Space, Print, notifications)
     inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default
+
     # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
+
+
+    # SecretSpec (fork build with sops backend) — fixes `just secretspec-check`
+    # which otherwise resolves the upstream legacyPackages.secretspec (no sops).
+    # pkgs.secretspec = the fork (0.16.0-fork.1, buildFeatures [cli sops]).
+    pkgs.secretspec
+    pkgs.secretspec-provider-sops
+
   ];
 
   # ============================================================================

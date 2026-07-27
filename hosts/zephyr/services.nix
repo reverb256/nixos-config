@@ -235,6 +235,18 @@ in {
       enableShellEnv = true;
     };
 
+    # ═══════════════════════════════════════════════════════════════
+    # Bonsai 27B llama-server inference (zephyr-first)
+    # Binary built at /tmp/prism-llama:
+    #   nix build .#cuda --builders '' --max-jobs 2 --impure
+    # Store path verified: 560rfa8pm0579c6lp9x0zcgx2izicmjc
+    # Enable both lines together — see bonsai.nix for hostname-gated services.
+    # ═══════════════════════════════════════════════════════════════
+    bonsai = {
+      enable = true;
+      binaryStorePath = "/nix/store/560rfa8pm0579c6lp9x0zcgx2izicmjc-llama-cpp-cuda-0.0.0";
+    };
+
     # ── Nix-managed Hermes config.yaml ────────────────────────────
     # Providers, fallback chain, and base_url/key mappings live in Nix.
     # Imperative sections (telegram channel_profiles, MCP servers, etc.)

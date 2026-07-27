@@ -29,6 +29,27 @@ jobs:
         # pin:actions/checkout@v5
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
 
+      - name: Post kanban — deploy start
+        shell: bash {0}
+        run: |
+          set -euo pipefail
+          _kanban() {
+            if command -v hermes &>/dev/null; then
+              hermes kanban "$@"
+            else
+              ssh -o ConnectTimeout=5 -o BatchMode=yes j_kro@zephyr hermes kanban "$@"
+            fi
+          }
+          RAW=$(_kanban create "[deploy] nixos-config deploy to cluster" \
+            --body "Deploy triggered by workflow run #${GITHUB_RUN_NUMBER}" \
+            --json \
+            --skill "type:deploy" \
+            --skill "source:github-actions" \
+            --skill "repo:nixos-config" 2>/dev/null) || true
+          TASK_ID=$(echo "$RAW" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4) || true
+          echo "KANBAN_TASK_ID=$TASK_ID" >> "$GITHUB_ENV"
+          if [ -n "$TASK_ID" ]; then echo "  Kanban task: $TASK_ID"; else echo "  (kanban client not available)"; fi
+
       - name: Pre-build validation
         run: |
           cd /etc/nixos
@@ -203,6 +224,20 @@ jobs:
           echo "Health checks complete"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
+      - name: Complete kanban — deploy success
+        if: success()
+        run: |
+          _kanban() {
+            if command -v hermes &>/dev/null; then
+              hermes kanban "$@"
+            else
+              ssh -o ConnectTimeout=5 -o BatchMode=yes j_kro@zephyr hermes kanban "$@"
+            fi
+          }
+          if [ -n "${KANBAN_TASK_ID:-}" ]; then
+            _kanban complete "$KANBAN_TASK_ID" --summary "Deploy completed successfully" --result "success" || true
+          fi
+
       - name: Notify on failure
         if: failure()
         run: |
@@ -210,3 +245,15 @@ jobs:
           echo "DEPLOYMENT FAILED"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Check the workflow logs for details"
+
+          # Block kanban task on failure
+          if [ -n "${KANBAN_TASK_ID:-}" ]; then
+            _kanban() {
+              if command -v hermes &>/dev/null; then
+                hermes kanban "$@"
+              else
+                ssh -o ConnectTimeout=5 -o BatchMode=yes j_kro@zephyr hermes kanban "$@"
+              fi
+            }
+            _kanban block "$KANBAN_TASK_ID" "Deploy failed" --kind "transient" || true
+          fi

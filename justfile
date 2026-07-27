@@ -733,7 +733,7 @@ secretspec-check:
         exit 127
     fi
     secretspec check \
-        --manifest /etc/nixos/secretspec.toml \
+        --file /etc/nixos/secretspec.toml \
         --profile production
 
 # List every declared secret grouped by category. Useful for audit + new-member
@@ -745,7 +745,7 @@ secretspec-list:
         echo "secretspec not on PATH - built via /etc/nixos/pkgs/secretspec + overlay wiring" >&2
         exit 127
     fi
-    secretspec list --manifest /etc/nixos/secretspec.toml
+    secretspec list --file /etc/nixos/secretspec.toml
 
 # Phase-2 manual bridge: proves that the local `secretspec-provider-sops`
 # CLI can decrypt a real sops:// route (the cluster's #1 missing piece
