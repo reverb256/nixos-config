@@ -158,12 +158,13 @@ in
         # adwaita-dark aligns with polarity=dark and GTK adw-gtk3.
         qt = {
           enable = true;
-          platformTheme.name = "gnome";
+          platformTheme.name = "adwaita";
           style.name = lib.mkForce "adwaita-dark";
           # Never pull Base16Kvantum / QT_STYLE_OVERRIDE=kvantum.
           kvantum.enable = lib.mkForce false;
         };
         home.sessionVariables.QT_STYLE_OVERRIDE = lib.mkForce "adwaita-dark";
+        home.pointerCursor.enable = true;
 
         # CopyQ clipboard manager (replaces cliphist)
         programs.copyq = {

@@ -59,6 +59,12 @@
     secrets = import ./secretspec-creds-wiring.nix;
   };
 
+  services.secretspec-validator = {
+    enable = true;
+    production = true;
+    failOnMissing = true;
+  };
+
   # ============================================================================
   # HOST IDENTIFICATION
   # ============================================================================
