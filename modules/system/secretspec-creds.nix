@@ -64,6 +64,26 @@ in {
       description = "Enable SecretSpec credential provisioning at activation.";
     };
 
+    ageKeyFile = mkOption {
+      type = types.str;
+      default = "/etc/nixos/.age/key.txt";
+      description = ''
+        Path to the SOPS-compatible age keyfile used to decrypt every
+        entry in <option>secrets</option>. On zephyr this is the
+        operator's YubiKey-derived age key; remote hosts must receive a
+        copy of the same keyfile via one of:
+
+         * Nix-managed etc (`environment.etc."nixos/age/key.txt".source`),
+           preferred because no plaintext lands on disk outside /nix/store;
+         * sops-nix decrypted file (`sops.secrets."cluster-age-key".path =
+           cfg.ageKeyFile;`) using a per-host identity;
+         * Manual `scp` from zephyr for one-off lab deployments.
+
+        Override per-host in <option>services.secretspec-validator.ageKeyFile</option>
+        if the validator should resolve from a different identity.
+      '';
+    };
+
     secrets = mkOption {
       type = types.attrsOf (types.submodule {
         options = {
@@ -92,7 +112,17 @@ in {
         Type = "oneshot";
         RemainAfterExit = true;
         ExecStart = writeScript;
-        Environment = [ "SOPS_AGE_KEY_FILE=/etc/nixos/.age/key.txt" ];
+        Environment = [ "SOPS_AGE_KEY_FILE=${cfg.ageKeyFile}" ];
+        # A transient failure (e.g. mid-pull network blip when re-evaluating
+        # /etc/nixos/secrets/, or a YubiKey unplug-replug mid-boot) should
+        # retry — the validator service (newly Wants+d this unit) would
+        # otherwise run against an empty /run/secrets/* and produce noise.
+        # StartLimitBurst keeps sustained failures visible in the journal
+        # rather than letting the unit silently fail forever.
+        Restart = "on-failure";
+        RestartSec = "30s";
+        StartLimitBurst = 3;
+        StartLimitIntervalSec = "5min";
         StandardOutput = "journal";
         StandardError = "journal";
         TimeoutStartSec = "5min";

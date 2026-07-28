@@ -30,7 +30,7 @@ in {
       clusterReset = false; # Already reset, running clean
       nodeName = "nexus";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
-      tokenFile = "/persistent/etc/k3s-cluster-token";
+      tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = cluster.hosts.nexus.ip;
 
     };

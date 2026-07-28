@@ -5,6 +5,14 @@ result
 # ✅ DO commit: .age files are encrypted and safe to track
 # ✅ DO commit: secrets.nix contains only public keys
 # ❌ NEVER commit: decrypted files or private keys
+# .env files (operator-only, see SECURITY-INCIDENT-2026-07-25 for why):
+#   .env          — local SDK config; rotate .lan secrets before tracking
+#   .env.secrets  — placeholder env map for secretspec dotenv provider
+#   .secretspec.env — secretspec pre-loaded env
+.env
+.env.*
+.secretspec.env
+
 .age/
 secrets/*.key
 secrets/*.plaintext

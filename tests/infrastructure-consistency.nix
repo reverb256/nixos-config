@@ -124,8 +124,12 @@
   sentryUsesPartlabel = hasInfix "by-partlabel" sentryHwConfig;
 
   # ── HW-14: MCE mitigation params on AMD GPU hosts ──
+  # 2026-07-28: changed max_cstate expectation from "=5" to "=1". The earlier
+  # override of "=5" un-mitigated the Zen 1 C6 deep-sleep lockup (last-wins in
+  # kernel cmdline UNDID the fleet's `=1` baseline in kernel-hardening.nix).
+  # See docs/audit-2026-07-27.md F-3 and boot error triage 2026-07-28.
   sentryHasMceMitigation =
-    hasInfix "processor.max_cstate=5" sentryConfig
+    hasInfix "processor.max_cstate=1" sentryConfig
     && hasInfix "panic_on_oops=0" sentryConfig;
 
   # ── HW-16: No /etc/nixos hw config symlinks between hosts ──

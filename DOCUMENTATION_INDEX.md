@@ -1,6 +1,6 @@
 # NixOS Cluster Documentation Index
 
-**Last Updated:** 2026-04-01 | **Cluster Version:** Phase 2 Complete, HA Control Plane (K8s v1.35.0) | **Agent Files:** Template-based v1.0
+**Last Updated:** 2026-07-27 | **Cluster Version:** K3s OPERATIONAL, Sovereign Service Mesh Phase 1 Complete | **Agent Files:** Template-based v1.0 | **Most Recent Audit:** [`docs/audit-2026-07-27.md`](docs/audit-2026-07-27.md)
 
 Complete index of all documentation for the NixOS cluster, including the ongoing Kubernetes migration.
 
@@ -12,6 +12,7 @@ Complete index of all documentation for the NixOS cluster, including the ongoing
 1. Read `/etc/nixos/AGENTS.md` for universal cluster patterns
 2. Read agent-specific file: `CLAUDE.md`, `.github/copilot-instructions.md`, `.cursorrules`, or `QWEN.md`
 3. Check `/etc/nixos/ROADMAP.md` for current migration status
+4. **Before making non-trivial claims about cluster state, ALSO read [`docs/audit-2026-07-27.md`](docs/audit-2026-07-27.md)** — 24 cross-area findings as of 2026-07-27.
 
 **For Humans:**
 1. **First:** `STATUS.md` for real-time cluster state
@@ -324,6 +325,18 @@ kubectl logs <pod> -n <namespace>
 
 ## Recent Changes (Summary)
 
+**2026-07-27:** Multi-area audit completed — [`docs/audit-2026-07-27.md`](docs/audit-2026-07-27.md). 24 findings (F-1..F-24) across secrets, config, K8s, docs. Auto-fixed `.gitignore` (.env), `secretspec.toml` (route_count 24→51), `overlay.nix` (dead block), `hosts/zephyr/secretspec-creds-wiring.nix` (ZAI_API_KEY), 3 stale-doc warnings (F-21, F-22). HIGH-severity findings F-1/F-2/F-3/F-5/F-6 queued for operator action.
+
+**2026-07-25:** SECURITY-INCIDENT-2026-07-25.md — secretspec Phase 2 complete + SAMSUNG_TV_TOKEN routing regression discovered.
+
+**2026-07-15:** Z.AI/GLM provider fully removed cluster-wide (referenced `ZAI_API_KEY`). Freedom model removed from Hermes profile.
+
+**2026-05-23:** Phase 5 (GPU Workloads) deliverables final — llama.cpp + AI Gateway integration verified (24.7 tok/s on 3090).
+
+**2026-05-14:** Caddy forward_auth wired (`central-auth`), K8s oauth2-proxy sidecars removed (centralized SSO). Sovereign Service Mesh Phase 1 operational.
+
+**2026-04-07:** K3s migration audit completed — CNI deployment (Flannel VXLAN), iptables/kube-proxy fixes, 5 NVIDIA GPUs registered (forge=2, nexus=1, zephyr=2).
+
 **2026-03-19:** Cloudflare integration automation (6 features, ~200 hrs/year savings)
 
 **2026-03-16:** Documentation audit & cleanup, archived incorrect storage/HA docs, created DECISION_LOG.md
@@ -341,5 +354,5 @@ kubectl logs <pod> -n <namespace>
 ---
 
 **Document Owner:** j_kro
-**Version:** 3.2 | **Updated:** 2026-04-01
-**Changes:** Added supply chain security section (cooldowns, image policy, Trivy, K8s admission policy, CI SHA pinning)
+**Version:** 4.0 | **Updated:** 2026-07-27
+**Changes (2026-07-27):** Refreshed Last-Updated stamp; added audit-2026-07-27.md cross-reference at top + AI-agent quick-start pointer; added 2026-07-27 audit entry to Recent Changes; updated version 3.2→4.0 to reflect reference-doc overhaul.

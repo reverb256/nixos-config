@@ -27,7 +27,7 @@ in {
       role = "agent";
       nodeName = "forge";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
-      tokenFile = "/persistent/etc/k3s-cluster-token";
+      tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = cluster.hosts.forge.ip;
       secretsEncryptionKeyFile = "/run/secrets/k3s-encryption-key";
     };

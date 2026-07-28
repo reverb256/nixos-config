@@ -20,7 +20,7 @@ in {
       etcdClean = true;
       nodeName = "sentry";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
-      tokenFile = "/persistent/etc/k3s-cluster-token";
+      tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = cluster.hosts.sentry.ip;
       secretsEncryptionKeyFile = "/run/secrets/k3s-encryption-key";
     };

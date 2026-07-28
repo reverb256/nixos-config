@@ -184,6 +184,31 @@ deploy host="all":
             OUT=$(ssh nexus "cd /etc/nixos && nix build --option pure-eval false --no-link --print-out-paths '.#nixosConfigurations.$host.config.system.build.toplevel'" 2>/dev/null) || {
                 echo "Build failed for $host"; exit 1
             }
+            # G5 hostname guard (build side): refuse to deploy if the
+            # built toplevel's hostname doesn't match the deploy target.
+            # Catches the cross-host footgun that bricked nexus on 2026-07-28:
+            # system-365-link pointed at nixos-system-forge-* while nexus's
+            # fstab referenced forge's disk-sdb/sda partlabels and the boot
+            # cascade-failed local-fs.target. Hard-refuse rather than recover.
+            # Trailing '-' makes the substring safe against prefix collisions
+            # (e.g. 'nexus' won't match 'nexus2' because '2' ≠ '-').
+            if [[ "$OUT" != *"nixos-system-${host}-"* ]]; then
+                echo "ERROR: build output '$OUT' does not match target host '$host' (expected 'nixos-system-${host}-*'). Aborting to prevent cross-host application." >&2
+                exit 1
+            fi
+            # G5 hostname guard (target side): confirm the SSH'd host
+            # actually reports the expected short hostname BEFORE we
+            # push the closure. Catches DNS-alias / wrong-IP mistakes
+            # and short-circuits wasted bandwidth. Use exact match on
+            # the first label of the FQDN (Nexus reports 'nexus.lan',
+            # forge 'forge.lan', etc.) — substring 'for' would otherwise
+            # falsely match 'forge'.
+            ACTUAL_HOSTNAME=$(ssh j_kro@$host "hostname" 2>/dev/null)
+            ACTUAL_SHORT="${ACTUAL_HOSTNAME%%.*}"
+            if [[ "$ACTUAL_SHORT" != "$host" ]]; then
+                echo "ERROR: target '$host' reports hostname '$ACTUAL_HOSTNAME' (short '$ACTUAL_SHORT' ≠ expected '$host'). Aborting to prevent cross-host application." >&2
+                exit 1
+            fi
             nix-copy-closure --to j_kro@$host "$OUT" 2>&1 | grep -v "copying path\|already exists" || true
             ssh j_kro@$host "sudo nix-env -p /nix/var/nix/profiles/system --set $OUT && sudo $OUT/bin/switch-to-configuration switch" 2>&1 | tail -5
             echo "done"

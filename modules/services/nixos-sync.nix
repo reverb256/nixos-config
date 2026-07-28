@@ -1,15 +1,24 @@
 # NixOS config sync — force all hosts to track origin/main
 # Every 5 minutes: git fetch + reset --hard origin/main
 # This prevents config drift from local changes or stale copies
-{ config, lib, pkgs, ... }:
-with lib;
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+with lib; let
   cfg = config.services.nixos-sync;
   syncScript = pkgs.writeShellScript "nixos-sync" ''
     set -euo pipefail
+    # 2026-07-28: FLAKE assigned BEFORE its first reference. With `set -u`
+    # enabled, the original ordering (used `$FLAKE` on line 10, declared `=…`
+    # on line 11) exited immediately with "FLAKE: unbound variable", leaving
+    # /etc/nixos un-synced across the cluster. Hard-coded to /etc/nixos because
+    # nixos-sync always operates against the local flake.
+    FLAKE="/etc/nixos"
     # Mitigate git dubious-ownership (systemd runs as root, repo belongs to j_kro)
     git config --global --add safe.directory "$FLAKE" 2>/dev/null || true
-    FLAKE="/etc/nixos"
     LOG="/var/log/nixos-sync.log"
 
     if [ ! -d "$FLAKE/.git" ]; then
@@ -50,7 +59,7 @@ in {
       serviceConfig.Type = "oneshot";
       # The sync script calls `git`, which is absent from systemd's minimal PATH.
       # Provide a full PATH so the script's git/reset commands resolve (was exit 127).
-      path = [ pkgs.git pkgs.coreutils pkgs.findutils pkgs.gnugrep ];
+      path = [pkgs.git pkgs.coreutils pkgs.findutils pkgs.gnugrep];
     };
 
     systemd.timers.nixos-sync = {
