@@ -59,6 +59,28 @@ in {
         Restart = "on-failure";
         RestartSec = "3";
         Environment = "PATH=/run/current-system/sw/bin";
+        # ── cgroup memory caps (2026-07-27 OOM emergency) ───────────────
+        # Root cause: on zephyr (31 GB RAM, near-constant pressure from
+        # control-plane + gaming + AI + mining), systemd-oomd marked
+        # noctalia.service and the alacritty scope as victims at the 90%
+        # mem+swap threshold (noctalia peaked at 10.3 GB before kill).
+        # Cap the daemon so it self-throttles at 4G / self-kills at 6G
+        # BEFORE the global oomd threshold; soften kernel scoring so
+        # noctalia is a lower-priority victim if anything bigger pushes
+        # the system past limits. OOMPolicy=continue keeps the daemon
+        # alive if the kernel sends SIGTERM from oomd pressure (it can
+        # then re-arm or gracefully exit on its own terms).
+        MemoryHigh = "4G";
+        MemoryMax = "6G";
+        OOMPolicy = "continue";
+        OOMScoreAdjust = -300;
+        # 2026-07-27 (code-review G1): prevent thrashing if the Sdr backend
+        # persistently leaks past MemoryMax (self-kill → Restart=on-failure
+        # → 3s wait → self-kill …). Trip into 'failed' state after 5
+        # restarts within 60s so the pressure surfaces (alert, journal
+        # inspect) instead of burning CPU on rapid restart cycles.
+        StartLimitBurst = 5;
+        StartLimitIntervalSec = 60;
       };
       environment.NOCTALIA_CONFIG_HOME = "/etc";
     };

@@ -71,6 +71,7 @@ See `/data/projects/AGENTS.md` for full project inventory.
 - **CLAUDE.md** - Agent patterns and best practices
 - **AGENTS.md** - Universal cluster patterns and workflows
 - **ROADMAP.md** - Kubernetes migration plan
+- **[`docs/audit-2026-07-27.md`](docs/audit-2026-07-27.md)** - Multi-area audit (24 findings, F-1..F-24) — start here for current state before major changes
 
 ## Safety First
 

@@ -1,6 +1,20 @@
 # Infrastructure Audit — 2026-05-14
 
-> **⚠️ STALE. This is a 2026-05-14 point-in-time audit snapshot (71+ days old at last read). Figures here — RAM/CPU usage, pod counts, namespace classifications, ingress status — have drifted significantly since the snapshot. Do NOT use this file's figures as current-state references UNLESS you re-run the audit process and confirm numbers still match the cluster. Documented cluster state changes since this audit live in `.plans/` files (e.g., `.plans/2026-07-25-cluster-localSealSupport-scope.md` for the cluster LocalSealSupport drift cycle); they are NOT in this snapshot. See `.plans/` directory listing for the full set of post-audit drift markers.**
+> **⚠️⚠️⚠️ ARCHIVED — DO NOT FOLLOW. ⚠️⚠️⚠️**
+>
+> **Last Verified:** 2026-05-14. **Expired:** 2026-05-31.
+> **Status as of 2026-07-27 audit:** Every numeric figure in this snapshot (RAM/CPU usage, pod counts, namespace classifications, ingress status, k8s versions, GPU occupancy) has drifted out of date over the 71+ days since the snapshot was taken.
+>
+> **Action required before reading this file:** Re-verify every claim against `/data/projects/own/cluster-state.nix`, fresh `kubectl get nodes -o wide`, `kubectl get pods -A`, and the live NixCaddy routes — OR move this file to `docs/ARCHIVE/` and write a fresh audit.
+>
+> **Post-audit drift markers** (cluster changes since 2026-05-14 that are NOT in this snapshot):
+>
+> - `.plans/2026-07-25-cluster-localSealSupport-scope.md` — secretspec `cluster.localSealSupport` Option B/VM module drift
+> - `SECURITY-INCIDENT-2026-07-25.md` — SOPS secret data-loss + recovery (samsung-tv-token still placeholder)
+> - Git log `2026-05-14..main` — NFS purges cluster-wide, agenix module decommissioned, dead code removals (compute-market, lolminer, xmrig), Calico→Flannel cleanup, hermes-cli/apiKeyFile removal, Z.AI MCP removal
+>
+> **Reading rules per AGENTS.md Pocock Rule:**
+> If a plan/doc is >7 days stale, re-verify against current cluster state **before** following it. This doc is 71+ days stale; treat as historical reference only.
 
 ## Cluster Overview
 

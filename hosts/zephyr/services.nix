@@ -263,6 +263,7 @@ in {
         "OPENCODE_GO_API_KEY" = "OPENCODE_GO_API_KEY";
         "HUGGINGFACE_TOKEN"   = "HUGGINGFACE_TOKEN";
         "GITHUB_TOKEN"        = "GITHUB_TOKEN";
+        "MEMLAWB_PASSPHRASE"  = "MEMLAWB_PASSPHRASE";
       };
 
       nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";

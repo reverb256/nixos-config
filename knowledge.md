@@ -416,3 +416,57 @@ If `str_replace` or `write_file` fails on a /etc/nixos file, the basher-side
 `cat heredoc → sudo cp` path succeeds. Document the source-target perm state in
 the edit comment so future maintainers don't re-add the same code-reviewer
 warning.
+
+### Recent state changes (2026-07-27)
+
+- **Z.AI fully removed cluster-wide (2026-07-15)**:
+  `ZAI_API_KEY` no longer wired in `hosts/zephyr/secretspec-creds-wiring.nix`;
+  GLM model dropped from Hermes profile. `ai-coding-tools.nix` still
+  references it as a backwards-compat shell helper but does not require the
+  secret on disk.
+- **zephyr OOM emergency (2026-07-27)**: systemd-oomd was killing noctalia
+  compositor + uwsm/alacritty scope at 90% mem+swap on the 31GB zephyr
+  host under gaming+control-plane+AI pressure.
+  - `modules/desktop/zephyr-sdr-brightness.nix`: noctalia.service
+    `MemoryHigh=4G` `MemoryMax=6G` `OOMPolicy=continue`
+    `OOMScoreAdjust=-300` `StartLimitBurst=5 within 60s` (failed state
+    instead of thrashing).
+  - `modules/home-manager/niri-config.nix`: new `alacritty-oom-safe` shell
+    wrapper puts alacritty under a `systemd-run --user --scope` with its own
+    `MemoryHigh=2G` `MemoryMax=4G` `OOMScoreAdjust=-800`. Keybinds
+    `Mod+Return`, `Mod+T`, `Mod+D` use the wrapper; mirrors the launch-game
+    ownership pattern in `modules/gaming/gaming.nix`.
+- **k3s token path moved**: `/persistent/etc/k3s-cluster-token` →
+  `/run/secrets/k3s-cluster-token` cluster-wide (nexus/forge/sentry + the
+  `modules/services/services.nix` sentry default). Impermanence-friendly and
+  matches how other cluster materializes sops-secrets.
+- **MEMLAWB_PASSPHRASE** added to the zephyr backend env map;
+  lives as a placeholder in `/etc/nixos/.env.secrets` (no sops backing).
+- **`.gitignore` hardened**: added `.env`, `.env.*`, `.secretspec.env`
+  at the root (post-incident 2026-07-25). `.age` files remain committed;
+  `secrets/*.key`/`*.plaintext` rules unchanged.
+- **`secretspec-creds` + `secretspec-validator`**: each gained an
+  `ageKeyFile` option (default `/etc/nixos/.age/key.txt`, overridable per
+  host). The secretspec resolver's decrypt oneshot now has
+  `Restart=on-failure` + `StartLimitBurst=3 within 5min` so transient
+  YubiKey unplug-replug or network blips self-heal instead of leaving
+  `/run/secrets/*` empty.
+
+### Audit trail (2026-07-27)
+
+The [`docs/audit-2026-07-27.md`](docs/audit-2026-07-27.md) file is the most
+recent cross-area audit (24 findings, F-1..F-24). Two prior confirmed-audit
+artifacts: [`INFRASTRUCTURE-AUDIT.md`](INFRASTRUCTURE-AUDIT.md) (2026-05-14
+baseline, now archived per F-22) and
+[`SECURITY-INCIDENT-2026-07-25.md`](SECURITY-INCIDENT-2026-07-25.md)
+(secretspec Phase-2 + SAMSUNG_TV_TOKEN routing regression that prompted
+the audit to begin). The 2026-07-27 audit consolidated + extended those
+findings. Treat the audit doc as the canonical cross-reference for any
+cluster-state claim that might have drifted since 2026-05. The fallback
+chain for verification:
+
+1. `docs/audit-2026-07-27.md` (current; route to here for any cluster-state claim)
+2. `INFRASTRUCTURE-AUDIT.md` (archived per F-22 — read-only historical)
+3. `SECURITY-INCIDENT-2026-07-25.md` (active incident context — secretspec Phase 2)
+4. `just cluster-status` (live cluster truth, if reachable)
+5. `git log --oneline` on the affected subdirectory (verifies which `.nix` rules are deployed)

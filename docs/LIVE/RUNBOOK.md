@@ -6,6 +6,10 @@ expires: 2026-05-31
 ---
 # Runbook
 
+> **⚠️ STALE. Last verified 2026-05-24 (>2 months ago at 2026-07-27 audit).**
+>
+> Per AGENTS.md Pocock Rule, this file must be re-verified before following its claims. Many sections reference files and workflows that may have drifted. In particular: NFS purge completed cluster-wide 2026-07 (`just deploy-*` recipes no longer reference NFS); Z.AI MCP servers removed 2026-07-15; sops-nix → secretspec migration completed 2026-07-25. Re-verify each section before relying on it, or update this header to today's date with the current `verification-method` output.
+
 ## Common Operations
 
 **Cluster Status**

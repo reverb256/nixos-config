@@ -1,9 +1,10 @@
 # NixOS Cluster Kubernetes Migration Roadmap
 
 **Status:** K3s migration COMPLETE (Phase 1-7) — Sovereign Service Mesh OPERATIONAL — Post-migration hardening in progress
-**Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-05-23 (stale — see INFRASTRUCTURE-AUDIT.md for current state)
+**Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-07-27 (refreshed — see [`docs/audit-2026-07-27.md`](audit-2026-07-27.md) for 2026-07-27 cross-area findings)
 
-> **See `INFRASTRUCTURE-AUDIT.md` for current cluster state, issues, and next steps.**
+> **See [`docs/audit-2026-07-27.md`](audit-2026-07-27.md) for the most current cluster state and 24 cross-area findings.**
+> **See `INFRASTRUCTURE-AUDIT.md` for 2026-05-14 baseline (now itself flagged archived — see audit F-22).**
 > **See `docs/plans/2026-05-01-mcp-system-plan.md` for MCP system plan.**
 > **See `docs/SOVEREIGN-SERVICE-MESH-STATUS.md` for AI Gateway mesh status.**
 
@@ -954,8 +955,8 @@ The Sovereign Service Mesh is a bus-style architecture where the AI Gateway serv
 
 ---
 
-**Last Updated:** 2026-04-24
-**Status:** K3s migration COMPLETE (Phase 1-5) — Post-migration hardening + cleanup in progress (Phase 6-7)
+**Last Updated:** 2026-07-27
+**Status:** K3s migration COMPLETE (Phase 1-7) — Post-migration hardening + cleanup in progress; 24 cross-area findings logged in [`docs/audit-2026-07-27.md`](audit-2026-07-27.md)
 
 ---
 

@@ -17,11 +17,13 @@
   NEOCITIES_API_KEY = { path = "/run/secrets/neocities-api-key"; file = "ai/neocities-api-key.yaml"; owner = "j_kro"; group = "users"; };
   POLLINATIONS_API_KEY = { path = "/run/secrets/pollinations-api-key"; file = "ai/pollinations-api-key.yaml"; owner = "j_kro"; group = "users"; };
   XAI_ACCESS_TOKEN = { path = "/run/secrets/xai-access-token"; file = "ai/xai-access-token.yaml"; owner = "root"; };
-  ZAI_API_KEY = { path = "/run/secrets/zai-api-key"; file = "ai/zai-api-key.yaml"; owner = "j_kro"; group = "users"; };
+  # ── ZAI_API_KEY removed 2026-07-15 ─────────────────────────────────────────
+  # Z.AI is fully gone from the cluster (no MCP servers, no LLM provider, no
+  # secrets). The ai-coding-tools.nix module still references it for
+  # backwards-compat shell helpers but no longer requires the secret to
+  # resolve on disk.
   CACHIX_TOKEN = { path = "/run/secrets/cachix-token"; file = "ai/cachix-token.yaml"; owner = "root"; };
 
-  # ── kubernetes ──────────────────────────────────────────────
-  K3S_CLUSTER_TOKEN = { path = "/run/secrets/k3s-cluster-token"; file = "k8s/k3s-cluster-token.yaml"; owner = "root"; };
 
   # ── ci ───────────────────────────────────────────────────────
   GITHUB_RUNNER_PAT = { path = "/run/secrets/github-runner-pat"; file = "ci/github-runner-pat.yaml"; owner = "j_kro"; group = "users"; };

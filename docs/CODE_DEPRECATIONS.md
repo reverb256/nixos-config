@@ -1,6 +1,8 @@
 # Code Deprecation & Disabled Features Tracking
 
-**Last Updated:** 2026-04-02 | **Auto-tracked:** Yes
+**Last Updated:** 2026-07-27 | **Auto-tracked:** ⚠ STALE — see 2026-07-27 audit finding F-23
+
+> **2026-07-27 audit note:** This file's tracking table is frozen — most entries predate the 2026-04-07 K3s migration, the 2026-05-14 forward_auth-rewrite (K8s oauth2-proxy sidecars removed), and the 2026-07-15 Z.AI provider removal. Several entries (CODE-013, CODE-014, CODE-015, K8S-005, K8S-006) reference code paths that no longer exist or were superseded. **Recommend a full recount from `rg -n 'DISABLED|TEMPORARILY' --glob '*.nix'` and `rg -n ':latest' --glob '*.yaml'` before next release-train.** See [`docs/audit-2026-07-27.md`](../audit-2026-07-27.md) for the cross-area findings.
 
 This file tracks all temporarily disabled modules, TODOs, and FIXMEs in the NixOS configuration code. Use this to prioritize re-enablement.
 
@@ -68,6 +70,12 @@ This file tracks all temporarily disabled modules, TODOs, and FIXMEs in the NixO
 | CODE-034 | `hosts/forge/configuration.nix` | 714-718 | Fan speed service DISABLED - Using fan curve | 🔵 Legacy | TBD |
 
 ---
+
+## Audit trail
+
+| Date | Audit | Findings |
+|------|-------|----------|
+| 2026-07-27 | [`docs/audit-2026-07-27.md`](../audit-2026-07-27.md) | F-23 explicitly flags this file: 24 cross-area findings suggest recount against current Nix codebase + K8s manifests before next release. |
 
 ## Quick Commands
 

@@ -127,8 +127,10 @@
     "net.core.rmem_max" = 16777216; # 16MB max
     "net.core.wmem_max" = 16777216;
 
-    # k3s Calico CNI — rp_filter=1 required for Calico VXLAN
-    "net.ipv4.conf.all.rp_filter" = 1; # Reverse path filtering for BGP
+    # Reverse path filtering (loose mode) — cluster-wide BGP/Calico hardening.
+    # zephyr is not a k3s node, but the rest of the cluster runs Calico VXLAN
+    # which requires rp_filter=1 on every participating host's interfaces.
+    "net.ipv4.conf.all.rp_filter" = 1;
 
     # ------------------------------------------------------------------
     # IN-MEMORY SWAP TUNING (zram-only). swappiness > 100 is appropriate
@@ -191,12 +193,6 @@
         3900 # Garage S3 API
         3901 # Garage RPC
         50000 # Nix binary cache server
-        6443 # k3s API server
-        2379 # etcd client
-        2380 # etcd peer
-        10250 # Kubelet API
-        179 # Calico BGP
-        5473 # Calico Typha
         9100 # Prometheus node-exporter
         # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
   ];
@@ -929,7 +925,8 @@
     monitoring = false; # No monitoring secrets currently needed (sentry-dsn removed with GlitchTip)
     storage = true; # Required for backup-to-garage service (S3 API key)
     mining = true;
-    kubernetes = true; # k3s cluster token
+    # kubernetes = false — zephyr is NOT a k3s node; the k3s token secret is
+    # not needed here (control plane is nexus/forge/sentry).
     selfHosting = false; # These services run on other hosts
   };
 

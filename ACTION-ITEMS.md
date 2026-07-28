@@ -1,7 +1,9 @@
 # Action Items — Consolidated
 
-> **Last Updated:** 2026-07-15
+> **Last Updated:** 2026-07-27
 > **Source:** Cross-session audit of cluster infrastructure, security posture, vLLM containerization, NixOS config.
+>
+> **Cross-reference:** [`docs/audit-2026-07-27.md`](docs/audit-2026-07-27.md) — 24 cross-area findings. A subset overlaps with this ACTION-ITEMS list; see F-1/F-2 (SAMSUNG_TV_TOKEN routing + `.env` tracking), F-3 (YubiKey CCID driver symlink), F-5 (`:latest` admission policy), F-6 (knowledge-fabric hardcoded IPs), F-12 (Z.AI fully removed 2026-07-15).
 
 ---
 

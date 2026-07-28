@@ -149,7 +149,9 @@ in {
         };
 
         binds = with acts; {
-          "Mod+Return".action = spawn "uwsm" "app" "--" "alacritty";
+          # 2026-07-27 OOM emergency: alacritty-oom-safe wrapper caps per-instance
+          # memory + lowers oomd scoring (see home.packages entry below).
+          "Mod+Return".action = spawn "uwsm" "app" "--" "alacritty-oom-safe";
           "Mod+B".action = spawn "launch-or-focus" "Zen" "uwsm" "app" "--" "zen-twilight";
           "Mod+Shift+B".action = spawn "uwsm" "app" "--" "zen-twilight" "--private-window";
           "Mod+E".action = spawn "launch-or-focus" "Dolphin" "${pkgs.kdePackages.dolphin}/bin/dolphin";
@@ -160,8 +162,8 @@ in {
             spawn "launch-or-focus" "Kate" "uwsm" "app" "--"
             "${pkgs.kdePackages.kate}/bin/kate";
           "Mod+O".action = spawn "launch-or-focus" "Obsidian" "uwsm" "app" "--" "obsidian";
-          "Mod+T".action = spawn "uwsm" "app" "--" "alacritty" "-e" "btop";
-          "Mod+D".action = spawn "uwsm" "app" "--" "alacritty" "-e" "lazydocker";
+          "Mod+T".action = spawn "uwsm" "app" "--" "alacritty-oom-safe" "-e" "btop";
+          "Mod+D".action = spawn "uwsm" "app" "--" "alacritty-oom-safe" "-e" "lazydocker";
           "Mod+G".action = spawn "launch-or-focus" "vesktop" "uwsm" "app" "--" "vesktop";
           # firefoxpwa shortcuts disabled
           # "Mod+Shift+G".action =
@@ -823,6 +825,28 @@ in {
   # produces <name>/bin/<name> without running shellcheck, so the inline
   # `local x=$(...)` form builds cleanly on this Nixpkgs version.
   home.packages = [
+    # 2026-07-27 OOM emergency: on zephyr (31 GB RAM, persistent pressure
+    # from control-plane + gaming + AI + mining), systemd-oomd marked the
+    # uwsm-spawned alacritty scope as a victim at 90% mem+swap threshold.
+    # Wrap alacritty in a NEW --user scope under systemd-run so it's a
+    # clearly-bounded leaf cgroup with its own caps and OOM-score. The
+    # uwsm outer scope may still die, but alacritty's branch terminates
+    # cleanly rather than dragging niri or noctalia with it.
+    # Mirrors the systemd-run ownership pattern in
+    # modules/gaming/gaming.nix (launch-game wrapper, line ~425).
+    (pkgs.writeShellScriptBin "alacritty-oom-safe" ''
+      #!/bin/sh
+      set -euo pipefail
+      if [ "$#" -eq 0 ]; then
+        set -- alacritty
+      fi
+      exec ${pkgs.systemd}/bin/systemd-run --user --scope --collect \
+        --property=MemoryHigh=2G \
+        --property=MemoryMax=4G \
+        --property=OOMPolicy=continue \
+        --property=OOMScoreAdjust=-800 \
+        -- alacritty "$@"
+    '')
     (pkgs.writeShellScriptBin "launch-or-focus" ''
       set -euo pipefail
 

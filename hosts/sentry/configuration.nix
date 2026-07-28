@@ -57,7 +57,6 @@
     unbound.listenAddress = "10.1.1.140";
   };
 
-
   # Directly disable the systemd timer (blocking rebuilds)
 
   # Populate /etc/hosts from central cluster configuration
@@ -123,6 +122,14 @@
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.140";
       calico.enable = true;
+      # 2026-07-28: the FATAL "stat .../cred/supervisor.kubeconfig: no such
+      # file or directory" on activation is fixed at a different layer:
+      # the etcdClean=true previously in hosts/sentry/services.nix wiped the
+      # k3s state on every activation; the real remediation there is the
+      # mkForce false we just applied. Note: there is no declared
+      # `services.k3s-cluster.secretsEncryptionKeyFile` option in nixpkgs'
+      # upstream k3s module — the dormant field in services.nix (set but
+      # never evaluated because enable=false) was vestigial.
     };
 
     # Auto-apply K8s manifests on boot (control-plane node)
@@ -131,7 +138,11 @@
     keepalived-vip = {
       enable = true;
       vip = "10.1.1.100";
-      interface = "enp7s0";
+      # 2026-07-28: changed from "enp7s0" → "eth0" (predictable-name change after
+      # 26.11 kernel upgrade). Sentry's actual NIC is eth0; the keepalived
+      # service was failing on activation because the generated conf pointed
+      # at a non-existent interface.
+      interface = "eth0";
       priority = 90;
     };
 
@@ -208,7 +219,14 @@
     # RGB control for AMD Wraith Prism cooler and MSI motherboard
     rgb-control = {
       enable = true;
-      openrgb.enable = true;
+      # 2026-07-28: headless host. openrgb userland wrapper core-dumps 4× per
+      # boot (correlated with the systemd-coredump entries). Use lib.mkForce
+      # false on the existing sub-option so the rgb-control module can still
+      # see wraithRgb + temperatureReactive but the openrgb wrapping is
+      # suppressed entirely. (A second `hardware.rgb-control.openrgb.enable`
+      # at the top-level collides with module attrset merge rules — keep this
+      # in this block where lib.mkForce is allowed to win.)
+      openrgb.enable = lib.mkForce false;
       wraithRgb.enable = true; # AMD Wraith Prism cooler
       temperatureReactive = {
         enable = true;
@@ -342,8 +360,16 @@
     "hugepages=3"
     # Override conflicting panic values — ensure 30s for journald flush on crash
     "panic=30"
-    # Ryzen MCE mitigation: Bank 5 WDT timeout. See https://github.com/DimitriFourny/MCE-Ryzen-Decoder
-    "processor.max_cstate=5"
+    # 2026-07-28: Zen 1 (Ryzen 7 1700) hard-lockup mitigation. The earlier
+    # override of "=5" here was last-wins in the kernel cmdline, UNDOING the
+    # fleet's processor.max_cstate=1 mitigation in modules/system/kernel-hardening.nix.
+    # CachyOS 7.1.3's aggressive C-state entry exposes the well-known Zen 1
+    # C6 deep-sleep lockup, which the softlockup_panic=1 + nmi_watchdog=1 floor
+    # then panics on (matching the recurring Mut-Jul / Jul-25 / today crash loop).
+    # Setting max_cstate=1 here is correct: it ALIGNS sentry with the fleet
+    # mitigation and silences the duplicate cmdline entry. The MCE comment
+    # about Bank 5 WDT is misleading — the actual Zen 1 mitigation is cstate≤1.
+    "processor.max_cstate=1"
     # Do NOT panic on kernel oops — k3s nftables cleanup segfaults trigger oops,
     # and MCE Bank 5 errors on Ryzen are non-fatal. panic_on_oops=1 overrides this
     # from kernel-hardening.nix; put ours last so the kernel uses it.
@@ -493,4 +519,33 @@
     enable = true;
     vulkanBinaryStorePath = "/nix/store/shxi0y8dv1llnjcqbjg2hz9f3b0gwpgj-llama-cpp-vulkan-0.0.0";
   };
+
+  # ── 2026-07-28 sentry boot-error fixes ──────────────────────────────────
+  # Enable kdump so the next kernel panic leaves a /var/crash/* dmesg trace.
+  # Previous Zen 1 lockups vanished into the cold-reboot ring-buffer flush,
+  # leaving no forensic record. boot.kexecLikeResume is the runtime hook so
+  # the kdump kernel can hot-reload on panic signal.
+  # 2026-07-28: services.kdump + boot.kexecLikeResume aren't declared in
+  # the current Nixpkgs pin (9ae611a455b90cf061d8f332b977e387bda8e1ca).
+  # The C-state fix above (processor.max_cstate=1) is the actual mitigation
+  # for the recurring Zen 1 hard-lockup panics on sentry; kdump was
+  # supplementary but isn't blocking deploy.
+  # Sentry is a headless Vulkan AI inference box + k3s control-plane node.
+  # The CUPS subsystem currently logs "HP-Envy-7800: Unable to connect to
+  # 10.1.1.173:631: Host is down" on every boot and tries to register an
+  # airscan device — both useless here. modules/system/boot-error-fixes.nix
+  # force-mirrors services.printing.enable from this includePrinting flag.
+  services.boot-error-fixes.includePrinting = lib.mkForce false;
+  # SDDM greeter NULL-derefs at every boot (sddm-helper-sta segfault at 0, core-dumped).
+  # Sentry has no interactive Wayland session attached (no keyboard/monitor);
+  # suppress the greeter entirely. Other hosts that need a desktop keep the
+  # default.
+  services.displayManager.sddm.enable = lib.mkForce false;
+  # alertmanager currently fails start: it tries to gossip-join a cluster
+  # mesh despite listenAddress=127.0.0.1 having no private IP for cluster
+  # advertise. Sentry runs solo. Disable clustering so the unit emits the
+  # indep-listen and exits gracefully instead of looping on start-limit-hit.
+  services.prometheus.alertmanager.extraFlags = [
+    "--cluster.listen-address="
+  ];
 }

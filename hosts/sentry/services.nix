@@ -17,10 +17,15 @@ in {
     k3s-cluster = {
       enable = true;
       role = "server";
-      etcdClean = true;
+      # 2026-07-28: mkForce false. The `true` here was a stale leftover from
+      # initial bootstrap; on a healthy control-plane node the etcd state at
+      # /var/lib/rancher/k3s/server/db is the canonical cluster truth and must
+      # NOT be wiped on every activation — that path requires an explicit
+      # one-shot rescue (`services.k3s-cluster.wipeState` or wipeState=true).
+      etcdClean = lib.mkForce false;
       nodeName = "sentry";
       serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
-      tokenFile = "/persistent/etc/k3s-cluster-token";
+      tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = cluster.hosts.sentry.ip;
       secretsEncryptionKeyFile = "/run/secrets/k3s-encryption-key";
     };
@@ -52,9 +57,6 @@ in {
     spotify-spotx.enable = lib.mkDefault true;
 
     tailscale.enable = true;
-
-
-
 
     sops-secrets-registry = {
       enable = true;
