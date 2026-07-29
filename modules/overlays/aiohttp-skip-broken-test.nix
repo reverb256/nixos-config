@@ -1,38 +1,29 @@
-# Cluster-wide overlay: skip aiohttp tests by patching the package
-# directly. We use overrideAttrs at the nixpkgs level to ensure the
-# override applies regardless of which Python attribute path is used.
+# Cluster-wide overlay: skip aiohttp tests by mutating the aiohttp
+# package's dontCheck via ALL its python attribute paths.
+#
+# Without this overlay, nixos-rebuild switch fails because lix
+# (the build toolchain) depends on python3.13-aiohttp, and the test
+# failures abort the build.
+#
+# Strategy: override aiohttp at the toplevel nixpkgs scope (so ALL python
+# versions, including the legacy python3.pkgs.aiohttp alias, get the patch).
 
-final: prev: {
-  # Override aiohttp in all Python package sets. The recursive override
-  # in python3.pkgs ensures lix's internal references pick up the patch.
-  python310Packages = prev.python310Packages // {
-    aiohttp = prev.python310Packages.aiohttp.overridePythonAttrs (old: {
-      dontCheck = true;
-    });
-  };
-  python311Packages = prev.python311Packages // {
-    aiohttp = prev.python311Packages.aiohttp.overridePythonAttrs (old: {
-      dontCheck = true;
-    });
-  };
-  python312Packages = prev.python312Packages // {
-    aiohttp = prev.python312Packages.aiohttp.overridePythonAttrs (old: {
-      dontCheck = true;
-    });
-  };
-  python313Packages = prev.python313Packages // {
-    aiohttp = prev.python313Packages.aiohttp.overridePythonAttrs (old: {
-      dontCheck = true;
-    });
-  };
-
-  # python3.pkgs is exposed via makeScope which uses extends pattern.
-  # To override something INSIDE makeScope, we must use extend on the pkgs
-  # set itself. prev.python3.pkgs.overrideScope(...) returns a NEW pkgs
-  # set with the override applied. Replace python3.pkgs with this.
+final: prev: let
+  # Override one specific aiohttp and let Nix propagate via super.aiohttp references.
+  pkgsScoped = prev.appendOverlays [
+    (superFinal: superPrev: {
+      aiohttp = superPrev.aiohttp.overridePythonAttrs (old: {
+        dontCheck = true;
+      });
+    })
+  ];
+  # Use the scoped pkgs to override python3.pkgs
   python3 = prev.python3 // {
-    pkgs = prev.python3.pkgs.overrideScope (self: super: {
-      aiohttp = super.aiohttp.overridePythonAttrs (old: { dontCheck = true; });
-    });
+    pkgs = pkgsScoped.python3.pkgs;
   };
-}
+  # Per-version python packages
+  python310Packages = pkgsScoped.python310Packages;
+  python311Packages = pkgsScoped.python311Packages;
+  python312Packages = pkgsScoped.python312Packages;
+  python313Packages = pkgsScoped.python313Packages;
+in {}
