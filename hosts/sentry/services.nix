@@ -102,7 +102,7 @@ in {
     port = 2222;
   };
   services.recovery-specialisation.enable = true;
-  services.btrfs-boot-snapshot.enable = lib.mkForce false;
+  services.btrfs-boot-snapshot.enable = false;
 
   services.cachix-auth.enable = true;
   services.ai-coding-tools = {

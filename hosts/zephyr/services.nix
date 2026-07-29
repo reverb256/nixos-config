@@ -93,7 +93,7 @@ in {
 
     opencode = {
       enable = true;
-      clusterSync.enable = lib.mkForce false; # skip SSH sync to cluster nodes on every activation
+      clusterSync.enable = false; # skip SSH sync to cluster nodes on every activation
     };
 
 
