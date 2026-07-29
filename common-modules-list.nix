@@ -4,8 +4,9 @@
 }: [
   inputs.home-manager.nixosModules.home-manager
   ./modules/system/home-manager.nix
-  inputs.aagl.nixosModules.default
-  ./modules/desktop/aagl.nix
+  # Audit F-13 (2026-07-28): AAGL moved to
+  # modules/desktop/desktop-modules.nix (loaded via
+  # flake.nix `hosts.zephyr.extraModules` only).
   inputs.nur.modules.nixos.default
   inputs.sops-nix.nixosModules.default
   ./modules/system/sops-secrets-registry.nix
@@ -20,8 +21,8 @@
   # REMOVED: compute-market (all mining infra switched to peakminer)
   inputs.gpu-proxy.nixosModules.default
 
-  inputs.stylix.nixosModules.default
-  ./modules/desktop/stylix.nix
+  # Audit F-13 (2026-07-28): Stylix moved to
+  # modules/desktop/desktop-modules.nix (zephyr-only).
 
   ./modules/services/peakminer.nix
 
@@ -55,8 +56,9 @@
     # error during pkgsWithOverlay evaluation). Earlier duplicates were removed
     # during the Phase-2 secretspec consolidation (see
     # modules/system/SECRETSPEC-CONSOLIDATION.md).
+    # Audit F-13 (2026-07-28): `inputs.niri.overlays.niri` moved to
+    # modules/desktop/desktop-modules.nix (zephyr-only).
     nixpkgs.overlays = [
-      inputs.niri.overlays.niri
       inputs.llm-agents.overlays.shared-nixpkgs
       self.overlays.default
       inputs.lsfg-vk-nix.overlays.default

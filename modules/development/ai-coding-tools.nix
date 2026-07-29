@@ -71,48 +71,12 @@
       Z_AI_API_KEY = zaiApiKeyRef;
     };
   };
-  # Local stdio MCP servers (use mcp-* wrappers from mcp-servers.nix)
-  localStdioServers = {
-    filesystem = {
-      command = "mcp-filesystem";
-      args = [
-        "/etc/nixos"
-        "/home/j_kro"
-      ];
-    };
-    git = {
-      command = "mcp-git";
-    };
-    fetch = {
-      command = "mcp-fetch";
-    };
-    playwright = {
-      command = "mcp-playwright";
-    };
-    context7 = {
-      command = "mcp-context7";
-      env.CONTEXT7_API_KEY = context7ApiKeyRef;
-    };
-    chrome-devtools = {
-      command = "npx";
-      args = [
-        "-y"
-        "chrome-devtools-mcp@latest"
-      ];
-    };
-    gateway = {
-      command = "mcp-gateway-bridge";
-    };
-    searxng = {
-      command = "mcp-fetch";
-      # SearXNG via fetch wrapper with custom URL
-      # Note: If a dedicated searxng MCP wrapper exists, replace this
-    };
-    hound = {
-      command = "/data/agents/mcp-bridges/hound-mcp.sh";
-      description = "Web fetch + crawl + search + Cloudflare bypass + PDF OCR";
-    };
-  };
+  # Local stdio MCP servers (extracted 2026-07-28 per audit F-22).
+  # Source of truth: ./mcp-local-servers.nix. Wrapper commands
+  # (`mcp-filesystem`, `mcp-git`, `mcp-fetch`, `mcp-playwright`,
+  # `mcp-context7`, `mcp-gateway-bridge`) are provided by
+  # modules/services/mcp-servers.nix.
+  localStdioServers = import ./mcp-local-servers.nix;
   # Full MCP set: Z.AI stdio + Z.AI HTTP + local stdio
   fullMcpSet =
     localStdioServers
