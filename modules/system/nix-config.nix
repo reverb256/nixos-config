@@ -60,7 +60,12 @@
   ];
 
   nix = {
-    package = lib.mkDefault pkgs.lixPackageSets.lix_2_95.lix;
+    package = (pkgs.lixPackageSets.lix_2_95.lix.overrideAttrs (old: {
+      # 2026-07-29: lix's own FileTransfer tests fail in our sandbox because
+      # they try to bind() to specific addresses (errno 99 Cannot assign
+      # requested address). Disable lix's check phase entirely.
+      dontCheck = true;
+    }));
 
     settings = {
       experimental-features = ["nix-command" "flakes"];
