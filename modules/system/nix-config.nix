@@ -12,6 +12,21 @@
         colmena
         ;
 
+      # 2026-07-28: Patch aiohttp's disabledTests at the toplevel overlay so
+      # both python3.pkgs.aiohttp (used by lix) and python313Packages.aiohttp
+      # get the same deselected tests. Earlier attempts to do this via a
+      # standalone overlay failed because python3.pkgs uses makeScope/extends
+      # and our // override doesn't propagate.
+      aiohttp = prev.aiohttp.overridePythonAttrs (old: {
+        disabledTests = (old.disabledTests or []) ++ [
+          "tests/test_proxy_functional.py::test_proxy_http_connection_error"
+          "tests/test_proxy_functional.py::test_proxy_https_connection_error"
+          "tests/test_run_app.py::test_run_app_preexisting_inet6_socket"
+          "tests/test_test_utils.py::test_test_server_hostnames"
+          "tests/test_tracing.py::TestTrace::test_send"
+        ];
+      });
+
       cuda_compat =
         prev.runCommand "cuda_compat-dummy"
         {}
