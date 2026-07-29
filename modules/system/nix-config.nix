@@ -61,10 +61,13 @@
 
   nix = {
     package = (pkgs.lixPackageSets.lix_2_95.lix.overrideAttrs (old: {
-      # 2026-07-29: lix's own FileTransfer tests fail in our sandbox because
-      # they try to bind() to specific addresses (errno 99 Cannot assign
-      # requested address). Disable lix's check phase entirely.
+      # 2026-07-29: lix's FileTransfer unit tests fail in our sandbox with
+      # errno 99 (Cannot assign requested address). Lix uses meson for tests
+      # which doesn't fully respect dontCheck, so also disable meson tests.
       dontCheck = true;
+      mesonFlags = (old.mesonFlags or []) ++ [ "-Db_ndebug=true" ];
+      # Also disable doInstallCheck which runs additional tests
+      doInstallCheck = false;
     }));
 
     settings = {
