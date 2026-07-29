@@ -1261,6 +1261,6 @@
   # Bonsai 27B: ternary on RTX 3090 (port 1237) + 1-bit on RTX 3060 Ti (port 1236)
   services.bonsai = {
     enable = true;
-    # binaryStorePath = "FIXME_CUDA_ON_BUILD"; # set after `nix build .#cuda` finishes
+    binaryStorePath = "/nix/store/6pnbfx3vqcljg2i6gnv7fds9yy56aj4n-llama-cpp-cuda-0.0.0";
   };
 }

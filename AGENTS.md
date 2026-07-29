@@ -94,12 +94,12 @@ gh pr create --base main --head issue-NNN-desc --title "type: description (#NNN)
 
 ## Self-Hosted GitHub Actions Runner
 
-**Host:** nexus (ID: 28) | **Binary:** Official runner v2.334.0 | **Status:** Online
+**Host:** nexus | **Status:** Online
 
 ### Runner Location
-- **Directory:** `/home/j_kro/actions-runner-official/`
-- **Wrapper Script:** `/home/j_kro/actions-runner-official/start-runner.sh` (sets ICU env vars for dotnet)
-- **Systemd Service:** `github-actions-runner.service` (auto-start on boot)
+- **Directories:** `/home/j_kro/actions-runner/`, `/home/j_kro/actions-runner-brand/`, `/home/j_kro/actions-runner-site-agency/`
+- **Status:** `nexus-runner.service` is the active user unit on nexus
+- **Systemd Service:** `nexus-runner.service` user unit on nexus
 - **Work Directory:** `_work/` within runner directory
 
 ### Environment (NixOS-specific)
@@ -743,7 +743,6 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 |---|-------|--------|--------|
 | 1 | **dashboard.lan (Glance)** | ✅ Resolved 2026-07-14 | Deployed via `kubernetes.small` manifest on zephyr/sentry |
 | 2 | **Casdoor MCP bridge scopes** | mcp-client OAuth app missing MCP scopes | Add MCP scopes to app mcp-client in Casdoor |
-<<<<<<< HEAD
 | 3 | **Nexus NVMe boot timeout** | ✅ Resolved 2026-07-14 | `nvme_core.timeout=30` already in nexus hardware.nix |
 | 4 | **NodePort access bypasses Caddy auth** | ✅ Resolved 2026-07-14 | iptables restricts 30000-32767 to 10.1.1.0/24 + localhost |
 | 5 | **etcd encryption at rest** | ✅ Resolved 2026-07-14 | `encryption-provider-config` wired in k3s-cluster.nix |
@@ -763,27 +762,6 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 | 6 | **runAsNonRoot tightening** | ✅ Implemented | `mining` and `mcp` namespaces removed from `require-resources-and-security` policy binding exclusions |
 | 7 | **`:latest` image tags** | ✅ Pinned | vane, nix-csi, hermes-workspace, kb-mcp, qdrant-mcp, chatterbox-tts now use versioned tags |
 
-### Security Hardening (2026-07-14)
-
-| # | Item | Status | Notes |
-|---|------|--------|-------|
-| 1 | **NodePort access restriction** | ✅ Implemented | iptables rules in `modules/services/k3s-cluster.nix` drop NodePort (30000-32767) traffic except from `10.1.1.0/24` + localhost |
-| 2 | **etcd encryption at rest** | ✅ Implemented | `services.k3s-cluster.secretsEncryptionKeyFile` + `k3s-secrets-encryption` oneshot; key distributed via sops-nix (`secrets/infra/k3s-encryption-key.yaml`) |
-| 3 | **Kubernetes audit policy** | ✅ Implemented | `k3s-audit-policy` installs policy + log dir; API server logs metadata for all requests, bodies for secrets/RBAC/admission changes |
-| 4 | **Falco runtime security** | ✅ Implemented | `kubernetes/modules/falco.nix` DaemonSet in `monitoring` namespace, privileged, host mounts for syscall monitoring |
-| 5 | **Pod Security Standards labels** | ✅ Implemented | `kubernetes/modules/infrastructure.nix` sets `enforce=baseline/audit=warn=restricted` on workload namespaces; system namespaces `privileged` |
-| 6 | **runAsNonRoot tightening** | ✅ Implemented | `mining` and `mcp` namespaces removed from `require-resources-and-security` policy binding exclusions |
-| 7 | **`:latest` image tags** | ✅ Pinned | vane, nix-csi, hermes-workspace, kb-mcp, qdrant-mcp, chatterbox-tts now use versioned tags |
-||||||| f46c16eb
-| 3 | **Nexus NVMe boot timeout** | No kernel-level nvme_core.timeout set | Add nvme_core.timeout=30 + rootdelay=5 to nexus kernelParams |
-=======
-| 3 | **Nexus NVMe boot timeout** | ✅ Resolved 2026-07-14 | `nvme_core.timeout=30` already in nexus hardware.nix |
-| 4 | **NodePort access bypasses Caddy auth** | ✅ Resolved 2026-07-14 | iptables restricts 30000-32767 to 10.1.1.0/24 + localhost |
-| 5 | **etcd encryption at rest** | ✅ Resolved 2026-07-14 | `encryption-provider-config` wired in k3s-cluster.nix |
-| 6 | **Pod Security Standards labels** | ✅ Resolved 2026-07-14 | Baseline/restricted labels added to all namespaces |
-| 7 | **K8s audit policy** | ✅ Resolved 2026-07-14 | Audit policy + JSON logs wired in k3s-cluster.nix |
-| 8 | **Falco runtime security** | ✅ Resolved 2026-07-14 | Falco DaemonSet deployed via `kubernetes/modules/falco.nix` |
->>>>>>> central/issue-291-audit-remediation
 
 ### Resolved (2026-05-14)
 - K8s Tailscale Funnel live: 5 ingresses via operator, ProxyGroup 2/2, host funnel disabled
@@ -808,7 +786,7 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 
 ---
 
-**Version**: 9.5 | **Last Updated:** 2026-07-14
+**Version**: 9.5 | **Last Updated:** 2026-07-29
 
 ## Known Frictions & Workarounds (2026-05-18)
 

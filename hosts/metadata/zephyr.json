@@ -1,0 +1,83 @@
+{
+  "hostName": "zephyr",
+  "targetUser": "j_kro",
+  "targetHost": null,
+  "tags": [
+    "control-plane",
+    "k8s-master",
+    "k8s-node",
+    "local"
+  ],
+  "buildOnTarget": false,
+  "allowLocalDeployment": true,
+  "ipAddress": "10.1.1.110",
+  "interfaceName": "enp38s0",
+  "wireless": {
+    "enable": true,
+    "ipAddress": "10.1.1.115"
+  },
+  "firewall": {
+    "allowedTCPPorts": [
+      9757,
+      18789,
+      18790,
+      19898,
+      8080,
+      8083,
+      53317,
+      8888,
+      3900,
+      3901,
+      50000,
+      9100
+    ],
+    "allowedUDPPorts": [
+      9757,
+      9758,
+      9759,
+      27031,
+      27036,
+      9947,
+      53317,
+      8472,
+      4789
+    ],
+    "interfaces": {
+      "tailscale0": {
+        "allowedTCPPorts": [
+          18789,
+          18790
+        ]
+      }
+    }
+  },
+  "keepalived": {
+    "enable": false
+  },
+  "k3s": {
+    "enable": false,
+    "role": null,
+    "nvidia": {
+      "enable": true
+    },
+    "clusterInit": false,
+    "nodeName": "zephyr",
+    "serverAddr": "",
+    "tokenFile": "/run/secrets/k3s-cluster-token",
+    "nodeIP": "10.1.1.110",
+    "calico": {
+      "enable": true
+    }
+  },
+  "profiles": {
+    "node": "zephyr-workstation",
+    "role": [
+      "workstation",
+      "gaming",
+      "vr",
+      "mining",
+      "aiInference"
+    ],
+    "monitoring": false
+  }
+}
