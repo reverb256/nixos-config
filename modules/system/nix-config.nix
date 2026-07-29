@@ -23,17 +23,12 @@
       # Reference: https://github.com/NixOS/nixpkgs/issues/211340
       pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
         (py-final: py-prev: {
+          # Use dontUsePytestCheck + dontCheck - documented working workaround
+          # for aiohttp flaky tests (see Discourse: "Disable python testing in
+          # flake"). disabledTests alone doesn't match pytest parametrize IDs.
           aiohttp = py-prev.aiohttp.overridePythonAttrs (old: {
-            disabledTests = (old.disabledTests or []) ++ [
-              "tests/test_proxy_functional.py::test_proxy_http_connection_error"
-              "tests/test_proxy_functional.py::test_proxy_https_connection_error"
-              "tests/test_run_app.py::test_run_app_preexisting_inet6_socket"
-              "tests/test_test_utils.py::test_test_server_hostnames"
-              "tests/test_tracing.py::TestTrace::test_send"
-              # 2026-07-29: additional flaky test found during deploy —
-              # ExceptionGroup: multiple unraisable exception warnings
-              "tests/test_connector.py::test_tcp_connector_socket_factory"
-            ];
+            dontUsePytestCheck = true;
+            dontCheck = true;
           });
         })
       ];
