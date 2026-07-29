@@ -47,6 +47,11 @@
           prometheus-client = py-prev.prometheus-client.overridePythonAttrs (old: {
             dontCheck = true;
           });
+          # python-socks: tests fail connecting to proxy at (::1, 7780)
+          python-socks = py-prev.python-socks.overridePythonAttrs (old: {
+            dontUsePytestCheck = true;
+            dontCheck = true;
+          });
         })
       ];
 
