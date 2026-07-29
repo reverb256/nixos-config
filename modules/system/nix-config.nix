@@ -17,22 +17,19 @@
       # fail intermittently in our sandbox (proxy timeouts, IPv6 binding,
       # py3.13 warnings).
       #
-      # The correct approach is pythonPackagesExtensions — it hooks into the
-      # fixed-point composition that python3.pkgs actually uses (via
-      # lib.makeScopeWithSplicing). Standard // overrides on prev.python3.pkgs
-      # don't propagate because python3.pkgs is a fixed-point scope with lazy
-      # bindings.
-      #
+      # MUST use pythonPackagesExtensions (not // overrides) because
+      # python3.pkgs is a fixed-point scope via lib.makeScopeWithSplicing —
+      # standard // overrides don't propagate through the lazy binding chain.
       # Reference: https://github.com/NixOS/nixpkgs/issues/211340
       pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
         (py-final: py-prev: {
           aiohttp = py-prev.aiohttp.overridePythonAttrs (old: {
             disabledTests = (old.disabledTests or []) ++ [
-              "test_proxy_http_connection_error"
-              "test_proxy_https_connection_error"
-              "test_run_app_preexisting_inet6_socket"
-              "test_test_server_hostnames"
-              "TestTrace::test_send"
+              "tests/test_proxy_functional.py::test_proxy_http_connection_error"
+              "tests/test_proxy_functional.py::test_proxy_https_connection_error"
+              "tests/test_run_app.py::test_run_app_preexisting_inet6_socket"
+              "tests/test_test_utils.py::test_test_server_hostnames"
+              "tests/test_tracing.py::TestTrace::test_send"
             ];
           });
         })
