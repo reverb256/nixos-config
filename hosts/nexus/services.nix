@@ -329,7 +329,7 @@ in {
   };
   services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
   services.recovery-specialisation.enable = true; # depends on initrd-ssh
-  services.btrfs-boot-snapshot.enable = lib.mkForce false; # NixOS generations sufficient
+  services.btrfs-boot-snapshot.enable = false; # NixOS generations sufficient
 
   services.cachix-auth.enable = true;
   services.ai-coding-tools = {

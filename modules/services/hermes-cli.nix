@@ -99,6 +99,13 @@
 
   wrappedBinPath = "${hermesPkgWrapped}/bin/hermes";
 
+  # apiKeyFile/ZAI_API_KEY removed 2026-07-15. Z.AI is fully gone from the
+  # cluster — no Z.AI MCP servers, no Z.AI LLM provider, no Z.AI secrets.
+  # buffy-mcp + local bridges don't need internet bearer auth.
+
+  # Use base hermes-agent package without WhatsApp bridge (stub removed).
+  # WhatsApp functionality temporarily disabled.
+
   # If hermes-agent is enabled, use its state dir. Otherwise, use user home.
   useAgentStateDir = hermesAgentCfg.enable or false;
 in {

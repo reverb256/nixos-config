@@ -359,7 +359,7 @@ in {
   };
   services.recovery-specialisation.enable = true;
   services.secret-hygiene.enable = lib.mkForce false;
-  services.btrfs-boot-snapshot.enable = lib.mkForce false; # NixOS generations sufficient
+  services.btrfs-boot-snapshot.enable = false; # NixOS generations sufficient
 
   # Create directories for hermes/pi bind mounts on Zephyr.
   # Also symlink /etc/cdi -> /var/run/cdi so podman finds the nvidia-container-toolkit
