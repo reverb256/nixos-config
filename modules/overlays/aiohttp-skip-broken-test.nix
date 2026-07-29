@@ -1,40 +1,38 @@
-# Cluster-wide overlay: skip aiohttp tests that fail intermittently
-# on the homelab cluster. The actual aiohttp functionality is fine;
-# these tests are flaky in sandboxes/proxies due to:
-#   - test_proxy_*_connection_error: needs real network proxy
-#   - test_run_app_preexisting_inet6_socket: needs IPv6 binding
-#   - test_test_server_hostnames: needs ::1 binding
-#   - test_tracing test_send: pytest unraisable warning glitch on Py3.13
-#
-# Without this overlay, nixos-rebuild switch fails because lix
-# (the build toolchain) depends on python3.13-aiohttp, and the test
-# failures abort the build. lix references aiohttp via python3.pkgs.aiohttp
-# which is a SEPARATE attribute from python313Packages.aiohttp in nixpkgs.
-#
-# The fix: define the override ONCE and import it from BOTH paths so the
-# recursive override chain properly applies.
+# Cluster-wide overlay: skip aiohttp tests by patching the package
+# directly. We use overrideAttrs at the nixpkgs level to ensure the
+# override applies regardless of which Python attribute path is used.
 
-final: prev: let
-  aiohttpOverride = pySet: pySet.aiohttp.overridePythonAttrs (old: {
-    dontCheck = true;
-  });
-  overridePkgs = pySet: pySet // {
-    aiohttp = aiohttpOverride pySet;
+final: prev: {
+  # Override aiohttp in all Python package sets. The recursive override
+  # in python3.pkgs ensures lix's internal references pick up the patch.
+  python310Packages = prev.python310Packages // {
+    aiohttp = prev.python310Packages.aiohttp.overridePythonAttrs (old: {
+      dontCheck = true;
+    });
   };
-in {
-  # Per-version python packages - the canonical path
-  python310Packages = overridePkgs prev.python310Packages;
-  python311Packages = overridePkgs prev.python311Packages;
-  python312Packages = overridePkgs prev.python312Packages;
-  python313Packages = overridePkgs prev.python313Packages;
+  python311Packages = prev.python311Packages // {
+    aiohttp = prev.python311Packages.aiohttp.overridePythonAttrs (old: {
+      dontCheck = true;
+    });
+  };
+  python312Packages = prev.python312Packages // {
+    aiohttp = prev.python312Packages.aiohttp.overridePythonAttrs (old: {
+      dontCheck = true;
+    });
+  };
+  python313Packages = prev.python313Packages // {
+    aiohttp = prev.python313Packages.aiohttp.overridePythonAttrs (old: {
+      dontCheck = true;
+    });
+  };
 
-  # Recursively extend python3.pkgs (the legacy alias lix uses).
-  # python3.pkgs is a makeScope result, so we have to extend it the same way.
+  # python3.pkgs is exposed via makeScope which uses extends pattern.
+  # To override something INSIDE makeScope, we must use extend on the pkgs
+  # set itself. prev.python3.pkgs.overrideScope(...) returns a NEW pkgs
+  # set with the override applied. Replace python3.pkgs with this.
   python3 = prev.python3 // {
-    pkgs = (prev.python3.pkgs.overrideScope (self: super: {
+    pkgs = prev.python3.pkgs.overrideScope (self: super: {
       aiohttp = super.aiohttp.overridePythonAttrs (old: { dontCheck = true; });
-    }));
+    });
   };
-  # Also override the pythonPackages alias (in case it differs).
-  pythonPackages = overridePkgs prev.pythonPackages;
 }
