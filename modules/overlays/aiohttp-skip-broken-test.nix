@@ -11,29 +11,30 @@
 # failures abort the build. lix references aiohttp via python3.pkgs.aiohttp
 # which is a SEPARATE attribute from python313Packages.aiohttp in nixpkgs.
 #
-# The fix: use recursive override (extend-style) so that BOTH attribute
-# paths return the same patched derivation.
+# The fix: define the override ONCE and import it from BOTH paths so the
+# recursive override chain properly applies.
 
-final: prev: {
-  # Override aiohttp for every Python version's package set.
-  python310Packages = prev.python310Packages // {
-    aiohttp = prev.python310Packages.aiohttp.overridePythonAttrs (old: { dontCheck = true; });
+final: prev: let
+  aiohttpOverride = pySet: pySet.aiohttp.overridePythonAttrs (old: {
+    dontCheck = true;
+  });
+  overridePkgs = pySet: pySet // {
+    aiohttp = aiohttpOverride pySet;
   };
-  python311Packages = prev.python311Packages // {
-    aiohttp = prev.python311Packages.aiohttp.overridePythonAttrs (old: { dontCheck = true; });
-  };
-  python312Packages = prev.python312Packages // {
-    aiohttp = prev.python312Packages.aiohttp.overridePythonAttrs (old: { dontCheck = true; });
-  };
-  python313Packages = prev.python313Packages // {
-    aiohttp = prev.python313Packages.aiohttp.overridePythonAttrs (old: { dontCheck = true; });
-  };
+in {
+  # Per-version python packages - the canonical path
+  python310Packages = overridePkgs prev.python310Packages;
+  python311Packages = overridePkgs prev.python311Packages;
+  python312Packages = overridePkgs prev.python312Packages;
+  python313Packages = overridePkgs prev.python313Packages;
 
-  # python3.pkgs is the legacy alias - it points to the latest python's
-  # package set. Recursive override here ensures both paths converge.
+  # Recursively extend python3.pkgs (the legacy alias lix uses).
+  # python3.pkgs is a makeScope result, so we have to extend it the same way.
   python3 = prev.python3 // {
-    pkgs = prev.python3.pkgs.overrideScope (self: super: {
+    pkgs = (prev.python3.pkgs.overrideScope (self: super: {
       aiohttp = super.aiohttp.overridePythonAttrs (old: { dontCheck = true; });
-    });
+    }));
   };
+  # Also override the pythonPackages alias (in case it differs).
+  pythonPackages = overridePkgs prev.pythonPackages;
 }
