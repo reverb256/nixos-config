@@ -25,7 +25,7 @@ Complete index of all documentation for the NixOS cluster, including the ongoing
 
 | Document | Purpose | Location |
 |----------|---------|----------|
-| **DECISION_LOG.md** | Architectural decisions & rationale (19 decisions) | `docs/DECISION_LOG.md` |
+| **DECISION_LOG.md** | Architectural decisions & rationale | `docs/DECISION_LOG.md` if present |
 | **STATUS.md** | Real-time cluster health & migration progress | `STATUS.md` |
 | **AGENTS.md** | Universal guidelines for ALL AI agents | `AGENTS.md` |
 | **CLAUDE.md** | Claude Code-specific patterns | `CLAUDE.md` |
