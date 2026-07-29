@@ -11,6 +11,11 @@
     ./common/environment-variables.nix
     ./common/firewall-ports.nix
 
+    # Cluster-wide overlays (applied to all hosts)
+    # 2026-07-28: aiohttp test flake - dontCheck python3.13-aiohttp to unblock
+    # nixos-rebuild switch (lix depends on aiohttp, tests fail in sandboxes).
+    ./overlays/aiohttp-skip-broken-test.nix
+
     # Helper libraries (DRY enforcement)
 
     # Network configuration
