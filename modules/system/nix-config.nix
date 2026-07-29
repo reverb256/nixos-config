@@ -30,6 +30,9 @@
               "tests/test_run_app.py::test_run_app_preexisting_inet6_socket"
               "tests/test_test_utils.py::test_test_server_hostnames"
               "tests/test_tracing.py::TestTrace::test_send"
+              # 2026-07-29: additional flaky test found during deploy —
+              # ExceptionGroup: multiple unraisable exception warnings
+              "tests/test_connector.py::test_tcp_connector_socket_factory"
             ];
           });
         })
