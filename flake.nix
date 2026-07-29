@@ -265,8 +265,13 @@
             "k8s-master"
             "k8s-node"
             "local"
+            "desktop"
           ];
-          extraModules = [ ];
+          # Desktop-only sub-tree (AAGL + Stylix + Niri-overlay).
+          # Audit F-13 (2026-07-28): extracted from common-modules-list.nix
+          # so nexus/forge/sentry skip the eval. The file at
+          # modules/desktop/desktop-modules.nix documents the wiring.
+          extraModules = [ ./modules/desktop/desktop-modules.nix ];
         };
         nexus = {
           hostName = "nexus";
