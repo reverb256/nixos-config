@@ -1,99 +1,54 @@
 {
   inputs,
   self,
-  ...
+  hosts,
+  commonModules,
 }: let
   tunedNixpkgs = system:
     import inputs.nixpkgs {
       inherit system;
       config.allowUnfree = true;
-      overlays = [((import ./overlay.nix) {inherit inputs;})];
+      overlays = [((import ./overlays/default.nix) {inherit inputs;})];
     };
 
-  commonModules = import ./common-modules-list.nix {
-    inherit inputs self;
-  };
-
-  mkHost = {
-    hostName,
-    targetHost,
-    tags ? [],
-    buildOnTarget ? true, # Never build on zephyr — OOM. Default true for remote.
-  }: {...}: {
-    imports =
-      commonModules
-      ++ [
-        ./hosts/${hostName}/configuration.nix
-      ];
-    deployment = {
-      inherit targetHost buildOnTarget;
-      targetUser = "j_kro";
-      inherit tags;
-      allowLocalDeployment =
-        if targetHost == null
-        then true
-        else false;
+  # mkColmenaHost — derive per-host colmneda config from `hosts.<name>`.
+  # Guard: assert that h.hostName, when present, matches the attrset key. If
+  # h.hostName is missing (drift), throw loudly. The directory lookup uses
+  # the attrset key (`name`) because that's what ./hosts/${name}/ names.
+  # Defaults match legacy mkHost signature:
+  #   targetHost    = null    (zephyr is the only local-deployable host)
+  #   buildOnTarget = true    (per-cluster default; zephyr overrides to false)
+  #   tags          = []      (colmneda tags are optional)
+  mkColmenaHost = name: h:
+    assert (h.hostName
+      or (throw "mkColmenaHost: host '${name}' missing required hostName field — add to flake.nix's hosts attrset"))
+      == name;
+    {
+      imports =
+        commonModules
+        ++ [./hosts/${name}/configuration.nix]
+        ++ (h.extraModules or []);
+      deployment = {
+        targetHost = h.targetHost or null;
+        buildOnTarget = h.buildOnTarget or true;
+        tags = h.tags or [];
+        targetUser = "j_kro";
+        # Mirror the legacy `allowLocalDeployment` rule:
+        # allow local build+activation only when targetHost is null (zephyr).
+        allowLocalDeployment = h.targetHost == null;
+      };
     };
-  };
 in {
   meta = {
     nixpkgs = inputs.nixpkgs.legacyPackages.x86_64-linux;
-    nodeNixpkgs = {
-      zephyr = tunedNixpkgs "x86_64-linux";
-      nexus = tunedNixpkgs "x86_64-linux";
-      forge = tunedNixpkgs "x86_64-linux";
-      sentry = tunedNixpkgs "x86_64-linux";
-    };
+    # nodeNixpkgs is derived from the unified `hosts` attrset — adding a new
+    # host in flake.nix gives you a nodeNixpkgs entry here automatically.
+    nodeNixpkgs = builtins.mapAttrs (_: _: tunedNixpkgs "x86_64-linux") hosts;
     machinesFile = ./machines;
     specialArgs = {
       inherit inputs self;
-      # Computed locally (matches flake.nix:218 definition) so we don't need
-      # flake.nix to pass vfioPkgs as an extra arg to this module.
       vfioPkgs = inputs.nixpkgs-vfio.legacyPackages.x86_64-linux;
     };
   };
-
-  zephyr = mkHost {
-    hostName = "zephyr";
-    targetHost = null;
-    buildOnTarget = false; # zephyr has max-jobs=0; build on nexus and push
-    tags = [
-      "control-plane"
-      "k8s-master"
-      "k8s-node"
-      "local"
-    ];
-  };
-  nexus = mkHost {
-    hostName = "nexus";
-    targetHost = "10.1.1.120";
-    tags = [
-      "storage"
-      "k8s-worker"
-      "k8s-storage"
-      "nvidia-gpu"
-      "remote"
-    ];
-  };
-  forge = mkHost {
-    hostName = "forge";
-    targetHost = "10.1.1.130";
-    tags = [
-      "gpu"
-      "compute"
-      "k8s-worker"
-      "k8s-gpu-mixed"
-      "remote"
-    ];
-  };
-  sentry = mkHost {
-    hostName = "sentry";
-    targetHost = "10.1.1.140";
-    tags = [
-      "monitoring"
-      "k8s-worker"
-      "k8s-gpu-amd"
-      "remote"
-    ];
-  };
 }
+  // builtins.mapAttrs mkColmenaHost hosts

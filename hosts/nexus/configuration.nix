@@ -573,5 +573,6 @@
   # Bonsai 27B: 1-bit on RTX 3060 Ti (port 1235), ternary (port 1238) when GPU idle
   services.bonsai = {
     enable = true;
+    binaryStorePath = "/nix/store/6pnbfx3vqcljg2i6gnv7fds9yy56aj4n-llama-cpp-cuda-0.0.0";
   };
 }

@@ -1,0 +1,64 @@
+{
+  "hostName": "forge",
+  "targetUser": "j_kro",
+  "targetHost": "10.1.1.130",
+  "tags": [
+    "gpu",
+    "compute",
+    "k8s-worker",
+    "k8s-gpu-mixed",
+    "remote"
+  ],
+  "buildOnTarget": true,
+  "allowLocalDeployment": false,
+  "ipAddress": "10.1.1.130",
+  "interfaceName": "eno1",
+  "wireless": {
+    "enable": false
+  },
+  "firewall": {
+    "allowedTCPPorts": [
+      10250,
+      3334,
+      3900,
+      3901
+    ],
+    "allowedTCPPortRanges": [
+      {
+        "from": 30000,
+        "to": 32767
+      }
+    ],
+    "allowedUDPPorts": [
+      8472
+    ]
+  },
+  "keepalived": {
+    "enable": true,
+    "vip": "10.1.1.100",
+    "interface": "eno1",
+    "priority": 90
+  },
+  "k3s": {
+    "enable": true,
+    "role": "server",
+    "nvidia": {
+      "enable": true
+    },
+    "clusterInit": false,
+    "nodeName": "forge",
+    "serverAddr": "https://10.1.1.100:6443",
+    "tokenFile": "/run/secrets/k3s-cluster-token",
+    "nodeIP": "10.1.1.130",
+    "calico": {
+      "enable": true
+    }
+  },
+  "profiles": {
+    "node": "forge-mining",
+    "role": [
+      "mining"
+    ],
+    "monitoring": true
+  }
+}

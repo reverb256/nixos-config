@@ -209,7 +209,7 @@
       pkgsWithOverlay = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
-        overlays = [ (import ./overlay.nix { inherit inputs; }) ];
+        overlays = [ (import ./overlays/default.nix { inherit inputs; }) ];
       };
 
       # Scoped recent-nixpkgs for VFIO/Looking Glass packages only.
@@ -244,20 +244,67 @@
             ++ extraModules;
         };
 
-      # HOST DEFINITIONS - Single source of truth
+      # HOST DEFINITIONS - WHOLE-CLUSTER SOURCE OF TRUTH
+      # hostName: matches ./hosts/<n>/ and networking.hostName
+      # targetHost: colmenua targetHost (IP/hostname for remote, null = local)
+      # buildOnTarget: colmneda buildOnTarget (true=build-on-remote, false=build elsewhere)
+      # tags: colmneda tag set for selective deploys
+      # extraModules: per-host NixOS modules appended after commonModules              # (use this to selectively load desktop-only modules for
+              # zephyr/forge while keeping nexus/sentry free of niri/etc)
+      # Adding a 5th host = 1 attr here + ./hosts/<n>/configuration.nix +
+      #                     + (optionally) 1 entry in `machines` for colmneda.
+      #   NOTE: also update ./machines (its keys are colmneda machine entries).
 
       hosts = {
         zephyr = {
           hostName = "zephyr";
+          targetHost = null;
+          buildOnTarget = false; # zephyr has max-jobs=0; build on nexus and push
+          tags = [
+            "control-plane"
+            "k8s-master"
+            "k8s-node"
+            "local"
+          ];
+          extraModules = [ ];
         };
         nexus = {
           hostName = "nexus";
+          targetHost = "10.1.1.120";
+          buildOnTarget = true;
+          tags = [
+            "storage"
+            "k8s-worker"
+            "k8s-storage"
+            "nvidia-gpu"
+            "remote"
+          ];
+          extraModules = [ ];
         };
         forge = {
           hostName = "forge";
+          targetHost = "10.1.1.130";
+          buildOnTarget = true;
+          tags = [
+            "gpu"
+            "compute"
+            "k8s-worker"
+            "k8s-gpu-mixed"
+            "remote"
+          ];
+          extraModules = [ ];
         };
         sentry = {
           hostName = "sentry";
+          targetHost = "10.1.1.140";
+          buildOnTarget = true;
+          tags = [
+            "monitoring"
+            "k8s-worker"
+            "k8s-gpu-amd"
+            "remote"
+          ];
+          extraModules = [ ];
         };
       };
     in
@@ -266,14 +313,19 @@
       # OUTPUT 1: nixosConfigurations (for local nixos-rebuild)
 
       nixosConfigurations = builtins.mapAttrs (
-        _name: value: mkNixosSystem { inherit (value) hostName; }
+        _name: value:
+          mkNixosSystem {
+            inherit (value) hostName extraModules;
+          }
       ) hosts;
 
       # OUTPUT 2: colmena (raw hive configuration)
+      # The `hosts` attrset here is the WHOLE-CLUSTER source of truth.
+      # `colmena.nix` derives both `meta.nodeNixpkgs` AND each host's
+      # colmenua `meta` from it. No duplicate host declarations needed.
 
       colmena = import ./colmena.nix {
-        inherit inputs self;
-        inherit hosts;
+        inherit inputs self hosts commonModules;
       };
 
       # OUTPUT 3: colmenaHive (for multi-host deployment)
@@ -290,94 +342,19 @@
       # CONTAINER IMAGES (for Kubernetes deployment)
 
       # Claude Code container image for Kubernetes deployment
-      packages.x86_64-linux.claude-code-image = pkgs.dockerTools.buildImage {
-        name = "claude-code";
-        tag = "nixos";
-        copyToRoot = pkgs.buildEnv {
-          name = "claude-code-root";
-          paths = [
-            pkgs.claude-code
-            pkgs.bash
-            pkgs.coreutils
-            pkgs.fish
-            pkgs.git
-            pkgs.gnugrep
-            pkgs.gnused
-          ];
-          pathsToLink = [
-            "/bin"
-            "/etc"
-            "/lib"
-          ];
-        };
-        config = {
-          Cmd = [
-            "${pkgs.bash}/bin/bash"
-            "-c"
-            "mkdir -p /home/j_kro/.claude && tail -f /dev/null"
-          ];
-          WorkingDir = "/home/j_kro";
-          Env = [
-            "HOME=/home/j_kro"
-            "USER=j_kro"
-            "PATH=/bin"
-            "CLAUDE_CONFIG_DIR=/home/j_kro/.claude"
-            "SHELL=/bin/fish"
-          ];
-          ExposedPorts = {
-            "8080/tcp" = { };
-          };
-          Labels = {
-            "org.opencontainers.image.title" = "Claude Code";
-            "org.opencontainers.image.description" = "Claude Code AI coding assistant";
-          };
-        };
-      };
+      # Container images extracted to pkgs/ on 2026-07-29 (audit change 3).
+      # /etc/nixos/pkgs/claude-code-image/default.nix — pkgs.callPackage'd.
+      # /etc/nixos/pkgs/opencode-image/default.nix — pkgs.callPackage'd.
+      packages.x86_64-linux.claude-code-image =
+        pkgs.callPackage ./pkgs/claude-code-image { };
+      packages.x86_64-linux.opencode-image =
+        pkgs.callPackage ./pkgs/opencode-image { };
       packages.x86_64-linux.ai-inference-gateway-image =
         pkgs.callPackage ./pkgs/ai-inference-gateway-image
           { };
       # Requires impure paths - build manually: nix build .#kb-mcp-image --impure
       # packages.x86_64-linux.kb-mcp-image = pkgs.callPackage ./pkgs/kb-mcp-image { };
-      packages.x86_64-linux.opencode-image = pkgs.dockerTools.buildImage {
-        name = "opencode";
-        tag = "nixos";
-        copyToRoot = pkgs.buildEnv {
-          name = "opencode-root";
-          paths = [
-            pkgs.opencode
-            pkgs.bash
-            pkgs.coreutils
-            pkgs.fish
-            pkgs.git
-          ];
-          pathsToLink = [
-            "/bin"
-            "/etc"
-            "/lib"
-            "/home/j_kro/.nix-profile"
-          ];
-        };
-        config = {
-          Cmd = [
-            "${pkgs.bash}/bin/bash"
-            "-c"
-            "mkdir -p /home/j_kro/.opencode && tail -f /dev/null"
-          ];
-          WorkingDir = "/home/j_kro";
-          Env = [
-            "HOME=/home/j_kro"
-            "USER=j_kro"
-            "PATH=/home/j_kro/.nix-profile/bin:/bin"
-            "OPENCODE_CONFIG_DIR=/home/j_kro/.opencode"
-            "SHELL=/bin/fish"
-          ];
-          Labels = {
-            "org.opencontainers.image.title" = "OpenCode";
-            "org.opencontainers.image.description" = "OpenCode AI coding assistant";
-          };
-        };
-      };
-      overlays.default = import ./overlay.nix { inherit inputs; };
+      overlays.default = import ./overlays/default.nix { inherit inputs; };
       # pkgsWithOverlay: nixpkgs with custom overlay applied
       pkgsWithOverlay = import nixpkgs {
         inherit system;

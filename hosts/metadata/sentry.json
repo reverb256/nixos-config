@@ -1,0 +1,72 @@
+{
+  "hostName": "sentry",
+  "targetUser": "j_kro",
+  "targetHost": "10.1.1.140",
+  "tags": [
+    "monitoring",
+    "k8s-worker",
+    "k8s-gpu-amd",
+    "remote"
+  ],
+  "buildOnTarget": true,
+  "allowLocalDeployment": false,
+  "ipAddress": "10.1.1.140",
+  "interfaceName": "eth0",
+  "wireless": {
+    "enable": false
+  },
+  "firewall": {
+    "allowedTCPPorts": [
+      22,
+      10250,
+      3100,
+      3900,
+      3901,
+      9100
+    ],
+    "allowedTCPPortRanges": [
+      {
+        "from": 30000,
+        "to": 32767
+      }
+    ],
+    "interfaces": {
+      "enp7s0": {
+        "allowedTCPPorts": [
+          3100
+        ]
+      }
+    },
+    "allowedUDPPorts": [
+      8472
+    ]
+  },
+  "keepalived": {
+    "enable": true,
+    "vip": "10.1.1.100",
+    "interface": "eth0",
+    "priority": 90
+  },
+  "k3s": {
+    "enable": true,
+    "role": "server",
+    "nvidia": {
+      "enable": false
+    },
+    "clusterInit": false,
+    "nodeName": "sentry",
+    "serverAddr": "https://10.1.1.100:6443",
+    "tokenFile": "/run/secrets/k3s-cluster-token",
+    "nodeIP": "10.1.1.140",
+    "calico": {
+      "enable": true
+    }
+  },
+  "profiles": {
+    "node": "sentry-monitoring",
+    "role": [
+      "mining"
+    ],
+    "monitoring": true
+  }
+}
