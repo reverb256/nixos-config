@@ -24,6 +24,26 @@
       # Reference: https://github.com/NixOS/nixpkgs/issues/211340
       #
       # Pattern: https://nix.dev/guides/overlays-python
+      #
+      # 2026-07-29: Pinned-nixpkgs sandbox failures (IPv6 binding ::1,
+      # proxy timeouts, py3.13 unraisable warnings). These 6 packages are
+      # transitive deps of lix via `python3-3.13.13-env`. Realised during
+      # upgrades; upstream already disabled them in newer commits but our
+      # pin is older. Whack-a-mole until roll-forward.
+      #
+      # The override is documented at
+      # https://github.com/NixOS/nixpkgs/issues/211340
+      # and uses pythonPackagesExtensions because python3.pkgs is a fixed-
+      # point scope via lib.makeScopeWithSplicing — standard // overrides
+      # don't propagate through the lazy binding chain.
+      #
+      # Tried but discarded: wrap `buildPythonPackage` itself with
+      # `lib.makeOverridable (f) (origArgs)`. Failed in three different ways:
+      # raw lambda => "expected a set but found a function"; single-arg
+      # partial application => "attribute 'override' missing" (torch breaks);
+      # two-arg with empty origArgs => "attribute 'pname' missing" in
+      # mk-python-derivation.nix. Per-package overridePythonAttrs is the
+      # stable, debuggable path until nixpkgs rolls forward.
       pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
         (py-final: py-prev: {
           # aiohttp: proxy timeouts, IPv6 binding, py3.13 unraisable warnings
