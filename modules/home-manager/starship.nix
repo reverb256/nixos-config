@@ -132,7 +132,7 @@ in {
       # section. We derive it from the active Stylix base16 scheme so the
       # palette stays in sync with the theme. This replaces the drifted
       # plain-file starship.toml that referenced a non-existent palette.
-      palette = "noctalia";
+      palette = lib.mkDefault "noctalia";
       palettes.noctalia = {
         # Surface hierarchy
         surface = c.base00;
@@ -151,7 +151,6 @@ in {
         error = c.base08;     # red
         warning = c.base09;   # orange
         magenta = c.base0E;   # magenta
-        cyan = c.base0C;      # cyan
         # Terminal 16-color aliases
         black = c.base00;
         red = c.base08;
@@ -173,4 +172,3 @@ in {
     };
   };
 }
-PLACEHOLDER

@@ -11,14 +11,10 @@
     ./common/environment-variables.nix
     ./common/firewall-ports.nix
 
-    # Cluster-wide overlays (applied to all hosts)
-    # 2026-07-28: aiohttp test flake - dontCheck python3.13-aiohttp to unblock
-    # nixos-rebuild switch (lix depends on aiohttp, tests fail in sandboxes).
-    # The overlay file is (final: prev: ...); we register it via a wrapper
-    # module so the imports list can carry it cleanly.
-    ({ lib, ... }: {
-      nixpkgs.overlays = [ (import ./overlays/aiohttp-skip-broken-test.nix) ];
-    })
+    # Cluster-wide overlays are applied via modules/system/nix-config.nix
+    # (which has the lix overlay). Standalone overlays via imports don't
+    # propagate to python3.pkgs (lix's lookup path), so we don't add them here.
+    # The aiohttp test override lives in nix-config.nix.
 
     # Helper libraries (DRY enforcement)
 

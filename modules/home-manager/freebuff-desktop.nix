@@ -4,22 +4,20 @@
   lib,
   ...
 }: let
-  # Freebuff Desktop is launched by the user-local wrapper script
-  # (~/.local/bin/freebuff-desktop), which downloads/runs the
-  # Freebuff-x86_64.AppImage from ~/.local/share/freebuff. The canonical
-  # icon ships inside the extracted AppImage at
-  # ~/.local/share/freebuff/extracted/@codebufffreebuff-desktop.png.
-  # Reference it by absolute path so the launcher renders without
-  # depending on hicolor icon-theme cache regeneration.
-  freebuffBin = "${config.home.homeDirectory}/.local/bin/freebuff-desktop";
-  freebuffIcon = "${config.home.homeDirectory}/.local/share/freebuff/extracted/@codebufffreebuff-desktop.png";
+  # Freebuff Desktop is built from the declarative Nix package definition
+  # at packages/freebuff-desktop.nix (appimageTools.wrapType2 with GPU libs).
+  # We use pkgs.callPackage here because home-manager has useGlobalPkgs=false
+  # and doesn't see the overlay's pkgs.freebuff-desktop directly.
+  freebuff-desktop = pkgs.callPackage ../../packages/freebuff-desktop.nix {};
+  freebuffBin = lib.getExe freebuff-desktop;
+  freebuffIcon = "${freebuff-desktop}/share/icons/hicolor/512x512/apps/freebuff.png";
 
   desktopFile = pkgs.writeText "freebuff.desktop" ''
     [Desktop Entry]
     Name=Freebuff
     GenericName=Coding Agent Orchestrator
     Comment=Freebuff Desktop — GitHub-native coding-agent orchestrator
-    Exec=${freebuffBin} %U
+    Exec=${freebuffBin} --no-sandbox --disable-gpu-sandbox %U
     Icon=${freebuffIcon}
     Terminal=false
     Type=Application
@@ -28,8 +26,9 @@
   '';
 in {
   # Declarative .desktop launcher for Freebuff Desktop, shown in the
-  # app launcher (niri/rofi/anyrun). Written as plain text via xdg.dataFile
-  # (not pkgs.makeDesktopItem) to avoid the __ignoreNulls attribute that the
-  # current home-manager version no longer accepts.
+  # app launcher (niri/rofi/anyrun).
   xdg.dataFile."applications/freebuff.desktop".source = desktopFile;
+
+  # Ensure the declarative package is installed
+  home.packages = [freebuff-desktop];
 }
