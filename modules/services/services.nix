@@ -105,7 +105,7 @@ in {
     port = 2222;
   };
   services.recovery-specialisation.enable = true;
-  services.btrfs-boot-snapshot.enable = lib.mkForce false;
+  services.btrfs-boot-snapshot.enable = lib.mkOptionDefault false;  # NixOS generations sufficient; hosts can override with plain = true
 
   services.cachix-auth.enable = true;
   services.ai-coding-tools = {

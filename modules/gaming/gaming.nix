@@ -14,20 +14,10 @@
 with lib; let
   cfg = config.services.gaming;
   vrCfg = cfg.vr;
-  # Kernel-level deadzone tool for controllers
-  set-evdev-deadzone = pkgs.stdenv.mkDerivation {
-    pname = "set-evdev-deadzone";
-    version = "1.0.0";
-    src = ./files;
-    buildPhase = ''
-      gcc -O2 -Wall -o set-evdev-deadzone set-evdev-deadzone.c
-    '';
-    installPhase = ''
-      mkdir -p $out/bin
-      cp set-evdev-deadzone $out/bin/
-    '';
-    nativeBuildInputs = [pkgs.gcc];
-  };
+  # set-evdev-deadzone derivation removed 2026-07-29 (Phase 3 cleanup).
+  # It was only used in a commented-out udev rule in the old monolithic
+  # gaming.nix. If re-enabling kernel-level deadzone, restore the
+  # derivation here and uncomment the RUN+= rule in gaming-base.nix.
 in {
   options.services.gaming = {
     enable = mkEnableOption "Gaming support (Steam, GameMode, Gamescope)";
