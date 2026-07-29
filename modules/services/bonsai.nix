@@ -7,7 +7,7 @@
 #   ──────────────────────────────────────────────────────────────────────
 #   Zephyr        RTX 3090 (GPU 1) + 3060 Ti (0)  1237          1236
 #   Nexus         RTX 3060 Ti                     —             1235
-#   Forge         RTX 4060 (GPU 0)                —             8002
+#   Forge         RTX 4060 (GPU 0,1)               —             8002,8006
 #   Sentry        AMD RX 5600 XT (Vulkan)         —             8003
 #   krash3        CPU-only                        —             8004
 #
@@ -28,11 +28,29 @@ with lib; let
 
   # Wrap the PrismML fork CUDA binary into a package.
   # Create a wrapper that sets LD_LIBRARY_PATH to fix symbol resolution
-  # (PrismML fork's libggml-cpu.so needs libggml-base.so at runtime but search order fails)
-  prismBinary = pkgs.writeShellScriptBin "llama-server-bonsai" ''
-    export LD_LIBRARY_PATH="${cfg.binaryStorePath}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-    exec ${cfg.binaryStorePath}/bin/llama-server "$@"
-  '';
+  # (PrismML fork's libggml-cpu.so needs libggml-base.so at runtime but search order fails).
+  # 2026-07-29: Fail-fast on misconfiguration. The mkIf gates already prevent
+  # services from activating without binaryStorePath, but if an operator forgets
+  # to build the local binary, the prismBinary derivation falls back to
+  # upstream llama-cpp (no bonsai patches) and logs the error via viaPackage.
+  # Switching to throw (instead of lib.warn) ensures the misconfiguration
+  # surfaces at eval time and not at runtime, prevents spam during every
+  # `nix flake check` / `nixos-rebuild`, and is consistent with the rest of
+  # the cluster's fail-fast discipline.
+  prismBinary = if cfg.binaryStorePath != null then
+    pkgs.writeShellScriptBin "llama-server-bonsai" ''
+      export LD_LIBRARY_PATH="${cfg.binaryStorePath}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+      exec ${cfg.binaryStorePath}/bin/llama-server "$@"
+    ''
+  else
+    throw ''
+      services.bonsai.binaryStorePath is null but services.bonsai.enable is true.
+
+      Build the PrismML fork per the instructions in the header of this file,
+      then point services.bonsai.binaryStorePath at the resulting store path.
+      Falling back to upstream pkgs.llama-cpp would silently strip
+      bonsai-specific patches.
+    '';
 
   # Optional Vulkan binary for AMD hosts.
   prismVulkanBinary =
@@ -73,6 +91,9 @@ with lib; let
   };
 
   # Shorthand: Ternary Bonsai service (6.7 GB, needs >=24 GB VRAM for 262K ctx).
+  # 2026-07-29: `--mmproj` is now conditional on cfg.mmproj — when null (text-only
+  # GGUFs, dspark, etc.) llama-server would reject the empty flag, so we elide it
+  # instead of passing `--mmproj ""`.
   mkTernaryService = { name, desc, port, gpu, memoryMax ? "20G" }: {
     systemd.services."bonsai-ternary-${name}" = {
       description = desc;
@@ -82,7 +103,10 @@ with lib; let
         Type = "simple";
         User = "bonsai";
         RuntimeDirectory = "bonsai-ternary-${name}";
-        ExecStart = "${getExe cfg.package} -m ${cfg.ternaryModel} --host 0.0.0.0 --port ${toString port} -ngl 99 -fa on -c 0 --temp 0.7 --top-p 0.95 --top-k 20 --min-p 0 --jinja --alias ternary-bonsai-27b-${name}";
+        ExecStart = "${getExe cfg.package} -m ${cfg.ternaryModel}"
+          + (if cfg.mmproj != null then " --mmproj ${cfg.mmproj}" else "")
+          + " --host 0.0.0.0 --port ${toString port} -ngl 99 -fa on -c 0 --temp 0.7 "
+          + "--top-p 0.95 --top-k 20 --min-p 0 --jinja --alias ternary-bonsai-27b-${name}";
         Restart = "on-failure";
         RestartSec = "10";
         StandardOutput = "journal";
@@ -95,7 +119,7 @@ with lib; let
         ProtectHome = true;
         PrivateTmp = true;
         ReadWritePaths = ["/run/bonsai-ternary-${name}"];
-        ReadOnlyPaths = ["${cfg.ternaryModel}" "${cfg.mmproj}"];
+        ReadOnlyPaths = [cfg.ternaryModel] ++ optional (cfg.mmproj != null) cfg.mmproj;
       };
       environment = {
         CUDA_VISIBLE_DEVICES = gpu;
@@ -106,15 +130,15 @@ with lib; let
 
   # ── All services, each gated by hostname ──
 
-  # Ternary on zephyr 3090 (GPU 1, 24 GB)
+  # Ternary on zephyr 3090 (GPU 1, 24 GB) — full capabilities including vision
   ternaryZephyr = mkIf (host == "zephyr" && cfg.binaryStorePath != null) (mkTernaryService {
-    name = "zephyr"; desc = "Bonsai 27B Ternary — Zephyr RTX 3090 (port 1237, device 0 post-VFIO)";
-    port = 1237; gpu = "0"; memoryMax = "20G";
+    name = "zephyr"; desc = "Bonsai 27B Ternary — Zephyr RTX 3090 (port 1237)";
+    port = 1237; gpu = "1"; memoryMax = "20G";
   });
 
   # 1-bit on zephyr 3060 Ti (GPU 0, 8 GB)
   bit1Zephyr = mkIf (host == "zephyr" && cfg.binaryStorePath != null) (mk1bitService {
-    name = "zephyr"; desc = "Bonsai 27B 1-bit — Zephyr RTX 3090 (port 1236, device 0 post-VFIO)";
+    name = "zephyr"; desc = "Bonsai 27B 1-bit — Zephyr RTX 3060 Ti (port 1236)";
     port = 1236; gpu = "0";
   });
 
@@ -129,10 +153,16 @@ with lib; let
     port = 1238; gpu = "0"; memoryMax = "8G";
   });
 
-  # 1-bit on forge 4060 (GPU 0, 8 GB)
-  bit1Forge = mkIf (host == "forge" && cfg.binaryStorePath != null) (mk1bitService {
-    name = "forge"; desc = "Bonsai 27B 1-bit — Forge RTX 4060 (port 8002)";
+  # 1-bit on forge 4060 GPU 0 (8 GB)
+  bit1Forge0 = mkIf (host == "forge" && cfg.binaryStorePath != null) (mk1bitService {
+    name = "forge-0"; desc = "Bonsai 27B 1-bit — Forge RTX 4060 GPU 0 (port 8002)";
     port = 8002; gpu = "0";
+  });
+
+  # 1-bit on forge 4060 GPU 1 (8 GB)
+  bit1Forge1 = mkIf (host == "forge" && cfg.binaryStorePath != null) (mk1bitService {
+    name = "forge-1"; desc = "Bonsai 27B 1-bit — Forge RTX 4060 GPU 1 (port 8006)";
+    port = 8006; gpu = "1";
   });
 
   # Ternary on forge 4060 — tight fit (6.7 GB on 8 GB), starts when miners idle
@@ -205,5 +235,5 @@ in {
       description = "Bonsai 27B inference service";
     };
     users.groups.bonsai = {};
-  } // ternaryZephyr // bit1Zephyr // ternaryNexus // bit1Nexus // ternaryForge // bit1Forge // bit1Sentry // bit1Krash3;
+  } // ternaryZephyr // bit1Zephyr // ternaryNexus // bit1Nexus // ternaryForge // bit1Forge0 // bit1Forge1 // bit1Sentry // bit1Krash3;
 }
