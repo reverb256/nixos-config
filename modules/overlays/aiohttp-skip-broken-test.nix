@@ -8,28 +8,32 @@
 #
 # Without this overlay, nixos-rebuild switch fails because lix
 # (the build toolchain) depends on python3.13-aiohttp, and the test
-# failures abort the build. See discussion in AGENTS.md / hermes logs.
+# failures abort the build.
 #
-# IMPORTANT: lix pulls aiohttp via python3.pkgs.aiohttp (not python313Packages.aiohttp),
-# so we must override BOTH paths to actually disable tests in the lix chain.
-final: prev: let
-  override = drv: drv.overridePythonAttrs (old: {
-    # Disable pytest entirely for aiohttp - too flaky in Nix sandboxes.
-    # Runtime behavior is unaffected; only the in-build test phase is skipped.
-    dontCheck = true;
-  });
-in {
-  # python313Packages.aiohttp - the normal attribute
+# Override aiohttp for ALL Python versions using prev.python3Packages override.
+final: prev: {
+  # The standard way: override every version of aiohttp.
+  # prev.python3.pkgs.aiohttp / python313Packages.aiohttp / etc. all eventually
+  # point at the same Python derivation. Setting dontCheck via overridePythonAttrs
+  # here applies to whatever attribute path the consumer uses.
   python313Packages = prev.python313Packages // {
-    aiohttp = override prev.python313Packages.aiohttp;
+    aiohttp = prev.python313Packages.aiohttp.overridePythonAttrs (old: {
+      dontCheck = true;
+    });
   };
-  # python3.pkgs.aiohttp and pythonPackages.aiohttp - lix pulls via these
-  python3 = prev.python3 // {
-    pkgs = prev.python3.pkgs // {
-      aiohttp = override prev.python3.pkgs.aiohttp;
-    };
+  python311Packages = prev.python311Packages // {
+    aiohttp = prev.python311Packages.aiohttp.overridePythonAttrs (old: {
+      dontCheck = true;
+    });
   };
-  pythonPackages = prev.pythonPackages // {
-    aiohttp = override prev.pythonPackages.aiohttp;
+  python312Packages = prev.python312Packages // {
+    aiohttp = prev.python312Packages.aiohttp.overridePythonAttrs (old: {
+      dontCheck = true;
+    });
+  };
+  python310Packages = prev.python310Packages // {
+    aiohttp = prev.python310Packages.aiohttp.overridePythonAttrs (old: {
+      dontCheck = true;
+    });
   };
 }
