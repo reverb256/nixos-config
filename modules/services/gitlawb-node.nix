@@ -170,8 +170,9 @@ in {
     };
 
     # -----------------------------------------------------------------------
-    # Firewall: open 7545 only (app binds to hostIp; not wildcard-listened)
+    # Firewall: open cfg.httpPort only (app binds to hostIp; not wildcard-listened)
+    # mkOptionDefault: appends, doesn't replace other modules' ports
     # -----------------------------------------------------------------------
-    networking.firewall.allowedTCPPorts = [cfg.httpPort];
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.httpPort];
   };
 }

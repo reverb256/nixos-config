@@ -99,7 +99,7 @@ in {
       };
     };
 
-    # Open port 8004 on the firewall
-    networking.firewall.allowedTCPPorts = [8004];
+    # Open port 8004 on the firewall (mkOptionDefault: appends, doesn't replace)
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [8004];
   };
 }

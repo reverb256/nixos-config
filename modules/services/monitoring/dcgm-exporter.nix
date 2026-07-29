@@ -77,6 +77,6 @@ ${builtins.concatStringsSep "\n" (map ruleToYaml alertList)}
       }
     ]) ];
 
-    networking.firewall.allowedTCPPorts = [ port ];
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ port ];
   };
 }
