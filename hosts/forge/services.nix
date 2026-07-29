@@ -140,7 +140,7 @@ in {
     port = 2222;
   };
   services.recovery-specialisation.enable = true;
-  services.btrfs-boot-snapshot.enable = lib.mkForce false; # removed snapshotting
+  services.btrfs-boot-snapshot.enable = false; # removed snapshotting
 
   services.cachix-auth.enable = true;
   services.ai-coding-tools = {
