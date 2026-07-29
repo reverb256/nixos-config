@@ -184,6 +184,11 @@
       url = "github:reverb256/secretspec-provider-sops";
       flake = false;
     };
+
+    # gitlawb - local option-4 flake: packages + overlay + NixOS module
+    gitlawb = {
+      url = "path:./pkgs/gitlawb";
+    };
   };
   outputs =
     inputs@{
