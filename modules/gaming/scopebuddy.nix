@@ -139,6 +139,7 @@ in {
         jq # JSON parsing for config
         wlr-randr # Wayland display info
       ]
+      ++ optionals (cfg.package != null) [cfg.package]
       ++ optionals cfg.performance.enableGameMode [gamemode]
       ++ optionals cfg.performance.mangoHud [mangohud]
       ++ optionals cfg.scripts [

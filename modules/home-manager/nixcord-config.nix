@@ -13,23 +13,15 @@
       vesktop = {
         enable = true;
         package = pkgs.vesktop;
-        settings = {
-          minimizeToTray = true;
-          tray = true;
-          trayIcon = true;
-          openHidden = false;
-          arRPC = true;
-          splashColor = "rgb(220, 220, 223)";
-          splashBackground = "rgb(17, 28, 24)";
-          autoStartMinimized = false;
-          hardwareVideoAcceleration = true;
-          hardwareAcceleration = true;
-          customTitleBar = false;
-          enableSplashScreen = false;
-          clickTrayToShowHide = true;
-          disableMinSize = true;
-          enableTaskbarFlashing = true;
-        };
+        # NOTE 2026-07-28: removed `settings = { ... }` because nixcord
+        # symlinks the generated settings.json into ~/.config/vesktop/
+        # settings.json, which points into /nix/store (read-only). Vesktop
+        # tries to overwrite this file on every UI change, causing EROFS
+        # errors. With no settings block, nixcord leaves ~/.config/vesktop
+        # alone and Vesktop writes its own settings.json. User can tune
+        # via the in-app Settings UI. To re-enable declarative settings,
+        # use a wrapper that copies a Nix-managed template into place at
+        # session start, then lets Vesktop mutate it freely.
       };
 
       config = {
@@ -163,10 +155,26 @@
       };
       Service = {
         Type = "simple";
-        Environment = ["XDG_CURRENT_DESKTOP=KDE"];
-        ExecStart = lib.getExe pkgs.vesktop;
+        Environment = [
+          "XDG_CURRENT_DESKTOP=KDE"
+          # Force the NVIDIA VA-API driver instead of leaving libva to
+          # autodetect. Electron auto-detected nouveau/iHD; we want nvidia.
+          "LIBVA_DRIVER_NAME=nvidia"
+          # Keep VA-API enabled even when electron thinks it has no display
+          # device for it (typical under Wayland + NVIDIA DRM-KMS).
+          "NVD_BACKEND=direct"
+          # Ensure the Wayland socket is reachable
+          "ELECTRON_OZONE_PLATFORM_HINT=wayland"
+        ];
+        ExecStart = lib.getExe pkgs.vesktop + " --no-sandbox";
         Restart = "on-failure";
-        RestartSec = 5;
+        # 2026-07-28: bumped from 5s to 30s after SEGV loop. niri+wayland
+        # can take ~10s to fully bring up the session; instant restarts
+        # were causing the SEGV (core-dump status=11) to repeat.
+        RestartSec = "30s";
+        # Cap restart attempts to avoid tight loops
+        StartLimitIntervalSec = "5min";
+        StartLimitBurst = 5;
       };
       Install = {
         WantedBy = ["graphical-session.target"];

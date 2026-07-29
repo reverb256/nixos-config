@@ -892,7 +892,11 @@
       autoDetect = {
         resolution = true;
         hdr = true;
-        vrr = true;
+        # 2026-07-28: VRR disabled on zephyr. Niri output config has
+        # variable-refresh-rate = false already, but scopebuddy would still
+        # apply VRR-capable profiles on connect. Keep scopebuddy itself
+        # active for HDR/resolution auto-detection.
+        vrr = false;
       };
     };
 
