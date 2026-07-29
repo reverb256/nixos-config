@@ -1,29 +1,32 @@
-# Cluster-wide overlay: skip aiohttp tests by mutating the aiohttp
-# package's dontCheck via ALL its python attribute paths.
+# Cluster-wide overlay: skip aiohttp tests.
 #
 # Without this overlay, nixos-rebuild switch fails because lix
 # (the build toolchain) depends on python3.13-aiohttp, and the test
 # failures abort the build.
 #
-# Strategy: override aiohttp at the toplevel nixpkgs scope (so ALL python
-# versions, including the legacy python3.pkgs.aiohttp alias, get the patch).
+# Strategy: nixpkgs in 26.11 exposes Python packages via several aliases
+# (python313Packages, pythonPackages, python3.pkgs). We override aiohttp
+# in EVERY alias so lix's lookup finds the patched derivation.
 
-final: prev: let
-  # Override one specific aiohttp and let Nix propagate via super.aiohttp references.
-  pkgsScoped = prev.appendOverlays [
-    (superFinal: superPrev: {
-      aiohttp = superPrev.aiohttp.overridePythonAttrs (old: {
-        dontCheck = true;
-      });
-    })
-  ];
-  # Use the scoped pkgs to override python3.pkgs
-  python3 = prev.python3 // {
-    pkgs = pkgsScoped.python3.pkgs;
+final: prev: {
+  # Canonical per-version attributes
+  python310Packages = prev.python310Packages // {
+    aiohttp = prev.python310Packages.aiohttp.overridePythonAttrs (o: { dontCheck = true; });
   };
-  # Per-version python packages
-  python310Packages = pkgsScoped.python310Packages;
-  python311Packages = pkgsScoped.python311Packages;
-  python312Packages = pkgsScoped.python312Packages;
-  python313Packages = pkgsScoped.python313Packages;
-in {}
+  python311Packages = prev.python311Packages // {
+    aiohttp = prev.python311Packages.aiohttp.overridePythonAttrs (o: { dontCheck = true; });
+  };
+  python312Packages = prev.python312Packages // {
+    aiohttp = prev.python312Packages.aiohttp.overridePythonAttrs (o: { dontCheck = true; });
+  };
+  python313Packages = prev.python313Packages // {
+    aiohttp = prev.python313Packages.aiohttp.overridePythonAttrs (o: { dontCheck = true; });
+  };
+  # Legacy aliases used by lix and older code.
+  # python3.pkgs is the standard alias for the default python (currently 3.13).
+  python3 = prev.python3 // {
+    pkgs = prev.python313Packages // {
+      aiohttp = prev.python313Packages.aiohttp.overridePythonAttrs (o: { dontCheck = true; });
+    };
+  };
+}
