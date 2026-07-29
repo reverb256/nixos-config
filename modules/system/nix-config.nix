@@ -62,12 +62,12 @@
   nix = {
     package = (pkgs.lixPackageSets.lix_2_95.lix.overrideAttrs (old: {
       # 2026-07-29: lix's FileTransfer unit tests fail in our sandbox with
-      # errno 99 (Cannot assign requested address). Lix uses meson, so we
-      # need to skip both stdenv check and meson's test runner.
+      # errno 99 (Cannot assign requested address). Override the checkPhase
+      # to be a no-op since dontCheck doesn't fully apply to meson-based
+      # projects.
       dontCheck = true;
       doInstallCheck = false;
-      # Also clear the meson test args to prevent gtest from running
-      mesonCheckFlags = [];
+      checkPhase = ": skip lix tests in sandbox (errno 99 bind failures)";
     }));
 
     settings = {
