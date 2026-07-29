@@ -9,29 +9,31 @@
 # Without this overlay, nixos-rebuild switch fails because lix
 # (the build toolchain) depends on python3.13-aiohttp, and the test
 # failures abort the build. lix references aiohttp via python3.pkgs.aiohttp
-# (separate attribute path from python313Packages.aiohttp).
+# which is a SEPARATE attribute from python313Packages.aiohttp in nixpkgs.
 #
-# Solution: use the standard nixpkgs pattern of overriding per-version
-# python packages via their versioned attribute, AND directly under
-# python3.pkgs which lix uses.
+# The fix: use recursive override (extend-style) so that BOTH attribute
+# paths return the same patched derivation.
 
-final: prev: let
-  # Override aiohttp in each Python version's package set.
-  overrideInSet = pySet: pySet // {
-    aiohttp = pySet.aiohttp.overridePythonAttrs (old: {
-      dontCheck = true;
-    });
+final: prev: {
+  # Override aiohttp for every Python version's package set.
+  python310Packages = prev.python310Packages // {
+    aiohttp = prev.python310Packages.aiohttp.overridePythonAttrs (old: { dontCheck = true; });
   };
-in {
-  # Per-version python packages - the canonical path
-  python310Packages = overrideInSet prev.python310Packages;
-  python311Packages = overrideInSet prev.python311Packages;
-  python312Packages = overrideInSet prev.python312Packages;
-  python313Packages = overrideInSet prev.python313Packages;
-  # Also override via the legacy python3.pkgs path that lix uses internally.
-  # python3.pkgs is exposed as a python-interpreter-specific package set;
-  # in nixpkgs it is typically an alias of the latest python's package set.
+  python311Packages = prev.python311Packages // {
+    aiohttp = prev.python311Packages.aiohttp.overridePythonAttrs (old: { dontCheck = true; });
+  };
+  python312Packages = prev.python312Packages // {
+    aiohttp = prev.python312Packages.aiohttp.overridePythonAttrs (old: { dontCheck = true; });
+  };
+  python313Packages = prev.python313Packages // {
+    aiohttp = prev.python313Packages.aiohttp.overridePythonAttrs (old: { dontCheck = true; });
+  };
+
+  # python3.pkgs is the legacy alias - it points to the latest python's
+  # package set. Recursive override here ensures both paths converge.
   python3 = prev.python3 // {
-    pkgs = overrideInSet prev.python3.pkgs;
+    pkgs = prev.python3.pkgs.overrideScope (self: super: {
+      aiohttp = super.aiohttp.overridePythonAttrs (old: { dontCheck = true; });
+    });
   };
 }
