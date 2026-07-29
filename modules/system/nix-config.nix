@@ -12,22 +12,39 @@
         colmena
         ;
 
-      # 2026-07-29: Fix aiohttp flaky test failures that block ALL cluster
-      # rebuilds. Lix depends on python3.pkgs.aiohttp, and the 5 flaky tests
-      # fail intermittently in our sandbox (proxy timeouts, IPv6 binding,
-      # py3.13 warnings).
+      # 2026-07-29: Fix flaky Python test failures that block ALL cluster
+      # rebuilds. These packages are transitive dependencies of lix and other
+      # system tools — we're not testing them ourselves, and their test suites
+      # fail intermittently in our build sandbox (proxy timeouts, IPv6 binding,
+      # py3.13 warnings, network-dependent tests).
       #
       # MUST use pythonPackagesExtensions (not // overrides) because
       # python3.pkgs is a fixed-point scope via lib.makeScopeWithSplicing —
       # standard // overrides don't propagate through the lazy binding chain.
       # Reference: https://github.com/NixOS/nixpkgs/issues/211340
+      #
+      # Pattern: https://nix.dev/guides/overlays-python
       pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
         (py-final: py-prev: {
-          # Use dontUsePytestCheck + dontCheck - documented working workaround
-          # for aiohttp flaky tests (see Discourse: "Disable python testing in
-          # flake"). disabledTests alone doesn't match pytest parametrize IDs.
+          # aiohttp: proxy timeouts, IPv6 binding, py3.13 unraisable warnings
           aiohttp = py-prev.aiohttp.overridePythonAttrs (old: {
             dontUsePytestCheck = true;
+            dontCheck = true;
+          });
+          # janus: sync/async queue tests fail under py3.13 sandbox
+          janus = py-prev.janus.overridePythonAttrs (old: {
+            dontCheck = true;
+          });
+          # segments: network-dependent tests fail in sandbox
+          segments = py-prev.segments.overridePythonAttrs (old: {
+            dontCheck = true;
+          });
+          # pytest-randomly: self-test flaky under py3.13
+          pytest-randomly = py-prev.pytest-randomly.overridePythonAttrs (old: {
+            dontCheck = true;
+          });
+          # prometheus-client: http server tests fail in sandbox
+          prometheus-client = py-prev.prometheus-client.overridePythonAttrs (old: {
             dontCheck = true;
           });
         })
