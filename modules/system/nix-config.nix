@@ -12,20 +12,31 @@
         colmena
         ;
 
-      # 2026-07-28: Patch aiohttp's disabledTests at the toplevel overlay so
-      # both python3.pkgs.aiohttp (used by lix) and python313Packages.aiohttp
-      # get the same deselected tests. Earlier attempts to do this via a
-      # standalone overlay failed because python3.pkgs uses makeScope/extends
-      # and our // override doesn't propagate.
-      aiohttp = prev.aiohttp.overridePythonAttrs (old: {
-        disabledTests = (old.disabledTests or []) ++ [
-          "tests/test_proxy_functional.py::test_proxy_http_connection_error"
-          "tests/test_proxy_functional.py::test_proxy_https_connection_error"
-          "tests/test_run_app.py::test_run_app_preexisting_inet6_socket"
-          "tests/test_test_utils.py::test_test_server_hostnames"
-          "tests/test_tracing.py::TestTrace::test_send"
-        ];
-      });
+      # 2026-07-29: Fix aiohttp flaky test failures that block ALL cluster
+      # rebuilds. Lix depends on python3.pkgs.aiohttp, and the 5 flaky tests
+      # fail intermittently in our sandbox (proxy timeouts, IPv6 binding,
+      # py3.13 warnings).
+      #
+      # The correct approach is pythonPackagesExtensions — it hooks into the
+      # fixed-point composition that python3.pkgs actually uses (via
+      # lib.makeScopeWithSplicing). Standard // overrides on prev.python3.pkgs
+      # don't propagate because python3.pkgs is a fixed-point scope with lazy
+      # bindings.
+      #
+      # Reference: https://github.com/NixOS/nixpkgs/issues/211340
+      pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
+        (py-final: py-prev: {
+          aiohttp = py-prev.aiohttp.overridePythonAttrs (old: {
+            disabledTests = (old.disabledTests or []) ++ [
+              "test_proxy_http_connection_error"
+              "test_proxy_https_connection_error"
+              "test_run_app_preexisting_inet6_socket"
+              "test_test_server_hostnames"
+              "TestTrace::test_send"
+            ];
+          });
+        })
+      ];
 
       cuda_compat =
         prev.runCommand "cuda_compat-dummy"
