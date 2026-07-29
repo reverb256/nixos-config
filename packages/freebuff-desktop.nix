@@ -26,10 +26,11 @@ let
   version = "0.0.22"; # approximate; actual version is determined by the API
   src = fetchurl {
     url = "https://freebuff.com/api/desktop/download/linux";
-    # Hash of the AppImage downloaded 2026-07-14 (~v0.0.22).
+    # Hash of the AppImage downloaded 2026-07-29 (~v0.0.22+).
+    # Updated after upstream released a new build (hash changed).
     # To update: nix build .#nixosConfigurations.zephyr.config.system.build.toplevel;
     # copy the expected hash from the failed build output.
-    sha256 = "sha256-zhZgkBVRLkx7IRNT1WGIYAzm4On4mAXV4gc+Z6CXmHg=";
+    sha256 = "sha256-o/e1TeVq9HzTQ/36JLM8JJM5OQ29lZ30ihUDptUXksQ=";
   };
   # Extract the icon from the AppImage first
   appimageContents = appimageTools.extractType2 {
