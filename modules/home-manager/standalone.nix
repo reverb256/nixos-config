@@ -28,8 +28,6 @@ let
     ./noctalia-stylix.nix
     ./stylix-bridges.nix
     ./heal-stale-backups.nix
-  ] ++ lib.optionals (hostName == "zephyr" || hostName == "sentry") [
-    ./niri-config.nix
   ] ++ lib.optionals (hostName == "zephyr") [
     ./standalone-zephyr.nix
   ] ++ lib.optionals (hostName == "nexus") [
