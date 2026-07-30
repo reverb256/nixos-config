@@ -19,8 +19,6 @@
     LD_LIBRARY_PATH = "${pkgs.cudaPackages.cudnn}/lib";
   };
 
-  programs.podman.enable = true;
-
   home.file.".config/nvim/init.lua".source = ../../dev/nvim.lua;
   home.file.".config/tmux/tmux.conf".source = ../../dev/tmux.conf;
   xdg.configFile."galaxy/config.yml".source = ../../monitoring/galaxy.yml;
