@@ -227,7 +227,8 @@ in {
               then "" else concatStringsSep "," m.mandatoryFeatures;
           in
             concatStringsSep " " [
-              ("ssh-ng://" + "${m.sshUser}@${m.hostName}")
+              ("${m.protocol or "ssh-ng"}://" + "${m.sshUser}@${m.hostName}")
+              allSystems
               (
                 if m.sshKey != null
                 then m.sshKey
@@ -235,7 +236,6 @@ in {
               )
               (toString m.maxJobs)
               (toString m.speedFactor)
-              allSystems
               optFeatures
               mandFeatures
             ];
