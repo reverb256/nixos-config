@@ -1,9 +1,10 @@
 { config, lib, pkgs, inputs, hostName, vfioPkgs, ... }:
 let
-  hmModules = [
-    ./common.nix
+  # Leaf HM modules that declare options directly at top level
+  hmShared = [
     ./fish.nix
     ./starship.nix
+    ./btop.nix
     ./wayland-tools.nix
     ./zen-browser.nix
     ./nixcord-config.nix
@@ -24,13 +25,16 @@ let
     ./lazygit.nix
     ./tui-apps.nix
     ./editorconfig.nix
-    ./btop.nix
     ./noctalia-stylix.nix
     ./stylix-bridges.nix
     ./heal-stale-backups.nix
-  ] ++ lib.optionals (hostName == "zephyr" || hostName == "sentry") [
+  ];
+
+  hmDesktop = lib.optionals (hostName == "zephyr" || hostName == "sentry") [
     ./niri-config.nix
-  ] ++ lib.optionals (hostName == "zephyr") [
+  ];
+
+  hmHost = lib.optionals (hostName == "zephyr") [
     ./zephyr.nix
   ] ++ lib.optionals (hostName == "nexus") [
     ./nexus.nix
@@ -40,7 +44,12 @@ let
     ./sentry.nix
   ];
 in {
-  imports = hmModules;
+  imports = hmShared ++ hmDesktop ++ hmHost;
+
+  home.stateVersion = "26.05";
+  home.pointerCursor.enable = true;
+
+  # Propagate args into imported modules
   _module.args.hostName = lib.mkDefault hostName;
   _module.args.vfioPkgs = lib.mkDefault vfioPkgs;
   _module.args.inputs = lib.mkDefault inputs;
