@@ -58,9 +58,6 @@ data:
   MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K: "5"
   MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED: "true"
   MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_MAX_RESULTS: "5"
-  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED: "true"
-  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS: "5"
-  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL: "http://searxng:7777"
   MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_SEARCH_ENABLED: "true"
   MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_MAX_RESULTS: "5"
 
@@ -203,11 +200,11 @@ spec:
             configMapKeyRef:
               name: ai-gateway-config
               key: MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED
-        - name: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED
+        - name:
           valueFrom:
             configMapKeyRef:
               name: ai-gateway-config
-              key: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED
+              key:
         # Gateway Configuration
         - name: GATEWAY_HOST
           value: "0.0.0.0"

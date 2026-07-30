@@ -110,7 +110,6 @@ data:
             <ul class="service-list">
               <li><span>Kubernetes API</span> <span class="service-url">:6443</span></li>
               <li><span>AI Inference</span> <a href="http://ai.cluster.local" class="service-url">ai.cluster.local</a></li>
-              <li><span>SearXNG</span> <a href="http://search.cluster.local" class="service-url">search.cluster.local</a></li>
             </ul>
           </div>
 

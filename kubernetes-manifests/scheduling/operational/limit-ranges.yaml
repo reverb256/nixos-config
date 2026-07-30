@@ -2,7 +2,6 @@
 # Apply appropriate defaults based on workload type
 
 ---
-# Search namespace (Searxng)
 apiVersion: v1
 kind: LimitRange
 metadata:

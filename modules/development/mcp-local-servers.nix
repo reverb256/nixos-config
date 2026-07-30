@@ -49,12 +49,6 @@
     command = "mcp-gateway-bridge";
   };
 
-  searxng = {
-    command = "mcp-fetch";
-    # SearXNG via fetch wrapper with custom URL.
-    # TODO: replace with dedicated mcp-searxng wrapper if/when added.
-  };
-
   hound = {
     command = "/data/agents/mcp-bridges/hound-mcp.sh";
     description = "Web fetch + crawl + search + Cloudflare bypass + PDF OCR";

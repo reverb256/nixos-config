@@ -59,7 +59,7 @@
     { status = "✅ COMPLETE"; name = "Phase 1: Foundation";        completion = "100%"; notes = "Control plane, networking, CoreDNS"; }
     { status = "✅ COMPLETE"; name = "Phase 2: Worker Nodes";      completion = "100%"; notes = "All nodes joined, correct CIDRs, DNS functional"; }
     { status = "✅ COMPLETE"; name = "Phase 3: Stateful Services"; completion = "95%";  notes = "**GlitchTip PostgreSQL migrated** (2026-03-19)"; }
-    { status = "✅ COMPLETE"; name = "Phase 4: Stateless Services"; completion = "95%"; notes = "**GlitchTip web/worker/redis, SearXNG migrated** (2026-03-19), Caddy Ingress, n8n, home-assistant"; }
+    { status = "✅ COMPLETE"; name = "Phase 4: Stateless Services"; completion = "95%"; notes = "**GlitchTip web/worker/redis migrated** (2026-03-19), Caddy Ingress, n8n, home-assistant"; }
     { status = "✅ COMPLETE"; name = "Phase 5: GPU Workloads";     completion = "95%";  notes = "**llama.cpp deployed, Gateway integrated, tested** (2026-03-19)"; }
     { status = "✅ COMPLETE"; name = "Phase 6: Monitoring";        completion = "100%"; notes = "Prometheus + Grafana running, **Caddy metrics configured**"; }
     { status = "✅ COMPLETE"; name = "Phase 7: Cleanup";           completion = "95%";  notes = "**Removed obsolete manifests, finalized documentation** (2026-03-19)"; }
@@ -67,7 +67,6 @@
 
   # ── Known issues (rendered as a bullet list) ────────────────────────
   known_issues = [
-    { emoji = "⚠️"; name = "SearXNG search";   description = "HTTP 403 errors from external engines, MCP gateway unable to use web search";              date = "2026-03-21"; }
     { emoji = "⚠️"; name = "Monitor brightness"; description = "ASUS/Acer displays not controllable via Plasma slider (EDID limitation, hardware workaround required)"; date = "2026-03-21"; }
     { emoji = "⚠️"; name = "Gaming detection"; description = "Using Volcano scheduler instead of YuniKorn (migration completed, docs need update)";      date = "2026-03-21"; }
   ];

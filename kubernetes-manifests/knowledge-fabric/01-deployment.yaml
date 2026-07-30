@@ -58,8 +58,6 @@ spec:
         # Override defaults to use K8s service DNS
         - name: KF_QDRANT_URL
           value: "http://10.1.1.120:6333"
-        - name: KF_SEARXNG_URL
-          value: "http://searxng.search.svc.cluster.local:7777"
         - name: KF_VALKEY_URL
           value: "valkey://valkey.search.svc.cluster.local:6379/0"
         - name: KF_EMBEDDING_MODEL

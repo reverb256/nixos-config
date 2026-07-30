@@ -45,12 +45,6 @@ data:
   # MCP configuration
   MCP_ENABLED: "true"
   MCP_SERVERS: '{
-    "searxng": {
-      "command": ["python", "-m", "ai_inference_gateway.mcp_servers.searxng_server"],
-      "environment": {
-        "SEARXNG_URL": "http://searxng.search.svc.cluster.local:8080",
-        "SEARXNG_CACHE_TTL": "300"
-      },
       "enabled": true,
       "type": "local"
     }
@@ -74,9 +68,6 @@ data:
   MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K: "60"
   MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED: "true"
   MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED: "true"
-  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED: "true"
-  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL: "http://searxng.search.svc.cluster.local:8080"
-  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS: "10"
   MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_SEARCH_ENABLED: "true"
   MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_MAX_RESULTS: "10"
   MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_MAX_RESULTS: "10"
@@ -360,21 +351,21 @@ spec:
               configMapKeyRef:
                 name: ai-inference-gateway-config
                 key: MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED
-          - name: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED
+          - name:
             valueFrom:
               configMapKeyRef:
                 name: ai-inference-gateway-config
-                key: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED
-          - name: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL
+                key:
+          - name:
             valueFrom:
               configMapKeyRef:
                 name: ai-inference-gateway-config
-                key: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL
-          - name: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS
+                key:
+          - name:
             valueFrom:
               configMapKeyRef:
                 name: ai-inference-gateway-config
-                key: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS
+                key:
           - name: MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_SEARCH_ENABLED
             valueFrom:
               configMapKeyRef:
@@ -523,7 +514,6 @@ spec:
     - ports:
         - protocol: TCP
           port: 443
-    # Allow access to search namespace (SearXNG)
     - to:
         - namespaceSelector:
             matchLabels:

@@ -39,10 +39,6 @@ in {
                     value = "http://ai-gateway.ai-inference.svc.cluster.local:8080";
                   }
                   {
-                    name = "SEARXNG_URL";
-                    value = "http://searxng.search.svc.cluster.local:8080";
-                  }
-                  {
                     name = "CROSS_ENCODER_DEVICE";
                     value = "cpu";
                   }
@@ -134,10 +130,6 @@ in {
                   {
                     name = "KF_API_URL";
                     value = "http://knowledge-fabric.ai-inference.svc.cluster.local:3100";
-                  }
-                  {
-                    name = "SEARXNG_URL";
-                    value = "http://searxng.search.svc.cluster.local:8080";
                   }
                   {
                     name = "GATEWAY_URL";

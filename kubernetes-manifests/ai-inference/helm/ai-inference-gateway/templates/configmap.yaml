@@ -47,10 +47,8 @@ data:
   MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED: "true"
   MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K: "{{ .Values.middleware.knowledgeFabric.rrfK }}"
   MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED: "{{ .Values.middleware.knowledgeFabric.ragEnabled }}"
-  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED: "{{ .Values.middleware.knowledgeFabric.searxngEnabled }}"
   MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_SEARCH_ENABLED: "{{ .Values.middleware.knowledgeFabric.webSearchEnabled }}"
   MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED: "{{ .Values.middleware.knowledgeFabric.codeSearchEnabled }}"
-  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL: "{{ .Values.middleware.knowledgeFabric.searxngUrl }}"
   {{- end }}
 
   # Redis
