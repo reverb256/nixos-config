@@ -56,7 +56,9 @@
   # ============================================================================
   # GITLAWB — self-hosted decentralized git client + remote helper
   # ============================================================================
-  programs.gitlawb.enable = true;
+  # 2026-07-29: Temporarily disabled — gitlawb-0.7.0 tarball hash mismatch
+# on this build. Will re-enable when upstream is stable.
+programs.gitlawb.enable = false;
 
   # ============================================================================
   # HOST IDENTIFICATION
