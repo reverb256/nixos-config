@@ -744,23 +744,35 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 | 1 | **dashboard.lan (Glance)** | ✅ Resolved 2026-07-14 | Deployed via `kubernetes.small` manifest on zephyr/sentry |
 | 2 | **Casdoor MCP bridge scopes** | mcp-client OAuth app missing MCP scopes | Add MCP scopes to app mcp-client in Casdoor |
 | 3 | **Nexus NVMe boot timeout** | ✅ Resolved 2026-07-14 | `nvme_core.timeout=30` already in nexus hardware.nix |
-| 4 | **NodePort access bypasses Caddy auth** | ✅ Resolved 2026-07-14 | iptables restricts 30000-32767 to 10.1.1.0/24 + localhost |
-| 5 | **etcd encryption at rest** | ✅ Resolved 2026-07-14 | `encryption-provider-config` wired in k3s-cluster.nix |
+| 4 | **NodePort access bypasses Caddy auth** | ✅ Restored 2026-07-30 | nftables `extraInputRules` restricts 30000-32767 to `10.1.1.0/24` + localhost (was silently deleted 2026-07-20 by commit `4732cfe3`) |
+| 5 | **etcd encryption at rest** | ✅ Restored 2026-07-30 | `encryption-provider-config` wiring recovered after silent deletion by commit `4732cfe3` |
 | 6 | **Pod Security Standards labels** | ✅ Resolved 2026-07-14 | Baseline/restricted labels added to all namespaces |
-| 7 | **K8s audit policy** | ✅ Resolved 2026-07-14 | Audit policy + JSON logs wired in k3s-cluster.nix |
+| 7 | **K8s audit policy** | ✅ Restored 2026-07-30 | Audit policy + JSON logging recovered after silent deletion by commit `4732cfe3` |
 | 8 | **Falco runtime security** | ✅ Resolved 2026-07-14 | Falco DaemonSet deployed via `kubernetes/modules/falco.nix` |
 
 ### Security Hardening (2026-07-14)
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| 1 | **NodePort access restriction** | ✅ Implemented | iptables rules in `modules/services/k3s-cluster.nix` drop NodePort (30000-32767) traffic except from `10.1.1.0/24` + localhost |
-| 2 | **etcd encryption at rest** | ✅ Implemented | `services.k3s-cluster.secretsEncryptionKeyFile` + `k3s-secrets-encryption` oneshot; key distributed via sops-nix (`secrets/infra/k3s-encryption-key.yaml`) |
-| 3 | **Kubernetes audit policy** | ✅ Implemented | `k3s-audit-policy` installs policy + log dir; API server logs metadata for all requests, bodies for secrets/RBAC/admission changes |
+| 1 | **NodePort access restriction** | ✅ Implemented | `extraInputRules` (nftables) in `modules/services/k3s-cluster.nix` drops NodePort (30000-32767) traffic except from `10.1.1.0/24` + localhost |
+| 2 | **etcd encryption at rest** | ✅ Implemented | `secretsEncryptionKeyFile` option + `k3s-secrets-encryption` oneshot generates `EncryptionConfiguration` from sops-distributed AES key (`secrets/infra/k3s-encryption-key.json`) |
+| 3 | **Kubernetes audit policy** | ✅ Implemented | `k3s-audit-policy` oneshot installs `auditPolicyFile` into `${dataDir}/server/audit-policy.yaml`; API server logs metadata for all requests, bodies for secrets/RBAC/admission changes |
 | 4 | **Falco runtime security** | ✅ Implemented | `kubernetes/modules/falco.nix` DaemonSet in `monitoring` namespace, privileged, host mounts for syscall monitoring |
 | 5 | **Pod Security Standards labels** | ✅ Implemented | `kubernetes/modules/infrastructure.nix` sets `enforce=baseline/audit=warn=restricted` on workload namespaces; system namespaces `privileged` |
 | 6 | **runAsNonRoot tightening** | ✅ Implemented | `mining` and `mcp` namespaces removed from `require-resources-and-security` policy binding exclusions |
 | 7 | **`:latest` image tags** | ✅ Pinned | vane, nix-csi, hermes-workspace, kb-mcp, qdrant-mcp, chatterbox-tts now use versioned tags |
+
+### ⚠️ Silent Deletion Incident (2026-07-20 → 2026-07-30)
+
+Commit `4732cfe3` ("fix(spotx): update spotx.sh hash") accidentally deleted 265 lines
+from `modules/services/k3s-cluster.nix`, silently regressing items 1, 2, and 3 of the
+Security Hardening table. This was a misnamed/mis-scoped commit that:
+- Removed the `auditPolicyFile` let binding + `k3s-audit-policy` systemd service
+- Removed the `secretsEncryptionKeyFile` option + `k3s-secrets-encryption` systemd service
+- Removed the `extraCommands`-based NodePort iptables restriction
+
+These were recovered on 2026-07-30 and audited against git history. The incident
+highlights the need to scope commits to their stated purpose.
 
 
 ### Resolved (2026-05-14)
