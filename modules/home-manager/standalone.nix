@@ -44,6 +44,7 @@ let
 in {
   imports = hmThirdParty ++ hmLeaf;
 
+  home.homeDirectory = "/home/j_kro";
   home.stateVersion = "26.05";
   home.pointerCursor.enable = true;
 
