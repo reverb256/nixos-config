@@ -293,11 +293,6 @@ in {
           base_url = "https://integrate.api.nvidia.com/v1";
           discover_models = true;
         };
-        "llama-cpp-sentry" = {
-          base_url = "http://llama-server-sentry.ai-inference.svc.cluster.local:1235/v1";
-          api_key = "unused";
-          model = "Qwen3.5-4B-Q4_K_M.gguf";
-        };
       };
       managedFallbackProviders = [
         "opencode-zen"

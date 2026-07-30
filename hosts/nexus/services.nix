@@ -87,25 +87,19 @@ in {
           api_key = "unused";
           model = "Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf";
         };
-        llama-cpp-sentry = {
-          base_url = "http://llama-server-sentry.ai-inference.svc.cluster.local:1235/v1";
-          api_key = "unused";
-          model = "Qwen3.5-4B-Q4_K_M.gguf";
-        };
       };
       fallback_providers = [
         "zai"
         "nvidia-nim"
         "llama-cpp-zephyr"
-        "llama-cpp-sentry"
       ];
       smart_model_routing = {
         enabled = true;
         max_simple_chars = 160;
         max_simple_words = 28;
         cheap_model = {
-          provider = "llama-cpp-sentry";
-          model = "Qwen3.5-4B-Q4_K_M.gguf";
+          provider = "llama-cpp-zephyr";
+          model = "Ternary-Bonsai-27B-Q2_0.gguf";
         };
       };
       toolsets = ["all"];
