@@ -72,6 +72,16 @@
             dontUsePytestCheck = true;
             dontCheck = true;
           });
+          # matplotlib/tkinter: backend tests try to use X11/Xvfb display
+          # dependencies and fail inside the nixpkgs sandbox with no DISPLAY.
+          # Disable their checks; this is a system-UI/runtime quirk, not a
+          # binary/integrity risk.
+          matplotlib = py-prev.matplotlib.overridePythonAttrs (old: {
+            dontCheck = true;
+          });
+          tkinter = py-prev.tkinter.overridePythonAttrs (old: {
+            dontCheck = true;
+          });
         })
       ];
 
