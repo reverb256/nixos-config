@@ -12,8 +12,8 @@ in {
   options = {
     desktop.noctalia.daemonPackage = mkOption {
       type = types.package;
-      default = inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
-      defaultText = "inputs.noctalia.packages.\\${pkgs.stdenv.hostPlatform.system}.default";
+      default = pkgs.noctalia;
+      defaultText = "pkgs.noctalia";
       description = "Noctalia daemon package (overridable for patched versions)";
     };
   };

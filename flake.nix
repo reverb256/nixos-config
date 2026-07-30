@@ -141,11 +141,8 @@
       url = "git+https://github.com/hercules-ci/flake-parts";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # noctalia - brightness daemon for NixOS
-    noctalia = {
-      url = "git+https://github.com/noctalia-dev/noctalia";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # noctalia REMOVED — upstreamed into nixpkgs-unstable as programs.noctalia
+    # + pkgs.noctalia. The flake input is no longer needed.
     # stylix - theming module
     stylix = {
       url = "github:nix-community/stylix";

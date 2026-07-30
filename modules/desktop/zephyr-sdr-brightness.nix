@@ -12,7 +12,7 @@
   # HDMI-A-2 (Samsung TV) now runs HDR natively under niri-unstable, so its
   # brightness backend is set to `normal` (niri owns the output via max_bpc /
   # HDR). The custom niri SDR-brightness patch was dropped 2026-07-25.
-  noctalia-patched = inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs (old: {
+  noctalia-patched = pkgs.noctalia.overrideAttrs (old: {
     patches = (old.patches or []) ++ [./../../patches/noctalia-sdr-brightness.patch];
   });
 

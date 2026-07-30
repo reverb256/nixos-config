@@ -1,4 +1,4 @@
-{ _final, prev }:
+{ inputs, _final, prev }:
 {
   claude-code-image = prev.dockerTools.buildImage {
     name = "claude-code";
