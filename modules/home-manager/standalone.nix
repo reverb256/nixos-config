@@ -1,7 +1,7 @@
 { config, lib, pkgs, inputs, hostName, vfioPkgs, ... }:
 
 let
-  stylixBase16 = ./../../desktop/themes/osaka-jade.yaml;
+  stylixBase16 = ../../modules/desktop/themes/osaka-jade.yaml;
 
   hmThirdParty = [
     inputs.zen-browser.homeModules.twilight
