@@ -46,6 +46,62 @@
     "traefik"
     "metrics-server"
   ];
+
+  # Kubernetes audit policy: log metadata for all requests, log bodies for
+  # secrets/configmaps/auth changes. Written to a file on every NixOS node so
+  # server nodes can bind-mount it into the k3s data dir.
+  auditPolicyFile = pkgs.writeText "k3s-audit-policy.yaml" ''
+    apiVersion: audit.k8s.io/v1
+    kind: Policy
+    omitStages:
+      - "RequestReceived"
+    rules:
+      # Don't log high-volume read-only endpoints (health, metrics, discovery).
+      - level: None
+        nonResourceURLs:
+          - "/healthz"
+          - "/livez"
+          - "/readyz"
+          - "/metrics"
+          - "/openapi/*"
+          - "/api*"
+          - "/version"
+      # Don't log repeated GET requests from system/service accounts.
+      - level: None
+        verbs: ["get", "list", "watch"]
+        users:
+          - "system:kube-proxy"
+          - "system:node"
+          - "system:kube-controller-manager"
+          - "system:kube-scheduler"
+      # Log metadata for all other requests.
+      - level: Metadata
+        omitStages:
+          - "RequestReceived"
+      # Log request/response bodies for secrets changes.
+      - level: RequestResponse
+        resources:
+          - group: ""
+            resources: ["secrets"]
+      # Log request/response bodies for configmap changes.
+      - level: RequestResponse
+        resources:
+          - group: ""
+            resources: ["configmaps"]
+      # Log request/response bodies for RBAC/auth changes.
+      - level: RequestResponse
+        resources:
+          - group: "rbac.authorization.k8s.io"
+            resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+      # Log request/response bodies for admission policy changes.
+      - level: RequestResponse
+        resources:
+          - group: "admissionregistration.k8s.io"
+            resources: ["validatingadmissionpolicies", "validatingadmissionpolicybindings"]
+  '';
+
+  auditLogDir = "${cfg.dataDir}/server/logs";
+  auditLogPath = "${auditLogDir}/audit.log";
 in {
   options.services.k3s-cluster = {
     enable = mkEnableOption "k3s lightweight Kubernetes cluster";
@@ -121,6 +177,12 @@ in {
       type = types.str;
       default = "/var/lib/rancher/k3s";
       description = "k3s data directory for storing state, etcd, etc.";
+    };
+
+    secretsEncryptionKeyFile = mkOption {
+      type = types.nullOr types.path;
+      default = null;
+      description = "Path to a 32-byte base64-encoded AES key for etcd secrets encryption at rest. All HA servers MUST use the same key. Use sops-nix to distribute.";
     };
 
     # One-shot state wipe. k3s locks its data-dir with the immutable
@@ -229,6 +291,17 @@ in {
           "--kubelet-arg=node-status-update-frequency=10s"
           # node-status-report-frequency was removed in kubelet 1.36
           "--kubelet-arg=authorization-mode=Webhook"
+        ]
+        ++ lib.optionals (isServer && cfg.secretsEncryptionKeyFile != null) [
+          "--kube-apiserver-arg=encryption-provider-config=${cfg.dataDir}/server/cred/encryption-config.yaml"
+        ]
+        ++ lib.optionals isServer [
+          "--kube-apiserver-arg=audit-policy-file=${cfg.dataDir}/server/audit-policy.yaml"
+          "--kube-apiserver-arg=audit-log-path=${auditLogPath}"
+          "--kube-apiserver-arg=audit-log-format=json"
+          "--kube-apiserver-arg=audit-log-maxage=7"
+          "--kube-apiserver-arg=audit-log-maxsize=100"
+          "--kube-apiserver-arg=audit-log-maxbackup=10"
         ];
 
       containerdConfigTemplate = mkIf cfg.nvidia.enable ''
@@ -393,12 +466,16 @@ in {
             2380
           ]
         );
-        allowedTCPPortRanges = [
-          {
-            from = 30000;
-            to = 32767;
-          }
-        ];
+        # NodePort range restricted to LAN subnet (10.1.1.0/24) only.
+        # Prevents external access to K8s services bypassing Caddy auth.
+        # Host-local services (127.0.0.1) still have full NodePort access.
+        extraCommands = ''
+          # Restrict NodePort access: DROP then ACCEPT from LAN+localhost
+          # (INSERT order matters — second -I goes above first, so ACCEPT is evaluated before DROP)
+          iptables -I nixos-fw -p tcp --dport 30000:32767 -j DROP 2>/dev/null || true
+          iptables -I nixos-fw -p tcp --dport 30000:32767 -s 127.0.0.1 -j nixos-fw-accept 2>/dev/null || true
+          iptables -I nixos-fw -p tcp --dport 30000:32767 -s 10.1.1.0/24 -j nixos-fw-accept 2>/dev/null || true
+        '';
       }
     ];
 
@@ -577,6 +654,75 @@ in {
         OnUnitActiveSec = "30s";
         AccuracySec = "10s";
       };
+    };
+
+    # ── Kubernetes audit policy ────────────────────────────────────
+    # Copies the Nix-built audit policy into the k3s data dir and ensures
+    # the audit log directory exists before the API server starts.
+    systemd.services.k3s-audit-policy = lib.mkIf isServer {
+      description = "Install Kubernetes audit policy for k3s";
+      wantedBy = ["k3s.service"];
+      before = ["k3s.service"];
+      serviceConfig.Type = "oneshot";
+      serviceConfig.RemainAfterExit = true;
+      path = with pkgs; [coreutils];
+      script = ''
+        mkdir -p "${auditLogDir}"
+        cp "${auditPolicyFile}" "${cfg.dataDir}/server/audit-policy.yaml"
+        chmod 600 "${cfg.dataDir}/server/audit-policy.yaml"
+        echo "k3s-audit-policy: installed audit policy and ensured log dir ${auditLogDir}"
+      '';
+    };
+
+    # ── Secrets encryption at rest (etcd) ──────────────────────────
+    # Generates a Kubernetes EncryptionConfiguration from a shared AES key
+    # on all server nodes. All HA servers MUST use the same key file.
+    # Uses aescbc provider with identity fallback for reading unencrypted secrets.
+    #
+    # Uses pkgs.writeText at build time (avoids heredoc indentation issues)
+    # with a placeholder that sed replaces at runtime with the real key.
+    systemd.services.k3s-secrets-encryption = let
+      encryptionConfigTemplate = pkgs.writeText "encryption-config.yaml" ''
+        apiVersion: apiserver.config.k8s.io/v1
+        kind: EncryptionConfiguration
+        resources:
+          - resources:
+              - secrets
+            providers:
+              - aescbc:
+                  keys:
+                    - name: key1
+                      secret: __ENCRYPTION_KEY__
+              - identity: {}
+      '';
+    in mkIf (isServer && cfg.secretsEncryptionKeyFile != null) {
+      description = "Generate etcd encryption config for K3s secrets encryption at rest";
+      wantedBy = ["k3s.service"];
+      before = ["k3s.service"];
+      serviceConfig.Type = "oneshot";
+      serviceConfig.RemainAfterExit = true;
+      path = with pkgs; [coreutils gnused];
+      script = ''
+        KEY_FILE="${cfg.secretsEncryptionKeyFile}"
+        CONFIG_DIR="${cfg.dataDir}/server/cred"
+        CONFIG_FILE="$CONFIG_DIR/encryption-config.yaml"
+
+        if [ ! -f "$KEY_FILE" ]; then
+          echo "k3s-secrets-encryption: key file $KEY_FILE not found, skipping"
+          exit 0
+        fi
+
+        KEY_B64=$(head -c 32 "$KEY_FILE" | ${pkgs.coreutils}/bin/base64 -w0)
+        if [ -z "$KEY_B64" ]; then
+          echo "k3s-secrets-encryption: key file is empty, skipping"
+          exit 0
+        fi
+
+        mkdir -p "$CONFIG_DIR"
+        sed "s|__ENCRYPTION_KEY__|''${KEY_B64}|" ${encryptionConfigTemplate} > "$CONFIG_FILE"
+        chmod 600 "$CONFIG_FILE"
+        echo "k3s-secrets-encryption: encryption config written to $CONFIG_FILE"
+      '';
     };
 
     # Etcd defragmentation — compaction alone doesn't reclaim disk space.
