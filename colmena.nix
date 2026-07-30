@@ -47,7 +47,7 @@ in {
     machinesFile = ./machines;
     specialArgs = {
       inherit inputs self;
-      vfioPkgs = pkgs; # nixpkgs is now unstable — vfioPkgs == pkgs
+      vfioPkgs = tunedNixpkgs "x86_64-linux"; # derived from inputs.nixpkgs via tunedNixpkgs
     };
   };
 }
