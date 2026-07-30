@@ -29,8 +29,6 @@ let
     ./lazygit.nix
     ./tui-apps.nix
     ./editorconfig.nix
-    ./noctalia-stylix.nix
-    ./stylix-bridges.nix
     ./heal-stale-backups.nix
   ] ++ lib.optionals (hostName == "zephyr") [
     ./standalone-zephyr.nix
