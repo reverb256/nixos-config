@@ -303,6 +303,25 @@
 
       colmenaHive = colmena.lib.makeHive self.outputs.colmena;
 
+      # OUTPUT 4: homeConfigurations
+      # Standalone Home Manager activations for j_kro on every cluster host.
+      # Reuses the same user module wired into nixosConfigurations so there
+      # is one declarative source of truth; `home-manager switch` can now be
+      # invoked independently without a full NixOS rebuild.
+
+      homeConfigurations = builtins.mapAttrs (
+        _name: value:
+          home-manager.lib.homeManagerConfiguration {
+            pkgs = import nixpkgs {
+              inherit system;
+              config.allowUnfree = true;
+            };
+
+            modules = commonModules ++ [ ./hosts/${value.hostName}/configuration.nix ];
+            extraSpecialArgs = { inherit inputs vfioPkgs; hostName = value.hostName; };
+          }
+      ) hosts;
+
       # EXISTING OUTPUTS (maintain compatibility)
 
       packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
