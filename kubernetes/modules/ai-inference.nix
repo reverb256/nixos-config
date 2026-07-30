@@ -141,9 +141,7 @@ in {
       PRIVACY_FILTER_URL = "http://privacy-filter.ai-inference.svc.cluster.local:8080";
       PRIVACY_FILTER_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = "true";
-      MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED = "true";
-      MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL = "http://searxng.search.svc.cluster.local:8080";
-      MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS = "10";
+
       MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K = "60";
       MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED = "true";
       MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS = "[\"/etc/nixos\"]";
@@ -467,9 +465,9 @@ in {
     #   - Intelligent routing (model specialization, latency-aware)
     #   - Circuit breaker + fallback to NVIDIA NIM
     #   - RAG via Qdrant hybrid search (vector + BM25)
-    #   - MCP broker (SearXNG, etc.)
+    #   - MCP broker
     #   - Security filter (rate limiting, PII redaction)
-    #   - Knowledge Fabric middleware (SearXNG + RAG + brain wiki)
+    #   - Knowledge Fabric middleware (RAG + code search)
     ai-inference.Service.ai-inference-gateway = {
       metadata.labels =
         managed
@@ -692,10 +690,7 @@ in {
                   LOG_LEVEL.value = "INFO";
                   PYTHONPATH.value = "/app";
                   PATH.value = "/bin:/usr/bin";
-                  SEARXNG_URL.valueFrom.configMapKeyRef = {
-                    name = "ai-inference-gateway-config";
-                    key = "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL";
-                  };
+
                   NVIDIA_API_KEY.valueFrom.secretKeyRef = {
                     name = "nvidia-api-key";
                     key = "NVIDIA_API_KEY";
@@ -861,7 +856,6 @@ in {
       stringData.GATEWAY_TOKEN = "";
     };
     # ── Additional NetworkPolicies ───────────────────────────────
-    # Allow SearXNG pods to reach AI Inference Gateway
     ai-inference.NetworkPolicy.allow-search-to-gateway = {
       spec = {
         podSelector.matchLabels.app = "ai-inference-gateway";
@@ -871,7 +865,6 @@ in {
             from = [
               {
                 namespaceSelector.matchLabels.name = "search";
-                podSelector.matchLabels.app = "searxng";
               }
             ];
             ports = [

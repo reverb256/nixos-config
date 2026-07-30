@@ -62,12 +62,10 @@ middleware:
     enabled: false
     rrfK: 60
     ragEnabled: false
-    searxngEnabled: false
     webSearchEnabled: false
     codeSearchEnabled: true
     codeSearchPaths:
       - /etc/nixos
-    searxngUrl: "http://searxng.search.svc.cluster.local:8080"
 
 # RAG configuration
 rag:
@@ -87,13 +85,6 @@ mcp:
   enabled: false
   servers: {}
   # Example:
-  # searxng:
-  #   type: local
-  #   command: ["python", "-m", "ai_inference_gateway.mcp_servers.searxng_server"]
-  #   environment:
-  #     SEARXNG_URL: "http://searxng.search.svc.cluster.local:8080"
-
-# Monitoring
 monitoring:
   enabled: true
   port: 9190

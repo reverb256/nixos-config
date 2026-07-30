@@ -9,6 +9,7 @@
 }: {
   imports = [
     ../../modules/system/secretspec-creds.nix
+    ../../modules/system/secretspec-validator.nix
     # ========================================================================
     # BASE MODULES
     # ========================================================================
@@ -645,9 +646,6 @@ programs.gitlawb.enable = false;
     redis.servers."".enable = true;
     # Note: redis-ai-gateway.service already provides Redis on port 6380
 
-    # SearXNG - Privacy-respecting metasearch engine
-    # MIGRATED TO KUBERNETES (2026-03-19) - See kubernetes-manifests/searxng/
-
     # AI Inference Service - Gateway with ALL FEATURES enabled
     ai-inference = {
       enable = true;
@@ -680,9 +678,6 @@ programs.gitlawb.enable = false;
           rrf_k = 60;
           # All knowledge sources enabled
           rag_enabled = true;
-          searxng_enabled = true;
-          searxng_url = "http://10.1.1.120:30808"; # Nexus NodePort (host-accessible)
-          searxng_max_results = 10;
           code_search_enabled = true;
           code_search_paths = [
             "/etc/nixos"
@@ -753,20 +748,6 @@ programs.gitlawb.enable = false;
             # Use absolute path for reliable subprocess spawning
             command = ["/run/current-system/sw/bin/mcp-context7"];
             environment.CONTEXT7_API_KEY_FILE = "/run/secrets/context7-api-key";
-            enabled = true;
-          };
-          searxng = {
-            type = "local";
-            command = [
-              "python3"
-              "-m"
-              "ai_inference_gateway.mcp_servers.searxng_server"
-              # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
-  ];
-            environment = {
-              SEARXNG_URL = "http://searxng.search.svc.cluster.local:8080"; # Kubernetes service DNS
-              SEARXNG_CACHE_TTL = "300";
-            };
             enabled = true;
           };
         };

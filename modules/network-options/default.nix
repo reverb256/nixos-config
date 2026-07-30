@@ -286,13 +286,6 @@ in {
                       });
                       default = {};
                     };
-                    searxng = mkOption {
-                      type = types.submodule (svcOpts {
-                        namespace = "search";
-                        port = 8080;
-                      });
-                      default = {};
-                    };
                     vane = mkOption {
                       type = types.submodule (svcOpts {
                         namespace = "search";

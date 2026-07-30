@@ -47,7 +47,6 @@ spec:
       ports:
         - protocol: UDP
           port: 53
-    # Allow SearXNG access (search namespace)
     - to:
         - namespaceSelector:
             matchLabels:

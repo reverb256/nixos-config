@@ -62,7 +62,6 @@ in {
                       - glanceapp/glance
                       - go-gitea/gitea
                       - immich-app/immich
-                      - searxng/searxng
                       - nixos/nixpkgs
                       - k3s-io/k3s
 
@@ -106,8 +105,6 @@ in {
                     sites:
                       - title: AI Gateway
                         url: http://ai-inference-gateway.ai-inference.svc.cluster.local:8080
-                      - title: SearXNG
-                        url: http://searxng.search.svc.cluster.local:8080
                       - title: Grafana
                         url: http://grafana.monitoring.svc.cluster.local:3000
                         alt-status-codes: [301, 302]
@@ -135,9 +132,6 @@ in {
                   - type: search
                     search-engine: duckduckgo
                     bangs:
-                      - title: SearXNG
-                        shortcut: "!s"
-                        url: https://search.lan/search?q={QUERY}
                       - title: Grafana
                         shortcut: "!graf"
                         url: https://grafana.lan
@@ -177,8 +171,6 @@ in {
                       - title: Search
                         color: 80 50 50
                         links:
-                          - title: SearXNG
-                            url: https://search.lan
                       - title: Infrastructure
                         color: 30 50 60
                         links:

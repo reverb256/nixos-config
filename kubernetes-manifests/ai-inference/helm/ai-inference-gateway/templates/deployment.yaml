@@ -95,7 +95,7 @@ spec:
               value: "true"
             - name: MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K
               value: "{{ .Values.middleware.knowledgeFabric.rrfK }}"
-            - name: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL
+            - name:
               value: "{{ .Values.middleware.knowledgeFabric.searxngUrl }}"
             {{- end }}
             {{- if .Values.middleware.redis.enabled }}

@@ -399,21 +399,6 @@ in {
         };
       };
 
-      kagent.RemoteMCPServer.searxng = {
-        metadata.labels =
-          managed
-          // {
-            "app.kubernetes.io/component" = "mcp-server";
-            "mcp-server" = "searxng";
-          };
-        spec = {
-          name = "searxng";
-          url = "http://searxng-mcp.mcp.svc.cluster.local:9001/sse";
-          transport = "sse";
-          description = "SearXNG web search (15 tools)";
-        };
-      };
-
       kagent.RemoteMCPServer.lightpanda = {
         metadata.labels =
           managed
@@ -455,7 +440,7 @@ in {
                 {
                   protocol = "TCP";
                   port = 9001;
-                } # searxng-mcp
+                } # kubernetes-mcp
                 {
                   protocol = "TCP";
                   port = 9003;

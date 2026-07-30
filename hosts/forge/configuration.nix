@@ -71,6 +71,7 @@
 
     # SecretSpec Phase 4 credential provisioning
     ../../modules/system/secretspec-creds.nix
+    ../../modules/system/secretspec-validator.nix
 
   ];
 
