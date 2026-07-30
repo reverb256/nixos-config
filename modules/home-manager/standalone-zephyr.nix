@@ -1,8 +1,5 @@
 { pkgs, ... }:
 {
-  xdg.configFile."wayfire/wayfire.ini".source = ../../desktop/wayfire.ini;
-  xdg.configFile."wlogout/layout".source = ../../desktop/wlogout-layout;
-
   home.packages = with pkgs; [
     protonup-qt
     lutris
