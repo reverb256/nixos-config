@@ -10,7 +10,6 @@ let
     ./fish.nix
     ./starship.nix
     ./btop.nix
-    ./wayland-tools.nix
     ./zen-browser.nix
     ./nixcord-config.nix
     ./mime-apps.nix
