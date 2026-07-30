@@ -16,7 +16,7 @@
 
           gitlawb-src = fetchurl {
             url = "https://github.com/gitlawb/node/releases/download/v${version}/gitlawb-node-${version}-x86_64-unknown-linux-musl.tar.gz";
-            sha256 = "0c28ce9c195d3d34d05a22d56cffb1cd0ca5328bcd4e22b12da7cbdcb520fa9a";
+            sha256 = "sha256-wozpwZXT000Foi1Wz/sc0MpTKLzU4isS2ny9y1IPqJo=";
           };
 
           gitlawb-bin = stdenv.mkDerivation {
