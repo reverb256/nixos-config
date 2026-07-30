@@ -41,7 +41,7 @@ in {
 
     programs.git = {
       enable = true;
-      extraConfig = {
+      config = {
         "remote \"gitlawb\"".url = "gitlawb://${cfg.gitRemote.did}/${cfg.gitRemote.repo}";
       } // lib.listToAttrs (
         lib.imap0 (i: remote:
