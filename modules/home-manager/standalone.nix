@@ -31,13 +31,13 @@ let
   ] ++ lib.optionals (hostName == "zephyr" || hostName == "sentry") [
     ./niri-config.nix
   ] ++ lib.optionals (hostName == "zephyr") [
-    ./zephyr.nix
+    ./standalone-zephyr.nix
   ] ++ lib.optionals (hostName == "nexus") [
-    ./nexus.nix
+    ./standalone-nexus.nix
   ] ++ lib.optionals (hostName == "forge") [
-    ./forge.nix
+    ./standalone-forge.nix
   ] ++ lib.optionals (hostName == "sentry") [
-    ./sentry.nix
+    ./standalone-sentry.nix
   ];
 in {
   imports = hmLeaf;
