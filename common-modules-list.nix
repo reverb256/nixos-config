@@ -21,8 +21,12 @@
   # REMOVED: compute-market (all mining infra switched to peakminer)
   inputs.gpu-proxy.nixosModules.default
 
-  # Audit F-13 (2026-07-28): Stylix moved to
-  # modules/desktop/desktop-modules.nix (zephyr-only).
+  # Audit F-13 (2026-07-28): Stylix is theme infrastructure, not
+  # desktop-only — ALL hosts with home-manager need the stylix NixOS
+  # module so that `homeManagerIntegration.followSystem` propagates
+  # the stylix HM module (stylix.targets.* options) into the common
+  # home-manager config in modules/system/home-manager.nix.
+  inputs.stylix.nixosModules.default
 
   ./modules/services/peakminer.nix
 
