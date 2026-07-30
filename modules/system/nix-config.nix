@@ -120,8 +120,9 @@
       # Local Nix binary caches (nexus and zephyr serve signed store paths).
       substituters = [
         "http://10.1.1.110:50000?priority=40"
-      "https://cache.nixos.org?priority=90"
+        "https://cache.nixos.org?priority=90"
         "https://nix-community.cachix.org?priority=80"
+        "https://ezkea.cachix.org?priority=70"
       ];
 
       trusted-public-keys = lib.mkOptionDefault [
