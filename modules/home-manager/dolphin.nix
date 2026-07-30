@@ -6,7 +6,7 @@
 }: let
   # Pull base16 surface color so Dolphin's folder-view background tracks
   # the active stylix scheme (not a stale hardcoded Breeze-Dark value).
-  c = config.lib.stylix.colors;
+  c = config.lib.stylix.colors or { base00 = "#111c18"; base01 = "#1d2b25"; base02 = "#23372b"; base03 = "#3a4f43"; base04 = "#8a9479"; base05 = "#c1c497"; base06 = "#e3e2c4"; base07 = "#f6f5dd"; base08 = "#ff5345"; base0A = "#e5c736"; base0B = "#549e6a"; base0C = "#2dd5b7"; base0D = "#509475"; base0E = "#d2689c"; base0F = "#d7c995"; };
   viewBg = "#" + c.base00;
   viewFg = "#" + c.base05;
   selBg = "#" + c.base0D;
