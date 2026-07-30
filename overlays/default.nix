@@ -1,13 +1,20 @@
 # Split from the historic monolith `overlay.nix` so sub-interests are reviewable
 # and image/package/service concerns no longer share one large surface.
+# Each sub-overlay returns an attrset that is merged (//) into the top level
+# so that `pkgs.gputemps` (not `pkgs.system.gputemps`) resolves correctly.
 { inputs }: _final: prev:
 let
-  inherit (prev.lib) callPackage fetchurl;
+  inherit (prev.lib) foldl';
+  systemOverlay = import ./system.nix { inherit inputs _final prev; };
+  pythonOverlay = import ./python.nix { inherit inputs _final prev; };
+  imagesOverlay = import ./images.nix { inherit inputs _final prev; };
+  hardwareOverlay = import ./hardware.nix { inherit inputs _final prev; };
+  appsOverlay = import ./apps.nix { inherit inputs _final prev; };
 in
-{
-  system = import ./system.nix { inherit inputs _final prev; };
-  python = import ./python.nix { inherit inputs _final prev; };
-  images = import ./images.nix { inherit inputs _final prev; };
-  hardware = import ./hardware.nix { inherit inputs _final prev; };
-  apps = import ./apps.nix { inherit inputs _final prev; };
-}
+foldl' (acc: overlay: acc // overlay) {} [
+  systemOverlay
+  pythonOverlay
+  imagesOverlay
+  hardwareOverlay
+  appsOverlay
+]

@@ -10,12 +10,7 @@ in {
     package = mkOption {
       type = types.package;
       default = gitlawbPkgs.default;
-      description = "gitlawb CLI package set providing gl, git-remote-gitlawb, gitlawb-node";
-    };
-    nodePackage = mkOption {
-      type = types.package;
-      default = gitlawbPkgs.gitlawb-node;
-      description = "gitlawb-node server package";
+      description = "gitlawb binary package (provides gl, git-remote-gitlawb, gitlawb-node from a single release tarball)";
     };
     gitRemote = {
       did = mkOption {
@@ -37,7 +32,7 @@ in {
   };
 
   config = mkIf cfg.enable {
-    environment.systemPackages = [ cfg.package cfg.nodePackage ];
+    environment.systemPackages = [ cfg.package ];
 
     programs.git = {
       enable = true;

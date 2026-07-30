@@ -41,7 +41,7 @@
     # Game Pass Windows VM — VFIO RTX 3060 Ti passthrough (zephyr only)
     ../../modules/hardware/vfio-gamepass.nix
     # Noctalia desktop compositor (niri shell, iced/winit/Smithay deps)
-    inputs.noctalia.nixosModules.default
+    # noctalia: now built-in to nixpkgs-unstable (programs.noctalia)
     # RGB control for peripherals and components
     ../../modules/hardware/rgb-control.nix
     # PeakMiner GPU mining stack (zephyr local miners + auth-translator proxies)
@@ -1149,7 +1149,7 @@
     graphviz # Graphviz (dot) diagrams
     python312Packages.openpyxl # Excel read/write
     # Noctalia CLI binary for keybindings (Mod+Space, Print, notifications)
-    inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default
+    pkgs.noctalia
     # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
   ];
 

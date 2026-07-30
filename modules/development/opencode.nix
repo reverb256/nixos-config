@@ -130,7 +130,7 @@ in {
     clusterSync = {
       enable = mkOption {
         type = types.bool;
-        default = lib.mkDefault true;
+        default = true;
         description = "Sync configuration to cluster nodes (forge, nexus, sentry)";
       };
 
