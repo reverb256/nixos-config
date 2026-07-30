@@ -14,8 +14,11 @@ just deploy
 # Deploy to specific node
 just deploy <hostname>
 
-# Test configuration without applying
-just test
+# Build and test activation without switching permanently
+just test-apply
+
+# Fast flake validation without a build
+just check
 ```
 
 ## Cluster Architecture
@@ -27,6 +30,35 @@ just test
 - **Sentry** (10.1.1.140) - Monitoring, logging
 
 **Resources:** 78 cores, 123GB RAM, 7 GPUs, 8.4TB storage
+
+## Build Architecture
+
+The NixOS target is the generic `x86_64-linux` platform. This repository does
+**not** apply `-march=x86-64-v3` globally to the complete userspace.
+
+- All hosts use the CachyOS `linuxPackages-...-x86_64-v3` kernel package.
+- Selected llama.cpp packages are explicitly compiled with
+  `-march=x86-64-v3` (see `modules/development/llama-cpp-optimization.nix` and
+  `packages/llama-cpp-ik.nix`).
+- The rest of the system uses each package's normal nixpkgs compiler settings.
+- `big-parallel` is a Nix builder capability label, not an architecture target
+  or a thread count.
+
+Distributed-build policy is declared in
+`modules/system/distributed-builds.nix`:
+
+| Host | Local max jobs | Role |
+|------|----------------|------|
+| Zephyr | 0 | Dispatcher; avoids local desktop OOM |
+| Nexus | 12 | Primary builder |
+| Sentry | 8 | Secondary builder |
+| Forge | 4 local jobs if building locally | GPU/mining host; not included in the module-generated remote-builder list |
+
+The module generates `/etc/nix/machines` from its own host list and excludes
+the current host. The root `machines` file is the Nix machines file supplied to Colmena via
+`colmena.nix`; it is not a global `-march` policy. Verify deployed runtime
+settings with `nix show-config` and `/etc/nix/machines` before treating live
+state as current.
 
 ## Project Architecture
 

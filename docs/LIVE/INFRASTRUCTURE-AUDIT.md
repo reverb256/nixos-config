@@ -4,6 +4,10 @@ verified-by: Sisyphus
 verification-method: just docs-audit + cluster inspection
 expires: 2026-05-31
 ---
+> **STALE SNAPSHOT:** This audit expired on 2026-05-31. Do not use its
+> version, readiness, or workload claims as current truth. Consult
+> `docs/audit-2026-07-27.md`, `just health`, and the active NixOS modules.
+
 # Infrastructure Audit — 2026-05-24
 
 ## Cluster Overview

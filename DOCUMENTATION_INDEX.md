@@ -1,8 +1,9 @@
 # NixOS Cluster Documentation Index
 
-**Last Updated:** 2026-07-27 | **Cluster Version:** K3s OPERATIONAL, Sovereign Service Mesh Phase 1 Complete | **Agent Files:** Template-based v1.0 | **Most Recent Audit:** [`docs/audit-2026-07-27.md`](docs/audit-2026-07-27.md)
+**Last Updated:** 2026-07-30 | **Cluster Version:** K3s OPERATIONAL, Sovereign Service Mesh Phase 1 Complete | **Agent Files:** Template-based v1.0 | **Most Recent Audit:** [`docs/audit-2026-07-27.md`](docs/audit-2026-07-27.md)
 
-Complete index of all documentation for the NixOS cluster, including the ongoing Kubernetes migration.
+Complete index of the NixOS cluster documentation. Migration plans remain
+historical/planning context; the deployed Kubernetes implementation is K3s.
 
 ---
 
@@ -29,7 +30,7 @@ Complete index of all documentation for the NixOS cluster, including the ongoing
 | **STATUS.md** | Real-time cluster health & migration progress | `STATUS.md` |
 | **AGENTS.md** | Universal guidelines for ALL AI agents | `AGENTS.md` |
 | **CLAUDE.md** | Claude Code-specific patterns | `CLAUDE.md` |
-| **ROADMAP.md** | Kubernetes migration plan (9-week timeline) | `ROADMAP.md` |
+| **ROADMAP.md** | Historical Kubernetes migration plan and K3s hardening notes | `ROADMAP.md` |
 | **Copilot Instructions** | GitHub Copilot guidelines | `.github/copilot-instructions.md` |
 | **Cursor Rules** | Cursor IDE guidelines | `.cursorrules` |
 | **QWEN.md** | Qwen-Agent patterns | `QWEN.md` |
@@ -126,7 +127,7 @@ Complete index of all documentation for the NixOS cluster, including the ongoing
 ## Kubernetes Migration
 
 ### Primary Docs
-- **ROADMAP.md** (685 lines) - Complete 9-week migration plan, 7 phases, GPU strategy
+- **ROADMAP.md** - Historical migration plan and current K3s hardening notes
 - **AGENTS.md** - K8s commands, workflows, NixOS configuration, troubleshooting
 
 ### Control Plane
@@ -156,10 +157,11 @@ Complete index of all documentation for the NixOS cluster, including the ongoing
   - **Manifests:** `kubernetes-manifests/ingress/`
 
 ### Quick Reference
-- **Status:** Phase 1 Complete, Phase 2 In Progress
-- **K8s Version:** v1.35.0 on 4 nodes (Zephyr, Nexus, Forge, Sentry)
-- **Timeline:** 9 weeks
-- **Decisions:** Full K8s (not K3s), Flannel CNI, Longhorn storage, NixOS module
+- **Status:** K3s migration complete; consult `STATUS.md` and the current audit for live state
+- **Kubernetes:** K3s v1.36.1+k3s1, pinned in `modules/services/k3s-cluster.nix`
+- **Topology:** 4 nodes — Zephyr, Nexus, Forge, and Sentry
+- **CNI:** Flannel VXLAN (K3s default)
+- **Decisions:** K3s via the NixOS module; see `ROADMAP.md` and `docs/HARDWARE.md` for migration and inventory context
 
 ---
 
@@ -168,24 +170,30 @@ Complete index of all documentation for the NixOS cluster, including the ongoing
 ### Justfile Commands
 ```bash
 # Primary
-just test              # Verify configuration
+just check             # Fast flake validation
+just build             # Build current host (offloads from Zephyr)
+just test-apply        # Test activation without a permanent switch
 just switch            # Apply to local host
 just deploy            # Deploy to all hosts
-just status            # Show cluster status
+just status             # Show cluster status
 
 # Host-specific
-just zephyr|nexus|forge|sentry  # Deploy to specific host
+just zephyr              # Deploy to zephyr
+just nexus               # Deploy to nexus
+just forge               # Deploy to forge
+just sentry              # Deploy to sentry
 
 # CI/CD
-just ci-local          # Run CI locally
-just health-check      # Cluster health check
+just check             # Fast flake validation
+just build             # Build current host
+just health            # Cluster health check
 just rollback          # Rollback to previous generation
 ```
 
 ### Critical Workflows
-- **Before Deployment:** `just test` → check storage → review hookify warnings
+- **Before Deployment:** `just check` → targeted build/test → preflight → review hookify warnings
 - **Storage Verify:** `/data/@projects/infra/nixos/verify-cluster-storage.sh`
-- **Git Workflow:** Make changes → `git add` new files → `git commit` → `just test` → `just deploy`
+- **Git Workflow:** Make changes → `git add` new files → `git commit` → `just check`/targeted build → `just deploy`
 
 ---
 
@@ -279,7 +287,7 @@ just rollback          # Rollback to previous generation
 ### For AI Agents
 1. Read relevant documentation
 2. Check hookify rules
-3. Use `just test` before changes
+3. Use `just check` and targeted build validation before changes
 4. Follow systematic debugging (AGENTS.md)
 
 ### For Humans
@@ -292,11 +300,11 @@ just rollback          # Rollback to previous generation
 ### Common Tasks
 ```bash
 # Deploy
-just test && just deploy
+just check && just deploy
 
 # Health
 just status
-just health-check
+just health
 
 # Logs
 journalctl -u <service> -f
@@ -354,5 +362,5 @@ kubectl logs <pod> -n <namespace>
 ---
 
 **Document Owner:** j_kro
-**Version:** 4.0 | **Updated:** 2026-07-27
-**Changes (2026-07-27):** Refreshed Last-Updated stamp; added audit-2026-07-27.md cross-reference at top + AI-agent quick-start pointer; added 2026-07-27 audit entry to Recent Changes; updated version 3.2→4.0 to reflect reference-doc overhaul.
+**Version:** 4.1 | **Updated:** 2026-07-30
+**Changes (2026-07-30):** Refreshed the command references and build-farm documentation; added the current audit cross-reference and corrected the K3s status summary.

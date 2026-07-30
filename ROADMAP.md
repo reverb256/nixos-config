@@ -34,7 +34,7 @@
 
 **Objective:** Migrate all containerizable services from NixOS systemd to Kubernetes across a 4-node cluster (Zephyr, Nexus, Forge, Sentry).
 
-**Implementation:** Migration was completed using **K3s** (v1.34.5) via NixOS `services.k3s` module, replacing the original plan to use `services.kubernetes`. K3s was chosen for its simpler operational model (single binary, embedded etcd, auto-TLS) while maintaining full Kubernetes API compatibility.
+**Implementation:** Migration was completed using **K3s** via the NixOS `services.k3s` module, replacing the original plan to use `services.kubernetes`. The current package pin is **v1.36.1+k3s1** in `modules/services/k3s-cluster.nix`; the original migration baseline was v1.34.5. K3s was chosen for its simpler operational model (single binary, embedded etcd, auto-TLS) while maintaining full Kubernetes API compatibility.
 
 > **Note:** This document originally described a full `services.kubernetes` deployment. The cluster now runs K3s. See the [K3s Migration Audit](#k3s-migration-audit) section below for the current state and remaining work.
 
@@ -44,7 +44,7 @@
 3. Gain enterprise Kubernetes experience for professional development
 4. Enable better scalability and service orchestration
 
-**Approach:** Full Kubernetes (not K3s) via NixOS `services.kubernetes` module for maximum learning value and operational control.
+**Historical proposal:** Full Kubernetes (not K3s) via NixOS `services.kubernetes` module for maximum learning value and operational control. This was superseded by the completed K3s migration described below.
 
 **Timeline:** Estimated 3-6 months for complete migration
 
@@ -132,7 +132,7 @@
 
 ### Kubernetes Distribution
 
-**Choice:** Full Kubernetes via `services.kubernetes` module (NOT K3s)
+**Historical choice:** Full Kubernetes via `services.kubernetes` module (NOT K3s). The deployed cluster uses K3s instead; retain this line only as original decision context.
 
 **Rationale:**
 - Enterprise-grade experience (control plane operations, etcd management)
@@ -911,7 +911,7 @@ The Sovereign Service Mesh is a bus-style architecture where the AI Gateway serv
 
 | Component | Status |
 |-----------|--------|
-| K3s version | v1.34.5+k3s1 |
+| K3s version | v1.36.1+k3s1 (current module pin; migration baseline was v1.34.5) |
 | Nodes | 4/4 functional (zephyr, nexus, forge, sentry) |
 | etcd HA | 3-node quorum (nexus=bootstrap, zephyr, sentry) |
 | VIP (Keepalived) | 10.1.1.100 ✅ |

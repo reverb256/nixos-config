@@ -6,7 +6,7 @@
 
 ## Quick Start
 
-1. **Always** run `just test` before making changes
+1. **Always** run `just check` and the relevant targeted build validation before making changes
 2. **Always** use `just deploy` for applying configuration changes
 3. **Never** use direct colmena/nix-build commands (causes hangs)
 
@@ -56,10 +56,12 @@ networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22 53 6443];
 
 | Command | Purpose | When to Use |
 |---------|---------|-------------|
-| `just test` | Verify config builds | Before any changes |
+| `just check` | Fast flake validation | Before changes |
+| `just build` | Build current host configuration | Before deployment |
+| `just test-apply` | Test activation without permanent switch | Before risky changes |
 | `just switch` | Apply to local host | Local development |
 | `just deploy` | Deploy to all hosts | Production changes |
-| `just ci-local` | Full CI pipeline | Pre-commit verification |
+| `just full-check` | Full repository validation | Pre-commit verification |
 
 ---
 
@@ -68,7 +70,8 @@ networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22 53 6443];
 - **2-space indentation**, trailing semicolons
 - **kebab-case** for files and modules
 - **Line length**: 80-100 chars (soft limit 120)
-- **Never** edit `hardware-configuration.nix` or `flake.lock`
+- **Never** edit generated `hardware-configuration.nix` files
+- Treat `flake.lock` updates as deliberate dependency changes and validate them separately
 
 ---
 
@@ -96,5 +99,5 @@ networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22 53 6443];
 
 ---
 
-**Version**: 1.0 | **Updated**: 2026-03-15
+**Version**: 1.1 | **Updated**: 2026-07-30
 **Based on**: Juice Shop pattern for multi-agent documentation

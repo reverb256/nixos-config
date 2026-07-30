@@ -1,6 +1,6 @@
 # CI/CD Pipeline
 
-**Status**: ✅ Active | **Updated**: 2026-03-19
+**Status**: ✅ Active | **Updated**: 2026-07-30
 
 ---
 
@@ -15,9 +15,9 @@ GitHub Actions (CI)
     ↓
 just check (flake validation)
     ↓
-just test (build all hosts)
+just build / targeted test validation
     ↓
-just deploy (colmena apply)
+just deploy (repository safety gates + host-specific build flow)
 ```
 
 ---
@@ -57,12 +57,19 @@ This validates:
 
 ### Pre-push Validation
 
-Always run before pushing:
+Run the fast check and the relevant build validation before pushing:
 ```bash
-just test
+just check
+just build
 ```
 
-This builds all 4 host configurations to ensure they compile.
+For a temporary activation test without switching permanently, use:
+```bash
+just test-apply
+```
+
+There is no `just test` recipe. Zephyr builds are offloaded through the
+configured remote-build path because Zephyr has zero local build jobs.
 
 ---
 
@@ -127,48 +134,25 @@ Deploy to all hosts or specific host:
 
 ### Configuration
 
-`colmena.nix` defines deployment for all hosts:
-
-```nix
-{
-  meta = {
-    nixpkgs = import inputs.nixpkgs {
-      system = "x86_64-linux";
-    };
-  };
-
-  zephyr = { ... }: {
-    # Workstation configuration
-  };
-
-  nexus = { ... }: {
-    # Gaming node configuration
-  };
-
-  forge = { ... }: {
-    # Mining node configuration
-  };
-
-  sentry = { ... }: {
-    # Monitoring node configuration
-  };
-}
-```
+The unified `hosts` attribute set in `flake.nix` is the source of truth.
+`colmena.nix` receives that set and derives the Colmena nodes, deployment
+metadata, target hosts, tags, and shared modules. The checked-in root
+`machines` file is passed to Colmena as `meta.machinesFile`; it is distinct
+from the generated `/etc/nix/machines` used by the Nix daemon for distributed
+builds.
 
 ### Deploy via Colmena
 
 ```bash
-# Deploy to all hosts
-colmena apply --refresh
+# Recommended: use the repository guardrails
+just deploy
+just deploy zephyr
 
-# Deploy to specific host
-colmena apply zephyr --refresh
+# Direct app invocation (only when the just recipe is unsuitable)
+nix --option pure-eval false run .#apps.x86_64-linux.colmena -- apply --on zephyr
 
 # Build without deploying
-colmena build
-
-# Evaluate configuration
-colmena eval
+nix --option pure-eval false run .#apps.x86_64-linux.colmena -- build
 ```
 
 ---
@@ -257,4 +241,4 @@ ssh zephyr sudo nixos-rebuild rollback
 - **2026-03-19**: Consolidated from 4 separate documents
 - **2026-03-11**: CI/CD refactoring completed
 - **2026-03-07**: GitHub Actions workflows added
-- **2026-03-02`: Initial Colmena deployment
+- **2026-03-02**: Initial Colmena deployment

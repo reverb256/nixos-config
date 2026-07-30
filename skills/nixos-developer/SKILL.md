@@ -62,11 +62,11 @@ Use this skill when:
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     home-manager.url = "github:nix-community/home-manager";
-    agenix.url = "github:ryantm/agenix";
+    sops-nix.url = "git+https://github.com/Mic92/sops-nix";
     # ... other inputs
   };
 
-  outputs = { self, nixpkgs, home-manager, agenix, ... }: {
+  outputs = { self, nixpkgs, home-manager, sops-nix, ... }: {
     # Outputs defined here
   };
 }
@@ -506,9 +506,9 @@ sudo nixos-rebuild switch  # Now works!
 | Task | Command |
 |------|---------|
 | Syntax check | `nix flake check` |
-| Build | `nbuild` |
-| Test | `ntest` |
-| Switch | `nswitch` |
+| Build | `just build` |
+| Test | `just test-apply` |
+| Switch | `just switch` |
 | Show config | `nix flake show` |
 | Evaluate value | `nix eval .#nixosConfigurations.zephyr.config...` |
 | Format .nix files | `nixpkgs-fmt **/*.nix` |

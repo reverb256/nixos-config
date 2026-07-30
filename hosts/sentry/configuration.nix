@@ -20,17 +20,8 @@
     # All other modules (desktop, gaming, networking, services, etc.)
     ../../modules/default.nix
 
-    # AMD GPU Wayland optimizations (includes nvtopPackages.full)
-    ../../modules/hardware/amdgpu-wayland.nix
-    ../../modules/hardware/rgb-control.nix
-
-    # Podman support
-    ../../modules/services/podman-support.nix
-
     # Kubernetes
     ../../modules/services/k3s-cluster.nix
-    # Bonsai 27B: 1-bit Vulkan (port 8003)
-    ../../modules/services/bonsai.nix
     # Keepalived VIP for HA API server access
     ../../modules/services/keepalived-vip.nix
 
@@ -39,10 +30,12 @@
 
     # SecretSpec Phase 4 credential provisioning
     ../../modules/system/secretspec-creds.nix
-
-    # Gitlawb node — self-hosted decentralized git (private mirror)
-    ../../modules/services/gitlawb-node.nix
   ];
+
+  # ============================================================================
+  # DESKTOP — disabled for minimal headless recovery
+  # ============================================================================
+  services.desktopManager.plasma6.enable = false;
 
   # ============================================================================
   # HOST IDENTIFICATION
@@ -132,8 +125,8 @@
       # never evaluated because enable=false) was vestigial.
     };
 
-    # Auto-apply K8s manifests on boot (control-plane node)
-    k8s-manifest-autoapply.enable = true;
+    # Auto-apply K8s manifests on boot (control-plane only; sentry is agent)
+    k8s-manifest-autoapply.enable = false;
 
     keepalived-vip = {
       enable = true;
@@ -216,29 +209,7 @@
       fanControl = false; # BIOS fan control for now
     };
 
-    # RGB control for AMD Wraith Prism cooler and MSI motherboard
-    rgb-control = {
-      enable = true;
-      # 2026-07-28: headless host. openrgb userland wrapper core-dumps 4× per
-      # boot (correlated with the systemd-coredump entries). Use lib.mkForce
-      # false on the existing sub-option so the rgb-control module can still
-      # see wraithRgb + temperatureReactive but the openrgb wrapping is
-      # suppressed entirely. (A second `hardware.rgb-control.openrgb.enable`
-      # at the top-level collides with module attrset merge rules — keep this
-      # in this block where lib.mkForce is allowed to win.)
-      openrgb.enable = lib.mkForce false;
-      wraithRgb.enable = true; # AMD Wraith Prism cooler
-      temperatureReactive = {
-        enable = true;
-        sensor = "cpu"; # Monitor CPU temps
-        thresholds = {
-          cool = 45;
-          warm = 60;
-          hot = 70;
-        };
-        interval = 5;
-      };
-    };
+
   };
 
   # ============================================================================
@@ -321,8 +292,7 @@
     #       url = "xtm-c29-eu.kryptex.network:8040"; # Direct Kryptex EU (failover)
     #       wallet = "krxXVNVMM7.sentry-gpu";
     #       password = "x";
-    # Spotify with SpotX patch (ad-free, premium features)
-    spotify-spotx.enable = true;
+
 
     # TAILSCALE
     tailscale.enable = true;
@@ -336,12 +306,7 @@
 
     # Hermes Agent module removed (2026-04-06)
 
-    # ----------------------------------------------------------------------
-    # GITLAWB NODE — self-hosted decentralized git (PRIVATE mirror only)
-    # Isolated: no P2P gossip, no seed bootstrap, LAN-only HTTP on 7545.
-    # GitHub remains the primary remote; this is a parallel signed mirror.
-    # ----------------------------------------------------------------------
-    gitlawb-node.enable = true;
+
   };
 
   # ============================================================================
@@ -513,11 +478,7 @@
   };
   services.storage-assertions.enable = true;
 
-  # Bonsai 27B: 1-bit via Vulkan on AMD RX 5600 XT (port 8003)
-  services.bonsai = {
-    enable = true;
-    vulkanBinaryStorePath = "/nix/store/shxi0y8dv1llnjcqbjg2hz9f3b0gwpgj-llama-cpp-vulkan-0.0.0";
-  };
+
 
   # ── 2026-07-28 sentry boot-error fixes ──────────────────────────────────
   # Enable kdump so the next kernel panic leaves a /var/crash/* dmesg trace.

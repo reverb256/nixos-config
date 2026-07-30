@@ -84,107 +84,24 @@ profiles.network.tailscale.enable = true;
 
 ---
 
-### Configuration Distribution (NFS-Based)
+### Configuration Distribution
 
-This cluster uses **NFS-based configuration sharing** instead of traditional deployment tools like Colmena or NixOps.
-
-#### How It Works
-
-1. **Zephyr (10.1.1.110)** exports `/etc/nixos` via NFS (read-only)
-2. **Remote hosts** (nexus, forge, sentry) mount `/etc/nixos` from zephyr
-3. **Single source of truth** — all hosts see the same config simultaneously
-4. **Changes are immediate** — no deployment step needed
-
-```
-┌─────────────────────────────────────┐
-│  ZEPHYR (10.1.1.110)                │
-│  ┌───────────────────────────────┐  │
-│  │ /etc/nixos (NFS export)      │  │
-│  │ - flake.nix                   │  │
-│  │ - hosts/, modules/, etc.      │  │
-│  └───────────────────────────────┘  │
-└───────────────┬─────────────────────┘
-                │ NFS (ro, nofail, bg)
-    ┌───────────┼───────────┐
-    ▼           ▼           ▼
-┌─────────┐ ┌─────────┐ ┌─────────┐
-│ NEXUS   │ │ FORGE   │ │ SENTRY  │
-│ .120    │ │ .130    │ │ .140    │
-└─────────┘ └─────────┘ └─────────┘
-/etc/nixos → NFS mount
-```
-
-#### Module: `nixos-share.nix`
-
-Located at `modules/services/nixos-share.nix`, handles both server and client:
-
-```nix
-# Server (zephyr)
-services.nixos-share = {
-  enable = true;
-  server.enable = true;
-  server.allowedHosts = ["10.1.1.120" "10.1.1.130" "10.1.1.140"];
-};
-
-# Client (nexus, forge, sentry)
-services.nixos-share = {
-  enable = true;
-  client.enable = true;
-};
-```
-
-#### Resilience Features
-
-Remote hosts use these NFS mount options:
-
-| Option | Purpose |
-|--------|---------|
-| `ro` | Read-only — prevent remote modifications |
-| `nofail` | Boot continues even if NFS unavailable |
-| `bg` | Background mount — don't block boot |
-| `x-systemd.mount-timeout=30s` | Fast fail if server down |
-
-**Result**: Remote hosts boot independently if zephyr is down.
-
-#### Deployment Workflow
+The former NFS-based `/etc/nixos` sharing model is historical and is not the
+supported deployment path. Current configuration is authored on Zephyr and
+deployed through the repository GitOps workflow:
 
 ```bash
-# 1. Edit config on ZEPHYR (the config master)
-cd /etc/nixos
-vim modules/services/new-service.nix
-
-# 2. Add new files to git (CRITICAL!)
-git add modules/services/new-service.nix
-
-# 3. Test on zephyr first
-nix flake check
-nswitch  # nixos-rebuild switch
-
-# 4. Deploy to remote (config already there via NFS!)
-ssh nexus
-nswitch  # nixos-rebuild switch --flake /etc/nixos#nexus
+just check
+just build
+just deploy [<host>]
 ```
 
-#### Key Benefits
-
-| Traditional (Colmena) | NFS Sync |
-|-----------------------|----------|
-| Push-based deployment | Config already there |
-| Configuration drift possible | Impossible — single source |
-| SSH orchestration needed | No orchestration |
-| Complex multi-host setup | One NFS export |
-
-#### Important Notes
-
-- **Only zephyr modifies config** — remotes mount read-only
-- **Git operations on zephyr only** — changes sync via NFS
-- **New files MUST be git-added** — Nix only packages git-tracked files
-- **Network dependency** — remotes need LAN for config changes
-- **Single point of failure** — zephyr NFS server (but remotes boot independently)
-
-See also: `modules/services/nixos-share.nix`
-
----
+Zephyr builds are offloaded through the configured remote-build path; remote
+closures are copied with `nix-copy-closure` and activated with
+`switch-to-configuration`. NFS may still be used by explicitly configured
+storage workloads, but it is not the source-of-truth or configuration-sync
+mechanism. See `AGENTS.md`, `justfile`, and `docs/ci-cd/README.md` for the
+current deployment workflow.
 
 ### Module Aggregation
 

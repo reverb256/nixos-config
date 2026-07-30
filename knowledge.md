@@ -51,11 +51,10 @@ Brief catalog of running cluster services for context-window savings when prompt
 just check              # Validate flake (fast, no build)
 just build              # Build current host's toplevel
 just switch             # Build + activate on local host (auto-pauses CPU mining)
-just test-apply         # Build + test (reboot-safe activation)
+just test-apply         # Build + test activation without a permanent switch
 just deploy [<host>]    # Build + deploy to all or one host (zephyr|nexus|forge|sentry|"all")
 just deploy-nexus <h>   # Async deploy from nexus via tmux (for nexus/forge/sentry only)
 just rollback           # Rollback current host
-just github-runners  # ((placeholder))
 just status             # Branch + commit + worktree + uncommitted state
 just health             # SSH reachability + `kubectl get nodes`
 just sync-nodes         # Pull central repo on nexus/forge/sentry (keeps /etc/nixos aligned)
@@ -468,5 +467,5 @@ chain for verification:
 1. `docs/audit-2026-07-27.md` (current; route to here for any cluster-state claim)
 2. `INFRASTRUCTURE-AUDIT.md` (archived per F-22 — read-only historical)
 3. `SECURITY-INCIDENT-2026-07-25.md` (active incident context — secretspec Phase 2)
-4. `just cluster-status` (live cluster truth, if reachable)
+4. `just health` (live SSH/Kubernetes reachability, if reachable)
 5. `git log --oneline` on the affected subdirectory (verifies which `.nix` rules are deployed)

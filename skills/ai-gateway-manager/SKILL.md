@@ -5,7 +5,7 @@ description: Manage the AI inference gateway, LM Studio backend, and MCP servers
 
 # AI Gateway Manager
 
-Manages the AI inference gateway (`ai-inference-gateway` service) that provides OpenAI-compatible API endpoints and MCP tool aggregation.
+Manages the AI inference gateway (`ai-inference-gateway` service) that provides OpenAI-compatible API endpoints and MCP tool aggregation. The ZAI/agenix snippets below are legacy examples retained for historical troubleshooting; do not treat them as the current default secret or provider wiring. Current cluster secrets use `/run/secrets/` and the declarative secretspec/sops configuration.
 
 ## When to Use This Skill
 
@@ -30,18 +30,18 @@ Use this skill when the user:
                     └──────────────┬──────────────────────┘
                                    │
                     ┌──────────────┴──────────────────────┐
-                    │                                     │
-            ┌───────▼────────┐                   ┌────────▼────────┐
-            │  LM Studio     │                   │   ZAI API       │
-            │  :1234         │                   │   (offload)     │
-            └────────────────┘                   └─────────────────┘
+                    │
+                    ┌▼───────────────┐
+                    │  LM Studio     │
+                    │  :1234         │
+                    └────────────────┘
 
                     ┌──────────────────────────────────────┐
                     │         MCP Servers                   │
                     ├──────────────────────────────────────┤
-                    │ web-search-prime   (ZAI web search)  │
-                    │ web-reader        (ZAI URL fetch)    │
-                    │ zread             (GitHub analysis)   │
+                    │ searxng           (web search)       │
+                    │ context7          (documentation)    │
+                    │ local MCP servers (configured in Nix) │
                     │ 4-5v-mcp-server    (Image analysis)   │
                     │ nix-rebuild        (NixOS rebuilds)   │
                     │ add-service       (Service creation) │
@@ -144,7 +144,7 @@ Edit `/etc/nixos/.mcp.json`:
     "my-new-server": {
       "url": "https://api.example.com/mcp",
       "headers": {
-        "Authorization": "Bearer /run/agenix/my-api-key"
+        "Authorization": "Bearer /run/secrets/my-api-key"
       }
     }
   }
@@ -159,7 +159,7 @@ services.ai-inference.mcp.servers = {
   my-new-server = {
     url = "https://api.example.com/mcp";
     headers = {
-      Authorization = "Bearer /run/agenix/my-api-key";
+      Authorization = "Bearer /run/secrets/my-api-key";
     };
   };
 };
@@ -167,9 +167,9 @@ services.ai-inference.mcp.servers = {
 
 ### 3. Rebuild
 ```bash
-nix flake check
-nbuild  # Auto-pauses mining
-nswitch
+just check
+just build
+just switch
 ```
 
 ## Troubleshooting
@@ -187,18 +187,20 @@ sudo systemctl show ai-inference-gateway --property=Environment
 ```
 
 ### MCP Tools Not Available
-```bash
-# Test MCP server directly
-curl -X POST "https://api.z.ai/api/mcp/web_search_prime/mcp" \
-  -H "Authorization: Bearer $(cat /run/agenix/zai-api-key)" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 
+Check the gateway's configured local MCP servers and service logs. The former
+ZAI-hosted MCP examples and `/run/agenix/*` paths are retired; current cluster
+secret material is provisioned declaratively under `/run/secrets/`.
+
+```bash
 # Check gateway MCP tools
 curl http://127.0.0.1:8080/mcp/tools | jq '.tools | length'
 
-# Check specific server health
-curl http://127.0.0.1:8080/mcp/health/web-search-prime | jq .
+# Check configured server health
+curl http://127.0.0.1:8080/mcp/health/<server-name> | jq .
+
+# Inspect recent gateway errors
+journalctl -u ai-inference-gateway -n 100 --no-pager | grep -i mcp
 ```
 
 ### LM Studio Connection Issues
@@ -215,16 +217,17 @@ curl -X POST http://127.0.0.1:1234/v1/chat/completions \
   -d '{"model":"gpt-2","messages":[{"role":"user","content":"Hi"}],"max_tokens":10}'
 ```
 
-### API Key Issues
+### Secret/credential Issues
+
+Verify the declarative secret wiring and the service's environment rather than
+reading secret contents directly:
+
 ```bash
-# Verify agenix secret exists
-ls -la /run/agenix/zai-api-key
+# Inspect the service's credential-related environment declarations
+systemctl show ai-inference-gateway -p Environment
 
-# Check key content (first few chars)
-sudo head -c 20 /run/agenix/zai-api-key
-
-# Re-deploy secrets if needed
-sudo nixos-rebuild switch --flake .#zephyr
+# Validate the declared production secret schema
+just secretspec-check
 ```
 
 ## Common Workflows
@@ -232,14 +235,14 @@ sudo nixos-rebuild switch --flake .#zephyr
 ### Update Gateway Code
 1. Edit Python files in `modules/services/ai-inference/ai_inference_gateway/`
 2. **IMPORTANT**: `git add` new files before rebuilding
-3. `nix flake check && nbuild && ntest`
-4. Verify service works, then `nswitch`
+3. `just check && just build && just test-apply`
+4. Verify service works, then `just switch`
 
 ### Add New API Endpoint
 1. Add route in `main.py`
 2. Update corresponding handler
 3. `git add` changes
-4. `nix flake check && nbuild && ntest`
+4. `just check && just build && just test-apply`
 
 ### Debug MCP Integration
 1. Test server directly (bypass gateway)
@@ -258,7 +261,7 @@ spacebot config set model qwen/qwen3.5-9b
 # Spacebot can now:
 # - Make concurrent requests
 # - Get OpenAI-compatible responses
-# - Auto-offload to ZAI when LM Studio busy
+# - Route requests according to the currently configured backend chain
 # - Use streaming responses
 ```
 
@@ -271,5 +274,5 @@ spacebot config set model qwen/qwen3.5-9b
 | File | Purpose |
 |------|---------|
 | `.mcp.json` | MCP server configurations |
-| `secrets/zai-api-key.age` | Encrypted API key |
+| `secretspec.toml` | Declared secret schema and provider routing |
 | `hosts/*/configuration.nix` | Per-host MCP settings |
