@@ -47,7 +47,7 @@ in {
     machinesFile = ./machines;
     specialArgs = {
       inherit inputs self;
-      vfioPkgs = inputs.nixpkgs-vfio.legacyPackages.x86_64-linux;
+      vfioPkgs = pkgs; # nixpkgs is now unstable — vfioPkgs == pkgs
     };
   };
 }

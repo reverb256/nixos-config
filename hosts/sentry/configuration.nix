@@ -355,7 +355,7 @@
     inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
   boot.loader.timeout = lib.mkDefault 5;
 
-  boot.kernelParams = [
+  boot.kernelParams = lib.mkAfter [
     "hugepagesz=1G"
     "hugepages=3"
     # Override conflicting panic values — ensure 30s for journald flush on crash
@@ -366,9 +366,8 @@
     # CachyOS 7.1.3's aggressive C-state entry exposes the well-known Zen 1
     # C6 deep-sleep lockup, which the softlockup_panic=1 + nmi_watchdog=1 floor
     # then panics on (matching the recurring Mut-Jul / Jul-25 / today crash loop).
-    # Setting max_cstate=1 here is correct: it ALIGNS sentry with the fleet
-    # mitigation and silences the duplicate cmdline entry. The MCE comment
-    # about Bank 5 WDT is misleading — the actual Zen 1 mitigation is cstate≤1.
+    # lib.mkAfter ensures this is the LAST max_cstate entry in the cmdline
+    # (kernel uses last-wins for duplicates), definitively locking C6 out.
     "processor.max_cstate=1"
     # Do NOT panic on kernel oops — k3s nftables cleanup segfaults trigger oops,
     # and MCE Bank 5 errors on Ryzen are non-fatal. panic_on_oops=1 overrides this

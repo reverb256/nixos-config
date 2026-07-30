@@ -44,12 +44,14 @@
 
   boot.kernelModules = ["msr"];
   boot.kernelParams = lib.mkBefore [
-    # AMD GPU Navi 10 stability: enable GPU recovery, lockup detection at 1s
+    # AMD GPU Navi 10 (RX 5600 XT) stability: enable GPU recovery, lockup detection at 1s
     # Must come before mitigations to avoid being overridden
     "amdgpu.gpu_recovery=1"
     "amdgpu.noretry=0"
+    "amdgpu.runpm=0"             # Disable GPU runtime power management
     "amdgpu.ppfeaturemask=0xfffd7fff" # Disable Overdrive for stability
     "amdgpu.lockup_timeout=1000"
+    "pcie_aspm=off"              # Disable PCIe ASPM system-wide (prevents Navi 10 GPU reset failures; trade-off: higher power draw)
     "mitigations=auto"
   ];
   boot.extraModprobeConfig = ''

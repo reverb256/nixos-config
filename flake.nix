@@ -1,7 +1,7 @@
 {
   description = "NixOS configuration with Garage and Syncthing storage";
   inputs = {
-    nixpkgs.url = "tarball+https://codeload.github.com/NixOS/nixpkgs/tar.gz/9ae611a455b90cf061d8f332b977e387bda8e1ca"; # pinned: predates nixos-unstable pkgs-fixedPoint recursion regression
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable"; # nixos-unstable as default; override per-package where necessary
     home-manager = {
       url = "git+https://github.com/nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -104,15 +104,9 @@
     nix-cachyos-kernel.url = "git+https://github.com/xddxdd/nix-cachyos-kernel?rev=cc5bc99baf27245f2644c1fe13f7bac5d3d47865";
     nix-cachyos-kernel.inputs.flake-parts.follows = "flake-parts";
     nix-cachyos-kernel.inputs.cachyos-kernel.follows = "cachyos-kernel";
-    # nixpkgs-vfio — RECENT nixpkgs for VFIO/Looking Glass tooling (kvmfr,
-    # looking-glass-client, OVMFFull, qemu_kvm, scream, virtio-win) that is
-    # MISSING from the pinned main nixpkgs (9ae611a…). Scoped; does not replace
-    # main nixpkgs anywhere else.
-    # Normal flake input. Reference via inputs.nixpkgs-vfio.legacyPackages.x86_64-linux
-    # (the flake output has legacyPackages; `import` of a flake=false source does not).
-    nixpkgs-vfio = {
-      url = "github:NixOS/nixpkgs/nixos-unstable";
-    };
+    # nixpkgs-vfio REMOVED — nixpkgs is now nixos-unstable, so vfio packages
+    # (kvmfr, looking-glass-client, qemu_kvm, scream, virtio-win) are available
+    # from the main nixpkgs. vfioPkgs is now equivalent to pkgs itself.
     # linux-cachyos override — may not exist in all kernel flake versions, non-fatal if ignored
     # ── Inputs required by common-modules-list.nix (re-added after a drift where
     #    they were dropped from flake.nix but still referenced in the module list) ──
@@ -157,14 +151,8 @@
       url = "github:nix-community/stylix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # nixpkgs-secretspec — nixos-unstable provides secretspec 0.17.0 with the
-    # native sops provider (merged upstream PR #58, 2026-07-27). This replaces
-    # the custom cachix/secretspec fork (feature/sops-provider-subprocess-dispatch)
-    # and the secretspec-provider-sops NDJSON dispatcher. The fork is no longer
-    # needed — upstream 0.17.0 uses the sops CLI directly.
-    nixpkgs-secretspec = {
-      url = "github:NixOS/nixpkgs/nixos-unstable";
-    };
+    # nixpkgs-secretspec REMOVED — nixpkgs is now nixos-unstable, so
+    # secretspec 0.17.0 with native sops provider is available directly.
 
     # gitlawb - local option-4 flake: packages + overlay + NixOS module
     gitlawb = {
@@ -201,7 +189,7 @@
       # Scoped recent-nixpkgs for VFIO/Looking Glass packages only.
       # Reference the flake output's legacyPackages set directly (verified to
       # expose kvmfr / looking-glass-client / OVMFFull / qemu_kvm / scream / virtio-win).
-      vfioPkgs = inputs.nixpkgs-vfio.legacyPackages.x86_64-linux;
+      vfioPkgs = pkgs; # nixpkgs is now unstable — vfioPkgs == pkgs
 
       # COMMON MODULES - Shared across all hosts (single source of truth)
 
@@ -328,7 +316,7 @@
 
       packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
       packages.x86_64-linux.llama-cpp = pkgs.llama-cpp;
-      packages.x86_64-linux.secretspec = inputs.nixpkgs-secretspec.legacyPackages.x86_64-linux.secretspec;
+      packages.x86_64-linux.secretspec = pkgs.secretspec; # from nixos-unstable
       # CONTAINER IMAGES (for Kubernetes deployment)
 
       # Claude Code container image for Kubernetes deployment
