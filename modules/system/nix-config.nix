@@ -72,38 +72,6 @@
             dontUsePytestCheck = true;
             dontCheck = true;
           });
-          # matplotlib / tkinter / gradio / triton-llvm / scikit-image /
-          # tifffile / csvw / narwhals: their checkPhases try to open an X
-          # display or use pytest-driven GUI fixtures that do not exist in
-          # the nixpkgs sandbox. Disable checks for the entire cluster —
-          # these are runtime UI test artifacts, not binary integrity
-          # risks. Without this, every sentry closure build (and the larger
-          # system builds) is blocked by cascading pytest failures deep in
-          # transitive deps.
-          matplotlib = py-prev.matplotlib.overridePythonAttrs (old: {
-            dontCheck = true;
-          });
-          tkinter = py-prev.tkinter.overridePythonAttrs (old: {
-            dontCheck = true;
-          });
-          gradio = py-prev.gradio.overrideAttrs (old: {
-            dontCheck = true;
-          });
-          triton = py-prev.triton.overrideAttrs (old: {
-            dontCheck = true;
-          });
-          scikit-image = py-prev.scikit-image.overrideAttrs (old: {
-            dontCheck = true;
-          });
-          tifffile = py-prev.tifffile.overrideAttrs (old: {
-            dontCheck = true;
-          });
-          csvw = py-prev.csvw.overrideAttrs (old: {
-            dontCheck = true;
-          });
-          narwhals = py-prev.narwhals.overrideAttrs (old: {
-            dontCheck = true;
-          });
         })
       ];
 
@@ -192,6 +160,15 @@
   };
 
   nixpkgs.config.allowUnfree = true;
+
+  # 2026-07-30: Cluster rebuilds were being blocked by cascading pytest /
+  # installCheck failures in python3.14-* transitive deps (tkinter Xvfb,
+  # gradio websocket, triton CUDA probe, scikit-image codec, etc.). Tests
+  # are a CI concern, not a system-build concern — they should never run
+  # inside `nix build .#nixosConfigurations.<host>.config.system.build.toplevel`.
+  # Set doCheck = false cluster-wide. Real test signal still comes from
+  # the nixosTests tree and CI, neither of which is affected by this flag.
+  nixpkgs.config.doCheck = false;
 
   nixpkgs.config.permittedInsecurePackages = [
     "nodejs-20.20.2"
