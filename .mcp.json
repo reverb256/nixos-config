@@ -20,12 +20,6 @@
       "command": "npx",
       "args": ["-y", "@anthropic-ai/playwright-mcp@latest"]
     },
-    "searxng": {
-      "command": "/data/agents/mcp-bridges/searxng-mcp.sh",
-      "env": {
-        "SEARXNG_URL": "http://searxng.search.svc.cluster.local:8080"
-      }
-    },
     "nixos-cluster": {
       "command": "nix",
       "args": ["run", "/etc/nixos#nixos-cluster-mcp"]

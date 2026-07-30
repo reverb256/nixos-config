@@ -163,10 +163,6 @@ in {
   services.cluster-services = {
     enable = true;
     services = {
-      searxng = {
-        domain = "searxng.lan";
-        backend = "127.0.0.1:32081";
-      };
       search = {
         domain = "search.lan";
         backend = "127.0.0.1:30900";

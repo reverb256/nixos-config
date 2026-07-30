@@ -34,7 +34,6 @@
   # ── kubernetes (block 2) ────────────────────────────────────
   MISSION_CONTROL_API_KEY = { path = "/run/secrets/mission-control-api-key"; file = "k8s/mission-control-api-key.yaml"; owner = "j_kro"; group = "users"; };
   MISSION_CONTROL_AUTH_PASS = { path = "/run/secrets/mission-control-auth-pass"; file = "k8s/mission-control-auth-pass.yaml"; owner = "j_kro"; group = "users"; };
-  SEARXNG_SECRET_KEY = { path = "/run/secrets/searxng-secret-key"; file = "k8s/searxng-secret-key.yaml"; owner = "root"; };
   SSH_CA_KEY = { path = "/run/secrets/ssh-ca-key"; file = "infra/ssh-ca-key.yaml"; owner = "j_kro"; group = "users"; };
   SWITCH_ADMIN = { path = "/run/secrets/switch-admin"; file = "infra/switch-admin.yaml"; owner = "j_kro"; group = "users"; };
   K3S_CLUSTER_TOKEN = { path = "/run/secrets/k3s-cluster-token"; file = "k8s/k3s-cluster-token.yaml"; owner = "root"; };

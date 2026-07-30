@@ -13,8 +13,7 @@
     "chrome-devtools",
     "playwright",
     "nixos",
-    "gateway",
-    "searxng"
+    "gateway"
   ],
   "hooks": {
     "PreToolUse": [

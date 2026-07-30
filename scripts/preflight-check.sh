@@ -23,6 +23,13 @@ fail() { log "  ✗ $*"; FAIL=1; }
 
 cd "$FLAKE" || { echo "cannot cd to $FLAKE" >&2; exit 1; }
 
+if [ "$NO_FETCH" -eq 0 ]; then
+    git fetch origin main >&2 || {
+        echo "cannot refresh origin/main; use --no-fetch only with an intentional cached ref" >&2
+        exit 1
+    }
+fi
+
 FAIL=0
 CANONICAL=$(git rev-parse --short origin/main 2>/dev/null || echo "UNKNOWN")
 LOCAL=$(git rev-parse --short HEAD 2>/dev/null || echo "UNKNOWN")
@@ -39,10 +46,10 @@ else
 fi
 
 # 2–4. All remote hosts must match canonical.
-# Uses parallel SSH — all hosts checked simultaneously.
+# Uses sequential SSH checks so a failed self-heal is reported clearly.
 log "  checking remote hosts..."
 HOSTS="nexus forge sentry"
-FAIL=0
+
 for HOST in $HOSTS; do
   REMOTE_HEAD=$(ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse --short HEAD 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
   if [ "$REMOTE_HEAD" != "$CANONICAL" ]; then

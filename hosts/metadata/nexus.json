@@ -1,7 +1,7 @@
 {
   "hostName": "nexus",
   "targetUser": "j_kro",
-  "targetHost": "10.1.1.120",
+  "targetHost": null,
   "tags": [
     "storage",
     "k8s-worker",
@@ -9,8 +9,8 @@
     "nvidia-gpu",
     "remote"
   ],
-  "buildOnTarget": true,
-  "allowLocalDeployment": false,
+  "buildOnTarget": false,
+  "allowLocalDeployment": true,
   "ipAddress": "10.1.1.120",
   "interfaceName": "eth0",
   "wireless": {

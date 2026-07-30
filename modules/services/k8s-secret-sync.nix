@@ -97,13 +97,6 @@
       secretName = "mission-control-secrets";
       key = "api-key";
     }
-    # ── SearXNG ──────────────────────────────────────────────
-    {
-      sopsPath = "/run/secrets/searxng-secret-key";
-      namespace = "search";
-      secretName = "searxng-secrets";
-      key = "secret-key";
-    }
   ];
 in {
   options.services.k8s-secret-sync = {

@@ -53,7 +53,6 @@
   mission-control = 32101;
 
   # ── search (namespace: search) ─────────────────────────────
-  searxng = 32081;
   privacy-filter = 30935;
   vane = 30900;
 

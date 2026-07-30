@@ -45,14 +45,18 @@ The NixOS target is the generic `x86_64-linux` platform. This repository does
   or a thread count.
 
 Distributed-build policy is declared in
-`modules/system/distributed-builds.nix`:
+`modules/system/distributed-builds.nix`. Deployment dispatch is separate from
+Nix's builder capability list: `just deploy` and `just deploy-async` invoke
+`/etc/nixos/scripts/deploy/nexus-dispatch.sh`, which runs the canonical
+Colmena apply on Nexus. Zephyr remains the authoring/source-of-truth host.
+
 
 | Host | Local max jobs | Role |
 |------|----------------|------|
-| Zephyr | 0 | Dispatcher; avoids local desktop OOM |
-| Nexus | 12 | Primary builder |
+| Zephyr | 0 | Authoring/source-of-truth host; no local build jobs |
+| Nexus | 12 | Deployment dispatcher and primary builder |
 | Sentry | 8 | Secondary builder |
-| Forge | 4 local jobs if building locally | GPU/mining host; not included in the module-generated remote-builder list |
+| Forge | 4 local jobs if building locally | GPU/mining host; excluded from remote-builder lists |
 
 The module generates `/etc/nix/machines` from its own host list and excludes
 the current host. The root `machines` file is the Nix machines file supplied to Colmena via

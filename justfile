@@ -134,11 +134,26 @@ git-push:
     echo "All hosts synced"
 
 # ── DEPLOYMENT ────────────────────────────────────────────────────────────────
-# Nexus is the workhorse: build/apply from there to keep zephyr light.
-# Local deploy still works for the host you're running on.
+# Nexus is the exclusive build/deployment dispatcher: build/apply from there
+# to keep Zephyr light while Zephyr remains the authoring source of truth.
 
-# Local deploy to all hosts or a specific host
+# Dispatch deployment through Nexus. Zephyr remains the authoring/source-of-truth host;
+# Nexus performs the canonical build and Colmena activation.
 deploy host="all":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    exec {{FLAKE}}/scripts/deploy/nexus-dispatch.sh --sync --target "{{host}}"
+
+# Submit a disconnect-safe deployment to Nexus. The command returns after
+# creating the Nexus-side tmux job; inspect the reported log/session.
+deploy-async host="all":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    exec {{FLAKE}}/scripts/deploy/nexus-dispatch.sh --async --target "{{host}}"
+
+# Legacy direct dispatcher retained as an emergency fallback only. It bypasses
+# the Nexus dispatcher and must not be used for normal operations.
+deploy-direct-legacy host="all":
     #!/usr/bin/env bash
     set -euo pipefail
     # G4 gate: confirm source-of-truth + nexus builder agree on canonical before building.
@@ -172,7 +187,7 @@ deploy host="all":
         else
             # Building for a REMOTE host (nexus/forge/sentry) from local (zephyr)
             # Offload build to nexus to avoid OOM on zephyr.
-            # PIPELINE INTEGRITY: nexus is a build executor only — force its
+            # PIPELINE INTEGRITY: nexus is the build/deployment executor — force its
             # /etc/nixos to the canonical ref BEFORE building so the produced
             # toplevel reflects origin/main, never nexus's drifted local checkout.
             ssh nexus "bash --norc --noprofile -c 'set -e; cd /etc/nixos; git fetch origin main 2>&1 | tail -1; git reset --hard origin/main 2>&1 | tail -1'" 2>&1 | tail -1
@@ -243,105 +258,57 @@ forge:
 sentry:
     just deploy sentry
 
-# Async deploy from nexus using colmena, tmux session + log file.
-# Idempotent: re-running attaches to the existing session instead of creating a duplicate.
-NEXUS_DEPLOY_SESSION := "deploy-nexus-{{host}}"
-NEXUS_DEPLOY_LOG := "/var/log/colmena-deploy-{{host}}.log"
-
+# Compatibility alias for the old recipe name. Both synchronous and
+# asynchronous deployment now use the single Nexus dispatcher, which validates
+# the canonical ref before starting and handles Zephyr's remote target safely.
 deploy-nexus host:
     #!/usr/bin/env bash
     set -euo pipefail
-    HOST="{{host}}"
-    # FOOTGUN GUARD (G3): zephyr's colmena node has targetHost=null, which
-    # colmena interprets as "deploy to localhost (wherever colmena runs)".
-    # Since this runs ON nexus, 'just deploy-nexus zephyr' would apply
-    # ZEPHYR'S CONFIG TO NEXUS. Hard-refuse zephyr and the all-aggregate.
-    if [ "$HOST" = "zephyr" ] || [ "$HOST" = "all" ]; then
-        echo "ERROR: 'just deploy-nexus $HOST' would apply config to nexus (zephyr node has targetHost=null)." >&2
-        echo "       Use 'just deploy zephyr' (builds on nexus, activates on zephyr) instead." >&2
-        exit 1
-    fi
-    SESSION="deploy-nexus-${HOST}"
-    LOG="/var/log/colmena-deploy-${HOST}.log"
-    # PIPELINE INTEGRITY (G2): nexus evaluates the colmena hive from its LOCAL
-    # /etc/nixos. Force it to the canonical ref so the hive matches origin/main.
-    ssh nexus "bash --norc --noprofile -c 'set -e; cd /etc/nixos; git fetch origin main 2>&1 | tail -1; git reset --hard origin/main 2>&1 | tail -1'" 2>&1 | tail -1
-    # Use the flake's OWN colmena app (.#colmena = 0.5.0-pre built from
-    # flake.nix colmena input). Using 'nixpkgs#colmena' drifts to the
-    # channel-pinned 0.4.0 binary, which cannot evaluate a 0.5.0-style
-    # 'colmenaHive' flake attribute ('cannot update unlocked flake
-    # input hive in pure mode'). .#colmena is version-correct by
-    # construction and survives future colmena bumps.
-    # --option pure-eval false MUST come BEFORE the `run` subcommand (it's
-    # argument-position-sensitive in Nix CLI). Same rationale as elsewhere in
-    # this justfile: flake pure-eval disallows probing absolute paths to
-    # ~/Projects/secretspec-core and ~/Projects/secretspec/provider-rust,
-    # so without this option each host's colmena-applied toplevel silently
-    # falls through to the upstream cachix tarball (no sops://).
-    CMD="cd /etc/nixos && nix --option pure-eval false run .#apps.x86_64-linux.colmena -- apply --on ${HOST} --eval-node-limit 100 | tee ${LOG}"
-    if tmux has-session -t "$SESSION" 2>/dev/null; then
-        echo "attaching to existing deploy session: $SESSION"
-        exec tmux attach -t "$SESSION"
-    fi
-    tmux new-session -d -s "$SESSION"
-    tmux send-keys -t "$SESSION" "ssh nexus '${CMD}'" Enter
-    echo "deploy started on nexus -> ${HOST}"
-    echo "tmux: $SESSION"
-    echo "log:  $LOG"
+    exec {{FLAKE}}/scripts/deploy/nexus-dispatch.sh --async --target "{{host}}"
 
-# Attach to an in-progress nexus deploy, or start it if missing.
+# Attach to an in-progress Nexus deploy, or start it if missing.
 deploy-nexus-attach host:
     #!/usr/bin/env bash
     set -euo pipefail
     HOST="{{host}}"
-    SESSION="deploy-nexus-${HOST}"
-    if tmux has-session -t "$SESSION" 2>/dev/null; then
-        exec tmux attach -t "$SESSION"
+    SESSION="nixos-deploy-${HOST}"
+    if ssh nexus "tmux has-session -t '$SESSION'" 2>/dev/null; then
+        exec ssh -t nexus "tmux attach -t '$SESSION'"
     fi
     just deploy-nexus "$HOST"
 
-# Tail the deploy log without attaching.
+# Tail the deploy log on Nexus without attaching.
 deploy-nexus-logs host:
     #!/usr/bin/env bash
     set -euo pipefail
     HOST="{{host}}"
-    LOG="/var/log/colmena-deploy-${HOST}.log"
-    if [ -f "$LOG" ]; then
-        tail -f "$LOG"
-    else
-        echo "no log yet: $LOG"
-        exit 1
-    fi
+    LOG="/tmp/nixos-deploy-${HOST}.log"
+    exec ssh nexus "tail -f '$LOG'"
 
-# Stop an in-progress nexus deploy.
+# Stop an in-progress Nexus deploy.
 deploy-nexus-stop host:
     #!/usr/bin/env bash
     set -euo pipefail
     HOST="{{host}}"
-    SESSION="deploy-nexus-${HOST}"
-    if tmux has-session -t "$SESSION" 2>/dev/null; then
-        tmux send-keys -t "$SESSION" C-c
+    SESSION="nixos-deploy-${HOST}"
+    if ssh nexus "tmux has-session -t '$SESSION'" 2>/dev/null; then
+        ssh nexus "tmux send-keys -t '$SESSION' C-c"
         sleep 1
-        tmux kill-session -t "$SESSION"
-        echo "stopped deploy session: $SESSION"
+        ssh nexus "tmux kill-session -t '$SESSION'"
+        echo "stopped deploy session on nexus: $SESSION"
     else
-        echo "no deploy session: $SESSION"
+        echo "no deploy session on nexus: $SESSION"
     fi
 
-# Convenience shortcuts: deploy from nexus
+# Convenience shortcuts: all routes use the Nexus dispatcher.
 deploy-nexus-zephyr:
-    # zephyr must NOT use colmena-on-nexus (targetHost=null footgun) — route to correct path.
-    just deploy zephyr
+    just deploy-async zephyr
 deploy-nexus-forge:
-    just deploy-nexus forge
+    just deploy-async forge
 deploy-nexus-sentry:
-    just deploy-nexus sentry
+    just deploy-async sentry
 deploy-nexus-all:
-    # 'all' includes zephyr, which is unsafe via colmena-on-nexus (G3). Deploy each host by its correct path.
-    just deploy nexus
-    just deploy forge
-    just deploy sentry
-    just deploy zephyr
+    just deploy-async all
 
 deploy-bg target="all":
     #!/usr/bin/env bash
@@ -869,12 +836,13 @@ mosaic-down:
 
 # ── COLMENA BUILD-FARM ──────────────────────────────────────────────────
 # Uses colmena 0.5.0-pre for cluster-wide builds and deployment.
-# The build-farm machines file at machines defines 4 builders:
-#   nexus (primary), sentry, forge (limited), zephyr (disabled).
+# The build-farm machines file at machines defines 3 entries:
+#   nexus (primary), sentry (secondary), zephyr (disabled / zero jobs).
+# Forge is intentionally excluded because it is the GPU/mining host.
 #
 # Quick reference:
 #   just colmena-check       # Build for sentry (smoke test)
-#   just colmena-deploy      # Full deploy to all 4 hosts
+#   just colmena-deploy      # Full deploy to all 4 hosts (via Nexus dispatcher preferred)
 #   just colmena-deploy-host host=sentry  # Deploy to one host
 #   just colmena-list        # List all hosts
 
@@ -888,15 +856,13 @@ colmena-check host="sentry":
     @echo "Building {{host}}..."
     colmena build --on {{host}} 2>&1
 
-# Deploy to all hosts
+# Deploy to all hosts through the Nexus dispatcher
 colmena-deploy:
-    @echo "Deploying to all hosts..."
-    colmena apply --eval-node-limit 2 2>&1
+    @just deploy all
 
-# Deploy to a single host (default: sentry)
+# Deploy to a single host through the Nexus dispatcher
 colmena-deploy-host host="sentry":
-    @echo "Deploying to {{host}}..."
-    colmena apply --on {{host}} 2>&1
+    @just deploy {{host}}
 
 # List all hosts in the cluster
 colmena-list:

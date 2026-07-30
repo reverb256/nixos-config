@@ -15,8 +15,6 @@
       "mcp__plugin_context-mode_context-mode__ctx_batch_execute",
       "Bash(kubectl apply:*)",
       "Bash(kubectl delete:*)",
-      "Bash(curl -s \"http://10.0.0.100:8080/search?q=test&format=json\")",
-      "Bash(python3 -c \"import sys, json; data=json.load\\(sys.stdin\\); print\\(f''''✅ SearXNG responding! Results: {len\\(data.get\\(\"\"results\"\", []\\)\\)}''''\\)\")",
       "Bash(sudo systemctl:*)",
       "mcp__plugin_context-mode_context-mode__ctx_execute",
       "Bash(kubectl logs:*)",

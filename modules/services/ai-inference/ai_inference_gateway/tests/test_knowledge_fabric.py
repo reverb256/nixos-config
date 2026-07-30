@@ -41,11 +41,9 @@ def basic_config():
     return {
         "rag_enabled": False,
         "code_search_paths": ["/etc/nixos"],
-        "searxng_url": "http://127.0.0.1:7777",
         "mcp_url": "http://127.0.0.1:8080/mcp/call",
         "code_max_results": 5,
         "web_max_results": 5,
-        "searxng_max_results": 5,
         "rag_top_k": 5,
     }
 
@@ -652,7 +650,6 @@ def test_create_default_sources_with_config():
     config = {
         "rag_enabled": True,
         "code_search_paths": ["/custom/path"],
-        "searxng_url": "http://custom:7777",
     }
 
     middleware = KnowledgeFabricMiddleware(

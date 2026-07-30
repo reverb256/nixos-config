@@ -1,8 +1,8 @@
 """
 Knowledge Fabric - Unified Knowledge Retrieval System
 
-Combines RAG, MCP web search, SearXNG, and code search into one
-coherent system with semantic routing, parallel retrieval, and RRF fusion.
+Combines RAG, MCP web search, and code search into one coherent system
+with semantic routing, parallel retrieval, and RRF fusion.
 
 Architecture:
 - Core: Data structures and base abstractions
@@ -53,8 +53,6 @@ from .sources import (
     create_rag_source,
     WebSearchKnowledgeSource,
     create_web_search_source,
-    SearXNGKnowledgeSource,
-    create_searxng_source,
     CodeSearchKnowledgeSource,
     create_code_search_source,
 )
@@ -98,8 +96,6 @@ __all__ = [
     "create_rag_source",
     "WebSearchKnowledgeSource",
     "create_web_search_source",
-    "SearXNGKnowledgeSource",
-    "create_searxng_source",
     "CodeSearchKnowledgeSource",
     "create_code_search_source",
 ]

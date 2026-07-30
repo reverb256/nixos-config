@@ -3,7 +3,6 @@ Tests for Knowledge Fabric source adapters.
 
 Tests the individual knowledge source implementations:
 - RAGKnowledgeSource
-- SearXNGKnowledgeSource
 - WebSearchKnowledgeSource
 - CodeSearchKnowledgeSource
 """
@@ -12,7 +11,6 @@ import pytest
 from unittest.mock import Mock, AsyncMock, patch
 from ai_inference_gateway.middleware.knowledge_fabric.sources import (
     RAGKnowledgeSource,
-    SearXNGKnowledgeSource,
     WebSearchKnowledgeSource,
     CodeSearchKnowledgeSource,
 )
@@ -118,128 +116,6 @@ async def test_rag_source_passes_top_k(rag_source, mock_search_service):
     mock_search_service.search.assert_called_once()
     call_kwargs = mock_search_service.search.call_args
     assert call_kwargs[1]["top_k"] == 10
-
-
-# ============================================================================
-# SearXNG Knowledge Source Tests
-# ============================================================================
-
-
-@pytest.fixture
-def searxng_source():
-    """Create SearXNG source for testing."""
-    return SearXNGKnowledgeSource(
-        searxng_url="http://127.0.0.1:7777",
-        max_results=5,
-    )
-
-
-@pytest.mark.asyncio
-async def test_searxng_source_initialization(searxng_source):
-    """Test SearXNG source initializes correctly."""
-    assert searxng_source.name == "searxng"
-    assert searxng_source.searxng_url == "http://127.0.0.1:7777"
-    assert searxng_source.max_results == 5
-    assert searxng_source.priority == SourcePriority.MEDIUM
-
-
-@pytest.mark.asyncio
-async def test_searxng_source_retrieve_with_mock(searxng_source):
-    """Test SearXNG source with mocked HTTP client."""
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "results": [
-            {
-                "title": "Test Title",
-                "content": "Test content snippet",
-                "url": "https://example.com",
-                "engine": "google",
-                "category": "general",
-            },
-            {
-                "title": "Another Title",
-                "content": "Another snippet",
-                "url": "https://example.org",
-                "engine": "bing",
-                "category": "general",
-            },
-        ],
-    }
-
-    with patch("httpx.AsyncClient") as mock_client:
-        mock_client.return_value.__aenter__.return_value.get.return_value = mock_response
-
-        result = await searxng_source.retrieve("test query")
-
-    assert result.source_name == "searxng"
-    assert len(result.chunks) == 2
-    assert result.chunks[0].source == "searxng"
-    assert "Test content snippet" in result.chunks[0].content
-    assert result.chunks[0].metadata["url"] == "https://example.com"
-
-
-@pytest.mark.asyncio
-async def test_searxng_source_handles_connection_error(searxng_source):
-    """Test SearXNG source handles connection errors."""
-    import httpx
-
-    with patch("httpx.AsyncClient") as mock_client:
-        mock_client.return_value.__aenter__.raise_error = httpx.ConnectError(
-            "Connection refused"
-        )
-
-        result = await searxng_source.retrieve("test query")
-
-    assert result.source_name == "searxng"
-    assert len(result.chunks) == 0
-    assert result.metadata["error_type"] == "connection_error"
-    assert "suggestion" in result.metadata
-
-
-@pytest.mark.asyncio
-async def test_searxng_source_handles_http_error(searxng_source):
-    """Test SearXNG source handles HTTP errors."""
-    import httpx
-
-    mock_response = Mock()
-    mock_response.status_code = 500
-    mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
-        "Server error", request=Mock(), response=mock_response
-    )
-
-    with patch("httpx.AsyncClient") as mock_client:
-        mock_client.return_value.__aenter__.return_value.get.return_value = mock_response
-
-        result = await searxng_source.retrieve("test query")
-
-    assert result.source_name == "searxng"
-    assert "error" in result.metadata
-    assert result.metadata["error_type"] == "http_error"
-
-
-@pytest.mark.asyncio
-async def test_searxng_source_passes_query_params(searxng_source):
-    """Test SearXNG source passes query parameters correctly."""
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {"results": []}
-
-    with patch("httpx.AsyncClient") as mock_client:
-        mock_client.return_value.__aenter__.return_value.get.return_value = mock_response
-
-        await searxng_source.retrieve(
-            "test query",
-            category="science",
-            language="en",
-            time_range="day",
-        )
-
-    # Verify the client was called with correct parameters
-    mock_client.return_value.__aenter__.return_value.get.assert_called()
-
-    call_args = mock_client.call_args
-    assert call_args is not None
 
 
 # ============================================================================
@@ -444,15 +320,6 @@ def test_code_search_source_capabilities():
     assert SourceCapability.PROCEDURAL in source.capabilities
 
 
-def test_searxng_source_capabilities():
-    """Test SearXNG source has correct capabilities."""
-    source = SearXNGKnowledgeSource()
-
-    assert SourceCapability.FACTUAL in source.capabilities
-    assert SourceCapability.REALTIME in source.capabilities
-    assert SourceCapability.COMPARATIVE in source.capabilities
-
-
 def test_web_search_source_capabilities():
     """Test web search source has REALTIME capability."""
     source = WebSearchKnowledgeSource()
@@ -490,7 +357,5 @@ def test_rag_has_high_priority():
 def test_web_sources_have_medium_priority():
     """Test web sources have MEDIUM priority."""
     web = WebSearchKnowledgeSource()
-    searxng = SearXNGKnowledgeSource()
 
     assert web.priority == SourcePriority.MEDIUM
-    assert searxng.priority == SourcePriority.MEDIUM

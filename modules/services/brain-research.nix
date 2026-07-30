@@ -18,13 +18,7 @@
   ]);
 in {
   options.services.brain-research = {
-    enable = mkEnableOption "Brain research agent — daily SearXNG search & digest";
-
-    searxngUrl = mkOption {
-      type = types.str;
-      default = "http://nexus:30888";
-      description = "SearXNG API base URL";
-    };
+    enable = mkEnableOption "Brain research agent — daily digest";
 
     gatewayUrl = mkOption {
       type = types.str;
@@ -79,7 +73,6 @@ in {
 
         Environment = [
           "BRAIN_ROOT=${cfg.brainRoot}"
-          "SEARXNG_URL=${cfg.searxngUrl}"
           "GATEWAY_URL=${cfg.gatewayUrl}"
           "GATEWAY_MODEL=${cfg.gatewayModel}"
         ];

@@ -39,12 +39,6 @@
       "env": {
         "GATEWAY_URL": "http://10.0.0.192:8080"
       }
-    },
-    "searxng": {
-      "command": "/etc/nixos/modules/services/ai-inference/bin/opencode-searxng-mcp",
-      "env": {
-        "SEARXNG_URL": "https://search.reverb256.ca"
-      }
     }
   }
 }

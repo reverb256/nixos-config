@@ -52,18 +52,6 @@ def mock_sources():
         ),
     })()
 
-    # SearXNG - FACTUAL, REALTIME, COMPARATIVE
-    searxng = type("MockSearXNG", (KnowledgeSource,), {
-        "name": "searxng",
-        "description": "Web meta-search",
-        "priority": SourcePriority.MEDIUM,
-        "capabilities": (
-            SourceCapability.FACTUAL |
-            SourceCapability.REALTIME |
-            SourceCapability.COMPARATIVE
-        ),
-    })()
-
     # Web search - REALTIME, FACTUAL
     web = type("MockWeb", (KnowledgeSource,), {
         "name": "web_search",
@@ -75,7 +63,7 @@ def mock_sources():
         ),
     })()
 
-    sources.extend([rag, code, searxng, web])
+    sources.extend([rag, code, web])
     return sources
 
 
@@ -161,8 +149,8 @@ def test_factual_query_selects_multiple_sources(router):
     query = "What is the capital of France?"
     decision = router.classify(query)
 
-    # Should select from RAG, SearXNG, or Web search
-    # All have FACTUAL capability
+    # Should select from RAG or Web search
+    # Both have FACTUAL capability
     assert len(decision.selected_sources) > 0
 
 
@@ -171,8 +159,8 @@ def test_realtime_query_selects_realtime_sources(router):
     query = "What's the current stock price of AAPL?"
     decision = router.classify(query)
 
-    # SearXNG and Web search both have REALTIME capability
-    assert "searxng" in decision.selected_sources or "web_search" in decision.selected_sources
+    # Web search has REALTIME capability
+    assert "web_search" in decision.selected_sources
 
 
 def test_comparative_query_includes_comparative_sources(router):
@@ -180,7 +168,7 @@ def test_comparative_query_includes_comparative_sources(router):
     query = "Python vs JavaScript: which is better?"
     decision = router.classify(query)
 
-    # SearXNG has COMPARATIVE capability
+    # Web search may have COMPARATIVE capability via routing
     assert len(decision.selected_sources) > 0
 
 
@@ -228,7 +216,7 @@ def test_priority_affects_source_order(router):
         code_idx = decision.selected_sources.index("code_search")
         # RAG has HIGH priority (2), code has CRITICAL (1)
         # Code should come before MEDIUM priority sources
-        for source in ["searxng", "web_search"]:
+        for source in ["web_search"]:
             if source in decision.selected_sources:
                 assert code_idx < decision.selected_sources.index(source)
 

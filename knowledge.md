@@ -138,10 +138,10 @@ Author workflow: `just new-worktree NNN` → edit in `/data/projects/own/nixos-c
 
 ### Build pipeline quirks
 
-- Zephyr NEVER builds locally (31GB RAM OOM): builds always offload to nexus via `scripts/remote-build.sh` (systemd-run on nexus to dodge ssh-ng pipe-draining).
-- Deploys from Zephyr run `git fetch origin main && git reset --hard origin/main` on nexus BEFORE building — nexus is a build executor only (G2 pipeline-integrity guard).
-- `deploy-nexus zephyr` is HARD-REFUSED (G3): zephyr node has `targetHost=null`, which colmena interprets as "deploy to localhost" → would apply ZEPHYR'S CONFIG TO NEXUS. Use `just deploy zephyr` instead.
-- `just deploy` runs `scripts/preflight-check.sh` first (G4): refuses deploy if source-of-truth/nexus-builder disagree on canonical ref or if a build is already in flight.
+- Zephyr NEVER builds locally (31GB RAM OOM): builds always offload to Nexus via `scripts/remote-build.sh` or the Nexus dispatcher.
+- `just deploy` and `just deploy-async` run `scripts/deploy/nexus-dispatch.sh`; Nexus refreshes `/etc/nixos` to `origin/main`, builds with Colmena, and activates the selected target. Zephyr remains the authoring/source-of-truth host.
+- `just deploy-nexus` is a compatibility alias into the same dispatcher; it no longer has a separate `targetHost=null` path.
+- `scripts/preflight-check.sh` runs before dispatch and refuses source/builder drift, failed self-healing, stale `origin/main`, or an in-flight build.
 - Use the `.#colmena` app (flake-local 0.5.0-pre), NOT `nixpkgs#colmena` (channel-pinned 0.4.0 can't evaluate `colmenaHive`).
 
 ### Ports ↔ DNS bridge
@@ -234,7 +234,7 @@ Use DNS names; never hardcode ClusterIPs in NixOS configs (`http://10.0.0.192:80
 - ❌ `kubectl delete --all` / `kubectl scale --all` / scaling to 0 then deleting without checking.
 - ❌ `nix-env -iA <pkg>` / editing `/etc` files directly.
 - ❌ `volcano-scheduler` for stateless workloads.
-- ❌ Deploying to zephyr via colmena-on-nexus (targetHost=null footgun).
+- ❌ Running an unguarded direct Colmena apply from a stale checkout; use the Nexus dispatcher so it refreshes `origin/main` first.
 - ❌ Hardcoded ClusterIPs; `:latest` container tags; mutable action version tags in CI.
 - ❌ Scheduling non-infrastructure workloads to zephyr (31GB OOM).
 - ❌ Backgrounding long-running commands like `nixos-rebuild` or `colmena apply` — output must stay visible.
