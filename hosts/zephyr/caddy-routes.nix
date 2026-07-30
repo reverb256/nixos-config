@@ -119,10 +119,6 @@ in
   mkRoute "n8n.lan" "http://${nexus}:${toString ports.n8n}"
   + "\n"
   +
-  # Search (SearXNG) — public search tool
-  mkRoute "searxng.lan, search.lan" "http://${zephyr}:${toString ports.searxng}"
-  + "\n"
-  +
   # === PROTECTED SERVICES (central SSO) ===
   # AI Inference Gateway — OpenAI-compatible API
   mkAuthRoute "ai-inference.lan" "http://${nexus}:${toString ports.ai-inference-gateway}"

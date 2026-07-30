@@ -1,7 +1,7 @@
 {
   "hostName": "zephyr",
   "targetUser": "j_kro",
-  "targetHost": null,
+  "targetHost": "10.1.1.110",
   "tags": [
     "control-plane",
     "k8s-master",
@@ -9,7 +9,7 @@
     "local"
   ],
   "buildOnTarget": false,
-  "allowLocalDeployment": true,
+  "allowLocalDeployment": false,
   "ipAddress": "10.1.1.110",
   "interfaceName": "enp38s0",
   "wireless": {

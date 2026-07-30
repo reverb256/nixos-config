@@ -223,8 +223,8 @@
       hosts = {
         zephyr = {
           hostName = "zephyr";
-          targetHost = null;
-          buildOnTarget = false; # zephyr has max-jobs=0; build on nexus and push
+          targetHost = "10.1.1.110";
+          buildOnTarget = false; # Nexus dispatcher builds here and pushes to Zephyr
           tags = [
             "control-plane"
             "k8s-master"
@@ -240,8 +240,8 @@
         };
         nexus = {
           hostName = "nexus";
-          targetHost = "10.1.1.120";
-          buildOnTarget = true;
+          targetHost = null; # Nexus dispatcher activates the local controller directly
+          buildOnTarget = false; # Nexus dispatcher builds and activates locally
           tags = [
             "storage"
             "k8s-worker"
@@ -254,7 +254,7 @@
         forge = {
           hostName = "forge";
           targetHost = "10.1.1.130";
-          buildOnTarget = true;
+          buildOnTarget = false; # Nexus dispatcher builds and pushes to Forge
           tags = [
             "gpu"
             "compute"
@@ -267,7 +267,7 @@
         sentry = {
           hostName = "sentry";
           targetHost = "10.1.1.140";
-          buildOnTarget = true;
+          buildOnTarget = false; # Nexus dispatcher builds and pushes to Sentry
           tags = [
             "monitoring"
             "k8s-worker"

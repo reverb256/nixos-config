@@ -53,17 +53,6 @@
       casdoorApp = null;
     };
 
-    searxng = {
-      type = "stdio";
-      scope = "local";
-      command = "/data/agents/mcp-bridges/searxng-mcp.sh";
-      description = "SearXNG web search (15 tools)";
-      connectTimeout = 60;
-      timeout = 90;
-      casdoorApp = "app-searxng";
-      ssePort = 9001;
-    };
-
     selfhosted-tools = {
       type = "stdio";
       scope = "local";

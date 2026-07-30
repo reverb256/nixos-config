@@ -143,7 +143,6 @@ class KnowledgeFabricConfig(BaseSettings):
     code_search_enabled: bool = Field(
         default=True, description="Enable code search source"
     )
-    searxng_enabled: bool = Field(default=False, description="Enable SearXNG source")
     web_search_enabled: bool = Field(
         default=False, description="Enable MCP web search source"
     )
@@ -151,15 +150,11 @@ class KnowledgeFabricConfig(BaseSettings):
         default_factory=lambda: ["/etc/nixos"], description="Paths to search for code"
     )
     rag_top_k: int = Field(default=5, ge=1, le=20, description="RAG top-K results")
-    searxng_url: str = Field(default="http://searxng.search.svc.cluster.local:8080", description="SearXNG URL")
     mcp_url: str = Field(
         default="http://127.0.0.1:8080/mcp/call", description="MCP broker URL"
     )
     web_max_results: int = Field(
         default=5, ge=1, le=20, description="Web search max results"
-    )
-    searxng_max_results: int = Field(
-        default=5, ge=1, le=20, description="SearXNG max results"
     )
     code_max_results: int = Field(
         default=5, ge=1, le=20, description="Code search max results"
@@ -391,12 +386,6 @@ class MiddlewareConfig(BaseSettings):
         rag_enabled = os.environ.get(
             "MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED", ""
         ).lower()
-        searxng_enabled = os.environ.get(
-            "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED", ""
-        ).lower()
-        searxng_url = os.environ.get(
-            "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL", "http://searxng.search.svc.cluster.local:8080"
-        )
         code_search_enabled = os.environ.get(
             "MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED", ""
         ).lower()
@@ -407,9 +396,6 @@ class MiddlewareConfig(BaseSettings):
             "MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS", '["/etc/nixos"]'
         )
         rag_top_k = os.environ.get("MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K", "5")
-        searxng_max_results = os.environ.get(
-            "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS", "5"
-        )
         code_max_results = os.environ.get(
             "MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_MAX_RESULTS", "5"
         )
@@ -427,15 +413,10 @@ class MiddlewareConfig(BaseSettings):
         self.knowledge_fabric.enabled = enabled == "true"
         self.knowledge_fabric.rrf_k = int(rrf_k) if rrf_k else 60
         self.knowledge_fabric.rag_enabled = rag_enabled == "true"
-        self.knowledge_fabric.searxng_enabled = searxng_enabled == "true"
-        self.knowledge_fabric.searxng_url = searxng_url
         self.knowledge_fabric.code_search_enabled = code_search_enabled == "true"
         self.knowledge_fabric.web_search_enabled = web_search_enabled == "true"
         self.knowledge_fabric.code_search_paths = code_search_paths
         self.knowledge_fabric.rag_top_k = int(rag_top_k) if rag_top_k else 5
-        self.knowledge_fabric.searxng_max_results = (
-            int(searxng_max_results) if searxng_max_results else 5
-        )
         self.knowledge_fabric.code_max_results = (
             int(code_max_results) if code_max_results else 5
         )

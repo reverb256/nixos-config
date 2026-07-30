@@ -86,7 +86,6 @@
         ps.pydantic
         ps.pydantic-settings
         ps.sentry-sdk
-        # MCP SDK for SearXNG MCP server integration
         ps.mcp
         # HuggingFace CLI for model downloads
         ps.huggingface-hub
@@ -105,10 +104,6 @@
         # Vision support (Qwen3-VL via transformers)
         ps.pillow # For image processing
         ps.onnxruntime # For ONNX model support
-        # SearXNG deep integration dependencies
-        ps.scikit-learn # For result clustering (DBSCAN, TF-IDF)
-        ps.lxml # Fast HTML parsing for ingestion
-        ps.feedgen # For RSS/ATOM export generation
       ]
       ++ [modularGatewayPkgPython]
   );
@@ -179,25 +174,10 @@
     };
   };
 
-  # Wrapper script for OpenCode SearXNG MCP server
-  # Dynamically finds the gateway package to avoid hardcoded Nix store paths
-  opencodeSearxngMcpWrapper = pkgs.writeShellApplication {
-    name = "opencode-searxng-mcp";
-    runtimeInputs = with pkgs; [
-      coreutils
-      findutils
-      gnugrep
-      gnused
-    ];
-    text = builtins.readFile ./bin/opencode-searxng-mcp;
-  };
 in {
   config = mkIf (cfg.enable && cfg.gateway.enable) {
     # Expose the gateway Python environment for use by MCP servers
     services.ai-inference.gateway.python = gatewayPython;
-
-    # Install the OpenCode MCP wrapper script to system path
-    environment.systemPackages = [opencodeSearxngMcpWrapper];
 
     # Gateway runs in Kubernetes, not as systemd service
     # See: kubernetes-manifests/ai-inference/gateway-deployment.yaml

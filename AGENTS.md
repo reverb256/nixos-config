@@ -88,15 +88,15 @@ gh pr create --base main --head issue-NNN-desc --title "type: description (#NNN)
 - CachyOS kernel packages are explicitly x86-64-v3 optimized. Only selected llama.cpp packages add `-march=x86-64-v3`; ordinary packages use their normal nixpkgs compiler settings.
 - `big-parallel` is a Nix builder capability label, not an architecture target or a thread count.
 - `modules/system/distributed-builds.nix` generates `/etc/nix/machines` and excludes the current host. The active remote-builder set is Nexus (12 jobs, speed factor 10) and Sentry (8 jobs, speed factor 6). Forge is intentionally excluded from that generated list because it is the GPU/mining host.
-- Zephyr has `max-jobs = 0` and is a dispatcher; its builds must be offloaded. Nexus is the primary builder. The checked-in root `machines` file is supplied to Colmena via `colmena.nix` and is distinct from generated `/etc/nix/machines`.
+- Zephyr has `max-jobs = 0` and remains the authoring/source-of-truth host; its builds must be offloaded. Nexus is the deployment dispatcher and primary builder. The checked-in root `machines` file is supplied to Colmena via `colmena.nix` and is distinct from generated `/etc/nix/machines`.
 
 ## Deployment Model (GitOps + nix-copy-closure)
 
 1. **Zephyr** is the sole development host — author config in an issue worktree under `/data/projects/own/`
 2. Validate with `just check`, `just build`, or `just test-apply` as appropriate
 3. Merge reviewed changes to `main`; deployed `/etc/nixos` checkouts track `main`
-4. Run `just deploy [<host>]`; preflight checks protect against source/builder drift and in-flight builds
-5. The deployment copies the built closure with `nix-copy-closure` and activates it with `switch-to-configuration switch`
+4. Run `just deploy [<host>]` for synchronous dispatch, or `just deploy-async [<host>]` for a disconnect-safe Nexus job
+5. Nexus refreshes its checkout to `origin/main`, builds with Colmena, and activates Nexus locally or the selected remote target over SSH
 6. Use `just sync-nodes` only to synchronize remote checkouts; it is not a substitute for deployment
 
 NFS may still be used by explicitly configured storage workloads, but it is not the configuration source-of-truth or deployment mechanism.

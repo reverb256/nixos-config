@@ -1257,9 +1257,10 @@ programs.gitlawb.enable = false;
   # Lossless Scaling Frame Generation via Vulkan
   services.storage-assertions.enable = true;
 
-  # Bonsai 27B: ternary on RTX 3090 (port 1237) + 1-bit on RTX 3060 Ti (port 1236)
+  # Bonsai 27B: ternary on RTX 3090 (port 8005, asymmetric KV) + 1-bit on RTX 3060 Ti (port 1236)
   services.bonsai = {
     enable = true;
     binaryStorePath = "/nix/store/6pnbfx3vqcljg2i6gnv7fds9yy56aj4n-llama-cpp-cuda-0.0.0";
+    turboBinaryStorePath = "/usr/local/bin/llama-server-turbo";
   };
 }

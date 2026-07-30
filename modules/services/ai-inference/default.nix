@@ -199,13 +199,6 @@ in {
       };
     };
 
-    # SearXNG integration
-    searxngUrl = mkOption {
-      type = types.str;
-      default = "http://10.0.0.102:8080";
-      description = "SearXNG URL for knowledge fabric integration";
-    };
-
     # API Gateway configuration
     gateway = {
       enable = mkOption {
@@ -279,11 +272,6 @@ in {
             default = true;
             description = "Enable code search source";
           };
-          searxng_enabled = mkOption {
-            type = types.bool;
-            default = false;
-            description = "Enable SearXNG knowledge source";
-          };
           web_search_enabled = mkOption {
             type = types.bool;
             default = false;
@@ -298,16 +286,6 @@ in {
             type = types.int;
             default = 5;
             description = "RAG top-K results";
-          };
-          searxng_url = mkOption {
-            type = types.str;
-            default = "http://searxng.search.svc.cluster.local:8080";
-            description = "SearXNG URL";
-          };
-          searxng_max_results = mkOption {
-            type = types.int;
-            default = 5;
-            description = "SearXNG max results";
           };
           code_max_results = mkOption {
             type = types.int;
@@ -575,21 +553,7 @@ in {
             }
           )
         );
-        default = {
-          # SearXNG local MCP server - privacy-respecting metasearch
-          searxng = {
-            type = "local";
-            command = [
-              "${pkgs.python3}/bin/python3"
-              "-m"
-              "ai_inference_gateway.mcp_servers.searxng_server"
-            ];
-            environment = {
-              SEARXNG_URL = "https://search.reverb256.ca";
-              SEARXNG_CACHE_TTL = "300";
-            };
-          };
-        };
+        default = {};
         example = literalExpression ''
           {
             # Remote HTTP MCP server
@@ -915,10 +879,6 @@ in {
             services.ai-inference.mcp.servers.<name> = { ... };
 
           Example:
-            services.ai-inference.mcp.servers.searxng = {
-              type = "local";
-              command = [ "${pkgs.python3}/bin/python3" "-m" "searxng_server" ];
-            };
 
           Current configuration:
             mcp.enable = ${toString cfg.mcp.enable}

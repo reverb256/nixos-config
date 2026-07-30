@@ -64,7 +64,6 @@ in {
       ./modules/ai-inference.nix
       ./modules/llama-servers.nix
       ./modules/nixkube.nix
-      ./modules/searxng.nix
       ./modules/vane.nix
       ./modules/haven.nix
       ./modules/cert-manager.nix
@@ -120,7 +119,6 @@ in {
     ./modules/infrastructure.nix
     ./modules/gpu-tuning.nix
     ./modules/nixkube.nix
-    ./modules/searxng.nix
     ./modules/haven.nix
     ./modules/cert-manager.nix
     ./modules/oauth2-proxy.nix

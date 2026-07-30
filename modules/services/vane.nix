@@ -17,10 +17,6 @@ in {
       type = types.str;
       default = "docker.io/itzcrazykns1337/vane:slim-latest";
     };
-    searxngUrl = mkOption {
-      type = types.str;
-      default = "http://searxng.search.svc.cluster.local:8080";
-    };
     dataDir = mkOption {
       type = types.str;
       default = "/var/lib/vane";
@@ -43,7 +39,7 @@ in {
       '';
       serviceConfig = {
         Type = "exec";
-        ExecStart = "${pkgs.podman}/bin/podman run --name vane --network=host -e SEARXNG_API_URL=${cfg.searxngUrl} -e PORT=${toString cfg.port} -e HOSTNAME=0.0.0.0 -v ${cfg.dataDir}:/home/vane/data --restart=no ${cfg.image}";
+        ExecStart = "${pkgs.podman}/bin/podman run --name vane --network=host -e PORT=${toString cfg.port} -e HOSTNAME=0.0.0.0 -v ${cfg.dataDir}:/home/vane/data --restart=no ${cfg.image}";
         ExecStop = "${pkgs.podman}/bin/podman stop -t 10 vane";
         Restart = "on-failure";
         RestartSec = 5;

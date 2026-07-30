@@ -16,8 +16,8 @@
   # h.hostName is missing (drift), throw loudly. The directory lookup uses
   # the attrset key (`name`) because that's what ./hosts/${name}/ names.
   # Defaults match legacy mkHost signature:
-  #   targetHost    = null    (zephyr is the only local-deployable host)
-  #   buildOnTarget = true    (per-cluster default; zephyr overrides to false)
+  #   targetHost    = host IP (Nexus is the controller for every target)
+  #   buildOnTarget = false  (Nexus builds closures and copies them to targets)
   #   tags          = []      (colmneda tags are optional)
   mkColmenaHost = name: h:
     assert (h.hostName
@@ -33,9 +33,9 @@
         buildOnTarget = h.buildOnTarget or true;
         tags = h.tags or [];
         targetUser = "j_kro";
-        # Mirror the legacy `allowLocalDeployment` rule:
-        # allow local build+activation only when targetHost is null (zephyr).
-        allowLocalDeployment = h.targetHost == null;
+        # Nexus is both controller and a deployment target. Every other host
+        # is reached over SSH using its explicit targetHost address.
+        allowLocalDeployment = name == "nexus";
       };
     };
 in {

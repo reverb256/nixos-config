@@ -34,7 +34,6 @@ from .metrics import (
 from .sources import (
     RAGKnowledgeSource,
     WebSearchKnowledgeSource,
-    SearXNGKnowledgeSource,
     CodeSearchKnowledgeSource,
 )
 
@@ -158,14 +157,6 @@ class KnowledgeFabricMiddleware(Middleware):
         )
         sources.append(code_search)
         logger.info("Added CodeSearchKnowledgeSource")
-
-        # SearXNG source (MEDIUM priority - meta-search)
-        searxng = SearXNGKnowledgeSource(
-            searxng_url=self.config.get("searxng_url", "http://127.0.0.1:30080"),
-            max_results=self.config.get("searxng_max_results", 5),
-        )
-        sources.append(searxng)
-        logger.info("Added SearXNGKnowledgeSource")
 
         # Web search source (MEDIUM priority - MCP web_search_prime)
         web_search = WebSearchKnowledgeSource(

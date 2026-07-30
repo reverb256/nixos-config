@@ -61,6 +61,16 @@ with lib; let
       ''
     else null;
 
+  # turboQuant binary wrapper — wraps the retroheim turbo build.
+  turboPackage = if cfg.turboBinaryStorePath != null then
+    pkgs.writeShellScriptBin "llama-server-turbo-asym" ''
+      exec ${cfg.turboBinaryStorePath}/llama-server-turbo "$@"
+    ''
+  else null;
+
+  # Override for asymmetric KV services
+  effectivePackage = if cfg.turboBinaryStorePath != null then turboPackage else cfg.package;
+
   # Shorthand: 1-bit Bonsai service.
   mk1bitService = { name, desc, port, gpu ? null, extraEnv ? {}, binary ? prismBinary }: {
     systemd.services."bonsai-1bit-${name}" = {
@@ -94,7 +104,7 @@ with lib; let
   # 2026-07-29: `--mmproj` is now conditional on cfg.mmproj — when null (text-only
   # GGUFs, dspark, etc.) llama-server would reject the empty flag, so we elide it
   # instead of passing `--mmproj ""`.
-  mkTernaryService = { name, desc, port, gpu, memoryMax ? "20G" }: {
+  mkTernaryService = { name, desc, port, gpu, memoryMax ? "20G", extraFlags ? "", extraEnv ? {} }: {
     systemd.services."bonsai-ternary-${name}" = {
       description = desc;
       after = ["network.target"];
@@ -103,7 +113,7 @@ with lib; let
         Type = "simple";
         User = "bonsai";
         RuntimeDirectory = "bonsai-ternary-${name}";
-        ExecStart = "${getExe cfg.package} -m ${cfg.ternaryModel}"
+        ExecStart = "${getExe effectivePackage} -m ${cfg.ternaryModel}${extraFlags}"
           + (if cfg.mmproj != null then " --mmproj ${cfg.mmproj}" else "")
           + " --host 0.0.0.0 --port ${toString port} -ngl 99 -fa on -c 0 --temp 0.7 "
           + "--top-p 0.95 --top-k 20 --min-p 0 --jinja --alias ternary-bonsai-27b-${name}";
@@ -124,16 +134,23 @@ with lib; let
       environment = {
         CUDA_VISIBLE_DEVICES = gpu;
         CUDA_CACHE_DISABLE = "1";
-      };
+      } // extraEnv;
     };
   };
 
   # ── All services, each gated by hostname ──
 
   # Ternary on zephyr 3090 (GPU 1, 24 GB) — full capabilities including vision
-  ternaryZephyr = mkIf (host == "zephyr" && cfg.binaryStorePath != null) (mkTernaryService {
-    name = "zephyr"; desc = "Bonsai 27B Ternary — Zephyr RTX 3090 (port 1237)";
-    port = 1237; gpu = "1"; memoryMax = "20G";
+  ternaryZephyr = mkIf (host == "zephyr" && cfg.turboBinaryStorePath != null) (mkTernaryService {
+    name = "zephyr"; desc = "Bonsai 27B Ternary — Zephyr RTX 3090 (port 8005) asym KV";
+    port = 8005; gpu = "1"; memoryMax = "20G";
+    extraFlags = " --cache-type-k q8_0 --cache-type-v turbo4 -b 2048 -ub 1024 --device CUDA0 --main-gpu 0 --split-mode none --mlock --parallel 1";
+    extraEnv = {
+      GGML_CUDA_GRAPH_OPT = "1";
+      LLAMA_ATTN_ROT_DISABLE = "1";
+      CUDA_SCALE_LAUNCH_QUEUES = "4";
+      LD_LIBRARY_PATH = "/usr/local/lib/bonsai-turbo:/run/opengl-driver/lib";
+    };
   });
 
   # 1-bit on zephyr 3060 Ti (GPU 0, 8 GB)
@@ -225,6 +242,13 @@ in {
     mmproj = mkOption {
       type = types.nullOr types.path;
       default = "/models/bonsai/ternary-27b/Ternary-Bonsai-27B-mmproj-Q8_0.gguf";
+    };
+
+    turboBinaryStorePath = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      description = "Path to turboQuant llama-server-turbo binary (retroheim fork)";
+      example = "/home/j_kro/.local/share/bonsai/bin/llama-server-turbo";
     };
   };
 

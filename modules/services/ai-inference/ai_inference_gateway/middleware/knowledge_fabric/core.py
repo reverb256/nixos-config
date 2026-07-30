@@ -21,8 +21,8 @@ from datetime import datetime
 class SourcePriority(IntEnum):
     """Priority levels for knowledge sources (lower = higher priority)."""
     CRITICAL = 1  # Internal codebase, authoritative docs
-    HIGH = 2      # RAG knowledge base, structured data
-    MEDIUM = 3    # Web search, SearXNG
+    HIGH = 2      # RAG knowledge base, structured data    MEDIUM = 3      # Web search
+
     LOW = 4       # General web, unstructured sources
 
 

@@ -20,7 +20,6 @@ _: {
   #
   # N8n integrates with:
   # - Ollama (for local LLM workflows)
-  # - Searxng (for privacy-preserving search)
   # - Your MCP servers
   # - HTTP/REST APIs
   #

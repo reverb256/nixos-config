@@ -2,7 +2,7 @@
 Buffy MCP Server — local port of Freebuff tool primitives.
 
 Gives Hermes access to file picker, code search, bash, file IO,
-tmux sessions, HTTP fetching, and SearXNG web search — entirely
+tmux sessions, and HTTP fetching — entirely
 locally. No cloud egress unless explicitly opted in.
 
 Safety:
@@ -49,7 +49,6 @@ NIXOS_DIR = os.getenv("BUFFY_NIXOS_DIR", "/etc/nixos")
 HOME_DIR = os.getenv("BUFFY_HOME_DIR", "/home/j_kro")
 SEARCH_TIMEOUT = int(os.getenv("BUFFY_SEARCH_TIMEOUT", "30"))
 BASH_TIMEOUT = int(os.getenv("BUFFY_BASH_TIMEOUT", "120"))
-SEARXNG_URL = os.getenv("SEARXNG_URL", "http://searxng.search.svc.cluster.local:8080")
 
 # ── Safety deny-lists ─────────────────────────────────────────────────────
 DENY_PATH_PREFIXES = (
@@ -458,49 +457,6 @@ def http_fetch(
         "truncated": len(r.text) > 50000,
         "content_type": r.headers.get("content-type", ""),
     }
-
-
-# ── Tool: web_search ───────────────────────────────────────────────────────
-@mcp.tool
-def web_search(
-    query: str,
-    count: int = 10,
-    engines: list[str] | None = None,
-) -> dict[str, Any]:
-    """Web search via SearXNG JSON API. Returns {title, url, snippet} entries."""
-    if not query or not query.strip():
-        return {"error": "query must be non-empty"}
-    count = max(1, min(count, 30))
-    engines = engines or ["duckduckgo", "brave", "startpage"]
-
-    if not NETWORK_ALLOW_NON_LAN and not LAN_URL_RE.match(SEARXNG_URL or ""):
-        return {"error": f"searxng URL is non-LAN and BUFFY_ALLOW_NON_LAN is not set: {SEARXNG_URL!r}"}
-
-    try:
-        r = requests.get(
-            f"{SEARXNG_URL.rstrip('/')}/search",
-            params={"q": query, "format": "json", "engines": ",".join(engines)},
-            timeout=15,
-        )
-    except requests.RequestException as e:
-        return {"error": f"searxng unreachable: {e}"}
-    if r.status_code != 200:
-        return {"error": f"searxng HTTP {r.status_code}: {r.text[:200]}"}
-    try:
-        data = r.json()
-    except ValueError as e:
-        return {"error": f"searxng JSON decode: {e}"}
-    results = [
-        {
-            "title": e.get("title", ""),
-            "url": e.get("url", ""),
-            "snippet": (e.get("content") or "")[:300],
-        }
-        for e in data.get("results", [])[:count]
-    ]
-    _audit("web_search", {"query": query, "count": count, "engines": engines},
-           f"{len(results)} results")
-    return {"query": query, "results": results, "engines": engines}
 
 
 # ── Entry point ────────────────────────────────────────────────────────────

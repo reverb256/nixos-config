@@ -9,7 +9,7 @@
     "k8s-gpu-mixed",
     "remote"
   ],
-  "buildOnTarget": true,
+  "buildOnTarget": false,
   "allowLocalDeployment": false,
   "ipAddress": "10.1.1.130",
   "interfaceName": "eno1",
