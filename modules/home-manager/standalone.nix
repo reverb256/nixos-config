@@ -44,6 +44,7 @@ in {
 
   home.homeDirectory = "/home/j_kro";
   home.stateVersion = "26.05";
+  home.username = "j_kro";
   home.pointerCursor = {
     enable = true;
     package = pkgs.bibata-cursors;
