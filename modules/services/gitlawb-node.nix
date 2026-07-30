@@ -4,22 +4,23 @@
   pkgs,
   ...
 }:
+
 with lib; let
   cfg = config.services.gitlawb-node;
 
-  # Isolated-by-default: private mirror, NOT a federated node.
-  # Self-contained: its own podman Postgres + node container on a private
-  # podman network, so it never collides with the host's native Postgres
-  # (owned by Nextcloud on sentry). No libp2p gossip, no seed bootstrap,
-  # reads require signed requests.
-  pgPassFile = "/var/lib/gitlawb/pg-pass.env";
+  # Shared user/group from programs.gitlawb (if enabled) or standalone defaults
+  user = config.programs.gitlawb.user or "gitlawb";
+  group = config.programs.gitlawb.group or "gitlawb";
+  dataDir = config.programs.gitlawb.dataDir or cfg.dataDir;
+
+  pgPassFile = "${dataDir}/pg-pass.env";
   hostIp = config.clusterNetworking.ipAddress or "127.0.0.1";
 in {
   options.services.gitlawb-node = {
     enable = mkEnableOption "Gitlawb node — self-hosted decentralized git (private mirror)";
 
     httpPort = mkOption {
-      type = types.int;
+      type = types.port;
       default = 7545;
       description = "HTTP API + git smart-HTTP port (bound to hostIp, LAN-scoped).";
     };
@@ -27,13 +28,19 @@ in {
     dataDir = mkOption {
       type = types.path;
       default = "/var/lib/gitlawb";
-      description = "Persistent storage for node data + generated identity key.";
+      description = ''
+        Persistent storage for node data + generated identity key.
+        Shared with `programs.gitlawb.dataDir` when both are enabled.
+      '';
     };
 
     image = mkOption {
       type = types.str;
-      default = "ghcr.io/gitlawb/node:latest";
-      description = "Gitlawb node container image (multi-arch, upstream release CI).";
+      default = "ghcr.io/gitlawb/node:0.7.0";
+      description = ''
+        Gitlawb node container image. Pinned to a versioned tag;
+        `:latest` is blocked by cluster admission policy.
+      '';
     };
 
     postgresImage = mkOption {
@@ -47,7 +54,16 @@ in {
       default = "gitlawb-dev";
       description = ''
         Postgres password for the gitlawb role. Written to a root-owned 0600
-        file (${pgPassFile}); upgrade to secretspec-creds before production use.
+        file (`<literal>pgPassFile</literal>`); upgrade to secretspec before production use.
+      '';
+    };
+
+    extraEnv = mkOption {
+      type = types.attrsOf types.str;
+      default = {};
+      description = ''
+        Additional environment variables to pass to the gitlawb-node container.
+        Merged with the defaults — override any built-in var here.
       '';
     };
   };
@@ -72,13 +88,13 @@ in {
     };
 
     # -----------------------------------------------------------------------
-    # Secrets file for the node container (root-owned, 0600)
+    # Data directory with tmpfiles (StateDirectory-style)
     # -----------------------------------------------------------------------
     systemd.tmpfiles.settings."gitlawb-node" = {
-      "${cfg.dataDir}".d = {
+      "${dataDir}".d = {
         mode = "700";
-        user = "gitlawb";
-        group = "gitlawb";
+        user = user;
+        group = group;
       };
       "${pgPassFile}".f = {
         mode = "600";
@@ -97,7 +113,7 @@ in {
       wantedBy = ["multi-user.target"];
       path = [pkgs.podman];
       preStart = ''
-        install -d -m700 ${cfg.dataDir}/pg
+        install -d -m700 ${dataDir}/pg
       '';
       serviceConfig = {
         Type = "simple";
@@ -107,18 +123,22 @@ in {
             --replace \
             --network gitlawb-net \
             --rm \
-            -v ${cfg.dataDir}/pg:/var/lib/postgresql/data \
+            -v ${dataDir}/pg:/var/lib/postgresql/data:Z \
             -e POSTGRES_DB=gitlawb \
             -e POSTGRES_USER=gitlawb \
             -e POSTGRES_PASSWORD=${cfg.postgresPassword} \
             ${cfg.postgresImage}
         '';
         ExecStop = "${pkgs.podman}/bin/podman stop --ignore gitlawb-pg";
-        Restart = "always";
+        Restart = "on-failure";
         RestartSec = "5s";
+        # Hardening
         PrivateTmp = true;
-        ProtectSystem = "full";
-        ReadWritePaths = [cfg.dataDir "/var/lib/containers/storage" "/run/podman" "/var/lib/containers"];
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        ReadWritePaths = [dataDir "/var/lib/containers/storage" "/run/podman" "/var/lib/containers"];
+        NoNewPrivileges = true;
+        CapabilityBoundingSet = ["CAP_NET_BIND_SERVICE" "CAP_CHOWN" "CAP_DAC_OVERRIDE" "CAP_FOWNER" "CAP_SETGID" "CAP_SETUID"];
       };
     };
 
@@ -129,50 +149,61 @@ in {
       description = "Gitlawb node — decentralized git (private mirror)";
       after = ["network-online.target" "podman.service" "gitlawb-postgres.service"];
       requires = ["gitlawb-postgres.service"];
+      wants = ["network-online.target"];
       wantedBy = ["multi-user.target"];
       path = [pkgs.podman];
 
       preStart = ''
-        install -d -m700 ${cfg.dataDir}
+        install -d -m700 ${dataDir}
         install -m600 <(printf 'POSTGRES_PASSWORD=%s\n' ${escapeShellArg cfg.postgresPassword}) ${pgPassFile}
       '';
 
       serviceConfig = {
         Type = "simple";
-        ExecStart = ''
+        ExecStart = let
+          baseEnv = {
+            DATABASE_URL = "postgresql://gitlawb:${cfg.postgresPassword}@gitlawb-pg:5432/gitlawb";
+            GITLAWB_HOST = "0.0.0.0";
+            GITLAWB_PORT = toString cfg.httpPort;
+            GITLAWB_PUBLIC_URL = "http://${hostIp}:${toString cfg.httpPort}";
+            GITLAWB_P2P_PORT = "0";
+            GITLAWB_BOOTSTRAP_DISABLE_SEEDS = "true";
+            GITLAWB_REQUIRE_SIGNED_PEER_WRITES = "false";
+            GITLAWB_PUBLIC_READ = "false";
+            GITLAWB_AUTO_SYNC = "false";
+            GITLAWB_MAX_PACK_BYTES = "2147483648";
+          };
+          mergedEnv = baseEnv // cfg.extraEnv;
+          envFlags = lib.concatStringsSep " \\\n            " (
+            lib.mapAttrsToList (k: v: "-e ${k}=${escapeShellArg v}") mergedEnv
+          );
+        in ''
           ${pkgs.podman}/bin/podman run \
             --name gitlawb-node \
             --replace \
             --network gitlawb-net \
             --rm \
             -p ${hostIp}:${toString cfg.httpPort}:${toString cfg.httpPort} \
-            -v ${cfg.dataDir}:/data:Z \
+            -v ${dataDir}:/data:Z \
             --env-file ${pgPassFile} \
-            -e DATABASE_URL=postgresql://gitlawb:${cfg.postgresPassword}@gitlawb-pg:5432/gitlawb \
-            -e GITLAWB_HOST=0.0.0.0 \
-            -e GITLAWB_PORT=${toString cfg.httpPort} \
-            -e GITLAWB_PUBLIC_URL=http://${hostIp}:${toString cfg.httpPort} \
-            -e GITLAWB_P2P_PORT=0 \
-            -e GITLAWB_BOOTSTRAP_DISABLE_SEEDS=true \
-            -e GITLAWB_REQUIRE_SIGNED_PEER_WRITES=false \
-            -e GITLAWB_PUBLIC_READ=false \
-            -e GITLAWB_AUTO_SYNC=false \
-            -e GITLAWB_MAX_PACK_BYTES=2147483648 \
+            ${envFlags} \
             ${cfg.image}
         '';
         ExecStop = "${pkgs.podman}/bin/podman stop --ignore gitlawb-node";
-        Restart = "always";
+        Restart = "on-failure";
         RestartSec = "5s";
+        # Hardening
         PrivateTmp = true;
-        ProtectSystem = "full";
-        ReadWritePaths = [cfg.dataDir "/var/lib/containers/storage" "/run/podman" "/var/lib/containers"];
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        ReadWritePaths = [dataDir "/var/lib/containers/storage" "/run/podman" "/var/lib/containers"];
+        NoNewPrivileges = true;
       };
     };
 
     # -----------------------------------------------------------------------
-    # Firewall: open cfg.httpPort only (app binds to hostIp; not wildcard-listened)
-    # mkOptionDefault: appends, doesn't replace other modules' ports
+    # Firewall: open httpPort bound to hostIp (LAN-scoped only)
     # -----------------------------------------------------------------------
-    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.httpPort];
+    networking.firewall.allowedTCPPorts = mkOptionDefault [cfg.httpPort];
   };
 }
