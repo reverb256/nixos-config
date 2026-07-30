@@ -111,7 +111,7 @@
       role = "server";
       clusterInit = false;
       nodeName = "sentry";
-      serverAddr = "https://10.1.1.100:6443";
+      serverAddr = "https://10.1.1.120:6443"; # direct nexus join for recovery
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.140";
       calico.enable = true;
