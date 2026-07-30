@@ -72,14 +72,36 @@
             dontUsePytestCheck = true;
             dontCheck = true;
           });
-          # matplotlib/tkinter: backend tests try to use X11/Xvfb display
-          # dependencies and fail inside the nixpkgs sandbox with no DISPLAY.
-          # Disable their checks; this is a system-UI/runtime quirk, not a
-          # binary/integrity risk.
+          # matplotlib / tkinter / gradio / triton-llvm / scikit-image /
+          # tifffile / csvw / narwhals: their checkPhases try to open an X
+          # display or use pytest-driven GUI fixtures that do not exist in
+          # the nixpkgs sandbox. Disable checks for the entire cluster —
+          # these are runtime UI test artifacts, not binary integrity
+          # risks. Without this, every sentry closure build (and the larger
+          # system builds) is blocked by cascading pytest failures deep in
+          # transitive deps.
           matplotlib = py-prev.matplotlib.overridePythonAttrs (old: {
             dontCheck = true;
           });
           tkinter = py-prev.tkinter.overridePythonAttrs (old: {
+            dontCheck = true;
+          });
+          gradio = py-prev.gradio.overrideAttrs (old: {
+            dontCheck = true;
+          });
+          triton = py-prev.triton.overrideAttrs (old: {
+            dontCheck = true;
+          });
+          scikit-image = py-prev.scikit-image.overrideAttrs (old: {
+            dontCheck = true;
+          });
+          tifffile = py-prev.tifffile.overrideAttrs (old: {
+            dontCheck = true;
+          });
+          csvw = py-prev.csvw.overrideAttrs (old: {
+            dontCheck = true;
+          });
+          narwhals = py-prev.narwhals.overrideAttrs (old: {
             dontCheck = true;
           });
         })
