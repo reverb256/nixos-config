@@ -19,8 +19,10 @@
     ./hardware-configuration.nix
     # Desktop configuration (SDR brightness, Samsung TV, SDDM)
     ./desktop.nix
-    # Kubernetes control plane
+    # Kubernetes control plane (zephyr does NOT enable k3s — see services block below)
     ../../modules/services/k3s-cluster.nix
+    # Distributed Nix builds — nexus primary, sentry fallback
+    ../../modules/system/nix-distributed-builders.nix
     # Keepalived VIP for Kubernetes HA
     ../../modules/services/keepalived-vip.nix
 
@@ -312,6 +314,11 @@
     k3s-cluster = {
       enable = false;
     };
+
+    # Enable distributed builds across the cluster.
+    # nexus is primary (3900X 12c, 46GB), sentry is fallback (R7 1700 8c, 31GB).
+    # forge is excluded (GPU miner).
+    nix.distributedBuilds-config.enable = true;
 
     # No manifest auto-apply on zephyr -- only control-plane nodes do this.
     k8s-manifest-autoapply.enable = false;
