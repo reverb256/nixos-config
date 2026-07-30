@@ -170,6 +170,7 @@
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.120";
       calico.enable = true;
+      secretsEncryptionKeyFile = "/run/secrets/k3s-encryption-key";
     };
 
     k8s-manifest-autoapply.enable = true;

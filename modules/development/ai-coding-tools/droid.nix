@@ -2,6 +2,7 @@
   cfg,
   pkgs,
   gatewayUrl,
+  nvidiaNimBaseUrl,
   mkMcpServersJson,
 }: {
   mkDroidMcpJson = pkgs.writeShellScript "generate-droid-mcp" ''
@@ -28,7 +29,7 @@
     NVIDIA_NIM_API_KEY="$(cat $NVIDIA_NIM_KEY_PATH 2>/dev/null || echo)"
     ${pkgs.jq}/bin/jq -n \
       --arg nvidia_key "$NVIDIA_NIM_API_KEY" \
-      --arg gateway_base "${gatewayUrl}" \
+      --arg gateway_base "${gatewayUrl}/v1" \
       '{
         "enabledPlugins": {
           "core@factory-plugins": true
@@ -36,47 +37,68 @@
         "logoAnimation": "off",
         "customModels": [
           {
-            "model": "qwen3-coder-480b",
-            "id": "custom:opencode-zen-deepseek",
+            "model": "glm-5.1",
+            "id": "custom:GLM-5.1-Z.AI-Anthropic-0",
             "index": 0,
-                        "displayName": "OpenCode-5.1 [Orchestrator Tier - Planning, Architecture, Review]",
+            "baseUrl": "https://api.z.ai/api/anthropic",
+            "apiKey": "$ZAI_API_KEY",
+            "displayName": "GLM-5.1 [Orchestrator Tier - Planning, Architecture, Review]",
             "maxOutputTokens": 131072,
             "noImageSupport": false,
             "provider": "anthropic"
           },
           {
-            "model": "qwen3-coder-480b",
-            "id": "custom:opencode-zen-deepseek",
+            "model": "glm-5",
+            "id": "custom:GLM-5-Z.AI-Anthropic-1",
             "index": 1,
-                        "displayName": "OpenCode-5 [Orchestrator Tier - 744B MoE, Agentic]",
+            "baseUrl": "https://api.z.ai/api/anthropic",
+            "apiKey": "$ZAI_API_KEY",
+            "displayName": "GLM-5 [Orchestrator Tier - 744B MoE, Agentic]",
             "maxOutputTokens": 131072,
             "noImageSupport": false,
             "provider": "anthropic"
           },
           {
-            "model": "qwen3-coder-480b",
-            "id": "custom:opencode-zen-deepseek",
+            "model": "glm-4.7",
+            "id": "custom:GLM-4.7-Z.AI-Anthropic-2",
             "index": 2,
-                        "displayName": "OpenCode-4.7 [Worker Tier - 358B MoE, Coding King]",
+            "baseUrl": "https://api.z.ai/api/anthropic",
+            "apiKey": "$ZAI_API_KEY",
+            "displayName": "GLM-4.7 [Worker Tier - 358B MoE, Coding King]",
             "maxOutputTokens": 131072,
             "noImageSupport": false,
             "provider": "anthropic"
           },
           {
-            "model": "qwen3-coder-480b-turbo",
-            "id": "custom:OpenCode-5-Turbo-Z.AI-Anthropic-4",
+            "model": "glm-4.5-air",
+            "id": "custom:GLM-4.5-Air-Z.AI-Anthropic-3",
+            "index": 3,
+            "baseUrl": "https://api.z.ai/api/anthropic",
+            "apiKey": "$ZAI_API_KEY",
+            "displayName": "GLM-4.5 Air [Validator Tier - Lightweight, Fast]",
+            "maxOutputTokens": 131072,
+            "noImageSupport": false,
+            "provider": "anthropic"
+          },
+          {
+            "model": "glm-5-turbo",
+            "id": "custom:GLM-5-Turbo-Z.AI-Anthropic-4",
             "index": 4,
-                        "displayName": "OpenCode-5 Turbo [Orchestrator Tier - Agentic, Fast]",
+            "baseUrl": "https://api.z.ai/api/anthropic",
+            "apiKey": "$ZAI_API_KEY",
+            "displayName": "GLM-5 Turbo [Orchestrator Tier - Agentic, Fast]",
             "maxOutputTokens": 131072,
             "noImageSupport": true,
             "provider": "anthropic"
           },
           {
-            "model": "qwen3-coder-480b-flash",
-            "id": "custom:OpenCode-4.7-Flash-Z.AI-Anthropic-5",
+            "model": "glm-4.7-flash",
+            "id": "custom:GLM-4.7-Flash-Z.AI-Anthropic-5",
             "index": 5,
-                        "displayName": "OpenCode-4.7 Flash [Worker Tier - 30B MoE, Vision]",
-            "maxOutputTokens": 8192,
+            "baseUrl": "https://api.z.ai/api/anthropic",
+            "apiKey": "$ZAI_API_KEY",
+            "displayName": "GLM-4.7 Flash [Worker Tier - 30B MoE, Vision]",
+            "maxOutputTokens": 131072,
             "noImageSupport": false,
             "provider": "anthropic"
           },
@@ -84,7 +106,7 @@
             "model": "qwen3.5-4b",
             "id": "custom:Qwen3.5-4B-Gateway-OpenAI-6",
             "index": 6,
-            "baseUrl": ($gateway_base + "/v1"),
+            "baseUrl": ($gateway_base),
             "apiKey": "k8s-gateway",
             "displayName": "Qwen 3.5 4B [K8s Gateway - llama.cpp]",
             "maxOutputTokens": 8192,
@@ -95,7 +117,7 @@
             "model": "qwen3.5-32b",
             "id": "custom:Qwen3.5-32B-Gateway-OpenAI-7",
             "index": 7,
-            "baseUrl": ($gateway_base + "/v1"),
+            "baseUrl": ($gateway_base),
             "apiKey": "k8s-gateway",
             "displayName": "Qwen 3.5 32B [K8s Gateway - vLLM]",
             "maxOutputTokens": 8192,
@@ -106,7 +128,7 @@
             "model": "deepseek-r1",
             "id": "custom:DeepSeek-R1-Gateway-OpenAI-8",
             "index": 8,
-            "baseUrl": ($gateway_base + "/v1"),
+            "baseUrl": ($gateway_base),
             "apiKey": "k8s-gateway",
             "displayName": "DeepSeek R1 [K8s Gateway - SGLang]",
             "maxOutputTokens": 8192,
@@ -117,7 +139,7 @@
             "model": "meta/llama-3.1-70b-instruct",
             "id": "custom:Llama-3.1-70B-NVIDIA-NIM-OpenAI-9",
             "index": 9,
-            "baseUrl": ($gateway_base + "/v1"),
+            "baseUrl": "https://integrate.api.nvidia.com/v1",
             "apiKey": $nvidia_key,
             "displayName": "Llama 3.1 70B [NVIDIA NIM - Free]",
             "maxOutputTokens": 4096,
@@ -126,7 +148,7 @@
           }
         ],
         "sessionDefaultSettings": {
-          "model": "custom:opencode-zen-deepseek",
+          "model": "custom:GLM-5.1-Z.AI-Anthropic-0",
           "reasoningEffort": "high",
           "interactionMode": "auto",
           "autonomyLevel": "high",
@@ -134,9 +156,9 @@
         },
         "hasSeenMissionOnboarding": true,
         "missionModelSettings": {
-          "workerModel": "custom:opencode-zen-deepseek",
+          "workerModel": "custom:GLM-4.7-Z.AI-Anthropic-2",
           "workerReasoningEffort": "none",
-          "validationWorkerModel": "custom:OpenCode-5-Turbo-Z.AI-Anthropic-4",
+          "validationWorkerModel": "custom:GLM-5-Turbo-Z.AI-Anthropic-4",
           "validationWorkerReasoningEffort": "none"
         },
         "terminalColorMode": "dark",
