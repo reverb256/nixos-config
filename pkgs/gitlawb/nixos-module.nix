@@ -1,10 +1,9 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 
 let
   cfg = config.programs.gitlawb;
   inherit (lib) mkEnableOption mkIf mkOption types;
-  gitlawbFlake = import ./flake.nix { };
-  gitlawbPkgs = gitlawbFlake.packages.${pkgs.system};
+  gitlawbPkgs = inputs.gitlawb.packages.${pkgs.stdenv.system};
 in {
   options.programs.gitlawb = {
     enable = mkEnableOption "gitlawb CLI + git remote helper";

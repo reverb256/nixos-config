@@ -28,9 +28,6 @@
     # NOTE: Not in default.nix since some hosts might not need it
     ./system/tailscale.nix
 
-    # CI/CD integration
-    ./services/garnix.nix
-
     # Auto-update configuration
     ./services/auto-update.nix
 
