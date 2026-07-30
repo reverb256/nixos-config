@@ -305,9 +305,8 @@
 
       # OUTPUT 4: homeConfigurations
       # Standalone Home Manager activations for j_kro on every cluster host.
-      # Reuses the same user module wired into nixosConfigurations so there
-      # is one declarative source of truth; `home-manager switch` can now be
-      # invoked independently without a full NixOS rebuild.
+      # Uses HM-only modules through modules/home-manager/standalone.nix so this
+      # does not pull NixOS-class modules into `home-manager switch`.
 
       homeConfigurations = builtins.mapAttrs (
         _name: value:
@@ -317,7 +316,7 @@
               config.allowUnfree = true;
             };
 
-            modules = commonModules ++ [ ./hosts/${value.hostName}/configuration.nix ];
+            modules = [ ./modules/home-manager/standalone.nix ];
             extraSpecialArgs = { inherit inputs vfioPkgs; hostName = value.hostName; };
           }
       ) hosts;
