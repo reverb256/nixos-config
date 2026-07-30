@@ -20,7 +20,6 @@
     # Desktop configuration (SDR brightness, Samsung TV, SDDM)
     ./desktop.nix
     # Kubernetes control plane (zephyr does NOT enable k3s — see services block below)
-    ../../modules/services/k3s-cluster.nix
     # Keepalived VIP for Kubernetes HA
     ../../modules/services/keepalived-vip.nix
 
@@ -308,14 +307,6 @@ programs.gitlawb.enable = false;
   services = {
     # KUBERNETES - zephyr does NOT run k3s.
     # Control plane (k3s servers): nexus, forge, sentry (VIP 10.1.1.100).
-    # Running k3s here put the keepalived VIP (10.1.1.100) on enp38s0 alongside
-    # the real IP (10.1.1.110), which made k3s refuse to start
-    # ("multiple global unicast addresses defined for enp38s0").
-    k3s-cluster = {
-      enable = false;
-    };
-
-
     # No manifest auto-apply on zephyr -- only control-plane nodes do this.
     k8s-manifest-autoapply.enable = false;
 

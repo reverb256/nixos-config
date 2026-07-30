@@ -8,10 +8,6 @@
   cluster = config.networking.cluster;
 in {
   services = {
-    # zephyr runs NO k3s (control plane is nexus/forge/sentry).
-    k3s-cluster = {
-      enable = false;
-    };
 
     k8s-secret-bootstrap = {
       enable = true;
