@@ -54,6 +54,11 @@
   ];
 
   # ============================================================================
+  # GITLAWB — self-hosted decentralized git client + remote helper
+  # ============================================================================
+  programs.gitlawb.enable = true;
+
+  # ============================================================================
   # HOST IDENTIFICATION
   # ============================================================================
   # Centralized cluster networking (search domains, DNS, firewall basics)
