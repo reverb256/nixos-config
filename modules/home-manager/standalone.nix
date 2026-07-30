@@ -1,6 +1,8 @@
 { config, lib, pkgs, inputs, hostName, vfioPkgs, ... }:
 
 let
+  stylixBase16 = ./../../themes/osaka-jade.yaml;
+
   hmThirdParty = [
     inputs.zen-browser.homeModules.twilight
     inputs.nixcord.homeModules.nixcord
@@ -41,6 +43,11 @@ let
     ./standalone-sentry.nix
   ];
 in {
+  stylix = {
+    enable = true;
+    base16Scheme = stylixBase16;
+    polarity = "dark";
+  };
   imports = hmThirdParty ++ hmLeaf;
 
   home.homeDirectory = "/home/j_kro";
