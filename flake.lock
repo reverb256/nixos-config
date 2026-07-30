@@ -1003,6 +1003,22 @@
         "type": "github"
       }
     },
+    "nixpkgs-secretspec": {
+      "locked": {
+        "lastModified": 1785318670,
+        "narHash": "sha256-dN6Ou5x/+23FZLEpYP3IffO+NyJFzUlGumt1uu3MMaY=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "nixpkgs-stable": {
       "locked": {
         "lastModified": 1782847189,
@@ -1294,13 +1310,12 @@
         "nix-cachyos-kernel": "nix-cachyos-kernel",
         "nixcord": "nixcord",
         "nixpkgs": "nixpkgs_3",
+        "nixpkgs-secretspec": "nixpkgs-secretspec",
         "nixpkgs-vfio": "nixpkgs-vfio",
         "nixpkgs-xr": "nixpkgs-xr",
         "noctalia": "noctalia",
         "nur": "nur",
         "scopebuddy": "scopebuddy",
-        "secretspec": "secretspec",
-        "secretspec-provider-sops": "secretspec-provider-sops",
         "sops-nix": "sops-nix",
         "stylix": "stylix",
         "systems": "systems_7",
@@ -1346,39 +1361,6 @@
       "original": {
         "type": "git",
         "url": "https://github.com/OpenGamingCollective/ScopeBuddy"
-      }
-    },
-    "secretspec": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1784998751,
-        "narHash": "sha256-LjL22GMegE2GjtTisKaUaWESTA4SRXvSfW+9XAhr+zk=",
-        "owner": "reverb256",
-        "repo": "secretspec",
-        "rev": "f706d21b4887ced712c712f504fe4eab4cd42f47",
-        "type": "github"
-      },
-      "original": {
-        "owner": "reverb256",
-        "ref": "feature/sops-provider-subprocess-dispatch",
-        "repo": "secretspec",
-        "type": "github"
-      }
-    },
-    "secretspec-provider-sops": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1785027256,
-        "narHash": "sha256-LRPIVmL05IIRcHQGI90CN1bZxummsipozj9sUBfyAyY=",
-        "owner": "reverb256",
-        "repo": "secretspec-provider-sops",
-        "rev": "69ba272b3658537c8f885db95f0b684801167b40",
-        "type": "github"
-      },
-      "original": {
-        "owner": "reverb256",
-        "repo": "secretspec-provider-sops",
-        "type": "github"
       }
     },
     "sops-nix": {
