@@ -59,7 +59,8 @@
     # spicetify-nix = {
     #   url = "git+https://github.com/Gerg-L/spicetify-nix";
     #   inputs.nixpkgs.follows = "nixpkgs";
-    # };    sops-nix = {
+    # };
+    sops-nix = {
       url = "git+https://github.com/Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
