@@ -2,24 +2,38 @@
   cfg,
   pkgs,
   gatewayUrl,
+  nvidiaNimBaseUrl,
   mkMcpServersJson,
-}: let
-  nvidiaNimBaseUrl = gatewayUrl + "/v1";
-in {
+}: {
   mkCrushConfig = pkgs.writeShellScript "generate-crush-config" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
+    ZAI_KEY_PATH="${cfg.zaiApiKeyFile}"
+    ZAI_API_KEY="$(cat $ZAI_KEY_PATH 2>/dev/null || echo)"
     CTX7_KEY_PATH="${cfg.context7ApiKeyFile}"
     CONTEXT7_API_KEY="$(cat $CTX7_KEY_PATH 2>/dev/null || echo)"
     NVIDIA_NIM_KEY_PATH="${cfg.nvidiaNimApiKeyFile}"
     NVIDIA_NIM_API_KEY="$(cat $NVIDIA_NIM_KEY_PATH 2>/dev/null || echo)"
     ${pkgs.jq}/bin/jq -n \
+      --arg zai_key "$ZAI_API_KEY" \
       --arg ctx7_key "$CONTEXT7_API_KEY" \
       --arg nvidia_key "$NVIDIA_NIM_API_KEY" \
-        --arg gateway_base "${gatewayUrl}/v1" \
+      --arg zai_base "https://api.z.ai/api/coding/paas/v4" \
+      --arg gateway_base "${gatewayUrl}/v1" \
       --arg nvidia_base "${nvidiaNimBaseUrl}" \
       '{
         "providers": {
+          "zai": {
+            "id": "zai",
+            "name": "ZAI Provider",
+            "base_url": $zai_base,
+            "api_key": $zai_key
+          },
+          "ai-gateway": {
+            "id": "ai-gateway",
+            "name": "AI Gateway (K8s)",
+            "base_url": $gateway_base
+          },
           "nvidia-nim": {
             "id": "nvidia-nim",
             "name": "NVIDIA NIM",
@@ -29,12 +43,7 @@ in {
           "lmstudio": {
             "id": "lmstudio",
             "name": "LM Studio (Local)",
-            "base_url": "http://127.0.0.1:1234/v1"
-          },
-          "llama-cpp": {
-            "id": "llama-cpp",
-            "name": "llama.cpp Server (Zephyr 3090)",
-            "base_url": "http://10.1.1.110:1237/v1"
+            "base_url": "http://127.0.0.1:8080/v1"
           }
         },
         "mcp": {
