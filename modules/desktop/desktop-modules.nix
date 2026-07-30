@@ -8,7 +8,6 @@
 # Ref: docs/audit-2026-07-27.md F-13 (transitively-bloated common-modules).
 #
 # Each sub-entry under `imports` is itself a NixOS module — NixOS will
-# import ./aagl.nix + the AAGL flake module + ./stylix.nix + the Stylix
 # flake module + an inline anonymous module declaring the Niri overlay.
 # The inline { ... } attrset is necessary because nixpkgs.overlays is a
 # top-level Nixpkgs option that only takes effect via the modules
@@ -34,8 +33,6 @@
     inputs.aagl.nixosModules.default
     ./aagl.nix
 
-    inputs.stylix.nixosModules.default
-    ./stylix.nix
 
     {
       # Niri package overlay — desktop-only. The remaining cluster-wide

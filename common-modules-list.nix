@@ -27,6 +27,7 @@
   # the stylix HM module (stylix.targets.* options) into the common
   # home-manager config in modules/system/home-manager.nix.
   inputs.stylix.nixosModules.default
+  ./modules/desktop/stylix.nix
 
   ./modules/services/peakminer.nix
 

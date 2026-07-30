@@ -76,23 +76,22 @@ in {
 
       max-jobs = lib.mkForce (
         # zephyr: ZERO local build capacity. It is a pure dispatcher — every
-        # derivation offloads to nexus/sentry/forge via /etc/nix/machines.
+        # derivation offloads to nexus/sentry via /etc/nix/machines.
         # max-jobs=2 here was the OOM root cause: a local `nix build`/`switch`
         # fell back to 2 local jobs and (doubled) blew past 31GB. Never build
         # on zephyr.
+        # forge removed 2026-07-29 (GPU miner — do not interrupt).
         if currentHost == "zephyr"
         then 0
         else if currentHost == "nexus"
         then 12 # primary builder — 12C/24T, binary cache host
         else if currentHost == "sentry"
         then 8
-        else if currentHost == "forge"
-        then 4
         else 4
       );
 
       http-connections = 100;
-      connect-timeout = 30;
+      connect-timeout = 5;
       max-silent-time = 3600;
       keep-build-log = true;
       log-lines = 2000;
@@ -141,12 +140,16 @@ in {
   environment = {
     etc = {
       "ssh/ssh_config.d/50-build-machines.conf".text = ''
-        Host zephyr nexus sentry forge krash3
+        Host zephyr nexus sentry krash3
           User j_kro
           IdentityFile ~/.ssh/id_ed25519
           IdentitiesOnly yes
           StrictHostKeyChecking accept-new
-          ConnectTimeout 30
+          # ConnectTimeout 0 = immediate fail if unreachable.
+          # Per user instruction 2026-07-29: dead builders should not stall builds.
+          ConnectTimeout 0
+          ServerAliveInterval 5
+          ServerAliveCountMax 1
       '';
 
       "nix/machines" = {
@@ -169,6 +172,7 @@ in {
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 12;
               speedFactor = 10; # prioritize nexus
+              connectTimeout = 1;
               supportedFeatures = [
                 "big-parallel"
                 "kvm"
@@ -182,23 +186,19 @@ in {
               sshKey = "~/.ssh/id_ed25519";
               maxJobs = 8;
               speedFactor = 6;
+              connectTimeout = 1;
               # ssh:// avoids NixOS/nix#5701 pipe-draining deadlock (ssh-ng stalls when
               # build-remote writes progress logs faster than the parent drains the pipe).
               protocol = "ssh";
               supportedFeatures = ["big-parallel"];
               mandatoryFeatures = [];
             }
-            {
-              hostName = "forge";
-              systems = ["x86_64-linux"];
-              sshUser = "j_kro";
-              sshKey = "~/.ssh/id_ed25519";
-              maxJobs = 4;
-              speedFactor = 4;
-              supportedFeatures = ["big-parallel"];
-              mandatoryFeatures = [];
-            }
           ];
+          # 2026-07-29: forge (i5-9500, 6c) was previously a fallback builder.
+          # REMOVED — forge is the GPU miner host, must NOT be interrupted by
+          # distributed build jobs. Source comments confirm: 2x 4060s running
+          # peakminer full-time, OOM protection in place. Adding build load
+          # risks GPU contention or OOM-killing the miners.
           machines = builtins.filter (m: m.hostName != currentHost) allMachines;
           formatMachine = m: with builtins; let
             # Join ALL systems with commas so the nix builder line advertises
@@ -213,9 +213,15 @@ in {
             # #3 ... to 'unsigned int'` (2026-07-27 cluster-fix-batch).
             # Order corrected below; trailing empty `mandatoryFeatures`
             # suppressed to avoid a trailing-empty column.
-            optFeatures =
-              if m.supportedFeatures == [ ]
-              then "" else concatStringsSep "," m.supportedFeatures;
+            # 2026-07-29: Add per-host connect-timeout to the supportedFeatures
+            # slot. ssh-ng:// parses comma-separated options here, including
+            # connect-timeout=N (in seconds, 0 = fail immediately). We default
+            # to 1s if not specified on the machine entry.
+            baseFeatures =
+              if m.supportedFeatures == [ ] then [ ] else m.supportedFeatures;
+            withTimeout =
+              baseFeatures ++ [ "connect-timeout=${toString (m.connectTimeout or 1)}" ];
+            optFeatures = concatStringsSep "," withTimeout;
             mandFeatures =
               if m.mandatoryFeatures == [ ]
               then "" else concatStringsSep "," m.mandatoryFeatures;
