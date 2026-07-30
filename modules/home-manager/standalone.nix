@@ -1,10 +1,6 @@
 { config, lib, pkgs, inputs, hostName, vfioPkgs, ... }:
 
 let
-  # Modules that declare top-level HM options directly, with no
-  # `home-manager.users.j_kro = { ... }` wrapper. Host-specific
-  # wrappers are folded into the main user block below so we do not
-  # pull NixOS-class heredocs into standalone mode.
   hmLeaf = [
     ./fish.nix
     ./starship.nix
@@ -32,13 +28,20 @@ let
     ./noctalia-stylix.nix
     ./stylix-bridges.nix
     ./heal-stale-backups.nix
+  ] ++ lib.optionals (hostName == "zephyr" || hostName == "sentry") [
+    ./niri-config.nix
+  ] ++ lib.optionals (hostName == "zephyr") [
+    ./zephyr.nix
+  ] ++ lib.optionals (hostName == "nexus") [
+    ./nexus.nix
+  ] ++ lib.optionals (hostName == "forge") [
+    ./forge.nix
+  ] ++ lib.optionals (hostName == "sentry") [
+    ./sentry.nix
   ];
-
-  # Extras that are safely host-gated in the main user block.
 in {
   imports = hmLeaf;
 
-  # Base home environment
   home.stateVersion = "26.05";
   home.pointerCursor.enable = true;
 
@@ -97,7 +100,7 @@ in {
   home.sessionVariables.BAT_THEME = "base16-stylix";
   systemd.user.sessionVariables.HF_TOKEN = "/run/secrets/huggingface-token";
 
-  # Keep Niri launcher/hostname behavior consistent across hosts
-  # that do not have their own zephyr/forge/sentry/nexus module.
-  home-manager.users = lib.mkIf (hostName == null) {};
+  _module.args.hostName = lib.mkDefault hostName;
+  _module.args.vfioPkgs = lib.mkDefault vfioPkgs;
+  _module.args.inputs = lib.mkDefault inputs;
 }
