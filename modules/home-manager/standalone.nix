@@ -1,12 +1,18 @@
 { config, lib, pkgs, inputs, hostName, vfioPkgs, ... }:
 
 let
+  hmThirdParty = [
+    inputs.zen-browser.homeModules.twilight
+    inputs.nixcord.homeModules.nixcord
+  ];
+
   hmLeaf = [
     ./fish.nix
     ./starship.nix
     ./btop.nix
     ./wayland-tools.nix
     ./zen-browser.nix
+    ./nixcord-config.nix
     ./mime-apps.nix
     ./mime-fix.nix
     ./caprine.nix
@@ -37,11 +43,7 @@ let
     ./standalone-sentry.nix
   ];
 in {
-  imports = hmLeaf;
-
-  # Third-party HM modules that provide top-level options used by our
-  # themed app configs. These are already wired into the cluster flake.
-  imports = hmLeaf ++ lib.optional (inputs ? nixcord) inputs.nixcord.homeModules.nixcord;
+  imports = hmThirdParty ++ hmLeaf;
 
   home.stateVersion = "26.05";
   home.pointerCursor.enable = true;
