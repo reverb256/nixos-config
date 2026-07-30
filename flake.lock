@@ -593,7 +593,7 @@
       },
       "locked": {
         "lastModified": 1,
-        "narHash": "sha256-wfLvwo7HKvxVTQZYd2bObbezCu9hQ2z2+1JAtiCjsko=",
+        "narHash": "sha256-t6eDuWgOc0Op1tyEhlMjFGhii0hQvRJ9h0G8k70hoao=",
         "path": "./pkgs/gitlawb",
         "type": "path"
       },
