@@ -83,17 +83,6 @@ in {
     };
   };
 
-  programs.git = {
-    enable = true;
-    userName = "Jeremy Kroeker";
-    userEmail = "jkroeker@proton.me";
-    extraConfig = {
-      init.defaultBranch = "main";
-      pull.rebase = true;
-      core.autocrlf = "input";
-    };
-  };
-
   programs.ssh = {
     enable = true;
     extraConfig = ''
