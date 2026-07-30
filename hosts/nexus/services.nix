@@ -22,18 +22,7 @@ in {
   ];
 
   services = {
-    k3s-cluster = {
-      enable = true;
-      nvidia.enable = true;
-      role = "server";
-      clusterInit = false; # Stable cluster running
-      clusterReset = false; # Already reset, running clean
-      nodeName = "nexus";
-      serverAddr = "https://${cluster.kubernetes.vip}:${toString cluster.kubernetes.apiPort}";
-      tokenFile = "/run/secrets/k3s-cluster-token";
-      nodeIP = cluster.hosts.nexus.ip;
-
-    };
+    # k3s-cluster config is in configuration.nix (canonical host config)
 
     keepalived-vip = {
       enable = true;

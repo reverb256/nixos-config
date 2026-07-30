@@ -177,8 +177,8 @@
     keepalived-vip = {
       enable = true;
       vip = "10.1.1.100";
-      interface = "enp7s0";
-      priority = 100;
+      interface = "eth0";
+      priority = 110;
     };
 
     # KUBERNETES - k3s control plane (cluster bootstrap node)
