@@ -82,6 +82,12 @@
           mkdir -p $out
         '';
 
+      # 2026-07-30: pinned nixpkgs missing pkgs.tcl-8_6/tk-8_6, but
+      # eval path expects those exact names. Provide compat aliases from
+      # current tcl/tk packages to unblock cluster builds/recovery.
+      tcl-8_6 = prev.tcl;
+      tk-8_6 = prev.tk;
+
       cudaPackages_12_4 =
         prev.cudaPackages_12_4
         // {
