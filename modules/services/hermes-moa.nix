@@ -88,10 +88,6 @@
     mining-thermal = {
       reference_models = [
         {
-          provider = "llama-cpp-sentry";
-          model = "Qwen3.5-4B-Q4_K_M.gguf";
-        }
-        {
           provider = "nvidia";
           model = "stepfun-ai/step-3.7-flash";
         }

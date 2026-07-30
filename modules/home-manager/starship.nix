@@ -127,48 +127,7 @@ in {
         disabled = false;
       };
 
-      # ── Noctalia palette (Material You mapping from base16) ──────
-      # Starship's `palette = "noctalia"` requires a [palettes.noctalia]
-      # section. We derive it from the active Stylix base16 scheme so the
-      # palette stays in sync with the theme. This replaces the drifted
-      # plain-file starship.toml that referenced a non-existent palette.
-      palette = lib.mkDefault "noctalia";
-      palettes.noctalia = {
-        # Surface hierarchy
-        surface = c.base00;
-        surface0 = c.base01;
-        surface1 = c.base02;
-        surface2 = c.base03;
-        # Text
-        text = c.base05;
-        text0 = c.base04;
-        text1 = c.base06;
-        text2 = c.base07;
-        # Accents (Material You roles)
-        primary = c.base0D;   # blue
-        secondary = c.base0B; # green
-        tertiary = c.base0A;  # yellow
-        error = c.base08;     # red
-        warning = c.base09;   # orange
-        magenta = c.base0E;   # magenta
-        # Terminal 16-color aliases
-        black = c.base00;
-        red = c.base08;
-        green = c.base0B;
-        yellow = c.base0A;
-        blue = c.base0D;
-        purple = c.base0E;
-        cyan = c.base0C;
-        white = c.base05;
-        bright-black = c.base03;
-        bright-red = c.base08;
-        bright-green = c.base0B;
-        bright-yellow = c.base0A;
-        bright-blue = c.base0D;
-        bright-purple = c.base0E;
-        bright-cyan = c.base0C;
-        bright-white = c.base06;
-      };
+
     };
   };
 }
