@@ -18,8 +18,6 @@
     mkIf
     types
     optionalString
-    concatStringsSep
-    escapeJSON
     ;
   # AI Gateway URL (Kubernetes service)
   gatewayUrl = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080";
@@ -27,14 +25,11 @@
   # MCP server definitions + config generators -- extracted to sub-files
   # per audit F-22 (2026-07-29 reconciliation). Source of truth is now
   # ./ai-coding-tools/{mcp-defs,claude,droid,crush,opencode,pi}.nix.
-  # Shared stdio MCP servers (kept in main module for the ExecStart script).
-  localStdioServers = import ./mcp-local-servers.nix;
-
   nvidiaNimBaseUrl = "https://integrate.api.nvidia.com/v1";
   zaiCodingBaseUrl = "https://api.z.ai/api/coding/paas/v4";
 
   mcpDefs = import ./ai-coding-tools/mcp-defs.nix { inherit lib; };
-  inherit (mcpDefs) mkMcpServersJson fullMcpSet;
+  inherit (mcpDefs) mkMcpServersJson;
 
   claudeGen = import ./ai-coding-tools/claude.nix {
     inherit cfg pkgs mkMcpServersJson gatewayUrl;
