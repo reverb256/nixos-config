@@ -157,32 +157,13 @@
       url = "github:nix-community/stylix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # secretspec-fork - Local cachix/secretspec fork with sops:// feature (Phase 1a).
-    # Pinned to the feature branch; flakeref resolves in pure-eval-safe manner.
-    # IMPORTANT: the local clone at ~/Projects/secretspec-core MUST be a FULL clone
-    # (not --depth 1). Nix flake-input parsing rejects shallow git repositories as
-    # a class; the bootstrap recipe unshallows on first checkout so subsequent
-    # `nix flake lock --update-input secretspec` and `just secretspec-validate-local`
-    # both work. To sync the local fork with upstream cachix/secretspec, use
-    # `just secretspec-fork-sync` (re-applies /etc/nixos/secretspec-fork-patches/0001-add-sops-provider.patch).
-    secretspec = {
-      url = "github:reverb256/secretspec/feature/sops-provider-subprocess-dispatch";
-      flake = false;
-    };
-    # secretspec-provider-sops - Local fork carrying the NDJSON stdio dispatcher binary.
-    # NOTE: this is a SEPARATE upstream repo from the cachix/secretspec fork above —
-    # upstream is github.com/reverb256/secretspec-provider-sops (the dedicated provider
-    # monorepo, NOT a sub-dir of cachix/secretspec). The flake URL must point at the
-    # repo root (NOT the `/provider-rust` sub-dir); Nix's git fetcher cannot treat a
-    # sub-directory as a git root. The package default.nix (pkgs/secretspec-provider-sops)
-    # extracts the `/provider-rust` source sub-dir at build time via
-    # `toString forkSrc + "/provider-rust"`, so we rely on that to scope the build.
-    # Same full-clone requirement as the secretspec input above.
-    secretspec-provider-sops = {
-      # Feature branch with two-strategy handle_get (file#key resolution) for
-      # ref-based routing. Merge to main once validated.
-      url = "github:reverb256/secretspec-provider-sops";
-      flake = false;
+    # nixpkgs-secretspec — nixos-unstable provides secretspec 0.17.0 with the
+    # native sops provider (merged upstream PR #58, 2026-07-27). This replaces
+    # the custom cachix/secretspec fork (feature/sops-provider-subprocess-dispatch)
+    # and the secretspec-provider-sops NDJSON dispatcher. The fork is no longer
+    # needed — upstream 0.17.0 uses the sops CLI directly.
+    nixpkgs-secretspec = {
+      url = "github:NixOS/nixpkgs/nixos-unstable";
     };
 
     # gitlawb - local option-4 flake: packages + overlay + NixOS module
@@ -347,8 +328,7 @@
 
       packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
       packages.x86_64-linux.llama-cpp = pkgs.llama-cpp;
-      packages.x86_64-linux.secretspec = pkgs.callPackage ./pkgs/secretspec/default.nix { inherit inputs; };
-      packages.x86_64-linux.secretspec-provider-sops = pkgs.callPackage ./pkgs/secretspec-provider-sops/default.nix { inherit inputs; };
+      packages.x86_64-linux.secretspec = inputs.nixpkgs-secretspec.legacyPackages.x86_64-linux.secretspec;
       # CONTAINER IMAGES (for Kubernetes deployment)
 
       # Claude Code container image for Kubernetes deployment

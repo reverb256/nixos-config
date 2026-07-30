@@ -5,8 +5,7 @@
   srbminer-multi = prev.callPackage ../packages/srbminer.nix {};
   lpminer-pearl = prev.callPackage ../packages/lpminer.nix {};
   peakminer = prev.callPackage ../pkgs/peakminer.nix {};
-  secretspec = prev.callPackage ../pkgs/secretspec { inherit inputs; };
-  secretspec-provider-sops = prev.callPackage ../pkgs/secretspec-provider-sops { inherit inputs; };
+  secretspec = inputs.nixpkgs-secretspec.legacyPackages.x86_64-linux.secretspec;
   haven-desktop = prev.callPackage ../packages/haven-desktop.nix {};
   kokoro-tts = prev.callPackage ../packages/kokoro-tts.nix {};
   chatterbox-tts = prev.callPackage ../packages/chatterbox-tts.nix {};

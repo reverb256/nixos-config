@@ -125,26 +125,19 @@ in {
         ExecStart = let
           cmd =
             "${pkgs.secretspec}/bin/secretspec check"
-            + " --file ${cfg.manifestPath}"
-            + " --profile ${profile}";
+            + " -f ${cfg.manifestPath}"
+            + " -P ${profile}";
           cmd' =
             if cfg.failOnMissing
             then cmd
             else cmd + " || true";
         in
           cmd';
-        # Wire the sops:// subprocess dispatcher into the secretspec binary
-        # so `providers = ["sops"]` chains resolve via NDJSON over stdio.
-        # Without this env var, `secretspec check` falls back to env/dotenv
-        # providers only and the validator reports every sops-routed
-        # secret as unresolved.
-        # SOPS_AGE_KEY_FILE must be set in addition so the sops:// subprocess
-        # itself can decrypt the configured YAML/binary key file; without it,
-        # the validator would find the file (provider binary is reachable)
-        # but the subprocess would refuse with "no key could be found".
+        # SOPS_AGE_KEY_FILE must be set so the upstream sops provider
+        # (0.17.0) can decrypt the YAML files directly via the sops CLI.
+        # The fork's NDJSON subprocess dispatcher is no longer needed.
         Environment = [
           "SOPS_AGE_KEY_FILE=${cfg.ageKeyFile}"
-          "SECRETSPEC_SOPS_PROVIDER_BIN=${pkgs.secretspec-provider-sops}/bin/secretspec-provider-sops-protocol"
         ];
         StandardOutput = "journal";
         StandardError = "journal";

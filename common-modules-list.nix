@@ -36,10 +36,7 @@
   ./modules/system/oomd-fleet.nix
 
   # cluster.localSealSupport module removed (Phase 1b/1c, 2026-07-25).
-  # The cachix-fork secretspec is now a flake input (Phase 1a) — impure-eval
-  # coupling is no longer needed. The module file is kept as a stub for
-  # historical drift-cycle tracking (.plans/2026-07-25-cluster-localSealSupport-scope.md)
-  # but is no longer imported here.
+  # Now using upstream secretspec 0.17.0 from nixpkgs-secretspec flake input.
 
   ./modules/default.nix
 
@@ -49,13 +46,9 @@
   }
 
   {
-    # Overlay order matters: `self.overlays.default` already registers
-    # `secretspec` AND `secretspec-provider-sops` via pkgs/secretspec/{default.nix}
-    # and pkgs/secretspec-provider-sops/default.nix — DO NOT redeclare them
-    # inline (would conflict on the same attribute and trigger a multiple-definition
-    # error during pkgsWithOverlay evaluation). Earlier duplicates were removed
-    # during the Phase-2 secretspec consolidation (see
-    # modules/system/SECRETSPEC-CONSOLIDATION.md).
+    # Overlay order matters: `self.overlays.default` now registers
+    # `secretspec` from upstream nixpkgs-secretspec (0.17.0) — the fork
+    # packages (pkgs/secretspec, pkgs/secretspec-provider-sops) are removed.
     # Audit F-13 (2026-07-28): `inputs.niri.overlays.niri` moved to
     # modules/desktop/desktop-modules.nix (zephyr-only).
     nixpkgs.overlays = [
