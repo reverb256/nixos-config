@@ -8,9 +8,10 @@ acceptable for: configuring services, fixing bugs, attaching devices, changing
 networking, editing secrets, or "patching" running daemons.
 
 The workflow for ANY NixOS change:
-1. Edit the `.nix` file on zephyr (the source-of-truth host)
-2. Commit + push to central
-3. Deploy via Colmena (`cd /etc/nixos && git add -A && git commit -m "..." && git push && colmena deploy`)
+1. Edit the `.nix` file on Zephyr (the source-of-truth host, normally in an issue worktree)
+2. Validate with `just check` and the relevant build/test recipe
+3. Merge the reviewed change to `main`
+4. Deploy with `just deploy [<host>]`, which runs preflight checks, builds the closure, copies it with `nix-copy-closure`, and activates it with `switch-to-configuration`
 
 The live host is a *consumer* of the config, not the source of truth. Never
 treat what a running host shows as authoritative — it's a rolled-back snapshot.
@@ -19,7 +20,7 @@ treat what a running host shows as authoritative — it's a rolled-back snapshot
 The user has demanded this be forced. If your first instinct is to SSH into
 a NixOS host and run a command, STOP — find the `.nix` file first.
 
-**Generated:** 2026-05-25 | **Commit:** `83524727` | **Branch:** main
+**Last reviewed:** 2026-07-30 | Source branch: `main` | Verify live state with `just health` and `kubectl get nodes`
 
 ## Quick Start
 
@@ -71,25 +72,34 @@ gh pr create --base main --head issue-NNN-desc --title "type: description (#NNN)
 
 | Host | IP | Role | RAM | GPUs |
 |------|-----|------|-----|------|
-| Zephyr | 10.1.1.110 | Workstation, control plane, gaming, NFS server | 31GB | 2x NVIDIA |
+| Zephyr | 10.1.1.110 | Workstation, development source, control plane, gaming | 31GB | 2x NVIDIA |
 | Nexus | 10.1.1.120 | Primary server, AI Gateway, monitoring, storage | 46GB | 1x NVIDIA |
 | Forge | 10.1.1.130 | GPU computing, mining | 15GB | 2x NVIDIA + 2x AMD |
 | Sentry | 10.1.1.140 | Monitoring, AI inference (Vulkan) | 31GB | 1x AMD Radeon RX 5600 XT (6GB) |
 
 **Resources**: 78 cores, 123GB RAM, 7 GPUs, 8.4TB storage
-**K3s**: v1.34.5+k3s1 — All 4 nodes functional, **Flannel CNI** (VXLAN, UDP 8472)
+**K3s**: v1.36.1+k3s1 is pinned in `modules/services/k3s-cluster.nix`. K3s roles are configured on Nexus, Forge, and Sentry; Zephyr is not a K3s node. Verify live readiness with `just health` and `kubectl get nodes`.
 **Sentry SMT**: Re-enabled via enable-smt systemd service (CachyOS kernel defaults nosmt)
-**AI Gateway**: Sovereign Service Mesh operational on Nexus (10.15.67.242:8080)
+**AI Gateway**: Treat service status as live state; verify with the current audit and cluster health commands before relying on it.
+
+## Build Architecture
+
+- The Nix system target is generic `x86_64-linux`; this is not a global `-march=x86-64-v3` userspace build.
+- CachyOS kernel packages are explicitly x86-64-v3 optimized. Only selected llama.cpp packages add `-march=x86-64-v3`; ordinary packages use their normal nixpkgs compiler settings.
+- `big-parallel` is a Nix builder capability label, not an architecture target or a thread count.
+- `modules/system/distributed-builds.nix` generates `/etc/nix/machines` and excludes the current host. The active remote-builder set is Nexus (12 jobs, speed factor 10) and Sentry (8 jobs, speed factor 6). Forge is intentionally excluded from that generated list because it is the GPU/mining host.
+- Zephyr has `max-jobs = 0` and is a dispatcher; its builds must be offloaded. Nexus is the primary builder. The checked-in root `machines` file is supplied to Colmena via `colmena.nix` and is distinct from generated `/etc/nix/machines`.
 
 ## Deployment Model (GitOps + nix-copy-closure)
 
-1. **Zephyr** is the sole development host — all config is authored here
-2. **Worktrees** under `/data/projects/own/` are the ONLY development target
-3. `/etc/nixos` tracks `main` on all hosts (never a feature branch)
-4. `just deploy` builds closures and copies them to remote hosts via `nix-copy-closure` + `switch-to-configuration`
-5. The deployed cluster state = `main` HEAD as last copied via `just deploy` (no separate `prod` branch)
+1. **Zephyr** is the sole development host — author config in an issue worktree under `/data/projects/own/`
+2. Validate with `just check`, `just build`, or `just test-apply` as appropriate
+3. Merge reviewed changes to `main`; deployed `/etc/nixos` checkouts track `main`
+4. Run `just deploy [<host>]`; preflight checks protect against source/builder drift and in-flight builds
+5. The deployment copies the built closure with `nix-copy-closure` and activates it with `switch-to-configuration switch`
+6. Use `just sync-nodes` only to synchronize remote checkouts; it is not a substitute for deployment
 
-> NFS has been removed cluster-wide. See `modules/services/k8s-nix-deploy.nix` for the remote deployment mechanism.
+NFS may still be used by explicitly configured storage workloads, but it is not the configuration source-of-truth or deployment mechanism.
 
 
 ## Self-Hosted GitHub Actions Runner
@@ -196,7 +206,7 @@ Non-system projects live in `/data/projects/own/` as standalone flakes:
 │   ├── llama-cpp-*.nix              # CUDA, ROCm, TurboQuant variants
 │   └── hermes-chat.nix              # Hermes Agent desktop client
 ├── tests/                           # NixOS tests (8 files)
-├── secrets/                         # Agenix encrypted secrets (42 .age files)
+├── secrets/                         # Encrypted sops material and secret templates
 └── .github/workflows/               # CI/CD (5 workflows, SHA-pinned)
 ```
 
@@ -331,9 +341,13 @@ in {
 
 ## Deployment Workflow
 
-1. Edit config on Zephyr (source of truth)
+1. Edit config on Zephyr in an issue worktree (source of truth)
 2. `git add` new files (Nix only sees git-tracked files!)
-3. `just check` → `just switch` → `just deploy`
+3. `just check` → `just build`/`just test-apply` → `just deploy`
+
+Use `just deploy` rather than ad-hoc remote `git pull`, direct profile edits,
+or an unguarded Colmena invocation. Direct Colmena is a fallback only when
+repository guardrails are unsuitable.
 
 ### Testing Checklist
 
@@ -425,7 +439,7 @@ Module: `modules/security/cluster-mesh.nix`
 
 ### SSH Key Management
 
-1. **Agenix Secret:** `secrets/cns-ssh-key.age`
+1. **Encrypted secret:** `secrets/cns-ssh-key.age` (resolved through the active sops-nix/secretspec paths)
 2. **Owner:** `cluster-mesh:cluster-mesh 0600`
 3. **Copy Service:** `cluster-mesh-key-setup.service` copies from `/run/secrets/cns-ssh-key` → `/var/lib/cluster-mesh/.ssh/id_ed25519`
 4. **Deployment:** Auto-applied on all hosts via module auto-discovery
@@ -663,7 +677,8 @@ Before writing any code, agents MUST:
 
 1. **Check existing issues:** `gh issue list --limit 10` (or via GitHub MCP: `list_issues`)
 2. **If no issue exists** for the task → create one using the appropriate template:
-   - `gh issue create --title "..." --label "p1,k8s" --body "$(cat .github/ISSUE_TEMPLATE/feature_request.md)"`
+   - `gh issue create --title "..." --label "documentation" --body "$(cat .github/ISSUE_TEMPLATE/feature_request.md)"`
+   - Or use the available `just issue-create` recipe interactively
    - Or via GitHub MCP: `create_pull_request` with `list_issues` first
 3. **Create a branch** named `issue-NNN-short-description`:
    - `git checkout -b issue-42-fix-dns-timeout`
@@ -681,8 +696,8 @@ Before writing any code, agents MUST:
 ```
 just issue-create           # Interactive issue creation
 just issue-list             # List open issues with status
-just issue-close N          # Close issue #N with comment
 just branch-from N          # Create + switch to issue-NNN-description
+# Close issues through the GitHub CLI/MCP; there is no just issue-close recipe.
 ```
 
 ### Labels
@@ -719,7 +734,7 @@ All repeatable patterns are codified as Hermes Agent skills at `~/.hermes/skills
 | 10 | **Systemd Services** | No | `wantedBy = ["multi-user.target"]`, `Restart = "on-failure"`, `writeShellScript` over `bash -c`. |
 | 11 | **Pod Security Standards** | No | PSS labels: `enforce=baseline`, `audit=restricted`, `warn=restricted` on all namespaces. |
 | 12 | **Managed-By Labels** | No | `"app.kubernetes.io/managed-by" = "easykubenix"` on all K8s resources. |
-| 13 | **Secretspec** | No | `secretspec check -P production` validates all secrets. 18 sops-backed + 34 env-backed. See `secretspec.toml` for `ref` routing. Run `just secretspec-rebuild` after updating the fork.
+| 13 | **Secretspec** | No | `just secretspec-check` validates all required secrets with the production profile; `just secretspec-list` shows the expected inventory. The current setup includes 18 sops-backed and 34 env-backed entries; see `secretspec.toml` for `ref` routing.
 
 ### Anti-Patterns (DO NOT)
 
@@ -798,7 +813,7 @@ highlights the need to scope commits to their stated purpose.
 
 ---
 
-**Version**: 9.5 | **Last Updated:** 2026-07-29
+**Version**: 9.7 | **Last Updated:** 2026-07-30
 
 ## Known Frictions & Workarounds (2026-05-18)
 
@@ -889,10 +904,13 @@ ssh j_kro@<ip> "ls /run/secrets/"
 ssh j_kro@<ip> "systemd-analyze time"
 ```
 
-### Also ship this script: `scripts/deploy-host.sh`
+### Optional direct deployment helper: `scripts/deploy/deploy-host.sh`
+
+The supported entry point is `just deploy [<host>]`; use this helper only when
+its rescue/direct-host behavior is specifically required:
 
 ```bash
-./scripts/deploy-host.sh <hostname>
+./scripts/deploy/deploy-host.sh <hostname>
 ```
 
 See `DEPLOYMENT-LESSONS.md` for the full postmortem.
@@ -906,52 +924,55 @@ Shared modules (`modules/system/home-manager.nix`, `modules/home-manager/*.nix`)
 
 ---
 
-## SOPS-NIX
+## Secrets Management
 
-For canonical sops-nix guidance —  location, registry module reference, adding secrets, re-keying, recovery — see [SOPS-NIX.md](./SOPS-NIX.md).
+The cluster currently retains both paths: sops-nix materializes compatibility
+secrets under `/run/secrets/`, while SecretSpec validates and resolves the
+declarative schema in `secretspec.toml`. Do not edit `/run/secrets/` directly.
+For provider and recovery details, see [SOPS-NIX.md](./SOPS-NIX.md) and
+`secretspec.toml`.
 
-## SecretSpec (Phase 2 — Active 2026-07-25)
+## SecretSpec (Active)
 
-Secretspec (`pkgs/secretspec` + `pkgs/secretspec-provider-sops`) is the
-runtime secrets resolution framework. Both packages build from remote
-GitHub forks (flake inputs), not local path probes.
+Secretspec is the declarative runtime secret schema and validation layer.
+The current manifest is `secretspec.toml`; sops-backed entries use `ref`
+routing, while env-backed entries resolve from the configured dotenv/env
+providers. Verify with `just secretspec-check`. Treat older fork/provider
+notes in historical incident docs as context, not as a replacement for the
+current flake wiring.
 
 ### Quick reference
 
 ```bash
-# Validate all secrets resolve
-secretspec check -f /etc/nixos/secretspec.toml -P production
+# Validate required production secrets
+just secretspec-check
 
-# Rebuild both packages
-just secretspec-rebuild
-
-# End-to-end test with ephemeral keys
-just secretspec-validate-local
+# List the declared schema keys
+just secretspec-list
 ```
 
 ### File locations
 
 | File | Purpose |
 |------|---------|
-| `/etc/nixos/secretspec.toml` | SSOT for all 60+ cluster secrets with `ref` routing |
-| `/etc/nixos/.env.secrets` | Placeholder values for 34 env-backed secrets |
-| `/etc/nixos/pkgs/secretspec/` | In-tree SopsProvider (cachix fork) |
-| `/etc/nixos/pkgs/secretspec-provider-sops/` | NDJSON dispatcher binary (provider-rust fork) |
-| `~/.config/sops/age/keys-combined.txt` | Combined age key for dispatcher access |
-| `justfile` (secretspec-* recipes) | Build + validate commands |
+| `/etc/nixos/secretspec.toml` | Source of truth for declared secrets and `ref` routing |
+| `/etc/nixos/.env.secrets` | Local dotenv values for env-backed secrets; keep real values out of git |
+| `/etc/nixos/secrets/` | Encrypted sops material referenced by the schema |
+| `~/.config/sops/age/keys-combined.txt` | Local age identities used for validation/decryption |
+| `justfile` | `secretspec-check` and `secretspec-list` recipes |
 
 ### Architecture
 
-The in-tree SopsProvider (cachix fork) spawns `secretspec-provider-sops-protocol`
-as a subprocess (NDJSON stdio per cachix/secretspec#98). Secrets with
-`ref = { item = "path.yaml#data" }` get routed as `file#key` to the
-dispatcher, which decrypts the age file via `sops --decrypt` and
-extracts the YAML `data` key. 18 sops-backed secrets confirmed
-resolving via this path.
+The active configuration uses SecretSpec from nixpkgs with its native sops
+provider. Sops-backed entries in `secretspec.toml` use `ref` values such as
+`path.yaml#data`; env-backed entries resolve through the configured dotenv/env
+providers. Runtime compatibility secrets are materialized under
+`/run/secrets/` by the declarative NixOS modules.
 
 ### Known limitations
 
-- Main branch merge blocked by GitHub branch protection — flake input
-  stays on `feature/two-strategy-handle-get`
-- `secretspec-validate-local` fails due to DNS (infra issue)
-- Placeholder values in `.env.secrets` need operator rotation
+- Values in `.env.secrets` are operator-managed and must be populated with real
+  provider credentials before production use.
+- Treat historical fork/provider notes in older incident documents as context;
+  verify current behavior against `flake.nix`, `common-modules-list.nix`, and
+  `secretspec.toml`.

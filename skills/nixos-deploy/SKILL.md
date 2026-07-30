@@ -21,9 +21,9 @@ Use this skill when the user:
 | Host | Role | Hardware | Network | Access |
 |------|------|----------|---------|--------|
 | **zephyr** | Main workstation | AMD Zen, 2x NVIDIA | Local | Direct (sudo) |
-| **nexus** | Gaming/mining | AMD Zen, 2x NVIDIA | Tailscale | Colmena SSH |
-| **forge** | Mining/AI | Intel, NVIDIA + AMD | Tailscale | Colmena SSH |
-| **sentry** | Mining/AI | AMD Zen, AMD GPU | Tailscale | Colmena SSH |
+| **nexus** | Primary server, storage, AI gateway | AMD Zen, 1x NVIDIA | Tailscale | Colmena SSH |
+| **forge** | GPU compute, mining | Intel, 2x NVIDIA + 2x AMD | Tailscale | Colmena SSH |
+| **sentry** | Monitoring, logging, Vulkan AI | AMD Zen, AMD GPU | Tailscale | Colmena SSH |
 
 ### Network Architecture
 ```
@@ -52,8 +52,10 @@ just deploy          # Deploy to all hosts
 just zephyr          # Deploy to zephyr only (local)
 just nexus           # Deploy to nexus only
 just forge           # Deploy to forge only
-just sentry          # Deploy to sentry only
-just test            # Dry-run build test
+just sentry           # Deploy to sentry only
+just check            # Fast flake validation
+just build            # Build current host
+just test-apply       # Temporary activation test
 ```
 
 ### Direct Colmena Commands
@@ -64,8 +66,8 @@ nix run .#apps.x86_64-linux.colmena -- build
 # Apply to specific host
 nix run .#apps.x86_64-linux.colmena -- apply --on zephyr
 
-# Apply to remote hosts (uses boot goal)
-nix run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry boot
+# Apply to remote hosts (production path uses switch activation)
+nix run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry
 
 # Apply to all hosts
 nix run .#apps.x86_64-linux.colmena -- apply
@@ -101,8 +103,8 @@ vim hosts/nexus/configuration.nix
 # Fast syntax check
 nix flake check
 
-# Test build on zephyr
-nbuild  # Auto-pauses mining
+# Build the current host (Zephyr offloads to Nexus)
+just build
 ```
 
 ### 3. Deploy to Remote Hosts
@@ -110,8 +112,8 @@ nbuild  # Auto-pauses mining
 # Option A: Use Justfile (recommended)
 just deploy
 
-# Option B: Direct colmena
-nix run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry boot
+# Option B: Direct Colmena (only when the recommended just recipe is unsuitable)
+nix --option pure-eval false run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry
 ```
 
 ### 4. Verify Remote Deployment
@@ -133,44 +135,36 @@ ssh forge "journalctl -u ai-inference-gateway -n 20"
 | `build` | Build only | Validation |
 | `test` | Activate, rollback on reboot | Temporary testing |
 
-### Remote Hosts Use `boot` Goal
-Remote hosts (nexus, forge, sentry) use the `boot` goal by default to avoid switch inhibitors like dbus changes. This means:
-- Changes activate on next reboot
-- Safer for remote deployment
-- Can manually reboot to apply: `ssh nexus "sudo reboot"`
+### Deployment Activation Goal
+The supported `just deploy` path activates remote generations immediately with
+`switch-to-configuration switch` after copying the closure. It is not a
+`boot`-only deployment. Use `boot` only for an intentional direct-Colmena
+workflow when you explicitly want activation deferred until reboot.
 
-## Mining Auto-Pause
+## Mining and Deployment Impact
 
-All deployment commands automatically pause mining on remote hosts:
-```bash
-# The justfile recipes handle this:
-# 2. Run deployment
-# 3. Restart mining services (even if deployment fails)
-```
+Deployment behavior is defined by the `justfile` and its preflight/build
+scripts. Do not assume mining is paused unless the selected recipe or script
+explicitly documents it; verify service impact before deploying to a mining
+host.
 
 ## Sync Configuration from Zephyr
 
 The cluster is configured from zephyr. To sync:
 
-### Option A: Git-Based Sync
+### Option A: Supported Deployment Sync
 ```bash
-# On zephyr, commit and push changes
-cd /etc/nixos
-git add .
-git commit -m "feat: update gateway config"
-git push
-
-# On remote host, pull changes
-ssh nexus "cd /etc/nixos && git pull"
-ssh forge "cd /etc/nixos && git pull"
-ssh sentry "cd /etc/nixos && git pull"
+# From Zephyr, validate and deploy the canonical source checkout
+just check
+just build
+just deploy
 ```
 
-### Option B: Colmena Auto-Sync
-```bash
-# Colmena automatically syncs the flake during deployment
-just deploy  # Syncs and applies to all hosts
-```
+`just deploy` builds from the canonical source, copies the closure, activates
+it on the target, and then synchronizes remote `/etc/nixos` checkouts to the
+central repository. Do not use ad-hoc `git pull` on a remote host as a
+replacement for deployment; use `just sync-nodes` when only checkout sync is
+needed.
 
 ## Host-Specific Differences
 
@@ -180,22 +174,22 @@ just deploy  # Syncs and applies to all hosts
 - Development and testing done here
 
 ### Nexus (Remote)
-- AMD Zen + 2x RTX 3060 Ti
-- Gaming + VR + Mining + AI
+- AMD Zen + 1x RTX 3060 Ti
+- Storage + AI gateway + server workloads
 - Accessed via Tailscale SSH
-- Uses `boot` goal
+- `just deploy` uses immediate `switch` activation
 
 ### Forge (Remote)
-- Intel + 2x RTX 4060 + AMD GPU
-- Mining + AI (multi-GPU CUDA + ROCm)
+- Intel + 2x RTX 4060 + 2x RX 5700 XT
+- GPU compute + mining (multi-GPU CUDA + ROCm)
 - Accessed via Tailscale SSH
-- Uses `boot` goal
+- `just deploy` uses immediate `switch` activation
 
 ### Sentry (Remote)
-- AMD Zen + AMD GPU (Wayland)
-- Mining + AI (ROCm)
+- AMD Zen + RX 5600 XT
+- Monitoring, logging, and Vulkan AI inference
 - Accessed via Tailscale SSH
-- Uses `boot` goal
+- `just deploy` uses immediate `switch` activation
 
 ## Troubleshooting Remote Deployment
 
@@ -246,35 +240,12 @@ ssh sentry "sudo nixos-rebuild switch --rollback"
 
 ## Colmena Configuration
 
-Located in `flake.nix`:
-```nix
-colmena = {
-  meta = {
-    nixpkgs = import inputs.nixpkgs {
-      system = "x86_64-linux";
-      overlays = [ overlays.default ];
-    };
-    specialArgs = { inherit inputs outputs; };
-  };
-
-  # Hosts defined here
-  zephyr = { name, nodes, ... }: {
-    imports = [ ./hosts/zephyr/configuration.nix ];
-  };
-
-  nexus = { name, nodes, ... }: {
-    imports = [ ./hosts/nexus/configuration.nix ];
-  };
-
-  forge = { name, nodes, ... }: {
-    imports = [ ./hosts/forge/configuration.nix ];
-  };
-
-  sentry = { name, nodes, ... }: {
-    imports = [ ./hosts/sentry/configuration.nix ];
-  };
-};
-```
+The unified `hosts` attribute set in `flake.nix` is the source of truth.
+`colmena.nix` receives that set and derives the Colmena nodes, deployment
+metadata, target hosts, tags, and shared modules. The checked-in root
+`machines` file is passed to Colmena as `meta.machinesFile`; it is distinct
+from the generated `/etc/nix/machines` used by the Nix daemon for distributed
+builds.
 
 ## Quick Reference
 
@@ -284,7 +255,8 @@ colmena = {
 | Deploy to nexus | `just nexus` |
 | Deploy to forge | `just forge` |
 | Deploy to sentry | `just sentry` |
-| Test build | `just test` |
+| Check configuration | `just check` |
+| Test build/activation | `just test-apply` |
 | Check remote status | `ssh nexus "systemctl status ai-inference-gateway"` |
 | View remote logs | `ssh forge "journalctl -u ai-inference-gateway -f"` |
 

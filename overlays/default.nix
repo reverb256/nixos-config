@@ -5,6 +5,7 @@
 { inputs }: _final: prev:
 let
   inherit (prev.lib) foldl';
+  bugfixOverlay = import ./bugfixes.nix { inherit inputs _final prev; };
   systemOverlay = import ./system.nix { inherit inputs _final prev; };
   pythonOverlay = import ./python.nix { inherit inputs _final prev; };
   imagesOverlay = import ./images.nix { inherit inputs _final prev; };
@@ -12,6 +13,7 @@ let
   appsOverlay = import ./apps.nix { inherit inputs _final prev; };
 in
 foldl' (acc: overlay: acc // overlay) {} [
+  bugfixOverlay
   systemOverlay
   pythonOverlay
   imagesOverlay

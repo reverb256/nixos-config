@@ -204,8 +204,9 @@ systemd.tmpfiles.rules = [
 # 1. Quick syntax check
 just check
 
-# 2. Build test (zephyr only)
-just test
+# 2. Build/test validation (Zephyr offloads to the configured builder)
+just build
+just test-apply
 
 # 3. Single host deployment
 just deploy zephyr
