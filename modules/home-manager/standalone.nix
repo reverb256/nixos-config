@@ -4,6 +4,7 @@ let
   hmThirdParty = [
     inputs.zen-browser.homeModules.twilight
     inputs.nixcord.homeModules.nixcord
+    inputs.stylix.homeModules.default
   ];
 
   hmLeaf = [
