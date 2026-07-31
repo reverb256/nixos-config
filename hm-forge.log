@@ -13,12 +13,12 @@ error:
          at «internal»:1:552:
        (stack trace truncated; use '--show-trace' to show the full trace)
 
-       error: expected a Boolean but found a set: { type = "derivation"; NIX_MAIN_PROGRAM = «thunk»; PKG_CONFIG_ALLOW_CROSS = «thunk»; RUST_LOG = «thunk»; __ignoreNulls = true; __structuredAttrs = false; all = «thunk»; args = «thunk»; buildAndTestSubdir = null; buildInputs = «thunk»; «47 attributes elided» }
-       at /nix/store/bh4y8yxg4dwkvr4k4c4qw092cczg75nm-source/modules/home-manager/standalone-forge.nix:9:61:
-            8|   tryPkg = name:
-            9|     let r = builtins.tryEval (builtins.hasAttr name pkgs && pkgs.${name});
-             |                                                             ^
-           10|     in lib.optional (r.success && r.value != null) r.value;
+       error: attribute 'lolMiner' missing
+       at /nix/store/pg9isi4wgg5rx0ynhh3bmqryxk8m9x56-source/modules/home-manager/standalone-forge.nix:8:35:
+            7|   safePkg = name:
+            8|     let r = builtins.tryEval pkgs.${name};
+             |                                   ^
+            9|     in if r.success
 
        note: trace involved the following derivations:
        derivation 'home-manager-generation'

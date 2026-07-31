@@ -13,8 +13,12 @@ error:
          at «internal»:1:552:
        (stack trace truncated; use '--show-trace' to show the full trace)
 
-       error: A definition for option `home.packages."[definition 5-entry 10]"' is not of type `package'. Definition values:
-       - In `/nix/store/adr0vicgxwc7gjxfd82libywxbi0077c-source/modules/home-manager/standalone-nexus.nix': false
+       error: attribute 'vllm-env' missing
+       at /nix/store/hzmf7snvy30zblm9byshll6yfwhdg1lb-source/modules/home-manager/standalone-nexus.nix:8:35:
+            7|   safePkg = name:
+            8|     let r = builtins.tryEval pkgs.${name};
+             |                                   ^
+            9|     in if r.success
 
        note: trace involved the following derivations:
        derivation 'home-manager-generation'

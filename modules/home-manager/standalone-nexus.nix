@@ -1,19 +1,21 @@
 { pkgs, lib, ... }:
 let
-  # Resilient package inclusion: return `[pkg]` only if `pkgs.<name>` evaluates
-  # to a derivation. Protects the standalone HM layer from packages that are
-  # currently broken / refuse-evaluation in the active nixpkgs (e.g. vllm-env).
-  # When the package becomes evaluable, it is picked up automatically.
+  # Resilient package inclusion: return `[pkg]` only if `name` exists in pkgs
+  # AND evaluates to a derivation. `hasAttr` is checked first (no throwing
+  # access), so missing packages (e.g. vllm-env) don't error. When a package
+  # becomes available, it is picked up automatically on next build.
   safePkg = name:
-    let r = builtins.tryEval pkgs.${name};
-    in if r.success
-         && builtins.isAttrs r.value
-         && r.value ? type
-         && r.value.type == "derivation"
-       then [ r.value ]
-       else [];
-  # cudnn is a heavy CUDA dep; include only when it evaluates cleanly.
-  cudnn = safePkg "cudaPackages.cudnn";
+    if builtins.hasAttr name pkgs
+    then
+      let p = pkgs.${name};
+      in if builtins.isAttrs p && p ? type && p.type == "derivation"
+         then [ p ]
+         else []
+    else [];
+  # cudnn is a nested attr (cudaPackages.cudnn); guard via hasAttr chain.
+  cudnn =
+    if pkgs ? cudaPackages && pkgs.cudaPackages ? cudnn
+    then [ pkgs.cudaPackages.cudnn ] else [];
 in {
   home.packages = with pkgs; [
     alacritty
