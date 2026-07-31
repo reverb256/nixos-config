@@ -19,14 +19,12 @@ in {
   } // shared.stylixTargets;
 
   imports = hmThirdParty ++ shared.leafModules ++ [
-    # Per-host package lists (gaming/mining/monitoring tools) — these live only
-    # here and are NOT in the NixOS-module path, so they deploy via `home-manager
-    # switch` (layer 2), not `just deploy` (layer 1).
-    ./standalone-zephyr.nix
-    ./standalone-nexus.nix
-    ./standalone-forge.nix
-    ./standalone-sentry.nix
-  ];
+    # Per-host package lists (gaming/mining/monitoring tools) — gated by hostName
+    # so only the matching host's extras deploy via `home-manager switch`.
+  ] ++ lib.optionals (hostName == "zephyr") [ ./standalone-zephyr.nix ]
+    ++ lib.optionals (hostName == "nexus") [ ./standalone-nexus.nix ]
+    ++ lib.optionals (hostName == "forge") [ ./standalone-forge.nix ]
+    ++ lib.optionals (hostName == "sentry") [ ./standalone-sentry.nix ];
 
   programs.freebuff-desktop.enable = true;
 

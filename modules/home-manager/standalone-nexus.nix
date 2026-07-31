@@ -20,6 +20,6 @@
   };
 
   home.file.".config/nvim/init.lua".source = ../../dev/nvim.lua;
-  home.file.".config/tmux/tmux.conf".source = ../../dev/tmux.conf;
+  # tmux.conf owned by programs.tmux (shared leaf set) to avoid managed-file conflict
   xdg.configFile."galaxy/config.yml".source = ../../monitoring/galaxy.yml;
 }
