@@ -20,6 +20,10 @@
       url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    freebuff-flake = {
+      url = "github:reverb256/freebuff-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     aagl = {
       url = "git+https://github.com/ezKEa/aagl-gtk-on-nix";
       inputs.nixpkgs.follows = "nixpkgs";

@@ -76,7 +76,7 @@ in
             # ../../modules/home-manager/obsidian.nix  # Temporarily disabled - stylix integration issue
             ../../modules/home-manager/opencode.nix
             ../../modules/home-manager/firefox-pwa-apps.nix
-            ../../modules/home-manager/freebuff-desktop.nix
+            inputs.freebuff-flake.homeModules.default
             ../../modules/home-manager/alacritty.nix
             ../../modules/home-manager/hermes-skin.nix
             ../../modules/home-manager/icon-theme.nix
@@ -175,6 +175,7 @@ in
         };
         # Kitty terminal emulator (generates kitty.conf for stylix theming)
         programs.kitty.enable = true;
+        programs.freebuff-desktop.enable = true;
 
         home.sessionVariables.BAT_THEME = "base16-stylix";
 
