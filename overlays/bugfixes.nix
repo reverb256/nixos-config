@@ -1,15 +1,6 @@
 { inputs, _final, prev }:
 
 {
-  # CRITICAL: Do NOT use `pkgs.X = ...` pattern in this overlay!
-  # Using `pkgs.` as a prefix creates _final.pkgs = { X = ...; },
-  # which SHADOWS the full package set in callPackage contexts.
-  # When perl-packages.nix does `buildInputs = [ pkgs.gettext ]`,
-  # it resolves pkgs to _final.pkgs (a tiny attrset) instead of _final.
-  # This causes "attribute 'gettext' missing" errors.
-  #
-  # Use top-level attribute names instead: `gjs = ...` not `pkgs.gjs = ...`.
-
   gjs = prev.gjs.overrideAttrs (old: {
     doCheck = false;
     dontCheck = true;
@@ -25,11 +16,26 @@
     dontCheck = true;
   });
 
-  # Preserve all other qt5 packages — qt5.qtbase replaces only qtbase
-  qt5 = prev.qt5 // {
-    qtbase = prev.qt5.qtbase.overrideAttrs (old: {
-      doCheck = false;
-      dontCheck = true;
-    });
-  };
+  qtbase = prev.qt5.qtbase.overrideAttrs (old: {
+    doCheck = false;
+    dontCheck = true;
+  });
+
+  # 2026-07-30: qdrant 1.18.2 fails to compile (Rust AVX512 intrinsic mismatch).
+  # Override to use 1.18.1 source.
+  qdrant = prev.qdrant.overrideAttrs (old: {
+    version = "1.18.1";
+    src = prev.fetchFromGitHub {
+      owner = "qdrant";
+      repo = "qdrant";
+      tag = "v1.18.1";
+      hash = "sha256-lqMyLnVD2iRu2AxlDHO7LzH2fFT01Gegn2JMhLAtDns=";
+    };
+  });
+
+  # 2026-07-30: dufs 0.46.0 has failing network bind tests in sandbox.
+  # Disable tests — it's a CLI file server, network tests are environment-sensitive.
+  dufs = prev.dufs.overrideAttrs (old: {
+    doCheck = false;
+  });
 }
