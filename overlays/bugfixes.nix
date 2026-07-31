@@ -21,4 +21,8 @@
     doCheck = false;
     dontCheck = true;
   });
+
+  # 2026-07-30: tcl-8_6 / tk-8_6 aliases for python tkinter
+  "tcl-8_6" = prev."tcl-8_6";
+  "tk-8_6" = prev."tk-8_6";
 }

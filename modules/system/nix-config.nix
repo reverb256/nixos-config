@@ -82,10 +82,7 @@
           mkdir -p $out
         '';
 
-      # 2026-07-30: pinned nixpkgs tkinter references pkgs.tcl-8_6 which
-      # causes recursion when aliased to tcl. Point at tcl-8_5 instead.
-      "tcl-8_6" = prev."tcl-8_6";
-      tk-8_6 = prev.tk-8_5;
+      "tk-8_6" = prev."tk-8_6";
 
       cudaPackages_12_4 =
         prev.cudaPackages_12_4
