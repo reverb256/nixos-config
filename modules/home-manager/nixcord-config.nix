@@ -28,7 +28,7 @@
         useQuickCss = true;
         plugins = {
           # Existing plugins
-          XSOverlay = {
+          xsOverlay = {
             enable = true;
             dmNotifications = true;
             groupDmNotifications = true;
@@ -47,12 +47,12 @@
             enableStreamQualityBypass = true;
             emojiSize = 48.0;
           };
-          USRBG = {
+          usrbg = {
             enable = true;
             nitroFirst = true;
             voiceBackground = true;
           };
-          ReviewDB = {
+          reviewDb = {
             enable = true;
           };
 
@@ -78,7 +78,7 @@
           };
 
           # Privacy / security
-          ClearURLs = {
+          clearUrls = {
             enable = true;
           };
           consoleJanitor = {

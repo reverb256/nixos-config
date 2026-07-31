@@ -158,8 +158,9 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # hermes-cli must be enabled for hardening to apply
-    services.hermes-cli.enable = lib.mkDefault true;
+    # hermes-cli is no longer force-enabled here: nixos-config does not build
+    # or install hermes (issue #334) — the binary comes from the user nix
+    # profile. The skills-perms fix below still applies to ~/.hermes regardless.
 
     # Run the permissions fix as a one-shot service after hermes-cli
     systemd.services.hermes-skills-perms = {

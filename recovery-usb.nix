@@ -12,10 +12,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # Reverb256 projects
-    hermes-agent = {
-      url = "github:NousResearch/hermes-agent";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # hermes-agent input REMOVED (issue #334) — provided by user nix profile.
   };
 
   outputs = {

@@ -8,10 +8,6 @@
   portHelpers = import ../../modules/port-helpers.nix {inherit lib;};
   ports = portHelpers.ports;
 
-  # Build the hermes-agent Python venv (same derivation the flake uses for its wrappers)
-  hermesVenv = pkgs.callPackage (inputs.hermes-agent.outPath + "/nix/python.nix") {
-    inherit (inputs.hermes-agent.inputs) uv2nix pyproject-nix pyproject-build-systems;
-  };
   k8s = config.networking.cluster.kubernetes.services;
   cluster = config.networking.cluster;
 in {
@@ -55,98 +51,17 @@ in {
     TS_SSH = "true";
   };
 
-  # Hermes Agent — primary user-facing agent
-  services.hermes-agent = {
-    enable = true;
-    addToSystemPackages = false; # hermes-with-whatsapp (superset) added via hermes-cli.nix
-
-    settings = {
-      providers = {
-        # All inference through AI Inference Gateway on Nexus:8080
-        # Gateway handles upstream routing, auth, think-param stripping
-        ai-gateway = {
-          base_url = "http://ai-inference.lan:8080/v1";
-          api_key = "none";
-          model = "qwen/qwen3-coder-480b-a35b-instruct";
-        };
-        # Direct ZAI fallback (bypasses gateway for reliability)
-        zai = {
-          base_url = "https://api.z.ai/api/coding/paas/v4";
-          api_key_env = "ZAI_API_KEY";
-          model = "glm-5.1";
-        };
-        # NVIDIA NIM cloud models
-        nvidia-nim = {
-          base_url = "https://integrate.api.nvidia.com/v1";
-          api_key_env = "NVIDIA_API_KEY";
-          model = "nvidia/llama-3.3-nemotron-super-49b-v1";
-        };
-        # Local llama-cpp endpoints
-        llama-cpp-zephyr = {
-          base_url = "http://llama-server-zephyr.ai-inference.svc.cluster.local:1237/v1";
-          api_key = "unused";
-          model = "Carnice-Qwen3.6-MoE-35B-A3B.IQ4_XS.gguf";
-        };
-      };
-      fallback_providers = [
-        "zai"
-        "nvidia-nim"
-        "llama-cpp-zephyr"
-      ];
-      smart_model_routing = {
-        enabled = true;
-        max_simple_chars = 160;
-        max_simple_words = 28;
-        cheap_model = {
-          provider = "llama-cpp-zephyr";
-          model = "Ternary-Bonsai-27B-Q2_0.gguf";
-        };
-      };
-      toolsets = ["all"];
-      terminal = {
-        backend = "local";
-        timeout = 180;
-      };
-      memory = {
-        memory_enabled = true;
-        user_profile_enabled = true;
-      };
-      compression = {
-        enabled = true;
-        threshold = 0.9;
-      };
-    };
-
-    # Secrets loaded via ExecStartPre + EnvironmentFile override below
-    mcpServers = {
-      github = {
-        command = "npx";
-        args = ["-y" "@modelcontextprotocol/server-github"];
-      };
-    };
-
-    # Personality documents
-    documents = {
-      "SOUL.md" = ''
-        You are Hermes, the primary AI agent for a NixOS cluster.
-        You manage infrastructure, coding tasks, and daily operations.
-        For coding tasks, delegate to the pi-coder MCP server.
-        Always prefer local, self-hosted solutions.
-      '';
-    };
-
-    extraPackages = with pkgs; [git ripgrep curl jq];
-  };
+  # Hermes Agent — REMOVED from nixos-config (issue #334).
+  # Hermes is now provided by the user nix profile
+  # (`nix profile install github:NousResearch/hermes-agent`); nixos-config no
+  # longer builds or runs the hermes-agent daemon. The Caddy routes
+  # hermes.lan / api.hermes.lan (→ :8642) will 502 until a profile-managed
+  # service is stood up if needed. Interactive use is via the profile binary.
 
   # Hermes WebUI — disabled on nexus (no /data/projects/own/hermes-webui)
   # Runs on zephyr only. Dead code and timer removed.
 
-  # Load Z.AI and NVIDIA API keys for hermes-agent
-  # The official module's environment option doesn't reliably set systemd env vars,
-  # so we use a systemd override with ExecStartPre to generate an env file.
-
   users.users.j_kro.extraGroups = [
-    "hermes"
     "plugdev"
     "audio"
     "input"

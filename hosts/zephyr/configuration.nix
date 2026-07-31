@@ -124,8 +124,11 @@ programs.gitlawb.enable = false;
   # Disable zswap (conflicts with zram). Emits zswap.enabled=0 on cmdline.
   kernel-hardening.zswap.enable = false;
 
-  # Hermes Agent CLI (interactive agent) with voice deps
-  services.hermes-cli.enable = true;
+  # Hermes Agent CLI: nixos-config no longer builds/installs hermes (issue #334);
+  # the `hermes` binary comes from the user nix profile. Keep the module enabled
+  # only for SOUL.md / dir setup + fish completions if desired. Disabled here to
+  # avoid forcing it; enable explicitly if you want the activation scripts.
+  # services.hermes-cli.enable = true;
 
   boot.kernel.sysctl = {
     # Network buffer tuning (frees unused socket buffers)
