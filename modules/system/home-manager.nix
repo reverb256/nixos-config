@@ -71,7 +71,6 @@ in
           ++ [
             inputs.zen-browser.homeModules.twilight
             inputs.nixcord.homeModules.nixcord
-            inputs.stylix.homeModules.default
           ]
           ++ shared.leafModules
           # NixOS-coupled extras — NOT in shared leaf set (would break standalone):
