@@ -16,7 +16,6 @@
 
     # Static NTP server IPs (Cloudflare + Google)
     # Using IPs avoids DNS resolution failures during network issues
-    servers = [];
     server = [
       "162.159.200.1 iburst"   # Cloudflare NTP
       "162.159.200.123 iburst" # Cloudflare NTP
@@ -24,12 +23,12 @@
       "216.239.35.4 iburst"    # Google NTP
     ];
 
-    # Aggressive initial correction: step the clock if offset > 1ms
-    # on first sync, then allow 100ms steps thereafter
+    # Aggressive correction: step the clock if offset > 100ms
+    # limit=0 allows unlimited stepping (critical for etcd leader election)
     makestep = {
       enabled = true;
       threshold = 0.1;  # 100ms
-      limit = 1;        # Only first sync
+      limit = 0;        # Unlimited stepping
     };
 
     # Allow large initial correction (up to 1 second)
@@ -47,4 +46,8 @@
       logdir /var/log/chrony
     '';
   };
+
+  systemd.tmpfiles.rules = [
+    "d /var/log/chrony 0755 chrony chrony -"
+  ];
 }
