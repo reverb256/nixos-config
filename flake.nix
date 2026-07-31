@@ -211,14 +211,7 @@
             inherit inputs vfioPkgs;
           };
           modules =
-            [
-              {
-                nixpkgs.overlays = [
-                  (import ./overlays/default.nix { inherit inputs; })
-                ];
-              }
-            ]
-            ++ commonModules
+            commonModules
             ++ [
               ./hosts/${hostName}/configuration.nix
             ]
