@@ -132,10 +132,6 @@ in
   mkAuthRoute "mission-control.lan" "http://${nexus}:${toString ports.mission-control}"
   + "\n"
   +
-  # Kagent controller
-  mkAuthRoute "kagent.lan" "http://${nexus}:${toString ports.kagent-ui}"
-  + "\n"
-  +
   # Grafana
   mkAuthRoute "grafana.lan" "http://${nexus}:${toString ports.grafana}"
   + "\n"

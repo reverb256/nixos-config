@@ -6,14 +6,12 @@
   services.chrony = {
     enable = true;
     servers = config.networking.timeServers;
-    serverOption = "iburst trust";
+    serverOption = "iburst";
     enableRTCTrimming = true;
-    autotrimThreshold = 1.0;
-    enableMemoryLocking = true;
     makestep = {
       enable = true;
       threshold = 0.1;
-      limit = 0; # Unlimited stepping (critical for etcd)
+      limit = 3; # Step on first 3 corrections
     };
     directory = "/var/lib/chrony";
     extraConfig = ''

@@ -107,24 +107,6 @@ default           sentry-dashboard-5db4b848bf-4w8hl                     1/1     
 default           zephyr-dashboard-5d48dbff77-bdw9v                     1/1     Running            81 (4m33s ago)    5d8h    10.244.0.2     zephyr   <none>           <none>
 infra             nixos-cluster-mcp-sbkqt                               1/1     Running            0                 12d     10.1.1.130     forge    <none>           <none>
 infra             nixos-cluster-mcp-xqh9v                               1/1     Running            0                 12d     10.1.1.120     nexus    <none>           <none>
-kagent            ci-cd-watcher-77548cb9c-c7s4q                         1/1     Running            1                 21h     10.244.3.172   sentry   <none>           <none>
-kagent            ci-cd-watcher-trigger-29659860-5wcpr                  0/1     Completed          0                 87m     10.244.1.23    nexus    <none>           <none>
-kagent            ci-cd-watcher-trigger-29659890-llxq4                  0/1     Completed          0                 57m     10.244.1.29    nexus    <none>           <none>
-kagent            ci-cd-watcher-trigger-29659920-rfxgw                  0/1     Completed          0                 27m     10.244.1.34    nexus    <none>           <none>
-kagent            gateway-health-check-29659860-dqssl                   0/1     Completed          0                 87m     10.244.3.173   sentry   <none>           <none>
-kagent            gateway-health-check-29659890-9pgj7                   0/1     Completed          0                 57m     10.244.3.90    sentry   <none>           <none>
-kagent            gateway-health-check-29659920-kvqn8                   0/1     Completed          0                 27m     10.244.3.33    sentry   <none>           <none>
-kagent            gateway-optimizer-84447f67c4-w8457                    1/1     Running            6                 21h     10.244.3.170   sentry   <none>           <none>
-kagent            github-issue-enricher-84cc46dc76-x4sxc                1/1     Running            6                 7h27m   10.244.3.141   sentry   <none>           <none>
-kagent            kagent-controller-7c5b9475d5-qq994                    1/1     Running            0                 18h     10.244.1.62    nexus    <none>           <none>
-kagent            kagent-postgresql-7fd9c9b8fd-5b7rh                    1/1     Running            0                 24h     10.244.1.35    nexus    <none>           <none>
-kagent            kagent-ui-56546c48bb-5wrmb                            1/1     Running            0                 19h     10.244.1.58    nexus    <none>           <none>
-kagent            pipeline-operator-5f7f89fc66-25n26                    1/1     Running            5                 21h     10.244.3.159   sentry   <none>           <none>
-kagent            pr-architect-7dc5c96855-zxq42                         1/1     Running            4                 21h     10.244.3.197   sentry   <none>           <none>
-kagent            pr-qa-685597ccb-m2swk                                 1/1     Running            5                 21h     10.244.3.142   sentry   <none>           <none>
-kagent            pr-reviewer-5d656c47c5-m7tkx                          1/1     Running            5                 21h     10.244.3.177   sentry   <none>           <none>
-kagent            pr-secops-7cc645b899-lhgsj                            1/1     Running            7                 21h     10.244.3.171   sentry   <none>           <none>
-kagent            pr-skeptic-54ccfcc94f-c8vlz                           1/1     Running            4                 21h     10.244.3.181   sentry   <none>           <none>
 kelos-system      benchmark-clean-run-nsnvc                             0/1     Completed          0                 153m    10.244.1.4     nexus    <none>           <none>
 kelos-system      ghproxy-ai-inference-gateway-5866f888f-cfqv7          1/1     Running            0                 4d7h    10.244.1.155   nexus    <none>           <none>
 kelos-system      ghproxy-caddy-ingress-7684c94697-878kp                1/1     Running            1                 4d7h    10.244.3.165   sentry   <none>           <none>
