@@ -253,10 +253,12 @@ in {
 
   xdg.configFile = {
     "mimeapps.list".force = true;
-    # starship.toml is HM-generated but the live file is a stale symlink to an
-    # old store path; checkLinkTargets refuses to repoint it without force.
-    "starship.toml".force = true;
   };
+
+  # starship.toml is HM-generated (programs.starship) but the live file is a
+  # stale symlink to an old store path; checkLinkTargets refuses to repoint it
+  # without force. programs.starship writes via home.file, so force there.
+  home.file.".config/starship.toml".force = true;
 
   _module.args.hostName = lib.mkDefault hostName;
   _module.args.vfioPkgs = lib.mkDefault vfioPkgs;
