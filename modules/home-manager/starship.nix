@@ -15,20 +15,12 @@ in {
     enableFishIntegration = true;
 
     settings = {
-      # ── Noctalia palette (base16 via Stylix) ────────────────────
-      # Fixes #332: plain-file starship.toml references palette = "noctalia"
-      # but HM output lacked the matching [palettes.noctalia] definition.
-      palettes.noctalia = {
-        blue   = c.base0D;
-        cyan   = c.base0C;
-        green  = c.base0B;
-        magenta = c.base0E;
-        orange = c.base09;
-        red    = c.base08;
-        yellow = c.base0A;
-        black  = c.base00;
-        white  = c.base05;
-      };
+      # ── Palette: injected by Stylix ────────────────────────────
+      # Stylix sets `palette = "base16"` (from base16Scheme) and defines the
+      # [palettes.base16] table from the Osaka Jade theme. A hard-coded palette
+      # name here (the old "noctalia" block) caused the recurring
+      # `Could not find color palette` WARN (#332). All colors below reference
+      # `c.baseXX` (Stylix colors) directly, which resolve via the base16 palette.
 
       # ── Three-line layout ──────────────────────────────────────
       format = ''
