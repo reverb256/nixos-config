@@ -20,7 +20,7 @@ let
     ./caprine.nix
     ./opencode.nix
     ./firefox-pwa-apps.nix
-    ./freebuff-desktop.nix
+    inputs.freebuff-flake.homeModules.default
     ./alacritty.nix
     ./hermes-skin.nix
     ./icon-theme.nix
@@ -49,6 +49,8 @@ in {
     polarity = "dark";
   };
   imports = hmThirdParty ++ hmLeaf;
+
+  programs.freebuff-desktop.enable = true;
 
   home.homeDirectory = "/home/j_kro";
   home.stateVersion = "26.05";
