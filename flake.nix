@@ -212,7 +212,11 @@
           };
           modules =
             [
-              { nixpkgs.overlays = [ self.overlays.default ]; }
+              {
+                nixpkgs.overlays = [
+                  (import ./overlays/default.nix { inherit inputs; })
+                ];
+              }
             ]
             ++ commonModules
             ++ [
