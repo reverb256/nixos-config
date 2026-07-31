@@ -1,9 +1,5 @@
+{ config, pkgs, lib, ... }:
 {
-  config,
-  pkgs,
-  lib,
-  ...
-}: {
   programs.alacritty = {
     enable = true;
 
@@ -15,15 +11,6 @@
       terminal.osc52 = "CopyPaste";
 
       selection.save_to_clipboard = true;
-
-      # Noctalia personalization (matches the hand-managed alacritty.toml we
-      # reclaim during the standalone-HM extraction — no regression).
-      # The noctalia theme file is written by stylix-bridges.nix (HM-managed).
-      general.import = [ "~/.config/alacritty/themes/noctalia.toml" ];
-      font.size = 10;
-      font.normal.family = "JetBrainsMono Nerd Font";
-      font.normal.style = "Regular";
-      window.opacity = 0.95;
     };
   };
 }

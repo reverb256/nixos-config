@@ -19,10 +19,7 @@ in {
   programs.btop = {
     enable = true;
     settings = {
-      # noctalia theme is written by stylix-bridges.nix (HM-managed), so point
-      # at it — matches the hand-managed ~/.config/btop/btop.conf we are
-      # reclaiming during the standalone-HM extraction (no regression).
-      color_theme = "noctalia";
+      color_theme = "stylix";
 
       # ── Layout / presets (from old orphan) ───────────────────
       disable_presets = "Off";
