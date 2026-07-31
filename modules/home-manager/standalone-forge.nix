@@ -1,19 +1,23 @@
 { pkgs, lib, ... }:
 let
-  # Resilient package inclusion: include `name` from pkgs only if it evaluates
-  # without error. Protects the standalone HM layer from packages that are
-  # currently broken/unfree/refuse-evaluation in the active nixpkgs (e.g.
-  # t-rex-0.15.0-alpha3). When the package becomes evaluable, it is picked up
-  # automatically — no manual re-enable needed.
-  tryPkg = name:
-    let r = builtins.tryEval (builtins.hasAttr name pkgs && pkgs.${name});
-    in lib.optional (r.success && r.value != null) r.value;
+  # Resilient package inclusion: return `[pkg]` only if `pkgs.<name>` evaluates
+  # to a derivation. Protects the standalone HM layer from packages that are
+  # currently broken / refuse-evaluation in the active nixpkgs (e.g. t-rex).
+  # When the package becomes evaluable, it is picked up automatically.
+  safePkg = name:
+    let r = builtins.tryEval pkgs.${name};
+    in if r.success
+         && builtins.isAttrs r.value
+         && r.value ? type
+         && r.value.type == "derivation"
+       then [ r.value ]
+       else [];
 in {
   home.packages = with pkgs; [
     nvtopPackages.full
     gpustat
-  ] ++ tryPkg "lolMiner"
-    ++ tryPkg "t-rex";
+  ] ++ safePkg "lolMiner"
+    ++ safePkg "t-rex";
 
   # Optional mining-tool config seeds — only applied when the source file exists
   # in the flake tree (pre-existing gap: mining/ dir not committed). Resilient so

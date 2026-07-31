@@ -13,21 +13,12 @@ error:
          at «internal»:1:552:
        (stack trace truncated; use '--show-trace' to show the full trace)
 
-       error: Refusing to evaluate package 't-rex-0.15.0-alpha3' in /nix/store/lj0fr41wwbrx2mwq2378jg8qrns7b93d-source/pkgs/by-name/t-/t-rex/package.nix:34 because it has problems:
-       - broken: This package is broken.
-
-       See also https://nixos.org/manual/nixpkgs/unstable#sec-problems
-       To allow evaluation regardless, use:
-       - Nixpkgs import: import nixpkgs { config = <below code>; }
-       - NixOS: nixpkgs.config = <below code>;
-       - nix-* commands: Put below code in ~/.config/nixpkgs/config.nix
-
-         {
-           problems.handlers = {
-             t-rex.broken = "warn"; # or "ignore"
-           };
-         }
-
+       error: expected a Boolean but found a set: { type = "derivation"; NIX_MAIN_PROGRAM = «thunk»; PKG_CONFIG_ALLOW_CROSS = «thunk»; RUST_LOG = «thunk»; __ignoreNulls = true; __structuredAttrs = false; all = «thunk»; args = «thunk»; buildAndTestSubdir = null; buildInputs = «thunk»; «47 attributes elided» }
+       at /nix/store/bh4y8yxg4dwkvr4k4c4qw092cczg75nm-source/modules/home-manager/standalone-forge.nix:9:61:
+            8|   tryPkg = name:
+            9|     let r = builtins.tryEval (builtins.hasAttr name pkgs && pkgs.${name});
+             |                                                             ^
+           10|     in lib.optional (r.success && r.value != null) r.value;
 
        note: trace involved the following derivations:
        derivation 'home-manager-generation'

@@ -1,15 +1,19 @@
 { pkgs, lib, ... }:
 let
-  # Resilient package inclusion: include `name` from pkgs only if it evaluates
-  # without error. Protects the standalone HM layer from packages that are
-  # currently broken/refuse-evaluation in the active nixpkgs (e.g. vllm-env).
+  # Resilient package inclusion: return `[pkg]` only if `pkgs.<name>` evaluates
+  # to a derivation. Protects the standalone HM layer from packages that are
+  # currently broken / refuse-evaluation in the active nixpkgs (e.g. vllm-env).
   # When the package becomes evaluable, it is picked up automatically.
-  tryPkg = name:
-    let r = builtins.tryEval (builtins.hasAttr name pkgs && pkgs.${name});
-    in lib.optional (r.success && r.value != null) r.value;
-  # cudnn is a heavy CUDA dep that can fail remote-builder store checks; include
-  # only when it evaluates cleanly.
-  cudnn = tryPkg "cudaPackages.cudnn";
+  safePkg = name:
+    let r = builtins.tryEval pkgs.${name};
+    in if r.success
+         && builtins.isAttrs r.value
+         && r.value ? type
+         && r.value.type == "derivation"
+       then [ r.value ]
+       else [];
+  # cudnn is a heavy CUDA dep; include only when it evaluates cleanly.
+  cudnn = safePkg "cudaPackages.cudnn";
 in {
   home.packages = with pkgs; [
     alacritty
@@ -21,7 +25,7 @@ in {
     tmux
     lazygit
     ollama
-  ] ++ tryPkg "vllm-env"
+  ] ++ safePkg "vllm-env"
     ++ cudnn;
 
   home.sessionVariables = lib.mkIf (cudnn != []) {
