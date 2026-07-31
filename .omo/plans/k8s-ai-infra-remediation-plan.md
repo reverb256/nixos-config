@@ -330,7 +330,6 @@ Two deployments are stubs/placeholders that do nothing useful:
 - `kubernetes/modules/host-services.nix` — scratch image (OK)
 - `kubernetes/modules/infrastructure.nix` — kubernetes-mcp (`:latest-linux-amd64` — see 0.3)
 - `kubernetes/modules/monitoring.nix` — all images pinned with versions (GOOD)
-- `kubernetes/modules/searxng.nix` — check image tag
 - `kubernetes/modules/haven.nix` — `ghcr.io/ancsemi/haven:3.1.1` (OK, versioned)
 
 **Action:** Confirm all external images are version-pinned (not `:latest`). Only the kubernetes-mcp image uses `:latest`.

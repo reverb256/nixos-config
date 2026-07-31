@@ -42,8 +42,6 @@ None (all tools are standard bash/Python)
 
 ```json
 {
-  "salientSummary": "Replaced 42 print() debug statements in main.py with logger.debug() calls. Deleted model_defaults.py (513 lines dead code). Fixed 2 hardcoded stale IPs (10.0.0.102) in searxng files.",
-  "whatWasImplemented": "Replaced all [DEBUG] and [LIFESPAN DEBUG] print statements in main.py with logger.debug() using existing logger instance. Deleted model_defaults.py entirely (never imported anywhere). Replaced hardcoded 10.0.0.102 with config references in searxng_exports.py and searxng_source.py.",
   "whatWasLeftUndone": "",
   "verification": {
     "commandsRun": [

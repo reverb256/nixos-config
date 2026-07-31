@@ -35,7 +35,7 @@
 - istio-system: istiod (1)
 - kube-system: coredns, metrics-server, local-path-provisioner (3)
 - monitoring: grafana, prometheus (2)
-- search: redis, searxng (2)
+- search: redis
 - volcano-system: volcano-admission, volcano-controllers, volcano-scheduler (3)
 - yunikorn: yunikorn-scheduler (1)
 

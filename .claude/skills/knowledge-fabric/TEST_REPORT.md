@@ -29,7 +29,6 @@ After comprehensive testing of all 13 MCP knowledge-fabric tools, I critical iss
 
 | Tool | Test | Result | Status |
 |------|-----|--------|--------|
-| mcp__searxng__search | `query: "test"` | Name resolution error | BROKEN |
 
 ### SearXNG Direct Test
 

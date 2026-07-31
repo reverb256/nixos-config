@@ -7,8 +7,6 @@ The Knowledge Fabric uses several environment variables for configuration. These
 ```json
 {
   "env": {
-    "SEARXNG_URL": "http://10.1.1.120:30080",
-    "SEARXNG_CACHE_TTL": "300",
     "GATEWAY_URL": "http://ai.cluster.local",
     "GATEWAY_TIMEOUT": "30.0"
   }
@@ -19,17 +17,10 @@ The Knowledge Fabric uses several environment variables for configuration. These
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `SEARXNG_URL` | http://10.1.1.120:30080 | SearXNG metasearch endpoint (NodePort for LAN access) |
-| `SEARXNG_CACHE_TTL` | 300 | Cache time-to-live in seconds |
 | `GATEWAY_URL` | http://ai.cluster.local | AI Inference Gateway API endpoint (via Caddy Ingress) |
 | `GATEWAY_TIMEOUT` | 30.0 | Gateway request timeout in seconds |
 
 ## Service Endpoints
-
-### SearXNG Metasearch
-- **Public URL**: http://10.1.1.120:30080 (NodePort - LAN accessible)
-- **ClusterIP**: http://10.0.0.230:7777 (Kubernetes internal)
-- **Health Check**: `curl http://10.1.1.120:30080/`
 
 ### Qdrant Vector Database
 - **HTTP API**: http://127.0.0.1:6333
@@ -70,26 +61,6 @@ export GATEWAY_URL="http://ai.cluster.local"
 export GATEWAY_TIMEOUT="30.0"
 ```
 
-### SearXNG MCP Server
-
-The SearXNG MCP server provides 13 specialized search tools.
-
-**Direct Usage** (alternative to gateway bridge):
-```json
-{
-  "mcpServers": {
-    "searxng": {
-      "command": "python",
-      "args": ["-m", "ai_inference_gateway.mcp_servers.searxng_server"],
-      "env": {
-        "SEARXNG_URL": "http://10.1.1.120:30080",
-        "SEARXNG_CACHE_TTL": "300"
-      }
-    }
-  }
-}
-```
-
 ## URL Migration Notes
 
 ### Kubernetes → NodePort Migration
@@ -112,9 +83,6 @@ The system has been updated to use NodePort URLs instead of Kubernetes internal 
 ### Verify All Services
 
 ```bash
-# Test SearXNG (NodePort)
-curl -s "http://10.1.1.120:30080/search?q=test&format=json" | jq '.results | length'
-
 # Test Qdrant
 curl -s http://127.0.0.1:6333/collections | jq '.result.collections | length'
 
@@ -139,16 +107,6 @@ echo '{"jsonrpc":"2.0","id":1,"method":"ping"}' | mcp-gateway-bridge
 | MCP Bridge | JSON-RPC response |
 
 ## Troubleshooting
-
-### SearXNG Connection Refused
-
-**Symptom**: `curl: (7) Failed to connect to 10.1.1.120 port 30080`
-
-**Solutions**:
-1. Check SearXNG service: `systemctl status searx`
-2. Check Kubernetes service: `kubectl get svc -n search`
-3. Verify NodePort: `kubectl describe svc searxng -n search`
-4. Check firewall: `sudo iptables -L -n | grep 30080`
 
 ### Gateway Not Listening
 

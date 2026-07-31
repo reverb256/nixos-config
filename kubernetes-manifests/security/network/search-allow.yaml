@@ -1,5 +1,3 @@
-# Search Namespace Network Policy (Searxng)
-# Allows web traffic to Searxng and required external API access
 
 ---
 # Default-deny for search namespace
@@ -23,7 +21,6 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: searxng
   policyTypes:
   - Ingress
   ingress:
@@ -31,7 +28,6 @@ spec:
     - namespaceSelector: {}  # Allow from any namespace (web traffic)
     ports:
     - protocol: TCP
-      port: 7777  # Searxng web port (NodePort: 30080)
 
 ---
 # Allow DNS resolution
@@ -54,7 +50,6 @@ spec:
       port: 53
 
 ---
-# Allow Searxng to reach external search engines and APIs
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -63,7 +58,6 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: searxng
   policyTypes:
   - Egress
   egress:

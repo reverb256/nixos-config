@@ -10,8 +10,26 @@
 in {
   programs.starship = {
     enable = true;
+    # Force HM-managed copy to override any hand-edited plain files
+    # This prevents config drift that causes the noctalia palette warning (#332)
+    enableFishIntegration = true;
 
     settings = {
+      # ── Noctalia palette (base16 via Stylix) ────────────────────
+      # Fixes #332: plain-file starship.toml references palette = "noctalia"
+      # but HM output lacked the matching [palettes.noctalia] definition.
+      palettes.noctalia = {
+        blue   = c.base0D;
+        cyan   = c.base0C;
+        green  = c.base0B;
+        magenta = c.base0E;
+        orange = c.base09;
+        red    = c.base08;
+        yellow = c.base0A;
+        black  = c.base00;
+        white  = c.base05;
+      };
+
       # ── Three-line layout ──────────────────────────────────────
       format = ''
         $time$hostname
@@ -48,7 +66,7 @@ in {
       # ── Git ────────────────────────────────────────────────────
       git_branch = {
         format = "on [$branch](italic ${c.base0D}) ";
-        symbol = " ";
+        symbol = "肠 ";
       };
 
       git_status = {

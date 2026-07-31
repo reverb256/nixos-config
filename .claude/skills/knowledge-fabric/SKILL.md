@@ -41,7 +41,6 @@ description: ✅ **FULLY OPERATIONAL: 13 MCP tools available via SearXNG integra
 - ✅ `search_reddit` - Reddit discussions
 - ✅ `search_stats` - Learning statistics
 - ✅ `clear_search_cache` - Cache management
-- ✅ `ping_searxng` - Health check
 
 **What this skill DOES NOT do:**
 - ❌ Direct HTTP requests (use MCP tools instead)
@@ -161,10 +160,8 @@ services.ai-inference.gateway = {
     # MCP server configurations
     mcp_servers = [
       {
-        name = "searxng";
         type = "local";
         command = "python";
-        args = ["-m" "ai_inference_gateway.mcp_servers.searxng_server"];
         environment = {
           SEARXNG_URL = "http://10.1.1.120:30080";
         };
@@ -187,7 +184,6 @@ sudo systemctl restart ai-inference-gateway
 # Check gateway tools endpoint
 curl -s http://ai.cluster.local/mcp/tools | jq .
 
-# Expected output (with searxng configured):
 # {
 #   "tools": [
 #     {"name": "search_code", "description": "..."},
@@ -210,7 +206,6 @@ GATEWAY_URL="http://ai.cluster.local" /etc/nixos/scripts/mcp-gateway-bridge
 Once configured, the following MCP servers can be integrated:
 
 ### SearXNG MCP Server
-**Location:** `ai_inference_gateway/mcp_servers/searxng_server.py`
 **Tools:** 13 specialized search tools
 - `search_code` - Code search (GitHub, StackOverflow, GitLab)
 - `search_research` - Academic papers (Google Scholar, arXiv)
@@ -224,10 +219,8 @@ Once configured, the following MCP servers can be integrated:
 **Configuration:**
 ```python
 {
-  "name": "searxng",
   "type": "local",
   "command": "python",
-  "args": ["-m", "ai_inference_gateway.mcp_servers.searxng_server"],
   "environment": {
     "SEARXNG_URL": "http://10.1.1.120:30080"
   }
@@ -411,7 +404,6 @@ echo "If Layer 6 shows empty, configure MCP servers in gateway."
 
 **External References:**
 - MCP Protocol: https://modelcontextprotocol.io/
-- SearXNG: https://docs.searxng.org/
 - Caddy: https://caddyserver.com/docs/
 
 ---
@@ -422,5 +414,4 @@ echo "If Layer 6 shows empty, configure MCP servers in gateway."
 **Available Tools:**
 - web_search, search_code, search_research, search_devops, search_data
 - search_github, search_nixos_options, search_mdn, search_stackoverflow
-- search_reddit, search_stats, clear_search_cache, ping_searxng
 **All Systems Go:** MCP framework production-ready, tools accessible via gateway bridge

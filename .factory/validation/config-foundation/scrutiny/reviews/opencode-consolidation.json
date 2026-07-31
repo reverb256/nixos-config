@@ -24,7 +24,7 @@
         "file": "commitId",
         "line": null,
         "severity": "non_blocking",
-        "description": "The handoff reports commitId as 'pending' — no git commit was made for these changes. The config files were written imperatively to the home directory, not through the NixOS declarative configuration. This means the changes are not tracked in version control and could be overwritten by the NixOS module's activationScripts if the canonical config is removed."
+        "description": "The handoff reports commitId as 'pending' \u2014 no git commit was made for these changes. The config files were written imperatively to the home directory, not through the NixOS declarative configuration. This means the changes are not tracked in version control and could be overwritten by the NixOS module's activationScripts if the canonical config is removed."
       },
       {
         "file": "~/.config/opencode/opencode.json",
@@ -52,5 +52,5 @@
     }
   ],
   "addressesFailureFrom": null,
-  "summary": "PASS with non-blocking issues. The opencode-consolidation feature successfully fulfills all three validation assertions: (1) VAL-CONF-001 — single canonical config exists at ~/.config/opencode/opencode.json with valid JSON, local gateway primary, Z.AI cloud fallback, and dynamic PYTHONPATH; (2) VAL-CONF-002 — opencode-with-mcp.json replaced with redirect comment (but ~/.opencode/config.json still contains a full old config, not a redirect); (3) VAL-CONF-003 — oh-my-opencode categories correctly mapped to 3-tier strategy with consistent entries in both opencode.json and oh-my-opencode.json. Key non-blocking concerns: (a) ~/.opencode/config.json was not cleaned up/redirected despite handoff claiming it was, (b) no git commit was made (commitId='pending'), (c) changes were made imperatively rather than through the NixOS declarative module, and (d) the existing auto-sync timer could overwrite the consolidated config."
+  "summary": "PASS with non-blocking issues. The opencode-consolidation feature successfully fulfills all three validation assertions: (1) VAL-CONF-001 \u2014 single canonical config exists at ~/.config/opencode/opencode.json with valid JSON, local gateway primary, Z.AI cloud fallback, and dynamic PYTHONPATH; (2) VAL-CONF-002 \u2014 opencode-with-mcp.json replaced with redirect comment (but ~/.opencode/config.json still contains a full old config, not a redirect); (3) VAL-CONF-003 \u2014 oh-my-opencode categories correctly mapped to 3-tier strategy with consistent entries in both opencode.json and oh-my-opencode.json. Key non-blocking concerns: (a) ~/.opencode/config.json was not cleaned up/redirected despite handoff claiming it was, (b) no git commit was made (commitId='pending'), (c) changes were made imperatively rather than through the NixOS declarative module, and (d) the existing auto-sync timer could overwrite the consolidated config."
 }

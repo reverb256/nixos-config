@@ -2654,7 +2654,7 @@ in {
 
     # ── Alerting rules for cluster failure modes ─────────────────────
     # These alerts would have caught the forge/sentry NFS-wedge, VIP
-    # outage, and SearXNG crash incidents documented in hey.md.
+    # Previous monitoring incidents documented in hey.md.
     monitoring.PrometheusRule.cluster-alerts = {
       spec = {
         groups = [

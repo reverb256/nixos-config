@@ -15,7 +15,6 @@ CA_FILE="/etc/nixos/certs/cluster-ca.crt"
 [ -f "$CA_FILE" ] || CA_FILE="/etc/ssl/cluster-ca/ca.crt"
 
 echo "=== TLS: All .lan domains serve valid certs ==="
-for entry in   "searxng.lan|/" "search.lan|/" "auth.lan|/"   "ai-inference.lan|/" "haven.lan|/" "hermes.lan|/"   "qdrant.lan|/" "n8n.lan|/" "dashboard.lan|/"   "vaultwarden.lan|/" "mission-control.lan|/"   "knowledge-fabric.lan|/" "brain.lan|/"   "workspace.lan|/"   "openwebui.lan|/" "forge.lan|/"   "monitoring.lan|/" "grafana.lan|/" "prometheus.lan|/"   "privacy-filter.lan|/"    "cfg.lan|/" "frostbite-mcp.lan|/" "seeker.lan|/"   "mining.lan|/" "api.hermes.lan|/"; do
     domain="${entry%%|*}"
     path="${entry#*|}"
     code=$(curl -sk --resolve "${domain}:443:10.1.1.100" "https://${domain}${path}"       -o /dev/null -w "%{http_code}" --connect-timeout 5 2>/dev/null)
@@ -25,16 +24,12 @@ done
 echo ""
 echo "=== DNS: K8s service names resolve ==="
 KUBE_DNS=$(kubectl get svc -n kube-system kube-dns -o jsonpath='{.spec.clusterIP}' 2>/dev/null)
-for svc in searxng.search vane.search; do
   ip=$(dig "${svc}.svc.cluster.local" @"${KUBE_DNS}" +short 2>/dev/null)
   [ -n "$ip" ] && pass "${svc} -> $ip" || fail "${svc} no resolution"
 done
 
 echo ""
 echo "=== Config: SearXNG OpenSearch XML matches browser ==="
-OPENXML=$(curl -sk 'https://searxng.lan/opensearch.xml' 2>/dev/null)
-echo "$OPENXML" | grep -q 'template="https://searxng.lan/search' \
-  && pass "OpenSearch XML points to searxng.lan" \
   || fail "OpenSearch XML hostname mismatch"
 
 echo ""
