@@ -1,0 +1,35 @@
+fetching git input 'git+file:///data/projects/own/nixos-config-338'
+warning: Git tree '/data/projects/own/nixos-config-338' is dirty
+warning: input 'flake-parts' has an override for a non-existent input 'nixpkgs'
+trace: warning: `programs.ssh` default values will be removed in the future.
+Consider setting `programs.ssh.enableDefaultConfig` to false,
+and manually set the default values you want to keep at
+`programs.ssh.settings."*"`.
+
+error:
+       … while evaluating an expression to select 'drvPath' on it
+         at «internal»:1:552:
+       … while evaluating strict
+         at «internal»:1:552:
+       (stack trace truncated; use '--show-trace' to show the full trace)
+
+       error: Refusing to evaluate package 't-rex-0.15.0-alpha3' in /nix/store/lj0fr41wwbrx2mwq2378jg8qrns7b93d-source/pkgs/by-name/t-/t-rex/package.nix:34 because it has problems:
+       - broken: This package is broken.
+
+       See also https://nixos.org/manual/nixpkgs/unstable#sec-problems
+       To allow evaluation regardless, use:
+       - Nixpkgs import: import nixpkgs { config = <below code>; }
+       - NixOS: nixpkgs.config = <below code>;
+       - nix-* commands: Put below code in ~/.config/nixpkgs/config.nix
+
+         {
+           problems.handlers = {
+             t-rex.broken = "warn"; # or "ignore"
+           };
+         }
+
+
+       note: trace involved the following derivations:
+       derivation 'home-manager-generation'
+       derivation 'activation-script'
+       derivation 'home-manager-path'

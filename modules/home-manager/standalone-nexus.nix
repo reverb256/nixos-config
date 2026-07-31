@@ -1,5 +1,16 @@
 { pkgs, lib, ... }:
-{
+let
+  # Resilient package inclusion: include `name` from pkgs only if it evaluates
+  # without error. Protects the standalone HM layer from packages that are
+  # currently broken/refuse-evaluation in the active nixpkgs (e.g. vllm-env).
+  # When the package becomes evaluable, it is picked up automatically.
+  tryPkg = name:
+    let r = builtins.tryEval (builtins.hasAttr name pkgs && pkgs.${name});
+    in lib.optional (r.success && r.value != null) r.value;
+  # cudnn is a heavy CUDA dep that can fail remote-builder store checks; include
+  # only when it evaluates cleanly.
+  cudnn = tryPkg "cudaPackages.cudnn";
+in {
   home.packages = with pkgs; [
     alacritty
     kitty
@@ -10,11 +21,10 @@
     tmux
     lazygit
     ollama
-    vllm-env
-    cudaPackages.cudnn
-  ];
+  ] ++ tryPkg "vllm-env"
+    ++ cudnn;
 
-  home.sessionVariables = {
+  home.sessionVariables = lib.mkIf (cudnn != []) {
     CUDA_HOME = "/run/opengl-driver";
     LD_LIBRARY_PATH = "${pkgs.cudaPackages.cudnn}/lib";
   };
