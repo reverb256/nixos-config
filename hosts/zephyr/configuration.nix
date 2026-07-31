@@ -1241,6 +1241,9 @@ programs.gitlawb.enable = false;
   # Fix nixpkgs tcl-8_6 regression: nixpkgs-unstable has tcl aliased to 8.5.19
   # but python tkinter requires 8.6. Pin tcl-8_6 to the explicit 8.6.nix.
 
+  # Disable edk2-uefi-shell to avoid python3 → tkinter → tcl-8_6 eval error
+  boot.loader.systemd-boot.edk2-uefi-shell.enable = false;
+
   # Bonsai 27B: ternary on RTX 3090 (port 8005, asymmetric KV) + 1-bit on RTX 3060 Ti (port 1236)
   services.bonsai = {
     enable = true;
