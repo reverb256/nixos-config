@@ -199,7 +199,12 @@
           extraModules ? [ ],
         }:
         nixpkgs.lib.nixosSystem {
-          # system is auto-detected from stdenv.hostPlatform
+          # Apply the cluster overlay set (overlays/default.nix -> bugfixes,
+          # system, python, images, hardware, apps) so host builds get the
+          # qdrant/gjs/gtk4/webkitgtk/qtbase/dufs fixes. Without this,
+          # `self.overlays.default` is dead for NixOS configs (only the
+          # `packages`/`apps` outputs used pkgsWithOverlay).
+          pkgs = pkgsWithOverlay;
           specialArgs = {
             inherit inputs vfioPkgs;
           };
