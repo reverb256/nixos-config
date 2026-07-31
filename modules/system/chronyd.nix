@@ -13,7 +13,7 @@
     makestep = {
       enable = true;
       threshold = 0.1;
-      limit = 1;
+      limit = 0; # Unlimited stepping (critical for etcd)
     };
     directory = "/var/lib/chrony";
     extraConfig = ''

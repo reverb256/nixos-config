@@ -465,13 +465,6 @@ in {
           container = 2;
           position = 670;
         };
-        "SearXNG" = {
-          id = "pin-sys-015";
-          url = "https://searxng.lan";
-          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
-          container = 2;
-          position = 675;
-        };
         "Host Dashboard (Zephyr)" = {
           id = "pin-sys-016";
           url = "http://zephyr.lan:8090";
@@ -549,7 +542,6 @@ in {
         default = "duckduckgo";
         privateDefault = "duckduckgo";
         order = [
-          "searxng"
           "google"
           "ddg"
           "github"
@@ -684,14 +676,6 @@ in {
             urls = [{template = "https://developer.mozilla.org/en-US/search?q={searchTerms}";}];
             icon = "https://developer.mozilla.org/favicon.ico";
             definedAliases = ["@mdn"];
-          };
-          searxng = {
-            urls = [{template = "https://searxng.lan/search?q={searchTerms}";}];
-            icon = "https://searxng.lan/static/themes/simple/img/favicon.svg";
-            definedAliases = [
-              "@sx"
-              "@searxng"
-            ];
           };
         };
       };
