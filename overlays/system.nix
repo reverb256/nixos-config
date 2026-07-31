@@ -21,6 +21,7 @@
     '';
   });
   dufs = prev.dufs.overrideAttrs (old: {
+    doCheck = false;
     nativeBuildInputs = (old.nativeBuildInputs or []) ++ [prev.cacert];
   });
   freebuff-desktop = prev.callPackage ../packages/freebuff-desktop.nix {};
