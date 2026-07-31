@@ -6,6 +6,7 @@ let
     inputs.zen-browser.homeModules.twilight
     inputs.nixcord.homeModules.nixcord
     inputs.stylix.homeModules.default
+    inputs.freebuff-flake.homeModules.default
   ];
 in {
   # Stylix: base16 scheme + target empowerment, shared with the NixOS-module path
