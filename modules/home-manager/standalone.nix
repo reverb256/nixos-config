@@ -1,54 +1,31 @@
 { config, lib, pkgs, inputs, hostName, vfioPkgs, ... }:
-
 let
-  stylixBase16 = ../../modules/desktop/themes/osaka-jade.yaml;
-
+  # SINGLE SOURCE OF TRUTH for the user-env leaf set (issue #338).
+  shared = import ./shared-leaf-modules.nix { inherit lib pkgs; };
   hmThirdParty = [
     inputs.zen-browser.homeModules.twilight
     inputs.nixcord.homeModules.nixcord
     inputs.stylix.homeModules.default
   ];
-
-  hmLeaf = [
-    ./fish.nix
-    ./starship.nix
-    ./btop.nix
-    ./zen-browser.nix
-    ./nixcord-config.nix
-    ./mime-apps.nix
-    ./mime-fix.nix
-    ./caprine.nix
-    ./opencode.nix
-    ./firefox-pwa-apps.nix
-    inputs.freebuff-flake.homeModules.default
-    ./alacritty.nix
-    ./hermes-skin.nix
-    ./icon-theme.nix
-    ./dolphin.nix
-    ./desktop-utilities.nix
-    ./copyq.nix
-    ./git.nix
-    ./tmux.nix
-    ./lazygit.nix
-    ./tui-apps.nix
-    ./editorconfig.nix
-    ./heal-stale-backups.nix
-  ] ++ lib.optionals (hostName == "zephyr") [
-    ./standalone-zephyr.nix
-  ] ++ lib.optionals (hostName == "nexus") [
-    ./standalone-nexus.nix
-  ] ++ lib.optionals (hostName == "forge") [
-    ./standalone-forge.nix
-  ] ++ lib.optionals (hostName == "sentry") [
-    ./standalone-sentry.nix
-  ];
 in {
+  # Stylix: base16 scheme + target empowerment, shared with the NixOS-module path
+  # so both paths produce a fully-themed user env (previously only the
+  # NixOS-module path empowered targets, leaving standalone unthemed).
   stylix = {
     enable = true;
-    base16Scheme = stylixBase16;
+    base16Scheme = ../../modules/desktop/themes/osaka-jade.yaml;
     polarity = "dark";
-  };
-  imports = hmThirdParty ++ hmLeaf;
+  } // shared.stylixTargets;
+
+  imports = hmThirdParty ++ shared.leafModules ++ [
+    # Per-host package lists (gaming/mining/monitoring tools) — these live only
+    # here and are NOT in the NixOS-module path, so they deploy via `home-manager
+    # switch` (layer 2), not `just deploy` (layer 1).
+    ./standalone-zephyr.nix
+    ./standalone-nexus.nix
+    ./standalone-forge.nix
+    ./standalone-sentry.nix
+  ];
 
   programs.freebuff-desktop.enable = true;
 
