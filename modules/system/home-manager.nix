@@ -16,7 +16,7 @@
   # Guard the hermes wrapper symlink on this to avoid "attribute missing" errors.
   hasHermesCli = (builtins.tryEval options).value ? services.hermes-cli;
   # SINGLE SOURCE OF TRUTH for the user-env leaf set (issue #338).
-  shared = import ./shared-leaf-modules.nix { inherit lib pkgs; };
+  shared = import ../home-manager/shared-leaf-modules.nix { inherit lib pkgs; };
 in
   lib.mkIf hasHM {
     home-manager = {
@@ -79,8 +79,11 @@ in
           ++ lib.optional (hostName == "zephyr" || hostName == "sentry")
           ../../modules/home-manager/niri-config.nix;
 
-        # ── Stylix target empowerment (shared with standalone path) ──
-        stylix = shared.stylixTargets;
+        # Stylix target empowerment (shared with standalone path).
+        # Set ONLY stylix.targets here: the NixOS stylix module owns
+        # stylix.base16 (read-only, propagated to HM via followSystem), so
+        # assigning the whole `stylix` attr would redefine base16 and error.
+        stylix.targets = shared.stylixTargets.targets;
 
         # ── Additional explicit targets (mirror standalone) ──
         nixcord-config.enable = lib.mkForce (hostName == "zephyr");
