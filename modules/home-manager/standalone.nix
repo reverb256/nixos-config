@@ -92,9 +92,6 @@ in {
   home.stateVersion = "26.05";
   home.username = "j_kro";
 
-  # Hermes Desktop entry (inline test)
-  xdg.dataFile."applications/hermes-desktop.desktop".text = ""
-
   home.pointerCursor = {
     enable = true;
     package = pkgs.bibata-cursors;
