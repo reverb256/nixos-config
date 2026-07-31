@@ -1,7 +1,7 @@
 {
   description = "NixOS configuration with Garage and Syncthing storage";
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable"; # nixos-unstable as default; override per-package where necessary
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable"; # nixos-unstable as default; override per-package where necessary
     home-manager = {
       url = "git+https://github.com/nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
