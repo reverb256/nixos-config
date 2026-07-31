@@ -171,7 +171,6 @@ in {
     Namespace.auth.metadata.labels = pssLabels // {name = "auth";};
     Namespace.automation.metadata.labels = pssLabels // {name = "automation";};
     Namespace.kagent.metadata.labels = pssLabels // {name = "kagent";};
-    Namespace.kelos-system.metadata.labels = pssLabels // {name = "kelos-system";};
     Namespace.maplespike-dev.metadata.labels = pssLabels // {name = "maplespike-dev";};
     Namespace.mining.metadata.labels = pssLabels // {name = "mining";};
     Namespace.tailscale.metadata.labels = pssLabels // {name = "tailscale";};
