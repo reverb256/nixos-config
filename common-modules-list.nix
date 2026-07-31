@@ -10,7 +10,8 @@
   inputs.nur.modules.nixos.default
   inputs.sops-nix.nixosModules.default
   ./modules/system/sops-secrets-registry.nix
-  inputs.hermes-agent.nixosModules.default
+  # hermes-agent NixOS module REMOVED (issue #334) — Hermes is provided by the
+  # user nix profile, not nixos-config. See flake.nix for the dropped input.
 
   inputs.mcp-registry.nixosModules.default
 

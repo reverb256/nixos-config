@@ -109,12 +109,10 @@
     # linux-cachyos override — may not exist in all kernel flake versions, non-fatal if ignored
     # ── Inputs required by common-modules-list.nix (re-added after a drift where
     #    they were dropped from flake.nix but still referenced in the module list) ──
-    # hermes-agent - Hermes Agent NixOS module + packages
-    hermes-agent = {
-      url = "git+https://github.com/NousResearch/hermes-agent";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-parts.follows = "flake-parts";
-    };
+    # NOTE: hermes-agent input REMOVED (issue #334). Hermes is installed via
+    # `nix profile install github:NousResearch/hermes-agent` into the user
+    # profile; nixos-config no longer builds or manages the hermes-agent package
+    # (its importNpmLock offline prefetch of @nous-research/ui is broken).
     # mcp-registry - MCP server registry module
     mcp-registry = {
       url = "github:reverb256/mcp-registry";

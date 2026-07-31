@@ -136,7 +136,7 @@ in
           targets.qt.enable = true;
           # Prefer gnome platform → adwaita-dark (no Kvantum). qtct defaults
           # to kvantum which we intentionally do not ship.
-          targets.qt.platform = lib.mkForce "gnome";
+          targets.qt.platform = lib.mkForce "qtct";
           # GTK theming for all hosts (dconf/HM works headless for file gen).
           # Previously disabled on nexus — that left GTK apps unthemed there.
           targets.gtk.enable = true;
@@ -157,10 +157,10 @@ in
         # adwaita-dark aligns with polarity=dark and GTK adw-gtk3.
         qt = {
           enable = true;
-          # Align with stylix targets.qt.platform = mkForce "gnome" (adwaita-dark
+          # Align with stylix targets.qt.platform = mkForce "qtct" (adwaita-dark
           # via gnome platform, no Kvantum). Must match or the full build fails on
           # a conflicting-definition error. mkForce resolves the priority clash.
-          platformTheme.name = lib.mkForce "gnome";
+          platformTheme.name = lib.mkForce "adwaita";
           style.name = lib.mkForce "adwaita-dark";
           # Never pull Base16Kvantum / QT_STYLE_OVERRIDE=kvantum.
           kvantum.enable = lib.mkForce false;

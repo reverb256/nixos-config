@@ -67,7 +67,7 @@
     # crash risk; also fragile when theme files are missing).
     # mkForce: override stylix DE-detect (niri is neither pure GNOME nor pure
     # Plasma6, so the module would set qtct → kvantum).
-    targets.qt.platform = lib.mkForce "gnome";
+    targets.qt.platform = lib.mkForce "qtct";
 
     autoEnable = false;
 

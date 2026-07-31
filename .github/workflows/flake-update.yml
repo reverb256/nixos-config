@@ -125,7 +125,8 @@ jobs:
             Automated nixpkgs update.
 
             **WARNING**: nixpkgs update may trigger cascading rebuilds
-            including hermes-agent npm dependencies.
+            across the cluster. hermes-agent is no longer built by nixos-config
+            (installed via the user nix profile) — only system/nixpkgs rebuilds apply.
 
             Please review carefully before merging.
           branch: update/deps-nixpkgs

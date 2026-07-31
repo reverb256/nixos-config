@@ -236,7 +236,7 @@ in
     '';
 
     # ── Drop leftover Kvantum state (we no longer use kvantum) ─────
-    # Qt theming is adwaita-dark via stylix targets.qt.platform = "gnome".
+    # Qt theming is adwaita-dark via stylix targets.qt.platform = "qtct".
     # Remove any residual Base16Kvantum / kvantum.kvconfig from prior gens.
     home.activation.removeStaleKvantum = ''
       if [ -e "$HOME/.config/Kvantum" ]; then
