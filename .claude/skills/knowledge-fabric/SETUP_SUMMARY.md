@@ -333,10 +333,8 @@ services.ai-inference.gateway = {
   settings = {
     mcp_servers = [
       {
-        name = "searxng";
         type = "local";
         command = "python";
-        args = ["-m" "ai_inference_gateway.mcp_servers.searxng_server"];
         environment = {
           SEARXNG_URL = "http://10.1.1.120:30080";
         };

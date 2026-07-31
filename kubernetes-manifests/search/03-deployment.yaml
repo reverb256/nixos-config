@@ -2,44 +2,34 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: searxng
   namespace: search
   labels:
-    app: searxng
 spec:
   replicas: 1
   revisionHistoryLimit: 2
   selector:
     matchLabels:
-      app: searxng
   template:
     metadata:
       labels:
-        app: searxng
     spec:
       nodeName: nexus
       enableServiceLinks: false
       automountServiceAccountToken: false
       containers:
-      - name: searxng
-        image: searxng/searxng:2026.4.5-474b0a55b
         ports:
         - name: http
           containerPort: 8080
         env:
-        - name: SEARXNG_BASE_URL
           value: "https://search.cluster.local/"
         - name: INSTANCE_NAME
-          value: "searxng-cluster"
         - name: PORT
           value: "8080"
         volumeMounts:
         - name: settings
-          mountPath: /etc/searxng/settings.yml
           subPath: settings.yml
           readOnly: true
         - name: data
-          mountPath: /etc/searxng/data
         livenessProbe:
           httpGet:
             path: /healthz
@@ -64,17 +54,14 @@ spec:
       volumes:
       - name: settings
         configMap:
-          name: searxng-settings
       - name: data
         emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: searxng
   namespace: search
   labels:
-    app: searxng
 spec:
   type: ClusterIP
   ports:
@@ -82,4 +69,3 @@ spec:
     port: 8080
     targetPort: 8080
   selector:
-    app: searxng

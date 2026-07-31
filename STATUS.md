@@ -4,7 +4,7 @@
 **Last Data Snapshot:** 2026-05-24 04:27:12 ⚠ **STALE** (auto-generation appears offline; no scripted runs since 2026-05-24)
 **Refresh:** `./scripts/update-status.sh`
 
-> **2026-07-27 audit (F-21):** This doc's cluster-data snapshot is 2 months old. Several Known Issues at the bottom (SearXNG 403, monitor brightness, gaming detection) are stale or resolved. For current cluster state, see [`docs/audit-2026-07-27.md`](docs/audit-2026-07-27.md) and run `just cluster-status`. The `Last Edit` date is when the metadata was last touched, **not** when the underlying cluster data was captured.
+> **2026-07-27 audit (F-21):** This doc's cluster-data snapshot is 2 months old. Several Known Issues at the bottom (monitor brightness, gaming detection) are stale or resolved. SearXNG has been fully decommissioned. For current cluster state, see [`docs/audit-2026-07-27.md`](docs/audit-2026-07-27.md) and run `just cluster-status`. The `Last Edit` date is when the metadata was last touched, **not** when the underlying cluster data was captured.
 
 > **Quick Check:** Run `just cluster-status` to see current cluster state. This command works from any cluster host and proxies to zephyr for Kubernetes queries when needed.
 >
@@ -61,7 +61,7 @@ zephyr   Ready    <none>               47d   v1.36.1+k3s1
 | **Phase 1: Foundation** | ✅ COMPLETE | 100% | Control plane, networking, CoreDNS |
 | **Phase 2: Worker Nodes** | ✅ COMPLETE | 100% | All nodes joined, correct CIDRs, DNS functional |
 | **Phase 3: Stateful Services** | ✅ COMPLETE | 95% | **GlitchTip PostgreSQL migrated** (2026-03-19) |
-| **Phase 4: Stateless Services** | ✅ COMPLETE | 95% | **GlitchTip web/worker/redis, SearXNG migrated** (2026-03-19), Caddy Ingress, n8n, home-assistant |
+| **Phase 4: Stateless Services** | ✅ COMPLETE | 95% | **GlitchTip web/worker/redis migrated** (2026-03-19), Caddy Ingress, n8n, home-assistant |
 | **Phase 5: GPU Workloads** | ✅ COMPLETE | 95% | **llama.cpp deployed, Gateway integrated, tested** (2026-03-19) |
 | **Phase 6: Monitoring** | ✅ COMPLETE | 100% | Prometheus + Grafana running, **Caddy metrics configured** |
 | **Phase 7: Cleanup** | ✅ COMPLETE | 95% | **Removed obsolete manifests, finalized documentation** (2026-03-19) |
@@ -69,7 +69,6 @@ zephyr   Ready    <none>               47d   v1.36.1+k3s1
 **Overall Progress:** ✅ **95% COMPLETE** (All 7 phases finished, known issues remain)
 
 **Known Issues:**
-- ⚠️ **SearXNG search:** HTTP 403 errors from external engines, MCP gateway unable to use web search (2026-03-21)
 - ⚠️ **Monitor brightness:** ASUS/Acer displays not controllable via Plasma slider (EDID limitation, hardware workaround required)
 - ⚠️ **Gaming detection:** Using Volcano scheduler instead of YuniKorn (migration completed, docs need update)
 

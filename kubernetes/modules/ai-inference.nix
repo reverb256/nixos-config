@@ -854,29 +854,6 @@ in {
     ai-inference.Secret.ai-gateway-token = {
       type = "Opaque";
       stringData.GATEWAY_TOKEN = "";
-    };
-    # ── Additional NetworkPolicies ───────────────────────────────
-    ai-inference.NetworkPolicy.allow-search-to-gateway = {
-      spec = {
-        podSelector.matchLabels.app = "ai-inference-gateway";
-        policyTypes = ["Ingress"];
-        ingress = [
-          {
-            from = [
-              {
-                namespaceSelector.matchLabels.name = "search";
-              }
-            ];
-            ports = [
-              {
-                protocol = "TCP";
-                port = 8080;
-              }
-            ];
-          }
-        ];
-      };
-    };
     # Allow gateway ingress from ingress-system and intra-namespace
     ai-inference.NetworkPolicy.allow-gateway-ingress = {
       spec = {

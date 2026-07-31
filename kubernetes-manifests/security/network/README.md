@@ -50,20 +50,12 @@ monitoring → All pods (scraping)
 **Policy Type**: Restricted (web search service)
 **Policies**:
 - `default-deny-ingress`: Blocks all incoming traffic
-- `allow-web-ingress`: Web traffic to Searxng (TCP/7777)
-- `allow-external-apis`: Searxng → external search engines (HTTPS/443, HTTP/80)
 - `allow-dns`: DNS resolution
 - `allow-monitoring`: Prometheus scraping
-- `allow-redis-ingress`: Searxng → Redis (TCP/6379)
 
 **Communication Flows**:
 ```
-External Users → Searxng (TCP/7777 via NodePort 30080)
-Searxng → External APIs (HTTPS/443)
-Searxng → Redis (TCP/6379)
 ```
-
-**Verified**: ✅ Searxng accessible and functional (HTTP 200 tested)
 
 ---
 
@@ -130,8 +122,6 @@ Users → Grafana (TCP/3000)
 
 ### Automated Tests
 ```bash
-# Test Searxng accessibility
-kubectl port-forward -n search svc/searxng 7777:7777 &
 curl -I http://localhost:7777/
 # Expected: HTTP/1.1 200 OK
 
@@ -145,7 +135,6 @@ kubectl get networkpolicies --all-namespaces
 ```
 
 ### Manual Verification Checklist
-- [ ] Searxng web interface accessible
 - [ ] Provider bidding on leases
 - [ ] Cloudflare tunnel operational
 - [ ] Monitoring scraping all pods
@@ -158,14 +147,12 @@ kubectl get networkpolicies --all-namespaces
 
 ### External API Access (Justified)
 1. **Provider → Blockchain**: Required for lease bidding
-2. **Searxng → Search Engines**: Required for search functionality
 3. **AI Inference → Model Repos**: Required for model downloads
 4. **Glitchtip Worker → Integrations**: Required for error tracking (when enabled)
 
 ### Inter-Namespace Communication (Justified)
 1. **Monitoring → All Namespaces**: Required for metrics scraping
 2. **Services Internal**: Provider ↔ operators
-3. **Search Internal**: Searxng ↔ Redis
 
 ---
 

@@ -39,7 +39,6 @@ Use this skill when the user:
                     ┌──────────────────────────────────────┐
                     │         MCP Servers                   │
                     ├──────────────────────────────────────┤
-                    │ searxng           (web search)       │
                     │ context7          (documentation)    │
                     │ local MCP servers (configured in Nix) │
                     │ 4-5v-mcp-server    (Image analysis)   │

@@ -18,24 +18,18 @@ The Claude Code "web search" MCP functionality is broken due to:
 | Component | Status | Details |
 |-----------|--------|---------|
 | External SearXNG | ✅ Working | `https://search.reverb256.ca` responds with JSON API |
-| mcp-searxng PyPI | ✅ Working | Version 0.1.0 via `uvx --from mcp-searxng mcp-searxng` |
 | Other MCP servers | ✅ Working | filesystem, git, fetch, context7, playwright |
-| New wrapper script | ✅ Created | `/etc/nixos/modules/services/ai-inference/bin/searxng-mcp-wrapper` |
 
 ### Broken Components
 | Component | Issue | Action |
 |-----------|-------|--------|
-| `opencode-searxng-mcp` | Requires ai-inference-gateway package | Remove/Archive |
 | Local SearXNG (7777) | No systemd service or Docker container | Defer |
 | mcp-gateway-bridge | Gateway not running at `http://ai.cluster.local` | Remove from config |
 | Brave Search MCP | Missing `BRAVE_API_KEY` | Defer |
 
 ### Configuration Locations
 1. `/etc/nixos/.mcp.json` - Main MCP config (updated)
-2. `/etc/nixos/skills/searxng-mcp/server.py` - Standalone server (broken)
-3. `/etc/nixos/scripts/searxng-default-search.sh` - Integration test script
 4. `/etc/nixos/scripts/test-search.sh` - Search wrapper tests
-5. `/etc/nixos/modules/services/ai-inference/bin/opencode-searxng-mcp` - Old wrapper
 
 ---
 
@@ -56,28 +50,21 @@ curl -s "https://search.reverb256.ca/search?q=nixos&format=json" | jq '.results 
 ```bash
 # Test wrapper with MCP handshake
 echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}' | \
-SEARXNG_URL="https://search.reverb256.ca" timeout 10 /etc/nixos/modules/services/ai-inference/bin/searxng-mcp-wrapper
 # Expected: Valid JSON-RPC response with serverInfo
 ```
 
 #### Task 1.3: Update .mcp.json
-- [x] Change `searxng.command` to use new wrapper
-- [x] Keep `SEARXNG_URL` pointing to external instance
 - [ ] Remove `gateway` server entry (not working)
 - [ ] Verify file is not immutable
 
 #### Task 1.4: Remove Broken Components
 ```bash
 # Archive old wrapper
-mv /etc/nixos/modules/services/ai-inference/bin/opencode-searxng-mcp \
-   /etc/nixos/modules/services/ai-inference/bin/opencode-searxng-mcp.broken
 
 # Archive standalone server (requires mcp package not in PATH)
-mv /etc/nixos/skills/searxng-mcp /etc/nixos/skills/searxng-mcp.archived
 ```
 
 #### Task 1.5: Update Test Scripts
-- Update `scripts/searxng-default-search.sh` to test only working components
 - Create simple test script that verifies external SearXNG + wrapper
 
 #### Task 1.6: Verification
@@ -86,7 +73,6 @@ mv /etc/nixos/skills/searxng-mcp /etc/nixos/skills/searxng-mcp.archived
 (echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}'; \
  sleep 0.5; \
  echo '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search","arguments":{"query":"nixos flakes"}}}') | \
-SEARXNG_URL="https://search.reverb256.ca" timeout 30 /etc/nixos/modules/services/ai-inference/bin/searxng-mcp-wrapper
 # Expected: JSON response with search results
 ```
 
@@ -115,8 +101,6 @@ SEARXNG_URL="https://search.reverb256.ca" timeout 30 /etc/nixos/modules/services
 
 #### Option A: Local SearXNG Deployment
 ```nix
-# modules/services/searxng.nix
-services.searxng = {
   enable = true;
   settings = {
     server.port = 7777;
@@ -165,7 +149,6 @@ services.searxng = {
 
 If Phase 1 fails:
 1. Restore original `.mcp.json` from backup
-2. Unarchive `opencode-searxng-mcp` if needed
 3. Document what failed for future attempts
 
 ---
@@ -183,11 +166,6 @@ If Phase 1 fails:
 | File | Action | Priority |
 |------|--------|----------|
 | `/etc/nixos/.mcp.json` | Update, remove gateway | High |
-| `bin/opencode-searxng-mcp` | Archive | High |
-| `bin/searxng-mcp-wrapper` | Keep (working) | High |
-| `skills/searxng-mcp/` | Archive | Medium |
-| `scripts/searxng-default-search.sh` | Update | Medium |
-| `scripts/test-searxng-direct.sh` | Keep (new) | Low |
 
 ---
 
@@ -196,4 +174,3 @@ If Phase 1 fails:
 - External SearXNG instance is reliable and privacy-respecting
 - `uvx` pattern works well for Python-based MCP servers
 - Consider adding fallback URL in wrapper for resilience
-- Monitor PyPI `mcp-searxng` package for updates

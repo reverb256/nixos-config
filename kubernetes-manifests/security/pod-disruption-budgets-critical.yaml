@@ -19,13 +19,11 @@ spec:
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: searxng-pdb
   namespace: search
 spec:
   minAvailable: 1
   selector:
     matchLabels:
-      app: searxng
 
 ---
 # Caddy Ingress PDB

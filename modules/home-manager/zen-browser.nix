@@ -546,8 +546,8 @@ in {
 
       search = {
         force = true;
-        default = "searxng";
-        privateDefault = "searxng";
+        default = "duckduckgo";
+        privateDefault = "duckduckgo";
         order = [
           "searxng"
           "google"
