@@ -33,9 +33,10 @@
     };
   });
 
-  # 2026-07-30: dufs 0.46.0 has failing network bind tests in sandbox.
-  # Disable tests — it's a CLI file server, network tests are environment-sensitive.
+  # 2026-07-30: dufs 0.46.0 has flaky network bind tests that fail in sandbox.
+  # Disable cargo tests entirely — it's a CLI file server, tests are env-sensitive.
   dufs = prev.dufs.overrideAttrs (old: {
     doCheck = false;
+    checkFlags = [ "--skip" ];
   });
 }
