@@ -1,20 +1,5 @@
 { pkgs, lib, ... }:
 let
-  # Resilient package inclusion: return `[pkg]` only if `name` exists in pkgs
-  # AND evaluates to a derivation WITHOUT throwing. `tryEval` guards against
-  # packages that refuse evaluation in the active nixpkgs (e.g. vllm-env). When a
-  # package becomes evaluable, it is picked up automatically on the next build.
-  safePkg = name:
-    if builtins.hasAttr name pkgs
-    then
-      let r = builtins.tryEval pkgs.${name};
-      in if r.success
-           && builtins.isAttrs r.value
-           && r.value ? type
-           && r.value.type == "derivation"
-         then [ r.value ]
-         else []
-    else [];
   # cudnn is a nested attr (cudaPackages.cudnn); guard via tryEval (nested path
   # access can throw even when the parent exists).
   cudnn =
@@ -26,6 +11,11 @@ let
        then [ r.value ]
        else [];
 in {
+  # NOTE: GPU/ML tooling (vllm-env and similar) is intentionally NOT managed by
+  # Home Manager here. vllm-env is unavailable in the current nixpkgs and CUDA/ML
+  # stacks belong in Layer 3 (nix profile), where a working flake/overlay can be
+  # pinned independently of the HM cadence. HM (Layer 2) owns config + stable
+  # user packages; heavy ML binaries deploy via `nix profile install` (Layer 3).
   home.packages = with pkgs; [
     alacritty
     kitty
@@ -36,8 +26,7 @@ in {
     tmux
     lazygit
     ollama
-  ] ++ safePkg "vllm-env"
-    ++ cudnn;
+  ] ++ cudnn;
 
   home.sessionVariables = lib.mkIf (cudnn != []) {
     CUDA_HOME = "/run/opengl-driver";
