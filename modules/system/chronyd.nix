@@ -36,7 +36,7 @@
     initstepthreshold = 1.0;
 
     # Drift file for stable corrections between syncs
-    driftfile = "/var/lib/chrony/drift";
+    directory = "/var/lib/chrony";
 
     # Real-time scheduling for better accuracy
     realTimeScheduling = true;
