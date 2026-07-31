@@ -1,16 +1,19 @@
 { pkgs, lib, ... }:
 let
   # Resilient package inclusion: return `[pkg]` only if `name` exists in pkgs
-  # AND evaluates to a derivation. `hasAttr` is checked first (no throwing
-  # access), so missing packages (e.g. vllm-env, lolMiner) don't error. Broken
-  # / refuse-evaluation packages are skipped too. When a package becomes
-  # available, it is picked up automatically on next build.
+  # AND evaluates to a derivation WITHOUT throwing. `tryEval` guards against
+  # packages that refuse evaluation in the active nixpkgs (e.g. t-rex, which is
+  # marked broken). When a package becomes evaluable, it is picked up
+  # automatically on the next build — no manual re-enable needed.
   safePkg = name:
     if builtins.hasAttr name pkgs
     then
-      let p = pkgs.${name};
-      in if builtins.isAttrs p && p ? type && p.type == "derivation"
-         then [ p ]
+      let r = builtins.tryEval pkgs.${name};
+      in if r.success
+           && builtins.isAttrs r.value
+           && r.value ? type
+           && r.value.type == "derivation"
+         then [ r.value ]
          else []
     else [];
 in {

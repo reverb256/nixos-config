@@ -13,12 +13,21 @@ error:
          at «internal»:1:552:
        (stack trace truncated; use '--show-trace' to show the full trace)
 
-       error: attribute 'lolMiner' missing
-       at /nix/store/pg9isi4wgg5rx0ynhh3bmqryxk8m9x56-source/modules/home-manager/standalone-forge.nix:8:35:
-            7|   safePkg = name:
-            8|     let r = builtins.tryEval pkgs.${name};
-             |                                   ^
-            9|     in if r.success
+       error: Refusing to evaluate package 't-rex-0.15.0-alpha3' in /nix/store/lj0fr41wwbrx2mwq2378jg8qrns7b93d-source/pkgs/by-name/t-/t-rex/package.nix:34 because it has problems:
+       - broken: This package is broken.
+
+       See also https://nixos.org/manual/nixpkgs/unstable#sec-problems
+       To allow evaluation regardless, use:
+       - Nixpkgs import: import nixpkgs { config = <below code>; }
+       - NixOS: nixpkgs.config = <below code>;
+       - nix-* commands: Put below code in ~/.config/nixpkgs/config.nix
+
+         {
+           problems.handlers = {
+             t-rex.broken = "warn"; # or "ignore"
+           };
+         }
+
 
        note: trace involved the following derivations:
        derivation 'home-manager-generation'

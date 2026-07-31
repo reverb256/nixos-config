@@ -1,21 +1,30 @@
 { pkgs, lib, ... }:
 let
   # Resilient package inclusion: return `[pkg]` only if `name` exists in pkgs
-  # AND evaluates to a derivation. `hasAttr` is checked first (no throwing
-  # access), so missing packages (e.g. vllm-env) don't error. When a package
-  # becomes available, it is picked up automatically on next build.
+  # AND evaluates to a derivation WITHOUT throwing. `tryEval` guards against
+  # packages that refuse evaluation in the active nixpkgs (e.g. vllm-env). When a
+  # package becomes evaluable, it is picked up automatically on the next build.
   safePkg = name:
     if builtins.hasAttr name pkgs
     then
-      let p = pkgs.${name};
-      in if builtins.isAttrs p && p ? type && p.type == "derivation"
-         then [ p ]
+      let r = builtins.tryEval pkgs.${name};
+      in if r.success
+           && builtins.isAttrs r.value
+           && r.value ? type
+           && r.value.type == "derivation"
+         then [ r.value ]
          else []
     else [];
-  # cudnn is a nested attr (cudaPackages.cudnn); guard via hasAttr chain.
+  # cudnn is a nested attr (cudaPackages.cudnn); guard via tryEval (nested path
+  # access can throw even when the parent exists).
   cudnn =
-    if pkgs ? cudaPackages && pkgs.cudaPackages ? cudnn
-    then [ pkgs.cudaPackages.cudnn ] else [];
+    let r = builtins.tryEval pkgs.cudaPackages.cudnn;
+    in if r.success
+         && builtins.isAttrs r.value
+         && r.value ? type
+         && r.value.type == "derivation"
+       then [ r.value ]
+       else [];
 in {
   home.packages = with pkgs; [
     alacritty

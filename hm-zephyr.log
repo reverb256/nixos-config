@@ -1,5 +1,4 @@
 fetching git input 'git+file:///data/projects/own/nixos-config-338'
-warning: Git tree '/data/projects/own/nixos-config-338' is dirty
 warning: input 'flake-parts' has an override for a non-existent input 'nixpkgs'
 trace: warning: `programs.ssh` default values will be removed in the future.
 Consider setting `programs.ssh.enableDefaultConfig` to false,
@@ -18,7 +17,6 @@ warning: The xorg package set has been deprecated, 'xorg.libxcb' has been rename
 warning: The xorg package set has been deprecated, 'xorg.libxcb' has been renamed to 'libxcb'
 warning: The xorg package set has been deprecated, 'xorg.libxkbfile' has been renamed to 'libxkbfile'
 warning: The xorg package set has been deprecated, 'xorg.libXScrnSaver' has been renamed to 'libxscrnsaver'
-warning: Git tree '/data/projects/own/nixos-config-338' is dirty
 warning: input 'flake-parts' has an override for a non-existent input 'nixpkgs'
 trace: warning: `programs.ssh` default values will be removed in the future.
 Consider setting `programs.ssh.enableDefaultConfig` to false,
