@@ -67,7 +67,6 @@ git push origin issue-NNN-desc
 gh pr create --base main --head issue-NNN-desc --title "type: description (#NNN)" --body "Closes #NNN"
 ```
 
-
 ## Cluster Overview
 
 | Host | IP | Role | RAM | GPUs |
@@ -100,7 +99,6 @@ gh pr create --base main --head issue-NNN-desc --title "type: description (#NNN)
 6. Use `just sync-nodes` only to synchronize remote checkouts; it is not a substitute for deployment
 
 NFS may still be used by explicitly configured storage workloads, but it is not the configuration source-of-truth or deployment mechanism.
-
 
 ## Self-Hosted GitHub Actions Runner
 
@@ -145,7 +143,6 @@ Tool packages available on nexus via `environment.systemPackages`:
 ### Registration
 The runner is registered with GitHub for `reverb256/nixos-config` using the official runner configuration script. Re-registration requires a fresh token from GitHub Actions settings.
 
-
 ## Extracted Projects (7)
 
 Non-system projects live in `/data/projects/own/` as standalone flakes:
@@ -161,8 +158,6 @@ Non-system projects live in `/data/projects/own/` as standalone flakes:
 | hermes-chat | (local package) | Hermes Agent desktop client |
 | mcp-registry | `mcp-registry` | MCP server management |
 | vllm-turboquant | `vllm-turboquant` | vLLM + TurboQuant container build |
-
-> NOTE: `searxng-cluster` is NOT extracted — not in flake.nix inputs. Lives in `kubernetes/modules/searxng.nix` via easykubenix.
 
 ## Project Structure
 
@@ -366,7 +361,6 @@ repository guardrails are unsuitable.
 - `container-scanning.nix` is imported in `default.nix` (auto-enabled when Podman is enabled)
 - GitHub Actions pinned to commit SHAs
 
-
 ## Central SSO Authentication
 
 **Architecture:** Casdoor OIDC (auth.lan) → oauth2-proxy (central-auth.service) → Caddy forward_auth
@@ -376,7 +370,7 @@ repository guardrails are unsuitable.
 
 | Type | Services | Auth Method |
 |------|----------|-------------|
-| Public (no auth) | searxng.lan, dashboard.lan, gitea.lan, vaultwarden.lan, n8n.lan | Own auth or none |
+| Public (no auth) | dashboard.lan, gitea.lan, vaultwarden.lan, n8n.lan | Own auth or none |
 | Proxy SSO (forward_auth) | haven.lan, kagent.lan, grafana.lan, mission-control.lan, qdrant.lan, brain.lan, ai-inference.lan, workspace.lan | Caddy -> oauth2-proxy -> Casdoor |
 | Native OIDC (direct to Casdoor) | grafana.lan (also behind forward_auth), ai-inference.lan (JWT/JWKS for API), gitea.lan, openwebui.lan | Direct Casdoor app |
 
@@ -573,8 +567,8 @@ These are **flake inputs** defined in `flake.nix` (line ~106), NOT NixOS modules
 **Claude Code:** `nix run /etc/nixos#kubernetes-mcp-server` and `nix run /etc/nixos#nixos-cluster-mcp` (stdio)
 **Hermes:** SSE URL for kubernetes, stdio for others (see `~/.hermes/config.yaml`)
 **OpenCode:** 8 MCP servers + 4 model providers via `~/.config/opencode/opencode.json` (`type: "local"` + command array). Local models: vLLM (8040), llama.cpp Zephyr (1237), llama.cpp Sentry (1235).
-**OmP:** MCP servers via `~/.omp/agent/mcp.json` — kubernetes, nixos-cluster, github, git, hound, casdoor, gateway, context7, filesystem, lightpanda. Local models via `~/.omp/agent/models.json`. SearXNG and fetch replaced by Hound.
-**PI:** MCP servers via `~/.pi/agent/mcp.json` — kubernetes, nixos-cluster, github, git, hound, casdoor, selfhosted-tools. Local models via `~/.pi/agent/models.json`. SearXNG replaced by Hound.
+**OmP:** MCP servers via `~/.omp/agent/mcp.json` — kubernetes, nixos-cluster, github, git, hound, casdoor, gateway, context7, filesystem, lightpanda. Local models via `~/.omp/agent/models.json`. Fetch replaced by Hound.
+**PI:** MCP servers via `~/.pi/agent/mcp.json` — kubernetes, nixos-cluster, github, git, hound, casdoor, selfhosted-tools. Local models via `~/.pi/agent/models.json`. 
 **Registry:** `modules/services/mcp-server-registry.nix` — single source of truth
 **Full plan:** `docs/plans/2026-05-01-mcp-system-plan.md`
 
@@ -586,7 +580,6 @@ These are **flake inputs** defined in `flake.nix` (line ~106), NOT NixOS modules
 | nixos-cluster | `nix run /etc/nixos#nixos-cluster-mcp` | 15 (cluster_status, node_info, gpu_inventory, etc.) | ✅ Working |
 | kubernetes | `nix run /etc/nixos#kubernetes-mcp-server` | 14 (pods_list, events_list, resources_*) | ✅ Working |
 | hound | `/data/agents/mcp-bridges/hound-mcp.sh` | 6 (mcp_smart_fetch, mcp_smart_crawl, mcp_smart_search, mcp_screenshot, cache_clear, version) | ✅ Working (replaces searxng + fetch) |
-| searxng | `/data/agents/mcp-bridges/searxng-mcp.sh` | 15 (web_search, search_code, etc.) | 🔄 Replaced by hound smart_search |
 | selfhosted-tools | `/data/agents/mcp-bridges/selfhosted-mcp.sh` | 15 (web_reader, read_github_file, etc.) | ✅ Working |
 | git | `/data/agents/mcp-bridges/git-mcp.sh` | 29 (git_log, git_diff, git_status, etc.) | ✅ Working |
 | casdoor | `/data/agents/mcp-bridges/opencode-casdoor-bridge.py` | 5 (get_applications, etc.) | ✅ Working |
@@ -608,7 +601,6 @@ These are **flake inputs** defined in `flake.nix` (line ~106), NOT NixOS modules
 | nixos-cluster | `cluster_status`, `node_info`, `gpu_inventory`, `gateway_health`, `pod_status`, `check_models` |
 | kubernetes | `pods_list`, `pods_get`, `pods_log`, `pods_exec`, `pods_run`, `events_list`, `resources_list` |
 | github | `list_repositories`, `search_repositories`, `get_file_contents`, `list_commits`, `list_issues`, `list_pull_requests`, `create_pull_request` |
-| searxng | `web_search`, `search_code`, `search_github`, `search_stackoverflow`, `search_nixos_options` |
 | selfhosted-tools | `web_reader`, `read_github_file`, `search_github_repo`, `get_github_repo_structure`, `get_github_commits` |
 | casdoor | `get_applications`, `get_application`, `add_application`, `update_application`, `delete_application` |
 
@@ -789,7 +781,6 @@ Security Hardening table. This was a misnamed/mis-scoped commit that:
 These were recovered on 2026-07-30 and audited against git history. The incident
 highlights the need to scope commits to their stated purpose.
 
-
 ### Resolved (2026-05-14)
 - K8s Tailscale Funnel live: 5 ingresses via operator, ProxyGroup 2/2, host funnel disabled
 - Funnel manifests committed to Nix at kubernetes-manifests/tailscale/
@@ -801,7 +792,6 @@ highlights the need to scope commits to their stated purpose.
 - Data source expansion plan written (7 modules, 4 phases)
 
 ## Reference
-
 
 | Document | Purpose |
 |----------|---------|

@@ -39,6 +39,7 @@
   # keys (see oomd-fleet.nix header). Loaded AFTER secretspec modules so
   # default-priority overrides compose correctly.
   ./modules/system/oomd-fleet.nix
+  ./modules/system/chronyd.nix
 
   # cluster.localSealSupport module removed (Phase 1b/1c, 2026-07-25).
   # Now using upstream secretspec 0.17.0 from nixpkgs-secretspec flake input.
