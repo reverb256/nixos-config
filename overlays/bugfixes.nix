@@ -32,12 +32,4 @@
       dontCheck = true;
     });
   };
-
-  # 2026-07-30: nixpkgs-unstable: tcl-8_6 alias regression in python-packages.nix.
-  # Override the tkinter build to use prev.tcl (which is 8.6) instead.
-  "python3.14-tkinter" = prev.python3Packages.tkinter.override {
-    tcl = _final.tcl;
-    tk = _final.tk;
-  };
-
 }

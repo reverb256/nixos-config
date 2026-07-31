@@ -94,7 +94,8 @@
     consoleMode = "auto";
     graceful = lib.mkDefault false;
     editor = lib.mkDefault false;
-    edk2-uefi-shell.enable = lib.mkDefault true;
+    # 2026-07-30: disabled to break python3->tkinter->tcl-8_6 eval chain
+    edk2-uefi-shell.enable = lib.mkDefault false;
     memtest86.enable = lib.mkDefault true;
   };
 
