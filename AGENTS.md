@@ -371,7 +371,7 @@ repository guardrails are unsuitable.
 | Type | Services | Auth Method |
 |------|----------|-------------|
 | Public (no auth) | dashboard.lan, gitea.lan, vaultwarden.lan, n8n.lan | Own auth or none |
-| Proxy SSO (forward_auth) | haven.lan, kagent.lan, grafana.lan, mission-control.lan, qdrant.lan, brain.lan, ai-inference.lan, workspace.lan | Caddy -> oauth2-proxy -> Casdoor |
+| Proxy SSO (forward_auth) | haven.lan, grafana.lan, mission-control.lan, qdrant.lan, brain.lan, ai-inference.lan, workspace.lan | Caddy -> oauth2-proxy -> Casdoor |
 | Native OIDC (direct to Casdoor) | grafana.lan (also behind forward_auth), ai-inference.lan (JWT/JWKS for API), gitea.lan, openwebui.lan | Direct Casdoor app |
 
 ### Native OIDC Support Matrix (audited 2026-05-14)
@@ -392,7 +392,7 @@ repository guardrails are unsuitable.
 
 ### Stale OIDC Secrets (cleaned up 2026-07-14)
 
-Three K8s secrets (`haven-oidc`, `mission-control-oidc`, `kagent-oidc`) were
+Three K8s secrets (`haven-oidc`, `mission-control-oidc`) were
 removed in the 2026-07-14 audit — they were never mounted or referenced by any pod.
 The `casdoor-app-sync` systemd service handles the real oauth2-proxy Casdoor app.
 
@@ -492,7 +492,7 @@ Unbound on all nodes with `local-zone "lan." static`.
 ### ⚠️ No K8s Sidecars
 
 Do NOT deploy oauth2-proxy as K8s sidecar containers. Use the `central-auth` NixOS service instead.
-Sidecars were removed 2026-05-02 from: haven, openwebui, kagent-ui, mission-control, llama-server-sentry, llama-server-zephyr-3090-moe.
+Sidecars were removed 2026-05-02 from: haven, openwebui, mission-control, llama-server-sentry, llama-server-zephyr-3090-moe.
 Auth is handled exclusively by Caddy `forward_auth` -> local `central-auth` (oauth2-proxy) on zephyr + nexus.
 
 ### Nexus DE VM (libvirt/QEMU — migrated from KubeVirt 2026-07-14)

@@ -36,7 +36,6 @@ Brief catalog of running cluster services for context-window savings when prompt
 | **glitchtip** | Sentry-alternative error tracking | Postgres in-cluster; ingress via Caddy |
 | **casdoor** | central OIDC IdP | see SOPS-NIX.md for auth integration; runs on nexus |
 | **mission-control** | orchestration dashboard at `mission-control.lan` | behind forward_auth; exposes AI agent seed-tasks |
-| **kagent** | k8s operations agent | behind forward_auth; cluster-synced; see `INFRASTRUCTURE-AUDIT.md` |
 | **frostbite-postgres** | Postgres for AI/inference namespace | single-replica StatefulSet on sentry; backs Qdrant + privacy-filter |
 | **hermes-profile** | per-user ~/.hermes env expansion | sourced by `local/.hermes-profile`; unrelated to vaultwarden-secret-source plugin |
 | **maplespike-portal** | portal UI at `maplespike.lan` | development namespace; Caddy forward_auth |
