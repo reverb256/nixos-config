@@ -95,14 +95,7 @@
       '';
     };
 
-    chrony = {
-      enable = true;
-      servers = [
-        "time.cloudflare.com"
-        "time.google.com"
-      ];
-    };
-    timesyncd.enable = lib.mkForce false;
+    # chrony configured in modules/system/chronyd.nix (#246)
 
     tailscale.enable = true;
   };

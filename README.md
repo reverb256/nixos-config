@@ -77,7 +77,6 @@ state as current.
 | knowledge-fabric | `/data/projects/own/knowledge-fabric` | Knowledge base system |
 | llama-cpp-turboquant | `/data/projects/own/llama-cpp-turboquant` | TurboQuant llama.cpp |
 | mcp-registry | `/data/projects/own/mcp-registry` | MCP server management |
-| searxng-cluster | `/data/projects/own/searxng-cluster` | Self-hosted search |
 
 These are referenced as **flake inputs** in `flake.nix` - each project maintains its own versioning and build process.
 

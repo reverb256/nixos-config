@@ -805,7 +805,7 @@ All CI workflows (`.github/workflows/`) pin actions to immutable commit SHAs ins
 - **Nodes**: 4/4 Ready (Zephyr, Nexus, Forge, Sentry)
 - **Control Plane**: 3-node HA (Zephyr, Nexus, Sentry) with Keepalived VIP
 - **Migration Progress**: 95% complete (Phases 1-7)
-- **Key Services**: Caddy Ingress, GlitchTip, SearXNG, n8n, home-assistant
+- **Key Services**: Caddy Ingress, GlitchTip, n8n, home-assistant
 
 ### Key Features
 - **GPU Marketplace**: Dynamic GPU allocation (mining/K8s/gaming)
