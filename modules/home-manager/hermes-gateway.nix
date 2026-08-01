@@ -35,6 +35,21 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
+    # The profile installs hermes as SPLIT packages (hermes-agent-env,
+    # hermes-tui, hermes-web, hermes-desktop) — bin/hermes is the RAW env
+    # script, so the upstream wrapper's HERMES_TUI_DIR wiring (makeWrapper in
+    # the `default` package, nix/hermes-agent.nix) is never applied. Without it,
+    # `hermes --tui`/`--resume` fails with "TUI workspace is missing from this
+    # Hermes checkout". Point it at the profile's stable hermes-tui path (a
+    # symlink to the current generation — self-healing across `nix profile
+    # upgrade`, same pattern as %h/.nix-profile below).
+    #
+    # NOTE: gated on programs.hermes-gateway.enable (the gateway unit) even
+    # though it feeds the interactive TUI — zephyr always runs both, so this is
+    # the pragmatic single gate. If a host ever disables the gateway but still
+    # wants the TUI, move this var to an unconditional shared spot.
+    home.sessionVariables.HERMES_TUI_DIR = "${config.home.homeDirectory}/.nix-profile/lib/hermes-tui";
+
     systemd.user.services.hermes-gateway = {
       Unit = {
         Description = "Hermes Agent Gateway - Messaging Platform Integration";
