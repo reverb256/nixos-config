@@ -12,9 +12,11 @@
 # Fix: exec through %h/.nix-profile, which systemd resolves to
 # /home/<user>/.nix-profile — a symlink to the CURRENT profile generation.
 # The unit therefore always runs the up-to-date env and self-heals across
-# `nix profile upgrade` with zero maintenance. Only the messaging gateway
-# (`hermes_cli.main gateway run`) is declared here; the TUI launches its own
-# gateway child from its own interpreter.
+# `nix profile upgrade` with zero maintenance. The messaging gateway
+# (`hermes_cli.main gateway run`) is declared here (the TUI launches its own
+# gateway child from its own interpreter); this module ALSO ships the
+# HERMES_TUI_DIR fish conf.d export below (the split-profile install's raw
+# bin/hermes lacks the upstream wrapper's TUI wiring).
 {
   config,
   lib,
