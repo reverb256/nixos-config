@@ -127,6 +127,10 @@ in {
       hostNames = ["krash2" hosts.krash2.ip];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA5ioQaftrkEOGFW3Xs/Db9r8tf5TcegVbzwPDknbFzS";
     };
+    krash3 = {
+      hostNames = ["krash3" "10.1.1.150"];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILH4anz65+SKAJOmF94T0YXOFbRmtlMMrC0PEhcLvT2n";
+    };
   };
 
   users.users.j_kro.openssh.authorizedKeys.keys = meshKeys;
@@ -183,6 +187,13 @@ in {
       Port 22
       User krash
       IdentityFile ~/.ssh/id_ed25519_cluster
+      IdentitiesOnly yes
+      StrictHostKeyChecking accept-new
+
+    Host krash3 10.1.1.150
+      HostName 10.1.1.150
+      User j_kro
+      IdentityFile ~/.ssh/id_ed25519
       IdentitiesOnly yes
       StrictHostKeyChecking accept-new
 
