@@ -4,7 +4,6 @@
   ...
 }: let
   postgresImage = "docker.io/library/postgres:16-alpine";
-  targetNode = "nexus";
   ns = "ai-inference";
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";
@@ -292,115 +291,11 @@ in {
       };
     };
 
-    # MCP server - image deprecated and removed, replace with new MCP server image
-    frostbite.Deployment.frostbite-mcp = {
-      metadata.labels =
-        managed
-        // {
-          app = "frostbite-mcp";
-          "app.kubernetes.io/component" = "mcp-server";
-        };
-      spec = {
-        replicas = 1;
-        selector.matchLabels = {app = "frostbite-mcp";};
-        template = {
-          metadata.labels = {
-            app = "frostbite-mcp";
-            "app.kubernetes.io/component" = "mcp-server";
-          };
-          spec = {
-            nodeName = targetNode;
-            securityContext = {
-              runAsUser = 0;
-              runAsGroup = 0;
-              fsGroup = 100;
-            };
-            containers = {
-              _namedlist = true;
-              mcp = {
-                image = "none"; # FIXME: MCP server image removed, replace with new image
-                imagePullPolicy = "IfNotPresent";
-                ports._namedlist = true;
-                ports.http = {
-                  containerPort = 3002;
-                  protocol = "TCP";
-                };
-                env = {
-                  _namedlist = true;
-                  PG_HOST = {
-                    name = "PG_HOST";
-                    value = "frostbite-postgres";
-                  };
-                  PG_DB = {
-                    name = "PG_DB";
-                    value = "frostbite";
-                  };
-                  PG_USER = {
-                    name = "PG_USER";
-                    value = "frostbite";
-                  };
-                  PG_PASSWORD.valueFrom.secretKeyRef = {
-                    name = "frostbite-secrets";
-                    key = "postgres-password";
-                  };
-                  STATCAN_WDS_URL = {
-                    name = "STATCAN_WDS_URL";
-                    value = "https://www150.statcan.gc.ca/t1/wds/rest";
-                  };
-                  PORT = {
-                    name = "PORT";
-                    value = "3002";
-                  };
-                };
-                resources = {
-                  requests = {
-                    cpu = "100m";
-                    memory = "128Mi";
-                  };
-                  limits = {
-                    cpu = "500m";
-                    memory = "512Mi";
-                  };
-                };
-                livenessProbe = {
-                  httpGet = {
-                    path = "/health";
-                    port = 3002;
-                  };
-                  initialDelaySeconds = 30;
-                  periodSeconds = 60;
-                };
-                readinessProbe = {
-                  httpGet = {
-                    path = "/health";
-                    port = 3002;
-                  };
-                  initialDelaySeconds = 60;
-                  periodSeconds = 10;
-                };
-              };
-            };
-            volumes = {
-              _namedlist = true;
-            };
-          };
-        };
-      };
-    };
-
-    Service.frostbite-mcp = {
-      metadata.labels = managed // {app = "frostbite-mcp";};
-      spec = {
-        type = "NodePort";
-        selector = {app = "frostbite-mcp";};
-        ports._namedlist = true;
-        ports.http = {
-          port = 3002;
-          targetPort = 3002;
-          nodePort = 30760;
-          protocol = "TCP";
-        };
-      };
-    };
+    # MCP server: image was deprecated and removed (image = "none" can never
+    # pull, so the Deployment + Service sat in ImagePullBackOff forever).
+    # REMOVED 2026-08-01. Re-add BOTH the Deployment and Service blocks here
+    # when a replacement MCP server image exists (was: NodePort 30760 →
+    # containerPort 3002, nodeName nexus, app label frostbite-mcp).
   };
 }
+

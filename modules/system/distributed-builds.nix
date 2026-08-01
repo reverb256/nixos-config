@@ -22,48 +22,27 @@ in {
         "@wheel"
       ];
 
-      substituters = lib.mkForce (
-        if currentHost == "zephyr"
-        then [
-          "http://10.1.1.110:50000?priority=40&want-mass-query=true"
+      # Identical lists on every host (zephyr/else branches were identical —
+      # collapsed 2026-08-01). The zephyr-cache substituter points at zephyr's
+      # local binary cache (10.1.1.110:50000), which is reachable cluster-wide.
+      substituters = lib.mkForce [
+        "http://10.1.1.110:50000?priority=40&want-mass-query=true"
         "https://cache.nixos.org"
-          "https://nix-community.cachix.org"
-          "https://reverb-os.cachix.org"
-          "https://maplespike.cachix.org"
-          "https://ezkea.cachix.org"
-          "https://nix-gaming.cachix.org"
-        ]
-        else [
-          "http://10.1.1.110:50000?priority=40&want-mass-query=true"
-        "https://cache.nixos.org"
-          "https://nix-community.cachix.org"
-          "https://reverb-os.cachix.org"
-          "https://maplespike.cachix.org"
-          "https://ezkea.cachix.org"
-          "https://nix-gaming.cachix.org"
-        ]
-      );
-      trusted-public-keys = lib.mkForce (
-        if currentHost == "zephyr"
-        then [
-          "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU="
+        "https://nix-community.cachix.org"
+        "https://reverb-os.cachix.org"
+        "https://maplespike.cachix.org"
+        "https://ezkea.cachix.org"
+        "https://nix-gaming.cachix.org"
+      ];
+      trusted-public-keys = lib.mkForce [
+        "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU="
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-          "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-          "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1q2jYzI="
-          "maplespike.cachix.org-1:P6v8AHkRYDKI/xc4/OYIvMcwumkD9EafWnYERWWngYg="
-          "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
-          "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
-        ]
-        else [
-          "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU="
-          "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-          "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-          "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1q2jYzI="
-          "maplespike.cachix.org-1:P6v8AHkRYDKI/xc4/OYIvMcwumkD9EafWnYERWWngYg="
-          "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
-          "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
-        ]
-      );
+        "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+        "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1q2jYzI="
+        "maplespike.cachix.org-1:P6v8AHkRYDKI/xc4/OYIvMcwumkD9EafWnYERWWngYg="
+        "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
+        "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
+      ];
 
       cores = lib.mkForce (
         if currentHost == "zephyr"
@@ -111,14 +90,12 @@ in {
     };
   };
 
-  # ── Post-build hook: auto-push to nexus cache ──
-
   # ── Post-build hook: auto-push completed builds to nexus cache ──
-  nix.settings.post-build-hook = lib.mkIf (currentHost != "krash3") (pkgs.writeShellScript "upload-to-cache" ''
+  nix.settings.post-build-hook = pkgs.writeShellScript "upload-to-cache" ''
     if [ -n "$OUT_PATHS" ] && [ "$BUILD_STATUS" = "success" ]; then
       exec nice -n 19 nix copy --to ssh://j_kro@nexus --substitute-on-destination $OUT_PATHS 2>/dev/null
     fi
-  '');
+  '';
 
   programs.ssh.startAgent = true;
 
@@ -175,15 +152,6 @@ in {
 
         Host sentry
           HostName 10.1.1.140
-          User j_kro
-          IdentityFile ${userHome}/.ssh/id_ed25519
-          IdentitiesOnly yes
-          StrictHostKeyChecking accept-new
-          ConnectTimeout 5
-          ServerAliveInterval 5
-          ServerAliveCountMax 1
-
-        Host krash3
           User j_kro
           IdentityFile ${userHome}/.ssh/id_ed25519
           IdentitiesOnly yes

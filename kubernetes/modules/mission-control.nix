@@ -9,10 +9,13 @@
   # Check: https://github.com/builderz-labs/mission-control/pkgs/container/mission-control/versions
   mcImage = "ghcr.io/builderz-labs/mission-control:sha-90a5615";
 
-  # Pod targets forge -- local-path SC works there.
-  # Sentry has DiskPressure, nexus is down, zephyr is OOM-constrained.
+  # Pod targets forge -- local-path SC works there (SQLite WAL needs local
+  # storage; see PVC comment below). Placement rationale as of 2026-08-01:
+  # zephyr is OOM-constrained, sentry is in usb-rescue recovery (was
+  # DiskPressure), nexus is the cluster build executor. Keep on forge.
   # NOTE: local-path PVC is node-bound. If forge goes down, data stays there.
-  # TODO: when sentry disk is fixed, consider NFS with SQLite journal_mode=DELETE.
+  # TODO: once sentry is recovered, re-evaluate NFS with SQLite
+  # journal_mode=DELETE (WAL mode hangs on NFS).
   targetNode = "forge";
   managed = {
     "app.kubernetes.io/managed-by" = "easykubenix";

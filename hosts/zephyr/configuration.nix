@@ -1138,7 +1138,7 @@ programs.gitlawb.enable = false;
     python3Packages.playwright
 
     # Diagrams & data
-    mermaid-cli # Mermaid → SVG/PNG
+    # mermaid-cli provided by modules/development/tools.nix (all non-sentry hosts)
     graphviz # Graphviz (dot) diagrams
     python312Packages.openpyxl # Excel read/write
     # Noctalia CLI binary for keybindings (Mod+Space, Print, notifications)

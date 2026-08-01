@@ -1,4 +1,9 @@
-{pkgs, ...}: {
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   programs.direnv.enable = true;
   programs.direnv.nix-direnv.enable = true;
 
@@ -40,7 +45,6 @@
     httpie
     restic
     rclone
-    chromium
 
     delta
     diff-so-fancy
@@ -76,7 +80,6 @@
     sqlx-cli
     surrealdb
     surrealdb-migrations
-    surrealist
 
     hurl
     grex
@@ -89,7 +92,15 @@
     units
 
     graphviz
-    mermaid-cli
     gitea
+    # Heavy GUI/browser tooling — excluded from headless sentry (usb-rescue
+    # recovery host: monitoring + Vulkan AI only). chromium + mermaid-cli pull
+    # the full chromium-unwrapped build (~hours on nexus); surrealist (Tauri
+    # SurrealDB GUI) pulls webkitgtk. Desktop hosts keep all three; zephyr
+    # additionally re-adds mermaid-cli in its host config.
+  ] ++ lib.optionals (config.networking.hostName != "sentry") [
+    chromium
+    mermaid-cli
+    surrealist
   ];
 }
