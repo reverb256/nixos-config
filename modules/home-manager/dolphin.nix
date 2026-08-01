@@ -17,7 +17,13 @@ in {
   # its kdeglobals into XDG_CONFIG_DIRS, but a stale ~/.config/kdeglobals
   # (April, Breeze-Dark) shadows it. We set the view colors explicitly here
   # AND remove the orphan kdeglobals at activation so stylix wins the merge.
-  xdg.configFile."kdeglobals".text = ''
+  xdg.configFile."kdeglobals" = {
+    # Force: a stale plain ~/.config/kdeglobals (pre-HM-managed, Breeze-Dark)
+    # shadows this managed target and makes bare `home-manager switch` fail
+    # with "Existing file ... would be clobbered". Force overwrites it so
+    # Dolphin's view colors (below) take effect and switch needs no -b flag.
+    force = true;
+    text = ''
     [Colors:View]
     BackgroundNormal=${viewBg}
     BackgroundAlternate=${viewBg}
@@ -27,15 +33,6 @@ in {
     [Colors:Selection]
     BackgroundNormal=${selBg}
     ForegroundNormal=${selFg}
-  '';
-
-  # Remove the stale orphan kdeglobals so it cannot shadow stylix's generated
-  # copy (stylix writes its kdeglobals into XDG_CONFIG_DIRS; the per-user file
-  # in ~/.config takes merge precedence and was frozen on Breeze-Dark).
-  home.activation.removeStaleKdeglobals = ''
-    if [ -f "$HOME/.config/kdeglobals" ]; then
-      rm -f "$HOME/.config/kdeglobals"
-    fi
   '';
 
   xdg.configFile."dolphinrc" = {
