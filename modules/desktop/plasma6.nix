@@ -204,6 +204,136 @@
     rm -rf ~/.cache/kwin* ~/.cache/plasma* ~/.cache/ksycoca* 2>/dev/null || true
   '';
 in {
+  config = lib.mkMerge [
+    {
+  # GPU Readiness Service - Ensures GPU devices are ready before display manager starts.
+  # NOT Plasma-specific: also needed on niri hosts (sddm autologin into niri-uwsm).
+  # Kept OUTSIDE the plasma6.enable gate so desktop hosts keep the boot race fix.
+  systemd.services.gpu-ready = {
+    description = "Wait for GPU devices to be ready";
+    after = ["systemd-modules-load.service"];
+    wantedBy = ["display-manager.service"];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = pkgs.writeShellScript "gpu-ready" ''
+        # Wait for GPU DRM devices to be ready (NVIDIA/CUDA or AMD/ROCm)
+        # NVIDIA: /proc/driver/nvidia, /dev/nvidiactl
+        # AMD: /sys/class/drm/card*/device/vendor (0x1002 = AMD)
+        log() {
+          echo "[gpu-ready] $1" >&2
+        }
+        # Check if any DRM device exists and is accessible
+        check_drm_devices() {
+          for dev in /dev/dri/card*; do
+            if [ -e "$dev" ] && [ -r "$dev" ]; then
+              return 0
+            fi
+          done
+          return 1
+        }
+        # Check for NVIDIA GPUs (CUDA)
+        has_nvidia() {
+          [ -d /proc/driver/nvidia ] && [ -e /dev/nvidiactl ]
+        }
+        # Check for AMD GPUs (ROCm)
+        has_amd() {
+          [ -d /sys/class/drm ] && grep -q "0x1002" /sys/class/drm/card*/device/vendor 2>/dev/null
+        }
+        # Wait for NVIDIA driver to fully load
+        wait_nvidia() {
+          local max_attempts=30
+          for i in $(seq 1 $max_attempts); do
+            if [ -e /dev/nvidiactl ] && [ -r /dev/nvidiactl ]; then
+              return 0
+            fi
+            sleep 0.5
+          done
+          return 1
+        }
+        DETECTED_GPUS=""
+        has_nvidia && {
+          DETECTED_GPUS="$DETECTED_GPUS NVIDIA(CUDA)"
+          log "Waiting for NVIDIA driver to fully initialize..."
+          wait_nvidia || log "WARNING: NVIDIA driver may not be fully initialized"
+        }
+        has_amd && DETECTED_GPUS="$DETECTED_GPUS AMD(ROCm)"
+        if [ -n "$DETECTED_GPUS" ]; then
+          log "Detected GPUs:$DETECTED_GPUS"
+        else
+          log "No GPUs detected, waiting for DRM devices..."
+        fi
+        # Wait up to 15 seconds for DRM devices to be accessible
+        for i in $(seq 1 75); do
+          if check_drm_devices; then
+            log "DRM devices ready at /dev/dri/"
+            ls -la /dev/dri/card* 2>/dev/null || true
+            exit 0
+          fi
+          sleep 0.2
+        done
+        # Timeout - log warning but proceed (display manager has restart logic)
+        log "WARNING: Timeout waiting for DRM devices, proceeding anyway"
+        exit 0
+      '';
+    };  };
+    }
+    (lib.mkIf (config.networking.hostName != "sentry") {
+      # Monitor/TV user services: NOT Plasma-specific. kscreen-doctor works under
+      # niri (zephyr's tv-monitor-daemon runs in the niri session on tty1), so
+      # gating on plasma6.enable would silently kill zephyr's TV power management.
+      # Gated on desktop-ness instead so headless sentry doesn't pull kscreen ->
+      # pyside6 -> qtwebengine (Chromium) into its closure.
+      systemd.user.services = {
+      plasma-monitor-setup = {
+        description = "Apply monitor configuration";
+        wantedBy = ["graphical-session.target"];
+        after = [
+          "plasma-plasmashell.service"
+          "graphical-session.target"
+        ];
+        # Only run when Plasma is the active VT (tty1).
+        # When the user switches to niri (tty2) or hyprland (tty3),
+        # KWin loses DRM master and kscreen-doctor calls fail with
+        # "Atomic modeset test failed: Permission denied".
+        serviceConfig.ExecCondition = pkgs.writeShellScript "plasma-vt-check" ''
+          ACTIVE_TTY=$(cat /sys/class/tty/tty0/active 2>/dev/null || echo tty0)
+          [ "$ACTIVE_TTY" = "tty1" ]
+        '';
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${monitorSetupScript}/bin/plasma-monitor-setup";
+          Restart = "on-failure";
+          RestartSec = 2;
+        };
+      };
+      # Disable KScreen backend launcher
+      "kscreen_backend_launcher".enable = false;
+      # TV Monitor Daemon - Auto manage TV power state
+      # Only active when Plasma is on tty1 — prevents kscreen-doctor spam
+      # that causes "Atomic modeset test failed: Permission denied" when
+      # KWin doesn't hold DRM master (user switched to another VT).
+      tv-monitor-daemon = {
+        description = "Monitor TV power state and auto-disable/enable";
+        wantedBy = ["graphical-session.target"];
+        after = [
+          "plasma-plasmashell.service"
+          "graphical-session.target"
+        ];
+        serviceConfig.ExecCondition = pkgs.writeShellScript "tv-monitor-vt-check" ''
+          ACTIVE_TTY=$(cat /sys/class/tty/tty0/active 2>/dev/null || echo tty0)
+          [ "$ACTIVE_TTY" = "tty1" ]
+        '';
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = "${tvMonitorDaemon}/bin/tv-monitor-daemon";
+          Restart = "always";
+          RestartSec = 5;
+        };
+      };
+    };
+    })
+    (lib.mkIf config.services.desktopManager.plasma6.enable {
   # Add KDE xdg-desktop-portal when Plasma is enabled
   xdg.portal.extraPortals = with pkgs; [pkgs.kdePackages.xdg-desktop-portal-kde];
   services = {
@@ -476,78 +606,7 @@ in {
     };
   };
   systemd = {
-    # GPU Readiness Service - Ensures GPU devices are ready before display manager starts
-    # This fixes a race condition where SDDM autologin fails because /dev/dri/card* isn't ready
-    # Supports both NVIDIA (CUDA) and AMD (ROCm) GPUs
-    services.gpu-ready = {
-      description = "Wait for GPU devices to be ready";
-      after = ["systemd-modules-load.service"];
-      wantedBy = ["display-manager.service"];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStart = pkgs.writeShellScript "gpu-ready" ''
-          # Wait for GPU DRM devices to be ready (NVIDIA/CUDA or AMD/ROCm)
-          # NVIDIA: /proc/driver/nvidia, /dev/nvidiactl
-          # AMD: /sys/class/drm/card*/device/vendor (0x1002 = AMD)
-          log() {
-            echo "[gpu-ready] $1" >&2
-          }
-          # Check if any DRM device exists and is accessible
-          check_drm_devices() {
-            for dev in /dev/dri/card*; do
-              if [ -e "$dev" ] && [ -r "$dev" ]; then
-                return 0
-              fi
-            done
-            return 1
-          }
-          # Check for NVIDIA GPUs (CUDA)
-          has_nvidia() {
-            [ -d /proc/driver/nvidia ] && [ -e /dev/nvidiactl ]
-          }
-          # Check for AMD GPUs (ROCm)
-          has_amd() {
-            [ -d /sys/class/drm ] && grep -q "0x1002" /sys/class/drm/card*/device/vendor 2>/dev/null
-          }
-          # Wait for NVIDIA driver to fully load
-          wait_nvidia() {
-            local max_attempts=30
-            for i in $(seq 1 $max_attempts); do
-              if [ -e /dev/nvidiactl ] && [ -r /dev/nvidiactl ]; then
-                return 0
-              fi
-              sleep 0.5
-            done
-            return 1
-          }
-          DETECTED_GPUS=""
-          has_nvidia && {
-            DETECTED_GPUS="$DETECTED_GPUS NVIDIA(CUDA)"
-            log "Waiting for NVIDIA driver to fully initialize..."
-            wait_nvidia || log "WARNING: NVIDIA driver may not be fully initialized"
-          }
-          has_amd && DETECTED_GPUS="$DETECTED_GPUS AMD(ROCm)"
-          if [ -n "$DETECTED_GPUS" ]; then
-            log "Detected GPUs:$DETECTED_GPUS"
-          else
-            log "No GPUs detected, waiting for DRM devices..."
-          fi
-          # Wait up to 15 seconds for DRM devices to be accessible
-          for i in $(seq 1 75); do
-            if check_drm_devices; then
-              log "DRM devices ready at /dev/dri/"
-              ls -la /dev/dri/card* 2>/dev/null || true
-              exit 0
-            fi
-            sleep 0.2
-          done
-          # Timeout - log warning but proceed (display manager has restart logic)
-          log "WARNING: Timeout waiting for DRM devices, proceeding anyway"
-          exit 0
-        '';
-      };
-    };
+
     services.clear-kde-cache-after-rebuild = {
       description = "Clear KDE/QML cache after nixos-rebuild";
       wantedBy = ["multi-user.target"];
@@ -583,53 +642,8 @@ in {
     #     StandardError = "journal";
     #   };
     # };
-    user.services = {
-      plasma-monitor-setup = {
-        description = "Apply monitor configuration";
-        wantedBy = ["graphical-session.target"];
-        after = [
-          "plasma-plasmashell.service"
-          "graphical-session.target"
-        ];
-        # Only run when Plasma is the active VT (tty1).
-        # When the user switches to niri (tty2) or hyprland (tty3),
-        # KWin loses DRM master and kscreen-doctor calls fail with
-        # "Atomic modeset test failed: Permission denied".
-        serviceConfig.ExecCondition = pkgs.writeShellScript "plasma-vt-check" ''
-          ACTIVE_TTY=$(cat /sys/class/tty/tty0/active 2>/dev/null || echo tty0)
-          [ "$ACTIVE_TTY" = "tty1" ]
-        '';
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = "${monitorSetupScript}/bin/plasma-monitor-setup";
-          Restart = "on-failure";
-          RestartSec = 2;
-        };
-      };
-      # Disable KScreen backend launcher
-      "kscreen_backend_launcher".enable = false;
-      # TV Monitor Daemon - Auto manage TV power state
-      # Only active when Plasma is on tty1 — prevents kscreen-doctor spam
-      # that causes "Atomic modeset test failed: Permission denied" when
-      # KWin doesn't hold DRM master (user switched to another VT).
-      tv-monitor-daemon = {
-        description = "Monitor TV power state and auto-disable/enable";
-        wantedBy = ["graphical-session.target"];
-        after = [
-          "plasma-plasmashell.service"
-          "graphical-session.target"
-        ];
-        serviceConfig.ExecCondition = pkgs.writeShellScript "tv-monitor-vt-check" ''
-          ACTIVE_TTY=$(cat /sys/class/tty/tty0/active 2>/dev/null || echo tty0)
-          [ "$ACTIVE_TTY" = "tty1" ]
-        '';
-        serviceConfig = {
-          Type = "simple";
-          ExecStart = "${tvMonitorDaemon}/bin/tv-monitor-daemon";
-          Restart = "always";
-          RestartSec = 5;
-        };
-      };
-    };
   };
+  }
+    )
+  ];
 }

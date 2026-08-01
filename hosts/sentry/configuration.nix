@@ -38,6 +38,17 @@
   # ============================================================================
   services.desktopManager.plasma6.enable = false;
 
+  # CopyQ is a GUI clipboard manager (Qt6). Sentry is headless (no sddm,
+  # no graphical-session.target), so CopyQ never runs — and pkgs.copyq pulls
+  # pyside6 → qtwebengine, which forces a multi-hour Chromium source build on
+  # every deploy. Disable it here; desktop hosts keep it via mkDefault in
+  # modules/system/home-manager.nix.
+  home-manager.users.j_kro.programs.copyq.enable = lib.mkForce false;
+
+  # Telegram Desktop is a Qt6 GUI app (pulls pyside6 -> qtwebengine, a
+  # multi-hour Chromium source build). Sentry is headless — no GUI sessions.
+  home-manager.users.j_kro.programs.opencode.telegramDesktop = lib.mkForce false;
+
   # ============================================================================
   # HOST IDENTIFICATION
   # ============================================================================
