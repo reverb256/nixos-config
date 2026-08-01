@@ -35,7 +35,6 @@ in {
   environment.systemPackages = with pkgs; [
     sane-backends # scanimage, scanadf CLI tools
     xsane # GUI scanner frontend
-    wlfreerdp # Wayland-native RDP client for Windows 11
   ];
   # Static airscan config — eSCL on port 8080, bypasses broken mDNS
   environment.etc."sane.d/airscan.conf" = {
