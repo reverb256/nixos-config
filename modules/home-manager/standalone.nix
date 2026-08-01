@@ -34,6 +34,7 @@ let
     ./nixcord-config.nix
     ./mime-apps.nix
     ./mime-fix.nix
+    ./hermes-desktop-entry.nix
     ./caprine.nix
     ./opencode.nix
     ./firefox-pwa-apps.nix
