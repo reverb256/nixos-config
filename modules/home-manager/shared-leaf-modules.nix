@@ -9,7 +9,7 @@
 #
 # RULE: nothing in this list may read NixOS-only options (config.services.*,
 # config.programs.<nixos>, config.wayland.*). NixOS-coupled extras (niri-config,
-# hermes symlink, noctalia spawn arg) are added by the NixOS-module path ONLY,
+# noctalia spawn arg) are added by the NixOS-module path ONLY,
 # in modules/system/home-manager.nix. firefox-pwa-apps is included but guards its
 # NixOS-option read internally so it is safe on both paths.
 #
@@ -26,9 +26,6 @@
     ../../modules/home-manager/opencode.nix
     ../../modules/home-manager/firefox-pwa-apps.nix
     ../../modules/home-manager/alacritty.nix
-    ../../modules/home-manager/hermes-skin.nix
-    # Declarative hermes-gateway user unit (execs via %h/.nix-profile, self-healing)
-    ../../modules/home-manager/hermes-gateway.nix
     ../../modules/home-manager/icon-theme.nix
     ../../modules/home-manager/dolphin.nix
     ../../modules/home-manager/desktop-utilities.nix
@@ -48,8 +45,6 @@
     ../../modules/home-manager/stylix-bridges.nix
     # Self-healing drift guard (un-freeze plain-file dotfiles before linkGen)
     ../../modules/home-manager/heal-stale-backups.nix
-    # Hermes Desktop launcher entry (binary is Layer 3, nix profile — issue #334/#337)
-    ../../modules/home-manager/hermes-desktop-entry.nix
     # Symlink nix-profile/system .desktop files into ~/.local/share/applications
     # so Noctalia + file pickers surface Layer-3 GUI apps (issue #335). Both HM
     # paths need this — was dropped from standalone.nix by the #338 refactor.

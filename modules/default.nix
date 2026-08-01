@@ -127,8 +127,6 @@
     ./services/host-dashboard.nix
     ./services/ci-runner.nix
     ./services/auto-update.nix
-    ./services/hermes/default.nix
-    ./services/hermes-cli.nix
     ./services/whisper-dictation.nix
     ./services/cloudflared.nix
     ./services/cluster-ca.nix # Internal CA for cluster services

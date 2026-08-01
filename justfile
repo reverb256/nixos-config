@@ -548,9 +548,9 @@ info:
 
 # ── HERMES AGENT ──────────────────────────────────────────────────────────
 # "Full" update: bump EVERY flake input to latest upstream (nix flake update),
-# commit + push the lock, verify the NixOS patches in modules/services/hermes-cli.nix
+# commit + push the lock, verify the full toplevel build still applies
 # still apply on a full toplevel build (fail fast before touching the cluster),
-# then deploy the whole system (patched hermes package included) to all 5 hosts.
+# then deploy the whole system to all hosts.
 #
 # IMPORTANT: a full `nix flake update` also moves nixpkgs to its newest commit,
 # which can be a large rebuild and can surface breaking changes elsewhere. The
@@ -565,10 +565,10 @@ hermes-update:
     set -euo pipefail
     cd {{FLAKE}}
 
-    echo "1/6 Bumping ALL flake inputs to latest upstream..."
+    echo "1/5 Bumping ALL flake inputs to latest upstream..."
     nix flake update 2>&1 | tail -5
 
-    echo "2/6 Committing + pushing flake.lock..."
+    echo "2/5 Committing + pushing flake.lock..."
     git add flake.lock
     if git diff --cached --quiet; then
         echo "  (lock unchanged — already at latest)"
@@ -577,17 +577,17 @@ hermes-update:
         git push origin main 2>&1 | tail -2 || echo "  (push skipped)"
     fi
 
-    echo "3/6 Building zephyr toplevel (full build — verifies hermes-cli.nix patches + all inputs)..."
+    echo "3/5 Building zephyr toplevel (full build — verifies all inputs)..."
     # --option pure-eval false is required to trigger the cachix-fork
     # buildRustPackage branch (which carries the sops:// subprocess
     # Dispatcher module) for transitively-included pkgs.secretspec.
     nix build --option pure-eval false --no-link --print-out-paths \
         .#nixosConfigurations.zephyr.config.system.build.toplevel 2>&1 | tail -20
 
-    echo "4/6 Deploying to all hosts (full system switch)..."
+    echo "4/5 Deploying to all hosts (full system switch)..."
     just deploy all 2>&1 | tail -50
 
-    echo "5/6 Verifying hermes version on all hosts..."
+    echo "5/5 Verifying hermes version on all hosts..."
     for host in {{HOSTS}}; do
         if [ "$host" = "$(hostname -s)" ]; then
             V=$(hermes --version 2>/dev/null || echo "unknown")
@@ -597,10 +597,10 @@ hermes-update:
         echo "  $host: $V"
     done
 
-    echo "6/6 Done. Hermes Agent + all flake inputs updated and deployed."
+    echo "6/5 Done. Hermes Agent + all flake inputs updated and deployed."
 
 # Dry-run variant: full flake update + build only, NO deploy. Use to catch
-# breaking changes (nixpkgs moves, hermes-cli.nix patch mismatches) before
+# breaking changes (nixpkgs moves) before
 # committing the cluster to a full switch in a maintenance window.
 hermes-update-check:
     #!/usr/bin/env bash
@@ -608,7 +608,7 @@ hermes-update-check:
     cd {{FLAKE}}
     echo "Bumping ALL flake inputs to latest upstream..."
     nix flake update 2>&1 | tail -5
-    echo "Building zephyr toplevel to verify hermes-cli.nix patches + all inputs apply..."
+    echo "Building zephyr toplevel to verify all inputs apply..."
     # --option pure-eval false required for the same reason as hermes-update
     # above: pkgs.secretspec inside zephyr's toplevel needs the cachix-fork
     # branch selected to ship sops:// provider registration at runtime.

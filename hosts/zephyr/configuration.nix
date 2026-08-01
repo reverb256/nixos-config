@@ -22,12 +22,11 @@
     ./desktop.nix
     # Kubernetes control plane (zephyr does NOT enable k3s — see services block below)
     # Keepalived VIP for Kubernetes HA
-    ../../modules/services/keepalived-vip.nix
+     ../../modules/services/keepalived-vip.nix
 
-    # Storage assertions (partlabel/uuid/boot checks)
-    ../../modules/system/storage-assertions.nix
-    ../../modules/services/hermes/default.nix
-    # FIX: Systemd user unit reload timeout (nixos-rebuild switch hang)
+     # Storage assertions (partlabel/uuid/boot checks)
+     ../../modules/system/storage-assertions.nix
+     # FIX: Systemd user unit reload timeout (nixos-rebuild switch hang)
     ../../modules/system/systemd-user-timeout.nix
 
     # All other modules auto-imported via ../../modules/default.nix
@@ -124,12 +123,6 @@ programs.gitlawb.enable = false;
   # Disable zswap (conflicts with zram). Emits zswap.enabled=0 on cmdline.
   kernel-hardening.zswap.enable = false;
 
-  # Hermes Agent CLI: nixos-config no longer builds/installs hermes (issue #334);
-  # the `hermes` binary comes from the user nix profile. Keep the module enabled
-  # only for SOUL.md / dir setup + fish completions if desired. Disabled here to
-  # avoid forcing it; enable explicitly if you want the activation scripts.
-  # services.hermes-cli.enable = true;
-
   boot.kernel.sysctl = {
     # Network buffer tuning (frees unused socket buffers)
     "net.core.rmem_default" = 262144; # 256KB (default: 212992)
@@ -167,7 +160,7 @@ programs.gitlawb.enable = false;
       "--prefer"
       "(Web Content|Isolated Web|nix)"
       "--avoid"
-      "(niri|noctalia|zen|spotify|vesktop|opencode|hermes|Xwayland|pipewire)"
+      "(niri|noctalia|zen|spotify|vesktop|opencode|Xwayland|pipewire)"
       # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
   ];
   };

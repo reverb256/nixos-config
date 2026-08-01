@@ -5,7 +5,7 @@
 # the user nix profile. So .desktop files from:
 #   - system packages  (/run/current-system/sw/share/applications)
 #   - nix profile apps (~/.nix-profile/share/applications, e.g. `nix profile
-#     install` of lutris, remote-viewer, hermes-desktop, ...)
+#     install` of lutris, remote-viewer, ...)
 # fail to surface unless they are also present in ~/.local/share/applications.
 #
 # Note: app discovery is purely filesystem (freedesktop Desktop Entry spec) —
@@ -47,7 +47,7 @@ in {
 
     # Symlink ALL .desktop files from the user nix profile. `nix profile
     # install` lands GUI apps here, but launchers don't scan this dir on their
-    # own (zen-twilight, lutris, remote-viewer, hermes-desktop, etc.). Mirror
+    # own (zen-twilight, lutris, remote-viewer, etc.). Mirror
     # the system loop so every profile-installed GUI app surfaces automatically.
     if [ -d "$NIXPROFILE_APPS" ]; then
       for desktop in "$NIXPROFILE_APPS"/*.desktop; do

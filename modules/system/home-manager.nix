@@ -10,11 +10,6 @@
   # Check if home-manager option is DECLARED (not just defined) to avoid
   # "option does not exist" errors on hosts that don't import the HM module
   hasHM = builtins.hasAttr "home-manager" (builtins.tryEval options).value or {};
-  # Check if the hermes-cli NixOS service option is DECLARED. Minimal hosts
-  # (e.g. the usb rescue ISO) import a selective module set and run Hermes via
-  # the hermes-agent package directly, so they have no services.hermes-cli.
-  # Guard the hermes wrapper symlink on this to avoid "attribute missing" errors.
-  hasHermesCli = (builtins.tryEval options).value ? services.hermes-cli;
   # SINGLE SOURCE OF TRUTH for the user-env leaf set (issue #338).
   shared = import ../home-manager/shared-leaf-modules.nix { inherit lib pkgs; };
 in
@@ -29,31 +24,22 @@ in
       # earlier failed HM activations (alacritty.toml, starship.toml, gtk.css).
       backupFileExtension = "v3-fix";
 
-      extraSpecialArgs = {
-        inherit inputs;
-        inherit hostName;
-        # Wrapped hermes binary (with PortAudio LD_LIBRARY_PATH) for the
-        # user-local ~/.local/bin/hermes symlink. Null when hermes-cli service
-        # isn't declared (e.g. usb rescue ISO). HM-module-path only; standalone
-        # HM resolves hermes from the nix profile layer (#334), so this arg is
-        # never required there.
-        hermesWrappedBin =
-          if hasHermesCli
-          then config.services.hermes-cli.wrappedHermesBin
-          else null;
-        # Expose the noctalia wrapper (NixOS `programs.noctalia.package`,
-        # mkForce'd to the pass-through wrapper in
-        # modules/desktop/wayland-compositor-common.nix) to home-manager
-        # modules. HM's `config` does NOT see NixOS options, so niri-config.nix
-        # spawns it via this injected arg rather than `config.programs.noctalia`.
-        # HM-module-path only — standalone HM excludes niri-config.
-        noctaliaPackage =
-          if config ? programs.noctalia
-          then config.programs.noctalia.package
-          else "";
-      };
+       extraSpecialArgs = {
+         inherit inputs;
+         inherit hostName;
+         # Expose the noctalia wrapper (NixOS `programs.noctalia.package`,
+         # mkForce'd to the pass-through wrapper in
+         # modules/desktop/wayland-compositor-common.nix) to home-manager
+         # modules. HM's `config` does NOT see NixOS options, so niri-config.nix
+         # spawns it via this injected arg rather than `config.programs.noctalia`.
+         # HM-module-path only — standalone HM excludes niri-config.
+         noctaliaPackage =
+           if config ? programs.noctalia
+           then config.programs.noctalia.package
+           else "";
+       };
 
-      users.j_kro = {hermesWrappedBin, ...}: {
+       users.j_kro = { ... }: {
         # Home Manager uses separate nixpkgs config for user packages
         # Allow insecure packages
         nixpkgs.config.permittedInsecurePackages = [
@@ -119,15 +105,9 @@ in
           HF_TOKEN = "/run/secrets/huggingface-token";
         };
 
-        # Ensure the user's ~/.local/bin/hermes points at the NixOS-wrapped
-        # hermes binary (carries PortAudio LD_LIBRARY_PATH). Standalone HM path
-        # omits this — hermes comes from the nix profile layer there (#334).
-        home.file.".local/bin/hermes" = lib.mkIf (hermesWrappedBin != null) {
-          source = hermesWrappedBin;
-          force = true;
+        xdg.configFile = {
+          "mimeapps.list".force = true;
         };
-
-        # Auto-migrate Alacritty config after activation (removes deprecation warnings)
         home.activation.migrateAlacrittyConfig = ''
           if [ -f "$HOME/.config/alacritty/alacritty.toml" ]; then
             ${pkgs.alacritty}/bin/alacritty migrate -c "$HOME/.config/alacritty/alacritty.toml" 2>/dev/null || true
