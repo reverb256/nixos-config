@@ -246,12 +246,14 @@ in {
             # both x86_64-linux and i686-linux (volk, steam-run, etc).
             allSystems = lib.concatStringsSep "," m.systems;
             # Nix's machine parser (libstore/machines.cc) reads positions
-            # strictly as: URL sshKey maxJobs speedFactor systemTypes
-            # supportedFeatures mandatoryFeatures. Earlier this function
-            # emitted `URL system sshKey maxJobs ...`, putting the path
-            # in Nix's maxJobs slot and triggering
+            # strictly as: URL systemTypes(comma-joined) sshKey maxJobs
+            # speedFactor supportedFeatures mandatoryFeatures. Earlier this
+            # function emitted space-separated systems + a tilde key path
+            # (`URL x86_64-linux i686-linux ~/.ssh/...`), which pushed the
+            # sshKey into Nix's maxJobs slot and triggered
             # `error: bad machine specification: failed to convert column
-            # #3 ... to 'unsigned int'` (2026-07-27 cluster-fix-batch).
+            # #3 ... to 'unsigned int'` (2026-07-27 cluster-fix-batch,
+            # confirmed live 2026-08-01 on nexus's deployed machines file).
             # Order corrected below; trailing empty `mandatoryFeatures`
             # suppressed to avoid a trailing-empty column.
             # Connection timing is controlled by Nix's global
