@@ -258,6 +258,25 @@ forge:
 sentry:
     just deploy sentry
 
+# ── CANARY DEPLOY (issue #341) ─────────────────────────────────────────────────
+# Rolling deploy: one host at a time (nexus → forge → sentry → zephyr), with a
+# post-switch health probe (sshd + load + per-host key services) after each
+# activation, auto-rollback on failure, and fail-stop abort of remaining hosts.
+deploy-canary *hosts:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Script defaults to the safe order (nexus forge sentry zephyr) with no args.
+    exec {{FLAKE}}/scripts/deploy-canary.sh "$@"
+
+# ── DEPLOY PROVENANCE / DRIFT (issue #342) ────────────────────────────────────
+# Per-host: generation, active closure, git commit, .dirty flag, and whether it
+# matches origin/main HEAD. Exits 1 on drift or .dirty closure.
+provenance *hosts:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Script checks all hosts by default; pass hosts to narrow the report.
+    exec {{FLAKE}}/scripts/cluster-provenance.sh "$@"
+
 # Compatibility alias for the old recipe name. Both synchronous and
 # asynchronous deployment now use the single Nexus dispatcher, which validates
 # the canonical ref before starting and handles Zephyr's remote target safely.

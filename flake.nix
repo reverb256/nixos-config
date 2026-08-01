@@ -323,6 +323,37 @@
           }
       ) hosts;
 
+      # OUTPUT 5: checks — source-level test suite (runs via `nix flake check`)
+      # Each tests/*.nix (except lib.nix) is imported with the flake's pkgs
+      # and must evaluate `passed == true` / `all_pass == true`. A failing
+      # test throws, which fails `nix flake check` in CI — the P0 eval gate.
+      # (Fixes: CI tests job never asserted results; flake exported no checks.)
+
+      checks.x86_64-linux = let
+        mkCheck = name: file: let
+          result = import file { inherit pkgs; };
+          passed = result.passed or result.all_pass or false;
+          failures = result.failures or [ ];
+        in
+          if passed
+          then pkgs.runCommand "check-${name}" { } "echo '${name}: PASS'; touch $out"
+          else throw "test ${name} FAILED: ${builtins.toJSON failures}";
+      in {
+        firewall-lint = mkCheck "firewall-lint" ./tests/firewall-lint.nix;
+        flake-input-consistency = mkCheck "flake-input-consistency" ./tests/flake-input-consistency.nix;
+        host-configuration = mkCheck "host-configuration" ./tests/host-configuration.nix;
+        import-integrity = mkCheck "import-integrity" ./tests/import-integrity.nix;
+        infrastructure-consistency = mkCheck "infrastructure-consistency" ./tests/infrastructure-consistency.nix;
+        integration-smoke = mkCheck "integration-smoke" ./tests/integration-smoke.nix;
+        k3s-cluster = mkCheck "k3s-cluster" ./tests/k3s-cluster.nix;
+        k8s-manifest-validation = mkCheck "k8s-manifest-validation" ./tests/k8s-manifest-validation.nix;
+        module-template-compliance = mkCheck "module-template-compliance" ./tests/module-template-compliance.nix;
+        network-constants = mkCheck "network-constants" ./tests/network-constants.nix;
+        nixos-eval = mkCheck "nixos-eval" ./tests/nixos-eval.nix;
+        options-consistency = mkCheck "options-consistency" ./tests/options-consistency.nix;
+        secrets-integrity = mkCheck "secrets-integrity" ./tests/secrets-integrity.nix;
+      };
+
       # EXISTING OUTPUTS (maintain compatibility)
 
       packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;

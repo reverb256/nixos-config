@@ -6,6 +6,9 @@
   fish,
   git,
   opencode,
+  # #309: parameterize the container-internal home so the image does not
+  # hardcode /home/j_kro. Default preserves the current image layout.
+  homeDir ? "/home/j_kro",
 }:
 dockerTools.buildImage {
   name = "opencode";
@@ -23,21 +26,21 @@ dockerTools.buildImage {
       "/bin"
       "/etc"
       "/lib"
-      "/home/j_kro/.nix-profile"
+      "${homeDir}/.nix-profile"
     ];
   };
   config = {
     Cmd = [
       "${bash}/bin/bash"
       "-c"
-      "mkdir -p /home/j_kro/.opencode && tail -f /dev/null"
+      "mkdir -p ${homeDir}/.opencode && tail -f /dev/null"
     ];
-    WorkingDir = "/home/j_kro";
+    WorkingDir = homeDir;
     Env = [
-      "HOME=/home/j_kro"
+      "HOME=${homeDir}"
       "USER=j_kro"
-      "PATH=/home/j_kro/.nix-profile/bin:/bin"
-      "OPENCODE_CONFIG_DIR=/home/j_kro/.opencode"
+      "PATH=${homeDir}/.nix-profile/bin:/bin"
+      "OPENCODE_CONFIG_DIR=${homeDir}/.opencode"
       "SHELL=/bin/fish"
     ];
     Labels = {

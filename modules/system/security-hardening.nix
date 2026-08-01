@@ -12,6 +12,8 @@
     types
     ;
   cfg = config.security.clusterAudit;
+  # #309: derive from the declared user instead of hardcoding /home/j_kro.
+  userHome = config.users.users.j_kro.home or "/home/j_kro";
 in {
   options.security.clusterAudit = {
     enable = mkEnableOption "Security audit remediation and hardening";
@@ -41,7 +43,7 @@ in {
       enable = true;
       settings = {
         cue = true;
-        authfile = "/home/j_kro/.config/Yubico/u2f_keys";
+        authfile = "${userHome}/.config/Yubico/u2f_keys";
       };
     };
 
@@ -123,7 +125,7 @@ in {
     ];
 
     systemd.tmpfiles.rules = [
-      "d /home/j_kro/.ssh/sockets 0700 j_kro users -"
+      "d ${userHome}/.ssh/sockets 0700 j_kro users -"
 
       "d /var/lib/fail2ban 0750 root root -"
     ];
