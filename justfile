@@ -399,30 +399,26 @@ switch:
 
 # ── HOME MANAGER (Layer 2) — independent cadence from NixOS (Layer 1) ──
 # Activates j_kro's user env via `home-manager switch` WITHOUT a NixOS rebuild.
-# Per-host: homeConfigurations."j_kro@$(hostname -s)". Builds on nexus for
-# zephyr (never builds locally). See issue #338 (3-layer separation).
+# NOTE: flake homeConfigurations keys are PLAIN host names (`zephyr`, not
+# `j_kro@zephyr`) — the old `.#j_kro@${HOST}` refs could not resolve (and the
+# zephyr branch would have activated zephyr's config ON nexus). Heavy builds
+# offload via the ssh-ng remote builder on nexus (distributed-builds.nix).
+# See issue #338 (3-layer separation).
 hm-switch:
     #!/usr/bin/env bash
     set -euo pipefail
     cd {{FLAKE}}
     HOST=$(hostname -s)
-    USER_HOST="j_kro@${HOST}"
-    echo ">> home-manager switch --flake .#${USER_HOST}"
-    if [ "$HOST" = "zephyr" ]; then
-        # Zephyr never builds locally (31GB OOM) — build+activate on nexus.
-        ssh nexus "cd /etc/nixos && home-manager switch --flake /etc/nixos#${USER_HOST}" \
-            || echo "WARN: nexus HM switch failed (is /etc/nixos on nexus current?)"
-    else
-        home-manager switch --flake .#${USER_HOST}
-    fi
+    echo ">> home-manager switch --flake .#${HOST}"
+    home-manager switch --flake .#${HOST}
 
 # Build (dry) the HM config for a host without activating — CI/verification.
 hm-build host="zephyr":
     #!/usr/bin/env bash
     set -euo pipefail
     cd {{FLAKE}}
-    echo ">> home-manager build --flake .#j_kro@{{host}}"
-    home-manager build --flake .#j_kro@{{host}} 2>&1 | tail -20
+    echo ">> home-manager build --flake .#{{host}}"
+    home-manager build --flake .#{{host}} 2>&1 | tail -20
 
 test-apply:
     #!/usr/bin/env bash
