@@ -599,22 +599,7 @@ in {
 
         package = mkOption {
           type = types.package;
-          # Pin qdrant 1.18.1 (1.18.2 fails to compile: Rust AVX512 intrinsic
-          # mismatch) with the correct cargoHash for this cluster's vendored
-          # sources. The flake's pinned nixpkgs carries 1.18.2's cargoHash, which
-          # mismatches the 1.18.1 vendor tree and breaks the fixed-output
-          # qdrant-*-vendor-staging derivation. Captured via lib.fakeHash
-          # ("got:" = sha256-nYW1vZzDg2atNLqROFhzKLh0v6aZHoYKUeNNTb82tr4=).
-          default = pkgs.qdrant.overrideAttrs (old: {
-            version = "1.18.1";
-            src = pkgs.fetchFromGitHub {
-              owner = "qdrant";
-              repo = "qdrant";
-              tag = "v1.18.1";
-              hash = "sha256-lqMyLnVD2iRu2AxlDHO7LzH2fFT01Gegn2JMhLAtDns=";
-            };
-            cargoHash = "sha256-nYW1vZzDg2atNLqROFhzKLh0v6aZHoYKUeNNTb82tr4=";
-          });
+          default = pkgs.qdrant;
           description = "Qdrant package to use";
         };
 
