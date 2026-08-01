@@ -95,7 +95,7 @@
       contract.interfaces.infrastructureToPlatform.sourceOfTruthKind
       == "canonical-repository"
       && contract.interfaces.infrastructureToPlatform.sourceOfTruth
-      == "flake.nix:hosts"
+      == "contracts/host-inventory.nix:hosts"
       && contract.interfaces.platformToApplicationsDevelopment.sourceOfTruthKind
       == "canonical-repository-set"
       && required
@@ -107,7 +107,7 @@
         contract.interfaces.platformToApplicationsDevelopment.sourceOfTruth
       && contract.interfaces.platformToApplicationsDevelopment.producer == "platform"
       && contract.interfaces.platformToApplicationsDevelopment.consumer == "applicationsDevelopment"
-      && hasInfix "inputs.caddy-ingress.nixosModules" commonModulesSource;
+      && hasInfix "inputs.caddy-ingress.nixosModules.caddy" commonModulesSource;
     external_release_source_is_explicit =
       contract.interfaces.applicationsDevelopmentToPlatform.sourceOfTruthKind
       == "external-project-flake"
@@ -145,8 +145,9 @@
       ]
       contract.forbidden;
     host_inventory_source_is_canonical =
-      hasInfix "hosts = {" flakeSource
-      && hasInfix "hostName =" flakeSource;
+      builtins.pathExists ../contracts/host-inventory.nix
+      && hasInfix "hostInventory = import ./contracts/host-inventory.nix" flakeSource
+      && hasInfix "hosts = hostInventory.hosts" flakeSource;
     deployment_source_is_canonical =
       hasInfix "deployment =" colmenaSource
       && hasInfix "targetHost" colmenaSource;

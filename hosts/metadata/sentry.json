@@ -11,7 +11,7 @@
   "buildOnTarget": false,
   "allowLocalDeployment": false,
   "ipAddress": "10.1.1.140",
-  "interfaceName": "eth0",
+  "interfaceName": "enp7s0",
   "wireless": {
     "enable": false
   },
@@ -44,7 +44,7 @@
   "keepalived": {
     "enable": true,
     "vip": "10.1.1.100",
-    "interface": "eth0",
+    "interface": "enp7s0",
     "priority": 90
   },
   "k3s": {
