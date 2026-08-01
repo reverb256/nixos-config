@@ -582,7 +582,7 @@ These are **flake inputs** defined in `flake.nix` (line ~106), NOT NixOS modules
 | hound | `/data/agents/mcp-bridges/hound-mcp.sh` | 6 (mcp_smart_fetch, mcp_smart_crawl, mcp_smart_search, mcp_screenshot, cache_clear, version) | ✅ Working (replaces searxng + fetch) |
 | selfhosted-tools | `/data/agents/mcp-bridges/selfhosted-mcp.sh` | 15 (web_reader, read_github_file, etc.) | ✅ Working |
 | git | `/data/agents/mcp-bridges/git-mcp.sh` | 29 (git_log, git_diff, git_status, etc.) | ✅ Working |
-| casdoor | `/data/agents/mcp-bridges/opencode-casdoor-bridge.py` | 5 (get_applications, etc.) | ✅ Working |
+| casdoor | `/data/agents/mcp-bridges/casdoor-mcp-bridge.py` | 0 (stub returns `casdoor-disabled`, no tools) | ⚠️ Disabled — bridge is a no-op stub; OAuth2 client-credentials flow not wired. Do NOT list as working. |
 | gateway | `/etc/nixos/scripts/mcp-gateway-bridge` | MCP tool proxy via ai-inference-gateway | ✅ Working |
 
 ### OpenCode Model Providers (2026-05-10)
