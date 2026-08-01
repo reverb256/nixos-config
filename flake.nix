@@ -353,6 +353,7 @@
         infrastructure-consistency = mkCheck "infrastructure-consistency" ./tests/infrastructure-consistency.nix;
         integration-smoke = mkCheck "integration-smoke" ./tests/integration-smoke.nix;
         k3s-cluster = mkCheck "k3s-cluster" ./tests/k3s-cluster.nix;
+        k3s-topology-evidence = mkCheck "k3s-topology-evidence" ./tests/k3s-topology-evidence.nix;
         k8s-manifest-validation = mkCheck "k8s-manifest-validation" ./tests/k8s-manifest-validation.nix;
         module-template-compliance = mkCheck "module-template-compliance" ./tests/module-template-compliance.nix;
         network-constants = mkCheck "network-constants" ./tests/network-constants.nix;
