@@ -56,10 +56,17 @@
     };
 
     # ── KDE / Qt targets ───────────────────────────────────────
-    # Qt target only — the `kde` target was removed in newer stylix
-    # and autoEnable tries to enable it when Plasma is running,
-    # causing "option does not exist" eval errors. Explicit per-target
-    # only covers what we actually run (Qt apps, not KDE/Plasma).
+    # Qt target only — the cluster runs niri, NOT Plasma, so KDE/Plasma
+    # targets are intentionally not empowered here. NOTE: the HM-side
+    # `stylix.targets.kde` option DOES exist in the pinned stylix
+    # (modules/kde/hm.nix, defaults to ENABLED) — it is explicitly
+    # disabled in the shared HM stylix targets
+    # (modules/home-manager/shared-leaf-modules.nix) so the
+    # stylix-kde-apply-plasma-theme activation stops firing on every
+    # `home-manager switch` for non-Plasma sessions.
+    # autoEnable=false keeps stylix from touching unlisted targets
+    # (the NixOS-side kde target historically caused "option does not
+    # exist" eval errors when autoEnable probed it).
     targets.qt.enable = true;
     # Avoid qtct→kvantum (default for non-GNOME/non-Plasma-only DEs).
     # Cluster runs niri; use gnome platform → adwaita-dark so Qt matches
