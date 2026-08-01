@@ -12,7 +12,7 @@
 in {
   config = lib.mkIf cfg.enable {
     # Install PWA apps on first login
-    home.activation.installFirefoxPWA = lib.mkIf (!config.wayland.windowManager.niri.enable) ''
+    home.activation.installFirefoxPWA = lib.mkIf (!(config.programs.niri.enable or false)) ''
       if ! command -v firefoxpwa &>/dev/null; then
         echo "firefoxpwa not found in PATH"
         exit 0
@@ -39,7 +39,7 @@ in {
 
     # Create desktop entries for PWA apps
     xdg.dataFile."applications" =
-      lib.mkIf config.wayland.windowManager.niri.enable (
+      lib.mkIf (config.programs.niri.enable or false) (
         lib.mapAttrs' (id: url:
           lib.nameValuePair "${id}.desktop" (
             pkgs.writeText "${id}.desktop" ''
