@@ -5,6 +5,9 @@
   ...
 }: let
   currentHost = config.networking.hostName or "unknown";
+  # #309: derive from the declared user instead of hardcoding, so pure
+  # cross-host evaluation does not depend on /home/j_kro existing.
+  userHome = config.users.users.j_kro.home or "/home/j_kro";
 in {
   nix = {
     distributedBuilds = lib.mkDefault true;
@@ -45,7 +48,7 @@ in {
         then [
           "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU="
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-          "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zybkq5CX+/rkCWyvRCYg3Fs="
+          "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
           "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1q2jYzI="
           "maplespike.cachix.org-1:P6v8AHkRYDKI/xc4/OYIvMcwumkD9EafWnYERWWngYg="
           "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
@@ -54,7 +57,7 @@ in {
         else [
           "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU="
           "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-          "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zybkq5CX+/rkCWyvRCYg3Fs="
+          "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
           "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1q2jYzI="
           "maplespike.cachix.org-1:P6v8AHkRYDKI/xc4/OYIvMcwumkD9EafWnYERWWngYg="
           "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
@@ -128,10 +131,10 @@ in {
     script = ''
       # Non-fatal: warn on missing key but do NOT block nix-daemon.
       # Missing key = remote builds unavailable, local builds (maxJobs) still work.
-      if [ ! -f /home/j_kro/.ssh/id_ed25519 ]; then
+      if [ ! -f ${userHome}/.ssh/id_ed25519 ]; then
         echo "copy-build-ssh-key: WARN — No SSH key at ~/.ssh/id_ed25519; remote builds disabled" >&2
       else
-        chmod 600 /home/j_kro/.ssh/id_ed25519
+        chmod 600 ${userHome}/.ssh/id_ed25519
         echo "copy-build-ssh-key: SSH key verified"
       fi
     '';
@@ -140,14 +143,52 @@ in {
   environment = {
     etc = {
       "ssh/ssh_config.d/50-build-machines.conf".text = ''
-        Host zephyr nexus sentry krash3
+        Host zephyr
+          HostName 10.1.1.110
           User j_kro
-          IdentityFile ~/.ssh/id_ed25519
+          IdentityFile ${userHome}/.ssh/id_ed25519
           IdentitiesOnly yes
           StrictHostKeyChecking accept-new
-          # ConnectTimeout 0 = immediate fail if unreachable.
-          # Per user instruction 2026-07-29: dead builders should not stall builds.
-          ConnectTimeout 0
+          ConnectTimeout 5
+          ServerAliveInterval 5
+          ServerAliveCountMax 1
+
+        Host nexus
+          HostName 10.1.1.120
+          User j_kro
+          IdentityFile ${userHome}/.ssh/id_ed25519
+          IdentitiesOnly yes
+          StrictHostKeyChecking accept-new
+          ConnectTimeout 5
+          ServerAliveInterval 5
+          ServerAliveCountMax 1
+
+        Host forge
+          HostName 10.1.1.130
+          User j_kro
+          IdentityFile ${userHome}/.ssh/id_ed25519
+          IdentitiesOnly yes
+          StrictHostKeyChecking accept-new
+          ConnectTimeout 5
+          ServerAliveInterval 5
+          ServerAliveCountMax 1
+
+        Host sentry
+          HostName 10.1.1.140
+          User j_kro
+          IdentityFile ${userHome}/.ssh/id_ed25519
+          IdentitiesOnly yes
+          StrictHostKeyChecking accept-new
+          ConnectTimeout 5
+          ServerAliveInterval 5
+          ServerAliveCountMax 1
+
+        Host krash3
+          User j_kro
+          IdentityFile ${userHome}/.ssh/id_ed25519
+          IdentitiesOnly yes
+          StrictHostKeyChecking accept-new
+          ConnectTimeout 5
           ServerAliveInterval 5
           ServerAliveCountMax 1
       '';
@@ -159,7 +200,7 @@ in {
               hostName = "zephyr";
               systems = ["x86_64-linux"];
               sshUser = "j_kro";
-              sshKey = "~/.ssh/id_ed25519";
+              sshKey = userHome + "/.ssh/id_ed25519";
               maxJobs = 0;
               speedFactor = 1; # deprioritize zephyr
               supportedFeatures = [];
@@ -169,7 +210,7 @@ in {
               hostName = "nexus";
               systems = ["x86_64-linux"];
               sshUser = "j_kro";
-              sshKey = "~/.ssh/id_ed25519";
+              sshKey = userHome + "/.ssh/id_ed25519";
               maxJobs = 12;
               speedFactor = 10; # prioritize nexus
               connectTimeout = 1;
@@ -183,7 +224,7 @@ in {
               hostName = "sentry";
               systems = ["x86_64-linux"];
               sshUser = "j_kro";
-              sshKey = "~/.ssh/id_ed25519";
+              sshKey = userHome + "/.ssh/id_ed25519";
               maxJobs = 8;
               speedFactor = 6;
               connectTimeout = 1;
@@ -213,15 +254,10 @@ in {
             # #3 ... to 'unsigned int'` (2026-07-27 cluster-fix-batch).
             # Order corrected below; trailing empty `mandatoryFeatures`
             # suppressed to avoid a trailing-empty column.
-            # 2026-07-29: Add per-host connect-timeout to the supportedFeatures
-            # slot. ssh-ng:// parses comma-separated options here, including
-            # connect-timeout=N (in seconds, 0 = fail immediately). We default
-            # to 1s if not specified on the machine entry.
-            baseFeatures =
-              if m.supportedFeatures == [ ] then [ ] else m.supportedFeatures;
-            withTimeout =
-              baseFeatures ++ [ "connect-timeout=${toString (m.connectTimeout or 1)}" ];
-            optFeatures = concatStringsSep "," withTimeout;
+            # Connection timing is controlled by Nix's global
+            # `connect-timeout` setting and the SSH config above. Keep this
+            # field limited to actual machine capability tags.
+            optFeatures = concatStringsSep "," m.supportedFeatures;
             mandFeatures =
               if m.mandatoryFeatures == [ ]
               then "" else concatStringsSep "," m.mandatoryFeatures;
@@ -258,7 +294,7 @@ in {
   };
 
   systemd.tmpfiles.rules = [
-    "d /home/j_kro/.ssh 0700 j_kro users -"
+    "d ${userHome}/.ssh 0700 j_kro users -"
     "d /root/.ssh 0700 root root -"
     "d /root/.ssh/sockets 0700 root root -"
     "d /etc/nixos/ssh 0755 root root -"

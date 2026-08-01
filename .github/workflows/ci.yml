@@ -116,6 +116,56 @@ jobs:
           nix --extra-experimental-features 'nix-command flakes' shell nixpkgs#alejandra nixpkgs#statix nixpkgs#deadnix -c just lint
 
   # ============================================================================
+  # STAGE 2b: Impurity guard (issue #309) — no hardcoded /home/<user> paths
+  # ============================================================================
+
+  home-path-guard:
+    name: Home Path Guard (#309)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        # pin:actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+
+      - name: Fail on hardcoded /home/j_kro paths (issue #309)
+        run: |
+          set -uo pipefail
+          FAILED=0
+          # Scope: the shared cross-host layer (modules/system, network,
+          # security, overlays). User-scoped service paths (modules/services,
+          # development, hosts/*) are tracked for migration in #309 and are
+          # intentionally NOT scanned here. Allow: (a) container images that
+          # parameterize the home (overlays/images.nix, packages/*), (b)
+          # multi-line option-default metadata (boot-emergency-diagnostics
+          # ggufPath entries), (c) comments, (d) the derivation idiom
+          # `users.users.j_kro.home or "/home/j_kro"` itself, (e) same-line
+          # option `default =`/`example =`/`homeDirectory =` metadata.
+          while IFS= read -r file; do
+            case "$file" in
+              overlays/images.nix|modules/system/boot-emergency-diagnostics.nix) continue ;;
+              *.nix) ;;
+              *) continue ;;
+            esac
+            # process substitution so FAILED propagates out of the loop
+            while IFS=: read -r line rest; do
+              [ -z "$rest" ] && continue
+              trimmed=$(echo "$rest" | sed 's/^[[:space:]]*//')
+              case "$trimmed" in
+                \#*) continue ;;
+              esac
+              echo "$rest" | grep -qE 'users\.users\.j_kro\.home or' && continue
+              echo "$rest" | grep -qE '(default|example|homeDirectory)\s*=' && continue
+              echo "::error file=$file,line=$line::$rest"
+              FAILED=1
+            done < <(grep -n '/home/j_kro' "$file" 2>/dev/null || true)
+          done < <(find modules/system modules/network modules/security overlays -name '*.nix' 2>/dev/null)
+          if [ "$FAILED" -ne 0 ]; then
+            echo "::error::Hardcoded /home/j_kro path in shared layer (issue #309). Use config.users.users.j_kro.home instead."
+            exit 1
+          fi
+          echo "Clean: no hardcoded /home/j_kro paths in the shared cross-host layer."
+
+  # ============================================================================
   # STAGE 3: Test suite (source-level validation, no heavy nix eval)
   # ============================================================================
 
@@ -143,55 +193,42 @@ jobs:
             nix-instantiate --parse "$test" > /dev/null
           done
 
-      - name: Module Import Integrity Test (F12)
-        run: |
-          nix-instantiate --eval \
-            --arg pkgs 'import <nixpkgs> {}' \
-            tests/import-integrity.nix
+      # ── Source-level test suite (eval gate) ────────────────────────────
+      # Each tests/*.nix returns { passed = bool; failures = [...]; } (or
+      # all_pass). Previously this job ran `nix-instantiate --eval` and never
+      # asserted the result — a failing test exited 0. Now every test is
+      # evaluated strictly and the job FAILS on `passed=false`/`all_pass=false`
+      # or a non-empty failures list. The same tests are also wired into
+      # flake.nix `checks.x86_64-linux` so `nix flake check` gates them too.
 
-      - name: Module Template Compliance Test (F13)
+      - name: Run source-level test suite (asserts passed/all_pass)
         run: |
-          nix-instantiate --eval \
-            --arg pkgs 'import <nixpkgs> {}' \
-            tests/module-template-compliance.nix
-
-      - name: Firewall Lint Test (F14)
-        run: |
-          nix-instantiate --eval \
-            --arg pkgs 'import <nixpkgs> {}' \
-            tests/firewall-lint.nix
-
-      - name: K3s Cluster Test (F15)
-        run: |
-          nix-instantiate --eval \
-            --arg pkgs 'import <nixpkgs> {}' \
-            tests/k3s-cluster.nix
-
-      - name: Network Constants Test (F22)
-        run: |
-          nix-instantiate --eval \
-            --arg pkgs 'import <nixpkgs> {}' \
-            tests/network-constants.nix
-
-      - name: Integration Smoke Test (F23)
-        run: |
-          nix-instantiate --eval \
-            --arg pkgs 'import <nixpkgs> {}' \
-            tests/integration-smoke.nix
-
-      - name: Flake Input Consistency Test (F29)
-        run: |
-          nix-instantiate --eval \
-            --arg pkgs 'import <nixpkgs> {}' \
-            tests/flake-input-consistency.nix
-
-      - name: Host Configuration Test
-        run: |
-          nix-instantiate --eval             --arg pkgs 'import <nixpkgs> {}'             tests/host-configuration.nix
-
-      - name: Options Consistency Test
-        run: |
-          nix-instantiate --eval             --arg pkgs 'import <nixpkgs> {}'             tests/options-consistency.nix
+          set -uo pipefail
+          FAILED=0
+          for test in tests/*.nix; do
+            name=$(basename "$test" .nix)
+            [ "$name" = "lib" ] && continue
+            echo "=== $name ==="
+            out=$(nix-instantiate --eval --strict --arg pkgs 'import <nixpkgs> {}' "$test" 2>&1)
+            rc=$?
+            echo "$out" | tail -2
+            if [ $rc -ne 0 ]; then
+              echo "::error::test $name FAILED to evaluate"
+              FAILED=1
+              continue
+            fi
+            # Assert SUCCESS (passed=true / all_pass=true). Every test exposes
+            # one of these; checking for `passed = false` instead would
+            # false-positive on the empty `failures = [ ]` of passing tests.
+            if ! echo "$out" | grep -qE 'passed\s*=\s*true|all_pass\s*=\s*true'; then
+              echo "::error::test $name FAILED assertions"
+              echo "$out" | grep -E 'failures|passed|all_pass' || true
+              FAILED=1
+              continue
+            fi
+            echo "::notice::test $name PASSED"
+          done
+          exit $FAILED
 
   # ============================================================================
   # STAGE 4: Host-specific build validation

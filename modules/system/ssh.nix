@@ -1,8 +1,11 @@
 {
+  config,
   lib,
   pkgs,
   ...
 }: let
+  # #309: derive from the declared user instead of hardcoding /home/j_kro.
+  userHome = config.users.users.j_kro.home or "/home/j_kro";
   hosts = {
     zephyr = {
       ip = "10.1.1.110";
@@ -191,7 +194,7 @@ in {
   '';
 
   systemd.tmpfiles.rules = [
-    "d /home/j_kro/.ssh/sockets 0700 j_kro users -"
+    "d ${userHome}/.ssh/sockets 0700 j_kro users -"
   ];
 
   networking.firewall.interfaces = {
