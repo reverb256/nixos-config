@@ -28,7 +28,6 @@
 
   # ── ai-inference (namespace: ai-inference) ─────────────────
   ai-inference-gateway = 30880; # AI Inference Gateway
-  frostbite-mcp = 30760; # Data ingestion MCP
   gitea = 30954; # Gitea git service
   llama-server-sentry = 30793; # llama.cpp on sentry
   qdrant = 30632; # Vector database
