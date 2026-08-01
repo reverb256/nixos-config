@@ -96,7 +96,7 @@ in {
           proxyHost = mkOption {
             type = types.str;
             default = "127.0.0.1";
-            description = "Proxy listen host (0.0.0.0 for external miners like krash1.5)";
+            description = "Proxy listen host (0.0.0.0 for external miners like krash2)";
           };
         };
       });

@@ -20,7 +20,7 @@
       ip = "10.1.1.140";
       tailscale = "100.82.210.39";
     };
-    krash15 = {
+    krash2 = {
       ip = "10.1.1.79";
       tailscale = null;
     };
@@ -117,8 +117,8 @@ in {
       ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHh8FHzxFAk+brIs8nGhgg9BcGdtgr6of9MsbQctYHuE";
     };
-    krash15 = {
-      hostNames = ["krash15" hosts.krash15.ip];
+    krash2 = {
+      hostNames = ["krash2" hosts.krash2.ip];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA5ioQaftrkEOGFW3Xs/Db9r8tf5TcegVbzwPDknbFzS";
     };
   };
@@ -147,30 +147,36 @@ in {
       IdentityFile ~/.ssh/id_ed25519
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
+    # Cluster build-farm / mesh hosts use the touchless cluster key
+    # (id_ed25519_cluster) so agentic/non-interactive SSH never prompts for
+    # the YubiKey SK touch. Restored after the Home Manager extraction dropped
+    # this block (live config had it; source did not).
     Host nexus ${hosts.nexus.ip} ${hosts.nexus.tailscale}
       HostName ${hosts.nexus.ip}
       User j_kro
-      IdentityFile ~/.ssh/id_ed25519
+      IdentityFile ~/.ssh/id_ed25519_cluster
+      IdentitiesOnly yes
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
     Host forge ${hosts.forge.ip} ${hosts.forge.tailscale}
       HostName ${hosts.forge.ip}
       User j_kro
-      IdentityFile ~/.ssh/id_ed25519
+      IdentityFile ~/.ssh/id_ed25519_cluster
+      IdentitiesOnly yes
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
     Host sentry ${hosts.sentry.ip} ${hosts.sentry.tailscale}
       HostName ${hosts.sentry.ip}
       User j_kro
-      IdentityFile ~/.ssh/id_ed25519
+      IdentityFile ~/.ssh/id_ed25519_cluster
+      IdentitiesOnly yes
       ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
-    Host krash15 ${hosts.krash15.ip}
-      HostName ${hosts.krash15.ip}
+    Host krash2 ${hosts.krash2.ip}
+      HostName ${hosts.krash2.ip}
       Port 22
       User krash
-      IdentityFile ~/.ssh/id_ed25519_sk
-      IdentityFile ~/.ssh/id_ed25519_sk_nfc
+      IdentityFile ~/.ssh/id_ed25519_cluster
       IdentitiesOnly yes
       StrictHostKeyChecking accept-new
 
