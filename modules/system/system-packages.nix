@@ -240,7 +240,6 @@
       polychromatic # Graphical front-end for Razer devices
       razergenie # Qt application for configuring Razer devices
       razer-cli # Command-line interface for Razer devices
-      ckb-next # Driver and configuration tool for Corsair devices
       (pkgs.ckb-next.overrideAttrs (old: {
         version = "0.6.2-unstable-2026-07-20";
         src = pkgs.fetchFromGitHub {
