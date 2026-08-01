@@ -361,6 +361,7 @@
         options-consistency = mkCheck "options-consistency" ./tests/options-consistency.nix;
         secrets-integrity = mkCheck "secrets-integrity" ./tests/secrets-integrity.nix;
         layer-interface-contract = mkCheck "layer-interface-contract" ./tests/layer-interface-contract.nix;
+        home-manager-layer = mkCheck "home-manager-layer" ./tests/home-manager-layer.nix;
       };
 
       # EXISTING OUTPUTS (maintain compatibility)

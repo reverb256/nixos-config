@@ -54,7 +54,11 @@ in
       };
 
       users.j_kro = {hermesWrappedBin, ...}: {
-        # Home Manager uses separate nixpkgs config for user packages
+        # Home Manager uses a separate nixpkgs config scope from NixOS.
+        # Keep workstation-only unfree leaves (e.g. Obsidian) evaluable on
+        # both HM entrypoints.
+        nixpkgs.config.allowUnfree = true;
+
         # Allow insecure packages
         nixpkgs.config.permittedInsecurePackages = [
           "pnpm-10.29.2"
@@ -73,6 +77,7 @@ in
             inputs.nixcord.homeModules.nixcord
           ]
           ++ shared.leafModules
+          ++ (shared.hostLeafModules.${hostName} or [])
           # NixOS-coupled extras — NOT in shared leaf set (would break standalone):
           # niri-config reads HM stylix + spawns noctalia via injected arg.
           ++ lib.optional (hostName == "zephyr" || hostName == "sentry")
