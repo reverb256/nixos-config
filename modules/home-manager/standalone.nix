@@ -6,7 +6,11 @@ let
     inputs.zen-browser.homeModules.twilight
     inputs.nixcord.homeModules.nixcord
     inputs.stylix.homeModules.default
-    inputs.freebuff-flake.homeModules.default
+    # NOTE: freebuff-flake is intentionally NOT imported here. freebuff-desktop
+    # is an external CLI with no HM-managed dotfiles — it lives in Layer 3
+    # (nix profile), per issue #338. Importing it into the HM layer causes a
+    # `nix profile install` priority-5 collision with the Layer-3 entry
+    # (both provide bin/freebuff-desktop). Keep it out of HM.
   ];
 in {
   # Stylix: base16 scheme + target empowerment, shared with the NixOS-module path
@@ -26,7 +30,11 @@ in {
     ++ lib.optionals (hostName == "forge") [ ./standalone-forge.nix ]
     ++ lib.optionals (hostName == "sentry") [ ./standalone-sentry.nix ];
 
-  programs.freebuff-desktop.enable = true;
+  # NOTE: freebuff-desktop is intentionally NOT enabled here. It is an external
+  # CLI (no HM-managed dotfiles) that belongs in Layer 3 (nix profile), per
+  # issue #338. Enabling it in HM triggers a `nix profile install` priority-5
+  # collision with the Layer-3 freebuff-desktop entry (both provide
+  # bin/freebuff-desktop). Remove this block — keep freebuff in Layer 3 only.
 
   home.homeDirectory = "/home/j_kro";
   home.stateVersion = "26.05";
