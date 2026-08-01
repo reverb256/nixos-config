@@ -38,6 +38,22 @@
   SWITCH_ADMIN = { path = "/run/secrets/switch-admin"; file = "infra/switch-admin.yaml"; owner = "j_kro"; group = "users"; };
   K3S_CLUSTER_TOKEN = { path = "/run/secrets/k3s-cluster-token"; file = "k8s/k3s-cluster-token.yaml"; owner = "root"; };
 
+  # ── maplespike / quill billing (Stripe monetization) ──────────
+  # Source of truth: quill repo secrets/billing.yaml + secrets/runtime.yaml
+  # (sops-encrypted). These must be exposed to the secretspec layer via a
+  # symlink under /etc/nixos/secrets/maplespike/ -> <quill>/secrets/*.yaml
+  # (deployed by the quill repo's secrets contract). secretspec-creds
+  # decrypts them to /run/secrets/*; k8s-secret-sync (extraMappings) then
+  # pushes them into the maplespike-stripe-secrets / maplespike-secrets
+  # K8s Secrets that quill-api mounts. (Different-layer model: quill
+  # declares, nixos-config provisions via secretspec.)
+  STRIPE_SECRET_KEY = { path = "/run/secrets/stripe-secret-key"; file = "maplespike/billing.yaml"; owner = "root"; };
+  STRIPE_WEBHOOK_SECRET = { path = "/run/secrets/stripe-webhook-secret"; file = "maplespike/billing.yaml"; owner = "root"; };
+  STRIPE_ACCOUNT_ID = { path = "/run/secrets/stripe-account-id"; file = "maplespike/billing.yaml"; owner = "root"; };
+  STRIPE_PUBLISHABLE_KEY = { path = "/run/secrets/stripe-publishable-key"; file = "maplespike/billing.yaml"; owner = "root"; };
+  JWT_SECRET = { path = "/run/secrets/jwt-secret"; file = "maplespike/runtime.yaml"; owner = "root"; };
+  QUILL_BILLING_SECRET = { path = "/run/secrets/billing-secret"; file = "maplespike/runtime.yaml"; owner = "root"; };
+
   # ── storage ─────────────────────────────────────────────────
   GARAGE_METRICS_TOKEN = { path = "/run/secrets/garage-metrics-token"; file = "storage/garage-metrics-token.yaml"; owner = "root"; };
   GARAGE_RPC_SECRET = { path = "/run/secrets/garage-rpc-secret"; file = "storage/garage-rpc-secret.yaml"; owner = "root"; };
