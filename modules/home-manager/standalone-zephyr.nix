@@ -7,6 +7,4 @@
     mangohud
     vkbasalt
   ];
-
-  home.file.".local/share/Steam/steamapps/common".source = pkgs.linkFarm "steam-games" {};
 }
