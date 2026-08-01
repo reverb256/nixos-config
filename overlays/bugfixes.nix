@@ -21,6 +21,13 @@
     dontCheck = true;
   });
 
+  # 2026-07-31: libsecret's DBus test-collection check aborts in the
+  # pinned cluster sandbox (NoReply from the session bus, SIGABRT). Keep
+  # this workaround package-specific; do not disable checks globally.
+  libsecret = prev.libsecret.overrideAttrs (_old: {
+    doCheck = false;
+  });
+
   # 2026-07-30: qdrant 1.18.2 fails to compile (Rust AVX512 intrinsic mismatch).
   # The 1.18.1 pin + cargoHash is applied explicitly in the zephyr host config
   # (hosts/zephyr/configuration.nix -> services.ai-inference.rag.qdrant.package)
