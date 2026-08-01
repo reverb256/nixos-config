@@ -263,6 +263,15 @@ in {
 
   services.k8s-secret-sync = {
     enable = true;
+    # Quill/MapleSpike Stripe billing secrets — provisioned by secretspec-creds
+    # (hosts/nexus/secretspec-creds-wiring.nix) into /run/secrets/stripe-*.
+    # Pushed into the maplespike-stripe-secrets K8s Secret that quill-api mounts.
+    extraMappings = [
+      { sopsPath = "/run/secrets/stripe-secret-key"; namespace = "maplespike"; secretName = "maplespike-stripe-secrets"; key = "stripe-secret-key"; }
+      { sopsPath = "/run/secrets/stripe-webhook-secret"; namespace = "maplespike"; secretName = "maplespike-stripe-secrets"; key = "stripe-webhook-secret"; }
+      { sopsPath = "/run/secrets/stripe-account-id"; namespace = "maplespike"; secretName = "maplespike-stripe-secrets"; key = "stripe-account-id"; }
+      { sopsPath = "/run/secrets/stripe-publishable-key"; namespace = "maplespike"; secretName = "maplespike-stripe-secrets"; key = "stripe-publishable-key"; }
+    ];
   };
   # Use local kubeconfig instead of cluster join token (node token is not a valid API bearer token)
   services.k8s-nix-deploy.tokenFile = lib.mkForce null;
