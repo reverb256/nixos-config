@@ -20,6 +20,15 @@ in {
     enable = true;
     base16Scheme = ../../modules/desktop/themes/osaka-jade.yaml;
     polarity = "dark";
+    # Match the NixOS-path monospace font (modules/desktop/stylix.nix) so the
+    # standalone HM build themes alacritty/kitty/starship with the same family
+    # + size as the colmena path. Without this, stylix falls back to a default
+    # monospace (DejaVu Sans Mono @ 12) and the terminal font diverges from the
+    # system theme. `terminal = 10` (in stylixTargets) is the size token.
+    fonts.monospace = {
+      package = pkgs.nerd-fonts.jetbrains-mono;
+      name = "JetBrainsMono Nerd Font";
+    };
   } // shared.stylixTargets;
 
   imports = hmThirdParty ++ shared.leafModules ++ [

@@ -38,6 +38,8 @@
     ../../modules/home-manager/tui-apps.nix
     ../../modules/home-manager/editorconfig.nix
     ../../modules/home-manager/btop.nix
+    # Freebuff Desktop launcher (.desktop only — binary is Layer 3, nix profile)
+    ../../modules/home-manager/freebuff-desktop.nix
     # Stylix theming for noctalia desktop + purge frozen noctalia orphans
     ../../modules/home-manager/noctalia-stylix.nix
     # Reclaim stylix-bridged targets (qt/gtk/kitty) — HM-native
