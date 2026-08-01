@@ -819,7 +819,7 @@ lint:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "=== alejandra --check ==="
-    alejandra --check --exclude modules/system/agenix-secrets-registry.nix --exclude modules/home-manager/default.nix --exclude modules/services/spacebot/container.nix --exclude kubernetes/modules .
+    alejandra --check --exclude modules/system/agenix-secrets-registry.nix --exclude modules/services/spacebot/container.nix --exclude kubernetes/modules .
     echo "=== statix check ==="
     statix check
     echo "=== deadnix ==="
@@ -827,7 +827,7 @@ lint:
 
 # Format all .nix files with alejandra (in-place).
 fmt:
-    alejandra --exclude modules/system/agenix-secrets-registry.nix --exclude modules/home-manager/default.nix --exclude modules/services/spacebot/container.nix --exclude kubernetes/modules .
+    alejandra --exclude modules/system/agenix-secrets-registry.nix --exclude modules/services/spacebot/container.nix --exclude kubernetes/modules .
 
 # ── Mosaic Identity Service ──────────────────────────────────────────────────
 

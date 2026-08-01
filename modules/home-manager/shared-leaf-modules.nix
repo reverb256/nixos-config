@@ -42,6 +42,10 @@
     ../../modules/home-manager/btop.nix
     # Freebuff Desktop launcher (.desktop only — binary is Layer 3, nix profile)
     ../../modules/home-manager/freebuff-desktop.nix
+    # Hermes desktop launcher entry; the binary remains in the Layer-3 profile.
+    ../../modules/home-manager/hermes-desktop-entry.nix
+    # Bridge profile/system desktop files into the launcher's scanned directory.
+    ../../modules/home-manager/mime-fix.nix
     # Stylix theming for noctalia desktop + purge frozen noctalia orphans
     ../../modules/home-manager/noctalia-stylix.nix
     # Reclaim stylix-bridged targets (qt/gtk/kitty) — HM-native
@@ -49,6 +53,13 @@
     # Self-healing drift guard (un-freeze plain-file dotfiles before linkGen)
     ../../modules/home-manager/heal-stale-backups.nix
   ];
+
+  # Host-specific HM leaves still use this composition point so the NixOS and
+  # standalone entrypoints cannot drift. Obsidian is a workstation application;
+  # keep it off the server nodes while making its ownership explicit.
+  hostLeafModules = {
+    zephyr = [ ../../modules/home-manager/obsidian.nix ];
+  };
 
   # ── Stylix target empowerment — MUST be shared so standalone HM is themed ──
   # (Previously only in the NixOS-module path, which left standalone unthemed.)

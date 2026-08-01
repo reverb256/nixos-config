@@ -16,9 +16,11 @@ in {
   # Stylix: base16 scheme + target empowerment, shared with the NixOS-module path
   # so both paths produce a fully-themed user env (previously only the
   # NixOS-module path empowered targets, leaving standalone unthemed).
+  nixpkgs.config.allowUnfree = true;
+
   stylix = {
     enable = true;
-    base16Scheme = ../../modules/desktop/themes/osaka-jade.yaml;
+    base16Scheme = import ../../modules/desktop/themes/osaka-jade.nix;
     polarity = "dark";
     # Match the NixOS-path monospace font (modules/desktop/stylix.nix) so the
     # standalone HM build themes alacritty/kitty/starship with the same family
@@ -31,7 +33,10 @@ in {
     };
   } // shared.stylixTargets;
 
-  imports = hmThirdParty ++ shared.leafModules ++ [
+  imports = hmThirdParty
+    ++ shared.leafModules
+    ++ (shared.hostLeafModules.${hostName} or [])
+    ++ [
     # Per-host package lists (gaming/mining/monitoring tools) — gated by hostName
     # so only the matching host's extras deploy via `home-manager switch`.
   ] ++ lib.optionals (hostName == "zephyr") [ ./standalone-zephyr.nix ]
