@@ -199,7 +199,14 @@
           extraModules ? [ ],
         }:
         nixpkgs.lib.nixosSystem {
-          # system is auto-detected from stdenv.hostPlatform
+          # Apply the cluster overlay set (overlays/default.nix -> bugfixes,
+          # system, python, images, hardware, apps) via the supported
+          # `nixpkgs.overlays` module option. This keeps pkgs internally-created
+          # (so modules may still set `nixpkgs.config.*`, e.g. lm-studio,
+          # nix-config, peakminer) while making the qdrant/gjs/gtk4/webkitgtk/
+          # qtbase/dufs fixes reach host builds. Passing an external `pkgs`
+          # instance instead triggered "configures nixpkgs with an externally
+          # created instance" because those modules set `nixpkgs.config`.
           specialArgs = {
             inherit inputs vfioPkgs;
           };
