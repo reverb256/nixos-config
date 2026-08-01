@@ -167,6 +167,10 @@
   '';
 in {
   home.packages = [
+    pkgs.adwaita-qt # Qt style plugin providing 'adwaita-dark' — required so
+                    # QT_STYLE_OVERRIDE=adwaita-dark (set by the NixOS
+                    # home-manager path) resolves instead of being ignored
+                    # with "invalid style override 'adwaita-dark'".
     screenshot
     screenrecord
     ocr-extract
