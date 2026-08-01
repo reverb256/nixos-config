@@ -31,6 +31,15 @@ in {
     };
   } // shared.stylixTargets;
 
+  # Persistent backup strategy for `home-manager switch` (standalone mode).
+  # Without this, HM's checkLinkTargets refuses to overwrite existing plain
+  # files (e.g. kdeglobals left by prior activations) and bare `switch` fails
+  # with "Existing file ... would be clobbered". Setting backupFileExtension
+  # makes `home-manager switch` (no -b flag) auto-backup conflicting files to
+  # <name>.backup and proceed — the documented HM fix. Previously this was
+  # "v3-fix" but was lost during the #338 migration/regression churn.
+  home-manager.backupFileExtension = "backup";
+
   imports = hmThirdParty ++ shared.leafModules ++ [
     # Per-host package lists (gaming/mining/monitoring tools) — gated by hostName
     # so only the matching host's extras deploy via `home-manager switch`.
