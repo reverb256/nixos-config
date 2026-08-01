@@ -168,9 +168,13 @@
   # gradio websocket, triton CUDA probe, scikit-image codec, etc.). Tests
   # are a CI concern, not a system-build concern — they should never run
   # inside `nix build .#nixosConfigurations.<host>.config.system.build.toplevel`.
-  # Set doCheck = false cluster-wide. Real test signal still comes from
-  # the nixosTests tree and CI, neither of which is affected by this flag.
-  nixpkgs.config.doCheck = false;
+  # NOTE: `nixpkgs.config.doCheck` is NOT read by this nixpkgs rev — the
+  # stdenv default is `config.doCheckByDefault` (already `or false`). The
+  # REAL mechanism is the per-package `doCheck = false` overrides in
+  # overlays/bugfixes.nix. Set the real option explicitly so the intent
+  # survives future nixpkgs bumps; real test signal still comes from the
+  # nixosTests tree and CI, neither of which is affected by this flag.
+  nixpkgs.config.doCheckByDefault = false;
 
   nixpkgs.config.permittedInsecurePackages = [
     "nodejs-20.20.2"
