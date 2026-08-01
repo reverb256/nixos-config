@@ -359,6 +359,7 @@
         nixos-eval = mkCheck "nixos-eval" ./tests/nixos-eval.nix;
         options-consistency = mkCheck "options-consistency" ./tests/options-consistency.nix;
         secrets-integrity = mkCheck "secrets-integrity" ./tests/secrets-integrity.nix;
+        layer-interface-contract = mkCheck "layer-interface-contract" ./tests/layer-interface-contract.nix;
       };
 
       # EXISTING OUTPUTS (maintain compatibility)
