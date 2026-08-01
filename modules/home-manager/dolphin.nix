@@ -34,6 +34,7 @@ in {
     BackgroundNormal=${selBg}
     ForegroundNormal=${selFg}
   '';
+};
 
   xdg.configFile."dolphinrc" = {
     force = true;
