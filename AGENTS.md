@@ -36,6 +36,22 @@ just new-worktree <NNN> # Create worktree for issue NNN
 
 > NOTE: `just test` does NOT exist. Use `just test-apply` or `just check`.
 
+## Repository and Home Manager cadence
+
+- The canonical repository is GitHub: `reverb256/nixos-config`; feature work is
+  developed in `/data/projects/own/nixos-config-*` worktrees and merged through
+  pull requests. `/etc/nixos` remains the checked-out `main` deployment tree.
+- Layer 1 (NixOS) owns hosts, services, networking, hardware, and deployment.
+- Layer 2 (Home Manager) owns user configuration and is composed from
+  `modules/home-manager/shared-leaf-modules.nix` for both the NixOS-integrated
+  and standalone entrypoints. Host-specific leaves are declared there too.
+- Layer 3 (the user nix profile) owns external or high-churn binaries such as
+  Hermes and Freebuff. Do not add those binaries to HM when that would create a
+  priority-5 collision; use `just hm-switch` for Layer-2 activation.
+- `just hm-switch` activates the current host's standalone HM output
+  (`home-manager switch --flake .#<host>`) without rebuilding NixOS. Use
+  `just hm-build <host>` for a dry build.
+
 ## Workflow
 
 ### Branch Model
@@ -172,7 +188,7 @@ Non-system projects live in `/data/projects/own/` as standalone flakes:
 │   ├── system/                      # Core system (34 files)
 │   ├── services/                    # Background daemons (67 files)
 │   ├── desktop/                     # Wayland compositors (11 files)
-│   ├── home-manager/                # HM modules (15 files)
+│   ├── home-manager/                # HM modules (shared + host-specific leaves)
 │   ├── profiles/                    # Composable hardware/role/network profiles (9 files)
 │   ├── hardware/                    # GPU, AMD, NVIDIA, monitoring, RGB (7 files)
 │   ├── development/                 # Dev tools (11 files)
