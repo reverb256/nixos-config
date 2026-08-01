@@ -11,7 +11,7 @@
 #     (the NixOS-wrapped binary with PortAudio LD_LIBRARY_PATH).
 #   - Clipboard monitoring moved to CopyQ (see modules/home-manager/copyq.nix).
 { config, lib, pkgs, noctaliaPackage, ... }:
-let niriHmAvailable = config.lib ? niri;
+let niriHmAvailable = config.programs.niri.enable or false;
 in lib.mkIf niriHmAvailable {
   programs.niri.settings = {
     spawn-at-startup = [
