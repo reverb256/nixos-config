@@ -184,6 +184,11 @@ in {
     # generation) instead of a store path — self-healing across `nix profile
     # upgrade`, same pattern as the hermes-gateway unit's %h/.nix-profile.
     # Resolved in _make_tui_argv before any checkout probe.
+    #
+    # NOTE: INACTIVE on zephyr — services.hermes-cli.enable = false there
+    # (the hosts/zephyr/services.nix block is dead code, see
+    # hosts/zephyr/configuration.nix). The active zephyr path is the HM
+    # sessionVariables export in modules/home-manager/hermes-gateway.nix.
     environment.variables.HERMES_TUI_DIR = "/home/${cfg.user}/.nix-profile/lib/hermes-tui";
 
     system.activationScripts.hermes-cli-setup = lib.stringAfter ["users"] ''
