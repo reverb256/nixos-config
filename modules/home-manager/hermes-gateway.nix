@@ -44,11 +44,26 @@ in {
     # symlink to the current generation — self-healing across `nix profile
     # upgrade`, same pattern as %h/.nix-profile below).
     #
+    # Mechanism: a fish conf.d file, NOT home.sessionVariables. HM's
+    # hm-session-vars.fish exports __HM_SESS_VARS_SOURCED, which leaks into the
+    # session env; the file's `set -q __HM_SESS_VARS_SOURCED` guard then returns
+    # early in every later shell (including fresh ones spawned from the
+    # session), skipping ALL `set -gx` lines. conf.d is auto-sourced by EVERY
+    # fish instance (interactive + non-interactive) and is immune to that guard
+    # leak — same pattern as the existing ~/.config/fish/conf.d/hermes-voice.fish.
+    #
     # NOTE: gated on programs.hermes-gateway.enable (the gateway unit) even
     # though it feeds the interactive TUI — zephyr always runs both, so this is
     # the pragmatic single gate. If a host ever disables the gateway but still
-    # wants the TUI, move this var to an unconditional shared spot.
-    home.sessionVariables.HERMES_TUI_DIR = "${config.home.homeDirectory}/.nix-profile/lib/hermes-tui";
+    # wants the TUI, move this to an unconditional shared spot.
+    home.file.".config/fish/conf.d/hermes-tui.fish".text = ''
+      # Hermes profile installs split packages (hermes-agent-env/tui/web/desktop);
+      # the raw bin/hermes env script lacks the upstream wrapper's HERMES_TUI_DIR
+      # wiring, so the TUI check (_make_tui_argv) falls through to the checkout
+      # probe and fails. conf.d is sourced by every fish instance, unlike
+      # hm-session-vars (which a leaked __HM_SESS_VARS_SOURCED can skip).
+      set -gx HERMES_TUI_DIR '${config.home.homeDirectory}/.nix-profile/lib/hermes-tui'
+    '';
 
     systemd.user.services.hermes-gateway = {
       Unit = {

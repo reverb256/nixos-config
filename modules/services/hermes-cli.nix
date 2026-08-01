@@ -187,8 +187,9 @@ in {
     #
     # NOTE: INACTIVE on zephyr — services.hermes-cli.enable = false there
     # (the hosts/zephyr/services.nix block is dead code, see
-    # hosts/zephyr/configuration.nix). The active zephyr path is the HM
-    # sessionVariables export in modules/home-manager/hermes-gateway.nix.
+    # hosts/zephyr/configuration.nix). The active zephyr path is the fish
+    # conf.d export in modules/home-manager/hermes-gateway.nix
+    # (~/.config/fish/conf.d/hermes-tui.fish).
     environment.variables.HERMES_TUI_DIR = "/home/${cfg.user}/.nix-profile/lib/hermes-tui";
 
     system.activationScripts.hermes-cli-setup = lib.stringAfter ["users"] ''
