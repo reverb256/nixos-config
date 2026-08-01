@@ -68,6 +68,10 @@ in {
         TimeoutStopSec = 90;
         StandardOutput = "journal";
         StandardError = "journal";
+        # Vault passphrase for the hermes vault feature. Previously injected via
+        # an unmanaged plain-file drop-in (vault.conf); folded in so HM owns the
+        # whole unit. The `-` prefix tolerates a missing file.
+        EnvironmentFile = "-%h/.hermes/hermes-vault-passphrase";
       };
 
       Install.WantedBy = ["default.target"];
