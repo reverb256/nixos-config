@@ -6,7 +6,8 @@
     "control-plane",
     "k8s-master",
     "k8s-node",
-    "local"
+    "local",
+    "desktop"
   ],
   "buildOnTarget": false,
   "allowLocalDeployment": false,

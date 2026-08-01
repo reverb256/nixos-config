@@ -185,8 +185,9 @@
       vfioPkgs = pkgs; # nixpkgs is now unstable — vfioPkgs == pkgs
 
       # COMMON MODULES - Shared across all hosts (single source of truth)
-
-      # Import from shared file to ensure flake.nix and colmena.nix stay in sync
+      # Host identity/deployment/capability facts live in the typed inventory;
+      # NixOS and Colmena consume the same value instead of duplicating it.
+      hostInventory = import ./contracts/host-inventory.nix;
       commonModules = import ./common-modules-list.nix {
         inherit inputs self;
       };
@@ -229,63 +230,10 @@
       #                     + (optionally) 1 entry in `machines` for colmneda.
       #   NOTE: also update ./machines (its keys are colmneda machine entries).
 
-      hosts = {
-        zephyr = {
-          hostName = "zephyr";
-          targetHost = "10.1.1.110";
-          buildOnTarget = false; # Nexus dispatcher builds here and pushes to Zephyr
-          tags = [
-            "control-plane"
-            "k8s-master"
-            "k8s-node"
-            "local"
-            "desktop"
-          ];
-          # Desktop-only sub-tree (AAGL + Stylix + Niri-overlay).
-          # Audit F-13 (2026-07-28): extracted from common-modules-list.nix
-          # so nexus/forge/sentry skip the eval. The file at
-          # modules/desktop/desktop-modules.nix documents the wiring.
-          extraModules = [ ./modules/desktop/desktop-modules.nix ];
-        };
-        nexus = {
-          hostName = "nexus";
-          targetHost = null; # Nexus dispatcher activates the local controller directly
-          buildOnTarget = false; # Nexus dispatcher builds and activates locally
-          tags = [
-            "storage"
-            "k8s-worker"
-            "k8s-storage"
-            "nvidia-gpu"
-            "remote"
-          ];
-          extraModules = [ ];
-        };
-        forge = {
-          hostName = "forge";
-          targetHost = "10.1.1.130";
-          buildOnTarget = false; # Nexus dispatcher builds and pushes to Forge
-          tags = [
-            "gpu"
-            "compute"
-            "k8s-worker"
-            "k8s-gpu-mixed"
-            "remote"
-          ];
-          extraModules = [ ];
-        };
-        sentry = {
-          hostName = "sentry";
-          targetHost = "10.1.1.140";
-          buildOnTarget = false; # Nexus dispatcher builds and pushes to Sentry
-          tags = [
-            "monitoring"
-            "k8s-worker"
-            "k8s-gpu-amd"
-            "remote"
-          ];
-          extraModules = [ ];
-        };
-      };
+      # HOST DEFINITIONS - derived from the canonical typed inventory.
+      # Adding a host starts in contracts/host-inventory.nix; NixOS, Colmena,
+      # metadata validation, and deployment views derive from that one source.
+      hosts = hostInventory.hosts;
     in
     {
 
@@ -299,7 +247,7 @@
       ) hosts;
 
       # OUTPUT 2: colmena (raw hive configuration)
-      # The `hosts` attrset here is the WHOLE-CLUSTER source of truth.
+      # The typed inventory is the whole-cluster source of truth.
       # `colmena.nix` derives both `meta.nodeNixpkgs` AND each host's
       # colmenua `meta` from it. No duplicate host declarations needed.
 
@@ -361,6 +309,7 @@
         options-consistency = mkCheck "options-consistency" ./tests/options-consistency.nix;
         secrets-integrity = mkCheck "secrets-integrity" ./tests/secrets-integrity.nix;
         layer-interface-contract = mkCheck "layer-interface-contract" ./tests/layer-interface-contract.nix;
+        inventory-compliance = mkCheck "inventory-compliance" ./tests/inventory-compliance.nix;
         home-manager-layer = mkCheck "home-manager-layer" ./tests/home-manager-layer.nix;
       };
 

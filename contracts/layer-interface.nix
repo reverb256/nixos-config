@@ -11,9 +11,11 @@
     "https://argo-cd.readthedocs.io/"
   ];
 
-  # Existing canonical sources described by this contract. The contract does
-  # not replace or duplicate their runtime configuration.
+  # Existing canonical sources described by this contract. The typed inventory
+  # owns infrastructure facts; flake/Colmena consume its derived views.
   canonicalSources = [
+    ../contracts/host-inventory.nix
+    ../contracts/host-inventory-schema.nix
     ../flake.nix
     ../colmena.nix
     ../kubernetes/service-ports.nix
@@ -156,7 +158,7 @@
         "builder-capabilities"
       ];
       sourceOfTruthKind = "canonical-repository";
-      sourceOfTruth = "flake.nix:hosts";
+      sourceOfTruth = "contracts/host-inventory.nix:hosts";
     };
 
     platformToApplicationsDevelopment = {
