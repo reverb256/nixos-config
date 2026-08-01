@@ -1,4 +1,9 @@
-{pkgs, ...}: {
+{
+  pkgs,
+  config,
+  lib,
+  ...
+}: {
   # Centralized SYSTEM packages - only packages needed by system services
   # User packages belong in home.nix
   environment.systemPackages = with pkgs; [
@@ -147,21 +152,7 @@
     # Razer packages now handled by hardware.openrazer module
     # liquidctl - Cross-platform CLI for AIO coolers, PSUs, and Corsair Vengeance RAM
     # ============================================================================
-    polychromatic # Graphical front-end for Razer devices
-    razergenie # Qt application for configuring Razer devices
-    razer-cli # Command-line interface for Razer devices
-    ckb-next # Driver and configuration tool for Corsair devices
-    (pkgs.ckb-next.overrideAttrs (old: {
-      version = "0.6.2-unstable-2026-07-20";
-      src = pkgs.fetchFromGitHub {
-        owner = "ckb-next";
-        repo = "ckb-next";
-        rev = "833ab50951e230674bda02e8448ef6ef365dfd81";
-        hash = "sha256-iviGk8Zg/Iou/DvR/4fIQ5Ta5jxbHGUCnCvTLXJdhi0=";
-      };
-    }))
-    headsetcontrol # For Corsair VOID headsets
-    liquidctl # AIO cooler, PSU, and RAM RGB control
+
 
     # ============================================================================
     # CUDA AND ML LIBRARIES
@@ -222,8 +213,6 @@
     xrdb
     xrandr
     # kanshi  # MOVED to home.nix - user display management tool
-    kdePackages.kscreen
-    kdePackages.kio-extras
 
     # ============================================================================
     # WEB BROWSER SUPPORT
@@ -242,5 +231,31 @@
     # NOTE: User AI tools moved to home.nix
     # ============================================================================
     # (kilo wrapper moved to home.nix - requires user nodejs)
-  ];
+    ]
+    ++ lib.optionals (config.networking.hostName != "sentry") [
+      # Peripheral/RGB GUIs - only meaningful on interactive desktop hosts with the
+      # gear. Headless sentry must not pull them: polychromatic -> pyqt6 -> qtwebengine
+      # and kscreen -> pyside6 -> qtwebengine force multi-hour Chromium source builds
+      # on every deploy. Desktop hosts (niri) keep them via hostName != "sentry".
+      polychromatic # Graphical front-end for Razer devices
+      razergenie # Qt application for configuring Razer devices
+      razer-cli # Command-line interface for Razer devices
+      ckb-next # Driver and configuration tool for Corsair devices
+      (pkgs.ckb-next.overrideAttrs (old: {
+        version = "0.6.2-unstable-2026-07-20";
+        src = pkgs.fetchFromGitHub {
+          owner = "ckb-next";
+          repo = "ckb-next";
+          rev = "833ab50951e230674bda02e8448ef6ef365dfd81";
+          hash = "sha256-iviGk8Zg/Iou/DvR/4fIQ5Ta5jxbHGUCnCvTLXJdhi0=";
+        };
+      }))
+      headsetcontrol # For Corsair VOID headsets
+      liquidctl # AIO cooler, PSU, and RAM RGB control
+      # KIO extra protocols (SFTP/SMB/archive browsing for dolphin). Headless
+      # sentry must not pull it: kio-extras -> kguiaddons -> pyside6 ->
+      # qtwebengine forces another multi-hour Chromium source build.
+      kdePackages.kio-extras
+      kdePackages.kscreen
+    ];
 }
