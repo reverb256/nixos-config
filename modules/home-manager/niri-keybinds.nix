@@ -13,7 +13,7 @@
 #   - Screen recording (Alt+Print, Mod+Alt+Shift+Print)
 { config, lib, pkgs, ... }:
 let
-  niriHmAvailable = config.lib ? niri;
+  niriHmAvailable = config.programs.niri.enable or false;
   acts =
     if niriHmAvailable
     then config.lib.niri.actions

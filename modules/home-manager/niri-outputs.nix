@@ -11,7 +11,7 @@
 #   gets HDMI-A-1 4K@60 scale 1.5, and zephyr gets its 4-output grid.
 #   Adding a 5th host = add another if/else branch here.
 { config, lib, hostName, ... }:
-let niriHmAvailable = config.lib ? niri;
+let niriHmAvailable = config.programs.niri.enable or false;
 in lib.mkIf niriHmAvailable {
   programs.niri.settings = {
     outputs =
