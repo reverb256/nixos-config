@@ -1,5 +1,10 @@
 # Build and Deployment Incident Research — 2026-07-31
 
+> **Last Verified:** 2026-08-01 — content re-checked against the merged main
+> (enterprise eval-gate #345 + HM cadence #339) and the in-flight Sentry v4
+> rebuild on Nexus. The libsecret `doCheck = false` workaround documented here
+> is now live in `overlays/bugfixes.nix` (PR #346).
+
 ## Scope
 
 This report investigates the failed attempt to deploy the current NixOS
