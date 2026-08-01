@@ -58,10 +58,6 @@
           mode = "0700";
         }
 
-        # Hermes agent state
-        ".hermes"
-        ".cache"
-
         # Desktop / app state
         ".local"
         ".config"

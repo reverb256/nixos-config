@@ -8,12 +8,6 @@
   cluster = config.networking.cluster;
 in {
   services = {
-    hermes-cli = {
-      enable = true;
-      nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
-      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
-      opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
-    };
     k3s-cluster = {
       enable = true;
       role = "server";
@@ -67,9 +61,7 @@ in {
   };
 
   services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
-  # Create directories for hermes/pi bind mounts on Sentry
   systemd.tmpfiles.rules = [
-    "d /data/hermes 0775 j_kro j_kro -"
     "d /data/pi 0775 j_kro j_kro -"
   ];
 

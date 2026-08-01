@@ -81,7 +81,7 @@
     {
       sopsPath = "/run/secrets/automation/n8n-api-key";
       namespace = "automation";
-      secretName = "hermes-automation-keys";
+      secretName = "n8n-secrets";
       key = "n8n-api-key";
     }
     # ── Mission Control ──────────────────────────────────────

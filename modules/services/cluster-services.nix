@@ -155,7 +155,7 @@ in {
           options = {
             domain = mkOption {
               type = types.str;
-              description = "Fully qualified domain name (e.g., hermes.lan)";
+              description = "Fully qualified domain name (e.g., nexus.lan)";
             };
 
             backend = mkOption {

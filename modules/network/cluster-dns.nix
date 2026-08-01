@@ -75,9 +75,6 @@
   # Sentry-specific services
   sentryServiceDomains = ["monitoring.lan" "prometheus.lan" "alertmanager.lan"];
 
-  # Hermes Agent services (runs on nexus as systemd)
-  hermesServiceDomains = ["hermes.lan" "api.hermes.lan"];
-
   # Tailscale mobile devices
   tailscaleDomains = ["seeker.lan" "reverb256.lan"];
 
@@ -86,7 +83,7 @@
     ingressServiceDomains
     ++ hostServiceDomains
     ++ forgeServiceDomains
-    ++ sentryServiceDomains ++ hermesServiceDomains ++ tailscaleDomains;
+    ++ sentryServiceDomains ++ tailscaleDomains;
 
   # Convert domain list to Unbound local-data records
   # Maps domain → IP based on which list it belongs to
@@ -97,25 +94,21 @@
     then vip # VIP routes to Caddy for TLS termination
     else if builtins.elem domain forgeServiceDomains
     then hosts.forge
-    else if builtins.elem domain sentryServiceDomains
-    then hosts.sentry
-    else if builtins.elem domain hermesServiceDomains
-    then hosts.nexus
-    else if domain == "seeker.lan"
-    then "100.84.24.43"
-    else if domain == "reverb256.lan"
-    then "10.15.39.199"
-    else vip; # fallback
+     else if builtins.elem domain sentryServiceDomains
+     then hosts.sentry
+     else if domain == "seeker.lan"
+     then "100.84.24.43"
+     else if domain == "reverb256.lan"
+     then "10.15.39.199"
+     else vip; # fallback
 
   # Generate Unbound local-data records from domain lists
   ingressServices = map (d: "${d}. IN A ${domainToIp d}") ingressServiceDomains;
   hostServices = map (d: "${d}. IN A ${domainToIp d}") hostServiceDomains;
   forgeServices = map (d: "${d}. IN A ${domainToIp d}") forgeServiceDomains;
   sentryServices = map (d: "${d}. IN A ${domainToIp d}") sentryServiceDomains;
-  hermesServices = map (d: "${d}. IN A ${domainToIp d}") hermesServiceDomains;
-
   # All service records combined
-  allServices = ingressServices ++ hostServices ++ forgeServices ++ sentryServices ++ hermesServices;
+  allServices = ingressServices ++ hostServices ++ forgeServices ++ sentryServices;
 
   # Host records
   hostRecords = lib.mapAttrsToList (name: ip: "${name}.lan. IN A ${ip}") hosts;

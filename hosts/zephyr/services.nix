@@ -94,7 +94,6 @@ in {
 
 
 
-    # Sync hermes/pi state FROM Nexus (Nexus is now canonical source)
 
 
     # Caddy — only Tailscale ingress for this host
@@ -204,7 +203,6 @@ in {
 
     mcp-registry = {
       enable = true;
-      generateHermes = true;
       generateClaudeCode = true;
       generateNetworkPolicies = true;
       generateCasdoorApps = true;
@@ -231,74 +229,6 @@ in {
       enableShellEnv = true;
     };
 
-    # ── Nix-managed Hermes config.yaml ────────────────────────────
-    # Providers, fallback chain, and base_url/key mappings live in Nix.
-    # Imperative sections (telegram channel_profiles, MCP servers, etc.)
-    # are preserved on disk across rebuilds by systemd hermes-config-emit.
-    hermes-cli = {
-      enable = true;
-      user = "j_kro";
-
-      # Phase 2 E2 migration (2026-07-25 pilot): secretspec-resolved
-      # credentials via cachix-fork sops:// NDJSON dispatcher (Phase 1a).
-      # The hermes-config-secrets.service runs `secretspec get <route>`
-      # for each entry and writes the resolved value to ~/.hermes/.env
-      # AFTER the Path B sops-nix blocks (Path A wins for any env var
-      # defined in both paths). The E1 fallback (Path B = `*ApiKeyFile = "..."`)
-      # remains active until operator confirms and drops the stale lines.
-      #
-      # Note: HUGGINGFACE_TOKEN + GITHUB_TOKEN are listed for forward
-      # consistency with /etc/nixos/secretspec.toml, but neither has a
-      # wired `*ApiKeyFile = "..."` line in this host config — they will
-      # resolve via Path A only. If `secretspec get` returns empty for
-      # those routes, Path A logs WARN and Herme doesn't get those env
-      # vars (caller falls through to ~/.hermes/.env defaults / vault).
-      secretspecEnvVarMappings = {
-        "NVIDIA_API_KEY"      = "NVIDIA_API_KEY";
-        "OPENCODE_API_KEY"    = "OPENCODE_ZEN_API_KEY";
-        "OPENCODE_GO_API_KEY" = "OPENCODE_GO_API_KEY";
-        "HUGGINGFACE_TOKEN"   = "HUGGINGFACE_TOKEN";
-        "GITHUB_TOKEN"        = "GITHUB_TOKEN";
-        "MEMLAWB_PASSPHRASE"  = "MEMLAWB_PASSPHRASE";
-      };
-
-      nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
-      opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
-      opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
-      gatewayUrl = "http://${cluster.hosts.zephyr.ip}:${toString cluster.kubernetes.nodePorts.ai-inference-gateway}/v1";
-
-      managedConfig = true;
-      managedProviders = {
-        # Cloud-only providers that drive the picker. Local inference
-        # (forge/llama-cpp) lives outside this config — exposed via the
-        # AI inference gateway and used by smart_model_routing, not the
-        # model picker.
-        "opencode-zen" = {
-          api_key_env = "OPENCODE_API_KEY";
-          base_url = "https://opencode.ai/zen/v1";
-          discover_models = true;
-          model = "nemotron-3-ultra-free";
-        };
-        "opencode-go" = {
-          api_key_env = "OPENCODE_GO_API_KEY";
-          base_url = "https://opencode.ai/zen/go/v1";
-          discover_models = true;
-        };
-        "nvidia" = {
-          api_key_env = "NVIDIA_API_KEY";
-          base_url = "https://integrate.api.nvidia.com/v1";
-          discover_models = true;
-        };
-      };
-      managedFallbackProviders = [
-        "opencode-zen"
-        "opencode-go"
-        "nvidia"
-      ];
-      # MoA config is imperative in ~/.hermes/config.yaml (moa: section).
-      # hermes-moa-declarative.nix is DEAD CODE — see its header for details.
-      # Do NOT uncomment this import without syncing presets from the live config first.
-    };
   };
   programs = {
     haven-desktop.enable = lib.mkForce false;
@@ -352,12 +282,10 @@ in {
   services.secret-hygiene.enable = lib.mkForce false;
   services.btrfs-boot-snapshot.enable = false; # NixOS generations sufficient
 
-  # Create directories for hermes/pi bind mounts on Zephyr.
   # Also symlink /etc/cdi -> /var/run/cdi so podman finds the nvidia-container-toolkit
   # CDI spec (the generator writes to /var/run/cdi; podman reads /etc/cdi by default).
   # This exposes nvidia.com/gpu={0,1,all}, incl. the RTX 3090.
   systemd.tmpfiles.rules = [
-    "d /data/hermes 0775 j_kro j_kro -"
     "L+ /etc/cdi - - - - /var/run/cdi"
   ];
 

@@ -53,11 +53,6 @@
     options = ["subvol=@home"];
   };
 
-  fileSystems."/data/hermes" = {
-    device = "/dev/disk/by-partlabel/disk-samsung-root";
-    fsType = "btrfs";
-    options = ["subvol=@home"];
-  };
 
   fileSystems."/boot" = {
     device = "/dev/disk/by-partlabel/disk-samsung-boot";

@@ -2,7 +2,6 @@
 #
 # Defines all MCP servers in one place and generates configs for:
 #   C2: Claude Code settings.json (mcpServers)
-#   C3: Hermes config.yaml (mcp_servers)
 #   C4: Kagent RemoteMCPServer CRDs
 #   C4: NetworkPolicy per server
 #   C5: Casdoor gateway registration
@@ -10,7 +9,6 @@
 # Usage:
 #   services.mcp-registry.enable = true;
 #   services.mcp-registry.generateClaudeCode = true;
-#   services.mcp-registry.generateHermes = true;
 #   services.mcp-registry.generateKagentCRDs = true;
 #   services.mcp-registry.generateNetworkPolicies = true;
 #   services.mcp-registry.generateCasdoorApps = true;
@@ -103,7 +101,7 @@
     };
 
     # Casdoor MCP server removed 2026-07-15. Casdoor is being phased out
-    # cluster-wide (oauth2-proxy handles .lan auth). The casdoor-hermes-jwt
+    # cluster-wide (oauth2-proxy handles .lan auth). The casdoor JWT
     # secret is retained for transitional back-compat but no longer mounted
     # into any MCP server context.
 
@@ -276,41 +274,6 @@
     pkgs.writeText "claude-code-mcp-servers.json"
     (mkClaudeCodeMcpServers stdioServers);
 
-  # ── C3: Generate Hermes config.yaml mcp_servers ─────────────────────────
-  mkHermesMcpServers = servers: let
-    mkServerBlock = name: server: let
-      lines = ["    ${name}:"];
-      addLine = line: lines ++ [line];
-    in
-      lib.concatStringsSep "\n" (
-        if server.type == "sse"
-        then
-          addLine "      url: ${server.url}"
-          ++ addLine "      connect_timeout: ${toString (server.connectTimeout or 30)}"
-          ++ addLine "      timeout: ${toString (server.timeout or 60)}"
-        else if server.type == "http"
-        then
-          addLine "      url: ${server.url}"
-          ++ addLine "      connect_timeout: ${toString (server.connectTimeout or 30)}"
-          ++ addLine "      timeout: ${toString (server.timeout or 60)}"
-        else
-          # stdio
-          addLine "      command: ${server.command}"
-          ++ lib.optional (server ? args && server.args != [])
-          ("      args:\n" + lib.concatStringsSep "\n" (map (a: "        - ${a}") server.args))
-          ++ addLine "      connect_timeout: ${toString (server.connectTimeout or 30)}"
-          ++ addLine "      timeout: ${toString (server.timeout or 60)}"
-          ++ lib.optional (server ? description)
-          "      description: ${server.description}"
-      );
-  in
-    lib.concatStringsSep "\n" (lib.mapAttrsToList mkServerBlock servers);
-
-  hermesMcpYaml = pkgs.writeText "hermes-mcp-servers.yaml" ''
-        mcp_servers:
-    ${mkHermesMcpServers allServers}
-  '';
-
   # ── C5: Generate NetworkPolicy per server ───────────────────────────────
   mkNetworkPolicy = name: server:
     if server ? ssePort
@@ -389,15 +352,6 @@ in {
       description = "User whose Claude Code config to manage";
     };
 
-    # C3: Hermes generation
-    generateHermes = mkEnableOption "Generate Hermes config.yaml mcp_servers from registry";
-
-    hermesUser = mkOption {
-      type = types.str;
-      default = "j_kro";
-      description = "User whose Hermes config to manage";
-    };
-
     # C5: NetworkPolicy generation
     generateNetworkPolicies = mkEnableOption "Generate NetworkPolicy per MCP server";
 
@@ -436,75 +390,6 @@ in {
       ''
     );
 
-    # ── C3: Hermes config.yaml mcp_servers generation ─────────────────────
-    systemd.services.hermes-mcp-registry = mkIf false {
-      description = "Inject MCP registry servers into Hermes config";
-      after = ["network.target"];
-      wantedBy = ["multi-user.target"];
-
-      path = with pkgs; [python3 coreutils];
-
-      serviceConfig = {
-        Type = "oneshot";
-        User = "root";
-        Group = "root";
-        RemainAfterExit = true;
-        NoNewPrivileges = true;
-        PrivateTmp = true;
-        ProtectSystem = "strict";
-        ProtectHome = "read-only";
-        ReadWritePaths = ["/home/${cfg.hermesUser}/.hermes"];
-
-        ExecStart = pkgs.writeShellScript "hermes-mcp-registry" ''
-          set -euo pipefail
-
-          HERMES_CONFIG="/home/${cfg.hermesUser}/.hermes/config.yaml"
-          MCP_BLOCK="${hermesMcpYaml}"
-
-          if [ ! -f "$HERMES_CONFIG" ]; then
-            echo "[hermes-mcp-registry] No config.yaml found, skipping"
-            exit 0
-          fi
-
-          # Merge mcp_servers block using Python
-          python3 -c "
-          import sys
-          config_path = sys.argv[1]
-          mcp_path = sys.argv[2]
-          with open(config_path) as f:
-              lines = f.readlines()
-          with open(mcp_path) as f:
-              mcp_block = f.read().strip()
-          in_mcp = False
-          filtered = []
-          for line in lines:
-              if line.startswith('mcp_servers:') or line.startswith('mcp_servers: '):
-                  in_mcp = True
-                  continue
-              if in_mcp:
-                  if line.startswith(" ") or \t in line or line.strip() == "":
-                      continue
-                  in_mcp = False
-              filtered.append(line)
-          content = "".join(filtered).rstrip()
-          marker = "smart_model_routing:"
-          full = content.split(marker, 1)
-          if len(full) == 2:
-              result = full[0] + mcp_block + chr(10) + chr(10) + marker + full[1]
-          else:
-              result = content + chr(10) + chr(10) + mcp_block + chr(10)
-          with open(config_path, 'w') as f:
-              f.write(result)
-          " "$HERMES_CONFIG" "$MCP_BLOCK"
-
-          chown ${cfg.hermesUser}:users "$HERMES_CONFIG" 2>/dev/null || true
-          chmod 600 "$HERMES_CONFIG" 2>/dev/null || true
-
-          echo "[hermes-mcp-registry] MCP servers configured from registry"
-        '';
-      };
-    };
-
     # ── C6: Casdoor app registration data ─────────────────────────────────
     environment.etc."mcp-registry/casdoor-apps.json" = mkIf cfg.generateCasdoorApps {
       source = mkCasdoorAppData allServers;
@@ -531,8 +416,8 @@ in {
     # Public helpers for use by other modules (via config.lib.mcp-registry)
     lib.mcp-registry = {
       inherit allServers stdioServers sseServers httpServers localServers clusterServers;
-      inherit mkClaudeCodeMcpServers mkHermesMcpServers mkNetworkPolicy;
-      inherit claudeCodeJson hermesMcpYaml networkPolicies;
+      inherit mkClaudeCodeMcpServers mkNetworkPolicy;
+      inherit claudeCodeJson networkPolicies;
     };
   };
 }

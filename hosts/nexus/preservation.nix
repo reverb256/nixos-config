@@ -43,8 +43,6 @@
           directory = ".gnupg";
           mode = "0700";
         }
-        ".hermes"
-        ".cache"
         ".local"
         ".config"
         ".vscode"

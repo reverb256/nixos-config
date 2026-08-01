@@ -341,7 +341,7 @@
 
   environment = {
     variables = {
-      # ROCm/Mesa OpenCL (for compute mining) + Portaudio/PipeWire (for hermes audio)
+      # ROCm/Mesa OpenCL (for compute mining) + Portaudio/PipeWire
       LD_LIBRARY_PATH = lib.mkForce (lib.makeSearchPath "lib" [
         pkgs.rocmPackages.clr
         pkgs.rocmPackages.clr.icd

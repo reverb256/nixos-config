@@ -94,18 +94,7 @@
       ];
     };
 
-    "/data/hermes" = {
-      device = "/dev/disk/by-label/nexus-storage";
-      fsType = "btrfs";
-      options = [
-        "subvol=hermes"
-        "compress=zstd"
-        "ssd"
-        "discard=async"
-        "nofail"
-        "x-systemd.device-timeout=10s"
-      ];
-    };
+    # /data/hermes mount removed — hermes is nix-profile only
 
     "/data/models" = {
       device = "/dev/disk/by-label/nexus-storage";

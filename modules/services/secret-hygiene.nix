@@ -30,7 +30,7 @@ in {
 
     scanScript = mkOption {
       type = types.path;
-      default = "/home/j_kro/.hermes/skills/devops/agent-session-secret-hygiene/scripts/secret-redact-pass2.py";
+      default = "/home/j_kro/.claude/skills/devops/agent-session-secret-hygiene/scripts/secret-redact-pass2.py";
       description = "Path to the secret-scrubber scan script";
     };
 
@@ -82,7 +82,6 @@ in {
 
           # Session directories to scan
           SESSION_DIRS=(
-            "${cfg.homeDir}/.hermes/sessions"
             "${cfg.homeDir}/.claude/transcripts"
             "${cfg.homeDir}/.omp/agent/sessions"
             "${cfg.homeDir}/.pi/agent/sessions"
@@ -216,17 +215,6 @@ in {
           echo "" | tee -a "$CLEANUP_LOG"
 
           TOTAL_DELETED=0
-
-          # Cleanup Hermes sessions
-          HERMES_DIR="${cfg.homeDir}/.hermes/sessions"
-          if [ -d "$HERMES_DIR" ]; then
-            DELETED=$(find "$HERMES_DIR" -maxdepth 1 -type f \( \
-              -name "session_*.json" \
-              -o -name "request_dump_*.json" \
-            \) -mtime +"$RETENTION_DAYS" -print -delete 2>/dev/null | wc -l || echo 0)
-            echo "Hermes sessions: deleted $DELETED files" | tee -a "$CLEANUP_LOG"
-            TOTAL_DELETED=$((TOTAL_DELETED + DELETED))
-          fi
 
           # Cleanup Claude transcripts
           CLAUDE_DIR="${cfg.homeDir}/.claude/transcripts"

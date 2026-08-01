@@ -45,13 +45,6 @@ in {
       };
     };
 
-    Secret.hermes-automation-keys = {
-      type = "Opaque";
-      stringData = {
-        # Populated by sops-nix: kubectl-apply-k8s-secrets automation hermes-automation-keys n8n-api-key
-      };
-    };
-
     # ══════════════════════════════════════════════════════════════════════
     # POSTGRES — n8n database
     # ══════════════════════════════════════════════════════════════════════

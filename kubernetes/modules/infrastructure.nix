@@ -57,7 +57,7 @@ in {
 
     # ── NFS Client StorageClass ──────────────────────────────────
     # Backed by the nfs-subdir-external-provisioner on nexus.
-    # NFS exports: /data/hermes, /data/pi, /data/qdrant, /etc/nixos
+    # NFS exports: /data/pi, /data/qdrant, /etc/nixos
     StorageClass.nfs-client = {
       metadata.annotations."storageclass.kubernetes.io/is-default-class" = "true";
       provisioner = "nfs-client";
