@@ -167,10 +167,22 @@
   '';
 in {
   home.packages = [
-    pkgs.adwaita-qt # Qt style plugin providing 'adwaita-dark' — required so
+    pkgs.adwaita-qt # Qt5 style plugin providing 'adwaita-dark' — required so
                     # QT_STYLE_OVERRIDE=adwaita-dark (set by the NixOS
-                    # home-manager path) resolves instead of being ignored
-                    # with "invalid style override 'adwaita-dark'".
+                    # home-manager path) resolves for Qt5 system apps
+                    # (ckb-next, razergenie, polychromatic, openrgb,
+                    # headsetcontrol) instead of being ignored with
+                    # "invalid style override 'adwaita-dark'".
+    pkgs.adwaita-qt6 # Qt6 build of the same plugin (useQt6 = true) — the
+                     # desktop session runs Qt6 apps, and plain pkgs.adwaita-qt
+                     # only ships lib/qt-5.15.18/plugins/styles, which Qt6 apps
+                     # never scan. Both variants are needed because
+                     # QT_STYLE_OVERRIDE is version-agnostic. (NOTE: this
+                     # nixpkgs build ships ONLY the style plugin — no
+                     # platformthemes/libqadwaita.so — so
+                     # qt.platformTheme.name = "adwaita" falls back to the
+                     # default platform theme (possibly with a stderr note at
+                     # app launch); the style override is what actually works.)
     screenshot
     screenrecord
     ocr-extract

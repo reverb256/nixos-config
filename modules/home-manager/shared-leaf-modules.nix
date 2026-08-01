@@ -60,6 +60,15 @@
     targets.lazygit.enable = true;
     targets.qt.enable = true;
     targets.qt.platform = lib.mkForce "qtct";
+    # Cluster runs niri ONLY (no Plasma on any host). Stylix's kde target
+    # defaults to ENABLED (mkEnableTarget "KDE" true), which runs the
+    # stylix-kde-apply-plasma-theme activation on every `home-manager switch`
+    # and spews noise on non-Plasma sessions:
+    #   QApplication: invalid style override 'adwaita-dark'...
+    #   "applications.menu" not found in QList(...)
+    # Disable it here (shared, so both NixOS-module and standalone HM paths
+    # behave identically). Re-enable if a host ever runs Plasma.
+    targets.kde.enable = false;
     targets.gtk.enable = true;
     targets.bat.enable = true;
     targets.fzf.enable = true;
