@@ -785,6 +785,21 @@ programs.gitlawb.enable = false;
           grpcPort = 6334;
           storagePath = "/var/lib/qdrant";
           memoryLimit = "4G";
+          # Pin qdrant 1.18.1 (1.18.2 fails to compile: Rust AVX512 intrinsic
+          # mismatch) with the cluster-correct cargoHash. The flake's pinned
+          # nixpkgs carries 1.18.2's cargoHash, which mismatches the 1.18.1
+          # vendor tree and breaks qdrant-*-vendor-staging. Captured via
+          # lib.fakeHash: "got:" = sha256-nYW1vZzDg2atNLqROFhzKLh0v6aZHoYKUeNNTb82tr4=.
+          package = lib.mkForce (pkgs.qdrant.overrideAttrs (old: {
+            version = "1.18.1";
+            src = pkgs.fetchFromGitHub {
+              owner = "qdrant";
+              repo = "qdrant";
+              tag = "v1.18.1";
+              hash = "sha256-lqMyLnVD2iRu2AxlDHO7LzH2fFT01Gegn2JMhLAtDns=";
+            };
+            cargoHash = "sha256-nYW1vZzDg2atNLqROFhzKLh0v6aZHoYKUeNNTb82tr4=";
+          }));
         };
       };
       # Security options

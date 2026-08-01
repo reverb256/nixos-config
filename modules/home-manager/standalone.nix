@@ -1,98 +1,53 @@
-{
-  config,
-  lib,
-  pkgs,
-  inputs,
-  hostName,
-  vfioPkgs,
-  ...
-}:
-
+{ config, lib, pkgs, inputs, hostName, vfioPkgs, ... }:
 let
-  # Base16 scheme propagated into HM from the NixOS stylix module via
-  # stylix.homeManagerIntegration.followSystem. The system scheme is
-  # ./themes/osaka-jade.yaml (modules/desktop/stylix.nix). We reference the
-  # same file here so a standalone `home-manager switch` (without the NixOS
-  # layer) themes identically to colmena's `just switch`.
-  stylixBase16 = ../../modules/desktop/themes/osaka-jade.yaml;
-
+  # SINGLE SOURCE OF TRUTH for the user-env leaf set (issue #338).
+  shared = import ./shared-leaf-modules.nix { inherit lib pkgs; };
   hmThirdParty = [
     inputs.zen-browser.homeModules.twilight
     inputs.nixcord.homeModules.nixcord
     inputs.stylix.homeModules.default
-    # niri HM module — required so `config.lib.niri` exists for niri-config.nix
-    # (guarded internally by `config.lib ? niri`). Aligned with
-    # modules/system/home-manager.nix which imports inputs.niri.homeModules.config.
-    inputs.niri.homeModules.config
-  ];
-
-  hmLeaf = [
-    ./fish.nix
-    ./starship.nix
-    ./btop.nix
-    ./zen-browser.nix
-    ./nixcord-config.nix
-    ./mime-apps.nix
-    ./mime-fix.nix
-    ./hermes-desktop-entry.nix
-    ./caprine.nix
-    ./opencode.nix
-    ./firefox-pwa-apps.nix
-    ./alacritty.nix
-    ./hermes-skin.nix
-    # Hermes Desktop .desktop entry (upstream package ships none).
-    ./hermes-desktop.nix
-    ./icon-theme.nix
-    ./dolphin.nix
-    ./desktop-utilities.nix
-    ./copyq.nix
-    ./git.nix
-    ./tmux.nix
-    ./lazygit.nix
-    ./tui-apps.nix
-    ./editorconfig.nix
-    ./heal-stale-backups.nix
-    # Noctalia -> stylix bridge (writes noctalia/colors.json + colorschemes).
-    # Aligned with modules/system/home-manager.nix — was previously MISSING
-    # from the standalone set, causing the standalone build to diverge from
-    # the colmena-managed build on zephyr.
-    ./noctalia-stylix.nix
-    # Stylix bridges: purge stale noctalia.* orphan snapshots that shadow
-    # stylix's live Osaka Jade base16 (alacritty theme, gtk css, btop theme,
-    # qt colors, niri kdl, telegram theme, scroll). Also removes Kvantum state.
-    ./stylix-bridges.nix
-    # niri compositor config (zephyr/sentry). Guarded internally by
-    # config.lib ? niri; only activates when the niri HM module is present.
-    ./niri-config.nix
-  ] ++ lib.optionals (hostName == "zephyr") [
-    ./standalone-zephyr.nix
-  ] ++ lib.optionals (hostName == "nexus") [
-    ./standalone-nexus.nix
-  ] ++ lib.optionals (hostName == "forge") [
-    ./standalone-forge.nix
-  ] ++ lib.optionals (hostName == "sentry") [
-    ./standalone-sentry.nix
+    # NOTE: freebuff-flake is intentionally NOT imported here. freebuff-desktop
+    # is an external CLI with no HM-managed dotfiles — it lives in Layer 3
+    # (nix profile), per issue #338. Importing it into the HM layer causes a
+    # `nix profile install` priority-5 collision with the Layer-3 entry
+    # (both provide bin/freebuff-desktop). Keep it out of HM.
   ];
 in {
+  # Stylix: base16 scheme + target empowerment, shared with the NixOS-module path
+  # so both paths produce a fully-themed user env (previously only the
+  # NixOS-module path empowered targets, leaving standalone unthemed).
   stylix = {
     enable = true;
-    base16Scheme = stylixBase16;
+    base16Scheme = ../../modules/desktop/themes/osaka-jade.yaml;
     polarity = "dark";
-  };
-  imports = hmThirdParty ++ hmLeaf;
+    # Match the NixOS-path monospace font (modules/desktop/stylix.nix) so the
+    # standalone HM build themes alacritty/kitty/starship with the same family
+    # + size as the colmena path. Without this, stylix falls back to a default
+    # monospace (DejaVu Sans Mono @ 12) and the terminal font diverges from the
+    # system theme. `terminal = 10` (in stylixTargets) is the size token.
+    fonts.monospace = {
+      package = pkgs.nerd-fonts.jetbrains-mono;
+      name = "JetBrainsMono Nerd Font";
+    };
+  } // shared.stylixTargets;
 
-  # ── Backup extension ────────────────────────────────────────────
-  # NOTE: in HM 0-unstable-2026-04-24 standalone, `home.backupFileExtension`
-  # does NOT exist (it's only the NixOS/nix-darwin module option
-  # `home-manager.backupFileExtension`). For the standalone flake we pass
-  # the extension at switch time: `home-manager switch -b v3-fix`. The
-  # `v3-fix` name matches the colmena path (modules/system/home-manager.nix)
-  # so backups are consistent across both activation paths.
+  imports = hmThirdParty ++ shared.leafModules ++ [
+    # Per-host package lists (gaming/mining/monitoring tools) — gated by hostName
+    # so only the matching host's extras deploy via `home-manager switch`.
+  ] ++ lib.optionals (hostName == "zephyr") [ ./standalone-zephyr.nix ]
+    ++ lib.optionals (hostName == "nexus") [ ./standalone-nexus.nix ]
+    ++ lib.optionals (hostName == "forge") [ ./standalone-forge.nix ]
+    ++ lib.optionals (hostName == "sentry") [ ./standalone-sentry.nix ];
+
+  # NOTE: freebuff-desktop is intentionally NOT enabled here. It is an external
+  # CLI (no HM-managed dotfiles) that belongs in Layer 3 (nix profile), per
+  # issue #338. Enabling it in HM triggers a `nix profile install` priority-5
+  # collision with the Layer-3 freebuff-desktop entry (both provide
+  # bin/freebuff-desktop). Remove this block — keep freebuff in Layer 3 only.
 
   home.homeDirectory = "/home/j_kro";
   home.stateVersion = "26.05";
   home.username = "j_kro";
-
   home.pointerCursor = {
     enable = true;
     package = pkgs.bibata-cursors;
@@ -131,135 +86,18 @@ in {
     };
   };
 
-  # ── SSH (legacy matchBlocks API — HM 0-unstable-2026-04-24) ──────
-  # `programs.ssh.settings` (RFC 42) does NOT exist in this HM version; the
-  # repo's common.nix also uses matchBlocks/extraConfig, so we stay consistent.
-  # Directives without a first-class field (strictHostKeyChecking,
-  # addKeysToagent, pubkeyAuthentication, passwordAuthentication, batchMode,
-  # connectTimeout) go in `extraOptions`, which renders verbatim.
   programs.ssh = {
     enable = true;
-    enableDefaultConfig = false;
-    matchBlocks = {
-      "*" = {
-        identityFile = "~/.ssh/id_ed25519_sk";
-        identitiesOnly = true;
-        serverAliveInterval = 60;
-        forwardX11Trusted = true;
-        extraOptions = {
-          AddKeysToagent = "yes";
-          ControlMaster = "auto";
-          ControlPath = "~/.ssh/master-%r@%n:%p";
-          ControlPersist = "10m";
-          HashKnownHosts = "yes";
-          UserKnownHostsFile = "~/.ssh/known_hosts";
-        };
-      };
-      "sentry forge nexus" = {
-        identityFile = "~/.ssh/id_ed25519_cluster";
-        identitiesOnly = true;
-        extraOptions = {
-          StrictHostKeyChecking = "accept-new";
-        };
-      };
-      "krash3-vm" = {
-        hostname = "10.1.1.34";
-        user = "j_kro";
-        identityFile = "~/.ssh/id_ed25519_cluster";
-        identitiesOnly = true;
-        extraOptions = {
-          StrictHostKeyChecking = "accept-new";
-        };
-      };
-      "krash2" = {
-        hostname = "10.1.1.79";
-        user = "krash";
-        identityFile = "~/.ssh/id_ed25519";
-        identitiesOnly = true;
-        extraOptions = {
-          PubkeyAuthentication = "yes";
-          PasswordAuthentication = "no";
-        };
-      };
-      # NOTE: `krash3` and `10.1.1.150` are duplicate targets (same HostName,
-      # identical settings) — preserved verbatim from the original plain file
-      # for zero behavior change. Safe to delete one later.
-      "krash3" = {
-        hostname = "10.1.1.150";
-        user = "j_kro";
-        port = 22;
-        identityFile = "~/.ssh/id_ed25519";
-        extraOptions = {
-          StrictHostKeyChecking = "no";
-        };
-      };
-      "10.1.1.150" = {
-        hostname = "10.1.1.150";
-        user = "j_kro";
-        port = 22;
-        identityFile = "~/.ssh/id_ed25519";
-        extraOptions = {
-          StrictHostKeyChecking = "no";
-        };
-      };
-      "krash3 10.1.1.150" = {
-        hostname = "10.1.1.150";
-        user = "j_kro";
-        extraOptions = {
-          BatchMode = "yes";
-          StrictHostKeyChecking = "accept-new";
-          ConnectTimeout = "8";
-        };
-      };
-    };
+    extraConfig = ''
+      Host 10.1.1.*
+        StrictHostKeyChecking no
+        UserKnownHostsFile ~/.ssh/known_hosts
+    '';
   };
 
   programs.gpg.enable = true;
   home.sessionVariables.BAT_THEME = "base16-stylix";
   systemd.user.sessionVariables.HF_TOKEN = "/run/secrets/huggingface-token";
-
-  # ── Stylix targets (aligned with modules/system/home-manager.nix) ─
-  # autoEnable is false system-wide; empower explicitly so theming is
-  # guaranteed regardless of auto-detect. Terminal-app targets live in the
-  # HM stylix namespace (NOT config.stylix.targets.* at the NixOS level).
-  stylix.targets = {
-    zen-browser.profileNames = ["default"];
-    starship.enable = true;
-    alacritty.enable = true;
-    kitty.enable = true;
-    fish.enable = true;
-    btop.enable = true;
-    lazygit.enable = true;
-    qt.enable = true;
-    gtk.enable = true;
-    bat.enable = true;
-    fzf.enable = true;
-    tmux.enable = true;
-    opencode.enable = true;
-    vesktop.enable = true;
-  };
-
-  # Non-Kvantum Qt path (niri + optional Plasma). adwaita-dark aligns with
-  # polarity=dark and GTK adw-gtk3. mkForce resolves the priority clash.
-  qt = {
-    enable = true;
-    platformTheme.name = lib.mkForce "gnome";
-    style.name = lib.mkForce "adwaita-dark";
-    kvantum.enable = lib.mkForce false;
-  };
-  home.sessionVariables.QT_STYLE_OVERRIDE = lib.mkForce "adwaita-dark";
-
-  # Kitty terminal emulator (generates kitty.conf for stylix theming).
-  programs.kitty.enable = true;
-
-  xdg.configFile = {
-    "mimeapps.list".force = true;
-  };
-
-  # starship.toml is HM-generated (programs.starship) but the live file is a
-  # stale symlink to an old store path; checkLinkTargets refuses to repoint it
-  # without force. programs.starship writes via home.file, so force there.
-  home.file.".config/starship.toml".force = true;
 
   _module.args.hostName = lib.mkDefault hostName;
   _module.args.vfioPkgs = lib.mkDefault vfioPkgs;

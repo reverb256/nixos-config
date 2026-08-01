@@ -15,6 +15,8 @@
   # the hermes-agent package directly, so they have no services.hermes-cli.
   # Guard the hermes wrapper symlink on this to avoid "attribute missing" errors.
   hasHermesCli = (builtins.tryEval options).value ? services.hermes-cli;
+  # SINGLE SOURCE OF TRUTH for the user-env leaf set (issue #338).
+  shared = import ../home-manager/shared-leaf-modules.nix { inherit lib pkgs; };
 in
   lib.mkIf hasHM {
     home-manager = {
@@ -31,8 +33,10 @@ in
         inherit inputs;
         inherit hostName;
         # Wrapped hermes binary (with PortAudio LD_LIBRARY_PATH) for the
-        # user-local ~/.local/bin/hermes symlink (replaces stale manual link).
-        # Null when the hermes-cli service isn't declared (e.g. usb rescue ISO).
+        # user-local ~/.local/bin/hermes symlink. Null when hermes-cli service
+        # isn't declared (e.g. usb rescue ISO). HM-module-path only; standalone
+        # HM resolves hermes from the nix profile layer (#334), so this arg is
+        # never required there.
         hermesWrappedBin =
           if hasHermesCli
           then config.services.hermes-cli.wrappedHermesBin
@@ -40,9 +44,9 @@ in
         # Expose the noctalia wrapper (NixOS `programs.noctalia.package`,
         # mkForce'd to the pass-through wrapper in
         # modules/desktop/wayland-compositor-common.nix) to home-manager
-        # modules. Home-manager's `config` does NOT see NixOS options, so
-        # niri-config.nix spawns it via this injected arg rather than
-        # `config.programs.noctalia.package`.
+        # modules. HM's `config` does NOT see NixOS options, so niri-config.nix
+        # spawns it via this injected arg rather than `config.programs.noctalia`.
+        # HM-module-path only — standalone HM excludes niri-config.
         noctaliaPackage =
           if config ? programs.noctalia
           then config.programs.noctalia.package
@@ -67,102 +71,29 @@ in
           ++ [
             inputs.zen-browser.homeModules.twilight
             inputs.nixcord.homeModules.nixcord
-            ../../modules/home-manager/fish.nix
-            ../../modules/home-manager/starship.nix
-            # ../../modules/home-manager/wayland-tools.nix
-            ../../modules/home-manager/zen-browser.nix
-            ../../modules/home-manager/nixcord-config.nix
-            ../../modules/home-manager/caprine.nix
-            # ../../modules/home-manager/obsidian.nix  # Temporarily disabled - stylix integration issue
-            ../../modules/home-manager/opencode.nix
-            ../../modules/home-manager/firefox-pwa-apps.nix
-            ../../modules/home-manager/alacritty.nix
-            ../../modules/home-manager/hermes-skin.nix
-            ../../modules/home-manager/icon-theme.nix
-            ../../modules/home-manager/dolphin.nix
-            ../../modules/home-manager/desktop-utilities.nix
-            ../../modules/home-manager/copyq.nix
-            ../../modules/home-manager/git.nix
-            ../../modules/home-manager/tmux.nix
-            ../../modules/home-manager/lazygit.nix
-            ../../modules/home-manager/mime-apps.nix
-            ../../modules/home-manager/tui-apps.nix
-            ../../modules/home-manager/editorconfig.nix
-            ../../modules/home-manager/btop.nix
-            ../../modules/home-manager/noctalia-stylix.nix
-            # Wires the removeStaleNoctaliaThemes activation so frozen v4
-            # noctalia.* orphans (alacritty theme, gtk css, btop theme, qt
-            # colors, niri kdl, telegram theme, scroll) are deleted on switch
-            # and can no longer bypass stylix. Was previously dead code
-            # (never imported) — see stylix audit 2026-07-16.
-            ../../modules/home-manager/stylix-bridges.nix
-            # Self-healing: purge stale .v3-fix/.hm-backup files and un-freeze
-            # drifted plain-file dotfiles BEFORE linkGeneration (root-cause fix
-            # for the 2026-07-22 home-manager activation abort). Uses lib.hm.dag
-            # which is only in scope inside the HM user config, hence its own module.
-            ../../modules/home-manager/heal-stale-backups.nix
           ]
-          # niri-config only on hosts with the niri HM module
+          ++ shared.leafModules
+          # NixOS-coupled extras — NOT in shared leaf set (would break standalone):
+          # niri-config reads HM stylix + spawns noctalia via injected arg.
           ++ lib.optional (hostName == "zephyr" || hostName == "sentry")
           ../../modules/home-manager/niri-config.nix;
 
+        # Stylix target empowerment (shared with standalone path).
+        # Set ONLY stylix.targets here: the NixOS stylix module owns
+        # stylix.base16 (read-only, propagated to HM via followSystem), so
+        # assigning the whole `stylix` attr would redefine base16 and error.
+        stylix.targets = shared.stylixTargets.targets;
+
+        # ── Additional explicit targets (mirror standalone) ──
         nixcord-config.enable = lib.mkForce (hostName == "zephyr");
         caprine.enable = lib.mkForce (hostName == "zephyr");
-
-        # Stylix - targets are empowered explicitly below. The base16Scheme is
-        # propagated NixOS -> home-manager automatically by stylix's
-        # homeManagerIntegration.followSystem (see modules/desktop/stylix.nix).
-        # Do NOT re-inherit (config.stylix).base16Scheme here: stylix's own HM
-        # module also derives the read-only `stylix.base16` from it, and two
-        # definitions collide ("option is read-only, set multiple times").
-        stylix = {
-          targets.zen-browser.profileNames = ["default"];
-
-          # ── Explicit target empowerment (version-bump-proof) ───────
-          # autoEnable is false system-wide, so with autoImport/followSystem
-          # the HM targets are still auto-enabled by stylix's HM module ONLY
-          # when the program is installed. That dependency chain is fragile
-          # (a stylix rev bump or a mkForce can silently drop theming).
-          # Explicitly empower every target we actually run so the theme is
-          # guaranteed regardless of auto-detect. Terminal-app targets live
-          # in the HM stylix namespace (NOT config.stylix.targets.* at the
-          # NixOS level, which only carries system targets like lightdm).
-          targets.starship.enable = true;
-          targets.alacritty.enable = true;
-          targets.kitty.enable = true;
-          targets.fish.enable = true;
-          targets.btop.enable = true;
-          targets.lazygit.enable = true;
-          targets.qt.enable = true;
-          # Prefer gnome platform → adwaita-dark (no Kvantum). qtct defaults
-          # to kvantum which we intentionally do not ship.
-          targets.qt.platform = lib.mkForce "qtct";
-          # GTK theming for all hosts (dconf/HM works headless for file gen).
-          # Previously disabled on nexus — that left GTK apps unthemed there.
-          targets.gtk.enable = true;
-          # ── Additional targets for installed programs ──────────────
-          # bat — theming for bat (base16-stylix theme)
-          targets.bat.enable = true;
-          # fzf — theming for fzf colors
-          targets.fzf.enable = true;
-          # tmux — theming for tmux (tinted theme)
-          targets.tmux.enable = true;
-          # opencode — full TUI theme (Osaka Jade palette)
-          targets.opencode.enable = true;
-          # discord/vesktop — theme for Vesktop/Vencord (Osaka Jade)
-          targets.vesktop.enable = true;
-        };
 
         # Non-Kvantum Qt path for all hosts (niri + optional Plasma).
         # adwaita-dark aligns with polarity=dark and GTK adw-gtk3.
         qt = {
           enable = true;
-          # Align with stylix targets.qt.platform = mkForce "qtct" (adwaita-dark
-          # via gnome platform, no Kvantum). Must match or the full build fails on
-          # a conflicting-definition error. mkForce resolves the priority clash.
           platformTheme.name = lib.mkForce "adwaita";
           style.name = lib.mkForce "adwaita-dark";
-          # Never pull Base16Kvantum / QT_STYLE_OVERRIDE=kvantum.
           kvantum.enable = lib.mkForce false;
         };
         home.sessionVariables.QT_STYLE_OVERRIDE = lib.mkForce "adwaita-dark";
@@ -189,11 +120,8 @@ in
         };
 
         # Ensure the user's ~/.local/bin/hermes points at the NixOS-wrapped
-        # hermes binary (which carries the PortAudio LD_LIBRARY_PATH). A stale
-        # manual symlink to a raw GC-able store path previously shadowed the
-        # system wrapper and broke voice mode. force=true overrides it.
-        # Skipped on hosts without the hermes-cli service (e.g. usb rescue ISO,
-        # which ships hermes via the hermes-agent package directly).
+        # hermes binary (carries PortAudio LD_LIBRARY_PATH). Standalone HM path
+        # omits this — hermes comes from the nix profile layer there (#334).
         home.file.".local/bin/hermes" = lib.mkIf (hermesWrappedBin != null) {
           source = hermesWrappedBin;
           force = true;
