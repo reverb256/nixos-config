@@ -48,6 +48,12 @@
     ../../modules/home-manager/stylix-bridges.nix
     # Self-healing drift guard (un-freeze plain-file dotfiles before linkGen)
     ../../modules/home-manager/heal-stale-backups.nix
+    # Hermes Desktop launcher entry (binary is Layer 3, nix profile — issue #334/#337)
+    ../../modules/home-manager/hermes-desktop-entry.nix
+    # Symlink nix-profile/system .desktop files into ~/.local/share/applications
+    # so Noctalia + file pickers surface Layer-3 GUI apps (issue #335). Both HM
+    # paths need this — was dropped from standalone.nix by the #338 refactor.
+    ../../modules/home-manager/mime-fix.nix
   ];
 
   # ── Stylix target empowerment — MUST be shared so standalone HM is themed ──

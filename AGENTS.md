@@ -143,21 +143,23 @@ Tool packages available on nexus via `environment.systemPackages`:
 ### Registration
 The runner is registered with GitHub for `reverb256/nixos-config` using the official runner configuration script. Re-registration requires a fresh token from GitHub Actions settings.
 
-## Extracted Projects (7)
+## Extracted Projects (Tier 2 — app layer)
 
-Non-system projects live in `/data/projects/own/` as standalone flakes:
+Non-system projects were extracted to standalone flakes and are consumed as
+`github:reverb256/*` flake inputs in `flake.nix` (audited 2026-08-01). They no
+longer live in `/data/projects/own/` (that dir now holds worktrees).
 
-| Project | Flake Input | Purpose |
-|---------|-------------|---------|
-| ai-inference-gateway | `ai-gateway` | AI gateway service |
-| compute-market | `compute-market` | GPU time-slicing |
-| ~~caddy-ingress~~ | `caddy-ingress` | Archived — NixOS Caddy replaces K8s ingress controller |
-| gpu-proxy | `gpu-proxy` | Stratum mining proxy |
-| knowledge-fabric | `knowledge-fabric` | Knowledge base |
-| llama-cpp-turboquant | `llama-turboquant` | TurboQuant + DFlash llama.cpp |
-| hermes-chat | (local package) | Hermes Agent desktop client |
-| mcp-registry | `mcp-registry` | MCP server management |
-| vllm-turboquant | `vllm-turboquant` | vLLM + TurboQuant container build |
+| Project | Flake Input | Status |
+|---------|-------------|--------|
+| ai-inference-gateway | `ai-gateway` = `github:reverb256/ai-inference-gateway` | ✅ wired |
+| mcp-registry | `mcp-registry` = `github:reverb256/mcp-registry` | ✅ wired |
+| caddy-ingress | `caddy-ingress` = `github:reverb256/caddy-ingress` | ✅ wired (archived role — NixOS Caddy replaces K8s ingress) |
+| gpu-proxy | `gpu-proxy` = `github:reverb256/gpu-proxy` | ✅ wired |
+| knowledge-fabric | repo exists, **no flake input** | ⚠️ orphaned — re-wire or de-scope |
+| llama-cpp-turboquant | repo exists, **no flake input** | ⚠️ orphaned — re-wire or de-scope |
+| vllm-turboquant | repo exists, **no flake input** | ⚠️ orphaned — re-wire or de-scope |
+| compute-market | repo exists, input removed | ❌ de-scoped (mining → peakminer) |
+| hermes-chat | not on GitHub | ❌ never extracted (still `packages/hermes-chat.nix`) |
 
 ## Project Structure
 
