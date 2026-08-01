@@ -14,7 +14,7 @@
   ...
 }: let
   inherit (lib) mkDefault mkIf;
-  niriHmAvailable = config.lib ? niri;
+  niriHmAvailable = config.programs.niri.enable or false;
 in {
   imports = [
     ./niri-spawn.nix
