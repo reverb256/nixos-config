@@ -12,13 +12,12 @@
 #   - Screenshots (Print, Mod+Print, ...)
 #   - Screen recording (Alt+Print, Mod+Alt+Shift+Print)
 { config, lib, pkgs, ... }:
+# NOTE: Only imported on niri hosts; `programs.niri.settings` + `config.lib.niri.actions`
+# always valid. Removed the `config.programs.niri.enable` guard that evaluated false
+# and dropped ALL keybinds.
 let
-  niriHmAvailable = config.programs.niri.enable or false;
-  acts =
-    if niriHmAvailable
-    then config.lib.niri.actions
-    else {};
-in lib.mkIf niriHmAvailable {
+  acts = config.lib.niri.actions;
+in {
   programs.niri.settings = {
     binds = with acts; {
       # 2026-07-27 OOM emergency: alacritty-oom-safe wrapper caps per-instance

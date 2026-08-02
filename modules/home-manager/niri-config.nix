@@ -14,7 +14,13 @@
   ...
 }: let
   inherit (lib) mkDefault mkIf;
-  niriHmAvailable = config.programs.niri.enable or false;
+  # NOTE: `inputs.niri.homeModules.config` is unconditionally imported for
+  # niri hosts (zephyr/sentry) in modules/system/home-manager.nix, so the
+  # `programs.niri.settings` option and `config.lib.niri` are ALWAYS present
+  # here. The old `config.lib ? niri` guard evaluated false during early HM
+  # evaluation and silently dropped the ENTIRE settings block -- leaving a
+  # 23-byte config.kdl (`include "noctalia.kdl"`) with no keyboard-repeat,
+  # input, layout, or window-rules. Removing the guard so settings always apply.
 in {
   imports = [
     ./niri-spawn.nix
@@ -22,7 +28,7 @@ in {
     ./niri-keybinds.nix
   ];
 
-  programs.niri.settings = mkIf niriHmAvailable (lib.mkMerge [
+  programs.niri.settings = lib.mkMerge [
     {
       cursor = {
         # theme/size are owned by Stylix (see stylix block below) so the
