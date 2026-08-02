@@ -54,6 +54,24 @@ in mkIf cfg.enableAlertRules {
       }
     ])
 
+    # ── Cross-host Sentry liveness (alert evaluated where Prometheus runs) ──
+    # Sentry runs its OWN Prometheus, so when sentry is the dead node this rule
+    # cannot evaluate. The authoritative recovery guard is the nexus
+    # sentry-sentinel systemd timer (logs CRIT + fires WoL). This rule is the
+    # in-cluster signal for partial outages / degraded-but-up states.
+    (ruleGroup "sentry-oob" [
+      {
+        alert = "SentryHostDown";
+        expr = "up{job='node', instance=~'.*10.1.1.140.*'} == 0";
+        for = "5m";
+        labels = { severity = "critical"; oob = "required"; };
+        annotations = {
+          summary = "Sentry (10.1.1.140) node-exporter down >5m";
+          description = "Sentry unreachable for 5m. If the host is hard-down, recovery requires nexus sentry-sentinel (WoL) or a PHYSICAL power-cycle at the rack - no IPMI/BMC/PDU present. See docs/incidents/2026-08-02-sentry-down-oob.md";
+        };
+      }
+    ])
+
     # ── GPU health ───────────────────────────────────────────────
     (ruleGroup "gpu" [
       {

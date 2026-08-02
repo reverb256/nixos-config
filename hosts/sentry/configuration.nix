@@ -14,6 +14,8 @@
   imports = [
     # Monitoring configuration
     ./monitoring.nix
+    # Out-of-band management (WoL recovery contract)
+    ./oob-management.nix
     # Hardware configuration (generated)
     ./hardware-configuration.nix
 

@@ -18,6 +18,10 @@
       prometheus.enable = true;
       grafana.enable = true;
       alertmanager.enable = true;
+      # Evaluate host/service alert rules (incl. HostDown) on sentry's
+      # own Prometheus. NOTE: this cannot fire when sentry itself is
+      # down - the nexus sentry-sentinel watchdog covers that gap.
+      enableAlertRules = true;
       # Local webhook notifications (no password required)
       alert-webhook.enable = true;
       # Email disabled (requires SMTP password)

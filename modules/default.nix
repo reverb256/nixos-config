@@ -139,6 +139,7 @@
     ./services/rclone.nix # Cloud storage sync (70+ providers)
     ./services/n8n.nix
     ./services/self-healing-alerts.nix
+    ./services/sentry-sentinel.nix
 
     # Monitoring
     ./services/monitoring/default.nix

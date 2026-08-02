@@ -266,4 +266,17 @@ in {
   };
   # Use local kubeconfig instead of cluster join token (node token is not a valid API bearer token)
   services.k8s-nix-deploy.tokenFile = lib.mkForce null;
+  # Sentry (10.1.1.140) liveness watchdog + WoL OOB recovery.
+  # Runs here on nexus because sentry runs its own Prometheus and
+  # can't alert on itself when it is the dead node.
+  services.sentry-sentinel = {
+    enable = true;
+    targetHost = "10.1.1.140";
+    targetMac = "70:85:c2:d2:87:bf";
+    downForMinutes = 15;
+    wolCooldownMinutes = 30;
+    # ntfy lives on sentry (10.1.1.140:9099); if sentry is down the
+    # push silently fails - the journald CRIT log is the reliable signal.
+    intervalMinutes = 5;
+  };
 }

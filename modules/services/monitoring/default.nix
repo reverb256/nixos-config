@@ -5,6 +5,7 @@
     ./prometheus.nix
     ./alertmanager.nix
     ./alert-webhook.nix # Local webhook receiver (no auth required)
+    ./alert-rules.nix # Host/Service/GPU alert rules (was orphaned - now live)
     ./grafana-v2.nix # New modular dashboard system
     ./node-exporter.nix
     ./redis-exporter.nix
