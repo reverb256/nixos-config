@@ -24,10 +24,11 @@ in
 
       useUserPackages = true;
 
-      # Use a unique backup extension that won't collide with previous backups.
-      # Resolves "existing backup would be clobbered" failures on .hm-backup from
-      # earlier failed HM activations (alacritty.toml, starship.toml, gtk.css).
-      backupFileExtension = "v3-fix";
+      # Canonical collision handler (home-manager manual): HM moves shadowing
+      # plain files to `<file>.backup` itself and clobbers stale backups, so
+      # `just switch` never aborts on "would be clobbered". No activation hack.
+      backupFileExtension = "backup";
+      overwriteBackup = true;
 
       extraSpecialArgs = {
         inherit inputs;
