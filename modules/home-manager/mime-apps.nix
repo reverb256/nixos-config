@@ -28,7 +28,14 @@
     "video/quicktime" = "mpv.desktop";
     "video/x-msvideo" = "mpv.desktop";
 
-    "application/pdf" = "org.gnome.Evince.desktop";
+    "application/pdf" = "org.kde.okular.desktop";  # okular is installed (plasma6); Evince was never a system package
+
+    # audio — mpv handles playback for all common audio types
+    "audio/mpeg" = "mpv.desktop";
+    "audio/ogg" = "mpv.desktop";
+    "audio/x-wav" = "mpv.desktop";
+    "audio/flac" = "mpv.desktop";
+    "audio/x-m4a" = "mpv.desktop";
 
     "inode/directory" = "org.kde.dolphin.desktop";
     "application/x-gnome-saved-search" = "org.kde.dolphin.desktop";
