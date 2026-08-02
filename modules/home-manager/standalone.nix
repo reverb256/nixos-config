@@ -31,6 +31,16 @@ in {
       package = pkgs.nerd-fonts.jetbrains-mono;
       name = "JetBrainsMono Nerd Font";
     };
+    # Pin all font sizes to 10. Without this, stylix defaults terminal to 12
+    # (its upstream default), so alacritty/kitty render at the wrong size and
+    # every `home-manager switch` reverts an imperative edit. GTK/Qt apps also
+    # inherit `applications=12` default unless pinned here.
+    fonts.sizes = {
+      terminal = 10;
+      applications = 10;
+      desktop = 10;
+      popups = 10;
+    };
   } // shared.stylixTargets;
 
   imports = hmThirdParty

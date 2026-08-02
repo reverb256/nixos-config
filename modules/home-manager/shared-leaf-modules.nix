@@ -50,8 +50,6 @@
     ../../modules/home-manager/noctalia-stylix.nix
     # Reclaim stylix-bridged targets (qt/gtk/kitty) — HM-native
     ../../modules/home-manager/stylix-bridges.nix
-    # Self-healing drift guard (un-freeze plain-file dotfiles before linkGen)
-    ../../modules/home-manager/heal-stale-backups.nix
   ];
 
   # Host-specific HM leaves still use this composition point so the NixOS and
