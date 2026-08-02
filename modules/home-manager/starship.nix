@@ -5,8 +5,6 @@
   ...
 }: let
   c = config.lib.stylix.colors.withHashtag;
-
-  minerScript = "${config.xdg.configHome}/fish/scripts/miner-status.sh";
 in {
   programs.starship = {
     enable = true;
@@ -25,7 +23,7 @@ in {
       # ── Three-line layout ──────────────────────────────────────
       format = ''
         $time$hostname
-        $directory$git_branch$git_status$nix_shell$custom.miner$fill$cmd_duration
+        $directory$git_branch$git_status$nix_shell$fill$cmd_duration
         $character'';
 
       add_newline = false;
@@ -128,15 +126,6 @@ in {
       scala.disabled = true;
       swift.disabled = true;
       zig.disabled = true;
-
-      custom.miner = {
-        command = minerScript;
-        when = true;
-        shell = ["bash" "-c"];
-        format = "[$output](bold ${c.base0E}) ";
-        disabled = false;
-      };
-
 
     };
   };
