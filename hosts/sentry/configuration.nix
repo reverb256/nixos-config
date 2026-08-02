@@ -100,13 +100,6 @@
   profiles.role.mining = lib.mkForce false;
 
 
-  # 2026-08-02 (sentry recovery): the API gateway runs in K8s on nexus with a
-  # prebuilt image (nexus:5000/ai-inference-gateway) and routes to this host's
-  # llama-cpp backend at :1235. The NixOS-side gateway python env pulled the
-  # full torch/torchaudio/sentence-transformers stack into the closure, which
-  # rebuilt from source (ROCm configure failure, multi-hour builds). Disable it.
-  services.ai-inference.gateway.enable = false;
-
   # ============================================================================
   # GPU COMPUTE - ROCm/Vulkan support for AI inference
   # ============================================================================
