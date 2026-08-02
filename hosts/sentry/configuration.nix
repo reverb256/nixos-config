@@ -88,8 +88,6 @@
   # Mining role disabled — mining module removed with compute-market purge
   profiles.role.mining = lib.mkForce false;
 
-  # Use llama-cpp backend instead of ZAI (sentry doesn't have ZAI API key)
-  services.ai-inference.backend.type = "llama-cpp";
 
   # ============================================================================
   # GPU COMPUTE - ROCm/Vulkan support for AI inference

@@ -22,26 +22,6 @@
         "url": "https://github.com/ezKEa/aagl-gtk-on-nix"
       }
     },
-    "ai-gateway": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1785027126,
-        "narHash": "sha256-2Onnyq4h2aOZcTY4HdUsrpoT5Z8oaF02G6iTSg+z770=",
-        "owner": "reverb256",
-        "repo": "ai-inference-gateway",
-        "rev": "108ddf7977d11c60366717cc1e0582b222b2a099",
-        "type": "github"
-      },
-      "original": {
-        "owner": "reverb256",
-        "repo": "ai-inference-gateway",
-        "type": "github"
-      }
-    },
     "base16": {
       "inputs": {
         "fromYaml": "fromYaml"
@@ -1100,7 +1080,6 @@
     "root": {
       "inputs": {
         "aagl": "aagl",
-        "ai-gateway": "ai-gateway",
         "cachyos-kernel": "cachyos-kernel",
         "caddy-ingress": "caddy-ingress",
         "claude-native": "claude-native",

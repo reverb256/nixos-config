@@ -24,8 +24,11 @@ in {
     })
 
     (lib.mkIf cfg.aiInference {
-      services.ai-inference.enable = true;
-      # services.ai-inference.pre-download = true;  # Requires qwen3-tts-preload module
+      # 2026-08-02: NixOS-side services.ai-inference gateway REMOVED — it
+      # pulled the torch/sentence-transformers stack into every host closure
+      # (ROCm source builds; blocked sentry deploy). The gateway runs in K8s
+      # from a prebuilt image (nexus:5000/ai-inference-gateway). OpenCode
+      # keeps using the K8s gateway via nodePort.
       services.opencode.enable = true;
     })
   ];

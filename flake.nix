@@ -123,11 +123,6 @@
       url = "github:reverb256/caddy-ingress";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # ai-gateway - AI inference gateway package
-    ai-gateway = {
-      url = "github:reverb256/ai-inference-gateway";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     # gpu-proxy - GPU proxy module
     gpu-proxy = {
       url = "github:reverb256/gpu-proxy";
