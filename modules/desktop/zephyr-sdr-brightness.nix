@@ -47,6 +47,13 @@ in {
     # wayland-compositor-common.nix sets desktop.noctalia.daemonPackage as
     # a mkOption (priority 100). mkForce beats the default.
     desktop.noctalia.daemonPackage = mkForce noctalia-patched;
+    # CRITICAL: the ACTIVE launcher is niri spawn-at-startup (niri-spawn.nix),
+    # which spawns ${noctaliaPackage} where noctaliaPackage = config.programs.noctalia.package
+    # (wired in home-manager.nix). daemonPackage and programs.noctalia.package are
+    # DISTINCT options — setting daemonPackage alone does NOT change the spawned
+    # binary, so the stock pkgs.noctalia ran instead (brightness patch inert).
+    # Force the spawned binary to the patched daemon too.
+    programs.noctalia.package = mkForce noctalia-patched;
     # Direct systemd user service for patched noctalia daemon
     systemd.user.services.noctalia = {
       description = "Noctalia shell daemon (patched with Sdr brightness backend)";

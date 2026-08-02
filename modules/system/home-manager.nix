@@ -37,12 +37,12 @@ in
           if hasHermesCli
           then config.services.hermes-cli.wrappedHermesBin
           else null;
-        # Expose the noctalia wrapper (NixOS `programs.noctalia.package`,
-        # mkForce'd to the pass-through wrapper in
-        # modules/desktop/wayland-compositor-common.nix) to home-manager
-        # modules. Home-manager's `config` does NOT see NixOS options, so
-        # niri-config.nix spawns it via this injected arg rather than
-        # `config.programs.noctalia.package`.
+        # Expose the noctalia package to home-manager modules. Home-manager's
+        # `config` does NOT see NixOS options, so niri-spawn.nix spawns it via
+        # this injected arg rather than config.programs.noctalia.package.
+        # The patched daemon (with the Sdr/DDC brightness backend) is selected
+        # by zephyr-sdr-brightness.nix via programs.noctalia.package = mkForce
+        # noctalia-patched — which is what makes this spawned binary patched.
         noctaliaPackage =
           if config ? programs.noctalia
           then config.programs.noctalia.package
