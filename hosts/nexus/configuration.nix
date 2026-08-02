@@ -552,15 +552,19 @@
   services.displayManager.defaultSession = lib.mkForce "niri-uwsm";
 
   # ComfyUI — FLUX.1-schnell GGUF image generation
-  # Uses the same venv as the site-agency pipeline for CUDA access
+  # Canonical venv: ~/ComfyUI/.venv — ComfyUI's OWN venv, NOT the site-agency
+  # pipeline's (~/Projects/site-agency/.venv). j_kro rule: nothing in the OS
+  # codebase may depend on a ~/Projects/ path. LD_LIBRARY_PATH uses the
+  # declarative stdenv.cc.cc.lib instead of a hardcoded store path that
+  # rotates after every nixos-rebuild.
   systemd.services.comfyui = {
     description = "ComfyUI — FLUX image generation server";
     after = [ "network.target" ];
     wantedBy = [ "multi-user.target" ];
-    environment.LD_LIBRARY_PATH = "/run/opengl-driver/lib:/nix/store/chqq8mpmpyfi9kgsngya71akv5xicn03-gcc-15.2.0-lib/lib";
+    environment.LD_LIBRARY_PATH = "/run/opengl-driver/lib:${pkgs.stdenv.cc.cc.lib}/lib";
     serviceConfig = {
       WorkingDirectory = "/home/j_kro/ComfyUI";
-      ExecStart = "/home/j_kro/Projects/site-agency/.venv/bin/python main.py --listen 0.0.0.0 --port 8188 --highvram";
+      ExecStart = "/home/j_kro/ComfyUI/.venv/bin/python main.py --listen 0.0.0.0 --port 8188 --log-stdout";
       User = "j_kro";
       Restart = "always";
       RestartSec = "10s";
