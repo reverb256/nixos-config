@@ -72,6 +72,40 @@
             dontUsePytestCheck = true;
             dontCheck = true;
           });
+          # httplib2: test_socks5_auth fails in sandbox (proxy at ::1:7780),
+          # cascades into google-api-python-client / frictionless / sentence-transformers
+          # (2026-08-02 sentry recovery: v5 build failed on python3.14-httplib2)
+          httplib2 = py-prev.httplib2.overridePythonAttrs (old: {
+            dontUsePytestCheck = true;
+            dontCheck = true;
+          });
+          # Chain members (2026-08-02 sentry recovery): all transitive deps of
+          # the ai-inference-gateway python env; their pytest suites are
+          # network/sandbox-sensitive and we are not testing them ourselves.
+          google-api-python-client = py-prev.google-api-python-client.overridePythonAttrs (old: {
+            dontUsePytestCheck = true;
+            dontCheck = true;
+          });
+          google-auth-httplib2 = py-prev.google-auth-httplib2.overridePythonAttrs (old: {
+            dontUsePytestCheck = true;
+            dontCheck = true;
+          });
+          frictionless = py-prev.frictionless.overridePythonAttrs (old: {
+            dontUsePytestCheck = true;
+            dontCheck = true;
+          });
+          csvw = py-prev.csvw.overridePythonAttrs (old: {
+            dontUsePytestCheck = true;
+            dontCheck = true;
+          });
+          phonemizer = py-prev.phonemizer.overridePythonAttrs (old: {
+            dontUsePytestCheck = true;
+            dontCheck = true;
+          });
+          sentence-transformers = py-prev.sentence-transformers.overridePythonAttrs (old: {
+            dontUsePytestCheck = true;
+            dontCheck = true;
+          });
         })
       ];
 
