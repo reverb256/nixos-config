@@ -18,6 +18,12 @@
     ;
 
   # Python package for the gateway (with RAG dependencies)
+  # NOTE (2026-08-02): ps.sentence-transformers removed from this default env.
+  # It pulled the entire torch stack into the NixOS closure (multi-hour source
+  # builds / ROCm configure failures on AMD hosts). The real gateway that needs
+  # sentence-transformers runs in K8s from a prebuilt image
+  # (nexus:5000/ai-inference-gateway) using gatewayPython (gateway.nix), not
+  # this env. This env backs only the ai-inference-status CLI.
   gatewayEnv = pkgs.python3.withPackages (ps: [
     ps.fastapi
     ps.uvicorn
@@ -29,7 +35,6 @@
     ps.uvloop
     ps.httptools
     ps.qdrant-client
-    ps.sentence-transformers
     ps.rank-bm25
     ps.numpy
   ]);
