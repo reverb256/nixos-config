@@ -12,7 +12,7 @@ in {
     gaming = mkEnableOption "Gaming profile (Steam, Lutris, etc.)";
     vr = mkEnableOption "VR profile (WiVRn, SteamVR)";
     desktop = mkEnableOption "Desktop profile (Plasma, Wayland)";
-    aiInference = mkEnableOption "AI Inference profile (gateway + MCP + RAG)";
+    aiInference = mkEnableOption "AI inference profile (opencode tools; gateway runs in K8s)";
     monitoring = mkEnableOption "Monitoring profile (observability stack)";
   };
 }

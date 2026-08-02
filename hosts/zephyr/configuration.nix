@@ -649,21 +649,6 @@ programs.gitlawb.enable = false;
     redis.servers."".enable = true;
     # Note: redis-ai-gateway.service already provides Redis on port 6380
 
-    # AI Inference Service - Gateway with ALL FEATURES enabled
-    ai-inference = {
-      enable = true;
-      backend = {
-        url = "http://127.0.0.1:8083";
-        type = "llama-cpp";
-        zai = {
-          enable = true;
-          apiKeyFile = "/run/secrets/zai-api-key";
-          baseUrl = "https://api.z.ai/api/coding/paas/v4";
-          enableRetry = true;
-          maxRetries = 3;
-          retryDelay = 1.0;
-          timeout = 300.0;
-        };
         pollinations = {
           enable = true;
           apiKeyFile = "/run/secrets/pollinations-api-key";

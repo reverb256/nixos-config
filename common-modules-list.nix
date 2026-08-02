@@ -18,7 +18,11 @@
   inputs.caddy-ingress.nixosModules.caddy
   inputs.caddy-ingress.nixosModules.caddy-common
 
-  inputs.ai-gateway.nixosModules.default
+  # ai-gateway NixOS module REMOVED (2026-08-02): the NixOS-side
+  # services.ai-inference gateway pulled the torch/sentence-transformers
+  # stack into every host closure (multi-hour ROCm builds, sentry build
+  # failure). The gateway runs in K8s from a prebuilt image
+  # (nexus:5000/ai-inference-gateway, see kubernetes/modules/ai-inference.nix).
   # REMOVED: compute-market (all mining infra switched to peakminer)
   inputs.gpu-proxy.nixosModules.default
 

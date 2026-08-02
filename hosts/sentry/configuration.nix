@@ -99,8 +99,6 @@
   # Mining role disabled — mining module removed with compute-market purge
   profiles.role.mining = lib.mkForce false;
 
-  # Use llama-cpp backend instead of ZAI (sentry doesn't have ZAI API key)
-  services.ai-inference.backend.type = "llama-cpp";
 
   # 2026-08-02 (sentry recovery): the API gateway runs in K8s on nexus with a
   # prebuilt image (nexus:5000/ai-inference-gateway) and routes to this host's
