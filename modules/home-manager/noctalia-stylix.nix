@@ -133,6 +133,18 @@ in
     # ── Write active palette (colors.json) ───────────────────────────
     xdg.configFile."noctalia/colors.json".text = colorsJson;
 
+    # ── Brightness config (DDC/CI for DP-*, HDR passthrough for TV) ──
+    xdg.configFile."noctalia/config.toml" = {
+      text = ''
+        [brightness]
+        enable_ddcutil = true
+
+        [brightness.monitor."HDMI-A-2"]
+        backend = "normal"
+      '';
+      force = true;
+    };
+
     # 2026-07-07: removed `home.activation.noctaliaStylix` entirely. v5
     # reads TOML only; the v4 hook ran `jq` against `settings.json` and
     # `pkill -USR1` for live reload -- both destructive against the v5
