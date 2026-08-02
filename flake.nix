@@ -145,7 +145,7 @@
 
     # gitlawb - local option-4 flake: packages + overlay + NixOS module
     gitlawb = {
-      url = "path:./pkgs/gitlawb";
+      url = "path:/etc/nixos/pkgs/gitlawb";
     };
   };
   outputs =
