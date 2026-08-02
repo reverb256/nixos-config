@@ -21,13 +21,13 @@
 }:
 buildGoModule rec {
   pname = "caddy-with-modules";
-  version = "2.11.2"; # Upgraded from 2.8.0 by caddy-security plugin dependencies
+  version = "2.11.4"; # Upgraded from 2.8.0 by caddy-security plugin dependencies
   # Use the local source directory with custom main.go and go.mod
   src = ./src;
   # Use proxyVendor to avoid go.mod tidy issues
   proxyVendor = true;
   # Vendor hash for Go dependencies
-  vendorHash = "sha256-yBO71Rp+DGP5RiE1S4bMA5HBiPYCYOsslv2UItEI20o=";
+  vendorHash = "sha256-Y/OwjDUhqmI4V5Ie0IPoejQlD4+FeCrCzUTtrE5RSS8=";
   # Install and rename binary
   postInstall = ''
     mkdir -p $out/bin
