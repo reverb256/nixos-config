@@ -1,12 +1,22 @@
 { inputs, _final, prev }:
-let
-  pySelf = prev.python3.pkgs;
-  pySuper = pySelf;
-in
+# IMPORTANT (2026-08-02): This overlay MUST use pythonPackagesExtensions, NOT
+# `python3.override { packageOverrides = ... }`.
+#
+# The old `python3.override` pattern re-hashed the ENTIRE python3 package set:
+# every python package (scipy, torch, jupyter-server, httplib2, ...) got a new
+# drv hash because the interpreter derivation itself changed, so NOTHING
+# substituted from cache.nixos.org and the whole python world rebuilt from
+# source on every host/closure. That surfaced flaky pytest failures (httplib2
+# test_socks5_auth, python-socks proxy tests) and ROCm configure errors that
+# only ever happen when torch builds from source.
+#
+# pythonPackagesExtensions composes into the python3 package scope without
+# re-hashing the interpreter or untouched packages, restoring cache hits.
+# See the pythonPackagesExtensions block in modules/system/nix-config.nix.
 {
-  python3 = prev.python3.override {
-    packageOverrides = py-self: py-super: {
-      qwen-tts = py-self.buildPythonPackage rec {
+  pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
+    (py-final: py-prev: {
+      qwen-tts = py-prev.buildPythonPackage rec {
         pname = "qwen-tts";
         version = "0.1.1";
         pyproject = true;
@@ -14,8 +24,8 @@ in
           url = "https://files.pythonhosted.org/packages/39/5d/b339c4f34f22ce838d39d1c015bbad103cd4003f6826ac3afaf1553973a0/qwen_tts-0.1.1.tar.gz";
           hash = "sha256-r7pfojWAamiD9Go4nmdUC0b4pV2kVyFr8dc0KQOBR4A=";
         };
-        dependencies = with py-super; [
-          transformers accelerate py-self.gradio librosa torchaudio soundfile
+        dependencies = with py-prev; [
+          transformers accelerate py-final.gradio librosa torchaudio soundfile
           onnxruntime einops torch numpy
         ];
         postPatch = ''
@@ -29,7 +39,7 @@ in
           license = prev.lib.licenses.asl20;
         };
       };
-      faster-whisper = py-self.buildPythonPackage rec {
+      faster-whisper = py-prev.buildPythonPackage rec {
         pname = "faster-whisper";
         version = "1.2.1";
         format = "setuptools";
@@ -37,7 +47,7 @@ in
           url = "https://github.com/SYSTRAN/faster-whisper/archive/refs/tags/v1.2.1.tar.gz";
           hash = "sha256-/wtUKLOgdM1j9YCuc/oh99n9O7oo4OLgl4aNeNWwby8=";
         };
-        propagatedBuildInputs = with py-super; [
+        propagatedBuildInputs = with py-prev; [
           click ctranslate2 ffmpeg-python huggingface-hub numpy onnxruntime tokenizers torch
         ];
         pythonRelaxDeps = true;
@@ -49,7 +59,7 @@ in
           license = prev.lib.licenses.mit;
         };
       };
-      edge-tts = py-self.buildPythonPackage rec {
+      edge-tts = py-prev.buildPythonPackage rec {
         pname = "edge-tts";
         version = "7.2.7";
         format = "setuptools";
@@ -57,7 +67,7 @@ in
           url = "https://github.com/rany2/edge-tts/archive/refs/tags/7.2.7.tar.gz";
           hash = "sha256-+3zBThmKlgiDEwAokCJVxdsjrQ0LfNux0Kojwe2jokw=";
         };
-        propagatedBuildInputs = with py-super; [ aiohttp certifi click ];
+        propagatedBuildInputs = with py-prev; [ aiohttp certifi click ];
         pythonRelaxDeps = true;
         pythonRemoveDepsCheckHook = true;
         doCheck = false;
@@ -67,8 +77,8 @@ in
           license = prev.lib.licenses.mit;
         };
       };
-      pipx = py-super.pipx.overridePythonAttrs { doCheck = false; };
-      gradio = py-super.gradio.overrideAttrs (old: {
+      pipx = py-prev.pipx.overridePythonAttrs { doCheck = false; };
+      gradio = py-prev.gradio.overrideAttrs (old: {
         doCheck = false;
         checkPhase = false;
         dontCheckRuntimeDeps = true;
@@ -77,8 +87,10 @@ in
         '';
         pythonImportsCheck = [];
       });
-    };
-  };
+    })
+  ];
+
+  # Top-level gradio override for non-python consumers (e.g. systemPackages).
   gradio = prev.gradio.overrideAttrs (old: {
     doCheck = false;
     checkPhase = false;
