@@ -18,7 +18,6 @@
   inputs.caddy-ingress.nixosModules.caddy
   inputs.caddy-ingress.nixosModules.caddy-common
 
-  inputs.ai-gateway.nixosModules.default
   # REMOVED: compute-market (all mining infra switched to peakminer)
   inputs.gpu-proxy.nixosModules.default
 

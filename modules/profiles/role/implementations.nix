@@ -23,10 +23,5 @@ in {
       services.mining.enable = lib.mkDefault true;
     })
 
-    (lib.mkIf cfg.aiInference {
-      services.ai-inference.enable = true;
-      # services.ai-inference.pre-download = true;  # Requires qwen3-tts-preload module
-      services.opencode.enable = true;
-    })
   ];
 }

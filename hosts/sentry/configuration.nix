@@ -40,6 +40,11 @@
   # ============================================================================
   services.desktopManager.plasma6.enable = false;
 
+  # Sentry is a headless recovery/monitoring node. Avoid the Python LSP
+  # dependency chain (python-lsp-server -> pylama/vulture/pint/scipy), which
+  # is not needed here and can require a lengthy numerical SciPy build.
+  modules.development.lsp.python.enable = false;
+
   # ============================================================================
   # HOST IDENTIFICATION
   # ============================================================================
@@ -89,9 +94,6 @@
   profiles.node.sentry-monitoring.enable = true;
   # Mining role disabled — mining module removed with compute-market purge
   profiles.role.mining = lib.mkForce false;
-
-  # Use llama-cpp backend instead of ZAI (sentry doesn't have ZAI API key)
-  services.ai-inference.backend.type = "llama-cpp";
 
   # ============================================================================
   # GPU COMPUTE - ROCm/Vulkan support for AI inference

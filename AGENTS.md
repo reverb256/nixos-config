@@ -894,10 +894,30 @@ ssh j_kro@<ip> "ls /run/secrets/"
 ssh j_kro@<ip> "systemd-analyze time"
 ```
 
+### USB-rescue host-key transition
+
+A host booted into the USB-rescue image presents the rescue image's temporary
+SSH host key, not necessarily the installed NixOS host key. This is expected
+for Sentry only after rescue mode has been confirmed through the local console
+or another trusted channel. Verify the presented fingerprint out of band and
+use an isolated file such as `~/.ssh/known_hosts-sentry-rescue` for that session.
+Do not delete the normal installed-host key or disable strict host-key checking
+to hide the mismatch. Once installed NixOS boots, `/etc/ssh` should be restored
+from `/persistent` and the installed fingerprint should return; if it does not,
+treat that as a persistence or security failure.
+
+See `scripts/rescue/RESCUE-GUIDE.md` and `scripts/rescue/RESCUE-AGENT.md` for
+the exact rescue workflow.
+
 ### Optional direct deployment helper: `scripts/deploy/deploy-host.sh`
 
 The supported entry point is `just deploy [<host>]`; use this helper only when
-its rescue/direct-host behavior is specifically required:
+its rescue/direct-host behavior is specifically required. Its current
+reachability probe uses legacy `StrictHostKeyChecking=no` and
+`UserKnownHostsFile=/dev/null`; do not use that probe to accept a changed
+Sentry USB-rescue key. Verify the rescue fingerprint out of band with the
+isolated rescue known-hosts procedure first, then use a verified connection or
+update the helper before deployment.
 
 ```bash
 ./scripts/deploy/deploy-host.sh <hostname>

@@ -148,9 +148,9 @@ in {
     };
 
     managedFallbackProviders = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
+      type = lib.types.listOf (lib.types.attrsOf lib.types.str);
       default = [];
-      description = "Ordered list of fallback providers matching `fallback_providers:`";
+      description = "Ordered list of fallback provider entries matching `fallback_providers:` — each entry must be a dict with `provider` and `model` keys (bare strings are silently skipped by _iter_fallback_entries, verified 2026-08-02)";
     };
 
     voiceAutoStart = lib.mkOption {

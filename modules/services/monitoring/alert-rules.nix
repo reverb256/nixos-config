@@ -21,10 +21,10 @@ in mkIf cfg.enableAlertRules {
     });
   in [
     # ── Host health ──────────────────────────────────────────────
-    (ruleGroup "host" [
+    (builtins.toString (ruleFile "host" [
       {
         alert = "HostDown";
-        expr = "up{job='node'} == 0";
+        expr = "up{job=\"node\"} == 0";
         for = "2m";
         labels = { severity = "critical"; };
         annotations = {
@@ -34,7 +34,7 @@ in mkIf cfg.enableAlertRules {
       }
       {
         alert = "HostDiskSpaceWarning";
-        expr = "node_filesystem_avail_bytes{mountpoint='/'} / node_filesystem_size_bytes{mountpoint='/'} * 100 < 15";
+        expr = "node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"} * 100 < 15";
         for = "5m";
         labels = { severity = "warning"; };
         annotations = {
@@ -44,7 +44,7 @@ in mkIf cfg.enableAlertRules {
       }
       {
         alert = "HostDiskSpaceCritical";
-        expr = "node_filesystem_avail_bytes{mountpoint='/'} / node_filesystem_size_bytes{mountpoint='/'} * 100 < 5";
+        expr = "node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"} * 100 < 5";
         for = "1m";
         labels = { severity = "critical"; };
         annotations = {
@@ -52,17 +52,17 @@ in mkIf cfg.enableAlertRules {
           description = "Less than 5% free on root partition ({{ $value | humanizePercentage }} available).";
         };
       }
-    ])
+    ]))
 
     # ── Cross-host Sentry liveness (alert evaluated where Prometheus runs) ──
     # Sentry runs its OWN Prometheus, so when sentry is the dead node this rule
     # cannot evaluate. The authoritative recovery guard is the nexus
     # sentry-sentinel systemd timer (logs CRIT + fires WoL). This rule is the
     # in-cluster signal for partial outages / degraded-but-up states.
-    (ruleGroup "sentry-oob" [
+    (builtins.toString (ruleFile "sentry-oob" [
       {
         alert = "SentryHostDown";
-        expr = "up{job='node', instance=~'.*10.1.1.140.*'} == 0";
+        expr = "up{job=\"node\", instance=~\".*10.1.1.140.*\"} == 0";
         for = "5m";
         labels = { severity = "critical"; oob = "required"; };
         annotations = {
@@ -70,10 +70,10 @@ in mkIf cfg.enableAlertRules {
           description = "Sentry unreachable for 5m. If the host is hard-down, recovery requires nexus sentry-sentinel (WoL) or a PHYSICAL power-cycle at the rack - no IPMI/BMC/PDU present. See docs/incidents/2026-08-02-sentry-down-oob.md";
         };
       }
-    ])
+    ]))
 
     # ── GPU health ───────────────────────────────────────────────
-    (ruleGroup "gpu" [
+    (builtins.toString (ruleFile "gpu" [
       {
         alert = "NvidiaGpuTempWarning";
         expr = "nvidia_smi_temperature_gpu > 85";
@@ -104,13 +104,13 @@ in mkIf cfg.enableAlertRules {
           description = "VRAM temperature at {{ $value }}°C. Throttles at 110°C. Check thermal pads.";
         };
       }
-    ])
+    ]))
 
     # ── Service health ───────────────────────────────────────────
-    (ruleGroup "service" [
+    (builtins.toString (ruleFile "service" [
       {
         alert = "K3sNodeNotReady";
-        expr = "kube_node_status_condition{condition='Ready',status='true'} == 0";
+        expr = "kube_node_status_condition{condition=\"Ready\",status=\"true\"} == 0";
         for = "5m";
         labels = { severity = "critical"; };
         annotations = {
@@ -120,7 +120,7 @@ in mkIf cfg.enableAlertRules {
       }
       {
         alert = "ServiceDown";
-        expr = "up{job=~'grafana|prometheus|alertmanager'} == 0";
+        expr = "up{job=~\"grafana|prometheus|alertmanager\"} == 0";
         for = "1m";
         labels = { severity = "critical"; };
         annotations = {
@@ -128,13 +128,13 @@ in mkIf cfg.enableAlertRules {
           description = "Monitoring service {{ $labels.job }} (instance {{ $labels.instance }}) has been down for 1 minute.";
         };
       }
-    ])
+    ]))
 
     # ── Temperature ──────────────────────────────────────────────
-    (ruleGroup "temperature" [
+    (builtins.toString (ruleFile "temperature" [
       {
         alert = "CpuTempHot";
-        expr = "node_hwmon_temp_celsius{sensor='coretemp'} > 80";
+        expr = "node_hwmon_temp_celsius{sensor=\"coretemp\"} > 80";
         for = "5m";
         labels = { severity = "warning"; };
         annotations = {
@@ -144,7 +144,7 @@ in mkIf cfg.enableAlertRules {
       }
       {
         alert = "NvmeTempHot";
-        expr = "node_hwmon_temp_celsius{sensor='nvme'} > 65";
+        expr = "node_hwmon_temp_celsius{sensor=\"nvme\"} > 65";
         for = "5m";
         labels = { severity = "warning"; };
         annotations = {
@@ -152,6 +152,6 @@ in mkIf cfg.enableAlertRules {
           description = "NVMe temperature at {{ $value }}°C. Throttles at 70°C.";
         };
       }
-    ])
+    ]))
   ];
 }
