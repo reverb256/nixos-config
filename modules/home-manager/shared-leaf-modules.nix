@@ -37,6 +37,7 @@
     ../../modules/home-manager/tmux.nix
     ../../modules/home-manager/lazygit.nix
     ../../modules/home-manager/mime-apps.nix
+    ../../modules/home-manager/helix-desktop-entry.nix
     ../../modules/home-manager/tui-apps.nix
     ../../modules/home-manager/editorconfig.nix
     ../../modules/home-manager/btop.nix
