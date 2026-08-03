@@ -84,6 +84,17 @@ in mkIf cfg.enable {
         };
       };
     };
+    # Cyberpunk 2077 (appid 1091500) — launch options REQUIRED on this host:
+    #   PROTON_ENABLE_WAYLAND=1 VKD3D_VULKAN_DEVICE=0 %command% --launcher-skip -skipStartScreen
+    # Rationale (2026-08-03, NVIDIA 610.43.x + Wayland):
+    #   - Without --launcher-skip, REDprelauncher -> game chain crashes on NixOS
+    #     (nixpkgs #162036). Skipping the launcher is the #1 documented Linux fix.
+    #   - PROTON_ENABLE_WAYLAND=1 gives vkd3d-proton a native Wayland surface
+    #     instead of XWayland (swapchain "Failed to initialize viewport" class).
+    #   - VKD3D_VULKAN_DEVICE=0 pins the RTX 3090 (display-attached) on this
+    #     dual-GPU host. Matches the PoE2 (2694490) recipe in Steam userdata.
+    # These are per-game Steam user state (localconfig.vdf), so they cannot be
+    # declared here — set them in Steam: Properties -> Launch Options.
     steam = {
       enable = true;
       protontricks.enable = true;

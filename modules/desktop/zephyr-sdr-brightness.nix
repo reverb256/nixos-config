@@ -74,6 +74,12 @@ in {
         MemoryMax = "6G";
         OOMPolicy = "continue";
         OOMScoreAdjust = -300;
+        # 2026-08-03 (Cyberpunk OOM kill): oomd SwapUsedLimit=90 killed this
+        # unit at 02:24 while the game ran (zram hit 100%). Exempt the gaming
+        # session slice from oomd's cgroup kill entirely — earlyoom's --avoid
+        # (now including steam/GameThread/REDprelauncher) remains the defense
+        # for memory pressure. Kernel OOM would still apply as last resort.
+        ManagedOOMSwap = "off";
         # 2026-07-27 (code-review G1): prevent thrashing if the Sdr backend
         # persistently leaks past MemoryMax (self-kill → Restart=on-failure
         # → 3s wait → self-kill …). Trip into 'failed' state after 5
