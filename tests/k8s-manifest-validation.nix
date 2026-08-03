@@ -19,42 +19,53 @@
   missingNamespace = let
     check = path: let
       src = readFileSafe path;
-      hasNamespace = lib.strings.hasInfix "namespace" src;
-      hasEasykubenix = lib.strings.hasInfix "easykubenix" src || lib.strings.hasInfix "kubenix" src;
+      # Helper modules can participate in the renderer without owning a
+      # Kubernetes namespace. EasyKubenix scopes resources with a qualified
+      # object key such as `mining.ConfigMap.foo` or
+      # `"maplespike-prod".CronJob.foo`; the namespace may therefore be
+      # present in the object key rather than as a metadata field.
+      resourceKinds = [
+        "Namespace"
+        "ConfigMap"
+        "CronJob"
+        "DaemonSet"
+        "Deployment"
+        "Job"
+        "NetworkPolicy"
+        "PodDisruptionBudget"
+        "Secret"
+        "Service"
+        "ServiceAccount"
+        "StatefulSet"
+      ];
+      hasNamespaceQualifiedObject = builtins.any (
+        kind: lib.strings.hasInfix ".${kind}." src
+      ) resourceKinds;
+      hasNamespace =
+        lib.strings.hasInfix "namespace" src
+        || hasNamespaceQualifiedObject
+        # Some modules scope the complete object tree under a namespace:
+        # config.kubernetes.objects.ai-inference = { ... }.
+        || lib.strings.hasInfix "config.kubernetes.objects." src;
+      hasKubernetesObjects = lib.strings.hasInfix "config.kubernetes.objects" src;
     in
-      if hasEasykubenix && !hasNamespace
+      if hasKubernetesObjects && !hasNamespace
       then [{path = toString path;}]
       else [];
   in
     lib.flatten (builtins.map check k8sModuleFiles);
 
-  # Check: k8s modules should not hardcode image tags (use variables/let bindings)
+  # Check: mutable image tags are forbidden. Pinned literal version tags are
+  # intentional and safer than :latest, so only reject the mutable tag.
   hardcodedImageTags = let
     check = path: let
       src = readFileSafe path;
       lines = lib.splitString "\n" src;
-      isHardcodedImage = line:
+      isMutableImage = line:
         lib.strings.hasInfix "image = " line
-        && lib.strings.hasInfix ":" line
-        &&
-        # Allow variable references
-        !(lib.strings.hasInfix "let " (readFileSafe path) && lib.strings.hasInfix "image" line && lib.strings.hasInfix "\${" line)
-        &&
-        # Skip comments
-        !(lib.hasPrefix "#" (lib.strings.trim line));
-      # Simple heuristic: image = "registry/image:tag" with a specific tag
-      # is fine if the tag is a let-bound variable, but suspicious if literal
-      isLiteralTag = line: let
-        trimmed = lib.strings.trim line;
-      in
-        isHardcodedImage line
-        &&
-        # Pattern: image = "something:latest" or image = "something:v1.2.3"
-        builtins.match ".*image += +\"[^\"]+:[a-zA-Z0-9._-]+\".*" trimmed != null
-        &&
-        # Exclude if tag is a nix variable reference
-        !(lib.strings.hasInfix "\${" line);
-      offending = builtins.filter isLiteralTag lines;
+        && lib.strings.hasInfix ":latest" line
+        && !(lib.hasPrefix "#" (lib.strings.trim line));
+      offending = builtins.filter isMutableImage lines;
     in
       if offending != []
       then [
@@ -99,7 +110,10 @@
       hasDeployment = lib.strings.hasInfix "Deployment" src;
       hasPVC = lib.strings.hasInfix "PersistentVolumeClaim" src || lib.strings.hasInfix "pvc" src;
       hasVolume = lib.strings.hasInfix "volumeClaim" src || lib.strings.hasInfix "volumes" src;
-      isStateful = hasStatefulSet || (hasDeployment && (lib.strings.hasInfix "postgres" src || lib.strings.hasInfix "database" src || lib.strings.hasInfix "data" src));
+      # Only actual StatefulSet declarations require persistent volume
+      # evidence. Deployment names/config comments are not enough to classify
+      # a workload as stateful.
+      isStateful = hasStatefulSet;
     in
       if isStateful && !(hasPVC || hasVolume)
       then [{path = toString path;}]
@@ -128,5 +142,5 @@ in {
       };
     };
   failures = builtins.attrNames failures;
-  passed = failures == {};
+  passed = builtins.attrNames failures == [];
 }

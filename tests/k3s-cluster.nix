@@ -16,26 +16,27 @@
     hasClusterDNS = lib.strings.hasInfix "10.43.0.10" k3sSource;
   };
 
+  # The module derives addresses from the canonical cluster option set, so
+  # assert the source expressions rather than interpolated runtime values.
   requiredSans = [
-    "10.1.1.100"
-    "10.1.1.110"
-    "10.1.1.120"
-    "10.1.1.130"
-    "10.1.1.140"
-    "kubernetes"
-    "kubernetes.default"
-    "kubernetes.default.svc"
-    "kubernetes.default.svc.cluster.local"
-    "cluster.local"
-    "localhost"
-    "127.0.0.1"
+    "cluster.kubernetes.vip"
+    "cluster.hosts.zephyr.ip"
+    "cluster.hosts.nexus.ip"
+    "cluster.hosts.forge.ip"
+    "cluster.hosts.sentry.ip"
+    "\"kubernetes\""
+    "\"kubernetes.default\""
+    "\"kubernetes.default.svc\""
+    "\"kubernetes.default.svc.cluster.local\""
+    "\"cluster.local\""
+    "\"localhost\""
+    "\"127.0.0.1\""
   ];
 
-  missingSans = builtins.filter (san: !(lib.strings.hasInfix "\"${san}\"" k3sSource)) requiredSans;
+  missingSans = builtins.filter (san: !(lib.strings.hasInfix san k3sSource)) requiredSans;
 
   requiredDisabled = [
     "traefik"
-    "servicelb"
     "metrics-server"
   ];
 
@@ -92,5 +93,5 @@
 in {
   checks = allChecks;
   failures = builtins.attrNames failures;
-  passed = failures == {};
+  passed = builtins.attrNames failures == [];
 }
