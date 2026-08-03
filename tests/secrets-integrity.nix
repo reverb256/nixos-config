@@ -1,23 +1,27 @@
 {pkgs ? import <nixpkgs> {}}: let
   lib = pkgs.lib;
 
+  # Post-secretspec-migration (2026-07-25) the live source of truth for
+  # which sops file backs which secret is secretspec.toml's [providers]
+  # section (sops_* = "sops:///etc/nixos/secrets/<path>.yaml"). The old
+  # sops-nix registry (modules/system/sops-secrets-registry.nix) now only
+  # declares options, so scanning it would pass vacuously.
+  secretspecSource = builtins.readFile ./../secretspec.toml;
   registrySource = builtins.readFile ./../modules/system/sops-secrets-registry.nix;
 
-  # Extract sopsFile paths from the registry
+  # Extract secrets/ paths from secretspec.toml sops:// provider aliases
   extractSopsFileNames = src: let
     lines = lib.splitString "\n" src;
-    isSopsFileLine = line:
-      lib.strings.hasInfix "sopsFile" line
-      && lib.strings.hasInfix "secrets/" line
-      && (lib.strings.hasInfix ".yaml" line || lib.strings.hasInfix ".yml" line);
-    fileLines = builtins.filter isSopsFileLine lines;
+    isSopsUri = line:
+      lib.strings.hasInfix "sops:///etc/nixos/secrets/" line;
+    uriLines = builtins.filter isSopsUri lines;
     extractFilename = line: let
-      parts = lib.splitString "secrets/" line;
+      parts = lib.splitString "/etc/nixos/secrets/" line;
       afterSecrets =
         if builtins.length parts > 1
         then let
           tail = builtins.elemAt parts (builtins.length parts - 1);
-          # Split on quote chars to isolate the path
+          # Trim trailing quote / newline
           quoteParts = lib.splitString "\"" tail;
         in
           if builtins.length quoteParts > 0
@@ -26,7 +30,7 @@
         else null;
     in
       afterSecrets;
-    filenames = builtins.filter (f: f != null) (builtins.map extractFilename fileLines);
+    filenames = builtins.filter (f: f != null) (builtins.map extractFilename uriLines);
   in
     lib.unique filenames;
 
@@ -47,8 +51,8 @@
       )
       subdirs);
 
-  # Referenced secret files from registry
-  referencedYamlFiles = extractSopsFileNames registrySource;
+  # Referenced secret files from secretspec.toml
+  referencedYamlFiles = extractSopsFileNames secretspecSource;
 
   # Check: every referenced yaml file exists on disk
   missingYamlFiles =
@@ -71,7 +75,7 @@
     allReferencedSecretsExist = missingYamlFiles == [];
     noUnsafeModes = unsafeModes == [];
     secretsDirectoryExists = builtins.pathExists ./../secrets;
-    registryFileExists = builtins.pathExists ./../modules/system/sops-secrets-registry.nix;
+    registryFileExists = builtins.pathExists ./../secretspec.toml;
   };
 
   failedChecks = lib.filterAttrs (_: v: v == false) allChecks;
