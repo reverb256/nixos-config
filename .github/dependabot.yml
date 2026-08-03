@@ -17,6 +17,42 @@ updates:
       - "actions/*"
       - "cachix/*"
       - "github/*"
+- package-ecosystem: "gomod"
+  # Custom Caddy build with modules — transitive Go CVEs (golang.org/x/crypto,
+  # pgx/v5, grpc, go-jose, otel, smallstep) are scanned here. Enabling gomod
+  # lets Dependabot open + auto-merge update PRs to clear security alerts.
+  directory: "/pkgs/caddy-with-modules/src"
+  schedule:
+    interval: "weekly"
+    day: "monday"
+    time: "04:00"
+    timezone: "America/Toronto"
+  open-pull-requests-limit: 10
+  labels:
+  - "dependencies"
+  - "security"
+  groups:
+    gomod-caddy:
+      patterns:
+      - "*"
+- package-ecosystem: "gomod"
+  directory: "/pkgs/nix-cache-proxy"
+  schedule:
+    interval: "weekly"
+    day: "monday"
+    time: "04:00"
+    timezone: "America/Toronto"
+  open-pull-requests-limit: 5
+  labels:
+  - "dependencies"
+  - "security"
+- package-ecosystem: "npm"
+  directory: "/istio-1.29.1/samples/bookinfo/src/ratings"
+  schedule:
+    interval: "monthly"
+  open-pull-requests-limit: 3
+  labels:
+  - "dependencies"
 - package-ecosystem: "docker"
   directory: "/"
   schedule:
