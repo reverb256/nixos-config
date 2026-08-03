@@ -117,7 +117,7 @@ programs.gitlawb.enable = false;
   zramSwap = {
     enable = true;
     algorithm = "zstd";
-    memoryPercent = 40;
+    memoryPercent = 50; # 40 -> 50 (2026-08-03): Cyberpunk + transient nix jobs filled 12.5G; 50% ~= 15.6G headroom
     priority = 999; # Prefer zram over disk swap
   };
 
@@ -167,7 +167,7 @@ programs.gitlawb.enable = false;
       "--prefer"
       "(Web Content|Isolated Web|nix)"
       "--avoid"
-      "(niri|noctalia|zen|spotify|vesktop|opencode|hermes|Xwayland|pipewire)"
+      "(niri|noctalia|zen|spotify|vesktop|opencode|hermes|Xwayland|pipewire|steam|GameThread|REDprelauncher)"
       # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
   ];
   };
