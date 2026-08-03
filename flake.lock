@@ -493,11 +493,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1785458567,
-        "narHash": "sha256-/vQJcGpaiFzMFg+YnKlLtgu9txAVna3OQ5RqU3A0WM8=",
+        "lastModified": 1785733912,
+        "narHash": "sha256-BVGHvKPK8nOq4o7qY2mzv3k1uwCBUN6KeNm1YRPBhGA=",
         "owner": "reverb256",
         "repo": "freebuff-flake",
-        "rev": "2e01078a7b2206ab5a8de17f0306e3620c0076aa",
+        "rev": "77bcf7bbca259c3caf47c25907430d1ffe1674ce",
         "type": "github"
       },
       "original": {
