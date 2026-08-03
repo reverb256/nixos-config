@@ -410,7 +410,11 @@ hm-switch:
     cd {{FLAKE}}
     HOST=$(hostname -s)
     echo ">> home-manager switch --flake .#${HOST}"
-    home-manager switch --flake .#${HOST}
+    # nexus is the sole healthy builder (forge excluded = GPU miner; sentry
+    # known_hosts stale vs ssh.nix source). Use nexus-only so hm-switch does
+    # not abort on the broken sentry/forge remote builders (see issue #389).
+    NIX_CONFIG='builders = ssh-ng://j_kro@nexus x86_64-linux,i686-linux ~/.ssh/id_ed25519 12 10 big-parallel,kvm' \
+      home-manager switch --flake .#${HOST}
 
 # Build (dry) the HM config for a host without activating — CI/verification.
 hm-build host="zephyr":
