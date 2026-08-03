@@ -12,6 +12,10 @@
   wivrn = prev.wivrn.overrideAttrs (old: {
     cmakeFlags = old.cmakeFlags ++ ["-DWIVRN_FEATURE_STEAMVR_LIGHTHOUSE=ON"];
   });
+  # Proton-GE-RTSP — Proton-GE fork with hardware video decode (h264/RTMP)
+  # for VRChat in-world video players. Consumed via
+  # programs.steam.extraCompatPackages only (see modules/gaming/gaming-vr-unlock.nix).
+  proton-ge-rtsp = prev.callPackage ../packages/proton-ge-rtsp.nix {};
   niri-hdr = prev.callPackage ../pkgs/niri-hdr.nix { inherit (prev) niri-unstable; };
   assimp = prev.assimp.overrideAttrs (_old: { doCheck = false; });
   cups = prev.cups.overrideAttrs (old: {

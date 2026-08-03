@@ -109,6 +109,7 @@ in mkIf cfg.enable {
       ];
       extraCompatPackages = [
         pkgs.proton-ge-bin
+        pkgs.proton-ge-rtsp
       ];
       package = pkgs.steam.override {
         extraLibraries = pkgs: with pkgs; [
