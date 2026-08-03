@@ -11,8 +11,13 @@
 #     (the NixOS-wrapped binary with PortAudio LD_LIBRARY_PATH).
 #   - Clipboard monitoring moved to CopyQ (see modules/home-manager/copyq.nix).
 { config, lib, pkgs, noctaliaPackage, ... }:
-let niriHmAvailable = config.programs.niri.enable or false;
-in lib.mkIf niriHmAvailable {
+# NOTE: This module is only imported on niri hosts (zephyr/sentry) via the
+# `hostName == "zephyr" || "sentry"` conditional in modules/system/home-manager.nix,
+# and `inputs.niri.homeModules.config` is unconditionally imported there, so
+# `programs.niri.settings` is always valid. The old `config.programs.niri.enable`
+# guard evaluated false (the HM option was never set true) and silently dropped
+# spawn-at-startup -- so noctalia never spawned. Removed the guard.
+{
   programs.niri.settings = {
     spawn-at-startup = [
       {
