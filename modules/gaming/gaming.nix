@@ -48,5 +48,6 @@ in {
   imports = [
     ./gaming-base.nix
     ./gaming-vr.nix
+    ./gaming-vr-unlock.nix
   ];
 }
