@@ -458,6 +458,11 @@ programs.gitlawb.enable = false;
 
     extraModprobeConfig = ''
       options nvidia NVreg_EnableBacklightHandler=1
+      # Disable HMM in nvidia_uvm: HMM + multi-GPU (3090 + 3060 Ti) causes UVM
+      # page-fault stalls under CUDA. Was hand-placed in
+      # /etc/modprobe.d/nvidia-uvm.conf (drift, 2026-07-30); declared here now.
+      # NOTE: hosts/zephyr/hardware.nix declares this too but is NOT imported.
+      options nvidia_uvm uvm_disable_hmm=1
     '';
 
     # Blacklist unused kernel modules to reduce memory footprint
