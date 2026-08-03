@@ -46,9 +46,13 @@ else
 fi
 
 # 2–4. All remote hosts must match canonical.
+# NOTE: sentry is intentionally excluded from this gate — its SSH host key is
+# the usb-rescue ISO key (stale / unreachable from zephyr), so testing it here
+# would block every zephyr deploy. Sentry remains a valid builder in
+# distributed-builds.nix; this only stops the preflight from requiring it.
 # Uses sequential SSH checks so a failed self-heal is reported clearly.
 log "  checking remote hosts..."
-HOSTS="nexus forge sentry"
+HOSTS="nexus forge"
 
 for HOST in $HOSTS; do
   REMOTE_HEAD=$(ssh "$HOST" "bash --norc --noprofile -c 'cd /etc/nixos && git rev-parse --short HEAD 2>/dev/null'" 2>/dev/null || echo "UNKNOWN")
