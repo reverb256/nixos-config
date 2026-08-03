@@ -13,22 +13,38 @@
     then result.value
     else "";
 
+  # An enable option only needs an accompanying mkIf in the SAME file when
+  # that file also applies config. Pure option aggregators (profiles/*,
+  # network-options, gaming.nix) declare options and delegate the mkIf-gated
+  # config to imported implementation files — that is a legitimate pattern.
   hasEnableWithoutMkIf = path: let
     src = readFileSafe path;
+    declaresOption = lib.strings.hasInfix "mkEnableOption" src;
+    appliesConfig = lib.strings.hasInfix "config = " src;
   in
-    lib.strings.hasInfix "mkEnableOption" src && !(lib.strings.hasInfix "mkIf" src);
+    declaresOption && appliesConfig && !(lib.strings.hasInfix "mkIf" src);
 
   hasUnsafeMode = path: let
     src = readFileSafe path;
   in
     lib.strings.hasInfix "mode = \"777\"" src || lib.strings.hasInfix "mode = \"666\"" src;
 
+  # Firewall port assignments must use mkOptionDefault. Comments are ignored
+  # (e.g. alert-webhook.nix documents a local-only service with a commented
+  # allowedTCPPorts line).
   hasUnsafeFirewallAssignment = path: let
     src = readFileSafe path;
-    hasAllowed = lib.strings.hasInfix "allowedTCPPorts = [" src || lib.strings.hasInfix "allowedUDPPorts = [" src;
+    lines = lib.splitString "\n" src;
+    isAssignment = line: let
+      trimmed = lib.strings.trim line;
+    in
+      !(lib.hasPrefix "#" trimmed)
+      && (lib.strings.hasInfix "allowedTCPPorts = [" trimmed
+        || lib.strings.hasInfix "allowedUDPPorts = [" trimmed);
+    hasActiveAllowed = builtins.any isAssignment lines;
     hasMkOptionDefault = lib.strings.hasInfix "mkOptionDefault" src;
   in
-    hasAllowed && !hasMkOptionDefault;
+    hasActiveAllowed && !hasMkOptionDefault;
 
   moduleResults =
     builtins.map (path: {

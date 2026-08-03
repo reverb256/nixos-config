@@ -74,7 +74,8 @@
     registryFileExists = builtins.pathExists ./../modules/system/sops-secrets-registry.nix;
   };
 
-  failures = lib.filterAttrs (_: v: v == false) allChecks;
+  failedChecks = lib.filterAttrs (_: v: v == false) allChecks;
+  failureNames = builtins.attrNames failedChecks;
 in {
   checks =
     allChecks
@@ -85,6 +86,6 @@ in {
         totalYamlFilesOnDisk = builtins.length sopsFileNamesFromFragments;
       };
     };
-  failures = builtins.attrNames failures;
-  passed = failures == [];
+  failures = failureNames;
+  passed = failureNames == [];
 }

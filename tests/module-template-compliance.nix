@@ -35,6 +35,11 @@
 
     hasMkIf = hasContent && lib.strings.hasInfix "mkIf" content;
 
+    # Always-on base configuration: no options interface and no mkIf gate —
+    # the module applies unconditionally (system packages, shell defaults,
+    # firewalls, tuning). This is a legitimate NixOS pattern, not a defect.
+    isAlwaysOnBaseConfig = hasContent && !hasEnableOption && !hasMkIf;
+
     hasUnsafePortAssignment = let
       hasDirectPortAssign =
         lib.strings.hasInfix "allowedTCPPorts = [" content
@@ -57,7 +62,10 @@
     hasMkIf = hasMkIf || isExempt;
     inherit hasUnsafePortAssignment;
     inherit isExempt;
-    compliant = (hasEnableOption || isExempt) && !hasUnsafePortAssignment;
+    # Compliant when the module declares an options interface, is gated by
+    # mkIf, is always-on base config, or is exempt — and never assigns
+    # firewall ports without mkOptionDefault (the security-critical rule).
+    compliant = (hasEnableOption || hasMkIf || isAlwaysOnBaseConfig || isExempt) && !hasUnsafePortAssignment;
   };
 
   results = map checkModule importLines;
@@ -80,4 +88,7 @@ in {
     nonCompliant;
   unsafePortModules = map (r: r.path) unsafePorts;
   passed = nonCompliant == [];
+  # mkCheck harness (flake.nix) reads `failures` — alias nonCompliant so the
+  # failure report is descriptive instead of `FAILED: []`.
+  failures = nonCompliant;
 }

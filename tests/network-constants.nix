@@ -1,7 +1,12 @@
 {pkgs ? import <nixpkgs> {}}: let
   inherit (pkgs) lib;
 
-  source = builtins.readFile ../modules/network-constants.nix;
+  # SSOT sources: modules/network-constants.nix was refactored (2026-07-24)
+  # into a thin wrapper; the constants now live in kubernetes/cluster.nix
+  # (subnet, host IPs, VIP, api port, cluster DNS) and
+  # modules/network-options/default.nix (option defaults incl. ports, DNS).
+  clusterSrc = builtins.readFile ../kubernetes/cluster.nix;
+  optionsSrc = builtins.readFile ../modules/network-options/default.nix;
 
   expectedHosts = [
     "zephyr"
@@ -10,13 +15,14 @@
     "sentry"
   ];
 
-  hostPresent = host: lib.strings.hasInfix "${host} =" source || lib.strings.hasInfix "${host} =" source;
+  hostPresent = host: lib.strings.hasInfix "${host}Ip =" clusterSrc;
 
   missingHosts = builtins.filter (h: !(hostPresent h)) expectedHosts;
 
-  hasSubnet = lib.strings.hasInfix "10.1.1.0/24" source;
+  hasSubnet = lib.strings.hasInfix "10.1.1.0/24" clusterSrc;
 
-  hasGateway = lib.strings.hasInfix "10.1.1.1" source;
+  # Gateway default lives in network-options (cluster.gateway or "10.1.1.1")
+  hasGateway = lib.strings.hasInfix "10.1.1.1" optionsSrc;
 
   expectedIPs = {
     zephyr = "10.1.1.110";
@@ -25,7 +31,7 @@
     sentry = "10.1.1.140";
   };
 
-  ipPresent = host: ip: lib.strings.hasInfix "ip = \"${ip}\"" source;
+  ipPresent = host: ip: lib.strings.hasInfix "${host}Ip = \"${ip}\"" clusterSrc;
 
   missingIPs = lib.filterAttrs (_host: ip: !(ipPresent _host ip)) expectedIPs;
 
@@ -33,13 +39,14 @@
   uniqueIPs = lib.unique allIPs;
   noDuplicateIPs = builtins.length allIPs == builtins.length uniqueIPs;
 
-  hasK8sVIP = lib.strings.hasInfix "10.1.1.100" source;
-  hasK8sPort = lib.strings.hasInfix "6443" source;
+  hasK8sVIP = lib.strings.hasInfix "vip = \"10.1.1.100\"" clusterSrc;
+  hasK8sPort = lib.strings.hasInfix "apiPort = 6443" clusterSrc;
 
-  hasLocalDNS = lib.strings.hasInfix "127.0.0.1" source;
+  hasLocalDNS = lib.strings.hasInfix "127.0.0.1" optionsSrc;
 
-  hasTailscaleDomain = lib.strings.hasInfix "taila21e09.ts.net" source;
+  hasTailscaleDomain = lib.strings.hasInfix "taila21e09.ts.net" optionsSrc;
 
+  # Well-known ports are declared in the network-options ports submodule.
   requiredPorts = [
     "prometheus"
     "grafana"
@@ -48,13 +55,13 @@
     "caddy-https"
   ];
 
-  missingPorts = builtins.filter (port: !(lib.strings.hasInfix "${port}" source)) requiredPorts;
+  missingPorts = builtins.filter (port: !(lib.strings.hasInfix "${port} = mkOption" optionsSrc)) requiredPorts;
 
   # svcOpts DNS uses service name (prevent regression of hostname-mismatch bug)
-  hasSvcOptsSubmoduleFn = lib.strings.hasInfix "{ name, ... }:" source;
-  hasDnsWithServiceName = lib.strings.hasInfix ''"''${name}.''${namespace}.svc.cluster.local:''${toString port}";'' source;
+  hasSvcOptsSubmoduleFn = lib.strings.hasInfix "{name, ...}: {" optionsSrc;
+  hasDnsWithServiceName = lib.strings.hasInfix ''"''${name}.''${namespace}.svc.cluster.local:''${toString port}"'' optionsSrc;
 
-  isReadOnly = lib.strings.hasInfix "readOnly = true" source;
+  isReadOnly = lib.strings.hasInfix "readOnly = true" optionsSrc;
 
   allChecks = {
     allHostsPresent = missingHosts == [];
