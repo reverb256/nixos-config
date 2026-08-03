@@ -60,6 +60,6 @@ in {
     in [base];
 
     # Open for localhost only
-    networking.firewall.allowedTCPPorts = [];
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [];
   };
 }

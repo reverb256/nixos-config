@@ -255,7 +255,7 @@ in {
       '';
       # SECURITY: Kubernetes API accessible via Tailscale VPN only
       # Note: cluster-firewall.nix also allows 6443 from cluster LAN
-      interfaces."tailscale0".allowedTCPPorts = [6443];
+      interfaces."tailscale0".allowedTCPPorts = lib.mkOptionDefault [6443];
     };
   };
 }
