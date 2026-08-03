@@ -440,7 +440,7 @@ in {
         };
       };
     })
-  ]);
+  ];
 
   # Auto-reload noctalia systemd unit is registered upstream. The ExecStart
   # override (sources /etc/uwsm/env-niri + discovers NIRI_SOCKET) lives in
@@ -452,7 +452,7 @@ in {
   # systemd path watches the PARENT DIRECTORY (not the symlink itself --
   # systemd resolves symlinks on PathChanged= and would pin the OLD store
   # path, never seeing the new generation).
-  systemd.user.paths.niri-config-reload = mkIf niriHmAvailable {
+  systemd.user.paths.niri-config-reload = {
     Unit.Description = "Watch ~/.config/niri/ for config.kdl generation swap";
     # Watching the parent dir fires whenever HM tmpfile-then-rename replaces
     # the config.kdl symlink. Atomic-ish (single PathChanged on rename).
@@ -463,7 +463,7 @@ in {
     Path.PathChanged = "${config.home.homeDirectory}/.config/niri";
   };
 
-  systemd.user.services.niri-config-reload = mkIf niriHmAvailable {
+  systemd.user.services.niri-config-reload = {
     Unit.Description = "Reload niri config after config.kdl generation swap";
     Service = {
       Type = "oneshot";
