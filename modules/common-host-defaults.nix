@@ -77,10 +77,17 @@
   nix.settings = {
     trusted-users = ["j_kro"];
     build-users-group = "nixbld";
-    # Disable sandbox — Lix 2.94 has a bug where sandboxed curl returns
-    # error 42 (CURLE_ABORTED_BY_CALLBACK) on GitHub API calls used by
-    # nix flake update. User's ~/.config/nix/nix.conf also sets this.
-    sandbox = false;
+    # Sandbox IS enabled. This is REQUIRED for correct builds: with
+    # sandbox=false, Flutter/AOT packages (e.g. localsend) embed their
+    # temporary build dir (/nix/var/nix/b/<hash>/b) in binary RPATHs, which
+    # Nix rejects with "forbidden references" and the whole toplevel fails.
+    # sandbox is a daemon-side setting — client --option sandbox true does NOT
+    # propagate to remote builders (ssh-ng), so this MUST be true here.
+    #
+    # Lix flake-update curl bug (error 42 on GitHub API calls) is NOT an issue
+    # for builds; only `nix flake update` is affected. Workaround: run
+    # `nix flake update --option sandbox false` (see justfile `update` recipe).
+    sandbox = true;
     # GitHub access token for flake input fetching (avoids API rate limiting)
     # Token is a fine-grained PAT with only metadata:read permissions.
     # Stored in sops-nix at secrets/ci/github-token.yaml

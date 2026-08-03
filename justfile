@@ -539,7 +539,10 @@ rollback-remote host:
 update:
     #!/usr/bin/env bash
     set -e
-    cd {{FLAKE}} && nix flake update
+    # sandbox=false only for this command: Lix's sandboxed curl hits
+    # error 42 (CURLE_ABORTED_BY_CALLBACK) on GitHub API calls during
+    # `nix flake update`. Builds themselves run sandboxed (sandbox=true).
+    cd {{FLAKE}} && nix flake update --option sandbox false
 
 info:
     #!/usr/bin/env bash
