@@ -185,6 +185,7 @@ in {
                      # app launch); the style override is what actually works.)
     pkgs.imv  # image viewer — default for image/* in mime-apps.nix
     pkgs.mpv  # video player — default for video/* in mime-apps.nix
+    pkgs.helix  # terminal editor — default for text/* + dev mime types in mime-apps.nix
     screenshot
     screenrecord
     ocr-extract
