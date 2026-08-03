@@ -33,7 +33,7 @@ Conducted comprehensive coherence audit across 187 NixOS modules and 338 Kuberne
 | hardware/ | 7 | nvidia-common.nix, gpu-compute.nix |
 | desktop/ | 7 | wayland-common.nix, hyprland.nix |
 | gaming/ | 3 | gaming-detection.nix, scopebuddy.nix |
-| development/ | 5 | tools.nix, lsp.nix |
+| development/ | 4 | tools.nix |
 | network/ | 4 | cluster-hosts.nix, cluster-networking.nix |
 
 **Structure:** ✅ **HEALTHY** - Logical separation of concerns, clear module boundaries

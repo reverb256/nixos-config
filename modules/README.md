@@ -304,7 +304,6 @@ Development tools and languages.
 | Module | Namespace | Description |
 |--------|-----------|-------------|
 | `tools.nix` | - | CLI development tools |
-| `lsp.nix` | - | Language server protocols |
 | `programming-languages.nix` | - | Language runtimes |
 
 ### Gaming (`gaming/`)

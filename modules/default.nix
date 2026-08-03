@@ -87,7 +87,6 @@
 
     # Development
     ./development/tools.nix
-    ./development/lsp.nix
     ./development/programming-languages.nix
     ./development/opencode.nix
     ./development/web-testing.nix
