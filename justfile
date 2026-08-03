@@ -548,6 +548,43 @@ update:
     # `nix flake update`. Builds themselves run sandboxed (sandbox=true).
     cd {{FLAKE}} && nix flake update --option sandbox false
 
+# Verify the locked nixpkgs rev is close to the nixos-unstable channel tip
+# (Hydra builds channel tips; random master commits often lack binaries for
+# heavy packages like chromium/qtwebengine -> multi-hour source builds).
+# Exits 1 with a warning when drift exceeds CHANNEL_MAX_DRIFT (default 100
+# commits) so it can gate deploys. Use after `just update` or before `just deploy`.
+channel-pin-check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{FLAKE}}
+    MAX_DRIFT="${CHANNEL_MAX_DRIFT:-100}"
+    CHANNEL="${CHANNEL_URL:-https://channels.nixos.org/nixos-unstable/git-revision}"
+    PINNED=$(python3 -c "import json; print(json.load(open('flake.lock'))['nodes']['nixpkgs']['locked']['rev'])")
+    echo "pinned nixpkgs rev: $PINNED"
+    TIP=$(curl -fsSL -m 20 "$CHANNEL" 2>/dev/null | head -1 | tr -d ' \n' || echo "")
+    if [ -z "$TIP" ]; then
+        echo "WARN: could not fetch channel tip ($CHANNEL) — skipping check"
+        exit 0
+    fi
+    echo "channel tip rev:    $TIP"
+    if [ "$PINNED" = "$TIP" ]; then
+        echo "OK: pinned rev == channel tip (full Hydra binary coverage expected)"
+        exit 0
+    fi
+    # Count drift via GitHub compare API (base=channel tip, head=pinned rev)
+    DRIFT=$(curl -fsSL -m 20 "https://api.github.com/repos/NixOS/nixpkgs/compare/$TIP...$PINNED" 2>/dev/null \
+      | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('behind_by', d.get('ahead_by', '?')))" 2>/dev/null || echo "?")
+    echo "pinned rev is $DRIFT commit(s) BEHIND the nixos-unstable channel tip"
+    echo "NOTE: cache.nixos.org only fully covers channel revisions — a stale pin"
+    echo "      can force multi-hour source builds of chromium/qtwebengine."
+    echo "      Fix:  just update && just channel-pin-check"
+    echo "      or:   nix flake lock --option sandbox false --override-input nixpkgs github:NixOS/nixpkgs/$TIP"
+    if [ "$DRIFT" != "?" ] && [ "$DRIFT" -gt "$MAX_DRIFT" ]; then
+        echo "ERROR: drift ($DRIFT) exceeds MAX_DRIFT ($MAX_DRIFT) — deploy gated." >&2
+        exit 1
+    fi
+    exit 0
+
 info:
     #!/usr/bin/env bash
     set -e
