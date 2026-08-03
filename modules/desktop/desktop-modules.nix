@@ -33,7 +33,6 @@
     inputs.aagl.nixosModules.default
     ./aagl.nix
 
-
     {
       # Niri package overlay — desktop-only. The remaining cluster-wide
       # overlays (llm-agents.shared-nixpkgs, self.overlays.default,
