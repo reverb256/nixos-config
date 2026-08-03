@@ -1,5 +1,5 @@
 # Mining services module — minimal stub for peakminer GPU mining
-# v2: clean structure, no xmrig/lolminer
+# v2: clean structure; legacy miners were removed.
 {
   config,
   lib,
