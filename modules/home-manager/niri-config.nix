@@ -413,7 +413,7 @@ in {
         size = mkDefault config.stylix.cursor.size;
         theme = mkDefault config.stylix.cursor.name;
       };
-      layout = with (config.lib.stylix.colors.withHashtag or {}); {
+      layout = let colors = config.lib.stylix.colors.withHashtag or {}; base0D = colors.base0D or null; base03 = colors.base03 or null; in {
         # Stylix drives the focus-ring colors; preserve the user's preferred
         # look (focus-ring on, border off) while making the hue follow the
         # active base16 scheme instead of a hardcoded Tokyo Night palette.
