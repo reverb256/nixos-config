@@ -11,15 +11,15 @@
       "locked": {
         "lastModified": 1783689476,
         "narHash": "sha256-Ac4EGPZr9e+mPUdmavJFSTft4vgoXml40+YOFYKTXPg=",
-        "ref": "refs/heads/main",
+        "owner": "ezKEa",
+        "repo": "aagl-gtk-on-nix",
         "rev": "af94408291ad477cae8eed964981ab41f90eb184",
-        "revCount": 625,
-        "type": "git",
-        "url": "https://github.com/ezKEa/aagl-gtk-on-nix"
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "https://github.com/ezKEa/aagl-gtk-on-nix"
+        "owner": "ezKEa",
+        "repo": "aagl-gtk-on-nix",
+        "type": "github"
       }
     },
     "base16": {
@@ -1009,17 +1009,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1785523894,
-        "narHash": "sha256-hNoohXxYH9tN0IFYpHTxpAU52zPLWcyz+GUsUUZgfR4=",
-        "ref": "refs/heads/main",
-        "rev": "6d39953f1d63ed3a8a7fe7c31082ccdd9cb1aa72",
-        "revCount": 46756,
-        "type": "git",
-        "url": "https://github.com/nix-community/NUR"
+        "lastModified": 1785737148,
+        "narHash": "sha256-3szaqMUjtUXWGB88HhXYA3/vBN8V0BB7uknYLnmEIKk=",
+        "owner": "nix-community",
+        "repo": "NUR",
+        "rev": "75599e3fb12e5cc3cff7909be97f13467a76d7ed",
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "https://github.com/nix-community/NUR"
+        "owner": "nix-community",
+        "repo": "NUR",
+        "type": "github"
       }
     },
     "nur_2": {
