@@ -25,11 +25,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     aagl = {
-      url = "git+https://github.com/ezKEa/aagl-gtk-on-nix";
+      url = "github:ezKEa/aagl-gtk-on-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nur = {
-      url = "git+https://github.com/nix-community/NUR";
+      url = "github:nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-parts.follows = "flake-parts";
     };
@@ -131,7 +131,6 @@
     # flake-parts — transitive dep for 6 inputs, use git+https to bypass GitHub API 401
     flake-parts = {
       url = "git+https://github.com/hercules-ci/flake-parts";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
     # noctalia REMOVED — upstreamed into nixpkgs-unstable as programs.noctalia
     # + pkgs.noctalia. The flake input is no longer needed.
