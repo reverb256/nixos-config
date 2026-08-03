@@ -57,6 +57,9 @@
 
   # Check: mutable image tags are forbidden. Pinned literal version tags are
   # intentional and safer than :latest, so only reject the mutable tag.
+  # localhost/ images (e.g. localhost/qdrant-mcp:latest) are operator-built
+  # and imported with imagePullPolicy=Never — they are not pulled from a
+  # remote registry, so the mutable-tag supply-chain risk does not apply.
   hardcodedImageTags = let
     check = path: let
       src = readFileSafe path;
@@ -64,7 +67,8 @@
       isMutableImage = line:
         lib.strings.hasInfix "image = " line
         && lib.strings.hasInfix ":latest" line
-        && !(lib.hasPrefix "#" (lib.strings.trim line));
+        && !(lib.hasPrefix "#" (lib.strings.trim line))
+        && !(lib.strings.hasInfix "localhost/" line);
       offending = builtins.filter isMutableImage lines;
     in
       if offending != []
@@ -91,12 +95,18 @@
   in
     lib.flatten (builtins.map check k8sModuleFiles);
 
-  # Check: k8s modules should not use hostPort (security risk)
+  # Check: k8s modules should not use hostPort (security risk).
+  # Exception: the kube-system local-registry deployment (image registry:2)
+  # deliberately binds hostPort 5000 — it IS the cluster's documented
+  # nexus:5000 registry endpoint (used by mosaic-build/justfile pushes and
+  # docs). It is the operator-owned image store, not a remote service.
   usesHostPort = let
     check = path: let
       src = readFileSafe path;
+      hasHostPort = lib.strings.hasInfix "hostPort" src;
+      isLocalRegistry = lib.strings.hasInfix "local-registry" src;
     in
-      if lib.strings.hasInfix "hostPort" src
+      if hasHostPort && !isLocalRegistry
       then [{path = toString path;}]
       else [];
   in
