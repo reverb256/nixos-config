@@ -12,6 +12,7 @@
 # Binary cache signing keys
 .bug-hunter/
 # ── Build artifacts ───────────────────────────────────────────────
+.cache/
 cat
 certs.bak/
 .claude/
