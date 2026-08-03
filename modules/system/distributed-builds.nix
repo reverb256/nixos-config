@@ -211,13 +211,13 @@ in {
           machines = builtins.filter (m: m.hostName != currentHost) allMachines;
           formatMachine = m: with builtins; let
             # Join ALL systems with commas so the nix builder line advertises
-            # both x86_64-linux and i686-linux (volk, steam-run, etc).
+            # the supported x86_64-linux target.
             allSystems = lib.concatStringsSep "," m.systems;
             # Nix's machine parser (libstore/machines.cc) reads positions
             # strictly as: URL systemTypes(comma-joined) sshKey maxJobs
             # speedFactor supportedFeatures mandatoryFeatures. Earlier this
             # function emitted space-separated systems + a tilde key path
-            # (`URL x86_64-linux i686-linux ~/.ssh/...`), which pushed the
+            # (`URL x86_64-linux ~/.ssh/...`), which pushed the
             # sshKey into Nix's maxJobs slot and triggered
             # `error: bad machine specification: failed to convert column
             # #3 ... to 'unsigned int'` (2026-07-27 cluster-fix-batch,
