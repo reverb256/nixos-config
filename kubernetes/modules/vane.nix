@@ -24,7 +24,7 @@ in {
             containers = [
               {
                 name = "vane";
-                image = "ghcr.io/reverb256/vane:latest";
+                image = "docker.io/itzcrazykns1337/vane@sha256:aaf9da6bf76f01480c3e755388421029982e819773cbcecdcf0e9621a10e0690";
                 imagePullPolicy = "IfNotPresent";
                 ports = [
                   {
