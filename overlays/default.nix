@@ -8,15 +8,11 @@ let
   bugfixOverlay = import ./bugfixes.nix { inherit inputs _final prev; };
   systemOverlay = import ./system.nix { inherit inputs _final prev; };
   pythonOverlay = import ./python.nix { inherit inputs _final prev; };
-  imagesOverlay = import ./images.nix { inherit inputs _final prev; };
   hardwareOverlay = import ./hardware.nix { inherit inputs _final prev; };
-  appsOverlay = import ./apps.nix { inherit inputs _final prev; };
 in
 foldl' (acc: overlay: acc // overlay) {} [
   bugfixOverlay
   systemOverlay
   pythonOverlay
-  imagesOverlay
   hardwareOverlay
-  appsOverlay
 ]

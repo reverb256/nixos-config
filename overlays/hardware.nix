@@ -5,8 +5,6 @@
       mkdir -p $out/lib/firefoxpwa
     '';
   });
-  claude-code-image = prev.callPackage ../packages/claude-code-image.nix {};
-  opencode-image = prev.callPackage ../packages/opencode-image.nix {};
 
   # ckb-next: update to latest upstream (post PR #1323 fix for macro field crash).
   # Nixpkgs snapshot (2025-09-25) has a GUI crash when old 4-field macros are
