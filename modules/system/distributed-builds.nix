@@ -78,6 +78,13 @@ in {
       keep-build-log = true;
       log-lines = 2000;
       auto-optimise-store = true;
+      # CRITICAL (2026-08-03): sandbox MUST be true. With sandbox=false,
+      # Flutter/AOT packages (localsend) embed their build temp dir in binary
+      # RPATHs -> "forbidden references" -> toplevel build fails. The
+      # common-host-defaults.nix comment documents this; nexus had sandbox=false
+      # in /etc/nix/nix.conf, which broke the zephyr deploy build.
+      sandbox = lib.mkForce true;
+      sandbox-fallback = lib.mkForce true;
       extra-sandbox-paths = [
         "/var/cache/ccache"
       ];
