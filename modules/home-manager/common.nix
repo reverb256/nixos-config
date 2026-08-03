@@ -71,6 +71,9 @@ in {
     # SSH configuration (managed by preservation, but tracked here)
     programs.ssh = {
       enable = true;
+      # Declare the default host block so the programs.ssh assertion
+      # (extraConfig requires settings."*" to be declared) passes.
+      settings."*" = {};
       extraConfig = ''
         Host 10.1.1.*
           StrictHostKeyChecking no
