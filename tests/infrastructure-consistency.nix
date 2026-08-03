@@ -37,7 +37,9 @@
   # ── Helpers ──
   fileExists = path: builtins.pathExists path;
   readFile = path: builtins.readFile path;
-  hasInfix = str: substr: lib.strings.hasInfix substr str;
+  # Call sites pass (needle source); keep the helper argument order
+  # consistent with lib.strings.hasInfix to avoid false negatives.
+  hasInfix = needle: source: lib.strings.hasInfix needle source;
   any = lib.any;
   all = lib.all;
   filter = lib.filter;
@@ -92,9 +94,11 @@
   # Check that no option is declared in both mining.nix and the role profile
   miningModule = readFile ./../modules/mining/mining.nix;
   implementationsModule = readFile ./../modules/profiles/role/implementations.nix;
+  # Match the actual option declaration, not comments that merely mention
+  # the option namespace while documenting the removed implementation.
   noDuplicateMiningOption =
-    (hasInfix "options.services.mining" miningModule)
-    && !(hasInfix "options.services.mining" implementationsModule);
+    (hasInfix "options.services.mining =" miningModule)
+    && !(hasInfix "options.services.mining =" implementationsModule);
 
   # ── HW-7: sops files referenced in registry exist ──
   # NOTE: This is a simplified check — the full check is in secrets-integrity.nix
@@ -200,7 +204,7 @@ in {
   passed_count = builtins.length passNames;
   failed_count = builtins.length failNames;
   failures = failNames;
-  all_pass = failures == [];
+  all_pass = failNames == [];
   # Print summary
   summary = let
     ok = builtins.length passNames;

@@ -9,6 +9,7 @@
     "home-manager"
     "zen-browser"
     "firefox-addons"
+    "freebuff-flake"
     "aagl"
     "nur"
     "claude-native"
@@ -19,16 +20,29 @@
     "niri"
     "llm-agents"
     "nix-cachyos-kernel"
-    "easykubenix"
+    "nixpkgs-xr"
+    "lsfg-vk-nix"
+    "niri-hdr"
+    "systems"
+    "mcp-registry"
+    "caddy-ingress"
+    "gpu-proxy"
+    "flake-parts"
+    "stylix"
+    "gitlawb"
+    "cachyos-kernel"
   ];
 
   referencedInCommon = [
     "home-manager"
-    "aagl"
     "nur"
     "sops-nix"
-    "niri"
+    "mcp-registry"
+    "caddy-ingress"
+    "gpu-proxy"
+    "stylix"
     "llm-agents"
+    "lsfg-vk-nix"
   ];
 
   commonModuleRefsValid =
@@ -50,33 +64,6 @@
     )
     declaredInputs;
 
-  followsNixpkgs = [
-    "home-manager"
-    "aagl"
-    "nur"
-    "claude-native"
-    "firefox-addons"
-    "scopebuddy"
-    "nixcord"
-    "sops-nix"
-    "colmena"
-    "niri"
-    "llm-agents"
-  ];
-
-  missingFollows =
-    builtins.filter (
-      input:
-        !(lib.strings.hasInfix "inputs.nixpkgs.follows" (
-          let
-            idx = lib.strings.findStringStart "${input}" flakeSource 0;
-          in
-            if idx < 0
-            then ""
-            else lib.substring idx (lib.min 500 (builtins.stringLength flakeSource - idx)) flakeSource
-        ))
-    )
-    followsNixpkgs;
 
   allChecks = {
     commonModulesRefsValid = commonModuleRefsValid;

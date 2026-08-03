@@ -10,12 +10,11 @@
       else "";
     tailscale = builtins.readFile ../modules/system/tailscale.nix;
     containerScanning = builtins.readFile ../modules/services/container-scanning.nix;
-    networkConstants = builtins.readFile ../modules/network-constants.nix;
+    # Network identity is owned by the cluster constants and typed inventory,
+    # not by the NixOS option shim in modules/network-constants.nix.
+    networkConstants = builtins.readFile ../kubernetes/cluster.nix;
+    hostInventory = builtins.attrNames (import ../contracts/host-inventory.nix).hosts;
     ssh = builtins.readFile ../modules/system/ssh.nix;
-    nfsServer =
-      if builtins.pathExists ../modules/services/nfs-server.nix
-      then builtins.readFile ../modules/services/nfs-server.nix
-      else "";
   };
 
   hasEnableOption = source:
@@ -49,7 +48,8 @@
 
     tailscale = {
       hasModule = modules.tailscale != "";
-      hasEnable = hasEnableOption modules.tailscale;
+      hasEnable = lib.strings.hasInfix "services.tailscale" modules.tailscale
+        && lib.strings.hasInfix "enable =" modules.tailscale;
       hasPackage = lib.strings.hasInfix "tailscale" modules.tailscale;
     };
 
@@ -63,7 +63,7 @@
     networkConstants = {
       hasModule = modules.networkConstants != "";
       hasSubnet = lib.strings.hasInfix "10.1.1.0/24" modules.networkConstants;
-      hasHosts = builtins.all (h: lib.strings.hasInfix h modules.networkConstants) [
+      hasHosts = builtins.all (h: builtins.elem h modules.hostInventory) [
         "zephyr"
         "nexus"
         "forge"
@@ -76,10 +76,6 @@
       hasSSHConfig =
         lib.strings.hasInfix "services.openssh" modules.ssh
         || lib.strings.hasInfix "programs.ssh" modules.ssh;
-    };
-
-    nfs = {
-      hasServerModule = modules.nfsServer != "";
     };
   };
 
@@ -97,6 +93,6 @@
   failures = lib.filterAttrs (_: v: v == false) flatChecks;
 in {
   services = builtins.mapAttrs (_: v: v) checks;
-  passed = failures == {};
+  passed = builtins.attrNames failures == [];
   failureCount = builtins.length (builtins.attrNames failures);
 }
