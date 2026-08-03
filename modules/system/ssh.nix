@@ -121,7 +121,7 @@ in {
       # Updated 2026-07-31: sentry regenerated its SSH host key on reboot/rebuild
       # (was unreachable, returned with a new ed25519 key). Source-of-truth
       # rotated to match the current key.
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINAO3di1zO3cEpvp4veGyn1NuumlY82DMKpxWCbYgs0P";
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH+R6vcZJzGIUCYyR7lmxCLUSKH240FxgvA8N045j7WS";
     };
     krash2 = {
       hostNames = ["krash2" hosts.krash2.ip];
