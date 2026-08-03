@@ -209,7 +209,7 @@ in {
   ];
 
   networking.firewall.interfaces = {
-    tailscale0.allowedTCPPorts = [22];
+    tailscale0.allowedTCPPorts = lib.mkOptionDefault [22];
   };
   networking.firewall.extraInputRules = ''
     ip saddr 10.1.1.0/24 tcp dport 22 accept

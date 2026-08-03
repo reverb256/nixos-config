@@ -177,6 +177,6 @@ in {
     # We only need to create the data directories
 
     # Firewall
-    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [cfg.port];
+    networking.firewall.interfaces."tailscale0".allowedTCPPorts = lib.mkOptionDefault [cfg.port];
   };
 }

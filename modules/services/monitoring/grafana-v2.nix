@@ -191,6 +191,6 @@ in {
     };
 
     # Open firewall
-    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [cluster.ports.grafana];
+    networking.firewall.interfaces."tailscale0".allowedTCPPorts = lib.mkOptionDefault [cluster.ports.grafana];
   };
 }

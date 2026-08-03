@@ -141,7 +141,7 @@ in {
     };
 
     # Open firewall for internal Tailscale access
-    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [
+    networking.firewall.interfaces."tailscale0".allowedTCPPorts = lib.mkOptionDefault [
       ports.alertmanager
     ];
 

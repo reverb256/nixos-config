@@ -210,7 +210,7 @@ in {
     users.groups.prometheus = {};
 
     # Open firewall for internal access
-    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [
+    networking.firewall.interfaces."tailscale0".allowedTCPPorts = lib.mkOptionDefault [
       ports.prometheus
     ];
   };

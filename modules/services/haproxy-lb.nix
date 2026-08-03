@@ -285,7 +285,7 @@ in {
         8080 # Health check endpoint
       ];
       # VRRP for keepalived
-      allowedUDPPorts = [112];
+      allowedUDPPorts = lib.mkOptionDefault [112];
       # Allow VRRP multicast (nftables syntax)
       extraInputRules = ''
         ip protocol vrrp accept

@@ -58,7 +58,7 @@ in {
 
   config = mkIf cfg.enable {
     # Open firewall for localhost only
-    networking.firewall.interfaces."lo".allowedTCPPorts = [cfg.port];
+    networking.firewall.interfaces."lo".allowedTCPPorts = lib.mkOptionDefault [cfg.port];
 
     systemd.services.central-auth = {
       description = "Central OAuth2 Proxy (Casdoor SSO)";
