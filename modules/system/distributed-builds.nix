@@ -97,12 +97,49 @@ in {
     };
   };
 
-  # ── Post-build hook: auto-push completed builds to nexus cache ──
+  # ── Post-build hook: auto-push completed builds ──
+  # 1) reverb-os cachix (incremental — skips already-cached paths). The
+  #    nix-daemon runs as root, so the token must be exported explicitly
+  #    (cachix-auth caches it only for j_kro). Best-effort: a slow cache
+  #    must never block or fail a build (timeout + `|| true`).
+  # 2) nexus local store (fast LAN cache for cluster rebuilds).
   nix.settings.post-build-hook = pkgs.writeShellScript "upload-to-cache" ''
     if [ -n "$OUT_PATHS" ] && [ "$BUILD_STATUS" = "success" ]; then
+      if [ -r /run/secrets/cachix-token ]; then
+        export CACHIX_AUTH_TOKEN="$(cat /run/secrets/cachix-token)"
+        nice -n 19 ${pkgs.coreutils}/bin/timeout 600 ${pkgs.cachix}/bin/cachix push reverb-os $OUT_PATHS 2>/dev/null || true
+      fi
       exec nice -n 19 nix copy --to ssh://j_kro@nexus --substitute-on-destination $OUT_PATHS 2>/dev/null
     fi
   '';
+
+  # ── cachix watch-store: continuous auto-push to reverb-os cachix ──
+  # Safety net on top of the post-build-hook: pushes every new store path
+  # as it lands (incl. substituted/cloned closures), not just locally-built
+  # outputs. Runs only on the builder hosts (nexus/sentry) — zephyr never
+  # builds (max-jobs=0, RAM-constrained) and forge is the GPU miner (do not
+  # disturb). Idle-priority so it never contends with builds/mining.
+  systemd.services.cachix-watch-store = lib.mkIf (builtins.elem currentHost ["nexus" "sentry"]) {
+    description = "Push new store paths to reverb-os cachix";
+    wantedBy = ["multi-user.target"];
+    after = ["network-online.target" "nix-daemon.service"];
+    wants = ["network-online.target"];
+    serviceConfig = {
+      Type = "simple";
+      Restart = "on-failure";
+      RestartSec = 10;
+      Nice = 19;
+      IOSchedulingPriority = 7; # idle
+    };
+    script = ''
+      if [ ! -r /run/secrets/cachix-token ]; then
+        echo "cachix-watch-store: token missing at /run/secrets/cachix-token — skipping" >&2
+        exit 1
+      fi
+      export CACHIX_AUTH_TOKEN="$(cat /run/secrets/cachix-token)"
+      exec ${pkgs.cachix}/bin/cachix watch-store reverb-os
+    '';
+  };
 
   programs.ssh.startAgent = true;
 
