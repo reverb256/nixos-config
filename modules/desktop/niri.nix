@@ -30,9 +30,12 @@ in {
       # support. niri-unstable carries max_bpc + reset_hdr plumbing (HDR via EDID),
       # which nixpkgs' stable niri (v26.04) also has but on an older schema. We
       # switched to unstable 2026-07-25 to enable HDR on the Samsung TV
-      # (HDMI-A-2). The old custom SDR-brightness patch (patches/niri-sdr-brightness.patch)
-      # was dropped - the TV is now HDR-driven natively by niri; noctalia's
-      # HDMI-A-2 backend was set to `normal` so niri owns the output.
+      # (HDMI-A-2). The old custom SDR-brightness patch
+      # (patches/niri-sdr-brightness.patch, deleted) was dropped — the TV is
+      # now HDR-driven by niri; noctalia's HDMI-A-2 backend was set to
+      # `normal` so niri owns the output. NOTE: zephyr overrides binPath to
+      # the HDR fork binary (pkgs.niri-hdr) for full HDR metadata signalling
+      # (reference-luminance), see hosts/zephyr/desktop.nix.
       # inputs.niri.overlays.niri (common-modules-list.nix) only adds
       # pkgs.niri-unstable / pkgs.niri-stable; it does NOT replace pkgs.niri,
       # so this mkForce is what actually selects the unstable binary.

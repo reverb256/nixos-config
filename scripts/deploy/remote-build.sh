@@ -63,7 +63,12 @@ start_build() {
     # Hold one Nexus-wide lock across source sync + evaluation/build. The
     # builder checkout is shared, so concurrent tags must not reset it under
     # another build. A busy lock makes this tagged service fail cleanly.
-    BUILD_COMMAND="set -e; cd /etc/nixos; git fetch origin \"${REF}\" >/dev/null 2>&1; git reset --hard \"${REF}\" >/dev/null 2>&1; nix build --no-link --fallback --option http2 false --option http-connections 16 --option connect-timeout 10 --option download-attempts 10 --print-out-paths .#nixosConfigurations.${TARGET}.config.system.build.toplevel > ${STORE_PATH_FILE} 2>/tmp/${TAG}-build-log"
+    # Transport options (http2=false, http-connections, connect-timeout,
+    # download-attempts) are set declaratively in distributed-builds.nix and
+    # picked up from /etc/nix/nix.conf — no need to duplicate them here.
+    # (Removed 2026-08-04 audit: duplicate CLI flags; keep in sync if the
+    # builder host has not yet been rebuilt with the declarative settings.)
+    BUILD_COMMAND="set -e; cd /etc/nixos; git fetch origin \"${REF}\" >/dev/null 2>&1; git reset --hard \"${REF}\" >/dev/null 2>&1; nix build --no-link --fallback --print-out-paths .#nixosConfigurations.${TARGET}.config.system.build.toplevel > ${STORE_PATH_FILE} 2>/tmp/${TAG}-build-log"
     INNER="flock -n 9 -c $(printf '%q' \"$BUILD_COMMAND\") 9>/tmp/nixos-build-farm.lock"
     ssh "$NEXUS" "systemd-run --user --unit=${SERVICE} --no-block --same-dir --working-directory=/etc/nixos -- bash -c $(printf '%q' "$INNER")"
 }

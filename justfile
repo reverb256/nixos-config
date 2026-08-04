@@ -785,6 +785,15 @@ docs-freshen:
     set -e
     echo "Check LIVE/ docs for accuracy, run 'docs-audit' after"
 
+# Inventory patches/ references + on-disk state (docs/issues/04 patches audit)
+patches-audit:
+    @echo "=== patch file references in Nix config ==="
+    @rg -n 'patches/' --glob '*.nix' --glob '!flake.lock' . || echo "  (no references)"
+    @echo "=== patch files on disk ==="
+    @ls -la patches/ 2>/dev/null || echo "  (none)"
+    @echo "=== archived/deprecated patches ==="
+    @ls -la docs/patches/deprecated/ 2>/dev/null || echo "  (none)"
+
 # ── STATUS REGEN ─────────────────────────────────────────────────────────────
 # Regenerate STATUS.md manually. The hourly status-update.timer (declared
 # in modules/system/status-auto-update.nix) runs the same script. Use this
