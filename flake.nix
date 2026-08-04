@@ -6,9 +6,15 @@
       url = "git+https://github.com/nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # zen-browser: pin rev + let it use its OWN pinned nixpkgs (1559d3da…) for
+    # the zen package instead of our floating nixos-unstable. zen-twilight.desktop
+    # embeds the zen version; following our nixpkgs made it drift every time
+    # nixos-unstable's zen moved, and zephyr-eval vs forge-build-cache diverged
+    # on that version -> "hash mismatch importing zen-twilight.desktop". Freezing
+    # zen-browser's nixpkgs (its own lock) makes the .desktop deterministic.
+    # home-manager still follows ours so the twilight HM module options match.
     zen-browser = {
-      url = "git+https://github.com/0xc000022070/zen-browser-flake";
-      inputs.nixpkgs.follows = "nixpkgs";
+      url = "git+https://github.com/0xc000022070/zen-browser-flake?rev=e1a0481218312579ad67eda819ad964176fbe28b";
       inputs.home-manager.follows = "home-manager";
     };
     # lsfg-vk - Lossless Scaling Frame Generation on Linux
@@ -148,199 +154,220 @@
     };
   };
   outputs =
-    inputs@{
-      self,
-      nixpkgs,
-      home-manager,
-      aagl,
-      nur,
-      claude-native,
-      colmena,
-      nixpkgs-xr,
-      ...
-    }:
-    let
-      # System configuration
-      system = "x86_64-linux";
-      pkgs = import nixpkgs {
-        inherit system;
-        config.allowUnfree = true;
-      };
-      # pkgsWithOverlay: nixpkgs with custom overlay applied
-      pkgsWithOverlay = import nixpkgs {
-        inherit system;
-        config.allowUnfree = true;
-        overlays = [ (import ./overlays/default.nix { inherit inputs; }) ];
-      };
+    inputs@{ self, nixpkgs, home-manager, aagl, nur, claude-native, colmena, nixpkgs-xr, ... }:
+    inputs.flake-parts.lib.mkFlake { inherit inputs; } (
+      { config, ... }:
+      {
+        systems = [ "x86_64-linux" ];
 
-      # Scoped recent-nixpkgs for VFIO/Looking Glass packages only.
-      # Reference the flake output's legacyPackages set directly (verified to
-      # expose kvmfr / looking-glass-client / OVMFFull / qemu_kvm / scream / virtio-win).
-      vfioPkgs = pkgs; # nixpkgs is now unstable — vfioPkgs == pkgs
+        imports = [
+          # B namespace: class-checked flake.modules.nixos.* (self-registering
+          # feature modules; a Home Manager module loaded into a NixOS config
+          # becomes a simple type error).
+          inputs.flake-parts.flakeModules.modules
+          # nixpkgs flakeModule: provides perSystem.pkgs + perSystem.nixpkgs.config
+          # (allowUnfree for checks/packages, mirroring the classic flake's
+          # top-level `import nixpkgs { config.allowUnfree = true; }`).
+          inputs.flake-parts.flakeModules.nixpkgs
+          # Dendritic host registry: zephyr lives here (modules/hosts/zephyr).
+          # nexus/forge/sentry join at their cutovers (zephyr→nexus→forge→sentry).
+          ./modules/hosts/default.nix
+        ];
 
-      # COMMON MODULES - Shared across all hosts (single source of truth)
-      # Host identity/deployment/capability facts live in the typed inventory;
-      # NixOS and Colmena consume the same value instead of duplicating it.
-      hostInventory = import ./contracts/host-inventory.nix;
-      commonModules = import ./common-modules-list.nix {
-        inherit inputs self;
-      };
-
-      # HELPER FUNCTION - Create NixOS system (eliminates duplication)
-
-      mkNixosSystem =
-        {
-          hostName,
-          extraModules ? [ ],
-        }:
-        nixpkgs.lib.nixosSystem {
-          # Apply the cluster overlay set (overlays/default.nix -> bugfixes,
-          # system, python, images, hardware, apps) via the supported
-          # `nixpkgs.overlays` module option. This keeps pkgs internally-created
-          # (so modules may still set `nixpkgs.config.*`, e.g. lm-studio,
-          # nix-config, peakminer) while making the qdrant/gjs/gtk4/webkitgtk/
-          # qtbase/dufs fixes reach host builds. Passing an external `pkgs`
-          # instance instead triggered "configures nixpkgs with an externally
-          # created instance" because those modules set `nixpkgs.config`.
-          specialArgs = {
-            inherit inputs vfioPkgs;
+        # ── CLASSIC SHIM (option B) ──────────────────────────────────────────
+        # nexus/forge/sentry keep the classic wiring (commonModules + per-host
+        # configuration.nix + extraModules) until their own cutovers. zephyr is
+        # dendritic (modules/hosts/zephyr/default.nix) and is REMOVED from this
+        # map so the two definitions never collide. Shared feature files stay
+        # classic: the shim + zephyr both consume them by path until dissolution.
+        flake = let
+          system = "x86_64-linux";
+          pkgs = import nixpkgs {
+            inherit system;
+            config.allowUnfree = true;
           };
-          modules =
-            commonModules
-            ++ [
-              ./hosts/${hostName}/configuration.nix
-            ]
-            ++ extraModules;
-        };
+          # Scoped recent-nixpkgs for VFIO/Looking Glass packages only.
+          # Reference the flake output's legacyPackages set directly (verified to
+          # expose kvmfr / looking-glass-client / OVMFFull / qemu_kvm / scream / virtio-win).
+          vfioPkgs = pkgs; # nixpkgs is now unstable — vfioPkgs == pkgs
 
-      # HOST DEFINITIONS - WHOLE-CLUSTER SOURCE OF TRUTH
-      # hostName: matches ./hosts/<n>/ and networking.hostName
-      # targetHost: colmenua targetHost (IP/hostname for remote, null = local)
-      # buildOnTarget: colmneda buildOnTarget (true=build-on-remote, false=build elsewhere)
-      # tags: colmneda tag set for selective deploys
-      # extraModules: per-host NixOS modules appended after commonModules              # (use this to selectively load desktop-only modules for
-              # zephyr/forge while keeping nexus/sentry free of niri/etc)
-      # Adding a 5th host = 1 attr here + ./hosts/<n>/configuration.nix +
-      #                     + (optionally) 1 entry in `machines` for colmneda.
-      #   NOTE: also update ./machines (its keys are colmneda machine entries).
+          # COMMON MODULES - Shared across all hosts (single source of truth)
+          # Host identity/deployment/capability facts live in the typed inventory;
+          # NixOS and Colmena consume the same value instead of duplicating it.
+          hostInventory = import ./contracts/host-inventory.nix;
+          hosts = hostInventory.hosts;
+          commonModules = import ./common-modules-list.nix {
+            inherit inputs self;
+          };
 
-      # HOST DEFINITIONS - derived from the canonical typed inventory.
-      # Adding a host starts in contracts/host-inventory.nix; NixOS, Colmena,
-      # metadata validation, and deployment views derive from that one source.
-      hosts = hostInventory.hosts;
-    in
-    {
-
-      # OUTPUT 1: nixosConfigurations (for local nixos-rebuild)
-
-      nixosConfigurations = builtins.mapAttrs (
-        _name: value:
-          mkNixosSystem {
-            inherit (value) hostName extraModules;
-          }
-      ) hosts;
-
-      # OUTPUT 2: colmena (raw hive configuration)
-      # The typed inventory is the whole-cluster source of truth.
-      # `colmena.nix` derives both `meta.nodeNixpkgs` AND each host's
-      # colmenua `meta` from it. No duplicate host declarations needed.
-
-      colmena = import ./colmena.nix {
-        inherit inputs self hosts commonModules;
-      };
-
-      # OUTPUT 3: colmenaHive (for multi-host deployment)
-      # Wraps the raw hive configuration with makeHive for proper schema
-
-      colmenaHive = colmena.lib.makeHive self.outputs.colmena;
-
-      # OUTPUT 4: homeConfigurations
-      # Standalone Home Manager activations for j_kro on every cluster host.
-      # Uses HM-only modules through modules/home-manager/standalone.nix so this
-      # does not pull NixOS-class modules into `home-manager switch`.
-
-      homeConfigurations = builtins.mapAttrs (
-        _name: value:
-          home-manager.lib.homeManagerConfiguration {
-            pkgs = import nixpkgs {
-              inherit system;
-              config.allowUnfree = true;
+          # HELPER FUNCTION - Create NixOS system (eliminates duplication)
+          # Classic hosts only — zephyr is built dendritically.
+          mkNixosSystem =
+            {
+              hostName,
+              extraModules ? [ ],
+            }:
+            nixpkgs.lib.nixosSystem {
+              # Apply the cluster overlay set (overlays/default.nix -> bugfixes,
+              # system, python, images, hardware, apps) via the supported
+              # `nixpkgs.overlays` module option. This keeps pkgs internally-created
+              # (so modules may still set `nixpkgs.config.*`, e.g. lm-studio,
+              # nix-config, peakminer) while making the qdrant/gjs/gtk4/webkitgtk/
+              # qtbase/dufs fixes reach host builds. Passing an external `pkgs`
+              # instance instead triggered "configures nixpkgs with an externally
+              # created instance" because those modules set `nixpkgs.config`.
+              specialArgs = {
+                inherit inputs vfioPkgs;
+              };
+              modules =
+                commonModules
+                ++ [
+                  ./hosts/${hostName}/configuration.nix
+                ]
+                ++ extraModules;
             };
 
-            modules = [ ./modules/home-manager/standalone.nix ];
-            extraSpecialArgs = { inherit inputs vfioPkgs; hostName = value.hostName; };
-          }
-      ) hosts;
-
-      # OUTPUT 5: checks — source-level test suite (runs via `nix flake check`)
-      # Each tests/*.nix (except lib.nix) is imported with the flake's pkgs
-      # and must evaluate `passed == true` / `all_pass == true`. A failing
-      # test throws, which fails `nix flake check` in CI — the P0 eval gate.
-      # (Fixes: CI tests job never asserted results; flake exported no checks.)
-
-      checks.x86_64-linux = let
-        mkCheck = name: file: let
-          result = import file { inherit pkgs; };
-          passed = result.passed or result.all_pass or false;
-          failures = result.failures or [ ];
+          # HOST DEFINITIONS - derived from the canonical typed inventory.
+          # hostName: matches ./hosts/<n>/ and networking.hostName
+          # targetHost: colmena targetHost (IP/hostname for remote, null = local)
+          # buildOnTarget: colmena buildOnTarget (true=build-on-remote, false=build elsewhere)
+          # tags: colmena tag set for selective deploys
+          # extraModules: per-host NixOS modules appended after commonModules
+          # (use this to selectively load desktop-only modules for
+          # zephyr/forge while keeping nexus/sentry free of niri/etc)
+          # Adding a 5th host = 1 attr in contracts/host-inventory.nix +
+          # ./hosts/<n>/configuration.nix + (once dendritic) a host file under
+          # modules/hosts/<n>/.
+          #   NOTE: also update ./machines (its keys are colmena machine entries).
+          # Dendritic cutover: zephyr removed here (now under modules/hosts/zephyr);
+          # nexus, forge, sentry still classic until their cutovers.
+          classicHosts = builtins.removeAttrs hosts [ "zephyr" ];
         in
-          if passed
-          then pkgs.runCommand "check-${name}" { } "echo '${name}: PASS'; touch $out"
-          else throw "test ${name} FAILED: ${builtins.toJSON failures}";
-      in {
-        firewall-lint = mkCheck "firewall-lint" ./tests/firewall-lint.nix;
-        flake-input-consistency = mkCheck "flake-input-consistency" ./tests/flake-input-consistency.nix;
-        host-configuration = mkCheck "host-configuration" ./tests/host-configuration.nix;
-        import-integrity = mkCheck "import-integrity" ./tests/import-integrity.nix;
-        infrastructure-consistency = mkCheck "infrastructure-consistency" ./tests/infrastructure-consistency.nix;
-        integration-smoke = mkCheck "integration-smoke" ./tests/integration-smoke.nix;
-        k3s-cluster = mkCheck "k3s-cluster" ./tests/k3s-cluster.nix;
-        k3s-topology-evidence = mkCheck "k3s-topology-evidence" ./tests/k3s-topology-evidence.nix;
-        k8s-manifest-validation = mkCheck "k8s-manifest-validation" ./tests/k8s-manifest-validation.nix;
-        module-template-compliance = mkCheck "module-template-compliance" ./tests/module-template-compliance.nix;
-        network-constants = mkCheck "network-constants" ./tests/network-constants.nix;
-        nixos-eval = mkCheck "nixos-eval" ./tests/nixos-eval.nix;
-        options-consistency = mkCheck "options-consistency" ./tests/options-consistency.nix;
-        secrets-integrity = mkCheck "secrets-integrity" ./tests/secrets-integrity.nix;
-        layer-interface-contract = mkCheck "layer-interface-contract" ./tests/layer-interface-contract.nix;
-        inventory-compliance = mkCheck "inventory-compliance" ./tests/inventory-compliance.nix;
-        home-manager-layer = mkCheck "home-manager-layer" ./tests/home-manager-layer.nix;
-      };
+        {
+          # OUTPUT 1: nixosConfigurations (classic shim — nexus/forge/sentry only;
+          # zephyr's dendritic definition comes from modules/hosts/zephyr/default.nix)
 
-      # EXISTING OUTPUTS (maintain compatibility)
+          nixosConfigurations = builtins.mapAttrs (
+            _name: value:
+              mkNixosSystem {
+                inherit (value) hostName extraModules;
+              }
+          ) classicHosts;
 
-      packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
-      packages.x86_64-linux.llama-cpp = pkgs.llama-cpp;
-      packages.x86_64-linux.secretspec = pkgs.secretspec; # from nixos-unstable
-      # CONTAINER IMAGES (for Kubernetes deployment)
+          # OUTPUT 2: colmena (raw hive configuration)
+          # The typed inventory is the whole-cluster source of truth.
+          # `colmena.nix` derives both `meta.nodeNixpkgs` AND each host's
+          # colmena `meta` from it. No duplicate host declarations needed.
+          # UNCHANGED classic wiring — flips to config.flake.* at dissolution
+          # (after all four hosts are dendritic).
 
-      # Claude Code container image for Kubernetes deployment
-      # Container images extracted to pkgs/ on 2026-07-29 (audit change 3).
-      # /etc/nixos/pkgs/claude-code-image/default.nix — pkgs.callPackage'd.
-      # /etc/nixos/pkgs/opencode-image/default.nix — pkgs.callPackage'd.
-      packages.x86_64-linux.claude-code-image =
-        pkgs.callPackage ./pkgs/claude-code-image { };
-      packages.x86_64-linux.opencode-image =
-        pkgs.callPackage ./pkgs/opencode-image { };
-      packages.x86_64-linux.ai-inference-gateway-image =
-        pkgs.callPackage ./pkgs/ai-inference-gateway-image
-          { };
-      # Requires impure paths - build manually: nix build .#kb-mcp-image --impure
-      # packages.x86_64-linux.kb-mcp-image = pkgs.callPackage ./pkgs/kb-mcp-image { };
-      overlays.default = import ./overlays/default.nix { inherit inputs; };
-      # pkgsWithOverlay: nixpkgs with custom overlay applied
-      pkgsWithOverlay = import nixpkgs {
-        inherit system;
-        config.allowUnfree = true;
-        overlays = [ self.overlays.default ];
-      };
-      apps.x86_64-linux.colmena = {
-        type = "app";
-        program = "${colmena.packages.x86_64-linux.colmena}/bin/colmena";
-        meta.description = "Colmena multi-host NixOS deployment";
-      };
-      # ── FORMATTING GATE ───────────────────────────────────────
-      # `nix fmt` -> alejandra (format) across the tree.
+          colmena = import ./colmena.nix {
+            inherit inputs self hosts commonModules;
+          };
 
-    };
+          # OUTPUT 3: colmenaHive (for multi-host deployment)
+          # Wraps the raw hive configuration with makeHive for proper schema
+          # validation. Reads config.flake.colmena (not self.outputs.colmena)
+          # to avoid the self-referential cycle flake-parts introduces.
+
+          colmenaHive = colmena.lib.makeHive config.flake.colmena;
+
+          # OUTPUT 4: homeConfigurations
+          # Standalone Home Manager activations for j_kro on every cluster host.
+          # Uses HM-only modules through modules/home-manager/standalone.nix so this
+          # does not pull NixOS-class modules into `home-manager switch`.
+
+          homeConfigurations = builtins.mapAttrs (
+            _name: value:
+              home-manager.lib.homeManagerConfiguration {
+                pkgs = import nixpkgs {
+                  inherit system;
+                  config.allowUnfree = true;
+                };
+
+                modules = [ ./modules/home-manager/standalone.nix ];
+                extraSpecialArgs = { inherit inputs vfioPkgs; hostName = value.hostName; };
+              }
+          ) hosts;
+
+          overlays.default = import ./overlays/default.nix { inherit inputs; };
+        };
+
+        # ── OUTPUT 5: checks — source-level test suite (runs via `nix flake check`)
+        # Each tests/*.nix (except lib.nix) is imported with the flake's pkgs
+        # and must evaluate `passed == true` / `all_pass == true`. A failing
+        # test throws, which fails `nix flake check` in CI — the P0 eval gate.
+        # (Fixes: CI tests job never asserted results; flake exported no checks.)
+
+        perSystem = { system, pkgs, ... }: {
+          # Custom pkgs: this flake-parts rev's nixpkgs flakeModule sets
+          # `_module.args.pkgs` via `lib.mkOptionDefault` (unconfigured
+          # legacyPackages); override it with the classic-flake-equivalent
+          # configured instance so checks/packages see allowUnfree exactly as
+          # the pre-cutover `pkgs = import nixpkgs { config.allowUnfree = true; }`.
+          _module.args.pkgs = import nixpkgs {
+            inherit system;
+            config.allowUnfree = true;
+          };
+
+          checks = let
+            mkCheck = name: file: let
+              result = import file { inherit pkgs; };
+              passed = result.passed or result.all_pass or false;
+              failures = result.failures or [ ];
+            in
+              if passed
+              then pkgs.runCommand "check-${name}" { } "echo '${name}: PASS'; touch $out"
+              else throw "test ${name} FAILED: ${builtins.toJSON failures}";
+          in {
+            firewall-lint = mkCheck "firewall-lint" ./tests/firewall-lint.nix;
+            flake-input-consistency = mkCheck "flake-input-consistency" ./tests/flake-input-consistency.nix;
+            host-configuration = mkCheck "host-configuration" ./tests/host-configuration.nix;
+            import-integrity = mkCheck "import-integrity" ./tests/import-integrity.nix;
+            infrastructure-consistency = mkCheck "infrastructure-consistency" ./tests/infrastructure-consistency.nix;
+            integration-smoke = mkCheck "integration-smoke" ./tests/integration-smoke.nix;
+            k3s-cluster = mkCheck "k3s-cluster" ./tests/k3s-cluster.nix;
+            k3s-topology-evidence = mkCheck "k3s-topology-evidence" ./tests/k3s-topology-evidence.nix;
+            k8s-manifest-validation = mkCheck "k8s-manifest-validation" ./tests/k8s-manifest-validation.nix;
+            module-template-compliance = mkCheck "module-template-compliance" ./tests/module-template-compliance.nix;
+            network-constants = mkCheck "network-constants" ./tests/network-constants.nix;
+            nixos-eval = mkCheck "nixos-eval" ./tests/nixos-eval.nix;
+            options-consistency = mkCheck "options-consistency" ./tests/options-consistency.nix;
+            secrets-integrity = mkCheck "secrets-integrity" ./tests/secrets-integrity.nix;
+            layer-interface-contract = mkCheck "layer-interface-contract" ./tests/layer-interface-contract.nix;
+            inventory-compliance = mkCheck "inventory-compliance" ./tests/inventory-compliance.nix;
+            home-manager-layer = mkCheck "home-manager-layer" ./tests/home-manager-layer.nix;
+          };
+
+          # EXISTING OUTPUTS (maintain compatibility)
+
+          packages.claude = claude-native.packages.x86_64-linux.claude;
+          packages.llama-cpp = pkgs.llama-cpp;
+          packages.secretspec = pkgs.secretspec; # from nixos-unstable
+          # CONTAINER IMAGES (for Kubernetes deployment)
+
+          # Claude Code container image for Kubernetes deployment
+          # Container images extracted to pkgs/ on 2026-07-29 (audit change 3).
+          # /etc/nixos/pkgs/claude-code-image/default.nix — pkgs.callPackage'd.
+          # /etc/nixos/pkgs/opencode-image/default.nix — pkgs.callPackage'd.
+          packages.claude-code-image =
+            pkgs.callPackage ./pkgs/claude-code-image { };
+          packages.opencode-image =
+            pkgs.callPackage ./pkgs/opencode-image { };
+          packages.ai-inference-gateway-image =
+            pkgs.callPackage ./pkgs/ai-inference-gateway-image
+              { };
+          # Requires impure paths - build manually: nix build .#kb-mcp-image --impure
+          # packages.kb-mcp-image = pkgs.callPackage ./pkgs/kb-mcp-image { };
+
+          apps.colmena = {
+            type = "app";
+            program = "${colmena.packages.x86_64-linux.colmena}/bin/colmena";
+            meta.description = "Colmena multi-host NixOS deployment";
+          };
+          # ── FORMATTING GATE ───────────────────────────────────────
+          # `nix fmt` -> alejandra (format) across the tree.
+        };
+      }
+    );
 }
