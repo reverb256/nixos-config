@@ -1,8 +1,11 @@
 {
+  config,
   lib,
   pkgs,
   ...
-}: {
+}: let
+  cacheRegistry = import ./nix-cache-registry.nix;
+in {
   nixpkgs.overlays = [
     (_final: prev: {
       inherit
@@ -154,28 +157,22 @@
       experimental-features = ["nix-command" "flakes"];
 
       # Local Nix binary caches (nexus and zephyr serve signed store paths).
-      substituters = [
-        "http://10.1.1.110:50000?priority=40"
-        "https://cache.nixos.org?priority=90"
-        "https://nix-community.cachix.org?priority=80"
-        "https://ezkea.cachix.org?priority=70"
-      ];
+      substituters = cacheRegistry.substituters;
 
-      trusted-public-keys = lib.mkOptionDefault [
-        "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-        "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU="
-      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-        "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
-      ];
+      trusted-public-keys = lib.mkOptionDefault cacheRegistry.trustedPublicKeys;
 
       # Don't abort the build if a local cache is temporarily unreachable.
       fallback = true;
 
       trusted-users = lib.mkOptionDefault ["root" "@wheel"];
 
+      # Transitional compatibility: the internal cache-signing gate is tracked
+      # separately before this becomes true fleet-wide. Do not remove the
+      # follow-up without verifying every configured cache and host path.
       require-sigs = lib.mkForce false;
 
-      accept-flake-config = true;
+      # Do not let an arbitrary flake alter this host's trust boundary.
+      accept-flake-config = false;
 
       auto-optimise-store = true;
     };
@@ -196,6 +193,17 @@
   };
 
   nixpkgs.config.allowUnfree = true;
+
+  assertions = [
+    {
+      assertion = config.nix.settings.accept-flake-config == false;
+      message = "Cache hardening: accept-flake-config must remain disabled.";
+    }
+    {
+      assertion = !(builtins.elem "*" config.nix.settings.trusted-users);
+      message = "Cache hardening: wildcard trusted-users are forbidden.";
+    }
+  ];
 
   # 2026-07-30: Cluster rebuilds were being blocked by cascading pytest /
   # installCheck failures in python3.14-* transitive deps (tkinter Xvfb,

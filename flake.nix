@@ -288,6 +288,7 @@
           then pkgs.runCommand "check-${name}" { } "echo '${name}: PASS'; touch $out"
           else throw "test ${name} FAILED: ${builtins.toJSON failures}";
       in {
+        cache-trust = mkCheck "cache-trust" ./tests/cache-trust.nix;
         firewall-lint = mkCheck "firewall-lint" ./tests/firewall-lint.nix;
         flake-input-consistency = mkCheck "flake-input-consistency" ./tests/flake-input-consistency.nix;
         host-configuration = mkCheck "host-configuration" ./tests/host-configuration.nix;

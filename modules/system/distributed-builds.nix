@@ -8,6 +8,7 @@
   # #309: derive from the declared user instead of hardcoding, so pure
   # cross-host evaluation does not depend on /home/j_kro existing.
   userHome = config.users.users.j_kro.home or "/home/j_kro";
+  cacheRegistry = import ./nix-cache-registry.nix;
 in {
   nix = {
     distributedBuilds = lib.mkDefault true;
@@ -15,34 +16,17 @@ in {
     settings = {
       builders = lib.mkForce "@/etc/nix/machines";
       builders-use-substitutes = true;
+      # Keep daemon trust explicit: users can build, but cannot redefine the
+      # daemon's trust boundary through wildcard administrative access.
+      # Signature enforcement remains a separate compatibility-gated follow-up.
       require-sigs = lib.mkForce false;
-      trusted-users = lib.mkForce [
-        "root"
-        "*"
-        "@wheel"
-      ];
+      trusted-users = lib.mkForce ["root" "j_kro"];
 
       # Identical lists on every host (zephyr/else branches were identical —
       # collapsed 2026-08-01). The zephyr-cache substituter points at zephyr's
       # local binary cache (10.1.1.110:50000), which is reachable cluster-wide.
-      substituters = lib.mkForce [
-        "http://10.1.1.110:50000?priority=40&want-mass-query=true"
-        "https://cache.nixos.org"
-        "https://nix-community.cachix.org"
-        "https://reverb-os.cachix.org"
-        "https://maplespike.cachix.org"
-        "https://ezkea.cachix.org"
-        "https://nix-gaming.cachix.org"
-      ];
-      trusted-public-keys = lib.mkForce [
-        "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU="
-        "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-        "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-        "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1q2jYzI="
-        "maplespike.cachix.org-1:P6v8AHkRYDKI/xc4/OYIvMcwumkD9EafWnYERWWngYg="
-        "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
-        "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
-      ];
+      substituters = lib.mkForce cacheRegistry.substituters;
+      trusted-public-keys = lib.mkForce cacheRegistry.trustedPublicKeys;
 
       cores = lib.mkForce (
         if currentHost == "zephyr"
