@@ -6,15 +6,30 @@
     enable = true;
 
     # Prompt customization
+    # NOTE: guarded against one-shot command shells (bash -c / -lic wrappers).
+    # Bash 5.3p15 (shipped by nixpkgs, unfixed upstream) has a heap-corruption
+    # segfault in bind_tempenv_variable's temp-env array path (bug-bash
+    # 2025-08 msg00070), triggered when a fresh `bash -lic` sources this rc
+    # (e.g. background process wrappers). Real interactive terminals never
+    # carry the -c flag in `$-`, so gating on it preserves full behavior while
+    # neutralizing the crash. A real fix requires a patched bash source build.
     promptInit = ''
-      # Initialize Starship prompt for Bash
-      if [ -f "${pkgs.starship}/bin/starship" ]; then
-        eval "$(${pkgs.starship}/bin/starship init bash)"
-      fi
+      case $- in
+        *c*) ;;  # one-shot command shell — skip init, just run the command
+        *)
+          # Initialize Starship prompt for Bash
+          if [ -f "${pkgs.starship}/bin/starship" ]; then
+            eval "$(${pkgs.starship}/bin/starship init bash)"
+          fi
+          ;;
+      esac
     '';
 
     # Interactive shell configuration
     interactiveShellInit = ''
+      case $- in
+        *c*) ;;  # one-shot command shell — skip init (see promptInit note)
+        *)
       # Set environment variables
       export EDITOR=nvim
       export VISUAL=nvim

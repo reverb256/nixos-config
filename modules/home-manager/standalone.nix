@@ -73,9 +73,17 @@ in {
   programs.bash = {
     enable = true;
     initExtra = ''
-      if [ -f ~/.bashrc ]; then
-        source ~/.bashrc
-      fi
+      # Skip sourcing ~/.bashrc for one-shot command shells (bash -c / -lic).
+      # Bash 5.3p15 has an unfixed upstream heap-corruption segfault triggered
+      # when a fresh `bash -lic` sources the rc chain (background wrappers).
+      # Interactive terminals never carry -c in $-, so this only gates the
+      # crash case. See modules/shell/bash.nix for the matching guard.
+      case $- in
+        *c*) ;;
+        *) if [ -f ~/.bashrc ]; then
+             source ~/.bashrc
+           fi ;;
+      esac
     '';
   };
 
