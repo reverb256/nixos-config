@@ -3,6 +3,7 @@
 .age/
 # ── Agent artifacts ───────────────────────────────────────────────
 .agents/
+.crush/
 *.backup
 *.backup.disabled
 *.bak

@@ -1,8 +1,10 @@
 # Code Deprecation & Disabled Features Tracking
 
-**Last Updated:** 2026-07-27 | **Auto-tracked:** ⚠ STALE — see 2026-07-27 audit finding F-23
+**Last Updated:** 2026-08-04 | **Auto-tracked:** ⚠ STALE — see 2026-07-27 audit finding F-23
 
-> **2026-07-27 audit note:** This file's tracking table is frozen — most entries predate the 2026-04-07 K3s migration, the 2026-05-14 forward_auth-rewrite (K8s oauth2-proxy sidecars removed), and the 2026-07-15 Z.AI provider removal. Several entries (CODE-013, CODE-014, CODE-015, K8S-005, K8S-006) reference code paths that no longer exist or were superseded. **Recommend a full recount from `rg -n 'DISABLED|TEMPORARILY' --glob '*.nix'` and `rg -n ':latest' --glob '*.yaml'` before next release-train.** See [`docs/audit-2026-07-27.md`](../audit-2026-07-27.md) for the cross-area findings.
+> **2026-07-27 audit note:** This file's tracking table is frozen — most entries predate the 2026-04-07 K3s migration, the 2026-05-14 forward_auth-rewrite (K8s oauth2-proxy sidecars removed), and the 2026-07-15 Z.AI provider removal. Several entries (CODE-013, CODE-014, CODE-015, K8S-005, K8S-006) reference code paths that no longer exist or were superseded. See [`docs/audit-2026-07-27.md`](../audit-2026-07-27.md) for the cross-area findings.
+
+> **2026-08-04 recount (bandaid audit):** live counts — `DISABLED|TEMPORARILY` markers in .nix: **27**, `TODO:` in .nix: **9**, `:latest` image tags in yaml: **39** (tracked table below lists only 4 — the rest are untracked supply-chain debt, see `docs/audit-2026-08-04-bandaids.md`). The `:latest` tag hunt must be a dedicated workstream before the next release train; the `deny-latest-tag` VAP is evidently not covering all namespaces.
 
 This file tracks all temporarily disabled modules, TODOs, and FIXMEs in the NixOS configuration code. Use this to prioritize re-enablement.
 

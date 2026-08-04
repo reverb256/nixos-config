@@ -82,8 +82,11 @@
     unbound.listenAddress = "10.1.1.120";
   };
 
-  # FIX: Disable interface renaming - use actual interface names
-  systemd.network.links = lib.mkForce {};
+  # 2026-08-04 audit (WS6): removed `systemd.network.links = lib.mkForce {};`
+  # — it silently nuked the shared keep-names policy from
+  # modules/networking/cluster-networking.nix (10-keep-names,
+  # NamePolicy=keep). Kernel interface names (enp7s0, enx*) are preserved
+  # by that policy; no blunt override needed.
 
 
   # Windows 11 IoT LTSC gaming VM on the 3060 Ti (libvirt dynamic handoff)
