@@ -100,15 +100,22 @@ in {
   # ── Post-build hook: auto-push completed builds ──
   # 1) reverb-os cachix (incremental — skips already-cached paths). The
   #    nix-daemon runs as root, so the token must be exported explicitly
-  #    (cachix-auth caches it only for j_kro). Best-effort: a slow cache
-  #    must never block or fail a build (timeout + `|| true`).
+  #    (cachix-auth caches it only for j_kro). Gated to the builder hosts
+  #    (nexus/sentry) — zephyr never builds locally and forge is the GPU
+  #    miner (do not disturb). Runs BACKGROUNDED (flock-serialized) so a
+  #    slow WAN upload never blocks nix-daemon's next build; failures are
+  #    logged to /var/log/cachix-push.log instead of being swallowed.
   # 2) nexus local store (fast LAN cache for cluster rebuilds).
   nix.settings.post-build-hook = pkgs.writeShellScript "upload-to-cache" ''
     if [ -n "$OUT_PATHS" ] && [ "$BUILD_STATUS" = "success" ]; then
-      if [ -r /run/secrets/cachix-token ]; then
-        export CACHIX_AUTH_TOKEN="$(cat /run/secrets/cachix-token)"
-        nice -n 19 ${pkgs.coreutils}/bin/timeout 600 ${pkgs.cachix}/bin/cachix push reverb-os $OUT_PATHS 2>/dev/null || true
-      fi
+      case "$(hostname)" in
+        nexus|sentry)
+          if [ -r /run/secrets/cachix-token ]; then
+            export CACHIX_AUTH_TOKEN="$(cat /run/secrets/cachix-token)"
+            ( flock 9; nice -n 19 ${pkgs.coreutils}/bin/timeout 600 ${pkgs.cachix}/bin/cachix push reverb-os $OUT_PATHS ) 9>/var/lock/cachix-push.lock >> /var/log/cachix-push.log 2>&1 &
+          fi
+          ;;
+      esac
       exec nice -n 19 nix copy --to ssh://j_kro@nexus --substitute-on-destination $OUT_PATHS 2>/dev/null
     fi
   '';
@@ -122,18 +129,24 @@ in {
   systemd.services.cachix-watch-store = lib.mkIf (builtins.elem currentHost ["nexus" "sentry"]) {
     description = "Push new store paths to reverb-os cachix";
     wantedBy = ["multi-user.target"];
-    after = ["network-online.target" "nix-daemon.service"];
+    # secretspec-creds materializes /run/secrets/cachix-token; ordering
+    # after it avoids a boot-time token race. StartLimitBurst bounds the
+    # restart loop if the token is genuinely absent (same pattern as
+    # secretspec-creds.nix).
+    after = ["network-online.target" "nix-daemon.service" "secretspec-creds.service"];
     wants = ["network-online.target"];
     serviceConfig = {
       Type = "simple";
       Restart = "on-failure";
-      RestartSec = 10;
+      RestartSec = 30;
+      StartLimitBurst = 3;
+      StartLimitIntervalSec = 300;
       Nice = 19;
       IOSchedulingPriority = 7; # idle
     };
     script = ''
       if [ ! -r /run/secrets/cachix-token ]; then
-        echo "cachix-watch-store: token missing at /run/secrets/cachix-token — skipping" >&2
+        echo "cachix-watch-store: token missing at /run/secrets/cachix-token — staying down" >&2
         exit 1
       fi
       export CACHIX_AUTH_TOKEN="$(cat /run/secrets/cachix-token)"
@@ -314,5 +327,6 @@ in {
     "d /etc/nixos/ssh 0755 root root -"
     "d /var/cache/ccache 0755 root root -"
     "f /var/log/ccache.log 0644 root root -"
+    "f /var/log/cachix-push.log 0644 root root -"
   ];
 }
