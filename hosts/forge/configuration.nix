@@ -14,6 +14,22 @@
   # Forge-specific zswap tuning (Intel i5-9500 needs 20% pool, not 40%)
   kernel-hardening.zswap.maxPoolPercent = 20;
 
+  # FIX (2026-08-04): forge's /nix booted read-only (x-initrd.mount defaulted ro),
+  # which blocked nix-daemon (ConditionPathIsReadWrite on /nix/var/nix/daemon-socket)
+  # and any `nix profile install`. Force /nix rw. Also give /tmp a writable tmpfs
+  # (it lived under the ro / and nix needs a writable TMPDIR). btrfs device stats
+  # confirmed the RO was a benign mount flag, not disk corruption.
+  fileSystems."/nix" = lib.mkForce {
+    device = "/dev/disk/by-partlabel/disk-sdb-root";
+    fsType = "btrfs";
+    neededForBoot = true;
+    options = [ "subvol=@nix" "compress=zstd:3" "ssd" "discard=async" "noatime" "rw" "x-initrd.mount" ];
+  };
+  fileSystems."/tmp" = lib.mkForce {
+    fsType = "tmpfs";
+    options = [ "size=2G" "mode=1777" ];
+  };
+
   # FORGE MEMORY TUNING - 15GB RAM with mining + desktop + K8s
 
   # Forge runs at 85% memory utilization — needs protection
