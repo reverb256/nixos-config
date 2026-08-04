@@ -313,6 +313,11 @@
     # Control plane (k3s servers): nexus, forge, sentry (VIP 10.1.1.100).
     # No manifest auto-apply on zephyr -- only control-plane nodes do this.
     k8s-manifest-autoapply.enable = false;
+    # zephyr stays OFF k3s: the option is never imported (see
+    # tests/k3s-topology-evidence.nix). A dangling `k3s-cluster.enable =
+    # lib.mkForce false` here would reference a nonexistent option (k3s-cluster.nix
+    # is not in zephyr's imports chain) and break eval — absence of the import IS
+    # the guard.
 
     # Keepalived VIP lives on the k3s servers (nexus/forge/sentry), not zephyr.
     # Removed to stop the enp38s0 dual-IP collision that broke k3s startup.
