@@ -72,8 +72,13 @@ in {
         else 4
       );
 
-      http-connections = 100;
-      connect-timeout = 5;
+      # Large NAR downloads were failing with curl error 92
+      # (HTTP/2 PROTOCOL_ERROR / stream reset) on Cachix/CDN edges.
+      # HTTP/1.1 is slower but avoids multiplexed range-transfer resets.
+      http2 = false;
+      http-connections = 16;
+      connect-timeout = 10;
+      download-attempts = 10;
       max-silent-time = 3600;
       keep-build-log = true;
       log-lines = 2000;
