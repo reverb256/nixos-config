@@ -24,7 +24,16 @@
   ...
 }: let
   cfg = config.programs.hermes-gateway;
-  py = "%h/.nix-profile/bin/python";
+  # Self-healing entry point: %h/.nix-profile/bin/hermes is a symlink to the
+  # current profile generation, so the unit tracks `nix profile upgrade` with
+  # zero maintenance (same intent as the old %h/.nix-profile/bin/python, which
+  # no longer exists in the split-package install — only bin/hermes ships).
+  hermesBin = "%h/.nix-profile/bin/hermes";
+  # Approach B voice deps: nix-built sounddevice (portaudio baked into the
+  # compiled extension) pinned via GC root so nix-collect-garbage can't drop it.
+  # Injected here so the gateway's python (launched via bin/hermes) finds
+  # sounddevice for voice messages / STT — mirrors the ~/.local/bin/hermes wrapper.
+  sounddeviceSite = "%h/.local/hermes-audio/sounddevice-store/lib/python3.12/site-packages";
 in {
   options.programs.hermes-gateway.enable = lib.mkOption {
     type = lib.types.bool;
@@ -77,16 +86,20 @@ in {
 
       Service = {
         Type = "simple";
-        ExecStart = "${py} -m hermes_cli.main gateway run";
+        ExecStart = "${hermesBin} gateway run";
         WorkingDirectory = "%h/.hermes";
         Environment = [
           "PATH=%h/.nix-profile/bin:/etc/profiles/per-user/j_kro/bin:%h/.local/bin:%h/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
           "VIRTUAL_ENV=%h/.nix-profile"
           "HERMES_HOME=%h/.hermes"
+          # Approach B voice deps: nix-built sounddevice on PYTHONPATH so the
+          # gateway's hermes-agent-env python can import it (no LD_LIBRARY_PATH;
+          # portaudio path is baked into the compiled extension).
+          "PYTHONPATH=${sounddeviceSite}"
           # Voice mode + TTS on by default (services.hermes-cli.voiceAutoStart).
           # The TUI gateway reads these as the authoritative voice flags; the
-          # wrapped hermes binary injects them too, but this unit runs the
-          # unwrapped python directly, so set them here.
+          # wrapped hermes binary injects them too, but this unit runs bin/hermes
+          # directly, so set them here.
           "HERMES_VOICE=1"
           "HERMES_VOICE_TTS=1"
         ];
@@ -95,8 +108,7 @@ in {
         RestartForceExitStatus = 75;
         KillMode = "mixed";
         KillSignal = "SIGTERM";
-        ExecReload = "/bin/kill -USR1 \$MAINPID";
-        ExecStopPost = "-${py} -m gateway.cgroup_cleanup";
+        ExecReload = "/bin/kill -USR1 $MAINPID";
         TimeoutStopSec = 90;
         StandardOutput = "journal";
         StandardError = "journal";
