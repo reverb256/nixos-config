@@ -23,9 +23,12 @@
     waylandCompositors.niri = {
       prettyName = "Niri";
       comment = "A scrollable-tiling Wayland compositor";
-      # HDR fork binary (build from dividebysandwich/niri hdr-smithay-master)
-      # Rebuild with: cd /tmp/niri-hdr && cargo build --release && sudo cp target/release/niri /usr/local/bin/niri-hdr
-      binPath = lib.mkForce "/usr/local/bin/niri-hdr";
+      # HDR fork binary — declarative pkgs.niri-hdr (dividebysandwich/niri
+      # hdr-smithay-master, see overlays/system.nix). 2026-08-04 audit (WS1):
+      # was an imperative `cargo build && sudo cp /usr/local/bin/niri-hdr`
+      # (not in the closure, lost on reinstall). Now a store path. The fork
+      # build must be verified before deploy (see PR — cargoLock regenerated).
+      binPath = lib.mkForce "${pkgs.niri-hdr}/bin/niri";
     };
   };
 

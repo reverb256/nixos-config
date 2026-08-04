@@ -1,12 +1,5 @@
 { lib, fetchFromGitHub, rustPlatform, pkg-config, libdisplay-info, libglvnd, libinput, libxkbcommon, libgbm, pango, seatd, wayland, dbus, pipewire, systemd, eudev, niri-unstable }:
 
-let
-  smithaySrc = fetchFromGitHub {
-    owner = "dividebysandwich";
-    repo = "smithay";
-    rev = "57c805c8e6d0b34601b07d89053b376905008d8a";
-    hash = lib.fakeHash;
-  };
 in
 niri-unstable.overrideAttrs (old: {
   pname = "niri-hdr";
@@ -15,8 +8,12 @@ niri-unstable.overrideAttrs (old: {
   src = fetchFromGitHub {
     owner = "dividebysandwich";
     repo = "niri";
-    rev = "2516a83b3eef5bc053bf5f3f7e0ec3b9a96c4ae5";
-    hash = lib.fakeHash;
+    # 2026-08-04 audit (WS1): the pinned rev was a TYPO —
+    # 2516a83b3eef5bc0… does not exist (GitHub 404). hdr-smithay-master
+    # HEAD is 2516a83b3eef5f3a… (same 13-char prefix). Corrected below;
+    # hash from `nix-prefetch-url --unpack`.
+    rev = "2516a83b3eef5f3a766af5113244357a11e255a6";
+    hash = "sha256-1fn45mkmb3kh13i8vmiyhl2k7jacchpsxfsfyh82184v7dnzdib3=";
   };
 
   # Patch Cargo.toml to use forked smithay instead of local path
