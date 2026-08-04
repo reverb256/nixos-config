@@ -26,6 +26,14 @@ in {
     tmux
     lazygit
     ollama
+
+    # ── Migrated from the imperative Layer-3 nix profile (audit WS2) ──
+    # Remove from the live profile BEFORE `just hm-switch` (priority-5
+    # conflict with HM's nix-profile backend otherwise):
+    #   nix profile remove cachix pkg-config s3fs
+    cachix
+    pkg-config
+    s3fs
   ] ++ cudnn;
 
   home.sessionVariables = lib.mkIf (cudnn != []) {
