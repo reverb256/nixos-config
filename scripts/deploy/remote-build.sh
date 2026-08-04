@@ -36,8 +36,9 @@ PID_FILE="/tmp/${TAG}-${REF_SLUG}-pid"
 # ── Step 1: Kill orphaned builds ──
 cleanup_orphans() {
     [ -f "$PID_FILE" ] && { kill "$(cat "$PID_FILE")" 2>/dev/null || true; }
-    ssh "$NEXUS" "systemctl --user stop ${SERVICE}.service 2>/dev/null; systemctl --user reset-failed ${SERVICE}.service 2>/dev/null; exit 0" 2>/dev/null || true
-    ssh "$NEXUS" "pkill -f 'nix.*realise.*${TARGET}' 2>/dev/null; pkill -f 'nix.*build.*${TARGET}' 2>/dev/null; exit 0" 2>/dev/null || true
+    # Only manage this helper's own tagged service. Never use a broad pkill:
+    # another independently monitored build for the same target may be valid.
+    ssh "$NEXUS" "systemctl --user stop ${SERVICE}.service 2>/dev/null; systemctl --user reset-failed ${SERVICE}.service 2>/dev/null; rm -f '$STORE_PATH_FILE' '$PID_FILE'; exit 0" 2>/dev/null || true
     rm -f "$STORE_PATH_FILE" "$PID_FILE"
 }
 
@@ -46,27 +47,24 @@ check_cached() {
     [ -f "$STORE_PATH_FILE" ] || return 1
     local cached
     cached=$(< "$STORE_PATH_FILE")
+    [[ "$cached" == *"nixos-system-${TARGET}-"* ]] || return 1
     ssh "$NEXUS" "nix path-info '$cached' >/dev/null 2>&1" || return 1
     echo "$cached"
     return 0
-}
-
-# ── Step 2b: Force-sync nexus /etc/nixos to the build ref (PIPELINE INTEGRITY) ──
-# nexus is a build cache only; never trust its local edits. Pull the canonical
-# ref and hard-reset to it so the build can't reflect drift.
-sync_builder() {
-    echo >&2 "  syncing nexus /etc/nixos -> $REF (builder must match source of truth)..."
-    ssh "$NEXUS" "bash --norc --noprofile -c 'set -e; cd /etc/nixos; git fetch origin \"$REF\" 2>&1 | tail -1; git reset --hard \"$REF\" 2>&1 | tail -2; echo \"  nexus /etc/nixos now at \$(git rev-parse --short HEAD)\"'"
 }
 
 # ── Step 3: Start build via systemd-run (detached, survives SSH drop) ──
 start_build() {
     echo >&2 "  starting detached build on nexus (service: $SERVICE)..."
     cleanup_sentinels
-    sync_builder
-    # Build the toplevel for TARGET from the (now synced) nexus checkout.
-    # INNER is expanded locally so $REF/$TARGET/$STORE_PATH_FILE/$TAG are concrete.
-    INNER="git -C /etc/nixos reset --hard ${REF} >/dev/null 2>&1; nix build --no-link --print-out-paths .#nixosConfigurations.${TARGET}.config.system.build.toplevel > ${STORE_PATH_FILE} 2>/tmp/${TAG}-build-log"
+    # Clear the remote sentinel too. A valid path from an earlier run must
+    # never be accepted as the result of this build attempt.
+    ssh "$NEXUS" "rm -f '$STORE_PATH_FILE' '$PID_FILE'" 2>/dev/null || true
+    # Hold one Nexus-wide lock across source sync + evaluation/build. The
+    # builder checkout is shared, so concurrent tags must not reset it under
+    # another build. A busy lock makes this tagged service fail cleanly.
+    BUILD_COMMAND="set -e; cd /etc/nixos; git fetch origin \"${REF}\" >/dev/null 2>&1; git reset --hard \"${REF}\" >/dev/null 2>&1; nix build --no-link --fallback --option http2 false --option http-connections 16 --option connect-timeout 10 --option download-attempts 10 --print-out-paths .#nixosConfigurations.${TARGET}.config.system.build.toplevel > ${STORE_PATH_FILE} 2>/tmp/${TAG}-build-log"
+    INNER="flock -n 9 -c $(printf '%q' \"$BUILD_COMMAND\") 9>/tmp/nixos-build-farm.lock"
     ssh "$NEXUS" "systemd-run --user --unit=${SERVICE} --no-block --same-dir --working-directory=/etc/nixos -- bash -c $(printf '%q' "$INNER")"
 }
 
@@ -84,12 +82,14 @@ poll_build() {
             sleep 2
 
             local RESULT
-            RESULT=$(ssh "$NEXUS" "systemctl --user is-failed ${SERVICE}.service 2>/dev/null || echo inactive")
+            RESULT=$(ssh "$NEXUS" "systemctl --user show ${SERVICE}.service -p Result --value 2>/dev/null || echo failed")
 
             local OUT
             OUT=$(ssh "$NEXUS" "cat $STORE_PATH_FILE 2>/dev/null || echo ''")
 
-            if [ -n "$OUT" ] && ssh "$NEXUS" "nix path-info '$OUT' >/dev/null 2>&1"; then
+            if [ "$RESULT" = "success" ] \
+                && [[ "$OUT" == *"nixos-system-${TARGET}-"* ]] \
+                && ssh "$NEXUS" "nix path-info '$OUT' >/dev/null 2>&1"; then
                 local ELAPSED
                 ELAPSED=$(( $(date +%s) - START ))
                 echo >&2 " done (${ELAPSED}s)"
