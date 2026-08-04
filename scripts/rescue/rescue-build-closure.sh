@@ -31,7 +31,11 @@ info "evaluating $HOST"
 nix eval --show-trace --raw ".#nixosConfigurations.$HOST.config.system.build.toplevel.drvPath" >/dev/null
 info "building $HOST; log=$LOG"
 set +e
-nix build --no-link --print-out-paths \
+nix build --no-link --fallback --print-out-paths \
+  --option http2 false \
+  --option http-connections 16 \
+  --option connect-timeout 10 \
+  --option download-attempts 10 \
   --option substituters "$CACHE" \
   --option builders '' \
   --option max-jobs "${RESCUE_MAX_JOBS:-16}" \
