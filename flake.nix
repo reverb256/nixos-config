@@ -283,9 +283,12 @@
           result = import file { inherit pkgs; };
           passed = result.passed or result.all_pass or false;
           failures = result.failures or [ ];
+          check = result.check or null;
         in
           if passed
-          then pkgs.runCommand "check-${name}" { } "echo '${name}: PASS'; touch $out"
+          then if check != null
+          then check
+          else pkgs.runCommand "check-${name}" { } "echo '${name}: PASS'; touch $out"
           else throw "test ${name} FAILED: ${builtins.toJSON failures}";
       in {
         firewall-lint = mkCheck "firewall-lint" ./tests/firewall-lint.nix;
@@ -297,6 +300,7 @@
         k3s-cluster = mkCheck "k3s-cluster" ./tests/k3s-cluster.nix;
         k3s-topology-evidence = mkCheck "k3s-topology-evidence" ./tests/k3s-topology-evidence.nix;
         k8s-manifest-validation = mkCheck "k8s-manifest-validation" ./tests/k8s-manifest-validation.nix;
+        kubernetes-nix-parse = mkCheck "kubernetes-nix-parse" ./tests/kubernetes-nix-parse.nix;
         module-template-compliance = mkCheck "module-template-compliance" ./tests/module-template-compliance.nix;
         network-constants = mkCheck "network-constants" ./tests/network-constants.nix;
         nixos-eval = mkCheck "nixos-eval" ./tests/nixos-eval.nix;

@@ -854,6 +854,7 @@ in {
     ai-inference.Secret.ai-gateway-token = {
       type = "Opaque";
       stringData.GATEWAY_TOKEN = "";
+    };
     # Allow gateway ingress from ingress-system and intra-namespace
     ai-inference.NetworkPolicy.allow-gateway-ingress = {
       spec = {
