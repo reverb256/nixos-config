@@ -18,12 +18,18 @@
   proton-ge-rtsp = prev.callPackage ../packages/proton-ge-rtsp.nix {};
   niri-hdr = prev.callPackage ../pkgs/niri-hdr.nix { inherit (prev) niri-unstable; };
   assimp = prev.assimp.overrideAttrs (_old: { doCheck = false; });
-  cups = prev.cups.overrideAttrs (old: {
-    postInstall = (old.postInstall or "") + ''
-      find "$out" -path "$out/share" -prune -o -type d -name notifier -print 2>/dev/null \
-        | while read -r d; do [ -d "$d" ] && chmod 0755 "$d"; done || true
-    '';
-  });
+  # 2026-08-04: cups notifier-permission fix REMOVED from build phase.
+  # The build-time `overrideAttrs { postInstall = chmod notifier dirs }` forked
+  # the cups derivation from the cached upstream path. Since cups is a transitive
+  # dep of the Qt6/v4l-utils/gtk3/mesa graphics stack, this ONE override caused
+  # the entire desktop graphics closure to recompile from source on every build
+  # (mesa ~5662 units) because cups was homelab-unique and absent from cache.nixos.org.
+  # The runtime fix is ALREADY covered declaratively by the tmpfiles rule in
+  # modules/system/boot-error-fixes.nix ("Z+ .../notifier/dbus 0555 root root").
+  # Removing the override lets cups substitute from cache.nixos.org, un-forking
+  # mesa/gtk3/qtbase/v4l-utils. Verified: cups/mesa drv now == cached path;
+  # mesa narinfo HTTP 200. If cupsd ever complains about notifier ownership,
+  # extend the tmpfiles rule instead of reintroducing a build-phase fork.
   dufs = prev.dufs.overrideAttrs (old: {
     doCheck = false;
     nativeBuildInputs = (old.nativeBuildInputs or []) ++ [prev.cacert];
