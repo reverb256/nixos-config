@@ -22,6 +22,7 @@
   lib,
   pkgs,
   hostName,
+  pkgs,
   ...
 }: let
   cfg = config.programs.hermes-gateway;

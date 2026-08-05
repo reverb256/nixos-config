@@ -57,7 +57,13 @@
   # standalone entrypoints cannot drift. Obsidian is a workstation application;
   # keep it off the server nodes while making its ownership explicit.
   hostLeafModules = {
-    zephyr = [ ../../modules/home-manager/obsidian.nix ];
+    zephyr = [
+      ../../modules/home-manager/obsidian.nix
+      # Camera FBT rig (3-camera markerless full-body tracking). zephyr is the
+      # only host with the cameras attached; the module self-gates on hostName
+      # as well, so listing it here is belt-and-braces.
+      ../../modules/home-manager/fbt-cameras.nix
+    ];
   };
 
   # ── Stylix target empowerment — MUST be shared so standalone HM is themed ──
@@ -70,8 +76,14 @@
     targets.fish.enable = true;
     targets.btop.enable = true;
     targets.lazygit.enable = true;
-    targets.qt.enable = true;
-    targets.qt.platform = lib.mkForce "qtct";
+    # Stylix does NOT own Qt theming. modules/system/home-manager.nix applies
+    # the adwaita-dark style + QT_STYLE_OVERRIDE manually (adwaita-qt /
+    # adwaita-qt6 plugins are in desktop-utilities.nix). We deliberately
+    # abandoned kvantum, so leaving stylix's qt target enabled would force
+    # style = "kvantum" with no package present and emit the "Changing
+    # config.qt.style is unsupported" warning on every deploy. Keep this
+    # disabled.
+    targets.qt.enable = lib.mkForce false;
     # Cluster runs niri ONLY (no Plasma on any host). Stylix's kde target
     # defaults to ENABLED (mkEnableTarget "KDE" true), which runs the
     # stylix-kde-apply-plasma-theme activation on every `home-manager switch`

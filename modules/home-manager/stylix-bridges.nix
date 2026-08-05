@@ -236,7 +236,10 @@ in
     '';
 
     # ── Drop leftover Kvantum state (we no longer use kvantum) ─────
-    # Qt theming is adwaita-dark via stylix targets.qt.platform = "qtct".
+    # Qt theming is owned manually in modules/system/home-manager.nix
+    # (adwaita-dark style + QT_STYLE_OVERRIDE). We abandoned kvantum, so
+    # stylix's qt target is disabled in shared-leaf-modules.nix to prevent
+    # the "Changing config.qt.style is unsupported" warning.
     # Remove any residual Base16Kvantum / kvantum.kvconfig from prior gens.
     home.activation.removeStaleKvantum = ''
       if [ -e "$HOME/.config/Kvantum" ]; then
