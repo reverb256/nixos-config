@@ -63,9 +63,26 @@ start_build() {
     # Hold one Nexus-wide lock across source sync + evaluation/build. The
     # builder checkout is shared, so concurrent tags must not reset it under
     # another build. A busy lock makes this tagged service fail cleanly.
-    BUILD_COMMAND="set -e; cd /etc/nixos; git fetch origin \"${REF}\" >/dev/null 2>&1; git reset --hard \"${REF}\" >/dev/null 2>&1; nix build --no-link --fallback --option http2 false --option http-connections 16 --option connect-timeout 10 --option download-attempts 10 --print-out-paths .#nixosConfigurations.${TARGET}.config.system.build.toplevel > ${STORE_PATH_FILE} 2>/tmp/${TAG}-build-log"
-    INNER="flock -n 9 -c $(printf '%q' \"$BUILD_COMMAND\") 9>/tmp/nixos-build-farm.lock"
-    ssh "$NEXUS" "systemd-run --user --unit=${SERVICE} --no-block --same-dir --working-directory=/etc/nixos -- bash -c $(printf '%q' "$INNER")"
+    # Materialize a small remote script instead of nesting shell quoting inside
+    # systemd-run. The old `printf %q` + `bash -c` chain was re-parsed by SSH
+    # and systemd, collapsing spaces (`set-e;cd/...`) and handing the command
+    # to the user's fish shell as one invalid token.
+    local FETCH_REF
+    FETCH_REF="${REF#origin/}"
+    local REMOTE_SCRIPT
+    printf -v REMOTE_SCRIPT '%s\n' \\
+        '#!/usr/bin/env bash' \\
+        'set -euo pipefail' \\
+        'exec 9>/tmp/nixos-build-farm.lock' \\
+        'flock -n 9 || { echo "build farm lock is busy" >&2; exit 75; }' \\
+        'cd /etc/nixos' \\
+        "git fetch origin $(printf '%q' \"$FETCH_REF\") >/dev/null 2>&1" \\
+        'git reset --hard FETCH_HEAD >/dev/null 2>&1' \\
+        "nix build --no-link --fallback --option http2 false --option http-connections 16 --option connect-timeout 10 --option download-attempts 10 --print-out-paths .#nixosConfigurations.${TARGET}.config.system.build.toplevel >$(printf '%q' \"$STORE_PATH_FILE\") 2>$(printf '%q' \"/tmp/${TAG}-build-log\")"
+    local REMOTE_SCRIPT_FILE="/tmp/${SERVICE}.sh"
+    local PAYLOAD
+    PAYLOAD=$(printf '%s' "$REMOTE_SCRIPT" | base64 -w0)
+    ssh "$NEXUS" "printf '%s' '$PAYLOAD' | base64 -d > '$REMOTE_SCRIPT_FILE' && chmod 700 '$REMOTE_SCRIPT_FILE' && systemd-run --user --unit='${SERVICE}' --no-block --same-dir --working-directory=/etc/nixos /run/current-system/sw/bin/bash '$REMOTE_SCRIPT_FILE'"
 }
 
 # ── Step 4: Poll for completion ──
