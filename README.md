@@ -66,7 +66,11 @@ state as current.
 
 ## Project Architecture
 
-**⚠️ IMPORTANT:** Non-system projects have been extracted to standalone flakes in `/data/projects/own/`:
+**⚠️ IMPORTANT:** Home Manager is maintained in a separate repository
+[`reverb256/home-manager-config`](https://github.com/reverb256/home-manager-config) (at
+`/home/j_kro/Projects/home-manager-config`). It is consumed here as the
+`home-manager-config` flake input; the local `modules/home-manager/` copy was
+deleted so the two repos can never drift again.
 
 | Project | Location | Purpose |
 |---------|----------|---------|
@@ -86,20 +90,27 @@ See `/data/projects/AGENTS.md` for full project inventory.
 
 ```
 /etc/nixos/
-├── flake.nix           # Main flake + host definitions + project inputs
-├── hosts/              # Host-specific configurations
+├── flake.nix                  # Main flake + host definitions + project inputs
+│                                 home-manager-config is a pinned flake input
+├── hosts/                     # Host-specific NixOS configurations
 │   ├── zephyr/
 │   ├── nexus/
 │   ├── forge/
 │   └── sentry/
-├── modules/            # Reusable NixOS modules
+├── modules/                   # Reusable NixOS modules
 │   ├── common-host-defaults.nix
-│   ├── system/
+│   ├── system/                # System-level modules incl. HM bridge
+│   │   └── home-manager.nix   # Bridges to home-manager-config flake input
 │   ├── services/
 │   ├── desktop/
 │   └── gaming/
-└── secrets/            # Agenix encrypted secrets
+└── secrets/                   # Agenix encrypted secrets
 ```
+
+> Home Manager leaf modules (fish, starship, niri, alacritty, …) live in
+> [`reverb256/home-manager-config`](https://github.com/reverb256/home-manager-config),
+> not in this repository. `modules/system/home-manager.nix` imports them from
+> the `home-manager-config` flake input.
 
 ## Key Documentation
 
@@ -115,6 +126,31 @@ See `/data/projects/AGENTS.md` for full project inventory.
 2. Use `lib.mkOptionDefault` for extensible options
 3. Test on nodes with custom configs (nexus, forge) before deploying
 4. Verify SSH port 22 is never blocked
+
+## Home Manager
+
+User-environment configuration is managed by a separate flake:
+[`reverb256/home-manager-config`](https://github.com/reverb256/home-manager-config).
+
+- Canonical leaf modules: `reverb256/home-manager-config/modules/*.nix`
+- nixos-config consumes it as the `home-manager-config` flake input
+- Local `modules/home-manager/` was deleted to prevent drift
+- Bridge: `modules/system/home-manager.nix` (NixOS activation path)
+- `homeConfigurations.<host>` in `flake.nix` uses `inputs.home-manager-config.modules.standalone.nix`
+
+Standalone HM build / activation:
+```bash
+# From nixos-config (NixOS activation path)
+nix build .#homeConfigurations.zephyr.activationPackage
+
+# From home-manager-config directly
+cd /home/j_kro/Projects/home-manager-config
+home-manager switch --flake .#zephyr
+
+# From wrapper (plain switch on zephyr)
+cd ~/.config/home-manager
+home-manager switch
+```
 
 ## See Also
 
