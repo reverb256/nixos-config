@@ -142,3 +142,26 @@ sessions, models, or vendors). Read this before working. Update when done.
 - `modules/gaming/gaming.nix`, `modules/services/monitoring/dashboards/lib.nix`
 - `modules/compute-market/default.nix` — mining services default changed
 - All caveman/cavecrew locations (OpenCode, Claude, Grok, Skillclaw, etc.)
+
+---
+
+## 2026-08-04 — Collision: zephyr dendritic cutover (agent: Hermes/dendritic-cutover)
+
+**What happened:** While executing `wayfinder/prototype-dendritic` STEP 1 (zephyr → dendritic
+flake-parts, option B), another agent's commit `3e7a14d0 fix(flake): pin zen-browser rev +
+decouple from floating nixpkgs` swept my 4 staged cutover files into it via the shared index
+(flake.nix, hosts/zephyr/configuration.nix, modules/hosts/default.nix,
+modules/hosts/zephyr/default.nix). They're now committed INSIDE 3e7a14d0 — the cutover is
+present, just bundled with the zen-browser pin. My accidental `git reset` knocked HEAD to
+HEAD~1 and was reverted (`git reset 3e7a14d0`) — branch restored, other agent's commit intact.
+
+**BLOCKER for toplevel build (NOT mine):** `modules/home-manager/hermes-gateway.nix` has an
+UNCOMMITTED in-flight edit using `pkgs.writeShellScriptBin "hermes-voice"` (line 46) but the
+module args are `{ config, lib, hostName, ... }` — no `pkgs` → eval fails with
+"undefined variable 'pkgs'" on ANY host toplevel build. Fix: add `pkgs` to the module
+function args (line 20-25). Imported via modules/home-manager/shared-leaf-modules.nix:31.
+
+**Verified green (STEP 2, eval gate):** `nix flake check` exit 0; hostName zephyr/nexus/forge/sentry;
+k3s option ABSENT on zephyr (correct — absence-of-import IS the guard), present+true on nexus;
+zephyr toplevel drvPath + niri + homeConfigurations ×4 eval. Physical toplevel build blocked by
+the hermes-gateway.nix issue above until the other agent commits a fix.

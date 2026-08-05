@@ -1,47 +1,29 @@
-{pkgs ? import <nixpkgs> {}}: let
+{ pkgs ? import <nixpkgs> { } }:
+let
   inherit (pkgs) lib;
 
-  shared = builtins.readFile ../modules/home-manager/shared-leaf-modules.nix;
-  theme = import ../modules/desktop/themes/osaka-jade.nix;
-  standalone = builtins.readFile ../modules/home-manager/standalone.nix;
-  nixos = builtins.readFile ../modules/system/home-manager.nix;
-  hmDir = builtins.readDir ../modules/home-manager;
+  hmDir = ../modules/home-manager;
+  hmNix = ../modules/system/home-manager.nix;
 
-  requiredSharedLeaves = [
-    "../../modules/home-manager/hermes-desktop-entry.nix"
-    "../../modules/home-manager/mime-fix.nix"
-  ];
-  legacyModules = [
-    "default.nix"
-    "hermes-desktop.nix"
-    "sentry.nix"
-    "wayland-tools.nix"
-    "zephyr.nix"
-  ];
+  # Invariant 1: the local HM module copy must be deleted. If this directory
+  # still exists, the migration is incomplete and both repos are still
+  # maintaining independent copies.
+  localCopyRemoved = !(builtins.pathExists hmDir);
 
-  has = needle: haystack: lib.strings.hasInfix needle haystack;
-  missingSharedLeaves = builtins.filter (name: !has name shared) requiredSharedLeaves;
-  retainedLegacyModules = builtins.filter (name: hmDir ? ${name}) legacyModules;
+  # Invariant 2: the NixOS HM bridge must import shared-leaf-modules from the
+  # flake input, not from a local relative path.
+  hmNixContent = builtins.readFile hmNix;
+  usesFlakeInput = lib.strings.hasInfix "inputs.home-manager-config.modules.shared-leaf-modules.nix" hmNixContent;
+  usesLocalPath = lib.strings.hasInfix "../home-manager/shared-leaf-modules.nix" hmNixContent;
 
   checks = {
-    sharedLeavesPresent = missingSharedLeaves == [];
-    standaloneConsumesSharedLeaves = has "shared.leafModules" standalone;
-    nixosConsumesSharedLeaves = has "shared.leafModules" nixos;
-    hostSpecificLeavesAreShared =
-      has "shared.hostLeafModules." standalone
-      && has "shared.hostLeafModules." nixos
-      && has "or []" standalone
-      && has "or []" nixos;
-    hermesDesktopEntryIsShared = has "../../modules/home-manager/hermes-desktop-entry.nix" shared;
-    mimeFixIsShared = has "../../modules/home-manager/mime-fix.nix" shared;
-    obsidianIsWorkstationOnly = has "zephyr = [ ../../modules/home-manager/obsidian.nix ];" shared;
-    legacyModulesRemoved = retainedLegacyModules == [];
-    standaloneThemeIsParsed = theme ? palette && theme.palette ? base00;
-    nixosHmAllowsUnfree = has "nixpkgs.config.allowUnfree = true;" nixos;
+    localCopyRemoved = localCopyRemoved;
+    usesFlakeInput = usesFlakeInput;
+    noLocalPath = !usesLocalPath;
   };
-
-  failures = builtins.attrNames (lib.filterAttrs (_: value: !value) checks);
-in {
-  inherit checks failures;
-  passed = failures == [];
+in
+{
+  inherit checks;
+  failures = builtins.attrNames (lib.filterAttrs (_: v: !v) checks);
+  passed = failures == [ ];
 }

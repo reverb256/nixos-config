@@ -13,15 +13,19 @@
       vesktop = {
         enable = true;
         package = pkgs.vesktop;
-        # NOTE 2026-07-28: removed `settings = { ... }` because nixcord
-        # symlinks the generated settings.json into ~/.config/vesktop/
-        # settings.json, which points into /nix/store (read-only). Vesktop
-        # tries to overwrite this file on every UI change, causing EROFS
-        # errors. With no settings block, nixcord leaves ~/.config/vesktop
-        # alone and Vesktop writes its own settings.json. User can tune
-        # via the in-app Settings UI. To re-enable declarative settings,
-        # use a wrapper that copies a Nix-managed template into place at
-        # session start, then lets Vesktop mutate it freely.
+        # Declarative seed for Vesktop settings. nixcord hardcodes the
+        # generated settings.json as a READ-ONLY symlink into /nix/store
+        # (modules/lib/files.nix: mkSettingsSpecs forces writable=false and
+        # no per-client option can flip it). Vesktop rewrites settings.json
+        # on every UI change, so the ro symlink caused EROFS crashes. The
+        # home.activation entry below materializes a real writable copy
+        # seeded from nixcord's template after each switch, so the in-app
+        # Settings UI can mutate it freely. These values are only the
+        # *initial* seed; edit in-app afterwards.
+        settings = {
+          tray = true;
+          minimizeToTray = true;
+        };
       };
 
       config = {
@@ -180,5 +184,25 @@
         WantedBy = ["graphical-session.target"];
       };
     };
+
+    # Materialize a writable Vesktop settings.json. nixcord links
+    # ~/.config/vesktop/settings/settings.json into /nix/store (read-only);
+    # Vesktop rewrites it on every UI change, so the ro symlink caused EROFS
+    # crashes. This resolves the nixcord symlink to its store seed and replaces
+    # the symlink with a real writable file seeded from it. Idempotent: if the
+    # target is already a regular file (user-mutated), it is left untouched.
+    home.activation.vesktopWritableSettings = lib.hm.dag.entryAfter ["writeBoundary"] ''
+      dest="$HOME/.config/vesktop/settings/settings.json"
+      if [ -L "$dest" ]; then
+        # resolve the nixcord symlink to its store seed
+        seed="$(${lib.getExe' pkgs.coreutils "readlink"} -f "$dest")"
+        # remove the symlink (not the store file) and write a real copy
+        rm -f "$dest"
+        ${lib.getExe' pkgs.coreutils "install"} -Dm644 "$seed" "$dest"
+      elif [ ! -e "$dest" ]; then
+        # no settings file at all; Vesktop will create its own writable one
+        :
+      fi
+    '';
   };
 }
