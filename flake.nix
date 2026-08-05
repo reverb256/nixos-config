@@ -1,21 +1,16 @@
 {
   description = "NixOS configuration with Garage and Syncthing storage";
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable"; # nixos-unstable as default; override per-package where necessary
-    home-manager = {
-      url = "git+https://github.com/nix-community/home-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     # zen-browser: pin rev + let it use its OWN pinned nixpkgs (1559d3da…) for
     # the zen package instead of our floating nixos-unstable. zen-twilight.desktop
     # embeds the zen version; following our nixpkgs made it drift every time
     # nixos-unstable's zen moved, and zephyr-eval vs forge-build-cache diverged
     # on that version -> "hash mismatch importing zen-twilight.desktop". Freezing
     # zen-browser's nixpkgs (its own lock) makes the .desktop deterministic.
-    # home-manager still follows ours so the twilight HM module options match.
     zen-browser = {
       url = "git+https://github.com/0xc000022070/zen-browser-flake?rev=e1a0481218312579ad67eda819ad964176fbe28b";
-      inputs.home-manager.follows = "home-manager";
     };
     # lsfg-vk - Lossless Scaling Frame Generation on Linux
     lsfg-vk-nix = {
@@ -29,6 +24,13 @@
     freebuff-flake = {
       url = "github:reverb256/freebuff-flake";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # home-manager-config - standalone Home Manager configuration (Layer 2)
+    # Migrated from modules/home-manager/ to separate flake per 3-layer model.
+    home-manager-config = {
+      url = "github:reverb256/home-manager-config";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
     };
     aagl = {
       url = "github:ezKEa/aagl-gtk-on-nix";
@@ -52,7 +54,6 @@
       url = "git+https://github.com/OpenGamingCollective/ScopeBuddy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
     # Community HDR fork for niri — HDR metadata + hdr { enabled } config.
     # Trade-off: lags behind upstream. Switch programs.niri.package to use it.
     niri-hdr = {
@@ -154,7 +155,7 @@
     };
   };
   outputs =
-    inputs@{ self, nixpkgs, home-manager, aagl, nur, claude-native, colmena, nixpkgs-xr, ... }:
+    inputs@{ self, nixpkgs, home-manager, home-manager-config, aagl, nur, claude-native, colmena, nixpkgs-xr, ... }:
     inputs.flake-parts.lib.mkFlake { inherit inputs; } (
       { config, ... }:
       {
@@ -272,25 +273,14 @@
 
           colmenaHive = colmena.lib.makeHive config.flake.colmena;
 
-          # OUTPUT 4: homeConfigurations
-          # Standalone Home Manager activations for j_kro on every cluster host.
-          # Uses HM-only modules through modules/home-manager/standalone.nix so this
-          # does not pull NixOS-class modules into `home-manager switch`.
-
-          homeConfigurations = builtins.mapAttrs (
-            _name: value:
-              home-manager.lib.homeManagerConfiguration {
-                pkgs = import nixpkgs {
-                  inherit system;
-                  config.allowUnfree = true;
-                };
-
-                modules = [ ./modules/home-manager/standalone.nix ];
-                extraSpecialArgs = { inherit inputs vfioPkgs; hostName = value.hostName; };
-              }
-          ) hosts;
-
           overlays.default = import ./overlays/default.nix { inherit inputs; };
+
+          # OUTPUT 4: homeConfigurations — consumed from standalone home-manager-config flake
+          # Layer 2 of the 3-layer model (NixOS / Home Manager / nix profile).
+          # The standalone flake manages its own inputs (freebuff-flake, nixcord, zen-browser,
+          # stylix, niri) and patches (noctalia SDR brightness). It exposes homeConfigurations
+          # keyed by hostName (zephyr/nexus/forge/sentry) for colmena deployment.
+          homeConfigurations = inputs.home-manager-config.homeConfigurations;
         };
 
         # ── OUTPUT 5: checks — source-level test suite (runs via `nix flake check`)
@@ -336,7 +326,6 @@
             secrets-integrity = mkCheck "secrets-integrity" ./tests/secrets-integrity.nix;
             layer-interface-contract = mkCheck "layer-interface-contract" ./tests/layer-interface-contract.nix;
             inventory-compliance = mkCheck "inventory-compliance" ./tests/inventory-compliance.nix;
-            home-manager-layer = mkCheck "home-manager-layer" ./tests/home-manager-layer.nix;
           };
 
           # EXISTING OUTPUTS (maintain compatibility)
