@@ -365,15 +365,17 @@
     ];
   };
 
+  # 2026-08-06 recovery: drop rocblas/hipblas/rpp (Tensile multi-hour rebuild).
+  # llamafile is disabled; restore full math stack when inference returns.
   systemd.tmpfiles.rules = let
     rocmEnv = pkgs.symlinkJoin {
       name = "rocm-combined";
       paths = with pkgs.rocmPackages; [
         clr
         clr.icd
-        rocblas
-        hipblas
-        rpp
+        rocm-smi
+        rocminfo
+        rocm-runtime
       ];
     };
   in [
@@ -398,19 +400,16 @@
   };
 
   programs = {
+    # 2026-08-06 recovery: omit rocblas/hipblas/hipsparse/rocfft/rocrand/rocthrust
+    # so the sentry closure does not force a Tensile source build. Re-add when
+    # services.llamafile is re-enabled.
     nix-ld.libraries = with pkgs; [
-      # AMD/ROCm libraries
+      # AMD/ROCm runtime (no BLAS/FFT math stack)
       rocmPackages.clr
       rocmPackages.clr.icd
       rocmPackages.rocminfo
       rocmPackages.rocm-smi
       rocmPackages.rocm-runtime
-      rocmPackages.rocblas
-      rocmPackages.hipblas
-      rocmPackages.hipsparse
-      rocmPackages.rocfft
-      rocmPackages.rocrand
-      rocmPackages.rocthrust
 
       # OpenCL
       ocl-icd
