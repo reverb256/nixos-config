@@ -26,15 +26,15 @@ configures a default session via `services.displayManager.defaultSession`:
 
 | Host | Default Session | Available Sessions |
 |------|----------------|-------------------|
-| Zephyr | Plasma | Plasma, Niri, Hyprland |
-| Nexus | Niri | Plasma, Niri, Gamescope (tty3) |
-| Forge | Niri | Plasma, Niri |
+| Zephyr | Niri (`niri-uwsm`) | Plasma, Niri, Hyprland |
+| Nexus | Niri (`niri-uwsm`) | Plasma, Niri, Gamescope (tty3) |
+| Forge | Niri (`niri-uwsm`) | Plasma, Niri |
 
 ### Session Architecture
 
 ```
 SDDM (display manager)
-├── Plasma 6 (default on Zephyr)
+├── Plasma 6 (default on no host — selectable in picker)
 │   └── KWin (Wayland compositor)
 ├── Niri (scroll-tiling, via UWSM)
 │   └── noctalia (bar, notifications, launcher)
