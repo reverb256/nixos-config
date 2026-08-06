@@ -1,56 +1,32 @@
 {
-  config,
-  pkgs,
   lib,
   ...
-}: let
-  cluster = config.networking.cluster;
-in {
-  services = {
-    peakminer = {
-      enable = true;
-      wallet = "krxXVNVMM7";
-      pools = ["stratum+tcp://prl-us.kryptex.network:7048"];
-      instances = [
-        {
-          name = "forge-4060-0";
-          devices = "0";
-          gpuId = 0;
-          powerLimit = 118;
-          tempStop = 78;
-          fanTarget = 65;
-          fanMin = 30;
-          fanMax = 100;
-          apiPort = 21550;
-          proxyPort = 30001;
-        }
-        {
-          name = "forge-4060-1";
-          devices = "1";
-          gpuId = 1;
-          powerLimit = 118;
-          tempStop = 80;
-          fanTarget = 65;
-          fanMin = 30;
-          fanMax = 100;
-          apiPort = 21552;
-          proxyPort = 30002;
-        }
-      ];
-      exporterInstances = [
-        {
-          instanceName = "forge-4060-0";
-          apiPort = 21550;
-          exporterPort = 9101;
-        }
-        {
-          instanceName = "forge-4060-1";
-          apiPort = 21552;
-          exporterPort = 9102;
-        }
-      ];
-    };
-
-    gaming-detection.enable = lib.mkForce false;
+}: {
+  services.peakminer = {
+    enable = true;
+    wallet = "krxXVNVMM7";
+    password = "x";
+    pools = [
+      "stratum+tcp://prl-us.kryptex.network:7048"
+      "stratum+tcp://prl.kryptex.network:7048"
+    ];
+    instances = [
+      {
+        name = "forge-4060-0";
+        devices = "0";
+        gpuId = 0;
+        powerLimit = 118;
+        apiPort = 21550;
+      }
+      {
+        name = "forge-4060-1";
+        devices = "1";
+        gpuId = 1;
+        powerLimit = 118;
+        apiPort = 21552;
+      }
+    ];
   };
+
+  services.gaming-detection.enable = lib.mkForce false;
 }
