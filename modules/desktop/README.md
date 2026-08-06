@@ -13,7 +13,7 @@ HDR support, and application integration across the cluster.
 | `wayland-compositor-common.nix` | Shared compositor packages (noctalia, cliphist) | Niri/Hyprland hosts |
 | `uwsm-sessions.nix` | UWSM session wrapper for SDDM compositor selection | Niri/Hyprland hosts |
 | `niri.nix` | Niri scroll-tiling compositor config, NVIDIA support | Zephyr, Forge |
-| `niri-settings.nix` | Niri KConfig-based settings (keybinds, layout) | Niri hosts |
+| `niri-settings.nix` | **REMOVED** — niri settings now live in `home-manager-config/modules/niri-config.nix` (+ niri-spawn/outputs/keybinds sub-modules) | — |
 | `gamescope-tty.nix` | Steam Gamescope session on tty3 for dedicated gaming | Nexus |
 | `flatpak.nix` | Flatpak with Discover integration and Flathub | Zephyr |
 | `spotify-spotx.nix` | Spotify Flatpak with SpotX ad-removal patch | Zephyr, Forge, Sentry |
