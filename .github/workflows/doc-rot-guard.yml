@@ -12,6 +12,10 @@ on:
       - 'kubernetes/**'
       - 'justfile'
 
+concurrency:
+  group: doc-rot-guard
+  cancel-in-progress: true
+
 permissions:
   contents: read
   issues: write
