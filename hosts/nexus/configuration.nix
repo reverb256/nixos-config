@@ -40,6 +40,9 @@
     # Windows 11 IoT LTSC gaming VM (libvirt + dynamic GPU handoff)
     ../../modules/services/nexus-de-vm.nix
 
+    # Krig (Kryptex PRL) GPU mining stack
+    ./krig.nix
+
     # SecretSpec Phase 4 credential provisioning (parallel with sops registry)
 
     # Kubernetes
