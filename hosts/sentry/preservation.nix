@@ -22,6 +22,11 @@
       "/var/lib/bluetooth"
       "/var/lib/tailscale"
       "/var/lib/fwupd"
+
+      # SOPS age key — sops-nix reads sops.age.keyFile = /etc/nixos/.age/key.txt
+      # (set in modules/system/sops-secrets-registry.nix). This path is NOT
+      # covered by the /etc/age/key.txt symlink below, so persist it explicitly.
+      "/etc/nixos/.age"
     ];
     files = [
       {

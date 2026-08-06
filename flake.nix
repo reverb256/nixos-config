@@ -162,6 +162,15 @@
     gitlawb = {
       url = "path:/etc/nixos/pkgs/gitlawb";
     };
+
+    # preservation - ephemeral-root persistence (sentry/nexus /persistent symlinks).
+    # Required by hosts/sentry/preservation.nix (inputs.preservation.nixosModules.preservation).
+    # Was missing from inputs -> sentry persistence module failed to eval and was
+    # never imported; host keys + age keys rotated on every rebuild.
+    preservation = {
+      url = "github:nix-community/preservation";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
