@@ -282,6 +282,21 @@ The cluster's memory-pressure defense is spread across several modules. Layers, 
 
 Notable history: 2026-07-15 OOM crash killed niri+alacritty (#295) → oom-protection.nix; 2026-07-27 oomd killed noctalia → noctalia cgroup caps; 2026-08-03 oomd SwapUsedLimit killed noctalia during Cyberpunk → noctalia `ManagedOOMSwap=off` + earlyoom `--avoid` extended with `steam|GameThread|REDprelauncher`, zram 40→50%. Hermes has `oom-defense` and `daily-oom-audit` skills (`modules/services/hermes/skills/`).
 
+## Resource management (slices / quotas / priorities)
+
+Multi-layer resource control. Source files first, then what each layer does.
+
+| Layer | What | Source |
+|-------|------|--------|
+| **systemd slices** (cgroup v2) | `user@1000`: MemoryHigh 28G/MemoryMax 30G + `OOMScoreAdjust=-1000` + `restartIfChanged=false`; `nix.slice`: CPU 80% + mem 80% (nix-daemon pinned in); `gaming.slice`: CPU 95% + mem 90% + TasksMax 20000 + OOM -1000; `mining.slice`: mem 8G + CPU 95% + IOWeight 10 | `modules/system/systemd-slices.nix`; forge `slices.mining` 8G/12G in `hosts/forge/configuration.nix`; zephyr root slice `ManagedOOMSwap=kill` in `hosts/zephyr/configuration.nix` |
+| **per-unit quotas** | central-auth CPU 25% / 256M; nixos-cluster-mcp CPU 80% / 1G; boot-emergency CPU 75% / 8G; noctalia 4G/6G; bonsai 6–20G + `OOMScoreAdjust=500` (volunteers to die first); unbound OOM -1000 | `modules/services/central-auth.nix`, `modules/services/nixos-cluster-mcp.nix`, `modules/system/boot-emergency-diagnostics.nix`, `modules/desktop/zephyr-sdr-brightness.nix`, `modules/services/bonsai.nix`, `modules/network/cluster-dns.nix` |
+| **dynamic control** | `launch-game` → `systemd-run --user --slice=gaming.slice` (CPUWeight 1024, Nice -5); `workload-monitor.sh` live `set-property CPUQuota` 0–100% on mining units + `nix-daemon CPUWeight=2048` during builds; mining-inference-coordinator pauses mining | `modules/gaming/gaming-base.nix`, `modules/gaming/scripts/gpu-profiles/workload-monitor.sh` |
+| **Nix build farm** | max-jobs: zephyr 0 (never build) / nexus 12 / sentry 8; `/etc/nix/machines` speedFactor nexus 10, sentry 6; **forge removed from farm** (GPU miner — never dispatch builds); `sandbox=true` (mkForce); post-build-hook + cachix watch-store at nice -19 / IOSchedulingPriority 7 | `modules/system/distributed-builds.nix` |
+| **K8s** | PriorityClasses `high-priority-ai`(1000) / `medium-priority-ai`(500) / `low-priority-mining`(100) + `system-node-critical` / `system-cluster-critical`; LimitRange + ResourceQuota per namespace (incl. GPU quotas: nvidia.com/gpu + amd.com/gpu); HPA caddy 2–10 / cloudflared 1–5; PDBs coredns/caddy/kube-flannel; ValidatingAdmissionPolicy `require-resources-and-security`; node pinning nexus-first (Nexus > Forge > Sentry > Zephyr); GPU via device plugins | `kubernetes/modules/infrastructure.nix`, `kubernetes/modules/{host-services,nix-csi,llama-servers}.nix`, `kubernetes-manifests/{resource-allocation,scheduling}/` |
+| **IO/nice** | btrfs-compression + garage run `Nice=15` / `IOSchedulingClass=idle` so background IO never starves foreground | `modules/system/btrfs-compression.nix`, `modules/services/garage.nix` |
+
+Notes: forge's `slices.mining` CPUQuota is intentionally unset (gpu-profile-manager owns it at runtime). Two drift traps: the live nix.conf `max-jobs` can diverge from git (`docs/build-settings-recommendations-2026-08-03.md` caught nexus 16-vs-12); `hosts/{forge,sentry}/hardware.nix` are **not imported** (dead config) yet duplicate slice/ROCm blocks.
+
 ## Operational gotchas (Codebuff / AI-agent working knowledge)
 
 ### Tooling pattern: 0644 root:root write-block
