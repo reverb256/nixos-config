@@ -60,20 +60,17 @@
     TZ=America/Winnipeg
   '';
 
-  security.sudo = {
-    enable = lib.mkDefault true;
-    extraRules = [
-      {
-        users = ["j_kro"];
-        commands = [
-          {
-            command = "ALL";
-            options = ["NOPASSWD"];
-          }
-        ];
-      }
-    ];
-  };
+  security.sudo-rs.extraRules = [
+    {
+      users = ["j_kro"];
+      commands = [
+        {
+          command = "ALL";
+          options = ["NOPASSWD"];
+        }
+      ];
+    }
+  ];
 
   users.groups.plugdev = {};
   users.groups.gamemode = {};

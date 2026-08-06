@@ -146,11 +146,6 @@
       execWheelOnly = true; # Only wheel group can use sudo-rs
       wheelNeedsPassword = false; # Passwordless sudo for wheel (CI/CD deployment)
     };
-    # Keep traditional sudo enabled alongside sudo-rs as the compatibility
-    # provider for existing deploy and interactive commands. Because this is
-    # already inside `security = { ... }`, the nested option is `sudo.enable`.
-    sudo.enable = true;
-
     # APPARMOR - Mandatory Access Control
     apparmor = {
       enable = true;
