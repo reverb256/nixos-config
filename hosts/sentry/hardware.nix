@@ -72,15 +72,19 @@
     ];
   };
 
+  # 2026-08-06 recovery: drop rocblas/hipblas/rpp from /opt/rocm.
+  # TensileCreateLibrary for rocblas rebuilds for every gfx arch (~hours) and
+  # blocks a mandatory new generation while llamafile is already disabled.
+  # Keep clr + tools only; restore full math stack when inference is re-enabled.
   systemd.tmpfiles.rules = let
     rocmEnv = pkgs.symlinkJoin {
       name = "rocm-combined";
       paths = with pkgs.rocmPackages; [
         clr
         clr.icd
-        rocblas
-        hipblas
-        rpp
+        rocm-smi
+        rocminfo
+        rocm-runtime
       ];
     };
   in [
