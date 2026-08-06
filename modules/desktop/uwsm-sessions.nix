@@ -1,14 +1,10 @@
 # UWSM Session Integration
 #
-# Ensures Niri and Hyprland are properly wrapped with UWSM when launched
-# from SDDM's session picker. SDDM handles session selection (Plasma,
-# Niri, Hyprland, Hyprland UWSM) — one compositor at a time.
+# Ensures Niri is properly wrapped with UWSM when launched
+# from SDDM's session picker. SDDM handles session selection (one
+# compositor at a time).
 #
 # NVIDIA fixes (in other modules) prevent DRM issues:
-#   plasma6.nix      — kscreen-doctor gated to active VT
-#   (niri-settings.nix removed — render-drm-device/ignore-drm-device now live in
-#    home-manager-config/modules/niri-config.nix via programs.niri.settings)
-#   hyprland.nix     — WLR_DRM_DEVICES=/dev/dri/card2
 {
   lib,
   config,
@@ -17,7 +13,7 @@
   cfg = config.desktop.uwsm-sessions.enable;
 in {
   options.desktop.uwsm-sessions = {
-    enable = lib.mkEnableOption "UWSM session integration for Niri/Hyprland";
+    enable = lib.mkEnableOption "UWSM session integration for Niri";
   };
 
   config = lib.mkIf cfg {

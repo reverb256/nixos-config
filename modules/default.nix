@@ -73,7 +73,7 @@
     ./desktop/wayland-compositor-common.nix
     ./desktop/flatpak.nix
     ./desktop/plasma6.nix
-    ./desktop/hyprland.nix
+    # ./desktop/hyprland.nix  — REMOVED: Hyprland not used on this cluster (Niri-only)
     ./desktop/uwsm-sessions.nix
     ./desktop/systems-intelligence-plasmoid.nix
     ./desktop/niri.nix

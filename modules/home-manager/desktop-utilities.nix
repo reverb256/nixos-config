@@ -4,11 +4,7 @@
   ...
 }: let
   compositorDetect = ''
-    if [ -n "''${HYPRLAND_INSTANCE_SIGNATURE:-}" ] || pgrep -x hyprland >/dev/null 2>&1; then
-      echo "hyprland"
-    else
-      echo "niri"
-    fi
+    echo "niri"
   '';
 
   screenshot = pkgs.writeShellScriptBin "screenshot" ''
@@ -29,27 +25,15 @@
         AREA=$((W * H))
 
         if [ "$AREA" -lt 400 ]; then
-          COMPOSITOR=$(${compositorDetect})
-          if [ "$COMPOSITOR" = "hyprland" ]; then
-            GEOM=$(${pkgs.hyprland}/bin/hyprctl activewindow -j 2>/dev/null | \
-              ${pkgs.jq}/bin/jq -r '"\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"' 2>/dev/null) || true
-          else
-            GEOM=$(${pkgs.niri}/bin/niri msg --json focused-window 2>/dev/null | \
-              ${pkgs.jq}/bin/jq -r '"\(.output_x),\(.output_y) \(.width)x\(.height)"' 2>/dev/null) || true
-          fi
+          GEOM=$(${pkgs.niri}/bin/niri msg --json focused-window 2>/dev/null | \
+            ${pkgs.jq}/bin/jq -r '"\(.output_x),\(.output_y) \(.width)x\(.height)"' 2>/dev/null) || true
         fi
 
         [ -n "$GEOM" ] && ${pkgs.grim}/bin/grim -g "$GEOM" "$FILE" || ${pkgs.grim}/bin/grim "$FILE"
         ;;
       window)
-        COMPOSITOR=$(${compositorDetect})
-        if [ "$COMPOSITOR" = "hyprland" ]; then
-          GEOM=$(${pkgs.hyprland}/bin/hyprctl activewindow -j 2>/dev/null | \
-            ${pkgs.jq}/bin/jq -r '"\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"' 2>/dev/null) || true
-        else
-          GEOM=$(${pkgs.niri}/bin/niri msg --json focused-window 2>/dev/null | \
-            ${pkgs.jq}/bin/jq -r '"\(.output_x),\(.output_y) \(.width)x\(.height)"' 2>/dev/null) || true
-        fi
+        GEOM=$(${pkgs.niri}/bin/niri msg --json focused-window 2>/dev/null | \
+          ${pkgs.jq}/bin/jq -r '"\(.output_x),\(.output_y) \(.width)x\(.height)"' 2>/dev/null) || true
 
         [ -n "$GEOM" ] && ${pkgs.grim}/bin/grim -g "$GEOM" "$FILE" || ${pkgs.grim}/bin/grim "$FILE"
         ;;
