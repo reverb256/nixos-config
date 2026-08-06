@@ -327,21 +327,9 @@
               - '${hostIPs.nexus.ip}:9400'
               - '${hostIPs.forge.ip}:9400'
 
-      - job_name: 'peakminer'
-        scrape_interval: 15s
-        static_configs:
-          - targets:
-              - '${hostIPs.zephyr.ip}:9101'
-              - '${hostIPs.zephyr.ip}:9102'
-              - '${hostIPs.nexus.ip}:9101'
-              - '${hostIPs.forge.ip}:9101'
-              - '${hostIPs.forge.ip}:9102'
-        relabel_configs:
-          - source_labels: [__address__]
-            regex: '.*:(.*)'
-            target_label: instance
-            replacement: 'peakminer-$$1'
-
+      # PeakMiner 2.8.0 exposes a localhost-only /summary API, not a
+      # remotely scrapeable Prometheus /metrics endpoint. Keep its API ports
+      # local to each host for diagnostics; do not advertise false scrape targets.
 
       - job_name: 'kube-state-metrics'
         kubernetes_sd_configs:

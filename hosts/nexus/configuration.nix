@@ -52,6 +52,8 @@
 
     # Storage assertions (partlabel/uuid/boot checks)
     ../../modules/system/storage-assertions.nix
+    # PeakMiner GPU mining stack
+    ./peakminer.nix
 
     # Nix binary cache DISABLED
   ];

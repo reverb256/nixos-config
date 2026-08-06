@@ -15,6 +15,28 @@
     then "production"
     else "default";
 
+  validatorScript = pkgs.writeShellScript "secretspec-validator" ''
+    set -o errexit
+    set -o nounset
+    set -o pipefail
+
+    if ${pkgs.secretspec}/bin/secretspec check \
+      -f ${cfg.manifestPath} \
+      -P ${profile}
+    then
+      exit 0
+    else
+      status=$?
+    fi
+
+    ${lib.optionalString (!cfg.failOnMissing) ''
+      # Non-blocking mode records validation failures without making
+      # activation fail; systemd still logs the validator output.
+      exit 0
+    ''}
+
+    exit "$status"
+  '';
 in {
   options.services.secretspec-validator = {
     enable = lib.mkOption {
@@ -134,22 +156,13 @@ in {
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        ExecStart = let
-          cmd =
-            "${pkgs.secretspec}/bin/secretspec check"
-            + " -f ${cfg.manifestPath}"
-            + " -P ${profile}";
-          cmd' =
-            if cfg.failOnMissing
-            then cmd
-            else cmd + " || true";
-        in
-          cmd';
+        ExecStart = validatorScript;
         # SOPS_AGE_KEY_FILE must be set so the upstream sops provider
         # (0.17.0) can decrypt the YAML files directly via the sops CLI.
-        # The fork's NDJSON subprocess dispatcher is no longer needed.
+        # The forked CLI delegates sops:// routes to its protocol provider.
         Environment = [
           "SOPS_AGE_KEY_FILE=${cfg.ageKeyFile}"
+          "SECRETSPEC_SOPS_PROVIDER_BIN=${pkgs.secretspec-provider-sops}/bin/secretspec-provider-sops-protocol"
         ];
         StandardOutput = "journal";
         StandardError = "journal";

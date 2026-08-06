@@ -21,7 +21,7 @@
   # stack into every host closure (multi-hour ROCm builds, sentry build
   # failure). The gateway runs in K8s from a prebuilt image
   # (nexus:5000/ai-inference-gateway, see kubernetes/modules/ai-inference.nix).
-  # REMOVED: compute-market (all mining infra switched to peakminer)
+  # Mining backend is selected per host via hosts/*/peakminer.nix.
   inputs.gpu-proxy.nixosModules.default
 
   # Audit F-13 (2026-07-28): Stylix is theme infrastructure, not
@@ -44,9 +44,6 @@
   ./modules/system/oomd-fleet.nix
   ./modules/system/chronyd.nix
 
-  # cluster.localSealSupport module removed (Phase 1b/1c, 2026-07-25).
-  # Now using upstream secretspec 0.17.0 from nixpkgs-secretspec flake input.
-
   ./modules/default.nix
 
   {
@@ -55,9 +52,11 @@
   }
 
   {
-    # Overlay order matters: `self.overlays.default` now registers
-    # `secretspec` from upstream nixpkgs-secretspec (0.17.0) — the fork
-    # packages (pkgs/secretspec, pkgs/secretspec-provider-sops) are removed.
+    # Overlay order matters: `self.overlays.default` registers bugfixes,
+    # system, python, images, hardware, and app overlays from
+    # `overlays/default.nix`. The secretspec sops provider is built from
+    # `pkgs/secretspec-provider-sops` and wired through
+    # `services.secretspec-validator`; both fork inputs remain active.
     # Audit F-13 (2026-07-28): `inputs.niri.overlays.niri` moved to
     # modules/desktop/desktop-modules.nix (zephyr-only).
     nixpkgs.overlays = [

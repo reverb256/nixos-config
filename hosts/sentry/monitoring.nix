@@ -40,9 +40,7 @@
 
     # Note: Sentry has no GPUs, no GPU exporters needed
 
-    # Mining exporter for CPU mining metrics
-    # Mining metrics handled by peakminer — no standalone exporter needed
-    # mining-exporter.enable = true;  # Module removed with lolminer/xmrig purge
+    # Sentry has no local mining workload or mining exporter.
 
     # Self-healing alerts via Plasma desktop notifications
     self-healing-alerts = {

@@ -409,12 +409,16 @@ hm-switch:
     set -euo pipefail
     
     HOST=$(hostname -s)
-    echo ">> home-manager switch --flake github:reverb256/home-manager-config#${HOST}"
+    echo ">> home-manager switch -b backup --flake github:reverb256/home-manager-config#${HOST}"
     # nexus is the sole healthy builder (forge excluded = GPU miner; sentry
     # known_hosts stale vs ssh.nix source). Use nexus-only so hm-switch does
     # not abort on the broken sentry/forge remote builders (see issue #389).
+    # `-b backup` is the STANDALONE collision handler (home.backupFileExtension
+    # is a NixOS-module-only option): HM moves any differing plain file to
+    # <file>.backup and links the store version instead of aborting. Remove
+    # stale <file>.backup files if a switch reports "would be clobbered".
     NIX_CONFIG='builders = ssh-ng://j_kro@nexus x86_64-linux,i686-linux ~/.ssh/id_ed25519 12 10 big-parallel,kvm' \
-      home-manager switch --flake github:reverb256/home-manager-config#${HOST}
+      home-manager switch -b backup --flake github:reverb256/home-manager-config#${HOST}
 
 # Build (dry) the HM config for a host without activating — CI/verification.
 hm-build host="zephyr":

@@ -24,7 +24,7 @@ in {
     primaryMiner = lib.mkOption {
       type = lib.types.str;
       default = "peakminer-zephyr-3090.service";
-      description = "systemd unit for the primary miner (3090). The K8s deployment is gone -- peakminer runs as a systemd service now.";
+      description = "systemd unit for the primary PeakMiner miner on the 3090.";
     };
 
     namespace = lib.mkOption {
@@ -52,7 +52,7 @@ in {
       after = ["network.target"];
       wantedBy = ["multi-user.target"];
 
-      # kubectl dropped: coordinator now drives systemd only (peakminer-zephyr-3090.service).
+      # kubectl dropped: coordinator drives the local PeakMiner systemd unit.
       # systemctl is available via /run/current-system/sw/bin/systemctl on NixOS.
       path = with pkgs; [curl gawk];
 
@@ -151,17 +151,17 @@ in {
             local source="''${1:-inference}"
             scale "$PRIMARY" 0
             mining_shifted=true
-            log "PAUSED: 3090 miner stopped ($source)"
+            log "PAUSED: 3090 PeakMiner stopped ($source)"
           }
 
           shift_to_primary() {
             scale "$PRIMARY" 1
             mining_shifted=false
-            log "RESUMED: 3090 -> mining"
+            log "RESUMED: 3090 -> PeakMiner mining"
           }
 
           log "Coordinator started - monitoring :$LLAMA_PORT (llama-server), :$COMFYUI_PORT (ComfyUI)"
-          log "Primary: $PRIMARY (3090)"
+          log "Primary: $PRIMARY (3090 PeakMiner unit)"
           log "Check interval: ''${CHECK_INTERVAL}s, idle timeout: ''${IDLE_TIMEOUT}s"
 
           while true; do

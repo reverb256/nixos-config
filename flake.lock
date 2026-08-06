@@ -1559,6 +1559,8 @@
         "nixpkgs-xr": "nixpkgs-xr",
         "nur": "nur_2",
         "scopebuddy": "scopebuddy",
+        "secretspec": "secretspec",
+        "secretspec-provider-sops": "secretspec-provider-sops",
         "sops-nix": "sops-nix",
         "stylix": "stylix_2",
         "systems": "systems_9",
@@ -1604,6 +1606,40 @@
       "original": {
         "type": "git",
         "url": "https://github.com/OpenGamingCollective/ScopeBuddy"
+      }
+    },
+    "secretspec": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1784998751,
+        "narHash": "sha256-LjL22GMegE2GjtTisKaUaWESTA4SRXvSfW+9XAhr+zk=",
+        "owner": "reverb256",
+        "repo": "secretspec",
+        "rev": "f706d21b4887ced712c712f504fe4eab4cd42f47",
+        "type": "github"
+      },
+      "original": {
+        "owner": "reverb256",
+        "ref": "feature/sops-provider-subprocess-dispatch",
+        "repo": "secretspec",
+        "type": "github"
+      }
+    },
+    "secretspec-provider-sops": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1785016266,
+        "narHash": "sha256-BbIeFNUpzPPhF3LXVbrYH4BE5PQwr3VFG67Awl21KGA=",
+        "owner": "reverb256",
+        "repo": "secretspec-provider-sops",
+        "rev": "8d637d7e86e5a6e29476ed086f9f6d3c264e5187",
+        "type": "github"
+      },
+      "original": {
+        "owner": "reverb256",
+        "ref": "feature/two-strategy-handle-get",
+        "repo": "secretspec-provider-sops",
+        "type": "github"
       }
     },
     "sops-nix": {

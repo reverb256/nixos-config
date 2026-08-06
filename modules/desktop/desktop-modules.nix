@@ -18,8 +18,8 @@
 #     mesh / j_kro home environment is evaluated on every host for ssh /
 #     wrapper consistency, not just desktop hosts.
 #   - llm-agents.overlays.shared-nixpkgs, self.overlays.default, and
-#     inputs.lsfg-vk-nix.overlays.default stay in common-modules-list.nix
-#     because peakminer and ai-gateway pipelines run on nexus / forge /
+#     inputs.lsfg-vk-nix.overlays.default stay in common-modules-list.nix  #     because Krig and ai-gateway pipelines run on nexus / forge /
+
 #     sentry too.
 #
 # To add a 5th host: just add it to `hosts` in flake.nix with

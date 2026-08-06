@@ -1,4 +1,4 @@
-# Mining services module — minimal stub for peakminer GPU mining
+# Shared mining resources module; host-specific PeakMiner services are declared separately.
 # v2: clean structure; legacy miners were removed.
 {
   config,
@@ -10,7 +10,7 @@ with lib; let
   cfg = config.services.mining;
   body = {
     options.services.mining = {
-      enable = mkEnableOption "Mining services (peakminer GPU mining)";
+      enable = mkEnableOption "Shared mining resources";
       user = mkOption {
         type = types.str;
         default = "mining";

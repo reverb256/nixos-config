@@ -12,6 +12,16 @@
     interactiveShellInit = ''
       # User time zone (system runs UTC, user sees local time)
       set -gx TZ America/Winnipeg
+
+      # sudo-rs is the privileged sudo wrapper. Keep it ahead of the
+      # non-setuid /run/current-system/sw/bin/sudo in every Fish session.
+      fish_add_path --prepend /run/wrappers/bin
+
+      # Use the privileged wrapper explicitly even if a stale session or
+      # profile prepends /run/current-system/sw/bin later.
+      function sudo
+        command /run/wrappers/bin/sudo $argv
+      end
     '';
   };
 

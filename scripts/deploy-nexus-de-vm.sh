@@ -8,7 +8,7 @@
 #   3. virtctl image-upload       -> creates+populates the nexus-de-root DataVolume from
 #                                 the qcow2 that is ALREADY on nexus's /nix/store (built
 #                                 there via remote builder) -> NO 6GB LAN transfer.
-#   4. VM auto-starts (runStrategy: Always) -> niri on the TV + peakminer mining resumes
+#   4. VM auto-starts (runStrategy: Always) -> niri on the TV + PeakMiner resumes
 #                                 INSIDE the guest.
 #
 # TOTAL mining pause ≈ nexus reboot (~30-60s) + kubevirt/CDI ready (~60-90s) +
@@ -72,5 +72,5 @@ EOF
 # ── Phase 5: wait for the VM to be Running + mining resumed ─────────────────
 log "=== Phase 5/5: waiting for VM Running ==="
 kubectl -n nexus-de wait --for=condition=Ready --timeout=300s virtualmachine nexus-de
-log "VM nexus-de is running. niri should be on the TV; peakminer mining GPU0 inside guest."
+log "VM nexus-de is running. niri should be on the TV; PeakMiner GPU0 is inside the guest."
 log "Verify: kubectl -n nexus-de get vmi; ssh nexus 'nvidia-smi' (should show VM's process)."

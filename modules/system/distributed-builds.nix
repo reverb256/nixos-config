@@ -63,8 +63,8 @@ in {
         # derivation offloads to nexus/sentry via /etc/nix/machines.
         # max-jobs=2 here was the OOM root cause: a local `nix build`/`switch`
         # fell back to 2 local jobs and (doubled) blew past 31GB. Never build
-        # on zephyr.
-        # forge removed 2026-07-29 (GPU miner — do not interrupt).
+        # on zephyr.          # forge removed 2026-07-29 (GPU miner — do not interrupt).
+
         if currentHost == "zephyr"
         then 0
         else if currentHost == "nexus"
@@ -270,8 +270,8 @@ in {
           # 2026-07-29: forge (i5-9500, 6c) was previously a fallback builder.
           # REMOVED — forge is the GPU miner host, must NOT be interrupted by
           # distributed build jobs. Source comments confirm: 2x 4060s running
-          # peakminer full-time, OOM protection in place. Adding build load
-          # risks GPU contention or OOM-killing the miners.
+          # Krig full-time, OOM protection in place. Adding build load
+          # risks GPU contention or OOM-killing PeakMiner.
           machines = builtins.filter (m: m.hostName != currentHost) allMachines;
           formatMachine = m: with builtins; let
             # Join ALL systems with commas so the nix builder line advertises

@@ -16,12 +16,12 @@ Mining services SHALL run continuously and SHALL NOT be interrupted by cluster o
 
 #### Scenario: Forge mining
 - GIVEN forge has 2x RTX 4060 GPUs
-- THEN both GPUs SHALL be dedicated to peakminer mining workloads
+- THEN both GPUs SHALL be dedicated to Krig Pearl (PRL) mining workloads
 - AND no other workload SHALL claim these GPUs
 
 #### Scenario: Krash1.5 mining
 - GIVEN krash1.5 (10.1.1.151) is a Windows 10 PC
-- THEN it SHALL run peakminer via NSSM (Non-Sucking Service Manager)
+- THEN it SHALL run Krig via NSSM (Non-Sucking Service Manager)
 - AND the krash user SHALL manage the service
 
 ### Requirement: Mining Monitoring

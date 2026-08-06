@@ -218,9 +218,6 @@ in {
     networkDriver = "r8169";
     port = 2222;
   };
-  services.lpminer = {
-    enable = lib.mkForce false;
-  };
   services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
   services.recovery-specialisation.enable = true; # depends on initrd-ssh
   services.btrfs-boot-snapshot.enable = false; # NixOS generations sufficient
