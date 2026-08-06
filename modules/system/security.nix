@@ -146,12 +146,10 @@
       execWheelOnly = true; # Only wheel group can use sudo-rs
       wheelNeedsPassword = false; # Passwordless sudo for wheel (CI/CD deployment)
     };
-    # Traditional sudo is the working setuid provider (sudo-rs's setuid wrapper
-    # is not installed/on PATH in this config). The line below was previously a
-    # TYPO (`sudo.enable` instead of `security.sudo.enable`) = no-op, which left
-    # sudo half-wired (sw/bin symlink non-setuid, wrapper buried in PATH). Keep
-    # traditional sudo enabled so interactive + CI/deploy root access works.
-    security.sudo.enable = true;
+    # Keep traditional sudo enabled alongside sudo-rs as the compatibility
+    # provider for existing deploy and interactive commands. Because this is
+    # already inside `security = { ... }`, the nested option is `sudo.enable`.
+    sudo.enable = true;
 
     # APPARMOR - Mandatory Access Control
     apparmor = {

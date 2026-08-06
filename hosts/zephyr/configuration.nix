@@ -44,8 +44,8 @@
     # noctalia: now built-in to nixpkgs-unstable (programs.noctalia)
     # RGB control for peripherals and components
     ../../modules/hardware/rgb-control.nix
-    # Krig (Kryptex PRL) GPU mining stack (zephyr local miners)
-    ./krig.nix
+    # PeakMiner (Kryptex PRL) GPU mining stack (Zephyr local miners)
+    ./peakminer.nix
     # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
     ../../modules/services/bonsai.nix
 
