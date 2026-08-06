@@ -120,7 +120,13 @@ deploy_proxy() {
 	fi
 }
 
+# DISABLED: zephyr GPU mining now owned exclusively by the systemd peakminer
+# service (hosts/zephyr/peakminer.nix, one instance per GPU). The K8s
+# gpu-miner-zephyr Deployment was removed to stop two miners competing for
+# the 3090. See issue #413.
 deploy_zephyr_miner() {
+    echo "SKIP: zephyr K8s miner disabled (systemd peakminer owns the GPUs)"
+    return 0
 	log_info "=== Phase 2: Deploying Zephyr GPU Miner ==="
 
 	# Check if Zephyr node is ready

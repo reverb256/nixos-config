@@ -30,8 +30,14 @@ set_power_limit() {
     fi
 }
 
-# Set GPU clock offset safely (using nvidia-smi, not nvidia-settings)
-# Args: gpu_id, offset_type (graphics/memory), offset_value
+# Set GPU clock offset safely (relative offset, headless-capable)
+# Args: gpu_id, offset_type (graphics/memory), offset_value (signed integer)
+#
+# Relative offsets require nvidia-settings (applies GPUGraphicsClockOffset[M]
+# /GPUMemoryClockOffset[M]). nvidia-smi -lgc/-lmc take an ABSOLUTE clock RANGE
+# (MIN[,MAX]), not an offset -- feeding a bare offset there silently no-ops (or
+# would lock the clock to a wrong value). So we prefer nvidia-settings and fall
+# back to an nvidia-smi range-lock (offset used as the floor) when X is absent.
 set_clock_offset() {
     local gpu_id="$1"
     local offset_type="$2"
@@ -41,27 +47,44 @@ set_clock_offset() {
         return 1
     fi
 
+    local attr
     case "$offset_type" in
-        graphics|gpu)
-            nvidia-smi -i "$gpu_id" -lgc "$offset_value" 2>/dev/null || true
-            ;;
-        memory|mem)
-            nvidia-smi -i "$gpu_id" -lmc "$offset_value" 2>/dev/null || true
-            ;;
+        graphics|gpu) attr="GPUGraphicsClockOffset[3]" ;;
+        memory|mem)   attr="GPUMemoryClockOffset[3]" ;;
         *)
             echo "Warning: Unknown offset type '$offset_type' for GPU $gpu_id" >&2
             return 1
             ;;
     esac
+
+    # Primary: true relative offset via nvidia-settings (needs X; present on
+    # zephyr's 3090 which drives a display).
+    if command -v nvidia-settings >/dev/null 2>&1; then
+        nvidia-settings -a "[gpu:$gpu_id]/$attr=$offset_value" 2>/dev/null || true
+        return 0
+    fi
+
+    # Fallback: headless range-lock. Use the offset as the floor with a wide
+    # ceiling so the GPU can still boost; this is the closest nvidia-smi gets
+    # to an offset without X.
+    case "$offset_type" in
+        graphics|gpu) nvidia-smi -i "$gpu_id" -lgc "$offset_value,$((offset_value + 2000))" 2>/dev/null || true ;;
+        memory|mem)   nvidia-smi -i "$gpu_id" -lmc "$offset_value" 2>/dev/null || true ;;
+    esac
+    return 0
 }
 
-# Reset GPU clocks to default
+# Reset GPU clocks to default (clears offsets + resets lock)
 reset_clocks() {
     local gpu_id="$1"
 
     if gpu_exists "$gpu_id"; then
-        nvidia-smi -i "$gpu_id" -rgc 2>/dev/null || true  # Reset graphics clock
-        nvidia-smi -i "$gpu_id" -rmc 2>/dev/null || true  # Reset memory clock
+        if command -v nvidia-settings >/dev/null 2>&1; then
+            nvidia-settings -a "[gpu:$gpu_id]/GPUGraphicsClockOffset[3]=0" 2>/dev/null || true
+            nvidia-settings -a "[gpu:$gpu_id]/GPUMemoryClockOffset[3]=0" 2>/dev/null || true
+        fi
+        nvidia-smi -i "$gpu_id" -rgc 2>/dev/null || true  # Reset graphics clock lock
+        nvidia-smi -i "$gpu_id" -rmc 2>/dev/null || true  # Reset memory clock lock
     fi
 }
 

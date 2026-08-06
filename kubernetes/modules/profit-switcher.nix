@@ -53,13 +53,6 @@
       minerBin = "rigel";
       coinBlacklist = [];
     };
-    nvidia-3090 = {
-      deployments = ["gpu-miner-zephyr"];
-      profile = "rtx3090";
-      miner = "rigel";
-      minerBin = "rigel";
-      coinBlacklist = [];
-    };
     amd = {
       deployments = [
         "gpu-miner-forge-amd-0"
