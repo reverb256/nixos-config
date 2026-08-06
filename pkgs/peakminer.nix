@@ -3,44 +3,29 @@
   stdenv,
   fetchurl,
   autoPatchelfHook,
-  makeWrapper,
-  python3,
   ...
-}: let
-  inherit (stdenv) mkDerivation;
-in
-  mkDerivation rec {
-    pname = "peakminer";
-    version = "2.2.2";
+}:
+stdenv.mkDerivation {
+  pname = "peakminer";
+  version = "2.8.0";
 
-    src = fetchurl {
-      url = "https://github.com/peakminer/peakminer/releases/download/v${version}/peakminer-${version}.tar.gz";
-      sha256 = "6ba96829ce60954e24bd0b626e7f92cb5c7b8b529e3b6616bb189a287ab1d5fa";
-    };
+  src = fetchurl {
+    url = "https://github.com/kryptex-miners-org/kryptex-miners/releases/download/peakminer-2-8-0/peakminer-2.8.0.tar.gz";
+    hash = "sha256-miytzJcTZuwWUsAtu4CW54LVZB576J3SA3fC5dn0/M4=";
+  };
 
-    nativeBuildInputs = [autoPatchelfHook makeWrapper];
-    buildInputs = [stdenv.cc.cc.lib];
+  nativeBuildInputs = [autoPatchelfHook];
+  buildInputs = [stdenv.cc.cc.lib];
 
-    installPhase = ''
-      mkdir -p $out/bin
-      mkdir -p $out/share/peakminer
+  installPhase = ''
+    install -Dm755 peakminer $out/bin/peakminer
+  '';
 
-      tar -xzf $src
-      cp peakminer/peakminer $out/bin/
-      chmod +x $out/bin/peakminer
-
-      # Install auth-translator proxy
-      cp ${../pkgs/stratum-auth-translator.py} $out/share/peakminer/stratum-auth-translator.py
-      chmod +x $out/share/peakminer/stratum-auth-translator.py
-
-      makeWrapper $out/share/peakminer/stratum-auth-translator.py $out/bin/peakminer-proxy \
-        --prefix PATH : ${python3}/bin
-    '';
-
-    meta = with lib; {
-      description = "PeakMiner GPU cryptocurrency miner";
-      homepage = "https://github.com/peakminer/peakminer";
-      license = licenses.unfree;
-      platforms = platforms.linux;
-    };
-  }
+  meta = {
+    description = "Kryptex's GPU miner for Pearl (PRL)";
+    homepage = "https://github.com/kryptex-miners-org/kryptex-miners/releases";
+    license = lib.licenses.unfree;
+    mainProgram = "peakminer";
+    platforms = lib.platforms.linux;
+  };
+}

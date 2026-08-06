@@ -1,79 +1,33 @@
 {
-  config,
-  pkgs,
   lib,
   ...
-}: let
-  cluster = config.networking.cluster;
-in {
-  services = {
-    peakminer = {
-      enable = true;
-      wallet = "krxXVNVMM7";
-      pools = ["stratum+tcp://prl-us.kryptex.network:7048"];
-      exporterInstances = [
-        {
-          instanceName = "zephyr-3060ti";
-          apiPort = 21553;
-          exporterPort = 9101;
-        }
-        {
-          instanceName = "zephyr-3090";
-          apiPort = 21554;
-          exporterPort = 9102;
-        }
-      ];
-      instances = [
-        {
-          name = "zephyr-3060ti";
-          devices = "0";
-          gpuId = 0;
-          powerLimit = 120;
-          tempStop = 80;
-          fanTarget = 65;
-          fanMin = 30;
-          fanMax = 100;
-          apiPort = 21553;
-          proxyPort = 30001;
-        }
-        {
-          name = "zephyr-3090";
-          devices = "1";
-          gpuId = 1;
-          powerLimit = 250;
-          tempStop = 80;
-          fanTarget = 65;
-          fanMin = 30;
-          fanMax = 100;
-          apiPort = 21554;
-          proxyPort = 30002;
-        }
-      ];
-    };
-
-    gaming-detection.enable = lib.mkForce false;
-    gpu-profile-manager.enable = lib.mkForce false;
+}: {
+  services.peakminer = {
+    enable = true;
+    wallet = "krxXVNVMM7";
+    password = "x";
+    pools = [
+      "stratum+tcp://prl-us.kryptex.network:7048"
+      "stratum+tcp://prl.kryptex.network:7048"
+    ];
+    instances = [
+      {
+        name = "zephyr-3060ti";
+        devices = "0";
+        gpuId = 0;
+        powerLimit = 120;
+        apiPort = 21553;
+      }
+      {
+        name = "zephyr-3090";
+        devices = "1";
+        gpuId = 1;
+        powerLimit = 250;
+        apiPort = 21554;
+      }
+    ];
   };
 
-  # Auth-translator proxy for krash2 Windows miner
-  systemd.services.peakminer-proxy-krash2-4060 = {
-    description = "PeakMiner auth-translator proxy - krash2-4060";
-    after = ["network-online.target"];
-    wantedBy = ["multi-user.target"];
-    wants = ["network-online.target"];
-    serviceConfig = {
-      Type = "simple";
-      User = "root";
-      ExecStart = pkgs.writeShellScript "peakminer-proxy-krash2-4060" ''
-        ${pkgs.peakminer}/bin/peakminer-proxy \
-          --listen-host 0.0.0.0 \
-          --listen-port 30003 \
-          --target prl-us.kryptex.network:7048 \
-          --wallet krxXVNVMM7 \
-          --worker krash2-4060
-      '';
-      Restart = "always";
-      RestartSec = 10;
-    };
-  };
+  services.gaming-detection.enable = lib.mkForce false;
+  services.gpu-profile-manager.enable = lib.mkForce false;
 }
