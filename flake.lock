@@ -831,11 +831,11 @@
         "zen-browser": "zen-browser"
       },
       "locked": {
-        "lastModified": 1785978960,
-        "narHash": "sha256-PJC/O2f9bIpoGz42J3OydTfsqaBihg9rUAijjFoHxPI=",
+        "lastModified": 1786045093,
+        "narHash": "sha256-jtRz6ZW20NurcDP9GSGsIVzQULhRSLNsM5RIbE4BDNo=",
         "owner": "reverb256",
         "repo": "home-manager-config",
-        "rev": "e629e921aed3286ff3d119649cb58d1c73060650",
+        "rev": "ee2b69c644e7df4e911fd69e7eddb827110aa2d9",
         "type": "github"
       },
       "original": {

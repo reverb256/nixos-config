@@ -6,6 +6,16 @@ This file gives Codebuff context about this repo: goals, commands, conventions, 
 
 Flake-based NixOS configuration for a 4-node SOHO cluster (Zephyr, Nexus, Forge, Sentry) running AI inference, GPU compute/mining, K8s workloads, storage, and monitoring. Zephyr is the development/source-of-truth host; all config rebuilds flow from there through git → Colmena / `just deploy` → remote hosts via `nix-copy-closure` + `switch-to-configuration`.
 
+Configuration is split across **three layers** (see AGENTS.md):
+
+| Layer | Where | Owns |
+|-------|-------|------|
+| 1 — NixOS | `/etc/nixos` (this repo, `reverb256/nixos-config`) | hosts, services, networking, hardware, deployment |
+| 2 — Home Manager | `/home/j_kro/Projects/home-manager-config` (flake input `github:reverb256/home-manager-config`) | user configuration, niri settings/keybinds, app configs |
+| 3 — user nix profile | `nix profile` | high-churn binaries (Hermes, Freebuff) — never collide with Layer 2 |
+
+`homeConfigurations` in `flake.nix` are consumed **directly from the `home-manager-config` flake input** (line ~295); `/etc/nixos/modules/home-manager/` only holds the shared-leaf module set + standalone entrypoints that both paths compose from (`shared-leaf-modules.nix`, `standalone*.nix`).
+
 ### Hosts
 
 | Host | IP | Role | RAM |
@@ -52,6 +62,9 @@ just switch             # Build + activate on local host (auto-pauses CPU mining
 just test-apply         # Build + test activation without a permanent switch
 just deploy [<host>]    # Build + deploy to all or one host (zephyr|nexus|forge|sentry|"all")
 just deploy-nexus <h>   # Async deploy from nexus via tmux (for nexus/forge/sentry only)
+just deploy-canary *hosts  # Canary-validate a deploy before full rollout
+just provenance *hosts     # Deployment provenance / drift check
+just preflight          # Run preflight checks only
 just rollback           # Rollback current host
 just status             # Branch + commit + worktree + uncommitted state
 just health             # SSH reachability + `kubectl get nodes`
@@ -63,6 +76,8 @@ just gc                 # `nix-collect-garbage -d`
 just new-worktree NNN   # Create worktree /data/projects/own/nixos-config-NNN from issue #NNN
 just validate-k8s       # Build/eval K8s manifests
 just full-check         # Run scripts/check.sh (lint + sec + parse)
+just hm-switch          # Activate current host's standalone HM (home-manager switch --flake .#<host>), no NixOS rebuild
+just hm-build <host>    # Dry-build an HM configuration (default zephyr)
 ```
 
 ### Validation primitives
@@ -89,20 +104,22 @@ kubectl describe node <n> | grep -A 5 "Allocated resources"
 ```
 /etc/nixos/
 ├── flake.nix                # Main flake + hosts (zephyr/nexus/forge/sentry) + colmena wrapper
+│                            #   + inputs (nixpkgs, home-manager, home-manager-config, colmena, ...)
 ├── colmena.nix              # Multi-host deployment (targetHost, tags per host)
 ├── common-modules-list.nix  # Module list imported by BOTH flake.nix and colmena.nix (must stay in sync)
 ├── overlay.nix              # Cross-system package overlay
 ├── justfile                 # All CI/CD tasks
 ├── hosts/<host>/            # Per-host NixOS configs
 ├── modules/                 # ~171 reusable .nix files
-│   ├── system/              # Core (ssh, users, networking, sops, nix)
-│   ├── services/            # Background daemons (k8s, monitoring, mining, etc.)
-│   ├── desktop/             # Compositors (Hyprland, Niri, Sway)
-│   ├── home-manager/        # HM modules
+│   ├── system/              # Core (ssh, users, networking, sops, nix, OOM/oomd, vm-tuning)
+│   ├── services/            # Background daemons (k8s, monitoring, mining, hermes, bonsai...)
+│   ├── desktop/             # Niri-only desktop (compositor, UWSM sessions, monitors, HDR/brightness)
+│   ├── home-manager/        # HM shared-leaf modules + standalone entrypoints (NOT the full HM config —
+│   │                        #   that lives in the home-manager-config flake input)
 │   ├── profiles/            # Composable hardware/role/network profiles
 │   ├── hardware/            # GPU/AMD/NVIDIA/RGB drivers
 │   ├── development/         # Dev tools
-│   ├── gaming/              # Launchers, GameMode integration
+│   ├── gaming/              # Launchers, GameMode integration, gaming slice
 │   ├── network/             # cluster-hosts, cluster-dns, cluster-networking
 │   └── security/            # PAM, GPG, cluster-mesh SSH account
 ├── kubernetes/              # K8s Nix modules (easykubenix). 21 files.
@@ -114,13 +131,16 @@ kubectl describe node <n> | grep -A 5 "Allocated resources"
 ├── scripts/                 # ~118 scripts (78 .sh, 30 .py). Includes preflight-check.sh, remote-build.sh, topgrade.sh, yaml-validate.py
 ├── packages/                # ~14 custom .nix packages (llama-cpp-*, hermes-chat, privacy-filter...)
 ├── tests/                   # NixOS integration tests
-├── secrets/                 # ~42 agenix-encrypted secrets (.age) + unencrypted templates
-├── pkgs/                    # Local package definitions (peakminer exporter, etc.)
+├── secrets/                 # ~42 sops/age-encrypted secrets (.age) + unencrypted templates
+├── pkgs/                    # Local package definitions (peakminer exporter, secretspec forks...)
 ├── recoveries/              # Disaster recovery scripts
 ├── machines                 # Colmena machine list
 ├── docs/                    # Long-form documentation
 ├── plans/, .plans/          # Planning workspaces
 └── .github/workflows/       # CI (SHA-pinned actions)
+
+# Sibling repos (flake inputs):
+/home/j_kro/Projects/home-manager-config   # Layer 2: full HM config (niri-config/keybinds/spawn/outputs, app modules)
 ```
 
 ### Workflow: GitOps via worktrees + main
@@ -150,7 +170,7 @@ Author workflow: `just new-worktree NNN` → edit in `/data/projects/own/nixos-c
 
 ### NixOS declarative-only (the #1 most expensive failure pattern)
 
-ALL persistent system state lives in `.nix` files under git. SSH into a NixOS host is for reading state ONLY. Never imperatively `systemctl start/enable` a service, `nix-env -i` a package, `useradd`, or edit `/etc/*` directly — those changes don't survive `nixos-rebuild` and can't be rolled back. The `.nix` file on Zephyr is the source of truth; running hosts are consumers.
+ALL persistent system state lives in `.nix` files under git. SSH into a NixOS host is for reading state ONLY. Never imperatively `systemctl start/enable` a service, `nix-env -i` a package, `useradd`, or edit `/etc/*` directly — those changes don't survive `nixos-rebuild` and can't be rolled back. The `.nix` file on Zephyr is the source of truth; running hosts are consumers. The live host is a rolled-back snapshot, never authoritative.
 
 `nixos-rebuild switch` creates a new generation (rollback via `nixos-rebuild rollback` or boot menu). Nix store (`/nix`) is immutable/rebuilt-from-config — never edit it directly.
 
@@ -220,7 +240,7 @@ Use DNS names; never hardcode ClusterIPs in NixOS configs (`http://10.0.0.192:80
 
 ### Secrets management
 
-`.sops.yaml` (sops-nix) for service secrets; agenix registry at `modules/system/agenix-secrets-registry.nix` and `sops-secrets-registry.nix`. SSH host keys via `initrd-ssh-host-key-<host>.age` for impermanence bootstrap. Cluster CA at `/etc/ssl/cluster-ca/` (init via `cluster-ca-init.service`).
+Secretspec (`secretspec.toml` + sops:// provider) is the runtime resolution path (Phase 2 complete 2026-07-25); sops-nix remains active for backwards compatibility (Path B, Phase 3 removal pending). Registries: `modules/system/sops-secrets-registry.nix` (service secret categories per host). SSH host keys via `initrd-ssh-host-key-<host>.age` for impermanence bootstrap. Cluster CA at `/etc/ssl/cluster-ca/` (init via `cluster-ca-init.service`). See the Secretspec section below for the full two-fork architecture.
 
 ### Doc-rot prevention (Pocock Rule)
 
@@ -238,6 +258,8 @@ Use DNS names; never hardcode ClusterIPs in NixOS configs (`http://10.0.0.192:80
 - ❌ Backgrounding long-running commands like `nixos-rebuild` or `colmena apply` — output must stay visible.
 - ❌ `systemctl enable/start <service>` for persistent service config — declare `systemd.services.<name>.wantedBy = ["multi-user.target"]` instead.
 - ❌ Editing `hosts/<host>/hardware-configuration.nix` (generated).
+- ❌ `systemd-run --user` for builds on a host running user-session services (09:54 crash: GH Actions runner OOM inside user session killed `user@1000.service` → killed the build). Use root system units.
+- ❌ Restoring the old per-host `systemd.oomd` block with integer keys (`SwapUsedLimit=90`) — NixOS 26.11 expects percent-based `MemoryUsedPercent`/`SwapUsedPercent`; integers are silently ignored (see `modules/system/oomd-fleet.nix`).
 
 ## Stop immediately if
 
@@ -245,6 +267,20 @@ Use DNS names; never hardcode ClusterIPs in NixOS configs (`http://10.0.0.192:80
 - Multiple nodes affected → STOP ALL WORK.
 - `nix flake check` fails → fix before committing.
 - `just deploy` preflight fails → resolve ref/build drift before retrying.
+
+## OOM-guard inventory (fleet-wide, 4-layer defense)
+
+The cluster's memory-pressure defense is spread across several modules. Layers, in kill/priority order:
+
+| Layer | Mechanism | Where |
+|-------|-----------|-------|
+| 1 | **earlyoom** (fast, percentage-based RAM+swap kill) | `modules/system/vm-tuning.nix` (fleet) + `hosts/zephyr/configuration.nix` (primary defense, `--avoid` graphical session + gaming, `--prefer` browser/nix) + `hosts/forge/configuration.nix` |
+| 2 | **systemd-oomd** (PSI-based, fleet) — `MemoryUsedPercent=90`, `SwapUsedPercent=85` (percent keys, mkDefault) | `modules/system/oomd-fleet.nix` (loaded via `common-modules-list.nix`) |
+| 3 | **cgroup caps** MemoryHigh/MemoryMax on slices + units | `modules/system/systemd-slices.nix` (user@1000 28G/30G, nix.slice 80%, gaming.slice 90%, mining.slice 8G), forge `slices.mining` 8G/12G, noctalia 4G/6G, bonsai 6G/20G, mcp 1G, central-auth 256M, qdrant |
+| 4 | **oom_score_adj / OOMPolicy** kernel scoring | `modules/system/oom-protection.nix` (OOMPolicy=continue on k3s/sshd/NetworkManager/logind/journald + desktop-oom-protect timer setting -500 on niri/noctalia/spotify/zen/vesktop), unbound -1000, user session -1000, gaming.slice -1000, bonsai +500 (volunteers to die first) |
+| + | **vm.\* sysctls** (overcommit=0, min_free_kbytes=1G, watermark_scale_factor=150, dirty caps, swappiness=40 fleet / 180 zram hosts) | `modules/system/vm-tuning.nix`, zephyr overrides in `hosts/zephyr/configuration.nix` (zram 50% ≈ 15.6G) |
+
+Notable history: 2026-07-15 OOM crash killed niri+alacritty (#295) → oom-protection.nix; 2026-07-27 oomd killed noctalia → noctalia cgroup caps; 2026-08-03 oomd SwapUsedLimit killed noctalia during Cyberpunk → noctalia `ManagedOOMSwap=off` + earlyoom `--avoid` extended with `steam|GameThread|REDprelauncher`, zram 40→50%. Hermes has `oom-defense` and `daily-oom-audit` skills (`modules/services/hermes/skills/`).
 
 ## Operational gotchas (Codebuff / AI-agent working knowledge)
 
@@ -414,25 +450,42 @@ If `str_replace` or `write_file` fails on a /etc/nixos file, the basher-side
 the edit comment so future maintainers don't re-add the same code-reviewer
 warning.
 
-### Recent state changes (2026-07-27)
+### Recent state changes (through 2026-08-06)
 
+- **home-manager-config extracted to a separate repo (2026-07-29→08-06)**: HM
+  config now lives in `/home/j_kro/Projects/home-manager-config`
+  (`github:reverb256/home-manager-config`, flake input). `flake.nix` consumes
+  `inputs.home-manager-config.homeConfigurations` directly
+  (`homeConfigurations = inputs.home-manager-config.homeConfigurations`).
+  Niri config split into `niri-config.nix` / `niri-keybinds.nix` /
+  `niri-outputs.nix` / `niri-spawn.nix` there. `/etc/nixos/modules/home-manager/`
+  retains only shared-leaf modules + standalone entrypoints.
+- **alacritty-oom-safe wrapper REMOVED (2026-08-06, HM repo `ee2b69c`)**: the
+  `systemd-run --user --scope` wrapper (`MemoryHigh=2G MemoryMax=4G
+  OOMScoreAdjust=-800`) spawned silently on Mod+Return/Mod+T/Mod+D and was
+  replaced with plain `alacritty` binds. **Do not resurrect it**; the launch-game
+  pattern in `modules/gaming/gaming-base.nix` is the reference if per-app cgroup
+  caps are ever needed again.
+- **Hyprland removed; desktop is Niri-only (#405/#406/#407, 2026-07-29)**: all
+  desktop modules are Niri/UWSM. No Plasma, Hyprland, or Sway.
 - **Z.AI fully removed cluster-wide (2026-07-15)**:
   `ZAI_API_KEY` no longer wired in `hosts/zephyr/secretspec-creds-wiring.nix`;
   GLM model dropped from Hermes profile. `ai-coding-tools.nix` still
   references it as a backwards-compat shell helper but does not require the
   secret on disk.
-- **zephyr OOM emergency (2026-07-27)**: systemd-oomd was killing noctalia
-  compositor + uwsm/alacritty scope at 90% mem+swap on the 31GB zephyr
-  host under gaming+control-plane+AI pressure.
+- **zephyr OOM saga (2026-07-27 → 2026-08-03)**: systemd-oomd was killing
+  noctalia + uwsm/alacritty scope at 90% mem+swap on the 31GB zephyr host.
   - `modules/desktop/zephyr-sdr-brightness.nix`: noctalia.service
     `MemoryHigh=4G` `MemoryMax=6G` `OOMPolicy=continue`
-    `OOMScoreAdjust=-300` `StartLimitBurst=5 within 60s` (failed state
-    instead of thrashing).
-  - `modules/home-manager/niri-config.nix`: new `alacritty-oom-safe` shell
-    wrapper puts alacritty under a `systemd-run --user --scope` with its own
-    `MemoryHigh=2G` `MemoryMax=4G` `OOMScoreAdjust=-800`. Keybinds
-    `Mod+Return`, `Mod+T`, `Mod+D` use the wrapper; mirrors the launch-game
-    ownership pattern in `modules/gaming/gaming.nix`.
+    `OOMScoreAdjust=-300` `ManagedOOMSwap=off` (added 08-03 after the
+    Cyberpunk kill) `StartLimitBurst=5 within 60s`.
+  - `hosts/zephyr/configuration.nix`: earlyoom `--avoid` extended with
+    `steam|GameThread|REDprelauncher` (08-03); zram bumped 40→50%
+    (~15.6G headroom).
+  - `modules/system/oomd-fleet.nix` replaced the broken per-host oomd block
+    (integer `SwapUsedLimit=90` keys were silently ignored; NixOS 26.11 uses
+    percent keys). Verify the `SwapUsedPercent=85` fix is deployed:
+    `cat /run/current-system/etc/systemd/oomd.conf`.
 - **k3s token path moved**: `/persistent/etc/k3s-cluster-token` →
   `/run/secrets/k3s-cluster-token` cluster-wide (nexus/forge/sentry + the
   `modules/services/services.nix` sentry default). Impermanence-friendly and
@@ -463,7 +516,8 @@ cluster-state claim that might have drifted since 2026-05. The fallback
 chain for verification:
 
 1. `docs/audit-2026-07-27.md` (current; route to here for any cluster-state claim)
-2. `INFRASTRUCTURE-AUDIT.md` (archived per F-22 — read-only historical)
-3. `SECURITY-INCIDENT-2026-07-25.md` (active incident context — secretspec Phase 2)
-4. `just health` (live SSH/Kubernetes reachability, if reachable)
-5. `git log --oneline` on the affected subdirectory (verifies which `.nix` rules are deployed)
+2. `AGENTS.md` (agent guidelines; carries "Last reviewed" date 2026-07-30)
+3. `INFRASTRUCTURE-AUDIT.md` (archived per F-22 — read-only historical)
+4. `SECURITY-INCIDENT-2026-07-25.md` (active incident context — secretspec Phase 2)
+5. `just health` (live SSH/Kubernetes reachability, if reachable)
+6. `git log --oneline` on the affected subdirectory (verifies which `.nix` rules are deployed)
