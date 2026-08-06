@@ -6,7 +6,6 @@
 
   declaredInputs = [
     "nixpkgs"
-    "home-manager"
     "zen-browser"
     "firefox-addons"
     "freebuff-flake"
@@ -34,7 +33,6 @@
   ];
 
   referencedInCommon = [
-    "home-manager"
     "nur"
     "sops-nix"
     "mcp-registry"

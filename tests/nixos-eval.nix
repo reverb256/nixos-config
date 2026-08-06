@@ -29,7 +29,6 @@
   hasSopsInput = lib.strings.hasInfix "sops-nix" flakeSource;
 
   # Check that flake inputs include home-manager
-  hasHomeManagerInput = lib.strings.hasInfix "home-manager" flakeSource;
 
   # Check that flake inputs include nixpkgs
   hasNixpkgsInput = lib.strings.hasInfix "nixpkgs" flakeSource;
@@ -60,7 +59,6 @@
     allHostsInFlake = missingHostsInFlake == [];
     hasColmena = hasColmena;
     hasSopsInput = hasSopsInput;
-    hasHomeManagerInput = hasHomeManagerInput;
     hasNixpkgsInput = hasNixpkgsInput;
     flakeLockExists = flakeLockExists;
     allHardwareConfigsPresent = missingHardwareConfig == [];

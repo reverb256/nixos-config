@@ -407,22 +407,22 @@ switch:
 hm-switch:
     #!/usr/bin/env bash
     set -euo pipefail
-    cd {{FLAKE}}
+    
     HOST=$(hostname -s)
-    echo ">> home-manager switch --flake .#${HOST}"
+    echo ">> home-manager switch --flake github:reverb256/home-manager-config#${HOST}"
     # nexus is the sole healthy builder (forge excluded = GPU miner; sentry
     # known_hosts stale vs ssh.nix source). Use nexus-only so hm-switch does
     # not abort on the broken sentry/forge remote builders (see issue #389).
     NIX_CONFIG='builders = ssh-ng://j_kro@nexus x86_64-linux,i686-linux ~/.ssh/id_ed25519 12 10 big-parallel,kvm' \
-      home-manager switch --flake .#${HOST}
+      home-manager switch --flake github:reverb256/home-manager-config#${HOST}
 
 # Build (dry) the HM config for a host without activating — CI/verification.
 hm-build host="zephyr":
     #!/usr/bin/env bash
     set -euo pipefail
-    cd {{FLAKE}}
-    echo ">> home-manager build --flake .#{{host}}"
-    home-manager build --flake .#{{host}} 2>&1 | tail -20
+    
+    echo ">> home-manager build --flake github:reverb256/home-manager-config#{{host}}"
+    home-manager build --flake github:reverb256/home-manager-config#{{host}} 2>&1 | tail -20
 
 test-apply:
     #!/usr/bin/env bash

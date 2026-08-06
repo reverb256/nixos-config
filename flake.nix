@@ -154,12 +154,15 @@
       url = "path:/etc/nixos/pkgs/gitlawb";
     };
   };
+
   outputs =
     inputs@{ self, nixpkgs, home-manager, home-manager-config, aagl, nur, claude-native, colmena, nixpkgs-xr, ... }:
     inputs.flake-parts.lib.mkFlake { inherit inputs; } (
       { config, ... }:
       {
         systems = [ "x86_64-linux" ];
+
+
 
         imports = [
           # B namespace: class-checked flake.modules.nixos.* (self-registering
