@@ -119,6 +119,18 @@ in {
 
       # secretspec check is fully offline (reads local manifest + dotenv);
       # no network-online.target ordering needed.
+      #
+      # PATH must carry the sops CLI: the upstream secretspec sops provider
+      # (0.17.0) shells out to `sops` to decrypt YAML. Without this, systemd's
+      # default unit PATH omits it, `secretspec check` errors "sops not found",
+      # the unit fails, and every subsequent `nixos-rebuild switch` aborts
+      # during activation. age is included for the age-backed identity path.
+      path = [
+        pkgs.sops
+        pkgs.age
+        pkgs.coreutils
+      ];
+
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
