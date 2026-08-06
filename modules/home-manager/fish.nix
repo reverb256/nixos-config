@@ -91,7 +91,6 @@ in {
 
       alias swl "grim - | wl-copy"
       alias swlr 'grim -g (slurp) - | wl-copy'
-      alias killhypr "pkill Hyprland"
       alias restartwaybar "pkill waybar && waybar &"
     '';
 

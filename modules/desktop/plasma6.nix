@@ -293,8 +293,7 @@ in {
           "graphical-session.target"
         ];
         # Only run when Plasma is the active VT (tty1).
-        # When the user switches to niri (tty2) or hyprland (tty3),
-        # KWin loses DRM master and kscreen-doctor calls fail with
+        # When the user switches to niri (tty2), KWin loses DRM master and kscreen-doctor calls fail with
         # "Atomic modeset test failed: Permission denied".
         serviceConfig.ExecCondition = pkgs.writeShellScript "plasma-vt-check" ''
           ACTIVE_TTY=$(cat /sys/class/tty/tty0/active 2>/dev/null || echo tty0)
