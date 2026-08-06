@@ -147,7 +147,9 @@
       wheelNeedsPassword = false; # Passwordless sudo for wheel (CI/CD deployment)
     };
     # Disable traditional sudo in favor of sudo-rs (override users.nix)
-    sudo.enable = lib.mkForce false;
+    # Keep traditional sudo as fallback (setuid wrapper); sudo-rs is supplementary
+    sudo.enable = lib.mkDefault true;  # corrected below
+    security.sudo.enable = lib.mkForce false;
 
     # APPARMOR - Mandatory Access Control
     apparmor = {
