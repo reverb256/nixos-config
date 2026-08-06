@@ -31,6 +31,12 @@
     # SecretSpec Phase 4 credential provisioning
     ../../modules/system/secretspec-creds.nix
     ../../modules/system/secretspec-validator.nix
+
+    # Persistence (impermanence via preservation module). Previously UNIMPORTED,
+    # so /etc/ssh + age keys rotated on every rebuild (sentry host key was
+    # hand-rotated in ssh.nix:121 after a rebuild). Importing activates the
+    # /persistent symlinks below.
+    ./preservation.nix
   ];
 
   # ============================================================================
