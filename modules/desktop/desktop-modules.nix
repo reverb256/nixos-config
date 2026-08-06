@@ -32,6 +32,7 @@
   imports = [
     inputs.aagl.nixosModules.default
     ./aagl.nix
+    ./alacritty-system.nix
 
     {
       # Niri package overlay — desktop-only. The remaining cluster-wide
