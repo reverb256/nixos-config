@@ -2,8 +2,6 @@
   inputs,
   self,
 }: [
-  inputs.home-manager.nixosModules.home-manager
-  ./modules/system/home-manager.nix
   # Audit F-13 (2026-07-28): AAGL moved to
   # modules/desktop/desktop-modules.nix (loaded via
   # flake.nix `hosts.zephyr.extraModules` only).

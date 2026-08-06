@@ -163,12 +163,9 @@
     # The gpu-compute module provides cuda_cudart for basic CUDA runtime support
     # Re-add individual packages here if needed for specific ML workloads
     # ============================================================================
-    # pkgs.cudaPackages.cudatoolkit  # REMOVED: pulls in broken cuda_compat (Jetson-only)
-    # pkgs.cudaPackages.cudnn         # REMOVED: pulls in cuda_compat
-    # ... other CUDA packages removed for same reason
+    pkgs.cudaPackages.cuda_cudart
+    pkgs.cudaPackages.libcublas
 
-    # ============================================================================
-    # SYSTEM MANAGEMENT TOOLS
     # Required for system administration
     # ============================================================================
     nh
