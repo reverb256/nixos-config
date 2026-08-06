@@ -64,7 +64,6 @@ in {
         # max-jobs=2 here was the OOM root cause: a local `nix build`/`switch`
         # fell back to 2 local jobs and (doubled) blew past 31GB. Never build
         # on zephyr.          # forge removed 2026-07-29 (GPU miner — do not interrupt).
-
         if currentHost == "zephyr"
         then 0
         else if currentHost == "nexus"
@@ -123,8 +122,18 @@ in {
           fi
           ;;
       esac
-      exec nice -n 19 nix copy --to ssh://j_kro@nexus --substitute-on-destination $OUT_PATHS 2>/dev/null
+      # nexus is not always reachable (outage, rescue boot, reboot). Probe
+      # first and NEVER let the copy decide the hook's exit status: with the
+      # old `exec ... nix copy`, an unreachable nexus made every otherwise
+      # successful build report a post-build-hook failure. Explicit `exit 0`
+      # keeps cache-population strictly best-effort.
+      if ${pkgs.openssh}/bin/ssh -o BatchMode=yes -o ConnectTimeout=3 \
+           -o StrictHostKeyChecking=accept-new nexus true 2>/dev/null; then
+        nice -n 19 nix copy --to ssh://j_kro@nexus \
+          --substitute-on-destination $OUT_PATHS 2>/dev/null || true
+      fi
     fi
+    exit 0
   '';
 
   # ── cachix watch-store: continuous auto-push to reverb-os cachix ──
@@ -273,42 +282,44 @@ in {
           # Krig full-time, OOM protection in place. Adding build load
           # risks GPU contention or OOM-killing PeakMiner.
           machines = builtins.filter (m: m.hostName != currentHost) allMachines;
-          formatMachine = m: with builtins; let
-            # Join ALL systems with commas so the nix builder line advertises
-            # the supported x86_64-linux target.
-            allSystems = lib.concatStringsSep "," m.systems;
-            # Nix's machine parser (libstore/machines.cc) reads positions
-            # strictly as: URL systemTypes(comma-joined) sshKey maxJobs
-            # speedFactor supportedFeatures mandatoryFeatures. Earlier this
-            # function emitted space-separated systems + a tilde key path
-            # (`URL x86_64-linux ~/.ssh/...`), which pushed the
-            # sshKey into Nix's maxJobs slot and triggered
-            # `error: bad machine specification: failed to convert column
-            # #3 ... to 'unsigned int'` (2026-07-27 cluster-fix-batch,
-            # confirmed live 2026-08-01 on nexus's deployed machines file).
-            # Order corrected below; trailing empty `mandatoryFeatures`
-            # suppressed to avoid a trailing-empty column.
-            # Connection timing is controlled by Nix's global
-            # `connect-timeout` setting and the SSH config above. Keep this
-            # field limited to actual machine capability tags.
-            optFeatures = concatStringsSep "," m.supportedFeatures;
-            mandFeatures =
-              if m.mandatoryFeatures == [ ]
-              then "" else concatStringsSep "," m.mandatoryFeatures;
-          in
-            concatStringsSep " " [
-              ("${m.protocol or "ssh-ng"}://" + "${m.sshUser}@${m.hostName}")
-              allSystems
-              (
-                if m.sshKey != null
-                then m.sshKey
-                else "-"
-              )
-              (toString m.maxJobs)
-              (toString m.speedFactor)
-              optFeatures
-              mandFeatures
-            ];
+          formatMachine = m:
+            with builtins; let
+              # Join ALL systems with commas so the nix builder line advertises
+              # the supported x86_64-linux target.
+              allSystems = lib.concatStringsSep "," m.systems;
+              # Nix's machine parser (libstore/machines.cc) reads positions
+              # strictly as: URL systemTypes(comma-joined) sshKey maxJobs
+              # speedFactor supportedFeatures mandatoryFeatures. Earlier this
+              # function emitted space-separated systems + a tilde key path
+              # (`URL x86_64-linux ~/.ssh/...`), which pushed the
+              # sshKey into Nix's maxJobs slot and triggered
+              # `error: bad machine specification: failed to convert column
+              # #3 ... to 'unsigned int'` (2026-07-27 cluster-fix-batch,
+              # confirmed live 2026-08-01 on nexus's deployed machines file).
+              # Order corrected below; trailing empty `mandatoryFeatures`
+              # suppressed to avoid a trailing-empty column.
+              # Connection timing is controlled by Nix's global
+              # `connect-timeout` setting and the SSH config above. Keep this
+              # field limited to actual machine capability tags.
+              optFeatures = concatStringsSep "," m.supportedFeatures;
+              mandFeatures =
+                if m.mandatoryFeatures == []
+                then ""
+                else concatStringsSep "," m.mandatoryFeatures;
+            in
+              concatStringsSep " " [
+                ("${m.protocol or "ssh-ng"}://" + "${m.sshUser}@${m.hostName}")
+                allSystems
+                (
+                  if m.sshKey != null
+                  then m.sshKey
+                  else "-"
+                )
+                (toString m.maxJobs)
+                (toString m.speedFactor)
+                optFeatures
+                mandFeatures
+              ];
         in
           lib.concatStringsSep "\n" (map formatMachine machines) + "\n";
       };

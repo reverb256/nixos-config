@@ -17,6 +17,10 @@ on:
           - nixpkgs
           - all
 
+concurrency:
+  group: flake-update
+  cancel-in-progress: true
+
 permissions:
   contents: write
   pull-requests: write
