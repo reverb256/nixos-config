@@ -44,8 +44,8 @@
     # noctalia: now built-in to nixpkgs-unstable (programs.noctalia)
     # RGB control for peripherals and components
     ../../modules/hardware/rgb-control.nix
-    # PeakMiner GPU mining stack (zephyr local miners + auth-translator proxies)
-    ./peakminer.nix
+    # Krig (Kryptex PRL) GPU mining stack (zephyr local miners)
+    ./krig.nix
     # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
     ../../modules/services/bonsai.nix
 
@@ -313,6 +313,11 @@ programs.gitlawb.enable = false;
     # Control plane (k3s servers): nexus, forge, sentry (VIP 10.1.1.100).
     # No manifest auto-apply on zephyr -- only control-plane nodes do this.
     k8s-manifest-autoapply.enable = false;
+    # zephyr stays OFF k3s: the option is never imported (see
+    # tests/k3s-topology-evidence.nix). A dangling `k3s-cluster.enable =
+    # lib.mkForce false` here would reference a nonexistent option (k3s-cluster.nix
+    # is not in zephyr's imports chain) and break eval — absence of the import IS
+    # the guard.
 
     # Keepalived VIP lives on the k3s servers (nexus/forge/sentry), not zephyr.
     # Removed to stop the enp38s0 dual-IP collision that broke k3s startup.
@@ -344,19 +349,17 @@ programs.gitlawb.enable = false;
   services.cluster-ca.enable = true;
 
   # ============================================================================
-  # DESKTOP - Wayland compositors (select via SDDM session picker)
+  # DESKTOP - Wayland compositor (select via SDDM session picker)
   desktop.uwsm-sessions.enable = true;
   programs.niri.enable = true;
-  programs.hyprland.enable = true;
 
-  # Autologin into Niri on boot. To switch compositor, logout
-  # and pick from SDDM's session picker.
+  # Autologin into Niri on boot.
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "j_kro";
   # NOTE (2026-07-21, issue #300): upstream NixOS removed the bare
-  # `plasma` session name from the SDDM valid-session registry. The only
-  # active compositor is Niri (uwsm-managed); valid values are `niri-uwsm`
-  # and `niri`. Hyprland/Plasma are not used on this cluster.
+  # `plasma` session name from the SDDM valid-session registry. Niri
+  # (uwsm-managed) is the only active compositor on this cluster; the valid
+  # session value is `niri-uwsm` (also `niri`).
   services.displayManager.defaultSession = "niri-uwsm";
 
   # HARDWARE PROFILES
