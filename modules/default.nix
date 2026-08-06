@@ -25,7 +25,6 @@
     ./system/system-packages.nix
     ./system/nix-config.nix
     ./system/users.nix
-    ./system/home-manager.nix
     ./system/networking.nix
     ./system/ssh.nix
     ./system/ssh-ca.nix
@@ -78,10 +77,10 @@
     ./desktop/uwsm-sessions.nix
     ./desktop/systems-intelligence-plasmoid.nix
     ./desktop/niri.nix
+    ./desktop/alacritty-system.nix
 
     # Shell configuration
     # Fish system-level (PATH, packages): ./shell/fish.nix
-    # Fish user-level (aliases, prompt): Home Manager (./system/home-manager.nix)
     ./shell/bash.nix
     ./shell/fish.nix
 
