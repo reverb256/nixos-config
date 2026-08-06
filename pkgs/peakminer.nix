@@ -17,8 +17,15 @@ stdenv.mkDerivation {
   nativeBuildInputs = [autoPatchelfHook];
   buildInputs = [stdenv.cc.cc.lib];
 
+  # The release archive is a flat bundle whose only useful artifact is the
+  # root-level ELF binary. Extract it explicitly instead of relying on the
+  # generic unpacker, which rejects this archive layout.
+  unpackPhase = ''
+    tar -xzf "$src"
+  '';
+
   installPhase = ''
-    install -Dm755 peakminer $out/bin/peakminer
+    install -Dm755 ./peakminer "$out/bin/peakminer"
   '';
 
   meta = {
