@@ -6,7 +6,7 @@
   CACHIX_TOKEN = { path = "/run/secrets/cachix-token"; file = "ai/cachix-token.yaml"; owner = "root"; };
   CONTEXT7_API_KEY = { path = "/run/secrets/context7-api-key"; file = "ai/context7-api-key.yaml"; owner = "j_kro"; group = "users"; };
   EXA_API_KEY = { path = "/run/secrets/exa-api-key"; file = "ai/exa-api-key.yaml"; owner = "j_kro"; group = "users"; };
-  GEMINI_API_KEY = { path = "/run/secrets/gemini-api-key"; file = "ai/gemini-api-key.yaml"; owner = "j_kro"; group = "users"; };
+
   HERMES_API_SERVER_KEY = { path = "/run/secrets/hermes-api-server-key"; file = "ai/hermes-api-server-key.yaml"; owner = "j_kro"; group = "users"; };
   HERMES_WEBUI_PASSWORD = { path = "/run/secrets/hermes-webui-password"; file = "ai/hermes-webui-password.yaml"; owner = "root"; };
   HUGGINGFACE_TOKEN = { path = "/run/secrets/huggingface-token"; file = "ai/huggingface-token.yaml"; owner = "root"; };
