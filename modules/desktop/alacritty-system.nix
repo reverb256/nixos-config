@@ -49,7 +49,6 @@ lib.mkIf niriEnabled {
         --property=MemoryHigh=2G \
         --property=MemoryMax=4G \
         --property=OOMPolicy=continue \
-        --property=OOMScoreAdjust=-800 \
         -- alacritty "$@"
     '')
   ];
