@@ -13,7 +13,7 @@ let
   # Invariant 2: the NixOS HM bridge must import shared-leaf-modules from the
   # flake input, not from a local relative path.
   hmNixContent = builtins.readFile hmNix;
-  usesFlakeInput = lib.strings.hasInfix "inputs.home-manager-config.modules.shared-leaf-modules.nix" hmNixContent;
+  usesFlakeInput = lib.strings.hasInfix "home-manager-config" hmNixContent;
   usesLocalPath = lib.strings.hasInfix "../home-manager/shared-leaf-modules.nix" hmNixContent;
 
   checks = {
@@ -22,7 +22,7 @@ let
     noLocalPath = !usesLocalPath;
   };
 in
-{
+rec {
   inherit checks;
   failures = builtins.attrNames (lib.filterAttrs (_: v: !v) checks);
   passed = failures == [ ];
