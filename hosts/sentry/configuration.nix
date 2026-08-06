@@ -1,6 +1,6 @@
 # Sentry Host Configuration - Monitoring Server
 # 10.1.1.140 - 16 cores, RX 5600 XT
-# Features: Gaming only (no VR), CPU mining, ROCm
+# Features: Gaming only (no VR), CPU mining, Vulkan (ROCm disabled 2026-08-06)
 #
 # Module imports: Gaming, mining, monitoring, opencode are already imported
 # via commonModules in flake.nix (./modules/default.nix)
@@ -100,16 +100,20 @@
 
 
   # ============================================================================
-  # GPU COMPUTE - ROCm/Vulkan support for AI inference
+  # GPU COMPUTE - Vulkan support for AI inference
   # ============================================================================
+  # 2026-08-06: ROCm fully disabled. Removes rocm.enable (drops the gpu=amd
+  # k8s node label), the rocmPackages from the closure, and the profile's
+  # OpenCL-via-ROCm (amdgpu.opencl) which pulled rocmPackages.clr into
+  # hardware.graphics.extraPackages. Inference is Vulkan (RADV) only.
+  # Re-enable if ROCm/HIP compute returns.
   hardware.gpu-compute = {
     enable = true;
-    # autoDetect removed - not needed
-    # ROCm for AMD-specific compute (5600XT)
-    rocm.enable = true;
-    # Vulkan as universal backend
     vulkan.enable = true;
   };
+  # Kill the amdgpu profile's OpenCL enable (would re-add rocmPackages.clr
+  # via hardware.graphics.extraPackages).
+  hardware.amdgpu.opencl.enable = lib.mkForce false;
 
   # ============================================================================
   # SERVICES - All service configurations
@@ -349,40 +353,11 @@
     "panic_on_oops=0"
   ];
 
-  # Environment configuration
-  environment = {
-    # ROCm SETUP (for AMD GPU monitoring)
-    # Note: hardware.profiles.amdgpu.wayland sets ROC_ENABLE_PRE_VEGA=1 automatically
-    variables = {
-      LD_LIBRARY_PATH = lib.mkForce "${pkgs.rocmPackages.clr}/lib:${pkgs.rocmPackages.clr.icd}/lib:${pkgs.mesa.opencl}/lib";
-      OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
-    };
-
-    systemPackages = with pkgs; [
-      rocmPackages.rocm-smi
-      rocmPackages.rocminfo
-    ];
-  };
-
-  # 2026-08-06 recovery: drop rocblas/hipblas/rpp (Tensile multi-hour rebuild).
-  # llamafile is disabled; restore full math stack when inference returns.
-  systemd.tmpfiles.rules = let
-    rocmEnv = pkgs.symlinkJoin {
-      name = "rocm-combined";
-      paths = with pkgs.rocmPackages; [
-        clr
-        clr.icd
-        rocm-smi
-        rocminfo
-        rocm-runtime
-      ];
-    };
-  in [
+  # 2026-08-06: ROCm fully disabled — /opt/rocm symlinks removed with the
+  # ROCm packages. Re-add the rocmEnv symlinkJoin if ROCm returns.
+  systemd.tmpfiles.rules = [
     # Clean old etcd data directory before starting (NixOS-managed cleanup)
     "R /var/lib/etcd - - - - -"
-    # ROCm symlinks
-    "L+ /opt/rocm - - - - ${rocmEnv}"
-    "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
   ];
 
   # ============================================================================
@@ -399,17 +374,10 @@
   };
 
   programs = {
-    # 2026-08-06 recovery: omit rocblas/hipblas/hipsparse/rocfft/rocrand/rocthrust
-    # so the sentry closure does not force a Tensile source build. Re-add when
-    # services.llamafile is re-enabled.
+    # 2026-08-06: ROCm fully disabled — no rocmPackages referenced here
+    # (clr/clr.icd/rocminfo/rocm-smi/rocm-runtime removed with the math stack;
+    # amdgpu.opencl is also mkForce'd off so graphics.extraPackages stays clean).
     nix-ld.libraries = with pkgs; [
-      # AMD/ROCm runtime (no BLAS/FFT math stack)
-      rocmPackages.clr
-      rocmPackages.clr.icd
-      rocmPackages.rocminfo
-      rocmPackages.rocm-smi
-      rocmPackages.rocm-runtime
-
       # OpenCL
       ocl-icd
       opencl-headers
