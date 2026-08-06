@@ -6,7 +6,9 @@
   ...
 }: {
   imports = [
-    inputs.impermanence.nixosModules.impermanence
+    # Switched from inputs.impermanence (was never a flake input -> failed to eval)
+    # to inputs.preservation, now a valid flake input (nix-community/preservation).
+    inputs.preservation.nixosModules.preservation
   ];
 
   # Root filesystem is ephemeral BTRFS — only /persistent survives
