@@ -16,7 +16,10 @@
   # Guard the hermes wrapper symlink on this to avoid "attribute missing" errors.
   hasHermesCli = (builtins.tryEval options).value ? services.hermes-cli;
   # SINGLE SOURCE OF TRUTH for the user-env leaf set (issue #338).
-  shared = import ../home-manager/shared-leaf-modules.nix { inherit lib pkgs; };
+  # Imported from the home-manager-config flake input (reverb256/home-manager-config),
+  # NOT from a local copy. This is the only HM leaf module loaded directly here;
+  # everything else flows through shared.leafModules / shared.hostLeafModules.
+  shared = (import "${inputs.home-manager-config}/modules/shared-leaf-modules.nix" { inherit lib pkgs; });
 in
   lib.mkIf hasHM {
     home-manager = {
@@ -79,10 +82,10 @@ in
           ]
           ++ shared.leafModules
           ++ (shared.hostLeafModules.${hostName} or [])
-          # NixOS-coupled extras — NOT in shared leaf set (would break standalone).
-          # niri-config now lives SOLELY in home-manager-config (HM was extracted
-          # from nixos-config); do NOT re-import a duplicate copy here.
-          # (intentionally no niri-config.nix import)
+          # NixOS-coupled extras — NOT in shared leaf set (would break standalone):
+          # niri-config reads HM stylix + spawns noctalia via injected arg.
+          ++ lib.optional (hostName == "zephyr" || hostName == "sentry")
+          "${inputs.home-manager-config}/modules/niri-config.nix";
 
         # Stylix target empowerment (shared with standalone path).
         # Set ONLY stylix.targets here: the NixOS stylix module owns
