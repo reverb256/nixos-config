@@ -310,6 +310,11 @@
     # TAILSCALE
     tailscale.enable = true;
 
+    # Encrypted cross-session memory backend (Hermes MCP points MEMLAWB_URL
+    # here). Runs the memlawb fs-store server on :8080. Interim: app is the
+    # /persistent/memlawb git checkout until memlawb is Nix-packaged.
+    memlawb-server.enable = true;
+
     # Mount /etc/nixos from zephyr (single-source-of-truth)
 
     # Garage S3 disabled - using nexus as primary storage node
