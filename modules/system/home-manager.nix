@@ -79,10 +79,10 @@ in
           ]
           ++ shared.leafModules
           ++ (shared.hostLeafModules.${hostName} or [])
-          # NixOS-coupled extras — NOT in shared leaf set (would break standalone):
-          # niri-config reads HM stylix + spawns noctalia via injected arg.
-          ++ lib.optional (hostName == "zephyr" || hostName == "sentry")
-          ../../modules/home-manager/niri-config.nix;
+          # NixOS-coupled extras — NOT in shared leaf set (would break standalone).
+          # niri-config now lives SOLELY in home-manager-config (HM was extracted
+          # from nixos-config); do NOT re-import a duplicate copy here.
+          # (intentionally no niri-config.nix import)
 
         # Stylix target empowerment (shared with standalone path).
         # Set ONLY stylix.targets here: the NixOS stylix module owns
