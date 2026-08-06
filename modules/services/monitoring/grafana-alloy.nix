@@ -28,31 +28,29 @@ in {
     };
 
     environment.etc."alloy/config.alloy".text = ''
-      // Log collection from systemd journal
-      local.scrape "journal" {
-        targets = [
-          {__path__ = "/var/log/journal" }
-        ],
-        forward_to = [loki.write.endpoint.receiver];
+      // Log collection from the systemd journal
+      loki.source.journal "journal" {
+        forward_to = [loki.write.endpoint.receiver]
+        labels = {job = "systemd-journal"}
       }
 
-      // Log collection from Docker/Podman containers
+      // Log collection from Kubernetes/Podman container log files
       local.file_match "containers" {
-        paths = ["/var/log/pods/*/*/*.log"];
+        path_targets = [{__path__ = "/var/log/pods/*/*/*.log"}]
       }
 
-      local.scrape "containers" {
-        targets    = local.file_match.containers.targets;
-        forward_to = [loki.write.endpoint.receiver];
+      loki.source.file "containers" {
+        targets = local.file_match.containers.targets
+        forward_to = [loki.write.endpoint.receiver]
       }
 
       // Ship to central Loki
       loki.write "endpoint" {
         endpoint {
-          url = "${cfg.lokiUrl}";
-          labels = {
-            instance = "${config.networking.hostName}";
-          },
+          url = "${cfg.lokiUrl}"
+        }
+        external_labels = {
+          instance = "${config.networking.hostName}",
         }
       }
     '';

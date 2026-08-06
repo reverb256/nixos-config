@@ -3,13 +3,12 @@
   lib,
   inputs,
   self,
-  peakminerPkg,
   ...
 }: let
   # Guest for the KubeVirt "nexus-de" VM on nexus.
   # Reuses the SAME desktop + mining modules as the bare-metal hosts so the
   # 4K-TV experience is identical to zephyr. The GPU (RTX 3060 Ti) is VFIO-
-  # passed to this guest by the host, so niri drives the HDMI and peakminer
+  # passed to this guest by the host, so niri drives the HDMI and PeakMiner
   # mines on GPU 0 — both inside the guest (host mining on GPU0 moves here).
   #
   # Build + publish (run on zephyr after the KubeVirt stack is deployed):
@@ -18,8 +17,8 @@
   #   virtctl image-upload dv nexus-de-root -n nexus-de --size=60Gi \
   #     --image-path ./result/nexus-de-guest.qcow2
   #
-  # NOTE: module imports (niri.nix, wayland-compositor-common.nix,
-  # peakminer.nix) are supplied from flake.nix as absolute
+  # NOTE: module imports (niri.nix, wayland-compositor-common.nix,  #    peakminer.nix) are supplied from flake.nix as absolute
+
   # store paths — nixos-generators evaluates outside the flake dir, so this
   # file must NOT use relative imports. qemu-guest-agent is enabled via
   # services.qemuGuestAgent.enable (pulled in automatically).
@@ -44,8 +43,8 @@ in {
   # ── Mining inside the guest (continues on GPU 0) ───────────────────────
   #    We do NOT import modules/services/peakminer.nix: it uses a relative
   #    `../pkgs/peakminer.nix` import that breaks outside the host's import
-  #    context. Instead define the miner service inline using the overlaid
-  #    pkgs (pkgsWithOverlay.peakminer) passed via specialArgs. The 3060 Ti is
+  #    context. Instead define the miner service inline using the PeakMiner package
+  #    passed via specialArgs. The 3060 Ti is
   #    VFIO-passed to this guest, so GPU 0 here is the real card.
   systemd.services.nexus-peakminer = {
     description = "PeakMiner on RTX 3060 Ti (guest GPU 0)";
@@ -53,10 +52,29 @@ in {
     after = ["network-online.target"];
     wants = ["network-online.target"];
     serviceConfig = {
-      ExecStart = "${peakminerPkg}/bin/peakminer --wallet krxXVNVMM7 --server prl-us.kryptex.network:7048 --worker nexus-de-3060ti --devices 0 --legacy-auth";
+      ExecStart = pkgs.writeShellScript "nexus-peakminer" ''
+        set -euo pipefail
+        pools=(
+          stratum+tcp://prl-us.kryptex.network:7048
+          stratum+tcp://prl.kryptex.network:7048
+        )
+        while true; do
+          for pool in "''${pools[@]}"; do
+            ${pkgs.callPackage ../pkgs/peakminer.nix {}}/bin/peakminer \
+              --url "$pool" \
+              --user krxXVNVMM7/nexus-de-3060ti \
+              --password x \
+              --coin pearl \
+              --devices 0 \
+              --api-port 21551 \
+              --legacy-auth || true
+          done
+          sleep 5
+        done
+      '';
       Restart = "always";
       RestartSec = "10";
-      User = "j_kro";
+      User = "root";
     };
   };
 

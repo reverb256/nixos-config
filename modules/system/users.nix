@@ -31,7 +31,7 @@
     ];
     packages = with pkgs; (
       # Desktop apps only on hosts with a desktop environment
-      (lib.optionals (config.programs.niri.enable or false || config.services.desktopManager.plasma6.enable or false) [
+      (lib.optionals (config.programs.niri.enable or false) [
         kdePackages.kate
         kdePackages.yakuake
       ])
@@ -60,17 +60,26 @@
     TZ=America/Winnipeg
   '';
 
-  security.sudo-rs.extraRules = [
-    {
-      users = ["j_kro"];
-      commands = [
-        {
-          command = "ALL";
-          options = ["NOPASSWD"];
-        }
-      ];
-    }
-  ];
+  # Use sudo-rs consistently on every host. Keeping this in the shared user
+  # module prevents classic sudo from silently winning on hosts that do not
+  # import the larger Forge security profile.
+  security.sudo-rs = {
+    enable = true;
+    execWheelOnly = true;
+    wheelNeedsPassword = false;
+    extraRules = [
+      {
+        users = ["j_kro"];
+        commands = [
+          {
+            command = "ALL";
+            options = ["NOPASSWD"];
+          }
+        ];
+      }
+    ];
+  };
+  security.sudo.enable = false;
 
   users.groups.plugdev = {};
   users.groups.gamemode = {};

@@ -22,7 +22,8 @@
         179
         5473
         9100
-        9101 # Hermes agent Prometheus exporter
+        9101 # Legacy monitoring compatibility
+        # PeakMiner API ports are localhost-only in PeakMiner 2.8.0.
         1235 # llama-server (Qwen3.6-27B Dense + DFlash)
       ];
       # Workaround: list merge is broken for this host. Ensure critical ports via nft rules.

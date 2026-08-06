@@ -36,7 +36,6 @@
   # ============================================================================
   # DESKTOP — disabled for minimal headless recovery
   # ============================================================================
-  services.desktopManager.plasma6.enable = false;
 
   # CopyQ is a GUI clipboard manager (Qt6). Sentry is headless (no sddm,
   # no graphical-session.target), so CopyQ never runs — and pkgs.copyq pulls

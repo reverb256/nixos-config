@@ -5,10 +5,10 @@
 # compositor at a time).
 #
 # NVIDIA fixes (in other modules) prevent DRM issues:
-#   monitor-layout.nix — kscreen-doctor gated to active VT
+#   desktop-monitor.nix — kscreen-doctor gated to active VT
 #   (niri-settings.nix removed — render-drm-device/ignore-drm-device now live in
 #    home-manager-config/modules/niri-config.nix via programs.niri.settings)
-#   gpu-ready.nix   — systemd wait for DRM devices before display-manager
+#   desktop-monitor.nix — systemd GPU readiness before display-manager
 {
   lib,
   config,

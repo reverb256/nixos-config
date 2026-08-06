@@ -24,7 +24,7 @@
   # (exactly-one-host features) are nested imports here so their
   # flake.modules.nixos.* keys self-register.
   # zephyr's host-private features are already imported BY PATH inside
-  # hosts/zephyr/configuration.nix (peakminer.nix, desktop.nix, etc.) plus the
+  # hosts/zephyr/configuration.nix (desktop.nix, etc.) plus the
   # classic modules/default.nix registry, so no extra nested imports needed
   # until the ~90 shared-file wraps land (structure-first, shared-files-last).
 

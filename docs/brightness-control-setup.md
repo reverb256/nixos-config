@@ -84,20 +84,20 @@ Your existing scripts work perfectly:
 ~/.local/share/applications/apply-monitors.sh
 
 # Or run the NixOS-provided script directly
-plasma-monitor-setup
+niri-monitor-setup
 ```
 
 ## NixOS Display Configuration
 
 Your NixOS setup includes:
 
-1. **`/etc/nixos/modules/desktop/plasma6.nix`**
-   - Monitor setup script (`plasma-monitor-setup`)
+1. **`/etc/nixos/modules/desktop/desktop-monitor.nix`**
+   - Monitor setup script (`niri-monitor-setup`)
    - TV monitor daemon (`tv-monitor-daemon`)
    - KScreen configuration
 
 2. **Systemd Services:**
-   - `plasma-monitor-setup.service` - Runs at login
+   - `niri-monitor-setup.service` - Runs at login
    - `plasma-kscreen.service` - Active and running
    - `tv-monitor-daemon` - Autostart at login
 
@@ -143,7 +143,7 @@ ddcutil --bus 8 getvcp 10  # ASUS
 ddcutil --bus 10 getvcp 10 # Acer
 
 # Restart monitor setup
-systemctl --user restart plasma-monitor-setup
+systemctl --user restart niri-monitor-setup
 ```
 
 ## Summary

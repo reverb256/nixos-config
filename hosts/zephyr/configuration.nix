@@ -44,7 +44,7 @@
     # noctalia: now built-in to nixpkgs-unstable (programs.noctalia)
     # RGB control for peripherals and components
     ../../modules/hardware/rgb-control.nix
-    # PeakMiner (Kryptex PRL) GPU mining stack (Zephyr local miners)
+    # PeakMiner GPU mining stack (Zephyr NVIDIA GPUs, Kryptex plain TCP)
     ./peakminer.nix
     # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
     ../../modules/services/bonsai.nix
@@ -57,8 +57,8 @@
   # GITLAWB — self-hosted decentralized git client + remote helper
   # ============================================================================
   # 2026-07-29: Temporarily disabled — gitlawb-0.7.0 tarball hash mismatch
-# on this build. Will re-enable when upstream is stable.
-programs.gitlawb.enable = false;
+  # on this build. Will re-enable when upstream is stable.
+  programs.gitlawb.enable = false;
 
   # ============================================================================
   # HOST IDENTIFICATION
@@ -169,7 +169,7 @@ programs.gitlawb.enable = false;
       "--avoid"
       "(niri|noctalia|zen|spotify|vesktop|opencode|hermes|Xwayland|pipewire|steam|GameThread|REDprelauncher)"
       # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
-  ];
+    ];
   };
 
   # ------------------------------------------------------------------
@@ -205,7 +205,7 @@ programs.gitlawb.enable = false;
         50000 # Nix binary cache server
         9100 # Prometheus node-exporter
         # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
-  ];
+      ];
       allowedUDPPorts = [
         9757 # WiVRn
         9758 # WiVRn
@@ -217,21 +217,21 @@ programs.gitlawb.enable = false;
         8472 # VXLAN (Calico)
         4789 # VXLAN (Calico)
         # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
-  ];
+      ];
       interfaces = {
         # mDNS restricted to LAN interface only (not 0.0.0.0)
         "tailscale0".allowedTCPPorts = [
           18789
           18790
           # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
-  ];
-    
+        ];
+
         "enp38s0".allowedTCPPorts = [
           111
           2049
           20048
           # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
-  ];
+        ];
       };
     };
   };
@@ -313,11 +313,6 @@ programs.gitlawb.enable = false;
     # Control plane (k3s servers): nexus, forge, sentry (VIP 10.1.1.100).
     # No manifest auto-apply on zephyr -- only control-plane nodes do this.
     k8s-manifest-autoapply.enable = false;
-    # zephyr stays OFF k3s: the option is never imported (see
-    # tests/k3s-topology-evidence.nix). A dangling `k3s-cluster.enable =
-    # lib.mkForce false` here would reference a nonexistent option (k3s-cluster.nix
-    # is not in zephyr's imports chain) and break eval — absence of the import IS
-    # the guard.
 
     # Keepalived VIP lives on the k3s servers (nexus/forge/sentry), not zephyr.
     # Removed to stop the enp38s0 dual-IP collision that broke k3s startup.
@@ -349,17 +344,18 @@ programs.gitlawb.enable = false;
   services.cluster-ca.enable = true;
 
   # ============================================================================
-  # DESKTOP - Wayland compositor (select via SDDM session picker)
+  # DESKTOP - Wayland compositors (select via SDDM session picker)
   desktop.uwsm-sessions.enable = true;
   programs.niri.enable = true;
 
-  # Autologin into Niri on boot.
+  # Autologin into Niri (niri-uwsm) on boot.
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "j_kro";
   # NOTE (2026-07-21, issue #300): upstream NixOS removed the bare
-  # `plasma` session name from the SDDM valid-session registry. Niri
-  # (uwsm-managed) is the only active compositor on this cluster; the valid
-  # session value is `niri-uwsm` (also `niri`).
+  # `plasma` session name from the SDDM valid-session registry. Valid
+  # values are now `niri-uwsm` and `niri`. Uswm-managed Niri is the
+  # currently active desktop on Zephyr (see desktop.nix) so keep
+  # `niri-uwsm` as the default.
   services.displayManager.defaultSession = "niri-uwsm";
 
   # HARDWARE PROFILES
@@ -421,13 +417,13 @@ programs.gitlawb.enable = false;
       "ssd"
       "discard=async"
       # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
-  ];
+    ];
     "/home".options = lib.mkOptionDefault [
       "compress=zstd:3"
       "ssd"
       "discard=async"
       # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
-  ];
+    ];
   };
 
   # ============================================================================
@@ -456,7 +452,7 @@ programs.gitlawb.enable = false;
     kernelModules = [
       "nvidia_uvm" # Unified Memory (CRITICAL for multi-GPU!)
       # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
-  ];
+    ];
 
     extraModprobeConfig = ''
       options nvidia NVreg_EnableBacklightHandler=1
@@ -486,7 +482,7 @@ programs.gitlawb.enable = false;
       "ipx"
       "decnet"
       # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
-  ];
+    ];
 
     # Zephyr-specific kernel params for gaming
     # (Note: hardware.profiles.amd.zen adds split_lock_detect, threadirqs, preempt)
@@ -499,7 +495,7 @@ programs.gitlawb.enable = false;
       "btrfs.commit_interval=300" # From btrfs-tuning module
       "nvidia.NVreg_RegistryDwords=EnableBrightnessControl=1" # Enable laptop brightness control
       # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
-  ];
+    ];
   };
 
   # ============================================================================
@@ -512,8 +508,15 @@ programs.gitlawb.enable = false;
   # No additional role profiles needed - all handled by node profile
 
   # Note: profiles.role.gaming enables services.gaming automatically
-  # NOTE: Distributed builds configured in modules/system/distributed-builds.nix
-  # Do not override here to avoid conflicts
+  # Zephyr builds locally on the workstation; do not dispatch builds to
+  # the cluster. The shared distributed-builds module provides the fleet
+  # defaults, so these host-level values intentionally use mkForce.
+  nix.distributedBuilds = lib.mkForce false;
+  # mkOverride 40 is stronger than the shared module's mkForce (priority 50)
+  # and nix-safety's ordinary assignment, avoiding an equal-priority conflict.
+  nix.settings.builders = lib.mkOverride 40 "";
+  nix.settings.max-jobs = lib.mkOverride 40 6;
+
 
   # ============================================================================
   # SERVICES - Consolidated service configuration
@@ -651,11 +654,9 @@ programs.gitlawb.enable = false;
     #   adminListenAddress = "127.0.0.1";  # Localhost only for systemd
     # };
 
-
     # Redis - For gateway rate limiting and caching
     redis.servers."".enable = true;
     # Note: redis-ai-gateway.service already provides Redis on port 6380
-
 
     # MCP Servers for AI tools
     mcp-servers = {
@@ -681,7 +682,7 @@ programs.gitlawb.enable = false;
         "npm:pi-web-access@0.10.6"
         "npm:pi-worktree@1.3.3"
         # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
-  ];
+      ];
     };
 
     # WEB TESTING - Playwright/Puppeteer system dependencies
@@ -690,14 +691,19 @@ programs.gitlawb.enable = false;
     # CI/CD - Self-hosted GitHub Actions runner
     secretspec-creds = {
       enable = true;
+      ageKeyFile = "/home/j_kro/.config/sops/age/keys-combined.txt";
       secrets = import ./secretspec-creds-wiring.nix;
     };
 
     # hosts/zephyr/services.nix is NOT imported — enable here
     secretspec-validator = {
       enable = true;
+      ageKeyFile = "/home/j_kro/.config/sops/age/keys-combined.txt";
       production = true;
-      failOnMissing = true;
+      # Zephyr provisions the host-required subset; the full cluster manifest
+      # also contains credentials owned by Nexus/Kubernetes workloads.
+      # Keep validation visible without blocking every NixOS activation.
+      failOnMissing = false;
     };
     ci-runner = {
       enable = false;
@@ -721,14 +727,8 @@ programs.gitlawb.enable = false;
       autoUpdate = true;
     };
 
-    # NOTE (2026-07-21, issue #300): GPU mining was migrated to the
-    # peakminer K8s deployment long ago — see hosts/zephyr/peakminer.nix
-    # and kubernetes/modules/profit-switcher.nix. The legacy
-    # `services.mining` block (with Kryptex fallback pools) was held over
-    # here as a no-op placeholder; per cluster-wide directional decision
-    # the block is removed entirely. Cluster coordinate with peakminer
-    # is handled exclusively through `services.mining-coordinator` below.
-
+    # Krig owns local GPU mining; the inference coordinator pauses the primary
+    # Krig unit when llama-server or ComfyUI needs the 3090.
   };
 
   # ============================================================================
@@ -786,7 +786,7 @@ programs.gitlawb.enable = false;
     owner = "root";
     group = "root";
   };
-    # AI INFERENCE SERVICE - Gateway with authentication and metrics
+  # AI INFERENCE SERVICE - Gateway with authentication and metrics
   # Gateway routes to various backends (ZAI, vLLM, llama.cpp, etc.)
   # Gateway: OpenAI-compatible API on port 8080
   # ============================================================================

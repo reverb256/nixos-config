@@ -4,8 +4,7 @@
 # and the shared session environment used by the niri-uwsm compositor on all
 # desktop hosts. KDE Plasma is not used on this cluster; its (previously
 # gated) configuration has been removed. Monitor/TV management lives in
-# modules/desktop/monitor-layout.nix and tv-power.nix; GPU boot readiness in
-# gpu-ready.nix.
+# modules/desktop/desktop-monitor.nix.
 { pkgs, lib, config, ... }: {
   services = {
     xserver = {

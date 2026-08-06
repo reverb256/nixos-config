@@ -217,8 +217,22 @@ in {
       wantedBy = [ "multi-user.target" ];
       after = [ "libvirtd.service" ];
       script = ''
-        ${pkgs.libvirt}/bin/virsh define /etc/libvirt/qemu/gamepass-win11.xml
+        set -euo pipefail
+        xml=/etc/libvirt/qemu/gamepass-win11.xml
+        if ${pkgs.libvirt}/bin/virsh dominfo gamepass-win11 >/dev/null 2>&1; then
+          # The declared XML intentionally omits libvirt's generated UUID.
+          # Reuse the existing UUID so `define` updates the domain instead of
+          # attempting to create a second domain with the same name.
+          uuid=$(${pkgs.libvirt}/bin/virsh domuuid gamepass-win11)
+          tmp=$(mktemp)
+          trap 'rm -f "$tmp"' EXIT
+          ${pkgs.gnused}/bin/sed "/<name>gamepass-win11<\\/name>/a\\    <uuid>$uuid</uuid>" "$xml" > "$tmp"
+          ${pkgs.libvirt}/bin/virsh define "$tmp"
+        else
+          ${pkgs.libvirt}/bin/virsh define "$xml"
+        fi
       '';
+      path = [pkgs.coreutils pkgs.gnused pkgs.libvirt];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;

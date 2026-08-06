@@ -38,29 +38,6 @@ in {
 
     # Agent network restrictions — restrict AI agents to allowed destinations only
 
-
-
-    srbminer = {
-      enable = true;
-      instances = [
-        {
-          name = "4060-0";
-          gpuId = 0;
-          wallet = "krxXVNVMM7.forge-4060-0";
-          apiPort = 21550;
-          powerLimit = 105;
-        }
-        {
-          name = "4060-1";
-          gpuId = 1;
-          wallet = "krxXVNVMM7.forge-4060-1";
-          apiPort = 21551;
-          powerLimit = 105;
-        }
-      ];
-    };
-
-
     nixos-auto-update = {
       enable = true;
       interval = "daily";

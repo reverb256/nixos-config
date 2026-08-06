@@ -67,26 +67,6 @@ in {
       checkInterval = 10;
     };
 
-    lpminer = {
-      enable = true;
-      instances = [
-        {
-          name = "3060ti";
-          gpuId = 0;
-          wallet = "krxXVNVMM7.zephyr-3060ti";
-          powerLimit = 100;
-          pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
-        }
-        {
-          name = "3090";
-          gpuId = 1;
-          wallet = "krxXVNVMM7.zephyr-3090";
-          powerLimit = 150;
-          pool = "stratum+ssl://prl-us.kryptex.network:8048,stratum+ssl://prl.kryptex.network:8048";
-        }
-      ];
-    };
-
     opencode = {
       enable = true;
       clusterSync.enable = false; # skip SSH sync to cluster nodes on every activation

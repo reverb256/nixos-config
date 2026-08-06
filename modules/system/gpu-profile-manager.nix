@@ -198,10 +198,9 @@
                   return
               fi
 
-              # Local peakminer systemd units count as active mining workload.
-              # When any peakminer-* process is running, lock the mining profile and
-              # hand power/clock control to peakminer (or to the mining profile below
-              # on hosts where peakminer powerLimit is null).
+              # Local PeakMiner systemd units count as active mining workload.
+              # When PeakMiner is running, lock the mining profile and hand power/clock
+              # control to the mining profile below.
               if pgrep -x peakminer >/dev/null 2>&1; then
                   echo "mining"
                   return

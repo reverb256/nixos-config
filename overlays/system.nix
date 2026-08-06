@@ -2,10 +2,9 @@
 {
   gputemps = prev.callPackage ../packages/gputemps.nix {};
   lmstudio = prev.callPackage ../packages/lmstudio.nix {};
-  srbminer-multi = prev.callPackage ../packages/srbminer.nix {};
-  lpminer-pearl = prev.callPackage ../packages/lpminer.nix {};
   peakminer = prev.callPackage ../pkgs/peakminer.nix {};
-  secretspec = prev.secretspec; # from nixos-unstable (main nixpkgs)
+  secretspec = prev.callPackage ../pkgs/secretspec {inherit inputs;};
+  secretspec-provider-sops = prev.callPackage ../pkgs/secretspec-provider-sops {inherit inputs;};
   haven-desktop = prev.callPackage ../packages/haven-desktop.nix {};
   kokoro-tts = prev.callPackage ../packages/kokoro-tts.nix {};
   chatterbox-tts = prev.callPackage ../packages/chatterbox-tts.nix {};
