@@ -72,7 +72,10 @@
     ./desktop/wayland-common.nix
     ./desktop/wayland-compositor-common.nix
     ./desktop/flatpak.nix
-    ./desktop/plasma6.nix
+    ./desktop/gpu-ready.nix
+    ./desktop/monitor-layout.nix
+    ./desktop/tv-power.nix
+    # ./desktop/plasma6.nix  — REMOVED: KDE Plasma not used (Niri-only cluster); logic split into gpu-ready/monitor-layout/tv-power
     # ./desktop/hyprland.nix  — REMOVED: Hyprland not used on this cluster (Niri-only)
     ./desktop/uwsm-sessions.nix
     ./desktop/systems-intelligence-plasmoid.nix
