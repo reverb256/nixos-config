@@ -65,18 +65,14 @@ in {
     inputs.claude-native.packages.x86_64-linux.claude
   ];
 
+  # 2026-08-06 recovery: rocblas/hipblas/hipsparse/rocfft/rocrand/rocthrust
+  # dropped (Tensile multi-hour build); forge mining needs OpenCL only.
   programs.nix-ld.libraries = with pkgs; [
     rocmPackages.clr
     rocmPackages.clr.icd
     rocmPackages.rocminfo
     rocmPackages.rocm-smi
     rocmPackages.rocm-runtime
-    rocmPackages.rocblas
-    rocmPackages.hipblas
-    rocmPackages.hipsparse
-    rocmPackages.rocfft
-    rocmPackages.rocrand
-    rocmPackages.rocthrust
     ocl-icd
     opencl-headers
     clinfo

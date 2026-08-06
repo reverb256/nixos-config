@@ -583,12 +583,12 @@
     tmpfiles.rules = let
       rocmEnv = pkgs.symlinkJoin {
         name = "rocm-combined";
+        # 2026-08-06 recovery: drop rocblas/hipblas/rpp (Tensile multi-hour
+        # rebuild). Mining uses OpenCL (clr) only; restore the math stack if
+        # ROCm compute ever returns to forge.
         paths = with pkgs.rocmPackages; [
           clr
           clr.icd
-          rocblas
-          hipblas
-          rpp
         ];
       };
     in [
@@ -637,18 +637,13 @@
 
   programs = {
     nix-ld.libraries = with pkgs; [
-      # AMD/ROCm libraries
+      # AMD/ROCm runtime + tools (no BLAS/FFT math stack — 2026-08-06 slimming;
+      # mining/lolMiner needs OpenCL (clr), monitoring needs rocm-smi/rocminfo)
       rocmPackages.clr
       rocmPackages.clr.icd
       rocmPackages.rocminfo
       rocmPackages.rocm-smi
       rocmPackages.rocm-runtime
-      rocmPackages.rocblas
-      rocmPackages.hipblas
-      rocmPackages.hipsparse
-      rocmPackages.rocfft
-      rocmPackages.rocrand
-      rocmPackages.rocthrust
       # OpenCL
       ocl-icd
       opencl-headers
