@@ -32,7 +32,7 @@ in {
       local.scrape "journal" {
         targets = [
           {__path__ = "/var/log/journal" }
-        ];
+        ],
         forward_to = [loki.write.endpoint.receiver];
       }
 
@@ -52,7 +52,7 @@ in {
           url = "${cfg.lokiUrl}";
           labels = {
             instance = "${config.networking.hostName}";
-          };
+          },
         }
       }
     '';
