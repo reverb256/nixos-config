@@ -6,7 +6,8 @@
 #
 # NVIDIA fixes (in other modules) prevent DRM issues:
 #   plasma6.nix      — kscreen-doctor gated to active VT
-#   niri-settings.nix — render-drm-device, ignore-drm-device
+#   (niri-settings.nix removed — render-drm-device/ignore-drm-device now live in
+#    home-manager-config/modules/niri-config.nix via programs.niri.settings)
 #   hyprland.nix     — WLR_DRM_DEVICES=/dev/dri/card2
 {
   lib,

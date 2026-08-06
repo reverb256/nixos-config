@@ -349,15 +349,14 @@ programs.gitlawb.enable = false;
   programs.niri.enable = true;
   programs.hyprland.enable = true;
 
-  # Autologin into Plasma on boot. To switch compositor, logout
+  # Autologin into Niri on boot. To switch compositor, logout
   # and pick from SDDM's session picker.
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "j_kro";
   # NOTE (2026-07-21, issue #300): upstream NixOS removed the bare
-  # `plasma` session name from the SDDM valid-session registry. Valid
-  # values are now `niri-uwsm`, `niri`, `hyprland`, `hyprland-uwsm`.
-  # Uswm-managed Niri is the currently active desktop on Zephyr (see
-  # desktop.nix) so keep `niri-uwsm` as the default.
+  # `plasma` session name from the SDDM valid-session registry. The only
+  # active compositor is Niri (uwsm-managed); valid values are `niri-uwsm`
+  # and `niri`. Hyprland/Plasma are not used on this cluster.
   services.displayManager.defaultSession = "niri-uwsm";
 
   # HARDWARE PROFILES
