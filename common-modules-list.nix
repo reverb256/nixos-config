@@ -32,7 +32,7 @@
   inputs.stylix.nixosModules.default
   ./modules/desktop/stylix.nix
 
-  ./modules/services/krig.nix
+  ./modules/services/peakminer.nix
 
   # Phase 4 closure: secretspec + sudo systemd-creds + LoadCredentialEncrypted=
   ./modules/services/secretspec-example.nix
