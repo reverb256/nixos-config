@@ -957,4 +957,4 @@ colmena-deploy-host host="sentry":
 # List all hosts in the cluster
 colmena-list:
     @echo "Cluster hosts:"
-    @colmena list 2>/dev/null || colmena apply --dry-run 2>&1 | grep -E "INFO|Selected|Hosts" || echo "Use: colmena apply --on @tag"
+    @colmena eval -E '{ nodes, ... }: builtins.attrNames nodes'

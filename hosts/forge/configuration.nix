@@ -23,12 +23,25 @@
     device = "/dev/disk/by-partlabel/disk-sdb-root";
     fsType = "btrfs";
     neededForBoot = true;
-    options = [ "subvol=@nix" "compress=zstd:3" "ssd" "discard=async" "noatime" "rw" "x-initrd.mount" ];
+    options = ["subvol=@nix" "compress=zstd:3" "ssd" "discard=async" "noatime" "rw" "x-initrd.mount"];
   };
   fileSystems."/tmp" = lib.mkForce {
     fsType = "tmpfs";
-    options = [ "size=2G" "mode=1777" ];
+    options = ["size=2G" "mode=1777"];
   };
+
+  # Forge is a headless GPU mining + k3s node: no printer, no scanner, no
+  # display. modules/system/boot-error-fixes.nix force-mirrors
+  # services.printing.enable from this flag and defaults it true, so every
+  # host gets CUPS. On forge cupsd spins at ~100% of one core logging
+  # `Directory ".../cups-progs/lib/cups/notifier" has insecure permissions
+  # (041777/uid=0/gid=0)`. The tmpfiles rule in that module targets
+  # notifier/dbus, not the parent notifier dir, so it does not clear the
+  # loop; cups.service then sits in `activating` and BLOCKS
+  # switch-to-configuration (observed 2026-08-06, job 13758574 -- the
+  # profile was repointed to gen 90 while gen 88 stayed live). Cores here
+  # belong to the miners. Matches hosts/sentry/configuration.nix:474.
+  services.boot-error-fixes.includePrinting = lib.mkForce false;
 
   # FORGE MEMORY TUNING - 15GB RAM with mining + desktop + K8s
 
@@ -88,7 +101,6 @@
     # SecretSpec Phase 4 credential provisioning
     ../../modules/system/secretspec-creds.nix
     ../../modules/system/secretspec-validator.nix
-
   ];
 
   # NETWORKING CONFIGURATION
@@ -157,7 +169,6 @@
   # SERVICES CONFIGURATION
 
   services = {
-
     k3s-cluster = {
       enable = true;
       nvidia.enable = true;
@@ -184,7 +195,6 @@
 
     # KUBERNETES - k3s agent (worker only)
     # Joins cluster via VIP for HA
-
   };
 
   # HARDWARE PROFILES

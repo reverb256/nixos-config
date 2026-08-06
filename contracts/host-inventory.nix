@@ -14,13 +14,13 @@
       targetUser = "j_kro";
       buildOnTarget = false;
       allowLocalDeployment = false;
-      tags = [ "control-plane" "k8s-master" "k8s-node" "local" "desktop" ];
+      tags = ["control-plane" "k8s-master" "k8s-node" "local" "desktop"];
       system = "x86_64-linux";
       memoryMiB = 31744;
-      capabilities = [ "workstation" "development" "gaming" "nvidia" "k3s-excluded" ];
+      capabilities = ["workstation" "development" "gaming" "nvidia" "k3s-excluded"];
       ipAddress = "10.1.1.110";
       interfaceName = "enp38s0";
-      extraModules = [ ../modules/desktop/desktop-modules.nix ];
+      extraModules = [../modules/desktop/desktop-modules.nix];
     };
 
     nexus = {
@@ -29,28 +29,34 @@
       targetUser = "j_kro";
       buildOnTarget = false;
       allowLocalDeployment = true;
-      tags = [ "storage" "k8s-worker" "k8s-storage" "nvidia-gpu" "remote" ];
+      tags = ["storage" "k8s-worker" "k8s-storage" "nvidia-gpu" "remote"];
       system = "x86_64-linux";
       memoryMiB = 47104;
-      capabilities = [ "storage" "builder" "deployment-dispatcher" "nvidia" "k3s-server" ];
+      capabilities = ["storage" "builder" "deployment-dispatcher" "nvidia" "k3s-server"];
       ipAddress = "10.1.1.120";
       interfaceName = "eth0";
-      extraModules = [ ];
+      extraModules = [];
     };
 
     forge = {
       hostName = "forge";
       targetHost = "10.1.1.130";
       targetUser = "j_kro";
-      buildOnTarget = false;
+      # Build forge's closure ON forge. zephyr is max-jobs=0 (OOM guard in
+      # modules/system/distributed-builds.nix) and the builder set is nexus
+      # (down) + sentry, so a build-elsewhere forge deploy has no builder and
+      # hangs. forge is the target anyway, so this also skips the closure
+      # copy-back. Miners are ~350MB RSS; the constraint is CPU (6 physical
+      # cores), which Nix's own max-jobs on forge bounds.
+      buildOnTarget = true;
       allowLocalDeployment = false;
-      tags = [ "gpu" "compute" "k8s-worker" "k8s-gpu-mixed" "remote" ];
+      tags = ["gpu" "compute" "k8s-worker" "k8s-gpu-mixed" "remote"];
       system = "x86_64-linux";
       memoryMiB = 15360;
-      capabilities = [ "gpu" "compute" "mining" "nvidia" "amd" "k3s-server" ];
+      capabilities = ["gpu" "compute" "mining" "nvidia" "amd" "k3s-server"];
       ipAddress = "10.1.1.130";
       interfaceName = "eno1";
-      extraModules = [ ];
+      extraModules = [];
     };
 
     sentry = {
@@ -59,13 +65,13 @@
       targetUser = "j_kro";
       buildOnTarget = false;
       allowLocalDeployment = false;
-      tags = [ "monitoring" "k8s-worker" "k8s-gpu-amd" "remote" ];
+      tags = ["monitoring" "k8s-worker" "k8s-gpu-amd" "remote"];
       system = "x86_64-linux";
       memoryMiB = 31744;
-      capabilities = [ "monitoring" "builder" "amd" "k3s-server" ];
+      capabilities = ["monitoring" "builder" "amd" "k3s-server"];
       ipAddress = "10.1.1.140";
       interfaceName = "enp7s0";
-      extraModules = [ ];
+      extraModules = [];
     };
   };
 }
