@@ -73,8 +73,8 @@
     ../../modules/hardware/rgb-control.nix
     ../../modules/system/security.nix
     ../../modules/services/podman-support.nix
-    # PeakMiner GPU mining stack
-    ./peakminer.nix
+    # Krig (Kryptex PRL) GPU mining stack
+    ./krig.nix
     # Kubernetes worker node
     ../../modules/services/k3s-cluster.nix
     # Bonsai 27B: ternary (when GPU idle, port 8005), 1-bit (port 8002)
