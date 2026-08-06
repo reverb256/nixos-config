@@ -177,7 +177,8 @@
     # KDE Plasma and Wayland system packages
     # NOTE: Removed qtstyleplugin-kvantum and qt6ct - they cause crashes with
     # Plasma 6 Wayland on NVIDIA. Using Breeze (native KDE style) instead.
-    # NOTE: KDE GUI packages moved to plasma6.nix to avoid duplication
+    # NOTE: KDE GUI packages moved to monitor-layout.nix (ddcutil/libnotify)
+    # to keep them with the monitor-setup script that uses them.
     # ============================================================================
     xdg-desktop-portal
     flatpak

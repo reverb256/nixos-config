@@ -7,8 +7,18 @@ HDR support, and application integration across the cluster.
 
 | Module | Purpose | Used By |
 |--------|---------|---------|
+<<<<<<< Updated upstream
 | `desktop.nix` | Desktop integration: XWayland, monitor auto-setup, dbus/polkit | All desktop hosts |
 | `plasma6.nix` | KDE Plasma 6 module (currently disabled cluster-wide; `desktopManager.plasma6.enable = false`) | None (disabled) |
+||||||| Stash base
+| `desktop.nix` | Plasma 6 Wayland with XWayland fallback, monitor auto-setup | All desktop hosts |
+| `plasma6.nix` | KDE Plasma 6 environment, kscreen monitor setup | All desktop hosts |
+=======
+| `desktop.nix` | Desktop integration: XWayland, monitor auto-setup, dbus/polkit | All desktop hosts |
+| `gpu-ready.nix` | GPU DRM-wait boot service (display-manager readiness) | All desktop hosts |
+| `monitor-layout.nix` | kscreen-doctor monitor layout + TV HDR (non-sentry desktop hosts) | Zephyr, Forge, Nexus |
+| `tv-power.nix` | TV power-state daemon (non-sentry desktop hosts) | Zephyr, Forge, Nexus |
+>>>>>>> Stashed changes
 | `wayland-common.nix` | Shared PipeWire, Bluetooth, libinput, dbus-broker | All desktop hosts |
 | `wayland-compositor-common.nix` | Shared compositor packages (noctalia, cliphist) | Niri hosts |
 | `uwsm-sessions.nix` | UWSM session wrapper for SDDM compositor selection | Niri hosts |
