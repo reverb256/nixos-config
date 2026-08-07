@@ -34,7 +34,12 @@ niri-unstable.overrideAttrs (old: {
     hash = "sha256-Y8X2bTuboCAQ9E67ri9kTMkzBYU+1o3iCHCOVWctxLo=";
   };
 
-  # Replace the fork's path-based smithay [patch] with a git-based one.
+  # Replace the fork's path-based smithay [patch] with a git-based one, and
+  # swap the stale committed Cargo.lock for the regenerated one (git smithay
+  # entries). The Cargo.lock copy MUST happen here: nixpkgs'
+  # cargoSetupPostPatchHook (runs after patchPhase) diffs the source
+  # Cargo.lock against the vendored one from importCargoLock — a stale lock
+  # fails the build with "Cargo.lock is not the same in /build/cargo-vendor-dir".
   postPatch = (old.postPatch or "") + ''
     # Remove the path-based [patch] section and add git-based one
     sed -i '/^\[patch.*\]/,/^\[/d' Cargo.toml
@@ -43,6 +48,8 @@ niri-unstable.overrideAttrs (old: {
 smithay = { git = "https://github.com/dividebysandwich/smithay", rev = "57c805c8e6d0b34601b07d89053b376905008d8a" }
 smithay-drm-extras = { git = "https://github.com/dividebysandwich/smithay", rev = "57c805c8e6d0b34601b07d89053b376905008d8a" }
 GOPHER
+    # Overwrite the fork's stale lock with the regenerated one (git smithay)
+    cp ${./niri-hdr-Cargo.lock} Cargo.lock
   '';
 
   # Regenerated Cargo.lock (2026-08-07): the fork's committed lock is stale
