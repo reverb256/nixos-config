@@ -1,4 +1,19 @@
 { pkgs, lib, config, ... }:
+let
+  # Per-host base16 palettes. Single source of truth for the cluster's
+  # distinct color identities (bootloader -> console/TTY -> SSH shell -> DE).
+  # Each host mkForce's `stylix.base16Scheme` to its entry in `hostThemes`
+  # from its own configuration.nix (see hosts/*/configuration.nix).
+  hostThemes = {
+    zephyr  = import ./themes/osaka-jade.nix;     # jade/garden   — primary desktop
+    forge   = import ./themes/forge-copper.nix;    # copper/ember  — mining rig
+    nexus   = import ./themes/nexus-ice.nix;       # ice/cyan      — builder
+    sentry  = import ./themes/sentry-ember.nix;    # ember/rust    — control plane
+    ci-test = import ./themes/ci-amethyst.nix;     # amethyst/violet — CI
+    krash3  = import ./themes/krash-tangerine.nix; # tangerine/orange — windows VM host
+    metadata= import ./themes/metadata-slate.nix;  # slate/teal    — registry
+  };
+in
 {
   stylix = {
     # Stylix is pinned to a newer commit than the 26.05 Nixpkgs we track.
@@ -9,7 +24,7 @@
     # 2026-07-15: renamed the theme from "Nord" to "Osaka Jade" (real Omarchy
     # palette). Uses the repo-local base16 scheme below as the single source
     # of truth so the name is correct end-to-end.
-    base16Scheme = lib.mkDefault (import ./themes/osaka-jade.nix);
+# base16Scheme is set per-host below (mkForce by hostname).
     polarity = "dark";
 
     fonts = {
@@ -94,6 +109,12 @@
       autoImport = true;
     };
   };
+  # Per-host distinct palettes (sibling of `stylix`, not nested). Each host
+  # gets its own identity from boot (systemd-boot + console/TTY, NixOS-level
+  # stylix targets) through the SSH shell (fish/starship/kitty via Home Manager
+  # followSystem) to the DE. mkForce overrides the shared default so hosts never
+  # collide. Keyed by config.networking.hostName.
+  stylix.base16Scheme = lib.mkForce (hostThemes.${config.networking.hostName} or hostThemes.zephyr);
 
   # ── Register the monospace Nerd Font with fontconfig ──────────
   # Stylix sets `monospace.package = pkgs.nerd-fonts.jetbrains-mono` (the
