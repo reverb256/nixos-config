@@ -7,8 +7,8 @@
 #
 # Adding a host = one line here + modules/hosts/<host>/default.nix.
 #
-# Incremental rollout (map: zephyr → nexus → forge → sentry): this registry
-# currently registers zephyr only. nexus/forge/sentry join here as their
+# Incremental rollout (map: zephyr → forge → sentry → nexus (nexus skipped while down): this registry
+# currently registers zephyr + forge. nexus/forge/sentry join here as their
 # cutover lands, while they stay on the classic shim (common-modules-list.nix
 # + mkNixosSystem) until then.
-{ imports = [ ./zephyr ]; }
+{ imports = [ ./zephyr ./forge ]; }
