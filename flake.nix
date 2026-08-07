@@ -181,16 +181,16 @@
           # (allowUnfree for checks/packages, mirroring the classic flake's
           # top-level `import nixpkgs { config.allowUnfree = true; }`).
           inputs.flake-parts.flakeModules.nixpkgs
-          # Dendritic host registry: zephyr lives here (modules/hosts/zephyr).
-          # nexus/forge/sentry join at their cutovers (zephyr→nexus→forge→sentry).
+          # Dendritic host registry: zephyr + forge live here (modules/hosts/<n>).
+          # nexus/sentry join at their cutovers (nexus currently down, skipped).
           ./modules/hosts/default.nix
         ];
 
         # ── CLASSIC SHIM (option B) ──────────────────────────────────────────
-        # nexus/forge/sentry keep the classic wiring (commonModules + per-host
-        # configuration.nix + extraModules) until their own cutovers. zephyr is
-        # dendritic (modules/hosts/zephyr/default.nix) and is REMOVED from this
-        # map so the two definitions never collide. Shared feature files stay
+        # nexus/sentry keep the classic wiring (commonModules + per-host
+        # configuration.nix + extraModules) until their own cutovers. zephyr and
+        # forge are dendritic (modules/hosts/<n>/default.nix) and are REMOVED
+        # from this map so the two definitions never collide. Shared feature files stay
         # classic: the shim + zephyr both consume them by path until dissolution.
         flake = let
           system = "x86_64-linux";
@@ -251,13 +251,13 @@
           # ./hosts/<n>/configuration.nix + (once dendritic) a host file under
           # modules/hosts/<n>/.
           #   NOTE: also update ./machines (its keys are colmena machine entries).
-          # Dendritic cutover: zephyr removed here (now under modules/hosts/zephyr);
-          # nexus, forge, sentry still classic until their cutovers.
-          classicHosts = builtins.removeAttrs hosts [ "zephyr" ];
+          # Dendritic cutover: zephyr + forge removed here (now under modules/hosts/<n>);
+          # nexus, sentry still classic until their cutovers.
+          classicHosts = builtins.removeAttrs hosts [ "zephyr" "forge" ];
         in
         {
-          # OUTPUT 1: nixosConfigurations (classic shim — nexus/forge/sentry only;
-          # zephyr's dendritic definition comes from modules/hosts/zephyr/default.nix)
+          # OUTPUT 1: nixosConfigurations (classic shim — nexus/sentry only;
+          # zephyr/forge dendritic definitions come from modules/hosts/<n>/default.nix)
 
           nixosConfigurations = builtins.mapAttrs (
             _name: value:
