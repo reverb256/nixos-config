@@ -499,9 +499,25 @@
       "hugepages=3"
       "btrfs.commit_interval=300" # From btrfs-tuning module
       "nvidia.NVreg_RegistryDwords=EnableBrightnessControl=1" # Enable laptop brightness control
+      # Samsung QD-OLED HDR: override the TV's SDR-only EDID with a patched one
+      # (adds PQ/ST-2084 to the HDR Static Metadata block). See scripts/patch-edid-hdr.py.
+      "drm.edid_firmware=HDMI-A-2:edid/samsung-hdr.bin"
       # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
     ];
   };
+
+  # Patched EDID firmware for the Samsung TV. The TV advertises SDR-only HDR
+  # metadata despite Input Signal Plus; the patch adds the PQ EOTF so the niri
+  # HDR fork will signal HDR. Generated from the live EDID by
+  # scripts/patch-edid-hdr.py (regen after any TV/port change).
+  # NOTE: NVIDIA proprietary driver has mixed reports honoring drm.edid_firmware
+  # — verify post-reboot with `edid-decode /sys/class/drm/card*/card*-HDMI-A-2/edid`.
+  hardware.firmware = [
+    (pkgs.runCommand "samsung-tv-hdr-edid" { } ''
+      mkdir -p $out/lib/firmware/edid
+      cp ${../../edid/patched-hdr.bin} $out/lib/firmware/edid/samsung-hdr.bin
+    '')
+  ];
 
   # ============================================================================
   # ROLE PROFILES
@@ -880,6 +896,8 @@
 
     # Hardware monitoring & fan control helpers
     ddcutil # DDC/CI monitor brightness control
+    lsfg-vk # Lossless Scaling frame-gen Vulkan layer (nixpkgs 2.0.0-dev, Steam app 993090)
+    lsfg-vk-ui # lsfg-vk config GUI
     (pkgs.writeShellScriptBin "fan-set" ''
       #!${pkgs.bash}/bin/bash
       # Set fan speed (0-255) for a specific fan
