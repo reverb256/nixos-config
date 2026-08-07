@@ -23,11 +23,19 @@
     waylandCompositors.niri = {
       prettyName = "Niri";
       comment = "A scrollable-tiling Wayland compositor";
-      # HDR fork binary (build from dividebysandwich/niri hdr-smithay-master)
-      # Rebuild with: cd /tmp/niri-hdr && cargo build --release && sudo cp target/release/niri /usr/local/bin/niri-hdr
-      binPath = lib.mkForce "/usr/local/bin/niri-hdr";
+      # binPath comes from the shared modules/desktop/niri.nix
+      # (/run/current-system/sw/bin/niri). The old manual HDR fork deploy
+      # (/usr/local/bin/niri-hdr, built via /tmp/niri-hdr cargo) is retired —
+      # the fork is now a Nix package (pkgs.niri-hdr) selected below, which
+      # links sw/bin/niri to the fork binary.
     };
   };
+
+  # HDR compositor: dividebysandwich/niri hdr-smithay-master fork (pkgs.niri-hdr).
+  # mkOverride 40 beats the shared niri.nix mkForce (50) that pins sodiboo
+  # niri-unstable. Fork-schema HDR settings (hdr { } block, reference-luminance)
+  # come from desktop.niri-hdr-samsung below.
+  programs.niri.package = lib.mkOverride 40 pkgs.niri-hdr;
 
   desktop.uwsm-sessions.enable = true;
   programs.niri.enable = true;

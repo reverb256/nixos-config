@@ -45,8 +45,28 @@ smithay-drm-extras = { git = "https://github.com/dividebysandwich/smithay", rev 
 GOPHER
   '';
 
-  # The fork may have different lock file — let cargo recompute
-  cargoLock = old.cargoLock or null;
+  # Regenerated Cargo.lock (2026-08-07): the fork's committed lock is stale
+  # (zero git-source entries). Regenerated via `cargo generate-lockfile` on the
+  # patched Cargo.toml (git smithay patch applied) — pins smithay +
+  # smithay-drm-extras from the dividebysandwich/smithay fork at 57c805c8.
+  # Update: apply the same postPatch to a fork checkout, run
+  #   cargo generate-lockfile
+  # and replace ./niri-hdr-Cargo.lock.
+  #
+  # importCargoLock is used directly rather than the `cargoLock` attrset: the
+  # attrset doesn't survive overrideAttrs on a buildRustPackage result in this
+  # nixpkgs (make-derivation stringifies drv args, sets can't be coerced), while
+  # `cargoDeps` is a derivation and coerces to its store path safely.
+  # outputHashes keys are "${pkg.name}-${pkg.version}" in this nixpkgs.
+  cargoDeps = rustPlatform.importCargoLock {
+    lockFile = ./niri-hdr-Cargo.lock;
+    outputHashes = {
+      # narHash of the dividebysandwich/smithay checkout @ 57c805c8 (no .git);
+      # both workspace members share repo+rev → same hash.
+      "smithay-0.7.0" = "sha256-sYvo5fPPrf6y2vFI8TbgTfTfNxeVEmzTB+BrqGS7l8o=";
+      "smithay-drm-extras-0.1.0" = "sha256-sYvo5fPPrf6y2vFI8TbgTfTfNxeVEmzTB+BrqGS7l8o=";
+    };
+  };
 
   meta = old.meta // {
     description = "HDR-enabled niri fork (dividebysandwich hdr-smithay-master)";
