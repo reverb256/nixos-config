@@ -161,7 +161,6 @@ in {
     # 1. Early VFIO binding BEFORE the nvidia driver claims the 3060 Ti.
     boot.initrd.kernelModules = [ "vfio_pci" "vfio" "vfio_iommu_type1" ];
     boot.kernelParams = [
-      "vfio-pci.ids=${lib.concatStringsSep "," vfioIds}"
       "kvmfr.static_size_mb=64"
     ];
 
