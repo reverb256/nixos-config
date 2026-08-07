@@ -16,4 +16,15 @@
     doCheck = false;
     dontCheck = true;
   });
+
+  # 2026-08-07: caddy caddytest/integration suite fails in the nix sandbox
+  # (reverse_proxy health-checker test probes a %2F-encoded unix socket URL —
+  # "invalid URL escape"; the suite also needs live ports). Vanilla caddy IS
+  # in cache.nixos.org, but this cluster's nixpkgs rev pulls caddy 2.11.4
+  # whose check phase re-runs the flaky integration suite on every fresh
+  # (non-cached) build — e.g. sentry's zephyr-toplevel build. caddy-with-modules
+  # already sets doCheck = false; align the base package.
+  caddy = prev.caddy.overrideAttrs (old: {
+    doCheck = false;
+  });
 }
