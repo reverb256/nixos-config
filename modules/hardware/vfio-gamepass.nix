@@ -159,6 +159,116 @@ let
         <qemu:arg value="-object"/>
         <qemu:arg value="{'qom-type':'memory-backend-file','id':'looking-glass','mem-path':'/dev/kvmfr0','size':67108864,'share':true}"/>
       </qemu:commandline>
+  # SPICE install domain (no GPU passthrough, QXL+SPICE, for Windows install)
+  winSpiceXml = ''
+    <domain xmlns:qemu="http://libvirt.org/schemas/domain/qemu/1.0" type="kvm">
+      <name>gamepass-win11-spice</name>
+      <memory unit="KiB">16777216</memory>
+      <currentMemory unit="KiB">16777216</currentMemory>
+      <vcpu placement="static">8</vcpu>
+      <iothreads>2</iothreads>
+      <cputune>
+        <vcpupin vcpu="0" cpuset="8"/>
+        <vcpupin vcpu="1" cpuset="9"/>
+        <vcpupin vcpu="2" cpuset="10"/>
+        <vcpupin vcpu="3" cpuset="11"/>
+        <vcpupin vcpu="4" cpuset="12"/>
+        <vcpupin vcpu="5" cpuset="13"/>
+        <vcpupin vcpu="6" cpuset="14"/>
+        <vcpupin vcpu="7" cpuset="15"/>
+        <emulatorpin cpuset="0-7"/>
+        <iothreadpin iothread="1" cpuset="0-3"/>
+        <iothreadpin iothread="2" cpuset="4-7"/>
+      </cputune>
+      <os firmware="efi">
+        <type arch="x86_64" machine="pc-q35-9.2">hvm</type>
+        <boot dev="cdrom"/>
+      </os>
+      <features>
+        <acpi/>
+        <apic/>
+        <hyperv mode="custom">
+          <relaxed state="on"/>
+          <vapic state="on"/>
+          <spinlocks state="on" retries="8191"/>
+          <vpindex state="on"/>
+          <runtime state="on"/>
+          <synic state="on"/>
+          <stimer state="on"/>
+          <frequencies state="on"/>
+          <tlbflush state="on"/>
+          <ipi state="on"/>
+          <evmcs state="off"/>
+          <vendor_id state="on" value="1234567890ab"/>
+        </hyperv>
+        <vmport state="off"/>
+      </features>
+      <cpu mode="host-passthrough" check="none" migratable="on">
+        <topology sockets="1" dies="1" cores="4" threads="2"/>
+        <cache mode="passthrough"/>
+        <feature policy="require" name="topoext"/>
+      </cpu>
+      <kvm>
+        <hidden state="on"/>
+      </kvm>
+      <clock offset="localtime">
+        <timer name="rtc" tickpolicy="catchup" track="guest"/>
+        <timer name="pit" tickpolicy="delay"/>
+        <timer name="hpet" present="no"/>
+        <timer name="hypervclock" present="yes"/>
+      </clock>
+      <on_poweroff>destroy</on_poweroff>
+      <on_reboot>restart</on_reboot>
+      <on_crash>destroy</on_crash>
+      <pm>
+        <suspend-to-mem enabled="no"/>
+        <suspend-to-disk enabled="no"/>
+      </pm>
+      <devices>
+        <emulator>/run/libvirt/nix-emulators/qemu-system-x86_64</emulator>
+        <disk type="file" device="disk">
+          <driver name="qemu" type="qcow2" cache="none" io="io_uring" discard="unmap"/>
+          <source file="/var/lib/libvirt/images/gamepass-win11.qcow2"/>
+          <target dev="vda" bus="virtio"/>
+        </disk>
+        <disk type="file" device="cdrom">
+          <driver name="qemu" type="raw"/>
+          <source file="${vfioPkgs.virtio-win}/virtio-win.iso"/>
+          <target dev="sdb" bus="sata"/>
+        </disk>
+        <disk type="file" device="cdrom">
+          <driver name="qemu" type="raw"/>
+          <source file="/var/lib/libvirt/images/win11.iso"/>
+          <target dev="sdc" bus="sata"/>
+        </disk>
+        <controller type="usb" index="0" model="qemu-xhci" ports="15"/>
+        <controller type="pci" index="0" model="pcie-root"/>
+        <interface type="network">
+          <source network="default"/>
+          <model type="virtio"/>
+        </interface>
+        <serial type="pty"/>
+        <console type="pty"/>
+        <input type="mouse" bus="virtio"/>
+        <input type="keyboard" bus="virtio"/>
+        <graphics type="spice" autoport="yes" listen="127.0.0.1">
+          <listen type="address" address="127.0.0.1"/>
+          <image compression="off"/>
+        </graphics>
+        <sound model="ich9">
+          <audio id="1"/>
+        </sound>
+        <audio id="1" type="spice"/>
+        <video>
+          <model type="qxl" vram="65536" heads="1" primary="yes"/>
+        </video>
+        <redirdev bus="usb" type="spicevmc"/>
+        <watchdog model="itco" action="reset"/>
+        <memballoon model="none"/>
+      </devices>
+    </domain>
+  '';
+
     </domain>
   '';
 in {
@@ -236,6 +346,35 @@ in {
           tmp=$(mktemp)
           trap 'rm -f "$tmp"' EXIT
           ${pkgs.gnused}/bin/sed "/<name>gamepass-win11<\\/name>/a\\    <uuid>$uuid</uuid>" "$xml" > "$tmp"
+          ${pkgs.libvirt}/bin/virsh define "$tmp"
+        else
+          ${pkgs.libvirt}/bin/virsh define "$xml"
+        fi
+      '';
+      path = [pkgs.coreutils pkgs.gnused pkgs.libvirt];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+      };
+    };
+
+    # 4b. SPICE install domain (no GPU) — shares same disk/ISO.
+    environment.etc."libvirt/qemu/gamepass-win11-spice.xml" = {
+      text = winSpiceXml;
+      mode = "0644";
+    };
+    systemd.services.gamepass-vm-spice-define = {
+      description = "Define the Game Pass Windows VM (SPICE, no GPU) domain in libvirt";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "libvirtd.service" ];
+      script = ''
+        set -euo pipefail
+        xml=/etc/libvirt/qemu/gamepass-win11-spice.xml
+        if ${pkgs.libvirt}/bin/virsh dominfo gamepass-win11-spice >/dev/null 2>&1; then
+          uuid=$(${pkgs.libvirt}/bin/virsh domuuid gamepass-win11-spice)
+          tmp=$(mktemp)
+          trap 'rm -f "$tmp"' EXIT
+          ${pkgs.gnused}/bin/sed "/<name>gamepass-win11-spice<\\/name>/a\\    <uuid>$uuid</uuid>" "$xml" > "$tmp"
           ${pkgs.libvirt}/bin/virsh define "$tmp"
         else
           ${pkgs.libvirt}/bin/virsh define "$xml"
