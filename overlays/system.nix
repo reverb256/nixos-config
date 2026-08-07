@@ -3,8 +3,7 @@
   gputemps = prev.callPackage ../packages/gputemps.nix {};
   lmstudio = prev.callPackage ../packages/lmstudio.nix {};
   peakminer = prev.callPackage ../pkgs/peakminer.nix {};
-  secretspec = prev.callPackage ../pkgs/secretspec {inherit inputs;};
-  secretspec-provider-sops = prev.callPackage ../pkgs/secretspec-provider-sops {inherit inputs;};
+  secretspec = prev.callPackage ../pkgs/secretspec {};
   haven-desktop = prev.callPackage ../packages/haven-desktop.nix {};
   kokoro-tts = prev.callPackage ../packages/kokoro-tts.nix {};
   chatterbox-tts = prev.callPackage ../packages/chatterbox-tts.nix {};

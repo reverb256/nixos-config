@@ -40,8 +40,10 @@ in lib.mkIf (cfg.enable && needed) {
       ProtectHome = "read-only";
       ReadWritePaths = ["/home/${cfg.user}/.hermes"];
 
-      Environment = lib.optional (cfg.secretspecEnvVarMappings != {})
-        "SECRETSPEC_SOPS_PROVIDER_BIN=${pkgs.secretspec-provider-sops}/bin/secretspec-provider-sops-protocol";
+      # Upstream secretspec 0.18.0 (fork deleted 2026-08-07): the native sops
+        # provider reads the age identity from the sops CLI's standard env cars.
+        Environment = lib.optional (cfg.secretspecEnvVarMappings != {})
+        "SOPS_AGE_KEY_FILE=/etc/nixos/.age/key.txt";
 
       ExecStart = pkgs.writeShellScript "hermes-config-secrets" ''
         set -euo pipefail
@@ -109,7 +111,7 @@ in lib.mkIf (cfg.enable && needed) {
           printf '%s' "$SECRETSPEC_MAP" | jq -r 'to_entries[] | "\(.key)\t\(.value)"' | while IFS=$'\t' read -r route env_var; do
             value=$(secretspec get "$route" -f value 2>/dev/null || true)
             if [ -z "$value" ]; then
-              echo "[hermes-config] WARN: secretspec get '$route' returned empty (provider missing? SECRETSPEC_SOPS_PROVIDER_BIN)" >&2
+              echo "[hermes-config] WARN: secretspec get '$route' returned empty (sops provider / age key missing?)" >&2
               continue
             fi
             grep -v "^$env_var=" "$ENV_FILE" > "$ENV_FILE".tmp 2>/dev/null || true

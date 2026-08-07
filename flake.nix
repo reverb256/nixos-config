@@ -75,15 +75,6 @@
       url = "git+https://github.com/Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # SecretSpec fork with the sops:// provider and protocol dispatcher.
-    secretspec = {
-      url = "github:reverb256/secretspec/feature/sops-provider-subprocess-dispatch";
-      flake = false;
-    };
-    secretspec-provider-sops = {
-      url = "github:reverb256/secretspec-provider-sops/feature/two-strategy-handle-get";
-      flake = false;
-    };
     # Use git+https:// for github inputs to avoid GitHub API 401 errors (prevalent in Lix 2.95)
     systems = {
       url = "git+https://github.com/nix-systems/default";
@@ -354,7 +345,6 @@
           packages.claude = claude-native.packages.x86_64-linux.claude;
           packages.llama-cpp = pkgs.llama-cpp;
           packages.secretspec = pkgs.secretspec;
-          packages.secretspec-provider-sops = pkgs.callPackage ./pkgs/secretspec-provider-sops {inherit inputs;};
           # CONTAINER IMAGES (for Kubernetes deployment)
 
           # Claude Code container image for Kubernetes deployment
