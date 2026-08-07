@@ -8,6 +8,21 @@
   # #309: derive from the declared user instead of hardcoding, so pure
   # cross-host evaluation does not depend on /home/j_kro existing.
   userHome = config.users.users.j_kro.home or "/home/j_kro";
+  # Local build capacity for THIS host (same expression as nix.settings.max-jobs).
+  # A host must be able to build its own closure when remote builders are down:
+  # the machines generator filters `m.hostName != currentHost`, so without a
+  # self entry a buildOnTarget host (forge) only sees dead remotes and stalls
+  # for hours (observed 2026-08-06: 7h, store +5 paths). The self entry is
+  # SELF-ONLY — forge is not in allMachines, so no other host ever dispatches
+  # to it (HARD RULE 1: forge is never a remote builder).
+  localMaxJobs =
+    if currentHost == "zephyr"
+    then 0 # pure dispatcher — never build locally (OOM guard)
+    else if currentHost == "nexus"
+    then 12
+    else if currentHost == "sentry"
+    then 8
+    else 4;
 in {
   nix = {
     distributedBuilds = lib.mkDefault true;
@@ -281,7 +296,23 @@ in {
           # distributed build jobs. Source comments confirm: 2x 4060s running
           # Krig full-time, OOM protection in place. Adding build load
           # risks GPU contention or OOM-killing PeakMiner.
-          machines = builtins.filter (m: m.hostName != currentHost) allMachines;
+          machines =
+            builtins.filter (m: m.hostName != currentHost) allMachines
+            ++ (
+              if localMaxJobs > 0
+              then [{
+                hostName = currentHost;
+                systems = ["x86_64-linux"];
+                sshUser = "j_kro";
+                sshKey = userHome + "/.ssh/id_ed25519";
+                maxJobs = localMaxJobs;
+                speedFactor = 1; # local fallback only; never outranks remotes
+                connectTimeout = 1;
+                supportedFeatures = ["big-parallel"]; # local can take heavy drvs
+                mandatoryFeatures = [];
+              }]
+              else []
+            );
           formatMachine = m:
             with builtins; let
               # Join ALL systems with commas so the nix builder line advertises
@@ -301,7 +332,13 @@ in {
               # Connection timing is controlled by Nix's global
               # `connect-timeout` setting and the SSH config above. Keep this
               # field limited to actual machine capability tags.
-              optFeatures = concatStringsSep "," m.supportedFeatures;
+              # connect-timeout must be IN the machine line — ssh-ng does not
+              # honor ssh_config ConnectTimeout for the builder probe, so a
+              # down builder would stall every derivation for the full TCP
+              # timeout (the 2026-08-06 forge stall). Nix parses it as a
+              # feature token; emit it first so dead remotes fail in ~1s.
+              timeoutOpt = "connect-timeout=" + toString (if m ? connectTimeout then m.connectTimeout else 1);
+              optFeatures = concatStringsSep "," ([timeoutOpt] ++ m.supportedFeatures);
               mandFeatures =
                 if m.mandatoryFeatures == []
                 then ""
