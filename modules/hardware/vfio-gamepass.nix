@@ -5,6 +5,13 @@
 # provided by Looking Glass (kvmfr shared-memory bridge). Audio is carried by
 # Scream (UDP) — install the Scream sender in the VM; the receiver runs here.
 #
+# GPU handoff is DYNAMIC on purpose: no vfio-pci.ids in kernelParams. The 3060 Ti
+# stays usable by the host (mining/other) when the VM is off. When the VM starts,
+# libvirt `managed="yes"` binds it to vfio-pci on demand. Because the nvidia
+# driver holds all NVIDIA GPUs when loaded (for the 3090), the driver must first
+# release the card: `nvidia-smi drain -p 0000:24:00.0 -m 1` (persistence off).
+# Do NOT re-add vfio-pci.ids — it would pin the GPU to vfio forever.
+#
 # Packages (kvmfr, looking-glass-client, OVMFFull, qemu_kvm, scream, virtio-win)
 # come from a RECENT nixpkgs (inputs.nixpkgs-vfio) because the pinned main
 # nixpkgs predates their inclusion. kvmfr is rebuilt against the CachyOS kernel.
@@ -158,11 +165,12 @@ in {
   # Zephyr only. On nexus/forge/sentry this module is a no-op (and must not
   # bind vfio-pci.ids, which would steal their GPUs).
   config = lib.mkIf (config.networking.hostName == "zephyr") {
-    # 1. Early VFIO binding BEFORE the nvidia driver claims the 3060 Ti.
+    # 1. VFIO kernel modules available (not bound at boot — dynamic handoff).
+    #    The 3060 Ti stays on nvidia for host use; libvirt managed="yes" +
+    #    nvidia-smi drain hands it to vfio-pci when the VM starts.
     boot.initrd.kernelModules = [ "vfio_pci" "vfio" "vfio_iommu_type1" ];
     boot.kernelModules = [ "kvmfr" ];
     boot.kernelParams = [
-      "vfio-pci.ids=10de:2486,10de:228b"
       "kvmfr.static_size_mb=64"
     ];
 
