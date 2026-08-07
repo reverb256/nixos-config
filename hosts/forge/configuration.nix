@@ -709,10 +709,12 @@
   # SecretSpec creds provisioning (replaces sops-nix)
   services.secretspec-creds = {
     enable = true;
+    ageKeyFile = "/var/lib/sops/age/key.txt";
     secrets = import ./secretspec-creds-wiring.nix;
   };
 
   services.secretspec-validator = {
+    ageKeyFile = "/var/lib/sops/age/key.txt";
     enable = true;
     production = true;
     failOnMissing = true;
