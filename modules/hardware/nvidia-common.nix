@@ -34,8 +34,12 @@ in {
       # Power management (optional, can cause suspend issues)
       powerManagement.enable = false;
 
-      # Use beta drivers (560+) for best Wayland/Plasma 6 support
-      # RTX 30 series (Ampere) is fully supported
+      # new_feature (610.x): latest fixes (Vulkan HDR WSI, DRM color-pipeline
+      # groundwork) — kept for the HDR/LSFG projects on zephyr. Ampere fully
+      # supported.
+      # DE-RISK ROLLBACK: if Xid-109 stutters or compositor glitches appear,
+      # switch to nvidiaPackages.stable (595.84 in the same nixpkgs) — the
+      # community-consensus pick for daily-driver Ampere gaming on Wayland.
       package = config.boot.kernelPackages.nvidiaPackages.new_feature;
 
       # Open source kernel module (required for Turing+/RTX 30 series)

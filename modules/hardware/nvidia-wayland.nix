@@ -70,14 +70,12 @@ in {
       GBM_BACKEND = "nvidia-drm";
       # VA-API driver for hardware video acceleration
       LIBVA_DRIVER_NAME = "nvidia";
-      # Disable G-SYNC to prevent buffer issues
-      __GL_GSYNC_ALLOWED = "0";
-      # Disable VRR for stability (can re-enable later)
-      __GL_VRR_ALLOWED = "0";
       # Additional variables for NVIDIA EGL and NVENC
       NVD_BACKEND = "direct";
-      # Disable sync to vblank for stability
-      __GL_SYNC_TO_VBLANK = "0";
+      # NOTE (2026-08-07): __GL_SYNC_TO_VBLANK=0 / __GL_GSYNC_ALLOWED=0 /
+      # __GL_VRR_ALLOWED=0 removed — X11-era tweaks that cost frame pacing and
+      # block VRR on Wayland (explicit sync handles pacing). If tearing or
+      # stability regressions appear on any host, restore them here.
       # VRChat/SteamVR specific variables
       # SDL_VIDEODRIVER = "wayland";  # REMOVED: Causes Steam Vulkan init failure
       # SDL auto-detects best backend; Steam client needs XWayland fallback
@@ -99,6 +97,35 @@ in {
     environment.etc = {
       "vulkan/icd.d/nvidia_icd.json".source = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
       "vulkan/icd.d/nvidia_icd.x86_64.json".source = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
+      # NVIDIA app profile: wayland compositors (niri) hoard VRAM unless
+      # GLVidHeapReuseRatio=0 is applied to their process — niri can leak
+      # ~2.5GiB idle. Loaded by the driver from /etc/nvidia/...rc.d/*.json
+      # (Arch Wiki: "nvidia-application-profiles-rc.d"). Matches only niri,
+      # so inert on non-niri hosts.
+      "nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors.json".text = ''
+        {
+            "rules": [
+                {
+                    "pattern": {
+                        "feature": "procname",
+                        "matches": "niri"
+                    },
+                    "profile": "Limit free buffer pool on Wayland compositors"
+                }
+            ],
+            "profiles": [
+                {
+                    "name": "Limit free buffer pool on Wayland compositors",
+                    "settings": [
+                        {
+                            "key": "GLVidHeapReuseRatio",
+                            "value": 0
+                        }
+                    ]
+                }
+            ]
+        }
+      '';
     };
 
     # KERNEL PARAMETERS (for better Wayland stability)
