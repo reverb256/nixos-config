@@ -2,7 +2,9 @@
   lib,
   pkgs,
   ...
-}: {
+}: let
+  cachePolicy = import ../../contracts/cache-policy.nix;
+in {
   nixpkgs.overlays = [
     (_final: prev: {
       inherit
@@ -151,29 +153,21 @@
     }));
 
     settings = {
-      experimental-features = ["nix-command" "flakes"];
-
-      # Local Nix binary caches (nexus and zephyr serve signed store paths).
-      substituters = [
-        "http://10.1.1.110:50000?priority=40"
-        "https://cache.nixos.org?priority=90"
-        "https://nix-community.cachix.org?priority=80"
-        "https://ezkea.cachix.org?priority=70"
-      ];
-
-      trusted-public-keys = lib.mkOptionDefault [
-        "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-        "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU="
-      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-        "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
-      ];
+      experimental-features = ["nix-command" "flakes"];      # Canonical upstream/specialized cache policy. Public caches are
+      # preferred; cluster caches are fallback-only for intentional custom
+      # derivations. See contracts/cache-policy.nix.
+      substituters = lib.mkForce cachePolicy.substituters;
+      trusted-public-keys = lib.mkForce cachePolicy.trustedPublicKeys;
 
       # Don't abort the build if a local cache is temporarily unreachable.
       fallback = true;
 
       trusted-users = lib.mkOptionDefault ["root" "@wheel"];
 
-      require-sigs = lib.mkForce false;
+      # Cache provenance is meaningful only when Nix verifies signatures.
+      # Every configured cache has a corresponding trusted public key in the
+      # canonical policy; do not silently accept unsigned substitutes.
+      require-sigs = lib.mkForce true;
 
       accept-flake-config = true;
 
