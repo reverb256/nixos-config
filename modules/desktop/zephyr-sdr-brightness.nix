@@ -73,13 +73,23 @@ in {
         MemoryHigh = "4G";
         MemoryMax = "6G";
         OOMPolicy = "continue";
-        OOMScoreAdjust = -300;
+        OOMScoreAdjust = -1000;
         # 2026-08-03 (Cyberpunk OOM kill): oomd SwapUsedLimit=90 killed this
         # unit at 02:24 while the game ran (zram hit 100%). Exempt the gaming
         # session slice from oomd's cgroup kill entirely — earlyoom's --avoid
         # (now including steam/GameThread/REDprelauncher) remains the defense
         # for memory pressure. Kernel OOM would still apply as last resort.
         ManagedOOMSwap = "off";
+        # 2026-08-06: systemd-oomd killed 346 procs in this unit's cgroup at
+# 18:25:33 (slice-wide memory pressure: 4 peakminers + llama-server +
+# PoE2). `OOMScoreAdjust` alone was insufficient because oomd kills by
+# cgroup under global slice pressure, not by per-process score.
+# ManagedOOMPreference=avoid sets the user.oomd_avoid xattr so oomd
+# deprioritizes this cgroup as a kill candidate (only selected if no
+# other viable candidate exists). NOTE: ManagedOOMMemoryPressure=avoid
+# is INVALID (that key only takes auto|kill); the avoid/omit preference is
+# the correct knob.
+        ManagedOOMPreference = "avoid";
         # 2026-07-27 (code-review G1): prevent thrashing if the Sdr backend
         # persistently leaks past MemoryMax (self-kill → Restart=on-failure
         # → 3s wait → self-kill …). Trip into 'failed' state after 5
