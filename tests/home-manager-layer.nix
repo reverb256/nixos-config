@@ -15,11 +15,16 @@ let
   hmNixContent = builtins.readFile hmNix;
   usesFlakeInput = lib.strings.hasInfix "home-manager-config" hmNixContent;
   usesLocalPath = lib.strings.hasInfix "../home-manager/shared-leaf-modules.nix" hmNixContent;
+  usesGlobalPkgs = lib.strings.hasInfix "useGlobalPkgs = true" hmNixContent;
+  noHmNixpkgsScope =
+    !(lib.strings.hasInfix "nixpkgs.config.allowUnfree" hmNixContent)
+    && !(lib.strings.hasInfix "nixpkgs.config.permittedInsecurePackages" hmNixContent);
 
   checks = {
     localCopyRemoved = localCopyRemoved;
     usesFlakeInput = usesFlakeInput;
     noLocalPath = !usesLocalPath;
+    inherit usesGlobalPkgs noHmNixpkgsScope;
   };
 in
 rec {

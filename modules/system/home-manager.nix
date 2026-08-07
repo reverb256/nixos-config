@@ -23,7 +23,11 @@
 in
   lib.mkIf hasHM {
     home-manager = {
-      useGlobalPkgs = lib.mkDefault false;
+      # Share the NixOS package set so integrated HM packages preserve the
+      # same derivation identity as system packages and can use the same
+      # Hydra/CUDA/Cachix substitutes. HM-local nixpkgs.* options are
+      # intentionally removed below; the system package policy owns them.
+      useGlobalPkgs = true;
 
       useUserPackages = true;
 
@@ -58,20 +62,10 @@ in
       };
 
       users.j_kro = {hermesWrappedBin, ...}: {
-        # Home Manager uses a separate nixpkgs config scope from NixOS.
-        # Keep workstation-only unfree leaves (e.g. Obsidian) evaluable on
-        # both HM entrypoints.
-        nixpkgs.config.allowUnfree = true;
-
-        # Allow insecure packages
-        nixpkgs.config.permittedInsecurePackages = [
-          "pnpm-10.29.2"
-          "vesktop-1.6.5"
-          # vesktop pulls electron-40.10.5 (EOL, marked insecure); HM has its own
-          # nixpkgs config so the system-level permit in nix-config.nix doesn't
-          # reach it. Added 2026-07-16.
-          "electron-40.10.5"
-        ];
+        # HM uses the NixOS package set (`useGlobalPkgs = true`). Unfree and
+        # insecure permissions are declared once by the system package policy
+        # in modules/system/nix-config.nix, so this user module must not define
+        # a second nixpkgs scope.
 
         imports =
           lib.optional (hostName == "zephyr" || hostName == "sentry")

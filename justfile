@@ -359,6 +359,14 @@ check:
     set -e
     cd {{FLAKE}} && nix flake check
 
+# Network-dependent cache provenance audit. This does not build; it evaluates
+# host toplevel derivations and probes configured upstream/community/custom
+# caches via narinfo. Expected custom misses are reported, not hidden.
+cache-audit:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{FLAKE}} && exec ./scripts/cache-audit.sh
+
 build:
     #!/usr/bin/env bash
     set -euo pipefail
