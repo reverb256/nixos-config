@@ -162,6 +162,7 @@ in {
     boot.initrd.kernelModules = [ "vfio_pci" "vfio" "vfio_iommu_type1" ];
     boot.kernelModules = [ "kvmfr" ];
     boot.kernelParams = [
+      "vfio-pci.ids=10de:2486,10de:228b"
       "kvmfr.static_size_mb=64"
     ];
 
