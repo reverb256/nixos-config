@@ -33,12 +33,25 @@ in {
       # (HDMI-A-2). The old custom SDR-brightness patch (patches/niri-sdr-brightness.patch)
       # was dropped - the TV is now HDR-driven natively by niri; noctalia's
       # HDMI-A-2 backend was set to `normal` so niri owns the output.
-      # inputs.niri.overlays.niri (common-modules-list.nix) only adds
-      # pkgs.niri-unstable / pkgs.niri-stable; it does NOT replace pkgs.niri,
-      # so this mkForce is what actually selects the unstable binary.
-      programs.niri.package =
-        lib.mkForce
-        inputs.niri.packages.${pkgs.stdenv.hostPlatform.system}.niri-unstable;
+      #
+      # 2026-08-07 (flake-bump fix): we now source niri-unstable from the
+      # flake's OVERLAY (inputs.niri.overlays.niri -> pkgs.niri-unstable),
+      # applied right here via nixpkgs.overlays, instead of the flake's
+      # `packages.<system>.niri-unstable` output. The flake's own package is
+      # built against the flake's INTERNAL plain nixpkgs (legacyPackages) and
+      # broke after the nixpkgs bump removed `libdisplay-info_0_2` (aliases
+      # throw 2026-08-04): make-niri asserts `.version == "0.2.0"` and the
+      # flake's internal pkgs cannot see our bugfixes overlay. The overlay
+      # form evaluates against the caller's FINAL pkgs — which includes the
+      # bugfixes `libdisplay-info_0_2` 0.2.0 rebuild — so make-niri resolves
+      # cleanly and produces the identical derivation (same niri src rev, same
+      # 0.2.0 libdisplay-info, same replace-service-with-usr-bin).
+      # The overlay is declared here (not common-modules-list.nix, per audit
+      # F-13) so only hosts that actually enable niri pay the eval tax.
+      nixpkgs.overlays = [
+        inputs.niri.overlays.niri
+      ];
+      programs.niri.package = lib.mkForce pkgs.niri-unstable;
     })
     (mkIf niriEnabled (
       lib.mkMerge [

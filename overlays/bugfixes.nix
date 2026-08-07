@@ -17,6 +17,21 @@
     dontCheck = true;
   });
 
+  # 2026-08-07: nixpkgs removed `libdisplay-info_0_2` (aliases.nix throw,
+  # added 2026-08-04) — but the niri-flake input (sodiboo/niri-flake) still
+  # `pkgs.callPackage make-niri` with an explicit `libdisplay-info_0_2` arg
+  # and asserts `.version == "0.2.0"` (flake.nix:103). The flake bump pulled
+  # the removal, so every host eval died with the aliases throw. Re-provide a
+  # real 0.2.0 build via nixpkgs' own generic.nix — byte-identical to the
+  # recipe used when 0.2.0 was still packaged (meson + hwdata; verified
+  # against nixpkgs 0954f7ee). Our configs only EVAL it (programs.niri.package
+  # is overridden to pkgs.niri-hdr), but the option value is forced during
+  # module evaluation, so the attr must resolve.
+  libdisplay-info_0_2 = _final.callPackage (import (_final.path + "/pkgs/by-name/li/libdisplay-info/generic.nix") {
+    version = "0.2.0";
+    hash = "sha256-6xmWBrPHghjok43eIDGeshpUEQTuwWLXNHg7CnBUt3Q=";
+  }) { };
+
   # 2026-08-07: caddy caddytest/integration suite fails in the nix sandbox
   # (reverse_proxy health-checker test probes a %2F-encoded unix socket URL —
   # "invalid URL escape"; the suite also needs live ports). Vanilla caddy IS
