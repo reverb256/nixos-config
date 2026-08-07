@@ -9,7 +9,7 @@
 #   - Bash scripts: bash -n syntax check.
 #   - Nix files: nix-instantiate --parse.
 #   - TOML files: python tomllib parse via inline check.
-#   - For non-argv flags (--env, --binary, --schema), do project-wide gates.
+#   - For non-argv flags (--env, --schema), do project-wide gates.
 #
 # Exit codes:
 #   0  all checks passed
@@ -25,7 +25,7 @@ set -euo pipefail
 usage() {
   cat <<EOF
 Usage:
-  $0 [--env] [--binary] [--schema] <file1> [<file2> ...]
+  $0 [--env] [--schema] <file1> [<file2> ...]
 
 Per-file checks (file extension inferred):
   *.sh       bash -n syntax check
@@ -34,20 +34,17 @@ Per-file checks (file extension inferred):
 
 Project gates (run regardless of argv when flag present):
   --env      Verify CACHIX_AUTH_TOKEN is set; warn if not.
-  --binary   Verify secretspec-provider-sops-protocol binary on PATH.
   --schema   Verify secretspec.toml schema declares expected counts.
 EOF
 }
 
 PERFORM_ENV=0
-PERFORM_BINARY=0
 PERFORM_SCHEMA=0
 FILES=()
 
 for arg in "$@"; do
   case "$arg" in
     --env) PERFORM_ENV=1 ;;
-    --binary) PERFORM_BINARY=1 ;;
     --schema) PERFORM_SCHEMA=1 ;;
     -h|--help) usage; exit 0 ;;
     -*) echo "Unknown flag: $arg" >&2; usage; exit 2 ;;
@@ -55,7 +52,7 @@ for arg in "$@"; do
   esac
 done
 
-if [ ${#FILES[@]} -eq 0 ] && [ "$PERFORM_ENV" -eq 0 ] && [ "$PERFORM_BINARY" -eq 0 ] && [ "$PERFORM_SCHEMA" -eq 0 ]; then
+if [ ${#FILES[@]} -eq 0 ] && [ "$PERFORM_ENV" -eq 0 ] && [ "$PERFORM_SCHEMA" -eq 0 ]; then
   usage
   exit 2
 fi
@@ -90,17 +87,6 @@ if [ "$PERFORM_ENV" -eq 1 ]; then
     echo "[validate] WARN: CACHIX_AUTH_TOKEN not set (cachix push won't work)" >&2
   else
     echo "[validate] OK: CACHIX_AUTH_TOKEN set (redacted: ${CACHIX_AUTH_TOKEN:0:4}...)"
-  fi
-fi
-
-if [ "$PERFORM_BINARY" -eq 1 ]; then
-  echo "[validate] checking secretspec-provider-sops-protocol binary"
-  if ! command -v secretspec-provider-sops-protocol >/dev/null 2>&1; then
-    echo "[validate] FAIL: secretspec-provider-sops-protocol not on PATH" >&2
-    echo "[validate]       Run 'just secretspec-rebuild' to build, then 'nix shell' to enter env." >&2
-    exit 1
-  else
-    echo "[validate] OK: $(command -v secretspec-provider-sops-protocol)"
   fi
 fi
 

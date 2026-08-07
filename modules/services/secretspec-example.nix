@@ -12,11 +12,11 @@ with lib;
 # ssh-pushes each to /etc/credstore via `systemd-creds encrypt`) is
 # preserved here as a documented reference but not wired up.
 #
-# Migration path: when Phase 4 is ready (cachix/secretspec#98 lands or
-# pkgs/secretspec-provider-sops becomes the primary backend), rename this
-# file to `secretspec-systemd-creds.nix`, port the creds attr below forward,
-# and add it to modules/default.nix. Until then, treat this file as
-# documentation only.
+# Migration path: Phase 4 is ready — upstream secretspec 0.18.0 (fork
+# deleted 2026-08-07) supports sops:// aliases natively. When systemd credentials
+# integration lands, rename this file to `secretspec-systemd-creds.nix`, port the
+# creds attr below forward, and add it to modules/default.nix. Until then, treat
+# this file as documentation only.
 #
 # For the running validator today: services.secretspec-validator.enable.
 # This file's `enable` defaults remain false so accidental imports can't

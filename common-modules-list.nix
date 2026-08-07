@@ -55,8 +55,9 @@
     # Overlay order matters: `self.overlays.default` registers bugfixes,
     # system, python, images, hardware, and app overlays from
     # `overlays/default.nix`. The secretspec sops provider is built from
-    # `pkgs/secretspec-provider-sops` and wired through
-    # `services.secretspec-validator`; both fork inputs remain active.
+    # upstream `pkgs/secretspec` (0.18.0) and wired through
+    # `services.secretspec-validator`; the reverb256 fork was removed
+    # 2026-08-07.
     # Audit F-13 (2026-07-28): `inputs.niri.overlays.niri` moved to
     # modules/desktop/desktop-modules.nix (zephyr-only).
     nixpkgs.overlays = [

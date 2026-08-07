@@ -143,7 +143,7 @@ in {
       # no network-online.target ordering needed.
       #
       # PATH must carry the sops CLI: the upstream secretspec sops provider
-      # (0.17.0) shells out to `sops` to decrypt YAML. Without this, systemd's
+      # (0.18.0) shells out to `sops` to decrypt YAML. Without this, systemd's
       # default unit PATH omits it, `secretspec check` errors "sops not found",
       # the unit fails, and every subsequent `nixos-rebuild switch` aborts
       # during activation. age is included for the age-backed identity path.
@@ -158,11 +158,11 @@ in {
         RemainAfterExit = true;
         ExecStart = validatorScript;
         # SOPS_AGE_KEY_FILE must be set so the upstream sops provider
-        # (0.17.0) can decrypt the YAML files directly via the sops CLI.
-        # The forked CLI delegates sops:// routes to its protocol provider.
+        # (0.18.0) can decrypt the sops:// aliases directly via the sops CLI.
+        # The reverb256 fork (SECRETSPEC_SOPS_PROVIDER_BIN protocol dispatcher)
+        # was deleted 2026-08-07; upstream native provider subsumed it.
         Environment = [
           "SOPS_AGE_KEY_FILE=${cfg.ageKeyFile}"
-          "SECRETSPEC_SOPS_PROVIDER_BIN=${pkgs.secretspec-provider-sops}/bin/secretspec-provider-sops-protocol"
         ];
         StandardOutput = "journal";
         StandardError = "journal";
