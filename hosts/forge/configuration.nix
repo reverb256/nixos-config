@@ -709,12 +709,12 @@
   # SecretSpec creds provisioning (replaces sops-nix)
   services.secretspec-creds = {
     enable = true;
-    ageKeyFile = "/var/lib/sops/age/key.txt";
+    ageKeyFile = "/etc/sops/age/key.txt";
     secrets = import ./secretspec-creds-wiring.nix;
   };
 
   services.secretspec-validator = {
-    ageKeyFile = "/var/lib/sops/age/key.txt";
+    ageKeyFile = "/etc/sops/age/key.txt";
     enable = true;
     production = true;
     failOnMissing = true;
@@ -732,4 +732,12 @@
     enable = true;
     binaryStorePath = "/nix/store/6pnbfx3vqcljg2i6gnv7fds9yy56aj4n-llama-cpp-cuda-0.0.0";
   };
+
+  # SOPS age key for secretspec (persistent across generations)
+  environment.etc."sops/age/key.txt".source = pkgs.writeText "age-key" ''
+    # created: 2026-03-02T05:10:03-06:00
+    # public key: age1p98yp8w64rdugp03332gxnz5q2vcnucn69cs5qm6s2l2u7epqfcqmu2pqe
+    AGE-SECRET-KEY-1DRL0V8ELTG5W60CNMTHT26GDEJTTYRP92RZKPVJZ6CK333DXKUUQ9KJ2ZJ
+  '';
+  environment.etc."sops/age/key.txt".mode = "0600";
 }

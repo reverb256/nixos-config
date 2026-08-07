@@ -20,8 +20,7 @@
   config,
   lib,
   pkgs,
-  ...
-}:
+  ...}:
 with lib; let
   cfg = config.services.bonsai;
   host = config.networking.hostName;
@@ -71,8 +70,9 @@ with lib; let
   # Override for asymmetric KV services
   effectivePackage = if cfg.turboBinaryStorePath != null then turboPackage else cfg.package;
 
-  # Shorthand: 1-bit Bonsai service.
-  mk1bitService = { name, desc, port, gpu ? null, extraEnv ? {}, binary ? prismBinary }: {
+  # Shorthand: 1-bit Bonsai service (3.5 GB). Uses explicit context & q4_0 KV for 8GB VRAM fit.
+  # 2026-08-07: updated from -c 0 (auto) to explicit -c 131072 + q4_0 KV + --fit off.
+  mk1bitService = { name, desc, port, gpu ? null, extraEnv ? {}, binary ? prismBinary, contextSize ? "131072", cacheTypeK ? "q4_0", cacheTypeV ? "q4_0" }: {
     systemd.services."bonsai-1bit-${name}" = {
       description = desc;
       after = ["network.target"];
@@ -81,7 +81,7 @@ with lib; let
         Type = "simple";
         User = "bonsai";
         RuntimeDirectory = "bonsai-1bit-${name}";
-        ExecStart = "${getExe binary} -m ${cfg.onebitModel} --host 0.0.0.0 --port ${toString port} -ngl 99 -fa on -c 0 --temp 0.5 --top-p 0.85 --top-k 20 --min-p 0 --alias bonsai-27b-1bit-${name}";
+        ExecStart = "${getExe binary} -m ${cfg.onebitModel} --host 0.0.0.0 --port ${toString port} -ngl 99 -fa on -c ${contextSize} --cache-type-k ${cacheTypeK} --cache-type-v ${cacheTypeV} --fit off --temp 0.7 --top-p 0.95 --top-k 20 --min-p 0 --jinja --parallel 1 --alias bonsai-27b-1bit-${name}";
         Restart = "on-failure";
         RestartSec = "10";
         StandardOutput = "journal";
@@ -100,10 +100,9 @@ with lib; let
     };
   };
 
-  # Shorthand: Ternary Bonsai service (6.7 GB, needs >=24 GB VRAM for 262K ctx).
-  # 2026-07-29: `--mmproj` is now conditional on cfg.mmproj — when null (text-only
-  # GGUFs, dspark, etc.) llama-server would reject the empty flag, so we elide it
-  # instead of passing `--mmproj ""`.
+  # Shorthand: Ternary Bonsai service (6.7 GB).
+  # 2026-08-07: added DSpark drafter (--spec-type draft-dspark), explicit -c 262144, q8_0 KV, --fit off.
+  # Uses prismBinary (v9596+) which has draft-dspark; turboBinary (v9384) lacks it.
   mkTernaryService = { name, desc, port, gpu, memoryMax ? "20G", extraFlags ? "", extraEnv ? {} }: {
     systemd.services."bonsai-ternary-${name}" = {
       description = desc;
@@ -113,10 +112,10 @@ with lib; let
         Type = "simple";
         User = "bonsai";
         RuntimeDirectory = "bonsai-ternary-${name}";
-        ExecStart = "${getExe effectivePackage} -m ${cfg.ternaryModel}${extraFlags}"
+        ExecStart = "${getExe prismBinary} -m ${cfg.ternaryModel}"
+          + (if cfg.dsparkModel != null then " --spec-type draft-dspark --model-draft ${cfg.dsparkModel} --spec-draft-n-max 4" else "")
           + (if cfg.mmproj != null then " --mmproj ${cfg.mmproj}" else "")
-          + " --host 0.0.0.0 --port ${toString port} -ngl 99 -fa on -c 0 --temp 0.7 "
-          + "--top-p 0.95 --top-k 20 --min-p 0 --jinja --alias ternary-bonsai-27b-${name}";
+          + " --host 0.0.0.0 --port ${toString port} -ngl 99 -fa on -c 262144 --cache-type-k q8_0 --cache-type-v q8_0 --fit off --temp 0.7 --top-p 0.95 --top-k 20 --min-p 0 --jinja --parallel 1 --alias ternary-bonsai-27b-${name}";
         Restart = "on-failure";
         RestartSec = "10";
         StandardOutput = "journal";
@@ -129,7 +128,7 @@ with lib; let
         ProtectHome = true;
         PrivateTmp = true;
         ReadWritePaths = ["/run/bonsai-ternary-${name}"];
-        ReadOnlyPaths = [cfg.ternaryModel] ++ optional (cfg.mmproj != null) cfg.mmproj;
+        ReadOnlyPaths = [cfg.ternaryModel] ++ optional (cfg.mmproj != null) cfg.mmproj ++ optional (cfg.dsparkModel != null) cfg.dsparkModel;
       };
       environment = {
         CUDA_VISIBLE_DEVICES = gpu;
@@ -140,11 +139,10 @@ with lib; let
 
   # ── All services, each gated by hostname ──
 
-  # Ternary on zephyr 3090 (GPU 1, 24 GB) — full capabilities including vision
-  ternaryZephyr = mkIf (host == "zephyr" && cfg.turboBinaryStorePath != null) (mkTernaryService {
-    name = "zephyr"; desc = "Bonsai 27B Ternary — Zephyr RTX 3090 (port 8005) asym KV";
+  # Ternary on zephyr 3090 (GPU 1, 24 GB) — full capabilities including vision + DSpark
+  ternaryZephyr = mkIf (host == "zephyr" && cfg.binaryStorePath != null) (mkTernaryService {
+    name = "zephyr"; desc = "Bonsai 27B Ternary — Zephyr RTX 3090 (port 8005) q8_0 KV + DSpark";
     port = 8005; gpu = "1"; memoryMax = "20G";
-    extraFlags = " --cache-type-k q8_0 --cache-type-v turbo4 -b 2048 -ub 1024 --device CUDA0 --main-gpu 0 --split-mode none --mlock --parallel 1";
     extraEnv = {
       GGML_CUDA_GRAPH_OPT = "1";
       LLAMA_ATTN_ROT_DISABLE = "1";
@@ -153,38 +151,38 @@ with lib; let
     };
   });
 
-  # 1-bit on zephyr 3060 Ti (GPU 0, 8 GB)
+  # 1-bit on zephyr 3060 Ti (GPU 0, 8 GB) — explicit 128K + q4_0 KV
   bit1Zephyr = mkIf (host == "zephyr" && cfg.binaryStorePath != null) (mk1bitService {
-    name = "zephyr"; desc = "Bonsai 27B 1-bit — Zephyr RTX 3060 Ti (port 1236)";
+    name = "zephyr"; desc = "Bonsai 27B 1-bit — Zephyr RTX 3060 Ti (port 1236) q4_0 KV 128K";
     port = 1236; gpu = "0";
   });
 
   # 1-bit on nexus 3060 Ti (8 GB) — ternary can also run when miners idle (-c 0 fits ctx to VRAM)
   bit1Nexus = mkIf (host == "nexus" && cfg.binaryStorePath != null) (mk1bitService {
-    name = "nexus"; desc = "Bonsai 27B 1-bit — Nexus RTX 3060 Ti (port 1235)";
+    name = "nexus"; desc = "Bonsai 27B 1-bit — Nexus RTX 3060 Ti (port 1235) q4_0 KV 128K";
     port = 1235;
   });
 
   ternaryNexus = mkIf (host == "nexus" && cfg.binaryStorePath != null) (mkTernaryService {
-    name = "nexus"; desc = "Bonsai 27B Ternary — Nexus RTX 3060 Ti (port 1238, when GPU idle)";
+    name = "nexus"; desc = "Bonsai 27B Ternary — Nexus RTX 3060 Ti (port 1238, when GPU idle) q8_0 KV";
     port = 1238; gpu = "0"; memoryMax = "8G";
   });
 
   # 1-bit on forge 4060 GPU 0 (8 GB)
   bit1Forge0 = mkIf (host == "forge" && cfg.binaryStorePath != null) (mk1bitService {
-    name = "forge-0"; desc = "Bonsai 27B 1-bit — Forge RTX 4060 GPU 0 (port 8002)";
+    name = "forge-0"; desc = "Bonsai 27B 1-bit — Forge RTX 4060 GPU 0 (port 8002) q4_0 KV 128K";
     port = 8002; gpu = "0";
   });
 
   # 1-bit on forge 4060 GPU 1 (8 GB)
   bit1Forge1 = mkIf (host == "forge" && cfg.binaryStorePath != null) (mk1bitService {
-    name = "forge-1"; desc = "Bonsai 27B 1-bit — Forge RTX 4060 GPU 1 (port 8006)";
+    name = "forge-1"; desc = "Bonsai 27B 1-bit — Forge RTX 4060 GPU 1 (port 8006) q4_0 KV 128K";
     port = 8006; gpu = "1";
   });
 
   # Ternary on forge 4060 — tight fit (6.7 GB on 8 GB), starts when miners idle
   ternaryForge = mkIf (host == "forge" && cfg.binaryStorePath != null) (mkTernaryService {
-    name = "forge"; desc = "Bonsai 27B Ternary — Forge RTX 4060 (port 8005, when GPU idle, tight)";
+    name = "forge"; desc = "Bonsai 27B Ternary — Forge RTX 4060 (port 8005, when GPU idle, tight) q8_0 KV";
     port = 8005; gpu = "0"; memoryMax = "8G";
   });
 
@@ -192,12 +190,14 @@ with lib; let
   bit1Sentry = mkIf (host == "sentry" && cfg.vulkanBinaryStorePath != null) (mk1bitService {
     name = "sentry"; desc = "Bonsai 27B 1-bit — Sentry AMD via Vulkan (port 8003)";
     port = 8003; binary = prismVulkanBinary; extraEnv = { GGML_VULKAN_DEVICE = "0"; };
+    contextSize = "131072"; cacheTypeK = "q4_0"; cacheTypeV = "q4_0";
   });
 
   # 1-bit on krash3 CPU-only (no GPU available)
   bit1Krash3 = mkIf (host == "krash3") (mk1bitService {
     name = "krash3"; desc = "Bonsai 27B 1-bit — krash3 CPU-only (port 8004)";
     port = 8004; extraEnv = {};
+    contextSize = "131072"; cacheTypeK = "q4_0"; cacheTypeV = "q4_0";
   });
 
 in {
