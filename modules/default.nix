@@ -57,6 +57,7 @@
     # Security
     ./security/caddy-ca.nix
     ./kubernetes-security.nix
+    ./system/sops-secrets-registry.nix
 
     # Hardware modules
     ./hardware/corsair.nix
