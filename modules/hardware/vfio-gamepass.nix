@@ -159,6 +159,8 @@ let
         <qemu:arg value="-object"/>
         <qemu:arg value="{'qom-type':'memory-backend-file','id':'looking-glass','mem-path':'/dev/kvmfr0','size':67108864,'share':true}"/>
       </qemu:commandline>
+  '';
+
   # SPICE install domain (no GPU passthrough, QXL+SPICE, for Windows install)
   winSpiceXml = ''
     <domain xmlns:qemu="http://libvirt.org/schemas/domain/qemu/1.0" type="kvm">
@@ -266,9 +268,6 @@ let
         <watchdog model="itco" action="reset"/>
         <memballoon model="none"/>
       </devices>
-    </domain>
-  '';
-
     </domain>
   '';
 in {
