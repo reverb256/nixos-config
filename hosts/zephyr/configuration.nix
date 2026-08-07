@@ -506,6 +506,12 @@
     ];
   };
 
+  # 32-bit graphics for 32-bit Steam games (Proton/older indie titles).
+  # Overrides nvidia-common.nix's mkForce false (a multi-GPU Wayland-stability
+  # measure from the pre-vfio era — the 3060 Ti is vfio-bound to the gaming VM
+  # now, so that concern is moot on zephyr). Priority 40 beats mkForce (50).
+  hardware.graphics.enable32Bit = lib.mkOverride 40 true;
+
   # Patched EDID firmware for the Samsung TV. The TV advertises SDR-only HDR
   # metadata despite Input Signal Plus; the patch adds the PQ EOTF so the niri
   # HDR fork will signal HDR. Generated from the live EDID by
