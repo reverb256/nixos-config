@@ -160,7 +160,6 @@
     # never imported; host keys + age keys rotated on every rebuild.
     preservation = {
       url = "github:nix-community/preservation";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
