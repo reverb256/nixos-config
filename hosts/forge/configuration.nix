@@ -43,6 +43,16 @@
   # belong to the miners. Matches hosts/sentry/configuration.nix:474.
   services.boot-error-fixes.includePrinting = lib.mkForce false;
 
+  # SecretSpec Phase 4 credential provisioning — sops-secrets-registry
+  # Categories needed on forge: kubernetes (k3s token/encryption key),
+  # mining (pool creds), ci (github token for flake inputs)
+  services.sops-secrets-registry = {
+    enable = true;
+    kubernetes = true;
+    mining = true;
+    ci = true;
+  };
+
   # FORGE MEMORY TUNING - 15GB RAM with mining + desktop + K8s
 
   # Forge runs at 85% memory utilization — needs protection
