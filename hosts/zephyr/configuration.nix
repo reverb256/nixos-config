@@ -569,6 +569,12 @@
       bindAddress = "10.1.1.110";
     };
 
+    # 2026-08-06: disable nixos-sync force-reset while nexus (gitlawb origin)
+    # is down. The force-reset to origin/main fails on every switch and
+    # corrupts dependent services (libvirtd-config). Re-enable when nexus
+    # returns. Local edits are the source of truth in the meantime.
+    nixos-sync.enable = false;
+
     # NOTE (2026-07-21, issue #300): the previous `services.mining` block,
     # `gaming.hdr.enable` outermost statement were removed as part of the
     # peakminer-only consolidation. Pre-existing bracket typo from a botched
