@@ -43,7 +43,7 @@ SDDM (display manager)
 ## HDR Support
 
 HDR is driven by the Niri HDR fork on Zephyr, connected to the 4K HDR TV via
-HDMI-A-2. `desktop.niri-hdr-samsung.enable = true` configures the Niri HDR
+HDMI-A-1. `desktop.niri-hdr-samsung.enable = true` configures the Niri HDR
 output and NVIDIA tuning flags.
 
 ## Noctalia

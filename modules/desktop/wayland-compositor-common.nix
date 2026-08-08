@@ -65,7 +65,7 @@ in {
 
       # The patched daemon (desktop.noctalia.daemonPackage) now owns the
       # brightness backends natively: DDC/CI via ddcutil for DP-* and the
-      # compositor-driven SDR backend (niri IPC) for HDMI-A-2. The old
+      # compositor-driven SDR backend (niri IPC) for HDMI-A-1. The old
       # wrapper intercepted brightness verbs and routed them to
       # scripts/brightness-router.sh, which (a) could not drive SDR and
       # (b) had an arg-order bug (`brightness-set <conn> <pct>` swapped

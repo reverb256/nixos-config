@@ -9,7 +9,7 @@
   cfg = config.desktop.zephyr-sdr-brightness;
 
   # ── Patched noctalia daemon ──────────────────────────────────────────
-  # HDMI-A-2 (Samsung TV) now runs HDR natively under niri-unstable, so its
+  # HDMI-A-1 (Samsung TV) now runs HDR natively under niri-unstable, so its
   # brightness backend is set to `normal` (niri owns the output via max_bpc /
   # HDR). The custom niri SDR-brightness patch was dropped 2026-07-25.
   noctalia-patched = pkgs.noctalia.overrideAttrs (old: {
@@ -21,15 +21,15 @@
   # (set in the systemd user service environment below) points noctalia's
   # configDir() at /etc/noctalia/. This gives us declarative control over
   # the brightness backend per-monitor without touching the user's home.
-  #   - enableDdcSupport: enables the DDC/CI backend for DP-4/5/6
-  #   - backend = "normal" on HDMI-A-2: the Samsung TV is HDR-driven natively
+  #   - enableDdcSupport: enables the DDC/CI backend for DP-1/2/3
+  #   - backend = "normal" on HDMI-A-1: the Samsung TV is HDR-driven natively
   #     by niri-unstable (max_bpc / HDR); niri owns the output. The custom
   #     niri SDR-brightness patch was dropped 2026-07-25.
   noctaliaConfigFile = pkgs.writeText "noctalia-config.toml" ''
     [brightness]
     enable_ddcutil = true
 
-    [brightness.monitor."HDMI-A-2"]
+    [brightness.monitor."HDMI-A-1"]
     backend = "normal"
   '';
 in {

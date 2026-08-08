@@ -5,10 +5,10 @@
 All 4 displays now show in Plasma brightness slider reliably.
 
 ### ✅ Working in Plasma Slider
-- **ZOWIE (DP-5)**: Shows in brightness slider, works perfectly
-- **Samsung TV (HDMI-A-2)**: Shows in brightness slider, works perfectly
-- **ASUS (DP-4)**: ✅ **NOW WORKING** - Shows in brightness slider
-- **Acer (DP-6)**: ✅ **NOW WORKING** - Shows in brightness slider
+- **ZOWIE (DP-2)**: Shows in brightness slider, works perfectly (connector name current after secondary-GPU VFIO blacklist; was DP-5)
+- **Samsung TV (HDMI-A-1)**: Shows in brightness slider, works perfectly (was HDMI-A-2)
+- **ASUS (DP-1)**: ✅ **NOW WORKING** - Shows in brightness slider (was DP-4)
+- **Acer (DP-3)**: ✅ **NOW WORKING** - Shows in brightness slider (was DP-6)
 
 ## The Fix
 
@@ -22,11 +22,11 @@ All 4 displays now show in Plasma brightness slider reliably.
 [BrightnessControl]
 UseDDCUtil=false  # Show ALL displays, not just DDC/CI-capable
 
-[DP-5][BrightnessControl]
+[DP-2][BrightnessControl]
 brightnessEnable=true
 brightnessValue=100
 
-# ... DP-4, DP-6, HDMI-A-2 also configured
+# ... DP-1, DP-3, HDMI-A-1 also configured (connector names current after VFIO blacklist; were DP-4, DP-6, HDMI-A-2)
 ```
 
 **Commit**: `4a84746` - "fix(plasma6): resolve brightness control for all 4 monitors"
@@ -43,10 +43,10 @@ KDE Plasma Powerdevil only shows displays in the brightness slider if:
 
 ### Evidence from kscreen-doctor:
 ```
-DP-4 (ASUS):   Brightness control: unsupported, DDC/CI: allowed
-DP-5 (ZOWIE):  Brightness control: supported,   DDC/CI: allowed
-DP-6 (Acer):   Brightness control: unsupported, DDC/CI: allowed
-HDMI-A-2 (TV): Brightness control: supported,   DDC/CI: N/A
+DP-1 (ASUS):   Brightness control: unsupported, DDC/CI: allowed
+DP-2 (ZOWIE):  Brightness control: supported,   DDC/CI: allowed
+DP-3 (Acer):   Brightness control: unsupported, DDC/CI: allowed
+HDMI-A-1 (TV): Brightness control: supported,   DDC/CI: N/A
 ```
 
 ## Solutions (Historical - No Longer Needed)
@@ -62,17 +62,17 @@ Previously created keyboard shortcuts for ASUS and Acer - **now obsolete** since
 You can control brightness from terminal:
 
 ```bash
-# ASUS (DP-4, bus 8)
+# ASUS (DP-1, bus 8)
 ddcutil --bus 8 setvcp 10 50   # Set to 50%
 ddcutil --bus 8 getvcp 10      # Get current brightness
 
-# ZOWIE (DP-5, bus 9)
+# ZOWIE (DP-2, bus 9)
 ddcutil --bus 9 setvcp 10 75
 
-# Acer (DP-6, bus 10)
+# Acer (DP-3, bus 10)
 ddcutil --bus 10 setvcp 10 80
 
-# Samsung TV (HDMI-A-2, bus 7) - Use Plasma slider
+# Samsung TV (HDMI-A-1, bus 7) - Use Plasma slider
 ```
 
 ### 3. ✅ NixOS-Managed Scripts

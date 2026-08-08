@@ -50,10 +50,15 @@ in {
         wait-for-frame-completion-before-queueing = true;
       };
 
-      # Samsung TV HDR output config (HDMI-A-2)
+      # Samsung TV HDR output config (HDMI-A-1)
+      # Uses the HDR fork's hdr { } block for full HDR metadata signalling.
+      # reference-luminance: SDR white level in nits
+      #   203 = Samsung QD-OLED/QN90A typical
+      #   150 = darker SDR content (less aggressive tone mapping)
+      #   250 = brighter (might clip highlights)
       outputs = {
-        "HDMI-A-2" = {
-          max-bpc = 10;
+        "HDMI-A-1" = {
+          bpc = 10;
           hdr = {
             mode = "on";
             reference-luminance = 203;
