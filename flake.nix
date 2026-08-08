@@ -331,6 +331,7 @@
             k3s-topology-evidence = mkCheck "k3s-topology-evidence" ./tests/k3s-topology-evidence.nix;
             k8s-manifest-validation = mkCheck "k8s-manifest-validation" ./tests/k8s-manifest-validation.nix;
             module-template-compliance = mkCheck "module-template-compliance" ./tests/module-template-compliance.nix;
+            dualsense = mkCheck "dualsense" ./tests/dualsense.nix;
             network-constants = mkCheck "network-constants" ./tests/network-constants.nix;
             nixos-eval = mkCheck "nixos-eval" ./tests/nixos-eval.nix;
             options-consistency = mkCheck "options-consistency" ./tests/options-consistency.nix;
