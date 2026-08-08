@@ -7,6 +7,11 @@
 
   # SERVICES CONFIGURATION
   services = {
+    # Fleet RGB inventory and explicitly allowlisted Stylix synchronization.
+    rgb-inventory = {
+      enable = true;
+      stylixSync.enable = true;
+    };
     # System monitoring CLI tools
     monitoring.system-tools = {
       enable = true;

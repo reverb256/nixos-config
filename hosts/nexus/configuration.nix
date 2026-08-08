@@ -290,6 +290,25 @@
   # ============================================================================
   # HARDWARE PROFILES
   # ============================================================================
+  # Nexus uses the kernel's autonomous AMD P-state driver with a balanced
+  # default. The explicit performance profile below is opt-in for builds and
+  # gaming; it does not permanently pin the 3900X at maximum power. The
+  # power-profiles daemon is the sole base-policy owner; GameMode may request
+  # performance transiently while a game is active.
+  services.power-profiles-daemon.enable = true;
+  systemd.services.nexus-cpu-balanced = {
+    description = "Nexus default balanced CPU profile";
+    wantedBy = ["multi-user.target"];
+    conflicts = ["nexus-cpu-performance.service"];
+    after = ["power-profiles-daemon.service"];
+    wants = ["power-profiles-daemon.service"];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced";
+      RemainAfterExit = true;
+    };
+  };
+
   # Base profiles provided by node-profiles.nexus-gaming:
   # - amd.zen, nvidia.enable (single GPU), monitoring.enable
   #
@@ -307,21 +326,16 @@
       fanControl = false; # BIOS fan control for now
     };
 
-    # RGB control for Razer Naga Pro and Gigabyte motherboard
+    # RGB control for Razer Naga Pro and Gigabyte X470 Aorus motherboard.
+    # The native OpenRGB module owns the SDK server and udev rules; the RGB
+    # helper only issues client commands against that single server.
     rgb-control = {
       enable = true;
-      openrgb.enable = true;
-      openrazer.enable = true; # Razer Naga Pro
-      temperatureReactive = {
+      openrgb = {
         enable = true;
-        sensor = "cpu"; # Monitor CPU temps
-        thresholds = {
-          cool = 50;
-          warm = 65;
-          hot = 75;
-        };
-        interval = 5;
+        motherboard = "amd";
       };
+      openrazer.enable = true; # Razer Naga Pro
     };
   };
 
@@ -428,6 +442,7 @@
   boot.kernelParams = [
     "amd_iommu=on" # Enable AMD IOMMU for device passthrough
     "iommu=pt" # IOMMU passthrough mode (better performance)
+    "amd_pstate=active" # AMD autonomous P-state/EPP policy for the 3900X
     "hugepages=3"
   ];
 
@@ -536,6 +551,26 @@
     TS_SSH = "true";
   };
 
+  # Grant user-space RGB tools the native, group-scoped I2C access rather
+  # than the old world-writable catch-all udev rule.
+  hardware.i2c.enable = true;
+
+  # Reversible runtime CPU profile control. Balanced is the normal state;
+  # `systemctl start nexus-cpu-performance` opts into performance and stopping
+  # it restores balanced. No fan/PWM control is claimed here.
+  systemd.services.nexus-cpu-performance = {
+    description = "Nexus CPU performance profile (opt-in)";
+    conflicts = ["nexus-cpu-balanced.service"];
+    after = ["power-profiles-daemon.service" "nexus-cpu-balanced.service"];
+    wants = ["power-profiles-daemon.service"];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${pkgs.power-profiles-daemon}/bin/powerprofilesctl set performance";
+      ExecStop = "${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced";
+    };
+  };
+
   # ============================================================================
   # USER GROUPS
   # ============================================================================
@@ -556,6 +591,24 @@
   environment.systemPackages = with pkgs; [
     opencode # AI coding agent (migrated from nix profile)
     llama-cpp # CUDA-enabled llama.cpp for autoresearch LLM evaluation
+    (writeShellScriptBin "nexus-cpu-mode" ''
+      set -euo pipefail
+      case "''${1:-status}" in
+        balanced)
+          exec ${sudo-rs}/bin/sudo ${systemd}/bin/systemctl stop nexus-cpu-performance.service
+          ;;
+        performance)
+          exec ${sudo-rs}/bin/sudo ${systemd}/bin/systemctl start nexus-cpu-performance.service
+          ;;
+        status)
+          exec ${power-profiles-daemon}/bin/powerprofilesctl get
+          ;;
+        *)
+          echo "usage: nexus-cpu-mode {balanced|performance|status}" >&2
+          exit 2
+          ;;
+      esac
+    '')
   ];
 
   # ============================================================================
@@ -623,6 +676,8 @@
   # Pin nixpkgs to latest for NVIDIA 610+ driver (production is 595)
 
   services.storage-assertions.enable = true;
+  services.thermal-monitor.enable = true;
+  # Cross-fleet read-only CPU thermal watchdog: alerts at 90C warn / 95C crit.
 
   # Bonsai 27B: 1-bit on RTX 3060 Ti (port 1235), ternary (port 1238) when GPU idle
   services.bonsai = {

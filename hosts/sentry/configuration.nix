@@ -488,6 +488,8 @@
     # cacheTypeV = "bf16";
   };
   services.storage-assertions.enable = true;
+  services.thermal-monitor.enable = true;
+  # Cross-fleet read-only CPU thermal watchdog: alerts at 90C warn / 95C crit.
 
 
 
