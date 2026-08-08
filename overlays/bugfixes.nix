@@ -17,6 +17,19 @@
     dontCheck = true;
   });
 
+  # 2026-08-08: protontricks-1.14.1 test suite asserts real filesystem paths
+  # (steam library discovery) that the Nix sandbox rewrites to
+  # `/nix/var/nix/b/<hash>` — 2 tests fail on the nexus builder unless checks
+  # are disabled (same disease as webkitgtk above). protontricks is pulled
+  # into every workstation/gaming role host via profiles.node.nexus-gaming +
+  # profiles.role.workstation (services.gaming.enable=true), so this blocks
+  # nexus toplevel builds. The tests are upstream codec/path tests, not used
+  # by the installed binary.
+  protontricks = prev.protontricks.overrideAttrs (old: {
+    doCheck = false;
+    dontCheck = true;
+  });
+
   # 2026-08-07: nixpkgs removed `libdisplay-info_0_2` (aliases.nix throw,
   # added 2026-08-04) — but the niri-flake input (sodiboo/niri-flake) still
   # `pkgs.callPackage make-niri` with an explicit `libdisplay-info_0_2` arg
