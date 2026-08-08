@@ -6,6 +6,22 @@
 }: let
   cfg = config.services.peakminer;
   inherit (lib) mkEnableOption mkOption types mkIf mkBefore;
+
+  # Resolve a GPU product-name substring to its current CUDA index and UUID.
+  # Prints "INDEX UUID" on the single matching line, or nothing if absent.
+  # Robust to enumeration reorder: never keys on a fixed index.
+  resolveGpu = pkgs.writeShellScript "peakminer-resolve-gpu" ''
+    set -euo pipefail
+    want="$1"
+    /run/current-system/sw/bin/nvidia-smi --query-gpu=index,uuid,name \
+      --format=csv,noheader,nounits 2>/dev/null | while IFS=', ' read -r idx uuid name; do
+      if [[ "$name" == *"$want"* ]]; then
+        echo "$idx $uuid"
+        exit 0
+      fi
+    done
+    exit 1
+  '';
 in {
   options.services.peakminer = {
     enable = mkEnableOption "PeakMiner GPU mining";
@@ -44,13 +60,22 @@ in {
             type = types.str;
             description = "Service name suffix and worker name";
           };
+          # GPU is selected by PRODUCT NAME (e.g. "RTX 3090", "RTX 3060 Ti"),
+          # NOT by index. Index assignment is unstable across reboots / when a
+          # second GPU is VFIO-blacklisted, which previously caused one GPU's
+          # power limit to bleed onto the other. We resolve name -> UUID/index
+          # at runtime so the setting always lands on the right physical card.
+          gpuName = mkOption {
+            type = types.str;
+            description = "NVIDIA product name substring to match (e.g. \"RTX 3090\"). Used to resolve the real GPU, not the enumeration index.";
+          };
           devices = mkOption {
             type = types.str;
-            description = "PeakMiner CUDA device list, e.g. 0 or 0,1";
+            description = "PeakMiner CUDA device list, e.g. 0 or 0,1 (resolved at runtime from gpuName)";
           };
           gpuId = mkOption {
             type = types.int;
-            description = "NVIDIA GPU index used for the power limit";
+            description = "DEPRECATED index-based selector — kept for compat but ignored; gpuName is used instead.";
           };
           powerLimit = mkOption {
             type = types.nullOr types.int;
@@ -85,8 +110,14 @@ in {
       powerLimitScript = pkgs.writeShellScript "peakminer-power-limit-${instance.name}" ''
         set -euo pipefail
         for attempt in $(seq 1 30); do
+          resolved=$(${resolveGpu} "${instance.gpuName}" || true)
+          if [ -z "$resolved" ]; then
+            echo "PeakMiner: GPU '${instance.gpuName}' not present, skipping power limit" >&2
+            exit 0
+          fi
+          uuid=$(echo "$resolved" | awk '{print $2}')
           if /run/current-system/sw/bin/nvidia-smi \
-              -i ${toString instance.gpuId} \
+              -i "$uuid" \
               -pl ${toString instance.powerLimit}; then
             exit 0
           fi
@@ -104,6 +135,17 @@ in {
         password=${lib.escapeShellArg cfg.password}
         pools=(${lib.concatStringsSep " " (map (pool: lib.escapeShellArg pool) cfg.pools)})
 
+        # Resolve the real CUDA index for this GPU by NAME (not hardcoded index),
+        # so a VFIO-blacklist / reboot that reorders GPUs can't put the wrong
+        # card into this miner instance.
+        resolved=$(${resolveGpu} "${instance.gpuName}" || true)
+        if [ -z "$resolved" ]; then
+          echo "PeakMiner ${instance.name}: GPU '${instance.gpuName}' not present; exiting" >&2
+          exit 1
+        fi
+        cuda_idx=$(echo "$resolved" | awk '{print $1}')
+        echo "PeakMiner ${instance.name}: targeting CUDA index $cuda_idx (${instance.gpuName})" >&2
+
         while true; do
           for pool in "''${pools[@]}"; do
             echo "PeakMiner ${instance.name}: starting $pool" >&2
@@ -112,7 +154,7 @@ in {
               --user "$wallet" \
               --password "$password" \
               --coin pearl \
-              --devices ${lib.escapeShellArg instance.devices} \
+              --devices "$cuda_idx" \
               --api-port ${toString instance.apiPort} \
               ${lib.concatStringsSep " " (map lib.escapeShellArg instance.extraArgs)}
             echo "PeakMiner ${instance.name}: pool exited; trying next pool" >&2
