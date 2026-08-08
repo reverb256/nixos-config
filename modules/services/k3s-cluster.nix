@@ -701,7 +701,7 @@ in {
       before = ["k3s.service"];
       serviceConfig.Type = "oneshot";
       serviceConfig.RemainAfterExit = true;
-      path = with pkgs; [coreutils gnused];
+      path = with pkgs; [coreutils gnused python3];
       script = ''
         KEY_FILE="${cfg.secretsEncryptionKeyFile}"
         CONFIG_DIR="${cfg.dataDir}/server/cred"
@@ -712,7 +712,21 @@ in {
           exit 0
         fi
 
-        KEY_B64=$(head -c 32 "$KEY_FILE" | ${pkgs.coreutils}/bin/base64 -w0)
+        # The sops key file may be a JSON envelope ({"data": "<32 bytes>"}) —
+        # extract the actual key material instead of head -c 32 which grabs
+        # the envelope prefix and produces a corrupted AES key.
+        if head -c 1 "$KEY_FILE" | grep -q '{'; then
+          KEY_B64=$(${pkgs.python3}/bin/python3 -c '
+        import json,sys,base64
+        d = json.load(open(sys.argv[1]))
+        raw = d.get("data")
+        if isinstance(raw, str):
+            raw = raw.encode("latin-1")
+        sys.stdout.write(base64.b64encode(raw[:32]).decode())
+      ' "$KEY_FILE")
+        else
+          KEY_B64=$(head -c 32 "$KEY_FILE" | ${pkgs.coreutils}/bin/base64 -w0)
+        fi
         if [ -z "$KEY_B64" ]; then
           echo "k3s-secrets-encryption: key file is empty, skipping"
           exit 0
