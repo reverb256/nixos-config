@@ -425,16 +425,6 @@
       enable = true;
       openrgb.enable = true; # Motherboard, GPU, Corsair devices
       openrazer.enable = true; # Razer Naga Pro mouse
-      temperatureReactive = {
-        enable = true;
-        sensor = "both"; # Monitor both CPU and GPU temps
-        thresholds = {
-          cool = 50;
-          warm = 65;
-          hot = 75;
-        };
-        interval = 5;
-      };
     };
 
     # Bluetooth support via BlueZ
@@ -1156,6 +1146,8 @@
 
   # Lossless Scaling Frame Generation via Vulkan
   services.storage-assertions.enable = true;
+  services.thermal-monitor.enable = true;
+  # Cross-fleet read-only CPU thermal watchdog: alerts at 90C warn / 95C crit.
 
   # Fix nixpkgs tcl-8_6 regression: nixpkgs-unstable has tcl aliased to 8.5.19
   # but python tkinter requires 8.6. Pin tcl-8_6 to the explicit 8.6.nix.

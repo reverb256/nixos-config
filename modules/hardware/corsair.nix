@@ -84,8 +84,9 @@ in {
       KERNEL=="hidraw*", ATTRS{idVendor}=="1b1c", TAG+="uaccess"
     '';
 
-    # OpenRGB service for auto-start (disabled by default to avoid conflicts with liquidctl)
-    systemd.services.openrgb = lib.mkIf (cfg.rgb.enable && cfg.autoStartRgb) {
+    # Compatibility fallback only: when the native NixOS OpenRGB module is
+    # enabled, it is the sole SDK server owner and this service is suppressed.
+    systemd.services.openrgb = lib.mkIf (cfg.rgb.enable && cfg.autoStartRgb && !config.services.hardware.openrgb.enable) {
       description = "OpenRGB RGB lighting control server";
       wantedBy = ["multi-user.target"];
       after = ["graphical-session.target"];

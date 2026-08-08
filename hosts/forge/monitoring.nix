@@ -7,6 +7,9 @@
 
   # SERVICES CONFIGURATION
   services = {
+    # Read-only fleet RGB inventory. Stylix sync remains disabled until
+    # stable device identities are explicitly approved in the contract.
+    rgb-inventory.enable = true;
     # System monitoring CLI tools
     monitoring.system-tools = {
       enable = true;

@@ -243,16 +243,6 @@
     rgb-control = {
       enable = true;
       openrgb.enable = true;
-      temperatureReactive = {
-        enable = true;
-        sensor = "gpu"; # Monitor GPU temps for mining
-        thresholds = {
-          cool = 60;
-          warm = 70;
-          hot = 75;
-        };
-        interval = 10; # Poll every 10 seconds
-      };
     };
   };
 
@@ -754,6 +744,8 @@
     displayManager.sddm.settings.General.DisplayServer = lib.mkForce "x11";
   };
   services.storage-assertions.enable = true;
+  services.thermal-monitor.enable = true;
+  # Cross-fleet read-only CPU thermal watchdog: alerts at 90C warn / 95C crit.
 
   # Bonsai 27B: 1-bit on RTX 4060 (port 8002), ternary (port 8005) when GPU idle
   services.bonsai = {

@@ -53,6 +53,7 @@
     ./system/boot-emergency-diagnostics.nix
     ./system/mining-inference-coordinator.nix
     ./system/status-auto-update.nix
+    ./system/deployment-provenance.nix
 
     # Security
     ./security/caddy-ca.nix
@@ -141,6 +142,7 @@
     ./services/n8n.nix
     ./services/self-healing-alerts.nix
     ./services/memlawb-server.nix  # opt-in encrypted memory server (Hermes MCP backend)
+    ./services/thermal-monitor.nix # Read-only CPU thermal watchdog (cross-fleet)
 
     # Monitoring
     ./services/monitoring/default.nix
