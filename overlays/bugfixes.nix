@@ -28,8 +28,13 @@
   # doCheck/dontCheck alone do NOT stop pytestCheckHook — it re-defines
   # checkPhase, so the sandbox-path tests still run. The kill-switch is
   # dontUsePytestCheck (documented pytestCheckHook option).
-  protontricks = prev.protontricks.overridePythonAttrs (old: {
+  # overridePythonAttrs does NOT preserve the generic `.override` that the
+  # nixpkgs Steam module calls (programs/steam.nix:231 override extraCompatPaths),
+  # so injecting the compat paths would fail with "attribute 'override' missing".
+  # overrideAttrs preserves `.override` AND accepts the pytestCheckHook kill-switch.
+  protontricks = prev.protontricks.overrideAttrs (old: {
     dontUsePytestCheck = true;
+    dontCheck = true;
   });
 
   # 2026-08-07: nixpkgs removed `libdisplay-info_0_2` (aliases.nix throw,
