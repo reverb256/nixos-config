@@ -428,6 +428,13 @@
   # ============================================================================
   # SECURITY
   # ============================================================================
+  # Sentry trusts the canonical repository CA but does not own the signing key
+  # or mint ingress leaves.
+  services.cluster-ca = {
+    enable = true;
+    generateLeaf = false;
+  };
+
   # Disable autologin — sentry is k3s server, not interactive desktop
   services.displayManager.autoLogin.enable = lib.mkForce false;
   # ============================================================================

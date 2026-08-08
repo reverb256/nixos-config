@@ -499,9 +499,6 @@
       "hugepages=3"
       "btrfs.commit_interval=300" # From btrfs-tuning module
       "nvidia.NVreg_RegistryDwords=EnableBrightnessControl=1" # Enable laptop brightness control
-      # Samsung QD-OLED HDR: override the TV's SDR-only EDID with a patched one
-      # (adds PQ/ST-2084 to the HDR Static Metadata block). See scripts/patch-edid-hdr.py.
-      "drm.edid_firmware=HDMI-A-2:edid/samsung-hdr.bin"
       # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
     ];
   };
@@ -512,18 +509,13 @@
   # now, so that concern is moot on zephyr). Priority 40 beats mkForce (50).
   hardware.graphics.enable32Bit = lib.mkOverride 40 true;
 
-  # Patched EDID firmware for the Samsung TV. The TV advertises SDR-only HDR
-  # metadata despite Input Signal Plus; the patch adds the PQ EOTF so the niri
-  # HDR fork will signal HDR. Generated from the live EDID by
-  # scripts/patch-edid-hdr.py (regen after any TV/port change).
-  # NOTE: NVIDIA proprietary driver has mixed reports honoring drm.edid_firmware
-  # — verify post-reboot with `edid-decode /sys/class/drm/card*/card*-HDMI-A-2/edid`.
-  hardware.firmware = [
-    (pkgs.runCommand "samsung-tv-hdr-edid" { } ''
-      mkdir -p $out/lib/firmware/edid
-      cp ${../../edid/patched-hdr.bin} $out/lib/firmware/edid/samsung-hdr.bin
-    '')
-  ];
+  # REMOVED 2026-08-08: the drm.edid_firmware=HDMI-A-2 override + hardware.firmware
+  # EDID patch were (a) keyed on a connector name (HDMI-A-2) that does not exist on
+  # this GPU (the TV is on HDMI-A-1) and (b) redundant — the TV's native EDID
+  # already advertises PQ/ST-2084 (EOTF 0x01|0x04|0x08), so the niri HDR fork can
+  # signal HDR without any patched firmware. Removing the last port-label
+  # dependency in the HDR stack; niri output config is keyed on EDID identity
+  # ("Samsung Electric Company SAMSUNG 0x01000E00") instead.
 
   # ============================================================================
   # ROLE PROFILES

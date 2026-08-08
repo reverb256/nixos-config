@@ -9,6 +9,8 @@
     inputs.preservation.nixosModules.preservation
   ];
 
+  preservation.enable = true;
+
   preservation.preserveAt."/persistent" = {
     # System state
     directories = [
@@ -25,6 +27,8 @@
       "/var/lib/kubelet"
       "/var/lib/tailscale"
       "/var/lib/fwupd"
+      "/etc/nixos/.age"
+      "/etc/ssl/cluster-ca"
     ];
     files = [
       {
@@ -64,18 +68,6 @@
       ];
     };
   };
-
-  # machine-id and age key: symlink to persistent storage
-  system.activationScripts.persist-symlinks = lib.stringAfter ["etc" "users"] ''
-    if [ -f /persistent/etc/machine-id ]; then
-      rm -f /etc/machine-id
-      ln -sf /persistent/etc/machine-id /etc/machine-id
-    fi
-    if [ -f /persistent/etc/age/key.txt ]; then
-      rm -f /etc/age/key.txt
-      ln -sf /persistent/etc/age/key.txt /etc/age/key.txt
-    fi
-  '';
 
   users.mutableUsers = false;
 }

@@ -62,7 +62,37 @@ in {
     caKey = mkOption {
       type = types.path;
       default = "/etc/ssl/cluster-ca/ca.key";
-      description = "Path to CA private key";
+      description = "Path to the provisioned CA private key";
+    };
+
+    caKeyProvisioned = mkOption {
+      type = types.bool;
+      default = false;
+      description = ''
+        Whether the CA private key is provisioned by a secret manager.
+        When true, the service fails closed if the key is absent instead of
+        generating a key that cannot match the static CA certificate.
+      '';
+    };
+
+    caKeyService = mkOption {
+      type = types.str;
+      default = "sops-install-secrets.service";
+      description = ''
+        Systemd unit that provisions the CA private key when
+        <option>caKeyProvisioned</option> is true. Defaults to sops-nix;
+        hosts that use SecretSpec provisioning (e.g. nexus) must override
+        this to "secretspec-creds.service".
+      '';
+    };
+
+    allowGenerateCa = mkOption {
+      type = types.bool;
+      default = false;
+      description = ''
+        Allow first-boot generation of a new CA when no static CA exists.
+        Keep false for the fleet so hosts cannot silently fork the trust root.
+      '';
     };
 
     leafCert = mkOption {
@@ -171,6 +201,9 @@ in {
       description = "Generate internal CA certificate and leaf cert";
       wantedBy = ["multi-user.target"];
       before = ["caddy.service"];
+      after = lib.optional cfg.caKeyProvisioned cfg.caKeyService;
+      wants = lib.optional cfg.caKeyProvisioned cfg.caKeyService;
+      requires = lib.optional cfg.caKeyProvisioned cfg.caKeyService;
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -185,37 +218,46 @@ in {
         mkdir -p /etc/ssl/cluster-ca
 
         # ── CA Certificate ──────────────────────────────────────
-        if [ ! -f ${cfg.caCert} ]; then
-          # First, try repo-stored CA so all nodes converge on the same cert
-          if [ -f "$STATIC_CA" ]; then
-            echo "Using static CA from repo"
+        # The repository certificate is the fleet trust anchor. Replace any
+        # stale locally-generated certificate so hosts cannot silently fork
+        # the cluster PKI. Never generate a new key for an existing CA.
+        if [ -f "$STATIC_CA" ]; then
+          if [ ! -f ${cfg.caCert} ] || ! cmp -s "$STATIC_CA" ${cfg.caCert}; then
+            echo "Installing canonical cluster CA certificate"
             cp "$STATIC_CA" ${cfg.caCert}
             chmod 644 ${cfg.caCert}
-            if [ ! -f ${cfg.caKey} ]; then
-              ${openssl} genrsa -out ${cfg.caKey} 4096 2>/dev/null
-            fi
-            chmod 640 ${cfg.caKey}
-            chown root:${cfg.keyGroup} ${cfg.caKey} 2>/dev/null || true
-          else
-            # No static CA — first-boot recovery path
-            ${openssl} req -x509 -newkey rsa:4096 \
-              -keyout ${cfg.caKey} \
-              -out ${cfg.caCert} \
-              -days 3650 \
-              -nodes \
-              -subj "${caSubjectString}" \
-              -addext "basicConstraints=critical,CA:TRUE" \
-              -addext "keyUsage=critical,keyCertSign,cRLSign" 2>/dev/null
-
-            echo "Internal CA certificate generated at ${cfg.caCert}"
-            chmod 644 ${cfg.caCert}
-            chmod 640 ${cfg.caKey}
-            chown root:${cfg.keyGroup} ${cfg.caKey} 2>/dev/null || true
+            ${lib.optionalString cfg.generateLeaf ''
+            rm -f ${cfg.leafCert} ${cfg.leafKey} /etc/ssl/cluster-ca/fullchain.crt "$SAN_FILE"
+            ''}
           fi
-        else
-          echo "CA certificate already exists at ${cfg.caCert}"
-          chmod 640 ${cfg.caKey} 2>/dev/null || true
-          chown root:${cfg.keyGroup} ${cfg.caKey} 2>/dev/null || true
+        elif ! ${lib.boolToString cfg.allowGenerateCa}; then
+          echo "ERROR: canonical cluster CA certificate is unavailable; refusing to generate a trust-root fork" >&2
+          exit 1
+        elif [ ! -f ${cfg.caCert} ]; then
+          ${openssl} req -x509 -newkey rsa:4096 \
+            -keyout ${cfg.caKey} \
+            -out ${cfg.caCert} \
+            -days 3650 \
+            -nodes \
+            -subj "${caSubjectString}" \
+            -addext "basicConstraints=critical,CA:TRUE" \
+            -addext "keyUsage=critical,keyCertSign,cRLSign" 2>/dev/null
+          chmod 644 ${cfg.caCert}
+        fi
+
+        if ${lib.boolToString cfg.generateLeaf}; then
+          if [ ! -s ${cfg.caKey} ]; then
+            echo "ERROR: CA private key ${cfg.caKey} is missing; refusing to mint leaf certificates" >&2
+            exit 1
+          fi
+          key_hash=$(${openssl} pkey -in ${cfg.caKey} -pubout 2>/dev/null | ${openssl} pkey -pubin -outform DER 2>/dev/null | sha256sum | cut -d' ' -f1)
+          cert_hash=$(${openssl} x509 -in ${cfg.caCert} -pubkey -noout 2>/dev/null | ${openssl} pkey -pubin -outform DER 2>/dev/null | sha256sum | cut -d' ' -f1)
+          if [ -z "$key_hash" ] || [ "$key_hash" != "$cert_hash" ]; then
+            echo "ERROR: CA private key does not match ${cfg.caCert}; refusing to mint leaf certificates" >&2
+            exit 1
+          fi
+          chmod 0400 ${cfg.caKey}
+          chown root:root ${cfg.caKey}
         fi
 
         # ── Leaf Certificate ────────────────────────────────────
@@ -271,7 +313,13 @@ in {
       '';
     };
 
-    # Add caddy to keyGroup for cert access (only if caddy service is enabled)
+    # Caddy must not start before the leaf certificate and key exist.
+    systemd.services.caddy = lib.mkIf cfg.generateLeaf {
+      after = ["cluster-ca-init.service"];
+      requires = ["cluster-ca-init.service"];
+    };
+
+    # Caddy needs the leaf key, never the CA signing key.
     users.users.caddy = lib.mkIf (config.services.caddy.enable or false) {
       isSystemUser = true;
       group = "caddy";

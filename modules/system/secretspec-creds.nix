@@ -25,20 +25,39 @@ let
     write_secret() {
       log "Decrypting $3 -> $2 ..."
       local _v
-      # Decrypt without --extract to handle both binary and YAML formats
-      _v=$("$SOPS" -d --config "$CONFIG" "$SECRETS_DIR/$3" 2>>"$LOG") || {
-        log "FAILED: sops -d $3 (exit $?)"
-        fail=1; return
+      # Prefer --extract of the declared key (default "data"): handles both
+      # JSON envelopes ({"data": "..."}) and YAML envelopes (data: ... /
+      # named keys like exa_api_key: ...) without corrupting multi-line PEMs.
+      # The old full-decrypt + sed strip turned YAML block scalars into
+      # "|" + indented garbage on disk (observed on /run/secrets/ssh-ca-key).
+      _v=$("$SOPS" -d --extract "[\"$7\"]" --config "$CONFIG" "$SECRETS_DIR/$3" 2>>"$LOG") || {
+        # Fallback: full decrypt for binary-format sops files (raw data, no key)
+        _v=$("$SOPS" -d --config "$CONFIG" "$SECRETS_DIR/$3" 2>>"$LOG") || {
+          log "FAILED: sops -d $3 (exit $?)"
+          fail=1; return
+        }
+        # Named-key YAML fallback: strip the key prefix (single-line values)
+        if echo "$_v" | grep -q '^[a-zA-Z_][a-zA-Z0-9_]*:'; then
+          _v=$(echo "$_v" | sed 's/^[^:]*:[[:space:]]*//')
+        fi
       }
-      # Auto-detect YAML-format sops (key: value) vs binary (raw data)
-      if echo "$_v" | grep -q '^[a-zA-Z_][a-zA-Z0-9_]*:'; then
-        # YAML format — strip the key prefix
-        _v=$(echo "$_v" | sed 's/^[^:]*:[[:space:]]*//')
-      fi
       if [ -z "$_v" ] || [ "$_v" = "null" ]; then
         log "FAILED: $3 resolved to empty/null"
         fail=1; return
       fi
+      # OpenSSH private keys are rejected by ssh-keygen without a trailing
+      # newline ("Load key: invalid format"). Command substitution above
+      # strips it, so re-append for PEM values only — plain token secrets
+      # keep byte-identical output to the old writer.
+      case "$_v" in
+        *"-----BEGIN"*)
+          case "$_v" in
+            *"
+" ) ;;
+            *) _v="$_v
+" ;;
+          esac ;;
+      esac
       install -D -m "$4" -o "$5" -g "$6" \
         <(printf '%s' "$_v") "$2" 2>>"$LOG" || {
         log "FAILED: install $2"; fail=1; return
@@ -47,7 +66,7 @@ let
     }
 
     ${concatStringsSep "\n" (mapAttrsToList (name: entry:
-      "write_secret ${name} ${entry.path} ${entry.file} ${toString entry.mode} ${entry.owner} ${entry.group}"
+      "write_secret ${name} ${entry.path} ${entry.file} ${toString entry.mode} ${entry.owner} ${entry.group} ${entry.key}"
     ) cfg.secrets)}
 
     if [ "$fail" = 1 ]; then

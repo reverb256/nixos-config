@@ -30,6 +30,9 @@
 
   # ── infra ──────────────────────────────────────────────────
   CNS_SSH_KEY = { path = "/run/secrets/cns-ssh-key"; file = "infra/cns-ssh-key.yaml"; owner = "j_kro"; group = "users"; };
-  SSH_CA_KEY = { path = "/run/secrets/ssh-ca-key"; file = "infra/ssh-ca-key.yaml"; owner = "j_kro"; group = "users"; };
+  # SSH CA signing key — root-only (0400): the signer service runs as root,
+  # and a world-readable CA private key + wildcard @cert-authority trust would
+  # let any host compromise mint host certs for the whole fleet.
+  SSH_CA_KEY = { path = "/run/secrets/ssh-ca-key"; file = "infra/ssh-ca-key.yaml"; mode = "0400"; owner = "root"; group = "root"; };
   SWITCH_ADMIN = { path = "/run/secrets/switch-admin"; file = "infra/switch-admin.yaml"; owner = "j_kro"; group = "users"; };
 }

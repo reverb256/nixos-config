@@ -1,6 +1,10 @@
 { inputs, _final, prev }:
 {
   gputemps = prev.callPackage ../packages/gputemps.nix {};
+  # Nexus cluster ingress uses the repository's Caddy build with rate-limit,
+  # security, and cache modules. Expose it through the normal pkgs overlay so
+  # host modules can depend on pkgs.caddy-with-modules declaratively.
+  caddy-with-modules = prev.callPackage ../pkgs/caddy-with-modules {};
   lmstudio = prev.callPackage ../packages/lmstudio.nix {};
   peakminer = prev.callPackage ../pkgs/peakminer.nix {};
   secretspec = prev.callPackage ../pkgs/secretspec {};

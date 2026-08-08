@@ -25,8 +25,9 @@ niri-unstable.overrideAttrs (old: {
   pname = "niri-hdr";
   version = "2026-08-07-hdr-fork";
 
-  # Current hdr-smithay-master HEAD (2026-08-07). The previously pinned rev
-  # 2516a83b3eef5bc0... is UNREACHABLE — the fork branch was force-pushed.
+  # hdr-smithay-master HEAD (2026-08-07, verified reachable 2026-08-08 — it is
+  # the current branch tip). An EARLIER pin (2516a83b3eef5bc0...) was
+  # force-pushed away; do not confuse it with the similar-looking rev below.
   src = fetchFromGitHub {
     owner = "dividebysandwich";
     repo = "niri";

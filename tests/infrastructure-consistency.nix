@@ -86,9 +86,16 @@
   sentryConfig = readFile ./../hosts/sentry/configuration.nix;
   hasPanicOnOops0 = hasInfix "panic_on_oops=0" sentryConfig;
 
-  # ── HW-5: No i686-linux in distributed builders ──
+  # ── HW-5: Multilib builds are Nexus-only ──
+  # Nexus is the sole builder and must accept i686 Steam/VR derivations;
+  # Zephyr, Forge, and Sentry must not be advertised as build targets.
   distributedBuilds = readFile ./../modules/system/distributed-builds.nix;
-  hasNoInvalidPlatform = !(hasInfix "i686-linux" distributedBuilds);
+  nexusSupportsMultilib = hasInfix "systems = [\"x86_64-linux\" \"i686-linux\"];" distributedBuilds;
+  noOtherMultilibBuilder =
+    !(hasInfix "currentHost == \"sentry\"" distributedBuilds)
+    && !(hasInfix "hostName = \"sentry\"" distributedBuilds)
+    && !(hasInfix "hostName = \"forge\"" distributedBuilds);
+  hasNoInvalidPlatform = nexusSupportsMultilib && noOtherMultilibBuilder;
 
   # ── HW-6: No duplicate option declarations ──
   # Check that no option is declared in both mining.nix and the role profile
@@ -150,6 +157,36 @@
   sentryHasPanicTimeout = hasInfix "panic=30" sentryConfig;
   sentryPanicNotOverride = !(hasInfix "panic=-1" sentryConfig);
 
+  # ── HW-21: PeakMiner identity and persistent-state contracts ──
+  peakminerSources = map (host: readFile ./../hosts/${host}/peakminer.nix) ["zephyr" "nexus" "forge"];
+  peakminerGpuNamesConfigured = all (src: hasInfix "gpuName =" src) peakminerSources;
+  nexusConfig = readFile ./../hosts/nexus/configuration.nix;
+  nexusWiring = readFile ./../hosts/nexus/secretspec-creds-wiring.nix;
+  nexusPreservation = readFile ./../hosts/nexus/preservation.nix;
+  forgeConfig = readFile ./../hosts/forge/configuration.nix;
+  forgePreservation = readFile ./../hosts/forge/preservation.nix;
+  sentryPreservation = readFile ./../hosts/sentry/preservation.nix;
+  nexusUsesPreservation = hasInfix "./preservation.nix" nexusConfig
+    && hasInfix "preservation.enable = true;" nexusPreservation
+    && !(fileExists ./../hosts/nexus/impermanence.nix);
+  persistentHostPreservationEnabled =
+    all (src: hasInfix "preservation.enable = true;" src)
+      [nexusPreservation forgePreservation sentryPreservation];
+  persistentHostsPreserveAge =
+    all (src: hasInfix "/etc/nixos/.age" src || hasInfix "/etc/sops/age" src)
+      [nexusPreservation forgePreservation sentryPreservation];
+  caSource = readFile ./../modules/services/cluster-ca.nix;
+  caFailsClosed = hasInfix "refusing to generate a trust-root fork" caSource
+    && hasInfix "does not match" caSource
+    && hasInfix "chmod 0400" caSource;
+  nexusCaKeySecret =
+    # CA key now provisioned via SecretSpec wiring (CLUSTER_CA_KEY), not the
+    # retired sops.secrets path — sops-nix doesn't run on nexus.
+    hasInfix "CLUSTER_CA_KEY" nexusWiring
+    && hasInfix "cluster-ca-key.yaml" nexusWiring
+    && hasInfix "caKeyProvisioned = true;" nexusConfig
+    && hasInfix "caKeyService = \"secretspec-creds.service\";" nexusConfig;
+
   # ── Build the check results ──
   checks = {
     # HW-1: Standalone hardware configs
@@ -168,8 +205,8 @@
     sentry_panic_on_oops_0 = hasPanicOnOops0;
     sentry_mce_mitigation = sentryHasMceMitigation;
 
-    # HW-5: No i686-linux in builders
-    distributed_builds_no_invalid_platform = hasNoInvalidPlatform;
+    # HW-5: Nexus-only multilib builder
+    distributed_builds_nexus_only_multilib = hasNoInvalidPlatform;
 
     # HW-6: No duplicate options
     no_duplicate_mining_option = noDuplicateMiningOption;
@@ -190,6 +227,14 @@
     # HW-19: Kernel panic consistency
     sentry_has_panic_timeout = sentryHasPanicTimeout;
     sentry_no_conflicting_panic = sentryPanicNotOverride;
+
+    # HW-21: PeakMiner and persistent-state contracts
+    peakminer_gpu_names_configured = peakminerGpuNamesConfigured;
+    nexus_uses_preservation = nexusUsesPreservation;
+    persistent_host_preservation_enabled = persistentHostPreservationEnabled;
+    persistent_hosts_preserve_age = persistentHostsPreserveAge;
+    cluster_ca_fails_closed = caFailsClosed;
+    nexus_ca_key_secret_wired = nexusCaKeySecret;
   };
 
   # ── Report failures ──

@@ -121,10 +121,10 @@ in {
         # NixOS has no FHS /usr/bin/sh. Force a PATH that includes the Nix store
         # profile bin so `sh`/`bash`/`git`/`nix` resolve when GitHub resets PATH
         # at step-exec time (root cause of 'sh: command not found' startup_failure).
-        Environment = {
-          PATH = "/run/current-system/sw/bin:/run/current-system/sw/sbin:/usr/bin:/bin";
-          LANG = "C.UTF-8";
-        };
+        Environment = [
+          "PATH=/run/current-system/sw/bin:/run/current-system/sw/sbin:/usr/bin:/bin"
+          "LANG=C.UTF-8"
+        ];
         ProtectSystem = "strict";
         # Keep /run/current-system, the nix store, and sops secrets visible +
         # executable under ProtectSystem=strict so steps can run shells and `nix`.
