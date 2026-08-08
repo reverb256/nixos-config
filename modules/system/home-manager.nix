@@ -116,6 +116,24 @@ in
 
         xdg.configFile = {
           "mimeapps.list".force = true;
+
+          # VR: OpenVR -> WiVRn bridge (LVRA NixOS page + NixOS wiki/VR).
+          # VRChat (OpenVR) can't see the WiVRn OpenXR runtime unless its
+          # openvrpaths.vrpath points xrizer at the runtime. SteamVR writes its
+          # own path back if this file is mutable, so HM owns it (read-only
+          # symlink). Point ONLY at xrizer -- not SteamVR -- so OpenVR games use
+          # WiVRn without launching SteamVR. WiVRn auto-switches the active
+          # OpenXR runtime on headset connect; this file is the OpenVR side.
+          "openvr/openvrpaths.vrpath".text = lib.mkIf (hostName == "zephyr") (let
+            steam = "${config.xdg.dataHome}/Steam";
+          in builtins.toJSON {
+            version = 1;
+            jsonid = "vrpathreg";
+            external_drivers = null;
+            config = [ "${steam}/config" ];
+            log = [ "${steam}/logs" ];
+            runtime = [ "${pkgs.xrizer}/lib/xrizer" ];
+          });
         };
 
         home.sessionVariables = {

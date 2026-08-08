@@ -67,17 +67,17 @@ in mkIf cfg.enable {
         custom = {
           start = "${pkgs.writeShellScript "gamemode-start" ''
             ${pkgs.libnotify}/bin/notify-send 'GameMode activated' 'Performance optimizations enabled'
-            /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GpuPowerMizerMode=1" 2>/dev/null || true
-            /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUGraphicsClockOffset[4]=100" 2>/dev/null || true
-            /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUMemoryTransferRateOffset[4]=400" 2>/dev/null || true
+            /run/current-system/sw/bin/nvidia-settings -a "[gpu:0]/GpuPowerMizerMode=1" 2>/dev/null || true
+            /run/current-system/sw/bin/nvidia-settings -a "[gpu:0]/GPUGraphicsClockOffset[4]=100" 2>/dev/null || true
+            /run/current-system/sw/bin/nvidia-settings -a "[gpu:0]/GPUMemoryTransferRateOffset[4]=400" 2>/dev/null || true
             /etc/nixos/scripts/gpu-profiles/gaming.sh 2>/dev/null || true
             /etc/nixos/scripts/gpu-profiles/k8s-mining-pause.sh start 2>/dev/null || true
           ''}";
           end = "${pkgs.writeShellScript "gamemode-end" ''
             ${pkgs.libnotify}/bin/notify-send 'GameMode deactivated' 'Normal performance restored'
-            /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GpuPowerMizerMode=0" 2>/dev/null || true
-            /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUGraphicsClockOffset[4]=0" 2>/dev/null || true
-            /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUMemoryTransferRateOffset[4]=0" 2>/dev/null || true
+            /run/current-system/sw/bin/nvidia-settings -a "[gpu:0]/GpuPowerMizerMode=0" 2>/dev/null || true
+            /run/current-system/sw/bin/nvidia-settings -a "[gpu:0]/GPUGraphicsClockOffset[4]=0" 2>/dev/null || true
+            /run/current-system/sw/bin/nvidia-settings -a "[gpu:0]/GPUMemoryTransferRateOffset[4]=0" 2>/dev/null || true
             /etc/nixos/scripts/gpu-profiles/ai-inference.sh 2>/dev/null || true
             /etc/nixos/scripts/gpu-profiles/k8s-mining-pause.sh end 2>/dev/null || true
           ''}";
@@ -190,7 +190,24 @@ in mkIf cfg.enable {
   };
 
   users.groups.plugdev = {};
+
+  # GameMode polkit rule -- lets gamemoded set CPU governor + split_lock_mitigate
+  # without an interactive pkexec prompt. The autologin uwsm/niri session has no
+  # polkit agent, so without this gamemoded activates but SILENTLY FAILS to apply
+  # performance tuning (journal: "Failed to update cpu governor policy", pkexec
+  # "Request dismissed"). Actions confirmed present via pkaction.
+  security.polkit.extraConfig = ''
+    polkit.addRule(function(action, subject) {
+      if (action.id == "com.feralinteractive.GameMode.cpu-helper" ||
+          action.id == "com.feralinteractive.GameMode.governor-helper" ||
+          action.id == "com.feralinteractive.GameMode.gpu-helper" ||
+          action.id == "com.feralinteractive.GameMode.procsys-helper") {
+        return subject.active ? polkit.Result.YES : polkit.Result.NO;
+      }
+    });  '';
+
   boot.kernelModules = ["hid_sony"];
+
   systemd.tmpfiles.rules = [
     "d /var/cache/nvidia-shader-cache 0755 root root - -"
     "L /sbin/ldconfig - - - - ${lib.getBin pkgs.glibc}/sbin/ldconfig"
