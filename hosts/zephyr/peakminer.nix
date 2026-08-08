@@ -13,6 +13,7 @@
     instances = [
       {
         name = "zephyr-3060ti";
+        gpuName = "RTX 3060 Ti";
         devices = "0";
         gpuId = 0;
         powerLimit = 120;
@@ -20,6 +21,7 @@
       }
       {
         name = "zephyr-3090";
+        gpuName = "RTX 3090";
         devices = "1";
         gpuId = 1;
         powerLimit = 250;
