@@ -10,6 +10,7 @@
     instances = [
       {
         name = "nexus-3060ti";
+        gpuName = "RTX 3060 Ti";
         devices = "0";
         gpuId = 0;
         powerLimit = 120;

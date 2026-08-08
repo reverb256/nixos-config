@@ -10,20 +10,16 @@
   # cross-host evaluation does not depend on /home/j_kro existing.
   userHome = config.users.users.j_kro.home or "/home/j_kro";
   # Local build capacity for THIS host (same expression as nix.settings.max-jobs).
-  # A host must be able to build its own closure when remote builders are down:
-  # the machines generator filters `m.hostName != currentHost`, so without a
-  # self entry a buildOnTarget host (forge) only sees dead remotes and stalls
-  # for hours (observed 2026-08-06: 7h, store +5 paths). The self entry is
-  # SELF-ONLY — forge is not in allMachines, so no other host ever dispatches
-  # to it (HARD RULE 1: forge is never a remote builder).
+  # Nexus is the sole build executor. Zephyr, Forge, and Sentry keep local
+  # build capacity at zero; their Nix requests must dispatch to Nexus.
+  # The generated machine list intentionally contains no Forge/Sentry builder
+  # entries, so GPU mining and monitoring/inference are never interrupted.
   localMaxJobs =
     if currentHost == "zephyr"
     then 0 # pure dispatcher — never build locally (OOM guard)
     else if currentHost == "nexus"
-    then 12
-    else if currentHost == "sentry"
-    then 8
-    else 4;
+    then 6
+    else 0;
 in {
   nix = {
     distributedBuilds = lib.mkDefault true;
@@ -50,12 +46,8 @@ in {
         if currentHost == "zephyr"
         then 2 # minimal for coordination
         else if currentHost == "nexus"
-        then 12
-        else if currentHost == "sentry"
         then 8
-        else if currentHost == "forge"
-        then 6
-        else 4
+        else 2
       );
 
       max-jobs = lib.mkForce (
@@ -67,10 +59,8 @@ in {
         if currentHost == "zephyr"
         then 0
         else if currentHost == "nexus"
-        then 12 # primary builder — 12C/24T, binary cache host
-        else if currentHost == "sentry"
-        then 8
-        else 4
+        then 6 # exclusive builder — 8 build cores / 6 concurrent jobs
+        else 0
       );
 
       # Large NAR downloads were failing with curl error 92
@@ -139,9 +129,10 @@ in {
   # ── cachix watch-store: continuous auto-push to reverb-os cachix ──
   # Safety net on top of the post-build-hook: pushes every new store path
   # as it lands (incl. substituted/cloned closures), not just locally-built
-  # outputs. Runs only on the builder hosts (nexus/sentry) — zephyr never
-  # builds (max-jobs=0, RAM-constrained) and forge is the GPU miner (do not
-  # disturb). Idle-priority so it never contends with builds/mining.
+  # outputs. Runs on the cache publisher hosts (nexus/sentry); only Nexus
+  # is a build executor. Zephyr never builds (max-jobs=0, RAM-constrained)
+  # and Forge is the GPU miner (do not disturb). Idle-priority so it never
+  # contends with builds/mining.
   systemd.services.cachix-watch-store = lib.mkIf (builtins.elem currentHost ["nexus" "sentry"]) {
     description = "Push new store paths to reverb-os cachix";
     wantedBy = ["multi-user.target"];
@@ -243,17 +234,22 @@ in {
               sshUser = "j_kro";
               sshKey = userHome + "/.ssh/id_ed25519";
               maxJobs = 0;
-              speedFactor = 1; # deprioritize zephyr
+              speedFactor = 1; # non-builder / dispatch target
               supportedFeatures = [];
               mandatoryFeatures = [];
             }
             {
               hostName = "nexus";
-              systems = ["x86_64-linux"];
+              # Nexus is the exclusive builder and also serves Steam/VR
+              # multilib closures (for example volk.i686-linux). An x86_64
+              # kernel can build the i686 target, so advertise both systems
+              # explicitly; without this Nix rejects the derivation before
+              # the remote build starts.
+              systems = ["x86_64-linux" "i686-linux"];
               sshUser = "j_kro";
               sshKey = userHome + "/.ssh/id_ed25519";
-              maxJobs = 12;
-              speedFactor = 10; # prioritize nexus
+              maxJobs = 6;
+              speedFactor = 10; # exclusive builder
               connectTimeout = 1;
               supportedFeatures = [
                 "big-parallel"
@@ -261,33 +257,22 @@ in {
               ];
               mandatoryFeatures = [];
             }
-            {
-              hostName = "sentry";
-              systems = ["x86_64-linux"];
-              sshUser = "j_kro";
-              sshKey = userHome + "/.ssh/id_ed25519";
-              maxJobs = 8;
-              speedFactor = 6;
-              connectTimeout = 1;
-              # ssh:// avoids NixOS/nix#5701 pipe-draining deadlock (ssh-ng stalls when
-              # build-remote writes progress logs faster than the parent drains the pipe).
-              protocol = "ssh";
-              supportedFeatures = ["big-parallel"];
-              mandatoryFeatures = [];
-            }
           ];
-          # 2026-07-29: forge (i5-9500, 6c) was previously a fallback builder.
-          # REMOVED — forge is the GPU miner host, must NOT be interrupted by
-          # distributed build jobs. Source comments confirm: 2x 4060s running
-          # Krig full-time, OOM protection in place. Adding build load
-          # risks GPU contention or OOM-killing PeakMiner.
+          # Nexus is the sole builder. Sentry is monitoring/inference and Forge
+          # is the GPU-mining host; neither may receive Nix build jobs.
           machines =
             builtins.filter (m: m.hostName != currentHost) allMachines
             ++ (
               if localMaxJobs > 0
               then [{
                 hostName = currentHost;
-                systems = ["x86_64-linux"];
+                # When this module is evaluated on Nexus, the local builder
+                # must advertise the same multilib capability as its remote
+                # machine entry. Other hosts never build the i686 closure.
+                systems =
+                  if currentHost == "nexus"
+                  then ["x86_64-linux" "i686-linux"]
+                  else ["x86_64-linux"];
                 sshUser = "j_kro";
                 sshKey = userHome + "/.ssh/id_ed25519";
                 maxJobs = localMaxJobs;

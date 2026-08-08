@@ -9,6 +9,8 @@
     inputs.preservation.nixosModules.preservation
   ];
 
+  preservation.enable = true;
+
   preservation.preserveAt."/persistent" = {
     # System state — survives generation rollback
     directories = [
@@ -27,6 +29,7 @@
       # (set in modules/system/sops-secrets-registry.nix). This path is NOT
       # covered by the /etc/age/key.txt symlink below, so persist it explicitly.
       "/etc/nixos/.age"
+      "/etc/sops/age"
     ];
     files = [
       {
@@ -63,18 +66,6 @@
     # Already backed up to Nexus - will restore after disko install
     # Backup: /data/backups/sentry-20260531/zen-browser-profile.tar.gz (1.3 GB)
   };
-
-  # machine-id and age key: symlink to persistent storage
-  system.activationScripts.persist-symlinks = lib.stringAfter ["etc" "users"] ''
-    if [ -f /persistent/etc/machine-id ]; then
-      rm -f /etc/machine-id
-      ln -sf /persistent/etc/machine-id /etc/machine-id
-    fi
-    if [ -f /persistent/etc/age/key.txt ]; then
-      rm -f /etc/age/key.txt
-      ln -sf /persistent/etc/age/key.txt /etc/age/key.txt
-    fi
-  '';
 
   users.mutableUsers = false;
 }

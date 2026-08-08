@@ -13,6 +13,7 @@
     instances = [
       {
         name = "forge-4060-0";
+        gpuName = "RTX 4060";
         devices = "0";
         gpuId = 0;
         powerLimit = 118;
@@ -20,6 +21,7 @@
       }
       {
         name = "forge-4060-1";
+        gpuName = "RTX 4060";
         devices = "1";
         gpuId = 1;
         powerLimit = 118;

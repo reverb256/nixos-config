@@ -24,17 +24,22 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # NOTE 2026-08-07 (settings layer): NixOS-level programs.niri.settings is
+    # NOTE 2026-08-08 (settings layer): NixOS-level programs.niri.settings is
     # ORPHANED — the live config the session reads is ~/.config/niri/config.kdl,
     # rendered by home-manager from home-manager-config/modules/niri-config.nix
     # (+ niri-outputs.nix). This block is kept as authoritative DOCUMENTATION of
     # the fork schema only; it does NOT reach the running compositor. The
     # effective HDR settings live in the home-manager-config repo's
-    # niri-outputs.nix (zephyr HDMI-A-2 raw KDL append: max-bpc 10 + hdr
+    # niri-outputs.nix (zephyr raw KDL append keyed on the TV's EDID identity
+    # "Samsung Electric Company SAMSUNG 0x01000E00": max-bpc 10 + hdr
     # mode="on" { reference-luminance 203 } + debug flags as typed settings).
     #
+    # DURABILITY (2026-08-08): outputs are keyed on EDID identity, NOT connector
+    # names — DP-2/DP-1/DP-3/HDMI-A-1 renumber whenever the secondary GPU is
+    # VFIO-blacklisted. Verify identities with `niri msg outputs`.
+    #
     # Fork schema (verified against fork source 2026-08-07):
-    #   output "HDMI-A-2" {
+    #   output "Samsung Electric Company SAMSUNG 0x01000E00" {
     #       max-bpc 10
     #       hdr mode="on" {   # HdrMode: "auto" (default) | "on"
     #           reference-luminance 203
@@ -50,14 +55,14 @@ in {
         wait-for-frame-completion-before-queueing = true;
       };
 
-      # Samsung TV HDR output config (HDMI-A-1)
-      # Uses the HDR fork's hdr { } block for full HDR metadata signalling.
-      # reference-luminance: SDR white level in nits
+      # Samsung TV HDR output config (EDID identity, durable across connector
+      # renumbering). Uses the HDR fork's hdr { } block for full HDR metadata
+      # signalling. reference-luminance: SDR white level in nits
       #   203 = Samsung QD-OLED/QN90A typical
       #   150 = darker SDR content (less aggressive tone mapping)
       #   250 = brighter (might clip highlights)
       outputs = {
-        "HDMI-A-1" = {
+        "Samsung Electric Company SAMSUNG 0x01000E00" = {
           bpc = 10;
           hdr = {
             mode = "on";

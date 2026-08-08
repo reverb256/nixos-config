@@ -88,6 +88,19 @@ in {
   };
 
   programs.ssh.knownHosts = {
+    # @cert-authority: trust ANY host key signed by the canonical cluster SSH
+    # CA (live /etc/ssh/ca_key on zephyr, G3m+DW7Y...). Combined with the
+    # declarative ssh-host-cert-sign service, host-key rotation (e.g. after a
+    # reinstall) no longer triggers MITM warnings — the fresh key is re-signed
+    # on boot and accepted via this CA entry. NixOS joins hostNames with commas
+    # into a single known_hosts line, so the marker + all patterns must live in
+    # ONE element (wildcards cover .lan + .cluster.local; IPs/tailscale pinned
+    # individually below for the exact-address paths).
+    cert-authority = {
+      hostNames = ["@cert-authority *.lan,*.cluster.local,10.1.1.110,10.1.1.120,10.1.1.130,10.1.1.140,100.81.182.5,100.86.158.18,100.95.222.45,100.82.210.39"];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIINREWq2TwFSGaDxTBDv7xaFGw7fniE10i91sn6Xqhkg cluster-CA@zephyr";
+    };
+
     zephyr = {
       hostNames = [
         "zephyr"

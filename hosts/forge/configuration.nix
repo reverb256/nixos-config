@@ -40,7 +40,7 @@
   # loop; cups.service then sits in `activating` and BLOCKS
   # switch-to-configuration (observed 2026-08-06, job 13758574 -- the
   # profile was repointed to gen 90 while gen 88 stayed live). Cores here
-  # belong to the miners. Matches hosts/sentry/configuration.nix:474.
+  # belong to the miners. Matches sentry's configuration.nix (line ~474).
   services.boot-error-fixes.includePrinting = lib.mkForce false;
 
   # SecretSpec Phase 4 credential provisioning — sops-secrets-registry
@@ -83,6 +83,8 @@
     ./monitoring.nix
     # Hardware configuration (generated)
     ./hardware-configuration.nix
+    # Declarative non-volatile state.
+    ./preservation.nix
     # Desktop (niri + uwsm + SDDM autoLogin) — must be imported or
     # services.displayManager.defaultSession/autoLogin stay null and the
     # SDDM autologin assertion fails eval.
@@ -702,6 +704,12 @@
   # Tailscale routing automatically configured via network-constants
 
   # SECURITY
+  # All persistent hosts trust the canonical repository CA; only Nexus mints
+  # the ingress leaf because it owns the provisioned CA signing key.
+  services.cluster-ca = {
+    enable = true;
+    generateLeaf = false;
+  };
 
   # AGENIX SECRETS
 

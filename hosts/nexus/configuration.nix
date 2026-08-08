@@ -18,6 +18,19 @@
     # Hardware configuration (generated)
     ./hardware-configuration.nix
 
+    # Declarative non-volatile state; replaces the retired impermanence module.
+    ./preservation.nix
+    # Nexus owns cluster ingress and the canonical TLS leaf certificate.
+    ./services.nix
+    ../../modules/services/cluster-services.nix
+    ../../modules/services/central-auth.nix
+    ../../modules/system/initrd-ssh-recovery.nix
+    ../../modules/system/recovery-specialisation.nix
+    ../../modules/services/nexus-exec.nix
+    ../../modules/services/k8s-secret-sync.nix
+    ../../modules/services/k8s-nix-deploy.nix
+    ../../modules/services/mcp-server-registry.nix
+
     # AI Inference Service - MOVED from Zephyr
     ./ai-inference.nix
 
@@ -62,6 +75,32 @@
 
     # Nix binary cache DISABLED
   ];
+  # The repository CA certificate is the sole fleet trust anchor. The matching
+  # signing key is provisioned by SecretSpec on Nexus only (see
+  # ./secretspec-creds-wiring.nix CLUSTER_CA_KEY -> /etc/ssl/cluster-ca/ca.key)
+  # and is never stored in the repository or exposed to Caddy.
+  services.cluster-ca = {
+    enable = true;
+    caKeyProvisioned = true;
+    caKeyService = "secretspec-creds.service";
+    generateLeaf = true;
+  };
+
+  # Nexus owns SSO for the cluster ingress. SecretSpec materializes these
+  # credentials at the paths consumed by oauth2-proxy; do not rely on the
+  # retired sops.secrets option defaults here.
+  services.central-auth = {
+    enable = true;
+    clientSecretFile = "/run/secrets/central-auth-client-secret";
+    cookieSecretFile = "/run/secrets/central-auth-cookie-secret";
+  };
+
+  # Auth must not start until SecretSpec has materialized both credential files.
+  systemd.services.central-auth = {
+    after = ["secretspec-creds.service" "secretspec-validator.service"];
+    requires = ["secretspec-creds.service"];
+  };
+
   services.secretspec-creds = {
     enable = true;
     secrets = import ./secretspec-creds-wiring.nix;

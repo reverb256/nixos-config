@@ -35,18 +35,6 @@
       key = "bot-token";
     }
     {
-      sopsPath = "/run/secrets/jwt-secret";
-      namespace = "maplespike";
-      secretName = "maplespike-secrets";
-      key = "JWT_SECRET";
-    }
-    {
-      sopsPath = "/run/secrets/billing-secret";
-      namespace = "maplespike";
-      secretName = "maplespike-secrets";
-      key = "QUILL_BILLING_SECRET";
-    }
-    {
       sopsPath = "/run/secrets/cachix-token";
       namespace = "maplespike";
       secretName = "cachix-secrets";

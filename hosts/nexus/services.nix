@@ -223,25 +223,19 @@ in {
     networkDriver = "r8169";
     port = 2222;
   };
-  services.cluster-mesh.enable = true; # SSH service account for inter-node mesh
   services.recovery-specialisation.enable = true; # depends on initrd-ssh
-  services.btrfs-boot-snapshot.enable = false; # NixOS generations sufficient
 
-  services.cachix-auth.enable = true;
   services.ai-coding-tools = {
     enable = true;
     user = "j_kro";
     zaiApiKeyFile = "/run/secrets/zai-api-key";
     context7ApiKeyFile = "/run/secrets/context7-api-key";
-    nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";
-    opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
-    tools = {
+    nvidiaNimApiKeyFile = "/run/secrets/nvidia-api-key";      tools = {
       claude = {enable = true;};
       opencode = {enable = true;};
       droid = {enable = true;};
       crush = {enable = true;};
       pi = {enable = true;};
-      omp = {enable = true;};
     };
     enableShellEnv = true;
   };
@@ -265,15 +259,12 @@ in {
 
   services.k8s-secret-sync = {
     enable = true;
-    # Quill/MapleSpike Stripe billing secrets — provisioned by secretspec-creds
-    # (hosts/nexus/secretspec-creds-wiring.nix) into /run/secrets/stripe-*.
-    # Pushed into the maplespike-stripe-secrets K8s Secret that quill-api mounts.
-    extraMappings = [
-      { sopsPath = "/run/secrets/stripe-secret-key"; namespace = "maplespike"; secretName = "maplespike-stripe-secrets"; key = "stripe-secret-key"; }
-      { sopsPath = "/run/secrets/stripe-webhook-secret"; namespace = "maplespike"; secretName = "maplespike-stripe-secrets"; key = "stripe-webhook-secret"; }
-      { sopsPath = "/run/secrets/stripe-account-id"; namespace = "maplespike"; secretName = "maplespike-stripe-secrets"; key = "stripe-account-id"; }
-      { sopsPath = "/run/secrets/stripe-publishable-key"; namespace = "maplespike"; secretName = "maplespike-stripe-secrets"; key = "stripe-publishable-key"; }
-    ];
+    # MapleSpike/Quill Stripe + JWT secret mappings removed 2026-08-08: the
+    # maplespike/billing.yaml + runtime.yaml secret files were never committed
+    # to the repo, which kept secretspec-creds failing as a unit (and would
+    # block the cluster-CA provisioning that requires its success). Re-add
+    # here + in secretspec-creds-wiring.nix once the real secrets are committed
+    # under /etc/nixos/secrets/maplespike/.
   };
   # Use local kubeconfig instead of cluster join token (node token is not a valid API bearer token)
   services.k8s-nix-deploy.tokenFile = lib.mkForce null;

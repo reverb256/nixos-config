@@ -21,6 +21,10 @@
   XAI_ACCESS_TOKEN = { path = "/run/secrets/xai-access-token"; file = "ai/xai-access-token.yaml"; owner = "root"; };
 
   # ── kubernetes (block 1) ────────────────────────────────────
+  # Cluster-CA signing key — Nexus is the ONLY host that holds it. Written to
+  # /etc/ssl/cluster-ca/ca.key before cluster-ca-init runs so the leaf minting
+  # key matches the repo CA cert (trust anchor, certs/cluster-ca.crt).
+  CLUSTER_CA_KEY = { path = "/etc/ssl/cluster-ca/ca.key"; file = "infra/cluster-ca-key.yaml"; mode = "0400"; owner = "root"; group = "root"; };
   CENTRAL_AUTH_CLIENT_SECRET = { path = "/run/secrets/central-auth-client-secret"; file = "k8s/central-auth-client-secret.yaml"; owner = "root"; };
   CENTRAL_AUTH_COOKIE_SECRET = { path = "/run/secrets/central-auth-cookie-secret"; file = "k8s/central-auth-cookie-secret.yaml"; owner = "root"; };
   CNS_SSH_KEY = { path = "/run/secrets/cns-ssh-key"; file = "infra/cns-ssh-key.yaml"; owner = "j_kro"; group = "users"; };
@@ -34,25 +38,19 @@
   # ── kubernetes (block 2) ────────────────────────────────────
   MISSION_CONTROL_API_KEY = { path = "/run/secrets/mission-control-api-key"; file = "k8s/mission-control-api-key.yaml"; owner = "j_kro"; group = "users"; };
   MISSION_CONTROL_AUTH_PASS = { path = "/run/secrets/mission-control-auth-pass"; file = "k8s/mission-control-auth-pass.yaml"; owner = "j_kro"; group = "users"; };
-  SSH_CA_KEY = { path = "/run/secrets/ssh-ca-key"; file = "infra/ssh-ca-key.yaml"; owner = "j_kro"; group = "users"; };
+  # SSH CA signing key — root-only (0400): the signer service runs as root,
+  # and a world-readable CA private key + wildcard @cert-authority trust would
+  # let any host compromise mint host certs for the whole fleet.
+  SSH_CA_KEY = { path = "/run/secrets/ssh-ca-key"; file = "infra/ssh-ca-key.yaml"; mode = "0400"; owner = "root"; group = "root"; };
   SWITCH_ADMIN = { path = "/run/secrets/switch-admin"; file = "infra/switch-admin.yaml"; owner = "j_kro"; group = "users"; };
   K3S_CLUSTER_TOKEN = { path = "/run/secrets/k3s-cluster-token"; file = "k8s/k3s-cluster-token.yaml"; owner = "root"; };
 
   # ── maplespike / quill billing (Stripe monetization) ──────────
-  # Source of truth: quill repo secrets/billing.yaml + secrets/runtime.yaml
-  # (sops-encrypted). These must be exposed to the secretspec layer via a
-  # symlink under /etc/nixos/secrets/maplespike/ -> <quill>/secrets/*.yaml
-  # (deployed by the quill repo's secrets contract). secretspec-creds
-  # decrypts them to /run/secrets/*; k8s-secret-sync (extraMappings) then
-  # pushes them into the maplespike-stripe-secrets / maplespike-secrets
-  # K8s Secrets that quill-api mounts. (Different-layer model: quill
-  # declares, nixos-config provisions via secretspec.)
-  STRIPE_SECRET_KEY = { path = "/run/secrets/stripe-secret-key"; file = "maplespike/billing.yaml"; owner = "root"; };
-  STRIPE_WEBHOOK_SECRET = { path = "/run/secrets/stripe-webhook-secret"; file = "maplespike/billing.yaml"; owner = "root"; };
-  STRIPE_ACCOUNT_ID = { path = "/run/secrets/stripe-account-id"; file = "maplespike/billing.yaml"; owner = "root"; };
-  STRIPE_PUBLISHABLE_KEY = { path = "/run/secrets/stripe-publishable-key"; file = "maplespike/billing.yaml"; owner = "root"; };
-  JWT_SECRET = { path = "/run/secrets/jwt-secret"; file = "maplespike/runtime.yaml"; owner = "root"; };
-  QUILL_BILLING_SECRET = { path = "/run/secrets/billing-secret"; file = "maplespike/runtime.yaml"; owner = "root"; };
+  # REMOVED 2026-08-08: maplespike/billing.yaml + maplespike/runtime.yaml were
+  # never committed to the repo, which kept secretspec-creds failing as a unit
+  # (and would block the cluster-CA provisioning that requires its success).
+  # Re-add these entries + the k8s-secret-sync mappings once the real secrets
+  # exist under /etc/nixos/secrets/maplespike/ (source: quill repo).
 
   # ── storage ─────────────────────────────────────────────────
   GARAGE_METRICS_TOKEN = { path = "/run/secrets/garage-metrics-token"; file = "storage/garage-metrics-token.yaml"; owner = "root"; };

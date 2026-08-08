@@ -156,7 +156,7 @@ Author workflow: `just new-worktree NNN` → edit in `/data/projects/own/nixos-c
 
 ### Build pipeline quirks
 
-- Zephyr NEVER builds locally (31GB RAM OOM): builds always offload to Nexus via `scripts/remote-build.sh` or the Nexus dispatcher.
+- Zephyr NEVER builds locally (31GB RAM OOM); since 2026-08-08 Forge and Sentry are also non-builders — **Nexus is the sole Nix build executor** (`max-jobs=6`), all other hosts run `max-jobs=0` and dispatch to Nexus via `scripts/remote-build.sh` or the Nexus dispatcher.
 - `just deploy` and `just deploy-async` run `scripts/deploy/nexus-dispatch.sh`; Nexus refreshes `/etc/nixos` to `origin/main`, builds with Colmena, and activates the selected target. Zephyr remains the authoring/source-of-truth host.
 - `just deploy-nexus` is a compatibility alias into the same dispatcher; it no longer has a separate `targetHost=null` path.
 - `scripts/preflight-check.sh` runs before dispatch and refuses source/builder drift, failed self-healing, stale `origin/main`, or an in-flight build.
@@ -240,7 +240,7 @@ Use DNS names; never hardcode ClusterIPs in NixOS configs (`http://10.0.0.192:80
 
 ### Secrets management
 
-Secretspec (`secretspec.toml` + sops:// provider) is the runtime resolution path (Phase 2 complete 2026-07-25); sops-nix remains active for backwards compatibility (Path B, Phase 3 removal pending). Registries: `modules/system/sops-secrets-registry.nix` (service secret categories per host). SSH host keys via `initrd-ssh-host-key-<host>.age` for impermanence bootstrap. Cluster CA at `/etc/ssl/cluster-ca/` (init via `cluster-ca-init.service`). See the Secretspec section below for the full two-fork architecture.
+Secretspec (`secretspec.toml` + sops:// provider) is the runtime resolution path (Phase 2 complete 2026-07-25); sops-nix remains active for backwards compatibility (Path B, Phase 3 removal pending). Registries: `modules/system/sops-secrets-registry.nix` (service secret categories per host). SSH host keys via `initrd-ssh-host-key-<host>.age` for impermanence bootstrap. Cluster CA at `/etc/ssl/cluster-ca/` (init via `cluster-ca-init.service`): the repo's `certs/cluster-ca.crt` is the single fleet trust anchor — hosts copy it and fail closed rather than self-generate (`allowGenerateCa=false`); only Nexus holds the CA signing key (`caKeyProvisioned=true`) and mints the ingress leaf (`generateLeaf=true`). Nexus provisions the key via SecretSpec-creds (`CLUSTER_CA_KEY` in `hosts/nexus/secretspec-creds-wiring.nix` → `/etc/ssl/cluster-ca/ca.key`, with `caKeyService = "secretspec-creds.service"` — NOT sops-nix, which doesn't run on nexus); Caddy `Requires=cluster-ca-init.service`. SSH host trust is CA-based: host certs are signed on boot by `ssh-host-cert-sign.service` using the canonical CA at `/run/secrets/ssh-ca-key` (rotated 2026-08-08 to the live `G3m+DW7Y…` key, `secrets/infra/ssh-ca-key.yaml`), and `programs.ssh.knownHosts` includes an `@cert-authority *.lan,…` entry so host-key rotation never triggers MITM warnings. See the Secretspec section below for the full two-fork architecture.
 
 ### Doc-rot prevention (Pocock Rule)
 
@@ -291,11 +291,11 @@ Multi-layer resource control. Source files first, then what each layer does.
 | **systemd slices** (cgroup v2) | `user@1000`: MemoryHigh 28G/MemoryMax 30G + `OOMScoreAdjust=-1000` + `restartIfChanged=false`; `nix.slice`: CPU 80% + mem 80% (nix-daemon pinned in); `gaming.slice`: CPU 95% + mem 90% + TasksMax 20000 + OOM -1000; `mining.slice`: mem 8G + CPU 95% + IOWeight 10 | `modules/system/systemd-slices.nix`; forge `slices.mining` 8G/12G in `hosts/forge/configuration.nix`; zephyr root slice `ManagedOOMSwap=kill` in `hosts/zephyr/configuration.nix` |
 | **per-unit quotas** | central-auth CPU 25% / 256M; nixos-cluster-mcp CPU 80% / 1G; boot-emergency CPU 75% / 8G; noctalia 4G/6G; bonsai 6–20G + `OOMScoreAdjust=500` (volunteers to die first); unbound OOM -1000 | `modules/services/central-auth.nix`, `modules/services/nixos-cluster-mcp.nix`, `modules/system/boot-emergency-diagnostics.nix`, `modules/desktop/zephyr-sdr-brightness.nix`, `modules/services/bonsai.nix`, `modules/network/cluster-dns.nix` |
 | **dynamic control** | `launch-game` → `systemd-run --user --slice=gaming.slice` (CPUWeight 1024, Nice -5); `workload-monitor.sh` live `set-property CPUQuota` 0–100% on mining units + `nix-daemon CPUWeight=2048` during builds; mining-inference-coordinator pauses mining | `modules/gaming/gaming-base.nix`, `modules/gaming/scripts/gpu-profiles/workload-monitor.sh` |
-| **Nix build farm** | max-jobs: zephyr 0 (never build) / nexus 12 / sentry 8; `/etc/nix/machines` speedFactor nexus 10, sentry 6; **forge removed from farm** (GPU miner — never dispatch builds); `sandbox=true` (mkForce); post-build-hook + cachix watch-store at nice -19 / IOSchedulingPriority 7 | `modules/system/distributed-builds.nix` |
+| **Nix build farm** | max-jobs: nexus 6 (exclusive builder) / zephyr+forge+sentry 0 (never build); `/etc/nix/machines` advertises nexus only (speedFactor 10, systems `x86_64-linux` + `i686-linux` for Steam/VR multilib); **forge (GPU miner) and sentry (monitoring/inference) are never build targets**; `sandbox=true` (mkForce); post-build-hook + cachix watch-store (nexus + sentry, publish-only) at nice -19 / IOSchedulingPriority 7 | `modules/system/distributed-builds.nix` |
 | **K8s** | PriorityClasses `high-priority-ai`(1000) / `medium-priority-ai`(500) / `low-priority-mining`(100) + `system-node-critical` / `system-cluster-critical`; LimitRange + ResourceQuota per namespace (incl. GPU quotas: nvidia.com/gpu + amd.com/gpu); HPA caddy 2–10 / cloudflared 1–5; PDBs coredns/caddy/kube-flannel; ValidatingAdmissionPolicy `require-resources-and-security`; node pinning nexus-first (Nexus > Forge > Sentry > Zephyr); GPU via device plugins | `kubernetes/modules/infrastructure.nix`, `kubernetes/modules/{host-services,nix-csi,llama-servers}.nix`, `kubernetes-manifests/{resource-allocation,scheduling}/` |
 | **IO/nice** | btrfs-compression + garage run `Nice=15` / `IOSchedulingClass=idle` so background IO never starves foreground | `modules/system/btrfs-compression.nix`, `modules/services/garage.nix` |
 
-Notes: forge's `slices.mining` CPUQuota is intentionally unset (gpu-profile-manager owns it at runtime). Two drift traps: the live nix.conf `max-jobs` can diverge from git (`docs/build-settings-recommendations-2026-08-03.md` caught nexus 16-vs-12); `hosts/{forge,sentry}/hardware.nix` are **not imported** (dead config) yet duplicate slice/ROCm blocks.
+Notes: forge's `slices.mining` CPUQuota is intentionally unset (gpu-profile-manager owns it at runtime). Two drift traps: the live nix.conf `max-jobs` can diverge from git (`docs/build-settings-recommendations-2026-08-03.md` caught nexus drifting 16-vs-12; declared value is now 6); `hosts/{forge,sentry}/hardware.nix` are **not imported** (dead config) yet duplicate slice/ROCm blocks.
 
 ## Operational gotchas (Codebuff / AI-agent working knowledge)
 
@@ -465,8 +465,54 @@ If `str_replace` or `write_file` fails on a /etc/nixos file, the basher-side
 the edit comment so future maintainers don't re-add the same code-reviewer
 warning.
 
-### Recent state changes (through 2026-08-06)
+### Recent state changes (through 2026-08-08)
 
+- **Nexus is now the SOLE Nix build executor (2026-08-08, in flight)**:
+  `distributed-builds.nix` sets `max-jobs` nexus=6 / zephyr+forge+sentry=0 and
+  the `/etc/nix/machines` generator advertises nexus only, with `i686-linux`
+  alongside `x86_64-linux` so Steam/VR multilib derivations can be built
+  remotely. Sentry was removed from the builder list — it only publishes cachix
+  (`cachix-watch-store`).
+- **Cluster-CA trust-anchor hardening (2026-08-08)**:
+  `modules/services/cluster-ca.nix` gained `caKeyProvisioned` + `allowGenerateCa`
+  (both default false → hosts fail closed rather than fork the PKI) and a new
+  `caKeyService` option (default `sops-install-secrets.service`, nexus overrides
+  to `secretspec-creds.service`). Nexus provisions the CA signing key via
+  SecretSpec-creds wiring (`CLUSTER_CA_KEY` in
+  `hosts/nexus/secretspec-creds-wiring.nix` → `/etc/ssl/cluster-ca/ca.key`,
+  secret `secrets/infra/cluster-ca-key.yaml`) and mints the leaf; forge/sentry
+  are trust-only (`generateLeaf=false`). The init service verifies the
+  provisioned key matches the repo cert before minting.
+- **SSH CA canonicalized on G3m + declarative host-cert signing (2026-08-08)**:
+  `secrets/infra/ssh-ca-key.yaml` was rotated to the live CA key
+  (`SHA256:G3m+DW7Y…`, `cluster-CA@zephyr`), so the sops secret, `/etc/ssh/ca_key`,
+  and the declared `caPublicKey` are all one key. `modules/system/ssh-ca.nix`
+  adds `ssh-host-cert-sign.service`: on every boot it re-signs the local
+  `ssh_host_ed25519_key` with the CA from `/run/secrets/ssh-ca-key` (falling
+  back to `/etc/ssh/ca_key`), re-signing whenever the cert is missing, signed by
+  a different CA, or principals are stale — so rotated host keys (e.g. sentry
+  before preservation landed) get fresh certs automatically.
+  `modules/system/ssh.nix` adds an `@cert-authority *.lan,*.cluster.local,<IPs>`
+  known-hosts entry for the G3m CA, so host verification is CA-based and key
+  rotation never triggers MITM warnings.
+- **secretspec-creds `write_secret` fixed for multi-line PEMs (2026-08-08)**:
+  the old full-decrypt + `sed` key-strip corrupted YAML block scalars into
+  `|` + indented garbage (observed on `/run/secrets/ssh-ca-key`). It now uses
+  `sops -d --extract '["<key>]'` (honoring the per-entry `key` option, e.g.
+  `exa_api_key`), falls back to full decrypt for binary/named-key files, and
+  appends a trailing newline (OpenSSH rejects private keys without one).
+  Also fixed a `host-configuration` test false positive (forge comment matching
+  `hosts/sentry/`).
+- **Impermanence → preservation migration (2026-08-08, in flight)**: nexus
+  deleted `hosts/nexus/impermanence.nix`; nexus/forge/sentry now set
+  `preservation.enable = true` in `hosts/<host>/preservation.nix` and persist
+  `/etc/nixos/.age` + `/etc/sops/age` (plus `/etc/ssl/cluster-ca` on nexus).
+- **PeakMiner selects GPU by product name (2026-08-08, in flight)**: every
+  `peakminer.nix` instance now declares `gpuName` ("RTX 4060", "RTX 3060 Ti")
+  so per-GPU settings can't bleed onto the wrong card.
+- **`pkgs.caddy-with-modules` exposed via overlay** (`overlays/system.nix`):
+  nexus cluster ingress uses the custom Caddy build (rate-limit/security/cache
+  modules) through the normal `pkgs` namespace.
 - **home-manager-config extracted to a separate repo (2026-07-29→08-06)**: HM
   config now lives in `/home/j_kro/Projects/home-manager-config`
   (`github:reverb256/home-manager-config`, flake input). `flake.nix` consumes
