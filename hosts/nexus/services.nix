@@ -35,9 +35,14 @@ in {
 
   };
 
+  # SteamOS gaming console on the 4K TV (native nixpkgs gamescopeSession,
+  # 2026-08-08). This op used to mkForce-disable steam when nexus was headless;
+  # nexus now boots SDDM -> Steam gamescope session by default (desktop.nix).
+  # Must NOT mkForce false here — eval conflict with configuration.nix's
+  # gamescopeSession.enable = mkForce true.
   programs.steam = {
-    enable = lib.mkForce false;
-    gamescopeSession.enable = lib.mkForce false;
+    enable = true;
+    gamescopeSession.enable = true;
   };
 
   environment.systemPackages = with pkgs; [
