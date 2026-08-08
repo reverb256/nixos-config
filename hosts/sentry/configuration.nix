@@ -128,12 +128,22 @@
     k3s-cluster = {
       enable = true;
       role = "server";
-      clusterInit = false;
+      # 2026-08-07: nexus (10.1.1.120) is down for hours/days. sentry was
+      # configured as a non-initializing server joining nexus, so it crash-loops
+      # on `Get https://10.1.1.120:6443/cacerts: no route to host`. Bootstrap
+      # our own cluster on sentry so the AI stack (Buzz relay, etc.) can run.
+      # REVERT when nexus returns: clusterInit=false, serverAddr back to nexus,
+      # wipeState=false -- this temp CA is discarded and sentry rejoins nexus.
+      clusterInit = true;
       nodeName = "sentry";
-      serverAddr = "https://10.1.1.120:6443"; # direct nexus join for recovery
+      serverAddr = ""; # do not attempt to join nexus while it is down
       tokenFile = "/run/secrets/k3s-cluster-token";
       nodeIP = "10.1.1.140";
       calico.enable = true;
+      # One-shot state wipe: the stale data-dir holds nexus-signed state that
+      # can't join a fresh bootstrap. Clear it (clears immutable bit + rm -rf)
+      # then set this back to false on the NEXT deploy.
+      wipeState = true;
       # 2026-07-28: the FATAL "stat .../cred/supervisor.kubeconfig: no such
       # file or directory" on activation is fixed at a different layer:
       # the etcdClean=true previously in hosts/sentry/services.nix wiped the
