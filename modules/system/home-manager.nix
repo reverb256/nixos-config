@@ -134,7 +134,38 @@ in
             log = [ "${steam}/logs" ];
             runtime = [ "${pkgs.xrizer}/lib/xrizer" ];
           });
+
+          # VR: pin VRChat (appid 438100) to GE-Proton-RTSP declaratively.
+          # The compat tool ships via programs.steam.extraCompatPackages (gaming-base.nix)
+          # but Steam's per-game CompatToolOverride lives in the mutable appmanifest,
+          # which Steam resets to a default Proton on updates/reinstalls. This writes it
+          # idempotently on every HM switch so VRChat stays on the RTSP build (video/perf
+          # fixes per LVRA) without manual Steam-UI pinning. Scans all Steam libraries.
+          "steam/vrchat-proton-rtsp.json".text = lib.mkIf (hostName == "zephyr") (builtins.toJSON {
+            appid = 438100;
+            compatTool = "GE-Proton-RTSP";
+          });
         };
+
+        # Activation: enforce VRChat CompatToolOverride = GE-Proton-RTSP in every
+        # Steam library's appmanifest_438100.acf (idempotent; safe if not installed).
+        home.activation.pinVrchatProtonRtsp = lib.mkIf (hostName == "zephyr") ''
+          appid=438100
+          want="GE-Proton-RTSP"
+          for lib in "$HOME/.local/share/Steam" /data/games/SteamLibrary /data/@games/steam; do
+            acf="$lib/steamapps/appmanifest_''${appid}.acf"
+            [ -f "$acf" ] || continue
+            if grep -q "CompatToolOverride" "$acf"; then
+              cur=$(grep -oP 'CompatToolOverride"\s*"\K[^"]+' "$acf" || true)
+              [ "$cur" = "$want" ] && continue
+              ${pkgs.sed}/bin/sed -i "s/\(CompatToolOverride"\s*"\).*\("\)$/\1''${want}\2/" "$acf"
+            else
+              # Insert before the closing brace of the AppState block.
+              ${pkgs.sed}/bin/sed -i "s/^}/\t"CompatToolOverride"\t\"''${want}\"\n}/" "$acf"
+            fi
+            echo "pinVrchatProtonRtsp: set $acf -> $want"
+          done
+        '';
 
         home.sessionVariables = {
           HF_TOKEN = "/run/secrets/huggingface-token";
