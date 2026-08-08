@@ -69,8 +69,8 @@
     };
 
     networking.firewall.extraInputRules = lib.mkAfter ''
-      ip saddr 10.1.1.0/24 tcp dport \${toString config.services.memlawb-server.port} accept
-      iifname "lo" tcp dport \${toString config.services.memlawb-server.port} accept
+      ip saddr 10.1.1.0/24 tcp dport ${toString config.services.memlawb-server.port} accept
+      iifname "lo" tcp dport ${toString config.services.memlawb-server.port} accept
     '';
   };
 }
