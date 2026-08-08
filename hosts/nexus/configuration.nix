@@ -24,21 +24,26 @@
     # All other modules (desktop, gaming, networking, services, etc.)
     ../../modules/default.nix
 
+    # Host desktop: SDDM + autoLogin + SteamOS gamescope session (4K TV).
+    ./desktop.nix
+
     # NVIDIA GPU Wayland support (host-dependent)
     ../../modules/hardware/nvidia-common.nix
     ../../modules/hardware/nvidia-wayland.nix
     ../../modules/hardware/rgb-control.nix
 
     # Desktop environment modules
-    # TEMPORARY: Disabled due to build failures blocking deployments
-    # ../../modules/desktop/gamescope-tty.nix
+    # SteamOS gamescope session handled declaratively: desktop.nix enables
+    # SDDM + autoLogin with the nixpkgs-native `programs.steam.gamescopeSession`
+    # (see "SERVICES CONFIGURATION" below).
 
     # Nexus-specific modules
     ../../modules/security/aistor-secrets.nix
     ../../modules/services/podman-support.nix
 
-    # Windows 11 IoT LTSC gaming VM (libvirt + dynamic GPU handoff)
-    ../../modules/services/nexus-de-vm.nix
+    # Gaming on nexus runs natively on the GPU (gamescope session); the
+    # Windows gaming VM is dropped from nexus — zephyr only (OOB direction
+    # 2026-08-08).
 
     # SecretSpec Phase 4 credential provisioning (parallel with sops registry)
 
@@ -88,10 +93,8 @@
   systemd.network.links = lib.mkForce {};
 
 
-  # Windows 11 IoT LTSC gaming VM on the 3060 Ti (libvirt dynamic handoff)
-  services.nexus-de-vm.enable = true;
-
-  # Directly disable the systemd timer (blocking rebuilds)
+  # Windows gaming VM removed from nexus — zephyr only (OOB direction 2026-08-08).
+  # GPU now stays on the nvidia driver for the gamescope session + miner.
 
   # STATUS.md auto-update (hourly from kubectl)
   services.status-auto-update.enable = true;
@@ -400,11 +403,27 @@
   #
   # Nexus-specific service additions:
 
-  # Enable Steam Gamescope session alongside Plasma
-  # Both sessions will be available in SDDM for selection
+  # Enable Steam Gamescope session — SteamOS-style console on the 4K TV
+  # (nixpkgs-native gamescopeSession, "steam-nix style"). The custom
+  # modules/gaming/gamescope-session.nix + desktop/gamescope-tty.nix were
+  # dead code and are not imported (native nixpkgs option supersedes them).
+  # Session name = "steam" (steam.desktop from steam.nix); desktop.nix sets
+  # it as the SDDM autoLogin default, niri-uwsm stays selectable.
   programs.steam = {
     enable = true;
     gamescopeSession.enable = lib.mkForce true;
+    gamescopeSession.args = [
+      # SteamOS console behavior: fullscreen, expose Wayland for HDR
+      "--expose-wayland"
+      "--force-composition"
+      # 4K TV mode — gamescope upscales internal res to output
+      "-W"
+      "3840"
+      "-H"
+      "2160"
+      "-r"
+      "60"
+    ];
   };
 
   services = {
@@ -550,8 +569,9 @@
   };
 
   services.unbound-common.enable = true;
-  services.displayManager.autoLogin.user = lib.mkForce "j_kro";
-  services.displayManager.defaultSession = lib.mkForce "niri-uwsm";
+  # DisplayManager handled in desktop.nix (SDDM + autoLogin + Steam session).
+  # NOTE: do NOT set services.displayManager.defaultSession here — desktop.nix
+  # owns it (mkForce "steam") and a second mkForce would conflict at eval.
 
   # ComfyUI — FLUX.1-schnell GGUF image generation
   # Canonical venv: ~/ComfyUI/.venv — ComfyUI's OWN venv, NOT the site-agency
