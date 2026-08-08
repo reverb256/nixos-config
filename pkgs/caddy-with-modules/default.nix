@@ -29,9 +29,8 @@ buildGoModule rec {
   src = ./src;
   # Use proxyVendor to avoid go.mod tidy issues
   proxyVendor = true;
-  # Vendor hash for Go dependencies — deps changed on the #380 security bump
-  # (caddy 2.11.4+ pulls many new transitive versions). Re-derive on build.
-  vendorHash = lib.fakeHash;
+  # Vendor hash for Go dependencies — re-derived on nexus build (21aea298)
+  vendorHash = "sha256-xhRmo84c+M16q+Zy8T9v8o+DBFT1myF+XywbrDDQw5c=";
   # Install and rename binary
   postInstall = ''
     mkdir -p $out/bin
