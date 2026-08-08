@@ -45,29 +45,29 @@
           echo "$PREVIOUS_CONNECTED" | grep -q "$1"
       }
       CMD_LIST=()
-      if is_connected "DP-5"; then
-          was_connected "DP-5" || log "[CONNECTED] DP-5 (Primary)"
-          CMD_LIST+=("output.DP-5.enable" "output.DP-5.mode.71" "output.DP-5.position.0,349" "output.DP-5.scale.1" "output.DP-5.priority.1")
+      if is_connected "DP-2"; then
+          was_connected "DP-2" || log "[CONNECTED] DP-2 (Primary)"
+          CMD_LIST+=("output.DP-2.enable" "output.DP-2.mode.71" "output.DP-2.position.0,349" "output.DP-2.scale.1" "output.DP-2.priority.1")
       else
-          was_connected "DP-5" && log "[DISCONNECTED] DP-5 (Primary)"
+          was_connected "DP-2" && log "[DISCONNECTED] DP-2 (Primary)"
       fi
-      if is_connected "DP-4"; then
-          was_connected "DP-4" || log "[CONNECTED] DP-4 (Top)"
-          CMD_LIST+=("output.DP-4.enable" "output.DP-4.mode.44" "output.DP-4.position.1920,0" "output.DP-4.scale.1" "output.DP-4.priority.2")
+      if is_connected "DP-1"; then
+          was_connected "DP-1" || log "[CONNECTED] DP-1 (Top)"
+          CMD_LIST+=("output.DP-1.enable" "output.DP-1.mode.44" "output.DP-1.position.1920,0" "output.DP-1.scale.1" "output.DP-1.priority.2")
       else
-          was_connected "DP-4" && log "[DISCONNECTED] DP-4 (Top)"
+          was_connected "DP-1" && log "[DISCONNECTED] DP-1 (Top)"
       fi
-      if is_connected "DP-6"; then
-          was_connected "DP-6" || log "[CONNECTED] DP-6 (Bottom)"
-          CMD_LIST+=("output.DP-6.enable" "output.DP-6.mode.91" "output.DP-6.position.1920,1080" "output.DP-6.scale.1" "output.DP-6.priority.3")
+      if is_connected "DP-3"; then
+          was_connected "DP-3" || log "[CONNECTED] DP-3 (Bottom)"
+          CMD_LIST+=("output.DP-3.enable" "output.DP-3.mode.91" "output.DP-3.position.1920,1080" "output.DP-3.scale.1" "output.DP-3.priority.3")
       else
-          was_connected "DP-6" && log "[DISCONNECTED] DP-6 (Bottom)"
+          was_connected "DP-3" && log "[DISCONNECTED] DP-3 (Bottom)"
       fi
-      if is_connected "HDMI-A-2"; then
-          was_connected "HDMI-A-2" || log "[CONNECTED] HDMI-A-2 (TV) HDR enabled"
-          CMD_LIST+=("output.HDMI-A-2.enable" "output.HDMI-A-2.mode.1" "output.HDMI-A-2.position.3520,1080" "output.HDMI-A-2.scale.1.5" "output.HDMI-A-2.priority.4" "output.HDMI-A-2.hdr.enable" "output.HDMI-A-2.sdr-brightness.900")
+      if is_connected "HDMI-A-1"; then
+          was_connected "HDMI-A-1" || log "[CONNECTED] HDMI-A-1 (TV) HDR enabled"
+          CMD_LIST+=("output.HDMI-A-1.enable" "output.HDMI-A-1.mode.1" "output.HDMI-A-1.position.10000,0" "output.HDMI-A-1.scale.1.5" "output.HDMI-A-1.priority.4" "output.HDMI-A-1.hdr.enable" "output.HDMI-A-1.sdr-brightness.900")
       else
-          was_connected "HDMI-A-2" && log "[DISCONNECTED] HDMI-A-2 (TV)"
+          was_connected "HDMI-A-1" && log "[DISCONNECTED] HDMI-A-1 (TV)"
       fi
       if [ ''${#CMD_LIST[@]} -gt 0 ]; then
           log "Applying configuration..."
@@ -96,7 +96,7 @@
       mkdir -p "$STATE_DIR"
       LOGFILE="$STATE_DIR/tv-monitor-daemon.log"
       TV_STATE_FILE="$STATE_DIR/tv-state"
-      HDMI_OUTPUT="HDMI-A-2"
+      HDMI_OUTPUT="HDMI-A-1"
       log() {
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOGFILE"
       }

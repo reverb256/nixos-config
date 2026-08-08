@@ -30,9 +30,9 @@ in {
       # support. niri-unstable carries max_bpc + reset_hdr plumbing (HDR via EDID),
       # which nixpkgs' stable niri (v26.04) also has but on an older schema. We
       # switched to unstable 2026-07-25 to enable HDR on the Samsung TV
-      # (HDMI-A-2). The old custom SDR-brightness patch (patches/niri-sdr-brightness.patch)
+      # (HDMI-A-1). The old custom SDR-brightness patch (patches/niri-sdr-brightness.patch)
       # was dropped - the TV is now HDR-driven natively by niri; noctalia's
-      # HDMI-A-2 backend was set to `normal` so niri owns the output.
+      # HDMI-A-1 backend was set to `normal` so niri owns the output.
       #
       # 2026-08-07 (flake-bump fix): we now source niri-unstable from the
       # flake's OVERLAY (inputs.niri.overlays.niri -> pkgs.niri-unstable),

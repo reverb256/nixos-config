@@ -11,7 +11,7 @@
 
 **Status:** ✅ COMPLETE
 
-Resolved intermittent disappearance of Acer monitors (DP-5, DP-6) from Plasma
+Resolved intermittent disappearance of Acer monitors (DP-2, DP-3 — connector names current after secondary-GPU VFIO blacklist; were DP-5, DP-6 pre-blacklist) from Plasma
 brightness slider. All 4 displays now reliably show in brightness control.
 
 **Root Cause:**
@@ -25,7 +25,7 @@ brightness slider. All 4 displays now reliably show in brightness control.
 - Set `UseDDCUtil=false` in PowerDevil configuration
 
 **Result:**
-- All 4 displays (HDMI-A-2, DP-4, DP-5, DP-6) show in brightness slider
+- All 4 displays (HDMI-A-1, DP-2, DP-1, DP-3 — current connector names after secondary-GPU VFIO blacklist; were HDMI-A-2, DP-5, DP-4, DP-6 pre-blacklist) show in brightness slider
 - Configuration survives reboots and rebuilds
 - Declarative NixOS module at `/etc/nixos/modules/desktop/plasma6.nix`
 

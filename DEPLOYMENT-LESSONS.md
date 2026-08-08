@@ -37,7 +37,7 @@ Never use `switch-to-configuration boot` — it only writes the boot entry witho
 Shared modules (`modules/system/home-manager.nix`, `modules/home-manager/niri-config.nix`) had Zephyr-specific configs as defaults for ALL hosts.
 
 ### Examples found
-- **niri-config.nix**: Zephyr's 4 monitors (DP-4, DP-5, DP-6, HDMI-A-2) were the default. Sentry and Forge silently got them.
+- **niri-config.nix**: Zephyr's 4 monitors (DP-2, DP-1, DP-3, HDMI-A-1 — current after secondary-GPU VFIO blacklist; was DP-4/DP-5/DP-6/HDMI-A-2 before) were the default. Sentry and Forge silently got them.
 - **home-manager.nix**: stylix scheme hardcoded to catppuccin-mocha for ALL hosts, overriding per-host schemes (dracula for Sentry, gruvbox for Forge)
 
 ### Rule
@@ -58,8 +58,8 @@ programs.niri.settings = {
   };
 } // lib.mkIf (hostName == "zephyr") {
   outputs = {
-    "DP-5" = { ... };  # Zephyr-specific
-    "DP-4" = { ... };
+    "DP-2" = { ... };  # Zephyr-specific (current connectors; renumber if GPU returns)
+    "DP-1" = { ... };
   };
 } // lib.mkIf (hostName == "sentry") {
   outputs = {
@@ -72,7 +72,7 @@ programs.niri.settings = {
 
 | Host | Monitors | Config |
 |------|----------|--------|
-| Zephyr | DP-5 (1920x1080@144), DP-4 (1920x1080@75), DP-6 (1600x900@60), HDMI-A-2 (3840x2160@60) | `niri-config.nix` zephyr block |
+| Zephyr | DP-2 (1920x1080@60), DP-1 (1920x1080@60), DP-3 (1600x900@60), HDMI-A-1 (3840x2160@60, far, HDR) | `niri-config.nix` / `home-manager-config/modules/niri-outputs.nix` zephyr block (connector names current as of 2026-08-08 after secondary-GPU VFIO blacklist; renumber if GPU returns) |
 | Nexus | HDMI-A-1 (3840x2160@60) | `niri-config.nix` nexus block (scale 1.5) |
 | Forge | Single 900p | `niri-config.nix` sentry/forge block |
 | Sentry | HDMI-A-1 (1600x900@60) | `niri-config.nix` sentry/forge block |
