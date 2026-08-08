@@ -94,6 +94,7 @@
     ./development/ai-coding-tools.nix
 
     # Gaming
+    ./gaming/dualsense.nix
     ./gaming/gaming.nix
     ./gaming/gaming-hdr.nix
     ./gaming/scopebuddy.nix
