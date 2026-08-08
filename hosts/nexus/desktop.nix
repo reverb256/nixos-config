@@ -31,19 +31,23 @@
   # modules/desktop/wayland-compositor-common.nix.
   programs.noctalia.enable = true;
 
-  # Headless — disable xserver AND all display managers. NixOS 26.11
-  # auto-migrates `services.displayManager.autoLogin.*` into the legacy
-  # `services.xserver.displayManager.lightdm.autoLogin.*` namespace whenever
-  # xserver is enabled. That pulls in `nixos/modules/.../lightdm.nix`,
-  # which references `dmcfg.sessionData.desktops` — a default only populated
-  # when a DM is active in the new namespace. With the new namespace fully
-  # disabled, the default is unset and evaluation crashes. Disabling xserver
-  # here is the minimal correct fix: nexus has no display, no input devices,
-  # and never needs a DM. The kiosk-style use cases (future cage unit) can
-  # re-enable xserver + sddm in their own override.
-  services.xserver.enable = lib.mkForce false;
-  services.displayManager.enable = lib.mkForce false;
-  services.displayManager.autoLogin.enable = lib.mkForce false;
+  # SteamOS-style gamescope session on the 4K TV. Nexus IS attached to a
+  # display (HDMI-A-1 4K TV), so the headless DM disable is retired (it was
+  # a holdover from the GPU-handoff VM era, which is now dropped — gaming VM
+  # lives on zephyr only). NixOS 26.11 auto-migrates
+  # `services.displayManager.autoLogin.*` into the legacy lightdm namespace
+  # whenever xserver is enabled, so we use the SDDM-native path exactly like
+  # zephyr (sddm.enable mkForce true + sddm.wayland.enable + autologin in the
+  # new namespace). Dual sessions: Steam (gamescope) is the console default;
+  # niri-uwsm remains available as the desktop session.
+  services.xserver.enable = lib.mkForce true;
+  services.displayManager.enable = lib.mkForce true;
+  services.displayManager.sddm.enable = lib.mkForce true;
+  services.displayManager.sddm.wayland.enable = true;
+  services.displayManager.autoLogin.enable = true;
+  services.displayManager.autoLogin.user = "j_kro";
+  services.displayManager.defaultSession = lib.mkForce "steam";
+  services.displayManager.sddm.settings.Autologin.Relogin = true;
 
 
   services.flatpak.enable = true;
