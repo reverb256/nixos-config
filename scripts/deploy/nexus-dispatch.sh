@@ -83,18 +83,39 @@ executor() {
   CANONICAL="$(git rev-parse --short HEAD)"
   echo "Nexus deployment executor at origin/main: $CANONICAL"
 
-  CMD=(
+  NIX_CMD=(
     nix --option pure-eval false run
     .#apps.x86_64-linux.colmena
-    -- apply
+    --
+  )
+
+  if [[ "$TARGET" == "nexus" ]]; then
+    # nexus is the local executor host (deployment.targetHost = null). colmena
+    # `apply` only targets SSH hosts — select_nodes() drops nodes with no
+    # targetHost when the goal requires a target host — so the local node must
+    # be deployed with `apply-local` (gated by deployment.allowLocalDeployment).
+    echo "Deploying local node: nexus (apply-local)"
+    exec "${NIX_CMD[@]}" apply-local --node nexus
+  fi
+
+  CMD=(
+    "${NIX_CMD[@]}"
+    apply
     --eval-node-limit 100
   )
   if [[ "$TARGET" != "all" ]]; then
     CMD+=(--on "$TARGET")
   fi
 
-  echo "Deploying target: $TARGET"
-  exec "${CMD[@]}"
+  echo "Deploying remote target: $TARGET"
+  "${CMD[@]}"
+
+  # `apply` skips the local node (targetHost = null); deploy it last so the
+  # executor host converges with the rest of the fleet.
+  if [[ "$TARGET" == "all" ]]; then
+    echo "Deploying local node: nexus (apply-local)"
+    exec "${NIX_CMD[@]}" apply-local --node nexus
+  fi
 }
 
 if [[ "$MODE" == "executor" ]]; then
