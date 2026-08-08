@@ -33,6 +33,17 @@
       PREVIOUS_FILE="$STATE_DIR/monitors-previous"
       PREVIOUS_CONNECTED=""
       [ -f "$PREVIOUS_FILE" ] && PREVIOUS_CONNECTED=$(cat "$PREVIOUS_FILE")
+      # Resolve the CURRENT connector for a monitor EDID identity. Connector
+      # names (DP-2/DP-1/DP-3/HDMI-A-1) renumber when the secondary GPU is
+      # VFIO-toggled; identities are stable, so lookup the live connector
+      # each run from niri msg outputs, then drive kscreen-doctor with it.
+      resolve_connector() {
+          niri msg outputs 2>/dev/null | grep -F "Output \"$1\"" | sed -E 's/.*\(([^)]*)\)/\1/' | head -1
+      }
+      ZOWIE=$(resolve_connector "PNP(BNQ) ZOWIE RL LCD 9BG06022SL0")
+      ASUS=$(resolve_connector "ASUSTek COMPUTER INC ASUS VT229 KBLMTF011991")
+      ACER=$(resolve_connector "Acer Technologies X203H LEV0C0254011")
+      SAMSUNG=$(resolve_connector "Samsung Electric Company SAMSUNG 0x01000E00")
       is_connected() {
           echo "$CONNECTED" | awk -v output="$1" '
           /^Output:/ { in_output=0 }
@@ -45,29 +56,29 @@
           echo "$PREVIOUS_CONNECTED" | grep -q "$1"
       }
       CMD_LIST=()
-      if is_connected "DP-2"; then
-          was_connected "DP-2" || log "[CONNECTED] DP-2 (Primary)"
-          CMD_LIST+=("output.DP-2.enable" "output.DP-2.mode.71" "output.DP-2.position.0,349" "output.DP-2.scale.1" "output.DP-2.priority.1")
+      if [ -n "$ZOWIE" ] && is_connected "$ZOWIE"; then
+          was_connected "$ZOWIE" || log "[CONNECTED] $ZOWIE (Primary)"
+          CMD_LIST+=("output.$ZOWIE.enable" "output.$ZOWIE.mode.71" "output.$ZOWIE.position.0,349" "output.$ZOWIE.scale.1" "output.$ZOWIE.priority.1")
       else
-          was_connected "DP-2" && log "[DISCONNECTED] DP-2 (Primary)"
+          [ -n "$ZOWIE" ] && was_connected "$ZOWIE" && log "[DISCONNECTED] $ZOWIE (Primary)"
       fi
-      if is_connected "DP-1"; then
-          was_connected "DP-1" || log "[CONNECTED] DP-1 (Top)"
-          CMD_LIST+=("output.DP-1.enable" "output.DP-1.mode.44" "output.DP-1.position.1920,0" "output.DP-1.scale.1" "output.DP-1.priority.2")
+      if [ -n "$ASUS" ] && is_connected "$ASUS"; then
+          was_connected "$ASUS" || log "[CONNECTED] $ASUS (Top)"
+          CMD_LIST+=("output.$ASUS.enable" "output.$ASUS.mode.44" "output.$ASUS.position.1920,0" "output.$ASUS.scale.1" "output.$ASUS.priority.2")
       else
-          was_connected "DP-1" && log "[DISCONNECTED] DP-1 (Top)"
+          [ -n "$ASUS" ] && was_connected "$ASUS" && log "[DISCONNECTED] $ASUS (Top)"
       fi
-      if is_connected "DP-3"; then
-          was_connected "DP-3" || log "[CONNECTED] DP-3 (Bottom)"
-          CMD_LIST+=("output.DP-3.enable" "output.DP-3.mode.91" "output.DP-3.position.1920,1080" "output.DP-3.scale.1" "output.DP-3.priority.3")
+      if [ -n "$ACER" ] && is_connected "$ACER"; then
+          was_connected "$ACER" || log "[CONNECTED] $ACER (Bottom)"
+          CMD_LIST+=("output.$ACER.enable" "output.$ACER.mode.91" "output.$ACER.position.1920,1080" "output.$ACER.scale.1" "output.$ACER.priority.3")
       else
-          was_connected "DP-3" && log "[DISCONNECTED] DP-3 (Bottom)"
+          [ -n "$ACER" ] && was_connected "$ACER" && log "[DISCONNECTED] $ACER (Bottom)"
       fi
-      if is_connected "HDMI-A-1"; then
-          was_connected "HDMI-A-1" || log "[CONNECTED] HDMI-A-1 (TV) HDR enabled"
-          CMD_LIST+=("output.HDMI-A-1.enable" "output.HDMI-A-1.mode.1" "output.HDMI-A-1.position.10000,0" "output.HDMI-A-1.scale.1.5" "output.HDMI-A-1.priority.4" "output.HDMI-A-1.hdr.enable" "output.HDMI-A-1.sdr-brightness.900")
+      if [ -n "$SAMSUNG" ] && is_connected "$SAMSUNG"; then
+          was_connected "$SAMSUNG" || log "[CONNECTED] $SAMSUNG (TV) HDR enabled"
+          CMD_LIST+=("output.$SAMSUNG.enable" "output.$SAMSUNG.mode.1" "output.$SAMSUNG.position.10000,0" "output.$SAMSUNG.scale.1.5" "output.$SAMSUNG.priority.4" "output.$SAMSUNG.hdr.enable" "output.$SAMSUNG.sdr-brightness.900")
       else
-          was_connected "HDMI-A-1" && log "[DISCONNECTED] HDMI-A-1 (TV)"
+          [ -n "$SAMSUNG" ] && was_connected "$SAMSUNG" && log "[DISCONNECTED] $SAMSUNG (TV)"
       fi
       if [ ''${#CMD_LIST[@]} -gt 0 ]; then
           log "Applying configuration..."
@@ -96,7 +107,12 @@
       mkdir -p "$STATE_DIR"
       LOGFILE="$STATE_DIR/tv-monitor-daemon.log"
       TV_STATE_FILE="$STATE_DIR/tv-state"
-      HDMI_OUTPUT="HDMI-A-1"
+      # Resolve the CURRENT TV connector from its EDID identity (connector
+      # names renumber on GPU VFIO toggles; identity is stable).
+      resolve_tv_output() {
+          niri msg outputs 2>/dev/null | grep -F "Output \"Samsung Electric Company SAMSUNG 0x01000E00\"" | sed -E 's/.*\(([^)]*)\)/\1/' | head -1
+      }
+      HDMI_OUTPUT=$(resolve_tv_output)
       log() {
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOGFILE"
       }
@@ -166,11 +182,19 @@
       # Monitor interval (seconds) - check every 5 seconds
       CHECK_INTERVAL=5
       while true; do
+          # Re-resolve the TV connector each iteration: a GPU VFIO toggle
+          # can renumber connectors while the daemon is running.
+          HDMI_OUTPUT=$(resolve_tv_output)
+          # No identity match = TV not enumerated; treat as off.
+          if [ -z "$HDMI_OUTPUT" ]; then
+              CURRENT_STATE="off"
+          else
           # Check if TV is connected AND enabled
           if is_tv_powered_on; then
               CURRENT_STATE="on"
           else
               CURRENT_STATE="off"
+          fi
           fi
           # State machine
           if [ "$PREVIOUS_STATE" = "on" ] && [ "$CURRENT_STATE" = "off" ]; then
