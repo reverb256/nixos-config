@@ -25,9 +25,11 @@
   # profiles.role.workstation (services.gaming.enable=true), so this blocks
   # nexus toplevel builds. The tests are upstream codec/path tests, not used
   # by the installed binary.
-  protontricks = prev.protontricks.overrideAttrs (old: {
-    doCheck = false;
-    dontCheck = true;
+  # doCheck/dontCheck alone do NOT stop pytestCheckHook — it re-defines
+  # checkPhase, so the sandbox-path tests still run. The kill-switch is
+  # dontUsePytestCheck (documented pytestCheckHook option).
+  protontricks = prev.protontricks.overridePythonAttrs (old: {
+    dontUsePytestCheck = true;
   });
 
   # 2026-08-07: nixpkgs removed `libdisplay-info_0_2` (aliases.nix throw,
