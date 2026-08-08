@@ -22,7 +22,7 @@
       if [[ "$name" == *DualSense* ]]; then
         found=1
         node="/dev/input/$(basename "$device")"
-        printf '  %-12s %-8s %s\\n' "$(basename "$device")" "$(stat -c '%A' "$node" 2>/dev/null || echo '?')" "$name"
+        printf '  %-12s %-8s %s\\n' "$(basename "$device")" "$('${pkgs.coreutils}/bin/stat' -c '%A' "$node" 2>/dev/null || echo '?')" "$name"
       fi
     done
     [[ "$found" -eq 1 ]] || echo "  no DualSense input device found"
@@ -34,7 +34,7 @@
       properties=$(${pkgs.systemd}/bin/udevadm info --query=property --name="$device" 2>/dev/null || true)
       if printf '%s\\n' "$properties" | ${pkgs.gnugrep}/bin/grep -qE 'ID_VENDOR_ID=054c|ID_VENDOR_FROM_DATABASE=Sony'; then
         hid_found=1
-        printf '  %s %s\\n' "$device" "$(stat -c '%A' "$device" 2>/dev/null || echo '?')"
+        printf '  %s %s\\n' "$device" "$('${pkgs.coreutils}/bin/stat' -c '%A' "$device" 2>/dev/null || echo '?')"
       fi
     done
     [[ "$hid_found" -eq 1 ]] || echo "  no Sony HIDRAW device found"
@@ -54,7 +54,7 @@
     echo
     echo "SDL mapping file:"
     if [[ -s /etc/sdl2-dualsense-db ]]; then
-      echo "  /etc/sdl2-dualsense-db present ($(wc -l < /etc/sdl2-dualsense-db) mappings)"
+      echo "  /etc/sdl2-dualsense-db present ($('${pkgs.coreutils}/bin/wc' -l < /etc/sdl2-dualsense-db) mappings)"
     else
       echo "  /etc/sdl2-dualsense-db missing or empty"
     fi
