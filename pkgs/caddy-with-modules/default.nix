@@ -21,13 +21,17 @@
 }:
 buildGoModule rec {
   pname = "caddy-with-modules";
-  version = "2.11.2"; # Upgraded from 2.8.0 by caddy-security plugin dependencies
+  # Upstream security bump: caddy pinned to b2693fb63a (PR #7872) so cel-go
+  # can move to >=0.29.2 and clear 37 Dependabot CVEs (issue #380). Pseudo-
+  # version reflects that commit; ldflags version is informational only.
+  version = "2.11.5-pre.20260711.b2693fb63a";
   # Use the local source directory with custom main.go and go.mod
   src = ./src;
   # Use proxyVendor to avoid go.mod tidy issues
   proxyVendor = true;
-  # Vendor hash for Go dependencies
-  vendorHash = "sha256-yBO71Rp+DGP5RiE1S4bMA5HBiPYCYOsslv2UItEI20o=";
+  # Vendor hash for Go dependencies — deps changed on the #380 security bump
+  # (caddy 2.11.4+ pulls many new transitive versions). Re-derive on build.
+  vendorHash = lib.fakeHash;
   # Install and rename binary
   postInstall = ''
     mkdir -p $out/bin
