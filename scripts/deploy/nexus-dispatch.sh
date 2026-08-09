@@ -95,7 +95,7 @@ executor() {
     # targetHost when the goal requires a target host — so the local node must
     # be deployed with `apply-local` (gated by deployment.allowLocalDeployment).
     echo "Deploying local node: nexus (apply-local)"
-    exec "${NIX_CMD[@]}" apply-local --node nexus
+    exec "${NIX_CMD[@]}" apply-local --sudo --node nexus
   fi
 
   CMD=(
@@ -114,7 +114,7 @@ executor() {
   # executor host converges with the rest of the fleet.
   if [[ "$TARGET" == "all" ]]; then
     echo "Deploying local node: nexus (apply-local)"
-    exec "${NIX_CMD[@]}" apply-local --node nexus
+    exec "${NIX_CMD[@]}" apply-local --sudo --node nexus
   fi
 }
 
