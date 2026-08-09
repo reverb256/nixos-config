@@ -144,6 +144,13 @@ in {
       hostNames = ["krash3" "10.1.1.150"];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILH4anz65+SKAJOmF94T0YXOFbRmtlMMrC0PEhcLvT2n";
     };
+    # GitHub's published ED25519 host key. Keep Git operations strict while
+    # allowing noninteractive deployment/build jobs to fetch GitHub inputs.
+    # Fingerprint: SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU
+    github = {
+      hostNames = ["github.com"];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";
+    };
   };
 
   users.users.j_kro.openssh.authorizedKeys.keys = meshKeys;
