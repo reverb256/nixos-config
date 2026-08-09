@@ -22,6 +22,10 @@
       "/var/lib/bluetooth"
       "/var/lib/tailscale"
       "/var/lib/fwupd"
+      # Keep both dormant Windows VM backends and their separate state.
+      "/var/lib/libvirt"
+      "/var/lib/incus"
+      "/var/lib/incus-gamepass"
     ];
     files = [
       {

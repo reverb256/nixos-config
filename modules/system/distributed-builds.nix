@@ -96,7 +96,7 @@ in {
       case "$(hostname)" in
         nexus|sentry)
           if [ -r /run/secrets/cachix-token ]; then
-            export CACHIX_AUTH_TOKEN="$(cat /run/secrets/cachix-token)"
+            export CACHIX_AUTH_TOKEN="$(tr -d '\\r\\n' < /run/secrets/cachix-token)"
             ( flock 9; nice -n 19 ${pkgs.coreutils}/bin/timeout 600 ${pkgs.cachix}/bin/cachix push reverb-os $OUT_PATHS ) 9>/var/lock/cachix-push.lock >> /var/log/cachix-push.log 2>&1 &
           fi
           ;;
@@ -131,23 +131,41 @@ in {
     # secretspec-creds.nix).
     after = ["network-online.target" "nix-daemon.service" "secretspec-creds.service"];
     wants = ["network-online.target"];
+    unitConfig = {
+      # A missing optional cache credential must not create a failed unit or
+      # restart storm during boot/shutdown. The service is skipped until the
+      # secret exists; the path unit below then starts it without a reboot.
+      ConditionFileNotEmpty = "/run/secrets/cachix-token";
+      StartLimitBurst = 3;
+      StartLimitIntervalSec = 300;
+    };
     serviceConfig = {
       Type = "simple";
       Restart = "on-failure";
       RestartSec = 30;
-      StartLimitBurst = 3;
-      StartLimitIntervalSec = 300;
       Nice = 19;
       IOSchedulingPriority = 7; # idle
     };
     script = ''
-      if [ ! -r /run/secrets/cachix-token ]; then
-        echo "cachix-watch-store: token missing at /run/secrets/cachix-token — staying down" >&2
+      token=$(tr -d '\\r\\n' < /run/secrets/cachix-token)
+      if [ -z "$token" ]; then
+        echo "cachix-watch-store: token is empty — refusing to start" >&2
         exit 1
       fi
-      export CACHIX_AUTH_TOKEN="$(cat /run/secrets/cachix-token)"
+      export CACHIX_AUTH_TOKEN="$token"
       exec ${pkgs.cachix}/bin/cachix watch-store reverb-os
     '';
+  };
+
+  # SecretSpec writes this file after multi-user.target on some hosts. A path
+  # unit gives the optional watcher a deterministic late-start path without
+  # making cache publishing part of the boot-critical dependency graph.
+  systemd.paths.cachix-watch-store = lib.mkIf (builtins.elem currentHost ["nexus" "sentry"]) {
+    wantedBy = ["multi-user.target"];
+    pathConfig = {
+      PathExists = "/run/secrets/cachix-token";
+      Unit = "cachix-watch-store.service";
+    };
   };
 
   programs.ssh.startAgent = true;

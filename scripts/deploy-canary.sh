@@ -17,7 +17,7 @@
 #
 # Post-switch probe per host: sshd active + uptime sanity + key services
 # (per-host map, best-effort). On probe failure the host is rolled back with
-# `nixos-rebuild rollback` and the remaining hosts are NOT deployed.
+# `nixos-rebuild --rollback switch` and the remaining hosts are NOT deployed.
 set -euo pipefail
 
 FLAKE="${FLAKE:-/etc/nixos}"
@@ -78,9 +78,9 @@ probe_host() {
 # rollback_host <host> — nixos-rebuild rollback on the target.
 rollback_host() {
   local host="$1"
-  echo "  [rollback] $host → nixos-rebuild rollback" >&2
+  echo "  [rollback] $host → nixos-rebuild --rollback switch" >&2
   ssh -o BatchMode=yes -o ConnectTimeout=5 "$host" \
-    "sudo nixos-rebuild rollback" 2>&1 | tail -3 || \
+    "sudo nixos-rebuild --rollback switch" 2>&1 | tail -3 || \
     echo "  [rollback] FAILED for $host — manual intervention required" >&2
 }
 

@@ -240,7 +240,10 @@
     host-dashboard = {
       enable = true;
       role = "control-plane + storage + gaming";
-      port = 8090;
+      # 8090 is occupied by the user-scoped memlawb service on Nexus.
+      # Keep the dashboard on a dedicated localhost port to avoid a restart
+      # loop during boot and shutdown.
+      port = 8091;
       prometheusUrl = "http://127.0.0.1:9090";
       featuredServices = [
         {

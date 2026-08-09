@@ -38,8 +38,10 @@
     # NVIDIA GPU Wayland support (host-dependent)
     ../../modules/hardware/nvidia-common.nix
     ../../modules/hardware/nvidia-wayland.nix
-    # Game Pass Windows VM — VFIO RTX 3060 Ti passthrough (zephyr only)
+    # Game Pass Windows VM backends — parallel, dormant, Zephyr only.
+    # libvirt remains the rollback backend while Incus is installed/tested.
     ../../modules/hardware/vfio-gamepass.nix
+    ../../modules/hardware/incus-gamepass.nix
     # Noctalia desktop compositor (niri shell, iced/winit/Smithay deps)
     # noctalia: now built-in to nixpkgs-unstable (programs.noctalia)
     # RGB control for peripherals and components
@@ -265,6 +267,28 @@
 
   # Trust Caddy Ingress local CA certificate
   security.caddyCa.enable = true;
+
+  # The Zephyr desktop workload menu may control only these four declared
+  # system services. Keep this scoped to the exact unit names rather than
+  # granting general systemd management to the graphical session.
+  security.polkit.extraConfig = ''
+    polkit.addRule(function(action, subject) {
+      var zephyrWorkloads = [
+        "peakminer-zephyr-3090.service",
+        "peakminer-zephyr-3060ti.service",
+        "bonsai-ternary-zephyr.service",
+        "bonsai-1bit-zephyr.service"
+      ];
+      if (action.id == "org.freedesktop.systemd1.manage-units" &&
+          subject.user == "j_kro" &&
+          subject.active && subject.local &&
+          (action.lookup("verb") == "start" ||
+           action.lookup("verb") == "stop") &&
+          zephyrWorkloads.indexOf(action.lookup("unit")) >= 0) {
+        return polkit.Result.YES;
+      }
+    });
+  '';
 
   # ============================================================================
   # GPU COMPUTE - CUDA + Vulkan support for AI inference

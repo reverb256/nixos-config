@@ -2,7 +2,7 @@
   description = "NixOS configuration with Garage and Syncthing storage";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable"; # nixos-unstable as default; override per-package where necessary
+    nixpkgs.url = "git+https://github.com/NixOS/nixpkgs?ref=nixos-unstable"; # nixos-unstable as default; override per-package where necessary
     # zen-browser: pin rev + let it use its OWN pinned nixpkgs (1559d3da…) for
     # the zen package instead of our floating nixos-unstable. zen-twilight.desktop
     # embeds the zen version; following our nixpkgs made it drift every time
@@ -14,30 +14,35 @@
     };
     # lsfg-vk - Lossless Scaling Frame Generation on Linux
     lsfg-vk-nix = {
-      url = "github:Daaboulex/lsfg-vk-nix";
+      url = "git+https://github.com/Daaboulex/lsfg-vk-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     firefox-addons = {
-      url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
+      url = "git+https://gitlab.com/rycee/nur-expressions?dir=pkgs/firefox-addons";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     freebuff-flake = {
-      url = "github:reverb256/freebuff-flake";
+      url = "git+https://github.com/reverb256/freebuff-flake";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # home-manager - Lix github:-fetcher cannot resolve implicit registry refs.
+    # Declared explicitly with git+https:// transport (same sweep as other inputs).
+    home-manager = {
+      url = "git+https://github.com/nix-community/home-manager";
     };
     # home-manager-config - standalone Home Manager configuration (Layer 2)
     # Migrated from modules/home-manager/ to separate flake per 3-layer model.
     home-manager-config = {
-      url = "github:reverb256/home-manager-config";
+      url = "git+https://github.com/reverb256/home-manager-config";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
     aagl = {
-      url = "github:ezKEa/aagl-gtk-on-nix";
+      url = "git+https://github.com/ezKEa/aagl-gtk-on-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nur = {
-      url = "github:nix-community/NUR";
+      url = "git+https://github.com/nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-parts.follows = "flake-parts";
     };
@@ -57,7 +62,7 @@
     # Community HDR fork for niri — HDR metadata + hdr { enabled } config.
     # Trade-off: lags behind upstream. Switch programs.niri.package to use it.
     niri-hdr = {
-      url = "github:dividebysandwich/niri/hdr-smithay-master";
+      url = "git+https://github.com/dividebysandwich/niri?ref=hdr-smithay-master";
       flake = false;
     };
     nixcord = {
@@ -122,17 +127,17 @@
     # (its importNpmLock offline prefetch of @nous-research/ui is broken).
     # mcp-registry - MCP server registry module
     mcp-registry = {
-      url = "github:reverb256/mcp-registry";
+      url = "git+https://github.com/reverb256/mcp-registry";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # caddy-ingress - Caddy ingress module + caddy-with-modules package
     caddy-ingress = {
-      url = "github:reverb256/caddy-ingress";
+      url = "git+https://github.com/reverb256/caddy-ingress";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # gpu-proxy - GPU proxy module
     gpu-proxy = {
-      url = "github:reverb256/gpu-proxy";
+      url = "git+https://github.com/reverb256/gpu-proxy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # flake-parts — transitive dep for 6 inputs, use git+https to bypass GitHub API 401
@@ -143,7 +148,7 @@
     # + pkgs.noctalia. The flake input is no longer needed.
     # stylix - theming module
     stylix = {
-      url = "github:nix-community/stylix";
+      url = "git+https://github.com/nix-community/stylix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # nixpkgs-secretspec REMOVED — nixpkgs is now nixos-unstable, so
@@ -159,7 +164,7 @@
     # Was missing from inputs -> sentry persistence module failed to eval and was
     # never imported; host keys + age keys rotated on every rebuild.
     preservation = {
-      url = "github:nix-community/preservation";
+      url = "git+https://github.com/nix-community/preservation";
     };
   };
 

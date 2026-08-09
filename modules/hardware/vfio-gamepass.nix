@@ -397,8 +397,8 @@ in {
  *       sudo mkdir -p /var/lib/libvirt/images
  *       sudo qemu-img create -f qcow2 /var/lib/libvirt/images/gamepass-win11.qcow2 200G
  *  2. Attach your Windows 11 ISO (edit the XML cdrom sdb, or use virt-manager).
- *  3. Start + open Looking Glass:
- *       sudo virsh start gamepass-win11
+ *  3. Start through the shared backend guard + open Looking Glass:
+ *       incus-gamepass-vm start-libvirt
  *       looking-glass-client
  *  4. In Windows: install VirtIO drivers (E:\ from the virtio-win cdrom),
  *     install the Looking Glass host (B7), install Scream sender.
