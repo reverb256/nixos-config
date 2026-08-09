@@ -67,17 +67,23 @@ in mkIf cfg.enable {
         custom = {
           start = "${pkgs.writeShellScript "gamemode-start" ''
             ${pkgs.libnotify}/bin/notify-send 'GameMode activated' 'Performance optimizations enabled'
-            /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GpuPowerMizerMode=1" 2>/dev/null || true
-            /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUGraphicsClockOffset[4]=100" 2>/dev/null || true
-            /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUMemoryTransferRateOffset[4]=400" 2>/dev/null || true
+            gaming_gpu=$(/run/current-system/sw/bin/nvidia-smi --query-gpu=uuid,name --format=csv,noheader,nounits 2>/dev/null | awk -F', ' '$2 ~ /RTX 3090/ {print $1; exit}')
+            if [ -n "$gaming_gpu" ]; then
+              /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GpuPowerMizerMode=1" 2>/dev/null || true
+              /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GPUGraphicsClockOffset[4]=100" 2>/dev/null || true
+              /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GPUMemoryTransferRateOffset[4]=400" 2>/dev/null || true
+            fi
             /etc/nixos/scripts/gpu-profiles/gaming.sh 2>/dev/null || true
             /etc/nixos/scripts/gpu-profiles/k8s-mining-pause.sh start 2>/dev/null || true
           ''}";
           end = "${pkgs.writeShellScript "gamemode-end" ''
             ${pkgs.libnotify}/bin/notify-send 'GameMode deactivated' 'Normal performance restored'
-            /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GpuPowerMizerMode=0" 2>/dev/null || true
-            /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUGraphicsClockOffset[4]=0" 2>/dev/null || true
-            /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUMemoryTransferRateOffset[4]=0" 2>/dev/null || true
+            gaming_gpu=$(/run/current-system/sw/bin/nvidia-smi --query-gpu=uuid,name --format=csv,noheader,nounits 2>/dev/null | awk -F', ' '$2 ~ /RTX 3090/ {print $1; exit}')
+            if [ -n "$gaming_gpu" ]; then
+              /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GpuPowerMizerMode=0" 2>/dev/null || true
+              /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GPUGraphicsClockOffset[4]=0" 2>/dev/null || true
+              /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GPUMemoryTransferRateOffset[4]=0" 2>/dev/null || true
+            fi
             /etc/nixos/scripts/gpu-profiles/ai-inference.sh 2>/dev/null || true
             /etc/nixos/scripts/gpu-profiles/k8s-mining-pause.sh end 2>/dev/null || true
           ''}";
@@ -190,6 +196,21 @@ in mkIf cfg.enable {
   };
 
   users.groups.plugdev = {};
+
+  # GameMode runs inside the autologin UWSM session, which has no interactive
+  # polkit agent. Permit its four performance-helper actions for active users;
+  # inactive sessions remain denied instead of granting a blanket polkit rule.
+  security.polkit.extraConfig = ''
+    polkit.addRule(function(action, subject) {
+      if (action.id == "com.feralinteractive.GameMode.cpu-helper" ||
+          action.id == "com.feralinteractive.GameMode.governor-helper" ||
+          action.id == "com.feralinteractive.GameMode.gpu-helper" ||
+          action.id == "com.feralinteractive.GameMode.procsys-helper") {
+        return subject.active ? polkit.Result.YES : polkit.Result.NO;
+      }
+    });
+  '';
+
   boot.kernelModules = ["hid_sony"];
   systemd.tmpfiles.rules = [
     "d /var/cache/nvidia-shader-cache 0755 root root - -"

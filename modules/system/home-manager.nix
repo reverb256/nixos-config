@@ -1,3 +1,7 @@
+# LEGACY COMPATIBILITY SHIM: active standalone Home Manager configuration now
+# lives in /home/j_kro/Projects/home-manager-config. Do not add user features
+# here; this file remains only for the legacy NixOS-module path and layer
+# contract checks during the repository migration.
 {
   config,
   inputs,
@@ -114,6 +118,10 @@ in
         home.stateVersion = "26.05";
         home.enableNixpkgsReleaseCheck = false;
 
+        # VR/Steam user configuration moved to the active standalone
+        # Home Manager leaf in home-manager-config. Keep this NixOS bridge
+        # limited to the shared HM integration; it is retained because the
+        # layer-contract test and legacy NixOS-module path still reference it.
         xdg.configFile = {
           "mimeapps.list".force = true;
         };
