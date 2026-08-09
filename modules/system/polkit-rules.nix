@@ -1,27 +1,12 @@
-# PolKit rules for NixOS
-# Disable password prompts for systemd service management
+# PolKit rules for NixOS.
+#
+# System-service management is intentionally not granted globally. Host-specific
+# desktop controls must name the exact units they are allowed to manage (for
+# example Zephyr's GPU workload menu), rather than turning wheel membership into
+# a blanket passwordless systemd API.
 _: {
-  # Add polkit extra rules for systemd service management
   security.polkit.extraConfig = ''
-    // Allow wheel group to manage systemd services without authentication
-    // This prevents password prompts when using systemctl commands
-    polkit.addRule(function(action, subject) {
-      if (
-        action.id == "org.freedesktop.systemd1.manage-units" &&
-        subject.isInGroup("wheel")
-      ) {
-        return polkit.Result.YES;
-      }
-    });
-
-    // Also allow managing user services without authentication
-    polkit.addRule(function(action, subject) {
-      if (
-        action.id == "org.freedesktop.systemd1.manage-units" &&
-        subject.user == "j_kro"
-      ) {
-        return polkit.Result.YES;
-      }
-    });
+    // User services do not require polkit; system services are governed by
+    // host-specific rules in the owning host configuration.
   '';
 }

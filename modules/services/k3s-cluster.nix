@@ -520,27 +520,35 @@ in {
       environment.CONTAINERD_NRI_DISABLED = "1";
       # Do NOT block multi-user.target - k3s can take 5+ minutes to start with etcd
       wantedBy = lib.mkForce [];
-      # Self-heal: if k3s ever exits (crash, OOM, etcd blip), restart it
-      # immediately instead of relying solely on the one-shot boot timer.
-      # StartLimitIntervalSec=0 disables systemd's start-limit backoff so a
-      # flapping k3s keeps retrying instead of being parked in failed state.
-      # mkForce: override the upstream rancher/k3s module's own serviceConfig
-      # (which sets RestartSec=5s) to avoid a definition conflict.
-      serviceConfig = {
-        Restart = lib.mkForce "always";
-        RestartSec = lib.mkForce "15s";
-        StartLimitIntervalSec = lib.mkForce 0;
+      # Self-heal transient k3s exits, but do not turn a permanent bootstrap
+      # error (for example a stale HA token) into an endless boot/shutdown
+      # restart storm. The old StartLimitIntervalSec=0 disabled systemd's
+      # protection and produced thousands of retries on Forge and Sentry.
+      # mkForce overrides the upstream rancher/k3s service defaults.
+      unitConfig = {
+        StartLimitIntervalSec = lib.mkForce "5min";
+        StartLimitBurst = lib.mkForce 3;
       };
-        before = lib.mkIf config.services.keepalived.enable ["keepalived.service"];
+      serviceConfig = {
+        Restart = lib.mkForce "on-failure";
+        RestartSec = lib.mkForce "15s";
+        # A healthy server can take several minutes to initialize etcd, but a
+        # hung start must not hold an activation transaction forever.
+        TimeoutStartSec = lib.mkForce "10min";
+        TimeoutStopSec = lib.mkForce "2min";
+      };
+      before = lib.mkIf config.services.keepalived.enable ["keepalived.service"];
     };
 
     # Auto-start k3s at boot WITHOUT blocking multi-user.target.
     # k3s is deliberately excluded from multi-user.target (wantedBy = mkForce []) above
     # because server nodes can take 5+ minutes to start etcd and hang the boot path.
     # This boot timer starts k3s shortly after boot completes so it survives reboots.
-    # The service now sets Restart=always + StartLimitIntervalSec=0 (see above) so a
-    # crash self-recovers, and the timer is Persistent=true so a missed boot trigger
-    # still fires. Together these prevent the NotReady/Unknown-after-reboot failure.
+    # The service now uses bounded Restart=on-failure retries (see above) so
+    # transient crashes self-recover without masking permanent bootstrap errors.
+    # The timer is Persistent=true so a missed boot trigger still fires. Together
+    # these prevent the NotReady/Unknown-after-reboot failure without creating a
+    # shutdown-blocking restart storm.
     # Safe for all roles (agent + server) and decoupled from boot-critical targets.
     systemd.timers.k3s-autostart = {
       description = "Start k3s after boot (decoupled from multi-user.target to avoid blocking boot)";

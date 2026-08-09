@@ -28,7 +28,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     firefox-addons = {
-      url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
+      url = "git+https://gitlab.com/rycee/nur-expressions?dir=pkgs/firefox-addons";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # hermes-agent input REMOVED (issue #334) — provided by user nix profile.

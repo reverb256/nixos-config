@@ -187,6 +187,42 @@
     && hasInfix "caKeyProvisioned = true;" nexusConfig
     && hasInfix "caKeyService = \"secretspec-creds.service\";" nexusConfig;
 
+  # ── HW-22: Parallel dormant Windows VM backends ──
+  zephyrVmConfig = readFile ./../hosts/zephyr/configuration.nix;
+  zephyrVmPreservation = readFile ./../hosts/zephyr/preservation.nix;
+  incusVmModule = readFile ./../modules/hardware/incus-gamepass.nix;
+  vmMigrationDoc = readFile ./../docs/incus-gamepass-migration.md;
+  parallelVmBackends =
+    hasInfix "vfio-gamepass.nix" zephyrVmConfig
+    && hasInfix "incus-gamepass.nix" zephyrVmConfig
+    && hasInfix "gamepass-win11" incusVmModule
+    && hasInfix "gamepass-win11-incus" incusVmModule;
+  dormantVmBackends =
+    hasInfix "\"boot.autostart\" = \"false\";" incusVmModule
+    && !(hasInfix "wantedBy = [ \\\"multi-user.target\\\" ]" incusVmModule);
+  sharedGpuContract =
+    hasInfix "0000:24:00.0" incusVmModule
+    && hasInfix "0000:24:00.1" incusVmModule
+    && hasInfix "24:00.0" (readFile ./../modules/hardware/vfio-gamepass.nix)
+    && hasInfix "24:00.1" (readFile ./../modules/hardware/vfio-gamepass.nix);
+  vmStatePreserved =
+    hasInfix "\"/var/lib/libvirt\"" zephyrVmPreservation
+    && hasInfix "\"/var/lib/incus\"" zephyrVmPreservation
+    && hasInfix "\"/var/lib/incus-gamepass\"" zephyrVmPreservation;
+  vmMigrationDocumented =
+    hasInfix "separate" vmMigrationDoc
+    && hasInfix "incus-gamepass-vm create" vmMigrationDoc
+    && hasInfix "must never run at the same time" vmMigrationDoc;
+  lookingGlassContract =
+    hasInfix "raw.qemu" incusVmModule
+    && hasInfix "/dev/kvmfr0" incusVmModule
+    && hasInfix "DeviceAllow" incusVmModule
+    && hasInfix "SupplementaryGroups" incusVmModule
+    && hasInfix "looking-glass-gamepass" vmMigrationDoc
+    && hasInfix "check-looking-glass" vmMigrationDoc;
+  incusPreseedRequired =
+    hasInfix "requires = [ \"incus-preseed.service\" ];" incusVmModule;
+
   # ── Build the check results ──
   checks = {
     # HW-1: Standalone hardware configs
@@ -235,6 +271,15 @@
     persistent_hosts_preserve_age = persistentHostsPreserveAge;
     cluster_ca_fails_closed = caFailsClosed;
     nexus_ca_key_secret_wired = nexusCaKeySecret;
+
+    # HW-22: Parallel dormant libvirt/Incus Windows VM contract
+    parallel_vm_backends = parallelVmBackends;
+    dormant_vm_backends = dormantVmBackends;
+    shared_gpu_contract = sharedGpuContract;
+    vm_state_preserved = vmStatePreserved;
+    vm_migration_documented = vmMigrationDocumented;
+    looking_glass_contract = lookingGlassContract;
+    incus_preseed_required = incusPreseedRequired;
   };
 
   # ── Report failures ──
