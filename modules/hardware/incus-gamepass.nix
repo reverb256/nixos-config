@@ -293,17 +293,17 @@ EOF
             exit 1
           } || true
         exec systemctl start gamepass-libvirt-vm.service
-        ;
+        ;;
       stop-libvirt)
         exec systemctl stop gamepass-libvirt-vm.service
-        ;
+        ;;
       status)
         printf 'libvirt %-24s %s\n' "$libvirt_vm" "$(libvirt_state)"
         printf 'incus   %-24s %s\n' "$vm" "$(incus_state)"
-        ;
+        ;;
       *)
         usage
-        ;
+        ;;
     esac
   '';
 
