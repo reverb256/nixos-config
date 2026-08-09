@@ -202,7 +202,7 @@ in {
   # overlays/bugfixes.nix. Set the real option explicitly so the intent
   # survives future nixpkgs bumps; real test signal still comes from the
   # nixosTests tree and CI, neither of which is affected by this flag.
-  nixpkgs.config.doCheckByDefault = false;
+  nixpkgs.config.doCheckByDefault = lib.mkDefault false;
 
   nixpkgs.config.permittedInsecurePackages = [
     "nodejs-20.20.2"
