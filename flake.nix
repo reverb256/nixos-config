@@ -309,6 +309,7 @@
           _module.args.pkgs = import nixpkgs {
             inherit system;
             config.allowUnfree = true;
+            overlays = [(import ./overlays/default.nix {inherit inputs;})];
           };
 
           checks = let

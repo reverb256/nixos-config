@@ -9,17 +9,6 @@
   # #309: derive from the declared user instead of hardcoding, so pure
   # cross-host evaluation does not depend on /home/j_kro existing.
   userHome = config.users.users.j_kro.home or "/home/j_kro";
-  # Local build capacity for THIS host (same expression as nix.settings.max-jobs).
-  # Nexus is the sole build executor. Zephyr, Forge, and Sentry keep local
-  # build capacity at zero; their Nix requests must dispatch to Nexus.
-  # The generated machine list intentionally contains no Forge/Sentry builder
-  # entries, so GPU mining and monitoring/inference are never interrupted.
-  localMaxJobs =
-    if currentHost == "zephyr"
-    then 0 # pure dispatcher — never build locally (OOM guard)
-    else if currentHost == "nexus"
-    then 6
-    else 0;
 in {
   nix = {
     distributedBuilds = lib.mkDefault true;
@@ -52,7 +41,7 @@ in {
 
       max-jobs = lib.mkForce (
         # zephyr: ZERO local build capacity. It is a pure dispatcher — every
-        # derivation offloads to nexus/sentry via /etc/nix/machines.
+        # derivation offloads to nexus via /etc/nix/machines.
         # max-jobs=2 here was the OOM root cause: a local `nix build`/`switch`
         # fell back to 2 local jobs and (doubled) blew past 31GB. Never build
         # on zephyr.          # forge removed 2026-07-29 (GPU miner — do not interrupt).
@@ -260,29 +249,17 @@ in {
           ];
           # Nexus is the sole builder. Sentry is monitoring/inference and Forge
           # is the GPU-mining host; neither may receive Nix build jobs.
-          machines =
-            builtins.filter (m: m.hostName != currentHost) allMachines
-            ++ (
-              if localMaxJobs > 0
-              then [{
-                hostName = currentHost;
-                # When this module is evaluated on Nexus, the local builder
-                # must advertise the same multilib capability as its remote
-                # machine entry. Other hosts never build the i686 closure.
-                systems =
-                  if currentHost == "nexus"
-                  then ["x86_64-linux" "i686-linux"]
-                  else ["x86_64-linux"];
-                sshUser = "j_kro";
-                sshKey = userHome + "/.ssh/id_ed25519";
-                maxJobs = localMaxJobs;
-                speedFactor = 1; # local fallback only; never outranks remotes
-                connectTimeout = 1;
-                supportedFeatures = ["big-parallel"]; # local can take heavy drvs
-                mandatoryFeatures = [];
-              }]
-              else []
-            );
+          #
+          # REMOTE-ONLY, never a self-entry. When a host builds its own closure
+          # (nexus via colmena apply-local, or any manual nixos-rebuild), a
+          # `ssh-ng://<self>` machine entry makes nix-daemon dispatch
+          # derivations back to itself over SSH; the serve session then waits
+          # on store locks the local daemon already holds -> permanent deadlock
+          # (observed 2026-08-08: wivrn build stalled 3600s on 'waiting for
+          # lock' via ssh-ng://j_kro@nexus, even for a direct nix-store
+          # --realise). Local builds use max-jobs; the machines file only ever
+          # lists remote builders.
+          machines = builtins.filter (m: m.hostName != currentHost) allMachines;
           formatMachine = m:
             with builtins; let
               # Join ALL systems with commas so the nix builder line advertises

@@ -1,2 +1,10 @@
-j_kro@nexus x86_64-linux /home/j_kro/.ssh/id_ed25519 12 10 big-parallel,kvm
-j_kro@zephyr x86_64-linux /home/j_kro/.ssh/id_ed25519 0 1 big-parallel,kvm
+# Colmena remote builders (meta.machinesFile).
+#
+# Colmena ALWAYS executes on nexus (see scripts/deploy/nexus-dispatch.sh), and
+# nexus is the sole build executor. Nexus must therefore build locally via its
+# daemon max-jobs — NEVER via ssh:// to itself. A self-entry here made nix
+# dispatch nexus's own derivations to ssh-ng://j_kro@nexus; the serve session
+# then waited on store locks the local daemon already held -> permanent
+# deadlock (observed 2026-08-08: wivrn build stalled 3600s on 'waiting for
+# lock'). This file intentionally lists no nexus entry and no other builders:
+# there is nothing remote left to dispatch to.
