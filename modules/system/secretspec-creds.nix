@@ -135,7 +135,9 @@ in {
         Type = "oneshot";
         RemainAfterExit = true;
         ExecStart = writeScript;
-        Environment = [ "SOPS_AGE_KEY_FILE=${cfg.ageKeyFile}" ];
+        # Mirror the validator's HOME fix: the age crate needs $HOME set
+        # or it rejects SOPS_AGE_KEY_FILE at activation (root cause 2026-08-10).
+        Environment = [ "SOPS_AGE_KEY_FILE=${cfg.ageKeyFile}" "HOME=/root" ];
         # A transient failure (e.g. mid-pull network blip when re-evaluating
         # /etc/nixos/secrets/, or a YubiKey unplug-replug mid-boot) should
         # retry — the validator service (newly Wants+d this unit) would

@@ -136,8 +136,13 @@ in {
       # nexus + forge). `Wants` (not `Requires`) means creds starting will
       # still trigger this unit; a creds failure will be reported on its own
       # unit, not here. See modules/system/SECRETSPEC-CONSOLIDATION.md.
-      after = ["secretspec-creds.service"];
-      wants = ["secretspec-creds.service"];
+      # Wait for the on-disk age key: it lives at /etc/nixos/.age/key.txt
+      # which is bound from /persistent by the preservation module's
+      # etc-nixos-.age.mount unit. Without this ordering a fresh boot can
+      # race the validator ahead of the bind and the keyfile is momentarily
+      # absent. (boot-race fix 2026-08-10)
+      after = ["secretspec-creds.service" "etc-nixos-.age.mount"];
+      wants = ["secretspec-creds.service" "etc-nixos-.age.mount"];
 
       # secretspec check is fully offline (reads local manifest + dotenv);
       # no network-online.target ordering needed.
@@ -163,6 +168,12 @@ in {
         # was deleted 2026-08-07; upstream native provider subsumed it.
         Environment = [
           "SOPS_AGE_KEY_FILE=${cfg.ageKeyFile}"
+          # The `age` crate sops shells out to refuses SOPS_AGE_KEY_FILE
+          # unless $HOME is defined (errors "$HOME is not defined. Did not
+          # find keys in ... SOPS_AGE_KEY_FILE"). Without this the validator
+          # fails at activation even when the keyfile is present. (root
+          # cause 2026-08-10)
+          "HOME=/root"
         ];
         StandardOutput = "journal";
         StandardError = "journal";
