@@ -62,4 +62,24 @@
   caddy = prev.caddy.overrideAttrs (old: {
     doCheck = false;
   });
+
+  # 2026-08-10: xwayland 24.1.13 fails to build under GCC 15.3 — libunwind's
+  # unw_word_t is now unsigned int* (was unsigned long*) on x86_64, so the
+  # uint64_t val / %PRIx64 in os/backtrace.c is an ABI mismatch. This breaks
+  # gamescope's SDL backend (VK_KHR_x11 unavailable without Xwayland) and thus
+  # the gamescope-wsi HDR path for Steam games on zephyr.
+  #
+  # Upstream Xorg patch (commit e0588d21, MR !1763): use unw_word_t + PRIxPTR,
+  # which is correct for both 32/64-bit. Apply via postPatch so we stay on
+  # nixos-unstable without a full nixpkgs re-pin. The patch is byte-identical
+  # to the fdo merge request.
+  xwayland = prev.xwayland.overrideAttrs (old: {
+    postPatch = (old.postPatch or "") + ''
+      substituteInPlace os/backtrace.c \
+        --replace 'uint64_t val;' 'unw_word_t val;' \
+        --replace 'ErrorF("  %s: 0x%" PRIx64 "\\n", regs[i].name, val);' \
+                'ErrorF("  %s: 0x%" PRIxPTR "\\n", regs[i].name, val);'
+      # PRIxPTR requires <inttypes.h> which libxserver-os already pulls in
+    '';
+  });
 }
