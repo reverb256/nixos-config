@@ -78,7 +78,9 @@ if [ ! -f "$legacy_manifest" ]; then
 else
   actual_manifest=$(mktemp)
   trap 'rm -f "$actual_manifest"' EXIT
-  find docs/archive/legacy -type f ! -name CONTENTS.txt -printf '%P\n' | sort > "$actual_manifest"
+  # Compare against git-tracked files, not physical disk files: the archive
+  # may contain deliberately-ignored local material (e.g. ARCHIVE/external/).
+  git ls-files docs/archive/legacy/ | sed 's|^docs/archive/legacy/||' | grep -v '^CONTENTS.txt$' | sort > "$actual_manifest"
   if diff -u "$legacy_manifest" "$actual_manifest" >/dev/null; then
     printf '  OK: legacy archive exact path manifest (%s files)\n' "$(wc -l < "$actual_manifest")"
   else
