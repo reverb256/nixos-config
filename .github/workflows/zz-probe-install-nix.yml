@@ -1,0 +1,22 @@
+---
+name: Zz Probe Install Nix
+
+# Fresh workflow — tests whether cachix/install-nix-action truly causes
+# startup_failure (bypasses possible stale registration on A/B probes).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-install-nix:
+    name: Test Install Nix
+    runs-on: [self-hosted, nixos]
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342
+      - run: echo "install-nix probe ran"
