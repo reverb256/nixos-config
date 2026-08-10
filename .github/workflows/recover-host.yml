@@ -27,47 +27,82 @@ jobs:
     runs-on: [self-hosted, nixos]
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: SSH test + detect mode
         id: probe
+        env:
+          HOST_INPUT: ${{ inputs.host }}
+          RECOVERY_IP_INPUT: ${{ inputs.recovery_ip }}
+          SSH_PORT_INPUT: ${{ inputs.ssh_port }}
         run: |
-          HOST="${{ inputs.host }}"
-          IP="${{ inputs.recovery_ip || HOST }}"
-          PORT="${{ inputs.ssh_port }}"
-          echo "target=$IP" >> $GITHUB_OUTPUT
-          echo "port=$PORT" >> $GH_OUTPUT
-          if ssh -o ConnectTimeout=10 -o BatchMode=yes -p "$PORT" "$IP" "hostname" 2>/dev/null; then
-            echo "reachable=true" >> $GITHUB_OUTPUT
-            HNAME=$(ssh -p "$PORT" "$IP" "hostname" 2>/dev/null)
-            echo "hostname=$HNAME" >> $GITHUB_OUTPUT
-            if echo "$HNAME" | grep -qi "usb\\|rescue\\|recovery"; then
-              echo "mode=recovery" >> $GITHUB_OUTPUT
+          HOST="$HOST_INPUT"
+          IP="$RECOVERY_IP_INPUT"
+          [ -n "$IP" ] || IP="$HOST"
+          PORT="$SSH_PORT_INPUT"
+          echo "target=$IP" >> "$GITHUB_OUTPUT"
+          echo "port=$PORT" >> "$GITHUB_OUTPUT"
+          if ssh -o ConnectTimeout=10 -o BatchMode=yes -p "$PORT" "$IP" hostname 2>/dev/null; then
+            echo "reachable=true" >> "$GITHUB_OUTPUT"
+            HNAME=$(ssh -p "$PORT" "$IP" hostname 2>/dev/null)
+            echo "hostname=$HNAME" >> "$GITHUB_OUTPUT"
+            if echo "$HNAME" | grep -qiE 'usb|rescue|recovery'; then
+              echo "mode=recovery" >> "$GITHUB_OUTPUT"
             else
-              echo "mode=running" >> $GITHUB_OUTPUT
+              echo "mode=running" >> "$GITHUB_OUTPUT"
             fi
           else
-            echo "reachable=false" >> $GITHUB_OUTPUT
-            echo "mode=down" >> $GITHUB_OUTPUT
+            echo "reachable=false" >> "$GITHUB_OUTPUT"
+            echo "mode=down" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Recover from USB
         if: steps.probe.outputs.mode == 'recovery'
+        env:
+          HOST_INPUT: ${{ inputs.host }}
+          TARGET_INPUT: ${{ steps.probe.outputs.target }}
+          PORT_INPUT: ${{ steps.probe.outputs.port }}
         run: |
-          HOST="${{ inputs.host }}"
-          TARGET="${{ steps.probe.outputs.target }}"
-          PORT="${{ steps.probe.outputs.port }}"
-          ssh -p "$PORT" "$TARGET" "sudo mkdir -p /mnt/boot /mnt/nix;             sudo mount -o subvol=@root /dev/sda3 /mnt 2>/dev/null || sudo mount -o subvol=@root /dev/sdb3 /mnt;             ROOT=\$(mount | grep '/mnt ' | cut -d' ' -f1);             sudo mount -o subvol=@nix '\$ROOT' /mnt/nix;             sudo mount \$(ls /dev/disk/by-partlabel/boot 2>/dev/null || ls /dev/disk/by-partlabel/disk-sdb-boot 2>/dev/null) /mnt/boot;             sudo mount -o subvol=@var /dev/sda2 /mnt/var 2>/dev/null || sudo mount -o subvol=@var /dev/sdb2 /mnt/var 2>/dev/null || true;             echo MOUNTED"
-          ssh -p "$PORT" "$TARGET" "cd /mnt/etc/nixos && sudo nix --extra-experimental-features 'nix-command flakes' eval --store /mnt/nix .#nixosConfigurations.\${HOST}.config.system.build.toplevel 2>&1"
-          OUT=$(ssh -p "$PORT" "$TARGET" "cd /mnt/etc/nixos && sudo nix --extra-experimental-features 'nix-command flakes' build --store /mnt/nix --no-link --print-out-paths .#nixosConfigurations.\${HOST}.config.system.build.toplevel 2>&1 | tail -1")
+          HOST="$HOST_INPUT"
+          TARGET="$TARGET_INPUT"
+          PORT="$PORT_INPUT"
+
+          # Run the mount sequence on the recovery host. A quoted heredoc keeps
+          # command substitutions remote instead of expanding them on the runner.
+          ssh -p "$PORT" "$TARGET" 'sudo bash -s' <<'REMOTE_MOUNT'
+          set -euo pipefail
+          sudo mkdir -p /mnt/boot /mnt/nix
+          sudo mount -o subvol=@root /dev/sda3 /mnt 2>/dev/null \
+            || sudo mount -o subvol=@root /dev/sdb3 /mnt
+          ROOT=$(findmnt -n -o SOURCE /mnt)
+          sudo mount -o subvol=@nix "$ROOT" /mnt/nix
+          BOOT=$(ls /dev/disk/by-partlabel/boot 2>/dev/null \
+            || ls /dev/disk/by-partlabel/disk-sdb-boot)
+          sudo mount "$BOOT" /mnt/boot
+          sudo mount -o subvol=@var /dev/sda2 /mnt/var 2>/dev/null \
+            || sudo mount -o subvol=@var /dev/sdb2 /mnt/var 2>/dev/null || true
+          echo MOUNTED
+          REMOTE_MOUNT
+
+          ssh -p "$PORT" "$TARGET" \
+            "cd /mnt/etc/nixos && sudo nix --extra-experimental-features 'nix-command flakes' eval --store /mnt/nix '.#nixosConfigurations.${HOST}.config.system.build.toplevel'"
+          OUT=$(ssh -p "$PORT" "$TARGET" \
+            "cd /mnt/etc/nixos && sudo nix --extra-experimental-features 'nix-command flakes' build --store /mnt/nix --no-link --print-out-paths '.#nixosConfigurations.${HOST}.config.system.build.toplevel'" \
+            | tail -1)
           echo "OUT=$OUT"
-          ssh -p "$PORT" "$TARGET" "sudo chroot /mnt \$OUT/activate 2>&1 | tail -5"
-          BASH=\$(ssh -p "$PORT" "$TARGET" "ls /mnt/nix/store/*-bash-*/bin/bash 2>/dev/null | head -1")
-          ssh -p "$PORT" "$TARGET" "sudo cp \$OUT/etc/os-release /mnt/etc/os-release 2>/dev/null; sudo chroot /mnt \$BASH -c '\$OUT/bin/switch-to-configuration boot' 2>&1"
+          ssh -p "$PORT" "$TARGET" "sudo chroot /mnt '$OUT/activate'"
+          BASH_PATH=$(ssh -p "$PORT" "$TARGET" \
+            "ls /mnt/nix/store/*-bash-*/bin/bash 2>/dev/null | head -1")
+          ssh -p "$PORT" "$TARGET" \
+            "sudo cp '$OUT/etc/os-release' /mnt/etc/os-release 2>/dev/null || true; sudo chroot /mnt '$BASH_PATH' -c '$OUT/bin/switch-to-configuration boot'"
           echo "Recovery complete for $HOST. Reboot with: ssh $TARGET 'sudo reboot'"
 
       - name: Health check (running)
         if: steps.probe.outputs.mode == 'running'
+        env:
+          TARGET_INPUT: ${{ steps.probe.outputs.target }}
+          PORT_INPUT: ${{ steps.probe.outputs.port }}
         run: |
-          HOST="${{ inputs.host }}"
-          ssh "$HOST" "echo Uptime: \$(uptime -p); df -h / /nix /persistent /home /boot 2>/dev/null" 2>&1
+          TARGET="$TARGET_INPUT"
+          PORT="$PORT_INPUT"
+          ssh -p "$PORT" "$TARGET" "echo Uptime: \$(uptime -p); df -h / /nix /persistent /home /boot 2>&1"

@@ -102,6 +102,11 @@ in {
       pkgs.diffutils
       pkgs.curl
       pkgs.jq
+      # cachix-action uses the runner's system PATH after its best-effort
+      # nix-env install. Provision it declaratively so the action is reliable
+      # on NixOS, where the runner does not inherit a user login profile.
+      pkgs.cachix
+      pkgs.gh
       pkgs.github-runner
     ];
 
@@ -122,7 +127,7 @@ in {
         # profile bin so `sh`/`bash`/`git`/`nix` resolve when GitHub resets PATH
         # at step-exec time (root cause of 'sh: command not found' startup_failure).
         Environment = [
-          "PATH=/run/current-system/sw/bin:/run/current-system/sw/sbin:/usr/bin:/bin"
+          "PATH=/run/current-system/sw/bin:/run/current-system/sw/sbin:${runnerHome}/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin"
           "LANG=C.UTF-8"
         ];
         ProtectSystem = "strict";
