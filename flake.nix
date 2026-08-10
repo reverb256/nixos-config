@@ -2,7 +2,14 @@
   description = "NixOS configuration with Garage and Syncthing storage";
 
   inputs = {
-    nixpkgs.url = "git+https://github.com/NixOS/nixpkgs?ref=nixos-unstable"; # nixos-unstable as default; override per-package where necessary
+    # Pinned to the lock rev for multi-host build reproducibility. When colmena
+    # builds a host ON-TARGET (e.g. forge on nexus), the target re-evaluates the
+    # hive; with only "?ref=nixos-unstable" in the URL it falls back to the
+    # nixos-unstable channel HEAD (divergent nixpkgs -> curl-cffi hash mismatch
+    # between builder and dispatcher). Pinning the rev makes every builder
+    # resolve the SAME nixpkgs regardless of which host evaluates.
+    # To bump nixpkgs: edit this rev AND run `nix flake update`.
+    nixpkgs.url = "git+https://github.com/NixOS/nixpkgs?rev=0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5";
     # zen-browser: pin rev + let it use its OWN pinned nixpkgs (1559d3da…) for
     # the zen package instead of our floating nixos-unstable. zen-twilight.desktop
     # embeds the zen version; following our nixpkgs made it drift every time
