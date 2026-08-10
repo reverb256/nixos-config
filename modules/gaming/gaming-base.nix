@@ -116,14 +116,16 @@ in mkIf cfg.enable {
       # Steam runs in an FHS sandbox — host PATH packages are NOT visible inside.
       # Wiki + nixpkgs#389142: gamescope / gamemode / WSI must be in the Steam env
       # or launch options that call them fail (libgamemode.so missing, no gamescope).
+      # NOTE: `steam.override.extraPkgs` is valid per nixpkgs steam module
+      # (maps to extraPackages); only `extraLibraries` is invalid.
       extraPackages = with pkgs; [
         gamescope
         gamescope-wsi
+        pkgsi686Linux.gamescope-wsi  # 32-bit for Proton Wine
         gamemode
         mangohud
-        # X11 libs commonly required when gamescope is launched from Steam (wiki)
-        libkrb5
-        keyutils
+        libXcursor libXi libXinerama libXScrnSaver libpng libpulseaudio libvorbis
+        stdenv.cc.cc.lib libkrb5 keyutils
       ];
       extraCompatPackages = [
         pkgs.proton-ge-bin
@@ -138,12 +140,7 @@ in mkIf cfg.enable {
           libkrb5 keyutils libcap SDL2
           # gamemode client lib for gamemoderun inside the FHS (nixpkgs#389142)
           gamemode
-        ];
-        extraPkgs = pkgs: with pkgs; [
-          gamescope
-          gamescope-wsi
-          gamemode
-          mangohud
+          gamescope gamescope-wsi
         ];
         extraProfile = ''
           unset TZ
