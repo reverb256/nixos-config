@@ -14,7 +14,6 @@
   preservation.preserveAt."/persistent" = {
     # System state — survives generation rollback
     directories = [
-      "/etc/ssh"
       "/var/log"
       "/var/lib/nixos"
       "/var/lib/systemd/coredump"
@@ -32,6 +31,31 @@
       "/etc/sops/age"
     ];
     files = [
+      # SSH host keys: persist individually as symlinks. Do NOT add "/etc/ssh"
+      # to `directories` — bind-mounting /persistent/etc/ssh over /etc/ssh
+      # shadows the store-generated sshd_config/ssh_config/ssh_known_hosts and
+      # kills sshd ("/etc/ssh/sshd_config: No such file or directory", exit 1,
+      # start-limit-hit). #2026-08-09 incident. Only the keys need persistence.
+      {
+        file = "/etc/ssh/ssh_host_ed25519_key";
+        how = "symlink";
+        mode = "0600";
+      }
+      {
+        file = "/etc/ssh/ssh_host_ed25519_key.pub";
+        how = "symlink";
+        mode = "0644";
+      }
+      {
+        file = "/etc/ssh/ssh_host_rsa_key";
+        how = "symlink";
+        mode = "0600";
+      }
+      {
+        file = "/etc/ssh/ssh_host_rsa_key.pub";
+        how = "symlink";
+        mode = "0644";
+      }
       {
         file = "/etc/machine-id";
         inInitrd = true;
