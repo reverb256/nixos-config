@@ -25,7 +25,7 @@
   libvirtVm = "gamepass-win11";
   storagePool = "gamepass";
   storageRoot = "/var/lib/incus-gamepass";
-  incusNetwork = "incusbr-gamepass";
+  incusNetwork = "incusbr-gp";
   vfioGpu = "0000:24:00.0";
   vfioAudio = "0000:24:00.1";
   lookingGlass = pkgs.looking-glass-client;
