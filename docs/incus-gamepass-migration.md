@@ -20,8 +20,7 @@ started. The handoff script verifies the NVIDIA vendor/device IDs before it
 unbinds anything; it refuses unexpected PCI identities. The current topology
 addresses are therefore fail-closed rather than silently retargeted if PCI
 enumeration changes. Re-check the address and IDs after hardware or firmware
-changes before attempting a start. The backends must never run at the same
-time, and their writable disks are intentionally separate.
+changes before attempting a start. The backends must never run at the same time, and their writable disks are intentionally separate.
 
 The libvirt qcow2 is an empty 200 GiB disk and `win11.iso` is the installer.
 No Windows installation is migrated automatically. The VirtIO ISO comes from
