@@ -259,6 +259,14 @@
           # Dendritic cutover: zephyr + forge removed here (now under modules/hosts/<n>);
           # nexus, sentry still classic until their cutovers.
           classicHosts = builtins.removeAttrs hosts [ "zephyr" "forge" ];
+
+          # Portable USB stick — standalone rescue/pinch config (wayfinder #421/#425).
+          # Shared by nixosConfigurations.portable and packages.portable-image.
+          portableConfig = nixpkgs.lib.nixosSystem {
+            system = "x86_64-linux";
+            specialArgs = { inherit inputs; };
+            modules = [ ./modules/profiles/portable-usb.nix ];
+          };
         in
         {
           # OUTPUT 1: nixosConfigurations (classic shim — nexus/sentry only;
@@ -269,7 +277,15 @@
               mkNixosSystem {
                 inherit (value) hostName extraModules;
               }
-          ) classicHosts;
+          ) classicHosts
+          # OUTPUT 1b: portable USB stick — standalone rescue/pinch config.
+          # Deliberately OUTSIDE the cluster hive (no commonModules: no
+          # sops-nix / peakminer / mcp-registry / caddy). Built only as a
+          # systemd-repart disk image (see modules/profiles/portable-usb.nix).
+          # Wayfinder map #421; contract #425.
+          // {
+            portable = portableConfig;
+          };
 
           # OUTPUT 2: colmena (raw hive configuration)
           # The typed inventory is the whole-cluster source of truth.
@@ -364,6 +380,14 @@
           packages.ai-inference-gateway-image =
             pkgs.callPackage ./pkgs/ai-inference-gateway-image
               { };
+          # Portable USB stick disk image (systemd-repart, persistent).
+          # Build: nix build .#portable-image
+          # Flash: sudo dd if=result/portable-image of=/dev/disk/by-id/usb-... bs=4M status=progress oflag=sync
+          packages.portable-image = (nixpkgs.lib.nixosSystem {
+              system = "x86_64-linux";
+              specialArgs = { inherit inputs; };
+              modules = [ ./modules/profiles/portable-usb.nix ];
+            }).config.system.build.image;
           # Requires impure paths - build manually: nix build .#kb-mcp-image --impure
           # packages.kb-mcp-image = pkgs.callPackage ./pkgs/kb-mcp-image { };
 
