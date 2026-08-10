@@ -30,6 +30,13 @@
   vfioAudio = "0000:24:00.1";
   lookingGlass = pkgs.looking-glass-client;
 
+  # DIAGNOSTIC (temporary): wrap qemu to log argv, then exec real qemu.
+  qemuWrap = pkgs.writeShellScriptBin "qemu-system-x86_64" ''
+    exec >>/tmp/qemu-argv.log 2>&1
+    echo "$(date +%s) ARGV: $@"
+    exec ${pkgs.qemu_kvm}/bin/qemu-system-x86_64 "$@"
+  '';
+
   # nixpkgs' virtio-win is only the extracted driver tree (no ISO). Windows'
   # installer needs the VirtIO ISO to see its disk. The official release ISO
   # is a plain data CD of that same tree, so build it offline from the
@@ -410,6 +417,8 @@ in {
     systemd.services.incus.serviceConfig = {
       SupplementaryGroups = [ "kvm" ];
       DeviceAllow = [ "/dev/kvmfr0 rw" ];
+      # DIAGNOSTIC: prepend qemu wrapper to capture incus' qemu argv
+      Environment = [ "PATH=${qemuWrap}/bin:/run/current-system/sw/bin" ];
     };
 
     systemd.tmpfiles.rules = [
