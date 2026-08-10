@@ -436,6 +436,85 @@ hm-build host="zephyr":
     echo ">> home-manager build --flake github:reverb256/home-manager-config#{{host}}"
     home-manager build --flake github:reverb256/home-manager-config#{{host}} 2>&1 | tail -20
 
+# Audit HM state across all hosts: compare each host's LIVE home-manager
+# generation against a fresh build of the CURRENT upstream commit
+# (github:reverb256/home-manager-config). Store-path equality ⇒ the host runs
+# exactly the committed config; anything else ⇒ STALE (drifted, or built from
+# uncommitted local state — the failure mode that put zephyr's config on
+# sentry). Exits 1 if any host is STALE.
+hm-audit:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    FLAKE="github:reverb256/home-manager-config"
+    # nexus-only builder, same constraint as hm-switch (issue #389).
+    export NIX_CONFIG='builders = ssh-ng://j_kro@nexus x86_64-linux,i686-linux ~/.ssh/id_ed25519 12 10 big-parallel,kvm'
+
+    echo "== upstream $FLAKE =="
+    nix flake metadata "$FLAKE" --json 2>/dev/null \
+      | jq -r '"rev: \(.locked.rev)  (\(.locked.lastModified | strftime("%Y-%m-%d %H:%M UTC")))"' \
+      || echo "(flake metadata unavailable)"
+
+    RC=0
+    for host in {{HOSTS}}; do
+        echo
+        echo "== $host =="
+        if [ "$host" = "$(hostname -s)" ]; then
+            # readlink -f resolves the generation symlink to its store path.
+            LIVE=$(readlink -f "$HOME/.local/state/nix/profiles/home-manager" 2>/dev/null || echo NONE)
+            GEN=$(home-manager generations 2>/dev/null | head -1 || true)
+        else
+            LIVE=$(ssh -o ConnectTimeout=8 "$host" 'readlink -f "$HOME/.local/state/nix/profiles/home-manager"' 2>/dev/null || echo NONE)
+            GEN=$(ssh -o ConnectTimeout=8 "$host" 'home-manager generations 2>/dev/null | head -1' 2>/dev/null || true)
+        fi
+        CANON=$(nix build --no-link --print-out-paths \
+          "$FLAKE#homeConfigurations.$host.activationPackage" 2>/dev/null || echo BUILD-FAILED)
+
+        echo "  live:  $LIVE"
+        [ -n "$GEN" ] && echo "  gen:   $GEN"
+        echo "  canon: $CANON"
+        if [ "$LIVE" = "$CANON" ]; then
+            echo "  status: CURRENT"
+        else
+            echo "  status: STALE — fix with: just hm-deploy $host"
+            RC=1
+        fi
+    done
+    exit $RC
+
+# Redeploy one host's HM config from the current upstream commit (the fix for
+# `just hm-audit` STALE results). Builds the canonical activationPackage on
+# zephyr (nexus builder), copies the closure to the host, registers it as the
+# newest generation, and activates. Managed-file conflicts are backed up to
+# <file>.pre-hm-backup and activation retried (same semantics as hm-switch -b backup).
+hm-deploy host="zephyr":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    FLAKE="github:reverb256/home-manager-config"
+    export NIX_CONFIG='builders = ssh-ng://j_kro@nexus x86_64-linux,i686-linux ~/.ssh/id_ed25519 12 10 big-parallel,kvm'
+    HOST="{{host}}"
+
+    echo ">> building $FLAKE#homeConfigurations.$HOST.activationPackage"
+    GEN=$(nix build --no-link --print-out-paths "$FLAKE#homeConfigurations.$HOST.activationPackage")
+    echo ">> closure: $GEN"
+
+    if [ "$HOST" = "$(hostname -s)" ]; then
+        nix-env -p "$HOME/.local/state/nix/profiles/home-manager" --set "$GEN"
+        exec "$GEN/activate"
+    fi
+
+    echo ">> copying closure to $HOST"
+    nix-copy-closure --to "$HOST" "$GEN"
+
+    # Remote default shell is fish, so run the helper under bash via stdin
+    # (no heredoc in the recipe body — just's parser rejects `set -e`-style
+    # lines inside heredocs). The helper sets the profile + activates with
+    # -b-backup-style conflict handling.
+    echo ">> activating on $HOST"
+    ssh -o ConnectTimeout=15 "$HOST" "GEN=$GEN bash -s" \
+        < {{FLAKE}}/scripts/hm-remote-deploy.sh
+
 test-apply:
     #!/usr/bin/env bash
     set -euo pipefail
