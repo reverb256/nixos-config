@@ -16,6 +16,11 @@
   NEOCITIES_API_KEY = { path = "/run/secrets/neocities-api-key"; file = "ai/neocities-api-key.yaml"; owner = "j_kro"; group = "users"; };
   NVIDIA_API_KEY = { path = "/run/secrets/nvidia-api-key"; file = "ai/nvidia-api-key.yaml"; owner = "j_kro"; group = "users"; };
   OPENCODE_ZEN_API_KEY = { path = "/run/secrets/opencode-api-key"; file = "ai/opencode-api-key.yaml"; owner = "j_kro"; group = "users"; };
+  # GitHub Actions self-hosted runner registration token. Consumed by
+  # github-actions-runner-setup (hosts/nexus/services.nix tokenFile). Was
+  # missing from the nexus creds list, so the setup unit failed with
+  # "cat: /run/secrets/github-runner-pat: No such file or directory".
+  GITHUB_RUNNER_PAT = { path = "/run/secrets/github-runner-pat"; file = "ci/github-runner-pat.yaml"; owner = "root"; };
   OPENCODE_GO_API_KEY = { path = "/run/secrets/opencode-go-api-key"; file = "ai/opencode-go-api-key.yaml"; owner = "j_kro"; group = "users"; };
   POLLINATIONS_API_KEY = { path = "/run/secrets/pollinations-api-key"; file = "ai/pollinations-api-key.yaml"; owner = "j_kro"; group = "users"; };
   XAI_ACCESS_TOKEN = { path = "/run/secrets/xai-access-token"; file = "ai/xai-access-token.yaml"; owner = "root"; };

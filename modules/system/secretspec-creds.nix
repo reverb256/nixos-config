@@ -58,6 +58,10 @@ let
 " ;;
           esac ;;
       esac
+      # Strip a trailing CR/LF some sops JSON envelopes carry. A bare newline
+      # in the value (e.g. the cachix token) breaks line-sensitive consumers
+      # (cachix: "Header Authorization has newlines").
+      _v=$(printf '%s' "$_v" | tr -d '\r\n')
       install -D -m "$4" -o "$5" -g "$6" \
         <(printf '%s' "$_v") "$2" 2>>"$LOG" || {
         log "FAILED: install $2"; fail=1; return
