@@ -36,6 +36,7 @@ jobs:
         with:
           name: reverb-os
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          cachixBin: /run/current-system/sw/bin/cachix
 
       - name: Run all Nix tests with coverage
         run: |
