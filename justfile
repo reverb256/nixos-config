@@ -794,8 +794,10 @@ docs-audit:
 
 docs-freshen:
     #!/usr/bin/env bash
-    set -e
-    echo "Check LIVE/ docs for accuracy, run 'docs-audit' after"
+    set -euo pipefail
+    echo "Active docs are verified from source; historical docs are never freshened by timestamp."
+    echo "Review docs/current-state.md, docs/runbooks/, and docs/ci-cd/README.md against source."
+    exec just docs-audit
 
 # ── STATUS REGEN ─────────────────────────────────────────────────────────────
 # Regenerate STATUS.md manually. The hourly status-update.timer (declared

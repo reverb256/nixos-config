@@ -240,7 +240,7 @@ just status            # Show cluster status
 kubectl get nodes                        # Node status
 kubectl get pods --all-namespaces        # All pods
 kubectl get pv,pvc -A                    # Persistent volumes
-just cluster-status                      # Host + K8s status combined
+just health                              # Live host connectivity + Kubernetes nodes
 ```
 
 ---
@@ -264,7 +264,7 @@ just cluster-status                      # Host + K8s status combined
 ├── kubernetes-manifests/  # K8s manifests for migrated services
 ├── docs/                  # Comprehensive documentation
 ├── AGENTS.md              # Universal patterns for ALL agents
-├── STATUS.md              # Real-time cluster health
+├── STATUS.md              # Generated cluster snapshot (verify timestamp)
 └── .claude/               # Claude-specific files (agents, skills, settings)
 ```
 
@@ -696,7 +696,7 @@ kubectl apply -f kubernetes-manifests/ai-inference/
 - Multi-host deployment patterns
 - Kubernetes workflows
 
-**@STATUS.md** — Real-time cluster health
+**@STATUS.md** — Generated cluster snapshot; use `just health` for live health
 - Kubernetes control plane status (v1.35.0, 4 nodes)
 - Service inventory and migration progress
 - Known issues and recent changes
@@ -818,7 +818,7 @@ All CI workflows (`.github/workflows/`) pin actions to immutable commit SHAs ins
 ## RELATED RESOURCES
 
 ### Quick Status
-- **Cluster Health**: `just status` or `just cluster-status`
+- **Cluster Health**: `just health` (live); `just status` (repository state)
 - **NFS Health**: `just check-nfs`
 - **Git Status**: `just status` (shows untracked files on all nodes)
 

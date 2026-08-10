@@ -1,5 +1,9 @@
 # Cluster Rescue Quick Reference
 
+> **Status:** Active reference
+> **Last Verified:** 2026-08-09
+> **Owner:** Cluster operations
+
 Use the full [NixOS USB-Rescue Runbook](./nixos-usb-rescue.md) for the procedure and safety rules. The older `scripts/rescue/RESCUE-GUIDE.md` and `RESCUE-AGENT.md` files are compatibility pointers, not separate procedures.
 
 ## Read-only first

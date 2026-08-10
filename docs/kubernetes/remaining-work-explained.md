@@ -1,6 +1,13 @@
 # Remaining Kubernetes Improvement Items - Detailed Explanation
 
-**Generated**: 2026-03-21
+> **Status:** Historical backlog snapshot; reconcile before planning work
+> **Classification Reviewed:** 2026-08-09
+> **Source:** Historical cluster observations; use `ACTION-ITEMS.md`, checked-in modules, and live API state for current work
+>
+> The examples, pod names, counts, image tags, and health claims below are historical
+> context. They are not a current inventory or deployment plan.
+
+**Historical Generated Date**: 2026-03-21
 **Cluster Health**: 8.5/10 (stable, minor improvements possible)
 
 ---

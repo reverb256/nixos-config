@@ -1,7 +1,15 @@
 # Network Policy Audit Checklist
+
+> **Status:** Historical checklist; verify commands and policy ownership before use
+> **Classification Reviewed:** 2026-08-09
+> **Source:** `kubernetes/modules/`, `kubernetes-manifests/security/network/`, and the live Kubernetes API
+>
+> This checklist contains illustrative audit commands and historical assumptions. It
+> is not evidence that the listed policies, namespaces, or services currently exist.
+
 **Frequency**: Monthly
-**Last Audit**: 2026-03-21
-**Next Audit**: 2026-04-21
+**Historical Last Audit**: 2026-03-21
+**Historical Next Audit**: 2026-04-21
 **Auditor**: Cluster Operations Team
 
 ---
@@ -16,18 +24,18 @@ This checklist provides a systematic approach to auditing Kubernetes network pol
 
 ### 1.1 Default-Deny Verification
 
-**Objective**: Ensure all namespaces have default-deny ingress policy
+**Objective**: Ensure each applicable namespace has the repository's default-deny policy, with no ingress or egress rules on the deny object
 
 **Procedure**:
 ```bash
 # Check each namespace for default-deny policy
 for ns in $(kubectl get namespaces -o jsonpath='{.items[*].metadata.name}'); do
   echo "=== Namespace: $ns ==="
-  kubectl get networkpolicy -n $ns -o json | jq -r '.items[] | select(.spec.policyTypes[] == "Ingress") | select(.spec.podSelector == {}) | .metadata.name'
-  if [ $? -ne 0 ]; then
-    echo "❌ MISSING: No default-deny policy found"
+  deny_count=$(kubectl get networkpolicy -n "$ns" -o json | jq '[.items[] | select(.metadata.name == "default-deny-all") | select(.spec.podSelector == {}) | select((.spec.ingress // []) == [] and (.spec.egress // []) == [])] | length')
+  if [ "$deny_count" -eq 0 ]; then
+    echo "❌ MISSING: No empty-rule default-deny-all policy found"
   else
-    echo "✅ PASS: Default-deny policy exists"
+    echo "✅ PASS: default-deny-all policy enforces namespace isolation"
   fi
 done
 ```
@@ -382,7 +390,7 @@ kubectl get networkpolicy --all-namespaces -o json | \
 echo ""
 echo "### 4. Policy Counts per Namespace ###"
 for ns in $(kubectl get namespaces -o jsonpath='{.items[*].metadata.name}'); do
-  count=$(kubectl get networkpolicy -n $s --no-headers 2>/dev/null | wc -l)
+  count=$(kubectl get networkpolicy -n "$ns" --no-headers 2>/dev/null | wc -l)
   echo "$ns: $count policies"
 done | sort -t: -k2 -rn
 

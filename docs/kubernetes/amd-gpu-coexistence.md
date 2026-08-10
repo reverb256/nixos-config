@@ -1,5 +1,12 @@
 # AMD GPU Coexistence: Mining + Kubernetes AI Workloads
 
+> **Status:** Reference procedure
+> **Last Verified:** 2026-08-09 (checked-in configuration only)
+> **Source:** `hosts/*/peakminer.nix`, `modules/services/peakminer.nix`, and Kubernetes GPU modules
+>
+> Runtime GPU availability, device-plugin health, and mining state must be checked on the
+> target host and in the live Kubernetes API before following this procedure.
+
 ## Overview
 
 This cluster supports **coexisting GPU workloads** on AMD GPUs:
@@ -22,23 +29,25 @@ Both can coexist, but you need to manage GPU allocation carefully.
 └─────────────────────────────────────────────────────────┘
 ```
 
-## Current Status
+## Reference Configuration and Historical Verification
 
-✅ **ROCm K8s Device Plugin**: Installed and running on all nodes
+The ROCm device-plugin configuration is maintained in the repository. Do not treat
+this document as proof that the plugin is currently running on every node; verify the
+DaemonSet and allocatable `amd.com/gpu` resources with `kubectl` first.
+
 - Namespace: `kube-system`
 - DaemonSet: `amdgpu-device-plugin-daemonset`
 - Exposes GPU resource: `amd.com/gpu`
 - **Fixed**: Removed hardcoded `nodeName: forge` to run on all AMD GPU nodes
-- **Status**: Running on 4 nodes (Forge, Sentry, Nexus, Zephyr)
+- Mining is configured through host systemd services. Current hashrate and process
+state are runtime facts and must be queried on the target host.
 
-✅ **Mining**: Active via systemd
-- Hashrate: ~4.42 g/s total
-- User: root
+Kubernetes GPU scheduling is configured through device-plugin resources. The
+following bullets are historical verification notes, not current runtime claims:
 
-✅ **Kubernetes GPU Scheduling**: Tested and working
-- Test pod successfully accessed both GPUs
-- HIP/ROCm libraries available
-- Ready for PyTorch, TensorFlow, and other ROCm workloads
+- A test pod accessed both GPUs during the original verification.
+- HIP/ROCm libraries were available during that test.
+- Re-test before deploying PyTorch, TensorFlow, or other ROCm workloads.
 
 ## GPU Allocation Model
 
@@ -301,9 +310,9 @@ kubectl run rocm-test --image=rocm/dev-ubuntu-22.04:6.2 --rm -it --restart=Never
    kubectl delete pod <conflicting-pod>
    ```
 
-3. Restart mining service:
-   ```bash
-   ```
+3. Restart mining through the declared host control path after confirming the
+   target unit and GPU identity in `hosts/<host>/peakminer.nix`.
+
 
 ### Pod Pending - Insufficient GPUs
 
@@ -320,9 +329,9 @@ kubectl run rocm-test --image=rocm/dev-ubuntu-22.04:6.2 --rm -it --restart=Never
    kubectl describe node forge | grep "amd.com/gpu"
    ```
 
-3. Stop mining on target GPU:
-   ```bash
-   ```
+3. Stop mining through the declared host control path after confirming the
+   target unit and GPU identity in `hosts/<host>/peakminer.nix`.
+
 
 ## Future Improvements
 
@@ -368,6 +377,5 @@ Set up Grafana dashboard showing:
 
 ---
 
-**Last Updated**: 2026-03-21
-**Status**: Tested and working
-**Tested By**: Claude Code (ROCm GPU Test Pod)
+**Historical test note:** The original test result was recorded on 2026-03-21.
+It is retained as evidence, not as proof of current cluster state.

@@ -1,6 +1,8 @@
 # CI/CD Pipeline
 
-**Status**: ✅ Active | **Updated**: 2026-07-30
+> **Status:** Active reference
+> **Last Verified:** 2026-08-09
+> **Owner:** Cluster operations
 
 ---
 
@@ -77,7 +79,8 @@ configured remote-build path because Zephyr has zero local build jobs.
 
 ### 1. Make Changes
 
-Edit configuration files on zephyr (source of truth).
+Edit configuration in a dedicated worktree. Zephyr is the authoring/source-of-truth host;
+`/etc/nixos` on the deployed hosts is not an independent configuration source.
 
 ### 2. Validate
 

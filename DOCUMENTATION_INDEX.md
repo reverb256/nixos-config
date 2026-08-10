@@ -1,9 +1,15 @@
 # NixOS Cluster Documentation Index
 
-**Last Updated:** 2026-07-30 | **Cluster Version:** K3s OPERATIONAL, Sovereign Service Mesh Phase 1 Complete | **Agent Files:** Template-based v1.0 | **Most Recent Audit:** [`docs/audit-2026-07-27.md`](docs/audit-2026-07-27.md)
+**Status:** Canonical catalog
+**Owner:** j_kro
+**Last Verified:** 2026-08-09
+**Scope:** Repository documentation navigation; not a live cluster-health report
+**Current-state reference:** [`docs/current-state.md`](docs/current-state.md)
+**Most recent broad audit indexed:** [`docs/audit-2026-07-27.md`](docs/audit-2026-07-27.md)
 
-Complete index of the NixOS cluster documentation. Migration plans remain
-historical/planning context; the deployed Kubernetes implementation is K3s.
+Complete index of the NixOS cluster documentation. Migration plans and dated audits are
+historical/planning context unless explicitly re-verified. Use `docs/current-state.md`
+for the authority boundaries and `just health`/`just provenance` for live claims.
 
 ---
 
@@ -12,13 +18,14 @@ historical/planning context; the deployed Kubernetes implementation is K3s.
 **For AI Agents:**
 1. Read `/etc/nixos/AGENTS.md` for universal cluster patterns
 2. Read agent-specific file: `CLAUDE.md`, `.github/copilot-instructions.md`, `.cursorrules`, or `QWEN.md`
-3. Check `/etc/nixos/ROADMAP.md` for current migration status
-4. **Before making non-trivial claims about cluster state, ALSO read [`docs/audit-2026-07-27.md`](docs/audit-2026-07-27.md)** — 24 cross-area findings as of 2026-07-27.
+3. Read [`docs/current-state.md`](docs/current-state.md) for checked-in architecture and authority boundaries
+4. Treat `ROADMAP.md` and dated audits as planning/history; verify their claims against source and live state before acting.
 
 **For Humans:**
-1. **First:** `STATUS.md` for real-time cluster state
-2. Read this index for full documentation catalog
-3. Use `just` commands for all operations
+1. Read [`docs/current-state.md`](docs/current-state.md) for authority boundaries
+2. Run `just health`, `just status`, or `just provenance` for live state
+3. Read this index for the documentation catalog
+4. Use `just` commands for operations; do not follow historical commands blindly
 
 ---
 
@@ -26,28 +33,35 @@ historical/planning context; the deployed Kubernetes implementation is K3s.
 
 | Document | Purpose | Location |
 |----------|---------|----------|
-| **DECISION_LOG.md** | Architectural decisions & rationale | `docs/DECISION_LOG.md` if present |
-| **STATUS.md** | Real-time cluster health & migration progress | `STATUS.md` |
+| **Decision record index** | Architectural decisions, rationale, and source links | [`docs/DECISION_LOG.md`](docs/DECISION_LOG.md) |
+| **Decision table** | Current open/completed decisions and rationale | [`ACTION-ITEMS.md`](ACTION-ITEMS.md#decision-log) |
+| **Current state** | Checked-in architecture and documentation authority boundaries | `docs/current-state.md` |
+| **STATUS.md** | Generated status snapshot; verify its timestamp before relying on it | `STATUS.md` |
 | **AGENTS.md** | Universal guidelines for ALL AI agents | `AGENTS.md` |
 | **CLAUDE.md** | Claude Code-specific patterns | `CLAUDE.md` |
-| **ROADMAP.md** | Historical Kubernetes migration plan and K3s hardening notes | `ROADMAP.md` |
+| **CONTRIBUTING.md** | Worktree, PR, and contribution workflow | `CONTRIBUTING.md` |
+| **DOCS-MAINTENANCE.md** | Documentation classification and freshness policy | `DOCS-MAINTENANCE.md` |
+| **ROADMAP.md** | Historical Kubernetes migration roadmap and hardening notes | `ROADMAP.md` |
 | **Copilot Instructions** | GitHub Copilot guidelines | `.github/copilot-instructions.md` |
 | **Cursor Rules** | Cursor IDE guidelines | `.cursorrules` |
 | **QWEN.md** | Qwen-Agent patterns | `QWEN.md` |
 
-### Agenix Secrets Management
-- **Location:** `skills/agenix-secrets/`
-- **Key Docs:** SKILL.md, README.md, HOST_KEY_SETUP_GUIDE.md
-- **Module:** `modules/system/agenix-secrets-registry.nix`
-- **Guide:** `docs/agenix-multi-host-deployment.md`
-- **Quick Add Secret:**
-  ```bash
-  echo "value" | agenix -e secrets/name.age
-  # Add both "name.age" and "secrets/name.age" to secrets.nix
-  sudo nixos-rebuild switch --flake .#zephyr
-  ```
+### Secrets Management
+- **Current boundary:** SecretSpec is the runtime resolution path; sops-nix remains a
+  compatibility path during the migration. See [`docs/current-state.md`](docs/current-state.md)
+  and [`SOPS-NIX.md`](SOPS-NIX.md) before changing secret wiring.
+- **Declarations:** `secretspec.toml` and the host SecretSpec wiring under `hosts/`
+- **Encrypted material:** `secrets/` (do not place plaintext values in documentation)
+- **Legacy references:** historical Agenix plans and dead-module references are retained
+  only as archive/audit evidence; do not use them as current procedures.
 
 ---
+
+## Decision records
+
+Use [`docs/DECISION_LOG.md`](docs/DECISION_LOG.md) as the canonical decision-record index.
+The detailed current decision table remains in [`ACTION-ITEMS.md`](ACTION-ITEMS.md#decision-log);
+dated audits and archived reports remain historical evidence.
 
 ## Operational Documentation
 
@@ -126,6 +140,11 @@ historical/planning context; the deployed Kubernetes implementation is K3s.
 
 ## Kubernetes Migration
 
+> The details in this section are navigation and checked-in reference pointers, not a live
+> cluster report. Verify versions, routes, node placement, and service status against
+> `kubernetes/`, `kubernetes-manifests/`, `contracts/host-inventory.nix`, and live
+> Kubernetes queries before acting.
+
 ### Primary Docs
 - **ROADMAP.md** - Historical migration plan and current K3s hardening notes
 - **AGENTS.md** - K8s commands, workflows, NixOS configuration, troubleshooting
@@ -137,31 +156,30 @@ historical/planning context; the deployed Kubernetes implementation is K3s.
 ### Storage
 **Location:** `docs/kubernetes/storage/`
 
-- **storage-architecture.md** - Storage classes (beta2, beta3, ram, garage-s3), capacity, Garage S3
-- **README.md** - Integration guide, quick start, tier selection
-- **storage-classes.yaml** - K8s StorageClass definitions
-- **persistent-volumes.yaml** - Pre-provisioned PVs (8 PVs, node affinity)
-- **persistent-volume-claims.yaml** - Example PVCs (PostgreSQL, media, logs, ML, S3)
-- **garage-s3-secret.yaml** - S3 credentials template (⚠️ needs agenix)
-- **garage-csi-plan.md** - S3 CSI driver integration (Phase 2 complete)
-- **backup-to-garage.nix** - Automated backup module
-- **backup-to-garage.sh** - Backup script with rotation
+- **storage-architecture.md** - Storage classes and architecture reference; verify against
+  the current Nix/Easykubenix modules before making capacity or provisioner claims.
+- **README.md** - Local storage documentation navigation
+- **storage-classes.yaml**, **persistent-volumes.yaml**, **persistent-volume-claims.yaml** -
+  Reference definitions; determine whether each is generated, bootstrap-only, or active
+  before applying it.
+- **garage-csi-plan.md** - Historical/planning reference unless re-verified
+- **backup-to-garage.nix**, **backup-to-garage.sh** - Backup implementation references;
+  inspect source and deployment ownership before running
 
 ### Ingress
-- **caddy-ingress-architecture.md** - Caddy Ingress Architecture (VIP, TLS, DNS, services)
-  - **Edge Proxy:** Zephyr Caddy (systemd, VIP 10.1.1.100)
-  - **Backend:** K8s Caddy DaemonSet (nexus/forge/sentry, NodePort 30080/30443)
-  - **Services:** openwebui, llama, mining (*.cluster.local + *.lan)
-  - **Features:** TLS internal, round-robin LB, keepalived VIP failover
-- **caddy-ingress.md** - Caddy Ingress Controller (DaemonSet, Prometheus metrics)
-  - **Manifests:** `kubernetes-manifests/ingress/`
+- **caddy-ingress-architecture.md** - Ingress architecture reference; verify VIP, TLS,
+  DNS, NodePorts, and backends against current Nix/Caddy/Kubernetes sources.
+- **caddy-ingress.md** - Caddy ingress controller reference
+  - **Manifest area:** `kubernetes-manifests/ingress/`
 
 ### Quick Reference
-- **Status:** K3s migration complete; consult `STATUS.md` and the current audit for live state
-- **Kubernetes:** K3s v1.36.1+k3s1, pinned in `modules/services/k3s-cluster.nix`
-- **Topology:** 4 nodes — Zephyr, Nexus, Forge, and Sentry
-- **CNI:** Flannel VXLAN (K3s default)
-- **Decisions:** K3s via the NixOS module; see `ROADMAP.md` and `docs/HARDWARE.md` for migration and inventory context
+- **Status:** K3s configuration is checked in; consult `docs/current-state.md` and run live health commands before making runtime claims
+- **Kubernetes:** K3s configuration and version declarations live in the checked-in Nix modules;
+  verify the exact deployed version before making runtime claims.
+- **Topology:** 4 configured hosts — Zephyr, Nexus, Forge, and Sentry
+- **CNI:** Check the current K3s/Nix configuration and live node state before relying on this detail.
+- **Decisions:** K3s via the checked-in NixOS configuration; use `docs/current-state.md` for
+  authority boundaries and `ROADMAP.md` only as migration/history context.
 
 ---
 
@@ -212,6 +230,10 @@ just rollback          # Rollback to previous generation
 
 ## Cluster Inventory
 
+> These are checked-in planning/inventory values, not live hardware evidence. The typed
+> source is [`contracts/host-inventory.nix`](contracts/host-inventory.nix); verify current
+> hardware and deployed roles before operational decisions.
+
 ### Hosts
 
 | Host | CPU | RAM | GPUs | Storage | Roles |
@@ -239,7 +261,8 @@ just rollback          # Rollback to previous generation
 
 ### Container Image Security
 - **Image policy:** `modules/services/podman.nix` — Rejects unknown registries, allows docker.io/library, ghcr.io, quay.io, localhost
-- **Image pinning:** All NixOS modules use version-pinned images (no `:latest`):
+- **Image pinning:** The repository has admission and policy controls against mutable image tags;
+  verify each workload source before asserting that every image is pinned:
   - `vaultwarden/server:1.35.4`, `glitchtip/glitchtip:6`, `postgres:16-alpine`, `redis:7-alpine`
 - **Container scanning:** `modules/services/container-scanning.nix` — Trivy weekly scan (HIGH/CRITICAL CVEs)
 - **Auto-update age check:** `modules/services/podman-auto-update.nix` — Warns on images < 7 days old
@@ -270,15 +293,16 @@ just rollback          # Rollback to previous generation
 
 **Location:** `docs/archive/`
 
-**Structure:** `ARCHIVE_INDEX.md`, `completed-plans/`, `gateway/`, `obsolete/`, `switches/`, `research/`
+**Structure:** `ARCHIVE_INDEX.md`, `obsolete/`, and `legacy/`.
 
 **Archived Content:**
-- Completed implementation plans (NUR, Spotify, Gateway, CI/CD, etc.)
-- Gateway historical reports
-- Obsolete docs (switch IPs, storage 3-way claims, HAProxy references)
-- Research documents
+- Completed implementation plans and historical reports
+- Superseded or incorrect operational references
+- Preserved former uppercase archive tree under `docs/archive/legacy/ARCHIVE/`
+- Preserved former LIVE snapshots under `docs/archive/legacy/live-snapshots/`
 
-**See:** `docs/archive/ARCHIVE_INDEX.md` for complete catalog
+**See:** `docs/archive/ARCHIVE_INDEX.md` for the canonical catalog.
+Do not treat archive contents as current procedures.
 
 ---
 
@@ -291,10 +315,10 @@ just rollback          # Rollback to previous generation
 4. Follow systematic debugging (AGENTS.md)
 
 ### For Humans
-1. **Start:** STATUS.md for real-time state
-2. **Then:** DOCUMENTATION_INDEX.md for catalog
-3. **Check:** ROADMAP.md for migration plan
-4. **Quick:** `just status` for health check
+1. **Start:** `docs/current-state.md` for authority boundaries
+2. **Then:** `DOCUMENTATION_INDEX.md` for catalog
+3. **Check:** `just status`, `just health`, and `just provenance` for runtime state
+4. **Use:** `ROADMAP.md` for migration history and remaining hardening context
 5. **Logs:** `journalctl -xe` for errors
 
 ### Common Tasks
@@ -362,5 +386,6 @@ kubectl logs <pod> -n <namespace>
 ---
 
 **Document Owner:** j_kro
-**Version:** 4.1 | **Updated:** 2026-07-30
-**Changes (2026-07-30):** Refreshed the command references and build-farm documentation; added the current audit cross-reference and corrected the K3s status summary.
+**Status:** Canonical catalog
+**Last Verified:** 2026-08-09
+**Changes (2026-08-09):** Added the checked-in current-state authority boundary and removed obsolete current-state/Secret management guidance from the navigation spine.

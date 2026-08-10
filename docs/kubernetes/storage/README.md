@@ -1,5 +1,13 @@
 # Kubernetes Storage Integration
 
+> **Status:** Reference material
+> **Last Verified:** 2026-08-09 (checked-in paths and source boundaries)
+> **Source:** `kubernetes/`, `kubernetes-manifests/`, host storage modules, and the live Kubernetes API
+>
+> Treat the manifests in this directory as reference or bootstrap material unless the
+> owning module explicitly identifies one as active. Verify storage classes, paths,
+> provisioners, and claims before applying anything.
+
 **Purpose:** Kubernetes manifests and configuration for integrating cluster storage with Kubernetes workloads.
 
 ## Overview
@@ -58,7 +66,7 @@ This directory contains Kubernetes manifests for storage integration with the ex
 | `persistent-volumes.yaml` | Pre-provisioned PVs mapping to cluster storage |
 | `persistent-volume-claims.yaml` | Example PVCs for common use cases |
 | `garage-s3-secret.yaml` | S3 credentials for Garage access |
-| `garage-csi-plan.md` | CSI driver integration plan |
+| Historical CSI plan | No current file is present; do not follow an unverified CSI procedure |
 | `README.md` | This file |
 
 ## Quick Start
@@ -186,7 +194,9 @@ spec:
 ```
 
 ### Option 2: CSI Driver (For POSIX semantics)
-See `garage-csi-plan.md` for CSI driver installation.
+
+No current CSI-driver procedure is maintained in this repository. Do not deploy a
+CSI driver from an unverified historical plan.
 
 ## Maintenance
 
@@ -202,9 +212,13 @@ kubectl patch pvc my-pvc -p '{"spec":{"resources":{"requests":{"storage":"200Gi"
 ```
 
 ### Cleanup
+
+Do not run a cluster-wide delete. Identify the specific claim or volume, confirm its
+owner and backup status, then use a targeted command only after review.
+
 ```bash
-kubectl delete pvc --all
-kubectl delete pv --all
+kubectl delete pvc <pvc-name> -n <namespace>
+kubectl delete pv <pv-name>
 ```
 
 ## Troubleshooting
@@ -242,16 +256,19 @@ aws --endpoint-url http://10.1.1.110:3900 s3 ls
 
 ## Related Documentation
 
-- [Storage Architecture](../../../storage-architecture.md) - Overall cluster storage design
-- [Garage CSI Plan](./garage-csi-plan.md) - S3 CSI driver integration
+- [Current-state authority](../../current-state.md) - Checked-in architecture and source boundaries
+- Historical CSI planning material is not present as a current repository file.
 - [ROADMAP.md](../../../ROADMAP.md) - Kubernetes migration phases
 
-## Status
+## Historical Status Snapshot
 
-| Component | Status | Notes |
+The following table is retained from the original document and is not current runtime
+truth. Verify each component against the checked-in modules and live API before acting.
+
+| Component | Historical Status | Notes |
 |-----------|--------|-------|
 | StorageClasses | ✅ Ready | Applied to cluster |
 | PersistentVolumes | ⏳ Pending | Need directory creation |
 | PVCs | ✅ Ready | Examples defined |
-| S3 Secrets | ⚠️ Partial | Credentials need agenix |
+| S3 Secrets | Historical/verify | Confirm the current SecretSpec or secret source before use |
 | CSI Driver | ❌ Not Started | Phase 2 item |

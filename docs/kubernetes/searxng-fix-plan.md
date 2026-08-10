@@ -1,5 +1,12 @@
 # SearXNG Fix Plan
 
+> **Status:** Historical troubleshooting plan; verify before implementation
+> **Classification Reviewed:** 2026-08-09
+> **Source:** Historical SearXNG/MCP observations; verify current services and configuration in `kubernetes/` and `kubernetes-manifests/`
+>
+> This plan records options considered at the time. It does not authorize proxy,
+> Tor, hosted-service, or configuration changes without a current review.
+
 ## Problem
 All search engines blocking SearXNG with 403/CAPTCHA due to:
 1. Single IP (Kubernetes cluster IP)

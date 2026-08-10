@@ -1,8 +1,14 @@
 # Kubernetes RBAC Audit Logging Configuration
 
+> **Status:** Reference design and historical implementation plan
+> **Classification Reviewed:** 2026-08-09
+> **Source:** `modules/services/k3s-cluster.nix`, `kubernetes/`, and the live K3s configuration
+>
+> This document contains illustrative upstream-style examples. Verify the current K3s
+> options and repository source before editing host state or applying any manifest.
+
 **Purpose**: Track all RBAC changes for security monitoring and compliance
-**Severity**: HIGH - From security audit 2026-03-21
-**Created**: 2026-03-22
+**Historical source date**: 2026-03-21/2026-03-22
 
 ---
 
@@ -380,6 +386,6 @@ kubectl apply -f kubernetes-manifests/monitoring/fluent-bit-rbac-audit.yaml
 
 ---
 
-**Owner**: Security Team
-**Review Date**: 2026-04-22
+**Historical owner**: Security Team
+**Historical review date**: 2026-04-22
 **Related**: Security Audit 2026-03-21 (Task #26)
