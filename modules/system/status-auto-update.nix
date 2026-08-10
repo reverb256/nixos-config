@@ -12,7 +12,7 @@ in {
 
     interval = mkOption {
       type = types.str;
-      default = "hourly";
+      default = "1h";
       description = "How often to update STATUS.md (systemd timer format)";
     };
 
@@ -51,6 +51,9 @@ in {
       environment.CLUSTER_STATE_NIX = toString cfg.clusterStatePath;
       serviceConfig = {
         Type = "oneshot";
+        # A hung kubectl/API-server must not leave the timer's oneshot active
+        # forever or permit overlapping manual/timer refreshes.
+        TimeoutStartSec = "5min";
         ExecStart = "${cfg.scriptPath}";
         User = "root";
         Group = "root";
@@ -60,7 +63,6 @@ in {
           "/run/current-system/sw/bin/kubectl"
           "/run/current-system/sw/bin/nix"
           "/run/current-system/sw/bin/jq"
-          "!/etc/nixos/STATUS.md.lock"
         ];
       };
     };

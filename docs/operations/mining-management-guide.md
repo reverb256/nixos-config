@@ -1,17 +1,27 @@
 # Mining Management for Provider
 
+> **Status:** Historical proposal / incomplete reference
+> **Last Verified:** 2026-08-09 (classification only; runtime procedures not verified)
+> **Source:** `hosts/*/peakminer.nix`, `modules/services/peakminer.nix`, and the live host services
+>
+> This document is not an executable runbook. Its blank command examples and capacity
+> figures are retained as historical context. Use the declared Nix configuration and
+> guarded host controls when changing mining state.
+
 ## Overview
 
-
+Mining and provider availability compete for GPU capacity. The current product-name
+identity and per-GPU settings live in each host's `peakminer.nix`; do not infer current
+inventory from this historical document.
 
 ## Quick Reference
 
+Use source-backed commands for current state:
+
 ```bash
-# Show current status
-
-# Stop all mining (show full GPU capacity)
-
-# Resume mining
+just status
+just health
+rg -n 'peakminer|gpuName|instances' hosts/*/peakminer.nix modules/services/peakminer.nix
 ```
 
 ## GPU Capacity States
@@ -20,10 +30,9 @@
 |-------|--------------|---------------------|-------------------|----------|
 | **Mining Stopped** | Stopped | 4-5 NVIDIA GPUs | 3 AMD GPUs (Forge) | Active bidding on large GPU leases |
 
-**Note**: You have **8 total GPUs** (5 NVIDIA + 3 AMD):
-- **NVIDIA GPUs**: 5 total (Forge: 2, Nexus: 1, Zephyr: 2)
-- **AMD GPUs**: 3 total (Forge: 2, Sentry: 1)
-- **Provider**: Only counts NVIDIA GPUs (5-6 depending on counting method)
+The GPU counts below are historical figures from the original proposal. Verify
+current inventory from the host configuration and live GPU discovery before using
+them.
 
 ## When to Use Each Mode
 
@@ -84,6 +93,7 @@ To automate this, you could:
 
 ## Summary
 
-- **Stop mining manually** - To show full capacity in provider inventory
-- **Trade-off**: Lost mining revenue vs. attracting larger leases
-- **Recommendation**: Keep mining running unless actively seeking large GPU leases
+- Use the host's declared mining controls rather than blank commands in this file.
+- Treat provider inventory as runtime state; verify it before making scheduling decisions.
+- Preserve the mining/provider trade-off described here as historical context until a
+  source-backed operational runbook is written.

@@ -565,8 +565,8 @@ path is option (a) rotation via the recovery procedure documented in
 
 ## Cross-references
 
-- `/etc/nixos/STATUS.md` — cluster health / real-time state (footer
-  contains a pointer to this doc)
+- `/etc/nixos/STATUS.md` — generated cluster snapshot; verify its source
+  timestamp before relying on it (footer contains a pointer to this doc)
 - `/etc/nixos/AGENTS.md` — operational rules for AI agents working here
   (footer contains a pointer to this doc)
 - `/home/j_kro/Projects/hermes-skills/provision-nixos-server/SKILL.md` —

@@ -45,9 +45,10 @@ jobs:
 
       - name: Run documentation verification suite
         run: |
-          nix develop --command just docs-audit || echo "::warning::docs-audit failed - LIVE/ documents may be stale"
+          nix develop --command just docs-audit
 
-      - name: Report stale documentation
-        if: failure() && github.event_name != 'pull_request'
+      - name: Report documentation failure
+        if: failure()
         run: |
-          echo "Documentation rot detected. Run 'just docs-audit' locally and fix LIVE/ files."
+          echo "Documentation verification failed. Run 'just docs-audit' locally and fix the reported active-doc or link failure."
+          exit 1

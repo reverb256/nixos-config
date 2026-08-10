@@ -1,6 +1,11 @@
 # Documentation Debt Backlog
 
-**Created:** 2026-04-02 | **Owner:** Sisyphus (AI Agent) | **Status:** Active
+> **Status:** Historical backlog / reference
+> **Created:** 2026-04-02
+> **Last Reviewed:** 2026-08-10
+> **Owner:** Documentation maintenance
+>
+> This backlog records an older audit and is not the active documentation authority. Current policy and enforced documents are defined by [`DOCS-MAINTENANCE.md`](../DOCS-MAINTENANCE.md) and [`docs/meta/VERIFICATION-SUITE/ACTIVE-DOCUMENTS.txt`](meta/VERIFICATION-SUITE/ACTIVE-DOCUMENTS.txt).
 
 This document tracks documentation debt items identified during the 2026-04-02 audit. Each item includes severity, owner assignment, and target resolution date.
 
@@ -69,7 +74,7 @@ rg -l '❌ Deprecated|DEPRECATED|OBSOLETE' docs/
 
 ### Generate current status
 ```bash
-just cluster-status  # Updates STATUS.md
+just status-regen  # Regenerates STATUS.md from cluster-state.nix and live queries
 ```
 
 ---
@@ -79,7 +84,7 @@ just cluster-status  # Updates STATUS.md
 - `DOCUMENTATION_CONVENTIONS.md` - Documentation style guide
 - `DOCUMENTATION_INDEX.md` - Master catalog
 - `DOCUMENTATION_AUDIT_SUMMARY.md` - Previous audit results
-- `STATUS.md` - Real-time cluster status
+- `STATUS.md` - Generated cluster snapshot; verify its source timestamp
 
 ---
 

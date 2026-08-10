@@ -1,0 +1,21 @@
+# Maintained documentation enforced by verify-staleness.sh.
+# Keep historical reports and archived/pointer material out of this list unless
+# their commands and runtime claims have been re-verified.
+README.md
+DOCUMENTATION_INDEX.md
+DOCS-MAINTENANCE.md
+docs/current-state.md
+docs/DECISION_LOG.md
+docs/meta/DOCUMENTATION-STRATEGY.md
+docs/archive/ARCHIVE_INDEX.md
+docs/ci-cd/README.md
+docs/runbooks/nixos-usb-rescue.md
+docs/runbooks/cluster-rescue-quick-reference.md
+docs/kubernetes/README.md
+docs/kubernetes/amd-gpu-coexistence.md
+docs/kubernetes/caddy-ingress-architecture.md
+docs/kubernetes/container-pruning-guide.md
+docs/kubernetes/network-policies/README.md
+docs/kubernetes/storage/README.md
+docs/operations/README.md
+kubernetes-manifests/AGENTS.md

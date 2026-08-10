@@ -1,29 +1,19 @@
----
-last-verified: 2026-05-24
-verified-by: Sisyphus
-verification-method: just docs-audit
-expires: 2026-05-31
----
-# Documentation Index
+# Retired LIVE Documentation Index
 
-## LIVE Documents (Canonical)
+> **Status:** Archived pointer
+> **Retired:** 2026-08-09
+> **Authority:** This directory is no longer the canonical current-state documentation tree.
 
-- [INFRASTRUCTURE-AUDIT.md](INFRASTRUCTURE-AUDIT.md) — Current cluster state, services, rules
-- [ARCHITECTURE.md](ARCHITECTURE.md) — Diagrams and data flows (coming)
-- [RUNBOOK.md](RUNBOOK.md) — Operational procedures (coming)
-- [STATUS.md](STATUS.md) — One-page health dashboard (coming)
+Use these canonical documents instead:
 
-## Supporting
+- [`../current-state.md`](../current-state.md) — checked-in architecture and authority boundaries
+- [`../../STATUS.md`](../../STATUS.md) — generated cluster snapshot; verify its snapshot timestamp
+- [`../../DOCUMENTATION_INDEX.md`](../../DOCUMENTATION_INDEX.md) — repository-wide catalog
+- [`../runbooks/`](../runbooks/) — active recovery and operational procedures
 
-- [DOCUMENTATION-STRATEGY.md](../meta/DOCUMENTATION-STRATEGY.md) — This system's rules
-- PATTERNS/ — Coding and module conventions
-- DECISIONS/ — Architectural Decision Records
+The former LIVE documents are preserved at
+[`../archive/legacy/live-snapshots/`](../archive/legacy/live-snapshots/). They are historical
+snapshots and must not be followed without re-verification.
 
-## Rules
-
-- All LIVE documents must have `last-verified` stamp < 14 days old.
-- Run `just docs-audit` before every merge.
-- If cluster changes, update LIVE documents in same PR.
-- Stale documents belong in ARCHIVE/.
-
-**Never edit files outside LIVE/ for current state.**
+The old rule that current state must be edited only under `docs/LIVE/` is retired. Update
+the checked-in source/configuration and the appropriate canonical document instead.

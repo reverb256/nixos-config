@@ -37,7 +37,7 @@ Sentry USB-rescue recovery, the tcl-8_6/gettext nixpkgs regression, the
 
 ### 4. ⏳ Deploy provenance / drift detection
 - Record `{commit, lock-hash, closure, host}` per deploy; surface via
-  `just status` / `just cluster-status`. The Sentry `.dirty` closures and
+  `just health` / `just status`. The Sentry `.dirty` closures and
   #242's repo-vs-disk drift are exactly this gap.
 
 ---

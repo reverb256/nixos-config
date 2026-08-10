@@ -1,18 +1,12 @@
----
-last-verified: 2026-07-30
-verified-by: Buffy
-verification-method: source inspection of flake.nix, colmena.nix, justfile, and dispatcher
-expires: 2026-08-06
----
-# Architecture
+# Retired LIVE Architecture Page
 
-See INFRASTRUCTURE-AUDIT.md for current state.
+> **Status:** Historical pointer
+> **Retired:** 2026-08-09
+> **Authority:** This path is not the canonical architecture reference.
 
-**Core Tenets:**
-- Nexus (46GB) is default workload node
-- Zephyr is the authoring/source-of-truth host; Nexus is the build/deployment dispatcher
-- All AI traffic goes through AI Gateway on Nexus
-- Central SSO via Casdoor + oauth2-proxy + Caddy forward_auth
-- Documentation in docs/LIVE/ is canonical
+Use [`../current-state.md`](../current-state.md) for the checked-in architecture,
+configuration boundaries, source-of-truth rules, and verification commands.
 
-Full diagrams to be added.
+The former page is preserved at
+[`../archive/legacy/live-snapshots/ARCHITECTURE.md`](../archive/legacy/live-snapshots/ARCHITECTURE.md)
+for historical context only.

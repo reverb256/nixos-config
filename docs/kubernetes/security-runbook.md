@@ -1,6 +1,15 @@
 # Kubernetes Security Runbook
+
+> **Status:** Legacy reference; verify before use
+> **Classification Reviewed:** 2026-08-09
+> **Source:** `modules/services/k3s-cluster.nix`, `kubernetes/`, `kubernetes-manifests/`, and the live cluster
+>
+> This file contains emergency examples, including destructive commands. Follow the
+> current guarded deployment and incident procedures first; do not copy a command
+> until its target, owner, and backup state are confirmed.
+
 **Version**: 1.0
-**Last Updated**: 2026-03-21
+**Historical Last Updated**: 2026-03-21
 **Cluster**: NixOS 4-node homelab
 **Severity Levels**: Critical, High, Medium, Low
 
@@ -114,7 +123,7 @@ EOF
 #### Step 3: Revoke Service Account Tokens
 ```bash
 # Delete service account tokens
-kubectl delete secrets -n <namespace> $(kubectl get secrets -n <namespace} -o jsonpath='{.items[?(@.type=="kubernetes.io/service-account-token")].metadata.name}')
+kubectl delete secrets -n <namespace> $(kubectl get secrets -n <namespace> -o jsonpath='{.items[?(@.type=="kubernetes.io/service-account-token")].metadata.name}')
 ```
 
 ### Eradication: Remove Threat
@@ -581,6 +590,6 @@ kubectl get events -A --field-selector type=Warning --since=1h
 ---
 
 **Runbook Version**: 1.0
-**Last Updated**: 2026-03-21
-**Next Review**: 2026-04-21
+**Historical Last Updated**: 2026-03-21
+**Historical Next Review**: 2026-04-21
 **Maintained By**: Cluster Operations Team

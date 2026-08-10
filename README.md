@@ -1,5 +1,9 @@
 # NixOS Cluster Configuration
 
+> **Status:** Canonical project entry point
+> **Last Verified:** 2026-08-09
+> **Owner:** j_kro
+
 Flake-based multi-host NixOS configuration for a 4-node cluster.
 
 ## Quick Start
@@ -29,7 +33,8 @@ just check
 - **Forge** (10.1.1.130) - GPU computing, mining
 - **Sentry** (10.1.1.140) - Monitoring, logging
 
-**Resources:** 78 cores, 123GB RAM, 7 GPUs, 8.4TB storage
+**Checked-in inventory totals:** 78 cores, 123GB RAM, 7 GPUs, 8.4TB storage.
+These are planning/inventory values; verify live hardware before operational decisions.
 
 ## Build Architecture
 
@@ -54,9 +59,9 @@ Colmena apply on Nexus. Zephyr remains the authoring/source-of-truth host.
 | Host | Local max jobs | Role |
 |------|----------------|------|
 | Zephyr | 0 | Authoring/source-of-truth host; no local build jobs |
-| Nexus | 12 | Deployment dispatcher and primary builder |
-| Sentry | 8 | Secondary builder |
-| Forge | 4 local jobs if building locally | GPU/mining host; excluded from remote-builder lists |
+| Nexus | 6 | Deployment dispatcher and exclusive primary builder |
+| Sentry | 0 | Monitoring/inference host; not a build target |
+| Forge | 0 in the distributed-build module | GPU/mining host; deployment builds on the target when required |
 
 The module generates `/etc/nix/machines` from its own host list and excludes
 the current host. The root `machines` file is the Nix machines file supplied to Colmena via
@@ -66,11 +71,12 @@ state as current.
 
 ## Project Architecture
 
-**⚠️ IMPORTANT:** Home Manager is maintained in a separate repository
+**⚠️ IMPORTANT:** Home Manager leaf configuration is maintained in a separate repository
 [`reverb256/home-manager-config`](https://github.com/reverb256/home-manager-config) (at
 `/home/j_kro/Projects/home-manager-config`). It is consumed here as the
-`home-manager-config` flake input; the local `modules/home-manager/` copy was
-deleted so the two repos can never drift again.
+`home-manager-config` flake input. This repository retains shared-leaf modules and the
+NixOS bridge under `modules/home-manager/` and `modules/system/home-manager.nix`; it is
+not the source of the external leaf configuration.
 
 | Project | Location | Purpose |
 |---------|----------|---------|
@@ -84,7 +90,7 @@ deleted so the two repos can never drift again.
 
 These are referenced as **flake inputs** in `flake.nix` - each project maintains its own versioning and build process.
 
-See `/data/projects/AGENTS.md` for full project inventory.
+See [`docs/current-state.md`](docs/current-state.md) for the repository's current configuration boundaries and verification workflow.
 
 ## Configuration Structure
 
@@ -104,20 +110,23 @@ See `/data/projects/AGENTS.md` for full project inventory.
 │   ├── services/
 │   ├── desktop/
 │   └── gaming/
-└── secrets/                   # Agenix encrypted secrets
+└── secrets/                   # Encrypted secret material (SecretSpec/sops-nix paths)
 ```
 
 > Home Manager leaf modules (fish, starship, niri, alacritty, …) live in
-> [`reverb256/home-manager-config`](https://github.com/reverb256/home-manager-config),
-> not in this repository. `modules/system/home-manager.nix` imports them from
-> the `home-manager-config` flake input.
+> [`reverb256/home-manager-config`](https://github.com/reverb256/home-manager-config).
+> This repository keeps the NixOS bridge in `modules/system/home-manager.nix` and
+> consumes the external modules through the `home-manager-config` flake input.
 
 ## Key Documentation
 
-- **CLAUDE.md** - Agent patterns and best practices
+- **[`docs/current-state.md`](docs/current-state.md)** - Current checked-in architecture and documentation routing
+- **[`DOCUMENTATION_INDEX.md`](DOCUMENTATION_INDEX.md)** - Full documentation catalog
 - **AGENTS.md** - Universal cluster patterns and workflows
-- **ROADMAP.md** - Kubernetes migration plan
-- **[`docs/audit-2026-07-27.md`](docs/audit-2026-07-27.md)** - Multi-area audit (24 findings, F-1..F-24) — start here for current state before major changes
+- **CONTRIBUTING.md** - Worktree, PR, and contribution workflow
+- **DOCS-MAINTENANCE.md** - Documentation freshness and classification policy
+- **ROADMAP.md** - Historical Kubernetes migration roadmap and hardening context
+- **[`docs/audit-2026-07-27.md`](docs/audit-2026-07-27.md)** - Dated multi-area audit; verify findings against live state before acting
 
 ## Safety First
 
@@ -134,7 +143,7 @@ User-environment configuration is managed by a separate flake:
 
 - Canonical leaf modules: `reverb256/home-manager-config/modules/*.nix`
 - nixos-config consumes it as the `home-manager-config` flake input
-- Local `modules/home-manager/` was deleted to prevent drift
+- Local `modules/home-manager/` contains only retained shared-leaf modules, not the external leaf configuration
 - Bridge: `modules/system/home-manager.nix` (NixOS activation path)
 - `homeConfigurations.<host>` in `flake.nix` uses `inputs.home-manager-config.modules.standalone.nix`
 

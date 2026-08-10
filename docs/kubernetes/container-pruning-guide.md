@@ -1,28 +1,37 @@
 # Kubernetes Container Pruning Guide
 
+> **Status:** Reference procedure
+> **Last Verified:** 2026-08-09 (command syntax and safety review)
+> **Source:** Kubernetes API commands and the repository's workload/scheduling policy
+>
+> Review controller ownership, persistent storage, and live workload state before
+> deleting anything. Never use the bulk commands below as a substitute for review.
+
 ## Quick Reference: Common Pruning Commands
 
-### 1. **Prune Completed/Succeeded Pods** (Safe)
+### 1. **Prune Completed/Succeeded Pods** (Review first)
 ```bash
-# Find completed pods
-kubectl get pods -A | grep -E "Completed|Succeeded"
+# Inspect completed pods before deleting anything.
+kubectl get pods -A --field-selector=status.phase==Succeeded
 
-# Delete specific completed pods
+# Delete one reviewed pod.
 kubectl delete pod <pod-name> -n <namespace> --ignore-not-found=true
 
-# Bulk delete completed pods
-kubectl get pods -A | grep Completed | awk '{print $1}' | \
-  xargs -I {} bash -c "kubectl delete pod $(echo {} | awk '{print $1}') -n $(echo {} | awk '{print $2}') --ignore-not-found=true"
+# Generate a reviewable list; run deletion only after checking the output.
+kubectl get pods -A -o json | jq -r '
+  .items[] | select(.status.phase == "Succeeded") |
+  "\(.metadata.namespace)/\(.metadata.name)"'
 ```
 
-### 2. **Prune Evicted Pods** (Safe)
+### 2. **Review Evicted Pods**
 ```bash
-# Find evicted pods
-kubectl get pods -A | grep Evicted
+# List evicted pods. Check the owning controller and node before deletion.
+kubectl get pods -A -o json | jq -r '
+  .items[] | select(.status.reason == "Evicted") |
+  "\(.metadata.namespace)/\(.metadata.name)"'
 
-# Delete all evicted pods
-kubectl get pods -A | grep Evicted | awk '{print $1}' | \
-  xargs -I {} bash -c "kubectl delete pod $(echo {} | awk '{print $1}') -n $(echo {} | awk '{print $2}') --ignore-not-found=true"
+# Delete one reviewed evicted pod.
+kubectl delete pod <pod-name> -n <namespace> --ignore-not-found=true
 ```
 
 ### 3. **Restart Pods with High Restarts** (Use Caution)
@@ -37,21 +46,21 @@ kubectl rollout restart deployment <deployment-name> -n <namespace>
 kubectl delete pod <pod-name> -n <namespace> --force --grace-period=0
 ```
 
-### 4. **Clean Up Old Jobs** (Safe)
+### 4. **Review Old Jobs**
 ```bash
-# Find completed jobs
-kubectl get jobs -A | grep 1/1
+# List completed jobs for review.
+kubectl get jobs -A -o json | jq -r '
+  .items[] | select(.status.completionTime != null) |
+  "\(.metadata.namespace)/\(.metadata.name)"'
 
-# Delete completed jobs
-kubectl get jobs -A | grep 1/1 | awk '{print $1}' | \
-  xargs -I {} bash -c "kubectl delete job $(echo {} | awk '{print $1}') -n $(echo {} | awk '{print $2}')"
+# Delete one reviewed job.
+kubectl delete job <job-name> -n <namespace> --ignore-not-found=true
 
-# Or prune by age (older than 7 days)
-kubectl get jobs -A -o json | jq -r '.items[] |
-  select(.status.completionTime != null and
+# Generate a list of jobs older than seven days. Review it before deletion.
+kubectl get jobs -A -o json | jq -r '
+  .items[] | select(.status.completionTime != null and
     (.status.completionTime | fromdateiso8601) < (now - 604800)) |
-  "\(.metadata.namespace)/\(.metadata.name)"' | \
-  xargs -I {} bash -c "kubectl delete job $(echo {} | cut -d'/' -f1) -n $(echo {} | cut -d'/' -f2)"
+  "\(.metadata.namespace)/\(.metadata.name)"'
 ```
 
 ### 5. **Clean Up Container Images** (Free Disk Space)
@@ -129,7 +138,7 @@ kubectl logs <pod-name> -n <namespace> --tail=50
 kubectl logs <pod-name> -n <namespace> --previous
 
 # 3. Describe pod for events
-kubectl describe pod <pod-name> -n <namespace}
+kubectl describe pod <pod-name> -n <namespace>
 
 # 4. Check resource usage
 kubectl top pod <pod-name> -n <namespace>
@@ -145,7 +154,7 @@ kubectl get events -n <namespace> --field-selector involvedObject.name=<pod-name
 ### **Before Pruning**
 1. ✅ Check if pod is managed by a controller (Deployment/StatefulSet/DaemonSet)
    ```bash
-   kubectl get pod <pod-name> -n <namespace} -o jsonpath='{.metadata.ownerReferences}'
+   kubectl get pod <pod-name> -n <namespace> -o jsonpath='{.metadata.ownerReferences}'
    ```
    - If owned by Deployment: Safe to delete (will be recreated)
    - If owned by StatefulSet: **CAUTION** - may have persistent data
@@ -153,14 +162,14 @@ kubectl get events -n <namespace> --field-selector involvedObject.name=<pod-name
 
 2. ✅ Check pod age
    ```bash
-   kubectl get pod <pod-name> -n <namespace} -o jsonpath='{.metadata.creationTimestamp}'
+   kubectl get pod <pod-name> -n <namespace> -o jsonpath='{.metadata.creationTimestamp}'
    ```
    - Young pods (<1 hour): May still be starting normally
    - Old pods (>1 hour) in bad states: Safe to prune
 
 3. ✅ Check pod status
    ```bash
-   kubectl get pod <pod-name> -n <namespace} -o yaml
+   kubectl get pod <pod-name> -n <namespace> -o yaml
    ```
    - Read termination message
    - Check exit codes
@@ -169,7 +178,7 @@ kubectl get events -n <namespace> --field-selector involvedObject.name=<pod-name
 ### **After Pruning**
 1. ✅ Verify replacement pods are running (if managed by controller)
    ```bash
-   kubectl get pods -n <namespace} -w
+   kubectl get pods -n <namespace> -w
    ```
 
 2. ✅ Check for resource pressure
@@ -180,47 +189,19 @@ kubectl get events -n <namespace> --field-selector involvedObject.name=<pod-name
 
 3. ✅ Review events for new errors
    ```bash
-   kubectl get events -n <namespace} --sort-by='.lastTimestamp'
+   kubectl get events -n <namespace> --sort-by='.lastTimestamp'
    ```
 
 ---
 
 ## Automation: Pruning CronJob
 
-### Create Automated Cleanup Job
-```yaml
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: pod-cleanup
-  namespace: kube-system
-spec:
-  schedule: "0 2 * * *"  # Daily at 2 AM
-  concurrencyPolicy: Forbid
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          serviceAccountName: pod-cleanup
-          restartPolicy: OnFailure
-          containers:
-          - name: cleanup
-            image: bitnami/kubectl:latest
-            command:
-            - /bin/bash
-            - -c
-            - |
-              # Delete evicted pods
-              kubectl get pods -A | grep Evicted | awk '{print $1}' | \
-                xargs -I {} bash -c "kubectl delete pod $(echo {} | awk '{print $1}') -n $(echo {} | awk '{print $2}')"
+### Automated Cleanup Job
 
-              # Delete completed jobs older than 1 day
-              kubectl get jobs -A -o json | jq -r '.items[] |
-                select(.status.succeeded == 1 and
-                  (.status.completionTime | fromdateiso8601) < (now - 86400)) |
-                "\(.metadata.namespace)/\(.metadata.name)"' | \
-                xargs -I {} kubectl delete job $(echo {} | cut -d'/' -f2) -n $(echo {} | cut -d'/' -f1)
-```
+Do not install an unattended deletion CronJob from this reference document. The
+former example deleted resources selected by broad text pipelines without a human
+review step. If automation is needed, implement it declaratively with an explicit
+retention policy, dry-run/report mode, owner checks, and a tested rollback path.
 
 ### Create ServiceAccount for Cleanup
 ```yaml
@@ -260,7 +241,7 @@ subjects:
 ### **Issue**: Cannot delete pod, stuck in Terminating state
 ```bash
 # Force delete pod
-kubectl delete pod <pod-name> -n <namespace} --force --grace-period=0
+kubectl delete pod <pod-name> -n <namespace> --force --grace-period=0
 
 # If still stuck, check node health
 kubectl get nodes -o wide
@@ -272,34 +253,33 @@ ssh <node> 'systemctl status kubelet'
 ### **Issue**: Deleted pods keep coming back
 ```bash
 # Check if managed by controller
-kubectl get deployment,statefulset,daemonset -n <namespace}
+kubectl get deployment,statefulset,daemonset -n <namespace>
 
 # Stop the controller first (if desired)
-kubectl scale deployment <deployment-name> -n <namespace} --replicas=0
+kubectl scale deployment <deployment-name> -n <namespace> --replicas=0
 
 # Then delete pods
-kubectl delete pods -l app=<app-label> -n <namespace}
+kubectl delete pods -l app=<app-label> -n <namespace>
 ```
 
-### **Issue**: Too many completed pods to delete manually
+### **Issue**: Too many completed pods to review manually
 ```bash
-# Bulk delete using jq
+# Produce a reviewable list. Delete entries individually after checking
+# ownership, retention, and backup requirements.
 kubectl get pods -A -o json | jq -r '.items[] |
   select(.status.phase == "Succeeded") |
-  "\(.metadata.namespace)/\(.metadata.name)"' | \
-  xargs -I {} bash -c "kubectl delete pod $(echo {} | cut -d'/' -f2) -n $(echo {} | cut -d'/' -f1)"
+  "\(.metadata.namespace)/\(.metadata.name)"'
 ```
 
 ---
 
 ## Summary
 
-**Safe to Always Prune**:
-- ✅ Completed/Succeeded pods
-- ✅ Evicted pods
-- ✅ Completed Jobs
-- ✅ Pods with status: Unknown (if node is healthy)
-- ✅ Orphaned pods (no owner references)
+**Usually eligible for pruning after review**:
+- Completed/Succeeded pods
+- Evicted pods after checking their owner and node
+- Completed Jobs after checking retention requirements
+- Orphaned pods after confirming they are not part of a recovery workflow
 
 **Prune with Caution**:
 - ⚠️ CrashLoopBackOff pods (check logs first)

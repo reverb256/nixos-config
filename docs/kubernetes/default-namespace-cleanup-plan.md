@@ -1,6 +1,13 @@
 # Default Namespace Cleanup Plan
 
-**Date**: 2026-03-21
+> **Status:** Historical plan; do not follow without re-verification
+> **Classification Reviewed:** 2026-08-09
+> **Source:** Historical Kubernetes observations; verify workload ownership in `kubernetes/` and `kubernetes-manifests/`
+>
+> The API-server, pod-count, namespace, and blocker statements below describe the
+> original planning context. Confirm every item against the live API before acting.
+
+**Historical Date**: 2026-03-21
 **Purpose**: Move application workloads out of default namespace
 
 ---

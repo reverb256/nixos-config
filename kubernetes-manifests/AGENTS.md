@@ -1,19 +1,23 @@
 # Kubernetes Manifests - Agent Context
 
-**Parent:** `../AGENTS.md` | **Domain:** K8s deployment configs (~256 files, ~28 dirs)
+> **Status:** Active subsystem guidance
+> **Last Verified:** 2026-08-09
+> **Source:** `kubernetes-manifests/` is a mixed manifest/reference tree; each workload's source-of-truth is declared by its subsystem guidance.
+
+**Parent:** `../AGENTS.md` | **Domain:** K8s deployment configs (approximate file/directory counts; inventory is not live evidence)
 
 ## Overview
 Kubernetes YAML manifests for cluster workloads. Organized by application domain.
 Uses **Flannel CNI** (VXLAN, UDP 8472). Calico configs in `calico/` are archived reference material only.
-K8s Nix modules live in `../kubernetes/modules/` (easykubenix, 21 .nix files).
+K8s Nix modules live in `../kubernetes/modules/` (Easykubenix, 21 `.nix` files) and are the source of truth where they generate the deployed workload. Raw YAML in this tree is authoritative only where the owning subsystem explicitly says so; otherwise it is bootstrap, test, vendor, or archived reference.
 
 ## Structure
 ```
 kubernetes-manifests/
-├── mining/              # GPU mining (34 files)
-├── ai-inference/        # AI workloads (22 files)
-├── ai-coding-tools/     # Development tools (22 files)
-├── monitoring/          # Prometheus/Grafana (16 files)
+├── mining/              # GPU mining manifests
+├── ai-inference/        # AI workload manifests
+├── ai-coding-tools/     # Development tool manifests
+├── monitoring/          # Prometheus/Grafana manifests
 ├── calico/              # Archived Calico CNI reference configs (not active)
 ├── ingress/             # Ingress controllers (16 files)
 ├── spacebot/            # Discord bot (14 files)
@@ -47,10 +51,13 @@ kubernetes-manifests/
 
 | Node | RAM | Workloads |
 |------|-----|-----------|
-| **nexus** | 46GB | DEFAULT for all workloads |
-| **zephyr** | 31GB | Infrastructure + mining ONLY |
-| **forge** | 16GB | Mining + GPU compute |
-| **sentry** | 31GB | Monitoring + Vulkan AI inference |
+| **nexus** | Checked-in inventory: 46GB | DEFAULT workload target |
+| **zephyr** | Checked-in inventory: 31GB | Infrastructure + mining policy |
+| **forge** | Checked-in inventory: 15GB | Mining + GPU compute policy |
+| **sentry** | Checked-in inventory: 31GB | Monitoring + Vulkan AI policy |
+
+These are planning values from the repository inventory; verify live allocatable resources
+with `kubectl top nodes` and `kubectl describe node` before scheduling changes.
 
 ### Scheduling Pattern
 ```yaml
@@ -82,5 +89,10 @@ spec:
 - `calico-system` → Archived Calico configs (not active, Flannel is the CNI)
 
 ## Secret References
-- Agenix-encrypted secrets in `/etc/nixos/secrets/` (42 .age files)
-- K8s secrets reference same values via env vars
+
+The source-of-truth boundary is also documented in [`docs/current-state.md`](../docs/current-state.md).
+
+- SecretSpec is the runtime resolution path; sops-nix remains a compatibility path during migration.
+- Encrypted material is declared under `/etc/nixos/secrets/` and `secretspec.toml`.
+- Never add plaintext values to manifests or documentation. K8s workloads should consume
+  runtime-materialized secrets through the owning Nix/SecretSpec wiring.

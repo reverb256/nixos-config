@@ -1,47 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo '/etc/nixos')"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$REPO_ROOT"
 
-echo "=== NixOS Documentation Verification Suite ==="
-echo "Repository root: $REPO_ROOT"
-echo "Last run: $(date -u +%Y-%m-%d)"
-echo
+printf '%s\n' '=== NixOS Documentation Verification Suite ==='
+printf 'Repository root: %s\n' "$REPO_ROOT"
+printf 'Run date: %s\n\n' "$(date -u +%Y-%m-%d)"
 
-echo "→ Staleness check..."
-docs/meta/VERIFICATION-SUITE/verify-staleness.sh
+checks=(
+  "Active metadata|docs/meta/VERIFICATION-SUITE/verify-staleness.sh"
+  "Source-of-truth declarations|docs/meta/VERIFICATION-SUITE/verify-infra.sh"
+  "Internal links and retired authority|docs/meta/VERIFICATION-SUITE/cross-reference-check.sh"
+)
 
-echo "→ Infrastructure claims check..."
-docs/meta/VERIFICATION-SUITE/verify-infra.sh
-
-echo "→ Cross-reference check..."
-docs/meta/VERIFICATION-SUITE/cross-reference-check.sh
-
-echo
-echo "All checks passed."
-echo "Documentation is healthy."
-exit 0
+failed=0
+for entry in "${checks[@]}"; do
+  name=${entry%%|*}
+  script=${entry#*|}
+  printf '→ %s...\n' "$name"
+  if "$script"; then
+    printf '  PASS: %s\n\n' "$name"
   else
-    echo "❌ MISSING"
-    ((FAILED++))
+    printf '  FAIL: %s\n\n' "$name" >&2
+    failed=$((failed + 1))
   fi
-}
+done
 
-check "Staleness" "docs/meta/VERIFICATION-SUITE/verify-staleness.sh"
-check "Infrastructure Claims" "docs/meta/VERIFICATION-SUITE/verify-infra.sh"
-check "Cross References" "docs/meta/VERIFICATION-SUITE/cross-reference-check.sh"
-
-echo
-echo "Summary: $PASSED passed, $FAILED failed"
-if [ $FAILED -eq 0 ]; then
-  echo "Documentation is healthy."
-  exit 0
+if [ "$failed" -eq 0 ]; then
+  echo 'All documentation checks passed.'
 else
-  echo "Documentation rot detected. Fix before merging."
-  exit 1
-fi
-else
-  echo "Documentation rot detected. Fix before merging."
+  printf '%s documentation check(s) failed.\n' "$failed" >&2
   exit 1
 fi

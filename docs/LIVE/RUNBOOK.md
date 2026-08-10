@@ -1,51 +1,18 @@
----
-last-verified: 2026-05-24
-verified-by: Sisyphus
-verification-method: just docs-audit
-expires: 2026-05-31
----
-# Runbook
+# Retired LIVE Runbook
 
-> **⚠️ STALE. Last verified 2026-05-24 (>2 months ago at 2026-07-27 audit).**
->
-> Per AGENTS.md Pocock Rule, this file must be re-verified before following its claims. Many sections reference files and workflows that may have drifted. In particular: NFS purge completed cluster-wide 2026-07 (`just deploy-*` recipes no longer reference NFS); Z.AI MCP servers removed 2026-07-15; sops-nix → secretspec migration completed 2026-07-25. Re-verify each section before relying on it, or update this header to today's date with the current `verification-method` output.
+> **Status:** Historical pointer
+> **Retired:** 2026-08-09
+> **Do not follow commands from the former LIVE runbook without re-validation.**
 
-## Common Operations
+The former runbook was a stale 2026-05-24 snapshot. Its original contents are preserved
+at [`../archive/legacy/live-snapshots/RUNBOOK.md`](../archive/legacy/live-snapshots/RUNBOOK.md).
 
-**Cluster Status**
-```bash
-just status
-just health
-just docs-audit
-```
+Use the maintained procedures instead:
 
-**Deploy Changes**
-```bash
-just switch          # Local (Zephyr)
-just deploy nexus    # Specific host
-just deploy all      # Full cluster
-```
+- [`../runbooks/nixos-usb-rescue.md`](../runbooks/nixos-usb-rescue.md)
+- [`../runbooks/cluster-rescue-quick-reference.md`](../runbooks/cluster-rescue-quick-reference.md)
+- [`../ci-cd/README.md`](../ci-cd/README.md)
+- [`../current-state.md`](../current-state.md)
 
-**Documentation**
-```bash
-just docs-audit      # Verify all LIVE docs
-just docs-freshen    # Refresh stale sections
-```
-
-**Critical Rules**
-- Never schedule non-infra workloads on Zephyr (OOM risk)
-- Update `docs/LIVE/INFRASTRUCTURE-AUDIT.md` on any infrastructure change
-- All PRs touching modules/ or hosts/ must pass `just docs-audit`
-- If cluster reality diverges from docs, update the docs (Pocock Rule)
-
-## Emergency Procedures
-
-**NFS Issues**
-- Check `just check-nfs`
-- Restart NFS services on Zephyr if remotes cannot read config
-
-**K8s Issues**
-- `kubectl get nodes`
-- Check Alloy, Prometheus, Loki on Sentry
-
-See `docs/ARCHIVE/` for historical context only. All current procedures live in this file or INFRASTRUCTURE-AUDIT.md.
+For deployment, use the guarded `just` recipes and the Nexus dispatcher. Do not use
+historical direct `colmena` or ad-hoc service commands without checking current policy.

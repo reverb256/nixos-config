@@ -1,7 +1,12 @@
 # Zephyr RAM Protection Policy
 
+> **Status:** Reference scheduling policy
+> **Last Verified:** 2026-08-09
+> **Source:** `AGENTS.md`, `kubernetes-manifests/AGENTS.md`, and checked-in host/Kubernetes configuration
+>
+> Runtime taints, allocatable resources, and pod placement must be verified with the live Kubernetes API before changes.
+
 **Created:** 2026-03-24
-**Status:** Active
 **Purpose:** Prevent OOM crashes on Zephyr control plane node
 
 ## Problem
@@ -133,10 +138,10 @@ kubectl get pod <pod-name> -n <namespace> -o jsonpath='{.spec.tolerations}' | jq
 
 ## Related Documentation
 
-- [CLAUDE.md - Critical Safety Rules](/etc/nixos/CLAUDE.md) - Workload scheduling constraints
-- [AGENTS.md - Workload Scheduling](/etc/nixos/AGENTS.md) - ZEPHYR OOM PREVENTION section
-- [STATUS.md](/etc/nixos/STATUS.md) - Real-time cluster health
-- [docs/kubernetes/PREVENT_POD_EXPLOSION.md](/etc/nixos/docs/kubernetes/PREVENT_POD_EXPLOSION.md) - Pod explosion prevention
+- [CLAUDE.md - Critical Safety Rules](../../CLAUDE.md) - Workload scheduling constraints
+- [AGENTS.md - Workload Scheduling](../../AGENTS.md) - ZEPHYR OOM PREVENTION section
+- [STATUS.md](../../STATUS.md) - Generated cluster snapshot; verify its source timestamp
+- [kubernetes-manifests/PREVENT_POD_EXPLOSION.md](../../kubernetes-manifests/PREVENT_POD_EXPLOSION.md) - Pod explosion prevention
 
 ## Changes
 

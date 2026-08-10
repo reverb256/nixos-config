@@ -1,7 +1,15 @@
 # Kubernetes Disaster Recovery Runbook
 
+> **Status:** Legacy reference; verify against current rescue and deployment flow
+> **Classification Reviewed:** 2026-08-09
+> **Source:** `docs/runbooks/`, `docs/ci-cd/README.md`, host recovery modules, and the live cluster
+>
+> This runbook contains historical Kubernetes and provider assumptions. Confirm the
+> current K3s topology, backup paths, service names, and guarded deployment procedure
+> before using any recovery command.
+
 **Purpose**: Complete disaster recovery procedures for the NixOS Kubernetes cluster
-**Created**: 2026-03-22
+**Historical Created**: 2026-03-22
 **Version**: 1.0
 
 ---
@@ -436,5 +444,5 @@ kubectl auth can-i list pods --all-namespaces --as=system:anonymous
 ---
 
 **Owner**: Cluster Operations Team
-**Last Updated**: 2026-03-22
-**Next Review**: 2026-04-22
+**Historical Last Updated**: 2026-03-22
+**Historical Next Review**: 2026-04-22
