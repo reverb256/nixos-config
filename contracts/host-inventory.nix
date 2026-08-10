@@ -42,13 +42,16 @@
       hostName = "forge";
       targetHost = "10.1.1.130";
       targetUser = "j_kro";
-      # Build forge's closure ON forge. zephyr is max-jobs=0 (OOM guard in
-      # modules/system/distributed-builds.nix) and the builder set is nexus
-      # (down) + sentry, so a build-elsewhere forge deploy has no builder and
-      # hangs. forge is the target anyway, so this also skips the closure
-      # copy-back. Miners are ~350MB RSS; the constraint is CPU (6 physical
-      # cores), which Nix's own max-jobs on forge bounds.
-      buildOnTarget = true;
+      # Build forge's closure ON THE DISPATCH HOST (nexus). Deploys are now
+      # dispatched from nexus (nexus-dispatch.sh), which is the exclusive build
+      # executor and CAN build locally via its own daemon. Setting
+      # buildOnTarget=true made forge build on itself and route its build to
+      # nexus as an ssh-ng:// remote builder -> self-dispatch deadlock (nexus's
+      # daemon waiting on store locks it holds) that permanently stalled the
+      # whole colmena apply. buildOnTarget=false lets nexus build forge locally
+      # with no ssh self-loop. (The original true assumed dispatch from zephyr,
+      # which is max-jobs=0 and cannot build.)
+      buildOnTarget = false;
       allowLocalDeployment = false;
       tags = ["gpu" "compute" "k8s-worker" "k8s-gpu-mixed" "remote"];
       system = "x86_64-linux";
