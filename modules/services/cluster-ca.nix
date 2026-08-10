@@ -209,6 +209,11 @@ in {
         RemainAfterExit = true;
         StateDirectory = "cluster-ca";
         StateDirectoryMode = "0755";
+        # Provide cmp/diffutils so the canonical-CA install check (cmp -s) runs
+        # instead of aborting with "cmp: command not found".
+        Path = lib.makeBinPath [
+          pkgs.coreutils pkgs.diffutils pkgs.gnugrep pkgs.gnused pkgs.findutils pkgs.openssl
+        ];
       };
       script = ''
         STATIC_CA="${./../../certs/cluster-ca.crt}"

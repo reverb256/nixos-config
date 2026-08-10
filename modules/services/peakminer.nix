@@ -109,6 +109,7 @@ in {
       serviceName = "peakminer-${instance.name}";
       powerLimitScript = pkgs.writeShellScript "peakminer-power-limit-${instance.name}" ''
         set -euo pipefail
+        export PATH="${pkgs.gawk}/bin:${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin:${pkgs.gnused}/bin:${pkgs.findutils}/bin:${pkgs.systemd}/bin:''${PATH:-}"
         for attempt in $(seq 1 30); do
           resolved=$(${resolveGpu} "${instance.gpuName}" || true)
           if [ -z "$resolved" ]; then

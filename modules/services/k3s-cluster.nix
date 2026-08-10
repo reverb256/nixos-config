@@ -538,6 +538,11 @@ in {
         TimeoutStopSec = lib.mkForce "2min";
       };
       before = lib.mkIf config.services.keepalived.enable ["keepalived.service"];
+      # k3s waits on /run/secrets/k3s-cluster-token (provisioned by
+      # secretspec-creds). Without an ordering guarantee, k3s can start before
+      # the token is written and then hit start-limit-hit on the server node.
+      after = lib.mkIf config.services.secretspec-creds.enable ["secretspec-creds.service"];
+      requires = lib.mkIf config.services.secretspec-creds.enable ["secretspec-creds.service"];
     };
 
     # Auto-start k3s at boot WITHOUT blocking multi-user.target.

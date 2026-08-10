@@ -28,6 +28,18 @@
         dataDir = "/storage/loki"; # Use persistent storage
       };
 
+      # Sentry runs Loki single-node (inmemory kvstore, replication_factor=1).
+      # The default memberlist bind scans interfaces [eth0 en0 lo] and fails on
+      # the (nonexistent) en0 interface. Pin memberlist to loopback so the
+      # gossip layer binds without interface autodiscovery. HTTP ingest still
+      # listens on 0.0.0.0:3100 for cluster-wide push.
+      loki.extraConfiguration = {
+        memberlist = {
+          bind_addr = "127.0.0.1";
+          bind_port = 7946;
+        };
+      };
+
       # Metrics exporters
       node-exporter.enable = true;
       smart-exporter.enable = true;

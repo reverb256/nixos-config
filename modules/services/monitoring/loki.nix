@@ -33,12 +33,21 @@ in {
       default = 3100;
       description = "Port for Loki HTTP server";
     };
+
+    # Extra raw Loki YAML configuration merged LAST over the declarative
+    # defaults below. Use for settings the module doesn't expose (e.g.
+    # memberlist.bind_addr on single-node deployments).
+    extraConfiguration = lib.mkOption {
+      type = lib.types.attrs;
+      default = {};
+      description = "Extra Loki configuration merged over the generated config.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
     services.loki = {
       enable = true;
-      configuration = {
+      configuration = lib.recursiveUpdate {
         server.http_listen_port = cfg.port;
         server.http_listen_address = cfg.listenAddress;
 
@@ -117,7 +126,7 @@ in {
             };
           };
         };
-      };
+      } cfg.extraConfiguration;
     };
 
     # Create data directories
