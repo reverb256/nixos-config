@@ -31,12 +31,17 @@
   lookingGlass = pkgs.looking-glass-client;
 
   # nixpkgs' virtio-win is only the extracted driver tree (no ISO). Windows'
-  # installer needs the VirtIO ISO to see its disk, so fetch the official
-  # release ISO pinned to the same version nixpkgs ships (0.1.285-1).
-  virtioWinIso = pkgs.fetchurl {
-    url = "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.285-1/virtio-win.iso";
-    sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # FILL_POST_PREFETCH
-  };
+  # installer needs the VirtIO ISO to see its disk. The official release ISO
+  # is a plain data CD of that same tree, so build it offline from the
+  # nixpkgs driver tree with xorriso (no external download, fully declarative).
+  virtioWinIso = pkgs.runCommandNoCC "virtio-win-iso" {
+    nativeBuildInputs = [ pkgs.libisoburn pkgs.virtio-win ];
+  } ''
+    mkdir -p "$out"
+    xorriso -as mkisofs \
+      -V "VIRTIOWIN" -o "$out/virtio-win.iso" \
+      ${pkgs.virtio-win}
+  '';
 
   lookingGlassCheck = pkgs.writeShellScript "gamepass-looking-glass-check" ''
     set -euo pipefail
