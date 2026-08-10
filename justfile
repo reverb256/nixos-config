@@ -450,10 +450,17 @@ hm-audit:
     # nexus-only builder, same constraint as hm-switch (issue #389).
     export NIX_CONFIG='builders = ssh-ng://j_kro@nexus x86_64-linux,i686-linux ~/.ssh/id_ed25519 12 10 big-parallel,kvm'
 
-    echo "== upstream $FLAKE =="
-    nix flake metadata "$FLAKE" --json 2>/dev/null \
-      | jq -r '"rev: \(.locked.rev)  (\(.locked.lastModified | strftime("%Y-%m-%d %H:%M UTC")))"' \
-      || echo "(flake metadata unavailable)"
+    # Resolve the CURRENT upstream rev with --refresh and pin builds to it.
+    # An unpinned `github:` ref is served from nix's branch-resolution cache
+    # and goes stale — observed reporting the previous rev right after a push.
+    META=$(nix flake metadata --refresh "$FLAKE" --json 2>/dev/null || echo "")
+    REV=$(echo "$META" | jq -r '.locked.rev' 2>/dev/null || echo "")
+    if [ -z "$REV" ]; then
+        echo "ERROR: could not resolve $FLAKE (network/GitHub API down?)" >&2
+        exit 1
+    fi
+    MOD=$(echo "$META" | jq -r '.locked.lastModified' 2>/dev/null || echo "")
+    echo "== upstream $FLAKE @ ${REV:0:8} ($(date -u -d "@$MOD" '+%Y-%m-%d %H:%M UTC' 2>/dev/null || echo "?")) =="
 
     RC=0
     for host in {{HOSTS}}; do
@@ -464,12 +471,30 @@ hm-audit:
             LIVE=$(readlink -f "$HOME/.local/state/nix/profiles/home-manager" 2>/dev/null || echo NONE)
             GEN=$(home-manager generations 2>/dev/null | head -1 || true)
         else
-            LIVE=$(ssh -o ConnectTimeout=8 "$host" 'readlink -f "$HOME/.local/state/nix/profiles/home-manager"' 2>/dev/null || echo NONE)
+            # Disambiguate unreachable (ssh fails) from reachable-but-no-HM
+            # profile (ssh OK, readlink found nothing).
+            set +e
+            LIVE=$(ssh -o ConnectTimeout=8 "$host" 'readlink -f "$HOME/.local/state/nix/profiles/home-manager"' 2>/dev/null)
+            SSH_RC=$?
+            set -e
+            if [ "$SSH_RC" -ne 0 ]; then
+                if ssh -o ConnectTimeout=5 "$host" true 2>/dev/null; then
+                    LIVE="NONE"
+                else
+                    LIVE="UNREACHABLE"
+                fi
+            fi
             GEN=$(ssh -o ConnectTimeout=8 "$host" 'home-manager generations 2>/dev/null | head -1' 2>/dev/null || true)
         fi
         CANON=$(nix build --no-link --print-out-paths \
-          "$FLAKE#homeConfigurations.$host.activationPackage" 2>/dev/null || echo BUILD-FAILED)
+          "$FLAKE/$REV#homeConfigurations.$host.activationPackage" 2>/dev/null || echo BUILD-FAILED)
 
+        if [ "$LIVE" = "UNREACHABLE" ]; then
+            echo "  live:  UNREACHABLE"
+            echo "  status: UNREACHABLE — check connectivity, then re-run"
+            RC=1
+            continue
+        fi
         echo "  live:  $LIVE"
         [ -n "$GEN" ] && echo "  gen:   $GEN"
         echo "  canon: $CANON"
@@ -495,13 +520,19 @@ hm-deploy host="zephyr":
     export NIX_CONFIG='builders = ssh-ng://j_kro@nexus x86_64-linux,i686-linux ~/.ssh/id_ed25519 12 10 big-parallel,kvm'
     HOST="{{host}}"
 
-    echo ">> building $FLAKE#homeConfigurations.$HOST.activationPackage"
-    GEN=$(nix build --no-link --print-out-paths "$FLAKE#homeConfigurations.$HOST.activationPackage")
+    # Resolve the CURRENT upstream rev fresh (same rationale as hm-audit) and
+    # pin the build so a stale branch-resolution cache can't deploy old config.
+    REV=$(nix flake metadata --refresh "$FLAKE" --json 2>/dev/null | jq -r '.locked.rev')
+    echo ">> building $FLAKE/${REV:0:8}#homeConfigurations.$HOST.activationPackage"
+    GEN=$(nix build --no-link --print-out-paths "$FLAKE/$REV#homeConfigurations.$HOST.activationPackage")
     echo ">> closure: $GEN"
 
     if [ "$HOST" = "$(hostname -s)" ]; then
-        nix-env -p "$HOME/.local/state/nix/profiles/home-manager" --set "$GEN"
-        exec "$GEN/activate"
+        # Same helper as the remote path, so local deploys get identical
+        # conflict-backup handling (no unguarded exec of activate).
+        echo ">> activating locally"
+        GEN="$GEN" bash {{FLAKE}}/scripts/hm-remote-deploy.sh
+        exit $?
     fi
 
     echo ">> copying closure to $HOST"

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Remote half of `just hm-deploy`: runs on the TARGET host, fed via stdin
 # (`ssh host "GEN=<store-path> bash -s" < scripts/hm-remote-deploy.sh`).
+# Also invocable directly on the local host (just hm-deploy's local path):
+#   GEN=<store-path> bash scripts/hm-remote-deploy.sh
 #
 # Sets the home-manager profile to $GEN and activates it. Standalone HM
 # activation aborts when a managed file collides with a differing plain file;
@@ -20,12 +22,19 @@ trap 'rm -f "$LOG"' EXIT
 if ! "$GEN/activate" >"$LOG" 2>&1; then
     if grep -qE "would be clobbered|in the way" "$LOG"; then
         echo ">> backing up conflicting files and re-activating" >&2
+        # The USER path is always the FIRST quoted string in both message
+        # shapes ("Existing file '<user>' is in the way of '<store>'..." and
+        # "... '<user>' would be clobbered by ..."), so cut -f2 is exact —
+        # never the /nix/store target. `|| true`: an all-"same"-file log
+        # (grep -v empties the stream) must not abort us under pipefail.
         grep -E "would be clobbered|in the way" "$LOG" \
             | grep -v "will be skipped since they are the same" \
-            | grep -oE "'[^']+'" | tr -d "'" | sort -u \
+            | cut -d"'" -f2 | sort -u \
             | while read -r f; do
-                [ -e "$f" ] && mv "$f" "$f.pre-hm-backup" && echo "  backed up: $f" >&2
-            done
+                if [ -e "$f" ] && [ ! -e "$f.pre-hm-backup" ]; then
+                    mv "$f" "$f.pre-hm-backup" && echo "  backed up: $f" >&2
+                fi
+            done || true
         "$GEN/activate"
     else
         cat "$LOG" >&2
