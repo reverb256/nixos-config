@@ -167,6 +167,13 @@
   # ── HW-21: PeakMiner identity and persistent-state contracts ──
   peakminerSources = map (host: readFile ./../hosts/${host}/peakminer.nix) ["zephyr" "nexus" "forge"];
   peakminerGpuNamesConfigured = all (src: hasInfix "gpuName =" src) peakminerSources;
+  peakminerAbsentGpuIsClean =
+    hasInfix "ExecCondition =" (readFile ./../modules/services/peakminer.nix)
+    && hasInfix "resolveGpu" (readFile ./../modules/services/peakminer.nix)
+    && hasInfix "Restart = \"on-failure\";" (readFile ./../modules/services/peakminer.nix)
+    && hasInfix "not present; skipping" (readFile ./../modules/services/peakminer.nix)
+    && hasInfix "END { exit found ? 0 : 1 }" (readFile ./../modules/services/peakminer.nix)
+    && hasInfix "pkgs.gawk}/bin/awk" (readFile ./../modules/services/peakminer.nix);
   nexusConfig = readFile ./../hosts/nexus/configuration.nix;
   nexusWiring = readFile ./../hosts/nexus/secretspec-creds-wiring.nix;
   nexusPreservation = readFile ./../hosts/nexus/preservation.nix;
@@ -338,6 +345,7 @@
 
     # HW-21: PeakMiner and persistent-state contracts
     peakminer_gpu_names_configured = peakminerGpuNamesConfigured;
+    peakminer_absent_gpu_is_clean = peakminerAbsentGpuIsClean;
     nexus_uses_preservation = nexusUsesPreservation;
     persistent_host_preservation_enabled = persistentHostPreservationEnabled;
     persistent_hosts_preserve_age = persistentHostsPreserveAge;
@@ -373,8 +381,9 @@ in {
   summary = let
     ok = builtins.length passNames;
     fail = builtins.length failNames;
+    totalChecks = builtins.length allCheckNames;
   in
-    "${toString ok}/${toString allCheckNames} checks passed"
+    "${toString ok}/${toString totalChecks} checks passed"
     + (
       if fail > 0
       then ", ${toString fail} FAILED: ${lib.concatStringsSep ", " failNames}"
