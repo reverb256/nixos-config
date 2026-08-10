@@ -113,6 +113,18 @@ in mkIf cfg.enable {
         liberation_ttf
         dejavu_fonts
       ];
+      # Steam runs in an FHS sandbox — host PATH packages are NOT visible inside.
+      # Wiki + nixpkgs#389142: gamescope / gamemode / WSI must be in the Steam env
+      # or launch options that call them fail (libgamemode.so missing, no gamescope).
+      extraPackages = with pkgs; [
+        gamescope
+        gamescope-wsi
+        gamemode
+        mangohud
+        # X11 libs commonly required when gamescope is launched from Steam (wiki)
+        libkrb5
+        keyutils
+      ];
       extraCompatPackages = [
         pkgs.proton-ge-bin
         pkgs.proton-ge-rtsp
@@ -124,6 +136,14 @@ in mkIf cfg.enable {
           libxcursor libxi libxinerama libxscrnsaver
           libpulseaudio libvorbis stdenv.cc.cc.lib
           libkrb5 keyutils libcap SDL2
+          # gamemode client lib for gamemoderun inside the FHS (nixpkgs#389142)
+          gamemode
+        ];
+        extraPkgs = pkgs: with pkgs; [
+          gamescope
+          gamescope-wsi
+          gamemode
+          mangohud
         ];
         extraProfile = ''
           unset TZ
@@ -134,11 +154,19 @@ in mkIf cfg.enable {
           export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata"
           export STEAM_EXTRA_COMPAT_TOOLS_PATHS="$HOME/.local/share/Steam/compatibilitytools.d"
           export OPENVR_API_PATH="${pkgs.xrizer}/lib/xrizer"
+          export ENABLE_GAMESCOPE_WSI=1
+          export DXVK_HDR=1
+          export PROTON_ENABLE_HDR=1
         '';
       };
     };
     gamescope = {
       enable = true;
+      # Official wiki: HDR needs the FROG WSI layer (nixpkgs PR #523394).
+      # Without this, ENABLE_GAMESCOPE_WSI=1 is a no-op — layer never loads.
+      enableWsi = true;
+      # Nested + Steam overlay: CAP_SYS_NICE can break overlay hook (gamescope#1225).
+      # Keep true for RT scheduling; if overlay dies under nested HDR, set false.
       capSysNice = true;
       env = {
         __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
