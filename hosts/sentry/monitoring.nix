@@ -74,7 +74,13 @@
     };
     # Log shipping to Loki (Grafana Alloy)
     monitoring.grafana-alloy.enable = true;
-    monitoring.ntfy.enable = true;
+    # ntfy disabled: the pinned nixpkgs rev ships a broken ntfy package
+    # (binary's runtime check rejects the schema its own init writes:
+    # 'unexpected schema version: version 9 is higher than current version 8').
+    # It fails to start, which makes sentry activation fail (code 4) and
+    # stalls the whole colmena apply. Disable until the ntfy package is
+    # fixed/overridden. Alerting via grafana-alloy + Alertmanager remains.
+    monitoring.ntfy.enable = false;
   };
 
   # Ensure node-exporter port is open for Prometheus scraping
