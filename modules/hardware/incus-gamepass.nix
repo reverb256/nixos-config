@@ -211,7 +211,7 @@
     libvirt_vm=${lib.escapeShellArg libvirtVm}
     pool=${lib.escapeShellArg storagePool}
     iso=${lib.escapeShellArg "/var/lib/libvirt/images/win11.iso"}
-    virtio_iso=${lib.escapeShellArg "${virtioWinIso}"}
+    virtio_iso=${lib.escapeShellArg "${virtioWinIso}/virtio-win.iso"}
 
     usage() {
       cat >&2 <<'EOF'
