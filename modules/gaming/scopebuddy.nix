@@ -292,9 +292,11 @@ in {
       // optionalAttrs cfg.autoDetect.scaling {
         SCB_AUTO_SCALE = "1";
       }
-      // optionalAttrs cfg.performance.enableGameMode {
-        SCB_GAMEMODE = "1";
-      }
+      # IMPORTANT: ScopeBuddy's SCB_GAMEMODE means "already inside Steam Gaming
+      # Mode / gamescope-session" (forces SCB_NOSCOPE=1 — skips nested gamescope).
+      # It does NOT mean Feral GameMode. Never set SCB_GAMEMODE=1 on a desktop
+      # niri session or HDR nested gamescope never runs. Feral GameMode is
+      # applied via gamemoderun in Steam launch options instead.
       // optionalAttrs cfg.performance.mangoHud {
         SCB_MANGOHUD = "1";
       };
