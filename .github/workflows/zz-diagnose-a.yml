@@ -1,0 +1,29 @@
+---
+name: Zz Diagnose A
+
+# TEMPORARY diagnostic workflow (remove after CI/CD fix confirmed).
+# Bisect 4a: does cachix/install-nix-action@630ae543 alone break startup?
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install-nix-only:
+    name: Probe-A-Install-Nix
+    runs-on: [self-hosted, nixos]
+    steps:
+      - name: Checkout
+        # pin:actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - name: Install Nix
+        # pin:cachix/install-nix-action@v31
+        uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+      - name: Hello
+        run: echo "install-nix probe ran on $(hostname)"
