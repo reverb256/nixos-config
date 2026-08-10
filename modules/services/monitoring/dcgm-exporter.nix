@@ -23,7 +23,10 @@ in {
     # Auto-enable OCI container backend for DCGM
     virtualisation.oci-containers.backend = "podman";
     virtualisation.oci-containers.containers.dcgm-exporter = {
-      image = "docker.io/nvidia/dcgm-exporter:4.2.0-3.7.3-ubuntu24.04";
+      # Pinned to a valid docker.io tag (verified 2026-08-10: 4.2.0-3.7.3-ubuntu24.04
+      # returned "manifest unknown" — ubuntu24.04 platform suffix was never
+      # published; only short-form + -ubuntu22.04 long-form tags exist).
+      image = "docker.io/nvidia/dcgm-exporter:4.8.3";
       ports = ["${cfg.listenAddress}:${toString port}:9400"];
       environment = {
         NVIDIA_VISIBLE_DEVICES = "all";
