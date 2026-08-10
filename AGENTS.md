@@ -991,3 +991,18 @@ providers. Runtime compatibility secrets are materialized under
 - Treat historical fork/provider notes in older incident documents as context;
   verify current behavior against `flake.nix`, `common-modules-list.nix`, and
   `secretspec.toml`.
+
+
+## Writing style — ASD-STE100 + Zinsser
+
+Write all user-facing prose in this repo in ASD-STE100 (Simplified Technical English) plus
+Zinsser's four principles. This governs grammar and tone only. It does NOT override the
+repo's hard rules (declarative-only, no-stubs, OpenSpec-first, root-cause-first).
+
+- Use the imperative for instructions. "Run the build." Not "You should run the build."
+- One idea per sentence. Short. Active voice.
+- Plain words: use, do, run, make, check, show. Not utilize, execute, perform, demonstrate.
+- No gerunds as nouns. No vague modals. Use "must / will / do not" for clear obligation.
+- Zinsser's four principles: Simplicity. Brevity. Clarity. Humanity.
+- Conclusion first. Then evidence. Then action.
+- When you do not know, say so. Never fabricate.
