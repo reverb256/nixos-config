@@ -1,0 +1,22 @@
+---
+name: Zz Probe Cachix
+
+# Fresh workflow — tests whether cachix/cachix-action truly causes
+# startup_failure (bypasses possible stale registration on A/B probes).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-cachix:
+    name: Test Cachix
+    runs-on: [self-hosted, nixos]
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71
+      - run: echo "cachix probe ran"
