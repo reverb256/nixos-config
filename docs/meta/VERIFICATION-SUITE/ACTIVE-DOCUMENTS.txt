@@ -19,3 +19,4 @@ docs/kubernetes/network-policies/README.md
 docs/kubernetes/storage/README.md
 docs/operations/README.md
 kubernetes-manifests/AGENTS.md
+docs/portable-usb.md
