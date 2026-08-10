@@ -7,11 +7,11 @@
 }:
 stdenv.mkDerivation {
   pname = "peakminer";
-  version = "2.8.0";
+  version = "2.8.2";
 
   src = fetchurl {
-    url = "https://github.com/kryptex-miners-org/kryptex-miners/releases/download/peakminer-2-8-0/peakminer-2.8.0.tar.gz";
-    hash = "sha256-miytzJcTZuwWUsAtu4CW54LVZB576J3SA3fC5dn0/M4=";
+    url = "https://github.com/kryptex-miners-org/kryptex-miners/releases/download/peakminer-2-8-2/peakminer-2.8.2.tar.gz";
+    hash = "sha256-iVUAgmTf4E6KrtyrZCkfdsCFXsGGdlD7sxFYTut6Jm8=";
   };
 
   nativeBuildInputs = [autoPatchelfHook];
