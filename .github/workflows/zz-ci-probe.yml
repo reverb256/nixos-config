@@ -1,0 +1,15 @@
+---
+name: CI Probe
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Probe runner allocation
+    runs-on: [self-hosted, nixos]
+    steps:
+      - name: Hello
+        run: echo "probe ok $(hostname)"
