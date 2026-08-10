@@ -235,6 +235,8 @@ check_network() {
 check_mining_pause() {
     section "Mining Status Check"
 
+    if systemctl list-units --type=service --state=active --no-legend \
+        | awk '$1 ~ /^peakminer-.*\.service$/ {found = 1} END {exit !found}'; then
         log_warning "Mining services are active"
         log_info "Mining will be automatically paused during deployment"
     else

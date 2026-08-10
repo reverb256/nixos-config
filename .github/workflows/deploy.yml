@@ -87,10 +87,8 @@ jobs:
           TARGET="${{ github.event.inputs.target }}"
           if [ "$TARGET" = "all" ]; then
             COLMENA_TARGET=""
-            DEPLOY_HOSTS="$ALL_HOSTS"
           else
             COLMENA_TARGET="--on $TARGET"
-            DEPLOY_HOSTS="$TARGET"
           fi
 
           # Signal deployment start for GPU nodes
