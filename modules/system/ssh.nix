@@ -131,10 +131,12 @@ in {
         hosts.sentry.ip
         hosts.sentry.tailscale
       ];
-      # Updated 2026-08-08: sentry regenerated its SSH host key again; rotated to live key.
-      # (was unreachable, returned with a new ed25519 key). Source-of-truth
-      # rotated to match the current key.
-      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKcWYXgPp2/77LgeflDWtksCwX1AtdEz0i4DKUfg9NYk";
+      # Updated 2026-08-09: sentry host key rotated AGAIN — the 07-31 pin was
+      # wiped by the disko reinstall, sshd-keygen regenerated on first boot into
+      # the /persistent/etc/ssh bind mount. Source-of-truth pin matches the key
+      # currently served (verified live 2026-08-10). Per-file symlink fix in
+      # hosts/sentry/preservation.nix keeps this stable across reboots.
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMpvhWfHq3KVkwhdlW8GokTLw5P0QmUEZMGauaj8maJU";
     };
     krash2 = {
       hostNames = ["krash2" hosts.krash2.ip];
