@@ -401,6 +401,30 @@ in {
       };
     };
 
+    # Idempotent preseed (re-deploy safe).
+    # The nixpkgs-generated incus-preseed.service runs `incus admin init
+    # --preseed` unconditionally. On a 2nd activation the gamepass storage
+    # pool directory persists from the prior generation, so init errors with
+    # "Storage pool directory ... already exists" and ABORTS the whole
+    # activation. Guard it: if the pool is already known to incus, skip the
+    # preseed. The dormant VM is still created later by the operator via
+    # incus-gamepass-vm.
+    systemd.services.incus-preseed = {
+      serviceConfig = {
+        ExecStart = lib.mkForce [
+          (pkgs.writeShellScript "incus-preseed-guarded" ''
+            set -euo pipefail
+            if ${incus}/bin/incus storage pool list -f csv -c name 2>/dev/null \
+              | ${pkgs.gnugrep}/bin/grep -qx gamepass; then
+              echo "incus gamepass pool already present; skipping preseed (idempotent)"
+              exit 0
+            fi
+            exec ${incus}/bin/incus admin init --preseed < ''${pkgs.writeText "incus-gamepass-preseed.yaml" (lib.generators.toYAML {} config.virtualisation.incus.preseed)}
+          '')
+        ];
+      };
+    };
+
     users.users.j_kro.extraGroups = [ "incus" "incus-admin" ];
 
     # Incus delegates its cgroup to the QEMU VM process. Give that service
