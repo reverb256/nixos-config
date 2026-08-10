@@ -21,7 +21,6 @@ jobs:
   populate-cache:
     name: Build & push to nexus cache
     runs-on: [self-hosted, nixos]
-    needs: []          # independent of ci.yml; runs alongside it
     steps:
       - name: Checkout
         # pin:actions/checkout@v5

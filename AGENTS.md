@@ -121,13 +121,20 @@ NFS may still be used by explicitly configured storage workloads, but it is not 
 **Host:** nexus | **Status:** Online
 
 ### Runner Location
-- **Directories:** `/home/j_kro/actions-runner/`, `/home/j_kro/actions-runner-brand/`, `/home/j_kro/actions-runner-site-agency/`
-- **Status:** `nexus-runner.service` is the active user unit on nexus
-- **Systemd Service:** `nexus-runner.service` user unit on nexus
-- **Work Directory:** `_work/` within runner directory
+- **Host:** `nexus` (`10.1.1.120`)
+- **User:** `runner` system user
+- **Home/work directory:** `/var/lib/runner/` and `/var/lib/runner/_work/`
+- **Systemd service:** `github-actions-runner.service` (declaratively managed)
+- **Setup service:** `github-actions-runner-setup.service` refreshes registration using the configured token file
+- **Status check:** `ssh nexus systemctl is-active github-actions-runner`
 
 ### Environment (NixOS-specific)
-The runner requires these environment variables for dotnet 6.0 and HTTPS on NixOS:
+The runner service has an explicit NixOS-safe PATH containing the system profile,
+runner Nix profile, and default Nix profile. The system closure includes `nix`,
+`cachix`, Git, shell utilities, `jq`, and the GitHub runner. This is required
+because GitHub action steps do not inherit an interactive user's login shell.
+
+The runner also requires these environment variables for dotnet 6.0 and HTTPS on NixOS:
 ```nix
 LD_LIBRARY_PATH=/nix/store/.../icu4c-74.2/lib
 NIX_ICU_DATA=/nix/store/.../icu4c-74.2/share/icu/74.2
@@ -151,13 +158,15 @@ Tool packages available on nexus via `environment.systemPackages`:
 - `osv-scanner` — Vulnerability scanner (v2.3.3)
 
 ### Troubleshooting
-- **Runner not connecting:** Check systemd: `systemctl status github-actions-runner`
+- **Runner not connecting:** Check `systemctl status github-actions-runner` and `github-actions-runner-setup.service`
+- **`cachix` not found:** Verify `cachix` is in `/run/current-system/sw/bin` and that the service PATH includes `/var/lib/runner/.nix-profile/bin`
+- **`startup_failure` with zero jobs:** Inspect the repository selected-action allowlist; third-party action namespaces must be allowed before GitHub can instantiate jobs
 - **dotnet ICU errors:** Ensure LD_LIBRARY_PATH and NIX_ICU_DATA are set in the environment
-- **Job failures:** Check `runner.log` in the runner directory and `_diag/` for diagnostics
+- **Job failures:** Check `/var/lib/runner/_diag/` and the GitHub job log
 - **SSL errors:** Ensure SSL_CERT_FILE points to the NixOS ca-bundle
 
 ### Registration
-The runner is registered with GitHub for `reverb256/nixos-config` using the official runner configuration script. Re-registration requires a fresh token from GitHub Actions settings.
+The runner is registered with GitHub for `reverb256/nixos-config` by the declarative setup service using `/run/secrets/github-runner-pat`. Re-registration is automatic when the service starts; a fresh valid token/PAT is required if registration fails.
 
 ## Extracted Projects (7)
 
@@ -218,7 +227,7 @@ Non-system projects live in `/data/projects/own/` as standalone flakes:
 │   └── hermes-chat.nix              # Hermes Agent desktop client
 ├── tests/                           # NixOS tests (8 files)
 ├── secrets/                         # Encrypted sops material and secret templates
-└── .github/workflows/               # CI/CD (5 workflows, SHA-pinned)
+└── .github/workflows/               # CI/CD (16 workflows, SHA-pinned)
 ```
 
 ## ⚠️ Critical Safety Rules
@@ -375,7 +384,7 @@ repository guardrails are unsuitable.
 - Container images: pinned versions, no `:latest` tags
 - K8s admission policy blocks `:latest` (see `kubernetes-manifests/security/`)
 - `container-scanning.nix` is imported in `default.nix` (auto-enabled when Podman is enabled)
-- GitHub Actions pinned to commit SHAs
+- GitHub Actions are pinned to full commit SHAs; third-party action owners must also be present in the repository selected-action allowlist
 
 ## Central SSO Authentication
 

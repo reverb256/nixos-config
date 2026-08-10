@@ -1,7 +1,7 @@
 # CI/CD Pipeline
 
 > **Status:** Active reference
-> **Last Verified:** 2026-08-09
+> **Last Verified:** 2026-08-10
 > **Owner:** Cluster operations
 
 ---
@@ -122,14 +122,55 @@ Deploy to all hosts or specific host:
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| `flake-check.yml` | Push, PR | Validate flake syntax |
-| `build-test.yml` | Push to main | Build all hosts |
-| `colmena-deploy.yml` | Manual | Deploy via Colmena |
+| `ci.yml` | Push, PR, manual | Parse, lint, source tests, security scan, and host builds |
+| `cache.yml` | Push, PR, manual | Build host closures and populate the Nexus cache (best-effort) |
+| `ci-test-automation.yml` | Push, PR, manual | Test coverage and non-blocking auxiliary validation |
+| `secretspec-build.yml` | Secretspec-related push/PR, manual | Secretspec schema, ephemeral end-to-end check, and best-effort build |
+| `deploy.yml` | Manual / deployment events | Guarded cluster deployment workflow |
+| `flake-update.yml` | Weekly schedule, manual | Selective flake-input updates and PR creation |
+| `doc-rot-guard.yml` | Daily schedule, docs/config PRs, manual | Documentation freshness and link validation |
+| `pr-validation.yml` | Pull requests | Branch, issue-link, commit, and documentation checks |
+| `cluster-status.yml` | Every 5 minutes, manual | Report deployment state for all hosts |
+| `ci-doctor.yml` | Manual / diagnostic events | CI health diagnostics |
+| `recover-host.yml` | Manual | Host recovery procedure |
+| `auto-merge-to-prod.yml` | Push to main | Wait for checks and merge main to prod |
+| `auto-delete-head-branches.yml` | Pull requests | Remove merged head branches |
+| `dependabot-auto-merge.yml` | Dependabot events | Automate approved dependency merges |
+| `stale.yml` | Schedule | Stale issue/PR management |
+| `update-stability-matrix.yml` | Weekly schedule, manual | Update Stability Matrix package metadata |
+| `weekly-git-health.yml` | Weekly schedule | Repository health checks |
 
 ### Required Secrets
 
 - `SSH_PRIVATE_KEY`: SSH key for Colmena deployment
 - `KNOWN_HOSTS`: SSH known hosts fingerprint
+- `CACHIX_AUTH_TOKEN`: token used by cache-enabled workflows
+- `GITHUB_TOKEN`: supplied by GitHub for repository API/PR operations
+
+### Self-hosted runner requirements
+
+The self-hosted runner is the declarative `github-actions-runner.service` on
+Nexus, running as the `runner` system user from `/var/lib/runner`. The NixOS
+module provisions `nix`, `cachix`, the GitHub runner, and the shell/tooling used
+by `run:` steps. Keep `cachix` in the system closure: `cachix-action` performs a
+best-effort `nix-env` installation, but the action must still find `cachix` on
+the service PATH on NixOS.
+
+The repository Actions policy is intentionally allowlisted. The selected-action
+allowlist must permit GitHub-owned actions and these third-party namespaces:
+`cachix/*` and `peter-evans/*`. Inspect it with:
+
+```bash
+gh api repos/reverb256/nixos-config/actions/permissions/selected-actions
+```
+
+When adding a third-party action, pin it to a full 40-character commit SHA,
+add its owner/repository pattern to the allowlist, and verify both before
+merging. A missing allowlist entry can fail a workflow at startup with zero
+jobs; a runner/tool failure occurs later and must be diagnosed from job logs.
+The allowlist check is intentionally an operator preflight (`scripts/ci/check-actions-policy.sh`),
+not a normal workflow step: GitHub's default `GITHUB_TOKEN` does not generally
+have repository-administration permission to read Actions policy settings.
 
 ---
 
