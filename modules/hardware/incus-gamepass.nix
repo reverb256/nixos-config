@@ -419,7 +419,7 @@ in {
               echo "incus gamepass pool already present; skipping preseed (idempotent)"
               exit 0
             fi
-            exec ${incus}/bin/incus admin init --preseed < ''${pkgs.writeText "incus-gamepass-preseed.yaml" (lib.generators.toYAML {} config.virtualisation.incus.preseed)}
+            exec ${incus}/bin/incus admin init --preseed < ${pkgs.writeText "incus-gamepass-preseed.yaml" (lib.generators.toYAML {} config.virtualisation.incus.preseed)}
           '')
         ];
       };
