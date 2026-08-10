@@ -164,7 +164,14 @@ in {
       after = [
         "agenix.service"
         "network.target"
+        # tmpfiles MUST run first: the ReadWritePaths below point at
+        # ~/.config/claude and ~/.config/crush, created by the
+        # systemd.tmpfiles.rules in this same module. If tmpfiles hasn't run,
+        # those dirs are absent at namespace setup and systemd fails the unit
+        # with status=226/NAMESPACE (confirmed root cause 2026-08-10).
+        "systemd-tmpfiles-setup.service"
       ];
+      requires = ["systemd-tmpfiles-setup.service"];
       wants = ["agenix.service"];
       wantedBy = ["multi-user.target"];
       path = [
