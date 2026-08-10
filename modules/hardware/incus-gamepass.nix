@@ -30,6 +30,14 @@
   vfioAudio = "0000:24:00.1";
   lookingGlass = pkgs.looking-glass-client;
 
+  # nixpkgs' virtio-win is only the extracted driver tree (no ISO). Windows'
+  # installer needs the VirtIO ISO to see its disk, so fetch the official
+  # release ISO pinned to the same version nixpkgs ships (0.1.285-1).
+  virtioWinIso = pkgs.fetchurl {
+    url = "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.285-1/virtio-win.iso";
+    sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # FILL_POST_PREFETCH
+  };
+
   lookingGlassCheck = pkgs.writeShellScript "gamepass-looking-glass-check" ''
     set -euo pipefail
     device=/dev/kvmfr0
@@ -198,7 +206,7 @@
     libvirt_vm=${lib.escapeShellArg libvirtVm}
     pool=${lib.escapeShellArg storagePool}
     iso=${lib.escapeShellArg "/var/lib/libvirt/images/win11.iso"}
-    virtio_iso=${lib.escapeShellArg "${pkgs.virtio-win}/virtio-win.iso"}
+    virtio_iso=${lib.escapeShellArg "${virtioWinIso}"}
 
     usage() {
       cat >&2 <<'EOF'

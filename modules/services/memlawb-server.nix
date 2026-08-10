@@ -43,7 +43,7 @@
 
   config = lib.mkIf config.services.memlawb-server.enable {
     systemd.tmpfiles.rules = [
-      "d \${config.services.memlawb-server.dataDir} 0755 j_kro users -"
+      "d ${config.services.memlawb-server.dataDir} 0755 j_kro users -"
     ];
 
     systemd.services.memlawb-server = {
@@ -59,11 +59,11 @@
         RestartSec = "5s";
         Environment = [
           "STORE=fs"
-          "DATA_DIR=\${config.services.memlawb-server.dataDir}"
-          "PORT=\${toString config.services.memlawb-server.port}"
+          "DATA_DIR=${config.services.memlawb-server.dataDir}"
+          "PORT=${toString config.services.memlawb-server.port}"
           "ALLOW_UNAUTHENTICATED=true"
         ];
-        ExecStart = "\${pkgs.bun}/bin/bun run \${config.services.memlawb-server.appDir}/src/index.ts";
+        ExecStart = "${pkgs.bun}/bin/bun run ${config.services.memlawb-server.appDir}/src/index.ts";
         WorkingDirectory = config.services.memlawb-server.appDir;
       };
     };
