@@ -19,9 +19,18 @@
   #     satisfying the rescue closure-carry requirement (#243).
   #
   # Build (on the nexus builder, never zephyr-local — OOM guard):
-  #   nix build .#nixosConfigurations.portable.config.system.build.image
+  #   nix build .#portable-image
   #   sudo dd if=result/portable.raw of=/dev/disk/by-id/usb-... bs=4M status=progress oflag=sync
   meshKeys = import ../../mesh-keys.nix;
+
+  # 1-bit Bonsai 27B GGUF embedded at a fixed path (/models/...) so the
+  # llama-server service can reference it. repart storePaths only carries
+  # store paths, so wrap the GGUF in a runCommand that places it at the
+  # exact target subpath; a tmpfiles rule symlinks it into place at boot.
+  bonsaiModel = pkgs.runCommand "bonsai-1bit-model" { } ''
+    mkdir -p $out/models/bonsai/1bit-27b
+    cp ${/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf} $out/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf
+  '';
 in {
   imports = [
     "${modulesPath}/image/repart.nix"
@@ -54,7 +63,12 @@ in {
         };
       };
       "root" = {
-        storePaths = [config.system.build.toplevel];
+        # The toplevel carries /etc (populated at boot by activation) and the
+        # store closure. The Bonsai model is symlinked into place via a
+        # tmpfiles rule (see systemd.tmpfiles.rules) that references bonsaiModel.
+        storePaths = [
+          config.system.build.toplevel
+        ];
         repartConfig = {
           Type = "root";
           Format = "ext4";
@@ -107,14 +121,31 @@ in {
   zramSwap.enable = lib.mkDefault true;
 
   # ── GPU: universal module, no vendor hardcode (#423) ──
+  # CUDA runtime pulls in unfree CUDA EULA packages; the stick is a personal
+  # throwaway so allowUnfree is acceptable here (Vulkan is the primary runner).
+  nixpkgs.config.allowUnfree = true;
   hardware.graphics.enable = true;
   hardware.gpu-compute.enable = true;
-  # Vulkan ICDs for both vendors; heavy CUDA/ROCm stay out of this boot
-  # closure (contract #425: minimal; dev-shell can add them later).
+  # Vulkan ICDs for both vendors (universal runner for all 7 GPUs).
   hardware.gpu-compute.vulkan.enable = true;
+  # CUDA runtime libs on the stick (NVIDIA hosts can run CUDA tools directly).
+  hardware.gpu-compute.cuda.enable = true;
 
-  # ── Desktop / pinch-work: niri + SDDM autologin ──
+  # ── Desktop / pinch-work: niri + Noctalia shell + SDDM autologin ──
   programs.niri.enable = true;
+  # Noctalia (native Wayland bar/notifications/launcher) launched via XDG
+  # autostart (version-proof; does not depend on the niri module config schema).
+  programs.noctalia.enable = true;
+  programs.noctalia.systemd.enable = lib.mkForce false;
+  environment.sessionVariables.NOCTALIA_CONFIG_HOME = "/etc";
+  environment.etc."xdg/autostart/noctalia.desktop".text = ''
+    [Desktop Entry]
+    Type=Application
+    Name=Noctalia
+    Exec=noctalia
+    Comment=Native Wayland shell (bar/notifications/launcher)
+    X-GNOME-Autostart-enabled=true
+  '';
   services.displayManager.sddm.enable = true;
   services.displayManager.sddm.wayland.enable = true;
   services.displayManager.autoLogin = {
@@ -161,6 +192,48 @@ in {
     "rescue/runbook.md".text = builtins.readFile ../../docs/runbooks/nixos-usb-rescue.md;
   };
 
+  # ── Local AI inference: 1-bit Bonsai 27B on Vulkan + Hermes ──
+  # Symlink the embedded model (in /nix/store via bonsaiModel) to the fixed
+  # path the service expects, created at boot by tmpfiles.
+  systemd.tmpfiles.rules = [
+    "L+ /models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf - - - - ${bonsaiModel}/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf"
+  ];
+  # llama-cpp-vulkan serves it on 127.0.0.1:8080; Hermes points at that.
+  systemd.services.bonsai-local = {
+    description = "Local Bonsai 27B 1-bit inference (Vulkan)";
+    after = ["network.target"];
+    wantedBy = ["multi-user.target"];
+    serviceConfig = {
+      Type = "simple";
+      User = "j_kro";
+      ExecStart = lib.getExe (pkgs.callPackage ../../packages/llama-cpp-vulkan.nix { })
+        + " -m /models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf"
+        + " --host 127.0.0.1 --port 8080 -ngl 99 -fa on"
+        + " -c 131072 --cache-type-k q4_0 --cache-type-v q4_0 --fit off"
+        + " --temp 0.7 --top-p 0.95 --top-k 20 --min-p 0 --jinja --parallel 1"
+        + " --alias bonsai-27b-1bit-local";
+      Restart = "on-failure";
+      RestartSec = "10";
+      StandardOutput = "journal";
+      StandardError = "journal";
+    };
+  };
+  # Hermes desktop client: point at the local Bonsai server.
+  environment.etc."hermes/config.toml".text = ''
+    [models.local]
+    name = "bonsai-27b-1bit-local"
+    provider = "openai"
+    base_url = "http://127.0.0.1:8080/v1"
+    api_key = "sk-local"
+    context_length = 131072
+    default = true
+
+    [providers.local]
+    type = "openai"
+    base_url = "http://127.0.0.1:8080/v1"
+    api_key = "sk-local"
+  '';
+
   # ── Nix on the stick: official cache + self-contained store ──
   nix.settings = {
     substituters = [
@@ -201,6 +274,10 @@ in {
     # GPU observation
     vulkan-tools
     pciutils
+    # AI inference runner (Vulkan backend — NVIDIA + AMD)
+    (pkgs.callPackage ../../packages/llama-cpp-vulkan.nix { })
+    # Hermes desktop client, configured for local inference
+    (pkgs.callPackage ../../packages/hermes-chat.nix { })
   ];
 
   system.stateVersion = "25.05"; # sticky: matches repo channel
