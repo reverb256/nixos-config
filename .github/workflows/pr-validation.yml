@@ -19,8 +19,10 @@ jobs:
           fetch-depth: 0
 
       - name: "Branch naming convention"
+        env:
+          PR_HEAD_REF: ${{ github.head_ref }}
         run: |
-          BRANCH="${{ github.head_ref }}"
+          BRANCH="$PR_HEAD_REF"
           if [[ "$BRANCH" =~ ^(issue|feat|fix|chore|dependabot)/[a-z0-9._-]+$ ]]; then
             echo "✅ Branch name: $BRANCH"
           else
@@ -29,8 +31,10 @@ jobs:
           fi
 
       - name: "Linked issue check"
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          BODY="${{ github.event.pull_request.body }}"
+          BODY="$PR_BODY"
           if echo "$BODY" | grep -qiE "(Closes|Fixes|Resolves|Related to) #[0-9]+"; then
             echo "✅ PR references an issue"
           else
@@ -53,8 +57,10 @@ jobs:
           done <<< "$COMMITS"
 
       - name: "Conventional commit title"
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          TITLE="${{ github.event.pull_request.title }}"
+          TITLE="$PR_TITLE"
           if echo "$TITLE" | grep -qiE "^(feat|fix|chore|refactor|docs|test|ci)(\([a-z]+\))?:"; then
             echo "✅ Title follows conventional commits"
           else

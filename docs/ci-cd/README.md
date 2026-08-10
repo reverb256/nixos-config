@@ -151,10 +151,11 @@ Deploy to all hosts or specific host:
 
 The self-hosted runner is the declarative `github-actions-runner.service` on
 Nexus, running as the `runner` system user from `/var/lib/runner`. The NixOS
-module provisions `nix`, `cachix`, the GitHub runner, and the shell/tooling used
-by `run:` steps. Keep `cachix` in the system closure: `cachix-action` performs a
-best-effort `nix-env` installation, but the action must still find `cachix` on
-the service PATH on NixOS.
+module provisions `nix`, `cachix`, `gh`, the GitHub runner, and the shell/tooling
+used by `run:` steps. Cachix-enabled workflows pass
+`cachixBin: /run/current-system/sw/bin/cachix` because `cachix-action`'s default
+`nix-env` installer is not reliable under this system runner service. Keep
+`cachix` in the system closure and keep the runner profile on PATH as a fallback.
 
 The repository Actions policy is intentionally allowlisted. The selected-action
 allowlist must permit GitHub-owned actions and these third-party namespaces:
