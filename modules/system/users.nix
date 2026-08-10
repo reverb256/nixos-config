@@ -28,6 +28,7 @@
       "openrazer"
       "gamemode"
       "i2c"
+      "kvm"
     ];
     packages = with pkgs; (
       # Desktop apps only on hosts with a desktop environment
@@ -83,6 +84,13 @@
 
   users.groups.plugdev = {};
   users.groups.gamemode = {};
+  # Pin kvm group to a system-range GID (400-999) so udev can resolve it when
+  # creating /dev/kvm. Without this, udev's KERNEL=="kvm",GROUP="kvm" rule
+  # fails to resolve the out-of-range GID (was 302) and /dev/kvm falls back to
+  # restrictive ownership, causing QEMU/KVM "Operation not permitted" in incus.
+  users.groups.kvm = { gid = 998; };
+  # j_kro already a kvm member via incus-gamepass; ensure root can use KVM too.
+  users.users.root.extraGroups = [ "kvm" ];
   users.groups.i2c = {};
   users.groups.ai-inference = {};
 }
