@@ -360,7 +360,6 @@ in {
           {
             name = "gamepass-win11";
             config = {
-              "image.os" = "Windows";
               "limits.cpu" = "8-15";
               "limits.memory" = "16GiB";
               "limits.memory.hotplug" = "false";
