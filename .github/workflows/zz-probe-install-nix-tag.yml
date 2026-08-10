@@ -1,0 +1,19 @@
+---
+name: Zz Probe Install Nix Tag
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-install-nix-v31:
+    name: Test Install Nix v31
+    runs-on: [self-hosted, nixos]
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - uses: cachix/install-nix-action@v31
+      - run: echo "install-nix tag probe ran"
