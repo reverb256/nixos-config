@@ -1,0 +1,33 @@
+---
+name: Zz Diagnose
+
+# TEMPORARY diagnostic workflow (remove after CI/CD fix confirmed).
+# Bisects the startup_failure: (a) a bare self-hosted job with no actions,
+# and (b) a self-hosted job using actions/checkout pinned to the same SHA
+# the other workflows use.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  no-actions:
+    name: No-Actions Probe
+    runs-on: [self-hosted, nixos]
+    steps:
+      - name: Hello
+        run: echo "no-actions probe ran on $(hostname)"
+
+  with-checkout:
+    name: With-Checkout Probe
+    runs-on: [self-hosted, nixos]
+    steps:
+      - name: Checkout
+        # pin:actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - name: Hello
+        run: echo "checkout probe ran on $(hostname)"
