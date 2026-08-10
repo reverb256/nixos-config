@@ -141,6 +141,20 @@ in {
       servers.playwright.enable = true;
       servers.context7.apiKeyFile = cfg.context7ApiKeyFile;
     };
+    # Pre-create the per-user config dirs at ACTIVATION (before multi-user).
+    # The systemd.tmpfiles.rules below run as part of systemd-tmpfiles-setup,
+    # but a namespace-unit (ProtectSystem=strict + ReadWritePaths) whose target
+    # dir is absent at namespace setup fails with status=226/NAMESPACE. Creating
+    # them here, in the activation script ordering, guarantees they exist before
+    # ai-coding-tools-config.service (or any other unit) builds its mount
+    # namespace. (root cause 2026-08-10)
+    system.activationScripts.ai-coding-tools-dirs = lib.stringAfter [ "users" ] ''
+      install -d -m 0755 -o ${cfg.user} -g users /home/${cfg.user}/.config/claude
+      install -d -m 0755 -o ${cfg.user} -g users /home/${cfg.user}/.config/crush
+      install -d -m 0755 -o ${cfg.user} -g users /home/${cfg.user}/.opencode
+      install -d -m 0700 -o ${cfg.user} -g users /home/${cfg.user}/.pi/agent
+    '';
+
     # Ensure required directories exist
     systemd.tmpfiles.rules = [
       "d /home/${cfg.user}/.factory 0700 ${cfg.user} users -"
