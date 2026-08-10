@@ -2,8 +2,9 @@
 name: Zz Diagnose
 
 # TEMPORARY diagnostic workflow (remove after CI/CD fix confirmed).
-# Bisect step 2: does `on: pull_request:` alone break self-hosted runs?
-# (nix-actions job removed; if this passes, the nix actions are the culprit)
+# Bisect step 3: isolate which nix action breaks self-hosted job startup.
+# Step 1 (checkout+install-nix+cachix jobs) failed at startup;
+# step 2 (checkout only) passed. Split the two actions into separate jobs.
 
 on:
   push:
@@ -31,3 +32,34 @@ jobs:
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
       - name: Hello
         run: echo "checkout probe ran on $(hostname)"
+
+  install-nix-only:
+    name: Probe-Install-Nix-Only
+    runs-on: [self-hosted, nixos]
+    steps:
+      - name: Checkout
+        # pin:actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - name: Install Nix
+        # pin:cachix/install-nix-action@v31
+        uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+      - name: Hello
+        run: echo "install-nix probe ran on $(hostname)"
+
+  cachix-only:
+    name: Probe-Cachix-Only
+    runs-on: [self-hosted, nixos]
+    steps:
+      - name: Checkout
+        # pin:actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - name: Setup Cachix
+        # pin:cachix/cachix-action@v17
+        uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71
+        with:
+          name: reverb-os
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Hello
+        run: echo "cachix probe ran on $(hostname)"
