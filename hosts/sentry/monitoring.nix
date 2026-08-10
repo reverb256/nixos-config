@@ -35,7 +35,9 @@
       # listens on 0.0.0.0:3100 for cluster-wide push.
       loki.extraConfiguration = {
         memberlist = {
-          bind_addr = "127.0.0.1";
+          # Loki's memberlist.bind_addr is a StringSlice -> must be a list,
+          # not a bare string (validate-loki-conf rejects !!str into it).
+          bind_addr = [ "127.0.0.1" ];
           bind_port = 7946;
         };
       };
