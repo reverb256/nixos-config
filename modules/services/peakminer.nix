@@ -109,14 +109,14 @@ in {
       serviceName = "peakminer-${instance.name}";
       powerLimitScript = pkgs.writeShellScript "peakminer-power-limit-${instance.name}" ''
         set -euo pipefail
-        export PATH="${pkgs.gawk}/bin:${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin:${pkgs.gnused}/bin:${pkgs.findutils}/bin:${pkgs.systemd}/bin:''${PATH:-}"
+        export PATH="/run/current-system/sw/bin:${pkgs.gawk}/bin:${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin:${pkgs.gnused}/bin:${pkgs.findutils}/bin:${pkgs.systemd}/bin:''${PATH:-}"
         for attempt in $(seq 1 30); do
           resolved=$(${resolveGpu} "${instance.gpuName}" || true)
           if [ -z "$resolved" ]; then
             echo "PeakMiner: GPU '${instance.gpuName}' not present, skipping power limit" >&2
             exit 0
           fi
-          uuid=$(echo "$resolved" | ${pkgs.gawk}/bin/awk '{print $2}')
+          uuid=$(echo "$resolved" | /run/current-system/sw/bin/awk '{print $2}')
           if /run/current-system/sw/bin/nvidia-smi \
               -i "$uuid" \
               -pl ${toString instance.powerLimit}; then
@@ -144,7 +144,7 @@ in {
           echo "PeakMiner ${instance.name}: GPU '${instance.gpuName}' not present; exiting" >&2
           exit 1
         fi
-        cuda_idx=$(echo "$resolved" | ${pkgs.gawk}/bin/awk '{print $1}')
+        cuda_idx=$(echo "$resolved" | /run/current-system/sw/bin/awk '{print $1}')
         echo "PeakMiner ${instance.name}: targeting CUDA index $cuda_idx (${instance.gpuName})" >&2
 
         while true; do

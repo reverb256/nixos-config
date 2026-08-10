@@ -100,31 +100,6 @@ resume_xmrig() {
   return 1
 }
 
-  local stopped=0
-    if systemctl list-unit-files | grep -q "^${unit}"; then
-      if systemctl is-active --quiet "$unit"; then
-        systemctl stop "$unit"
-        echo "  Stopped: $unit"
-        stopped=$((stopped + 1))
-      fi
-    fi
-  done
-  return $stopped
-}
-
-  local started=0
-    if systemctl list-unit-files | grep -q "^${unit}"; then
-      if ! systemctl is-active --quiet "$unit"; then
-        systemctl start "$unit" 2>/dev/null || true
-        if systemctl is-active --quiet "$unit"; then
-          echo "  Started: $unit"
-          started=$((started + 1))
-        fi
-      fi
-    fi
-  done
-  return $started
-}
 
 # Function to pause mining services
 stop_mining() {
