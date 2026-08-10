@@ -89,6 +89,10 @@
   # fails to resolve the out-of-range GID (was 302) and /dev/kvm falls back to
   # restrictive ownership, causing QEMU/KVM "Operation not permitted" in incus.
   users.groups.kvm = { gid = lib.mkForce 998; };
+  # incus runs its QEMU feature-check / VM processes as the 'nobody' user
+  # (qemu '-runas nobody'). 'nobody' must be in the 'kvm' group or KVM device
+  # access is denied (EPERM), which breaks incus VM support entirely.
+  users.users.nobody.extraGroups = [ "kvm" ];
   # j_kro already a kvm member via incus-gamepass; ensure root can use KVM too.
   users.users.root.extraGroups = [ "kvm" ];
   users.groups.i2c = {};
