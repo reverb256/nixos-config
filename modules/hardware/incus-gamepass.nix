@@ -416,7 +416,7 @@ in {
       "d ${storageRoot} 0750 root root -"
     ];
 
-    environment.systemPackages = [ gamepassVm lookingGlassLauncher pkgs.squashfs-tools ];
+    environment.systemPackages = [ gamepassVm lookingGlassLauncher pkgs.squashfsTools ];
 
     # Both backend units are manual-only. Conflicts prevents a normal
     # systemctl start from allowing both managers to own the GPU at once.
