@@ -82,7 +82,8 @@ with lib; let
 
   # Shorthand: 1-bit Bonsai service (3.5 GB). Uses explicit context & q4_0 KV.
   # `model` and `memoryMax` are overridable per-host (sentry uses /srv/models
-  # and a smaller ctx/ram cap than the 8-24 GB NVIDIA hosts).
+  # and a smaller ctx/ram cap than the 8-24 GB NVIDIA hosts). Also opens the
+  # service port in the host firewall (cluster convention: mkOptionDefault).
   mk1bitService = { name, desc, port, gpu ? null, extraEnv ? {}, binary ? prismBinary, model ? cfg.onebitModel, contextSize ? "131072", cacheTypeK ? "q4_0", cacheTypeV ? "q4_0", memoryMax ? "6G" }: {
     systemd.services."bonsai-1bit-${name}" = {
       description = desc;
@@ -109,6 +110,7 @@ with lib; let
       };
       environment = optionalAttrs (gpu != null) { CUDA_VISIBLE_DEVICES = gpu; } // extraEnv;
     };
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ port ];
   };
 
   # Shorthand: Ternary Bonsai service (6.7 GB).
@@ -144,6 +146,7 @@ with lib; let
         CUDA_CACHE_DISABLE = "1";
       } // extraEnv;
     };
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ port ];
   };
 
   # ── All services, each gated by hostname ──
