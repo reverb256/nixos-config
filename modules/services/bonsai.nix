@@ -225,22 +225,22 @@ in {
     };
 
     ternaryModel = mkOption {
-      type = types.path;
+      type = types.str;
       default = "/models/bonsai/ternary-27b/Ternary-Bonsai-27B-Q2_0.gguf";
     };
 
     onebitModel = mkOption {
-      type = types.path;
+      type = types.str;
       default = "/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf";
     };
 
     dsparkModel = mkOption {
-      type = types.nullOr types.path;
+      type = types.nullOr types.str;
       default = "/models/bonsai/dspark/Ternary-Bonsai-27B-dspark-Q4_1.gguf";
     };
 
     mmproj = mkOption {
-      type = types.nullOr types.path;
+      type = types.nullOr types.str;
       default = "/models/bonsai/ternary-27b/Ternary-Bonsai-27B-mmproj-Q8_0.gguf";
     };
 
