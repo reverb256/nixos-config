@@ -78,5 +78,9 @@ in {
 
       ip saddr { ${clusterSubnet} } tcp dport { 3333, 3334 } accept
       ip saddr { ${clusterSubnet} } udp dport 3333 accept
+
+      # Bonsai 27B local inference (llama-server) — cluster-internal only.
+      # 8003 sentry (AMD Vulkan), 1235 nexus, 1236 zephyr, 8002/8006 forge.
+      ip saddr { ${clusterSubnet} } tcp dport { 8003, 1235, 1236, 8002, 8006 } accept
   '';
 }
