@@ -519,8 +519,7 @@
   # ----------------------------------------------------------------------------
   services.bonsai = {
     enable = true;
-    # Mainline llama.cpp (nixpkgs) with Vulkan backend — resolves on build host.
-    vulkanMainlineStorePath = pkgs.llama-cpp.outPath;
+    # Mainline llama.cpp with Vulkan + CUDA disabled (module default).
     # Sentry has no /models mount; weights live at /srv/models.
     onebitModel = "/srv/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf";
   };
