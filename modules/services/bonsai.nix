@@ -110,7 +110,6 @@ with lib; let
       };
       environment = optionalAttrs (gpu != null) { CUDA_VISIBLE_DEVICES = gpu; } // extraEnv;
     };
-    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ port ];
   };
 
   # Shorthand: Ternary Bonsai service (6.7 GB).
@@ -146,7 +145,6 @@ with lib; let
         CUDA_CACHE_DISABLE = "1";
       } // extraEnv;
     };
-    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ port ];
   };
 
   # ── All services, each gated by hostname ──
