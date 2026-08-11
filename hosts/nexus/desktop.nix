@@ -55,6 +55,26 @@
   # Zephyr retains the global capability setting for its separate HDR path.
   programs.gamescope.capSysNice = lib.mkForce false;
 
+  # Sole owner of the native Steam Gamescope session for Nexus. Keep the
+  # session declaration beside SDDM/autologin rather than duplicating it in
+  # cluster-service or shared gaming modules.
+  programs.steam = {
+    enable = true;
+    gamescopeSession = {
+      enable = lib.mkForce true;
+      args = [
+        "--expose-wayland"
+        "--force-composition"
+        "-W"
+        "3840"
+        "-H"
+        "2160"
+        "-r"
+        "60"
+      ];
+    };
+  };
+
   services.flatpak.enable = true;
   xdg.portal.enable = true;
   xdg.portal.config.common.default = "*";
