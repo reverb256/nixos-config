@@ -83,8 +83,7 @@
         3900
         3901
         9100 # Prometheus node-exporter
-        8003 # Bonsai 27B 1-bit (AMD Vulkan inference)
-      ]; # SSH + Kubelet API + Loki + Garage + Bonsai (merges with cluster defaults)
+      ]; # SSH + Kubelet API + Loki + Garage (merges with cluster defaults)
       allowedTCPPortRanges = lib.mkOptionDefault [
         {
           from = 30000;
