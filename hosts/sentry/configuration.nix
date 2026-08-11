@@ -37,6 +37,9 @@
     # hand-rotated in ssh.nix:121 after a rebuild). Importing activates the
     # /persistent symlinks below.
     ./preservation.nix
+
+    # Bonsai 27B local inference (1-bit Q1_0 on AMD RX 5600 XT via Vulkan)
+    ../../modules/services/bonsai.nix
   ];
 
   # ============================================================================
@@ -450,10 +453,7 @@
   services.secretspec-validator = {
     enable = true;
     production = true;
-    # Aligned with cluster default 2026-08-10 (see SECRETSPEC-CONSOLIDATION.md):
-    # 33 manifest entries are intentionally env/dotenv-fallback with no sops
-    # route; failOnMissing=true caused permanent unit failure on every run.
-    failOnMissing = false;
+    failOnMissing = true;
   };
 
   # Override specific secret permissions for mining service
@@ -511,4 +511,17 @@
   services.prometheus.alertmanager.extraFlags = [
     "--cluster.listen-address="
   ];
+
+  # ----------------------------------------------------------------------------
+  # BONSAI 27B 1-bit on AMD RX 5600 XT via Vulkan (mainline llama-cpp-b9048).
+  # 2026-08-11: weights at /srv/models/bonsai/1bit-27b (sentry has no /models).
+  # ICD path forced in the module so RADV is found without the system icd.d symlink.
+  # ----------------------------------------------------------------------------
+  services.bonsai = {
+    enable = true;
+    # Mainline llama.cpp (nixpkgs) with Vulkan backend — resolves on build host.
+    vulkanMainlineStorePath = pkgs.llama-cpp.outPath;
+    # Sentry has no /models mount; weights live at /srv/models.
+    onebitModel = /srv/models/bonsai/1bit-27b/Bonsai-27B-Q1_0.gguf;
+  };
 }
