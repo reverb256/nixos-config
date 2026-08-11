@@ -450,7 +450,10 @@
   services.secretspec-validator = {
     enable = true;
     production = true;
-    failOnMissing = true;
+    # Aligned with cluster default 2026-08-10 (see SECRETSPEC-CONSOLIDATION.md):
+    # 33 manifest entries are intentionally env/dotenv-fallback with no sops
+    # route; failOnMissing=true caused permanent unit failure on every run.
+    failOnMissing = false;
   };
 
   # Override specific secret permissions for mining service
