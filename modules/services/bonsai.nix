@@ -110,6 +110,7 @@ with lib; let
       };
       environment = optionalAttrs (gpu != null) { CUDA_VISIBLE_DEVICES = gpu; } // extraEnv;
     };
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ port ];
   };
 
   # Shorthand: Ternary Bonsai service (6.7 GB).
@@ -145,6 +146,7 @@ with lib; let
         CUDA_CACHE_DISABLE = "1";
       } // extraEnv;
     };
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ port ];
   };
 
   # ── All services, each gated by hostname ──
@@ -192,14 +194,14 @@ with lib; let
   });
 
   # 1-bit on sentry AMD via MAINLINE llama.cpp Vulkan (no fork build).
-  # 5600 XT has 6 GB VRAM — clamp ctx to 8192 and RAM cap to 8G so the model
-  # (3.6 GB) + q4_0 KV actually fit. VK_ICD_FILENAMES forces RADV discovery.
-  # CUDA is disabled in the package so libcuda.so.1 is not required.
+  # 5600 XT has 6 GB VRAM — Bonsai is hybrid-attention (only 16/64 layers
+  # cache), so KV is small. Testing how far -c can go on 6 GB (q4_0 KV).
+  # VK_ICD_FILENAMES forces RADV discovery. CUDA disabled (no libcuda on AMD).
   bit1Sentry = mkIf (host == "sentry") (mk1bitService {
     name = "sentry"; desc = "Bonsai 27B 1-bit — Sentry AMD RX 5600 XT via Vulkan (port 8003)";
     port = 8003; binary = mainlineVulkanBinary;
     extraEnv = { GGML_VULKAN_DEVICE = "0"; VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/radeon_icd.x86_64.json"; };
-    contextSize = "8192"; cacheTypeK = "q4_0"; cacheTypeV = "q4_0"; memoryMax = "8G";
+    contextSize = "32768"; cacheTypeK = "q4_0"; cacheTypeV = "q4_0"; memoryMax = "8G";
   });
 
   # 1-bit on krash3 CPU-only (no GPU available)
