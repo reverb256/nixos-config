@@ -784,6 +784,56 @@ hermes-update-check:
 
 # ── GITHUB ISSUES ─────────────────────────────────────────────────────────────
 
+# ── HERMES AGENT (nix profile) ──────────────────────────────────────────────
+# Hermes is NOT built by nixos-config (issue #334): it lives in the USER NIX
+# PROFILE via `nix profile install github:NousResearch/hermes-agent`, tracking
+# upstream `main`. The recipes above (`hermes-update` / `hermes-update-check`)
+# instead bump the OTHER flake inputs and rebuild the whole OS — do NOT use them
+# to bump the hermes binary. These recipes upgrade the profile entry to the
+# latest commit on main: no nixos-rebuild, no cluster-wide switch, miners safe.
+# The running TUI/desktop must be restarted to load the new build.
+hermes-upgrade-profile:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! nix profile list 2>/dev/null | grep -q 'hermes-agent'; then
+        echo "ERROR: hermes-agent is not in this host's nix profile." >&2
+        echo "       Install it first: nix profile install github:NousResearch/hermes-agent" >&2
+        exit 1
+    fi
+    OLD=$(nix profile list 2>/dev/null | grep -oP 'rev=\K[0-9a-f]+' | head -1)
+    echo "Upgrading hermes-agent in user nix profile (tracking main)..."
+    nix profile upgrade hermes-agent 2>&1 | tail -15
+    NEW=$(nix profile list 2>/dev/null | grep -oP 'rev=\K[0-9a-f]+' | head -1)
+    echo "  old rev: ${OLD:-none}"
+    echo "  new rev: ${NEW:-none}"
+    if [ "${OLD}" = "${NEW}" ]; then
+        echo "  (already at latest commit on main — nothing changed)"
+    else
+        echo "  upgraded."
+    fi
+    echo "Installed: $(hermes --version 2>/dev/null | head -1)"
+    echo "Restart the running TUI/desktop to load the new build."
+
+# Same as above, looped over every cluster host. Hermes runs from each host's
+# own user nix profile; any host without the entry is skipped (not an error).
+hermes-upgrade-profile-all:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for host in {{HOSTS}}; do
+        echo "=== $host ==="
+        if [ "$host" = "$(hostname -s)" ]; then
+            just hermes-upgrade-profile
+        else
+            ssh -o ConnectTimeout=15 "$host" 'bash --norc --noprofile -c "
+                if ! nix profile list 2>/dev/null | grep -q hermes-agent; then
+                    echo \"  hermes-agent not in profile - skipping\"; exit 0; fi
+                nix profile upgrade hermes-agent 2>&1 | tail -5
+                echo \"  installed: $(hermes --version 2>/dev/null | head -1)\"
+            "' 2>&1 || echo "  (ssh failed)"
+        fi
+    done
+
+
 issue-create title="" label="":
     #!/usr/bin/env bash
     set -euo pipefail
