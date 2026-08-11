@@ -2,6 +2,7 @@
   lib,
   stdenv,
   fetchurl,
+  fetchgit,
   cmake,
   ninja,
   pkg-config,
@@ -17,7 +18,11 @@
   shaderc ? null,
   glslang ? null,
   # Build configuration
-  version ? "b9048",
+  # Pinned to a commit that includes Muse Glimmer architecture support
+  # (llama.cpp PR #26841 "model: Muse Glimmer Support", merged 2026-08-10).
+  # The b9048/nixpkgs tag predates it and fails with
+  # "unknown model architecture: 'muse-glimmer'".
+  version ? "0-unstable-2026-08-10",
   # Feature flags
   native ? false,
   sharedLibs ? false,
@@ -29,10 +34,13 @@
   extraCmakeFlags ? [],
   ...
 }: let
-  # Default source if not provided
-  defaultSrc = fetchurl {
-    url = "https://github.com/ggml-org/llama.cpp/archive/refs/tags/${version}.tar.gz";
-    hash = "sha256-SIu8R1TCYufGbaclhZGb2qdgBFZyY4ZFX9RlaxXYJX8=";
+  # Default source: pinned git checkout (tag tarballs lag; we need the
+  # muse-glimmer commit specifically).
+  defaultSrc = fetchgit {
+    url = "https://github.com/ggml-org/llama.cpp";
+    rev = "030ebb558a5820b444a8f836ed5cdd46c9b4bd7a";
+    hash = "sha256-l3I3crnWgITk5mZCUMEDos50Vus3g2Gi1okykPTBYk8=";
+    leaveDotGit = false;
   };
   # src defined as let binding above
 
