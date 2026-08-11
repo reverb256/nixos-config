@@ -55,12 +55,6 @@ nextcloud.cluster.local {
 search.cluster.local {
 }
 
-# Automation
-n8n.cluster.local,
-automate.cluster.local {
-  reverse_proxy n8n.default.svc.cluster.local:5678
-}
-
 # Error Tracking
 errors.cluster.local,
 glitchtip.cluster.local,

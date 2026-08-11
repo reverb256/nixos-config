@@ -112,8 +112,6 @@ in {
                         url: http://gitea.ai-inference.svc.cluster.local:3000
                       - title: Casdoor
                         url: http://10.1.1.120:32556
-                      - title: n8n
-                        url: http://n8n.automation.svc.cluster.local:5678
                       - title: Mission Control
                         url: http://mission-control.orchestration.svc.cluster.local:3000
                       - title: Workspace
@@ -163,9 +161,6 @@ in {
                             url: https://auth.lan
                           - title: Gitea
                             url: https://gitea.lan
-                          - title: n8n
-                            url: https://n8n.lan
-                            icon: si:n8n
                           - title: Workspace
                             url: https://workspace.lan
                       - title: Search

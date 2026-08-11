@@ -2,7 +2,6 @@
   config,
   lib,
   pkgs,
-  k8sManifestPackage ? null,
   ...
 }: let
   cfg = config.services.k8s-nix-deploy;
@@ -18,9 +17,14 @@ in {
   options.services.k8s-nix-deploy = {
     enable = mkEnableOption "Deploy K8s manifests from Nix store on boot";
     manifestPackage = mkOption {
-      type = types.package;
+      type = types.nullOr types.package;
       description = "Package containing the generated K8s manifest YAML file";
-      default = k8sManifestPackage;
+      # This service is disabled on hosts that use the raw manifest autoapply
+      # path. Keep the optional package truly optional so disabled hosts can
+      # evaluate without requiring an EasyKubeNix package argument.
+      # Raw-manifest hosts leave this unset. Callers that provide a generated
+      # EasyKubeNix package set this option explicitly.
+      default = null;
     };
     apiServerAddress = mkOption {
       type = types.str;
@@ -40,11 +44,18 @@ in {
   };
 
   config = mkIf cfg.enable {
-    systemd.services.k8s-nix-deploy = {
+    assertions = [
+      {
+        assertion = cfg.manifestPackage != null;
+        message = "services.k8s-nix-deploy.manifestPackage must be set when k8s-nix-deploy is enabled";
+      }
+    ];
+
+    systemd.services.k8s-nix-deploy = mkIf (cfg.manifestPackage != null) {
       description = "Deploy Kubernetes manifests from Nix store";
       after = ["k3s.service"];
       requires = ["k3s.service"];
-      wantedBy = [];
+      wantedBy = ["multi-user.target"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "k8s-nix-deploy" ''
@@ -78,13 +89,20 @@ in {
           ${
             if cfg.prune
             then ''
-              $KUBECTL apply --prune -l managed-by=easykubenix -f "$MANIFEST" 2>&1
+              $KUBECTL apply --prune -l app.kubernetes.io/managed-by=easykubenix -f "$MANIFEST" 2>&1
             ''
             else ''
               $KUBECTL apply -f "$MANIFEST" 2>&1
             ''
           }
 
+          # Applying is intentionally fail-fast: a green systemd unit must mean
+          # the canonical manifest was accepted by the API server. Secret sync
+          # is ordered after this unit and supplies runtime secret data.
+          echo "[k8s-nix-deploy] Verifying foundational namespaces..."
+          for namespace in auth orchestration; do
+            $KUBECTL get namespace "$namespace" >/dev/null
+          done
           echo "[k8s-nix-deploy] Done."
         '';
         RemainAfterExit = true;

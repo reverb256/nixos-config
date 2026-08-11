@@ -22,11 +22,6 @@ in {
           keys = ["client-secret" "cookie-secret"];
         }
         {
-          namespace = "automation";
-          name = "n8n-secrets";
-          keys = ["postgres-password"];
-        }
-        {
           namespace = "mcp";
           name = "grafana-admin-secret";
           keys = ["admin-password"];

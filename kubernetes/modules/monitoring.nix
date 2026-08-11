@@ -1040,19 +1040,10 @@ in {
       };
     };
 
-    # ── Grafana admin secret ──────────────────────────────────
-    # Populated by kubectl-apply-k8s-secrets from sops-nix:
-    #   admin-password ← /run/secrets/grafana-admin-password
-    # grafana-oidc-secret populated by kubectl-apply-k8s-secrets from sops-nix
-    monitoring.Secret.grafana-oidc-secret = {
-      type = "Opaque";
-      stringData = {};
-    };
-
-    monitoring.Secret.grafana-admin-secret = {
-      type = "Opaque";
-      stringData."admin-password" = "";
-    };
+    # ── Grafana secrets ────────────────────────────────────────
+    # grafana-admin-secret and grafana-oidc-secret are materialized by
+    # k8s-secret-sync from secretspec-creds. Do not emit empty placeholders:
+    # applying them can overwrite live credentials.
 
     # ── Grafana ────────────────────────────────────────────────
     monitoring.ConfigMap.grafana-datasources.data."datasources.yaml" =

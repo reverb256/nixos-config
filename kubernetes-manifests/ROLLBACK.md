@@ -201,8 +201,7 @@ kubectl delete pdb -n yunikorn yunikorn-pdb
 ### Phase 3 Rollback (High-Priority Services HA)
 
 ```bash
-# Scale AI services back to 1 replica
-kubectl scale deployment -n ai-inference n8n --replicas=1
+# Scale remaining AI services back to 1 replica
 kubectl scale deployment -n ai-inference prometheus --replicas=1
 kubectl scale deployment -n ai-inference redis --replicas=1
 

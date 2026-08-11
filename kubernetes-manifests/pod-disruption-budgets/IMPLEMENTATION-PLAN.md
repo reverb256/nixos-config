@@ -1,4 +1,7 @@
-# STATUS: 🟡 ACTIVE IMPLEMENTATION PLAN - IN PROGRESS
+# STATUS: 🟡 HISTORICAL PLAN — NOT AN APPLYABLE RUNBOOK
+
+> This plan contains retired workload names and imperative examples from the
+> 2026-03-21 baseline. Reconcile every target with generated manifests before use.
 
 # Kubernetes HA Upgrade Implementation Plan
 ## From 3/10 (Basic Availability) to 9/10 (Production-Grade HA)

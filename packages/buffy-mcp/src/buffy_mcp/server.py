@@ -92,7 +92,7 @@ _SECRET_REDACT_PATTERNS: tuple = (
      "Authorization: Bearer <redacted>"),
     (re.compile(r"(?i)\b(api[_-]?key|password|secret|token)\s*[=:]\s*['\"]?[^\s'\"]{8,}"),
      r"\1=<redacted>"),
-    (re.compile(r"\b(?:|NVIDIA|GITHUB|HUGGINGFACE|OPENCODE|GEMINI|XAI|KILO|POLLINATIONS|TAILSCALE|N8N|KATZILLA|HOMEBASE|HERMES|GITEA|GARAGE|VAULTWARDEN|MISSION)_API_KEY\s*=\s*\S+"),
+    (re.compile(r"\b(?:|NVIDIA|GITHUB|HUGGINGFACE|OPENCODE|GEMINI|XAI|KILO|POLLINATIONS|TAILSCALE|KATZILLA|HOMEBASE|HERMES|GITEA|GARAGE|VAULTWARDEN|MISSION)_API_KEY\s*=\s*\S+"),
      "<redacted-API-KEY>=<redacted>"),
     (re.compile(r"/run/secrets/[\w./-]+"), "/run/secrets/<redacted-path>"),
     (re.compile(r"\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}"), "<jwt>"),

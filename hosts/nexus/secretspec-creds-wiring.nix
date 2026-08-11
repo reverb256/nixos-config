@@ -20,7 +20,9 @@
   # github-actions-runner-setup (hosts/nexus/services.nix tokenFile). Was
   # missing from the nexus creds list, so the setup unit failed with
   # "cat: /run/secrets/github-runner-pat: No such file or directory".
-  GITHUB_RUNNER_PAT = { path = "/run/secrets/github-runner-pat"; file = "ci/github-runner-pat.yaml"; owner = "root"; };
+  # The setup unit runs as the dedicated runner user; keep the PAT private to
+  # that account instead of exposing it world-readable as root:root 0444.
+  GITHUB_RUNNER_PAT = { path = "/run/secrets/github-runner-pat"; file = "ci/github-runner-pat.yaml"; mode = "0400"; owner = "runner"; group = "runner"; };
   OPENCODE_GO_API_KEY = { path = "/run/secrets/opencode-go-api-key"; file = "ai/opencode-go-api-key.yaml"; owner = "j_kro"; group = "users"; };
   POLLINATIONS_API_KEY = { path = "/run/secrets/pollinations-api-key"; file = "ai/pollinations-api-key.yaml"; owner = "j_kro"; group = "users"; };
   XAI_ACCESS_TOKEN = { path = "/run/secrets/xai-access-token"; file = "ai/xai-access-token.yaml"; owner = "root"; };

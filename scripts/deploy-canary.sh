@@ -22,6 +22,56 @@ set -euo pipefail
 
 FLAKE="${FLAKE:-/etc/nixos}"
 DISPATCHER="${FLAKE}/scripts/deploy/nexus-dispatch.sh"
+CANARY_LOCK_FILE="${DEPLOY_CANARY_LOCK_FILE:-/tmp/nixos-canary-deploy.lock}"
+CANARY_LOCK_DIR="${DEPLOY_CANARY_LOCK_DIR:-/tmp/nixos-canary-rollout.lock.d}"
+CANARY_TOKEN="${CANARY_TOKEN:-$(date +%s)-$$}"
+REMOTE_CANARY_LOCK_DIR="$CANARY_LOCK_DIR"
+exec 9>"$CANARY_LOCK_FILE"
+if ! flock -n 9; then
+  echo "another canary rollout is already running (lock: $CANARY_LOCK_FILE)" >&2
+  exit 75
+fi
+if ! mkdir "$CANARY_LOCK_DIR" 2>/dev/null; then
+  echo "another canary rollout is already running (lock: $CANARY_LOCK_DIR)" >&2
+  exit 75
+fi
+printf '%s\\n' "$CANARY_TOKEN" > "$CANARY_LOCK_DIR/owner"
+CANARY_TOKEN_B64="$(printf '%s' "$CANARY_TOKEN" | base64 -w0)"
+REMOTE_CANARY_LOCK_DIR_B64="$(printf '%s' "$REMOTE_CANARY_LOCK_DIR" | base64 -w0)"
+if ! ssh nexus \
+  env "CANARY_TOKEN_B64=$CANARY_TOKEN_B64" \
+  "REMOTE_CANARY_LOCK_DIR_B64=$REMOTE_CANARY_LOCK_DIR_B64" \
+  bash --norc --noprofile -s <<'REMOTE_CANARY_LOCK'
+set -euo pipefail
+d=$(printf '%s' "$REMOTE_CANARY_LOCK_DIR_B64" | base64 -d)
+t=$(printf '%s' "$CANARY_TOKEN_B64" | base64 -d)
+mkdir "$d"
+trap 'rm -rf "$d"' EXIT
+printf '%s\\n' "$t" > "$d/owner"
+trap - EXIT
+REMOTE_CANARY_LOCK
+then
+  rm -rf "$CANARY_LOCK_DIR"
+  echo "unable to acquire the Nexus canary rollout lock" >&2
+  exit 1
+fi
+cleanup_canary_lock() {
+  if [ "$(cat "$CANARY_LOCK_DIR/owner" 2>/dev/null)" = "$CANARY_TOKEN" ]; then
+    rm -rf "$CANARY_LOCK_DIR"
+  fi
+  ssh nexus \
+    env "CANARY_TOKEN_B64=$CANARY_TOKEN_B64" \
+    "REMOTE_CANARY_LOCK_DIR_B64=$REMOTE_CANARY_LOCK_DIR_B64" \
+    bash --norc --noprofile -s <<'REMOTE_CANARY_CLEANUP' >/dev/null 2>&1 || true
+set -euo pipefail
+d=$(printf '%s' "$REMOTE_CANARY_LOCK_DIR_B64" | base64 -d)
+t=$(printf '%s' "$CANARY_TOKEN_B64" | base64 -d)
+if [ "$(cat "$d/owner" 2>/dev/null)" = "$t" ]; then
+  rm -rf "$d"
+fi
+REMOTE_CANARY_CLEANUP
+}
+trap cleanup_canary_lock EXIT
 
 # Per-host key services to probe after switch (best-effort; empty = sshd only).
 # Add services here when a host gains critical infrastructure.
@@ -84,13 +134,14 @@ rollback_host() {
     echo "  [rollback] FAILED for $host — manual intervention required" >&2
 }
 
+echo "Canary deployment lock acquired: $CANARY_LOCK_FILE"
 echo "Canary deploy order: ${ORDER[*]}"
 total=${#ORDER[@]}
 i=0
 for host in "${ORDER[@]}"; do
   i=$((i + 1))
   log "[$i/$total] Deploying $host"
-  if ! "$DISPATCHER" --sync --target "$host"; then
+  if ! CANARY_TOKEN="$CANARY_TOKEN" DEPLOY_CANARY_LOCK_DIR="$CANARY_LOCK_DIR" "$DISPATCHER" --sync --target "$host"; then
     echo "ERROR: deploy to $host FAILED — rolling back and aborting." >&2
     rollback_host "$host"
     exit 1

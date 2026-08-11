@@ -1,9 +1,9 @@
 # Issue #3: knowledge.md "Other services" expansion
 
-**Priority:** LOW  
-**Status:** Open  
-**Created:** 2026-07-25  
-**Origin:** Drift cycle appended section to knowledge.md but the existing "Other services" section (gitea, vaultwarden, n8n, garage, searxng) is empty / under-documented  
+**Priority:** LOW
+**Status:** Open
+**Created:** 2026-07-25
+**Origin:** Drift cycle appended section to knowledge.md but the existing "Other services" section (gitea, vaultwarden, garage, searxng) is empty / under-documented
 **Depends on:** none  
 **Blocks:** contributor onboarding
 
@@ -13,7 +13,7 @@
 
 ## Acceptance Criteria
 
-- Each "Other service" (gitea, vaultwarden, n8n, garage, searxng) gets a 3-5 line entry covering: port/NodePort, namespace/host, common sanity-check (`just <recipe>`), one-line troubleshooting pointer.
+- Each remaining "Other service" (gitea, vaultwarden, garage, searxng) gets a 3-5 line entry covering: port/NodePort, namespace/host, common sanity-check (`just <recipe>`), one-line troubleshooting pointer.
 
 ## Approach
 

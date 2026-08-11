@@ -159,7 +159,9 @@ LATEST_AUTO_ENTRY="**${DATE} ${TIME}:**
 
 if [ -f "$BACKUP_MD" ] && grep -qE '^## Recent Changes' "$BACKUP_MD"; then
     log_info "Preserving Recent Changes log from $BACKUP_MD"
-    PRIOR_LOG=$(awk '/^## Recent Changes/{found=1; next} found {print}' "$BACKUP_MD" | tail -n +2)
+    # Preserve only the Recent Changes section. Older snapshots may contain
+    # generated sections after it; never append those sections to the new file.
+    PRIOR_LOG=$(awk '/^## Recent Changes/{found=1; next} found && /^## /{exit} found {print}' "$BACKUP_MD" | tail -n +2)
     RECENT_CHANGES_BLOCK="${RECENT_HEADER}
 
 ${LATEST_AUTO_ENTRY}

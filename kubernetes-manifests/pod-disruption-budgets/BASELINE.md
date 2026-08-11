@@ -4,6 +4,7 @@
 **Cluster Version**: v1.35.2
 **Git Commit**: 80432c2 feat(browser): improve banking compatibility and update cluster documentation
 **Phase**: Phase 0 - Pre-Upgrade Preparation
+**Status**: Historical baseline; retired workloads in this snapshot are not deployment targets.
 
 ---
 

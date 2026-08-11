@@ -55,16 +55,9 @@ in {
     };
 
     # ── Secret ─────────────────────────────────────────────────────────
-    # Populated by kubectl-apply-k8s-secrets from sops-nix:
-    #   auth-pass ← /run/secrets/mission-control-auth-pass
-    #   api-key   ← /run/secrets/mission-control-api-key
-    orchestration.Secret.mission-control-secrets = {
-      type = "Opaque";
-      stringData = {
-        auth-pass = "";
-        api-key = "";
-      };
-    };
+    # mission-control-secrets is created and populated by k8s-secret-sync
+    # after this manifest is applied. Do not emit an empty placeholder Secret:
+    # applying it could erase live credentials before sync runs.
 
     # ── Deployment ─────────────────────────────────────────────────────
     orchestration.Deployment.mission-control = {
@@ -96,6 +89,12 @@ in {
               mission-control = {
                 image = mcImage;
                 imagePullPolicy = "IfNotPresent";
+                securityContext = {
+                  runAsNonRoot = true;
+                  allowPrivilegeEscalation = false;
+                  capabilities.drop = ["ALL"];
+                  seccompProfile.type = "RuntimeDefault";
+                };
                 ports = {
                   _namedlist = true;
                   http = {

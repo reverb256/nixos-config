@@ -114,11 +114,6 @@ in
 "
   + "\n"
   +
-  # === PUBLIC SERVICES (no auth) ===
-  # n8n automation — has own auth
-  mkRoute "n8n.lan" "http://${nexus}:${toString ports.n8n}"
-  + "\n"
-  +
   # === PROTECTED SERVICES (central SSO) ===
   # AI Inference Gateway — OpenAI-compatible API
   mkAuthRoute "ai-inference.lan" "http://${nexus}:${toString ports.ai-inference-gateway}"

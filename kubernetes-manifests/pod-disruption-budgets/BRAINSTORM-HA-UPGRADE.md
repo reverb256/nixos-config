@@ -1,5 +1,8 @@
 # Kubernetes High Availability Upgrade - Brainstorming Session
 
+> Historical brainstorming document. Workload names and proposed commands may be
+> retired; do not apply them without reconciling against generated manifests.
+
 ## GOAL
 Upgrade cluster from **3/10 (Basic Availability)** to **9/10 (Production-Grade HA)**
 

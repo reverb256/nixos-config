@@ -41,6 +41,9 @@
       };
     }
     ./modules/common.nix
+    # Prometheus Operator CRDs are not part of the vendored core API snapshot.
+    # Declare the native API version explicitly for generated alert rules.
+    { kubernetes.apiMappings.PrometheusRule = "monitoring.coreos.com/v1"; }
   ];
 
   # Helper to create an easykubenix instance for a set of modules
@@ -55,11 +58,12 @@
 in {
   # Legacy combined manifest (for backwards compatibility)
   combined =
-    mkManifest "combined" [
-      ./modules/infrastructure.nix
-    ]
-    ++ lib.optional (inputs ? mining-infra) inputs.mining-infra.kubernetes.modules
-    ++ [
+    mkManifest "combined" (
+      [
+        ./modules/infrastructure.nix
+      ]
+      ++ lib.optionals (inputs ? mining-infra) inputs.mining-infra.kubernetes.modules
+      ++ [
       ./modules/gpu-tuning.nix
       ./modules/ai-inference.nix
       ./modules/llama-servers.nix
@@ -75,13 +79,13 @@ in {
       ./modules/vane.nix
       ./modules/host-services.nix
       ./modules/mission-control.nix
-      ./modules/automation.nix
       ./modules/mcp-servers.nix
       ./modules/glance.nix
       ./modules/hermes-workspace.nix
       ./modules/maplespike.nix
       ./modules/tailscale.nix
-    ];
+      ]
+    );
 
   # Separate manifests for large modules (to avoid eval bottleneck)
   monitoring = mkManifest "monitoring" [
@@ -105,7 +109,7 @@ in {
   ];
 
   # Mining from isolated flake
-  mining = mkManifest "mining" ((lib.optional (inputs ? mining-infra) inputs.mining-infra.kubernetes.modules)
+  mining = mkManifest "mining" ((lib.optionals (inputs ? mining-infra) inputs.mining-infra.kubernetes.modules)
     ++ [
       ./modules/profit-switcher.nix
     ]);

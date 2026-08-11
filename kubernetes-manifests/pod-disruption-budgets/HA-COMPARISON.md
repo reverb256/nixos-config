@@ -1,5 +1,8 @@
 # High Availability Comparison: Current vs Production Grade
 
+> Historical comparison. Retired workload names and examples are preserved for
+> context only; verify current generated manifests before using this document.
+
 ## Executive Summary
 
 **Current Status**: Basic availability with PDBs

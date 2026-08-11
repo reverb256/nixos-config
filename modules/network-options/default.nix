@@ -307,13 +307,6 @@ in {
                       });
                       default = {};
                     };
-                    n8n = mkOption {
-                      type = types.submodule (svcOpts {
-                        namespace = "automation";
-                        port = 5678;
-                      });
-                      default = {};
-                    };
                                         oauth2-proxy = mkOption {
                       type = types.submodule (svcOpts {
                         namespace = "auth";

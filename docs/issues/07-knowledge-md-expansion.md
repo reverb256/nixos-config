@@ -8,8 +8,8 @@
 of every assistant turn. Currently it has an "Other services" section but only covers
 3-4 services in a single bullet each. The cluster actually has ~20 named services
 visible from `STATUS.md`'s pod inventory, and only a small subset are catalog'd in
-knowledge.md. When the assistant gets a question about `gitea-runner`, `n8n`, or
-`garage`, it has to rg-search the codebase before answering — wasting context.
+knowledge.md.When the assistant gets a question about `gitea-runner`, `garage`, or another less-documented service, it has to rg-search the codebase before answering — wasting context.
+
 
 The drift-cycle audit also revealed that `validate-local` recipe + CI gating
 recommendations aren't in knowledge.md's "Operational gotchas" or "Conventions"
@@ -22,8 +22,6 @@ sections. Future sessions will repeat the cure-discovery sweat.
     `gitea.lan` via Caddy
   - **vaultwarden** — admin-only OIDC client of Casdoor; behind Caddy forward_auth for
     operator convenience; user vault data OUT of cluster
-  - **n8n** — workflow automation; ingress at `n8n.lan`; Postgres in-cluster; non-OIDC
-    (forward_auth ONLY); operator-tags to `localhost:5678` for direct access
   - **garage** — S3-compatible object store; multi-host replication; admin at
     `s3-admin.lan` (if exposed) or operator-only; used for syncthing-folder-id backup +
     LibreNMS collector uploads

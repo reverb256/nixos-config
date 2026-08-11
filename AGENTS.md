@@ -395,7 +395,7 @@ repository guardrails are unsuitable.
 
 | Type | Services | Auth Method |
 |------|----------|-------------|
-| Public (no auth) | dashboard.lan, gitea.lan, vaultwarden.lan, n8n.lan | Own auth or none |
+| Public (no auth) | dashboard.lan, gitea.lan, vaultwarden.lan | Own auth or none |
 | Proxy SSO (forward_auth) | haven.lan, grafana.lan, mission-control.lan, qdrant.lan, brain.lan, ai-inference.lan, workspace.lan | Caddy -> oauth2-proxy -> Casdoor |
 | Native OIDC (direct to Casdoor) | grafana.lan (also behind forward_auth), ai-inference.lan (JWT/JWKS for API), gitea.lan, openwebui.lan | Direct Casdoor app |
 
@@ -407,7 +407,6 @@ repository guardrails are unsuitable.
 | AI Gateway | ✅ JWKS/JWT | ✅ Wired | JWT auth with JWKS from Casdoor for API. Admin UI behind forward_auth. |
 | Gitea | ✅ Supported | ✅ Wired | Direct Casdoor app `app-gitea`. On `mkRoute` (no forward_auth). |
 | Open WebUI | ✅ Supported | ✅ Wired (May 14) | Casdoor app `app-openwebui` (client-id `openwebui`). OIDC env vars deployed to pod + persisted in `ai-inference.nix`. "Sign in with Casdoor" on login page. |
-| n8n | ⚠️ Enterprise | ❌ | OIDC requires enterprise license. Not available on self-hosted instance. |
 | Haven | ❌ No support | — | Own JWT+bcrypt auth. No OIDC config options. Proxy auth is correct. |
 | Mission Control | ❌ No support | — | Auth providers: session, API key, Google Sign-In, proxy header. No generic OIDC. |
 | Kagent | ❌ No support | — | `AUTH_MODE=*** only. Open OIDC feature request (#476) unimplemented. |

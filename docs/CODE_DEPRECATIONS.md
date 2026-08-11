@@ -39,7 +39,7 @@ This file tracks all temporarily disabled modules, TODOs, and FIXMEs in the NixO
 
 | ID | File | Line | Image | Status | Target |
 |----|------|------|-------|--------|--------|
-| K8S-003 | `kubernetes-manifests/n8n/*.yaml` | 130 | `n8nio/n8n:latest` | 🟠 Security | 2026-04-05 |
+| K8S-003 | `kubernetes-manifests/n8n/*.yaml` | 130 | `n8nio/n8n:latest` | ✅ Retired 2026-08-10 | — |
 | K8S-004 | `kubernetes-manifests/glitchtip/*.yaml` | 22 | `glitchtip/glitchtip:latest` | 🟠 Security | 2026-04-05 |
 | K8S-005 | `kubernetes-manifests/spacebot/*.yaml` | 45,56 | `spacebot:latest` | 🟠 Security | 2026-04-05 |
 | K8S-006 | `kubernetes-manifests/searxng/*.yaml` | 22,93 | `searxng/searxng:latest` | 🟠 Security | 2026-04-05 |

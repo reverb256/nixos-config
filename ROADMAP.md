@@ -82,7 +82,6 @@
 **Web Applications (8):**
 - GlitchTip (web, worker, redis)
 - Nextcloud (file sync, collaboration)
-- n8n (workflow automation)
 - Bolt.diy (AI agent UI)
 - Service Gateway (reverse proxy)
 - Garnix (CI/CD)
@@ -335,7 +334,6 @@
 **Tier 2 - Web Applications (Week 5):**
 - GlitchTip (web, worker, redis)
 - Nextcloud (web only, DB already migrated)
-- n8n
 - Bolt.diy
 
 **Tier 3 - AI/ML Services (Week 6):**

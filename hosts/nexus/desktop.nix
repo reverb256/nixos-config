@@ -46,6 +46,7 @@
   services.displayManager.sddm.wayland.enable = true;
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "j_kro";
+  # This pinned nixpkgs exposes the native Steam Gamescope session as `steam`.
   services.displayManager.defaultSession = lib.mkForce "steam";
   services.displayManager.sddm.settings.Autologin.Relogin = true;
 

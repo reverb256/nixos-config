@@ -35,9 +35,6 @@
   # ── auth (namespace: auth) ─────────────────────────────────
   oauth2-proxy = 30890; # OAuth2 proxy
 
-  # ── automation (namespace: automation) ─────────────────────
-  n8n = 32127;
-
   # ── dashboard (namespace: dashboard) ───────────────────────
   glance = 32200;
 

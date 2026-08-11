@@ -256,18 +256,6 @@ in {
             default = false;
           };
       };
-      n8n = {
-        enable =
-          lib.mkEnableOption "n8n workflow automation MCP server"
-          // {
-            default = false;
-          };
-        url = lib.mkOption {
-          type = lib.types.str;
-          default = "http://localhost:5678";
-          description = "n8n instance URL";
-        };
-      };
       computer-use = {
         enable =
           lib.mkEnableOption "Computer use MCP server for desktop automation"

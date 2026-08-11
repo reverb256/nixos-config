@@ -53,24 +53,56 @@
       secretName = "grafana-admin-secret";
       key = "admin-password";
     }
-    # ── Automation (n8n) ─────────────────────────────────────
+    # ── AI inference ─────────────────────────────────────────
     {
-      sopsPath = "/run/secrets/automation/n8n-admin-password";
-      namespace = "automation";
-      secretName = "n8n-secrets";
-      key = "admin-password";
+      sopsPath = "/run/secrets/huggingface-token";
+      namespace = "ai-inference";
+      secretName = "hf-token";
+      key = "token";
     }
     {
-      sopsPath = "/run/secrets/automation/n8n-encryption-key";
-      namespace = "automation";
-      secretName = "n8n-secrets";
-      key = "encryption-key";
+      sopsPath = "/run/secrets/nvidia-api-key";
+      namespace = "ai-inference";
+      secretName = "nvidia-api-key";
+      key = "NVIDIA_API_KEY";
     }
     {
-      sopsPath = "/run/secrets/automation/n8n-api-key";
-      namespace = "automation";
-      secretName = "hermes-automation-keys";
-      key = "n8n-api-key";
+      sopsPath = "/run/secrets/kilo-api-key";
+      namespace = "ai-inference";
+      secretName = "kilo-api-key";
+      key = "KILO_API_KEY";
+    }
+    {
+      sopsPath = "/run/secrets/opencode-api-key";
+      namespace = "ai-inference";
+      secretName = "opencode-api-key";
+      key = "OPENCODE_API_KEY";
+    }
+    {
+      sopsPath = "/run/secrets/opencode-go-api-key";
+      namespace = "ai-inference";
+      secretName = "opencode-go-api-key";
+      key = "OPENCODE_GO_API_KEY";
+    }
+    {
+      sopsPath = "/run/secrets/frostbite-postgres";
+      namespace = "ai-inference";
+      secretName = "frostbite-secrets";
+      key = "postgres-password";
+    }
+    # ── Mission Control ──────────────────────────────────────
+    # ── OAuth2 proxy ─────────────────────────────────────────
+    {
+      sopsPath = "/run/secrets/central-auth-client-secret";
+      namespace = "auth";
+      secretName = "oauth2-proxy-secrets";
+      key = "client-secret";
+    }
+    {
+      sopsPath = "/run/secrets/central-auth-cookie-secret";
+      namespace = "auth";
+      secretName = "oauth2-proxy-secrets";
+      key = "cookie-secret";
     }
     # ── Mission Control ──────────────────────────────────────
     {
@@ -113,11 +145,20 @@ in {
   config = mkIf cfg.enable {
     systemd.services.k8s-secret-sync = {
       description = "Sync sops-nix secrets to K8s Secrets";
-      after = ["k3s.service" "sops-install-secrets.service" "network.target"];
-      requires = ["k3s.service"];
+      # Namespace resources are owned by the declarative manifest layer. Wait
+      # for that layer to finish before attempting to create namespaced Secrets.
+      after = [
+        "k3s.service"
+        "sops-install-secrets.service"
+        "k8s-nix-deploy.service"
+        "network.target"
+      ];
+      requires = ["k3s.service" "k8s-nix-deploy.service"];
       wants = ["sops-install-secrets.service"];
       wantedBy = ["multi-user.target"];
-      before = ["k8s-nix-deploy.service"];
+      # k8s-nix-deploy is the prerequisite; do not add a reverse ordering edge
+      # here or systemd would create a dependency cycle.
+      before = [];
 
       serviceConfig = {
         Type = "oneshot";
@@ -147,6 +188,16 @@ in {
           fi
         done
         echo "[k8s-secret-sync] K8s API ready"
+
+        # Namespaces are declarative resources, not runtime side effects of
+        # secret synchronization. Fail with an explicit dependency error if
+        # the manifest layer did not create every target namespace.
+        for namespace in ${lib.concatStringsSep " " (lib.unique (map (m: m.namespace) (secretMappings ++ cfg.extraMappings)))}; do
+          if ! kubectl get namespace "$namespace" >/dev/null 2>&1; then
+            echo "[k8s-secret-sync] ERROR: required namespace $namespace is absent after k8s-nix-deploy" >&2
+            exit 1
+          fi
+        done
 
         # Build JSON patch for each secret (batch all keys per secret)
         ${lib.concatStringsSep "\n" (lib.mapAttrsToList (ns_secret: mappings: ''

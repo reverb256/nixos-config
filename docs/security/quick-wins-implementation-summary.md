@@ -1,6 +1,7 @@
 # Kubernetes Security Quick Wins - Implementation Summary
 
 **Date**: 2026-03-21
+**Status**: Historical snapshot; reconcile against current manifests before use.
 **Implemented By**: Claude Code (Explanatory Mode)
 **Total Implementation Time**: ~2 hours
 
@@ -87,11 +88,7 @@ Added `automountServiceAccountToken: false` to 6 service accounts that don't nee
    - Needs: PVC/Secret access
    - Token: Disabled (no API calls needed)
 
-5. n8n-sa (ai-inference)
-   - Needs: ConfigMap/Secret/PVC access
-   - Token: Disabled (no API calls needed)
-
-6. ingress-nginx-sa (ingress-nginx)
+5. ingress-nginx-sa (ingress-nginx)
    - Needs: Ingress/Endpoint/Secret watch
    - Token: Disabled (uses informer, not direct API calls)
 ```
@@ -99,7 +96,6 @@ Added `automountServiceAccountToken: false` to 6 service accounts that don't nee
 ### Files Modified
 - `kubernetes-manifests/rbac/cloudflared-sa.yaml`
 - `kubernetes-manifests/rbac/grafana-sa.yaml`
-- `kubernetes-manifests/rbac/n8n-sa.yaml`
 - `kubernetes-manifests/rbac/ingress-nginx-sa.yaml`
 - `kubernetes-manifests/rbac/glitchtip-sa.yaml`
 

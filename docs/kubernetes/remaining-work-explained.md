@@ -5,7 +5,8 @@
 > **Source:** Historical cluster observations; use `ACTION-ITEMS.md`, checked-in modules, and live API state for current work
 >
 > The examples, pod names, counts, image tags, and health claims below are historical
-> context. They are not a current inventory or deployment plan.
+> context. They are not a current inventory or deployment plan. The retired n8n
+> workload is not an implementation target; ignore its historical examples.
 
 **Historical Generated Date**: 2026-03-21
 **Cluster Health**: 8.5/10 (stable, minor improvements possible)
@@ -28,7 +29,6 @@
 **Pods using default SA**:
 ```bash
 ai-inference/grafana-5c8f6744dd-2snc9
-ai-inference/n8n-b87d66945-svlb4
 default/nginx-test-*
 default/cloudflared-*
 glitchtip/web-7944656db4-pq6r9
@@ -103,7 +103,7 @@ spec:
 ### Priority Order
 
 1. **HIGH**: Externally exposed services (ingress-nginx, cloudflared, glitchtip)
-2. **MEDIUM**: Internal services (grafana, n8n, Services)
+2. **MEDIUM**: Internal services (grafana and other active services)
 3. **LOW**: Test workloads (default)
 
 ### Estimated Effort
@@ -130,7 +130,6 @@ spec:
 **Pods WITHOUT health checks**:
 ```bash
 # AI inference services
-ai-inference/n8n-b87d66945-svlb4
 ai-inference/qdrant-0
 ai-inference/redis-5f97c4cd67-5rs7z
 
@@ -231,7 +230,6 @@ App hangs/deadlocks → Liveness probe fails → Kubernetes restarts pod → App
 2. **MEDIUM**: User-facing services
    - `glitchtip/web` (error tracking)
    - `ai-inference/grafana` (monitoring dashboard)
-   - `ai-inference/n8n` (workflow automation)
 
 3. **LOW**: Internal services
    - `default/*` (already have some monitoring)
@@ -241,7 +239,6 @@ App hangs/deadlocks → Liveness probe fails → Kubernetes restarts pod → App
 | Application | Health Check Path | Notes |
 |--------------|-------------------|-------|
 | Grafana | `/api/health` | Returns JSON |
-| n8n | `/healthz` | Standard endpoint |
 | Redis | TCP socket on port 6379 | No HTTP endpoint |
 | Qdrant | `/metrics` | Prometheus metrics |
 | Nginx | `/` or `/health` | Returns 200 OK |
@@ -294,19 +291,6 @@ spec:
   selector:
     matchLabels:
       app: grafana
-
----
-# ai-inference/n8n (workflow automation)
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: n8n-pdb
-  namespace: ai-inference
-spec:
-  minAvailable: 1
-  selector:
-    matchLabels:
-      app: n8n
 
 ---
 # glitchtip/web (error tracking frontend)

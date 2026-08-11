@@ -1,5 +1,8 @@
 # Resource Analysis - HA Upgrade Feasibility Study
 
+> Historical capacity analysis. Reconcile workload names, counts, and resource
+> claims with current live state before using this document for planning.
+
 ## Executive Summary
 
 **Current Capacity**: 78 cores, 123GB RAM, 7 GPUs across 4 nodes

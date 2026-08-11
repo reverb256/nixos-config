@@ -48,7 +48,6 @@
     "ai-inference.lan"
     "auth.lan"
     "qdrant.lan"
-    "n8n.lan"
     "mission-control.lan"
     "grafana.lan"
     "privacy-filter.lan"
@@ -334,7 +333,6 @@ in {
             ai-inference = vip; # VIP Caddy
             qdrant = vip; # VIP Caddy
             search = vip; # VIP Caddy
-            n8n = vip; # VIP Caddy
             haven = vip; # VIP Caddy
             grafana = vip; # VIP Caddy
             prometheus = hosts.sentry;

@@ -76,7 +76,6 @@ in {
     # ── AI Inference ───────────────────────────────────────────
     ai-inference.ServiceAccount.default = {};
     ai-inference.ServiceAccount.ai-inference-gateway = {};
-    ai-inference.ServiceAccount.n8n-sa.automountServiceAccountToken = false;
     ai-inference.ConfigMap.ai-gateway-config.data = {
       AUTH_MODE = "token"; # Token-based authentication
       BACKEND_TYPE = "llama-cpp";
@@ -153,8 +152,6 @@ in {
       MIDDLEWARE__JWT_AUTH__AUDIENCE = "3a331eeb195880d68d9a";
       MIDDLEWARE__JWT_AUTH__SYSTEM_TOKEN = "sovereign-system-token-2026-internal";
     };
-
-      };
     # ── Qdrant Vector Database ──────────────────────────────────
     # Persistent vector store for RAG, knowledge base, embeddings
     # Storage: hostPath at /storage/qdrant (data) + /storage/qdrant-snapshots
@@ -392,38 +389,6 @@ in {
           }
         ];
         selector.app = "astral-postgres";
-      };
-    };
-    ai-inference.Role.n8n-role = {
-      rules = [
-        {
-          apiGroups = [""];
-          resources = [
-            "configmaps"
-            "secrets"
-            "persistentvolumeclaims"
-          ];
-          verbs = [
-            "get"
-            "list"
-            "watch"
-            "create"
-            "update"
-          ];
-        }
-      ];
-    };
-    ai-inference.RoleBinding.n8n-rolebinding = {
-      subjects = [
-        {
-          kind = "ServiceAccount";
-          name = "n8n-sa";
-        }
-      ];
-      roleRef = {
-        kind = "Role";
-        name = "n8n-role";
-        apiGroup = "rbac.authorization.k8s.io";
       };
     };
     # Gateway needs ConfigMap access for GPU scheduler state (gpu_scheduler.py writes to kube-system)
@@ -700,6 +665,7 @@ in {
                     key = "NVIDIA_API_KEY";
                   };
                   KILO_API_KEY.valueFrom.secretKeyRef = {
+                    name = "kilo-api-key";
                     key = "KILO_API_KEY";
                   };
                 };
@@ -816,44 +782,10 @@ in {
       };
     };
     # ── Secrets ──────────────────────────────────────────────────
-    # Secrets are populated by kubectl-apply-k8s-secrets systemd service
-    # from sops-nix decrypted files at /run/secrets/. These placeholder
-    # definitions ensure the Secret objects exist for secretKeyRef lookups.
-    ai-inference.Secret.ai-inference-gateway-secrets = {
-      type = "Opaque";
-      # TODO: Fill from sops-nix key (see modules/system/sops-secrets-registry.nix)
-      stringData = {
-        "api-keys" = "";
-      };
-    };
-    # HuggingFace token — populated from sops-nix (secrets/huggingface-token.age)
-    ai-inference.Secret.hf-token = {
-      type = "Opaque";
-      stringData.token = "";
-    };
-    # NVIDIA API key — populated from sops-nix (secrets/nvidia-api-key.age)
-    ai-inference.Secret.nvidia-api-key = {
-      type = "Opaque";
-      stringData.NVIDIA_API_KEY = "";
-    };
-    ai-inference.Secret.kilo-api-key = {
-      type = "Opaque";
-      stringData.KILO_API_KEY = "";
-    };
-    # OpenCode API key — populated from sops-nix (secrets/opencode-api-key.age)
-    ai-inference.Secret.opencode-api-key = {
-      type = "Opaque";
-      stringData.OPENCODE_API_KEY = "";
-    };
-    # OpenCode Go API key — populated from sops-nix (secrets/opencode-go-api-key.age)
-    ai-inference.Secret.opencode-go-api-key = {
-      type = "Opaque";
-      stringData.OPENCODE_GO_API_KEY = "";
-    };
-    # Gateway API token — populated from sops-nix (secrets/ai-gateway-token.age)
-    ai-inference.Secret.ai-gateway-token = {
-      type = "Opaque";
-      stringData.GATEWAY_TOKEN = "";
+    # AI Secret objects are intentionally not emitted here. They are
+    # materialized by k8s-secret-sync from the host's secretspec-creds paths;
+    # an empty stringData declaration would risk overwriting live credentials
+    # during the canonical manifest apply.
     # Allow gateway ingress from ingress-system and intra-namespace
     ai-inference.NetworkPolicy.allow-gateway-ingress = {
       spec = {
@@ -1692,6 +1624,7 @@ in {
           },
           "models": [m for m in omp_models_local if m["provider"] == "local-sentry"],
       }
+      omp_providers["local-opencode"] = {
           "baseUrl": OPENCODE_URL,
           "api": "openai-completions",
           "compat": {
@@ -1701,21 +1634,6 @@ in {
           "models": omp_models_opencode,
       }
 
-          NetworkPolicy.vllm-nexus-ingress = {
-            spec = {
-              podSelector.matchLabels.app = "llama-qwen-vllm-nexus";
-              policyTypes = ["Ingress"];
-              ingress = [
-                {
-                  from = [{podSelector.matchLabels.app = "ai-inference-gateway";}];
-                  ports = [{
-                    protocol = "TCP";
-                    port = 8040;
-                  }];
-                }
-              ];
-            };
-          };
       omp = {
           "providers": omp_providers,
           "modelRoles": {
@@ -1856,4 +1774,5 @@ in {
         };
       };
     };
+  };
 }

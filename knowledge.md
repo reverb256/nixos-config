@@ -31,7 +31,7 @@ Total: ~78 cores, ~123GB RAM, 7 GPUs, ~8.4TB.
 
 VPN/mesh: Tailscale (split DNS for `.lan`). All `.lan` hostnames → VIP 10.1.1.100 (Keepalived MASTER on Zephyr). DNS via `unbound` cluster-wide.
 
-SSO: Casdoor (OIDC) → `oauth2-proxy` on Zephyr+Nexus (port 4180) → Caddy `forward_auth` for protected services. Hashing/CAS: Garage S3, Casdoor, Vaultwarden. AI: sovereign gateway on Nexus, llama.cpp (Vulkan/CUDA), vLLM+TurboQuant containers, Qdrant. Dev: n8n, Gitea+actions-runner (nexus). Observability: Prometheus+Grafana, glances, Caddy metrics.
+SSO: Casdoor (OIDC) → `oauth2-proxy` on Zephyr+Nexus (port 4180) → Caddy `forward_auth` for protected services. Hashing/CAS: Garage S3, Casdoor, Vaultwarden. AI: sovereign gateway on Nexus, llama.cpp (Vulkan/CUDA), vLLM+TurboQuant containers, Qdrant. Dev: Gitea+actions-runner (nexus). Observability: Prometheus+Grafana, glances, Caddy metrics.
 
 ## Other services (cross-reference for AI agents)
 
@@ -41,7 +41,6 @@ Brief catalog of running cluster services for context-window savings when prompt
 |---------|---------|-------|
 | **gitea** | self-hosted Git at `gitea.lan` | CI runner on nexus (`gitea-runner` pod); Caddy forward_auth; native OIDC via Casdoor app `app-gitea` |
 | **vaultwarden** | Bitwarden-compatible password vault | ClusterIP-only; admin via operator OIDC; user data vault outside cluster (operator-only) |
-| **n8n** | workflow automation at `n8n.lan` | Non-OIDC; forward_auth only; Postgres in-cluster (`postgres-n8n-0`) |
 | **garage** | S3-compatible object store | Multi-host replication; used for syncthing-folder-id backups + LibreNMS collector uploads |
 | **glitchtip** | Sentry-alternative error tracking | Postgres in-cluster; ingress via Caddy |
 | **casdoor** | central OIDC IdP | see SOPS-NIX.md for auth integration; runs on nexus |

@@ -12,8 +12,9 @@ in {
       automountServiceAccountToken = false;
     };
 
-    # Secret managed imperatively: kubectl create secret generic oauth2-proxy-secrets ...
-    # DO NOT define here — kubectl apply would overwrite real values with placeholders
+    # oauth2-proxy-secrets is created and populated by k8s-secret-sync after
+    # this manifest is applied. It is intentionally not declared here: an
+    # empty generated Secret would overwrite live credentials.
 
     auth.Service.oauth2-proxy = {
       metadata.labels =
@@ -70,6 +71,12 @@ in {
             containers.oauth2-proxy = {
               image = "quay.io/oauth2-proxy/oauth2-proxy:v7.15.2";
               imagePullPolicy = "IfNotPresent";
+              securityContext = {
+                runAsNonRoot = true;
+                allowPrivilegeEscalation = false;
+                capabilities.drop = ["ALL"];
+                seccompProfile.type = "RuntimeDefault";
+              };
               ports._namedlist = true;
               ports.http = {
                 containerPort = 4180;

@@ -193,7 +193,9 @@
       nodeIP = "10.1.1.130";
     };
 
-    k8s-manifest-autoapply.enable = true;
+    # Nexus is the sole control-plane manifest executor. Forge must not run a
+    # second raw-directory applier against the same cluster.
+    k8s-manifest-autoapply.enable = false;
 
     keepalived-vip = {
       enable = true;

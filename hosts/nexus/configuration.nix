@@ -218,7 +218,10 @@
       secretsEncryptionKeyFile = "/run/secrets/k3s-encryption-key";
     };
 
-    k8s-manifest-autoapply.enable = true;
+    # The canonical generated EasyKubeNix manifest is applied by
+    # services.k8s-nix-deploy; do not run the legacy raw-directory applier in
+    # parallel (it masks failures and creates a second ownership path).
+    k8s-manifest-autoapply.enable = false;
 
     keepalived-vip = {
       enable = true;
@@ -449,8 +452,8 @@
   # (nixpkgs-native gamescopeSession, "steam-nix style"). The custom
   # modules/gaming/gamescope-session.nix + desktop/gamescope-tty.nix were
   # dead code and are not imported (native nixpkgs option supersedes them).
-  # Session name = "steam" (steam.desktop from steam.nix); desktop.nix sets
-  # it as the SDDM autoLogin default, niri-uwsm stays selectable.
+  # Session name = "steam" (native Steam Gamescope session from steam.nix);
+  # desktop.nix sets it as the SDDM autoLogin default, niri-uwsm stays selectable.
   programs.steam = {
     enable = true;
     gamescopeSession.enable = lib.mkForce true;

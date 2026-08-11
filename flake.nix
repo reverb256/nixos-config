@@ -241,7 +241,7 @@
               # instance instead triggered "configures nixpkgs with an externally
               # created instance" because those modules set `nixpkgs.config`.
               specialArgs = {
-                inherit inputs vfioPkgs;
+                inherit inputs self vfioPkgs;
               };
               modules =
                 commonModules
@@ -374,6 +374,16 @@
           packages.claude = claude-native.packages.x86_64-linux.claude;
           packages.llama-cpp = pkgs.llama-cpp;
           packages.secretspec = pkgs.secretspec;
+          # Canonical full EasyKubeNix manifest. This is the single generated
+          # workload source consumed by k8s-nix-deploy on the control plane;
+          # it includes namespaces, OAuth2 proxy, Mission Control, and the
+          # remaining modules from kubernetes/default.nix.
+          packages.kubernetesManifests =
+            (import ./kubernetes/default.nix {
+              inherit pkgs inputs;
+              lib = pkgs.lib;
+              pkgsWithOverlay = pkgs;
+            }).combined.manifestYAMLFile;
           # CONTAINER IMAGES (for Kubernetes deployment)
 
           # Claude Code container image for Kubernetes deployment

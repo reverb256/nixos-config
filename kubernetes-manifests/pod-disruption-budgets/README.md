@@ -1,5 +1,8 @@
 # Pod Disruption Budgets (PDB) - High Availability Strategy
 
+> This document contains historical examples. Reconcile names and selectors with
+> the generated manifest source before applying any command or YAML block.
+
 ## Overview
 
 Pod Disruption Budgets (PDBs) ensure critical services maintain minimum availability during:

@@ -3,6 +3,7 @@
   pkgs,
   lib,
   inputs,
+  self,
   ...
 }: let
   portHelpers = import ../../modules/port-helpers.nix {inherit lib;};
@@ -99,10 +100,6 @@ in {
       api-hermes = {
         domain = "api.hermes.lan";
         backend = "127.0.0.1:8642";
-      };
-      n8n = {
-        domain = "n8n.lan";
-        backend = "127.0.0.1:32127";
       };
       ai-inference = {
         domain = "ai-inference.lan";
@@ -252,9 +249,19 @@ in {
   services.ci-runner = {
     enable = true;
     repo = "reverb256/nixos-config";
-    tokenFile = "/run/secrets/github-runner-pat";
+    # This file contains the repository PAT, not a short-lived runner
+    # registration token. Generate the latter through GitHub's API at setup.
+    patFile = "/run/secrets/github-runner-pat";
     autoStart = true;
     extraLabels = ["nexus"];
+  };
+
+  services.k8s-nix-deploy = {
+    enable = true;
+    # Full EasyKubeNix manifest is exposed by the flake as
+    # `kubernetesManifests`; it owns auth/orchestration workloads and namespaces.
+    manifestPackage = self.packages.x86_64-linux.kubernetesManifests;
+    tokenFile = lib.mkForce null;
   };
 
   services.k8s-secret-sync = {
@@ -266,6 +273,6 @@ in {
     # here + in secretspec-creds-wiring.nix once the real secrets are committed
     # under /etc/nixos/secrets/maplespike/.
   };
-  # Use local kubeconfig instead of cluster join token (node token is not a valid API bearer token)
-  services.k8s-nix-deploy.tokenFile = lib.mkForce null;
+  # k8s-nix-deploy uses the local kubeconfig instead of the cluster join token;
+  # the node token is not a valid API bearer token.
 }
