@@ -448,35 +448,12 @@
   #
   # Nexus-specific service additions:
 
-  # Enable Steam Gamescope session — SteamOS-style console on the 4K TV
-  # (nixpkgs-native gamescopeSession, "steam-nix style"). The custom
-  # modules/gaming/gamescope-session.nix + desktop/gamescope-tty.nix were
-  # dead code and are not imported (native nixpkgs option supersedes them).
-  # Session name = "steam" (native Steam Gamescope session from steam.nix);
-  # desktop.nix sets it as the SDDM autoLogin default, niri-uwsm stays selectable.
-  programs.steam = {
-    enable = true;
-    gamescopeSession.enable = lib.mkForce true;
-    gamescopeSession.args = [
-      # SteamOS console behavior: fullscreen, expose Wayland for HDR
-      "--expose-wayland"
-      "--force-composition"
-      # 4K TV mode — gamescope upscales internal res to output
-      "-W"
-      "3840"
-      "-H"
-      "2160"
-      "-r"
-      "60"
-    ];
-  };
-
   services = {
-    # Compute workload monitor - pauses mining during builds
-    # Modular workload monitoring (replaces old compute-workload-monitor monolith)
-    gaming-detection.enable = true;
-    gpu-profile-manager.enable = true;
-    mining-coordinator.enable = true;
+    # Keep automatic workload mutation disabled: PeakMiner remains enabled
+    # declaratively, and Ampere coexistence is an explicit operator choice.
+    gaming-detection.enable = lib.mkForce false;
+    gpu-profile-manager.enable = lib.mkForce false;
+    mining-coordinator.enable = lib.mkForce false;
 
     # Crash detection and logging
     # services.crash-watchdog.enable = true; # Module not available yet
@@ -489,8 +466,8 @@
     # Spotify with SpotX patch (ad-free, premium features)
     spotify-spotx.enable = true;
 
-    # GPU mining DISABLED: 3060 Ti is used for desktop (VRAM exhausted by KWin/Xwayland)
-    # CPU mining DISABLED: Migrated to Kubernetes
+    # The legacy generic mining service is disabled; the actual Nexus GPU miner
+    # is services.peakminer from hosts/nexus/peakminer.nix and remains enabled.
     mining = {
       enable = lib.mkForce false;
     };

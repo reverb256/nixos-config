@@ -50,6 +50,25 @@
   services.displayManager.defaultSession = lib.mkForce "steam";
   services.displayManager.sddm.settings.Autologin.Relogin = true;
 
+  # Sole owner of the native Steam Gamescope session for Nexus. Keep the
+  # session declaration beside SDDM/autologin rather than duplicating it in
+  # the cluster-services module or the shared gaming profile.
+  programs.steam = {
+    enable = true;
+    gamescopeSession = {
+      enable = lib.mkForce true;
+      args = [
+        "--expose-wayland"
+        "--force-composition"
+        "-W"
+        "3840"
+        "-H"
+        "2160"
+        "-r"
+        "60"
+      ];
+    };
+  };
 
   services.flatpak.enable = true;
   xdg.portal.enable = true;

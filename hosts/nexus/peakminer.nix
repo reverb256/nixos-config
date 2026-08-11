@@ -1,4 +1,4 @@
-{lib, ...}: {
+{...}: {
   services.peakminer = {
     enable = true;
     wallet = "krxXVNVMM7";
@@ -19,5 +19,4 @@
     ];
   };
 
-  services.gaming-detection.enable = lib.mkForce false;
 }

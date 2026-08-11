@@ -40,7 +40,10 @@ in {
     # NVIDIA DRIVER CONFIGURATION
 
     # NOTE: hardware.nvidia base configuration (including package) is in nvidia-common.nix
-    # This module only adds/overrides Wayland-specific settings
+    # This module only adds/overrides Wayland-specific settings.
+    # Wire this option to the real graphics option so host profiles cannot
+    # accidentally change a dead setting while Steam/Proton needs 32-bit libs.
+    hardware.graphics.enable32Bit = cfg.enable32Bit;
     hardware.nvidia = {
       open = cfg.openModules;
       modesetting.enable = true;
@@ -61,9 +64,10 @@ in {
     #    environment.common.wayland.enable = true;
     # NVIDIA-specific environment variables
     environment.sessionVariables = {
-      # CRITICAL: Force NVIDIA Vulkan ICD (fixes DXVK initialization failures)
-      # Without this, Vulkan loader can't find the NVIDIA driver
-      VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
+      # Do not force a single 64-bit ICD globally. Steam/Proton uses both
+      # loader architectures and the normal Vulkan loader discovery remains
+      # compatible with driver updates and containerized runtimes. If a
+      # multi-GPU app needs pinning, scope the override to that app/session.
       # Ensure GLX uses NVIDIA vendor library
       __GLX_VENDOR_LIBRARY_NAME = "nvidia";
       # Force GBM to use NVIDIA DRM backend (fixes DMA-BUF/EGL buffer import issues)
