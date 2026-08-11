@@ -228,9 +228,9 @@ in {
 
     vulkanMainlinePackage = mkOption {
       type = types.nullOr types.package;
-      default = pkgs.llama-cpp.override { cudaSupport = false; };
+      default = pkgs.llama-cpp.override { cudaSupport = false; vulkanSupport = true; };
       description = "Mainline llama.cpp package with Vulkan backend and CUDA disabled (AMD/Radeon 1-bit Q1_0). No fork needed.";
-      example = "pkgs.llama-cpp.override { cudaSupport = false; }";
+      example = "pkgs.llama-cpp.override { cudaSupport = false; vulkanSupport = true; }";
     };
 
     package = mkOption {
