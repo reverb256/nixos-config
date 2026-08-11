@@ -252,12 +252,23 @@ in {
     };
   };
 
-  config = mkIf cfg.enable {
-    users.users.bonsai = {
-      isSystemUser = true;
-      group = "bonsai";
-      description = "Bonsai 27B inference service";
-    };
-    users.groups.bonsai = {};
-  } // ternaryZephyr // bit1Zephyr // ternaryNexus // bit1Nexus // ternaryForge // bit1Forge0 // bit1Forge1 // bit1Sentry // bit1Krash3;
+  config = mkMerge [
+    (mkIf cfg.enable {
+      users.users.bonsai = {
+        isSystemUser = true;
+        group = "bonsai";
+        description = "Bonsai 27B inference service";
+      };
+      users.groups.bonsai = {};
+    })
+    ternaryZephyr
+    bit1Zephyr
+    ternaryNexus
+    bit1Nexus
+    ternaryForge
+    bit1Forge0
+    bit1Forge1
+    bit1Sentry
+    bit1Krash3
+  ];
 }
