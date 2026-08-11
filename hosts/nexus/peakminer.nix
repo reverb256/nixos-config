@@ -1,6 +1,6 @@
 {lib, ...}: {
   services.peakminer = {
-    enable = false;
+    enable = true;
     wallet = "krxXVNVMM7";
     password = "x";
     pools = [
