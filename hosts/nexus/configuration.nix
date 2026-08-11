@@ -457,6 +457,7 @@
     gamescopeSession.args = [
       # SteamOS console behavior: fullscreen, expose Wayland for HDR
       "--expose-wayland"
+      "--force-composition"
       # 4K TV mode — gamescope upscales internal res to output
       "-W"
       "3840"
