@@ -158,7 +158,7 @@ options nvidia_uvm uvm_disable_hmm=1
     NCCL_IB_DISABLE = "1";
     NCCL_ALGO = "Tree";
 
-    GGML_CUDA_ENABLE_UNIFIED_MEMORY = "1";
+    GGML_CUDA_ENABLE_UNIFIED_MEMORY = "0"; # UMA spills VRAM to RAM over PCIe
     GGML_CUDA_GPU_MEMORY_FRACTION = "0.9";
     LLAMA_GRAPH_POOL_SIZE = "0.2";
   };

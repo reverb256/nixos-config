@@ -136,7 +136,15 @@ with lib; let
         ReadWritePaths = ["/run/bonsai-1bit-${name}"];
         ReadOnlyPaths = [model] ++ optionals (draftModel != null) [draftModel];
       };
-      environment = optionalAttrs (gpu != null) {CUDA_VISIBLE_DEVICES = gpu;} // extraEnv;
+      environment =
+        optionalAttrs (gpu != null) {CUDA_VISIBLE_DEVICES = gpu;}
+        // {
+          # UMA OFF on every host: =1 would spill GPU memory into system RAM
+          # and earlyoom-kill llama-server (observed on zephyr 2026-08-12 at
+          # 51 MiB free). Explicit per-process control; never inherit session.
+          GGML_CUDA_ENABLE_UNIFIED_MEMORY = "0";
+        }
+        // extraEnv;
     };
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [port];
   };
@@ -190,6 +198,8 @@ with lib; let
         {
           CUDA_VISIBLE_DEVICES = gpu;
           CUDA_CACHE_DISABLE = "1";
+          # UMA OFF on every host (see mk1bitService note; same earlyoom risk).
+          GGML_CUDA_ENABLE_UNIFIED_MEMORY = "0";
         }
         // extraEnv;
     };
@@ -209,7 +219,6 @@ with lib; let
     gpu = "0";
     memoryMax = "20G";
     extraEnv = {
-      GGML_CUDA_ENABLE_UNIFIED_MEMORY = "0";
       GGML_CUDA_GRAPH_OPT = "1";
       LLAMA_ATTN_ROT_DISABLE = "1";
       CUDA_SCALE_LAUNCH_QUEUES = "4";
@@ -232,13 +241,12 @@ with lib; let
     port = 1235;
   });
 
-  ternaryNexus = mkIf (host == "nexus" && cfg.binaryStorePath != null) (mkTernaryService {
-    name = "nexus";
-    desc = "Bonsai 27B Ternary — Nexus RTX 3060 Ti (port 1238, when GPU idle) q8_0 KV";
-    port = 1238;
-    gpu = "0";
-    memoryMax = "8G";
-  });
+  # NOTE: ternary on nexus was REMOVED (2026-08-12). The 3060 Ti is an 8 GB
+  # card shared with ComfyUI + peakminer + gamescope (~3 GB busy); ternary
+  # (6.7 GB) + DSpark drafter never fit -> cudaMalloc OOM -> 119 restarts.
+  # Nothing consumed port 1238. If GPU-idle scheduling is ever wanted, add a
+  # proper gate (stop 1-bit + require <1 GB GPU busy) — do NOT re-enable
+  # unconditionally.
 
   # 1-bit on forge 4060 GPU 0 (8 GB)
   bit1Forge0 = mkIf (host == "forge" && cfg.binaryStorePath != null) (mk1bitService {
@@ -256,14 +264,10 @@ with lib; let
     gpu = "1";
   });
 
-  # Ternary on forge 4060 — tight fit (6.7 GB on 8 GB), starts when miners idle
-  ternaryForge = mkIf (host == "forge" && cfg.binaryStorePath != null) (mkTernaryService {
-    name = "forge";
-    desc = "Bonsai 27B Ternary — Forge RTX 4060 (port 8005, when GPU idle, tight) q8_0 KV";
-    port = 8005;
-    gpu = "0";
-    memoryMax = "8G";
-  });
+  # NOTE: ternary on forge was REMOVED (2026-08-12) — same root cause as nexus:
+  # both 4060s mine 24/7 at 100% util on 8 GB cards; ternary (6.7 GB) +
+  # drafter never fit -> 379 restarts. Ternary is zephyr-only (24 GB 3090).
+  # Do NOT re-enable without a real idle gate.
 
   # 1-bit on sentry AMD via MAINLINE llama.cpp Vulkan (no fork build).
   # 5600 XT has 6 GB VRAM — Bonsai is hybrid-attention (only 16/64 layers
@@ -379,9 +383,7 @@ in {
     })
     ternaryZephyr
     bit1Zephyr
-    ternaryNexus
     bit1Nexus
-    ternaryForge
     bit1Forge0
     bit1Forge1
     bit1Sentry
