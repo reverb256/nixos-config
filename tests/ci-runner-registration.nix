@@ -21,6 +21,9 @@
     runnerStartsAfterSetup = has ''after = ["network-online.target" "github-actions-runner-setup.service"]'';
     noRuntimeCleanupUnit = !(has "github-actions-runner-runtime-cleanup");
     noTransientRegistration = !(has "RemainAfterExit = false;");
+    patchesNode20Runtime = has ''githubRunner = pkgs.runCommand "github-runner-with-node20"'';
+    copiesRunnerBundle = has ''cp -a --no-preserve=mode ''${pkgs.github-runner}/. "$out/"'';
+    providesNode20RuntimePath = has ''ln -s node24 "$out/lib/externals/node20"'';
   };
 
   failures = lib.filterAttrs (_: passed: !passed) checks;

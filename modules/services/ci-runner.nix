@@ -7,6 +7,15 @@
 with lib; let
   cfg = config.services.ci-runner;
   runnerHome = "/var/lib/${cfg.user}";
+  # GitHub actions still request node20 while the installed runner bundle
+  # ships node24. Wrap the cached runner instead of rebuilding its test suite.
+  githubRunner = pkgs.runCommand "github-runner-with-node20" {} ''
+    mkdir -p "$out"
+    cp -a --no-preserve=mode ${pkgs.github-runner}/. "$out/"
+    if [ -d "$out/lib/externals/node24" ] && [ ! -e "$out/lib/externals/node20" ]; then
+      ln -s node24 "$out/lib/externals/node20"
+    fi
+  '';
   # Build script fragments conditionally to avoid null interpolation
   getTokenCmd =
     if cfg.tokenFile != null
@@ -107,7 +116,7 @@ in {
       # on NixOS, where the runner does not inherit a user login profile.
       pkgs.cachix
       pkgs.gh
-      pkgs.github-runner
+      githubRunner
     ];
 
     system.activationScripts.ci-runner-stale-registration-override = lib.stringAfter ["etc"] ''
@@ -127,7 +136,7 @@ in {
         Type = "simple";
         User = cfg.user;
         WorkingDirectory = runnerHome;
-        ExecStart = "${pkgs.github-runner}/bin/Runner.Listener run";
+        ExecStart = "${githubRunner}/bin/Runner.Listener run";
         ExecStop = "/bin/kill -INT $MAINPID";
         Restart = "always";
         RestartSec = "10s";
@@ -159,7 +168,7 @@ in {
       description = "GitHub Actions Runner Setup";
       before = ["github-actions-runner.service"];
       requiredBy = ["github-actions-runner.service"];
-      path = [pkgs.curl pkgs.jq pkgs.github-runner];
+      path = [pkgs.curl pkgs.jq githubRunner];
       script = let
         allLabels = lib.concatStringsSep "," (cfg.labels ++ cfg.extraLabels);
       in ''
@@ -183,7 +192,7 @@ in {
               "${runnerHome}/.github-runner/.credentials" \
               "${runnerHome}/.github-runner/.credentials_rsaparams"
         ${getTokenCmd}
-        ${pkgs.github-runner}/bin/config.sh \
+        ${githubRunner}/bin/config.sh \
           --url "https://github.com/${cfg.repo}" \
           --token "$TOKEN" \
           --name "${config.networking.hostName}-runner" \

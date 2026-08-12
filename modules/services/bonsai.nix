@@ -46,16 +46,6 @@ with lib; let
         then point services.bonsai.binaryStorePath at the resulting store path.
       '';
 
-  # Optional PrismML fork Vulkan binary (NVIDIA/AMD fork build).
-  prismVulkanBinary =
-    if cfg.vulkanBinaryStorePath != null
-    then
-      pkgs.writeShellScriptBin "llama-server-bonsai-vulkan" ''
-        export LD_LIBRARY_PATH="${cfg.vulkanBinaryStorePath}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-        exec ${cfg.vulkanBinaryStorePath}/bin/llama-server "$@"
-      ''
-    else null;
-
   # Mainline llama.cpp (nixpkgs) with the Vulkan backend — for AMD/Radeon
   # hosts running 1-bit Q1_0 Bonsai. No fork build required.
   # CUDA support is DISABLED so the binary does not hard-link libcuda.so.1
@@ -73,21 +63,6 @@ with lib; let
         exec ${cfg.vulkanMainlinePackage}/bin/llama-server "$@"
       ''
     else null;
-
-  # turboQuant binary wrapper — wraps the retroheim turbo build.
-  turboPackage =
-    if cfg.turboBinaryStorePath != null
-    then
-      pkgs.writeShellScriptBin "llama-server-turbo-asym" ''
-        exec ${cfg.turboBinaryStorePath}/llama-server-turbo "$@"
-      ''
-    else null;
-
-  # Override for asymmetric KV services
-  effectivePackage =
-    if cfg.turboBinaryStorePath != null
-    then turboPackage
-    else cfg.package;
 
   # Shorthand: 1-bit Bonsai service (3.5 GB). Uses explicit context & q4_0 KV.
   # `model` and `memoryMax` are overridable per-host (sentry uses /srv/models
