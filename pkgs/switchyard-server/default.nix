@@ -8,7 +8,7 @@ rustPlatform.buildRustPackage rec {
     # sha256 and cargoHash will be filled in from the first nix-build run error message.
     sha256 = lib.fakeSha256;
   };
-  cargoHash = "cargoHash-placeholder";
+  cargoHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   meta = with lib; {
     description = "LLM routing proxy from NVIDIA Switchyard";
     license = licenses.asl20;
