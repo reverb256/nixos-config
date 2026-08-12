@@ -89,7 +89,7 @@ jobs:
           useDaemon: false
 
       - name: Nix flake check
-        run: nix flake check --no-build
+        run: nix flake check --no-build --no-eval-cache
 
   # ============================================================================
   # STAGE 2: Linting and static analysis
@@ -294,7 +294,7 @@ jobs:
       - name: Upload SARIF
         # Temporary guard until the declarative runner Node20 wrapper is deployed.
         continue-on-error: true
-        if: always() && hashFiles('results.sarif') != ''
+        if: always()
         # pin:github/codeql-action/upload-sarif@v3
         uses: github/codeql-action/upload-sarif@c4dd10e44af883a891fe31ced449bcb4a6728b9b
         with:
