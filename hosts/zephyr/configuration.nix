@@ -1171,4 +1171,19 @@
     binaryStorePath = "/nix/store/6pnbfx3vqcljg2i6gnv7fds9yy56aj4n-llama-cpp-cuda-0.0.0";
     turboBinaryStorePath = "/usr/local/bin/llama-server-turbo";
   };
+
+  # NVIDIA Switchyard LLM routing proxy - local + remote backends.
+  # Routes: switchyard/{muse,bonsai,nim,opencode-go,opencode-zen,local}.
+  # Nous Portal deliberately omitted: OAuth rotating token, not a static key.
+  services.switchyard = {
+    enable = true;
+    host = "127.0.0.1";
+    port = 4000;
+    configFile = ./modules/services/switchyard/routes.toml;
+    envFiles = {
+      NVIDIA_API_KEY = "/run/secrets/nvidia-api-key";
+      OPENCODE_GO_API_KEY = "/run/secrets/opencode-go-api-key";
+      OPENCODE_ZEN_API_KEY = "/run/secrets/opencode-api-key";
+    };
+  };
 }

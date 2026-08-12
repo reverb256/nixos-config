@@ -47,6 +47,7 @@
   llama-cpp-vulkan = prev.callPackage ../packages/llama-cpp-vulkan.nix {};
   llama-cpp-vulkan-nocuda = prev.callPackage ../packages/llama-cpp-vulkan-nocuda.nix {};
   nixos-cluster-mcp = prev.callPackage ../packages/nixos-cluster-mcp {};
+  switchyard-server = prev.callPackage ../packages/switchyard-server/default.nix {};
   privacy-filter = prev.callPackage ../packages/privacy-filter.nix {
     transformers-dev = prev.callPackage ../packages/transformers-dev.nix {};
   };
