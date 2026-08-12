@@ -363,6 +363,9 @@
             dualsense = mkCheck "dualsense" ./tests/dualsense.nix;
             network-constants = mkCheck "network-constants" ./tests/network-constants.nix;
             nixos-eval = mkCheck "nixos-eval" ./tests/nixos-eval.nix;
+            nixos-sync = mkCheck "nixos-sync" ./tests/nixos-sync.nix;
+            portable-model-purity = mkCheck "portable-model-purity" ./tests/portable-model-purity.nix;
+
             options-consistency = mkCheck "options-consistency" ./tests/options-consistency.nix;
             secrets-integrity = mkCheck "secrets-integrity" ./tests/secrets-integrity.nix;
             layer-interface-contract = mkCheck "layer-interface-contract" ./tests/layer-interface-contract.nix;
