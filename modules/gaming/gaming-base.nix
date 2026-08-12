@@ -73,8 +73,10 @@ in mkIf cfg.enable {
               /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GPUGraphicsClockOffset[4]=100" 2>/dev/null || true
               /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GPUMemoryTransferRateOffset[4]=400" 2>/dev/null || true
             fi
-            /etc/nixos/scripts/gpu-profiles/gaming.sh 2>/dev/null || true
-            /etc/nixos/scripts/gpu-profiles/k8s-mining-pause.sh start 2>/dev/null || true
+            # Nexus intentionally keeps PeakMiner and its declared power profile
+            # active while Gamescope and games run concurrently. Do not let the
+            # shared GameMode hook rewrite its clocks/power on that host.
+            ${lib.optionalString (config.networking.hostName != "nexus") "/etc/nixos/scripts/gpu-profiles/gaming.sh 2>/dev/null || true"}
           ''}";
           end = "${pkgs.writeShellScript "gamemode-end" ''
             ${pkgs.libnotify}/bin/notify-send 'GameMode deactivated' 'Normal performance restored'
@@ -84,8 +86,7 @@ in mkIf cfg.enable {
               /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GPUGraphicsClockOffset[4]=0" 2>/dev/null || true
               /run/current-system/sw/bin/nvidia-settings -a "[gpu:$gaming_gpu]/GPUMemoryTransferRateOffset[4]=0" 2>/dev/null || true
             fi
-            /etc/nixos/scripts/gpu-profiles/ai-inference.sh 2>/dev/null || true
-            /etc/nixos/scripts/gpu-profiles/k8s-mining-pause.sh end 2>/dev/null || true
+            ${lib.optionalString (config.networking.hostName != "nexus") "/etc/nixos/scripts/gpu-profiles/ai-inference.sh 2>/dev/null || true"}
           ''}";
         };
       };
@@ -107,7 +108,6 @@ in mkIf cfg.enable {
       extest.enable = true;
       remotePlay.openFirewall = true;
       localNetworkGameTransfers.openFirewall = true;
-      gamescopeSession.enable = false;
       fontPackages = with pkgs; [
         noto-fonts
         liberation_ttf

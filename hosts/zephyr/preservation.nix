@@ -22,8 +22,7 @@
       "/var/lib/bluetooth"
       "/var/lib/tailscale"
       "/var/lib/fwupd"
-      # Keep both dormant Windows VM backends and their separate state.
-      "/var/lib/libvirt"
+      # Preserve the Incus-only Windows VM state across generations.
       "/var/lib/incus"
       "/var/lib/incus-gamepass"
     ];

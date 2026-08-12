@@ -128,6 +128,7 @@ in {
         # at step-exec time (root cause of 'sh: command not found' startup_failure).
         Environment = [
           "PATH=/run/current-system/sw/bin:/run/current-system/sw/sbin:${runnerHome}/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin"
+          "RUNNER_ROOT=${runnerHome}"
           "LANG=C.UTF-8"
         ];
         ProtectSystem = "strict";
@@ -156,7 +157,10 @@ in {
       in ''
         # Always re-register: wipe any stale config so config.sh can run fresh
         rm -f "${runnerHome}/.runner" "${runnerHome}/.credentials" \
-              "${runnerHome}/.credentials_rsaparams" "${runnerHome}/.github-runner/.runner"
+              "${runnerHome}/.credentials_rsaparams" \
+              "${runnerHome}/.github-runner/.runner" \
+              "${runnerHome}/.github-runner/.credentials" \
+              "${runnerHome}/.github-runner/.credentials_rsaparams"
         ${getTokenCmd}
         ${pkgs.github-runner}/bin/config.sh \
           --url "https://github.com/${cfg.repo}" \
@@ -167,6 +171,9 @@ in {
           --unattended
         echo "Runner configured successfully"
       '';
+      environment = {
+        RUNNER_ROOT = runnerHome;
+      };
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;

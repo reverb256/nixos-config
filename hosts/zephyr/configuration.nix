@@ -38,9 +38,8 @@
     # NVIDIA GPU Wayland support (host-dependent)
     ../../modules/hardware/nvidia-common.nix
     ../../modules/hardware/nvidia-wayland.nix
-    # Game Pass Windows VM backends — parallel, dormant, Zephyr only.
-    # libvirt remains the rollback backend while Incus is installed/tested.
-    ../../modules/hardware/vfio-gamepass.nix
+    # Incus-only Game Pass Windows VM backend — RTX 3060 Ti only.
+    # The former libvirt backend is retired; the RTX 3090 remains host-owned.
     ../../modules/hardware/incus-gamepass.nix
     # Noctalia desktop compositor (niri shell, iced/winit/Smithay deps)
     # noctalia: now built-in to nixpkgs-unstable (programs.noctalia)
@@ -380,6 +379,11 @@
   # Autologin into Niri (niri-uwsm) on boot.
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "j_kro";
+  # HDR gamescope is a Zephyr-only display feature; keep it explicit so the
+  # effective configuration includes the SDL/HDR arguments, not just the WSI
+  # package support.
+  services.gaming.hdr.enable = true;
+
   # NOTE (2026-07-21, issue #300): upstream NixOS removed the bare
   # `plasma` session name from the SDDM valid-session registry. Valid
   # values are now `niri-uwsm` and `niri`. Uswm-managed Niri is the

@@ -41,6 +41,8 @@ in {
 
     # NOTE: hardware.nvidia base configuration (including package) is in nvidia-common.nix
     # This module only adds/overrides Wayland-specific settings
+    # Wire the profile option to the real Steam/Proton graphics setting.
+    hardware.graphics.enable32Bit = cfg.enable32Bit;
     hardware.nvidia = {
       open = cfg.openModules;
       modesetting.enable = true;
@@ -61,9 +63,9 @@ in {
     #    environment.common.wayland.enable = true;
     # NVIDIA-specific environment variables
     environment.sessionVariables = {
-      # CRITICAL: Force NVIDIA Vulkan ICD (fixes DXVK initialization failures)
-      # Without this, Vulkan loader can't find the NVIDIA driver
-      VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
+      # Let the Vulkan loader discover the runtime driver manifests under
+      # /run/opengl-driver. Hardcoding an architecture-suffixed filename is
+      # brittle: the active NixOS NVIDIA package provides nvidia_icd.json.
       # Ensure GLX uses NVIDIA vendor library
       __GLX_VENDOR_LIBRARY_NAME = "nvidia";
       # Force GBM to use NVIDIA DRM backend (fixes DMA-BUF/EGL buffer import issues)
@@ -95,8 +97,8 @@ in {
     # VULKAN ICD SYMLINK - Use environment.etc for reliable symlink creation
     # systemd.tmpfiles.rules was failing with "Invalid age" errors on L+ type
     environment.etc = {
-      "vulkan/icd.d/nvidia_icd.json".source = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
-      "vulkan/icd.d/nvidia_icd.x86_64.json".source = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
+      # Compatibility link for tools that only search /etc/vulkan.
+      "vulkan/icd.d/nvidia_icd.json".source = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json";
       # NVIDIA app profile: wayland compositors (niri) hoard VRAM unless
       # GLVidHeapReuseRatio=0 is applied to their process — niri can leak
       # ~2.5GiB idle. Loaded by the driver from /etc/nvidia/...rc.d/*.json

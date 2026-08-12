@@ -49,6 +49,31 @@
   services.displayManager.defaultSession = lib.mkForce "steam";
   services.displayManager.sddm.settings.Autologin.Relogin = true;
 
+  # Nexus runs Steam inside the native Gamescope session. Do not grant
+  # CAP_SYS_NICE here: the inherited capability makes Steam's non-setuid
+  # Bubblewrap sandbox abort with "Unexpected capabilities but not setuid".
+  # Zephyr retains the global capability setting for its separate HDR path.
+  programs.gamescope.capSysNice = lib.mkForce false;
+
+  # Sole owner of the native Steam Gamescope session for Nexus. Keep the
+  # session declaration beside SDDM/autologin rather than duplicating it in
+  # cluster-service or shared gaming modules.
+  programs.steam = {
+    enable = true;
+    gamescopeSession = {
+      enable = lib.mkForce true;
+      args = [
+        "--expose-wayland"
+        "--force-composition"
+        "-W"
+        "3840"
+        "-H"
+        "2160"
+        "-r"
+        "60"
+      ];
+    };
+  };
 
   services.flatpak.enable = true;
   xdg.portal.enable = true;

@@ -387,6 +387,10 @@
           packages.ai-inference-gateway-image =
             pkgs.callPackage ./pkgs/ai-inference-gateway-image
               { };
+          # NVIDIA Switchyard LLM routing proxy (standalone server binary).
+          # Build on nexus: nix build .#switchyard-server
+          packages.switchyard-server =
+            pkgs.callPackage ./pkgs/switchyard-server { };
           # Portable USB stick disk image (systemd-repart, persistent).
           # Build: nix build .#portable-image
           # Flash: sudo dd if=result/portable-image of=/dev/disk/by-id/usb-... bs=4M status=progress oflag=sync

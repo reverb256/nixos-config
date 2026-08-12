@@ -46,5 +46,23 @@
       dates      = lib.mkDefault "weekly";
       options    = lib.mkDefault "--delete-older-than 30d";
     };
+
+    # 2026-08-11: nix.gc.options only bounds store paths by AGE. It does NOT
+    # cap the number of system generations — nexus had accumulated 435 of them
+    # (a rebuild every few hours creates a new gen; 30d of churn = hundreds).
+    # Add a count-based prune: keep the newest N generations and delete the
+    # rest. `nix-env --delete-generations +N` keeps the N most recent.
+    # Ordering only (after=, not requires=) so hosts that disable nix.gc still
+    # get generation pruning; store paths unrooted here are collected by the
+    # next nix-gc run. Uses config.nix.package (the host's actual Nix/Lix).
+    systemd.services.nix-gc-prune = {
+      description = "Prune old NixOS system generations (keep newest 20)";
+      after = ["nix-gc.service"];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${config.nix.package}/bin/nix-env --profile /nix/var/nix/profiles/system --delete-generations +20";
+      };
+      startAt = "weekly";
+    };
   };
 }

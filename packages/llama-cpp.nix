@@ -39,7 +39,7 @@
   defaultSrc = fetchgit {
     url = "https://github.com/ggml-org/llama.cpp";
     rev = "030ebb558a5820b444a8f836ed5cdd46c9b4bd7a";
-    hash = "sha256-l3I3crnWgITk5mZCUMEDos50Vus3g2Gi1okykPTBYk8=";
+    hash = "sha256-MDcdHgI1XwWh2BIfzKTDubCZtzwC9YsFRS7H5S4e/n0=";
     leaveDotGit = false;
   };
   # src defined as let binding above
