@@ -201,7 +201,8 @@ with lib; let
     name = "sentry"; desc = "Bonsai 27B 1-bit — Sentry AMD RX 5600 XT via Vulkan (port 8003)";
     port = 8003; binary = mainlineVulkanBinary;
     extraEnv = { GGML_VULKAN_DEVICE = "0"; VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/radeon_icd.x86_64.json"; };
-    contextSize = "65536"; cacheTypeK = "q4_0"; cacheTypeV = "q4_0"; memoryMax = "8G";
+    contextSize = "8192"; cacheTypeK = "q4_0"; cacheTypeV = "q4_0"; memoryMax = "8G";
+    specType = "draft-dspark"; specDraftNMax = 4; draftModel = "/srv/models/bonsai/dspark/Bonsai-27B-dspark-Q4_1.gguf";
   });
 
   # 1-bit on krash3 CPU-only (no GPU available)
