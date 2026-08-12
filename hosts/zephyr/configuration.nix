@@ -49,6 +49,8 @@
     ./peakminer.nix
     # Bonsai 27B: ternary (RTX 3090, port 1237, CUDA), 1-bit (3060 Ti, port 1236)
     ../../modules/services/bonsai.nix
+    # NVIDIA Switchyard LLM routing proxy (routes.toml + systemd unit)
+    ../../modules/services/switchyard.nix
 
     # Gitlawb flake-based client + remote helper
     inputs.gitlawb.nixosModule
@@ -1179,7 +1181,7 @@
     enable = true;
     host = "127.0.0.1";
     port = 4000;
-    configFile = ./modules/services/switchyard/routes.toml;
+    configFile = ../../modules/services/switchyard/routes.toml;
     envFiles = {
       NVIDIA_API_KEY = "/run/secrets/nvidia-api-key";
       OPENCODE_GO_API_KEY = "/run/secrets/opencode-go-api-key";
