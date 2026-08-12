@@ -67,7 +67,6 @@ in {
       wants = [ "secretspec-creds.service" ];
       serviceConfig = {
         Type = "oneshot";
-        RemainAfterExit = true;
         ExecStart = "${pkgs.systemd}/bin/systemctl restart secretspec-creds.service";
       };
     };
