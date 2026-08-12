@@ -2,13 +2,21 @@
 # Clients select a route by posting "model": "<route id>".
 # API keys come from env vars (api_key_env); the TOML never holds secrets.
 # Env names must match secretspec env-var names wired into the systemd unit
-# via services.switchyard.envFiles (zephyr services.nix).
+# via services.switchyard.envFiles (zephyr configuration.nix).
+#
+# Policy (2026-08-11 overhaul):
+#   opencode-go  -> deepseek-v4-flash            (j_kro directive: go = flash only)
+#   opencode-zen -> nemotron-3.5-lightning-free  (resilient free tier; DSpark family)
+#   nim          -> nvidia/nemotron-3.5-lightning-30b-a3b (best NIM; stale 70b hung upstream)
+#   local        -> 70% zephyr ternary+DSpark (3090, 262K) / 30% sentry 1-bit (Vulkan)
+#   bonsai       -> sentry 1-bit (explicit route)
+#   muse         -> REMOVED (dead :21560; was 70% of local)
 schema_version = 1
 
 # ── LLM clients ──────────────────────────────────────────────────────────────
-[llm_clients.muse_local]
+[llm_clients.bonsai_zephyr]
 format = "openai_chat"
-base_url = "http://127.0.0.1:21560/v1"
+base_url = "http://127.0.0.1:8005/v1"   # zephyr RTX 3090 ternary + DSpark drafter, 262K
 
 [llm_clients.bonsai_sentry]
 format = "openai_chat"
@@ -33,32 +41,27 @@ api_key_env = "OPENCODE_ZEN_API_KEY"
 max_retries = 2
 
 # ── Targets (id = exact model id sent upstream) ──────────────────────────────
-[targets.muse_30b]
-id = "muse-glimmer-30b"
-llm_client = "muse_local"
+[targets.bonsai_zephyr_dspark]
+id = "Ternary-Bonsai-27B-Q2_0.gguf"
+llm_client = "bonsai_zephyr"
 
 [targets.bonsai_1bit]
 id = "bonsai-27b-1bit-sentry"
 llm_client = "bonsai_sentry"
 
 [targets.nim_default]
-id = "meta/llama-3.3-70b-instruct"
+id = "nvidia/nemotron-3.5-lightning-30b-a3b"   # was meta/llama-3.3-70b-instruct — hangs upstream
 llm_client = "nim"
 
 [targets.opencode_go_default]
-id = "go"
+id = "deepseek-v4-flash"   # was "go" — 401 Model go is not supported
 llm_client = "opencode_go"
 
 [targets.opencode_zen_default]
-id = "zen"
+id = "nemotron-3.5-lightning-free"   # was "zen" — 401; nemotron free = resilient quota + DSpark family
 llm_client = "opencode_zen"
 
 # ── Routes (id = model id clients send) ──────────────────────────────────────
-[routes.muse]
-id = "switchyard/muse"
-type = "passthrough"
-target = "muse_30b"
-
 [routes.bonsai]
 id = "switchyard/bonsai"
 type = "passthrough"
@@ -79,9 +82,9 @@ id = "switchyard/opencode-zen"
 type = "passthrough"
 target = "opencode_zen_default"
 
-# Random split between local models: 70% Muse (fast, multimodal), 30% Bonsai.
+# Random split between local models: 70% zephyr ternary+DSpark (3090, 262K), 30% sentry 1-bit.
 [routes.local_default]
 id = "switchyard/local"
 type = "random"
-targets = ["muse_30b", "bonsai_1bit"]
+targets = ["bonsai_zephyr_dspark", "bonsai_1bit"]
 weights = [7, 3]

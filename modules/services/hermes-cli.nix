@@ -148,9 +148,19 @@ in {
     };
 
     managedFallbackProviders = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
+      # NOTE: Hermes v0.20.0 get_fallback_chain() requires each entry to be a
+      # dict with provider+model; plain strings are SILENTLY SKIPPED (an empty
+      # chain). The emitter writes this list verbatim into config.yaml, so the
+      # option must hold dicts, not names.
+      type = lib.types.listOf (lib.types.attrsOf lib.types.anything);
       default = [];
-      description = "Ordered list of fallback providers matching `fallback_providers:`";
+      example = lib.literalExpression ''
+        [
+          { provider = "switchyard"; model = "switchyard/local"; }
+          { provider = "opencode-zen"; model = "nemotron-3.5-lightning-free"; }
+        ]
+      '';
+      description = "Ordered fallback chain matching `fallback_providers:` (list of {provider, model} dicts).";
     };
 
     voiceAutoStart = lib.mkOption {
