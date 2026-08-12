@@ -109,7 +109,12 @@
   services.secretspec-validator = {
     enable = true;
     production = true;
-    failOnMissing = true;
+    # failOnMissing=false is the cluster default per
+    # modules/system/SECRETSPEC-CONSOLIDATION.md (flipped 2026-07-25). The
+    # manifest intentionally declares 33 env/dotenv-fallback secrets with no
+    # sops route; failOnMissing=true made the unit fail every run by design
+    # of those entries, drowning journals. Drift still surfaces as warnings.
+    failOnMissing = false;
   };
 
   # ============================================================================
