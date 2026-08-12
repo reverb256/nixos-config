@@ -6,9 +6,11 @@
 #   -> 3 timeouts + 1 explicit 429, even with retries. Compensation layers:
 #     1. max_retries raised on NIM (4) — transient 529/429 bursts recover
 #        (verified: direct 529 -> retry -> 200).
-#     2. Judge for smart/escalate uses opencode-go (deepseek-v4-flash) —
-#        SEPARATE quota bucket from NIM targets; judge calls no longer eat
-#        NIM RPM and NIM deepseek 529s cannot break the classifier.
+#     2. Judge for smart/escalate stays on NIM deepseek-v4-flash-0731:
+#        the classifier needs response_format/structured output, which
+#        opencode-go REJECTS (400 "This response_format type is unavailable
+#        now" — verified 2026-08-12). NIM supports it. Judge calls share the
+#        NIM bucket but are amortized by session_affinity (~1/session).
 #     3. Resilient routes mix providers per-request (NIM + go + zen) so a
 #        NIM 429 fails at most its own share, not the whole route.
 #     4. Hermes fallback chain (config.yaml) remains the outer net:
@@ -162,7 +164,7 @@ confidence_threshold = 0.6
 id = "switchyard/smart"
 type = "llm_classifier"
 mode = "capability"
-classifier_target = "opencode_go_default"
+classifier_target = "nim_dsv4flash"
 strong_target = "nim_glm52"
 weak_target = "nim_nano30b"
 base_threshold = 0.7
@@ -173,7 +175,7 @@ session_affinity = true
 id = "switchyard/escalate"
 type = "llm_classifier"
 mode = "escalation"
-classifier_target = "opencode_go_default"
+classifier_target = "nim_dsv4flash"
 strong_target = "nim_glm52"
 weak_target = "nim_nano30b"
 
