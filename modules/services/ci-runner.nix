@@ -110,6 +110,14 @@ in {
       pkgs.github-runner
     ];
 
+    system.activationScripts.ci-runner-stale-registration-override = lib.stringAfter ["etc"] ''
+      stale_drop_in=/run/systemd/system/github-actions-runner-setup.service.d/10-registration-already-complete.conf
+      if [ -e "$stale_drop_in" ]; then
+        rm -f "$stale_drop_in"
+        ${pkgs.systemd}/bin/systemctl daemon-reload
+      fi
+    '';
+
     systemd.services.github-actions-runner = lib.mkIf cfg.autoStart {
       description = "GitHub Actions Self-Hosted Runner";
       after = ["network-online.target" "github-actions-runner-setup.service"];
@@ -155,7 +163,20 @@ in {
       script = let
         allLabels = lib.concatStringsSep "," (cfg.labels ++ cfg.extraLabels);
       in ''
-        # Always re-register: wipe any stale config so config.sh can run fresh
+        # Preserve a complete registration across service restarts. The setup
+        # unit is a persistent oneshot; only register an unconfigured runner.
+        if {
+          [ -f "${runnerHome}/.runner" ] &&
+          [ -f "${runnerHome}/.credentials" ]
+        } || {
+          [ -f "${runnerHome}/.github-runner/.runner" ] &&
+          [ -f "${runnerHome}/.github-runner/.credentials" ]
+        }; then
+          echo "GitHub Actions runner is already registered; skipping setup"
+          exit 0
+        fi
+
+        # Remove incomplete runner configuration before registration.
         rm -f "${runnerHome}/.runner" "${runnerHome}/.credentials" \
               "${runnerHome}/.credentials_rsaparams" \
               "${runnerHome}/.github-runner/.runner" \

@@ -375,6 +375,7 @@
             network-constants = mkCheck "network-constants" ./tests/network-constants.nix;
             nixos-eval = mkCheck "nixos-eval" ./tests/nixos-eval.nix;
             nixos-sync = mkCheck "nixos-sync" ./tests/nixos-sync.nix;
+            ci-runner-registration = mkCheck "ci-runner-registration" ./tests/ci-runner-registration.nix;
             portable-model-purity = mkCheck "portable-model-purity" ./tests/portable-model-purity.nix;
             options-consistency = mkCheck "options-consistency" ./tests/options-consistency.nix;
             secrets-integrity = mkCheck "secrets-integrity" ./tests/secrets-integrity.nix;
