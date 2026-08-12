@@ -45,6 +45,11 @@ in {
     systemd.services.podman-dcgm-exporter = {
       wants = ["nvidia-container-toolkit-cdi-generator.service"];
       after = ["nvidia-container-toolkit-cdi-generator.service"];
+      # 2026-08-12: podman failed with "creating idfile: open
+      # /run/dcgm-exporter/ctr-id: no such file or directory" — the OCI
+      # wrapper's RuntimeDirectory was missing on the running host (start-limit
+      # hit after the deploy). Ensure the dir exists every start.
+      serviceConfig.RuntimeDirectory = "dcgm-exporter";
     };
 
     # Scrape target for Prometheus (add to prometheus scrape config)
