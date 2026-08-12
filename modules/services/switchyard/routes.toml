@@ -16,7 +16,7 @@ base_url = "http://10.1.1.140:8003/v1"
 
 [llm_clients.nim]
 format = "openai_chat"
-base_url = "https://ai.api.nvidia.com/v1"
+base_url = "https://integrate.api.nvidia.com/v1"
 api_key_env = "NVIDIA_API_KEY"
 max_retries = 2
 
