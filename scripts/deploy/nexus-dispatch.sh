@@ -120,6 +120,10 @@ executor() {
 
 if [[ "$MODE" == "executor" ]]; then
   executor
+  # executor() runs the deployment and returns (only the local-nexus branch
+  # uses exec). Do NOT fall through to the zephyr-only dispatch guard below —
+  # on nexus it would wrongly exit 1 after a successful deploy.
+  exit 0
 fi
 
 # All non-executor modes are initiated from Zephyr. This prevents a stale
