@@ -1,7 +1,7 @@
 # CI/CD Pipeline
 
 > **Status:** Active reference
-> **Last Verified:** 2026-08-10
+> **Last Verified:** 2026-08-12
 > **Owner:** Cluster operations
 
 ---
@@ -9,6 +9,8 @@
 ## Overview
 
 The cluster uses GitHub Actions for CI/CD with justfile commands for local development and Colmena for multi-host deployment.
+
+The declarative self-hosted runner is part of the NixOS configuration. The details below describe the runner configuration in the checked-out source; they become live only after that configuration is deployed. CI validation does not deploy a change. Merge to `main` and the guarded deployment workflow remain separate operations.
 
 ### Pipeline Architecture
 
@@ -21,6 +23,32 @@ just build / targeted test validation
     ↓
 just deploy (repository safety gates + host-specific build flow)
 ```
+
+The primary `ci.yml` workflow has five validation stages:
+
+1. **Parse and quick checks:** `Parse Check` parses every Nix file. `Quick Check`
+   evaluates the explicit `.#checks.x86_64-linux` output with the evaluation cache
+   disabled.
+2. **Static analysis:** `Lint Nix` runs Alejandra, Statix, and Deadnix on changed
+   Nix files. `Home Path Guard (#309)` runs on Ubuntu and rejects hardcoded
+   `/home/j_kro` paths in shared cross-host layers.
+3. **Source tests:** `Test Suite` parses every test and strictly asserts its
+   `passed = true` or `all_pass = true` result. It depends on `Parse Check`.
+4. **Security:** `Security Scan` runs `osv-scanner` and writes `results.sarif`.
+   Scanner startup failures fail the job. Vulnerability findings still produce a
+   report. SARIF upload is temporarily non-blocking until the deployed runner
+   has the declarative Node 20 compatibility wrapper.
+5. **Heavy build validation:** `Build Configs` depends on quick checks, lint, and
+   source tests. It runs documentation verification, builds `zephyr`, `nexus`,
+   `forge`, and `sentry`, then validates the generated Kubernetes manifests.
+   The job has a 180-minute timeout. A timeout or cancellation is not a passing
+   host-build result. `Security Scan` runs independently in the workflow; whether
+   it is required for merge is controlled by repository branch protection, not by
+   the `Build Configs` dependency list.
+
+The current verification snapshot for PR #455 is recorded in
+[`status-2026-08-12.md`](status-2026-08-12.md). It is time-bound evidence, not a
+replacement for live GitHub checks.
 
 ---
 
@@ -150,12 +178,23 @@ Deploy to all hosts or specific host:
 ### Self-hosted runner requirements
 
 The self-hosted runner is the declarative `github-actions-runner.service` on
-Nexus, running as the `runner` system user from `/var/lib/runner`. The NixOS
-module provisions `nix`, `cachix`, `gh`, the GitHub runner, and the shell/tooling
-used by `run:` steps. Cachix-enabled workflows pass
-`cachixBin: /run/current-system/sw/bin/cachix` because `cachix-action`'s default
-`nix-env` installer is not reliable under this system runner service. Keep
-`cachix` in the system closure and keep the runner profile on PATH as a fallback.
+Nexus, running as the `runner` system user from `/var/lib/runner` with the
+`self-hosted` and `nixos` labels. The NixOS module provisions `nix`, `cachix`,
+`gh`, the GitHub runner, and the shell/tooling used by `run:` steps.
+
+The module wraps the packaged runner and provides `lib/externals/node20` as a
+symlink to the bundled Node 24 runtime. This restores actions that still request
+Node 20 without maintaining a second runner bundle. The service also sets an
+explicit NixOS-safe `PATH`, keeps the runner registration setup persistent, and
+removes the stale registration drop-in during activation before reloading
+systemd. The runner remains sandboxed with `ProtectSystem = "strict"` while
+allowing read-only access to the Nix store, current system profile, and runtime
+secrets.
+
+Cachix-enabled workflows pass `cachixBin: /run/current-system/sw/bin/cachix`
+because `cachix-action`'s default `nix-env` installer is not reliable under
+this system runner service. Keep `cachix` in the system closure and keep the
+runner profile on PATH as a fallback.
 
 The repository Actions policy is intentionally allowlisted. The selected-action
 allowlist must permit GitHub-owned actions and these third-party namespaces:
@@ -275,6 +314,7 @@ ssh zephyr sudo nixos-rebuild rollback
 
 ## References
 
+- [Current CI verification snapshot](status-2026-08-12.md)
 - [Colmena Documentation](https://github.com/zhaofengli/colmena)
 - [NixOS Flakes](https://nixos.wiki/wiki/Flakes)
 - [Nix Pills](https://nixos.org/guides/nix-pills/)
