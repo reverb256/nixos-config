@@ -111,7 +111,14 @@ with lib; let
         ReadWritePaths = ["/run/bonsai-1bit-${name}"];
         ReadOnlyPaths = [ model ] ++ optionals (draftModel != null) [ draftModel ];
       };
-      environment = optionalAttrs (gpu != null) { CUDA_VISIBLE_DEVICES = gpu; } // extraEnv;
+      environment = optionalAttrs (gpu != null) { CUDA_VISIBLE_DEVICES = gpu; }
+        // {
+          # UMA OFF on every host: =1 would spill GPU memory into system RAM
+          # and earlyoom-kill llama-server (observed on zephyr 2026-08-12 at
+          # 51 MiB free). Explicit per-process control; never inherit session.
+          GGML_CUDA_ENABLE_UNIFIED_MEMORY = "0";
+        }
+        // extraEnv;
     };
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ port ];
   };
@@ -147,6 +154,8 @@ with lib; let
       environment = {
         CUDA_VISIBLE_DEVICES = gpu;
         CUDA_CACHE_DISABLE = "1";
+        # UMA OFF on every host (see mk1bitService note; same earlyoom risk).
+        GGML_CUDA_ENABLE_UNIFIED_MEMORY = "0";
       } // extraEnv;
     };
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ port ];
