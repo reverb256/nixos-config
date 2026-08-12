@@ -1170,7 +1170,7 @@
   # Bonsai 27B: ternary on RTX 3090 (port 8005, asymmetric KV) + 1-bit on RTX 3060 Ti (port 1236)
   services.bonsai = {
     enable = true;
-    binaryStorePath = "/nix/store/6pnbfx3vqcljg2i6gnv7fds9yy56aj4n-llama-cpp-cuda-0.0.0";
+    binaryStorePath = "/nix/store/560rfa8pm0579c6lp9x0zcgx2izicmjc-llama-cpp-cuda-0.0.0";  # GC'd 6pnbfx3... rebuilt fork (2026-08-12)
     turboBinaryStorePath = "/usr/local/bin/llama-server-turbo";
   };
 
@@ -1187,5 +1187,60 @@
       OPENCODE_GO_API_KEY = "/run/secrets/opencode-go-api-key";
       OPENCODE_ZEN_API_KEY = "/run/secrets/opencode-api-key";
     };
+  };
+
+  # ── Hermes Agent config.yaml — SPOC (2026-08-12) ────────────────────────
+  # hermes-config-emit.service rewrites `providers:` + `fallback_providers:`
+  # at boot from this block. All other sections (MCP servers, toolsets,
+  # imperative channel config) are preserved. Do NOT edit the live
+  # ~/.hermes/config.yaml providers by hand — edit here, then:
+  #   systemctl restart hermes-config-emit.service
+  # Fallback policy (j_kro, 2026-08-11): local DSpark bonsai → zen free
+  # nemotron → go flash → NIM lightning. Hermes v0.20.0 requires fallback
+  # entries as {provider, model} dicts (strings are silently dropped).
+  services.hermes-cli = {
+    enable = true;
+    user = "j_kro";
+    managedConfig = true;
+    nvidiaApiKeyFile = "/run/secrets/nvidia-api-key";
+    opencodeGoApiKeyFile = "/run/secrets/opencode-go-api-key";
+    opencodeZenApiKeyFile = "/run/secrets/opencode-api-key";
+    secretspecEnvVarMappings = {
+      "NVIDIA_API_KEY"      = "NVIDIA_API_KEY";
+      "OPENCODE_API_KEY"    = "OPENCODE_ZEN_API_KEY";
+      "OPENCODE_GO_API_KEY" = "OPENCODE_GO_API_KEY";
+    };
+    managedProviders = {
+      "switchyard" = {
+        api_key_env = "NVIDIA_API_KEY";   # local proxy; key unused for localhost
+        base_url = "http://127.0.0.1:4000/v1";
+        discover_models = true;
+        model = "switchyard/local";
+      };
+      "opencode-zen" = {
+        api_key_env = "OPENCODE_API_KEY";
+        base_url = "https://opencode.ai/zen/v1";
+        discover_models = true;
+        model = "nemotron-3.5-lightning-free";
+      };
+      "opencode-go" = {
+        api_key_env = "OPENCODE_GO_API_KEY";
+        base_url = "https://opencode.ai/zen/go/v1";
+        discover_models = true;
+        model = "deepseek-v4-flash";
+      };
+      "nvidia" = {
+        api_key_env = "NVIDIA_API_KEY";
+        base_url = "https://integrate.api.nvidia.com/v1";
+        discover_models = true;
+        model = "nvidia/nemotron-3.5-lightning-30b-a3b";
+      };
+    };
+    managedFallbackProviders = [
+      { provider = "switchyard";    model = "switchyard/local"; }
+      { provider = "opencode-zen";  model = "nemotron-3.5-lightning-free"; }
+      { provider = "opencode-go";   model = "deepseek-v4-flash"; }
+      { provider = "nvidia";        model = "nvidia/nemotron-3.5-lightning-30b-a3b"; }
+    ];
   };
 }

@@ -220,14 +220,23 @@ in {
     enable = mkEnableOption "Bonsai 27B llama-server inference";
 
     binaryStorePath = mkOption {
-      type = types.nullOr types.str;
+      # types.path: an in-store string coerces to a path VALUE, so the wrapper
+      # interpolates with string context -> Nix records a real dependency and
+      # GC keeps the fork alive. Pure-eval-safe (builtins.storePath is not).
+      type = types.nullOr types.path;
       default = null;
-      description = "Store path of the built PrismML llama.cpp fork (nix build .#cuda output). NVIDIA hosts.";
+      description = ''
+        Store path of the built PrismML llama.cpp fork (nix build .#cuda output). NVIDIA hosts.
+        The path is wrapped with builtins.storePath so Nix records a real dependency: the
+        fork cannot be garbage-collected while this config references it, and eval fails
+        loudly if the path is missing on the builder (nexus). Copy the fork closure to the
+        builder first: nix-copy-closure --to nexus <store-path>.
+      '';
       example = "/nix/store/00000000000000000000000000000000-llama-cpp-cuda";
     };
 
     vulkanBinaryStorePath = mkOption {
-      type = types.nullOr types.str;
+      type = types.nullOr types.path;
       default = null;
       description = "Store path of the PrismML fork built with Vulkan (AMD/Radeon hosts). Optional.";
       example = "/nix/store/xxx-llama-cpp-vulkan-0.0.0";
