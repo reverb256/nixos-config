@@ -1,30 +1,33 @@
-# Zephyr Game Pass VM: Incus Migration
+# Zephyr Game Pass VM: Incus-only runbook
 
 ## Last verified
 
-2026-08-09 — source and live preseed audit. The Incus network/profile are
-present, no Incus VM has been created, and the libvirt rollback VM is stopped.
-Re-verify live state before every provisioning or backend switch.
+2026-08-10 — the Zephyr configuration contains one Windows VM backend: Incus.
+No VM is created or started by activation. Re-verify live state before every
+provisioning operation.
 
 ## Design and safety contract
 
-Zephyr declares two parallel, dormant Windows VM backends:
+Incus exclusively owns the Game Pass VM and the RTX 3060 Ti functions
+`0000:24:00.0` and `0000:24:00.1` while the VM is running. The RTX 3090 remains
+host-owned for desktop, gaming, mining, and AI workloads and is never detached
+by this configuration.
 
-| Backend | Name | Role | Storage |
-|---|---|---|---|
-| libvirt/QEMU | `gamepass-win11` | rollback backend | `/var/lib/libvirt/images/gamepass-win11.qcow2` |
-| Incus/QEMU | `gamepass-win11-incus` | migration target | Incus pool `gamepass` |
+The handoff is dynamic and fail-closed. Incus declares the VM GPU with its
+physical `gpu` device type; the companion HDMI-audio function is attached as a
+raw `pci` device. The host guard is authoritative for preflight: it takes a
+lock, stops only the known 3060 Ti workloads, rejects unexpected PCI drivers,
+verifies the 3060 Ti vendor/device IDs and shared IOMMU group, verifies the
+protected 3090 functions are present and not on `vfio-pci`, and records the
+original drivers. Incus then owns the actual `vfio-pci` bind/restore lifecycle
+using its `last_state.pci.driver` state. It does not automatically restart
+workloads that were stopped for handoff. Host-level IOMMU modules, driver
+availability, and workload quiescence remain NixOS responsibilities.
 
-Both use the RTX 3060 Ti functions `0000:24:00.0` and `0000:24:00.1` when
-started. The handoff script verifies the NVIDIA vendor/device IDs before it
-unbinds anything; it refuses unexpected PCI identities. The current topology
-addresses are therefore fail-closed rather than silently retargeted if PCI
-enumeration changes. Re-check the address and IDs after hardware or firmware
-changes before attempting a start. The backends must never run at the same time, and their writable disks are intentionally separate.
-
-The libvirt qcow2 is an empty 200 GiB disk and `win11.iso` is the installer.
-No Windows installation is migrated automatically. The VirtIO ISO comes from
-the pinned Nix package in the active system closure.
+The writable VM state lives in the Incus storage pool `gamepass`, rooted at
+`/var/lib/incus-gamepass`. The VirtIO ISO is generated from the pinned Nix
+package in the active system closure. No external download or automatic
+Windows-state migration occurs.
 
 ## Declarative deployment
 
@@ -33,33 +36,33 @@ The NixOS switch enables Incus, creates access groups, pre-seeds the
 **not** initialize an Incus VM, import media, start a guest, bind the GPU, or
 mutate Windows state.
 
-Persistent state is preserved across generation changes:
+Persistent Incus state is preserved across generation changes:
 
 - `/var/lib/incus`
 - `/var/lib/incus-gamepass`
-- `/var/lib/libvirt`
 
-After deployment, run the read-only readiness checks first:
+The VM profile is dormant (`boot.autostart = false`). The systemd wrapper is
+manual-only and requires the preseed service before a start. The preseed guard skips initialization only when the registered pool has the expected source. An unregistered storage directory or a non-empty expected source is a fail-closed reconciliation state: activation refuses to delete or overwrite it, and the operator must inventory it first.
+
+## Readiness checks
+
+Run these after deployment and before creating or starting the VM:
 
 ```bash
+incus-gamepass-vm reconcile
 incus-gamepass-vm status
-incus-gamepass-vm check-media
-incus-gamepass-vm check-config
-virsh -c qemu:///system domstate gamepass-win11
+incus storage list
+incus storage get gamepass source
+incus profile show gamepass-win11
+incus list
 ```
 
-`check-media` prints sizes and SHA-256 hashes for the Windows and VirtIO ISOs.
-`check-config` verifies the preseeded network/profile, KVMFR access, that an
-existing Incus VM is stopped, and that the libvirt backend is not active. Before
-creation it should say:
-
-```text
-No Incus VM exists yet; preseed/profile checks passed
-```
+`incus-gamepass-vm reconcile` must report either an expected registered pool or a safe empty-source initialization state. If it reports `BLOCKED`, stop and inventory the path; do not delete or overwrite it. The expected initial state is no `gamepass-win11-incus` instance. If an instance exists, confirm it is stopped and inspect its expanded configuration before changing anything.
 
 ## One-time stopped VM creation
 
-Only run this after the checks pass and the libvirt VM is off:
+Only run this after confirming the Incus pool/profile and installer media are
+ready:
 
 ```bash
 incus-gamepass-vm create
@@ -67,18 +70,14 @@ incus config show gamepass-win11-incus --expanded
 incus list
 ```
 
-The helper uses `incus init --empty --vm`, which creates a stopped VM. It then
-sets the instance-only `image.os` property, imports each ISO into the `gamepass`
-pool using a content-addressed volume name, attaches the installer and VirtIO
-media as USB optical devices, and adds the Incus agent CD.
+The helper uses `incus init --empty --vm`, which creates a stopped VM. It sets
+the instance OS metadata, imports the Windows and VirtIO media into the
+`gamepass` pool, attaches the installer media and Incus agent CD, and leaves the
+VM stopped for review. It does not start the guest or claim the GPU.
 
-Creation is transactional. If an import or device attachment fails, the helper
-removes the VM and only the ISO volumes created by that attempt. ISO volume
-names include a short SHA-256 prefix, so changed media cannot silently replace
-an older volume; old content-addressed volumes are retained until explicitly
-cleaned. It refuses to silently accept an existing partial VM; inspect it with
-`check-config` and remove it deliberately only after confirming no data must be
-retained.
+If creation fails, inspect the partial state before retrying. Do not delete the
+whole pool or `/var/lib/incus`; remove only a deliberately confirmed partial
+instance or unused media volume.
 
 ## Installation workflow
 
@@ -94,20 +93,23 @@ load the VirtIO storage driver from the attached VirtIO CD; install the network
 driver as well. After Windows boots, install the VirtIO guest tools and the
 Incus Windows agent from the attached media.
 
-Do not add a GPU or switch to Looking Glass until the basic VM boots, the
-VirtIO drivers work, and the guest can shut down cleanly.
+The VM must remain stopped until the basic guest boots, VirtIO drivers work,
+and Windows can shut down cleanly. Do not troubleshoot GPU handoff and guest
+installation at the same time.
 
 ## Looking Glass and GPU handoff
 
-The host-side KVMFR path is declared for both backends. Incus uses the pinned
-`raw.qemu` ivshmem configuration and `incus.service` receives only the narrow
+The host-side KVMFR path is declared for Incus. The profile uses Incus' physical `gpu` device for the 3060 Ti, a raw `pci`
+device for HDMI audio, and the pinned `raw.qemu` ivshmem configuration.
+The host guard remains the single host-side preflight owner; Incus remains the
+single VFIO bind/restore owner. `incus.service` receives only the narrow
 `/dev/kvmfr0` permission plus the `kvm` group.
 
 Before a GPU-backed start:
 
 ```bash
 incus-gamepass-vm check-looking-glass
-incus-gamepass-vm check-config
+incus-gamepass-vm status
 incus-gamepass-vm start
 looking-glass-gamepass
 ```
@@ -116,66 +118,52 @@ The launcher expands to `looking-glass-client -f /dev/kvmfr0 -F -S`. The
 pre-start check proves host KVMFR access, not guest-side Looking Glass
 functionality; guest validation still requires the Windows Looking Glass host.
 
-The handoff uses `/run/lock/gamepass-vfio.lock`, checks that the other backend is
-stopped, stops only the known 3060 Ti workloads, and verifies every PCI function
-is bound to `vfio-pci` before recording ownership. It never uses boot-time
-`vfio-pci.ids`, so the card remains available to the host while both guests are
-dormant.
+The Incus service is the sole VM start path. Do not manually bind or unbind PCI
+devices, and do not start an alternate hypervisor. Incus must report both 3060
+Ti functions successfully passed through; if it fails, leave the guest stopped
+and inspect the service journal. If Incus does not restore the recorded host
+drivers after a failed start or stop, leave `/run/gamepass-vfio/*` intact and
+treat it as a manual-recovery incident rather than attempting a second binder.
 
-## Safe stop and rollback
-
-The stop helpers wait for a confirmed stopped state. If shutdown does not
-complete, they attempt a bounded force/destroy fallback and then fail closed;
-the GPU release hook refuses to run while the guest remains active.
+## Safe stop and recovery
 
 ```bash
 incus-gamepass-vm stop
-incus-gamepass-vm start-libvirt
+incus-gamepass-vm status
+incus list
 ```
 
-Return to Incus with:
-
-```bash
-incus-gamepass-vm stop-libvirt
-incus-gamepass-vm start
-```
-
-The systemd units conflict with each other, but direct `incus start` and
-`virsh start` can bypass the ownership guard. Use the helper for all normal
-operations. Stopping a VM returns the PCI functions to host drivers; it does
-not automatically restart mining/LLM services that were stopped for handoff.
-
-## Recovery and cleanup
-
-If creation fails, first inspect rather than retrying blindly:
+If a stop fails, do not manually unbind devices or restart host GPU services.
+Confirm the guest state and inspect the journal first:
 
 ```bash
 incus-gamepass-vm status
-incus-gamepass-vm check-config
-incus profile show gamepass-win11
-incus storage volume list gamepass
-journalctl -u incus.service -b --no-pager | tail -100
+journalctl -u gamepass-incus-vm.service -u incus.service -b --no-pager | tail -100
+incus config show gamepass-win11-incus --expanded
 ```
 
-A partial VM is not automatically deleted on a later run. After confirming it
-is safe to discard, stop/delete it and remove only its content-addressed ISO
-volumes; do not delete the whole `gamepass` pool or `/var/lib/incus`. Before
-removing an old ISO volume, confirm it is not referenced by the VM:
+A reboot is a last resort and should be considered only after the guest is
+definitively stopped and the kernel still holds a VFIO device. The RTX 3090
+must remain available throughout recovery.
+
+## Cleanup
+
+Before removing any state, verify the exact instance and volume names:
 
 ```bash
+incus list
 incus config show gamepass-win11-incus --expanded
 incus storage volume list gamepass
-incus storage volume delete gamepass win11-installer-<old-hash>
-incus storage volume delete gamepass virtio-win-<old-hash>
 ```
 
-The placeholder `<old-hash>` is intentional: list and verify the exact name;
-do not paste it literally.
+The placeholder `<volume-name>` below is intentional; list and verify the exact
+name before using it:
 
-If a backend stop fails, do not manually unbind PCI devices or restart host GPU
-services. Confirm the guest state and inspect the service journal first. A
-reboot may be required only if the kernel still holds a VFIO device after the
-hypervisor is definitively stopped.
+```bash
+incus storage volume delete gamepass <volume-name>
+```
+
+Never delete the entire `gamepass` pool or `/var/lib/incus` as a cleanup shortcut.
 
 ## Research references
 
