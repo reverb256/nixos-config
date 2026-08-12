@@ -1167,11 +1167,12 @@
   # Disable edk2-uefi-shell to avoid python3 → tkinter → tcl-8_6 eval error
   boot.loader.systemd-boot.edk2-uefi-shell.enable = false;
 
-  # Bonsai 27B: ternary on RTX 3090 (port 8005, asymmetric KV) + 1-bit on RTX 3060 Ti (port 1236)
+  # Bonsai services are OWNED BY HOME-MANAGER (bonsai-ternary-3090-262k.service
+  # + bonsai-1bit-3060ti-128k-turbo4.service, correct CUDA pinning + UMA=0).
+  # The system-level module must stay OFF or its units (bonsai-*-zephyr.service,
+  # old binary, --host 0.0.0.0) crash-loop on the same ports (8005/1236).
   services.bonsai = {
-    enable = true;
-    binaryStorePath = "/nix/store/560rfa8pm0579c6lp9x0zcgx2izicmjc-llama-cpp-cuda-0.0.0";  # GC'd 6pnbfx3... rebuilt fork (2026-08-12)
-    turboBinaryStorePath = "/usr/local/bin/llama-server-turbo";
+    enable = false;
   };
 
   # NVIDIA Switchyard LLM routing proxy - local + remote backends.
