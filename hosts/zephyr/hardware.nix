@@ -158,11 +158,7 @@ options nvidia_uvm uvm_disable_hmm=1
     NCCL_IB_DISABLE = "1";
     NCCL_ALGO = "Tree";
 
-    # UMA DISABLED (2026-08-12): GGML_CUDA_ENABLE_UNIFIED_MEMORY=1 spilled GPU
-    # model memory into system RAM -> earlyoom killed llama-server at 51 MiB
-    # free. GPU pinning is handled per-process (llama-swap / llm-loader / Bonsai
-    # units use `env -i` + CUDA_VISIBLE_DEVICES=<UUID> + UNIFIED_MEMORY=0).
-    GGML_CUDA_ENABLE_UNIFIED_MEMORY = "0";
+    GGML_CUDA_ENABLE_UNIFIED_MEMORY = "0"; # UMA spills VRAM to RAM over PCIe
     GGML_CUDA_GPU_MEMORY_FRACTION = "0.9";
     LLAMA_GRAPH_POOL_SIZE = "0.2";
   };

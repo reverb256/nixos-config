@@ -1064,11 +1064,10 @@
     NCCL_IB_DISABLE = "1"; # Disable InfiniBand (not applicable)
     NCCL_ALGO = "Tree"; # Tree algorithm for multi-GPU communication
 
-    # llama.cpp/llama-cpp CUDA settings (UMA pinned to 0 in hardware.nix —
-    # =1 spilled GPU memory to system RAM and earlyoom killed llama-server).
-    GGML_CUDA_ENABLE_UNIFIED_MEMORY = "0";
-    GGML_CUDA_GPU_MEMORY_FRACTION = "0.9";
-    LLAMA_GRAPH_POOL_SIZE = "0.2";
+    # llama.cpp/llama-cpp CUDA settings
+    GGML_CUDA_ENABLE_UNIFIED_MEMORY = "0"; # UMA spills VRAM to RAM over PCIe; every llama overrides to 0 anyway
+    GGML_CUDA_GPU_MEMORY_FRACTION = "0.9"; # Use 90% of GPU VRAM (leave headroom)
+    LLAMA_GRAPH_POOL_SIZE = "0.2"; # CUDA Graphs pool (20% of VRAM)
     # KV cache quantization (Q4_0) is configured per-model in backend
   };
 
@@ -1168,16 +1167,11 @@
   # Disable edk2-uefi-shell to avoid python3 → tkinter → tcl-8_6 eval error
   boot.loader.systemd-boot.edk2-uefi-shell.enable = false;
 
-  # Bonsai 27B: HOME-MANAGER OWNS the services on zephyr (user units declared
-  # in home-manager-config modules/zephyr-gpu-workloads.nix with correct
-  # CUDA pinning: ternary on 3090 = CUDA_VISIBLE_DEVICES=0, 1-bit on 3060 Ti =
-  # CUDA_VISIBLE_DEVICES=1 — llama.cpp enumeration is REVERSED vs nvidia-smi).
-  # Disabled here to avoid port conflicts (8005/1236) with the HM user units
-  # and the old reversed-GPU crash loop (cudaMalloc OOM on 8 GB).
+  # Bonsai 27B: ternary on RTX 3090 (port 8005, asymmetric KV) + 1-bit on RTX 3060 Ti (port 1236)
   services.bonsai = {
-    enable = false;
-    binaryStorePath = null;
-    turboBinaryStorePath = null;
+    enable = true;
+    binaryStorePath = "/nix/store/560rfa8pm0579c6lp9x0zcgx2izicmjc-llama-cpp-cuda-0.0.0";  # GC'd 6pnbfx3... rebuilt fork (2026-08-12)
+    turboBinaryStorePath = "/usr/local/bin/llama-server-turbo";
   };
 
   # NVIDIA Switchyard LLM routing proxy - local + remote backends.
