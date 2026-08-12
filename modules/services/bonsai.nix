@@ -213,12 +213,15 @@ with lib; let
   # 5600 XT has 6 GB VRAM — Bonsai is hybrid-attention (only 16/64 layers
   # cache), so KV is small. Testing how far -c can go on 6 GB (q4_0 KV).
   # VK_ICD_FILENAMES forces RADV discovery. CUDA disabled (no libcuda on AMD).
+  # NO DSpark drafter here: mainline llama.cpp cannot load the 'dspark' draft
+  # architecture (unknown model architecture: 'dspark' -> exit 1 -> crash loop),
+  # and the drafter never fit 6 GB VRAM anyway (3060 Ti history: OOM -> 119/379
+  # restarts). Plain 1-bit Vulkan is the stable config.
   bit1Sentry = mkIf (host == "sentry") (mk1bitService {
     name = "sentry"; desc = "Bonsai 27B 1-bit — Sentry AMD RX 5600 XT via Vulkan (port 8003)";
     port = 8003; binary = mainlineVulkanBinary;
     extraEnv = { GGML_VULKAN_DEVICE = "0"; VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/radeon_icd.x86_64.json"; };
     contextSize = "8192"; cacheTypeK = "q4_0"; cacheTypeV = "q4_0"; memoryMax = "8G";
-    specType = "draft-dspark"; specDraftNMax = 4; draftModel = "/srv/models/bonsai/dspark/Bonsai-27B-dspark-Q4_1.gguf";
   });
 
   # 1-bit on krash3 CPU-only (no GPU available)
