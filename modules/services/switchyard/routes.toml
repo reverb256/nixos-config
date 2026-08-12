@@ -1,0 +1,87 @@
+# Switchyard routes — switchyard-server 0.2.0 schema (verified from crate README).
+# Clients select a route by posting "model": "<route id>".
+# API keys come from env vars (api_key_env); the TOML never holds secrets.
+# Env names must match secretspec env-var names wired into the systemd unit
+# via services.switchyard.envFiles (zephyr services.nix).
+schema_version = 1
+
+# ── LLM clients ──────────────────────────────────────────────────────────────
+[llm_clients.muse_local]
+format = "openai_chat"
+base_url = "http://127.0.0.1:21560/v1"
+
+[llm_clients.bonsai_sentry]
+format = "openai_chat"
+base_url = "http://10.1.1.140:8003/v1"
+
+[llm_clients.nim]
+format = "openai_chat"
+base_url = "https://ai.api.nvidia.com/v1"
+api_key_env = "NVIDIA_API_KEY"
+max_retries = 2
+
+[llm_clients.opencode_go]
+format = "openai_chat"
+base_url = "https://opencode.ai/zen/go/v1"
+api_key_env = "OPENCODE_GO_API_KEY"
+max_retries = 2
+
+[llm_clients.opencode_zen]
+format = "openai_chat"
+base_url = "https://opencode.ai/zen/v1"
+api_key_env = "OPENCODE_ZEN_API_KEY"
+max_retries = 2
+
+# ── Targets (id = exact model id sent upstream) ──────────────────────────────
+[targets.muse_30b]
+id = "muse-glimmer-30b"
+llm_client = "muse_local"
+
+[targets.bonsai_1bit]
+id = "bonsai-27b-1bit-sentry"
+llm_client = "bonsai_sentry"
+
+[targets.nim_default]
+id = "meta/llama-3.3-70b-instruct"
+llm_client = "nim"
+
+[targets.opencode_go_default]
+id = "go"
+llm_client = "opencode_go"
+
+[targets.opencode_zen_default]
+id = "zen"
+llm_client = "opencode_zen"
+
+# ── Routes (id = model id clients send) ──────────────────────────────────────
+[routes.muse]
+id = "switchyard/muse"
+type = "passthrough"
+target = "muse_30b"
+
+[routes.bonsai]
+id = "switchyard/bonsai"
+type = "passthrough"
+target = "bonsai_1bit"
+
+[routes.nim]
+id = "switchyard/nim"
+type = "passthrough"
+target = "nim_default"
+
+[routes.opencode_go]
+id = "switchyard/opencode-go"
+type = "passthrough"
+target = "opencode_go_default"
+
+[routes.opencode_zen]
+id = "switchyard/opencode-zen"
+type = "passthrough"
+target = "opencode_zen_default"
+
+# Random split between local models: 70% Muse (fast, multimodal), 30% Bonsai.
+[routes.local_default]
+id = "switchyard/local"
+type = "random"
+targets = ["muse_30b", "bonsai_1bit"]
+weights = [7, 3]
