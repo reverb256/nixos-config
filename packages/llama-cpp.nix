@@ -18,11 +18,12 @@
   shaderc ? null,
   glslang ? null,
   # Build configuration
-  # Pinned to a commit that includes Muse Glimmer architecture support
-  # (llama.cpp PR #26841 "model: Muse Glimmer Support", merged 2026-08-10).
-  # The b9048/nixpkgs tag predates it and fails with
-  # "unknown model architecture: 'muse-glimmer'".
-  version ? "0-unstable-2026-08-10",
+  # Pinned to a commit that includes Muse Glimmer + Nemotron 3.5 Lightning
+  # architecture support (PR #26841 "model: Muse Glimmer Support" merged
+  # 2026-08-10; PR #26905 "Dflash support for nemotron-3.5" merged
+  # 2026-08-11). Earlier pins fail with "unknown model architecture" or
+  # "wrong number of tensors" on the Nemotron 3.5 Lightning GGUF.
+  version ? "0-unstable-2026-08-11",
   # Feature flags
   native ? false,
   sharedLibs ? false,
@@ -38,8 +39,8 @@
   # muse-glimmer commit specifically).
   defaultSrc = fetchgit {
     url = "https://github.com/ggml-org/llama.cpp";
-    rev = "030ebb558a5820b444a8f836ed5cdd46c9b4bd7a";
-    hash = "sha256-MDcdHgI1XwWh2BIfzKTDubCZtzwC9YsFRS7H5S4e/n0=";
+    rev = "cc078b45b635b3a59aa9adc1b888150ab67798a8";
+    hash = "sha256-9ZSkkXO+ReZMHeprON+omy2BHfXHrVi+xm8WtqLB6gI=";
     leaveDotGit = false;
   };
   # src defined as let binding above
